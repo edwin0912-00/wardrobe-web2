@@ -1,0 +1,68 @@
+.upload-card.has-file {
+  border-style: solid;
+  border-color: #83ad38;
+  background: #f8ffea;
+}
+
+.file-preview {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: -4px 0 12px;
+}
+
+.selected-file {
+  width: 100%;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) 28px;
+  align-items: center;
+  gap: 10px;
+  padding: 7px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+}
+
+.selected-file img {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 7px;
+  background: #eef1eb;
+}
+
+.selected-file span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.remove-file {
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 50%;
+  background: #eef1eb;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.remove-file:hover {
+  background: #ffe5e3;
+  color: var(--danger);
+}
+
+.garment-preview .selected-file {
+  width: calc(50% - 4px);
+}
+
+@media (max-width: 600px) {
+  .garment-preview .selected-file {
+    width: 100%;
+  }
+}

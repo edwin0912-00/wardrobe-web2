@@ -6,6 +6,7 @@
   <meta name="description" content="ZEELY reference-conditioned AI avatar generator">
   <title>ZEELY — AI Avatar Studio</title>
   <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/upload.css">
   <link rel="stylesheet" href="/progress.css">
 </head>
 <body>
@@ -25,13 +26,15 @@
       <form id="run-form" class="panel form-panel">
         <div class="panel-head"><div><span class="step">01</span><h2>Матеріали</h2></div><span class="required-note">* обов’язково</span></div>
         <label class="upload-card">
-          <input id="person-photo" name="person_photo" type="file" accept="image/png,image/jpeg,image/webp" required>
+          <input id="person-photo" name="person_photo" type="file" accept="image/png,image/jpeg,image/webp">
           <span class="upload-icon">＋</span><strong>Фото людини *</strong><small>Довільний фон і поза · PNG, JPEG або WEBP</small><span class="file-name" data-for="person-photo">Обрати файл</span>
         </label>
+        <div id="person-preview" class="file-preview" aria-live="polite"></div>
         <label class="upload-card compact">
           <input id="identity-detail" name="identity_detail" type="file" accept="image/png,image/jpeg,image/webp">
           <span class="upload-icon">＋</span><strong>Додатковий identity reference</strong><small>Face або full-body — необов’язково</small><span class="file-name" data-for="identity-detail">Обрати файл</span>
         </label>
+        <div id="identity-preview" class="file-preview" aria-live="polite"></div>
 
         <div class="divider"><span>НОВИЙ ОБРАЗ</span></div>
         <label class="field-label" for="outfit-text">Опис образу</label>
@@ -40,7 +43,7 @@
           <input id="garment-images" name="garment_images" type="file" accept="image/png,image/jpeg,image/webp" multiple>
           <span class="upload-icon">＋</span><strong>Фото речей</strong><small>До 5 довільних фото — engine сам визначить категорії</small><span class="file-name" data-for="garment-images">Додати гардероб</span>
         </label>
-        <div id="garment-preview" class="garment-preview"></div>
+        <div id="garment-preview" class="file-preview garment-preview" aria-live="polite"></div>
         <label class="toggle"><input type="checkbox" name="generate_scene" checked><span></span><div><strong>Art Director scene</strong><small>Bonus після успішного core result</small></div></label>
         <label class="consent"><input type="checkbox" name="consent" required><span>Я маю право використовувати ці фото та погоджуюсь на їх обробку зовнішніми AI providers.</span></label>
         <button id="submit-button" class="primary-button" type="submit"><span>Створити avatar</span><b>→</b></button>
