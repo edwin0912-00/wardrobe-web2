@@ -1,9 +1,10 @@
 # Encrypted Zeely secrets
 
-`zeely-runtime-private.tar.gz.enc` is the encrypted backup of the two project-specific production secrets:
+`zeely-runtime-private.tar.gz.enc` is the encrypted backup of the project-specific production secrets:
 
 - `demo-pin`
 - `session-secret`
+- the named Cloudflare Tunnel credential JSON
 
 The encryption key is stored in macOS Keychain under service `com.madeforthisjob.zeely.secret-backup`. No plaintext value is committed or printed by the scripts.
 
@@ -21,8 +22,9 @@ Restore on the same Mac after a clean checkout:
 ```bash
 ./tools/restore-project-secrets.sh
 launchctl kickstart -k gui/$(id -u)/com.madeforthisjob.zeely
+launchctl kickstart -k gui/$(id -u)/com.madeforthisjob.cloudflared
 ```
 
 Restore refuses to replace existing files. Use `--force` only when intentional.
 
-GitHub CLI and Higgsfield CLI credentials are maintained by their own system credential stores. They are not copied into this archive because they are revocable account tokens rather than project configuration.
+The Cloudflare account-level `cert.pem`, GitHub CLI credentials and Higgsfield CLI credentials stay in their system credential stores. They are not copied into this project archive. The Tunnel credential is included because it is the minimum project-scoped runtime credential needed to restore this deployment.

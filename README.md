@@ -25,6 +25,8 @@ npm run app
 
 PIN-gate захищає HTML і всі `/api/*` routes, крім health check та login. Сесійна cookie має `HttpOnly`, `SameSite=Strict`, `Secure` і живе 30 днів; після п’яти неправильних спроб IP блокується на 15 хвилин. Лише для прямої локальної HTTP-перевірки додати `ZEELY_COOKIE_SECURE=false`; публічний tunnel має працювати з HTTPS і стандартним `Secure` режимом.
 
+Активний публічний deployment: [www.madeforthisjob.com](https://www.madeforthisjob.com) і резервний [beta.madeforthisjob.com](https://beta.madeforthisjob.com). Стан сервісів, recovery і незавершений DNS-крок для apex описані в [deployment runbook](docs/DEPLOYMENT_UA.md).
+
 Fresh run створює:
 
 ```text

@@ -121,7 +121,7 @@
   },
   "qa": {
     "report": "output/002/qa-report.json",
-    "report_sha256": "952e1c8664f4642945d46908ef69ef2307ef7dc5d8239fea505fc14a5267d9a9",
+    "report_sha256": "74e5dd8363bc13cf17e0aa62391f85ddf3f6cae942fe5ec01e3a8f69011cc3eb",
     "visual_review": "reviews/visual-review.json",
     "visual_review_sha256": "2edc5d6a5fbbee367ada10db67fbe01ab2d1747b76be899683724dc4b0ef8a39"
   }
