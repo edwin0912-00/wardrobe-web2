@@ -1,16 +1,19 @@
 import { execFile } from 'node:child_process';
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { mkdir, readFile, readdir, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
 
 const execute = promisify(execFile);
 const TERMINAL_PROBLEMS = new Set(['FAILED', 'NEEDS_INPUT']);
+const RETRYABLE_INCIDENTS = new Set(['open', 'queued', 'failed']);
+const AGENT_TIMEOUT_MS = 12 * 60_000;
+const DEFAULT_LEASE_MS = AGENT_TIMEOUT_MS + 60_000;
 const fingerprint = (value) => createHash('sha256').update(value).digest('hex').slice(0, 16);
 
 async function atomicJson(filename, value) {
   await mkdir(path.dirname(filename), { recursive: true });
-  const temporary = `${filename}.${process.pid}.tmp`;
+  const temporary = `${filename}.${process.pid}.${randomUUID()}.tmp`;
   await writeFile(temporary, `${JSON.stringify(value, null, 2)}\n`, { mode: 0o600 });
   await rename(temporary, filename);
 }
@@ -32,24 +35,55 @@ function phaseComment(run) {
 }
 
 export class AgentSupervisor {
-  constructor({ store, runsRoot, stateRoot, sourceRoot, clock = () => new Date(), agentEnabled = false }) {
+  constructor({
+    store,
+    runsRoot,
+    stateRoot,
+    sourceRoot,
+    clock = () => new Date(),
+    agentEnabled = false,
+    executor = execute,
+    gitStatus = null,
+    leaseMs = DEFAULT_LEASE_MS,
+  }) {
     this.store = store;
     this.runsRoot = path.resolve(runsRoot);
     this.stateRoot = path.resolve(stateRoot);
     this.sourceRoot = path.resolve(sourceRoot);
     this.clock = clock;
     this.agentEnabled = agentEnabled;
+    this.executor = executor;
+    this.gitStatus = gitStatus ?? (async () => {
+      const { stdout } = await execute('git', ['status', '--porcelain'], { cwd: this.sourceRoot, timeout: 10_000 });
+      return { clean: !stdout.trim() };
+    });
+    this.leaseMs = leaseMs;
+    this.ownerId = fingerprint(`${process.pid}|${this.clock().toISOString()}|${Math.random()}`);
     this.statePath = path.join(this.stateRoot, 'state.json');
-    this.state = { version: 1, last_event_id: null, started_at: null, incidents: {}, active_incident: null };
+    this.state = { version: 2, last_event_id: null, started_at: null, incidents: {}, active_incident: null, active_lease: null };
     this.timer = null;
     this.runningAgent = null;
+    this.runningIncidentId = null;
+    this.dispatchChain = Promise.resolve();
+    this.closed = false;
   }
 
   async initialize() {
     await mkdir(path.join(this.stateRoot, 'incidents'), { recursive: true });
-    try { this.state = JSON.parse(await readFile(this.statePath, 'utf8')); } catch (error) { if (error.code !== 'ENOENT') throw error; }
+    try {
+      const saved = JSON.parse(await readFile(this.statePath, 'utf8'));
+      this.state = {
+        ...this.state,
+        ...saved,
+        version: 2,
+        incidents: saved.incidents && typeof saved.incidents === 'object' ? saved.incidents : {},
+        active_lease: saved.active_lease ?? null,
+      };
+    } catch (error) { if (error.code !== 'ENOENT') throw error; }
     this.state.started_at = this.state.started_at ?? this.clock().toISOString();
+    await this.#reconcileActiveIncident();
     await atomicJson(this.statePath, this.state);
+    await this.#dispatchNext();
   }
 
   status() {
@@ -58,12 +92,13 @@ export class AgentSupervisor {
   }
 
   async start() {
+    this.closed = false;
     await this.initialize();
     await this.tick();
     this.timer = setInterval(() => this.tick().catch(() => {}), 1_000);
   }
 
-  async close() { if (this.timer) clearInterval(this.timer); this.timer = null; }
+  async close() { if (this.timer) clearInterval(this.timer); this.timer = null; this.closed = true; }
 
   async #readRun(runId) {
     if (!/^[0-9a-f-]{36}$/i.test(runId ?? '')) return null;
@@ -79,26 +114,130 @@ export class AgentSupervisor {
     const key = fingerprint(`${run.status}|${run.phase}|${run.error?.name ?? ''}|${run.message}`);
     const known = this.state.incidents[key];
     if (known) return;
-    const incident = { id: key, run_id: run.run_id, status: historical ? 'observed' : 'open', attempts: known?.attempts ?? 0,
+    const incident = { id: key, run_id: run.run_id, status: historical ? 'observed' : 'queued', attempts: known?.attempts ?? 0,
       created_at: this.clock().toISOString(), trigger_event_id: event.id,
       summary: { status: run.status, phase: run.phase, message: run.message, error_name: run.error?.name ?? null } };
     this.state.incidents[key] = incident;
     const incidentPath = path.join(this.stateRoot, 'incidents', `${key}.json`);
     await atomicJson(incidentPath, incident);
     await this.#comment(run, `Incident ${key} створено: ${run.message}`, 'error', 'agent.incident_opened');
-    if (!historical && this.agentEnabled) this.#runAgent(incident, incidentPath).catch(() => {});
   }
 
-  async #runAgent(incident, incidentPath) {
-    if (this.runningAgent || this.state.active_incident) return;
-    const { stdout: status } = await execute('git', ['status', '--porcelain'], { cwd: this.sourceRoot, timeout: 10_000 });
-    if (status.trim()) {
-      await this.store.append({ source: 'agent', type: 'agent.repair_queued', severity: 'warn', run_id: incident.run_id,
-        data: { message: `Incident ${incident.id} очікує чистий Git workspace; автоматичний patch не запущено.` } });
+  #incidentPath(incidentId) {
+    return path.join(this.stateRoot, 'incidents', `${incidentId}.json`);
+  }
+
+  #leaseIsLive(incidentId) {
+    const lease = this.state.active_lease;
+    return lease?.incident_id === incidentId
+      && lease.owner_id === this.ownerId
+      && Number.isFinite(Date.parse(lease.expires_at))
+      && Date.parse(lease.expires_at) > this.clock().valueOf();
+  }
+
+  async #reconcileActiveIncident() {
+    const activeId = this.state.active_incident;
+    if (!activeId) {
+      this.state.active_lease = null;
       return;
     }
+    if (this.runningAgent && this.runningIncidentId === activeId) return;
+    if (this.#leaseIsLive(activeId)) return;
+
+    const incident = this.state.incidents[activeId];
+    if (incident) {
+      if ((incident.attempts ?? 0) >= 3) {
+        incident.status = 'stopped';
+        incident.queue_reason = 'attempt_limit';
+      } else if (!['observed', 'review_required', 'stopped'].includes(incident.status)) {
+        incident.status = 'queued';
+        incident.queue_reason = 'restart_recovery';
+      }
+      await atomicJson(this.#incidentPath(activeId), incident);
+      await this.store.append({ source: 'agent', type: 'agent.repair_requeued', severity: 'warn', run_id: incident.run_id,
+        data: { message: `Stale supervisor lock for incident ${activeId} released; incident returned to the FIFO queue.` } });
+    }
+    this.state.active_incident = null;
+    this.state.active_lease = null;
+  }
+
+  async #isGitClean() {
+    const result = await this.gitStatus({ sourceRoot: this.sourceRoot });
+    if (typeof result === 'boolean') return result;
+    if (typeof result === 'string') return !result.trim();
+    if (typeof result?.clean === 'boolean') return result.clean;
+    return !(result?.stdout ?? '').trim();
+  }
+
+  #dispatchNext() {
+    if (!this.agentEnabled || this.closed) return Promise.resolve();
+    this.dispatchChain = this.dispatchChain
+      .then(() => this.#dispatchOnce())
+      .catch(async (error) => {
+        await this.store.append({ source: 'agent', type: 'agent.dispatch_failed', severity: 'error',
+          data: { message: `Supervisor dispatch failed: ${(error?.message ?? String(error)).slice(0, 500)}` } });
+      });
+    return this.dispatchChain;
+  }
+
+  async #dispatchOnce() {
+    if (this.runningAgent) return;
+    await this.#reconcileActiveIncident();
+    if (this.state.active_incident) return;
+
+    const incident = Object.values(this.state.incidents)
+      .filter((candidate) => RETRYABLE_INCIDENTS.has(candidate.status) && (candidate.attempts ?? 0) < 3)
+      .sort((left, right) => {
+        const timestampDifference = Date.parse(left.created_at) - Date.parse(right.created_at);
+        return timestampDifference || left.id.localeCompare(right.id);
+      })[0];
+    if (!incident) return;
+
+    let clean;
+    try {
+      clean = await this.#isGitClean();
+    } catch (error) {
+      const shouldNotify = incident.queue_reason !== 'git_check_failed';
+      incident.status = 'queued';
+      incident.queue_reason = 'git_check_failed';
+      await atomicJson(this.#incidentPath(incident.id), incident);
+      await atomicJson(this.statePath, this.state);
+      if (shouldNotify) {
+        await this.store.append({ source: 'agent', type: 'agent.repair_queued', severity: 'warn', run_id: incident.run_id,
+          data: { message: `Incident ${incident.id} remains queued because Git status could not be verified: ${(error?.message ?? String(error)).slice(0, 300)}` } });
+      }
+      return;
+    }
+    if (!clean) {
+      const shouldNotify = incident.queue_reason !== 'dirty_git';
+      incident.status = 'queued';
+      incident.queue_reason = 'dirty_git';
+      await atomicJson(this.#incidentPath(incident.id), incident);
+      await atomicJson(this.statePath, this.state);
+      if (shouldNotify) {
+        await this.store.append({ source: 'agent', type: 'agent.repair_queued', severity: 'warn', run_id: incident.run_id,
+          data: { message: `Incident ${incident.id} очікує чистий Git workspace; автоматичний patch не запущено.` } });
+      }
+      return;
+    }
+
+    await this.#launchAgent(incident);
+  }
+
+  async #launchAgent(incident) {
+    const incidentPath = this.#incidentPath(incident.id);
     incident.attempts += 1;
+    incident.status = 'running';
+    incident.queue_reason = null;
     this.state.active_incident = incident.id;
+    const acquiredAt = this.clock();
+    this.state.active_lease = {
+      incident_id: incident.id,
+      owner_id: this.ownerId,
+      acquired_at: acquiredAt.toISOString(),
+      expires_at: new Date(acquiredAt.valueOf() + this.leaseMs).toISOString(),
+    };
+    await atomicJson(incidentPath, incident);
     await atomicJson(this.statePath, this.state);
     const outputPath = path.join(this.stateRoot, 'incidents', `${incident.id}-agent-result.md`);
     const prompt = [
@@ -112,24 +251,38 @@ export class AgentSupervisor {
     ].join('\n');
     await this.store.append({ source: 'agent', type: 'agent.repair_started', severity: 'warn', run_id: incident.run_id,
       data: { message: `Codex bug-hunt ${incident.id} запущено, attempt ${incident.attempts}/3.` } });
-    this.runningAgent = execute('codex', ['exec', prompt, '--ephemeral', '--skip-git-repo-check', '--sandbox', 'workspace-write', '--model', 'gpt-5.6-terra', '--output-last-message', outputPath, '-C', this.sourceRoot],
-      { cwd: this.sourceRoot, timeout: 12 * 60_000, maxBuffer: 4 * 1024 * 1024 });
+    const executionPromise = Promise.resolve().then(() => this.executor('codex', ['exec', prompt, '--ephemeral', '--skip-git-repo-check', '--sandbox', 'workspace-write', '--model', 'gpt-5.6-terra', '--output-last-message', outputPath, '-C', this.sourceRoot],
+      { cwd: this.sourceRoot, timeout: AGENT_TIMEOUT_MS, maxBuffer: 4 * 1024 * 1024 }));
+    this.runningAgent = executionPromise;
+    this.runningIncidentId = incident.id;
+    this.#settleAgent(incident, incidentPath, outputPath, executionPromise).catch(async (error) => {
+      await this.store.append({ source: 'agent', type: 'agent.dispatch_failed', severity: 'error', run_id: incident.run_id,
+        data: { message: `Supervisor could not settle incident ${incident.id}: ${(error?.message ?? String(error)).slice(0, 500)}` } });
+    });
+  }
+
+  async #settleAgent(incident, incidentPath, outputPath, executionPromise) {
     try {
-      await this.runningAgent;
+      await executionPromise;
       const result = await readFile(outputPath, 'utf8');
       if (!result.trim()) throw new Error('Codex bug-hunt returned no review artifact');
       incident.status = 'review_required';
+      incident.queue_reason = null;
       await this.store.append({ source: 'agent', type: 'agent.repair_result', severity: 'warn', run_id: incident.run_id,
         data: { message: `Bug-hunt ${incident.id} повернув результат. Patch залишено у source workspace для незалежних тестів і review; автоматичного deploy немає.` } });
     } catch (error) {
-      incident.status = incident.attempts >= 3 ? 'stopped' : 'failed';
+      incident.status = incident.attempts >= 3 ? 'stopped' : 'queued';
+      incident.queue_reason = incident.attempts >= 3 ? 'attempt_limit' : 'agent_failed';
       await this.store.append({ source: 'agent', type: 'agent.repair_failed', severity: 'error', run_id: incident.run_id,
-        data: { message: `Bug-hunt ${incident.id} завершився помилкою: ${error.message.slice(0, 500)}` } });
+        data: { message: `Bug-hunt ${incident.id} завершився помилкою: ${(error?.message ?? String(error)).slice(0, 500)}` } });
     } finally {
-      this.runningAgent = null;
-      this.state.active_incident = null;
+      if (this.runningAgent === executionPromise) this.runningAgent = null;
+      if (this.runningIncidentId === incident.id) this.runningIncidentId = null;
+      if (this.state.active_incident === incident.id) this.state.active_incident = null;
+      if (this.state.active_lease?.incident_id === incident.id) this.state.active_lease = null;
       await atomicJson(incidentPath, incident);
       await atomicJson(this.statePath, this.state);
+      await this.#dispatchNext();
     }
   }
 
@@ -144,7 +297,10 @@ export class AgentSupervisor {
       if (this.clock().valueOf() - Date.parse(run.updated_at) <= limit) continue;
       const key = fingerprint(`stall|${run.run_id}|${run.phase}|${run.updated_at}`);
       if (this.state.incidents[key]) continue;
-      this.state.incidents[key] = { id: key, run_id: run.run_id, status: 'open', attempts: 0, created_at: this.clock().toISOString() };
+      const incident = { id: key, run_id: run.run_id, status: 'queued', attempts: 0, created_at: this.clock().toISOString(),
+        summary: { status: run.status, phase: run.phase, message: run.message, error_name: 'PipelineStall' } };
+      this.state.incidents[key] = incident;
+      await atomicJson(this.#incidentPath(key), incident);
       await this.#comment(run, `Stall: ${run.phase} не змінював persisted state понад ${Math.round(limit / 60_000)} хвилин.`, 'error', 'agent.stall_detected');
     }
   }
@@ -167,5 +323,6 @@ export class AgentSupervisor {
     }
     await this.#detectStalls();
     await atomicJson(this.statePath, this.state);
+    await this.#dispatchNext();
   }
 }
