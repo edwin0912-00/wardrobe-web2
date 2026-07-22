@@ -85,6 +85,11 @@ export async function createWebApp({ service, health = { status: 'ok' }, publicD
     return run ? reply.code(202).send(run) : reply.code(404).send({ error: 'Run not found' });
   });
 
+  app.post('/api/runs/:id/garment-selection', async (request, reply) => {
+    const run = await service.selectGarments(request.params.id, request.body?.selections);
+    return run ? reply.code(202).send(run) : reply.code(404).send({ error: 'Run not found' });
+  });
+
   app.delete('/api/runs/:id', async (request, reply) => {
     await service.deleteRun(request.params.id);
     return reply.code(204).send();
@@ -95,6 +100,12 @@ export async function createWebApp({ service, health = { status: 'ok' }, publicD
     if (!filename) return reply.code(404).send({ error: 'Output not found' });
     const type = request.params.name.endsWith('.json') ? 'application/json' : 'image/png';
     return reply.type(type).header('Content-Disposition', `inline; filename="${request.params.name}"`).send(createReadStream(filename));
+  });
+
+  app.get('/api/runs/:id/garments/:index', async (request, reply) => {
+    const filename = await service.garmentSourceFile(request.params.id, request.params.index);
+    if (!filename) return reply.code(404).send({ error: 'Garment source not found' });
+    return reply.header('Cache-Control', 'private, max-age=900').send(createReadStream(filename));
   });
 
   app.setErrorHandler((error, request, reply) => {

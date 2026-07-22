@@ -7,7 +7,7 @@ import { PipelineRunner } from '../runner/pipeline-runner.js';
 import { IMAGE_MODEL_ROUTE } from '../runner/model-policy.js';
 import { normalizeWhitePngBytes } from '../qa/white-normalizer.mjs';
 import { GarmentNeedsInputError, GarmentConditioner } from './garment-conditioner.js';
-import { garmentLocks } from './garment-passport.js';
+import { garmentLocks, groupGarmentViews } from './garment-passport.js';
 
 const MIME_EXTENSION = Object.freeze({ 'image/png': '.png', 'image/jpeg': '.jpg', 'image/webp': '.webp' });
 const TERMINAL = new Set(['COMPLETED', 'NEEDS_INPUT', 'FAILED']);
@@ -41,7 +41,10 @@ function publicRun(state) {
     message: state.message,
     created_at: state.created_at,
     updated_at: state.updated_at,
-    garments: state.garments ?? [],
+    garments: (state.garments ?? []).map((item) => ({
+      ...item,
+      preview_url: `/api/runs/${state.run_id}/garments/${item.source_index}`,
+    })),
     conflicts: state.conflicts ?? [],
     qa: state.qa ?? {},
     outputs: state.outputs ?? {},
@@ -132,6 +135,7 @@ export class RunService {
           imagePaths: state.inputs.garments,
           outputDirectory: path.join(this.runDirectory(runId), 'conditioned', 'garments'),
           runId,
+          selections: state.inputs.garment_selections ?? {},
           onProgress: async (innerState, message) => this.#write(state, { inner_state: innerState, message }),
         });
         await this.#write(state, { garments: conditioned.items.map((item) => ({ source_index: item.source_index, source_indexes: item.source_indexes, reference_set_id: item.reference_set_id, category: item.category, confidence: item.confidence, observed: item.observed, reference_card: item.reference_card.path, cutout: item.cutout.path })), conflicts: conditioned.conflicts });
@@ -169,7 +173,9 @@ export class RunService {
       return this.#write(state, { status: 'COMPLETED', phase: 'COMPLETED', message: 'Avatar and outfit are ready', outputs: state.outputs });
     } catch (error) {
       if (error instanceof GarmentNeedsInputError) {
-        return this.#write(state, { status: 'NEEDS_INPUT', phase: 'GARMENT_CONDITIONING', message: error.message, garments: error.details.passport?.items ?? state.garments, conflicts: error.details.conflicts ?? [], error: { name: error.name, message: error.message, details: error.details } });
+        const passport = error.details.passport;
+        const garments = passport?.items ? groupGarmentViews(passport.items, passport.reference_sets) : state.garments;
+        return this.#write(state, { status: 'NEEDS_INPUT', phase: 'GARMENT_CONDITIONING', message: error.message, garments, conflicts: error.details.conflicts ?? [], error: { name: error.name, message: error.message, details: error.details } });
       }
       return this.#write(state, { status: 'FAILED', phase: state.phase, message: error.message, error: { name: error.name, message: error.message } });
     }
@@ -273,6 +279,34 @@ export class RunService {
     if (!allowed.has(name)) return null;
     const filename = path.join(this.runDirectory(runId), 'outputs', name);
     try { await access(filename); return filename; } catch { return null; }
+  }
+
+  async garmentSourceFile(runId, sourceIndex) {
+    const state = await this.#read(runId);
+    const index = Number(sourceIndex);
+    if (!state || !Number.isInteger(index) || index < 0 || index >= state.inputs.garments.length) return null;
+    const filename = state.inputs.garments[index];
+    try { await access(filename); return filename; } catch { return null; }
+  }
+
+  async selectGarments(runId, selections) {
+    const state = await this.#read(runId);
+    if (!state) return null;
+    if (state.status !== 'NEEDS_INPUT' || state.error?.name !== 'GarmentNeedsInputError') throw new Error('This run is not waiting for a garment selection');
+    const duplicateConflicts = (state.conflicts ?? []).filter((conflict) => conflict.type === 'DUPLICATE_SLOT');
+    if (!duplicateConflicts.length) throw new Error('This garment conflict cannot be resolved by slot selection');
+    const normalized = {};
+    for (const conflict of duplicateConflicts) {
+      const selected = selections?.[conflict.category];
+      if (!conflict.reference_set_ids.includes(selected)) throw new Error(`Select exactly one ${conflict.category} option`);
+      normalized[conflict.category] = selected;
+    }
+    await rm(path.join(this.runDirectory(runId), 'conditioned', 'garments'), { recursive: true, force: true });
+    await rm(path.join(this.runDirectory(runId), 'outputs'), { recursive: true, force: true });
+    state.inputs.garment_selections = normalized;
+    await this.#write(state, { status: 'QUEUED', phase: 'UPLOADED', inner_state: null, message: 'Garment selection saved; continuing this run', garments: [], conflicts: [], error: null, outputs: {}, qa: {} });
+    this.start(runId);
+    return publicRun(state);
   }
 
   async retry(runId) {

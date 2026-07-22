@@ -63,6 +63,29 @@ test('slot conflicts become an explicit NEEDS_INPUT result', async () => {
   assert.equal(finished.conflicts[0].type, 'DUPLICATE_SLOT');
 });
 
+test('explicit duplicate-slot selection continues the same run with the chosen garment', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'zeely-web-selection-'));
+  const deps = dependencies();
+  deps.vlm.inspectGarments = async () => ({
+    status: 'READY', reason: 'two footwear options',
+    items: [0, 1].map((source_index) => ({ source_index, category: 'footwear', confidence: 0.95,
+      observed: { garment_type: source_index ? 'burgundy pumps' : 'brown boots', colors: [source_index ? 'burgundy' : 'brown'], material: [], pattern: [], logo_text: [], construction: [] }, unknowns: [], blockers: [] })),
+    reference_sets: [0, 1].map((source_index) => ({ source_indexes: [source_index], primary_source_index: source_index, same_item_confidence: 1, evidence: ['single'] })),
+  });
+  const service = new RunService({ rootDirectory: root, ...deps });
+  await service.initialize();
+  const created = await service.createRun({ person: await upload(), garments: [await upload('#6b3e2e'), await upload('#751d35')], generateScene: false });
+  await service.running.get(created.run_id);
+  assert.equal((await service.getRun(created.run_id)).status, 'NEEDS_INPUT');
+  const resumed = await service.selectGarments(created.run_id, { footwear: 'set-1' });
+  assert.equal(resumed.run_id, created.run_id);
+  await service.running.get(created.run_id);
+  const finished = await service.getRun(created.run_id);
+  assert.equal(finished.status, 'COMPLETED');
+  assert.equal(finished.garments.length, 1);
+  assert.equal(finished.garments[0].observed.garment_type, 'burgundy pumps');
+});
+
 test('multiple views of the same garment are conditioned once with complete provenance', async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'zeely-web-multiview-'));
   const deps = dependencies();

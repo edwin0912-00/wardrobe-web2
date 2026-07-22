@@ -26,14 +26,27 @@ export class GarmentNeedsInputError extends Error {
 export class GarmentConditioner {
   constructor({ vlm, generator, clock = () => new Date() }) { this.vlm = vlm; this.generator = generator; this.clock = clock; }
 
-  async condition({ imagePaths, outputDirectory, runId, onProgress = async () => {} }) {
+  async condition({ imagePaths, outputDirectory, runId, selections = {}, onProgress = async () => {} }) {
     const passport = await this.vlm.inspectGarments(imagePaths);
     await onProgress('GARMENT_GROUPING', 'Garment views classified and grouped');
     if (passport.status !== 'READY') throw new GarmentNeedsInputError(passport.reason, { passport });
-    const conflicts = findGarmentConflicts(passport.items, passport.reference_sets);
+    const grouped = groupGarmentViews(passport.items, passport.reference_sets);
+    const selectedIds = new Set(Object.values(selections));
+    const selectedCategories = new Set(Object.keys(selections));
+    const retainedIds = new Set(grouped
+      .filter((item) => !selectedCategories.has(item.category) || selectedIds.has(item.reference_set_id))
+      .map((item) => item.reference_set_id));
+    const allReferenceSets = Array.isArray(passport.reference_sets) && passport.reference_sets.length
+      ? passport.reference_sets
+      : passport.items.map((item) => ({ source_indexes: [item.source_index], primary_source_index: item.source_index, same_item_confidence: 1, evidence: ['legacy singleton view'] }));
+    const referenceSets = allReferenceSets.filter((set) => retainedIds.has(`set-${set.source_indexes.slice().sort((a, b) => a - b).join('-')}`));
+    const retainedIndexes = new Set(referenceSets.flatMap((set) => set.source_indexes));
+    const items = passport.items.filter((item) => retainedIndexes.has(item.source_index));
+    const conflicts = findGarmentConflicts(items, referenceSets);
     if (conflicts.length) throw new GarmentNeedsInputError('Garment slot conflicts require explicit selection', { passport, conflicts });
     const conditioned = [];
-    for (const item of groupGarmentViews(passport.items, passport.reference_sets)) {
+    const selectedGarments = groupGarmentViews(items, referenceSets);
+    for (const item of selectedGarments) {
       if (item.blockers.length) throw new GarmentNeedsInputError('Garment contains blocking unknowns', { item });
       const sourcePaths = item.source_indexes.map((index) => imagePaths[index]);
       const sourcePath = sourcePaths[0];
@@ -41,7 +54,7 @@ export class GarmentConditioner {
       let accepted;
       const attempts = [];
       for (const [routeIndex, model] of IMAGE_MODEL_ROUTE.entries()) {
-        await onProgress('GARMENT_GENERATING', `Generating canonical garment ${conditioned.length + 1} of ${groupGarmentViews(passport.items, passport.reference_sets).length}`);
+        await onProgress('GARMENT_GENERATING', `Generating canonical garment ${conditioned.length + 1} of ${selectedGarments.length}`);
         const generated = await this.generator.generateGarment({
           sourcePath, sourcePaths, model, prompt: canonicalPrompt(item), workDirectory: itemDirectory,
           operationId: `${runId}-garment-${item.source_index}-${routeIndex + 1}`,

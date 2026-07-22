@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="/styles.css">
   <link rel="stylesheet" href="/upload.css?v=20260722-2">
   <link rel="stylesheet" href="/progress.css">
+  <link rel="stylesheet" href="/conflict.css?v=20260722-1">
 </head>
 <body>
   <header class="topbar">
@@ -73,7 +74,7 @@
           <div id="result-gallery" class="result-gallery"></div>
           <button id="new-run" class="secondary-button" type="button">Створити ще один образ</button>
         </div>
-        <div id="failure-view" class="failure-view hidden"><span class="failure-mark">!</span><h3 id="failure-title">Потрібен інший input</h3><p id="failure-message"></p><button id="retry-run" class="secondary-button" type="button">Повторити run</button></div>
+        <div id="failure-view" class="failure-view hidden"><span class="failure-mark">!</span><h3 id="failure-title">Потрібен інший input</h3><p id="failure-message"></p><div id="conflict-picker" class="conflict-picker"></div><button id="retry-run" class="secondary-button" type="button">Повторити run</button></div>
       </section>
     </section>
   </main>
@@ -83,6 +84,6 @@
     <button type="button" onclick="location.reload()">Перезавантажити</button>
   </aside>
   <script src="/boot-guard.js?v=20260722-1"></script>
-  <script type="module" src="/app.js?v=20260722-9"></script>
+  <script type="module" src="/app.js?v=20260722-10"></script>
 </body>
 </html>

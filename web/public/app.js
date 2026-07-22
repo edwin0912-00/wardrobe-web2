@@ -265,14 +265,79 @@ function renderRun(run) {
   }
   if (run.status === 'FAILED' || run.status === 'NEEDS_INPUT') {
     setView('failure');
-    document.querySelector('#failure-title').textContent = run.status === 'NEEDS_INPUT' ? 'Потрібен кращий input' : 'Run зупинено';
-    document.querySelector('#failure-message').textContent = run.message || run.error?.message || 'Unknown error';
+    const hasSelectableConflict = run.status === 'NEEDS_INPUT' && (run.conflicts || []).some((item) => item.type === 'DUPLICATE_SLOT');
+    document.querySelector('#failure-title').textContent = hasSelectableConflict ? 'Обери річ для образу' : run.status === 'NEEDS_INPUT' ? 'Потрібен кращий input' : 'Run зупинено';
+    document.querySelector('#failure-message').textContent = hasSelectableConflict ? 'Знайдено кілька різних речей одного типу. Обери одну — pipeline продовжить цей самий run.' : run.message || run.error?.message || 'Unknown error';
+    renderConflictPicker(run);
+    document.querySelector('#retry-run').classList.toggle('hidden', hasSelectableConflict);
     submit.disabled = false;
     eventSource?.close();
     return;
   }
   setView('progress');
   renderProgress(progressStates[run.inner_state] ?? progressStates[run.phase] ?? { label: 'LIVE', step: 2, title: 'Pipeline працює' }, run.message);
+}
+
+function renderConflictPicker(run) {
+  const picker = document.querySelector('#conflict-picker');
+  picker.replaceChildren();
+  const conflicts = (run.conflicts || []).filter((item) => item.type === 'DUPLICATE_SLOT');
+  if (!conflicts.length) return;
+  const selections = {};
+  const continueButton = document.createElement('button');
+  continueButton.type = 'button';
+  continueButton.className = 'primary-button conflict-continue';
+  continueButton.textContent = 'Продовжити з обраними речами →';
+  continueButton.disabled = true;
+
+  const categoryNames = { outerwear: 'верхній одяг', top: 'верх', bottom: 'низ', one_piece: 'цільний образ', footwear: 'взуття', headwear: 'головний убір', bag: 'сумка', accessory: 'аксесуар' };
+  for (const conflict of conflicts) {
+    const group = document.createElement('section');
+    group.className = 'conflict-group';
+    const heading = document.createElement('strong');
+    heading.textContent = conflict.category === 'footwear' ? 'Оберіть одну пару взуття' : `Оберіть один варіант: ${categoryNames[conflict.category] || conflict.category}`;
+    const options = document.createElement('div');
+    options.className = 'conflict-options';
+    conflict.reference_set_ids.forEach((referenceSetId) => {
+      const garment = (run.garments || []).find((item) => item.reference_set_id === referenceSetId || `set-${item.source_index}` === referenceSetId);
+      if (!garment) return;
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'conflict-option';
+      const image = document.createElement('img');
+      image.src = garment.preview_url;
+      image.alt = garment.observed?.garment_type || conflict.category;
+      const label = document.createElement('span');
+      label.textContent = garment.observed?.garment_type || conflict.category;
+      button.append(image, label);
+      button.addEventListener('click', () => {
+        selections[conflict.category] = referenceSetId;
+        options.querySelectorAll('button').forEach((item) => item.classList.toggle('selected', item === button));
+        continueButton.disabled = conflicts.some((item) => !selections[item.category]);
+      });
+      options.append(button);
+    });
+    group.append(heading, options);
+    picker.append(group);
+  }
+
+  continueButton.addEventListener('click', async () => {
+    continueButton.disabled = true;
+    try {
+      const response = await fetch(`/api/runs/${encodeURIComponent(run.run_id)}/garment-selection`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ selections }),
+      });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error || 'Не вдалося зберегти вибір');
+      telemetry('client.garment_selected', { categories: Object.keys(selections), stage: 'garment_conflict' }, run.run_id);
+      renderRun(body);
+      watch(body.run_id);
+    } catch (error) {
+      document.querySelector('#failure-message').textContent = error.message;
+      continueButton.disabled = false;
+    }
+  });
+  picker.append(continueButton);
 }
 
 function renderResults(run) {

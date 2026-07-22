@@ -9,7 +9,7 @@ test('web API accepts a new multipart user flow without job JSON editing', async
   const service = {
     createRun: async (input) => { received = input; return { run_id: 'fresh-run', status: 'QUEUED', phase: 'UPLOADED' }; },
     getRun: async () => null, subscribe: () => () => {}, outputFile: async () => null,
-    retry: async () => null, deleteRun: async () => {},
+    retry: async () => null, selectGarments: async () => null, garmentSourceFile: async () => null, deleteRun: async () => {},
   };
   const app = await createWebApp({ service });
   const image = await sharp({ create: { width: 300, height: 400, channels: 3, background: '#ffffff' } }).png().toBuffer();
@@ -29,7 +29,7 @@ test('web API accepts a new multipart user flow without job JSON editing', async
 });
 
 test('web API requires consent before transmitting personal images', async () => {
-  const service = { createRun: async () => { throw new Error('must not run'); }, getRun: async () => null, subscribe: () => () => {}, outputFile: async () => null, retry: async () => null, deleteRun: async () => {} };
+  const service = { createRun: async () => { throw new Error('must not run'); }, getRun: async () => null, subscribe: () => () => {}, outputFile: async () => null, retry: async () => null, selectGarments: async () => null, garmentSourceFile: async () => null, deleteRun: async () => {} };
   const app = await createWebApp({ service });
   const image = await sharp({ create: { width: 300, height: 400, channels: 3, background: '#ffffff' } }).png().toBuffer();
   const form = new FormData();

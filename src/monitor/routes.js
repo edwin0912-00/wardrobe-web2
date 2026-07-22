@@ -4,6 +4,7 @@ const CLIENT_TYPES = new Set([
   'client.submit', 'client.submit_response', 'client.fetch_error',
   'client.file_prepared', 'client.upload_progress',
   'client.sse_open', 'client.sse_error', 'client.run_event',
+  'client.garment_selected',
   'client.error', 'client.unhandled_rejection', 'client.visibility', 'client.online',
 ]);
 
@@ -11,7 +12,7 @@ const CLIENT_KEYS = new Set([
   'field', 'count', 'bytes', 'mime_types', 'stage', 'status', 'message', 'stack',
   'line', 'column', 'online', 'visibility', 'run_id', 'duration_ms', 'restored',
   'file_count', 'total_bytes', 'garment_count', 'has_person', 'has_identity_detail',
-  'original_bytes', 'prepared_bytes', 'percentage',
+  'original_bytes', 'prepared_bytes', 'percentage', 'categories',
 ]);
 
 function normalizeClientEvent(payload) {

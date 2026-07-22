@@ -1,0 +1,49 @@
+.conflict-picker {
+  width: min(520px, 100%);
+  margin-top: 20px;
+}
+.conflict-group > strong {
+  display: block;
+  text-align: left;
+  font-size: 12px;
+  margin-bottom: 10px;
+}
+.conflict-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.conflict-option {
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  padding: 8px;
+  cursor: pointer;
+  text-align: left;
+}
+.conflict-option img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: contain;
+  border-radius: 8px;
+  background: #f5f6f1;
+}
+.conflict-option span {
+  display: block;
+  padding: 8px 4px 2px;
+  font-size: 10px;
+  line-height: 1.3;
+}
+.conflict-option.selected {
+  border-color: var(--deep);
+  box-shadow: 0 0 0 3px rgba(184, 255, 61, .55);
+}
+.conflict-continue {
+  justify-content: center;
+  margin-top: 14px;
+}
+.conflict-continue:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
