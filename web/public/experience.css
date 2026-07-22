@@ -127,3 +127,358 @@ body.workflow-active footer {
   .studio-grid > .panel { transition-duration: .01ms; }
   .view-enter { animation: none; }
 }
+
+/*
+ * Mobile is an app screen, not a document. Every workflow state owns the same
+ * bounded viewport; changing state replaces the previous panel instead of
+ * extending the page below it.
+ */
+@media (max-width: 700px) and (orientation: portrait) {
+  html,
+  body {
+    width: 100%;
+    height: 100%;
+    min-height: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+
+  body {
+    display: grid;
+    height: 100dvh;
+    min-height: 100dvh;
+    max-height: 100dvh;
+    grid-template-rows: 52px minmax(0, 1fr);
+  }
+
+  .topbar {
+    position: relative;
+    top: auto;
+    height: 52px;
+    min-height: 52px;
+    padding: 0 14px;
+  }
+
+  .brand {
+    gap: 9px;
+    font-size: 11px;
+  }
+
+  .brand-mark {
+    width: 31px;
+    height: 31px;
+    font-size: 18px;
+  }
+
+  body > main,
+  body.workflow-active main {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    padding: 8px 10px;
+    overflow: hidden;
+  }
+
+  body:not(.workflow-active) > main {
+    display: grid;
+    grid-template-rows: 44px minmax(0, 1fr);
+    gap: 6px;
+  }
+
+  .hero {
+    display: flex;
+    align-items: center;
+    min-height: 0;
+    max-height: none;
+    padding: 0 3px;
+    overflow: hidden;
+  }
+
+  .hero > :not(h1),
+  .hero h1 br { display: none; }
+
+  .hero h1 {
+    margin: 0;
+    max-width: none;
+    font-size: 22px;
+    line-height: 1;
+    letter-spacing: -.045em;
+    white-space: nowrap;
+  }
+
+  .hero h1 em { margin-left: .14em; }
+
+  body.workflow-active .hero,
+  body > footer {
+    display: none;
+  }
+
+  .studio-grid,
+  body.workflow-active .studio-grid {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    margin: 0;
+    overflow: hidden;
+    scroll-margin-top: 0;
+  }
+
+  .studio-grid > .panel {
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    max-height: 100%;
+    overflow: hidden;
+    border-radius: 16px;
+  }
+
+  .studio-grid > .form-panel {
+    position: relative;
+    max-width: none;
+  }
+
+  .studio-grid > .result-panel,
+  body.workflow-active .studio-grid > .result-panel {
+    min-height: 0;
+  }
+
+  body.workflow-active .studio-grid > .form-panel {
+    position: absolute;
+  }
+
+  body.workflow-active .studio-grid > .result-panel {
+    position: relative;
+    padding: 9px;
+  }
+
+  .form-panel {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-areas:
+      "head head"
+      "person identity"
+      "person-preview identity-preview"
+      "divider divider"
+      "field-label field-label"
+      "outfit outfit"
+      "wardrobe wardrobe"
+      "garment-preview garment-preview"
+      "consent consent"
+      "draft draft"
+      "submit submit"
+      "error error";
+    grid-auto-rows: max-content;
+    gap: 5px 7px;
+    align-content: start;
+    padding: 10px;
+  }
+
+  .form-panel > * {
+    min-width: 0;
+    margin-top: 0;
+    margin-bottom: 0;
+  }
+
+  .form-panel > .panel-head {
+    grid-area: head;
+    min-height: 28px;
+    margin: 0 0 1px;
+  }
+
+  .form-panel > label:has(> #person-photo) { grid-area: person; }
+  .form-panel > #person-preview { grid-area: person-preview; }
+  .form-panel > label:has(> #identity-detail) { grid-area: identity; }
+  .form-panel > #identity-preview { grid-area: identity-preview; }
+  .form-panel > .divider { grid-area: divider; }
+  .form-panel > .field-label { grid-area: field-label; }
+  .form-panel > #outfit-text { grid-area: outfit; }
+  .form-panel > label:has(> #garment-images) { grid-area: wardrobe; }
+  .form-panel > #garment-preview { grid-area: garment-preview; }
+  .form-panel > .consent { grid-area: consent; }
+  .form-panel > #draft-status { grid-area: draft; }
+  .form-panel > #submit-button { grid-area: submit; }
+  .form-panel > #form-error { grid-area: error; }
+
+  .form-panel .panel-head > div { gap: 8px; }
+  .form-panel .panel-head h2 { font-size: 15px; }
+  .form-panel .step { width: 26px; height: 26px; font-size: 8px; }
+  .form-panel .required-note { font-size: 8px; }
+
+  .form-panel .upload-card {
+    min-height: 52px;
+    padding: 8px;
+    grid-template-columns: 27px minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    column-gap: 7px;
+    border-radius: 10px;
+  }
+
+  .form-panel .upload-card .upload-icon {
+    width: 27px;
+    height: 27px;
+    font-size: 16px;
+  }
+
+  .form-panel .upload-card strong {
+    align-self: end;
+    overflow: hidden;
+    font-size: 9px;
+    line-height: 1.12;
+    text-overflow: ellipsis;
+  }
+
+  .form-panel .upload-card small { display: none; }
+
+  .form-panel .upload-card .file-name {
+    grid-column: 2;
+    grid-row: 2;
+    align-self: start;
+    width: 100%;
+    max-width: none;
+    margin: 2px 0 0;
+    padding: 0;
+    overflow: hidden;
+    border: 0;
+    color: var(--muted);
+    font-size: 7px;
+    line-height: 1.1;
+    text-overflow: ellipsis;
+  }
+
+  .form-panel .wardrobe-card {
+    min-height: 46px;
+    grid-template-columns: 27px minmax(0, 1fr) minmax(80px, .72fr);
+    grid-template-rows: 1fr;
+  }
+
+  .form-panel .wardrobe-card .upload-icon { grid-row: 1; }
+  .form-panel .wardrobe-card strong { align-self: center; }
+  .form-panel .wardrobe-card .file-name {
+    grid-column: 3;
+    grid-row: 1;
+    align-self: center;
+    text-align: right;
+  }
+
+  .form-panel .divider {
+    gap: 8px;
+    min-height: 12px;
+  }
+
+  .form-panel .divider span,
+  .form-panel .field-label { font-size: 8px; }
+
+  .form-panel textarea {
+    height: 45px;
+    min-height: 45px;
+    padding: 8px 9px;
+    resize: none;
+    border-radius: 9px;
+    font-size: 10px;
+    line-height: 1.25;
+  }
+
+  .form-panel .consent {
+    gap: 6px;
+    align-items: center;
+    font-size: 7.5px;
+    line-height: 1.2;
+  }
+
+  .form-panel .consent input {
+    width: 14px;
+    height: 14px;
+    margin: 0;
+    flex: 0 0 auto;
+  }
+
+  .form-panel .draft-status {
+    min-height: 10px;
+    font-size: 7.5px;
+    line-height: 1.2;
+  }
+
+  .form-panel .primary-button {
+    min-height: 41px;
+    padding: 9px 13px;
+    border-radius: 10px;
+    font-size: 11px;
+  }
+
+  .form-panel .primary-button b { font-size: 17px; }
+
+  .form-panel .error {
+    min-height: 11px;
+    max-height: 25px;
+    margin: 0;
+    overflow: hidden;
+    font-size: 8px;
+    line-height: 1.3;
+  }
+
+  body.workflow-active .result-panel > .panel-head {
+    min-height: 29px;
+    margin: 0 0 4px;
+  }
+
+  body.workflow-active .result-panel > .panel-head > div { gap: 7px; }
+  body.workflow-active .result-panel > .panel-head h2 { font-size: 14px; }
+  body.workflow-active .result-panel > .panel-head .step { width: 25px; height: 25px; font-size: 8px; }
+  body.workflow-active .status-chip { padding: 6px 8px; font-size: 7px; }
+
+  .result-panel > :is(.empty-state, .progress-view, .result-view, .profile-view, .failure-view) {
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .failure-view {
+    height: calc(100% - 33px);
+    justify-content: center;
+    padding: 4px 8px 0;
+  }
+
+  .failure-mark {
+    width: 42px;
+    height: 42px;
+    font-size: 25px;
+  }
+
+  .failure-view h3 {
+    margin: 9px 0 4px;
+    font-size: 17px;
+    line-height: 1.05;
+  }
+
+  .failure-view > p {
+    max-width: 340px;
+    max-height: 62px;
+    margin: 0;
+    overflow: hidden;
+    font-size: 9px;
+    line-height: 1.35;
+  }
+
+  .failure-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+    width: min(340px, 100%);
+    margin-top: 10px;
+  }
+
+  .failure-actions .secondary-button {
+    min-height: 36px;
+    padding: 8px;
+    font-size: 9px;
+  }
+
+  .failure-view > .terminal-pipeline-trace {
+    margin-top: 8px;
+  }
+
+  .failure-view > .terminal-pipeline-trace > summary {
+    padding: 9px 2px;
+    font-size: 7px;
+  }
+}

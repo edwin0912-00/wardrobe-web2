@@ -1,5 +1,29 @@
 import { uploadFormData } from './image-upload.js?v=20260722-8';
 
+export class DraftApiError extends Error {
+  constructor(message, { status, body } = {}) {
+    super(message);
+    this.name = 'DraftApiError';
+    this.status = status;
+    this.body = body;
+  }
+}
+
+export function isDefinitiveDraftRunRejection(error) {
+  return error instanceof DraftApiError && error.status >= 400 && error.status < 500;
+}
+
+export function clearDefinitivelyRejectedRunState(error, finalizationId, storage) {
+  if (!isDefinitiveDraftRunRejection(error)) return false;
+  if (storage.getItem('zeely_pending_finalization_id') === finalizationId) {
+    storage.removeItem('zeely_pending_finalization_id');
+  }
+  if (storage.getItem('zeely_active_run_id') === finalizationId) {
+    storage.removeItem('zeely_active_run_id');
+  }
+  return true;
+}
+
 function extensionFor(type) {
   if (type === 'image/png') return 'png';
   if (type === 'image/webp') return 'webp';
@@ -8,7 +32,12 @@ function extensionFor(type) {
 
 async function jsonResponse(response) {
   const body = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(body.error || `Draft API: HTTP ${response.status}`);
+  if (!response.ok) {
+    throw new DraftApiError(body.error || `Draft API: HTTP ${response.status}`, {
+      status: response.status,
+      body,
+    });
+  }
   return body;
 }
 

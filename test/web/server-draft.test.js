@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createRunFromServerDraft } from '../../web/public/server-draft.js';
+import { clearDefinitivelyRejectedRunState, createRunFromServerDraft, DraftApiError, isDefinitiveDraftRunRejection } from '../../web/public/server-draft.js';
 
 test('browser draft finalization includes a supplied idempotency UUID', async (t) => {
   const originalFetch = globalThis.fetch;
@@ -34,4 +34,44 @@ test('browser draft finalization aborts a hung request so reload recovery can ta
     () => createRunFromServerDraft('20cf6522-43fd-40ad-a8db-615bcdf80e07', { timeoutMs: 2 }),
     /timed out/,
   );
+});
+
+test('a definitive 4xx finalization response is not eligible for run polling', async (t) => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(JSON.stringify({
+    error: 'garment_images[0] is too small for bounded preparation',
+  }), {
+    status: 422,
+    headers: { 'content-type': 'application/json' },
+  });
+  t.after(() => { globalThis.fetch = originalFetch; });
+
+  let rejectedError;
+  await assert.rejects(
+    () => createRunFromServerDraft('20cf6522-43fd-40ad-a8db-615bcdf80e07'),
+    (error) => {
+      rejectedError = error;
+      assert.ok(error instanceof DraftApiError);
+      assert.equal(error.status, 422);
+      assert.equal(isDefinitiveDraftRunRejection(error), true);
+      return true;
+    },
+  );
+  const values = new Map([
+    ['zeely_pending_finalization_id', '20cf6522-43fd-40ad-a8db-615bcdf80e07'],
+    ['zeely_active_run_id', '20cf6522-43fd-40ad-a8db-615bcdf80e07'],
+  ]);
+  const storage = {
+    getItem: (key) => values.get(key) ?? null,
+    removeItem: (key) => values.delete(key),
+  };
+  assert.equal(clearDefinitivelyRejectedRunState(
+    rejectedError,
+    '20cf6522-43fd-40ad-a8db-615bcdf80e07',
+    storage,
+  ), true);
+  assert.equal(values.has('zeely_pending_finalization_id'), false);
+  assert.equal(values.has('zeely_active_run_id'), false);
+  assert.equal(isDefinitiveDraftRunRejection(new Error('network timeout')), false);
+  assert.equal(isDefinitiveDraftRunRejection(new DraftApiError('server error', { status: 503 })), false);
 });

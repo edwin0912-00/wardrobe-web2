@@ -3,7 +3,7 @@ import { UploadSelectionStore } from './upload-state.js?v=20260722-8';
 import { clearDraft, loadDraft, requestPersistentStorage, saveDraft } from './draft-store.js?v=20260722-10';
 import { fileSummary, telemetry } from './telemetry.js?v=20260722-8';
 import { prepareImageFile } from './image-upload.js?v=20260722-8';
-import { clearServerDraft, createRunFromServerDraft, loadServerDraft, removeServerDraftFile, updateServerDraftMetadata, uploadDraftFile } from './server-draft.js?v=20260722-10';
+import { clearDefinitivelyRejectedRunState, clearServerDraft, createRunFromServerDraft, loadServerDraft, removeServerDraftFile, updateServerDraftMetadata, uploadDraftFile } from './server-draft.js?v=20260722-11';
 import { PIPELINE_NODE_COUNT, PIPELINE_NODES, nodeState, resolveProgressState } from './progress-model.js?v=20260722-5';
 import { fetchRunWithRetry, RunNotFoundError } from './run-resume.js?v=20260722-3';
 import { avatarFileFromProfile, claimProfileRun, deleteAnonymousProfile, deleteProfileAvatar, deleteProfileLook, loadProfile, saveProfileRun } from './profile-client.js?v=20260722-1';
@@ -38,6 +38,8 @@ let currentProfile = null;
 let currentResultAvatarId = null;
 let profileLoadPromise = null;
 const profileSavePromises = new Map();
+let profileAvatarPage = 0;
+let profileLookPage = 0;
 
 const ACTIVE_RUN_KEY = 'zeely_active_run_id';
 const PENDING_FINALIZATION_KEY = 'zeely_pending_finalization_id';
@@ -586,6 +588,35 @@ function createProfileButton(label, className, handler) {
   return button;
 }
 
+function profilePage(items, requestedPage, pageSize) {
+  const pageCount = Math.max(1, Math.ceil(items.length / pageSize));
+  const page = Math.min(Math.max(0, requestedPage), pageCount - 1);
+  const start = page * pageSize;
+  return {
+    page,
+    pageCount,
+    entries: items.slice(start, start + pageSize).map((value, offset) => ({ value, index: start + offset })),
+  };
+}
+
+function appendProfilePager(container, { label, page, pageCount, onChange }) {
+  if (pageCount <= 1) return;
+  container.classList.add('is-paged');
+  const pager = document.createElement('nav');
+  pager.className = 'profile-pager';
+  pager.setAttribute('aria-label', label);
+  const previous = createProfileButton('←', 'profile-page-button', () => onChange(page - 1));
+  previous.disabled = page === 0;
+  previous.setAttribute('aria-label', 'Попередня сторінка');
+  const counter = document.createElement('span');
+  counter.textContent = `${page + 1} / ${pageCount}`;
+  const next = createProfileButton('→', 'profile-page-button', () => onChange(page + 1));
+  next.disabled = page === pageCount - 1;
+  next.setAttribute('aria-label', 'Наступна сторінка');
+  pager.append(previous, counter, next);
+  container.append(pager);
+}
+
 async function beginDraft({ avatar = null } = {}) {
   form.inert = true;
   form.setAttribute('aria-busy', 'true');
@@ -640,13 +671,18 @@ async function renderProfile(profileValueToRender = null) {
   currentProfile = profile;
   const avatars = profile.avatars ?? [];
   const looks = profileLooks(profile);
+  const compact = window.matchMedia('(max-width: 700px) and (orientation: portrait)').matches;
+  const avatarPage = profilePage(avatars, profileAvatarPage, compact ? 2 : Math.max(1, avatars.length));
+  const lookPage = profilePage(looks, profileLookPage, compact ? 2 : Math.max(1, looks.length));
+  profileAvatarPage = avatarPage.page;
+  profileLookPage = lookPage.page;
   document.querySelector('#profile-expiry').textContent = formatProfileExpiry(profile.expires_at);
   const avatarList = document.querySelector('#profile-avatar-list');
   const lookGrid = document.querySelector('#profile-look-grid');
   avatarList.replaceChildren();
   lookGrid.replaceChildren();
 
-  avatars.forEach((avatar, index) => {
+  avatarPage.entries.forEach(({ value: avatar, index }) => {
     const card = document.createElement('article');
     card.className = 'profile-avatar-item';
     const image = document.createElement('img');
@@ -672,7 +708,7 @@ async function renderProfile(profileValueToRender = null) {
     avatarList.append(card);
   });
 
-  looks.forEach((look, index) => {
+  lookPage.entries.forEach(({ value: look, index }) => {
     const lookId = look.id ?? look.look_id;
     const card = document.createElement('article');
     card.className = 'profile-look-card';
@@ -705,6 +741,24 @@ async function renderProfile(profileValueToRender = null) {
     emptyLooks.textContent = 'Перший образ з’явиться тут після генерації.';
     lookGrid.append(emptyLooks);
   }
+  appendProfilePager(avatarList, {
+    label: 'Сторінки аватарів',
+    page: avatarPage.page,
+    pageCount: avatarPage.pageCount,
+    onChange: (page) => {
+      profileAvatarPage = page;
+      renderProfile(profile).catch(showProfileError);
+    },
+  });
+  appendProfilePager(lookGrid, {
+    label: 'Сторінки образів',
+    page: lookPage.page,
+    pageCount: lookPage.pageCount,
+    onChange: (page) => {
+      profileLookPage = page;
+      renderProfile(profile).catch(showProfileError);
+    },
+  });
   resultPanelTitle.textContent = 'Мій профіль';
   statusChip.textContent = 'SAVED';
   statusChip.className = 'status-chip completed';
@@ -845,7 +899,8 @@ form.addEventListener('submit', async (event) => {
     watch(body.run_id);
   } catch (error) {
     telemetry('client.fetch_error', { message: error.message.slice(0, 500), duration_ms: Math.round(performance.now() - startedAt), stage: 'create_run' });
-    if (finalizationId && await resumeRun(finalizationId, { retryNotFound: true })) return;
+    const definitivelyRejected = clearDefinitivelyRejectedRunState(error, finalizationId, localStorage);
+    if (!definitivelyRejected && finalizationId && await resumeRun(finalizationId, { retryNotFound: true })) return;
     window.clearTimeout(transitionTimer);
     if (localStorage.getItem(ACTIVE_RUN_KEY) === finalizationId) localStorage.removeItem(ACTIVE_RUN_KEY);
     history.replaceState({}, '', location.pathname);

@@ -698,3 +698,239 @@
   .ai-live i,
   .pipeline-node.active .node-mark { animation: none; }
 }
+
+@media (max-width: 700px) and (orientation: portrait) {
+  .progress-view {
+    height: calc(100% - 33px);
+    min-height: 0;
+  }
+
+  .progress-layout {
+    height: 100%;
+    min-height: 0;
+    grid-template-columns: 1fr;
+    grid-template-rows: 96px minmax(0, 1fr);
+    gap: 7px;
+    align-items: stretch;
+    padding: 0;
+  }
+
+  .ai-progress-card {
+    display: grid;
+    min-height: 0;
+    grid-template-columns: 84px minmax(0, 1fr);
+    grid-template-rows: 13px auto 1fr auto;
+    column-gap: 9px;
+    align-items: center;
+    text-align: left;
+  }
+
+  .progress-orbit {
+    grid-column: 1;
+    grid-row: 1 / 5;
+    width: 78px;
+    height: 78px;
+    align-self: center;
+  }
+
+  .ai-live {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: start;
+    margin: 0;
+    font-size: 6px !important;
+    letter-spacing: .12em;
+  }
+
+  .ai-live i {
+    width: 5px;
+    height: 5px;
+    box-shadow: 0 0 0 3px rgba(184, 255, 61, .18);
+  }
+
+  .progress-view h3 {
+    grid-column: 2;
+    grid-row: 2;
+    margin: 1px 0 2px;
+    font-size: 17px;
+    line-height: 1;
+    text-align: left;
+  }
+
+  .progress-view #progress-message {
+    grid-column: 2;
+    grid-row: 3;
+    min-height: 0;
+    max-height: 27px;
+    margin: 0;
+    overflow: hidden;
+    font-size: 8px;
+    line-height: 1.25;
+    text-align: left;
+  }
+
+  .progress-meter {
+    grid-column: 2;
+    grid-row: 4;
+    width: 100%;
+    margin: 0;
+  }
+
+  .progress-meter-head {
+    gap: 7px;
+    margin-bottom: 3px;
+  }
+
+  .progress-meter-head strong { font-size: 22px; }
+  .progress-value { gap: 4px; }
+  .progress-value small { max-width: 64px; font-size: 5px; }
+  .progress-meter-head > span { max-width: 110px; font-size: 5px; }
+  .progress-track { height: 5px; }
+
+  .pipeline-board-slot {
+    min-height: 0;
+    height: 100%;
+  }
+
+  .pipeline-board {
+    display: grid;
+    grid-template-rows: auto auto auto;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    align-content: center;
+    padding: 9px 7px 8px;
+    overflow: hidden;
+    border-radius: 12px;
+    background-size: 14px 14px;
+  }
+
+  .pipeline-board-head {
+    min-height: 27px;
+    gap: 7px;
+    padding-bottom: 6px;
+  }
+
+  .pipeline-board-head p {
+    margin-bottom: 2px !important;
+    font-size: 5px !important;
+    letter-spacing: .11em;
+  }
+
+  .pipeline-board-head h4 {
+    overflow: hidden;
+    font-size: 9px;
+    line-height: 1.1;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .pipeline-legend {
+    display: flex;
+    max-width: 102px;
+    gap: 2px 6px;
+    font-size: 5px;
+  }
+
+  .pipeline-legend i { font-size: 7px; }
+
+  .pipeline-grid {
+    --pipe-x: 3px;
+    --pipe-y: 17px;
+    height: clamp(145px, 27dvh, 190px);
+    min-height: 0;
+    gap: var(--pipe-y) var(--pipe-x);
+    margin: 22px 0 0;
+  }
+
+  .node-card {
+    height: 100%;
+    min-height: 0;
+    padding: 3px 2px;
+    overflow: hidden;
+    border-radius: 7px;
+  }
+
+  .node-head {
+    justify-content: center;
+    margin-bottom: 2px;
+  }
+
+  .node-mark {
+    width: 18px;
+    height: 18px;
+  }
+
+  .node-mark b,
+  .node-mark i,
+  .node-mark em,
+  .node-mark u { font-size: 5px; }
+
+  .pipeline-node.skipped .node-mark em { font-size: 9px; }
+  .pipeline-node.reused .node-mark u { font-size: 8px; }
+  .node-status-label { display: none; }
+
+  .node-card strong {
+    min-height: 0;
+    margin: 0;
+    overflow: hidden;
+    font-size: clamp(6.8px, 1.9vw, 7.8px);
+    line-height: 1.08;
+    text-align: center;
+  }
+
+  .node-card code,
+  .node-card small { display: none; }
+
+  .phase-label {
+    bottom: calc(100% + 4px);
+    max-width: 150%;
+    overflow: hidden;
+    font-size: 4.5px;
+    letter-spacing: 0;
+    text-overflow: ellipsis;
+  }
+
+  .pipeline-inspector {
+    min-height: 0;
+    margin-top: 7px;
+    padding-top: 6px;
+  }
+
+  .pipeline-inspector > header {
+    gap: 7px;
+    margin-bottom: 5px;
+  }
+
+  .pipeline-inspector > header span { font-size: 6.5px; }
+
+  .pipeline-inspector > header code {
+    max-width: 68%;
+    padding: 3px 5px;
+    font-size: 7px;
+  }
+
+  .pipeline-inspector dl {
+    grid-template-columns: 1fr 1fr;
+    gap: 5px 0;
+  }
+
+  .pipeline-inspector dl > div { padding: 0 5px; }
+
+  .pipeline-inspector dl > div:nth-child(3) {
+    padding-left: 0;
+    border-left: 0;
+  }
+
+  .pipeline-inspector dt {
+    margin-bottom: 2px;
+    font-size: 6.5px;
+  }
+
+  .pipeline-inspector dd {
+    max-height: 26px;
+    overflow: hidden;
+    font-size: 8px;
+    line-height: 1.16;
+  }
+}

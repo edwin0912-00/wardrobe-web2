@@ -55,3 +55,73 @@
   opacity: .45;
   cursor: not-allowed;
 }
+
+@media (max-width: 700px) and (orientation: portrait) {
+  .failure-view { position: relative; }
+
+  .failure-view.choice {
+    justify-content: flex-start;
+    padding-top: 3px;
+  }
+
+  .failure-view.choice .failure-mark {
+    width: 32px;
+    height: 32px;
+    font-size: 20px;
+  }
+
+  .failure-view.choice h3 { margin-top: 5px; }
+
+  .conflict-picker {
+    width: min(340px, 100%);
+    max-height: 280px;
+    margin-top: 7px;
+    overflow: hidden;
+  }
+
+  .conflict-group > strong {
+    margin-bottom: 5px;
+    font-size: 8px;
+  }
+
+  .conflict-options {
+    gap: 5px;
+  }
+
+  .conflict-option {
+    display: grid;
+    grid-template-columns: 58px minmax(0, 1fr);
+    align-items: center;
+    min-height: 64px;
+    padding: 3px;
+    border-width: 1px;
+    border-radius: 8px;
+  }
+
+  .conflict-option img {
+    width: 58px;
+    height: 58px;
+    aspect-ratio: auto;
+    border-radius: 6px;
+  }
+
+  .conflict-option span {
+    min-width: 0;
+    padding: 4px;
+    overflow: hidden;
+    font-size: 7px;
+    text-overflow: ellipsis;
+  }
+
+  .conflict-continue {
+    min-height: 35px;
+    margin-top: 6px;
+    padding: 7px;
+    font-size: 8px;
+  }
+
+  .failure-actions:has(#retry-run.hidden) #edit-input {
+    grid-column: 1 / -1;
+    max-width: none;
+  }
+}

@@ -174,6 +174,14 @@ export class RunService {
       created_at: now, updated_at: now, inputs: { person: personPath, identity_detail: identityDetailPath, garments: garmentPaths, outfit_text: outfitText.trim(), generate_scene: Boolean(generateScene), ...(importedApprovedAvatar ? { approved_avatar: importedApprovedAvatar } : {}) },
       garments: [], conflicts: [], qa: {}, outputs: {}, error: null,
     };
+    const preparation = {
+      person: person.preparation ?? null,
+      identity_detail: identityDetail?.preparation ?? null,
+      garments: garments.map((item) => item.preparation ?? null),
+    };
+    if (preparation.person || preparation.identity_detail || preparation.garments.some(Boolean)) {
+      state.inputs.preparation = preparation;
+    }
     await this.#write(state);
     this.start(runId);
     return publicRun(state);

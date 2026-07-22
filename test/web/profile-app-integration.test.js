@@ -4,6 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import FormData from 'form-data';
+import sharp from 'sharp';
 import { createWebApp } from '../../src/web/app.js';
 import { DraftService } from '../../src/web/draft-service.js';
 import { ProfileService } from '../../src/web/profile-service.js';
@@ -155,8 +156,11 @@ test('draft finalization resolves a saved source avatar, forwards its approved r
   const draft = await app.inject({ method: 'GET', url: '/api/draft', headers: { cookie: profileCookie } });
   const draftCookie = cookiePair(draft, 'zeely_draft_session');
   const browserCookies = `${profileCookie}; ${draftCookie}`;
+  const personBytes = await sharp({
+    create: { width: 320, height: 400, channels: 3, background: '#365773' },
+  }).jpeg().toBuffer();
   const person = new FormData();
-  person.append('file', Buffer.from('new person bytes'), { filename: 'person.jpg', contentType: 'image/jpeg' });
+  person.append('file', personBytes, { filename: 'person.jpg', contentType: 'image/jpeg' });
   const uploaded = await app.inject({
     method: 'POST',
     url: '/api/draft/file/person',
@@ -186,7 +190,7 @@ test('draft finalization resolves a saved source avatar, forwards its approved r
   assert.equal(createInputs.length, 1);
   assert.strictEqual(createInputs[0].approvedAvatarReference, approvedReference);
   assert.equal(createInputs[0].runId, finalizationKey);
-  assert.equal(createInputs[0].person.buffer.toString(), 'new person bytes');
+  assert.deepEqual(createInputs[0].person.buffer, personBytes);
   assert.equal(createInputs[0].outfitText, 'precise saved-avatar look');
 
   const claim = profiles.getClaim(profileId, finalizationKey);

@@ -1,12 +1,117 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { mkdir, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import sharp from 'sharp';
 
 const COOKIE_NAME = 'zeely_draft_session';
 export const DRAFT_TTL_MS = 15 * 60 * 1000;
 const SESSION_SECONDS = DRAFT_TTL_MS / 1000;
 const MAX_FILE_BYTES = 18 * 1024 * 1024;
 const MIME_EXTENSION = new Map([['image/jpeg', '.jpg'], ['image/png', '.png'], ['image/webp', '.webp']]);
+export const RUN_IMAGE_MIN_EDGE = 256;
+export const RUN_IMAGE_MAX_EDGE = 4096;
+export const DRAFT_MAX_UPSCALE_FACTOR = 4;
+
+function digest(value) {
+  return createHash('sha256').update(value).digest('hex');
+}
+
+function preparationError(message) {
+  const error = new Error(message);
+  error.statusCode = 422;
+  return error;
+}
+
+function displayDimensions(metadata) {
+  const swapsAxes = [5, 6, 7, 8].includes(metadata.orientation);
+  return swapsAxes
+    ? { width: metadata.height, height: metadata.width }
+    : { width: metadata.width, height: metadata.height };
+}
+
+/**
+ * Produces the bounded, deterministic copy that RunService stores as its
+ * immutable input. The browser draft remains byte-for-byte unchanged.
+ * Resampling can satisfy the transport minimum; it never claims to restore
+ * detail that is absent from the source image.
+ */
+export async function prepareDraftUploadForRun(upload, {
+  field = 'image',
+  minimumEdge = RUN_IMAGE_MIN_EDGE,
+  maximumEdge = RUN_IMAGE_MAX_EDGE,
+  maximumUpscaleFactor = DRAFT_MAX_UPSCALE_FACTOR,
+} = {}) {
+  if (!upload?.buffer?.length) throw preparationError(`${field} is missing from the draft`);
+  let metadata;
+  try {
+    metadata = await sharp(upload.buffer, { failOn: 'error', unlimited: false }).metadata();
+  } catch {
+    throw preparationError(`${field} is not a decodable image`);
+  }
+  if (!metadata.width || !metadata.height) throw preparationError(`${field} has no usable dimensions`);
+  if (metadata.pages && metadata.pages > 1) throw preparationError(`${field} must be a still image`);
+
+  const source = displayDimensions(metadata);
+  const requiredScale = Math.max(1, minimumEdge / source.width, minimumEdge / source.height);
+  const targetWidth = Math.ceil(source.width * requiredScale);
+  const targetHeight = Math.ceil(source.height * requiredScale);
+  const baseEvidence = {
+    policy: 'DRAFT_RUN_INPUT_V1',
+    source_width: source.width,
+    source_height: source.height,
+    minimum_edge: minimumEdge,
+    maximum_edge: maximumEdge,
+    maximum_upscale_factor: maximumUpscaleFactor,
+    source_sha256: digest(upload.buffer),
+    semantic_generation: false,
+  };
+
+  if (requiredScale === 1) {
+    return {
+      ...upload,
+      preparation: {
+        ...baseEvidence,
+        method: 'UNCHANGED',
+        output_width: source.width,
+        output_height: source.height,
+        scale: 1,
+        output_sha256: baseEvidence.source_sha256,
+      },
+    };
+  }
+  if (requiredScale > maximumUpscaleFactor) {
+    throw preparationError(
+      `${field} is too small for bounded preparation: ${source.width}×${source.height}; `
+      + `maximum upscale is ${maximumUpscaleFactor}×`,
+    );
+  }
+  if (Math.max(targetWidth, targetHeight) > maximumEdge) {
+    throw preparationError(
+      `${field} aspect ratio cannot reach ${minimumEdge} px on both edges within the ${maximumEdge} px output limit`,
+    );
+  }
+
+  const buffer = await sharp(upload.buffer, { failOn: 'error', unlimited: false })
+    .rotate()
+    .toColourspace('srgb')
+    .resize({ width: targetWidth, height: targetHeight, fit: 'fill', kernel: sharp.kernel.lanczos3 })
+    .png({ compressionLevel: 9 })
+    .toBuffer();
+  const stem = String(upload.filename ?? field).replace(/\.[^.]+$/, '') || field;
+  return {
+    filename: `${stem}-prepared.png`,
+    mimetype: 'image/png',
+    buffer,
+    preparation: {
+      ...baseEvidence,
+      method: 'DETERMINISTIC_LANCZOS3_UPSCALE',
+      output_width: targetWidth,
+      output_height: targetHeight,
+      scale: Number(requiredScale.toFixed(6)),
+      output_sha256: digest(buffer),
+    },
+  };
+}
 
 function cookies(header = '') {
   return Object.fromEntries(header.split(';').map((item) => item.trim().split('=').map(decodeURIComponent)).filter(([key, value]) => key && value));
@@ -187,11 +292,21 @@ export async function registerDraftRoutes(app, { service, runService = null, pro
     const sessionId = session(request, reply);
     const manifest = await service.read(sessionId);
     if (!manifest.person) return reply.code(400).send({ error: 'Фото людини відсутнє в чернетці' });
-    const asUpload = async (slot, descriptor) => {
+    const asUpload = async (slot, descriptor, field) => {
       const value = await service.file(sessionId, slot, descriptor.id);
       if (!value) throw new Error(`Файл ${slot} відсутній у чернетці`);
-      return { filename: descriptor.filename, mimetype: descriptor.mimetype, buffer: value.buffer };
+      return prepareDraftUploadForRun(
+        { filename: descriptor.filename, mimetype: descriptor.mimetype, buffer: value.buffer },
+        { field },
+      );
     };
+    const person = await asUpload('person', manifest.person, 'person_photo');
+    const identityDetail = manifest.identity
+      ? await asUpload('identity', manifest.identity, 'identity_detail')
+      : null;
+    const garments = await Promise.all(manifest.garments.map((item, index) => (
+      asUpload('garment', item, `garment_images[${index}]`)
+    )));
     let approvedAvatarReference = null;
     let profileSession = null;
     if (profileService && profileApi) {
@@ -204,9 +319,9 @@ export async function registerDraftRoutes(app, { service, runService = null, pro
       profileService.claimRun(profileSession.profileId, resolvedRunId, { sourceAvatarId });
     }
     const run = await runService.createRun({
-      person: await asUpload('person', manifest.person),
-      identityDetail: manifest.identity ? await asUpload('identity', manifest.identity) : null,
-      garments: await Promise.all(manifest.garments.map((item) => asUpload('garment', item))),
+      person,
+      identityDetail,
+      garments,
       outfitText: manifest.outfit_text,
       generateScene: manifest.generate_scene,
       approvedAvatarReference,
