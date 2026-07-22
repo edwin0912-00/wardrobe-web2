@@ -24,7 +24,7 @@ flowchart LR
     U["1 · Web UI\nФото людини · identity detail\nтекст і до 5 фото речей"]
     I["2 · Fastify intake\nconsent · MIME · 20 MB/file\ndecode · dimensions"]
     S["3 · Immutable source store\nraw bytes · SHA-256\nisolated run directory"]
-    X["4 · Garment extraction\nCodex VLM strict JSON\nOBSERVED · UNKNOWN"]
+    X["4 · Картка речі\nCodex VLM · строгий JSON\nВИДИМЕ · НЕВІДОМЕ"]
     C["5 · Reference Conditioning\nSharp + bounded transforms\nsRGB · crops · cutout · white card"]
     G{"6 · Readiness gate\nREADY / REPAIRABLE\nNEEDS_INPUT / INCOMPATIBLE"}
     J["7 · Immutable job.json\npaths · hashes · policies\nprompts · fixed model route"]
@@ -56,8 +56,8 @@ flowchart LR
 | 2 | Fastify 5 + multipart (`src/web/app.js`) | `LIVE` | Приймає upload, віддає progress API, SSE та outputs. | multipart fields/files → normalized upload objects | До 7 файлів, 20 MB на файл; malformed request повертає structured error. |
 | 3 | `RunService` + filesystem (`runtime/runs/<id>`) | `LIVE` | Ізолює кожен run і зберігає raw source до будь-якої генерації. | upload buffers → immutable source files + `run.json` | `wx`-write не дозволяє тихо перезаписати source. Кожен phase оновлює persisted state. |
 | 4 | Sharp 0.35 (`src/conditioning`) | `LIVE` | Детермінована підготовка без генеративного домислювання. | raw bytes → oriented sRGB normalized image, face/person crops, garment cutout/card | Corrupt file, недостатній resolution або відсутній required crop зупиняють flow. Кожен derivative має lineage і SHA-256. |
-| 5 | Codex VLM evaluator (`src/providers/codex-vlm-evaluator.js`) | `LIVE` | Строгий garment passport і candidate semantic QA у read-only ephemeral execution. Identity input тут не “описується з пам’яті”: його normalized/crop evidence напряму передається generation та QA. | ordered evidence images + versioned task prompt → strict-schema JSON | Timeout, malformed JSON, low-confidence garment READY або відсутня evidence завершуються fail-closed, а не автоприйняттям. |
-| 6 | Garment passport (`src/web/garment-passport.js`) | `LIVE` | Перетворює довільні фото речей на typed wardrobe. | garment refs → category, observed type/color/material/pattern/logo/construction, unknowns, confidence | Duplicate slot або `one_piece` проти `top + bottom` дає explicit conflict/`NEEDS_INPUT`. |
+| 5 | Codex VLM evaluator (`src/providers/codex-vlm-evaluator.js`) | `LIVE` | Формує строгу картку речі та виконує семантичну QA-перевірку кандидата у read-only ephemeral execution. Фото людини тут не «описується з пам’яті»: його normalized/crop evidence напряму передається generation та QA. | впорядковані фото-докази + versioned task prompt → strict-schema JSON | Timeout, malformed JSON, низька впевненість або відсутня evidence завершуються fail-closed, а не автоприйняттям. |
+| 6 | Картка речі (`src/web/garment-passport.js`) | `LIVE` | Перетворює довільні фото речей на структуровані характеристики й групи ракурсів. | фото речей → категорія, видимі тип/колір/матеріал/візерунок/логотип/конструкція, невідомі ознаки, впевненість | Дві речі однієї категорії або `one_piece` проти `top + bottom` дають явний конфлікт/`NEEDS_INPUT`. |
 | 7 | Reference pack (`reference-pack.json`) | `LIVE` | Єдиний дозволений generation input замість raw хаотичного набору фото. | source + derivatives + lineage → ordered bindings | Missing path, duplicate order або SHA mismatch блокує provider call. Generated hypothesis не може стати lock. |
 | 8 | Immutable `job.json` + AJV schemas | `LIVE` | Декларативний execution contract: що робити, з якими inputs, prompts, limits і outputs. | validated paths/policy/hashes → resolved immutable job | Credentials не лежать у job. Модель поза allowlist, змінений input або невалідний schema зупиняють run до оплати generation. |
 | 9 | Deterministic state-machine runner (`src/runner`) | `LIVE` | Оркеструє conditioning → avatar → avatar QA → outfit → outfit QA → export. | immutable job + provider adapter → checkpointed run | Idempotency keys, append-only events і receipts дозволяють resume. Retry bounded; threshold не знижується. |
@@ -94,7 +94,7 @@ written task rules
 + observable identity facts
 + exact framing/light/background requirements
 + ordered reference roles
-+ text outfit or garment passport locks
++ опис образу або зафіксовані характеристики з картки речі
 + explicit prohibitions
 = compiled prompt saved beside output
 ```

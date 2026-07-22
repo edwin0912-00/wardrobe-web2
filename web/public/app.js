@@ -4,7 +4,7 @@ import { clearDraft, loadDraft, requestPersistentStorage, saveDraft } from './dr
 import { fileSummary, telemetry } from './telemetry.js?v=20260722-8';
 import { prepareImageFile } from './image-upload.js?v=20260722-8';
 import { clearDefinitivelyRejectedRunState, clearServerDraft, createRunFromServerDraft, loadServerDraft, removeServerDraftFile, updateServerDraftMetadata, uploadDraftFile } from './server-draft.js?v=20260722-11';
-import { PIPELINE_NODE_COUNT, PIPELINE_NODES, nodeState, resolveProgressState } from './progress-model.js?v=20260722-5';
+import { PIPELINE_NODE_COUNT, PIPELINE_NODES, nodeState, resolveProgressState } from './progress-model.js?v=20260722-6';
 import { fetchRunWithRetry, RunNotFoundError } from './run-resume.js?v=20260722-3';
 import { avatarFileFromProfile, claimProfileRun, deleteAnonymousProfile, deleteProfileAvatar, deleteProfileLook, loadProfile, saveProfileRun } from './profile-client.js?v=20260722-1';
 
@@ -189,7 +189,7 @@ async function ensureServerDraftComplete() {
   });
 
   if (!serverDraftRefs.person) throw new Error('Фото людини не збережено на сервері');
-  if (uploads.identityDetail && !serverDraftRefs.identity) throw new Error('Identity detail не збережено на сервері');
+  if (uploads.identityDetail && !serverDraftRefs.identity) throw new Error('Додаткове фото людини не збережено на сервері');
   if (serverDraftRefs.garments.length !== uploads.garments.length) throw new Error('Не всі фото одягу збережено на сервері');
 }
 
@@ -392,7 +392,7 @@ function renderProgress(state, message, { terminalStatus = null } = {}) {
   document.querySelector('#checkpoint-input').textContent = details.input;
   let operation = details.operation;
   if (route.avatar_reuse && normalized.step === 11) operation = 'Verify exact avatar SHA-256 and its hash-bound PASS receipt';
-  else if (route.garment_images_supplied === false && normalized.step === 5) operation += ' · garment branch skipped: text-only route';
+  else if (route.garment_images_supplied === false && normalized.step === 5) operation += ' · гілку обробки речей пропущено: використано лише текст';
   document.querySelector('#checkpoint-operation').textContent = operation;
   document.querySelector('#checkpoint-output').textContent = details.output;
   document.querySelector('#checkpoint-gate').textContent = details.gate;
@@ -422,19 +422,19 @@ function renderRun(run) {
     const terminalStage = run.terminal_stage ?? run.inner_state ?? run.phase;
     renderProgress(resolveProgressState(terminalStage), run.message, { terminalStatus: run.status });
     movePipelineBoard('failure');
-    resultPanelTitle.textContent = hasSelectableConflict ? 'Вибір' : 'Pipeline';
+    resultPanelTitle.textContent = hasSelectableConflict ? 'Вибір' : 'Процес';
     setView('failure');
     failure.classList.toggle('choice', hasSelectableConflict);
     document.querySelector('.failure-mark').textContent = hasSelectableConflict ? '?' : '!';
-    document.querySelector('#failure-title').textContent = hasSelectableConflict ? 'Обери річ для образу' : run.status === 'NEEDS_INPUT' ? 'Потрібен кращий input' : 'Run зупинено';
-    document.querySelector('#failure-message').textContent = hasSelectableConflict ? 'Знайдено кілька різних речей одного типу. Обери одну — pipeline продовжить цей самий run.' : run.message || run.error?.message || 'Unknown error';
+    document.querySelector('#failure-title').textContent = hasSelectableConflict ? 'Обери річ для образу' : run.status === 'NEEDS_INPUT' ? 'Потрібне інше фото' : 'Генерацію зупинено';
+    document.querySelector('#failure-message').textContent = hasSelectableConflict ? 'Знайдено кілька різних речей одного типу. Обери одну — генерація продовжиться з цього етапу.' : run.message || run.error?.message || 'Невідома помилка';
     renderConflictPicker(run);
     document.querySelector('#retry-run').classList.toggle('hidden', hasSelectableConflict);
     submit.disabled = false;
     eventSource?.close();
     return;
   }
-  resultPanelTitle.textContent = 'Pipeline';
+  resultPanelTitle.textContent = 'Процес';
   setView('progress');
   renderProgress(resolveProgressState(run.inner_state ?? run.phase), run.message);
 }
@@ -555,10 +555,10 @@ async function ensureCompletedRunSaved(run) {
       ?? avatarId(avatars.at(0));
     currentResultAvatarId = savedAvatarId;
     const selected = avatars.find((avatar) => avatarId(avatar) === savedAvatarId);
-    document.querySelector('#result-avatar-name').textContent = selected?.name || `Avatar ${String(Math.max(1, avatars.findIndex((avatar) => avatarId(avatar) === savedAvatarId) + 1)).padStart(2, '0')}`;
+    document.querySelector('#result-avatar-name').textContent = selected?.name || `Аватар ${String(Math.max(1, avatars.findIndex((avatar) => avatarId(avatar) === savedAvatarId) + 1)).padStart(2, '0')}`;
     const expiry = currentProfile.expires_at ?? response?.expires_at;
     document.querySelector('#result-profile-expiry').textContent = formatProfileExpiry(expiry);
-    saveState.textContent = 'QA passed · Saved';
+    saveState.textContent = 'Перевірку пройдено · збережено';
     saveState.onclick = null;
     saveState.classList.remove('saving', 'failed');
     localStorage.removeItem(SOURCE_AVATAR_KEY);
@@ -636,8 +636,8 @@ async function beginDraft({ avatar = null } = {}) {
     if (avatar) localStorage.setItem(SOURCE_AVATAR_KEY, avatarId(avatar));
     else localStorage.removeItem(SOURCE_AVATAR_KEY);
     history.replaceState({}, '', location.pathname);
-    resultPanelTitle.textContent = 'Pipeline';
-    statusChip.textContent = 'Очікує input';
+    resultPanelTitle.textContent = 'Процес';
+    statusChip.textContent = 'Очікує матеріали';
     statusChip.className = 'status-chip idle';
     setView('empty');
     setWorkflowActive(false);
@@ -655,7 +655,7 @@ async function beginDraft({ avatar = null } = {}) {
       await queueServerSync(() => syncFileToServer('person', file));
       draftStatus.textContent = 'Збережений аватар готовий · додай нові речі';
     } else {
-      draftStatus.textContent = 'Новий порожній avatar draft';
+      draftStatus.textContent = 'Нова порожня чернетка аватара';
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
     (avatar ? form.elements.outfit_text : document.querySelector('#person-photo')).focus();
@@ -687,10 +687,10 @@ async function renderProfile(profileValueToRender = null) {
     card.className = 'profile-avatar-item';
     const image = document.createElement('img');
     image.src = avatarImageUrl(avatar);
-    image.alt = avatar.name || `Avatar ${index + 1}`;
+    image.alt = avatar.name || `Аватар ${index + 1}`;
     const meta = document.createElement('div');
     const title = document.createElement('strong');
-    title.textContent = avatar.name || `Avatar ${String(index + 1).padStart(2, '0')}`;
+    title.textContent = avatar.name || `Аватар ${String(index + 1).padStart(2, '0')}`;
     const count = document.createElement('small');
     count.textContent = `${looks.filter((look) => (look.avatar_id ?? look.avatarId) === avatarId(avatar)).length} образів`;
     const actions = document.createElement('div');
@@ -717,7 +717,7 @@ async function renderProfile(profileValueToRender = null) {
     image.alt = look.name || `Збережений образ ${index + 1}`;
     const meta = document.createElement('div');
     const title = document.createElement('strong');
-    title.textContent = look.name || `Look ${String(index + 1).padStart(2, '0')}`;
+    title.textContent = look.name || `Образ ${String(index + 1).padStart(2, '0')}`;
     const remove = createProfileButton('×', 'profile-delete-action', async () => {
       if (!confirm('Видалити цей образ?')) return;
       await deleteProfileLook(lookId);
@@ -760,7 +760,7 @@ async function renderProfile(profileValueToRender = null) {
     },
   });
   resultPanelTitle.textContent = 'Мій профіль';
-  statusChip.textContent = 'SAVED';
+  statusChip.textContent = 'ЗБЕРЕЖЕНО';
   statusChip.className = 'status-chip completed';
   setWorkflowActive(true);
   setView('profile');
@@ -784,7 +784,7 @@ function renderResults(run) {
   const items = [
     ['avatar_outfit', 'Образ'],
     ['avatar', 'Аватар'],
-    ['art_director_scene', 'Editorial'],
+    ['art_director_scene', 'Арткадр'],
   ].filter(([key]) => run.outputs[key]).map(([key, label]) => ({ key, label, url: run.outputs[key] }));
   const activeImage = document.querySelector('#active-result-image');
   const activeLabel = document.querySelector('#active-result-label');
@@ -851,7 +851,7 @@ function watch(runId) {
       if (!isTerminal(activeRun)) {
         renderProgress(
           resolveProgressState(activeRun?.inner_state ?? activeRun?.phase ?? 'RESUMING'),
-          'Зв’язок із сервером перепідключається. Run не зупинено.',
+          'Зв’язок із сервером перепідключається. Генерацію не зупинено.',
         );
       }
     } finally {
@@ -872,8 +872,8 @@ form.addEventListener('submit', async (event) => {
   submitting = true;
   renderedProgressFloor = 0;
   setWorkflowActive(true);
-  resultPanelTitle.textContent = 'Pipeline';
-  statusChip.textContent = 'RUNNING';
+  resultPanelTitle.textContent = 'Процес';
+  statusChip.textContent = 'ВИКОНУЄТЬСЯ';
   statusChip.className = 'status-chip running';
   setView('progress');
   window.clearTimeout(transitionTimer);
@@ -884,7 +884,7 @@ form.addEventListener('submit', async (event) => {
   try {
     renderProgress(resolveProgressState('PREPARING'), 'Перевіряємо збереження всіх файлів…');
     await ensureServerDraftComplete();
-    renderProgress(resolveProgressState('UPLOADED'), 'Файли на сервері. Створюємо immutable run…');
+    renderProgress(resolveProgressState('UPLOADED'), 'Файли на сервері. Створюємо зафіксований запуск…');
     finalizationId = localStorage.getItem(PENDING_FINALIZATION_KEY) || createFinalizationId();
     localStorage.setItem(PENDING_FINALIZATION_KEY, finalizationId);
     localStorage.setItem(ACTIVE_RUN_KEY, finalizationId);
@@ -939,7 +939,7 @@ document.querySelector('#edit-input').addEventListener('click', async () => {
   localStorage.removeItem(PENDING_FINALIZATION_KEY);
   history.replaceState({}, '', location.pathname);
   resultPanelTitle.textContent = 'Pipeline';
-  statusChip.textContent = 'Очікує input';
+  statusChip.textContent = 'Очікує матеріали';
   statusChip.className = 'status-chip idle';
   setView('empty');
   form.inert = true;

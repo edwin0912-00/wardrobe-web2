@@ -89,31 +89,31 @@ function validateQa(value) {
 }
 
 function validatePassport(value, expectedCount) {
-  if (!value || !['READY', 'NEEDS_INPUT'].includes(value.status) || !Array.isArray(value.items) || value.items.length !== expectedCount) throw new Error('Codex garment passport returned an invalid item count or status');
+  if (!value || !['READY', 'NEEDS_INPUT'].includes(value.status) || !Array.isArray(value.items) || value.items.length !== expectedCount) throw new Error('Картка речі: Codex повернув некоректну кількість елементів або статус');
   const indexes = new Set();
   for (const item of value.items) {
-    if (!Number.isInteger(item.source_index) || item.source_index < 0 || item.source_index >= expectedCount || indexes.has(item.source_index)) throw new Error('Codex garment passport returned invalid source indexes');
+    if (!Number.isInteger(item.source_index) || item.source_index < 0 || item.source_index >= expectedCount || indexes.has(item.source_index)) throw new Error('Картка речі: Codex повернув некоректні індекси фото');
     indexes.add(item.source_index);
-    if (!CATEGORIES.has(item.category) || typeof item.confidence !== 'number' || item.confidence < 0 || item.confidence > 1) throw new Error('Codex garment passport returned invalid classification');
-    if (!item.observed || typeof item.observed.garment_type !== 'string' || !Array.isArray(item.blockers) || !Array.isArray(item.unknowns)) throw new Error('Codex garment passport returned incomplete observations');
-    if (item.confidence < 0.7 && value.status === 'READY') throw new Error('Low-confidence garment passport cannot be READY');
+    if (!CATEGORIES.has(item.category) || typeof item.confidence !== 'number' || item.confidence < 0 || item.confidence > 1) throw new Error('Картка речі: Codex повернув некоректну класифікацію');
+    if (!item.observed || typeof item.observed.garment_type !== 'string' || !Array.isArray(item.blockers) || !Array.isArray(item.unknowns)) throw new Error('Картка речі: Codex повернув неповний опис характеристик');
+    if (item.confidence < 0.7 && value.status === 'READY') throw new Error('Картка речі з низькою впевненістю не може мати статус READY');
   }
-  if (!Array.isArray(value.reference_sets) || value.reference_sets.length < 1 || value.reference_sets.length > expectedCount) throw new Error('Codex garment passport returned invalid reference sets');
+  if (!Array.isArray(value.reference_sets) || value.reference_sets.length < 1 || value.reference_sets.length > expectedCount) throw new Error('Картка речі: Codex повернув некоректні групи ракурсів');
   const assigned = new Set();
   for (const set of value.reference_sets) {
     if (!Array.isArray(set.source_indexes) || set.source_indexes.length === 0 || !Number.isInteger(set.primary_source_index)
       || !set.source_indexes.includes(set.primary_source_index) || typeof set.same_item_confidence !== 'number'
-      || !Array.isArray(set.evidence) || set.evidence.length === 0) throw new Error('Codex garment passport returned an invalid reference set');
-    if (set.source_indexes.length > 1 && set.same_item_confidence < 0.9) throw new Error('Multi-view garment grouping confidence is below 0.90');
+      || !Array.isArray(set.evidence) || set.evidence.length === 0) throw new Error('Картка речі: Codex повернув некоректну групу ракурсів');
+    if (set.source_indexes.length > 1 && set.same_item_confidence < 0.9) throw new Error('Впевненість у групуванні ракурсів нижча за 0.90');
     const categories = new Set();
     for (const index of set.source_indexes) {
-      if (!Number.isInteger(index) || index < 0 || index >= expectedCount || assigned.has(index)) throw new Error('Garment reference sets must partition source indexes exactly once');
+      if (!Number.isInteger(index) || index < 0 || index >= expectedCount || assigned.has(index)) throw new Error('Кожне вихідне фото має входити рівно до однієї групи ракурсів');
       assigned.add(index);
       categories.add(value.items.find((item) => item.source_index === index)?.category);
     }
-    if (categories.size !== 1) throw new Error('One garment reference set cannot mix categories');
+    if (categories.size !== 1) throw new Error('Одна група ракурсів не може змішувати різні категорії речей');
   }
-  if (assigned.size !== expectedCount) throw new Error('Garment reference sets must cover every source index');
+  if (assigned.size !== expectedCount) throw new Error('Групи ракурсів мають охоплювати кожне вихідне фото');
   return value;
 }
 

@@ -13,6 +13,24 @@ const MIME_EXTENSION = Object.freeze({ 'image/png': '.png', 'image/jpeg': '.jpg'
 const TERMINAL = new Set(['COMPLETED', 'NEEDS_INPUT', 'FAILED']);
 const RESTARTABLE = new Set(['QUEUED', 'RUNNING']);
 const SAFE_RUN_ID = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/;
+const CHECKPOINT_MESSAGES = Object.freeze({
+  RECEIVED: 'Задачу прийнято',
+  VALIDATING: 'Перевіряємо контракт і файли',
+  CONDITIONING_IDENTITY: 'Перевіряємо матеріали людини',
+  CONDITIONING_OUTFIT: 'Перевіряємо матеріали образу',
+  CONDITIONING_QA: 'Перевіряємо підготовлені матеріали',
+  REFERENCES_READY: 'Матеріали затверджено',
+  GENERATING_AVATAR: 'Генеруємо базовий аватар',
+  AVATAR_RETRY: 'Повторно генеруємо аватар',
+  AVATAR_QA: 'Перевіряємо схожість і якість аватара',
+  AVATAR_READY: 'Базовий аватар затверджено',
+  GENERATING_OUTFIT: 'Генеруємо повний образ',
+  OUTFIT_RETRY: 'Повторно генеруємо образ',
+  OUTFIT_QA: 'Перевіряємо образ і схожість',
+  OUTFIT_READY: 'Образ затверджено',
+  EXPORTING: 'Зберігаємо затверджений результат',
+  COMPLETED: 'Результат готовий',
+});
 const sha256 = (value) => createHash('sha256').update(value).digest('hex');
 
 function resolveRunId(runId) {
@@ -226,7 +244,7 @@ export class RunService {
       let conditioned = await this.#restoreConditionedGarments(state);
       if (state.inputs.garments.length) {
         if (!conditioned) {
-          await this.#write(state, { status: 'RUNNING', phase: 'GARMENT_CONDITIONING', message: 'Classifying and canonicalizing wardrobe references' });
+          await this.#write(state, { status: 'RUNNING', phase: 'GARMENT_CONDITIONING', message: 'Фіксуємо характеристики речей і готуємо еталонні референси' });
           const conditioner = new GarmentConditioner({ vlm: this.vlm, generator: this.assetGenerator, clock: this.clock });
           conditioned = await conditioner.condition({
             imagePaths: state.inputs.garments,
@@ -240,7 +258,7 @@ export class RunService {
         }
       }
       const jobPath = await this.#buildJob(state, conditioned);
-      await this.#write(state, { status: 'RUNNING', phase: 'CORE_PIPELINE', inner_state: null, terminal_stage: null, message: 'Generating and checking avatar and outfit', job_path: jobPath });
+      await this.#write(state, { status: 'RUNNING', phase: 'CORE_PIPELINE', inner_state: null, terminal_stage: null, message: 'Генеруємо й перевіряємо аватар та образ', job_path: jobPath });
       const runner = new PipelineRunner({ provider: this.provider });
       const progressTimer = setInterval(() => { this.#syncRunnerProgress(state).catch(() => {}); }, 1000);
       let result;
@@ -270,7 +288,7 @@ export class RunService {
       state.qa = manifest.qa;
       state.outputs = outputs;
       if (state.inputs.generate_scene) await this.#generateScene(state, result.outputs.avatar_outfit);
-      return this.#write(state, { status: 'COMPLETED', phase: 'COMPLETED', inner_state: null, terminal_stage: null, message: 'Avatar and outfit are ready', outputs: state.outputs });
+      return this.#write(state, { status: 'COMPLETED', phase: 'COMPLETED', inner_state: null, terminal_stage: null, message: 'Аватар і образ готові', outputs: state.outputs });
     } catch (error) {
       if (error instanceof GarmentNeedsInputError) {
         const passport = error.details.passport;
@@ -285,7 +303,7 @@ export class RunService {
     const checkpointPath = path.join(this.runDirectory(state.run_id), 'outputs', '.zeely-run', 'checkpoint.json');
     try {
       const checkpoint = JSON.parse(await readFile(checkpointPath, 'utf8'));
-      if (checkpoint.state !== state.inner_state) await this.#write(state, { inner_state: checkpoint.state, message: checkpoint.state.replaceAll('_', ' ').toLowerCase() });
+      if (checkpoint.state !== state.inner_state) await this.#write(state, { inner_state: checkpoint.state, message: CHECKPOINT_MESSAGES[checkpoint.state] ?? checkpoint.state.replaceAll('_', ' ').toLowerCase() });
     } catch { /* checkpoint may not exist yet */ }
   }
 
@@ -384,7 +402,7 @@ export class RunService {
   }
 
   async #generateScene(state, approvedOutfitPath) {
-    await this.#write(state, { phase: 'OPTIONAL_SCENE', inner_state: null, message: 'Generating optional editorial still' });
+    await this.#write(state, { phase: 'OPTIONAL_SCENE', inner_state: null, message: 'Генеруємо додатковий редакційний кадр' });
     const sceneDirectory = path.join(this.runDirectory(state.run_id), 'scene');
     for (const [index, model] of IMAGE_MODEL_ROUTE.entries()) {
       const response = await this.assetGenerator.generateScene({
@@ -455,7 +473,7 @@ export class RunService {
     await rm(path.join(this.runDirectory(runId), 'outputs'), { recursive: true, force: true });
     state.inputs.garment_passport = state.error.details.passport;
     state.inputs.garment_selections = normalized;
-    await this.#write(state, { status: 'QUEUED', phase: 'UPLOADED', inner_state: null, terminal_stage: null, message: 'Garment selection saved; continuing this run', garments: [], conflicts: [], error: null, outputs: {}, qa: {} });
+    await this.#write(state, { status: 'QUEUED', phase: 'UPLOADED', inner_state: null, terminal_stage: null, message: 'Вибір речі збережено — продовжуємо цей запуск', garments: [], conflicts: [], error: null, outputs: {}, qa: {} });
     this.start(runId);
     return publicRun(state);
   }

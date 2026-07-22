@@ -24,11 +24,11 @@ function phaseComment(run) {
   if (run.status === 'COMPLETED') return 'Run завершився: усі обов’язкові outputs пройшли pipeline та QA.';
   const comments = {
     UPLOADED: 'Файли повністю збережені сервером. Далі мережевий upload уже не бере участі.',
-    GARMENT_CONDITIONING: 'VLM зараз класифікує речі, групує кілька ракурсів однієї речі та готує canonical references.',
-    GARMENT_GROUPING: 'VLM завершив класифікацію: фото розкладені у logical garment reference sets.',
-    GARMENT_GENERATING: 'Створено provider job для canonical garment; supervisor стежить за journal, повторного create не буде.',
-    GARMENT_QA: 'Canonical garment завантажено; VLM порівнює його з усіма вихідними ракурсами.',
-    CORE_PIPELINE: 'Canonical references готові; почалась генерація avatar/outfit із checkpoint та QA.',
+    GARMENT_CONDITIONING: 'VLM визначає категорію кожної речі й фіксує лише видимі характеристики у картці речі.',
+    GARMENT_GROUPING: 'VLM завершив класифікацію: фото об’єднані у групи ракурсів тієї самої речі.',
+    GARMENT_GENERATING: 'Створено задачу провайдера для підготовки еталонного зображення речі; supervisor стежить за журналом, повторного запуску не буде.',
+    GARMENT_QA: 'Підготовлену річ завантажено; VLM порівнює її з усіма вихідними ракурсами.',
+    CORE_PIPELINE: 'Еталонні референси готові; почалась генерація аватара й образу з checkpoint та QA.',
     OPTIONAL_SCENE: 'Core outputs готові; створюється необов’язковий editorial still.',
   };
   return comments[run.inner_state ?? run.phase] ?? `Pipeline перейшов у ${run.inner_state ?? run.phase}: ${run.message}`;

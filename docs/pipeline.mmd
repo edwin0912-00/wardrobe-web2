@@ -1,8 +1,8 @@
 flowchart TD
-    WEB["Core Web App<br/>person photo · optional identity detail<br/>text and/or up to 5 garment photos"] --> INTAKE["Validate uploads · consent<br/>decode · type · size · dimensions"]
-    INTAKE --> GP["Codex garment passport<br/>category · OBSERVED · UNKNOWN · confidence"]
-    GP --> GC["Canonicalize each garment<br/>GPT Image 2 route · white card · cutout"]
-    GC --> GQA{"Raw ↔ canonical<br/>fidelity QA"}
+    WEB["Core Web App<br/>фото людини · додаткове фото<br/>текст і/або до 5 фото речей"] --> INTAKE["Validate uploads · consent<br/>decode · type · size · dimensions"]
+    INTAKE --> GP["Codex: картка речі<br/>категорія · ВИДИМЕ · НЕВІДОМЕ · впевненість"]
+    GP --> GC["Підготовка кожної речі<br/>GPT Image 2 route · білий фон · вирізаний об’єкт"]
+    GC --> GQA{"Оригінал ↔ підготовлена річ<br/>QA відповідності"}
     GQA -->|NEEDS_INPUT / conflict| STOP2
     GQA -->|READY| J
     INTAKE --> J

@@ -64,7 +64,7 @@ async function trimTransparentMargins(buffer) {
 }
 
 /**
- * Makes a canonical garment artifact and white review card. Isolation must come
+ * Makes a canonical item artifact and white review card. Isolation must come
  * from source alpha, an explicit alpha mask, or an explicit bbox; no background
  * removal model is hidden inside this function.
  */

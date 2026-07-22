@@ -42,7 +42,7 @@ test('Codex evaluator uses ephemeral read-only strict-schema execution and retur
   assert.equal(calls[0].options.timeoutMs, 60_000);
 });
 
-test('Codex evaluator returns a strict garment passport and blocks low-confidence READY', async () => {
+test('Codex evaluator returns a strict structured garment analysis and blocks low-confidence READY', async () => {
   const filename = await imageFixture();
   const valid = { status: 'READY', reason: 'visible item', items: [{ source_index: 0, category: 'top', confidence: 0.94,
     observed: { garment_type: 'green hoodie', colors: ['green'], material: ['fleece'], pattern: [], logo_text: [], construction: ['hood'] }, unknowns: [], blockers: [] }],
@@ -51,7 +51,7 @@ test('Codex evaluator returns a strict garment passport and blocks low-confidenc
   assert.equal((await evaluator.inspectGarments([filename])).items[0].category, 'top');
   const invalid = structuredClone(valid); invalid.items[0].confidence = 0.4;
   const low = new CodexVlmEvaluator({ commandRunner: runnerFor(invalid, []) });
-  await assert.rejects(() => low.inspectGarments([filename]), /Low-confidence/);
+  await assert.rejects(() => low.inspectGarments([filename]), /низькою впевненістю/);
 });
 
 test('garment reference sets are a strict full partition and multi-view grouping needs high confidence', async () => {
@@ -66,12 +66,12 @@ test('garment reference sets are a strict full partition and multi-view grouping
 
   const lowConfidence = structuredClone(valid);
   lowConfidence.reference_sets[0].same_item_confidence = 0.7;
-  await assert.rejects(() => new CodexVlmEvaluator({ commandRunner: runnerFor(lowConfidence, []) }).inspectGarments([first, second]), /below 0.90/);
+  await assert.rejects(() => new CodexVlmEvaluator({ commandRunner: runnerFor(lowConfidence, []) }).inspectGarments([first, second]), /нижча за 0.90/);
 
   const missingIndex = structuredClone(valid);
   missingIndex.reference_sets[0].source_indexes = [0];
   missingIndex.reference_sets[0].primary_source_index = 0;
-  await assert.rejects(() => new CodexVlmEvaluator({ commandRunner: runnerFor(missingIndex, []) }).inspectGarments([first, second]), /cover every source index/);
+  await assert.rejects(() => new CodexVlmEvaluator({ commandRunner: runnerFor(missingIndex, []) }).inspectGarments([first, second]), /охоплювати кожне вихідне фото/);
 });
 
 test('garment response schema stays inside the OpenAI strict-schema subset', async () => {

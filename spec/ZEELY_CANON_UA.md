@@ -85,7 +85,7 @@ Technical QA і semantic QA є різними gates. Технічний PASS н�
 
 - `WIN-GARMENT-001 SHOULD`: engine приймає до п’яти довільних garment-фото.
 - `WIN-GARMENT-002 SHOULD`: кожен asset класифікується як `outerwear`, `top`, `bottom`, `one_piece`, `footwear`, `headwear`, `bag` або `accessory`.
-- `WIN-GARMENT-003 SHOULD`: garment passport містить observed type, color, material, pattern, text/logo, construction details і confidence.
+- `WIN-GARMENT-003 SHOULD`: картка речі містить видимі тип, колір, матеріал, візерунок, текст/логотип, конструктивні деталі та впевненість.
 - `WIN-GARMENT-004 SHOULD`: canonicalization видаляє person, hanger і environment, але не змінює спостережувані характеристики речі.
 - `WIN-GARMENT-005 SHOULD`: canonical white card і transparent cutout зберігаються окремо.
 - `WIN-GARMENT-006 SHOULD`: raw-versus-canonical fidelity QA блокує altered logo/text/color/shape/material.
@@ -116,4 +116,3 @@ Technical QA і semantic QA є різними gates. Технічний PASS н�
 ## 6. Working-core definition of done
 
 Evaluator запускає одну команду, відкриває web app, додає нове user photo та text/garment reference, бачить conditioning і generation progress та завантажує два нові core PNG. Жоден етап не потребує редагування checked-in JSON. Кожен PASS має hash-bound QA evidence. Fixtures `001–003` залишаються regression proof, а не єдиним можливим input.
-

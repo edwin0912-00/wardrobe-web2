@@ -32,7 +32,7 @@ export class GarmentConditioner {
 
   async condition({ imagePaths, outputDirectory, runId, passport: savedPassport = null, selections = {}, onProgress = async () => {} }) {
     const passport = savedPassport ?? await this.vlm.inspectGarments(imagePaths);
-    await onProgress('GARMENT_GROUPING', 'Garment views classified and grouped');
+    await onProgress('GARMENT_GROUPING', 'Фото речей класифіковано та згруповано за ракурсами');
     if (passport.status !== 'READY') throw new GarmentNeedsInputError(passport.reason, { passport });
     const grouped = groupGarmentViews(passport.items, passport.reference_sets);
     const selectedIds = new Set(Object.values(selections));
@@ -47,30 +47,30 @@ export class GarmentConditioner {
     const retainedIndexes = new Set(referenceSets.flatMap((set) => set.source_indexes));
     const items = passport.items.filter((item) => retainedIndexes.has(item.source_index));
     const conflicts = findGarmentConflicts(items, referenceSets);
-    if (conflicts.length) throw new GarmentNeedsInputError('Garment slot conflicts require explicit selection', { passport, conflicts });
+    if (conflicts.length) throw new GarmentNeedsInputError('Знайдено кілька різних речей однієї категорії — оберіть одну', { passport, conflicts });
     const conditioned = [];
     const selectedGarments = groupGarmentViews(items, referenceSets);
     for (const item of selectedGarments) {
-      if (item.blockers.length) throw new GarmentNeedsInputError('Garment contains blocking unknowns', { item });
+      if (item.blockers.length) throw new GarmentNeedsInputError('На фото речі недостатньо видимих характеристик', { item });
       const sourcePaths = item.source_indexes.map((index) => imagePaths[index]);
       const sourcePath = sourcePaths[0];
       const itemDirectory = path.join(outputDirectory, String(item.source_index + 1).padStart(2, '0'));
       let accepted;
       const attempts = [];
       for (const [routeIndex, model] of IMAGE_MODEL_ROUTE.entries()) {
-        await onProgress('GARMENT_GENERATING', `Generating canonical garment ${conditioned.length + 1} of ${selectedGarments.length}`);
+        await onProgress('GARMENT_GENERATING', `Готуємо еталонне зображення речі ${conditioned.length + 1} з ${selectedGarments.length}`);
         const generated = await this.generator.generateGarment({
           sourcePath, sourcePaths, model, prompt: canonicalPrompt(item), workDirectory: itemDirectory,
           operationId: `${runId}-garment-${item.source_index}-${routeIndex + 1}`,
         });
-        // Canonical garment cards are intentionally opaque white. Flattening is
+        // Canonical item reference cards are intentionally opaque white. Flattening is
         // explicit here (and nowhere in core avatar QA) before deterministic
         // border-connected white normalization and cutout creation.
         const opaqueCandidate = await sharp(generated.image).flatten({ background: '#ffffff' }).png().toBuffer();
         const normalized = await normalizeWhitePngBytes(opaqueCandidate);
         const candidatePath = path.join(itemDirectory, `candidate-${routeIndex + 1}.png`);
         await atomicWrite(candidatePath, normalized.image);
-        await onProgress('GARMENT_QA', `Checking canonical garment ${conditioned.length + 1}`);
+        await onProgress('GARMENT_QA', `Звіряємо підготовлену річ ${conditioned.length + 1} з оригінальними фото`);
         const qa = await this.vlm.evaluateQa({ phase: 'garment', evidence: {
           identity: { artifact: { path: sourcePath } }, candidate: { artifact: { path: candidatePath } },
           reference_packs: { outfit: { bindings: sourcePaths.map((filename) => ({ artifact: { path: filename } })) } },
@@ -88,7 +88,7 @@ export class GarmentConditioner {
         // advance through the fixed, bounded image-model route.
         if (qa.decision === 'NEEDS_INPUT') throw new GarmentNeedsInputError(qa.reason, { item, qa, attempts });
       }
-      if (!accepted) throw new GarmentRouteExhaustedError('Garment canonicalization exhausted the quality route', {
+      if (!accepted) throw new GarmentRouteExhaustedError('Маршрут підготовки речі вичерпано без проходження перевірки якості', {
         item,
         route: [...IMAGE_MODEL_ROUTE],
         attempts,

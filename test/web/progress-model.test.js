@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import {
   PIPELINE_NODE_COUNT,
@@ -32,9 +33,27 @@ test('garment QA explains the user-visible comparison without fidelity jargon', 
   const node = PIPELINE_NODES.find((item) => item.id === 'garment-qa');
   assert.equal(node.title, 'Звірка речі з оригіналом');
   assert.doesNotMatch(`${node.title} ${node.detail} ${node.operation}`, /fidelity/i);
-  for (const expected of ['форм', 'колір', 'матеріал', 'logo']) assert.match(`${node.detail} ${node.operation}`, new RegExp(expected, 'i'));
+  for (const expected of ['форм', 'колір', 'матеріал', 'логотип']) assert.match(`${node.detail} ${node.operation}`, new RegExp(expected, 'i'));
   assert.match(node.gate, /PASS.*RETRY.*NEEDS_INPUT.*REJECT/);
   assert.equal(resolveProgressState('GARMENT_QA').title, 'Звіряємо річ з оригінальними фото');
+});
+
+test('garment conditioning uses one clear Ukrainian product vocabulary', () => {
+  const card = PIPELINE_NODES.find((item) => item.id === 'garment-passport');
+  const preparation = PIPELINE_NODES.find((item) => item.id === 'garment-canonical');
+  assert.equal(card.title, 'Картка речі');
+  assert.equal(card.output, 'структуровані картки речей');
+  assert.equal(preparation.title, 'Підготовка речі');
+  assert.equal(resolveProgressState('GARMENT_CONDITIONING').title, 'Фіксуємо характеристики речей');
+  assert.doesNotMatch(JSON.stringify([card, preparation, PROGRESS_STATES.GARMENT_CONDITIONING, PROGRESS_STATES.GARMENT_GENERATING]), /garment passport|canonical garment/i);
+});
+
+test('public pages never expose the internal garment-passport naming', async () => {
+  const filenames = ['../../web/public/index.html', '../../web/public/pipeline.html', '../../web/public/progress-model.js', '../../web/public/app.js'];
+  const publicCopy = (await Promise.all(filenames.map((filename) => readFile(new URL(filename, import.meta.url), 'utf8')))).join('\n');
+  assert.match(publicCopy, /Картка речі/);
+  assert.doesNotMatch(publicCopy, /garment passport|canonical garment|text\/passport locks/i);
+  assert.doesNotMatch(publicCopy, /Створити avatar|Очікує input|identity reference|Потрібен кращий input/i);
 });
 
 test('every nonterminal progress state resolves to the truthful technical node', () => {

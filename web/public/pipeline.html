@@ -22,7 +22,7 @@
     </section>
 
     <section class="summary">
-      <article><b>Input</b><strong>1 + 1 + 5</strong><span>person · identity detail · garments</span></article>
+      <article><b>Вхідні дані</b><strong>1 + 1 + 5</strong><span>людина · додаткове фото · речі</span></article>
       <article><b>Core outputs</b><strong>2 × 3</strong><span>avatar + outfit for three fixtures</span></article>
       <article><b>Model route</b><strong>3 max</strong><span>GPT Image 2 → NB2 → NB Pro</span></article>
       <article><b>QA</b><strong>2 gates</strong><span>technical + semantic</span></article>
@@ -31,11 +31,11 @@
     <section class="section">
       <div class="section-head"><span>01</span><div><h2>Наскрізний flow</h2><p>Кожна стрілка має typed input/output; failure не обходить gate.</p></div></div>
       <div class="flow">
-        <article><mark>LIVE · CLIENT</mark><b>1. Web UI</b><p>Фото людини, optional identity detail, text і до 5 garment photos. Кожен upload slot має незалежний state та preview.</p></article>
+        <article><mark>LIVE · CLIENT</mark><b>1. Web UI</b><p>Фото людини, необов’язкове додаткове фото, текст і до 5 фото речей. Кожне поле завантаження має незалежний стан і preview.</p></article>
         <article><mark>LIVE · API</mark><b>2. Fastify intake</b><p>Consent, MIME, decode, dimensions, 20 MB/file. Multipart стає нормалізованими upload objects.</p></article>
         <article><mark>LIVE · STORAGE</mark><b>3. Immutable source</b><p>Raw bytes записуються один раз в isolated run directory. SHA-256 прив’язує всі наступні artifacts.</p></article>
-        <article><mark>LIVE · VLM</mark><b>4. Garment extraction</b><p>Codex strict JSON passport: OBSERVED facts і UNKNOWN. Identity images напряму лишаються evidence для generation та QA.</p></article>
-        <article><mark>LIVE · LOCAL</mark><b>5. Conditioning</b><p>Sharp: EXIF orientation, sRGB, bounded normalization, face/person crops, garment cutout і white card.</p></article>
+        <article><mark>LIVE · VLM</mark><b>4. Картка речі</b><p>Codex формує строгий JSON: категорія, видимі характеристики, невідомі ознаки, блокери та впевненість. Фото людини напряму лишаються доказами для генерації та QA.</p></article>
+        <article><mark>LIVE · LOCAL</mark><b>5. Підготовка референсів</b><p>Sharp: EXIF-орієнтація, sRGB, обмежена нормалізація, кадри обличчя/людини, вирізана річ і зображення на білому фоні.</p></article>
         <article class="gate"><mark>BLOCKING GATE</mark><b>6. Readiness</b><p>READY продовжує. REPAIRABLE виконує лише declared repair. NEEDS_INPUT або INCOMPATIBLE зупиняє run.</p></article>
         <article><mark>LIVE · CONTRACT</mark><b>7. Immutable job.json</b><p>Paths, hashes, prompt templates, limits, exact outputs і fixed model route. Credentials залишаються поза JSON.</p></article>
         <article><mark>LIVE · CORE</mark><b>8. State machine</b><p>Checkpoints, idempotency keys, append-only events, bounded retries і resume без duplicate create.</p></article>
@@ -63,7 +63,7 @@
       </div>
       <div>
         <div class="section-head"><span>04</span><div><h2>Outfit phase</h2><p>Одяг не має права змінити затверджену людину.</p></div></div>
-        <ol class="steps"><li>Approved avatar завжди перший reference.</li><li>Потім identity pack і typed garment bindings.</li><li>Text/passport locks фіксують type, color, material, logo, fit.</li><li>QA шукає identity drift, старий одяг і garment mismatch.</li><li>PASS експортує `avatar_outfit.png` та evidence.</li></ol>
+        <ol class="steps"><li>Затверджений аватар завжди є першим референсом.</li><li>Далі йдуть докази зовнішності та підготовлені референси речей.</li><li>Опис і картка речі фіксують тип, колір, матеріал, логотип і посадку.</li><li>QA шукає зміну зовнішності, залишки старого одягу та невідповідність речей.</li><li>PASS експортує `avatar_outfit.png` і докази перевірки.</li></ol>
       </div>
     </section>
 
@@ -74,7 +74,7 @@
         <div class="tr"><b>Web UI</b><span>Input, preview, progress, downloads</span><span>Вигадувати pipeline state</span><span>Multipart + SSE</span></div>
         <div class="tr"><b>Fastify</b><span>HTTP contract і server PIN</span><span>Приймати invalid upload</span><span>Status/error response</span></div>
         <div class="tr"><b>Sharp</b><span>Deterministic derivatives</span><span>Домальовувати hidden details</span><span>Lineage + SHA</span></div>
-        <div class="tr"><b>Codex VLM</b><span>Garment passport і semantic review</span><span>PASS без strict evidence</span><span>Schema JSON</span></div>
+        <div class="tr"><b>Codex VLM</b><span>Картка речі та семантична перевірка</span><span>PASS без достатніх доказів</span><span>JSON-схема</span></div>
         <div class="tr"><b>Runner</b><span>Order, state, retry, resume</span><span>Самовільно міняти policy</span><span>Events/checkpoints</span></div>
         <div class="tr"><b>Higgsfield</b><span>Async model transport</span><span>Бути source of truth</span><span>Remote job receipt</span></div>
         <div class="tr"><b>Cloud models</b><span>Створити candidate pixels</span><span>Самостійно approve output</span><span>Model/version/params</span></div>

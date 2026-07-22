@@ -23,8 +23,8 @@
     <section class="hero">
       <p class="eyebrow">REFERENCE-CONDITIONED AVATAR ENGINE</p>
       <h1>Ти. Твій гардероб.<br><em>Без випадковостей.</em></h1>
-      <p class="hero-copy">Завантаж фото себе й будь-які фотографії речей. Engine розпізнає, очищує та фіксує кожен reference перед генерацією.</p>
-      <div class="proof-row"><span>01 Identity lock</span><span>02 Garment passport</span><span>03 Independent QA</span></div>
+      <p class="hero-copy">Завантаж фото себе й будь-які фотографії речей. Система розпізнає, очищує та фіксує кожне фото перед генерацією.</p>
+      <div class="proof-row"><span>01 Фіксація зовнішності</span><span>02 Картка речі</span><span>03 Незалежна перевірка</span></div>
     </section>
 
     <section id="studio-shell" class="studio-grid" data-screen="input">
@@ -37,36 +37,36 @@
         <div id="person-preview" class="file-preview" aria-live="polite"></div>
         <label class="upload-card compact">
           <input id="identity-detail" name="identity_detail" type="file" accept="image/png,image/jpeg,image/webp">
-          <span class="upload-icon">＋</span><strong>Додатковий identity reference</strong><small>Face або full-body — необов’язково</small><span class="file-name" data-for="identity-detail">Обрати файл</span>
+          <span class="upload-icon">＋</span><strong>Додаткове фото людини</strong><small>Обличчя або повний зріст — необов’язково</small><span class="file-name" data-for="identity-detail">Обрати файл</span>
         </label>
         <div id="identity-preview" class="file-preview" aria-live="polite"></div>
 
         <div class="divider"><span>НОВИЙ ОБРАЗ</span></div>
         <label class="field-label" for="outfit-text">Опис образу</label>
-        <textarea id="outfit-text" name="outfit_text" rows="3" placeholder="Наприклад: мінімалістичний чорний total look із м’якою посадкою"></textarea>
+        <textarea id="outfit-text" name="outfit_text" rows="3" placeholder="Наприклад: мінімалістичний чорний образ із м’якою посадкою"></textarea>
         <label class="upload-card wardrobe-card">
           <input id="garment-images" name="garment_images" type="file" accept="image/png,image/jpeg,image/webp" multiple>
-          <span class="upload-icon">＋</span><strong>Фото речей</strong><small>До 5 довільних фото — engine сам визначить категорії</small><span class="file-name" data-for="garment-images">Додати гардероб</span>
+          <span class="upload-icon">＋</span><strong>Фото речей</strong><small>До 5 довільних фото — система сама визначить категорії</small><span class="file-name" data-for="garment-images">Додати гардероб</span>
         </label>
         <div id="garment-preview" class="file-preview garment-preview" aria-live="polite"></div>
-        <label class="consent"><input type="checkbox" name="consent" required><span>Я маю право використовувати ці фото та погоджуюсь на їх обробку зовнішніми AI providers.</span></label>
+        <label class="consent"><input type="checkbox" name="consent" required><span>Я маю право використовувати ці фото та погоджуюсь на їх обробку зовнішніми AI-сервісами.</span></label>
         <p id="draft-status" class="draft-status" aria-live="polite">Чернетка зберігається на 15 хвилин</p>
-        <button id="submit-button" class="primary-button" type="submit"><span>Створити avatar</span><b>→</b></button>
+        <button id="submit-button" class="primary-button" type="submit"><span>Створити аватар</span><b>→</b></button>
         <p id="form-error" class="error" role="alert"></p>
       </form>
 
       <section class="panel result-panel">
-        <div class="panel-head"><div><span class="step">02</span><h2 id="result-panel-title">Pipeline</h2></div><span id="status-chip" class="status-chip idle" role="status" aria-live="polite">Очікує input</span></div>
-        <div id="empty-state" class="empty-state"><div class="mirror-graphic"><span></span><span></span></div><h3>Тут з’явиться твій look</h3><p>Base avatar і переодягання проходять окремі QA gates.</p></div>
+        <div class="panel-head"><div><span class="step">02</span><h2 id="result-panel-title">Процес</h2></div><span id="status-chip" class="status-chip idle" role="status" aria-live="polite">Очікує матеріали</span></div>
+        <div id="empty-state" class="empty-state"><div class="mirror-graphic"><span></span><span></span></div><h3>Тут з’явиться твій образ</h3><p>Спочатку перевіряємо базовий аватар, потім — одяг.</p></div>
         <div id="progress-view" class="progress-view hidden">
           <div class="progress-layout">
             <section class="ai-progress-card">
               <div class="progress-orbit"><canvas id="progress-orb-canvas" data-state="listening"></canvas></div>
               <p class="ai-live"><i></i> AI ENGINE ACTIVE</p>
               <h3 id="progress-title">Підготовка матеріалів</h3>
-              <p id="progress-message" aria-live="polite">Перевіряємо input…</p>
+              <p id="progress-message" aria-live="polite">Перевіряємо матеріали…</p>
               <div class="progress-meter">
-                <div class="progress-meter-head"><div class="progress-value"><strong id="progress-stage">4%</strong><small>за server checkpoints</small></div><span id="progress-count">CHECKPOINT SYNC</span></div>
+                <div class="progress-meter-head"><div class="progress-value"><strong id="progress-stage">4%</strong><small>за станом сервера</small></div><span id="progress-count">CHECKPOINT SYNC</span></div>
                 <div id="progress-track" class="progress-track" role="progressbar" aria-label="Pipeline progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="4"><i id="progress-bar"></i></div>
               </div>
             </section>
@@ -94,7 +94,7 @@
           <section class="result-shell">
             <header class="result-header">
               <div class="result-title-group"><p class="result-kicker">YOUR ZEELY AVATAR</p><h3 class="result-heading">Твій образ готовий</h3></div>
-              <span id="result-save-state" class="result-qa">QA passed</span>
+              <span id="result-save-state" class="result-qa">Перевірку пройдено</span>
             </header>
             <div class="result-workspace">
               <div class="result-main">
@@ -106,7 +106,7 @@
               <aside class="result-sidebar">
                 <article class="avatar-profile-card">
                   <img id="profile-avatar-preview" class="profile-avatar-preview" alt="Збережений аватар">
-                  <div class="profile-meta"><p>АНОНІМНИЙ ПРОФІЛЬ</p><strong id="result-avatar-name">Avatar 01</strong><small id="result-profile-expiry">Зберігаємо в цьому браузері 30 днів</small></div>
+                  <div class="profile-meta"><p>АНОНІМНИЙ ПРОФІЛЬ</p><strong id="result-avatar-name">Аватар 01</strong><small id="result-profile-expiry">Зберігаємо в цьому браузері 30 днів</small></div>
                 </article>
                 <nav id="result-tabs" class="result-tabs" aria-label="Варіанти результату"></nav>
                 <div class="result-actions">
@@ -114,7 +114,7 @@
                   <button id="new-avatar" class="secondary-result-action" type="button">Створити новий аватар</button>
                   <button id="open-profile" class="secondary-result-action" type="button">Усі мої образи</button>
                 </div>
-                <details class="quality-details"><summary>Деталі якості</summary><div id="passport-list" class="passport-list"></div></details>
+                <details class="quality-details"><summary>Розпізнані речі</summary><div id="passport-list" class="passport-list"></div></details>
               </aside>
             </div>
             <details id="completed-pipeline-trace" class="terminal-pipeline-trace"><summary>Execution graph · final server evidence</summary><div id="completed-pipeline-host"></div></details>
@@ -127,12 +127,12 @@
               <span class="result-qa">Тільки цей браузер</span>
             </header>
             <div id="profile-avatar-list" class="profile-avatar-list"></div>
-            <div class="profile-section-head"><div><p class="result-kicker">SAVED LOOKS</p><h4>Гардероб</h4></div><button id="profile-new-avatar" class="secondary-result-action" type="button">+ Новий аватар</button></div>
+            <div class="profile-section-head"><div><p class="result-kicker">ЗБЕРЕЖЕНІ ОБРАЗИ</p><h4>Гардероб</h4></div><button id="profile-new-avatar" class="secondary-result-action" type="button">+ Новий аватар</button></div>
             <div id="profile-look-grid" class="profile-look-grid"></div>
             <div class="profile-danger-zone"><p>Без акаунта цей профіль існує лише в цьому браузері.</p><button id="delete-profile" type="button">Видалити профіль і файли</button></div>
           </section>
         </div>
-        <div id="failure-view" class="failure-view hidden"><span class="failure-mark">!</span><h3 id="failure-title">Потрібен інший input</h3><p id="failure-message"></p><div id="conflict-picker" class="conflict-picker"></div><div class="failure-actions"><button id="edit-input" class="secondary-button" type="button">Змінити матеріали</button><button id="retry-run" class="secondary-button" type="button">Повторити run</button></div><details id="failure-pipeline-trace" class="terminal-pipeline-trace failure-trace"><summary>Technical execution trace</summary><div id="failure-pipeline-host"></div></details></div>
+        <div id="failure-view" class="failure-view hidden"><span class="failure-mark">!</span><h3 id="failure-title">Потрібне інше фото</h3><p id="failure-message"></p><div id="conflict-picker" class="conflict-picker"></div><div class="failure-actions"><button id="edit-input" class="secondary-button" type="button">Змінити матеріали</button><button id="retry-run" class="secondary-button" type="button">Спробувати ще раз</button></div><details id="failure-pipeline-trace" class="terminal-pipeline-trace failure-trace"><summary>Технічний журнал виконання</summary><div id="failure-pipeline-host"></div></details></div>
       </section>
     </section>
   </main>
@@ -142,6 +142,6 @@
     <button type="button" onclick="location.reload()">Перезавантажити</button>
   </aside>
   <script src="/boot-guard.js?v=20260722-3"></script>
-  <script type="module" src="/app.js?v=20260722-19"></script>
+  <script type="module" src="/app.js?v=20260722-21"></script>
 </body>
 </html>
