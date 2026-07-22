@@ -1,0 +1,7 @@
+CONTROLLED TEXT-DEFINED OUTFIT EDIT.
+
+Input 1 is the approved canonical avatar and exact composition/edit base. Inputs 2–3 are conditioned identity evidence (normalized full reference and face-detail crop) for the same person. Change only the garment region of input 1. Preserve the exact recognizable person, facial geometry, forehead, grey-green eyes, long light-brown tied-back hair with loose strands, moustache and beard, natural skin, expression, body proportions, frontal pose, head-through-torso crop, camera angle, subject scale, soft even lighting, neutral white balance, and seamless pure #FFFFFF background. Do not retouch the face or alter hair or facial hair.
+
+OUTFIT SPECIFICATION: a dark chocolate-brown suede overshirt, matte fine-nap texture, regular relaxed fit, pointed collar, full button front with small dark horn buttons, two clean chest flap pockets, long sleeves, worn open over a plain opaque black crew-neck cotton T-shirt. No logo, text, pattern, jewelry, or accessory. Use natural seams, folds, collar overlap, sleeve construction, and suede texture.
+
+BACKGROUND HARD RULE: exact uniform RGB #FFFFFF with no shadow, gradient, texture, halo, prop, or bleed. One person only. Remove every remnant of the former plain T-shirt wherever the new overshirt covers it while retaining the intended black inner T-shirt. No anatomy change, extra limbs, watermark, CGI, or illustration. Photorealistic studio photograph with crisp natural skin, beard, hair, and fabric detail.

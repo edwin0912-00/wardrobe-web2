@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zeely.ai/schemas/scene-plan.schema.json",
+  "title": "Zeely Scene Plan",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "job_id", "look_id", "output", "shots"],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "job_id": { "type": "string" },
+    "look_id": { "type": "string" },
+    "output": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["aspect_ratio", "duration_s", "fps", "delivery"],
+      "properties": {
+        "aspect_ratio": { "enum": ["9:16", "16:9", "1:1"] },
+        "duration_s": { "type": "number", "minimum": 1, "maximum": 120 },
+        "fps": { "enum": [24, 25, 30] },
+        "delivery": { "enum": ["MP4", "WEBM", "HTML5_TIMELINE"] }
+      }
+    },
+    "shots": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "shot_id", "start_s", "duration_s", "asset_bindings", "camera",
+          "subject_action", "environment_action", "audio", "must_preserve", "qa_profile"
+        ],
+        "properties": {
+          "shot_id": { "type": "string" },
+          "start_s": { "type": "number", "minimum": 0 },
+          "duration_s": { "type": "number", "exclusiveMinimum": 0, "maximum": 15 },
+          "asset_bindings": {
+            "type": "object",
+            "additionalProperties": { "type": "string" },
+            "propertyNames": { "enum": ["human", "product", "garment", "environment", "style", "pose", "motion", "audio"] }
+          },
+          "camera": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["framing", "movement", "lens"],
+            "properties": {
+              "framing": { "type": "string" },
+              "movement": { "type": "string" },
+              "lens": { "type": "string" }
+            }
+          },
+          "subject_action": { "type": "string" },
+          "environment_action": { "type": "string" },
+          "negative_constraints": { "type": "array", "items": { "type": "string" } },
+          "audio": { "type": "object" },
+          "must_preserve": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+          "qa_profile": { "enum": ["DRAFT", "STANDARD", "HERO"] },
+          "approval_required": { "type": "boolean", "default": true }
+        }
+      }
+    }
+  }
+}

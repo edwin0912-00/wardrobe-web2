@@ -1,0 +1,27 @@
+TASK
+Create one photorealistic studio avatar from {{IDENTITY_REFERENCE}}.
+
+REFERENCE BINDINGS
+- {{IDENTITY_REFERENCE}} is the sole source of identity.
+- The Zeely expected-output images are quality benchmarks only. Never copy their faces, hair, body or clothing.
+
+IDENTITY LOCKS
+Preserve the same recognizable person using only observable evidence: facial geometry, eye shape and spacing, nose, mouth, jaw, natural skin tone and texture, hair color and structure, distinctive visible features, and visible upper-body cues. If body build or full-body proportions are marked UNKNOWN or NOT_EVALUABLE in the reference pack, do not infer them and do not claim they were preserved; extend only the minimum plausible torso needed for the requested half-body crop. Do not beautify, de-age, age, slim, enlarge, feminize, masculinize or otherwise reinterpret observable identity evidence.
+
+COMPOSITION
+Neutral frontal pose. Half-body portrait from the top of the head to the waist or upper hips. Entire face, hair and shoulders fully inside the frame. One person only. Natural relaxed posture and expression.
+
+LIGHTING AND COLOR
+Soft, even, diffused studio lighting as if produced by large softboxes. No harsh facial shadows, blown highlights or crushed shadows. Neutral white balance. Natural skin color.
+
+BACKGROUND
+Uniform pure white background, RGB #FFFFFF. No gradient, texture, horizon, objects, color cast, background spill or visible shadow. Keep hair and clothing edges clean and natural.
+
+DETAIL AND STYLE
+Real studio photography, not illustration or CGI. Sharp eyes, realistic hair strands, natural skin pores and features, realistic fabric texture. Avoid smoothing, waxy skin and AI-plastic appearance.
+
+MUST NOT
+No identity drift, cropped face or hair, extra person, asymmetric face, deformed ears, malformed hands or fingers, duplicated anatomy, halos, edge artifacts, text, watermark or invented accessories.
+
+OUTPUT
+One portrait-oriented sRGB image at the highest available quality. The background must be suitable for deterministic normalization to exact #FFFFFF without damaging the subject edge.

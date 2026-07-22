@@ -1,0 +1,128 @@
+{
+  "schema_version": "1.0.0",
+  "subject_id": "002",
+  "execution_lane": "TASK_COMPATIBILITY",
+  "strict_production_preflight": {
+    "decision": "NEEDS_INPUT",
+    "reason": "Full body proportions are not observable in the supplied source; the test lane continues with body_build=NOT_EVALUABLE and does not claim full-body preservation.",
+    "reference_pack": {
+      "path": "artifacts/conditioning/humans/002/reference-pack.json",
+      "sha256": "ebada1502a516c3978e2c49294590c58f3347c973529bc1b53494f9660f3c5db"
+    }
+  },
+  "provider": {
+    "transport": "HIGGSFIELD_CLI",
+    "cli_version": "0.1.33",
+    "authenticated_live_generation": true
+  },
+  "stages": {
+    "avatar": {
+      "provider_job_id": "8342e4d4-daf7-44ed-a824-8a784e240115",
+      "model": {
+        "display_name": "GPT Image 2",
+        "job_set_type": "gpt_image_2",
+        "provider_internal_model": "videotape-alpha"
+      },
+      "parameters": {
+        "aspect_ratio": "3:4",
+        "quality": "high",
+        "resolution": "2k"
+      },
+      "prompt": {
+        "path": "output/002/prompts/avatar.compiled.txt",
+        "sha256": "5fada81bc52c41c927694ae82b4e5119d2540434984e11b8ec9e0682523372ae"
+      },
+      "reference_pack": {
+        "path": "artifacts/conditioning/humans/002/reference-pack.json",
+        "sha256": "ebada1502a516c3978e2c49294590c58f3347c973529bc1b53494f9660f3c5db"
+      },
+      "inputs": [
+        {
+          "order": 1,
+          "role": "IDENTITY_PRIMARY",
+          "path": "artifacts/conditioning/humans/002/normalized.png",
+          "sha256": "d7ea15b045ecfc5c897ddda0bdd2f91170ebca5f803c9b9879387fe744fd4d55"
+        },
+        {
+          "order": 2,
+          "role": "IDENTITY_FACE_DETAIL",
+          "path": "artifacts/conditioning/humans/002/face.png",
+          "sha256": "733a24e9b7e875d5d015c05981528c76eda2858ca260cea6401c04671e1d7508"
+        },
+        {
+          "order": 3,
+          "role": "IDENTITY_PERSON_CONTEXT",
+          "path": "artifacts/conditioning/humans/002/person.png",
+          "sha256": "5174c6ff05368951dc711debe9305df77a30eb9c65d9405ac49a07f7e98fca91"
+        }
+      ],
+      "provider_output": {
+        "path": "output/002/candidates/gpt-image-2-avatar-attempt-02-conditioned.png",
+        "sha256": "0ce98c34a7e351a8f4fcab50d50bc30728401db7820c83498e3a7f2aec7f02b8"
+      },
+      "selected_output": {
+        "path": "output/002/avatar.png",
+        "sha256": "737cbc8ea1fd296a4d6a847bca101635653a1976681e993de7116bfcf1466d91",
+        "postprocess": "4-connected border flood-fill; only near-white connected background pixels changed to RGB(255,255,255)"
+      }
+    },
+    "outfit": {
+      "provider_job_id": "2a0be1b4-57fb-4445-8c84-19b27d3d368a",
+      "model": {
+        "display_name": "GPT Image 2",
+        "job_set_type": "gpt_image_2",
+        "provider_internal_model": "videotape-alpha"
+      },
+      "parameters": {
+        "aspect_ratio": "3:4",
+        "quality": "high",
+        "resolution": "2k"
+      },
+      "prompt": {
+        "path": "output/002/prompts/outfit.compiled.txt",
+        "sha256": "36585d067369809cb9d476b7585e72f2b4b2c0686a32d4fad73926a34fb89572"
+      },
+      "reference_packs": [
+        {
+          "path": "artifacts/conditioning/humans/002/reference-pack.json",
+          "sha256": "ebada1502a516c3978e2c49294590c58f3347c973529bc1b53494f9660f3c5db"
+        }
+      ],
+      "inputs": [
+        {
+          "order": 1,
+          "role": "APPROVED_AVATAR_EDIT_BASE",
+          "path": "output/002/candidates/gpt-image-2-avatar-attempt-02-conditioned.png",
+          "sha256": "0ce98c34a7e351a8f4fcab50d50bc30728401db7820c83498e3a7f2aec7f02b8"
+        },
+        {
+          "order": 2,
+          "role": "IDENTITY_PRIMARY",
+          "path": "artifacts/conditioning/humans/002/normalized.png",
+          "sha256": "d7ea15b045ecfc5c897ddda0bdd2f91170ebca5f803c9b9879387fe744fd4d55"
+        },
+        {
+          "order": 3,
+          "role": "IDENTITY_FACE_DETAIL",
+          "path": "artifacts/conditioning/humans/002/face.png",
+          "sha256": "733a24e9b7e875d5d015c05981528c76eda2858ca260cea6401c04671e1d7508"
+        }
+      ],
+      "provider_output": {
+        "path": "output/002/candidates/gpt-image-2-outfit-attempt-02-conditioned.png",
+        "sha256": "ddfb997e0fe30a66866136cf90122cb44121c6265870c1c18afc754ae617f6a0"
+      },
+      "selected_output": {
+        "path": "output/002/avatar_outfit.png",
+        "sha256": "b38bc1e2bbbc4436b6fbf5ccc57933a175867f152d1dee4b389c03190d7d5c22",
+        "postprocess": "4-connected border flood-fill; only near-white connected background pixels changed to RGB(255,255,255)"
+      }
+    }
+  },
+  "qa": {
+    "report": "output/002/qa-report.json",
+    "report_sha256": "952e1c8664f4642945d46908ef69ef2307ef7dc5d8239fea505fc14a5267d9a9",
+    "visual_review": "reviews/visual-review.json",
+    "visual_review_sha256": "2edc5d6a5fbbee367ada10db67fbe01ab2d1747b76be899683724dc4b0ef8a39"
+  }
+}

@@ -1,0 +1,110 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zeely.ai/schemas/pipeline-job.schema.json",
+  "title": "Zeely Immutable Pipeline Job",
+  "description": "The declarative instance consumed by the deterministic avatar -> outfit runner.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "job_id",
+    "identity_reference",
+    "output_directory",
+    "prompts",
+    "outfit",
+    "quality_references",
+    "model_route",
+    "max_attempts",
+    "conditioning_max_attempts"
+  ],
+  "properties": {
+    "job_id": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$"
+    },
+    "identity_reference": { "$ref": "#/$defs/path" },
+    "identity_reference_pack": { "$ref": "#/$defs/referencePack" },
+    "output_directory": { "$ref": "#/$defs/path" },
+    "prompts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["avatar", "outfit"],
+      "properties": {
+        "avatar": { "$ref": "#/$defs/path" },
+        "outfit": { "$ref": "#/$defs/path" },
+        "repair": { "$ref": "#/$defs/path" }
+      }
+    },
+    "outfit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode"],
+      "properties": {
+        "mode": {
+          "enum": ["text", "reference_image", "reference_image_plus_text"]
+        },
+        "text": { "type": "string", "minLength": 1 },
+        "reference": { "$ref": "#/$defs/path" },
+        "reference_pack": { "$ref": "#/$defs/referencePack" },
+        "target_region": { "type": "string", "minLength": 1 },
+        "must_match": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "mode": { "const": "text" } }, "required": ["mode"] },
+          "then": { "required": ["text"] }
+        },
+        {
+          "if": { "properties": { "mode": { "const": "reference_image" } }, "required": ["mode"] },
+          "then": { "required": ["reference"] }
+        },
+        {
+          "if": { "properties": { "mode": { "const": "reference_image_plus_text" } }, "required": ["mode"] },
+          "then": { "required": ["reference", "text"] }
+        },
+        {
+          "if": { "required": ["reference_pack"] },
+          "then": { "required": ["reference"] }
+        }
+      ]
+    },
+    "quality_references": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/path" }
+    },
+    "model_route": {
+      "type": "array",
+      "prefixItems": [
+        { "const": "gpt_image_2" },
+        { "const": "nano_banana_flash" },
+        { "const": "nano_banana_2" }
+      ],
+      "items": false,
+      "minItems": 3,
+      "maxItems": 3
+    },
+    "max_attempts": { "type": "integer", "minimum": 1, "maximum": 3 },
+    "conditioning_max_attempts": { "type": "integer", "minimum": 1, "maximum": 3 }
+  },
+  "$defs": {
+    "path": { "type": "string", "minLength": 1 },
+    "referencePack": {
+      "oneOf": [
+        { "$ref": "#/$defs/path" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["path"],
+          "properties": {
+            "path": { "$ref": "#/$defs/path" },
+            "path_base": { "$ref": "#/$defs/path" }
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "schema_version": "1.0.0",
+  "asset_id": "source-garment-hat-001",
+  "job_id": "zeely-test-001",
+  "asset_class": "GARMENT",
+  "role": "GARMENT_PRIMARY",
+  "intended_uses": [
+    "EXTRACTION",
+    "GARMENT_CONDITIONING",
+    "OUTFIT_TRANSFER",
+    "OUTPUT_QA"
+  ],
+  "source": {
+    "uri": "inputs/zeely-test/outfits/cowboy-hat.jpg",
+    "original_filename": "cowboy-hat.jpg",
+    "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+    "byte_size": 14322,
+    "supplied_by": "TEST_DATASET",
+    "origin": "PUBLIC_TASK_ASSET",
+    "captured_at": null,
+    "external_id": "zeely-drive-cowboy-hat"
+  },
+  "media": {
+    "mime_type": "image/jpeg",
+    "width_px": 197,
+    "height_px": 256,
+    "orientation": "NORMAL",
+    "color_space": "SRGB",
+    "has_alpha": false,
+    "exif_present": false
+  },
+  "ingest": {
+    "ingested_at": "2026-07-22T00:00:02Z",
+    "immutable": true,
+    "decode_status": "PASS",
+    "malware_scan": "PASS",
+    "decoder": "sharp-0.34.2"
+  },
+  "consent": {
+    "status": "NOT_REQUIRED",
+    "likeness_use_authorized": false,
+    "commercial_use_authorized": true,
+    "recorded_at": null,
+    "evidence_uri": null
+  }
+}

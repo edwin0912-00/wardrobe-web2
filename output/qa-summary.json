@@ -1,0 +1,33 @@
+{
+  "schema_version": "1.0.0",
+  "generated_at": "2026-07-22T09:16:43.970Z",
+  "output_directory": "/Users/jarvis1/Documents/Codex/2026-07-19/mvp-zeely-format-html5-1-2/output",
+  "visual_review_fixture": "/Users/jarvis1/Documents/Codex/2026-07-19/mvp-zeely-format-html5-1-2/reviews/visual-review.json",
+  "status": "PASS",
+  "subjects": [
+    {
+      "subject_id": "001",
+      "status": "PASS",
+      "report": "001/qa-report.json"
+    },
+    {
+      "subject_id": "002",
+      "status": "PASS",
+      "report": "002/qa-report.json"
+    },
+    {
+      "subject_id": "003",
+      "status": "PASS",
+      "report": "003/qa-report.json"
+    }
+  ],
+  "cross_subject_duplicate_check": {
+    "status": "PASS",
+    "duplicates": []
+  },
+  "interpretation": {
+    "PASS": "All automatic and explicitly reviewed visual gates passed.",
+    "FAIL": "At least one automatic or explicit visual gate failed.",
+    "NEEDS_REVIEW": "Automatic checks did not fail, but one or more semantic gates lack explicit review."
+  }
+}

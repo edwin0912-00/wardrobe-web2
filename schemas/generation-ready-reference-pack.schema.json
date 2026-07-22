@@ -1,0 +1,332 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zeely.ai/schemas/generation-ready-reference-pack.schema.json",
+  "title": "Zeely Generation-Ready Reference Pack",
+  "description": "The only reference bundle that a generation adapter may consume after conditioning QA.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "pack_id",
+    "job_id",
+    "target_task",
+    "status",
+    "source_asset_ids",
+    "extraction_ids",
+    "conditioning_plan_ids",
+    "derivative_manifest_ids",
+    "quality_target_id",
+    "references",
+    "locks",
+    "unknowns",
+    "risks",
+    "unresolved_blockers",
+    "model_policy",
+    "readiness_checks",
+    "created_at"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "pack_id": { "$ref": "#/$defs/id" },
+    "job_id": { "$ref": "#/$defs/id" },
+    "target_task": { "enum": ["AVATAR", "OUTFIT_TEXT", "OUTFIT_REFERENCE"] },
+    "status": { "enum": ["READY", "NEEDS_INPUT", "BLOCKED"] },
+    "source_asset_ids": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/id" }
+    },
+    "extraction_ids": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/id" }
+    },
+    "conditioning_plan_ids": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/id" }
+    },
+    "derivative_manifest_ids": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/id" }
+    },
+    "quality_target_id": { "$ref": "#/$defs/id" },
+    "references": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/reference" }
+    },
+    "locks": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/lock" }
+    },
+    "unknowns": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/carriedUnknown" }
+    },
+    "risks": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/risk" }
+    },
+    "unresolved_blockers": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "model_policy": { "$ref": "#/$defs/modelPolicy" },
+    "readiness_checks": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/readinessCheck" }
+    },
+    "created_at": { "type": "string", "format": "date-time" }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "status": { "const": "READY" } },
+        "required": ["status"]
+      },
+      "then": {
+        "properties": {
+          "unresolved_blockers": { "maxItems": 0 },
+          "readiness_checks": {
+            "items": {
+              "properties": { "pass": { "const": true } }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "target_task": { "const": "AVATAR" } },
+        "required": ["target_task"]
+      },
+      "then": {
+        "properties": {
+          "references": {
+            "contains": {
+              "type": "object",
+              "properties": { "role": { "const": "IDENTITY_PRIMARY" } },
+              "required": ["role"]
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "target_task": { "const": "OUTFIT_TEXT" } },
+        "required": ["target_task"]
+      },
+      "then": {
+        "properties": {
+          "references": {
+            "contains": {
+              "type": "object",
+              "properties": { "role": { "const": "AVATAR_BASE" } },
+              "required": ["role"]
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "target_task": { "const": "OUTFIT_REFERENCE" } },
+        "required": ["target_task"]
+      },
+      "then": {
+        "properties": {
+          "references": {
+            "allOf": [
+              {
+                "contains": {
+                  "type": "object",
+                  "properties": { "role": { "const": "AVATAR_BASE" } },
+                  "required": ["role"]
+                }
+              },
+              {
+                "contains": {
+                  "type": "object",
+                  "properties": { "role": { "const": "GARMENT_PRIMARY" } },
+                  "required": ["role"]
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]{3,95}$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "factValue": {
+      "oneOf": [
+        { "type": "string", "minLength": 1 },
+        { "type": "number" },
+        { "type": "boolean" },
+        {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "oneOf": [
+              { "type": "string" },
+              { "type": "number" },
+              { "type": "boolean" }
+            ]
+          }
+        }
+      ]
+    },
+    "reference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["binding_id", "role", "ref_type", "ref_id", "uri", "sha256", "authority", "allowed_uses"],
+      "properties": {
+        "binding_id": { "$ref": "#/$defs/id" },
+        "role": {
+          "enum": ["IDENTITY_PRIMARY", "FACE_DETAIL", "BODY_EVIDENCE", "AVATAR_BASE", "GARMENT_PRIMARY", "GARMENT_DETAIL", "LOGO_TEXT_DETAIL", "QUALITY_BENCHMARK"]
+        },
+        "ref_type": { "enum": ["SOURCE_ASSET", "DERIVATIVE", "APPROVED_GENERATION"] },
+        "ref_id": { "$ref": "#/$defs/id" },
+        "uri": { "type": "string", "format": "uri-reference", "minLength": 1 },
+        "sha256": { "$ref": "#/$defs/sha256" },
+        "authority": { "enum": ["PRIMARY_EVIDENCE", "DERIVED_EVIDENCE", "APPROVED_BASE", "QUALITY_ONLY"] },
+        "allowed_uses": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": ["IDENTITY", "FACE_GEOMETRY", "HAIR", "BODY_EVIDENCE", "GARMENT_STRUCTURE", "COLOR", "MATERIAL", "LOGO_TEXT", "POSE_FRAMING", "LIGHTING", "FINISH"]
+          }
+        }
+      }
+    },
+    "lock": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["lock_id", "category", "fact_path", "value", "confidence", "provenance_type", "source_fact_ids", "source_ref_ids"],
+      "properties": {
+        "lock_id": { "$ref": "#/$defs/id" },
+        "category": {
+          "enum": ["IDENTITY", "FACE_GEOMETRY", "HAIR", "BODY_EVIDENCE", "GARMENT_STRUCTURE", "COLOR", "MATERIAL", "LOGO_TEXT"]
+        },
+        "fact_path": { "type": "string", "pattern": "^/[a-zA-Z0-9_~/-]+$" },
+        "value": { "$ref": "#/$defs/factValue" },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+        "provenance_type": { "enum": ["OBSERVED", "USER_PROVIDED", "DERIVED_DETERMINISTIC"] },
+        "source_fact_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/id" }
+        },
+        "source_ref_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/id" }
+        }
+      }
+    },
+    "carriedUnknown": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["unknown_id", "fact_path", "blocking", "handling"],
+      "properties": {
+        "unknown_id": { "$ref": "#/$defs/id" },
+        "fact_path": { "type": "string", "pattern": "^/[a-zA-Z0-9_~/-]+$" },
+        "blocking": { "type": "boolean" },
+        "handling": { "enum": ["DO_NOT_INFER", "REQUEST_INPUT", "OMIT_FROM_PROMPT", "ALLOW_NON_AUTHORITATIVE_VARIATION"] }
+      }
+    },
+    "risk": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["risk_id", "severity", "description", "mitigation"],
+      "properties": {
+        "risk_id": { "$ref": "#/$defs/id" },
+        "severity": { "enum": ["LOW", "MEDIUM", "HIGH"] },
+        "description": { "type": "string", "minLength": 1, "maxLength": 500 },
+        "mitigation": { "type": "string", "minLength": 1, "maxLength": 500 }
+      }
+    },
+    "modelPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider", "primary", "fallbacks", "fallback_trigger", "max_generation_attempts"],
+      "properties": {
+        "provider": { "enum": ["HIGGSFIELD_CLI", "HIGGSFIELD_MCP"] },
+        "primary": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["name", "job_set_type"],
+          "properties": {
+            "name": { "const": "GPT Image 2" },
+            "job_set_type": { "const": "gpt_image_2" }
+          }
+        },
+        "fallbacks": {
+          "type": "array",
+          "prefixItems": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["name", "job_set_type"],
+              "properties": {
+                "name": { "const": "Nano Banana 2" },
+                "job_set_type": { "const": "nano_banana_flash" }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["name", "job_set_type"],
+              "properties": {
+                "name": { "const": "Nano Banana Pro" },
+                "job_set_type": { "const": "nano_banana_2" }
+              }
+            }
+          ],
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "fallback_trigger": { "enum": ["QA_FAILURE_ONLY", "PROVIDER_OR_QA_FAILURE"] },
+        "max_generation_attempts": { "type": "integer", "minimum": 1, "maximum": 3 }
+      }
+    },
+    "readinessCheck": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "pass", "evidence_ref_ids"],
+      "properties": {
+        "name": {
+          "enum": ["SOURCE_HASHES_VERIFIED", "CONSENT_AUTHORIZED", "CONDITIONING_QA_PASSED", "REQUIRED_REFERENCES_PRESENT", "NO_SYNTHETIC_LOCKS", "NO_BLOCKING_UNKNOWNS", "QUALITY_TARGET_BOUND"]
+        },
+        "pass": { "type": "boolean" },
+        "evidence_ref_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/id" }
+        }
+      }
+    }
+  }
+}

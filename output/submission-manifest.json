@@ -1,0 +1,99 @@
+{
+  "schema_version": "1.0.0",
+  "task": "ZEELY_CORE_IMAGE_TEST",
+  "status": "PASS",
+  "required_subject_count": 3,
+  "required_output_count": 6,
+  "subjects": [
+    {
+      "subject_id": "001",
+      "generation_manifest": {
+        "path": "output/001/generation-manifest.json",
+        "sha256": "ca930af4790ae3b1d9a01ee4461553970a296932e7fe49589d6ee595cd8998e1"
+      },
+      "outputs": [
+        {
+          "order": 1,
+          "role": "CANONICAL_AVATAR",
+          "path": "output/001/avatar.png",
+          "sha256": "2ab783c408e86f394b9f067071ce8271a16660b68aad4163601017e9eceb221e"
+        },
+        {
+          "order": 2,
+          "role": "OUTFIT_RESULT",
+          "path": "output/001/avatar_outfit.png",
+          "sha256": "e027a4b7e28af9233cc31cbfcb0019a50ea1df2d9f1cb2c0149cbec6538cd924"
+        }
+      ],
+      "qa_status": "PASS"
+    },
+    {
+      "subject_id": "002",
+      "generation_manifest": {
+        "path": "output/002/generation-manifest.json",
+        "sha256": "5c0f7928bb0398a3595d2b5486126700906f5afbe8da93bcd6975f6ca34679e5"
+      },
+      "outputs": [
+        {
+          "order": 1,
+          "role": "CANONICAL_AVATAR",
+          "path": "output/002/avatar.png",
+          "sha256": "737cbc8ea1fd296a4d6a847bca101635653a1976681e993de7116bfcf1466d91"
+        },
+        {
+          "order": 2,
+          "role": "OUTFIT_RESULT",
+          "path": "output/002/avatar_outfit.png",
+          "sha256": "b38bc1e2bbbc4436b6fbf5ccc57933a175867f152d1dee4b389c03190d7d5c22"
+        }
+      ],
+      "qa_status": "PASS"
+    },
+    {
+      "subject_id": "003",
+      "generation_manifest": {
+        "path": "output/003/generation-manifest.json",
+        "sha256": "195f71871cbe100c426cbb5d3b33e11d259c194823577683d212250222816fbc"
+      },
+      "outputs": [
+        {
+          "order": 1,
+          "role": "CANONICAL_AVATAR",
+          "path": "output/003/avatar.png",
+          "sha256": "c9dcf6434e5cab6fd73b0d5cb4f1915c5bafa77f1a5cfaf54c74b779c486f1c5"
+        },
+        {
+          "order": 2,
+          "role": "OUTFIT_RESULT",
+          "path": "output/003/avatar_outfit.png",
+          "sha256": "37fab841a3c8320a7aee59c1a15742a39c3f72ecea6effa39e2f4b90b14c1424"
+        }
+      ],
+      "qa_status": "PASS"
+    }
+  ],
+  "model_policy": {
+    "primary": {
+      "name": "GPT Image 2",
+      "job_set_type": "gpt_image_2"
+    },
+    "fallbacks": [
+      {
+        "name": "Nano Banana 2",
+        "job_set_type": "nano_banana_flash"
+      },
+      {
+        "name": "Nano Banana Pro",
+        "job_set_type": "nano_banana_2"
+      }
+    ]
+  },
+  "qa_summary": {
+    "path": "output/qa-summary.json",
+    "sha256": "145480555d9350931a58cae4153f65e8db056b25f2cb9ba62e37bb63824ddac6"
+  },
+  "contact_sheet": {
+    "path": "output/contact-sheet.png",
+    "sha256": "14f0c5414b6be4b9572b54a68e3fbadcd4427bb2f84f5cd329a4653c5168cd00"
+  }
+}

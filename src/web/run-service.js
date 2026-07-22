@@ -1,0 +1,285 @@
+import { createHash, randomUUID } from 'node:crypto';
+import { EventEmitter } from 'node:events';
+import { access, mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import path from 'node:path';
+import sharp from 'sharp';
+import { PipelineRunner } from '../runner/pipeline-runner.js';
+import { IMAGE_MODEL_ROUTE } from '../runner/model-policy.js';
+import { normalizeWhitePngBytes } from '../qa/white-normalizer.mjs';
+import { GarmentNeedsInputError, GarmentConditioner } from './garment-conditioner.js';
+import { garmentLocks } from './garment-passport.js';
+
+const MIME_EXTENSION = Object.freeze({ 'image/png': '.png', 'image/jpeg': '.jpg', 'image/webp': '.webp' });
+const TERMINAL = new Set(['COMPLETED', 'NEEDS_INPUT', 'FAILED']);
+const sha256 = (value) => createHash('sha256').update(value).digest('hex');
+
+async function atomicJson(filename, value) {
+  await mkdir(path.dirname(filename), { recursive: true });
+  const temporary = `${filename}.${process.pid}.tmp`;
+  await writeFile(temporary, `${JSON.stringify(value, null, 2)}\n`);
+  await rename(temporary, filename);
+}
+
+async function validateUpload(upload, field) {
+  if (!upload || !Buffer.isBuffer(upload.buffer) || upload.buffer.length === 0) throw new Error(`${field} is required`);
+  const extension = MIME_EXTENSION[upload.mimetype];
+  if (!extension) throw new Error(`${field} must be PNG, JPEG, or WEBP`);
+  if (upload.buffer.length > 20 * 1024 * 1024) throw new Error(`${field} exceeds 20 MB`);
+  let metadata;
+  try { metadata = await sharp(upload.buffer).metadata(); } catch { throw new Error(`${field} is not a decodable image`); }
+  if (!metadata.width || !metadata.height || metadata.width < 256 || metadata.height < 256) throw new Error(`${field} must be at least 256×256`);
+  if (metadata.pages && metadata.pages > 1) throw new Error(`${field} must be a still image`);
+  return { extension, metadata };
+}
+
+function publicRun(state) {
+  return {
+    run_id: state.run_id,
+    status: state.status,
+    phase: state.phase,
+    inner_state: state.inner_state ?? null,
+    message: state.message,
+    created_at: state.created_at,
+    updated_at: state.updated_at,
+    garments: state.garments ?? [],
+    conflicts: state.conflicts ?? [],
+    qa: state.qa ?? {},
+    outputs: state.outputs ?? {},
+    error: state.error ?? null,
+  };
+}
+
+export class RunService {
+  constructor({ rootDirectory, provider, vlm, assetGenerator, projectRoot = path.resolve(import.meta.dirname, '..', '..'), clock = () => new Date() }) {
+    this.rootDirectory = path.resolve(rootDirectory);
+    this.provider = provider;
+    this.vlm = vlm;
+    this.assetGenerator = assetGenerator;
+    this.projectRoot = projectRoot;
+    this.clock = clock;
+    this.events = new EventEmitter();
+    this.running = new Map();
+  }
+
+  async initialize() { await mkdir(this.rootDirectory, { recursive: true }); }
+  runDirectory(runId) { return path.join(this.rootDirectory, runId); }
+  statePath(runId) { return path.join(this.runDirectory(runId), 'run.json'); }
+
+  async #read(runId) {
+    try { return JSON.parse(await readFile(this.statePath(runId), 'utf8')); }
+    catch (error) { if (error.code === 'ENOENT') return null; throw error; }
+  }
+
+  async #write(state, update = {}) {
+    Object.assign(state, update, { updated_at: this.clock().toISOString() });
+    await atomicJson(this.statePath(state.run_id), state);
+    this.events.emit(state.run_id, publicRun(state));
+    return state;
+  }
+
+  async createRun({ person, identityDetail, garments = [], outfitText = '', generateScene = true }) {
+    if (garments.length > 5) throw new Error('At most five garment images are allowed');
+    if (garments.length === 0 && outfitText.trim() === '') throw new Error('Provide outfit text or at least one garment image');
+    await validateUpload(person, 'person_photo');
+    if (identityDetail) await validateUpload(identityDetail, 'identity_detail');
+    for (const [index, garment] of garments.entries()) await validateUpload(garment, `garment_images[${index}]`);
+    const runId = randomUUID();
+    const runDirectory = this.runDirectory(runId);
+    const inputsDirectory = path.join(runDirectory, 'inputs');
+    await mkdir(inputsDirectory, { recursive: true });
+    const save = async (upload, stem) => {
+      const { extension } = await validateUpload(upload, stem);
+      const filename = path.join(inputsDirectory, `${stem}${extension}`);
+      await writeFile(filename, upload.buffer, { flag: 'wx' });
+      return filename;
+    };
+    const personPath = await save(person, 'person');
+    const identityDetailPath = identityDetail ? await save(identityDetail, 'identity-detail') : null;
+    const garmentPaths = [];
+    for (const [index, garment] of garments.entries()) garmentPaths.push(await save(garment, `garment-${String(index + 1).padStart(2, '0')}`));
+    const now = this.clock().toISOString();
+    const state = {
+      schema_version: '1.0.0', run_id: runId, status: 'QUEUED', phase: 'UPLOADED', message: 'Inputs accepted',
+      created_at: now, updated_at: now, inputs: { person: personPath, identity_detail: identityDetailPath, garments: garmentPaths, outfit_text: outfitText.trim(), generate_scene: Boolean(generateScene) },
+      garments: [], conflicts: [], qa: {}, outputs: {}, error: null,
+    };
+    await this.#write(state);
+    this.start(runId);
+    return publicRun(state);
+  }
+
+  start(runId) {
+    if (this.running.has(runId)) return this.running.get(runId);
+    const promise = this.#execute(runId).finally(() => this.running.delete(runId));
+    this.running.set(runId, promise);
+    return promise;
+  }
+
+  async #execute(runId) {
+    const state = await this.#read(runId);
+    if (!state || TERMINAL.has(state.status)) return state;
+    try {
+      let conditioned = null;
+      if (state.inputs.garments.length) {
+        await this.#write(state, { status: 'RUNNING', phase: 'GARMENT_CONDITIONING', message: 'Classifying and canonicalizing wardrobe references' });
+        const conditioner = new GarmentConditioner({ vlm: this.vlm, generator: this.assetGenerator, clock: this.clock });
+        conditioned = await conditioner.condition({ imagePaths: state.inputs.garments, outputDirectory: path.join(this.runDirectory(runId), 'conditioned', 'garments'), runId });
+        await this.#write(state, { garments: conditioned.items.map((item) => ({ source_index: item.source_index, category: item.category, confidence: item.confidence, observed: item.observed, reference_card: item.reference_card.path, cutout: item.cutout.path })), conflicts: conditioned.conflicts });
+      }
+      const jobPath = await this.#buildJob(state, conditioned);
+      await this.#write(state, { status: 'RUNNING', phase: 'CORE_PIPELINE', message: 'Generating and checking avatar and outfit', job_path: jobPath });
+      const runner = new PipelineRunner({ provider: this.provider });
+      const progressTimer = setInterval(() => { this.#syncRunnerProgress(state).catch(() => {}); }, 1000);
+      let result;
+      try { result = await runner.runJobFile(jobPath); } finally { clearInterval(progressTimer); }
+      state.runner = result;
+      if (result.status !== 'COMPLETED') {
+        let qaReason = null;
+        let terminalDetails = null;
+        try {
+          const checkpoint = JSON.parse(await readFile(result.checkpointPath, 'utf8'));
+          qaReason = checkpoint.qa?.outfit?.reason ?? checkpoint.qa?.avatar?.reason ?? checkpoint.qa?.conditioning?.reason ?? null;
+        } catch { /* checkpoint details are optional in an infrastructure failure */ }
+        try {
+          const events = (await readFile(result.eventsPath, 'utf8')).trim().split('\n').filter(Boolean).map((line) => JSON.parse(line));
+          terminalDetails = events.reverse().find((event) => event.type === 'STATE_TRANSITION' && ['FAILED', 'NEEDS_INPUT'].includes(event.state))?.data ?? null;
+        } catch { /* event details are optional in an infrastructure failure */ }
+        const error = result.lastError ?? terminalDetails?.error ?? null;
+        return this.#write(state, { status: result.status === 'NEEDS_INPUT' ? 'NEEDS_INPUT' : 'FAILED', phase: 'CORE_PIPELINE', message: error?.message ?? terminalDetails?.reason ?? qaReason ?? `Pipeline ended with ${result.status}`, error });
+      }
+      const outputs = {
+        avatar: `/api/runs/${runId}/files/avatar.png`,
+        avatar_outfit: `/api/runs/${runId}/files/avatar_outfit.png`,
+        manifest: `/api/runs/${runId}/files/run-manifest.json`,
+      };
+      const manifest = JSON.parse(await readFile(result.outputs.manifest, 'utf8'));
+      state.qa = manifest.qa;
+      state.outputs = outputs;
+      if (state.inputs.generate_scene) await this.#generateScene(state, result.outputs.avatar_outfit);
+      return this.#write(state, { status: 'COMPLETED', phase: 'COMPLETED', message: 'Avatar and outfit are ready', outputs: state.outputs });
+    } catch (error) {
+      if (error instanceof GarmentNeedsInputError) {
+        return this.#write(state, { status: 'NEEDS_INPUT', phase: 'GARMENT_CONDITIONING', message: error.message, garments: error.details.passport?.items ?? state.garments, conflicts: error.details.conflicts ?? [], error: { name: error.name, message: error.message, details: error.details } });
+      }
+      return this.#write(state, { status: 'FAILED', phase: state.phase, message: error.message, error: { name: error.name, message: error.message } });
+    }
+  }
+
+  async #syncRunnerProgress(state) {
+    const checkpointPath = path.join(this.runDirectory(state.run_id), 'outputs', '.zeely-run', 'checkpoint.json');
+    try {
+      const checkpoint = JSON.parse(await readFile(checkpointPath, 'utf8'));
+      if (checkpoint.state !== state.inner_state) await this.#write(state, { inner_state: checkpoint.state, message: checkpoint.state.replaceAll('_', ' ').toLowerCase() });
+    } catch { /* checkpoint may not exist yet */ }
+  }
+
+  async #buildJob(state, conditioned) {
+    const outfitText = conditioned?.outfitText
+      ? [state.inputs.outfit_text, conditioned.outfitText].filter(Boolean).join('\n')
+      : state.inputs.outfit_text;
+    const hasReference = Boolean(conditioned);
+    const outfit = {
+      mode: hasReference ? (outfitText ? 'reference_image_plus_text' : 'reference_image') : 'text',
+      ...(outfitText ? { text: outfitText } : {}),
+      ...(hasReference ? {
+        reference: conditioned.items[0].source_path,
+        reference_pack: { path: conditioned.pack.path },
+        target_region: 'complete_outfit',
+        must_match: conditioned.items.flatMap(garmentLocks),
+      } : {}),
+    };
+    const identityPack = await this.#buildIdentityPack(state);
+    const job = {
+      job_id: `web-${state.run_id}`, identity_reference: state.inputs.person,
+      identity_reference_pack: { path: identityPack },
+      output_directory: path.join(this.runDirectory(state.run_id), 'outputs'),
+      prompts: {
+        avatar: path.join(this.projectRoot, 'prompts', 'avatar.txt'),
+        outfit: path.join(this.projectRoot, 'prompts', hasReference ? 'outfit-reference.txt' : 'outfit-text.txt'),
+        repair: path.join(this.projectRoot, 'prompts', 'repair.txt'),
+      },
+      outfit,
+      quality_references: ['output1.png', 'output2.png', 'output3.png'].map((filename) => path.join(this.projectRoot, 'inputs', 'zeely-test', 'quality-references', filename)),
+      model_route: [...IMAGE_MODEL_ROUTE], max_attempts: 3, conditioning_max_attempts: 2,
+    };
+    const jobPath = path.join(this.runDirectory(state.run_id), 'job.json');
+    await atomicJson(jobPath, job);
+    return jobPath;
+  }
+
+  async #buildIdentityPack(state) {
+    const directory = path.join(this.runDirectory(state.run_id), 'conditioned', 'identity');
+    await mkdir(directory, { recursive: true });
+    const sources = [state.inputs.person, state.inputs.identity_detail].filter(Boolean);
+    const bindings = [];
+    for (const [index, source] of sources.entries()) {
+      const image = await sharp(source).rotate().toColourspace('srgb').png().toBuffer();
+      const filename = path.join(directory, index === 0 ? 'primary.png' : 'detail.png');
+      await writeFile(filename, image);
+      bindings.push({ order: index + 1, role: index === 0 ? 'IDENTITY_PRIMARY' : 'FACE_DETAIL', path: filename, sha256: sha256(image) });
+    }
+    const raw = await readFile(state.inputs.person);
+    const document = {
+      schema_version: '1.0.0', asset_id: `${state.run_id}-identity`, kind: 'HUMAN',
+      source: { path: path.resolve(state.inputs.person), sha256: sha256(raw), immutable: true },
+      extraction: { method: 'user_upload_plus_deterministic_normalization', provenance: 'OBSERVED', unknowns: [] },
+      readiness: { decision: 'READY', reasons: ['PRIMARY_IDENTITY_IMAGE_DECODES'], actions: [], terminal: false },
+      generation_bindings: bindings, created_at: this.clock().toISOString(),
+    };
+    const filename = path.join(directory, 'reference-pack.json');
+    await atomicJson(filename, document);
+    return filename;
+  }
+
+  async #generateScene(state, approvedOutfitPath) {
+    await this.#write(state, { phase: 'OPTIONAL_SCENE', message: 'Generating bonus Art Director scene' });
+    const sceneDirectory = path.join(this.runDirectory(state.run_id), 'scene');
+    for (const [index, model] of IMAGE_MODEL_ROUTE.entries()) {
+      const response = await this.assetGenerator.generateScene({
+        approvedOutfitPath, model, workDirectory: sceneDirectory, operationId: `${state.run_id}-scene-${index + 1}`,
+        prompt: 'Create one memorable high-fashion editorial photograph using the exact same approved person and complete outfit from the reference. Preserve identity, face, hair, body proportions, every garment color, texture, logo, text and fit. Place the subject in a bold contemporary Vogue-style studio environment with sculptural light and a confident editorial pose. No text overlay, no brand invention, no wardrobe changes.',
+      });
+      const candidatePath = path.join(sceneDirectory, `candidate-${index + 1}.png`);
+      await mkdir(sceneDirectory, { recursive: true });
+      await writeFile(candidatePath, response.image);
+      const qa = await this.vlm.evaluateQa({ phase: 'scene', evidence: { avatar: { artifact: { path: approvedOutfitPath } }, candidate: { artifact: { path: candidatePath } } } });
+      if (qa.decision === 'PASS') {
+        const finalPath = path.join(this.runDirectory(state.run_id), 'outputs', 'art_director_scene.png');
+        await writeFile(finalPath, response.image, { flag: 'wx' });
+        state.outputs.art_director_scene = `/api/runs/${state.run_id}/files/art_director_scene.png`;
+        state.qa.scene = qa;
+        return;
+      }
+      if (qa.decision === 'NEEDS_INPUT' || qa.decision === 'REJECT') break;
+    }
+    state.qa.scene = { decision: 'SKIPPED', reason: 'Bonus scene did not pass; core outputs remain valid' };
+  }
+
+  async getRun(runId) { const state = await this.#read(runId); return state ? publicRun(state) : null; }
+  subscribe(runId, listener) { this.events.on(runId, listener); return () => this.events.off(runId, listener); }
+
+  async outputFile(runId, name) {
+    const allowed = new Set(['avatar.png', 'avatar_outfit.png', 'art_director_scene.png', 'run-manifest.json']);
+    if (!allowed.has(name)) return null;
+    const filename = path.join(this.runDirectory(runId), 'outputs', name);
+    try { await access(filename); return filename; } catch { return null; }
+  }
+
+  async retry(runId) {
+    const state = await this.#read(runId);
+    if (!state) return null;
+    const orphanedAfterRestart = state.status === 'RUNNING' && !this.running.has(runId);
+    if (!['NEEDS_INPUT', 'FAILED'].includes(state.status) && !orphanedAfterRestart) throw new Error('Only failed, needs-input, or interrupted runs can be retried');
+    await rm(path.join(this.runDirectory(runId), 'outputs'), { recursive: true, force: true });
+    await this.#write(state, { status: 'QUEUED', phase: 'UPLOADED', message: 'Retry queued', error: null, outputs: {}, qa: {} });
+    this.start(runId);
+    return publicRun(state);
+  }
+
+  async deleteRun(runId) {
+    if (this.running.has(runId)) throw new Error('Cannot delete a running job');
+    const directory = this.runDirectory(runId);
+    if (!directory.startsWith(`${this.rootDirectory}${path.sep}`)) throw new Error('Unsafe run path');
+    await rm(directory, { recursive: true, force: true });
+  }
+}

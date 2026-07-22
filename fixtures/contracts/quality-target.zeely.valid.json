@@ -1,0 +1,129 @@
+{
+  "schema_version": "1.0.0",
+  "quality_target_id": "quality-target-zeely-001",
+  "job_id": "zeely-test-001",
+  "authority_order": [
+    "WRITTEN_TASK_RULES",
+    "USER_PROVIDED_FACTS",
+    "VISUAL_BENCHMARKS"
+  ],
+  "written_rules": [
+    {
+      "rule_id": "rule-background-white-001",
+      "text": "The final background must be exactly solid #FFFFFF.",
+      "blocking": true
+    },
+    {
+      "rule_id": "rule-identity-001",
+      "text": "Preserve the observed face, hair and identity of the uploaded person.",
+      "blocking": true
+    },
+    {
+      "rule_id": "rule-body-001",
+      "text": "Preserve only body proportions supported by visible source evidence; request another photo when required evidence is absent.",
+      "blocking": true
+    },
+    {
+      "rule_id": "rule-framing-001",
+      "text": "Use a neutral front-facing half-body composition from head through hips.",
+      "blocking": true
+    },
+    {
+      "rule_id": "rule-finish-001",
+      "text": "Use neutral white balance, soft studio light and photorealistic skin, hair and fabric detail.",
+      "blocking": true
+    },
+    {
+      "rule_id": "rule-outfit-001",
+      "text": "Preserve observed outfit category, construction, color, material and logo evidence without residue from the previous outfit.",
+      "blocking": true
+    }
+  ],
+  "visual_benchmarks": [
+    {
+      "asset_id": "quality-benchmark-001",
+      "authoritative_for": ["POSE", "FRAMING", "LIGHTING", "WHITE_BALANCE", "PHOTOREALISTIC_FINISH", "DETAIL_LEVEL"],
+      "must_not_define": ["IDENTITY", "FACE", "HAIR", "BODY", "GARMENT", "EXACT_BACKGROUND_COLOR"]
+    },
+    {
+      "asset_id": "quality-benchmark-002",
+      "authoritative_for": ["POSE", "FRAMING", "LIGHTING", "PHOTOREALISTIC_FINISH", "DETAIL_LEVEL"],
+      "must_not_define": ["IDENTITY", "FACE", "HAIR", "BODY", "GARMENT", "EXACT_BACKGROUND_COLOR"]
+    },
+    {
+      "asset_id": "quality-benchmark-003",
+      "authoritative_for": ["POSE", "FRAMING", "LIGHTING", "WHITE_BALANCE", "PHOTOREALISTIC_FINISH"],
+      "must_not_define": ["IDENTITY", "FACE", "HAIR", "BODY", "GARMENT", "EXACT_BACKGROUND_COLOR"]
+    }
+  ],
+  "output": {
+    "media_type": "IMAGE",
+    "format": "PNG",
+    "color_space": "SRGB",
+    "min_width_px": 1024,
+    "min_height_px": 1280,
+    "alpha": false,
+    "aspect_ratio": "4:5"
+  },
+  "composition": {
+    "pose": "NEUTRAL_FRONTAL",
+    "framing": "HALF_BODY_HEAD_TO_HIPS",
+    "camera_angle": "EYE_LEVEL",
+    "gaze": "CAMERA",
+    "expression": "NATURAL_RELAXED",
+    "subject_count": 1
+  },
+  "background": {
+    "mode": "SOLID",
+    "hex": "#FFFFFF",
+    "rgb": [255, 255, 255],
+    "uniform": true,
+    "shadow_policy": "NONE",
+    "edge_tolerance": {
+      "max_nonwhite_corner_fraction": 0,
+      "max_halo_px": 1
+    }
+  },
+  "lighting": {
+    "setup": "SOFT_DIFFUSED_STUDIO",
+    "direction": "FRONTAL_SLIGHT_SIDE",
+    "contrast": "MEDIUM_LOW",
+    "white_balance": "NEUTRAL",
+    "color_cast_allowed": false
+  },
+  "rendering": {
+    "style": "PHOTOREALISTIC",
+    "skin": "NATURAL_TEXTURE",
+    "hair": "NATURAL_STRAND_DETAIL",
+    "fabric": "MATERIAL_ACCURATE_DETAIL",
+    "retouching": "NON_PLASTIC"
+  },
+  "fidelity": {
+    "identity": "PRESERVE_OBSERVED",
+    "hair": "PRESERVE_OBSERVED",
+    "body": "PRESERVE_OBSERVED_ONLY",
+    "garment": "PRESERVE_REFERENCE_EVIDENCE",
+    "anatomy": "NATURAL_NO_DEFORMATIONS"
+  },
+  "negative_constraints": [
+    "NO_IDENTITY_DRIFT",
+    "NO_BODY_INVENTION",
+    "NO_GARMENT_RESIDUE",
+    "NO_BACKGROUND_BLEED",
+    "NO_HALO",
+    "NO_EXTRA_LIMBS",
+    "NO_DEFORMED_HANDS",
+    "NO_PLASTIC_SKIN",
+    "NO_COLOR_CAST",
+    "NO_UNAUTHORIZED_LOGO_RECONSTRUCTION"
+  ],
+  "qa_thresholds": {
+    "identity": 0.9,
+    "anatomy": 0.95,
+    "garment_structure": 0.9,
+    "color": 0.92,
+    "background": 1,
+    "prompt_compliance": 0.9
+  },
+  "created_at": "2026-07-22T00:01:00Z"
+}

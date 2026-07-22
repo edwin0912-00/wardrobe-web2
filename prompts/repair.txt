@@ -1,0 +1,6 @@
+TASK
+Repair only this blocking defect in {{FAILED_CANDIDATE}}: {{DEFECT_DESCRIPTION}}.
+
+Use {{ORIGINAL_IDENTITY_REFERENCE}} and {{APPROVED_REFERENCE}} as immutable references. Change only {{REPAIR_REGION}}. Preserve all already-approved identity, pose, crop, lighting, background and outfit properties outside that region. Do not redesign the complete image.
+
+The repaired result must still satisfy the Zeely #FFFFFF, identity, anatomy, photorealism and outfit-fidelity gates.

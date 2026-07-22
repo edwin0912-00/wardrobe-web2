@@ -1,0 +1,31 @@
+{
+  "job_id": "zeely-core-003",
+  "identity_reference": "../inputs/zeely-test/users/input3.webp",
+  "identity_reference_pack": {
+    "path": "../artifacts/conditioning/humans/003/reference-pack.json",
+    "path_base": ".."
+  },
+  "output_directory": "../runs/live/003",
+  "prompts": {
+    "avatar": "../prompts/avatar.txt",
+    "outfit": "../prompts/outfit-text.txt",
+    "repair": "../prompts/repair.txt"
+  },
+  "outfit": {
+    "mode": "text",
+    "text": "A dark chocolate-brown suede overshirt with matte fine-nap texture, regular relaxed fit, pointed collar, full button front with small dark horn buttons, two clean chest flap pockets and long sleeves, worn open over a plain opaque black crew-neck cotton T-shirt. No logo, text, pattern, jewelry or accessory.",
+    "target_region": "upper_body_clothing"
+  },
+  "quality_references": [
+    "../inputs/zeely-test/quality-references/output1.png",
+    "../inputs/zeely-test/quality-references/output2.png",
+    "../inputs/zeely-test/quality-references/output3.png"
+  ],
+  "model_route": [
+    "gpt_image_2",
+    "nano_banana_flash",
+    "nano_banana_2"
+  ],
+  "max_attempts": 3,
+  "conditioning_max_attempts": 2
+}

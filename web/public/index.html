@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="ZEELY reference-conditioned AI avatar generator">
+  <title>ZEELY — AI Avatar Studio</title>
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/progress.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="Zeely home"><span class="brand-mark">Z</span><span>ZEELY LAB</span></a>
+    <div class="engine-status"><span class="pulse"></span> GPT Image 2 · strict QA</div>
+  </header>
+  <main>
+    <section class="hero">
+      <p class="eyebrow">REFERENCE-CONDITIONED AVATAR ENGINE</p>
+      <h1>Ти. Твій гардероб.<br><em>Без випадковостей.</em></h1>
+      <p class="hero-copy">Завантаж фото себе й будь-які фотографії речей. Engine розпізнає, очищує та фіксує кожен reference перед генерацією.</p>
+      <div class="proof-row"><span>01 Identity lock</span><span>02 Garment passport</span><span>03 Independent QA</span></div>
+    </section>
+
+    <section class="studio-grid">
+      <form id="run-form" class="panel form-panel">
+        <div class="panel-head"><div><span class="step">01</span><h2>Матеріали</h2></div><span class="required-note">* обов’язково</span></div>
+        <label class="upload-card">
+          <input id="person-photo" name="person_photo" type="file" accept="image/png,image/jpeg,image/webp" required>
+          <span class="upload-icon">＋</span><strong>Фото людини *</strong><small>Довільний фон і поза · PNG, JPEG або WEBP</small><span class="file-name" data-for="person-photo">Обрати файл</span>
+        </label>
+        <label class="upload-card compact">
+          <input id="identity-detail" name="identity_detail" type="file" accept="image/png,image/jpeg,image/webp">
+          <span class="upload-icon">＋</span><strong>Додатковий identity reference</strong><small>Face або full-body — необов’язково</small><span class="file-name" data-for="identity-detail">Обрати файл</span>
+        </label>
+
+        <div class="divider"><span>НОВИЙ ОБРАЗ</span></div>
+        <label class="field-label" for="outfit-text">Опис образу</label>
+        <textarea id="outfit-text" name="outfit_text" rows="3" placeholder="Наприклад: мінімалістичний чорний total look із м’якою посадкою"></textarea>
+        <label class="upload-card wardrobe-card">
+          <input id="garment-images" name="garment_images" type="file" accept="image/png,image/jpeg,image/webp" multiple>
+          <span class="upload-icon">＋</span><strong>Фото речей</strong><small>До 5 довільних фото — engine сам визначить категорії</small><span class="file-name" data-for="garment-images">Додати гардероб</span>
+        </label>
+        <div id="garment-preview" class="garment-preview"></div>
+        <label class="toggle"><input type="checkbox" name="generate_scene" checked><span></span><div><strong>Art Director scene</strong><small>Bonus після успішного core result</small></div></label>
+        <label class="consent"><input type="checkbox" name="consent" required><span>Я маю право використовувати ці фото та погоджуюсь на їх обробку зовнішніми AI providers.</span></label>
+        <button id="submit-button" class="primary-button" type="submit"><span>Створити avatar</span><b>→</b></button>
+        <p id="form-error" class="error" role="alert"></p>
+      </form>
+
+      <section class="panel result-panel" aria-live="polite">
+        <div class="panel-head"><div><span class="step">02</span><h2>Результат</h2></div><span id="status-chip" class="status-chip idle">Очікує input</span></div>
+        <div id="empty-state" class="empty-state"><div class="mirror-graphic"><span></span><span></span></div><h3>Тут з’явиться твій look</h3><p>Base avatar і переодягання проходять окремі QA gates.</p></div>
+        <div id="progress-view" class="progress-view hidden">
+          <div class="progress-orbit"><span></span><b id="progress-percent">12%</b></div>
+          <h3 id="progress-title">Підготовка матеріалів</h3><p id="progress-message">Перевіряємо input…</p>
+          <ol id="timeline" class="timeline">
+            <li>Input validation</li>
+            <li>Reference conditioning</li>
+            <li>Reference QA</li>
+            <li>Avatar generation</li>
+            <li>Avatar QA</li>
+            <li>Outfit generation + QA</li>
+            <li>Art Director scene</li>
+            <li>Export results</li>
+          </ol>
+        </div>
+        <div id="result-view" class="result-view hidden">
+          <div id="passport-list" class="passport-list"></div>
+          <div id="result-gallery" class="result-gallery"></div>
+          <button id="new-run" class="secondary-button" type="button">Створити ще один образ</button>
+        </div>
+        <div id="failure-view" class="failure-view hidden"><span class="failure-mark">!</span><h3 id="failure-title">Потрібен інший input</h3><p id="failure-message"></p><button id="retry-run" class="secondary-button" type="button">Повторити run</button></div>
+      </section>
+    </section>
+  </main>
+  <footer><span>ZEELY AI ENGINEERING TEST</span><span>Immutable jobs · Hash-bound QA · Cloud models</span></footer>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,45 @@
+{
+  "schema_version": "1.0.0",
+  "transport": {
+    "current_live": "HIGGSFIELD_CLI",
+    "supported": [
+      "HIGGSFIELD_CLI",
+      "HIGGSFIELD_MCP"
+    ],
+    "smoke_test_required": true,
+    "required_capabilities": [
+      "image_generation",
+      "image_edit",
+      "multiple_image_references",
+      "model_selection"
+    ]
+  },
+  "image_models": {
+    "primary": {
+      "name": "GPT Image 2",
+      "job_set_type": "gpt_image_2"
+    },
+    "fallback_order": [
+      {
+        "name": "Nano Banana 2",
+        "job_set_type": "nano_banana_flash"
+      },
+      {
+        "name": "Nano Banana Pro",
+        "job_set_type": "nano_banana_2"
+      }
+    ]
+  },
+  "video_models": {
+    "enabled_for_core_test": false
+  },
+  "deny_unlisted_models": true,
+  "forbidden_models_and_routes": [
+    "runway",
+    "flux",
+    "fashn",
+    "kling",
+    "veo",
+    "luma"
+  ]
+}

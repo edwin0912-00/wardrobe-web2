@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Zeely — private preview</title>
+  <link rel="stylesheet" href="/login.css">
+</head>
+<body>
+  <main class="card">
+    <div class="mark">Z</div>
+    <p class="eyebrow">PRIVATE PREVIEW</p>
+    <h1>Zeely AI Studio</h1>
+    <p class="hint">Введіть PIN-код, щоб відкрити тестову версію.</p>
+    <form id="pin-form">
+      <label for="pin">PIN-код</label>
+      <input id="pin" name="pin" type="password" inputmode="numeric" pattern="[0-9]{4,12}" autocomplete="one-time-code" maxlength="12" required autofocus>
+      <button type="submit">Увійти</button>
+      <p id="message" role="alert" aria-live="polite"></p>
+    </form>
+  </main>
+  <script type="module" src="/login.js"></script>
+</body>
+</html>

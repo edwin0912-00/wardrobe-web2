@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zeely.ai/schemas/qa-report.schema.json",
+  "title": "Zeely QA Report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["job_id", "attempt_id", "profile", "decision", "checks", "evidence", "router_action"],
+  "properties": {
+    "job_id": { "type": "string" },
+    "attempt_id": { "type": "string" },
+    "profile": { "enum": ["DRAFT", "STANDARD", "HERO"] },
+    "decision": { "enum": ["PASS", "RETRY", "HUMAN_REVIEW", "REJECT"] },
+    "checks": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "blocking", "score", "threshold", "pass", "reason"],
+        "properties": {
+          "name": { "enum": ["TECHNICAL", "IDENTITY", "ANATOMY", "PRODUCT_GEOMETRY", "LOGO_TEXT", "COLOR", "GARMENT_STRUCTURE", "ENVIRONMENT", "PROMPT_COMPLIANCE", "TEMPORAL_STABILITY", "AUDIO_SYNC", "SAFETY"] },
+          "blocking": { "type": "boolean" },
+          "score": { "type": "number", "minimum": 0, "maximum": 1 },
+          "threshold": { "type": "number", "minimum": 0, "maximum": 1 },
+          "pass": { "type": "boolean" },
+          "reason": { "type": "string" },
+          "judge": { "type": "string" },
+          "judge_version": { "type": "string" }
+        }
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "uri"],
+        "properties": {
+          "type": { "enum": ["FRAME", "CROP", "MASK", "DIFF", "TIMECODE", "OCR", "METADATA"] },
+          "uri": { "type": "string", "format": "uri-reference" },
+          "time_s": { "type": ["number", "null"], "minimum": 0 },
+          "bbox_xywh": { "type": ["array", "null"], "items": { "type": "number" }, "minItems": 4, "maxItems": 4 }
+        }
+      }
+    },
+    "router_action": { "enum": ["CONTINUE", "REPAIR_MASK", "STRENGTHEN_REFERENCES", "REDUCE_MOTION", "SWITCH_MODEL", "REGENERATE_STILL", "REQUEST_INPUT", "SEND_TO_HUMAN", "STOP"] },
+    "notes": { "type": "string" }
+  }
+}

@@ -1,0 +1,253 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zeely.ai/schemas/extraction.schema.json",
+  "title": "Zeely Structured Visual Extraction",
+  "description": "Observed facts, explicit unknowns, evidence and provenance extracted from one immutable source asset.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "extraction_id",
+    "job_id",
+    "source_asset_id",
+    "source_sha256",
+    "entity_type",
+    "extractor",
+    "evidence",
+    "observed_facts",
+    "unknowns",
+    "quality_assessment",
+    "recommended_disposition",
+    "created_at"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "extraction_id": { "$ref": "#/$defs/id" },
+    "job_id": { "$ref": "#/$defs/id" },
+    "source_asset_id": { "$ref": "#/$defs/id" },
+    "source_sha256": { "$ref": "#/$defs/sha256" },
+    "entity_type": { "enum": ["HUMAN", "GARMENT", "PRODUCT", "ENVIRONMENT", "QUALITY_REFERENCE"] },
+    "extractor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["component", "version", "method"],
+      "properties": {
+        "component": { "type": "string", "minLength": 1 },
+        "version": { "type": "string", "minLength": 1 },
+        "method": { "enum": ["VLM", "DETERMINISTIC", "HYBRID", "USER_ASSERTION"] },
+        "model": { "type": ["string", "null"] },
+        "prompt_hash": { "type": ["string", "null"], "pattern": "^[a-f0-9]{64}$" }
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/evidence" }
+    },
+    "observed_facts": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/fact" }
+    },
+    "unknowns": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/unknown" }
+    },
+    "quality_assessment": { "$ref": "#/$defs/qualityAssessment" },
+    "recommended_disposition": {
+      "enum": [
+        "READY",
+        "REPAIRABLE",
+        "AMBIGUOUS",
+        "MISSING_REQUIRED_EVIDENCE",
+        "INCOMPATIBLE_WITH_TARGET",
+        "UNUSABLE"
+      ]
+    },
+    "disposition_reasons": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "created_at": { "type": "string", "format": "date-time" }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]{3,95}$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "normalizedBbox": {
+      "type": "array",
+      "prefixItems": [
+        { "type": "number", "minimum": 0, "maximum": 1 },
+        { "type": "number", "minimum": 0, "maximum": 1 },
+        { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
+        { "type": "number", "exclusiveMinimum": 0, "maximum": 1 }
+      ],
+      "minItems": 4,
+      "maxItems": 4
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["evidence_id", "type", "source_asset_id"],
+      "properties": {
+        "evidence_id": { "$ref": "#/$defs/id" },
+        "type": { "enum": ["FULL_IMAGE", "BBOX", "CROP", "MASK", "OCR_REGION", "METADATA"] },
+        "source_asset_id": { "$ref": "#/$defs/id" },
+        "bbox_xywh_norm": { "$ref": "#/$defs/normalizedBbox" },
+        "uri": { "type": ["string", "null"], "format": "uri-reference" },
+        "note": { "type": "string", "maxLength": 500 }
+      }
+    },
+    "factValue": {
+      "oneOf": [
+        { "type": "string", "minLength": 1 },
+        { "type": "number" },
+        { "type": "boolean" },
+        {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "oneOf": [
+              { "type": "string" },
+              { "type": "number" },
+              { "type": "boolean" }
+            ]
+          }
+        }
+      ]
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "source_asset_id", "evidence_ids", "method"],
+      "properties": {
+        "type": {
+          "enum": ["OBSERVED", "USER_PROVIDED", "DERIVED_DETERMINISTIC", "GENERATED_HYPOTHESIS"]
+        },
+        "source_asset_id": { "$ref": "#/$defs/id" },
+        "evidence_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/id" }
+        },
+        "method": { "type": "string", "minLength": 1, "maxLength": 200 }
+      }
+    },
+    "fact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["fact_id", "path", "value", "confidence", "provenance", "lock_eligibility"],
+      "properties": {
+        "fact_id": { "$ref": "#/$defs/id" },
+        "path": { "type": "string", "pattern": "^/[a-zA-Z0-9_~/-]+$" },
+        "value": { "$ref": "#/$defs/factValue" },
+        "unit": { "type": ["string", "null"], "maxLength": 40 },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+        "provenance": { "$ref": "#/$defs/provenance" },
+        "lock_eligibility": { "enum": ["ELIGIBLE", "INELIGIBLE", "PENDING_REVIEW"] }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "provenance": {
+                "properties": { "type": { "const": "GENERATED_HYPOTHESIS" } },
+                "required": ["type"]
+              }
+            },
+            "required": ["provenance"]
+          },
+          "then": {
+            "properties": { "lock_eligibility": { "const": "INELIGIBLE" } }
+          }
+        }
+      ]
+    },
+    "unknown": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["unknown_id", "path", "reason", "required_for", "blocking", "requested_remedy", "provenance"],
+      "properties": {
+        "unknown_id": { "$ref": "#/$defs/id" },
+        "path": { "type": "string", "pattern": "^/[a-zA-Z0-9_~/-]+$" },
+        "reason": {
+          "enum": ["NOT_VISIBLE", "OCCLUDED", "LOW_RESOLUTION", "AMBIGUOUS", "NOT_PROVIDED", "CONFLICTING_EVIDENCE"]
+        },
+        "required_for": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "enum": ["AVATAR", "OUTFIT_TEXT", "OUTFIT_REFERENCE", "IDENTITY_QA", "GARMENT_QA"] }
+        },
+        "blocking": { "type": "boolean" },
+        "requested_remedy": {
+          "enum": ["NONE", "BETTER_PHOTO", "ADDITIONAL_ANGLE", "FULL_BODY_PHOTO", "DETAIL_PHOTO", "USER_CLARIFICATION"]
+        },
+        "provenance": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "source_asset_id", "evidence_ids"],
+          "properties": {
+            "type": { "const": "UNKNOWN" },
+            "source_asset_id": { "$ref": "#/$defs/id" },
+            "evidence_ids": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": { "$ref": "#/$defs/id" }
+            }
+          }
+        }
+      }
+    },
+    "qualityAssessment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scores", "flags", "usable_regions"],
+      "properties": {
+        "scores": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["sharpness", "exposure", "compression", "occlusion", "subject_coverage"],
+          "properties": {
+            "sharpness": { "type": "number", "minimum": 0, "maximum": 1 },
+            "exposure": { "type": "number", "minimum": 0, "maximum": 1 },
+            "compression": { "type": "number", "minimum": 0, "maximum": 1 },
+            "occlusion": { "type": "number", "minimum": 0, "maximum": 1 },
+            "subject_coverage": { "type": "number", "minimum": 0, "maximum": 1 }
+          }
+        },
+        "flags": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "LOW_RESOLUTION",
+              "BLUR",
+              "OVEREXPOSED",
+              "UNDEREXPOSED",
+              "HEAVY_COMPRESSION",
+              "COLOR_CAST",
+              "PARTIAL_OCCLUSION",
+              "MULTIPLE_SUBJECTS",
+              "SMALL_SUBJECT",
+              "INCOMPATIBLE_FRAMING"
+            ]
+          }
+        },
+        "usable_regions": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": ["FACE", "HAIR", "UPPER_BODY", "FULL_BODY", "GARMENT_SILHOUETTE", "GARMENT_COLOR", "GARMENT_MATERIAL", "LOGO_TEXT", "ENVIRONMENT_LAYOUT"]
+          }
+        }
+      }
+    }
+  }
+}

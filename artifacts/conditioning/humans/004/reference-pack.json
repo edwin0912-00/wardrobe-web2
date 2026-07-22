@@ -1,0 +1,233 @@
+{
+  "schema_version": "1.0.0",
+  "asset_id": "user-input-004",
+  "kind": "HUMAN",
+  "source": {
+    "path": "inputs/zeely-test/users/input4.jpg",
+    "sha256": "89ef3541af854e40e0e8fa271518f98fbab6ff481ff504e1be71e454fe055418",
+    "immutable": true,
+    "consent": "AUTHORIZED_TEST_DATASET"
+  },
+  "extraction": {
+    "method": "explicit_visual_review_with_bboxes",
+    "observed_facts": {
+      "face": "oval facial geometry with short red-brown hair and black rectangular glasses",
+      "hair": "short red-brown textured crop",
+      "skin": "light natural skin tone",
+      "body": "full body visible in mirror; phone partially occludes torso"
+    },
+    "evidence": {
+      "face_bbox_xywh_norm": [
+        0.28,
+        0.17,
+        0.3,
+        0.23
+      ],
+      "person_bbox_xywh_norm": [
+        0.15,
+        0.13,
+        0.6,
+        0.84
+      ]
+    },
+    "provenance": "OBSERVED",
+    "unknowns": []
+  },
+  "technical_assessment": {
+    "schema_version": "1.0.0",
+    "metadata": {
+      "format": "jpeg",
+      "mime_type": "image/jpeg",
+      "source_width": 2988,
+      "source_height": 5312,
+      "display_width": 2988,
+      "display_height": 5312,
+      "orientation": 1,
+      "color_space": "srgb",
+      "channels": 3,
+      "has_alpha": false,
+      "density": 72,
+      "pages": 1,
+      "byte_length": 1082808,
+      "source_sha256": "89ef3541af854e40e0e8fa271518f98fbab6ff481ff504e1be71e454fe055418"
+    },
+    "signals": {
+      "analysis_width": 144,
+      "analysis_height": 256,
+      "mean_luminance": 0.533476,
+      "black_clip_ratio": 0,
+      "white_clip_ratio": 0.00019,
+      "luminance_range_p05_p95": 0.819608,
+      "edge_energy": 0.019074,
+      "subject_coverage": 0.50416
+    },
+    "resize_evidence": {
+      "preferred_long_edge": 1536,
+      "current_long_edge": 5312,
+      "factor_to_preferred": 0.289157,
+      "max_upscale_factor": 2,
+      "applied_upscale_factor": 1,
+      "target_reachable": true
+    },
+    "fatal_issues": [],
+    "repairable_issues": [],
+    "risks": []
+  },
+  "conditioning": {
+    "normalized": {
+      "path": "artifacts/conditioning/humans/004/normalized.png",
+      "sha256": "be2183ba1bc501d5c9a71256255f80fa6e61640324e0a120ded7f505deb665eb",
+      "bytes": 12353989
+    },
+    "face_crop": {
+      "path": "artifacts/conditioning/humans/004/face.png",
+      "sha256": "999bbecc23cb4c7dfd903e8ff9f488efcd7c02df43719068bff37ceb2db531f6",
+      "bytes": 1845456
+    },
+    "person_crop": {
+      "path": "artifacts/conditioning/humans/004/person.png",
+      "sha256": "c0de904fd347a4f0d1aa4cd6663ca81e08109be003877e393fa303d1208cc3bf",
+      "bytes": 9464085
+    },
+    "resize_plan": {
+      "source_width": 2988,
+      "source_height": 5312,
+      "output_width": 2304,
+      "output_height": 4096,
+      "scale": 0.771084,
+      "reason": "DOWNSCALED_TO_MAX",
+      "target_reached": true
+    },
+    "lineage": [
+      {
+        "schema_version": "1.0.0",
+        "artifact_id": "user-input-004-normalized",
+        "output_sha256": "be2183ba1bc501d5c9a71256255f80fa6e61640324e0a120ded7f505deb665eb",
+        "parents": [
+          {
+            "asset_id": "user-input-004",
+            "sha256": "89ef3541af854e40e0e8fa271518f98fbab6ff481ff504e1be71e454fe055418",
+            "role": "IDENTITY_SOURCE"
+          }
+        ],
+        "operations": [
+          {
+            "from_orientation": 1,
+            "type": "AUTO_ORIENT"
+          },
+          {
+            "to": "srgb",
+            "type": "CONVERT_COLOR_SPACE"
+          },
+          {
+            "interpolation": "lanczos3",
+            "reason": "DOWNSCALED_TO_MAX",
+            "scale": 0.771084,
+            "type": "CONSERVATIVE_RESIZE"
+          },
+          {
+            "format": "png",
+            "type": "ENCODE"
+          }
+        ],
+        "policy_version": "1.0.0",
+        "lineage_id": "d22a3b4c86b49925da9070b0c9fb6cd95171467164cd1e629eed72727b48cac1",
+        "recorded_at": "2026-07-22T00:37:53.983Z"
+      },
+      {
+        "schema_version": "1.0.0",
+        "artifact_id": "user-input-004-face",
+        "output_sha256": "999bbecc23cb4c7dfd903e8ff9f488efcd7c02df43719068bff37ceb2db531f6",
+        "parents": [
+          {
+            "asset_id": "user-input-004",
+            "sha256": "89ef3541af854e40e0e8fa271518f98fbab6ff481ff504e1be71e454fe055418",
+            "role": "IDENTITY_SOURCE"
+          }
+        ],
+        "operations": [
+          {
+            "bbox": [
+              0.28,
+              0.17,
+              0.3,
+              0.23
+            ],
+            "role": "FACE",
+            "type": "EXPLICIT_BBOX_CROP"
+          }
+        ],
+        "policy_version": "1.0.0",
+        "lineage_id": "cb05b10bc751626671f7bdf2396ba66806df587b73b347a6de28bc00a8d11e33",
+        "recorded_at": "2026-07-22T00:37:53.983Z"
+      },
+      {
+        "schema_version": "1.0.0",
+        "artifact_id": "user-input-004-person",
+        "output_sha256": "c0de904fd347a4f0d1aa4cd6663ca81e08109be003877e393fa303d1208cc3bf",
+        "parents": [
+          {
+            "asset_id": "user-input-004",
+            "sha256": "89ef3541af854e40e0e8fa271518f98fbab6ff481ff504e1be71e454fe055418",
+            "role": "IDENTITY_SOURCE"
+          }
+        ],
+        "operations": [
+          {
+            "bbox": [
+              0.15,
+              0.13,
+              0.6,
+              0.84
+            ],
+            "role": "PERSON",
+            "type": "EXPLICIT_BBOX_CROP"
+          }
+        ],
+        "policy_version": "1.0.0",
+        "lineage_id": "e74874b1cb9e77cf7939e018867eb2ac32d0d1e6a15d6a0b0b39af1069d64fa9",
+        "recorded_at": "2026-07-22T00:37:53.983Z"
+      }
+    ]
+  },
+  "readiness": {
+    "strict_production": {
+      "decision": "READY",
+      "reasons": [
+        "ALL_REQUIRED_EVIDENCE_AND_TECHNICAL_GATES_PASS"
+      ],
+      "actions": [],
+      "terminal": false
+    },
+    "task_compatibility": {
+      "decision": "READY",
+      "reasons": [
+        "ALL_REQUIRED_EVIDENCE_AND_TECHNICAL_GATES_PASS"
+      ],
+      "actions": [],
+      "terminal": false
+    },
+    "policy": "Strict production requires observable body proportions. The test lane may continue with body_build=NOT_EVALUABLE and must not claim body preservation."
+  },
+  "generation_bindings": [
+    {
+      "order": 1,
+      "role": "IDENTITY_PRIMARY",
+      "path": "artifacts/conditioning/humans/004/normalized.png",
+      "sha256": "be2183ba1bc501d5c9a71256255f80fa6e61640324e0a120ded7f505deb665eb"
+    },
+    {
+      "order": 2,
+      "role": "IDENTITY_FACE_DETAIL",
+      "path": "artifacts/conditioning/humans/004/face.png",
+      "sha256": "999bbecc23cb4c7dfd903e8ff9f488efcd7c02df43719068bff37ceb2db531f6"
+    },
+    {
+      "order": 3,
+      "role": "IDENTITY_PERSON_CONTEXT",
+      "path": "artifacts/conditioning/humans/004/person.png",
+      "sha256": "c0de904fd347a4f0d1aa4cd6663ca81e08109be003877e393fa303d1208cc3bf"
+    }
+  ],
+  "created_at": "2026-07-22T00:37:53.983Z"
+}

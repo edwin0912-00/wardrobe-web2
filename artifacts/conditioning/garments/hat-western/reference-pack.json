@@ -1,0 +1,148 @@
+{
+  "schema_version": "1.0.0",
+  "asset_id": "outfit-cowboy-hat",
+  "kind": "GARMENT",
+  "source": {
+    "path": "inputs/zeely-test/outfits/images.jpeg",
+    "sha256": "77333f7493242972296c10fc6ea92ded821bf0dea0b412f552fe55c93293c66f",
+    "immutable": true
+  },
+  "extraction": {
+    "method": "explicit_visual_review",
+    "category": "HEADWEAR",
+    "observed_facts": {
+      "garmentType": "brown western hat",
+      "structure": [
+        "creased crown",
+        "wide curved brim",
+        "decorative band",
+        "thin chin cord"
+      ],
+      "limitations": [
+        "exact material and fine band details are not reliable at source resolution"
+      ]
+    },
+    "provenance": "OBSERVED",
+    "unknowns": [
+      "exact material and fine band details are not reliable at source resolution"
+    ]
+  },
+  "technical_assessment": {
+    "schema_version": "1.0.0",
+    "metadata": {
+      "format": "jpeg",
+      "mime_type": "image/jpeg",
+      "source_width": 197,
+      "source_height": 256,
+      "display_width": 197,
+      "display_height": 256,
+      "orientation": 1,
+      "color_space": "srgb",
+      "channels": 3,
+      "has_alpha": false,
+      "density": 72,
+      "pages": 1,
+      "byte_length": 3568,
+      "source_sha256": "77333f7493242972296c10fc6ea92ded821bf0dea0b412f552fe55c93293c66f"
+    },
+    "signals": {
+      "analysis_width": 197,
+      "analysis_height": 256,
+      "mean_luminance": 0.839834,
+      "black_clip_ratio": 0.000139,
+      "white_clip_ratio": 0.765823,
+      "luminance_range_p05_p95": 0.792157,
+      "edge_energy": 0.011701,
+      "subject_coverage": null
+    },
+    "resize_evidence": {
+      "preferred_long_edge": 1024,
+      "current_long_edge": 256,
+      "factor_to_preferred": 4,
+      "max_upscale_factor": 2,
+      "applied_upscale_factor": 2,
+      "target_reachable": false
+    },
+    "fatal_issues": [],
+    "repairable_issues": [
+      {
+        "code": "BELOW_PREFERRED_RESOLUTION",
+        "severity": "REPAIRABLE",
+        "repair": "CONSERVATIVE_UPSCALE",
+        "details": {
+          "preferred_long_edge": 1024,
+          "actual_long_edge": 256,
+          "applied_upscale_factor": 2
+        }
+      }
+    ],
+    "risks": [
+      {
+        "code": "RESOLUTION_TARGET_UNREACHABLE",
+        "severity": "RISK",
+        "repair": "REQUEST_BETTER_REFERENCE_FOR_EXACT_DETAIL",
+        "details": {
+          "factor_to_preferred": 4,
+          "max_upscale_factor": 2
+        }
+      }
+    ]
+  },
+  "conditioning": {
+    "normalized": {
+      "path": "artifacts/conditioning/garments/hat-western/normalized.png",
+      "sha256": "f06092d544a83620b7fa1ac9d9c489c51158797c217d0107fd3cbae95c4f9d12",
+      "bytes": 122006
+    },
+    "cutout": {
+      "path": "artifacts/conditioning/garments/hat-western/cutout.png",
+      "sha256": "2669f5d3c61dcb883e9e252765ed323e61c4fc392709513fb3ea00cebc7dcaca",
+      "bytes": 31493,
+      "is_isolated": false,
+      "isolation_method": "EXPLICIT_BBOX_CROP"
+    },
+    "reference_card": {
+      "path": "artifacts/conditioning/garments/hat-western/reference-card.png",
+      "sha256": "1f26581175ef4117baa74b79336f9218c73a8523b64bfe8aa95a07496b3b8e97",
+      "bytes": 46470
+    },
+    "warnings": [
+      "BBOX_CROP_IS_NOT_PIXEL_LEVEL_SEGMENTATION"
+    ],
+    "operations": [
+      {
+        "type": "AUTO_ORIENT"
+      },
+      {
+        "type": "CONVERT_COLOR_SPACE",
+        "to": "srgb"
+      },
+      {
+        "type": "EXPLICIT_BBOX_CROP",
+        "bbox_pixels": {
+          "left": 5,
+          "top": 7,
+          "width": 187,
+          "height": 201
+        }
+      },
+      {
+        "type": "CREATE_REFERENCE_CARD",
+        "width": 1024,
+        "height": 1280
+      }
+    ]
+  },
+  "readiness": {
+    "decision": "NEEDS_INPUT",
+    "reasons": [
+      "EXACT_DETAIL_UNSUPPORTED_BY_RESOLUTION"
+    ],
+    "actions": [
+      "REQUEST_HIGHER_RESOLUTION_REFERENCE"
+    ],
+    "terminal": true
+  },
+  "generation_bindings": [],
+  "created_at": "2026-07-22T00:37:53.983Z"
+}

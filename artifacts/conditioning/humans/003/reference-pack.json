@@ -1,0 +1,274 @@
+{
+  "schema_version": "1.0.0",
+  "asset_id": "user-input-003",
+  "kind": "HUMAN",
+  "source": {
+    "path": "inputs/zeely-test/users/input3.webp",
+    "sha256": "0ff6bf257080068b48b034c5fcd8ae6bdfb390f9976106e194525f1de62a06ff",
+    "immutable": true,
+    "consent": "AUTHORIZED_TEST_DATASET"
+  },
+  "extraction": {
+    "method": "explicit_visual_review_with_bboxes",
+    "observed_facts": {
+      "face": "long facial geometry, high forehead, light brows and grey-green eyes",
+      "hair": "long light-brown hair pulled back with loose fine strands",
+      "facialHair": "full brown beard and moustache with lighter strands",
+      "skin": "light natural skin tone with visible forehead and cheek texture",
+      "body": "not evaluable beyond face and shoulders"
+    },
+    "evidence": {
+      "face_bbox_xywh_norm": [
+        0.08,
+        0.01,
+        0.84,
+        0.82
+      ],
+      "person_bbox_xywh_norm": [
+        0,
+        0,
+        1,
+        1
+      ]
+    },
+    "provenance": "OBSERVED",
+    "unknowns": [
+      {
+        "path": "/human/body/full_proportions",
+        "provenance": "UNKNOWN",
+        "reason": "NOT_VISIBLE",
+        "production_blocking": true
+      }
+    ]
+  },
+  "technical_assessment": {
+    "schema_version": "1.0.0",
+    "metadata": {
+      "format": "webp",
+      "mime_type": "image/webp",
+      "source_width": 640,
+      "source_height": 749,
+      "display_width": 640,
+      "display_height": 749,
+      "orientation": 1,
+      "color_space": "srgb",
+      "channels": 3,
+      "has_alpha": false,
+      "density": null,
+      "pages": 1,
+      "byte_length": 40998,
+      "source_sha256": "0ff6bf257080068b48b034c5fcd8ae6bdfb390f9976106e194525f1de62a06ff"
+    },
+    "signals": {
+      "analysis_width": 219,
+      "analysis_height": 256,
+      "mean_luminance": 0.518632,
+      "black_clip_ratio": 0,
+      "white_clip_ratio": 0.058094,
+      "luminance_range_p05_p95": 0.713725,
+      "edge_energy": 0.013901,
+      "subject_coverage": 1
+    },
+    "resize_evidence": {
+      "preferred_long_edge": 1536,
+      "current_long_edge": 749,
+      "factor_to_preferred": 2.050734,
+      "max_upscale_factor": 2,
+      "applied_upscale_factor": 2,
+      "target_reachable": false
+    },
+    "fatal_issues": [],
+    "repairable_issues": [
+      {
+        "code": "BELOW_PREFERRED_RESOLUTION",
+        "severity": "REPAIRABLE",
+        "repair": "CONSERVATIVE_UPSCALE",
+        "details": {
+          "preferred_long_edge": 1536,
+          "actual_long_edge": 749,
+          "applied_upscale_factor": 2
+        }
+      }
+    ],
+    "risks": [
+      {
+        "code": "RESOLUTION_TARGET_UNREACHABLE",
+        "severity": "RISK",
+        "repair": "REQUEST_BETTER_REFERENCE_FOR_EXACT_DETAIL",
+        "details": {
+          "factor_to_preferred": 2.050734,
+          "max_upscale_factor": 2
+        }
+      },
+      {
+        "code": "LOW_EDGE_ENERGY",
+        "severity": "RISK",
+        "repair": "REQUEST_BETTER_REFERENCE",
+        "details": {
+          "threshold": 0.015,
+          "actual": 0.013901,
+          "note": "Edge energy is a technical signal, not an ML blur classification."
+        }
+      }
+    ]
+  },
+  "conditioning": {
+    "normalized": {
+      "path": "artifacts/conditioning/humans/003/normalized.png",
+      "sha256": "6d0d53680ba7cca9c99d92264d9f61efa088c601ff99cc1ed5472b3a2fb59ff1",
+      "bytes": 2042849
+    },
+    "face_crop": {
+      "path": "artifacts/conditioning/humans/003/face.png",
+      "sha256": "b6da3d86b3418904be5117b867f79ebf2fb03994cb8fd2cb0c7f6b01b64606ed",
+      "bytes": 458093
+    },
+    "person_crop": {
+      "path": "artifacts/conditioning/humans/003/person.png",
+      "sha256": "5c83c6595d1874054082dee7b7ac9de0b0e587eebbaf84638bf14e9447823649",
+      "bytes": 516381
+    },
+    "resize_plan": {
+      "source_width": 640,
+      "source_height": 749,
+      "output_width": 1280,
+      "output_height": 1498,
+      "scale": 2,
+      "reason": "UPSCALE_CAPPED",
+      "target_reached": false
+    },
+    "lineage": [
+      {
+        "schema_version": "1.0.0",
+        "artifact_id": "user-input-003-normalized",
+        "output_sha256": "6d0d53680ba7cca9c99d92264d9f61efa088c601ff99cc1ed5472b3a2fb59ff1",
+        "parents": [
+          {
+            "asset_id": "user-input-003",
+            "sha256": "0ff6bf257080068b48b034c5fcd8ae6bdfb390f9976106e194525f1de62a06ff",
+            "role": "IDENTITY_SOURCE"
+          }
+        ],
+        "operations": [
+          {
+            "from_orientation": 1,
+            "type": "AUTO_ORIENT"
+          },
+          {
+            "to": "srgb",
+            "type": "CONVERT_COLOR_SPACE"
+          },
+          {
+            "interpolation": "lanczos3",
+            "reason": "UPSCALE_CAPPED",
+            "scale": 2,
+            "type": "CONSERVATIVE_RESIZE"
+          },
+          {
+            "format": "png",
+            "type": "ENCODE"
+          }
+        ],
+        "policy_version": "1.0.0",
+        "lineage_id": "c99b6c84c3aae82aaed5299c3d5ad322d8f6a7a66a62b6ece5899dffe67465a9",
+        "recorded_at": "2026-07-22T00:37:53.983Z"
+      },
+      {
+        "schema_version": "1.0.0",
+        "artifact_id": "user-input-003-face",
+        "output_sha256": "b6da3d86b3418904be5117b867f79ebf2fb03994cb8fd2cb0c7f6b01b64606ed",
+        "parents": [
+          {
+            "asset_id": "user-input-003",
+            "sha256": "0ff6bf257080068b48b034c5fcd8ae6bdfb390f9976106e194525f1de62a06ff",
+            "role": "IDENTITY_SOURCE"
+          }
+        ],
+        "operations": [
+          {
+            "bbox": [
+              0.08,
+              0.01,
+              0.84,
+              0.82
+            ],
+            "role": "FACE",
+            "type": "EXPLICIT_BBOX_CROP"
+          }
+        ],
+        "policy_version": "1.0.0",
+        "lineage_id": "ff98eab5f5b166e2216d53cc14610d4abf72b44e966837ac85afc3bbee61687c",
+        "recorded_at": "2026-07-22T00:37:53.983Z"
+      },
+      {
+        "schema_version": "1.0.0",
+        "artifact_id": "user-input-003-person",
+        "output_sha256": "5c83c6595d1874054082dee7b7ac9de0b0e587eebbaf84638bf14e9447823649",
+        "parents": [
+          {
+            "asset_id": "user-input-003",
+            "sha256": "0ff6bf257080068b48b034c5fcd8ae6bdfb390f9976106e194525f1de62a06ff",
+            "role": "IDENTITY_SOURCE"
+          }
+        ],
+        "operations": [
+          {
+            "bbox": [
+              0,
+              0,
+              1,
+              1
+            ],
+            "role": "PERSON",
+            "type": "EXPLICIT_BBOX_CROP"
+          }
+        ],
+        "policy_version": "1.0.0",
+        "lineage_id": "1caec2b83929147b34284c1fd251e886bd971d1cda7b1740ff0d22f54220627d",
+        "recorded_at": "2026-07-22T00:37:53.983Z"
+      }
+    ]
+  },
+  "readiness": {
+    "strict_production": {
+      "decision": "NEEDS_INPUT",
+      "reasons": [
+        "MISSING_EVIDENCE:bodyVisibility"
+      ],
+      "actions": [
+        "REQUEST_ADDITIONAL_REFERENCE"
+      ],
+      "terminal": true
+    },
+    "task_compatibility": {
+      "decision": "READY",
+      "reasons": [
+        "ALL_REQUIRED_EVIDENCE_AND_TECHNICAL_GATES_PASS"
+      ],
+      "actions": [],
+      "terminal": false
+    },
+    "policy": "Strict production requires observable body proportions. The test lane may continue with body_build=NOT_EVALUABLE and must not claim body preservation."
+  },
+  "generation_bindings": [
+    {
+      "order": 1,
+      "role": "IDENTITY_PRIMARY",
+      "path": "artifacts/conditioning/humans/003/normalized.png",
+      "sha256": "6d0d53680ba7cca9c99d92264d9f61efa088c601ff99cc1ed5472b3a2fb59ff1"
+    },
+    {
+      "order": 2,
+      "role": "IDENTITY_FACE_DETAIL",
+      "path": "artifacts/conditioning/humans/003/face.png",
+      "sha256": "b6da3d86b3418904be5117b867f79ebf2fb03994cb8fd2cb0c7f6b01b64606ed"
+    },
+    {
+      "order": 3,
+      "role": "IDENTITY_PERSON_CONTEXT",
+      "path": "artifacts/conditioning/humans/003/person.png",
+      "sha256": "5c83c6595d1874054082dee7b7ac9de0b0e587eebbaf84638bf14e9447823649"
+    }
+  ],
+  "created_at": "2026-07-22T00:37:53.983Z"
+}

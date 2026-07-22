@@ -1,0 +1,19 @@
+.timeline li.active::before {
+  background: var(--green);
+  border-color: var(--deep);
+  box-shadow: 0 0 0 4px rgba(184, 255, 61, 0.2);
+}
+
+.timeline li.done {
+  color: #46604b;
+}
+
+.timeline li.done::before {
+  content: "✓";
+  display: grid;
+  place-items: center;
+  background: var(--deep);
+  border-color: var(--deep);
+  color: white;
+  font-size: 6px;
+}

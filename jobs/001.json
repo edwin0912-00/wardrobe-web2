@@ -1,0 +1,45 @@
+{
+  "job_id": "zeely-core-001",
+  "identity_reference": "../inputs/zeely-test/users/input1.webp",
+  "identity_reference_pack": {
+    "path": "../artifacts/conditioning/humans/001/reference-pack.json",
+    "path_base": ".."
+  },
+  "output_directory": "../runs/live/001",
+  "prompts": {
+    "avatar": "../prompts/avatar.txt",
+    "outfit": "../prompts/outfit-reference.txt",
+    "repair": "../prompts/repair.txt"
+  },
+  "outfit": {
+    "mode": "reference_image_plus_text",
+    "reference": "../inputs/zeely-test/outfits/180827-1.webp",
+    "reference_pack": {
+      "path": "../artifacts/conditioning/garments/hoodie-green/reference-pack.json",
+      "path_base": ".."
+    },
+    "text": "Dark forest-green pullover hoodie with hood, matching green drawstrings with metal tips, and the exact visible front graphic from the conditioned garment reference.",
+    "target_region": "upper_body_clothing",
+    "must_match": [
+      "dark forest-green fleece pullover hoodie construction",
+      "hood and matching green drawstrings with metal tips",
+      "large curved white GUCCI text",
+      "white central double-G emblem",
+      "bright-red and very-dark-navy braided horizontal stripe",
+      "curved white FIRENZE text and white 1921 below",
+      "original graphic order, placement, proportions and visible letterforms"
+    ]
+  },
+  "quality_references": [
+    "../inputs/zeely-test/quality-references/output1.png",
+    "../inputs/zeely-test/quality-references/output2.png",
+    "../inputs/zeely-test/quality-references/output3.png"
+  ],
+  "model_route": [
+    "gpt_image_2",
+    "nano_banana_flash",
+    "nano_banana_2"
+  ],
+  "max_attempts": 3,
+  "conditioning_max_attempts": 2
+}
