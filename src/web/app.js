@@ -105,7 +105,8 @@ export async function createWebApp({ service, health = { status: 'ok' }, publicD
   app.get('/api/runs/:id/garments/:index', async (request, reply) => {
     const filename = await service.garmentSourceFile(request.params.id, request.params.index);
     if (!filename) return reply.code(404).send({ error: 'Garment source not found' });
-    return reply.header('Cache-Control', 'private, max-age=900').send(createReadStream(filename));
+    const type = new Map([['.png', 'image/png'], ['.jpg', 'image/jpeg'], ['.jpeg', 'image/jpeg'], ['.webp', 'image/webp']]).get(path.extname(filename).toLowerCase()) ?? 'application/octet-stream';
+    return reply.type(type).header('Cache-Control', 'private, max-age=900').send(createReadStream(filename));
   });
 
   app.setErrorHandler((error, request, reply) => {

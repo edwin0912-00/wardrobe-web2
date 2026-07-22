@@ -26,8 +26,8 @@ export class GarmentNeedsInputError extends Error {
 export class GarmentConditioner {
   constructor({ vlm, generator, clock = () => new Date() }) { this.vlm = vlm; this.generator = generator; this.clock = clock; }
 
-  async condition({ imagePaths, outputDirectory, runId, selections = {}, onProgress = async () => {} }) {
-    const passport = await this.vlm.inspectGarments(imagePaths);
+  async condition({ imagePaths, outputDirectory, runId, passport: savedPassport = null, selections = {}, onProgress = async () => {} }) {
+    const passport = savedPassport ?? await this.vlm.inspectGarments(imagePaths);
     await onProgress('GARMENT_GROUPING', 'Garment views classified and grouped');
     if (passport.status !== 'READY') throw new GarmentNeedsInputError(passport.reason, { passport });
     const grouped = groupGarmentViews(passport.items, passport.reference_sets);

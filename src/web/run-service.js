@@ -135,6 +135,7 @@ export class RunService {
           imagePaths: state.inputs.garments,
           outputDirectory: path.join(this.runDirectory(runId), 'conditioned', 'garments'),
           runId,
+          passport: state.inputs.garment_passport ?? null,
           selections: state.inputs.garment_selections ?? {},
           onProgress: async (innerState, message) => this.#write(state, { inner_state: innerState, message }),
         });
@@ -303,6 +304,7 @@ export class RunService {
     }
     await rm(path.join(this.runDirectory(runId), 'conditioned', 'garments'), { recursive: true, force: true });
     await rm(path.join(this.runDirectory(runId), 'outputs'), { recursive: true, force: true });
+    state.inputs.garment_passport = state.error.details.passport;
     state.inputs.garment_selections = normalized;
     await this.#write(state, { status: 'QUEUED', phase: 'UPLOADED', inner_state: null, message: 'Garment selection saved; continuing this run', garments: [], conflicts: [], error: null, outputs: {}, qa: {} });
     this.start(runId);
