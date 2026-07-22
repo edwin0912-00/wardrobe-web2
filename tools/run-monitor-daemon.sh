@@ -8,16 +8,11 @@ PRIVATE_DIR="$PROJECT_ROOT/runtime/private"
 umask 077
 mkdir -p "$PROJECT_ROOT/runtime/logs" "$PROJECT_ROOT/runtime/monitor"
 
-if [[ ! -s "$PRIVATE_DIR/demo-pin" || ! -s "$PRIVATE_DIR/session-secret" ]]; then
-  print -u2 "Core web secrets must exist before monitor starts"
-  exit 1
-fi
-
 export PATH="/Users/jarvis1/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
 export MONITOR_PORT="4174"
-export ZEELY_DEMO_PIN="$(/usr/bin/tr -d '\n' < "$PRIVATE_DIR/demo-pin")"
-export ZEELY_SESSION_SECRET="$(/usr/bin/tr -d '\n' < "$PRIVATE_DIR/session-secret")"
-export ZEELY_COOKIE_SECURE="true"
+# Public testing mode. Existing secret files remain untouched for a later
+# one-line restoration of the PIN gate.
+unset ZEELY_DEMO_PIN ZEELY_SESSION_SECRET ZEELY_COOKIE_SECURE
 
 cd "$PROJECT_ROOT"
 exec /opt/homebrew/bin/node src/monitor/start.js

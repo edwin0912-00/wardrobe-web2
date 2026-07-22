@@ -29,7 +29,7 @@ flowchart LR
 | Browser file slots | Person, identity detail і garments не перезаписують один одного. Garment picker додає до попереднього selection. | `File` objects під час відкритої вкладки. | Preview і кількість файлів оновлюються після кожної дії. |
 | Browser IndexedDB | Копіює вибрані файли як Blob, text outfit і scene toggle після кожної зміни. Відновлює їх після reload/browser crash. | Тільки на конкретному пристрої й origin `madeforthisjob.com`; consent не зберігається. | UI показує “збережено”, “відновлено” або локальну помилку quota/storage. `client.draft_*` іде в monitor. |
 | `boot-guard.js` | Підключається до module app і ловить ранній `error`, `unhandledrejection`, boot timeout. | Нічого, крім telemetry metadata. | Замість білого екрана показує видимий reload-card; draft при цьому не очищується. |
-| Core Fastify `:4173` | PIN, static UI, multipart intake, run API, run SSE, client telemetry endpoint. | Run inputs/state у `runtime/runs`; telemetry — у спільний event log. | Кожен API response, server exception і факт повного отримання upload пишеться в журнал. |
+| Core Fastify `:4173` | Optional server PIN gate, static UI, multipart intake, run API, run SSE, client telemetry endpoint. | Run inputs/state у `runtime/runs`; telemetry — у спільний event log. | Кожен API response, server exception і факт повного отримання upload пишеться в журнал. |
 | `RunService` / runner | Запускає checkpointed pipeline і публікує лише фактичні phase changes. | `run.json`, artifacts, receipts, QA evidence. | UI показує `UPLOAD`, доки сервер не створив run; потім реальні `1/8…8/8`, без таймера або synthetic percent. |
 | Event store | Append-only операційна історія, доступна одночасно core та monitor process. | `runtime/monitor/events.jsonl`, permissions `0600`. | Пошкоджений одиничний рядок ігнорується під час tail; нові записи не перезаписують старі. |
 | Monitor Fastify `:4174` | Читає tail, транслює SSE, перевіряє `:4173/api/health` кожні 10 секунд. | Тільки оперативний status у RAM; event history лишається у JSONL. | Dashboard окремо показує monitor health та core health; SSE сам reconnect-иться. |
@@ -49,7 +49,7 @@ flowchart LR
 
 ## Privacy boundary
 
-Allowlist client telemetry приймає тип події, timestamp, випадковий session ID, run ID, status/stage, duration, кількість і сумарний byte size. Вона відкидає назви файлів, contents, image previews, outfit text, PIN, cookies та довільні поля. Доступ до dashboard захищений тим самим PIN gate.
+Allowlist client telemetry приймає тип події, timestamp, випадковий session ID, run ID, status/stage, duration, кількість і сумарний byte size. Вона відкидає назви файлів, contents, image previews, outfit text, PIN, cookies та довільні поля. На час відкритого тестування dashboard доступний без PIN; серверний PIN gate збережений у коді й може бути повернений через runtime configuration.
 
 ## Публічні точки перевірки
 
@@ -58,4 +58,4 @@ Allowlist client telemetry приймає тип події, timestamp, випа
 - Studio health: `https://www.madeforthisjob.com/api/health`
 - Monitor health: `https://monitor.madeforthisjob.com/api/health`
 
-PIN потрібен для UI та operational API; health endpoints залишені public для uptime probing і не повертають secrets.
+Наразі UI та operational API відкриті без PIN. Health endpoints також public для uptime probing і не повертають secrets.

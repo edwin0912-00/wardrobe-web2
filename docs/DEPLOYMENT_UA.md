@@ -4,10 +4,10 @@
 
 - `https://www.madeforthisjob.com` — активний production hostname.
 - `https://beta.madeforthisjob.com` — активний резервний hostname.
-- `https://monitor.madeforthisjob.com` — PIN-захищений live operations monitor.
+- `https://monitor.madeforthisjob.com` — live operations monitor.
 - `https://madeforthisjob.com` — очікує заміни старого parking DNS-запису на Tunnel route.
 
-Studio hostnames проходять через Cloudflare named Tunnel `zeely-madeforthisjob` до `http://127.0.0.1:4173`; monitor hostname — до окремого `http://127.0.0.1:4174`. Обидві surfaces захищені серверним PIN; PIN не зберігається у відкритому вигляді в Git.
+Studio hostnames проходять через Cloudflare named Tunnel `zeely-madeforthisjob` до `http://127.0.0.1:4173`; monitor hostname — до окремого `http://127.0.0.1:4174`. Зараз обидві surfaces тимчасово відкриті для тестування без PIN. Старі credentials залишені лише локально, тому захист можна повернути без ротації; secrets у Git не зберігаються.
 
 ## Runtime на macOS
 
@@ -46,7 +46,7 @@ launchctl kickstart -k gui/$(id -u)/com.madeforthisjob.cloudflared
 cloudflared tunnel route dns zeely-madeforthisjob madeforthisjob.com
 ```
 
-Після цього `https://madeforthisjob.com` має повертати PIN-login, а не Cloudflare 404.
+Після цього `https://madeforthisjob.com` має відкривати studio, а не Cloudflare 404.
 
 ## Backup boundary
 

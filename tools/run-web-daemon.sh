@@ -17,9 +17,9 @@ fi
 
 export PATH="/Users/jarvis1/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
 export PORT="4173"
-export ZEELY_DEMO_PIN="$(/usr/bin/tr -d '\n' < "$PRIVATE_DIR/demo-pin")"
-export ZEELY_SESSION_SECRET="$(/usr/bin/tr -d '\n' < "$PRIVATE_DIR/session-secret")"
-export ZEELY_COOKIE_SECURE="true"
+# Public testing mode: keep the existing secrets on disk so PIN protection can
+# be restored without rotating credentials, but do not enable the auth gate.
+unset ZEELY_DEMO_PIN ZEELY_SESSION_SECRET ZEELY_COOKIE_SECURE
 
 cd "$PROJECT_ROOT"
 exec /opt/homebrew/bin/node src/web/start.js

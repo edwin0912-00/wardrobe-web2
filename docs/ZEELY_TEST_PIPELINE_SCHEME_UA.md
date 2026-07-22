@@ -6,7 +6,7 @@ Source of truth: [`spec/ZEELY_CANON_UA.md`](../spec/ZEELY_CANON_UA.md), [`plans/
 
 ## 1. Що отримує користувач
 
-Користувач відкриває PIN-захищений сайт, завантажує основне фото людини, за потреби додатковий identity reference, описує новий образ текстом і/або додає до п’яти фото речей. Один run послідовно повертає:
+Користувач відкриває сайт, завантажує основне фото людини, за потреби додатковий identity reference, описує новий образ текстом і/або додає до п’яти фото речей. На час відкритого тестування PIN gate вимкнений runtime-конфігурацією. Один run послідовно повертає:
 
 1. `avatar.png` — затверджений базовий аватар тієї самої людини на точному білому фоні.
 2. `avatar_outfit.png` — той самий затверджений аватар у заданому образі.
@@ -66,7 +66,7 @@ flowchart LR
 | 14 | Exact-white postprocessor + technical QA (`src/qa`) | `LIVE` | Гарантує машинно перевірюваний `#FFFFFF`, PNG decode, dimensions, color space та duplicate checks. | model PNG → minimally normalized PNG + metrics | Змінюються лише near-white pixels, 4-connected до border. Subject pixels не threshold-яться глобально. Technical PASS не дорівнює semantic PASS. |
 | 15 | Semantic avatar/outfit QA | `LIVE` | Перевіряє identity, framing, skin/hair, garment fidelity, anatomy, old-clothing residue і bleed. | source/pack + candidate + 10 QA rules → PASS / retryable defect / NEEDS_INPUT | Review прив’язаний до candidate hash. Старий PASS не можна використати для нового output. |
 | 16 | Manifest/evidence export | `LIVE` | Робить результат відтворюваним і рев’юваним. | approved artifacts + events + provider receipts → manifest, prompts, QA reports, hashes | Missing evidence блокує `npm run verify`; output без provenance не вважається accepted. |
-| 17 | Cloudflare named Tunnel | `LIVE DELIVERY` | Віддає локальний `127.0.0.1:4173` через HTTPS без відкритого inbound port. | browser HTTPS → Cloudflare → outbound tunnel → Fastify | `cloudflared` і app працюють як macOS LaunchAgents з KeepAlive. PIN gate стоїть у Fastify, а не лише в UI. |
+| 17 | Cloudflare named Tunnel | `LIVE DELIVERY` | Віддає локальний `127.0.0.1:4173` через HTTPS без відкритого inbound port. | browser HTTPS → Cloudflare → outbound tunnel → Fastify | `cloudflared` і app працюють як macOS LaunchAgents з KeepAlive. Серверний PIN gate підтримується, але зараз вимкнений для відкритого тестування. |
 | 18 | Telemetry + live monitor (`src/monitor`, port 4174) | `LIVE OBSERVABILITY` | Показує client actions/errors, API responses, upload receipt, run phases і health core-service в реальному часі. | allowlisted metadata → append-only JSONL → SSE dashboard | Не приймає filename/image/PIN/prompt. Monitor — окремий LaunchAgent з KeepAlive; падіння UI не забирає журнал. Деталі: [`LIVE_MONITORING_UA.md`](LIVE_MONITORING_UA.md). |
 
 ## 4. Model route без плутанини назв
