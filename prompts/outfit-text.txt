@@ -2,6 +2,7 @@ TASK
 Edit the approved avatar so the same person wears exactly this outfit: {{OUTFIT_TEXT}}.
 
 REFERENCE BINDINGS
+{{REFERENCE_BINDINGS}}
 - {{ORIGINAL_IDENTITY_REFERENCE}} is the authority for identity.
 - {{APPROVED_AVATAR_REFERENCE}} is the authority for pose, crop, lighting and background.
 - The text description is the authority for the new outfit.

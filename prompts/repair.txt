@@ -1,6 +1,11 @@
 TASK
-Repair only this blocking defect in {{FAILED_CANDIDATE}}: {{DEFECT_DESCRIPTION}}.
+Repair only this blocking defect in ATTACHMENT_1 [FAILED_CANDIDATE]: {{DEFECT_DESCRIPTION}}.
 
-Use {{ORIGINAL_IDENTITY_REFERENCE}} and {{APPROVED_REFERENCE}} as immutable references. Change only {{REPAIR_REGION}}. Preserve all already-approved identity, pose, crop, lighting, background and outfit properties outside that region. Do not redesign the complete image.
+REFERENCE BINDINGS
+- ATTACHMENT_1 [FAILED_CANDIDATE] is the image to repair.
+- ATTACHMENT_2 [ORIGINAL_IDENTITY] is immutable identity evidence.
+- ATTACHMENT_3 [APPROVED_REFERENCE] is the immutable approved visual reference.
 
-The repaired result must still satisfy the Zeely #FFFFFF, identity, anatomy, photorealism and outfit-fidelity gates.
+Change only {{REPAIR_REGION}}. Preserve all already-approved identity, pose, crop, lighting, background and outfit properties outside that region. Do not redesign the complete image.
+
+The repaired result must still satisfy the required #FFFFFF, identity, anatomy, photorealism and outfit-fidelity gates.

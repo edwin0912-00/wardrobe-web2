@@ -1,9 +1,10 @@
 TASK
-Create one photorealistic studio avatar from {{IDENTITY_REFERENCE}}.
+Create one photorealistic studio avatar from the attached identity evidence.
 
 REFERENCE BINDINGS
+{{REFERENCE_BINDINGS}}
 - {{IDENTITY_REFERENCE}} is the sole source of identity.
-- The Zeely expected-output images are quality benchmarks only. Never copy their faces, hair, body or clothing.
+- Any expected-output images are quality benchmarks only. Never copy their faces, hair, body or clothing.
 
 IDENTITY LOCKS
 Preserve the same recognizable person using only observable evidence: facial geometry, eye shape and spacing, nose, mouth, jaw, natural skin tone and texture, hair color and structure, distinctive visible features, and visible upper-body cues. If body build or full-body proportions are marked UNKNOWN or NOT_EVALUABLE in the reference pack, do not infer them and do not claim they were preserved; extend only the minimum plausible torso needed for the requested half-body crop. Do not beautify, de-age, age, slim, enlarge, feminize, masculinize or otherwise reinterpret observable identity evidence.

@@ -7,6 +7,7 @@ import test from 'node:test';
 import sharp from 'sharp';
 import { MockProvider } from '../../src/providers/mock-provider.js';
 import { RunService } from '../../src/web/run-service.js';
+import { hasPrivateInfrastructure } from '../../src/security/outbound-redaction.js';
 
 async function upload(color = '#7b4d2e') {
   return { filename: 'input.png', mimetype: 'image/png', buffer: await sharp({ create: { width: 360, height: 480, channels: 3, background: color } }).png().toBuffer() };
@@ -57,6 +58,26 @@ test('a caller-supplied run id makes creation idempotent without allowing unsafe
     () => service.createRun({ runId: '../outside', person: null, outfitText: '' }),
     /safe identifier/,
   );
+});
+
+test('public run state never exposes transport paths, private prompts, or project metadata', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'private-runtime-'));
+  const service = new RunService({ rootDirectory: root, ...dependencies() });
+  await service.initialize();
+  const run = await service.createRun({
+    runId: 'public-privacy-run',
+    person: await upload(),
+    garments: [await upload('#275b36')],
+    outfitText: '',
+    generateScene: false,
+  });
+  await service.running.get(run.run_id);
+  const publicState = await service.getRun(run.run_id);
+  const serialized = JSON.stringify(publicState);
+  assert.equal(hasPrivateInfrastructure(publicState), false);
+  assert.doesNotMatch(serialized, /reference-card|cutout\.png|\.zeely-run|prompt|stack/i);
+  assert.equal(publicState.garments.length, 1);
+  assert.match(publicState.garments[0].preview_url, /^\/api\/runs\//);
 });
 
 test('initialize resumes persisted QUEUED and RUNNING runs from their existing checkpoints', async () => {

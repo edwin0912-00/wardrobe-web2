@@ -1,12 +1,15 @@
 import { createReadStream } from 'node:fs';
+import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import Fastify from 'fastify';
 import multipart from '@fastify/multipart';
 import fastifyStatic from '@fastify/static';
 import { registerMonitorRoutes } from '../monitor/routes.js';
+import { publicManifestView } from '../runner/public-manifest.js';
 import { installDemoAuth } from './demo-auth.js';
 import { registerDraftRoutes } from './draft-service.js';
 import { registerProfileRoutes } from './profile-service.js';
+import { sanitizeOutboundString } from '../security/outbound-redaction.js';
 
 export async function createWebApp({ service, health = { status: 'ok' }, publicDirectory = path.resolve(import.meta.dirname, '..', '..', 'web', 'public'), logger = false, auth = null, monitor = null, drafts = null, profiles = null }) {
   const app = Fastify({ logger, bodyLimit: 150 * 1024 * 1024 });
@@ -38,7 +41,7 @@ export async function createWebApp({ service, health = { status: 'ok' }, publicD
     await registerMonitorRoutes(app, {
       store: monitor,
       acceptClientTelemetry: true,
-      statusProvider: async () => ({ status: 'ok', service: 'zeely-core-web', generation: health.generation, preflight: health.status }),
+      statusProvider: async () => ({ status: 'ok', service: 'web', generation: 'available', preflight: health.status }),
     });
     app.addHook('onResponse', async (request, reply) => {
       const pathname = request.url.split('?')[0];
@@ -51,7 +54,7 @@ export async function createWebApp({ service, health = { status: 'ok' }, publicD
     });
   }
 
-  app.get('/api/health', async () => ({ ...health, service: 'zeely-core-web', generation: 'Higgsfield CLI', semantic_qa: 'Codex CLI' }));
+  app.get('/api/health', async () => ({ status: health.status, service: 'web', generation: 'available', semantic_qa: 'available' }));
 
   app.post('/api/runs', async (request, reply) => {
     const uploads = { garments: [] };
@@ -145,6 +148,14 @@ export async function createWebApp({ service, health = { status: 'ok' }, publicD
     if (!await ownsRun(request, reply)) return reply;
     const filename = await service.outputFile(request.params.id, request.params.name);
     if (!filename) return reply.code(404).send({ error: 'Output not found' });
+    if (request.params.name === 'run-manifest.json') {
+      const internalManifest = JSON.parse(await readFile(filename, 'utf8'));
+      return reply
+        .type('application/json')
+        .header('Cache-Control', 'private, no-store')
+        .header('Content-Disposition', 'inline; filename="run-manifest.json"')
+        .send(publicManifestView(internalManifest));
+    }
     const type = request.params.name.endsWith('.json') ? 'application/json' : 'image/png';
     return reply.type(type).header('Content-Disposition', `inline; filename="${request.params.name}"`).send(createReadStream(filename));
   });
@@ -160,11 +171,12 @@ export async function createWebApp({ service, health = { status: 'ok' }, publicD
   app.setErrorHandler((error, request, reply) => {
     request.log.error(error);
     const statusCode = error.statusCode && error.statusCode < 500 ? error.statusCode : 400;
+    const publicMessage = sanitizeOutboundString(error.message);
     if (monitor) monitor.append({
       source: 'server', type: 'server.error', severity: 'error', run_id: request.params?.id,
-      data: { method: request.method, stage: request.url.split('?')[0], status: statusCode, message: error.message },
+      data: { method: request.method, stage: request.url.split('?')[0], status: statusCode, message: publicMessage },
     }).catch(() => {});
-    reply.code(statusCode).send({ error: error.message });
+    reply.code(statusCode).send({ error: publicMessage });
   });
 
   return app;

@@ -116,9 +116,10 @@ test('garment QA prompt preserves raw-versus-generated roles and decision semant
 
   assert.equal(result.decision, 'RETRY');
   const prompt = calls[0].args[1];
-  assert.match(prompt, /IMAGE_1 \[RAW_GARMENT_PRIMARY\]: shirt-front\.png/);
-  assert.match(prompt, /IMAGE_2 \[GENERATED_CANONICAL_CANDIDATE\]: canonical-candidate\.png/);
-  assert.match(prompt, /IMAGE_3 \[RAW_GARMENT_VIEW_2\]: shirt-detail\.png/);
+  assert.match(prompt, /ATTACHMENT_1 \[RAW_GARMENT_PRIMARY\]/);
+  assert.match(prompt, /ATTACHMENT_2 \[GENERATED_CANONICAL_CANDIDATE\]/);
+  assert.match(prompt, /ATTACHMENT_3 \[RAW_GARMENT_VIEW_2\]/);
+  assert.doesNotMatch(prompt, /shirt-front|canonical-candidate|shirt-detail|\/Users\/|\/tmp\/|\bzeely\b/i);
   assert.match(prompt, /Use NEEDS_INPUT only when the raw garment photos themselves are insufficient/);
   assert.match(prompt, /Never use NEEDS_INPUT merely because the generated candidate differs from usable raw evidence/);
   assert.equal(calls[0].args.filter((value) => value === '--image').length, 3, 'duplicate primary binding must be removed without erasing image roles');
@@ -138,4 +139,20 @@ test('outfit QA receives authoritative text and separates it from identity cloth
   assert.match(calls[0].args[1], /AUTHORITATIVE TARGET OUTFIT TEXT/);
   assert.match(calls[0].args[1], /cobalt-blue blazer/);
   assert.match(calls[0].args[1], /identity photos is identity context only/);
+});
+
+test('outfit QA redacts incidental local metadata from authoritative user text', async () => {
+  const filename = await imageFixture();
+  const calls = [];
+  const evaluator = new CodexVlmEvaluator({ commandRunner: runnerFor({
+    decision: 'PASS', reason: 'target outfit is present',
+    checks: [{ name: 'OUTFIT', pass: true, score: 0.96, evidence: 'target outfit matches' }], defects: [],
+  }, calls) });
+  await evaluator.evaluateQa({ phase: 'outfit', evidence: {
+    candidate: { artifact: { path: filename } },
+    source_outfit: 'Use /Users/local-user/private/item.png from the Zeely draft',
+  } });
+  const prompt = calls[0].args[1];
+  assert.match(prompt, /ATTACHED_REFERENCE/);
+  assert.doesNotMatch(prompt, /\/Users\/|local-user|\bzeely\b/i);
 });

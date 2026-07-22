@@ -1,11 +1,15 @@
 TASK
-Edit the approved avatar so the same person wears the outfit or accessory defined by {{OUTFIT_REFERENCE}} and {{SUPPORTING_TEXT}}.
+Edit the approved avatar so the same person wears the outfit or accessory defined by the attached outfit evidence and the authoritative supporting text.
 
 REFERENCE BINDINGS
+{{REFERENCE_BINDINGS}}
 - {{ORIGINAL_IDENTITY_REFERENCE}} is the authority for identity.
 - {{APPROVED_AVATAR_REFERENCE}} is the authority for pose, crop, lighting and background.
 - {{OUTFIT_REFERENCE}} is the authority only for garment/accessory structure, color, material, print, logo/text placement and fit.
 - Quality-reference images are QA benchmarks only and must not affect identity.
+
+AUTHORITATIVE SUPPORTING TEXT
+{{SUPPORTING_TEXT}}
 
 LOCKED ELEMENTS
 Preserve observable facial geometry, skin tone and texture, hair and distinctive features from the identity evidence. Preserve the approved avatar's expression, visible proportions, pose, camera, crop, lighting and pure-white background. Never reinterpret an UNKNOWN or NOT_EVALUABLE source-body attribute as observed evidence. Do not change any body region outside {{TARGET_REGION}} unless required for physically plausible garment occlusion.

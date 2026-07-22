@@ -3,6 +3,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { mkdir, readFile, rename, stat, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
+import { assertExternalPromptPrivacy } from './provider-prompt-privacy.js';
 
 const execFileAsync = promisify(execFile);
 const PNG_SIGNATURE = Buffer.from('89504e470d0a1a0a', 'hex');
@@ -398,6 +399,15 @@ function buildHiggsfieldCreateBaseArgs({
     throw new HiggsfieldProviderError('Generation prompt must contain 1–100000 characters', {
       code: 'INVALID_PROMPT',
       retryable: false,
+    });
+  }
+  try {
+    assertExternalPromptPrivacy(prompt);
+  } catch (error) {
+    throw new HiggsfieldProviderError('Generation prompt contains private local metadata', {
+      code: 'UNSAFE_PROVIDER_PROMPT',
+      retryable: false,
+      cause: error,
     });
   }
   if (!Array.isArray(mediaPaths) || mediaPaths.length === 0) {
@@ -1069,6 +1079,15 @@ export class HiggsfieldCliProvider {
       });
     }
     const model = context?.job_set_type ?? context?.model;
+    try {
+      assertExternalPromptPrivacy(context?.prompt, { runtimeRoot: context?.workDirectory });
+    } catch (error) {
+      throw new HiggsfieldProviderError('Generation prompt contains private local metadata', {
+        code: 'UNSAFE_PROVIDER_PROMPT',
+        retryable: false,
+        cause: error,
+      });
+    }
     const spec = modelSpec(model);
     const phase = context?.phase;
     if (!['avatar', 'outfit', 'garment', 'scene'].includes(phase)) {

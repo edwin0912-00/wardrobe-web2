@@ -5,6 +5,7 @@ import sharp from 'sharp';
 import { normalizeWhitePngBytes } from '../qa/white-normalizer.mjs';
 import { removeBorderConnectedWhiteToAlpha } from '../conditioning/transparent-cutout.mjs';
 import { IMAGE_MODEL_ROUTE } from '../runner/model-policy.js';
+import { assertExternalPromptPrivacy, sanitizeExternalPrompt } from '../providers/provider-prompt-privacy.js';
 import { compileFullLookText, findGarmentConflicts, garmentLocks, groupGarmentViews } from './garment-passport.js';
 
 function sha256(bytes) { return createHash('sha256').update(bytes).digest('hex'); }
@@ -14,9 +15,11 @@ async function atomicWrite(filename, bytes) {
   await writeFile(temporary, bytes);
   await rename(temporary, filename);
 }
-function canonicalPrompt(item) {
+function canonicalPrompt(item, referenceCount) {
   const locks = garmentLocks(item).map((value) => `- ${value}`).join('\n');
-  return `Create a canonical ecommerce reference of the exact same primary wardrobe item visible across the input views. Every input is evidence for the same garment. Show the complete item alone, centered and front-facing, on uniform pure #FFFFFF. Remove the person, hands, hanger, room, floor, props and shadows. Preserve every observable color, material, pattern, seam, closure, logo, text and construction detail exactly. Do not invent hidden details, branding or decoration. If part of the item is obscured, use the most conservative structurally neutral completion.\n\nOBSERVED LOCKS:\n${locks}`;
+  const bindings = Array.from({ length: referenceCount }, (_, index) => `- ATTACHMENT_${index + 1} [GARMENT_RAW_VIEW_${index + 1}]`).join('\n');
+  const prompt = `Create a canonical ecommerce reference of the exact same primary wardrobe item visible across the attached views. Every attachment is evidence for the same item. Show the complete item alone, centered and front-facing, on uniform pure #FFFFFF. Remove the person, hands, hanger, room, floor, props and shadows. Preserve every observable color, material, pattern, seam, closure, logo, text and construction detail exactly. Do not invent hidden details, branding or decoration. If part of the item is obscured, use the most conservative structurally neutral completion.\n\nREFERENCE BINDINGS:\n${bindings}\n\nOBSERVED LOCKS:\n${locks}`;
+  return assertExternalPromptPrivacy(sanitizeExternalPrompt(prompt));
 }
 
 export class GarmentNeedsInputError extends Error {
@@ -60,7 +63,7 @@ export class GarmentConditioner {
       for (const [routeIndex, model] of IMAGE_MODEL_ROUTE.entries()) {
         await onProgress('GARMENT_GENERATING', `Готуємо еталонне зображення речі ${conditioned.length + 1} з ${selectedGarments.length}`);
         const generated = await this.generator.generateGarment({
-          sourcePath, sourcePaths, model, prompt: canonicalPrompt(item), workDirectory: itemDirectory,
+          sourcePath, sourcePaths, model, prompt: canonicalPrompt(item, sourcePaths.length), workDirectory: itemDirectory,
           operationId: `${runId}-garment-${item.source_index}-${routeIndex + 1}`,
         });
         // Canonical item reference cards are intentionally opaque white. Flattening is

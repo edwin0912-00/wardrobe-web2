@@ -93,6 +93,25 @@ test('a REJECT candidate advances to the next fixed image-model route', async ()
   assert.equal(result.items[0].attempts[0].qa.decision, 'REJECT');
   assert.equal(result.items[0].attempts[0].candidate.path.endsWith('candidate-1.png'), true);
   assert.equal(result.items[0].selected_model, IMAGE_MODEL_ROUTE[1]);
+  assert.match(generatorCalls[0].prompt, /ATTACHMENT_1 \[GARMENT_RAW_VIEW_1\]/);
+  assert.doesNotMatch(generatorCalls[0].prompt, /\/Users\/|\/tmp\/|\bzeely\b/i);
+});
+
+test('canonical item prompt removes private product metadata from extracted locks', async () => {
+  const { root, sourcePath, candidate } = await fixture();
+  const passport = readyPassport();
+  passport.items[0].observed.logo_text = ['ZEELY'];
+  passport.items[0].observed.construction.push('/Users/local-user/private/detail.png');
+  const generatorCalls = [];
+  const conditioner = conditionerFor({
+    passport,
+    candidate,
+    generatorCalls,
+    decisions: [qa('PASS', 'candidate matches')],
+  });
+  await conditioner.condition({ imagePaths: [sourcePath], outputDirectory: path.join(root, 'conditioned'), runId: 'private-locks' });
+  assert.match(generatorCalls[0].prompt, /ATTACHED_REFERENCE/);
+  assert.doesNotMatch(generatorCalls[0].prompt, /\/Users\/|local-user|\bzeely\b/i);
 });
 
 test('exhausted generated-candidate route fails with bounded attempt evidence, not NEEDS_INPUT', async () => {

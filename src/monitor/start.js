@@ -41,9 +41,9 @@ async function checkApp() {
 
 await registerMonitorRoutes(app, {
   store,
-  statusProvider: async () => ({ status: 'ok', service: 'zeely-monitor', uptime_seconds: Math.floor(process.uptime()), app: await checkApp(), supervisor: supervisor.status() }),
+  statusProvider: async () => ({ status: 'ok', service: 'monitor', uptime_seconds: Math.floor(process.uptime()), app: await checkApp(), supervisor: supervisor.status() }),
 });
-app.get('/api/health', async () => ({ status: 'ok', service: 'zeely-monitor', app: appHealth }));
+app.get('/api/health', async () => ({ status: 'ok', service: 'monitor', app: appHealth }));
 app.get('/', async (request, reply) => reply.sendFile('monitor.html'));
 await app.register(fastifyStatic, { root: path.join(projectRoot, 'web', 'public'), prefix: '/' });
 

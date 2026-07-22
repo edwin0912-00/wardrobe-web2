@@ -44,6 +44,13 @@ test('runs the complete conditioning -> avatar -> outfit state machine and expor
   assert.deepEqual(await readFile(files.jobPath), before, 'immutable job JSON must not change');
   assert.ok((await readFile(path.join(files.output, 'avatar.png'))).length > 0);
   assert.ok((await readFile(path.join(files.output, 'avatar_outfit.png'))).length > 0);
+  const exportedManifest = JSON.parse(await readFile(path.join(files.output, 'run-manifest.json'), 'utf8'));
+  const serializedManifest = JSON.stringify(exportedManifest);
+  assert.doesNotMatch(serializedManifest, /\/Users\/|\/private\/|\/tmp\/|\.zeely-run|"path"|"text"/iu);
+  assert.deepEqual(Object.keys(exportedManifest.prompts.avatar).sort(), ['attempt', 'phase', 'sha256']);
+  assert.equal(exportedManifest.outputs.avatar.sha256.length, 64);
+  assert.equal(exportedManifest.qa.avatar.decision, 'PASS');
+  assert.equal(exportedManifest.qa.avatar.artifact.digest.length, 64);
 
   const events = (await readFile(result.eventsPath, 'utf8')).trim().split('\n').map(JSON.parse);
   assert.deepEqual(events.map((event) => event.sequence), events.map((_, index) => index + 1));

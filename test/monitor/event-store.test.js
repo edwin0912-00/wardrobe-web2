@@ -28,6 +28,17 @@ test('monitor store appends structured events and returns a bounded tail', async
   assert.match(events[0].id, /^[0-9a-f-]{36}$/);
 });
 
+test('monitor output redacts historical and newly appended infrastructure metadata', async () => {
+  const monitor = await store();
+  await monitor.append({ source: 'server', type: 'server.error', data: {
+    message: 'Zeely failed at /Users/jarvis1/private/run.json',
+    paths: ['/tmp/private-a', '/home/service/private-b'],
+  } });
+  const [event] = await monitor.tail(1);
+  assert.doesNotMatch(JSON.stringify(event), /zeely|jarvis|\/Users\/|\/home\/|\/tmp\//i);
+  assert.match(event.data.message, /\[redacted-local-path\]/);
+});
+
 test('client telemetry accepts only allowlisted event types and data fields', async () => {
   const monitor = await store();
   const app = await createWebApp({ service, monitor });

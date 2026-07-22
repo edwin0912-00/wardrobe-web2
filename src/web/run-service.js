@@ -8,6 +8,7 @@ import { IMAGE_MODEL_ROUTE } from '../runner/model-policy.js';
 import { normalizeWhitePngBytes } from '../qa/white-normalizer.mjs';
 import { GarmentNeedsInputError, GarmentConditioner } from './garment-conditioner.js';
 import { compileFullLookText, garmentLocks, groupGarmentViews } from './garment-passport.js';
+import { sanitizeOutbound, sanitizeOutboundString } from '../security/outbound-redaction.js';
 
 const MIME_EXTENSION = Object.freeze({ 'image/png': '.png', 'image/jpeg': '.jpg', 'image/webp': '.webp' });
 const TERMINAL = new Set(['COMPLETED', 'NEEDS_INPUT', 'FAILED']);
@@ -67,16 +68,21 @@ function publicRun(state) {
     phase: state.phase,
     inner_state: state.inner_state ?? null,
     terminal_stage: state.terminal_stage ?? null,
-    message: state.message,
+    message: sanitizeOutboundString(state.message),
     created_at: state.created_at,
     updated_at: state.updated_at,
     garments: (state.garments ?? []).map((item) => ({
-      ...item,
+      source_index: item.source_index,
+      source_indexes: item.source_indexes,
+      reference_set_id: item.reference_set_id,
+      category: item.category,
+      confidence: item.confidence,
+      observed: sanitizeOutbound(item.observed ?? {}),
       preview_url: `/api/runs/${state.run_id}/garments/${item.source_index}`,
     })),
-    conflicts: state.conflicts ?? [],
-    qa: state.qa ?? {},
-    outputs: state.outputs ?? {},
+    conflicts: sanitizeOutbound(state.conflicts ?? []),
+    qa: sanitizeOutbound(state.qa ?? {}),
+    outputs: sanitizeOutbound(state.outputs ?? {}),
     execution_route: {
       garment_images_supplied: Boolean(state.inputs?.garments?.length),
       garment_source_image_count: state.inputs?.garments?.length ?? 0,
@@ -87,7 +93,7 @@ function publicRun(state) {
       purpose: 'NEW_LOOK',
       source_run_id: state.inputs.approved_avatar.source_run_id,
     } } : {}),
-    error: state.error ?? null,
+    error: sanitizeOutbound(state.error ?? null),
   };
 }
 
@@ -407,7 +413,7 @@ export class RunService {
     for (const [index, model] of IMAGE_MODEL_ROUTE.entries()) {
       const response = await this.assetGenerator.generateScene({
         approvedOutfitPath, model, workDirectory: sceneDirectory, operationId: `${state.run_id}-scene-${index + 1}`,
-        prompt: 'Create one memorable high-fashion editorial photograph using the exact same approved person and complete outfit from the reference. Preserve identity, face, hair, body proportions, every garment color, texture, logo, text and fit. Place the subject in a bold contemporary Vogue-style studio environment with sculptural light and a confident editorial pose. No text overlay, no brand invention, no wardrobe changes.',
+        prompt: 'Using ATTACHMENT_1 [APPROVED_OUTFIT], create one memorable high-fashion editorial photograph with the exact same approved person and complete outfit. Preserve identity, face, hair, body proportions, every item color, texture, logo, text and fit. Place the subject in a bold contemporary editorial studio environment with sculptural light and a confident pose. No text overlay, no brand invention, no wardrobe changes.',
       });
       const candidatePath = path.join(sceneDirectory, `candidate-${index + 1}.png`);
       await mkdir(sceneDirectory, { recursive: true });

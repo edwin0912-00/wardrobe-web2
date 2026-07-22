@@ -147,7 +147,7 @@ test('dispatcher is FIFO, drains after settle, and never double launches on conc
   const root = await mkdtemp(path.join(os.tmpdir(), 'zeely-supervisor-fifo-'));
   const now = new Date('2026-07-22T14:00:00.000Z');
   const first = { id: 'incident-first', run_id: '11111111-1111-4111-8111-111111111111', status: 'queued', attempts: 0,
-    created_at: '2026-07-22T13:00:00.000Z' };
+    created_at: '2026-07-22T13:00:00.000Z', summary: { message: 'Zeely failed at /Users/jarvis1/private/run.json' } };
   const second = { id: 'incident-second', run_id: '22222222-2222-4222-8222-222222222222', status: 'queued', attempts: 0,
     created_at: '2026-07-22T13:01:00.000Z' };
   await seedSupervisorState(root, { version: 2, last_event_id: null, started_at: now.toISOString(),
@@ -165,6 +165,9 @@ test('dispatcher is FIFO, drains after settle, and never double launches on conc
   await supervisor.initialize();
   await waitFor(() => controlled.calls.length === 1, 'first FIFO incident did not launch');
   assert.match(controlled.calls[0].args[1], /incident-first\.json/);
+  assert.doesNotMatch(controlled.calls[0].args[1], /\bzeely\b|\/(?:Users|home|tmp|private|var)\//i);
+  const dispatchedIncident = await readFile(path.join(root, 'supervisor', 'incidents', 'incident-first.json'), 'utf8');
+  assert.doesNotMatch(dispatchedIncident, /\bzeely\b|jarvis1|\/Users\//i);
   await Promise.all([supervisor.tick(), supervisor.tick(), supervisor.tick()]);
   assert.equal(controlled.calls.length, 1);
 

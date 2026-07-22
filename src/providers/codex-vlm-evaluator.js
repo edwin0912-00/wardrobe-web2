@@ -4,6 +4,7 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import sharp from 'sharp';
+import { assertExternalPromptPrivacy, sanitizeExternalPrompt } from './provider-prompt-privacy.js';
 
 const DECISIONS = new Set(['PASS', 'RETRY', 'NEEDS_INPUT', 'REJECT']);
 const CATEGORIES = new Set(['outerwear', 'top', 'bottom', 'one_piece', 'footwear', 'headwear', 'bag', 'accessory']);
@@ -27,7 +28,7 @@ function imagePath(value) {
 
 function qaImage(value, role) {
   const filename = imagePath(value);
-  return filename ? { path: filename, role, source_name: path.basename(filename) } : null;
+  return filename ? { path: filename, role } : null;
 }
 
 function collectQaImages(evidence = {}, phase = 'outfit') {
@@ -53,12 +54,12 @@ function collectQaImages(evidence = {}, phase = 'outfit') {
 
 function qaPrompt(phase, images, evidence = {}) {
   const labels = images.map((entry, index) => {
-    const filename = imagePath(entry) ?? entry;
-    const sourceName = typeof entry === 'object' ? entry.source_name : path.basename(filename);
-    const role = typeof entry === 'object' ? ` [${entry.role}]` : '';
-    return `IMAGE_${index + 1}${role}: ${sourceName}`;
+    const role = typeof entry === 'object' ? entry.role : 'VISUAL_EVIDENCE';
+    return `ATTACHMENT_${index + 1} [${role}]`;
   }).join('\n');
-  const outfitText = typeof evidence.source_outfit === 'string'
+  const sourceOutfitIsImage = typeof evidence.source_outfit === 'string'
+    && /\.(?:png|jpe?g|webp)$/i.test(evidence.source_outfit);
+  const outfitText = typeof evidence.source_outfit === 'string' && !sourceOutfitIsImage
     ? evidence.source_outfit
     : typeof evidence.outfit?.facts?.text === 'string' ? evidence.outfit.facts.text : '';
   const targetContext = outfitText
@@ -71,11 +72,11 @@ function qaPrompt(phase, images, evidence = {}) {
     garment: 'RAW_GARMENT_PRIMARY and RAW_GARMENT_VIEW_* are authoritative source photos; GENERATED_CANONICAL_CANDIDATE is the generated image under review. Compare the candidate against every raw view, never the reverse. Require unchanged observable type, shape, color, material, pattern, logo/text and construction. The canonical image must show only the garment on clean white. Use NEEDS_INPUT only when the raw garment photos themselves are insufficient to identify the target, regardless of candidate quality. When raw evidence is usable, any mismatch, omission, invention, crop, background issue or other candidate defect is a generated-route failure: use RETRY when another generation can fix it, or REJECT when this candidate is unusable. Never use NEEDS_INPUT merely because the generated candidate differs from usable raw evidence.',
     scene: 'Compare the editorial scene with the approved outfit still. Require the same person and unchanged approved outfit; judge scene intent separately.',
   };
-  return `Visually judge the attached images for Zeely ${phase} QA. ${phaseRules[phase] ?? phaseRules.outfit}${targetContext}\nOrder:\n${labels}\nFill every schema field with concise visible evidence. PASS only if all blocking criteria are visibly supported; RETRY for a fixable generated defect; NEEDS_INPUT for insufficient source evidence; REJECT for an irrecoverable mismatch. Return only JSON.`;
+  return sanitizeExternalPrompt(`Visually judge the attached images for ${phase} QA. ${phaseRules[phase] ?? phaseRules.outfit}${targetContext}\nOrdered attachment bindings:\n${labels}\nFill every schema field with concise visible evidence. PASS only if all blocking criteria are visibly supported; RETRY for a fixable generated defect; NEEDS_INPUT for insufficient source evidence; REJECT for an irrecoverable mismatch. Return only JSON.`);
 }
 
 function garmentPrompt(images) {
-  const labels = images.map((filename, index) => `source_index ${index}: ${path.basename(filename)}`).join('\n');
+  const labels = images.map((_, index) => `ATTACHMENT_${index + 1} [RAW_ITEM_VIEW_${index + 1}] maps to source_index ${index}`).join('\n');
   return `Inspect the attached wardrobe photos as one evidence collection.\n\n${labels}\n\nReturn one item for every source image. Also partition every source index into exactly one reference_set. Group multiple images only when they visibly show the same exact physical garment from different angles or contexts. A multi-image set requires same_item_confidence >= 0.90 and concrete evidence such as matching stripe spacing, collar, buttons, seams, logo, wear marks or construction with no contradictions. If exact sameness is uncertain, use separate singleton sets even when the category is the same. primary_source_index must belong to source_indexes and be the clearest view. For each image, classify the primary wearable item as exactly one allowed category: outerwear, top, bottom, one_piece, footwear, headwear, bag, accessory. Record only visibly observed type, colors, likely material, pattern, exact readable logo/text, and construction details. For views in one set, merge visible evidence so their observations consistently describe that garment. Put hidden, obscured or uncertain properties in unknowns. Use NEEDS_INPUT when the primary item cannot be identified reliably or critical exact details are too obscured or low-resolution. Confidence below 0.70 must not be READY. Return only the JSON required by the supplied schema. Never call tools.`;
 }
 
@@ -151,7 +152,8 @@ export class CodexVlmEvaluator {
         await writeFile(qaPath, bytes);
         qaImages.push(typeof input === 'object' ? { ...input, path: qaPath } : qaPath);
       }
-      const prompt = promptBuilder(qaImages);
+      const prompt = sanitizeExternalPrompt(promptBuilder(qaImages));
+      assertExternalPromptPrivacy(prompt, { runtimeRoot: temporaryRoot });
       // `--image` accepts one or more values. Place the positional prompt first so
       // the CLI cannot consume it as another image path and wait indefinitely.
       const args = ['exec', prompt, '--ephemeral', '--ignore-user-config', '--ignore-rules', '--skip-git-repo-check', '--sandbox', 'read-only', '--model', this.model, '--config', 'model_reasoning_effort="low"', '--output-schema', schemaPath, '--output-last-message', outputPath];

@@ -3,6 +3,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { mkdir, readFile, readdir, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
+import { sanitizeOutbound } from '../security/outbound-redaction.js';
 
 const execute = promisify(execFile);
 const TERMINAL_PROBLEMS = new Set(['FAILED', 'NEEDS_INPUT']);
@@ -132,10 +133,10 @@ export class AgentSupervisor {
     if (known) return;
     const incident = { id: key, run_id: run.run_id, status: historical ? 'observed' : 'queued', attempts: known?.attempts ?? 0,
       created_at: this.clock().toISOString(), trigger_event_id: event.id,
-      summary: { status: run.status, phase: run.phase, message: run.message, error_name: run.error?.name ?? null } };
+      summary: sanitizeOutbound({ status: run.status, phase: run.phase, message: run.message, error_name: run.error?.name ?? null }) };
     this.state.incidents[key] = incident;
     const incidentPath = path.join(this.stateRoot, 'incidents', `${key}.json`);
-    await atomicJson(incidentPath, incident);
+    await atomicJson(incidentPath, sanitizeOutbound(incident));
     await this.#comment(run, `Incident ${key} створено: ${displayMessage(run.message)}`, 'error', 'agent.incident_opened');
   }
 
@@ -253,12 +254,16 @@ export class AgentSupervisor {
       acquired_at: acquiredAt.toISOString(),
       expires_at: new Date(acquiredAt.valueOf() + this.leaseMs).toISOString(),
     };
-    await atomicJson(incidentPath, incident);
+    await atomicJson(incidentPath, sanitizeOutbound(incident));
     await atomicJson(this.statePath, this.state);
     const outputPath = path.join(this.stateRoot, 'incidents', `${incident.id}-agent-result.md`);
+    const relativeIncidentPath = path.relative(this.sourceRoot, incidentPath);
+    if (!relativeIncidentPath || relativeIncidentPath.startsWith('..') || path.isAbsolute(relativeIncidentPath)) {
+      throw new Error('Sanitized incident must be stored inside the source workspace');
+    }
     const prompt = [
-      'You are the isolated Zeely production bug-hunt subagent.',
-      `Read the sanitized incident JSON at ${incidentPath}.`,
+      'You are an isolated production bug-hunt subagent for this application.',
+      `Read the sanitized incident JSON at ${relativeIncidentPath}.`,
       'Inspect source code and technical JSON/event logs only. Never open or transmit runtime images, .env files, secrets/**, keys, cookies, credentials, or personal data.',
       'First decide whether this is a real code defect or correct NEEDS_INPUT. If correct behavior, make no code changes and explain why.',
       'If it is a code defect: reproduce it with a deterministic test, implement the smallest root-cause fix, run targeted tests and npm test.',
@@ -296,7 +301,7 @@ export class AgentSupervisor {
       if (this.runningIncidentId === incident.id) this.runningIncidentId = null;
       if (this.state.active_incident === incident.id) this.state.active_incident = null;
       if (this.state.active_lease?.incident_id === incident.id) this.state.active_lease = null;
-      await atomicJson(incidentPath, incident);
+      await atomicJson(incidentPath, sanitizeOutbound(incident));
       await atomicJson(this.statePath, this.state);
       await this.#dispatchNext();
     }
@@ -314,9 +319,9 @@ export class AgentSupervisor {
       const key = fingerprint(`stall|${run.run_id}|${run.phase}|${run.updated_at}`);
       if (this.state.incidents[key]) continue;
       const incident = { id: key, run_id: run.run_id, status: 'queued', attempts: 0, created_at: this.clock().toISOString(),
-        summary: { status: run.status, phase: run.phase, message: run.message, error_name: 'PipelineStall' } };
+        summary: sanitizeOutbound({ status: run.status, phase: run.phase, message: run.message, error_name: 'PipelineStall' }) };
       this.state.incidents[key] = incident;
-      await atomicJson(this.#incidentPath(key), incident);
+      await atomicJson(this.#incidentPath(key), sanitizeOutbound(incident));
       await this.#comment(run, `Stall: ${displayPhase(run.phase)} не змінював persisted state понад ${Math.round(limit / 60_000)} хвилин.`, 'error', 'agent.stall_detected');
     }
   }

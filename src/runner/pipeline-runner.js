@@ -8,6 +8,7 @@ import { AppendOnlyEventLog } from './event-log.js';
 import { loadJobFile, loadJobObject } from './job.js';
 import { assertAllowedImageModel, imageModelName, modelForAttempt } from './model-policy.js';
 import { compileAvatarPrompt, compileOutfitPrompt } from './prompt-compiler.js';
+import { publicManifestView } from './public-manifest.js';
 import {
   providerPackSummary,
   providerReferencesFromPack,
@@ -465,7 +466,8 @@ export class PipelineRunner {
     const jobSetType = assertAllowedImageModel(modelForAttempt(attempt));
     const model = imageModelName(jobSetType);
     try {
-      const prompt = await compileAvatarPrompt(context.job, context.checkpoint.artifacts.conditioned_identity);
+      const references = generationReferences(context, 'avatar');
+      const prompt = await compileAvatarPrompt(context.job, context.checkpoint.artifacts.conditioned_identity, references);
       context.checkpoint.prompts.avatar = await this.#persistPrompt(context, 'avatar', attempt, prompt);
       const generated = await this.#generateOnce(
         context,
@@ -473,7 +475,7 @@ export class PipelineRunner {
         attempt,
         jobSetType,
         prompt,
-        generationReferences(context, 'avatar'),
+        references,
       );
       const result = await this.#normalizeGeneratedImage(context, 'avatar', attempt, generated);
       context.checkpoint.artifacts.avatar = result;
@@ -536,10 +538,12 @@ export class PipelineRunner {
     const jobSetType = assertAllowedImageModel(modelForAttempt(attempt));
     const model = imageModelName(jobSetType);
     try {
+      const references = generationReferences(context, 'outfit');
       const prompt = await compileOutfitPrompt(context.job, {
         conditionedIdentity: context.checkpoint.artifacts.conditioned_identity,
         conditionedOutfit: context.checkpoint.artifacts.conditioned_outfit,
         avatar: context.checkpoint.artifacts.avatar,
+        references,
       });
       context.checkpoint.prompts.outfit = await this.#persistPrompt(context, 'outfit', attempt, prompt);
       const generated = await this.#generateOnce(
@@ -548,7 +552,7 @@ export class PipelineRunner {
         attempt,
         jobSetType,
         prompt,
-        generationReferences(context, 'outfit'),
+        references,
       );
       const result = await this.#normalizeGeneratedImage(context, 'outfit', attempt, generated);
       context.checkpoint.artifacts.outfit = result;
@@ -816,7 +820,7 @@ export class PipelineRunner {
     const outfitPath = path.join(context.job.output_directory, 'avatar_outfit.png');
     await context.store.materialize(context.checkpoint.artifacts.avatar.artifact, avatarPath);
     await context.store.materialize(context.checkpoint.artifacts.outfit.artifact, outfitPath);
-    const manifest = {
+    const manifest = publicManifestView({
       schema_version: '1.0.0',
       run_id: context.runId,
       job_id: context.job.job_id,
@@ -862,7 +866,7 @@ export class PipelineRunner {
       },
       prompts: context.checkpoint.prompts,
       qa: context.checkpoint.qa,
-    };
+    });
     const manifestArtifact = await context.store.putJson(manifest);
     const manifestPath = path.join(context.job.output_directory, 'run-manifest.json');
     await context.store.materialize(manifestArtifact, manifestPath);

@@ -62,7 +62,7 @@ function completedJob(model, overrides = {}) {
 test('executes Higgsfield with argv-only input, stable outfit media order, and complete provenance', async () => {
   const paths = await mediaFixture();
   const calls = [];
-  const prompt = 'Keep identity; literal token: "; touch /tmp/never; $HOME';
+  const prompt = 'Keep identity; literal token: "; touch forbidden-target; $HOME';
   const provider = oneShotProvider({
     async commandRunner(binary, args, options) {
       calls.push({ binary, args, options });
@@ -134,6 +134,24 @@ test('builds exact two-phase argv and only sends quality to GPT Image 2', () => 
     legacy.slice(-7),
     ['--wait', '--wait-timeout', '20m', '--wait-interval', '3s', '--json', '--no-color'],
   );
+});
+
+test('fails closed before CLI execution when a provider prompt contains local metadata', async () => {
+  for (const prompt of [
+    'Read /Users/local-user/private/reference.png',
+    'Read C:\\Users\\local-user\\private\\reference.png',
+    'Use the Zeely internal route',
+    'Use the madeforthisjob internal route',
+  ]) {
+    assert.throws(
+      () => buildHiggsfieldCreateArgs({
+        model: 'gpt_image_2',
+        prompt,
+        mediaPaths: ['/tmp/reference.png'],
+      }),
+      (error) => error instanceof HiggsfieldProviderError && error.code === 'UNSAFE_PROVIDER_PROMPT' && !error.retryable,
+    );
+  }
 });
 
 test('passes a full conditioned reference pack in declared order', async () => {
