@@ -113,6 +113,8 @@ export class AgentSupervisor {
       { cwd: this.sourceRoot, timeout: 45 * 60_000, maxBuffer: 4 * 1024 * 1024 });
     try {
       await this.runningAgent;
+      const result = await readFile(outputPath, 'utf8');
+      if (!result.trim()) throw new Error('Codex bug-hunt returned no review artifact');
       incident.status = 'review_required';
       await this.store.append({ source: 'agent', type: 'agent.repair_result', severity: 'warn', run_id: incident.run_id,
         data: { message: `Bug-hunt ${incident.id} повернув результат. Patch залишено у source workspace для незалежних тестів і review; автоматичного deploy немає.` } });

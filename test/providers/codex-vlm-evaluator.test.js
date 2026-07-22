@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -72,6 +72,11 @@ test('garment reference sets are a strict full partition and multi-view grouping
   missingIndex.reference_sets[0].source_indexes = [0];
   missingIndex.reference_sets[0].primary_source_index = 0;
   await assert.rejects(() => new CodexVlmEvaluator({ commandRunner: runnerFor(missingIndex, []) }).inspectGarments([first, second]), /cover every source index/);
+});
+
+test('garment response schema stays inside the OpenAI strict-schema subset', async () => {
+  const schema = JSON.parse(await readFile(path.resolve('schemas/garment-passport.schema.json'), 'utf8'));
+  assert.equal(JSON.stringify(schema).includes('uniqueItems'), false);
 });
 
 test('Codex evaluator fails closed when the CLI cannot produce evidence', async () => {
