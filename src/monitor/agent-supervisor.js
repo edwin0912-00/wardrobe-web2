@@ -75,7 +75,7 @@ export class AgentSupervisor {
   async #openIncident(run, event, historical) {
     const key = fingerprint(`${run.status}|${run.phase}|${run.error?.name ?? ''}|${run.message}`);
     const known = this.state.incidents[key];
-    if (known?.status === 'open' || known?.status === 'resolved' || known?.attempts >= 3) return;
+    if (known) return;
     const incident = { id: key, run_id: run.run_id, status: historical ? 'observed' : 'open', attempts: known?.attempts ?? 0,
       created_at: this.clock().toISOString(), trigger_event_id: event.id,
       summary: { status: run.status, phase: run.phase, message: run.message, error_name: run.error?.name ?? null } };
@@ -152,8 +152,10 @@ export class AgentSupervisor {
     for (const event of events.slice(start)) {
       this.state.last_event_id = event.id;
       if (event.source !== 'runner' || event.type !== 'run.phase' || !event.run_id) continue;
-      const run = await this.#readRun(event.run_id);
-      if (!run) continue;
+      const persisted = await this.#readRun(event.run_id);
+      if (!persisted) continue;
+      const run = { ...persisted, status: event.data?.status ?? persisted.status, phase: event.data?.stage ?? persisted.phase,
+        inner_state: null, message: event.data?.message ?? persisted.message };
       const historical = Date.parse(event.at) < historicalCutoff;
       await this.#comment(run, phaseComment(run), TERMINAL_PROBLEMS.has(run.status) ? 'error' : 'info');
       if (TERMINAL_PROBLEMS.has(run.status)) await this.#openIncident(run, event, historical);

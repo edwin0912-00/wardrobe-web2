@@ -17,6 +17,8 @@ test('agent supervisor comments persisted phases and opens one deduplicated inci
   await writeFile(path.join(runDirectory, 'run.json'), JSON.stringify(run));
   const store = new MonitorEventStore({ filename: path.join(root, 'events.jsonl'), clock: () => now });
   await store.initialize();
+  await store.append({ source: 'runner', type: 'run.phase', run_id: runId,
+    data: { status: 'RUNNING', stage: 'GARMENT_CONDITIONING', message: 'Classifying references' } });
   await store.append({ source: 'runner', type: 'run.phase', severity: 'error', run_id: runId,
     data: { status: run.status, stage: run.phase, message: run.message } });
   const supervisor = new AgentSupervisor({ store, runsRoot: path.join(root, 'runs'), stateRoot: path.join(root, 'supervisor'),
@@ -25,9 +27,9 @@ test('agent supervisor comments persisted phases and opens one deduplicated inci
   await supervisor.initialize();
   await supervisor.tick();
   const events = await store.tail(20);
-  assert.equal(events.filter((event) => event.type === 'agent.comment').length, 1);
+  assert.equal(events.filter((event) => event.type === 'agent.comment').length, 2);
   assert.equal(events.filter((event) => event.type === 'agent.incident_opened').length, 1);
-  assert.match(events.find((event) => event.type === 'agent.comment').data.message, /не зависання/);
+  assert.match(events.find((event) => event.type === 'agent.comment' && event.severity === 'error').data.message, /не зависання/);
   const state = JSON.parse(await readFile(path.join(root, 'supervisor', 'state.json'), 'utf8'));
   assert.equal(Object.keys(state.incidents).length, 1);
   await supervisor.tick();
