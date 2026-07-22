@@ -22,6 +22,9 @@ function phaseComment(run) {
   const comments = {
     UPLOADED: 'Файли повністю збережені сервером. Далі мережевий upload уже не бере участі.',
     GARMENT_CONDITIONING: 'VLM зараз класифікує речі, групує кілька ракурсів однієї речі та готує canonical references.',
+    GARMENT_GROUPING: 'VLM завершив класифікацію: фото розкладені у logical garment reference sets.',
+    GARMENT_GENERATING: 'Створено provider job для canonical garment; supervisor стежить за journal, повторного create не буде.',
+    GARMENT_QA: 'Canonical garment завантажено; VLM порівнює його з усіма вихідними ракурсами.',
     CORE_PIPELINE: 'Canonical references готові; почалась генерація avatar/outfit із checkpoint та QA.',
     OPTIONAL_SCENE: 'Core outputs готові; створюється необов’язкова Art Director scene.',
   };
@@ -110,7 +113,7 @@ export class AgentSupervisor {
     await this.store.append({ source: 'agent', type: 'agent.repair_started', severity: 'warn', run_id: incident.run_id,
       data: { message: `Codex bug-hunt ${incident.id} запущено, attempt ${incident.attempts}/3.` } });
     this.runningAgent = execute('codex', ['exec', prompt, '--ephemeral', '--skip-git-repo-check', '--sandbox', 'workspace-write', '--model', 'gpt-5.6-terra', '--output-last-message', outputPath, '-C', this.sourceRoot],
-      { cwd: this.sourceRoot, timeout: 45 * 60_000, maxBuffer: 4 * 1024 * 1024 });
+      { cwd: this.sourceRoot, timeout: 12 * 60_000, maxBuffer: 4 * 1024 * 1024 });
     try {
       await this.runningAgent;
       const result = await readFile(outputPath, 'utf8');

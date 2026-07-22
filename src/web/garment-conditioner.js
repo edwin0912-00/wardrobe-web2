@@ -26,8 +26,9 @@ export class GarmentNeedsInputError extends Error {
 export class GarmentConditioner {
   constructor({ vlm, generator, clock = () => new Date() }) { this.vlm = vlm; this.generator = generator; this.clock = clock; }
 
-  async condition({ imagePaths, outputDirectory, runId }) {
+  async condition({ imagePaths, outputDirectory, runId, onProgress = async () => {} }) {
     const passport = await this.vlm.inspectGarments(imagePaths);
+    await onProgress('GARMENT_GROUPING', 'Garment views classified and grouped');
     if (passport.status !== 'READY') throw new GarmentNeedsInputError(passport.reason, { passport });
     const conflicts = findGarmentConflicts(passport.items, passport.reference_sets);
     if (conflicts.length) throw new GarmentNeedsInputError('Garment slot conflicts require explicit selection', { passport, conflicts });
@@ -40,6 +41,7 @@ export class GarmentConditioner {
       let accepted;
       const attempts = [];
       for (const [routeIndex, model] of IMAGE_MODEL_ROUTE.entries()) {
+        await onProgress('GARMENT_GENERATING', `Generating canonical garment ${conditioned.length + 1} of ${groupGarmentViews(passport.items, passport.reference_sets).length}`);
         const generated = await this.generator.generateGarment({
           sourcePath, sourcePaths, model, prompt: canonicalPrompt(item), workDirectory: itemDirectory,
           operationId: `${runId}-garment-${item.source_index}-${routeIndex + 1}`,
@@ -51,6 +53,7 @@ export class GarmentConditioner {
         const normalized = await normalizeWhitePngBytes(opaqueCandidate);
         const candidatePath = path.join(itemDirectory, `candidate-${routeIndex + 1}.png`);
         await atomicWrite(candidatePath, normalized.image);
+        await onProgress('GARMENT_QA', `Checking canonical garment ${conditioned.length + 1}`);
         const qa = await this.vlm.evaluateQa({ phase: 'garment', evidence: {
           identity: { artifact: { path: sourcePath } }, candidate: { artifact: { path: candidatePath } },
           reference_packs: { outfit: { bindings: sourcePaths.map((filename) => ({ artifact: { path: filename } })) } },

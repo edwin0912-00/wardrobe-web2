@@ -128,11 +128,16 @@ export class RunService {
       if (state.inputs.garments.length) {
         await this.#write(state, { status: 'RUNNING', phase: 'GARMENT_CONDITIONING', message: 'Classifying and canonicalizing wardrobe references' });
         const conditioner = new GarmentConditioner({ vlm: this.vlm, generator: this.assetGenerator, clock: this.clock });
-        conditioned = await conditioner.condition({ imagePaths: state.inputs.garments, outputDirectory: path.join(this.runDirectory(runId), 'conditioned', 'garments'), runId });
+        conditioned = await conditioner.condition({
+          imagePaths: state.inputs.garments,
+          outputDirectory: path.join(this.runDirectory(runId), 'conditioned', 'garments'),
+          runId,
+          onProgress: async (innerState, message) => this.#write(state, { inner_state: innerState, message }),
+        });
         await this.#write(state, { garments: conditioned.items.map((item) => ({ source_index: item.source_index, source_indexes: item.source_indexes, reference_set_id: item.reference_set_id, category: item.category, confidence: item.confidence, observed: item.observed, reference_card: item.reference_card.path, cutout: item.cutout.path })), conflicts: conditioned.conflicts });
       }
       const jobPath = await this.#buildJob(state, conditioned);
-      await this.#write(state, { status: 'RUNNING', phase: 'CORE_PIPELINE', message: 'Generating and checking avatar and outfit', job_path: jobPath });
+      await this.#write(state, { status: 'RUNNING', phase: 'CORE_PIPELINE', inner_state: null, message: 'Generating and checking avatar and outfit', job_path: jobPath });
       const runner = new PipelineRunner({ provider: this.provider });
       const progressTimer = setInterval(() => { this.#syncRunnerProgress(state).catch(() => {}); }, 1000);
       let result;
@@ -276,7 +281,7 @@ export class RunService {
     const orphanedAfterRestart = state.status === 'RUNNING' && !this.running.has(runId);
     if (!['NEEDS_INPUT', 'FAILED'].includes(state.status) && !orphanedAfterRestart) throw new Error('Only failed, needs-input, or interrupted runs can be retried');
     await rm(path.join(this.runDirectory(runId), 'outputs'), { recursive: true, force: true });
-    await this.#write(state, { status: 'QUEUED', phase: 'UPLOADED', message: 'Retry queued', garments: [], conflicts: [], error: null, outputs: {}, qa: {} });
+    await this.#write(state, { status: 'QUEUED', phase: 'UPLOADED', inner_state: null, message: 'Retry queued', garments: [], conflicts: [], error: null, outputs: {}, qa: {} });
     this.start(runId);
     return publicRun(state);
   }

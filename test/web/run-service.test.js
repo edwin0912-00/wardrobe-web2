@@ -81,7 +81,8 @@ test('multiple views of the same garment are conditioned once with complete prov
     generatorCalls.push(context);
     return { image: await canonical(), metadata: { provider: 'mock' } };
   };
-  const service = new RunService({ rootDirectory: root, ...deps });
+  const observedStates = [];
+  const service = new RunService({ rootDirectory: root, ...deps, observer: async (run) => observedStates.push(run.inner_state) });
   await service.initialize();
   const created = await service.createRun({ person: await upload(), garments: [await upload('#275b36'), await upload('#315f41')], generateScene: false });
   await service.running.get(created.run_id);
@@ -96,4 +97,7 @@ test('multiple views of the same garment are conditioned once with complete prov
   const pack = JSON.parse(await readFile(path.join(root, created.run_id, 'conditioned', 'garments', 'reference-pack.json'), 'utf8'));
   assert.deepEqual(pack.sources.map((source) => source.source_index), [0, 1]);
   assert.equal(pack.generation_bindings.length, 1);
+  assert.ok(observedStates.includes('GARMENT_GROUPING'));
+  assert.ok(observedStates.includes('GARMENT_GENERATING'));
+  assert.ok(observedStates.includes('GARMENT_QA'));
 });
