@@ -176,7 +176,7 @@ function orderedPackDescriptors(phase, references) {
     });
   }
   if (phase === 'garment' && result.some((item) => item.scope !== 'outfit')) {
-    throw new HiggsfieldProviderError('Garment canonicalization may contain only garment inputs', {
+    throw new HiggsfieldProviderError('Підготовка еталонного зображення приймає лише фото речей', {
       code: 'INVALID_GARMENT_REFERENCE_ORDER',
       retryable: false,
     });

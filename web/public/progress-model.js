@@ -9,34 +9,34 @@ export const PIPELINE_ROWS = Object.freeze([
     nodes: [
       {
         id: 'intake', title: 'Input Finalize', code: 'UPLOAD → QUEUED', detail: 'draft upload · decode · finalize',
-        input: 'person + identity + garment files',
+        input: 'людина + додаткове фото + фото речей',
         operation: 'Draft upload → validate → immutable run copy on finalize',
         output: '15-min draft refs → run_id + immutable sources',
         gate: 'draft ≤18 MB · core ≤20 MB · ≥256×256',
       },
       {
-        id: 'garment-passport', title: 'Картка речі', code: 'GARMENT_CONDITIONING', detail: 'тип · колір · матеріал · деталі',
+        id: 'garment-passport', title: 'Картка речі', code: 'ITEM_FACTS', detail: 'тип · колір · матеріал · деталі',
         input: 'вихідні фото речей',
         operation: 'VLM визначає категорію й фіксує видимі тип, колір, матеріал/фактуру, візерунок, логотип/текст і конструкцію',
         output: 'структуровані картки речей',
         gate: 'ВИДИМЕ / НЕВІДОМЕ · впевненість ≥ .70 · блокери',
       },
       {
-        id: 'garment-grouping', title: 'Групування ракурсів', code: 'GARMENT_GROUPING', detail: 'та сама річ ≥ .90 · конфлікти категорій',
+        id: 'garment-grouping', title: 'Групування ракурсів', code: 'VIEW_GROUPING', detail: 'та сама річ ≥ .90 · конфлікти категорій',
         input: 'картки речей + індекси фото',
         operation: 'Об’єднати ракурси тієї самої фізичної речі',
         output: 'групи ракурсів + категорії речей',
         gate: 'дві речі однієї категорії → вибір користувача',
       },
       {
-        id: 'garment-canonical', title: 'Підготовка речі', code: 'GARMENT_GENERATING', detail: 'білий фон · фіксований маршрут моделей',
+        id: 'garment-canonical', title: 'Підготовка речі', code: 'ITEM_PREPARATION', detail: 'білий фон · фіксований маршрут моделей',
         input: 'групи ракурсів + видимі характеристики',
         operation: 'GPT Image 2 → Nano Banana 2 → Nano Banana Pro',
         output: 'еталонне зображення речі',
         gate: 'видимі характеристики збігаються · приховане не вигадується',
       },
       {
-        id: 'garment-qa', title: 'Звірка речі з оригіналом', code: 'GARMENT_QA', detail: 'форма · колір · матеріал · принт/логотип',
+        id: 'garment-qa', title: 'Звірка речі з оригіналом', code: 'ITEM_QA', detail: 'форма · колір · матеріал · принт/логотип',
         input: 'вихідні фото + підготовлена річ',
         operation: 'Незалежний VLM звіряє тип, форму, колір, матеріал, фактуру, візерунок, логотип/текст і конструкцію',
         output: 'перевірене зображення на білому фоні + вирізаний об’єкт + QA-докази',
@@ -106,15 +106,15 @@ export const PIPELINE_ROWS = Object.freeze([
         gate: 'PASS / RETRY / NEEDS_INPUT / REJECT',
       },
       {
-        id: 'outfit-candidate', title: 'Outfit Candidate', code: 'GENERATING_OUTFIT', detail: 'approved avatar first · garment locks',
-        input: 'approved avatar + identity pack + text and/or garment pack',
+        id: 'outfit-candidate', title: 'Outfit Candidate', code: 'GENERATING_OUTFIT', detail: 'approved avatar first · зафіксовані характеристики речей',
+        input: 'approved avatar + identity pack + текст і/або підготовлені речі',
         operation: 'Generate full look through the fixed image route',
         output: 'outfit candidate',
         gate: 'avatar identity remains the primary reference',
       },
       {
-        id: 'outfit-qa', title: 'Outfit QA Router', code: 'OUTFIT_QA · OUTFIT_READY', detail: 'identity · garment · anatomy/residue',
-        input: 'approved avatar + garment evidence + candidate',
+        id: 'outfit-qa', title: 'Outfit QA Router', code: 'OUTFIT_QA · OUTFIT_READY', detail: 'identity · відповідність речей · anatomy/residue',
+        input: 'approved avatar + вихідні фото речей + candidate',
         operation: 'Independent QA: identity is unchanged and clothing matches the approved text/reference evidence',
         output: 'approved full-look PNG',
         gate: 'PASS / RETRY / NEEDS_INPUT / REJECT',
@@ -145,6 +145,17 @@ const NODE_INDEX = Object.freeze(Object.fromEntries(PIPELINE_NODES.map((node, in
 const progress = (percent, nodeId, title, label) => Object.freeze({ percent, nodeId, step: nodeId == null ? null : NODE_INDEX[nodeId], title, label });
 
 const FALLBACK = progress(0, null, 'Невідомий стан сервера', 'UNMAPPED');
+
+const DISPLAY_CHECKPOINT_CODES = Object.freeze({
+  GARMENT_CONDITIONING: 'ITEM_FACTS',
+  GARMENT_GROUPING: 'VIEW_GROUPING',
+  GARMENT_GENERATING: 'ITEM_PREPARATION',
+  GARMENT_QA: 'ITEM_QA',
+});
+
+export function checkpointDisplayCode(key) {
+  return DISPLAY_CHECKPOINT_CODES[key] ?? String(key ?? 'CHECKPOINT_SYNC');
+}
 
 export const PROGRESS_STATES = Object.freeze({
   RESUMING: progress(4, null, 'Відновлюємо активний запуск', 'CHECKPOINT SYNC'),

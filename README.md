@@ -96,7 +96,7 @@ Raw reference не можна одразу передавати моделі. В
 
 1. Перевірка файла, metadata, SHA-256, orientation, sRGB, resolution, clipping і detail risk.
 2. Структуроване extraction лише спостережуваних фактів; невидиме позначається `UNKNOWN`, а не домислюється.
-3. Deterministic derivatives: capped normalization, face/person crops, garment cutout і white reference card.
+3. Deterministic derivatives: capped normalization, face/person crops, вирізана річ і white reference card.
 4. Lineage для кожного derivative: parent hash, operation, output hash.
 5. Readiness route: `READY`, `REPAIRABLE`, `NEEDS_INPUT` або `INCOMPATIBLE`.
 6. Лише `READY` pack отримує ordered generation bindings.

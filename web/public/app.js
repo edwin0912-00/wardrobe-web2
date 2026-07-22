@@ -4,9 +4,10 @@ import { clearDraft, loadDraft, requestPersistentStorage, saveDraft } from './dr
 import { fileSummary, telemetry } from './telemetry.js?v=20260722-8';
 import { prepareImageFile } from './image-upload.js?v=20260722-8';
 import { clearDefinitivelyRejectedRunState, clearServerDraft, createRunFromServerDraft, loadServerDraft, removeServerDraftFile, updateServerDraftMetadata, uploadDraftFile } from './server-draft.js?v=20260722-11';
-import { PIPELINE_NODE_COUNT, PIPELINE_NODES, nodeState, resolveProgressState } from './progress-model.js?v=20260722-6';
+import { PIPELINE_NODE_COUNT, PIPELINE_NODES, checkpointDisplayCode, nodeState, resolveProgressState } from './progress-model.js?v=20260722-7';
 import { fetchRunWithRetry, RunNotFoundError } from './run-resume.js?v=20260722-3';
 import { avatarFileFromProfile, claimProfileRun, deleteAnonymousProfile, deleteProfileAvatar, deleteProfileLook, loadProfile, saveProfileRun } from './profile-client.js?v=20260722-1';
+import { neutralizeItemTerms } from './visible-copy.js?v=20260722-1';
 
 const form = document.querySelector('#run-form');
 const submit = document.querySelector('#submit-button');
@@ -49,6 +50,12 @@ const TERMINAL_STATUSES = new Set(['COMPLETED', 'FAILED', 'NEEDS_INPUT']);
 const PIPELINE_STATUS_LABELS = Object.freeze({
   done: 'SAVED', active: 'ACTIVE', pending: 'WAIT', skipped: 'SKIP', reused: 'REUSE', stopped: 'STOP',
 });
+
+function humanizeVisibleText(value) {
+  return neutralizeItemTerms(String(value ?? '')
+    .replace(/visible garment mismatch/gi, 'невідповідність видимих характеристик речі')
+    .replace(/garment mismatch/gi, 'невідповідність речі'));
+}
 
 function initializePipelineGraph() {
   const graph = document.querySelector('#pipeline-nodes');
@@ -300,7 +307,7 @@ async function handleSelected(kind, files) {
     await persistDraft(`select_${kind}`);
     for (const file of additions) await queueServerSync(() => syncFileToServer(kind, file));
   } catch (error) {
-    formError.textContent = error.message;
+    formError.textContent = humanizeVisibleText(error.message);
     telemetry('client.error', { message: error.message.slice(0, 500), stage: `select_${kind}` });
   }
 }
@@ -348,11 +355,11 @@ function renderProgress(state, message, { terminalStatus = null } = {}) {
   document.querySelector('#progress-count').textContent = normalized.countLabel
     || (activeNode ? `NODE ${String(normalized.step + 1).padStart(2, '0')}/${PIPELINE_NODE_COUNT} · ${normalized.label}` : normalized.label);
   document.querySelector('#progress-title').textContent = normalized.title;
-  document.querySelector('#progress-message').textContent = message || 'Очікуємо підтвердження сервера…';
+  document.querySelector('#progress-message').textContent = humanizeVisibleText(message || 'Очікуємо підтвердження сервера…');
   const progressTrack = document.querySelector('#progress-track');
   progressTrack.setAttribute('aria-valuenow', String(normalized.percent));
   progressTrack.setAttribute('aria-valuetext', activeNode
-    ? `${normalized.percent}%, ${normalized.key}, checkpoint ${normalized.step + 1} of ${PIPELINE_NODE_COUNT}`
+    ? `${normalized.percent}%, ${checkpointDisplayCode(normalized.key)}, checkpoint ${normalized.step + 1} of ${PIPELINE_NODE_COUNT}`
     : `${normalized.percent}%, ${normalized.label}`);
   document.querySelector('#progress-bar').style.width = `${normalized.percent}%`;
   const orbState = normalized.step == null || normalized.step === 0
@@ -387,8 +394,8 @@ function renderProgress(state, message, { terminalStatus = null } = {}) {
   };
   const details = normalized.key === 'OPTIONAL_SCENE' ? optionalSceneDetails : activeNode ?? syncDetails;
   document.querySelector('#checkpoint-code').textContent = terminalStatus
-    ? `${terminalStatus} · ${normalized.key ?? 'UNMAPPED'}`
-    : normalized.key ?? 'CHECKPOINT_SYNC';
+    ? `${terminalStatus} · ${checkpointDisplayCode(normalized.key ?? 'UNMAPPED')}`
+    : checkpointDisplayCode(normalized.key);
   document.querySelector('#checkpoint-input').textContent = details.input;
   let operation = details.operation;
   if (route.avatar_reuse && normalized.step === 11) operation = 'Verify exact avatar SHA-256 and its hash-bound PASS receipt';
@@ -427,7 +434,7 @@ function renderRun(run) {
     failure.classList.toggle('choice', hasSelectableConflict);
     document.querySelector('.failure-mark').textContent = hasSelectableConflict ? '?' : '!';
     document.querySelector('#failure-title').textContent = hasSelectableConflict ? 'Обери річ для образу' : run.status === 'NEEDS_INPUT' ? 'Потрібне інше фото' : 'Генерацію зупинено';
-    document.querySelector('#failure-message').textContent = hasSelectableConflict ? 'Знайдено кілька різних речей одного типу. Обери одну — генерація продовжиться з цього етапу.' : run.message || run.error?.message || 'Невідома помилка';
+    document.querySelector('#failure-message').textContent = hasSelectableConflict ? 'Знайдено кілька різних речей одного типу. Обери одну — генерація продовжиться з цього етапу.' : humanizeVisibleText(run.message || run.error?.message || 'Невідома помилка');
     renderConflictPicker(run);
     document.querySelector('#retry-run').classList.toggle('hidden', hasSelectableConflict);
     submit.disabled = false;
@@ -456,7 +463,7 @@ function renderConflictPicker(run) {
     const group = document.createElement('section');
     group.className = 'conflict-group';
     const heading = document.createElement('strong');
-    heading.textContent = conflict.category === 'footwear' ? 'Оберіть одну пару взуття' : `Оберіть один варіант: ${categoryNames[conflict.category] || conflict.category}`;
+    heading.textContent = conflict.category === 'footwear' ? 'Оберіть одну пару взуття' : `Оберіть один варіант: ${humanizeVisibleText(categoryNames[conflict.category] || conflict.category)}`;
     const options = document.createElement('div');
     options.className = 'conflict-options';
     conflict.reference_set_ids.forEach((referenceSetId) => {
@@ -467,9 +474,9 @@ function renderConflictPicker(run) {
       button.className = 'conflict-option';
       const image = document.createElement('img');
       image.src = garment.preview_url;
-      image.alt = garment.observed?.garment_type || conflict.category;
+      image.alt = humanizeVisibleText(garment.observed?.garment_type || conflict.category);
       const label = document.createElement('span');
-      label.textContent = garment.observed?.garment_type || conflict.category;
+      label.textContent = humanizeVisibleText(garment.observed?.garment_type || conflict.category);
       button.append(image, label);
       button.addEventListener('click', () => {
         selections[conflict.category] = referenceSetId;
@@ -495,7 +502,7 @@ function renderConflictPicker(run) {
       renderRun(body);
       watch(body.run_id);
     } catch (error) {
-      document.querySelector('#failure-message').textContent = error.message;
+      document.querySelector('#failure-message').textContent = humanizeVisibleText(error.message);
       continueButton.disabled = false;
     }
   });
@@ -768,7 +775,7 @@ async function renderProfile(profileValueToRender = null) {
 }
 
 function showProfileError(error) {
-  formError.textContent = error.message;
+  formError.textContent = humanizeVisibleText(error.message);
   telemetry('client.profile_error', { message: error.message.slice(0, 500), stage: 'action' });
 }
 
@@ -778,7 +785,7 @@ function renderResults(run) {
   (run.garments || []).forEach((item) => {
     const element = document.createElement('span');
     element.className = 'passport';
-    element.textContent = `${item.category} · ${Math.round(item.confidence * 100)}%`;
+    element.textContent = humanizeVisibleText(`${item.category} · ${Math.round(item.confidence * 100)}%`);
     passports.append(element);
   });
   const items = [
@@ -904,7 +911,7 @@ form.addEventListener('submit', async (event) => {
     window.clearTimeout(transitionTimer);
     if (localStorage.getItem(ACTIVE_RUN_KEY) === finalizationId) localStorage.removeItem(ACTIVE_RUN_KEY);
     history.replaceState({}, '', location.pathname);
-    formError.textContent = `${error.message}. Файли залишилися в локальній чернетці.`;
+    formError.textContent = `${humanizeVisibleText(error.message)}. Файли залишилися в локальній чернетці.`;
     submit.disabled = false;
     statusChip.textContent = 'Завантаження не завершено';
     statusChip.className = 'status-chip failed';
@@ -924,7 +931,7 @@ document.querySelector('#retry-run').addEventListener('click', async () => {
     if (!response.ok) throw new Error(body.error);
     renderRun(body); watch(body.run_id);
   } catch (error) {
-    document.querySelector('#failure-message').textContent = error.message;
+    document.querySelector('#failure-message').textContent = humanizeVisibleText(error.message);
     telemetry('client.fetch_error', { message: error.message.slice(0, 500), stage: 'retry' }, activeRun.run_id);
   }
 });
@@ -1121,7 +1128,7 @@ window.addEventListener('online', () => {
 window.addEventListener('offline', () => telemetry('client.online', { online: false, stage: 'network' }));
 
 initialize().catch((error) => {
-  formError.textContent = `Не вдалося запустити інтерфейс: ${error.message}`;
+  formError.textContent = `Не вдалося запустити інтерфейс: ${humanizeVisibleText(error.message)}`;
   telemetry('client.error', { message: error.message.slice(0, 500), stage: 'initialize' });
   window.ZeelyBootGuard?.ready();
 });

@@ -82,10 +82,10 @@ Scope: cloud-only image/video models; Higgsfield MCP наявний, але не
 
 ### Два режими композиції
 
-| Policy | Human | Product/garment | Environment | Типова задача |
+| Policy | Human | Product/річ | Environment | Типова задача |
 |---|---|---|---|---|
 | `ORG_PRESERVE` | preserve | add/replace under locks | preserve layout, light intent and key objects | same person + new look у тому самому світі |
-| `DIFF_REPLACE` | preserve | preserve target SKU/garment | replace with approved target environment | same person + product у новій campaign scene |
+| `DIFF_REPLACE` | preserve | preserve target SKU/річ | replace with approved target environment | same person + product у новій campaign scene |
 
 ### Основна одиниця системи
 
@@ -150,7 +150,7 @@ same human
 | **Arcads** | product upload → scene image → Talking Actor або B-roll | auto-detected product, actor/clone, product showcase, start/end frames | node workflows, reuse, batch; public product/video API | fast UGC batching, actors × languages, still-to-talking-video | exact SKU в cinematic video не гарантовано; публічних semantic gates немає |
 | **HeyGen** | product + avatar → **4 combined stills** → select → script/motion → Avatar IV | reusable Digital Twin/Looks; selected still anchors product | manual still gate; API for avatars/videos | надзвичайно правильний still approval pattern | optimized for handheld/small products; Product Placement REST не публічний |
 | **Pencil** | typed workflow canvas: text/context/attachment/work | brand refs/templates/attachments, not a fixed avatar pipeline | `Scores → If/Else → Approval → Export`; lineage/expiry | найкраща governance model: typed pins, approvals, branching, lineage | image/video models не мають direct access до всієї brand library; self-serve REST не знайдено |
-| **AdCreative.ai** | product image → isolate/tag → style preset → inpainting → six outputs | mask/composite + preset/color context | async status/webhook; creative scoring claim | deterministic product stills, safe margins, ad formats | не вирішує same person + garment + video continuity |
+| **AdCreative.ai** | product image → isolate/tag → style preset → inpainting → six outputs | mask/composite + preset/color context | async status/webhook; creative scoring claim | deterministic product stills, safe margins, ad formats | не вирішує same person + річ + video continuity |
 | **Captions/Mirage** | product URL → review metadata/script → actor → UGC video | selected creator/AI Twin + media/B-roll | public AI Ads API submit/poll, variants | turnkey URL-to-UGC and real API | human/product/environment не мають independent typed locks |
 | **Zeely today** | product + image + optional reference → concept/avatar/model → start image → video | correct start-image-first UI | manual regenerate/review | правильна UX послідовність уже є | немає public job contract, visible lineage, model lifecycle registry і hard QA gates |
 
@@ -161,7 +161,7 @@ same human
 | Vendor | Сильна зона | Asset model | Чому не універсальний Zeely engine |
 |---|---|---|---|
 | **Synthesia** | business/training presenter, template + brand kit | reusable personal avatar; scene media; customizable outfit | product — media layer, не exact locked SKU; не cinematic VTO pipeline |
-| **Tavus** | API-first digital replica, scripted/realtime | trained Replica + Persona + background | product/garment не є typed references |
+| **Tavus** | API-first digital replica, scripted/realtime | trained Replica + Persona + background | product/річ не є typed references |
 | **D-ID** | talking portrait і realtime agents | presenter/source image | не full-body fashion/product/environment system |
 | **HeyGen** | digital twin, Looks, product placement | one identity → up to 500 looks; consent reused for same identity | сильний presenter, але не universal product compositor |
 | **Captions/Mirage** | UGC actor + audio/video | AI Twin/creator + script/media | finished-video abstraction приховує fidelity control |
@@ -212,7 +212,7 @@ same human
 | **Nano Banana 2** | `gemini-3.1-flash-image` | немає `low/high`; є thinking/iteration controls | 0.5K / 1K / 2K / 4K | high-volume multi-reference draft/default |
 | **Nano Banana Pro** | `gemini-3-pro-image` | professional model, не “NB2 Pro” | 1K / 2K / 4K | complex brand/product/text composition |
 | **Nano Banana 2 Lite** | `gemini-3.1-flash-lite-image` | efficiency lane | 1K | preflight visualizations/cheap concepts |
-| **FLUX.2** | `klein / pro / max / flex` | model + steps/guidance у Flex | до 4 MP | garment/product/pose/multi-ref specialist |
+| **FLUX.2** | `klein / pro / max / flex` | model + steps/guidance у Flex | до 4 MP | specialist для речей/product/pose/multi-ref |
 
 Джерела: [GPT Image 2](https://developers.openai.com/api/docs/models/gpt-image-2), [OpenAI image guide](https://developers.openai.com/api/docs/guides/image-generation), [Nano Banana 2](https://ai.google.dev/gemini-api/docs/models/gemini-3.1-flash-image), [Google image generation](https://ai.google.dev/gemini-api/docs/image-generation), [FLUX.2 prompting](https://docs.bfl.ai/guides/prompting_guide_flux2).
 
@@ -227,7 +227,7 @@ same human
 | **GPT Image 2** | all image inputs automatically high-fidelity; multi-image edit/mask; versioned snapshot | flexible sizes; `low/medium/high`; no transparent output | square ≈$0.006/$0.053/$0.211 | identity-sensitive edit, targeted repair, final | bulk blind fan-out at high quality |
 | **FLUX.2 Pro** | up to 8 API refs within input/output pixel budget; JSON prompts; HEX; pose | up to 4 MP | T2I from $0.03; edit from $0.045 | outfit/product/reference composition | video engine |
 | **FLUX.2 Max** | same family, highest precision | up to 4 MP | from $0.07 | final still after draft pass | first-pass cheap generation |
-| **FLUX VTO** | person + garment refs, clothing-specific | image | contract-dependent | outfit transfer and fabric/logo structure | physical fit guarantee |
+| **FLUX VTO** | person + refs речей, clothing-specific | image | contract-dependent | outfit transfer and fabric/logo structure | physical fit guarantee |
 | **FASHN Try-On Max** | person/product/face specialist; clothes, shoes, hats, jewelry, bags | 1K/2K/4K | roughly $0.075–$0.375 by mode | independent fashion try-on lane | general-image fallback without VTO benchmark |
 | **Runway Gen-4 Image/Turbo** | character/object/style refs in Runway ecosystem | tiered | API credit-based | environment/style exploration and recipe compatibility | exact SKU without external QA |
 | **Luma Uni-1** | up to 9 refs in Agents API | 2K | ≈$0.0404 base; refs add small increment | alternate style/reference candidate | identity source of truth |
@@ -345,7 +345,7 @@ OpenAI позначає Sora 2 як deprecated/legacy; для нового produ
 
 | Primary | Independent fallback | Best fit | Не вирішує |
 |---|---|---|---|
-| **HeyGen Avatar IV / Digital Twin API** | **Tavus Replica API** | consented talking presenter, script/audio, localization | exact garment/product interaction in cinematic world |
+| **HeyGen Avatar IV / Digital Twin API** | **Tavus Replica API** | consented talking presenter, script/audio, localization | exact interaction речі/product у cinematic world |
 | **Synthesia API** | HeyGen/Tavus | enterprise templates, learning/business video, governance | fashion/product VTO |
 | **Captions/Mirage API** | HeyGen | UGC-style creator ad and audio-driven actor | typed human/product/environment locks |
 
@@ -523,9 +523,9 @@ Hard invariants:
 |---|---:|---:|---:|
 | Person short edge | ≥1024 px | 768–1023 | <768 або decode fail |
 | Visible face crop | ≥256×256 px | 160–255 | <160 / severe occlusion |
-| Product/garment short edge | ≥1024 px | 768–1023 | <768 |
+| Коротша сторона product/речі | ≥1024 px | 768–1023 | <768 |
 | Target object coverage | ≥25% frame | 12–25% | <12% |
-| Garment visibility | full front, key structure visible | minor crop/occlusion | key structure hidden |
+| Видимість речі | full front, key structure visible | minor crop/occlusion | key structure hidden |
 | Blur/exposure | no critical-detail loss | locally repairable | logo/face/texture unreadable |
 
 Ці числа — calibration starting point. Після benchmark вони мають стати task-specific thresholds, а не “вічною правдою”.
@@ -701,7 +701,7 @@ approved still
 
 Добре:
 
-> 5 s. Subject makes one slow half-turn while keeping the garment front visible. Camera performs a subtle 10% push-in. No cut. Preserve face, garment logo, mirror geometry and lighting.
+> 5 s. Subject makes one slow half-turn while keeping the front of the clothing item visible. Camera performs a subtle 10% push-in. No cut. Preserve face, clothing-item logo, mirror geometry and lighting.
 
 ### 10.3 Continuity pack для кожного shot
 
@@ -737,7 +737,7 @@ approved still
 | Technical | decode, dimensions, colorspace, background, file hash | codec, duration, fps, black/frozen frames, audio stream | так |
 | Identity | face/hair/body visible traits vs refs | sampled-frame identity drift | так |
 | Product/SKU | geometry, logo, OCR, color, material, scale | persistence, interaction/contact, logo/text stability | так |
-| Garment | neckline, sleeves, length, print, seams, drape | temporal structure, no morph/flicker | так |
+| Річ | neckline, sleeves, length, print, seams, drape | temporal structure, no morph/flicker | так |
 | Environment | ORG preserve or DIFF replace compliance | background continuity and unwanted mutations | так |
 | Anatomy | hands, limbs, face, contact | hand/object artifacts and body continuity | так |
 | Prompt compliance | pose/framing/action | timing/camera/no unwanted cut | так/за profile |
@@ -825,7 +825,7 @@ Transport errors:
 
 Semantic errors:
 
-- wrong face, logo, garment, background, hands, motion;
+- wrong face, logo, clothing item, background, hands, motion;
 - кожний новий generation = new attempt;
 - максимум 2 attempts per provider;
 - той самий blocking defect двічі → switch independent model family;
@@ -838,7 +838,7 @@ Semantic errors:
 | input blurry/occluded | request better input | 6 random generations |
 | mask/background edge | rematte/composite | switch cinematic video model |
 | face drift | stronger original refs / identity-specialist provider | only add more adjectives |
-| garment local detail | masked edit/VTO route | full scene regeneration first |
+| локальна деталь речі | masked edit/VTO route | full scene regeneration first |
 | logo/text | targeted edit/composite; reduce motion | upscale defect |
 | environment only | environment edit preserving approved subject | regenerate identity |
 | hand/product contact | simpler pose/action; shorter clip | increase resolution |
@@ -1104,7 +1104,7 @@ Image:
 
 - default multi-ref/environment: Nano Banana 2, 1K;
 - identity-sensitive edit: GPT Image 2 medium, pinned snapshot;
-- garment/VTO: FLUX VTO or FASHN; fallback GPT Image 2/FLUX.2 Pro after benchmark;
+- речі/VTO: FLUX VTO or FASHN; fallback GPT Image 2/FLUX.2 Pro after benchmark;
 - brand/text/hero: Nano Banana Pro or FLUX.2 Max/Flex;
 - 2K/4K only after semantic pass.
 
@@ -1403,7 +1403,7 @@ If video cannot autoplay/seek:
 |---|---|
 | Humans | 30–50 consented adults; lighting/skin tone/hair/glasses variety |
 | Input quality | clean, mediocre, repairable, reject cases |
-| Garments | T-shirt, shirt, jacket, dress, patterned/logotyped items |
+| Речі | T-shirt, shirt, jacket, dress, patterned/logotyped items |
 | Products | bag, bottle, cosmetics, small device, reflective/transparent item |
 | Environment | ORG preserve + DIFF replace; simple and cluttered scenes |
 | Motion | static, turn, walk, hand-product contact, camera push/pan |
@@ -1419,7 +1419,7 @@ If video cannot autoplay/seek:
 - product geometry;
 - logo/text;
 - color/material;
-- garment structure;
+- структура речі;
 - environment policy;
 - anatomy/contact;
 - temporal stability;
@@ -1441,7 +1441,7 @@ If video cannot autoplay/seek:
 | Budget overshoot | 0 | 0 |
 | Consent/deletion SLA success | 100% | 100% |
 
-Quality targets must be reported per task class. Один global “92% quality” приховує, що talking head може бути 95%, а garment+logo+walk — 30%.
+Quality targets must be reported per task class. Один global “92% quality” приховує, що talking head може бути 95%, а річ+logo+walk — 30%.
 
 ### 17.4 Unit economics formula
 

@@ -55,7 +55,7 @@ flowchart LR
 | 1 | HTML5 web UI + IndexedDB draft (`web/public`) | `LIVE` | Єдина surface для evaluator і fresh user input. Окремо тримає person, identity detail і wardrobe selections; Blob-копії зберігає локально між reload/crash. Після submit input-screen fade-ом замінюється на один active pipeline-screen з великою AI-анімацією та сімома stateful nodes. | local browser files + text + consent → local draft → temp server draft → idempotent JSON finalize | Consent навмисно не зберігається. Явний “new run” очищує draft; reload знаходить той самий run за query/local UUID. Upload показує реальні bytes/%; після старту progress змінюється лише з persisted server checkpoints. |
 | 2 | Fastify 5 + multipart (`src/web/app.js`) | `LIVE` | Приймає upload, віддає progress API, SSE та outputs. | multipart fields/files → normalized upload objects | До 7 файлів, 20 MB на файл; malformed request повертає structured error. |
 | 3 | `RunService` + filesystem (`runtime/runs/<id>`) | `LIVE` | Ізолює кожен run і зберігає raw source до будь-якої генерації. | upload buffers → immutable source files + `run.json` | `wx`-write не дозволяє тихо перезаписати source. Кожен phase оновлює persisted state. |
-| 4 | Sharp 0.35 (`src/conditioning`) | `LIVE` | Детермінована підготовка без генеративного домислювання. | raw bytes → oriented sRGB normalized image, face/person crops, garment cutout/card | Corrupt file, недостатній resolution або відсутній required crop зупиняють flow. Кожен derivative має lineage і SHA-256. |
+| 4 | Sharp 0.35 (`src/conditioning`) | `LIVE` | Детермінована підготовка без генеративного домислювання. | raw bytes → oriented sRGB normalized image, face/person crops, cutout/card речі | Corrupt file, недостатній resolution або відсутній required crop зупиняють flow. Кожен derivative має lineage і SHA-256. |
 | 5 | Codex VLM evaluator (`src/providers/codex-vlm-evaluator.js`) | `LIVE` | Формує строгу картку речі та виконує семантичну QA-перевірку кандидата у read-only ephemeral execution. Фото людини тут не «описується з пам’яті»: його normalized/crop evidence напряму передається generation та QA. | впорядковані фото-докази + versioned task prompt → strict-schema JSON | Timeout, malformed JSON, низька впевненість або відсутня evidence завершуються fail-closed, а не автоприйняттям. |
 | 6 | Картка речі (`src/web/garment-passport.js`) | `LIVE` | Перетворює довільні фото речей на структуровані характеристики й групи ракурсів. | фото речей → категорія, видимі тип/колір/матеріал/візерунок/логотип/конструкція, невідомі ознаки, впевненість | Дві речі однієї категорії або `one_piece` проти `top + bottom` дають явний конфлікт/`NEEDS_INPUT`. |
 | 7 | Reference pack (`reference-pack.json`) | `LIVE` | Єдиний дозволений generation input замість raw хаотичного набору фото. | source + derivatives + lineage → ordered bindings | Missing path, duplicate order або SHA mismatch блокує provider call. Generated hypothesis не може стати lock. |
@@ -66,7 +66,7 @@ flowchart LR
 | 12 | Nano Banana 2 | `LIVE FALLBACK 1` | Другий bounded attempt, особливо корисний для multi-reference consistency та іншої model family. | той самий locked intent, refs і acceptance → candidate PNG | Higgsfield selector: `nano_banana_flash`; direct API ID: `gemini-3.1-flash-image`. Не запускається паралельно й не голосує “за кращу картинку”. |
 | 13 | Nano Banana Pro | `LIVE FALLBACK 2` | Остання quality route для складного composition/brand/detail failure. | той самий contract → final candidate | Higgsfield selector: `nano_banana_2`; direct API ID: `gemini-3-pro-image`. Після її FAIL route вичерпано: terminal failure/review, не четверта випадкова модель. |
 | 14 | Exact-white postprocessor + technical QA (`src/qa`) | `LIVE` | Гарантує машинно перевірюваний `#FFFFFF`, PNG decode, dimensions, color space та duplicate checks. | model PNG → minimally normalized PNG + metrics | Змінюються лише near-white pixels, 4-connected до border. Subject pixels не threshold-яться глобально. Technical PASS не дорівнює semantic PASS. |
-| 15 | Semantic avatar/outfit QA | `LIVE` | Перевіряє identity, framing, skin/hair, garment fidelity, anatomy, old-clothing residue і bleed. | source/pack + candidate + 10 QA rules → PASS / retryable defect / NEEDS_INPUT | Review прив’язаний до candidate hash. Старий PASS не можна використати для нового output. |
+| 15 | Semantic avatar/outfit QA | `LIVE` | Перевіряє identity, framing, skin/hair, відповідність речі, anatomy, old-clothing residue і bleed. | source/pack + candidate + 10 QA rules → PASS / retryable defect / NEEDS_INPUT | Review прив’язаний до candidate hash. Старий PASS не можна використати для нового output. |
 | 16 | Manifest/evidence export | `LIVE` | Робить результат відтворюваним і рев’юваним. | approved artifacts + events + provider receipts → manifest, prompts, QA reports, hashes | Missing evidence блокує `npm run verify`; output без provenance не вважається accepted. |
 | 17 | Cloudflare named Tunnel | `LIVE DELIVERY` | Віддає локальний `127.0.0.1:4173` через HTTPS без відкритого inbound port. | browser HTTPS → Cloudflare → outbound tunnel → Fastify | `cloudflared` і app працюють як macOS LaunchAgents з KeepAlive. Серверний PIN gate підтримується, але зараз вимкнений для відкритого тестування. |
 | 18 | Telemetry + live monitor (`src/monitor`, port 4174) | `LIVE OBSERVABILITY` | Показує client actions/errors, API responses, upload receipt, run phases і health core-service в реальному часі. | allowlisted metadata → append-only JSONL → SSE dashboard | Не приймає filename/image/PIN/prompt. Monitor — окремий LaunchAgent з KeepAlive; падіння UI не забирає журнал. Деталі: [`LIVE_MONITORING_UA.md`](LIVE_MONITORING_UA.md). |
@@ -100,7 +100,7 @@ written task rules
 ```
 
 Avatar bindings: `IDENTITY_NORMALIZED → IDENTITY_FACE → IDENTITY_PERSON`.  
-Outfit bindings: `APPROVED_AVATAR` перший, далі identity bindings, потім кожна approved garment card/cutout у declared order.
+Outfit bindings: `APPROVED_AVATAR` перший, далі identity bindings, потім кожна схвалена card/cutout речі у declared order.
 
 Quality-reference images використовуються для framing/light/finish/detail benchmark і side-by-side QA. Вони не визначають identity, body, outfit або background color і за замовчуванням не передаються generation model. Письмовий `#FFFFFF` має пріоритет над приблизним `#F6F6F4` у benchmark.
 
@@ -172,7 +172,7 @@ Video starts only from hash-approved stills. Any video that changes identity or 
 
 ## 9. Що показати reviewer
 
-1. Відкрити web app і завантажити fresh person + кілька garment photos окремими picker actions.
+1. Відкрити web app і завантажити fresh person + кілька фото речей окремими picker actions.
 2. Показати, що кожен file slot зберігся та має preview.
 3. Запустити run і показати SSE phases, а не fake progress timer.
 4. Відкрити `run.json`, exact compiled prompts, reference packs, provider journal та QA reports.

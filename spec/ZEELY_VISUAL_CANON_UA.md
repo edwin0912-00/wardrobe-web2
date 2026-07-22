@@ -28,7 +28,7 @@ Primary reference: [Thinking orbs — Jakub Antalik & Alex Brinza](https://orbs.
 | Pipeline stage | Orb state | Значення |
 |---|---|---|
 | Upload / receive input | `listening` | система приймає матеріал |
-| Conditioning / extraction | `searching` | система знаходить identity, garment, environment evidence |
+| Conditioning / extraction | `searching` | система знаходить докази identity, речей та environment |
 | Avatar generation | `composing` | модель збирає базове зображення |
 | QA / retries / outfit fidelity | `solving` | система перевіряє та виправляє |
 | Optional Art Director scene | `working` | окремий creative pass |

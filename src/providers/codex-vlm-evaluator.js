@@ -181,7 +181,7 @@ export class CodexVlmEvaluator {
   }
 
   async inspectGarments(images) {
-    if (!Array.isArray(images) || images.length < 1 || images.length > 5) throw new Error('Garment inspection requires 1–5 images');
+    if (!Array.isArray(images) || images.length < 1 || images.length > 5) throw new Error('Для аналізу потрібно від одного до п’яти фото речей');
     return validatePassport(await this.#run({ images, promptBuilder: garmentPrompt, schemaPath: this.passportSchemaPath, deduplicate: false }), images.length);
   }
 }

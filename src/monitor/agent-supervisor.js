@@ -10,6 +10,20 @@ const RETRYABLE_INCIDENTS = new Set(['open', 'queued', 'failed']);
 const AGENT_TIMEOUT_MS = 12 * 60_000;
 const DEFAULT_LEASE_MS = AGENT_TIMEOUT_MS + 60_000;
 const fingerprint = (value) => createHash('sha256').update(value).digest('hex').slice(0, 16);
+const DISPLAY_PHASES = Object.freeze({
+  GARMENT_CONDITIONING: 'ITEM_FACTS',
+  GARMENT_GROUPING: 'VIEW_GROUPING',
+  GARMENT_GENERATING: 'ITEM_PREPARATION',
+  GARMENT_QA: 'ITEM_QA',
+});
+const displayPhase = (value) => DISPLAY_PHASES[value] ?? String(value ?? 'UNMAPPED');
+const displayMessage = (value) => String(value ?? '')
+  .replaceAll('GARMENTS', 'ITEMS')
+  .replaceAll('GARMENT', 'ITEM')
+  .replaceAll('Garments', 'Items')
+  .replaceAll('Garment', 'Item')
+  .replaceAll('garments', 'items')
+  .replaceAll('garment', 'item');
 
 async function atomicJson(filename, value) {
   await mkdir(path.dirname(filename), { recursive: true });
@@ -19,8 +33,10 @@ async function atomicJson(filename, value) {
 }
 
 function phaseComment(run) {
-  if (run.status === 'NEEDS_INPUT') return `Зупинка на ${run.phase}: ${run.message}. Це не зависання; supervisor відкрив incident і перевіряє, чи input справді недостатній, чи правило pipeline помилкове.`;
-  if (run.status === 'FAILED') return `Помилка на ${run.inner_state ?? run.phase}: ${run.message}. Incident зафіксовано; запускається окремий bug-hunt.`;
+  const phase = displayPhase(run.inner_state ?? run.phase);
+  const message = displayMessage(run.message);
+  if (run.status === 'NEEDS_INPUT') return `Зупинка на ${phase}: ${message}. Це не зависання; supervisor відкрив incident і перевіряє, чи input справді недостатній, чи правило pipeline помилкове.`;
+  if (run.status === 'FAILED') return `Помилка на ${phase}: ${message}. Incident зафіксовано; запускається окремий bug-hunt.`;
   if (run.status === 'COMPLETED') return 'Run завершився: усі обов’язкові outputs пройшли pipeline та QA.';
   const comments = {
     UPLOADED: 'Файли повністю збережені сервером. Далі мережевий upload уже не бере участі.',
@@ -31,7 +47,7 @@ function phaseComment(run) {
     CORE_PIPELINE: 'Еталонні референси готові; почалась генерація аватара й образу з checkpoint та QA.',
     OPTIONAL_SCENE: 'Core outputs готові; створюється необов’язковий editorial still.',
   };
-  return comments[run.inner_state ?? run.phase] ?? `Pipeline перейшов у ${run.inner_state ?? run.phase}: ${run.message}`;
+  return comments[run.inner_state ?? run.phase] ?? `Pipeline перейшов у ${phase}: ${message}`;
 }
 
 export class AgentSupervisor {
@@ -120,7 +136,7 @@ export class AgentSupervisor {
     this.state.incidents[key] = incident;
     const incidentPath = path.join(this.stateRoot, 'incidents', `${key}.json`);
     await atomicJson(incidentPath, incident);
-    await this.#comment(run, `Incident ${key} створено: ${run.message}`, 'error', 'agent.incident_opened');
+    await this.#comment(run, `Incident ${key} створено: ${displayMessage(run.message)}`, 'error', 'agent.incident_opened');
   }
 
   #incidentPath(incidentId) {
@@ -301,7 +317,7 @@ export class AgentSupervisor {
         summary: { status: run.status, phase: run.phase, message: run.message, error_name: 'PipelineStall' } };
       this.state.incidents[key] = incident;
       await atomicJson(this.#incidentPath(key), incident);
-      await this.#comment(run, `Stall: ${run.phase} не змінював persisted state понад ${Math.round(limit / 60_000)} хвилин.`, 'error', 'agent.stall_detected');
+      await this.#comment(run, `Stall: ${displayPhase(run.phase)} не змінював persisted state понад ${Math.round(limit / 60_000)} хвилин.`, 'error', 'agent.stall_detected');
     }
   }
 

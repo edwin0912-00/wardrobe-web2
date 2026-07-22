@@ -152,27 +152,27 @@ export class RunService {
   }
 
   async #createNewRun({ runId, person, identityDetail, garments, outfitText, generateScene, approvedAvatarReference }) {
-    if (garments.length > 5) throw new Error('At most five garment images are allowed');
-    if (garments.length === 0 && outfitText.trim() === '') throw new Error('Provide outfit text or at least one garment image');
-    await validateUpload(person, 'person_photo');
-    if (identityDetail) await validateUpload(identityDetail, 'identity_detail');
-    for (const [index, garment] of garments.entries()) await validateUpload(garment, `garment_images[${index}]`);
+    if (garments.length > 5) throw new Error('Можна додати не більше п’яти фото речей');
+    if (garments.length === 0 && outfitText.trim() === '') throw new Error('Додайте опис образу або хоча б одне фото речі');
+    await validateUpload(person, 'Фото людини');
+    if (identityDetail) await validateUpload(identityDetail, 'Додаткове фото людини');
+    for (const [index, garment] of garments.entries()) await validateUpload(garment, `Фото речі ${index + 1}`);
     const approvedAvatar = approvedAvatarReference
       ? await this.#verifyApprovedAvatarReference(approvedAvatarReference, runId)
       : null;
     const runDirectory = this.runDirectory(runId);
     const inputsDirectory = path.join(runDirectory, 'inputs');
     await mkdir(inputsDirectory, { recursive: true });
-    const save = async (upload, stem) => {
-      const { extension } = await validateUpload(upload, stem);
+    const save = async (upload, stem, displayField) => {
+      const { extension } = await validateUpload(upload, displayField);
       const filename = path.join(inputsDirectory, `${stem}${extension}`);
       await writeFile(filename, upload.buffer, { flag: 'wx' });
       return filename;
     };
-    const personPath = await save(person, 'person');
-    const identityDetailPath = identityDetail ? await save(identityDetail, 'identity-detail') : null;
+    const personPath = await save(person, 'person', 'Фото людини');
+    const identityDetailPath = identityDetail ? await save(identityDetail, 'identity-detail', 'Додаткове фото людини') : null;
     const garmentPaths = [];
-    for (const [index, garment] of garments.entries()) garmentPaths.push(await save(garment, `garment-${String(index + 1).padStart(2, '0')}`));
+    for (const [index, garment] of garments.entries()) garmentPaths.push(await save(garment, `garment-${String(index + 1).padStart(2, '0')}`, `Фото речі ${index + 1}`));
     let importedApprovedAvatar = null;
     if (approvedAvatar) {
       const avatarPath = path.join(inputsDirectory, 'approved-avatar.png');
@@ -460,13 +460,13 @@ export class RunService {
   async selectGarments(runId, selections) {
     const state = await this.#read(runId);
     if (!state) return null;
-    if (state.status !== 'NEEDS_INPUT' || state.error?.name !== 'GarmentNeedsInputError') throw new Error('This run is not waiting for a garment selection');
+    if (state.status !== 'NEEDS_INPUT' || state.error?.name !== 'GarmentNeedsInputError') throw new Error('Цей запуск не очікує вибору речі');
     const duplicateConflicts = (state.conflicts ?? []).filter((conflict) => conflict.type === 'DUPLICATE_SLOT');
-    if (!duplicateConflicts.length) throw new Error('This garment conflict cannot be resolved by slot selection');
+    if (!duplicateConflicts.length) throw new Error('Цей конфлікт речей не можна вирішити вибором категорії');
     const normalized = {};
     for (const conflict of duplicateConflicts) {
       const selected = selections?.[conflict.category];
-      if (!conflict.reference_set_ids.includes(selected)) throw new Error(`Select exactly one ${conflict.category} option`);
+      if (!conflict.reference_set_ids.includes(selected)) throw new Error(`Оберіть рівно один варіант для категорії ${conflict.category}`);
       normalized[conflict.category] = selected;
     }
     await rm(path.join(this.runDirectory(runId), 'conditioned', 'garments'), { recursive: true, force: true });

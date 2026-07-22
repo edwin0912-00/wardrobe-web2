@@ -24,7 +24,7 @@ NOTION_EXPLICIT > EXPLICIT_USER_DECISION > DERIVED_PRODUCTION_RULE > OPTIONAL_ID
 
 - `CORE-IN-001 MUST`: engine приймає нове фото користувача без ручного редагування job JSON.
 - `CORE-IN-002 MUST`: primary user photo може мати довільний фон і позу.
-- `CORE-IN-003 MUST`: Outfit Transfer приймає текст, garment-reference або їх комбінацію.
+- `CORE-IN-003 MUST`: Outfit Transfer приймає текст, референс речі або їх комбінацію.
 - `CORE-IN-004 MUST`: додаткове identity-фото може покращувати evidence pack, але не є вимогою оригінального ТЗ.
 - `CORE-IN-005 MUST`: invalid/corrupt/unsupported input завершується структурованим `NEEDS_INPUT`, а не model call.
 
@@ -65,7 +65,7 @@ NOTION_EXPLICIT > EXPLICIT_USER_DECISION > DERIVED_PRODUCTION_RULE > OPTIONAL_ID
 - `QA-005`: neutral white balance and natural skin tone.
 - `QA-006`: sharp eyes/hair/skin/fabric; no blur or plastic skin.
 - `QA-007`: photographic realism.
-- `QA-008`: garment type/color/texture/fit fidelity.
+- `QA-008`: відповідність речі за типом, кольором, текстурою та посадкою.
 - `QA-009`: no anatomical defects.
 - `QA-010`: no old-clothing residue or background bleed.
 
@@ -79,18 +79,18 @@ Technical QA і semantic QA є різними gates. Технічний PASS н�
 - `WIN-COND-002 SHOULD`: extraction розрізняє `OBSERVED`, `UNKNOWN` і `NOT_EVALUABLE`.
 - `WIN-COND-003 SHOULD`: readiness route використовує `READY`, `REPAIRABLE`, `NEEDS_INPUT`, `INCOMPATIBLE`.
 - `WIN-COND-004 SHOULD`: кожен derivative має parent hash, operation і output hash.
-- `WIN-COND-005 SHOULD`: model-generated hypothesis ніколи не стає identity або garment lock.
+- `WIN-COND-005 SHOULD`: model-generated hypothesis ніколи не стає identity lock або зафіксованою характеристикою речі.
 
-### Arbitrary garment intake
+### Приймання довільних фото речей
 
-- `WIN-GARMENT-001 SHOULD`: engine приймає до п’яти довільних garment-фото.
+- `WIN-GARMENT-001 SHOULD`: engine приймає до п’яти довільних фото речей.
 - `WIN-GARMENT-002 SHOULD`: кожен asset класифікується як `outerwear`, `top`, `bottom`, `one_piece`, `footwear`, `headwear`, `bag` або `accessory`.
 - `WIN-GARMENT-003 SHOULD`: картка речі містить видимі тип, колір, матеріал, візерунок, текст/логотип, конструктивні деталі та впевненість.
 - `WIN-GARMENT-004 SHOULD`: canonicalization видаляє person, hanger і environment, але не змінює спостережувані характеристики речі.
 - `WIN-GARMENT-005 SHOULD`: canonical white card і transparent cutout зберігаються окремо.
 - `WIN-GARMENT-006 SHOULD`: raw-versus-canonical fidelity QA блокує altered logo/text/color/shape/material.
 - `WIN-GARMENT-007 SHOULD`: неповністю видиму або надто низькоякісну річ не можна видавати за exact reference.
-- `WIN-GARMENT-008 SHOULD`: approved garments передаються як окремі ordered refs із category binding.
+- `WIN-GARMENT-008 SHOULD`: схвалені речі передаються як окремі ordered refs із category binding.
 - `WIN-GARMENT-009 SHOULD`: `one_piece` конфліктує з `top + bottom`; кілька речей одного slot потребують explicit selection.
 
 ### Reliability і evidence
@@ -115,4 +115,4 @@ Technical QA і semantic QA є різними gates. Технічний PASS н�
 
 ## 6. Working-core definition of done
 
-Evaluator запускає одну команду, відкриває web app, додає нове user photo та text/garment reference, бачить conditioning і generation progress та завантажує два нові core PNG. Жоден етап не потребує редагування checked-in JSON. Кожен PASS має hash-bound QA evidence. Fixtures `001–003` залишаються regression proof, а не єдиним можливим input.
+Evaluator запускає одну команду, відкриває web app, додає нове user photo та текстовий опис або референс речі, бачить conditioning і generation progress та завантажує два нові core PNG. Жоден етап не потребує редагування checked-in JSON. Кожен PASS має hash-bound QA evidence. Fixtures `001–003` залишаються regression proof, а не єдиним можливим input.

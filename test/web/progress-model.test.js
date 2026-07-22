@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import {
+  checkpointDisplayCode,
   PIPELINE_NODE_COUNT,
   PIPELINE_NODES,
   PIPELINE_ROWS,
@@ -29,7 +30,7 @@ test('technical pipeline is a unique three-row 5×3 serpentine graph', () => {
   }
 });
 
-test('garment QA explains the user-visible comparison without fidelity jargon', () => {
+test('item QA explains the user-visible comparison without fidelity jargon', () => {
   const node = PIPELINE_NODES.find((item) => item.id === 'garment-qa');
   assert.equal(node.title, 'Звірка речі з оригіналом');
   assert.doesNotMatch(`${node.title} ${node.detail} ${node.operation}`, /fidelity/i);
@@ -38,7 +39,7 @@ test('garment QA explains the user-visible comparison without fidelity jargon', 
   assert.equal(resolveProgressState('GARMENT_QA').title, 'Звіряємо річ з оригінальними фото');
 });
 
-test('garment conditioning uses one clear Ukrainian product vocabulary', () => {
+test('item preparation uses one clear Ukrainian product vocabulary', () => {
   const card = PIPELINE_NODES.find((item) => item.id === 'garment-passport');
   const preparation = PIPELINE_NODES.find((item) => item.id === 'garment-canonical');
   assert.equal(card.title, 'Картка речі');
@@ -46,6 +47,28 @@ test('garment conditioning uses one clear Ukrainian product vocabulary', () => {
   assert.equal(preparation.title, 'Підготовка речі');
   assert.equal(resolveProgressState('GARMENT_CONDITIONING').title, 'Фіксуємо характеристики речей');
   assert.doesNotMatch(JSON.stringify([card, preparation, PROGRESS_STATES.GARMENT_CONDITIONING, PROGRESS_STATES.GARMENT_GENERATING]), /garment passport|canonical garment/i);
+});
+
+test('legacy internal item checkpoints expose neutral display aliases', () => {
+  assert.deepEqual(
+    ['GARMENT_CONDITIONING', 'GARMENT_GROUPING', 'GARMENT_GENERATING', 'GARMENT_QA'].map(checkpointDisplayCode),
+    ['ITEM_FACTS', 'VIEW_GROUPING', 'ITEM_PREPARATION', 'ITEM_QA'],
+  );
+  assert.equal(checkpointDisplayCode('AVATAR_QA'), 'AVATAR_QA');
+  assert.equal(checkpointDisplayCode(null), 'CHECKPOINT_SYNC');
+
+  for (const key of ['GARMENT_CONDITIONING', 'GARMENT_GROUPING', 'GARMENT_GENERATING', 'GARMENT_QA']) {
+    assert.ok(PROGRESS_STATES[key], `${key} must remain a valid internal state`);
+  }
+});
+
+test('visible pipeline node copy contains no garment terminology', () => {
+  const visibleFields = ['title', 'code', 'detail', 'input', 'operation', 'output', 'gate', 'rowLabel'];
+  const visibleCopy = PIPELINE_NODES
+    .flatMap((node) => visibleFields.map((field) => node[field] ?? ''))
+    .join(' ');
+
+  assert.doesNotMatch(visibleCopy, /\bgarments?\b/i);
 });
 
 test('public pages never expose the internal garment-passport naming', async () => {

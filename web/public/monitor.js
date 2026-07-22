@@ -1,3 +1,5 @@
+import { neutralizeItemTerms } from './visible-copy.js?v=20260722-1';
+
 const events = [];
 const list = document.querySelector('#event-list');
 const empty = document.querySelector('#empty-log');
@@ -5,8 +7,14 @@ const sourceFilter = document.querySelector('#source-filter');
 const severityFilter = document.querySelector('#severity-filter');
 const search = document.querySelector('#search');
 
+export function monitorDisplayText(value) {
+  return neutralizeItemTerms(value);
+}
+
+const monitorDisplayJson = (value) => monitorDisplayText(JSON.stringify(value ?? {}));
+
 function setHealth(id, status, detail = status) {
-  document.querySelector(`#${id}-status`).textContent = detail;
+  document.querySelector(`#${id}-status`).textContent = monitorDisplayText(detail);
   const dot = document.querySelector(`#${id}-dot`);
   dot.className = `dot ${status === 'up' || status === 'ok' ? 'up' : status === 'unknown' ? 'unknown' : 'down'}`;
 }
@@ -33,7 +41,7 @@ function render() {
   const filtered = events.filter((event) => {
     if (source && event.source !== source) return false;
     if (severity && event.severity !== severity) return false;
-    return !term || JSON.stringify(event).toLowerCase().includes(term);
+    return !term || monitorDisplayJson(event).toLowerCase().includes(term);
   });
   list.replaceChildren();
   for (const event of filtered.slice().reverse()) {
@@ -43,12 +51,15 @@ function render() {
     time.dateTime = event.at;
     time.textContent = new Date(event.at).toLocaleTimeString('uk-UA', { hour12: false });
     const kind = document.createElement('div');
-    kind.innerHTML = `<span>${event.source}</span><strong></strong>`;
-    kind.querySelector('strong').textContent = event.type;
+    const sourceLabel = document.createElement('span');
+    sourceLabel.textContent = monitorDisplayText(event.source);
+    const typeLabel = document.createElement('strong');
+    typeLabel.textContent = monitorDisplayText(event.type);
+    kind.append(sourceLabel, typeLabel);
     const identity = document.createElement('code');
     identity.textContent = event.run_id ? `run ${short(event.run_id, 16)}` : event.session_id ? `session ${short(event.session_id, 8)}` : '—';
     const details = document.createElement('pre');
-    details.textContent = JSON.stringify(event.data || {});
+    details.textContent = monitorDisplayJson(event.data);
     row.append(time, kind, identity, details);
     list.append(row);
   }

@@ -280,7 +280,7 @@
 <tr>
 <th>Policy</th>
 <th>Human</th>
-<th>Product/garment</th>
+<th>Product/річ</th>
 <th>Environment</th>
 <th>Типова задача</th>
 </tr>
@@ -295,7 +295,7 @@
 <tr>
 <td><code>DIFF_REPLACE</code></td>
 <td>preserve</td>
-<td>preserve target SKU/garment</td>
+<td>preserve target SKU/річ</td>
 <td>replace with approved target environment</td>
 <td>same person + product у новій campaign scene</td>
 </tr>
@@ -397,7 +397,7 @@
 <td>mask/composite + preset/color context</td>
 <td>async status/webhook; creative scoring claim</td>
 <td>deterministic product stills, safe margins, ad formats</td>
-<td>не вирішує same person + garment + video continuity</td>
+<td>не вирішує same person + річ + video continuity</td>
 </tr>
 <tr>
 <td><strong>Captions/Mirage</strong></td>
@@ -437,7 +437,7 @@
 <td><strong>Tavus</strong></td>
 <td>API-first digital replica, scripted/realtime</td>
 <td>trained Replica + Persona + background</td>
-<td>product/garment не є typed references</td>
+<td>product/річ не є typed references</td>
 </tr>
 <tr>
 <td><strong>D-ID</strong></td>
@@ -579,7 +579,7 @@
 <td><code>klein / pro / max / flex</code></td>
 <td>model + steps/guidance у Flex</td>
 <td>до 4 MP</td>
-<td>garment/product/pose/multi-ref specialist</td>
+<td>specialist для речей/product/pose/multi-ref</td>
 </tr>
 </tbody></table>
 <p>Джерела: <a href="https://developers.openai.com/api/docs/models/gpt-image-2">GPT Image 2</a>, <a href="https://developers.openai.com/api/docs/guides/image-generation">OpenAI image guide</a>, <a href="https://ai.google.dev/gemini-api/docs/models/gemini-3.1-flash-image">Nano Banana 2</a>, <a href="https://ai.google.dev/gemini-api/docs/image-generation">Google image generation</a>, <a href="https://docs.bfl.ai/guides/prompting_guide_flux2">FLUX.2 prompting</a>.</p>
@@ -638,7 +638,7 @@
 </tr>
 <tr>
 <td><strong>FLUX VTO</strong></td>
-<td>person + garment refs, clothing-specific</td>
+<td>person + refs речей, clothing-specific</td>
 <td>image</td>
 <td>contract-dependent</td>
 <td>outfit transfer and fabric/logo structure</td>
@@ -918,7 +918,7 @@ both direct routes unhealthy
 <td><strong>HeyGen Avatar IV / Digital Twin API</strong></td>
 <td><strong>Tavus Replica API</strong></td>
 <td>consented talking presenter, script/audio, localization</td>
-<td>exact garment/product interaction in cinematic world</td>
+<td>exact interaction речі/product у cinematic world</td>
 </tr>
 <tr>
 <td><strong>Synthesia API</strong></td>
@@ -1196,7 +1196,7 @@ CANCELLED
 <td>&lt;160 / severe occlusion</td>
 </tr>
 <tr>
-<td>Product/garment short edge</td>
+<td>Коротша сторона product/речі</td>
 <td>≥1024 px</td>
 <td>768–1023</td>
 <td>&lt;768</td>
@@ -1208,7 +1208,7 @@ CANCELLED
 <td>&lt;12%</td>
 </tr>
 <tr>
-<td>Garment visibility</td>
+<td>Видимість речі</td>
 <td>full front, key structure visible</td>
 <td>minor crop/occlusion</td>
 <td>key structure hidden</td>
@@ -1362,7 +1362,7 @@ NEGATIVE: no extra accessories, no modified logo, no second person, no cropped s
 </blockquote>
 <p>Добре:</p>
 <blockquote>
-<p>5 s. Subject makes one slow half-turn while keeping the garment front visible. Camera performs a subtle 10% push-in. No cut. Preserve face, garment logo, mirror geometry and lighting.</p>
+<p>5 s. Subject makes one slow half-turn while keeping the front of the clothing item visible. Camera performs a subtle 10% push-in. No cut. Preserve face, clothing-item logo, mirror geometry and lighting.</p>
 </blockquote>
 <h3 id="s-10-3-continuity-pack-для-кожного-shot">10.3 Continuity pack для кожного shot<a class="anchor" href="#s-10-3-continuity-pack-для-кожного-shot" aria-label="Link to section">#</a></h3>
 <ul>
@@ -1442,7 +1442,7 @@ NEGATIVE: no extra accessories, no modified logo, no second person, no cropped s
 <td>так</td>
 </tr>
 <tr>
-<td>Garment</td>
+<td>Річ</td>
 <td>neckline, sleeves, length, print, seams, drape</td>
 <td>temporal structure, no morph/flicker</td>
 <td>так</td>
@@ -1567,7 +1567,7 @@ all blocking gates PASS → rank by aesthetics/cost/latency
 </ul>
 <p>Semantic errors:</p>
 <ul>
-<li>wrong face, logo, garment, background, hands, motion;</li>
+<li>wrong face, logo, clothing item, background, hands, motion;</li>
 <li>кожний новий generation = new attempt;</li>
 <li>максимум 2 attempts per provider;</li>
 <li>той самий blocking defect двічі → switch independent model family;</li>
@@ -1598,7 +1598,7 @@ all blocking gates PASS → rank by aesthetics/cost/latency
 <td>only add more adjectives</td>
 </tr>
 <tr>
-<td>garment local detail</td>
+<td>локальна деталь речі</td>
 <td>masked edit/VTO route</td>
 <td>full scene regeneration first</td>
 </tr>
@@ -1882,7 +1882,7 @@ Temporal Cloud / durable workflow
 <ul>
 <li>default multi-ref/environment: Nano Banana 2, 1K;</li>
 <li>identity-sensitive edit: GPT Image 2 medium, pinned snapshot;</li>
-<li>garment/VTO: FLUX VTO or FASHN; fallback GPT Image 2/FLUX.2 Pro after benchmark;</li>
+<li>речі/VTO: FLUX VTO or FASHN; fallback GPT Image 2/FLUX.2 Pro after benchmark;</li>
 <li>brand/text/hero: Nano Banana Pro or FLUX.2 Max/Flex;</li>
 <li>2K/4K only after semantic pass.</li>
 </ul>
@@ -2271,7 +2271,7 @@ sync DOM overlays with presented frame
 <td>clean, mediocre, repairable, reject cases</td>
 </tr>
 <tr>
-<td>Garments</td>
+<td>Речі</td>
 <td>T-shirt, shirt, jacket, dress, patterned/logotyped items</td>
 </tr>
 <tr>
@@ -2299,7 +2299,7 @@ sync DOM overlays with presented frame
 <li>product geometry;</li>
 <li>logo/text;</li>
 <li>color/material;</li>
-<li>garment structure;</li>
+<li>структура речі;</li>
 <li>environment policy;</li>
 <li>anatomy/contact;</li>
 <li>temporal stability;</li>
@@ -2362,7 +2362,7 @@ sync DOM overlays with presented frame
 <td>100%</td>
 </tr>
 </tbody></table>
-<p>Quality targets must be reported per task class. Один global “92% quality” приховує, що talking head може бути 95%, а garment+logo+walk — 30%.</p>
+<p>Quality targets must be reported per task class. Один global “92% quality” приховує, що talking head може бути 95%, а річ+logo+walk — 30%.</p>
 <h3 id="s-17-4-unit-economics-formula">17.4 Unit economics formula<a class="anchor" href="#s-17-4-unit-economics-formula" aria-label="Link to section">#</a></h3>
 <pre><code class="language-text">accepted_job_cost =
   Σ successful_generation_calls

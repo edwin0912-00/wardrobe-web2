@@ -78,7 +78,10 @@ test('agent supervisor comments persisted phases and opens one deduplicated inci
   const events = await store.tail(20);
   assert.equal(events.filter((event) => event.type === 'agent.comment').length, 2);
   assert.equal(events.filter((event) => event.type === 'agent.incident_opened').length, 1);
-  assert.match(events.find((event) => event.type === 'agent.comment' && event.severity === 'error').data.message, /не зависання/);
+  const errorComment = events.find((event) => event.type === 'agent.comment' && event.severity === 'error').data.message;
+  assert.match(errorComment, /не зависання/);
+  assert.match(errorComment, /ITEM_FACTS/);
+  assert.doesNotMatch(events.filter((event) => event.source === 'agent').map((event) => event.data?.message ?? '').join('\n'), /garment/i);
   const state = JSON.parse(await readFile(path.join(root, 'supervisor', 'state.json'), 'utf8'));
   assert.equal(Object.keys(state.incidents).length, 1);
   await supervisor.tick();

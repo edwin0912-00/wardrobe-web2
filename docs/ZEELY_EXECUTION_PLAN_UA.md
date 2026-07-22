@@ -31,7 +31,7 @@ Art Director/photo-video демонстрація є optional. HTML5 swipe-са�
 - deterministic normalization і спеціальні derivatives для identity/product;
 - readiness router до generation, а не після невдалого output;
 - відмінність між strict production і test-compatibility lane;
-- правило, що synthetic/generated hypothesis ніколи не стає identity або garment lock;
+- правило, що synthetic/generated hypothesis ніколи не стає identity lock або зафіксованою характеристикою речі;
 - пріоритет письмової вимоги `#FFFFFF` над пікселями expected-output benchmark;
 - несумісність sneaker з half-body framing;
 - недостатня resolution hat reference для exact detail;
@@ -110,7 +110,7 @@ declarative instruction ≠ execution authority ≠ provider implementation
 
 ### Outfit source
 
-Є authority лише для видимих garment facts: category, construction, material/color, layers, print/logo placement та fit. Після conditioning model отримує не випадковий raw screenshot, а cutout/reference card або точний text specification.
+Є authority лише для видимих характеристик речі: category, construction, material/color, layers, print/logo placement та fit. Після conditioning model отримує не випадковий raw screenshot, а cutout/reference card або точний text specification.
 
 ### Expected-output images
 
@@ -145,13 +145,13 @@ raw immutable asset
 - unknown body fields із provenance `UNKNOWN`;
 - readiness окремо для strict production і test lane.
 
-### Garment derivatives
+### Похідні матеріали речі
 
 - normalized product image;
 - alpha-preserving cutout, якщо source alpha існує;
 - explicit bbox crop, якщо pixel segmentation немає, із відповідним warning;
 - exact-white reference card;
-- observed garment structure/graphic locks;
+- observed structure/graphic locks речі;
 - compatibility із target framing;
 - readiness і generation bindings лише після pass.
 
@@ -251,7 +251,7 @@ Runner не просить агента вигадати prompt. Він комп
 - [`outfit-text.txt`](../prompts/outfit-text.txt)
 - [`repair.txt`](../prompts/repair.txt)
 
-Compiled artifact має явно називати роль кожного input у правильному порядку. Для outfit step input 1 — approved avatar; conditioned identity evidence повторюється; reference outfit отримує лише garment authority. Exact compiled prompt і hash зберігаються біля run evidence.
+Compiled artifact має явно називати роль кожного input у правильному порядку. Для outfit step input 1 — approved avatar; conditioned identity evidence повторюється; reference outfit отримує authority лише для характеристик речі. Exact compiled prompt і hash зберігаються біля run evidence.
 
 Prompt не може зробити `UNKNOWN` фактом. Для users `001–003` допустимо зберігати observable upper-body cues, але не заявляти точне збереження невидимих full-body proportions.
 
@@ -266,9 +266,9 @@ Prompt не може зробити `UNKNOWN` фактом. Для users `001–
 7. Photoreal studio photograph, не render/illustration.
 8. Outfit відповідає text/conditioned reference за type, layers, color, material, structure, graphics і fit.
 9. Немає extra/fused fingers, duplicated anatomy, face asymmetry або deformed ears.
-10. Немає remnants старого outfit, double collars, background leakage або garment bleed.
+10. Немає remnants старого outfit, double collars, background leakage або протікання деталей речі.
 
-Deterministic verifier перевіряє technical properties. White normalizer змінює лише near-white background pixels, доступні 4-connected шляхом від border; global threshold заборонений, щоб не знищити eyes, teeth, highlights або garment graphics.
+Deterministic verifier перевіряє technical properties. White normalizer змінює лише near-white background pixels, доступні 4-connected шляхом від border; global threshold заборонений, щоб не знищити eyes, teeth, highlights або графіку на речі.
 
 Identity, outfit fidelity, anatomy, lighting і photorealism потребують explicit semantic evidence. Наявність PNG або результат normalizer сама по собі не означає `PASS`.
 

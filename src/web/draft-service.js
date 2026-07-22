@@ -192,7 +192,7 @@ export class DraftService {
     await writeFile(path.join(directory, filename), upload.buffer, { flag: 'wx', mode: 0o600 });
     const descriptor = { id, filename, mimetype: upload.mimetype, size: upload.buffer.length };
     if (slot === 'garment') {
-      if (manifest.garments.length >= 5) { await rm(path.join(directory, filename), { force: true }); throw new Error('Draft already has five garments'); }
+      if (manifest.garments.length >= 5) { await rm(path.join(directory, filename), { force: true }); throw new Error('У чернетці вже є п’ять фото речей'); }
       manifest.garments.push(descriptor);
     } else {
       const previous = manifest[slot];
@@ -292,20 +292,20 @@ export async function registerDraftRoutes(app, { service, runService = null, pro
     const sessionId = session(request, reply);
     const manifest = await service.read(sessionId);
     if (!manifest.person) return reply.code(400).send({ error: 'Фото людини відсутнє в чернетці' });
-    const asUpload = async (slot, descriptor, field) => {
+    const asUpload = async (slot, descriptor, field, displaySlot) => {
       const value = await service.file(sessionId, slot, descriptor.id);
-      if (!value) throw new Error(`Файл ${slot} відсутній у чернетці`);
+      if (!value) throw new Error(`Файл ${displaySlot} відсутній у чернетці`);
       return prepareDraftUploadForRun(
         { filename: descriptor.filename, mimetype: descriptor.mimetype, buffer: value.buffer },
         { field },
       );
     };
-    const person = await asUpload('person', manifest.person, 'person_photo');
+    const person = await asUpload('person', manifest.person, 'Фото людини', 'людини');
     const identityDetail = manifest.identity
-      ? await asUpload('identity', manifest.identity, 'identity_detail')
+      ? await asUpload('identity', manifest.identity, 'Додаткове фото людини', 'додаткового фото людини')
       : null;
     const garments = await Promise.all(manifest.garments.map((item, index) => (
-      asUpload('garment', item, `garment_images[${index}]`)
+      asUpload('garment', item, `Фото речі ${index + 1}`, `речі ${index + 1}`)
     )));
     let approvedAvatarReference = null;
     let profileSession = null;
