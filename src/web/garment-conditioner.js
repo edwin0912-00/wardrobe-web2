@@ -23,6 +23,10 @@ export class GarmentNeedsInputError extends Error {
   constructor(message, details = {}) { super(message); this.name = 'GarmentNeedsInputError'; this.details = details; }
 }
 
+export class GarmentRouteExhaustedError extends Error {
+  constructor(message, details = {}) { super(message); this.name = 'GarmentRouteExhaustedError'; this.details = details; }
+}
+
 export class GarmentConditioner {
   constructor({ vlm, generator, clock = () => new Date() }) { this.vlm = vlm; this.generator = generator; this.clock = clock; }
 
@@ -71,11 +75,24 @@ export class GarmentConditioner {
           identity: { artifact: { path: sourcePath } }, candidate: { artifact: { path: candidatePath } },
           reference_packs: { outfit: { bindings: sourcePaths.map((filename) => ({ artifact: { path: filename } })) } },
         } });
-        attempts.push({ model, qa, provider: generated.metadata ?? {} });
+        attempts.push({
+          attempt: routeIndex + 1,
+          model,
+          candidate: { path: candidatePath, sha256: sha256(normalized.image) },
+          qa,
+          provider: generated.metadata ?? {},
+        });
         if (qa.decision === 'PASS') { accepted = { model, candidatePath, image: normalized.image, qa, provider: generated.metadata ?? {} }; break; }
-        if (qa.decision === 'NEEDS_INPUT' || qa.decision === 'REJECT') throw new GarmentNeedsInputError(qa.reason, { item, qa, attempts });
+        // NEEDS_INPUT is reserved for genuinely insufficient raw garment
+        // evidence. RETRY and REJECT describe this generated candidate, so both
+        // advance through the fixed, bounded image-model route.
+        if (qa.decision === 'NEEDS_INPUT') throw new GarmentNeedsInputError(qa.reason, { item, qa, attempts });
       }
-      if (!accepted) throw new GarmentNeedsInputError('Garment canonicalization exhausted the quality route', { item, attempts });
+      if (!accepted) throw new GarmentRouteExhaustedError('Garment canonicalization exhausted the quality route', {
+        item,
+        route: [...IMAGE_MODEL_ROUTE],
+        attempts,
+      });
       const referenceCardPath = path.join(itemDirectory, 'reference-card.png');
       await atomicWrite(referenceCardPath, accepted.image);
       const cutout = await removeBorderConnectedWhiteToAlpha(accepted.image);

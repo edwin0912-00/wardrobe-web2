@@ -6,10 +6,10 @@ import test from 'node:test';
 import sharp from 'sharp';
 import { CodexVlmEvaluator } from '../../src/providers/codex-vlm-evaluator.js';
 
-async function imageFixture() {
+async function imageFixture(background = '#ffffff', basename = 'image.png') {
   const root = await mkdtemp(path.join(os.tmpdir(), 'zeely-codex-test-'));
-  const filename = path.join(root, 'image.png');
-  await sharp({ create: { width: 300, height: 400, channels: 3, background: '#ffffff' } }).png().toFile(filename);
+  const filename = path.join(root, basename);
+  await sharp({ create: { width: 300, height: 400, channels: 3, background } }).png().toFile(filename);
   return filename;
 }
 
@@ -85,6 +85,43 @@ test('Codex evaluator fails closed when the CLI cannot produce evidence', async 
   const result = await evaluator.evaluateQa({ phase: 'avatar', evidence: { candidate: { artifact: { path: filename } } } });
   assert.equal(result.decision, 'NEEDS_INPUT');
   assert.match(result.reason, /not authenticated/);
+});
+
+test('garment QA infrastructure failure is retryable and never claims raw evidence is missing', async () => {
+  const filename = await imageFixture();
+  const evaluator = new CodexVlmEvaluator({ commandRunner: async () => { throw new Error('temporary evaluator outage'); } });
+  const result = await evaluator.evaluateQa({ phase: 'garment', evidence: { candidate: { artifact: { path: filename } } } });
+  assert.equal(result.decision, 'RETRY');
+  assert.match(result.reason, /temporary evaluator outage/);
+});
+
+test('garment QA prompt preserves raw-versus-generated roles and decision semantics', async () => {
+  const primary = await imageFixture('#263f72', 'shirt-front.png');
+  const candidate = await imageFixture('#8d2231', 'canonical-candidate.png');
+  const detail = await imageFixture('#d4d9e2', 'shirt-detail.png');
+  const calls = [];
+  const evaluator = new CodexVlmEvaluator({ commandRunner: runnerFor({
+    decision: 'RETRY', reason: 'candidate color differs from usable raw evidence',
+    checks: [{ name: 'COLOR', pass: false, score: 0.2, evidence: 'candidate is red while raw shirt is blue' }],
+    defects: ['wrong candidate color'],
+  }, calls) });
+  const result = await evaluator.evaluateQa({ phase: 'garment', evidence: {
+    identity: { artifact: { path: primary } },
+    candidate: { artifact: { path: candidate } },
+    reference_packs: { outfit: { bindings: [
+      { artifact: { path: primary } },
+      { artifact: { path: detail } },
+    ] } },
+  } });
+
+  assert.equal(result.decision, 'RETRY');
+  const prompt = calls[0].args[1];
+  assert.match(prompt, /IMAGE_1 \[RAW_GARMENT_PRIMARY\]: shirt-front\.png/);
+  assert.match(prompt, /IMAGE_2 \[GENERATED_CANONICAL_CANDIDATE\]: canonical-candidate\.png/);
+  assert.match(prompt, /IMAGE_3 \[RAW_GARMENT_VIEW_2\]: shirt-detail\.png/);
+  assert.match(prompt, /Use NEEDS_INPUT only when the raw garment photos themselves are insufficient/);
+  assert.match(prompt, /Never use NEEDS_INPUT merely because the generated candidate differs from usable raw evidence/);
+  assert.equal(calls[0].args.filter((value) => value === '--image').length, 3, 'duplicate primary binding must be removed without erasing image roles');
 });
 
 test('outfit QA receives authoritative text and separates it from identity clothing', async () => {

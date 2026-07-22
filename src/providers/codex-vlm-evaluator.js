@@ -25,19 +25,39 @@ function imagePath(value) {
   return typeof artifact?.path === 'string' ? path.resolve(artifact.path) : null;
 }
 
-function collectQaImages(evidence = {}) {
-  const ordered = [imagePath(evidence.identity), imagePath(evidence.avatar), imagePath(evidence.outfit), imagePath(evidence.candidate)];
+function qaImage(value, role) {
+  const filename = imagePath(value);
+  return filename ? { path: filename, role, source_name: path.basename(filename) } : null;
+}
+
+function collectQaImages(evidence = {}, phase = 'outfit') {
+  const ordered = [
+    qaImage(evidence.identity, phase === 'garment' ? 'RAW_GARMENT_PRIMARY' : 'IDENTITY_REFERENCE'),
+    qaImage(evidence.avatar, 'APPROVED_AVATAR'),
+    qaImage(evidence.outfit, 'OUTFIT_REFERENCE'),
+    qaImage(evidence.candidate, phase === 'garment' ? 'GENERATED_CANONICAL_CANDIDATE' : 'GENERATED_CANDIDATE'),
+  ];
   for (const raw of [evidence.source_identity, evidence.source_outfit]) {
-    if (typeof raw === 'string' && /\.(?:png|jpe?g|webp)$/i.test(raw)) ordered.push(path.resolve(raw));
+    if (typeof raw === 'string' && /\.(?:png|jpe?g|webp)$/i.test(raw)) ordered.push(qaImage({ path: raw }, 'RAW_SOURCE_REFERENCE'));
   }
   for (const scope of ['identity', 'outfit']) {
-    for (const binding of evidence.reference_packs?.[scope]?.bindings ?? []) ordered.push(imagePath(binding));
+    for (const [index, binding] of (evidence.reference_packs?.[scope]?.bindings ?? []).entries()) {
+      const role = phase === 'garment' && scope === 'outfit'
+        ? `RAW_GARMENT_VIEW_${index + 1}`
+        : `${scope.toUpperCase()}_REFERENCE_${index + 1}`;
+      ordered.push(qaImage(binding, role));
+    }
   }
-  return [...new Set(ordered.filter(Boolean))].slice(0, 12);
+  return ordered.filter(Boolean).slice(0, 12);
 }
 
 function qaPrompt(phase, images, evidence = {}) {
-  const labels = images.map((filename, index) => `IMAGE_${index + 1}: ${path.basename(filename)}`).join('\n');
+  const labels = images.map((entry, index) => {
+    const filename = imagePath(entry) ?? entry;
+    const sourceName = typeof entry === 'object' ? entry.source_name : path.basename(filename);
+    const role = typeof entry === 'object' ? ` [${entry.role}]` : '';
+    return `IMAGE_${index + 1}${role}: ${sourceName}`;
+  }).join('\n');
   const outfitText = typeof evidence.source_outfit === 'string'
     ? evidence.source_outfit
     : typeof evidence.outfit?.facts?.text === 'string' ? evidence.outfit.facts.text : '';
@@ -48,7 +68,7 @@ function qaPrompt(phase, images, evidence = {}) {
     conditioning: 'Check whether source identity and garment evidence are usable. Never infer hidden body or garment details. Missing evidence is NEEDS_INPUT.',
     avatar: 'Compare the candidate avatar with identity evidence. Require the same recognizable person, frontal half-body framing, full face, natural anatomy, studio photorealism, and no visible background defects.',
     outfit: 'Compare the candidate with identity, approved avatar, and garment/text evidence. Require the same person and exact observable garment type, colors, material, pattern, logo/text, construction and fit. Reject old-clothing residue and anatomy defects.',
-    garment: 'Compare raw garment evidence with the canonical garment image. Require unchanged observable type, shape, color, material, pattern, logo/text and construction. The canonical image must show only the garment on clean white.',
+    garment: 'RAW_GARMENT_PRIMARY and RAW_GARMENT_VIEW_* are authoritative source photos; GENERATED_CANONICAL_CANDIDATE is the generated image under review. Compare the candidate against every raw view, never the reverse. Require unchanged observable type, shape, color, material, pattern, logo/text and construction. The canonical image must show only the garment on clean white. Use NEEDS_INPUT only when the raw garment photos themselves are insufficient to identify the target, regardless of candidate quality. When raw evidence is usable, any mismatch, omission, invention, crop, background issue or other candidate defect is a generated-route failure: use RETRY when another generation can fix it, or REJECT when this candidate is unusable. Never use NEEDS_INPUT merely because the generated candidate differs from usable raw evidence.',
     scene: 'Compare the editorial scene with the approved outfit still. Require the same person and unchanged approved outfit; judge scene intent separately.',
   };
   return `Visually judge the attached images for Zeely ${phase} QA. ${phaseRules[phase] ?? phaseRules.outfit}${targetContext}\nOrder:\n${labels}\nFill every schema field with concise visible evidence. PASS only if all blocking criteria are visibly supported; RETRY for a fixable generated defect; NEEDS_INPUT for insufficient source evidence; REJECT for an irrecoverable mismatch. Return only JSON.`;
@@ -119,7 +139,8 @@ export class CodexVlmEvaluator {
       // deterministic while preserving enough detail for labels and seams.
       const qaImages = [];
       const seenEvidence = new Set();
-      for (const [index, filename] of images.entries()) {
+      for (const [index, input] of images.entries()) {
+        const filename = imagePath(input) ?? input;
         const qaPath = path.join(temporaryRoot, `evidence-${String(index + 1).padStart(2, '0')}.jpg`);
         const bytes = await sharp(filename, { limitInputPixels: 100_000_000 })
           .rotate().resize({ width: 2048, height: 2048, fit: 'inside', withoutEnlargement: true })
@@ -128,13 +149,13 @@ export class CodexVlmEvaluator {
         if (deduplicate && seenEvidence.has(digest)) continue;
         seenEvidence.add(digest);
         await writeFile(qaPath, bytes);
-        qaImages.push(qaPath);
+        qaImages.push(typeof input === 'object' ? { ...input, path: qaPath } : qaPath);
       }
       const prompt = promptBuilder(qaImages);
       // `--image` accepts one or more values. Place the positional prompt first so
       // the CLI cannot consume it as another image path and wait indefinitely.
       const args = ['exec', prompt, '--ephemeral', '--ignore-user-config', '--ignore-rules', '--skip-git-repo-check', '--sandbox', 'read-only', '--model', this.model, '--config', 'model_reasoning_effort="low"', '--output-schema', schemaPath, '--output-last-message', outputPath];
-      for (const filename of qaImages) args.push('--image', filename);
+      for (const input of qaImages) args.push('--image', imagePath(input) ?? input);
       const result = await this.commandRunner(this.binary, args, { timeoutMs: this.timeoutMs });
       if ((result?.exitCode ?? 0) !== 0) throw new Error('Codex VLM process exited unsuccessfully');
       let raw;
@@ -147,11 +168,15 @@ export class CodexVlmEvaluator {
   }
 
   async evaluateQa(context) {
-    const images = collectQaImages(context?.evidence);
+    const images = collectQaImages(context?.evidence, context?.phase);
     try {
       return validateQa(await this.#run({ images, promptBuilder: (prepared) => qaPrompt(context?.phase, prepared, context?.evidence), schemaPath: this.qaSchemaPath }));
     } catch (error) {
-      return { decision: 'NEEDS_INPUT', reason: `automatic_semantic_qa_unavailable: ${error.message}`, checks: [{ name: 'AUTOMATIC_SEMANTIC_QA', pass: false, score: 0, evidence: error.message }], defects: ['Automatic semantic QA did not return valid evidence'] };
+      // A garment QA infrastructure failure says nothing about source-photo
+      // sufficiency. Route it to the next bounded image-model attempt instead
+      // of asking the user for new evidence.
+      const decision = context?.phase === 'garment' ? 'RETRY' : 'NEEDS_INPUT';
+      return { decision, reason: `automatic_semantic_qa_unavailable: ${error.message}`, checks: [{ name: 'AUTOMATIC_SEMANTIC_QA', pass: false, score: 0, evidence: error.message }], defects: ['Automatic semantic QA did not return valid evidence'] };
     }
   }
 
