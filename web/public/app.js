@@ -254,8 +254,9 @@ function renderProgress(state, message) {
 function renderRun(run) {
   activeRun = run;
   localStorage.setItem('zeely_active_run_id', run.run_id);
-  statusChip.textContent = run.status.replaceAll('_', ' ');
-  statusChip.className = `status-chip ${run.status === 'COMPLETED' ? 'completed' : run.status === 'FAILED' || run.status === 'NEEDS_INPUT' ? 'failed' : 'running'}`;
+  const hasSelectableConflict = run.status === 'NEEDS_INPUT' && (run.conflicts || []).some((item) => item.type === 'DUPLICATE_SLOT');
+  statusChip.textContent = hasSelectableConflict ? 'ПОТРІБЕН ВИБІР' : run.status.replaceAll('_', ' ');
+  statusChip.className = `status-chip ${hasSelectableConflict ? 'choice' : run.status === 'COMPLETED' ? 'completed' : run.status === 'FAILED' || run.status === 'NEEDS_INPUT' ? 'failed' : 'running'}`;
   if (run.status === 'COMPLETED') {
     setView('result');
     renderResults(run);
@@ -265,7 +266,8 @@ function renderRun(run) {
   }
   if (run.status === 'FAILED' || run.status === 'NEEDS_INPUT') {
     setView('failure');
-    const hasSelectableConflict = run.status === 'NEEDS_INPUT' && (run.conflicts || []).some((item) => item.type === 'DUPLICATE_SLOT');
+    failure.classList.toggle('choice', hasSelectableConflict);
+    document.querySelector('.failure-mark').textContent = hasSelectableConflict ? '?' : '!';
     document.querySelector('#failure-title').textContent = hasSelectableConflict ? 'Обери річ для образу' : run.status === 'NEEDS_INPUT' ? 'Потрібен кращий input' : 'Run зупинено';
     document.querySelector('#failure-message').textContent = hasSelectableConflict ? 'Знайдено кілька різних речей одного типу. Обери одну — pipeline продовжить цей самий run.' : run.message || run.error?.message || 'Unknown error';
     renderConflictPicker(run);

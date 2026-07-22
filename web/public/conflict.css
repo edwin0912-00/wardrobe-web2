@@ -2,6 +2,14 @@
   width: min(520px, 100%);
   margin-top: 20px;
 }
+.status-chip.choice {
+  background: #f2ffd9;
+  color: #426315;
+}
+.failure-view.choice .failure-mark {
+  background: #f2ffd9;
+  color: var(--deep);
+}
 .conflict-group > strong {
   display: block;
   text-align: left;
