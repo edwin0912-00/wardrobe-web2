@@ -66,3 +66,9 @@
     width: 100%;
   }
 }
+
+footer a {
+  color: var(--deep);
+  font-weight: 850;
+  text-decoration: none;
+}

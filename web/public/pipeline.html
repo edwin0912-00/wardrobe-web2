@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="ZEELY working test pipeline: resources, contracts, model routing and QA">
+  <title>ZEELY — Working Pipeline Scheme</title>
+  <link rel="stylesheet" href="/pipeline.css?v=20260722-1">
+  <link rel="stylesheet" href="/pipeline-mobile.css?v=20260722-1">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/"><span>Z</span> ZEELY LAB</a>
+    <a class="back" href="/">← Повернутися до demo</a>
+  </header>
+  <main>
+    <section class="hero">
+      <p class="eyebrow">WORKING TEST · SYSTEM MAP</p>
+      <h1>Від сирого фото<br>до <em>перевіреного результату.</em></h1>
+      <p>Модель тут не керує процесом. Ядро — immutable job, deterministic state machine, conditioned references та blocking QA.</p>
+      <div class="legend"><span><i class="live"></i> LIVE</span><span><i class="evidence"></i> TEST EVIDENCE</span><span><i class="optional"></i> OPTIONAL</span></div>
+    </section>
+
+    <section class="summary">
+      <article><b>Input</b><strong>1 + 1 + 5</strong><span>person · identity detail · garments</span></article>
+      <article><b>Core outputs</b><strong>2 × 3</strong><span>avatar + outfit for three fixtures</span></article>
+      <article><b>Model route</b><strong>3 max</strong><span>GPT Image 2 → NB2 → NB Pro</span></article>
+      <article><b>QA</b><strong>2 gates</strong><span>technical + semantic</span></article>
+    </section>
+
+    <section class="section">
+      <div class="section-head"><span>01</span><div><h2>Наскрізний flow</h2><p>Кожна стрілка має typed input/output; failure не обходить gate.</p></div></div>
+      <div class="flow">
+        <article><mark>LIVE · CLIENT</mark><b>1. Web UI</b><p>Фото людини, optional identity detail, text і до 5 garment photos. Кожен upload slot має незалежний state та preview.</p></article>
+        <article><mark>LIVE · API</mark><b>2. Fastify intake</b><p>Consent, MIME, decode, dimensions, 20 MB/file. Multipart стає нормалізованими upload objects.</p></article>
+        <article><mark>LIVE · STORAGE</mark><b>3. Immutable source</b><p>Raw bytes записуються один раз в isolated run directory. SHA-256 прив’язує всі наступні artifacts.</p></article>
+        <article><mark>LIVE · VLM</mark><b>4. Garment extraction</b><p>Codex strict JSON passport: OBSERVED facts і UNKNOWN. Identity images напряму лишаються evidence для generation та QA.</p></article>
+        <article><mark>LIVE · LOCAL</mark><b>5. Conditioning</b><p>Sharp: EXIF orientation, sRGB, bounded normalization, face/person crops, garment cutout і white card.</p></article>
+        <article class="gate"><mark>BLOCKING GATE</mark><b>6. Readiness</b><p>READY продовжує. REPAIRABLE виконує лише declared repair. NEEDS_INPUT або INCOMPATIBLE зупиняє run.</p></article>
+        <article><mark>LIVE · CONTRACT</mark><b>7. Immutable job.json</b><p>Paths, hashes, prompt templates, limits, exact outputs і fixed model route. Credentials залишаються поза JSON.</p></article>
+        <article><mark>LIVE · CORE</mark><b>8. State machine</b><p>Checkpoints, idempotency keys, append-only events, bounded retries і resume без duplicate create.</p></article>
+        <article><mark>LIVE · PROVIDER</mark><b>9. Higgsfield adapter</b><p>Exact argv: create → atomic journal → wait/resume → validate host/MIME → download PNG.</p></article>
+        <article><mark>LIVE · CLOUD MODEL</mark><b>10. Quality route</b><p>GPT Image 2 primary. Лише після retryable failure: Nano Banana 2, потім Nano Banana Pro.</p></article>
+        <article class="gate"><mark>BLOCKING GATE</mark><b>11. QA</b><p>Exact-white/decode/dimensions окремо від identity, outfit, anatomy, realism та bleed review.</p></article>
+        <article><mark>LIVE · EVIDENCE</mark><b>12. Approved result</b><p>PNG, exact prompt, manifest, provider receipt, hashes і QA report. SSE повертає чесний progress у UI.</p></article>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head"><span>02</span><div><h2>Model router</h2><p>Product name, transport selector і direct API ID — це три різні поля.</p></div></div>
+      <div class="models">
+        <article class="primary"><small>ATTEMPT 1 · PRIMARY</small><h3>GPT Image 2</h3><dl><dt>Higgsfield</dt><dd>gpt_image_2</dd><dt>Direct API</dt><dd>gpt-image-2-2026-04-21</dd><dt>Роль</dt><dd>Avatar та outfit; identity-sensitive final still.</dd></dl></article>
+        <article><small>ATTEMPT 2 · FALLBACK</small><h3>Nano Banana 2</h3><dl><dt>Higgsfield</dt><dd>nano_banana_flash</dd><dt>Direct API</dt><dd>gemini-3.1-flash-image</dd><dt>Роль</dt><dd>Інша model family; multi-reference consistency.</dd></dl></article>
+        <article><small>ATTEMPT 3 · QUALITY</small><h3>Nano Banana Pro</h3><dl><dt>Higgsfield</dt><dd>nano_banana_2</dd><dt>Direct API</dt><dd>gemini-3-pro-image</dd><dt>Роль</dt><dd>Останній attempt для складної composition/detail fidelity.</dd></dl></article>
+      </div>
+      <p class="rule">Після третього FAIL система не знижує threshold і не бере випадкову четверту модель. Результат переходить у FAILED / explicit review.</p>
+    </section>
+
+    <section class="section split">
+      <div>
+        <div class="section-head"><span>03</span><div><h2>Avatar phase</h2><p>Спочатку затверджуємо канонічну людину.</p></div></div>
+        <ol class="steps"><li>Identity pack: normalized → face → person.</li><li>Prompt: frontal half-body, full face, soft light, exact white.</li><li>Generate candidate through attempt 1.</li><li>Normalize лише border-connected near-white.</li><li>Technical QA + hash-bound semantic QA.</li><li>Тільки PASS стає `APPROVED_AVATAR`.</li></ol>
+      </div>
+      <div>
+        <div class="section-head"><span>04</span><div><h2>Outfit phase</h2><p>Одяг не має права змінити затверджену людину.</p></div></div>
+        <ol class="steps"><li>Approved avatar завжди перший reference.</li><li>Потім identity pack і typed garment bindings.</li><li>Text/passport locks фіксують type, color, material, logo, fit.</li><li>QA шукає identity drift, старий одяг і garment mismatch.</li><li>PASS експортує `avatar_outfit.png` та evidence.</li></ol>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head"><span>05</span><div><h2>Ресурси та межі відповідальності</h2><p>Що робить кожен компонент і чого він не вирішує.</p></div></div>
+      <div class="resource-table" role="table">
+        <div class="tr head" role="row"><b>Resource</b><b>Відповідає за</b><b>Не має права</b><b>Evidence</b></div>
+        <div class="tr"><b>Web UI</b><span>Input, preview, progress, downloads</span><span>Вигадувати pipeline state</span><span>Multipart + SSE</span></div>
+        <div class="tr"><b>Fastify</b><span>HTTP contract і server PIN</span><span>Приймати invalid upload</span><span>Status/error response</span></div>
+        <div class="tr"><b>Sharp</b><span>Deterministic derivatives</span><span>Домальовувати hidden details</span><span>Lineage + SHA</span></div>
+        <div class="tr"><b>Codex VLM</b><span>Garment passport і semantic review</span><span>PASS без strict evidence</span><span>Schema JSON</span></div>
+        <div class="tr"><b>Runner</b><span>Order, state, retry, resume</span><span>Самовільно міняти policy</span><span>Events/checkpoints</span></div>
+        <div class="tr"><b>Higgsfield</b><span>Async model transport</span><span>Бути source of truth</span><span>Remote job receipt</span></div>
+        <div class="tr"><b>Cloud models</b><span>Створити candidate pixels</span><span>Самостійно approve output</span><span>Model/version/params</span></div>
+        <div class="tr"><b>QA</b><span>Прийняти або заблокувати</span><span>Знижувати criteria після retry</span><span>Hash-bound report</span></div>
+        <div class="tr"><b>Cloudflare</b><span>HTTPS delivery до localhost</span><span>Заміняти app authentication</span><span>Tunnel health</span></div>
+      </div>
+    </section>
+
+    <section class="section optional-zone">
+      <div class="section-head"><span>06</span><div><h2>Optional presentation extension</h2><p>Не входить у шість core PNG і стартує тільки після image PASS.</p></div></div>
+      <div class="story"><article><b>Wardrobe</b><p>Рівно два mirrors; UI і approved result видно у дзеркалі.</p></article><i>→</i><article><b>TV shoot</b><p>Та сама людина й outfit у fashion-editorial сцені.</p></article><i>→</i><article><b>Laptop</b><p>Pipeline explanation, credits і фінальне «Дякую».</p></article></div>
+      <div class="models video"><article><small>PLANNED PRIMARY</small><h3>Seedance 2.0</h3><p>Складна multimodal cinematic generation. Real-face input restrictions мають пройти окремий contract test.</p></article><article><small>PLANNED EDIT/FALLBACK</small><h3>Gemini Omni Flash</h3><p>Conversational targeted edit. Preview + EEA recognizable-person restrictions — не silent fallback.</p></article><article><small>PLAYBACK</small><h3>HTML5 video</h3><p>Swipe/scroll progress детерміновано керує `video.currentTime`; текст залишається DOM overlay.</p></article></div>
+    </section>
+
+    <section class="section links">
+      <div class="section-head"><span>07</span><div><h2>Офіційні ресурси</h2><p>Документація, на якій базуються назви та capability claims.</p></div></div>
+      <a href="https://developers.openai.com/api/docs/models/gpt-image-2" target="_blank" rel="noreferrer">OpenAI · GPT Image 2 ↗</a>
+      <a href="https://ai.google.dev/gemini-api/docs/image-generation" target="_blank" rel="noreferrer">Google · Nano Banana ↗</a>
+      <a href="https://higgsfield.ai/mcp" target="_blank" rel="noreferrer">Higgsfield MCP ↗</a>
+      <a href="https://docs.byteplus.com/en/docs/modelark/1520757" target="_blank" rel="noreferrer">BytePlus · Seedance 2.0 ↗</a>
+      <a href="https://ai.google.dev/gemini-api/docs/omni" target="_blank" rel="noreferrer">Google · Gemini Omni ↗</a>
+      <a href="https://developers.cloudflare.com/cloudflare-one/networks/connectivity-options/" target="_blank" rel="noreferrer">Cloudflare Tunnel ↗</a>
+      <a href="https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/currentTime" target="_blank" rel="noreferrer">MDN · video.currentTime ↗</a>
+    </section>
+  </main>
+  <footer><span>ZEELY AI ENGINEERING TEST</span><span>LIVE CORE ≠ OPTIONAL VIDEO</span></footer>
+</body>
+</html>

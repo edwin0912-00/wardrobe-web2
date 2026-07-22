@@ -52,6 +52,7 @@ HTTP surface: `POST /api/runs`, `GET /api/runs/:id`, `GET /api/runs/:id/events`,
 - [Normative canon](spec/ZEELY_CANON_UA.md) — `CORE`, `WIN`, `QA` та `ART` правила зі стабільними IDs.
 - [Visual canon](spec/ZEELY_VISUAL_CANON_UA.md) — постійний Orbs-derived interaction vocabulary для progress, mirrors і presentation layer.
 - [Acceptance matrix](spec/acceptance.json) — machine-readable mapping `requirement → enforcement → evidence`.
+- [Detailed working-pipeline scheme](docs/ZEELY_TEST_PIPELINE_SCHEME_UA.md) — кожен runtime resource, input/output contract, model route, failure behavior та optional video branch.
 
 `npm run verify:canon` блокує missing evidence для обов’язкових правил.
 

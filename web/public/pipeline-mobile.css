@@ -1,0 +1,48 @@
+html,
+body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.summary > *,
+.flow > *,
+.models > *,
+.split > *,
+.story > *,
+.links > * {
+  min-width: 0;
+}
+
+.flow p,
+.models dd,
+.story p,
+.steps li {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 650px) {
+  .topbar {
+    gap: 12px;
+  }
+
+  .brand {
+    flex: none;
+  }
+
+  .back {
+    max-width: 45%;
+    overflow: hidden;
+    text-align: right;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .resource-table {
+    width: 100%;
+    margin-right: 0;
+  }
+}
