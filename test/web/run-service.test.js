@@ -32,6 +32,8 @@ test('working core accepts a fresh user and garment upload and returns two downl
   await service.running.get(created.run_id);
   const finished = await service.getRun(created.run_id);
   assert.equal(finished.status, 'COMPLETED');
+  assert.equal(finished.phase, 'COMPLETED');
+  assert.equal(finished.inner_state, null);
   assert.ok(finished.outputs.avatar);
   assert.ok(finished.outputs.avatar_outfit);
   assert.equal(finished.garments[0].category, 'top');

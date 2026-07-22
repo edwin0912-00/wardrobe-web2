@@ -171,7 +171,7 @@ export class RunService {
       state.qa = manifest.qa;
       state.outputs = outputs;
       if (state.inputs.generate_scene) await this.#generateScene(state, result.outputs.avatar_outfit);
-      return this.#write(state, { status: 'COMPLETED', phase: 'COMPLETED', message: 'Avatar and outfit are ready', outputs: state.outputs });
+      return this.#write(state, { status: 'COMPLETED', phase: 'COMPLETED', inner_state: null, message: 'Avatar and outfit are ready', outputs: state.outputs });
     } catch (error) {
       if (error instanceof GarmentNeedsInputError) {
         const passport = error.details.passport;
@@ -249,7 +249,7 @@ export class RunService {
   }
 
   async #generateScene(state, approvedOutfitPath) {
-    await this.#write(state, { phase: 'OPTIONAL_SCENE', message: 'Generating bonus Art Director scene' });
+    await this.#write(state, { phase: 'OPTIONAL_SCENE', inner_state: null, message: 'Generating bonus Art Director scene' });
     const sceneDirectory = path.join(this.runDirectory(state.run_id), 'scene');
     for (const [index, model] of IMAGE_MODEL_ROUTE.entries()) {
       const response = await this.assetGenerator.generateScene({
