@@ -2,6 +2,7 @@ import { createThinkingOrb } from './thinking-orb.js';
 import { UploadSelectionStore } from './upload-state.js';
 import { clearDraft, loadDraft, requestPersistentStorage, saveDraft } from './draft-store.js';
 import { fileSummary, telemetry } from './telemetry.js';
+import { prepareImageFile, uploadFormData } from './image-upload.js';
 
 const form = document.querySelector('#run-form');
 const submit = document.querySelector('#submit-button');
@@ -20,6 +21,7 @@ let eventSource = null;
 let saveTimer = null;
 
 const progressStates = {
+  PREPARING: { label: 'PREP', step: 0, title: 'Оптимізуємо великі файли' },
   UPLOADING: { label: 'UPLOAD', step: 0, title: 'Передаємо файли на сервер' },
   UPLOADED: { label: '1 / 8', step: 0, title: 'Input прийнято сервером' },
   RECEIVED: { label: '1 / 8', step: 0, title: 'Створення immutable job' },
@@ -259,23 +261,43 @@ form.addEventListener('submit', async (event) => {
   if (!outfitText && uploads.garments.length === 0) { formError.textContent = 'Додай опис образу або хоча б одне фото речі.'; return; }
   if (!form.elements.consent.checked) { formError.textContent = 'Потрібна згода на обробку фото.'; return; }
 
-  const data = new FormData();
-  data.append('person_photo', uploads.person, uploads.person.name);
-  if (uploads.identityDetail) data.append('identity_detail', uploads.identityDetail, uploads.identityDetail.name);
-  uploads.garments.forEach((file) => data.append('garment_images', file, file.name));
-  data.set('outfit_text', outfitText);
-  data.set('consent', 'true');
-  data.set('generate_scene', form.elements.generate_scene.checked ? 'true' : 'false');
   submit.disabled = true;
   setView('progress');
-  renderProgress(progressStates.UPLOADING, `Передаємо ${fileSummary(uploads).file_count} файлів. Run ще не створено.`);
   const startedAt = performance.now();
   telemetry('client.submit', { ...fileSummary(uploads), stage: 'upload_start' });
   try {
-    const response = await fetch('/api/runs', { method: 'POST', body: data });
-    const body = await response.json();
+    const sourceFiles = [uploads.person, uploads.identityDetail, ...uploads.garments].filter(Boolean);
+    const prepared = [];
+    for (const [index, file] of sourceFiles.entries()) {
+      renderProgress(progressStates.PREPARING, `Файл ${index + 1} з ${sourceFiles.length}: перевіряємо розмір і resolution…`);
+      const result = await prepareImageFile(file);
+      prepared.push(result.file);
+      if (result.changed) telemetry('client.file_prepared', {
+        original_bytes: result.originalBytes, prepared_bytes: result.preparedBytes, stage: 'browser_resize',
+      });
+    }
+    const data = new FormData();
+    let cursor = 0;
+    data.append('person_photo', prepared[cursor], prepared[cursor].name); cursor += 1;
+    if (uploads.identityDetail) { data.append('identity_detail', prepared[cursor], prepared[cursor].name); cursor += 1; }
+    for (; cursor < prepared.length; cursor += 1) data.append('garment_images', prepared[cursor], prepared[cursor].name);
+    data.set('outfit_text', outfitText);
+    data.set('consent', 'true');
+    data.set('generate_scene', form.elements.generate_scene.checked ? 'true' : 'false');
+    const uploadBytes = prepared.reduce((total, file) => total + file.size, 0);
+    renderProgress(progressStates.UPLOADING, `Передаємо ${prepared.length} файлів (${Math.ceil(uploadBytes / 1024 / 1024)} MB). Run ще не створено.`);
+    let lastReported = -10;
+    const response = await uploadFormData('/api/runs', data, { onProgress: (loaded, total) => {
+      const percentage = Math.min(100, Math.round((loaded / total) * 100));
+      renderProgress(progressStates.UPLOADING, `Реальний upload: ${percentage}% · ${Math.ceil(loaded / 1024 / 1024)} з ${Math.ceil(total / 1024 / 1024)} MB`);
+      if (percentage >= lastReported + 10 || percentage === 100) {
+        lastReported = percentage;
+        telemetry('client.upload_progress', { percentage, total_bytes: total, stage: 'multipart' });
+      }
+    } });
+    const body = response.body || {};
     telemetry('client.submit_response', { status: response.status, duration_ms: Math.round(performance.now() - startedAt), stage: 'upload_done' }, body.run_id);
-    if (!response.ok) throw new Error(body.error || 'Не вдалося створити run');
+    if (!response.ok) throw new Error(body.error || `Upload відхилено: HTTP ${response.status}`);
     history.replaceState({}, '', `${location.pathname}?run=${encodeURIComponent(body.run_id)}`);
     renderRun(body);
     watch(body.run_id);
