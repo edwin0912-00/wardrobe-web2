@@ -17,3 +17,38 @@
   color: white;
   font-size: 6px;
 }
+
+.progress-orbit {
+  width: 210px;
+  height: 78px;
+  padding: 9px 22px 9px 10px;
+  display: flex;
+  grid-template: none;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  background: #101410;
+  box-shadow: inset 0 0 50px rgba(255, 255, 255, 0.025), 0 18px 40px rgba(23, 59, 40, 0.14);
+}
+
+.progress-orbit canvas {
+  width: 58px;
+  height: 58px;
+  flex: 0 0 58px;
+  display: block;
+}
+
+.progress-orbit b {
+  position: static;
+  color: var(--green);
+  font: 400 25px Georgia, serif;
+  letter-spacing: -0.03em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .progress-orbit canvas {
+    opacity: 0.9;
+  }
+}

@@ -48,6 +48,7 @@ HTTP surface: `POST /api/runs`, `GET /api/runs/:id`, `GET /api/runs/:id/events`,
 
 - [Source snapshot](spec/ZEELY_TASK_SOURCE_UA.md) — структурно нормалізована копія Notion без наших трактувань.
 - [Normative canon](spec/ZEELY_CANON_UA.md) — `CORE`, `WIN`, `QA` та `ART` правила зі стабільними IDs.
+- [Visual canon](spec/ZEELY_VISUAL_CANON_UA.md) — постійний Orbs-derived interaction vocabulary для progress, mirrors і presentation layer.
 - [Acceptance matrix](spec/acceptance.json) — machine-readable mapping `requirement → enforcement → evidence`.
 
 `npm run verify:canon` блокує missing evidence для обов’язкових правил.
