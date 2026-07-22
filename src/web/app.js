@@ -5,12 +5,14 @@ import multipart from '@fastify/multipart';
 import fastifyStatic from '@fastify/static';
 import { registerMonitorRoutes } from '../monitor/routes.js';
 import { installDemoAuth } from './demo-auth.js';
+import { registerDraftRoutes } from './draft-service.js';
 
-export async function createWebApp({ service, health = { status: 'ok' }, publicDirectory = path.resolve(import.meta.dirname, '..', '..', 'web', 'public'), logger = false, auth = null, monitor = null }) {
+export async function createWebApp({ service, health = { status: 'ok' }, publicDirectory = path.resolve(import.meta.dirname, '..', '..', 'web', 'public'), logger = false, auth = null, monitor = null, drafts = null }) {
   const app = Fastify({ logger, bodyLimit: 150 * 1024 * 1024 });
   installDemoAuth(app, auth);
   await app.register(multipart, { limits: { files: 7, fileSize: 20 * 1024 * 1024, fields: 12, parts: 20 } });
   await app.register(fastifyStatic, { root: publicDirectory, prefix: '/' });
+  if (drafts) await registerDraftRoutes(app, { service: drafts, secureCookie: process.env.ZEELY_COOKIE_SECURE !== 'false' });
 
   if (monitor) {
     await registerMonitorRoutes(app, {

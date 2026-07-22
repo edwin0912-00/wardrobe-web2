@@ -3,6 +3,7 @@ import { UploadSelectionStore } from './upload-state.js';
 import { clearDraft, loadDraft, requestPersistentStorage, saveDraft } from './draft-store.js';
 import { fileSummary, telemetry } from './telemetry.js';
 import { prepareImageFile, uploadFormData } from './image-upload.js';
+import { clearServerDraft, loadServerDraft, removeServerDraftFile, updateServerDraftMetadata, uploadDraftFile } from './server-draft.js';
 
 const form = document.querySelector('#run-form');
 const submit = document.querySelector('#submit-button');
@@ -19,6 +20,32 @@ let previewUrls = [];
 let activeRun = null;
 let eventSource = null;
 let saveTimer = null;
+let serverDraftRefs = { person: null, identity: null, garments: [] };
+let serverSyncQueue = Promise.resolve();
+
+function queueServerSync(task) {
+  serverSyncQueue = serverSyncQueue.then(task).catch((error) => {
+    draftStatus.textContent = 'Локальна копія є, але temp backup не синхронізовано';
+    draftStatus.className = 'draft-status failed';
+    telemetry('client.draft_error', { message: error.message.slice(0, 500), stage: 'server_sync' });
+    return null;
+  });
+  return serverSyncQueue;
+}
+
+async function syncFileToServer(slot, file) {
+  draftStatus.textContent = 'Створюємо temp backup на 15 хвилин…';
+  const prepared = await prepareImageFile(file);
+  if (prepared.changed) telemetry('client.file_prepared', {
+    original_bytes: prepared.originalBytes, prepared_bytes: prepared.preparedBytes, stage: 'draft_backup',
+  });
+  const descriptor = await uploadDraftFile(slot, prepared.file);
+  if (slot === 'person') serverDraftRefs.person = descriptor.id;
+  else if (slot === 'identity') serverDraftRefs.identity = descriptor.id;
+  else serverDraftRefs.garments.push(descriptor.id);
+  draftStatus.textContent = 'Temp backup збережено на 15 хвилин';
+  draftStatus.className = 'draft-status saved';
+}
 
 const progressStates = {
   PREPARING: { label: 'PREP', step: 0, title: 'Оптимізуємо великі файли' },
@@ -108,6 +135,10 @@ async function persistDraft(reason = 'change') {
     draftStatus.textContent = 'Чернетку збережено на цьому пристрої';
     draftStatus.className = 'draft-status saved';
     telemetry('client.draft_saved', { ...fileSummary(uploads), stage: reason });
+    queueServerSync(() => updateServerDraftMetadata({
+      outfitText: form.elements.outfit_text.value,
+      generateScene: form.elements.generate_scene.checked,
+    }));
   } catch (error) {
     draftStatus.textContent = 'Не вдалося зберегти локальну чернетку';
     draftStatus.className = 'draft-status failed';
@@ -121,9 +152,11 @@ function scheduleDraftSave(reason) {
 }
 
 function removeFile(kind, index) {
-  if (kind === 'person') uploads.setPerson(null);
-  else if (kind === 'identity') uploads.setIdentityDetail(null);
-  else uploads.removeGarment(index);
+  let serverId;
+  if (kind === 'person') { serverId = serverDraftRefs.person; serverDraftRefs.person = null; uploads.setPerson(null); }
+  else if (kind === 'identity') { serverId = serverDraftRefs.identity; serverDraftRefs.identity = null; uploads.setIdentityDetail(null); }
+  else { serverId = serverDraftRefs.garments[index]; serverDraftRefs.garments.splice(index, 1); uploads.removeGarment(index); }
+  queueServerSync(() => removeServerDraftFile(kind, serverId));
   renderUploads();
   telemetry('client.file_removed', { ...fileSummary(uploads), stage: kind });
   persistDraft(`remove_${kind}`);
@@ -131,14 +164,20 @@ function removeFile(kind, index) {
 
 async function handleSelected(kind, files) {
   try {
-    if (kind === 'person') uploads.setPerson(files[0]);
-    else if (kind === 'identity') uploads.setIdentityDetail(files[0]);
-    else uploads.addGarments(files);
+    let additions;
+    if (kind === 'person') { uploads.setPerson(files[0]); additions = [files[0]]; }
+    else if (kind === 'identity') { uploads.setIdentityDetail(files[0]); additions = [files[0]]; }
+    else {
+      const previousCount = uploads.garments.length;
+      uploads.addGarments(files);
+      additions = uploads.garments.slice(previousCount);
+    }
     formError.textContent = '';
     renderUploads();
     telemetry('client.file_selected', { ...fileSummary(uploads), stage: kind });
     requestPersistentStorage().catch(() => false);
     await persistDraft(`select_${kind}`);
+    for (const file of additions) await queueServerSync(() => syncFileToServer(kind, file));
   } catch (error) {
     formError.textContent = error.message;
     telemetry('client.error', { message: error.message.slice(0, 500), stage: `select_${kind}` });
@@ -328,7 +367,8 @@ document.querySelector('#new-run').addEventListener('click', async () => {
   eventSource?.close(); activeRun = null; form.reset(); uploads.reset(); renderUploads();
   localStorage.removeItem('zeely_active_run_id');
   history.replaceState({}, '', location.pathname);
-  await clearDraft().catch(() => {});
+  await Promise.all([clearDraft().catch(() => {}), clearServerDraft().catch(() => {})]);
+  serverDraftRefs = { person: null, identity: null, garments: [] };
   draftStatus.textContent = 'Нова порожня чернетка';
   statusChip.textContent = 'Очікує input'; statusChip.className = 'status-chip idle'; setView('empty');
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -350,12 +390,13 @@ async function resumeRun(runId) {
 
 async function initialize() {
   telemetry('client.boot', { stage: 'start' });
+  let localDraft = null;
   try {
-    const draft = await loadDraft();
-    if (draft) {
-      uploads.restore(draft);
-      form.elements.outfit_text.value = draft.outfitText;
-      form.elements.generate_scene.checked = draft.generateScene;
+    localDraft = await loadDraft();
+    if (localDraft) {
+      uploads.restore(localDraft);
+      form.elements.outfit_text.value = localDraft.outfitText;
+      form.elements.generate_scene.checked = localDraft.generateScene;
       draftStatus.textContent = 'Локальну чернетку відновлено';
       draftStatus.className = 'draft-status saved';
       telemetry('client.draft_restored', { ...fileSummary(uploads), stage: 'boot' });
@@ -363,6 +404,31 @@ async function initialize() {
   } catch (error) {
     draftStatus.textContent = 'Локальна чернетка недоступна';
     telemetry('client.draft_error', { message: error.message.slice(0, 500), stage: 'restore' });
+  }
+  try {
+    const hasLocalFiles = Boolean(uploads.person || uploads.identityDetail || uploads.garments.length);
+    const serverDraft = await loadServerDraft({ includeFiles: !hasLocalFiles });
+    serverDraftRefs = serverDraft.refs;
+    if (!hasLocalFiles && serverDraft.files) {
+      const hasServerFiles = Boolean(serverDraft.files.person || serverDraft.files.identityDetail || serverDraft.files.garments.length);
+      if (hasServerFiles) {
+        uploads.restore(serverDraft.files);
+        if (!localDraft?.outfitText) form.elements.outfit_text.value = serverDraft.manifest.outfit_text || '';
+        if (!localDraft) form.elements.generate_scene.checked = serverDraft.manifest.generate_scene !== false;
+        await saveDraft({ ...uploads, outfitText: form.elements.outfit_text.value, generateScene: form.elements.generate_scene.checked });
+        draftStatus.textContent = 'Temp-чернетку відновлено із server backup';
+        draftStatus.className = 'draft-status saved';
+        telemetry('client.draft_restored', { ...fileSummary(uploads), stage: 'server_backup' });
+      }
+    } else if (hasLocalFiles) {
+      queueServerSync(async () => {
+        if (uploads.person && !serverDraftRefs.person) await syncFileToServer('person', uploads.person);
+        if (uploads.identityDetail && !serverDraftRefs.identity) await syncFileToServer('identity', uploads.identityDetail);
+        for (const garment of uploads.garments.slice(serverDraftRefs.garments.length)) await syncFileToServer('garment', garment);
+      });
+    }
+  } catch (error) {
+    telemetry('client.draft_error', { message: error.message.slice(0, 500), stage: 'server_restore' });
   }
   renderUploads();
   const resumeRunId = new URLSearchParams(location.search).get('run') || localStorage.getItem('zeely_active_run_id');

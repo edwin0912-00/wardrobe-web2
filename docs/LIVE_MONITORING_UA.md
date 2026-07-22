@@ -6,6 +6,7 @@
 flowchart LR
   A["Телефон / desktop browser"] --> B["HTML5 UI\nокремі file slots"]
   B --> C["IndexedDB\nлокальна draft Blob-копія"]
+  B --> T["Anonymous temp draft\nHttpOnly browser ID · TTL 15 min"]
   B -->|"POST telemetry: metadata only"| D["Core Fastify :4173"]
   B -->|"multipart upload"| D
   D --> E["runtime/runs/<run-id>\nraw input + run.json"]
@@ -27,7 +28,8 @@ flowchart LR
 | Ресурс | Відповідальність | Що зберігає | Як видно failure |
 |---|---|---|---|
 | Browser file slots | Person, identity detail і garments не перезаписують один одного. Garment picker додає до попереднього selection. | `File` objects під час відкритої вкладки. | Preview і кількість файлів оновлюються після кожної дії. |
-| Browser IndexedDB + upload preparation | Копіює оригінальні файли як Blob, text outfit і scene toggle після кожної зміни. Відновлює їх після reload/browser crash. Перед upload файли понад 18 MB локально приводяться до JPEG ≤4096 px/≤18 MB; оригінал у draft не змінюється. | Тільки на конкретному пристрої й origin `madeforthisjob.com`; consent не зберігається. | UI показує `PREP`, потім фактичні uploaded MB/% через XHR. Є 3-minute timeout; `client.file_prepared` і `client.upload_progress` ідуть у monitor. |
+| Browser IndexedDB + upload preparation | Копіює оригінальні файли як Blob, text outfit і scene toggle після кожної зміни. Перед upload файли понад 18 MB або phone formats локально приводяться до JPEG ≤4096 px/≤18 MB. | Тільки на конкретному пристрої й origin `madeforthisjob.com`; consent не зберігається. | UI показує `PREP`, потім фактичні uploaded MB/% через XHR. Є 3-minute timeout. |
+| Anonymous temp draft (`runtime/drafts`) | Після selection зберігає підготовлену server-side копію під випадковим browser ID з HttpOnly cookie. Якщо IndexedDB не відновилася, UI завантажує цю копію після reload. | Person, identity, до 5 garments і text/toggle; без consent та original filenames. Sliding TTL 15 хвилин. | Cleanup запускається щохвилини й фізично видаляє directory після TTL. Explicit new run також одразу очищує temp draft. |
 | `boot-guard.js` | Підключається до module app і ловить ранній `error`, `unhandledrejection`, boot timeout. | Нічого, крім telemetry metadata. | Замість білого екрана показує видимий reload-card; draft при цьому не очищується. |
 | Core Fastify `:4173` | Optional server PIN gate, static UI, multipart intake, run API, run SSE, client telemetry endpoint. | Run inputs/state у `runtime/runs`; telemetry — у спільний event log. | Кожен API response, server exception і факт повного отримання upload пишеться в журнал. |
 | `RunService` / runner | Запускає checkpointed pipeline і публікує лише фактичні phase changes. | `run.json`, artifacts, receipts, QA evidence. | UI показує `UPLOAD`, доки сервер не створив run; потім реальні `1/8…8/8`, без таймера або synthetic percent. |

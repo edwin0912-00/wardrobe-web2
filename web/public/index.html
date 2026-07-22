@@ -46,7 +46,7 @@
         <div id="garment-preview" class="file-preview garment-preview" aria-live="polite"></div>
         <label class="toggle"><input type="checkbox" name="generate_scene" checked><span></span><div><strong>Art Director scene</strong><small>Bonus після успішного core result</small></div></label>
         <label class="consent"><input type="checkbox" name="consent" required><span>Я маю право використовувати ці фото та погоджуюсь на їх обробку зовнішніми AI providers.</span></label>
-        <p id="draft-status" class="draft-status" aria-live="polite">Чернетка зберігається локально на цьому пристрої</p>
+        <p id="draft-status" class="draft-status" aria-live="polite">Чернетка зберігається локально + temp backup на 15 хвилин</p>
         <button id="submit-button" class="primary-button" type="submit"><span>Створити avatar</span><b>→</b></button>
         <p id="form-error" class="error" role="alert"></p>
       </form>
@@ -83,6 +83,6 @@
     <button type="button" onclick="location.reload()">Перезавантажити</button>
   </aside>
   <script src="/boot-guard.js?v=20260722-1"></script>
-  <script type="module" src="/app.js?v=20260722-5"></script>
+  <script type="module" src="/app.js?v=20260722-6"></script>
 </body>
 </html>

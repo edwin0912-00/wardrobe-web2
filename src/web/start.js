@@ -4,6 +4,7 @@ import { CodexVlmEvaluator } from '../providers/codex-vlm-evaluator.js';
 import { HiggsfieldCliProvider } from '../providers/higgsfield-cli-provider.js';
 import { MonitorEventStore } from '../monitor/event-store.js';
 import { createWebApp } from './app.js';
+import { DraftService } from './draft-service.js';
 import { HiggsfieldAssetGenerator } from './higgsfield-asset-generator.js';
 import { RunService } from './run-service.js';
 import { runLocalPreflight } from './preflight.js';
@@ -11,6 +12,9 @@ import { runLocalPreflight } from './preflight.js';
 const projectRoot = path.resolve(import.meta.dirname, '..', '..');
 const monitor = new MonitorEventStore({ filename: path.join(projectRoot, 'runtime', 'monitor', 'events.jsonl') });
 await monitor.initialize();
+const drafts = new DraftService({ rootDirectory: path.join(projectRoot, 'runtime', 'drafts') });
+await drafts.initialize();
+await drafts.cleanupExpired();
 const vlm = new CodexVlmEvaluator();
 const provider = new HiggsfieldCliProvider({ qaEvaluator: vlm.evaluateQa.bind(vlm) });
 const assetGenerator = new HiggsfieldAssetGenerator({ provider });
@@ -30,7 +34,9 @@ const auth = process.env.ZEELY_DEMO_PIN ? {
   secret: process.env.ZEELY_SESSION_SECRET,
   secure: process.env.ZEELY_COOKIE_SECURE !== 'false',
 } : null;
-const app = await createWebApp({ service, health, logger: true, auth, monitor });
+const app = await createWebApp({ service, health, logger: true, auth, monitor, drafts });
+const draftCleanupTimer = setInterval(() => drafts.cleanupExpired().catch(() => {}), 60_000);
+app.addHook('onClose', async () => clearInterval(draftCleanupTimer));
 const port = Number.parseInt(process.env.PORT ?? '4173', 10);
 await app.listen({ host: '127.0.0.1', port });
 await monitor.append({ source: 'server', type: 'service.web_started', data: { port, pid: process.pid } });
