@@ -28,6 +28,15 @@ test('technical pipeline is a unique three-row 5×3 serpentine graph', () => {
   }
 });
 
+test('garment QA explains the user-visible comparison without fidelity jargon', () => {
+  const node = PIPELINE_NODES.find((item) => item.id === 'garment-qa');
+  assert.equal(node.title, 'Звірка речі з оригіналом');
+  assert.doesNotMatch(`${node.title} ${node.detail} ${node.operation}`, /fidelity/i);
+  for (const expected of ['форм', 'колір', 'матеріал', 'logo']) assert.match(`${node.detail} ${node.operation}`, new RegExp(expected, 'i'));
+  assert.match(node.gate, /PASS.*RETRY.*NEEDS_INPUT.*REJECT/);
+  assert.equal(resolveProgressState('GARMENT_QA').title, 'Звіряємо річ з оригінальними фото');
+});
+
 test('every nonterminal progress state resolves to the truthful technical node', () => {
   const expected = {
     PREPARING: 0, UPLOADING: 0, UPLOADED: 0, QUEUED: 0,

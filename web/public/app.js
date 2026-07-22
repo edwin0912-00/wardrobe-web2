@@ -4,7 +4,7 @@ import { clearDraft, loadDraft, requestPersistentStorage, saveDraft } from './dr
 import { fileSummary, telemetry } from './telemetry.js?v=20260722-8';
 import { prepareImageFile } from './image-upload.js?v=20260722-8';
 import { clearServerDraft, createRunFromServerDraft, loadServerDraft, removeServerDraftFile, updateServerDraftMetadata, uploadDraftFile } from './server-draft.js?v=20260722-10';
-import { PIPELINE_NODE_COUNT, PIPELINE_NODES, nodeState, resolveProgressState } from './progress-model.js?v=20260722-4';
+import { PIPELINE_NODE_COUNT, PIPELINE_NODES, nodeState, resolveProgressState } from './progress-model.js?v=20260722-5';
 import { fetchRunWithRetry, RunNotFoundError } from './run-resume.js?v=20260722-3';
 import { avatarFileFromProfile, claimProfileRun, deleteAnonymousProfile, deleteProfileAvatar, deleteProfileLook, loadProfile, saveProfileRun } from './profile-client.js?v=20260722-1';
 
