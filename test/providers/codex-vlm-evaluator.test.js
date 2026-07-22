@@ -45,12 +45,33 @@ test('Codex evaluator uses ephemeral read-only strict-schema execution and retur
 test('Codex evaluator returns a strict garment passport and blocks low-confidence READY', async () => {
   const filename = await imageFixture();
   const valid = { status: 'READY', reason: 'visible item', items: [{ source_index: 0, category: 'top', confidence: 0.94,
-    observed: { garment_type: 'green hoodie', colors: ['green'], material: ['fleece'], pattern: [], logo_text: [], construction: ['hood'] }, unknowns: [], blockers: [] }] };
+    observed: { garment_type: 'green hoodie', colors: ['green'], material: ['fleece'], pattern: [], logo_text: [], construction: ['hood'] }, unknowns: [], blockers: [] }],
+  reference_sets: [{ source_indexes: [0], primary_source_index: 0, same_item_confidence: 1, evidence: ['one clear view'] }] };
   const evaluator = new CodexVlmEvaluator({ commandRunner: runnerFor(valid, []) });
   assert.equal((await evaluator.inspectGarments([filename])).items[0].category, 'top');
   const invalid = structuredClone(valid); invalid.items[0].confidence = 0.4;
   const low = new CodexVlmEvaluator({ commandRunner: runnerFor(invalid, []) });
   await assert.rejects(() => low.inspectGarments([filename]), /Low-confidence/);
+});
+
+test('garment reference sets are a strict full partition and multi-view grouping needs high confidence', async () => {
+  const first = await imageFixture();
+  const second = await imageFixture();
+  const items = [0, 1].map((source_index) => ({ source_index, category: 'top', confidence: 0.95,
+    observed: { garment_type: 'blue pinstriped shirt', colors: ['blue', 'white'], material: ['woven'], pattern: ['pinstripe'], logo_text: [], construction: ['point collar'] },
+    unknowns: [], blockers: [] }));
+  const valid = { status: 'READY', reason: 'same exact shirt from two views', items,
+    reference_sets: [{ source_indexes: [0, 1], primary_source_index: 1, same_item_confidence: 0.97, evidence: ['same stripe spacing, collar and buttons'] }] };
+  assert.equal((await new CodexVlmEvaluator({ commandRunner: runnerFor(valid, []) }).inspectGarments([first, second])).reference_sets[0].source_indexes.length, 2);
+
+  const lowConfidence = structuredClone(valid);
+  lowConfidence.reference_sets[0].same_item_confidence = 0.7;
+  await assert.rejects(() => new CodexVlmEvaluator({ commandRunner: runnerFor(lowConfidence, []) }).inspectGarments([first, second]), /below 0.90/);
+
+  const missingIndex = structuredClone(valid);
+  missingIndex.reference_sets[0].source_indexes = [0];
+  missingIndex.reference_sets[0].primary_source_index = 0;
+  await assert.rejects(() => new CodexVlmEvaluator({ commandRunner: runnerFor(missingIndex, []) }).inspectGarments([first, second]), /cover every source index/);
 });
 
 test('Codex evaluator fails closed when the CLI cannot produce evidence', async () => {

@@ -56,7 +56,7 @@ function qaPrompt(phase, images, evidence = {}) {
 
 function garmentPrompt(images) {
   const labels = images.map((filename, index) => `source_index ${index}: ${path.basename(filename)}`).join('\n');
-  return `Inspect the attached wardrobe photos independently.\n\n${labels}\n\nFor each image, classify the primary wearable item as exactly one allowed category: outerwear, top, bottom, one_piece, footwear, headwear, bag, accessory. Record only visibly observed type, colors, likely material, pattern, exact readable logo/text, and construction details. Put hidden, obscured or uncertain properties in unknowns. Use NEEDS_INPUT when the primary item cannot be identified reliably or critical exact details are too obscured or low-resolution. Confidence below 0.70 must not be READY. Return only the JSON required by the supplied schema. Never call tools.`;
+  return `Inspect the attached wardrobe photos as one evidence collection.\n\n${labels}\n\nReturn one item for every source image. Also partition every source index into exactly one reference_set. Group multiple images only when they visibly show the same exact physical garment from different angles or contexts. A multi-image set requires same_item_confidence >= 0.90 and concrete evidence such as matching stripe spacing, collar, buttons, seams, logo, wear marks or construction with no contradictions. If exact sameness is uncertain, use separate singleton sets even when the category is the same. primary_source_index must belong to source_indexes and be the clearest view. For each image, classify the primary wearable item as exactly one allowed category: outerwear, top, bottom, one_piece, footwear, headwear, bag, accessory. Record only visibly observed type, colors, likely material, pattern, exact readable logo/text, and construction details. For views in one set, merge visible evidence so their observations consistently describe that garment. Put hidden, obscured or uncertain properties in unknowns. Use NEEDS_INPUT when the primary item cannot be identified reliably or critical exact details are too obscured or low-resolution. Confidence below 0.70 must not be READY. Return only the JSON required by the supplied schema. Never call tools.`;
 }
 
 function validateQa(value) {
@@ -78,6 +78,22 @@ function validatePassport(value, expectedCount) {
     if (!item.observed || typeof item.observed.garment_type !== 'string' || !Array.isArray(item.blockers) || !Array.isArray(item.unknowns)) throw new Error('Codex garment passport returned incomplete observations');
     if (item.confidence < 0.7 && value.status === 'READY') throw new Error('Low-confidence garment passport cannot be READY');
   }
+  if (!Array.isArray(value.reference_sets) || value.reference_sets.length < 1 || value.reference_sets.length > expectedCount) throw new Error('Codex garment passport returned invalid reference sets');
+  const assigned = new Set();
+  for (const set of value.reference_sets) {
+    if (!Array.isArray(set.source_indexes) || set.source_indexes.length === 0 || !Number.isInteger(set.primary_source_index)
+      || !set.source_indexes.includes(set.primary_source_index) || typeof set.same_item_confidence !== 'number'
+      || !Array.isArray(set.evidence) || set.evidence.length === 0) throw new Error('Codex garment passport returned an invalid reference set');
+    if (set.source_indexes.length > 1 && set.same_item_confidence < 0.9) throw new Error('Multi-view garment grouping confidence is below 0.90');
+    const categories = new Set();
+    for (const index of set.source_indexes) {
+      if (!Number.isInteger(index) || index < 0 || index >= expectedCount || assigned.has(index)) throw new Error('Garment reference sets must partition source indexes exactly once');
+      assigned.add(index);
+      categories.add(value.items.find((item) => item.source_index === index)?.category);
+    }
+    if (categories.size !== 1) throw new Error('One garment reference set cannot mix categories');
+  }
+  if (assigned.size !== expectedCount) throw new Error('Garment reference sets must cover every source index');
   return value;
 }
 

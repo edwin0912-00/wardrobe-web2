@@ -16,13 +16,14 @@
     <section class="health-grid">
       <article><span id="monitor-dot" class="dot unknown"></span><div><small>MONITOR SERVICE</small><strong id="monitor-status">Connecting…</strong></div></article>
       <article><span id="app-dot" class="dot unknown"></span><div><small>CORE APPLICATION</small><strong id="app-status">Checking…</strong></div></article>
+      <article><span id="supervisor-dot" class="dot unknown"></span><div><small>AGENT SUPERVISOR</small><strong id="supervisor-status">Checking…</strong></div></article>
       <article><div><small>EVENTS IN VIEW</small><strong id="event-count">0</strong></div></article>
       <article><div><small>LAST EVENT</small><strong id="last-event">—</strong></div></article>
     </section>
     <section class="toolbar">
       <div class="live"><span></span> LIVE</div>
       <select id="source-filter" aria-label="Фільтр джерела">
-        <option value="">All sources</option><option value="client">Client</option><option value="http">HTTP</option><option value="server">Server</option><option value="pipeline">Pipeline</option><option value="watchdog">Watchdog</option>
+        <option value="">All sources</option><option value="agent">Agent</option><option value="client">Client</option><option value="http">HTTP</option><option value="server">Server</option><option value="runner">Runner</option><option value="watchdog">Watchdog</option>
       </select>
       <select id="severity-filter" aria-label="Фільтр рівня">
         <option value="">All severity</option><option value="error">Errors</option><option value="warn">Warnings</option><option value="info">Info</option>
@@ -37,6 +38,6 @@
     </section>
     <p class="privacy">Журнал не зберігає зображення, назви файлів, PIN або prompt. Лише технічні події, розмір/кількість input та стани pipeline.</p>
   </main>
-  <script type="module" src="/monitor.js?v=20260722-2"></script>
+  <script type="module" src="/monitor.js?v=20260722-3"></script>
 </body>
 </html>

@@ -15,6 +15,8 @@ flowchart LR
   D --> G["append-only events.jsonl"]
   F --> G
   H["Monitor Fastify :4174"] --> G
+  S["Agent Supervisor\ncommentary · stalls · incidents"] --> G
+  S --> H
   H -->|"health every 10 s"| D
   G -->|"SSE every 1 s"| I["monitor.madeforthisjob.com"]
   J["Cloudflare named Tunnel"] --> D
@@ -36,6 +38,7 @@ flowchart LR
 | `RunService` / runner | Запускає checkpointed pipeline і публікує лише фактичні phase changes. | `run.json`, artifacts, receipts, QA evidence. | UI показує `UPLOAD`, доки сервер не створив run; потім реальні `1/8…8/8`, без таймера або synthetic percent. |
 | Event store | Append-only операційна історія, доступна одночасно core та monitor process. | `runtime/monitor/events.jsonl`, permissions `0600`. | Пошкоджений одиничний рядок ігнорується під час tail; нові записи не перезаписують старі. |
 | Monitor Fastify `:4174` | Читає tail, транслює SSE, перевіряє `:4173/api/health` кожні 10 секунд. | Тільки оперативний status у RAM; event history лишається у JSONL. | Dashboard окремо показує monitor health та core health; SSE сам reconnect-иться. |
+| Agent Supervisor | Щосекунди читає persisted run events, пояснює кожну server phase у monitor, знаходить stalls, створює дедуплікований incident fingerprint і за нового failure запускає окремий Codex bug-hunt. | `runtime/supervisor/state.json`, sanitized incident JSON і agent result; ніколи не передає runtime images, drafts або secrets. | Один agent одночасно, максимум 3 спроби на fingerprint, 8 хв для garment stall і 25 хв для generation stall. Agent може залишити patch у чистому source workspace, але не commit/push/deploy/restart. |
 | macOS LaunchAgents | Тримають core, monitor і tunnel трьома незалежними процесами. | launchd state/logs. | `KeepAlive` перезапускає process; stderr залишається у `runtime/logs`. |
 | Cloudflare Tunnel | Публікує studio та monitor без inbound port/router configuration. | Project-scoped tunnel credential поза Git. | Cloudflare endpoint повертає 502/503, а monitor watchdog фіксує core down, якщо origin недоступний. |
 

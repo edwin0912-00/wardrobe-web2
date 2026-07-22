@@ -18,6 +18,8 @@ async function refreshHealth() {
     const health = await response.json();
     setHealth('monitor', health.status, health.status === 'ok' ? `UP · ${health.uptime_seconds}s` : health.status);
     setHealth('app', health.app?.status || 'unknown', `${(health.app?.status || 'unknown').toUpperCase()} · ${health.app?.detail || 'no detail'}`);
+    const supervisor = health.supervisor;
+    setHealth('supervisor', supervisor?.status || 'unknown', supervisor ? `${supervisor.agent_enabled ? 'ACTIVE' : 'OBSERVE'} · ${supervisor.active_incident || 'idle'}` : 'unknown');
   } catch (error) {
     setHealth('monitor', 'down', `DOWN · ${error.message}`);
   }
@@ -36,7 +38,7 @@ function render() {
   list.replaceChildren();
   for (const event of filtered.slice().reverse()) {
     const row = document.createElement('article');
-    row.className = `log-row ${event.severity}`;
+    row.className = `log-row ${event.severity} ${event.source === 'agent' ? 'agent' : ''}`;
     const time = document.createElement('time');
     time.dateTime = event.at;
     time.textContent = new Date(event.at).toLocaleTimeString('uk-UA', { hour12: false });

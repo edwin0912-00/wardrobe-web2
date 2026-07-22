@@ -1,0 +1,13 @@
+{
+  "id": "c8780403-9adf-43d7-a600-653b751b8a75",
+  "status": "NEEDS_INPUT",
+  "phase": "GARMENT_CONDITIONING",
+  "message": "Garment slot conflicts require explicit selection",
+  "error_name": "GarmentNeedsInputError",
+  "conflict": {
+    "type": "DUPLICATE_SLOT",
+    "category": "top",
+    "source_indexes": [0, 1]
+  },
+  "evidence": "Both strict VLM item observations describe the same blue/white pinstriped button-up shirt; upload and run creation succeeded; provider generation did not start."
+}

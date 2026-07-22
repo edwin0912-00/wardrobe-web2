@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtemp } from 'node:fs/promises';
+import { mkdtemp, readFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -61,4 +61,39 @@ test('slot conflicts become an explicit NEEDS_INPUT result', async () => {
   const finished = await service.getRun(created.run_id);
   assert.equal(finished.status, 'NEEDS_INPUT');
   assert.equal(finished.conflicts[0].type, 'DUPLICATE_SLOT');
+});
+
+test('multiple views of the same garment are conditioned once with complete provenance', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'zeely-web-multiview-'));
+  const deps = dependencies();
+  const generatorCalls = [];
+  const qaCalls = [];
+  deps.vlm.inspectGarments = async () => ({ status: 'READY', reason: 'same exact shirt', items: [0, 1].map((source_index) => ({
+    source_index, category: 'top', confidence: 0.95 + source_index * 0.01,
+    observed: { garment_type: 'blue pinstriped shirt', colors: ['blue', 'white'], material: ['woven cotton'], pattern: ['pinstripe'], logo_text: [], construction: ['point collar', 'white buttons'] },
+    unknowns: [], blockers: [],
+  })), reference_sets: [{ source_indexes: [0, 1], primary_source_index: 1, same_item_confidence: 0.98, evidence: ['same stripe spacing, collar and buttons'] }] });
+  deps.vlm.evaluateQa = async (context) => {
+    qaCalls.push(context);
+    return { decision: 'PASS', reason: 'all visible locks match', checks: [{ name: 'FIDELITY', pass: true, score: 0.96, evidence: 'same shirt' }], defects: [] };
+  };
+  deps.assetGenerator.generateGarment = async (context) => {
+    generatorCalls.push(context);
+    return { image: await canonical(), metadata: { provider: 'mock' } };
+  };
+  const service = new RunService({ rootDirectory: root, ...deps });
+  await service.initialize();
+  const created = await service.createRun({ person: await upload(), garments: [await upload('#275b36'), await upload('#315f41')], generateScene: false });
+  await service.running.get(created.run_id);
+  const finished = await service.getRun(created.run_id);
+  assert.equal(finished.status, 'COMPLETED');
+  assert.equal(finished.garments.length, 1);
+  assert.deepEqual(finished.garments[0].source_indexes, [0, 1]);
+  assert.equal(generatorCalls.length, 1);
+  assert.equal(generatorCalls[0].sourcePaths.length, 2);
+  const garmentQa = qaCalls.find((context) => context.phase === 'garment');
+  assert.equal(garmentQa.evidence.reference_packs.outfit.bindings.length, 2);
+  const pack = JSON.parse(await readFile(path.join(root, created.run_id, 'conditioned', 'garments', 'reference-pack.json'), 'utf8'));
+  assert.deepEqual(pack.sources.map((source) => source.source_index), [0, 1]);
+  assert.equal(pack.generation_bindings.length, 1);
 });

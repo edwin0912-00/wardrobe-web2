@@ -32,9 +32,9 @@ export class HiggsfieldAssetGenerator {
     });
   }
 
-  generateGarment({ sourcePath, model, prompt, workDirectory, operationId }) {
+  generateGarment({ sourcePath, sourcePaths = sourcePath ? [sourcePath] : [], model, prompt, workDirectory, operationId }) {
     return this.#generate({ phase: 'garment', model, prompt, workDirectory, operationId,
-      references: [{ path: sourcePath, scope: 'outfit', role: 'GARMENT_RAW', source: 'CONDITIONED' }] });
+      references: sourcePaths.map((filename, index) => ({ path: filename, scope: 'outfit', role: `GARMENT_RAW_VIEW_${index + 1}`, source: 'CONDITIONED' })) });
   }
 
   generateScene({ approvedOutfitPath, model, prompt, workDirectory, operationId }) {

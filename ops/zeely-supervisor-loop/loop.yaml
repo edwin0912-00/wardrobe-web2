@@ -1,0 +1,129 @@
+version: 1
+meta:
+  name: zeely-live-bug-hunt
+  description: Reproduce, repair, verify, and report one deduplicated Zeely production incident.
+  author: zeely-team
+  created: 2026-07-22
+
+goal:
+  statement: >
+    Diagnose the latest sanitized incident in runtime/supervisor without opening
+    runtime images or secrets. If it is a code defect, add a deterministic
+    regression test, fix the root cause, run targeted and full tests, and write
+    FIX-REPORT.md. If behavior is correct NEEDS_INPUT, make no code change and
+    document the evidence.
+  context_sources:
+    - file: ./inputs/current-incident.json
+    - cmd: "git -C ../.. log --oneline -10"
+      timeout_sec: 60
+  definition_of_done: >
+    The incident has a reproducible classification, FIX-REPORT.md has exact
+    evidence and file:line locations, targeted tests and npm test pass, no
+    unrelated files change, and monitor receives a terminal agent result.
+  verification:
+    - id: targeted-tests
+      type: programmatic
+      check: ["node", "--test", "test/web/garment-passport.test.js", "test/providers/codex-vlm-evaluator.test.js", "test/web/run-service.test.js", "test/monitor/agent-supervisor.test.js"]
+      expect: exit_zero
+      timeout_sec: 300
+    - id: full-tests
+      type: programmatic
+      check: ["npm", "test"]
+      expect: exit_zero
+      timeout_sec: 600
+    - id: report-schema
+      type: programmatic
+      check: ["python3", "scripts/check-fix-report.py", "loop-workspace/FIX-REPORT.md"]
+      expect: exit_zero
+    - id: root-cause-sound
+      type: judge
+      rubric: >
+        Compare FIX-REPORT.md with the incident JSON, persisted run state, tests,
+        and diff. Pass only when the stated cause explains the exact transition,
+        the fix removes that cause without weakening fail-closed behavior, and
+        no runtime images, secrets, model policy, or unrelated files were used.
+
+host:
+  cli: codex
+  model: gpt-5.6-terra
+  invoke: ["codex", "exec"]
+  timeout_sec: 900
+
+council:
+  - id: judge-1
+    role: judge
+    cli: codex
+    model: gpt-5.6-terra
+    invoke: ["codex", "exec"]
+    timeout_sec: 600
+    scope: [delivery]
+    local: false
+
+gates:
+  plan_gate:
+    when: after_plan
+    members: [judge-1]
+    verdict_policy: revise_until_clean
+    verdict_source: judge-1
+    criteria: [root-cause-sound]
+    max_revisions: 2
+  delivery_gate:
+    when: after_each_delivery
+    members: [judge-1]
+    verdict_policy: revise_until_clean
+    verdict_source: judge-1
+    criteria: [targeted-tests, full-tests, report-schema, root-cause-sound]
+    max_revisions: 3
+
+loop_control:
+  max_iterations: 10
+  budget:
+    usd: 5.0
+    tokens: 2000000
+    wall_clock_min: 45
+  no_progress:
+    max_stalled_iterations: 2
+    signals:
+      - same incident fingerprint repeats without a new test or diagnosis
+      - targeted test fails with an unchanged error after revision
+      - FIX-REPORT.md has no material change after revision
+    action: stop
+  human_checkpoints: []
+  stop_conditions:
+    - delivery_gate passes clean
+    - max_iterations reached
+    - same blocker repeats twice
+    - any budget cap exceeded
+
+execution:
+  mode: in_session
+  isolation: current_workspace
+  side_effects:
+    requires_approval: false
+    duplicate_action_check: true
+    notes: >
+      The user explicitly authorized automatic diagnosis and repair. The loop
+      may edit source/tests only; it never commits, pushes, deploys, restarts,
+      deletes data, changes secrets, or changes model policy.
+
+observability:
+  state_file: state.json
+  run_log: run-log.md
+  checkpoint_granularity: gate
+
+privacy:
+  egress:
+    - to: judge-1
+      sends: [sanitized-incident-json, source-diff, test-results, fix-report]
+      redact: [".env", ".env.*", "secrets/**", "**/*.key", "runtime/runs/**/inputs/**", "runtime/drafts/**"]
+      consent: granted
+
+workspace:
+  dir: ./loop-workspace
+  layout:
+    - fix-plan.md
+    - "fix-draft-{n}.md"
+    - "review-{n}.md"
+    - FIX-REPORT.md
+    - state.json
+    - run-log.md

@@ -10,6 +10,8 @@ mkdir -p "$PROJECT_ROOT/runtime/logs" "$PROJECT_ROOT/runtime/monitor"
 
 export PATH="/Users/jarvis1/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
 export MONITOR_PORT="4174"
+export ZEELY_SOURCE_ROOT="/Users/jarvis1/Documents/Codex/2026-07-19/mvp-zeely-format-html5-1-2"
+export ZEELY_SUPERVISOR_AGENT="true"
 # Public testing mode. Existing secret files remain untouched for a later
 # one-line restoration of the PIN gate.
 unset ZEELY_DEMO_PIN ZEELY_SESSION_SECRET ZEELY_COOKIE_SECURE

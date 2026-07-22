@@ -5,7 +5,7 @@ import sharp from 'sharp';
 import { normalizeWhitePngBytes } from '../qa/white-normalizer.mjs';
 import { removeBorderConnectedWhiteToAlpha } from '../conditioning/transparent-cutout.mjs';
 import { IMAGE_MODEL_ROUTE } from '../runner/model-policy.js';
-import { compileFullLookText, findGarmentConflicts, garmentLocks } from './garment-passport.js';
+import { compileFullLookText, findGarmentConflicts, garmentLocks, groupGarmentViews } from './garment-passport.js';
 
 function sha256(bytes) { return createHash('sha256').update(bytes).digest('hex'); }
 async function atomicWrite(filename, bytes) {
@@ -16,7 +16,7 @@ async function atomicWrite(filename, bytes) {
 }
 function canonicalPrompt(item) {
   const locks = garmentLocks(item).map((value) => `- ${value}`).join('\n');
-  return `Create a canonical ecommerce reference of the exact same primary wardrobe item visible in the input. Show the complete item alone, centered and front-facing, on uniform pure #FFFFFF. Remove the person, hands, hanger, room, floor, props and shadows. Preserve every observable color, material, pattern, seam, closure, logo, text and construction detail exactly. Do not invent hidden details, branding or decoration. If part of the item is obscured, use the most conservative structurally neutral completion.\n\nOBSERVED LOCKS:\n${locks}`;
+  return `Create a canonical ecommerce reference of the exact same primary wardrobe item visible across the input views. Every input is evidence for the same garment. Show the complete item alone, centered and front-facing, on uniform pure #FFFFFF. Remove the person, hands, hanger, room, floor, props and shadows. Preserve every observable color, material, pattern, seam, closure, logo, text and construction detail exactly. Do not invent hidden details, branding or decoration. If part of the item is obscured, use the most conservative structurally neutral completion.\n\nOBSERVED LOCKS:\n${locks}`;
 }
 
 export class GarmentNeedsInputError extends Error {
@@ -29,18 +29,19 @@ export class GarmentConditioner {
   async condition({ imagePaths, outputDirectory, runId }) {
     const passport = await this.vlm.inspectGarments(imagePaths);
     if (passport.status !== 'READY') throw new GarmentNeedsInputError(passport.reason, { passport });
-    const conflicts = findGarmentConflicts(passport.items);
+    const conflicts = findGarmentConflicts(passport.items, passport.reference_sets);
     if (conflicts.length) throw new GarmentNeedsInputError('Garment slot conflicts require explicit selection', { passport, conflicts });
     const conditioned = [];
-    for (const item of passport.items.sort((a, b) => a.source_index - b.source_index)) {
+    for (const item of groupGarmentViews(passport.items, passport.reference_sets)) {
       if (item.blockers.length) throw new GarmentNeedsInputError('Garment contains blocking unknowns', { item });
-      const sourcePath = imagePaths[item.source_index];
+      const sourcePaths = item.source_indexes.map((index) => imagePaths[index]);
+      const sourcePath = sourcePaths[0];
       const itemDirectory = path.join(outputDirectory, String(item.source_index + 1).padStart(2, '0'));
       let accepted;
       const attempts = [];
       for (const [routeIndex, model] of IMAGE_MODEL_ROUTE.entries()) {
         const generated = await this.generator.generateGarment({
-          sourcePath, model, prompt: canonicalPrompt(item), workDirectory: itemDirectory,
+          sourcePath, sourcePaths, model, prompt: canonicalPrompt(item), workDirectory: itemDirectory,
           operationId: `${runId}-garment-${item.source_index}-${routeIndex + 1}`,
         });
         // Canonical garment cards are intentionally opaque white. Flattening is
@@ -52,6 +53,7 @@ export class GarmentConditioner {
         await atomicWrite(candidatePath, normalized.image);
         const qa = await this.vlm.evaluateQa({ phase: 'garment', evidence: {
           identity: { artifact: { path: sourcePath } }, candidate: { artifact: { path: candidatePath } },
+          reference_packs: { outfit: { bindings: sourcePaths.map((filename) => ({ artifact: { path: filename } })) } },
         } });
         attempts.push({ model, qa, provider: generated.metadata ?? {} });
         if (qa.decision === 'PASS') { accepted = { model, candidatePath, image: normalized.image, qa, provider: generated.metadata ?? {} }; break; }
@@ -63,14 +65,24 @@ export class GarmentConditioner {
       const cutout = await removeBorderConnectedWhiteToAlpha(accepted.image);
       const cutoutPath = path.join(itemDirectory, 'cutout.png');
       await atomicWrite(cutoutPath, cutout.image);
-      conditioned.push({ ...item, source_path: sourcePath, reference_card: { path: referenceCardPath, sha256: sha256(accepted.image) },
+      conditioned.push({ ...item, source_path: sourcePath, source_paths: sourcePaths, reference_card: { path: referenceCardPath, sha256: sha256(accepted.image) },
         cutout: { path: cutoutPath, sha256: sha256(cutout.image), stats: cutout.stats }, attempts, selected_model: accepted.model });
     }
     const primary = conditioned[0];
+    const sources = [];
+    for (const item of conditioned) {
+      for (const [index, sourcePath] of item.source_paths.entries()) sources.push({
+        reference_set_id: item.reference_set_id,
+        source_index: item.source_indexes[index],
+        path: path.resolve(sourcePath),
+        sha256: sha256(await readFile(sourcePath)),
+      });
+    }
     const pack = {
       schema_version: '1.0.0', asset_id: `${runId}-wardrobe`, kind: 'GARMENT',
       source: { path: path.resolve(primary.source_path), sha256: sha256(await readFile(primary.source_path)), immutable: true },
-      extraction: { method: 'codex_vlm_strict_schema', items: conditioned.map(({ source_index, category, confidence, observed, unknowns }) => ({ source_index, category, confidence, observed, unknowns })), provenance: 'OBSERVED' },
+      sources,
+      extraction: { method: 'codex_vlm_strict_schema', items: conditioned.map(({ source_index, source_indexes, reference_set_id, same_item_confidence, grouping_evidence, category, confidence, observed, unknowns }) => ({ source_index, source_indexes, reference_set_id, same_item_confidence, grouping_evidence, category, confidence, observed, unknowns })), provenance: 'OBSERVED' },
       readiness: { decision: 'READY', reasons: ['ALL_GARMENTS_CANONICALIZED_AND_QA_PASSED'], actions: [], terminal: false },
       generation_bindings: conditioned.map((item, index) => ({ order: index + 1, role: `GARMENT_${item.category.toUpperCase()}`, path: item.cutout.path, sha256: item.cutout.sha256 })),
       created_at: this.clock().toISOString(),
