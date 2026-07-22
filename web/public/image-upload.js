@@ -85,11 +85,11 @@ export function uploadFormData(url, data, { timeoutMs = 180_000, onProgress = ()
     request.onload = () => resolve({
       ok: request.status >= 200 && request.status < 300,
       status: request.status,
-      body: request.response || { error: request.status === 413 ? 'Upload завеликий навіть після оптимізації' : undefined },
+      body: request.response || { error: request.status === 413 ? 'Файли завеликі навіть після обробки' : undefined },
     });
-    request.onerror = () => reject(new Error('Мережевий збій під час upload'));
-    request.ontimeout = () => reject(new Error('Upload перевищив 3 хвилини й був зупинений'));
-    request.onabort = () => reject(new Error('Upload скасовано'));
+    request.onerror = () => reject(new Error('Мережевий збій під час завантаження'));
+    request.ontimeout = () => reject(new Error('Завантаження тривало понад 3 хвилини й було зупинене'));
+    request.onabort = () => reject(new Error('Завантаження скасовано'));
     request.send(data);
   });
 }

@@ -25,7 +25,7 @@ let serverSyncQueue = Promise.resolve();
 
 function queueServerSync(task) {
   serverSyncQueue = serverSyncQueue.then(task).catch((error) => {
-    draftStatus.textContent = 'Локальна копія є, але temp backup не синхронізовано';
+    draftStatus.textContent = 'Чернетку збережено лише на цьому пристрої';
     draftStatus.className = 'draft-status failed';
     telemetry('client.draft_error', { message: error.message.slice(0, 500), stage: 'server_sync' });
     return null;
@@ -34,7 +34,7 @@ function queueServerSync(task) {
 }
 
 async function syncFileToServer(slot, file) {
-  draftStatus.textContent = 'Створюємо temp backup на 15 хвилин…';
+  draftStatus.textContent = 'Зберігаємо чернетку на 15 хвилин…';
   const prepared = await prepareImageFile(file);
   if (prepared.changed) telemetry('client.file_prepared', {
     original_bytes: prepared.originalBytes, prepared_bytes: prepared.preparedBytes, stage: 'draft_backup',
@@ -43,13 +43,13 @@ async function syncFileToServer(slot, file) {
   if (slot === 'person') serverDraftRefs.person = descriptor.id;
   else if (slot === 'identity') serverDraftRefs.identity = descriptor.id;
   else serverDraftRefs.garments.push(descriptor.id);
-  draftStatus.textContent = 'Temp backup збережено на 15 хвилин';
+  draftStatus.textContent = 'Чернетку збережено на 15 хвилин';
   draftStatus.className = 'draft-status saved';
 }
 
 const progressStates = {
-  PREPARING: { label: 'PREP', step: 0, title: 'Оптимізуємо великі файли' },
-  UPLOADING: { label: 'UPLOAD', step: 0, title: 'Передаємо файли на сервер' },
+  PREPARING: { label: 'ГОТУЄМО', step: 0, title: 'Готуємо файли' },
+  UPLOADING: { label: '0%', step: 0, title: 'Завантажуємо файли' },
   UPLOADED: { label: '1 / 8', step: 0, title: 'Input прийнято сервером' },
   RECEIVED: { label: '1 / 8', step: 0, title: 'Створення immutable job' },
   VALIDATING: { label: '1 / 8', step: 0, title: 'Валідація матеріалів' },
@@ -308,7 +308,7 @@ form.addEventListener('submit', async (event) => {
     const sourceFiles = [uploads.person, uploads.identityDetail, ...uploads.garments].filter(Boolean);
     const prepared = [];
     for (const [index, file] of sourceFiles.entries()) {
-      renderProgress(progressStates.PREPARING, `Файл ${index + 1} з ${sourceFiles.length}: перевіряємо розмір і resolution…`);
+      renderProgress(progressStates.PREPARING, `Обробляємо файл ${index + 1} з ${sourceFiles.length}…`);
       const result = await prepareImageFile(file);
       prepared.push(result.file);
       if (result.changed) telemetry('client.file_prepared', {
@@ -324,11 +324,11 @@ form.addEventListener('submit', async (event) => {
     data.set('consent', 'true');
     data.set('generate_scene', form.elements.generate_scene.checked ? 'true' : 'false');
     const uploadBytes = prepared.reduce((total, file) => total + file.size, 0);
-    renderProgress(progressStates.UPLOADING, `Передаємо ${prepared.length} файлів (${Math.ceil(uploadBytes / 1024 / 1024)} MB). Run ще не створено.`);
+    renderProgress(progressStates.UPLOADING, `${prepared.length} файлів · ${Math.ceil(uploadBytes / 1024 / 1024)} MB`);
     let lastReported = -10;
     const response = await uploadFormData('/api/runs', data, { onProgress: (loaded, total) => {
       const percentage = Math.min(100, Math.round((loaded / total) * 100));
-      renderProgress(progressStates.UPLOADING, `Реальний upload: ${percentage}% · ${Math.ceil(loaded / 1024 / 1024)} з ${Math.ceil(total / 1024 / 1024)} MB`);
+      renderProgress({ ...progressStates.UPLOADING, label: `${percentage}%` }, `${Math.ceil(loaded / 1024 / 1024)} з ${Math.ceil(total / 1024 / 1024)} MB`);
       if (percentage >= lastReported + 10 || percentage === 100) {
         lastReported = percentage;
         telemetry('client.upload_progress', { percentage, total_bytes: total, stage: 'multipart' });
@@ -336,7 +336,7 @@ form.addEventListener('submit', async (event) => {
     } });
     const body = response.body || {};
     telemetry('client.submit_response', { status: response.status, duration_ms: Math.round(performance.now() - startedAt), stage: 'upload_done' }, body.run_id);
-    if (!response.ok) throw new Error(body.error || `Upload відхилено: HTTP ${response.status}`);
+    if (!response.ok) throw new Error(body.error || `Завантаження відхилено: HTTP ${response.status}`);
     history.replaceState({}, '', `${location.pathname}?run=${encodeURIComponent(body.run_id)}`);
     renderRun(body);
     watch(body.run_id);
@@ -344,7 +344,7 @@ form.addEventListener('submit', async (event) => {
     telemetry('client.fetch_error', { message: error.message.slice(0, 500), duration_ms: Math.round(performance.now() - startedAt), stage: 'create_run' });
     formError.textContent = `${error.message}. Файли залишилися в локальній чернетці.`;
     submit.disabled = false;
-    statusChip.textContent = 'Upload не завершено';
+    statusChip.textContent = 'Завантаження не завершено';
     statusChip.className = 'status-chip failed';
     setView('empty');
   }
@@ -416,7 +416,7 @@ async function initialize() {
         if (!localDraft?.outfitText) form.elements.outfit_text.value = serverDraft.manifest.outfit_text || '';
         if (!localDraft) form.elements.generate_scene.checked = serverDraft.manifest.generate_scene !== false;
         await saveDraft({ ...uploads, outfitText: form.elements.outfit_text.value, generateScene: form.elements.generate_scene.checked });
-        draftStatus.textContent = 'Temp-чернетку відновлено із server backup';
+        draftStatus.textContent = 'Чернетку відновлено';
         draftStatus.className = 'draft-status saved';
         telemetry('client.draft_restored', { ...fileSummary(uploads), stage: 'server_backup' });
       }
