@@ -138,7 +138,7 @@ function publicManifest(manifest) {
   };
 }
 
-export async function registerDraftRoutes(app, { service, secureCookie = true }) {
+export async function registerDraftRoutes(app, { service, runService = null, secureCookie = true }) {
   function session(request, reply) {
     const supplied = cookies(request.headers.cookie)[COOKIE_NAME];
     const id = validId(supplied) ? supplied : randomUUID();
@@ -170,4 +170,23 @@ export async function registerDraftRoutes(app, { service, secureCookie = true })
     return value ? reply.type(value.descriptor.mimetype).send(value.buffer) : reply.code(404).send({ error: 'Draft file not found' });
   });
   app.delete('/api/draft', async (request, reply) => { await service.clear(session(request, reply)); return reply.code(204).send(); });
+  if (runService) app.post('/api/draft/run', async (request, reply) => {
+    if (request.body?.consent !== true) return reply.code(400).send({ error: 'Consent is required for processing personal images' });
+    const sessionId = session(request, reply);
+    const manifest = await service.read(sessionId);
+    if (!manifest.person) return reply.code(400).send({ error: 'Фото людини відсутнє в чернетці' });
+    const asUpload = async (slot, descriptor) => {
+      const value = await service.file(sessionId, slot, descriptor.id);
+      if (!value) throw new Error(`Файл ${slot} відсутній у чернетці`);
+      return { filename: descriptor.filename, mimetype: descriptor.mimetype, buffer: value.buffer };
+    };
+    const run = await runService.createRun({
+      person: await asUpload('person', manifest.person),
+      identityDetail: manifest.identity ? await asUpload('identity', manifest.identity) : null,
+      garments: await Promise.all(manifest.garments.map((item) => asUpload('garment', item))),
+      outfitText: manifest.outfit_text,
+      generateScene: manifest.generate_scene,
+    });
+    return reply.code(202).send(run);
+  });
 }

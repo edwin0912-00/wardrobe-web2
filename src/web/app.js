@@ -12,7 +12,7 @@ export async function createWebApp({ service, health = { status: 'ok' }, publicD
   installDemoAuth(app, auth);
   await app.register(multipart, { limits: { files: 7, fileSize: 20 * 1024 * 1024, fields: 12, parts: 20 } });
   await app.register(fastifyStatic, { root: publicDirectory, prefix: '/' });
-  if (drafts) await registerDraftRoutes(app, { service: drafts, secureCookie: process.env.ZEELY_COOKIE_SECURE !== 'false' });
+  if (drafts) await registerDraftRoutes(app, { service: drafts, runService: service, secureCookie: process.env.ZEELY_COOKIE_SECURE !== 'false' });
 
   if (monitor) {
     await registerMonitorRoutes(app, {

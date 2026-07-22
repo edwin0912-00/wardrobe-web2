@@ -1,9 +1,9 @@
-import { createThinkingOrb } from './thinking-orb.js';
-import { UploadSelectionStore } from './upload-state.js';
-import { clearDraft, loadDraft, requestPersistentStorage, saveDraft } from './draft-store.js';
-import { fileSummary, telemetry } from './telemetry.js';
-import { prepareImageFile, uploadFormData } from './image-upload.js';
-import { clearServerDraft, loadServerDraft, removeServerDraftFile, updateServerDraftMetadata, uploadDraftFile } from './server-draft.js';
+import { createThinkingOrb } from './thinking-orb.js?v=20260722-8';
+import { UploadSelectionStore } from './upload-state.js?v=20260722-8';
+import { clearDraft, loadDraft, requestPersistentStorage, saveDraft } from './draft-store.js?v=20260722-8';
+import { fileSummary, telemetry } from './telemetry.js?v=20260722-8';
+import { prepareImageFile } from './image-upload.js?v=20260722-8';
+import { clearServerDraft, createRunFromServerDraft, loadServerDraft, removeServerDraftFile, updateServerDraftMetadata, uploadDraftFile } from './server-draft.js?v=20260722-8';
 
 const form = document.querySelector('#run-form');
 const submit = document.querySelector('#submit-button');
@@ -22,6 +22,7 @@ let eventSource = null;
 let saveTimer = null;
 let serverDraftRefs = { person: null, identity: null, garments: [] };
 let serverSyncQueue = Promise.resolve();
+let submitting = false;
 
 function queueServerSync(task) {
   serverSyncQueue = serverSyncQueue.then(task).catch((error) => {
@@ -39,12 +40,39 @@ async function syncFileToServer(slot, file) {
   if (prepared.changed) telemetry('client.file_prepared', {
     original_bytes: prepared.originalBytes, prepared_bytes: prepared.preparedBytes, stage: 'draft_backup',
   });
-  const descriptor = await uploadDraftFile(slot, prepared.file);
+  const descriptor = await uploadDraftFile(slot, prepared.file, { onProgress: (loaded, total) => {
+    if (!submitting || total <= 0) return;
+    const percentage = Math.min(100, Math.round((loaded / total) * 100));
+    renderProgress(
+      { ...progressStates.UPLOADING, label: `${percentage}%` },
+      `${file.name} · ${Math.ceil(loaded / 1024 / 1024)} з ${Math.ceil(total / 1024 / 1024)} MB`,
+    );
+  } });
   if (slot === 'person') serverDraftRefs.person = descriptor.id;
   else if (slot === 'identity') serverDraftRefs.identity = descriptor.id;
   else serverDraftRefs.garments.push(descriptor.id);
   draftStatus.textContent = 'Чернетку збережено на 15 хвилин';
   draftStatus.className = 'draft-status saved';
+}
+
+async function ensureServerDraftComplete() {
+  await serverSyncQueue;
+  const current = await loadServerDraft({ includeFiles: false });
+  serverDraftRefs = current.refs;
+
+  if (uploads.person && !serverDraftRefs.person) await syncFileToServer('person', uploads.person);
+  if (uploads.identityDetail && !serverDraftRefs.identity) await syncFileToServer('identity', uploads.identityDetail);
+  for (const garment of uploads.garments.slice(serverDraftRefs.garments.length)) {
+    await syncFileToServer('garment', garment);
+  }
+  await updateServerDraftMetadata({
+    outfitText: form.elements.outfit_text.value,
+    generateScene: form.elements.generate_scene.checked,
+  });
+
+  if (!serverDraftRefs.person) throw new Error('Фото людини не збережено на сервері');
+  if (uploads.identityDetail && !serverDraftRefs.identity) throw new Error('Identity detail не збережено на сервері');
+  if (serverDraftRefs.garments.length !== uploads.garments.length) throw new Error('Не всі фото одягу збережено на сервері');
 }
 
 const progressStates = {
@@ -301,42 +329,16 @@ form.addEventListener('submit', async (event) => {
   if (!form.elements.consent.checked) { formError.textContent = 'Потрібна згода на обробку фото.'; return; }
 
   submit.disabled = true;
+  submitting = true;
   setView('progress');
   const startedAt = performance.now();
-  telemetry('client.submit', { ...fileSummary(uploads), stage: 'upload_start' });
+  telemetry('client.submit', { ...fileSummary(uploads), stage: 'draft_finalize' });
   try {
-    const sourceFiles = [uploads.person, uploads.identityDetail, ...uploads.garments].filter(Boolean);
-    const prepared = [];
-    for (const [index, file] of sourceFiles.entries()) {
-      renderProgress(progressStates.PREPARING, `Обробляємо файл ${index + 1} з ${sourceFiles.length}…`);
-      const result = await prepareImageFile(file);
-      prepared.push(result.file);
-      if (result.changed) telemetry('client.file_prepared', {
-        original_bytes: result.originalBytes, prepared_bytes: result.preparedBytes, stage: 'browser_resize',
-      });
-    }
-    const data = new FormData();
-    let cursor = 0;
-    data.append('person_photo', prepared[cursor], prepared[cursor].name); cursor += 1;
-    if (uploads.identityDetail) { data.append('identity_detail', prepared[cursor], prepared[cursor].name); cursor += 1; }
-    for (; cursor < prepared.length; cursor += 1) data.append('garment_images', prepared[cursor], prepared[cursor].name);
-    data.set('outfit_text', outfitText);
-    data.set('consent', 'true');
-    data.set('generate_scene', form.elements.generate_scene.checked ? 'true' : 'false');
-    const uploadBytes = prepared.reduce((total, file) => total + file.size, 0);
-    renderProgress(progressStates.UPLOADING, `${prepared.length} файлів · ${Math.ceil(uploadBytes / 1024 / 1024)} MB`);
-    let lastReported = -10;
-    const response = await uploadFormData('/api/runs', data, { onProgress: (loaded, total) => {
-      const percentage = Math.min(100, Math.round((loaded / total) * 100));
-      renderProgress({ ...progressStates.UPLOADING, label: `${percentage}%` }, `${Math.ceil(loaded / 1024 / 1024)} з ${Math.ceil(total / 1024 / 1024)} MB`);
-      if (percentage >= lastReported + 10 || percentage === 100) {
-        lastReported = percentage;
-        telemetry('client.upload_progress', { percentage, total_bytes: total, stage: 'multipart' });
-      }
-    } });
-    const body = response.body || {};
-    telemetry('client.submit_response', { status: response.status, duration_ms: Math.round(performance.now() - startedAt), stage: 'upload_done' }, body.run_id);
-    if (!response.ok) throw new Error(body.error || `Завантаження відхилено: HTTP ${response.status}`);
+    renderProgress(progressStates.PREPARING, 'Перевіряємо збереження всіх файлів…');
+    await ensureServerDraftComplete();
+    renderProgress(progressStates.UPLOADED, 'Файли на сервері. Створюємо run…');
+    const body = await createRunFromServerDraft();
+    telemetry('client.submit_response', { status: 202, duration_ms: Math.round(performance.now() - startedAt), stage: 'run_created_from_draft' }, body.run_id);
     history.replaceState({}, '', `${location.pathname}?run=${encodeURIComponent(body.run_id)}`);
     renderRun(body);
     watch(body.run_id);
@@ -347,6 +349,8 @@ form.addEventListener('submit', async (event) => {
     statusChip.textContent = 'Завантаження не завершено';
     statusChip.className = 'status-chip failed';
     setView('empty');
+  } finally {
+    submitting = false;
   }
 });
 

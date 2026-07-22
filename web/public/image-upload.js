@@ -88,7 +88,7 @@ export function uploadFormData(url, data, { timeoutMs = 180_000, onProgress = ()
       body: request.response || { error: request.status === 413 ? 'Файли завеликі навіть після обробки' : undefined },
     });
     request.onerror = () => reject(new Error('Мережевий збій під час завантаження'));
-    request.ontimeout = () => reject(new Error('Завантаження тривало понад 3 хвилини й було зупинене'));
+    request.ontimeout = () => reject(new Error(`Завантаження не завершилося за ${Math.round(timeoutMs / 60_000)} хвилин`));
     request.onabort = () => reject(new Error('Завантаження скасовано'));
     request.send(data);
   });

@@ -1,3 +1,5 @@
+import { uploadFormData } from './image-upload.js?v=20260722-8';
+
 function extensionFor(type) {
   if (type === 'image/png') return 'png';
   if (type === 'image/webp') return 'webp';
@@ -10,10 +12,12 @@ async function jsonResponse(response) {
   return body;
 }
 
-export async function uploadDraftFile(slot, file) {
+export async function uploadDraftFile(slot, file, { onProgress = () => {} } = {}) {
   const data = new FormData();
   data.append('file', file, file.name);
-  return jsonResponse(await fetch(`/api/draft/file/${encodeURIComponent(slot)}`, { method: 'POST', body: data }));
+  const response = await uploadFormData(`/api/draft/file/${encodeURIComponent(slot)}`, data, { timeoutMs: 10 * 60_000, onProgress });
+  if (!response.ok) throw new Error(response.body?.error || `Чернетку не збережено: HTTP ${response.status}`);
+  return response.body;
 }
 
 export async function updateServerDraftMetadata({ outfitText, generateScene }) {
@@ -60,4 +64,12 @@ export async function removeServerDraftFile(slot, id) {
 export async function clearServerDraft() {
   const response = await fetch('/api/draft', { method: 'DELETE' });
   if (!response.ok) throw new Error('Не вдалося очистити server draft');
+}
+
+export async function createRunFromServerDraft() {
+  return jsonResponse(await fetch('/api/draft/run', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ consent: true }),
+  }));
 }

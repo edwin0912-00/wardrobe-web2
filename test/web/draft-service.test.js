@@ -8,13 +8,13 @@ import multipart from '@fastify/multipart';
 import FormData from 'form-data';
 import { DraftService, registerDraftRoutes } from '../../src/web/draft-service.js';
 
-async function fixture() {
+async function fixture(runService = null) {
   const root = await mkdtemp(path.join(os.tmpdir(), 'zeely-drafts-'));
   const service = new DraftService({ rootDirectory: root });
   await service.initialize();
   const app = Fastify();
   await app.register(multipart);
-  await registerDraftRoutes(app, { service, secureCookie: false });
+  await registerDraftRoutes(app, { service, runService, secureCookie: false });
   return { app, root, service };
 }
 
@@ -33,6 +33,42 @@ test('anonymous browser draft survives requests and uses a 15-minute cookie', as
   assert.equal(manifest.json().person.size, 12);
   const restored = await app.inject({ method: 'GET', url: manifest.json().person.url, headers: { cookie } });
   assert.equal(restored.body, 'jpeg fixture');
+});
+
+test('creates a run from server-side draft files without uploading them again', async (t) => {
+  let received;
+  const runService = {
+    async createRun(input) {
+      received = input;
+      return { run_id: 'run-from-draft', status: 'QUEUED', phase: 'UPLOADED' };
+    },
+  };
+  const { app } = await fixture(runService);
+  t.after(() => app.close());
+  const first = await app.inject({ method: 'GET', url: '/api/draft' });
+  const cookie = first.headers['set-cookie'].split(';')[0];
+
+  for (const [slot, value] of [['person', 'person bytes'], ['garment', 'garment bytes']]) {
+    const data = new FormData();
+    data.append('file', Buffer.from(value), { filename: `${slot}.jpg`, contentType: 'image/jpeg' });
+    const response = await app.inject({ method: 'POST', url: `/api/draft/file/${slot}`, headers: { ...data.getHeaders(), cookie }, payload: data });
+    assert.equal(response.statusCode, 201, response.body);
+  }
+  const metadata = await app.inject({
+    method: 'PUT', url: '/api/draft/meta', headers: { cookie, 'content-type': 'application/json' },
+    payload: { outfit_text: 'black tailored look', generate_scene: false },
+  });
+  assert.equal(metadata.statusCode, 200);
+
+  const created = await app.inject({
+    method: 'POST', url: '/api/draft/run', headers: { cookie, 'content-type': 'application/json' }, payload: { consent: true },
+  });
+  assert.equal(created.statusCode, 202, created.body);
+  assert.equal(created.json().run_id, 'run-from-draft');
+  assert.equal(received.person.buffer.toString(), 'person bytes');
+  assert.equal(received.garments[0].buffer.toString(), 'garment bytes');
+  assert.equal(received.outfitText, 'black tailored look');
+  assert.equal(received.generateScene, false);
 });
 
 test('expired anonymous drafts are physically removed', async () => {
