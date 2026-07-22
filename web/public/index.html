@@ -9,7 +9,7 @@
   <script>try{if(new URLSearchParams(location.search).has('run')||localStorage.getItem('zeely_active_run_id')||localStorage.getItem('zeely_pending_finalization_id'))document.documentElement.classList.add('workflow-pending')}catch{}</script>
   <link rel="stylesheet" href="/styles.css">
   <link rel="stylesheet" href="/upload.css?v=20260722-2">
-  <link rel="stylesheet" href="/progress.css?v=20260722-4">
+  <link rel="stylesheet" href="/progress.css?v=20260722-5">
   <link rel="stylesheet" href="/conflict.css?v=20260722-2">
   <link rel="stylesheet" href="/experience.css?v=20260722-3">
   <link rel="stylesheet" href="/result.css?v=20260722-1">
@@ -55,8 +55,8 @@
         <p id="form-error" class="error" role="alert"></p>
       </form>
 
-      <section class="panel result-panel" aria-live="polite">
-        <div class="panel-head"><div><span class="step">02</span><h2 id="result-panel-title">Pipeline</h2></div><span id="status-chip" class="status-chip idle">Очікує input</span></div>
+      <section class="panel result-panel">
+        <div class="panel-head"><div><span class="step">02</span><h2 id="result-panel-title">Pipeline</h2></div><span id="status-chip" class="status-chip idle" role="status" aria-live="polite">Очікує input</span></div>
         <div id="empty-state" class="empty-state"><div class="mirror-graphic"><span></span><span></span></div><h3>Тут з’явиться твій look</h3><p>Base avatar і переодягання проходять окремі QA gates.</p></div>
         <div id="progress-view" class="progress-view hidden">
           <div class="progress-layout">
@@ -64,21 +64,30 @@
               <div class="progress-orbit"><canvas id="progress-orb-canvas" data-state="listening"></canvas></div>
               <p class="ai-live"><i></i> AI ENGINE ACTIVE</p>
               <h3 id="progress-title">Підготовка матеріалів</h3>
-              <p id="progress-message">Перевіряємо input…</p>
+              <p id="progress-message" aria-live="polite">Перевіряємо input…</p>
               <div class="progress-meter">
-                <div class="progress-meter-head"><div class="progress-value"><strong id="progress-stage">4%</strong><small>за server checkpoints</small></div><span id="progress-count">Етап 1 з 7</span></div>
+                <div class="progress-meter-head"><div class="progress-value"><strong id="progress-stage">4%</strong><small>за server checkpoints</small></div><span id="progress-count">CHECKPOINT SYNC</span></div>
                 <div id="progress-track" class="progress-track" role="progressbar" aria-label="Pipeline progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="4"><i id="progress-bar"></i></div>
               </div>
             </section>
-            <ol id="pipeline-nodes" class="pipeline-nodes" aria-label="Етапи pipeline">
-              <li data-step="0"><span class="node-mark"><b>01</b><i>✓</i></span><div><strong>Input</strong><small>Файли прийнято</small></div></li>
-              <li data-step="1"><span class="node-mark"><b>02</b><i>✓</i></span><div><strong>References</strong><small>Extraction і canonicalization</small></div></li>
-              <li data-step="2"><span class="node-mark"><b>03</b><i>✓</i></span><div><strong>Reference QA</strong><small>Видимі деталі зафіксовано</small></div></li>
-              <li data-step="3"><span class="node-mark"><b>04</b><i>✓</i></span><div><strong>Avatar</strong><small>Base identity generation</small></div></li>
-              <li data-step="4"><span class="node-mark"><b>05</b><i>✓</i></span><div><strong>Avatar QA</strong><small>Identity і технічна якість</small></div></li>
-              <li data-step="5"><span class="node-mark"><b>06</b><i>✓</i></span><div><strong>Outfit + QA</strong><small>Одяг і identity lock</small></div></li>
-              <li data-step="6"><span class="node-mark"><b>07</b><i>✓</i></span><div><strong>Результат</strong><small>PNG і manifest</small></div></li>
-            </ol>
+            <div id="pipeline-board-slot" class="pipeline-board-slot">
+              <section class="pipeline-board" aria-labelledby="pipeline-map-title">
+                <header class="pipeline-board-head">
+                  <div><p>LIVE EXECUTION GRAPH</p><h4 id="pipeline-map-title">Persisted pipeline checkpoints</h4></div>
+                  <div class="pipeline-legend" aria-label="Статуси pipeline"><span><i class="legend-done">✓</i> Saved</span><span><i class="legend-active">●</i> Active</span><span><i class="legend-pending">○</i> Pending</span></div>
+                </header>
+                <ol id="pipeline-nodes" class="pipeline-grid" aria-label="15 етапів production pipeline"></ol>
+                <aside id="pipeline-inspector" class="pipeline-inspector" role="status" aria-live="polite" aria-atomic="true">
+                  <header><span>LIVE CHECKPOINT</span><code id="checkpoint-code">CHECKPOINT_SYNC</code></header>
+                  <dl>
+                    <div><dt>INPUT</dt><dd id="checkpoint-input">run_id from this browser</dd></div>
+                    <div><dt>OPERATION</dt><dd id="checkpoint-operation">Fetch persisted state and reconnect SSE</dd></div>
+                    <div><dt>OUTPUT</dt><dd id="checkpoint-output">last server checkpoint</dd></div>
+                    <div><dt>GATE</dt><dd id="checkpoint-gate">never reset an active run locally</dd></div>
+                  </dl>
+                </aside>
+              </section>
+            </div>
           </div>
         </div>
         <div id="result-view" class="result-view hidden">
@@ -108,6 +117,7 @@
                 <details class="quality-details"><summary>Деталі якості</summary><div id="passport-list" class="passport-list"></div></details>
               </aside>
             </div>
+            <details id="completed-pipeline-trace" class="terminal-pipeline-trace"><summary>Execution graph · final server evidence</summary><div id="completed-pipeline-host"></div></details>
           </section>
         </div>
         <div id="profile-view" class="profile-view hidden">
@@ -122,7 +132,7 @@
             <div class="profile-danger-zone"><p>Без акаунта цей профіль існує лише в цьому браузері.</p><button id="delete-profile" type="button">Видалити профіль і файли</button></div>
           </section>
         </div>
-        <div id="failure-view" class="failure-view hidden"><span class="failure-mark">!</span><h3 id="failure-title">Потрібен інший input</h3><p id="failure-message"></p><div id="conflict-picker" class="conflict-picker"></div><div class="failure-actions"><button id="edit-input" class="secondary-button" type="button">Змінити матеріали</button><button id="retry-run" class="secondary-button" type="button">Повторити run</button></div></div>
+        <div id="failure-view" class="failure-view hidden"><span class="failure-mark">!</span><h3 id="failure-title">Потрібен інший input</h3><p id="failure-message"></p><div id="conflict-picker" class="conflict-picker"></div><div class="failure-actions"><button id="edit-input" class="secondary-button" type="button">Змінити матеріали</button><button id="retry-run" class="secondary-button" type="button">Повторити run</button></div><details id="failure-pipeline-trace" class="terminal-pipeline-trace failure-trace"><summary>Technical execution trace</summary><div id="failure-pipeline-host"></div></details></div>
       </section>
     </section>
   </main>
@@ -132,6 +142,6 @@
     <button type="button" onclick="location.reload()">Перезавантажити</button>
   </aside>
   <script src="/boot-guard.js?v=20260722-3"></script>
-  <script type="module" src="/app.js?v=20260722-15"></script>
+  <script type="module" src="/app.js?v=20260722-16"></script>
 </body>
 </html>

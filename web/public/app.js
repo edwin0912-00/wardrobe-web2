@@ -4,7 +4,7 @@ import { clearDraft, loadDraft, requestPersistentStorage, saveDraft } from './dr
 import { fileSummary, telemetry } from './telemetry.js?v=20260722-8';
 import { prepareImageFile } from './image-upload.js?v=20260722-8';
 import { clearServerDraft, createRunFromServerDraft, loadServerDraft, removeServerDraftFile, updateServerDraftMetadata, uploadDraftFile } from './server-draft.js?v=20260722-10';
-import { PIPELINE_NODE_COUNT, nodeState, resolveProgressState } from './progress-model.js?v=20260722-3';
+import { PIPELINE_NODE_COUNT, PIPELINE_NODES, nodeState, resolveProgressState } from './progress-model.js?v=20260722-4';
 import { fetchRunWithRetry, RunNotFoundError } from './run-resume.js?v=20260722-3';
 import { avatarFileFromProfile, claimProfileRun, deleteAnonymousProfile, deleteProfileAvatar, deleteProfileLook, loadProfile, saveProfileRun } from './profile-client.js?v=20260722-1';
 
@@ -44,6 +44,75 @@ const PENDING_FINALIZATION_KEY = 'zeely_pending_finalization_id';
 const DRAFT_RESET_PENDING_KEY = 'zeely_draft_reset_pending';
 const SOURCE_AVATAR_KEY = 'zeely_source_avatar_id';
 const TERMINAL_STATUSES = new Set(['COMPLETED', 'FAILED', 'NEEDS_INPUT']);
+const PIPELINE_STATUS_LABELS = Object.freeze({
+  done: 'SAVED', active: 'ACTIVE', pending: 'WAIT', skipped: 'SKIP', reused: 'REUSE', stopped: 'STOP',
+});
+
+function initializePipelineGraph() {
+  const graph = document.querySelector('#pipeline-nodes');
+  const fragment = document.createDocumentFragment();
+  for (const [index, node] of PIPELINE_NODES.entries()) {
+    const item = document.createElement('li');
+    item.className = 'pipeline-node pending';
+    item.dataset.step = String(index);
+    item.dataset.nodeId = node.id;
+
+    if (index % 5 === 0) {
+      const phase = document.createElement('span');
+      phase.className = `phase-label${node.rowDirection === 'reverse' ? ' reverse' : ''}`;
+      phase.textContent = node.rowDirection === 'reverse' ? `← ${node.rowLabel}` : `${node.rowLabel} →`;
+      item.append(phase);
+    }
+
+    const card = document.createElement('div');
+    card.className = 'node-card';
+    const head = document.createElement('div');
+    head.className = 'node-head';
+    const mark = document.createElement('span');
+    mark.className = 'node-mark';
+    mark.setAttribute('aria-hidden', 'true');
+    const number = document.createElement('b');
+    number.textContent = String(index + 1).padStart(2, '0');
+    const check = document.createElement('i');
+    check.textContent = '✓';
+    const skipped = document.createElement('em');
+    skipped.textContent = '—';
+    const reused = document.createElement('u');
+    reused.textContent = '↺';
+    mark.append(number, check, skipped, reused);
+    const stateLabel = document.createElement('span');
+    stateLabel.className = 'node-status-label';
+    stateLabel.textContent = PIPELINE_STATUS_LABELS.pending;
+    head.append(mark, stateLabel);
+
+    const title = document.createElement('strong');
+    title.textContent = node.title;
+    const code = document.createElement('code');
+    code.textContent = node.code;
+    const detail = document.createElement('small');
+    detail.textContent = node.detail;
+    const accessibleState = document.createElement('span');
+    accessibleState.className = 'sr-only node-state-sr';
+    accessibleState.textContent = 'Pending';
+    card.append(head, title, code, detail, accessibleState);
+    item.append(card);
+    fragment.append(item);
+  }
+  graph.replaceChildren(fragment);
+}
+
+initializePipelineGraph();
+
+function movePipelineBoard(destination = 'progress') {
+  const board = document.querySelector('.pipeline-board');
+  const hosts = {
+    progress: document.querySelector('#pipeline-board-slot'),
+    completed: document.querySelector('#completed-pipeline-host'),
+    failure: document.querySelector('#failure-pipeline-host'),
+  };
+  const host = hosts[destination];
+  if (host && board.parentElement !== host) host.append(board);
+}
 
 function isTerminal(run) {
   return TERMINAL_STATUSES.has(run?.status);
@@ -255,6 +324,7 @@ function setWorkflowActive(active) {
 }
 
 function setView(name) {
+  if (name === 'progress') movePipelineBoard('progress');
   const views = { empty, progress, result: resultView, profile: profileView, failure };
   document.querySelector('.result-panel').dataset.view = name;
   for (const [viewName, element] of Object.entries(views)) {
@@ -265,27 +335,65 @@ function setView(name) {
   }
 }
 
-function renderProgress(state, message) {
+function renderProgress(state, message, { terminalStatus = null } = {}) {
   const requested = state?.percent == null ? resolveProgressState(state?.key) : state;
   const normalized = { ...requested, percent: Math.max(renderedProgressFloor, requested.percent) };
   renderedProgressFloor = normalized.percent;
+  const activeNode = normalized.step == null ? null : PIPELINE_NODES[normalized.step];
+  const route = activeRun?.execution_route ?? {};
+  document.querySelector('.pipeline-board').dataset.terminal = terminalStatus ?? '';
   document.querySelector('#progress-stage').textContent = `${normalized.percent}%`;
-  document.querySelector('#progress-count').textContent = normalized.countLabel || `Етап ${normalized.step + 1} з ${PIPELINE_NODE_COUNT}`;
+  document.querySelector('#progress-count').textContent = normalized.countLabel
+    || (activeNode ? `NODE ${String(normalized.step + 1).padStart(2, '0')}/${PIPELINE_NODE_COUNT} · ${normalized.label}` : normalized.label);
   document.querySelector('#progress-title').textContent = normalized.title;
   document.querySelector('#progress-message').textContent = message || 'Очікуємо підтвердження сервера…';
   const progressTrack = document.querySelector('#progress-track');
   progressTrack.setAttribute('aria-valuenow', String(normalized.percent));
+  progressTrack.setAttribute('aria-valuetext', activeNode
+    ? `${normalized.percent}%, ${normalized.key}, checkpoint ${normalized.step + 1} of ${PIPELINE_NODE_COUNT}`
+    : `${normalized.percent}%, ${normalized.label}`);
   document.querySelector('#progress-bar').style.width = `${normalized.percent}%`;
-  const orbState = normalized.step <= 0 ? 'listening' : normalized.step <= 2 ? 'searching' : normalized.step === 3 ? 'composing' : normalized.step <= 5 ? 'solving' : 'shaping';
+  const orbState = normalized.step == null || normalized.step === 0
+    ? 'listening'
+    : normalized.step <= 4 ? 'searching'
+      : normalized.step <= 9 ? 'shaping'
+        : normalized.step <= 10 ? 'composing' : 'solving';
   thinkingOrb.setState(orbState);
   document.querySelectorAll('#pipeline-nodes li').forEach((item, index) => {
-    const status = nodeState(index, normalized.step);
-    item.classList.toggle('active', status === 'active');
-    item.classList.toggle('done', status === 'done');
-    item.classList.toggle('pending', status === 'pending');
-    if (status === 'active') item.setAttribute('aria-current', 'step');
+    const baseStatus = nodeState(index, normalized.step, route, normalized.key === 'COMPLETED');
+    const status = terminalStatus && baseStatus === 'active' ? 'stopped' : baseStatus;
+    item.classList.remove('active', 'done', 'pending', 'skipped', 'reused', 'stopped');
+    item.classList.add(status);
+    const statusLabel = PIPELINE_STATUS_LABELS[status];
+    item.querySelector('.node-status-label').textContent = statusLabel;
+    item.querySelector('.node-state-sr').textContent = statusLabel;
+    if (status === 'active' || status === 'stopped') item.setAttribute('aria-current', 'step');
     else item.removeAttribute('aria-current');
   });
+
+  const syncDetails = {
+    input: 'run_id from this browser',
+    operation: 'Fetch persisted run state and reconnect SSE',
+    output: 'last confirmed server checkpoint',
+    gate: 'never reset an active run locally',
+  };
+  const optionalSceneDetails = {
+    input: 'approved full-look PNG',
+    operation: 'Generate the optional editorial still, then run scene VLM QA',
+    output: 'editorial still, or no bonus artifact if its gate fails',
+    gate: 'bonus failure never invalidates the approved core outputs',
+  };
+  const details = normalized.key === 'OPTIONAL_SCENE' ? optionalSceneDetails : activeNode ?? syncDetails;
+  document.querySelector('#checkpoint-code').textContent = terminalStatus
+    ? `${terminalStatus} · ${normalized.key ?? 'UNMAPPED'}`
+    : normalized.key ?? 'CHECKPOINT_SYNC';
+  document.querySelector('#checkpoint-input').textContent = details.input;
+  let operation = details.operation;
+  if (route.avatar_reuse && normalized.step === 11) operation = 'Verify exact avatar SHA-256 and its hash-bound PASS receipt';
+  else if (route.garment_images_supplied === false && normalized.step === 5) operation += ' · garment branch skipped: text-only route';
+  document.querySelector('#checkpoint-operation').textContent = operation;
+  document.querySelector('#checkpoint-output').textContent = details.output;
+  document.querySelector('#checkpoint-gate').textContent = details.gate;
 }
 
 function renderRun(run) {
@@ -298,6 +406,8 @@ function renderRun(run) {
   statusChip.textContent = hasSelectableConflict ? 'ПОТРІБЕН ВИБІР' : run.status.replaceAll('_', ' ');
   statusChip.className = `status-chip ${hasSelectableConflict ? 'choice' : run.status === 'COMPLETED' ? 'completed' : run.status === 'FAILED' || run.status === 'NEEDS_INPUT' ? 'failed' : 'running'}`;
   if (run.status === 'COMPLETED') {
+    renderProgress(resolveProgressState('COMPLETED'), run.message);
+    movePipelineBoard('completed');
     resultPanelTitle.textContent = 'Результат';
     setView('result');
     renderResults(run);
@@ -307,6 +417,9 @@ function renderRun(run) {
     return;
   }
   if (run.status === 'FAILED' || run.status === 'NEEDS_INPUT') {
+    const terminalStage = run.terminal_stage ?? run.inner_state ?? run.phase;
+    renderProgress(resolveProgressState(terminalStage), run.message, { terminalStatus: run.status });
+    movePipelineBoard('failure');
     resultPanelTitle.textContent = hasSelectableConflict ? 'Вибір' : 'Pipeline';
     setView('failure');
     failure.classList.toggle('choice', hasSelectableConflict);

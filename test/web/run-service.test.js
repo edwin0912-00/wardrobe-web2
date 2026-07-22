@@ -126,9 +126,16 @@ test('working core accepts a fresh user and garment upload and returns two downl
   const service = new RunService({ rootDirectory: root, ...dependencies() });
   await service.initialize();
   const created = await service.createRun({ person: await upload('#956b58'), garments: [await upload('#275b36')], outfitText: 'wear the approved item', generateScene: false });
+  assert.deepEqual(created.execution_route, {
+    garment_images_supplied: true,
+    garment_source_image_count: 1,
+    avatar_reuse: false,
+    optional_scene_requested: false,
+  });
   await service.running.get(created.run_id);
   const finished = await service.getRun(created.run_id);
   assert.equal(finished.status, 'COMPLETED');
+  assert.equal(finished.terminal_stage, null);
   assert.equal(finished.phase, 'COMPLETED');
   assert.equal(finished.inner_state, null);
   assert.ok(finished.outputs.avatar);
@@ -167,6 +174,7 @@ test('a new-look run imports a verified completed avatar without avatar provider
     },
   });
   assert.deepEqual(created.avatar_reuse, { purpose: 'NEW_LOOK', source_run_id: source.run_id });
+  assert.equal(created.execution_route.avatar_reuse, true);
   await service.running.get(created.run_id);
   const finished = await service.getRun(created.run_id);
   assert.equal(finished.status, 'COMPLETED');
@@ -208,6 +216,8 @@ test('working core supports text-only outfit and rejects invalid uploads before 
   const service = new RunService({ rootDirectory: root, ...dependencies() });
   await service.initialize();
   const created = await service.createRun({ person: await upload(), outfitText: 'cobalt blazer and white top', generateScene: false });
+  assert.equal(created.execution_route.garment_images_supplied, false);
+  assert.equal(created.execution_route.garment_source_image_count, 0);
   await service.running.get(created.run_id);
   assert.equal((await service.getRun(created.run_id)).status, 'COMPLETED');
   await assert.rejects(() => service.createRun({ person: { filename: 'bad.png', mimetype: 'image/png', buffer: Buffer.from('bad') }, outfitText: 'black top' }), /decodable/);
@@ -224,6 +234,7 @@ test('slot conflicts become an explicit NEEDS_INPUT result', async () => {
   await service.running.get(created.run_id);
   const finished = await service.getRun(created.run_id);
   assert.equal(finished.status, 'NEEDS_INPUT');
+  assert.equal(finished.terminal_stage, 'GARMENT_GROUPING');
   assert.equal(finished.conflicts[0].type, 'DUPLICATE_SLOT');
 });
 
@@ -247,6 +258,7 @@ test('explicit duplicate-slot selection continues the same run with the chosen g
   assert.equal((await service.getRun(created.run_id)).status, 'NEEDS_INPUT');
   const resumed = await service.selectGarments(created.run_id, { footwear: 'set-1' });
   assert.equal(resumed.run_id, created.run_id);
+  assert.equal(resumed.terminal_stage, null);
   await service.running.get(created.run_id);
   const finished = await service.getRun(created.run_id);
   assert.equal(finished.status, 'COMPLETED');

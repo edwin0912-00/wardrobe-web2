@@ -48,6 +48,7 @@ function publicRun(state) {
     status: state.status,
     phase: state.phase,
     inner_state: state.inner_state ?? null,
+    terminal_stage: state.terminal_stage ?? null,
     message: state.message,
     created_at: state.created_at,
     updated_at: state.updated_at,
@@ -58,6 +59,12 @@ function publicRun(state) {
     conflicts: state.conflicts ?? [],
     qa: state.qa ?? {},
     outputs: state.outputs ?? {},
+    execution_route: {
+      garment_images_supplied: Boolean(state.inputs?.garments?.length),
+      garment_source_image_count: state.inputs?.garments?.length ?? 0,
+      avatar_reuse: Boolean(state.inputs?.approved_avatar),
+      optional_scene_requested: Boolean(state.inputs?.generate_scene),
+    },
     ...(state.inputs?.approved_avatar ? { avatar_reuse: {
       purpose: 'NEW_LOOK',
       source_run_id: state.inputs.approved_avatar.source_run_id,
@@ -225,7 +232,7 @@ export class RunService {
         }
       }
       const jobPath = await this.#buildJob(state, conditioned);
-      await this.#write(state, { status: 'RUNNING', phase: 'CORE_PIPELINE', inner_state: null, message: 'Generating and checking avatar and outfit', job_path: jobPath });
+      await this.#write(state, { status: 'RUNNING', phase: 'CORE_PIPELINE', inner_state: null, terminal_stage: null, message: 'Generating and checking avatar and outfit', job_path: jobPath });
       const runner = new PipelineRunner({ provider: this.provider });
       const progressTimer = setInterval(() => { this.#syncRunnerProgress(state).catch(() => {}); }, 1000);
       let result;
@@ -243,7 +250,8 @@ export class RunService {
           terminalDetails = events.reverse().find((event) => event.type === 'STATE_TRANSITION' && ['FAILED', 'NEEDS_INPUT'].includes(event.state))?.data ?? null;
         } catch { /* event details are optional in an infrastructure failure */ }
         const error = result.lastError ?? terminalDetails?.error ?? null;
-        return this.#write(state, { status: result.status === 'NEEDS_INPUT' ? 'NEEDS_INPUT' : 'FAILED', phase: 'CORE_PIPELINE', message: error?.message ?? terminalDetails?.reason ?? qaReason ?? `Pipeline ended with ${result.status}`, error });
+        const terminalStage = terminalDetails?.from ?? state.inner_state ?? state.phase;
+        return this.#write(state, { status: result.status === 'NEEDS_INPUT' ? 'NEEDS_INPUT' : 'FAILED', phase: 'CORE_PIPELINE', terminal_stage: terminalStage, message: error?.message ?? terminalDetails?.reason ?? qaReason ?? `Pipeline ended with ${result.status}`, error });
       }
       const outputs = {
         avatar: `/api/runs/${runId}/files/avatar.png`,
@@ -254,14 +262,14 @@ export class RunService {
       state.qa = manifest.qa;
       state.outputs = outputs;
       if (state.inputs.generate_scene) await this.#generateScene(state, result.outputs.avatar_outfit);
-      return this.#write(state, { status: 'COMPLETED', phase: 'COMPLETED', inner_state: null, message: 'Avatar and outfit are ready', outputs: state.outputs });
+      return this.#write(state, { status: 'COMPLETED', phase: 'COMPLETED', inner_state: null, terminal_stage: null, message: 'Avatar and outfit are ready', outputs: state.outputs });
     } catch (error) {
       if (error instanceof GarmentNeedsInputError) {
         const passport = error.details.passport;
         const garments = passport?.items ? groupGarmentViews(passport.items, passport.reference_sets) : state.garments;
-        return this.#write(state, { status: 'NEEDS_INPUT', phase: 'GARMENT_CONDITIONING', message: error.message, garments, conflicts: error.details.conflicts ?? [], error: { name: error.name, message: error.message, details: error.details } });
+        return this.#write(state, { status: 'NEEDS_INPUT', phase: 'GARMENT_CONDITIONING', terminal_stage: state.inner_state ?? state.phase, message: error.message, garments, conflicts: error.details.conflicts ?? [], error: { name: error.name, message: error.message, details: error.details } });
       }
-      return this.#write(state, { status: 'FAILED', phase: state.phase, message: error.message, error: { name: error.name, message: error.message } });
+      return this.#write(state, { status: 'FAILED', phase: state.phase, terminal_stage: state.inner_state ?? state.phase, message: error.message, error: { name: error.name, message: error.message } });
     }
   }
 
@@ -439,7 +447,7 @@ export class RunService {
     await rm(path.join(this.runDirectory(runId), 'outputs'), { recursive: true, force: true });
     state.inputs.garment_passport = state.error.details.passport;
     state.inputs.garment_selections = normalized;
-    await this.#write(state, { status: 'QUEUED', phase: 'UPLOADED', inner_state: null, message: 'Garment selection saved; continuing this run', garments: [], conflicts: [], error: null, outputs: {}, qa: {} });
+    await this.#write(state, { status: 'QUEUED', phase: 'UPLOADED', inner_state: null, terminal_stage: null, message: 'Garment selection saved; continuing this run', garments: [], conflicts: [], error: null, outputs: {}, qa: {} });
     this.start(runId);
     return publicRun(state);
   }
@@ -455,7 +463,7 @@ export class RunService {
       return publicRun(state);
     }
     await rm(path.join(this.runDirectory(runId), 'outputs'), { recursive: true, force: true });
-    await this.#write(state, { status: 'QUEUED', phase: 'UPLOADED', inner_state: null, message: 'Retry queued', garments: [], conflicts: [], error: null, outputs: {}, qa: {} });
+    await this.#write(state, { status: 'QUEUED', phase: 'UPLOADED', inner_state: null, terminal_stage: null, message: 'Retry queued', garments: [], conflicts: [], error: null, outputs: {}, qa: {} });
     this.start(runId);
     return publicRun(state);
   }
