@@ -4,15 +4,17 @@
 
 - `https://www.madeforthisjob.com` — активний production hostname.
 - `https://beta.madeforthisjob.com` — активний резервний hostname.
+- `https://monitor.madeforthisjob.com` — PIN-захищений live operations monitor.
 - `https://madeforthisjob.com` — очікує заміни старого parking DNS-запису на Tunnel route.
 
-Обидва активні hostname проходять через Cloudflare named Tunnel `zeely-madeforthisjob` до `http://127.0.0.1:4173`. Вхід захищений серверним PIN; PIN не зберігається у відкритому вигляді в Git.
+Studio hostnames проходять через Cloudflare named Tunnel `zeely-madeforthisjob` до `http://127.0.0.1:4173`; monitor hostname — до окремого `http://127.0.0.1:4174`. Обидві surfaces захищені серверним PIN; PIN не зберігається у відкритому вигляді в Git.
 
 ## Runtime на macOS
 
 | Компонент | LaunchAgent | KeepAlive |
 |---|---|---|
 | Fastify web app | `com.madeforthisjob.zeely` | так |
+| Fastify live monitor | `com.madeforthisjob.monitor` | так |
 | Cloudflare Tunnel | `com.madeforthisjob.cloudflared` | так |
 
 Tunnel config: `/Users/jarvis1/.cloudflared/config.yml`.
@@ -21,6 +23,7 @@ Tunnel config: `/Users/jarvis1/.cloudflared/config.yml`.
 
 ```bash
 launchctl print gui/$(id -u)/com.madeforthisjob.zeely
+launchctl print gui/$(id -u)/com.madeforthisjob.monitor
 launchctl print gui/$(id -u)/com.madeforthisjob.cloudflared
 curl -I https://beta.madeforthisjob.com/api/health
 ```
@@ -29,6 +32,7 @@ curl -I https://beta.madeforthisjob.com/api/health
 
 ```bash
 launchctl kickstart -k gui/$(id -u)/com.madeforthisjob.zeely
+launchctl kickstart -k gui/$(id -u)/com.madeforthisjob.monitor
 launchctl kickstart -k gui/$(id -u)/com.madeforthisjob.cloudflared
 ```
 

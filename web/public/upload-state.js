@@ -37,6 +37,12 @@ export class UploadSelectionStore {
     this.garments.splice(index, 1);
   }
 
+  restore({ person = null, identityDetail = null, garments = [] } = {}) {
+    this.person = person;
+    this.identityDetail = identityDetail;
+    this.garments = garments.slice(0, this.maxGarments);
+  }
+
   reset() {
     this.person = null;
     this.identityDetail = null;

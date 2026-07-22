@@ -3,13 +3,31 @@ import path from 'node:path';
 import Fastify from 'fastify';
 import multipart from '@fastify/multipart';
 import fastifyStatic from '@fastify/static';
+import { registerMonitorRoutes } from '../monitor/routes.js';
 import { installDemoAuth } from './demo-auth.js';
 
-export async function createWebApp({ service, health = { status: 'ok' }, publicDirectory = path.resolve(import.meta.dirname, '..', '..', 'web', 'public'), logger = false, auth = null }) {
+export async function createWebApp({ service, health = { status: 'ok' }, publicDirectory = path.resolve(import.meta.dirname, '..', '..', 'web', 'public'), logger = false, auth = null, monitor = null }) {
   const app = Fastify({ logger, bodyLimit: 150 * 1024 * 1024 });
   installDemoAuth(app, auth);
   await app.register(multipart, { limits: { files: 7, fileSize: 20 * 1024 * 1024, fields: 12, parts: 20 } });
   await app.register(fastifyStatic, { root: publicDirectory, prefix: '/' });
+
+  if (monitor) {
+    await registerMonitorRoutes(app, {
+      store: monitor,
+      acceptClientTelemetry: true,
+      statusProvider: async () => ({ status: 'ok', service: 'zeely-core-web', generation: health.generation, preflight: health.status }),
+    });
+    app.addHook('onResponse', async (request, reply) => {
+      const pathname = request.url.split('?')[0];
+      if (!pathname.startsWith('/api/') || pathname.startsWith('/api/monitor') || pathname === '/api/telemetry' || pathname === '/api/health') return;
+      await monitor.append({
+        source: 'http', type: 'http.response', severity: reply.statusCode >= 400 ? 'error' : 'info',
+        run_id: request.params?.id,
+        data: { method: request.method, stage: pathname, status: reply.statusCode },
+      });
+    });
+  }
 
   app.get('/api/health', async () => ({ ...health, service: 'zeely-core-web', generation: 'Higgsfield CLI', semantic_qa: 'Codex CLI' }));
 
@@ -24,6 +42,14 @@ export async function createWebApp({ service, health = { status: 'ok' }, publicD
         else if (part.fieldname === 'garment_images') uploads.garments.push(upload);
       } else fields[part.fieldname] = part.value;
     }
+    if (monitor) await monitor.append({
+      source: 'server', type: 'run.upload_received',
+      data: {
+        count: (uploads.person ? 1 : 0) + (uploads.identityDetail ? 1 : 0) + uploads.garments.length,
+        bytes: [uploads.person, uploads.identityDetail, ...uploads.garments].filter(Boolean).reduce((total, upload) => total + upload.buffer.length, 0),
+        stage: `person:${Boolean(uploads.person)} identity:${Boolean(uploads.identityDetail)} garments:${uploads.garments.length}`,
+      },
+    });
     if (fields.consent !== 'true') return reply.code(400).send({ error: 'Consent is required for processing personal images' });
     const run = await service.createRun({
       person: uploads.person,
@@ -72,6 +98,10 @@ export async function createWebApp({ service, health = { status: 'ok' }, publicD
   app.setErrorHandler((error, request, reply) => {
     request.log.error(error);
     const statusCode = error.statusCode && error.statusCode < 500 ? error.statusCode : 400;
+    if (monitor) monitor.append({
+      source: 'server', type: 'server.error', severity: 'error', run_id: request.params?.id,
+      data: { method: request.method, stage: request.url.split('?')[0], status: statusCode, message: error.message },
+    }).catch(() => {});
     reply.code(statusCode).send({ error: error.message });
   });
 

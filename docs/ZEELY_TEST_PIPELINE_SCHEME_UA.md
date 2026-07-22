@@ -50,7 +50,7 @@ flowchart LR
 
 | № | Ресурс | Статус | Навіщо потрібен | Input → output | Failure behavior / evidence |
 |---:|---|---|---|---|---|
-| 1 | HTML5 web UI (`web/public`) | `LIVE` | Єдина surface для evaluator і fresh user input. Окремо тримає person, identity detail і wardrobe selections. | local browser files + text + consent → multipart request | Не відправляє run без person, без outfit text/reference або без consent. Прев’ю підтверджує, що файл збережений у своєму slot. |
+| 1 | HTML5 web UI + IndexedDB draft (`web/public`) | `LIVE` | Єдина surface для evaluator і fresh user input. Окремо тримає person, identity detail і wardrobe selections; Blob-копії зберігає локально між reload/crash. | local browser files + text + consent → local draft → multipart request | Consent навмисно не зберігається. Явний “new run” очищує draft; випадковий reload — відновлює. До відповіді `POST /api/runs` UI показує `UPLOAD`, а не вигаданий progress. |
 | 2 | Fastify 5 + multipart (`src/web/app.js`) | `LIVE` | Приймає upload, віддає progress API, SSE та outputs. | multipart fields/files → normalized upload objects | До 7 файлів, 20 MB на файл; malformed request повертає structured error. |
 | 3 | `RunService` + filesystem (`runtime/runs/<id>`) | `LIVE` | Ізолює кожен run і зберігає raw source до будь-якої генерації. | upload buffers → immutable source files + `run.json` | `wx`-write не дозволяє тихо перезаписати source. Кожен phase оновлює persisted state. |
 | 4 | Sharp 0.35 (`src/conditioning`) | `LIVE` | Детермінована підготовка без генеративного домислювання. | raw bytes → oriented sRGB normalized image, face/person crops, garment cutout/card | Corrupt file, недостатній resolution або відсутній required crop зупиняють flow. Кожен derivative має lineage і SHA-256. |
@@ -67,6 +67,7 @@ flowchart LR
 | 15 | Semantic avatar/outfit QA | `LIVE` | Перевіряє identity, framing, skin/hair, garment fidelity, anatomy, old-clothing residue і bleed. | source/pack + candidate + 10 QA rules → PASS / retryable defect / NEEDS_INPUT | Review прив’язаний до candidate hash. Старий PASS не можна використати для нового output. |
 | 16 | Manifest/evidence export | `LIVE` | Робить результат відтворюваним і рев’юваним. | approved artifacts + events + provider receipts → manifest, prompts, QA reports, hashes | Missing evidence блокує `npm run verify`; output без provenance не вважається accepted. |
 | 17 | Cloudflare named Tunnel | `LIVE DELIVERY` | Віддає локальний `127.0.0.1:4173` через HTTPS без відкритого inbound port. | browser HTTPS → Cloudflare → outbound tunnel → Fastify | `cloudflared` і app працюють як macOS LaunchAgents з KeepAlive. PIN gate стоїть у Fastify, а не лише в UI. |
+| 18 | Telemetry + live monitor (`src/monitor`, port 4174) | `LIVE OBSERVABILITY` | Показує client actions/errors, API responses, upload receipt, run phases і health core-service в реальному часі. | allowlisted metadata → append-only JSONL → SSE dashboard | Не приймає filename/image/PIN/prompt. Monitor — окремий LaunchAgent з KeepAlive; падіння UI не забирає журнал. Деталі: [`LIVE_MONITORING_UA.md`](LIVE_MONITORING_UA.md). |
 
 ## 4. Model route без плутанини назв
 
@@ -172,7 +173,7 @@ Video starts only from hash-approved stills. Any video that changes identity or 
 3. Запустити run і показати SSE phases, а не fake progress timer.
 4. Відкрити `run.json`, exact compiled prompts, reference packs, provider journal та QA reports.
 5. Завантажити `avatar.png` і `avatar_outfit.png`.
-6. Показати `npm run verify`: contracts, canon, outputs, duplicate checks і 101+ automated tests.
+6. Відкрити live monitor і показати `client.submit` → `run.upload_received` → `run.phase`; потім `npm test` (103 tests на момент цієї версії).
 7. Лише після цього презентувати optional wardrobe → TV → laptop concept як наступний stage.
 
 ## 10. Офіційні зовнішні ресурси

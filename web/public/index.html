@@ -46,6 +46,7 @@
         <div id="garment-preview" class="file-preview garment-preview" aria-live="polite"></div>
         <label class="toggle"><input type="checkbox" name="generate_scene" checked><span></span><div><strong>Art Director scene</strong><small>Bonus після успішного core result</small></div></label>
         <label class="consent"><input type="checkbox" name="consent" required><span>Я маю право використовувати ці фото та погоджуюсь на їх обробку зовнішніми AI providers.</span></label>
+        <p id="draft-status" class="draft-status" aria-live="polite">Чернетка зберігається локально на цьому пристрої</p>
         <button id="submit-button" class="primary-button" type="submit"><span>Створити avatar</span><b>→</b></button>
         <p id="form-error" class="error" role="alert"></p>
       </form>
@@ -54,7 +55,7 @@
         <div class="panel-head"><div><span class="step">02</span><h2>Результат</h2></div><span id="status-chip" class="status-chip idle">Очікує input</span></div>
         <div id="empty-state" class="empty-state"><div class="mirror-graphic"><span></span><span></span></div><h3>Тут з’явиться твій look</h3><p>Base avatar і переодягання проходять окремі QA gates.</p></div>
         <div id="progress-view" class="progress-view hidden">
-          <div class="progress-orbit"><canvas id="progress-orb-canvas" data-state="listening"></canvas><b id="progress-percent">12%</b></div>
+          <div class="progress-orbit"><canvas id="progress-orb-canvas" data-state="listening"></canvas><b id="progress-stage">IDLE</b></div>
           <h3 id="progress-title">Підготовка матеріалів</h3><p id="progress-message">Перевіряємо input…</p>
           <ol id="timeline" class="timeline">
             <li>Input validation</li>
@@ -76,7 +77,12 @@
       </section>
     </section>
   </main>
-  <footer><span>ZEELY AI ENGINEERING TEST</span><a href="/pipeline.html">Як працює pipeline →</a><span>Immutable jobs · Hash-bound QA · Cloud models</span></footer>
-  <script type="module" src="/app.js?v=20260722-1"></script>
+  <footer><span>ZEELY AI ENGINEERING TEST</span><a href="/pipeline.html">Як працює pipeline →</a><a href="https://monitor.madeforthisjob.com">Live monitor →</a><span>Immutable jobs · Hash-bound QA · Cloud models</span></footer>
+  <aside id="boot-error" class="boot-error" role="alert" hidden>
+    <strong>Інтерфейс не відповідає</strong><span data-error-message>Сталася помилка запуску.</span>
+    <button type="button" onclick="location.reload()">Перезавантажити</button>
+  </aside>
+  <script src="/boot-guard.js?v=20260722-1"></script>
+  <script type="module" src="/app.js?v=20260722-3"></script>
 </body>
 </html>

@@ -50,13 +50,14 @@ function publicRun(state) {
 }
 
 export class RunService {
-  constructor({ rootDirectory, provider, vlm, assetGenerator, projectRoot = path.resolve(import.meta.dirname, '..', '..'), clock = () => new Date() }) {
+  constructor({ rootDirectory, provider, vlm, assetGenerator, projectRoot = path.resolve(import.meta.dirname, '..', '..'), clock = () => new Date(), observer = null }) {
     this.rootDirectory = path.resolve(rootDirectory);
     this.provider = provider;
     this.vlm = vlm;
     this.assetGenerator = assetGenerator;
     this.projectRoot = projectRoot;
     this.clock = clock;
+    this.observer = observer;
     this.events = new EventEmitter();
     this.running = new Map();
   }
@@ -73,7 +74,11 @@ export class RunService {
   async #write(state, update = {}) {
     Object.assign(state, update, { updated_at: this.clock().toISOString() });
     await atomicJson(this.statePath(state.run_id), state);
-    this.events.emit(state.run_id, publicRun(state));
+    const publicState = publicRun(state);
+    this.events.emit(state.run_id, publicState);
+    if (this.observer) {
+      try { await this.observer(publicState); } catch { /* monitoring must never break a run */ }
+    }
     return state;
   }
 

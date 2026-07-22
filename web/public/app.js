@@ -1,9 +1,12 @@
 import { createThinkingOrb } from './thinking-orb.js';
 import { UploadSelectionStore } from './upload-state.js';
+import { clearDraft, loadDraft, requestPersistentStorage, saveDraft } from './draft-store.js';
+import { fileSummary, telemetry } from './telemetry.js';
 
 const form = document.querySelector('#run-form');
 const submit = document.querySelector('#submit-button');
 const formError = document.querySelector('#form-error');
+const draftStatus = document.querySelector('#draft-status');
 const statusChip = document.querySelector('#status-chip');
 const empty = document.querySelector('#empty-state');
 const progress = document.querySelector('#progress-view');
@@ -14,28 +17,30 @@ const uploads = new UploadSelectionStore({ maxGarments: 5 });
 let previewUrls = [];
 let activeRun = null;
 let eventSource = null;
+let saveTimer = null;
 
 const progressStates = {
-  UPLOADED: { percent: 5, step: 0, title: 'Input прийнято' },
-  GARMENT_CONDITIONING: { percent: 18, step: 1, title: 'Підготовка garment references' },
-  RECEIVED: { percent: 24, step: 0, title: 'Створення immutable job' },
-  VALIDATING: { percent: 28, step: 0, title: 'Валідація матеріалів' },
-  CONDITIONING_IDENTITY: { percent: 34, step: 1, title: 'Identity conditioning' },
-  CONDITIONING_OUTFIT: { percent: 40, step: 1, title: 'Outfit conditioning' },
-  CONDITIONING_RETRY: { percent: 42, step: 1, title: 'Повторна підготовка references' },
-  CONDITIONING_QA: { percent: 46, step: 2, title: 'QA підготовлених references' },
-  REFERENCES_READY: { percent: 50, step: 2, title: 'References готові' },
-  GENERATING_AVATAR: { percent: 58, step: 3, title: 'Генерація base avatar' },
-  AVATAR_RETRY: { percent: 61, step: 3, title: 'Повторна генерація avatar' },
-  AVATAR_QA: { percent: 66, step: 4, title: 'Identity та технічний QA' },
-  AVATAR_READY: { percent: 70, step: 4, title: 'Base avatar затверджено' },
-  GENERATING_OUTFIT: { percent: 77, step: 5, title: 'Генерація повного образу' },
-  OUTFIT_RETRY: { percent: 80, step: 5, title: 'Повторна генерація outfit' },
-  OUTFIT_QA: { percent: 85, step: 5, title: 'Garment fidelity QA' },
-  OUTFIT_READY: { percent: 89, step: 5, title: 'Outfit затверджено' },
-  EXPORTING: { percent: 92, step: 7, title: 'Експорт PNG і manifest' },
-  OPTIONAL_SCENE: { percent: 96, step: 6, title: 'Art Director scene' },
-  COMPLETED: { percent: 100, step: 7, title: 'Результат готовий' },
+  UPLOADING: { label: 'UPLOAD', step: 0, title: 'Передаємо файли на сервер' },
+  UPLOADED: { label: '1 / 8', step: 0, title: 'Input прийнято сервером' },
+  RECEIVED: { label: '1 / 8', step: 0, title: 'Створення immutable job' },
+  VALIDATING: { label: '1 / 8', step: 0, title: 'Валідація матеріалів' },
+  GARMENT_CONDITIONING: { label: '2 / 8', step: 1, title: 'Підготовка garment references' },
+  CONDITIONING_IDENTITY: { label: '2 / 8', step: 1, title: 'Identity conditioning' },
+  CONDITIONING_OUTFIT: { label: '2 / 8', step: 1, title: 'Outfit conditioning' },
+  CONDITIONING_RETRY: { label: '2 / 8', step: 1, title: 'Повторна підготовка references' },
+  CONDITIONING_QA: { label: '3 / 8', step: 2, title: 'QA підготовлених references' },
+  REFERENCES_READY: { label: '3 / 8', step: 2, title: 'References готові' },
+  GENERATING_AVATAR: { label: '4 / 8', step: 3, title: 'Генерація base avatar' },
+  AVATAR_RETRY: { label: '4 / 8', step: 3, title: 'Повторна генерація avatar' },
+  AVATAR_QA: { label: '5 / 8', step: 4, title: 'Identity та технічний QA' },
+  AVATAR_READY: { label: '5 / 8', step: 4, title: 'Base avatar затверджено' },
+  GENERATING_OUTFIT: { label: '6 / 8', step: 5, title: 'Генерація повного образу' },
+  OUTFIT_RETRY: { label: '6 / 8', step: 5, title: 'Повторна генерація outfit' },
+  OUTFIT_QA: { label: '6 / 8', step: 5, title: 'Garment fidelity QA' },
+  OUTFIT_READY: { label: '6 / 8', step: 5, title: 'Outfit затверджено' },
+  OPTIONAL_SCENE: { label: '7 / 8', step: 6, title: 'Art Director scene' },
+  EXPORTING: { label: '8 / 8', step: 7, title: 'Експорт PNG і manifest' },
+  COMPLETED: { label: '8 / 8', step: 7, title: 'Результат готовий' },
 };
 
 function fileLabel(input, count, filename = '') {
@@ -75,24 +80,9 @@ function renderUploads() {
   identityPreview.replaceChildren();
   garmentPreview.replaceChildren();
 
-  if (uploads.person) {
-    personPreview.append(previewItem(uploads.person, () => {
-      uploads.setPerson(null);
-      renderUploads();
-    }));
-  }
-  if (uploads.identityDetail) {
-    identityPreview.append(previewItem(uploads.identityDetail, () => {
-      uploads.setIdentityDetail(null);
-      renderUploads();
-    }));
-  }
-  uploads.garments.forEach((file, index) => {
-    garmentPreview.append(previewItem(file, () => {
-      uploads.removeGarment(index);
-      renderUploads();
-    }));
-  });
+  if (uploads.person) personPreview.append(previewItem(uploads.person, () => removeFile('person')));
+  if (uploads.identityDetail) identityPreview.append(previewItem(uploads.identityDetail, () => removeFile('identity')));
+  uploads.garments.forEach((file, index) => garmentPreview.append(previewItem(file, () => removeFile('garment', index))));
 
   fileLabel(document.querySelector('#person-photo'), uploads.person ? 1 : 0, uploads.person?.name);
   fileLabel(document.querySelector('#identity-detail'), uploads.identityDetail ? 1 : 0, uploads.identityDetail?.name);
@@ -104,30 +94,69 @@ function renderUploads() {
   });
 }
 
-document.querySelector('#person-photo').addEventListener('change', (event) => {
-  uploads.setPerson(event.target.files[0]);
-  event.target.value = '';
-  formError.textContent = '';
-  renderUploads();
-});
-
-document.querySelector('#identity-detail').addEventListener('change', (event) => {
-  uploads.setIdentityDetail(event.target.files[0]);
-  event.target.value = '';
-  formError.textContent = '';
-  renderUploads();
-});
-
-document.querySelector('#garment-images').addEventListener('change', (event) => {
+async function persistDraft(reason = 'change') {
+  window.clearTimeout(saveTimer);
+  draftStatus.textContent = 'Зберігаємо локальну чернетку…';
   try {
-    uploads.addGarments(event.target.files);
+    await saveDraft({
+      ...uploads,
+      outfitText: form.elements.outfit_text.value,
+      generateScene: form.elements.generate_scene.checked,
+    });
+    draftStatus.textContent = 'Чернетку збережено на цьому пристрої';
+    draftStatus.className = 'draft-status saved';
+    telemetry('client.draft_saved', { ...fileSummary(uploads), stage: reason });
+  } catch (error) {
+    draftStatus.textContent = 'Не вдалося зберегти локальну чернетку';
+    draftStatus.className = 'draft-status failed';
+    telemetry('client.draft_error', { message: error.message.slice(0, 500), stage: reason });
+  }
+}
+
+function scheduleDraftSave(reason) {
+  window.clearTimeout(saveTimer);
+  saveTimer = window.setTimeout(() => persistDraft(reason), 250);
+}
+
+function removeFile(kind, index) {
+  if (kind === 'person') uploads.setPerson(null);
+  else if (kind === 'identity') uploads.setIdentityDetail(null);
+  else uploads.removeGarment(index);
+  renderUploads();
+  telemetry('client.file_removed', { ...fileSummary(uploads), stage: kind });
+  persistDraft(`remove_${kind}`);
+}
+
+async function handleSelected(kind, files) {
+  try {
+    if (kind === 'person') uploads.setPerson(files[0]);
+    else if (kind === 'identity') uploads.setIdentityDetail(files[0]);
+    else uploads.addGarments(files);
     formError.textContent = '';
+    renderUploads();
+    telemetry('client.file_selected', { ...fileSummary(uploads), stage: kind });
+    requestPersistentStorage().catch(() => false);
+    await persistDraft(`select_${kind}`);
   } catch (error) {
     formError.textContent = error.message;
+    telemetry('client.error', { message: error.message.slice(0, 500), stage: `select_${kind}` });
   }
+}
+
+document.querySelector('#person-photo').addEventListener('change', (event) => {
+  handleSelected('person', event.target.files);
   event.target.value = '';
-  renderUploads();
 });
+document.querySelector('#identity-detail').addEventListener('change', (event) => {
+  handleSelected('identity', event.target.files);
+  event.target.value = '';
+});
+document.querySelector('#garment-images').addEventListener('change', (event) => {
+  handleSelected('garment', event.target.files);
+  event.target.value = '';
+});
+form.elements.outfit_text.addEventListener('input', () => scheduleDraftSave('outfit_text'));
+form.elements.generate_scene.addEventListener('change', () => persistDraft('generate_scene'));
 
 function setView(name) {
   empty.classList.toggle('hidden', name !== 'empty');
@@ -136,8 +165,23 @@ function setView(name) {
   failure.classList.toggle('hidden', name !== 'failure');
 }
 
+function renderProgress(state, message) {
+  document.querySelector('#progress-stage').textContent = state.label;
+  document.querySelector('#progress-title').textContent = state.title;
+  document.querySelector('#progress-message').textContent = message || 'Очікуємо підтвердження сервера…';
+  const orbState = state.step <= 0 ? 'listening' : state.step <= 2 ? 'searching' : state.step === 3 ? 'composing' : state.step <= 5 ? 'solving' : state.step === 6 ? 'working' : 'shaping';
+  thinkingOrb.setState(orbState);
+  document.querySelectorAll('#timeline li').forEach((item, index) => {
+    item.classList.toggle('active', index === state.step);
+    item.classList.toggle('done', index < state.step);
+    if (index === state.step) item.setAttribute('aria-current', 'step');
+    else item.removeAttribute('aria-current');
+  });
+}
+
 function renderRun(run) {
   activeRun = run;
+  localStorage.setItem('zeely_active_run_id', run.run_id);
   statusChip.textContent = run.status.replaceAll('_', ' ');
   statusChip.className = `status-chip ${run.status === 'COMPLETED' ? 'completed' : run.status === 'FAILED' || run.status === 'NEEDS_INPUT' ? 'failed' : 'running'}`;
   if (run.status === 'COMPLETED') {
@@ -156,23 +200,12 @@ function renderRun(run) {
     return;
   }
   setView('progress');
-  const state = progressStates[run.inner_state] ?? progressStates[run.phase] ?? { percent: 45, step: 2, title: 'Pipeline працює' };
-  document.querySelector('#progress-percent').textContent = `${state.percent}%`;
-  document.querySelector('#progress-title').textContent = state.title;
-  document.querySelector('#progress-message').textContent = run.message;
-  const orbState = state.step <= 0 ? 'listening' : state.step <= 2 ? 'searching' : state.step === 3 ? 'composing' : state.step <= 5 ? 'solving' : state.step === 6 ? 'working' : 'shaping';
-  thinkingOrb.setState(orbState);
-  document.querySelectorAll('#timeline li').forEach((item, index) => {
-    item.classList.toggle('active', index === state.step);
-    item.classList.toggle('done', index < state.step);
-    if (index === state.step) item.setAttribute('aria-current', 'step');
-    else item.removeAttribute('aria-current');
-  });
+  renderProgress(progressStates[run.inner_state] ?? progressStates[run.phase] ?? { label: 'LIVE', step: 2, title: 'Pipeline працює' }, run.message);
 }
 
 function renderResults(run) {
   const passports = document.querySelector('#passport-list');
-  passports.innerHTML = '';
+  passports.replaceChildren();
   (run.garments || []).forEach((item) => {
     const element = document.createElement('span');
     element.className = 'passport';
@@ -180,43 +213,51 @@ function renderResults(run) {
     passports.append(element);
   });
   const gallery = document.querySelector('#result-gallery');
-  gallery.innerHTML = '';
-  const outputs = [['avatar', 'Base avatar'], ['avatar_outfit', 'Full look'], ['art_director_scene', 'Art Director scene']];
-  outputs.forEach(([key, label]) => {
+  gallery.replaceChildren();
+  [['avatar', 'Base avatar'], ['avatar_outfit', 'Full look'], ['art_director_scene', 'Art Director scene']].forEach(([key, label]) => {
     if (!run.outputs[key]) return;
     const card = document.createElement('article');
     card.className = `result-card ${key === 'art_director_scene' ? 'scene' : ''}`;
-    card.innerHTML = `<img src="${run.outputs[key]}?v=${Date.now()}" alt="${label}"><div class="result-meta"><strong>${label}</strong><a href="${run.outputs[key]}" download>Download PNG ↓</a></div>`;
-    gallery.append(card);
+    const image = document.createElement('img');
+    image.src = `${run.outputs[key]}?v=${Date.now()}`;
+    image.alt = label;
+    const meta = document.createElement('div');
+    meta.className = 'result-meta';
+    const strong = document.createElement('strong');
+    strong.textContent = label;
+    const link = document.createElement('a');
+    link.href = run.outputs[key]; link.download = ''; link.textContent = 'Download PNG ↓';
+    meta.append(strong, link); card.append(image, meta); gallery.append(card);
   });
 }
 
 function watch(runId) {
   eventSource?.close();
-  eventSource = new EventSource(`/api/runs/${runId}/events`);
-  eventSource.addEventListener('run', (event) => renderRun(JSON.parse(event.data)));
+  eventSource = new EventSource(`/api/runs/${encodeURIComponent(runId)}/events`);
+  eventSource.onopen = () => telemetry('client.sse_open', { stage: 'run' }, runId);
+  eventSource.addEventListener('run', (event) => {
+    const run = JSON.parse(event.data);
+    telemetry('client.run_event', { status: run.status, stage: run.inner_state || run.phase }, runId);
+    renderRun(run);
+  });
   eventSource.onerror = async () => {
-    const response = await fetch(`/api/runs/${runId}`);
-    if (response.ok) renderRun(await response.json());
+    telemetry('client.sse_error', { stage: 'run' }, runId);
+    try {
+      const response = await fetch(`/api/runs/${encodeURIComponent(runId)}`);
+      if (response.ok) renderRun(await response.json());
+    } catch (error) {
+      telemetry('client.fetch_error', { message: error.message.slice(0, 500), stage: 'run_poll' }, runId);
+    }
   };
 }
 
 form.addEventListener('submit', async (event) => {
   event.preventDefault();
   formError.textContent = '';
-  const outfitText = document.querySelector('#outfit-text').value.trim();
-  if (!uploads.person) {
-    formError.textContent = 'Додай фото людини.';
-    return;
-  }
-  if (!outfitText && uploads.garments.length === 0) {
-    formError.textContent = 'Додай опис образу або хоча б одне фото речі.';
-    return;
-  }
-  if (!form.elements.consent.checked) {
-    formError.textContent = 'Потрібна згода на обробку фото.';
-    return;
-  }
+  const outfitText = form.elements.outfit_text.value.trim();
+  if (!uploads.person) { formError.textContent = 'Додай фото людини.'; return; }
+  if (!outfitText && uploads.garments.length === 0) { formError.textContent = 'Додай опис образу або хоча б одне фото речі.'; return; }
+  if (!form.elements.consent.checked) { formError.textContent = 'Потрібна згода на обробку фото.'; return; }
 
   const data = new FormData();
   data.append('person_photo', uploads.person, uploads.person.name);
@@ -227,53 +268,93 @@ form.addEventListener('submit', async (event) => {
   data.set('generate_scene', form.elements.generate_scene.checked ? 'true' : 'false');
   submit.disabled = true;
   setView('progress');
+  renderProgress(progressStates.UPLOADING, `Передаємо ${fileSummary(uploads).file_count} файлів. Run ще не створено.`);
+  const startedAt = performance.now();
+  telemetry('client.submit', { ...fileSummary(uploads), stage: 'upload_start' });
   try {
     const response = await fetch('/api/runs', { method: 'POST', body: data });
     const body = await response.json();
+    telemetry('client.submit_response', { status: response.status, duration_ms: Math.round(performance.now() - startedAt), stage: 'upload_done' }, body.run_id);
     if (!response.ok) throw new Error(body.error || 'Не вдалося створити run');
+    history.replaceState({}, '', `${location.pathname}?run=${encodeURIComponent(body.run_id)}`);
     renderRun(body);
     watch(body.run_id);
   } catch (error) {
-    formError.textContent = error.message;
+    telemetry('client.fetch_error', { message: error.message.slice(0, 500), duration_ms: Math.round(performance.now() - startedAt), stage: 'create_run' });
+    formError.textContent = `${error.message}. Файли залишилися в локальній чернетці.`;
     submit.disabled = false;
+    statusChip.textContent = 'Upload не завершено';
+    statusChip.className = 'status-chip failed';
     setView('empty');
   }
 });
 
 document.querySelector('#retry-run').addEventListener('click', async () => {
   if (!activeRun) return;
-  const response = await fetch(`/api/runs/${activeRun.run_id}/retry`, { method: 'POST' });
-  const body = await response.json();
-  if (response.ok) {
-    renderRun(body);
-    watch(body.run_id);
-  } else document.querySelector('#failure-message').textContent = body.error;
+  try {
+    const response = await fetch(`/api/runs/${encodeURIComponent(activeRun.run_id)}/retry`, { method: 'POST' });
+    const body = await response.json();
+    if (!response.ok) throw new Error(body.error);
+    renderRun(body); watch(body.run_id);
+  } catch (error) {
+    document.querySelector('#failure-message').textContent = error.message;
+    telemetry('client.fetch_error', { message: error.message.slice(0, 500), stage: 'retry' }, activeRun.run_id);
+  }
 });
 
-document.querySelector('#new-run').addEventListener('click', () => {
-  eventSource?.close();
-  activeRun = null;
-  form.reset();
-  uploads.reset();
-  renderUploads();
-  statusChip.textContent = 'Очікує input';
-  statusChip.className = 'status-chip idle';
-  setView('empty');
+document.querySelector('#new-run').addEventListener('click', async () => {
+  eventSource?.close(); activeRun = null; form.reset(); uploads.reset(); renderUploads();
+  localStorage.removeItem('zeely_active_run_id');
+  history.replaceState({}, '', location.pathname);
+  await clearDraft().catch(() => {});
+  draftStatus.textContent = 'Нова порожня чернетка';
+  statusChip.textContent = 'Очікує input'; statusChip.className = 'status-chip idle'; setView('empty');
   window.scrollTo({ top: 0, behavior: 'smooth' });
 });
 
-const resumeRunId = new URLSearchParams(window.location.search).get('run');
-if (resumeRunId) {
-  fetch(`/api/runs/${encodeURIComponent(resumeRunId)}`)
-    .then(async (response) => {
-      if (!response.ok) throw new Error('Run не знайдено');
-      return response.json();
-    })
-    .then((run) => {
-      renderRun(run);
-      if (!['COMPLETED', 'FAILED', 'NEEDS_INPUT'].includes(run.status)) watch(run.run_id);
-    })
-    .catch((error) => { formError.textContent = error.message; });
+async function resumeRun(runId) {
+  try {
+    const response = await fetch(`/api/runs/${encodeURIComponent(runId)}`);
+    if (!response.ok) throw new Error('Збережений run не знайдено');
+    const run = await response.json();
+    renderRun(run);
+    if (!['COMPLETED', 'FAILED', 'NEEDS_INPUT'].includes(run.status)) watch(run.run_id);
+  } catch (error) {
+    formError.textContent = error.message;
+    localStorage.removeItem('zeely_active_run_id');
+    telemetry('client.fetch_error', { message: error.message.slice(0, 500), stage: 'resume' }, runId);
+  }
 }
 
-renderUploads();
+async function initialize() {
+  telemetry('client.boot', { stage: 'start' });
+  try {
+    const draft = await loadDraft();
+    if (draft) {
+      uploads.restore(draft);
+      form.elements.outfit_text.value = draft.outfitText;
+      form.elements.generate_scene.checked = draft.generateScene;
+      draftStatus.textContent = 'Локальну чернетку відновлено';
+      draftStatus.className = 'draft-status saved';
+      telemetry('client.draft_restored', { ...fileSummary(uploads), stage: 'boot' });
+    }
+  } catch (error) {
+    draftStatus.textContent = 'Локальна чернетка недоступна';
+    telemetry('client.draft_error', { message: error.message.slice(0, 500), stage: 'restore' });
+  }
+  renderUploads();
+  const resumeRunId = new URLSearchParams(location.search).get('run') || localStorage.getItem('zeely_active_run_id');
+  if (resumeRunId) await resumeRun(resumeRunId);
+  window.ZeelyBootGuard?.ready();
+  telemetry('client.ready', { ...fileSummary(uploads), stage: 'complete' }, resumeRunId);
+}
+
+document.addEventListener('visibilitychange', () => telemetry('client.visibility', { stage: document.visibilityState }));
+window.addEventListener('online', () => telemetry('client.online', { online: true, stage: 'network' }));
+window.addEventListener('offline', () => telemetry('client.online', { online: false, stage: 'network' }));
+
+initialize().catch((error) => {
+  formError.textContent = `Не вдалося запустити інтерфейс: ${error.message}`;
+  telemetry('client.error', { message: error.message.slice(0, 500), stage: 'initialize' });
+  window.ZeelyBootGuard?.ready();
+});

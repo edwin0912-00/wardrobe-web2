@@ -72,3 +72,31 @@ footer a {
   font-weight: 850;
   text-decoration: none;
 }
+
+.draft-status {
+  min-height: 16px;
+  margin: 14px 0 -8px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.draft-status.saved { color: #426315; }
+.draft-status.failed { color: var(--danger); }
+
+.boot-error {
+  position: fixed;
+  z-index: 1000;
+  right: 18px;
+  bottom: 18px;
+  width: min(420px, calc(100vw - 36px));
+  padding: 18px;
+  border: 1px solid #e5aaa5;
+  border-radius: 14px;
+  background: #fff4f2;
+  box-shadow: 0 18px 60px rgba(80, 10, 5, .18);
+  color: var(--danger);
+}
+
+.boot-error strong, .boot-error span { display: block; }
+.boot-error span { margin: 7px 0 12px; color: #623c39; font-size: 12px; line-height: 1.45; }
+.boot-error button { border: 0; border-radius: 9px; padding: 10px 13px; background: var(--ink); color: #fff; cursor: pointer; }
