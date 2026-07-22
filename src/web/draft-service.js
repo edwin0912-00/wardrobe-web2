@@ -17,7 +17,7 @@ function validId(value) {
 }
 
 function defaultManifest() {
-  return { version: 1, outfit_text: '', generate_scene: true, person: null, identity: null, garments: [], updated_at: new Date().toISOString() };
+  return { version: 1, outfit_text: '', generate_scene: false, person: null, identity: null, garments: [], updated_at: new Date().toISOString() };
 }
 
 export class DraftService {
@@ -67,10 +67,10 @@ export class DraftService {
     return value;
   }
 
-  async updateMetadata(sessionId, { outfit_text = '', generate_scene = true }) {
+  async updateMetadata(sessionId, { outfit_text = '', generate_scene = false }) {
     const manifest = await this.read(sessionId);
     manifest.outfit_text = String(outfit_text).slice(0, 4_000);
-    manifest.generate_scene = generate_scene !== false;
+    manifest.generate_scene = generate_scene === true;
     return this.#write(sessionId, manifest);
   }
 
@@ -138,7 +138,7 @@ function publicManifest(manifest) {
   };
 }
 
-export async function registerDraftRoutes(app, { service, runService = null, secureCookie = true }) {
+export async function registerDraftRoutes(app, { service, runService = null, profileService = null, profileApi = null, secureCookie = true }) {
   function session(request, reply) {
     const supplied = cookies(request.headers.cookie)[COOKIE_NAME];
     const id = validId(supplied) ? supplied : randomUUID();
@@ -172,6 +172,18 @@ export async function registerDraftRoutes(app, { service, runService = null, sec
   app.delete('/api/draft', async (request, reply) => { await service.clear(session(request, reply)); return reply.code(204).send(); });
   if (runService) app.post('/api/draft/run', async (request, reply) => {
     if (request.body?.consent !== true) return reply.code(400).send({ error: 'Consent is required for processing personal images' });
+    const finalizationKey = request.body?.finalization_key;
+    if (finalizationKey !== undefined && !validId(finalizationKey)) {
+      return reply.code(400).send({ error: 'finalization_key must be a valid UUID v4' });
+    }
+    const resolvedRunId = finalizationKey ?? (profileService && profileApi ? randomUUID() : null);
+    const sourceAvatarId = request.body?.source_avatar_id ?? null;
+    if (sourceAvatarId !== null && typeof sourceAvatarId !== 'string') {
+      return reply.code(400).send({ error: 'source_avatar_id must be a UUID or null' });
+    }
+    if (sourceAvatarId !== null && (!profileService || !profileApi)) {
+      return reply.code(400).send({ error: 'Saved avatar profiles are not enabled' });
+    }
     const sessionId = session(request, reply);
     const manifest = await service.read(sessionId);
     if (!manifest.person) return reply.code(400).send({ error: 'Фото людини відсутнє в чернетці' });
@@ -180,12 +192,25 @@ export async function registerDraftRoutes(app, { service, runService = null, sec
       if (!value) throw new Error(`Файл ${slot} відсутній у чернетці`);
       return { filename: descriptor.filename, mimetype: descriptor.mimetype, buffer: value.buffer };
     };
+    let approvedAvatarReference = null;
+    let profileSession = null;
+    if (profileService && profileApi) {
+      profileSession = await profileApi.resolveRequestProfile(request, reply);
+      if (sourceAvatarId !== null) {
+        const asset = profileService.avatarAsset(profileSession.profileId, sourceAvatarId);
+        if (!asset) return reply.code(404).send({ error: 'Saved avatar not found' });
+        approvedAvatarReference = await runService.approvedAvatarReferenceForRun(asset.runId);
+      }
+      profileService.claimRun(profileSession.profileId, resolvedRunId, { sourceAvatarId });
+    }
     const run = await runService.createRun({
       person: await asUpload('person', manifest.person),
       identityDetail: manifest.identity ? await asUpload('identity', manifest.identity) : null,
       garments: await Promise.all(manifest.garments.map((item) => asUpload('garment', item))),
       outfitText: manifest.outfit_text,
       generateScene: manifest.generate_scene,
+      approvedAvatarReference,
+      ...(resolvedRunId === null ? {} : { runId: resolvedRunId }),
     });
     return reply.code(202).send(run);
   });

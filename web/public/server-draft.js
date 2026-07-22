@@ -12,6 +12,16 @@ async function jsonResponse(response) {
   return body;
 }
 
+async function fetchWithTimeout(url, options = {}, timeoutMs = 8_000) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(new Error(`Request timed out: ${url}`)), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 export async function uploadDraftFile(slot, file, { onProgress = () => {} } = {}) {
   const data = new FormData();
   data.append('file', file, file.name);
@@ -21,7 +31,7 @@ export async function uploadDraftFile(slot, file, { onProgress = () => {} } = {}
 }
 
 export async function updateServerDraftMetadata({ outfitText, generateScene }) {
-  return jsonResponse(await fetch('/api/draft/meta', {
+  return jsonResponse(await fetchWithTimeout('/api/draft/meta', {
     method: 'PUT',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ outfit_text: outfitText, generate_scene: generateScene }),
@@ -30,14 +40,14 @@ export async function updateServerDraftMetadata({ outfitText, generateScene }) {
 
 async function downloadFile(descriptor, label) {
   if (!descriptor) return null;
-  const response = await fetch(descriptor.url);
+  const response = await fetchWithTimeout(descriptor.url, {}, 30_000);
   if (!response.ok) throw new Error(`Не вдалося відновити ${label}`);
   const blob = await response.blob();
   return new File([blob], `${label}.${extensionFor(descriptor.mimetype)}`, { type: descriptor.mimetype, lastModified: Date.now() });
 }
 
 export async function loadServerDraft({ includeFiles = true } = {}) {
-  const manifest = await jsonResponse(await fetch('/api/draft'));
+  const manifest = await jsonResponse(await fetchWithTimeout('/api/draft'));
   const refs = {
     person: manifest.person?.id || null,
     identity: manifest.identity?.id || null,
@@ -57,19 +67,29 @@ export async function loadServerDraft({ includeFiles = true } = {}) {
 
 export async function removeServerDraftFile(slot, id) {
   if (!id) return;
-  const response = await fetch(`/api/draft/file/${encodeURIComponent(slot)}/${encodeURIComponent(id)}`, { method: 'DELETE' });
+  const response = await fetchWithTimeout(`/api/draft/file/${encodeURIComponent(slot)}/${encodeURIComponent(id)}`, { method: 'DELETE' });
   if (!response.ok && response.status !== 404) throw new Error(`Не вдалося видалити temp ${slot}`);
 }
 
 export async function clearServerDraft() {
-  const response = await fetch('/api/draft', { method: 'DELETE' });
+  const response = await fetchWithTimeout('/api/draft', { method: 'DELETE' });
   if (!response.ok) throw new Error('Не вдалося очистити server draft');
 }
 
-export async function createRunFromServerDraft() {
-  return jsonResponse(await fetch('/api/draft/run', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ consent: true }),
-  }));
+export async function createRunFromServerDraft(finalizationKey, { timeoutMs = 30_000, sourceAvatarId = null } = {}) {
+  const body = { consent: true };
+  if (finalizationKey !== undefined && finalizationKey !== null) body.finalization_key = finalizationKey;
+  if (sourceAvatarId !== null) body.source_avatar_id = sourceAvatarId;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(new Error('Run creation request timed out')), timeoutMs);
+  try {
+    return jsonResponse(await fetch('/api/draft/run', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    }));
+  } finally {
+    clearTimeout(timeout);
+  }
 }

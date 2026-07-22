@@ -51,6 +51,9 @@ async function assertFilesReadable(job, referencePacks) {
   ];
   if (job.prompts.repair) required.push(job.prompts.repair);
   if (job.outfit.reference) required.push(job.outfit.reference);
+  if (job.approved_avatar_reference) {
+    required.push(job.approved_avatar_reference.path, job.approved_avatar_reference.qa_receipt.path);
+  }
   for (const filename of required) await access(filename);
 }
 
@@ -63,6 +66,12 @@ function inputFiles(job, referencePacks) {
   ];
   if (job.prompts.repair) entries.push(['prompt_repair', job.prompts.repair]);
   if (job.outfit.reference) entries.push(['outfit_reference', job.outfit.reference]);
+  if (job.approved_avatar_reference) {
+    entries.push(
+      ['approved_avatar_reference', job.approved_avatar_reference.path, { declared_sha256: job.approved_avatar_reference.sha256 }],
+      ['approved_avatar_qa_receipt', job.approved_avatar_reference.qa_receipt.path, { declared_sha256: job.approved_avatar_reference.qa_receipt.sha256 }],
+    );
+  }
   entries.push(...referencePackInputFiles(referencePacks));
   return entries;
 }
@@ -128,6 +137,29 @@ async function assertPngArtifact(artifact) {
   if (bytes.length < PNG_SIGNATURE.length || !bytes.subarray(0, PNG_SIGNATURE.length).equals(PNG_SIGNATURE)) {
     throw new Error('Generation provider must return an actual PNG image');
   }
+}
+
+async function verifyApprovedAvatarReference(reference) {
+  const avatarBytes = await readFile(reference.path);
+  const avatarSha256 = sha256(avatarBytes);
+  if (avatarSha256 !== reference.sha256) throw new Error('Approved avatar SHA-256 does not match the referenced file');
+  if (avatarBytes.length < PNG_SIGNATURE.length || !avatarBytes.subarray(0, PNG_SIGNATURE.length).equals(PNG_SIGNATURE)) {
+    throw new Error('Approved avatar reference must be an actual PNG image');
+  }
+
+  const receiptBytes = await readFile(reference.qa_receipt.path);
+  if (sha256(receiptBytes) !== reference.qa_receipt.sha256) throw new Error('Approved avatar QA receipt SHA-256 does not match the referenced file');
+  let receipt;
+  try { receipt = JSON.parse(receiptBytes.toString('utf8')); } catch { throw new Error('Approved avatar QA receipt must be valid JSON'); }
+  if (reference.qa_receipt.decision !== 'PASS' || receipt?.qa?.avatar?.decision !== 'PASS') {
+    throw new Error('Approved avatar QA receipt must contain a PASS avatar decision');
+  }
+  if (receipt?.outputs?.avatar?.sha256 !== avatarSha256) {
+    throw new Error('Approved avatar QA receipt is not bound to the referenced avatar hash');
+  }
+  const sourceMatches = receipt?.job_id === `web-${reference.source_run_id}` || receipt?.run_id === reference.source_run_id;
+  if (!sourceMatches) throw new Error('Approved avatar QA receipt does not belong to the declared source run');
+  return { avatarBytes, avatarSha256, receipt };
 }
 
 export class PipelineRunner {
@@ -299,6 +331,7 @@ export class PipelineRunner {
           attempt: context.checkpoint.attempts.conditioning,
         });
       case STATES.REFERENCES_READY:
+        if (context.job.approved_avatar_reference) return this.#importApprovedAvatar(context);
         return this.#transition(context, STATES.GENERATING_AVATAR);
       case STATES.GENERATING_AVATAR:
         return this.#generateAvatar(context);
@@ -447,6 +480,53 @@ export class PipelineRunner {
       await this.#save(context);
       return this.#transition(context, STATES.AVATAR_QA, { attempt, model, job_set_type: jobSetType });
     } catch (error) {
+      return this.#generationError(context, 'avatar', error);
+    }
+  }
+
+  async #importApprovedAvatar(context) {
+    try {
+      const reference = context.job.approved_avatar_reference;
+      const verified = await verifyApprovedAvatarReference(reference);
+      const artifact = await context.store.putBinary(verified.avatarBytes, {
+        extension: '.png',
+        mediaType: 'image/png',
+      });
+      if (artifact.digest !== verified.avatarSha256) throw new Error('Imported approved avatar hash changed unexpectedly');
+      await assertPngArtifact(artifact);
+      context.checkpoint.attempts.avatar = 0;
+      context.checkpoint.artifacts.avatar = {
+        artifact,
+        model: 'Approved avatar reuse',
+        job_set_type: 'approved_avatar_reuse',
+        attempt: 0,
+        approved_reuse: {
+          source_run_id: reference.source_run_id,
+          source_sha256: verified.avatarSha256,
+          qa_receipt_sha256: reference.qa_receipt.sha256,
+        },
+      };
+      context.checkpoint.qa.avatar = {
+        decision: 'PASS',
+        reason: 'verified_approved_avatar_reuse',
+        reused: true,
+        source_run_id: reference.source_run_id,
+        avatar_sha256: verified.avatarSha256,
+        receipt_sha256: reference.qa_receipt.sha256,
+      };
+      await this.#record(context, 'APPROVED_AVATAR_IMPORTED', {
+        source_run_id: reference.source_run_id,
+        avatar_sha256: verified.avatarSha256,
+        qa_receipt_sha256: reference.qa_receipt.sha256,
+      });
+      await this.#save(context);
+      return this.#transition(context, STATES.AVATAR_READY, {
+        reused: true,
+        source_run_id: reference.source_run_id,
+        avatar_sha256: verified.avatarSha256,
+      });
+    } catch (error) {
+      error.retryable = false;
       return this.#generationError(context, 'avatar', error);
     }
   }
@@ -752,6 +832,10 @@ export class PipelineRunner {
         avatar: {
           name: context.checkpoint.artifacts.avatar.model,
           job_set_type: context.checkpoint.artifacts.avatar.job_set_type,
+          ...(context.checkpoint.artifacts.avatar.approved_reuse ? {
+            reused: true,
+            source_run_id: context.checkpoint.artifacts.avatar.approved_reuse.source_run_id,
+          } : {}),
         },
         outfit: {
           name: context.checkpoint.artifacts.outfit.model,
@@ -759,11 +843,17 @@ export class PipelineRunner {
         },
       },
       image_artifacts: {
-        avatar: {
-          provider_original: context.checkpoint.artifacts.avatar.provider_original_artifact,
-          normalized: context.checkpoint.artifacts.avatar.artifact,
-          normalization: context.checkpoint.artifacts.avatar.normalization,
-        },
+        avatar: context.checkpoint.artifacts.avatar.approved_reuse
+          ? {
+            approved_reuse: true,
+            imported: context.checkpoint.artifacts.avatar.artifact,
+            provenance: context.checkpoint.artifacts.avatar.approved_reuse,
+          }
+          : {
+            provider_original: context.checkpoint.artifacts.avatar.provider_original_artifact,
+            normalized: context.checkpoint.artifacts.avatar.artifact,
+            normalization: context.checkpoint.artifacts.avatar.normalization,
+          },
         avatar_outfit: {
           provider_original: context.checkpoint.artifacts.outfit.provider_original_artifact,
           normalized: context.checkpoint.artifacts.outfit.artifact,

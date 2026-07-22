@@ -1,17 +1,27 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { EventEmitter } from 'node:events';
-import { access, mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { access, mkdir, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import sharp from 'sharp';
 import { PipelineRunner } from '../runner/pipeline-runner.js';
 import { IMAGE_MODEL_ROUTE } from '../runner/model-policy.js';
 import { normalizeWhitePngBytes } from '../qa/white-normalizer.mjs';
 import { GarmentNeedsInputError, GarmentConditioner } from './garment-conditioner.js';
-import { garmentLocks, groupGarmentViews } from './garment-passport.js';
+import { compileFullLookText, garmentLocks, groupGarmentViews } from './garment-passport.js';
 
 const MIME_EXTENSION = Object.freeze({ 'image/png': '.png', 'image/jpeg': '.jpg', 'image/webp': '.webp' });
 const TERMINAL = new Set(['COMPLETED', 'NEEDS_INPUT', 'FAILED']);
+const RESTARTABLE = new Set(['QUEUED', 'RUNNING']);
+const SAFE_RUN_ID = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/;
 const sha256 = (value) => createHash('sha256').update(value).digest('hex');
+
+function resolveRunId(runId) {
+  const resolved = runId ?? randomUUID();
+  if (typeof resolved !== 'string' || !SAFE_RUN_ID.test(resolved)) {
+    throw new Error('runId must be a safe identifier of at most 128 letters, numbers, dashes, or underscores');
+  }
+  return resolved;
+}
 
 async function atomicJson(filename, value) {
   await mkdir(path.dirname(filename), { recursive: true });
@@ -48,6 +58,10 @@ function publicRun(state) {
     conflicts: state.conflicts ?? [],
     qa: state.qa ?? {},
     outputs: state.outputs ?? {},
+    ...(state.inputs?.approved_avatar ? { avatar_reuse: {
+      purpose: 'NEW_LOOK',
+      source_run_id: state.inputs.approved_avatar.source_run_id,
+    } } : {}),
     error: state.error ?? null,
   };
 }
@@ -63,9 +77,19 @@ export class RunService {
     this.observer = observer;
     this.events = new EventEmitter();
     this.running = new Map();
+    this.creating = new Map();
   }
 
-  async initialize() { await mkdir(this.rootDirectory, { recursive: true }); }
+  async initialize() {
+    await mkdir(this.rootDirectory, { recursive: true });
+    const entries = await readdir(this.rootDirectory, { withFileTypes: true });
+    for (const entry of entries) {
+      if (!entry.isDirectory() || !SAFE_RUN_ID.test(entry.name)) continue;
+      let state;
+      try { state = await this.#read(entry.name); } catch { continue; }
+      if (state?.run_id === entry.name && RESTARTABLE.has(state.status)) this.start(entry.name);
+    }
+  }
   runDirectory(runId) { return path.join(this.rootDirectory, runId); }
   statePath(runId) { return path.join(this.runDirectory(runId), 'run.json'); }
 
@@ -85,13 +109,32 @@ export class RunService {
     return state;
   }
 
-  async createRun({ person, identityDetail, garments = [], outfitText = '', generateScene = true }) {
+  async createRun({ person, identityDetail, garments = [], outfitText = '', generateScene = false, runId: requestedRunId, approvedAvatarReference = null }) {
+    const runId = resolveRunId(requestedRunId);
+    const pending = this.creating.get(runId);
+    if (pending) return pending;
+    const existing = await this.#read(runId);
+    if (existing) {
+      if (RESTARTABLE.has(existing.status) && !this.running.has(runId)) this.start(runId);
+      return publicRun(existing);
+    }
+    const raced = this.creating.get(runId);
+    if (raced) return raced;
+    const creation = this.#createNewRun({ runId, person, identityDetail, garments, outfitText, generateScene, approvedAvatarReference })
+      .finally(() => this.creating.delete(runId));
+    this.creating.set(runId, creation);
+    return creation;
+  }
+
+  async #createNewRun({ runId, person, identityDetail, garments, outfitText, generateScene, approvedAvatarReference }) {
     if (garments.length > 5) throw new Error('At most five garment images are allowed');
     if (garments.length === 0 && outfitText.trim() === '') throw new Error('Provide outfit text or at least one garment image');
     await validateUpload(person, 'person_photo');
     if (identityDetail) await validateUpload(identityDetail, 'identity_detail');
     for (const [index, garment] of garments.entries()) await validateUpload(garment, `garment_images[${index}]`);
-    const runId = randomUUID();
+    const approvedAvatar = approvedAvatarReference
+      ? await this.#verifyApprovedAvatarReference(approvedAvatarReference, runId)
+      : null;
     const runDirectory = this.runDirectory(runId);
     const inputsDirectory = path.join(runDirectory, 'inputs');
     await mkdir(inputsDirectory, { recursive: true });
@@ -105,15 +148,53 @@ export class RunService {
     const identityDetailPath = identityDetail ? await save(identityDetail, 'identity-detail') : null;
     const garmentPaths = [];
     for (const [index, garment] of garments.entries()) garmentPaths.push(await save(garment, `garment-${String(index + 1).padStart(2, '0')}`));
+    let importedApprovedAvatar = null;
+    if (approvedAvatar) {
+      const avatarPath = path.join(inputsDirectory, 'approved-avatar.png');
+      const receiptPath = path.join(inputsDirectory, 'approved-avatar-qa-receipt.json');
+      await writeFile(avatarPath, approvedAvatar.avatarBytes, { flag: 'wx' });
+      await writeFile(receiptPath, approvedAvatar.receiptBytes, { flag: 'wx' });
+      importedApprovedAvatar = {
+        path: avatarPath,
+        sha256: approvedAvatar.avatarSha256,
+        source_run_id: approvedAvatar.sourceRunId,
+        qa_receipt: { path: receiptPath, sha256: approvedAvatar.receiptSha256, decision: 'PASS' },
+      };
+    }
     const now = this.clock().toISOString();
     const state = {
       schema_version: '1.0.0', run_id: runId, status: 'QUEUED', phase: 'UPLOADED', message: 'Inputs accepted',
-      created_at: now, updated_at: now, inputs: { person: personPath, identity_detail: identityDetailPath, garments: garmentPaths, outfit_text: outfitText.trim(), generate_scene: Boolean(generateScene) },
+      created_at: now, updated_at: now, inputs: { person: personPath, identity_detail: identityDetailPath, garments: garmentPaths, outfit_text: outfitText.trim(), generate_scene: Boolean(generateScene), ...(importedApprovedAvatar ? { approved_avatar: importedApprovedAvatar } : {}) },
       garments: [], conflicts: [], qa: {}, outputs: {}, error: null,
     };
     await this.#write(state);
     this.start(runId);
     return publicRun(state);
+  }
+
+  async #verifyApprovedAvatarReference(reference, targetRunId) {
+    if (!reference || typeof reference !== 'object' || Array.isArray(reference)) throw new Error('approvedAvatarReference must be an object');
+    const sourceRunId = reference.source_run_id;
+    if (typeof sourceRunId !== 'string' || !SAFE_RUN_ID.test(sourceRunId)) throw new Error('approvedAvatarReference.source_run_id is invalid');
+    if (sourceRunId === targetRunId) throw new Error('A run cannot reuse its own avatar');
+    const sourceState = await this.#read(sourceRunId);
+    if (!sourceState || sourceState.status !== 'COMPLETED') throw new Error('Approved avatar source run must exist and be completed');
+    const expectedAvatarPath = path.join(this.runDirectory(sourceRunId), 'outputs', 'avatar.png');
+    const expectedReceiptPath = path.join(this.runDirectory(sourceRunId), 'outputs', 'run-manifest.json');
+    if (path.resolve(reference.path ?? '') !== expectedAvatarPath) throw new Error('Approved avatar path must belong to the declared source run');
+    if (path.resolve(reference.qa_receipt?.path ?? '') !== expectedReceiptPath) throw new Error('Approved avatar QA receipt must belong to the declared source run');
+    const [avatarBytes, receiptBytes] = await Promise.all([readFile(expectedAvatarPath), readFile(expectedReceiptPath)]);
+    const avatarSha256 = sha256(avatarBytes);
+    const receiptSha256 = sha256(receiptBytes);
+    if (reference.sha256 !== avatarSha256) throw new Error('Approved avatar SHA-256 mismatch');
+    if (reference.qa_receipt?.sha256 !== receiptSha256) throw new Error('Approved avatar QA receipt SHA-256 mismatch');
+    if (reference.qa_receipt?.decision !== 'PASS') throw new Error('Approved avatar QA receipt must declare PASS');
+    let manifest;
+    try { manifest = JSON.parse(receiptBytes.toString('utf8')); } catch { throw new Error('Approved avatar QA receipt is invalid JSON'); }
+    if (manifest.job_id !== `web-${sourceRunId}` || manifest.state !== 'COMPLETED') throw new Error('Approved avatar QA receipt does not match the declared source run');
+    if (manifest.qa?.avatar?.decision !== 'PASS') throw new Error('Source avatar did not pass avatar QA');
+    if (manifest.outputs?.avatar?.sha256 !== avatarSha256) throw new Error('Source QA receipt is not bound to the approved avatar hash');
+    return { sourceRunId, avatarBytes, receiptBytes, avatarSha256, receiptSha256 };
   }
 
   start(runId) {
@@ -127,19 +208,21 @@ export class RunService {
     const state = await this.#read(runId);
     if (!state || TERMINAL.has(state.status)) return state;
     try {
-      let conditioned = null;
+      let conditioned = await this.#restoreConditionedGarments(state);
       if (state.inputs.garments.length) {
-        await this.#write(state, { status: 'RUNNING', phase: 'GARMENT_CONDITIONING', message: 'Classifying and canonicalizing wardrobe references' });
-        const conditioner = new GarmentConditioner({ vlm: this.vlm, generator: this.assetGenerator, clock: this.clock });
-        conditioned = await conditioner.condition({
-          imagePaths: state.inputs.garments,
-          outputDirectory: path.join(this.runDirectory(runId), 'conditioned', 'garments'),
-          runId,
-          passport: state.inputs.garment_passport ?? null,
-          selections: state.inputs.garment_selections ?? {},
-          onProgress: async (innerState, message) => this.#write(state, { inner_state: innerState, message }),
-        });
-        await this.#write(state, { garments: conditioned.items.map((item) => ({ source_index: item.source_index, source_indexes: item.source_indexes, reference_set_id: item.reference_set_id, category: item.category, confidence: item.confidence, observed: item.observed, reference_card: item.reference_card.path, cutout: item.cutout.path })), conflicts: conditioned.conflicts });
+        if (!conditioned) {
+          await this.#write(state, { status: 'RUNNING', phase: 'GARMENT_CONDITIONING', message: 'Classifying and canonicalizing wardrobe references' });
+          const conditioner = new GarmentConditioner({ vlm: this.vlm, generator: this.assetGenerator, clock: this.clock });
+          conditioned = await conditioner.condition({
+            imagePaths: state.inputs.garments,
+            outputDirectory: path.join(this.runDirectory(runId), 'conditioned', 'garments'),
+            runId,
+            passport: state.inputs.garment_passport ?? null,
+            selections: state.inputs.garment_selections ?? {},
+            onProgress: async (innerState, message) => this.#write(state, { inner_state: innerState, message }),
+          });
+          await this.#write(state, { garments: conditioned.items.map((item) => ({ source_index: item.source_index, source_indexes: item.source_indexes, reference_set_id: item.reference_set_id, category: item.category, confidence: item.confidence, observed: item.observed, reference_card: item.reference_card.path, cutout: item.cutout.path })), conflicts: conditioned.conflicts });
+        }
       }
       const jobPath = await this.#buildJob(state, conditioned);
       await this.#write(state, { status: 'RUNNING', phase: 'CORE_PIPELINE', inner_state: null, message: 'Generating and checking avatar and outfit', job_path: jobPath });
@@ -190,6 +273,37 @@ export class RunService {
     } catch { /* checkpoint may not exist yet */ }
   }
 
+  async #restoreConditionedGarments(state) {
+    if (!state.inputs.garments.length || !state.garments?.length) return null;
+    const packPath = path.join(this.runDirectory(state.run_id), 'conditioned', 'garments', 'reference-pack.json');
+    try {
+      const document = JSON.parse(await readFile(packPath, 'utf8'));
+      const items = state.garments.map((item) => {
+        const sourceIndexes = item.source_indexes?.length ? item.source_indexes : [item.source_index];
+        return {
+          ...item,
+          source_indexes: sourceIndexes,
+          source_path: state.inputs.garments[sourceIndexes[0]],
+          source_paths: sourceIndexes.map((index) => state.inputs.garments[index]),
+          reference_card: { path: item.reference_card },
+          cutout: { path: item.cutout },
+        };
+      });
+      for (const item of items) {
+        await access(item.reference_card.path);
+        await access(item.cutout.path);
+      }
+      return {
+        items,
+        conflicts: state.conflicts ?? [],
+        pack: { path: packPath, document },
+        outfitText: compileFullLookText(items),
+      };
+    } catch {
+      return null;
+    }
+  }
+
   async #buildJob(state, conditioned) {
     const outfitText = conditioned?.outfitText
       ? [state.inputs.outfit_text, conditioned.outfitText].filter(Boolean).join('\n')
@@ -218,6 +332,7 @@ export class RunService {
       outfit,
       quality_references: ['output1.png', 'output2.png', 'output3.png'].map((filename) => path.join(this.projectRoot, 'inputs', 'zeely-test', 'quality-references', filename)),
       model_route: [...IMAGE_MODEL_ROUTE], max_attempts: 3, conditioning_max_attempts: 2,
+      ...(state.inputs.approved_avatar ? { approved_avatar_reference: state.inputs.approved_avatar } : {}),
     };
     const jobPath = path.join(this.runDirectory(state.run_id), 'job.json');
     await atomicJson(jobPath, job);
@@ -226,6 +341,11 @@ export class RunService {
 
   async #buildIdentityPack(state) {
     const directory = path.join(this.runDirectory(state.run_id), 'conditioned', 'identity');
+    const filename = path.join(directory, 'reference-pack.json');
+    try {
+      JSON.parse(await readFile(filename, 'utf8'));
+      return filename;
+    } catch { /* a missing or incomplete pack is rebuilt from the immutable upload */ }
     await mkdir(directory, { recursive: true });
     const sources = [state.inputs.person, state.inputs.identity_detail].filter(Boolean);
     const bindings = [];
@@ -243,13 +363,12 @@ export class RunService {
       readiness: { decision: 'READY', reasons: ['PRIMARY_IDENTITY_IMAGE_DECODES'], actions: [], terminal: false },
       generation_bindings: bindings, created_at: this.clock().toISOString(),
     };
-    const filename = path.join(directory, 'reference-pack.json');
     await atomicJson(filename, document);
     return filename;
   }
 
   async #generateScene(state, approvedOutfitPath) {
-    await this.#write(state, { phase: 'OPTIONAL_SCENE', inner_state: null, message: 'Generating bonus Art Director scene' });
+    await this.#write(state, { phase: 'OPTIONAL_SCENE', inner_state: null, message: 'Generating optional editorial still' });
     const sceneDirectory = path.join(this.runDirectory(state.run_id), 'scene');
     for (const [index, model] of IMAGE_MODEL_ROUTE.entries()) {
       const response = await this.assetGenerator.generateScene({
@@ -274,6 +393,20 @@ export class RunService {
 
   async getRun(runId) { const state = await this.#read(runId); return state ? publicRun(state) : null; }
   subscribe(runId, listener) { this.events.on(runId, listener); return () => this.events.off(runId, listener); }
+
+  async approvedAvatarReferenceForRun(runId) {
+    const state = await this.#read(runId);
+    if (!state || state.status !== 'COMPLETED') throw new Error('Approved avatar source run must exist and be completed');
+    const avatarPath = path.join(this.runDirectory(runId), 'outputs', 'avatar.png');
+    const receiptPath = path.join(this.runDirectory(runId), 'outputs', 'run-manifest.json');
+    const [avatarBytes, receiptBytes] = await Promise.all([readFile(avatarPath), readFile(receiptPath)]);
+    return {
+      path: avatarPath,
+      sha256: sha256(avatarBytes),
+      source_run_id: runId,
+      qa_receipt: { path: receiptPath, sha256: sha256(receiptBytes), decision: 'PASS' },
+    };
+  }
 
   async outputFile(runId, name) {
     const allowed = new Set(['avatar.png', 'avatar_outfit.png', 'art_director_scene.png', 'run-manifest.json']);
@@ -314,8 +447,13 @@ export class RunService {
   async retry(runId) {
     const state = await this.#read(runId);
     if (!state) return null;
-    const orphanedAfterRestart = state.status === 'RUNNING' && !this.running.has(runId);
+    const orphanedAfterRestart = RESTARTABLE.has(state.status) && !this.running.has(runId);
     if (!['NEEDS_INPUT', 'FAILED'].includes(state.status) && !orphanedAfterRestart) throw new Error('Only failed, needs-input, or interrupted runs can be retried');
+    if (orphanedAfterRestart) {
+      await this.#write(state, { status: 'QUEUED', message: 'Interrupted run queued from its existing checkpoint', error: null });
+      this.start(runId);
+      return publicRun(state);
+    }
     await rm(path.join(this.runDirectory(runId), 'outputs'), { recursive: true, force: true });
     await this.#write(state, { status: 'QUEUED', phase: 'UPLOADED', inner_state: null, message: 'Retry queued', garments: [], conflicts: [], error: null, outputs: {}, qa: {} });
     this.start(runId);

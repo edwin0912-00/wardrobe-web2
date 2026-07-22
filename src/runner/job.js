@@ -4,6 +4,7 @@ import path from 'node:path';
 import { assertModelRoute, IMAGE_MODEL_ROUTE } from './model-policy.js';
 
 const SAFE_JOB_ID = /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$/;
+const SHA256 = /^[a-f0-9]{64}$/;
 const OUTFIT_MODES = new Set(['text', 'reference_image', 'reference_image_plus_text']);
 
 function sha256(value) {
@@ -37,6 +38,24 @@ function validateReferencePack(value, field) {
   if (value.path_base !== undefined) requireString(value.path_base, `${field}.path_base`);
 }
 
+function validateApprovedAvatarReference(value) {
+  if (value === undefined) return;
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error('job.approved_avatar_reference must be an object');
+  }
+  requireString(value.path, 'job.approved_avatar_reference.path');
+  if (!SHA256.test(value.sha256 ?? '')) throw new Error('job.approved_avatar_reference.sha256 must be a lowercase SHA-256 digest');
+  requireString(value.source_run_id, 'job.approved_avatar_reference.source_run_id');
+  if (!SAFE_JOB_ID.test(value.source_run_id)) throw new Error('job.approved_avatar_reference.source_run_id contains unsafe characters');
+  const receipt = value.qa_receipt;
+  if (!receipt || typeof receipt !== 'object' || Array.isArray(receipt)) {
+    throw new Error('job.approved_avatar_reference.qa_receipt must be an object');
+  }
+  requireString(receipt.path, 'job.approved_avatar_reference.qa_receipt.path');
+  if (!SHA256.test(receipt.sha256 ?? '')) throw new Error('job.approved_avatar_reference.qa_receipt.sha256 must be a lowercase SHA-256 digest');
+  if (receipt.decision !== 'PASS') throw new Error('job.approved_avatar_reference.qa_receipt.decision must be PASS');
+}
+
 export function validateJob(job) {
   if (!job || typeof job !== 'object' || Array.isArray(job)) throw new Error('job must be an object');
   requireString(job.job_id, 'job.job_id');
@@ -45,6 +64,7 @@ export function validateJob(job) {
   if (job.identity_reference_pack !== undefined) {
     validateReferencePack(job.identity_reference_pack, 'job.identity_reference_pack');
   }
+  validateApprovedAvatarReference(job.approved_avatar_reference);
   requireString(job.output_directory, 'job.output_directory');
   if (!job.outfit || typeof job.outfit !== 'object') throw new Error('job.outfit must be an object');
   if (!OUTFIT_MODES.has(job.outfit.mode)) throw new Error(`Unsupported outfit mode: ${job.outfit.mode}`);
@@ -106,6 +126,14 @@ export function normalizeJob(job, baseDirectory) {
     ...job,
     identity_reference: resolveFile(baseDirectory, job.identity_reference),
     identity_reference_pack: normalizeReferencePack(job.identity_reference_pack, baseDirectory),
+    ...(job.approved_avatar_reference ? { approved_avatar_reference: {
+      ...job.approved_avatar_reference,
+      path: resolveFile(baseDirectory, job.approved_avatar_reference.path),
+      qa_receipt: {
+        ...job.approved_avatar_reference.qa_receipt,
+        path: resolveFile(baseDirectory, job.approved_avatar_reference.qa_receipt.path),
+      },
+    } } : {}),
     output_directory: resolveFile(baseDirectory, job.output_directory),
     quality_references: (job.quality_references ?? []).map((item) => resolveFile(baseDirectory, item)),
     prompts: {

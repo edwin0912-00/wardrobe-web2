@@ -40,3 +40,22 @@ test('web API requires consent before transmitting personal images', async () =>
   assert.match(response.json().error, /Consent/);
   await app.close();
 });
+
+test('web API keeps the optional editorial still disabled unless explicitly requested', async () => {
+  let received;
+  const service = {
+    createRun: async (input) => { received = input; return { run_id: 'core-only', status: 'QUEUED', phase: 'UPLOADED' }; },
+    getRun: async () => null, subscribe: () => () => {}, outputFile: async () => null,
+    retry: async () => null, selectGarments: async () => null, garmentSourceFile: async () => null, deleteRun: async () => {},
+  };
+  const app = await createWebApp({ service });
+  const image = await sharp({ create: { width: 300, height: 400, channels: 3, background: '#ffffff' } }).png().toBuffer();
+  const form = new FormData();
+  form.append('person_photo', image, { filename: 'person.png', contentType: 'image/png' });
+  form.append('outfit_text', 'black top');
+  form.append('consent', 'true');
+  const response = await app.inject({ method: 'POST', url: '/api/runs', headers: form.getHeaders(), payload: form.getBuffer() });
+  assert.equal(response.statusCode, 202);
+  assert.equal(received.generateScene, false);
+  await app.close();
+});

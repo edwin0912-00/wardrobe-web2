@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { mkdtemp, mkdir, readFile, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -78,6 +79,74 @@ test('runs the complete conditioning -> avatar -> outfit state machine and expor
   for (const call of provider.calls.filter((item) => item.operation === 'generate')) {
     assert.equal(call.context.workDirectory, result.workDirectory, 'provider receives its per-run journal root');
   }
+});
+
+test('imports a hash-bound PASS avatar receipt and generates only the new outfit', async () => {
+  const source = await fixture();
+  const sourceProvider = new MockProvider();
+  const sourceResult = await new PipelineRunner({ provider: sourceProvider }).runJobFile(source.jobPath);
+  const sourceAvatar = await readFile(path.join(source.output, 'avatar.png'));
+  const sourceReceipt = await readFile(path.join(source.output, 'run-manifest.json'));
+
+  const target = await fixture({ jobOverrides: { job_id: 'test-new-look' } });
+  const importedAvatarPath = path.join(target.directory, 'input', 'approved-avatar.png');
+  const importedReceiptPath = path.join(target.directory, 'input', 'approved-avatar-receipt.json');
+  await writeFile(importedAvatarPath, sourceAvatar);
+  await writeFile(importedReceiptPath, sourceReceipt);
+  const targetJob = JSON.parse(await readFile(target.jobPath, 'utf8'));
+  targetJob.approved_avatar_reference = {
+    path: './input/approved-avatar.png',
+    sha256: createHash('sha256').update(sourceAvatar).digest('hex'),
+    source_run_id: sourceResult.runId,
+    qa_receipt: {
+      path: './input/approved-avatar-receipt.json',
+      sha256: createHash('sha256').update(sourceReceipt).digest('hex'),
+      decision: 'PASS',
+    },
+  };
+  await writeFile(target.jobPath, `${JSON.stringify(targetJob, null, 2)}\n`);
+
+  const provider = new MockProvider();
+  const result = await new PipelineRunner({ provider }).runJobFile(target.jobPath);
+  assert.equal(result.status, STATES.COMPLETED);
+  assert.equal(result.attempts.avatar, 0);
+  assert.deepEqual(await readFile(path.join(target.output, 'avatar.png')), sourceAvatar, 'approved avatar bytes must be reused exactly');
+  assert.equal(createHash('sha256').update(await readFile(path.join(target.output, 'avatar.png'))).digest('hex'), targetJob.approved_avatar_reference.sha256);
+  assert.deepEqual(provider.calls.filter((call) => call.operation === 'generate').map((call) => call.context.phase), ['outfit']);
+  assert.equal(provider.calls.some((call) => call.operation === 'qa' && call.context.phase === 'avatar'), false);
+  const manifest = JSON.parse(await readFile(path.join(target.output, 'run-manifest.json'), 'utf8'));
+  assert.equal(manifest.qa.avatar.decision, 'PASS');
+  assert.equal(manifest.qa.avatar.reused, true);
+  assert.equal(manifest.models.avatar.source_run_id, sourceResult.runId);
+  assert.equal(manifest.outputs.avatar.sha256, targetJob.approved_avatar_reference.sha256);
+  const events = (await readFile(result.eventsPath, 'utf8')).trim().split('\n').map(JSON.parse);
+  assert.ok(events.some((event) => event.type === 'APPROVED_AVATAR_IMPORTED'));
+  assert.equal(events.some((event) => event.type === 'PROVIDER_CALL_STARTED' && event.data.phase === 'avatar'), false);
+});
+
+test('rejects approved avatar reuse when the declared avatar hash is not exact', async () => {
+  const source = await fixture();
+  const sourceResult = await new PipelineRunner({ provider: new MockProvider() }).runJobFile(source.jobPath);
+  const avatar = await readFile(path.join(source.output, 'avatar.png'));
+  const receipt = await readFile(path.join(source.output, 'run-manifest.json'));
+  const target = await fixture({ jobOverrides: {
+    job_id: 'test-bad-approved-avatar',
+    approved_avatar_reference: {
+      path: path.join(source.output, 'avatar.png'),
+      sha256: '0'.repeat(64),
+      source_run_id: sourceResult.runId,
+      qa_receipt: {
+        path: path.join(source.output, 'run-manifest.json'),
+        sha256: createHash('sha256').update(receipt).digest('hex'),
+        decision: 'PASS',
+      },
+    },
+  } });
+  assert.ok(avatar.length > 0);
+  const provider = new MockProvider();
+  const result = await new PipelineRunner({ provider }).runJobFile(target.jobPath);
+  assert.equal(result.status, STATES.FAILED);
+  assert.equal(provider.calls.some((call) => call.operation === 'generate' && call.context.phase === 'avatar'), false);
 });
 
 test('is idempotent after completion and does not call the provider again', async () => {

@@ -6,13 +6,33 @@ import fastifyStatic from '@fastify/static';
 import { registerMonitorRoutes } from '../monitor/routes.js';
 import { installDemoAuth } from './demo-auth.js';
 import { registerDraftRoutes } from './draft-service.js';
+import { registerProfileRoutes } from './profile-service.js';
 
-export async function createWebApp({ service, health = { status: 'ok' }, publicDirectory = path.resolve(import.meta.dirname, '..', '..', 'web', 'public'), logger = false, auth = null, monitor = null, drafts = null }) {
+export async function createWebApp({ service, health = { status: 'ok' }, publicDirectory = path.resolve(import.meta.dirname, '..', '..', 'web', 'public'), logger = false, auth = null, monitor = null, drafts = null, profiles = null }) {
   const app = Fastify({ logger, bodyLimit: 150 * 1024 * 1024 });
   installDemoAuth(app, auth);
   await app.register(multipart, { limits: { files: 7, fileSize: 20 * 1024 * 1024, fields: 12, parts: 20 } });
   await app.register(fastifyStatic, { root: publicDirectory, prefix: '/' });
-  if (drafts) await registerDraftRoutes(app, { service: drafts, runService: service, secureCookie: process.env.ZEELY_COOKIE_SECURE !== 'false' });
+  const secureCookie = process.env.ZEELY_COOKIE_SECURE !== 'false';
+  const profileApi = profiles ? await registerProfileRoutes(app, { service: profiles, runService: service, secureCookie }) : null;
+  if (drafts) await registerDraftRoutes(app, {
+    service: drafts,
+    runService: service,
+    profileService: profiles,
+    profileApi,
+    secureCookie,
+  });
+
+  async function ownsRun(request, reply) {
+    if (!profiles || !profileApi) return true;
+    const session = await profileApi.resolveRequestProfile(request, reply);
+    if (profiles.getClaim(session.profileId, request.params.id)) {
+      reply.header('Cache-Control', 'private, no-store').header('Vary', 'Cookie');
+      return true;
+    }
+    reply.code(404).send({ error: 'Run not found' });
+    return false;
+  }
 
   if (monitor) {
     await registerMonitorRoutes(app, {
@@ -58,44 +78,71 @@ export async function createWebApp({ service, health = { status: 'ok' }, publicD
       identityDetail: uploads.identityDetail,
       garments: uploads.garments,
       outfitText: String(fields.outfit_text ?? ''),
-      generateScene: fields.generate_scene !== 'false',
+      generateScene: fields.generate_scene === 'true',
     });
+    if (profileApi) await profileApi.claimRunForRequest(request, reply, run.run_id, { sourceAvatarId: null });
     return reply.code(202).send(run);
   });
 
   app.get('/api/runs/:id', async (request, reply) => {
+    if (!await ownsRun(request, reply)) return reply;
     const run = await service.getRun(request.params.id);
     return run ? run : reply.code(404).send({ error: 'Run not found' });
   });
 
   app.get('/api/runs/:id/events', async (request, reply) => {
+    if (!await ownsRun(request, reply)) return reply;
     const current = await service.getRun(request.params.id);
     if (!current) return reply.code(404).send({ error: 'Run not found' });
+    const buffered = [];
+    let live = false;
+    const send = (value) => reply.raw.write(`event: run\ndata: ${JSON.stringify(value)}\n\n`);
+    const listener = (value) => {
+      if (live) send(value);
+      else buffered.push(value);
+    };
+    const unsubscribe = service.subscribe(request.params.id, listener);
+    let snapshot;
+    try {
+      snapshot = await service.getRun(request.params.id);
+    } catch (error) {
+      unsubscribe();
+      throw error;
+    }
+    if (!snapshot) {
+      unsubscribe();
+      return reply.code(404).send({ error: 'Run not found' });
+    }
     reply.hijack();
     reply.raw.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache, no-transform', Connection: 'keep-alive', 'X-Accel-Buffering': 'no' });
-    const send = (value) => reply.raw.write(`event: run\ndata: ${JSON.stringify(value)}\n\n`);
-    send(current);
-    const unsubscribe = service.subscribe(request.params.id, send);
+    send(snapshot);
+    live = true;
+    const bufferedTail = buffered.at(-1);
+    if (bufferedTail && bufferedTail.updated_at >= snapshot.updated_at && JSON.stringify(bufferedTail) !== JSON.stringify(snapshot)) send(bufferedTail);
     const heartbeat = setInterval(() => reply.raw.write(': keep-alive\n\n'), 15_000);
     request.raw.on('close', () => { clearInterval(heartbeat); unsubscribe(); });
   });
 
   app.post('/api/runs/:id/retry', async (request, reply) => {
+    if (!await ownsRun(request, reply)) return reply;
     const run = await service.retry(request.params.id);
     return run ? reply.code(202).send(run) : reply.code(404).send({ error: 'Run not found' });
   });
 
   app.post('/api/runs/:id/garment-selection', async (request, reply) => {
+    if (!await ownsRun(request, reply)) return reply;
     const run = await service.selectGarments(request.params.id, request.body?.selections);
     return run ? reply.code(202).send(run) : reply.code(404).send({ error: 'Run not found' });
   });
 
   app.delete('/api/runs/:id', async (request, reply) => {
+    if (!await ownsRun(request, reply)) return reply;
     await service.deleteRun(request.params.id);
     return reply.code(204).send();
   });
 
   app.get('/api/runs/:id/files/:name', async (request, reply) => {
+    if (!await ownsRun(request, reply)) return reply;
     const filename = await service.outputFile(request.params.id, request.params.name);
     if (!filename) return reply.code(404).send({ error: 'Output not found' });
     const type = request.params.name.endsWith('.json') ? 'application/json' : 'image/png';
@@ -103,6 +150,7 @@ export async function createWebApp({ service, health = { status: 'ok' }, publicD
   });
 
   app.get('/api/runs/:id/garments/:index', async (request, reply) => {
+    if (!await ownsRun(request, reply)) return reply;
     const filename = await service.garmentSourceFile(request.params.id, request.params.index);
     if (!filename) return reply.code(404).send({ error: 'Garment source not found' });
     const type = new Map([['.png', 'image/png'], ['.jpg', 'image/jpeg'], ['.jpeg', 'image/jpeg'], ['.webp', 'image/webp']]).get(path.extname(filename).toLowerCase()) ?? 'application/octet-stream';

@@ -26,7 +26,7 @@ function phaseComment(run) {
     GARMENT_GENERATING: 'Створено provider job для canonical garment; supervisor стежить за journal, повторного create не буде.',
     GARMENT_QA: 'Canonical garment завантажено; VLM порівнює його з усіма вихідними ракурсами.',
     CORE_PIPELINE: 'Canonical references готові; почалась генерація avatar/outfit із checkpoint та QA.',
-    OPTIONAL_SCENE: 'Core outputs готові; створюється необов’язкова Art Director scene.',
+    OPTIONAL_SCENE: 'Core outputs готові; створюється необов’язковий editorial still.',
   };
   return comments[run.inner_state ?? run.phase] ?? `Pipeline перейшов у ${run.inner_state ?? run.phase}: ${run.message}`;
 }

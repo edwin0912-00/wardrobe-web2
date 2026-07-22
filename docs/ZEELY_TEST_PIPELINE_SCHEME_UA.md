@@ -13,6 +13,8 @@ Source of truth: [`spec/ZEELY_CANON_UA.md`](../spec/ZEELY_CANON_UA.md), [`plans/
 3. `art_director_scene.png` — optional bonus, лише після PASS двох core-зображень.
 4. `run-manifest.json`, точні prompts, hashes, events і QA evidence.
 
+Після PASS результат автоматично додається в анонімний browser profile на 30 днів. Повернення з того самого браузера відкриває бібліотеку avatar → looks; avatar можна видалити, створити додатковий або використати для нового look без повторної avatar generation.
+
 Для обов’язкової здачі запускаються три fixtures, тому minimum submission — шість PNG: `001..003/avatar.png` і `001..003/avatar_outfit.png`.
 
 ## 2. Наскрізна схема
@@ -50,7 +52,7 @@ flowchart LR
 
 | № | Ресурс | Статус | Навіщо потрібен | Input → output | Failure behavior / evidence |
 |---:|---|---|---|---|---|
-| 1 | HTML5 web UI + IndexedDB draft (`web/public`) | `LIVE` | Єдина surface для evaluator і fresh user input. Окремо тримає person, identity detail і wardrobe selections; Blob-копії зберігає локально між reload/crash. | local browser files + text + consent → local draft → multipart request | Consent навмисно не зберігається. Явний “new run” очищує draft; випадковий reload — відновлює. До відповіді `POST /api/runs` UI показує `UPLOAD`, а не вигаданий progress. |
+| 1 | HTML5 web UI + IndexedDB draft (`web/public`) | `LIVE` | Єдина surface для evaluator і fresh user input. Окремо тримає person, identity detail і wardrobe selections; Blob-копії зберігає локально між reload/crash. Після submit input-screen fade-ом замінюється на один active pipeline-screen з великою AI-анімацією та сімома stateful nodes. | local browser files + text + consent → local draft → temp server draft → idempotent JSON finalize | Consent навмисно не зберігається. Явний “new run” очищує draft; reload знаходить той самий run за query/local UUID. Upload показує реальні bytes/%; після старту progress змінюється лише з persisted server checkpoints. |
 | 2 | Fastify 5 + multipart (`src/web/app.js`) | `LIVE` | Приймає upload, віддає progress API, SSE та outputs. | multipart fields/files → normalized upload objects | До 7 файлів, 20 MB на файл; malformed request повертає structured error. |
 | 3 | `RunService` + filesystem (`runtime/runs/<id>`) | `LIVE` | Ізолює кожен run і зберігає raw source до будь-якої генерації. | upload buffers → immutable source files + `run.json` | `wx`-write не дозволяє тихо перезаписати source. Кожен phase оновлює persisted state. |
 | 4 | Sharp 0.35 (`src/conditioning`) | `LIVE` | Детермінована підготовка без генеративного домислювання. | raw bytes → oriented sRGB normalized image, face/person crops, garment cutout/card | Corrupt file, недостатній resolution або відсутній required crop зупиняють flow. Кожен derivative має lineage і SHA-256. |
@@ -68,6 +70,8 @@ flowchart LR
 | 16 | Manifest/evidence export | `LIVE` | Робить результат відтворюваним і рев’юваним. | approved artifacts + events + provider receipts → manifest, prompts, QA reports, hashes | Missing evidence блокує `npm run verify`; output без provenance не вважається accepted. |
 | 17 | Cloudflare named Tunnel | `LIVE DELIVERY` | Віддає локальний `127.0.0.1:4173` через HTTPS без відкритого inbound port. | browser HTTPS → Cloudflare → outbound tunnel → Fastify | `cloudflared` і app працюють як macOS LaunchAgents з KeepAlive. Серверний PIN gate підтримується, але зараз вимкнений для відкритого тестування. |
 | 18 | Telemetry + live monitor (`src/monitor`, port 4174) | `LIVE OBSERVABILITY` | Показує client actions/errors, API responses, upload receipt, run phases і health core-service в реальному часі. | allowlisted metadata → append-only JSONL → SSE dashboard | Не приймає filename/image/PIN/prompt. Monitor — окремий LaunchAgent з KeepAlive; падіння UI не забирає журнал. Деталі: [`LIVE_MONITORING_UA.md`](LIVE_MONITORING_UA.md). |
+| 19 | Anonymous profile (`src/web/profile-service.js`, SQLite/WAL) | `LIVE` | Пам’ятає avatars і looks рівно для одного browser без login та без IP identity. | 256-bit HttpOnly cookie → verifier hash → profile/avatars/looks/run claims | Fixed TTL 30 днів; cookie не доступна JS. Cross-profile run/image access повертає 404. Delete/expiry каскадно ставить залежні runs у physical-deletion queue. |
+| 20 | Approved-avatar reuse (`approved_avatar_reference`) | `LIVE` | Створює новий look без identity drift від повторної генерації base avatar. | source completed run + exact avatar SHA + hash-bound PASS manifest → immutable import у новий run → outfit phase | Source path має належати declared run; avatar/receipt hashes і QA PASS перевіряються двічі. Avatar provider не викликається; output `avatar.png` побайтово збігається із saved avatar. |
 
 ## 4. Model route без плутанини назв
 

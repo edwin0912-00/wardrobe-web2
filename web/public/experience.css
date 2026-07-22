@@ -1,0 +1,129 @@
+.workflow-pending body {
+  opacity: 0;
+}
+
+body {
+  transition: opacity .22s ease;
+}
+
+.studio-grid {
+  position: relative;
+  display: block;
+  width: min(1120px, 100%);
+  margin: 0 auto;
+  min-height: 720px;
+  scroll-margin-top: 86px;
+}
+
+.studio-grid > .panel {
+  width: 100%;
+  transition: opacity .58s ease, transform .58s cubic-bezier(.22,.72,.21,1), visibility .58s;
+}
+
+.studio-grid > .form-panel {
+  position: relative;
+  z-index: 2;
+  max-width: 760px;
+  margin: 0 auto;
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  visibility: visible;
+}
+
+.studio-grid > .result-panel {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  min-height: min(820px, calc(100svh - 102px));
+  opacity: 0;
+  transform: translateY(18px) scale(.985);
+  visibility: hidden;
+  pointer-events: none;
+}
+
+body.workflow-active .hero {
+  max-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  margin: 0;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.hero {
+  max-height: 560px;
+  opacity: 1;
+  transition: max-height .7s cubic-bezier(.22,.72,.21,1), padding .7s cubic-bezier(.22,.72,.21,1), opacity .4s ease;
+}
+
+body.workflow-active main {
+  padding-top: 25px;
+}
+
+body.workflow-active .studio-grid > .form-panel {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  opacity: 0;
+  transform: translateY(-14px) scale(.985);
+  visibility: hidden;
+  pointer-events: none;
+}
+
+body.workflow-active .studio-grid > .result-panel {
+  position: relative;
+  z-index: 2;
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.view-enter {
+  animation: view-enter .48s ease both;
+}
+
+@keyframes view-enter {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+body.workflow-active .result-panel > .panel-head {
+  margin-bottom: 4px;
+}
+
+body.workflow-active footer {
+  margin-top: 26px;
+}
+
+.failure-actions {
+  display: flex;
+  gap: 10px;
+  width: min(540px, 100%);
+  margin-top: 18px;
+}
+
+.failure-actions .secondary-button {
+  margin-top: 0;
+}
+
+@media (max-width: 960px) {
+  .studio-grid { min-height: 690px; }
+  body.workflow-active main { padding-top: 14px; }
+  .studio-grid > .result-panel { min-height: calc(100svh - 100px); }
+}
+
+@media (max-width: 600px) {
+  .studio-grid { min-height: 650px; }
+  .studio-grid > .result-panel { min-height: calc(100svh - 92px); }
+  body.workflow-active .result-panel { padding: 16px; }
+  body.workflow-active .result-panel > .panel-head { margin-bottom: 0; }
+  .failure-actions { flex-direction: column; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero,
+  .studio-grid > .panel { transition-duration: .01ms; }
+  .view-enter { animation: none; }
+}

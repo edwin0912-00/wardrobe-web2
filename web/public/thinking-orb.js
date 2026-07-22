@@ -31,7 +31,7 @@ function spherePoints(count) {
   return points;
 }
 
-const BASE_SPHERE = spherePoints(190);
+const BASE_SPHERE = spherePoints(280);
 
 function shapePoint(progress, shape) {
   const angle = progress * Math.PI * 2 - Math.PI / 2;
@@ -48,6 +48,8 @@ function shapePoint(progress, shape) {
 }
 
 function buildPoints(state, time) {
+  // Deliberately slow: the orb communicates sustained work, not a timer.
+  time *= 0.34;
   if (state === 'shaping') {
     const cycle = time / 2.3;
     const from = Math.floor(cycle) % 3;

@@ -23,6 +23,7 @@ test('anonymous browser draft survives requests and uses a 15-minute cookie', as
   t.after(() => app.close());
   const first = await app.inject({ method: 'GET', url: '/api/draft' });
   assert.equal(first.statusCode, 200);
+  assert.equal(first.json().generate_scene, false);
   assert.match(first.headers['set-cookie'], /Max-Age=900/);
   const cookie = first.headers['set-cookie'].split(';')[0];
   const data = new FormData();
@@ -69,6 +70,50 @@ test('creates a run from server-side draft files without uploading them again', 
   assert.equal(received.garments[0].buffer.toString(), 'garment bytes');
   assert.equal(received.outfitText, 'black tailored look');
   assert.equal(received.generateScene, false);
+  assert.equal(Object.hasOwn(received, 'runId'), false);
+});
+
+test('forwards a validated finalization key as the deterministic run id', async (t) => {
+  const received = [];
+  const runService = {
+    async createRun(input) {
+      received.push(input);
+      return { run_id: input.runId, status: 'QUEUED', phase: 'UPLOADED' };
+    },
+  };
+  const { app } = await fixture(runService);
+  t.after(() => app.close());
+  const first = await app.inject({ method: 'GET', url: '/api/draft' });
+  const cookie = first.headers['set-cookie'].split(';')[0];
+  const data = new FormData();
+  data.append('file', Buffer.from('person bytes'), { filename: 'person.jpg', contentType: 'image/jpeg' });
+  const upload = await app.inject({ method: 'POST', url: '/api/draft/file/person', headers: { ...data.getHeaders(), cookie }, payload: data });
+  assert.equal(upload.statusCode, 201, upload.body);
+
+  const finalizationKey = '20cf6522-43fd-40ad-a8db-615bcdf80e07';
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const created = await app.inject({
+      method: 'POST', url: '/api/draft/run', headers: { cookie, 'content-type': 'application/json' },
+      payload: { consent: true, finalization_key: finalizationKey },
+    });
+    assert.equal(created.statusCode, 202, created.body);
+    assert.equal(created.json().run_id, finalizationKey);
+  }
+  assert.equal(received.length, 2);
+  assert.deepEqual(received.map((input) => input.runId), [finalizationKey, finalizationKey]);
+});
+
+test('rejects malformed finalization keys before creating a run', async (t) => {
+  let createCalls = 0;
+  const { app } = await fixture({ async createRun() { createCalls += 1; } });
+  t.after(() => app.close());
+  const response = await app.inject({
+    method: 'POST', url: '/api/draft/run', headers: { 'content-type': 'application/json' },
+    payload: { consent: true, finalization_key: '../../same-run' },
+  });
+  assert.equal(response.statusCode, 400);
+  assert.match(response.json().error, /valid UUID v4/);
+  assert.equal(createCalls, 0);
 });
 
 test('expired anonymous drafts are physically removed', async () => {

@@ -1,6 +1,12 @@
 const DB_NAME = 'zeely-upload-draft';
 const STORE_NAME = 'drafts';
 const DRAFT_KEY = 'current';
+export const LOCAL_DRAFT_TTL_MS = 15 * 60 * 1000;
+
+export function isDraftExpired(savedAt, now = Date.now()) {
+  const savedTime = Date.parse(savedAt);
+  return !Number.isFinite(savedTime) || now - savedTime > LOCAL_DRAFT_TTL_MS;
+}
 
 function openDatabase() {
   return new Promise((resolve, reject) => {
@@ -40,7 +46,7 @@ export async function saveDraft({ person, identityDetail, garments, outfitText, 
     identityDetail: packFile(identityDetail),
     garments: garments.map(packFile),
     outfitText,
-    generateScene,
+    generateScene: generateScene === true,
   };
   await transaction('readwrite', (store) => store.put(value, DRAFT_KEY));
   return value.savedAt;
@@ -49,13 +55,17 @@ export async function saveDraft({ person, identityDetail, garments, outfitText, 
 export async function loadDraft() {
   const value = await transaction('readonly', (store) => store.get(DRAFT_KEY));
   if (!value) return null;
+  if (isDraftExpired(value.savedAt)) {
+    await clearDraft();
+    return null;
+  }
   return {
     savedAt: value.savedAt,
     person: unpackFile(value.person),
     identityDetail: unpackFile(value.identityDetail),
     garments: (value.garments || []).map(unpackFile).filter(Boolean),
     outfitText: value.outfitText || '',
-    generateScene: value.generateScene !== false,
+    generateScene: value.generateScene === true,
   };
 }
 

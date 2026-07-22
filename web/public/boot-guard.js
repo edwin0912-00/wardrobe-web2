@@ -12,6 +12,7 @@
   };
 
   const reveal = (message) => {
+    document.documentElement.classList.remove('workflow-pending');
     const guard = document.querySelector('#boot-error');
     if (!guard) return;
     guard.querySelector('[data-error-message]').textContent = message;
@@ -33,5 +34,5 @@
       reveal('Застосунок не запустився за 8 секунд. Перезавантаж сторінку.');
     }
   }, 8000);
-  window.ZeelyBootGuard = { ready() { document.body.dataset.appReady = 'true'; document.querySelector('#boot-error')?.setAttribute('hidden', ''); } };
+  window.ZeelyBootGuard = { ready() { document.documentElement.classList.remove('workflow-pending'); document.body.dataset.appReady = 'true'; document.querySelector('#boot-error')?.setAttribute('hidden', ''); } };
 })();

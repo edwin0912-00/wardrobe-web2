@@ -6,6 +6,7 @@ import { MonitorEventStore } from '../monitor/event-store.js';
 import { createWebApp } from './app.js';
 import { DraftService } from './draft-service.js';
 import { HiggsfieldAssetGenerator } from './higgsfield-asset-generator.js';
+import { ProfileService } from './profile-service.js';
 import { RunService } from './run-service.js';
 import { runLocalPreflight } from './preflight.js';
 
@@ -15,6 +16,7 @@ await monitor.initialize();
 const drafts = new DraftService({ rootDirectory: path.join(projectRoot, 'runtime', 'drafts') });
 await drafts.initialize();
 await drafts.cleanupExpired();
+const profiles = new ProfileService({ databasePath: path.join(projectRoot, 'runtime', 'profiles.sqlite') });
 const vlm = new CodexVlmEvaluator();
 const provider = new HiggsfieldCliProvider({ qaEvaluator: vlm.evaluateQa.bind(vlm) });
 const assetGenerator = new HiggsfieldAssetGenerator({ provider });
@@ -34,9 +36,19 @@ const auth = process.env.ZEELY_DEMO_PIN ? {
   secret: process.env.ZEELY_SESSION_SECRET,
   secure: process.env.ZEELY_COOKIE_SECURE !== 'false',
 } : null;
-const app = await createWebApp({ service, health, logger: true, auth, monitor, drafts });
+const app = await createWebApp({ service, health, logger: true, auth, monitor, drafts, profiles });
 const draftCleanupTimer = setInterval(() => drafts.cleanupExpired().catch(() => {}), 60_000);
-app.addHook('onClose', async () => clearInterval(draftCleanupTimer));
+const profileCleanup = async () => {
+  profiles.cleanupExpired();
+  await profiles.flushDeletionQueue(service);
+};
+await profileCleanup();
+const profileCleanupTimer = setInterval(() => profileCleanup().catch(() => {}), 60_000);
+app.addHook('onClose', async () => {
+  clearInterval(draftCleanupTimer);
+  clearInterval(profileCleanupTimer);
+  profiles.close();
+});
 const port = Number.parseInt(process.env.PORT ?? '4173', 10);
 await app.listen({ host: '127.0.0.1', port });
 await monitor.append({ source: 'server', type: 'service.web_started', data: { port, pid: process.pid } });

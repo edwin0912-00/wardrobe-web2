@@ -23,6 +23,29 @@
     },
     "identity_reference": { "$ref": "#/$defs/path" },
     "identity_reference_pack": { "$ref": "#/$defs/referencePack" },
+    "approved_avatar_reference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256", "source_run_id", "qa_receipt"],
+      "properties": {
+        "path": { "$ref": "#/$defs/path" },
+        "sha256": { "$ref": "#/$defs/sha256" },
+        "source_run_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+        },
+        "qa_receipt": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["path", "sha256", "decision"],
+          "properties": {
+            "path": { "$ref": "#/$defs/path" },
+            "sha256": { "$ref": "#/$defs/sha256" },
+            "decision": { "const": "PASS" }
+          }
+        }
+      }
+    },
     "output_directory": { "$ref": "#/$defs/path" },
     "prompts": {
       "type": "object",
@@ -92,6 +115,7 @@
   },
   "$defs": {
     "path": { "type": "string", "minLength": 1 },
+    "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
     "referencePack": {
       "oneOf": [
         { "$ref": "#/$defs/path" },
