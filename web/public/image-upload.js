@@ -1,6 +1,15 @@
 export const MAX_UPLOAD_FILE_BYTES = 18 * 1024 * 1024;
 const MAX_EDGE = 4096;
 const JPEG_QUALITIES = [0.9, 0.82, 0.72, 0.62];
+const ALLOWED_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+
+function mimeFromFilename(name) {
+  const extension = name.toLowerCase().split('.').pop();
+  if (extension === 'jpg' || extension === 'jpeg') return 'image/jpeg';
+  if (extension === 'png') return 'image/png';
+  if (extension === 'webp') return 'image/webp';
+  return null;
+}
 
 function canvasBlob(canvas, type, quality) {
   return new Promise((resolve, reject) => canvas.toBlob(
@@ -11,14 +20,22 @@ function canvasBlob(canvas, type, quality) {
 }
 
 export async function prepareImageFile(file) {
-  if (file.size <= MAX_UPLOAD_FILE_BYTES) return { file, changed: false };
-  if (!file.type.startsWith('image/')) throw new Error(`${file.name}: підтримуються лише image files`);
+  if (file.size <= MAX_UPLOAD_FILE_BYTES && ALLOWED_MIME_TYPES.has(file.type)) return { file, changed: false };
+  const inferredMime = mimeFromFilename(file.name);
+  if (file.size <= MAX_UPLOAD_FILE_BYTES && inferredMime) {
+    return {
+      file: new File([file], file.name, { type: inferredMime, lastModified: file.lastModified }),
+      changed: true,
+      originalBytes: file.size,
+      preparedBytes: file.size,
+    };
+  }
 
   let bitmap;
   try {
     bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
   } catch {
-    throw new Error(`${file.name}: браузер не зміг прочитати великий image`);
+    throw new Error(`${file.name}: браузер не зміг прочитати або конвертувати цей image format`);
   }
   const longest = Math.max(bitmap.width, bitmap.height);
   const initialScale = Math.min(1, MAX_EDGE / longest);
