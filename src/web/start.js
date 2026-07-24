@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 import path from 'node:path';
-import { CodexVlmEvaluator } from '../providers/codex-vlm-evaluator.js';
 import { MonitorEventStore } from '../monitor/event-store.js';
 import { createWebApp } from './app.js';
 import { DraftService } from './draft-service.js';
@@ -9,6 +8,7 @@ import { ProfileService } from './profile-service.js';
 import { RunService } from './run-service.js';
 import { runLocalPreflight } from './preflight.js';
 import { createSceneRuntimeDependencies } from './scene-runtime.js';
+import { createVlmEvaluator } from './vlm-provider.js';
 
 const projectRoot = path.resolve(import.meta.dirname, '..', '..');
 const generationMode = process.env.ZEELY_GENERATION_PROVIDER ?? 'higgsfield';
@@ -21,7 +21,7 @@ const drafts = new DraftService({ rootDirectory: path.join(runtimeRoot, 'drafts'
 await drafts.initialize();
 await drafts.cleanupExpired();
 const profiles = new ProfileService({ databasePath: path.join(runtimeRoot, 'profiles.sqlite') });
-const vlm = new CodexVlmEvaluator();
+const vlm = createVlmEvaluator();
 const generation = await createGenerationRuntime({
   mode: generationMode,
   vlm,

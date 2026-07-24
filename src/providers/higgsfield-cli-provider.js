@@ -229,7 +229,7 @@ function orderedPackDescriptors(phase, references) {
   return result;
 }
 
-function orderedReferenceDescriptors(phase, references) {
+export function orderedReferenceDescriptors(phase, references) {
   if (!references || typeof references !== 'object') {
     throw new HiggsfieldProviderError('Generation references are required', {
       code: 'MISSING_REFERENCES',
@@ -308,7 +308,7 @@ function normalizedPackBindings(payload) {
   return null;
 }
 
-async function validateMedia(descriptors) {
+export async function validateMedia(descriptors) {
   const verifiedPacks = new Map();
   for (const descriptor of descriptors) {
     const extension = path.extname(descriptor.path).toLowerCase();
@@ -597,7 +597,7 @@ function sha256Json(value) {
   return createHash('sha256').update(JSON.stringify(value)).digest('hex');
 }
 
-function adapterEvaluator(context, decision, model = 'qa-adapter') {
+export function adapterEvaluator(context, decision, model = 'qa-adapter') {
   const core = {
     type: 'ADAPTER',
     provider: 'higgsfield-cli-provider',
@@ -618,7 +618,7 @@ function adapterEvaluator(context, decision, model = 'qa-adapter') {
   };
 }
 
-function validateQaDecision(value, context) {
+export function validateQaDecision(value, context) {
   if (!value || !['PASS', 'RETRY', 'NEEDS_INPUT', 'REJECT'].includes(value.decision)) {
     throw new HiggsfieldProviderError('QA evaluator returned an invalid decision', {
       code: 'INVALID_QA_DECISION',
@@ -676,7 +676,7 @@ function validateQaDecision(value, context) {
   return value;
 }
 
-async function readProviderJournal(filename) {
+export async function readProviderJournal(filename) {
   try {
     const bytes = await readFile(filename);
     let journal;
@@ -701,7 +701,7 @@ async function readProviderJournal(filename) {
   }
 }
 
-async function atomicWriteProviderJournal(filename, journal) {
+export async function atomicWriteProviderJournal(filename, journal) {
   const directory = path.dirname(filename);
   const temporary = path.join(directory, `.${path.basename(filename)}.${process.pid}.${randomUUID()}.tmp`);
   try {

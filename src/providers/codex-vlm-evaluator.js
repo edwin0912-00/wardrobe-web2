@@ -10,14 +10,15 @@ const DECISIONS = new Set(['PASS', 'RETRY', 'NEEDS_INPUT', 'REJECT']);
 const CATEGORIES = new Set(['outerwear', 'top', 'bottom', 'one_piece', 'footwear', 'headwear', 'bag', 'accessory']);
 const AMBIGUOUS_VERSIONS = /^(?:latest|current|unknown|unattested)$/i;
 
-function sha256(value) {
+export function sha256(value) {
   return createHash('sha256').update(value).digest('hex');
 }
 
-function evaluatorResult(value, {
+export function evaluatorResult(value, {
   model,
   context,
   preparedEvidence = [],
+  provider = 'openai-codex-cli',
 }) {
   const resultSha256 = sha256(JSON.stringify({
     decision: value.decision,
@@ -27,7 +28,7 @@ function evaluatorResult(value, {
   }));
   const identity = {
     type: 'MODEL',
-    provider: 'openai-codex-cli',
+    provider,
     model,
     version: model,
     phase: context?.phase ?? null,
@@ -62,7 +63,7 @@ async function defaultCommandRunner(binary, args, { timeoutMs }) {
   });
 }
 
-function imagePath(value) {
+export function imagePath(value) {
   const artifact = value?.artifact ?? value;
   return typeof artifact?.path === 'string' ? path.resolve(artifact.path) : null;
 }
@@ -72,7 +73,7 @@ function qaImage(value, role) {
   return filename ? { path: filename, role } : null;
 }
 
-function collectQaImages(evidence = {}, phase = 'outfit') {
+export function collectQaImages(evidence = {}, phase = 'outfit') {
   const ordered = [
     qaImage(evidence.identity, phase === 'garment' ? 'RAW_GARMENT_PRIMARY' : 'IDENTITY_REFERENCE'),
     qaImage(evidence.avatar, 'APPROVED_AVATAR'),
@@ -98,7 +99,7 @@ function collectQaImages(evidence = {}, phase = 'outfit') {
   return ordered.filter(Boolean);
 }
 
-function qaPrompt(phase, images, evidence = {}) {
+export function qaPrompt(phase, images, evidence = {}) {
   const labels = images.map((entry, index) => {
     const role = typeof entry === 'object' ? entry.role : 'VISUAL_EVIDENCE';
     const aliases = typeof entry === 'object' && Array.isArray(entry.roles)
@@ -124,12 +125,12 @@ function qaPrompt(phase, images, evidence = {}) {
   return sanitizeExternalPrompt(`Visually judge the attached images for ${phase} QA. ${phaseRules[phase] ?? phaseRules.outfit}${targetContext}\nOrdered attachment bindings:\n${labels}\nFill every schema field with concise visible evidence. PASS only if all blocking criteria are visibly supported; RETRY for a fixable generated defect; NEEDS_INPUT for insufficient source evidence; REJECT for an irrecoverable mismatch. Return only JSON.`);
 }
 
-function garmentPrompt(images) {
+export function garmentPrompt(images) {
   const labels = images.map((_, index) => `ATTACHMENT_${index + 1} [RAW_ITEM_VIEW_${index + 1}] maps to source_index ${index}`).join('\n');
   return `Inspect the attached wardrobe photos as one evidence collection.\n\n${labels}\n\nReturn one item for every source image. Also partition every source index into exactly one reference_set. Group multiple images only when they visibly show the same exact physical garment from different angles or contexts. A multi-image set requires same_item_confidence >= 0.90 and concrete evidence such as matching stripe spacing, collar, buttons, seams, logo, wear marks or construction with no contradictions. If exact sameness is uncertain, use separate singleton sets even when the category is the same. primary_source_index must belong to source_indexes and be the clearest view. For each image, classify the primary wearable item as exactly one allowed category: outerwear, top, bottom, one_piece, footwear, headwear, bag, accessory. Record only visibly observed type, colors, likely material, pattern, exact readable logo/text, and construction details. For views in one set, merge visible evidence so their observations consistently describe that garment. Put hidden, obscured or uncertain properties in unknowns. Use NEEDS_INPUT when the primary item cannot be identified reliably or critical exact details are too obscured or low-resolution. Confidence below 0.70 must not be READY. Return only the JSON required by the supplied schema. Never call tools.`;
 }
 
-function validateQa(value) {
+export function validateQa(value) {
   if (!value || typeof value !== 'object' || !DECISIONS.has(value.decision)) throw new Error('Codex QA returned an invalid decision');
   if (typeof value.reason !== 'string' || !Array.isArray(value.checks) || value.checks.length === 0 || !Array.isArray(value.defects)) throw new Error('Codex QA returned an incomplete object');
   for (const check of value.checks) {
@@ -138,7 +139,7 @@ function validateQa(value) {
   return value;
 }
 
-function validatePassport(value, expectedCount) {
+export function validatePassport(value, expectedCount) {
   if (!value || !['READY', 'NEEDS_INPUT'].includes(value.status) || !Array.isArray(value.items) || value.items.length !== expectedCount) throw new Error('Картка речі: Codex повернув некоректну кількість елементів або статус');
   const indexes = new Set();
   for (const item of value.items) {
@@ -167,6 +168,55 @@ function validatePassport(value, expectedCount) {
   return value;
 }
 
+/**
+ * Normalize oversized camera photos before transport and deduplicate byte-identical
+ * evidence across roles. Shared by every VLM transport (Codex CLI, OpenRouter, ...)
+ * so evaluators built on different backends attach byte-identical evidence.
+ */
+export async function prepareTransportEvidence({ images, temporaryRoot, deduplicate = true }) {
+  const qaImages = [];
+  const preparedEvidence = [];
+  const seenEvidence = new Set();
+  const preparedByDigest = new Map();
+  for (const [index, input] of images.entries()) {
+    const filename = imagePath(input) ?? input;
+    const qaPath = path.join(temporaryRoot, `evidence-${String(index + 1).padStart(2, '0')}.jpg`);
+    const sourceBytes = await readFile(filename);
+    const sourceSha256 = sha256(sourceBytes);
+    const bytes = await sharp(sourceBytes, { limitInputPixels: 100_000_000 })
+      .rotate().resize({ width: 2048, height: 2048, fit: 'inside', withoutEnlargement: true })
+      .flatten({ background: '#ffffff' }).jpeg({ quality: 88, chromaSubsampling: '4:4:4' }).toBuffer();
+    const digest = sha256(bytes);
+    const role = typeof input === 'object' && typeof input.role === 'string'
+      ? input.role
+      : 'VISUAL_EVIDENCE';
+    if (deduplicate && seenEvidence.has(digest)) {
+      const duplicateIndex = preparedByDigest.get(digest);
+      const prepared = preparedEvidence[duplicateIndex];
+      if (!prepared.roles.includes(role)) prepared.roles.push(role);
+      prepared.source_bindings.push({ role, source_sha256: sourceSha256 });
+      const attached = qaImages[duplicateIndex];
+      if (!attached.roles.includes(role)) attached.roles.push(role);
+      continue;
+    }
+    seenEvidence.add(digest);
+    await writeFile(qaPath, bytes);
+    const attached = typeof input === 'object'
+      ? { ...input, path: qaPath, role, roles: [role] }
+      : { path: qaPath, role, roles: [role] };
+    qaImages.push(attached);
+    preparedByDigest.set(digest, preparedEvidence.length);
+    preparedEvidence.push({
+      order: preparedEvidence.length + 1,
+      role,
+      roles: [role],
+      source_bindings: [{ role, source_sha256: sourceSha256 }],
+      prepared_sha256: digest,
+    });
+  }
+  return { qaImages, preparedEvidence };
+}
+
 export class CodexVlmEvaluator {
   constructor({ binary = 'codex', model = 'gpt-5.6-terra', commandRunner = defaultCommandRunner, timeoutMs = 60_000,
     qaSchemaPath = path.resolve(import.meta.dirname, '..', '..', 'schemas', 'codex-vlm-qa.schema.json'),
@@ -190,46 +240,11 @@ export class CodexVlmEvaluator {
       // Normalize oversized camera photos before transport. Visual QA needs the
       // visible evidence, not 16–50 MP originals; bounded inputs keep latency
       // deterministic while preserving enough detail for labels and seams.
-      const qaImages = [];
-      const preparedEvidence = [];
-      const seenEvidence = new Set();
-      const preparedByDigest = new Map();
-      for (const [index, input] of images.entries()) {
-        const filename = imagePath(input) ?? input;
-        const qaPath = path.join(temporaryRoot, `evidence-${String(index + 1).padStart(2, '0')}.jpg`);
-        const sourceBytes = await readFile(filename);
-        const sourceSha256 = sha256(sourceBytes);
-        const bytes = await sharp(sourceBytes, { limitInputPixels: 100_000_000 })
-          .rotate().resize({ width: 2048, height: 2048, fit: 'inside', withoutEnlargement: true })
-          .flatten({ background: '#ffffff' }).jpeg({ quality: 88, chromaSubsampling: '4:4:4' }).toBuffer();
-        const digest = sha256(bytes);
-        const role = typeof input === 'object' && typeof input.role === 'string'
-          ? input.role
-          : 'VISUAL_EVIDENCE';
-        if (deduplicate && seenEvidence.has(digest)) {
-          const duplicateIndex = preparedByDigest.get(digest);
-          const prepared = preparedEvidence[duplicateIndex];
-          if (!prepared.roles.includes(role)) prepared.roles.push(role);
-          prepared.source_bindings.push({ role, source_sha256: sourceSha256 });
-          const attached = qaImages[duplicateIndex];
-          if (!attached.roles.includes(role)) attached.roles.push(role);
-          continue;
-        }
-        seenEvidence.add(digest);
-        await writeFile(qaPath, bytes);
-        const attached = typeof input === 'object'
-          ? { ...input, path: qaPath, role, roles: [role] }
-          : { path: qaPath, role, roles: [role] };
-        qaImages.push(attached);
-        preparedByDigest.set(digest, preparedEvidence.length);
-        preparedEvidence.push({
-          order: preparedEvidence.length + 1,
-          role,
-          roles: [role],
-          source_bindings: [{ role, source_sha256: sourceSha256 }],
-          prepared_sha256: digest,
-        });
-      }
+      const { qaImages, preparedEvidence } = await prepareTransportEvidence({
+        images,
+        temporaryRoot,
+        deduplicate,
+      });
       const prompt = sanitizeExternalPrompt(promptBuilder(qaImages));
       assertExternalPromptPrivacy(prompt, { runtimeRoot: temporaryRoot });
       // `--image` accepts one or more values. Place the positional prompt first so

@@ -42,7 +42,7 @@ const STRUCTURED_REFERENCE_SCHEMA_PATH = path.resolve(
   'schemas',
   'scene-structured-reference.schema.json',
 );
-const ITEM_FIDELITY_SCHEMA_PATH = path.resolve(
+export const ITEM_FIDELITY_SCHEMA_PATH = path.resolve(
   import.meta.dirname,
   '..',
   '..',
@@ -56,7 +56,7 @@ const validateStructuredReference = new Ajv2020({
   validateFormats: false,
 }).compile(structuredReferenceSchema);
 const itemFidelitySchema = JSON.parse(readFileSync(ITEM_FIDELITY_SCHEMA_PATH, 'utf8'));
-const validateItemFidelityOutput = new Ajv2020({
+export const validateItemFidelityOutput = new Ajv2020({
   allErrors: true,
   strict: false,
   validateFormats: false,
@@ -67,7 +67,7 @@ const SECRET_ASSIGNMENT = /\b(api[_ -]?key|access[_ -]?token|token|password|secr
 const SECRET_TOKEN = /\b(?:sk|hf|ghp|glpat|ek_live|AIza)[-_A-Za-z0-9]{8,}\b/g;
 const URL = /\bhttps?:\/\/[^\s,;]+/gi;
 
-function stableRequestId(parts) {
+export function stableRequestId(parts) {
   return createHash('sha256').update(parts.join(':')).digest('hex');
 }
 
@@ -84,7 +84,7 @@ function assertSha(value, label) {
   }
 }
 
-async function verifiedImageBinding(binding, expectedRole, label) {
+export async function verifiedImageBinding(binding, expectedRole, label) {
   if (!binding || typeof binding !== 'object' || Array.isArray(binding)) {
     throw new Error(`${label} must be an image binding`);
   }
@@ -114,7 +114,7 @@ function sanitizeStructuredFact(value) {
     .slice(0, 240);
 }
 
-function boundedEvaluationText(value, maxLength) {
+export function boundedEvaluationText(value, maxLength) {
   return sanitizeExternalPrompt(String(value ?? ''))
     .replace(/\s+/g, ' ')
     .trim()
@@ -164,7 +164,7 @@ function compileStructuredReference(document) {
   ].join('; ');
 }
 
-async function verifiedSceneReference(binding, expectedRole, label) {
+export async function verifiedSceneReference(binding, expectedRole, label) {
   if (binding?.media_type !== 'application/json') {
     return {
       ...(await verifiedImageBinding(binding, expectedRole, label)),
@@ -219,7 +219,7 @@ function structuredInstructions(references) {
   ].join('\n');
 }
 
-function referenceEvidence(references) {
+export function referenceEvidence(references) {
   return references.map((item, index) => ({
     order: index + 1,
     role: item.role,
@@ -233,7 +233,7 @@ function compiledItemFacts(item) {
   return compileApprovedItemFacts(item);
 }
 
-async function verifiedItemEvidence(items) {
+export async function verifiedItemEvidence(items) {
   if (items === undefined || items === null) return [];
   if (!Array.isArray(items) || items.length < 1 || items.length > 7) {
     throw new Error('Approved item evidence must contain 1–7 ordered items');
@@ -283,7 +283,7 @@ function itemGenerationInstructions(items, attachmentStart) {
   ].join('\n');
 }
 
-async function mapWithConcurrency(values, limit, mapper) {
+export async function mapWithConcurrency(values, limit, mapper) {
   const results = new Array(values.length);
   let cursor = 0;
   async function worker() {
@@ -562,7 +562,7 @@ export class SceneEvaluationInfrastructureError extends Error {
   }
 }
 
-function evaluatorPrompt(delivery, references, preset = null, qaItems = []) {
+export function evaluatorPrompt(delivery, references, preset = null, qaItems = []) {
   const camera = preset?.camera ?? {};
   const editorial = preset?.editorial ?? null;
   const framing = camera.framing ?? 'full_body';
@@ -611,7 +611,7 @@ function evaluatorPrompt(delivery, references, preset = null, qaItems = []) {
   ].join('\n'));
 }
 
-function validateEvaluatorPayload(payload) {
+export function validateEvaluatorPayload(payload) {
   if (!payload || typeof payload !== 'object' || !Array.isArray(payload.gates) || payload.gates.length !== SCENE_EVALUATOR_GATES.length) {
     throw new Error('Evaluator returned an invalid gate collection');
   }
@@ -637,7 +637,7 @@ function validateEvaluatorPayload(payload) {
   return payload;
 }
 
-function itemDetailZone(category, height) {
+export function itemDetailZone(category, height) {
   const upper = new Set(['top', 'outerwear', 'dress', 'headwear', 'jewelry'])
     .has(String(category).toLowerCase());
   const top = upper ? 0 : Math.floor(height * 0.25);
@@ -647,7 +647,7 @@ function itemDetailZone(category, height) {
   };
 }
 
-function itemFidelityPrompt(item) {
+export function itemFidelityPrompt(item) {
   return sanitizeExternalPrompt([
     'Perform one forensic product-fidelity comparison. This is not category or style matching.',
     'ATTACHMENT_1 [GENERATED_SCENE_ITEM_ZONE] contains the rendered product inside the generated scene.',

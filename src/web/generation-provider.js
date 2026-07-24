@@ -1,11 +1,13 @@
 import { CodexAppServerClient } from '../providers/codex-app-server-client.js';
 import { CodexImagegenProvider } from '../providers/codex-imagegen-provider.js';
 import { HiggsfieldCliProvider } from '../providers/higgsfield-cli-provider.js';
+import { OpenRouterImageGenProvider } from '../providers/openrouter-imagegen-provider.js';
 import { IMAGE_MODEL_ROUTE } from '../runner/model-policy.js';
 import { HiggsfieldAssetGenerator as ProviderAssetGenerator } from './higgsfield-asset-generator.js';
 
 export const HIGGSFIELD_MODE = 'higgsfield';
 export const CODEX_IMAGEGEN_TEST_MODE = 'codex-imagegen-test';
+export const OPENROUTER_IMAGEGEN_MODE = 'openrouter';
 
 function timeoutFrom(value) {
   if (value === undefined || value === '') return 6 * 60 * 1000;
@@ -36,6 +38,21 @@ export async function createGenerationRuntime({
       assetGenerator: new ProviderAssetGenerator({ provider }),
       generationRoute: [...IMAGE_MODEL_ROUTE],
       label: 'Higgsfield CLI',
+      status: null,
+      healthStatus: () => ({ status: 'ready' }),
+      close: async () => {},
+    };
+    onCloseReady(runtime.close);
+    return runtime;
+  }
+  if (mode === OPENROUTER_IMAGEGEN_MODE) {
+    const provider = new OpenRouterImageGenProvider({ qaEvaluator: vlm.evaluateQa.bind(vlm) });
+    const runtime = {
+      mode,
+      provider,
+      assetGenerator: new ProviderAssetGenerator({ provider }),
+      generationRoute: [...IMAGE_MODEL_ROUTE],
+      label: 'OpenRouter Image Generation',
       status: null,
       healthStatus: () => ({ status: 'ready' }),
       close: async () => {},
