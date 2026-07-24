@@ -1,0 +1,40 @@
+{
+  "schema_version": "1.0.0",
+  "preset_id": "editorial.edwin_novak.institutional_modernism",
+  "kind": "editorial",
+  "family": "edwin_novak",
+  "ui_name_uk": "Інституційний модернізм",
+  "asset_role": "mood_card",
+  "file": "assets/scene-mood-cards/editorial.edwin_novak.institutional_modernism.webp",
+  "sha256": "9fa9e354f04e086fd6c1d05068dda3b09bf26c8298c3dd51c7c7177b1351ab3b",
+  "prompt_path": "prompts/scenes/editorial.edwin_novak.institutional_modernism.txt",
+  "prompt_sha256": "b302a28efa2515449730417ca251ce28f0e62319bf1c84021c2a774606c1029d",
+  "generation": {
+    "provider_path": "codex_builtin_imagegen",
+    "model_family": "gpt-image-2",
+    "model_version": "builtin-current",
+    "source_width": 1122,
+    "source_height": 1402,
+    "reframe": {
+      "method": "deterministic_4x5_extract",
+      "input_sha256": "327b2e09b6ef2652a49d45c441851b673e0e3db04dce919dc70ca2d6d0c4f11e",
+      "source_width": 1024,
+      "source_height": 1280,
+      "crop_px": {
+        "left": 123,
+        "top": 190,
+        "width": 777,
+        "height": 971
+      }
+    }
+  },
+  "delivery": {
+    "width": 1024,
+    "height": 1280,
+    "format": "webp",
+    "aspect_ratio": "4:5"
+  },
+  "contains_personal_input": false,
+  "approval": "PENDING_VISUAL_JUDGE",
+  "created_at": "2026-07-22T23:28:22.680Z"
+}

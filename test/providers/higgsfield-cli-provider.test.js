@@ -201,6 +201,111 @@ test('passes a full conditioned reference pack in declared order', async () => {
   assert.deepEqual(response.metadata.input_media.map((item) => item.role), ordered.map((item) => item.role));
 });
 
+test('scene repair accepts one typed failed candidate immediately after the approved look', async () => {
+  const paths = await mediaFixture();
+  let argv;
+  const provider = oneShotProvider({
+    async commandRunner(binary, args) {
+      argv = args;
+      return { stdout: JSON.stringify(completedJob('gpt_image_2')) };
+    },
+    async fetchImpl() { return pngResponse(); },
+  });
+  const ordered = [
+    {
+      order: 1,
+      scope: 'avatar',
+      role: 'APPROVED_LOOK_MASTER',
+      path: paths.avatar,
+      sha256: MOCK_SHA256,
+      mediaType: 'image/png',
+      source: 'APPROVED_AVATAR',
+    },
+    {
+      order: 2,
+      scope: 'scene',
+      role: 'FAILED_SCENE_CANDIDATE',
+      path: paths.outfit,
+      sha256: MOCK_SHA256,
+      mediaType: 'image/png',
+      source: 'REPAIR_CANDIDATE',
+    },
+  ];
+  const response = await provider.generate({
+    phase: 'scene',
+    model: 'gpt_image_2',
+    prompt: 'Edit the second image only to pull the camera back.',
+    references: { ordered },
+  });
+  assert.deepEqual(
+    argv.flatMap((item, index) => item === '--image' ? [argv[index + 1]] : []),
+    ordered.map((item) => item.path),
+  );
+  assert.deepEqual(
+    response.metadata.input_media.map(({ scope, role, source }) => ({ scope, role, source })),
+    ordered.map(({ scope, role, source }) => ({ scope, role, source })),
+  );
+});
+
+test('scene repair rejects an untyped source, a misplaced candidate, or more than one candidate before CLI execution', async () => {
+  const paths = await mediaFixture();
+  let calls = 0;
+  const provider = oneShotProvider({
+    async commandRunner() {
+      calls += 1;
+      throw new Error('must not execute');
+    },
+    async fetchImpl() { throw new Error('must not fetch'); },
+  });
+  const approved = {
+    order: 1,
+    scope: 'avatar',
+    role: 'APPROVED_LOOK_MASTER',
+    path: paths.avatar,
+    sha256: MOCK_SHA256,
+    mediaType: 'image/png',
+    source: 'APPROVED_AVATAR',
+  };
+  const repair = {
+    order: 2,
+    scope: 'scene',
+    role: 'FAILED_SCENE_CANDIDATE',
+    path: paths.outfit,
+    sha256: MOCK_SHA256,
+    mediaType: 'image/png',
+    source: 'REPAIR_CANDIDATE',
+  };
+  const cases = [
+    [approved, { ...repair, source: 'CONDITIONED' }],
+    [approved, {
+      order: 2,
+      scope: 'outfit',
+      role: 'SCENE_ENVIRONMENT_ANCHOR',
+      path: paths.identity,
+      sha256: MOCK_SHA256,
+      mediaType: 'image/png',
+      source: 'CONDITIONED',
+    }, { ...repair, order: 3 }],
+    [approved, repair, {
+      ...repair,
+      order: 3,
+      path: paths.identity,
+    }],
+  ];
+  for (const ordered of cases) {
+    await assert.rejects(
+      () => provider.generate({
+        phase: 'scene',
+        model: 'gpt_image_2',
+        prompt: 'repair',
+        references: { ordered },
+      }),
+      (error) => error.code === 'INVALID_SCENE_REPAIR_BINDING' && !error.retryable,
+    );
+  }
+  assert.equal(calls, 0);
+});
+
 test('fails closed when an ordered reference pack is malformed', async () => {
   const paths = await mediaFixture();
   const provider = oneShotProvider({
@@ -314,6 +419,30 @@ test('accepts the live CLI one-element JSON array response shape', async () => {
   });
   assert.equal(response.metadata.job_id, 'job-123');
   assert.equal(response.metadata.job_set_type, 'gpt_image_2');
+});
+
+test('an unconfirmed create never claims that a provider job exists or auto-retries it', async () => {
+  const paths = await mediaFixture();
+  const workDirectory = await mkdtemp(path.join(os.tmpdir(), 'zeely-higgsfield-unconfirmed-create-'));
+  let createCalls = 0;
+  const provider = new HiggsfieldCliProvider({
+    async commandRunner() {
+      createCalls += 1;
+      return { stdout: '', exitCode: 1 };
+    },
+    async fetchImpl() { throw new Error('must not download'); },
+  });
+  await assert.rejects(
+    () => provider.generate({
+      phase: 'avatar', attempt: 1, model: 'gpt_image_2', job_set_type: 'gpt_image_2',
+      prompt: 'portrait', idempotencyKey: 'e'.repeat(64), jobId: 'unconfirmed-create', workDirectory,
+      references: { identity: { artifact: { path: paths.identity, digest: MOCK_SHA256 } } },
+    }),
+    (error) => error.code === 'CREATE_NOT_CONFIRMED'
+      && !error.retryable
+      && error.message === 'Higgsfield generation was not confirmed; it was not retried automatically',
+  );
+  assert.equal(createCalls, 1);
 });
 
 test('rejects untrusted result URLs and non-PNG responses', async (t) => {
@@ -533,13 +662,51 @@ test('conditioning is an explicit validated pass-through for prepared media and 
 
 test('QA never auto-passes and accepts only an explicit valid evaluator result', async () => {
   const closed = new HiggsfieldCliProvider();
-  assert.equal((await closed.qa({ phase: 'conditioning' })).decision, 'NEEDS_INPUT');
+  const closedResult = await closed.qa({ phase: 'conditioning' });
+  assert.equal(closedResult.decision, 'NEEDS_INPUT');
+  assert.equal(closedResult.evaluator.type, 'ADAPTER');
+  assert.match(closedResult.evaluator.evaluation_id, /^[a-f0-9]{64}$/);
 
   const configured = new HiggsfieldCliProvider({
-    qaEvaluator: async (context) => ({ decision: 'PASS', checks: [{ name: context.phase, pass: true }] }),
+    qaEvaluator: async (context) => ({
+      decision: 'PASS',
+      reason: 'Every blocking visible criterion passed',
+      checks: [{
+        name: context.phase,
+        pass: true,
+        score: 0.99,
+        evidence: 'Visible evidence matches the locked references',
+      }],
+      defects: [],
+      evaluator: {
+        type: 'MODEL',
+        provider: 'openai-codex-cli',
+        model: 'gpt-5.6-terra',
+        version: 'gpt-5.6-terra',
+        evaluation_id: 'a'.repeat(64),
+      },
+    }),
   });
   assert.equal((await configured.qa({ phase: 'avatar' })).decision, 'PASS');
 
   const invalid = new HiggsfieldCliProvider({ qaEvaluator: async () => ({ decision: 'YES' }) });
   await assert.rejects(() => invalid.qa({}), (error) => error.code === 'INVALID_QA_DECISION');
+
+  const unattested = new HiggsfieldCliProvider({
+    qaEvaluator: async () => ({
+      decision: 'PASS',
+      reason: 'claimed pass',
+      checks: [{
+        name: 'IDENTITY',
+        pass: true,
+        score: 1,
+        evidence: 'claimed visible match',
+      }],
+      defects: [],
+    }),
+  });
+  await assert.rejects(
+    () => unattested.qa({ phase: 'avatar' }),
+    (error) => error.code === 'INVALID_QA_EVALUATOR_ATTESTATION',
+  );
 });

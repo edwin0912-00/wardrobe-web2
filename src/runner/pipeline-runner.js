@@ -1,9 +1,15 @@
 import { createHash } from 'node:crypto';
 import { access, readFile } from 'node:fs/promises';
 import path from 'node:path';
+import { sha256Object } from '../conditioning/hash-lineage.mjs';
 import { assertProvider, assertQaDecision } from '../providers/provider.js';
 import { normalizeWhitePngBytes } from '../qa/white-normalizer.mjs';
 import { FilesystemArtifactStore, sha256 } from './artifact-store.js';
+import {
+  createCoreQaReceipt,
+  qaResultFromReceipt,
+  verifyCoreQaReceipt,
+} from './core-qa-receipt.js';
 import { AppendOnlyEventLog } from './event-log.js';
 import { loadJobFile, loadJobObject } from './job.js';
 import { assertAllowedImageModel, imageModelName, modelForAttempt } from './model-policy.js';
@@ -18,6 +24,7 @@ import {
 import { assertTransition, isTerminal, STATES } from './state-machine.js';
 
 const PNG_SIGNATURE = Buffer.from('89504e470d0a1a0a', 'hex');
+const SHA256 = /^[a-f0-9]{64}$/;
 
 function operationKey(jobHash, operation, attempt) {
   return createHash('sha256').update(`${jobHash}:${operation}:${attempt}`).digest('hex');
@@ -28,6 +35,8 @@ function errorInfo(error) {
     name: error?.name ?? 'Error',
     message: error?.message ?? String(error),
     retryable: error?.retryable !== false,
+    ...(typeof error?.code === 'string' ? { code: error.code } : {}),
+    ...(error?.submitted === true ? { submitted: true } : {}),
   };
 }
 
@@ -133,8 +142,288 @@ function generationReferences(context, phase) {
   };
 }
 
-async function assertPngArtifact(artifact) {
-  const bytes = await readFile(artifact.path);
+function requireDigest(value, field) {
+  if (!SHA256.test(value ?? '')) throw new Error(`${field} must be a lowercase SHA-256`);
+  return value;
+}
+
+function artifactDigest(value, field) {
+  const artifact = value?.artifact ?? value;
+  return requireDigest(artifact?.digest, `${field} artifact digest`);
+}
+
+function manifestWithHash(core) {
+  const value = structuredClone(core);
+  delete value.manifest_sha256;
+  return { ...value, manifest_sha256: sha256Object(value) };
+}
+
+function addQaBinding(bindings, {
+  bindingId,
+  role,
+  sha256: digest,
+  referencePackSha256,
+  factsSha256,
+}) {
+  const binding = {
+    order: bindings.length + 1,
+    binding_id: bindingId,
+    role,
+    sha256: requireDigest(digest, `Semantic QA binding ${bindingId}`),
+    ...(referencePackSha256 ? {
+      reference_pack_sha256: requireDigest(
+        referencePackSha256,
+        `Semantic QA binding ${bindingId} reference pack`,
+      ),
+    } : {}),
+    ...(factsSha256 ? {
+      facts_sha256: requireDigest(factsSha256, `Semantic QA binding ${bindingId} facts`),
+    } : {}),
+  };
+  bindings.push(binding);
+  return binding;
+}
+
+function qaProviderEvidence(context, phase) {
+  if (phase === 'conditioning') {
+    return {
+      identity: context.checkpoint.artifacts.conditioned_identity,
+      outfit: context.checkpoint.artifacts.conditioned_outfit,
+      source_identity: context.job.identity_reference,
+      source_outfit: context.job.outfit.reference ?? context.job.outfit.text,
+      quality_references: context.job.quality_references,
+      reference_packs: {
+        identity: providerPackSummary(context.referencePacks.identity),
+        outfit: providerPackSummary(context.referencePacks.outfit),
+      },
+    };
+  }
+  return {
+    candidate: context.checkpoint.artifacts[phase],
+    identity: context.checkpoint.artifacts.conditioned_identity,
+    outfit: phase === 'outfit'
+      ? context.checkpoint.artifacts.conditioned_outfit
+      : undefined,
+    avatar: phase === 'outfit'
+      ? context.checkpoint.artifacts.avatar
+      : undefined,
+    source_identity: context.job.identity_reference,
+    source_outfit: phase === 'outfit'
+      ? (context.job.outfit.reference ?? context.job.outfit.text)
+      : undefined,
+    quality_references: context.job.quality_references,
+    reference_packs: {
+      identity: providerPackSummary(context.referencePacks.identity),
+      outfit: phase === 'outfit'
+        ? providerPackSummary(context.referencePacks.outfit)
+        : null,
+    },
+  };
+}
+
+function qaEvidenceManifest(context, phase, attempt) {
+  const bindings = [];
+  const identity = context.checkpoint.artifacts.conditioned_identity;
+  const outfit = context.checkpoint.artifacts.conditioned_outfit;
+  const candidate = context.checkpoint.artifacts[phase];
+  const identityFactsSha256 = identity?.facts_artifact?.digest;
+  const outfitFactsSha256 = outfit?.facts_artifact?.digest;
+
+  if (identity?.artifact) {
+    addQaBinding(bindings, {
+      bindingId: 'conditioned-identity',
+      role: 'IDENTITY_REFERENCE',
+      sha256: artifactDigest(identity, 'Conditioned identity'),
+      factsSha256: identityFactsSha256,
+    });
+  }
+  if (phase === 'outfit') {
+    addQaBinding(bindings, {
+      bindingId: 'approved-avatar',
+      role: 'APPROVED_AVATAR',
+      sha256: artifactDigest(context.checkpoint.artifacts.avatar, 'Approved avatar'),
+    });
+  }
+  if (phase === 'conditioning' || phase === 'outfit') {
+    addQaBinding(bindings, {
+      bindingId: 'conditioned-outfit',
+      role: outfit?.artifact ? 'OUTFIT_REFERENCE' : 'OUTFIT_TEXT_TARGET',
+      sha256: outfit?.artifact
+        ? artifactDigest(outfit, 'Conditioned outfit')
+        : requireDigest(outfitFactsSha256, 'Conditioned outfit facts'),
+      factsSha256: outfitFactsSha256,
+    });
+  }
+  if (phase === 'avatar' || phase === 'outfit') {
+    addQaBinding(bindings, {
+      bindingId: `${phase}-candidate`,
+      role: phase === 'avatar' && candidate?.approved_reuse
+        ? 'IMPORTED_APPROVED_AVATAR'
+        : 'GENERATED_CANDIDATE',
+      sha256: artifactDigest(candidate, `${phase} candidate`),
+    });
+  }
+
+  addQaBinding(bindings, {
+    bindingId: 'raw-identity',
+    role: 'RAW_SOURCE_REFERENCE',
+    sha256: context.inputs.identity_reference?.sha256,
+  });
+  if (context.job.outfit.reference && (phase === 'conditioning' || phase === 'outfit')) {
+    addQaBinding(bindings, {
+      bindingId: 'raw-outfit',
+      role: 'RAW_SOURCE_REFERENCE',
+      sha256: context.inputs.outfit_reference?.sha256,
+    });
+  } else if (phase === 'conditioning' || phase === 'outfit') {
+    addQaBinding(bindings, {
+      bindingId: 'outfit-text',
+      role: 'OUTFIT_TEXT_TARGET',
+      sha256: sha256(Buffer.from(context.job.outfit.text)),
+    });
+  }
+
+  for (const scope of ['identity', 'outfit']) {
+    if (scope === 'outfit' && phase === 'avatar') continue;
+    const pack = context.referencePacks[scope];
+    if (!pack) continue;
+    const factsSha256 = scope === 'identity' ? identityFactsSha256 : outfitFactsSha256;
+    for (const [index, binding] of pack.bindings.entries()) {
+      addQaBinding(bindings, {
+        bindingId: `${scope}-pack-${binding.bindingId ?? binding.bindingOrder}`,
+        role: `${scope.toUpperCase()}_REFERENCE_${index + 1}`,
+        sha256: binding.sha256,
+        referencePackSha256: pack.sha256,
+        factsSha256,
+      });
+    }
+  }
+
+  for (const [index] of context.job.quality_references.entries()) {
+    addQaBinding(bindings, {
+      bindingId: `quality-reference-${index + 1}`,
+      role: `QUALITY_REFERENCE_${index + 1}`,
+      sha256: context.inputs[`quality_reference_${index}`]?.sha256,
+    });
+  }
+
+  if (context.job.approved_avatar_reference && phase === 'avatar' && candidate?.approved_reuse) {
+    addQaBinding(bindings, {
+      bindingId: 'source-avatar-receipt',
+      role: 'SOURCE_AVATAR_QA_RECEIPT',
+      sha256: context.inputs.approved_avatar_qa_receipt?.sha256,
+    });
+  }
+
+  const subject = phase === 'conditioning'
+    ? {
+      kind: 'CONDITIONED_REFERENCE_SET',
+      sha256: sha256Object({
+        phase,
+        bindings: bindings.map(({ prepared_sha256: _prepared, ...binding }) => binding),
+      }),
+      media_type: 'application/vnd.zeely.conditioned-reference-set+json',
+    }
+    : {
+      kind: phase === 'avatar' ? 'AVATAR_CANDIDATE' : 'OUTFIT_CANDIDATE',
+      sha256: artifactDigest(candidate, `${phase} subject`),
+      media_type: 'image/png',
+    };
+  const promptSha256 = phase === 'conditioning'
+    ? null
+    : context.checkpoint.prompts[phase]?.sha256 ?? null;
+  return manifestWithHash({
+    schema_version: '1.0.0',
+    phase,
+    attempt,
+    job_hash: context.jobHash,
+    execution_hash: context.executionHash,
+    subject,
+    prompt_sha256: promptSha256,
+    bindings,
+  });
+}
+
+function attachPreparedEvidence(baseManifest, preparedEvidence, {
+  requireEveryVisualBinding = false,
+} = {}) {
+  if (!Array.isArray(preparedEvidence)) {
+    throw new Error('Semantic QA prepared evidence must be an array');
+  }
+  const bindings = baseManifest.bindings.map((binding) => ({ ...binding }));
+  const matched = new Set();
+  for (const [index, prepared] of preparedEvidence.entries()) {
+    if (!prepared
+      || !Number.isInteger(prepared.order)
+      || prepared.order !== index + 1
+      || !SHA256.test(prepared.prepared_sha256 ?? '')
+      || !Array.isArray(prepared.source_bindings)
+      || prepared.source_bindings.length === 0) {
+      throw new Error('Semantic QA evaluator returned invalid prepared evidence');
+    }
+    for (const source of prepared.source_bindings) {
+      const match = bindings.findIndex((binding) => (
+        binding.role === source?.role && binding.sha256 === source?.source_sha256
+      ));
+      if (match < 0) {
+        throw new Error('Semantic QA evaluator judged evidence outside the runner manifest');
+      }
+      if (bindings[match].prepared_sha256
+        && bindings[match].prepared_sha256 !== prepared.prepared_sha256) {
+        throw new Error('Semantic QA evaluator returned conflicting prepared evidence hashes');
+      }
+      bindings[match].prepared_sha256 = prepared.prepared_sha256;
+      matched.add(match);
+    }
+  }
+  if (requireEveryVisualBinding) {
+    const missing = bindings.filter((binding, index) => (
+      !matched.has(index)
+      && binding.role !== 'OUTFIT_TEXT_TARGET'
+      && binding.role !== 'SOURCE_AVATAR_QA_RECEIPT'
+    ));
+    if (missing.length > 0) {
+      throw new Error(`Semantic QA evaluator omitted ${missing.length} bound visual evidence item(s)`);
+    }
+  }
+  return manifestWithHash({ ...baseManifest, bindings });
+}
+
+function preparedEvidenceFromReceipt(baseManifest, receiptEvidence) {
+  if (!receiptEvidence || !Array.isArray(receiptEvidence.bindings)
+    || receiptEvidence.bindings.length !== baseManifest.bindings.length) {
+    throw new Error('Core semantic QA receipt binding count is stale');
+  }
+  const bindings = baseManifest.bindings.map((binding, index) => {
+    const stored = { ...receiptEvidence.bindings[index] };
+    const preparedSha256 = stored.prepared_sha256;
+    delete stored.prepared_sha256;
+    if (JSON.stringify(stored) !== JSON.stringify(binding)) {
+      throw new Error('Core semantic QA receipt bindings are stale for the current run');
+    }
+    return {
+      ...binding,
+      ...(preparedSha256 === undefined ? {} : {
+        prepared_sha256: requireDigest(
+          preparedSha256,
+          `Core semantic QA prepared binding ${index + 1}`,
+        ),
+      }),
+    };
+  });
+  return manifestWithHash({ ...baseManifest, bindings });
+}
+
+async function assertPngArtifact(artifact, store = null) {
+  if (!artifact || artifact.mediaType !== 'image/png' || artifact.extension !== '.png') {
+    throw new Error('Generation artifact must declare immutable PNG metadata');
+  }
+  const bytes = store
+    ? await store.readArtifact(artifact)
+    : await readFile(artifact.path);
+  if (sha256(bytes) !== artifact.digest) {
+    throw new Error('Generation artifact bytes no longer match the content-addressed digest');
+  }
   if (bytes.length < PNG_SIGNATURE.length || !bytes.subarray(0, PNG_SIGNATURE.length).equals(PNG_SIGNATURE)) {
     throw new Error('Generation provider must return an actual PNG image');
   }
@@ -344,7 +633,7 @@ export class PipelineRunner {
         delete context.checkpoint.qa.avatar;
         await this.#save(context);
         {
-          const jobSetType = modelForAttempt(context.checkpoint.attempts.avatar);
+          const jobSetType = modelForAttempt(context.checkpoint.attempts.avatar, context.job.model_route);
           return this.#transition(context, STATES.GENERATING_AVATAR, {
             attempt: context.checkpoint.attempts.avatar,
             model: imageModelName(jobSetType),
@@ -363,7 +652,7 @@ export class PipelineRunner {
         delete context.checkpoint.qa.outfit;
         await this.#save(context);
         {
-          const jobSetType = modelForAttempt(context.checkpoint.attempts.outfit);
+          const jobSetType = modelForAttempt(context.checkpoint.attempts.outfit, context.job.model_route);
           return this.#transition(context, STATES.GENERATING_OUTFIT, {
             attempt: context.checkpoint.attempts.outfit,
             model: imageModelName(jobSetType),
@@ -421,16 +710,12 @@ export class PipelineRunner {
   async #conditioningQa(context) {
     const attempt = context.checkpoint.attempts.conditioning;
     try {
-      const qa = await this.#qaOnce(context, 'conditioning', attempt, {
-        identity: context.checkpoint.artifacts.conditioned_identity,
-        outfit: context.checkpoint.artifacts.conditioned_outfit,
-        source_identity: context.job.identity_reference,
-        source_outfit: context.job.outfit.reference ?? context.job.outfit.text,
-        reference_packs: {
-          identity: providerPackSummary(context.referencePacks.identity),
-          outfit: providerPackSummary(context.referencePacks.outfit),
-        },
-      });
+      const qa = await this.#qaOnce(
+        context,
+        'conditioning',
+        attempt,
+        qaProviderEvidence(context, 'conditioning'),
+      );
       context.checkpoint.qa.conditioning = qa;
       await this.#save(context);
       if (qa.decision === 'PASS') return this.#transition(context, STATES.REFERENCES_READY);
@@ -463,7 +748,7 @@ export class PipelineRunner {
 
   async #generateAvatar(context) {
     const attempt = context.checkpoint.attempts.avatar;
-    const jobSetType = assertAllowedImageModel(modelForAttempt(attempt));
+    const jobSetType = assertAllowedImageModel(modelForAttempt(attempt, context.job.model_route));
     const model = imageModelName(jobSetType);
     try {
       const references = generationReferences(context, 'avatar');
@@ -495,7 +780,7 @@ export class PipelineRunner {
         mediaType: 'image/png',
       });
       if (artifact.digest !== verified.avatarSha256) throw new Error('Imported approved avatar hash changed unexpectedly');
-      await assertPngArtifact(artifact);
+      await assertPngArtifact(artifact, context.store);
       context.checkpoint.attempts.avatar = 0;
       context.checkpoint.artifacts.avatar = {
         artifact,
@@ -508,9 +793,41 @@ export class PipelineRunner {
           qa_receipt_sha256: reference.qa_receipt.sha256,
         },
       };
+      const evidence = qaEvidenceManifest(context, 'avatar', 0);
+      const evaluator = {
+        type: 'IMPORTED_RECEIPT',
+        provider: 'pipeline-runner',
+        model: 'approved-avatar-receipt',
+        version: '1.0.0',
+        evaluation_id: sha256Object({
+          source_run_id: reference.source_run_id,
+          avatar_sha256: verified.avatarSha256,
+          qa_receipt_sha256: reference.qa_receipt.sha256,
+          evidence_manifest_sha256: evidence.manifest_sha256,
+        }),
+      };
+      const receipt = createCoreQaReceipt({
+        phase: 'avatar',
+        attempt: 0,
+        jobId: context.job.job_id,
+        runId: context.runId,
+        evidence,
+        response: {
+          decision: 'PASS',
+          reason: 'Approved avatar bytes and their source PASS receipt are hash-bound.',
+          checks: [{
+            name: 'APPROVED_AVATAR_RECEIPT',
+            pass: true,
+            score: 1,
+            evidence: 'The imported PNG hash matches the source output and source PASS manifest.',
+          }],
+          defects: [],
+          evaluator,
+        },
+      });
+      const receiptArtifact = await context.store.putJson(receipt);
       context.checkpoint.qa.avatar = {
-        decision: 'PASS',
-        reason: 'verified_approved_avatar_reuse',
+        ...qaResultFromReceipt(receipt, receiptArtifact),
         reused: true,
         source_run_id: reference.source_run_id,
         avatar_sha256: verified.avatarSha256,
@@ -535,7 +852,7 @@ export class PipelineRunner {
 
   async #generateOutfit(context) {
     const attempt = context.checkpoint.attempts.outfit;
-    const jobSetType = assertAllowedImageModel(modelForAttempt(attempt));
+    const jobSetType = assertAllowedImageModel(modelForAttempt(attempt, context.job.model_route));
     const model = imageModelName(jobSetType);
     try {
       const references = generationReferences(context, 'outfit');
@@ -579,17 +896,12 @@ export class PipelineRunner {
     const attempt = context.checkpoint.attempts[phase];
     const candidate = context.checkpoint.artifacts[phase];
     try {
-      const qa = await this.#qaOnce(context, phase, attempt, {
-        candidate,
-        identity: context.checkpoint.artifacts.conditioned_identity,
-        outfit: phase === 'outfit' ? context.checkpoint.artifacts.conditioned_outfit : undefined,
-        avatar: phase === 'outfit' ? context.checkpoint.artifacts.avatar : undefined,
-        quality_references: context.job.quality_references,
-        reference_packs: {
-          identity: providerPackSummary(context.referencePacks.identity),
-          outfit: phase === 'outfit' ? providerPackSummary(context.referencePacks.outfit) : null,
-        },
-      });
+      const qa = await this.#qaOnce(
+        context,
+        phase,
+        attempt,
+        qaProviderEvidence(context, phase),
+      );
       context.checkpoint.qa[phase] = qa;
       await this.#save(context);
       if (qa.decision === 'PASS') {
@@ -685,7 +997,7 @@ export class PipelineRunner {
       extension: '.png',
       mediaType: 'image/png',
     });
-    await assertPngArtifact(artifact);
+    await assertPngArtifact(artifact, context.store);
     const result = {
       artifact,
       model,
@@ -711,7 +1023,7 @@ export class PipelineRunner {
       if (parentSha256 !== generated.artifact.digest) {
         throw new Error(`Normalization receipt source mismatch for ${phase} attempt ${attempt}`);
       }
-      await assertPngArtifact(existing.result.artifact);
+      await assertPngArtifact(existing.result.artifact, context.store);
       await this.#record(context, 'RECEIPT_REUSED', {
         operation: `normalize:${phase}`,
         attempt,
@@ -733,7 +1045,7 @@ export class PipelineRunner {
       extension: '.png',
       mediaType: 'image/png',
     });
-    await assertPngArtifact(artifact);
+    await assertPngArtifact(artifact, context.store);
     const lineage = {
       parent_sha256: generated.artifact.digest,
       operation: 'NORMALIZE_BORDER_CONNECTED_NEAR_WHITE_TO_EXACT_WHITE',
@@ -783,28 +1095,128 @@ export class PipelineRunner {
   }
 
   async #qaOnce(context, phase, attempt, evidence) {
-    const key = operationKey(context.executionHash, `qa:${phase}`, attempt);
+    const baseEvidence = qaEvidenceManifest(context, phase, attempt);
+    const key = operationKey(
+      context.executionHash,
+      `qa:${phase}:${baseEvidence.manifest_sha256}`,
+      attempt,
+    );
     const existing = await context.store.readReceipt(key);
     if (existing) {
-      await this.#record(context, 'RECEIPT_REUSED', { operation: `qa:${phase}`, attempt, idempotency_key: key });
-      return existing.result;
+      if (existing.operation !== 'qa'
+        || existing.phase !== phase
+        || existing.attempt !== attempt
+        || existing.base_evidence_manifest_sha256 !== baseEvidence.manifest_sha256) {
+        throw new Error(`Conflicting semantic QA operation receipt for ${phase} attempt ${attempt}`);
+      }
+      const document = await context.store.readJsonArtifact(existing.receipt_artifact);
+      const expectedEvidence = preparedEvidenceFromReceipt(baseEvidence, document.evidence);
+      const verified = verifyCoreQaReceipt(document, {
+        phase,
+        attempt,
+        jobId: context.job.job_id,
+        runId: context.runId,
+        evidence: expectedEvidence,
+        receiptId: existing.receipt_id,
+      });
+      const result = qaResultFromReceipt(verified, existing.receipt_artifact);
+      await this.#record(context, 'RECEIPT_REUSED', {
+        operation: `qa:${phase}`,
+        attempt,
+        idempotency_key: key,
+        receipt_id: verified.receipt_id,
+        subject_sha256: verified.subject.sha256,
+        evidence_manifest_sha256: verified.evidence.manifest_sha256,
+      });
+      return result;
     }
-    await this.#record(context, 'PROVIDER_CALL_STARTED', { operation: 'qa', phase, attempt, idempotency_key: key });
+    await this.#record(context, 'PROVIDER_CALL_STARTED', {
+      operation: 'qa',
+      phase,
+      attempt,
+      idempotency_key: key,
+      subject_sha256: baseEvidence.subject.sha256,
+      evidence_manifest_sha256: baseEvidence.manifest_sha256,
+    });
     const response = assertQaDecision(await this.provider.qa({
       operation: 'qa',
       phase,
       attempt,
       evidence,
+      evidence_manifest_sha256: baseEvidence.manifest_sha256,
       idempotencyKey: key,
       jobId: context.job.job_id,
     }));
-    const qaArtifact = await context.store.putJson(response);
-    const result = { ...response, artifact: qaArtifact };
-    await context.store.writeReceipt(key, { operation: 'qa', phase, attempt, result });
+    const finalEvidence = attachPreparedEvidence(
+      baseEvidence,
+      response.prepared_evidence ?? [],
+      {
+        requireEveryVisualBinding: response.decision === 'PASS'
+          && response.evaluator?.type === 'MODEL',
+      },
+    );
+    const receipt = createCoreQaReceipt({
+      phase,
+      attempt,
+      jobId: context.job.job_id,
+      runId: context.runId,
+      evidence: finalEvidence,
+      response: {
+        decision: response.decision,
+        reason: response.reason,
+        checks: response.checks,
+        defects: response.defects,
+        evaluator: response.evaluator,
+      },
+    });
+    const receiptArtifact = await context.store.putJson(receipt);
+    const result = qaResultFromReceipt(receipt, receiptArtifact);
+    await context.store.writeReceipt(key, {
+      operation: 'qa',
+      phase,
+      attempt,
+      base_evidence_manifest_sha256: baseEvidence.manifest_sha256,
+      receipt_id: receipt.receipt_id,
+      receipt_artifact: receiptArtifact,
+    });
     await this.#record(context, 'PROVIDER_CALL_SUCCEEDED', {
-      operation: 'qa', phase, attempt, decision: response.decision, idempotency_key: key,
+      operation: 'qa',
+      phase,
+      attempt,
+      decision: response.decision,
+      idempotency_key: key,
+      receipt_id: receipt.receipt_id,
+      subject_sha256: receipt.subject.sha256,
+      evidence_manifest_sha256: receipt.evidence.manifest_sha256,
     });
     return result;
+  }
+
+  async #verifyCoreQaGate(context, phase, { requirePass = true } = {}) {
+    const result = context.checkpoint.qa?.[phase];
+    const attempt = context.checkpoint.attempts?.[phase];
+    if (!result?.artifact || !Number.isInteger(attempt)) {
+      throw new Error(`Core semantic QA receipt is missing for ${phase}`);
+    }
+    const document = await context.store.readJsonArtifact(result.artifact);
+    const baseEvidence = qaEvidenceManifest(context, phase, attempt);
+    const expectedEvidence = preparedEvidenceFromReceipt(baseEvidence, document.evidence);
+    const verified = verifyCoreQaReceipt(document, {
+      phase,
+      attempt,
+      jobId: context.job.job_id,
+      runId: context.runId,
+      evidence: expectedEvidence,
+      receiptId: result.receipt_id,
+      requirePass,
+    });
+    if (result.subject_sha256 !== verified.subject.sha256
+      || result.evidence_manifest_sha256 !== verified.evidence.manifest_sha256
+      || result.prompt_sha256 !== verified.evidence.prompt_sha256
+      || result.artifact.digest !== sha256(await readFile(result.artifact.path))) {
+      throw new Error(`Checkpoint semantic QA binding is stale for ${phase}`);
+    }
+    return verified;
   }
 
   async #persistPrompt(context, phase, attempt, prompt) {
@@ -816,6 +1228,11 @@ export class PipelineRunner {
   }
 
   async #export(context) {
+    await this.#verifyCoreQaGate(context, 'conditioning');
+    await this.#verifyCoreQaGate(context, 'avatar');
+    await this.#verifyCoreQaGate(context, 'outfit');
+    await assertPngArtifact(context.checkpoint.artifacts.avatar.artifact, context.store);
+    await assertPngArtifact(context.checkpoint.artifacts.outfit.artifact, context.store);
     const avatarPath = path.join(context.job.output_directory, 'avatar.png');
     const outfitPath = path.join(context.job.output_directory, 'avatar_outfit.png');
     await context.store.materialize(context.checkpoint.artifacts.avatar.artifact, avatarPath);
@@ -870,6 +1287,7 @@ export class PipelineRunner {
     const manifestArtifact = await context.store.putJson(manifest);
     const manifestPath = path.join(context.job.output_directory, 'run-manifest.json');
     await context.store.materialize(manifestArtifact, manifestPath);
+    context.checkpoint.artifacts.run_manifest = manifestArtifact;
     context.checkpoint.outputs = { avatar: avatarPath, avatar_outfit: outfitPath, manifest: manifestPath };
     await this.#save(context);
     await this.#record(context, 'OUTPUTS_EXPORTED', {
@@ -883,14 +1301,45 @@ export class PipelineRunner {
   async #ensureCompletedOutputs(context) {
     const avatar = context.checkpoint.artifacts.avatar?.artifact;
     const outfit = context.checkpoint.artifacts.outfit?.artifact;
-    if (!avatar || !outfit) throw new Error('Completed checkpoint is missing output artifact references');
+    const manifestArtifact = context.checkpoint.artifacts.run_manifest;
+    if (!avatar || !outfit || !manifestArtifact) {
+      throw new Error('Completed checkpoint is missing content-addressed output references');
+    }
+    await assertPngArtifact(avatar, context.store);
+    await assertPngArtifact(outfit, context.store);
+    const conditioningReceipt = await this.#verifyCoreQaGate(context, 'conditioning');
+    const avatarReceipt = await this.#verifyCoreQaGate(context, 'avatar');
+    const outfitReceipt = await this.#verifyCoreQaGate(context, 'outfit');
+    const manifest = await context.store.readJsonArtifact(manifestArtifact);
+    if (manifest.schema_version !== '1.0.0'
+      || manifest.run_id !== context.runId
+      || manifest.job_id !== context.job.job_id
+      || manifest.job_hash !== context.jobHash
+      || manifest.execution_hash !== context.executionHash
+      || manifest.state !== STATES.COMPLETED
+      || manifest.outputs?.avatar?.sha256 !== avatar.digest
+      || manifest.outputs?.avatar_outfit?.sha256 !== outfit.digest
+      || manifest.qa?.conditioning?.receipt_id !== conditioningReceipt.receipt_id
+      || manifest.qa?.avatar?.receipt_id !== avatarReceipt.receipt_id
+      || manifest.qa?.outfit?.receipt_id !== outfitReceipt.receipt_id) {
+      throw new Error('Completed public manifest is stale or not bound to the current run');
+    }
     const avatarPath = path.join(context.job.output_directory, 'avatar.png');
     const outfitPath = path.join(context.job.output_directory, 'avatar_outfit.png');
+    const manifestPath = path.join(context.job.output_directory, 'run-manifest.json');
+    if (context.checkpoint.outputs?.avatar !== avatarPath
+      || context.checkpoint.outputs?.avatar_outfit !== outfitPath
+      || context.checkpoint.outputs?.manifest !== manifestPath) {
+      throw new Error('Completed checkpoint output paths are stale');
+    }
     if (!(await context.store.verifyMaterialized(avatar, avatarPath))) {
       await context.store.materialize(avatar, avatarPath);
     }
     if (!(await context.store.verifyMaterialized(outfit, outfitPath))) {
       await context.store.materialize(outfit, outfitPath);
+    }
+    if (!(await context.store.verifyMaterialized(manifestArtifact, manifestPath))) {
+      await context.store.materialize(manifestArtifact, manifestPath);
     }
   }
 

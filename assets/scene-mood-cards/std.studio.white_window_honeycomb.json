@@ -1,0 +1,49 @@
+{
+  "schema_version": "1.0.0",
+  "preset_id": "std.studio.white_window_honeycomb",
+  "kind": "standard",
+  "family": "light_studio",
+  "ui_name_uk": "Студія — віконне соте світло",
+  "asset_role": "mood_card",
+  "file": "assets/scene-mood-cards/std.studio.white_window_honeycomb.webp",
+  "sha256": "bae6dfcfce3775cabc0d6439055b4f995049051ef7793ca517d6f660b09b807e",
+  "prompt_path": "prompts/scenes/std.studio.white_window_honeycomb.txt",
+  "prompt_sha256": "e428caccfb6a9dbc1d07943c6b4283093bc1532193f231773c7b11bb173b78d6",
+  "generation": {
+    "provider_path": "codex_builtin_imagegen",
+    "model_family": "gpt-image-2",
+    "model_version": "builtin-current",
+    "source_width": 862,
+    "source_height": 1824,
+    "crop_position": "centre",
+    "localized_lighting_edit": {
+      "method": "imagegen_face_pass_with_feathered_cheek_region",
+      "clean_source_sha256": "dbbae428ff381f5511fe90cd27a374b23f2618678aaa08381337382812b570da",
+      "imagegen_pass_sha256": "515a5c1ad736e454cfaea1a11cb57f7031eefbfab630ab4a124df642ef8ac87d",
+      "composited_source_sha256": "6737b3068f53e5a8910bc80c5c95cd85779369e45f948343487e0bf7173f4888",
+      "scope": "outer_cheek_lattice_shadow_only",
+      "contains_personal_input": false
+    },
+    "reframe": {
+      "method": "deterministic_4x5_extract",
+      "input_sha256": "daf845d61dca8bcf6dd9cbf6dfda6302226ebaf8044e53bc32eb36e2c2a649c6",
+      "source_width": 1024,
+      "source_height": 1280,
+      "crop_px": {
+        "left": 32,
+        "top": 80,
+        "width": 960,
+        "height": 1200
+      }
+    }
+  },
+  "delivery": {
+    "width": 1024,
+    "height": 1280,
+    "format": "webp",
+    "aspect_ratio": "4:5"
+  },
+  "contains_personal_input": false,
+  "approval": "PENDING_VISUAL_JUDGE",
+  "created_at": "2026-07-23T00:07:11.905Z"
+}

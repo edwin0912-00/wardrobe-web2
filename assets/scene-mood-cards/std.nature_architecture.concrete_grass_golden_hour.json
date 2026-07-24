@@ -1,0 +1,41 @@
+{
+  "schema_version": "1.0.0",
+  "preset_id": "std.nature_architecture.concrete_grass_golden_hour",
+  "kind": "standard",
+  "family": "nature_architecture",
+  "ui_name_uk": "Бетон і трави — золота година",
+  "asset_role": "mood_card",
+  "file": "assets/scene-mood-cards/std.nature_architecture.concrete_grass_golden_hour.webp",
+  "sha256": "ce1562ab3e6c3b5cce437713d64bd3319ffaf54d1bde16e6f001747e4ded5ae0",
+  "prompt_path": "prompts/scenes/std.nature_architecture.concrete_grass_golden_hour.txt",
+  "prompt_sha256": "f2883756679415dac3b8aae5f3a3bd8e2a08dde8f1967a7ab79411bff7b1e1f4",
+  "generation": {
+    "provider_path": "codex_builtin_imagegen",
+    "model_family": "gpt-image-2",
+    "model_version": "builtin-current",
+    "source_width": 972,
+    "source_height": 1619,
+    "crop_position": "centre",
+    "reframe": {
+      "method": "deterministic_4x5_extract",
+      "input_sha256": "bce73f4a36f969bba7ad713c54b17db3731e6541b8463ec7b1dacaefd5c330db",
+      "source_width": 1024,
+      "source_height": 1280,
+      "crop_px": {
+        "left": 83,
+        "top": 207,
+        "width": 858,
+        "height": 1073
+      }
+    }
+  },
+  "delivery": {
+    "width": 1024,
+    "height": 1280,
+    "format": "webp",
+    "aspect_ratio": "4:5"
+  },
+  "contains_personal_input": false,
+  "approval": "PENDING_VISUAL_JUDGE",
+  "created_at": "2026-07-22T23:48:01.661Z"
+}

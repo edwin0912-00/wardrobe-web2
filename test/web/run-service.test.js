@@ -6,7 +6,7 @@ import path from 'node:path';
 import test from 'node:test';
 import sharp from 'sharp';
 import { MockProvider } from '../../src/providers/mock-provider.js';
-import { RunService } from '../../src/web/run-service.js';
+import { InputNeedsInputError, RunService } from '../../src/web/run-service.js';
 import { hasPrivateInfrastructure } from '../../src/security/outbound-redaction.js';
 
 async function upload(color = '#7b4d2e') {
@@ -75,7 +75,10 @@ test('public run state never exposes transport paths, private prompts, or projec
   const publicState = await service.getRun(run.run_id);
   const serialized = JSON.stringify(publicState);
   assert.equal(hasPrivateInfrastructure(publicState), false);
-  assert.doesNotMatch(serialized, /reference-card|cutout\.png|\.zeely-run|prompt|stack/i);
+  assert.doesNotMatch(
+    serialized,
+    /reference-card|cutout\.png|\.zeely-run|(?:prompt|exact)_text|compiled_prompt|base_prompt|stack/i,
+  );
   assert.equal(publicState.garments.length, 1);
   assert.match(publicState.garments[0].preview_url, /^\/api\/runs\//);
 });
@@ -241,7 +244,43 @@ test('working core supports text-only outfit and rejects invalid uploads before 
   assert.equal(created.execution_route.garment_source_image_count, 0);
   await service.running.get(created.run_id);
   assert.equal((await service.getRun(created.run_id)).status, 'COMPLETED');
-  await assert.rejects(() => service.createRun({ person: { filename: 'bad.png', mimetype: 'image/png', buffer: Buffer.from('bad') }, outfitText: 'black top' }), /decodable/);
+  const identityPack = JSON.parse(await readFile(path.join(
+    root,
+    created.run_id,
+    'conditioned',
+    'identity',
+    'reference-pack.json',
+  ), 'utf8'));
+  assert.equal(identityPack.readiness.decision, 'READY');
+  assert.equal(identityPack.readiness.semantic_qa_required_before_export, true);
+  assert.ok(identityPack.extraction.unknowns.some((unknown) => (
+    unknown.fact_path === '/identity/body_build'
+    && unknown.status === 'NOT_EVALUABLE'
+    && unknown.handling === 'DO_NOT_INFER'
+  )));
+  assert.equal(identityPack.derivatives[0].parent_sha256, identityPack.source.sha256);
+  assert.equal(
+    identityPack.derivatives[0].output_sha256,
+    identityPack.generation_bindings[0].sha256,
+  );
+  let inputError;
+  try {
+    await service.createRun({
+      person: {
+        filename: 'bad.png',
+        mimetype: 'image/png',
+        buffer: Buffer.from('bad'),
+      },
+      outfitText: 'black top',
+    });
+  } catch (error) {
+    inputError = error;
+  }
+  assert.ok(inputError instanceof InputNeedsInputError);
+  assert.equal(inputError.status, 'NEEDS_INPUT');
+  assert.equal(inputError.statusCode, 422);
+  assert.equal(inputError.code, 'IMAGE_DECODE_FAILED');
+  assert.equal(inputError.field, 'Фото людини');
 });
 
 test('slot conflicts become an explicit NEEDS_INPUT result', async () => {
@@ -262,6 +301,16 @@ test('slot conflicts become an explicit NEEDS_INPUT result', async () => {
 test('explicit duplicate-slot selection continues the same run with the chosen garment', async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'zeely-web-selection-'));
   const deps = dependencies();
+  let releaseGeneration;
+  let reportGenerationStarted;
+  const generationGate = new Promise((resolve) => { releaseGeneration = resolve; });
+  const generationStarted = new Promise((resolve) => { reportGenerationStarted = resolve; });
+  const originalGenerateGarment = deps.assetGenerator.generateGarment;
+  deps.assetGenerator.generateGarment = async (...args) => {
+    reportGenerationStarted();
+    await generationGate;
+    return originalGenerateGarment(...args);
+  };
   let inspectionCount = 0;
   deps.vlm.inspectGarments = async () => {
     inspectionCount += 1;
@@ -277,15 +326,145 @@ test('explicit duplicate-slot selection continues the same run with the chosen g
   const created = await service.createRun({ person: await upload(), garments: [await upload('#6b3e2e'), await upload('#751d35')], generateScene: false });
   await service.running.get(created.run_id);
   assert.equal((await service.getRun(created.run_id)).status, 'NEEDS_INPUT');
+  const waitingState = JSON.parse(await readFile(path.join(root, created.run_id, 'run.json'), 'utf8'));
+  assert.equal(waitingState.visual_epoch, 1);
+  assert.ok(waitingState.visual_checkpoint, 'the immutable source checkpoint remains available at the choice gate');
   const resumed = await service.selectGarments(created.run_id, { footwear: 'set-1' });
   assert.equal(resumed.run_id, created.run_id);
   assert.equal(resumed.terminal_stage, null);
+  assert.equal(resumed.visual_checkpoint, undefined, 'selection must not expose an asset from the discarded choice');
+  await generationStarted;
+  const selectedState = JSON.parse(await readFile(path.join(root, created.run_id, 'run.json'), 'utf8'));
+  assert.equal(selectedState.visual_epoch, 2);
+  assert.equal(selectedState.visual_checkpoint, null);
+  assert.deepEqual(selectedState.visual_assets, {});
+  releaseGeneration();
   await service.running.get(created.run_id);
   const finished = await service.getRun(created.run_id);
   assert.equal(finished.status, 'COMPLETED');
   assert.equal(finished.garments.length, 1);
   assert.equal(finished.garments[0].observed.garment_type, 'burgundy pumps');
   assert.equal(inspectionCount, 1, 'the exact passport shown at the choice gate must be reused');
+});
+
+test('saved avatar with top, bag, boots, and pumps pauses for exactly two footwear options and resumes the same run', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'zeely-saved-avatar-footwear-choice-'));
+  const deps = dependencies();
+  let inspectionCount = 0;
+  deps.vlm.inspectGarments = async () => {
+    inspectionCount += 1;
+    const definitions = [
+      ['top', 'ivory blouse', ['ivory']],
+      ['bag', 'structured grey handbag', ['grey']],
+      ['footwear', 'brown knee-high boots', ['brown']],
+      ['footwear', 'burgundy pumps', ['burgundy']],
+    ];
+    return {
+      status: 'READY',
+      reason: 'one top, one bag, and two different footwear options',
+      items: definitions.map(([category, garmentType, colors], source_index) => ({
+        source_index,
+        category,
+        confidence: 0.97,
+        observed: {
+          garment_type: garmentType,
+          colors,
+          material: [],
+          pattern: [],
+          logo_text: [],
+          construction: [],
+        },
+        unknowns: [],
+        blockers: [],
+      })),
+      reference_sets: definitions.map((_definition, source_index) => ({
+        source_indexes: [source_index],
+        primary_source_index: source_index,
+        same_item_confidence: 1,
+        evidence: ['single approved product view'],
+      })),
+    };
+  };
+  const service = new RunService({ rootDirectory: root, ...deps });
+  await service.initialize();
+
+  const source = await service.createRun({
+    runId: 'saved-avatar-footwear-source',
+    person: await upload('#956b58'),
+    outfitText: 'neutral studio baseline',
+    generateScene: false,
+  });
+  await service.running.get(source.run_id);
+  assert.equal((await service.getRun(source.run_id)).status, 'COMPLETED');
+  const avatarPath = path.join(root, source.run_id, 'outputs', 'avatar.png');
+  const receiptPath = path.join(root, source.run_id, 'outputs', 'run-manifest.json');
+  const [avatarBytes, receiptBytes] = await Promise.all([
+    readFile(avatarPath),
+    readFile(receiptPath),
+  ]);
+
+  const created = await service.createRun({
+    runId: 'saved-avatar-footwear-target',
+    person: await upload('#956b58'),
+    garments: await Promise.all([
+      upload('#eee3d2'),
+      upload('#8d8b87'),
+      upload('#6b3e2e'),
+      upload('#751d35'),
+    ]),
+    outfitText: '',
+    generateScene: false,
+    approvedAvatarReference: {
+      path: avatarPath,
+      sha256: createHash('sha256').update(avatarBytes).digest('hex'),
+      source_run_id: source.run_id,
+      qa_receipt: {
+        path: receiptPath,
+        sha256: createHash('sha256').update(receiptBytes).digest('hex'),
+        decision: 'PASS',
+      },
+    },
+  });
+  assert.equal(created.execution_route.avatar_reuse, true);
+  await service.running.get(created.run_id);
+
+  const waiting = await service.getRun(created.run_id);
+  assert.equal(waiting.status, 'NEEDS_INPUT');
+  assert.equal(waiting.run_id, created.run_id);
+  assert.equal(waiting.error.name, 'GarmentNeedsInputError');
+  assert.equal(waiting.conflicts.length, 1);
+  assert.deepEqual(waiting.conflicts[0], {
+    type: 'DUPLICATE_SLOT',
+    category: 'footwear',
+    source_indexes: [2, 3],
+    reference_set_ids: ['set-2', 'set-3'],
+  });
+  const footwearOptions = waiting.garments
+    .filter((item) => waiting.conflicts[0].reference_set_ids.includes(item.reference_set_id));
+  assert.equal(footwearOptions.length, 2);
+  assert.deepEqual(
+    footwearOptions.map((item) => item.observed.garment_type),
+    ['brown knee-high boots', 'burgundy pumps'],
+  );
+
+  const resumed = await service.selectGarments(created.run_id, { footwear: 'set-2' });
+  assert.equal(resumed.run_id, created.run_id);
+  assert.equal(resumed.status, 'QUEUED');
+  await service.running.get(created.run_id);
+
+  const completed = await service.getRun(created.run_id);
+  assert.equal(completed.run_id, created.run_id);
+  assert.equal(completed.status, 'COMPLETED');
+  assert.equal(completed.execution_route.avatar_reuse, true);
+  assert.deepEqual(
+    completed.garments.map((item) => [item.category, item.observed.garment_type]),
+    [
+      ['top', 'ivory blouse'],
+      ['bag', 'structured grey handbag'],
+      ['footwear', 'brown knee-high boots'],
+    ],
+  );
+  assert.equal(inspectionCount, 1, 'selection must reuse the exact four-item passport from the choice gate');
 });
 
 test('multiple views of the same garment are conditioned once with complete provenance', async () => {

@@ -1,0 +1,134 @@
+{
+  "preset_id": "std.studio.taupe_rembrandt_gloss",
+  "preset_sha256": "fe5572a8c217cfc83891d3d9392320b4b1c81bac00aa2a8b0e4a47f299389b6d",
+  "preset_version": "1.0.0",
+  "prompt_sha256": "8dde4619df1d9cf975514e76c056bfd578989234aea88639f5fd828047f8171f",
+  "reference_pack_id": "pack.std.studio.taupe_rembrandt_gloss.v1.1",
+  "references": [
+    {
+      "media_type": "application/json",
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit"
+      ],
+      "reference_id": "std.studio.taupe_rembrandt_gloss.environment",
+      "role": "environment_anchor",
+      "sha256": "546327338186ccc7ebe76eccfa2bcde13ffa98bebd9c553e4d64ca382b433d97"
+    },
+    {
+      "media_type": "application/json",
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit"
+      ],
+      "reference_id": "std.studio.taupe_rembrandt_gloss.lighting",
+      "role": "lighting_anchor",
+      "sha256": "35774c9487ae3063fa41244284b2c495fc0993db5660d2654ff868ab42f61677"
+    },
+    {
+      "media_type": "application/json",
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit"
+      ],
+      "reference_id": "std.studio.taupe_rembrandt_gloss.composition",
+      "role": "composition_anchor",
+      "sha256": "ad922393368f27640bdb9d9f7008c3753bd82bd6a11d79569779721acb3b7694"
+    },
+    {
+      "media_type": "application/json",
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit"
+      ],
+      "reference_id": "std.studio.taupe_rembrandt_gloss.palette",
+      "role": "palette_anchor",
+      "sha256": "0f4b63aa0147be24a2ceef2cda04b6f06850c9d57f426562f48c2a4528dac19f"
+    },
+    {
+      "media_type": "application/json",
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit"
+      ],
+      "reference_id": "std.studio.taupe_rembrandt_gloss.negative",
+      "role": "negative_reference",
+      "sha256": "8f0637f2a807fae9b6da373197775c5722f093d74fbe8e180d60013d969ad7ae"
+    }
+  ],
+  "schema_version": "1.0.0",
+  "source_ledger": {
+    "created_at": "2026-07-23T09:40:00Z",
+    "ledger_id": "ledger.std.studio.taupe_rembrandt_gloss.v1",
+    "preset_id": "std.studio.taupe_rembrandt_gloss",
+    "preset_version": "1.0.0",
+    "revision": 1,
+    "schema_version": "1.0.0",
+    "sources": [
+      {
+        "content_sha256": "134495589b2c15fe1ab5b27fc45b2e3d3a1f4b09ddbdb4521eebdec2bfe50951",
+        "not_authority_for": [
+          "identity",
+          "body",
+          "hair",
+          "outfit",
+          "brands",
+          "readable_text",
+          "exact_architecture"
+        ],
+        "retrieved_at": "2026-07-23T09:40:00Z",
+        "rights": {
+          "basis": "LICENSED",
+          "evidence_sha256": "a07f9e0b6c8df11ac57604e45d718918ed10d38da69757a1daf36dd04f28a9ef",
+          "evidence_uri": "evidence/licenses/unsplash-license-2026-07-23.md",
+          "rights_holder": "Esther Masscheleyn via Unsplash license",
+          "status": "VERIFIED",
+          "verified_at": "2026-07-23T09:40:00Z"
+        },
+        "role": "lighting_composition_palette_inspiration",
+        "snapshot_uri": "evidence/scene-sources/unsplash._d0Uv9sIEmY.json",
+        "source_id": "unsplash._d0Uv9sIEmY",
+        "url": "https://unsplash.com/photos/a-woman-is-posing-for-a-picture-in-a-dark-room-_d0Uv9sIEmY",
+        "use": "dark studio separation, negative space and tonal restraint only"
+      },
+      {
+        "content_sha256": "d308b1b78df011965ab01527d59964b244c8ad90885ab1649990eaef37740e2a",
+        "not_authority_for": [
+          "identity",
+          "body",
+          "hair",
+          "outfit",
+          "brands",
+          "readable_text",
+          "exact_architecture"
+        ],
+        "retrieved_at": "2026-07-23T09:40:00Z",
+        "rights": {
+          "basis": "LICENSED",
+          "evidence_sha256": "f9091e2efd8927320c4cc5c72508d48f61a9413eefa3466ff1763d64b8cc45e4",
+          "evidence_uri": "evidence/licenses/pexels-license-2026-07-23.md",
+          "rights_holder": "Mery Amiri via Pexels license",
+          "status": "VERIFIED",
+          "verified_at": "2026-07-23T09:40:00Z"
+        },
+        "role": "lighting_composition_palette_inspiration",
+        "snapshot_uri": "evidence/scene-sources/pexels.32497260.json",
+        "source_id": "pexels.32497260",
+        "url": "https://www.pexels.com/photo/stylish-woman-in-dramatic-studio-lighting-32497260/",
+        "use": "dramatic face modelling and full-body shadow readability only"
+      }
+    ],
+    "status": "VERIFIED_FOR_RELEASE"
+  },
+  "version": "1.1.0"
+}

@@ -1,0 +1,29 @@
+{
+  "schema_version": "1.0.0",
+  "preset_id": "std.studio.taupe_rembrandt_gloss",
+  "kind": "standard",
+  "family": "dramatic_studio",
+  "ui_name_uk": "Драматична студія — Рембрандт",
+  "asset_role": "mood_card",
+  "file": "assets/scene-mood-cards/std.studio.taupe_rembrandt_gloss.webp",
+  "sha256": "3b256726cb13ff36fd2f092a7a956859995318bfc6fcdcbfe8243502544a313a",
+  "prompt_path": "prompts/scenes/std.studio.taupe_rembrandt_gloss.txt",
+  "prompt_sha256": "8c1ddc42c48766c22ae9f7d83830587553ade9ac186952ee2a78e0f9004464e2",
+  "generation": {
+    "provider_path": "codex_builtin_imagegen",
+    "model_family": "gpt-image-2",
+    "model_version": "builtin-current",
+    "source_width": 1122,
+    "source_height": 1402,
+    "crop_position": "centre"
+  },
+  "delivery": {
+    "width": 1024,
+    "height": 1280,
+    "format": "webp",
+    "aspect_ratio": "4:5"
+  },
+  "contains_personal_input": false,
+  "approval": "PENDING_VISUAL_JUDGE",
+  "created_at": "2026-07-22T23:50:22.137Z"
+}

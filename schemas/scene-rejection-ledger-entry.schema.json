@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zeely.ai/schemas/scene-rejection-ledger-entry.schema.json",
+  "title": "Zeely append-only post-release rejection ledger entry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "ledger_type",
+    "sequence",
+    "scene_id",
+    "rejection_id",
+    "receipt_relative_path",
+    "receipt_sha256",
+    "idempotency_hash",
+    "request_fingerprint",
+    "rejected_output_sha256",
+    "previous_entry_sha256",
+    "created_at"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "ledger_type": { "const": "POST_RELEASE_SCENE_REJECTION_LEDGER_ENTRY" },
+    "sequence": { "type": "integer", "minimum": 1 },
+    "scene_id": { "$ref": "#/$defs/id" },
+    "rejection_id": { "$ref": "#/$defs/id" },
+    "receipt_relative_path": {
+      "type": "string",
+      "pattern": "^rejections/receipts/[A-Za-z0-9][A-Za-z0-9._-]{0,127}\\.json$"
+    },
+    "receipt_sha256": { "$ref": "#/$defs/sha256" },
+    "idempotency_hash": { "$ref": "#/$defs/sha256" },
+    "request_fingerprint": { "$ref": "#/$defs/sha256" },
+    "rejected_output_sha256": { "$ref": "#/$defs/sha256" },
+    "previous_entry_sha256": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/sha256" }
+      ]
+    },
+    "created_at": { "$ref": "#/$defs/timestamp" }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]{3})?Z$"
+    }
+  }
+}

@@ -29,7 +29,13 @@ function makeCriteria(image, visualFixture, subjectId, artifactName) {
         evidence: image.background_diagnostics,
       };
     }
-    const visual = visualDecision(visualFixture, subjectId, artifactName, criterion.id);
+    const visual = visualDecision(
+      visualFixture,
+      subjectId,
+      artifactName,
+      criterion.id,
+      image.sha256,
+    );
     const automatic_evidence = criterion.id === 'neutral_white_balance'
       ? {
           conservative_background_mean_chroma: image.background_diagnostics?.mean_classified_background_chroma ?? null,
@@ -91,7 +97,8 @@ export async function verifyOutput(options = {}) {
     const artifacts = {};
     for (const [artifactName, filename] of ARTIFACTS) {
       const filePath = path.join(outputDir, subjectId, filename);
-      const image = await inspectImage(filePath, options.backgroundThresholds);
+      const inspected = await inspectImage(filePath, options.backgroundThresholds);
+      const image = { ...inspected, path: `${subjectId}/${filename}` };
       const criteria = makeCriteria(image, visualFixture, subjectId, artifactName);
       const status = aggregateStatus([
         ...automaticGateStatuses(image),
@@ -115,7 +122,9 @@ export async function verifyOutput(options = {}) {
       schema_version: QA_SCHEMA_VERSION,
       generated_at: new Date().toISOString(),
       subject_id: subjectId,
-      visual_review_fixture: options.visualReviewPath ? path.resolve(options.visualReviewPath) : null,
+      visual_review_fixture: options.visualReviewPath
+        ? path.relative(outputDir, path.resolve(options.visualReviewPath))
+        : null,
       status,
       pair_checks,
       artifacts,
@@ -142,8 +151,10 @@ export async function verifyOutput(options = {}) {
   const summary = {
     schema_version: QA_SCHEMA_VERSION,
     generated_at: new Date().toISOString(),
-    output_directory: outputDir,
-    visual_review_fixture: options.visualReviewPath ? path.resolve(options.visualReviewPath) : null,
+    output_directory: path.relative(process.cwd(), outputDir) || '.',
+    visual_review_fixture: options.visualReviewPath
+      ? path.relative(outputDir, path.resolve(options.visualReviewPath))
+      : null,
     status,
     subjects: summarySubjects,
     cross_subject_duplicate_check: {

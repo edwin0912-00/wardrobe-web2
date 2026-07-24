@@ -1,10 +1,17 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { mkdtemp, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import sharp from 'sharp';
-import { diagnoseBackground, inspectImage, STATUS, verifyOutput } from '../../src/qa/index.mjs';
+import {
+  diagnoseBackground,
+  inspectImage,
+  QA_SCHEMA_VERSION,
+  STATUS,
+  verifyOutput,
+} from '../../src/qa/index.mjs';
 
 async function png(filePath, rgb = { r: 255, g: 255, b: 255 }, options = {}) {
   const width = options.width ?? 100;
@@ -21,6 +28,10 @@ async function outputFixture() {
   await png(path.join(folder, 'avatar.png'));
   await png(path.join(folder, 'avatar_outfit.png'), { r: 254, g: 254, b: 254 });
   return root;
+}
+
+async function sha256(filePath) {
+  return createHash('sha256').update(await readFile(filePath)).digest('hex');
 }
 
 test('inspectImage verifies PNG/sRGB/no-alpha and exact-white diagnostics', async () => {
@@ -161,14 +172,120 @@ test('explicit visual fixture controls semantic gates without self-approval', as
     criterionIds.map((id) => [id, { status: STATUS.PASS, reviewer: 'test-reviewer' }]),
   );
   const reviewPath = path.join(root, 'visual-review.json');
+  const avatarSha256 = await sha256(path.join(root, '001', 'avatar.png'));
+  const outfitSha256 = await sha256(path.join(root, '001', 'avatar_outfit.png'));
   await writeFile(reviewPath, JSON.stringify({
-    schema_version: '1.0.0',
-    reviews: { '001': { avatar: decisions, avatar_outfit: decisions } },
+    schema_version: QA_SCHEMA_VERSION,
+    reviews: {
+      '001': {
+        avatar: { artifact_sha256: avatarSha256, ...decisions },
+        avatar_outfit: { artifact_sha256: outfitSha256, ...decisions },
+      },
+    },
   }));
   const summary = await verifyOutput({ outputDir: root, visualReviewPath: reviewPath });
   assert.equal(summary.status, STATUS.PASS);
   const report = JSON.parse(await readFile(path.join(root, '001', 'qa-report.json'), 'utf8'));
   assert.equal(report.artifacts.avatar.notion_criteria[1].source, 'explicit_visual_review_fixture');
+  assert.equal(
+    report.artifacts.avatar.notion_criteria[1].reviewed_artifact_sha256,
+    avatarSha256,
+  );
+});
+
+test('semantic PASS is invalidated when reviewed output bytes change', async () => {
+  const root = await outputFixture();
+  await png(path.join(root, '001', 'avatar_outfit.png'));
+  const criterionIds = [
+    'identity_preservation',
+    'frontal_half_body_composition',
+    'studio_lighting',
+    'neutral_white_balance',
+    'face_hair_detail',
+    'photorealism',
+    'outfit_fidelity',
+    'anatomy',
+    'no_residue_or_bleed',
+  ];
+  const decisions = Object.fromEntries(
+    criterionIds.map((id) => [id, { status: STATUS.PASS, reviewer: 'test-reviewer' }]),
+  );
+  const avatarPath = path.join(root, '001', 'avatar.png');
+  const outfitPath = path.join(root, '001', 'avatar_outfit.png');
+  const reviewedAvatarSha256 = await sha256(avatarPath);
+  const reviewedOutfitSha256 = await sha256(outfitPath);
+  const reviewPath = path.join(root, 'visual-review.json');
+  await writeFile(reviewPath, JSON.stringify({
+    schema_version: QA_SCHEMA_VERSION,
+    reviews: {
+      '001': {
+        avatar: { artifact_sha256: reviewedAvatarSha256, ...decisions },
+        avatar_outfit: { artifact_sha256: reviewedOutfitSha256, ...decisions },
+      },
+    },
+  }));
+
+  await sharp({ create: { width: 100, height: 125, channels: 3, background: '#ffffff' } })
+    .composite([{
+      input: { create: { width: 8, height: 8, channels: 3, background: '#111111' } },
+      left: 46,
+      top: 62,
+    }])
+    .flatten({ background: '#ffffff' })
+    .removeAlpha()
+    .png()
+    .toFile(avatarPath);
+
+  const summary = await verifyOutput({ outputDir: root, visualReviewPath: reviewPath });
+  assert.equal(summary.status, STATUS.NEEDS_REVIEW);
+  const report = JSON.parse(await readFile(path.join(root, '001', 'qa-report.json'), 'utf8'));
+  const identity = report.artifacts.avatar.notion_criteria.find(
+    (criterion) => criterion.id === 'identity_preservation',
+  );
+  assert.equal(identity.status, STATUS.NEEDS_REVIEW);
+  assert.equal(identity.source, 'visual_review_hash_mismatch');
+  assert.equal(identity.reviewed_artifact_sha256, reviewedAvatarSha256);
+  assert.notEqual(identity.artifact_sha256, reviewedAvatarSha256);
+});
+
+test('unbound semantic fixture can never approve an output', async () => {
+  const root = await outputFixture();
+  await sharp({ create: { width: 100, height: 125, channels: 3, background: '#ffffff' } })
+    .composite([{
+      input: { create: { width: 8, height: 8, channels: 3, background: '#111111' } },
+      left: 46,
+      top: 62,
+    }])
+    .flatten({ background: '#ffffff' })
+    .removeAlpha()
+    .png()
+    .toFile(path.join(root, '001', 'avatar_outfit.png'));
+  const decisions = Object.fromEntries(
+    [
+      'identity_preservation',
+      'frontal_half_body_composition',
+      'studio_lighting',
+      'neutral_white_balance',
+      'face_hair_detail',
+      'photorealism',
+      'outfit_fidelity',
+      'anatomy',
+      'no_residue_or_bleed',
+    ].map((id) => [id, { status: STATUS.PASS, reviewer: 'test-reviewer' }]),
+  );
+  const reviewPath = path.join(root, 'visual-review.json');
+  await writeFile(reviewPath, JSON.stringify({
+    schema_version: QA_SCHEMA_VERSION,
+    reviews: { '001': { avatar: decisions, avatar_outfit: decisions } },
+  }));
+
+  const summary = await verifyOutput({ outputDir: root, visualReviewPath: reviewPath });
+  assert.equal(summary.status, STATUS.NEEDS_REVIEW);
+  const report = JSON.parse(await readFile(path.join(root, '001', 'qa-report.json'), 'utf8'));
+  assert.equal(
+    report.artifacts.avatar.notion_criteria[1].source,
+    'unbound_visual_review',
+  );
 });
 
 test('duplicate pair and dimension mismatch are hard failures', async () => {

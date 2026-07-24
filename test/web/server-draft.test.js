@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { clearDefinitivelyRejectedRunState, createRunFromServerDraft, DraftApiError, isDefinitiveDraftRunRejection } from '../../web/public/server-draft.js';
 
+const EMPTY_FILES = { person: null, identity: null, garments: [] };
+
 test('browser draft finalization includes a supplied idempotency UUID', async (t) => {
   const originalFetch = globalThis.fetch;
   const requests = [];
@@ -16,12 +18,26 @@ test('browser draft finalization includes a supplied idempotency UUID', async (t
 
   const finalizationKey = '20cf6522-43fd-40ad-a8db-615bcdf80e07';
   const sourceAvatarId = '7df0e252-7045-4721-9b95-7bb4935fe79d';
-  await createRunFromServerDraft(finalizationKey, { sourceAvatarId });
-  await createRunFromServerDraft();
+  const sourceLookId = '41cf6522-43fd-40ad-a8db-615bcdf80e07';
+  await createRunFromServerDraft(finalizationKey, {
+    sourceAvatarId,
+    sourceLookId,
+    fileManifest: EMPTY_FILES,
+  });
+  await createRunFromServerDraft(undefined, { fileManifest: EMPTY_FILES });
 
   assert.equal(requests[0].url, '/api/draft/run');
-  assert.deepEqual(JSON.parse(requests[0].options.body), { consent: true, finalization_key: finalizationKey, source_avatar_id: sourceAvatarId });
-  assert.deepEqual(JSON.parse(requests[1].options.body), { consent: true });
+  assert.deepEqual(JSON.parse(requests[0].options.body), {
+    consent: true,
+    finalization_key: finalizationKey,
+    source_avatar_id: sourceAvatarId,
+    source_look_id: sourceLookId,
+    file_manifest: { version: 1, ...EMPTY_FILES },
+  });
+  assert.deepEqual(JSON.parse(requests[1].options.body), {
+    consent: true,
+    file_manifest: { version: 1, ...EMPTY_FILES },
+  });
 });
 
 test('browser draft finalization aborts a hung request so reload recovery can take over', async (t) => {
@@ -31,7 +47,10 @@ test('browser draft finalization aborts a hung request so reload recovery can ta
   });
   t.after(() => { globalThis.fetch = originalFetch; });
   await assert.rejects(
-    () => createRunFromServerDraft('20cf6522-43fd-40ad-a8db-615bcdf80e07', { timeoutMs: 2 }),
+    () => createRunFromServerDraft('20cf6522-43fd-40ad-a8db-615bcdf80e07', {
+      timeoutMs: 2,
+      fileManifest: EMPTY_FILES,
+    }),
     /timed out/,
   );
 });
@@ -48,7 +67,9 @@ test('a definitive 4xx finalization response is not eligible for run polling', a
 
   let rejectedError;
   await assert.rejects(
-    () => createRunFromServerDraft('20cf6522-43fd-40ad-a8db-615bcdf80e07'),
+    () => createRunFromServerDraft('20cf6522-43fd-40ad-a8db-615bcdf80e07', {
+      fileManifest: EMPTY_FILES,
+    }),
     (error) => {
       rejectedError = error;
       assert.ok(error instanceof DraftApiError);

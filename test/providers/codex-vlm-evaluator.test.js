@@ -31,6 +31,18 @@ test('Codex evaluator uses ephemeral read-only strict-schema execution and retur
   }, calls) });
   const result = await evaluator.evaluateQa({ phase: 'avatar', evidence: { identity: { artifact: { path: filename } }, candidate: { artifact: { path: filename } } } });
   assert.equal(result.decision, 'PASS');
+  assert.deepEqual(result.evaluator, {
+    type: 'MODEL',
+    provider: 'openai-codex-cli',
+    model: 'gpt-5.6-terra',
+    version: 'gpt-5.6-terra',
+    evaluation_id: result.evaluator.evaluation_id,
+  });
+  assert.match(result.evaluator.evaluation_id, /^[a-f0-9]{64}$/);
+  assert.equal(result.prepared_evidence.length, 1);
+  assert.deepEqual(result.prepared_evidence[0].roles, ['IDENTITY_REFERENCE', 'GENERATED_CANDIDATE']);
+  assert.equal(result.prepared_evidence[0].source_bindings.length, 2);
+  assert.match(result.prepared_evidence[0].prepared_sha256, /^[a-f0-9]{64}$/);
   assert.equal(calls.length, 1);
   assert.ok(calls[0].args.includes('--ephemeral'));
   assert.ok(calls[0].args.includes('read-only'));
@@ -85,6 +97,8 @@ test('Codex evaluator fails closed when the CLI cannot produce evidence', async 
   const result = await evaluator.evaluateQa({ phase: 'avatar', evidence: { candidate: { artifact: { path: filename } } } });
   assert.equal(result.decision, 'NEEDS_INPUT');
   assert.match(result.reason, /not authenticated/);
+  assert.equal(result.evaluator.type, 'MODEL');
+  assert.match(result.evaluator.evaluation_id, /^[a-f0-9]{64}$/);
 });
 
 test('garment QA infrastructure failure is retryable and never claims raw evidence is missing', async () => {
@@ -93,6 +107,12 @@ test('garment QA infrastructure failure is retryable and never claims raw eviden
   const result = await evaluator.evaluateQa({ phase: 'garment', evidence: { candidate: { artifact: { path: filename } } } });
   assert.equal(result.decision, 'RETRY');
   assert.match(result.reason, /temporary evaluator outage/);
+  assert.equal(result.evaluator.version, 'gpt-5.6-terra');
+});
+
+test('Codex evaluator rejects ambiguous model aliases before executing QA', () => {
+  assert.throws(() => new CodexVlmEvaluator({ model: 'latest' }), /exact non-ambiguous version/);
+  assert.throws(() => new CodexVlmEvaluator({ model: 'unknown' }), /exact non-ambiguous version/);
 });
 
 test('garment QA prompt preserves raw-versus-generated roles and decision semantics', async () => {
@@ -155,4 +175,52 @@ test('outfit QA redacts incidental local metadata from authoritative user text',
   const prompt = calls[0].args[1];
   assert.match(prompt, /ATTACHED_REFERENCE/);
   assert.doesNotMatch(prompt, /\/Users\/|local-user|\bzeely\b/i);
+});
+
+test('outfit QA attaches every bound pack view and quality reference without silent truncation', async () => {
+  const colors = [
+    '#101820', '#243b53', '#334e68', '#486581', '#627d98', '#829ab1', '#9fb3c8',
+    '#bcccdc', '#d9e2ec', '#102a43', '#1f7a8c', '#bfdbf7', '#e1e5f2', '#ffb703',
+  ];
+  const images = await Promise.all(colors.map((color, index) => (
+    imageFixture(color, `bound-${String(index + 1).padStart(2, '0')}.png`)
+  )));
+  const calls = [];
+  const evaluator = new CodexVlmEvaluator({ commandRunner: runnerFor({
+    decision: 'PASS',
+    reason: 'every bound image is visibly supported',
+    checks: [{
+      name: 'ALL_BOUND_REFERENCES',
+      pass: true,
+      score: 0.97,
+      evidence: 'All identity, avatar, outfit, source, pack, and quality images are attached.',
+    }],
+    defects: [],
+  }, calls) });
+  const result = await evaluator.evaluateQa({
+    phase: 'outfit',
+    evidence: {
+      identity: { artifact: { path: images[0] } },
+      avatar: { artifact: { path: images[1] } },
+      outfit: { artifact: { path: images[2] } },
+      candidate: { artifact: { path: images[3] } },
+      source_identity: images[4],
+      source_outfit: images[5],
+      reference_packs: {
+        identity: {
+          bindings: images.slice(6, 8).map((filename) => ({ path: filename })),
+        },
+        outfit: {
+          bindings: images.slice(8, 13).map((filename) => ({ path: filename })),
+        },
+      },
+      quality_references: [images[13]],
+    },
+  });
+
+  assert.equal(result.decision, 'PASS');
+  assert.equal(calls[0].args.filter((value) => value === '--image').length, 14);
+  assert.equal(result.prepared_evidence.length, 14);
+  assert.ok(result.prepared_evidence.some((entry) => entry.role === 'OUTFIT_REFERENCE_5'));
+  assert.ok(result.prepared_evidence.some((entry) => entry.role === 'QUALITY_REFERENCE_1'));
 });

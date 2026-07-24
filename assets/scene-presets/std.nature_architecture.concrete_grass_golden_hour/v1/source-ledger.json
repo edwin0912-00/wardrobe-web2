@@ -1,0 +1,63 @@
+{
+  "created_at": "2026-07-23T09:40:00Z",
+  "ledger_id": "ledger.std.nature_architecture.concrete_grass_golden_hour.v1",
+  "preset_id": "std.nature_architecture.concrete_grass_golden_hour",
+  "preset_version": "1.0.0",
+  "revision": 1,
+  "schema_version": "1.0.0",
+  "sources": [
+    {
+      "content_sha256": "9130e382eccb609d98847141ea8505cf505e16d8ce92fef9ad299341a7dc48a4",
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit",
+        "brands",
+        "readable_text",
+        "exact_architecture"
+      ],
+      "retrieved_at": "2026-07-23T09:40:00Z",
+      "rights": {
+        "basis": "LICENSED",
+        "evidence_sha256": "f9091e2efd8927320c4cc5c72508d48f61a9413eefa3466ff1763d64b8cc45e4",
+        "evidence_uri": "evidence/licenses/pexels-license-2026-07-23.md",
+        "rights_holder": "joao Guerreiro via Pexels license",
+        "status": "VERIFIED",
+        "verified_at": "2026-07-23T09:40:00Z"
+      },
+      "role": "environment_and_composition_inspiration",
+      "snapshot_uri": "evidence/scene-sources/pexels.17191701.json",
+      "source_id": "pexels.17191701",
+      "url": "https://www.pexels.com/photo/man-taking-a-picture-of-ornamental-grass-under-an-elevated-road-17191701/",
+      "use": "concrete and ornamental-grass relationship without road or underpass cues"
+    },
+    {
+      "content_sha256": "d458eeeff5ae9c49e7c861dee867d57b1652d9414906a6ba70e6bc8e0630e50e",
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit",
+        "brands",
+        "readable_text",
+        "exact_architecture"
+      ],
+      "retrieved_at": "2026-07-23T09:40:00Z",
+      "rights": {
+        "basis": "LICENSED",
+        "evidence_sha256": "f9091e2efd8927320c4cc5c72508d48f61a9413eefa3466ff1763d64b8cc45e4",
+        "evidence_uri": "evidence/licenses/pexels-license-2026-07-23.md",
+        "rights_holder": "Lissaa Spiridonova via Pexels license",
+        "status": "VERIFIED",
+        "verified_at": "2026-07-23T09:40:00Z"
+      },
+      "role": "environment_material_inspiration",
+      "snapshot_uri": "evidence/scene-sources/pexels.35133173.json",
+      "source_id": "pexels.35133173",
+      "url": "https://www.pexels.com/photo/scenic-garden-pathway-at-sunset-35133173/",
+      "use": "secondary dry-grass palette and low warm-light behavior only"
+    }
+  ],
+  "status": "VERIFIED_FOR_RELEASE"
+}

@@ -1,0 +1,88 @@
+{
+  "camera": {
+    "aspect_ratio": "4:5",
+    "height": "eye_level",
+    "lens_mm": 65,
+    "max_vertical_error_deg": 1,
+    "minimum_clear_space_percent": {
+      "above_hair": 8,
+      "below_footwear": 2
+    },
+    "subject_height_percent": [
+      74,
+      78
+    ]
+  },
+  "environment": "An original optical-white seamless studio with a newly designed geometric window-lattice light pattern on the wall and floor.",
+  "family": "light_studio",
+  "hard_negatives": [
+    "pattern across eyes",
+    "pattern across logos",
+    "prison bars",
+    "zebra stripes",
+    "blown white",
+    "random geometry",
+    "invented text"
+  ],
+  "lighting": {
+    "fill": "cool skylight fill preserving eye and item detail",
+    "finish": "polished_editorial_gloss_without_skin_smoothing_or_hdr",
+    "key": "hard warm morning light through a geometric honeycomb lattice, coherent on wall, floor and part of the face",
+    "protected_regions": [
+      "eyes",
+      "lips",
+      "face_identity",
+      "item_logos",
+      "item_text",
+      "critical_construction"
+    ],
+    "time_or_setup": "early-morning hard window gobo"
+  },
+  "mvp_assets": [
+    "mood_card"
+  ],
+  "palette": [
+    "optical white",
+    "warm sun",
+    "cool pearl shadow",
+    "neutral skin"
+  ],
+  "post_selection_assets": [
+    "environment_plate",
+    "lighting_preview"
+  ],
+  "preset_id": "std.studio.white_window_honeycomb",
+  "prompt_path": "prompts/scenes/std.studio.white_window_honeycomb.txt",
+  "source_authorities": [
+    {
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit",
+        "brands",
+        "readable_text",
+        "exact_architecture"
+      ],
+      "role": "lighting_composition_palette_inspiration",
+      "url": "https://www.pexels.com/photo/a-woman-in-red-long-sleeve-dress-14001742/",
+      "use": "clean white studio depth and full-body composition only"
+    },
+    {
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit",
+        "brands",
+        "readable_text",
+        "exact_architecture"
+      ],
+      "role": "lighting_composition_palette_inspiration",
+      "url": "https://www.pexels.com/photo/woman-in-pink-cardigan-7506932/",
+      "use": "soft fill level and restrained beauty finish only"
+    }
+  ],
+  "ui_name_uk": "Студія — віконне соте світло",
+  "version": "1.0.0"
+}

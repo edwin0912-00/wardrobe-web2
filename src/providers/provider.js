@@ -19,6 +19,9 @@ const REQUIRED_METHODS = ['condition', 'qa', 'generate'];
  *   //               bindingOrder?, packPath?, packSha256? }]
  *   // `ordered` is the only provider-media order; REFERENCE_PACK entries always
  *   // include their pack-local binding order and immutable pack identity.
+ *   // Scene repair uses one typed `{ scope: 'scene',
+ *   // role: 'FAILED_SCENE_CANDIDATE', source: 'REPAIR_CANDIDATE' }` directly
+ *   // after the approved look. It is never silently relabeled as outfit input.
  *   // context.workDirectory is the durable per-run root for provider journals;
  *   // context.idempotencyKey is a lowercase SHA-256 operation identity.
  *   image: Buffer | Uint8Array | { path } | { base64 },

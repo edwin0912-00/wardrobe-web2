@@ -104,15 +104,21 @@ function orderedPackDescriptors(phase, references) {
         retryable: false,
       });
     }
-    if (!['identity', 'outfit', 'avatar'].includes(binding.scope)) {
+    if (!['identity', 'outfit', 'avatar', 'scene'].includes(binding.scope)) {
       throw new HiggsfieldProviderError(`Unsupported ordered reference scope: ${binding.scope}`, {
         code: 'INVALID_ORDERED_REFERENCES',
         retryable: false,
       });
     }
-    if (!['REFERENCE_PACK', 'CONDITIONED', 'APPROVED_AVATAR'].includes(binding.source)) {
+    if (!['REFERENCE_PACK', 'CONDITIONED', 'APPROVED_AVATAR', 'REPAIR_CANDIDATE'].includes(binding.source)) {
       throw new HiggsfieldProviderError(`Unsupported ordered reference source: ${binding.source}`, {
         code: 'INVALID_ORDERED_REFERENCES',
+        retryable: false,
+      });
+    }
+    if ((binding.scope === 'scene') !== (binding.source === 'REPAIR_CANDIDATE')) {
+      throw new HiggsfieldProviderError('A scene-scoped binding must be the explicit repair candidate, and repair candidates may use no other scope', {
+        code: 'INVALID_SCENE_REPAIR_BINDING',
         retryable: false,
       });
     }
@@ -185,6 +191,31 @@ function orderedPackDescriptors(phase, references) {
   if (phase === 'scene' && result[0]?.scope !== 'avatar') {
     throw new HiggsfieldProviderError('Scene generation must begin with the approved outfit still', {
       code: 'MISSING_APPROVED_OUTFIT',
+      retryable: false,
+    });
+  }
+  if (phase === 'scene' && result.slice(1).some((item) => item.scope === 'avatar')) {
+    throw new HiggsfieldProviderError('The approved outfit may appear only once and first in scene generation', {
+      code: 'INVALID_SCENE_REFERENCE_ORDER',
+      retryable: false,
+    });
+  }
+  const repairBindings = result.filter((item) => item.scope === 'scene');
+  if (phase !== 'scene' && repairBindings.length > 0) {
+    throw new HiggsfieldProviderError('A failed-scene repair candidate is valid only during scene generation', {
+      code: 'INVALID_SCENE_REPAIR_BINDING',
+      retryable: false,
+    });
+  }
+  if (phase === 'scene' && (
+    repairBindings.length > 1
+    || (repairBindings.length === 1 && (
+      result[1] !== repairBindings[0]
+      || repairBindings[0].role !== 'FAILED_SCENE_CANDIDATE'
+    ))
+  )) {
+    throw new HiggsfieldProviderError('Scene repair accepts at most one FAILED_SCENE_CANDIDATE immediately after the approved look', {
+      code: 'INVALID_SCENE_REPAIR_BINDING',
       retryable: false,
     });
   }
@@ -566,6 +597,85 @@ function sha256Json(value) {
   return createHash('sha256').update(JSON.stringify(value)).digest('hex');
 }
 
+function adapterEvaluator(context, decision, model = 'qa-adapter') {
+  const core = {
+    type: 'ADAPTER',
+    provider: 'higgsfield-cli-provider',
+    model,
+    version: '1.0.0',
+    phase: context?.phase ?? null,
+    attempt: Number.isInteger(context?.attempt) ? context.attempt : null,
+    idempotency_key: context?.idempotencyKey ?? null,
+    evidence_manifest_sha256: context?.evidence_manifest_sha256 ?? null,
+    decision,
+  };
+  return {
+    type: core.type,
+    provider: core.provider,
+    model: core.model,
+    version: core.version,
+    evaluation_id: sha256Json(core),
+  };
+}
+
+function validateQaDecision(value, context) {
+  if (!value || !['PASS', 'RETRY', 'NEEDS_INPUT', 'REJECT'].includes(value.decision)) {
+    throw new HiggsfieldProviderError('QA evaluator returned an invalid decision', {
+      code: 'INVALID_QA_DECISION',
+      retryable: false,
+    });
+  }
+  const checksValid = Array.isArray(value.checks)
+    && value.checks.length > 0
+    && value.checks.every((check) => (
+      check
+      && typeof check.name === 'string'
+      && check.name.trim() !== ''
+      && typeof check.pass === 'boolean'
+      && typeof check.score === 'number'
+      && check.score >= 0
+      && check.score <= 1
+      && typeof check.evidence === 'string'
+      && check.evidence.trim() !== ''
+    ));
+  if (typeof value.reason !== 'string' || value.reason.trim() === '' || !checksValid || !Array.isArray(value.defects)) {
+    throw new HiggsfieldProviderError('QA evaluator returned incomplete evidence', {
+      code: 'INVALID_QA_EVIDENCE',
+      retryable: false,
+    });
+  }
+  if (value.decision === 'PASS' && (value.checks.some((check) => !check.pass) || value.defects.length > 0)) {
+    throw new HiggsfieldProviderError('QA evaluator returned an internally contradictory PASS', {
+      code: 'INVALID_QA_PASS',
+      retryable: false,
+    });
+  }
+  const evaluator = value.evaluator;
+  const ambiguous = /^(?:latest|current|unknown|unattested)$/i;
+  const evaluatorValid = evaluator
+    && ['MODEL', 'FIXTURE', 'REPLAY', 'ADAPTER', 'IMPORTED_RECEIPT'].includes(evaluator.type)
+    && ['provider', 'model', 'version'].every((field) => (
+      typeof evaluator[field] === 'string'
+      && evaluator[field].trim() !== ''
+      && !ambiguous.test(evaluator[field].trim())
+    ))
+    && typeof evaluator.evaluation_id === 'string'
+    && SHA256.test(evaluator.evaluation_id);
+  if (!evaluatorValid) {
+    if (value.decision !== 'PASS') {
+      return {
+        ...value,
+        evaluator: adapterEvaluator(context, value.decision, 'external-qa-failure-adapter'),
+      };
+    }
+    throw new HiggsfieldProviderError('QA PASS is missing exact evaluator attestation', {
+      code: 'INVALID_QA_EVALUATOR_ATTESTATION',
+      retryable: false,
+    });
+  }
+  return value;
+}
+
 async function readProviderJournal(filename) {
   try {
     const bytes = await readFile(filename);
@@ -875,8 +985,8 @@ export class HiggsfieldCliProvider {
     } catch (error) {
       if (error instanceof HiggsfieldProviderError) {
         if (operation === 'create') {
-          throw new HiggsfieldProviderError('Higgsfield create outcome is unknown; refusing an automatic duplicate', {
-            code: 'CREATE_OUTCOME_UNKNOWN',
+          throw new HiggsfieldProviderError('Higgsfield generation was not confirmed; it was not retried automatically', {
+            code: 'CREATE_NOT_CONFIRMED',
             retryable: false,
             cause: error,
           });
@@ -890,10 +1000,15 @@ export class HiggsfieldCliProvider {
       });
     }
     if (!commandResult || (commandResult.exitCode ?? 0) !== 0) {
-      throw new HiggsfieldProviderError(`Higgsfield CLI ${operation} exited unsuccessfully`, {
-        code: operation === 'create' ? 'CREATE_OUTCOME_UNKNOWN' : 'CLI_NONZERO_EXIT',
+      throw new HiggsfieldProviderError(
+        operation === 'create'
+          ? 'Higgsfield generation was not confirmed; it was not retried automatically'
+          : `Higgsfield CLI ${operation} exited unsuccessfully`,
+        {
+        code: operation === 'create' ? 'CREATE_NOT_CONFIRMED' : 'CLI_NONZERO_EXIT',
         retryable: operation === 'create' ? false : retryable,
-      });
+        },
+      );
     }
     return commandResult;
   }
@@ -1223,21 +1338,21 @@ export class HiggsfieldCliProvider {
 
   async qa(context) {
     if (!this.qaEvaluator) {
-      return {
+      return validateQaDecision({
         decision: 'NEEDS_INPUT',
-        checks: [{ name: 'EXTERNAL_QA_CONFIGURED', pass: false }],
+        checks: [{
+          name: 'EXTERNAL_QA_CONFIGURED',
+          pass: false,
+          score: 0,
+          evidence: 'No production semantic evaluator is configured',
+        }],
         defects: ['No production QA evaluator is configured'],
         reason: 'higgsfield_provider_does_not_auto_approve_semantic_quality',
-      };
+        evaluator: adapterEvaluator(context, 'NEEDS_INPUT', 'no-semantic-evaluator'),
+      }, context);
     }
     const decision = await this.qaEvaluator(context);
-    if (!decision || !['PASS', 'RETRY', 'NEEDS_INPUT', 'REJECT'].includes(decision.decision)) {
-      throw new HiggsfieldProviderError('QA evaluator returned an invalid decision', {
-        code: 'INVALID_QA_DECISION',
-        retryable: false,
-      });
-    }
-    return decision;
+    return validateQaDecision(decision, context);
   }
 }
 

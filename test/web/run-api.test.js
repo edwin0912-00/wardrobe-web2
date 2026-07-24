@@ -3,6 +3,7 @@ import test from 'node:test';
 import FormData from 'form-data';
 import sharp from 'sharp';
 import { createWebApp } from '../../src/web/app.js';
+import { InputNeedsInputError } from '../../src/web/run-service.js';
 
 test('web API accepts a new multipart user flow without job JSON editing', async () => {
   let received;
@@ -15,6 +16,7 @@ test('web API accepts a new multipart user flow without job JSON editing', async
   const image = await sharp({ create: { width: 300, height: 400, channels: 3, background: '#ffffff' } }).png().toBuffer();
   const form = new FormData();
   form.append('person_photo', image, { filename: 'person.png', contentType: 'image/png' });
+  form.append('identity_detail', image, { filename: 'identity.png', contentType: 'image/png' });
   form.append('garment_images', image, { filename: 'look.png', contentType: 'image/png' });
   form.append('outfit_text', 'keep every reference item');
   form.append('generate_scene', 'false');
@@ -23,8 +25,60 @@ test('web API accepts a new multipart user flow without job JSON editing', async
   assert.equal(response.statusCode, 202);
   assert.equal(response.json().run_id, 'fresh-run');
   assert.equal(received.garments.length, 1);
+  assert.equal(received.identityDetail.filename, 'identity.png');
+  assert.deepEqual(received.identityDetail.buffer, image);
   assert.equal(received.outfitText, 'keep every reference item');
   assert.equal(received.generateScene, false);
+  await app.close();
+});
+
+test('web API exposes invalid input as structured NEEDS_INPUT', async () => {
+  let calls = 0;
+  const service = {
+    createRun: async () => {
+      calls += 1;
+      throw new InputNeedsInputError(
+        'IMAGE_DECODE_FAILED',
+        'Фото людини is not a decodable image',
+        {
+          field: 'Фото людини',
+          requirements: ['valid, non-corrupt image bytes'],
+        },
+      );
+    },
+    getRun: async () => null,
+    subscribe: () => () => {},
+    outputFile: async () => null,
+    retry: async () => null,
+    selectGarments: async () => null,
+    garmentSourceFile: async () => null,
+    deleteRun: async () => {},
+  };
+  const app = await createWebApp({ service });
+  const form = new FormData();
+  form.append('person_photo', Buffer.from('not-an-image'), {
+    filename: 'person.png',
+    contentType: 'image/png',
+  });
+  form.append('outfit_text', 'black top');
+  form.append('consent', 'true');
+
+  const response = await app.inject({
+    method: 'POST',
+    url: '/api/runs',
+    headers: form.getHeaders(),
+    payload: form.getBuffer(),
+  });
+  assert.equal(calls, 1);
+  assert.equal(response.statusCode, 422);
+  assert.deepEqual(response.json(), {
+    error: 'Фото людини is not a decodable image',
+    status: 'NEEDS_INPUT',
+    code: 'IMAGE_DECODE_FAILED',
+    field: 'Фото людини',
+    requirements: ['valid, non-corrupt image bytes'],
+    next_action: 'REPLACE_INPUT',
+  });
   await app.close();
 });
 

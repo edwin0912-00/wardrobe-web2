@@ -6,12 +6,17 @@ PROJECT_ROOT="${SCRIPT_DIR:h}"
 PRIVATE_DIR="$PROJECT_ROOT/runtime/private"
 
 umask 077
-mkdir -p "$PROJECT_ROOT/runtime/logs" "$PROJECT_ROOT/runtime/monitor"
+mkdir -p "$PRIVATE_DIR" "$PROJECT_ROOT/runtime/logs" "$PROJECT_ROOT/runtime/monitor"
 
-export PATH="/Users/jarvis1/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
+export PATH="${HOME}/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
 export MONITOR_PORT="4174"
-export ZEELY_SOURCE_ROOT="/Users/jarvis1/Documents/Codex/2026-07-19/mvp-zeely-format-html5-1-2"
-export ZEELY_SUPERVISOR_AGENT="true"
+if [[ -s "$PRIVATE_DIR/source-root" ]]; then
+  export ZEELY_SOURCE_ROOT="$(<"$PRIVATE_DIR/source-root")"
+  export ZEELY_SUPERVISOR_AGENT="${ZEELY_SUPERVISOR_AGENT:-true}"
+else
+  export ZEELY_SOURCE_ROOT="$PROJECT_ROOT"
+  export ZEELY_SUPERVISOR_AGENT="${ZEELY_SUPERVISOR_AGENT:-false}"
+fi
 # Public testing mode. Existing secret files remain untouched for a later
 # one-line restoration of the PIN gate.
 unset ZEELY_DEMO_PIN ZEELY_SESSION_SECRET ZEELY_COOKIE_SECURE

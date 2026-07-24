@@ -1,4 +1,4 @@
-export const QA_SCHEMA_VERSION = '1.0.0';
+export const QA_SCHEMA_VERSION = '1.1.0';
 
 export const STATUS = Object.freeze({
   PASS: 'PASS',
@@ -64,4 +64,3 @@ export const VISUAL_CRITERION_IDS = Object.freeze(
     .filter((criterion) => criterion.evaluation_mode !== 'automatic')
     .map((criterion) => criterion.id),
 );
-

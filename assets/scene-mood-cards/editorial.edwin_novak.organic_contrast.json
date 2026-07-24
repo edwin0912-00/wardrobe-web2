@@ -1,0 +1,41 @@
+{
+  "schema_version": "1.0.0",
+  "preset_id": "editorial.edwin_novak.organic_contrast",
+  "kind": "editorial",
+  "family": "edwin_novak",
+  "ui_name_uk": "Органічний контраст",
+  "asset_role": "mood_card",
+  "file": "assets/scene-mood-cards/editorial.edwin_novak.organic_contrast.webp",
+  "sha256": "5dfc99e1dc83a38e61c134c8aa014ba04a4c9ddac5cbc1f2ca115101bd712f6d",
+  "prompt_path": "prompts/scenes/editorial.edwin_novak.organic_contrast.txt",
+  "prompt_sha256": "456880cf6a188dea8d5e8795a1449ca28b3167a3892f5d9ec94df508a267f475",
+  "generation": {
+    "provider_path": "codex_builtin_imagegen",
+    "model_family": "gpt-image-2",
+    "model_version": "builtin-current",
+    "source_width": 1122,
+    "source_height": 1402,
+    "crop_position": "centre",
+    "reframe": {
+      "method": "deterministic_4x5_extract",
+      "input_sha256": "7875cc367768274ddd0a380652d84b4f2710c2dcdb1de5736cf8031eaf65740f",
+      "source_width": 1024,
+      "source_height": 1280,
+      "crop_px": {
+        "left": 200,
+        "top": 340,
+        "width": 624,
+        "height": 780
+      }
+    }
+  },
+  "delivery": {
+    "width": 1024,
+    "height": 1280,
+    "format": "webp",
+    "aspect_ratio": "4:5"
+  },
+  "contains_personal_input": false,
+  "approval": "PENDING_VISUAL_JUDGE",
+  "created_at": "2026-07-22T23:47:46.318Z"
+}

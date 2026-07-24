@@ -3,8 +3,6 @@ import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
-import FormData from 'form-data';
-import sharp from 'sharp';
 import { createWebApp } from '../../src/web/app.js';
 import { DraftService } from '../../src/web/draft-service.js';
 import { ProfileService } from '../../src/web/profile-service.js';
@@ -18,6 +16,21 @@ function cookiePair(response, name) {
   const cookie = responseCookies(response).find((value) => value.startsWith(`${name}=`));
   assert.ok(cookie, `response must set ${name}`);
   return cookie.split(';')[0];
+}
+
+function fileManifest(manifest) {
+  const binding = (item) => item ? {
+    id: item.id,
+    sha256: item.sha256,
+    size: item.size,
+    mimetype: item.mimetype,
+  } : null;
+  return {
+    version: 1,
+    person: binding(manifest.person),
+    identity: binding(manifest.identity),
+    garments: manifest.garments.map(binding),
+  };
 }
 
 async function fixture(t) {
@@ -152,36 +165,104 @@ test('draft finalization resolves a saved source avatar, forwards its approved r
   });
   assert.equal(savedSource.statusCode, 201, savedSource.body);
   const sourceAvatarId = savedSource.json().avatar.avatar_id;
+  const sourceLookId = savedSource.json().look.look_id;
 
   const draft = await app.inject({ method: 'GET', url: '/api/draft', headers: { cookie: profileCookie } });
   const draftCookie = cookiePair(draft, 'zeely_draft_session');
   const browserCookies = `${profileCookie}; ${draftCookie}`;
-  const personBytes = await sharp({
-    create: { width: 320, height: 400, channels: 3, background: '#365773' },
-  }).jpeg().toBuffer();
-  const person = new FormData();
-  person.append('file', personBytes, { filename: 'person.jpg', contentType: 'image/jpeg' });
-  const uploaded = await app.inject({
+  assert.equal(draft.json().draft_mode, 'NEW_AVATAR');
+
+  const unboundFinalization = await app.inject({
     method: 'POST',
-    url: '/api/draft/file/person',
-    headers: { ...person.getHeaders(), cookie: browserCookies },
-    payload: person.getBuffer(),
+    url: '/api/draft/run',
+    headers: { cookie: browserCookies, 'content-type': 'application/json' },
+    payload: {
+      consent: true,
+      source_avatar_id: sourceAvatarId,
+      file_manifest: fileManifest(draft.json()),
+    },
   });
-  assert.equal(uploaded.statusCode, 201, uploaded.body);
+  assert.equal(unboundFinalization.statusCode, 409, unboundFinalization.body);
+  assert.equal(unboundFinalization.json().code, 'DRAFT_INTENT_NOT_BOUND');
+  assert.equal(createInputs.length, 0);
+
   const metadata = await app.inject({
     method: 'PUT',
     url: '/api/draft/meta',
     headers: { cookie: browserCookies, 'content-type': 'application/json' },
-    payload: { outfit_text: 'precise saved-avatar look', generate_scene: false },
+    payload: {
+      outfit_text: 'precise saved-avatar look',
+      generate_scene: false,
+      source_avatar_id: sourceAvatarId,
+      source_look_id: sourceLookId,
+    },
   });
   assert.equal(metadata.statusCode, 200, metadata.body);
+  assert.equal(metadata.json().draft_mode, 'ADD_ITEMS');
+  assert.equal(metadata.json().source_avatar_id, sourceAvatarId);
+  assert.equal(metadata.json().source_look_id, sourceLookId);
+  const refreshedCookies = responseCookies(metadata);
+  assert.ok(refreshedCookies.some((value) => value.startsWith('__Host-zeely_profile=')));
+  assert.ok(refreshedCookies.some((value) => value.startsWith('zeely_draft_session=')));
+
+  for (const [payload, expectedCode] of [
+    [{
+      outfit_text: 'lost browser binding',
+      source_avatar_id: null,
+      source_look_id: null,
+    }, 'DRAFT_SOURCE_IMMUTABLE'],
+    [{
+      outfit_text: 'stale browser state',
+      draft_mode: 'NEW_AVATAR',
+      source_avatar_id: null,
+      source_look_id: null,
+    }, 'DRAFT_MODE_IMMUTABLE'],
+  ]) {
+    const downgrade = await app.inject({
+      method: 'PUT',
+      url: '/api/draft/meta',
+      headers: { cookie: browserCookies, 'content-type': 'application/json' },
+      payload,
+    });
+    assert.equal(downgrade.statusCode, 409, downgrade.body);
+    assert.equal(downgrade.json().code, expectedCode);
+  }
+  const stillBound = await app.inject({ method: 'GET', url: '/api/draft', headers: { cookie: browserCookies } });
+  assert.equal(stillBound.json().draft_mode, 'ADD_ITEMS');
+  assert.equal(stillBound.json().source_avatar_id, sourceAvatarId);
+  assert.equal(stillBound.json().source_look_id, sourceLookId);
 
   const finalizationKey = '20cf6522-43fd-40ad-a8db-615bcdf80e07';
+  for (const rejectedLineage of [
+    { source_avatar_id: null },
+    { source_avatar_id: '41cf6522-43fd-40ad-a8db-615bcdf80e07' },
+    { draft_mode: 'NEW_AVATAR' },
+  ]) {
+    const rejected = await app.inject({
+      method: 'POST',
+      url: '/api/draft/run',
+      headers: { cookie: browserCookies, 'content-type': 'application/json' },
+      payload: {
+        consent: true,
+        finalization_key: finalizationKey,
+        file_manifest: fileManifest(stillBound.json()),
+        ...rejectedLineage,
+      },
+    });
+    assert.equal(rejected.statusCode, 409, rejected.body);
+    assert.match(rejected.json().code, /^DRAFT_(SOURCE|MODE)_IMMUTABLE$/);
+    assert.equal(createInputs.length, 0);
+  }
+
   const created = await app.inject({
     method: 'POST',
     url: '/api/draft/run',
     headers: { cookie: browserCookies, 'content-type': 'application/json' },
-    payload: { consent: true, finalization_key: finalizationKey, source_avatar_id: sourceAvatarId },
+    payload: {
+      consent: true,
+      finalization_key: finalizationKey,
+      file_manifest: fileManifest(metadata.json()),
+    },
   });
   assert.equal(created.statusCode, 202, created.body);
   assert.equal(created.json().run_id, finalizationKey);
@@ -190,13 +271,26 @@ test('draft finalization resolves a saved source avatar, forwards its approved r
   assert.equal(createInputs.length, 1);
   assert.strictEqual(createInputs[0].approvedAvatarReference, approvedReference);
   assert.equal(createInputs[0].runId, finalizationKey);
-  assert.deepEqual(createInputs[0].person.buffer, personBytes);
+  assert.deepEqual(createInputs[0].person.buffer, Buffer.from('avatar:legacy-avatar-source'));
+  assert.equal(createInputs[0].person.preparation.method, 'VERIFIED_SERVER_OUTPUT');
+  assert.equal(createInputs[0].identityDetail, null);
   assert.equal(createInputs[0].outfitText, 'precise saved-avatar look');
 
   const claim = profiles.getClaim(profileId, finalizationKey);
   assert.ok(claim, 'the deterministic run must be claimed during finalization');
   assert.equal(claim.source_avatar_id, sourceAvatarId);
+  assert.equal(claim.source_look_id, sourceLookId);
   const ownerStatus = await app.inject({ method: 'GET', url: `/api/runs/${finalizationKey}`, headers: { cookie: profileCookie } });
   assert.equal(ownerStatus.statusCode, 200, ownerStatus.body);
   assert.equal(ownerStatus.json().run_id, finalizationKey);
+
+  await addCompletedRun(finalizationKey);
+  const savedDerived = await app.inject({
+    method: 'POST',
+    url: `/api/profile/runs/${finalizationKey}/save`,
+    headers: { cookie: profileCookie },
+  });
+  assert.equal(savedDerived.statusCode, 201, savedDerived.body);
+  assert.equal(savedDerived.json().look.avatar_id, sourceAvatarId);
+  assert.equal(savedDerived.json().look.parent_look_id, sourceLookId);
 });

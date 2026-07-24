@@ -1,0 +1,55 @@
+{
+  "preset_id": "std.studio.white_window_honeycomb",
+  "preset_path": "assets/scene-presets/std.studio.white_window_honeycomb/v1/preset.json",
+  "preset_sha256": "51bffa9c9eaf1f5f9e65c346dd8eac9b73cc4aa485150ec7e7f39e8449a0905d",
+  "preset_version": "1.0.0",
+  "production_prompt_path": "prompts/scene-presets/std.studio.white_window_honeycomb/v1/production-scene.txt",
+  "prompt_sha256": "89708f7bff1aa4fcb62ad33b3b2bae9f243cf3679f72683407391497f7a94284",
+  "reference_pack_path": "assets/scene-presets/std.studio.white_window_honeycomb/v1/reference-pack.json",
+  "reference_pack_sha256": "5206a24ab1ccf0aebb438fb734bd165ca206fa1efaae6a067453dfcab71f65ab",
+  "references": [
+    {
+      "media_type": "application/json",
+      "order": 1,
+      "path": "assets/scene-presets/std.studio.white_window_honeycomb/v1/environment-reference.json",
+      "reference_id": "std.studio.white_window_honeycomb.environment",
+      "role": "environment_anchor",
+      "sha256": "a6ab132e87cdb75b7f93e789e4848330b0b89c860acf35caa86a12b1bab1dc8d"
+    },
+    {
+      "media_type": "application/json",
+      "order": 2,
+      "path": "assets/scene-presets/std.studio.white_window_honeycomb/v1/lighting-reference.json",
+      "reference_id": "std.studio.white_window_honeycomb.lighting",
+      "role": "lighting_anchor",
+      "sha256": "458d82e365d6fe8e497f469357b3b4c377e5c571a4ac437e002b7d0d09a26c98"
+    },
+    {
+      "media_type": "application/json",
+      "order": 3,
+      "path": "assets/scene-presets/std.studio.white_window_honeycomb/v1/composition-reference.json",
+      "reference_id": "std.studio.white_window_honeycomb.composition",
+      "role": "composition_anchor",
+      "sha256": "9b1e1b443eeec151edcaea96b16e0a962e6490b8fc0e59c3200809bbc6332e62"
+    },
+    {
+      "media_type": "application/json",
+      "order": 4,
+      "path": "assets/scene-presets/std.studio.white_window_honeycomb/v1/palette-anchor.json",
+      "reference_id": "std.studio.white_window_honeycomb.palette",
+      "role": "palette_anchor",
+      "sha256": "8058d6e1703cc4918a69328b7b7b87e9cd023366cf6d6da297c38424d01ff1fb"
+    },
+    {
+      "media_type": "application/json",
+      "order": 5,
+      "path": "assets/scene-presets/std.studio.white_window_honeycomb/v1/negative-reference.json",
+      "reference_id": "std.studio.white_window_honeycomb.negative",
+      "role": "negative_reference",
+      "sha256": "97cad3ee9d8b6b1dcf2a19a0c034820b3e02fd64951f9ae4be00789b954e6c73"
+    }
+  ],
+  "schema_version": "1.0.0",
+  "source_ledger_path": "assets/scene-presets/std.studio.white_window_honeycomb/v1/source-ledger.json",
+  "source_ledger_sha256": "3d4de8f6d74ac921e7f1736b8d046317fb08bd5cd3e364ff73a3f34fbecb2476"
+}

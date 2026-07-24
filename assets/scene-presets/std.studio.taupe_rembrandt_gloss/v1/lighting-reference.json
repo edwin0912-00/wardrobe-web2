@@ -1,0 +1,18 @@
+{
+  "facts": {
+    "fill": "controlled three-to-one to five-to-one key-fill relationship with a very weak rim",
+    "finish": "polished_editorial_gloss_without_skin_smoothing_or_hdr",
+    "key": "warm elevated key at roughly forty-five degrees forming a small cheek triangle on the shadow side",
+    "protected_regions": [
+      "eyes",
+      "lips",
+      "face_identity",
+      "item_logos",
+      "item_text",
+      "critical_construction"
+    ],
+    "time_or_setup": "controlled Rembrandt studio setup"
+  },
+  "role": "lighting_anchor",
+  "schema_version": "1.0.0"
+}

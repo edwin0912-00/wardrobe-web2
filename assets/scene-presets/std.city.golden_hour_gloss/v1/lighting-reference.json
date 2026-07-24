@@ -1,0 +1,17 @@
+{
+  "facts": {
+    "fill": "cool open-sky ambient fill",
+    "finish": "polished_editorial_gloss_without_skin_smoothing_or_hdr",
+    "key": "low warm side and back sunlight with long coherent shadows and clean highlight roll-off",
+    "protected_regions": [
+      "eyes",
+      "face_identity",
+      "item_logos",
+      "item_text",
+      "critical_construction"
+    ],
+    "time_or_setup": "golden hour"
+  },
+  "role": "lighting_anchor",
+  "schema_version": "1.0.0"
+}

@@ -1,0 +1,17 @@
+{
+  "facts": {
+    "fill": "clean cool ambient room fill",
+    "finish": "polished_editorial_gloss_without_skin_smoothing_or_hdr",
+    "key": "long soft side light with a gentle warm edge and physically coherent contact shadow",
+    "protected_regions": [
+      "eyes",
+      "face_identity",
+      "item_logos",
+      "item_text",
+      "critical_construction"
+    ],
+    "time_or_setup": "early morning through one large window"
+  },
+  "role": "lighting_anchor",
+  "schema_version": "1.0.0"
+}

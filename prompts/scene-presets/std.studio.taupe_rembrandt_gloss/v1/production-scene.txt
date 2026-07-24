@@ -1,0 +1,20 @@
+TASK
+Create one photorealistic dramatic studio fashion portrait using the exact person and complete approved look from LOOK_MASTER inside the dark-taupe seamless set defined by ENVIRONMENT_ANCHOR and LIGHTING_COMPOSITION_ANCHOR.
+
+AUTHORITY
+LOOK_MASTER is the only authority for identity, face, body, hair, every approved clothing item, footwear, bag, accessory, color, material, construction, graphic, logo and readable product text. Preserve every visible fact exactly. The lighting reference has zero identity, body or outfit authority.
+
+SCENE
+Use an original dark-taupe seamless studio with subtle depth and no visible equipment, furniture, smoke, theatre set, labels, watermark, extra person, mannequin or added prop.
+
+LIGHT
+Controlled Rembrandt setup: warm elevated key around forty-five degrees, a small natural light triangle on the shadow-side cheek, controlled 3:1–5:1 fill and a very weak separating rim. Both eyes remain readable. Preserve exact item colors, graphics and construction in the shadows. Add a physically coherent grounded contact shadow.
+
+CAMERA AND FRAMING
+Final delivery is vertical 4:5. Eye-level 70 mm equivalent, straight geometry and no wide-angle distortion. Full body with complete head or approved headwear, complete carried approved item and both shoes. The visible person occupies 74–78% of image height with at least 8% clear taupe background above and 2% floor below.
+
+FINISH
+Luxurious editorial chiaroscuro with natural skin and material texture, restrained champagne highlights and deep taupe separation. No crushed blacks, HDR, bloom, beauty smoothing, pasted edge or silhouette loss.
+
+FAIL CONDITIONS
+Identity drift; removed, changed or invented item; altered logo or text; split lighting; blacked-out eye; crushed product detail; smoke; neon; theatre props; anatomy defect; crop; floating feet; duplicated accessory.

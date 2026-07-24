@@ -1,0 +1,9 @@
+Use case: photorealistic-natural
+Asset type: production environment plate for later full-body fashion compositing
+Primary request: Create an original empty premium concrete-and-dry-grass architectural terrace at golden hour. Environment plate only; no person or mannequin.
+Scene/backdrop: clean invented modern concrete and pale-stone platform with restrained planters of tall dry ornamental grasses, one strong geometric wall/portal and a clear central standing area. Architecture must be generic and non-identifiable, not a real landmark, highway or public park.
+Style/medium: photorealistic luxury fashion campaign location plate, natural concrete pores and grass texture, polished magazine grade without HDR.
+Composition/framing: exact vertical 4:5, 50 mm equivalent, camera no lower than a controlled 5-degree low angle, straight primary verticals, clear central full-body staging zone, safe headroom and visible floor for future contact shadow, no wide-angle distortion.
+Lighting/mood: low warm golden side/back light from camera-right, cool open-sky fill preserving deep clothing detail later, believable long grass and architecture shadows, no flare in the subject zone.
+Color palette: warm pale concrete, muted sand, honey-gold dry grass, cool blue-grey sky fill.
+Constraints: completely empty of people and bodies; no mannequins, animals, cars, roads, highway elements, benches, garden furniture, flowers, wild meadow, signs, readable text, logos, litter, watermarks or borders. Grasses must not obstruct the central future figure or footwear. No orange/teal grade, heavy flare, bloom or fake CGI gloss.

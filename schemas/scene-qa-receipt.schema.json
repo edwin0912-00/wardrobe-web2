@@ -1,0 +1,460 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zeely.ai/schemas/scene-qa-receipt.schema.json",
+  "title": "Zeely Scene QA Receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "receipt_id",
+    "revision",
+    "qa_profile",
+    "evidence_subject_sha256",
+    "reviewer",
+    "verdict",
+    "asset_results",
+    "completed_at"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "receipt_id": { "type": "string", "pattern": "^[a-zA-Z0-9._-]{8,180}$" },
+    "revision": { "type": "integer", "minimum": 1 },
+    "qa_profile": { "enum": ["MOOD_CARD_VISUAL", "PRODUCTION_SCENE"] },
+    "evidence_subject_sha256": { "$ref": "#/$defs/sha256" },
+    "reviewer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "id", "version"],
+      "properties": {
+        "type": { "enum": ["HUMAN", "MODEL"] },
+        "id": { "type": "string", "minLength": 2 },
+        "version": {
+          "type": "string",
+          "minLength": 2,
+          "not": { "enum": ["builtin-current", "current", "latest", "unknown"] }
+        }
+      }
+    },
+    "verdict": { "enum": ["PASS", "FAIL"] },
+    "asset_results": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/assetResult" }
+    },
+    "completed_at": { "type": "string", "format": "date-time" }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "qa_profile": { "const": "MOOD_CARD_VISUAL" } },
+        "required": ["qa_profile"]
+      },
+      "then": {
+        "properties": {
+          "asset_results": {
+            "items": {
+              "allOf": [
+                { "$ref": "#/$defs/assetResult" },
+                {
+                  "properties": {
+                    "gate_results": { "$ref": "#/$defs/moodCardGateResults" }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "qa_profile": { "const": "PRODUCTION_SCENE" } },
+        "required": ["qa_profile"]
+      },
+      "then": {
+        "properties": {
+          "asset_results": {
+            "items": {
+              "allOf": [
+                { "$ref": "#/$defs/assetResult" },
+                {
+                  "properties": {
+                    "gate_results": { "$ref": "#/$defs/productionGateResults" }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "verdict": { "const": "PASS" } },
+        "required": ["verdict"]
+      },
+      "then": {
+        "properties": {
+          "asset_results": {
+            "items": {
+              "allOf": [
+                { "$ref": "#/$defs/assetResult" },
+                {
+                  "properties": {
+                    "status": { "const": "PASS" },
+                    "named_defects": { "maxItems": 0 },
+                    "framing_evidence": {
+                      "properties": {
+                        "clear_space_above_hair_percent": { "minimum": 8 },
+                        "clear_space_below_footwear_percent": { "minimum": 2 },
+                        "full_head_visible": { "const": true },
+                        "full_footwear_visible": { "const": true }
+                      }
+                    },
+                    "gate_results": {
+                      "items": {
+                        "properties": {
+                          "status": { "const": "PASS" }
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "assetResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "asset_id",
+        "preset_id",
+        "sha256",
+        "status",
+        "framing_evidence",
+        "gate_results",
+        "named_defects"
+      ],
+      "properties": {
+        "asset_id": { "type": "string", "pattern": "^[a-zA-Z0-9._-]{8,180}$" },
+        "preset_id": { "type": "string", "pattern": "^(std|editorial)\\.[a-z0-9._-]+$" },
+        "sha256": { "$ref": "#/$defs/sha256" },
+        "status": { "enum": ["PASS", "FAIL"] },
+        "framing_evidence": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "canvas_width",
+            "canvas_height",
+            "subject_bbox_xywh_px",
+            "expected_subject_height_percent",
+            "subject_height_percent",
+            "minimum_clear_space_above_hair_percent",
+            "minimum_clear_space_below_footwear_percent",
+            "clear_space_above_hair_percent",
+            "clear_space_below_footwear_percent",
+            "full_head_visible",
+            "full_footwear_visible"
+          ],
+          "properties": {
+            "canvas_width": { "const": 1024 },
+            "canvas_height": { "const": 1280 },
+            "subject_bbox_xywh_px": {
+              "type": "array",
+              "minItems": 4,
+              "maxItems": 4,
+              "prefixItems": [
+                { "type": "integer", "minimum": 0, "maximum": 1023 },
+                { "type": "integer", "minimum": 0, "maximum": 1279 },
+                { "type": "integer", "minimum": 1, "maximum": 1024 },
+                { "type": "integer", "minimum": 1, "maximum": 1280 }
+              ],
+              "items": false
+            },
+            "expected_subject_height_percent": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 2,
+              "prefixItems": [
+                { "type": "number", "minimum": 0, "maximum": 100 },
+                { "type": "number", "minimum": 0, "maximum": 100 }
+              ],
+              "items": false
+            },
+            "subject_height_percent": { "type": "number", "minimum": 0, "maximum": 100 },
+            "minimum_clear_space_above_hair_percent": { "const": 8 },
+            "minimum_clear_space_below_footwear_percent": { "const": 2 },
+            "clear_space_above_hair_percent": { "type": "number", "minimum": 0, "maximum": 100 },
+            "clear_space_below_footwear_percent": { "type": "number", "minimum": 0, "maximum": 100 },
+            "full_head_visible": { "type": "boolean" },
+            "full_footwear_visible": { "type": "boolean" }
+          }
+        },
+        "gate_results": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/gateResult" }
+        },
+        "named_defects": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 2 }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "preset_id": {
+                "enum": [
+                  "std.city.early_morning_gloss",
+                  "std.city.golden_hour_gloss",
+                  "std.studio.peach_soft_gloss",
+                  "std.studio.white_window_honeycomb",
+                  "std.studio.taupe_rembrandt_gloss",
+                  "std.studio.charcoal_dawn_rim",
+                  "std.interior.gallery_morning_gloss",
+                  "std.interior.loft_golden_hour_gloss",
+                  "std.nature_architecture.stone_terrace_morning",
+                  "std.nature_architecture.concrete_grass_golden_hour"
+                ]
+              }
+            },
+            "required": ["preset_id"]
+          },
+          "then": {
+            "properties": {
+              "framing_evidence": {
+                "properties": {
+                  "expected_subject_height_percent": { "const": [74, 78] }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": { "const": "PASS" },
+              "preset_id": {
+                "enum": [
+                  "std.city.early_morning_gloss",
+                  "std.city.golden_hour_gloss",
+                  "std.studio.peach_soft_gloss",
+                  "std.studio.white_window_honeycomb",
+                  "std.studio.taupe_rembrandt_gloss",
+                  "std.studio.charcoal_dawn_rim",
+                  "std.interior.gallery_morning_gloss",
+                  "std.interior.loft_golden_hour_gloss",
+                  "std.nature_architecture.stone_terrace_morning",
+                  "std.nature_architecture.concrete_grass_golden_hour"
+                ]
+              }
+            },
+            "required": ["status", "preset_id"]
+          },
+          "then": {
+            "properties": {
+              "framing_evidence": {
+                "properties": {
+                  "subject_height_percent": { "minimum": 74, "maximum": 78 }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "preset_id": { "const": "editorial.edwin_novak.organic_contrast" } },
+            "required": ["preset_id"]
+          },
+          "then": {
+            "properties": {
+              "framing_evidence": {
+                "properties": {
+                  "expected_subject_height_percent": { "const": [66, 70] }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": { "const": "PASS" },
+              "preset_id": { "const": "editorial.edwin_novak.organic_contrast" }
+            },
+            "required": ["status", "preset_id"]
+          },
+          "then": {
+            "properties": {
+              "framing_evidence": {
+                "properties": {
+                  "subject_height_percent": { "minimum": 66, "maximum": 70 }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "preset_id": { "const": "editorial.edwin_novak.urban_monochrome" } },
+            "required": ["preset_id"]
+          },
+          "then": {
+            "properties": {
+              "framing_evidence": {
+                "properties": {
+                  "expected_subject_height_percent": { "const": [62, 70] }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": { "const": "PASS" },
+              "preset_id": { "const": "editorial.edwin_novak.urban_monochrome" }
+            },
+            "required": ["status", "preset_id"]
+          },
+          "then": {
+            "properties": {
+              "framing_evidence": {
+                "properties": {
+                  "subject_height_percent": { "minimum": 62, "maximum": 70 }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "preset_id": { "const": "editorial.edwin_novak.institutional_modernism" } },
+            "required": ["preset_id"]
+          },
+          "then": {
+            "properties": {
+              "framing_evidence": {
+                "properties": {
+                  "expected_subject_height_percent": { "const": [64, 72] }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": { "const": "PASS" },
+              "preset_id": { "const": "editorial.edwin_novak.institutional_modernism" }
+            },
+            "required": ["status", "preset_id"]
+          },
+          "then": {
+            "properties": {
+              "framing_evidence": {
+                "properties": {
+                  "subject_height_percent": { "minimum": 64, "maximum": 72 }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "preset_id": { "const": "editorial.edwin_novak.luminous_blue_white" } },
+            "required": ["preset_id"]
+          },
+          "then": {
+            "properties": {
+              "framing_evidence": {
+                "properties": {
+                  "expected_subject_height_percent": { "const": [68, 72] }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": { "const": "PASS" },
+              "preset_id": { "const": "editorial.edwin_novak.luminous_blue_white" }
+            },
+            "required": ["status", "preset_id"]
+          },
+          "then": {
+            "properties": {
+              "framing_evidence": {
+                "properties": {
+                  "subject_height_percent": { "minimum": 68, "maximum": 72 }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "gateResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "status", "evidence"],
+      "properties": {
+        "id": {
+          "enum": [
+            "MASTER_LOOK_LOCK",
+            "REFERENCE_ROLE_ISOLATION",
+            "NEAR_COPY_AND_LEAKAGE",
+            "IDENTITY",
+            "ITEM_FIDELITY",
+            "SCENE_MATCH",
+            "LIGHT_AND_CONTACT_SHADOW",
+            "FRAMING_AND_ANATOMY",
+            "PROVENANCE"
+          ]
+        },
+        "status": { "enum": ["PASS", "FAIL", "NOT_APPLICABLE"] },
+        "evidence": { "type": "string", "minLength": 4 }
+      }
+    },
+    "moodCardGateResults": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 6,
+      "prefixItems": [
+        { "allOf": [{ "$ref": "#/$defs/gateResult" }, { "properties": { "id": { "const": "REFERENCE_ROLE_ISOLATION" } } }] },
+        { "allOf": [{ "$ref": "#/$defs/gateResult" }, { "properties": { "id": { "const": "NEAR_COPY_AND_LEAKAGE" } } }] },
+        { "allOf": [{ "$ref": "#/$defs/gateResult" }, { "properties": { "id": { "const": "SCENE_MATCH" } } }] },
+        { "allOf": [{ "$ref": "#/$defs/gateResult" }, { "properties": { "id": { "const": "LIGHT_AND_CONTACT_SHADOW" } } }] },
+        { "allOf": [{ "$ref": "#/$defs/gateResult" }, { "properties": { "id": { "const": "FRAMING_AND_ANATOMY" } } }] },
+        { "allOf": [{ "$ref": "#/$defs/gateResult" }, { "properties": { "id": { "const": "PROVENANCE" } } }] }
+      ],
+      "items": false
+    },
+    "productionGateResults": {
+      "type": "array",
+      "minItems": 9,
+      "maxItems": 9,
+      "prefixItems": [
+        { "allOf": [{ "$ref": "#/$defs/gateResult" }, { "properties": { "id": { "const": "MASTER_LOOK_LOCK" } } }] },
+        { "allOf": [{ "$ref": "#/$defs/gateResult" }, { "properties": { "id": { "const": "REFERENCE_ROLE_ISOLATION" } } }] },
+        { "allOf": [{ "$ref": "#/$defs/gateResult" }, { "properties": { "id": { "const": "NEAR_COPY_AND_LEAKAGE" } } }] },
+        { "allOf": [{ "$ref": "#/$defs/gateResult" }, { "properties": { "id": { "const": "IDENTITY" } } }] },
+        { "allOf": [{ "$ref": "#/$defs/gateResult" }, { "properties": { "id": { "const": "ITEM_FIDELITY" } } }] },
+        { "allOf": [{ "$ref": "#/$defs/gateResult" }, { "properties": { "id": { "const": "SCENE_MATCH" } } }] },
+        { "allOf": [{ "$ref": "#/$defs/gateResult" }, { "properties": { "id": { "const": "LIGHT_AND_CONTACT_SHADOW" } } }] },
+        { "allOf": [{ "$ref": "#/$defs/gateResult" }, { "properties": { "id": { "const": "FRAMING_AND_ANATOMY" } } }] },
+        { "allOf": [{ "$ref": "#/$defs/gateResult" }, { "properties": { "id": { "const": "PROVENANCE" } } }] }
+      ],
+      "items": false
+    }
+  }
+}

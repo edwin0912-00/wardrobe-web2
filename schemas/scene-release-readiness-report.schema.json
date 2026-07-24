@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zeely.ai/schemas/scene-release-readiness-report.schema.json",
+  "title": "Zeely Scene Release Readiness Report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "status",
+    "release_ready",
+    "checked",
+    "blocker_count",
+    "blockers",
+    "warnings",
+    "completed_at"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "status": { "enum": ["PASS", "FAIL"] },
+    "release_ready": { "type": "boolean" },
+    "checked": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["catalog", "manifest", "qa_receipt", "privacy_report"],
+      "properties": {
+        "catalog": { "type": "string", "minLength": 1 },
+        "manifest": { "type": "string", "minLength": 1 },
+        "qa_receipt": { "type": "string", "minLength": 1 },
+        "privacy_report": { "type": "string", "minLength": 1 }
+      }
+    },
+    "blocker_count": { "type": "integer", "minimum": 0 },
+    "blockers": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/finding" }
+    },
+    "warnings": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/finding" }
+    },
+    "completed_at": { "type": "string", "format": "date-time" }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "status": { "const": "PASS" } },
+        "required": ["status"]
+      },
+      "then": {
+        "properties": {
+          "release_ready": { "const": true },
+          "blocker_count": { "const": 0 },
+          "blockers": { "maxItems": 0 }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "status": { "const": "FAIL" } },
+        "required": ["status"]
+      },
+      "then": {
+        "properties": {
+          "release_ready": { "const": false },
+          "blocker_count": { "minimum": 1 },
+          "blockers": { "minItems": 1 }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "path", "message"],
+      "properties": {
+        "code": { "type": "string", "pattern": "^[A-Z0-9_]+$" },
+        "path": { "type": "string", "minLength": 1 },
+        "message": { "type": "string", "minLength": 3 },
+        "evidence": {
+          "type": "array",
+          "items": {}
+        }
+      }
+    }
+  }
+}

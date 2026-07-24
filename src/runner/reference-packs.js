@@ -211,6 +211,7 @@ export function referencePackInputFiles(referencePacks) {
           role: binding.role,
           binding_order: binding.bindingOrder,
           declared_sha256: binding.sha256,
+          ...(binding.bindingId ? { binding_id: binding.bindingId } : {}),
         },
       ]);
     }

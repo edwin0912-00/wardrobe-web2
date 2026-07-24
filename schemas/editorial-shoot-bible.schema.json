@@ -1,0 +1,275 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zeely.local/schemas/editorial-shoot-bible.schema.json",
+  "title": "Zeely Edwin editorial ShootBible",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "bible_id",
+    "mode_id",
+    "mode_version",
+    "title",
+    "visual_system",
+    "source_references",
+    "shots",
+    "created_at"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "bible_id": { "$ref": "#/$defs/id" },
+    "mode_id": { "$ref": "#/$defs/modeId" },
+    "mode_version": { "$ref": "#/$defs/semver" },
+    "title": { "$ref": "#/$defs/text" },
+    "visual_system": { "$ref": "#/$defs/text" },
+    "source_references": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 20,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/sourceReference" }
+    },
+    "shots": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 6,
+      "prefixItems": [
+        {
+          "allOf": [
+            { "$ref": "#/$defs/shot" },
+            {
+              "properties": {
+                "slot": { "const": "clean_identity_hero" },
+                "identity_visibility": { "const": "full_face" },
+                "optical_device": { "type": "null" },
+                "camera": {
+                  "allOf": [
+                    { "$ref": "#/$defs/camera" },
+                    { "properties": { "framing": { "const": "full_body" } } }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/shot" },
+            {
+              "properties": {
+                "slot": { "const": "environmental_hero" },
+                "optical_device": { "type": "null" },
+                "camera": {
+                  "allOf": [
+                    { "$ref": "#/$defs/camera" },
+                    { "properties": { "framing": { "const": "full_body" } } }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/shot" },
+            {
+              "properties": {
+                "slot": { "const": "sculptural_three_quarter" },
+                "optical_device": { "type": "null" },
+                "camera": {
+                  "allOf": [
+                    { "$ref": "#/$defs/camera" },
+                    { "properties": { "framing": { "const": "three_quarter" } } }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/shot" },
+            {
+              "properties": {
+                "slot": { "const": "interference_frame" },
+                "optical_device": { "type": "string", "minLength": 1, "maxLength": 300 }
+              }
+            }
+          ]
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/shot" },
+            {
+              "properties": {
+                "slot": { "const": "material_or_accessory_detail" },
+                "optical_device": { "type": "null" },
+                "camera": {
+                  "allOf": [
+                    { "$ref": "#/$defs/camera" },
+                    { "properties": { "framing": { "const": "detail" } } }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/shot" },
+            {
+              "properties": {
+                "slot": { "const": "wide_campaign_coda" },
+                "optical_device": { "type": "null" },
+                "camera": {
+                  "allOf": [
+                    { "$ref": "#/$defs/camera" },
+                    { "properties": { "framing": { "const": "wide_full_body" } } }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "items": false
+    },
+    "created_at": { "$ref": "#/$defs/timestamp" }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "semver": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]{3})?Z$"
+    },
+    "text": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2000
+    },
+    "modeId": {
+      "enum": [
+        "editorial.edwin_novak.organic_contrast",
+        "editorial.edwin_novak.urban_monochrome",
+        "editorial.edwin_novak.institutional_modernism",
+        "editorial.edwin_novak.luminous_blue_white"
+      ]
+    },
+    "sourceReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reference_id", "sha256", "role", "rights_basis", "expires_at"],
+      "properties": {
+        "reference_id": { "$ref": "#/$defs/id" },
+        "sha256": { "$ref": "#/$defs/sha256" },
+        "role": {
+          "enum": [
+            "environment",
+            "lighting",
+            "composition",
+            "pose",
+            "palette",
+            "optical_device",
+            "material_detail"
+          ]
+        },
+        "rights_basis": { "type": "string", "minLength": 1, "maxLength": 500 },
+        "expires_at": { "$ref": "#/$defs/timestamp" }
+      }
+    },
+    "camera": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["lens_mm", "framing", "angle", "subject_height_percent"],
+      "properties": {
+        "lens_mm": { "type": "integer", "minimum": 24, "maximum": 135 },
+        "framing": {
+          "enum": ["full_body", "three_quarter", "detail", "wide_full_body"]
+        },
+        "angle": { "type": "string", "minLength": 1, "maxLength": 300 },
+        "subject_height_percent": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "prefixItems": [
+            { "type": "number", "minimum": 20, "maximum": 95 },
+            { "type": "number", "minimum": 20, "maximum": 95 }
+          ],
+          "items": false
+        }
+      }
+    },
+    "shot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "slot",
+        "title",
+        "objective",
+        "camera",
+        "pose",
+        "lighting",
+        "environment",
+        "palette",
+        "identity_visibility",
+        "item_evidence",
+        "optical_device",
+        "negative_constraints"
+      ],
+      "properties": {
+        "slot": {
+          "enum": [
+            "clean_identity_hero",
+            "environmental_hero",
+            "sculptural_three_quarter",
+            "interference_frame",
+            "material_or_accessory_detail",
+            "wide_campaign_coda"
+          ]
+        },
+        "title": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "objective": { "type": "string", "minLength": 1, "maxLength": 1000 },
+        "camera": { "$ref": "#/$defs/camera" },
+        "pose": { "type": "string", "minLength": 1, "maxLength": 1000 },
+        "lighting": { "type": "string", "minLength": 1, "maxLength": 1000 },
+        "environment": { "type": "string", "minLength": 1, "maxLength": 1000 },
+        "palette": { "type": "string", "minLength": 1, "maxLength": 500 },
+        "identity_visibility": {
+          "enum": ["full_face", "partial_face", "not_intended"]
+        },
+        "item_evidence": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 20,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1, "maxLength": 300 }
+        },
+        "optical_device": {
+          "oneOf": [
+            { "type": "null" },
+            { "type": "string", "minLength": 1, "maxLength": 300 }
+          ]
+        },
+        "negative_constraints": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 30,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1, "maxLength": 300 }
+        }
+      }
+    }
+  }
+}

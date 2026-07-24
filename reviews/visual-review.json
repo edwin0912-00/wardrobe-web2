@@ -1,11 +1,12 @@
 {
-  "schema_version": "1.0.0",
+  "schema_version": "1.1.0",
   "reviewer": "codex_visual_review",
   "reviewed_at": "2026-07-22T00:52:44Z",
   "method": "Side-by-side inspection of each raw source, selected conditioned canonical avatar, selected conditioned outfit result, and the supplied outfit reference where applicable. Technical background checks are handled separately.",
   "reviews": {
     "001": {
       "avatar": {
+        "artifact_sha256": "2ab783c408e86f394b9f067071ce8271a16660b68aad4163601017e9eceb221e",
         "identity_preservation": { "status": "PASS", "notes": "Recognizable facial geometry, hair, skin tone, smile and observable broad build are preserved." },
         "frontal_half_body_composition": { "status": "PASS", "notes": "Centered frontal head-to-hips studio framing with full face and hair visible." },
         "studio_lighting": { "status": "PASS", "notes": "Soft even studio illumination without blocking facial shadows." },
@@ -17,6 +18,7 @@
         "no_residue_or_bleed": { "status": "PASS", "notes": "No room, earbud, chair, old graphic, halo or background bleed remains." }
       },
       "avatar_outfit": {
+        "artifact_sha256": "e027a4b7e28af9233cc31cbfcb0019a50ea1df2d9f1cb2c0149cbec6538cd924",
         "identity_preservation": { "status": "PASS", "notes": "Face, hair, skin, expression and body proportions remain consistent with the approved avatar and source." },
         "frontal_half_body_composition": { "status": "PASS", "notes": "Composition, scale and frontal pose remain consistent with the approved avatar." },
         "studio_lighting": { "status": "PASS", "notes": "Soft even studio lighting remains coherent across face and garment." },
@@ -30,6 +32,7 @@
     },
     "002": {
       "avatar": {
+        "artifact_sha256": "737cbc8ea1fd296a4d6a847bca101635653a1976681e993de7116bfcf1466d91",
         "identity_preservation": { "status": "PASS", "notes": "Recognizable face, bob and bangs, darker roots, round rose-gold glasses, skin tone and teal neck tattoo are preserved. Body build is NOT_EVALUABLE in the source and is not treated as an identity lock." },
         "frontal_half_body_composition": { "status": "PASS", "notes": "Low-angle selfie is converted to a centered, near-frontal half-body studio portrait with face and hair fully visible." },
         "studio_lighting": { "status": "PASS", "notes": "Soft even illumination with no harsh facial shadow or blown area." },
@@ -41,6 +44,7 @@
         "no_residue_or_bleed": { "status": "PASS", "notes": "Ivy scene is fully removed; hair and glasses edges are clean without visible halo." }
       },
       "avatar_outfit": {
+        "artifact_sha256": "b38bc1e2bbbc4436b6fbf5ccc57933a175867f152d1dee4b389c03190d7d5c22",
         "identity_preservation": { "status": "PASS", "notes": "Face, glasses, hairstyle, skin and teal tattoo remain consistent with the approved avatar." },
         "frontal_half_body_composition": { "status": "PASS", "notes": "Pose, crop, subject scale and camera remain consistent across the outfit edit." },
         "studio_lighting": { "status": "PASS", "notes": "Lighting is soft and coherent on skin, white top and blue blazer." },
@@ -54,6 +58,7 @@
     },
     "003": {
       "avatar": {
+        "artifact_sha256": "c9dcf6434e5cab6fd73b0d5cb4f1915c5bafa77f1a5cfaf54c74b779c486f1c5",
         "identity_preservation": { "status": "PASS", "notes": "Recognizable forehead, brows, eyes, nose, moustache, full beard and tied-back long hair are preserved. Body build is NOT_EVALUABLE in the source and is not treated as an identity lock." },
         "frontal_half_body_composition": { "status": "PASS", "notes": "Source close-up is converted to a centered frontal half-body studio composition with face and hair fully visible." },
         "studio_lighting": { "status": "PASS", "notes": "Original window glare is removed; illumination is soft and even." },
@@ -65,6 +70,7 @@
         "no_residue_or_bleed": { "status": "PASS", "notes": "Window and room are fully removed; no glare, halo or background leakage remains." }
       },
       "avatar_outfit": {
+        "artifact_sha256": "37fab841a3c8320a7aee59c1a15742a39c3f72ecea6effa39e2f4b90b14c1424",
         "identity_preservation": { "status": "PASS", "notes": "Face, long tied-back hair, moustache, beard, eyes, skin and expression remain consistent with the approved avatar." },
         "frontal_half_body_composition": { "status": "PASS", "notes": "Pose, camera, crop and subject scale are retained through the garment edit." },
         "studio_lighting": { "status": "PASS", "notes": "Face, black inner top and suede overshirt share soft even studio illumination." },

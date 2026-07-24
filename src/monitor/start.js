@@ -19,7 +19,13 @@ const supervisor = new AgentSupervisor({
   agentEnabled: process.env.ZEELY_SUPERVISOR_AGENT === 'true',
 });
 await supervisor.start();
-const app = Fastify({ logger: true, bodyLimit: 64 * 1024 });
+const app = Fastify({
+  logger: true,
+  bodyLimit: 64 * 1024,
+  logController: new Fastify.LogController({
+    disableRequestLogging: (request) => request.url.split('?')[0] === '/api/health',
+  }),
+});
 const auth = process.env.ZEELY_DEMO_PIN ? {
   pin: process.env.ZEELY_DEMO_PIN,
   secret: process.env.ZEELY_SESSION_SECRET,

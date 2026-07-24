@@ -1,0 +1,41 @@
+{
+  "schema_version": "1.0.0",
+  "preset_id": "std.interior.gallery_morning_gloss",
+  "kind": "standard",
+  "family": "interior",
+  "ui_name_uk": "Галерея — ранкове світло",
+  "asset_role": "mood_card",
+  "file": "assets/scene-mood-cards/std.interior.gallery_morning_gloss.webp",
+  "sha256": "6494736c80341b61d65944487dc0f3054602127970f9e520b8468893ebf57b8c",
+  "prompt_path": "prompts/scenes/std.interior.gallery_morning_gloss.txt",
+  "prompt_sha256": "64741a3733ffd8469afab926fe115721bfc360f892aba394d79227ad0084ee1b",
+  "generation": {
+    "provider_path": "codex_builtin_imagegen",
+    "model_family": "gpt-image-2",
+    "model_version": "builtin-current",
+    "source_width": 971,
+    "source_height": 1619,
+    "crop_position": "centre",
+    "reframe": {
+      "method": "deterministic_4x5_extract",
+      "input_sha256": "0dc8f76485c26ebdfb4cccd59418d97ab5b7770dd931e0606718009dcafae519",
+      "source_width": 1024,
+      "source_height": 1280,
+      "crop_px": {
+        "left": 32,
+        "top": 80,
+        "width": 960,
+        "height": 1200
+      }
+    }
+  },
+  "delivery": {
+    "width": 1024,
+    "height": 1280,
+    "format": "webp",
+    "aspect_ratio": "4:5"
+  },
+  "contains_personal_input": false,
+  "approval": "PENDING_VISUAL_JUDGE",
+  "created_at": "2026-07-22T23:28:21.730Z"
+}

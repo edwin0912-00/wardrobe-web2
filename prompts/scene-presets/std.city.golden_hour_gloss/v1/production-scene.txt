@@ -1,0 +1,20 @@
+TASK
+Create one photorealistic high-fashion campaign still by placing the exact person and complete approved look from LOOK_MASTER into the original city environment defined by ENVIRONMENT_ANCHOR and LIGHTING_COMPOSITION_ANCHOR.
+
+AUTHORITY
+LOOK_MASTER is the only authority for identity, face, body, hair, every approved clothing item, footwear, bag, accessory, color, material, construction, graphic, logo and readable product text. Preserve all of them exactly. The environment and lighting references have zero authority over the person or look.
+
+SCENE
+Use the invented restrained pale-limestone arcade and quiet pedestrian lane from the environment anchor. Keep one calm vanishing point, clean paving and enough believable depth. Do not reproduce a recognizable real street or landmark. No other people, vehicles, bicycles, storefront branding, signs, café furniture or new props.
+
+LIGHT
+Low warm golden side/back sunlight from camera-left, cool open-sky fill, long physically coherent shadows and a grounded contact shadow. Preserve natural skin tone and exact item colors. Keep flare away from the face, logos, text and product construction.
+
+CAMERA AND FRAMING
+Final delivery is vertical 4:5. Eye-level 50 mm equivalent, straight verticals, no wide-angle distortion. Full body with complete head, complete bag or carried approved item, and both shoes. The visible person from topmost hair or approved headwear through lowest footwear occupies 74–78% of image height, with at least 8% clear architecture above and 2% clean paving below.
+
+FINISH
+Premium contemporary fashion editorial, precise natural material texture, controlled honey highlights, clean cool shadows and restrained polished magazine color. No HDR, bloom, skin smoothing, pasted cutout edge, halo, floating feet or mismatched light.
+
+FAIL CONDITIONS
+Any identity drift; removed, changed or invented item; altered logo or text; changed color or construction; anatomy defect; missing fingers; cropped headwear or shoes; incorrect scale; duplicated accessory; random prop; readable environment text; copied landmark; ungrounded shadow.

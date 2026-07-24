@@ -24,21 +24,24 @@ export function imageModelName(jobSetType) {
   return IMAGE_MODEL_NAMES[jobSetType];
 }
 
-export function modelForAttempt(attempt) {
-  if (!Number.isInteger(attempt) || attempt < 1 || attempt > IMAGE_MODEL_ROUTE.length) {
-    throw new Error(`Image attempt must be between 1 and ${IMAGE_MODEL_ROUTE.length}`);
+export function modelForAttempt(attempt, route = IMAGE_MODEL_ROUTE) {
+  if (!Array.isArray(route) || route.length < 1 || route.some((model) => !IMAGE_MODEL_ALLOWLIST.has(model))) {
+    throw new Error('Image model route must contain allowed models');
   }
-  return IMAGE_MODEL_ROUTE[attempt - 1];
+  if (!Number.isInteger(attempt) || attempt < 1 || attempt > route.length) {
+    throw new Error(`Image attempt must be between 1 and ${route.length}`);
+  }
+  return route[attempt - 1];
 }
 
 export function assertModelRoute(route) {
   if (route === undefined) return;
-  if (!Array.isArray(route) || route.length !== IMAGE_MODEL_ROUTE.length) {
-    throw new Error('job.model_route must exactly match the fixed Zeely model route');
+  if (!Array.isArray(route) || route.length < 1 || route.length > IMAGE_MODEL_ROUTE.length) {
+    throw new Error('job.model_route must be a bounded allowed Zeely model route');
   }
   for (let index = 0; index < route.length; index += 1) {
     if (route[index] !== IMAGE_MODEL_ROUTE[index]) {
-      throw new Error('job.model_route must exactly match the fixed Zeely model route');
+      throw new Error('job.model_route must exactly match the fixed Zeely model route prefix');
     }
   }
 }

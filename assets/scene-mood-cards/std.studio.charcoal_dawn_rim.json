@@ -1,0 +1,29 @@
+{
+  "schema_version": "1.0.0",
+  "preset_id": "std.studio.charcoal_dawn_rim",
+  "kind": "standard",
+  "family": "dramatic_studio",
+  "ui_name_uk": "Драматична студія — графітовий світанок",
+  "asset_role": "mood_card",
+  "file": "assets/scene-mood-cards/std.studio.charcoal_dawn_rim.webp",
+  "sha256": "bcc13ba684f030b61d5750cc95ba5666186bc3082601d08eb45dbd0c2cd0641a",
+  "prompt_path": "prompts/scenes/std.studio.charcoal_dawn_rim.txt",
+  "prompt_sha256": "d99c163db99377f490a850dca9f7eb5e840c1e9e92783eb17d0ba8e3fffa2816",
+  "generation": {
+    "provider_path": "codex_builtin_imagegen",
+    "model_family": "gpt-image-2",
+    "model_version": "builtin-current",
+    "source_width": 1003,
+    "source_height": 1568,
+    "crop_position": "centre"
+  },
+  "delivery": {
+    "width": 1024,
+    "height": 1280,
+    "format": "webp",
+    "aspect_ratio": "4:5"
+  },
+  "contains_personal_input": false,
+  "approval": "PENDING_VISUAL_JUDGE",
+  "created_at": "2026-07-22T23:15:42.589Z"
+}

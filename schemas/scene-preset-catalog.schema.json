@@ -1,0 +1,646 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zeely.ai/schemas/scene-preset-catalog.schema.json",
+  "title": "Zeely Scene Preset Catalog",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "catalog_id",
+    "status",
+    "release_readiness",
+    "launch_selection",
+    "reference_policy",
+    "global_locks",
+    "framing_measurement",
+    "asset_pipeline",
+    "technical_authorities",
+    "standard_presets",
+    "editorial_program",
+    "qa_gates"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "catalog_id": { "const": "zeely.scene-presets.launch-v0.1" },
+    "status": { "enum": ["DRAFT_FOR_APPROVAL", "APPROVED", "RETIRED"] },
+    "release_readiness": {
+      "enum": [
+        "BLOCKED_MISSING_EVIDENCE_AND_PRODUCTION_ASSETS",
+        "READY_FOR_RELEASE",
+        "RETIRED"
+      ]
+    },
+    "launch_selection": { "$ref": "#/$defs/launchSelection" },
+    "reference_policy": { "$ref": "#/$defs/referencePolicy" },
+    "global_locks": {
+      "type": "array",
+      "minItems": 8,
+      "maxItems": 8,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "identity",
+          "body",
+          "hair",
+          "approved_items",
+          "item_colors",
+          "item_construction",
+          "logos_and_text",
+          "master_look_sha256"
+        ]
+      }
+    },
+    "framing_measurement": { "$ref": "#/$defs/framingMeasurement" },
+    "asset_pipeline": {
+      "type": "array",
+      "minItems": 9,
+      "maxItems": 9,
+      "prefixItems": [
+        { "$ref": "#/$defs/pipelineSourceExtraction" },
+        { "$ref": "#/$defs/pipelineEnvironmentSpec" },
+        { "$ref": "#/$defs/pipelineMoodCard" },
+        { "$ref": "#/$defs/pipelineHumanApproval" },
+        { "$ref": "#/$defs/pipelineEnvironmentPlate" },
+        { "$ref": "#/$defs/pipelineLightingPreview" },
+        { "$ref": "#/$defs/pipelineReferencePack" },
+        { "$ref": "#/$defs/pipelineProductionScene" },
+        { "$ref": "#/$defs/pipelineSceneQa" }
+      ],
+      "items": false
+    },
+    "technical_authorities": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "prefixItems": [
+        { "allOf": [{ "$ref": "#/$defs/technicalAuthority" }, { "properties": { "id": { "const": "profoto.rembrandt" } } }] },
+        { "allOf": [{ "$ref": "#/$defs/technicalAuthority" }, { "properties": { "id": { "const": "canon.fashion" } } }] },
+        { "allOf": [{ "$ref": "#/$defs/technicalAuthority" }, { "properties": { "id": { "const": "nikon.environmental_portrait" } } }] }
+      ],
+      "items": false
+    },
+    "standard_presets": {
+      "type": "array",
+      "minItems": 10,
+      "maxItems": 10,
+      "prefixItems": [
+        { "allOf": [{ "$ref": "#/$defs/standardPreset" }, { "properties": { "preset_id": { "const": "std.city.early_morning_gloss" }, "family": { "const": "city" } } }] },
+        { "allOf": [{ "$ref": "#/$defs/standardPreset" }, { "properties": { "preset_id": { "const": "std.city.golden_hour_gloss" }, "family": { "const": "city" } } }] },
+        { "allOf": [{ "$ref": "#/$defs/standardPreset" }, { "properties": { "preset_id": { "const": "std.studio.peach_soft_gloss" }, "family": { "const": "light_studio" } } }] },
+        { "allOf": [{ "$ref": "#/$defs/standardPreset" }, { "properties": { "preset_id": { "const": "std.studio.white_window_honeycomb" }, "family": { "const": "light_studio" } } }] },
+        { "allOf": [{ "$ref": "#/$defs/standardPreset" }, { "properties": { "preset_id": { "const": "std.studio.taupe_rembrandt_gloss" }, "family": { "const": "dramatic_studio" } } }] },
+        { "allOf": [{ "$ref": "#/$defs/standardPreset" }, { "properties": { "preset_id": { "const": "std.studio.charcoal_dawn_rim" }, "family": { "const": "dramatic_studio" } } }] },
+        { "allOf": [{ "$ref": "#/$defs/standardPreset" }, { "properties": { "preset_id": { "const": "std.interior.gallery_morning_gloss" }, "family": { "const": "interior" } } }] },
+        { "allOf": [{ "$ref": "#/$defs/standardPreset" }, { "properties": { "preset_id": { "const": "std.interior.loft_golden_hour_gloss" }, "family": { "const": "interior" } } }] },
+        { "allOf": [{ "$ref": "#/$defs/standardPreset" }, { "properties": { "preset_id": { "const": "std.nature_architecture.stone_terrace_morning" }, "family": { "const": "nature_architecture" } } }] },
+        { "allOf": [{ "$ref": "#/$defs/standardPreset" }, { "properties": { "preset_id": { "const": "std.nature_architecture.concrete_grass_golden_hour" }, "family": { "const": "nature_architecture" } } }] }
+      ],
+      "items": false
+    },
+    "editorial_program": { "$ref": "#/$defs/editorialProgram" },
+    "qa_gates": {
+      "type": "array",
+      "minItems": 9,
+      "maxItems": 9,
+      "prefixItems": [
+        { "$ref": "#/$defs/qaMasterLookLock" },
+        { "$ref": "#/$defs/qaReferenceRoleIsolation" },
+        { "$ref": "#/$defs/qaNearCopyAndLeakage" },
+        { "$ref": "#/$defs/qaIdentity" },
+        { "$ref": "#/$defs/qaItemFidelity" },
+        { "$ref": "#/$defs/qaSceneMatch" },
+        { "$ref": "#/$defs/qaLightAndContactShadow" },
+        { "$ref": "#/$defs/qaFramingAndAnatomy" },
+        { "$ref": "#/$defs/qaProvenance" }
+      ],
+      "items": false
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "status": { "const": "APPROVED" } }, "required": ["status"] },
+      "then": {
+        "properties": {
+          "release_readiness": { "const": "READY_FOR_RELEASE" },
+          "launch_selection": { "properties": { "status": { "const": "APPROVED" } } },
+          "editorial_program": {
+            "properties": {
+              "modes": {
+                "items": {
+                  "properties": {
+                    "source_set_status": { "const": "READY" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "status": { "const": "DRAFT_FOR_APPROVAL" } }, "required": ["status"] },
+      "then": {
+        "properties": {
+          "release_readiness": { "const": "BLOCKED_MISSING_EVIDENCE_AND_PRODUCTION_ASSETS" },
+          "launch_selection": { "properties": { "status": { "const": "PENDING" } } }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "status": { "const": "RETIRED" } }, "required": ["status"] },
+      "then": { "properties": { "release_readiness": { "const": "RETIRED" } } }
+    }
+  ],
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "launchSelection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "selected_preset_ids"],
+      "properties": {
+        "status": { "enum": ["PENDING", "APPROVED"] },
+        "selected_preset_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "std.city.early_morning_gloss",
+              "std.city.golden_hour_gloss",
+              "std.studio.peach_soft_gloss",
+              "std.studio.white_window_honeycomb",
+              "std.studio.taupe_rembrandt_gloss",
+              "std.studio.charcoal_dawn_rim",
+              "std.interior.gallery_morning_gloss",
+              "std.interior.loft_golden_hour_gloss",
+              "std.nature_architecture.stone_terrace_morning",
+              "std.nature_architecture.concrete_grass_golden_hour"
+            ]
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "status": { "const": "PENDING" } }, "required": ["status"] },
+          "then": { "properties": { "selected_preset_ids": { "maxItems": 0 } } }
+        },
+        {
+          "if": { "properties": { "status": { "const": "APPROVED" } }, "required": ["status"] },
+          "then": {
+            "properties": {
+              "selected_preset_ids": {
+                "minItems": 5,
+                "maxItems": 5,
+                "allOf": [
+                  {
+                    "contains": { "enum": ["std.city.early_morning_gloss", "std.city.golden_hour_gloss"] },
+                    "minContains": 1,
+                    "maxContains": 1
+                  },
+                  {
+                    "contains": { "enum": ["std.studio.peach_soft_gloss", "std.studio.white_window_honeycomb"] },
+                    "minContains": 1,
+                    "maxContains": 1
+                  },
+                  {
+                    "contains": { "enum": ["std.studio.taupe_rembrandt_gloss", "std.studio.charcoal_dawn_rim"] },
+                    "minContains": 1,
+                    "maxContains": 1
+                  },
+                  {
+                    "contains": { "enum": ["std.interior.gallery_morning_gloss", "std.interior.loft_golden_hour_gloss"] },
+                    "minContains": 1,
+                    "maxContains": 1
+                  },
+                  {
+                    "contains": { "enum": ["std.nature_architecture.stone_terrace_morning", "std.nature_architecture.concrete_grass_golden_hour"] },
+                    "minContains": 1,
+                    "maxContains": 1
+                  }
+                ]
+              }
+            }
+          }
+        }
+      ]
+    },
+    "framingMeasurement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "measurement_basis",
+        "subject_bbox_definition",
+        "percent_formula",
+        "standard_subject_height_percent",
+        "editorial_subject_height_percent",
+        "minimum_clear_space_percent"
+      ],
+      "properties": {
+        "measurement_basis": { "const": "final_1024x1280_delivery" },
+        "subject_bbox_definition": { "const": "topmost visible hair pixel through lowest visible footwear pixel" },
+        "percent_formula": { "const": "subject_bbox_height_px / 1280 * 100" },
+        "standard_subject_height_percent": { "$ref": "#/$defs/standardSubjectRange" },
+        "editorial_subject_height_percent": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "editorial.edwin_novak.organic_contrast",
+            "editorial.edwin_novak.urban_monochrome",
+            "editorial.edwin_novak.institutional_modernism",
+            "editorial.edwin_novak.luminous_blue_white"
+          ],
+          "properties": {
+            "editorial.edwin_novak.organic_contrast": { "const": [66, 70] },
+            "editorial.edwin_novak.urban_monochrome": { "const": [62, 70] },
+            "editorial.edwin_novak.institutional_modernism": { "const": [64, 72] },
+            "editorial.edwin_novak.luminous_blue_white": { "const": [68, 72] }
+          }
+        },
+        "minimum_clear_space_percent": { "$ref": "#/$defs/minimumClearSpace" }
+      }
+    },
+    "standardSubjectRange": {
+      "type": "array",
+      "prefixItems": [{ "const": 74 }, { "const": 78 }],
+      "items": false,
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "minimumClearSpace": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["above_hair", "below_footwear"],
+      "properties": {
+        "above_hair": { "const": 8 },
+        "below_footwear": { "const": 2 }
+      }
+    },
+    "referencePolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "external_images_are_extraction_only",
+        "generated_assets_required_for_release",
+        "minimum_source_inspirations",
+        "forbidden_external_authority_fields",
+        "release_provenance_fields"
+      ],
+      "properties": {
+        "external_images_are_extraction_only": { "const": true },
+        "generated_assets_required_for_release": { "const": true },
+        "minimum_source_inspirations": { "const": 2 },
+        "forbidden_external_authority_fields": {
+          "type": "array",
+          "minItems": 6,
+          "maxItems": 6,
+          "uniqueItems": true,
+          "items": { "enum": ["identity", "body", "hair", "outfit", "brands", "readable_text"] }
+        },
+        "release_provenance_fields": {
+          "type": "array",
+          "minItems": 12,
+          "maxItems": 12,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "sha256",
+              "revision",
+              "exact_prompt_sha256",
+              "model_provider",
+              "model_family",
+              "model_version",
+              "provider_request_id",
+              "source_ledger",
+              "derivation_lineage",
+              "created_at",
+              "visual_qa_receipt",
+              "human_approval"
+            ]
+          }
+        }
+      }
+    },
+    "pipelineStep": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["order", "id", "input", "output", "blocking_gate"],
+      "properties": {
+        "order": { "type": "integer", "minimum": 1, "maximum": 9 },
+        "id": {
+          "enum": [
+            "SOURCE_EXTRACTION",
+            "ENVIRONMENT_SPEC",
+            "MOOD_CARD",
+            "HUMAN_APPROVAL",
+            "ENVIRONMENT_PLATE",
+            "LIGHTING_PREVIEW",
+            "REFERENCE_PACK",
+            "PRODUCTION_SCENE",
+            "SCENE_QA"
+          ]
+        },
+        "input": { "type": "string", "minLength": 1 },
+        "output": { "type": "string", "minLength": 1 },
+        "blocking_gate": { "type": "boolean" }
+      }
+    },
+    "pipelineSourceExtraction": { "allOf": [{ "$ref": "#/$defs/pipelineStep" }, { "properties": { "order": { "const": 1 }, "id": { "const": "SOURCE_EXTRACTION" }, "blocking_gate": { "const": true } } }] },
+    "pipelineEnvironmentSpec": { "allOf": [{ "$ref": "#/$defs/pipelineStep" }, { "properties": { "order": { "const": 2 }, "id": { "const": "ENVIRONMENT_SPEC" }, "blocking_gate": { "const": true } } }] },
+    "pipelineMoodCard": { "allOf": [{ "$ref": "#/$defs/pipelineStep" }, { "properties": { "order": { "const": 3 }, "id": { "const": "MOOD_CARD" }, "blocking_gate": { "const": false } } }] },
+    "pipelineHumanApproval": { "allOf": [{ "$ref": "#/$defs/pipelineStep" }, { "properties": { "order": { "const": 4 }, "id": { "const": "HUMAN_APPROVAL" }, "blocking_gate": { "const": true } } }] },
+    "pipelineEnvironmentPlate": { "allOf": [{ "$ref": "#/$defs/pipelineStep" }, { "properties": { "order": { "const": 5 }, "id": { "const": "ENVIRONMENT_PLATE" }, "blocking_gate": { "const": true } } }] },
+    "pipelineLightingPreview": { "allOf": [{ "$ref": "#/$defs/pipelineStep" }, { "properties": { "order": { "const": 6 }, "id": { "const": "LIGHTING_PREVIEW" }, "blocking_gate": { "const": true } } }] },
+    "pipelineReferencePack": { "allOf": [{ "$ref": "#/$defs/pipelineStep" }, { "properties": { "order": { "const": 7 }, "id": { "const": "REFERENCE_PACK" }, "blocking_gate": { "const": true } } }] },
+    "pipelineProductionScene": { "allOf": [{ "$ref": "#/$defs/pipelineStep" }, { "properties": { "order": { "const": 8 }, "id": { "const": "PRODUCTION_SCENE" }, "blocking_gate": { "const": false } } }] },
+    "pipelineSceneQa": { "allOf": [{ "$ref": "#/$defs/pipelineStep" }, { "properties": { "order": { "const": 9 }, "id": { "const": "SCENE_QA" }, "blocking_gate": { "const": true } } }] },
+    "technicalAuthority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "url", "authority_for"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9._-]+$" },
+        "url": { "type": "string", "pattern": "^https://" },
+        "authority_for": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 3 }
+        }
+      }
+    },
+    "sourceAuthority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["url", "role", "use", "not_authority_for"],
+      "properties": {
+        "url": { "type": "string", "pattern": "^https://" },
+        "role": {
+          "enum": [
+            "environment_and_composition_inspiration",
+            "lighting_composition_palette_inspiration",
+            "environment_material_inspiration",
+            "editorial_style_observation"
+          ]
+        },
+        "use": { "type": "string", "minLength": 10 },
+        "not_authority_for": {
+          "type": "array",
+          "minItems": 7,
+          "maxItems": 7,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "identity",
+              "body",
+              "hair",
+              "outfit",
+              "brands",
+              "readable_text",
+              "exact_architecture"
+            ]
+          }
+        }
+      }
+    },
+    "camera": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "aspect_ratio",
+        "lens_mm",
+        "height",
+        "subject_height_percent",
+        "minimum_clear_space_percent",
+        "max_vertical_error_deg"
+      ],
+      "properties": {
+        "aspect_ratio": { "const": "4:5" },
+        "lens_mm": { "type": "integer", "minimum": 45, "maximum": 70 },
+        "height": { "enum": ["eye_level", "waist_level", "low_max_5deg"] },
+        "subject_height_percent": { "$ref": "#/$defs/standardSubjectRange" },
+        "minimum_clear_space_percent": { "$ref": "#/$defs/minimumClearSpace" },
+        "max_vertical_error_deg": { "type": "number", "minimum": 0, "maximum": 1.5 }
+      }
+    },
+    "lighting": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["time_or_setup", "key", "fill", "finish", "protected_regions"],
+      "properties": {
+        "time_or_setup": { "type": "string", "minLength": 3 },
+        "key": { "type": "string", "minLength": 10 },
+        "fill": { "type": "string", "minLength": 5 },
+        "finish": { "const": "polished_editorial_gloss_without_skin_smoothing_or_hdr" },
+        "protected_regions": {
+          "type": "array",
+          "minItems": 3,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "eyes",
+              "lips",
+              "face_identity",
+              "item_logos",
+              "item_text",
+              "critical_construction"
+            ]
+          }
+        }
+      }
+    },
+    "standardPreset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "preset_id",
+        "version",
+        "family",
+        "ui_name_uk",
+        "source_authorities",
+        "environment",
+        "lighting",
+        "camera",
+        "palette",
+        "hard_negatives",
+        "prompt_path",
+        "mvp_assets",
+        "post_selection_assets"
+      ],
+      "properties": {
+        "preset_id": { "type": "string" },
+        "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+        "family": {
+          "enum": [
+            "city",
+            "light_studio",
+            "dramatic_studio",
+            "interior",
+            "nature_architecture"
+          ]
+        },
+        "ui_name_uk": { "type": "string", "minLength": 5 },
+        "source_authorities": {
+          "type": "array",
+          "minItems": 2,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/sourceAuthority" }
+        },
+        "environment": { "type": "string", "minLength": 20 },
+        "lighting": { "$ref": "#/$defs/lighting" },
+        "camera": { "$ref": "#/$defs/camera" },
+        "palette": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 6,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 2 }
+        },
+        "hard_negatives": {
+          "type": "array",
+          "minItems": 4,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 2 }
+        },
+        "prompt_path": { "type": "string", "pattern": "^prompts/scenes/[a-z0-9._-]+\\.txt$" },
+        "mvp_assets": {
+          "type": "array",
+          "prefixItems": [{ "const": "mood_card" }],
+          "items": false,
+          "minItems": 1,
+          "maxItems": 1
+        },
+        "post_selection_assets": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "uniqueItems": true,
+          "items": { "enum": ["environment_plate", "lighting_preview"] }
+        }
+      }
+    },
+    "editorialMode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "preset_id",
+        "version",
+        "source_set_status",
+        "ui_name_uk",
+        "visual_system",
+        "sources",
+        "prompt_path"
+      ],
+      "properties": {
+        "preset_id": { "type": "string" },
+        "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+        "source_set_status": { "enum": ["READY", "BLOCKED_MISSING_SECOND_SOURCE"] },
+        "ui_name_uk": { "type": "string", "minLength": 5 },
+        "visual_system": { "type": "string", "minLength": 20 },
+        "sources": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/sourceAuthority" }
+        },
+        "prompt_path": {
+          "type": "string",
+          "pattern": "^prompts/scenes/editorial\\.edwin_novak\\.[a-z_]+\\.txt$"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "source_set_status": { "const": "READY" } },
+            "required": ["source_set_status"]
+          },
+          "then": { "properties": { "sources": { "minItems": 2 } } }
+        },
+        {
+          "if": {
+            "properties": { "source_set_status": { "const": "BLOCKED_MISSING_SECOND_SOURCE" } },
+            "required": ["source_set_status"]
+          },
+          "then": { "properties": { "sources": { "minItems": 1, "maxItems": 1 } } }
+        }
+      ]
+    },
+    "editorialProgram": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "namespace",
+        "inherits_standard_automatically",
+        "modes",
+        "shot_sequence",
+        "one_optical_device_per_experimental_frame"
+      ],
+      "properties": {
+        "namespace": { "const": "editorial.edwin_novak" },
+        "inherits_standard_automatically": { "const": false },
+        "modes": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "prefixItems": [
+            { "allOf": [{ "$ref": "#/$defs/editorialMode" }, { "properties": { "preset_id": { "const": "editorial.edwin_novak.organic_contrast" } } }] },
+            { "allOf": [{ "$ref": "#/$defs/editorialMode" }, { "properties": { "preset_id": { "const": "editorial.edwin_novak.urban_monochrome" } } }] },
+            { "allOf": [{ "$ref": "#/$defs/editorialMode" }, { "properties": { "preset_id": { "const": "editorial.edwin_novak.institutional_modernism" } } }] },
+            { "allOf": [{ "$ref": "#/$defs/editorialMode" }, { "properties": { "preset_id": { "const": "editorial.edwin_novak.luminous_blue_white" } } }] }
+          ],
+          "items": false
+        },
+        "shot_sequence": {
+          "type": "array",
+          "minItems": 6,
+          "maxItems": 6,
+          "prefixItems": [
+            { "const": "clean_identity_hero" },
+            { "const": "environmental_hero" },
+            { "const": "sculptural_three_quarter" },
+            { "const": "interference_frame" },
+            { "const": "material_or_accessory_detail" },
+            { "const": "wide_campaign_coda" }
+          ],
+          "items": false
+        },
+        "one_optical_device_per_experimental_frame": { "const": true }
+      }
+    },
+    "qaGate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "blocking", "pass_condition", "on_fail"],
+      "properties": {
+        "id": {
+          "enum": [
+            "MASTER_LOOK_LOCK",
+            "REFERENCE_ROLE_ISOLATION",
+            "NEAR_COPY_AND_LEAKAGE",
+            "IDENTITY",
+            "ITEM_FIDELITY",
+            "SCENE_MATCH",
+            "LIGHT_AND_CONTACT_SHADOW",
+            "FRAMING_AND_ANATOMY",
+            "PROVENANCE"
+          ]
+        },
+        "blocking": { "const": true },
+        "pass_condition": { "type": "string", "minLength": 10 },
+        "on_fail": {
+          "enum": [
+            "RETRY_SCENE_ONLY",
+            "REJECT_PRESET_ASSET",
+            "REQUIRE_HUMAN_REVIEW"
+          ]
+        }
+      }
+    },
+    "qaMasterLookLock": { "allOf": [{ "$ref": "#/$defs/qaGate" }, { "properties": { "id": { "const": "MASTER_LOOK_LOCK" }, "on_fail": { "const": "REJECT_PRESET_ASSET" } } }] },
+    "qaReferenceRoleIsolation": { "allOf": [{ "$ref": "#/$defs/qaGate" }, { "properties": { "id": { "const": "REFERENCE_ROLE_ISOLATION" }, "on_fail": { "const": "REJECT_PRESET_ASSET" } } }] },
+    "qaNearCopyAndLeakage": { "allOf": [{ "$ref": "#/$defs/qaGate" }, { "properties": { "id": { "const": "NEAR_COPY_AND_LEAKAGE" }, "on_fail": { "const": "REJECT_PRESET_ASSET" } } }] },
+    "qaIdentity": { "allOf": [{ "$ref": "#/$defs/qaGate" }, { "properties": { "id": { "const": "IDENTITY" }, "on_fail": { "const": "RETRY_SCENE_ONLY" } } }] },
+    "qaItemFidelity": { "allOf": [{ "$ref": "#/$defs/qaGate" }, { "properties": { "id": { "const": "ITEM_FIDELITY" }, "on_fail": { "const": "RETRY_SCENE_ONLY" } } }] },
+    "qaSceneMatch": { "allOf": [{ "$ref": "#/$defs/qaGate" }, { "properties": { "id": { "const": "SCENE_MATCH" }, "on_fail": { "const": "RETRY_SCENE_ONLY" } } }] },
+    "qaLightAndContactShadow": { "allOf": [{ "$ref": "#/$defs/qaGate" }, { "properties": { "id": { "const": "LIGHT_AND_CONTACT_SHADOW" }, "on_fail": { "const": "RETRY_SCENE_ONLY" } } }] },
+    "qaFramingAndAnatomy": { "allOf": [{ "$ref": "#/$defs/qaGate" }, { "properties": { "id": { "const": "FRAMING_AND_ANATOMY" }, "on_fail": { "const": "RETRY_SCENE_ONLY" } } }] },
+    "qaProvenance": { "allOf": [{ "$ref": "#/$defs/qaGate" }, { "properties": { "id": { "const": "PROVENANCE" }, "on_fail": { "const": "REQUIRE_HUMAN_REVIEW" } } }] }
+  }
+}

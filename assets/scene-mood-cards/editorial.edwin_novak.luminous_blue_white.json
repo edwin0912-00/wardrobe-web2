@@ -1,0 +1,41 @@
+{
+  "schema_version": "1.0.0",
+  "preset_id": "editorial.edwin_novak.luminous_blue_white",
+  "kind": "editorial",
+  "family": "edwin_novak",
+  "ui_name_uk": "Світлий синьо-білий",
+  "asset_role": "mood_card",
+  "file": "assets/scene-mood-cards/editorial.edwin_novak.luminous_blue_white.webp",
+  "sha256": "33ea0633c8187e4ccbc3cfa89e90231929b7a216ff2e4a9849b3e6971a0fc3b8",
+  "prompt_path": "prompts/scenes/editorial.edwin_novak.luminous_blue_white.txt",
+  "prompt_sha256": "a3f757f08c0310e7a3491302fe1166c20108b0608541b16b0a23b45d3f1c6622",
+  "generation": {
+    "provider_path": "codex_builtin_imagegen",
+    "model_family": "gpt-image-2",
+    "model_version": "builtin-current",
+    "source_width": 1122,
+    "source_height": 1402,
+    "crop_position": "centre",
+    "reframe": {
+      "method": "deterministic_4x5_extract",
+      "input_sha256": "f652bbe9f2e952740c251074008f304f7d2ad5bd8b3ddf324341b53fde29d297",
+      "source_width": 1024,
+      "source_height": 1280,
+      "crop_px": {
+        "left": 63,
+        "top": 157,
+        "width": 898,
+        "height": 1123
+      }
+    }
+  },
+  "delivery": {
+    "width": 1024,
+    "height": 1280,
+    "format": "webp",
+    "aspect_ratio": "4:5"
+  },
+  "contains_personal_input": false,
+  "approval": "PENDING_VISUAL_JUDGE",
+  "created_at": "2026-07-22T23:47:46.692Z"
+}

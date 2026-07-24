@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 
 function matches(expected, context) {
@@ -16,6 +17,46 @@ function hydrateResponse(operation, response) {
   if (operation === 'generate' && hydrated.image) hydrated.image = decodeBinary(hydrated.image);
   if (operation === 'condition' && hydrated.reference) hydrated.reference = decodeBinary(hydrated.reference);
   return hydrated;
+}
+
+function normalizedReplayQa(response, context) {
+  const decision = response?.decision;
+  const checks = Array.isArray(response?.checks) && response.checks.length > 0
+    ? response.checks.map((check, index) => ({
+      name: check?.name ?? `REPLAY_CHECK_${index + 1}`,
+      pass: check?.pass ?? decision === 'PASS',
+      score: check?.score ?? ((check?.pass ?? (decision === 'PASS')) ? 1 : 0),
+      evidence: check?.evidence ?? response?.reason ?? 'Recorded replay evidence',
+    }))
+    : [{
+      name: 'REPLAY_SEMANTIC_QA',
+      pass: decision === 'PASS',
+      score: decision === 'PASS' ? 1 : 0,
+      evidence: response?.reason ?? `Recorded replay decision: ${decision}`,
+    }];
+  const evaluatorCore = {
+    type: 'REPLAY',
+    provider: 'replay-provider',
+    model: 'recorded-fixture',
+    version: '1.0.0',
+    phase: context?.phase ?? null,
+    attempt: Number.isInteger(context?.attempt) ? context.attempt : null,
+    idempotency_key: context?.idempotencyKey ?? null,
+    decision,
+  };
+  return {
+    ...response,
+    reason: response?.reason ?? `Recorded replay decision: ${decision}`,
+    checks,
+    defects: Array.isArray(response?.defects) ? response.defects : [],
+    evaluator: response?.evaluator ?? {
+      type: evaluatorCore.type,
+      provider: evaluatorCore.provider,
+      model: evaluatorCore.model,
+      version: evaluatorCore.version,
+      evaluation_id: createHash('sha256').update(JSON.stringify(evaluatorCore)).digest('hex'),
+    },
+  };
 }
 
 export class ReplayProvider {
@@ -58,8 +99,8 @@ export class ReplayProvider {
     return this.#next('generate', context);
   }
 
-  qa(context) {
-    return this.#next('qa', context);
+  async qa(context) {
+    return normalizedReplayQa(await this.#next('qa', context), context);
   }
 
   assertExhausted() {

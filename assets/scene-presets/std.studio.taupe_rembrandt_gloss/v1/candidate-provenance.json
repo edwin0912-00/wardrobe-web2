@@ -1,0 +1,27 @@
+{
+  "assets": [
+    {
+      "exact_prompt_path": "prompts/scene-presets/std.studio.taupe_rembrandt_gloss/v1/environment-plate.txt",
+      "path": "assets/scene-presets/std.studio.taupe_rembrandt_gloss/v1/environment-plate.webp",
+      "provider_receipt_status": "MISSING_FROM_BUILTIN_IMAGE_TOOL",
+      "role": "environment_plate",
+      "sha256": "5b9887bc966f45ba315f27c1821e6e44da78653045060c4dd1d57d5c9f7b185f"
+    },
+    {
+      "derivation": {
+        "exact_prompt_path": "prompts/scenes/std.studio.taupe_rembrandt_gloss.txt",
+        "operation": "ROLE_REASSIGNMENT_FROM_VISUALLY_APPROVED_MOOD_CARD",
+        "source_path": "assets/scene-mood-cards/std.studio.taupe_rembrandt_gloss.webp",
+        "source_sha256": "3b256726cb13ff36fd2f092a7a956859995318bfc6fcdcbfe8243502544a313a"
+      },
+      "path": "assets/scene-presets/std.studio.taupe_rembrandt_gloss/v1/lighting-preview.webp",
+      "provider_receipt_status": "MISSING_FROM_BUILTIN_IMAGE_TOOL",
+      "role": "lighting_preview",
+      "sha256": "09002edac3156ecc3fa200c5f29cfd503fbac5d14f6469f181d5f162ae27ddf7"
+    }
+  ],
+  "preset_id": "std.studio.taupe_rembrandt_gloss",
+  "preset_version": "1.0.0",
+  "release_status": "BLOCKED_MISSING_STABLE_PROVIDER_RECEIPTS",
+  "schema_version": "1.0.0"
+}

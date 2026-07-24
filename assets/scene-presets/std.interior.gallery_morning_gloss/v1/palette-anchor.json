@@ -1,0 +1,19 @@
+{
+  "facts": {
+    "colors": [
+      "off white",
+      "travertine",
+      "light oak",
+      "pearl shadow",
+      "pale gold"
+    ],
+    "contrast": "medium",
+    "materials": [],
+    "notes": [
+      "Apply this palette to the environment and editorial grade only.",
+      "Preserve natural skin tone and every approved item color exactly."
+    ]
+  },
+  "role": "palette_anchor",
+  "schema_version": "1.0.0"
+}

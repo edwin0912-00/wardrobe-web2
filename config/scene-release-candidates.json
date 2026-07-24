@@ -1,0 +1,100 @@
+{
+  "schema_version": "1.0.0",
+  "status": "READY_FOR_RECORDED_HUMAN_APPROVAL",
+  "selected_preset_ids": [
+    "std.city.golden_hour_gloss",
+    "std.studio.white_window_honeycomb",
+    "std.studio.taupe_rembrandt_gloss",
+    "std.interior.gallery_morning_gloss",
+    "std.nature_architecture.concrete_grass_golden_hour"
+  ],
+  "approval": {
+    "status": "PENDING",
+    "actor": null,
+    "recorded_at": null,
+    "evidence_path": "output/scene-production/preset-packs-contact-sheet.jpg"
+  },
+  "retrieved_at": "2026-07-23T09:40:00Z",
+  "source_evidence": {
+    "https://www.pexels.com/photo/sunny-european-street-with-classic-architecture-29090315/": {
+      "source_id": "pexels.29090315",
+      "platform": "Pexels",
+      "creator": "Swapnil Sharma",
+      "page_title": "Charming European street with classic stone buildings under warm sunlight",
+      "availability": "VERIFIED",
+      "license_evidence": "evidence/licenses/pexels-license-2026-07-23.md"
+    },
+    "https://www.pexels.com/photo/empty-european-street-with-classic-architecture-33276833/": {
+      "source_id": "pexels.33276833",
+      "platform": "Pexels",
+      "creator": "Oleksandra Litvinova",
+      "page_title": "A serene view of a quiet empty street flanked by classic European buildings",
+      "availability": "VERIFIED",
+      "license_evidence": "evidence/licenses/pexels-license-2026-07-23.md"
+    },
+    "https://www.pexels.com/photo/a-woman-in-red-long-sleeve-dress-14001742/": {
+      "source_id": "pexels.14001742",
+      "platform": "Pexels",
+      "creator": "Ayomide Onasanya",
+      "page_title": "Beautiful woman posing in a red dress with a neutral backdrop",
+      "availability": "VERIFIED",
+      "license_evidence": "evidence/licenses/pexels-license-2026-07-23.md"
+    },
+    "https://www.pexels.com/photo/woman-in-pink-cardigan-7506932/": {
+      "source_id": "pexels.7506932",
+      "platform": "Pexels",
+      "creator": "SHVETS production",
+      "page_title": "Stylish woman in casual attire posing against a beige backdrop",
+      "availability": "VERIFIED",
+      "license_evidence": "evidence/licenses/pexels-license-2026-07-23.md"
+    },
+    "https://unsplash.com/photos/a-woman-is-posing-for-a-picture-in-a-dark-room-_d0Uv9sIEmY": {
+      "source_id": "unsplash._d0Uv9sIEmY",
+      "platform": "Unsplash",
+      "creator": "Esther Masscheleyn",
+      "page_title": "A woman posing in a dark studio with Rembrandt lighting",
+      "availability": "VERIFIED",
+      "license_evidence": "evidence/licenses/unsplash-license-2026-07-23.md"
+    },
+    "https://www.pexels.com/photo/stylish-woman-in-dramatic-studio-lighting-32497260/": {
+      "source_id": "pexels.32497260",
+      "platform": "Pexels",
+      "creator": "Mery Amiri",
+      "page_title": "Portrait of a woman in a dark room with dramatic lighting",
+      "availability": "VERIFIED",
+      "license_evidence": "evidence/licenses/pexels-license-2026-07-23.md"
+    },
+    "https://www.pexels.com/photo/minimalist-empty-modern-interior-with-high-windows-30699852/": {
+      "source_id": "pexels.30699852",
+      "platform": "Pexels",
+      "creator": "Alexey K.",
+      "page_title": "Spacious modern minimalist room with tall windows and concrete walls",
+      "availability": "VERIFIED",
+      "license_evidence": "evidence/licenses/pexels-license-2026-07-23.md"
+    },
+    "https://www.pexels.com/photo/interior-of-an-empty-industrial-room-18132317/": {
+      "source_id": "pexels.18132317",
+      "platform": "Pexels",
+      "creator": "Yusuf Çelik",
+      "page_title": "Empty industrial loft with sunlight through a large window",
+      "availability": "VERIFIED",
+      "license_evidence": "evidence/licenses/pexels-license-2026-07-23.md"
+    },
+    "https://www.pexels.com/photo/man-taking-a-picture-of-ornamental-grass-under-an-elevated-road-17191701/": {
+      "source_id": "pexels.17191701",
+      "platform": "Pexels",
+      "creator": "joao Guerreiro",
+      "page_title": "Man photographing concrete and ornamental grass during sunset",
+      "availability": "VERIFIED",
+      "license_evidence": "evidence/licenses/pexels-license-2026-07-23.md"
+    },
+    "https://www.pexels.com/photo/scenic-garden-pathway-at-sunset-35133173/": {
+      "source_id": "pexels.35133173",
+      "platform": "Pexels",
+      "creator": "Lissaa Spiridonova",
+      "page_title": "Garden path with ornamental grasses under a sunset sky",
+      "availability": "VERIFIED",
+      "license_evidence": "evidence/licenses/pexels-license-2026-07-23.md"
+    }
+  }
+}

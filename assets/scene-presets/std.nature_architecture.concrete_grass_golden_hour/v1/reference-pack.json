@@ -1,0 +1,134 @@
+{
+  "preset_id": "std.nature_architecture.concrete_grass_golden_hour",
+  "preset_sha256": "f68940939dd96f0d03bc1ed7a0bd9a7dfbba9a8ffbd1ec8896ec3a0396e6213d",
+  "preset_version": "1.0.0",
+  "prompt_sha256": "71b8d45d5d8f4468b49b768e5d46184dc0d3213ad50976bac31848764d9090f4",
+  "reference_pack_id": "pack.std.nature_architecture.concrete_grass_golden_hour.v1.1",
+  "references": [
+    {
+      "media_type": "application/json",
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit"
+      ],
+      "reference_id": "std.nature_architecture.concrete_grass_golden_hour.environment",
+      "role": "environment_anchor",
+      "sha256": "4e77f438cb58704d68ccc33f980035c8105dd0de1a4e05c1044d9cee8ff835b7"
+    },
+    {
+      "media_type": "application/json",
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit"
+      ],
+      "reference_id": "std.nature_architecture.concrete_grass_golden_hour.lighting",
+      "role": "lighting_anchor",
+      "sha256": "7a95f1d0c4bf357249e74953ac695691c7e25b4e85f1387536c9967e1b819dfd"
+    },
+    {
+      "media_type": "application/json",
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit"
+      ],
+      "reference_id": "std.nature_architecture.concrete_grass_golden_hour.composition",
+      "role": "composition_anchor",
+      "sha256": "bcbe6847e14183fcf68855519e167f192870f26592af796da09f290683798106"
+    },
+    {
+      "media_type": "application/json",
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit"
+      ],
+      "reference_id": "std.nature_architecture.concrete_grass_golden_hour.palette",
+      "role": "palette_anchor",
+      "sha256": "736b03f9a65c0c73d2a8db0156c40f7cc08712a7a9c5945dddba23d12cdaafba"
+    },
+    {
+      "media_type": "application/json",
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit"
+      ],
+      "reference_id": "std.nature_architecture.concrete_grass_golden_hour.negative",
+      "role": "negative_reference",
+      "sha256": "d780b73127f5f8a6bd84f4eb80f0588c8a74e73fa7349fc2a53a7061259a70fb"
+    }
+  ],
+  "schema_version": "1.0.0",
+  "source_ledger": {
+    "created_at": "2026-07-23T09:40:00Z",
+    "ledger_id": "ledger.std.nature_architecture.concrete_grass_golden_hour.v1",
+    "preset_id": "std.nature_architecture.concrete_grass_golden_hour",
+    "preset_version": "1.0.0",
+    "revision": 1,
+    "schema_version": "1.0.0",
+    "sources": [
+      {
+        "content_sha256": "9130e382eccb609d98847141ea8505cf505e16d8ce92fef9ad299341a7dc48a4",
+        "not_authority_for": [
+          "identity",
+          "body",
+          "hair",
+          "outfit",
+          "brands",
+          "readable_text",
+          "exact_architecture"
+        ],
+        "retrieved_at": "2026-07-23T09:40:00Z",
+        "rights": {
+          "basis": "LICENSED",
+          "evidence_sha256": "f9091e2efd8927320c4cc5c72508d48f61a9413eefa3466ff1763d64b8cc45e4",
+          "evidence_uri": "evidence/licenses/pexels-license-2026-07-23.md",
+          "rights_holder": "joao Guerreiro via Pexels license",
+          "status": "VERIFIED",
+          "verified_at": "2026-07-23T09:40:00Z"
+        },
+        "role": "environment_and_composition_inspiration",
+        "snapshot_uri": "evidence/scene-sources/pexels.17191701.json",
+        "source_id": "pexels.17191701",
+        "url": "https://www.pexels.com/photo/man-taking-a-picture-of-ornamental-grass-under-an-elevated-road-17191701/",
+        "use": "concrete and ornamental-grass relationship without road or underpass cues"
+      },
+      {
+        "content_sha256": "d458eeeff5ae9c49e7c861dee867d57b1652d9414906a6ba70e6bc8e0630e50e",
+        "not_authority_for": [
+          "identity",
+          "body",
+          "hair",
+          "outfit",
+          "brands",
+          "readable_text",
+          "exact_architecture"
+        ],
+        "retrieved_at": "2026-07-23T09:40:00Z",
+        "rights": {
+          "basis": "LICENSED",
+          "evidence_sha256": "f9091e2efd8927320c4cc5c72508d48f61a9413eefa3466ff1763d64b8cc45e4",
+          "evidence_uri": "evidence/licenses/pexels-license-2026-07-23.md",
+          "rights_holder": "Lissaa Spiridonova via Pexels license",
+          "status": "VERIFIED",
+          "verified_at": "2026-07-23T09:40:00Z"
+        },
+        "role": "environment_material_inspiration",
+        "snapshot_uri": "evidence/scene-sources/pexels.35133173.json",
+        "source_id": "pexels.35133173",
+        "url": "https://www.pexels.com/photo/scenic-garden-pathway-at-sunset-35133173/",
+        "use": "secondary dry-grass palette and low warm-light behavior only"
+      }
+    ],
+    "status": "VERIFIED_FOR_RELEASE"
+  },
+  "version": "1.1.0"
+}

@@ -3,11 +3,42 @@ import { UploadSelectionStore } from './upload-state.js?v=20260722-8';
 import { clearDraft, loadDraft, requestPersistentStorage, saveDraft } from './draft-store.js?v=20260722-10';
 import { fileSummary, telemetry } from './telemetry.js?v=20260722-8';
 import { prepareImageFile } from './image-upload.js?v=20260722-8';
-import { clearDefinitivelyRejectedRunState, clearServerDraft, createRunFromServerDraft, loadServerDraft, removeServerDraftFile, updateServerDraftMetadata, uploadDraftFile } from './server-draft.js?v=20260722-11';
+import { clearDefinitivelyRejectedRunState, clearServerDraft, createRunFromServerDraft, loadServerDraft, removeServerDraftFile, updateServerDraftMetadata, uploadDraftFile } from './server-draft.js?v=20260723-13';
+import {
+  draftBindingsFromManifest,
+  draftRefsFromBindings,
+  finalizationFileManifest,
+  reconcileDraftFileBindings,
+  sha256Blob,
+} from './draft-file-contract.js?v=20260723-1';
 import { PIPELINE_NODE_COUNT, PIPELINE_NODES, checkpointDisplayCode, nodeState, resolveProgressState } from './progress-model.js?v=20260722-7';
+import { createLiveVisualizer, isProviderWaitStage } from './live-visualizer.js?v=20260724-1';
 import { fetchRunWithRetry, RunNotFoundError } from './run-resume.js?v=20260722-3';
-import { avatarFileFromProfile, claimProfileRun, deleteAnonymousProfile, deleteProfileAvatar, deleteProfileLook, loadProfile, saveProfileRun } from './profile-client.js?v=20260722-1';
+import { claimProfileRun, deleteAnonymousProfile, deleteProfileAvatar, deleteProfileLook, listProfileLookEditorialShoots, loadProfile, saveProfileRun } from './profile-client.js?v=20260724-5';
 import { neutralizeItemTerms } from './visible-copy.js?v=20260722-1';
+import { createSceneUi } from './scene-ui.js?v=20260724-1';
+import {
+  addItemsScreenState,
+  clearAddItemsSelection,
+  createSceneActionLabel,
+  finalizeConsumedRunState,
+  formatLookCount,
+  idOfAvatar,
+  lineageFromStorage,
+  looksForAvatar,
+  looksForProfile,
+  resolveAddItemsSelection,
+  resolveProfileLookSelection,
+  resolveResultAddItemsSelection,
+  resolveStoredAddItemsLineage,
+  restoreAddItemsSelection,
+  saveCompletedProfileRun,
+  scenesForLook,
+  scenePresetLabel,
+  sceneStatusLabel,
+  storeAddItemsLineage,
+  storeAddItemsSelection,
+} from './add-items-flow.js?v=20260723-4';
 
 const form = document.querySelector('#run-form');
 const submit = document.querySelector('#submit-button');
@@ -18,10 +49,12 @@ const empty = document.querySelector('#empty-state');
 const progress = document.querySelector('#progress-view');
 const resultView = document.querySelector('#result-view');
 const profileView = document.querySelector('#profile-view');
+const sceneView = document.querySelector('#scene-view');
 const failure = document.querySelector('#failure-view');
 const studioShell = document.querySelector('#studio-shell');
 const resultPanelTitle = document.querySelector('#result-panel-title');
 const thinkingOrb = createThinkingOrb(document.querySelector('#progress-orb-canvas'));
+const liveVisualizer = createLiveVisualizer(document.querySelector('#pipeline-live-visualizer'));
 const uploads = new UploadSelectionStore({ maxGarments: 5 });
 let previewUrls = [];
 let activeRun = null;
@@ -29,23 +62,38 @@ let eventSource = null;
 let saveTimer = null;
 let transitionTimer = null;
 let serverDraftRefs = { person: null, identity: null, garments: [] };
+let serverDraftBindings = { person: null, identity: null, garments: [] };
+let serverDraftLineage = { source_avatar_id: null, source_look_id: null };
+let serverDraftLoaded = false;
 let serverDraftResetRequired = false;
 let serverSyncQueue = Promise.resolve();
+let draftMutationQueue = Promise.resolve();
 let submitting = false;
 let resumeTimer = null;
 let sseRecovering = false;
 let renderedProgressFloor = 0;
 let currentProfile = null;
 let currentResultAvatarId = null;
+let currentResultLookId = null;
+let currentResultRunId = null;
 let profileLoadPromise = null;
+let sceneUi = null;
 const profileSavePromises = new Map();
+const preparedDraftFiles = new WeakMap();
 let profileAvatarPage = 0;
 let profileLookPage = 0;
+let currentViewName = 'empty';
+let profileReturnState = { view: 'empty', workflowActive: false };
+let profileReturnFocus = null;
+let selectedProfileAvatarId = null;
+let selectedProfileLookId = null;
+let selectedProfileLookSelection = null;
+let selectedProfileLook = null;
+let profileEditorialRequestVersion = 0;
 
 const ACTIVE_RUN_KEY = 'zeely_active_run_id';
 const PENDING_FINALIZATION_KEY = 'zeely_pending_finalization_id';
 const DRAFT_RESET_PENDING_KEY = 'zeely_draft_reset_pending';
-const SOURCE_AVATAR_KEY = 'zeely_source_avatar_id';
 const TERMINAL_STATUSES = new Set(['COMPLETED', 'FAILED', 'NEEDS_INPUT']);
 const PIPELINE_STATUS_LABELS = Object.freeze({
   done: 'SAVED', active: 'ACTIVE', pending: 'WAIT', skipped: 'SKIP', reused: 'REUSE', stopped: 'STOP',
@@ -121,6 +169,7 @@ function movePipelineBoard(destination = 'progress') {
   };
   const host = hosts[destination];
   if (host && board.parentElement !== host) host.append(board);
+  liveVisualizer.setActive(destination === 'progress');
 }
 
 function isTerminal(run) {
@@ -138,66 +187,140 @@ function createFinalizationId() {
   return `${value.slice(0, 8)}-${value.slice(8, 12)}-${value.slice(12, 16)}-${value.slice(16, 20)}-${value.slice(20)}`;
 }
 
-function queueServerSync(task) {
-  serverSyncQueue = serverSyncQueue.then(task).catch((error) => {
+function queueServerSync(task, { propagate = false } = {}) {
+  const operation = serverSyncQueue.then(task);
+  serverSyncQueue = operation.catch((error) => {
     draftStatus.textContent = 'Чернетку збережено лише на цьому пристрої';
     draftStatus.className = 'draft-status failed';
     telemetry('client.draft_error', { message: error.message.slice(0, 500), stage: 'server_sync' });
     return null;
   });
-  return serverSyncQueue;
+  return propagate ? operation : serverSyncQueue;
+}
+
+function queueDraftMutation(task, stage) {
+  const operation = draftMutationQueue.then(task);
+  draftMutationQueue = operation.catch((error) => {
+    formError.textContent = humanizeVisibleText(error.message);
+    telemetry('client.error', { message: error.message.slice(0, 500), stage });
+    return null;
+  });
+  return draftMutationQueue;
+}
+
+function setServerDraftBindings(bindings) {
+  serverDraftBindings = bindings;
+  serverDraftRefs = draftRefsFromBindings(bindings);
 }
 
 async function resetServerDraftIfNeeded() {
-  if (!serverDraftResetRequired && localStorage.getItem(DRAFT_RESET_PENDING_KEY) !== 'true') return;
+  if (!serverDraftResetRequired && localStorage.getItem(DRAFT_RESET_PENDING_KEY) === null) return;
   await clearServerDraft();
-  serverDraftRefs = { person: null, identity: null, garments: [] };
+  setServerDraftBindings({ person: null, identity: null, garments: [] });
+  serverDraftLineage = { source_avatar_id: null, source_look_id: null };
+  serverDraftLoaded = false;
   serverDraftResetRequired = false;
   localStorage.removeItem(DRAFT_RESET_PENDING_KEY);
 }
 
-async function syncFileToServer(slot, file) {
-  await resetServerDraftIfNeeded();
+async function preparedDraftFile(file) {
+  if (!preparedDraftFiles.has(file)) {
+    preparedDraftFiles.set(file, (async () => {
+      const prepared = await prepareImageFile(file);
+      if (prepared.changed) telemetry('client.file_prepared', {
+        original_bytes: prepared.originalBytes,
+        prepared_bytes: prepared.preparedBytes,
+        stage: 'draft_backup',
+      });
+      return {
+        file: prepared.file,
+        sourceName: file.name,
+        sha256: await sha256Blob(prepared.file),
+        size: prepared.file.size,
+        mimetype: prepared.file.type,
+      };
+    })());
+  }
+  return preparedDraftFiles.get(file);
+}
+
+async function selectedDraftFiles(sourceAvatarId) {
+  const selection = {
+    person: uploads.person,
+    identity: uploads.identityDetail,
+    garments: [...uploads.garments],
+  };
+  const [person, identity, garments] = await Promise.all([
+    sourceAvatarId || !selection.person ? null : preparedDraftFile(selection.person),
+    sourceAvatarId || !selection.identity ? null : preparedDraftFile(selection.identity),
+    Promise.all(selection.garments.map(preparedDraftFile)),
+  ]);
+  return { person, identity, garments };
+}
+
+async function uploadPreparedDraftFile(slot, desired) {
   draftStatus.textContent = 'Зберігаємо чернетку на 15 хвилин…';
-  const prepared = await prepareImageFile(file);
-  if (prepared.changed) telemetry('client.file_prepared', {
-    original_bytes: prepared.originalBytes, prepared_bytes: prepared.preparedBytes, stage: 'draft_backup',
-  });
-  const descriptor = await uploadDraftFile(slot, prepared.file, { onProgress: (loaded, total) => {
+  const descriptor = await uploadDraftFile(slot, desired.file, { onProgress: (loaded, total) => {
     if (!submitting || total <= 0) return;
     const uploadPercentage = Math.min(100, Math.round((loaded / total) * 100));
     const pipelinePercentage = 4 + Math.round(uploadPercentage * 0.06);
     renderProgress(
       { ...resolveProgressState('UPLOADING', pipelinePercentage), countLabel: `Файл ${uploadPercentage}%` },
-      `${file.name} · завантажено ${uploadPercentage}% · ${Math.ceil(loaded / 1024 / 1024)} з ${Math.ceil(total / 1024 / 1024)} MB`,
+      `${desired.sourceName} · завантажено ${uploadPercentage}% · ${Math.ceil(loaded / 1024 / 1024)} з ${Math.ceil(total / 1024 / 1024)} MB`,
     );
   } });
-  if (slot === 'person') serverDraftRefs.person = descriptor.id;
-  else if (slot === 'identity') serverDraftRefs.identity = descriptor.id;
-  else serverDraftRefs.garments.push(descriptor.id);
   draftStatus.textContent = 'Чернетку збережено на 15 хвилин';
   draftStatus.className = 'draft-status saved';
+  return descriptor;
+}
+
+async function reconcileServerDraftFiles({ sourceAvatarId }) {
+  await resetServerDraftIfNeeded();
+  const current = await loadServerDraft({ includeFiles: false });
+  setServerDraftBindings(current.bindings);
+  serverDraftLineage = {
+    source_avatar_id: current.manifest.source_avatar_id ?? null,
+    source_look_id: current.manifest.source_look_id ?? null,
+  };
+  serverDraftLoaded = true;
+  const desired = await selectedDraftFiles(sourceAvatarId);
+  const reconciled = await reconcileDraftFileBindings({
+    desired,
+    current: current.bindings,
+    upload: uploadPreparedDraftFile,
+    remove: removeServerDraftFile,
+  });
+  setServerDraftBindings(reconciled);
+  return reconciled;
 }
 
 async function ensureServerDraftComplete() {
-  await serverSyncQueue;
-  await resetServerDraftIfNeeded();
-  const current = await loadServerDraft({ includeFiles: false });
-  serverDraftRefs = current.refs;
-
-  if (uploads.person && !serverDraftRefs.person) await syncFileToServer('person', uploads.person);
-  if (uploads.identityDetail && !serverDraftRefs.identity) await syncFileToServer('identity', uploads.identityDetail);
-  for (const garment of uploads.garments.slice(serverDraftRefs.garments.length)) {
-    await syncFileToServer('garment', garment);
-  }
-  await updateServerDraftMetadata({
+  const { sourceAvatarId, sourceLookId } = lineageFromStorage(localStorage);
+  const reconciled = await queueServerSync(
+    () => reconcileServerDraftFiles({ sourceAvatarId }),
+    { propagate: true },
+  );
+  const confirmedManifest = await updateServerDraftMetadata({
     outfitText: form.elements.outfit_text.value,
     generateScene: false,
+    sourceAvatarId,
+    sourceLookId,
   });
+  serverDraftLineage = {
+    source_avatar_id: sourceAvatarId,
+    source_look_id: sourceLookId,
+  };
+  const confirmed = draftBindingsFromManifest(confirmedManifest);
+  if (JSON.stringify(finalizationFileManifest(confirmed))
+    !== JSON.stringify(finalizationFileManifest(reconciled))) {
+    throw new Error('Файли чернетки змінилися під час перевірки');
+  }
+  setServerDraftBindings(confirmed);
 
-  if (!serverDraftRefs.person) throw new Error('Фото людини не збережено на сервері');
-  if (uploads.identityDetail && !serverDraftRefs.identity) throw new Error('Додаткове фото людини не збережено на сервері');
-  if (serverDraftRefs.garments.length !== uploads.garments.length) throw new Error('Не всі фото одягу збережено на сервері');
+  if (!sourceAvatarId && !serverDraftRefs.person) throw new Error('Фото людини не збережено на сервері');
+  if (!sourceAvatarId && uploads.identityDetail && !serverDraftRefs.identity) throw new Error('Додаткове фото людини не збережено на сервері');
+  if (serverDraftRefs.garments.length !== uploads.garments.length) throw new Error('Не всі фото речей збережено на сервері');
+  return confirmed;
 }
 
 function fileLabel(input, count, filename = '') {
@@ -237,9 +360,15 @@ function renderUploads() {
   identityPreview.replaceChildren();
   garmentPreview.replaceChildren();
 
-  if (uploads.person) personPreview.append(previewItem(uploads.person, () => removeFile('person')));
-  if (uploads.identityDetail) identityPreview.append(previewItem(uploads.identityDetail, () => removeFile('identity')));
-  uploads.garments.forEach((file, index) => garmentPreview.append(previewItem(file, () => removeFile('garment', index))));
+  if (uploads.person) personPreview.append(previewItem(uploads.person, () => {
+    queueDraftMutation(() => removeFile('person'), 'remove_person');
+  }));
+  if (uploads.identityDetail) identityPreview.append(previewItem(uploads.identityDetail, () => {
+    queueDraftMutation(() => removeFile('identity'), 'remove_identity');
+  }));
+  uploads.garments.forEach((file, index) => garmentPreview.append(previewItem(file, () => {
+    queueDraftMutation(() => removeFile('garment', index), 'remove_item');
+  })));
 
   fileLabel(document.querySelector('#person-photo'), uploads.person ? 1 : 0, uploads.person?.name);
   fileLabel(document.querySelector('#identity-detail'), uploads.identityDetail ? 1 : 0, uploads.identityDetail?.name);
@@ -263,9 +392,12 @@ async function persistDraft(reason = 'change') {
     draftStatus.textContent = 'Чернетку збережено на цьому пристрої';
     draftStatus.className = 'draft-status saved';
     telemetry('client.draft_saved', { ...fileSummary(uploads), stage: reason });
+    const { sourceAvatarId, sourceLookId } = lineageFromStorage(localStorage);
     queueServerSync(() => updateServerDraftMetadata({
       outfitText: form.elements.outfit_text.value,
       generateScene: false,
+      sourceAvatarId,
+      sourceLookId,
     }));
   } catch (error) {
     draftStatus.textContent = 'Не вдалося зберегти локальну чернетку';
@@ -279,33 +411,37 @@ function scheduleDraftSave(reason) {
   saveTimer = window.setTimeout(() => persistDraft(reason), 250);
 }
 
-function removeFile(kind, index) {
-  let serverId;
-  if (kind === 'person') { serverId = serverDraftRefs.person; serverDraftRefs.person = null; uploads.setPerson(null); }
-  else if (kind === 'identity') { serverId = serverDraftRefs.identity; serverDraftRefs.identity = null; uploads.setIdentityDetail(null); }
-  else { serverId = serverDraftRefs.garments[index]; serverDraftRefs.garments.splice(index, 1); uploads.removeGarment(index); }
-  queueServerSync(() => removeServerDraftFile(kind, serverId));
+async function removeFile(kind, index) {
+  if (kind === 'person') uploads.setPerson(null);
+  else if (kind === 'identity') uploads.setIdentityDetail(null);
+  else uploads.removeGarment(index);
   renderUploads();
   telemetry('client.file_removed', { ...fileSummary(uploads), stage: kind });
-  persistDraft(`remove_${kind}`);
+  await persistDraft(`remove_${kind}`);
+  const { sourceAvatarId } = lineageFromStorage(localStorage);
+  await queueServerSync(
+    () => reconcileServerDraftFiles({ sourceAvatarId }),
+    { propagate: true },
+  );
 }
 
 async function handleSelected(kind, files) {
   try {
-    let additions;
-    if (kind === 'person') { uploads.setPerson(files[0]); additions = [files[0]]; }
-    else if (kind === 'identity') { uploads.setIdentityDetail(files[0]); additions = [files[0]]; }
+    if (kind === 'person') uploads.setPerson(files[0]);
+    else if (kind === 'identity') uploads.setIdentityDetail(files[0]);
     else {
-      const previousCount = uploads.garments.length;
       uploads.addGarments(files);
-      additions = uploads.garments.slice(previousCount);
     }
     formError.textContent = '';
     renderUploads();
     telemetry('client.file_selected', { ...fileSummary(uploads), stage: kind });
     requestPersistentStorage().catch(() => false);
     await persistDraft(`select_${kind}`);
-    for (const file of additions) await queueServerSync(() => syncFileToServer(kind, file));
+    const { sourceAvatarId } = lineageFromStorage(localStorage);
+    await queueServerSync(
+      () => reconcileServerDraftFiles({ sourceAvatarId }),
+      { propagate: true },
+    );
   } catch (error) {
     formError.textContent = humanizeVisibleText(error.message);
     telemetry('client.error', { message: error.message.slice(0, 500), stage: `select_${kind}` });
@@ -313,28 +449,37 @@ async function handleSelected(kind, files) {
 }
 
 document.querySelector('#person-photo').addEventListener('change', (event) => {
-  handleSelected('person', event.target.files);
+  const files = [...event.target.files];
   event.target.value = '';
+  if (files.length) queueDraftMutation(() => handleSelected('person', files), 'select_person');
 });
 document.querySelector('#identity-detail').addEventListener('change', (event) => {
-  handleSelected('identity', event.target.files);
+  const files = [...event.target.files];
   event.target.value = '';
+  if (files.length) queueDraftMutation(() => handleSelected('identity', files), 'select_identity');
 });
 document.querySelector('#garment-images').addEventListener('change', (event) => {
-  handleSelected('garment', event.target.files);
+  const files = [...event.target.files];
   event.target.value = '';
+  if (files.length) queueDraftMutation(() => handleSelected('garment', files), 'select_item');
 });
 form.elements.outfit_text.addEventListener('input', () => scheduleDraftSave('outfit_text'));
 
-function setWorkflowActive(active) {
-  document.documentElement.classList.remove('workflow-pending');
+function setWorkflowActive(active, { reveal = true } = {}) {
+  if (reveal) document.documentElement.classList.remove('workflow-pending');
   document.body.classList.toggle('workflow-active', active);
+  document.body.classList.toggle(
+    'add-items-active',
+    !active && form.dataset.mode === 'add-items',
+  );
   studioShell.dataset.screen = active ? 'pipeline' : 'input';
 }
 
 function setView(name) {
   if (name === 'progress') movePipelineBoard('progress');
-  const views = { empty, progress, result: resultView, profile: profileView, failure };
+  const views = { empty, progress, result: resultView, profile: profileView, scene: sceneView, failure };
+  currentViewName = name;
+  document.body.classList.toggle('scene-active', name === 'scene');
   document.querySelector('.result-panel').dataset.view = name;
   for (const [viewName, element] of Object.entries(views)) {
     const selected = viewName === name;
@@ -409,6 +554,9 @@ function renderRun(run) {
   if (activeRun?.run_id === run.run_id && Date.parse(run.updated_at) < Date.parse(activeRun.updated_at)) return;
   if (activeRun?.run_id !== run.run_id) renderedProgressFloor = 0;
   activeRun = run;
+  liveVisualizer.update(run.visual_checkpoint, {
+    providerWaiting: isProviderWaitStage(run.inner_state ?? run.phase),
+  });
   setWorkflowActive(true);
   localStorage.setItem(ACTIVE_RUN_KEY, run.run_id);
   const hasSelectableConflict = run.status === 'NEEDS_INPUT' && (run.conflicts || []).some((item) => item.type === 'DUPLICATE_SLOT');
@@ -417,6 +565,7 @@ function renderRun(run) {
   if (run.status === 'COMPLETED') {
     renderProgress(resolveProgressState('COMPLETED'), run.message);
     movePipelineBoard('completed');
+    document.querySelector('#completed-pipeline-trace').open = true;
     resultPanelTitle.textContent = 'Результат';
     setView('result');
     renderResults(run);
@@ -429,6 +578,7 @@ function renderRun(run) {
     const terminalStage = run.terminal_stage ?? run.inner_state ?? run.phase;
     renderProgress(resolveProgressState(terminalStage), run.message, { terminalStatus: run.status });
     movePipelineBoard('failure');
+    document.querySelector('#failure-pipeline-trace').open = true;
     resultPanelTitle.textContent = hasSelectableConflict ? 'Вибір' : 'Процес';
     setView('failure');
     failure.classList.toggle('choice', hasSelectableConflict);
@@ -514,16 +664,56 @@ function profileValue(value) {
 }
 
 function avatarId(avatar) {
-  return avatar?.id ?? avatar?.avatar_id ?? null;
+  return idOfAvatar(avatar);
 }
 
 function avatarImageUrl(avatar) {
   return avatar?.image_url ?? (avatarId(avatar) ? `/api/profile/avatars/${encodeURIComponent(avatarId(avatar))}/image` : '');
 }
 
+function setAvatarDraftMode(avatar = null, look = null) {
+  const sourceId = avatarId(avatar);
+  const reusingAvatar = Boolean(sourceId);
+  form.dataset.mode = reusingAvatar ? 'add-items' : 'new-avatar';
+  document.body.classList.toggle('reuse-avatar-mode', reusingAvatar);
+  document.body.classList.toggle('add-items-active', reusingAvatar);
+  document.querySelector('#add-items-kicker').classList.toggle('hidden', !reusingAvatar);
+  const addItemsState = reusingAvatar
+    ? addItemsScreenState(resolveAddItemsSelection({ avatar, look }))
+    : null;
+  document.querySelector('#new-avatar-inputs').classList.toggle(
+    'hidden',
+    addItemsState ? !addItemsState.showNewAvatarInputs : false,
+  );
+  const context = document.querySelector('#source-avatar-context');
+  context.classList.toggle(
+    'hidden',
+    addItemsState ? !addItemsState.showSourceAvatarContext : true,
+  );
+  document.querySelector('#material-step').textContent = '01';
+  document.querySelector('#material-title').textContent = addItemsState?.title ?? 'Матеріали';
+  document.querySelector('#look-divider-label').textContent = addItemsState?.divider ?? 'НОВИЙ ОБРАЗ';
+  document.querySelector('#submit-label').textContent = addItemsState?.submit ?? 'Створити аватар';
+  document.querySelector('#empty-state-title').textContent = reusingAvatar ? 'Аватар уже зафіксований' : 'Тут з’явиться твій образ';
+  document.querySelector('#empty-state-copy').textContent = reusingAvatar
+    ? 'Додай речі для нового окремого образу. Використаємо збережені зовнішність і пропорції тіла аватара; попередні образи не зміняться.'
+    : 'Спочатку перевіряємо базовий аватар, потім — одяг.';
+
+  const preview = document.querySelector('#source-avatar-preview');
+  if (reusingAvatar) {
+    preview.src = avatarImageUrl(avatar);
+    preview.hidden = false;
+    document.querySelector('#source-avatar-name').textContent = addItemsState.sourceName;
+    document.querySelector('#source-avatar-detail').textContent = addItemsState.sourceDetail;
+  } else {
+    preview.removeAttribute('src');
+    preview.hidden = true;
+    document.querySelector('#source-avatar-detail').textContent = 'Зовнішність уже затверджена — повторно завантажувати фото не потрібно.';
+  }
+}
+
 function profileLooks(profile) {
-  if (Array.isArray(profile?.looks)) return profile.looks;
-  return (profile?.avatars ?? []).flatMap((avatar) => (avatar.looks ?? []).map((look) => ({ ...look, avatar_id: avatarId(avatar) })));
+  return looksForProfile(profile);
 }
 
 function formatProfileExpiry(value) {
@@ -550,17 +740,49 @@ async function ensureCompletedRunSaved(run) {
   const saveState = document.querySelector('#result-save-state');
   saveState.textContent = 'Зберігаємо профіль…';
   saveState.classList.add('saving');
-  const sourceAvatarId = localStorage.getItem(SOURCE_AVATAR_KEY);
+  const { sourceAvatarId, sourceLookId } = lineageFromStorage(localStorage);
   const operation = (async () => {
-    await claimProfileRun(run.run_id, sourceAvatarId);
-    const response = await saveProfileRun(run.run_id);
+    const { response, cleanup } = await saveCompletedProfileRun({
+      runId: run.run_id,
+      lineage: { sourceAvatarId, sourceLookId },
+      claimRun: claimProfileRun,
+      saveRun: saveProfileRun,
+      finalizeConsumedState: () => finalizeConsumedRunState(localStorage, {
+        runId: run.run_id,
+        activeRunKey: ACTIVE_RUN_KEY,
+        pendingFinalizationKey: PENDING_FINALIZATION_KEY,
+        resetPendingKey: DRAFT_RESET_PENDING_KEY,
+        clearRunLocation: (completedRunId) => {
+          if (new URLSearchParams(location.search).get('run') === completedRunId) {
+            history.replaceState({}, '', location.pathname);
+          }
+        },
+        clearLocalDraft: clearDraft,
+        clearServerDraft,
+      }),
+    });
+    setServerDraftBindings({ person: null, identity: null, garments: [] });
+    serverDraftLineage = { source_avatar_id: null, source_look_id: null };
+    serverDraftLoaded = cleanup.serverDraftCleared;
+    serverDraftResetRequired = !cleanup.serverDraftCleared;
+    if (!cleanup.fullyCleared) {
+      telemetry('client.draft_error', {
+        local_cleared: cleanup.localDraftCleared,
+        server_cleared: cleanup.serverDraftCleared,
+        run_location_cleared: cleanup.runLocationCleared,
+        stage: 'post_save_cleanup',
+      }, run.run_id);
+    }
     currentProfile = profileValue(response);
     profileLoadPromise = Promise.resolve(currentProfile);
     const avatars = currentProfile.avatars ?? [];
     const savedAvatarId = response?.avatar_id ?? response?.avatar?.avatar_id ?? response?.avatar?.id ?? sourceAvatarId
-      ?? avatarId(avatars.find((avatar) => avatar.source_run_id === run.run_id))
-      ?? avatarId(avatars.at(0));
+      ?? avatarId(avatars.find((avatar) => avatar.source_run_id === run.run_id));
     currentResultAvatarId = savedAvatarId;
+    currentResultLookId = response?.look?.look_id ?? response?.look?.id ?? null;
+    const sceneButton = document.querySelector('#create-scene');
+    sceneButton.disabled = !currentResultLookId;
+    sceneButton.textContent = currentResultLookId ? 'Створити сцену' : 'Сцена недоступна';
     const selected = avatars.find((avatar) => avatarId(avatar) === savedAvatarId);
     document.querySelector('#result-avatar-name').textContent = selected?.name || `Аватар ${String(Math.max(1, avatars.findIndex((avatar) => avatarId(avatar) === savedAvatarId) + 1)).padStart(2, '0')}`;
     const expiry = currentProfile.expires_at ?? response?.expires_at;
@@ -568,9 +790,6 @@ async function ensureCompletedRunSaved(run) {
     saveState.textContent = 'Перевірку пройдено · збережено';
     saveState.onclick = null;
     saveState.classList.remove('saving', 'failed');
-    localStorage.removeItem(SOURCE_AVATAR_KEY);
-    if (localStorage.getItem(ACTIVE_RUN_KEY) === run.run_id) localStorage.removeItem(ACTIVE_RUN_KEY);
-    if (new URLSearchParams(location.search).get('run') === run.run_id) history.replaceState({}, '', location.pathname);
     telemetry('client.profile_saved', { avatar_id: savedAvatarId, stage: 'completed_run' }, run.run_id);
     return currentProfile;
   })().catch((error) => {
@@ -624,14 +843,18 @@ function appendProfilePager(container, { label, page, pageCount, onChange }) {
   container.append(pager);
 }
 
-async function beginDraft({ avatar = null } = {}) {
+async function beginDraft({ avatar = null, look = null } = {}) {
+  const selection = avatar ? resolveAddItemsSelection({ avatar, look }) : null;
   form.inert = true;
   form.setAttribute('aria-busy', 'true');
   try {
+    sceneUi?.stopWatching();
     eventSource?.close();
     window.clearTimeout(transitionTimer);
     window.clearTimeout(resumeTimer);
     activeRun = null;
+    currentResultRunId = null;
+    currentResultLookId = null;
     renderedProgressFloor = 0;
     form.reset();
     uploads.reset();
@@ -639,33 +862,50 @@ async function beginDraft({ avatar = null } = {}) {
     localStorage.removeItem(ACTIVE_RUN_KEY);
     localStorage.removeItem(PENDING_FINALIZATION_KEY);
     serverDraftResetRequired = true;
-    localStorage.setItem(DRAFT_RESET_PENDING_KEY, 'true');
-    if (avatar) localStorage.setItem(SOURCE_AVATAR_KEY, avatarId(avatar));
-    else localStorage.removeItem(SOURCE_AVATAR_KEY);
+    localStorage.setItem(DRAFT_RESET_PENDING_KEY, selection ? 'add-items' : 'new-avatar');
+    if (selection) storeAddItemsSelection(localStorage, selection);
+    else clearAddItemsSelection(localStorage);
+    setAvatarDraftMode(selection?.avatar ?? null, selection?.look ?? null);
     history.replaceState({}, '', location.pathname);
-    resultPanelTitle.textContent = 'Процес';
-    statusChip.textContent = 'Очікує матеріали';
+    resultPanelTitle.textContent = avatar ? 'Новий окремий образ' : 'Процес';
+    statusChip.textContent = avatar ? 'АВАТАР ЗАФІКСОВАНО' : 'Очікує матеріали';
     statusChip.className = 'status-chip idle';
     setView('empty');
     setWorkflowActive(false);
     const serverCleared = clearServerDraft().then(() => true).catch(() => false);
     const [, didClearServer] = await Promise.all([clearDraft().catch(() => {}), serverCleared]);
-    serverDraftRefs = { person: null, identity: null, garments: [] };
+    setServerDraftBindings({ person: null, identity: null, garments: [] });
+    serverDraftLineage = { source_avatar_id: null, source_look_id: null };
+    serverDraftLoaded = didClearServer;
     serverDraftResetRequired = !didClearServer;
     if (didClearServer) localStorage.removeItem(DRAFT_RESET_PENDING_KEY);
 
-    if (avatar) {
-      const file = await avatarFileFromProfile({ ...avatar, image_url: avatarImageUrl(avatar) });
-      uploads.setPerson(file);
+    if (selection) {
       renderUploads();
       await saveDraft({ ...uploads, outfitText: '', generateScene: false });
-      await queueServerSync(() => syncFileToServer('person', file));
-      draftStatus.textContent = 'Збережений аватар готовий · додай нові речі';
+      if (didClearServer) {
+        await updateServerDraftMetadata({
+          outfitText: '',
+          generateScene: false,
+          sourceAvatarId: selection.avatarId,
+          sourceLookId: selection.lookId,
+        });
+        serverDraftLineage = {
+          source_avatar_id: selection.avatarId,
+          source_look_id: selection.lookId,
+        };
+        serverDraftLoaded = true;
+      }
+      draftStatus.textContent = 'Аватар зафіксовано · додай речі для окремого образу';
+      draftStatus.className = 'draft-status saved';
     } else {
       draftStatus.textContent = 'Нова порожня чернетка аватара';
     }
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    (avatar ? form.elements.outfit_text : document.querySelector('#person-photo')).focus();
+    requestAnimationFrame(() => {
+      if (selection) studioShell.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      else window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+    (selection ? form.elements.outfit_text : document.querySelector('#person-photo')).focus();
   } finally {
     form.inert = false;
     form.removeAttribute('aria-busy');
@@ -673,66 +913,337 @@ async function beginDraft({ avatar = null } = {}) {
   }
 }
 
+function captureProfileReturnState() {
+  if (currentViewName === 'profile' || currentViewName === 'scene') return false;
+  profileReturnState = {
+    view: currentViewName,
+    workflowActive: document.body.classList.contains('workflow-active'),
+    panelTitle: resultPanelTitle.textContent,
+    statusText: statusChip.textContent,
+    statusClass: statusChip.className,
+  };
+  profileReturnFocus = document.activeElement?.focus ? document.activeElement : null;
+  return true;
+}
+
+function restoreProfileReturnView() {
+  sceneUi?.stopWatching();
+  const target = profileReturnState?.view && profileReturnState.view !== 'profile'
+    ? profileReturnState
+    : { view: 'empty', workflowActive: false };
+  if (target.panelTitle) resultPanelTitle.textContent = target.panelTitle;
+  if (target.statusText) statusChip.textContent = target.statusText;
+  if (target.statusClass) statusChip.className = target.statusClass;
+  setWorkflowActive(Boolean(target.workflowActive));
+  setView(target.view);
+  requestAnimationFrame(() => {
+    if (profileReturnFocus?.isConnected) profileReturnFocus.focus();
+    else studioShell.focus?.({ preventScroll: true });
+  });
+}
+
+async function selectProfileAvatar(profile, avatar) {
+  selectedProfileAvatarId = avatarId(avatar);
+  selectedProfileLookId = null;
+  profileLookPage = 0;
+  await renderProfile(profile);
+  requestAnimationFrame(() => {
+    const firstRelatedLook = document.querySelector(
+      `#profile-look-grid [data-avatar-id="${CSS.escape(selectedProfileAvatarId)}"] .profile-look-open`,
+    );
+    (firstRelatedLook ?? document.querySelector('#profile-look-heading'))?.focus?.({ preventScroll: true });
+  });
+}
+
+async function openProfileLook(profile, look) {
+  const selection = resolveProfileLookSelection(profile, look);
+  selectedProfileAvatarId = selection.avatarId;
+  selectedProfileLookId = selection.lookId;
+  profileLookPage = 0;
+  await renderProfile(profile);
+  requestAnimationFrame(() => {
+    const detail = document.querySelector('#profile-look-detail');
+    detail?.focus({ preventScroll: true });
+    detail?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  });
+}
+
+function renderProfileSceneLibrary(look) {
+  const scenes = scenesForLook(look);
+  const list = document.querySelector('#profile-look-scene-list');
+  const emptyState = document.querySelector('#profile-look-scenes-empty');
+  const count = document.querySelector('#profile-look-scenes-count');
+  const createButton = document.querySelector('#profile-look-scene');
+  list.replaceChildren();
+  count.textContent = String(scenes.length);
+  count.setAttribute(
+    'aria-label',
+    scenes.length === 1 ? '1 збережена сцена' : `${scenes.length} збережених сцен`,
+  );
+  emptyState.classList.toggle('hidden', scenes.length > 0);
+  createButton.textContent = createSceneActionLabel(look);
+
+  scenes.forEach((scene, index) => {
+    const status = sceneStatusLabel(scene.status);
+    const item = document.createElement('li');
+    item.className = 'profile-look-scene-item';
+    const open = document.createElement('button');
+    open.type = 'button';
+    open.className = 'profile-look-scene-open';
+    open.dataset.status = String(scene.status ?? 'UNKNOWN').toUpperCase();
+
+    const visual = document.createElement('span');
+    visual.className = 'profile-look-scene-visual';
+    if (scene.image_url) {
+      const image = document.createElement('img');
+      image.src = scene.image_url;
+      image.alt = '';
+      image.loading = 'lazy';
+      visual.append(image);
+    } else {
+      const placeholder = document.createElement('span');
+      placeholder.className = 'profile-look-scene-placeholder';
+      placeholder.textContent = String(index + 1).padStart(2, '0');
+      placeholder.setAttribute('aria-hidden', 'true');
+      visual.append(placeholder);
+    }
+
+    const copy = document.createElement('span');
+    copy.className = 'profile-look-scene-copy';
+    const title = document.createElement('strong');
+    title.textContent = scenePresetLabel(scene.preset);
+    open.setAttribute('aria-label', `Відкрити ${title.textContent}. Статус: ${status}`);
+    const state = document.createElement('small');
+    state.textContent = status;
+    const preset = document.createElement('code');
+    preset.textContent = scene.preset?.preset_id || 'scene';
+    copy.append(title, state, preset);
+    open.append(visual, copy);
+    open.addEventListener('click', (event) => {
+      event.stopPropagation();
+      sceneUi.openExisting(scene, look).catch(showProfileError);
+    });
+    item.append(open);
+    list.append(item);
+  });
+}
+
+function editorialShootsForLook(profile, look, supplied = null) {
+  if (!look) return [];
+  const lookId = look.look_id ?? look.id;
+  const nested = supplied
+    ?? look.editorial_shoots
+    ?? look.editorialShoots
+    ?? [];
+  const topLevel = Array.isArray(profile?.editorial_shoots)
+    ? profile.editorial_shoots.filter((shoot) => (
+      (shoot.look_id
+        ?? shoot.approved_look?.look_id
+        ?? shoot.bindings?.approved_look?.look_id) === lookId
+    ))
+    : [];
+  const localProjection = sceneUi?.editorialResumeProjectionForLook(lookId);
+  const unique = new Map();
+  for (const shoot of [...topLevel, ...(Array.isArray(nested) ? nested : [])]) {
+    const shootId = shoot?.shoot_id ?? shoot?.id;
+    if (shootId) unique.set(shootId, shoot);
+  }
+  if (localProjection && !unique.has(localProjection.shoot_id)) {
+    unique.set(localProjection.shoot_id, localProjection);
+  }
+  return [...unique.values()];
+}
+
+function renderProfileEditorialLibrary(look, profile = currentProfile, supplied = null) {
+  const shoots = editorialShootsForLook(profile, look, supplied);
+  const list = document.querySelector('#profile-look-editorial-list');
+  const emptyState = document.querySelector('#profile-look-editorial-empty');
+  const count = document.querySelector('#profile-look-editorial-count');
+  list.replaceChildren();
+  count.textContent = String(shoots.length);
+  count.setAttribute(
+    'aria-label',
+    shoots.length === 1 ? '1 збережена fashion-фотосесія' : `${shoots.length} збережених fashion-фотосесій`,
+  );
+  emptyState.classList.toggle('hidden', shoots.length > 0);
+
+  shoots.forEach((shoot, index) => {
+    const shootId = shoot.shoot_id ?? shoot.id;
+    const status = String(shoot.status ?? 'SAVED').replaceAll('_', ' ');
+    const modeId = shoot.mode?.mode_id
+      ?? shoot.mode_id
+      ?? shoot.bindings?.shoot_bible?.mode_id;
+    const mode = shoot.mode?.ui_name_uk ?? ({
+      'editorial.edwin_novak.organic_contrast': 'Органічний контраст',
+      'editorial.edwin_novak.urban_monochrome': 'Міський монохром',
+      'editorial.edwin_novak.institutional_modernism': 'Інституційний модернізм',
+      'editorial.edwin_novak.luminous_blue_white': 'Світлий синьо-білий',
+    })[modeId] ?? 'Art Fashion';
+    const item = document.createElement('li');
+    item.className = 'profile-look-scene-item profile-look-editorial-item';
+    const open = document.createElement('button');
+    open.type = 'button';
+    open.className = 'profile-look-scene-open';
+    open.dataset.status = String(shoot.status ?? 'SAVED').toUpperCase();
+    open.setAttribute('aria-label', `Відкрити fashion-фотосесію ${mode}. Статус: ${status}`);
+
+    const visual = document.createElement('span');
+    visual.className = 'profile-look-scene-visual';
+    const heroUrl = shoot.hero_image_url
+      ?? shoot.preview_url
+      ?? shoot.shots?.find((shot) => shot.slot === 'clean_identity_hero')?.output?.image_url;
+    if (heroUrl) {
+      const image = document.createElement('img');
+      image.src = heroUrl;
+      image.alt = '';
+      image.loading = 'lazy';
+      visual.append(image);
+    } else {
+      const placeholder = document.createElement('span');
+      placeholder.className = 'profile-look-scene-placeholder';
+      placeholder.textContent = `F${String(index + 1).padStart(2, '0')}`;
+      placeholder.setAttribute('aria-hidden', 'true');
+      visual.append(placeholder);
+    }
+
+    const copy = document.createElement('span');
+    copy.className = 'profile-look-scene-copy';
+    const title = document.createElement('strong');
+    title.textContent = mode;
+    const state = document.createElement('small');
+    state.textContent = status;
+    const code = document.createElement('code');
+    code.textContent = shootId;
+    copy.append(title, state, code);
+    open.append(visual, copy);
+    open.addEventListener('click', (event) => {
+      event.stopPropagation();
+      sceneUi.openExistingEditorial(shoot, look).catch(showProfileError);
+    });
+    item.append(open);
+    list.append(item);
+  });
+}
+
 async function renderProfile(profileValueToRender = null) {
+  sceneUi?.stopWatching();
+  const openedProfile = captureProfileReturnState();
   const profile = profileValue(profileValueToRender ?? await loadCurrentProfile({ refresh: true }));
   currentProfile = profile;
   const avatars = profile.avatars ?? [];
   const looks = profileLooks(profile);
+  let selectedAvatar = selectedProfileAvatarId
+    ? avatars.find((avatar) => avatarId(avatar) === selectedProfileAvatarId) ?? null
+    : null;
+  if (selectedProfileAvatarId && !selectedAvatar) {
+    selectedProfileAvatarId = null;
+    selectedProfileLookId = null;
+    selectedAvatar = null;
+  }
+  const visibleLooks = selectedAvatar ? looksForAvatar(profile, selectedAvatar) : looks;
+  const selectedLookFromProfile = selectedProfileLookId
+    ? visibleLooks.find((look) => (look.look_id ?? look.id) === selectedProfileLookId) ?? null
+    : null;
+  if (selectedProfileLookId && !selectedLookFromProfile) selectedProfileLookId = null;
+  selectedProfileLook = selectedLookFromProfile;
+  selectedProfileLookSelection = selectedProfileLook
+    ? resolveProfileLookSelection(profile, selectedProfileLook)
+    : null;
+
   const compact = window.matchMedia('(max-width: 700px) and (orientation: portrait)').matches;
   const avatarPage = profilePage(avatars, profileAvatarPage, compact ? 2 : Math.max(1, avatars.length));
-  const lookPage = profilePage(looks, profileLookPage, compact ? 2 : Math.max(1, looks.length));
+  const lookPage = profilePage(visibleLooks, profileLookPage, compact ? 2 : Math.max(1, visibleLooks.length));
   profileAvatarPage = avatarPage.page;
   profileLookPage = lookPage.page;
   document.querySelector('#profile-expiry').textContent = formatProfileExpiry(profile.expires_at);
+  const lookContext = document.querySelector('#profile-look-context');
+  const lookHeading = document.querySelector('#profile-look-heading');
+  const clearAvatar = document.querySelector('#profile-clear-avatar');
+  lookContext.textContent = selectedAvatar ? 'ОБРАЗИ ВИБРАНОГО АВАТАРА' : 'УСІ ЗБЕРЕЖЕНІ ОБРАЗИ';
+  lookHeading.textContent = selectedAvatar?.name || 'Збережені образи';
+  lookHeading.tabIndex = -1;
+  clearAvatar.classList.toggle('hidden', !selectedAvatar);
   const avatarList = document.querySelector('#profile-avatar-list');
   const lookGrid = document.querySelector('#profile-look-grid');
   avatarList.replaceChildren();
   lookGrid.replaceChildren();
 
   avatarPage.entries.forEach(({ value: avatar, index }) => {
+    const id = avatarId(avatar);
+    const active = id === selectedProfileAvatarId;
     const card = document.createElement('article');
     card.className = 'profile-avatar-item';
+    card.classList.toggle('is-active', active);
+    card.dataset.avatarId = id;
+    const selector = document.createElement('button');
+    selector.type = 'button';
+    selector.className = 'profile-avatar-select';
+    selector.setAttribute('aria-pressed', String(active));
+    selector.setAttribute('aria-controls', 'profile-look-grid');
+    selector.setAttribute('aria-label', `${active ? 'Вибрано' : 'Обрати'} ${avatar.name || `Аватар ${index + 1}`} і показати пов’язані образи`);
     const image = document.createElement('img');
     image.src = avatarImageUrl(avatar);
     image.alt = avatar.name || `Аватар ${index + 1}`;
-    const meta = document.createElement('div');
+    const summary = document.createElement('span');
+    summary.className = 'profile-avatar-summary';
     const title = document.createElement('strong');
     title.textContent = avatar.name || `Аватар ${String(index + 1).padStart(2, '0')}`;
     const count = document.createElement('small');
-    count.textContent = `${looks.filter((look) => (look.avatar_id ?? look.avatarId) === avatarId(avatar)).length} образів`;
+    count.textContent = formatLookCount(looksForAvatar(profile, avatar).length);
+    summary.append(title, count);
+    selector.append(image, summary);
+    selector.addEventListener('click', () => selectProfileAvatar(profile, avatar).catch(showProfileError));
     const actions = document.createElement('div');
     actions.className = 'profile-item-actions';
     actions.append(
-      createProfileButton('Додати речі', 'primary-result-action', () => beginDraft({ avatar }).catch(showProfileError)),
-      createProfileButton('Видалити', 'profile-delete-action', async () => {
-        if (!confirm('Видалити цей аватар і всі пов’язані образи?')) return;
-        await deleteProfileAvatar(avatarId(avatar));
-        await renderProfile(await loadCurrentProfile({ refresh: true }));
+      createProfileButton('Новий образ з цим аватаром', 'primary-result-action', (event) => {
+        event.stopPropagation();
+        beginDraft({ avatar }).catch(showProfileError);
+      }),
+      createProfileButton('Видалити', 'profile-delete-action', async (event) => {
+        event.stopPropagation();
+        try {
+          if (!confirm('Видалити цей аватар і всі пов’язані образи?')) return;
+          await deleteProfileAvatar(id);
+          if (selectedProfileAvatarId === id) {
+            selectedProfileAvatarId = null;
+            selectedProfileLookId = null;
+          }
+          await renderProfile(await loadCurrentProfile({ refresh: true }));
+        } catch (error) {
+          showProfileError(error);
+        }
       }),
     );
-    meta.append(title, count, actions);
-    card.append(image, meta);
+    card.append(selector, actions);
     avatarList.append(card);
   });
 
   lookPage.entries.forEach(({ value: look, index }) => {
     const lookId = look.id ?? look.look_id;
+    const selection = resolveProfileLookSelection(profile, look);
+    const active = lookId === selectedProfileLookId;
     const card = document.createElement('article');
     card.className = 'profile-look-card';
+    card.classList.toggle('is-active', active);
+    card.dataset.avatarId = selection.avatarId;
+    card.dataset.lookId = lookId;
+    const open = document.createElement('button');
+    open.type = 'button';
+    open.className = 'profile-look-open';
+    open.setAttribute('aria-expanded', String(active));
+    open.setAttribute('aria-controls', 'profile-look-detail');
     const image = document.createElement('img');
     image.src = look.image_url ?? `/api/profile/looks/${encodeURIComponent(lookId)}/image`;
     image.alt = look.name || `Збережений образ ${index + 1}`;
-    const meta = document.createElement('div');
     const title = document.createElement('strong');
     title.textContent = look.name || `Образ ${String(index + 1).padStart(2, '0')}`;
-    const remove = createProfileButton('×', 'profile-delete-action', async () => {
-      if (!confirm('Видалити цей образ?')) return;
-      await deleteProfileLook(lookId);
-      await renderProfile(await loadCurrentProfile({ refresh: true }));
-    });
-    remove.setAttribute('aria-label', `Видалити ${title.textContent}`);
-    meta.append(title, remove);
-    card.append(image, meta);
+    const owner = document.createElement('small');
+    owner.textContent = selection.avatar?.name || 'Збережений аватар';
+    open.append(image, title, owner);
+    open.setAttribute('aria-label', `Відкрити ${title.textContent} для ${owner.textContent}`);
+    open.addEventListener('click', () => openProfileLook(profile, look).catch(showProfileError));
+    card.append(open);
     lookGrid.append(card);
   });
 
@@ -742,10 +1253,12 @@ async function renderProfile(profileValueToRender = null) {
     emptyProfile.textContent = 'Збережених аватарів поки немає.';
     avatarList.append(emptyProfile);
   }
-  if (!looks.length) {
+  if (!visibleLooks.length) {
     const emptyLooks = document.createElement('div');
     emptyLooks.className = 'profile-empty';
-    emptyLooks.textContent = 'Перший образ з’явиться тут після генерації.';
+    emptyLooks.textContent = selectedAvatar
+      ? 'Для цього аватара ще немає образів. Натисни «Новий образ з цим аватаром».'
+      : 'Перший образ з’явиться тут після генерації.';
     lookGrid.append(emptyLooks);
   }
   appendProfilePager(avatarList, {
@@ -758,7 +1271,7 @@ async function renderProfile(profileValueToRender = null) {
     },
   });
   appendProfilePager(lookGrid, {
-    label: 'Сторінки образів',
+    label: selectedAvatar ? `Сторінки образів ${selectedAvatar.name || 'вибраного аватара'}` : 'Сторінки образів',
     page: lookPage.page,
     pageCount: lookPage.pageCount,
     onChange: (page) => {
@@ -766,12 +1279,49 @@ async function renderProfile(profileValueToRender = null) {
       renderProfile(profile).catch(showProfileError);
     },
   });
+
+  const detail = document.querySelector('#profile-look-detail');
+  const profileLibrary = document.querySelector('.profile-library');
+  const detailImage = document.querySelector('#profile-look-detail-image');
+  const detailTitle = document.querySelector('#profile-look-detail-title');
+  const detailOwner = document.querySelector('#profile-look-detail-owner');
+  const editorialRequestVersion = ++profileEditorialRequestVersion;
+  detail.classList.toggle('hidden', !selectedProfileLookSelection);
+  profileLibrary?.classList.toggle('has-open-look', Boolean(selectedProfileLookSelection));
+  if (selectedProfileLookSelection) {
+    detailImage.src = selectedProfileLook.image_url
+      ?? `/api/profile/looks/${encodeURIComponent(selectedProfileLookSelection.lookId)}/image`;
+    detailImage.alt = selectedProfileLook.name || 'Вибраний збережений образ';
+    detailTitle.textContent = selectedProfileLook.name || 'Збережений образ';
+    detailOwner.textContent = `${selectedProfileLookSelection.avatar?.name || 'Збережений аватар'} · зберігаємо зовнішність і пропорції тіла`;
+    renderProfileSceneLibrary(selectedProfileLook);
+    renderProfileEditorialLibrary(selectedProfileLook, profile);
+    const requestedLookId = selectedProfileLookSelection.lookId;
+    listProfileLookEditorialShoots(requestedLookId)
+      .then((response) => {
+        if (profileEditorialRequestVersion !== editorialRequestVersion
+          || selectedProfileLookId !== requestedLookId) return;
+        renderProfileEditorialLibrary(
+          selectedProfileLook,
+          profile,
+          response?.shoots ?? response?.editorial_shoots ?? response,
+        );
+      })
+      .catch(() => undefined);
+  } else {
+    detailImage.removeAttribute('src');
+    detailTitle.textContent = 'Збережений образ';
+    detailOwner.textContent = '';
+    renderProfileSceneLibrary(null);
+    renderProfileEditorialLibrary(null, profile);
+  }
+
   resultPanelTitle.textContent = 'Мій профіль';
   statusChip.textContent = 'ЗБЕРЕЖЕНО';
   statusChip.className = 'status-chip completed';
   setWorkflowActive(true);
   setView('profile');
-  requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'smooth' }));
+  if (openedProfile) requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'smooth' }));
 }
 
 function showProfileError(error) {
@@ -780,6 +1330,14 @@ function showProfileError(error) {
 }
 
 function renderResults(run) {
+  const sceneButton = document.querySelector('#create-scene');
+  if (currentResultRunId !== run.run_id) {
+    currentResultRunId = run.run_id;
+    currentResultAvatarId = null;
+    currentResultLookId = null;
+    sceneButton.disabled = true;
+    sceneButton.textContent = 'Зберігаємо для сцени…';
+  }
   const passports = document.querySelector('#passport-list');
   passports.replaceChildren();
   (run.garments || []).forEach((item) => {
@@ -869,15 +1427,41 @@ function watch(runId) {
 
 form.addEventListener('submit', async (event) => {
   event.preventDefault();
+  if (submitting) return;
   formError.textContent = '';
-  const outfitText = form.elements.outfit_text.value.trim();
-  if (!uploads.person) { formError.textContent = 'Додай фото людини.'; return; }
-  if (!outfitText && uploads.garments.length === 0) { formError.textContent = 'Додай опис образу або хоча б одне фото речі.'; return; }
-  if (!form.elements.consent.checked) { formError.textContent = 'Потрібна згода на обробку фото.'; return; }
-
   submit.disabled = true;
+  form.inert = true;
+  form.setAttribute('aria-busy', 'true');
+  window.clearTimeout(saveTimer);
+  await draftMutationQueue;
+  await persistDraft('submit_finalize');
+  const outfitText = form.elements.outfit_text.value.trim();
+  const { sourceAvatarId, sourceLookId } = lineageFromStorage(localStorage);
+  if (!sourceAvatarId && !uploads.person) {
+    formError.textContent = 'Додай фото людини.';
+    submit.disabled = false;
+    form.inert = false;
+    form.removeAttribute('aria-busy');
+    return;
+  }
+  if (!outfitText && uploads.garments.length === 0) {
+    formError.textContent = 'Додай опис образу або хоча б одне фото речі.';
+    submit.disabled = false;
+    form.inert = false;
+    form.removeAttribute('aria-busy');
+    return;
+  }
+  if (!form.elements.consent.checked) {
+    formError.textContent = 'Потрібна згода на обробку фото.';
+    submit.disabled = false;
+    form.inert = false;
+    form.removeAttribute('aria-busy');
+    return;
+  }
+
   submitting = true;
   renderedProgressFloor = 0;
+  liveVisualizer.update(null, { providerWaiting: false });
   setWorkflowActive(true);
   resultPanelTitle.textContent = 'Процес';
   statusChip.textContent = 'ВИКОНУЄТЬСЯ';
@@ -887,17 +1471,23 @@ form.addEventListener('submit', async (event) => {
   transitionTimer = window.setTimeout(() => studioShell.scrollIntoView({ behavior: 'smooth', block: 'start' }), 720);
   const startedAt = performance.now();
   let finalizationId = null;
-  telemetry('client.submit', { ...fileSummary(uploads), stage: 'draft_finalize' });
+  telemetry('client.submit', {
+    ...fileSummary(uploads),
+    avatar_reuse: Boolean(sourceAvatarId),
+    stage: 'draft_finalize',
+  });
   try {
     renderProgress(resolveProgressState('PREPARING'), 'Перевіряємо збереження всіх файлів…');
-    await ensureServerDraftComplete();
+    const confirmedFiles = await ensureServerDraftComplete();
     renderProgress(resolveProgressState('UPLOADED'), 'Файли на сервері. Створюємо зафіксований запуск…');
     finalizationId = localStorage.getItem(PENDING_FINALIZATION_KEY) || createFinalizationId();
     localStorage.setItem(PENDING_FINALIZATION_KEY, finalizationId);
     localStorage.setItem(ACTIVE_RUN_KEY, finalizationId);
     history.replaceState({}, '', `${location.pathname}?run=${encodeURIComponent(finalizationId)}`);
     const body = await createRunFromServerDraft(finalizationId, {
-      sourceAvatarId: localStorage.getItem(SOURCE_AVATAR_KEY),
+      sourceAvatarId,
+      sourceLookId,
+      fileManifest: confirmedFiles,
     });
     localStorage.removeItem(PENDING_FINALIZATION_KEY);
     telemetry('client.submit_response', { status: 202, duration_ms: Math.round(performance.now() - startedAt), stage: 'run_created_from_draft' }, body.run_id);
@@ -911,7 +1501,8 @@ form.addEventListener('submit', async (event) => {
     window.clearTimeout(transitionTimer);
     if (localStorage.getItem(ACTIVE_RUN_KEY) === finalizationId) localStorage.removeItem(ACTIVE_RUN_KEY);
     history.replaceState({}, '', location.pathname);
-    formError.textContent = `${humanizeVisibleText(error.message)}. Файли залишилися в локальній чернетці.`;
+    formError.textContent = `${humanizeVisibleText(error.message)}. Запуск не створено — перевір фото вище та натисни «Спробувати ще раз».`;
+    document.querySelector('#submit-label').textContent = 'Спробувати ще раз';
     submit.disabled = false;
     statusChip.textContent = 'Завантаження не завершено';
     statusChip.className = 'status-chip failed';
@@ -919,6 +1510,8 @@ form.addEventListener('submit', async (event) => {
     setWorkflowActive(false);
   } finally {
     submitting = false;
+    form.inert = false;
+    form.removeAttribute('aria-busy');
   }
 });
 
@@ -962,15 +1555,86 @@ document.querySelector('#edit-input').addEventListener('click', async () => {
   }
 });
 
-document.querySelector('#new-avatar').addEventListener('click', () => beginDraft().catch(showProfileError));
+sceneUi = createSceneUi({
+  setView,
+  setWorkflowActive,
+  loadProfile: () => loadCurrentProfile({ refresh: true }),
+  renderProfile: () => renderProfile(),
+  humanize: humanizeVisibleText,
+  telemetry,
+});
+
+document.querySelector('#new-avatar').addEventListener('click', async () => {
+  try {
+    if (activeRun?.status === 'COMPLETED') await ensureCompletedRunSaved(activeRun);
+    await beginDraft();
+  } catch (error) { showProfileError(error); }
+});
 document.querySelector('#profile-new-avatar').addEventListener('click', () => beginDraft().catch(showProfileError));
+document.querySelector('#change-source-avatar').addEventListener('click', () => renderProfile().catch(showProfileError));
+document.querySelector('#open-profile-global').addEventListener('click', () => renderProfile().catch(showProfileError));
+document.querySelector('#profile-back').addEventListener('click', (event) => {
+  event.stopPropagation();
+  restoreProfileReturnView();
+});
+document.querySelector('#profile-clear-avatar').addEventListener('click', (event) => {
+  event.stopPropagation();
+  selectedProfileAvatarId = null;
+  selectedProfileLookId = null;
+  profileLookPage = 0;
+  renderProfile(currentProfile).catch(showProfileError);
+});
+document.querySelector('#profile-look-detail-close').addEventListener('click', (event) => {
+  event.stopPropagation();
+  selectedProfileLookId = null;
+  renderProfile(currentProfile).then(() => {
+    const activeAvatar = document.querySelector('#profile-avatar-list .profile-avatar-select[aria-pressed="true"]');
+    activeAvatar?.focus({ preventScroll: true });
+  }).catch(showProfileError);
+});
+document.querySelector('#profile-look-add').addEventListener('click', (event) => {
+  event.stopPropagation();
+  if (!selectedProfileLookSelection) return;
+  beginDraft({
+    avatar: selectedProfileLookSelection.avatar,
+    look: selectedProfileLookSelection.look,
+  }).catch(showProfileError);
+});
+document.querySelector('#profile-look-scene').addEventListener('click', (event) => {
+  event.stopPropagation();
+  if (!selectedProfileLook) return;
+  sceneUi.openForLook(selectedProfileLook).catch(showProfileError);
+});
+document.querySelector('#profile-look-delete').addEventListener('click', async (event) => {
+  event.stopPropagation();
+  if (!selectedProfileLookSelection || !confirm('Видалити цей образ?')) return;
+  try {
+    const deletedLookId = selectedProfileLookSelection.lookId;
+    await deleteProfileLook(deletedLookId);
+    selectedProfileLookId = null;
+    await renderProfile(await loadCurrentProfile({ refresh: true }));
+  } catch (error) {
+    showProfileError(error);
+  }
+});
 document.querySelector('#add-look').addEventListener('click', async () => {
   try {
     if (activeRun?.status === 'COMPLETED') await ensureCompletedRunSaved(activeRun);
     const profile = currentProfile ?? await loadCurrentProfile({ refresh: true });
-    const avatar = (profile.avatars ?? []).find((item) => avatarId(item) === currentResultAvatarId) ?? profile.avatars?.at(-1);
-    if (!avatar) throw new Error('Спершу збережи готовий аватар');
-    await beginDraft({ avatar });
+    const selection = resolveResultAddItemsSelection(profile, {
+      currentAvatarId: currentResultAvatarId,
+      currentLookId: currentResultLookId,
+    });
+    await beginDraft({ avatar: selection.avatar, look: selection.look });
+  } catch (error) { showProfileError(error); }
+});
+document.querySelector('#create-scene').addEventListener('click', async () => {
+  try {
+    if (activeRun?.status === 'COMPLETED') await ensureCompletedRunSaved(activeRun);
+    const profile = currentProfile ?? await loadCurrentProfile({ refresh: true });
+    const look = profileLooks(profile).find((item) => (item.look_id ?? item.id) === currentResultLookId);
+    if (!look) throw new Error('Спершу збережи готовий образ');
+    await sceneUi.openForLook(look);
   } catch (error) { showProfileError(error); }
 });
 document.querySelector('#open-profile').addEventListener('click', () => renderProfile().catch(showProfileError));
@@ -1049,7 +1713,12 @@ async function restoreDraft({ skipServer = false } = {}) {
   try {
     const hasLocalFiles = Boolean(uploads.person || uploads.identityDetail || uploads.garments.length);
     const serverDraft = await loadServerDraft({ includeFiles: !hasLocalFiles });
-    serverDraftRefs = serverDraft.refs;
+    setServerDraftBindings(serverDraft.bindings);
+    serverDraftLineage = {
+      source_avatar_id: serverDraft.manifest.source_avatar_id ?? null,
+      source_look_id: serverDraft.manifest.source_look_id ?? null,
+    };
+    serverDraftLoaded = true;
     if (!hasLocalFiles && serverDraft.files) {
       const hasServerFiles = Boolean(serverDraft.files.person || serverDraft.files.identityDetail || serverDraft.files.garments.length);
       if (hasServerFiles) {
@@ -1062,9 +1731,8 @@ async function restoreDraft({ skipServer = false } = {}) {
       }
     } else if (hasLocalFiles) {
       queueServerSync(async () => {
-        if (uploads.person && !serverDraftRefs.person) await syncFileToServer('person', uploads.person);
-        if (uploads.identityDetail && !serverDraftRefs.identity) await syncFileToServer('identity', uploads.identityDetail);
-        for (const garment of uploads.garments.slice(serverDraftRefs.garments.length)) await syncFileToServer('garment', garment);
+        const { sourceAvatarId } = lineageFromStorage(localStorage);
+        await reconcileServerDraftFiles({ sourceAvatarId });
       });
     }
   } catch (error) {
@@ -1075,27 +1743,59 @@ async function restoreDraft({ skipServer = false } = {}) {
 
 async function initialize() {
   telemetry('client.boot', { stage: 'start' });
+  let profileUnavailable = false;
   const pendingProfile = loadCurrentProfile().catch((error) => {
+    profileUnavailable = true;
     telemetry('client.profile_error', { message: error.message.slice(0, 500), stage: 'boot' });
     return null;
   });
-  if (localStorage.getItem(DRAFT_RESET_PENDING_KEY) === 'true') {
+  const pendingResetMode = localStorage.getItem(DRAFT_RESET_PENDING_KEY);
+  if (pendingResetMode !== null) {
     serverDraftResetRequired = true;
     localStorage.removeItem(ACTIVE_RUN_KEY);
     localStorage.removeItem(PENDING_FINALIZATION_KEY);
+    if (pendingResetMode !== 'add-items') clearAddItemsSelection(localStorage);
     history.replaceState({}, '', location.pathname);
     await clearDraft().catch(() => {});
     await resetServerDraftIfNeeded().catch((error) => {
       telemetry('client.draft_error', { message: error.message.slice(0, 500), stage: 'reset_resume' });
     });
   }
-  const queryRunId = new URLSearchParams(location.search).get('run');
+  const queryParams = new URLSearchParams(location.search);
+  const queryRunId = queryParams.get('run');
+  const querySceneId = queryParams.get('scene');
+  const queryShootId = queryParams.get('shoot');
   const storedRunId = localStorage.getItem(ACTIVE_RUN_KEY);
   const pendingRunId = localStorage.getItem(PENDING_FINALIZATION_KEY);
   const candidates = [...new Set([queryRunId, storedRunId, pendingRunId].filter(Boolean))];
   await pendingProfile;
+  if ((queryShootId || querySceneId || !queryRunId) && await sceneUi.resume()) {
+    window.ZeelyBootGuard?.ready();
+    telemetry('client.ready', {
+      scene_id: querySceneId,
+      shoot_id: queryShootId,
+      stage: queryShootId ? 'editorial_shoot_resumed' : 'scene_resumed',
+    });
+    return;
+  }
   for (const runId of candidates) {
-    await claimProfileRun(runId, localStorage.getItem(SOURCE_AVATAR_KEY)).catch(() => null);
+    let lineage = lineageFromStorage(localStorage);
+    if (!lineage.sourceAvatarId) {
+      try {
+        const currentDraft = await loadServerDraft({ includeFiles: false });
+        setServerDraftBindings(currentDraft.bindings);
+        serverDraftLineage = {
+          source_avatar_id: currentDraft.manifest.source_avatar_id ?? null,
+          source_look_id: currentDraft.manifest.source_look_id ?? null,
+        };
+        serverDraftLoaded = true;
+        lineage = resolveStoredAddItemsLineage(localStorage, serverDraftLineage);
+        if (lineage.sourceAvatarId) storeAddItemsLineage(localStorage, lineage);
+      } catch (error) {
+        telemetry('client.draft_error', { message: error.message.slice(0, 500), stage: 'run_lineage_recovery' });
+      }
+    }
+    await claimProfileRun(runId, lineage).catch(() => null);
     if (await resumeRun(runId, { retryNotFound: runId === pendingRunId })) {
       window.ZeelyBootGuard?.ready();
       telemetry('client.ready', { stage: 'run_resumed' }, runId);
@@ -1104,17 +1804,75 @@ async function initialize() {
   }
 
   history.replaceState({}, '', location.pathname);
-  setWorkflowActive(false);
+  setWorkflowActive(false, { reveal: false });
   await restoreDraft({ skipServer: serverDraftResetRequired });
   const profile = await pendingProfile;
-  const hasDraft = Boolean(uploads.person || uploads.identityDetail || uploads.garments.length || form.elements.outfit_text.value.trim());
+  const draftLineage = resolveStoredAddItemsLineage(
+    localStorage,
+    serverDraftLoaded ? serverDraftLineage : null,
+  );
+  let storedSelection = null;
+  if (profileUnavailable && draftLineage.sourceAvatarId) {
+    const provisionalAvatar = {
+      avatar_id: draftLineage.sourceAvatarId,
+      name: 'Збережений аватар',
+      image_url: `/api/profile/avatars/${encodeURIComponent(draftLineage.sourceAvatarId)}/image`,
+    };
+    const provisionalLook = draftLineage.sourceLookId ? {
+      look_id: draftLineage.sourceLookId,
+      avatar_id: draftLineage.sourceAvatarId,
+    } : null;
+    storedSelection = resolveAddItemsSelection({
+      avatar: provisionalAvatar,
+      look: provisionalLook,
+    });
+    storeAddItemsSelection(localStorage, storedSelection);
+  } else {
+    storedSelection = restoreAddItemsSelection(
+      profile,
+      localStorage,
+      serverDraftLoaded ? serverDraftLineage : null,
+    );
+  }
+  if (storedSelection) {
+    setAvatarDraftMode(storedSelection.avatar, storedSelection.look);
+    if (profileUnavailable) {
+      draftStatus.textContent = 'Прив’язку до аватара збережено · очікуємо з’єднання з профілем';
+      draftStatus.className = 'draft-status failed';
+      formError.textContent = 'Профіль тимчасово недоступний. Аватар не скинуто й новий створювати не потрібно.';
+    } else {
+      draftStatus.textContent = 'Збережений аватар зафіксовано · чернетку речей відновлено';
+      draftStatus.className = 'draft-status saved';
+    }
+  } else if (draftLineage.sourceAvatarId) {
+    await renderProfile(profile);
+    document.querySelector('#profile-expiry').textContent = 'Попередній аватар більше недоступний. Обери інший збережений аватар або створи новий.';
+    document.documentElement.classList.remove('workflow-pending');
+    window.ZeelyBootGuard?.ready();
+    telemetry('client.profile_error', {
+      avatar_id: draftLineage.sourceAvatarId,
+      stage: 'missing_bound_avatar',
+    });
+    return;
+  } else {
+    setAvatarDraftMode();
+  }
+  const hasDraft = Boolean(
+    storedSelection
+    || uploads.person
+    || uploads.identityDetail
+    || uploads.garments.length
+    || form.elements.outfit_text.value.trim(),
+  );
   if (!hasDraft && profile?.avatars?.length) {
     await renderProfile(profile);
+    document.documentElement.classList.remove('workflow-pending');
     window.ZeelyBootGuard?.ready();
     telemetry('client.ready', { avatar_count: profile.avatars.length, stage: 'profile_restored' });
     return;
   }
   if (candidates.length) formError.textContent = 'Активний run не знайдено. Збережену чернетку відновлено.';
+  document.documentElement.classList.remove('workflow-pending');
   window.ZeelyBootGuard?.ready();
   telemetry('client.ready', { ...fileSummary(uploads), stage: 'complete' });
 }

@@ -1,0 +1,9 @@
+Use case: photorealistic-natural
+Asset type: production environment plate for later full-body fashion compositing
+Primary request: Create an original empty premium dark-taupe seamless studio designed for a full-body Rembrandt-lit fashion portrait. Environment plate only; no person or mannequin.
+Scene/backdrop: refined matte dark-taupe cyclorama with invisible wall-floor transition, subtle mineral texture and restrained tonal gradient, clean central staging area and realistic floor plane for a future contact shadow.
+Style/medium: photorealistic luxury fashion studio plate, contemporary magazine finish, deep but readable tonal range, no theatrical set dressing.
+Composition/framing: exact vertical 4:5, eye-level 65 mm equivalent, centered future full-body staging zone, straight horizon, safe head and footwear space, no wide-angle distortion.
+Lighting/mood: warm elevated key from camera-left at approximately 45 degrees, very restrained fill from camera-right and an extremely subtle champagne rim zone; the empty backdrop should show a believable controlled gradient but no fake subject silhouette or subject shadow.
+Color palette: dark taupe, warm umber, muted champagne, neutral deep shadows.
+Constraints: completely empty; no people, faces, bodies, mannequins, furniture, smoke, curtains, theatre props, equipment, visible lights, text, logos, windows, watermark or border. No black void, neon, HDR, bloom or crushed floor detail.

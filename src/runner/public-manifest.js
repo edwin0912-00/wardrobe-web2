@@ -107,9 +107,21 @@ function qaCheckView(check) {
   if (!check || typeof check !== 'object' || Array.isArray(check)) return undefined;
   return compact({
     name: safeText(check.name),
+    required: safeScalar(check.required),
     pass: safeScalar(check.pass),
     score: safeScalar(check.score),
     evidence: safeText(check.evidence),
+  });
+}
+
+function evaluatorView(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
+  return compact({
+    type: safeText(value.type),
+    provider: safeText(value.provider),
+    model: safeText(value.model),
+    version: safeText(value.version),
+    evaluation_id: safeText(value.evaluation_id),
   });
 }
 
@@ -126,6 +138,11 @@ function qaView(value) {
     source_run_id: safeText(value.source_run_id),
     avatar_sha256: safeText(value.avatar_sha256),
     receipt_sha256: safeText(value.receipt_sha256),
+    subject_sha256: safeText(value.subject_sha256),
+    evidence_manifest_sha256: safeText(value.evidence_manifest_sha256),
+    prompt_sha256: safeScalar(value.prompt_sha256),
+    receipt_id: safeText(value.receipt_id),
+    evaluator: evaluatorView(value.evaluator),
     checks: Array.isArray(value.checks) ? value.checks.map(qaCheckView).filter(Boolean) : undefined,
     defects: Array.isArray(value.defects) ? safeStructuredValue(value.defects) : undefined,
     artifact: artifactView(value.artifact),

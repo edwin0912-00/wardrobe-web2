@@ -1,0 +1,20 @@
+TASK
+Create one photorealistic environmental fashion portrait using the exact person and complete approved look from LOOK_MASTER inside the original gallery environment defined by ENVIRONMENT_ANCHOR and LIGHTING_COMPOSITION_ANCHOR.
+
+AUTHORITY
+LOOK_MASTER is the only authority for identity, face, body, hair, every approved clothing item, footwear, bag, accessory, color, material, construction, graphic, logo and readable product text. Preserve all of them exactly. The gallery references control only environment, light and composition.
+
+SCENE
+Use a newly designed quiet off-white gallery with restrained plaster, travertine and light-oak material cues and one large window. Keep clean straight architectural lines and generous negative space. Do not copy a recognizable source building. No artwork, posters, readable text, furniture clutter, hotel styling, extra person or added prop.
+
+LIGHT
+Long soft early-morning side light from the window, subtle warm edge and clean cool ambient room fill. Preserve natural skin and exact item colors. Ground the subject with a physically coherent soft contact shadow and matching environment scale.
+
+CAMERA AND FRAMING
+Final delivery is vertical 4:5. Eye-level 50 mm equivalent, straight verticals and no wide-angle distortion. Full body with complete head or approved headwear, complete carried approved item and both shoes. The visible person occupies 74–78% of image height with at least 8% clear architecture above and 2% clean floor below.
+
+FINISH
+Premium modern editorial gloss, calm off-white and travertine palette, controlled pale-gold highlights, realistic skin, textile and leather detail. No HDR, blown windows, bloom, skin smoothing, cutout halo or pasted lighting.
+
+FAIL CONDITIONS
+Identity drift; removed, changed or invented item; altered logo or text; copied architecture; furniture clutter; poster or invented writing; crooked verticals; anatomy defect; crop; floating feet; duplicated accessory.

@@ -28,6 +28,33 @@ test('health response exposes capability status without provider or project fing
   } });
   const response = await app.inject({ method: 'GET', url: '/api/health' });
   assert.equal(response.statusCode, 200);
-  assert.deepEqual(response.json(), { status: 'ok', service: 'web', generation: 'available', semantic_qa: 'available' });
+  assert.deepEqual(response.json(), {
+    status: 'ok',
+    service: 'web',
+    generation: 'available',
+    semantic_qa: 'available',
+    editorial_generation: 'disabled',
+  });
+  await app.close();
+});
+
+test('degraded provider preflight refuses paid generation before uploads enter the pipeline', async () => {
+  let createCalls = 0;
+  const app = await createWebApp({
+    service: {
+      ...serviceThatLeaksInternally(),
+      createRun: async () => { createCalls += 1; return null; },
+    },
+    health: { status: 'degraded' },
+  });
+  const response = await app.inject({ method: 'POST', url: '/api/runs' });
+  assert.equal(response.statusCode, 503);
+  assert.deepEqual(response.json(), {
+    error: 'Генерація тимчасово недоступна: потрібна авторизація або перевірка Higgsfield.',
+    code: 'GENERATION_UNAVAILABLE',
+    next_action: 'RETRY_AFTER_PROVIDER_READY',
+  });
+  assert.equal(response.headers['retry-after'], '60');
+  assert.equal(createCalls, 0);
   await app.close();
 });

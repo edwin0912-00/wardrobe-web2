@@ -1,0 +1,63 @@
+{
+  "created_at": "2026-07-23T09:40:00Z",
+  "ledger_id": "ledger.std.studio.white_window_honeycomb.v1",
+  "preset_id": "std.studio.white_window_honeycomb",
+  "preset_version": "1.0.0",
+  "revision": 1,
+  "schema_version": "1.0.0",
+  "sources": [
+    {
+      "content_sha256": "574be4b264aec099dce89e61671f228510d138ab86bfd3113b8de845205cb66e",
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit",
+        "brands",
+        "readable_text",
+        "exact_architecture"
+      ],
+      "retrieved_at": "2026-07-23T09:40:00Z",
+      "rights": {
+        "basis": "LICENSED",
+        "evidence_sha256": "f9091e2efd8927320c4cc5c72508d48f61a9413eefa3466ff1763d64b8cc45e4",
+        "evidence_uri": "evidence/licenses/pexels-license-2026-07-23.md",
+        "rights_holder": "Ayomide Onasanya via Pexels license",
+        "status": "VERIFIED",
+        "verified_at": "2026-07-23T09:40:00Z"
+      },
+      "role": "lighting_composition_palette_inspiration",
+      "snapshot_uri": "evidence/scene-sources/pexels.14001742.json",
+      "source_id": "pexels.14001742",
+      "url": "https://www.pexels.com/photo/a-woman-in-red-long-sleeve-dress-14001742/",
+      "use": "clean white studio depth and full-body composition only"
+    },
+    {
+      "content_sha256": "b7f103093fc49acd62bf35a16b2f810ca5972d6bd33bffd1c73da4bbe72b37c7",
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit",
+        "brands",
+        "readable_text",
+        "exact_architecture"
+      ],
+      "retrieved_at": "2026-07-23T09:40:00Z",
+      "rights": {
+        "basis": "LICENSED",
+        "evidence_sha256": "f9091e2efd8927320c4cc5c72508d48f61a9413eefa3466ff1763d64b8cc45e4",
+        "evidence_uri": "evidence/licenses/pexels-license-2026-07-23.md",
+        "rights_holder": "SHVETS production via Pexels license",
+        "status": "VERIFIED",
+        "verified_at": "2026-07-23T09:40:00Z"
+      },
+      "role": "lighting_composition_palette_inspiration",
+      "snapshot_uri": "evidence/scene-sources/pexels.7506932.json",
+      "source_id": "pexels.7506932",
+      "url": "https://www.pexels.com/photo/woman-in-pink-cardigan-7506932/",
+      "use": "soft fill level and restrained beauty finish only"
+    }
+  ],
+  "status": "VERIFIED_FOR_RELEASE"
+}

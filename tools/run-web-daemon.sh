@@ -15,8 +15,12 @@ if [[ ! -s "$PRIVATE_DIR/session-secret" ]]; then
   /usr/bin/openssl rand -hex 32 > "$PRIVATE_DIR/session-secret"
 fi
 
-export PATH="/Users/jarvis1/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
+export PATH="${HOME}/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
 export PORT="4173"
+# Core avatar/outfit generation runs through the local ChatGPT-authenticated
+# Codex app-server worker. No shared PIN or external image-provider key is used.
+export ZEELY_GENERATION_PROVIDER="codex-imagegen-test"
+export ZEELY_ENABLE_CODEX_IMAGEGEN_TEST_ONLY="true"
 # Public testing mode: keep the existing secrets on disk so PIN protection can
 # be restored without rotating credentials, but do not enable the auth gate.
 unset ZEELY_DEMO_PIN ZEELY_SESSION_SECRET ZEELY_COOKIE_SECURE

@@ -1,0 +1,134 @@
+{
+  "preset_id": "std.interior.gallery_morning_gloss",
+  "preset_sha256": "2e0b707d18954359e88fc53eaeb4479b75138f5c2ac58a8297ba6b0d509be613",
+  "preset_version": "1.0.0",
+  "prompt_sha256": "0c100a7ece3ff37ae776ef6d1b254294cf02f47497bd80194a94177bfce8721e",
+  "reference_pack_id": "pack.std.interior.gallery_morning_gloss.v1.1",
+  "references": [
+    {
+      "media_type": "application/json",
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit"
+      ],
+      "reference_id": "std.interior.gallery_morning_gloss.environment",
+      "role": "environment_anchor",
+      "sha256": "c071c359c09dccb2318864fee02f17a30aec5004443944918afb819e4bc01f27"
+    },
+    {
+      "media_type": "application/json",
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit"
+      ],
+      "reference_id": "std.interior.gallery_morning_gloss.lighting",
+      "role": "lighting_anchor",
+      "sha256": "41bd4162e9410e4c815dc84d06f16c44a8e36ee51ef177e962583f289213d600"
+    },
+    {
+      "media_type": "application/json",
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit"
+      ],
+      "reference_id": "std.interior.gallery_morning_gloss.composition",
+      "role": "composition_anchor",
+      "sha256": "1303554a5b10f3a3a4d7865d3b7eeae68a6718d76521fc66f362bc0b5c7ab061"
+    },
+    {
+      "media_type": "application/json",
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit"
+      ],
+      "reference_id": "std.interior.gallery_morning_gloss.palette",
+      "role": "palette_anchor",
+      "sha256": "cb06747114643ef5787c8a2afb25007c974ef96f65e4d7396cf8bac2e7d3e2c7"
+    },
+    {
+      "media_type": "application/json",
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit"
+      ],
+      "reference_id": "std.interior.gallery_morning_gloss.negative",
+      "role": "negative_reference",
+      "sha256": "e36b1aee7b596794701ac7706b12aa9df243b6c0e3fdb386f33f1554b249f0d1"
+    }
+  ],
+  "schema_version": "1.0.0",
+  "source_ledger": {
+    "created_at": "2026-07-23T09:40:00Z",
+    "ledger_id": "ledger.std.interior.gallery_morning_gloss.v1",
+    "preset_id": "std.interior.gallery_morning_gloss",
+    "preset_version": "1.0.0",
+    "revision": 1,
+    "schema_version": "1.0.0",
+    "sources": [
+      {
+        "content_sha256": "3fc6c4950e5ef3458fe32d6612d7f810781273fb2ba3d820b48423f18f8bac9f",
+        "not_authority_for": [
+          "identity",
+          "body",
+          "hair",
+          "outfit",
+          "brands",
+          "readable_text",
+          "exact_architecture"
+        ],
+        "retrieved_at": "2026-07-23T09:40:00Z",
+        "rights": {
+          "basis": "LICENSED",
+          "evidence_sha256": "f9091e2efd8927320c4cc5c72508d48f61a9413eefa3466ff1763d64b8cc45e4",
+          "evidence_uri": "evidence/licenses/pexels-license-2026-07-23.md",
+          "rights_holder": "Alexey K. via Pexels license",
+          "status": "VERIFIED",
+          "verified_at": "2026-07-23T09:40:00Z"
+        },
+        "role": "environment_and_composition_inspiration",
+        "snapshot_uri": "evidence/scene-sources/pexels.30699852.json",
+        "source_id": "pexels.30699852",
+        "url": "https://www.pexels.com/photo/minimalist-empty-modern-interior-with-high-windows-30699852/",
+        "use": "high-window scale, quiet gallery proportion and daylight direction only"
+      },
+      {
+        "content_sha256": "ae7e6e54b633b692aee978d196b4c402b94b4c3e4a0dea1ad3aa8b5e98fe692e",
+        "not_authority_for": [
+          "identity",
+          "body",
+          "hair",
+          "outfit",
+          "brands",
+          "readable_text",
+          "exact_architecture"
+        ],
+        "retrieved_at": "2026-07-23T09:40:00Z",
+        "rights": {
+          "basis": "LICENSED",
+          "evidence_sha256": "f9091e2efd8927320c4cc5c72508d48f61a9413eefa3466ff1763d64b8cc45e4",
+          "evidence_uri": "evidence/licenses/pexels-license-2026-07-23.md",
+          "rights_holder": "Yusuf Çelik via Pexels license",
+          "status": "VERIFIED",
+          "verified_at": "2026-07-23T09:40:00Z"
+        },
+        "role": "environment_material_inspiration",
+        "snapshot_uri": "evidence/scene-sources/pexels.18132317.json",
+        "source_id": "pexels.18132317",
+        "url": "https://www.pexels.com/photo/interior-of-an-empty-industrial-room-18132317/",
+        "use": "secondary wall and floor material restraint only"
+      }
+    ],
+    "status": "VERIFIED_FOR_RELEASE"
+  },
+  "version": "1.1.0"
+}

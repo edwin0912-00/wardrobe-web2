@@ -1,0 +1,21 @@
+# Zeely Production Scene v2 — run log
+
+- 2026-07-23T08:52:58Z `context_read` previous mood-card loop, scene canon, catalog, runtime, profile, QA and provenance audit loaded
+- 2026-07-23T08:52:58Z `loop_compiled` production loop compiled with 0 errors and 4 accepted same-vendor/consent warnings
+- 2026-07-23T08:52:58Z `baseline_check` scene contract 7/7 and full repository tests 185/185 passed; these checks do not yet prove production scenes
+- 2026-07-23T08:52:58Z `plan_drafted` work packages A–E and strict completion invariants written
+- 2026-07-23T09:02:00Z `plan_gate` revise 72/100; privacy proof, 4:5 capability, interfaces, persistence, events, provider roles, gate enforcement, API, retention, editorial orchestration and proof matrix named
+- 2026-07-23T09:12:00Z `plan_revised` exact service/provider/profile/API/state/event/gate/privacy/retention/editorial interfaces added
+- 2026-07-23T09:15:00Z `plan_gate` revise 86/100; eight remaining internal contradictions named
+- 2026-07-23T09:25:00Z `plan_revised` local-only personal visual proof, QA_PASSED approval state, 3:4-to-4:5 canon, typed cleanup, editorial transport, executable focused gates, leakage/OCR fail-closed policy and launch actor naming added
+- 2026-07-23T09:25:00Z `asset_delivery` five selected standard presets now have an empty environment plate and lighting authority; all final WebP assets normalized to 1024x1280
+- 2026-07-23T09:25:00Z `asset_visual_check` first generated city lighting attempt rejected for small framing; honeycomb generated attempt rejected for overscale/pattern miss; only corrected or previously approved evidence promoted
+- 2026-07-23T10:18:00Z `preset_runtime_gate` five production packs rebuilt to the strict SceneService shape; resolver/pack/service/adapter checks 31/31 PASS, deterministic tree digest stable, privacy 0 findings; human approval/provider-receipt status remains honestly pending
+- 2026-07-23T10:18:00Z `product_flow_fix` saved-avatar “Додати речі” now binds a verified source avatar, hides new-person intake, survives reload and sends no person upload; focused profile/draft/API checks 14/14 PASS and live health ready
+- 2026-07-23T10:18:00Z `runtime_integration_started` production entrypoint wiring delegated with exact GPT Image 2 → Nano Banana 2 → Nano Banana Pro route; root preparing real saved-look scene E2E and exact-hash QA
+- 2026-07-23T10:31:00Z `qa_semantics_revision` deterministic framing evidence now distinguishes an actual framing defect from malformed QA infrastructure; failed attempts preserve exact defect codes and QA exhaustion exposes the last authoritative receipt; focused scene contract/service checks 46/46 PASS
+- 2026-07-23T10:40:00Z `real_scene_v1_diagnostic` legacy visual-reference scene reached three provider attempts but copied a lighting/composition preview and then an environment plate; near-copy QA correctly rejected both and the legacy pack was retired from retry
+- 2026-07-23T10:47:00Z `reference_transport_revision` all five production reference roles migrated to strict FACTS_ONLY JSON pack v1.1; environment and lighting images remain UI/provenance previews and are no longer transported to generation; production-pack/adapter/runtime focused checks 48/48 PASS
+- 2026-07-23T10:56:00Z `real_scene_v1_1_gate` real saved-look scene `scene_a19f39…` ran GPT Image 2, Nano Banana 2 and Nano Banana Pro. Reference originality, scene and lighting gates passed. GPT attempt 1 preserved identity/items best but framed the person at 92.89%; attempts 2–3 remained oversized and regressed identity/items. Verdict REVISE: repair the strongest hash-bound candidate instead of regenerating from the look master.
+- 2026-07-23T10:59:00Z `live_add_items_cache_fix` live saved-avatar continuation contract and API path passed 17/17 focused tests; root cause of the reported stale first-screen behavior was a four-hour cached module URL. Production HTML now requests `/app.js?v=20260723-4`, live health is ready, and live bundle/hash delivery was verified.
+- 2026-07-23T11:02:38Z `scene_repair_started` stage-level repair implementation in progress: choose the prior candidate with the fewest failed gates, attach it as a hash-verified edit authority after the approved look, compile framing-only outpaint instructions, and persist repair lineage.

@@ -1,0 +1,55 @@
+{
+  "preset_id": "std.interior.gallery_morning_gloss",
+  "preset_path": "assets/scene-presets/std.interior.gallery_morning_gloss/v1/preset.json",
+  "preset_sha256": "2e0b707d18954359e88fc53eaeb4479b75138f5c2ac58a8297ba6b0d509be613",
+  "preset_version": "1.0.0",
+  "production_prompt_path": "prompts/scene-presets/std.interior.gallery_morning_gloss/v1/production-scene.txt",
+  "prompt_sha256": "0c100a7ece3ff37ae776ef6d1b254294cf02f47497bd80194a94177bfce8721e",
+  "reference_pack_path": "assets/scene-presets/std.interior.gallery_morning_gloss/v1/reference-pack.json",
+  "reference_pack_sha256": "81af94f7c0fd537ce6a5fda7dd99ef77c34e507b23c5eab22fcbb7750e80424d",
+  "references": [
+    {
+      "media_type": "application/json",
+      "order": 1,
+      "path": "assets/scene-presets/std.interior.gallery_morning_gloss/v1/environment-reference.json",
+      "reference_id": "std.interior.gallery_morning_gloss.environment",
+      "role": "environment_anchor",
+      "sha256": "c071c359c09dccb2318864fee02f17a30aec5004443944918afb819e4bc01f27"
+    },
+    {
+      "media_type": "application/json",
+      "order": 2,
+      "path": "assets/scene-presets/std.interior.gallery_morning_gloss/v1/lighting-reference.json",
+      "reference_id": "std.interior.gallery_morning_gloss.lighting",
+      "role": "lighting_anchor",
+      "sha256": "41bd4162e9410e4c815dc84d06f16c44a8e36ee51ef177e962583f289213d600"
+    },
+    {
+      "media_type": "application/json",
+      "order": 3,
+      "path": "assets/scene-presets/std.interior.gallery_morning_gloss/v1/composition-reference.json",
+      "reference_id": "std.interior.gallery_morning_gloss.composition",
+      "role": "composition_anchor",
+      "sha256": "1303554a5b10f3a3a4d7865d3b7eeae68a6718d76521fc66f362bc0b5c7ab061"
+    },
+    {
+      "media_type": "application/json",
+      "order": 4,
+      "path": "assets/scene-presets/std.interior.gallery_morning_gloss/v1/palette-anchor.json",
+      "reference_id": "std.interior.gallery_morning_gloss.palette",
+      "role": "palette_anchor",
+      "sha256": "cb06747114643ef5787c8a2afb25007c974ef96f65e4d7396cf8bac2e7d3e2c7"
+    },
+    {
+      "media_type": "application/json",
+      "order": 5,
+      "path": "assets/scene-presets/std.interior.gallery_morning_gloss/v1/negative-reference.json",
+      "reference_id": "std.interior.gallery_morning_gloss.negative",
+      "role": "negative_reference",
+      "sha256": "e36b1aee7b596794701ac7706b12aa9df243b6c0e3fdb386f33f1554b249f0d1"
+    }
+  ],
+  "schema_version": "1.0.0",
+  "source_ledger_path": "assets/scene-presets/std.interior.gallery_morning_gloss/v1/source-ledger.json",
+  "source_ledger_sha256": "6643c592df912d43b4e5b73c6421841461540e462382a6eec27f503161aa5c07"
+}

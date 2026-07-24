@@ -8,6 +8,47 @@ import { assertExternalPromptPrivacy, sanitizeExternalPrompt } from './provider-
 
 const DECISIONS = new Set(['PASS', 'RETRY', 'NEEDS_INPUT', 'REJECT']);
 const CATEGORIES = new Set(['outerwear', 'top', 'bottom', 'one_piece', 'footwear', 'headwear', 'bag', 'accessory']);
+const AMBIGUOUS_VERSIONS = /^(?:latest|current|unknown|unattested)$/i;
+
+function sha256(value) {
+  return createHash('sha256').update(value).digest('hex');
+}
+
+function evaluatorResult(value, {
+  model,
+  context,
+  preparedEvidence = [],
+}) {
+  const resultSha256 = sha256(JSON.stringify({
+    decision: value.decision,
+    reason: value.reason,
+    checks: value.checks,
+    defects: value.defects,
+  }));
+  const identity = {
+    type: 'MODEL',
+    provider: 'openai-codex-cli',
+    model,
+    version: model,
+    phase: context?.phase ?? null,
+    attempt: Number.isInteger(context?.attempt) ? context.attempt : null,
+    idempotency_key: context?.idempotencyKey ?? null,
+    evidence_manifest_sha256: context?.evidence_manifest_sha256 ?? null,
+    result_sha256: resultSha256,
+    prepared_evidence: preparedEvidence,
+  };
+  return {
+    ...value,
+    prepared_evidence: preparedEvidence,
+    evaluator: {
+      type: identity.type,
+      provider: identity.provider,
+      model: identity.model,
+      version: identity.version,
+      evaluation_id: sha256(JSON.stringify(identity)),
+    },
+  };
+}
 
 async function defaultCommandRunner(binary, args, { timeoutMs }) {
   return new Promise((resolve, reject) => {
@@ -49,13 +90,21 @@ function collectQaImages(evidence = {}, phase = 'outfit') {
       ordered.push(qaImage(binding, role));
     }
   }
-  return ordered.filter(Boolean).slice(0, 12);
+  for (const [index, filename] of (evidence.quality_references ?? []).entries()) {
+    if (typeof filename === 'string' && /\.(?:png|jpe?g|webp)$/i.test(filename)) {
+      ordered.push(qaImage({ path: filename }, `QUALITY_REFERENCE_${index + 1}`));
+    }
+  }
+  return ordered.filter(Boolean);
 }
 
 function qaPrompt(phase, images, evidence = {}) {
   const labels = images.map((entry, index) => {
     const role = typeof entry === 'object' ? entry.role : 'VISUAL_EVIDENCE';
-    return `ATTACHMENT_${index + 1} [${role}]`;
+    const aliases = typeof entry === 'object' && Array.isArray(entry.roles)
+      ? entry.roles.filter((candidate) => candidate !== role)
+      : [];
+    return `ATTACHMENT_${index + 1} [${role}]${aliases.length ? ` aliases: ${aliases.map((alias) => `[${alias}]`).join(' ')}` : ''}`;
   }).join('\n');
   const sourceOutfitIsImage = typeof evidence.source_outfit === 'string'
     && /\.(?:png|jpe?g|webp)$/i.test(evidence.source_outfit);
@@ -123,6 +172,9 @@ export class CodexVlmEvaluator {
     qaSchemaPath = path.resolve(import.meta.dirname, '..', '..', 'schemas', 'codex-vlm-qa.schema.json'),
     passportSchemaPath = path.resolve(import.meta.dirname, '..', '..', 'schemas', 'garment-passport.schema.json') } = {}) {
     this.binary = binary;
+    if (typeof model !== 'string' || model.trim() === '' || AMBIGUOUS_VERSIONS.test(model.trim())) {
+      throw new TypeError('Codex VLM model must be an exact non-ambiguous version');
+    }
     this.model = model;
     this.commandRunner = commandRunner;
     this.timeoutMs = timeoutMs;
@@ -139,18 +191,44 @@ export class CodexVlmEvaluator {
       // visible evidence, not 16–50 MP originals; bounded inputs keep latency
       // deterministic while preserving enough detail for labels and seams.
       const qaImages = [];
+      const preparedEvidence = [];
       const seenEvidence = new Set();
+      const preparedByDigest = new Map();
       for (const [index, input] of images.entries()) {
         const filename = imagePath(input) ?? input;
         const qaPath = path.join(temporaryRoot, `evidence-${String(index + 1).padStart(2, '0')}.jpg`);
-        const bytes = await sharp(filename, { limitInputPixels: 100_000_000 })
+        const sourceBytes = await readFile(filename);
+        const sourceSha256 = sha256(sourceBytes);
+        const bytes = await sharp(sourceBytes, { limitInputPixels: 100_000_000 })
           .rotate().resize({ width: 2048, height: 2048, fit: 'inside', withoutEnlargement: true })
           .flatten({ background: '#ffffff' }).jpeg({ quality: 88, chromaSubsampling: '4:4:4' }).toBuffer();
-        const digest = createHash('sha256').update(bytes).digest('hex');
-        if (deduplicate && seenEvidence.has(digest)) continue;
+        const digest = sha256(bytes);
+        const role = typeof input === 'object' && typeof input.role === 'string'
+          ? input.role
+          : 'VISUAL_EVIDENCE';
+        if (deduplicate && seenEvidence.has(digest)) {
+          const duplicateIndex = preparedByDigest.get(digest);
+          const prepared = preparedEvidence[duplicateIndex];
+          if (!prepared.roles.includes(role)) prepared.roles.push(role);
+          prepared.source_bindings.push({ role, source_sha256: sourceSha256 });
+          const attached = qaImages[duplicateIndex];
+          if (!attached.roles.includes(role)) attached.roles.push(role);
+          continue;
+        }
         seenEvidence.add(digest);
         await writeFile(qaPath, bytes);
-        qaImages.push(typeof input === 'object' ? { ...input, path: qaPath } : qaPath);
+        const attached = typeof input === 'object'
+          ? { ...input, path: qaPath, role, roles: [role] }
+          : { path: qaPath, role, roles: [role] };
+        qaImages.push(attached);
+        preparedByDigest.set(digest, preparedEvidence.length);
+        preparedEvidence.push({
+          order: preparedEvidence.length + 1,
+          role,
+          roles: [role],
+          source_bindings: [{ role, source_sha256: sourceSha256 }],
+          prepared_sha256: digest,
+        });
       }
       const prompt = sanitizeExternalPrompt(promptBuilder(qaImages));
       assertExternalPromptPrivacy(prompt, { runtimeRoot: temporaryRoot });
@@ -163,7 +241,7 @@ export class CodexVlmEvaluator {
       let raw;
       try { raw = await readFile(outputPath, 'utf8'); } catch { raw = result?.stdout; }
       if (typeof raw !== 'string' || raw.trim() === '') throw new Error('Codex VLM returned no result');
-      return JSON.parse(raw);
+      return { value: JSON.parse(raw), preparedEvidence };
     } finally {
       await rm(temporaryRoot, { recursive: true, force: true });
     }
@@ -172,19 +250,44 @@ export class CodexVlmEvaluator {
   async evaluateQa(context) {
     const images = collectQaImages(context?.evidence, context?.phase);
     try {
-      return validateQa(await this.#run({ images, promptBuilder: (prepared) => qaPrompt(context?.phase, prepared, context?.evidence), schemaPath: this.qaSchemaPath }));
+      const result = await this.#run({
+        images,
+        promptBuilder: (prepared) => qaPrompt(context?.phase, prepared, context?.evidence),
+        schemaPath: this.qaSchemaPath,
+      });
+      return evaluatorResult(validateQa(result.value), {
+        model: this.model,
+        context,
+        preparedEvidence: result.preparedEvidence,
+      });
     } catch (error) {
       // A garment QA infrastructure failure says nothing about source-photo
       // sufficiency. Route it to the next bounded image-model attempt instead
       // of asking the user for new evidence.
       const decision = context?.phase === 'garment' ? 'RETRY' : 'NEEDS_INPUT';
-      return { decision, reason: `automatic_semantic_qa_unavailable: ${error.message}`, checks: [{ name: 'AUTOMATIC_SEMANTIC_QA', pass: false, score: 0, evidence: error.message }], defects: ['Automatic semantic QA did not return valid evidence'] };
+      return evaluatorResult({
+        decision,
+        reason: `automatic_semantic_qa_unavailable: ${error.message}`,
+        checks: [{
+          name: 'AUTOMATIC_SEMANTIC_QA',
+          pass: false,
+          score: 0,
+          evidence: error.message,
+        }],
+        defects: ['Automatic semantic QA did not return valid evidence'],
+      }, { model: this.model, context });
     }
   }
 
   async inspectGarments(images) {
     if (!Array.isArray(images) || images.length < 1 || images.length > 5) throw new Error('Для аналізу потрібно від одного до п’яти фото речей');
-    return validatePassport(await this.#run({ images, promptBuilder: garmentPrompt, schemaPath: this.passportSchemaPath, deduplicate: false }), images.length);
+    const result = await this.#run({
+      images,
+      promptBuilder: garmentPrompt,
+      schemaPath: this.passportSchemaPath,
+      deduplicate: false,
+    });
+    return validatePassport(result.value, images.length);
   }
 }
 

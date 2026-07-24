@@ -1,0 +1,41 @@
+{
+  "schema_version": "1.0.0",
+  "preset_id": "std.studio.peach_soft_gloss",
+  "kind": "standard",
+  "family": "light_studio",
+  "ui_name_uk": "Студія — персиковий софт",
+  "asset_role": "mood_card",
+  "file": "assets/scene-mood-cards/std.studio.peach_soft_gloss.webp",
+  "sha256": "8a8666fc67fc11800cf2025e4c499cbb3f218186672e7e721053bece447eb0bb",
+  "prompt_path": "prompts/scenes/std.studio.peach_soft_gloss.txt",
+  "prompt_sha256": "bb4f3d79567de62269e7ee57305c084e4d22da06a4c1f4ef1ff6ff75cddc0541",
+  "generation": {
+    "provider_path": "codex_builtin_imagegen",
+    "model_family": "gpt-image-2",
+    "model_version": "builtin-current",
+    "source_width": 1122,
+    "source_height": 1402,
+    "crop_position": "centre",
+    "reframe": {
+      "method": "deterministic_4x5_extract",
+      "input_sha256": "e8572788955898e01ed191df0c75fc407232e16b48002b02bc5324281828b4cd",
+      "source_width": 1024,
+      "source_height": 1280,
+      "crop_px": {
+        "left": 102,
+        "top": 150,
+        "width": 819,
+        "height": 1024
+      }
+    }
+  },
+  "delivery": {
+    "width": 1024,
+    "height": 1280,
+    "format": "webp",
+    "aspect_ratio": "4:5"
+  },
+  "contains_personal_input": false,
+  "approval": "PENDING_VISUAL_JUDGE",
+  "created_at": "2026-07-22T23:47:45.304Z"
+}

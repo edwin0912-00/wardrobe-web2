@@ -1,4 +1,10 @@
 import { uploadFormData } from './image-upload.js?v=20260722-8';
+import {
+  draftBindingsFromManifest,
+  draftRefsFromBindings,
+  finalizationFileManifest,
+  sha256Blob,
+} from './draft-file-contract.js?v=20260723-1';
 
 export class DraftApiError extends Error {
   constructor(message, { status, body } = {}) {
@@ -59,11 +65,21 @@ export async function uploadDraftFile(slot, file, { onProgress = () => {} } = {}
   return response.body;
 }
 
-export async function updateServerDraftMetadata({ outfitText, generateScene }) {
+export async function updateServerDraftMetadata({
+  outfitText,
+  generateScene,
+  sourceAvatarId = null,
+  sourceLookId = null,
+}) {
   return jsonResponse(await fetchWithTimeout('/api/draft/meta', {
     method: 'PUT',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ outfit_text: outfitText, generate_scene: generateScene }),
+    body: JSON.stringify({
+      outfit_text: outfitText,
+      generate_scene: generateScene,
+      source_avatar_id: sourceAvatarId,
+      source_look_id: sourceLookId,
+    }),
   }));
 }
 
@@ -72,19 +88,20 @@ async function downloadFile(descriptor, label) {
   const response = await fetchWithTimeout(descriptor.url, {}, 30_000);
   if (!response.ok) throw new Error(`Не вдалося відновити ${label}`);
   const blob = await response.blob();
+  if (await sha256Blob(blob) !== descriptor.sha256) {
+    throw new Error(`Серверна копія ${label} пошкоджена`);
+  }
   return new File([blob], `${label}.${extensionFor(descriptor.mimetype)}`, { type: descriptor.mimetype, lastModified: Date.now() });
 }
 
 export async function loadServerDraft({ includeFiles = true } = {}) {
   const manifest = await jsonResponse(await fetchWithTimeout('/api/draft'));
-  const refs = {
-    person: manifest.person?.id || null,
-    identity: manifest.identity?.id || null,
-    garments: (manifest.garments || []).map((item) => item.id),
-  };
-  if (!includeFiles) return { manifest, refs, files: null };
+  const bindings = draftBindingsFromManifest(manifest);
+  const refs = draftRefsFromBindings(bindings);
+  if (!includeFiles) return { manifest, bindings, refs, files: null };
   return {
     manifest,
+    bindings,
     refs,
     files: {
       person: await downloadFile(manifest.person, 'person-draft'),
@@ -97,7 +114,7 @@ export async function loadServerDraft({ includeFiles = true } = {}) {
 export async function removeServerDraftFile(slot, id) {
   if (!id) return;
   const response = await fetchWithTimeout(`/api/draft/file/${encodeURIComponent(slot)}/${encodeURIComponent(id)}`, { method: 'DELETE' });
-  if (!response.ok && response.status !== 404) throw new Error(`Не вдалося видалити temp ${slot}`);
+  if (!response.ok) throw new Error(`Не вдалося видалити temp ${slot}: HTTP ${response.status}`);
 }
 
 export async function clearServerDraft() {
@@ -105,10 +122,18 @@ export async function clearServerDraft() {
   if (!response.ok) throw new Error('Не вдалося очистити server draft');
 }
 
-export async function createRunFromServerDraft(finalizationKey, { timeoutMs = 30_000, sourceAvatarId = null } = {}) {
+export async function createRunFromServerDraft(finalizationKey, {
+  timeoutMs = 30_000,
+  sourceAvatarId = null,
+  sourceLookId = null,
+  fileManifest,
+} = {}) {
+  if (!fileManifest) throw new Error('Точний склад файлів чернетки не підтверджено');
   const body = { consent: true };
   if (finalizationKey !== undefined && finalizationKey !== null) body.finalization_key = finalizationKey;
   if (sourceAvatarId !== null) body.source_avatar_id = sourceAvatarId;
+  if (sourceLookId !== null) body.source_look_id = sourceLookId;
+  body.file_manifest = finalizationFileManifest(fileManifest);
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(new Error('Run creation request timed out')), timeoutMs);
   try {

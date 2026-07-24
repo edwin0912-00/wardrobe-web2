@@ -60,13 +60,57 @@ export class FilesystemArtifactStore {
     const digest = sha256(bytes);
     const ext = normalizeExtension(extension);
     const blobPath = path.join(this.blobDirectory, `${digest}${ext}`);
-    if (!(await exists(blobPath))) await atomicWrite(blobPath, bytes);
+    if (await exists(blobPath)) {
+      const stored = await readFile(blobPath);
+      if (sha256(stored) !== digest) {
+        throw new Error(`Content-addressed artifact is corrupted: ${blobPath}`);
+      }
+    } else {
+      await atomicWrite(blobPath, bytes);
+    }
     return Object.freeze({ digest, path: blobPath, size: bytes.length, mediaType, extension: ext });
   }
 
   async putJson(value) {
     const bytes = Buffer.from(`${JSON.stringify(value, null, 2)}\n`);
     return this.putBinary(bytes, { extension: '.json', mediaType: 'application/json' });
+  }
+
+  async readArtifact(artifact) {
+    if (!artifact
+      || typeof artifact.path !== 'string'
+      || !/^[a-f0-9]{64}$/.test(artifact.digest ?? '')
+      || typeof artifact.extension !== 'string') {
+      throw new Error('Invalid content-addressed artifact reference');
+    }
+    const resolved = path.resolve(artifact.path);
+    const relative = path.relative(this.blobDirectory, resolved);
+    if (relative === ''
+      || relative.startsWith(`..${path.sep}`)
+      || path.isAbsolute(relative)
+      || path.basename(resolved) !== `${artifact.digest}${artifact.extension}`) {
+      throw new Error('Artifact reference escapes the content-addressed store');
+    }
+    const bytes = await readFile(resolved);
+    if (sha256(bytes) !== artifact.digest) {
+      throw new Error(`Content-addressed artifact failed integrity verification: ${resolved}`);
+    }
+    if (Number.isSafeInteger(artifact.size) && bytes.length !== artifact.size) {
+      throw new Error(`Content-addressed artifact size changed: ${resolved}`);
+    }
+    return bytes;
+  }
+
+  async readJsonArtifact(artifact) {
+    if (artifact?.mediaType !== 'application/json' || artifact?.extension !== '.json') {
+      throw new Error('Expected a content-addressed JSON artifact');
+    }
+    const bytes = await this.readArtifact(artifact);
+    try {
+      return JSON.parse(bytes.toString('utf8'));
+    } catch {
+      throw new Error('Content-addressed JSON artifact is not valid JSON');
+    }
   }
 
   receiptPath(idempotencyKey) {
@@ -105,6 +149,10 @@ export class FilesystemArtifactStore {
     if (!artifact || typeof artifact.path !== 'string' || typeof artifact.digest !== 'string') {
       throw new Error('Cannot materialize an invalid artifact reference');
     }
+    const source = await readFile(artifact.path);
+    if (sha256(source) !== artifact.digest) {
+      throw new Error(`Artifact source no longer matches its digest: ${artifact.path}`);
+    }
     const target = path.resolve(destination);
     await mkdir(path.dirname(target), { recursive: true });
     if (await exists(target)) {
@@ -116,7 +164,16 @@ export class FilesystemArtifactStore {
     }
     const temporary = `${target}.tmp-${process.pid}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
     await copyFile(artifact.path, temporary, fsConstants.COPYFILE_EXCL);
+    const copied = await readFile(temporary);
+    if (sha256(copied) !== artifact.digest) {
+      await unlink(temporary);
+      throw new Error(`Materialized artifact copy failed integrity verification: ${target}`);
+    }
     await rename(temporary, target);
+    if (sha256(await readFile(target)) !== artifact.digest) {
+      await unlink(target);
+      throw new Error(`Materialized output failed integrity verification: ${target}`);
+    }
     return target;
   }
 

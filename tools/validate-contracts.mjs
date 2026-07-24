@@ -55,7 +55,23 @@ for (const filename of jobFiles) {
   jobResults.push({ job: filename, valid, errors: validatePipelineJob.errors ?? [] });
 }
 const jobFailures = jobResults.filter((item) => !item.valid);
-const allFailures = [...failures, ...jobFailures];
+const externalResults = [];
+const visualReviewSchema = schemas.get('visual-review');
+if (visualReviewSchema) {
+  const value = JSON.parse(
+    await readFile(path.join(projectRoot, 'reviews', 'visual-review.json'), 'utf8'),
+  );
+  const validate = ajv.getSchema(visualReviewSchema.$id);
+  const valid = validate(value);
+  externalResults.push({
+    document: 'reviews/visual-review.json',
+    schema: 'visual-review',
+    valid,
+    errors: validate.errors ?? [],
+  });
+}
+const externalFailures = externalResults.filter((item) => !item.valid);
+const allFailures = [...failures, ...jobFailures, ...externalFailures];
 process.stdout.write(`${JSON.stringify({
   status: allFailures.length === 0 ? 'PASS' : 'FAIL',
   schemas_loaded: schemas.size,
@@ -65,6 +81,9 @@ process.stdout.write(`${JSON.stringify({
   jobs_checked: jobResults.length,
   jobs_passed: jobResults.length - jobFailures.length,
   jobs_failed: jobFailures.length,
+  external_documents_checked: externalResults.length,
+  external_documents_passed: externalResults.length - externalFailures.length,
+  external_documents_failed: externalFailures.length,
   failures: allFailures,
 }, null, 2)}\n`);
 if (allFailures.length > 0) process.exitCode = 1;

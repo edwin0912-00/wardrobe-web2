@@ -51,6 +51,34 @@ body.workflow-active .hero {
   pointer-events: none;
 }
 
+body.add-items-active .hero {
+  display: none;
+  max-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  margin: 0;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+body.add-items-active main {
+  padding-top: 25px;
+}
+
+.form-panel[data-mode="add-items"] {
+  max-width: 720px;
+}
+
+.add-items-kicker {
+  margin: -10px 0 16px;
+  color: #55705a;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .13em;
+  line-height: 1.45;
+}
+
 .hero {
   max-height: 560px;
   opacity: 1;
@@ -209,8 +237,14 @@ body.workflow-active footer {
   .hero h1 em { margin-left: .14em; }
 
   body.workflow-active .hero,
+  body.add-items-active .hero,
   body > footer {
     display: none;
+  }
+
+  body.add-items-active > main {
+    display: block;
+    padding-top: 8px;
   }
 
   .studio-grid,
@@ -284,6 +318,123 @@ body.workflow-active footer {
     grid-area: head;
     min-height: 28px;
     margin: 0 0 1px;
+  }
+
+  .form-panel[data-mode="add-items"] {
+    height: auto;
+    min-height: 0;
+    max-height: 100%;
+    padding: 14px;
+    gap: 7px 8px;
+    border-radius: 18px;
+    grid-template-areas:
+      "head head"
+      "kicker kicker"
+      "source source"
+      "divider divider"
+      "field-label field-label"
+      "outfit outfit"
+      "wardrobe wardrobe"
+      "garment-preview garment-preview"
+      "consent consent"
+      "draft draft"
+      "submit submit"
+      "error error";
+  }
+
+  .form-panel[data-mode="add-items"] > #add-items-kicker { grid-area: kicker; }
+  .form-panel[data-mode="add-items"] > #source-avatar-context { grid-area: source; }
+
+  .form-panel[data-mode="add-items"] .add-items-kicker {
+    margin: 0;
+    color: #49604d;
+    font-size: 7.5px;
+    line-height: 1.35;
+  }
+
+  .form-panel[data-mode="add-items"] > .panel-head {
+    min-height: 34px;
+  }
+
+  .form-panel[data-mode="add-items"] .source-avatar-context {
+    grid-template-columns: 74px minmax(0, 1fr) auto;
+    gap: 11px;
+    min-height: 102px;
+    margin: 0;
+    padding: 9px;
+    border-radius: 15px;
+  }
+
+  .form-panel[data-mode="add-items"] .source-avatar-context > img {
+    width: 74px;
+    height: 82px;
+    border-radius: 11px;
+  }
+
+  .form-panel[data-mode="add-items"] .source-avatar-context p {
+    margin-bottom: 4px;
+    font-size: 7px;
+  }
+
+  .form-panel[data-mode="add-items"] .source-avatar-context strong {
+    font-size: 13px;
+  }
+
+  .form-panel[data-mode="add-items"] .source-avatar-context small {
+    max-height: none;
+    margin-top: 5px;
+    font-size: 8.5px;
+    line-height: 1.3;
+  }
+
+  .form-panel[data-mode="add-items"] .source-avatar-context > button {
+    min-height: 34px;
+    padding: 0 10px;
+    font-size: 8px;
+  }
+
+  .form-panel[data-mode="add-items"] > .divider {
+    min-height: 18px;
+  }
+
+  .form-panel[data-mode="add-items"] > .divider span,
+  .form-panel[data-mode="add-items"] > .field-label {
+    font-size: 9px;
+  }
+
+  .form-panel[data-mode="add-items"] > textarea {
+    height: 70px;
+    min-height: 70px;
+    padding: 11px;
+    font-size: 11px;
+    line-height: 1.35;
+  }
+
+  .form-panel[data-mode="add-items"] > .wardrobe-card {
+    min-height: 58px;
+    padding: 10px;
+  }
+
+  .form-panel[data-mode="add-items"] > .wardrobe-card strong {
+    font-size: 10px;
+  }
+
+  .form-panel[data-mode="add-items"] > .wardrobe-card .file-name {
+    font-size: 8px;
+  }
+
+  .form-panel[data-mode="add-items"] > .consent {
+    font-size: 8.5px;
+    line-height: 1.3;
+  }
+
+  .form-panel[data-mode="add-items"] > .draft-status {
+    font-size: 8.5px;
+  }
+
+  .form-panel[data-mode="add-items"] > .primary-button {
+    min-height: 50px;
+    font-size: 12px;
   }
 
   .form-panel > label:has(> #person-photo) { grid-area: person; }
@@ -468,8 +619,8 @@ body.workflow-active footer {
   }
 
   .failure-actions .secondary-button {
-    min-height: 36px;
-    padding: 8px;
+    min-height: 44px;
+    padding: 9px;
     font-size: 9px;
   }
 
@@ -480,5 +631,170 @@ body.workflow-active footer {
   .failure-view > .terminal-pipeline-trace > summary {
     padding: 9px 2px;
     font-size: 7px;
+  }
+
+  /*
+   * The saved-avatar continuation must remain a single app screen at the
+   * smallest supported iPhone viewport. On physically shorter viewports the
+   * form itself becomes the only scroll container, so the CTA and errors are
+   * still reachable without reintroducing document scroll.
+   */
+  body.add-items-active .studio-grid > .form-panel[data-mode="add-items"] {
+    height: auto;
+    max-height: 100%;
+    padding: 11px;
+    gap: 5px 7px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    scroll-padding-block: 11px;
+    scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .form-panel[data-mode="add-items"] > .panel-head {
+    min-height: 32px;
+  }
+
+  .form-panel[data-mode="add-items"] .add-items-kicker {
+    font-size: 8.5px;
+    line-height: 1.3;
+  }
+
+  .form-panel[data-mode="add-items"] .source-avatar-context {
+    grid-template-columns: 64px minmax(0, 1fr) auto;
+    gap: 9px;
+    min-height: 92px;
+    padding: 8px;
+  }
+
+  .form-panel[data-mode="add-items"] .source-avatar-context > img {
+    width: 64px;
+    height: 74px;
+  }
+
+  .form-panel[data-mode="add-items"] .source-avatar-context p {
+    margin-bottom: 3px;
+    font-size: 8px;
+  }
+
+  .form-panel[data-mode="add-items"] .source-avatar-context strong {
+    font-size: 14px;
+  }
+
+  .form-panel[data-mode="add-items"] .source-avatar-context small {
+    margin-top: 4px;
+    font-size: 9.5px;
+    line-height: 1.25;
+  }
+
+  .form-panel[data-mode="add-items"] .source-avatar-context > button {
+    min-height: 36px;
+    padding: 0 9px;
+    font-size: 9px;
+  }
+
+  .form-panel[data-mode="add-items"] > .divider {
+    min-height: 14px;
+  }
+
+  .form-panel[data-mode="add-items"] > .divider span,
+  .form-panel[data-mode="add-items"] > .field-label {
+    font-size: 9.5px;
+  }
+
+  .form-panel[data-mode="add-items"] > textarea {
+    height: 58px;
+    min-height: 58px;
+    padding: 9px 10px;
+    font-size: 11.5px;
+  }
+
+  .form-panel[data-mode="add-items"] > .wardrobe-card {
+    min-height: 50px;
+    padding: 8px;
+  }
+
+  .form-panel[data-mode="add-items"] > .wardrobe-card strong {
+    font-size: 10.5px;
+  }
+
+  .form-panel[data-mode="add-items"] > .wardrobe-card .file-name {
+    font-size: 8.5px;
+  }
+
+  .form-panel[data-mode="add-items"] .upload-card:focus-within {
+    border-style: solid;
+    border-color: #416b23;
+    outline: 3px solid rgba(131, 173, 56, .24);
+    outline-offset: 2px;
+    background: #f8ffea;
+  }
+
+  .form-panel[data-mode="add-items"] > .consent {
+    min-height: 36px;
+    gap: 8px;
+    align-items: center;
+    padding: 4px 5px;
+    border: 1px solid transparent;
+    border-radius: 9px;
+    font-size: 9.5px;
+    line-height: 1.25;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+
+  .form-panel[data-mode="add-items"] > .consent input {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--deep);
+  }
+
+  .form-panel[data-mode="add-items"] > .consent:focus-within {
+    border-color: #416b23;
+    outline: 3px solid rgba(131, 173, 56, .24);
+    outline-offset: 1px;
+    background: #f8ffea;
+  }
+
+  .form-panel[data-mode="add-items"] > .draft-status {
+    font-size: 9px;
+  }
+
+  .form-panel[data-mode="add-items"] > .primary-button {
+    min-height: 48px;
+    font-size: 12px;
+  }
+
+  .form-panel[data-mode="add-items"] :is(
+    .source-avatar-context > button,
+    .remove-file,
+    .primary-button
+  ):focus-visible {
+    outline: 3px solid rgba(65, 107, 35, .42);
+    outline-offset: 2px;
+  }
+
+  .form-panel[data-mode="add-items"] .garment-preview .selected-file {
+    height: 46px;
+  }
+
+  .form-panel[data-mode="add-items"] .garment-preview .selected-file img {
+    height: 40px;
+  }
+
+  .form-panel[data-mode="add-items"] .garment-preview .remove-file {
+    top: -4px;
+    right: -4px;
+    width: 26px;
+    height: 26px;
+    min-width: 26px;
+    min-height: 26px;
+    font-size: 15px;
+    touch-action: manipulation;
+  }
+
+  .form-panel[data-mode="add-items"] > .error:empty {
+    display: none;
   }
 }

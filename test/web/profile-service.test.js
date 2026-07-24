@@ -3,6 +3,7 @@ import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+import { DatabaseSync } from 'node:sqlite';
 import Fastify from 'fastify';
 import { PROFILE_TTL_MS, ProfileService, registerProfileRoutes } from '../../src/web/profile-service.js';
 
@@ -56,6 +57,36 @@ async function fixture(t, { clock = () => new Date() } = {}) {
   });
   return { app, service, profileApi, runService, deletedRuns, addRun };
 }
+
+test('existing profile databases gain source_look_id through an idempotent additive migration', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'zeely-profile-migration-'));
+  const databasePath = path.join(root, 'profiles.sqlite');
+  const legacy = new DatabaseSync(databasePath);
+  legacy.exec(`
+    CREATE TABLE run_claims (
+      run_id TEXT PRIMARY KEY,
+      profile_id TEXT NOT NULL,
+      source_avatar_id TEXT,
+      saved_avatar_id TEXT,
+      saved_look_id TEXT,
+      claimed_at INTEGER NOT NULL
+    ) STRICT
+  `);
+  legacy.close();
+
+  const service = new ProfileService({ databasePath });
+  await service.initialize();
+  service.close();
+  const inspected = new DatabaseSync(databasePath);
+  const columns = inspected.prepare('PRAGMA table_info(run_claims)').all().map((column) => column.name);
+  inspected.close();
+  assert.equal(columns.filter((name) => name === 'source_look_id').length, 1);
+
+  const reopened = new ProfileService({ databasePath });
+  await reopened.initialize();
+  reopened.close();
+  t.after(() => rm(root, { recursive: true, force: true }));
+});
 
 test('same anonymous browser cookie restores one fixed-expiry profile', async (t) => {
   let now = Date.now();
@@ -153,13 +184,16 @@ test('derived looks belong to an existing avatar and deletion preserves shared s
 
   const derivedClaim = await app.inject({
     method: 'POST', url: '/api/profile/runs/derived-look-run/claim',
-    headers: { cookie, 'content-type': 'application/json' }, payload: { source_avatar_id: avatarId },
+    headers: { cookie, 'content-type': 'application/json' },
+    payload: { source_avatar_id: avatarId, source_look_id: initialLookId },
   });
   assert.equal(derivedClaim.statusCode, 201, derivedClaim.body);
+  assert.equal(derivedClaim.json().source_look_id, initialLookId);
   const derived = await app.inject({ method: 'POST', url: '/api/profile/runs/derived-look-run/save', headers: { cookie } });
   assert.equal(derived.statusCode, 201, derived.body);
   assert.equal(derived.json().avatar.avatar_id, avatarId);
   assert.notEqual(derived.json().look.look_id, initialLookId);
+  assert.equal(derived.json().look.parent_look_id, initialLookId);
 
   const deleteDerived = await app.inject({ method: 'DELETE', url: `/api/profile/looks/${derived.json().look.look_id}`, headers: { cookie } });
   assert.equal(deleteDerived.statusCode, 204, deleteDerived.body);
@@ -176,6 +210,43 @@ test('derived looks belong to an existing avatar and deletion preserves shared s
   assert.deepEqual(deletedRuns, ['derived-look-run', 'base-avatar-run']);
   const avatarGone = await app.inject({ method: 'GET', url: base.json().avatar.image_url, headers: { cookie } });
   assert.equal(avatarGone.statusCode, 404);
+});
+
+test('add-items lineage rejects a saved look from a different avatar', async (t) => {
+  const { app, addRun } = await fixture(t);
+  await addRun('avatar-a-run');
+  await addRun('avatar-b-run');
+  await addRun('mismatched-derived-run');
+  const profile = await app.inject({ method: 'GET', url: '/api/profile' });
+  const cookie = profileCookie(profile);
+
+  const saveBase = async (runId) => {
+    await app.inject({
+      method: 'POST',
+      url: `/api/profile/runs/${runId}/claim`,
+      headers: { cookie, 'content-type': 'application/json' },
+      payload: { source_avatar_id: null, source_look_id: null },
+    });
+    return app.inject({
+      method: 'POST',
+      url: `/api/profile/runs/${runId}/save`,
+      headers: { cookie },
+    });
+  };
+  const baseA = await saveBase('avatar-a-run');
+  const baseB = await saveBase('avatar-b-run');
+
+  const rejected = await app.inject({
+    method: 'POST',
+    url: '/api/profile/runs/mismatched-derived-run/claim',
+    headers: { cookie, 'content-type': 'application/json' },
+    payload: {
+      source_avatar_id: baseA.json().avatar.avatar_id,
+      source_look_id: baseB.json().look.look_id,
+    },
+  });
+  assert.equal(rejected.statusCode, 409, rejected.body);
+  assert.equal(rejected.json().code, 'LOOK_AVATAR_MISMATCH');
 });
 
 test('fixed expiry cleanup revokes the cookie and physically queues owned runs', async (t) => {

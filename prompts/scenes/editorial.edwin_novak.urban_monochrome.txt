@@ -1,0 +1,10 @@
+Use case: photorealistic-natural
+Asset type: original fashion editorial direction card for an approved internal visual system
+Primary request: create one original black-and-white environmental fashion image built from portrait, rooftop space and architectural geometry; do not imitate or reproduce any specific existing photograph.
+Subject: one anonymous adult test model with calm detached expression in a plain unbranded black-and-ivory tailored look; the model is mood evidence only, never identity authority.
+Scene/backdrop: a newly invented concrete rooftop with distant facade grids and a large field of negative space; no recognizable skyline.
+Style/medium: crisp black-and-white high-fashion photograph with restrained film grain, strong light-and-shape contrast and realistic texture.
+Composition/framing: vertical 4:5 environmental hero, complete head and footwear, 50 mm equivalent, one controlled oblique architectural line, subject around 66% of frame height.
+Lighting/mood: overcast directional daylight plus one hard geometric shadow interruption on the concrete, not across the eyes or outfit front.
+Color palette: true monochrome with separated blacks, mid-grey concrete and clean whites.
+Constraints: exactly one optical device, hard shadow geometry; no veil, mirror, water or stacked effects; no text, logos, watermark, extra people, generic catalogue pose, crop or anatomy defects; no crushed outfit detail, HDR or artificial blur.

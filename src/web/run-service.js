@@ -1,19 +1,50 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { EventEmitter } from 'node:events';
-import { access, mkdir, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises';
+import {
+  access,
+  lstat,
+  mkdir,
+  readFile,
+  readdir,
+  realpath,
+  rename,
+  rm,
+  writeFile,
+} from 'node:fs/promises';
 import path from 'node:path';
 import sharp from 'sharp';
-import { PipelineRunner } from '../runner/pipeline-runner.js';
+import { FilesystemArtifactStore } from '../runner/artifact-store.js';
+import { verifyCoreQaReceipt } from '../runner/core-qa-receipt.js';
 import { IMAGE_MODEL_ROUTE } from '../runner/model-policy.js';
+import { PipelineRunner } from '../runner/pipeline-runner.js';
+import { assessImageQuality, normalizeReference } from '../conditioning/index.mjs';
 import { normalizeWhitePngBytes } from '../qa/white-normalizer.mjs';
 import { GarmentNeedsInputError, GarmentConditioner } from './garment-conditioner.js';
-import { compileFullLookText, garmentLocks, groupGarmentViews } from './garment-passport.js';
+import {
+  GARMENT_CATEGORIES,
+  compileFullLookText,
+  garmentLocks,
+  groupGarmentViews,
+} from './garment-passport.js';
+import {
+  prepareVisualCheckpoint,
+  publicVisualCheckpoint,
+  readVisualAsset,
+  resetVisualState,
+} from './run-visualizer.js';
 import { sanitizeOutbound, sanitizeOutboundString } from '../security/outbound-redaction.js';
 
 const MIME_EXTENSION = Object.freeze({ 'image/png': '.png', 'image/jpeg': '.jpg', 'image/webp': '.webp' });
 const TERMINAL = new Set(['COMPLETED', 'NEEDS_INPUT', 'FAILED']);
 const RESTARTABLE = new Set(['QUEUED', 'RUNNING']);
 const SAFE_RUN_ID = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/;
+const SHA256 = /^[a-f0-9]{64}$/;
+const MAX_APPROVED_ITEM_PACK_BYTES = 2 * 1024 * 1024;
+const MAX_APPROVED_ITEM_CUTOUT_BYTES = 64 * 1024 * 1024;
+const MAX_APPROVED_ITEM_CHECKPOINT_BYTES = 16 * 1024 * 1024;
+const MAX_APPROVED_ITEM_JOB_BYTES = 2 * 1024 * 1024;
+const MAX_APPROVED_ITEM_MANIFEST_BYTES = 16 * 1024 * 1024;
+const PNG_SIGNATURE = Buffer.from('89504e470d0a1a0a', 'hex');
 const CHECKPOINT_MESSAGES = Object.freeze({
   RECEIVED: 'Задачу прийнято',
   VALIDATING: 'Перевіряємо контракт і файли',
@@ -34,6 +65,170 @@ const CHECKPOINT_MESSAGES = Object.freeze({
 });
 const sha256 = (value) => createHash('sha256').update(value).digest('hex');
 
+export class ApprovedItemEvidenceError extends Error {
+  constructor(code, message) {
+    super(message);
+    this.name = 'ApprovedItemEvidenceError';
+    this.statusCode = 409;
+    this.code = code;
+  }
+}
+
+export class InputNeedsInputError extends Error {
+  constructor(code, message, {
+    field = null,
+    requirements = [],
+    nextAction = 'REPLACE_INPUT',
+  } = {}) {
+    super(message);
+    this.name = 'InputNeedsInputError';
+    this.statusCode = 422;
+    this.status = 'NEEDS_INPUT';
+    this.code = code;
+    this.field = field;
+    this.requirements = requirements;
+    this.nextAction = nextAction;
+  }
+}
+
+function needsInput(code, message, options) {
+  return new InputNeedsInputError(code, message, options);
+}
+
+function evidenceError(code, message) {
+  return new ApprovedItemEvidenceError(code, message);
+}
+
+function isInside(root, filename) {
+  const relative = path.relative(path.resolve(root), path.resolve(filename));
+  return relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative));
+}
+
+// Runs survive a product release by being copied into the persistent runtime.
+// Their signed execution checkpoint can therefore retain the absolute path of
+// the release that created it.  Absolute release roots are not provenance: the
+// run-relative artifact path and its signed SHA-256 are.  Accept only the
+// exact expected tail, so this never turns into a general path fallback.
+function hasRunArtifactSuffix(value, runId, relativePath) {
+  if (typeof value !== 'string' || value.trim() === '' || /^[a-z][a-z0-9+.-]*:/i.test(value)) {
+    return false;
+  }
+  const expected = path.join(runId, ...relativePath.split('/'));
+  const resolved = path.resolve(value);
+  return resolved === expected || resolved.endsWith(`${path.sep}${expected}`);
+}
+
+function safeEvidenceText(value, field, { allowEmpty = false, maxLength = 2_000 } = {}) {
+  if (typeof value !== 'string'
+    || (!allowEmpty && value.trim() === '')
+    || value.length > maxLength) {
+    throw evidenceError('APPROVED_ITEM_EVIDENCE_INVALID', `${field} is invalid`);
+  }
+  if (sanitizeOutboundString(value, { stripProjectName: false }) !== value) {
+    throw evidenceError('APPROVED_ITEM_EVIDENCE_PRIVATE', `${field} contains private infrastructure`);
+  }
+  return value;
+}
+
+function safeEvidenceStringArray(value, field, { maxItems = 64 } = {}) {
+  if (!Array.isArray(value) || value.length > maxItems) {
+    throw evidenceError('APPROVED_ITEM_EVIDENCE_INVALID', `${field} is invalid`);
+  }
+  return value.map((item, index) => safeEvidenceText(
+    item,
+    `${field}[${index}]`,
+    { maxLength: 2_000 },
+  ));
+}
+
+function safeEvidenceNumber(value, field) {
+  if (!Number.isFinite(value) || value < 0 || value > 1) {
+    throw evidenceError('APPROVED_ITEM_EVIDENCE_INVALID', `${field} must be between 0 and 1`);
+  }
+  return value;
+}
+
+function logicalItemFacts(item, index) {
+  if (!item || typeof item !== 'object' || Array.isArray(item)) {
+    throw evidenceError('APPROVED_ITEM_EVIDENCE_INVALID', `extraction.items[${index}] is invalid`);
+  }
+  if (!Number.isInteger(item.source_index) || item.source_index < 0) {
+    throw evidenceError('APPROVED_ITEM_EVIDENCE_INVALID', `extraction.items[${index}].source_index is invalid`);
+  }
+  const sourceIndexes = item.source_indexes ?? [item.source_index];
+  if (!Array.isArray(sourceIndexes)
+    || sourceIndexes.length === 0
+    || sourceIndexes.some((value) => !Number.isInteger(value) || value < 0)
+    || new Set(sourceIndexes).size !== sourceIndexes.length
+    || !sourceIndexes.includes(item.source_index)) {
+    throw evidenceError('APPROVED_ITEM_EVIDENCE_INVALID', `extraction.items[${index}].source_indexes is invalid`);
+  }
+  if (!GARMENT_CATEGORIES.includes(item.category)) {
+    throw evidenceError('APPROVED_ITEM_EVIDENCE_INVALID', `extraction.items[${index}].category is invalid`);
+  }
+  const observed = item.observed;
+  if (!observed || typeof observed !== 'object' || Array.isArray(observed)) {
+    throw evidenceError('APPROVED_ITEM_EVIDENCE_INVALID', `extraction.items[${index}].observed is invalid`);
+  }
+  return {
+    category: item.category,
+    reference_set_id: item.reference_set_id === undefined
+      ? `set-${sourceIndexes.slice().sort((left, right) => left - right).join('-')}`
+      : safeEvidenceText(
+        item.reference_set_id,
+        `extraction.items[${index}].reference_set_id`,
+        { maxLength: 128 },
+      ),
+    source_indexes: [...sourceIndexes],
+    ...(item.same_item_confidence === undefined ? {} : {
+      same_item_confidence: safeEvidenceNumber(
+        item.same_item_confidence,
+        `extraction.items[${index}].same_item_confidence`,
+      ),
+    }),
+    ...(item.grouping_evidence === undefined ? {} : {
+      grouping_evidence: safeEvidenceStringArray(
+        item.grouping_evidence,
+        `extraction.items[${index}].grouping_evidence`,
+      ),
+    }),
+    confidence: safeEvidenceNumber(
+      item.confidence,
+      `extraction.items[${index}].confidence`,
+    ),
+    observed: {
+      garment_type: safeEvidenceText(
+        observed.garment_type,
+        `extraction.items[${index}].observed.garment_type`,
+      ),
+      colors: safeEvidenceStringArray(
+        observed.colors,
+        `extraction.items[${index}].observed.colors`,
+      ),
+      material: safeEvidenceStringArray(
+        observed.material,
+        `extraction.items[${index}].observed.material`,
+      ),
+      pattern: safeEvidenceStringArray(
+        observed.pattern,
+        `extraction.items[${index}].observed.pattern`,
+      ),
+      logo_text: safeEvidenceStringArray(
+        observed.logo_text,
+        `extraction.items[${index}].observed.logo_text`,
+      ),
+      construction: safeEvidenceStringArray(
+        observed.construction,
+        `extraction.items[${index}].observed.construction`,
+      ),
+    },
+    unknowns: safeEvidenceStringArray(
+      item.unknowns,
+      `extraction.items[${index}].unknowns`,
+    ),
+  };
+}
+
 function resolveRunId(runId) {
   const resolved = runId ?? randomUUID();
   if (typeof resolved !== 'string' || !SAFE_RUN_ID.test(resolved)) {
@@ -50,18 +245,55 @@ async function atomicJson(filename, value) {
 }
 
 async function validateUpload(upload, field) {
-  if (!upload || !Buffer.isBuffer(upload.buffer) || upload.buffer.length === 0) throw new Error(`${field} is required`);
+  if (!upload || !Buffer.isBuffer(upload.buffer) || upload.buffer.length === 0) {
+    throw needsInput('INPUT_REQUIRED', `${field} is required`, {
+      field,
+      requirements: ['non-empty PNG, JPEG, or WEBP image'],
+    });
+  }
   const extension = MIME_EXTENSION[upload.mimetype];
-  if (!extension) throw new Error(`${field} must be PNG, JPEG, or WEBP`);
-  if (upload.buffer.length > 20 * 1024 * 1024) throw new Error(`${field} exceeds 20 MB`);
+  if (!extension) {
+    throw needsInput('UNSUPPORTED_MEDIA_TYPE', `${field} must be PNG, JPEG, or WEBP`, {
+      field,
+      requirements: ['image/png', 'image/jpeg', 'image/webp'],
+    });
+  }
+  if (upload.buffer.length > 20 * 1024 * 1024) {
+    throw needsInput('FILE_TOO_LARGE', `${field} exceeds 20 MB`, {
+      field,
+      requirements: ['maximum 20 MB'],
+    });
+  }
   let metadata;
-  try { metadata = await sharp(upload.buffer).metadata(); } catch { throw new Error(`${field} is not a decodable image`); }
-  if (!metadata.width || !metadata.height || metadata.width < 256 || metadata.height < 256) throw new Error(`${field} must be at least 256×256`);
-  if (metadata.pages && metadata.pages > 1) throw new Error(`${field} must be a still image`);
+  try {
+    metadata = await sharp(upload.buffer, { failOn: 'error' }).metadata();
+  } catch {
+    throw needsInput('IMAGE_DECODE_FAILED', `${field} is not a decodable image`, {
+      field,
+      requirements: ['valid, non-corrupt image bytes'],
+    });
+  }
+  if (!metadata.width || !metadata.height || metadata.width < 256 || metadata.height < 256) {
+    throw needsInput('IMAGE_TOO_SMALL', `${field} must be at least 256×256`, {
+      field,
+      requirements: ['minimum width 256 px', 'minimum height 256 px'],
+    });
+  }
+  if (metadata.pages && metadata.pages > 1) {
+    throw needsInput('ANIMATED_IMAGE_UNSUPPORTED', `${field} must be a still image`, {
+      field,
+      requirements: ['single-frame image'],
+    });
+  }
   return { extension, metadata };
 }
 
 function publicRun(state) {
+  const visualCheckpoint = publicVisualCheckpoint(
+    state.run_id,
+    state.visual_checkpoint,
+    state.visual_assets,
+  );
   return {
     run_id: state.run_id,
     status: state.status,
@@ -84,6 +316,11 @@ function publicRun(state) {
     qa: sanitizeOutbound(state.qa ?? {}),
     outputs: sanitizeOutbound(state.outputs ?? {}),
     execution_route: {
+      ...(Array.isArray(state.image_model_route)
+        && JSON.stringify(state.image_model_route) !== JSON.stringify(IMAGE_MODEL_ROUTE)
+        ? { image_model_route: [...state.image_model_route] }
+        : {}),
+      ...(state.max_ordered_references === undefined ? {} : { max_ordered_references: state.max_ordered_references }),
       garment_images_supplied: Boolean(state.inputs?.garments?.length),
       garment_source_image_count: state.inputs?.garments?.length ?? 0,
       avatar_reuse: Boolean(state.inputs?.approved_avatar),
@@ -93,16 +330,26 @@ function publicRun(state) {
       purpose: 'NEW_LOOK',
       source_run_id: state.inputs.approved_avatar.source_run_id,
     } } : {}),
+    ...(visualCheckpoint ? { visual_checkpoint: visualCheckpoint } : {}),
     error: sanitizeOutbound(state.error ?? null),
   };
 }
 
 export class RunService {
-  constructor({ rootDirectory, provider, vlm, assetGenerator, projectRoot = path.resolve(import.meta.dirname, '..', '..'), clock = () => new Date(), observer = null }) {
+  constructor({ rootDirectory, provider, vlm, assetGenerator, generationRoute = IMAGE_MODEL_ROUTE, projectRoot = path.resolve(import.meta.dirname, '..', '..'), clock = () => new Date(), observer = null }) {
+    if (!Array.isArray(generationRoute) || generationRoute.length < 1
+      || new Set(generationRoute).size !== generationRoute.length
+      || generationRoute.some((model) => !IMAGE_MODEL_ROUTE.includes(model))) {
+      throw new TypeError('generationRoute must contain unique allowed Zeely image models');
+    }
     this.rootDirectory = path.resolve(rootDirectory);
     this.provider = provider;
     this.vlm = vlm;
     this.assetGenerator = assetGenerator;
+    this.generationRoute = [...generationRoute];
+    this.maxOrderedReferences = Number.isInteger(provider?.maxOrderedReferences)
+      ? provider.maxOrderedReferences
+      : null;
     this.projectRoot = projectRoot;
     this.clock = clock;
     this.observer = observer;
@@ -140,6 +387,16 @@ export class RunService {
     return state;
   }
 
+  async #prepareVisualFailSoft(state, specification) {
+    try {
+      return await prepareVisualCheckpoint(state, specification);
+    } catch {
+      // Visual telemetry is observational. A preview problem must never alter
+      // the core pipeline result or suppress its persisted phase/message.
+      return false;
+    }
+  }
+
   async createRun({ person, identityDetail, garments = [], outfitText = '', generateScene = false, runId: requestedRunId, approvedAvatarReference = null }) {
     const runId = resolveRunId(requestedRunId);
     const pending = this.creating.get(runId);
@@ -158,8 +415,27 @@ export class RunService {
   }
 
   async #createNewRun({ runId, person, identityDetail, garments, outfitText, generateScene, approvedAvatarReference }) {
-    if (garments.length > 5) throw new Error('Можна додати не більше п’яти фото речей');
-    if (garments.length === 0 && outfitText.trim() === '') throw new Error('Додайте опис образу або хоча б одне фото речі');
+    if (garments.length > 5) {
+      throw needsInput(
+        'TOO_MANY_ITEM_REFERENCES',
+        'Можна додати не більше п’яти фото речей',
+        {
+          field: 'Фото речей',
+          requirements: ['maximum 5 item images'],
+          nextAction: 'REMOVE_EXTRA_INPUTS',
+        },
+      );
+    }
+    if (garments.length === 0 && outfitText.trim() === '') {
+      throw needsInput(
+        'OUTFIT_INPUT_REQUIRED',
+        'Додайте опис образу або хоча б одне фото речі',
+        {
+          field: 'Образ',
+          requirements: ['outfit text or at least one item image'],
+        },
+      );
+    }
     await validateUpload(person, 'Фото людини');
     if (identityDetail) await validateUpload(identityDetail, 'Додаткове фото людини');
     for (const [index, garment] of garments.entries()) await validateUpload(garment, `Фото речі ${index + 1}`);
@@ -196,7 +472,13 @@ export class RunService {
     const state = {
       schema_version: '1.0.0', run_id: runId, status: 'QUEUED', phase: 'UPLOADED', message: 'Inputs accepted',
       created_at: now, updated_at: now, inputs: { person: personPath, identity_detail: identityDetailPath, garments: garmentPaths, outfit_text: outfitText.trim(), generate_scene: Boolean(generateScene), ...(importedApprovedAvatar ? { approved_avatar: importedApprovedAvatar } : {}) },
+      image_model_route: [...this.generationRoute],
+      ...(this.maxOrderedReferences === null ? {} : { max_ordered_references: this.maxOrderedReferences }),
       garments: [], conflicts: [], qa: {}, outputs: {}, error: null,
+      visual_epoch: 1,
+      visual_sequence: 0,
+      visual_assets: {},
+      visual_checkpoint: null,
     };
     const preparation = {
       person: person.preparation ?? null,
@@ -206,6 +488,17 @@ export class RunService {
     if (preparation.person || preparation.identity_detail || preparation.garments.some(Boolean)) {
       state.inputs.preparation = preparation;
     }
+    await this.#prepareVisualFailSoft(state, {
+      runDirectory,
+      clock: this.clock,
+      stage: 'SOURCE_READY',
+      subject: { kind: 'PERSON', index: null, total: null },
+      presentation: 'SOURCE_SCAN',
+      truthState: 'IMMUTABLE_INPUT',
+      title: 'Фото людини отримано',
+      status: 'Незмінний оригінал збережено для перевірок',
+      layers: [{ role: 'SOURCE', path: personPath }],
+    });
     await this.#write(state);
     this.start(runId);
     return publicRun(state);
@@ -222,6 +515,7 @@ export class RunService {
     const expectedReceiptPath = path.join(this.runDirectory(sourceRunId), 'outputs', 'run-manifest.json');
     if (path.resolve(reference.path ?? '') !== expectedAvatarPath) throw new Error('Approved avatar path must belong to the declared source run');
     if (path.resolve(reference.qa_receipt?.path ?? '') !== expectedReceiptPath) throw new Error('Approved avatar QA receipt must belong to the declared source run');
+    await this.#verifyCompletedOutputSet(sourceRunId);
     const [avatarBytes, receiptBytes] = await Promise.all([readFile(expectedAvatarPath), readFile(expectedReceiptPath)]);
     const avatarSha256 = sha256(avatarBytes);
     const receiptSha256 = sha256(receiptBytes);
@@ -251,7 +545,15 @@ export class RunService {
       if (state.inputs.garments.length) {
         if (!conditioned) {
           await this.#write(state, { status: 'RUNNING', phase: 'GARMENT_CONDITIONING', message: 'Фіксуємо характеристики речей і готуємо еталонні референси' });
-          const conditioner = new GarmentConditioner({ vlm: this.vlm, generator: this.assetGenerator, clock: this.clock });
+          const conditioner = new GarmentConditioner({
+            vlm: this.vlm,
+            generator: this.assetGenerator,
+            generationRoute: this.generationRoute,
+            maxGarmentBindings: this.maxOrderedReferences === null
+              ? null
+              : Math.max(0, this.maxOrderedReferences - 1 - (state.inputs.identity_detail ? 2 : 1)),
+            clock: this.clock,
+          });
           conditioned = await conditioner.condition({
             imagePaths: state.inputs.garments,
             outputDirectory: path.join(this.runDirectory(runId), 'conditioned', 'garments'),
@@ -259,6 +561,19 @@ export class RunService {
             passport: state.inputs.garment_passport ?? null,
             selections: state.inputs.garment_selections ?? {},
             onProgress: async (innerState, message) => this.#write(state, { inner_state: innerState, message }),
+            onVisual: async (visual) => {
+              if (visual?.reset === true) {
+                resetVisualState(state);
+                await this.#write(state);
+                return;
+              }
+              const changed = await this.#prepareVisualFailSoft(state, {
+                ...visual,
+                runDirectory: this.runDirectory(runId),
+                clock: this.clock,
+              });
+              if (changed) await this.#write(state);
+            },
           });
           await this.#write(state, { garments: conditioned.items.map((item) => ({ source_index: item.source_index, source_indexes: item.source_indexes, reference_set_id: item.reference_set_id, category: item.category, confidence: item.confidence, observed: item.observed, reference_card: item.reference_card.path, cutout: item.cutout.path })), conflicts: conditioned.conflicts });
         }
@@ -266,10 +581,21 @@ export class RunService {
       const jobPath = await this.#buildJob(state, conditioned);
       await this.#write(state, { status: 'RUNNING', phase: 'CORE_PIPELINE', inner_state: null, terminal_stage: null, message: 'Генеруємо й перевіряємо аватар та образ', job_path: jobPath });
       const runner = new PipelineRunner({ provider: this.provider });
-      const progressTimer = setInterval(() => { this.#syncRunnerProgress(state).catch(() => {}); }, 1000);
+      let progressSync = Promise.resolve();
+      const progressTimer = setInterval(() => {
+        progressSync = progressSync
+          .then(() => this.#syncRunnerProgress(state))
+          .catch(() => {});
+      }, 1000);
       let result;
-      try { result = await runner.runJobFile(jobPath); } finally { clearInterval(progressTimer); }
+      try {
+        result = await runner.runJobFile(jobPath);
+      } finally {
+        clearInterval(progressTimer);
+        await progressSync;
+      }
       state.runner = result;
+      await this.#syncRunnerProgress(state);
       if (result.status !== 'COMPLETED') {
         let qaReason = null;
         let terminalDetails = null;
@@ -294,6 +620,21 @@ export class RunService {
       state.qa = manifest.qa;
       state.outputs = outputs;
       if (state.inputs.generate_scene) await this.#generateScene(state, result.outputs.avatar_outfit);
+      await this.#prepareVisualFailSoft(state, {
+        runDirectory: this.runDirectory(runId),
+        clock: this.clock,
+        stage: 'OUTPUT_READY',
+        subject: { kind: 'LOOK', index: null, total: null },
+        presentation: 'OUTPUT',
+        truthState: 'APPROVED_OUTPUT',
+        title: 'Образ готовий',
+        status: 'Фінальний результат пройшов перевірку й збережений',
+        layers: [{
+          role: 'AFTER',
+          path: result.outputs.avatar_outfit,
+          sha256: manifest.outputs?.avatar_outfit?.sha256,
+        }],
+      });
       return this.#write(state, { status: 'COMPLETED', phase: 'COMPLETED', inner_state: null, terminal_stage: null, message: 'Аватар і образ готові', outputs: state.outputs });
     } catch (error) {
       if (error instanceof GarmentNeedsInputError) {
@@ -307,10 +648,165 @@ export class RunService {
 
   async #syncRunnerProgress(state) {
     const checkpointPath = path.join(this.runDirectory(state.run_id), 'outputs', '.zeely-run', 'checkpoint.json');
+    let checkpoint;
     try {
-      const checkpoint = JSON.parse(await readFile(checkpointPath, 'utf8'));
-      if (checkpoint.state !== state.inner_state) await this.#write(state, { inner_state: checkpoint.state, message: CHECKPOINT_MESSAGES[checkpoint.state] ?? checkpoint.state.replaceAll('_', ' ').toLowerCase() });
-    } catch { /* checkpoint may not exist yet */ }
+      checkpoint = JSON.parse(await readFile(checkpointPath, 'utf8'));
+    } catch {
+      return;
+    }
+    let visualChanged = false;
+    const retryStates = new Set(['CONDITIONING_RETRY', 'AVATAR_RETRY', 'OUTFIT_RETRY']);
+    if (retryStates.has(checkpoint.state)) {
+      const phase = checkpoint.state.split('_')[0].toLowerCase();
+      const marker = `${checkpoint.state}:${checkpoint.attempts?.[phase] ?? checkpoint.attempts?.conditioning ?? 0}`;
+      if (state.visual_runner_retry_marker !== marker) {
+        resetVisualState(state);
+        state.visual_runner_retry_marker = marker;
+        visualChanged = true;
+      }
+    } else {
+      const visual = this.#runnerVisualCheckpoint(state, checkpoint);
+      if (visual) {
+        visualChanged = await this.#prepareVisualFailSoft(state, {
+          ...visual,
+          runDirectory: this.runDirectory(state.run_id),
+          clock: this.clock,
+        });
+      }
+    }
+    if (checkpoint.state !== state.inner_state || visualChanged) {
+      await this.#write(state, {
+        inner_state: checkpoint.state,
+        message: CHECKPOINT_MESSAGES[checkpoint.state] ?? checkpoint.state.replaceAll('_', ' ').toLowerCase(),
+      });
+    }
+  }
+
+  #runnerVisualCheckpoint(state, checkpoint) {
+    const artifactLayer = (artifact, role) => {
+      const descriptor = artifact?.artifact;
+      if (!descriptor?.path
+        || !['image/png', 'image/jpeg', 'image/webp'].includes(descriptor.mediaType)
+        || !SHA256.test(descriptor.digest ?? '')) {
+        return null;
+      }
+      return { role, path: descriptor.path, sha256: descriptor.digest };
+    };
+    const identity = artifactLayer(checkpoint.artifacts?.conditioned_identity, 'AFTER');
+    const conditionedOutfit = artifactLayer(checkpoint.artifacts?.conditioned_outfit, 'AFTER');
+    const avatar = artifactLayer(checkpoint.artifacts?.avatar, 'CANDIDATE');
+    const outfit = artifactLayer(checkpoint.artifacts?.outfit, 'CANDIDATE');
+    const personBefore = state.inputs?.person
+      ? { role: 'BEFORE', path: state.inputs.person }
+      : null;
+    const conditionedOutfitVisual = conditionedOutfit ? {
+      stage: 'OUTFIT_REFERENCE_CONDITIONED',
+      subject: { kind: 'LOOK', index: null, total: null },
+      presentation: 'CANDIDATE_REVEAL',
+      truthState: 'DETERMINISTIC_DERIVATIVE',
+      title: 'Референси образу підготовлено',
+      status: 'Показано фактичний файл, переданий у генерацію',
+      layers: [{ ...conditionedOutfit, role: 'CANDIDATE' }],
+    } : null;
+    switch (checkpoint.state) {
+      case 'CONDITIONING_IDENTITY':
+      case 'CONDITIONING_OUTFIT':
+        if (conditionedOutfitVisual) return conditionedOutfitVisual;
+        return identity ? {
+          stage: 'IDENTITY_CONDITIONED',
+          subject: { kind: 'PERSON', index: null, total: null },
+          presentation: 'BEFORE_AFTER',
+          truthState: 'DETERMINISTIC_DERIVATIVE',
+          title: 'Фото людини підготовлено',
+          status: 'Показано реальний нормалізований файл',
+          layers: [personBefore, identity].filter(Boolean),
+        } : null;
+      case 'CONDITIONING_QA':
+      case 'REFERENCES_READY':
+        return conditionedOutfitVisual;
+      case 'GENERATING_AVATAR':
+        return avatar ? {
+          stage: 'AVATAR_CANDIDATE_READY',
+          subject: { kind: 'PERSON', index: null, total: null },
+          presentation: 'CANDIDATE_REVEAL',
+          truthState: 'UNVERIFIED_CANDIDATE',
+          title: 'Кандидат аватара отримано',
+          status: 'Показано реальний результат до перевірки якості',
+          layers: [avatar],
+          metrics: { attempt: checkpoint.attempts?.avatar ?? 1 },
+        } : null;
+      case 'AVATAR_QA':
+        return avatar ? {
+          stage: 'AVATAR_QA',
+          subject: { kind: 'PERSON', index: null, total: null },
+          presentation: 'QA_SCAN',
+          truthState: 'QA_IN_PROGRESS',
+          title: 'Перевіряємо аватар',
+          status: 'Це реальний кандидат, який ще не затверджено',
+          layers: [avatar],
+          metrics: { attempt: checkpoint.attempts?.avatar ?? 1 },
+        } : null;
+      case 'AVATAR_READY':
+        return avatar ? {
+          stage: 'AVATAR_APPROVED',
+          subject: { kind: 'PERSON', index: null, total: null },
+          presentation: 'OUTPUT',
+          truthState: 'APPROVED_OUTPUT',
+          title: 'Аватар затверджено',
+          status: 'Кандидат пройшов перевірку якості',
+          layers: [{ ...avatar, role: 'AFTER' }],
+          metrics: { attempt: checkpoint.attempts?.avatar ?? 1 },
+        } : null;
+      case 'GENERATING_OUTFIT':
+        if (outfit) {
+          return {
+            stage: 'OUTFIT_CANDIDATE_READY',
+            subject: { kind: 'LOOK', index: null, total: null },
+            presentation: 'CANDIDATE_REVEAL',
+            truthState: 'UNVERIFIED_CANDIDATE',
+            title: 'Кандидат образу отримано',
+            status: 'Показано реальний результат до перевірки якості',
+            layers: [outfit],
+            metrics: { attempt: checkpoint.attempts?.outfit ?? 1 },
+          };
+        }
+        return avatar ? {
+          stage: 'AVATAR_APPROVED',
+          subject: { kind: 'PERSON', index: null, total: null },
+          presentation: 'OUTPUT',
+          truthState: 'APPROVED_OUTPUT',
+          title: 'Аватар затверджено',
+          status: 'Кандидат пройшов перевірку якості',
+          layers: [{ ...avatar, role: 'AFTER' }],
+          metrics: { attempt: checkpoint.attempts?.avatar ?? 1 },
+        } : null;
+      case 'OUTFIT_QA':
+        return outfit ? {
+          stage: 'OUTFIT_QA',
+          subject: { kind: 'LOOK', index: null, total: null },
+          presentation: 'QA_SCAN',
+          truthState: 'QA_IN_PROGRESS',
+          title: 'Перевіряємо повний образ',
+          status: 'Це реальний кандидат, який ще не затверджено',
+          layers: [outfit],
+          metrics: { attempt: checkpoint.attempts?.outfit ?? 1 },
+        } : null;
+      case 'OUTFIT_READY':
+      case 'EXPORTING':
+      case 'COMPLETED':
+        return outfit ? {
+          stage: 'OUTFIT_APPROVED',
+          subject: { kind: 'LOOK', index: null, total: null },
+          presentation: 'OUTPUT',
+          truthState: 'APPROVED_OUTPUT',
+          title: 'Образ затверджено',
+          status: 'Кандидат пройшов перевірку якості',
+          layers: [{ ...outfit, role: 'AFTER' }],
+          metrics: { attempt: checkpoint.attempts?.outfit ?? 1 },
+        } : null;
+      default:
+        return null;
+    }
   }
 
   async #restoreConditionedGarments(state) {
@@ -370,8 +866,10 @@ export class RunService {
         repair: path.join(this.projectRoot, 'prompts', 'repair.txt'),
       },
       outfit,
-      quality_references: ['output1.png', 'output2.png', 'output3.png'].map((filename) => path.join(this.projectRoot, 'inputs', 'zeely-test', 'quality-references', filename)),
-      model_route: [...IMAGE_MODEL_ROUTE], max_attempts: 3, conditioning_max_attempts: 2,
+      // Test fixtures never ship with a product release. Production QA relies
+      // exclusively on the immutable user evidence and generated candidate.
+      quality_references: [],
+      model_route: [...this.generationRoute], max_attempts: this.generationRoute.length, conditioning_max_attempts: this.generationRoute.length,
       ...(state.inputs.approved_avatar ? { approved_avatar_reference: state.inputs.approved_avatar } : {}),
     };
     const jobPath = path.join(this.runDirectory(state.run_id), 'job.json');
@@ -389,19 +887,79 @@ export class RunService {
     await mkdir(directory, { recursive: true });
     const sources = [state.inputs.person, state.inputs.identity_detail].filter(Boolean);
     const bindings = [];
+    const derivatives = [];
     for (const [index, source] of sources.entries()) {
-      const image = await sharp(source).rotate().toColourspace('srgb').png().toBuffer();
-      const filename = path.join(directory, index === 0 ? 'primary.png' : 'detail.png');
-      await writeFile(filename, image);
-      bindings.push({ order: index + 1, role: index === 0 ? 'IDENTITY_PRIMARY' : 'FACE_DETAIL', path: filename, sha256: sha256(image) });
+      const normalized = await normalizeReference(source, {
+        format: 'png',
+        targetLongEdge: 2048,
+        maxLongEdge: 4096,
+        maxUpscaleFactor: 2,
+      });
+      const derivativePath = path.join(
+        directory,
+        index === 0 ? 'primary.png' : 'detail.png',
+      );
+      await writeFile(derivativePath, normalized.buffer);
+      bindings.push({
+        order: index + 1,
+        role: index === 0 ? 'IDENTITY_PRIMARY' : 'FACE_DETAIL',
+        path: derivativePath,
+        sha256: normalized.sha256,
+      });
+      derivatives.push({
+        role: index === 0 ? 'IDENTITY_PRIMARY' : 'FACE_DETAIL',
+        parent_sha256: normalized.metadata_before.source_sha256,
+        output_sha256: normalized.sha256,
+        operations: normalized.operations,
+        resize_plan: normalized.resize_plan,
+      });
     }
     const raw = await readFile(state.inputs.person);
+    const technicalAssessment = await assessImageQuality(raw, {
+      hardMinWidth: 256,
+      hardMinHeight: 256,
+      preferredLongEdge: 1024,
+      maxUpscaleFactor: 2,
+      maxByteLength: 20 * 1024 * 1024,
+    });
+    const unknowns = [
+      {
+        fact_path: '/identity/body_build',
+        status: 'NOT_EVALUABLE',
+        reason: 'Body visibility and proportions are not inferred from an arbitrary upload.',
+        handling: 'DO_NOT_INFER',
+      },
+      {
+        fact_path: '/identity/unseen_features',
+        status: 'NOT_EVALUABLE',
+        reason: 'Features not visible in supplied evidence cannot become identity locks.',
+        handling: 'DO_NOT_INFER',
+      },
+    ];
     const document = {
       schema_version: '1.0.0', asset_id: `${state.run_id}-identity`, kind: 'HUMAN',
       source: { path: path.resolve(state.inputs.person), sha256: sha256(raw), immutable: true },
-      extraction: { method: 'user_upload_plus_deterministic_normalization', provenance: 'OBSERVED', unknowns: [] },
-      readiness: { decision: 'READY', reasons: ['PRIMARY_IDENTITY_IMAGE_DECODES'], actions: [], terminal: false },
-      generation_bindings: bindings, created_at: this.clock().toISOString(),
+      extraction: {
+        method: 'user_upload_plus_deterministic_normalization',
+        provenance: 'OBSERVED',
+        semantic_visibility_assessment: 'DEFERRED_TO_HASH_BOUND_QA',
+        unknowns,
+      },
+      technical_assessment: technicalAssessment,
+      derivatives,
+      readiness: {
+        decision: 'READY',
+        reasons: [
+          'PRIMARY_IDENTITY_IMAGE_DECODES',
+          'DETERMINISTIC_NORMALIZATION_COMPLETE',
+          'UNOBSERVABLE_IDENTITY_FACTS_CARRIED_AS_NOT_EVALUABLE',
+        ],
+        actions: [],
+        terminal: false,
+        semantic_qa_required_before_export: true,
+      },
+      generation_bindings: bindings,
+      created_at: this.clock().toISOString(),
     };
     await atomicJson(filename, document);
     return filename;
@@ -410,7 +968,7 @@ export class RunService {
   async #generateScene(state, approvedOutfitPath) {
     await this.#write(state, { phase: 'OPTIONAL_SCENE', inner_state: null, message: 'Генеруємо додатковий редакційний кадр' });
     const sceneDirectory = path.join(this.runDirectory(state.run_id), 'scene');
-    for (const [index, model] of IMAGE_MODEL_ROUTE.entries()) {
+    for (const [index, model] of this.generationRoute.entries()) {
       const response = await this.assetGenerator.generateScene({
         approvedOutfitPath, model, workDirectory: sceneDirectory, operationId: `${state.run_id}-scene-${index + 1}`,
         prompt: 'Using ATTACHMENT_1 [APPROVED_OUTFIT], create one memorable high-fashion editorial photograph with the exact same approved person and complete outfit. Preserve identity, face, hair, body proportions, every item color, texture, logo, text and fit. Place the subject in a bold contemporary editorial studio environment with sculptural light and a confident pose. No text overlay, no brand invention, no wardrobe changes.',
@@ -434,11 +992,469 @@ export class RunService {
   async getRun(runId) { const state = await this.#read(runId); return state ? publicRun(state) : null; }
   subscribe(runId, listener) { this.events.on(runId, listener); return () => this.events.off(runId, listener); }
 
-  async approvedAvatarReferenceForRun(runId) {
+  async visualAsset(runId, assetId) {
+    if (typeof runId !== 'string' || !SAFE_RUN_ID.test(runId)) return null;
     const state = await this.#read(runId);
-    if (!state || state.status !== 'COMPLETED') throw new Error('Approved avatar source run must exist and be completed');
-    const avatarPath = path.join(this.runDirectory(runId), 'outputs', 'avatar.png');
-    const receiptPath = path.join(this.runDirectory(runId), 'outputs', 'run-manifest.json');
+    if (!state) return null;
+    return readVisualAsset(state, this.runDirectory(runId), assetId);
+  }
+
+  async #readApprovedItemEvidenceFile(filename, allowedDirectory, label, maxBytes) {
+    const resolvedRoot = this.rootDirectory;
+    const resolvedAllowedDirectory = path.resolve(allowedDirectory);
+    const resolvedFilename = path.resolve(filename);
+    if (!isInside(resolvedRoot, resolvedAllowedDirectory)
+      || !isInside(resolvedAllowedDirectory, resolvedFilename)) {
+      throw evidenceError('APPROVED_ITEM_EVIDENCE_PATH_ESCAPE', `${label} escapes its run evidence directory`);
+    }
+
+    const relative = path.relative(resolvedRoot, resolvedFilename);
+    let cursor = resolvedRoot;
+    let finalInfo = null;
+    for (const [index, segment] of relative.split(path.sep).filter(Boolean).entries()) {
+      cursor = path.join(cursor, segment);
+      let info;
+      try {
+        info = await lstat(cursor);
+      } catch (error) {
+        if (error.code === 'ENOENT') {
+          throw evidenceError('APPROVED_ITEM_EVIDENCE_MISSING', `${label} is missing`);
+        }
+        throw error;
+      }
+      if (info.isSymbolicLink()) {
+        throw evidenceError('APPROVED_ITEM_EVIDENCE_SYMLINK', `${label} must not use symbolic links`);
+      }
+      const isFinal = index === relative.split(path.sep).filter(Boolean).length - 1;
+      if ((isFinal && !info.isFile()) || (!isFinal && !info.isDirectory())) {
+        throw evidenceError(
+          'APPROVED_ITEM_EVIDENCE_INVALID_FILE',
+          `${label} must be a regular file below regular directories`,
+        );
+      }
+      if (isFinal) finalInfo = info;
+    }
+    if (!finalInfo) {
+      throw evidenceError('APPROVED_ITEM_EVIDENCE_INVALID_FILE', `${label} must be a regular file`);
+    }
+    if (finalInfo.size <= 0 || finalInfo.size > maxBytes) {
+      throw evidenceError('APPROVED_ITEM_EVIDENCE_INVALID_FILE', `${label} has an invalid size`);
+    }
+
+    let realRoot;
+    let realAllowedDirectory;
+    let realFilename;
+    try {
+      [realRoot, realAllowedDirectory, realFilename] = await Promise.all([
+        realpath(resolvedRoot),
+        realpath(resolvedAllowedDirectory),
+        realpath(resolvedFilename),
+      ]);
+    } catch (error) {
+      if (error.code === 'ENOENT') {
+        throw evidenceError('APPROVED_ITEM_EVIDENCE_MISSING', `${label} is missing`);
+      }
+      throw error;
+    }
+    if (!isInside(realRoot, realAllowedDirectory)
+      || !isInside(realAllowedDirectory, realFilename)) {
+      throw evidenceError('APPROVED_ITEM_EVIDENCE_PATH_ESCAPE', `${label} escapes its run evidence directory`);
+    }
+    const bytes = await readFile(realFilename);
+    if (bytes.length <= 0 || bytes.length > maxBytes) {
+      throw evidenceError('APPROVED_ITEM_EVIDENCE_INVALID_FILE', `${label} has an invalid size`);
+    }
+    return bytes;
+  }
+
+  /**
+   * Resolves the immutable, per-item evidence used to generate a completed
+   * garment-backed look. The returned object intentionally contains logical
+   * facts and bytes only: filesystem paths and raw source-pack fields never
+   * leave RunService.
+   */
+  async approvedItemEvidenceForRun(runId, {
+    expectedReceiptSha256,
+    expectedLookSha256,
+  } = {}) {
+    if (typeof runId !== 'string' || !SAFE_RUN_ID.test(runId)) {
+      throw evidenceError('APPROVED_ITEM_EVIDENCE_RUN_INVALID', 'Approved item evidence run id is invalid');
+    }
+    if (expectedReceiptSha256 !== undefined && !SHA256.test(expectedReceiptSha256)) {
+      throw evidenceError(
+        'APPROVED_ITEM_EVIDENCE_RECEIPT_INVALID',
+        'Approved item evidence receipt SHA-256 is invalid',
+      );
+    }
+    if (expectedLookSha256 !== undefined && !SHA256.test(expectedLookSha256)) {
+      throw evidenceError(
+        'APPROVED_ITEM_EVIDENCE_RECEIPT_INVALID',
+        'Approved look SHA-256 is invalid',
+      );
+    }
+    const state = await this.#read(runId);
+    if (!state || state.status !== 'COMPLETED') {
+      throw evidenceError(
+        'APPROVED_ITEM_EVIDENCE_RUN_NOT_COMPLETED',
+        'Approved item evidence requires a completed run',
+      );
+    }
+    if (!Array.isArray(state.inputs?.garments)) {
+      throw evidenceError(
+        'APPROVED_ITEM_EVIDENCE_RUN_INVALID',
+        'Completed run garment inputs are invalid',
+      );
+    }
+    if (state.inputs.garments.length === 0) return null;
+
+    const garmentDirectory = path.join(this.runDirectory(runId), 'conditioned', 'garments');
+    const packPath = path.join(garmentDirectory, 'reference-pack.json');
+    const packBytes = await this.#readApprovedItemEvidenceFile(
+      packPath,
+      garmentDirectory,
+      'Approved item reference pack',
+      MAX_APPROVED_ITEM_PACK_BYTES,
+    );
+    let pack;
+    try {
+      pack = JSON.parse(packBytes.toString('utf8'));
+    } catch {
+      throw evidenceError(
+        'APPROVED_ITEM_EVIDENCE_INVALID',
+        'Approved item reference pack is not valid JSON',
+      );
+    }
+    if (!pack || typeof pack !== 'object' || Array.isArray(pack)
+      || pack.schema_version !== '1.0.0'
+      || pack.asset_id !== `${runId}-wardrobe`
+      || pack.kind !== 'GARMENT'
+      || pack.extraction?.provenance !== 'OBSERVED'
+      || pack.readiness?.decision !== 'READY'
+      || pack.readiness?.terminal !== false) {
+      throw evidenceError(
+        'APPROVED_ITEM_EVIDENCE_INVALID',
+        'Approved item reference pack is not the READY observed pack for this run',
+      );
+    }
+    const packSha256 = sha256(packBytes);
+    const checkpointDirectory = path.join(
+      this.runDirectory(runId),
+      'outputs',
+      '.zeely-run',
+    );
+    const checkpointBytes = await this.#readApprovedItemEvidenceFile(
+      path.join(checkpointDirectory, 'checkpoint.json'),
+      checkpointDirectory,
+      'Completed run checkpoint',
+      MAX_APPROVED_ITEM_CHECKPOINT_BYTES,
+    );
+    let checkpoint;
+    try {
+      checkpoint = JSON.parse(checkpointBytes.toString('utf8'));
+    } catch {
+      throw evidenceError(
+        'APPROVED_ITEM_EVIDENCE_CHECKPOINT_INVALID',
+        'Completed run checkpoint is not valid JSON',
+      );
+    }
+    const runDirectory = this.runDirectory(runId);
+    const outputDirectory = path.join(runDirectory, 'outputs');
+    const manifestBytes = await this.#readApprovedItemEvidenceFile(
+      path.join(outputDirectory, 'run-manifest.json'),
+      outputDirectory,
+      'Completed run manifest',
+      MAX_APPROVED_ITEM_MANIFEST_BYTES,
+    );
+    if (expectedReceiptSha256 !== undefined && sha256(manifestBytes) !== expectedReceiptSha256) {
+      throw evidenceError(
+        'APPROVED_ITEM_EVIDENCE_RECEIPT_MISMATCH',
+        'Completed run manifest no longer matches the saved-look receipt',
+      );
+    }
+    let manifest;
+    try {
+      manifest = JSON.parse(manifestBytes.toString('utf8'));
+    } catch {
+      throw evidenceError(
+        'APPROVED_ITEM_EVIDENCE_RECEIPT_INVALID',
+        'Completed run manifest is not valid JSON',
+      );
+    }
+    const jobPath = path.join(runDirectory, 'job.json');
+    if (!hasRunArtifactSuffix(checkpoint?.job_source, runId, 'job.json')) {
+      throw evidenceError(
+        'APPROVED_ITEM_EVIDENCE_EXECUTION_MISMATCH',
+        'Completed run checkpoint is not bound to its immutable job source',
+      );
+    }
+    const jobBytes = await this.#readApprovedItemEvidenceFile(
+      jobPath,
+      runDirectory,
+      'Completed run job',
+      MAX_APPROVED_ITEM_JOB_BYTES,
+    );
+    let jobHash;
+    let executionHash;
+    let rawJob;
+    try {
+      rawJob = JSON.parse(jobBytes.toString('utf8'));
+      jobHash = sha256(jobBytes);
+      executionHash = sha256(`${jobHash}:${JSON.stringify(checkpoint.inputs)}`);
+    } catch {
+      throw evidenceError(
+        'APPROVED_ITEM_EVIDENCE_EXECUTION_MISMATCH',
+        'Completed run inputs no longer reproduce their immutable execution receipt',
+      );
+    }
+    if (rawJob?.job_id !== `web-${runId}`
+      || manifest?.job_id !== `web-${runId}`
+      || manifest.state !== 'COMPLETED'
+      || manifest.job_hash !== jobHash
+      || manifest.execution_hash !== executionHash
+      || checkpoint?.job_hash !== jobHash
+      || checkpoint?.execution_hash !== executionHash
+      || (expectedLookSha256 !== undefined
+        && manifest.outputs?.avatar_outfit?.sha256 !== expectedLookSha256)) {
+      throw evidenceError(
+        'APPROVED_ITEM_EVIDENCE_EXECUTION_MISMATCH',
+        'Approved item evidence does not match the completed immutable execution receipt',
+      );
+    }
+    const checkpointPack = checkpoint?.inputs?.outfit_reference_pack;
+    if (checkpoint?.state !== 'COMPLETED'
+      || checkpoint.job_id !== `web-${runId}`
+      || checkpointPack?.kind !== 'REFERENCE_PACK'
+      || checkpointPack?.scope !== 'outfit'
+      || !hasRunArtifactSuffix(
+        checkpointPack?.path,
+        runId,
+        'conditioned/garments/reference-pack.json',
+      )
+      || checkpointPack?.sha256 !== packSha256) {
+      throw evidenceError(
+        'APPROVED_ITEM_EVIDENCE_CHECKPOINT_MISMATCH',
+        'Approved item reference pack is not bound to the completed run checkpoint',
+      );
+    }
+    const bindings = pack.generation_bindings;
+    const extractedItems = pack.extraction?.items;
+    if (!Array.isArray(bindings)
+      || bindings.length === 0
+      || bindings.length > 5
+      || !Array.isArray(extractedItems)
+      || extractedItems.length !== bindings.length) {
+      throw evidenceError(
+        'APPROVED_ITEM_EVIDENCE_INVALID',
+        'Approved item reference pack bindings and extracted facts are incomplete',
+      );
+    }
+    const checkpointBindings = Object.entries(checkpoint.inputs)
+      .filter(([key]) => /^outfit_reference_pack_binding_\d{3}$/.test(key))
+      .map(([, value]) => value)
+      .sort((left, right) => left.binding_order - right.binding_order);
+    if (checkpointBindings.length !== bindings.length) {
+      throw evidenceError(
+        'APPROVED_ITEM_EVIDENCE_CHECKPOINT_MISMATCH',
+        'Approved item bindings do not match the completed run checkpoint',
+      );
+    }
+
+    const logicalFacts = extractedItems.map(logicalItemFacts);
+    const seenReferenceSetIds = new Set();
+    const seenSourceIndexes = new Set();
+    for (const [index, facts] of logicalFacts.entries()) {
+      if (seenReferenceSetIds.has(facts.reference_set_id)) {
+        throw evidenceError(
+          'APPROVED_ITEM_EVIDENCE_INVALID',
+          `Approved item facts ${index + 1} repeat reference_set_id`,
+        );
+      }
+      seenReferenceSetIds.add(facts.reference_set_id);
+      for (const sourceIndex of facts.source_indexes) {
+        if (sourceIndex >= state.inputs.garments.length || seenSourceIndexes.has(sourceIndex)) {
+          throw evidenceError(
+            'APPROVED_ITEM_EVIDENCE_INVALID',
+            `Approved item facts ${index + 1} have invalid or overlapping source indexes`,
+          );
+        }
+        seenSourceIndexes.add(sourceIndex);
+      }
+    }
+    const seenOrders = new Set();
+    const items = [];
+    const sortedBindings = bindings.map((binding, index) => {
+      if (!binding || typeof binding !== 'object' || Array.isArray(binding)
+        || !Number.isInteger(binding.order)
+        || binding.order < 1
+        || binding.order > bindings.length
+        || seenOrders.has(binding.order)) {
+        throw evidenceError(
+          'APPROVED_ITEM_EVIDENCE_INVALID',
+          `Approved item binding ${index + 1} has an invalid or duplicate order`,
+        );
+      }
+      seenOrders.add(binding.order);
+      return binding;
+    }).sort((left, right) => left.order - right.order);
+
+    for (const [index, binding] of sortedBindings.entries()) {
+      if (binding.order !== index + 1) {
+        throw evidenceError(
+          'APPROVED_ITEM_EVIDENCE_INVALID',
+          'Approved item binding orders must be contiguous from 1',
+        );
+      }
+      const facts = logicalFacts[index];
+      const expectedRole = `GARMENT_${facts.category.toUpperCase()}`;
+      const bindingId = binding.binding_id === undefined
+        ? null
+        : safeEvidenceText(
+          binding.binding_id,
+          `generation_bindings[${index}].binding_id`,
+          { maxLength: 128 },
+        );
+      if (binding.role !== expectedRole
+        || (bindingId !== null && bindingId !== facts.reference_set_id)) {
+        throw evidenceError(
+          'APPROVED_ITEM_EVIDENCE_INVALID',
+          `Approved item binding ${binding.order} does not match its extracted facts`,
+        );
+      }
+      if (typeof binding.path !== 'string'
+        || binding.path.trim() === ''
+        || /^[a-z][a-z0-9+.-]*:/i.test(binding.path)) {
+        throw evidenceError(
+          'APPROVED_ITEM_EVIDENCE_INVALID',
+          `Approved item binding ${binding.order} path is invalid`,
+        );
+      }
+      if (typeof binding.sha256 !== 'string' || !SHA256.test(binding.sha256)) {
+        throw evidenceError(
+          'APPROVED_ITEM_EVIDENCE_INVALID',
+          `Approved item binding ${binding.order} SHA-256 is invalid`,
+        );
+      }
+      const cutoutRelativePath = path.isAbsolute(binding.path)
+        ? (() => {
+          const marker = `${path.sep}${runId}${path.sep}conditioned${path.sep}garments${path.sep}`;
+          const resolved = path.resolve(binding.path);
+          const markerIndex = resolved.lastIndexOf(marker);
+          return markerIndex < 0 ? null : resolved.slice(markerIndex + marker.length);
+        })()
+        : binding.path;
+      const cutoutPath = cutoutRelativePath === null
+        ? null
+        : path.resolve(garmentDirectory, cutoutRelativePath);
+      if (path.isAbsolute(binding.path) && cutoutRelativePath === null) {
+        throw evidenceError(
+          'APPROVED_ITEM_EVIDENCE_PATH_ESCAPE',
+          `Approved item binding ${binding.order} escapes its run evidence directory`,
+        );
+      }
+      if (!cutoutPath || path.basename(cutoutPath) !== 'cutout.png') {
+        throw evidenceError(
+          'APPROVED_ITEM_EVIDENCE_INVALID',
+          `Approved item binding ${binding.order} is not a canonical cutout`,
+        );
+      }
+      const checkpointBinding = checkpointBindings[index];
+      if (!checkpointBinding
+        || checkpointBinding.kind !== 'REFERENCE_PACK_MEDIA'
+        || checkpointBinding.scope !== 'outfit'
+        || checkpointBinding.binding_order !== binding.order
+        || checkpointBinding.role !== expectedRole
+        || checkpointBinding.sha256 !== binding.sha256
+        || checkpointBinding.declared_sha256 !== binding.sha256
+        || (bindingId !== null && checkpointBinding.binding_id !== bindingId)
+        || (bindingId === null && checkpointBinding.binding_id !== undefined)
+        || !hasRunArtifactSuffix(
+          checkpointBinding.path,
+          runId,
+          `conditioned/garments/${cutoutRelativePath.replaceAll(path.sep, '/')}`,
+        )) {
+        throw evidenceError(
+          'APPROVED_ITEM_EVIDENCE_CHECKPOINT_MISMATCH',
+          `Approved item binding ${binding.order} is not bound to the completed run checkpoint`,
+        );
+      }
+      const data = await this.#readApprovedItemEvidenceFile(
+        cutoutPath,
+        garmentDirectory,
+        `Approved item binding ${binding.order}`,
+        MAX_APPROVED_ITEM_CUTOUT_BYTES,
+      );
+      if (sha256(data) !== binding.sha256) {
+        throw evidenceError(
+          'APPROVED_ITEM_EVIDENCE_HASH_MISMATCH',
+          `Approved item binding ${binding.order} SHA-256 mismatch`,
+        );
+      }
+      let metadata;
+      try {
+        metadata = await sharp(data).metadata();
+      } catch {
+        throw evidenceError(
+          'APPROVED_ITEM_EVIDENCE_INVALID_IMAGE',
+          `Approved item binding ${binding.order} is not a decodable image`,
+        );
+      }
+      if (metadata.format !== 'png'
+        || !metadata.width
+        || !metadata.height
+        || (metadata.pages ?? 1) !== 1) {
+        throw evidenceError(
+          'APPROVED_ITEM_EVIDENCE_INVALID_IMAGE',
+          `Approved item binding ${binding.order} must be one PNG image`,
+        );
+      }
+      items.push({
+        order: binding.order,
+        role: expectedRole,
+        ...facts,
+        sha256: binding.sha256,
+        media_type: 'image/png',
+        data,
+      });
+    }
+
+    return {
+      schema_version: '1.0.0',
+      kind: 'APPROVED_ITEM_EVIDENCE',
+      source_run_id: runId,
+      reference_pack: {
+        schema_version: pack.schema_version,
+        asset_id: safeEvidenceText(pack.asset_id, 'reference_pack.asset_id', { maxLength: 160 }),
+        kind: pack.kind,
+        sha256: packSha256,
+        extraction: {
+          method: safeEvidenceText(
+            pack.extraction.method,
+            'reference_pack.extraction.method',
+            { maxLength: 160 },
+          ),
+          provenance: pack.extraction.provenance,
+        },
+        readiness: {
+          decision: pack.readiness.decision,
+          reasons: safeEvidenceStringArray(
+            pack.readiness.reasons,
+            'reference_pack.readiness.reasons',
+          ),
+          actions: safeEvidenceStringArray(
+            pack.readiness.actions,
+            'reference_pack.readiness.actions',
+          ),
+          terminal: pack.readiness.terminal,
+        },
+      },
+      items,
+    };
+  }
+
+  async approvedAvatarReferenceForRun(runId) {
+    const verified = await this.#verifyCompletedOutputSet(runId);
+    const avatarPath = verified.avatar;
+    const receiptPath = verified.manifest;
     const [avatarBytes, receiptBytes] = await Promise.all([readFile(avatarPath), readFile(receiptPath)]);
     return {
       path: avatarPath,
@@ -448,9 +1464,164 @@ export class RunService {
     };
   }
 
+  async #verifyCompletedOutputSet(runId) {
+    if (typeof runId !== 'string' || !SAFE_RUN_ID.test(runId)) {
+      throw new Error('Completed output run id is invalid');
+    }
+    const state = await this.#read(runId);
+    if (!state || state.status !== 'COMPLETED') {
+      throw new Error('Completed output source run must exist and be completed');
+    }
+    const outputDirectory = path.join(this.runDirectory(runId), 'outputs');
+    const paths = {
+      avatar: path.join(outputDirectory, 'avatar.png'),
+      outfit: path.join(outputDirectory, 'avatar_outfit.png'),
+      manifest: path.join(outputDirectory, 'run-manifest.json'),
+    };
+    const manifestBytes = await readFile(paths.manifest);
+    let materializedManifest;
+    try {
+      materializedManifest = JSON.parse(manifestBytes.toString('utf8'));
+    } catch {
+      throw new Error('Completed run manifest is not valid JSON');
+    }
+
+    const checkpointPath = path.join(outputDirectory, '.zeely-run', 'checkpoint.json');
+    let checkpoint = null;
+    try {
+      checkpoint = JSON.parse(await readFile(checkpointPath, 'utf8'));
+    } catch (error) {
+      if (error.code !== 'ENOENT') throw new Error('Completed run checkpoint is invalid');
+    }
+    const phases = ['conditioning', 'avatar', 'outfit'];
+    const strictReceiptMarker = phases.some((phase) => (
+      typeof state.qa?.[phase]?.receipt_id === 'string'
+      || typeof materializedManifest.qa?.[phase]?.receipt_id === 'string'
+      || typeof checkpoint?.qa?.[phase]?.receipt_id === 'string'
+    ));
+    const strictArtifactMarker = Boolean(checkpoint?.artifacts?.run_manifest);
+
+    if (!strictReceiptMarker && !strictArtifactMarker) {
+      const [avatarBytes, outfitBytes] = await Promise.all([
+        readFile(paths.avatar),
+        readFile(paths.outfit),
+      ]);
+      if (!avatarBytes.subarray(0, PNG_SIGNATURE.length).equals(PNG_SIGNATURE)
+        || !outfitBytes.subarray(0, PNG_SIGNATURE.length).equals(PNG_SIGNATURE)
+        || materializedManifest.schema_version !== '1.0.0'
+        || materializedManifest.job_id !== `web-${runId}`
+        || materializedManifest.state !== 'COMPLETED'
+        || materializedManifest.outputs?.avatar?.sha256 !== sha256(avatarBytes)
+        || materializedManifest.outputs?.avatar_outfit?.sha256 !== sha256(outfitBytes)
+        || phases.some((phase) => materializedManifest.qa?.[phase]?.decision !== 'PASS')) {
+        throw new Error('Legacy completed outputs are not bound to their PASS manifest');
+      }
+      return paths;
+    }
+
+    if (!checkpoint || checkpoint.state !== 'COMPLETED') {
+      throw new Error('Strict completed output checkpoint is missing');
+    }
+    const store = new FilesystemArtifactStore(path.join(outputDirectory, '.zeely-run'));
+    const avatarArtifact = checkpoint.artifacts?.avatar?.artifact;
+    const outfitArtifact = checkpoint.artifacts?.outfit?.artifact;
+    const manifestArtifact = checkpoint.artifacts?.run_manifest;
+    if (avatarArtifact?.extension !== '.png'
+      || avatarArtifact?.mediaType !== 'image/png'
+      || outfitArtifact?.extension !== '.png'
+      || outfitArtifact?.mediaType !== 'image/png') {
+      throw new Error('Strict completed output artifact metadata is invalid');
+    }
+    const [avatarArtifactBytes, outfitArtifactBytes, storedManifest] = await Promise.all([
+      store.readArtifact(avatarArtifact),
+      store.readArtifact(outfitArtifact),
+      store.readJsonArtifact(manifestArtifact),
+    ]);
+    if (!avatarArtifactBytes.subarray(0, PNG_SIGNATURE.length).equals(PNG_SIGNATURE)
+      || !outfitArtifactBytes.subarray(0, PNG_SIGNATURE.length).equals(PNG_SIGNATURE)) {
+      throw new Error('Strict completed output is not a PNG image');
+    }
+
+    const verifiedReceipts = {};
+    for (const phase of phases) {
+      const result = checkpoint.qa?.[phase];
+      const attempt = checkpoint.attempts?.[phase];
+      if (!result?.artifact || !Number.isInteger(attempt)) {
+        throw new Error(`Strict ${phase} QA receipt is missing`);
+      }
+      const receipt = await store.readJsonArtifact(result.artifact);
+      const verified = verifyCoreQaReceipt(receipt, {
+        phase,
+        attempt,
+        jobId: checkpoint.job_id,
+        runId: checkpoint.run_id,
+        receiptId: result.receipt_id,
+        requirePass: true,
+      });
+      if (result.subject_sha256 !== verified.subject.sha256
+        || result.evidence_manifest_sha256 !== verified.evidence.manifest_sha256
+        || result.prompt_sha256 !== verified.evidence.prompt_sha256) {
+        throw new Error(`Strict ${phase} QA checkpoint binding is stale`);
+      }
+      const publicQa = storedManifest.qa?.[phase];
+      if (publicQa?.decision !== 'PASS'
+        || publicQa.receipt_id !== verified.receipt_id
+        || publicQa.subject_sha256 !== verified.subject.sha256
+        || publicQa.evidence_manifest_sha256 !== verified.evidence.manifest_sha256
+        || publicQa.prompt_sha256 !== verified.evidence.prompt_sha256
+        || publicQa.artifact?.digest !== result.artifact.digest) {
+        throw new Error(`Strict ${phase} QA manifest binding is stale`);
+      }
+      verifiedReceipts[phase] = verified;
+    }
+    if (verifiedReceipts.avatar.subject.sha256 !== avatarArtifact.digest
+      || verifiedReceipts.outfit.subject.sha256 !== outfitArtifact.digest) {
+      throw new Error('Strict image outputs do not match their semantic QA subjects');
+    }
+    if (storedManifest.schema_version !== '1.0.0'
+      || storedManifest.run_id !== checkpoint.run_id
+      || storedManifest.job_id !== checkpoint.job_id
+      || storedManifest.job_id !== `web-${runId}`
+      || storedManifest.job_hash !== checkpoint.job_hash
+      || storedManifest.execution_hash !== checkpoint.execution_hash
+      || storedManifest.state !== 'COMPLETED'
+      || storedManifest.outputs?.avatar?.sha256 !== avatarArtifact.digest
+      || storedManifest.outputs?.avatar_outfit?.sha256 !== outfitArtifact.digest) {
+      throw new Error('Strict completed manifest is stale');
+    }
+    if (checkpoint.outputs?.avatar !== paths.avatar
+      || checkpoint.outputs?.avatar_outfit !== paths.outfit
+      || checkpoint.outputs?.manifest !== paths.manifest) {
+      throw new Error('Strict completed output paths are stale');
+    }
+
+    const [avatarBytes, outfitBytes] = await Promise.all([
+      readFile(paths.avatar),
+      readFile(paths.outfit),
+    ]);
+    if (sha256(avatarBytes) !== avatarArtifact.digest
+      || sha256(outfitBytes) !== outfitArtifact.digest
+      || sha256(manifestBytes) !== manifestArtifact.digest) {
+      throw new Error('Materialized completed output failed integrity verification');
+    }
+    return paths;
+  }
+
   async outputFile(runId, name) {
     const allowed = new Set(['avatar.png', 'avatar_outfit.png', 'art_director_scene.png', 'run-manifest.json']);
     if (!allowed.has(name)) return null;
+    if (name !== 'art_director_scene.png') {
+      try {
+        const verified = await this.#verifyCompletedOutputSet(runId);
+        return ({
+          'avatar.png': verified.avatar,
+          'avatar_outfit.png': verified.outfit,
+          'run-manifest.json': verified.manifest,
+        })[name];
+      } catch {
+        return null;
+      }
+    }
     const filename = path.join(this.runDirectory(runId), 'outputs', name);
     try { await access(filename); return filename; } catch { return null; }
   }
@@ -479,6 +1650,8 @@ export class RunService {
     await rm(path.join(this.runDirectory(runId), 'outputs'), { recursive: true, force: true });
     state.inputs.garment_passport = state.error.details.passport;
     state.inputs.garment_selections = normalized;
+    resetVisualState(state);
+    state.visual_runner_retry_marker = null;
     await this.#write(state, { status: 'QUEUED', phase: 'UPLOADED', inner_state: null, terminal_stage: null, message: 'Вибір речі збережено — продовжуємо цей запуск', garments: [], conflicts: [], error: null, outputs: {}, qa: {} });
     this.start(runId);
     return publicRun(state);
@@ -494,7 +1667,15 @@ export class RunService {
       this.start(runId);
       return publicRun(state);
     }
+    if (['GENERATION_OUTCOME_UNKNOWN', 'PRIOR_OUTCOME_UNKNOWN', 'CREATE_OUTCOME_UNKNOWN'].includes(state.error?.code)) {
+      const error = new Error('This provider outcome is unknown, so automatic retry is blocked to prevent a duplicate generation. Start a new explicit run only after incident review.');
+      error.statusCode = 409;
+      error.code = state.error.code;
+      throw error;
+    }
     await rm(path.join(this.runDirectory(runId), 'outputs'), { recursive: true, force: true });
+    resetVisualState(state);
+    state.visual_runner_retry_marker = null;
     await this.#write(state, { status: 'QUEUED', phase: 'UPLOADED', inner_state: null, terminal_stage: null, message: 'Retry queued', garments: [], conflicts: [], error: null, outputs: {}, qa: {} });
     this.start(runId);
     return publicRun(state);

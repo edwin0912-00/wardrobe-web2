@@ -22,6 +22,27 @@ function canonicalPrompt(item, referenceCount) {
   return assertExternalPromptPrivacy(sanitizeExternalPrompt(prompt));
 }
 
+async function hasCleanWhiteBorder(sourcePath) {
+  const { data, info } = await sharp(sourcePath, { failOn: 'error', limitInputPixels: 100_000_000 })
+    .rotate()
+    .resize({ width: 96, height: 96, fit: 'fill' })
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  let borderPixels = 0;
+  let cleanPixels = 0;
+  for (let y = 0; y < info.height; y += 1) {
+    for (let x = 0; x < info.width; x += 1) {
+      if (x !== 0 && y !== 0 && x !== info.width - 1 && y !== info.height - 1) continue;
+      const offset = (y * info.width + x) * info.channels;
+      borderPixels += 1;
+      const alpha = data[offset + 3];
+      if (alpha < 16 || (data[offset] >= 242 && data[offset + 1] >= 242 && data[offset + 2] >= 242)) cleanPixels += 1;
+    }
+  }
+  return borderPixels > 0 && cleanPixels / borderPixels >= 0.96;
+}
+
 export class GarmentNeedsInputError extends Error {
   constructor(message, details = {}) { super(message); this.name = 'GarmentNeedsInputError'; this.details = details; }
 }
@@ -31,9 +52,48 @@ export class GarmentRouteExhaustedError extends Error {
 }
 
 export class GarmentConditioner {
-  constructor({ vlm, generator, clock = () => new Date() }) { this.vlm = vlm; this.generator = generator; this.clock = clock; }
+  constructor({ vlm, generator, generationRoute = IMAGE_MODEL_ROUTE, maxGarmentBindings = null, clock = () => new Date() }) {
+    if (!Array.isArray(generationRoute) || generationRoute.length < 1
+      || new Set(generationRoute).size !== generationRoute.length) {
+      throw new TypeError('generationRoute must contain unique models');
+    }
+    if (maxGarmentBindings !== null && (!Number.isInteger(maxGarmentBindings) || maxGarmentBindings < 0)) {
+      throw new TypeError('maxGarmentBindings must be null or a non-negative integer');
+    }
+    this.vlm = vlm;
+    this.generator = generator;
+    this.generationRoute = [...generationRoute];
+    this.maxGarmentBindings = maxGarmentBindings;
+    this.clock = clock;
+  }
 
-  async condition({ imagePaths, outputDirectory, runId, passport: savedPassport = null, selections = {}, onProgress = async () => {} }) {
+  async condition({
+    imagePaths,
+    outputDirectory,
+    runId,
+    passport: savedPassport = null,
+    selections = {},
+    onProgress = async () => {},
+    onVisual = async () => {},
+  }) {
+    const emitVisual = async (checkpoint) => {
+      try {
+        await onVisual(checkpoint);
+      } catch {
+        // Live preview is observational and must never break or delay the core run.
+      }
+    };
+    if (!savedPassport && imagePaths.length > 0) {
+      await emitVisual({
+        stage: 'ITEM_SOURCE_INSPECTION',
+        subject: { kind: 'ITEM', index: 1, total: imagePaths.length },
+        presentation: 'SOURCE_SCAN',
+        truthState: 'IMMUTABLE_INPUT',
+        title: 'Аналізуємо вихідне фото речі',
+        status: `Вихідне фото 1 з ${imagePaths.length}`,
+        layers: [{ role: 'SOURCE', path: imagePaths[0] }],
+      });
+    }
     const passport = savedPassport ?? await this.vlm.inspectGarments(imagePaths);
     await onProgress('GARMENT_GROUPING', 'Фото речей класифіковано та згруповано за ракурсами');
     if (passport.status !== 'READY') throw new GarmentNeedsInputError(passport.reason, { passport });
@@ -53,6 +113,18 @@ export class GarmentConditioner {
     if (conflicts.length) throw new GarmentNeedsInputError('Знайдено кілька різних речей однієї категорії — оберіть одну', { passport, conflicts });
     const conditioned = [];
     const selectedGarments = groupGarmentViews(items, referenceSets);
+    if (this.maxGarmentBindings !== null && selectedGarments.length > this.maxGarmentBindings) {
+      throw new GarmentNeedsInputError(
+        `This generation route can carry at most ${this.maxGarmentBindings} distinct garment references with the supplied identity evidence`,
+        {
+          code: 'ORDERED_REFERENCE_LIMIT_EXCEEDED',
+          garment_binding_count: selectedGarments.length,
+          max_garment_bindings: this.maxGarmentBindings,
+          action: 'Remove a distinct garment or the optional identity detail; multiple views of the same exact garment may remain grouped',
+          passport,
+        },
+      );
+    }
     for (const item of selectedGarments) {
       if (item.blockers.length) throw new GarmentNeedsInputError('На фото речі недостатньо видимих характеристик', { item });
       const sourcePaths = item.source_indexes.map((index) => imagePaths[index]);
@@ -60,12 +132,34 @@ export class GarmentConditioner {
       const itemDirectory = path.join(outputDirectory, String(item.source_index + 1).padStart(2, '0'));
       let accepted;
       const attempts = [];
-      for (const [routeIndex, model] of IMAGE_MODEL_ROUTE.entries()) {
-        await onProgress('GARMENT_GENERATING', `Готуємо еталонне зображення речі ${conditioned.length + 1} з ${selectedGarments.length}`);
-        const generated = await this.generator.generateGarment({
-          sourcePath, sourcePaths, model, prompt: canonicalPrompt(item, sourcePaths.length), workDirectory: itemDirectory,
-          operationId: `${runId}-garment-${item.source_index}-${routeIndex + 1}`,
-        });
+      // An already isolated, sufficiently sized source is stronger evidence
+      // than an unnecessary regeneration. Preserve it byte-for-pixel apart
+      // from deterministic alpha-to-white normalization, then let the same QA
+      // gate decide. Ordinary photos still use the image worker.
+      const sourceMetadata = await sharp(sourcePath, { failOn: 'error', limitInputPixels: 100_000_000 }).metadata();
+      const preserveSource = sourcePaths.length === 1
+        && sourceMetadata.width >= 256
+        && sourceMetadata.height >= 256
+        && (sourceMetadata.hasAlpha === true || await hasCleanWhiteBorder(sourcePath));
+      const route = preserveSource ? ['source_preserved'] : this.generationRoute;
+      for (const [routeIndex, model] of route.entries()) {
+        if (routeIndex > 0) await emitVisual({ reset: true, reason: 'ITEM_CANDIDATE_RETRY' });
+        await onProgress(
+          'GARMENT_GENERATING',
+          preserveSource
+            ? `Зберігаємо точний еталон речі ${conditioned.length + 1} з ${selectedGarments.length}`
+            : `Готуємо еталонне зображення речі ${conditioned.length + 1} з ${selectedGarments.length}`,
+        );
+        const generated = preserveSource
+          ? {
+            image: await sharp(sourcePath, { failOn: 'error', limitInputPixels: 100_000_000 })
+              .flatten({ background: '#ffffff' }).png().toBuffer(),
+            metadata: { provider: 'deterministic-source-preservation', mode: 'ALREADY_ISOLATED_REFERENCE' },
+          }
+          : await this.generator.generateGarment({
+            sourcePath, sourcePaths, model, prompt: canonicalPrompt(item, sourcePaths.length), workDirectory: itemDirectory,
+            operationId: `${runId}-garment-${item.source_index}-${routeIndex + 1}`,
+          });
         // Canonical item reference cards are intentionally opaque white. Flattening is
         // explicit here (and nowhere in core avatar QA) before deterministic
         // border-connected white normalization and cutout creation.
@@ -73,7 +167,45 @@ export class GarmentConditioner {
         const normalized = await normalizeWhitePngBytes(opaqueCandidate);
         const candidatePath = path.join(itemDirectory, `candidate-${routeIndex + 1}.png`);
         await atomicWrite(candidatePath, normalized.image);
+        await emitVisual({
+          stage: 'ITEM_CANDIDATE_READY',
+          subject: {
+            kind: 'ITEM',
+            index: conditioned.length + 1,
+            total: selectedGarments.length,
+          },
+          presentation: 'CANDIDATE_REVEAL',
+          truthState: 'GENERATED_CANDIDATE',
+          title: preserveSource ? 'Точний еталон речі збережено' : 'Еталон речі згенеровано',
+          status: preserveSource
+            ? 'Чистий предметний референс не перегенеровувався; зараз проходить перевірку якості'
+            : 'Показано реальний кандидат до перевірки якості',
+          layers: [{
+            role: 'CANDIDATE',
+            path: candidatePath,
+            sha256: sha256(normalized.image),
+          }],
+          metrics: { attempt: routeIndex + 1 },
+        });
         await onProgress('GARMENT_QA', `Звіряємо підготовлену річ ${conditioned.length + 1} з оригінальними фото`);
+        await emitVisual({
+          stage: 'ITEM_CANDIDATE_QA',
+          subject: {
+            kind: 'ITEM',
+            index: conditioned.length + 1,
+            total: selectedGarments.length,
+          },
+          presentation: 'QA_SCAN',
+          truthState: 'QA_IN_PROGRESS',
+          title: 'Перевіряємо еталон речі',
+          status: 'Реальний кандидат зараз звіряється з оригінальними фото',
+          layers: [{
+            role: 'CANDIDATE',
+            path: candidatePath,
+            sha256: sha256(normalized.image),
+          }],
+          metrics: { attempt: routeIndex + 1 },
+        });
         const qa = await this.vlm.evaluateQa({ phase: 'garment', evidence: {
           identity: { artifact: { path: sourcePath } }, candidate: { artifact: { path: candidatePath } },
           reference_packs: { outfit: { bindings: sourcePaths.map((filename) => ({ artifact: { path: filename } })) } },
@@ -93,7 +225,7 @@ export class GarmentConditioner {
       }
       if (!accepted) throw new GarmentRouteExhaustedError('Маршрут підготовки речі вичерпано без проходження перевірки якості', {
         item,
-        route: [...IMAGE_MODEL_ROUTE],
+        route: [...this.generationRoute],
         attempts,
       });
       const referenceCardPath = path.join(itemDirectory, 'reference-card.png');
@@ -101,6 +233,35 @@ export class GarmentConditioner {
       const cutout = await removeBorderConnectedWhiteToAlpha(accepted.image);
       const cutoutPath = path.join(itemDirectory, 'cutout.png');
       await atomicWrite(cutoutPath, cutout.image);
+      await emitVisual({
+        stage: 'ITEM_BACKGROUND_REMOVAL',
+        subject: {
+          kind: 'ITEM',
+          index: conditioned.length + 1,
+          total: selectedGarments.length,
+        },
+        presentation: 'MASK_REVEAL',
+        truthState: 'DETERMINISTIC_DERIVATIVE',
+        title: 'Видаляємо фон попіксельно',
+        status: 'Прозорість обчислена з реальних пікселів еталонного зображення',
+        layers: [
+          {
+            role: 'BASE',
+            path: referenceCardPath,
+            sha256: sha256(accepted.image),
+          },
+          {
+            role: 'CUTOUT',
+            path: cutoutPath,
+            sha256: sha256(cutout.image),
+          },
+        ],
+        metrics: {
+          selected_pixels: cutout.stats.transparent_pixels,
+          total_pixels: cutout.stats.width * cutout.stats.height,
+          connectivity: cutout.stats.connectivity,
+        },
+      });
       conditioned.push({ ...item, source_path: sourcePath, source_paths: sourcePaths, reference_card: { path: referenceCardPath, sha256: sha256(accepted.image) },
         cutout: { path: cutoutPath, sha256: sha256(cutout.image), stats: cutout.stats }, attempts, selected_model: accepted.model });
     }
@@ -120,7 +281,13 @@ export class GarmentConditioner {
       sources,
       extraction: { method: 'codex_vlm_strict_schema', items: conditioned.map(({ source_index, source_indexes, reference_set_id, same_item_confidence, grouping_evidence, category, confidence, observed, unknowns }) => ({ source_index, source_indexes, reference_set_id, same_item_confidence, grouping_evidence, category, confidence, observed, unknowns })), provenance: 'OBSERVED' },
       readiness: { decision: 'READY', reasons: ['ALL_GARMENTS_CANONICALIZED_AND_QA_PASSED'], actions: [], terminal: false },
-      generation_bindings: conditioned.map((item, index) => ({ order: index + 1, role: `GARMENT_${item.category.toUpperCase()}`, path: item.cutout.path, sha256: item.cutout.sha256 })),
+      generation_bindings: conditioned.map((item, index) => ({
+        order: index + 1,
+        binding_id: item.reference_set_id,
+        role: `GARMENT_${item.category.toUpperCase()}`,
+        path: item.cutout.path,
+        sha256: item.cutout.sha256,
+      })),
       created_at: this.clock().toISOString(),
     };
     const packPath = path.join(outputDirectory, 'reference-pack.json');

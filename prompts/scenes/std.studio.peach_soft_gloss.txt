@@ -1,0 +1,7 @@
+Create one original high-fashion studio mood card, vertical 4:5, photorealistic.
+SUBJECT: one anonymous adult test model with neutral expression, wearing a plain unbranded warm-ivory tailored set and simple dark-brown shoes. The model demonstrates light only and is not an identity or outfit authority.
+COMPOSITION: full body, complete head and complete dark-brown shoes, 65 mm equivalent, neutral eye-level fashion perspective, clean negative space. FINAL 4:5 SAFE-WINDOW LOCK: after a centered 4:5 crop the human bounding box from hair to shoe sole must occupy 74–78% of final height, with at least 8% empty peach above and 5% visible peach floor below both soles. If the source canvas is taller than 4:5, render the person at only 55–58% of source height and include an unmistakably large blank floor zone below the shoes.
+SETTING: empty seamless dusty-peach cyclorama, approximately #E4AD96, with a flawless floor-to-wall transition and no visible paper edge or equipment.
+LIGHTING: very large softbox 35–45 degrees from camera, weak frontal fill and delicate floor bounce; soft sculpting, smooth background gradient, neutral skin and exact neutral outfit color.
+FINISH: premium glossy editorial with cocoa shadow accents, controlled highlights, crisp eyes and fabric, natural pores; no plastic skin, HDR or bloom.
+CONSTRAINTS: no coral or neon peach, no peach color cast on skin or outfit, no props, logos, readable text, jewellery, bags, crop, anatomy defects or extra accessories.

@@ -1,0 +1,19 @@
+{
+  "facts": {
+    "avoid": [
+      "highway",
+      "underpass",
+      "wild meadow",
+      "strong flare",
+      "grass across face",
+      "grass across item",
+      "recognizable landmark"
+    ],
+    "notes": [
+      "Never use a scene reference as authority for identity, body, hair or outfit.",
+      "Reject any invented, removed, recolored or structurally changed approved item."
+    ]
+  },
+  "role": "negative_reference",
+  "schema_version": "1.0.0"
+}

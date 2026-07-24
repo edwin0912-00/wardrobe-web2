@@ -1,0 +1,29 @@
+{
+  "schema_version": "1.0.0",
+  "preset_id": "std.nature_architecture.stone_terrace_morning",
+  "kind": "standard",
+  "family": "nature_architecture",
+  "ui_name_uk": "Кам’яна тераса — ранкове світло",
+  "asset_role": "mood_card",
+  "file": "assets/scene-mood-cards/std.nature_architecture.stone_terrace_morning.webp",
+  "sha256": "8c607404c4154c9c5b62cdf8e878e407683d693e39e3dd1470abd2515daf52b3",
+  "prompt_path": "prompts/scenes/std.nature_architecture.stone_terrace_morning.txt",
+  "prompt_sha256": "2d7212a04971e46336bf43a151a22558e9072adbacbfcc07ca03b78015c66cd8",
+  "generation": {
+    "provider_path": "codex_builtin_imagegen",
+    "model_family": "gpt-image-2",
+    "model_version": "builtin-current",
+    "source_width": 971,
+    "source_height": 1619,
+    "crop_position": "centre"
+  },
+  "delivery": {
+    "width": 1024,
+    "height": 1280,
+    "format": "webp",
+    "aspect_ratio": "4:5"
+  },
+  "contains_personal_input": false,
+  "approval": "PENDING_VISUAL_JUDGE",
+  "created_at": "2026-07-22T23:19:20.371Z"
+}

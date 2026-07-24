@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zeely.local/schemas/scene-evaluator-output.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["gates", "score", "summary", "framing_evidence"],
+  "properties": {
+    "gates": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 6,
+      "items": { "$ref": "#/$defs/gate" }
+    },
+    "score": { "type": "number", "minimum": 0, "maximum": 100 },
+    "summary": { "type": "string", "minLength": 1, "maxLength": 1000 },
+    "framing_evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["subject_bbox_xywh_px", "full_head_visible", "full_footwear_visible"],
+      "properties": {
+        "subject_bbox_xywh_px": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": { "type": "integer", "minimum": 0 }
+        },
+        "full_head_visible": { "type": "boolean" },
+        "full_footwear_visible": { "type": "boolean" }
+      }
+    }
+  },
+  "$defs": {
+    "gate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "decision", "evidence", "defects"],
+      "properties": {
+        "id": {
+          "enum": [
+            "NEAR_COPY_AND_LEAKAGE",
+            "IDENTITY",
+            "ITEM_FIDELITY",
+            "SCENE_MATCH",
+            "LIGHT_AND_CONTACT_SHADOW",
+            "FRAMING_AND_ANATOMY"
+          ]
+        },
+        "decision": { "enum": ["PASS", "FAIL"] },
+        "evidence": { "type": "string", "minLength": 1, "maxLength": 1000 },
+        "defects": {
+          "type": "array",
+          "maxItems": 20,
+          "items": { "type": "string", "minLength": 1, "maxLength": 200 }
+        }
+      }
+    }
+  }
+}

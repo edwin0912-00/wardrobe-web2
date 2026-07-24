@@ -1,0 +1,63 @@
+{
+  "created_at": "2026-07-23T09:40:00Z",
+  "ledger_id": "ledger.std.city.golden_hour_gloss.v1",
+  "preset_id": "std.city.golden_hour_gloss",
+  "preset_version": "1.0.0",
+  "revision": 1,
+  "schema_version": "1.0.0",
+  "sources": [
+    {
+      "content_sha256": "c89e1a6d1865d4db72fd69db0df7929c0f505eeb5020813474f8636baeed1649",
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit",
+        "brands",
+        "readable_text",
+        "exact_architecture"
+      ],
+      "retrieved_at": "2026-07-23T09:40:00Z",
+      "rights": {
+        "basis": "LICENSED",
+        "evidence_sha256": "f9091e2efd8927320c4cc5c72508d48f61a9413eefa3466ff1763d64b8cc45e4",
+        "evidence_uri": "evidence/licenses/pexels-license-2026-07-23.md",
+        "rights_holder": "Swapnil Sharma via Pexels license",
+        "status": "VERIFIED",
+        "verified_at": "2026-07-23T09:40:00Z"
+      },
+      "role": "lighting_composition_palette_inspiration",
+      "snapshot_uri": "evidence/scene-sources/pexels.29090315.json",
+      "source_id": "pexels.29090315",
+      "url": "https://www.pexels.com/photo/sunny-european-street-with-classic-architecture-29090315/",
+      "use": "warm facade-light behavior, stone palette and restrained perspective only; storefronts, people, brands and exact architecture are excluded"
+    },
+    {
+      "content_sha256": "b1265f4088b249457673c7550b7dadaaacccceac6766d2f2e482c8532d3953c3",
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit",
+        "brands",
+        "readable_text",
+        "exact_architecture"
+      ],
+      "retrieved_at": "2026-07-23T09:40:00Z",
+      "rights": {
+        "basis": "LICENSED",
+        "evidence_sha256": "f9091e2efd8927320c4cc5c72508d48f61a9413eefa3466ff1763d64b8cc45e4",
+        "evidence_uri": "evidence/licenses/pexels-license-2026-07-23.md",
+        "rights_holder": "Oleksandra Litvinova via Pexels license",
+        "status": "VERIFIED",
+        "verified_at": "2026-07-23T09:40:00Z"
+      },
+      "role": "environment_material_inspiration",
+      "snapshot_uri": "evidence/scene-sources/pexels.33276833.json",
+      "source_id": "pexels.33276833",
+      "url": "https://www.pexels.com/photo/empty-european-street-with-classic-architecture-33276833/",
+      "use": "secondary stone palette and restrained architectural texture only"
+    }
+  ],
+  "status": "VERIFIED_FOR_RELEASE"
+}
