@@ -323,10 +323,12 @@ An encrypted continuation archive is stored locally at:
 
 ```text
 secrets/zeely-agent-handoff-2026-07-24.tar.gz.enc
-SHA-256: 8e9073ae9d32e6368441b663eab44dee31ed6d942a16d48be5771bcfbd534301
+SHA-256: 354d518bb95271693f5fe43b448d460fe0e79db7f1bb59380d5c0d8dcc1d1caa
 ```
 
 It contains only the project-scoped recovery material: runtime demo PIN, runtime session secret, and the named Cloudflare Tunnel credential JSON. It intentionally excludes account-wide GitHub, ChatGPT/Codex, browser and Cloudflare account credentials.
+
+The complete project authorization boundary and target-host re-authentication procedure is documented in [`ZEELY_AUTH_CONTINUITY_UA.md`](ZEELY_AUTH_CONTINUITY_UA.md); the same non-secret registry is also inside the encrypted archive.
 
 The decryption key is **not** in the repository or alongside the archive. On this same authorized macOS user account it is in Keychain as:
 
