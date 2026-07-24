@@ -1893,10 +1893,7 @@ export class SceneService {
       if (!state || state.scene_id !== entry.name) continue;
       await this.#reconcile(state);
       if (this.autoRecoverQaInfrastructureFailures
-        && state.status === SCENE_STATES.FAILED
-        && state.error?.code === 'QA_INFRASTRUCTURE_FAILED'
-        && state.attempts.at(-1)?.status === 'QA_PENDING'
-        && state.attempts.at(-1)?.candidate) {
+        && this.#isCandidatePreservingQaRecovery(state)) {
         qaRecoveryIds.push(state.scene_id);
       }
     }
@@ -1908,6 +1905,19 @@ export class SceneService {
         idempotencyKey: `qa-contract-recovery-v1-${sceneId}`,
       });
     }
+  }
+
+  // Candidate-preserving QA recovery: the image already generated
+  // successfully and the latest attempt is still QA_PENDING with its
+  // candidate intact. Only QA_INFRASTRUCTURE_FAILED and the constrained
+  // SCENE_INTERNAL_ERROR shape below qualify — anything else may be a real
+  // integrity error and must not be silently retried.
+  #isCandidatePreservingQaRecovery(state) {
+    const lastAttempt = state.attempts.at(-1);
+    return state.status === SCENE_STATES.FAILED
+      && lastAttempt?.status === 'QA_PENDING'
+      && Boolean(lastAttempt?.candidate)
+      && ['QA_INFRASTRUCTURE_FAILED', 'SCENE_INTERNAL_ERROR'].includes(state.error?.code);
   }
 
   async #read(sceneId) {
@@ -4177,9 +4187,7 @@ export class SceneService {
       }
       const qaOnlyRetry = rejectionQaOnlyRetry || (
         !rejectionRepair
-        && current.error?.code === 'QA_INFRASTRUCTURE_FAILED'
-        && current.attempts.at(-1)?.status === 'QA_PENDING'
-        && current.attempts.at(-1)?.candidate
+        && this.#isCandidatePreservingQaRecovery(current)
       );
       const deterministicSource = !rejectionRepair
         && !qaOnlyRetry

@@ -11,6 +11,7 @@ import {
   assessFramingEvidence,
   canonicalJsonBytes,
   sha256,
+  validatePersistedSceneState,
 } from '../../src/web/scene-contract.js';
 import { SceneService } from '../../src/web/scene-service.js';
 
@@ -911,6 +912,54 @@ test('post-release QA infrastructure can recheck the preserved repair without op
   assert.equal(generatorCalls, 2, 'QA-only recovery must not invoke another image model');
   assert.equal(evaluatorCalls, 5);
   assert.equal(completed.execution.cycle, 2);
+});
+
+test('a persisted scene attempt may carry optional item_fidelity_evidence without tripping SCENE_INTERNAL_ERROR', async (t) => {
+  const current = await fixture(t);
+  const created = await current.service.createScene({
+    ...current.request,
+    idempotencyKey: 'item-fidelity-contract-baseline',
+  });
+  const completed = await waitFor(current.service, created.scene_id);
+  assert.equal(completed.status, 'COMPLETED');
+  const baseState = JSON.parse(await readFile(current.service.statePath(created.scene_id), 'utf8'));
+
+  // Sanity: the untouched, valid persisted state passes the contract as-is.
+  assert.doesNotThrow(() => validatePersistedSceneState(baseState, baseState.scene_id));
+
+  const itemFidelityEvidence = [
+    {
+      item_id: 'item_0001',
+      verdict: 'PASS',
+      evidence: 'Matches reference silhouette, stitching and hardware.',
+      matching_features: ['collar shape', 'button placement'],
+      defects: [],
+      confidence: 0.94,
+      item_sha256: sha256(Buffer.from('fixture-item-0001')),
+      item_category: 'outerwear',
+      item_facts_sha256: sha256(Buffer.from('fixture-item-facts-0001')),
+      request_id: sha256(Buffer.from('fixture-item-request-0001')),
+    },
+  ];
+
+  // This is exactly the production shape that previously threw:
+  // "Persisted scene attempt 1 QA must contain exactly: decision,
+  // framing_evidence, gates, reviewer, score, summary" once an evaluator
+  // legitimately included item_fidelity_evidence alongside the six base keys.
+  const withEvidence = structuredClone(baseState);
+  withEvidence.attempts[0].qa.item_fidelity_evidence = itemFidelityEvidence;
+  withEvidence.qa.item_fidelity_evidence = itemFidelityEvidence;
+  assert.doesNotThrow(() => validatePersistedSceneState(withEvidence, withEvidence.scene_id));
+
+  // Still rejects a genuinely malformed item_fidelity_evidence receipt.
+  const withInvalidEvidence = structuredClone(baseState);
+  withInvalidEvidence.attempts[0].qa.item_fidelity_evidence = [{ item_id: 'item_0001' }];
+  assert.throws(() => validatePersistedSceneState(withInvalidEvidence, withInvalidEvidence.scene_id));
+
+  // Still rejects a genuinely unexpected extra key: the contract stays strict.
+  const withUnknownKey = structuredClone(baseState);
+  withUnknownKey.attempts[0].qa.unexpected_field = true;
+  assert.throws(() => validatePersistedSceneState(withUnknownKey, withUnknownKey.scene_id));
 });
 
 test('a tampered quarantined rejection source fails closed before repair generation', async (t) => {

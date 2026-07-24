@@ -29,6 +29,15 @@ export function sceneCanDelete(scene) {
   return sceneIsTerminal(scene);
 }
 
+// Technical checkpoint/persistence failures preserve the generated candidate
+// and only need QA rechecked — never a real creative rejection. Must never
+// be shown to the user as "сцена не пройшла перевірку".
+const TECHNICAL_RECOVERY_ERROR_CODES = ['QA_INFRASTRUCTURE_FAILED', 'SCENE_INTERNAL_ERROR'];
+
+export function sceneIsTechnicalRecovery(scene) {
+  return scene?.status === 'FAILED' && TECHNICAL_RECOVERY_ERROR_CODES.includes(scene?.error?.code);
+}
+
 export function sceneTone(scene) {
   if (scene?.status === 'COMPLETED') return 'completed';
   if (scene?.status === 'FAILED') return 'failed';

@@ -16,11 +16,12 @@ import {
   sceneCanCancel,
   sceneCanDelete,
   sceneCanRetry,
+  sceneIsTechnicalRecovery,
   sceneIsTerminal,
   sceneResumeFromSnapshot,
   sceneTone,
   writeSceneResume,
-} from './scene-state.js?v=20260723-1';
+} from './scene-state.js?v=20260724-2';
 
 function idOfLook(look) {
   return look?.look_id ?? look?.id ?? null;
@@ -572,7 +573,9 @@ export class SceneUiController {
       this.#element('#scene-output-download').href = scene.output.download_url || scene.output.image_url;
       this.#element('#scene-execution-title').textContent = 'Сцена готова';
     } else if (status === 'FAILED') {
-      this.#element('#scene-execution-title').textContent = 'Сцена не пройшла перевірку';
+      this.#element('#scene-execution-title').textContent = sceneIsTechnicalRecovery(scene)
+        ? 'Відновлюємо технічну перевірку'
+        : 'Сцена потребує доопрацювання';
     } else if (status === 'CANCELLED') {
       this.#element('#scene-execution-title').textContent = 'Створення зупинено';
     } else {
@@ -620,6 +623,9 @@ export class SceneUiController {
     cancel.hidden = !sceneCanCancel(scene);
     retry.hidden = !sceneCanRetry(scene);
     remove.hidden = !sceneCanDelete(scene);
+    if (!retry.hidden) {
+      retry.textContent = sceneIsTechnicalRecovery(scene) ? 'Повторити перевірку' : 'Переробити сцену';
+    }
     cancel.disabled = pending;
     retry.disabled = pending;
     remove.disabled = pending;

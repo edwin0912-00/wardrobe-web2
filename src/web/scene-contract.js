@@ -364,6 +364,15 @@ function assertExactKeys(actual, expected, label) {
   }
 }
 
+function assertKeysWithOptional(actual, required, optional, label) {
+  const actualKeys = Object.keys(actual);
+  const allowed = new Set([...required, ...optional]);
+  if (!required.every((key) => actualKeys.includes(key))
+    || actualKeys.some((key) => !allowed.has(key))) {
+    throw new Error(`${label} must contain: ${required.join(', ')} (optionally: ${optional.join(', ')})`);
+  }
+}
+
 function assertUniqueStringArray(value, {
   label,
   minItems,
@@ -1731,11 +1740,15 @@ export function validatePersistedSceneState(state, expectedSceneId) {
       if (!attempt.qa || typeof attempt.qa !== 'object' || Array.isArray(attempt.qa)) {
         throw new Error(`${qaLabel} receipt is missing`);
       }
-      assertExactKeys(
+      assertKeysWithOptional(
         attempt.qa,
         ['decision', 'gates', 'score', 'summary', 'reviewer', 'framing_evidence'],
+        ['item_fidelity_evidence'],
         qaLabel,
       );
+      if (attempt.qa.item_fidelity_evidence !== undefined) {
+        normalizeItemFidelityEvidence(attempt.qa.item_fidelity_evidence);
+      }
       const expectedDecision = attempt.status === 'QA_PASS' ? 'PASS' : 'FAIL';
       if (attempt.qa.decision !== expectedDecision
         || (attempt.qa.score !== null
@@ -1779,8 +1792,13 @@ export function validatePersistedSceneState(state, expectedSceneId) {
   }
   const qaKeys = Object.keys(state.qa);
   if (!['decision', 'gates', 'score', 'summary'].every((key) => qaKeys.includes(key))
-    || qaKeys.some((key) => !['decision', 'gates', 'score', 'summary', 'reviewer', 'framing_evidence'].includes(key))) {
+    || qaKeys.some((key) => ![
+      'decision', 'gates', 'score', 'summary', 'reviewer', 'framing_evidence', 'item_fidelity_evidence',
+    ].includes(key))) {
     throw new Error('Persisted scene QA fields are invalid');
+  }
+  if (state.qa.item_fidelity_evidence !== undefined) {
+    normalizeItemFidelityEvidence(state.qa.item_fidelity_evidence);
   }
   validatePersistedQaGates(
     state.qa.gates,
