@@ -17,10 +17,18 @@ fi
 
 export PATH="${HOME}/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
 export PORT="4173"
-# Core avatar/outfit generation runs through the local ChatGPT-authenticated
-# Codex app-server worker. No shared PIN or external image-provider key is used.
-export ZEELY_GENERATION_PROVIDER="codex-imagegen-test"
-export ZEELY_ENABLE_CODEX_IMAGEGEN_TEST_ONLY="true"
+# Codex CLI's ChatGPT-authenticated session hit its usage limit (resets
+# 2026-07-28). Avatar/outfit/garment/scene generation and semantic QA now run
+# through OpenRouter instead of the local Codex app-server worker/CLI. Set
+# ZEELY_GENERATION_PROVIDER/ZEELY_VLM_PROVIDER back to codex-imagegen-test /
+# codex (or higgsfield) to restore the previous transport; nothing about
+# those paths was removed, this is a plain switch.
+export ZEELY_GENERATION_PROVIDER="openrouter"
+export ZEELY_VLM_PROVIDER="openrouter"
+if [[ -s "$PRIVATE_DIR/openrouter-api-key" ]]; then
+  OPENROUTER_API_KEY="$(cat "$PRIVATE_DIR/openrouter-api-key")"
+  export OPENROUTER_API_KEY
+fi
 # Public testing mode: keep the existing secrets on disk so PIN protection can
 # be restored without rotating credentials, but do not enable the auth gate.
 unset ZEELY_DEMO_PIN ZEELY_SESSION_SECRET ZEELY_COOKIE_SECURE
