@@ -316,3 +316,38 @@ The immediate completion criterion is not “the app is up.” It is:
 7. Live UI/SSE/monitor reflect that actual state.
 
 When this is demonstrably working on mobile, proceed to the controlled standard-scene packs and then editorial shoot, not before.
+
+## 16. Encrypted secrets handoff (local only; never Git)
+
+An encrypted continuation archive is stored locally at:
+
+```text
+secrets/zeely-agent-handoff-2026-07-24.tar.gz.enc
+SHA-256: 8e9073ae9d32e6368441b663eab44dee31ed6d942a16d48be5771bcfbd534301
+```
+
+It contains only the project-scoped recovery material: runtime demo PIN, runtime session secret, and the named Cloudflare Tunnel credential JSON. It intentionally excludes account-wide GitHub, ChatGPT/Codex, browser and Cloudflare account credentials.
+
+The decryption key is **not** in the repository or alongside the archive. On this same authorized macOS user account it is in Keychain as:
+
+```text
+service: com.madeforthisjob.zeely.agent-handoff-20260724
+account: current macOS username
+```
+
+An authorized continuation agent on this Mac can decrypt to a freshly-created temporary directory with:
+
+```bash
+handoff_key=$(security find-generic-password \
+  -a "$(id -un)" \
+  -s "com.madeforthisjob.zeely.agent-handoff-20260724" \
+  -w)
+export ZEELY_AGENT_HANDOFF_KEY="$handoff_key"
+openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -md sha256 \
+  -pass env:ZEELY_AGENT_HANDOFF_KEY \
+  -in secrets/zeely-agent-handoff-2026-07-24.tar.gz.enc \
+  | tar -xzf - -C "$(mktemp -d)"
+unset ZEELY_AGENT_HANDOFF_KEY handoff_key
+```
+
+Do not print the decrypted values, commit them, or extract them into the repository. The archive is intentionally local-excluded from Git; pass the encrypted file and the Keychain-access instruction through separate authorized channels when moving to another host.
