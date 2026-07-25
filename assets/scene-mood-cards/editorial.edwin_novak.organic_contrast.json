@@ -6,28 +6,21 @@
   "ui_name_uk": "Органічний контраст",
   "asset_role": "mood_card",
   "file": "assets/scene-mood-cards/editorial.edwin_novak.organic_contrast.webp",
-  "sha256": "5dfc99e1dc83a38e61c134c8aa014ba04a4c9ddac5cbc1f2ca115101bd712f6d",
+  "sha256": "904e6e7c9fcb74a560332f96c3aaeae58085ee8b83af121bf0c250925ac120e9",
   "prompt_path": "prompts/scenes/editorial.edwin_novak.organic_contrast.txt",
-  "prompt_sha256": "456880cf6a188dea8d5e8795a1449ca28b3167a3892f5d9ec94df508a267f475",
+  "prompt_sha256": "bb1abb9677937d05ee5e7351ca695e1b221d4eece5e72207e4d02aaaa231ff8f",
   "generation": {
-    "provider_path": "codex_builtin_imagegen",
-    "model_family": "gpt-image-2",
-    "model_version": "builtin-current",
-    "source_width": 1122,
-    "source_height": 1402,
-    "crop_position": "centre",
-    "reframe": {
-      "method": "deterministic_4x5_extract",
-      "input_sha256": "7875cc367768274ddd0a380652d84b4f2710c2dcdb1de5736cf8031eaf65740f",
-      "source_width": 1024,
-      "source_height": 1280,
-      "crop_px": {
-        "left": 200,
-        "top": 340,
-        "width": 624,
-        "height": 780
-      }
-    }
+    "provider_path": "openrouter_imagegen",
+    "model_family": "openai/gpt-5.4-image-2",
+    "model_version": "openai/gpt-5.4-image-2",
+    "source_width": 1024,
+    "source_height": 1024,
+    "reference_photos": [
+      "organic_contrast-01.jpg",
+      "organic_contrast-02.jpg",
+      "organic_contrast-03.jpg"
+    ],
+    "reference_source": "edwinnovak.com (owner-provided, used for style/lighting/composition only)"
   },
   "delivery": {
     "width": 1024,
@@ -37,5 +30,5 @@
   },
   "contains_personal_input": false,
   "approval": "PENDING_VISUAL_JUDGE",
-  "created_at": "2026-07-22T23:47:46.318Z"
+  "created_at": "2026-07-25T01:00:00.000Z"
 }

@@ -1,10 +1,11 @@
 Use case: photorealistic-natural
 Asset type: original fashion editorial direction card for an approved internal visual system
-Primary request: create one original environmental fashion image expressing intimate human presence against a strong organic setting; do not imitate or reproduce any specific existing photograph.
-Subject: one anonymous adult test model with a calm detached expression in a plain unbranded off-white tailored look with one restrained mustard fabric accent; the model is mood evidence only, never identity authority.
-Scene/backdrop: deep green foliage beside dark still water; a few foreground leaves create one optical interruption while the face and complete outfit remain readable.
-Style/medium: photoreal high-fashion editorial, tactile and contemporary.
-Composition/framing: vertical 4:5 environmental hero, complete head and footwear, 50 mm equivalent, slight low angle. The visible human bounding box from topmost hair to lowest footwear must occupy 66–70% of final height, with generous deep-green environment on every side so nature has genuinely equal dramatic weight.
-Lighting/mood: low warm backlight with dappled sun on one cheek and part of the fabric; deep green shadow, natural skin and controlled highlights.
-Color palette: deep green, off-white, natural skin, mustard, one subtle warm orange note.
-Constraints: exactly one optical device, foreground vegetation; no mirror, veil or stacked effects; no logos, text, watermark, extra people, generic hand-on-hip pose or commercial smile; no crop or anatomy defects; no HDR, bloom or plastic skin.
+Reference photos attached (ATTACHMENT_1-3): a real photographer's forest editorial series — study them ONLY for lighting direction, camera angle, bokeh character, wardrobe fabric and color palette. Do not reproduce the specific person shown; the attached faces are not identity authority.
+Primary request: create one original environmental fashion image built from portrait, forest canopy and warm backlight; do not imitate or reproduce any specific existing photograph pixel-for-pixel.
+Subject: one anonymous adult test model with calm expression, one hand raised near her hair, in a loose white/off-white natural-fiber top with visible sleeves; the model is mood evidence only, never identity authority.
+Scene/backdrop: dense forest canopy (pine or mixed trees), camera positioned low looking up through branches toward warm sun breaking through, soft green bokeh dissolving the background.
+Style/medium: crisp photoreal high-fashion editorial, natural skin tones, restrained warm highlight bloom at hair edges exactly like the attached references.
+Composition/framing: vertical 4:5 environmental hero, complete head and footwear, 50 mm equivalent, subject around 68% of frame height, slightly off-center.
+Lighting/mood: strong warm backlight/rim light from behind and above, soft ambient fill on the face, deep green-black shadow falloff that still keeps foliage texture visible.
+Color palette: warm gold hair highlights, natural warm skin, deep green to near-black background, no crushed shadow.
+Constraints: exactly one optical device; no mirror, veil or stacked effects; no logos, text, watermark, extra people, generic hand-on-hip pose or commercial smile; no crop or anatomy defects; no HDR, bloom or plastic skin.

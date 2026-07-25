@@ -6,28 +6,19 @@
   "ui_name_uk": "Світлий синьо-білий",
   "asset_role": "mood_card",
   "file": "assets/scene-mood-cards/editorial.edwin_novak.luminous_blue_white.webp",
-  "sha256": "33ea0633c8187e4ccbc3cfa89e90231929b7a216ff2e4a9849b3e6971a0fc3b8",
+  "sha256": "360b65b6f4bd1ca58077ea60a4a9bd0ebf43cbc8bee4f4459a964f787bdf8431",
   "prompt_path": "prompts/scenes/editorial.edwin_novak.luminous_blue_white.txt",
-  "prompt_sha256": "a3f757f08c0310e7a3491302fe1166c20108b0608541b16b0a23b45d3f1c6622",
+  "prompt_sha256": "a69beb9a0b516f904e2c9f68bd7b70d2f142558d2de40ece8d5f33be244e5575",
   "generation": {
-    "provider_path": "codex_builtin_imagegen",
-    "model_family": "gpt-image-2",
-    "model_version": "builtin-current",
-    "source_width": 1122,
-    "source_height": 1402,
-    "crop_position": "centre",
-    "reframe": {
-      "method": "deterministic_4x5_extract",
-      "input_sha256": "f652bbe9f2e952740c251074008f304f7d2ad5bd8b3ddf324341b53fde29d297",
-      "source_width": 1024,
-      "source_height": 1280,
-      "crop_px": {
-        "left": 63,
-        "top": 157,
-        "width": 898,
-        "height": 1123
-      }
-    }
+    "provider_path": "openrouter_imagegen",
+    "model_family": "openai/gpt-5.4-image-2",
+    "model_version": "openai/gpt-5.4-image-2",
+    "source_width": 1024,
+    "source_height": 1024,
+    "reference_photos": [
+      "luminous_blue_white-01.jpg"
+    ],
+    "reference_source": "edwinnovak.com (owner-provided, used for style/lighting/composition only)"
   },
   "delivery": {
     "width": 1024,
@@ -37,5 +28,5 @@
   },
   "contains_personal_input": false,
   "approval": "PENDING_VISUAL_JUDGE",
-  "created_at": "2026-07-22T23:47:46.692Z"
+  "created_at": "2026-07-25T01:00:00.000Z"
 }

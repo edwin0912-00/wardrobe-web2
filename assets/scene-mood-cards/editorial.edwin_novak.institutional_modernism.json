@@ -6,27 +6,20 @@
   "ui_name_uk": "Інституційний модернізм",
   "asset_role": "mood_card",
   "file": "assets/scene-mood-cards/editorial.edwin_novak.institutional_modernism.webp",
-  "sha256": "9fa9e354f04e086fd6c1d05068dda3b09bf26c8298c3dd51c7c7177b1351ab3b",
+  "sha256": "742e97dd2c4c6b2d03ec312a953c200127047e358fbac25e6e5e58ecdc82fe1a",
   "prompt_path": "prompts/scenes/editorial.edwin_novak.institutional_modernism.txt",
-  "prompt_sha256": "b302a28efa2515449730417ca251ce28f0e62319bf1c84021c2a774606c1029d",
+  "prompt_sha256": "1d6811dc7bc85be5de3adee1dd9c15fe913b9188b08e22f044c9d15e0bca0f4f",
   "generation": {
-    "provider_path": "codex_builtin_imagegen",
-    "model_family": "gpt-image-2",
-    "model_version": "builtin-current",
-    "source_width": 1122,
-    "source_height": 1402,
-    "reframe": {
-      "method": "deterministic_4x5_extract",
-      "input_sha256": "327b2e09b6ef2652a49d45c441851b673e0e3db04dce919dc70ca2d6d0c4f11e",
-      "source_width": 1024,
-      "source_height": 1280,
-      "crop_px": {
-        "left": 123,
-        "top": 190,
-        "width": 777,
-        "height": 971
-      }
-    }
+    "provider_path": "openrouter_imagegen",
+    "model_family": "openai/gpt-5.4-image-2",
+    "model_version": "openai/gpt-5.4-image-2",
+    "source_width": 1024,
+    "source_height": 1024,
+    "reference_photos": [
+      "institutional_modernism-01.jpg",
+      "institutional_modernism-02.jpg"
+    ],
+    "reference_source": "edwinnovak.com (owner-provided, used for style/lighting/composition only)"
   },
   "delivery": {
     "width": 1024,
@@ -36,5 +29,5 @@
   },
   "contains_personal_input": false,
   "approval": "PENDING_VISUAL_JUDGE",
-  "created_at": "2026-07-22T23:28:22.680Z"
+  "created_at": "2026-07-25T01:00:00.000Z"
 }
