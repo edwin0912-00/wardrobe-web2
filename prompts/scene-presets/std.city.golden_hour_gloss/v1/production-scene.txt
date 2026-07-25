@@ -18,3 +18,4 @@ Premium contemporary fashion editorial, precise natural material texture, contro
 
 FAIL CONDITIONS
 Any identity drift; removed, changed or invented item; altered logo or text; changed color or construction; anatomy defect; missing fingers; cropped headwear or shoes; incorrect scale; duplicated accessory; random prop; readable environment text; copied landmark; ungrounded shadow.
+

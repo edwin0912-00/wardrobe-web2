@@ -18,3 +18,4 @@ High-end natural fashion gloss with straw, ochre, olive and cool-grey balance, c
 
 FAIL CONDITIONS
 Identity drift; removed, changed or invented item; altered logo or text; grass occlusion; highway or underpass cue; excessive flare; anatomy defect; crop; floating feet; duplicated accessory; random outdoor prop.
+
