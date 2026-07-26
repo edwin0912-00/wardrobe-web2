@@ -32,6 +32,16 @@ Evidence: the new governance test failed before implementation with
 handoff and PR checks. The current focused governance suite passes 76/76.
 weakened_checks: none.
 
+2026-07-26 · STYLE-001 / PROFILE-001 / MONITOR-001 · parallel leases
+Change: issue three non-overlapping 24-hour implementation lanes for CodeCod,
+OpenCode, and Antigravity, plus one shared GitHub onboarding procedure.
+Why: core merge review must not serialize style-system preservation, saved-avatar
+backend work, and monitor reliability work.
+Evidence: each task has one owner, one branch, unique lock group, exact base,
+focused CI acceptance, isolated handoff path, and no runtime/deploy/credential
+authority.
+weakened_checks: none.
+
 2026-07-26 · CTRL-001 · 36ae95a · PR #2
 Change: install the permanent `control/codex-main` queue route, stale-base and
 candidate-board validation, and correct prior-handoff drift classification.

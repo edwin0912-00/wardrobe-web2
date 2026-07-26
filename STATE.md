@@ -1,6 +1,6 @@
 # Wardrobe verified state
 
-Updated: 2026-07-26 23:01 UTC.
+Updated: 2026-07-26 23:32 UTC.
 
 ## Canonical source position
 
@@ -9,11 +9,11 @@ Updated: 2026-07-26 23:01 UTC.
 - Claude branch `feature/wardrobe-editorial-mvp-20260726` is `622c878`.
 - Codex branch `codex-new-2026-07-26` is `f891719`.
 - Their merge base is `d7f760f`; Claude has 6 unique commits and Codex has 14.
-- `integration/wardrobe-20260726` is `7758f12`.
+- `integration/wardrobe-20260726` is `fbd2c2c`.
 - WARD-001 implementation is frozen at `dc06b99` with isolated handoff
   `ee7d50f`; GitHub PR #5 preserved that evidence but its trusted acceptance
   runner lacked `rg`. Lease generation 3 reissues the unchanged implementation
-  on a fresh handoff branch using portable `git diff --check`.
+  on a fresh handoff branch using portable `git diff --check` (PR #8).
 - Claude's newer uncommitted tail was preserved without review as
   `wip/claude-tail-20260726` at `7c3fb32`. WIP is evidence, not integrated
   product code.
@@ -91,6 +91,18 @@ code.
 5. Complete the four remaining styles using the approved style-creation
    workflow.
 6. Start video only after the image/editorial surface is stable.
+
+## Parallel 24-hour lanes
+
+- `STYLE-001` is leased to `codecod`: durable non-generative style-unit
+  extraction and one observed reference unit.
+- `PROFILE-001` is leased to `opencode`: browser-bound saved-avatar backend
+  and add-items lineage.
+- `MONITOR-001` is leased to `antigravity`: sanitized durable diagnostics for
+  stalled execution.
+
+They are disjoint from WARD-001's active scene/editorial/privacy locks. Their
+shared starting procedure is `docs/coordination/EXTERNAL_AGENT_START_UA.md`.
 
 ## Stop conditions awaiting Edwin
 
