@@ -1,0 +1,40 @@
+name: Agent task proposal
+description: Propose work for assignment by the Wardrobe orchestrator
+title: "[TASK] "
+labels:
+  - "agent-task"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This Issue is an intake proposal, not authority to edit code.
+        Work starts only after the orchestrator creates a task in TASKS.json.
+  - type: textarea
+    id: objective
+    attributes:
+      label: Objective
+      description: One measurable outcome.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Current evidence
+      description: Reproduction, logs, exact files, and current commit.
+      placeholder: Use redacted excerpts and repository-relative paths only. Never paste raw user media, provider logs, tokens, cookies, credentials, or absolute local paths.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Proposed scope
+      description: Files and lock groups likely required.
+    validations:
+      required: true
+  - type: textarea
+    id: stop
+    attributes:
+      label: Stop conditions
+      description: Product decisions, credentials, paid generation, or external ownership boundaries.
+    validations:
+      required: true
