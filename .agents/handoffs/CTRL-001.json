@@ -1,0 +1,129 @@
+{
+  "schema_version": "1.0.0",
+  "task_id": "CTRL-001",
+  "agent_id": "codex-main",
+  "branch": "lane/CTRL-001/codex-main",
+  "base_sha": "622c8783060cb64970e7c8952d51ca7c50307edd",
+  "lease_generation": 1,
+  "tested_code_sha": "6f0291b334c8a6a0f3fae04e05eb876b2a641278",
+  "status": "READY_FOR_REVIEW",
+  "summary": "Established the Wardrobe repository control plane: canonical state ledgers, typed task leases, non-overlapping ownership, strict test-first acceptance, independent adversarial review, introduced-history scope and secret scanning, assignment watcher, and trusted GitHub PR gates.",
+  "changed_paths": [
+    ".agents/README.md",
+    ".agents/handoffs/CTRL-001.json",
+    ".github/CODEOWNERS",
+    ".github/ISSUE_TEMPLATE/agent-task.yml",
+    ".github/copilot-instructions.md",
+    ".github/pull_request_template.md",
+    ".github/workflows/agent-control.yml",
+    ".github/workflows/agent-regression.yml",
+    ".gitignore",
+    "AGENTS.md",
+    "CLAUDE.md",
+    "LOG.md",
+    "OWNERS.md",
+    "STATE.md",
+    "TASKS.json",
+    "docs/coordination/MERGE_ANALYSIS_2026-07-26.md",
+    "schemas/agent-board.schema.json",
+    "schemas/agent-handoff.schema.json",
+    "schemas/agent-task.schema.json",
+    "test/governance/agent-control.test.js",
+    "test/governance/agent-policy-hardening.test.js",
+    "test/governance/scan-pr-diff-history.test.js",
+    "tools/coordination/assert-pr-scope.mjs",
+    "tools/coordination/check-test-baseline.mjs",
+    "tools/coordination/classify-pr-diff.mjs",
+    "tools/coordination/control-plane.mjs",
+    "tools/coordination/path-policy.mjs",
+    "tools/coordination/repository-policy.mjs",
+    "tools/coordination/run-task-acceptance.mjs",
+    "tools/coordination/scan-pr-diff.mjs",
+    "tools/coordination/schema-validation.mjs",
+    "tools/coordination/validate-board.mjs",
+    "tools/coordination/watch-assignments.mjs"
+  ],
+  "pre_change_proof": [
+    {
+      "check_id": "governance-tests",
+      "command": [
+        "node",
+        "--test",
+        "test/governance/agent-control.test.js",
+        "test/governance/agent-policy-hardening.test.js",
+        "test/governance/scan-pr-diff-history.test.js"
+      ],
+      "result": "FAIL",
+      "evidence": "The changed governance tests were applied to pinned base 622c878 and exited 1 before the control-plane implementation."
+    }
+  ],
+  "post_change_proof": [
+    {
+      "check_id": "governance-tests",
+      "command": [
+        "node",
+        "--test",
+        "test/governance/agent-control.test.js",
+        "test/governance/agent-policy-hardening.test.js",
+        "test/governance/scan-pr-diff-history.test.js"
+      ],
+      "result": "PASS",
+      "evidence": "Exact tested code SHA passed 79 of 79 governance tests."
+    },
+    {
+      "check_id": "board-validation",
+      "command": [
+        "node",
+        "tools/coordination/validate-board.mjs",
+        "--board-only"
+      ],
+      "result": "PASS",
+      "evidence": "The checked-in board passed schema, lease, dependency, ownership, command-shape, and acceptance validation."
+    },
+    {
+      "check_id": "diff-hygiene",
+      "command": [
+        "git",
+        "diff",
+        "--check",
+        "$TASK_BASE_SHA...$TESTED_CODE_SHA"
+      ],
+      "result": "PASS",
+      "evidence": "Git diff hygiene passed for base 622c878 through tested code 6f0291b."
+    }
+  ],
+  "adversarial_review": {
+    "goal": "Find fail-open scope, history, secret, acceptance, handoff, or weakened-check routes before bootstrap.",
+    "result": "PASS",
+    "reviewer_id": "final_control_review",
+    "reviewed_code_sha": "6f0291b334c8a6a0f3fae04e05eb876b2a641278"
+  },
+  "weakened_checks": [],
+  "open_risks": [
+    {
+      "code": "GITHUB_FREE_ENFORCEMENT",
+      "severity": "WARNING",
+      "description": "The current private-repository plan cannot enforce required checks or CODEOWNERS; codex-main remains the sole merger."
+    },
+    {
+      "code": "SHARED_ACTOR_IDENTITY",
+      "severity": "WARNING",
+      "description": "Shared GitHub credentials make agent and reviewer identifiers routing labels rather than cryptographic identities."
+    },
+    {
+      "code": "ONE_TIME_MANUAL_BOOTSTRAP",
+      "severity": "WARNING",
+      "description": "The first control-plane merge is manually attested because the base predates the trusted runner and the pull_request_target workflow is not yet on the default branch."
+    },
+    {
+      "code": "PRODUCT_BASE_NOT_GREEN",
+      "severity": "WARNING",
+      "description": "The current product base exceeds the target two-failure ceiling; CTRL-001 is control-only and does not claim to repair product tests."
+    },
+    {
+      "code": "LOCAL_FULL_SUITE_RESOURCE_REFUSAL",
+      "severity": "INFO",
+      "description": "The local full product suite remains resource-refused; focused governance checks are complete and product regression is classified separately."
+    }
+  ]
+}
