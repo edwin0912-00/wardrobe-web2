@@ -280,6 +280,8 @@ test('public editorial DTO exposes output URLs but never clones private orchestr
   };
   const view = editorialShootView(shoot);
   const serialized = JSON.stringify(view);
+  assert.equal(view.hero_output_sha256, 'c'.repeat(64));
+  assert.equal(editorialShootView(rawShoot()).hero_output_sha256, null);
   assert.equal(
     view.mode.ui_name_uk,
     'Органічний контраст — преміальна fashion-фотосесія',
@@ -406,4 +408,156 @@ test('profile ownership hides foreign editorial mutations before the service can
   assert.equal(cancelled.statusCode, 202, cancelled.body);
   assert.equal(cancelled.json().status, 'CANCELLED');
   assert.equal(cancellations, 1, 'cancel must be idempotent without requiring an unused key');
+});
+
+async function ownedShootRoutes(t, shoot) {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'editorial-api-contract-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const profiles = new ProfileService({
+    databasePath: path.join(root, 'profiles.sqlite'),
+  });
+  await profiles.initialize();
+  t.after(() => profiles.close());
+  const owner = profiles.createSession();
+  profiles.claimRun(owner.profileId, 'owner-run');
+  const saved = profiles.saveClaimedRun(owner.profileId, 'owner-run');
+  shoot.bindings.approved_look.look_id = saved.look.look_id;
+  profiles.projectEditorialShoot(owner.profileId, saved.look.look_id, shoot);
+  const calls = [];
+  const editorialShootService = {
+    async getShoot(shootId) {
+      return shootId === shoot.shoot_id ? shoot : null;
+    },
+    async approveBible(shootId, options) {
+      calls.push(['approveBible', options]);
+      return shoot;
+    },
+    async approveHero(shootId, options) {
+      calls.push(['approveHero', options]);
+      return shoot;
+    },
+    async retryShot(shootId, slot, options) {
+      calls.push(['retryShot', slot, options]);
+      return shoot;
+    },
+    subscribe() {
+      return () => {};
+    },
+  };
+  const app = Fastify({ logger: false });
+  await registerEditorialShootRoutes(app, {
+    editorialShootService,
+    profiles,
+    profileApi: {
+      async resolveRequestProfile(request) {
+        return { profileId: request.headers['x-profile-id'] };
+      },
+    },
+    runService: {},
+    presetResolver: {},
+    sceneService: {},
+  });
+  // The editorial plugin relaxes JSON parsing inside its own encapsulation. A route
+  // registered on the root instance after it must still get Fastify's own parser, or the
+  // relaxation has quietly become a server-wide change to every API.
+  app.post('/api/test/root-json', async (request) => ({ body: request.body ?? null }));
+  await app.ready();
+  t.after(() => app.close());
+  return { app, owner, calls };
+}
+
+test('editorial approval errors name only fields the routes accept, and a bodyless retry is not a JSON error', async (t) => {
+  const shoot = rawShoot({ shootId: 'shoot_api_contract', status: 'HERO_PENDING_APPROVAL' });
+  shoot.shots[0] = {
+    ...shoot.shots[0],
+    status: 'QA_PASSED',
+    output: {
+      resource_id: 'scene_api_contract',
+      sha256: 'c'.repeat(64),
+      receipt_sha256: 'd'.repeat(64),
+      width: 1024,
+      height: 1280,
+      media_type: 'image/png',
+    },
+  };
+  const { app, owner, calls } = await ownedShootRoutes(t, shoot);
+  const url = `/api/profile/editorial-shoots/${shoot.shoot_id}`;
+  const headers = {
+    'x-profile-id': owner.profileId,
+    'idempotency-key': 'editorial-contract-key',
+    'content-type': 'application/json',
+  };
+
+  const empty = await app.inject({
+    method: 'POST',
+    url: `${url}/approve-bible`,
+    headers,
+    payload: '',
+  });
+  assert.equal(empty.statusCode, 422, empty.body);
+  assert.equal(empty.json().code, 'INVALID_EXPECTED_SHA256');
+  assert.match(empty.body, /expected_bible_sha256 must be a lowercase SHA-256/);
+  assert.doesNotMatch(empty.body, /expectedBibleSha256|FST_ERR_CTP_EMPTY_JSON_BODY/);
+
+  const camelCase = await app.inject({
+    method: 'POST',
+    url: `${url}/approve-hero`,
+    headers,
+    payload: { expectedOutputSha256: 'c'.repeat(64) },
+  });
+  assert.equal(camelCase.statusCode, 422, camelCase.body);
+  assert.match(camelCase.body, /expected_output_sha256 must be a lowercase SHA-256/);
+  assert.doesNotMatch(camelCase.body, /expectedOutputSha256/);
+
+  const withoutKey = await app.inject({
+    method: 'POST',
+    url: `${url}/approve-bible`,
+    headers: { 'x-profile-id': owner.profileId, 'content-type': 'application/json' },
+    payload: { expected_bible_sha256: shoot.bindings.shoot_bible.sha256 },
+  });
+  assert.equal(withoutKey.statusCode, 422, withoutKey.body);
+  assert.equal(withoutKey.json().code, 'MISSING_IDEMPOTENCY_KEY');
+  assert.match(withoutKey.body, /Idempotency-Key request header is required/);
+
+  const malformed = await app.inject({
+    method: 'POST',
+    url: `${url}/approve-bible`,
+    headers,
+    payload: '{"expected_bible_sha256":',
+  });
+  assert.equal(malformed.statusCode, 400, malformed.body);
+  assert.equal(malformed.json().code, 'FST_ERR_CTP_INVALID_JSON_BODY');
+
+  const retried = await app.inject({
+    method: 'POST',
+    url: `${url}/shots/environmental_hero/retry`,
+    headers,
+    payload: '',
+  });
+  assert.equal(retried.statusCode, 202, retried.body);
+
+  const rootRoute = await app.inject({
+    method: 'POST',
+    url: '/api/test/root-json',
+    headers: { 'content-type': 'application/json' },
+    payload: '',
+  });
+  assert.equal(rootRoute.statusCode, 400, rootRoute.body);
+  assert.equal(rootRoute.json().code, 'FST_ERR_CTP_EMPTY_JSON_BODY');
+
+  const approved = await app.inject({
+    method: 'POST',
+    url: `${url}/approve-bible`,
+    headers,
+    payload: { expected_bible_sha256: shoot.bindings.shoot_bible.sha256 },
+  });
+  assert.equal(approved.statusCode, 202, approved.body);
+  assert.equal(approved.json().hero_output_sha256, 'c'.repeat(64));
+  assert.deepEqual(calls, [
+    ['retryShot', 'environmental_hero', { idempotencyKey: 'editorial-contract-key' }],
+    ['approveBible', {
+      idempotencyKey: 'editorial-contract-key',
+      expectedBibleSha256: shoot.bindings.shoot_bible.sha256,
+    }],
+  ]);
 });

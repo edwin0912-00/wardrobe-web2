@@ -106,8 +106,12 @@ export function assertEditorialId(value, label = 'id') {
   return value;
 }
 
+export function isEditorialSha256(value) {
+  return typeof value === 'string' && SHA256.test(value);
+}
+
 export function assertEditorialSha256(value, label = 'sha256') {
-  if (typeof value !== 'string' || !SHA256.test(value)) {
+  if (!isEditorialSha256(value)) {
     throw new Error(`${label} must be a lowercase SHA-256`);
   }
   return value;
