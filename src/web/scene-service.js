@@ -1212,6 +1212,33 @@ function compiledPrompt({
     && measuredSubjectHeight > expectedMaximum;
   const subjectTooSmall = Number.isFinite(measuredSubjectHeight)
     && measuredSubjectHeight < expectedMinimum;
+  // Keyed on the defect the assessment actually recorded, never on the preset's declared
+  // minimum: an editorial slot whose headroom is waived measures under its own minimum and
+  // is still a PASS on that axis, so reading the minimum would order a model to "fix"
+  // clearance the art direction spent on purpose.
+  const framingLockEvidence = repairAttempt?.qa.framing_evidence ?? null;
+  const headroomDefect = (repairAttempt?.qa.gates ?? [])
+    .find((gate) => gate.id === 'FRAMING_AND_ANATOMY')
+    ?.defects
+    ?.includes('INSUFFICIENT_CLEAR_SPACE_ABOVE_HAIR') === true;
+  const measuredAboveHair = framingLockEvidence?.clear_space_above_hair_percent;
+  const measuredBelowFootwear = framingLockEvidence?.clear_space_below_footwear_percent;
+  const minimumAboveHair = framingLockEvidence?.minimum_clear_space_above_hair_percent;
+  const minimumBelowFootwear = framingLockEvidence?.minimum_clear_space_below_footwear_percent;
+  const headroomShort = headroomDefect
+    && [measuredAboveHair, measuredBelowFootwear, minimumAboveHair, minimumBelowFootwear]
+      .every(Number.isFinite);
+  // One point over the lock rather than the lock itself. A crop can close a residual
+  // subject-height gap for free, but only while above_px/subject_px stays over
+  // minimum/maximum, and a frame asked for exactly 8% has no room for the model's own
+  // error: the three attempts on scene_1cd6953f landed 0.89, 1.20 and 1.36 points under it.
+  const targetAboveHair = headroomShort ? minimumAboveHair + 1 : null;
+  const targetBelowFootwear = headroomShort
+    ? Number((100 - targetAboveHair - targetSubjectHeight).toFixed(4))
+    : null;
+  const targetCompositionFits = headroomShort && targetBelowFootwear >= minimumBelowFootwear;
+  const surplusFloorPaysForHeadroom = targetCompositionFits
+    && measuredBelowFootwear > targetBelowFootwear;
   return [
     basePrompt.trim(),
     '',
@@ -1250,7 +1277,22 @@ function compiledPrompt({
         ...(subjectTooLarge ? [
           '- Outpaint the existing scene and pull the camera back while keeping the same person, pose, outfit, products, environment, light and camera character.',
         ] : []),
-        ...(subjectTooSmall ? [
+        ...(subjectTooSmall && headroomShort ? [
+          // Enlarging about the subject's own centre is what produced 7.1094 -> 6.7969 ->
+          // 6.6406% of head clearance across three paid attempts of scene_1cd6953f while the
+          // person grew 0.86 points in total: the extra height comes half out of the
+          // clearance that is already short, so each attempt left the frame further outside
+          // what any crop can repair. The subject has to move down the frame, not just grow.
+          `- The person is too small AND head clearance is short: ${measuredAboveHair}% above the hair against a ${minimumAboveHair}% minimum. Do not enlarge the person about its own centre — that spends the clear space above the hair you are already missing.`,
+          ...(surplusFloorPaysForHeadroom ? [
+            `- Raise the ground line and lower the whole locked person-and-look group in frame: the floor below the footwear is ${measuredBelowFootwear}% and only ${targetBelowFootwear}% is needed, so spend that surplus on head clearance before scaling the group up.`,
+          ] : [
+            '- Lower the whole locked person-and-look group in frame so clear space opens above the hair, then scale the group up.',
+          ]),
+          ...(targetCompositionFits ? [
+            `- Compose to about ${targetAboveHair}% empty above the hair, ${targetSubjectHeight}% person and ${targetBelowFootwear}% below the footwear, keeping the same person, pose, outfit, products, environment, light and camera character.`,
+          ] : []),
+        ] : subjectTooSmall ? [
           '- The person is too small. Move the existing camera framing closer or scale the complete locked person-and-look group up around the same optical center. Do not pull the camera back and do not redesign the scene.',
         ] : []),
         ...(!subjectTooLarge && !subjectTooSmall ? [
@@ -1268,6 +1310,48 @@ function compiledPrompt({
       ] : []),
     ] : []),
   ].join('\n');
+}
+
+// A crop only ever removes rows, so the pixels above the hair can never grow while the
+// subject keeps every row it has — above_px/subject_px is the one framing quantity a crop
+// cannot move upward, and the band and the headroom lock together demand it be at least
+// minimum_above/maximum_subject. All three route attempts of scene_1cd6953f were refused on
+// exactly that (0.0975, 0.0926, 0.0900 against 8/78 = 0.1026) and recorded nothing about it,
+// so a failure whose cause is fixed geometry read as "the repair never ran" and had to be
+// recovered from the pixels by hand. Numbers, because the next reader needs to see which of
+// the two crop-height windows was empty.
+function deterministicFramingCropRefusal(framing, delivery) {
+  const bbox = framing?.subject_bbox_xywh_px;
+  const band = framing?.expected_subject_height_percent;
+  if (!Array.isArray(bbox) || bbox.length !== 4 || !Array.isArray(band) || band.length !== 2) {
+    return null;
+  }
+  const [, aboveHairPx, , subjectPx] = bbox;
+  const [minimumPercent, maximumPercent] = band;
+  const aboveMinimumPercent = framing.minimum_clear_space_above_hair_percent;
+  if (![aboveHairPx, subjectPx, minimumPercent, maximumPercent, aboveMinimumPercent]
+    .every(Number.isFinite)
+    || subjectPx <= 0
+    || minimumPercent <= 0
+    || aboveMinimumPercent <= 0) {
+    return null;
+  }
+  const tightest = Math.ceil(subjectPx / (maximumPercent / 100));
+  const widest = Math.min(delivery.height, Math.floor(subjectPx / (minimumPercent / 100)));
+  const headroomCap = Math.floor(aboveHairPx / (aboveMinimumPercent / 100));
+  const measured = `${subjectPx}px of subject under ${aboveHairPx}px of clear space`;
+  if (tightest > widest) {
+    return `deterministic framing crop impossible: ${measured}, and no crop of a `
+      + `${delivery.width}x${delivery.height} delivery lands the subject inside `
+      + `${minimumPercent}-${maximumPercent}%`;
+  }
+  if (tightest > headroomCap) {
+    return `deterministic framing crop impossible: ${measured}, ${minimumPercent}-${maximumPercent}% `
+      + `needs a ${tightest}-${widest}px crop height but the ${aboveMinimumPercent}% head clearance `
+      + `caps it at ${headroomCap}px, and a crop cannot add rows above the hair`;
+  }
+  return `deterministic framing crop declined although a ${tightest}-${Math.min(widest, headroomCap)}px `
+    + `crop height satisfies both locks: ${measured}`;
 }
 
 function selectDeterministicFramingRepair(state) {
@@ -3397,9 +3481,10 @@ export class SceneService {
       return attempt;
     }
     const failedVisualGates = normalized.gates.filter((gate) => gate.decision === 'FAIL');
-    const cropPlan = attempt.normalization?.strategy === 'same_aspect_lossless_resize'
+    const cropEligible = attempt.normalization?.strategy === 'same_aspect_lossless_resize'
       && failedVisualGates.length === 1
-      && failedVisualGates[0].id === 'FRAMING_AND_ANATOMY'
+      && failedVisualGates[0].id === 'FRAMING_AND_ANATOMY';
+    const cropPlan = cropEligible
       ? deterministicFramingCropPlan(normalized.framing_evidence, state.delivery)
       : null;
     if (cropPlan) {
@@ -3486,10 +3571,19 @@ export class SceneService {
       },
       error: visualPass ? null : {
         code: 'BLOCKING_QA_FAILED',
-        message: normalized.gates
-          .filter((gate) => gate.decision === 'FAIL')
-          .map((gate) => gate.id)
-          .join(', '),
+        message: [
+          normalized.gates
+            .filter((gate) => gate.decision === 'FAIL')
+            .map((gate) => gate.id)
+            .join(', '),
+          // The attempt that was eligible for a free crop and did not get one is the only
+          // place this can be said. The attempt schema is exact-keyed, so the receipt has
+          // exactly one free-form field left, and leaving the refusal unsaid is how three
+          // identical failures looked like a repair that was never wired up.
+          ...(cropEligible && !cropPlan
+            ? [deterministicFramingCropRefusal(normalized.framing_evidence, state.delivery)]
+            : []),
+        ].filter(Boolean).join(' — '),
       },
     };
     await this.#checkpointAttempt(sceneId, attempt);

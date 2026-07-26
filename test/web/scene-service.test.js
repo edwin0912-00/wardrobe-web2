@@ -1653,6 +1653,175 @@ test('an undersized framing-only candidate is deterministically cropped and rech
   assert.equal(attempt.candidate.sha256, evaluatorCandidates[1].sha256);
 });
 
+test('a standard frame just under the floor with surplus floor is cropped into the band without another model call', async (t) => {
+  // The live shape of the product's core failure: scene_1cd6953f attempt 1 measured
+  // 72.8906% of subject, 7.1094% above the hair and 20% of dead floor below the feet. This
+  // is that frame with 9 more pixels of sky (7.8125% above), which is the whole difference
+  // between a crop that converges and one that cannot exist — see the refusal test below.
+  const evaluatorCandidates = [];
+  let evaluations = 0;
+  const current = await fixture(t, {
+    evaluator: {
+      async evaluateScene(context) {
+        evaluatorCandidates.push(context.candidate);
+        evaluations += 1;
+        if (evaluations === 1) {
+          const result = passEvaluation();
+          result.framing_evidence = {
+            subject_bbox_xywh_px: [370, 100, 285, 933],
+            full_head_visible: true,
+            full_footwear_visible: true,
+          };
+          return result;
+        }
+        return passEvaluation();
+      },
+    },
+  });
+
+  const created = await current.service.createScene({
+    ...current.request,
+    idempotencyKey: 'undersized-with-surplus-floor',
+  });
+  const completed = await waitFor(current.service, created.scene_id);
+  assert.equal(completed.status, 'COMPLETED', JSON.stringify(completed, null, 2));
+  assert.equal(
+    current.calls.generator.length,
+    1,
+    'a sub-point framing gap must not buy another paid generation',
+  );
+  assert.equal(evaluations, 2, 'only the derived candidate gets a fresh full QA pass');
+
+  const state = JSON.parse(await readFile(current.service.statePath(created.scene_id), 'utf8'));
+  const attempt = state.attempts.at(-1);
+  assert.equal(attempt.number, 1);
+  assert.equal(attempt.normalization.strategy, 'deterministic_bbox_crop');
+  assert.equal(attempt.normalization.source_attempt, 1);
+  assert.deepEqual(attempt.normalization.crop_xywh_px, [21, 0, 984, 1230]);
+  assert.equal(attempt.normalization.trigger_framing_evidence.subject_height_percent, 72.8906);
+  assert.equal(attempt.normalization.trigger_framing_evidence.clear_space_above_hair_percent, 7.8125);
+  assert.equal(attempt.normalization.trigger_framing_evidence.clear_space_below_footwear_percent, 19.2969);
+
+  // Convergence proved from the recorded crop, not from the fixture's second PASS: a
+  // fixture can be told to say anything, the crop geometry cannot.
+  const [, cropTop, cropWidth, cropHeight] = attempt.normalization.crop_xywh_px;
+  const [, boxTop, , boxHeight] = attempt.normalization.trigger_framing_evidence.subject_bbox_xywh_px;
+  const subjectAfter = (boxHeight / cropHeight) * 100;
+  const aboveAfter = ((boxTop - cropTop) / cropHeight) * 100;
+  const belowAfter = ((cropHeight - (boxTop - cropTop) - boxHeight) / cropHeight) * 100;
+  assert.ok(subjectAfter >= 74 && subjectAfter <= 78, `subject lands at ${subjectAfter}%`);
+  assert.ok(aboveAfter >= 8, `clear space above the hair lands at ${aboveAfter}%`);
+  assert.ok(belowAfter >= 2, `clear space below the footwear lands at ${belowAfter}%`);
+  assert.equal(cropWidth * 5, cropHeight * 4);
+
+  const released = await sharp(await current.service.outputFile(created.scene_id, 'scene.png')).metadata();
+  assert.equal(released.width, 1024);
+  assert.equal(released.height, 1280);
+});
+
+test('the live framing geometry no crop can repair is refused with the measurement that refused it', async (t) => {
+  // scene_1cd6953f attempt 1 verbatim. 933px of subject needs a 1197-1260px crop height to
+  // land in 74-78%, and the 8% head clearance caps the crop at floor(91/0.08) = 1137px: the
+  // windows do not touch, so no crop of these pixels satisfies both locks. Loosening either
+  // lock to make this frame pass would be the suppression, not the fix.
+  const current = await fixture(t, {
+    evaluator: {
+      async evaluateScene() {
+        const result = passEvaluation();
+        result.framing_evidence = {
+          subject_bbox_xywh_px: [370, 91, 285, 933],
+          full_head_visible: true,
+          full_footwear_visible: true,
+        };
+        return result;
+      },
+    },
+  });
+  const created = await current.service.createScene({
+    ...current.request,
+    idempotencyKey: 'live-uncroppable-framing-geometry',
+  });
+  const exhausted = await waitFor(current.service, created.scene_id);
+  assert.equal(exhausted.status, 'FAILED', JSON.stringify(exhausted, null, 2));
+  assert.equal(exhausted.error.code, 'SCENE_QA_EXHAUSTED');
+
+  const state = JSON.parse(await readFile(current.service.statePath(created.scene_id), 'utf8'));
+  assert.equal(state.attempts.length, 3);
+  for (const attempt of state.attempts) {
+    assert.equal(
+      attempt.normalization.strategy,
+      'same_aspect_lossless_resize',
+      'no crop may be recorded for a frame no crop can repair',
+    );
+    assert.match(attempt.error.message, /^FRAMING_AND_ANATOMY — deterministic framing crop impossible: /);
+    assert.match(attempt.error.message, /933px of subject under 91px of clear space/);
+    assert.match(attempt.error.message, /74-78% needs a 1197-1260px crop height/);
+    assert.match(attempt.error.message, /8% head clearance caps it at 1137px/);
+  }
+  const attemptFiles = await readdir(
+    path.join(current.service.sceneDirectory(created.scene_id), 'attempts', '001'),
+  );
+  assert.ok(!attemptFiles.includes('candidate-framing-repair.png'));
+});
+
+test('a short-headroom repair spends the surplus floor instead of enlarging about the same centre', async (t) => {
+  const current = await fixture(t, {
+    evaluator: {
+      async evaluateScene() {
+        const result = passEvaluation();
+        result.framing_evidence = {
+          subject_bbox_xywh_px: [370, 91, 285, 933],
+          full_head_visible: true,
+          full_footwear_visible: true,
+        };
+        return result;
+      },
+    },
+  });
+  const created = await current.service.createScene({
+    ...current.request,
+    idempotencyKey: 'short-headroom-repair-instruction',
+  });
+  await waitFor(current.service, created.scene_id);
+  const repair = current.calls.generator[1].prompt;
+  assert.doesNotMatch(
+    repair,
+    /around the same optical center/,
+    'enlarging about the subject centre is what drove head clearance 7.1094 -> 6.6406',
+  );
+  assert.match(repair, /7\.1094% above the hair against a 8% minimum/);
+  assert.match(repair, /Raise the ground line and lower the whole locked person-and-look group/);
+  assert.match(repair, /the floor below the footwear is 20% and only 15% is needed/);
+  assert.match(repair, /about 9% empty above the hair, 76% person and 15% below the footwear/);
+});
+
+test('an undersized repair whose head clearance already passes keeps the optical-centre instruction', async (t) => {
+  // The rewrite above is confined to the case that measured a headroom defect. A frame that
+  // is only too small still wants a plain scale-up, and a second failing gate is what keeps
+  // the free crop from taking it first.
+  const current = await fixture(t, {
+    evaluator: {
+      async evaluateScene() {
+        const result = passEvaluation({ SCENE_MATCH: 'FAIL' });
+        result.framing_evidence = {
+          subject_bbox_xywh_px: [370, 140, 285, 933],
+          full_head_visible: true,
+          full_footwear_visible: true,
+        };
+        return result;
+      },
+    },
+  });
+  const created = await current.service.createScene({
+    ...current.request,
+    idempotencyKey: 'undersized-with-healthy-headroom',
+  });
+  await waitFor(current.service, created.scene_id);
+  const repair = current.calls.generator[1].prompt;
+  assert.match(repair, /scale the complete locked person-and-look group up around the same optical center/);
+  assert.doesNotMatch(repair, /Raise the ground line/);
+});
+
 test('a legacy undersized failure at the manual limit is repaired locally and exports without another provider call', async (t) => {
   let evaluations = 0;
   const current = await fixture(t, {
