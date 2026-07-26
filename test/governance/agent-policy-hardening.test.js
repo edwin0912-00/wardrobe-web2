@@ -421,6 +421,38 @@ test('orchestrator queue route is fail-closed end to end', async (t) => {
       rmSync(fixture.root, { recursive: true, force: true });
     }
   });
+
+  await t.test('a previously merged handoff is coordination drift, not product drift', () => {
+    const fixture = createScopeRepository();
+    try {
+      mkdirSync(path.join(fixture.root, '.agents', 'handoffs'), {
+        recursive: true,
+      });
+      writeFileSync(
+        path.join(fixture.root, '.agents', 'handoffs', 'CTRL-001.json'),
+        '{}\n',
+      );
+      commitFixture(fixture.root, 'previous control handoff');
+      const pullRequestBase = revParseFixture(fixture.root, 'HEAD');
+      gitFixture(
+        fixture.root,
+        ['switch', '--create', 'lane/CTRL-001/codex-main'],
+      );
+      writeFileSync(path.join(fixture.root, 'LOG.md'), 'next lane update\n');
+      commitFixture(fixture.root, 'next lane without handoff');
+      const head = revParseFixture(fixture.root, 'HEAD');
+      const result = runScopeChecker(
+        fixture.root,
+        pullRequestBase,
+        head,
+        'lane/CTRL-001/codex-main',
+      );
+      assert.equal(result.status, 1);
+      assert.equal(JSON.parse(result.stderr).code, 'HANDOFF_MISSING');
+    } finally {
+      rmSync(fixture.root, { recursive: true, force: true });
+    }
+  });
 });
 
 function boardFixture(task) {

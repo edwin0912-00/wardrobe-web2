@@ -3,8 +3,7 @@ import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import process from 'node:process';
 import {
-  CONTROL_PATTERNS,
-  matchOwnedPath,
+  isProductPath,
   taskForBranch,
   validateBoardDocument,
   validateHandoffDocument,
@@ -140,8 +139,7 @@ const controlOnlyDelta = execFileSync(
   ['diff', '--name-only', '--no-renames', `${task.base_sha}..${mergeBase}`, '--'],
   { cwd: root, encoding: 'utf8' },
 ).split('\n').filter(Boolean);
-const nonControlDelta = controlOnlyDelta.filter((changedPath) =>
-  !CONTROL_PATTERNS.some((pattern) => matchOwnedPath(changedPath, pattern)));
+const nonControlDelta = controlOnlyDelta.filter(isProductPath);
 if (nonControlDelta.length > 0) {
   fail('TASK_BASE_PRODUCT_DRIFT', {
     task_base_sha: task.base_sha,
