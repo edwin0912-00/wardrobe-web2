@@ -31,3 +31,24 @@ Evidence: the new governance test failed before implementation with
 `ERR_MODULE_NOT_FOUND`; post-change evidence is recorded in the CTRL-001
 handoff and PR checks. The current focused governance suite passes 76/76.
 weakened_checks: none.
+
+2026-07-26 · CTRL-001 · 36ae95a · PR #2
+Change: install the permanent `control/codex-main` queue route, stale-base and
+candidate-board validation, and correct prior-handoff drift classification.
+Why: task assignment and completion must be GitHub-reviewed ledger changes,
+while a previous task handoff must not be mistaken for product-code drift.
+Evidence: exact local acceptance passed; the new regression failed against the
+pre-fix implementation and passed after it; two independent reviews returned
+PASS. PR #2 merged as `9d4780f`. Its integration-base jobs exposed the exact
+old-checker bootstrap defect before candidate execution, which this merge
+replaced.
+weakened_checks: none.
+
+2026-07-26 · WARD-001 · assigned at 9d4780f · control queue
+Change: close CTRL-001 and lease the Claude/Codex semantic reconciliation to
+`codex-wardrobe-merge` on `lane/WARD-001/codex-wardrobe-merge`.
+Why: the control plane is now installed and reconciliation is the first product
+priority.
+Evidence: task base and both required-context blob hashes resolve at
+`9d4780f`; lease generation 2 expires 2026-07-27T21:29:08Z.
+weakened_checks: none.
