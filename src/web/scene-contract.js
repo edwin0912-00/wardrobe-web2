@@ -244,20 +244,35 @@ export function editorialFramingLock(slot) {
   return lock;
 }
 
-function framingLockForPresetId(presetId) {
-  if (typeof presetId === 'string' && presetId.startsWith('editorial.')) {
+const STANDARD_FRAMING_LOCK = Object.freeze({
+  subject: Object.freeze([74, 78]),
+  above: 8,
+  below: 2,
+  head: true,
+  footwear: true,
+  aboveIsAdvisoryWhenHeadVisible: false,
+});
+
+// Resolves from the preset id because that is the one part of a preset every framing
+// caller holds: the live QA path has the parsed SceneSpec, the persisted-state
+// validators have only the binding. Both are safe to key on, since
+// validatePresetSnapshot refuses a SceneSpec whose camera disagrees with the lock its
+// id resolves to — standard against [74, 78]/8/2 and editorial against
+// EDITORIAL_FRAMING_LOCKS[shot_slot], with the id itself pinned to
+// `${mode_id}.${shot_slot}`.
+export function sceneFramingLock(preset) {
+  const presetId = typeof preset === 'string' ? preset : preset?.preset_id;
+  // A missing id must not quietly resolve to the standard lock: that is how an
+  // editorial shot loses its art-direction bands and gets judged as a fitting shot.
+  if (typeof presetId !== 'string' || presetId.length === 0) {
+    throw new Error('Scene framing lock requires a preset carrying its preset_id');
+  }
+  if (presetId.startsWith('editorial.')) {
     const slot = [...EDITORIAL_SHOT_SLOTS].find((candidate) => presetId.endsWith(`.${candidate}`));
     const lock = slot ? EDITORIAL_FRAMING_LOCKS[slot] : null;
     if (lock) return lock;
   }
-  return {
-    subject: [74, 78],
-    above: 8,
-    below: 2,
-    head: true,
-    footwear: true,
-    aboveIsAdvisoryWhenHeadVisible: false,
-  };
+  return STANDARD_FRAMING_LOCK;
 }
 
 export function sha256(value) {
@@ -1176,6 +1191,9 @@ export function normalizeEvaluatorResult(result) {
   };
 }
 
+// The measurement primitive. Production code must not call it: it reaches the lock
+// through assessSceneFraming, which is the only function allowed to spell these option
+// names. See the note there.
 export function assessFramingEvidence(evidence, {
   width,
   height,
@@ -1253,12 +1271,39 @@ export function assessFramingEvidence(evidence, {
       minimum_clear_space_above_hair_percent: minimumAboveHairPercent,
       minimum_clear_space_below_footwear_percent: minimumBelowFootwearPercent,
       clear_space_above_hair_percent: aboveHair,
+      // Without this the allowance was only inferable — headroom under its own minimum
+      // and no INSUFFICIENT_CLEAR_SPACE_ABOVE_HAIR beside it — and a reader who did not
+      // know the editorial lock existed read the receipt as a passing frame that simply
+      // measured 3.2813 against 6. scene_13313d49 shipped exactly that.
+      clear_space_above_hair_waived_by_full_head: headroomWaived,
       clear_space_below_footwear_percent: belowFootwear,
       full_head_visible: evidence.full_head_visible === true,
       full_footwear_visible: evidence.full_footwear_visible === true,
     },
     defects,
   };
+}
+
+// The one entry point for a framing verdict: hand it the preset, never the bands. The
+// four assessments used to source their own options and the live one built them by hand
+// off preset.camera, so the editorial headroom waiver was threaded through the three
+// lock-driven callers, passed its unit tests and changed nothing in production — the
+// assessment that actually decides a shot never saw the flag. Two paid generation
+// rounds and an hour went into rediscovering that. The lock option names are spelled
+// out here and nowhere else, which is what makes a new framing rule unable to reach
+// only some of the paths.
+export function assessSceneFraming(evidence, { preset, width, height }) {
+  const lock = sceneFramingLock(preset);
+  return assessFramingEvidence(evidence, {
+    width,
+    height,
+    expectedSubjectHeightPercent: lock.subject,
+    minimumAboveHairPercent: lock.above,
+    minimumBelowFootwearPercent: lock.below,
+    requireFullHead: lock.head,
+    requireFullFootwear: lock.footwear,
+    aboveIsAdvisoryWhenHeadVisible: lock.aboveIsAdvisoryWhenHeadVisible === true,
+  });
 }
 
 export function validateFramingEvidence(evidence, options) {
@@ -1388,28 +1433,24 @@ function validatePersistedReviewer(reviewer, label) {
 }
 
 function validatePersistedFramingEvidence(evidence, {
+  preset,
   width,
   height,
-  expectedSubjectHeightPercent,
-  minimumAboveHairPercent = 8,
-  minimumBelowFootwearPercent = 2,
-  requireFullHead = true,
-  requireFullFootwear = true,
-  aboveIsAdvisoryWhenHeadVisible = false,
   requirePass,
   label,
 }) {
-  const assessment = assessFramingEvidence(evidence, {
-    width,
-    height,
-    expectedSubjectHeightPercent,
-    minimumAboveHairPercent,
-    minimumBelowFootwearPercent,
-    requireFullHead,
-    requireFullFootwear,
-    aboveIsAdvisoryWhenHeadVisible,
-  });
-  if (sha256(canonicalJsonBytes(assessment.evidence)) !== sha256(canonicalJsonBytes(evidence))) {
+  const assessment = assessSceneFraming(evidence, { preset, width, height });
+  // A receipt written before the waiver was stated carries every measurement but not
+  // the flag. That flag is derived from those measurements and the preset lock, never
+  // reported by the evaluator, so recomputing it for such a receipt cannot be wrong and
+  // its absence is the single difference tolerated here — everything else still has to
+  // match byte for byte. Demanding it would instead have quarantined all nine persisted
+  // scenes on the next read, three of them delivered editorial heroes.
+  const comparable = evidence?.clear_space_above_hair_waived_by_full_head === undefined
+    ? Object.fromEntries(Object.entries(assessment.evidence)
+      .filter(([key]) => key !== 'clear_space_above_hair_waived_by_full_head'))
+    : assessment.evidence;
+  if (sha256(canonicalJsonBytes(comparable)) !== sha256(canonicalJsonBytes(evidence))) {
     throw new Error(`${label} framing evidence does not match its measured bounding box`);
   }
   if (requirePass && assessment.defects.length > 0) {
@@ -1493,16 +1534,10 @@ function validatePersistedNormalization(normalization, { attempt, state }) {
     normalization.trigger_reviewer,
     `Persisted scene attempt ${attempt.number} deterministic trigger`,
   );
-  const framingLock = framingLockForPresetId(state.bindings.preset.preset_id);
   validatePersistedFramingEvidence(normalization.trigger_framing_evidence, {
+    preset: state.bindings.preset,
     width: normalization.source_width,
     height: normalization.source_height,
-    expectedSubjectHeightPercent: framingLock.subject,
-    minimumAboveHairPercent: framingLock.above,
-    aboveIsAdvisoryWhenHeadVisible: framingLock.aboveIsAdvisoryWhenHeadVisible === true,
-    minimumBelowFootwearPercent: framingLock.below,
-    requireFullHead: framingLock.head,
-    requireFullFootwear: framingLock.footwear,
     requirePass: false,
     label: `Persisted scene attempt ${attempt.number} deterministic trigger`,
   });
@@ -1709,7 +1744,6 @@ export function validatePersistedSceneState(state, expectedSceneId) {
     assertSha256(reference.sha256, `scene reference ${reference.reference_id} sha256`);
     assertRelativeArtifactPath(reference.relative_path, `scene reference ${reference.reference_id} path`);
   }
-  const persistedFramingLock = framingLockForPresetId(bindings.preset.preset_id);
   if (!Number.isInteger(state.cycle) || state.cycle < 1
     || !Number.isInteger(state.manual_retries) || state.manual_retries < 0
     || !Array.isArray(state.retry_requests)
@@ -1837,14 +1871,9 @@ export function validatePersistedSceneState(state, expectedSceneId) {
       validatePersistedQaGates(attempt.qa.gates, expectedAttemptGates, qaLabel);
       validatePersistedReviewer(attempt.qa.reviewer, qaLabel);
       validatePersistedFramingEvidence(attempt.qa.framing_evidence, {
+        preset: bindings.preset,
         width: state.delivery.width,
         height: state.delivery.height,
-        expectedSubjectHeightPercent: persistedFramingLock.subject,
-        minimumAboveHairPercent: persistedFramingLock.above,
-        aboveIsAdvisoryWhenHeadVisible: persistedFramingLock.aboveIsAdvisoryWhenHeadVisible === true,
-        minimumBelowFootwearPercent: persistedFramingLock.below,
-        requireFullHead: persistedFramingLock.head,
-        requireFullFootwear: persistedFramingLock.footwear,
         requirePass: expectedDecision === 'PASS',
         label: qaLabel,
       });
@@ -1898,14 +1927,9 @@ export function validatePersistedSceneState(state, expectedSceneId) {
   if (hasStateFraming) {
     validatePersistedReviewer(state.qa.reviewer, 'Persisted scene QA');
     validatePersistedFramingEvidence(state.qa.framing_evidence, {
+      preset: bindings.preset,
       width: state.delivery.width,
       height: state.delivery.height,
-      expectedSubjectHeightPercent: persistedFramingLock.subject,
-      minimumAboveHairPercent: persistedFramingLock.above,
-      aboveIsAdvisoryWhenHeadVisible: persistedFramingLock.aboveIsAdvisoryWhenHeadVisible === true,
-      minimumBelowFootwearPercent: persistedFramingLock.below,
-      requireFullHead: persistedFramingLock.head,
-      requireFullFootwear: persistedFramingLock.footwear,
       requirePass: state.qa.decision === 'PASS',
       label: 'Persisted scene QA',
     });

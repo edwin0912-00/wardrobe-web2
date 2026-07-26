@@ -30,7 +30,7 @@ import {
   SCENE_STATES,
   SCENE_TERMINAL_STATES,
   allGatesPass,
-  assessFramingEvidence,
+  assessSceneFraming,
   assertIdempotencyKey,
   assertSafeSceneId,
   canonicalJsonBytes,
@@ -3289,26 +3289,15 @@ export class SceneService {
         sceneQaItemScope(bound.approvedItems, bound.preset),
         normalized,
       );
-      const framingAssessment = assessFramingEvidence(normalized.framing_evidence, {
+      // This is the assessment that actually decides a live shot. It used to read the
+      // bands off bound.preset.camera by hand, which is why waiving headroom on the
+      // three lock-driven call sites in scene-contract.js changed nothing here and an
+      // editorial hero kept failing on 3.75% of clear space with its head observed
+      // whole. The preset goes in, the lock owner answers.
+      const framingAssessment = assessSceneFraming(normalized.framing_evidence, {
+        preset: bound.preset,
         width: state.delivery.width,
         height: state.delivery.height,
-        expectedSubjectHeightPercent: bound.preset.camera.subject_height_percent,
-        minimumAboveHairPercent:
-          bound.preset.camera.minimum_clear_space_percent?.above_hair ?? 8,
-        minimumBelowFootwearPercent:
-          bound.preset.camera.minimum_clear_space_percent?.below_footwear ?? 2,
-        requireFullHead: bound.preset.camera.required_visibility?.full_head ?? true,
-        requireFullFootwear:
-          bound.preset.camera.required_visibility?.full_footwear ?? true,
-        // This is the assessment that actually decides a live shot, and it builds
-        // its own options straight off the bound preset instead of asking the
-        // lock owner — which is why waiving headroom on the three lock-driven
-        // call sites changed nothing here and an editorial hero kept failing on
-        // 3.75% of clear space with its head observed whole. The presence of an
-        // editorial block IS the art-direction signal. See the note on
-        // EDITORIAL_FRAMING_LOCKS in scene-contract.js for why the observation
-        // outranks the proxy.
-        aboveIsAdvisoryWhenHeadVisible: Boolean(bound.preset.editorial),
       });
       normalized.framing_evidence = framingAssessment.evidence;
       if (framingAssessment.defects.length) {

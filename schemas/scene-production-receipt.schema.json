@@ -502,6 +502,7 @@
         "minimum_clear_space_above_hair_percent": { "const": 8 },
         "minimum_clear_space_below_footwear_percent": { "const": 2 },
         "clear_space_above_hair_percent": { "type": "number", "minimum": 0, "maximum": 100 },
+        "clear_space_above_hair_waived_by_full_head": { "const": false },
         "clear_space_below_footwear_percent": { "type": "number", "minimum": 0, "maximum": 100 },
         "full_head_visible": { "type": "boolean" },
         "full_footwear_visible": { "type": "boolean" }

@@ -9,6 +9,7 @@ import {
   SCENE_EVALUATOR_GATES,
   SCENE_QA_GATES,
   assessFramingEvidence,
+  assessSceneFraming,
   canonicalJsonBytes,
   sha256,
   validatePersistedSceneState,
@@ -960,6 +961,87 @@ test('a persisted scene attempt may carry optional item_fidelity_evidence withou
   const withUnknownKey = structuredClone(baseState);
   withUnknownKey.attempts[0].qa.unexpected_field = true;
   assert.throws(() => validatePersistedSceneState(withUnknownKey, withUnknownKey.scene_id));
+});
+
+test('a framing rule reaches the persisted receipts and the live verdict or neither', async (t) => {
+  const current = await fixture(t);
+  const created = await current.service.createScene({
+    ...current.request,
+    idempotencyKey: 'framing-lock-one-owner',
+  });
+  const completed = await waitFor(current.service, created.scene_id);
+  assert.equal(completed.status, 'COMPLETED');
+  const baseState = JSON.parse(await readFile(current.service.statePath(created.scene_id), 'utf8'));
+
+  // The measured frame of scene_13313d49: 3.2813% of headroom against the identity
+  // hero's 6% minimum, head observed whole. The waiver was threaded through the
+  // persisted validators alone once already, so this state — accepted here, refused
+  // under the standard lock below — is what tells the two apart.
+  const editorialPresetId = 'editorial.edwin_novak.organic_contrast.clean_identity_hero';
+  const waived = assessSceneFraming({
+    subject_bbox_xywh_px: [383, 42, 337, 1200],
+    full_head_visible: true,
+    full_footwear_visible: true,
+  }, {
+    preset: { preset_id: editorialPresetId },
+    width: baseState.delivery.width,
+    height: baseState.delivery.height,
+  });
+  assert.deepEqual(waived.defects, []);
+  assert.equal(waived.evidence.clear_space_above_hair_waived_by_full_head, true);
+
+  const editorial = structuredClone(baseState);
+  editorial.bindings.preset.preset_id = editorialPresetId;
+  editorial.attempts.at(-1).qa.framing_evidence = structuredClone(waived.evidence);
+  editorial.qa.framing_evidence = structuredClone(waived.evidence);
+  assert.doesNotThrow(() => validatePersistedSceneState(editorial, editorial.scene_id));
+
+  // Same receipt, standard preset: the lock the persisted sites resolve is the preset's,
+  // so the recomputed bands no longer match what the receipt recorded.
+  const standard = structuredClone(editorial);
+  standard.bindings.preset.preset_id = PRESET_ID;
+  assert.throws(
+    () => validatePersistedSceneState(standard, standard.scene_id),
+    /framing evidence does not match its measured bounding box/,
+  );
+
+  // And the waiver stays conditional on the observation everywhere: a cropped head is
+  // still a blocking defect on a PASS receipt.
+  const cropped = assessSceneFraming({
+    subject_bbox_xywh_px: [383, 42, 337, 1200],
+    full_head_visible: false,
+    full_footwear_visible: true,
+  }, {
+    preset: { preset_id: editorialPresetId },
+    width: baseState.delivery.width,
+    height: baseState.delivery.height,
+  });
+  assert.equal(cropped.evidence.clear_space_above_hair_waived_by_full_head, false);
+  const croppedState = structuredClone(editorial);
+  croppedState.attempts.at(-1).qa.framing_evidence = structuredClone(cropped.evidence);
+  croppedState.qa.framing_evidence = structuredClone(cropped.evidence);
+  assert.throws(
+    () => validatePersistedSceneState(croppedState, croppedState.scene_id),
+    /PASS framing evidence violates INSUFFICIENT_CLEAR_SPACE_ABOVE_HAIR/,
+  );
+
+  // A receipt written before the waiver was stated omits the flag; recomputing it from
+  // the same measurements is exact, so those scenes must still read back.
+  const legacy = structuredClone(editorial);
+  for (const receipt of [legacy.attempts.at(-1).qa.framing_evidence, legacy.qa.framing_evidence]) {
+    delete receipt.clear_space_above_hair_waived_by_full_head;
+  }
+  assert.doesNotThrow(() => validatePersistedSceneState(legacy, legacy.scene_id));
+
+  // A receipt that claims the waiver where the assessment did not is not tolerated.
+  const forged = structuredClone(baseState);
+  for (const receipt of [forged.attempts.at(-1).qa.framing_evidence, forged.qa.framing_evidence]) {
+    receipt.clear_space_above_hair_waived_by_full_head = true;
+  }
+  assert.throws(
+    () => validatePersistedSceneState(forged, forged.scene_id),
+    /framing evidence does not match its measured bounding box/,
+  );
 });
 
 test('a tampered quarantined rejection source fails closed before repair generation', async (t) => {
