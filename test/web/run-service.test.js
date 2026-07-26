@@ -269,7 +269,10 @@ test('working core supports text-only outfit and rejects invalid uploads before 
       person: {
         filename: 'bad.png',
         mimetype: 'image/png',
-        buffer: Buffer.from('bad'),
+        // A real PNG signature over a truncated header. The media-type gate now reads the
+        // bytes, so three bytes called .png never reach the decoder at all and only a true
+        // container that stopped decoding still proves this gate is the one that fired.
+        buffer: (await upload()).buffer.subarray(0, 40),
       },
       outfitText: 'black top',
     });

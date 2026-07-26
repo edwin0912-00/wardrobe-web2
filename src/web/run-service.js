@@ -34,7 +34,6 @@ import {
 } from './run-visualizer.js';
 import { sanitizeOutbound, sanitizeOutboundString } from '../security/outbound-redaction.js';
 
-const MIME_EXTENSION = Object.freeze({ 'image/png': '.png', 'image/jpeg': '.jpg', 'image/webp': '.webp' });
 const TERMINAL = new Set(['COMPLETED', 'NEEDS_INPUT', 'FAILED']);
 const RESTARTABLE = new Set(['QUEUED', 'RUNNING']);
 const SAFE_RUN_ID = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/;
@@ -45,6 +44,20 @@ const MAX_APPROVED_ITEM_CHECKPOINT_BYTES = 16 * 1024 * 1024;
 const MAX_APPROVED_ITEM_JOB_BYTES = 2 * 1024 * 1024;
 const MAX_APPROVED_ITEM_MANIFEST_BYTES = 16 * 1024 * 1024;
 const PNG_SIGNATURE = Buffer.from('89504e470d0a1a0a', 'hex');
+// A valid .webp was rejected as UNSUPPORTED_MEDIA_TYPE because curl declared
+// application/octet-stream, and the identical bytes were accepted once the client
+// relabelled them image/webp. Browsers fill the header in, so only a mobile app, a
+// script or an integration ever hit it. The container is in the bytes, and the bytes
+// are the one party to the upload that cannot misdeclare it, so they decide.
+const IMAGE_SIGNATURES = Object.freeze([
+  { extension: '.png', matches: (bytes) => bytes.subarray(0, 8).equals(PNG_SIGNATURE) },
+  { extension: '.jpg', matches: (bytes) => bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff },
+  {
+    extension: '.webp',
+    matches: (bytes) => bytes.subarray(0, 4).toString('latin1') === 'RIFF'
+      && bytes.subarray(8, 12).toString('latin1') === 'WEBP',
+  },
+]);
 const CHECKPOINT_MESSAGES = Object.freeze({
   RECEIVED: 'Задачу прийнято',
   VALIDATING: 'Перевіряємо контракт і файли',
@@ -244,6 +257,10 @@ async function atomicJson(filename, value) {
   await rename(temporary, filename);
 }
 
+function sniffImageExtension(bytes) {
+  return IMAGE_SIGNATURES.find((candidate) => candidate.matches(bytes))?.extension ?? null;
+}
+
 async function validateUpload(upload, field) {
   if (!upload || !Buffer.isBuffer(upload.buffer) || upload.buffer.length === 0) {
     throw needsInput('INPUT_REQUIRED', `${field} is required`, {
@@ -251,7 +268,7 @@ async function validateUpload(upload, field) {
       requirements: ['non-empty PNG, JPEG, or WEBP image'],
     });
   }
-  const extension = MIME_EXTENSION[upload.mimetype];
+  const extension = sniffImageExtension(upload.buffer);
   if (!extension) {
     throw needsInput('UNSUPPORTED_MEDIA_TYPE', `${field} must be PNG, JPEG, or WEBP`, {
       field,
