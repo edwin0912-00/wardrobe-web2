@@ -32,6 +32,14 @@ Evidence: the new governance test failed before implementation with
 handoff and PR checks. The current focused governance suite passes 76/76.
 weakened_checks: none.
 
+2026-07-26 · SITE-002 · execution started
+Change: move the accepted contact-sheet lease from ASSIGNED to IN_PROGRESS.
+Why: the implementation worker has started on its exact isolated branch and
+its eventual PR must be accepted against an active lease.
+Evidence: task owner, branch, lock, scope, base, and expiry are unchanged from
+the accepted queue assignment.
+weakened_checks: none.
+
 2026-07-26 · WARD-001 · blocked after hosted compatibility proof
 Change: mark the evidence lane BLOCKED and release its locks.
 Why: PR #8 passed focused acceptance but failed trusted-base compatibility:
