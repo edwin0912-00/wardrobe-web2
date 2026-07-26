@@ -2,7 +2,7 @@
   "schema_version": "1.0.0",
   "integration_branch": "integration/wardrobe-20260726",
   "orchestrator": "codex-main",
-  "updated_at": "2026-07-26T23:32:23.000Z",
+  "updated_at": "2026-07-26T23:38:42.000Z",
   "tasks": [
     {
       "id": "CTRL-001",
@@ -98,6 +98,71 @@
       ],
       "stop_conditions": [
         "Do not modify main, live runtime, deployments, credentials, or port 4180."
+      ]
+    },
+    {
+      "id": "CTRL-002",
+      "title": "Make the exact baseline parser portable across Node test reporters",
+      "priority": "P0",
+      "state": "IN_PROGRESS",
+      "owner": "codex-main",
+      "branch": "lane/CTRL-002/codex-main",
+      "base_sha": "ac02eabcc1c3599ed109b34620adebb0ac63575f",
+      "lease": {
+        "generation": 1,
+        "issued_at": "2026-07-26T23:38:42.000Z",
+        "expires_at": "2026-07-27T23:38:42.000Z"
+      },
+      "lock_groups": [
+        "coordination"
+      ],
+      "allowed_paths": [
+        "tools/coordination/check-test-baseline.mjs",
+        "tools/coordination/baseline-output.mjs",
+        "test/governance/check-test-baseline.test.js",
+        ".agents/handoffs/CTRL-002.json"
+      ],
+      "forbidden_paths": [
+        "secrets/**",
+        "runtime/**",
+        "output/**",
+        ".github/**"
+      ],
+      "required_context": [],
+      "depends_on": [
+        "CTRL-001"
+      ],
+      "acceptance": [
+        {
+          "check_id": "baseline-parser-tests",
+          "execution_class": "ci",
+          "command": [
+            "node",
+            "--test",
+            "test/governance/check-test-baseline.test.js"
+          ],
+          "expected_exit_codes": [
+            0
+          ],
+          "expected": "Reporter headings cannot be mistaken for named test failures"
+        },
+        {
+          "check_id": "diff-hygiene",
+          "execution_class": "ci",
+          "command": [
+            "git",
+            "diff",
+            "--check",
+            "$TASK_BASE_SHA...$TESTED_CODE_SHA"
+          ],
+          "expected_exit_codes": [
+            0
+          ],
+          "expected": "No whitespace errors or conflict markers"
+        }
+      ],
+      "stop_conditions": [
+        "Do not alter which product failures are accepted; only parse reporter output correctly."
       ]
     },
     {
