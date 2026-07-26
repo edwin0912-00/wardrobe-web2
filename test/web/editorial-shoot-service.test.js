@@ -840,6 +840,289 @@ test('tampering with the immutable ShootBible or event chain fails closed', asyn
   );
 });
 
+/**
+ * SceneService's dedupe semantics, which is what an editorial execution key is
+ * actually spent against: the scene id is the hash of the key, a key rebound to an
+ * identical request replays that scene instead of paying for a second generation,
+ * and a key rebound to a different request is refused with SceneService's own
+ * message. requestVersion stands for the parts of a scene request no shoot can see
+ * from its own state - the anchor set, the resolved preset bytes, the model route.
+ * Shoot 24f54a3a met exactly that: the scene stored at its hero's first address,
+ * scene_9ac1e693, had been written by a pipeline that sent no anchor set at all.
+ */
+class SharedSceneStore {
+  constructor() {
+    this.scenes = new Map();
+    this.generations = [];
+    this.conflicts = [];
+  }
+
+  generationsFor(shootId) {
+    return this.generations.filter((generation) => generation.shoot_id === shootId);
+  }
+}
+
+class SharedSceneStoreExecutor {
+  constructor(store, {
+    requestVersion = 'blocking-and-hero-anchors',
+    delayMs = 5,
+    plans = {},
+  } = {}) {
+    this.store = store;
+    this.requestVersion = requestVersion;
+    this.delayMs = delayMs;
+    this.plans = plans;
+    this.invocations = [];
+  }
+
+  #sceneRequestFingerprint(context) {
+    return sha256(canonicalJsonBytes({
+      request_version: this.requestVersion,
+      approved_look: context.approved_look,
+      preset: `${context.shoot_bible.mode_id}@${context.shoot_bible.mode_version}#${context.slot}`,
+      // The hero continuity anchor is the shoot's own approved frame, so two shoots
+      // that each generated a hero never send the same request for the five siblings.
+      hero_continuity_anchor_sha256: context.hero_output?.sha256 ?? null,
+    }));
+  }
+
+  executeShot(context) {
+    this.invocations.push({ ...context, signal: undefined });
+    const fingerprint = this.#sceneRequestFingerprint(context);
+    const existing = this.store.scenes.get(context.idempotency_key);
+    if (existing) {
+      if (existing.fingerprint !== fingerprint) {
+        this.store.conflicts.push({
+          shoot_id: context.shoot_id,
+          slot: context.slot,
+          attempt: context.attempt,
+          idempotency_key: context.idempotency_key,
+          bound_to_shoot_id: existing.shoot_id,
+        });
+        return Promise.reject(new Error(
+          'The idempotency key is already bound to a different scene request',
+        ));
+      }
+      return existing.operation;
+    }
+    const plan = this.plans[context.slot];
+    const operation = Promise.resolve().then(async () => {
+      if (typeof plan === 'function') return plan(context);
+      if (plan?.promise) return plan.promise;
+      await wait(this.delayMs);
+      return executionResult(context, plan ?? {});
+    });
+    this.store.generations.push({
+      shoot_id: context.shoot_id,
+      slot: context.slot,
+      attempt: context.attempt,
+      idempotency_key: context.idempotency_key,
+    });
+    this.store.scenes.set(context.idempotency_key, {
+      fingerprint,
+      operation,
+      shoot_id: context.shoot_id,
+    });
+    return operation;
+  }
+}
+
+async function completeSixSlotShoot(service, request, keyPrefix, store) {
+  const created = await service.createShoot({
+    ...request,
+    idempotencyKey: `${keyPrefix}-create-0001`,
+  });
+  await service.approveBible(created.shoot_id, {
+    idempotencyKey: `${keyPrefix}-bible-0001`,
+    expectedBibleSha256: created.bindings.shoot_bible.sha256,
+  });
+  const heroSettled = await waitForState(
+    service,
+    created.shoot_id,
+    (state) => ['HERO_PENDING_APPROVAL', 'NEEDS_RETRY', 'CANCELLED'].includes(state.status),
+    5_000,
+  );
+  assert.equal(
+    heroSettled.status,
+    'HERO_PENDING_APPROVAL',
+    `hero of ${created.shoot_id} did not reach approval: ${JSON.stringify({
+      hero: heroSettled.shots[0].error,
+      conflicts: store.conflicts,
+    })}`,
+  );
+  await service.approveHero(created.shoot_id, {
+    idempotencyKey: `${keyPrefix}-hero-0001`,
+    expectedOutputSha256: heroSettled.shots[0].output.sha256,
+  });
+  const settled = await waitForState(
+    service,
+    created.shoot_id,
+    (state) => ['COMPLETED', 'NEEDS_RETRY', 'CANCELLED'].includes(state.status),
+    5_000,
+  );
+  await service.waitForIdle(created.shoot_id);
+  return settled;
+}
+
+test('a re-shoot of the same look and mode drives its own six slots, not the earlier shoot scene ids', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'zeely-editorial-reshoot-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const store = new SharedSceneStore();
+  const earlier = await fixture(t, {
+    executor: new SharedSceneStoreExecutor(store, { requestVersion: 'pre-anchor-pipeline' }),
+    rootDirectory: root,
+    clock: monotonicClock('2026-07-25T23:59:00.000Z'),
+  });
+  const first = await completeSixSlotShoot(
+    earlier.service,
+    earlier.request,
+    'earlier-shoot-of-the-same-look',
+    store,
+  );
+  assert.equal(first.status, 'COMPLETED');
+  assert.equal(store.generationsFor(first.shoot_id).length, 6);
+
+  const laterExecutor = new SharedSceneStoreExecutor(store);
+  const laterService = new EditorialShootService({
+    rootDirectory: root,
+    sceneExecutor: laterExecutor,
+    clock: monotonicClock('2026-07-26T04:27:00.000Z'),
+  });
+  await laterService.initialize();
+  const second = await completeSixSlotShoot(
+    laterService,
+    earlier.request,
+    'later-shoot-of-the-same-look',
+    store,
+  );
+
+  assert.notEqual(second.shoot_id, first.shoot_id);
+  assert.equal(second.status, 'COMPLETED', JSON.stringify(store.conflicts));
+  assert.deepEqual(second.shots.map((shot) => shot.status), Array(6).fill('APPROVED'));
+  assert.deepEqual(store.conflicts, []);
+  assert.equal(store.generationsFor(second.shoot_id).length, 6);
+
+  const firstAddresses = new Set(
+    store.generationsFor(first.shoot_id).map((generation) => generation.idempotency_key),
+  );
+  assert.deepEqual(
+    store.generationsFor(second.shoot_id)
+      .filter((generation) => firstAddresses.has(generation.idempotency_key)),
+    [],
+    'no execution address may be spent by two different shoots',
+  );
+  const heroFrame = second.shots[0].output.sha256;
+  assert.ok(
+    laterExecutor.invocations
+      .filter((call) => call.slot !== 'clean_identity_hero')
+      .every((call) => call.hero_output?.sha256 === heroFrame),
+    'the five siblings condition on their own shoot hero frame, which is why one address cannot serve both shoots',
+  );
+  const frames = [...first.shots, ...second.shots].map((shot) => shot.output.sha256);
+  assert.equal(new Set(frames).size, 12);
+  const rereadFirst = await laterService.getShoot(first.shoot_id);
+  assert.deepEqual(
+    rereadFirst.shots.map((shot) => shot.output.sha256),
+    first.shots.map((shot) => shot.output.sha256),
+  );
+});
+
+test('a resumed attempt and a replayed retry each spend one generation, not two', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'zeely-editorial-replay-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const store = new SharedSceneStore();
+  const heroDeferred = deferred();
+  const failedSlot = 'interference_frame';
+  const executor = new SharedSceneStoreExecutor(store, {
+    plans: {
+      clean_identity_hero: heroDeferred,
+      [failedSlot]: (context) => executionResult(context, {
+        decision: context.attempt === 1 ? 'FAIL' : 'PASS',
+        failGate: 'NEAR_COPY_AND_LEAKAGE',
+      }),
+    },
+  });
+  const current = await fixture(t, {
+    executor,
+    rootDirectory: root,
+    clock: monotonicClock('2026-07-26T05:00:00.000Z'),
+  });
+  const created = await current.service.createShoot(current.request);
+  await current.service.approveBible(created.shoot_id, {
+    idempotencyKey: 'approve-bible-before-the-replayed-retry',
+    expectedBibleSha256: created.bindings.shoot_bible.sha256,
+  });
+  const running = await waitForState(
+    current.service,
+    created.shoot_id,
+    (state) => state.shots[0].status === 'RUNNING' && store.generations.length === 1,
+  );
+  const heroAttempt = running.shots[0].attempts[0];
+
+  const restarted = new EditorialShootService({
+    rootDirectory: root,
+    sceneExecutor: executor,
+    clock: monotonicClock('2026-07-26T06:00:00.000Z'),
+  });
+  await restarted.initialize();
+  await waitForState(
+    restarted,
+    created.shoot_id,
+    (state) => state.shots[0].status === 'RUNNING' && executor.invocations.length >= 2,
+  );
+  const resumed = executor.invocations.at(-1);
+  assert.equal(resumed.idempotency_key, heroAttempt.execution_idempotency_key);
+  assert.equal(store.generations.length, 1, 'the resumed hero attempt must not be charged twice');
+
+  heroDeferred.resolve(executionResult(resumed));
+  const heroPassed = await waitForState(
+    restarted,
+    created.shoot_id,
+    (state) => state.status === 'HERO_PENDING_APPROVAL',
+  );
+  await restarted.approveHero(created.shoot_id, {
+    idempotencyKey: 'approve-hero-before-the-replayed-retry',
+    expectedOutputSha256: heroPassed.shots[0].output.sha256,
+  });
+  const needsRetry = await waitForState(
+    restarted,
+    created.shoot_id,
+    (state) => state.status === 'NEEDS_RETRY',
+    5_000,
+  );
+  await Promise.all([
+    current.service.waitForIdle(created.shoot_id),
+    restarted.waitForIdle(created.shoot_id),
+  ]);
+  assert.equal(needsRetry.shots.find((shot) => shot.slot === failedSlot).status, 'FAILED');
+  assert.equal(store.generations.length, 6);
+
+  const retryRequest = { idempotencyKey: 'retry-the-interference-frame-once-0001' };
+  await Promise.all([
+    restarted.retryShot(created.shoot_id, failedSlot, retryRequest),
+    restarted.retryShot(created.shoot_id, failedSlot, retryRequest),
+  ]);
+  const completed = await waitForState(
+    restarted,
+    created.shoot_id,
+    (state) => state.status === 'COMPLETED',
+    5_000,
+  );
+  await restarted.waitForIdle(created.shoot_id);
+  assert.equal(completed.shots.find((shot) => shot.slot === failedSlot).attempts.length, 2);
+  assert.equal(
+    store.generations.length,
+    7,
+    'the replayed retry must not buy a second generation for the same attempt',
+  );
+  assert.deepEqual(store.conflicts, []);
+
+  const replayedCreate = await restarted.createShoot(current.request);
+  assert.equal(replayedCreate.shoot_id, created.shoot_id);
+  assert.equal(store.generations.length, 7);
+  assert.equal(new Set(store.generations.map((item) => item.idempotency_key)).size, 7);
+});
+
 function cloneForAssertion(value) {
   return JSON.parse(JSON.stringify(value));
 }

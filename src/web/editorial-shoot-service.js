@@ -316,7 +316,8 @@ export class EditorialShootServiceError extends Error {
  * Durable Edwin six-shot orchestration core.
  *
  * sceneExecutor.executeShot(context) must be idempotent by
- * context.idempotency_key and return:
+ * context.idempotency_key, which addresses one shoot's own execution and is never
+ * shared with another shoot, and return:
  * {
  *   decision: "PASS" | "FAIL",
  *   execution_id,
@@ -1083,8 +1084,17 @@ export class EditorialShootService {
       const attempt = resumedAttempt ?? {
         number,
         operation_id: operationId,
+        // An execution address has to belong to one shoot. Derived from the look and
+        // bible alone it did not, so shoot 24f54a3a re-derived shoot b1a8468c's six
+        // scene ids; because each shoot conditions its five siblings on its own
+        // approved hero frame, those requests could never match the fingerprint
+        // already stored at that address, and interference_frame,
+        // material_or_accessory_detail and wide_campaign_coda were recorded FAILED
+        // on a 409 without ever reaching QA. The shoot id is the hash of the caller's
+        // own creation key, so the address stays deterministic per shoot, slot and
+        // attempt: a resumed or replayed attempt still pays for its scene once.
         execution_idempotency_key: sha256(
-          `${current.request_fingerprint}:${slot}:${number}:execute`,
+          `${shootId}:${current.request_fingerprint}:${slot}:${number}:execute`,
         ),
         status: 'RUNNING',
         started_at: nowIso(this.clock),
