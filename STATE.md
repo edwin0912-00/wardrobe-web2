@@ -1,6 +1,6 @@
 # Wardrobe verified state
 
-Updated: 2026-07-26 23:49 UTC.
+Updated: 2026-07-26 23:55 UTC.
 
 ## Canonical source position
 
@@ -109,6 +109,9 @@ code.
 - `SITE-002` is IN_PROGRESS with `codex-contact-sheet`: a private immutable
   manifest for six approved fashion-shoot frames; it does not create pixels or
   UI.
+- `WARD-002` is IN_PROGRESS with `claude-code-dev`: it owns standard-scene
+  headroom-repair convergence across every `std.*` preset, without exceptions,
+  synthetic pixels, or paid calls.
 
 They are disjoint from WARD-001's active scene/editorial/privacy locks. Each
 agent watches the canonical board with

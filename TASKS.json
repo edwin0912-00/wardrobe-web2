@@ -2,7 +2,7 @@
   "schema_version": "1.0.0",
   "integration_branch": "integration/wardrobe-20260726",
   "orchestrator": "codex-main",
-  "updated_at": "2026-07-26T23:49:00.000Z",
+  "updated_at": "2026-07-26T23:55:00.000Z",
   "tasks": [
     {
       "id": "CTRL-001",
@@ -227,16 +227,16 @@
     },
     {
       "id": "WARD-002",
-      "title": "Prove standard-scene convergence on every preset",
+      "title": "Make every standard preset enter an evidence-backed headroom repair without a gate waiver",
       "priority": "P0",
-      "state": "BLOCKED",
-      "owner": "unassigned",
-      "branch": "lane/WARD-002/unassigned",
-      "base_sha": "622c8783060cb64970e7c8952d51ca7c50307edd",
+      "state": "IN_PROGRESS",
+      "owner": "claude-code-dev",
+      "branch": "lane/WARD-002/claude-code-dev",
+      "base_sha": "5b82a6118c2abe2f50816d7f6557181cf29d994e",
       "lease": {
-        "generation": 1,
-        "issued_at": "2026-07-26T17:53:30.000Z",
-        "expires_at": "2026-07-27T17:53:30.000Z"
+        "generation": 2,
+        "issued_at": "2026-07-26T23:55:00.000Z",
+        "expires_at": "2026-07-27T23:55:00.000Z"
       },
       "lock_groups": [
         "scene-core"
@@ -260,7 +260,7 @@
         }
       ],
       "depends_on": [
-        "WARD-001"
+        "CTRL-001"
       ],
       "acceptance": [
         {
@@ -270,28 +270,46 @@
             "node",
             "--test",
             "test/web/scene-service.test.js",
-            "test/web/scene-api-integration.test.js"
+            "test/web/scene-api-integration.test.js",
+            "test/web/scene-framing-lock-owner.test.js",
+            "test/web/scene-standard-preset-convergence.test.js"
           ],
           "expected_exit_codes": [
             0
           ],
-          "expected": "Focused standard-scene contracts pass"
+          "expected": "Every std.* preset emits an explicit measured headroom repair instruction when its recorded defect requires one"
         },
         {
-          "check_id": "all-standard-presets",
-          "execution_class": "manual",
+          "check_id": "framing-lock-contract",
+          "execution_class": "ci",
           "command": [
-            "manual",
-            "focused-standard-scene-tests-and-one-proof-per-preset"
+            "node",
+            "--test",
+            "test/contracts/scene-framing-lock-schema.test.js"
           ],
           "expected_exit_codes": [
             0
           ],
-          "expected": "Every preset reaches a verified frame without weakened checks"
+          "expected": "Standard headroom remains a blocking quality gate; editorial waivers do not leak into std.*"
+        },
+        {
+          "check_id": "diff-hygiene",
+          "execution_class": "ci",
+          "command": [
+            "git",
+            "diff",
+            "--check",
+            "$TASK_BASE_SHA...$TESTED_CODE_SHA"
+          ],
+          "expected_exit_codes": [
+            0
+          ],
+          "expected": "No whitespace errors or conflict markers"
         }
       ],
       "stop_conditions": [
-        "Do not add pixels, widen a gate, or add a preset exception."
+        "Do not add pixels, widen a gate, or add a preset exception.",
+        "Do not call a paid provider or alter assets/source provenance in this task."
       ]
     },
     {
