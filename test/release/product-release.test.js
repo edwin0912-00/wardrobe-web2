@@ -147,6 +147,7 @@ test('product release is deterministic, complete, scene-enabled and cache-bound'
   assert.equal(verified.editorial_generation, 'ENABLED');
   assert.equal(verified.editorial_modes, 4);
   assert.equal(verified.editorial_generation_modes, 2);
+  assert.equal(verified.editorial_bibles_compiled, 2);
   assert.ok(verified.release_size_bytes < 40 * 1024 * 1024);
 
   const manifest = JSON.parse(await readFile(

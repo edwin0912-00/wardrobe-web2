@@ -3,6 +3,7 @@
 import { createHash } from 'node:crypto';
 import { lstat, readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { isDeepStrictEqual } from 'node:util';
 import sharp from 'sharp';
 
@@ -22,6 +23,14 @@ const requiredEditorialModeIds = [
 const requiredEditorialGenerationModeIds = [
   'editorial.edwin_novak.organic_contrast',
   'editorial.edwin_novak.urban_monochrome',
+];
+const requiredEditorialShotSlots = [
+  'clean_identity_hero',
+  'environmental_hero',
+  'sculptural_three_quarter',
+  'interference_frame',
+  'material_or_accessory_detail',
+  'wide_campaign_coda',
 ];
 const requiredEditorialPreviewFiles = requiredEditorialModeIds.flatMap((modeId) => [
   `assets/scene-mood-cards/${modeId}.json`,
@@ -930,6 +939,61 @@ for (const presetId of requiredPresetIds) {
   }
 }
 
+// Every editorial assertion above reads a manifest field or an asset's bytes, so this
+// verifier kept reporting editorial_generation ENABLED through the whole period editorial
+// could not produce a single frame: nothing had ever run the compiler those fields promise.
+// So the ShootBible is compiled here, from the release under test rather than from the
+// workspace, and only after the full inventory has been hash-matched against the manifest,
+// because that is the point at which these bytes are known to be the released ones. The
+// compiler's import graph reaches node builtins only, which is why it loads without the
+// release's node_modules and cannot reach the network.
+const releaseBible = await import(pathToFileURL(
+  path.join(releaseDirectory, 'src/web/editorial-shoot-bible.js'),
+).href);
+assert(
+  isDeepStrictEqual(
+    [...releaseBible.READY_EDITORIAL_MODE_IDS],
+    requiredEditorialGenerationModeIds,
+  ),
+  'Released ShootBible compiler does not carry the exact two approved generation modes',
+);
+const compiledBibleIds = [];
+for (const modeId of requiredEditorialGenerationModeIds) {
+  const mode = editorialModes.find((candidate) => candidate.preset_id === modeId);
+  const base = releaseBible.EDITORIAL_BASE_PRESETS[modeId];
+  assert(base, `Released editorial mode has no verified production base pack: ${modeId}`);
+  assert(
+    requiredPresetIds.includes(base.preset_id) && base.preset_version === '1.0.0',
+    `Editorial base pack is outside the verified scene release: ${modeId}`,
+  );
+  const packDirectory = `assets/scene-presets/${base.preset_id}/v1`;
+  const basePack = {
+    preset: await readReleaseJson(`${packDirectory}/preset.json`),
+    reference_pack: await readReleaseJson(`${packDirectory}/reference-pack.json`),
+  };
+  let bible;
+  try {
+    bible = releaseBible.compileEditorialShootBible({ mode, basePack });
+  } catch (error) {
+    throw new Error(
+      `Editorial ShootBible does not compile from this release: ${modeId}: ${error.message}`,
+    );
+  }
+  assert(
+    bible.mode_id === modeId && bible.mode_version === mode.version,
+    `Compiled ShootBible is not bound to its mode: ${modeId}`,
+  );
+  assert(
+    isDeepStrictEqual(bible.shots.map((shot) => shot.slot), requiredEditorialShotSlots),
+    `Compiled ShootBible does not cover the six ordered shot slots: ${modeId}`,
+  );
+  compiledBibleIds.push(bible.bible_id);
+}
+assert(
+  new Set(compiledBibleIds).size === requiredEditorialGenerationModeIds.length,
+  'Compiled ShootBibles are not one distinct bible per generation mode',
+);
+
 process.stdout.write(`${JSON.stringify({
   ok: true,
   release: manifest.release,
@@ -946,4 +1010,5 @@ process.stdout.write(`${JSON.stringify({
   editorial_generation: 'ENABLED',
   editorial_modes: requiredEditorialModeIds.length,
   editorial_generation_modes: requiredEditorialGenerationModeIds.length,
+  editorial_bibles_compiled: compiledBibleIds.length,
 })}\n`);
