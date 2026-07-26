@@ -17,6 +17,15 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-07-27 · CTRL-001 · state-ref correction
+Change: update the recorded integration revision after the accepted control
+leases were merged.
+Why: agents must resolve the live integration ref from Git, and the durable
+state ledger must not point to a stale ancestor.
+Evidence: `git rev-parse origin/integration/wardrobe-20260726` resolved
+`0e9bde1` before this ledger update.
+weakened_checks: none.
+
 2026-07-26 · CTRL-001 · lane head pending · handoff pending
 Change: establish the repository control plane, immutable task leases,
 non-overlapping write scopes, handoff contract, PR scope validation, and a
