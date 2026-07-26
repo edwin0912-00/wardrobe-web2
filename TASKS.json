@@ -2,7 +2,7 @@
   "schema_version": "1.0.0",
   "integration_branch": "integration/wardrobe-20260726",
   "orchestrator": "codex-main",
-  "updated_at": "2026-07-26T23:40:57.000Z",
+  "updated_at": "2026-07-26T23:44:00.000Z",
   "tasks": [
     {
       "id": "CTRL-001",
@@ -771,6 +771,91 @@
       "stop_conditions": [
         "Do not read or log credentials, raw prompts, local paths, or user image bytes.",
         "Do not deploy or modify live process startup."
+      ]
+    },
+    {
+      "id": "SITE-002",
+      "title": "Expose a private immutable contact-sheet manifest for a completed fashion shoot",
+      "priority": "P0",
+      "state": "ASSIGNED",
+      "owner": "codex-contact-sheet",
+      "branch": "lane/SITE-002/codex-contact-sheet",
+      "base_sha": "3e32d37d89288c1172e513d8eff3492c281b5e89",
+      "lease": {
+        "generation": 1,
+        "issued_at": "2026-07-26T23:44:00.000Z",
+        "expires_at": "2026-07-27T23:44:00.000Z"
+      },
+      "lock_groups": [
+        "editorial"
+      ],
+      "allowed_paths": [
+        "src/web/editorial-contact-sheet.js",
+        "src/web/editorial-shoot-routes.js",
+        "test/web/editorial-contact-sheet.test.js",
+        "test/web/editorial-activation-backend.test.js",
+        ".agents/handoffs/SITE-002.json"
+      ],
+      "forbidden_paths": [
+        "secrets/**",
+        "runtime/**",
+        "output/**",
+        "src/web/app.js",
+        "web/public/**",
+        "src/providers/**"
+      ],
+      "required_context": [
+        {
+          "path": "src/web/editorial-shoot-service.js",
+          "git_blob_sha": "e02897f4e7433b45f82ba608dc71a85182f4b682"
+        },
+        {
+          "path": "src/web/editorial-shoot-routes.js",
+          "git_blob_sha": "516b2ca5478e7f9d144e3e017070153b259c25ba"
+        },
+        {
+          "path": "schemas/editorial-shoot-job.schema.json",
+          "git_blob_sha": "f00c06e350428775fbf0198878194ce224f82a07"
+        }
+      ],
+      "depends_on": [
+        "CTRL-001"
+      ],
+      "acceptance": [
+        {
+          "check_id": "contact-sheet-contract-tests",
+          "execution_class": "ci",
+          "command": [
+            "node",
+            "--test",
+            "test/web/editorial-contact-sheet.test.js",
+            "test/web/editorial-activation-backend.test.js",
+            "test/web/editorial-shoot-service.test.js"
+          ],
+          "expected_exit_codes": [
+            0
+          ],
+          "expected": "Only the owner of a completed shoot receives a deterministic six-frame manifest of approved outputs"
+        },
+        {
+          "check_id": "diff-hygiene",
+          "execution_class": "ci",
+          "command": [
+            "git",
+            "diff",
+            "--check",
+            "$TASK_BASE_SHA...$TESTED_CODE_SHA"
+          ],
+          "expected_exit_codes": [
+            0
+          ],
+          "expected": "No whitespace errors or conflict markers"
+        }
+      ],
+      "stop_conditions": [
+        "Do not generate, composite, resize, or derive image pixels in this task.",
+        "Do not expose a shoot across browser-profile ownership boundaries or expose runtime paths/resource identifiers.",
+        "Do not add UI or deployment behavior."
       ]
     }
   ]
