@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import Ajv2020 from 'ajv/dist/2020.js';
+import { editorialFramingLock } from '../../src/web/scene-contract.js';
 
 const root = path.resolve(import.meta.dirname, '../..');
 const schemaPath = path.join(root, 'schemas', 'scene-qa-receipt.schema.json');
@@ -34,6 +35,8 @@ function receipt({
   presetId = 'std.city.golden_hour_gloss',
   expectedRange = [74, 78],
   subjectHeight = 76,
+  minAbove = 8,
+  minBelow = 2,
   clearAbove = 8,
   clearBelow = 2,
   fullHead = true,
@@ -65,8 +68,8 @@ function receipt({
           subject_bbox_xywh_px: [100, 0, 824, 1088],
           expected_subject_height_percent: expectedRange,
           subject_height_percent: subjectHeight,
-          minimum_clear_space_above_hair_percent: 8,
-          minimum_clear_space_below_footwear_percent: 2,
+          minimum_clear_space_above_hair_percent: minAbove,
+          minimum_clear_space_below_footwear_percent: minBelow,
           clear_space_above_hair_percent: clearAbove,
           clear_space_below_footwear_percent: clearBelow,
           full_head_visible: fullHead,
@@ -189,27 +192,48 @@ test('PASS receipt rejects non-PASS, reordered, missing, or duplicated gate evid
   assertInvalid(validate, duplicated, 'duplicated gate');
 });
 
-test('editorial PASS uses its own exact expected and measured subject range', async () => {
+// This test used to assert the editorial contract on the mode id
+// editorial.edwin_novak.organic_contrast with a [66, 70] band. No receipt has ever carried
+// a bare mode id — the preset id is `<mode_id>.<shot_slot>` — and no code has ever produced
+// [66, 70]; the band was hand-written beside a branch that could not match, so the case was
+// passing on the standard [74, 78] pins underneath it and the editorial rules it named were
+// never exercised. It now asks the slot lock what the bands are.
+test('editorial PASS uses the bands its per-shot preset id resolves to', async () => {
   const validate = await validator();
-  const editorialPass = receipt({
-    presetId: 'editorial.edwin_novak.organic_contrast',
-    expectedRange: [66, 70],
-    subjectHeight: 68,
-  });
-  assert.equal(validate(editorialPass), true, JSON.stringify(validate.errors, null, 2));
+  const slot = 'sculptural_three_quarter';
+  const lock = editorialFramingLock(slot);
+  const editorial = {
+    presetId: `editorial.edwin_novak.organic_contrast.${slot}`,
+    expectedRange: [...lock.subject],
+    minAbove: lock.above,
+    minBelow: lock.below,
+    subjectHeight: 92.1875,
+    clearAbove: 5.3125,
+    clearBelow: 2.5,
+  };
+  assert.equal(validate(receipt(editorial)), true, JSON.stringify(validate.errors, null, 2));
 
   assertInvalid(validate, receipt({
-    presetId: 'editorial.edwin_novak.organic_contrast',
-    expectedRange: [66, 70],
-    subjectHeight: 70.01,
+    ...editorial,
+    subjectHeight: lock.subject[1] + 0.01,
   }), 'editorial subject outside preset range');
 
+  assertInvalid(validate, receipt({
+    ...editorial,
+    expectedRange: [66, 70],
+    subjectHeight: 68,
+  }), 'editorial band no lock produces');
+
+  assertInvalid(validate, receipt({
+    ...editorial,
+    presetId: 'editorial.edwin_novak.organic_contrast',
+  }), 'editorial preset id naming no shot slot');
+
   const editorialFail = receipt({
+    ...editorial,
     verdict: 'FAIL',
     assetStatus: 'FAIL',
-    presetId: 'editorial.edwin_novak.organic_contrast',
-    expectedRange: [66, 70],
-    subjectHeight: 91,
+    subjectHeight: 20,
     clearAbove: 0,
     clearBelow: 0,
     fullHead: false,

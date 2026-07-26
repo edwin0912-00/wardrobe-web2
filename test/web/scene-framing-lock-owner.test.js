@@ -98,6 +98,24 @@ function standardFramingEvidence(overrides = {}) {
   };
 }
 
+// scene_13313d49 as its slot's lock describes it. Standard bands under an editorial preset
+// id used to be accepted, because the editorial schema branches were keyed on mode ids no
+// receipt carries and so never fired; the bands now follow the shot slot, which is what the
+// resolver keys on too.
+function editorialFramingEvidence(slot, overrides = {}) {
+  const lock = editorialFramingLock(slot);
+  return standardFramingEvidence({
+    subject_bbox_xywh_px: [...WAIVED_EDITORIAL_FRAME.subject_bbox_xywh_px],
+    expected_subject_height_percent: [...lock.subject],
+    subject_height_percent: 93.75,
+    minimum_clear_space_above_hair_percent: lock.above,
+    minimum_clear_space_below_footwear_percent: lock.below,
+    clear_space_above_hair_percent: 3.2813,
+    clear_space_below_footwear_percent: 2.9688,
+    ...overrides,
+  });
+}
+
 async function subschemaValidator(schemaFile, pointer) {
   const [schema, sourceLedgerSchema] = await Promise.all([
     readFile(path.join(root, 'schemas', schemaFile), 'utf8').then(JSON.parse),
@@ -265,36 +283,47 @@ test('all three receipt schemas accept the waiver flag and refuse it on the stan
     'scene-qa-receipt.schema.json',
     '#/$defs/assetResult',
   );
-  const result = (presetId, framingOverrides) => ({
+  const result = (presetId, framing) => ({
     asset_id: 'asset.scene.framing.waiver.001',
     preset_id: presetId,
     sha256: 'b'.repeat(64),
     status: 'PASS',
-    framing_evidence: standardFramingEvidence(framingOverrides),
+    framing_evidence: framing,
     gate_results: [
       { id: 'FRAMING_AND_ANATOMY', status: 'PASS', evidence: 'Measured framing evidence.' },
     ],
     named_defects: [],
   });
   assert.equal(
-    assetResult(result('std.city.golden_hour_gloss', {
+    assetResult(result('std.city.golden_hour_gloss', standardFramingEvidence({
       clear_space_above_hair_waived_by_full_head: false,
-    })),
+    }))),
     true,
     JSON.stringify(assetResult.errors),
   );
   assert.equal(
-    assetResult(result('std.city.golden_hour_gloss', {
+    assetResult(result('std.city.golden_hour_gloss', standardFramingEvidence({
       clear_space_above_hair_waived_by_full_head: true,
-    })),
+    }))),
     false,
     'a standard scene must not ship a waived headroom',
   );
   assert.equal(
-    assetResult(result(`${EDITORIAL_MODE_IDS[0]}.clean_identity_hero`, {
-      clear_space_above_hair_waived_by_full_head: true,
-    })),
+    assetResult(result(
+      `${EDITORIAL_MODE_IDS[0]}.clean_identity_hero`,
+      editorialFramingEvidence('clean_identity_hero', {
+        clear_space_above_hair_waived_by_full_head: true,
+      }),
+    )),
     true,
     JSON.stringify(assetResult.errors),
+  );
+  assert.equal(
+    assetResult(result(
+      `${EDITORIAL_MODE_IDS[0]}.clean_identity_hero`,
+      standardFramingEvidence({ clear_space_above_hair_waived_by_full_head: true }),
+    )),
+    false,
+    'an editorial shot must be judged against its own slot lock, not the fitting bands',
   );
 });
