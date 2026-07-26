@@ -5,7 +5,7 @@
   "branch": "lane/CTRL-001/codex-main",
   "base_sha": "622c8783060cb64970e7c8952d51ca7c50307edd",
   "lease_generation": 1,
-  "tested_code_sha": "c84a031a16e735b40d88bffacbdd0b4bd1c4d988",
+  "tested_code_sha": "36ae95abd38c4f90d9132c9669afcdeda4a82f2b",
   "status": "READY_FOR_REVIEW",
   "summary": "Added the permanent orchestrator queue route on control/codex-main. It permits only atomic TASKS, LOG, STATE, and optional OWNERS ledger updates; rejects stale bases, transient forbidden history, invalid candidate context pins, and expired candidate leases; and preserves mandatory handoffs and acceptance for ordinary implementation lanes.",
   "changed_paths": [
@@ -44,7 +44,7 @@
         "test/governance/scan-pr-diff-history.test.js"
       ],
       "result": "PASS",
-      "evidence": "Exact tested code SHA c84a031 passed 86 of 86 governance tests; both independent reviewers also reran focused lifecycle tests successfully."
+      "evidence": "Exact tested code SHA 36ae95a passed the complete governance suite; the focused queue lifecycle regression passed 7 of 7 cases under independent adversarial review."
     },
     {
       "check_id": "board-validation",
@@ -65,14 +65,14 @@
         "$TASK_BASE_SHA...$TESTED_CODE_SHA"
       ],
       "result": "PASS",
-      "evidence": "Git diff hygiene passed for integration base 309a564 through exact tested code c84a031."
+      "evidence": "Git diff hygiene passed for integration base 309a564 through exact tested code 36ae95a."
     }
   ],
   "adversarial_review": {
-    "goal": "Find fail-open routes in permanent queue scope, introduced history, stale-base handling, candidate context validation, lease recovery, ordinary-lane handoffs, acceptance, or weakened checks.",
+    "goal": "Find fail-open routes in permanent queue scope, introduced history, stale-base handling, candidate context validation, lease recovery, prior-handoff drift classification, ordinary-lane handoffs, acceptance, or weakened checks.",
     "result": "PASS",
     "reviewer_id": "adversarial_control_plane",
-    "reviewed_code_sha": "c84a031a16e735b40d88bffacbdd0b4bd1c4d988"
+    "reviewed_code_sha": "36ae95abd38c4f90d9132c9669afcdeda4a82f2b"
   },
   "weakened_checks": [],
   "open_risks": [
