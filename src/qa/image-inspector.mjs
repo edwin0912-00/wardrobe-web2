@@ -113,11 +113,12 @@ export function diagnoseBackground(data, width, height, channels = 3, options = 
   const exactWhiteRatio = ratio(exactWhite, queueWrite);
   const everyClassifiedPixelExactWhite = queueWrite > 0 && exactWhite === queueWrite;
   const sufficientCoverage = minimumObservedTopCornerCoverage >= minCornerCoverage
-    // A valid half-body subject can occupy or touch one lower side of the frame.
-    // Requiring both full-height side strips to be background falsely rejects
-    // broad or slightly asymmetric people. Both top corners remain mandatory;
-    // one substantially open side plus total image coverage proves that the
-    // corner-seeded component is a real background rather than isolated specks.
+    // A valid standing subject can occupy or touch one full-height side of the
+    // frame with a relaxed arm, a hip or a contact shadow. Requiring both side
+    // strips to be background falsely rejects broad or slightly asymmetric
+    // people. Both top corners remain mandatory; one substantially open side
+    // plus total image coverage proves that the corner-seeded component is a
+    // real background rather than isolated specks.
     && maximumObservedSideCoverage >= minSideCoverage
     && imageCoverage >= minImageCoverage;
 
@@ -152,7 +153,7 @@ export function diagnoseBackground(data, width, height, channels = 3, options = 
       minimum_image_coverage: minImageCoverage,
     },
     status: everyClassifiedPixelExactWhite && sufficientCoverage ? STATUS.PASS : STATUS.FAIL,
-    note: 'Both top corners and at least one full-height side are gated; the opposite side and bottom corners are informational because a half-body subject may occupy them. Central top/bottom pixels are not seeds, so hair or clothing touching the frame is not mislabeled as background. The source image is never modified.',
+    note: 'Both top corners and at least one full-height side are gated; the opposite side and bottom corners are informational because a full-length standing subject reaches them with feet, footwear or a contact shadow. Central top/bottom pixels are not seeds, so hair, clothing or footwear touching the frame is not mislabeled as background. Near-white that the subject fully encloses, such as the gap between the legs of a figure standing on the bottom edge, is not border-connected, so it is outside both this classified set and the exact-white gate. The source image is never modified.',
   };
 }
 

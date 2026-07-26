@@ -63,7 +63,7 @@ test('background diagnostics exclude hair touching the top-center frame', () => 
   assert.equal(result.exact_white_ratio, 1);
 });
 
-test('background diagnostics allow a broad half-body foreground to occupy one lower side', () => {
+test('background diagnostics allow a broad standing foreground to occupy one lower side', () => {
   const width = 100;
   const height = 125;
   const data = Buffer.alloc(width * height * 3, 255);
@@ -159,7 +159,7 @@ test('explicit visual fixture controls semantic gates without self-approval', as
     .toFile(path.join(root, '001', 'avatar_outfit.png'));
   const criterionIds = [
     'identity_preservation',
-    'frontal_half_body_composition',
+    'frontal_full_length_composition',
     'studio_lighting',
     'neutral_white_balance',
     'face_hair_detail',
@@ -198,7 +198,7 @@ test('semantic PASS is invalidated when reviewed output bytes change', async () 
   await png(path.join(root, '001', 'avatar_outfit.png'));
   const criterionIds = [
     'identity_preservation',
-    'frontal_half_body_composition',
+    'frontal_full_length_composition',
     'studio_lighting',
     'neutral_white_balance',
     'face_hair_detail',
@@ -263,7 +263,7 @@ test('unbound semantic fixture can never approve an output', async () => {
   const decisions = Object.fromEntries(
     [
       'identity_preservation',
-      'frontal_half_body_composition',
+      'frontal_full_length_composition',
       'studio_lighting',
       'neutral_white_balance',
       'face_hair_detail',

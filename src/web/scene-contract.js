@@ -163,26 +163,86 @@ const EDITORIAL_FRAMINGS = new Set([
   'wide_full_body',
 ]);
 const EDITORIAL_IDENTITY_VISIBILITY = new Set(['full_face', 'partial_face', 'not_intended']);
-const EDITORIAL_FRAMING_LOCKS = Object.freeze({
-  clean_identity_hero: Object.freeze({
-    subject: [72, 78], above: 6, below: 2, head: true, footwear: true,
-  }),
-  environmental_hero: Object.freeze({
-    subject: [64, 72], above: 5, below: 2, head: true, footwear: true,
-  }),
-  sculptural_three_quarter: Object.freeze({
-    subject: [70, 88], above: 5, below: 0, head: true, footwear: false,
-  }),
-  interference_frame: Object.freeze({
-    subject: [64, 82], above: 4, below: 0, head: true, footwear: false,
-  }),
-  material_or_accessory_detail: Object.freeze({
-    subject: [58, 94], above: 0, below: 0, head: false, footwear: false,
-  }),
-  wide_campaign_coda: Object.freeze({
-    subject: [48, 64], above: 8, below: 3, head: true, footwear: true,
-  }),
+// A standard scene keeps the tight [74, 78] band below because it promises the same
+// avatar at the same scale in a new environment — there, consistent scale IS the
+// product. Editorial is art direction: the crop is the style, and the only vertical
+// promise it makes is the breathing room reserved above the hair. Hand-picking a
+// separate ceiling on top of that guard rejected frames that had nothing wrong with
+// them: interference_frame measured 84.7656% against a ceiling of 82 and the
+// urban_monochrome clean_identity_hero measured 93.9063% against 88 — 2.8 and 5.9
+// points over — while every other gate passed and each frame's own
+// FRAMING_AND_ANATOMY prose called it a coherent three-quarter fashion frame. The miss
+// was also unrepairable in kind: "subject too large" can only be answered by
+// outpainting invented surroundings, so three points of taste burned the whole retry
+// budget on inventing scene. So the ceiling is DERIVED as the complement of the head
+// guard — a subject may grow until it would start eating the room that guard already
+// reserves, and not one point further.
+const EDITORIAL_HEAD_GUARDS = Object.freeze({
+  clean_identity_hero: { above: 6, below: 0, head: true, footwear: false },
+  environmental_hero: { above: 5, below: 0, head: true, footwear: false },
+  sculptural_three_quarter: { above: 5, below: 0, head: true, footwear: false },
+  interference_frame: { above: 4, below: 0, head: true, footwear: false },
+  material_or_accessory_detail: { above: 0, below: 0, head: false, footwear: false },
+  wide_campaign_coda: { above: 8, below: 0, head: true, footwear: false },
 });
+
+// The floor cannot be derived from the head guard, so it stays a chosen number — but a
+// generous one, because a legitimate art crop must never be refused for scale alone.
+// Each floor names the one thing it protects.
+const EDITORIAL_SUBJECT_HEIGHT_FLOORS = Object.freeze({
+  // The identity hero is the shoot's identity evidence. Below half the canvas the face
+  // carries too few pixels for IDENTITY to compare facial geometry at all.
+  clean_identity_hero: 50,
+  // Spending frame on the environment is this slot's narrative job, so its floor only
+  // stops the person becoming set dressing in their own fashion photograph.
+  environmental_hero: 40,
+  // A sculptural portrait that stops being a portrait is nothing: same face-pixel
+  // reason as the identity hero.
+  sculptural_three_quarter: 50,
+  // This slot gives up frame to its one foreground optical layer, so it floors below
+  // the portraits while still having to be a frame OF a person.
+  interference_frame: 45,
+  // A detail crop has to stay close enough that logo, lettering, stitching and material
+  // construction remain readable, because ITEM_FIDELITY compares them forensically.
+  material_or_accessory_detail: 45,
+  // The coda is the wide slot, so its floor sits far lower by design. It exists only to
+  // stop the figure becoming a speck whose approved silhouette nothing can verify.
+  wide_campaign_coda: 30,
+});
+
+const EDITORIAL_FRAMING_LOCKS = Object.freeze(Object.fromEntries(
+  Object.entries(EDITORIAL_HEAD_GUARDS).map(([slot, guard]) => [slot, Object.freeze({
+    subject: Object.freeze([
+      EDITORIAL_SUBJECT_HEIGHT_FLOORS[slot],
+      100 - guard.above,
+    ]),
+    above: guard.above,
+    below: guard.below,
+    head: guard.head,
+    footwear: guard.footwear,
+    // Headroom is a proxy for "the head is not cropped", and in editorial the
+    // direct observation of that is already in hand. An identity hero measured
+    // 5% of headroom against a 6% minimum and was rejected while its own gate
+    // text read "Full head is visible and the figure is anatomically coherent"
+    // and every other gate passed — thirteen pixels of a 1280-tall canvas, on a
+    // frame whose head was demonstrably whole. A proxy that overrules the
+    // measurement it stands in for is worse than no proxy, so here it advises
+    // and full_head_visible decides. Standard scenes keep it blocking: their
+    // promise is the same avatar composed the same way in every environment, so
+    // headroom there is the product and not art direction.
+    aboveIsAdvisoryWhenHeadVisible: true,
+  })]),
+));
+
+// One owner for the six vertical locks. The ShootBible compiler used to keep its own
+// copy of these bands, and any drift between the two literals surfaced only at
+// generation time as 'Resolved editorial camera does not match its canonical framing
+// lock' — a typo made a slot unshootable rather than wrong.
+export function editorialFramingLock(slot) {
+  const lock = EDITORIAL_FRAMING_LOCKS[slot];
+  if (!lock) throw new Error(`Unknown editorial shot slot: ${slot}`);
+  return lock;
+}
 
 function framingLockForPresetId(presetId) {
   if (typeof presetId === 'string' && presetId.startsWith('editorial.')) {
@@ -196,6 +256,7 @@ function framingLockForPresetId(presetId) {
     below: 2,
     head: true,
     footwear: true,
+    aboveIsAdvisoryWhenHeadVisible: false,
   };
 }
 
@@ -548,9 +609,12 @@ function validateEditorialPresetCamera(camera, editorial) {
     || camera.max_vertical_error_deg > 1.5) {
     throw new Error('Resolved editorial preset camera violates its shot lock');
   }
+  // A ceiling of exactly 100 is legal rather than a typo: material_or_accessory_detail
+  // reserves no clear space above the hair, so the guard its ceiling derives from
+  // reserves nothing and a detail crop may fill the canvas from edge to edge.
   if (!Array.isArray(camera.subject_height_percent)
     || camera.subject_height_percent.length !== 2
-    || camera.subject_height_percent.some((value) => !Number.isFinite(value) || value < 1 || value > 99)
+    || camera.subject_height_percent.some((value) => !Number.isFinite(value) || value < 1 || value > 100)
     || camera.subject_height_percent[0] >= camera.subject_height_percent[1]) {
     throw new Error('Resolved editorial camera must declare an ordered subject height range');
   }
@@ -584,12 +648,12 @@ function validateEditorialPresetCamera(camera, editorial) {
     throw new Error('Resolved editorial camera visibility locks must be booleans');
   }
   const expectedFraming = {
-    clean_identity_hero: 'full_body',
-    environmental_hero: 'full_body',
+    clean_identity_hero: 'three_quarter',
+    environmental_hero: 'three_quarter',
     sculptural_three_quarter: 'three_quarter',
     interference_frame: 'three_quarter',
     material_or_accessory_detail: 'detail',
-    wide_campaign_coda: 'wide_full_body',
+    wide_campaign_coda: 'three_quarter',
   }[editorial.shot_slot];
   if (camera.framing !== expectedFraming) {
     throw new Error('Resolved editorial camera framing does not match its shot slot');
@@ -602,10 +666,15 @@ function validateEditorialPresetCamera(camera, editorial) {
     || camera.required_visibility.full_footwear !== framingLock.footwear) {
     throw new Error('Resolved editorial camera does not match its canonical framing lock');
   }
+  // Footwear is no longer required by any editorial slot: art direction crops
+  // are intentional, and demanding feet forced the generator to invent a lower
+  // half that no approved reference could verify. The head requirement stays —
+  // an editorial frame that loses the face loses its identity evidence, which is
+  // the one thing these gates exist to protect.
   if (['clean_identity_hero', 'environmental_hero', 'wide_campaign_coda']
     .includes(editorial.shot_slot)
-    && (!camera.required_visibility.full_head || !camera.required_visibility.full_footwear)) {
-    throw new Error('Resolved full-body editorial shots require complete head and footwear');
+    && !camera.required_visibility.full_head) {
+    throw new Error('Resolved editorial hero and coda shots require the complete head');
   }
 }
 
@@ -1115,6 +1184,7 @@ export function assessFramingEvidence(evidence, {
   minimumBelowFootwearPercent = 2,
   requireFullHead = true,
   requireFullFootwear = true,
+  aboveIsAdvisoryWhenHeadVisible = false,
 }) {
   if (!Number.isInteger(width) || width < 1 || !Number.isInteger(height) || height < 1) {
     throw new Error('Scene delivery dimensions must be positive integers');
@@ -1159,7 +1229,11 @@ export function assessFramingEvidence(evidence, {
   if (subjectHeight < expectedSubjectHeightPercent[0] || subjectHeight > expectedSubjectHeightPercent[1]) {
     defects.push('SUBJECT_HEIGHT_OUTSIDE_PRESET_RANGE');
   }
-  if (requireFullHead && aboveHair < minimumAboveHairPercent) {
+  const headroomShort = requireFullHead && aboveHair < minimumAboveHairPercent;
+  const headroomWaived = headroomShort
+    && aboveIsAdvisoryWhenHeadVisible
+    && evidence.full_head_visible === true;
+  if (headroomShort && !headroomWaived) {
     defects.push('INSUFFICIENT_CLEAR_SPACE_ABOVE_HAIR');
   }
   if (requireFullFootwear && belowFootwear < minimumBelowFootwearPercent) {
@@ -1321,6 +1395,7 @@ function validatePersistedFramingEvidence(evidence, {
   minimumBelowFootwearPercent = 2,
   requireFullHead = true,
   requireFullFootwear = true,
+  aboveIsAdvisoryWhenHeadVisible = false,
   requirePass,
   label,
 }) {
@@ -1332,6 +1407,7 @@ function validatePersistedFramingEvidence(evidence, {
     minimumBelowFootwearPercent,
     requireFullHead,
     requireFullFootwear,
+    aboveIsAdvisoryWhenHeadVisible,
   });
   if (sha256(canonicalJsonBytes(assessment.evidence)) !== sha256(canonicalJsonBytes(evidence))) {
     throw new Error(`${label} framing evidence does not match its measured bounding box`);
@@ -1423,6 +1499,7 @@ function validatePersistedNormalization(normalization, { attempt, state }) {
     height: normalization.source_height,
     expectedSubjectHeightPercent: framingLock.subject,
     minimumAboveHairPercent: framingLock.above,
+    aboveIsAdvisoryWhenHeadVisible: framingLock.aboveIsAdvisoryWhenHeadVisible === true,
     minimumBelowFootwearPercent: framingLock.below,
     requireFullHead: framingLock.head,
     requireFullFootwear: framingLock.footwear,
@@ -1764,6 +1841,7 @@ export function validatePersistedSceneState(state, expectedSceneId) {
         height: state.delivery.height,
         expectedSubjectHeightPercent: persistedFramingLock.subject,
         minimumAboveHairPercent: persistedFramingLock.above,
+        aboveIsAdvisoryWhenHeadVisible: persistedFramingLock.aboveIsAdvisoryWhenHeadVisible === true,
         minimumBelowFootwearPercent: persistedFramingLock.below,
         requireFullHead: persistedFramingLock.head,
         requireFullFootwear: persistedFramingLock.footwear,
@@ -1824,6 +1902,7 @@ export function validatePersistedSceneState(state, expectedSceneId) {
       height: state.delivery.height,
       expectedSubjectHeightPercent: persistedFramingLock.subject,
       minimumAboveHairPercent: persistedFramingLock.above,
+      aboveIsAdvisoryWhenHeadVisible: persistedFramingLock.aboveIsAdvisoryWhenHeadVisible === true,
       minimumBelowFootwearPercent: persistedFramingLock.below,
       requireFullHead: persistedFramingLock.head,
       requireFullFootwear: persistedFramingLock.footwear,

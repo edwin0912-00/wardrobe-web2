@@ -18,8 +18,11 @@ export const NOTION_CRITERIA = Object.freeze([
     evaluation_mode: 'visual',
   },
   {
-    id: 'frontal_half_body_composition',
-    label: 'Frontal half-body composition',
+    // Renamed from frontal_half_body_composition once the avatar became a
+    // full-length figure. A pre-rename PASS attested a different framing, so it
+    // must not satisfy this gate; such an artifact goes back for review.
+    id: 'frontal_full_length_composition',
+    label: 'Frontal full-length composition',
     evaluation_mode: 'visual',
   },
   {

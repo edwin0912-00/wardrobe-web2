@@ -18,11 +18,22 @@ fi
 export PATH="${HOME}/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
 export PORT="4173"
 # Codex CLI's ChatGPT-authenticated session hit its usage limit (resets
-# 2026-07-28). Avatar/outfit/garment/scene generation and semantic QA now run
-# through OpenRouter instead of the local Codex app-server worker/CLI. Set
-# ZEELY_GENERATION_PROVIDER/ZEELY_VLM_PROVIDER back to codex-imagegen-test /
-# codex (or higgsfield) to restore the previous transport; nothing about
-# those paths was removed, this is a plain switch.
+# 2026-07-28), so every VLM call — semantic QA and garment classification —
+# goes through OpenRouter instead of the local Codex CLI. Set
+# ZEELY_VLM_PROVIDER=codex to restore that transport; nothing was removed.
+#
+# Image GENERATION also runs through OpenRouter. Both other transports are
+# unavailable, and each failed differently rather than gracefully:
+#   codex-imagegen-test — ChatGPT session hit its usage limit (resets 2026-07-28)
+#   higgsfield          — api.higgsfield.ai returned 521 (provider outage)
+# The Higgsfield outage additionally blocked promotion twice, because the
+# higgsfield preflight branch polls the account over the network and a dead
+# provider is then indistinguishable from a broken release. The openrouter
+# branch in src/web/preflight.js checks only that OPENROUTER_API_KEY is present
+# and makes no network call, so a provider outage degrades individual jobs
+# instead of preventing the service from booting.
+# To switch back: set this to higgsfield (or codex-imagegen-test) — neither
+# path was removed.
 export ZEELY_GENERATION_PROVIDER="openrouter"
 export ZEELY_VLM_PROVIDER="openrouter"
 if [[ -s "$PRIVATE_DIR/openrouter-api-key" ]]; then

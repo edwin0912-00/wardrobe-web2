@@ -518,7 +518,12 @@ export function createLiveVisualizer(root, dependencies = {}) {
     const staticFrame = reducedMotion || providerWaiting;
     const rawProgress = staticFrame ? 1 : Math.min(1, elapsed / 2200);
     const progress = easeOut(rawProgress);
-    const fit = checkpoint.subject.kind === 'ITEM' ? 'contain' : 'cover';
+    // This frame is evidence, not decoration: the operator has to see the whole
+    // subject. `cover` filled the stage but cropped a tall portrait to its
+    // middle, cutting the head off the avatar entirely. `drawBackdrop` still
+    // paints a `cover` copy underneath at low alpha, so the stage stays full
+    // while the foreground keeps every pixel of the subject visible.
+    const fit = 'contain';
 
     if (checkpoint.presentation === 'SOURCE_SCAN') {
       const source = imageFor('SOURCE', 'BASE');

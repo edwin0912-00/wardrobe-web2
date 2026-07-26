@@ -79,10 +79,10 @@
     "artifactReview": {
       "type": "object",
       "additionalProperties": false,
+      "$comment": "frontal_half_body_composition was renamed frontal_full_length_composition when the avatar became a full-length figure. Both keys stay accepted so review documents written before the rename still validate; anyOf keeps the framing gate itself mandatory. src/qa/constants.mjs asks only for the new key, so a pre-rename framing PASS is re-reviewed instead of being counted as a full-length review.",
       "required": [
         "artifact_sha256",
         "identity_preservation",
-        "frontal_half_body_composition",
         "studio_lighting",
         "neutral_white_balance",
         "face_hair_detail",
@@ -96,6 +96,9 @@
           "$ref": "#/$defs/sha256"
         },
         "identity_preservation": {
+          "$ref": "#/$defs/decision"
+        },
+        "frontal_full_length_composition": {
           "$ref": "#/$defs/decision"
         },
         "frontal_half_body_composition": {
@@ -122,7 +125,19 @@
         "no_residue_or_bleed": {
           "$ref": "#/$defs/decision"
         }
-      }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "frontal_full_length_composition"
+          ]
+        },
+        {
+          "required": [
+            "frontal_half_body_composition"
+          ]
+        }
+      ]
     },
     "subjectReview": {
       "type": "object",

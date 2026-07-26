@@ -473,6 +473,7 @@ function safeProviderMetadata(metadata) {
     'quality',
     'seed',
     'geometry_strategy',
+    'geometry_crop_fraction',
     'transport_aspect_ratio',
     'source_width',
     'source_height',
@@ -759,7 +760,13 @@ function provenanceGate({
     };
   }
   const provider = attempt.provider_metadata;
-  const expectedTransportAspectRatio = attempt.route.job_set_type === 'gpt_image_2' ? '3:4' : '4:5';
+  // The transport aspect is what the serving transport handed over, so the GPT
+  // route has two truthful values: 3:4 from the Higgsfield CLI, which offered
+  // nothing closer, and 4:5 from OpenRouter, which serves the delivery aspect
+  // directly. Pinning it to 3:4 by model name would reject the better one.
+  const expectedTransportAspectRatios = attempt.route.job_set_type === 'gpt_image_2'
+    ? ['3:4', '4:5']
+    : ['4:5'];
   const geometryReceiptValid = typeof provider.provider === 'string'
     && provider.provider.length > 0
     && provider.model === attempt.route.model
@@ -772,8 +779,16 @@ function provenanceGate({
     && provider.source_height > 0
     && typeof provider.source_aspect_ratio === 'string'
     && provider.source_aspect_ratio.length > 0
-    && provider.transport_aspect_ratio === expectedTransportAspectRatio
-    && ['provider_exact_4_5', 'blurred_canvas_contain_no_subject_crop'].includes(provider.geometry_strategy)
+    && expectedTransportAspectRatios.includes(provider.transport_aspect_ratio)
+    && [
+      'provider_exact_4_5',
+      'provider_exact_4_5_rescaled',
+      'centre_crop_to_exact_4_5',
+      // Accepted for reading receipts written before blur padding was removed.
+      'blurred_canvas_contain_no_subject_crop',
+    ].includes(provider.geometry_strategy)
+    && (provider.geometry_strategy !== 'centre_crop_to_exact_4_5'
+      || (Number.isFinite(provider.geometry_crop_fraction) && provider.geometry_crop_fraction >= 0))
     && /^[a-f0-9]{64}$/.test(provider.raw_output_sha256 ?? '')
     && provider.geometry_output_sha256 === attempt.provider_source.sha256;
   if (!geometryReceiptValid) {
@@ -3285,6 +3300,15 @@ export class SceneService {
         requireFullHead: bound.preset.camera.required_visibility?.full_head ?? true,
         requireFullFootwear:
           bound.preset.camera.required_visibility?.full_footwear ?? true,
+        // This is the assessment that actually decides a live shot, and it builds
+        // its own options straight off the bound preset instead of asking the
+        // lock owner — which is why waiving headroom on the three lock-driven
+        // call sites changed nothing here and an editorial hero kept failing on
+        // 3.75% of clear space with its head observed whole. The presence of an
+        // editorial block IS the art-direction signal. See the note on
+        // EDITORIAL_FRAMING_LOCKS in scene-contract.js for why the observation
+        // outranks the proxy.
+        aboveIsAdvisoryWhenHeadVisible: Boolean(bound.preset.editorial),
       });
       normalized.framing_evidence = framingAssessment.evidence;
       if (framingAssessment.defects.length) {
@@ -3889,8 +3913,17 @@ export class SceneService {
       return sanitizeOutbound({
         decision: 'PASS',
         candidate_sha256: state.output.sha256,
-        gates: verified.sourceAttempt.qa.gates,
-        reviewer: verified.sourceAttempt.qa.reviewer,
+        // The scene-level gate set is the complete one. A per-attempt array
+        // holds only the eight gates decided during that attempt; PROVENANCE is
+        // decided at release, against the receipt and provider job id, so it
+        // exists only on the released scene. Returning the attempt array here
+        // under-reported a released scene's own verdict by exactly that gate,
+        // and the editorial executor — which validates the full nine-gate
+        // contract — rejected scenes that had passed, reporting EXECUTOR_FAILED
+        // as though generation had broken. Prefer the released set and fall back
+        // to the attempt only if a release somehow carries none.
+        gates: (state.qa?.gates?.length ? state.qa.gates : verified.sourceAttempt.qa.gates),
+        reviewer: state.qa?.reviewer ?? verified.sourceAttempt.qa.reviewer,
         completed_at: verified.manifest.approved_at,
         output: {
           resource_id: sceneId,

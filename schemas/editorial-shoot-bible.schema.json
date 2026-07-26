@@ -45,7 +45,7 @@
                 "camera": {
                   "allOf": [
                     { "$ref": "#/$defs/camera" },
-                    { "properties": { "framing": { "const": "full_body" } } }
+                    { "properties": { "framing": { "const": "three_quarter" } } }
                   ]
                 }
               }
@@ -62,7 +62,7 @@
                 "camera": {
                   "allOf": [
                     { "$ref": "#/$defs/camera" },
-                    { "properties": { "framing": { "const": "full_body" } } }
+                    { "properties": { "framing": { "const": "three_quarter" } } }
                   ]
                 }
               }
@@ -124,7 +124,7 @@
                 "camera": {
                   "allOf": [
                     { "$ref": "#/$defs/camera" },
-                    { "properties": { "framing": { "const": "wide_full_body" } } }
+                    { "properties": { "framing": { "const": "three_quarter" } } }
                   ]
                 }
               }
@@ -204,8 +204,8 @@
           "minItems": 2,
           "maxItems": 2,
           "prefixItems": [
-            { "type": "number", "minimum": 20, "maximum": 95 },
-            { "type": "number", "minimum": 20, "maximum": 95 }
+            { "type": "number", "minimum": 20, "maximum": 100 },
+            { "type": "number", "minimum": 20, "maximum": 100 }
           ],
           "items": false
         }

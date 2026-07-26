@@ -172,6 +172,7 @@ export class OpenRouterClient {
     model,
     prompt,
     imagePaths = [],
+    aspectRatio,
     timeoutMs = 240_000,
   }) {
     if (typeof model !== 'string' || model.trim() === '') {
@@ -180,14 +181,25 @@ export class OpenRouterClient {
     if (typeof prompt !== 'string' || prompt.trim() === '') {
       throw new TypeError('OpenRouterClient.generateImage requires a prompt');
     }
+    if (aspectRatio !== undefined && !/^\d{1,2}:\d{1,2}$/.test(String(aspectRatio))) {
+      throw new TypeError('OpenRouterClient.generateImage aspectRatio must look like "4:5"');
+    }
     const content = [{ type: 'text', text: prompt }];
     for (const filename of imagePaths) {
       content.push({ type: 'image_url', image_url: { url: await imageDataUrl(filename) } });
     }
+    // The aspect belongs in the request, not only in the prompt. Measured
+    // 2026-07-25 against both routed models: with no image_config, gpt-image
+    // returns 1024×1024 and ignores the "4:5" the prompt asks for; with
+    // image_config it returns 896×1120, exactly 4:5. Gemini honours it too
+    // (1:1 → 1024×1024, 4:5 → 928×1152). Every square scene frame this pipeline
+    // has produced traces back to this field being absent. `size` is not a
+    // substitute — it was measured to be ignored.
     const payload = await this.#send({
       model,
       messages: [{ role: 'user', content }],
       modalities: ['image', 'text'],
+      ...(aspectRatio === undefined ? {} : { image_config: { aspect_ratio: String(aspectRatio) } }),
     }, timeoutMs);
     const message = payload?.choices?.[0]?.message;
     const imageEntry = Array.isArray(message?.images) ? message.images[0] : undefined;

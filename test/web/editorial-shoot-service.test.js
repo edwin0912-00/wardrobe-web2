@@ -37,13 +37,17 @@ function monotonicClock(start = '2026-07-23T10:00:00.000Z') {
 }
 
 function makeBible(overrides = {}) {
+  // No editorial slot requires a full-length figure any more: the crop is the
+  // art direction, and demanding footwear made the generator invent a lower half
+  // no approved reference could verify. The fixture tracks that contract rather
+  // than the retired one; the ranges stay inside each slot's canonical lock.
   const framing = {
-    clean_identity_hero: ['full_body', [72, 78]],
-    environmental_hero: ['full_body', [66, 70]],
+    clean_identity_hero: ['three_quarter', [72, 78]],
+    environmental_hero: ['three_quarter', [66, 70]],
     sculptural_three_quarter: ['three_quarter', [68, 80]],
     interference_frame: ['three_quarter', [62, 74]],
     material_or_accessory_detail: ['detail', [55, 90]],
-    wide_campaign_coda: ['wide_full_body', [52, 64]],
+    wide_campaign_coda: ['three_quarter', [52, 64]],
   };
   return {
     schema_version: '1.0.0',

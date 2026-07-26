@@ -28,6 +28,23 @@ export async function runLocalPreflight({ commandRunner = execFileAsync, generat
     // worker implementation or the authenticated account type.
     return { status: 'ready', generation: 'Codex Image Generation — test only', test_only: true };
   }
+  if (generationMode === 'openrouter') {
+    // OpenRouter is a plain HTTPS API: there is no local CLI to version-check
+    // and no account command to poll, so the only local precondition is the
+    // key. OpenRouterImageGenProvider is already wired through
+    // generation-provider.js and scene-runtime.js; this branch existed nowhere,
+    // so the mode threw here and the service died before it could listen.
+    //
+    // Deliberately no network probe. Preflight gates process startup, so
+    // reaching out to the provider makes a provider outage indistinguishable
+    // from a broken deploy: a Higgsfield 521 blocked promotion twice today
+    // precisely because the higgsfield branch below polls the account. A
+    // provider being down must degrade individual jobs, not prevent boot.
+    if (!String(process.env.OPENROUTER_API_KEY ?? '').trim()) {
+      throw new Error('OpenRouter generation preflight requires OPENROUTER_API_KEY');
+    }
+    return { status: 'ready', generation: 'OpenRouter Image Generation' };
+  }
   if (generationMode !== 'higgsfield') throw new Error(`Unsupported generation mode: ${generationMode}`);
   const [codexResult, higgsfieldResult, accountResult] = await Promise.allSettled([
     run('codex', ['--version'], commandRunner),

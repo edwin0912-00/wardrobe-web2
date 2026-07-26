@@ -9,7 +9,7 @@ REFERENCE BINDINGS
 - Quality-reference images are QA benchmarks only and must not affect identity.
 
 LOCKED ELEMENTS
-Preserve observable facial geometry, skin tone and texture, hair and distinctive features from the identity evidence. Preserve the approved avatar's expression, visible proportions, frontal pose, half-body crop, camera, lighting and pure-white background. Never reinterpret an UNKNOWN or NOT_EVALUABLE source-body attribute as observed evidence.
+Preserve observable facial geometry, skin tone and texture, hair and distinctive features from the identity evidence. Preserve the approved avatar's expression, visible proportions, frontal pose, full-length crop from the top of the head through the soles of the feet, camera, lighting and pure-white background. Never reinterpret an UNKNOWN or NOT_EVALUABLE source-body attribute as observed evidence.
 
 OUTFIT RULES
 Follow the requested garment type, layer order, color, material, construction and fit. Do not add logos, prints, jewelry or accessories unless explicitly requested. Remove the previous outfit completely.

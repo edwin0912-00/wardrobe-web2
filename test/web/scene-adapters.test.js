@@ -168,12 +168,20 @@ test('SceneGeneratorAdapter maps the exact three-model route and sends approved 
     );
     assert.equal(result.metadata.raw_output_sha256, sha256(providerOutput));
     assert.equal(result.metadata.geometry_output_sha256, sha256(result.image));
+    // 900×1200 is 3:4, six percent taller than the 4:5 delivery: a centre crop
+    // of 75 pixels of height, which states what it cost. 800×1000 is already
+    // 4:5 and only needs the canonical canvas, so nothing is discarded there.
     assert.equal(
       result.metadata.geometry_strategy,
       route.job_set_type === 'gpt_image_2'
-        ? 'blurred_canvas_contain_no_subject_crop'
-        : 'provider_exact_4_5',
+        ? 'centre_crop_to_exact_4_5'
+        : 'provider_exact_4_5_rescaled',
     );
+    if (route.job_set_type === 'gpt_image_2') {
+      assert.equal(result.metadata.geometry_crop_fraction, 0.0625);
+    } else {
+      assert.equal(result.metadata.geometry_crop_fraction, undefined);
+    }
   }
 });
 
@@ -349,11 +357,77 @@ test('SceneGeneratorAdapter drives the Higgsfield CLI harness with GPT 3:4 and s
   );
   assert.doesNotMatch(command.args[command.args.indexOf('--prompt') + 1], /\/Users\/|\/tmp\//);
   assert.equal(result.metadata.provider_request_id, 'scene-provider-job-1');
-  assert.equal(result.metadata.geometry_strategy, 'blurred_canvas_contain_no_subject_crop');
+  assert.equal(result.metadata.geometry_strategy, 'centre_crop_to_exact_4_5');
+  assert.equal(result.metadata.geometry_crop_fraction, 0.0625);
   assert.deepEqual(
     [await sharp(result.image).metadata().then((metadata) => metadata.width),
       await sharp(result.image).metadata().then((metadata) => metadata.height)],
     [1024, 1280],
+  );
+});
+
+test('an exact-ratio frame at the provider bucket size is rescaled without discarding a pixel', async () => {
+  const fixture = await contextFixture();
+  // 896×1120 is what gpt-image actually returns for a 4:5 request. Right shape,
+  // wrong size — so it rescales and nothing is cropped or invented.
+  const providerOutput = await sharp({
+    create: { width: 896, height: 1120, channels: 3, background: '#8f7360' },
+  }).png().toBuffer();
+  const adapter = new SceneGeneratorAdapter({
+    provider: {
+      async generate() {
+        return {
+          image: providerOutput,
+          mediaType: 'image/png',
+          metadata: { provider: 'openrouter', job_id: 'bucket-job-1' },
+        };
+      },
+    },
+  });
+  const result = await adapter.generateScene({
+    ...fixture.base,
+    attempt: 1,
+    model: 'GPT Image 2',
+    model_version: 'gpt_image_2',
+    job_set_type: 'gpt_image_2',
+    quality: 'high',
+  });
+  assert.equal(result.metadata.geometry_strategy, 'provider_exact_4_5_rescaled');
+  assert.equal(result.metadata.geometry_crop_fraction, undefined);
+  const delivered = await sharp(result.image).metadata();
+  assert.deepEqual([delivered.width, delivered.height], [1024, 1280]);
+});
+
+test('a landscape provider frame fails the attempt instead of faking the delivery size', async () => {
+  const fixture = await contextFixture();
+  // 1200×900 needs 40% of its width removed to reach 4:5. The old code padded
+  // this onto a blurred stretch of itself and shipped it as a valid 1024×1280
+  // frame. Nothing downstream could see that a fifth of the delivery was filler,
+  // so it now fails where the route can retry.
+  const providerOutput = await sharp({
+    create: { width: 1200, height: 900, channels: 3, background: '#8f7360' },
+  }).png().toBuffer();
+  const adapter = new SceneGeneratorAdapter({
+    provider: {
+      async generate() {
+        return {
+          image: providerOutput,
+          mediaType: 'image/png',
+          metadata: { provider: 'openrouter', job_id: 'landscape-job-1' },
+        };
+      },
+    },
+  });
+  await assert.rejects(
+    adapter.generateScene({
+      ...fixture.base,
+      attempt: 1,
+      model: 'GPT Image 2',
+      model_version: 'gpt_image_2',
+      job_set_type: 'gpt_image_2',
+      quality: 'high',
+    }),
+    /1200×900, which cannot reach the 4:5 delivery without discarding 40% of the frame/,
   );
 });
 
@@ -974,6 +1048,53 @@ test('framing assessment records visual lock defects without misclassifying vali
     height: 1280,
     expectedSubjectHeightPercent: [74, 78],
   }), /outside the preset framing range/);
+});
+
+test('editorial headroom is advisory once the head is observed whole, and stays blocking for standard scenes', () => {
+  // The real frame this came from: an editorial identity hero measured 5% of
+  // headroom against a 6% minimum, thirteen pixels of a 1280-tall canvas, while
+  // its own gate text read "Full head is visible and the figure is anatomically
+  // coherent" and the other eight gates passed. Headroom only ever stood in for
+  // "the head is not cropped", and full_head_visible answers that directly.
+  const measured = {
+    subject_bbox_xywh_px: [100, 64, 824, 1104],
+    full_head_visible: true,
+    full_footwear_visible: true,
+  };
+  const editorial = {
+    width: 1024,
+    height: 1280,
+    expectedSubjectHeightPercent: [50, 94],
+    minimumAboveHairPercent: 6,
+    requireFullFootwear: false,
+    aboveIsAdvisoryWhenHeadVisible: true,
+  };
+
+  const waived = assessFramingEvidence(measured, editorial);
+  assert.equal(waived.evidence.clear_space_above_hair_percent, 5);
+  assert.equal(waived.evidence.minimum_clear_space_above_hair_percent, 6);
+  assert.deepEqual(waived.defects, []);
+
+  // A cropped head is still a defect: the waiver rests on the observation, so it
+  // disappears the moment the observation does.
+  const cropped = assessFramingEvidence(
+    { ...measured, full_head_visible: false },
+    editorial,
+  );
+  assert.deepEqual(cropped.defects, [
+    'INSUFFICIENT_CLEAR_SPACE_ABOVE_HAIR',
+    'FULL_HEAD_NOT_VISIBLE',
+  ]);
+
+  // Standard scenes promise the same avatar composed the same way in every
+  // environment, so there headroom is the product and keeps failing.
+  const standard = assessFramingEvidence(measured, {
+    width: 1024,
+    height: 1280,
+    expectedSubjectHeightPercent: [74, 78],
+    minimumAboveHairPercent: 6,
+  });
+  assert.ok(standard.defects.includes('INSUFFICIENT_CLEAR_SPACE_ABOVE_HAIR'));
 });
 
 test('SceneEvaluatorAdapter marks CLI and malformed-output failures as QA infrastructure failures', async () => {

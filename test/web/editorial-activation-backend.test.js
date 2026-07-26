@@ -123,6 +123,21 @@ test('READY editorial modes compile six strict per-shot packs from verified lice
         pack.preset,
       );
       validateResolvedReferenceAssets(pack.reference_pack, pack.assets);
+      // Assert the derivation, not a number: an editorial ceiling is whatever the
+      // slot's head guard does not reserve. Two frames were rejected at 84.7656% and
+      // 93.9063% by ceilings picked by hand, so no hand-picked ceiling may come back.
+      const [floor, ceiling] = pack.preset.camera.subject_height_percent;
+      assert.equal(
+        ceiling,
+        100 - pack.preset.camera.minimum_clear_space_percent.above_hair,
+        `${shotSpec.slot} ceiling must be the complement of its head guard`,
+      );
+      assert.ok(floor < ceiling, `${shotSpec.slot} floor must stay below its ceiling`);
+      assert.deepEqual(
+        shotSpec.camera.subject_height_percent,
+        pack.preset.camera.subject_height_percent,
+        `${shotSpec.slot} bible band must equal its canonical lock`,
+      );
       assert.equal(pack.reference_pack.source_ledger.status, 'VERIFIED_FOR_RELEASE');
       assert.ok(pack.reference_pack.source_ledger.sources.every(
         (source) => source.rights.status === 'VERIFIED',

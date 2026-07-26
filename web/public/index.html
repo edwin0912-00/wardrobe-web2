@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="description" content="ZEELY reference-conditioned AI avatar generator">
-  <title>ZEELY — AI Avatar Studio</title>
+  <meta name="description" content="WARDROBE reference-conditioned AI avatar generator">
+  <title>WARDROBE — AI Avatar Studio</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <script>try{const q=new URLSearchParams(location.search);if(q.has('run')||q.has('scene')||q.has('shoot')||localStorage.getItem('zeely_active_run_id')||localStorage.getItem('zeely_pending_finalization_id')||localStorage.getItem('zeely_source_avatar_id')||localStorage.getItem('zeely_active_scene_v1')||localStorage.getItem('zeely_active_editorial_shoot_v1'))document.documentElement.classList.add('workflow-pending')}catch{}</script>
   <link rel="stylesheet" href="/styles.css">
@@ -14,10 +14,12 @@
   <link rel="stylesheet" href="/experience.css?v=20260723-6">
   <link rel="stylesheet" href="/result.css?v=20260723-3">
   <link rel="stylesheet" href="/scene.css?v=20260723-4">
+  <link rel="stylesheet" href="/scene-cta.css?v=20260725-1">
+  <script type="module" src="/scene-cta.js?v=20260725-1"></script>
 </head>
 <body>
   <header class="topbar">
-    <a class="brand" href="/" aria-label="Zeely home"><span class="brand-mark">Z</span><span>ZEELY LAB</span></a>
+    <a class="brand" href="/" aria-label="Wardrobe home"><span class="brand-mark">W</span><span>WARDROBE</span></a>
     <div class="topbar-actions">
       <button id="open-profile-global" class="header-profile-button" type="button">Мої образи</button>
       <div class="engine-status"><span class="pulse"></span> GPT Image 2 · strict QA</div>
@@ -122,7 +124,7 @@
         <div id="result-view" class="result-view hidden">
           <section class="result-shell">
             <header class="result-header">
-              <div class="result-title-group"><p class="result-kicker">YOUR ZEELY AVATAR</p><h3 class="result-heading">Твій образ готовий</h3></div>
+              <div class="result-title-group"><p class="result-kicker">YOUR WARDROBE AVATAR</p><h3 class="result-heading">Твій образ готовий</h3></div>
               <span id="result-save-state" class="result-qa">Перевірку пройдено</span>
             </header>
             <div class="result-workspace">
@@ -334,7 +336,7 @@
       </section>
     </section>
   </main>
-  <footer><span>ZEELY AI ENGINEERING TEST</span><a href="/pipeline.html">Як працює pipeline →</a><a href="https://monitor.madeforthisjob.com">Live monitor →</a><span>Immutable jobs · Hash-bound QA · Cloud models</span></footer>
+  <footer><span>WARDROBE AI ENGINEERING TEST</span><a href="/pipeline.html">Як працює pipeline →</a><a href="https://monitor.madeforthisjob.com">Live monitor →</a><span>Immutable jobs · Hash-bound QA · Cloud models</span></footer>
   <aside id="boot-error" class="boot-error" role="alert" hidden>
     <strong>Інтерфейс не відповідає</strong><span data-error-message>Сталася помилка запуску.</span>
     <button type="button" onclick="location.reload()">Перезавантажити</button>

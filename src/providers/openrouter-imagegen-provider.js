@@ -65,6 +65,45 @@ async function validatePng(bytes) {
 }
 
 /**
+ * Accept any decodable image the provider returns and hand back canonical PNG.
+ *
+ * The route deliberately falls through several models, and they do not agree on
+ * container format: openai/gpt-5.4-image-2 and google/gemini-3-pro-image return
+ * PNG, while google/gemini-3.1-flash-image returns JPEG. Rejecting a perfectly
+ * good JPEG with "no valid PNG bytes" threw away a finished generation over its
+ * envelope and burned a fallback slot, which is how a whole scene ended as
+ * GENERATION_FAILED while the image itself was fine.
+ *
+ * Conversion happens only for a freshly generated image, never when replaying a
+ * journaled one: a stored output is already canonical and its receipt binds the
+ * exact bytes, so re-encoding there would break the hash it is checked against.
+ * Every other guarantee is unchanged — the result is still validated as a
+ * single-page PNG within the size and dimension limits before it is stored.
+ */
+async function normaliseToPng(bytes) {
+  if (!Buffer.isBuffer(bytes) || bytes.length < 24 || bytes.length > MAX_OUTPUT_BYTES) {
+    throw new OpenRouterImageGenProviderError('OpenRouter returned no usable image bytes', {
+      code: 'INVALID_PROVIDER_OUTPUT',
+    });
+  }
+  if (bytes.subarray(0, PNG_SIGNATURE.length).equals(PNG_SIGNATURE)) {
+    return { bytes, dimensions: await validatePng(bytes) };
+  }
+  let converted;
+  try {
+    converted = await sharp(bytes, { failOn: 'error', limitInputPixels: 67_108_864 })
+      .png({ compressionLevel: 9 })
+      .toBuffer();
+  } catch (error) {
+    throw new OpenRouterImageGenProviderError('OpenRouter returned bytes that are not a decodable image', {
+      code: 'INVALID_PROVIDER_OUTPUT',
+      cause: error,
+    });
+  }
+  return { bytes: converted, dimensions: await validatePng(converted) };
+}
+
+/**
  * Drop-in alternative to HiggsfieldCliProvider / CodexImagegenProvider that
  * generates avatar/outfit/garment/scene images through the OpenRouter API
  * instead of a local CLI or app-server worker. Reuses the same
@@ -95,6 +134,10 @@ export class OpenRouterImageGenProvider {
     this.journalDirectory = journalDirectory ? path.resolve(journalDirectory) : undefined;
     this.timeoutMs = timeoutMs;
     this.clock = clock;
+    // Both routed models honour an explicit 4:5 request (measured 2026-07-25:
+    // gpt-image → 896×1120, gemini → 928×1152), so this transport never needs
+    // the 3:4 detour the Higgsfield CLI was limited to.
+    this.transportAspectRatio = '4:5';
   }
 
   /**
@@ -205,6 +248,10 @@ export class OpenRouterImageGenProvider {
       runner_job_id: context.jobId,
       idempotency_key: context.idempotencyKey,
       prompt_sha256: sha256(context.prompt),
+      // Part of the request identity: it changes the returned pixels. Left out,
+      // a journal written before the aspect was sent would replay as a match and
+      // hand back the square frame the fix exists to stop producing.
+      aspect_ratio: context.aspectRatio ?? null,
       input_media: descriptors.map((item, index) => ({
         order: index + 1,
         scope: item.scope ?? null,
@@ -264,13 +311,16 @@ export class OpenRouterImageGenProvider {
     let image;
     let dimensions;
     try {
-      image = await this.client.generateImage({
+      const generated = await this.client.generateImage({
         model: openRouterModel,
         prompt: context.prompt,
         imagePaths: descriptors.map((item) => item.path),
+        aspectRatio: context.aspectRatio,
         timeoutMs: this.timeoutMs,
       });
-      dimensions = await validatePng(image);
+      // Reassign `image` to the canonical PNG: the journal receipt below records
+      // sha256, byte size and dimensions of exactly the bytes that get stored.
+      ({ bytes: image, dimensions } = await normaliseToPng(generated));
     } catch (error) {
       const at = this.#timestamp();
       journal = {

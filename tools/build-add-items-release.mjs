@@ -57,6 +57,12 @@ const cleanHeadFiles = [
 
 const fullWorkspaceFiles = [
   'src/web/draft-service.js',
+  // HEAD now carries the source-lineage profile service itself: run_claims
+  // declares source_look_id, the additive column migration is idempotent, and
+  // the claim path is lineage-aware. Patching that shape back into a HEAD
+  // archive would duplicate the guard the committed file already defines, so
+  // this ships as a byte-exact overlay the release manifest can hash-verify.
+  'src/web/profile-service.js',
   'web/public/add-items-flow.js',
   'web/public/draft-file-contract.js',
   'web/public/server-draft.js',
@@ -78,7 +84,6 @@ const fullWorkspaceFiles = [
 const cacheAuthorityFiles = [
   ...new Set([
     ...fullWorkspaceFiles,
-    'src/web/profile-service.js',
     'web/public/app.js',
     'web/public/profile-client.js',
     'web/public/index.html',
@@ -232,15 +237,6 @@ function replaceUniquePattern(source, pattern, replacement, label) {
   return `${source.slice(0, index)}${replacement}${source.slice(index + matched.length)}`;
 }
 
-function replaceRegion(source, startMarker, endMarker, replacement, label) {
-  const start = source.indexOf(startMarker);
-  const end = source.indexOf(endMarker, start);
-  if (start < 0 || end <= start) {
-    throw new Error(`Release transform region is missing: ${label}`);
-  }
-  return `${source.slice(0, start)}${replacement}${source.slice(end)}`;
-}
-
 try {
   const { stdout: baseCommitStdout } = await execute('git', [
     '-C',
@@ -271,119 +267,6 @@ try {
   for (const relativePath of fullWorkspaceFiles) {
     await writeWorkspaceSnapshot(authoritySnapshotByPath.get(relativePath));
   }
-
-  const currentProfileService = authoritySnapshotByPath
-    .get('src/web/profile-service.js').bytes.toString('utf8');
-  let profileService = await readFile(
-    path.join(releaseDirectory, 'src/web/profile-service.js'),
-    'utf8',
-  );
-  profileService = replaceRequired(
-    profileService,
-    `        source_avatar_id TEXT,
-        saved_avatar_id TEXT,
-        saved_look_id TEXT,
-        claimed_at INTEGER NOT NULL,
-        FOREIGN KEY (profile_id) REFERENCES profiles(profile_id) ON DELETE CASCADE,
-        FOREIGN KEY (source_avatar_id) REFERENCES avatars(avatar_id) ON DELETE CASCADE
-`,
-    `        source_avatar_id TEXT,
-        source_look_id TEXT,
-        saved_avatar_id TEXT,
-        saved_look_id TEXT,
-        claimed_at INTEGER NOT NULL,
-        FOREIGN KEY (profile_id) REFERENCES profiles(profile_id) ON DELETE CASCADE,
-        FOREIGN KEY (source_avatar_id) REFERENCES avatars(avatar_id) ON DELETE CASCADE,
-        FOREIGN KEY (source_look_id) REFERENCES looks(look_id) ON DELETE SET NULL
-`,
-    'source look claim schema',
-  );
-  profileService = replaceRequired(
-    profileService,
-    `      CREATE TABLE IF NOT EXISTS pending_run_deletions (
-        run_id TEXT PRIMARY KEY,
-        queued_at INTEGER NOT NULL,
-        attempts INTEGER NOT NULL DEFAULT 0,
-        last_error TEXT
-      ) STRICT;
-    \`);
-  }
-`,
-    `      CREATE TABLE IF NOT EXISTS pending_run_deletions (
-        run_id TEXT PRIMARY KEY,
-        queued_at INTEGER NOT NULL,
-        attempts INTEGER NOT NULL DEFAULT 0,
-        last_error TEXT
-      ) STRICT;
-    \`);
-    const claimColumns = this.database.prepare('PRAGMA table_info(run_claims)').all();
-    if (!claimColumns.some((column) => column.name === 'source_look_id')) {
-      this.database.exec(\`
-        ALTER TABLE run_claims
-        ADD COLUMN source_look_id TEXT REFERENCES looks(look_id) ON DELETE SET NULL
-      \`);
-    }
-  }
-`,
-    'source look additive migration',
-  );
-  const currentClaimStart = currentProfileService.indexOf('  assertAddItemsSource(');
-  const currentClaimEnd = currentProfileService.indexOf('  getClaim(', currentClaimStart);
-  if (currentClaimStart < 0 || currentClaimEnd <= currentClaimStart) {
-    throw new Error('Current source-lineage claim implementation is missing');
-  }
-  profileService = replaceRegion(
-    profileService,
-    '  claimRun(',
-    '  getClaim(',
-    currentProfileService.slice(currentClaimStart, currentClaimEnd),
-    'source-lineage claim implementation',
-  );
-  const currentGetClaimStart = currentProfileService.indexOf('  getClaim(');
-  const currentGetClaimEnd = currentProfileService.indexOf('  saveClaimedRun(', currentGetClaimStart);
-  profileService = replaceRegion(
-    profileService,
-    '  getClaim(',
-    '  saveClaimedRun(',
-    currentProfileService.slice(currentGetClaimStart, currentGetClaimEnd),
-    'source-lineage claim read',
-  );
-  const currentSaveStart = currentProfileService.indexOf('  saveClaimedRun(');
-  const currentSaveEnd = currentProfileService.indexOf('  avatarAsset(', currentSaveStart);
-  profileService = replaceRegion(
-    profileService,
-    '  saveClaimedRun(',
-    '  avatarAsset(',
-    currentProfileService.slice(currentSaveStart, currentSaveEnd),
-    'derived look parent lineage',
-  );
-  const currentClaimHelperStart = currentProfileService.indexOf('  async function claimRunForRequest(');
-  const currentClaimHelperEnd = currentProfileService.indexOf(
-    '  async function serveProfileImage(',
-    currentClaimHelperStart,
-  );
-  profileService = replaceRegion(
-    profileService,
-    '  async function claimRunForRequest(',
-    '  async function serveProfileImage(',
-    currentProfileService.slice(currentClaimHelperStart, currentClaimHelperEnd),
-    'lineage-aware HTTP claim helper',
-  );
-  const currentClaimRouteStart = currentProfileService.indexOf(
-    "  app.post('/api/profile/runs/:runId/claim'",
-  );
-  const currentClaimRouteEnd = currentProfileService.indexOf(
-    "  app.post('/api/profile/runs/:runId/save'",
-    currentClaimRouteStart,
-  );
-  profileService = replaceRegion(
-    profileService,
-    "  app.post('/api/profile/runs/:runId/claim'",
-    "  app.post('/api/profile/runs/:runId/save'",
-    currentProfileService.slice(currentClaimRouteStart, currentClaimRouteEnd),
-    'lineage-aware HTTP claim route',
-  );
-  await writeFile(path.join(releaseDirectory, 'src/web/profile-service.js'), profileService);
 
   let appSource = authoritySnapshotByPath.get('web/public/app.js').bytes.toString('utf8');
   for (const [moduleName, expectedVersion] of [
@@ -566,7 +449,6 @@ ${profileClient.slice(avatarFileStart)}`;
       (relativePath) => relativePath !== 'web/public/server-draft.js',
     ),
     transformed: [
-      'src/web/profile-service.js',
       'web/public/app.js',
       'web/public/server-draft.js',
       'web/public/profile-client.js',

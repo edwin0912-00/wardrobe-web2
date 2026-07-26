@@ -60,7 +60,7 @@ NOTION_EXPLICIT > EXPLICIT_USER_DECISION > DERIVED_PRODUCTION_RULE > OPTIONAL_ID
 
 - `QA-001`: exact `#FFFFFF`; без edge shadows, artifacts і gradients.
 - `QA-002`: observable identity preservation.
-- `QA-003`: neutral frontal half-body framing; full face visible.
+- `QA-003`: neutral frontal full-length framing from the top of the head to the soles of the feet; full face visible.
 - `QA-004`: soft, even, diffuse studio lighting.
 - `QA-005`: neutral white balance and natural skin tone.
 - `QA-006`: sharp eyes/hair/skin/fabric; no blur or plastic skin.

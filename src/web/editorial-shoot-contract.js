@@ -206,9 +206,11 @@ function validateCamera(camera, slot) {
   }
   if (!FRAMINGS.has(camera.framing)) throw new Error(`${label}.framing is unsupported`);
   nonEmptyText(camera.angle, `${label}.angle`, 300);
+  // The upper bound reaches 100 because an editorial ceiling is the complement of the
+  // slot's clear-space guard, and the detail slot reserves no clear space at all.
   if (!Array.isArray(camera.subject_height_percent)
     || camera.subject_height_percent.length !== 2
-    || camera.subject_height_percent.some((item) => !Number.isFinite(item) || item < 20 || item > 95)
+    || camera.subject_height_percent.some((item) => !Number.isFinite(item) || item < 20 || item > 100)
     || camera.subject_height_percent[0] >= camera.subject_height_percent[1]) {
     throw new Error(`${label}.subject_height_percent must be an ordered [min,max] percentage`);
   }
@@ -251,12 +253,19 @@ function validateShotSpec(shot, index) {
     throw new Error('The clean identity hero must require full-face identity evidence');
   }
   const camera = validateCamera(shot.camera, expectedSlot);
+  // Art direction is not a fitting shot, so no editorial slot demands a
+  // full-length figure. While three slots required full_body / wide_full_body,
+  // a half-length approved look forced the generator to invent a lower garment
+  // and footwear it had never been given, and ITEM_FIDELITY then correctly
+  // refused to verify invented items — making the hero, and therefore the whole
+  // series behind it, unpassable. The framing intent that matters editorially is
+  // the crop character, which three_quarter already expresses.
   const requiredFraming = {
-    clean_identity_hero: 'full_body',
-    environmental_hero: 'full_body',
+    clean_identity_hero: 'three_quarter',
+    environmental_hero: 'three_quarter',
     sculptural_three_quarter: 'three_quarter',
     material_or_accessory_detail: 'detail',
-    wide_campaign_coda: 'wide_full_body',
+    wide_campaign_coda: 'three_quarter',
   }[expectedSlot];
   if (requiredFraming && camera.framing !== requiredFraming) {
     throw new Error(`${expectedSlot} must use ${requiredFraming} framing`);

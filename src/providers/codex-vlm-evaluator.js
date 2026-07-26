@@ -117,7 +117,11 @@ export function qaPrompt(phase, images, evidence = {}) {
     : '';
   const phaseRules = {
     conditioning: 'Check whether source identity and garment evidence are usable. Never infer hidden body or garment details. Missing evidence is NEEDS_INPUT.',
-    avatar: 'Compare the candidate avatar with identity evidence. Require the same recognizable person, frontal half-body framing, full face, natural anatomy, studio photorealism, and no visible background defects.',
+    // prompts/avatar.txt makes the avatar the full-length continuity authority
+    // that every later stage is measured against. Asking QA for a half-body
+    // crop here rejected all three avatar attempts of run 0810e427 on framing
+    // alone while the generator was producing exactly what it was told to.
+    avatar: 'Compare the candidate avatar with identity evidence. Require the same recognizable person, frontal full-length framing from the top of the head through the soles of the feet with both feet and any footwear inside the frame, full face, natural anatomy, studio photorealism, and no visible background defects.',
     outfit: 'Compare the candidate with identity, approved avatar, and garment/text evidence. Require the same person and exact observable garment type, colors, material, pattern, logo/text, construction and fit. Reject old-clothing residue and anatomy defects.',
     garment: 'RAW_GARMENT_PRIMARY and RAW_GARMENT_VIEW_* are authoritative source photos; GENERATED_CANONICAL_CANDIDATE is the generated image under review. Compare the candidate against every raw view, never the reverse. Require unchanged observable type, shape, color, material, pattern, logo/text and construction. The canonical image must show only the garment on clean white. Use NEEDS_INPUT only when the raw garment photos themselves are insufficient to identify the target, regardless of candidate quality. When raw evidence is usable, any mismatch, omission, invention, crop, background issue or other candidate defect is a generated-route failure: use RETRY when another generation can fix it, or REJECT when this candidate is unusable. Never use NEEDS_INPUT merely because the generated candidate differs from usable raw evidence.',
     scene: 'Compare the editorial scene with the approved outfit still. Require the same person and unchanged approved outfit; judge scene intent separately.',

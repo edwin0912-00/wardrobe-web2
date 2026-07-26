@@ -347,6 +347,14 @@
     "providerMetadata": {
       "type": "object",
       "additionalProperties": false,
+      "allOf": [
+        {
+          "comment": "A crop must state its cost. Without this a cropping delivery could record the strategy and omit how much of the provider frame it discarded.",
+          "if": { "properties": { "geometry_strategy": { "const": "centre_crop_to_exact_4_5" } }, "required": ["geometry_strategy"] },
+          "then": { "required": ["geometry_crop_fraction"] },
+          "else": { "not": { "required": ["geometry_crop_fraction"] } }
+        }
+      ],
       "dependentRequired": {
         "repair_candidate_sha256": ["repair_from_attempt"],
         "repair_from_attempt": ["repair_candidate_sha256"],
@@ -407,8 +415,15 @@
         "geometry_output_sha256": { "$ref": "#/$defs/sha256" },
         "transport_aspect_ratio": { "enum": ["3:4", "4:5"] },
         "geometry_strategy": {
-          "enum": ["provider_exact_4_5", "blurred_canvas_contain_no_subject_crop"]
+          "comment": "blurred_canvas_contain_no_subject_crop is no longer produced — padding a frame onto a blurred stretch of itself faked the delivery size. It stays listed so receipts written before that path was removed still validate.",
+          "enum": [
+            "provider_exact_4_5",
+            "provider_exact_4_5_rescaled",
+            "centre_crop_to_exact_4_5",
+            "blurred_canvas_contain_no_subject_crop"
+          ]
         },
+        "geometry_crop_fraction": { "type": "number", "minimum": 0, "maximum": 0.22 },
         "reference_role_order": { "type": "string", "maxLength": 500 },
         "reference_evidence_sha256": { "$ref": "#/$defs/sha256" },
         "attached_reference_count": { "type": "number", "minimum": 1 },

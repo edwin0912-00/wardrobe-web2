@@ -6,7 +6,10 @@ import {
   sha256,
   validateEditorialShootBible,
 } from './editorial-shoot-contract.js';
-import { canonicalJsonBytes as sceneCanonicalJsonBytes } from './scene-contract.js';
+import {
+  canonicalJsonBytes as sceneCanonicalJsonBytes,
+  editorialFramingLock,
+} from './scene-contract.js';
 
 export const READY_EDITORIAL_MODE_IDS = Object.freeze([
   'editorial.edwin_novak.organic_contrast',
@@ -43,17 +46,40 @@ const MODE_CONTENT = Object.freeze({
   }),
 });
 
-const SLOT_CONTENT = Object.freeze({
+// The vertical lock of a slot — subject-height band, clear space, and head and footwear
+// visibility — is owned by scene-contract.js, which is also the file that refuses a
+// resolved camera disagreeing with it ('Resolved editorial camera does not match its
+// canonical framing lock'). Restating those numbers here bought nothing and could only
+// drift, and drift did not make a slot wrong, it made it unshootable. So read them.
+function withVerticalLock(slots) {
+  return Object.freeze(Object.fromEntries(
+    Object.entries(slots).map(([slot, content]) => {
+      const lock = editorialFramingLock(slot);
+      return [slot, Object.freeze({
+        ...content,
+        subject_height_percent: Object.freeze([...lock.subject]),
+        clear_space: Object.freeze({ above_hair: lock.above, below_footwear: lock.below }),
+        require_full_head: lock.head,
+        require_full_footwear: lock.footwear,
+      })];
+    }),
+  ));
+}
+
+const SLOT_CONTENT = withVerticalLock({
   clean_identity_hero: Object.freeze({
     title: 'Чистий hero-кадр',
     objective: 'Establish exact identity, natural body proportions and every approved item without obstruction before any experimental frame.',
     lens_mm: 50,
-    framing: 'full_body',
+    // Art direction carries no full-body or footwear lock. That lock belongs to
+    // the standard scene families, where "try the garment on" is the product
+    // promise; here the crop is the style. With it in place this slot forced a
+    // full-length frame, the generator had to invent a lower garment and shoes
+    // the approved look never contained, and ITEM_FIDELITY correctly refused to
+    // verify invented items — so the first slot of every shoot was unpassable
+    // and blocked the three crop slots behind it.
+    framing: 'three_quarter',
     height: 'eye_level',
-    subject_height_percent: [72, 78],
-    clear_space: { above_hair: 6, below_footwear: 2 },
-    require_full_head: true,
-    require_full_footwear: true,
     angle: 'Eye level with disciplined verticals and no optical distortion.',
     pose: 'Grounded confident stance, separated hands, readable silhouette and unobstructed outfit.',
     identity_visibility: 'full_face',
@@ -63,12 +89,12 @@ const SLOT_CONTENT = Object.freeze({
     title: 'Hero у просторі',
     objective: 'Integrate the exact approved person and look into the mode environment while preserving clear identity and complete item evidence.',
     lens_mm: 50,
-    framing: 'full_body',
+    // Same reason as clean_identity_hero: the environment frame is art
+    // direction, not a fitting shot. Keeping it three-quarter lets a half-body
+    // approved look place into the mode environment without fabricating a lower
+    // half that no reference can verify.
+    framing: 'three_quarter',
     height: 'low_max_5deg',
-    subject_height_percent: [64, 72],
-    clear_space: { above_hair: 5, below_footwear: 2 },
-    require_full_head: true,
-    require_full_footwear: true,
     angle: 'Controlled low angle no more than five degrees with straight architecture.',
     pose: 'Editorial full-body stance with one natural weight shift and hands clear of critical garment evidence.',
     identity_visibility: 'full_face',
@@ -80,10 +106,6 @@ const SLOT_CONTENT = Object.freeze({
     lens_mm: 65,
     framing: 'three_quarter',
     height: 'eye_level',
-    subject_height_percent: [70, 88],
-    clear_space: { above_hair: 5, below_footwear: 0 },
-    require_full_head: true,
-    require_full_footwear: false,
     angle: 'Eye-level three-quarter portrait with compressed perspective and disciplined verticals.',
     pose: 'Sculptural shoulder and torso rotation with anatomically clear hands and no product occlusion.',
     identity_visibility: 'full_face',
@@ -95,10 +117,6 @@ const SLOT_CONTENT = Object.freeze({
     lens_mm: 55,
     framing: 'three_quarter',
     height: 'eye_level',
-    subject_height_percent: [64, 82],
-    clear_space: { above_hair: 4, below_footwear: 0 },
-    require_full_head: true,
-    require_full_footwear: false,
     angle: 'Slightly oblique eye-level composition with one clean foreground layer.',
     pose: 'Controlled fashion pose with readable limbs and protected face and item evidence.',
     identity_visibility: 'full_face',
@@ -110,10 +128,6 @@ const SLOT_CONTENT = Object.freeze({
     lens_mm: 85,
     framing: 'detail',
     height: 'eye_level',
-    subject_height_percent: [58, 94],
-    clear_space: { above_hair: 0, below_footwear: 0 },
-    require_full_head: false,
-    require_full_footwear: false,
     angle: 'Close editorial detail with natural perspective and no macro distortion.',
     pose: 'Detail-led crop with anatomically plausible hand or body context and no invented item surface.',
     identity_visibility: 'partial_face',
@@ -123,12 +137,12 @@ const SLOT_CONTENT = Object.freeze({
     title: 'Широкий campaign-фінал',
     objective: 'Close the series with a wide campaign frame that preserves the exact complete person and look inside strong original negative space.',
     lens_mm: 35,
-    framing: 'wide_full_body',
+    // The coda stays wide — that is its whole point — but a wide frame does not
+    // have to be a full-length one. Requiring footwear here would reintroduce
+    // the same unpassable gate at the end of the series that it did at the
+    // start: an invented lower half no reference can verify.
+    framing: 'three_quarter',
     height: 'waist_level',
-    subject_height_percent: [48, 64],
-    clear_space: { above_hair: 8, below_footwear: 3 },
-    require_full_head: true,
-    require_full_footwear: true,
     angle: 'Waist-level wide composition with corrected verticals and no wide-angle body distortion.',
     pose: 'Small but fully readable figure with separated limbs and an unmistakable complete approved silhouette.',
     identity_visibility: 'full_face',
@@ -196,11 +210,21 @@ function shotSpec(modeId, slot) {
     item_evidence: [
       'Preserve every approved item that intersects the intentional crop in exact type, silhouette, color, material and construction.',
       'Preserve every visible logo, graphic, letter, number, pattern, closure, hardware and footwear detail exactly; never invent an out-of-frame item.',
+      // A styled frame usually needs a garment the wardrobe does not contain —
+      // most often a lower garment, when the approved look is a top only. Left
+      // unaddressed the generator invents a branded-looking one, and the
+      // forensic gate then fails a technically good frame because nothing can
+      // verify it. So the completion is permitted, but confined: it is drawn
+      // from this mode's own palette and materials so it reads as art direction
+      // rather than filler, and it must stay plainly unbranded so it can never
+      // be mistaken for, or compete with, an approved product.
+      'STYLING COMPLETION: complete any body region this crop leaves uncovered by the approved look with one plain garment drawn from the mode palette and materials above.',
+      'A styling completion is plain and unbranded: no logo, brand mark, slogan, number or graphic print. It is styling, not product, so it is neither claimed as approved nor verified against it.',
     ],
     optical_device: shot.optical_device,
     negative_constraints: [
       'No identity drift, age change, face replacement, body redesign or skin smoothing.',
-      'No added, removed, substituted, recolored or redesigned garment, accessory, logo or text.',
+      'No removed, substituted, recolored or redesigned APPROVED garment, accessory, logo or text. A plain unbranded styling-completion garment is permitted only where the approved look leaves a region of this crop uncovered.',
       'No copied source person, landmark, readable signage or exact source architecture.',
       'No malformed hands, merged limbs, destructive crop or incoherent contact shadow.',
     ],
@@ -288,7 +312,7 @@ function compiledReferenceAssets({ presetId, modeId, shotSpec: shot, basePack })
         aspect_ratio: '4:5',
         lens_mm: shot.camera.lens_mm,
         camera_height: slot.height,
-        subject_height_percent: [...shot.camera.subject_height_percent],
+        subject_height_percent: [...slot.subject_height_percent],
         minimum_clear_space_percent: { ...slot.clear_space },
         max_vertical_error_deg: 1.5,
         notes: [
@@ -326,13 +350,20 @@ function compiledReferenceAssets({ presetId, modeId, shotSpec: shot, basePack })
 }
 
 function compiledPrompt({ mode, shotSpec: shot }) {
+  const slot = SLOT_CONTENT[shot.slot];
   const lines = [
     'Create exactly one premium fashion editorial photograph from the immutable approved look.',
     `MODE: ${mode.ui_name_uk}`,
     `VISUAL SYSTEM: ${mode.visual_system}`,
     `SHOT SLOT: ${shot.slot}`,
     `SHOT OBJECTIVE: ${shot.objective}`,
-    `CAMERA: ${shot.camera.lens_mm} mm; ${shot.camera.framing}; ${shot.camera.angle}; subject height ${shot.camera.subject_height_percent.join('–')}%.`,
+    // The upper end of that band is not a target, it is the point where the subject
+    // would start eating the clear space above the hair, so the guard has to be said out
+    // loud. Stating the ceiling alone made the generator aim straight at it: three
+    // consecutive interference_frame attempts measured 96.33%, 96.48% and 96.72% against
+    // a 96% ceiling with only 3.67%, 3.52% and 3.28% left above the hair, failing a 4%
+    // guard it was never told about in the instruction it actually reads.
+    `CAMERA: ${shot.camera.lens_mm} mm; ${shot.camera.framing}; ${shot.camera.angle}; subject height ${slot.subject_height_percent.join('–')}% of frame height${slot.clear_space.above_hair > 0 ? `, and at least ${slot.clear_space.above_hair}% of frame height must stay clear above the hair` : ''}.`,
     `POSE: ${shot.pose}`,
     `LIGHT: ${shot.lighting}`,
     `ENVIRONMENT: ${shot.environment}`,
@@ -394,7 +425,14 @@ export function compileEditorialShotPack({
       lens_mm: shot.camera.lens_mm,
       height: slot.height,
       framing: shot.camera.framing,
-      subject_height_percent: [...shot.camera.subject_height_percent],
+      // The band is read from the canonical slot lock rather than from this
+      // ShootBible's own camera declaration, for the same reason the clear-space and
+      // visibility locks always were: a bible is frozen and hash-bound at shoot
+      // creation, so sourcing a contract-owned lock from it meant that widening the
+      // lock made every persisted bible unshootable — 'Resolved editorial camera does
+      // not match its canonical framing lock' — instead of repairing the very shots it
+      // was widened for. The bible keeps recording the band it was compiled with.
+      subject_height_percent: [...slot.subject_height_percent],
       minimum_clear_space_percent: { ...slot.clear_space },
       max_vertical_error_deg: 1.5,
       required_visibility: {

@@ -209,5 +209,5 @@ export async function avatarFileFromProfile(avatar) {
   const response = await fetch(avatar.image_url, { credentials: 'same-origin', cache: 'no-store' });
   if (!response.ok) throw new Error('Не вдалося відкрити збережений аватар');
   const blob = await response.blob();
-  return new File([blob], `zeely-${avatar.id ?? avatar.avatar_id}.png`, { type: blob.type || 'image/png', lastModified: Date.now() });
+  return new File([blob], `wardrobe-${avatar.id ?? avatar.avatar_id}.png`, { type: blob.type || 'image/png', lastModified: Date.now() });
 }

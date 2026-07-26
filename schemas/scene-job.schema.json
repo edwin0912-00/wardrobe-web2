@@ -717,6 +717,7 @@
         "quality": { "type": "string", "maxLength": 100 },
         "seed": { "type": ["string", "number", "boolean"] },
         "geometry_strategy": { "type": "string", "maxLength": 200 },
+        "geometry_crop_fraction": { "type": "number", "minimum": 0, "maximum": 0.22 },
         "transport_aspect_ratio": { "type": "string", "maxLength": 20 },
         "source_width": { "type": "number", "minimum": 1 },
         "source_height": { "type": "number", "minimum": 1 },

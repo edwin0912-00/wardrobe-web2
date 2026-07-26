@@ -315,12 +315,26 @@ function assertSceneRoute(context) {
   return jobSetType;
 }
 
+// A delivery never fakes its own size. The previous code padded any off-aspect
+// frame onto a blurred stretched copy of itself, which is how four approved
+// editorial frames each shipped a 128px band of blur above and below a 1024×1024
+// core: the file measured 1024×1280 and passed every dimension check while a
+// fifth of it was smeared filler. That is a defect, not a fallback, so it is
+// gone. Only two things may reach delivery — the provider's own pixels rescaled,
+// or a centre crop small enough that the composition survives it. Anything
+// further off is a generation failure and says so, which the fixed model route
+// can actually act on by retrying; silently padding it could not be acted on by
+// anyone. Requesting the aspect up front (see the provider's image_config) is
+// what keeps this path on the cheap branches.
+const MAX_GEOMETRY_CROP_FRACTION = 0.22;
+
 async function geometrySafeImage(bytes, { width, height }) {
   const metadata = await sharp(bytes).metadata();
   if (!metadata.width || !metadata.height || (metadata.pages ?? 1) !== 1) {
     throw new Error('Scene provider returned an undecodable or animated image');
   }
-  if (metadata.width * 5 === metadata.height * 4) {
+  const exactAspect = metadata.width * height === metadata.height * width;
+  if (exactAspect && metadata.width === width && metadata.height === height) {
     return {
       image: bytes,
       strategy: 'provider_exact_4_5',
@@ -329,36 +343,52 @@ async function geometrySafeImage(bytes, { width, height }) {
     };
   }
 
-  // Preserve the complete provider frame. A blurred cover is used only as the
-  // canvas extension; the sharp foreground is always fitted with `contain`.
-  const background = await sharp(bytes)
-    .rotate()
-    .resize({ width, height, fit: 'cover' })
-    .blur(32)
-    .png()
-    .toBuffer();
-  const foreground = await sharp(bytes)
-    .rotate()
-    .resize({
-      width,
-      height,
-      fit: 'contain',
-      background: { r: 0, g: 0, b: 0, alpha: 0 },
-    })
-    .ensureAlpha()
-    .png()
-    .toBuffer();
-  const image = await sharp(background)
-    .composite([{ input: foreground, left: 0, top: 0 }])
-    .toColourspace('srgb')
-    .png({ compressionLevel: 9, adaptiveFiltering: true })
-    .toBuffer();
-  return {
-    image,
-    strategy: 'blurred_canvas_contain_no_subject_crop',
+  const rescaleOnly = async (source, strategy, extra = {}) => ({
+    image: await source
+      .resize({ width, height, fit: 'fill', kernel: 'lanczos3' })
+      .toColourspace('srgb')
+      .png({ compressionLevel: 9, adaptiveFiltering: true })
+      .toBuffer(),
+    strategy,
     source_width: metadata.width,
     source_height: metadata.height,
-  };
+    ...extra,
+  });
+
+  // Right shape, wrong size: the providers' 4:5 buckets are 896×1120 and
+  // 928×1152, never the canonical canvas. Pure rescale — no pixel is discarded
+  // and none is invented.
+  if (exactAspect) {
+    return rescaleOnly(sharp(bytes), 'provider_exact_4_5_rescaled');
+  }
+
+  const targetAspect = width / height;
+  const tooWide = metadata.width / metadata.height > targetAspect;
+  const cropWidth = tooWide ? Math.round(metadata.height * targetAspect) : metadata.width;
+  const cropHeight = tooWide ? metadata.height : Math.round(metadata.width / targetAspect);
+  const cropFraction = tooWide
+    ? (metadata.width - cropWidth) / metadata.width
+    : (metadata.height - cropHeight) / metadata.height;
+
+  if (cropFraction > MAX_GEOMETRY_CROP_FRACTION) {
+    throw new Error(
+      `Scene provider returned ${metadata.width}×${metadata.height}, which cannot reach the 4:5 delivery `
+      + `without discarding ${Math.round(cropFraction * 100)}% of the frame`,
+    );
+  }
+
+  // The crop is not a silent trade: FRAMING_AND_ANATOMY judges the delivered
+  // frame, so a crop that clips a hand or a foot fails loudly rather than ships.
+  return rescaleOnly(
+    sharp(bytes).extract({
+      left: Math.round((metadata.width - cropWidth) / 2),
+      top: Math.round((metadata.height - cropHeight) / 2),
+      width: cropWidth,
+      height: cropHeight,
+    }),
+    'centre_crop_to_exact_4_5',
+    { crop_fraction: Number(cropFraction.toFixed(4)) },
+  );
 }
 
 export class SceneGeneratorAdapter {
@@ -380,7 +410,13 @@ export class SceneGeneratorAdapter {
     if (typeof provider?.generate !== 'function') {
       throw new Error(`SceneGeneratorAdapter has no provider for ${jobSetType}`);
     }
-    const requiredTransportAspectRatio = jobSetType === 'gpt_image_2' ? '3:4' : '4:5';
+    // What the transport can actually hand over, which is a property of the
+    // transport and not of the model name. The Higgsfield CLI could only serve
+    // gpt-image at 3:4; the OpenRouter transport serves it at a true 4:5 when
+    // asked, so it declares that and the delivery needs no crop at all.
+    const requiredTransportAspectRatio = typeof provider.transportAspectRatio === 'string'
+      ? provider.transportAspectRatio
+      : (jobSetType === 'gpt_image_2' ? '3:4' : '4:5');
     if (typeof provider.aspectRatio === 'string' && provider.aspectRatio !== requiredTransportAspectRatio) {
       throw new Error(`${context.model} provider must be configured with aspectRatio: ${requiredTransportAspectRatio}`);
     }
@@ -486,6 +522,7 @@ export class SceneGeneratorAdapter {
       model_name: IMAGE_MODEL_NAMES[jobSetType],
       job_set_type: jobSetType,
       prompt,
+      aspectRatio: requiredTransportAspectRatio,
       references: { ordered },
       idempotencyKey: context.idempotency_key,
       jobId: context.scene_id,
@@ -523,6 +560,9 @@ export class SceneGeneratorAdapter {
         geometry_output_sha256: sha256(geometry.image),
         transport_aspect_ratio: requiredTransportAspectRatio,
         geometry_strategy: geometry.strategy,
+        // How much of the provider frame the delivery cost. Recorded because the
+        // strategy name alone hid the scale of what geometry did to the image.
+        ...(geometry.crop_fraction === undefined ? {} : { geometry_crop_fraction: geometry.crop_fraction }),
         reference_role_order: evidence.map((item) => item.role).join(':'),
         reference_evidence_sha256: sha256(Buffer.from(JSON.stringify(evidence))),
         attached_reference_count: ordered.length,
@@ -597,6 +637,20 @@ export function evaluatorPrompt(delivery, references, preset = null, qaItems = [
     'For each item compare: item count and type, silhouette, color, material, construction, seams and closures, print/pattern, exact emblem or logo, exact readable text, and distinctive shoe or accessory geometry.',
     'Any substituted emblem, missing monogram, rewritten letter or number, altered stripe/print, changed bag hardware, changed shoe construction, missing item, or invented accessory is ITEM_FIDELITY FAIL.',
     'Never infer that two marks match merely because they resemble the same luxury style. If a required small logo, pattern, text, or construction detail is not visibly verifiable in the candidate, return FAIL with ITEM_DETAIL_NOT_VERIFIABLE.',
+    ...(editorial ? [
+      // A styled frame routinely needs a garment the approved wardrobe does not
+      // contain, most often a lower garment when the look is a top only. The
+      // bible instructs the generator to complete it plainly from the mode
+      // palette. Verifying such a garment against approval is impossible by
+      // definition, and failing the frame for it rejected otherwise perfect
+      // editorial images. So it is judged on being unremarkable instead of on
+      // matching: plain and unbranded passes, anything that reads as product
+      // fails, because that is a real fabrication of branded goods.
+      'A garment present in the candidate that the approved look does not contain is a STYLING COMPLETION, not an approved item. Do not require it to match approval and do not report ITEM_DETAIL_NOT_VERIFIABLE for it.',
+      'Judge a styling completion only on remaining unbranded and secondary: plain color and construction consistent with the mode palette is acceptable. Any logo, brand mark, slogan, number, graphic print or distinctive signature construction on it makes the ITEM_FIDELITY gate FAIL, with "UNAUTHORIZED_BRANDED_ADDITION" added to that gate\'s defects list.',
+      'This introduces no new gate. Return exactly the six named gates in the given order; a styling-completion problem is recorded inside ITEM_FIDELITY, never as a separate gate.',
+      'Every item the approved look does contain is still judged forensically and exactly. A styling completion may never replace, obscure or restyle an approved item.',
+    ] : []),
     'ITEM_FIDELITY evidence must name every checked visible item and explicitly state whether its logo/text/pattern and construction match.',
     ...(editorial && editorial.identity_visibility !== 'full_face' ? [
       'IDENTITY evaluates all stable identity evidence that is intentionally visible in this crop. Do not fail solely because the approved editorial detail crop omits part of the face; fail any visible identity conflict or unauthorized person change.',
@@ -605,6 +659,15 @@ export function evaluatorPrompt(delivery, references, preset = null, qaItems = [
     ]),
     `For framing_evidence, measure the visible subject or intentional ${framing.replaceAll('_', ' ')} crop bounding box [x,y,width,height] in pixels on the ${delivery.width}x${delivery.height} candidate canvas.`,
     `Set full_head_visible and full_footwear_visible from observation. This shot requires full head=${requireFullHead} and full footwear=${requireFullFootwear}; an intentional omission is not itself a defect when the requirement is false.`,
+    // The named crop is art direction, not a measurement, and the requirement
+    // booleans above are the whole of what framing is allowed to fail on. Only
+    // the omission half of that was ever stated, so a frame that showed MORE
+    // than its nominal crop got failed for it: an editorial hero measured at 84%
+    // subject height, inside its own [70,88] lock, was rejected as "a full-body
+    // frame with both complete shoes visible" while the deterministic assessment
+    // recorded no defect at all. Both directions have to be said, or the model
+    // keeps inventing a lock the contract does not have.
+    `The nominal crop for this shot is ${framing.replaceAll('_', ' ')}. Showing more of the body than that name suggests is not a framing defect when the requirements above are met — footwear visible while full footwear=false is acceptable art direction, not a fault. Judge FRAMING_AND_ANATOMY on anatomical coherence and on those stated requirements only; the numeric subject-height and clear-space locks are assessed outside this call and are not yours to enforce.`,
     'PASS only from visible evidence. A visual defect is FAIL; do not convert it into an infrastructure result.',
     'Return only schema-valid JSON.',
     structuredInstructions(references),

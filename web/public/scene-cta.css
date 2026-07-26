@@ -1,0 +1,202 @@
+/* ============================================================
+   Scene CTA — promotes «Створити сцену» from a quiet secondary
+   button to the hero action of the look screen.
+   Brand lime #f1ff62 on near-black #101410, matching the mark.
+   ============================================================ */
+
+@property --scene-cta-ang {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
+/* the glow must not be clipped by the actions grid */
+.profile-look-detail-actions,
+.result-secondary-actions {
+  overflow: visible;
+}
+
+#profile-look-scene,
+#create-scene:not(:disabled) {
+  position: relative;
+  isolation: isolate;
+  overflow: visible;
+  border: 1px solid rgba(241, 255, 98, .58);
+  background:
+    radial-gradient(120% 160% at 50% -40%, rgba(241, 255, 98, .16), transparent 62%),
+    linear-gradient(180deg, #1b2517 0%, #101410 100%);
+  color: #f1ff62;
+  font-weight: 900;
+  letter-spacing: .03em;
+  text-shadow: 0 0 14px rgba(241, 255, 98, .45);
+  box-shadow:
+    0 0 0 1px rgba(241, 255, 98, .16),
+    0 8px 26px -8px rgba(241, 255, 98, .5),
+    inset 0 1px 0 rgba(255, 255, 255, .07);
+  animation: scene-cta-breathe 2.8s ease-in-out infinite;
+  transition: transform .18s cubic-bezier(.2, .8, .3, 1), box-shadow .18s ease;
+}
+
+/* travelling glow ring around the border */
+#profile-look-scene::before,
+#create-scene:not(:disabled)::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  z-index: -1;
+  border-radius: 16px;
+  background: conic-gradient(from var(--scene-cta-ang),
+      transparent 0 58%,
+      rgba(241, 255, 98, .95) 72%,
+      #b6ff3c 79%,
+      rgba(241, 255, 98, .0) 90%);
+  filter: blur(7px);
+  opacity: .9;
+  animation: scene-cta-spin 3.4s linear infinite;
+}
+
+/* sheen that follows the cursor */
+#profile-look-scene::after,
+#create-scene:not(:disabled)::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
+  background: radial-gradient(130px circle at var(--scene-cta-mx, 50%) var(--scene-cta-my, 50%),
+      rgba(241, 255, 98, .3), transparent 62%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .25s ease;
+}
+
+#profile-look-scene:hover,
+#create-scene:not(:disabled):hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 0 0 1px rgba(241, 255, 98, .34),
+    0 14px 34px -8px rgba(241, 255, 98, .62),
+    inset 0 1px 0 rgba(255, 255, 255, .1);
+}
+
+#profile-look-scene:hover::after,
+#create-scene:not(:disabled):hover::after {
+  opacity: 1;
+}
+
+#profile-look-scene:active,
+#create-scene:not(:disabled):active {
+  transform: translateY(0) scale(.995);
+}
+
+#profile-look-scene:focus-visible,
+#create-scene:not(:disabled):focus-visible {
+  outline: 2px solid #f1ff62;
+  outline-offset: 3px;
+}
+
+/* ---- sparks (injected by scene-cta.js) ---- */
+.scene-cta-spark {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  pointer-events: none;
+  opacity: 0;
+  /* four-pointed star */
+  background: #f1ff62;
+  clip-path: polygon(50% 0%, 58% 42%, 100% 50%, 58% 58%, 50% 100%, 42% 58%, 0% 50%, 42% 42%);
+  filter: drop-shadow(0 0 4px rgba(241, 255, 98, .9));
+  animation: scene-cta-twinkle var(--dur, 2.4s) ease-in-out var(--delay, 0s) infinite;
+}
+
+@keyframes scene-cta-twinkle {
+  0%, 100% { opacity: 0; transform: scale(.4) rotate(0deg); }
+  40%      { opacity: 1; transform: scale(1) rotate(35deg); }
+  70%      { opacity: .25; transform: scale(.7) rotate(70deg); }
+}
+
+@keyframes scene-cta-spin {
+  to { --scene-cta-ang: 360deg; }
+}
+
+@keyframes scene-cta-breathe {
+  0%, 100% {
+    box-shadow:
+      0 0 0 1px rgba(241, 255, 98, .16),
+      0 8px 26px -8px rgba(241, 255, 98, .5),
+      inset 0 1px 0 rgba(255, 255, 255, .07);
+  }
+  50% {
+    box-shadow:
+      0 0 0 1px rgba(241, 255, 98, .3),
+      0 12px 34px -8px rgba(241, 255, 98, .72),
+      inset 0 1px 0 rgba(255, 255, 255, .1);
+  }
+}
+
+/* Browsers without @property cannot interpolate the angle: the ring would
+   sit still. Rotate the layer itself as a visual fallback. */
+@supports not (background: conic-gradient(from var(--scene-cta-ang), red, blue)) {
+  #profile-look-scene::before,
+  #create-scene:not(:disabled)::before {
+    background: conic-gradient(transparent 0 58%, rgba(241, 255, 98, .95) 72%, #b6ff3c 79%, transparent 90%);
+    animation: scene-cta-rotate 3.4s linear infinite;
+  }
+  @keyframes scene-cta-rotate { to { transform: rotate(360deg); } }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #profile-look-scene,
+  #create-scene:not(:disabled),
+  #profile-look-scene::before,
+  #create-scene:not(:disabled)::before,
+  .scene-cta-spark {
+    animation: none;
+  }
+  .scene-cta-spark { opacity: .55; }
+}
+
+/* ============================================================
+   Figure in space — the generated PNGs ship on a pure-white
+   studio background, which reads as a hard white rectangle on
+   our warm paper (--paper:#f3f5ef).
+
+   `multiply` maps white to the backdrop and leaves the subject
+   essentially untouched (image x ~0.96 backdrop), so the person
+   floats on the page with no re-generation and no alpha pass.
+   We do NOT use drop-shadow here: these PNGs are fully opaque,
+   so a shadow would trace the rectangle, not the silhouette.
+   ============================================================ */
+
+#profile-look-detail-image,
+#active-result-image,
+#profile-avatar-preview,
+#source-avatar-preview,
+.profile-look-grid img,
+.profile-look-scene-list img,
+.scene-look-strip img,
+.scene-running-stage img,
+.scene-result-stage img,
+.scene-candidate-stage img {
+  mix-blend-mode: multiply;
+  background: transparent;
+}
+
+/* The blend needs a light backdrop, but it must be the *card's* own tone —
+   painting our own paper colour here leaves a faintly mismatched rectangle
+   where the image sits. Staying transparent lets the multiply land on
+   whatever surface actually wraps the image, so the seam disappears. */
+.profile-look-detail,
+.profile-look-grid,
+.scene-look-strip,
+.scene-running-stage,
+.scene-result-stage,
+.scene-candidate-stage {
+  background-color: transparent;
+}
+
+/* Safari/Chromium: an ancestor creating a stacking context with its own
+   opaque white fill would trap the blend. Keep these transparent. */
+.profile-look-detail > img,
+.profile-look-workspace {
+  isolation: auto;
+}
