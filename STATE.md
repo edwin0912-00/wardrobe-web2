@@ -1,6 +1,6 @@
 # Wardrobe verified state
 
-Updated: 2026-07-26 23:38 UTC.
+Updated: 2026-07-26 23:32 UTC.
 
 ## Canonical source position
 
@@ -102,13 +102,7 @@ code.
   stalled execution.
 
 They are disjoint from WARD-001's active scene/editorial/privacy locks. Their
-shared starting procedure is `AGENTS.md` plus their exact task-board entry.
-
-## Current CI repair
-
-`CTRL-002` repairs only a Node 22 reporter-parser defect: the heading
-`✖ failing tests:` is currently misread as a second named failure. It does not
-change the accepted product-failure list or any product check.
+shared starting procedure is `docs/coordination/EXTERNAL_AGENT_START_UA.md`.
 
 ## Stop conditions awaiting Edwin
 

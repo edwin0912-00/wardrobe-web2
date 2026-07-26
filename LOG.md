@@ -32,14 +32,6 @@ Evidence: the new governance test failed before implementation with
 handoff and PR checks. The current focused governance suite passes 76/76.
 weakened_checks: none.
 
-2026-07-26 · CTRL-002 · parser repair leased
-Change: issue a test-first portability repair for the trusted baseline parser.
-Why: Node 22 emits `✖ failing tests:` as a reporter heading; the checker counts
-that heading as a named test failure and blocks candidate execution incorrectly.
-Evidence: the same known failure under Node 22 produces the expected two hash
-markers plus one named failure and one reporter heading.
-weakened_checks: none.
-
 2026-07-26 · STYLE-001 / PROFILE-001 / MONITOR-001 · parallel leases
 Change: issue three non-overlapping 24-hour implementation lanes for CodeCod,
 OpenCode, and Antigravity, plus one shared GitHub onboarding procedure.
