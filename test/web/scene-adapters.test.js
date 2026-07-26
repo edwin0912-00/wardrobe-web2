@@ -1021,6 +1021,162 @@ test('forensic item aggregation stays inside the downstream gate receipt bounds'
   assert.doesNotThrow(() => normalizeEvaluatorResult(result));
 });
 
+test('a rejected item carries its own forensic reason into the one sentence the gate shows', async () => {
+  const fixture = await contextFixture();
+  const itemEvidence = await approvedItemEvidenceFixture(fixture.root);
+  const candidate = await imageFile(fixture.root, 'candidate-item-reason.png', {
+    width: 1024,
+    height: 1280,
+    color: '#b98f72',
+  });
+  const adapter = new SceneEvaluatorAdapter({
+    commandRunner: evaluatorRunner(evaluatorPayload(), []),
+    itemCommandRunner: async (binary, args) => {
+      const itemId = /ITEM_ID: ([A-Za-z0-9._-]+)/.exec(args[1])?.[1];
+      const outputIndex = args.indexOf('--output-last-message');
+      // The recorded hood-lining refusal, verbatim in shape: prose, one defect and a
+      // confidence, all of which already persisted while the gate said nothing.
+      await writeFile(args[outputIndex + 1], JSON.stringify(itemId === 'set-0'
+        ? {
+          item_id: itemId,
+          verdict: 'REVISE',
+          evidence: 'The hood lining is rendered with a printed pattern where the approved item has a plain dark-green interior.',
+          matching_features: ['braided red and navy drawcord', 'GUCCI FIRENZE 1921 chest text'],
+          defects: ['patterned hood lining replaced the plain dark-green interior'],
+          confidence: 0.88,
+        }
+        : {
+          item_id: itemId,
+          verdict: 'PASS',
+          evidence: 'Exact visible product details match the approved reference.',
+          matching_features: ['all visible locked details'],
+          defects: [],
+          confidence: 0.97,
+        }));
+      return { stdout: '', stderr: '', exitCode: 0 };
+    },
+  });
+  const result = await adapter.evaluateScene({
+    scene_id: 'scene_item_reason_test',
+    attempt: 1,
+    candidate,
+    approved_look: fixture.approved,
+    references: fixture.references,
+    item_evidence: itemEvidence,
+    required_gates: SCENE_EVALUATOR_GATES,
+    delivery: { width: 1024, height: 1280 },
+  });
+  const itemGate = result.gates.find((gate) => gate.id === 'ITEM_FIDELITY');
+  assert.equal(itemGate.decision, 'FAIL');
+  assert.match(itemGate.evidence, /set-0 \(confidence 0\.88\)/);
+  assert.match(itemGate.evidence, /plain dark-green interior/);
+  // The passing item is not implicated by a gate that only one sub-check refused.
+  assert.doesNotMatch(itemGate.evidence, /set-2/);
+  // Nothing the outbound sanitiser exists to strip rides along in the prose.
+  assert.doesNotMatch(itemGate.evidence, new RegExp(itemEvidence[0].sha256));
+  assert.doesNotMatch(itemGate.evidence, /approved-set-0\.png|\/Users\/|\/tmp\//);
+  assert.ok(itemGate.evidence.length <= 1_000);
+  assert.doesNotThrow(() => normalizeEvaluatorResult(result));
+});
+
+// The evaluator behaviour the incident produced: it demands a subject-to-ground
+// contact shadow unless the prompt states that the crop excludes the contact point.
+function contactShadowRunner(calls) {
+  return async (binary, args, options) => {
+    calls.push({ binary, args, options });
+    const payload = evaluatorPayload();
+    if (!/do not report CONTACT_SHADOW_NOT_VISIBLE/.test(args[1])) {
+      const light = payload.gates.find((gate) => gate.id === 'LIGHT_AND_CONTACT_SHADOW');
+      light.decision = 'FAIL';
+      light.evidence = 'The frame cuts off the subject before the feet/contact points, so a subject-to-ground contact shadow cannot be visibly verified.';
+      light.defects = ['CONTACT_SHADOW_NOT_VERIFIABLE'];
+      payload.score = 58;
+    }
+    const outputIndex = args.indexOf('--output-last-message');
+    await writeFile(args[outputIndex + 1], JSON.stringify(payload));
+    return { stdout: '', stderr: '', exitCode: 0 };
+  };
+}
+
+test('an editorial crop above the feet owes no contact shadow, and every frame standing on the ground still does', async () => {
+  const fixture = await contextFixture();
+  const candidate = await imageFile(fixture.root, 'candidate-contact-shadow.png', {
+    width: 1024,
+    height: 1280,
+    color: '#b98f72',
+  });
+
+  for (const expectation of [
+    {
+      label: 'editorial-three-quarter',
+      preset: {
+        camera: {
+          framing: 'three_quarter',
+          required_visibility: { full_head: true, full_footwear: false },
+        },
+        editorial: {
+          shot_slot: 'sculptural_three_quarter',
+          identity_visibility: 'full_face',
+          item_scope: 'EXCLUDE_FOOTWEAR',
+        },
+      },
+      decision: 'PASS',
+    },
+    // Scoping is on the declared crop, not on the word "editorial": an editorial slot
+    // that keeps the feet keeps the demand with them.
+    {
+      label: 'editorial-with-feet-in-crop',
+      preset: {
+        camera: {
+          framing: 'full_body',
+          required_visibility: { full_head: true, full_footwear: true },
+        },
+        editorial: {
+          shot_slot: 'wide_campaign_coda',
+          identity_visibility: 'full_face',
+          item_scope: 'ALL',
+        },
+      },
+      decision: 'FAIL',
+    },
+    { label: 'standard', preset: null, decision: 'FAIL' },
+  ]) {
+    let preset = null;
+    if (expectation.preset) {
+      const presetPath = path.join(fixture.root, `${expectation.label}.json`);
+      await writeFile(presetPath, JSON.stringify(expectation.preset));
+      preset = { path: presetPath };
+    }
+    const calls = [];
+    const adapter = new SceneEvaluatorAdapter({
+      commandRunner: contactShadowRunner(calls),
+    });
+    const result = await adapter.evaluateScene({
+      scene_id: `scene_contact_shadow_${expectation.label.replaceAll('-', '_')}`,
+      attempt: 1,
+      candidate,
+      approved_look: fixture.approved,
+      references: fixture.references,
+      ...(preset ? { preset } : {}),
+      required_gates: SCENE_EVALUATOR_GATES,
+      delivery: { width: 1024, height: 1280 },
+    });
+    const light = result.gates.find((gate) => gate.id === 'LIGHT_AND_CONTACT_SHADOW');
+    assert.equal(light.decision, expectation.decision, expectation.label);
+    assert.match(calls[0].args[1], /LIGHT_AND_CONTACT_SHADOW judges|LIGHT_AND_CONTACT_SHADOW requires/);
+    if (expectation.decision === 'PASS') {
+      assert.deepEqual(light.defects, [], expectation.label);
+      assert.match(calls[0].args[1], /not required to reach the subject-to-ground contact points/);
+      // The gate keeps every judgment the crop can actually support.
+      assert.match(calls[0].args[1], /still requires its own contact shadow/);
+    } else {
+      assert.deepEqual(light.defects, ['CONTACT_SHADOW_NOT_VERIFIABLE'], expectation.label);
+      assert.match(calls[0].args[1], /requires a visible subject-to-ground contact shadow/);
+      assert.doesNotMatch(calls[0].args[1], /do not report CONTACT_SHADOW_NOT_VISIBLE/);
+    }
+  }
+});
+
 test('framing assessment records visual lock defects without misclassifying valid measurements as evaluator failure', () => {
   const assessment = assessFramingEvidence({
     subject_bbox_xywh_px: [100, 64, 824, 1088],

@@ -657,6 +657,28 @@ export function evaluatorPrompt(delivery, references, preset = null, qaItems = [
     ] : [
       'IDENTITY requires comparison of stable facial geometry, apparent age, hairline, eyes, nose, mouth, jaw and distinctive marks; expression and scene lighting may change, identity may not.',
     ]),
+    // Ground contact cannot be evidence in a frame that ends above the feet. This
+    // gate refused 4 of 6 attempts in one editorial retry round with
+    // CONTACT_SHADOW_NOT_VISIBLE / CONTACT_SHADOW_NOT_VERIFIABLE — "the frame cuts off
+    // the subject before the feet/contact points, so a subject-to-ground contact
+    // shadow cannot be visibly verified" — two of them alongside a
+    // FRAMING_AND_ANATOMY PASS and nothing else wrong. It is the same invented lock
+    // the nominal crop below used to carry: the preset itself declares full
+    // footwear=false, so whether the contact point is in frame at all is art
+    // direction, and a retry can only answer the demand by abandoning the crop the
+    // slot asked for. It was not catching
+    // anything either — the same gate passed 6 of 6 attempts before that round and
+    // both final frames after it — so it spent retry budget rather than blocking a
+    // composite. Everything observable about the light is still judged, and a contact
+    // point that IS inside the crop still owes its shadow. Standard scenes keep the
+    // full demand, because there the subject stands on the ground in frame and the
+    // contact shadow is the difference between a composite and a photograph.
+    ...(editorial && !requireFullFootwear ? [
+      'LIGHT_AND_CONTACT_SHADOW judges key direction, light quality, subject-to-environment coherence, and whether every shadow this crop does show is plausible for that light.',
+      'This crop is not required to reach the subject-to-ground contact points, so where it ends above them ground contact is not observable at all: do not FAIL for that and do not report CONTACT_SHADOW_NOT_VISIBLE or CONTACT_SHADOW_NOT_VERIFIABLE. Any contact point between the subject and a surface that IS inside this crop still requires its own contact shadow, and a missing, floating or wrongly directed one is FAIL.',
+    ] : [
+      'LIGHT_AND_CONTACT_SHADOW requires a visible subject-to-ground contact shadow consistent with the key light. A subject standing in frame without one is a composite rather than a photograph and is FAIL.',
+    ]),
     `For framing_evidence, measure the visible subject or intentional ${framing.replaceAll('_', ' ')} crop bounding box [x,y,width,height] in pixels on the ${delivery.width}x${delivery.height} candidate canvas.`,
     `Set full_head_visible and full_footwear_visible from observation. This shot requires full head=${requireFullHead} and full footwear=${requireFullFootwear}; an intentional omission is not itself a defect when the requirement is false.`,
     // The named crop is art direction, not a measurement, and the requirement
@@ -1020,8 +1042,24 @@ export class SceneEvaluatorAdapter {
       const itemFailures = itemResults.filter((result) => result.verdict === 'REVISE');
       if (itemFailures.length > 0) {
         itemGate.decision = 'FAIL';
+        // Which sub-check refused, and in its own words. This was the fixed sentence
+        // "Independent forensic item checks rejected set-0." — the only sentence a
+        // user or a 2am debugger is ever shown — so three technically correct Nike
+        // Air Max Plus candidates were retried away with no recoverable reason at
+        // all, while reasons as specific as "the hood lining is rendered patterned
+        // where the approved item has a plain dark-green interior" were sitting in
+        // item_fidelity_evidence[] on disk the whole time. Only the model's prose and
+        // confidence are lifted: item_sha256, item_facts_sha256 and request_id stay
+        // behind, because those are exactly the internal ids the outbound sanitiser
+        // exists to strip and no reader can act on them. The per-item share of the
+        // 1 000-character bound is what keeps a seventh refusal's reason in the
+        // string instead of letting the first one eat it.
+        const reasonBudget = Math.floor(900 / itemFailures.length);
         itemGate.evidence = boundedEvaluationText(
-          `Independent forensic item checks rejected ${itemFailures.map((item) => item.item_id).join(', ')}.`,
+          `Independent forensic item checks rejected ${itemFailures.map((item) => boundedEvaluationText(
+            `${item.item_id} (confidence ${item.confidence}): ${item.evidence}`,
+            reasonBudget,
+          )).join(' | ')}`,
           1_000,
         );
         itemGate.defects = itemFailures
