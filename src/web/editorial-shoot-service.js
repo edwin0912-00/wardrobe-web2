@@ -264,6 +264,45 @@ function stateAfterShotMutation(state, shots) {
   };
 }
 
+// One runtime root has to govern a whole shoot, and for two live shoots it did not:
+// shoot.json, the event chain and the journal were written under
+// <projectRoot>/runtime/editorial-shoots while every scene.png, QA receipt and manifest
+// belonging to the same shoots went to the configured ZEELY_RUNTIME_ROOT. A healthy 5
+// of 6 shoot then read as lost data, and the user was told frames were unrecoverable
+// while they sat on disk in the other root. start.js now derives both paths from one
+// root and calls this first, because a resolver that merely stops reading the old
+// location orphans exactly the state whose disappearance caused the incident.
+export async function adoptLegacyEditorialShootRoot({ from, to }) {
+  const legacyRoot = path.resolve(from);
+  const root = path.resolve(to);
+  if (legacyRoot === root) return [];
+  let entries;
+  try {
+    entries = await readdir(legacyRoot, { withFileTypes: true });
+  } catch (error) {
+    if (error.code === 'ENOENT') return [];
+    throw error;
+  }
+  const adopted = [];
+  for (const entry of entries) {
+    if (!entry.isDirectory() || RESERVED_DIRECTORIES.has(entry.name)) continue;
+    try {
+      assertEditorialId(entry.name, 'persisted shoot directory');
+    } catch {
+      continue;
+    }
+    // A shoot id is the hash of its creation key, so the same id in both roots is the
+    // same request. The configured root is the one the running service reads, so it
+    // wins, and the legacy copy is left untouched rather than deleted or merged.
+    const target = path.join(root, entry.name);
+    if (await exists(target)) continue;
+    await mkdir(root, { recursive: true });
+    await rename(path.join(legacyRoot, entry.name), target);
+    adopted.push(entry.name);
+  }
+  return adopted;
+}
+
 export class EditorialShootServiceError extends Error {
   constructor(statusCode, code, message) {
     super(message);

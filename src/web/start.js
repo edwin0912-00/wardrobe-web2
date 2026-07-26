@@ -3,6 +3,7 @@ import path from 'node:path';
 import { MonitorEventStore } from '../monitor/event-store.js';
 import { createWebApp } from './app.js';
 import { DraftService } from './draft-service.js';
+import { adoptLegacyEditorialShootRoot } from './editorial-shoot-service.js';
 import { createGenerationRuntime } from './generation-provider.js';
 import { ProfileService } from './profile-service.js';
 import { RunService } from './run-service.js';
@@ -62,7 +63,24 @@ const sceneDependencies = createSceneRuntimeDependencies({
   generationProvider: generation.provider,
   monitor,
 });
+// A shoot's state and a shoot's scene assets are one shoot, so they take one root.
+// Only this file knows runtimeRoot, and it used to override the scene root alone, which
+// left the editorial root pinned to the project tree and split every shoot in half —
+// see adoptLegacyEditorialShootRoot for what that cost. Both keys now come from the same
+// root, and anything still under the old one is moved before the service reads either.
 sceneDependencies.rootDirectory = path.join(runtimeRoot, 'scenes');
+sceneDependencies.editorialRootDirectory = path.join(runtimeRoot, 'editorial-shoots');
+const adoptedShootIds = await adoptLegacyEditorialShootRoot({
+  from: path.join(projectRoot, 'runtime', 'editorial-shoots'),
+  to: sceneDependencies.editorialRootDirectory,
+});
+if (adoptedShootIds.length > 0) {
+  await monitor.append({
+    source: 'server',
+    type: 'service.editorial_shoots_adopted',
+    data: { count: adoptedShootIds.length, shoot_ids: adoptedShootIds },
+  });
+}
 const app = await createWebApp({
   service,
   health,
