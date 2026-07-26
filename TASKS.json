@@ -2,7 +2,7 @@
   "schema_version": "1.0.0",
   "integration_branch": "integration/wardrobe-20260726",
   "orchestrator": "codex-main",
-  "updated_at": "2026-07-26T23:44:00.000Z",
+  "updated_at": "2026-07-26T23:49:00.000Z",
   "tasks": [
     {
       "id": "CTRL-001",
@@ -777,7 +777,7 @@
       "id": "SITE-002",
       "title": "Expose a private immutable contact-sheet manifest for a completed fashion shoot",
       "priority": "P0",
-      "state": "ASSIGNED",
+      "state": "IN_PROGRESS",
       "owner": "codex-contact-sheet",
       "branch": "lane/SITE-002/codex-contact-sheet",
       "base_sha": "3e32d37d89288c1172e513d8eff3492c281b5e89",

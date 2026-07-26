@@ -1,6 +1,6 @@
 # Wardrobe verified state
 
-Updated: 2026-07-26 23:44 UTC.
+Updated: 2026-07-26 23:49 UTC.
 
 ## Canonical source position
 
@@ -106,11 +106,13 @@ code.
   and add-items lineage.
 - `MONITOR-001` is leased to `antigravity`: sanitized durable diagnostics for
   stalled execution.
-- `SITE-002` is leased to `codex-contact-sheet`: a private immutable manifest
-  for six approved fashion-shoot frames; it does not create pixels or UI.
+- `SITE-002` is IN_PROGRESS with `codex-contact-sheet`: a private immutable
+  manifest for six approved fashion-shoot frames; it does not create pixels or
+  UI.
 
-They are disjoint from WARD-001's active scene/editorial/privacy locks. Their
-shared starting procedure is `docs/coordination/EXTERNAL_AGENT_START_UA.md`.
+They are disjoint from WARD-001's active scene/editorial/privacy locks. Each
+agent watches the canonical board with
+`node tools/coordination/watch-assignments.mjs --agent <agent-id> --interval 20`.
 
 ## Stop conditions awaiting Edwin
 
