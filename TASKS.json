@@ -2,7 +2,7 @@
   "schema_version": "1.0.0",
   "integration_branch": "integration/wardrobe-20260726",
   "orchestrator": "codex-main",
-  "updated_at": "2026-07-26T23:32:23.000Z",
+  "updated_at": "2026-07-26T23:40:57.000Z",
   "tasks": [
     {
       "id": "CTRL-001",
@@ -104,7 +104,7 @@
       "id": "WARD-001",
       "title": "Reconcile Claude and Codex into the integration branch",
       "priority": "P0",
-      "state": "REVIEW",
+      "state": "BLOCKED",
       "owner": "codex-wardrobe-merge-v2",
       "branch": "lane/WARD-001/codex-wardrobe-merge-v2",
       "base_sha": "9d4780f7f82422eabf2077693e9331d181792034",

@@ -1,6 +1,6 @@
 # Wardrobe verified state
 
-Updated: 2026-07-26 23:32 UTC.
+Updated: 2026-07-26 23:40 UTC.
 
 ## Canonical source position
 
@@ -14,6 +14,10 @@ Updated: 2026-07-26 23:32 UTC.
   `ee7d50f`; GitHub PR #5 preserved that evidence but its trusted acceptance
   runner lacked `rg`. Lease generation 3 reissues the unchanged implementation
   on a fresh handoff branch using portable `git diff --check` (PR #8).
+- WARD-001 is now BLOCKED rather than merge-forced: GitHub accepted its focused
+  contracts but trusted-base compatibility found real legacy-contract failures.
+  The evidence lane is preserved; future work must split it into compatible
+  slices with one failing regression test each.
 - Claude's newer uncommitted tail was preserved without review as
   `wip/claude-tail-20260726` at `7c3fb32`. WIP is evidence, not integrated
   product code.
