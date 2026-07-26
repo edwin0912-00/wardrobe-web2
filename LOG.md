@@ -32,6 +32,17 @@ Evidence: the new governance test failed before implementation with
 handoff and PR checks. The current focused governance suite passes 76/76.
 weakened_checks: none.
 
+2026-07-26 · WARD-002 · core standard-scene lane started
+Change: reissue standard-scene convergence as an active, narrowly-scoped core
+lane for `claude-code-dev`; it no longer waits on the incompatible WARD-001
+batch.
+Why: the observed production failure is headroom repair exhaustion on `std.*`.
+This is a separate core product vector and can be proven without changing
+assets, gates, or paid-provider state.
+Evidence: the lease requires a new all-standard-preset regression test plus
+the existing scene-service, API, framing-owner, and framing-schema contracts.
+weakened_checks: none.
+
 2026-07-26 · SITE-002 · execution started
 Change: move the accepted contact-sheet lease from ASSIGNED to IN_PROGRESS.
 Why: the implementation worker has started on its exact isolated branch and
