@@ -83,6 +83,7 @@ const PRODUCT_EDITORIAL_GENERATION_MODE_IDS = Object.freeze([
 const PRODUCT_DEPLOY_ROOTS = [
   'package.json',
   'package-lock.json',
+  'assets/editorial-blocking/',
   'assets/scene-presets/',
   'config/',
   'prompts/',

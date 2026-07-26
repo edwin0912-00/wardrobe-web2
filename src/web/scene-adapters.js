@@ -18,6 +18,7 @@ import {
 import {
   SCENE_EVALUATOR_GATES,
   SCENE_REFERENCE_ROLES,
+  SCENE_SHOT_ANCHOR_ROLES,
   sceneQaItemScope,
   sha256,
 } from './scene-contract.js';
@@ -283,6 +284,52 @@ function itemGenerationInstructions(items, attachmentStart) {
   ].join('\n');
 }
 
+export async function verifiedShotAnchors(anchors) {
+  if (anchors === undefined || anchors === null) return [];
+  if (!Array.isArray(anchors) || anchors.length > SCENE_SHOT_ANCHOR_ROLES.length) {
+    throw new Error(`Scene shot anchors must contain at most ${SCENE_SHOT_ANCHOR_ROLES.length} ordered anchors`);
+  }
+  const expectedRoles = SCENE_SHOT_ANCHOR_ROLES.filter(
+    (role) => anchors.some((anchor) => anchor?.role === role),
+  );
+  const verified = [];
+  for (const [index, anchor] of anchors.entries()) {
+    if (anchor?.order !== index + 1 || anchor.role !== expectedRoles[index]) {
+      throw new Error(`Scene shot anchor ${index + 1} is not in canonical anchor order`);
+    }
+    const image = await verifiedImageBinding(anchor, anchor.role, `shot anchor ${anchor.role}`);
+    if (image.media_type !== 'image/png') {
+      throw new Error(`Scene shot anchor ${anchor.role} must be one PNG`);
+    }
+    verified.push({ ...image, order: anchor.order });
+  }
+  return verified;
+}
+
+const SHOT_ANCHOR_INSTRUCTION = Object.freeze({
+  blocking_topdown: 'a schematic blocking diagram for this fixed shot slot, and authority only for where the '
+    + 'subject stands: camera height, lens compression, body rotation, subject scale in frame and clear space '
+    + 'above the hair. Reproduce the geometry it specifies and none of its appearance — it is a pencil drawing '
+    + 'of a jointed wooden mannequin on paper, and the drawing style, paper, lettering, arrows, plan box and '
+    + 'mannequin must not appear in the photograph. It contains no environment, no light and no person.',
+  hero_continuity_anchor: 'the already approved hero frame of this same shoot, and authority only for place, '
+    + 'environment geometry, light direction and quality, and colour grade: this shot happens in the same '
+    + 'location minutes later and must read as the same place. Do not reproduce it — the camera, crop and pose '
+    + 'are set by this shot\'s own direction, not by that frame.',
+});
+
+function shotAnchorInstructions(anchors) {
+  if (anchors.length === 0) return '';
+  return [
+    '',
+    'SHOT ANCHOR REFERENCES — ROLE-SCOPED',
+    ...anchors.map((anchor) => (
+      `ATTACHMENT_${anchor.order} [${anchor.role.toUpperCase()}]: ${SHOT_ANCHOR_INSTRUCTION[anchor.role]}`
+    )),
+    'The approved look master alone controls identity, body, hair, outfit, product details, logos and garment text. No anchor above has any authority over them.',
+  ].join('\n');
+}
+
 export async function mapWithConcurrency(values, limit, mapper) {
   const results = new Array(values.length);
   let cursor = 0;
@@ -458,20 +505,17 @@ export class SceneGeneratorAdapter {
     for (const [index, role] of GENERATION_REFERENCE_ORDER.entries()) {
       references.push(await verifiedSceneReference(byRole.get(role), role, `references[${index}]`));
     }
-    const itemAttachmentStart = repairCandidate ? 3 : 2;
-    if (itemAttachmentStart - 1 + items.length > 8) {
-      throw new Error('Approved item evidence exceeds the provider attachment limit');
-    }
-    const prompt = sanitizeExternalPrompt(
-      `${basePrompt}${structuredInstructions(references)}${itemGenerationInstructions(items, itemAttachmentStart)}`,
-    );
-    assertExternalPromptPrivacy(prompt, { runtimeRoot: context.work_directory });
+    const anchors = await verifiedShotAnchors(context.shot_anchors);
     const maxAttachments = Number.isInteger(provider.maxOrderedReferences)
       ? provider.maxOrderedReferences
       : 8;
-    const ordered = [
+    // Everything the request is contractually obliged to carry: the look master is
+    // the sole identity and product authority, the failed candidate is the only
+    // thing a repair attempt is repairing, and each cutout is the exact evidence
+    // ITEM_FIDELITY compares against forensically. None of these may be traded for
+    // conditioning, so they claim the budget before anything else is considered.
+    const required = [
       {
-        order: 1,
         scope: 'avatar',
         role: 'APPROVED_LOOK_MASTER',
         path: approved.path,
@@ -480,7 +524,6 @@ export class SceneGeneratorAdapter {
         source: 'APPROVED_AVATAR',
       },
       ...(repairCandidate ? [{
-        order: 2,
         scope: 'scene',
         role: 'FAILED_SCENE_CANDIDATE',
         path: repairCandidate.path,
@@ -488,8 +531,7 @@ export class SceneGeneratorAdapter {
         mediaType: repairCandidate.media_type,
         source: 'REPAIR_CANDIDATE',
       }] : []),
-      ...items.map((item, index) => ({
-        order: itemAttachmentStart + index,
+      ...items.map((item) => ({
         scope: 'outfit',
         role: `ITEM_${item.category.toUpperCase()}`,
         path: item.path,
@@ -497,22 +539,58 @@ export class SceneGeneratorAdapter {
         mediaType: item.media_type,
         source: 'CONDITIONED',
       })),
+    ];
+    if (required.length > maxAttachments) {
+      throw new Error('Approved item evidence exceeds the provider attachment limit');
+    }
+    // The discretionary tail, most valuable first. Anchors outrank the image-transport
+    // scene roles because a role that loses its image still reaches the model as its
+    // compiled structured facts, while an anchor dropped here reaches it as nothing.
+    const discretionary = [
+      ...anchors.map((anchor) => ({
+        // 'outfit' is the transport's bucket for every conditioning image, the same one
+        // the image scene roles use. The 'scene' scope reads closer but is reserved:
+        // the provider refuses a scene-scoped binding that is not the repair candidate.
+        scope: 'outfit',
+        role: `SHOT_${anchor.role.toUpperCase()}`,
+        anchor,
+        path: anchor.path,
+        sha256: anchor.sha256,
+        mediaType: anchor.media_type,
+        source: 'CONDITIONED',
+      })),
       ...references
         .filter((item) => item.transport === 'image')
-        .slice(0, maxAttachments - (itemAttachmentStart - 1 + items.length))
-        .map((item, index) => ({
-        order: itemAttachmentStart + items.length + index,
-        scope: 'outfit',
-        role: `SCENE_${item.role.toUpperCase()}`,
-        path: item.path,
-        sha256: item.sha256,
-        mediaType: item.media_type,
-        source: 'CONDITIONED',
+        .map((item) => ({
+          scope: 'outfit',
+          role: `SCENE_${item.role.toUpperCase()}`,
+          path: item.path,
+          sha256: item.sha256,
+          mediaType: item.media_type,
+          source: 'CONDITIONED',
         })),
     ];
+    const attachedDiscretionary = discretionary.slice(0, maxAttachments - required.length);
+    // The truncation used to be one silent .slice(): a request that quietly sent
+    // five of seven attachments produced a receipt that read exactly like full
+    // coverage, so a frame missing its conditioning was indistinguishable from a
+    // frame that ignored it. Naming the casualties is the whole point.
+    const droppedAttachmentRoles = discretionary
+      .slice(attachedDiscretionary.length)
+      .map((item) => item.role);
+    const ordered = [...required, ...attachedDiscretionary];
     // Higgsfield requires contiguous media positions. Structured JSON roles
     // remain in the five-role evidence receipt and prompt, never as --image.
     ordered.forEach((item, index) => { item.order = index + 1; });
+    const attachedAnchors = attachedDiscretionary
+      .filter((item) => item.anchor)
+      .map((item) => ({ ...item.anchor, order: item.order }));
+    const prompt = sanitizeExternalPrompt(
+      `${basePrompt}${structuredInstructions(references)}`
+      + `${itemGenerationInstructions(items, repairCandidate ? 3 : 2)}`
+      + `${shotAnchorInstructions(attachedAnchors)}`,
+    );
+    assertExternalPromptPrivacy(prompt, { runtimeRoot: context.work_directory });
     const providerResult = await provider.generate({
       operation: 'generate',
       phase: 'scene',
@@ -567,6 +645,13 @@ export class SceneGeneratorAdapter {
         reference_evidence_sha256: sha256(Buffer.from(JSON.stringify(evidence))),
         attached_reference_count: ordered.length,
         structured_reference_count: evidence.filter((item) => item.transport === 'structured_json').length,
+        ...(attachedAnchors.length > 0 ? {
+          shot_anchor_role_order: attachedAnchors.map((anchor) => anchor.role).join(':'),
+        } : {}),
+        ...(droppedAttachmentRoles.length > 0 ? {
+          dropped_attachment_roles: droppedAttachmentRoles.join(':'),
+          dropped_attachment_count: droppedAttachmentRoles.length,
+        } : {}),
         outbound_prompt_sha256: sha256(Buffer.from(prompt)),
         ...(repairCandidate ? {
           repair_candidate_sha256: repairCandidate.sha256,

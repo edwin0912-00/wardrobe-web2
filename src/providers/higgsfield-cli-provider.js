@@ -84,10 +84,10 @@ function artifactDescriptor(value, role) {
   };
 }
 
-function orderedPackDescriptors(phase, references) {
+function orderedPackDescriptors(phase, references, maxOrdered) {
   if (!Array.isArray(references?.ordered)) return null;
-  if (references.ordered.length === 0 || references.ordered.length > 8) {
-    throw new HiggsfieldProviderError('references.ordered must contain 1–8 media bindings', {
+  if (references.ordered.length === 0 || references.ordered.length > maxOrdered) {
+    throw new HiggsfieldProviderError(`references.ordered must contain 1–${maxOrdered} media bindings`, {
       code: 'INVALID_ORDERED_REFERENCES',
       retryable: false,
     });
@@ -229,14 +229,18 @@ function orderedPackDescriptors(phase, references) {
   return result;
 }
 
-export function orderedReferenceDescriptors(phase, references) {
+// Eight is the Higgsfield CLI's own ceiling, so it stays the default for every caller
+// that does not know better. A transport that accepts more says how many: the
+// OpenRouter chat transport takes ten, and capping it at eight there silently threw
+// away conditioning the request had already paid to prepare.
+export function orderedReferenceDescriptors(phase, references, { maxOrdered = 8 } = {}) {
   if (!references || typeof references !== 'object') {
     throw new HiggsfieldProviderError('Generation references are required', {
       code: 'MISSING_REFERENCES',
       retryable: false,
     });
   }
-  const packDescriptors = orderedPackDescriptors(phase, references);
+  const packDescriptors = orderedPackDescriptors(phase, references, maxOrdered);
   if (packDescriptors) return packDescriptors;
   const ordered = phase === 'outfit'
     ? [

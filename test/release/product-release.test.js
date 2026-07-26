@@ -36,7 +36,20 @@ const requiredEditorialPreviewFiles = requiredEditorialModeIds.flatMap((modeId) 
   `assets/scene-mood-cards/${modeId}.json`,
   `assets/scene-mood-cards/${modeId}.webp`,
 ]);
+const requiredEditorialShotSlots = [
+  'clean_identity_hero',
+  'environmental_hero',
+  'sculptural_three_quarter',
+  'interference_frame',
+  'material_or_accessory_detail',
+  'wide_campaign_coda',
+];
+const requiredEditorialBlockingFiles = [
+  'assets/editorial-blocking/v1/index.json',
+  ...requiredEditorialShotSlots.map((slot) => `assets/editorial-blocking/v1/${slot}.png`),
+];
 const directoryRoots = [
+  'assets/editorial-blocking',
   'assets/scene-presets',
   'config',
   'prompts',
@@ -197,6 +210,14 @@ test('product release is deterministic, complete, scene-enabled and cache-bound'
       .map((record) => record.path)
       .filter((relativePath) => relativePath.startsWith('assets/scene-mood-cards/')),
     [...requiredEditorialPreviewFiles].sort(comparePath),
+  );
+  // All six ship or none of them do: a shot resolves its own slot diagram at
+  // generation time, so one missing PNG takes that slot out of service.
+  assert.deepEqual(
+    manifest.deploy_files
+      .map((record) => record.path)
+      .filter((relativePath) => relativePath.startsWith('assets/editorial-blocking/')),
+    [...requiredEditorialBlockingFiles].sort(comparePath),
   );
   for (const modeId of requiredEditorialModeIds) {
     const authority = manifest.editorial_preview.assets.find((asset) => asset.mode_id === modeId);

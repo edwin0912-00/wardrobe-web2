@@ -299,6 +299,19 @@
         }
       }
     },
+    "shotAnchorBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["order", "role", "reference_id", "sha256", "media_type", "relative_path"],
+      "properties": {
+        "order": { "type": "integer", "minimum": 1, "maximum": 2 },
+        "role": { "enum": ["blocking_topdown", "hero_continuity_anchor"] },
+        "reference_id": { "$ref": "#/$defs/id" },
+        "sha256": { "$ref": "#/$defs/sha256" },
+        "media_type": { "const": "image/png" },
+        "relative_path": { "$ref": "#/$defs/relativePath" }
+      }
+    },
     "bindings": {
       "type": "object",
       "additionalProperties": false,
@@ -307,7 +320,13 @@
         "approved_look": { "$ref": "#/$defs/approvedLookBinding" },
         "preset": { "$ref": "#/$defs/presetBinding" },
         "prompt": { "$ref": "#/$defs/promptBinding" },
-        "reference_pack": { "$ref": "#/$defs/referencePackBinding" }
+        "reference_pack": { "$ref": "#/$defs/referencePackBinding" },
+        "shot_anchors": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 2,
+          "items": { "$ref": "#/$defs/shotAnchorBinding" }
+        }
       }
     },
     "error": {
@@ -729,6 +748,9 @@
         "reference_evidence_sha256": { "$ref": "#/$defs/sha256" },
         "attached_reference_count": { "type": "number", "minimum": 1 },
         "structured_reference_count": { "type": "number", "minimum": 0 },
+        "shot_anchor_role_order": { "type": "string", "maxLength": 200 },
+        "dropped_attachment_roles": { "type": "string", "maxLength": 500 },
+        "dropped_attachment_count": { "type": "number", "minimum": 1 },
         "outbound_prompt_sha256": { "$ref": "#/$defs/sha256" },
         "repair_candidate_sha256": { "$ref": "#/$defs/sha256" },
         "repair_from_attempt": { "type": "integer", "minimum": 1 },

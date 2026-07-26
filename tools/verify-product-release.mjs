@@ -36,7 +36,12 @@ const requiredEditorialPreviewFiles = requiredEditorialModeIds.flatMap((modeId) 
   `assets/scene-mood-cards/${modeId}.json`,
   `assets/scene-mood-cards/${modeId}.webp`,
 ]);
+const requiredEditorialBlockingFiles = [
+  'assets/editorial-blocking/v1/index.json',
+  ...requiredEditorialShotSlots.map((slot) => `assets/editorial-blocking/v1/${slot}.png`),
+];
 const expectedSourceAllowlist = [
+  'assets/editorial-blocking/',
   'assets/scene-presets/',
   'config/',
   'prompts/',
@@ -50,6 +55,7 @@ const expectedSourceAllowlist = [
   'tools/run-web-daemon.sh',
 ];
 const allowedDirectoryRoots = [
+  'assets/editorial-blocking/',
   'assets/scene-presets/',
   'config/',
   'prompts/',
@@ -426,6 +432,13 @@ assert(
     [...requiredEditorialPreviewFiles].sort(comparePath),
   ),
   'Release contains a non-allowlisted or missing editorial preview asset',
+);
+assert(
+  isDeepStrictEqual(
+    recordPaths.filter((value) => value.startsWith('assets/editorial-blocking/')),
+    [...requiredEditorialBlockingFiles].sort(comparePath),
+  ),
+  'Release is missing a per-slot editorial blocking diagram or its manifest',
 );
 
 const sourceRecords = manifest.source_authority.files.map((record) => {

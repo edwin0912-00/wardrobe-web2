@@ -46,6 +46,7 @@ import {
   validatePresetSnapshot,
   validateReferencePack,
   validateResolvedReferenceAssets,
+  validateShotAnchorReferences,
 } from './scene-contract.js';
 
 const OUTPUT_HASH_FIELDS = Object.freeze({
@@ -484,6 +485,9 @@ function safeProviderMetadata(metadata) {
     'reference_evidence_sha256',
     'attached_reference_count',
     'structured_reference_count',
+    'shot_anchor_role_order',
+    'dropped_attachment_roles',
+    'dropped_attachment_count',
     'outbound_prompt_sha256',
     'repair_candidate_sha256',
     'repair_from_attempt',
@@ -1986,6 +1990,26 @@ export class SceneService {
         state.model_route.sha256,
         'Scene model route',
       );
+      const shotAnchors = [];
+      for (const binding of state.bindings.shot_anchors ?? []) {
+        const verified = await verifiedFile(
+          binding.relative_path,
+          binding.sha256,
+          `Scene shot anchor ${binding.role}`,
+        );
+        const metadata = await sharp(verified.bytes).metadata();
+        if (metadata.format !== 'png' || !metadata.width || !metadata.height || (metadata.pages ?? 1) !== 1) {
+          throw new Error(`Scene shot anchor ${binding.role} is not one PNG`);
+        }
+        shotAnchors.push({
+          order: binding.order,
+          role: binding.role,
+          reference_id: binding.reference_id,
+          sha256: binding.sha256,
+          media_type: binding.media_type,
+          path: verified.filename,
+        });
+      }
       const approvedItems = [];
       if (state.bindings.approved_items) {
         const itemBinding = state.bindings.approved_items;
@@ -2112,6 +2136,7 @@ export class SceneService {
         referencePack,
         references,
         approvedItems,
+        shotAnchors,
       };
     } catch (error) {
       throw new SceneServiceError(
@@ -2271,16 +2296,24 @@ export class SceneService {
     idempotencyKey,
     approvedLookReference,
     presetReference,
+    shotAnchorReferences = null,
   }) {
     assertIdempotencyKey(idempotencyKey);
     const approvedLook = validateApprovedLookReference(approvedLookReference);
     const preset = validatePresetReference(presetReference);
+    const shotAnchors = validateShotAnchorReferences(shotAnchorReferences);
     const idempotencyHash = sha256(idempotencyKey);
     const sceneId = `scene_${idempotencyHash.slice(0, 48)}`;
     const routeBytes = canonicalJsonBytes(this.modelRoute);
     const requestFingerprint = sha256(canonicalJsonBytes({
       approved_look: approvedLook,
       preset,
+      // Only role and hash: the bytes are already summarised by the hash, and an
+      // anchor set that differs is a different request even when everything the
+      // preset declares is identical.
+      ...(shotAnchors ? {
+        shot_anchors: shotAnchors.map((anchor) => ({ role: anchor.role, sha256: anchor.sha256 })),
+      } : {}),
       delivery: this.delivery,
       model_route_sha256: sha256(routeBytes),
     }));
@@ -2323,6 +2356,7 @@ export class SceneService {
         requestFingerprint,
         approvedLookReference: approvedLook,
         presetReference: preset,
+        shotAnchorReferences: shotAnchors,
         routeBytes,
       });
     }, { waitMs: 30_000 }).finally(() => this.creating.delete(sceneId));
@@ -2336,6 +2370,7 @@ export class SceneService {
     requestFingerprint,
     approvedLookReference,
     presetReference,
+    shotAnchorReferences,
     routeBytes,
   }) {
     const [resolvedLook, resolvedPreset] = await Promise.all([
@@ -2442,11 +2477,13 @@ export class SceneService {
     const inputDirectory = path.join(directory, 'inputs');
     const referenceDirectory = path.join(inputDirectory, 'references');
     const approvedItemsDirectory = path.join(inputDirectory, 'approved-items');
+    const shotAnchorDirectory = path.join(inputDirectory, 'shot-anchors');
     await Promise.all([
       mkdir(referenceDirectory, { recursive: true }),
       ...(approvedItemsSnapshot
         ? [mkdir(approvedItemsDirectory, { recursive: true })]
         : []),
+      ...(shotAnchorReferences ? [mkdir(shotAnchorDirectory, { recursive: true })] : []),
     ]);
     const lookRelativePath = `inputs/approved-look${extensionFor(lookMediaType)}`;
     const receiptRelativePath = 'inputs/approved-look-receipt.json';
@@ -2480,6 +2517,27 @@ export class SceneService {
         sha256: asset.sha256,
         media_type: asset.media_type,
         not_authority_for: asset.not_authority_for,
+        relative_path: relativePath,
+      });
+    }
+    const shotAnchorBindings = [];
+    for (const anchor of shotAnchorReferences ?? []) {
+      const bytes = await binaryFrom(anchor.data, `Scene shot anchor ${anchor.role}`);
+      if (sha256(bytes) !== anchor.sha256) {
+        throw new Error(`Scene shot anchor ${anchor.role} SHA-256 mismatch`);
+      }
+      const metadata = await sharp(bytes).metadata();
+      if (metadata.format !== 'png' || !metadata.width || !metadata.height || (metadata.pages ?? 1) !== 1) {
+        throw new Error(`Scene shot anchor ${anchor.role} is not one PNG`);
+      }
+      const relativePath = `inputs/shot-anchors/${String(anchor.order).padStart(2, '0')}-${anchor.role}.png`;
+      await writeImmutable(path.join(directory, relativePath), bytes);
+      shotAnchorBindings.push({
+        order: anchor.order,
+        role: anchor.role,
+        reference_id: anchor.reference_id,
+        sha256: anchor.sha256,
+        media_type: 'image/png',
         relative_path: relativePath,
       });
     }
@@ -2534,6 +2592,7 @@ export class SceneService {
             items: approvedItemBindings,
           },
         } : {}),
+        ...(shotAnchorBindings.length > 0 ? { shot_anchors: shotAnchorBindings } : {}),
         preset: {
           preset_id: presetReference.preset_id,
           version: presetReference.preset_version,
@@ -3062,6 +3121,7 @@ export class SceneService {
         },
         references: bound.references,
         item_evidence: bound.approvedItems,
+        shot_anchors: bound.shotAnchors,
         repair_candidate: repairCandidate,
         work_directory: this.attemptDirectory(sceneId, attempt.number),
         signal,

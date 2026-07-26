@@ -4,7 +4,10 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import sharp from 'sharp';
-import { HiggsfieldCliProvider } from '../../src/providers/higgsfield-cli-provider.js';
+import {
+  HiggsfieldCliProvider,
+  orderedReferenceDescriptors,
+} from '../../src/providers/higgsfield-cli-provider.js';
 import {
   SceneEvaluationInfrastructureError,
   SceneEvaluatorAdapter,
@@ -1285,4 +1288,306 @@ test('SceneEvaluatorAdapter marks CLI and malformed-output failures as QA infras
     (error) => error instanceof SceneEvaluationInfrastructureError
       && error.code === 'SCENE_EVALUATOR_CONTRACT_FAILED',
   );
+});
+
+async function editorialContextFixture() {
+  const fixture = await contextFixture();
+  // Every editorial role travels as structured JSON, so the whole attachment budget
+  // beyond the contractual evidence belongs to the anchors. This is the production
+  // shape, not a convenience.
+  const references = await Promise.all(fixture.references.map(async (reference) => ({
+    ...(await structuredReferenceFile(fixture.root, `${reference.role}.json`, {
+      schema_version: '1.0.0',
+      role: reference.role,
+      facts: STRUCTURED_FACTS[reference.role],
+    })),
+    role: reference.role,
+    reference_id: reference.reference_id,
+  })));
+  const blocking = {
+    ...(await imageFile(fixture.root, 'blocking.png', { color: '#c9c4ba' })),
+    order: 1,
+    role: 'blocking_topdown',
+    reference_id: 'blocking.v1.clean_identity_hero',
+  };
+  const heroContinuity = {
+    ...(await imageFile(fixture.root, 'hero-frame.png', { width: 1024, height: 1280, color: '#6d5a4b' })),
+    order: 2,
+    role: 'hero_continuity_anchor',
+    reference_id: 'hero.scene_fixture',
+  };
+  return {
+    ...fixture,
+    blocking,
+    heroContinuity,
+    base: { ...fixture.base, references },
+  };
+}
+
+const STRUCTURED_FACTS = Object.freeze({
+  environment_anchor: {
+    description: 'An invented interior of pale plaster planes.',
+    spatial_cues: ['Compose an original three quarter fashion frame.'],
+    materials: ['plaster'],
+    originality_rules: ['Invent new geometry; do not reconstruct a preview.'],
+  },
+  lighting_anchor: {
+    time_or_setup: 'late morning',
+    key: 'one broad window left of camera',
+    fill: 'bounced from the opposite wall',
+    finish: 'polished_editorial_gloss_without_skin_smoothing_or_hdr',
+    protected_regions: ['face'],
+  },
+  composition_anchor: {
+    aspect_ratio: '4:5',
+    lens_mm: 50,
+    camera_height: 'eye_level',
+    subject_height_percent: [50, 94],
+    minimum_clear_space_percent: { above_hair: 6, below_footwear: 0 },
+    max_vertical_error_deg: 1.5,
+    notes: ['Eye level with disciplined verticals.'],
+  },
+  palette_anchor: {
+    colors: ['warm ivory', 'graphite'],
+    contrast: 'medium',
+    materials: ['plaster'],
+    notes: ['Apply this palette only to environment, light and grade.'],
+  },
+  negative_reference: {
+    avoid: ['neon cyan'],
+    notes: ['Scene inputs never have authority for identity, body, hair or outfit.'],
+  },
+});
+
+function recordingProvider(providerOutput, calls, extra = {}) {
+  return {
+    aspectRatio: '3:4',
+    async generate(context) {
+      calls.push(context);
+      return {
+        image: providerOutput,
+        metadata: { provider: 'openrouter', job_id: 'shot-anchor-job' },
+      };
+    },
+    ...extra,
+  };
+}
+
+async function providerFrame() {
+  return sharp({
+    create: { width: 900, height: 1200, channels: 3, background: '#a48a74' },
+  }).png().toBuffer();
+}
+
+test('SceneGeneratorAdapter attaches both shot anchors after the contractual evidence and scopes their authority', async () => {
+  const fixture = await editorialContextFixture();
+  const items = await approvedItemEvidenceFixture(fixture.root);
+  const calls = [];
+  const adapter = new SceneGeneratorAdapter({
+    provider: recordingProvider(await providerFrame(), calls, { maxOrderedReferences: 10 }),
+  });
+  const generated = await adapter.generateScene({
+    ...fixture.base,
+    attempt: 1,
+    ...DEFAULT_SCENE_MODEL_ROUTE[0],
+    item_evidence: items,
+    shot_anchors: [fixture.blocking, fixture.heroContinuity],
+  });
+  assert.deepEqual(
+    calls[0].references.ordered.map((item) => item.role),
+    [
+      'APPROVED_LOOK_MASTER',
+      'ITEM_TOP',
+      'ITEM_BAG',
+      'SHOT_BLOCKING_TOPDOWN',
+      'SHOT_HERO_CONTINUITY_ANCHOR',
+    ],
+  );
+  assert.deepEqual(
+    calls[0].references.ordered.map((item) => item.order),
+    [1, 2, 3, 4, 5],
+  );
+  assert.equal(calls[0].references.ordered[3].sha256, fixture.blocking.sha256);
+  assert.equal(calls[0].references.ordered[4].sha256, fixture.heroContinuity.sha256);
+  // The transport, not this adapter, is the gatekeeper for scope and source, and it
+  // reserves the 'scene' scope for the repair candidate alone. Validating the real
+  // bindings here is what catches an anchor the provider would refuse outright.
+  assert.equal(
+    orderedReferenceDescriptors('scene', calls[0].references, { maxOrdered: 10 }).length,
+    5,
+  );
+  assert.equal(generated.metadata.shot_anchor_role_order, 'blocking_topdown:hero_continuity_anchor');
+  assert.equal(generated.metadata.attached_reference_count, 5);
+  assert.equal(generated.metadata.dropped_attachment_roles, undefined);
+  assert.equal(generated.metadata.dropped_attachment_count, undefined);
+  // The prompt must number the anchors exactly as the transport ordered them, or the
+  // model is told to read authority off an attachment that holds something else.
+  assert.match(calls[0].prompt, /ATTACHMENT_4 \[BLOCKING_TOPDOWN\]/);
+  assert.match(calls[0].prompt, /ATTACHMENT_5 \[HERO_CONTINUITY_ANCHOR\]/);
+  assert.match(calls[0].prompt, /authority only for place, environment geometry, light direction and quality, and colour grade/);
+  assert.match(calls[0].prompt, /Do not reproduce it/);
+  assert.match(
+    calls[0].prompt,
+    /The approved look master alone controls identity, body, hair, outfit, product details, logos and garment text\. No anchor above has any authority over them\./,
+  );
+  assert.match(calls[0].prompt, /Reproduce the geometry it specifies and none of its appearance/);
+});
+
+test('SceneGeneratorAdapter drops the hero anchor before the blocking diagram and records the loss', async () => {
+  const fixture = await editorialContextFixture();
+  const items = await Promise.all([
+    ...(await approvedItemEvidenceFixture(fixture.root)),
+    ...['shoes', 'headwear', 'outerwear'].map(async (category, index) => ({
+      order: index + 3,
+      role: `ITEM_${category.toUpperCase()}`,
+      category,
+      item_id: `set-${category}`,
+      reference_set_id: `set-${category}`,
+      observed: { garment_type: category, colors: ['black'] },
+      ...(await imageFile(fixture.root, `approved-${category}.png`, { color: '#1d1d1f' })),
+    })),
+  ]);
+  const repair = {
+    ...(await imageFile(fixture.root, 'failed-candidate.png', { width: 1024, height: 1280 })),
+    role: 'failed_candidate',
+    attempt: 1,
+  };
+  const calls = [];
+  // The default eight: one look master, one failed candidate and five cutouts are all
+  // contractual, so exactly one discretionary slot is left for two anchors.
+  const adapter = new SceneGeneratorAdapter({ provider: recordingProvider(await providerFrame(), calls) });
+  const generated = await adapter.generateScene({
+    ...fixture.base,
+    attempt: 2,
+    cycle_attempt: 1,
+    ...DEFAULT_SCENE_MODEL_ROUTE[0],
+    item_evidence: items,
+    repair_candidate: repair,
+    shot_anchors: [fixture.blocking, fixture.heroContinuity],
+  });
+  assert.deepEqual(
+    calls[0].references.ordered.map((item) => item.role),
+    [
+      'APPROVED_LOOK_MASTER',
+      'FAILED_SCENE_CANDIDATE',
+      'ITEM_TOP',
+      'ITEM_BAG',
+      'ITEM_SHOES',
+      'ITEM_HEADWEAR',
+      'ITEM_OUTERWEAR',
+      'SHOT_BLOCKING_TOPDOWN',
+    ],
+  );
+  assert.equal(generated.metadata.shot_anchor_role_order, 'blocking_topdown');
+  assert.equal(generated.metadata.dropped_attachment_roles, 'SHOT_HERO_CONTINUITY_ANCHOR');
+  assert.equal(generated.metadata.dropped_attachment_count, 1);
+  // A dropped attachment must lose its prompt line too: an instruction that points at
+  // ATTACHMENT_9 of an eight-attachment request is worse than saying nothing.
+  assert.doesNotMatch(calls[0].prompt, /HERO_CONTINUITY_ANCHOR/);
+  assert.match(calls[0].prompt, /ATTACHMENT_8 \[BLOCKING_TOPDOWN\]/);
+});
+
+test('SceneGeneratorAdapter spends the budget on anchors before image scene roles', async () => {
+  const fixture = await contextFixture();
+  const items = await approvedItemEvidenceFixture(fixture.root);
+  const blocking = {
+    ...(await imageFile(fixture.root, 'blocking-mixed.png', { color: '#cfcac0' })),
+    order: 1,
+    role: 'blocking_topdown',
+    reference_id: 'blocking.v1.wide_campaign_coda',
+  };
+  const heroContinuity = {
+    ...(await imageFile(fixture.root, 'hero-mixed.png', { width: 1024, height: 1280 })),
+    order: 2,
+    role: 'hero_continuity_anchor',
+    reference_id: 'hero.scene_mixed',
+  };
+  const calls = [];
+  const adapter = new SceneGeneratorAdapter({ provider: recordingProvider(await providerFrame(), calls) });
+  const generated = await adapter.generateScene({
+    ...fixture.base,
+    attempt: 1,
+    ...DEFAULT_SCENE_MODEL_ROUTE[0],
+    item_evidence: items,
+    shot_anchors: [blocking, heroContinuity],
+  });
+  assert.deepEqual(
+    calls[0].references.ordered.map((item) => item.role),
+    [
+      'APPROVED_LOOK_MASTER',
+      'ITEM_TOP',
+      'ITEM_BAG',
+      'SHOT_BLOCKING_TOPDOWN',
+      'SHOT_HERO_CONTINUITY_ANCHOR',
+      'SCENE_ENVIRONMENT_ANCHOR',
+      'SCENE_LIGHTING_ANCHOR',
+      'SCENE_COMPOSITION_ANCHOR',
+    ],
+  );
+  assert.equal(
+    generated.metadata.dropped_attachment_roles,
+    'SCENE_PALETTE_ANCHOR:SCENE_NEGATIVE_REFERENCE',
+  );
+  assert.equal(generated.metadata.dropped_attachment_count, 2);
+});
+
+test('SceneGeneratorAdapter refuses to trade contractual item evidence for the attachment budget', async () => {
+  const fixture = await editorialContextFixture();
+  const items = await Promise.all(
+    ['top', 'bag', 'shoes', 'headwear', 'outerwear', 'jewelry', 'dress'].map(async (category, index) => ({
+      order: index + 1,
+      role: `ITEM_${category.toUpperCase()}`,
+      category,
+      item_id: `set-${category}`,
+      reference_set_id: `set-${category}`,
+      observed: { garment_type: category, colors: ['black'] },
+      ...(await imageFile(fixture.root, `full-${category}.png`, { color: '#2b2b2e' })),
+    })),
+  );
+  const repair = {
+    ...(await imageFile(fixture.root, 'full-failed.png', { width: 1024, height: 1280 })),
+    role: 'failed_candidate',
+    attempt: 1,
+  };
+  const adapter = new SceneGeneratorAdapter({
+    provider: { aspectRatio: '3:4', generate: async () => { throw new Error('must not run'); } },
+  });
+  await assert.rejects(() => adapter.generateScene({
+    ...fixture.base,
+    attempt: 2,
+    cycle_attempt: 1,
+    ...DEFAULT_SCENE_MODEL_ROUTE[0],
+    item_evidence: items,
+    repair_candidate: repair,
+    shot_anchors: [fixture.blocking],
+  }), /Approved item evidence exceeds the provider attachment limit/);
+});
+
+test('SceneGeneratorAdapter refuses shot anchors that are out of canonical order or not PNG', async () => {
+  const fixture = await editorialContextFixture();
+  const adapter = new SceneGeneratorAdapter({
+    provider: { aspectRatio: '3:4', generate: async () => { throw new Error('must not run'); } },
+  });
+  await assert.rejects(() => adapter.generateScene({
+    ...fixture.base,
+    attempt: 1,
+    ...DEFAULT_SCENE_MODEL_ROUTE[0],
+    shot_anchors: [{ ...fixture.heroContinuity, order: 1 }, { ...fixture.blocking, order: 2 }],
+  }), /Scene shot anchor 1 is not in canonical anchor order/);
+  const jpegAnchor = path.join(fixture.root, 'blocking.jpg');
+  const jpegBytes = await sharp({
+    create: { width: 320, height: 400, channels: 3, background: '#c9c4ba' },
+  }).jpeg().toBuffer();
+  await writeFile(jpegAnchor, jpegBytes);
+  await assert.rejects(() => adapter.generateScene({
+    ...fixture.base,
+    attempt: 1,
+    ...DEFAULT_SCENE_MODEL_ROUTE[0],
+    shot_anchors: [{
+      ...fixture.blocking,
+      path: jpegAnchor,
+      sha256: sha256(jpegBytes),
+      media_type: 'image/jpeg',
+    }],
+  }), /Scene shot anchor blocking_topdown must be one PNG/);
 });

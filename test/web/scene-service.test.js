@@ -2225,3 +2225,113 @@ test('delete and retry share one lifecycle lock so a tombstoned scene cannot be 
     assert.equal((await waitForTerminal([current.service], created.scene_id)).status, 'COMPLETED');
   }
 });
+
+test('per-shot anchors are bound, re-verified on every attempt, and handed to the generator in canonical order', async (t) => {
+  const { root, service, request, calls } = await fixture(t);
+  const blockingBytes = await image({ width: 1280, height: 720, color: '#c9c4ba' });
+  const heroBytes = await image({ width: 1024, height: 1280, color: '#6d5a4b' });
+  const created = await service.createScene({
+    ...request,
+    // Deliberately handed over in the wrong order: the canonical order is the
+    // contract's, not the caller's, or the same shot would fingerprint two ways.
+    shotAnchorReferences: [
+      {
+        role: 'hero_continuity_anchor',
+        reference_id: 'hero.scene_sibling',
+        media_type: 'image/png',
+        sha256: sha256(heroBytes),
+        data: heroBytes,
+      },
+      {
+        role: 'blocking_topdown',
+        reference_id: 'blocking.v1.environmental_hero',
+        media_type: 'image/png',
+        sha256: sha256(blockingBytes),
+        data: blockingBytes,
+      },
+    ],
+  });
+  const completed = await waitFor(service, created.scene_id);
+  assert.equal(completed.status, 'COMPLETED', JSON.stringify(completed, null, 2));
+
+  const state = JSON.parse(await readFile(path.join(root, created.scene_id, 'scene.json'), 'utf8'));
+  assert.deepEqual(state.bindings.shot_anchors, [
+    {
+      order: 1,
+      role: 'blocking_topdown',
+      reference_id: 'blocking.v1.environmental_hero',
+      sha256: sha256(blockingBytes),
+      media_type: 'image/png',
+      relative_path: 'inputs/shot-anchors/01-blocking_topdown.png',
+    },
+    {
+      order: 2,
+      role: 'hero_continuity_anchor',
+      reference_id: 'hero.scene_sibling',
+      sha256: sha256(heroBytes),
+      media_type: 'image/png',
+      relative_path: 'inputs/shot-anchors/02-hero_continuity_anchor.png',
+    },
+  ]);
+  validatePersistedSceneState(state, created.scene_id);
+  const sourceLedgerSchema = JSON.parse(await readFile(path.resolve('schemas/scene-source-ledger.schema.json'), 'utf8'));
+  const jobSchema = JSON.parse(await readFile(path.resolve('schemas/scene-job.schema.json'), 'utf8'));
+  const jobAjv = new Ajv2020({ strict: false, validateFormats: false });
+  jobAjv.addSchema(sourceLedgerSchema);
+  assert.equal(jobAjv.compile(jobSchema)(state), true);
+  assert.equal(
+    sha256(await readFile(path.join(root, created.scene_id, 'inputs/shot-anchors/01-blocking_topdown.png'))),
+    sha256(blockingBytes),
+  );
+  assert.deepEqual(
+    calls.generator[0].shot_anchors.map((anchor) => [anchor.order, anchor.role, anchor.sha256]),
+    [
+      [1, 'blocking_topdown', sha256(blockingBytes)],
+      [2, 'hero_continuity_anchor', sha256(heroBytes)],
+    ],
+  );
+  // A public scene never leaks its own input paths, and the anchors are inputs.
+  assert.doesNotMatch(JSON.stringify(completed), /shot-anchors/);
+
+  const conflicting = service.createScene({
+    ...request,
+    shotAnchorReferences: [{
+      role: 'blocking_topdown',
+      reference_id: 'blocking.v1.environmental_hero',
+      media_type: 'image/png',
+      sha256: sha256(heroBytes),
+      data: heroBytes,
+    }],
+  });
+  await assert.rejects(() => conflicting, /IDEMPOTENCY_CONFLICT|already bound to a different scene request/);
+});
+
+test('a tampered shot anchor stops the scene instead of conditioning on it', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'zeely-anchor-tamper-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const blockingBytes = await image({ width: 1280, height: 720, color: '#c9c4ba' });
+  const current = await fixture(t, {
+    root,
+    generator: { async generateScene() { throw new Error('provider unavailable'); } },
+  });
+  const created = await current.service.createScene({
+    ...current.request,
+    shotAnchorReferences: [{
+      role: 'blocking_topdown',
+      reference_id: 'blocking.v1.clean_identity_hero',
+      media_type: 'image/png',
+      sha256: sha256(blockingBytes),
+      data: blockingBytes,
+    }],
+  });
+  const failed = await waitFor(current.service, created.scene_id);
+  assert.equal(failed.status, 'FAILED');
+  const anchorPath = path.join(root, created.scene_id, 'inputs/shot-anchors/01-blocking_topdown.png');
+  await rm(anchorPath, { force: true });
+  await writeFile(anchorPath, await image({ width: 1280, height: 720, color: '#101010' }));
+  await current.service.retryScene(created.scene_id, { idempotencyKey: 'anchor-tamper-retry-0001' });
+  const stopped = await waitFor(current.service, created.scene_id);
+  assert.equal(stopped.status, 'FAILED');
+  assert.equal(stopped.phase, 'BOUND_INPUT_INTEGRITY_FAILED');
+  assert.match(stopped.error.message, /Scene shot anchor blocking_topdown/);
+});

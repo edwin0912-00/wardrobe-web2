@@ -160,3 +160,43 @@ test('qa() never auto-passes and delegates to an explicit evaluator when configu
   const decision = await withEvaluator.qa(baseContext(fixture));
   assert.equal(decision.decision, 'PASS');
 });
+
+test('the OpenRouter transport carries ten ordered references, two more than the Higgsfield CLI ceiling', async () => {
+  const fixture = await mediaFixture();
+  const calls = [];
+  const provider = new OpenRouterImageGenProvider({ client: clientReturning(MOCK_PNG, calls) });
+  assert.equal(provider.maxOrderedReferences, 10);
+  const paths = [];
+  for (let index = 0; index < 11; index += 1) {
+    const filename = path.join(fixture.directory, `ordered-${index + 1}.png`);
+    await writeFile(filename, MOCK_PNG);
+    paths.push(filename);
+  }
+  const pack = (count) => ({
+    ordered: paths.slice(0, count).map((filename, index) => ({
+      order: index + 1,
+      scope: index === 0 ? 'avatar' : 'outfit',
+      role: index === 0 ? 'APPROVED_LOOK_MASTER' : `REFERENCE_${index + 1}`,
+      path: filename,
+      sha256: MOCK_SHA256,
+      mediaType: 'image/png',
+      source: index === 0 ? 'APPROVED_AVATAR' : 'CONDITIONED',
+    })),
+  });
+  const result = await provider.generate(baseContext(fixture, {
+    phase: 'scene',
+    references: pack(10),
+    idempotencyKey: 'b'.repeat(64),
+  }));
+  assert.equal(calls[0].imagePaths.length, 10);
+  assert.equal(result.metadata.input_media.length, 10);
+  await assert.rejects(
+    () => provider.generate(baseContext(fixture, {
+      phase: 'scene',
+      references: pack(11),
+      idempotencyKey: 'c'.repeat(64),
+    })),
+    (error) => error.code === 'INVALID_ORDERED_REFERENCES'
+      && /1–10 media bindings/.test(error.message),
+  );
+});

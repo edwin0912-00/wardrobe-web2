@@ -138,6 +138,12 @@ export class OpenRouterImageGenProvider {
     // gpt-image → 896×1120, gemini → 928×1152), so this transport never needs
     // the 3:4 detour the Higgsfield CLI was limited to.
     this.transportAspectRatio = '4:5';
+    // Ten, not the inherited eight, because eight is a Higgsfield CLI limit and this
+    // transport does not share it: references travel as chat content parts. At eight,
+    // an editorial shot carrying the approved look plus five item cutouts had two
+    // slots left for its blocking diagram, its hero-continuity frame and any image
+    // scene role — so the budget, not the art direction, decided what the model saw.
+    this.maxOrderedReferences = 10;
   }
 
   /**
@@ -235,7 +241,9 @@ export class OpenRouterImageGenProvider {
         code: 'INVALID_PROMPT',
       });
     }
-    const descriptors = orderedReferenceDescriptors(phase, context.references);
+    const descriptors = orderedReferenceDescriptors(phase, context.references, {
+      maxOrdered: this.maxOrderedReferences,
+    });
     await validateMedia(descriptors);
 
     const journalPath = this.#journalPath(context);

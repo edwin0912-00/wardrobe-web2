@@ -38,6 +38,9 @@ const editorialPreviewFiles = editorialPreviewModeIds.flatMap((modeId) => [
   `assets/scene-mood-cards/${modeId}.webp`,
 ]);
 const directoryRoots = [
+  // Ships whole: every editorial shot resolves its own slot diagram at generation
+  // time, so a release missing one PNG does not degrade — that mode stops shooting.
+  'assets/editorial-blocking',
   'assets/scene-presets',
   'config',
   'prompts',

@@ -45,6 +45,19 @@ export const SCENE_REFERENCE_ROLES = Object.freeze([
   'negative_reference',
 ]);
 
+// Per-shot image anchors, ordered by how much of the request would lose its only
+// carrier if the provider attachment budget forced one out. BLOCKING_TOPDOWN goes
+// first because nothing else in the request draws where the subject stands: the
+// camera and pose survive as one prose line the generator demonstrably aims past
+// (three interference_frame attempts measured 96.33%, 96.48% and 96.72% against a
+// 96% ceiling). The hero frame degrades rather than disappears — its environment,
+// light and grade are each still compiled into the structured environment, lighting
+// and palette facts — so it yields the last slot.
+export const SCENE_SHOT_ANCHOR_ROLES = Object.freeze([
+  'blocking_topdown',
+  'hero_continuity_anchor',
+]);
+
 export const SCENE_REFERENCE_FORBIDDEN_AUTHORITIES = Object.freeze([
   'identity',
   'body',
@@ -430,6 +443,51 @@ export function validatePresetReference(reference) {
     reference_pack_sha256: assertSha256(reference.reference_pack_sha256, 'presetReference.reference_pack_sha256'),
     prompt_sha256: assertSha256(reference.prompt_sha256, 'presetReference.prompt_sha256'),
   });
+}
+
+/**
+ * The optional per-shot image anchors a caller may bind alongside the approved look.
+ *
+ * Ordered by SCENE_SHOT_ANCHOR_ROLES rather than by the caller's array, so the same
+ * shot always produces the same request fingerprint and the same attachment order.
+ * Bytes are demanded here instead of a path because the caller's file is its own
+ * artifact — the hero frame lives inside a sibling scene — and an anchor that stayed
+ * a reference to somebody else's file would be conditioning on something this scene
+ * cannot prove still exists.
+ */
+export function validateShotAnchorReferences(anchors) {
+  if (anchors === undefined || anchors === null) return null;
+  if (!Array.isArray(anchors) || anchors.length < 1 || anchors.length > SCENE_SHOT_ANCHOR_ROLES.length) {
+    throw new Error(`shotAnchorReferences must contain 1–${SCENE_SHOT_ANCHOR_ROLES.length} anchors`);
+  }
+  const byRole = new Map();
+  for (const anchor of anchors) {
+    if (!anchor || typeof anchor !== 'object' || Array.isArray(anchor)) {
+      throw new Error('shotAnchorReferences entries must be objects');
+    }
+    if (!SCENE_SHOT_ANCHOR_ROLES.includes(anchor.role)) {
+      throw new Error(`Unsupported scene shot anchor role ${anchor.role}`);
+    }
+    if (byRole.has(anchor.role)) {
+      throw new Error(`shotAnchorReferences repeats the ${anchor.role} role`);
+    }
+    if (anchor.media_type !== 'image/png') {
+      throw new Error(`Scene shot anchor ${anchor.role} must be one PNG`);
+    }
+    byRole.set(anchor.role, Object.freeze({
+      role: anchor.role,
+      reference_id: assertSafeSceneId(anchor.reference_id, `shotAnchorReferences.${anchor.role}.reference_id`),
+      sha256: assertSha256(anchor.sha256, `shotAnchorReferences.${anchor.role}.sha256`),
+      media_type: 'image/png',
+      data: anchor.data,
+    }));
+  }
+  return Object.freeze(
+    SCENE_SHOT_ANCHOR_ROLES.filter((role) => byRole.has(role)).map((role, index) => Object.freeze({
+      order: index + 1,
+      ...byRole.get(role),
+    })),
+  );
 }
 
 function assertExactKeys(actual, expected, label) {
@@ -1644,9 +1702,14 @@ export function validatePersistedSceneState(state, expectedSceneId) {
   if (!bindings || typeof bindings !== 'object' || Array.isArray(bindings)) {
     throw new Error('Persisted scene bindings are invalid');
   }
-  const bindingNames = Object.hasOwn(bindings, 'approved_items')
-    ? ['approved_look', 'approved_items', 'preset', 'prompt', 'reference_pack']
-    : ['approved_look', 'preset', 'prompt', 'reference_pack'];
+  const bindingNames = [
+    'approved_look',
+    ...(Object.hasOwn(bindings, 'approved_items') ? ['approved_items'] : []),
+    ...(Object.hasOwn(bindings, 'shot_anchors') ? ['shot_anchors'] : []),
+    'preset',
+    'prompt',
+    'reference_pack',
+  ];
   assertExactKeys(bindings, bindingNames, 'Persisted scene bindings');
   const bindingKeys = {
     approved_look: [
@@ -1727,6 +1790,33 @@ export function validatePersistedSceneState(state, expectedSceneId) {
       assertSha256(item.facts_sha256, 'scene.approved_item.facts_sha256');
       assertRelativeArtifactPath(item.relative_path, 'scene.approved_item.relative_path');
     }
+  }
+  if (Object.hasOwn(bindings, 'shot_anchors')) {
+    const anchors = bindings.shot_anchors;
+    if (!Array.isArray(anchors) || anchors.length < 1 || anchors.length > SCENE_SHOT_ANCHOR_ROLES.length) {
+      throw new Error('Persisted scene shot_anchors binding is invalid');
+    }
+    const expectedRoles = SCENE_SHOT_ANCHOR_ROLES.filter(
+      (role) => anchors.some((anchor) => anchor?.role === role),
+    );
+    anchors.forEach((anchor, index) => {
+      if (!anchor || typeof anchor !== 'object' || Array.isArray(anchor)) {
+        throw new Error('Persisted scene shot anchor is invalid');
+      }
+      assertExactKeys(
+        anchor,
+        ['order', 'role', 'reference_id', 'sha256', 'media_type', 'relative_path'],
+        'Persisted scene shot anchor',
+      );
+      if (anchor.order !== index + 1
+        || anchor.role !== expectedRoles[index]
+        || anchor.media_type !== 'image/png') {
+        throw new Error('Persisted scene shot anchors are not in canonical anchor order');
+      }
+      assertSafeSceneId(anchor.reference_id, 'scene shot anchor id');
+      assertSha256(anchor.sha256, `scene shot anchor ${anchor.role} sha256`);
+      assertRelativeArtifactPath(anchor.relative_path, `scene shot anchor ${anchor.role} path`);
+    });
   }
   if (!Array.isArray(bindings.reference_pack.references) || bindings.reference_pack.references.length !== SCENE_REFERENCE_ROLES.length) {
     throw new Error('Persisted scene reference bindings are invalid');

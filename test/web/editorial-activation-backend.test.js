@@ -252,7 +252,10 @@ test('EditorialSceneExecutor delegates to one deterministic SceneService executi
         mode_version: '1.0.0',
         sha256: 'a'.repeat(64),
       },
-      shot_spec: { slot: 'clean_identity_hero' },
+      shot_spec: {
+        slot: 'clean_identity_hero',
+        camera: { lens_mm: 50, framing: 'three_quarter' },
+      },
       shot_spec_sha256: 'b'.repeat(64),
       signal: new AbortController().signal,
     });

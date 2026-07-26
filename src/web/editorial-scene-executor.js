@@ -1,4 +1,5 @@
 import { readFile } from 'node:fs/promises';
+import { editorialBlockingReference } from './editorial-blocking-reference.js';
 import {
   EDITORIAL_QA_GATES,
   sha256,
@@ -56,6 +57,45 @@ export class EditorialSceneExecutor {
     this.presetResolver = presetResolver;
   }
 
+  /**
+   * The image anchors this shot conditions on, over and above its approved look.
+   *
+   * The blocking diagram is static per slot, so every shoot gets the same six. The
+   * hero frame only exists for the five shots that follow the hero, and it is our own
+   * output from this very shoot — which is what makes it usable at all where an
+   * environment plate is not: the plate is the human approval preview and the
+   * compiled environment facts forbid reconstructing one, while a frame the shoot has
+   * already rendered and had approved is the reality the remaining five are supposed
+   * to be standing in. Without it each of the six invented its own version of the
+   * place and continuity was only ever hash-checked, never conditioned.
+   */
+  async #shotAnchors(context) {
+    const anchors = [await editorialBlockingReference({ shotSpec: context.shot_spec })];
+    const hero = context.hero_output;
+    if (hero) {
+      const filename = await this.outputFile({
+        resourceId: hero.resource_id,
+        expectedSha256: hero.sha256,
+        expectedReceiptSha256: hero.receipt_sha256,
+      });
+      // A series shot cannot honestly claim continuity with a frame it cannot read,
+      // and the alternative — generate anyway and record the omission — spends a paid
+      // generation on the one thing the shoot exists to deliver. The hero frame is
+      // immutable and never pruned, so this is a real fault, not a fallback.
+      if (!filename) {
+        throw new Error('Approved editorial hero frame is unavailable for continuity conditioning');
+      }
+      anchors.push({
+        role: 'hero_continuity_anchor',
+        reference_id: `hero.${hero.resource_id}`,
+        media_type: 'image/png',
+        sha256: hero.sha256,
+        data: await readFile(filename),
+      });
+    }
+    return anchors;
+  }
+
   async executeShot(context) {
     if (context.signal?.aborted) throw abortError();
     const presetReference = await this.presetResolver.editorialShotPresetReference({
@@ -63,11 +103,13 @@ export class EditorialSceneExecutor {
       version: context.shoot_bible.mode_version,
       shotSpec: context.shot_spec,
     });
+    const shotAnchorReferences = await this.#shotAnchors(context);
     const expectedSceneId = sceneIdForIdempotencyKey(context.idempotency_key);
     let scene = await this.sceneService.createScene({
       idempotencyKey: context.idempotency_key,
       approvedLookReference: context.approved_look,
       presetReference,
+      shotAnchorReferences,
     });
     if (scene.scene_id !== expectedSceneId) {
       throw new Error('SceneService returned a non-deterministic editorial execution id');
