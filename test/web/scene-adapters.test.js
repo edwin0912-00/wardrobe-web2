@@ -9,9 +9,13 @@ import {
   orderedReferenceDescriptors,
 } from '../../src/providers/higgsfield-cli-provider.js';
 import {
+  CONTACT_SHADOW_WAIVER_REFUSED,
+  CONTACT_SHADOW_WAIVERS,
   SceneEvaluationInfrastructureError,
   SceneEvaluatorAdapter,
   SceneGeneratorAdapter,
+  evaluatorPrompt,
+  reconcileContactShadowWaiver,
 } from '../../src/web/scene-adapters.js';
 import {
   DEFAULT_SCENE_MODEL_ROUTE,
@@ -1590,4 +1594,221 @@ test('SceneGeneratorAdapter refuses shot anchors that are out of canonical order
       media_type: 'image/jpeg',
     }],
   }), /Scene shot anchor blocking_topdown must be one PNG/);
+});
+
+// The six editorial slots all declare full footwear=false, so anything keyed on that
+// declaration reaches all six. These are the three shapes the prompt has to hold apart.
+const EDITORIAL_FOOTWEAR_OPTIONAL_PRESET = Object.freeze({
+  camera: {
+    framing: 'three_quarter',
+    required_visibility: { full_head: true, full_footwear: false },
+  },
+  editorial: {
+    shot_slot: 'sculptural_three_quarter',
+    identity_visibility: 'full_face',
+    item_scope: 'EXCLUDE_FOOTWEAR',
+  },
+});
+
+test('an editorial crop is told the contact-shadow rule as a condition, not handed the relief', () => {
+  const editorial = evaluatorPrompt(
+    { width: 1024, height: 1280 },
+    [],
+    EDITORIAL_FOOTWEAR_OPTIONAL_PRESET,
+    [],
+  );
+
+  // The requirement itself has to survive into the editorial prompt. Before this, the
+  // editorial branch carried only the excuse, so every editorial frame read the gate as
+  // optional whatever it could see.
+  assert.match(editorial, /a visible contact shadow consistent with the key light is required/);
+  assert.match(editorial, /a missing, floating or wrongly directed one is FAIL/);
+  // Which case the frame is in is the frame's answer, and the model's own reported
+  // boolean is what commits it to one.
+  assert.match(editorial, /Reporting full_footwear_visible true is that observation/);
+  assert.match(editorial, /takes full_footwear_visible false plus one of these two exact phrases/);
+  assert.match(editorial, /Unstated, ground contact is required/);
+  // Two named reasons, so "the crop ends above the feet" cannot absorb an interference
+  // frame's foreground layer or anything else that hides a contact point.
+  assert.ok(editorial.includes(CONTACT_SHADOW_WAIVERS.crop));
+  assert.ok(editorial.includes(CONTACT_SHADOW_WAIVERS.occlusion));
+
+  const standard = evaluatorPrompt({ width: 1024, height: 1280 }, [], null, []);
+  assert.match(standard, /requires a visible subject-to-ground contact shadow/);
+  // No waiver exists on the standard path, so its vocabulary is not offered there.
+  assert.ok(!standard.includes(CONTACT_SHADOW_WAIVERS.crop));
+  assert.ok(!standard.includes(CONTACT_SHADOW_WAIVERS.occlusion));
+  assert.doesNotMatch(standard, /do not report CONTACT_SHADOW_NOT_VISIBLE/);
+});
+
+function waivedPayload({ phrase, footwearVisible, decision = 'PASS' }) {
+  const payload = evaluatorPayload();
+  const light = payload.gates.find((gate) => gate.id === 'LIGHT_AND_CONTACT_SHADOW');
+  light.decision = decision;
+  light.evidence = phrase === null
+    ? 'Key light is hard and high-left; the cast shadow under both shoes matches its direction.'
+    : `Key light is hard and high-left. ${phrase}: the subject is cut at the lower frame edge.`;
+  if (decision === 'FAIL') light.defects = ['LIGHT_DIRECTION_MISMATCH'];
+  payload.framing_evidence = { ...payload.framing_evidence, full_footwear_visible: footwearVisible };
+  return payload;
+}
+
+test('the contact-shadow waiver is refused by the frame that reports its own footwear in shot', async () => {
+  const fixture = await contextFixture();
+  const candidate = await imageFile(fixture.root, 'candidate-waiver-audit.png', {
+    width: 1024,
+    height: 1280,
+    color: '#b98f72',
+  });
+  const presetPath = path.join(fixture.root, 'editorial-footwear-optional.json');
+  await writeFile(presetPath, JSON.stringify(EDITORIAL_FOOTWEAR_OPTIONAL_PRESET));
+
+  for (const expectation of [
+    // The crop genuinely ends above the feet: the relief this whole branch exists for.
+    {
+      label: 'editorial-crop-waiver-no-footwear',
+      editorial: true,
+      phrase: CONTACT_SHADOW_WAIVERS.crop,
+      footwearVisible: false,
+      decision: 'PASS',
+    },
+    // The four delivered frames. Same slot, same declaration, opposite observation.
+    {
+      label: 'editorial-crop-waiver-with-footwear',
+      editorial: true,
+      phrase: CONTACT_SHADOW_WAIVERS.crop,
+      footwearVisible: true,
+      decision: 'FAIL',
+    },
+    // The second waiver is not a way around the first one being audited.
+    {
+      label: 'editorial-occlusion-waiver-with-footwear',
+      editorial: true,
+      phrase: CONTACT_SHADOW_WAIVERS.occlusion,
+      footwearVisible: true,
+      decision: 'FAIL',
+    },
+    {
+      label: 'editorial-occlusion-waiver-no-footwear',
+      editorial: true,
+      phrase: CONTACT_SHADOW_WAIVERS.occlusion,
+      footwearVisible: false,
+      decision: 'PASS',
+    },
+    // A frame that shows its footwear and judged the shadow is exactly what the gate
+    // wants. Claiming nothing costs it nothing.
+    {
+      label: 'editorial-no-waiver-with-footwear',
+      editorial: true,
+      phrase: null,
+      footwearVisible: true,
+      decision: 'PASS',
+    },
+    // The standard path is never offered the waiver, so a payload carrying one there is
+    // unsupported for the same reason and by the same rule.
+    {
+      label: 'standard-crop-waiver-with-footwear',
+      editorial: false,
+      phrase: CONTACT_SHADOW_WAIVERS.crop,
+      footwearVisible: true,
+      decision: 'FAIL',
+    },
+    {
+      label: 'standard-no-waiver-with-footwear',
+      editorial: false,
+      phrase: null,
+      footwearVisible: true,
+      decision: 'PASS',
+    },
+  ]) {
+    // The evaluator always hands back a PASS here: an unsupported PASS is the whole
+    // thing being audited, and expectation.decision is what must come out the far side.
+    const adapter = new SceneEvaluatorAdapter({
+      commandRunner: evaluatorRunner(waivedPayload({
+        phrase: expectation.phrase,
+        footwearVisible: expectation.footwearVisible,
+      }), []),
+    });
+    const result = await adapter.evaluateScene({
+      scene_id: `scene_waiver_${expectation.label.replaceAll('-', '_')}`,
+      attempt: 1,
+      candidate,
+      approved_look: fixture.approved,
+      references: fixture.references,
+      ...(expectation.editorial ? { preset: { path: presetPath } } : {}),
+      required_gates: SCENE_EVALUATOR_GATES,
+      delivery: { width: 1024, height: 1280 },
+    });
+    const light = result.gates.find((gate) => gate.id === 'LIGHT_AND_CONTACT_SHADOW');
+    assert.equal(light.decision, expectation.decision, expectation.label);
+    if (expectation.decision === 'FAIL') {
+      assert.deepEqual(light.defects, [CONTACT_SHADOW_WAIVER_REFUSED], expectation.label);
+      // The reason is recoverable from the gate a reader is shown, not only from the code.
+      assert.match(light.evidence, /reporting full footwear visible/, expectation.label);
+      assert.equal(result.score, 60, expectation.label);
+      assert.match(result.summary, /cannot be waived on a frame that observed its own contact point/);
+    } else {
+      assert.deepEqual(light.defects, [], expectation.label);
+      assert.equal(result.score, 96, expectation.label);
+      assert.doesNotMatch(light.evidence, /owes its shadow/, expectation.label);
+    }
+    // One gate is reconciled; the other five carry whatever the evaluator said.
+    for (const gate of result.gates.filter((item) => item.id !== 'LIGHT_AND_CONTACT_SHADOW')) {
+      assert.equal(gate.decision, 'PASS', `${expectation.label}: ${gate.id}`);
+      assert.deepEqual(gate.defects, [], `${expectation.label}: ${gate.id}`);
+    }
+    assert.doesNotThrow(() => normalizeEvaluatorResult(result), expectation.label);
+  }
+});
+
+test('a gate already failing for its own reason is not overwritten by the waiver audit', () => {
+  const payload = reconcileContactShadowWaiver(waivedPayload({
+    phrase: CONTACT_SHADOW_WAIVERS.crop,
+    footwearVisible: true,
+    decision: 'FAIL',
+  }));
+  const light = payload.gates.find((gate) => gate.id === 'LIGHT_AND_CONTACT_SHADOW');
+  assert.equal(light.decision, 'FAIL');
+  assert.deepEqual(light.defects, ['LIGHT_DIRECTION_MISMATCH']);
+  assert.equal(payload.score, 96);
+});
+
+// Every editorial asset result the beta runtime holds, with the framing evidence it
+// actually recorded. All nine passed LIGHT_AND_CONTACT_SHADOW under the declaration-keyed
+// relaxation; five of them observed their own footwear while doing it. bbox bottoms are
+// carried along because they are the independent corroboration that the boolean was not
+// noise: every frame reporting footwear visible ends its subject above the 1280px canvas
+// edge, and every frame reporting it hidden runs into that edge.
+const DELIVERED_EDITORIAL_FRAMES = Object.freeze([
+  { slot: 'organic_contrast.clean_identity_hero', bboxBottom: 1242, footwearVisible: true },
+  { slot: 'organic_contrast.interference_frame', bboxBottom: 1280, footwearVisible: false },
+  { slot: 'organic_contrast.interference_frame.2', bboxBottom: 1280, footwearVisible: false },
+  { slot: 'urban_monochrome.clean_identity_hero', bboxBottom: 1280, footwearVisible: false },
+  { slot: 'organic_contrast.sculptural_three_quarter', bboxBottom: 1248, footwearVisible: true },
+  { slot: 'organic_contrast.material_or_accessory_detail', bboxBottom: 1280, footwearVisible: false },
+  { slot: 'organic_contrast.wide_campaign_coda', bboxBottom: 1040, footwearVisible: true },
+  { slot: 'urban_monochrome.clean_identity_hero.2', bboxBottom: 1208, footwearVisible: true },
+  { slot: 'organic_contrast.environmental_hero', bboxBottom: 1160, footwearVisible: true },
+]);
+
+test('replaying the delivered editorial frames judges the five that saw their contact point', () => {
+  const judged = [];
+  for (const frame of DELIVERED_EDITORIAL_FRAMES) {
+    const payload = reconcileContactShadowWaiver(waivedPayload({
+      phrase: CONTACT_SHADOW_WAIVERS.crop,
+      footwearVisible: frame.footwearVisible,
+    }));
+    const light = payload.gates.find((gate) => gate.id === 'LIGHT_AND_CONTACT_SHADOW');
+    assert.equal(
+      light.decision,
+      frame.footwearVisible ? 'FAIL' : 'PASS',
+      frame.slot,
+    );
+    // The measurement and the boolean have to keep agreeing, or one of them is noise.
+    assert.equal(frame.bboxBottom < 1280, frame.footwearVisible, frame.slot);
+    if (light.decision === 'FAIL') judged.push(frame.slot);
+  }
+  assert.equal(judged.length, 5);
+  assert.ok(judged.includes('organic_contrast.wide_campaign_coda'));
+  assert.ok(judged.includes('organic_contrast.environmental_hero'));
 });

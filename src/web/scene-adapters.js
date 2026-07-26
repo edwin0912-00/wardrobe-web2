@@ -687,6 +687,50 @@ export class SceneEvaluationInfrastructureError extends Error {
   }
 }
 
+// The only two things that can put a subject-to-ground contact point beyond a frame:
+// the frame ends above it, or something in the foreground stands in front of it. They
+// are fixed phrases rather than free prose because a waiver nobody can grep for is a
+// waiver nobody audits, and because splitting them keeps "the crop ends above the feet"
+// from absorbing every other reason a shadow is missing.
+export const CONTACT_SHADOW_WAIVERS = Object.freeze({
+  crop: 'GROUND CONTACT OUTSIDE CROP',
+  occlusion: 'GROUND CONTACT OCCLUDED BY FOREGROUND',
+});
+
+export const CONTACT_SHADOW_WAIVER_REFUSED = 'CONTACT_SHADOW_WAIVED_WITH_FOOTWEAR_IN_FRAME';
+
+// A waiver only lives as long as the observation under it, the same way
+// clear_space_above_hair_waived_by_full_head does in scene-contract.js. Here the
+// observation arrives in the same payload that claims the waiver, so the claim can be
+// held against it: a frame that reports its own footwear in shot has reported the
+// contact point in shot, and "this frame cannot show ground contact" is then simply
+// false. Without this, the conditional wording in evaluatorPrompt would be a blanket
+// excuse with extra words — the model grants itself the relief and nothing downstream
+// ever looks, which is how four full-length figures standing on paving skipped the one
+// check that separates them from a composite.
+export function reconcileContactShadowWaiver(payload) {
+  const gate = payload.gates.find((item) => item.id === 'LIGHT_AND_CONTACT_SHADOW');
+  // An already-failing gate has nothing to rescue; only an unsupported PASS does.
+  if (!gate || gate.decision !== 'PASS') return payload;
+  const waived = Object.values(CONTACT_SHADOW_WAIVERS)
+    .some((phrase) => gate.evidence.includes(phrase));
+  if (!waived || payload.framing_evidence.full_footwear_visible !== true) return payload;
+  gate.decision = 'FAIL';
+  if (!gate.defects.includes(CONTACT_SHADOW_WAIVER_REFUSED)) {
+    gate.defects = [...gate.defects, CONTACT_SHADOW_WAIVER_REFUSED].slice(0, 20);
+  }
+  gate.evidence = boundedEvaluationText(
+    `${gate.evidence}; ground contact was waived on a frame reporting full footwear visible, so the contact point is inside it and owes its shadow.`,
+    1_000,
+  );
+  payload.score = Math.min(payload.score, 60);
+  payload.summary = boundedEvaluationText(
+    `${payload.summary}; ground contact cannot be waived on a frame that observed its own contact point`,
+    1_000,
+  );
+  return payload;
+}
+
 export function evaluatorPrompt(delivery, references, preset = null, qaItems = []) {
   const camera = preset?.camera ?? {};
   const editorial = preset?.editorial ?? null;
@@ -742,25 +786,32 @@ export function evaluatorPrompt(delivery, references, preset = null, qaItems = [
     ] : [
       'IDENTITY requires comparison of stable facial geometry, apparent age, hairline, eyes, nose, mouth, jaw and distinctive marks; expression and scene lighting may change, identity may not.',
     ]),
-    // Ground contact cannot be evidence in a frame that ends above the feet. This
-    // gate refused 4 of 6 attempts in one editorial retry round with
-    // CONTACT_SHADOW_NOT_VISIBLE / CONTACT_SHADOW_NOT_VERIFIABLE — "the frame cuts off
-    // the subject before the feet/contact points, so a subject-to-ground contact
-    // shadow cannot be visibly verified" — two of them alongside a
-    // FRAMING_AND_ANATOMY PASS and nothing else wrong. It is the same invented lock
-    // the nominal crop below used to carry: the preset itself declares full
-    // footwear=false, so whether the contact point is in frame at all is art
-    // direction, and a retry can only answer the demand by abandoning the crop the
-    // slot asked for. It was not catching
-    // anything either — the same gate passed 6 of 6 attempts before that round and
-    // both final frames after it — so it spent retry budget rather than blocking a
-    // composite. Everything observable about the light is still judged, and a contact
-    // point that IS inside the crop still owes its shadow. Standard scenes keep the
-    // full demand, because there the subject stands on the ground in frame and the
-    // contact shadow is the difference between a composite and a photograph.
+    // Ground contact cannot be evidence in a frame that ends above the feet, and this
+    // gate refused 4 of 6 attempts in one editorial retry round for exactly that —
+    // "the frame cuts off the subject before the feet/contact points, so a
+    // subject-to-ground contact shadow cannot be visibly verified", twice alongside a
+    // FRAMING_AND_ANATOMY PASS and nothing else wrong — while passing 6 of 6 attempts
+    // before that round and both final frames after it. So it was spending retry
+    // budget, not blocking a composite.
+    //
+    // What does not follow is retiring the demand for the whole slot. All six editorial
+    // slots declare full footwear=false, so a relaxation keyed on that declaration
+    // reaches every editorial frame — and 5 of the 9 editorial asset results on beta
+    // report full_footwear_visible true with the contact point plainly in shot:
+    // clean_identity_hero at bbox bottom 1242 of a 1280-tall canvas,
+    // sculptural_three_quarter 1248, urban clean_identity_hero 1208,
+    // environmental_hero 1160, wide_campaign_coda 1040. Those frames can carry the
+    // evidence, so they owe it. The slot only decides whether the question is open; the
+    // frame decides the answer, and the frame is not visible yet at this point in the
+    // run. Hence the split: the text below states the condition so the model resolves
+    // it against what it sees, and reconcileContactShadowWaiver re-checks the answer
+    // against the observation once there is one. Standard scenes never open the
+    // question — there the subject stands on the ground in frame and the contact shadow
+    // is the difference between a photograph and a composite.
     ...(editorial && !requireFullFootwear ? [
       'LIGHT_AND_CONTACT_SHADOW judges key direction, light quality, subject-to-environment coherence, and whether every shadow this crop does show is plausible for that light.',
-      'This crop is not required to reach the subject-to-ground contact points, so where it ends above them ground contact is not observable at all: do not FAIL for that and do not report CONTACT_SHADOW_NOT_VISIBLE or CONTACT_SHADOW_NOT_VERIFIABLE. Any contact point between the subject and a surface that IS inside this crop still requires its own contact shadow, and a missing, floating or wrongly directed one is FAIL.',
+      'This crop is not required to reach the subject-to-ground contact points and frequently reaches them anyway, so which case this frame is in is something you observe in it, not something the shot declares. Where the subject meets the ground inside this frame the gate is the ordinary one: a visible contact shadow consistent with the key light is required, and a missing, floating or wrongly directed one is FAIL. Reporting full_footwear_visible true is that observation.',
+      `Stop short of judging ground contact only when this frame cannot show it. That takes full_footwear_visible false plus one of these two exact phrases in this gate's evidence, naming what puts the contact point out of reach: "${CONTACT_SHADOW_WAIVERS.crop}" with the frame edge that cuts the subject off, or "${CONTACT_SHADOW_WAIVERS.occlusion}" with the foreground element in the way. With one of them stated, do not FAIL for absent ground contact and do not report CONTACT_SHADOW_NOT_VISIBLE or CONTACT_SHADOW_NOT_VERIFIABLE. Unstated, ground contact is required as above. Either way, any other contact point between the subject and a surface inside this crop still requires its own contact shadow, and a missing, floating or wrongly directed one is FAIL.`,
     ] : [
       'LIGHT_AND_CONTACT_SHADOW requires a visible subject-to-ground contact shadow consistent with the key light. A subject standing in frame without one is a composite rather than a photograph and is FAIL.',
     ]),
@@ -804,7 +855,11 @@ export function validateEvaluatorPayload(payload) {
     || typeof framing.full_footwear_visible !== 'boolean') {
     throw new Error('Evaluator returned invalid numeric framing evidence');
   }
-  return payload;
+  // Both evaluators — the codex adapter below and OpenRouter — parse through here and
+  // nowhere else, so this is the one place a contact-shadow waiver can be held against
+  // the framing evidence on every live path. It runs last because it reads the score,
+  // the summary and full_footwear_visible, all of which are only known good above.
+  return reconcileContactShadowWaiver(payload);
 }
 
 export function itemDetailZone(category, height) {
