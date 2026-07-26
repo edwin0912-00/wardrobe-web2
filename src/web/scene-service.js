@@ -1228,17 +1228,35 @@ function compiledPrompt({
   const headroomShort = headroomDefect
     && [measuredAboveHair, measuredBelowFootwear, minimumAboveHair, minimumBelowFootwear]
       .every(Number.isFinite);
+  const subjectInBand = Number.isFinite(measuredSubjectHeight)
+    && !subjectTooLarge
+    && !subjectTooSmall;
   // One point over the lock rather than the lock itself. A crop can close a residual
   // subject-height gap for free, but only while above_px/subject_px stays over
   // minimum/maximum, and a frame asked for exactly 8% has no room for the model's own
   // error: the three attempts on scene_1cd6953f landed 0.89, 1.20 and 1.36 points under it.
   const targetAboveHair = headroomShort ? minimumAboveHair + 1 : null;
+  // The height the composition is built around, not the mid-band ideal. A subject already
+  // inside the band keeps what it measured: mid-band handed the six live in-band attempts a
+  // 1.001 scale factor whose only effect was to grow the person and take part of the growth
+  // out of the clearance that was their sole defect (white_window_honeycomb ran
+  // 75.9375%/5.7031% -> 76.4844%/5.4688% -> 76.4844%/5.3906%).
+  const composedSubjectHeight = subjectInBand ? measuredSubjectHeight : targetSubjectHeight;
   const targetBelowFootwear = headroomShort
-    ? Number((100 - targetAboveHair - targetSubjectHeight).toFixed(4))
+    ? Number((100 - targetAboveHair - composedSubjectHeight).toFixed(4))
     : null;
   const targetCompositionFits = headroomShort && targetBelowFootwear >= minimumBelowFootwear;
   const surplusFloorPaysForHeadroom = targetCompositionFits
     && measuredBelowFootwear > targetBelowFootwear;
+  const headroomDeficit = headroomShort
+    ? Number((minimumAboveHair - measuredAboveHair).toFixed(4))
+    : null;
+  // Measured against the floor's own minimum, because that is the part of it the frame is
+  // free to give away. Naming it is the difference between an instruction the model can
+  // execute and the bare defect code the six exhausted attempts were sent.
+  const unspentFloor = headroomShort
+    ? Number((measuredBelowFootwear - minimumBelowFootwear).toFixed(4))
+    : null;
   return [
     basePrompt.trim(),
     '',
@@ -1277,29 +1295,46 @@ function compiledPrompt({
         ...(subjectTooLarge ? [
           '- Outpaint the existing scene and pull the camera back while keeping the same person, pose, outfit, products, environment, light and camera character.',
         ] : []),
-        ...(subjectTooSmall && headroomShort ? [
-          // Enlarging about the subject's own centre is what produced 7.1094 -> 6.7969 ->
-          // 6.6406% of head clearance across three paid attempts of scene_1cd6953f while the
-          // person grew 0.86 points in total: the extra height comes half out of the
-          // clearance that is already short, so each attempt left the frame further outside
-          // what any crop can repair. The subject has to move down the frame, not just grow.
-          `- The person is too small AND head clearance is short: ${measuredAboveHair}% above the hair against a ${minimumAboveHair}% minimum. Do not enlarge the person about its own centre — that spends the clear space above the hair you are already missing.`,
+        // Reached on the recorded clearance defect by itself, whatever the height verdict
+        // says. Gating this on `subjectTooSmall && headroomShort` is why it never fired on
+        // the failure it was written for: all six live standard attempts (two presets, three
+        // each) measured a subject inside the band and were exhausted on
+        // INSUFFICIENT_CLEAR_SPACE_ABOVE_HAIR alone, so the only framing line they ever got
+        // was "preserve the current subject scale" and the numbers stayed in the receipt.
+        ...(headroomShort ? [
+          `- Head clearance is the recorded defect: ${measuredAboveHair}% above the hair against a ${minimumAboveHair}% minimum, ${headroomDeficit} points missing. The floor under the footwear measures ${measuredBelowFootwear}% against a ${minimumBelowFootwear}% minimum, so ${unspentFloor} points of it are unspent${unspentFloor >= headroomDeficit ? ' and cover the whole shortfall' : ', which is less than the shortfall'}.`,
+          ...(subjectTooSmall ? [
+            // Enlarging about the subject's own centre is what produced 7.1094 -> 6.7969 ->
+            // 6.6406% of head clearance across three paid attempts of scene_1cd6953f while the
+            // person grew 0.86 points in total: the extra height comes half out of the
+            // clearance that is already short, so each attempt left the frame further outside
+            // what any crop can repair. The subject has to move down the frame, not just grow.
+            '- The person is also too small, so do not enlarge it about its own centre — half of any height you add comes straight out of the clear space above the hair you are already missing.',
+          ] : []),
           ...(surplusFloorPaysForHeadroom ? [
-            `- Raise the ground line and lower the whole locked person-and-look group in frame: the floor below the footwear is ${measuredBelowFootwear}% and only ${targetBelowFootwear}% is needed, so spend that surplus on head clearance before scaling the group up.`,
+            `- Raise the ground line and lower the whole locked person-and-look group in frame: the floor below the footwear is ${measuredBelowFootwear}% and only ${targetBelowFootwear}% is needed, so spend that surplus on head clearance${subjectTooSmall ? ' before scaling the group up' : subjectInBand ? ' without rescaling the group' : ''}.`,
           ] : [
-            '- Lower the whole locked person-and-look group in frame so clear space opens above the hair, then scale the group up.',
+            `- Lower the whole locked person-and-look group in frame so clear space opens above the hair${subjectTooSmall ? ', then scale the group up' : subjectInBand ? ', without rescaling the group' : ''}.`,
           ]),
           ...(targetCompositionFits ? [
-            `- Compose to about ${targetAboveHair}% empty above the hair, ${targetSubjectHeight}% person and ${targetBelowFootwear}% below the footwear, keeping the same person, pose, outfit, products, environment, light and camera character.`,
+            `- Compose to about ${targetAboveHair}% empty above the hair, ${composedSubjectHeight}% person and ${targetBelowFootwear}% below the footwear, keeping the same person, pose, outfit, products, environment, light and camera character.`,
           ] : []),
-        ] : subjectTooSmall ? [
+        ] : []),
+        // Never beside the block above: "scale up around the same optical center" is the
+        // instruction whose clearance cost that block exists to state.
+        ...(subjectTooSmall && !headroomShort ? [
           '- The person is too small. Move the existing camera framing closer or scale the complete locked person-and-look group up around the same optical center. Do not pull the camera back and do not redesign the scene.',
         ] : []),
         ...(!subjectTooLarge && !subjectTooSmall ? [
           '- Preserve the current subject scale; repair only the named head, footwear, margin or anatomy defect with the smallest local edit.',
         ] : []),
-        `- Target visible person height around ${targetSubjectHeight}% inside the required ${expectedMinimum}–${expectedMaximum}% range${requireFullHead ? ' while keeping the complete head and headwear visible' : ''}${requireFullFootwear ? ' and keeping complete footwear visible' : ''}.`,
-        ...(scaleHint ? [
+        subjectInBand
+          ? `- Hold visible person height at the measured ${measuredSubjectHeight}%, already inside the required ${expectedMinimum}–${expectedMaximum}% range${requireFullHead ? ', while keeping the complete head and headwear visible' : ''}${requireFullFootwear ? ' and keeping complete footwear visible' : ''}.`
+          : `- Target visible person height around ${targetSubjectHeight}% inside the required ${expectedMinimum}–${expectedMaximum}% range${requireFullHead ? ' while keeping the complete head and headwear visible' : ''}${requireFullFootwear ? ' and keeping complete footwear visible' : ''}.`,
+        // No scale factor for a subject already in band: 76/75.9375 = 1.001 carries no
+        // correction and still reads as an order to grow, which is the move the live
+        // attempts spent their remaining clearance on.
+        ...(scaleHint && !subjectInBand ? [
           `- The measured person height was ${measuredSubjectHeight}%. Scale the complete locked person-and-look group to approximately ${scaleHint} of its current rendered size.${subjectTooLarge ? ' Restore the surrounding scene by outpainting.' : ' Preserve the existing scene boundaries and fill only incidental edit seams.'}`,
         ] : []),
       ] : []),
@@ -1312,46 +1347,110 @@ function compiledPrompt({
   ].join('\n');
 }
 
-// A crop only ever removes rows, so the pixels above the hair can never grow while the
-// subject keeps every row it has — above_px/subject_px is the one framing quantity a crop
-// cannot move upward, and the band and the headroom lock together demand it be at least
-// minimum_above/maximum_subject. All three route attempts of scene_1cd6953f were refused on
-// exactly that (0.0975, 0.0926, 0.0900 against 8/78 = 0.1026) and recorded nothing about it,
-// so a failure whose cause is fixed geometry read as "the repair never ran" and had to be
-// recovered from the pixels by hand. Numbers, because the next reader needs to see which of
-// the two crop-height windows was empty.
-function deterministicFramingCropRefusal(framing, delivery) {
-  const bbox = framing?.subject_bbox_xywh_px;
-  const band = framing?.expected_subject_height_percent;
-  if (!Array.isArray(bbox) || bbox.length !== 4 || !Array.isArray(band) || band.length !== 2) {
-    return null;
+// Which of deterministicFramingCropPlan's `return null`s actually returned. Only the guards
+// whose test is a literal re-read of the same evidence are re-read here, in the plan's own
+// order and with none of this file's own arithmetic: the plan's 5px crop-height quantisation
+// and its top window are exactly what a copy here would drift from, and a drifted copy is
+// what this replaced. The message below used to open with a crop-height window for every
+// refusal, so the six live in-band attempts were each told an 8% head clearance capped a
+// 1247px crop the plan never computed, on a branch it never reached, and a frame that cut
+// the head off was told a crop "satisfies both locks". Two reviews chased that branch.
+//
+// THE HALF THAT IS NOT HERE. This file may not edit scene-contract.js, where the plan still
+// answers with a bare null, so its last three guards cannot be attributed. The change that
+// closes it, in that file:
+//   export function deterministicFramingCropDecision(framing, delivery)
+//     -> { plan: {...}, refusal: null } | { plan: null, refusal: { code, detail } }
+//   export function deterministicFramingCropPlan(framing, delivery) {
+//     return deterministicFramingCropDecision(framing, delivery).plan;
+//   }
+// with one code per `return null` in the order they appear there: FRAMING_EVIDENCE_INCOMPLETE,
+// SUBJECT_GEOMETRY_UNMEASURABLE, SUBJECT_ALREADY_INSIDE_BAND, CROP_HEIGHT_WINDOW_EMPTY
+// (detail: cropHeight, minimumCropHeight, maximumCropHeight, cropWidth), VERTICAL_WINDOW_EMPTY
+// (detail: cropHeight, minimumTop, maximumTop) and CROP_EXCLUDES_SUBJECT (detail: left, top,
+// width, height). Then #evaluate holds the decision it already computes and passes
+// `decision.refusal` as a third argument here, this function prints that code and detail, and
+// both framingCropRefusalGuard and the UNREPORTED_CROP_GEOMETRY_BRANCH arm below go away.
+function framingCropRefusalGuard(framing) {
+  if (!framing
+    || framing.full_head_visible !== true
+    || framing.full_footwear_visible !== true
+    || !Array.isArray(framing.subject_bbox_xywh_px)
+    || framing.subject_bbox_xywh_px.length !== 4
+    || !Array.isArray(framing.expected_subject_height_percent)
+    || framing.expected_subject_height_percent.length !== 2) {
+    return 'FRAMING_EVIDENCE_INCOMPLETE';
   }
-  const [, aboveHairPx, , subjectPx] = bbox;
-  const [minimumPercent, maximumPercent] = band;
-  const aboveMinimumPercent = framing.minimum_clear_space_above_hair_percent;
-  if (![aboveHairPx, subjectPx, minimumPercent, maximumPercent, aboveMinimumPercent]
-    .every(Number.isFinite)
-    || subjectPx <= 0
+  const [boxX, boxY, boxWidth, boxHeight] = framing.subject_bbox_xywh_px;
+  const [minimumPercent, maximumPercent] = framing.expected_subject_height_percent;
+  if (![boxX, boxY, boxWidth, boxHeight, minimumPercent, maximumPercent].every(Number.isFinite)
+    || boxWidth <= 0
+    || boxHeight <= 0
     || minimumPercent <= 0
-    || aboveMinimumPercent <= 0) {
-    return null;
+    || maximumPercent < minimumPercent) {
+    return 'SUBJECT_GEOMETRY_UNMEASURABLE';
   }
+  // Spelled as the plan spells it, so an absent height stays undefined and falls through
+  // rather than being reported as a subject inside the band.
+  if (framing.subject_height_percent >= minimumPercent) return 'SUBJECT_ALREADY_INSIDE_BAND';
+  return 'UNREPORTED_CROP_GEOMETRY_BRANCH';
+}
+
+function deterministicFramingCropRefusal(framing, delivery) {
+  const guard = framingCropRefusalGuard(framing);
+  if (guard === 'FRAMING_EVIDENCE_INCOMPLETE') {
+    return 'deterministic framing crop not attempted: FRAMING_EVIDENCE_INCOMPLETE — the plan '
+      + 'needs a complete head, complete footwear, a four-number subject box and a two-number '
+      + `band; this frame recorded full_head_visible=${framing?.full_head_visible === true}, `
+      + `full_footwear_visible=${framing?.full_footwear_visible === true}. No crop restores a `
+      + 'subject the frame cut off';
+  }
+  if (guard === 'SUBJECT_GEOMETRY_UNMEASURABLE') {
+    return 'deterministic framing crop not attempted: SUBJECT_GEOMETRY_UNMEASURABLE — the '
+      + 'recorded subject box and preset band are not both finite, positive and ordered, so the '
+      + 'plan returned before computing anything';
+  }
+  const [minimumPercent, maximumPercent] = framing.expected_subject_height_percent;
+  if (guard === 'SUBJECT_ALREADY_INSIDE_BAND') {
+    return 'deterministic framing crop not attempted: SUBJECT_ALREADY_INSIDE_BAND — the subject '
+      + `measures ${framing.subject_height_percent}%, at or above the ${minimumPercent}% band `
+      + 'minimum, so the plan returns before computing any crop: it reframes an undersized '
+      + 'subject only, and a crop removes rows, so it can only push that percentage higher and '
+      + `can never add rows above the ${framing.clear_space_above_hair_percent}% of clear space `
+      + 'this frame has. Only a new generation repairs this one';
+  }
+  // A crop only ever removes rows, so the pixels above the hair can never grow while the
+  // subject keeps every row it has — above_px/subject_px is the one framing quantity a crop
+  // cannot move upward, and the band and the headroom lock together demand it be at least
+  // minimum_above/maximum_subject. All three route attempts of scene_1cd6953f were refused on
+  // exactly that (0.0975, 0.0926, 0.0900 against 8/78 = 0.1026) and recorded nothing about it,
+  // so a failure whose cause is fixed geometry read as "the repair never ran" and had to be
+  // recovered from the pixels by hand. The bound is stated as a bound, computed here from the
+  // same pixels, and never as the plan's reason: the plan does not say which of its windows
+  // was empty, and the whole point of this rewrite is to stop answering that question for it.
+  const [, aboveHairPx, , subjectPx] = framing.subject_bbox_xywh_px;
+  const aboveMinimumPercent = framing.minimum_clear_space_above_hair_percent;
+  const opening = 'deterministic framing crop refused inside the crop-geometry search: '
+    + `UNREPORTED_CROP_GEOMETRY_BRANCH — ${subjectPx}px of subject under ${aboveHairPx}px of `
+    + 'clear space, and the plan names no branch. Bounded independently from the same pixels: ';
   const tightest = Math.ceil(subjectPx / (maximumPercent / 100));
   const widest = Math.min(delivery.height, Math.floor(subjectPx / (minimumPercent / 100)));
-  const headroomCap = Math.floor(aboveHairPx / (aboveMinimumPercent / 100));
-  const measured = `${subjectPx}px of subject under ${aboveHairPx}px of clear space`;
   if (tightest > widest) {
-    return `deterministic framing crop impossible: ${measured}, and no crop of a `
-      + `${delivery.width}x${delivery.height} delivery lands the subject inside `
-      + `${minimumPercent}-${maximumPercent}%`;
+    return `${opening}no crop of a ${delivery.width}x${delivery.height} delivery lands the `
+      + `subject inside ${minimumPercent}-${maximumPercent}%`;
   }
+  if (!Number.isFinite(aboveMinimumPercent) || aboveMinimumPercent <= 0) {
+    return `${opening}${minimumPercent}-${maximumPercent}% admits a ${tightest}-${widest}px crop `
+      + 'height and this frame declares no head-clearance minimum to test it against';
+  }
+  const headroomCap = Math.floor(aboveHairPx / (aboveMinimumPercent / 100));
   if (tightest > headroomCap) {
-    return `deterministic framing crop impossible: ${measured}, ${minimumPercent}-${maximumPercent}% `
-      + `needs a ${tightest}-${widest}px crop height but the ${aboveMinimumPercent}% head clearance `
-      + `caps it at ${headroomCap}px, and a crop cannot add rows above the hair`;
+    return `${opening}${minimumPercent}-${maximumPercent}% needs a ${tightest}-${widest}px crop `
+      + `height and the ${aboveMinimumPercent}% head clearance caps it at ${headroomCap}px, so no `
+      + 'crop of these pixels satisfies both locks';
   }
-  return `deterministic framing crop declined although a ${tightest}-${Math.min(widest, headroomCap)}px `
-    + `crop height satisfies both locks: ${measured}`;
+  return `${opening}a ${tightest}-${Math.min(widest, headroomCap)}px crop height satisfies both `
+    + 'locks, so the empty window is one the plan quantises or contains for itself';
 }
 
 function selectDeterministicFramingRepair(state) {

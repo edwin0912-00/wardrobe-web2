@@ -1753,10 +1753,19 @@ test('the live framing geometry no crop can repair is refused with the measureme
       'same_aspect_lossless_resize',
       'no crop may be recorded for a frame no crop can repair',
     );
-    assert.match(attempt.error.message, /^FRAMING_AND_ANATOMY — deterministic framing crop impossible: /);
+    // This frame does reach the plan's crop-geometry search, and the plan answers with a
+    // bare null, so the crop-height window here is labelled as an independent bound on the
+    // same pixels and not as the branch that returned. Reporting it as the reason is what
+    // made the in-band failures below unreadable.
+    assert.match(
+      attempt.error.message,
+      /^FRAMING_AND_ANATOMY — deterministic framing crop refused inside the crop-geometry search: UNREPORTED_CROP_GEOMETRY_BRANCH/,
+    );
+    assert.match(attempt.error.message, /the plan names no branch\. Bounded independently from the same pixels/);
     assert.match(attempt.error.message, /933px of subject under 91px of clear space/);
     assert.match(attempt.error.message, /74-78% needs a 1197-1260px crop height/);
     assert.match(attempt.error.message, /8% head clearance caps it at 1137px/);
+    assert.ok(attempt.error.message.length <= 500, `${attempt.error.message.length} characters`);
   }
   const attemptFiles = await readdir(
     path.join(current.service.sceneDirectory(created.scene_id), 'attempts', '001'),
@@ -1820,6 +1829,132 @@ test('an undersized repair whose head clearance already passes keeps the optical
   const repair = current.calls.generator[1].prompt;
   assert.match(repair, /scale the complete locked person-and-look group up around the same optical center/);
   assert.doesNotMatch(repair, /Raise the ground line/);
+});
+
+test('the short-headroom repair fires on the recorded clearance defect with a subject inside the band', async (t) => {
+  // white_window_honeycomb attempt 1 verbatim: 972px of subject is 75.9375%, INSIDE the
+  // 74-78% band, so INSUFFICIENT_CLEAR_SPACE_ABOVE_HAIR was the only recorded defect and the
+  // instruction gated on `subjectTooSmall && headroomShort` could not fire on it. Six live
+  // standard attempts across two presets exhausted on exactly this shape and every one of
+  // them was told only to "preserve the current subject scale".
+  const current = await fixture(t, {
+    evaluator: {
+      async evaluateScene() {
+        const result = passEvaluation();
+        result.framing_evidence = {
+          subject_bbox_xywh_px: [370, 73, 285, 972],
+          full_head_visible: true,
+          full_footwear_visible: true,
+        };
+        return result;
+      },
+    },
+  });
+  const created = await current.service.createScene({
+    ...current.request,
+    idempotencyKey: 'in-band-short-headroom-repair',
+  });
+  await waitFor(current.service, created.scene_id);
+  const repair = current.calls.generator[1].prompt;
+  assert.match(repair, /5\.7031% above the hair against a 8% minimum/);
+  assert.match(repair, /2\.2969 points missing/);
+  assert.match(repair, /floor under the footwear measures 18\.3594% against a 2% minimum/);
+  assert.match(repair, /16\.3594 points of it are unspent and cover the whole shortfall/);
+  assert.match(
+    repair,
+    /Raise the ground line and lower the whole locked person-and-look group in frame: the floor below the footwear is 18\.3594% and only 15\.0625% is needed, so spend that surplus on head clearance without rescaling the group\./,
+  );
+  assert.match(repair, /about 9% empty above the hair, 75\.9375% person and 15\.0625% below the footwear/);
+  assert.match(repair, /Hold visible person height at the measured 75\.9375%/);
+  // Any scale instruction contradicts the line above it. 76/75.9375 = 1.001 read as an order
+  // to grow, and growing is what took the three live white_window_honeycomb attempts from
+  // 75.9375%/5.7031% to 76.4844%/5.4688% to 76.4844%/5.3906%: the person gained 0.5469
+  // points and the clearance that was already the only defect lost 0.3125 of them.
+  assert.doesNotMatch(repair, /Scale the complete locked person-and-look group/);
+  assert.doesNotMatch(repair, /Target visible person height/);
+  assert.doesNotMatch(repair, /around the same optical center/);
+});
+
+test('the crop refusal names the in-band guard the plan returned at, not a crop window it never computed', async (t) => {
+  // Same live frame. deterministicFramingCropPlan returns at
+  // `framing.subject_height_percent >= minimumPercent`, before it computes a crop height at
+  // all, yet the receipt reported a crop-height window capped by head clearance — a window
+  // built here, for a branch the plan never reached. Two reviews went hunting that branch.
+  const current = await fixture(t, {
+    evaluator: {
+      async evaluateScene() {
+        const result = passEvaluation();
+        result.framing_evidence = {
+          subject_bbox_xywh_px: [370, 73, 285, 972],
+          full_head_visible: true,
+          full_footwear_visible: true,
+        };
+        return result;
+      },
+    },
+  });
+  const created = await current.service.createScene({
+    ...current.request,
+    idempotencyKey: 'in-band-crop-refusal-branch',
+  });
+  const exhausted = await waitFor(current.service, created.scene_id);
+  assert.equal(exhausted.status, 'FAILED', JSON.stringify(exhausted, null, 2));
+  const state = JSON.parse(await readFile(current.service.statePath(created.scene_id), 'utf8'));
+  assert.equal(state.attempts.length, 3);
+  for (const attempt of state.attempts) {
+    assert.equal(attempt.normalization.strategy, 'same_aspect_lossless_resize');
+    assert.match(
+      attempt.error.message,
+      /^FRAMING_AND_ANATOMY — deterministic framing crop not attempted: SUBJECT_ALREADY_INSIDE_BAND/,
+    );
+    assert.match(attempt.error.message, /the subject measures 75\.9375%, at or above the 74% band minimum/);
+    assert.match(attempt.error.message, /5\.7031% of clear space/);
+    assert.doesNotMatch(attempt.error.message, /crop height/);
+    assert.doesNotMatch(attempt.error.message, /caps it at/);
+    assert.ok(
+      attempt.error.message.length <= 500,
+      `the attempt error field caps at 500 characters and this one is ${attempt.error.message.length}`,
+    );
+  }
+});
+
+test('the crop refusal names an incomplete-visibility guard instead of claiming a crop would have worked', async (t) => {
+  // The plan's first guard is full_head_visible && full_footwear_visible. A frame that cut
+  // the head off reached the old message with a measurable box and a plausible band, so it
+  // was told a 1248-1280px crop height "satisfies both locks" — the crop the plan had
+  // already declined to attempt, for a reason the receipt never mentioned.
+  const current = await fixture(t, {
+    evaluator: {
+      async evaluateScene() {
+        const result = passEvaluation();
+        result.framing_evidence = {
+          subject_bbox_xywh_px: [200, 103, 620, 973],
+          full_head_visible: false,
+          full_footwear_visible: true,
+        };
+        return result;
+      },
+    },
+  });
+  const created = await current.service.createScene({
+    ...current.request,
+    idempotencyKey: 'head-cut-off-crop-refusal-branch',
+  });
+  const exhausted = await waitFor(current.service, created.scene_id);
+  assert.equal(exhausted.status, 'FAILED', JSON.stringify(exhausted, null, 2));
+  const state = JSON.parse(await readFile(current.service.statePath(created.scene_id), 'utf8'));
+  const [attempt] = state.attempts;
+  assert.deepEqual(
+    attempt.qa.gates.find((gate) => gate.id === 'FRAMING_AND_ANATOMY').defects,
+    ['FULL_HEAD_NOT_VISIBLE'],
+  );
+  assert.match(
+    attempt.error.message,
+    /^FRAMING_AND_ANATOMY — deterministic framing crop not attempted: FRAMING_EVIDENCE_INCOMPLETE/,
+  );
+  assert.match(attempt.error.message, /full_head_visible=false, full_footwear_visible=true/);
+  assert.doesNotMatch(attempt.error.message, /satisfies both locks/);
+  assert.doesNotMatch(attempt.error.message, /crop height/);
 });
 
 test('a legacy undersized failure at the manual limit is repaired locally and exports without another provider call', async (t) => {
