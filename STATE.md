@@ -1,6 +1,6 @@
 # Wardrobe verified state
 
-Updated: 2026-07-26 22:42 UTC.
+Updated: 2026-07-26 23:01 UTC.
 
 ## Canonical source position
 
@@ -11,7 +11,9 @@ Updated: 2026-07-26 22:42 UTC.
 - Their merge base is `d7f760f`; Claude has 6 unique commits and Codex has 14.
 - `integration/wardrobe-20260726` is `7758f12`.
 - WARD-001 implementation is frozen at `dc06b99` with isolated handoff
-  `ee7d50f`; it is under review and has not entered integration.
+  `ee7d50f`; GitHub PR #5 preserved that evidence but its trusted acceptance
+  runner lacked `rg`. Lease generation 3 reissues the unchanged implementation
+  on a fresh handoff branch using portable `git diff --check`.
 - Claude's newer uncommitted tail was preserved without review as
   `wip/claude-tail-20260726` at `7c3fb32`. WIP is evidence, not integrated
   product code.
@@ -39,6 +41,9 @@ Updated: 2026-07-26 22:42 UTC.
 - WARD-001 history scan and focused scene/privacy contracts pass. Independent
   adversarial review of exact implementation SHA `dc06b99` returned PASS with
   `weakened_checks: none`.
+- PR #5 failed before candidate execution only because its trusted Ubuntu
+  runner could not spawn `rg`; no product test failed. The replacement
+  acceptance command uses installed Git and preserves fail-closed diff checks.
 
 ## What is not working or not yet proved
 

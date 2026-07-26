@@ -63,3 +63,14 @@ scene integration command passed 51/51 before the final fixture-parity
 correction, whose exact affected tests pass 3/3. Local full regression remains
 resource-refused and the clean hosted regression is mandatory before merge.
 weakened_checks: none.
+
+2026-07-26 · WARD-001 · dc06b99 unchanged · lease generation 3
+Change: preserve failed evidence PR #5 and reissue the unchanged implementation
+to `codex-wardrobe-merge-v2` on a fresh handoff branch.
+Why: the trusted GitHub runner did not have the `rg` binary, so acceptance
+failed before candidate regression with no product-test failure. A reviewed
+handoff branch cannot be force-pushed.
+Evidence: governance passed on PR #5; task acceptance reported only
+`conflict-marker-scan` with no executable exit code. The replacement portable
+check is exact `git diff --check $TASK_BASE_SHA...$TESTED_CODE_SHA`.
+weakened_checks: none.
