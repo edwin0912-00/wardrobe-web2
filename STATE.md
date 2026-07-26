@@ -1,6 +1,6 @@
 # Wardrobe verified state
 
-Updated: 2026-07-26 21:29 UTC.
+Updated: 2026-07-26 22:42 UTC.
 
 ## Canonical source position
 
@@ -9,8 +9,9 @@ Updated: 2026-07-26 21:29 UTC.
 - Claude branch `feature/wardrobe-editorial-mvp-20260726` is `622c878`.
 - Codex branch `codex-new-2026-07-26` is `f891719`.
 - Their merge base is `d7f760f`; Claude has 6 unique commits and Codex has 14.
-- `integration/wardrobe-20260726` is `9d4780f`; the semantic product merge has
-  not started.
+- `integration/wardrobe-20260726` is `7758f12`.
+- WARD-001 implementation is frozen at `dc06b99` with isolated handoff
+  `ee7d50f`; it is under review and has not entered integration.
 - Claude's newer uncommitted tail was preserved without review as
   `wip/claude-tail-20260726` at `7c3fb32`. WIP is evidence, not integrated
   product code.
@@ -35,10 +36,14 @@ Updated: 2026-07-26 21:29 UTC.
   accepts only narrow command shapes, requires a changed focused test to fail
   against the pinned base, and scans every introduced commit for known
   credential families without emitting matched values.
+- WARD-001 history scan and focused scene/privacy contracts pass. Independent
+  adversarial review of exact implementation SHA `dc06b99` returned PASS with
+  `weakened_checks: none`.
 
 ## What is not working or not yet proved
 
-- Claude and Codex changes are not reconciled in integration.
+- The reconciled WARD-001 candidate is not yet merged; clean hosted regression
+  remains mandatory because the local Mac is below release preflight capacity.
 - Standard scenes do not yet prove end-to-end convergence across every preset;
   the observed blocker is insufficient clear space above hair.
 - The copied-edge `deterministic_headroom_shift` is not product-approved. It
@@ -72,9 +77,8 @@ code.
 
 ## Current priority
 
-1. Reconcile `integration/wardrobe-20260726` through assigned task `WARD-001`
-   according to the checked-in merge
-   analysis, without invented pixels or one-preset exceptions.
+1. Review and integrate frozen task `WARD-001` without invented pixels or
+   one-preset exceptions.
 2. Make standard scenes reach a verified frame on every preset.
 3. Deploy only through `tools/deploy-add-items-release.mjs`.
 4. Remove `EDITORIAL_BASE_PRESETS` and complete the backgrounds/photoshoots

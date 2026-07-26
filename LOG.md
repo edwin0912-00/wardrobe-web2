@@ -52,3 +52,14 @@ priority.
 Evidence: task base and both required-context blob hashes resolve at
 `9d4780f`; lease generation 2 expires 2026-07-27T21:29:08Z.
 weakened_checks: none.
+
+2026-07-26 · WARD-001 · dc06b99 · handoff ee7d50f
+Change: freeze the reconciled wardrobe/scene implementation and move its lease
+from ASSIGNED to REVIEW.
+Why: the lane now has an isolated handoff, exact history scan, focused
+integration proof, and an independent adversarial PASS.
+Evidence: initial and repair-mode source-staging provenance tests pass; the
+scene integration command passed 51/51 before the final fixture-parity
+correction, whose exact affected tests pass 3/3. Local full regression remains
+resource-refused and the clean hosted regression is mandatory before merge.
+weakened_checks: none.
