@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+import Ajv2020 from 'ajv/dist/2020.js';
 import Fastify from 'fastify';
 import {
   EDITORIAL_QA_GATES,
@@ -26,6 +27,16 @@ import {
   validateResolvedReferenceAssets,
 } from '../../src/web/scene-contract.js';
 import { FilesystemScenePresetResolver } from '../../src/web/scene-resolvers.js';
+
+const STRUCTURED_REFERENCE_SCHEMA_PATH = path.resolve(
+  import.meta.dirname,
+  '../../schemas/scene-structured-reference.schema.json',
+);
+const validateStructuredReference = new Ajv2020({
+  allErrors: true,
+  strict: false,
+  validateFormats: false,
+}).compile(JSON.parse(await readFile(STRUCTURED_REFERENCE_SCHEMA_PATH, 'utf8')));
 
 const LOOK_ID = '11111111-1111-4111-8111-111111111111';
 const ZERO = '0'.repeat(64);
@@ -143,6 +154,22 @@ test('READY editorial modes compile six strict per-shot packs from verified lice
         (source) => source.rights.status === 'VERIFIED',
       ));
       assert.ok(pack.assets.every((asset) => asset.media_type === 'application/json'));
+      // Declaring the media type proved nothing about the bytes. Every one of these
+      // documents is refused at generation time by this exact schema, before any
+      // provider call, so a slot whose compiled anchor cannot satisfy it is not wrong
+      // but unshootable: material_or_accessory_detail is the one slot whose head guard
+      // is 0, its ceiling therefore derives to 100, and a bound of 99 here cost the
+      // series that frame in three identical 120ms attempts while the other five slots
+      // sat under guards of 4 to 8 and never came near it.
+      for (const asset of pack.assets) {
+        const document = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(asset.data));
+        assert.equal(
+          validateStructuredReference(document),
+          true,
+          `${shotSpec.slot}:${asset.role}\n${JSON.stringify(validateStructuredReference.errors, null, 2)}`,
+        );
+        assert.equal(document.role, asset.role);
+      }
       assert.ok(pack.preset.style_observations.every(
         (source) => source.role === 'editorial_style_observation'
           && source.rights === undefined,

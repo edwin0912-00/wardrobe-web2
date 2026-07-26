@@ -88,12 +88,13 @@
             "lens_mm": { "type": "integer", "minimum": 24, "maximum": 200 },
             "camera_height": { "enum": ["eye_level", "waist_level", "low_max_5deg"] },
             "subject_height_percent": {
+              "$comment": "100 is reachable: a slot that waives headroom and footroom fills the canvas, and material_or_accessory_detail locks [45, 100] out of guard above=0/below=0. Capping at 99 made that one slot unshootable — its composition anchor was refused here before any provider call, three identical 120ms attempts, while the five slots with guards of 4 to 8 never came near the bound. Which band a shot may claim stays with EDITORIAL_FRAMING_LOCKS.",
               "type": "array",
               "minItems": 2,
               "maxItems": 2,
               "prefixItems": [
-                { "type": "number", "minimum": 1, "maximum": 99 },
-                { "type": "number", "minimum": 1, "maximum": 99 }
+                { "type": "number", "minimum": 1, "maximum": 100 },
+                { "type": "number", "minimum": 1, "maximum": 100 }
               ],
               "items": false
             },
