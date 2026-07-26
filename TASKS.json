@@ -2,7 +2,7 @@
   "schema_version": "1.0.0",
   "integration_branch": "integration/wardrobe-20260726",
   "orchestrator": "codex-main",
-  "updated_at": "2026-07-26T23:01:24.000Z",
+  "updated_at": "2026-07-26T23:32:23.000Z",
   "tasks": [
     {
       "id": "CTRL-001",
@@ -132,12 +132,24 @@
         "src/monitor/start.js",
         "src/providers/**",
         "src/security/**",
-        "src/web/**",
+        "src/web/app.js",
+        "src/web/browser-security.js",
+        "src/web/editorial-shoot-service.js",
+        "src/web/openrouter-scene-evaluator.js",
+        "src/web/scene-adapters.js",
+        "src/web/scene-contract.js",
+        "src/web/scene-service.js",
         "test/contracts/scene-*.test.js",
         "test/providers/**",
         "test/release/**",
         "test/security/**",
-        "test/web/**",
+        "test/web/brand-surface.test.js",
+        "test/web/editorial-shoot-service.test.js",
+        "test/web/outbound-privacy.test.js",
+        "test/web/scene-adapters.test.js",
+        "test/web/scene-api-integration.test.js",
+        "test/web/scene-framing-lock-owner.test.js",
+        "test/web/scene-service.test.js",
         "tools/deploy-add-items-release.mjs",
         "tools/generate-framing-lock-schema.mjs",
         "tools/run-personal-scene-e2e.mjs",
@@ -551,6 +563,214 @@
       ],
       "stop_conditions": [
         "No paid video generation without Edwin approval."
+      ]
+    },
+    {
+      "id": "STYLE-001",
+      "title": "Preserve the fashion style-unit pipeline and one verified reference unit",
+      "priority": "P0",
+      "state": "IN_PROGRESS",
+      "owner": "codecod",
+      "branch": "lane/STYLE-001/codecod",
+      "base_sha": "fbd2c2cd85c8b41e6dc42854777cfe5cf1247602",
+      "lease": {
+        "generation": 1,
+        "issued_at": "2026-07-26T23:32:23.000Z",
+        "expires_at": "2026-07-27T23:32:23.000Z"
+      },
+      "lock_groups": [
+        "media-assets"
+      ],
+      "allowed_paths": [
+        "skills/artshoot-pipeline-style-creation/**",
+        "docs/style-units/**",
+        "docs/MERGE_JUDGEMENT.md",
+        "test/style-units/**",
+        ".agents/handoffs/STYLE-001.json"
+      ],
+      "forbidden_paths": [
+        "secrets/**",
+        "runtime/**",
+        "output/**",
+        "assets/scene-presets/**",
+        "config/scene-presets.json"
+      ],
+      "required_context": [],
+      "depends_on": [
+        "CTRL-001"
+      ],
+      "acceptance": [
+        {
+          "check_id": "style-unit-contract-tests",
+          "execution_class": "ci",
+          "command": [
+            "node",
+            "--test",
+            "test/style-units/style-unit-contract.test.js"
+          ],
+          "expected_exit_codes": [
+            0
+          ],
+          "expected": "Style-unit artifacts preserve observed facts, hashes, and UNKNOWN values without inventing source authority"
+        },
+        {
+          "check_id": "diff-hygiene",
+          "execution_class": "ci",
+          "command": [
+            "git",
+            "diff",
+            "--check",
+            "$TASK_BASE_SHA...$TESTED_CODE_SHA"
+          ],
+          "expected_exit_codes": [
+            0
+          ],
+          "expected": "No whitespace errors or conflict markers"
+        }
+      ],
+      "stop_conditions": [
+        "Do not run paid generation or fetch/private-copy source photos.",
+        "Do not mark a style source approved without supplied rights and hash evidence."
+      ]
+    },
+    {
+      "id": "PROFILE-001",
+      "title": "Make saved avatars a durable backend library for add-items flows",
+      "priority": "P0",
+      "state": "IN_PROGRESS",
+      "owner": "opencode",
+      "branch": "lane/PROFILE-001/opencode",
+      "base_sha": "fbd2c2cd85c8b41e6dc42854777cfe5cf1247602",
+      "lease": {
+        "generation": 1,
+        "issued_at": "2026-07-26T23:32:23.000Z",
+        "expires_at": "2026-07-27T23:32:23.000Z"
+      },
+      "lock_groups": [
+        "profile-runs"
+      ],
+      "allowed_paths": [
+        "src/web/profile-service.js",
+        "test/web/profile-service.test.js",
+        "test/web/profile-app-integration.test.js",
+        "test/web/profile-navigation.test.js",
+        ".agents/handoffs/PROFILE-001.json"
+      ],
+      "forbidden_paths": [
+        "secrets/**",
+        "runtime/**",
+        "output/**",
+        "src/web/app.js",
+        "web/public/**"
+      ],
+      "required_context": [],
+      "depends_on": [
+        "CTRL-001"
+      ],
+      "acceptance": [
+        {
+          "check_id": "profile-library-contract-tests",
+          "execution_class": "ci",
+          "command": [
+            "node",
+            "--test",
+            "test/web/profile-service.test.js",
+            "test/web/profile-app-integration.test.js",
+            "test/web/profile-navigation.test.js"
+          ],
+          "expected_exit_codes": [
+            0
+          ],
+          "expected": "A browser-bound profile preserves avatar identity, selected look, and add-items lineage without cross-profile access"
+        },
+        {
+          "check_id": "diff-hygiene",
+          "execution_class": "ci",
+          "command": [
+            "git",
+            "diff",
+            "--check",
+            "$TASK_BASE_SHA...$TESTED_CODE_SHA"
+          ],
+          "expected_exit_codes": [
+            0
+          ],
+          "expected": "No whitespace errors or conflict markers"
+        }
+      ],
+      "stop_conditions": [
+        "Do not add an account system, credentials, or a public UI route in this task.",
+        "Do not weaken profile ownership or expiry behavior."
+      ]
+    },
+    {
+      "id": "MONITOR-001",
+      "title": "Make the live execution monitor diagnose stalled runs without exposing private data",
+      "priority": "P0",
+      "state": "IN_PROGRESS",
+      "owner": "antigravity",
+      "branch": "lane/MONITOR-001/antigravity",
+      "base_sha": "fbd2c2cd85c8b41e6dc42854777cfe5cf1247602",
+      "lease": {
+        "generation": 1,
+        "issued_at": "2026-07-26T23:32:23.000Z",
+        "expires_at": "2026-07-27T23:32:23.000Z"
+      },
+      "lock_groups": [
+        "core-pipeline"
+      ],
+      "allowed_paths": [
+        "src/monitor/event-store.js",
+        "src/monitor/agent-supervisor.js",
+        "src/monitor/routes.js",
+        "test/monitor/**",
+        ".agents/handoffs/MONITOR-001.json"
+      ],
+      "forbidden_paths": [
+        "secrets/**",
+        "runtime/**",
+        "output/**",
+        "src/monitor/start.js",
+        "src/web/**",
+        "web/public/**"
+      ],
+      "required_context": [],
+      "depends_on": [
+        "CTRL-001"
+      ],
+      "acceptance": [
+        {
+          "check_id": "monitor-contract-tests",
+          "execution_class": "ci",
+          "command": [
+            "node",
+            "--test",
+            "test/monitor/agent-supervisor.test.js",
+            "test/monitor/event-store.test.js"
+          ],
+          "expected_exit_codes": [
+            0
+          ],
+          "expected": "A stalled execution has a durable, sanitized diagnostic state and a recovery-safe heartbeat"
+        },
+        {
+          "check_id": "diff-hygiene",
+          "execution_class": "ci",
+          "command": [
+            "git",
+            "diff",
+            "--check",
+            "$TASK_BASE_SHA...$TESTED_CODE_SHA"
+          ],
+          "expected_exit_codes": [
+            0
+          ],
+          "expected": "No whitespace errors or conflict markers"
+        }
+      ],
+      "stop_conditions": [
+        "Do not read or log credentials, raw prompts, local paths, or user image bytes.",
+        "Do not deploy or modify live process startup."
       ]
     }
   ]
