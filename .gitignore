@@ -5,7 +5,4 @@ tmp/
 .env
 .env.*
 !.env.example
-secrets/*.json
-secrets/*.tar
-secrets/*.tar.gz
-!secrets/*.enc
+secrets/

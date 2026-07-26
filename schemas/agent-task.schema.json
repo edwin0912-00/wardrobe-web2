@@ -1,0 +1,235 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:wardrobe:agent-task:1.0.0",
+  "title": "Wardrobe agent task",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "title",
+    "priority",
+    "state",
+    "owner",
+    "branch",
+    "base_sha",
+    "lease",
+    "lock_groups",
+    "allowed_paths",
+    "forbidden_paths",
+    "required_context",
+    "depends_on",
+    "acceptance",
+    "stop_conditions"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9]+-[0-9]{3,4}$"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 240
+    },
+    "priority": {
+      "enum": [
+        "P0",
+        "P1",
+        "P2",
+        "P3"
+      ]
+    },
+    "state": {
+      "enum": [
+        "BLOCKED",
+        "READY",
+        "ASSIGNED",
+        "IN_PROGRESS",
+        "REVIEW",
+        "DONE",
+        "CANCELLED"
+      ]
+    },
+    "owner": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,119}$"
+    },
+    "branch": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 240
+    },
+    "base_sha": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "lease": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "generation",
+        "issued_at",
+        "expires_at"
+      ],
+      "properties": {
+        "generation": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "issued_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "expires_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "lock_groups": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "coordination",
+          "scene-core",
+          "editorial",
+          "providers-privacy",
+          "profile-runs",
+          "public-ui",
+          "release-ops",
+          "media-assets",
+          "core-pipeline",
+          "video"
+        ]
+      }
+    },
+    "allowed_paths": {
+      "$ref": "#/$defs/nonEmptyPathArray"
+    },
+    "forbidden_paths": {
+      "$ref": "#/$defs/pathArray"
+    },
+    "required_context": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "git_blob_sha"
+        ],
+        "properties": {
+          "path": {
+            "$ref": "#/$defs/repoPath"
+          },
+          "git_blob_sha": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{40}$"
+          }
+        }
+      }
+    },
+    "depends_on": {
+      "$ref": "#/$defs/stringArray"
+    },
+    "acceptance": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "check_id",
+          "execution_class",
+          "command",
+          "expected_exit_codes",
+          "expected"
+        ],
+        "properties": {
+          "check_id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9._-]{1,119}$"
+          },
+          "execution_class": {
+            "enum": [
+              "ci",
+              "orchestrator_local",
+              "manual",
+              "paid"
+            ]
+          },
+          "command": {
+            "$ref": "#/$defs/argv"
+          },
+          "expected_exit_codes": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 255
+            }
+          },
+          "expected": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "stop_conditions": {
+      "$ref": "#/$defs/stringArray"
+    }
+  },
+  "$defs": {
+    "stringArray": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "nonEmptyStringArray": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "argv": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "repoPath": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 320,
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\)[A-Za-z0-9._/*?-]+$"
+    },
+    "pathArray": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/repoPath"
+      }
+    },
+    "nonEmptyPathArray": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/repoPath"
+      }
+    }
+  }
+}

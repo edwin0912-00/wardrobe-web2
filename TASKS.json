@@ -1,0 +1,559 @@
+{
+  "schema_version": "1.0.0",
+  "integration_branch": "integration/wardrobe-20260726",
+  "orchestrator": "codex-main",
+  "updated_at": "2026-07-26T19:16:31.000Z",
+  "tasks": [
+    {
+      "id": "CTRL-001",
+      "title": "Bootstrap the GitHub-centered agent control plane",
+      "priority": "P0",
+      "state": "IN_PROGRESS",
+      "owner": "codex-main",
+      "branch": "lane/CTRL-001/codex-main",
+      "base_sha": "622c8783060cb64970e7c8952d51ca7c50307edd",
+      "lease": {
+        "generation": 1,
+        "issued_at": "2026-07-26T17:53:30.000Z",
+        "expires_at": "2026-07-27T17:53:30.000Z"
+      },
+      "lock_groups": [
+        "coordination"
+      ],
+      "allowed_paths": [
+        ".gitattributes",
+        ".gitmodules",
+        ".gitignore",
+        "AGENTS.md",
+        "CLAUDE.md",
+        "OWNERS.md",
+        "LOG.md",
+        "STATE.md",
+        "TASKS.json",
+        "package.json",
+        ".github/**",
+        ".agents/**",
+        "docs/coordination/**",
+        "schemas/agent-*.schema.json",
+        "tools/coordination/**",
+        "test/governance/**"
+      ],
+      "forbidden_paths": [
+        "secrets/**",
+        ".env",
+        ".env.*",
+        "runtime/**",
+        "output/**"
+      ],
+      "required_context": [
+        {
+          "path": "spec/ZEELY_CANON_UA.md",
+          "git_blob_sha": "bc077a4cdeefabeede93315af1db860dd0ce0b50"
+        }
+      ],
+      "depends_on": [],
+      "acceptance": [
+        {
+          "check_id": "governance-tests",
+          "execution_class": "ci",
+          "command": [
+            "node",
+            "--test",
+            "test/governance/agent-control.test.js",
+            "test/governance/agent-policy-hardening.test.js",
+            "test/governance/scan-pr-diff-history.test.js"
+          ],
+          "expected_exit_codes": [
+            0
+          ],
+          "expected": "PASS"
+        },
+        {
+          "check_id": "board-validation",
+          "execution_class": "ci",
+          "command": [
+            "node",
+            "tools/coordination/validate-board.mjs",
+            "--board-only"
+          ],
+          "expected_exit_codes": [
+            0
+          ],
+          "expected": "PASS"
+        },
+        {
+          "check_id": "diff-hygiene",
+          "execution_class": "ci",
+          "command": [
+            "git",
+            "diff",
+            "--check",
+            "$TASK_BASE_SHA...$TESTED_CODE_SHA"
+          ],
+          "expected_exit_codes": [
+            0
+          ],
+          "expected": "PASS"
+        }
+      ],
+      "stop_conditions": [
+        "Do not modify main, live runtime, deployments, credentials, or port 4180."
+      ]
+    },
+    {
+      "id": "WARD-001",
+      "title": "Reconcile Claude and Codex into the integration branch",
+      "priority": "P0",
+      "state": "BLOCKED",
+      "owner": "unassigned",
+      "branch": "lane/WARD-001/unassigned",
+      "base_sha": "622c8783060cb64970e7c8952d51ca7c50307edd",
+      "lease": {
+        "generation": 1,
+        "issued_at": "2026-07-26T17:53:30.000Z",
+        "expires_at": "2026-07-27T17:53:30.000Z"
+      },
+      "lock_groups": [
+        "scene-core",
+        "editorial",
+        "providers-privacy",
+        "public-ui",
+        "release-ops"
+      ],
+      "allowed_paths": [
+        "README.md",
+        "docs/AGENT_HANDOFF_2026-07-24_UA.md",
+        "docs/DEPLOYMENT_UA.md",
+        "docs/LIVE_MONITORING_UA.md",
+        "docs/SCENE_13313D49_HEADROOM_WAIVER_BACKFILL_UA.md",
+        "docs/ZEELY_AUTH_CONTINUITY_UA.md",
+        "schemas/editorial-*.schema.json",
+        "schemas/scene-*.schema.json",
+        "src/monitor/start.js",
+        "src/providers/**",
+        "src/security/**",
+        "src/web/**",
+        "test/contracts/scene-*.test.js",
+        "test/providers/**",
+        "test/release/**",
+        "test/security/**",
+        "test/web/**",
+        "tools/deploy-add-items-release.mjs",
+        "tools/generate-framing-lock-schema.mjs",
+        "tools/run-personal-scene-e2e.mjs",
+        "web/public/**",
+        ".agents/handoffs/WARD-001.json"
+      ],
+      "forbidden_paths": [
+        "secrets/**",
+        ".env",
+        ".env.*",
+        "runtime/**",
+        "output/**"
+      ],
+      "required_context": [
+        {
+          "path": "docs/coordination/MERGE_ANALYSIS_2026-07-26.md",
+          "git_blob_sha": "8e0c4f3f7da385d3b3e47e2bfa3494dab0095d7e"
+        },
+        {
+          "path": "spec/ZEELY_SCENE_CANON_UA.md",
+          "git_blob_sha": "b40bd303e1c4d424813128b46b1601cc1607eb41"
+        }
+      ],
+      "depends_on": [
+        "CTRL-001"
+      ],
+      "acceptance": [
+        {
+          "check_id": "integration-contract-tests",
+          "execution_class": "ci",
+          "command": [
+            "node",
+            "--test",
+            "test/web/scene-service.test.js",
+            "test/web/scene-api-integration.test.js"
+          ],
+          "expected_exit_codes": [
+            0
+          ],
+          "expected": "Merged integration behavior passes its focused contracts"
+        },
+        {
+          "check_id": "full-regression-baseline",
+          "execution_class": "orchestrator_local",
+          "command": [
+            "node",
+            "tools/coordination/check-test-baseline.mjs",
+            "--base",
+            "$TASK_BASE_SHA"
+          ],
+          "expected_exit_codes": [
+            0
+          ],
+          "expected": "No more than the two exact failures in STATE.md"
+        },
+        {
+          "check_id": "conflict-marker-scan",
+          "execution_class": "ci",
+          "command": [
+            "rg",
+            "-n",
+            "^(<<<<<<<|=======|>>>>>>>)",
+            ".",
+            "--glob",
+            "!node_modules/**"
+          ],
+          "expected_exit_codes": [
+            1
+          ],
+          "expected": "No conflict markers"
+        }
+      ],
+      "stop_conditions": [
+        "Copied-edge headroom repair requires Edwin approval.",
+        "Taupe-specific relaxation requires Edwin approval."
+      ]
+    },
+    {
+      "id": "WARD-002",
+      "title": "Prove standard-scene convergence on every preset",
+      "priority": "P0",
+      "state": "BLOCKED",
+      "owner": "unassigned",
+      "branch": "lane/WARD-002/unassigned",
+      "base_sha": "622c8783060cb64970e7c8952d51ca7c50307edd",
+      "lease": {
+        "generation": 1,
+        "issued_at": "2026-07-26T17:53:30.000Z",
+        "expires_at": "2026-07-27T17:53:30.000Z"
+      },
+      "lock_groups": [
+        "scene-core"
+      ],
+      "allowed_paths": [
+        "src/web/scene-*.js",
+        "schemas/scene-*.schema.json",
+        "test/web/scene-*.test.js",
+        "test/contracts/scene-*.test.js",
+        ".agents/handoffs/WARD-002.json"
+      ],
+      "forbidden_paths": [
+        "secrets/**",
+        "runtime/**",
+        "output/**"
+      ],
+      "required_context": [
+        {
+          "path": "spec/ZEELY_SCENE_CANON_UA.md",
+          "git_blob_sha": "b40bd303e1c4d424813128b46b1601cc1607eb41"
+        }
+      ],
+      "depends_on": [
+        "WARD-001"
+      ],
+      "acceptance": [
+        {
+          "check_id": "standard-scene-contract-tests",
+          "execution_class": "ci",
+          "command": [
+            "node",
+            "--test",
+            "test/web/scene-service.test.js",
+            "test/web/scene-api-integration.test.js"
+          ],
+          "expected_exit_codes": [
+            0
+          ],
+          "expected": "Focused standard-scene contracts pass"
+        },
+        {
+          "check_id": "all-standard-presets",
+          "execution_class": "manual",
+          "command": [
+            "manual",
+            "focused-standard-scene-tests-and-one-proof-per-preset"
+          ],
+          "expected_exit_codes": [
+            0
+          ],
+          "expected": "Every preset reaches a verified frame without weakened checks"
+        }
+      ],
+      "stop_conditions": [
+        "Do not add pixels, widen a gate, or add a preset exception."
+      ]
+    },
+    {
+      "id": "WARD-003",
+      "title": "Release the verified integration build through the canonical deploy tool",
+      "priority": "P0",
+      "state": "BLOCKED",
+      "owner": "unassigned",
+      "branch": "lane/WARD-003/unassigned",
+      "base_sha": "622c8783060cb64970e7c8952d51ca7c50307edd",
+      "lease": {
+        "generation": 1,
+        "issued_at": "2026-07-26T17:53:30.000Z",
+        "expires_at": "2026-07-27T17:53:30.000Z"
+      },
+      "lock_groups": [
+        "release-ops"
+      ],
+      "allowed_paths": [
+        "tools/deploy-add-items-release.mjs",
+        "test/release/**",
+        "docs/DEPLOYMENT_UA.md",
+        ".agents/handoffs/WARD-003.json"
+      ],
+      "forbidden_paths": [
+        "secrets/**",
+        ".env",
+        ".env.*"
+      ],
+      "required_context": [],
+      "depends_on": [
+        "WARD-002"
+      ],
+      "acceptance": [
+        {
+          "check_id": "deployment-contract-tests",
+          "execution_class": "ci",
+          "command": [
+            "node",
+            "--test",
+            "test/release/add-items-deployment.test.js"
+          ],
+          "expected_exit_codes": [
+            0
+          ],
+          "expected": "Transactional deployment contract passes before release"
+        },
+        {
+          "check_id": "transactional-deploy",
+          "execution_class": "orchestrator_local",
+          "command": [
+            "node",
+            "tools/deploy-add-items-release.mjs"
+          ],
+          "expected_exit_codes": [
+            0
+          ],
+          "expected": "Transactional release, health proof, and rollback receipt"
+        }
+      ],
+      "stop_conditions": [
+        "Do not deploy by hand.",
+        "Do not touch site.madeforthisjob.com or port 4180."
+      ]
+    },
+    {
+      "id": "WARD-004",
+      "title": "Separate standard backgrounds from locked photoshoots",
+      "priority": "P1",
+      "state": "BLOCKED",
+      "owner": "unassigned",
+      "branch": "lane/WARD-004/unassigned",
+      "base_sha": "622c8783060cb64970e7c8952d51ca7c50307edd",
+      "lease": {
+        "generation": 1,
+        "issued_at": "2026-07-26T17:53:30.000Z",
+        "expires_at": "2026-07-27T17:53:30.000Z"
+      },
+      "lock_groups": [
+        "scene-core",
+        "editorial",
+        "media-assets"
+      ],
+      "allowed_paths": [
+        "src/web/editorial-*.js",
+        "src/web/scene-*.js",
+        "config/scene-presets.json",
+        "schemas/editorial-*.schema.json",
+        "schemas/scene-*.schema.json",
+        "test/web/editorial-*.test.js",
+        "test/web/scene-*.test.js",
+        "assets/editorial-*/**",
+        "prompts/scenes/**",
+        ".agents/handoffs/WARD-004.json"
+      ],
+      "forbidden_paths": [
+        "secrets/**",
+        "runtime/**",
+        "output/**"
+      ],
+      "required_context": [
+        {
+          "path": "ops/zeely-scene-mvp-loop/loop-workspace-production-v2/plan.md",
+          "git_blob_sha": "3036f1887e8f611e63279bfe874e273d581d0d26"
+        }
+      ],
+      "depends_on": [
+        "WARD-003"
+      ],
+      "acceptance": [
+        {
+          "check_id": "editorial-separation-contract-tests",
+          "execution_class": "ci",
+          "command": [
+            "node",
+            "--test",
+            "test/web/editorial-shoot-service.test.js",
+            "test/contracts/scene-preset-catalog.test.js"
+          ],
+          "expected_exit_codes": [
+            0
+          ],
+          "expected": "Photoshoot and background contracts remain structurally separate"
+        },
+        {
+          "check_id": "editorial-coupling-removed",
+          "execution_class": "ci",
+          "command": [
+            "rg",
+            "-n",
+            "EDITORIAL_BASE_PRESETS",
+            "src",
+            "config",
+            "test"
+          ],
+          "expected_exit_codes": [
+            1
+          ],
+          "expected": "No production coupling remains"
+        }
+      ],
+      "stop_conditions": [
+        "Do not turn a photoshoot into a background plus style selector."
+      ]
+    },
+    {
+      "id": "WARD-005",
+      "title": "Complete four approved photoshoot styles",
+      "priority": "P1",
+      "state": "BLOCKED",
+      "owner": "unassigned",
+      "branch": "lane/WARD-005/unassigned",
+      "base_sha": "622c8783060cb64970e7c8952d51ca7c50307edd",
+      "lease": {
+        "generation": 1,
+        "issued_at": "2026-07-26T17:53:30.000Z",
+        "expires_at": "2026-07-27T17:53:30.000Z"
+      },
+      "lock_groups": [
+        "media-assets",
+        "editorial"
+      ],
+      "allowed_paths": [
+        "assets/editorial-*/**",
+        "prompts/scenes/**",
+        "config/scene-presets.json",
+        "spec/ZEELY_SCENE_CANON_UA.md",
+        "test/contracts/scene-*.test.js",
+        ".agents/handoffs/WARD-005.json"
+      ],
+      "forbidden_paths": [
+        "secrets/**",
+        "runtime/**",
+        "output/**"
+      ],
+      "required_context": [],
+      "depends_on": [
+        "WARD-004"
+      ],
+      "acceptance": [
+        {
+          "check_id": "style-pack-contract-tests",
+          "execution_class": "ci",
+          "command": [
+            "node",
+            "--test",
+            "test/contracts/scene-preset-catalog.test.js"
+          ],
+          "expected_exit_codes": [
+            0
+          ],
+          "expected": "Every approved style pack passes the immutable catalog contract"
+        },
+        {
+          "check_id": "style-pack-approval",
+          "execution_class": "paid",
+          "command": [
+            "paid",
+            "artshoot-pipeline-style-creation"
+          ],
+          "expected_exit_codes": [
+            0
+          ],
+          "expected": "Four immutable reference packs with style-faithfulness evidence"
+        }
+      ],
+      "stop_conditions": [
+        "Do not run paid generation without an explicit generation lease."
+      ]
+    },
+    {
+      "id": "WARD-006",
+      "title": "Resume the video pipeline after the still-image product is stable",
+      "priority": "P2",
+      "state": "BLOCKED",
+      "owner": "unassigned",
+      "branch": "lane/WARD-006/unassigned",
+      "base_sha": "622c8783060cb64970e7c8952d51ca7c50307edd",
+      "lease": {
+        "generation": 1,
+        "issued_at": "2026-07-26T17:53:30.000Z",
+        "expires_at": "2026-07-27T17:53:30.000Z"
+      },
+      "lock_groups": [
+        "video"
+      ],
+      "allowed_paths": [
+        "video/**",
+        "src/video/**",
+        "test/video/**",
+        ".agents/handoffs/WARD-006.json"
+      ],
+      "forbidden_paths": [
+        "secrets/**",
+        "runtime/**",
+        "output/**"
+      ],
+      "required_context": [],
+      "depends_on": [
+        "WARD-005"
+      ],
+      "acceptance": [
+        {
+          "check_id": "video-contract-tests",
+          "execution_class": "ci",
+          "command": [
+            "node",
+            "--test",
+            "test/video/video-contract.test.js"
+          ],
+          "expected_exit_codes": [
+            0
+          ],
+          "expected": "A test-first video contract is present before implementation"
+        },
+        {
+          "check_id": "video-contract",
+          "execution_class": "manual",
+          "command": [
+            "manual",
+            "issue-video-task-after",
+            "WARD-005"
+          ],
+          "expected_exit_codes": [
+            0
+          ],
+          "expected": "No implementation before the still-image pipeline is stable"
+        }
+      ],
+      "stop_conditions": [
+        "No paid video generation without Edwin approval."
+      ]
+    }
+  ]
+}

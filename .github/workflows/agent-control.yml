@@ -1,0 +1,79 @@
+name: Agent control gate
+
+on:
+  pull_request_target:
+    branches:
+      - integration/wardrobe-20260726
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: agent-control-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  governance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout trusted integration control plane
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+          path: trusted
+
+      - name: Checkout candidate without persisted credentials
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+          path: candidate
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22
+
+      - name: Install only the trusted validator dependencies
+        working-directory: trusted
+        run: npm ci --ignore-scripts
+
+      - name: Validate the task board
+        working-directory: trusted
+        run: node tools/coordination/validate-board.mjs --board-only
+
+      - name: Refuse changes outside the leased scope
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          node trusted/tools/coordination/assert-pr-scope.mjs \
+            --root candidate \
+            --base "$BASE_SHA" \
+            --head "$HEAD_SHA" \
+            --branch "$HEAD_REF"
+
+      - name: Governance regression tests
+        working-directory: trusted
+        run: node --test test/governance/agent-control.test.js
+
+      - name: Diff hygiene
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: git -C candidate diff --check "$BASE_SHA...$HEAD_SHA"
+
+      - name: Scan diff for conflict markers, secrets and private paths
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: >-
+          node trusted/tools/coordination/scan-pr-diff.mjs
+          --root candidate
+          --base "$BASE_SHA"
+          --head "$HEAD_SHA"
