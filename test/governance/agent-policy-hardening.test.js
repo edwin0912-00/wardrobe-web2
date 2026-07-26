@@ -1,6 +1,13 @@
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { execFileSync, spawnSync } from 'node:child_process';
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
@@ -8,6 +15,7 @@ import {
   ACTIVE_STATES,
   isProductPath,
   validateBoardDocument,
+  validateOrchestratorQueueScope,
   validateTaskScope,
 } from '../../tools/coordination/control-plane.mjs';
 import {
@@ -20,6 +28,7 @@ import { isStrictRfc3339 } from '../../tools/coordination/schema-validation.mjs'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const BASE_SHA = '622c8783060cb64970e7c8952d51ca7c50307edd';
+const SCOPE_CHECKER = path.join(ROOT, 'tools/coordination/assert-pr-scope.mjs');
 
 test('active tasks require a non-empty lock group list', () => {
   const errors = validateBoardDocument(boardFixture(taskFixture({ lock_groups: [] })), {
@@ -153,6 +162,35 @@ test('scope validation receives every introduced path, including transient chang
     && error.path === 'src/outside/transient.js'));
 });
 
+test('orchestrator queue updates are ledger-only and cannot skip status evidence', () => {
+  assert.deepEqual(
+    validateOrchestratorQueueScope([
+      'TASKS.json',
+      'LOG.md',
+      'STATE.md',
+      'OWNERS.md',
+    ]),
+    [],
+  );
+  assert.ok(
+    validateOrchestratorQueueScope([
+      'TASKS.json',
+      'LOG.md',
+      'src/web/scene-service.js',
+    ]).some((error) =>
+      error.code === 'ORCHESTRATOR_QUEUE_PATH_FORBIDDEN'
+      && error.path === 'src/web/scene-service.js'),
+  );
+  assert.ok(
+    validateOrchestratorQueueScope([
+      'TASKS.json',
+      'LOG.md',
+    ]).some((error) =>
+      error.code === 'ORCHESTRATOR_QUEUE_LEDGER_REQUIRED'
+      && error.path === 'STATE.md'),
+  );
+});
+
 test('control and handoff-only diffs do not masquerade as product changes', () => {
   for (const coordinationPath of [
     'TASKS.json',
@@ -257,6 +295,132 @@ test('ordinary pull-request CI enforces trusted scope before candidate execution
     [...workflow.matchAll(/run: npm ci(?! --ignore-scripts)/gu)].length,
     0,
   );
+  assert.equal(workflow.includes('!startsWith('), false);
+  assert.equal(
+    [...workflow.matchAll(
+      /if: github\.event\.pull_request\.head\.ref != 'control\/codex-main'/gu,
+    )].length,
+    2,
+  );
+});
+
+test('orchestrator queue route is fail-closed end to end', async (t) => {
+  await t.test('valid ledger update needs no task handoff', () => {
+    const fixture = createScopeRepository();
+    try {
+      gitFixture(fixture.root, ['switch', '--create', 'control/codex-main']);
+      const head = commitQueueUpdate(fixture.root);
+      const result = runScopeChecker(
+        fixture.root,
+        fixture.base,
+        head,
+        'control/codex-main',
+      );
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(JSON.parse(result.stdout).route, 'orchestrator-queue');
+    } finally {
+      rmSync(fixture.root, { recursive: true, force: true });
+    }
+  });
+
+  await t.test('transient forbidden paths remain visible', () => {
+    const fixture = createScopeRepository();
+    try {
+      gitFixture(fixture.root, ['switch', '--create', 'control/codex-main']);
+      mkdirSync(path.join(fixture.root, 'src'), { recursive: true });
+      writeFileSync(path.join(fixture.root, 'src', 'transient.js'), 'unsafe\n');
+      commitFixture(fixture.root, 'transient forbidden path');
+      rmSync(path.join(fixture.root, 'src', 'transient.js'));
+      const head = commitQueueUpdate(fixture.root);
+      const result = runScopeChecker(
+        fixture.root,
+        fixture.base,
+        head,
+        'control/codex-main',
+      );
+      assert.equal(result.status, 1);
+      assert.equal(
+        JSON.parse(result.stderr).code,
+        'ORCHESTRATOR_QUEUE_SCOPE_INVALID',
+      );
+    } finally {
+      rmSync(fixture.root, { recursive: true, force: true });
+    }
+  });
+
+  await t.test('invalid active context pins are refused', () => {
+    const fixture = createScopeRepository();
+    try {
+      gitFixture(fixture.root, ['switch', '--create', 'control/codex-main']);
+      const head = commitQueueUpdate(fixture.root, (board) => {
+        board.tasks[0].required_context = [{
+          path: 'missing-context.md',
+          git_blob_sha: '1111111111111111111111111111111111111111',
+        }];
+      });
+      const result = runScopeChecker(
+        fixture.root,
+        fixture.base,
+        head,
+        'control/codex-main',
+      );
+      assert.equal(result.status, 1);
+      const error = JSON.parse(result.stderr);
+      assert.equal(error.code, 'CANDIDATE_TASK_BOARD_INVALID');
+      assert.ok(error.details.some((item) =>
+        item.code === 'TASK_CONTEXT_MISSING_AT_BASE'));
+    } finally {
+      rmSync(fixture.root, { recursive: true, force: true });
+    }
+  });
+
+  await t.test('stale control branches are refused', () => {
+    const fixture = createScopeRepository();
+    try {
+      gitFixture(fixture.root, ['switch', '--create', 'control/codex-main']);
+      const candidate = commitQueueUpdate(fixture.root);
+      gitFixture(fixture.root, ['switch', 'main']);
+      const newerBase = commitQueueUpdate(fixture.root, (board) => {
+        board.updated_at = '2026-07-26T22:00:00.000Z';
+      });
+      const result = runScopeChecker(
+        fixture.root,
+        newerBase,
+        candidate,
+        'control/codex-main',
+      );
+      assert.equal(result.status, 1);
+      assert.equal(
+        JSON.parse(result.stderr).code,
+        'ORCHESTRATOR_QUEUE_STALE_BASE',
+      );
+    } finally {
+      rmSync(fixture.root, { recursive: true, force: true });
+    }
+  });
+
+  await t.test('ordinary lanes still require an isolated handoff', () => {
+    const fixture = createScopeRepository();
+    try {
+      gitFixture(
+        fixture.root,
+        ['switch', '--create', 'lane/CTRL-001/codex-main'],
+      );
+      writeFileSync(path.join(fixture.root, 'LOG.md'), 'lane update\n');
+      commitFixture(fixture.root, 'lane without handoff');
+      const head = revParseFixture(fixture.root, 'HEAD');
+      const result = runScopeChecker(
+        fixture.root,
+        fixture.base,
+        head,
+        'lane/CTRL-001/codex-main',
+      );
+      assert.equal(result.status, 1);
+      assert.equal(JSON.parse(result.stderr).code, 'HANDOFF_MISSING');
+    } finally {
+      rmSync(fixture.root, { recursive: true, force: true });
+    }
+  });
 });
 
 function boardFixture(task) {
@@ -306,4 +470,95 @@ function acceptanceFixture(overrides = {}) {
     expected: 'PASS',
     ...overrides,
   };
+}
+
+function createScopeRepository() {
+  const root = mkdtempSync(path.join(tmpdir(), 'wardrobe-queue-scope-'));
+  gitFixture(root, ['init', '--initial-branch', 'main']);
+  gitFixture(root, ['config', 'user.name', 'Wardrobe Test']);
+  gitFixture(root, ['config', 'user.email', 'wardrobe-test@example.invalid']);
+  for (const [file, value] of [
+    ['OWNERS.md', 'owners\n'],
+    ['LOG.md', 'log\n'],
+    ['STATE.md', 'state\n'],
+  ]) {
+    writeFileSync(path.join(root, file), value);
+  }
+  commitFixture(root, 'seed');
+  const seed = revParseFixture(root, 'HEAD');
+  const board = boardFixture(taskFixture({
+    id: 'CTRL-001',
+    title: 'Control fixture',
+    owner: 'codex-main',
+    branch: 'lane/CTRL-001/codex-main',
+    base_sha: seed,
+    lease: {
+      generation: 1,
+      issued_at: '2026-07-26T20:00:00.000Z',
+      expires_at: '2099-07-27T20:00:00.000Z',
+    },
+    lock_groups: ['coordination'],
+    allowed_paths: [
+      'OWNERS.md',
+      'LOG.md',
+      'STATE.md',
+      'TASKS.json',
+      '.agents/handoffs/CTRL-001.json',
+    ],
+  }));
+  writeFileSync(path.join(root, 'TASKS.json'), `${JSON.stringify(board, null, 2)}\n`);
+  commitFixture(root, 'trusted board');
+  return {
+    root,
+    base: revParseFixture(root, 'HEAD'),
+  };
+}
+
+function commitQueueUpdate(root, mutate = () => {}) {
+  const boardPath = path.join(root, 'TASKS.json');
+  const board = JSON.parse(readFileSync(boardPath, 'utf8'));
+  board.updated_at = board.updated_at === '2026-07-26T20:00:00.000Z'
+    ? '2026-07-26T21:00:00.000Z'
+    : '2026-07-26T22:00:00.000Z';
+  mutate(board);
+  writeFileSync(boardPath, `${JSON.stringify(board, null, 2)}\n`);
+  writeFileSync(path.join(root, 'LOG.md'), `log ${board.updated_at}\n`);
+  writeFileSync(path.join(root, 'STATE.md'), `state ${board.updated_at}\n`);
+  commitFixture(root, `queue ${board.updated_at}`);
+  return revParseFixture(root, 'HEAD');
+}
+
+function runScopeChecker(root, base, head, branch) {
+  return spawnSync(
+    process.execPath,
+    [
+      SCOPE_CHECKER,
+      '--root',
+      root,
+      '--base',
+      base,
+      '--head',
+      head,
+      '--branch',
+      branch,
+    ],
+    { encoding: 'utf8' },
+  );
+}
+
+function commitFixture(root, message) {
+  gitFixture(root, ['add', '--all']);
+  gitFixture(root, ['commit', '--message', message]);
+}
+
+function revParseFixture(root, revision) {
+  return gitFixture(root, ['rev-parse', revision]).trim();
+}
+
+function gitFixture(root, args) {
+  return execFileSync('git', args, {
+    cwd: root,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
 }

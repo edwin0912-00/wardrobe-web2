@@ -98,10 +98,12 @@ jobs:
           --branch "$HEAD_REF"
 
       - name: Install candidate test dependencies
+        if: github.event.pull_request.head.ref != 'control/codex-main'
         working-directory: candidate
         run: npm ci --ignore-scripts
 
       - name: Execute trusted task acceptance argv
+        if: github.event.pull_request.head.ref != 'control/codex-main'
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}

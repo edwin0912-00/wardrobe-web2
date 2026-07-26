@@ -66,6 +66,7 @@ informal overlap.
 ```text
 main
 └── integration/wardrobe-20260726
+    ├── control/codex-main           # queue ledgers only
     ├── lane/<task-id>/<agent-id>
     ├── lane/INT-<number>/codex-main # trusted integration task
     └── wip/<source>-<date>        # preservation only, never auto-merge
@@ -75,6 +76,8 @@ main
 implementation and evidence; the orchestrator applies it to an integration
 candidate where code and the four ledgers become one commit. WIP branches
 preserve evidence but are not candidates until assigned and reviewed.
+`control/codex-main` may update only the four root ledgers through a PR whose
+candidate task board is validated by trusted integration code.
 
 ## External boundary
 
