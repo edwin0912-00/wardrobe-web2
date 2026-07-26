@@ -1,6 +1,6 @@
 # Wardrobe verified state
 
-Updated: 2026-07-26 23:40 UTC.
+Updated: 2026-07-26 23:44 UTC.
 
 ## Canonical source position
 
@@ -9,7 +9,7 @@ Updated: 2026-07-26 23:40 UTC.
 - Claude branch `feature/wardrobe-editorial-mvp-20260726` is `622c878`.
 - Codex branch `codex-new-2026-07-26` is `f891719`.
 - Their merge base is `d7f760f`; Claude has 6 unique commits and Codex has 14.
-- `integration/wardrobe-20260726` is `fbd2c2c`.
+- `integration/wardrobe-20260726` is `3e32d37`.
 - WARD-001 implementation is frozen at `dc06b99` with isolated handoff
   `ee7d50f`; GitHub PR #5 preserved that evidence but its trusted acceptance
   runner lacked `rg`. Lease generation 3 reissues the unchanged implementation
@@ -86,14 +86,16 @@ code.
 
 ## Current priority
 
-1. Review and integrate frozen task `WARD-001` without invented pixels or
-   one-preset exceptions.
-2. Make standard scenes reach a verified frame on every preset.
-3. Deploy only through `tools/deploy-add-items-release.mjs`.
-4. Remove `EDITORIAL_BASE_PRESETS` and complete the backgrounds/photoshoots
-   separation.
-5. Complete the four remaining styles using the approved style-creation
-   workflow.
+1. Accept only small compatible slices; WARD-001 remains preserved evidence,
+   not a merge candidate.
+2. Land the active profile, monitor, style-unit, and contact-sheet lanes with
+   their independent evidence.
+3. Build one complete fashion-shoot vertical slice: private contact sheet,
+   style unit, six approved stills, then a separate UI task.
+4. Remove `EDITORIAL_BASE_PRESETS` only in its own product-split task after
+   the vertical slice has a verified contract.
+5. Prove standard scenes on every preset and deploy only through
+   `tools/deploy-add-items-release.mjs`.
 6. Start video only after the image/editorial surface is stable.
 
 ## Parallel 24-hour lanes
@@ -104,6 +106,8 @@ code.
   and add-items lineage.
 - `MONITOR-001` is leased to `antigravity`: sanitized durable diagnostics for
   stalled execution.
+- `SITE-002` is leased to `codex-contact-sheet`: a private immutable manifest
+  for six approved fashion-shoot frames; it does not create pixels or UI.
 
 They are disjoint from WARD-001's active scene/editorial/privacy locks. Their
 shared starting procedure is `docs/coordination/EXTERNAL_AGENT_START_UA.md`.

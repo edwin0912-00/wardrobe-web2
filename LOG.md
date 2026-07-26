@@ -50,6 +50,16 @@ focused CI acceptance, isolated handoff path, and no runtime/deploy/credential
 authority.
 weakened_checks: none.
 
+2026-07-26 · SITE-002 · contact-sheet backend lease
+Change: issue an isolated editorial task for a private, immutable six-frame
+contact-sheet manifest after a shoot reaches COMPLETED.
+Why: fashion shoot needs a reviewable product artifact before UI reconnect,
+without re-generating images or leaking another browser profile's media.
+Evidence: the task has one editorial lock, exact source-context pins, a new
+route test that must fail against its base, ownership/no-store requirements,
+and an isolated handoff path.
+weakened_checks: none.
+
 2026-07-26 · CTRL-001 · 36ae95a · PR #2
 Change: install the permanent `control/codex-main` queue route, stale-base and
 candidate-board validation, and correct prior-handoff drift classification.
