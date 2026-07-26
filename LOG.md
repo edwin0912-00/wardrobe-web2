@@ -32,6 +32,14 @@ Evidence: the new governance test failed before implementation with
 handoff and PR checks. The current focused governance suite passes 76/76.
 weakened_checks: none.
 
+2026-07-26 · WARD-001 · blocked after hosted compatibility proof
+Change: mark the evidence lane BLOCKED and release its locks.
+Why: PR #8 passed focused acceptance but failed trusted-base compatibility:
+candidate strict provenance expects fields absent from legacy fixture contracts.
+Evidence: hosted `trusted-test-compatibility` failed with legacy scene-service
+and provider assertions; no gate was weakened and the branch remains preserved.
+weakened_checks: none.
+
 2026-07-26 · STYLE-001 / PROFILE-001 / MONITOR-001 · parallel leases
 Change: issue three non-overlapping 24-hour implementation lanes for CodeCod,
 OpenCode, and Antigravity, plus one shared GitHub onboarding procedure.
