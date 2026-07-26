@@ -1,6 +1,6 @@
 # Wardrobe verified state
 
-Updated: 2026-07-26 17:53 UTC.
+Updated: 2026-07-26 21:29 UTC.
 
 ## Canonical source position
 
@@ -9,7 +9,7 @@ Updated: 2026-07-26 17:53 UTC.
 - Claude branch `feature/wardrobe-editorial-mvp-20260726` is `622c878`.
 - Codex branch `codex-new-2026-07-26` is `f891719`.
 - Their merge base is `d7f760f`; Claude has 6 unique commits and Codex has 14.
-- `integration/wardrobe-20260726` is based on `622c878`; the semantic merge has
+- `integration/wardrobe-20260726` is `9d4780f`; the semantic product merge has
   not started.
 - Claude's newer uncommitted tail was preserved without review as
   `wip/claude-tail-20260726` at `7c3fb32`. WIP is evidence, not integrated
@@ -29,7 +29,9 @@ Updated: 2026-07-26 17:53 UTC.
   repository. The protection/ruleset API returned `403` on the current plan.
   Until the plan is upgraded, the only effective write gate is separate
   branches plus the orchestrator as sole merger.
-- The control-plane governance suite passes 76/76 locally. Its task runner
+- The permanent orchestrator queue route is merged through PR #2. Its exact
+  local acceptance, pre-change regression, and two independent adversarial
+  reviews passed. The task runner
   accepts only narrow command shapes, requires a changed focused test to fail
   against the pinned base, and scans every introduced commit for known
   credential families without emitting matched values.
@@ -70,16 +72,16 @@ code.
 
 ## Current priority
 
-1. Establish this control plane and preserve all handoffs.
-2. Reconcile `integration/wardrobe-20260726` according to the checked-in merge
+1. Reconcile `integration/wardrobe-20260726` through assigned task `WARD-001`
+   according to the checked-in merge
    analysis, without invented pixels or one-preset exceptions.
-3. Make standard scenes reach a verified frame on every preset.
-4. Deploy only through `tools/deploy-add-items-release.mjs`.
-5. Remove `EDITORIAL_BASE_PRESETS` and complete the backgrounds/photoshoots
+2. Make standard scenes reach a verified frame on every preset.
+3. Deploy only through `tools/deploy-add-items-release.mjs`.
+4. Remove `EDITORIAL_BASE_PRESETS` and complete the backgrounds/photoshoots
    separation.
-6. Complete the four remaining styles using the approved style-creation
+5. Complete the four remaining styles using the approved style-creation
    workflow.
-7. Start video only after the image/editorial surface is stable.
+6. Start video only after the image/editorial surface is stable.
 
 ## Stop conditions awaiting Edwin
 
