@@ -175,13 +175,13 @@ test('written quality rules override off-white sample pixels', async () => {
     sampleImage: sample,
     writtenRules: [
       'Background must be exact #FFFFFF.',
-      'Half-body head to hips, neutral frontal pose.',
+      'Full-length head to soles, neutral frontal pose.',
       'Soft diffused studio lighting, neutral white balance, photorealistic with natural skin, hair and fabric.',
     ],
   });
   assert.equal(target.values.background_color, '#FFFFFF');
   assert.equal(target.provenance.background_color, 'WRITTEN_RULE');
-  assert.equal(target.values.framing, 'HALF_BODY_HEAD_TO_HIPS');
+  assert.equal(target.values.framing, 'FULL_LENGTH_HEAD_TO_SOLES');
   assert.equal(target.values.pose, 'NEUTRAL_FRONTAL');
   assert.equal(target.values.lighting, 'SOFT_DIFFUSED_STUDIO');
   assert.equal(target.values.white_balance, 'NEUTRAL');

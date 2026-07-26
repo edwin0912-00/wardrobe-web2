@@ -12,7 +12,7 @@
 Обов’язковий результат для кожного з мінімум трьох користувачів:
 
 1. З довільного user photo створити впізнаваний photoreal studio avatar.
-2. Поза нейтральна і фронтальна, framing — half-body від голови до пояса або верхньої частини стегон.
+2. Поза нейтральна і фронтальна, framing — full-length від голови до стоп. ТЗ просило half-body до пояса або верхніх стегон; shipped avatar contract ([`prompts/avatar.txt`](../prompts/avatar.txt)) розширив кадр, бо scene continuity міряється від верхнього пікселя волосся до нижнього пікселя взуття, і half-length avatar робить цю перевірку неможливою.
 3. Фон — точний `#FFFFFF`.
 4. З approved avatar створити ту саму людину в новому outfit, заданому текстом або image reference.
 5. Avatar step і outfit step запускаються автоматично та послідовно.
@@ -33,7 +33,7 @@ Art Director/photo-video демонстрація є optional. HTML5 swipe-са�
 - відмінність між strict production і test-compatibility lane;
 - правило, що synthetic/generated hypothesis ніколи не стає identity lock або зафіксованою характеристикою речі;
 - пріоритет письмової вимоги `#FFFFFF` над пікселями expected-output benchmark;
-- несумісність sneaker з half-body framing;
+- несумісність outfit reference із цільовим framing як окремий routing-вердикт (за half-body контракту він відсікав sneaker; з переходом на full-length кадр вердикт зник разом із тим кадром);
 - недостатня resolution hat reference для exact detail;
 - explicit semantic QA як blocking gate, окремо від deterministic pixel QA;
 - exact prompt, input ordering, hashes, provider receipt і decision evidence для кожного attempt.
@@ -175,7 +175,7 @@ Strict production має запросити додатковий reference дл�
 | Reference | Decision | Причина |
 |---|---|---|
 | Green hoodie, 888×1328, source alpha | `READY` | structure, graphic і sufficient technical evidence доступні; створені cutout + white card |
-| Black sneaker, 437×437 | `INCOMPATIBLE` | footwear поза required half-body frame; потрібен окремий full-body job |
+| Black sneaker, 437×437 | `REPAIRABLE` | required кадр іде від голови до стоп, тому footwear у ньому видно; лишається declared conservative upscale з 437×437 |
 | Brown hat, 197×256 | `NEEDS_INPUT` | fine band/material detail не можна надійно встановити після required 4× upscale; потрібен кращий source |
 
 Це не оцінка того, чи «модель може щось намалювати». Це оцінка того, чи output можна чесно перевірити проти evidence.
@@ -188,7 +188,7 @@ Strict production має запросити додатковий reference дл�
 | `002` | `artifacts/conditioning/humans/002/*` | text | cobalt-blue single-breasted blazer + opaque white crew-neck top |
 | `003` | `artifacts/conditioning/humans/003/*` | text | dark chocolate-brown suede overshirt + opaque black crew-neck T-shirt |
 
-`input4.jpg` залишається robustness/spare input. Sneaker і hat збережені в dataset для демонстрації правильного routing, але не обходять свої terminal conditioning decisions.
+`input4.jpg` залишається robustness/spare input. Sneaker і hat збережені в dataset для демонстрації правильного routing. Hat не обходить свій terminal `NEEDS_INPUT`; sneaker після переходу на full-length кадр лишається `REPAIRABLE` і просто не призначений жодному з трьох core jobs.
 
 Точні assignments: [`dataset.manifest.json`](../inputs/zeely-test/dataset.manifest.json). Machine sequence: [`zeely-test.pipeline.json`](../plans/zeely-test.pipeline.json).
 
@@ -259,7 +259,7 @@ Prompt не може зробити `UNKNOWN` фактом. Для users `001–
 
 1. Background exact `#FFFFFF`, без gradient, shadow, halo, artifacts або edge contamination.
 2. Recognizable face, hair, natural skin та всі інші observable identity attributes відповідають source; unobservable body build — `NOT_EVALUABLE`.
-3. Neutral frontal pose; half-body head-to-waist/upper-hips; face і hair не обрізані.
+3. Neutral frontal pose; full-length head-to-soles; face, hair і feet не обрізані.
 4. Soft, even, diffused studio lighting; без harsh shadows, blown highlights або crushed shadows.
 5. Neutral white balance; natural skin; white background.
 6. Sharp eyes, hair, skin і fabric; без blur або plastic smoothing.

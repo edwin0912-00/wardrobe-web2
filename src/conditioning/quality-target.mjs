@@ -80,8 +80,11 @@ function parseWrittenText(text) {
   else if (/(?:background|фон)[^\n]{0,50}(?:pure|exact|solid|чист\w*|точн\w*)?\s*(?:white|білий|білого)/i.test(normalized)) {
     values.background_color = '#FFFFFF';
   }
-  if (/half[- ]?body|head\s+to\s+hips|waist[- ]?up|до\s+стегон|пів\s*фігури/.test(lower)) {
-    values.framing = 'HALF_BODY_HEAD_TO_HIPS';
+  // Half-body wording is deliberately left unmatched: the shipped avatar contract renders
+  // the figure head to soles, so a written rule asking for head-to-hips describes a frame
+  // no stage produces, and matching it would carry that frame into a conditioning report.
+  if (/full[- ]?(?:body|length)|head\s+to\s+(?:toe|toes|feet|soles)|повн\w*\s+зріст|весь\s+зріст|від\s+голови\s+до\s+ст[оу]п/.test(lower)) {
+    values.framing = 'FULL_LENGTH_HEAD_TO_SOLES';
   }
   if (/(?:neutral|нейтральн\w*)[^.\n]{0,30}(?:frontal|front[- ]facing|фронтальн\w*)|(?:frontal|фронтальн\w*)[^.\n]{0,30}(?:neutral|нейтральн\w*)/.test(lower)) {
     values.pose = 'NEUTRAL_FRONTAL';

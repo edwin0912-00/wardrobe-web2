@@ -7,10 +7,14 @@ export const REFERENCE_DECISION = Object.freeze({
   INCOMPATIBLE: 'INCOMPATIBLE',
 });
 
+// HALF_BODY was retired, and FULL_BODY renamed, once the avatar became a full-length
+// figure (prompts/avatar.txt; src/qa/constants.mjs frontal_full_length_composition).
+// GARMENT_FOOTWEAR_NOT_VISIBLE_IN_HALF_BODY had excluded the 437x437 sneaker reference
+// from the zeely-test lane because feet fall outside a head-to-hips crop, which states
+// something about a frame no stage generates rather than about that reference.
 const FRAME_VISIBILITY = Object.freeze({
   HEADSHOT: new Set(['HEADWEAR', 'EYEWEAR', 'JEWELRY']),
-  HALF_BODY: new Set(['HEADWEAR', 'EYEWEAR', 'JEWELRY', 'ACCESSORY', 'TOP', 'OUTERWEAR', 'DRESS']),
-  FULL_BODY: new Set(['HEADWEAR', 'EYEWEAR', 'JEWELRY', 'ACCESSORY', 'TOP', 'OUTERWEAR', 'DRESS', 'BOTTOM', 'FOOTWEAR']),
+  FULL_LENGTH: new Set(['HEADWEAR', 'EYEWEAR', 'JEWELRY', 'ACCESSORY', 'TOP', 'OUTERWEAR', 'DRESS', 'BOTTOM', 'FOOTWEAR']),
 });
 
 function issueCodes(issues) {
@@ -56,7 +60,11 @@ export function decideReferenceReadiness({
     const visible = requirements.visibleGarmentCategories
       ? new Set(requirements.visibleGarmentCategories.map((value) => value.toUpperCase()))
       : FRAME_VISIBILITY[targetFraming];
-    if (visible && !visible.has(category)) {
+    // A framing name this table does not carry used to leave `visible` undefined, which
+    // skipped the gate entirely and admitted every category, so a retired name has to
+    // fail loudly instead of quietly widening what a frame is allowed to contain.
+    invariant(visible, 'UNKNOWN_TARGET_FRAMING', 'targetFraming is not a declared framing.');
+    if (!visible.has(category)) {
       return result(REFERENCE_DECISION.INCOMPATIBLE, [
         `GARMENT_${category}_NOT_VISIBLE_IN_${targetFraming}`,
       ], ['CHANGE_TARGET_FRAMING_OR_REFERENCE']);

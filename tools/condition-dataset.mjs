@@ -318,7 +318,7 @@ async function conditionGarment(spec) {
     assessment: preflight,
     evidence,
     requirements: {
-      targetFraming: 'HALF_BODY',
+      targetFraming: 'FULL_LENGTH',
       requireIsolatedGarment: spec.id === 'hoodie-green',
       requiresExactDetail: spec.requireExactDetail,
     },
@@ -370,7 +370,7 @@ for (const spec of garmentSpecs) garmentResults.push(await conditionGarment(spec
 const qualityTarget = await extractQualityTarget({
   writtenRules: {
     background_color: '#FFFFFF',
-    framing: 'HALF_BODY_HEAD_TO_HIPS',
+    framing: 'FULL_LENGTH_HEAD_TO_SOLES',
     pose: 'NEUTRAL_FRONTAL',
     lighting: 'SOFT_DIFFUSED_STUDIO',
     white_balance: 'NEUTRAL',

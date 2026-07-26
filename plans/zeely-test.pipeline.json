@@ -158,8 +158,8 @@
   "excluded_reference_decisions": [
     {
       "asset_id": "outfit-black-sneaker",
-      "decision": "INCOMPATIBLE",
-      "reason": "Footwear is outside the required half-body head-to-waist-or-hips frame."
+      "decision": "REPAIRABLE",
+      "reason": "Not assigned to a core job. Footwear is inside the required head-to-soles frame, so the half-body incompatibility that once excluded this reference no longer describes anything; only the declared conservative upscale from 437x437 remains."
     },
     {
       "asset_id": "outfit-cowboy-hat",
@@ -242,7 +242,7 @@
   "quality_rules": [
     "Background is exact #FFFFFF, with no gradient, artifacts, edge shadows or subject halo.",
     "Identity preserves recognizable facial geometry, hair structure and color, natural skin tone and every other observable identity attribute; unobservable body build is NOT_EVALUABLE rather than invented.",
-    "Pose is neutral and frontal; framing is half-body from head to waist or upper hips; face and hair are fully visible and not cropped.",
+    "Pose is neutral and frontal; framing is full-length from the top of the head to the soles of the feet; face, hair, hands and feet are fully visible and not cropped.",
     "Lighting is soft, even and diffused, with no harsh facial shadows, blown highlights or crushed shadows.",
     "White balance is neutral; background remains white and skin remains natural.",
     "Eyes, hair, skin texture and fabric are sharp and detailed without blur or AI-plastic smoothing.",

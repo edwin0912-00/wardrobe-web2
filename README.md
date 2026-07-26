@@ -99,7 +99,7 @@ Raw reference не можна одразу передавати моделі. В
 3. Deterministic derivatives: capped normalization, face/person crops, вирізана річ і white reference card.
 4. Lineage для кожного derivative: parent hash, operation, output hash.
 5. Readiness route: `READY`, `REPAIRABLE`, `NEEDS_INPUT` або `INCOMPATIBLE`.
-6. Лише `READY` pack отримує ordered generation bindings.
+6. Ordered generation bindings отримує `READY` pack і `REPAIRABLE` pack після declared repair; `NEEDS_INPUT` та `INCOMPATIBLE` не отримують нічого.
 
 Реалізація знаходиться в [src/conditioning](src/conditioning), запуск dataset pass — [tools/condition-dataset.mjs](tools/condition-dataset.mjs), результати — [artifacts/conditioning](artifacts/conditioning).
 
@@ -112,7 +112,7 @@ Raw reference не можна одразу передавати моделі. В
 | `input3.webp` | `NEEDS_INPUT` — видно face/shoulders | `READY`, body build `NOT_EVALUABLE` | core user `003` |
 | `input4.jpg` | `READY` | `READY` | robustness/spare; не потрібен для minimum submission |
 | Green hoodie | `READY` | `READY` | reference outfit для `001` |
-| Black sneaker | `INCOMPATIBLE` | `INCOMPATIBLE` | footwear не видно в required half-body crop |
+| Black sneaker | `REPAIRABLE` | `REPAIRABLE` | required кадр іде від голови до стоп, тому footwear у ньому видно; лишається declared conservative upscale з 437×437; не призначений core job |
 | Brown hat, 197×256 | `NEEDS_INPUT` | `NEEDS_INPUT` | resolution недостатня для exact fine-detail fidelity |
 
 Strict production і test compatibility не можна змішувати. У production, якщо необхідне збереження тілобудови, users `001–003` мають зупинитися з `NEEDS_INPUT`. Для виконання саме наданого тесту вони проходять compatibility lane, але QA записує body build як `NOT_EVALUABLE` і результат не має права стверджувати, що невидимі пропорції збережено.

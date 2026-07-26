@@ -25,7 +25,7 @@
     },
     {
       "rule_id": "rule-framing-001",
-      "text": "Use a neutral front-facing half-body composition from head through hips.",
+      "text": "Use a neutral front-facing full-length composition from the top of the head to the soles of the feet.",
       "blocking": true
     },
     {
@@ -67,7 +67,7 @@
   },
   "composition": {
     "pose": "NEUTRAL_FRONTAL",
-    "framing": "HALF_BODY_HEAD_TO_HIPS",
+    "framing": "FULL_LENGTH_HEAD_TO_SOLES",
     "camera_angle": "EYE_LEVEL",
     "gaze": "CAMERA",
     "expression": "NATURAL_RELAXED",

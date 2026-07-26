@@ -174,11 +174,19 @@
       "target_region": "footwear",
       "conditioning_reference_pack": "../../artifacts/conditioning/garments/sneaker-black/reference-pack.json",
       "readiness": {
-        "decision": "INCOMPATIBLE",
-        "reason": "GARMENT_FOOTWEAR_NOT_VISIBLE_IN_HALF_BODY",
-        "required_change": "Use a separately approved full-body framing or choose an upper-body outfit."
+        "decision": "REPAIRABLE",
+        "reason": "BELOW_PREFERRED_RESOLUTION",
+        "required_change": "Run the declared conservative upscale before generation.",
+        "superseded_decision": {
+          "decision": "INCOMPATIBLE",
+          "reason": "GARMENT_FOOTWEAR_NOT_VISIBLE_IN_HALF_BODY",
+          "retired_because": "The shipped avatar frame runs head to soles, so footwear is inside it. The conditioning reference pack under artifacts/ still carries the old verdict until the next `npm run condition` pass."
+        }
       },
-      "generation_bindings": []
+      "generation_bindings": [
+        "../../artifacts/conditioning/garments/sneaker-black/cutout.png",
+        "../../artifacts/conditioning/garments/sneaker-black/reference-card.png"
+      ]
     },
     {
       "asset_id": "outfit-cowboy-hat",

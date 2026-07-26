@@ -94,7 +94,7 @@
       "required": ["pose", "framing", "camera_angle", "gaze", "expression", "subject_count"],
       "properties": {
         "pose": { "const": "NEUTRAL_FRONTAL" },
-        "framing": { "const": "HALF_BODY_HEAD_TO_HIPS" },
+        "framing": { "const": "FULL_LENGTH_HEAD_TO_SOLES" },
         "camera_angle": { "const": "EYE_LEVEL" },
         "gaze": { "const": "CAMERA" },
         "expression": { "enum": ["NEUTRAL", "NATURAL_RELAXED"] },

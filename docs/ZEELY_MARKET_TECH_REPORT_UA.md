@@ -78,6 +78,8 @@ Scope: cloud-only image/video models; Higgsfield MCP наявний, але не
 - local structured outputs, prompts, README і pipeline diagram;
 - identity, anatomy, light/color/detail, outfit fidelity та background bleed входять у review.
 
+Пункт про half-body кадр залишено як запис ТЗ. Shipped avatar contract ([`prompts/avatar.txt`](../prompts/avatar.txt)) відтоді розширив кадр до full-length від голови до стоп: scene continuity міряється від верхнього пікселя волосся до нижнього пікселя взуття, і half-length avatar робить цю перевірку неможливою.
+
 Цей доклад не замінює ці deliverables відео-демо: він розширює їх до production image/video system. [Zeely AI Engineer test task](https://app.notion.com/p/Zeely-Test-Task-for-AI-Engineer-Image-Video-Generation-33bcef9155c980189a4def1cd74e1e6c)
 
 ### Два режими композиції
@@ -640,13 +642,13 @@ Provider prompt збирається з фіксованих blocks:
 Приклад:
 
 ```text
-TASK: Create a photorealistic half-body fashion image.
+TASK: Create a photorealistic full-length fashion image.
 ASSET_BINDINGS: image 1 = HUMAN identity; image 2 = GARMENT front; image 3 = logo detail.
 MUST_PRESERVE: facial geometry, hairline, body proportions, garment neckline, sleeve length,
 front print geometry, logo spelling and color.
 ALLOWED_CHANGES: replace only the original top with the referenced garment.
 ENVIRONMENT_POLICY: ORG_PRESERVE; retain room layout, mirror geometry and light direction.
-COMPOSITION: front-neutral half body, arms relaxed, full garment front visible.
+COMPOSITION: front-neutral full length head to soles, arms relaxed, full garment front and footwear visible.
 OUTPUT: sRGB, 1024×1536 draft, no text added, no watermark.
 NEGATIVE: no extra accessories, no modified logo, no second person, no cropped sleeves.
 ```
@@ -669,7 +671,7 @@ Locked values вставляє code, не LLM. Якщо compiled prompt не м�
 - RGB output, не “майже біла студія”;
 - exact target `#FFFFFF` outside subject mask;
 - soft even light і neutral white balance;
-- one person, front-neutral, half body;
+- one person, front-neutral, full length from head to soles;
 - no clothing/background bleed;
 - edge matting перевіряється окремо від aesthetics.
 

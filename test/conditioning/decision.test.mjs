@@ -5,6 +5,7 @@ import {
   decideReferenceReadiness,
   REFERENCE_DECISION,
 } from '../../src/conditioning/decision.mjs';
+import { ConditioningError } from '../../src/conditioning/errors.mjs';
 
 const cleanAssessment = Object.freeze({
   fatal_issues: [],
@@ -60,21 +61,43 @@ test('NEEDS_INPUT blocks exact details when bounded upscale cannot reach target'
       risks: [{ code: 'RESOLUTION_TARGET_UNREACHABLE' }],
     },
     evidence: { category: 'TOP' },
-    requirements: { targetFraming: 'HALF_BODY', requiresExactDetail: true },
+    requirements: { targetFraming: 'FULL_LENGTH', requiresExactDetail: true },
   });
   assert.equal(routed.decision, REFERENCE_DECISION.NEEDS_INPUT);
   assert.deepEqual(routed.reasons, ['EXACT_DETAIL_UNSUPPORTED_BY_RESOLUTION']);
 });
 
-test('INCOMPATIBLE detects a footwear reference outside half-body framing', () => {
+test('INCOMPATIBLE detects a footwear reference outside headshot framing', () => {
   const routed = decideReferenceReadiness({
     kind: 'GARMENT',
     assessment: cleanAssessment,
     evidence: { category: 'FOOTWEAR' },
-    requirements: { targetFraming: 'HALF_BODY' },
+    requirements: { targetFraming: 'HEADSHOT' },
   });
   assert.equal(routed.decision, REFERENCE_DECISION.INCOMPATIBLE);
   assert.deepEqual(routed.actions, ['CHANGE_TARGET_FRAMING_OR_REFERENCE']);
+});
+
+test('the full-length avatar contract keeps a footwear reference compatible', () => {
+  const routed = decideReferenceReadiness({
+    kind: 'GARMENT',
+    assessment: cleanAssessment,
+    evidence: { category: 'FOOTWEAR' },
+    requirements: { targetFraming: 'FULL_LENGTH' },
+  });
+  assert.equal(routed.decision, REFERENCE_DECISION.READY);
+});
+
+test('a retired framing name is refused instead of skipping the compatibility gate', () => {
+  assert.throws(
+    () => decideReferenceReadiness({
+      kind: 'GARMENT',
+      assessment: cleanAssessment,
+      evidence: { category: 'FOOTWEAR' },
+      requirements: { targetFraming: 'HALF_BODY' },
+    }),
+    (error) => error instanceof ConditioningError && error.code === 'UNKNOWN_TARGET_FRAMING',
+  );
 });
 
 test('opaque garment with an explicit bbox is locally repairable, not silently segmented', () => {
@@ -82,7 +105,7 @@ test('opaque garment with an explicit bbox is locally repairable, not silently s
     kind: 'GARMENT',
     assessment: cleanAssessment,
     evidence: { category: 'TOP', isIsolated: false, bbox: [0.1, 0.1, 0.8, 0.8] },
-    requirements: { targetFraming: 'HALF_BODY', requireIsolatedGarment: true },
+    requirements: { targetFraming: 'FULL_LENGTH', requireIsolatedGarment: true },
   });
   assert.equal(routed.decision, REFERENCE_DECISION.REPAIRABLE);
   assert.deepEqual(routed.reasons, ['GARMENT_REQUIRES_LOCAL_ISOLATION']);
