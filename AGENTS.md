@@ -85,6 +85,13 @@ handoffs.
 `integration/wardrobe-20260726`. Code discussion stays on that PR. Durable
 architecture decisions are committed as ADRs.
 
+Only `codex-main` may use the permanent `control/codex-main` branch. It is a
+queue-administration route, not an implementation lane: every introduced
+commit and the final diff may change only `OWNERS.md`, `LOG.md`, `STATE.md`,
+and `TASKS.json`; the latter three are mandatory. Trusted base code validates
+the candidate board and pinned contexts before merge. Product code, tests,
+handoffs, workflows, and policy tools are forbidden on this route.
+
 The handoff is the only file in the lane's final commit. It records the parent
 commit as `tested_code_sha`, the lease generation, every acceptance check, and
 an independent adversarial reviewer. No code may follow the handoff commit.

@@ -49,7 +49,11 @@ export function verifyActiveContextPins(board, repositoryRoot, activeStates) {
         const observed = execFileSync(
           'git',
           ['rev-parse', `${task.base_sha}:${context.path}`],
-          { cwd: repositoryRoot, encoding: 'utf8' },
+          {
+            cwd: repositoryRoot,
+            encoding: 'utf8',
+            stdio: ['ignore', 'pipe', 'pipe'],
+          },
         ).trim();
         if (observed !== context.git_blob_sha) {
           errors.push({

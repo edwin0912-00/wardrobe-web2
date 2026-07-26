@@ -3,14 +3,17 @@ import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import process from 'node:process';
 import {
-  CONTROL_PATTERNS,
-  matchOwnedPath,
+  isProductPath,
   taskForBranch,
   validateBoardDocument,
   validateHandoffDocument,
+  validateOrchestratorQueueScope,
   validateTaskScope,
 } from './control-plane.mjs';
-import { collectIntroducedHistoryPaths } from './repository-policy.mjs';
+import {
+  collectIntroducedHistoryPaths,
+  verifyActiveContextPins,
+} from './repository-policy.mjs';
 
 const args = parseArgs(process.argv.slice(2));
 for (const required of ['base', 'head', 'branch']) {
@@ -28,51 +31,31 @@ try {
 } catch (error) {
   fail('BASE_TASK_BOARD_UNREADABLE', { base: args.base, message: error.message });
 }
-const boardErrors = validateBoardDocument(board);
+const isOrchestratorQueueUpdate = args.branch === `control/${board.orchestrator}`;
+const boardErrors = validateBoardDocument(
+  board,
+  isOrchestratorQueueUpdate
+    ? { now: new Date(board.updated_at) }
+    : undefined,
+);
 if (boardErrors.length > 0) fail('TASK_BOARD_INVALID', boardErrors);
-
-const task = taskForBranch(board, args.branch);
-if (!task) fail('BRANCH_HAS_NO_TASK', { branch: args.branch });
-if (!['IN_PROGRESS', 'REVIEW'].includes(task.state)) {
-  fail('TASK_NOT_OPEN_FOR_PR', { task_id: task.id, state: task.state });
-}
 
 const mergeBase = execFileSync(
   'git',
   ['merge-base', args.base, args.head],
   { cwd: root, encoding: 'utf8' },
 ).trim();
-try {
-  execFileSync('git', ['merge-base', '--is-ancestor', task.base_sha, mergeBase], {
-    cwd: root,
-    stdio: 'ignore',
-  });
-} catch {
-  fail('TASK_BASE_NOT_ANCESTOR', { task_base_sha: task.base_sha, merge_base: mergeBase });
-}
-const controlOnlyDelta = execFileSync(
-  'git',
-  ['diff', '--name-only', '--no-renames', `${task.base_sha}..${mergeBase}`, '--'],
-  { cwd: root, encoding: 'utf8' },
-).split('\n').filter(Boolean);
-const nonControlDelta = controlOnlyDelta.filter((changedPath) =>
-  !CONTROL_PATTERNS.some((pattern) => matchOwnedPath(changedPath, pattern)));
-if (nonControlDelta.length > 0) {
-  fail('TASK_BASE_PRODUCT_DRIFT', {
-    task_base_sha: task.base_sha,
+if (isOrchestratorQueueUpdate && mergeBase !== args.base) {
+  fail('ORCHESTRATOR_QUEUE_STALE_BASE', {
+    expected_base: args.base,
     merge_base: mergeBase,
-    product_paths: nonControlDelta,
   });
 }
-
 const changedPaths = execFileSync(
   'git',
   ['diff', '--name-only', '--no-renames', `${mergeBase}...${args.head}`, '--'],
   { cwd: root, encoding: 'utf8' },
 ).split('\n').filter(Boolean);
-const errors = validateTaskScope(task, changedPaths, { orchestrator: board.orchestrator });
-if (errors.length > 0) fail('PR_SCOPE_INVALID', errors);
-
 const historyRows = execFileSync(
   'git',
   ['rev-list', '--reverse', '--topo-order', '--parents', `${mergeBase}..${args.head}`],
@@ -87,6 +70,87 @@ const historyScope = collectIntroducedHistoryPaths(historyRows, (parent, commit)
 if (historyScope.errors.length > 0) {
   fail('PR_HISTORY_INVALID', historyScope.errors);
 }
+
+if (isOrchestratorQueueUpdate) {
+  const queueScopeErrors = [
+    ...validateOrchestratorQueueScope(historyScope.paths),
+    ...validateOrchestratorQueueScope(changedPaths),
+  ];
+  if (queueScopeErrors.length > 0) {
+    fail('ORCHESTRATOR_QUEUE_SCOPE_INVALID', queueScopeErrors);
+  }
+  let candidateBoard;
+  try {
+    candidateBoard = JSON.parse(execFileSync(
+      'git',
+      ['show', `${args.head}:TASKS.json`],
+      { cwd: root, encoding: 'utf8' },
+    ));
+  } catch (error) {
+    fail('CANDIDATE_TASK_BOARD_UNREADABLE', { message: error.message });
+  }
+  if (candidateBoard.schema_version !== board.schema_version
+    || candidateBoard.integration_branch !== board.integration_branch
+    || candidateBoard.orchestrator !== board.orchestrator) {
+    fail('ORCHESTRATOR_QUEUE_IDENTITY_CHANGED', {
+      expected: {
+        schema_version: board.schema_version,
+        integration_branch: board.integration_branch,
+        orchestrator: board.orchestrator,
+      },
+    });
+  }
+  const candidateErrors = validateBoardDocument(candidateBoard);
+  candidateErrors.push(
+    ...verifyActiveContextPins(candidateBoard, root, new Set([
+      'ASSIGNED',
+      'IN_PROGRESS',
+      'REVIEW',
+    ])),
+  );
+  if (candidateErrors.length > 0) {
+    fail('CANDIDATE_TASK_BOARD_INVALID', candidateErrors);
+  }
+  process.stdout.write(`${JSON.stringify({
+    ok: true,
+    route: 'orchestrator-queue',
+    owner: board.orchestrator,
+    changed_paths: changedPaths,
+  })}\n`);
+  process.exit(0);
+}
+
+const task = taskForBranch(board, args.branch);
+if (!task) fail('BRANCH_HAS_NO_TASK', { branch: args.branch });
+if (!['IN_PROGRESS', 'REVIEW'].includes(task.state)) {
+  fail('TASK_NOT_OPEN_FOR_PR', { task_id: task.id, state: task.state });
+}
+
+try {
+  execFileSync('git', ['merge-base', '--is-ancestor', task.base_sha, mergeBase], {
+    cwd: root,
+    stdio: 'ignore',
+  });
+} catch {
+  fail('TASK_BASE_NOT_ANCESTOR', { task_base_sha: task.base_sha, merge_base: mergeBase });
+}
+const controlOnlyDelta = execFileSync(
+  'git',
+  ['diff', '--name-only', '--no-renames', `${task.base_sha}..${mergeBase}`, '--'],
+  { cwd: root, encoding: 'utf8' },
+).split('\n').filter(Boolean);
+const nonControlDelta = controlOnlyDelta.filter(isProductPath);
+if (nonControlDelta.length > 0) {
+  fail('TASK_BASE_PRODUCT_DRIFT', {
+    task_base_sha: task.base_sha,
+    merge_base: mergeBase,
+    product_paths: nonControlDelta,
+  });
+}
+
+const errors = validateTaskScope(task, changedPaths, { orchestrator: board.orchestrator });
+if (errors.length > 0) fail('PR_SCOPE_INVALID', errors);
+
 const historyScopeErrors = validateTaskScope(
   task,
   historyScope.paths,

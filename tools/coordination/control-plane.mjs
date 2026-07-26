@@ -21,6 +21,12 @@ export {
 
 export const ACTIVE_STATES = new Set(['ASSIGNED', 'IN_PROGRESS', 'REVIEW']);
 export const TERMINAL_STATES = new Set(['DONE', 'CANCELLED']);
+export const ORCHESTRATOR_QUEUE_PATHS = Object.freeze([
+  'OWNERS.md',
+  'LOG.md',
+  'STATE.md',
+  'TASKS.json',
+]);
 export const TASK_STATES = new Set([
   'BLOCKED',
   'READY',
@@ -165,6 +171,25 @@ export function validateTaskScope(task, changedPaths, {
     }
     if (!allowed.some((pattern) => matchOwnedPath(normalized, pattern))) {
       errors.push({ code: 'PATH_OUTSIDE_TASK_SCOPE', path: normalized });
+    }
+  }
+  return errors;
+}
+
+export function validateOrchestratorQueueScope(changedPaths) {
+  const observed = new Set(changedPaths.map(normalizeRepoPath));
+  const errors = [...observed]
+    .filter((changedPath) => !ORCHESTRATOR_QUEUE_PATHS.includes(changedPath))
+    .map((changedPath) => ({
+      code: 'ORCHESTRATOR_QUEUE_PATH_FORBIDDEN',
+      path: changedPath,
+    }));
+  for (const requiredPath of ['LOG.md', 'STATE.md', 'TASKS.json']) {
+    if (!observed.has(requiredPath)) {
+      errors.push({
+        code: 'ORCHESTRATOR_QUEUE_LEDGER_REQUIRED',
+        path: requiredPath,
+      });
     }
   }
   return errors;
