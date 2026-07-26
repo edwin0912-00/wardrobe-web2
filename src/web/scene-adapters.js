@@ -19,6 +19,7 @@ import {
   SCENE_EVALUATOR_GATES,
   SCENE_REFERENCE_ROLES,
   SCENE_SHOT_ANCHOR_ROLES,
+  contactPointInsideFrame,
   sceneQaItemScope,
   sha256,
 } from './scene-contract.js';
@@ -698,6 +699,99 @@ export const CONTACT_SHADOW_WAIVERS = Object.freeze({
 });
 
 export const CONTACT_SHADOW_WAIVER_REFUSED = 'CONTACT_SHADOW_WAIVED_WITH_FOOTWEAR_IN_FRAME';
+export const CONTACT_SHADOW_CROP_WAIVER_REFUSED = 'CONTACT_SHADOW_CROP_WAIVED_ON_UNCROPPED_SUBJECT';
+
+// A ground-contact verdict, recognised by what a clause asserts rather than by any sentence
+// agreed on in advance, and one-sided on purpose: wording none of this recognises counts as
+// no verdict, so a paraphrase costs a re-ask instead of buying a waiver. Keying the audit on
+// two exact waiver phrases ran the other way — "the crop ends above the feet so ground
+// contact is not observable" on a frame reporting full_footwear_visible true matched neither
+// literal and kept its PASS, which was the whole of what a model had to do to opt out.
+//
+// Read per clause, because which clause a negation sits in is the difference between a
+// verdict and a refusal to give one: "the cast shadow under both shoes matches the key; no
+// floating edge" is a verdict and "no contact shadow is discernible" is not, and whole-string
+// matching cannot tell those apart in either direction.
+const GROUND_CONTACT_JUDGED = /(?:contact|cast|grounding|ground)[-_ ]shadow|shadows?\s+(?:under|underneath|beneath|below|at|around)\b/i;
+
+// Where the subject meets the ground, however the clause refers to it. A refusal aimed here
+// settles the evidence even when some other clause names a shadow it did judge, which is the
+// only reason this is separate from the line above.
+const GROUND_CONTACT_LOCUS = /ground[-_ ]?contact|contact[-_ ]shadow|contact points?|feet|foot|footwear|shoes?|soles?/i;
+
+// A refusal to judge, in the shapes it takes. Each alternative is anchored on the thing being
+// denied rather than on a bare negation, because "shows no floating gap" is part of a verdict
+// and "no contact shadow is discernible" is the absence of one. Anything this misses falls
+// through to needing a verdict, so a gap here costs a retry and never a waiver.
+const GROUND_CONTACT_DECLINED = new RegExp([
+  // "is not observable", "cannot be visibly verified", "was not judged"
+  "\\b(?:not|cannot|can't|never|non)[- ]?(?:be\\s+)?(?:\\w+\\s+){0,2}?(?:observ|verif|visib|assess|determin|judg|resolv|discern|see\\b|seen|shown|present)",
+  "\\bun(?:observ|verif|visib|see|discern)",
+  // "no contact shadow is discernible": the negation lands on the shadow, not on the verb.
+  "\\bno\\s+(?:\\w+\\s+){0,3}?(?:(?:contact|cast|grounding|ground)[-_ ])?shadow",
+  "\\bno\\s+(?:\\w+\\s+){0,3}?(?:ground[-_ ]?contact|contact point)",
+  // the contact point put beyond the frame's reach
+  "\\b(?:outside|beyond|past)\\b[^.;]{0,30}?\\b(?:crop|frame|shot|canvas|image)\\b",
+  "\\babove the (?:feet|footwear|shoes|ankles)\\b",
+].join('|'), 'i');
+
+function groundContactJudged(evidence) {
+  const clauses = String(evidence).split(/[.;\n]+/);
+  // A clause that names where the subject meets the ground and then declines to judge it
+  // settles the whole evidence, in whatever words it declines.
+  if (clauses.some((clause) => GROUND_CONTACT_LOCUS.test(clause)
+    && GROUND_CONTACT_DECLINED.test(clause))) {
+    return false;
+  }
+  const named = clauses.filter((clause) => GROUND_CONTACT_JUDGED.test(clause));
+  return named.length > 0 && named.every((clause) => !GROUND_CONTACT_DECLINED.test(clause));
+}
+
+// What this frame owes, measured against what the gate delivered, or null when the PASS
+// stands. The two questions are asked in that order, and the first is answered only from
+// observations: the framing evidence the same payload reports, and the frame geometry
+// scene-contract.js measures from the subject box in it. Whether the gate then delivered a
+// verdict is the one thing only its prose can answer — so prose can sustain a PASS here,
+// and can neither open the question nor grant relief from it.
+//
+// The two observations are not interchangeable. The reported boolean is the model grading
+// its own excuse, which is the whole reason a second signal is needed. The geometry is
+// independent, but it can only speak to where the frame ENDS — so it is deliberately not
+// allowed to refute a foreground element. The interference_frame slot puts a foreground
+// optical layer in front of the subject by design; there a contact point sits well inside
+// the canvas and is still genuinely unobservable, and a geometric rule reaching that claim
+// would fail the slot for working as specified.
+function contactShadowWaiverRefusal(payload, gate, height) {
+  const footwearInShot = payload.framing_evidence.full_footwear_visible === true;
+  const cutByFrameEdge = !contactPointInsideFrame(payload.framing_evidence, { height });
+  // Neither observation puts a contact point inside this frame, so there is nothing owed
+  // and nothing to audit.
+  if (!footwearInShot && cutByFrameEdge) return null;
+  // The frame does show where the subject meets the ground. A gate carrying the verdict is
+  // exactly what the requirement asked for; only a PASS with no verdict in it is audited,
+  // and that is what a waiver amounts to whether or not one was worded.
+  if (groundContactJudged(gate.evidence)) return null;
+  // The payload contradicting itself outranks the geometry and answers either excuse: a
+  // frame reporting full footwear visible has reported the contact point in shot, however
+  // it accounts for the shot ending.
+  if (footwearInShot) {
+    return {
+      defect: CONTACT_SHADOW_WAIVER_REFUSED,
+      evidence: 'this gate passed with no ground-contact verdict in its evidence on a frame reporting full footwear visible, so the contact point is inside it and owes its shadow.',
+      summary: 'ground contact cannot be waived on a frame that observed its own contact point',
+    };
+  }
+  // Geometry alone opened the question, and nothing measurable here refutes a foreground
+  // element, so the one claim it cannot reach keeps its relief. That claim has to be named
+  // to be granted: a paraphrase of it asserts something nothing in this payload can check,
+  // and unnamed it falls through to the crop refusal below.
+  if (gate.evidence.includes(CONTACT_SHADOW_WAIVERS.occlusion)) return null;
+  return {
+    defect: CONTACT_SHADOW_CROP_WAIVER_REFUSED,
+    evidence: 'this gate passed with no ground-contact verdict in its evidence on a frame whose subject box ends above the bottom edge, so no frame edge cut the contact point away and it owes its shadow.',
+    summary: 'a crop that ends below its subject cannot have cropped away the contact point',
+  };
+}
 
 // A waiver only lives as long as the observation under it, the same way
 // clear_space_above_hair_waived_by_full_head does in scene-contract.js. Here the
@@ -708,26 +802,110 @@ export const CONTACT_SHADOW_WAIVER_REFUSED = 'CONTACT_SHADOW_WAIVED_WITH_FOOTWEA
 // excuse with extra words — the model grants itself the relief and nothing downstream
 // ever looks, which is how four full-length figures standing on paving skipped the one
 // check that separates them from a composite.
-export function reconcileContactShadowWaiver(payload) {
+//
+// That first cut trusted only the reported boolean, which left the mirror-image hole: a
+// frame reporting full_footwear_visible false while standing whole inside the canvas kept
+// the relief, and the report is written by the party the waiver benefits. The frame
+// geometry is the half nobody drafts, so the crop excuse is measured too — through
+// contactPointInsideFrame, imported rather than re-derived, because the space below the
+// subject is the framing lock owner's measurement and not this module's to restate.
+//
+// Both cuts then asked the wrong opening question. Reaching the audit at all required one
+// of two exact phrases in the gate's evidence, so it ran on frames that admitted a waiver
+// in the agreed words and skipped every frame that phrased one in its own: measured on this
+// branch, full_footwear_visible true with "the crop ends above the feet so ground contact
+// is not observable" walked out a clean PASS. What a frame owes cannot depend on how the
+// gate worded its excuse, so the entry condition is the observations alone and the evidence
+// is read only for the verdict they demand.
+export function reconcileContactShadowWaiver(payload, { height }) {
   const gate = payload.gates.find((item) => item.id === 'LIGHT_AND_CONTACT_SHADOW');
   // An already-failing gate has nothing to rescue; only an unsupported PASS does.
   if (!gate || gate.decision !== 'PASS') return payload;
-  const waived = Object.values(CONTACT_SHADOW_WAIVERS)
-    .some((phrase) => gate.evidence.includes(phrase));
-  if (!waived || payload.framing_evidence.full_footwear_visible !== true) return payload;
+  const refusal = contactShadowWaiverRefusal(payload, gate, height);
+  if (!refusal) return payload;
   gate.decision = 'FAIL';
-  if (!gate.defects.includes(CONTACT_SHADOW_WAIVER_REFUSED)) {
-    gate.defects = [...gate.defects, CONTACT_SHADOW_WAIVER_REFUSED].slice(0, 20);
+  if (!gate.defects.includes(refusal.defect)) {
+    gate.defects = [...gate.defects, refusal.defect].slice(0, 20);
   }
-  gate.evidence = boundedEvaluationText(
-    `${gate.evidence}; ground contact was waived on a frame reporting full footwear visible, so the contact point is inside it and owes its shadow.`,
-    1_000,
-  );
+  gate.evidence = boundedEvaluationText(`${gate.evidence}; ${refusal.evidence}`, 1_000);
   payload.score = Math.min(payload.score, 60);
-  payload.summary = boundedEvaluationText(
-    `${payload.summary}; ground contact cannot be waived on a frame that observed its own contact point`,
-    1_000,
-  );
+  payload.summary = boundedEvaluationText(`${payload.summary}; ${refusal.summary}`, 1_000);
+  return payload;
+}
+
+// FRAMING_AND_ANATOMY is the one gate whose framing half is not the evaluator's to author.
+// assessSceneFraming measures the reported subject box against the preset lock and writes
+// those names itself, after this payload is parsed, so what arrives here is an observation
+// plus at most an anatomy verdict. The names for that are enumerated because an invented
+// one has now failed a gate three times in one day: scene_e92594aa attempts 1 and 2 both
+// came back FRAMING_AND_ANATOMY FAIL on FULL_FOOTWEAR_VISIBLE_WHEN_REQUIRED_FALSE, evidence
+// "both ballet flats are completely visible even though this shot requires
+// full_footwear_visible=false" — a rule that appears nowhere in this repository, since full
+// footwear=false means footwear is not required and has never meant it is forbidden. Two
+// paid generations went on it. The two rounds before that failed frames for being
+// "full-body rather than the required three_quarter" and for showing shoes under a
+// three_quarter crop token. Prohibiting those claims one at a time is how the next one gets
+// invented; a closed list is what leaves no room for a fourth.
+export const FRAMING_ANATOMY_DEFECTS = Object.freeze([
+  'MALFORMED_HAND_OR_FINGERS',
+  'MALFORMED_FOOT_OR_TOES',
+  'MALFORMED_FACE_OR_EARS',
+  'DUPLICATED_OR_MISSING_BODY_PART',
+  'IMPOSSIBLE_JOINT_OR_LIMB_GEOMETRY',
+  'IMPLAUSIBLE_BODY_PROPORTION',
+  'SUBJECT_FUSED_WITH_ENVIRONMENT',
+]);
+
+// The two framing names the evaluator may also send, because each restates a boolean it
+// already reports in framing_evidence and assessSceneFraming recomputes both from that same
+// payload. SUBJECT_HEIGHT_OUTSIDE_PRESET_RANGE and the two INSUFFICIENT_CLEAR_SPACE_ names
+// are absent on purpose: those are verdicts on numeric locks the prompt tells the evaluator
+// it does not own and cannot measure, so a payload carrying one is a lock enforced by eye —
+// the same failure as an invented name, wearing a name the code happens to recognise.
+export const FRAMING_VISIBILITY_DEFECTS = Object.freeze([
+  'FULL_HEAD_NOT_VISIBLE',
+  'FULL_FOOTWEAR_NOT_VISIBLE',
+]);
+
+export const EVALUATOR_FRAMING_DEFECTS = Object.freeze([
+  ...FRAMING_ANATOMY_DEFECTS,
+  ...FRAMING_VISIBILITY_DEFECTS,
+]);
+
+export const FRAMING_DEFECT_OUTSIDE_VOCABULARY = 'FRAMING_DEFECT_OUTSIDE_VOCABULARY';
+
+const FRAMING_DEFECT_BY_NAME = new Map(EVALUATOR_FRAMING_DEFECTS
+  .map((defect) => [defect, defect]));
+
+// An invented framing defect is a problem with the evaluation, not with the frame, and it is
+// answered that way: both adapters turn this throw into SCENE_EVALUATOR_CONTRACT_FAILED,
+// which scene-service records as EVALUATOR_CONTRACT_FAILED and answers by re-asking the
+// evaluator while keeping the candidate. So an invented rule costs one re-ask where it cost
+// scene_e92594aa two paid generations, and the loud part is that it is named rather than
+// spent silently as a retry against the image.
+//
+// The claim underneath is not dropped: the offending names and the gate's own evidence travel
+// in the message, which is checkpointed to the attempt as its error before any retry and is
+// what a reader sees if the re-asks run out. A real anatomy fault the list has no exact entry
+// for stays reportable — the instruction sends it to the closest listed name with the
+// specifics in the evidence — and one sent under an invented name surfaces here instead of
+// quietly rejecting a frame on a rule nobody wrote.
+export function assertFramingDefectVocabulary(payload) {
+  const gate = payload.gates.find((item) => item.id === 'FRAMING_AND_ANATOMY');
+  if (!gate) return payload;
+  const named = gate.defects.map((defect) => String(defect).trim());
+  const outside = named.filter((defect) => !FRAMING_DEFECT_BY_NAME.has(defect.toUpperCase()));
+  if (outside.length > 0) {
+    throw new Error(boundedEvaluationText([
+      `${FRAMING_DEFECT_OUTSIDE_VOCABULARY}: the evaluator returned FRAMING_AND_ANATOMY`,
+      `${gate.decision} naming ${outside.length} defect this contract does not define`,
+      `(${outside.map((defect) => boundedEvaluationText(defect, 200)).join(', ')});`,
+      `its evidence was: ${gate.evidence}`,
+    ].join(' '), 1_000));
+  }
+  // Spelled back the one way this module and the receipts spell it. A verdict a reader
+  // cannot grep for is the same defeat as the invented name arriving in the first place.
+  gate.defects = named.map((defect) => FRAMING_DEFECT_BY_NAME.get(defect.toUpperCase()));
   return payload;
 }
 
@@ -812,9 +990,17 @@ export function evaluatorPrompt(delivery, references, preset = null, qaItems = [
       'LIGHT_AND_CONTACT_SHADOW judges key direction, light quality, subject-to-environment coherence, and whether every shadow this crop does show is plausible for that light.',
       'This crop is not required to reach the subject-to-ground contact points and frequently reaches them anyway, so which case this frame is in is something you observe in it, not something the shot declares. Where the subject meets the ground inside this frame the gate is the ordinary one: a visible contact shadow consistent with the key light is required, and a missing, floating or wrongly directed one is FAIL. Reporting full_footwear_visible true is that observation.',
       `Stop short of judging ground contact only when this frame cannot show it. That takes full_footwear_visible false plus one of these two exact phrases in this gate's evidence, naming what puts the contact point out of reach: "${CONTACT_SHADOW_WAIVERS.crop}" with the frame edge that cuts the subject off, or "${CONTACT_SHADOW_WAIVERS.occlusion}" with the foreground element in the way. With one of them stated, do not FAIL for absent ground contact and do not report CONTACT_SHADOW_NOT_VISIBLE or CONTACT_SHADOW_NOT_VERIFIABLE. Unstated, ground contact is required as above. Either way, any other contact point between the subject and a surface inside this crop still requires its own contact shadow, and a missing, floating or wrongly directed one is FAIL.`,
+      // Stated so the model is not invited to make a claim its own measurements refute.
+      // The occlusion claim is not measurable this way and is not described as if it were.
+      'The crop phrase is checked against the subject box you report: a box whose bottom edge lands above the bottom edge of the canvas was not cut off by it, and no frame edge can then have removed the contact point. Claim it only for a subject the frame actually cuts.',
     ] : [
       'LIGHT_AND_CONTACT_SHADOW requires a visible subject-to-ground contact shadow consistent with the key light. A subject standing in frame without one is a composite rather than a photograph and is FAIL.',
     ]),
+    // Said on both paths because the audit runs on both, and said at all because the audit
+    // now reads this gate's evidence for the verdict rather than for an agreed excuse. A
+    // frame that owes a verdict and states none is refused, so the duty to state one belongs
+    // in the instruction and not only in the code that enforces it.
+    'Whenever this frame does show where the subject meets the ground — you report full_footwear_visible true, or the subject box you report ends above the bottom edge of the canvas — a PASS on LIGHT_AND_CONTACT_SHADOW requires that verdict in the gate\'s own evidence: name the contact shadow you can see and how it sits against the key light. A PASS whose evidence states no such verdict is read as declining to judge and is refused, in whatever words it declines.',
     `For framing_evidence, measure the visible subject or intentional ${framing.replaceAll('_', ' ')} crop bounding box [x,y,width,height] in pixels on the ${delivery.width}x${delivery.height} candidate canvas.`,
     `Set full_head_visible and full_footwear_visible from observation. This shot requires full head=${requireFullHead} and full footwear=${requireFullFootwear}; an intentional omission is not itself a defect when the requirement is false.`,
     // The named crop is art direction, not a measurement, and the requirement
@@ -826,13 +1012,26 @@ export function evaluatorPrompt(delivery, references, preset = null, qaItems = [
     // recorded no defect at all. Both directions have to be said, or the model
     // keeps inventing a lock the contract does not have.
     `The nominal crop for this shot is ${framing.replaceAll('_', ' ')}. Showing more of the body than that name suggests is not a framing defect when the requirements above are met — footwear visible while full footwear=false is acceptable art direction, not a fault. Judge FRAMING_AND_ANATOMY on anatomical coherence and on those stated requirements only; the numeric subject-height and clear-space locks are assessed outside this call and are not yours to enforce.`,
+    // The sentence above already prohibited the two claims that had been invented by then,
+    // and the next attempt invented a third. Enumerating is the difference between a rule the
+    // model reads as art direction and a list it reads as the only words that exist.
+    `Name FRAMING_AND_ANATOMY defects only from this closed list: ${EVALUATOR_FRAMING_DEFECTS.join(', ')}. Nothing else is a defect name this contract defines, and there is no name in it for showing more of the body than the nominal crop, for footwear being visible while full footwear=false, or for the subject-height and clear-space numbers, because none of those are yours to fail. A name outside the list is a contract violation: the whole evaluation is discarded and asked again, so a real fault reported under an invented name is a fault nobody acts on. If you see a genuine anatomy fault the list has no exact entry for, use the closest listed name and describe exactly what is wrong in that gate's evidence.`,
     'PASS only from visible evidence. A visual defect is FAIL; do not convert it into an infrastructure result.',
     'Return only schema-valid JSON.',
     structuredInstructions(references),
   ].join('\n'));
 }
 
-export function validateEvaluatorPayload(payload) {
+export function validateEvaluatorPayload(payload, delivery) {
+  // A precondition of ours, checked before the model's own contract below: the waiver
+  // audit at the bottom measures the candidate frame, so it needs the canvas the evaluator
+  // was told to measure against. Required with no default, because a parse point that got
+  // here without one would hand back an unaudited waiver and look exactly like a clean
+  // pass — the silence this audit exists to end. scene-adapters.test.js pins that every
+  // call to this function in src/web passes it.
+  if (!delivery || !Number.isInteger(delivery.height) || delivery.height < 1) {
+    throw new Error('Evaluator payload validation requires the delivery canvas height');
+  }
   if (!payload || typeof payload !== 'object' || !Array.isArray(payload.gates) || payload.gates.length !== SCENE_EVALUATOR_GATES.length) {
     throw new Error('Evaluator returned an invalid gate collection');
   }
@@ -856,10 +1055,13 @@ export function validateEvaluatorPayload(payload) {
     throw new Error('Evaluator returned invalid numeric framing evidence');
   }
   // Both evaluators — the codex adapter below and OpenRouter — parse through here and
-  // nowhere else, so this is the one place a contact-shadow waiver can be held against
-  // the framing evidence on every live path. It runs last because it reads the score,
-  // the summary and full_footwear_visible, all of which are only known good above.
-  return reconcileContactShadowWaiver(payload);
+  // nowhere else, so this is the one place a contact-shadow waiver can be held against the
+  // framing evidence on every live path, and the one place a framing verdict can be held to
+  // the vocabulary the code owns. The vocabulary check goes first only because a payload
+  // failing it is not going anywhere; both run last because they read the score, the
+  // summary, full_footwear_visible and the subject box, all of which are only known good
+  // above.
+  return reconcileContactShadowWaiver(assertFramingDefectVocabulary(payload), delivery);
 }
 
 export function itemDetailZone(category, height) {
@@ -1160,7 +1362,7 @@ export class SceneEvaluatorAdapter {
       let raw;
       try { raw = await readFile(outputPath, 'utf8'); } catch { raw = result.stdout; }
       let payload;
-      try { payload = validateEvaluatorPayload(JSON.parse(raw)); } catch (error) {
+      try { payload = validateEvaluatorPayload(JSON.parse(raw), context.delivery); } catch (error) {
         throw new SceneEvaluationInfrastructureError(`Scene evaluator contract failed: ${error.message}`, {
           code: 'SCENE_EVALUATOR_CONTRACT_FAILED',
           cause: error,

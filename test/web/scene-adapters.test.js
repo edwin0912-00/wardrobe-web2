@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, readdir, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -9,13 +9,20 @@ import {
   orderedReferenceDescriptors,
 } from '../../src/providers/higgsfield-cli-provider.js';
 import {
+  CONTACT_SHADOW_CROP_WAIVER_REFUSED,
   CONTACT_SHADOW_WAIVER_REFUSED,
   CONTACT_SHADOW_WAIVERS,
+  EVALUATOR_FRAMING_DEFECTS,
+  FRAMING_ANATOMY_DEFECTS,
+  FRAMING_DEFECT_OUTSIDE_VOCABULARY,
+  FRAMING_VISIBILITY_DEFECTS,
   SceneEvaluationInfrastructureError,
   SceneEvaluatorAdapter,
   SceneGeneratorAdapter,
+  assertFramingDefectVocabulary,
   evaluatorPrompt,
   reconcileContactShadowWaiver,
+  validateEvaluatorPayload,
 } from '../../src/web/scene-adapters.js';
 import {
   DEFAULT_SCENE_MODEL_ROUTE,
@@ -1632,6 +1639,12 @@ test('an editorial crop is told the contact-shadow rule as a condition, not hand
   // frame's foreground layer or anything else that hides a contact point.
   assert.ok(editorial.includes(CONTACT_SHADOW_WAIVERS.crop));
   assert.ok(editorial.includes(CONTACT_SHADOW_WAIVERS.occlusion));
+  // The crop claim is audited against the model's own subject box, so the prompt says so
+  // rather than inviting a claim the payload refutes on arrival.
+  assert.match(editorial, /The crop phrase is checked against the subject box you report/);
+  assert.match(editorial, /was not cut off by it/);
+  // The occlusion claim is not measurable that way and must not be described as if it is.
+  assert.doesNotMatch(editorial, /occluded[^.]*checked against the subject box/i);
 
   const standard = evaluatorPrompt({ width: 1024, height: 1280 }, [], null, []);
   assert.match(standard, /requires a visible subject-to-ground contact shadow/);
@@ -1641,19 +1654,69 @@ test('an editorial crop is told the contact-shadow rule as a condition, not hand
   assert.doesNotMatch(standard, /do not report CONTACT_SHADOW_NOT_VISIBLE/);
 });
 
-function waivedPayload({ phrase, footwearVisible, decision = 'PASS' }) {
+const WAIVER_CANVAS = Object.freeze({ width: 1024, height: 1280 });
+const WAIVER_SUBJECT_TOP = 128;
+// A subject box running into the bottom edge. The frame did cut the subject off, so a
+// GROUND CONTACT OUTSIDE CROP claim is one its own geometry supports.
+const SUBJECT_CUT_BY_BOTTOM_EDGE = 1280;
+// A subject standing whole inside the canvas with 192px of frame beneath it. No edge
+// removed anything, whatever the payload reports about the footwear.
+const SUBJECT_ABOVE_BOTTOM_EDGE = 1088;
+
+function waivedPayload({ phrase, footwearVisible, bboxBottom, decision = 'PASS' }) {
+  // Stated, never defaulted: the subject box decides the crop half of the audit now, so a
+  // fixture that let it fall back would be choosing the outcome by accident.
+  if (!Number.isInteger(bboxBottom)) {
+    throw new Error('a contact-shadow waiver fixture must state its own subject box');
+  }
   const payload = evaluatorPayload();
   const light = payload.gates.find((gate) => gate.id === 'LIGHT_AND_CONTACT_SHADOW');
   light.decision = decision;
+  const reason = phrase === CONTACT_SHADOW_WAIVERS.occlusion
+    ? 'a foreground glass pane stands between the camera and the feet'
+    : 'the subject is cut at the lower frame edge';
   light.evidence = phrase === null
     ? 'Key light is hard and high-left; the cast shadow under both shoes matches its direction.'
-    : `Key light is hard and high-left. ${phrase}: the subject is cut at the lower frame edge.`;
+    : `Key light is hard and high-left. ${phrase}: ${reason}.`;
   if (decision === 'FAIL') light.defects = ['LIGHT_DIRECTION_MISMATCH'];
-  payload.framing_evidence = { ...payload.framing_evidence, full_footwear_visible: footwearVisible };
+  payload.framing_evidence = {
+    subject_bbox_xywh_px: [162, WAIVER_SUBJECT_TOP, 700, bboxBottom - WAIVER_SUBJECT_TOP],
+    full_head_visible: true,
+    full_footwear_visible: footwearVisible,
+  };
   return payload;
 }
 
-test('the contact-shadow waiver is refused by the frame that reports its own footwear in shot', async () => {
+// Each refusal has to be legible in the gate a reader is shown, and has to be the one that
+// applies: a frame told its footwear contradicted the waiver when really the frame geometry
+// did is a receipt that sends a retry after the wrong thing.
+const REFUSAL_TEXT = Object.freeze({
+  [CONTACT_SHADOW_WAIVER_REFUSED]: {
+    evidence: /reporting full footwear visible/,
+    summary: /cannot be waived on a frame that observed its own contact point/,
+  },
+  [CONTACT_SHADOW_CROP_WAIVER_REFUSED]: {
+    evidence: /subject box ends above the bottom edge/,
+    summary: /a crop that ends below its subject cannot have cropped away the contact point/,
+  },
+});
+
+test('the contact-shadow waiver vocabulary is a fixed wire contract', () => {
+  // The phrases are what the model is asked to type and the defects are what receipts
+  // carry. Renaming either in one place only would disarm the audit while every
+  // behavioural test below still passed, so the literals are pinned here once.
+  assert.deepEqual({ ...CONTACT_SHADOW_WAIVERS }, {
+    crop: 'GROUND CONTACT OUTSIDE CROP',
+    occlusion: 'GROUND CONTACT OCCLUDED BY FOREGROUND',
+  });
+  assert.equal(CONTACT_SHADOW_WAIVER_REFUSED, 'CONTACT_SHADOW_WAIVED_WITH_FOOTWEAR_IN_FRAME');
+  assert.equal(
+    CONTACT_SHADOW_CROP_WAIVER_REFUSED,
+    'CONTACT_SHADOW_CROP_WAIVED_ON_UNCROPPED_SUBJECT',
+  );
+});
+
+test('the contact-shadow waiver is refused by the frame that contradicts it', async () => {
   const fixture = await contextFixture();
   const candidate = await imageFile(fixture.root, 'candidate-waiver-audit.png', {
     width: 1024,
@@ -1664,21 +1727,36 @@ test('the contact-shadow waiver is refused by the frame that reports its own foo
   await writeFile(presetPath, JSON.stringify(EDITORIAL_FOOTWEAR_OPTIONAL_PRESET));
 
   for (const expectation of [
-    // The crop genuinely ends above the feet: the relief this whole branch exists for.
+    // The crop genuinely ends above the feet: the relief this whole branch exists for. It
+    // has to state a cut subject to get it, which is the point.
     {
-      label: 'editorial-crop-waiver-no-footwear',
+      label: 'editorial-crop-waiver-no-footwear-cut-subject',
       editorial: true,
       phrase: CONTACT_SHADOW_WAIVERS.crop,
       footwearVisible: false,
+      bboxBottom: SUBJECT_CUT_BY_BOTTOM_EDGE,
       decision: 'PASS',
     },
-    // The four delivered frames. Same slot, same declaration, opposite observation.
+    // The hole the reported-boolean check left open: same claim, same reported footwear,
+    // and a subject standing whole inside the canvas. Nothing cropped the contact point.
+    {
+      label: 'editorial-crop-waiver-no-footwear-uncut-subject',
+      editorial: true,
+      phrase: CONTACT_SHADOW_WAIVERS.crop,
+      footwearVisible: false,
+      bboxBottom: SUBJECT_ABOVE_BOTTOM_EDGE,
+      decision: 'FAIL',
+      defect: CONTACT_SHADOW_CROP_WAIVER_REFUSED,
+    },
+    // The delivered frames. Same slot, same declaration, opposite observation.
     {
       label: 'editorial-crop-waiver-with-footwear',
       editorial: true,
       phrase: CONTACT_SHADOW_WAIVERS.crop,
       footwearVisible: true,
+      bboxBottom: SUBJECT_ABOVE_BOTTOM_EDGE,
       decision: 'FAIL',
+      defect: CONTACT_SHADOW_WAIVER_REFUSED,
     },
     // The second waiver is not a way around the first one being audited.
     {
@@ -1686,13 +1764,27 @@ test('the contact-shadow waiver is refused by the frame that reports its own foo
       editorial: true,
       phrase: CONTACT_SHADOW_WAIVERS.occlusion,
       footwearVisible: true,
+      bboxBottom: SUBJECT_ABOVE_BOTTOM_EDGE,
       decision: 'FAIL',
+      defect: CONTACT_SHADOW_WAIVER_REFUSED,
     },
+    // interference_frame, working as designed: a foreground layer hides the feet while the
+    // subject sits well inside the canvas. Geometry cannot see the pane, so it must not be
+    // allowed to call this claim false — the crop rule stops at the crop claim.
     {
-      label: 'editorial-occlusion-waiver-no-footwear',
+      label: 'editorial-occlusion-waiver-no-footwear-uncut-subject',
       editorial: true,
       phrase: CONTACT_SHADOW_WAIVERS.occlusion,
       footwearVisible: false,
+      bboxBottom: SUBJECT_ABOVE_BOTTOM_EDGE,
+      decision: 'PASS',
+    },
+    {
+      label: 'editorial-occlusion-waiver-no-footwear-cut-subject',
+      editorial: true,
+      phrase: CONTACT_SHADOW_WAIVERS.occlusion,
+      footwearVisible: false,
+      bboxBottom: SUBJECT_CUT_BY_BOTTOM_EDGE,
       decision: 'PASS',
     },
     // A frame that shows its footwear and judged the shadow is exactly what the gate
@@ -1702,22 +1794,45 @@ test('the contact-shadow waiver is refused by the frame that reports its own foo
       editorial: true,
       phrase: null,
       footwearVisible: true,
+      bboxBottom: SUBJECT_ABOVE_BOTTOM_EDGE,
+      decision: 'PASS',
+    },
+    // Nor does a frame that reports nothing about a waiver it never claimed, whatever its
+    // geometry: the audit only ever answers a claim.
+    {
+      label: 'editorial-no-waiver-no-footwear-cut-subject',
+      editorial: true,
+      phrase: null,
+      footwearVisible: false,
+      bboxBottom: SUBJECT_CUT_BY_BOTTOM_EDGE,
       decision: 'PASS',
     },
     // The standard path is never offered the waiver, so a payload carrying one there is
-    // unsupported for the same reason and by the same rule.
+    // unsupported for the same reasons and by the same rules — both of them.
     {
       label: 'standard-crop-waiver-with-footwear',
       editorial: false,
       phrase: CONTACT_SHADOW_WAIVERS.crop,
       footwearVisible: true,
+      bboxBottom: SUBJECT_ABOVE_BOTTOM_EDGE,
       decision: 'FAIL',
+      defect: CONTACT_SHADOW_WAIVER_REFUSED,
+    },
+    {
+      label: 'standard-crop-waiver-no-footwear-uncut-subject',
+      editorial: false,
+      phrase: CONTACT_SHADOW_WAIVERS.crop,
+      footwearVisible: false,
+      bboxBottom: SUBJECT_ABOVE_BOTTOM_EDGE,
+      decision: 'FAIL',
+      defect: CONTACT_SHADOW_CROP_WAIVER_REFUSED,
     },
     {
       label: 'standard-no-waiver-with-footwear',
       editorial: false,
       phrase: null,
       footwearVisible: true,
+      bboxBottom: SUBJECT_ABOVE_BOTTOM_EDGE,
       decision: 'PASS',
     },
   ]) {
@@ -1727,6 +1842,7 @@ test('the contact-shadow waiver is refused by the frame that reports its own foo
       commandRunner: evaluatorRunner(waivedPayload({
         phrase: expectation.phrase,
         footwearVisible: expectation.footwearVisible,
+        bboxBottom: expectation.bboxBottom,
       }), []),
     });
     const result = await adapter.evaluateScene({
@@ -1737,20 +1853,30 @@ test('the contact-shadow waiver is refused by the frame that reports its own foo
       references: fixture.references,
       ...(expectation.editorial ? { preset: { path: presetPath } } : {}),
       required_gates: SCENE_EVALUATOR_GATES,
-      delivery: { width: 1024, height: 1280 },
+      delivery: { ...WAIVER_CANVAS },
     });
     const light = result.gates.find((gate) => gate.id === 'LIGHT_AND_CONTACT_SHADOW');
     assert.equal(light.decision, expectation.decision, expectation.label);
     if (expectation.decision === 'FAIL') {
-      assert.deepEqual(light.defects, [CONTACT_SHADOW_WAIVER_REFUSED], expectation.label);
-      // The reason is recoverable from the gate a reader is shown, not only from the code.
-      assert.match(light.evidence, /reporting full footwear visible/, expectation.label);
+      assert.deepEqual(light.defects, [expectation.defect], expectation.label);
+      // The reason is recoverable from the gate a reader is shown, not only from the code,
+      // and it is the reason that actually applied.
+      const applied = REFUSAL_TEXT[expectation.defect];
+      assert.match(light.evidence, applied.evidence, expectation.label);
+      assert.match(result.summary, applied.summary, expectation.label);
+      for (const [defect, text] of Object.entries(REFUSAL_TEXT)) {
+        if (defect === expectation.defect) continue;
+        assert.doesNotMatch(light.evidence, text.evidence, expectation.label);
+        assert.doesNotMatch(result.summary, text.summary, expectation.label);
+      }
       assert.equal(result.score, 60, expectation.label);
-      assert.match(result.summary, /cannot be waived on a frame that observed its own contact point/);
     } else {
       assert.deepEqual(light.defects, [], expectation.label);
       assert.equal(result.score, 96, expectation.label);
       assert.doesNotMatch(light.evidence, /owes its shadow/, expectation.label);
+      for (const text of Object.values(REFUSAL_TEXT)) {
+        assert.doesNotMatch(result.summary, text.summary, expectation.label);
+      }
     }
     // One gate is reconciled; the other five carry whatever the evaluator said.
     for (const gate of result.gates.filter((item) => item.id !== 'LIGHT_AND_CONTACT_SHADOW')) {
@@ -1761,24 +1887,165 @@ test('the contact-shadow waiver is refused by the frame that reports its own foo
   }
 });
 
-test('a gate already failing for its own reason is not overwritten by the waiver audit', () => {
-  const payload = reconcileContactShadowWaiver(waivedPayload({
-    phrase: CONTACT_SHADOW_WAIVERS.crop,
+test('a frame naming a foreground element keeps its waiver even beside a crop claim', () => {
+  // Both phrases at once. The occlusion claim is not refutable from geometry, so the
+  // waiver survives on it — the crop rule polices the crop claim, not the gate. What it
+  // does not survive is the payload reporting the footwear in shot, which answers both.
+  const both = `${CONTACT_SHADOW_WAIVERS.crop} and also ${CONTACT_SHADOW_WAIVERS.occlusion}`;
+  const kept = reconcileContactShadowWaiver(waivedPayload({
+    phrase: both,
+    footwearVisible: false,
+    bboxBottom: SUBJECT_ABOVE_BOTTOM_EDGE,
+  }), WAIVER_CANVAS);
+  const keptLight = kept.gates.find((gate) => gate.id === 'LIGHT_AND_CONTACT_SHADOW');
+  assert.equal(keptLight.decision, 'PASS');
+  assert.deepEqual(keptLight.defects, []);
+  assert.equal(kept.score, 96);
+
+  const refused = reconcileContactShadowWaiver(waivedPayload({
+    phrase: both,
     footwearVisible: true,
-    decision: 'FAIL',
-  }));
-  const light = payload.gates.find((gate) => gate.id === 'LIGHT_AND_CONTACT_SHADOW');
+    bboxBottom: SUBJECT_ABOVE_BOTTOM_EDGE,
+  }), WAIVER_CANVAS);
+  const refusedLight = refused.gates.find((gate) => gate.id === 'LIGHT_AND_CONTACT_SHADOW');
+  assert.equal(refusedLight.decision, 'FAIL');
+  assert.deepEqual(refusedLight.defects, [CONTACT_SHADOW_WAIVER_REFUSED]);
+});
+
+test('the bottom edge itself is the boundary the crop claim is measured against', () => {
+  // One pixel decides it, so both sides of the boundary are pinned. A box ending at the
+  // last row of the canvas was cut; one ending a pixel short of it was not.
+  for (const [bboxBottom, decision] of [[1280, 'PASS'], [1279, 'FAIL']]) {
+    const payload = reconcileContactShadowWaiver(waivedPayload({
+      phrase: CONTACT_SHADOW_WAIVERS.crop,
+      footwearVisible: false,
+      bboxBottom,
+    }), WAIVER_CANVAS);
+    const light = payload.gates.find((gate) => gate.id === 'LIGHT_AND_CONTACT_SHADOW');
+    assert.equal(light.decision, decision, `bbox bottom ${bboxBottom}`);
+  }
+});
+
+test('a gate already failing for its own reason is not overwritten by the waiver audit', () => {
+  for (const bboxBottom of [SUBJECT_ABOVE_BOTTOM_EDGE, SUBJECT_CUT_BY_BOTTOM_EDGE]) {
+    for (const footwearVisible of [true, false]) {
+      const payload = reconcileContactShadowWaiver(waivedPayload({
+        phrase: CONTACT_SHADOW_WAIVERS.crop,
+        footwearVisible,
+        bboxBottom,
+        decision: 'FAIL',
+      }), WAIVER_CANVAS);
+      const light = payload.gates.find((gate) => gate.id === 'LIGHT_AND_CONTACT_SHADOW');
+      assert.equal(light.decision, 'FAIL');
+      assert.deepEqual(light.defects, ['LIGHT_DIRECTION_MISMATCH']);
+      assert.equal(payload.score, 96);
+    }
+  }
+});
+
+test('an evaluator payload cannot be validated without the canvas its waiver audit measures', () => {
+  // A crop waiver on an uncut subject: refused with the canvas, and the point is that
+  // there is no way to reach this function without one and quietly get the PASS instead.
+  const claim = () => waivedPayload({
+    phrase: CONTACT_SHADOW_WAIVERS.crop,
+    footwearVisible: false,
+    bboxBottom: SUBJECT_ABOVE_BOTTOM_EDGE,
+  });
+  for (const delivery of [undefined, null, {}, { width: 1024 }, { width: 1024, height: 0 }, { width: 1024, height: 1280.5 }]) {
+    assert.throws(
+      () => validateEvaluatorPayload(claim(), delivery),
+      /requires the delivery canvas height/,
+      JSON.stringify(delivery ?? null),
+    );
+  }
+  const audited = validateEvaluatorPayload(claim(), WAIVER_CANVAS);
+  const light = audited.gates.find((gate) => gate.id === 'LIGHT_AND_CONTACT_SHADOW');
   assert.equal(light.decision, 'FAIL');
-  assert.deepEqual(light.defects, ['LIGHT_DIRECTION_MISMATCH']);
-  assert.equal(payload.score, 96);
+  assert.deepEqual(light.defects, [CONTACT_SHADOW_CROP_WAIVER_REFUSED]);
+});
+
+// Splits the top-level arguments of every call to a named function in a source file, so
+// the assertion below is about the calls themselves rather than about two paths someone
+// remembered to update.
+function callArguments(source, callee) {
+  const calls = [];
+  for (let index = source.indexOf(`${callee}(`); index !== -1; index = source.indexOf(`${callee}(`, index + 1)) {
+    // The declaration is not a call site.
+    if (/function\s+$/.test(source.slice(0, index))) continue;
+    const start = index + callee.length + 1;
+    const args = [];
+    let depth = 0;
+    let scan = start;
+    let argumentStart = start;
+    for (; scan < source.length; scan += 1) {
+      const character = source[scan];
+      if ('([{'.includes(character)) depth += 1;
+      else if (')]}'.includes(character)) {
+        if (depth === 0) break;
+        depth -= 1;
+      } else if (character === ',' && depth === 0) {
+        args.push(source.slice(argumentStart, scan).trim());
+        argumentStart = scan + 1;
+      }
+    }
+    assert.notEqual(scan, source.length, `unterminated ${callee} call`);
+    args.push(source.slice(argumentStart, scan).trim());
+    calls.push(args);
+  }
+  return calls;
+}
+
+test('every evaluator parse point in src/web hands the waiver audit its own canvas', async () => {
+  // The audit is only as wide as its call sites. The codex adapter and OpenRouter are the
+  // two today; a third that parsed a payload without a canvas would throw at runtime, and
+  // this is what says so before it ships rather than on the first live scene.
+  //
+  // The argument has to be the delivery the caller was handed, not a canvas it wrote out.
+  // A literal 1024x1280 satisfies every other test in this file — it is the only delivery
+  // that exists today — while quietly measuring the next one against a stale frame, which
+  // is the same shape of silence as the waiver this audit was written to catch.
+  const webRoot = path.resolve(import.meta.dirname, '..', '..', 'src', 'web');
+  const callers = [];
+  for (const name of (await readdir(webRoot)).filter((file) => file.endsWith('.js'))) {
+    const source = await readFile(path.join(webRoot, name), 'utf8');
+    const calls = callArguments(source, 'validateEvaluatorPayload');
+    if (calls.length === 0) continue;
+    callers.push(name);
+    for (const args of calls) {
+      assert.equal(args.length, 2, `${name} must pass the delivery canvas to validateEvaluatorPayload`);
+      assert.match(
+        args[1],
+        /(^|\.)delivery$/,
+        `${name} must pass the delivery it was given, not a canvas of its own`,
+      );
+    }
+  }
+  assert.deepEqual(callers.sort(), ['openrouter-scene-evaluator.js', 'scene-adapters.js']);
+});
+
+test('the waiver audit measures against the canvas it is handed, not the canonical one', () => {
+  // One payload, one claim, two canvases. The subject box ends at 1088: on a 1280-tall
+  // delivery the frame carries on below it and GROUND CONTACT OUTSIDE CROP is false, while
+  // on an 1088-tall one the box runs into the bottom edge and the claim holds. Nothing
+  // downstream may answer this from a remembered canvas.
+  const claim = () => waivedPayload({
+    phrase: CONTACT_SHADOW_WAIVERS.crop,
+    footwearVisible: false,
+    bboxBottom: SUBJECT_ABOVE_BOTTOM_EDGE,
+  });
+  for (const [height, decision] of [[1280, 'FAIL'], [SUBJECT_ABOVE_BOTTOM_EDGE, 'PASS']]) {
+    const audited = validateEvaluatorPayload(claim(), { width: 1024, height });
+    const light = audited.gates.find((gate) => gate.id === 'LIGHT_AND_CONTACT_SHADOW');
+    assert.equal(light.decision, decision, `canvas height ${height}`);
+  }
 });
 
 // Every editorial asset result the beta runtime holds, with the framing evidence it
 // actually recorded. All nine passed LIGHT_AND_CONTACT_SHADOW under the declaration-keyed
-// relaxation; five of them observed their own footwear while doing it. bbox bottoms are
-// carried along because they are the independent corroboration that the boolean was not
-// noise: every frame reporting footwear visible ends its subject above the 1280px canvas
-// edge, and every frame reporting it hidden runs into that edge.
+// relaxation; five of them observed their own footwear while doing it. The bbox bottoms are
+// no longer corroboration carried alongside — they are read, and they are what makes the
+// misreport replay below possible: every frame reporting footwear visible ends its subject
+// above the 1280px canvas edge, and every frame reporting it hidden runs into that edge.
 const DELIVERED_EDITORIAL_FRAMES = Object.freeze([
   { slot: 'organic_contrast.clean_identity_hero', bboxBottom: 1242, footwearVisible: true },
   { slot: 'organic_contrast.interference_frame', bboxBottom: 1280, footwearVisible: false },
@@ -1797,18 +2064,416 @@ test('replaying the delivered editorial frames judges the five that saw their co
     const payload = reconcileContactShadowWaiver(waivedPayload({
       phrase: CONTACT_SHADOW_WAIVERS.crop,
       footwearVisible: frame.footwearVisible,
-    }));
+      bboxBottom: frame.bboxBottom,
+    }), WAIVER_CANVAS);
     const light = payload.gates.find((gate) => gate.id === 'LIGHT_AND_CONTACT_SHADOW');
     assert.equal(
       light.decision,
       frame.footwearVisible ? 'FAIL' : 'PASS',
       frame.slot,
     );
-    // The measurement and the boolean have to keep agreeing, or one of them is noise.
-    assert.equal(frame.bboxBottom < 1280, frame.footwearVisible, frame.slot);
-    if (light.decision === 'FAIL') judged.push(frame.slot);
+    // As delivered the two signals agree, so the payload's own report is what refuses it.
+    assert.equal(frame.bboxBottom < WAIVER_CANVAS.height, frame.footwearVisible, frame.slot);
+    if (light.decision === 'FAIL') {
+      assert.deepEqual(light.defects, [CONTACT_SHADOW_WAIVER_REFUSED], frame.slot);
+      judged.push(frame.slot);
+    }
   }
   assert.equal(judged.length, 5);
   assert.ok(judged.includes('organic_contrast.wide_campaign_coda'));
   assert.ok(judged.includes('organic_contrast.environmental_hero'));
+});
+
+test('the delivered frames are judged on their geometry when the footwear boolean is wrong', () => {
+  // The gap 1e67027 left behind: the audit keyed on a boolean the waiver's beneficiary
+  // writes, so every frame above escapes it by reporting false. The geometry does not move
+  // when the report does, and the five full-length figures are still full-length figures.
+  const judged = [];
+  for (const frame of DELIVERED_EDITORIAL_FRAMES) {
+    const payload = reconcileContactShadowWaiver(waivedPayload({
+      phrase: CONTACT_SHADOW_WAIVERS.crop,
+      footwearVisible: false,
+      bboxBottom: frame.bboxBottom,
+    }), WAIVER_CANVAS);
+    const light = payload.gates.find((gate) => gate.id === 'LIGHT_AND_CONTACT_SHADOW');
+    const cut = frame.bboxBottom >= WAIVER_CANVAS.height;
+    assert.equal(light.decision, cut ? 'PASS' : 'FAIL', frame.slot);
+    if (light.decision === 'FAIL') {
+      assert.deepEqual(light.defects, [CONTACT_SHADOW_CROP_WAIVER_REFUSED], frame.slot);
+      judged.push(frame.slot);
+    }
+  }
+  assert.deepEqual(judged.sort(), [
+    'organic_contrast.clean_identity_hero',
+    'organic_contrast.environmental_hero',
+    'organic_contrast.sculptural_three_quarter',
+    'organic_contrast.wide_campaign_coda',
+    'urban_monochrome.clean_identity_hero.2',
+  ]);
+  // And the four that genuinely ran into the bottom edge keep the relief, both
+  // interference_frame results among them.
+  assert.equal(DELIVERED_EDITORIAL_FRAMES.length - judged.length, 4);
+});
+
+test('the same misreport under a foreground claim keeps every delivered frame waived', () => {
+  // The occlusion claim is what interference_frame legitimately makes, and geometry has no
+  // standing over it. If this test ever fails, the crop rule has leaked onto the other
+  // waiver and the slot is being failed for its own design.
+  for (const frame of DELIVERED_EDITORIAL_FRAMES) {
+    const payload = reconcileContactShadowWaiver(waivedPayload({
+      phrase: CONTACT_SHADOW_WAIVERS.occlusion,
+      footwearVisible: false,
+      bboxBottom: frame.bboxBottom,
+    }), WAIVER_CANVAS);
+    const light = payload.gates.find((gate) => gate.id === 'LIGHT_AND_CONTACT_SHADOW');
+    assert.equal(light.decision, 'PASS', frame.slot);
+    assert.deepEqual(light.defects, [], frame.slot);
+    assert.equal(payload.score, 96, frame.slot);
+  }
+});
+
+// The defect string scene_e92594aa was failed on, twice, and its evidence verbatim. Neither
+// the name nor the rule behind it exists anywhere in this repository: full footwear=false
+// means footwear is not required, and has never meant it is forbidden.
+const INVENTED_FRAMING_DEFECT = 'FULL_FOOTWEAR_VISIBLE_WHEN_REQUIRED_FALSE';
+const INVENTED_FRAMING_EVIDENCE = 'Both ballet flats are completely visible even though this shot requires full_footwear_visible=false.';
+
+// The three names assessFramingEvidence authors from the numeric lock. The evaluator is told
+// they are not its to enforce, so they are not in the vocabulary it may send.
+const MEASURED_LOCK_DEFECTS = Object.freeze([
+  'SUBJECT_HEIGHT_OUTSIDE_PRESET_RANGE',
+  'INSUFFICIENT_CLEAR_SPACE_ABOVE_HAIR',
+  'INSUFFICIENT_CLEAR_SPACE_BELOW_FOOTWEAR',
+]);
+
+function framingFailurePayload(defects, evidence = INVENTED_FRAMING_EVIDENCE) {
+  const payload = evaluatorPayload();
+  const framing = payload.gates.find((gate) => gate.id === 'FRAMING_AND_ANATOMY');
+  framing.decision = 'FAIL';
+  framing.defects = defects;
+  framing.evidence = evidence;
+  payload.score = 55;
+  payload.summary = 'The frame is a full-body composition rather than the required three-quarter crop';
+  return payload;
+}
+
+async function framingVocabularyFixture(name) {
+  const fixture = await contextFixture();
+  const candidate = await imageFile(fixture.root, `${name}.png`, {
+    width: 1024,
+    height: 1280,
+    color: '#b98f72',
+  });
+  const presetPath = path.join(fixture.root, `${name}-preset.json`);
+  await writeFile(presetPath, JSON.stringify(EDITORIAL_FOOTWEAR_OPTIONAL_PRESET));
+  return {
+    scene(payload) {
+      return new SceneEvaluatorAdapter({ commandRunner: evaluatorRunner(payload, []) })
+        .evaluateScene({
+          scene_id: `scene_${name.replaceAll('-', '_')}`,
+          attempt: 1,
+          candidate,
+          approved_look: fixture.approved,
+          references: fixture.references,
+          preset: { path: presetPath },
+          required_gates: SCENE_EVALUATOR_GATES,
+          delivery: { ...WAIVER_CANVAS },
+        });
+    },
+  };
+}
+
+test('a framing defect the contract does not define fails the evaluation, not the frame', async () => {
+  const fixture = await framingVocabularyFixture('candidate-invented-framing-defect');
+
+  await assert.rejects(
+    () => fixture.scene(framingFailurePayload([INVENTED_FRAMING_DEFECT])),
+    (error) => {
+      assert.ok(error instanceof SceneEvaluationInfrastructureError);
+      // The candidate survives an infrastructure result and is re-asked; a FRAMING_AND_ANATOMY
+      // FAIL spends a generation. That difference is the whole point, so it is asserted rather
+      // than left to the error class's reputation.
+      assert.equal(error.code, 'SCENE_EVALUATOR_CONTRACT_FAILED');
+      assert.equal(error.infrastructure, true);
+      assert.equal(error.retryable, true);
+      // Named, so the reason is greppable and countable rather than one more contract failure.
+      assert.ok(error.message.includes(FRAMING_DEFECT_OUTSIDE_VOCABULARY), error.message);
+      // And carrying the claim: an invented name is not a reason to lose what was said under
+      // it. This message is what scene-service checkpoints as the attempt's error.
+      assert.ok(error.message.includes(INVENTED_FRAMING_DEFECT), error.message);
+      assert.match(error.message, /both ballet flats are completely visible/i);
+      assert.match(error.message, /FRAMING_AND_ANATOMY FAIL/);
+      return true;
+    },
+  );
+
+  // The same payload, one word different: an anatomy fault the code has a name for still
+  // fails the frame. Refusing the vocabulary is not refusing the gate.
+  const judged = await fixture.scene(framingFailurePayload(['MALFORMED_HAND_OR_FINGERS']));
+  const framing = judged.gates.find((gate) => gate.id === 'FRAMING_AND_ANATOMY');
+  assert.equal(framing.decision, 'FAIL');
+  assert.deepEqual(framing.defects, ['MALFORMED_HAND_OR_FINGERS']);
+  assert.equal(judged.score, 55);
+});
+
+test('every framing name the evaluator may send is refused or accepted by the same closed list', async () => {
+  const fixture = await framingVocabularyFixture('candidate-framing-vocabulary');
+
+  // Each listed name survives on its own, so the list is the contract and not a subset of it
+  // that happens to be exercised.
+  for (const defect of EVALUATOR_FRAMING_DEFECTS) {
+    const judged = await fixture.scene(framingFailurePayload([defect]));
+    const framing = judged.gates.find((gate) => gate.id === 'FRAMING_AND_ANATOMY');
+    assert.deepEqual(framing.defects, [defect], defect);
+  }
+
+  // A numeric-lock verdict is refused for the same reason an invented name is: the evaluator
+  // cannot measure it, so a payload carrying one is a lock enforced by eye. These arrive
+  // wearing names the code does recognise, which is exactly why the list is what is checked
+  // rather than whether the string looks familiar.
+  for (const measured of MEASURED_LOCK_DEFECTS) {
+    await assert.rejects(
+      () => fixture.scene(framingFailurePayload([measured])),
+      (error) => {
+        assert.equal(error.code, 'SCENE_EVALUATOR_CONTRACT_FAILED');
+        assert.ok(error.message.includes(measured), error.message);
+        return true;
+      },
+      measured,
+    );
+  }
+
+  // Mixed: one listed name does not launder the invented one beside it.
+  await assert.rejects(
+    () => fixture.scene(framingFailurePayload(['MALFORMED_HAND_OR_FINGERS', INVENTED_FRAMING_DEFECT])),
+    (error) => {
+      assert.ok(error.message.includes(INVENTED_FRAMING_DEFECT), error.message);
+      assert.ok(!error.message.includes('MALFORMED_HAND_OR_FINGERS'), error.message);
+      return true;
+    },
+  );
+});
+
+test('the framing vocabulary is enumerated in the instruction, on both paths', () => {
+  const editorial = evaluatorPrompt(
+    { width: 1024, height: 1280 },
+    [],
+    EDITORIAL_FOOTWEAR_OPTIONAL_PRESET,
+    [],
+  );
+  const standard = evaluatorPrompt({ width: 1024, height: 1280 }, [], null, []);
+
+  for (const [label, prompt] of [['editorial', editorial], ['standard', standard]]) {
+    // Being told what not to say is what the prompt already did before the third invented
+    // name arrived. Being told what the words are is the new part.
+    assert.match(prompt, /Name FRAMING_AND_ANATOMY defects only from this closed list/, label);
+    for (const defect of EVALUATOR_FRAMING_DEFECTS) {
+      assert.ok(prompt.includes(defect), `${label}: ${defect}`);
+    }
+    // The consequence, because a list with no stated cost reads as a preference.
+    assert.match(prompt, /A name outside the list is a contract violation/, label);
+    // A real fault with no exact entry has somewhere to go, so the list is not a reason to
+    // stay silent about one.
+    assert.match(prompt, /use the closest listed name and describe exactly what is wrong/, label);
+    // The three claims that were actually invented, each said to have no name.
+    assert.match(prompt, /no name in it for showing more of the body than the nominal crop/, label);
+    assert.match(prompt, /footwear being visible while full footwear=false/, label);
+    assert.match(prompt, /the subject-height and clear-space numbers/, label);
+    // And the locks are not offered as words it may use.
+    for (const measured of MEASURED_LOCK_DEFECTS) {
+      assert.ok(!prompt.includes(measured), `${label}: ${measured}`);
+    }
+  }
+});
+
+test('the framing vocabulary is split on what the lock owner actually authors', () => {
+  // One evidence that violates every lock at once, so what follows is the set the lock owner
+  // emits rather than the set someone remembered it emitting.
+  const { defects } = assessFramingEvidence({
+    subject_bbox_xywh_px: [100, 0, 700, 1280],
+    full_head_visible: false,
+    full_footwear_visible: false,
+  }, { width: 1024, height: 1280, expectedSubjectHeightPercent: [74, 78] });
+  assert.deepEqual(
+    [...defects].sort(),
+    [...MEASURED_LOCK_DEFECTS, ...FRAMING_VISIBILITY_DEFECTS].sort(),
+  );
+
+  // Both halves of the split are asserted against that set, so neither list can drift alone:
+  // the evaluator may send the two booleans it observes and none of the three it would have
+  // to measure.
+  assert.deepEqual(
+    defects.filter((defect) => EVALUATOR_FRAMING_DEFECTS.includes(defect)).sort(),
+    [...FRAMING_VISIBILITY_DEFECTS].sort(),
+  );
+  assert.deepEqual(
+    defects.filter((defect) => !EVALUATOR_FRAMING_DEFECTS.includes(defect)).sort(),
+    [...MEASURED_LOCK_DEFECTS].sort(),
+  );
+  // And no anatomy name belongs to the lock owner: that half of the gate is the model's.
+  for (const anatomy of FRAMING_ANATOMY_DEFECTS) {
+    assert.ok(!defects.includes(anatomy), anatomy);
+  }
+});
+
+test('a listed name arrives spelled the one way the receipts spell it', () => {
+  // A verdict a reader cannot grep for is the same defeat as the invented name was.
+  const payload = assertFramingDefectVocabulary(
+    framingFailurePayload([' malformed_hand_or_fingers ', 'Full_Footwear_Not_Visible']),
+  );
+  const framing = payload.gates.find((gate) => gate.id === 'FRAMING_AND_ANATOMY');
+  assert.deepEqual(framing.defects, ['MALFORMED_HAND_OR_FINGERS', 'FULL_FOOTWEAR_NOT_VISIBLE']);
+});
+
+// Every one of these declines to judge ground contact without typing either agreed phrase,
+// which is all the phrase-keyed audit ever looked for. The first is the wording measured by
+// the reviewer: full_footwear_visible true, LIGHT_AND_CONTACT_SHADOW PASS, and a clean pass
+// out the far side.
+const PARAPHRASED_DECLINES = Object.freeze([
+  'the crop ends above the feet so ground contact is not observable',
+  'The frame stops at mid-calf, so the subject-to-ground contact cannot be verified in this crop.',
+  'Ground contact falls outside the frame and was therefore not assessed.',
+  'No contact shadow is discernible because the feet sit beyond the bottom of the shot.',
+  'Key light is hard and high-left. The contact points are not in shot, so no ground shadow was judged.',
+]);
+
+// A verdict, in the ordinary words one comes in. These have to keep passing, or the audit has
+// stopped being an audit and started being a tax on every editorial frame.
+const DELIVERED_VERDICTS = Object.freeze([
+  'Key light is hard and high-left; the cast shadow under both shoes matches its direction.',
+  'The contact shadow beneath the soles falls back and right, consistent with the key, and shows no floating gap.',
+  'LIGHT_AND_CONTACT_SHADOW visibly verified: a soft contact shadow sits under each foot.',
+]);
+
+function contactShadowPayload({ evidence, footwearVisible, bboxBottom }) {
+  const payload = evaluatorPayload();
+  const light = payload.gates.find((gate) => gate.id === 'LIGHT_AND_CONTACT_SHADOW');
+  light.evidence = evidence;
+  payload.framing_evidence = {
+    subject_bbox_xywh_px: [162, WAIVER_SUBJECT_TOP, 700, bboxBottom - WAIVER_SUBJECT_TOP],
+    full_head_visible: true,
+    full_footwear_visible: footwearVisible,
+  };
+  return payload;
+}
+
+test('a waiver in the model\'s own words is refused, because the observation is what opens the question', () => {
+  // The measured escape: the reconciliation was reached only through one of two literals, so
+  // a frame that phrased the same excuse itself never reached it at all.
+  for (const evidence of PARAPHRASED_DECLINES) {
+    assert.ok(
+      !evidence.includes(CONTACT_SHADOW_WAIVERS.crop)
+      && !evidence.includes(CONTACT_SHADOW_WAIVERS.occlusion),
+      evidence,
+    );
+    const payload = reconcileContactShadowWaiver(contactShadowPayload({
+      evidence,
+      footwearVisible: true,
+      bboxBottom: SUBJECT_ABOVE_BOTTOM_EDGE,
+    }), WAIVER_CANVAS);
+    const light = payload.gates.find((gate) => gate.id === 'LIGHT_AND_CONTACT_SHADOW');
+    assert.equal(light.decision, 'FAIL', evidence);
+    assert.deepEqual(light.defects, [CONTACT_SHADOW_WAIVER_REFUSED], evidence);
+    assert.match(light.evidence, /reporting full footwear visible/, evidence);
+    assert.equal(payload.score, 60, evidence);
+
+    // Same words, and this time only the geometry says the contact point is in frame. The
+    // report the waiver's beneficiary writes is not what carries either refusal.
+    const measured = reconcileContactShadowWaiver(contactShadowPayload({
+      evidence,
+      footwearVisible: false,
+      bboxBottom: SUBJECT_ABOVE_BOTTOM_EDGE,
+    }), WAIVER_CANVAS);
+    const measuredLight = measured.gates.find((gate) => gate.id === 'LIGHT_AND_CONTACT_SHADOW');
+    assert.equal(measuredLight.decision, 'FAIL', evidence);
+    assert.deepEqual(measuredLight.defects, [CONTACT_SHADOW_CROP_WAIVER_REFUSED], evidence);
+    assert.match(measuredLight.evidence, /subject box ends above the bottom edge/, evidence);
+  }
+});
+
+test('a frame the crop genuinely ended above keeps its relief, in whatever words', () => {
+  // The relief this branch exists for, and the case that must not be broken by widening the
+  // refusal: the subject box runs into the bottom edge, so no verdict is owed and the wording
+  // of the excuse is beside the point.
+  for (const evidence of PARAPHRASED_DECLINES) {
+    const payload = reconcileContactShadowWaiver(contactShadowPayload({
+      evidence,
+      footwearVisible: false,
+      bboxBottom: SUBJECT_CUT_BY_BOTTOM_EDGE,
+    }), WAIVER_CANVAS);
+    const light = payload.gates.find((gate) => gate.id === 'LIGHT_AND_CONTACT_SHADOW');
+    assert.equal(light.decision, 'PASS', evidence);
+    assert.deepEqual(light.defects, [], evidence);
+    assert.equal(payload.score, 96, evidence);
+  }
+
+  // And interference_frame, whose contact point is hidden by a foreground layer with the
+  // subject sitting well inside the canvas. Geometry cannot see the pane, so the named claim
+  // is what keeps it — a paraphrase of that one is refused instead, which is the safe
+  // direction for a claim nothing in the payload can check.
+  const occluded = reconcileContactShadowWaiver(contactShadowPayload({
+    evidence: `Key light is soft from behind. ${CONTACT_SHADOW_WAIVERS.occlusion}: a foreground glass pane stands in front of the feet.`,
+    footwearVisible: false,
+    bboxBottom: SUBJECT_ABOVE_BOTTOM_EDGE,
+  }), WAIVER_CANVAS);
+  const occludedLight = occluded.gates.find((gate) => gate.id === 'LIGHT_AND_CONTACT_SHADOW');
+  assert.equal(occludedLight.decision, 'PASS');
+  assert.deepEqual(occludedLight.defects, []);
+});
+
+test('a gate that did judge the ground contact is left alone, on either observation', () => {
+  for (const evidence of DELIVERED_VERDICTS) {
+    for (const [footwearVisible, bboxBottom] of [
+      [true, SUBJECT_ABOVE_BOTTOM_EDGE],
+      [false, SUBJECT_ABOVE_BOTTOM_EDGE],
+      [true, SUBJECT_CUT_BY_BOTTOM_EDGE],
+    ]) {
+      const payload = reconcileContactShadowWaiver(contactShadowPayload({
+        evidence,
+        footwearVisible,
+        bboxBottom,
+      }), WAIVER_CANVAS);
+      const light = payload.gates.find((gate) => gate.id === 'LIGHT_AND_CONTACT_SHADOW');
+      const label = `${footwearVisible}/${bboxBottom}: ${evidence}`;
+      assert.equal(light.decision, 'PASS', label);
+      assert.deepEqual(light.defects, [], label);
+      assert.equal(light.evidence, evidence, label);
+      assert.equal(payload.score, 96, label);
+    }
+  }
+});
+
+test('a standard scene that judged its contact shadow completes untouched through the adapter', async () => {
+  // The regression that would hurt most: the audit runs on every path, so a plain full-body
+  // scene with an ordinary contact-shadow verdict has to come out the way it went in.
+  const fixture = await contextFixture();
+  const candidate = await imageFile(fixture.root, 'candidate-standard-contact-verdict.png', {
+    width: 1024,
+    height: 1280,
+    color: '#b98f72',
+  });
+  const adapter = new SceneEvaluatorAdapter({
+    commandRunner: evaluatorRunner(contactShadowPayload({
+      evidence: DELIVERED_VERDICTS[0],
+      footwearVisible: true,
+      bboxBottom: SUBJECT_ABOVE_BOTTOM_EDGE,
+    }), []),
+  });
+  const result = await adapter.evaluateScene({
+    scene_id: 'scene_standard_contact_verdict',
+    attempt: 1,
+    candidate,
+    approved_look: fixture.approved,
+    references: fixture.references,
+    required_gates: SCENE_EVALUATOR_GATES,
+    delivery: { ...WAIVER_CANVAS },
+  });
+  for (const gate of result.gates) {
+    assert.equal(gate.decision, 'PASS', gate.id);
+    assert.deepEqual(gate.defects, [], gate.id);
+  }
+  assert.equal(result.gates.find((gate) => gate.id === 'LIGHT_AND_CONTACT_SHADOW').evidence, DELIVERED_VERDICTS[0]);
+  assert.equal(result.score, 96);
+  assert.equal(result.summary, 'All six visual gates pass');
+  assert.doesNotThrow(() => normalizeEvaluatorResult(result));
 });
