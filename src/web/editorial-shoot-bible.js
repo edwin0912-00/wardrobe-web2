@@ -36,11 +36,23 @@ const MODE_CONTENT = Object.freeze({
     materials: ['deep green foliage', 'pale concrete or stone', 'controlled water reflection'],
     contrast: 'medium',
   }),
+  // The monochrome is the set, not the render. Ordering a monochrome grade lost
+  // editorial.edwin_novak.urban_monochrome two gates at once on the same frame:
+  // ITEM_FIDELITY returned ITEM_DETAIL_NOT_VERIFIABLE because a greyscale garment
+  // cannot prove its approved dark-green body or its red-versus-navy twisted-rope
+  // stripe, and IDENTITY refused the subject because the grade turned vivid auburn
+  // hair dark brown. Colour is half of what this product sells and part of what
+  // identity is, so the near-neutral range stays on concrete, metal and sky while
+  // skin, hair and the approved item keep their own colour. True greyscale was the
+  // other way out, but it can only be made passable by exempting colour from the
+  // two gates the shoot exists to satisfy. Note that the negative constraints
+  // already forbade a recoloured approved item — the mode prose was commanding the
+  // very thing they refuse.
   'editorial.edwin_novak.urban_monochrome': Object.freeze({
     title: 'Міський монохром — преміальна fashion-фотосесія',
     environment: 'Original rooftop or clean urban concrete composition with invented facade grids, disciplined negative space and no identifiable architecture.',
-    palette: 'Black, warm white, concrete grey, restrained silver, natural skin and the exact approved item colors.',
-    lighting: 'Early-morning or low golden side light translated into restrained monochrome contrast, readable midtones and coherent contact shadow.',
+    palette: 'Black, warm white, concrete grey and restrained silver in the environment, natural skin, natural hair color and the exact approved item colors at full saturation; black and white is the set and never the render.',
+    lighting: 'Early-morning or low golden side light shaped into graphic near-neutral tonal contrast across concrete and sky, with readable midtones, coherent contact shadow and no desaturating grade over skin, hair or an approved item.',
     materials: ['clean concrete', 'invented facade grid', 'restrained metal'],
     contrast: 'high',
   }),
@@ -90,9 +102,10 @@ const SLOT_CONTENT = withVerticalLock({
     objective: 'Integrate the exact approved person and look into the mode environment while preserving clear identity and complete item evidence.',
     lens_mm: 50,
     // Same reason as clean_identity_hero: the environment frame is art
-    // direction, not a fitting shot. Keeping it three-quarter lets a half-body
-    // approved look place into the mode environment without fabricating a lower
-    // half that no reference can verify.
+    // direction, not a fitting shot. The avatar is full-length, so this is no
+    // longer about what a reference can cover — three-quarter is the crop this
+    // slot wants, placing the look against the mode environment instead of
+    // measuring it head to foot.
     framing: 'three_quarter',
     height: 'low_max_5deg',
     angle: 'Controlled low angle no more than five degrees with straight architecture.',
@@ -330,7 +343,7 @@ function compiledReferenceAssets({ presetId, modeId, shotSpec: shot, basePack })
         materials: [...mode.materials],
         notes: [
           'Apply this palette only to environment, light and grade.',
-          'Preserve natural skin and every approved item color exactly.',
+          'Preserve natural skin, natural hair color and every approved item color exactly.',
         ],
       },
     }),
