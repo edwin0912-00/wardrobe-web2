@@ -17,6 +17,17 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-07-27 · RELEASE-001 · execution acknowledged
+Change: move RELEASE-001 from ASSIGNED to IN_PROGRESS after a current typed
+heartbeat from its exact owner/branch/base was observed.
+Why: code may proceed only after the worker has read the canonical queue and
+reported a bounded checkpoint; this state transition does not approve a deploy.
+Evidence: `a35b7aa` started the lease and `b9fe429` recorded focused proof;
+the current report binds owner `release-target`, branch
+`lane/RELEASE-001/release-target`, base `d372e6a`, generation 1, and product
+checkpoint `342fc42`.
+weakened_checks: none.
+
 2026-07-27 · SCENE-001 · reissued generation 2 at 721bc9a · control queue
 Change: formally extend the active scene-core lease from the proven missing
 contract export to the adjacent evaluator call that must pass its existing

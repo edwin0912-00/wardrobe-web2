@@ -1,6 +1,6 @@
 # Wardrobe verified state
 
-Updated: 2026-07-27 03:07 UTC.
+Updated: 2026-07-27 03:08 UTC.
 
 ## Canonical position
 
@@ -36,7 +36,9 @@ remain prohibited.
    scene-core rule surface and does not change framing or QA policy.
 5. `RELEASE-001` — make deploy and recovery enforce the declared canonical
    external health target `https://iwas.madeforthisjob.com/api/health`. The
-   target is healthy now, but the current tools accept an arbitrary URL.
+   target is healthy now, but the current tools accept an arbitrary URL. Its
+   owner published a current typed heartbeat bound to its exact base and is now
+   in progress.
 
 The issued worktrees start at `f578c28`, while the first queue record pinned
 their product baseline at `66968f9`. This exact-base mismatch was caught before
