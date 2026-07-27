@@ -35,3 +35,12 @@ Protocol ACK: 4472986
   warnings/errors `0`; credential scan PASS.
 - Billable/provider calls: `0`.
 - weakened_checks: none.
+
+## READY_FOR_BETA_DEPLOY
+
+- Exact product commit: `917e1ef`.
+- Activation requested for that exact SHA.
+- Narrow beta smoke: `/post-shoot-mvp.html` renders both choices and
+  `/api/post-shoot/pipeline` returns the validated graph.
+- Real Lucy/WebRTC smoke is explicitly excluded until Edwin approves a stated
+  duration and maximum cost.
