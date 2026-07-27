@@ -2639,3 +2639,73 @@ test('a tampered shot anchor stops the scene instead of conditioning on it', asy
   assert.equal(stopped.phase, 'BOUND_INPUT_INTEGRITY_FAILED');
   assert.match(stopped.error.message, /Scene shot anchor blocking_topdown/);
 });
+
+test('a frame that went through the finish step still passes provenance on its longer lineage', async (t) => {
+  // The frame finish step sits between geometry and storage, so the stored bytes
+  // are no longer the geometry output. PROVENANCE used to assert those two
+  // hashes were equal, which would have failed the pipeline's own correct
+  // output the moment grain was switched on. This is that case.
+  const beforeGrain = await image({ width: 800, height: 1000, color: '#b9a389' });
+  const afterGrain = await image({ width: 800, height: 1000, color: '#b9a38a' });
+  const current = await fixture(t, {
+    generator: {
+      async generateScene(context) {
+        return {
+          image: afterGrain,
+          media_type: 'image/png',
+          metadata: {
+            ...providerMetadata(context, afterGrain, `frame-finish-${context.attempt}`),
+            geometry_output_sha256: sha256(beforeGrain),
+            delivered_output_sha256: sha256(afterGrain),
+            frame_finish_grain_applied: true,
+            frame_finish_grain_strength: 0.07,
+            frame_finish_oversample_requested: 1,
+            frame_finish_oversample_factor: 1,
+            frame_finish_oversample_honoured: false,
+          },
+        };
+      },
+    },
+  });
+  const created = await current.service.createScene({
+    ...current.request,
+    idempotencyKey: 'frame-finish-lineage-pass',
+  });
+  const released = await waitFor(current.service, created.scene_id);
+  assert.equal(released.status, 'COMPLETED', JSON.stringify(released, null, 2));
+  const stored = JSON.parse(await readFile(path.join(current.service.sceneDirectory(created.scene_id), 'scene.json'), 'utf8'));
+  const finished = stored.attempts.at(-1).provider_metadata;
+  assert.equal(finished.frame_finish_grain_applied, true, 'the allowlist must not drop the frame-finish receipt');
+  assert.equal(finished.frame_finish_grain_strength, 0.07);
+  assert.equal(finished.delivered_output_sha256, sha256(afterGrain));
+  assert.equal(finished.geometry_output_sha256, sha256(beforeGrain));
+});
+
+test('a finished frame whose last lineage link does not match the stored bytes fails provenance', async (t) => {
+  const beforeGrain = await image({ width: 800, height: 1000, color: '#8fa3b9' });
+  const afterGrain = await image({ width: 800, height: 1000, color: '#8fa3ba' });
+  const current = await fixture(t, {
+    maxManualRetries: 0,
+    generator: {
+      async generateScene(context) {
+        return {
+          image: afterGrain,
+          media_type: 'image/png',
+          metadata: {
+            ...providerMetadata(context, afterGrain, `frame-finish-broken-${context.attempt}`),
+            geometry_output_sha256: sha256(beforeGrain),
+            // Claims a delivered frame nobody stored.
+            delivered_output_sha256: 'a'.repeat(64),
+            frame_finish_grain_applied: true,
+          },
+        };
+      },
+    },
+  });
+  const created = await current.service.createScene({
+    ...current.request,
+    idempotencyKey: 'frame-finish-lineage-broken',
+  });
+  const settled = await waitFor(current.service, created.scene_id);
+  assert.notEqual(settled.status, 'COMPLETED', JSON.stringify(settled, null, 2));
+});
