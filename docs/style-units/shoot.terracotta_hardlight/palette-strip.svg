@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="260" viewBox="0 0 1600 260">
+  <rect width="100%" height="100%" fill="#141413"/>
+  <text x="16" y="26" font-family="sans-serif" font-size="18" fill="#e8e8e6">shoot.terracotta_hardlight — CLOSED PALETTE · palette_size 5 · rendered, not generated</text>
+  <rect x="8" y="40" width="304" height="130" fill="#B5543A"/>
+  <text x="160" y="196" text-anchor="middle" font-family="monospace" font-size="22" fill="#e8e8e6">#B5543A</text>
+  <text x="160" y="224" text-anchor="middle" font-family="sans-serif" font-size="15" fill="#9a9a97">terracotta wall</text>
+  <text x="160" y="246" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#6e6e6b">ground, the whole field behind the subject</text>
+  <rect x="328" y="40" width="304" height="130" fill="#5A2A20"/>
+  <text x="480" y="196" text-anchor="middle" font-family="monospace" font-size="22" fill="#e8e8e6">#5A2A20</text>
+  <text x="480" y="224" text-anchor="middle" font-family="sans-serif" font-size="15" fill="#9a9a97">shadowed brown</text>
+  <text x="480" y="246" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#6e6e6b">deepest shadow, the cast diagonal, warm not neutral</text>
+  <rect x="648" y="40" width="304" height="130" fill="#F2EDE4"/>
+  <text x="800" y="196" text-anchor="middle" font-family="monospace" font-size="22" fill="#e8e8e6">#F2EDE4</text>
+  <text x="800" y="224" text-anchor="middle" font-family="sans-serif" font-size="15" fill="#9a9a97">off-white linen</text>
+  <text x="800" y="246" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#6e6e6b">brightest highlight, the garment in sun</text>
+  <rect x="968" y="40" width="304" height="130" fill="#C89275"/>
+  <text x="1120" y="196" text-anchor="middle" font-family="monospace" font-size="22" fill="#e8e8e6">#C89275</text>
+  <text x="1120" y="224" text-anchor="middle" font-family="sans-serif" font-size="15" fill="#9a9a97">warm skin</text>
+  <text x="1120" y="246" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#6e6e6b">skin in key light</text>
+  <rect x="1288" y="40" width="304" height="130" fill="#B8552F"/>
+  <text x="1440" y="196" text-anchor="middle" font-family="monospace" font-size="22" fill="#e8e8e6">#B8552F</text>
+  <text x="1440" y="224" text-anchor="middle" font-family="sans-serif" font-size="15" fill="#9a9a97">rust</text>
+  <text x="1440" y="246" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#6e6e6b">accent, lower garment against the wall</text>
+</svg>
