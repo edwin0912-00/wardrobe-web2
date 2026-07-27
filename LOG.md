@@ -17,6 +17,15 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-07-27 · COORD-POST-SHOOT-001 · beta · external video/live owner recorded
+Change: record `codex-live-20260727` as the sole in-progress owner of the
+approved-shoot → Video/Lucy Live MVP and broadcast its reserved scope.
+Why: video/live implementation is assigned to another chat; duplicate edits in
+its server, schema, public UI, and tests would corrupt the shared beta branch.
+Evidence: commits `008ea06` and `3b05589`, its STARTED report, and its exact
+reserved-path row in `UPDATE.md`.
+weakened_checks: none.
+
 2026-07-27 · VIDEO-TRANSPORT-001 · beta · Seedance 2 source-bound video decision
 Change: record Seedance 2 as the intended async fashion-video transport.
 Why: video generation must be distinct from local live camera and inherit an
