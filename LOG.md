@@ -17,6 +17,19 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-07-27 · BETA-DELIVERY-001 · beta · immediate beta completion contract
+Change: make focused-test → exact commit → beta activation → narrow live smoke
+the mandatory atomic completion path for user-facing work; assign the existing
+male Create Universe assets a strict product-integration task.
+Why: assets and a passing local test are not a delivered style until the
+catalog can compile it and beta demonstrates the user-visible route.
+Evidence: `shoot.ochre_stage_tailoring` and `shoot.shutter_amber_interior`
+contain `unit.json` and reference assets but no required `manifest.json`, while
+the resolver reads only modes in `CREATE_UNIVERSE_MODE_META` and requires both
+files. The task reserves that resolver, two focused test files, and exactly
+those two unit directories.
+weakened_checks: none.
+
 2026-07-27 · BETA-SMOKE-001 · beta · Create Universe catalog smoke
 Change: mark Antigravity's catalog smoke as DONE.
 Why: its report verified the public beta API and preview delivery, with no code

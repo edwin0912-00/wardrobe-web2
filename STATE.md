@@ -34,6 +34,10 @@
 - `BETA-SMOKE-001` PASS: beta exposes five expected `shoot.*` styles and each
   preview returns HTTP 200. The two newer male style-unit directories are not
   registered in the catalog and are therefore not yet user-selectable.
+- `BETA-UNIVERSE-001` is the active product bridge for those two male style
+  units. They remain `ASSETS_ONLY — NOT IN PRODUCT` until strict manifests and
+  reference packs compile, the focused preview checks pass, and the exact
+  tested commit is activated and smoke-tested on beta.
 
 Updated: 2026-07-27 08:55 UTC.
 

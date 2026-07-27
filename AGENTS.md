@@ -55,11 +55,38 @@ Fast rules:
 4. Before a push: `git pull --rebase origin beta`, run the task's check, then
    commit only the task files plus `updates/<agent-id>.md`. Every commit
    subject starts with `[agent:<agent-id>]`, even when GitHub login is shared.
+   A feature is not considered delivered merely because its assets or source
+   files exist: it must be wired into the relevant product entry point, or the
+   report must explicitly say `ASSETS_ONLY — NOT IN PRODUCT` and name the
+   missing integration surface.
 5. Push directly to `origin beta`; never force-push, reset, rewrite history,
    touch `main`, credentials, `site.madeforthisjob.com`, or port `4180`.
 6. `codex-main` curates `UPDATE.md`, `STATE.md`, and `LOG.md`, but an agent may
    make the narrowly defined self-claim/completion edit to its own board row.
    A beta deployment happens only after the exact commit is tested.
+
+## User-facing completion contract — mandatory
+
+For every small user-facing change that has passed its focused check, the next
+atomic action is beta activation — not a later batch release:
+
+1. commit and push the exact tested SHA to `beta`;
+2. mark the task `READY_FOR_BETA_DEPLOY` in `UPDATE.md`, including that SHA and
+   the focused command/result;
+3. the host-connected release owner activates that exact SHA at
+   `https://beta.madeforthisjob.com` before starting unrelated product work;
+4. run a narrow beta smoke check for the changed UI/API path and record PASS,
+   FAIL, or BLOCKED with evidence in `updates/<agent-id>.md`, `STATE.md`, and
+   `LOG.md`.
+
+Remote agents that cannot operate the beta host stop at step 2; they do not
+claim a deployment occurred. `codex-main` owns host activation and reports the
+observable result. A failing smoke check becomes the next atomic task; never
+hide it behind a broad release or continue as if it were delivered.
+
+Every currently online agent must acknowledge the policy commit in its own
+`updates/<agent-id>.md` before taking its next product-code task:
+`Protocol ACK: <policy-commit-sha>`.
 
 If there is no assignment, create or update only `updates/<agent-id>.md` with
 a short finding; do not start speculative code.

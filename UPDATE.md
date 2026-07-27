@@ -30,6 +30,7 @@ The earlier detailed noticeboard is preserved at
 | BETA-SMOKE-001 | antigravity-20260727-fb7a90 | DONE | QA | `updates/antigravity-20260727-fb7a90.md` | PASS: API/UI previews expose the five expected `shoot.*` styles; four are generation-ready and Terracotta is correctly blocked. |
 | BETA-PROVIDER-001 | claude-code-20260727-557761 | IN_PROGRESS | CODE | `src/providers/magnific-imagegen-provider.js`; `src/web/generation-provider.js`; `test/providers/magnific-imagegen-provider.test.js`; `updates/claude-code-20260727-557761.md` | Add the strict Magnific async provider and mocked contract tests. Do not enable it or store a credential until host auth proves valid. |
 | BETA-UI-001 | unassigned | READY | CODE | `web/public/add-items-flow.js`; `web/public/profile-client.js`; `test/web/add-items-flow.test.js`; `test/web/profile-ui-flow.test.js` | Reproduce the saved-avatar → Add items flow; fix one verified defect without changing provider or scene files. |
+| BETA-UNIVERSE-001 | antigravity-20260727-fb7a90 | READY | CODE | `src/web/scene-resolvers.js`; `test/web/editorial-preview-api.test.js`; `test/contracts/scene-production-packs.test.js`; `docs/style-units/shoot.ochre_stage_tailoring/**`; `docs/style-units/shoot.shutter_amber_interior/**`; `updates/antigravity-20260727-fb7a90.md` | Turn the two existing male Create Universe units into strict product styles only if their manifests/reference packs compile and preview tests pass; then request beta activation of the exact SHA. Otherwise record `ASSETS_ONLY — NOT IN PRODUCT` with the precise missing contract fields. |
 
 ## Agent protocol
 
@@ -45,7 +46,10 @@ The earlier detailed noticeboard is preserved at
    then commits `STARTED` before product edits. A path collision becomes
    `PROPOSED`, not a second active edit.
 4. Code agent: one focused change, one focused test, one commit, then push to
-   `beta`. Include `updates/<agent-id>.md` in that same commit.
+   `beta`. Include `updates/<agent-id>.md` in that same commit. After a
+   passing focused test, mark the exact SHA `READY_FOR_BETA_DEPLOY`; beta
+   activation and a narrow live smoke check are the immediate next atomic
+   actions. A remote agent may not claim live activation it cannot perform.
 5. Research/QA agent: do not modify product code. Write only
    `updates/<agent-id>.md`, commit, pull-rebase, push. A report may set
    `Help request: <what is needed>`; otherwise it writes `Help request: NONE`.
@@ -55,6 +59,10 @@ The earlier detailed noticeboard is preserved at
 Every agent commit subject starts `[agent:<agent-id>]`; this and the matching
 `updates/<agent-id>.md` make ownership visible even with one shared GitHub
 login.
+
+Before an agent starts its next product-code task, it must fetch this commit
+and add `Protocol ACK: <commit-sha>` to its own update. This is the required
+Git-backed acknowledgement of the beta completion contract.
 
 Each agent additionally keeps `.agent-local/<agent-id>.md` on its own Mac.
 It records concise operational rationale (intent, decision, risk, evidence,
@@ -73,3 +81,7 @@ facts.
   owns Magnific provider wiring; an independent Add-items UI repair is READY.
 - 2026-07-27 — `BETA-SMOKE-001` PASS: all five Create Universe styles and
   previews are live; the two newer male units are assets only, not catalogued.
+- 2026-07-27 — `BETA-UNIVERSE-001` assigned: integrate the two male style
+  units only through the strict Create Universe manifest/reference contract,
+  then activate the exact tested SHA on beta and smoke it. Asset presence alone
+  is explicitly not product delivery.
