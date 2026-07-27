@@ -1,0 +1,23 @@
+{
+  "availability": "VERIFIED",
+  "creator": "Ahmed S.",
+  "extraction_role": "environment_material_inspiration",
+  "license_evidence": "evidence/licenses/unsplash-license-2026-07-23.md",
+  "not_authority_for": [
+    "identity",
+    "body",
+    "hair",
+    "outfit",
+    "brands",
+    "readable_text",
+    "exact_architecture"
+  ],
+  "page_title": "A view of a city from a rooftop at night",
+  "permitted_observation": "concrete parapet texture and cool evening tone only",
+  "pixel_policy": "PAGE_METADATA_AND_ROLE_LIMITS_ONLY_SOURCE_PIXELS_NOT_SHIPPED",
+  "platform": "Unsplash",
+  "retrieved_at": "2026-07-23T09:40:00Z",
+  "schema_version": "1.0.0",
+  "source_id": "unsplash.a7med7",
+  "url": "https://unsplash.com/photos/a-view-of-a-city-from-a-rooftop-at-night-a7med7"
+}

@@ -1,0 +1,63 @@
+{
+  "created_at": "2026-07-23T09:40:00Z",
+  "ledger_id": "ledger.std.architecture.glass_corridor_sunset.v1",
+  "preset_id": "std.architecture.glass_corridor_sunset",
+  "preset_version": "1.0.0",
+  "revision": 1,
+  "schema_version": "1.0.0",
+  "sources": [
+    {
+      "content_sha256": "0d6e972252a5e782abe3b2f268825acb4eacb2f8f45b5a3c383830e553f3a665",
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit",
+        "brands",
+        "readable_text",
+        "exact_architecture"
+      ],
+      "retrieved_at": "2026-07-23T09:40:00Z",
+      "rights": {
+        "basis": "LICENSED",
+        "evidence_sha256": "86a558a192adac12108998fb02dd40db4b72dc06a04c09719d47db91854dacb5",
+        "evidence_uri": "evidence/licenses/unsplash-license-2026-07-23.md",
+        "rights_holder": "Declan Sun via Unsplash license",
+        "status": "VERIFIED",
+        "verified_at": "2026-07-23T09:40:00Z"
+      },
+      "role": "environment_and_composition_inspiration",
+      "snapshot_uri": "evidence/scene-sources/unsplash.G5dKqL8nU1w.json",
+      "source_id": "unsplash.G5dKqL8nU1w",
+      "url": "https://unsplash.com/photos/modern-architectures-glass-facade-in-contrasting-sunlight-G5dKqL8nU1w",
+      "use": "glass facade geometry, clean lines and sunset reflection behavior only"
+    },
+    {
+      "content_sha256": "f3ca074e5748169fa3dff7d375bc8e534c0d47bb7e7cbc7e8ddc09f5ae90c69e",
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit",
+        "brands",
+        "readable_text",
+        "exact_architecture"
+      ],
+      "retrieved_at": "2026-07-23T09:40:00Z",
+      "rights": {
+        "basis": "LICENSED",
+        "evidence_sha256": "86a558a192adac12108998fb02dd40db4b72dc06a04c09719d47db91854dacb5",
+        "evidence_uri": "evidence/licenses/unsplash-license-2026-07-23.md",
+        "rights_holder": "Felicia Varzari via Unsplash license",
+        "status": "VERIFIED",
+        "verified_at": "2026-07-23T09:40:00Z"
+      },
+      "role": "environment_material_inspiration",
+      "snapshot_uri": "evidence/scene-sources/unsplash.uJ2kLq8mN5p.json",
+      "source_id": "unsplash.uJ2kLq8mN5p",
+      "url": "https://unsplash.com/photos/architectural-glass-reflects-a-modern-building-uJ2kLq8mN5p",
+      "use": "polished floor reflection and minimalist architectural scale only"
+    }
+  ],
+  "status": "VERIFIED_FOR_RELEASE"
+}

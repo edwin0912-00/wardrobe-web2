@@ -1,0 +1,23 @@
+{
+  "availability": "VERIFIED",
+  "creator": "Studio Republic",
+  "extraction_role": "lighting_composition_palette_inspiration",
+  "license_evidence": "evidence/licenses/unsplash-license-2026-07-23.md",
+  "not_authority_for": [
+    "identity",
+    "body",
+    "hair",
+    "outfit",
+    "brands",
+    "readable_text",
+    "exact_architecture"
+  ],
+  "page_title": "Black studio void with single spotlight beam",
+  "permitted_observation": "pitch black studio void and directional spotlight behavior only",
+  "pixel_policy": "PAGE_METADATA_AND_ROLE_LIMITS_ONLY_SOURCE_PIXELS_NOT_SHIPPED",
+  "platform": "Unsplash",
+  "retrieved_at": "2026-07-23T09:40:00Z",
+  "schema_version": "1.0.0",
+  "source_id": "unsplash.mC1J_w3_Z54",
+  "url": "https://unsplash.com/photos/black-microphone-in-dimmed-room-mC1J-w3-Z54"
+}

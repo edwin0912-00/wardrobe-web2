@@ -89,7 +89,7 @@
         "retrieved_at": "2026-07-23T09:40:00Z",
         "rights": {
           "basis": "LICENSED",
-          "evidence_sha256": "a07f9e0b6c8df11ac57604e45d718918ed10d38da69757a1daf36dd04f28a9ef",
+          "evidence_sha256": "86a558a192adac12108998fb02dd40db4b72dc06a04c09719d47db91854dacb5",
           "evidence_uri": "evidence/licenses/unsplash-license-2026-07-23.md",
           "rights_holder": "Esther Masscheleyn via Unsplash license",
           "status": "VERIFIED",
@@ -115,7 +115,7 @@
         "retrieved_at": "2026-07-23T09:40:00Z",
         "rights": {
           "basis": "LICENSED",
-          "evidence_sha256": "f9091e2efd8927320c4cc5c72508d48f61a9413eefa3466ff1763d64b8cc45e4",
+          "evidence_sha256": "b2fd5090492719bd8f3c9779be0650b29cc37bb286a2ea0bf0cf0eff88f127e8",
           "evidence_uri": "evidence/licenses/pexels-license-2026-07-23.md",
           "rights_holder": "Mery Amiri via Pexels license",
           "status": "VERIFIED",

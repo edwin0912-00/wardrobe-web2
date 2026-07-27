@@ -1,0 +1,17 @@
+{
+  "facts": {
+    "fill": "minimal cool ambient fill preserving deep shadow mood",
+    "finish": "cinematic_editorial_gloss_without_skin_smoothing_or_hdr",
+    "key": "low warm amber backlight streaming between buildings casting long dramatic shadows on cobblestones",
+    "protected_regions": [
+      "eyes",
+      "face_identity",
+      "item_logos",
+      "item_text",
+      "critical_construction"
+    ],
+    "time_or_setup": "deep golden hour backlight"
+  },
+  "role": "lighting_anchor",
+  "schema_version": "1.0.0"
+}

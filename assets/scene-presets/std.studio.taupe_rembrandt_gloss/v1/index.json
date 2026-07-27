@@ -6,7 +6,7 @@
   "production_prompt_path": "prompts/scene-presets/std.studio.taupe_rembrandt_gloss/v1/production-scene.txt",
   "prompt_sha256": "8dde4619df1d9cf975514e76c056bfd578989234aea88639f5fd828047f8171f",
   "reference_pack_path": "assets/scene-presets/std.studio.taupe_rembrandt_gloss/v1/reference-pack.json",
-  "reference_pack_sha256": "8b20666d6113098fe9f4ad3fc560978e98fb9811d4ee7551a9ab8f3a5a90bf37",
+  "reference_pack_sha256": "8ed728250cff1f55c0e7e094cfdccbcff39d731ad461f91a6c9345a6eb134914",
   "references": [
     {
       "media_type": "application/json",
@@ -51,5 +51,5 @@
   ],
   "schema_version": "1.0.0",
   "source_ledger_path": "assets/scene-presets/std.studio.taupe_rembrandt_gloss/v1/source-ledger.json",
-  "source_ledger_sha256": "d32741f2690b945337a4a67e0c708b61dc826a987a78391066484596dd39f694"
+  "source_ledger_sha256": "78a2bc497754cdf443a5edc1934e66a2794e85f9b54fcad6b49086bf70ddce6a"
 }

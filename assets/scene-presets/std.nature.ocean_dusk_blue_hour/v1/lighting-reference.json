@@ -1,0 +1,17 @@
+{
+  "facts": {
+    "fill": "diffused overcast dusk light with wet sand reflections providing subtle uplighting",
+    "finish": "cinematic_editorial_gloss_without_skin_smoothing_or_hdr",
+    "key": "ambient cool teal-blue sky light with warm amber glow remaining on horizon",
+    "protected_regions": [
+      "eyes",
+      "face_identity",
+      "item_logos",
+      "item_text",
+      "critical_construction"
+    ],
+    "time_or_setup": "blue hour dusk at coast"
+  },
+  "role": "lighting_anchor",
+  "schema_version": "1.0.0"
+}

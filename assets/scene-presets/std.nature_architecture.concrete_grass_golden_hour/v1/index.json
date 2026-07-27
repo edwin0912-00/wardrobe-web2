@@ -6,7 +6,7 @@
   "production_prompt_path": "prompts/scene-presets/std.nature_architecture.concrete_grass_golden_hour/v1/production-scene.txt",
   "prompt_sha256": "71b8d45d5d8f4468b49b768e5d46184dc0d3213ad50976bac31848764d9090f4",
   "reference_pack_path": "assets/scene-presets/std.nature_architecture.concrete_grass_golden_hour/v1/reference-pack.json",
-  "reference_pack_sha256": "3cc81220cd19a3235b8899d2060a1b14628ff8ebad2dd43ebe3033e291647bfa",
+  "reference_pack_sha256": "43d66e903e21f5756df927dff6a091b575650cba7405d46914d4c3f45a8cb28b",
   "references": [
     {
       "media_type": "application/json",
@@ -51,5 +51,5 @@
   ],
   "schema_version": "1.0.0",
   "source_ledger_path": "assets/scene-presets/std.nature_architecture.concrete_grass_golden_hour/v1/source-ledger.json",
-  "source_ledger_sha256": "729191db8e1091cb8a84e8957d593cb30f79a6723ed6570bbc21e4ce298c88e0"
+  "source_ledger_sha256": "03d72c78f66a9226096ff95e957888b66ac5b90653d20ed767e59acdfb1a0875"
 }

@@ -1,0 +1,17 @@
+{
+  "facts": {
+    "fill": "cool green-tinted ambient forest fill",
+    "finish": "cinematic_editorial_gloss_without_skin_smoothing_or_hdr",
+    "key": "warm amber light rays piercing through dense tree canopy catching fog particles",
+    "protected_regions": [
+      "eyes",
+      "face_identity",
+      "item_logos",
+      "item_text",
+      "critical_construction"
+    ],
+    "time_or_setup": "dawn light shafts through canopy"
+  },
+  "role": "lighting_anchor",
+  "schema_version": "1.0.0"
+}

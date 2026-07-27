@@ -1,0 +1,134 @@
+{
+  "preset_id": "std.studio.terracotta_raking_light",
+  "preset_sha256": "923c2f783eedf3be0001094a3ba8f5196ce0c86dd682b30b81af540982b0f5fb",
+  "preset_version": "1.0.0",
+  "prompt_sha256": "78a2afc5d50758c22e47afd99947e8709c25d5d9505d1675280f7ab02e32f2fa",
+  "reference_pack_id": "pack.std.studio.terracotta_raking_light.v1.1",
+  "references": [
+    {
+      "media_type": "application/json",
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit"
+      ],
+      "reference_id": "std.studio.terracotta_raking_light.environment",
+      "role": "environment_anchor",
+      "sha256": "91d64a4977e40a3f3f3bb1d0eb9ec6ef6b3abbd632e8ace0883c6f1e233faca3"
+    },
+    {
+      "media_type": "application/json",
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit"
+      ],
+      "reference_id": "std.studio.terracotta_raking_light.lighting",
+      "role": "lighting_anchor",
+      "sha256": "2d1338afec5025dd9cc1b42d734623fcfd52a139eae0034f246574f305e6683d"
+    },
+    {
+      "media_type": "application/json",
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit"
+      ],
+      "reference_id": "std.studio.terracotta_raking_light.composition",
+      "role": "composition_anchor",
+      "sha256": "9b1e1b443eeec151edcaea96b16e0a962e6490b8fc0e59c3200809bbc6332e62"
+    },
+    {
+      "media_type": "application/json",
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit"
+      ],
+      "reference_id": "std.studio.terracotta_raking_light.palette",
+      "role": "palette_anchor",
+      "sha256": "8d2f51cc5d4c6c2b01250cb37840f483d8ba26fc1395c0876baba91033e1cdd8"
+    },
+    {
+      "media_type": "application/json",
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit"
+      ],
+      "reference_id": "std.studio.terracotta_raking_light.negative",
+      "role": "negative_reference",
+      "sha256": "e1a4ecef3cb1792764bbdc3ab7803c234d386d38fef76850f607c85c51d44605"
+    }
+  ],
+  "schema_version": "1.0.0",
+  "source_ledger": {
+    "created_at": "2026-07-23T09:40:00Z",
+    "ledger_id": "ledger.std.studio.terracotta_raking_light.v1",
+    "preset_id": "std.studio.terracotta_raking_light",
+    "preset_version": "1.0.0",
+    "revision": 1,
+    "schema_version": "1.0.0",
+    "sources": [
+      {
+        "content_sha256": "6fc66fc88ad3f27e8b2cd8f1b75330ad9f2dce711753b4143e1cf27469dedf43",
+        "not_authority_for": [
+          "identity",
+          "body",
+          "hair",
+          "outfit",
+          "brands",
+          "readable_text",
+          "exact_architecture"
+        ],
+        "retrieved_at": "2026-07-23T09:40:00Z",
+        "rights": {
+          "basis": "LICENSED",
+          "evidence_sha256": "b2fd5090492719bd8f3c9779be0650b29cc37bb286a2ea0bf0cf0eff88f127e8",
+          "evidence_uri": "evidence/licenses/pexels-license-2026-07-23.md",
+          "rights_holder": "Mery Amiri via Pexels license",
+          "status": "VERIFIED",
+          "verified_at": "2026-07-23T09:40:00Z"
+        },
+        "role": "lighting_composition_palette_inspiration",
+        "snapshot_uri": "evidence/scene-sources/pexels.32497260.json",
+        "source_id": "pexels.32497260",
+        "url": "https://www.pexels.com/photo/stylish-woman-in-dramatic-studio-lighting-32497260/",
+        "use": "raking side light and warm-cool color contrast only"
+      },
+      {
+        "content_sha256": "a040e524a3359eb77e6e877f0664a3beccaed67e2c615f3cb316f9327daab08c",
+        "not_authority_for": [
+          "identity",
+          "body",
+          "hair",
+          "outfit",
+          "brands",
+          "readable_text",
+          "exact_architecture"
+        ],
+        "retrieved_at": "2026-07-23T09:40:00Z",
+        "rights": {
+          "basis": "LICENSED",
+          "evidence_sha256": "86a558a192adac12108998fb02dd40db4b72dc06a04c09719d47db91854dacb5",
+          "evidence_uri": "evidence/licenses/unsplash-license-2026-07-23.md",
+          "rights_holder": "Esther Masscheleyn via Unsplash license",
+          "status": "VERIFIED",
+          "verified_at": "2026-07-23T09:40:00Z"
+        },
+        "role": "environment_material_inspiration",
+        "snapshot_uri": "evidence/scene-sources/unsplash._d0Uv9sIEmY.json",
+        "source_id": "unsplash._d0Uv9sIEmY",
+        "url": "https://unsplash.com/photos/a-woman-is-posing-for-a-picture-in-a-dark-room-_d0Uv9sIEmY",
+        "use": "dark studio separation and textured wall behavior only"
+      }
+    ],
+    "status": "VERIFIED_FOR_RELEASE"
+  },
+  "version": "1.1.0"
+}

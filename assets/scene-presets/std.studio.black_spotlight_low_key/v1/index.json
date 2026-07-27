@@ -1,0 +1,55 @@
+{
+  "preset_id": "std.studio.black_spotlight_low_key",
+  "preset_path": "assets/scene-presets/std.studio.black_spotlight_low_key/v1/preset.json",
+  "preset_sha256": "2b2e14c3768e683096fe5c2db841b02bf84ca65a5a0011aafa49309123822b7f",
+  "preset_version": "1.0.0",
+  "production_prompt_path": "prompts/scene-presets/std.studio.black_spotlight_low_key/v1/production-scene.txt",
+  "prompt_sha256": "ed28c1deea2b88d018aed4038a1428f9671bf6bbc51f4e8e21ddb7fd4d8ca8a7",
+  "reference_pack_path": "assets/scene-presets/std.studio.black_spotlight_low_key/v1/reference-pack.json",
+  "reference_pack_sha256": "4f8b3eb7cf2e222820380bc5f9fbc2b79d9e34dc2092e4f7d5f76200fcd200e2",
+  "references": [
+    {
+      "media_type": "application/json",
+      "order": 1,
+      "path": "assets/scene-presets/std.studio.black_spotlight_low_key/v1/environment-reference.json",
+      "reference_id": "std.studio.black_spotlight_low_key.environment",
+      "role": "environment_anchor",
+      "sha256": "b5c2ce51a11f41d180beaf8fd562af23713d1967db8c035c91b15ac834181f27"
+    },
+    {
+      "media_type": "application/json",
+      "order": 2,
+      "path": "assets/scene-presets/std.studio.black_spotlight_low_key/v1/lighting-reference.json",
+      "reference_id": "std.studio.black_spotlight_low_key.lighting",
+      "role": "lighting_anchor",
+      "sha256": "5b63aaf3614f751ff55e8a6c89d6167630da2c59dcf07702beea229564118352"
+    },
+    {
+      "media_type": "application/json",
+      "order": 3,
+      "path": "assets/scene-presets/std.studio.black_spotlight_low_key/v1/composition-reference.json",
+      "reference_id": "std.studio.black_spotlight_low_key.composition",
+      "role": "composition_anchor",
+      "sha256": "ad922393368f27640bdb9d9f7008c3753bd82bd6a11d79569779721acb3b7694"
+    },
+    {
+      "media_type": "application/json",
+      "order": 4,
+      "path": "assets/scene-presets/std.studio.black_spotlight_low_key/v1/palette-anchor.json",
+      "reference_id": "std.studio.black_spotlight_low_key.palette",
+      "role": "palette_anchor",
+      "sha256": "519fd37889e7120e22f8c44e9ccfe6a26b72d39cd0fa9b5409839acbde221e8a"
+    },
+    {
+      "media_type": "application/json",
+      "order": 5,
+      "path": "assets/scene-presets/std.studio.black_spotlight_low_key/v1/negative-reference.json",
+      "reference_id": "std.studio.black_spotlight_low_key.negative",
+      "role": "negative_reference",
+      "sha256": "40e7087d1831620a41d89e2d8d0ee587386e8d1565291ffe9dee5ffca010e5b0"
+    }
+  ],
+  "schema_version": "1.0.0",
+  "source_ledger_path": "assets/scene-presets/std.studio.black_spotlight_low_key/v1/source-ledger.json",
+  "source_ledger_sha256": "63bc73d909d0d893d7f45fbe34485d93d8a09fb0616ca1deacc571a7e096fb35"
+}

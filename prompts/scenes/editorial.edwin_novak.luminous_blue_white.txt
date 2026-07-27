@@ -1,11 +1,10 @@
 Use case: photorealistic-natural
 Asset type: original fashion editorial direction card for an approved internal visual system
-Reference photo attached (ATTACHMENT_1): a real photographer's bright outdoor campaign shot — study it ONLY for the sky color/quality, sun hardness, camera angle and grass-field environment. Do not reproduce any of the specific people shown or the group composition; they are not identity authority, and the final card must show only ONE model.
 Primary request: create one original luminous outdoor fashion image using blue sky, white textile and warm hard sun; do not imitate or reproduce any specific existing photograph.
 Subject: one anonymous adult test model with calm detached expression in a plain unbranded white tailored look; the model is mood evidence only, never identity authority.
 Scene/backdrop: clear cobalt-blue sky above low yellow-green grass containing only a few isolated tiny white flowers with large gaps of plain grass; one translucent white textile panel moves in the wind beside the model without hiding the face or outfit.
-Style/medium: photoreal high-fashion editorial, luminous, tactile and contemporary, matching the clean saturated sky-blue quality in the attached reference.
-Composition/framing: vertical 4:5 environmental hero, complete head and footwear, 50 mm equivalent, controlled low angle so the sky reads clearly above the subject. The visible human bounding box from topmost hair to lowest footwear must occupy 68-72% of final height.
+Style/medium: photoreal high-fashion editorial, luminous, tactile and contemporary.
+Composition/framing: vertical 4:5 environmental hero, complete head and footwear, 50 mm equivalent, controlled low angle. The visible human bounding box from topmost hair to lowest footwear must occupy 68–72% of final height, leaving blue sky and grass clearly legible as environment.
 Lighting/mood: warm hard early sun with defined but clean shadows, natural skin, brilliant whites retaining texture and a restrained glossy finish.
 Color palette: cobalt sky blue, clean white, yellow-green, warm skin.
-Constraints: exactly one optical device, translucent textile; no mirror, collage, dense flowers, extra people or stacked effects; no jewellery, earrings, text, logos, watermark, crop or anatomy defects; no blown white fabric, HDR, bloom or plastic skin.
+Constraints: exactly one optical device, translucent textile; no mirror, collage, dense flowers or stacked effects; no jewellery, earrings, text, logos, watermark, crop or anatomy defects; no blown white fabric, HDR, bloom or plastic skin.

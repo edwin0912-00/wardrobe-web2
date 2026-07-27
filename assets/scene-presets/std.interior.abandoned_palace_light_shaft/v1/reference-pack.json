@@ -1,0 +1,134 @@
+{
+  "preset_id": "std.interior.abandoned_palace_light_shaft",
+  "preset_sha256": "abe5c139bb90d24496f9c6f981a01fa8c08bd39532b0a464fe3520ffdec70fb8",
+  "preset_version": "1.0.0",
+  "prompt_sha256": "8fcc4f39285128776d5ccb1b055e4c6ba8db204ce3b2971df29d52b584128056",
+  "reference_pack_id": "pack.std.interior.abandoned_palace_light_shaft.v1.1",
+  "references": [
+    {
+      "media_type": "application/json",
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit"
+      ],
+      "reference_id": "std.interior.abandoned_palace_light_shaft.environment",
+      "role": "environment_anchor",
+      "sha256": "6d6d8de02a77d00f31f3ea773ccc32d7c963f5214e201a179770a160f1d1e406"
+    },
+    {
+      "media_type": "application/json",
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit"
+      ],
+      "reference_id": "std.interior.abandoned_palace_light_shaft.lighting",
+      "role": "lighting_anchor",
+      "sha256": "ec12f7d90a63f5bb47a3592499e3bd5d4a63b056fd99717d665beb65b1bbc57b"
+    },
+    {
+      "media_type": "application/json",
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit"
+      ],
+      "reference_id": "std.interior.abandoned_palace_light_shaft.composition",
+      "role": "composition_anchor",
+      "sha256": "1303554a5b10f3a3a4d7865d3b7eeae68a6718d76521fc66f362bc0b5c7ab061"
+    },
+    {
+      "media_type": "application/json",
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit"
+      ],
+      "reference_id": "std.interior.abandoned_palace_light_shaft.palette",
+      "role": "palette_anchor",
+      "sha256": "49d0c214d4f0383f08e3fb2dbf4cf696cb903a9e22a74963243cf4e51fb0c7a5"
+    },
+    {
+      "media_type": "application/json",
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit"
+      ],
+      "reference_id": "std.interior.abandoned_palace_light_shaft.negative",
+      "role": "negative_reference",
+      "sha256": "29294066822acabb723546aea2871209db491233f14d55334d9cee963ee42b8c"
+    }
+  ],
+  "schema_version": "1.0.0",
+  "source_ledger": {
+    "created_at": "2026-07-23T09:40:00Z",
+    "ledger_id": "ledger.std.interior.abandoned_palace_light_shaft.v1",
+    "preset_id": "std.interior.abandoned_palace_light_shaft",
+    "preset_version": "1.0.0",
+    "revision": 1,
+    "schema_version": "1.0.0",
+    "sources": [
+      {
+        "content_sha256": "883125e17b5f4524eb86ac2f0e47d285de533fb00f84797d49068d7490d4a283",
+        "not_authority_for": [
+          "identity",
+          "body",
+          "hair",
+          "outfit",
+          "brands",
+          "readable_text",
+          "exact_architecture"
+        ],
+        "retrieved_at": "2026-07-23T09:40:00Z",
+        "rights": {
+          "basis": "LICENSED",
+          "evidence_sha256": "86a558a192adac12108998fb02dd40db4b72dc06a04c09719d47db91854dacb5",
+          "evidence_uri": "evidence/licenses/unsplash-license-2026-07-23.md",
+          "rights_holder": "Classic Arch via Unsplash license",
+          "status": "VERIFIED",
+          "verified_at": "2026-07-23T09:40:00Z"
+        },
+        "role": "environment_and_composition_inspiration",
+        "snapshot_uri": "evidence/scene-sources/unsplash.u1234567890.json",
+        "source_id": "unsplash.u1234567890",
+        "url": "https://unsplash.com/photos/marble-staircase-and-ornate-wall-relief-in-grand-building-u1234567890",
+        "use": "neoclassical scale, arched window rhythm and crumbling plaster texture only"
+      },
+      {
+        "content_sha256": "266a447dd984ca51255dea40dad88d91d56ae47dd7ae3a231dd1656957311254",
+        "not_authority_for": [
+          "identity",
+          "body",
+          "hair",
+          "outfit",
+          "brands",
+          "readable_text",
+          "exact_architecture"
+        ],
+        "retrieved_at": "2026-07-23T09:40:00Z",
+        "rights": {
+          "basis": "LICENSED",
+          "evidence_sha256": "86a558a192adac12108998fb02dd40db4b72dc06a04c09719d47db91854dacb5",
+          "evidence_uri": "evidence/licenses/unsplash-license-2026-07-23.md",
+          "rights_holder": "Neoclassic Photos via Unsplash license",
+          "status": "VERIFIED",
+          "verified_at": "2026-07-23T09:40:00Z"
+        },
+        "role": "environment_material_inspiration",
+        "snapshot_uri": "evidence/scene-sources/unsplash.AbC456.json",
+        "source_id": "unsplash.AbC456",
+        "url": "https://unsplash.com/photos/ornate-marble-balustrade-with-patterned-shadows-AbC456",
+        "use": "light shaft behavior through tall windows and dusty atmosphere only"
+      }
+    ],
+    "status": "VERIFIED_FOR_RELEASE"
+  },
+  "version": "1.1.0"
+}

@@ -1,0 +1,27 @@
+{
+  "assets": [
+    {
+      "exact_prompt_path": "prompts/scene-presets/std.studio.terracotta_raking_light/v1/environment-plate.txt",
+      "path": "assets/scene-presets/std.studio.terracotta_raking_light/v1/environment-plate.webp",
+      "provider_receipt_status": "MISSING_FROM_BUILTIN_IMAGE_TOOL",
+      "role": "environment_plate",
+      "sha256": "f4cf568c2217e03b67b0c9f2526b27b2ab2df10bdce63ff4ce9d05b951aae5fc"
+    },
+    {
+      "derivation": {
+        "exact_prompt_path": "prompts/scenes/std.studio.terracotta_raking_light.txt",
+        "operation": "ROLE_REASSIGNMENT_FROM_VISUALLY_APPROVED_MOOD_CARD",
+        "source_path": "assets/scene-mood-cards/std.studio.terracotta_raking_light.webp",
+        "source_sha256": "b68b34fc356bfe91f0cfffed8ef7cebefcf89244f5e98fc532a4f9146ba0723c"
+      },
+      "path": "assets/scene-presets/std.studio.terracotta_raking_light/v1/lighting-preview.webp",
+      "provider_receipt_status": "MISSING_FROM_BUILTIN_IMAGE_TOOL",
+      "role": "lighting_preview",
+      "sha256": "b68b34fc356bfe91f0cfffed8ef7cebefcf89244f5e98fc532a4f9146ba0723c"
+    }
+  ],
+  "preset_id": "std.studio.terracotta_raking_light",
+  "preset_version": "1.0.0",
+  "release_status": "BLOCKED_MISSING_STABLE_PROVIDER_RECEIPTS",
+  "schema_version": "1.0.0"
+}

@@ -5,7 +5,7 @@
       "path": "assets/scene-presets/std.studio.taupe_rembrandt_gloss/v1/environment-plate.webp",
       "provider_receipt_status": "MISSING_FROM_BUILTIN_IMAGE_TOOL",
       "role": "environment_plate",
-      "sha256": "5b9887bc966f45ba315f27c1821e6e44da78653045060c4dd1d57d5c9f7b185f"
+      "sha256": "ab46ece9e53d18b955e0d27c07ab52e4144f8cd9b155dca749c603d0eeaf4d03"
     },
     {
       "derivation": {
@@ -17,7 +17,7 @@
       "path": "assets/scene-presets/std.studio.taupe_rembrandt_gloss/v1/lighting-preview.webp",
       "provider_receipt_status": "MISSING_FROM_BUILTIN_IMAGE_TOOL",
       "role": "lighting_preview",
-      "sha256": "09002edac3156ecc3fa200c5f29cfd503fbac5d14f6469f181d5f162ae27ddf7"
+      "sha256": "286898ee1b5800d9b15e7f306467abe679ff8fa644664597fbbfa3d9052a8447"
     }
   ],
   "preset_id": "std.studio.taupe_rembrandt_gloss",

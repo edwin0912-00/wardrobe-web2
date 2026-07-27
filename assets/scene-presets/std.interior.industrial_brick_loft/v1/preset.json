@@ -1,0 +1,89 @@
+{
+  "camera": {
+    "aspect_ratio": "4:5",
+    "height": "eye_level",
+    "lens_mm": 50,
+    "max_vertical_error_deg": 1.5,
+    "minimum_clear_space_percent": {
+      "above_hair": 8,
+      "below_footwear": 2
+    },
+    "subject_height_percent": [
+      74,
+      78
+    ]
+  },
+  "environment": "An original raw industrial loft with exposed red brick walls, poured concrete floor, steel beams overhead, and one large factory window, empty of furniture or equipment.",
+  "family": "interior",
+  "hard_negatives": [
+    "industrial grime",
+    "machinery",
+    "graffiti",
+    "readable text",
+    "furniture",
+    "pipes in face",
+    "unsafe elements",
+    "smoke"
+  ],
+  "lighting": {
+    "fill": "minimal dark ambient with slight warm bounce from brick",
+    "finish": "cinematic_editorial_gloss_without_skin_smoothing_or_hdr",
+    "key": "one dramatic warm light shaft from large factory window across dusty concrete floor",
+    "protected_regions": [
+      "eyes",
+      "face_identity",
+      "item_logos",
+      "item_text",
+      "critical_construction"
+    ],
+    "time_or_setup": "late afternoon single factory window"
+  },
+  "mvp_assets": [
+    "mood_card"
+  ],
+  "palette": [
+    "red brick",
+    "concrete grey",
+    "rust",
+    "warm shaft gold",
+    "steel blue"
+  ],
+  "post_selection_assets": [
+    "environment_plate",
+    "lighting_preview"
+  ],
+  "preset_id": "std.interior.industrial_brick_loft",
+  "prompt_path": "prompts/scenes/std.interior.industrial_brick_loft.txt",
+  "source_authorities": [
+    {
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit",
+        "brands",
+        "readable_text",
+        "exact_architecture"
+      ],
+      "role": "environment_and_composition_inspiration",
+      "url": "https://unsplash.com/photos/industrial-loft-bedroom-3d-render-J3522uS9n8w",
+      "use": "exposed brick texture, steel beam rhythm and factory window scale only"
+    },
+    {
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit",
+        "brands",
+        "readable_text",
+        "exact_architecture"
+      ],
+      "role": "environment_material_inspiration",
+      "url": "https://unsplash.com/photos/a-cozy-bedroom-with-a-brick-accent-wall-p5_4b8f59S4",
+      "use": "brick-to-concrete material contrast and raw texture only"
+    }
+  ],
+  "ui_name_uk": "Цегляний лофт",
+  "version": "1.0.0"
+}
