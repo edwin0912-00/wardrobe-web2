@@ -17,6 +17,16 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-07-27 · MONITOR-002 / UI-002 / FASHION-001 · execution acknowledged
+Change: move all three assigned recovery tasks to IN_PROGRESS after each owner
+published a schema-valid STARTED artifact on its exact Git branch.
+Why: task state now reflects observed work rather than intended work; product
+code may begin only after this acknowledgement gate.
+Evidence: monitor `70089c7`, UI `0179927`, and fashion `3c01a19` each changed
+only its matching status artifact; the report watcher resolves all three with
+`STARTED / CONTEXT_READ / RUN_PRECHANGE_PROOF` and no sensitive report text.
+weakened_checks: none.
+
 2026-07-27 · recovery dispatch review revision · PR #24
 Change: move MONITOR-002, UI-002, and FASHION-001 from IN_PROGRESS to
 ASSIGNED until each exact worker branch commits a typed STARTED report; bind
