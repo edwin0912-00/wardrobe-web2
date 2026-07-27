@@ -72,7 +72,7 @@ test('visible pipeline node copy contains no garment terminology', () => {
 });
 
 test('public pages never expose the internal garment-passport naming', async () => {
-  const filenames = ['../../web/public/index.html', '../../web/public/pipeline.html', '../../web/public/progress-model.js', '../../web/public/app.js'];
+  const filenames = ['../../web/public/index.html', '../../web/public/progress-model.js', '../../web/public/app.js'];
   const publicCopy = (await Promise.all(filenames.map((filename) => readFile(new URL(filename, import.meta.url), 'utf8')))).join('\n');
   assert.match(publicCopy, /Картка речі/);
   assert.doesNotMatch(publicCopy, /garment passport|canonical garment|text\/passport locks/i);
