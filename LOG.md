@@ -17,6 +17,29 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-07-28 · BETA-POSTSHOOT-CHOICE-001 · beta `39e369a` · live activation
+Change: add the three explicit post-look continuations: Photoshoot, Fashion
+video and Live camera.
+Why: Live had been the only visible continuation and the product contract was
+already clear that a selected master-look must offer three separate products.
+Evidence: `node --test test/web/profile-ui-flow.test.js` 9/9; beta health 200;
+the live `/`, `/app.js` and `/result.css` expose the three choice bindings in
+`release-39e369a-20260728003149`.
+weakened_checks: none. Fashion video remains explicitly unavailable until its
+real Seedance 2 transport, QA and persistence are implemented.
+
+2026-07-28 · beta activation recovery · host release
+Change: recover the beta daemon after the first copy of
+`release-39e369a-20260728003149` omitted `node_modules` and could not import
+Fastify.
+Why: the failed restart returned HTTP 502; restoring the already verified
+dependencies from the prior beta release was required to return the current
+release to service.
+Evidence: initial startup logged `ERR_MODULE_NOT_FOUND` for Fastify; after the
+dependency copy and one restart, the daemon logged listening on port 4176 and
+beta health returned HTTP 200.
+weakened_checks: none.
+
 2026-07-28 · BETA-FULL-JOURNEY-GATE-001 · beta `ac3d406` · release reconciliation
 Change: replace the stale beta-release claim with the actual running release
 `release-de07869-20260727233615` and create a concrete release ledger for the

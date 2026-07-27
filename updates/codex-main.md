@@ -6,10 +6,10 @@ Rationale/decision: the saved look is the approved source. It must visibly
 offer Photoshoot, Fashion video and Live camera as distinct next products;
 Video stays explicitly unavailable until its real Seedance route, QA and
 persistence exist rather than being disguised as a mock clip.
-Result: READY_FOR_BETA_DEPLOY — focused source/UI proof is complete; host
-activation and a narrow live smoke are the next atomic action.
+Result: LIVE — activated as `release-39e369a-20260728003149`; health is 200
+and the public HTML/JS/CSS expose the exact three-choice binding.
 Evidence command: node --test test/web/profile-ui-flow.test.js (9/9 PASS).
 weakened_checks: none.
 Help request: NONE.
-Next action: activate exact commit 39e369a on beta and smoke the saved-look
-choice surface.
+Next action: implement the separate Seedance 2 video transport; do not turn
+the current honest unavailable state into a fake result.
