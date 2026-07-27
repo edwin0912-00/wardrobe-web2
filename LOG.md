@@ -17,6 +17,20 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-07-27 · RELEASE-001 · reissued generation 2 at 7cb13f6 · control queue
+Change: bind the lease acceptance to the exact deploy/recovery parser matrix
+that owns canonical external health validation.
+Why: the local full release suite is resource-refused before unrelated
+assertions (swap/disk and optional image dependency), while the changed parser
+tests have an independent behavioral pre-change failure on the exact base. A
+handoff must not falsely mark the resource-refused broad command green.
+Evidence: generation two requires one dedicated parser-contract test with
+literal canonical and rejected URLs; patched onto `d372e6a` it must fail on
+old/arbitrary/credential URL acceptance, and on candidate it must pass. The
+full suite, resource preflight, candidate verification, and deployment remain
+explicit later release gates; none is removed or declared green here.
+weakened_checks: none.
+
 2026-07-27 · RELEASE-001 · execution acknowledged
 Change: move RELEASE-001 from ASSIGNED to IN_PROGRESS after a current typed
 heartbeat from its exact owner/branch/base was observed.
