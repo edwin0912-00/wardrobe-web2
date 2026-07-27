@@ -225,3 +225,10 @@ or merge anything by itself.
   product change outside the exact leased paths.
 - `PROFILE-001` / OpenCode has not checked in yet. It remains assigned, not
   failed; do not infer any work from its absence.
+
+## 2026-07-27 · codex-main · control check 001
+
+`WARD-002` and `MONITOR-001` must each acknowledge this announcement by
+publishing `HEARTBEAT` with `summary_code: CHECKPOINT_VERIFIED` and
+`next_action_code: RUN_PRECHANGE_PROOF` before changing product code. This is
+an acknowledgement of the Git control loop, not permission to expand scope.
