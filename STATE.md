@@ -8,8 +8,10 @@ below. Earlier sections are preserved only as historical evidence.
 - Safe baseline: `main`. Shared working branch: `beta`; every agent fetches
   `origin/beta` immediately before beginning a task rather than relying on a
   copied SHA in this document.
-- Running product release: `39442c4`; later coordination/QA commits have
-  intentionally not triggered a deployment.
+- Running product release: `abd9afd`; later branch commits have intentionally
+  not triggered a deployment. Its release artifact is 481 MiB against the
+  standard verifier's 160 MiB ceiling, so the next deployment is blocked until
+  a no-delete release-size remedy is tested.
 - Beta environment: `https://beta.madeforthisjob.com` — health verified
   `ready`; focused non-billable regression is 20/20 PASS.
 - Live catalog facts: 16 standard backgrounds; `/api/editorial-modes` exposes

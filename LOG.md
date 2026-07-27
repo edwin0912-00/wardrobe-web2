@@ -37,6 +37,18 @@ Evidence: commits `008ea06` and `3b05589`, its STARTED report, and its exact
 reserved-path row in `UPDATE.md`.
 weakened_checks: none.
 
+2026-07-27 · release truth and task handoff
+Change: record `abd9afd` as the actual beta release, make its 481 MiB artifact
+and 160 MiB release ceiling an explicit blocker, and assign the exact next
+tasks to the connected agents.
+Why: a reachable beta is not evidence that a subsequent standard deployment is
+possible; the board must surface the release constraint before more product
+work queues behind it.
+Evidence: daemon points at `release-abd9afd-20260727202146`; beta health is
+ready; release directory measures 481 MiB. No product, credential, provider,
+or deployment mutation was performed by this coordination change.
+weakened_checks: none.
+
 2026-07-27 · legacy queue reconciliation
 Change: cancel the six expired active leases in the archival `TASKS.json`.
 Why: the current sprint uses `UPDATE.md`, but the legacy validator still read

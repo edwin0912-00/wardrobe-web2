@@ -17,17 +17,18 @@ The earlier detailed noticeboard is preserved at
 
 **One current source of truth:** fetch `origin/beta` before every task; the
 branch moves as agents publish their small commits. The running product release
-was built from product commit `39442c4`; subsequent coordination and QA commits
-were not deployed. Do not call a change “live” merely because its row says
+was built from product commit `abd9afd`; later branch commits are not deployed.
+Do not call a change “live” merely because its row says
 `READY_FOR_BETA_DEPLOY`; it is live only after it is an ancestor of the running
 product commit and a narrow beta smoke is recorded here.
 
-- Beta is healthy (`ready`). Narrow non-billable smoke: 20/20 focused tests,
-  `/api/scene-presets` = 16, `/api/editorial-modes` = 9,
-  `/post-shoot-mvp.html` = HTTP 200.
-- The 16 standard-background cards and the picker fix `dbc2442` are included
-  in `39442c4`. Browser visual smoke is still required; it is not replaced by
-  an API result.
+- Beta is healthy (`ready`). Current live release is `abd9afd`; it exposes nine
+  editorial-mode records and five published `shoot.*` cards. Visual smoke of
+  the picker is PASS.
+- The release copy is 481 MiB. The standard release verifier permits 160 MiB,
+  so **no next deployment may be claimed until `BETA-RELEASE-SIZE-001` has a
+  tested resolution.** Existing beta remains reachable; this is a release-gate
+  blocker, not a product outage.
 - Create Universe has five published `shoot.*` cards; four pass their existing
   integrity route. `shoot.terracotta_hardlight` remains visible but blocked by
   a real SHA-256 reference mismatch; do not bypass it. Two newer male units
@@ -75,7 +76,7 @@ product commit and a narrow beta smoke is recorded here.
 | BETA-STD-001 | BACKGROUND.01–02 · Звичайні фони `std.*` | codex-main | DONE | CODE | `assets/scene-presets/**`; `config/scene-release-candidates.json`; `src/web/scene-resolvers.js`; `src/web/scene-contract.js`; scene contract/API tests | Live on beta release `7bca845`: all 11 new packs plus 5 existing packs are user-selectable (16 total). Each local pack index is SHA-bound in the published catalog; stale prompt hashes were repaired to the exact checked-in prompts; the production finish was normalized to the existing strict lock rather than weakening it. Focused regression 32/32; live previews 16/16 HTTP 200. |
 | BETA-POST-SHOOT-001 | VIDEO.01–04 + LIVE.01–04 · Post-shoot graph | codex-live-20260727 | SUPERSEDED | CODE | historical implementation paths | Superseded by `BETA-POSTSHOOT-RECON-001`: the running release now contains real provider-token code, so the former “mock only / disabled” description is no longer current. Historical evidence is retained in `updates/codex-live-20260727.md`. |
 | BETA-LIVE-5S-001 | LIVE.01–04 · Reference photo + 5-second Lucy ceiling | codex-live-20260727 | SUPERSEDED | CODE | historical implementation paths | The five-second consent guard is in live code. It is not proof of a paid Lucy session and does not close the missing Video-versus-Live product choice. |
-| BETA-POSTSHOOT-RECON-001 | VIDEO.01–04 + LIVE.01–04 · Один чесний post-shoot екран | codex-live-20260727 | READY | CODE | `config/post-shoot-pipeline.json`; `src/web/post-shoot-pipeline.js`; `src/web/post-shoot-routes.js`; `web/public/post-shoot-mvp.html`; `web/public/post-shoot-mvp.js`; `web/public/post-shoot-mvp.css`; `test/contracts/post-shoot-pipeline.test.js`; `test/web/post-shoot-routes.test.js`; `docs/LUCY_LIVE_MVP_UA.md`; `updates/codex-live-20260727.md` | Make UI and graph agree: approved fashion shoot → explicit **Video** or **Live** choice. Keep local camera preview free, retain the 5-second/$0.20 consent gate, make no consented provider call, add/adjust focused tests, then request beta smoke of the exact commit. |
+| BETA-POSTSHOOT-RECON-001 | LOOK.06 → Live / Photoshoot / Fashion video · три виходи з обраного образу | codex-live-20260727 | READY | CODE | `config/post-shoot-pipeline.json`; `src/web/post-shoot-pipeline.js`; `src/web/post-shoot-routes.js`; `web/public/index.html`; `web/public/post-shoot-mvp.html`; `web/public/post-shoot-mvp.js`; `web/public/post-shoot-mvp.css`; `test/contracts/post-shoot-pipeline.test.js`; `test/web/post-shoot-routes.test.js`; `docs/LUCY_LIVE_MVP_UA.md`; `docs/VIDEO_LIVE_CANON_UA.md`; `updates/codex-live-20260727.md` | Make UI and graph agree with the operator canon: a selected master look opens three equal exits — **Live try-on**, **Photoshoot**, **Fashion video**. Keep camera preview free, retain the 5-second/$0.20 consent gate, make no consented provider call, add/adjust focused tests, then request beta smoke of the exact commit. |
 | BETA-GRAIN-002 | claude-code-20260727-a3f1c8 | DONE | CODE | none — closed without a code change | CLOSED, no code touched: grain at any strength or scale damages the subject's skin, which is the product. Grain disabled on beta; the crosshatch is cured by oversampling instead, which needs no grain and does not touch the face. |
 | BETA-LOOKPANEL-001 | PROFILE.03 · Панель збереженого образу не просвічує й не накриває свій вміст | claude-code-20260727-ui4f2a | LIVE_CODE | CODE | `web/public/result.css`; `web/public/scene-cta.css`; `web/public/index.html`; `updates/claude-code-20260727-ui4f2a.md` | `6e9cc68` is an ancestor of live `39442c4`. Focused proof was 17/17; visual beta proof is grouped with `BETA-VISUAL-SMOKE-001`. |
 | BETA-UNIVERSE-PREVIEW-001 | UNIVERSE.02 · Превʼю Art Fashion показує кадр зйомки, а не референс-шит | claude-code-20260727-ui4f2a | DONE | CODE | `assets/scene-mood-cards/shoot.*`; `src/web/scene-resolvers.js` (КОЛІЗІЯ); `updates/claude-code-20260727-ui4f2a.md` | ЗУПИНЕНО ДО РОЗВЕДЕННЯ КОЛІЗІЇ: `src/web/scene-resolvers.js` зарезервований активним BETA-UNIVERSE-001 (antigravity-20260727-fb7a90, READY). Пʼять мудкарт 1024x1280 webp зібрані з доставлених кадрів зйомок і проходять контракт превʼю, але без правки резолвера вони `ASSETS_ONLY — NOT IN PRODUCT`; бракує саме `editorialModePreview`, який для create_universe завжди віддає шит за `preview_role`. ЗАКРИТО: під'єднано в `dbc2442` (BETA-PICKER-001) після розведення колізії; асети більше не ASSETS_ONLY. |
@@ -83,7 +84,9 @@ product commit and a narrow beta smoke is recorded here.
 | BETA-SHOOTFLOW-001 | UNIVERSE.03 · Клік на стиль одразу показує результати, без затвердження плану | claude-code-20260727-ui4f2a | LIVE_CODE | CODE | `web/public/editorial-shoot-ui.js`; `test/web/editorial-preview-ui.test.js`; `updates/claude-code-20260727-ui4f2a.md` | Екран ShootBible більше не показується: після вибору стилю користувач одразу бачить шість кадрів і їхній стан QA. План підтверджується автоматично тим самим `expectedSha256`, який видав сервер, тому хеш-гейт лишається на місці — зникає тільки людський клік. Серверний життєвий цикл і контракт не змінені. LIVE у beta release `release-1380ff7-20260727195843` (коміт `1380ff7`): `https://beta.madeforthisjob.com/` 200, усі пʼять `shoot.*` превʼю 200 `image/webp` 1024x1280, у `beta.log` помилок немає. Фокусна перевірка 40/40 PASS. |
 | BETA-VISUAL-SMOKE-001 | PROFILE.03 + UNIVERSE.02 · Візуальна beta-перевірка live UI | claude-code-20260727-ui4f2a | DONE | QA | `updates/claude-code-20260727-ui4f2a.md` only | On the actual beta URL, capture/inspect: saved-look panel opacity, 16 background cards, true tab counts, and Art Fashion cards showing mood cards rather than contact sheets. No product-code edit in this task; report PASS or the exact reproducible UI defect. |
 | BETA-OWNERFRAME-001 | UNIVERSE.02 · Превʼю з наданих власником вихідних кадрів | claude-code-20260727-ui4f2a | LIVE_CODE | CODE | `assets/scene-mood-cards/shoot.*`; `updates/claude-code-20260727-ui4f2a.md` | Превʼю пʼяти каталожних `shoot.*` беруться з кадрів, які надав власник і які дослівно збігаються з `source_frames` кожного манифеста, а не з результатів зйомок. Ще дві картки (shutter_amber_interior, ochre_stage_tailoring) зібрані як `ASSETS_ONLY`, бо цих юнітів немає в каталозі. Контракт превʼю 5/5 OK. LIVE у beta release `release-abd9afd-20260727202146` (коміт `abd9afd`): усі пʼять превʼю через `https://beta.madeforthisjob.com` віддають `image/webp` 1024x1280 з `origin: OWNER_SUPPLIED_STYLE_FRAME`, sha256 сходиться 5/5. |
-| BETA-STYLE3-001 | UNIVERSE.02 · Три нові стилі: жорстке сонце, хмарна вулиця, глянець на сірій стіні | claude-code-20260727-ui4f2a | IN_PROGRESS | CODE | `assets/scene-mood-cards/shoot.hardsun_brick_doorway.*`; `assets/scene-mood-cards/shoot.overcast_street_stride.*`; `assets/scene-mood-cards/shoot.grey_wall_gloss.*`; `updates/claude-code-20260727-ui4f2a.md` | Три превʼю згенеровані нашими пікселями через `OpenRouterImageGenProvider` route `gpt_image_2`, 4:5, по одному промпту на стиль, зібраному з пасу спостереження. Референси-джерела не публікуються і не комітяться. Реєстрація в каталозі — окремим рядком: `CREATE_UNIVERSE_MODE_META` лежить у `src/web/scene-resolvers.js`, який числиться за BETA-UNIVERSE-001, тому картки лишаються `ASSETS_ONLY` до розведення. |
+| BETA-STYLE3-001 | UNIVERSE.02 · Три нові стилі: жорстке сонце, хмарна вулиця, глянець на сірій стіні | claude-code-20260727-ui4f2a | BLOCKED | CODE | `assets/scene-mood-cards/shoot.hardsun_brick_doorway.*`; `assets/scene-mood-cards/shoot.overcast_street_stride.*`; `assets/scene-mood-cards/shoot.grey_wall_gloss.*`; `updates/claude-code-20260727-ui4f2a.md` | Три превʼю згенеровані нашими пікселями через `OpenRouterImageGenProvider` route `gpt_image_2`, 4:5, по одному промпту на стиль, зібраному з пасу спостереження. Референси-джерела не публікуються і не комітяться. Реєстрація в каталозі — окремим рядком: `CREATE_UNIVERSE_MODE_META` лежить у `src/web/scene-resolvers.js`, який числиться за BETA-UNIVERSE-001, тому картки лишаються `ASSETS_ONLY` до відповіді власника resolver-а. |
+| BETA-RELEASE-SIZE-001 | RELEASE · Повернути збірку нижче 160 MiB без втрати Git-джерел | claude-code-20260727-557761 | READY | QA | `docs/CURRENT_STATE_2026-07-27_UA.md`; `updates/claude-code-20260727-557761.md` only | Produce the exact release inventory: bytes by top-level path, which large files are not user-addressable on beta, and a no-delete proposal for excluding only those from the release artifact. No deployment-tool/product edit, no moving/deleting source assets, no credentials. `codex-main` will reserve a separate implementation task from this evidence. |
+| BETA-HEALTH-SEMANTICS-001 | GENERATION_TRANSPORT · Health розрізняє configured і available | opencloud-20260727-bc27e6 | READY | CODE | `src/web/app.js`; `test/web/**`; `updates/opencloud-20260727-bc27e6.md` | Reproduce whether `/api/health` can report generation available when its upstream route is unavailable. If real, add a narrow non-billable health representation separating configured vs available; no provider request, credential, deployment, or unrelated UI change. If not reproducible, report the exact evidence and release the paths. |
 | BETA-VIDEO-FIDELITY-001 | VIDEO.01 · Повний approved look до старту відео | claude-code-20260727-a3f1c8 | BLOCKED | QA → CODE | `updates/claude-code-20260727-a3f1c8.md`; future paths require a new reservation | QA reports that a tested video look locked only the hoodie; untracked jeans/footwear can therefore copy the reference clip. Do not treat that as model drift or weaken QA. First report the corrected-run evidence without raw media/runtime paths; then `codex-main` will reserve the narrow contract/gate fix. No further provider generation under this unassigned finding. |
 
 ## Оголошення · 2026-07-27 · claude-code-20260727-557761
@@ -162,13 +165,21 @@ fashion shoot → Video або Live»; його треба переписати 
   strict manifest/reference contract with focused tests, or report the exact
   missing fields as `ASSETS_ONLY — NOT IN PRODUCT`. No invented references,
   hashes, or generated pixels.
+- **claude-code-20260727-ui4f2a:** `BETA-STYLE3-001` is now waiting on the
+  resolver owner. Do not add metadata yourself. Preserve the three assets,
+  report their hashes/origin, and resume only after Antigravity says whether
+  the strict mode contract allows a catalog card.
 - **claude-code-20260727-557761:** no product edit is assigned. Reconcile your
-  provider note to current beta only through a safe status check; do not add a
-  key, alter credentials, or claim a provider works without evidence.
+  provider note to current beta only through a safe status check; also execute
+  `BETA-RELEASE-SIZE-001`. Do not add a key, alter credentials, delete/move
+  source assets, or claim a provider works without evidence.
 - **claude-code-20260727-a3f1c8:** your video fidelity finding is retained as
   `BETA-VIDEO-FIDELITY-001`. Do not silently repair the core item contract or
   run more provider work under an unassigned QA finding. Report only the
   corrected-run evidence needed to reserve a narrow full-look input gate.
+- **opencloud-20260727-bc27e6:** start `BETA-HEALTH-SEMANTICS-001`; first
+  commit `STARTED` and an exact reproduction. Keep the task non-billable and
+  release no code beyond the declared narrow health surface.
 
 Every agent: fetch `beta`, add `Protocol ACK: <the fetched origin/beta SHA>` in
 its own update, and commit a `STARTED`/result line before changing product
