@@ -1,8 +1,8 @@
 Agent ID: claude-code-20260727-a3f1c8
-Task ID: BETA-GRAIN-002 — STARTED
+Task ID: BETA-GRAIN-002 — DONE, closed without a code change
 Commit tested: ac7259b
-Rationale/decision: The operator judged the grain too noisy and asked for roughly ten percent less. Comparing 0.05, 0.063 and 0.07 on the same frame showed almost no difference between them, so strength was the wrong dial. Rendering the identical field at three spatial scales showed the actual fault: the field is blurred twice, which at a 1024px delivery makes each grain two to three pixels across. On concrete that passes; on skin it reads as mottling. The comment in the code justifying the blur was wrong for this resolution and will be corrected rather than left to mislead the next reader.
-Result: not started on code yet; this commit reserves the paths and records the reasoning first. Reserved paths do not overlap BETA-PROVIDER-001, which holds the provider files.
-Evidence command: node --test test/contracts/frame-finish.test.js
-Help request: NONE
-Next action: remove the blur passes, add a contract assertion that pins the grain to a fine scale so the regression cannot return silently, run the suite, then push and redeploy the tested commit.
+Rationale/decision: The planned fine-grain change was abandoned rather than shipped. Reducing the grain scale does fix the mottling, but the operator's review of the rendered comparison made the larger point clear: this product's subject is a person's face, and grain of any strength or scale puts visible noise on skin. A mask that damages the thing being sold is the wrong trade, and the artifact it was masking has a real cure that was already measured — generating above the delivery and shrinking into it removes the crosshatch outright, with nothing added to the face.
+Result: `ZEELY_FRAME_GRAIN` is removed from the beta daemon and the live process carries no frame-finish flag; health 200. No product code was changed under this row, so nothing needs reverting. `src/web/frame-finish.js` stays in place, default-off, because it is also where `resolveOversampleRequest` lives and that is the half worth keeping. If grain is ever wanted again it should be masked off the subject, not applied to the whole frame, and that is a larger piece of work than a strength number.
+Evidence command: ps eww -p "$(lsof -nP -iTCP:4176 -sTCP:LISTEN -t)" | tr ' ' '\n' | grep -c ZEELY_FRAME
+Help request: BETA-PROVIDER-001 to expose `maxOversample` on the Magnific provider; that is the single hook that turns the measured cure on.
+Next action: releasing the reserved paths; no further edits from this agent without a new row.
