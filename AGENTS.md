@@ -20,6 +20,9 @@ sed -n '1,220p' UPDATE.md
 sed -n '1,120p' STATE.md
 ```
 
+For a one-time identity setup plus an optional live board, run
+`bash tools/join-beta-agent.sh <agent-id> --watch` after cloning.
+
 `UPDATE.md` is the live task board. `TASKS.json`, `OWNERS.md` historical lane
 rules, and old PRs are preserved evidence only; do not use them for a new task.
 

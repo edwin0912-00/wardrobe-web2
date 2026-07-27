@@ -31,6 +31,8 @@ The earlier detailed noticeboard is preserved at
 ## Agent protocol
 
 1. Read `AGENTS.md`, this file, then `STATE.md`.
+   Run `bash tools/join-beta-agent.sh <agent-id> --watch` once per clone to
+   lock the local agent identity and watch this board.
 2. Work only on your assigned row. The orchestrator assigns by changing Owner
    and State to `IN_PROGRESS`.
 3. Code agent: one focused change, one focused test, one commit, then push to
