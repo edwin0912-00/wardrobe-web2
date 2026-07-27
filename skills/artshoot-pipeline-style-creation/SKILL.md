@@ -463,6 +463,37 @@ is. A signature that only sometimes arrives is not a signature.
 Record which half came from the model and which from post. A frame whose look was half applied
 afterwards is honest; a frame that claims the camera did it is not.
 
+### RULE 8 — a person reference carries a person and nothing else: cut out, on white
+
+Measured 2026-07-27 on the video block. A fifteen-second reel was generated from someone else's
+reference video with our own avatar, and half the shots relocated to a garden with a swimming pool
+that appears in no prompt and in no video reference. The refpack held six references: the reference
+video, four cut-outs on white, and one delivered scene frame of our avatar standing in that garden.
+That single frame was the only thing in the entire pack carrying a full environment, and it was
+enough to split the film between two locations.
+
+This is not a new principle. The codebase already has a `REFERENCE_ROLE_ISOLATION` gate, and an
+identity reference that also carries a location is exactly a role violation — it is two references
+wearing one file. The generator cannot be told which half to read.
+
+**TRIGGER** — any reference whose role is identity, body, garment or expression.
+**CHECK** — open it. Is there a background? Is there ground, sky, furniture, foliage, a wall, a
+recognisable interior, a reflection, a cast shadow falling on a visible surface?
+**STOP** — if yes. Cut the subject out onto flat white before it goes in the pack. Two acceptable
+sources: a matted look sheet, or a crop tight enough that no environment survives inside the frame.
+
+The environment gets its own reference with its own role, and the two must never travel in one image.
+Where the target environment is deliberately the anchor's own — a continuity anchor inside a single
+shoot, at the same location — that is an environment reference doing its job, not an exception to
+this rule; label it as such and do not also call it the identity reference.
+
+A close relative, same day and same cause: what a reference does not resolve, it cannot hold. Our
+avatar's shoes occupied about 150 soft pixels in a full-length frame while the reference video showed
+a stranger's sandal at 700 sharp pixels, and one shot came back with the stranger's bare leg and
+sandal. Full length is necessary and not sufficient. Every close shot the delivery may ask for needs
+its own detail reference at that scale — footwear, hem, cuff, fabric — and the honest source is a
+real crop of the approved item, never a prettier one the model invented.
+
 ## 6d. Where this sits in the product
 
 A shoot unit is not a background and must not be built on one. Concretely: a style whose identity

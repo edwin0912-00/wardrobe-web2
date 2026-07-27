@@ -151,6 +151,7 @@ fashion shoot → Video або Live»; його треба переписати 
 три виходи».
 
 ## Agent protocol
+| BETA-SKILL-RULE8-001 | SKILL · Реф людини вирізаний на білому | claude-code-20260727-a3f1c8 | IN_PROGRESS | DOCS | `skills/artshoot-pipeline-style-creation/SKILL.md`; `docs/coordination/SKILL_VERSION_COMPARE_2026-07-27.md`; `updates/claude-code-20260727-a3f1c8.md` | Directly assigned by Edwin. Add RULE 8 to the style-unit skill in the repo, additively, and record the divergent PR #6 copy in a compare file instead of merging it. No product code, no provider work. |
 
 ## Required agent messages — read this commit before work
 
