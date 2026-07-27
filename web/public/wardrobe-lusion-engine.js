@@ -1,6 +1,6 @@
 /* ============================================================
    WARDROBE LUSION ENGINE
-   Three.js WebGL background with fluid mesh hero visual
+   Three.js WebGL background with fluid mesh & dynamic pipeline reactions
    ============================================================ */
 
 (function() {
@@ -91,14 +91,12 @@
     void main() {
       vec3 pos = position;
       
-      // Multi-octave noise displacement
       float noise1 = snoise(pos * uNoiseScale + uTime * 0.3) * uNoiseStrength;
       float noise2 = snoise(pos * uNoiseScale * 2.0 + uTime * 0.5) * uNoiseStrength * 0.5;
       float noise3 = snoise(pos * uNoiseScale * 4.0 + uTime * 0.2) * uNoiseStrength * 0.25;
       
       float displacement = noise1 + noise2 + noise3;
       
-      // Mouse influence
       float mouseInfluence = smoothstep(2.0, 0.0, length(pos.xy - uMouse * 2.0));
       displacement += mouseInfluence * 0.15 * sin(uTime * 2.0);
       
@@ -128,35 +126,27 @@
     varying vec3 vViewPosition;
     
     void main() {
-      // Fresnel rim effect
       vec3 viewDir = normalize(vViewPosition);
       float fresnel = pow(1.0 - max(dot(vNormal, viewDir), 0.0), 3.0);
       
-      // Color mixing based on displacement and position
       float colorMix1 = smoothstep(-0.3, 0.3, vDisplacement);
       float colorMix2 = smoothstep(0.0, 0.6, vDisplacement);
       
       vec3 baseColor = mix(uColor1, uColor2, colorMix1);
       baseColor = mix(baseColor, uColor3, colorMix2);
       
-      // Rim light
       vec3 rimColor = vec3(0.95, 0.85, 0.65);
-      baseColor += rimColor * fresnel * 0.6;
+      baseColor += rimColor * fresnel * 0.5;
       
-      // Specular highlights
       vec3 lightDir = normalize(vec3(1.0, 1.0, 2.0));
       vec3 halfDir = normalize(lightDir + viewDir);
       float spec = pow(max(dot(vNormal, halfDir), 0.0), 64.0);
-      baseColor += vec3(1.0, 0.95, 0.9) * spec * 0.5;
+      baseColor += vec3(1.0, 0.95, 0.9) * spec * 0.4;
       
-      // Subtle ambient occlusion from displacement
       float ao = smoothstep(-0.5, 0.5, vDisplacement) * 0.3 + 0.7;
       baseColor *= ao;
       
-      // Final alpha with fresnel fade
-      float alpha = 0.85 + fresnel * 0.15;
-      
-      gl_FragColor = vec4(baseColor, alpha);
+      gl_FragColor = vec4(baseColor, 0.88);
     }
   `;
 
@@ -189,12 +179,12 @@
   
   const uniforms = {
     uTime: { value: 0 },
-    uNoiseScale: { value: 1.5 },
-    uNoiseStrength: { value: 0.35 },
+    uNoiseScale: { value: 1.2 },
+    uNoiseStrength: { value: 0.22 },
     uMouse: { value: new THREE.Vector2(0, 0) },
-    uColor1: { value: new THREE.Color(0x1a1008) },  // Dark bronze
-    uColor2: { value: new THREE.Color(0x8b6914) },  // Gold
-    uColor3: { value: new THREE.Color(0xc8a050) },  // Bright gold
+    uColor1: { value: new THREE.Color(0x0a0804) },
+    uColor2: { value: new THREE.Color(0x3d2a0a) },
+    uColor3: { value: new THREE.Color(0x8b6830) },
   };
 
   const material = new THREE.ShaderMaterial({
@@ -209,8 +199,8 @@
   const mesh = new THREE.Mesh(geometry, material);
   scene.add(mesh);
 
-  // ── Ambient Particles (Background Dust) ──
-  const particleCount = 800;
+  // ── Ambient Particles ──
+  const particleCount = 500;
   const particleGeometry = new THREE.BufferGeometry();
   const particlePositions = new Float32Array(particleCount * 3);
   const particleSizes = new Float32Array(particleCount);
@@ -233,7 +223,7 @@
         vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
         gl_PointSize = size * (200.0 / -mvPosition.z);
         gl_Position = projectionMatrix * mvPosition;
-        vAlpha = smoothstep(15.0, 3.0, -mvPosition.z) * 0.3;
+        vAlpha = smoothstep(15.0, 3.0, -mvPosition.z) * 0.2;
       }
     `,
     fragmentShader: `
@@ -261,13 +251,31 @@
     mouse.targetY = -(e.clientY / window.innerHeight) * 2 + 1;
   });
 
-  // ── Scroll Progress ──
+  // ── Scroll Progress & Step Reactions ──
   let scrollProgress = 0;
   
   window.addEventListener('scroll', () => {
     const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
-    scrollProgress = Math.max(0, Math.min(1, window.scrollY / maxScroll));
+    scrollProgress = Math.max(0, Math.min(1, window.scrollY / (maxScroll || 1)));
   });
+
+  // Target Colors for Theme Shifts
+  const targetColors = {
+    c1: new THREE.Color(0x0a0804),
+    c2: new THREE.Color(0x3d2a0a),
+    c3: new THREE.Color(0x8b6830),
+  };
+
+  // Expose global controller for 3D reactions
+  window.wardrobeEngine = {
+    setThemeColor(hexColor) {
+      if (!hexColor) return;
+      const base = new THREE.Color(hexColor);
+      targetColors.c1.copy(base).multiplyScalar(0.2);
+      targetColors.c2.copy(base).multiplyScalar(0.6);
+      targetColors.c3.copy(base).multiplyScalar(1.2);
+    }
+  };
 
   // ── Resize ──
   window.addEventListener('resize', () => {
@@ -288,29 +296,29 @@
     mouse.x += (mouse.targetX - mouse.x) * 0.05;
     mouse.y += (mouse.targetY - mouse.y) * 0.05;
     
+    // Lerp colors to target
+    uniforms.uColor1.value.lerp(targetColors.c1, 0.03);
+    uniforms.uColor2.value.lerp(targetColors.c2, 0.03);
+    uniforms.uColor3.value.lerp(targetColors.c3, 0.03);
+    
     // Update uniforms
     uniforms.uTime.value = elapsed;
     uniforms.uMouse.value.set(mouse.x, mouse.y);
     
-    // Mesh rotation (slow, organic)
+    // Mesh rotation
     mesh.rotation.x = Math.sin(elapsed * 0.15) * 0.3 + mouse.y * 0.2;
     mesh.rotation.y = elapsed * 0.1 + mouse.x * 0.3;
     mesh.rotation.z = Math.cos(elapsed * 0.12) * 0.15;
     
-    // Scale based on scroll — shrink as user scrolls past hero
-    const heroScale = Math.max(0.3, 1.0 - scrollProgress * 2);
-    mesh.scale.setScalar(heroScale);
+    // Mesh position & scale relative to scroll
+    const scaleFactor = Math.max(0.45, 1.0 - scrollProgress * 0.8);
+    mesh.scale.setScalar(scaleFactor);
+    mesh.position.y = scrollProgress * 1.5;
     
-    // Move mesh up as user scrolls
-    mesh.position.y = scrollProgress * 3;
-    
-    // Fade mesh opacity
-    material.opacity = Math.max(0, 1.0 - scrollProgress * 3);
-    
-    // Camera subtle movement
-    camera.position.x = mouse.x * 0.3;
-    camera.position.y = mouse.y * 0.2;
-    camera.lookAt(0, scrollProgress * 1.5, 0);
+    // Camera subtle drift
+    camera.position.x = mouse.x * 0.2;
+    camera.position.y = mouse.y * 0.15;
+    camera.lookAt(0, scrollProgress * 0.8, 0);
     
     // Animate particles
     const positions = particleGeometry.attributes.position.array;
