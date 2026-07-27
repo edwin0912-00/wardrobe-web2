@@ -17,6 +17,19 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-07-27 · SCENE-001 / MONITOR-002 / RELEASE-001 · controlled continuation
+Change: mark merged SCENE-001 DONE and grant the already-evidenced MONITOR-002
+and RELEASE-001 lanes a bounded review/merge extension through 10:30 UTC;
+extend UI-002 and FASHION-001 only to complete current-base verification.
+Why: their evidence was published before the previous lease deadline, but CI
+and review completed after it. No implementation, model, QA gate, runtime, or
+credential scope changes with this ledger update.
+Evidence: SCENE PR #35 merged as `df9e887` and its six focused suites pass
+60/60 on integration. MONITOR `db22b77` and RELEASE `d62a8a8` have isolated
+handoffs and prior independent PASS evidence. The broad CI baseline's remaining
+asset-fixture classification is recorded separately, not waived.
+weakened_checks: none.
+
 2026-07-27 · RELEASE-001 · execution acknowledged
 Change: move RELEASE-001 generation 2 from ASSIGNED to IN_PROGRESS after its
 exact owner published its bounded canonical-target parser proof and report.

@@ -1,12 +1,12 @@
 # Wardrobe verified state
 
-Updated: 2026-07-27 03:16 UTC.
+Updated: 2026-07-27 08:48 UTC.
 
 ## Canonical position
 
 - Repository: `edwin0912-00/zeely-ai-engineering-test`.
 - Development target: `integration/wardrobe-20260726` at
-  `945f57d1154e11e5223340df0e17a7ffcc1737b7`.
+  `df9e887a96ec14250671c0d8bf12dd07f4420a9a`.
 - `main` is not a deployment target for this sprint. Only independently
   reviewed, scoped PRs may merge into `integration`.
 - `CTRL-002` is merged through PR #22. The repository now has a typed,
@@ -16,7 +16,7 @@ Updated: 2026-07-27 03:16 UTC.
 
 ## Three-hour recovery sprint
 
-Hard stop: 2026-07-27 04:38 UTC. Edwin has now authorized generation and
+Continuation window: through 2026-07-27 10:30 UTC. Edwin has now authorized generation and
 deployment in principle, but neither may run until a specific approved job and
 a verified release candidate exist. Credential operations and gate relaxation
 remain prohibited.
@@ -49,18 +49,21 @@ All three are IN_PROGRESS. Each lane has a separate lock, pinned source blobs,
 exact status path, test-first acceptance, isolated handoff, and independent
 review requirement.
 
-`SCENE-001` generation two is now IN_PROGRESS after its exact owner published
-the bounded product checkpoint `bbcfe71` and typed report `0e823ec`. Its
-independent review reproduced both exact-base failures and passed the six-suite
-candidate proof (60/60), static regression, scanner, and diff hygiene with no
-weakened checks. It is awaiting only its isolated handoff before a scoped PR.
+`SCENE-001` generation two is DONE: PR #35 merged as `df9e887`. The current
+integration checkout passes all six scene suites (60/60). The GitHub broad
+baseline job remains unable to classify its pre-existing asset-hash fixture
+under that runner; exact PR-merge reproduction showed only the known
+`b2fd…`/`f909…` fixture mismatch, not a scene regression.
 
-`RELEASE-001` generation two is now IN_PROGRESS after its exact owner
+`RELEASE-001` generation two is in REVIEW after its exact owner
 published checkpoint `4f5616a` and typed report `e7fff23`. Its independent
 review reproduced the two behavioral parser failures at exact base `d372e6a`
 and passed the candidate contract test (2/2), with no runtime, credential, or
 deployment operation. It is awaiting only its isolated handoff before a scoped
-PR; the broad release suite remains a later candidate gate.
+PR; the broad release suite remains a later candidate gate. `MONITOR-002` is
+also in REVIEW with an isolated handoff. Their published evidence predates the
+lease deadline; the control board grants only a bounded review/merge extension,
+with no product scope change.
 
 ## Verified product facts
 
