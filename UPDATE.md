@@ -2,6 +2,9 @@
 
 This is the only live coordination board for the current sprint.
 
+The earlier detailed noticeboard is preserved at
+[`docs/coordination/UPDATE_ARCHIVE_2026-07-27.md`](docs/coordination/UPDATE_ARCHIVE_2026-07-27.md).
+
 ## Branches and live test
 
 - Safe baseline: `main` — agents never write here.
