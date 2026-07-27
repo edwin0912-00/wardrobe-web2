@@ -1,11 +1,29 @@
 # Wardrobe verified state
 
-## Fast-mode live position — 2026-07-27
+## Current release truth — 2026-07-27
 
-- Safe baseline: `main`.
-- Active shared branch: `beta` at `90d6119` plus the fast-mode control commit.
+This section supersedes every earlier “Fast-mode live position” statement
+below. Earlier sections are preserved only as historical evidence.
+
+- Safe baseline: `main`. Shared working and beta-release branch: `beta`.
+- Current repository and running beta release: `39442c4`.
 - Beta environment: `https://beta.madeforthisjob.com` — health verified
-  `ready`; it runs the Create Universe release built from `90d6119`.
+  `ready`; focused non-billable regression is 20/20 PASS.
+- Live catalog facts: 16 standard backgrounds; `/api/editorial-modes` exposes
+  9 mode records; five `shoot.*` cards are published, four are integrity-ready,
+  and Terracotta remains blocked by its real reference hash mismatch.
+- `dbc2442` (Art Fashion mood-card preview / correct tab counts) and `6e9cc68`
+  (saved-look panel layout) are ancestors of `39442c4`. They are live code, but
+  their browser visual smoke is a separate QA task, not inferred from tests.
+- Lucy is no longer accurately described as “mock only”: live code has a
+  server-token route and an explicit 5-second/$0.20 consent guard. A request
+  without consent returns HTTP 409; no consented request/provider session was
+  made here. The UI currently lacks the explicit Video-versus-Live choice that
+  its own pipeline graph declares, so `BETA-POSTSHOOT-RECON-001` owns that
+  correction before the feature can be called complete.
+- The authoritative assignments and agent messages are in `UPDATE.md`.
+
+## Historical notes — do not use as current release state
 - `iwas.madeforthisjob.com` was not changed during this beta release.
 - Current task board: `UPDATE.md`. Historical lanes and `TASKS.json` are not
   an assignment source for this sprint.

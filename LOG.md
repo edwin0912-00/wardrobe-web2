@@ -645,3 +645,15 @@ role-asset, resolver, API preview and saved-scene regression checks (32/32).
 Eleven stale prompt hashes were corrected to their exact checked-in prompt
 bytes; their finish metadata was normalized to the existing production lock.
 weakened_checks: none.
+
+2026-07-27 · BETA reconciliation · `39442c4`
+Change: reconcile the shared board and verified state to the actual running
+beta commit, and give each connected agent one explicit next action.
+Why: prior rows correctly preserved historical work but incorrectly described
+the running Lucy implementation as mock-only and left already-live picker/UI
+commits marked merely ready for deployment.
+Evidence: `git merge-base --is-ancestor dbc2442 39442c4` and `6e9cc68 39442c4`
+both succeed; focused non-billable suite is 20/20 PASS; beta health is `ready`;
+the API reports 16 backgrounds and 9 editorial-mode records; post-shoot page
+is HTTP 200; unconsented Lucy token request returns HTTP 409 before provider use.
+weakened_checks: none.
