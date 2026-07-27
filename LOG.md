@@ -17,12 +17,12 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
-2026-07-27 · PIPELINE-MAP-001 · beta · canonical 13-stage product map
-Change: add `PIPELINE.md` and require all active tasks to name their `P#/13`
-pipeline position in plain Ukrainian.
+2026-07-27 · PIPELINE-MAP-001 · beta · canonical named-step product map
+Change: add `PIPELINE.md` and require all active tasks to name their actual
+pipeline step in plain Ukrainian, without a fictitious total stage count.
 Why: agents and the operator need one shared answer to what is being built,
 what is live, and where each task belongs.
-Evidence: all four live-board rows now link to their stage; core-only and
+Evidence: all four live-board rows now link to their named step; core-only and
 beta-proven status are stated separately.
 weakened_checks: none.
 

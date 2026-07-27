@@ -37,8 +37,8 @@ rules, and old PRs are preserved evidence only; do not use them for a new task.
 
 Technical IDs such as `BETA-UNIVERSE-001` are routing labels only. Every task
 must also state a plain-language Ukrainian product name and the exact pipeline
-stage it changes as `P#/13` from `PIPELINE.md`. Never use a tracking ID as
-though it explained the work.
+step it changes from `PIPELINE.md`, for example `LOOK.04` or `UNIVERSE.02`.
+Never use a tracking ID as though it explained the work.
 
 Fast rules:
 
