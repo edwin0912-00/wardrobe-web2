@@ -125,6 +125,11 @@ assignment listener into a schema-validated status/heartbeat protocol and a
 single context pack. It must not claim that a terminal watcher can wake an
 unattended LLM: the runner remains an explicit agent-side process.
 
+The task lease has been widened only enough to activate reporting: it may
+change the ownership rule and grant each active task exactly one matching
+`.agents/status/<task-id>.json` path. It may not grant a wildcard status path,
+product write authority, merge, deployment, or credential access.
+
 ## Stop conditions awaiting Edwin
 
 - Any copied-edge or other synthetic-pixel headroom repair.

@@ -2,7 +2,7 @@
   "schema_version": "1.0.0",
   "integration_branch": "integration/wardrobe-20260726",
   "orchestrator": "codex-main",
-  "updated_at": "2026-07-27T00:09:57.000Z",
+  "updated_at": "2026-07-27T00:18:00.000Z",
   "tasks": [
     {
       "id": "CTRL-001",
@@ -243,6 +243,10 @@
       ],
       "allowed_paths": [
         "AGENTS.md",
+        "OWNERS.md",
+        "LOG.md",
+        "STATE.md",
+        "TASKS.json",
         ".agents/README.md",
         ".agents/status/CTRL-002.json",
         "docs/coordination/**",
