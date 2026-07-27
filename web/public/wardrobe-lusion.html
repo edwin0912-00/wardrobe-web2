@@ -18,7 +18,7 @@
   <script src="/three.min.js"></script>
 </head>
 
-<body>
+<body class="kinetic-snap-mode">
   <!-- ============================
        LAYER 0: Fullscreen WebGL Canvas
        ============================ -->
@@ -33,14 +33,14 @@
       <span class="hud-name">WARDROBE STUDIO</span>
     </div>
     <nav class="hud-steps">
-      <button class="hud-step-btn is-active" data-step="0" onclick="scrollToStep(0)" type="button">01 AVATAR</button>
-      <button class="hud-step-btn" data-step="1" onclick="scrollToStep(1)" type="button">02 GARMENT</button>
-      <button class="hud-step-btn" data-step="2" onclick="scrollToStep(2)" type="button">03 SCENES</button>
-      <button class="hud-step-btn" data-step="3" onclick="scrollToStep(3)" type="button">04 CAMPAIGN</button>
+      <button class="hud-step-btn is-active" data-step="0" onclick="goToStep(0)" type="button">01 AVATAR</button>
+      <button class="hud-step-btn" data-step="1" onclick="goToStep(1)" type="button">02 GARMENT</button>
+      <button class="hud-step-btn" data-step="2" onclick="goToStep(2)" type="button">03 SCENES</button>
+      <button class="hud-step-btn" data-step="3" onclick="goToStep(3)" type="button">04 CAMPAIGN</button>
     </nav>
     <div class="hud-info">
       <span class="hud-live-dot"></span>
-      <span class="hud-status-text">WebGL 3D ENGINE · KINETIC PIPELINE</span>
+      <span class="hud-status-text">KINETIC SNAP SCROLL · 5-ITEM PIPELINE</span>
     </div>
   </div>
 
@@ -53,11 +53,11 @@
     <section id="step-0" class="l-hero l-pipeline-step" data-step-index="0">
       <div class="l-hero-visual" id="hero-visual"></div>
       <h1 class="l-hero-title l-reveal">WARDROBE</h1>
-      <p class="l-hero-subtitle l-reveal l-reveal-delay-1">Твій AI-аватар та цифровий гардероб у 3D-середовищі.<br>Збереження зовнишності без випадковостей.</p>
+      <p class="l-hero-subtitle l-reveal l-reveal-delay-1">Твій AI-аватар та цифровий гардероб у 3D-середовищі.<br>Збереження зовнішності без випадковостей.</p>
       <div class="l-hero-line l-reveal l-reveal-delay-2"></div>
       
       <div class="l-hero-actions l-reveal l-reveal-delay-3" style="margin-top: 2rem;">
-        <button class="l-goal-btn" onclick="scrollToStep(1)" type="button">
+        <button class="l-goal-btn" onclick="goToStep(1)" type="button">
           <span>Створити Аватар у 3D Studio</span>
           <svg width="16" height="16" fill="none" viewBox="0 0 16 16"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.343 8h11.314m0 0-4.984 4.984M13.657 8 8.673 3.016"/></svg>
         </button>
@@ -66,7 +66,7 @@
       <div class="l-hero-scroll">
         <div class="l-cross"></div>
         <div class="l-cross"></div>
-        <span class="l-hero-scroll-text">скрольте для вибору етапу</span>
+        <span class="l-hero-scroll-text">кінетичний свайп для перемикання</span>
         <div class="l-cross"></div>
         <div class="l-cross"></div>
       </div>
@@ -121,8 +121,8 @@
           </div>
 
           <div class="l-panel-footer">
-            <button class="l-step-next-btn" onclick="scrollToStep(2)" type="button">
-              <span>Перейти до гардеробу</span>
+            <button class="l-step-next-btn" onclick="goToStep(2)" type="button">
+              <span>Перейти до гардеробу (5 речей)</span>
               <span class="btn-arrow">→</span>
             </button>
           </div>
@@ -131,38 +131,66 @@
     </section>
 
 
-    <!-- ── Section 2: Step 02 — Garment & Outfit Panel ── -->
+    <!-- ── Section 2: Step 02 — 5-Garment & Outfit Panel ── -->
     <section id="step-2" class="l-pipeline-section l-pipeline-step" data-step-index="2">
       <div class="l-container">
         <div class="l-step-header l-reveal">
           <div class="l-step-badge">ЕТАП 02 / 04</div>
-          <h2 class="l-step-title">Картка Образу та Гардероб</h2>
-          <p class="l-step-desc">Опиши бажаний стиль або завантаж фотографії окремих речей для точного розпізнавання матеріалів.</p>
+          <h2 class="l-step-title">Картка Образу та 5 Речей</h2>
+          <p class="l-step-desc">Опиши стиль та додай до 5 окремих елементів гардеробу (верх, пальто, штани, взуття, аксесуари).</p>
         </div>
 
         <div class="l-glass-panel l-reveal l-reveal-delay-1">
           
           <div class="l-field-group">
             <label class="l-field-label" for="input-outfit-text">Опис образу (стиль, посадка, настрій)</label>
-            <textarea id="input-outfit-text" class="l-textarea" rows="3" placeholder="Наприклад: мінімалістичний чорний костюм з широким кроєм та матовою текстурою linen"></textarea>
+            <textarea id="input-outfit-text" class="l-textarea" rows="2" placeholder="Наприклад: мінімалістичний чорний костюм з широким кроєм та матовою текстурою linen"></textarea>
           </div>
 
-          <div class="l-field-group" style="margin-top: 1.5rem;">
-            <label class="l-field-label">Фото речей (до 5 предметів)</label>
-            <div class="l-garment-upload-grid">
-              <label class="l-garment-box">
-                <input type="file" accept="image/png,image/jpeg,image/webp" multiple>
+          <div class="l-field-group" style="margin-top: 1.25rem;">
+            <label class="l-field-label">Фото 5 елементів гардеробу (авто-категоризація)</label>
+            <div class="l-garment-upload-grid-5">
+              
+              <!-- Slot 1: Top -->
+              <label class="l-garment-box-5">
+                <input type="file" accept="image/png,image/jpeg,image/webp">
                 <span class="g-icon">+</span>
-                <span>Додати речі</span>
+                <span class="g-name">01. Верх / Сорочка</span>
               </label>
-              <div class="l-garment-preview-slot empty"><span>Порожньо</span></div>
-              <div class="l-garment-preview-slot empty"><span>Порожньо</span></div>
-              <div class="l-garment-preview-slot empty"><span>Порожньо</span></div>
+
+              <!-- Slot 2: Outerwear -->
+              <label class="l-garment-box-5">
+                <input type="file" accept="image/png,image/jpeg,image/webp">
+                <span class="g-icon">+</span>
+                <span class="g-name">02. Верхній одяг</span>
+              </label>
+
+              <!-- Slot 3: Pants -->
+              <label class="l-garment-box-5">
+                <input type="file" accept="image/png,image/jpeg,image/webp">
+                <span class="g-icon">+</span>
+                <span class="g-name">03. Штани / Спідниця</span>
+              </label>
+
+              <!-- Slot 4: Shoes -->
+              <label class="l-garment-box-5">
+                <input type="file" accept="image/png,image/jpeg,image/webp">
+                <span class="g-icon">+</span>
+                <span class="g-name">04. Взуття</span>
+              </label>
+
+              <!-- Slot 5: Accessory -->
+              <label class="l-garment-box-5">
+                <input type="file" accept="image/png,image/jpeg,image/webp">
+                <span class="g-icon">+</span>
+                <span class="g-name">05. Аксесуар / Сумка</span>
+              </label>
+
             </div>
           </div>
 
-          <div class="l-panel-footer" style="margin-top: 2rem;">
-            <button class="l-step-next-btn" onclick="scrollToStep(3)" type="button">
+          <div class="l-panel-footer" style="margin-top: 1.5rem;">
+            <button class="l-step-next-btn" onclick="goToStep(3)" type="button">
               <span>Обрати 3D Локацію</span>
               <span class="btn-arrow">→</span>
             </button>
@@ -178,7 +206,7 @@
         <div class="l-featured-header l-reveal">
           <div>
             <div class="l-step-badge">ЕТАП 03 / 04</div>
-            <h2 class="l-featured-title">3D Сцени та Освещение</h2>
+            <h2 class="l-featured-title">3D Сцени та Освітлення</h2>
           </div>
           <p class="l-featured-disclaimer">11 студійних локацій з кінематографічним світлом. Натисни на картку для вибору активної сцени.</p>
         </div>
@@ -252,7 +280,7 @@
         </div>
 
         <div style="margin-top: 3rem; text-align: center;">
-          <button class="l-goal-btn" onclick="scrollToStep(4)" type="button">
+          <button class="l-goal-btn" onclick="goToStep(4)" type="button">
             <span>Згенерувати 6-Shot Campaign</span>
             <span class="btn-arrow">→</span>
           </button>
@@ -261,43 +289,7 @@
     </section>
 
 
-    <!-- ── Section 4: Video Reel & Film Strip ── -->
-    <section id="reel" class="l-reel">
-      <div class="l-container">
-        <h3 class="l-reel-title l-reveal">
-          <div>Fashion Video</div>
-          <div>&amp; Motion Kinetic</div>
-        </h3>
-        <div class="l-reel-desc l-reveal l-reveal-delay-1">
-          Динамічний скрол та відеопрогравач для демонстрації канонічного руху образу.
-        </div>
-      </div>
-
-      <!-- Film Strip Top -->
-      <div class="l-filmstrip" style="margin-top: 2rem;">
-        <div class="l-filmstrip-inner" id="filmstrip-top"></div>
-      </div>
-
-      <!-- Video Container -->
-      <div class="l-container">
-        <div class="l-reel-video l-reveal" id="reel-video">
-          <img src="/scenes/night_neon.webp" alt="Fashion showreel preview" style="width:100%;height:100%;object-fit:cover;opacity:0.75;">
-          <div class="l-reel-video-placeholder">
-            <div class="l-play-btn">
-              <svg viewBox="0 0 24 24"><path d="M5 3.29c0-1.5 1.59-2.466 2.92-1.776l14.656 7.71c1.439.747 1.439 2.805 0 3.552L7.92 20.486C6.589 21.176 5 20.21 5 18.71V3.29Z"/></svg>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Film Strip Bottom -->
-      <div class="l-filmstrip" style="margin-top: 0;">
-        <div class="l-filmstrip-inner" id="filmstrip-bottom"></div>
-      </div>
-    </section>
-
-
-    <!-- ── Section 5: Step 04 — Campaign Studio Gallery ── -->
+    <!-- ── Section 4: Step 04 — Campaign Studio Gallery & Video Reel ── -->
     <section id="step-4" class="l-gallery l-pipeline-step" data-step-index="4">
       <div class="l-container">
         <div class="l-step-badge l-reveal">ЕТАП 04 / 04</div>
@@ -343,6 +335,19 @@
         </div>
         <div style="width: var(--container-pad); flex-shrink: 0;"></div>
       </div>
+
+      <!-- Video Reel in Step 4 -->
+      <div class="l-container" style="margin-top: 4rem;">
+        <h4 class="l-reel-title l-reveal">Fashion Video Motion Reel</h4>
+        <div class="l-reel-video l-reveal" id="reel-video">
+          <img src="/scenes/night_neon.webp" alt="Fashion showreel preview" style="width:100%;height:100%;object-fit:cover;opacity:0.75;">
+          <div class="l-reel-video-placeholder">
+            <div class="l-play-btn">
+              <svg viewBox="0 0 24 24"><path d="M5 3.29c0-1.5 1.59-2.466 2.92-1.776l14.656 7.71c1.439.747 1.439 2.805 0 3.552L7.92 20.486C6.589 21.176 5 20.21 5 18.71V3.29Z"/></svg>
+            </div>
+          </div>
+        </div>
+      </div>
     </section>
 
 
@@ -351,80 +356,111 @@
       <div class="l-container l-footer-inner">
         <div class="l-footer-brand">Wardrobe Studio</div>
         <nav class="l-footer-links">
-          <a class="l-footer-link" href="#step-1" onclick="scrollToStep(1)">Avatar</a>
-          <a class="l-footer-link" href="#step-2" onclick="scrollToStep(2)">Garments</a>
-          <a class="l-footer-link" href="#step-3" onclick="scrollToStep(3)">Scenes</a>
-          <a class="l-footer-link" href="#step-4" onclick="scrollToStep(4)">Campaign</a>
+          <a class="l-footer-link" href="#" onclick="goToStep(1)">Avatar</a>
+          <a class="l-footer-link" href="#" onclick="goToStep(2)">Garments</a>
+          <a class="l-footer-link" href="#" onclick="goToStep(3)">Scenes</a>
+          <a class="l-footer-link" href="#" onclick="goToStep(4)">Campaign</a>
         </nav>
-        <span class="l-footer-copy">© 2026 Wardrobe. Integrated 3D Pipeline.</span>
+        <span class="l-footer-copy">© 2026 Wardrobe. Kinetic Snap 5-Item Pipeline.</span>
       </div>
     </footer>
 
   </div><!-- /ui -->
 
   <!-- ============================
-       LAYER 3: WebGL Engine & Script
+       LAYER 3: WebGL Engine & Kinetic Snap Controller
        ============================ -->
   <script src="/wardrobe-lusion-engine.js"></script>
   <script>
-    // ── Smooth Scroll to Step ──
-    function scrollToStep(stepIndex) {
-      const stepElements = [
-        document.getElementById('step-0'),
-        document.getElementById('step-1'),
-        document.getElementById('step-2'),
-        document.getElementById('step-3'),
-        document.getElementById('step-4'),
-      ];
-      if (stepElements[stepIndex]) {
-        stepElements[stepIndex].scrollIntoView({ behavior: 'smooth' });
+    // ── Kinetic Snap Section Controller ──
+    let currentStepIndex = 0;
+    const totalSteps = 5; // Step 0, 1, 2, 3, 4
+    let isTransitioning = false;
+    const transitionCooldownMs = 700;
+
+    const stepElements = [
+      document.getElementById('step-0'),
+      document.getElementById('step-1'),
+      document.getElementById('step-2'),
+      document.getElementById('step-3'),
+      document.getElementById('step-4'),
+    ];
+
+    function goToStep(index) {
+      if (index < 0 || index >= totalSteps || isTransitioning) return;
+      
+      isTransitioning = true;
+      currentStepIndex = index;
+      
+      if (stepElements[index]) {
+        stepElements[index].scrollIntoView({ behavior: 'smooth' });
       }
+
+      // Update HUD buttons
+      const hudButtons = document.querySelectorAll('.hud-step-btn');
+      hudButtons.forEach((btn, i) => {
+        if (i === (index > 0 ? index - 1 : 0)) {
+          btn.classList.add('is-active');
+        } else {
+          btn.classList.remove('is-active');
+        }
+      });
+
+      // Cooldown timer to prevent accidental multi-flips
+      setTimeout(() => {
+        isTransitioning = false;
+      }, transitionCooldownMs);
     }
 
-    // ── Film Strip Populator ──
-    function populateFilmStrip(containerId) {
-      const container = document.getElementById(containerId);
-      if (!container) return;
-      const items = [];
-      for (let i = 0; i < 15; i++) {
-        items.push(`
-          <div class="l-filmstrip-item">
-            <div class="l-filmstrip-play"></div>
-            <span>FASHION MOTION REEL</span>
-          </div>
-        `);
+    // Intercept Wheel Gestures for Kinetic Section Flipping
+    window.addEventListener('wheel', (e) => {
+      if (isTransitioning) {
+        e.preventDefault();
+        return;
       }
-      container.innerHTML = items.join('') + items.join('');
-    }
-    populateFilmStrip('filmstrip-top');
-    populateFilmStrip('filmstrip-bottom');
 
-    // ── Intersection Observer for Reveal & Active Step ──
-    const stepButtons = document.querySelectorAll('.hud-step-btn');
-    
+      const threshold = 25;
+      if (e.deltaY > threshold) {
+        if (currentStepIndex < totalSteps - 1) {
+          e.preventDefault();
+          goToStep(currentStepIndex + 1);
+        }
+      } else if (e.deltaY < -threshold) {
+        if (currentStepIndex > 0) {
+          e.preventDefault();
+          goToStep(currentStepIndex - 1);
+        }
+      }
+    }, { passive: false });
+
+    // Touch Swipe Gestures for Mobile Kinetic Snap
+    let touchStartY = 0;
+    window.addEventListener('touchstart', (e) => {
+      touchStartY = e.touches[0].clientY;
+    }, { passive: true });
+
+    window.addEventListener('touchend', (e) => {
+      if (isTransitioning) return;
+      const touchEndY = e.changedTouches[0].clientY;
+      const deltaY = touchStartY - touchEndY;
+      
+      if (deltaY > 50 && currentStepIndex < totalSteps - 1) {
+        goToStep(currentStepIndex + 1);
+      } else if (deltaY < -50 && currentStepIndex > 0) {
+        goToStep(currentStepIndex - 1);
+      }
+    }, { passive: true });
+
+    // ── Reveal Observer ──
     const revealObserver = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
           entry.target.classList.add('is-visible');
-          
-          // Update active HUD tab
-          const stepIndex = entry.target.dataset.stepIndex;
-          if (stepIndex !== undefined) {
-            stepButtons.forEach((btn, idx) => {
-              if (idx === parseInt(stepIndex, 10)) {
-                btn.classList.add('is-active');
-              } else {
-                btn.classList.remove('is-active');
-              }
-            });
-          }
         }
       });
-    }, {
-      threshold: 0.25
-    });
+    }, { threshold: 0.2 });
 
-    document.querySelectorAll('.l-reveal, .l-pipeline-step').forEach(el => {
+    document.querySelectorAll('.l-reveal').forEach(el => {
       revealObserver.observe(el);
     });
 
@@ -447,28 +483,11 @@
         projectItems.forEach(card => card.classList.remove('is-selected'));
         item.classList.add('is-selected');
         
-        // Notify 3D engine of scene selection
         if (window.wardrobeEngine) {
           window.wardrobeEngine.setThemeColor(item.dataset.colorBg);
         }
       });
     });
-
-    // ── File Upload Previews ──
-    function bindFileInput(inputId, filenameId) {
-      const input = document.getElementById(inputId);
-      const filename = document.getElementById(filenameId);
-      if (!input || !filename) return;
-      
-      input.addEventListener('change', () => {
-        if (input.files && input.files[0]) {
-          filename.textContent = input.files[0].name;
-          filename.classList.add('has-file');
-        }
-      });
-    }
-    bindFileInput('input-person-photo', 'filename-person');
-    bindFileInput('input-identity-detail', 'filename-identity');
   </script>
 </body>
 </html>

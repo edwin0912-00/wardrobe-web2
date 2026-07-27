@@ -438,16 +438,58 @@ img {
   border-color: var(--accent);
 }
 
-/* Garment Grid */
-.l-garment-upload-grid {
+/* Garment Grid (5 Items) */
+.l-garment-upload-grid-5 {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 1rem;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.875rem;
 }
 
-.l-garment-box {
+.l-garment-box-5 {
   display: flex;
   flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 1rem 0.5rem;
+  aspect-ratio: 1 / 1;
+  background: rgba(240, 237, 230, 0.02);
+  border: 1px dashed var(--line-strong);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-out-quart);
+}
+
+.l-garment-box-5 input { display: none; }
+
+.l-garment-box-5:hover {
+  background: rgba(240, 237, 230, 0.06);
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+
+.l-garment-box-5 .g-icon {
+  font-size: 1.25rem;
+  color: var(--accent);
+  margin-bottom: 0.375rem;
+}
+
+.l-garment-box-5 .g-name {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  line-height: 1.2;
+}
+
+/* Kinetic Snap Section Styles */
+body.kinetic-snap-mode {
+  scroll-snap-type: y mandatory;
+}
+
+.l-pipeline-step {
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
   align-items: center;
   justify-content: center;
   aspect-ratio: 1 / 1;
