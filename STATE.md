@@ -1,12 +1,12 @@
 # Wardrobe verified state
 
-Updated: 2026-07-27 02:48 UTC.
+Updated: 2026-07-27 02:56 UTC.
 
 ## Canonical position
 
 - Repository: `edwin0912-00/zeely-ai-engineering-test`.
 - Development target: `integration/wardrobe-20260726` at
-  `44aa829176b76f8da0d08233d996ebac982ff06e`.
+  `721bc9af8f67a30eb63e3abb51efab8821b2c1ca`.
 - `main` is not a deployment target for this sprint. Only independently
   reviewed, scoped PRs may merge into `integration`.
 - `CTRL-002` is merged through PR #22. The repository now has a typed,
@@ -29,9 +29,11 @@ remain prohibited.
 3. `FASHION-001` — port the already-reviewed private immutable six-frame
    editorial contact-sheet manifest to the current integration contract. It
    indexes approved outputs only; it does not generate media or create UI.
-4. `SCENE-001` — restore the missing scene-contract export used by the live
-   adapter. This is the narrow root repair for four suites that cannot load on
-   the integration base; it does not change framing or QA policy.
+4. `SCENE-001` — generation two carries the preserved missing contract export
+   plus the evaluator's existing delivery/waiver handoff. The first scoped
+   checkpoint proved the export repair, then truthfully blocked on the adjacent
+   evaluator call rather than changing it out of lease. This remains one
+   scene-core rule surface and does not change framing or QA policy.
 5. `RELEASE-001` — make deploy and recovery enforce the declared canonical
    external health target `https://iwas.madeforthisjob.com/api/health`. The
    target is healthy now, but the current tools accept an arbitrary URL.
@@ -72,12 +74,14 @@ review requirement.
 
 `node tools/coordination/check-test-baseline.mjs --base 44aa829…` reports
 `UNEXPECTED_REGRESSION` on that base itself (82 affected test files). The
-verified source defect is an import of `contactPointInsideFrame` in
+verified source defects are an import of `contactPointInsideFrame` in
 `src/web/scene-adapters.js` with no matching export from
-`src/web/scene-contract.js`; four scene suites fail to load before their
-assertions run. `SCENE-001` is assigned to restore only that primitive and add
-a regression test. Scoped governance and lane acceptance checks remain
-required; this fact is not a waiver and no check may be weakened to hide it.
+`src/web/scene-contract.js`, and an evaluator call that omits its required
+delivery/waiver context. `SCENE-001` generation one proved the first repair and
+reported the second as out-of-lease; generation two is formally limited to both
+existing contract handoffs and regression coverage. Scoped governance and lane
+acceptance checks remain required; this fact is not a waiver and no check may
+be weakened to hide it.
 
 ## Retired or blocked assignments
 

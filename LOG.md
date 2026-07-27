@@ -17,6 +17,21 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-07-27 · SCENE-001 · reissued generation 2 at 721bc9a · control queue
+Change: formally extend the active scene-core lease from the proven missing
+contract export to the adjacent evaluator call that must pass delivery and
+waiver context into existing validation.
+Why: generation one repaired the export and then stopped at its scope boundary;
+the remaining three test failures are a second, specific handoff omission in
+the same scene-core rule surface, not a reason to weaken QA or skip CI.
+Evidence: preserved checkpoint `1e4cfe77` passes contact-point geometry but
+leaves 56/59 scene assertions passing; verified historical implementation
+`dc06b991` supplies `delivery: context.delivery` and the existing
+`contactShadowWaiverPolicy(preset)` without a policy change. Generation two
+adds only the exact evaluator/test paths, pins the evaluator blob, and requires
+a new status acknowledgement before code resumes.
+weakened_checks: none.
+
 2026-07-27 · RELEASE-001 · assigned at d372e6a · control queue
 Change: issue a narrow release-ops lease that makes deploy and recovery accept
 only `https://iwas.madeforthisjob.com/api/health` as external health.
