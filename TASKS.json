@@ -2,7 +2,7 @@
   "schema_version": "1.0.0",
   "integration_branch": "integration/wardrobe-20260726",
   "orchestrator": "codex-main",
-  "updated_at": "2026-07-27T03:04:00.000Z",
+  "updated_at": "2026-07-27T03:15:00.000Z",
   "tasks": [
     {
       "id": "CTRL-001",
@@ -1369,9 +1369,9 @@
       "branch": "lane/RELEASE-001/release-target",
       "base_sha": "d372e6a9762b332bf699a98b5d9950e423609a6a",
       "lease": {
-        "generation": 1,
-        "issued_at": "2026-07-27T02:48:00.000Z",
-        "expires_at": "2026-07-27T04:25:00.000Z"
+        "generation": 2,
+        "issued_at": "2026-07-27T03:15:00.000Z",
+        "expires_at": "2026-07-27T04:30:00.000Z"
       },
       "lock_groups": [
         "release-ops"
@@ -1382,6 +1382,7 @@
         "tools/recover-add-items-deployment.mjs",
         "test/release/add-items-deployment.test.js",
         "test/release/add-items-recovery-cli.test.js",
+        "test/release/deployment-target-contract.test.js",
         "docs/DEPLOYMENT_UA.md",
         "docs/AGENT_HANDOFF_2026-07-24_UA.md",
         ".agents/status/RELEASE-001.json",
@@ -1427,13 +1428,12 @@
           "command": [
             "node",
             "--test",
-            "test/release/add-items-deployment.test.js",
-            "test/release/add-items-recovery-cli.test.js"
+            "test/release/deployment-target-contract.test.js"
           ],
           "expected_exit_codes": [
             0
           ],
-          "expected": "Deploy and recovery accept only https://iwas.madeforthisjob.com/api/health as external health and reject arbitrary or credential-bearing URLs."
+          "expected": "The lease's dedicated parser contract accepts only https://iwas.madeforthisjob.com/api/health and rejects old, arbitrary, and credential-bearing URLs in dry-run and apply parsing."
         },
         {
           "check_id": "diff-hygiene",
@@ -1453,7 +1453,8 @@
       "stop_conditions": [
         "Enforce only the canonical external health URL https://iwas.madeforthisjob.com/api/health; do not touch DNS, Cloudflare, tunnel, plist, runtime, release candidate, or live deployment state.",
         "Do not inspect, add, modify, or expose credentials, and do not add a fallback host.",
-        "Do not deploy or invoke --apply; this task establishes the precondition for a later verified deployment."
+        "The dedicated parser-contract test must use literal canonical and rejected URLs, import only pre-existing parser modules, fail behaviorally when patched onto d372e6a, and pass on the candidate; it must not import the newly added shared target module.",
+        "Do not deploy or invoke --apply; this task establishes the precondition for a later verified deployment. The complete release suite, resource preflight, candidate verification, and real deployment remain required at that later release gate and are not claimed by this parser lease."
       ]
     }
   ]

@@ -1,6 +1,6 @@
 # Wardrobe verified state
 
-Updated: 2026-07-27 03:07 UTC.
+Updated: 2026-07-27 03:15 UTC.
 
 ## Canonical position
 
@@ -37,6 +37,9 @@ remain prohibited.
 5. `RELEASE-001` — make deploy and recovery enforce the declared canonical
    external health target `https://iwas.madeforthisjob.com/api/health`. The
    target is healthy now, but the current tools accept an arbitrary URL.
+   Generation two measures the exact parser matrix separately from the full
+   release suite: local full-suite resource refusal remains a later release
+   preflight gate, not a false PASS or a waived deploy check.
 
 The issued worktrees start at `f578c28`, while the first queue record pinned
 their product baseline at `66968f9`. This exact-base mismatch was caught before
