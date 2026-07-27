@@ -2,7 +2,7 @@
   "schema_version": "1.0.0",
   "integration_branch": "integration/wardrobe-20260726",
   "orchestrator": "codex-main",
-  "updated_at": "2026-07-27T08:55:00.000Z",
+  "updated_at": "2026-07-27T09:36:00.000Z",
   "tasks": [
     {
       "id": "CTRL-001",
@@ -1358,6 +1358,164 @@
         "Restore only the existing contract geometry primitive and the evaluator's existing delivery handoff; do not alter scene framing bands, QA thresholds, presets, validation interface, evaluator policy, or model route.",
         "The contact-point test and a static evaluator-handoff test must each fail from exact base 44aa829 before the repair; the static test may inspect source but must not import the evaluator or adapter.",
         "Do not generate media, invoke a provider, mutate runtime/output, deploy, or change credentials."
+      ]
+    },
+    {
+      "id": "SMOKE-001",
+      "title": "Prove Code Code can receive and acknowledge the GitHub queue",
+      "priority": "P0",
+      "state": "ASSIGNED",
+      "owner": "codecod",
+      "branch": "lane/SMOKE-001/codecod",
+      "base_sha": "8c54651f934dfac5a7914d0e09ecbd254821aa72",
+      "lease": {
+        "generation": 1,
+        "issued_at": "2026-07-27T09:36:00.000Z",
+        "expires_at": "2026-07-27T10:21:00.000Z"
+      },
+      "lock_groups": [
+        "media-assets"
+      ],
+      "allowed_paths": [
+        ".agents/status/SMOKE-001.json",
+        ".agents/handoffs/SMOKE-001.json"
+      ],
+      "forbidden_paths": [
+        "secrets/**",
+        ".env",
+        ".env.*",
+        "runtime/**",
+        "output/**",
+        "src/**",
+        "web/**",
+        "assets/**",
+        "tools/**",
+        "docs/**",
+        "OWNERS.md",
+        "LOG.md",
+        "STATE.md",
+        "TASKS.json"
+      ],
+      "required_context": [
+        {
+          "path": "AGENTS.md",
+          "git_blob_sha": "68eb7084e26edd56e6d81992e5cdb9dc5d0fc58f"
+        }
+      ],
+      "depends_on": [
+        "CTRL-002"
+      ],
+      "acceptance": [
+        {
+          "check_id": "queue-governance-test",
+          "execution_class": "ci",
+          "command": [
+            "node",
+            "--test",
+            "test/governance/agent-control.test.js"
+          ],
+          "expected_exit_codes": [
+            0
+          ],
+          "expected": "Code Code publishes a typed STARTED status from its assigned lane after reading the pinned queue context."
+        },
+        {
+          "check_id": "diff-hygiene",
+          "execution_class": "ci",
+          "command": [
+            "git",
+            "diff",
+            "--check",
+            "$TASK_BASE_SHA...$TESTED_CODE_SHA"
+          ],
+          "expected_exit_codes": [
+            0
+          ],
+          "expected": "No product or control-plane path is changed."
+        }
+      ],
+      "stop_conditions": [
+        "This is a connectivity test only: modify only the exact typed status path, commit it, and push the assigned branch.",
+        "Do not change product code, tests, control files, credentials, runtime, deployment, or media."
+      ]
+    },
+    {
+      "id": "SMOKE-002",
+      "title": "Prove Antigravity can receive and acknowledge the GitHub queue",
+      "priority": "P0",
+      "state": "ASSIGNED",
+      "owner": "antigravity",
+      "branch": "lane/SMOKE-002/antigravity",
+      "base_sha": "8c54651f934dfac5a7914d0e09ecbd254821aa72",
+      "lease": {
+        "generation": 1,
+        "issued_at": "2026-07-27T09:36:00.000Z",
+        "expires_at": "2026-07-27T10:21:00.000Z"
+      },
+      "lock_groups": [
+        "video"
+      ],
+      "allowed_paths": [
+        ".agents/status/SMOKE-002.json",
+        ".agents/handoffs/SMOKE-002.json"
+      ],
+      "forbidden_paths": [
+        "secrets/**",
+        ".env",
+        ".env.*",
+        "runtime/**",
+        "output/**",
+        "src/**",
+        "web/**",
+        "assets/**",
+        "tools/**",
+        "docs/**",
+        "OWNERS.md",
+        "LOG.md",
+        "STATE.md",
+        "TASKS.json"
+      ],
+      "required_context": [
+        {
+          "path": "AGENTS.md",
+          "git_blob_sha": "68eb7084e26edd56e6d81992e5cdb9dc5d0fc58f"
+        }
+      ],
+      "depends_on": [
+        "CTRL-002"
+      ],
+      "acceptance": [
+        {
+          "check_id": "queue-governance-test",
+          "execution_class": "ci",
+          "command": [
+            "node",
+            "--test",
+            "test/governance/agent-control.test.js"
+          ],
+          "expected_exit_codes": [
+            0
+          ],
+          "expected": "Antigravity publishes a typed STARTED status from its assigned lane after reading the pinned queue context."
+        },
+        {
+          "check_id": "diff-hygiene",
+          "execution_class": "ci",
+          "command": [
+            "git",
+            "diff",
+            "--check",
+            "$TASK_BASE_SHA...$TESTED_CODE_SHA"
+          ],
+          "expected_exit_codes": [
+            0
+          ],
+          "expected": "No product or control-plane path is changed."
+        }
+      ],
+      "stop_conditions": [
+        "This is a connectivity test only: modify only the exact typed status path, commit it, and push the assigned branch.",
+        "Do not change product code, tests, control files, credentials, runtime, deployment, or media."
       ]
     },
     {
