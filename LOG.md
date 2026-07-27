@@ -17,6 +17,16 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-07-27 · FAST-002 · beta · local operational journal
+Change: add an ID-bound local journal command and make beta-agent setup sync it
+to the current shared board.
+Why: agents need concise decision context between sessions without mixing
+private scratch work with verified shared facts.
+Evidence: isolated clone smoke created, synced, wrote and Git-ignored the
+local journal; commit identity guard remains active.
+weakened_checks: none; journals are local-only and forbid secrets, personal
+media, raw prompts, hidden model reasoning, and local paths.
+
 2026-07-27 · FAST-001 · beta · direct beta workflow
 Change: create shared `beta` branch and replace lane/lease entry rules with a
 single live board in `UPDATE.md`.

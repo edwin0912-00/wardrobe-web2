@@ -42,6 +42,8 @@ esac
 HOOK
 chmod 755 "$hook_path"
 
+bash tools/agent-local-log.sh sync "$agent_id"
+
 echo "Agent ID: $agent_id"
 echo "Branch: $(git branch --show-current)"
 echo "Read now: AGENTS.md, UPDATE.md, STATE.md"

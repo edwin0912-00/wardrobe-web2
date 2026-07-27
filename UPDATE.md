@@ -45,6 +45,12 @@ Every agent commit subject starts `[agent:<agent-id>]`; this and the matching
 `updates/<agent-id>.md` make ownership visible even with one shared GitHub
 login.
 
+Each agent additionally keeps `.agent-local/<agent-id>.md` on its own Mac.
+It records concise operational rationale (intent, decision, risk, evidence,
+next action) and syncs against this board, `STATE.md`, and `LOG.md`. It is
+intentionally local and never committed; shared reports contain only verified
+facts.
+
 ## Latest events
 
 - 2026-07-27 — `90d6119` Create Universe release deployed to beta and health

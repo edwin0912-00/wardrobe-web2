@@ -42,6 +42,20 @@ Fast rules:
 If there is no assignment, create or update only `updates/<agent-id>.md` with
 a short finding; do not start speculative code.
 
+## Local operational journal
+
+Each agent also maintains an uncommitted local journal at
+`.agent-local/<agent-id>.md`. The join command creates and syncs it to the
+current beta board. Before a task and after each material decision, append a
+concise operational rationale with `tools/agent-local-log.sh`: intent,
+decision, risk, evidence, and next action. Compare its beta commit with
+`UPDATE.md`, `STATE.md`, and `LOG.md` before resuming work.
+
+The journal is not a public transcript and is never committed. Do not put
+secrets, personal media, raw prompts, hidden model reasoning, or local paths
+there. Shared Git reports remain the short, verified facts in
+`updates/<agent-id>.md` and the central board.
+
 This repository is coordinated through GitHub. Conversation history is not
 authority. Before any substantive action, every agent must:
 
