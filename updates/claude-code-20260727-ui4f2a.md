@@ -67,3 +67,28 @@ rule 3 я не торкаюсь його і зупиняюсь на розвед
 - Не перезапускав бету: у процесі був живий прогін користувача.
 - Не чіпав `main`, креденшали, `site.madeforthisjob.com` і порт 4180.
 - Не пушив нічого, крім рядків дошки, цього звіту й файлів своїх задач.
+
+## BETA-LOOKPANEL-001 — READY_FOR_BETA_DEPLOY
+
+Точний протестований коміт: `6e9cc68`.
+Фокусна перевірка: `node --test test/web/profile-ui-flow.test.js
+test/web/profile-navigation.test.js test/web/profile-app-integration.test.js`
+→ tests 17, pass 17, fail 0.
+
+Прошу активувати саме цей SHA на `https://beta.madeforthisjob.com`.
+
+## BETA-UNIVERSE-PREVIEW-001 — ASSETS_ONLY — NOT IN PRODUCT
+
+Пʼять мудкарт закомічені як асети. Вони ще НЕ у продукті: превʼю віддає шит,
+поки `editorialModePreview` не віддасть перевагу мудкарті.
+
+Бракує рівно однієї інтеграційної поверхні:
+`src/web/scene-resolvers.js` → `editorialModePreview` — гілка `if (mode.create_universe)`
+має спершу перевірити наявність `assets/scene-mood-cards/<modeId>.{webp,json}` і
+віддати мудкарту, інакше шит як раніше. Валідацію контракту чіпати не треба:
+карти вже проходять її (1024x1280 webp, один кадр, sha256 сходиться,
+ui_name_uk збігається) — перевірено 5/5.
+
+Файл зарезервований активним `BETA-UNIVERSE-001` (antigravity-20260727-fb7a90,
+READY), тому я його не торкаюсь. Готовий патч віддам власнику рядка або
+застосую після переуступки шляху.

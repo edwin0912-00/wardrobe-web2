@@ -1,0 +1,26 @@
+{
+  "schema_version": "1.0.0",
+  "preset_id": "shoot.grey_studio_stride",
+  "kind": "editorial",
+  "family": "create_universe",
+  "ui_name_uk": "Сіра студія · крок",
+  "asset_role": "mood_card",
+  "file": "assets/scene-mood-cards/shoot.grey_studio_stride.webp",
+  "sha256": "9bfde7822987251a1ee4db2788a5b7adac6bf8f1e38e6d125f25a020755160f4",
+  "origin": {
+    "kind": "REAL_SHOOT_FRAME",
+    "file": "001-grey_studio_stride.png",
+    "source_width": 1856,
+    "source_height": 2304,
+    "note": "Delivered photoshoot frame for this style unit, cover-cropped to 4:5. No new generation."
+  },
+  "delivery": {
+    "width": 1024,
+    "height": 1280,
+    "format": "webp",
+    "aspect_ratio": "4:5"
+  },
+  "contains_personal_input": false,
+  "approval": "PENDING_VISUAL_JUDGE",
+  "created_at": "2026-07-27T00:00:00.000Z"
+}
