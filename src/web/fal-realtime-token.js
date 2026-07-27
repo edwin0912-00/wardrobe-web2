@@ -23,9 +23,10 @@ export function createFalRealtimeTokenIssuer({
       throw new Error(`fal realtime token request failed (${response.status})`);
     }
     const data = await response.json();
-    if (typeof data.token !== 'string' || data.token.length < 16) {
+    const token = typeof data === 'string' ? data : (data.token ?? data.detail);
+    if (typeof token !== 'string' || token.length < 16) {
       throw new Error('fal realtime token response is invalid');
     }
-    return data.token;
+    return token;
   };
 }
