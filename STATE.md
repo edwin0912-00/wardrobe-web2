@@ -142,6 +142,9 @@ rebasing. The broad release suite remains a later candidate gate.
   generatable or user-selectable: `assets/scene-presets/index.json` remains
   the single publication boundary until their selection/approval decision is
   recorded.
+- Beta is deployed at product commit `34f727f`; its health endpoint is ready
+  and the live catalog has five background cards and nine editorial/Create
+  Universe cards, with every current preview route verified HTTP 200.
 
 - Browser-bound 30-day profile persistence, avatar → look → child-look lineage,
   immutable Add-items source binding, and cross-profile denial are already in

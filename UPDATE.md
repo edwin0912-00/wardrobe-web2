@@ -124,3 +124,7 @@ facts.
   and Create Universe preview URLs now include their exact asset SHA-256, so a
   browser receives a new URL after a visual update instead of reusing a stale
   one-year immutable cache entry. Focused route/resolver regression: 8/8 PASS.
+- 2026-07-27 — beta release `34f727f` is active and healthy. Smoke: catalog
+  returns SHA-versioned preview URLs; all 5 published background and all 9
+  editorial/Create Universe previews return HTTP 200. No provider generation
+  was invoked during this release check.
