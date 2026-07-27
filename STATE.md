@@ -9,6 +9,11 @@ Updated: 2026-07-27 08:55 UTC.
   `5df0df404f3ed5ffb81d1c4490da57f042920bed`.
 - `main` is not a deployment target for this sprint. Only independently
   reviewed, scoped PRs may merge into `integration`.
+- Create Universe is now wired on the `lane/INT-001/codex-main` release
+  candidate: four hash-valid `shoot.*` units compile into six independent
+  image-reference packs; `shoot.terracotta_hardlight` remains visible but
+  blocked because six declared source SHA-256 values do not match the tracked
+  bytes. This is integrity enforcement, not a product or QA waiver.
 - `CTRL-002` is merged through PR #22. The repository now has a typed,
   schema-validated agent status artifact, a Git-backed report watcher, and
   exact per-task status paths. This is observability, not proof that an

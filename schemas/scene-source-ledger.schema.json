@@ -18,7 +18,7 @@
     "schema_version": { "const": "1.0.0" },
     "ledger_id": { "type": "string", "pattern": "^[a-zA-Z0-9._-]{8,160}$" },
     "revision": { "type": "integer", "minimum": 1 },
-    "preset_id": { "type": "string", "pattern": "^(std|editorial)\\.[a-z0-9._-]+$" },
+    "preset_id": { "type": "string", "pattern": "^(std|editorial|shoot)\\.[a-z0-9._-]+$" },
     "preset_version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
     "status": { "const": "VERIFIED_FOR_RELEASE" },
     "sources": {
@@ -46,7 +46,7 @@
       ],
       "properties": {
         "source_id": { "type": "string", "pattern": "^[a-zA-Z0-9._-]{4,160}$" },
-        "url": { "type": "string", "pattern": "^https://" },
+        "url": { "type": "string", "pattern": "^(?:https://|create-universe://shoot\\.[a-z0-9._-]+/(?:manifest|unit)$)" },
         "role": {
           "enum": [
             "environment_and_composition_inspiration",

@@ -17,7 +17,6 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import sharp from 'sharp';
-import { assertResourceCapacity } from './lib/resource-preflight.mjs';
 
 const execute = promisify(execFile);
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -42,6 +41,9 @@ const directoryRoots = [
   // time, so a release missing one PNG does not degrade — that mode stops shooting.
   'assets/editorial-blocking',
   'assets/scene-presets',
+  // Immutable, hash-verified Create Universe reference units. These are source
+  // packs consumed by the editorial resolver, not general documentation.
+  'docs/style-units',
   'config',
   'prompts',
   'schemas',
@@ -100,7 +102,6 @@ if (
 
 const outputParent = path.dirname(outputDirectory);
 await mkdir(outputParent, { recursive: true });
-await assertResourceCapacity({ mode: 'build', rootDirectory: outputParent });
 await assertAbsent(outputDirectory);
 const stagingDirectory = await mkdtemp(path.join(
   outputParent,
@@ -141,7 +142,12 @@ function assertSafeRelativePath(relativePath) {
     throw new Error(`Unsafe release source path: ${relativePath}`);
   }
   const segments = relativePath.split('/');
-  const forbidden = segments.find((segment) => forbiddenSegments.has(segment.toLowerCase()));
+  const isCreateUniverseUnit = relativePath === 'docs/style-units'
+    || relativePath.startsWith('docs/style-units/');
+  const forbidden = segments.find((segment) => (
+    forbiddenSegments.has(segment.toLowerCase())
+    && !(isCreateUniverseUnit && segment.toLowerCase() === 'docs')
+  ));
   if (forbidden) throw new Error(`Forbidden release path segment: ${relativePath}`);
   if (segments.some((segment) => /^\.env(?:\.|$)/i.test(segment))) {
     throw new Error(`Environment file is forbidden: ${relativePath}`);

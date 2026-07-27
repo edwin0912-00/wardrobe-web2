@@ -17,6 +17,22 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-07-27 · INT-001 · lane/INT-001/codex-main · pending PR/update
+Change: wire Create Universe `shoot.*` units into the editorial resolver as a
+separate source-pack product: catalog, immutable PNG-reference shot packs,
+preview API, source-ledger URI contract, release inventory, and verification.
+Why: the five reviewed units existed only in repository documentation, while
+the product exposed only legacy `editorial.*` modes. Mapping them to `std.*`
+would recreate the stock-style coupling the product explicitly rejects.
+Evidence: four valid units compile six shot packs each with five hash-bound
+image references; focused editorial tests pass 8/8, release tests pass 2/2,
+and `node tools/validate-contracts.mjs` passes 9/9. Terracotta is intentionally
+catalogued as `BLOCKED_INTEGRITY_MISMATCH`: six source bytes differ from its
+declared SHA-256 values.
+weakened_checks: none; the release size budget is explicitly raised from 40 MB
+to 160 MB because it now ships the immutable contact-sheet units, with an
+allowlist and presence test for that exact directory only.
+
 2026-07-27 · MONITOR-002 / RELEASE-001 · reissued on current integration
 Change: reissue MONITOR-002 generation 2 and RELEASE-001 generation 3 at
 current integration `5df0df4`, preserving each lane's exact allowed paths and

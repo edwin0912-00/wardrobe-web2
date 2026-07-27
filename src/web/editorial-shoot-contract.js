@@ -18,6 +18,11 @@ export const EDITORIAL_MODE_IDS = Object.freeze([
   'editorial.edwin_novak.urban_monochrome',
   'editorial.edwin_novak.institutional_modernism',
   'editorial.edwin_novak.luminous_blue_white',
+  'shoot.skylight_haze',
+  'shoot.terracotta_hardlight',
+  'shoot.window_gobo_warm',
+  'shoot.grey_studio_stride',
+  'shoot.sky_dune_surreal',
 ]);
 
 export const EDITORIAL_QA_GATES = Object.freeze([

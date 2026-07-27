@@ -51,6 +51,7 @@ const requiredEditorialBlockingFiles = [
 const directoryRoots = [
   'assets/editorial-blocking',
   'assets/scene-presets',
+  'docs/style-units',
   'config',
   'prompts',
   'schemas',
@@ -160,8 +161,14 @@ test('product release is deterministic, complete, scene-enabled and cache-bound'
   assert.equal(verified.editorial_generation, 'ENABLED');
   assert.equal(verified.editorial_modes, 4);
   assert.equal(verified.editorial_generation_modes, 2);
+  assert.equal(verified.create_universe_modes, 5);
+  assert.equal(verified.create_universe_generation_modes, 4);
   assert.equal(verified.editorial_bibles_compiled, 2);
-  assert.ok(verified.release_size_bytes < 40 * 1024 * 1024);
+  // Create Universe deliberately ships its immutable contact-sheet source
+  // units. The former 40 MB ceiling predated that product and would force the
+  // runtime to silently omit the actual references. Keep a finite budget,
+  // with room for five reviewed units but not an unbounded media dump.
+  assert.ok(verified.release_size_bytes < 160 * 1024 * 1024);
 
   const manifest = JSON.parse(await readFile(
     path.join(releaseA, manifestRelativePath),
@@ -183,6 +190,8 @@ test('product release is deterministic, complete, scene-enabled and cache-bound'
   assert.equal(manifest.editorial_preview.status, 'ACTIVE');
   assert.equal(manifest.editorial_preview.generation, 'ENABLED');
   assert.deepEqual(manifest.editorial_preview.mode_ids, requiredEditorialModeIds);
+  assert.ok(manifest.deploy_files.some((entry) => entry.path === 'docs/style-units/shoot.skylight_haze/manifest.json'));
+  assert.ok(manifest.deploy_files.some((entry) => entry.path === 'docs/style-units/shoot.sky_dune_surreal/unit.json'));
   assert.deepEqual(
     manifest.editorial_preview.generation_mode_ids,
     requiredEditorialGenerationModeIds,
@@ -202,8 +211,11 @@ test('product release is deterministic, complete, scene-enabled and cache-bound'
   );
   assert.ok(manifest.deploy_files.every((record) => record.deploy === true));
   assert.ok(manifest.deploy_files.every((record) => (
-    !/(^|\/)(?:secrets|runtime|output|evidence|docs|inputs|personal)(?:\/|$)/i
+    !/(^|\/)(?:secrets|runtime|output|evidence|inputs|personal)(?:\/|$)/i
       .test(record.path)
+  )));
+  assert.ok(manifest.deploy_files.every((record) => (
+    !record.path.startsWith('docs/') || record.path.startsWith('docs/style-units/')
   )));
   assert.deepEqual(
     manifest.deploy_files

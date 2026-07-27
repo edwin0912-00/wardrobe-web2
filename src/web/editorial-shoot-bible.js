@@ -14,6 +14,11 @@ import {
 export const READY_EDITORIAL_MODE_IDS = Object.freeze([
   'editorial.edwin_novak.organic_contrast',
   'editorial.edwin_novak.urban_monochrome',
+  'shoot.skylight_haze',
+  'shoot.terracotta_hardlight',
+  'shoot.window_gobo_warm',
+  'shoot.grey_studio_stride',
+  'shoot.sky_dune_surreal',
 ]);
 
 export const EDITORIAL_BASE_PRESETS = Object.freeze({
@@ -57,6 +62,23 @@ const MODE_CONTENT = Object.freeze({
     contrast: 'high',
   }),
 });
+
+// Create Universe is a separate product from standard backgrounds. Its visual
+// content comes from a hash-verified local unit at resolver time; it is never
+// inferred from, or coupled to, a std.* preset.
+function modeContent(mode) {
+  const content = mode?.create_universe?.content ?? MODE_CONTENT[mode?.preset_id];
+  if (!content
+    || typeof content.title !== 'string'
+    || typeof content.environment !== 'string'
+    || typeof content.palette !== 'string'
+    || typeof content.lighting !== 'string'
+    || !Array.isArray(content.materials)
+    || typeof content.contrast !== 'string') {
+    throw new Error('Editorial mode has no verified visual content');
+  }
+  return content;
+}
 
 // The vertical lock of a slot — subject-height band, clear space, and head and footwear
 // visibility — is owned by scene-contract.js, which is also the file that refuses a
@@ -202,8 +224,8 @@ function bibleSourceReferences(basePack) {
     }));
 }
 
-function shotSpec(modeId, slot) {
-  const mode = MODE_CONTENT[modeId];
+function shotSpec(modeDefinition, slot) {
+  const mode = modeContent(modeDefinition);
   const shot = SLOT_CONTENT[slot];
   return {
     slot,
@@ -251,7 +273,7 @@ export function compileEditorialShootBible({ mode, basePack }) {
   if (mode.source_set_status !== 'READY') {
     throw new Error('Editorial mode source set is not READY');
   }
-  const content = MODE_CONTENT[mode.preset_id];
+  const content = modeContent(mode);
   if (!content || !basePack?.reference_pack?.source_ledger) {
     throw new Error('Editorial ShootBible compiler is missing its verified production base pack');
   }
@@ -264,7 +286,7 @@ export function compileEditorialShootBible({ mode, basePack }) {
     title: content.title,
     visual_system: mode.visual_system,
     source_references: bibleSourceReferences(basePack),
-    shots: EDITORIAL_SHOT_SLOTS.map((slot) => shotSpec(mode.preset_id, slot)),
+    shots: EDITORIAL_SHOT_SLOTS.map((slot) => shotSpec(mode, slot)),
     created_at: sourceCreatedAt,
   };
   return validateEditorialShootBible(bible);
@@ -283,13 +305,36 @@ function referenceAsset(referenceId, role, document) {
 }
 
 function compiledReferenceAssets({ presetId, modeId, shotSpec: shot, basePack }) {
-  const mode = MODE_CONTENT[modeId];
+  const mode = modeContent(basePack.create_universe_mode ?? { preset_id: modeId });
   const slot = SLOT_CONTENT[shot.slot];
   const basePreset = basePack.preset;
   const palette = unique(
     mode.palette.split(',').map((item) => item.trim()),
     12,
   );
+  const createUniverseAssets = basePack.create_universe_assets;
+  if (Array.isArray(createUniverseAssets)) {
+    const byRole = new Map(createUniverseAssets.map((asset) => [asset.role, asset]));
+    const required = [
+      ['environment_anchor', 'environment'],
+      ['lighting_anchor', 'colour_grade'],
+      ['composition_anchor', 'camera_lens'],
+      ['palette_anchor', 'garment_behaviour'],
+      ['negative_reference', 'blocking'],
+    ];
+    return required.map(([role, sourceRole]) => {
+      const asset = byRole.get(sourceRole);
+      if (!asset) throw new Error(`Create Universe unit is missing ${sourceRole}`);
+      return {
+        reference_id: `${presetId}.${role}`,
+        role,
+        media_type: 'image/png',
+        data: Buffer.from(asset.data),
+        sha256: asset.sha256,
+        not_authority_for: ['identity', 'body', 'hair', 'outfit'],
+      };
+    });
+  }
   const assets = [
     referenceAsset(`${presetId}.environment`, 'environment_anchor', {
       schema_version: '1.0.0',
@@ -453,7 +498,7 @@ export function compileEditorialShotPack({
         full_footwear: slot.require_full_footwear,
       },
     },
-    palette: unique(MODE_CONTENT[modeId].palette.split(',').map((item) => item.trim()), 6),
+    palette: unique(modeContent(mode).palette.split(',').map((item) => item.trim()), 6),
     hard_negatives: unique([...shot.negative_constraints, ...basePack.preset.hard_negatives], 20),
     prompt_path: `prompts/scenes/${presetId}.txt`,
     mvp_assets: ['mood_card'],
@@ -486,7 +531,7 @@ export function compileEditorialShotPack({
   const referencePack = {
     schema_version: '1.0.0',
     reference_pack_id: `pack.${presetId}.v1.1`,
-    version: '1.1.0',
+    version: basePack.create_universe_assets ? '1.0.0' : '1.1.0',
     preset_id: presetId,
     preset_version: version,
     preset_sha256: sha256(presetBytes),

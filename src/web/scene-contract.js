@@ -123,6 +123,11 @@ const SOURCE_ROLES = new Set([
   'editorial_style_observation',
 ]);
 const SAFE_EVIDENCE_URI = /^(?!\/)(?!.*(?:^|\/)\.\.?(?:\/|$))[A-Za-z0-9][A-Za-z0-9._/-]*$/;
+const CREATE_UNIVERSE_SOURCE_URI = /^create-universe:\/\/shoot\.[a-z0-9._-]+\/(?:manifest|unit)$/;
+
+function isVerifiedSourceUri(value) {
+  return typeof value === 'string' && (value.startsWith('https://') || CREATE_UNIVERSE_SOURCE_URI.test(value));
+}
 const FIXED_MODEL_ROUTE = Object.freeze([
   Object.freeze({ job_set_type: 'gpt_image_2', model: 'GPT Image 2' }),
   Object.freeze({ job_set_type: 'nano_banana_flash', model: 'Nano Banana 2' }),
@@ -160,6 +165,11 @@ const LIGHTING_PROTECTED_REGIONS = new Set([
 const READY_EDITORIAL_MODE_IDS = new Set([
   'editorial.edwin_novak.organic_contrast',
   'editorial.edwin_novak.urban_monochrome',
+  'shoot.skylight_haze',
+  'shoot.terracotta_hardlight',
+  'shoot.window_gobo_warm',
+  'shoot.grey_studio_stride',
+  'shoot.sky_dune_surreal',
 ]);
 const EDITORIAL_SHOT_SLOTS = new Set([
   'clean_identity_hero',
@@ -529,8 +539,8 @@ function validateSourceAuthority(authority, index) {
     throw new Error(`Resolved scene preset source_authorities[${index}] must be an object`);
   }
   assertExactKeys(authority, ['url', 'role', 'use', 'not_authority_for'], `source_authorities[${index}]`);
-  if (typeof authority.url !== 'string' || !authority.url.startsWith('https://')) {
-    throw new Error(`source_authorities[${index}].url must be HTTPS`);
+  if (!isVerifiedSourceUri(authority.url)) {
+    throw new Error(`source_authorities[${index}].url must be HTTPS or a locked Create Universe unit URI`);
   }
   if (!SOURCE_AUTHORITY_ROLES.has(authority.role)) {
     throw new Error(`source_authorities[${index}].role is unsupported`);
@@ -632,8 +642,8 @@ function validateEditorialStyleObservation(observation, index) {
     ['url', 'role', 'use', 'not_authority_for'],
     `Editorial style_observations[${index}]`,
   );
-  if (typeof observation.url !== 'string' || !observation.url.startsWith('https://')) {
-    throw new Error(`Editorial style_observations[${index}].url must be HTTPS`);
+  if (!isVerifiedSourceUri(observation.url)) {
+    throw new Error(`Editorial style_observations[${index}].url must be HTTPS or a locked Create Universe unit URI`);
   }
   if (observation.role !== 'editorial_style_observation'
     || typeof observation.use !== 'string'
@@ -798,7 +808,9 @@ function validateEditorialPresetSnapshot(preset, reference) {
     || preset.editorial.mode_version !== preset.version
     || !EDITORIAL_SHOT_SLOTS.has(preset.editorial.shot_slot)
     || preset.preset_id !== `${preset.editorial.mode_id}.${preset.editorial.shot_slot}`
-    || !STANDARD_PRESET_FAMILIES[preset.editorial.base_preset_id]
+    || (!STANDARD_PRESET_FAMILIES[preset.editorial.base_preset_id]
+      && !(preset.editorial.mode_id.startsWith('shoot.')
+        && preset.editorial.base_preset_id === preset.editorial.mode_id))
     || !SEMVER.test(preset.editorial.base_preset_version)
     || !EDITORIAL_IDENTITY_VISIBILITY.has(preset.editorial.identity_visibility)
     || !['ALL', 'EXCLUDE_FOOTWEAR', 'FIRST_ORDERED_ITEM']
@@ -865,7 +877,7 @@ export function validatePresetSnapshot(preset, reference) {
   if (preset.preset_id !== reference.preset_id || preset.version !== reference.preset_version) {
     throw new Error('Resolved scene preset id/version does not match the requested preset');
   }
-  if (preset.preset_id.startsWith('editorial.')) {
+  if (preset.preset_id.startsWith('editorial.') || preset.preset_id.startsWith('shoot.')) {
     return validateEditorialPresetSnapshot(preset, reference);
   }
   if (!preset.preset_id.startsWith('std.')) {
@@ -1028,8 +1040,8 @@ export function validateReferencePack(referencePack, reference, presetHash, prom
         throw new Error(`Scene source ledger entry ${index + 1} is missing ${field}`);
       }
     }
-    if (!source.url.startsWith('https://')) {
-      throw new Error(`Scene source ledger entry ${index + 1} must use an HTTPS source URL`);
+    if (!isVerifiedSourceUri(source.url)) {
+      throw new Error(`Scene source ledger entry ${index + 1} must use an HTTPS or locked Create Universe source URL`);
     }
     if (!SOURCE_ROLES.has(source.role)) {
       throw new Error(`Scene source ledger entry ${index + 1} has an unsupported role`);

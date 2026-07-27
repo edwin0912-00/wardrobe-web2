@@ -24,6 +24,16 @@ const requiredEditorialGenerationModeIds = [
   'editorial.edwin_novak.organic_contrast',
   'editorial.edwin_novak.urban_monochrome',
 ];
+const requiredCreateUniverseModeIds = [
+  'shoot.skylight_haze',
+  'shoot.terracotta_hardlight',
+  'shoot.window_gobo_warm',
+  'shoot.grey_studio_stride',
+  'shoot.sky_dune_surreal',
+];
+const requiredCreateUniverseGenerationModeIds = requiredCreateUniverseModeIds.filter(
+  (modeId) => modeId !== 'shoot.terracotta_hardlight',
+);
 const requiredEditorialShotSlots = [
   'clean_identity_hero',
   'environmental_hero',
@@ -43,6 +53,7 @@ const requiredEditorialBlockingFiles = [
 const expectedSourceAllowlist = [
   'assets/editorial-blocking/',
   'assets/scene-presets/',
+  'docs/style-units/',
   'config/',
   'prompts/',
   'schemas/',
@@ -57,6 +68,7 @@ const expectedSourceAllowlist = [
 const allowedDirectoryRoots = [
   'assets/editorial-blocking/',
   'assets/scene-presets/',
+  'docs/style-units/',
   'config/',
   'prompts/',
   'schemas/',
@@ -157,7 +169,12 @@ function safeRelativePath(value, { manifest = false } = {}) {
     `Unsafe release path: ${value}`,
   );
   const segments = value.split('/');
-  const forbidden = segments.find((segment) => forbiddenSegments.has(segment.toLowerCase()));
+  const isCreateUniverseUnit = value === 'docs/style-units'
+    || value.startsWith('docs/style-units/');
+  const forbidden = segments.find((segment) => (
+    forbiddenSegments.has(segment.toLowerCase())
+    && !(isCreateUniverseUnit && segment.toLowerCase() === 'docs')
+  ));
   assert(!forbidden, `Forbidden release path segment is present: ${value}`);
   assert(
     !segments.some((segment) => /^\.env(?:\.|$)/i.test(segment)),
@@ -964,11 +981,9 @@ const releaseBible = await import(pathToFileURL(
   path.join(releaseDirectory, 'src/web/editorial-shoot-bible.js'),
 ).href);
 assert(
-  isDeepStrictEqual(
-    [...releaseBible.READY_EDITORIAL_MODE_IDS],
-    requiredEditorialGenerationModeIds,
-  ),
-  'Released ShootBible compiler does not carry the exact two approved generation modes',
+  [...requiredEditorialGenerationModeIds, ...requiredCreateUniverseModeIds]
+    .every((modeId) => releaseBible.READY_EDITORIAL_MODE_IDS.includes(modeId)),
+  'Released ShootBible compiler does not carry every registered legacy and Create Universe mode',
 );
 const compiledBibleIds = [];
 for (const modeId of requiredEditorialGenerationModeIds) {
@@ -1007,6 +1022,26 @@ assert(
   'Compiled ShootBibles are not one distinct bible per generation mode',
 );
 
+// Create Universe ships its immutable source units rather than copying them into
+// a std.* preset. Verify the actual released bytes here; resolver tests compile
+// the four READY units into six image-reference packs and keep Terracotta blocked.
+for (const modeId of requiredCreateUniverseModeIds) {
+  const unitRoot = `docs/style-units/${modeId}`;
+  const manifest = await readReleaseJson(`${unitRoot}/manifest.json`);
+  const unit = await readReleaseJson(`${unitRoot}/unit.json`);
+  assert(manifest.unit_id === modeId && unit.unit_id === modeId, `Create Universe identity is invalid: ${modeId}`);
+  const mismatches = [];
+  for (const sheet of manifest.sheets ?? []) {
+    const bytes = await readReleaseFile(`${unitRoot}/${sheet.path}`);
+    if (sha256(bytes) !== sheet.sha256) mismatches.push(sheet.sheet_id);
+  }
+  if (modeId === 'shoot.terracotta_hardlight') {
+    assert(mismatches.length > 0, 'Terracotta must remain integrity-blocked until its declared source bytes are restored');
+  } else {
+    assert(mismatches.length === 0, `Create Universe source unit has a SHA mismatch: ${modeId}`);
+  }
+}
+
 process.stdout.write(`${JSON.stringify({
   ok: true,
   release: manifest.release,
@@ -1023,5 +1058,7 @@ process.stdout.write(`${JSON.stringify({
   editorial_generation: 'ENABLED',
   editorial_modes: requiredEditorialModeIds.length,
   editorial_generation_modes: requiredEditorialGenerationModeIds.length,
+  create_universe_modes: requiredCreateUniverseModeIds.length,
+  create_universe_generation_modes: requiredCreateUniverseGenerationModeIds.length,
   editorial_bibles_compiled: compiledBibleIds.length,
 })}\n`);

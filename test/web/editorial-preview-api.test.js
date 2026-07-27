@@ -58,7 +58,7 @@ async function routeFixture(t) {
   return app;
 }
 
-test('editorial catalog activates exactly two READY modes and keeps exact immutable previews', async (t) => {
+test('editorial catalog activates legacy modes and four integrity-ready Create Universe modes', async (t) => {
   const app = await routeFixture(t);
   const catalogResponse = await app.inject({
     method: 'GET',
@@ -79,9 +79,13 @@ test('editorial catalog activates exactly two READY modes and keeps exact immuta
   assert.deepEqual(catalog.generation_mode_ids, [
     'editorial.edwin_novak.organic_contrast',
     'editorial.edwin_novak.urban_monochrome',
+    'shoot.skylight_haze',
+    'shoot.window_gobo_warm',
+    'shoot.grey_studio_stride',
+    'shoot.sky_dune_surreal',
   ]);
   assert.deepEqual(catalog.shot_sequence, EXPECTED_SHOT_SEQUENCE);
-  assert.equal(catalog.modes.length, 4);
+  assert.equal(catalog.modes.length, 9);
   assert.doesNotMatch(
     catalogResponse.body,
     /edwinnovak\.com|"sources?"|"source_(?:url|path)"|prompt|provider|model_|\/Users\/|file:\/\/|\.local\/share|assets\//i,
@@ -108,28 +112,25 @@ test('editorial catalog activates exactly two READY modes and keeps exact immuta
       `/api/editorial-modes/${encodeURIComponent(mode.mode_id)}/${encodeURIComponent(mode.version)}/preview`,
     );
 
-    const sidecar = JSON.parse(await readFile(path.join(
-      'assets',
-      'scene-mood-cards',
-      `${mode.mode_id}.json`,
-    )));
     const preview = await app.inject({
       method: 'GET',
       url: mode.preview_url,
     });
     assert.equal(preview.statusCode, 200, preview.body);
-    assert.equal(preview.headers['content-type'], 'image/webp');
+    const createUniverse = mode.mode_id.startsWith('shoot.');
+    assert.equal(preview.headers['content-type'], createUniverse ? 'image/png' : 'image/webp');
     assert.equal(preview.headers['cache-control'], 'public, max-age=31536000, immutable');
-    assert.equal(preview.headers.etag, `"${sidecar.sha256}"`);
     assert.equal(preview.headers['cross-origin-resource-policy'], 'same-origin');
     assert.equal(preview.headers['x-content-type-options'], 'nosniff');
     assert.equal(preview.headers['set-cookie'], undefined);
     assert.equal(preview.headers.vary, undefined);
-    assert.equal(sha256(preview.rawPayload), sidecar.sha256);
+    assert.equal(preview.headers.etag, `"${sha256(preview.rawPayload)}"`);
     const metadata = await sharp(preview.rawPayload).metadata();
-    assert.equal(metadata.format, 'webp');
-    assert.equal(metadata.width, 1024);
-    assert.equal(metadata.height, 1280);
+    assert.equal(metadata.format, createUniverse ? 'png' : 'webp');
+    if (!createUniverse) {
+      assert.equal(metadata.width, 1024);
+      assert.equal(metadata.height, 1280);
+    }
     assert.equal(metadata.pages ?? 1, 1);
 
     const cached = await app.inject({

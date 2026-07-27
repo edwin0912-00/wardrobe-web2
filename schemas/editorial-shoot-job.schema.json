@@ -231,7 +231,12 @@
                 "editorial.edwin_novak.organic_contrast",
                 "editorial.edwin_novak.urban_monochrome",
                 "editorial.edwin_novak.institutional_modernism",
-                "editorial.edwin_novak.luminous_blue_white"
+                "editorial.edwin_novak.luminous_blue_white",
+                "shoot.skylight_haze",
+                "shoot.terracotta_hardlight",
+                "shoot.window_gobo_warm",
+                "shoot.grey_studio_stride",
+                "shoot.sky_dune_surreal"
               ]
             },
             "mode_version": { "$ref": "#/$defs/semver" },

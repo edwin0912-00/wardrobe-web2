@@ -96,7 +96,7 @@ function rawShoot({
   };
 }
 
-test('READY editorial modes compile six strict per-shot packs from verified licensed bases', async () => {
+test('READY editorial and Create Universe modes compile six strict per-shot packs from verified bases', async () => {
   const resolver = new FilesystemScenePresetResolver({
     rootDirectory: path.resolve('assets/scene-presets'),
     projectRoot: path.resolve('.'),
@@ -108,7 +108,15 @@ test('READY editorial modes compile six strict per-shot packs from verified lice
   assert.deepEqual(catalog.generation_mode_ids, [
     'editorial.edwin_novak.organic_contrast',
     'editorial.edwin_novak.urban_monochrome',
+    'shoot.skylight_haze',
+    'shoot.window_gobo_warm',
+    'shoot.grey_studio_stride',
+    'shoot.sky_dune_surreal',
   ]);
+  assert.equal(
+    catalog.modes.find((mode) => mode.mode_id === 'shoot.terracotta_hardlight')?.source_set_status,
+    'BLOCKED_INTEGRITY_MISMATCH',
+  );
 
   for (const modeId of catalog.generation_mode_ids) {
     const bible = await resolver.compileEditorialShootBible({
@@ -153,7 +161,9 @@ test('READY editorial modes compile six strict per-shot packs from verified lice
       assert.ok(pack.reference_pack.source_ledger.sources.every(
         (source) => source.rights.status === 'VERIFIED',
       ));
-      assert.ok(pack.assets.every((asset) => asset.media_type === 'application/json'));
+      const createUniverse = modeId.startsWith('shoot.');
+      assert.ok(pack.assets.every((asset) => asset.media_type === (createUniverse ? 'image/png' : 'application/json')));
+      if (createUniverse) continue;
       // Declaring the media type proved nothing about the bytes. Every one of these
       // documents is refused at generation time by this exact schema, before any
       // provider call, so a slot whose compiled anchor cannot satisfy it is not wrong

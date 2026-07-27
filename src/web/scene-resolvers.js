@@ -35,6 +35,20 @@ const PRIVATE_EVIDENCE_KEYS = new Set([
   'output_directory',
   'outputDirectory',
 ]);
+const CREATE_UNIVERSE_MODE_META = Object.freeze({
+  'shoot.skylight_haze': 'Скляний дах · теплий серпанок',
+  'shoot.terracotta_hardlight': 'Теракота · жорстке сонце',
+  'shoot.window_gobo_warm': 'Тепле вікно · gobo-тінь',
+  'shoot.grey_studio_stride': 'Сіра студія · крок',
+  'shoot.sky_dune_surreal': 'Небо й дюна · сюрреалізм',
+});
+const CREATE_UNIVERSE_REQUIRED_SHEETS = Object.freeze([
+  'environment', 'colour_grade', 'camera_lens', 'garment_behaviour', 'blocking',
+]);
+const CREATE_UNIVERSE_DENIED_AUTHORITIES = Object.freeze([
+  'identity', 'body', 'hair', 'outfit', 'brands', 'readable_text', 'exact_architecture',
+]);
+const CREATE_UNIVERSE_CREATED_AT = '2026-07-27T00:00:00.000Z';
 
 function sha256(value) {
   return createHash('sha256').update(value).digest('hex');
@@ -58,6 +72,10 @@ function expectedHash(value, label) {
     throw resolverError(422, `${label} must be a lowercase SHA-256`);
   }
   return value;
+}
+
+function createUniverseUri(modeId, document) {
+  return `create-universe://${modeId}/${document}`;
 }
 
 function scenePreviewUrl(presetId, presetVersion) {
@@ -599,7 +617,182 @@ export class FilesystemScenePresetResolver {
     };
   }
 
+  async #createUniverseModes() {
+    const modes = [];
+    const root = inside(
+      this.realProjectRoot,
+      path.join(this.realProjectRoot, 'docs', 'style-units'),
+      'Create Universe root',
+    );
+    for (const [modeId, uiName] of Object.entries(CREATE_UNIVERSE_MODE_META)) {
+      const unitRoot = inside(root, path.join(root, modeId), `Create Universe unit ${modeId}`);
+      let manifest;
+      let unit;
+      try {
+        [manifest, unit] = await Promise.all([
+          this.#safeRead(path.join(unitRoot, 'manifest.json'), `Create Universe manifest ${modeId}`, root)
+            .then((bytes) => parseJson(bytes, `Create Universe manifest ${modeId}`)),
+          this.#safeRead(path.join(unitRoot, 'unit.json'), `Create Universe unit ${modeId}`, root)
+            .then((bytes) => parseJson(bytes, `Create Universe unit ${modeId}`)),
+        ]);
+      } catch (error) {
+        modes.push({
+          preset_id: modeId,
+          version: '1.0.0',
+          source_set_status: 'BLOCKED_UNIT_MISSING',
+          ui_name_uk: uiName,
+          visual_system: 'Create Universe unit is unavailable.',
+          sources: [],
+          create_universe: { integrity: 'MISSING' },
+        });
+        continue;
+      }
+      const sheets = Array.isArray(manifest?.sheets) ? manifest.sheets : [];
+      const byRole = new Map(sheets.map((sheet) => [sheet?.sheet_id, sheet]));
+      const assets = [];
+      let integrity = manifest?.unit_id === modeId && unit?.unit_id === modeId;
+      for (const role of CREATE_UNIVERSE_REQUIRED_SHEETS) {
+        const declared = byRole.get(role);
+        if (!declared || typeof declared.path !== 'string' || !SHA256.test(declared.sha256 ?? '')) {
+          integrity = false;
+          continue;
+        }
+        try {
+          const data = await this.#safeRead(
+            inside(unitRoot, path.join(unitRoot, declared.path), `Create Universe ${modeId}/${role}`),
+            `Create Universe ${modeId}/${role}`,
+            unitRoot,
+          );
+          const actual = sha256(data);
+          if (actual !== declared.sha256) integrity = false;
+          assets.push({ role, data, sha256: actual, declared_sha256: declared.sha256 });
+        } catch {
+          integrity = false;
+        }
+      }
+      const palette = Array.isArray(unit?.palette)
+        ? unit.palette.map((item) => `${item?.name ?? 'tone'} ${item?.hex ?? ''}`.trim()).filter(Boolean)
+        : [];
+      const sourceFrame = Array.isArray(unit?.source_frames) ? unit.source_frames[0] : null;
+      if (palette.length === 0 || typeof sourceFrame !== 'string' || sourceFrame.length < 10) integrity = false;
+      const manifestBytes = await this.#safeRead(path.join(unitRoot, 'manifest.json'), `Create Universe manifest ${modeId}`, root);
+      const unitBytes = await this.#safeRead(path.join(unitRoot, 'unit.json'), `Create Universe unit ${modeId}`, root);
+      const manifestUri = createUniverseUri(modeId, 'manifest');
+      const unitUri = createUniverseUri(modeId, 'unit');
+      modes.push({
+        preset_id: modeId,
+        version: '1.0.0',
+        source_set_status: integrity ? 'READY' : 'BLOCKED_INTEGRITY_MISMATCH',
+        ui_name_uk: uiName,
+        visual_system: sourceFrame ?? 'Hash-verified Create Universe visual unit.',
+        sources: [
+          {
+            url: manifestUri,
+            role: 'editorial_style_observation',
+            use: 'Immutable Create Universe manifest: environment, light, camera and palette are style authority only.',
+            not_authority_for: [...CREATE_UNIVERSE_DENIED_AUTHORITIES],
+          },
+          {
+            url: unitUri,
+            role: 'editorial_style_observation',
+            use: 'Immutable Create Universe unit: blocking and material behaviour are style authority only.',
+            not_authority_for: [...CREATE_UNIVERSE_DENIED_AUTHORITIES],
+          },
+        ],
+        create_universe: {
+          content: {
+            title: `${uiName} — Create Universe fashion-фотосесія`,
+            environment: sourceFrame ?? 'Original environment described only by the locked Create Universe unit.',
+            palette: palette.join(', '),
+            lighting: `Follow the hash-verified Create Universe lighting and grade sheets; preserve contact shadows and the approved look exactly.`,
+            materials: ['reference-defined location materials', 'reference-defined light behaviour'],
+            contrast: 'reference-defined',
+          },
+          manifest_sha256: sha256(manifestBytes),
+          unit_sha256: sha256(unitBytes),
+          manifest_path: `docs/style-units/${modeId}/manifest.json`,
+          unit_path: `docs/style-units/${modeId}/unit.json`,
+          assets,
+          preview_role: integrity ? 'environment' : 'blocking',
+        },
+      });
+    }
+    return modes;
+  }
+
+  async #createUniverseBasePack(mode) {
+    const universe = mode?.create_universe;
+    if (!universe || mode.source_set_status !== 'READY') {
+      throw resolverError(409, 'Create Universe unit is not integrity-ready');
+    }
+    const manifestUri = createUniverseUri(mode.preset_id, 'manifest');
+    const unitUri = createUniverseUri(mode.preset_id, 'unit');
+    const sourceAuthorities = structuredClone(mode.sources);
+    const sourceLedger = {
+      schema_version: '1.0.0',
+      ledger_id: `ledger.${mode.preset_id}.create_universe.v1`,
+      revision: 1,
+      preset_id: mode.preset_id,
+      preset_version: mode.version,
+      status: 'VERIFIED_FOR_RELEASE',
+      created_at: CREATE_UNIVERSE_CREATED_AT,
+      sources: [
+        {
+          source_id: `${mode.preset_id}.manifest`, url: manifestUri,
+          role: 'editorial_style_observation', use: sourceAuthorities[0].use,
+          not_authority_for: [...CREATE_UNIVERSE_DENIED_AUTHORITIES],
+          retrieved_at: CREATE_UNIVERSE_CREATED_AT, snapshot_uri: universe.manifest_path,
+          content_sha256: universe.manifest_sha256,
+          rights: { status: 'VERIFIED', basis: 'OWNED', rights_holder: 'Create Universe supplied reference set', evidence_uri: universe.manifest_path, evidence_sha256: universe.manifest_sha256, verified_at: CREATE_UNIVERSE_CREATED_AT },
+        },
+        {
+          source_id: `${mode.preset_id}.unit`, url: unitUri,
+          role: 'editorial_style_observation', use: sourceAuthorities[1].use,
+          not_authority_for: [...CREATE_UNIVERSE_DENIED_AUTHORITIES],
+          retrieved_at: CREATE_UNIVERSE_CREATED_AT, snapshot_uri: universe.unit_path,
+          content_sha256: universe.unit_sha256,
+          rights: { status: 'VERIFIED', basis: 'OWNED', rights_holder: 'Create Universe supplied reference set', evidence_uri: universe.unit_path, evidence_sha256: universe.unit_sha256, verified_at: CREATE_UNIVERSE_CREATED_AT },
+        },
+      ],
+    };
+    const references = universe.assets.map((asset) => ({
+      reference_id: `${mode.preset_id}.${asset.role}`,
+      role: asset.role === 'environment' ? 'environment_anchor'
+        : asset.role === 'colour_grade' ? 'lighting_anchor'
+        : asset.role === 'camera_lens' ? 'composition_anchor'
+        : asset.role === 'garment_behaviour' ? 'palette_anchor'
+        : 'negative_reference',
+      sha256: asset.sha256,
+      media_type: 'image/png',
+      not_authority_for: ['identity', 'body', 'hair', 'outfit'],
+    }));
+    return {
+      create_universe_mode: structuredClone(mode),
+      create_universe_assets: universe.assets.map((asset) => ({ ...asset, data: Buffer.from(asset.data) })),
+      preset: {
+        preset_id: mode.preset_id,
+        version: mode.version,
+        source_authorities: sourceAuthorities,
+        lighting: {
+          time_or_setup: 'Create Universe locked lighting unit',
+          key: mode.create_universe.content.lighting,
+          fill: 'Reference-defined fill; preserve face identity and every approved item detail.',
+          finish: 'polished_editorial_gloss_without_skin_smoothing_or_hdr',
+          protected_regions: ['eyes', 'lips', 'face_identity', 'item_logos', 'item_text', 'critical_construction'],
+        },
+        hard_negatives: ['No copy of a source person, source garment, source architecture or readable source text.'],
+      },
+      reference_pack: {
+        schema_version: '1.0.0', reference_pack_id: `pack.${mode.preset_id}.create_universe.v1`,
+        version: '1.0.0', preset_id: mode.preset_id, preset_version: mode.version,
+        preset_sha256: universe.manifest_sha256, prompt_sha256: universe.unit_sha256,
+        references, source_ledger: sourceLedger,
+      },
+    };
+  }
+
   async #editorialProgram() {
+    if (!this.realProjectRoot) await this.initialize();
     const configPath = path.join(this.realProjectRoot ?? this.projectRoot, 'config', 'scene-presets.json');
     const configBytes = await this.#safeRead(
       configPath,
@@ -626,7 +819,11 @@ export class FilesystemScenePresetResolver {
     if (!isDeepStrictEqual(program.shot_sequence, expectedSlots)) {
       throw resolverError(422, 'Editorial mode catalog has an invalid shot sequence');
     }
-    return program;
+    const createUniverseModes = await this.#createUniverseModes();
+    return {
+      ...program,
+      modes: [...program.modes, ...createUniverseModes],
+    };
   }
 
   async #editorialMode(modeId, version) {
@@ -669,8 +866,12 @@ export class FilesystemScenePresetResolver {
       requireReady: true,
     });
     const base = EDITORIAL_BASE_PRESETS[modeId];
-    if (!base) throw resolverError(409, 'Editorial mode has no verified production base pack');
-    const basePack = await this.#load(base.preset_id, base.preset_version);
+    const basePack = mode.create_universe
+      ? await this.#createUniverseBasePack(mode)
+      : base
+        ? await this.#load(base.preset_id, base.preset_version)
+        : null;
+    if (!basePack) throw resolverError(409, 'Editorial mode has no verified production base pack');
     return compileEditorialShootBible({ mode, basePack });
   }
 
@@ -685,8 +886,12 @@ export class FilesystemScenePresetResolver {
       requireReady: true,
     });
     const base = EDITORIAL_BASE_PRESETS[modeId];
-    if (!base) throw resolverError(409, 'Editorial mode has no verified production base pack');
-    const basePack = await this.#load(base.preset_id, base.preset_version);
+    const basePack = mode.create_universe
+      ? await this.#createUniverseBasePack(mode)
+      : base
+        ? await this.#load(base.preset_id, base.preset_version)
+        : null;
+    if (!basePack) throw resolverError(409, 'Editorial mode has no verified production base pack');
     const pack = compileEditorialShotPack({
       mode,
       basePack,
@@ -710,6 +915,22 @@ export class FilesystemScenePresetResolver {
   async editorialModePreview({ modeId, version }) {
     if (!this.realProjectRoot) await this.initialize();
     const { mode } = await this.#editorialMode(modeId, version);
+    if (mode.create_universe) {
+      const asset = mode.create_universe.assets.find((item) => item.role === mode.create_universe.preview_role);
+      if (!asset) throw resolverError(422, 'Create Universe preview asset is unavailable');
+      return {
+        data: Buffer.from(asset.data),
+        media_type: 'image/png',
+        sha256: asset.sha256,
+        width: null,
+        height: null,
+        mode_id: modeId,
+        version,
+        kind: 'editorial',
+        role: 'style_unit',
+        delivery: null,
+      };
+    }
     const assetRoot = inside(
       this.realProjectRoot,
       path.join(this.realProjectRoot, 'assets', 'scene-mood-cards'),
@@ -813,10 +1034,13 @@ export class FilesystemScenePresetResolver {
         preview_url: editorialPreviewUrl(mode.preset_id, mode.version),
       });
     }
+    const generationModeIds = modes
+      .filter((mode) => mode.generation_available)
+      .map((mode) => mode.mode_id);
     return {
       status: 'ACTIVE',
-      generation_available: true,
-      generation_mode_ids: [...READY_EDITORIAL_MODE_IDS],
+      generation_available: generationModeIds.length > 0,
+      generation_mode_ids: generationModeIds,
       shot_sequence: [...program.shot_sequence],
       modes,
     };
