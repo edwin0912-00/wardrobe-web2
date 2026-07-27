@@ -5,10 +5,10 @@
   "branch": "lane/SCENE-001/scene-contract",
   "base_sha": "44aa829176b76f8da0d08233d996ebac982ff06e",
   "lease_generation": 1,
-  "state": "STARTED",
-  "observed_at": "2026-07-27T02:43:46.908Z",
-  "observed_head_sha": "44aa829176b76f8da0d08233d996ebac982ff06e",
-  "summary_code": "WORK_STARTED",
-  "next_action_code": "RUN_PRECHANGE_PROOF",
-  "blocker_code": null
+  "state": "BLOCKED",
+  "observed_at": "2026-07-27T02:46:39.822Z",
+  "observed_head_sha": "1e4cfe77d233946ec5f59b24d57f068f10ade0bb",
+  "summary_code": "CHECKPOINT_VERIFIED",
+  "next_action_code": "AWAIT_ORCHESTRATOR",
+  "blocker_code": "CONTEXT_MISSING"
 }
