@@ -4,12 +4,17 @@ import { mkdir, readFile, readdir, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { sanitizeOutbound } from '../security/outbound-redaction.js';
+import { canonicalIsoTimestamp, normalizeStallDiagnostic, STALL_DIAGNOSTIC_CODE } from './event-store.js';
 
 const execute = promisify(execFile);
 const TERMINAL_PROBLEMS = new Set(['FAILED', 'NEEDS_INPUT']);
 const RETRYABLE_INCIDENTS = new Set(['open', 'queued', 'failed']);
 const AGENT_TIMEOUT_MS = 12 * 60_000;
 const DEFAULT_LEASE_MS = AGENT_TIMEOUT_MS + 60_000;
+const DEFAULT_STALL_HEARTBEAT_MS = 60_000;
+const MAX_STALL_ELAPSED_MS = 7 * 24 * 60 * 60_000;
+const STALL_INCIDENT_STATUSES = new Set(['queued', 'running', 'review_required', 'stopped', 'observed']);
+const STALL_INCIDENT_FIELDS = new Set(['id', 'run_id', 'status', 'attempts', 'created_at', 'last_heartbeat_at', 'diagnostic']);
 const fingerprint = (value) => createHash('sha256').update(value).digest('hex').slice(0, 16);
 const DISPLAY_PHASES = Object.freeze({
   GARMENT_CONDITIONING: 'ITEM_FACTS',
@@ -18,6 +23,27 @@ const DISPLAY_PHASES = Object.freeze({
   GARMENT_QA: 'ITEM_QA',
 });
 const displayPhase = (value) => DISPLAY_PHASES[value] ?? String(value ?? 'UNMAPPED');
+const DIAGNOSTIC_PHASES = new Set([
+  ...Object.values(DISPLAY_PHASES),
+  'UPLOADED',
+  'CORE_PIPELINE',
+  'OPTIONAL_SCENE',
+  'UNMAPPED',
+]);
+const diagnosticPhase = (value) => {
+  const phase = displayPhase(value);
+  return DIAGNOSTIC_PHASES.has(phase) ? phase : 'UNMAPPED';
+};
+const diagnosticRecoveryState = (status) => ({
+  running: 'RUNNING',
+  review_required: 'REVIEW_REQUIRED',
+  stopped: 'STOPPED',
+  observed: 'OBSERVED',
+}[status] ?? 'QUEUED');
+const boundedAttemptCount = (value) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? Math.max(0, Math.min(3, Math.trunc(parsed))) : 0;
+};
 const displayMessage = (value) => String(value ?? '')
   .replaceAll('GARMENTS', 'ITEMS')
   .replaceAll('GARMENT', 'ITEM')
@@ -62,6 +88,7 @@ export class AgentSupervisor {
     executor = execute,
     gitStatus = null,
     leaseMs = DEFAULT_LEASE_MS,
+    stallHeartbeatMs = DEFAULT_STALL_HEARTBEAT_MS,
   }) {
     this.store = store;
     this.runsRoot = path.resolve(runsRoot);
@@ -75,6 +102,9 @@ export class AgentSupervisor {
       return { clean: !stdout.trim() };
     });
     this.leaseMs = leaseMs;
+    this.stallHeartbeatMs = Number.isInteger(stallHeartbeatMs) && stallHeartbeatMs > 0
+      ? stallHeartbeatMs
+      : DEFAULT_STALL_HEARTBEAT_MS;
     this.ownerId = fingerprint(`${process.pid}|${this.clock().toISOString()}|${Math.random()}`);
     this.statePath = path.join(this.stateRoot, 'state.json');
     this.state = { version: 2, last_event_id: null, started_at: null, incidents: {}, active_incident: null, active_lease: null };
@@ -144,6 +174,75 @@ export class AgentSupervisor {
     return path.join(this.stateRoot, 'incidents', `${incidentId}.json`);
   }
 
+  #syncStallDiagnostic(incident) {
+    if (!incident?.diagnostic) return;
+    try {
+      incident.diagnostic = normalizeStallDiagnostic({
+        ...incident.diagnostic,
+        recovery_state: diagnosticRecoveryState(incident.status),
+        attempt_count: boundedAttemptCount(incident.attempts),
+      });
+    } catch {
+      delete incident.diagnostic;
+    }
+  }
+
+  #stallDiagnostic(incident, run, limit, checkpointAt, elapsedMs) {
+    return normalizeStallDiagnostic({
+      incident_id: incident.id,
+      diagnostic_code: STALL_DIAGNOSTIC_CODE,
+      phase: diagnosticPhase(run.inner_state ?? run.phase),
+      checkpoint_at: checkpointAt,
+      threshold_ms: limit,
+      elapsed_ms: Math.min(MAX_STALL_ELAPSED_MS, Math.max(0, elapsedMs)),
+      recovery_state: diagnosticRecoveryState(incident.status),
+      attempt_count: boundedAttemptCount(incident.attempts),
+    });
+  }
+
+  #canonicalStallIncident(candidate, key, runId, now) {
+    const legacy = candidate && typeof candidate === 'object' && !Array.isArray(candidate) ? candidate : {};
+    const attempts = boundedAttemptCount(legacy.attempts);
+    const active = this.#leaseIsLive(key);
+    const requestedStatus = STALL_INCIDENT_STATUSES.has(legacy.status) ? legacy.status : 'queued';
+    const status = attempts >= 3 && !['review_required', 'observed', 'stopped'].includes(requestedStatus)
+      ? 'stopped'
+      : !active && requestedStatus === 'running' ? 'queued' : requestedStatus;
+    const createdAt = canonicalIsoTimestamp(legacy.created_at) ?? now.toISOString();
+    const lastHeartbeatAt = canonicalIsoTimestamp(legacy.last_heartbeat_at);
+    const exactDiagnostic = (() => {
+      try {
+        const normalized = normalizeStallDiagnostic(legacy.diagnostic);
+        return normalized.incident_id === key && Object.keys(legacy.diagnostic).length === Object.keys(normalized).length;
+      } catch { return false; }
+    })();
+    const repaired = !candidate || typeof candidate !== 'object' || Array.isArray(candidate)
+      || legacy.id !== key
+      || legacy.run_id !== runId
+      || legacy.status !== status
+      || legacy.attempts !== attempts
+      || legacy.created_at !== createdAt
+      || legacy.last_heartbeat_at !== lastHeartbeatAt
+      || !exactDiagnostic
+      || Object.keys(legacy).some((field) => !STALL_INCIDENT_FIELDS.has(field));
+    const incident = candidate && typeof candidate === 'object' && !Array.isArray(candidate) ? candidate : {};
+    for (const field of Object.keys(incident)) delete incident[field];
+    Object.assign(incident, {
+      id: key,
+      run_id: runId,
+      status,
+      attempts,
+      created_at: createdAt,
+      ...(lastHeartbeatAt ? { last_heartbeat_at: lastHeartbeatAt } : {}),
+    });
+    return { incident, repaired };
+  }
+
+  #stallHeartbeatDue(incident, now) {
+    const lastHeartbeatAt = Date.parse(incident.last_heartbeat_at);
+    return !Number.isFinite(lastHeartbeatAt) || now.valueOf() - lastHeartbeatAt >= this.stallHeartbeatMs;
+  }
+
   #leaseIsLive(incidentId) {
     const lease = this.state.active_lease;
     return lease?.incident_id === incidentId
@@ -170,6 +269,7 @@ export class AgentSupervisor {
         incident.status = 'queued';
         incident.queue_reason = 'restart_recovery';
       }
+      this.#syncStallDiagnostic(incident);
       await atomicJson(this.#incidentPath(activeId), incident);
       await this.store.append({ source: 'agent', type: 'agent.repair_requeued', severity: 'warn', run_id: incident.run_id,
         data: { message: `Stale supervisor lock for incident ${activeId} released; incident returned to the FIFO queue.` } });
@@ -246,6 +346,7 @@ export class AgentSupervisor {
     incident.attempts += 1;
     incident.status = 'running';
     incident.queue_reason = null;
+    this.#syncStallDiagnostic(incident);
     this.state.active_incident = incident.id;
     const acquiredAt = this.clock();
     this.state.active_lease = {
@@ -301,6 +402,7 @@ export class AgentSupervisor {
       if (this.runningIncidentId === incident.id) this.runningIncidentId = null;
       if (this.state.active_incident === incident.id) this.state.active_incident = null;
       if (this.state.active_lease?.incident_id === incident.id) this.state.active_lease = null;
+      this.#syncStallDiagnostic(incident);
       await atomicJson(incidentPath, sanitizeOutbound(incident));
       await atomicJson(this.statePath, this.state);
       await this.#dispatchNext();
@@ -314,15 +416,50 @@ export class AgentSupervisor {
       if (!entry.isDirectory()) continue;
       const run = await this.#readRun(entry.name);
       if (!run || run.status !== 'RUNNING') continue;
+      const runId = entry.name;
       const limit = run.phase === 'GARMENT_CONDITIONING' ? 8 * 60_000 : 25 * 60_000;
-      if (this.clock().valueOf() - Date.parse(run.updated_at) <= limit) continue;
-      const key = fingerprint(`stall|${run.run_id}|${run.phase}|${run.updated_at}`);
-      if (this.state.incidents[key]) continue;
-      const incident = { id: key, run_id: run.run_id, status: 'queued', attempts: 0, created_at: this.clock().toISOString(),
-        summary: sanitizeOutbound({ status: run.status, phase: run.phase, message: run.message, error_name: 'PipelineStall' }) };
+      const checkpointAt = Date.parse(run.updated_at);
+      const now = this.clock();
+      if (!Number.isFinite(checkpointAt)) continue;
+      const elapsedMs = now.valueOf() - checkpointAt;
+      if (elapsedMs <= limit) continue;
+      const normalizedCheckpointAt = new Date(checkpointAt).toISOString();
+      const key = fingerprint(`stall|${runId}|${run.phase}|${run.updated_at}`);
+      if (Object.hasOwn(this.state.incidents, key)) {
+        const { incident, repaired } = this.#canonicalStallIncident(this.state.incidents[key], key, runId, now);
+        incident.diagnostic = this.#stallDiagnostic(incident, run, limit, normalizedCheckpointAt, elapsedMs);
+        this.state.incidents[key] = incident;
+        if (!this.#stallHeartbeatDue(incident, now)) {
+          if (repaired) await atomicJson(this.#incidentPath(key), sanitizeOutbound(incident));
+          continue;
+        }
+        incident.last_heartbeat_at = now.toISOString();
+        await atomicJson(this.#incidentPath(key), sanitizeOutbound(incident));
+        await this.store.appendStallDiagnostic({
+          type: 'agent.stall_heartbeat',
+          severity: 'warn',
+          run_id: runId,
+          diagnostic: incident.diagnostic,
+        });
+        continue;
+      }
+      const incident = {
+        id: key,
+        run_id: runId,
+        status: 'queued',
+        attempts: 0,
+        created_at: now.toISOString(),
+        last_heartbeat_at: now.toISOString(),
+      };
+      incident.diagnostic = this.#stallDiagnostic(incident, run, limit, normalizedCheckpointAt, elapsedMs);
       this.state.incidents[key] = incident;
       await atomicJson(this.#incidentPath(key), sanitizeOutbound(incident));
-      await this.#comment(run, `Stall: ${displayPhase(run.phase)} не змінював persisted state понад ${Math.round(limit / 60_000)} хвилин.`, 'error', 'agent.stall_detected');
+      await this.store.appendStallDiagnostic({
+        type: 'agent.stall_detected',
+        severity: 'error',
+        run_id: runId,
+        diagnostic: incident.diagnostic,
+      });
     }
   }
 
