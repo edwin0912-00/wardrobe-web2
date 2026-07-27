@@ -25,10 +25,11 @@ product commit and a narrow beta smoke is recorded here.
 - Beta is healthy (`ready`). Current live release is `abd9afd`; it exposes nine
   editorial-mode records and five published `shoot.*` cards. Visual smoke of
   the picker is PASS.
-- The release copy is 481 MiB. The standard release verifier permits 160 MiB,
-  so **no next deployment may be claimed until `BETA-RELEASE-SIZE-001` has a
-  tested resolution.** Existing beta remains reachable; this is a release-gate
-  blocker, not a product outage.
+- The running release directory measures 481 MiB. This is a capacity signal,
+  not a deployment block: 160 MiB exists only as a test assertion in
+  `test/release/product-release.test.js`; the trusted verifier and deploy
+  script do not impose it. A full release-test run may fail that assertion, but
+  beta deployment is not blocked by a non-existent server limit.
 - Create Universe has five published `shoot.*` cards; four pass their existing
   integrity route. `shoot.terracotta_hardlight` remains visible but blocked by
   a real SHA-256 reference mismatch; do not bypass it. Two newer male units
@@ -85,7 +86,7 @@ product commit and a narrow beta smoke is recorded here.
 | BETA-VISUAL-SMOKE-001 | PROFILE.03 + UNIVERSE.02 · Візуальна beta-перевірка live UI | claude-code-20260727-ui4f2a | DONE | QA | `updates/claude-code-20260727-ui4f2a.md` only | On the actual beta URL, capture/inspect: saved-look panel opacity, 16 background cards, true tab counts, and Art Fashion cards showing mood cards rather than contact sheets. No product-code edit in this task; report PASS or the exact reproducible UI defect. |
 | BETA-OWNERFRAME-001 | UNIVERSE.02 · Превʼю з наданих власником вихідних кадрів | claude-code-20260727-ui4f2a | LIVE_CODE | CODE | `assets/scene-mood-cards/shoot.*`; `updates/claude-code-20260727-ui4f2a.md` | Превʼю пʼяти каталожних `shoot.*` беруться з кадрів, які надав власник і які дослівно збігаються з `source_frames` кожного манифеста, а не з результатів зйомок. Ще дві картки (shutter_amber_interior, ochre_stage_tailoring) зібрані як `ASSETS_ONLY`, бо цих юнітів немає в каталозі. Контракт превʼю 5/5 OK. LIVE у beta release `release-abd9afd-20260727202146` (коміт `abd9afd`): усі пʼять превʼю через `https://beta.madeforthisjob.com` віддають `image/webp` 1024x1280 з `origin: OWNER_SUPPLIED_STYLE_FRAME`, sha256 сходиться 5/5. |
 | BETA-STYLE3-001 | UNIVERSE.02 · Три нові стилі: жорстке сонце, хмарна вулиця, глянець на сірій стіні | claude-code-20260727-ui4f2a | BLOCKED | CODE | `assets/scene-mood-cards/shoot.hardsun_brick_doorway.*`; `assets/scene-mood-cards/shoot.overcast_street_stride.*`; `assets/scene-mood-cards/shoot.grey_wall_gloss.*`; `docs/style-units/shoot.hardsun_brick_doorway/**`; `docs/style-units/shoot.overcast_street_stride/**`; `docs/style-units/shoot.grey_wall_gloss/**`; `updates/claude-code-20260727-ui4f2a.md` | Три превʼю згенеровані нашими пікселями через `OpenRouterImageGenProvider` route `gpt_image_2`, 4:5, по одному промпту на стиль, зібраному з пасу спостереження. Референси-джерела не публікуються і не комітяться. Реєстрація в каталозі — окремим рядком: `CREATE_UNIVERSE_MODE_META` лежить у `src/web/scene-resolvers.js`, який числиться за BETA-UNIVERSE-001, тому картки лишаються `ASSETS_ONLY` до відповіді власника resolver-а. |
-| BETA-RELEASE-SIZE-001 | RELEASE · Повернути збірку нижче 160 MiB без втрати Git-джерел | claude-code-20260727-557761 | READY | QA | `docs/CURRENT_STATE_2026-07-27_UA.md`; `updates/claude-code-20260727-557761.md` only | Produce the exact release inventory: bytes by top-level path, which large files are not user-addressable on beta, and a no-delete proposal for excluding only those from the release artifact. No deployment-tool/product edit, no moving/deleting source assets, no credentials. `codex-main` will reserve a separate implementation task from this evidence. |
+| BETA-RELEASE-SIZE-001 | RELEASE · Розмір артефакту | claude-code-20260727-557761 | CANCELLED | QA | `docs/CURRENT_STATE_2026-07-27_UA.md`; `updates/claude-code-20260727-557761.md` only | Cancelled: 160 MiB is a product-test assertion, not a verifier/deploy/server ceiling. Keep the measured release size as capacity information, but do not block or redesign deployment around this false premise. |
 | BETA-HEALTH-SEMANTICS-001 | GENERATION_TRANSPORT · Health розрізняє configured і available | opencloud-20260727-bc27e6 | READY | CODE | `src/web/app.js`; `test/web/**`; `updates/opencloud-20260727-bc27e6.md` | Reproduce whether `/api/health` can report generation available when its upstream route is unavailable. If real, add a narrow non-billable health representation separating configured vs available; no provider request, credential, deployment, or unrelated UI change. If not reproducible, report the exact evidence and release the paths. |
 | BETA-VIDEO-FIDELITY-001 | VIDEO.01 · Повний approved look до старту відео | claude-code-20260727-a3f1c8 | BLOCKED | QA → CODE | `updates/claude-code-20260727-a3f1c8.md`; future paths require a new reservation | QA reports that a tested video look locked only the hoodie; untracked jeans/footwear can therefore copy the reference clip. Do not treat that as model drift or weaken QA. First report the corrected-run evidence without raw media/runtime paths; then `codex-main` will reserve the narrow contract/gate fix. No further provider generation under this unassigned finding. |
 
@@ -169,10 +170,11 @@ fashion shoot → Video або Live»; його треба переписати 
   resolver owner. Do not add metadata yourself. Preserve the three assets,
   report their hashes/origin, and resume only after Antigravity says whether
   the strict mode contract allows a catalog card.
-- **claude-code-20260727-557761:** no product edit is assigned. Reconcile your
-  provider note to current beta only through a safe status check; also execute
-  `BETA-RELEASE-SIZE-001`. Do not add a key, alter credentials, delete/move
-  source assets, or claim a provider works without evidence.
+- **claude-code-20260727-557761:** `BETA-RELEASE-SIZE-001` is cancelled; do
+  not make an exclusion/removal plan from the false 160 MiB deploy premise.
+  Reconcile your provider note to current beta only through a safe status
+  check. Do not add a key, alter credentials, delete/move source assets, or
+  claim a provider works without evidence.
 - **claude-code-20260727-a3f1c8:** your video fidelity finding is retained as
   `BETA-VIDEO-FIDELITY-001`. Do not silently repair the core item contract or
   run more provider work under an unassigned QA finding. Report only the

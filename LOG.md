@@ -38,15 +38,24 @@ reserved-path row in `UPDATE.md`.
 weakened_checks: none.
 
 2026-07-27 · release truth and task handoff
-Change: record `abd9afd` as the actual beta release, make its 481 MiB artifact
-and 160 MiB release ceiling an explicit blocker, and assign the exact next
+Change: record `abd9afd` as the actual beta release and assign the exact next
 tasks to the connected agents.
-Why: a reachable beta is not evidence that a subsequent standard deployment is
-possible; the board must surface the release constraint before more product
-work queues behind it.
+Why: the board must distinguish measured capacity from an actual deployment
+gate.
 Evidence: daemon points at `release-abd9afd-20260727202146`; beta health is
 ready; release directory measures 481 MiB. No product, credential, provider,
 or deployment mutation was performed by this coordination change.
+weakened_checks: none.
+
+2026-07-27 · correction · 160 MiB is not a deploy limit
+Change: cancel `BETA-RELEASE-SIZE-001` as a release blocker and correct the
+board/state wording.
+Why: the 160 MiB value was added by commit `f9326a3` as a single assertion in
+`test/release/product-release.test.js`, raised from 40 MiB to accommodate five
+Create Universe units. It is not present in `verify-product-release.mjs` or
+the deploy script.
+Evidence: `git blame` identifies `f9326a3` / `Codex Backup`; deploy calls the
+verifier, and verifier checks manifest integrity but has no size ceiling.
 weakened_checks: none.
 
 2026-07-27 · legacy queue reconciliation
