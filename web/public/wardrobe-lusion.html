@@ -21,7 +21,7 @@
 <body class="kinetic-snap-mode">
 
   <!-- ============================
-       LAYER 0: CRT VHS Scanline Overlay Layer (3% Noise + Counter-Parallax Shift)
+       LAYER 0: CRT VHS Scanline Overlay Layer
        ============================ -->
   <div class="l-crt-vhs-layer"></div>
 
@@ -31,7 +31,7 @@
   <canvas id="canvas"></canvas>
 
   <!-- ============================
-       LAYER 2: Interactive HUD Bar
+       LAYER 2: Interactive HUD Bar (With Locked Step Gating)
        ============================ -->
   <div class="l-hud-bar">
     <div class="hud-brand">
@@ -39,14 +39,14 @@
       <span class="hud-name">WARDROBE STUDIO</span>
     </div>
     <nav class="hud-steps">
-      <button class="hud-step-btn is-active" data-step="0" onclick="goToStep(0)" type="button">01 AVATAR</button>
-      <button class="hud-step-btn" data-step="1" onclick="goToStep(1)" type="button">02 GARMENT</button>
-      <button class="hud-step-btn" data-step="2" onclick="goToStep(2)" type="button">03 SCENES</button>
-      <button class="hud-step-btn" data-step="3" onclick="goToStep(3)" type="button">04 CAMPAIGN</button>
+      <button class="hud-step-btn is-active" id="hud-step-0" data-step="0" onclick="goToStep(0)" type="button">01 AVATAR</button>
+      <button class="hud-step-btn is-locked" id="hud-step-1" data-step="1" onclick="goToStep(1)" type="button">🔒 02 GARMENT</button>
+      <button class="hud-step-btn is-locked" id="hud-step-2" data-step="2" onclick="goToStep(2)" type="button">🔒 03 SCENES</button>
+      <button class="hud-step-btn is-locked" id="hud-step-3" data-step="3" onclick="goToStep(3)" type="button">🔒 04 CAMPAIGN</button>
     </nav>
     <div class="hud-info">
       <span class="hud-live-dot"></span>
-      <span class="hud-status-text">3% VHS CRT GLOW · 10 W-OUTFIT VARIATIONS</span>
+      <span class="hud-status-text" id="hud-gate-status">ОБЕРІТЬ АВАТАР ДЛЯ РОЗБЛОКУВАННЯ</span>
     </div>
   </div>
 
@@ -89,26 +89,26 @@
       <div class="l-hero-scroll">
         <div class="l-cross"></div>
         <div class="l-cross"></div>
-        <span class="l-hero-scroll-text">кінетичний свайп для перемикання</span>
+        <span class="l-hero-scroll-text">скрольте або натисніть для вибору аватара</span>
         <div class="l-cross"></div>
         <div class="l-cross"></div>
       </div>
     </section>
 
 
-    <!-- ── Section 1: Step 01 — Avatar Input Panel ── -->
+    <!-- ── Section 1: Step 01 — Avatar Input Panel (GATE 1) ── -->
     <section id="step-1" class="l-pipeline-section l-pipeline-step" data-step-index="1">
       <div class="l-container">
         <div class="l-step-header l-reveal">
-          <div class="l-step-badge">ЕТАП 01 / 04</div>
+          <div class="l-step-badge" id="badge-step-1">ЕТАП 01 / 04 · ОБОВ'ЯЗКОВИЙ КРОК</div>
           <h2 class="l-step-title">Фіксація Зовнішності</h2>
-          <p class="l-step-desc">Завантаж фото людини для створення нейронного аватара або обери збережений із бібліотеки.</p>
+          <p class="l-step-desc">Обери збережений аватар або завантаж фото людини для розблокування наступного екрану.</p>
         </div>
 
         <div class="l-glass-panel l-reveal l-reveal-delay-1">
           <div class="l-glass-grid">
             
-            <label class="l-upload-box">
+            <label class="l-upload-box" id="box-person-photo">
               <input type="file" id="input-person-photo" accept="image/png,image/jpeg,image/webp">
               <div class="l-upload-icon">+</div>
               <strong class="l-upload-title">Фото людини *</strong>
@@ -129,11 +129,11 @@
           <div class="l-saved-library">
             <div class="l-library-title">Або обери зафіксований аватар:</div>
             <div class="l-avatar-chips">
-              <button class="l-avatar-chip is-selected" type="button">
+              <button class="l-avatar-chip" onclick="selectAvatarChip(this, '001')" type="button">
                 <span class="chip-avatar-img">👤</span>
                 <span>Аватар #001 (Чоловічий)</span>
               </button>
-              <button class="l-avatar-chip" type="button">
+              <button class="l-avatar-chip" onclick="selectAvatarChip(this, '002')" type="button">
                 <span class="chip-avatar-img">👤</span>
                 <span>Аватар #002 (Жіночий)</span>
               </button>
@@ -141,9 +141,9 @@
           </div>
 
           <div class="l-panel-footer">
-            <button class="l-step-next-btn" onclick="goToStep(2)" type="button">
-              <span>Перейти до гардеробу (5 речей)</span>
-              <span class="btn-arrow">→</span>
+            <button class="l-step-next-btn is-disabled" id="btn-next-step-1" onclick="submitStep1()" type="button" disabled>
+              <span>Оберіть аватар для продовження</span>
+              <span class="btn-arrow">🔒</span>
             </button>
           </div>
         </div>
@@ -151,52 +151,52 @@
     </section>
 
 
-    <!-- ── Section 2: Step 02 — 5-Garment & Outfit Panel ── -->
-    <section id="step-2" class="l-pipeline-section l-pipeline-step" data-step-index="2">
+    <!-- ── Section 2: Step 02 — 5-Garment & Outfit Panel (GATE 2) ── -->
+    <section id="step-2" class="l-pipeline-section l-pipeline-step is-step-locked" id="section-step-2" data-step-index="2">
       <div class="l-container">
         <div class="l-step-header l-reveal">
-          <div class="l-step-badge">ЕТАП 02 / 04</div>
+          <div class="l-step-badge" id="badge-step-2">ЕТАП 02 / 04 · 🔒 ЗАБЛОКОВАНО</div>
           <h2 class="l-step-title">Картка Образу та 5 Речей</h2>
-          <p class="l-step-desc">Опиши стиль та додай до 5 окремих елементів гардеробу (верх, пальто, штани, взуття, аксесуари).</p>
+          <p class="l-step-desc">Опиши стиль або додавай фотографії речей для розблокування 3D-сцен.</p>
         </div>
 
         <div class="l-glass-panel l-reveal l-reveal-delay-1">
           
           <div class="l-field-group">
             <label class="l-field-label" for="input-outfit-text">Опис образу (стиль, посадка, настрій)</label>
-            <textarea id="input-outfit-text" class="l-textarea" rows="2" placeholder="Наприклад: мінімалістичний чорний костюм з широким кроєм та матовою текстурою linen"></textarea>
+            <textarea id="input-outfit-text" class="l-textarea" rows="2" placeholder="Наприклад: мінімалістичний чорний костюм з широким кроєм та матовою текстурою linen" oninput="checkStep2Completion()"></textarea>
           </div>
 
           <div class="l-field-group" style="margin-top: 1.25rem;">
-            <label class="l-field-label">Фото 5 елементів гардеробу (авто-категоризація)</label>
+            <label class="l-field-label">Фото 5 елементів гардеробу (додайте хоча б 1 фото або опис)</label>
             <div class="l-garment-upload-grid-5">
               
               <label class="l-garment-box-5">
-                <input type="file" accept="image/png,image/jpeg,image/webp">
+                <input type="file" accept="image/png,image/jpeg,image/webp" onchange="checkStep2Completion()">
                 <span class="g-icon">+</span>
                 <span class="g-name">01. Верх / Сорочка</span>
               </label>
 
               <label class="l-garment-box-5">
-                <input type="file" accept="image/png,image/jpeg,image/webp">
+                <input type="file" accept="image/png,image/jpeg,image/webp" onchange="checkStep2Completion()">
                 <span class="g-icon">+</span>
                 <span class="g-name">02. Верхній одяг</span>
               </label>
 
               <label class="l-garment-box-5">
-                <input type="file" accept="image/png,image/jpeg,image/webp">
+                <input type="file" accept="image/png,image/jpeg,image/webp" onchange="checkStep2Completion()">
                 <span class="g-icon">+</span>
                 <span class="g-name">03. Штани / Спідниця</span>
               </label>
 
               <label class="l-garment-box-5">
-                <input type="file" accept="image/png,image/jpeg,image/webp">
+                <input type="file" accept="image/png,image/jpeg,image/webp" onchange="checkStep2Completion()">
                 <span class="g-icon">+</span>
                 <span class="g-name">04. Взуття</span>
               </label>
 
               <label class="l-garment-box-5">
-                <input type="file" accept="image/png,image/jpeg,image/webp">
+                <input type="file" accept="image/png,image/jpeg,image/webp" onchange="checkStep2Completion()">
                 <span class="g-icon">+</span>
                 <span class="g-name">05. Аксесуар / Сумка</span>
               </label>
@@ -205,9 +205,9 @@
           </div>
 
           <div class="l-panel-footer" style="margin-top: 1.5rem;">
-            <button class="l-step-next-btn" onclick="goToStep(3)" type="button">
-              <span>Обрати 3D Локацію</span>
-              <span class="btn-arrow">→</span>
+            <button class="l-step-next-btn is-disabled" id="btn-next-step-2" onclick="submitStep2()" type="button" disabled>
+              <span>Введіть опис або додайте фото</span>
+              <span class="btn-arrow">🔒</span>
             </button>
           </div>
         </div>
@@ -215,19 +215,19 @@
     </section>
 
 
-    <!-- ── Section 3: Step 03 — Interactive 3D Scenes ── -->
-    <section id="step-3" class="l-featured l-pipeline-step" data-step-index="3">
+    <!-- ── Section 3: Step 03 — Interactive 3D Scenes (GATE 3) ── -->
+    <section id="step-3" class="l-featured l-pipeline-step is-step-locked" id="section-step-3" data-step-index="3">
       <div class="l-container">
         <div class="l-featured-header l-reveal">
           <div>
-            <div class="l-step-badge">ЕТАП 03 / 04</div>
+            <div class="l-step-badge" id="badge-step-3">ЕТАП 03 / 04 · 🔒 ЗАБЛОКОВАНО</div>
             <h2 class="l-featured-title">3D Сцени та Освітлення</h2>
           </div>
-          <p class="l-featured-disclaimer">11 студійних локацій з кінематографічним світлом. Натисни на картку для вибору активної сцени.</p>
+          <p class="l-featured-disclaimer">Натисни на одну з 11 студійних локацій для вибору освітлення та розблокування кампанії.</p>
         </div>
 
         <div class="l-project-grid">
-          <div class="l-project-item l-reveal is-selected" data-scene-id="ocean_dusk" data-color-bg="#0a1520" data-color-text="#b8d4f0">
+          <div class="l-project-item l-reveal" data-scene-id="ocean_dusk" data-color-bg="#0a1520" data-color-text="#b8d4f0" onclick="selectSceneCard(this)">
             <div class="l-project-item-main">
               <img class="l-project-item-image" src="/scenes/ocean_dusk.webp" alt="Ocean Dusk scene" loading="lazy">
               <div class="l-scene-select-badge">ОБРАНО</div>
@@ -238,7 +238,7 @@
             </div>
           </div>
 
-          <div class="l-project-item l-reveal l-reveal-delay-1" data-scene-id="night_neon" data-color-bg="#0f0a18" data-color-text="#e0c8ff">
+          <div class="l-project-item l-reveal l-reveal-delay-1" data-scene-id="night_neon" data-color-bg="#0f0a18" data-color-text="#e0c8ff" onclick="selectSceneCard(this)">
             <div class="l-project-item-main">
               <img class="l-project-item-image" src="/scenes/night_neon.webp" alt="Night Neon scene" loading="lazy">
               <div class="l-scene-select-badge">ОБРАНО</div>
@@ -249,7 +249,7 @@
             </div>
           </div>
 
-          <div class="l-project-item l-reveal" data-scene-id="amber_alley" data-color-bg="#1a1208" data-color-text="#f0d8a8">
+          <div class="l-project-item l-reveal" data-scene-id="amber_alley" data-color-bg="#1a1208" data-color-text="#f0d8a8" onclick="selectSceneCard(this)">
             <div class="l-project-item-main">
               <img class="l-project-item-image" src="/scenes/amber_alley.webp" alt="Amber Alley scene" loading="lazy">
               <div class="l-scene-select-badge">ОБРАНО</div>
@@ -260,7 +260,7 @@
             </div>
           </div>
 
-          <div class="l-project-item l-reveal l-reveal-delay-1" data-scene-id="abandoned_palace" data-color-bg="#100e0a" data-color-text="#e8d8c0">
+          <div class="l-project-item l-reveal l-reveal-delay-1" data-scene-id="abandoned_palace" data-color-bg="#100e0a" data-color-text="#e8d8c0" onclick="selectSceneCard(this)">
             <div class="l-project-item-main">
               <img class="l-project-item-image" src="/scenes/abandoned_palace.webp" alt="Abandoned Palace scene" loading="lazy">
               <div class="l-scene-select-badge">ОБРАНО</div>
@@ -271,7 +271,7 @@
             </div>
           </div>
 
-          <div class="l-project-item l-reveal" data-scene-id="foggy_forest" data-color-bg="#080f08" data-color-text="#c0e8c0">
+          <div class="l-project-item l-reveal" data-scene-id="foggy_forest" data-color-bg="#080f08" data-color-text="#c0e8c0" onclick="selectSceneCard(this)">
             <div class="l-project-item-main">
               <img class="l-project-item-image" src="/scenes/foggy_forest.webp" alt="Foggy Forest scene" loading="lazy">
               <div class="l-scene-select-badge">ОБРАНО</div>
@@ -282,7 +282,7 @@
             </div>
           </div>
 
-          <div class="l-project-item l-reveal l-reveal-delay-1" data-scene-id="black_studio" data-color-bg="#050505" data-color-text="#ffffff">
+          <div class="l-project-item l-reveal l-reveal-delay-1" data-scene-id="black_studio" data-color-bg="#050505" data-color-text="#ffffff" onclick="selectSceneCard(this)">
             <div class="l-project-item-main">
               <img class="l-project-item-image" src="/scenes/black_studio.webp" alt="Black Studio scene" loading="lazy">
               <div class="l-scene-select-badge">ОБРАНО</div>
@@ -295,19 +295,19 @@
         </div>
 
         <div style="margin-top: 3rem; text-align: center;">
-          <button class="l-goal-btn" onclick="goToStep(4)" type="button">
-            <span>Згенерувати 6-Shot Campaign</span>
-            <span class="btn-arrow">→</span>
+          <button class="l-goal-btn is-disabled" id="btn-next-step-3" onclick="submitStep3()" type="button" disabled>
+            <span>Оберіть локацію для 6-Shot Campaign</span>
+            <span class="btn-arrow">🔒</span>
           </button>
         </div>
       </div>
     </section>
 
 
-    <!-- ── Section 4: Step 04 — Campaign Studio Gallery & Video Reel ── -->
-    <section id="step-4" class="l-gallery l-pipeline-step" data-step-index="4">
+    <!-- ── Section 4: Step 04 — Campaign Studio Gallery (UNLOCKED LAST) ── -->
+    <section id="step-4" class="l-gallery l-pipeline-step is-step-locked" id="section-step-4" data-step-index="4">
       <div class="l-container">
-        <div class="l-step-badge l-reveal">ЕТАП 04 / 04</div>
+        <div class="l-step-badge" id="badge-step-4">ЕТАП 04 / 04 · 🔒 ЗАБЛОКОВАНО</div>
         <h3 class="l-gallery-title l-reveal">Art Fashion Campaign Gallery</h3>
       </div>
       <div class="l-gallery-track" id="gallery-track">
@@ -375,33 +375,27 @@
           <a class="l-footer-link" href="#" onclick="goToStep(3)">Scenes</a>
           <a class="l-footer-link" href="#" onclick="goToStep(4)">Campaign</a>
         </nav>
-        <span class="l-footer-copy">© 2026 Wardrobe. 10 W-Outfit Variations & CRT Glow.</span>
+        <span class="l-footer-copy">© 2026 Wardrobe. Gated Pipeline.</span>
       </div>
     </footer>
 
   </div><!-- /ui -->
 
   <!-- ============================
-       LAYER 4: WebGL Engine & Script
+       LAYER 4: WebGL Engine & Gated Pipeline Controller
        ============================ -->
   <script src="/wardrobe-lusion-engine.js"></script>
   <script>
-    // ── Switch 10 "W" Outfit Variations ──
-    function switchWVariation(index) {
-      document.querySelectorAll('.w-var-chip').forEach((chip, i) => {
-        if (i === index) chip.classList.add('is-active');
-        else chip.classList.remove('is-active');
-      });
-      if (window.wardrobeEngine) {
-        window.wardrobeEngine.setOutfitVariation(index);
-      }
-    }
-
-    // ── Kinetic Snap Section Controller ──
+    // ── Pipeline Gating State ──
+    let maxUnlockedStepIndex = 1; // Step 0 (Hero) & Step 1 (Avatar) are accessible
     let currentStepIndex = 0;
     const totalSteps = 5;
     let isTransitioning = false;
     const transitionCooldownMs = 700;
+
+    let avatarSelected = false;
+    let garmentsSelected = false;
+    let sceneSelected = false;
 
     const stepElements = [
       document.getElementById('step-0'),
@@ -411,14 +405,53 @@
       document.getElementById('step-4'),
     ];
 
+    function updateHudGateState() {
+      const hudStep1 = document.getElementById('hud-step-1');
+      const hudStep2 = document.getElementById('hud-step-2');
+      const hudStep3 = document.getElementById('hud-step-3');
+      const gateStatus = document.getElementById('hud-gate-status');
+
+      if (maxUnlockedStepIndex >= 2 && hudStep1) {
+        hudStep1.classList.remove('is-locked');
+        hudStep1.innerHTML = '02 GARMENT';
+      }
+      if (maxUnlockedStepIndex >= 3 && hudStep2) {
+        hudStep2.classList.remove('is-locked');
+        hudStep2.innerHTML = '03 SCENES';
+      }
+      if (maxUnlockedStepIndex >= 4 && hudStep3) {
+        hudStep3.classList.remove('is-locked');
+        hudStep3.innerHTML = '04 CAMPAIGN';
+      }
+
+      if (!avatarSelected) {
+        gateStatus.textContent = 'ОБЕРІТЬ АВАТАР ДЛЯ РОЗБЛОКУВАННЯ';
+      } else if (!garmentsSelected) {
+        gateStatus.textContent = 'ДОДАЙТЕ ОПИС ЧИ 5 РЕЧЕЙ';
+      } else if (!sceneSelected) {
+        gateStatus.textContent = 'ОБЕРІТЬ 3D СЦЕНУ';
+      } else {
+        gateStatus.textContent = 'УСІ ЕТАПИ РОЗБЛОКОВАНІ';
+      }
+    }
+
     function goToStep(index) {
       if (index < 0 || index >= totalSteps || isTransitioning) return;
+
+      // PREVENT NAVIGATION PAST MAX UNLOCKED STEP!
+      if (index > maxUnlockedStepIndex) {
+        alert('Заблоковано! Виконайте умови попереднього етапу для розблокування.');
+        return;
+      }
+      
       isTransitioning = true;
       currentStepIndex = index;
+      
       if (stepElements[index]) {
         stepElements[index].scrollIntoView({ behavior: 'smooth' });
       }
 
+      // Update HUD active tabs
       const hudButtons = document.querySelectorAll('.hud-step-btn');
       hudButtons.forEach((btn, i) => {
         if (i === (index > 0 ? index - 1 : 0)) btn.classList.add('is-active');
@@ -428,12 +461,144 @@
       setTimeout(() => { isTransitioning = false; }, transitionCooldownMs);
     }
 
-    // Intercept Wheel Gestures
+    // ── STEP 1: Select Avatar Chip or File Upload ──
+    function selectAvatarChip(buttonEl, avatarId) {
+      document.querySelectorAll('.l-avatar-chip').forEach(c => c.classList.remove('is-selected'));
+      buttonEl.classList.add('is-selected');
+      
+      avatarSelected = true;
+      unlockStep2();
+    }
+
+    function bindAvatarUpload() {
+      const input = document.getElementById('input-person-photo');
+      const filename = document.getElementById('filename-person');
+      if (!input) return;
+      input.addEventListener('change', () => {
+        if (input.files && input.files[0]) {
+          filename.textContent = input.files[0].name;
+          filename.classList.add('has-file');
+          avatarSelected = true;
+          unlockStep2();
+        }
+      });
+    }
+    bindAvatarUpload();
+
+    function unlockStep2() {
+      maxUnlockedStepIndex = Math.max(maxUnlockedStepIndex, 2);
+      
+      const btn = document.getElementById('btn-next-step-1');
+      if (btn) {
+        btn.disabled = false;
+        btn.classList.remove('is-disabled');
+        btn.innerHTML = '<span>Аватар зафіксовано · Далі до 5 речей</span><span class="btn-arrow">→</span>';
+      }
+
+      const badge = document.getElementById('badge-step-1');
+      if (badge) badge.textContent = 'ЕТАП 01 / 04 · ✅ ЗАФІКСОВАНО';
+
+      const sec2 = document.getElementById('step-2');
+      if (sec2) sec2.classList.remove('is-step-locked');
+
+      const badge2 = document.getElementById('badge-step-2');
+      if (badge2) badge2.textContent = 'ЕТАП 02 / 04 · 🔓 РОЗБЛОКОВАНО';
+
+      updateHudGateState();
+    }
+
+    function submitStep1() {
+      if (avatarSelected) goToStep(2);
+    }
+
+    // ── STEP 2: Check Garments / Outfit Completion ──
+    function checkStep2Completion() {
+      const text = document.getElementById('input-outfit-text')?.value || '';
+      const filesCount = Array.from(document.querySelectorAll('.l-garment-box-5 input')).filter(i => i.files?.length > 0).length;
+
+      if (text.trim().length > 3 || filesCount > 0) {
+        garmentsSelected = true;
+        unlockStep3();
+      }
+    }
+
+    function unlockStep3() {
+      maxUnlockedStepIndex = Math.max(maxUnlockedStepIndex, 3);
+      
+      const btn = document.getElementById('btn-next-step-2');
+      if (btn) {
+        btn.disabled = false;
+        btn.classList.remove('is-disabled');
+        btn.innerHTML = '<span>Гардероб прийнято · Далі до 3D сцен</span><span class="btn-arrow">→</span>';
+      }
+
+      const badge = document.getElementById('badge-step-2');
+      if (badge) badge.textContent = 'ЕТАП 02 / 04 · ✅ ПРИЙНЯТО';
+
+      const sec3 = document.getElementById('step-3');
+      if (sec3) sec3.classList.remove('is-step-locked');
+
+      const badge3 = document.getElementById('badge-step-3');
+      if (badge3) badge3.textContent = 'ЕТАП 03 / 04 · 🔓 РОЗБЛОКОВАНО';
+
+      updateHudGateState();
+    }
+
+    function submitStep2() {
+      if (garmentsSelected) goToStep(3);
+    }
+
+    // ── STEP 3: Select 3D Scene Card ──
+    function selectSceneCard(cardEl) {
+      if (currentStepIndex > maxUnlockedStepIndex) return;
+
+      document.querySelectorAll('.l-project-item').forEach(c => c.classList.remove('is-selected'));
+      cardEl.classList.add('is-selected');
+
+      sceneSelected = true;
+      if (window.wardrobeEngine) {
+        window.wardrobeEngine.setThemeColor(cardEl.dataset.colorBg);
+      }
+      unlockStep4();
+    }
+
+    function unlockStep4() {
+      maxUnlockedStepIndex = Math.max(maxUnlockedStepIndex, 4);
+
+      const btn = document.getElementById('btn-next-step-3');
+      if (btn) {
+        btn.disabled = false;
+        btn.classList.remove('is-disabled');
+        btn.innerHTML = '<span>Сцена обрана · Згенерувати 6-Shot Campaign</span><span class="btn-arrow">→</span>';
+      }
+
+      const badge = document.getElementById('badge-step-3');
+      if (badge) badge.textContent = 'ЕТАП 03 / 04 · ✅ СЦЕНА ОБРАНА';
+
+      const sec4 = document.getElementById('step-4');
+      if (sec4) sec4.classList.remove('is-step-locked');
+
+      const badge4 = document.getElementById('badge-step-4');
+      if (badge4) badge4.textContent = 'ЕТАП 04 / 04 · 🔓 РОЗБЛОКОВАНО';
+
+      updateHudGateState();
+    }
+
+    function submitStep3() {
+      if (sceneSelected) goToStep(4);
+    }
+
+    // ── Intercept Wheel Gestures for Gated Kinetic Snap ──
     window.addEventListener('wheel', (e) => {
       if (isTransitioning) { e.preventDefault(); return; }
       const threshold = 25;
       if (e.deltaY > threshold) {
-        if (currentStepIndex < totalSteps - 1) { e.preventDefault(); goToStep(currentStepIndex + 1); }
+        if (currentStepIndex < maxUnlockedStepIndex && currentStepIndex < totalSteps - 1) {
+          e.preventDefault();
+          goToStep(currentStepIndex + 1);
+        } else if (currentStepIndex >= maxUnlockedStepIndex) {
+          e.preventDefault(); // Lock scroll!
+        }
       } else if (e.deltaY < -threshold) {
         if (currentStepIndex > 0) { e.preventDefault(); goToStep(currentStepIndex - 1); }
       }
@@ -445,9 +610,21 @@
     window.addEventListener('touchend', (e) => {
       if (isTransitioning) return;
       const deltaY = touchStartY - e.changedTouches[0].clientY;
-      if (deltaY > 50 && currentStepIndex < totalSteps - 1) goToStep(currentStepIndex + 1);
-      else if (deltaY < -50 && currentStepIndex > 0) goToStep(currentStepIndex - 1);
+      if (deltaY > 50 && currentStepIndex < maxUnlockedStepIndex && currentStepIndex < totalSteps - 1) {
+        goToStep(currentStepIndex + 1);
+      } else if (deltaY < -50 && currentStepIndex > 0) {
+        goToStep(currentStepIndex - 1);
+      }
     }, { passive: true });
+
+    // ── Switch 10 W-Outfit Variations ──
+    function switchWVariation(index) {
+      document.querySelectorAll('.w-var-chip').forEach((chip, i) => {
+        if (i === index) chip.classList.add('is-active');
+        else chip.classList.remove('is-active');
+      });
+      if (window.wardrobeEngine) window.wardrobeEngine.setOutfitVariation(index);
+    }
 
     // Reveal Observer
     const revealObserver = new IntersectionObserver((entries) => {
@@ -457,24 +634,6 @@
     }, { threshold: 0.2 });
 
     document.querySelectorAll('.l-reveal').forEach(el => revealObserver.observe(el));
-
-    // Interactive Scene Selection
-    const projectItems = document.querySelectorAll('.l-project-item');
-    projectItems.forEach(item => {
-      item.addEventListener('mouseenter', () => {
-        const bg = item.dataset.colorBg;
-        if (bg) document.body.style.backgroundColor = bg;
-      });
-      item.addEventListener('mouseleave', () => {
-        document.body.style.backgroundColor = '#050806';
-      });
-      item.addEventListener('click', (e) => {
-        e.preventDefault();
-        projectItems.forEach(card => card.classList.remove('is-selected'));
-        item.classList.add('is-selected');
-        if (window.wardrobeEngine) window.wardrobeEngine.setThemeColor(item.dataset.colorBg);
-      });
-    });
   </script>
 </body>
 </html>
