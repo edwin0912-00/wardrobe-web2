@@ -77,10 +77,7 @@
 
         <div class="divider"><span id="look-divider-label">НОВИЙ ОБРАЗ</span></div>
         <label class="field-label" for="outfit-text">Опис образу</label>
-        <div class="voice-field">
-          <textarea id="outfit-text" name="outfit_text" rows="3" placeholder="Наприклад: мінімалістичний чорний образ із м’якою посадкою"></textarea>
-          <button id="voice-input-button" class="voice-input-button" type="button" hidden aria-pressed="false" aria-label="Надиктувати опис образу">🎙</button>
-        </div>
+        <textarea id="outfit-text" name="outfit_text" rows="3" placeholder="Наприклад: мінімалістичний чорний образ із м’якою посадкою"></textarea>
         <label class="upload-card wardrobe-card">
           <input id="garment-images" name="garment_images" type="file" accept="image/png,image/jpeg,image/webp" multiple>
           <span class="upload-icon">＋</span><strong>Фото речей</strong><small>До 5 довільних фото — система сама визначить категорії</small><span class="file-name" data-for="garment-images">Додати гардероб</span>
@@ -366,6 +363,5 @@
   </aside>
   <script src="/boot-guard.js?v=20260722-3"></script>
   <script type="module" src="/app.js?v=20260727-12"></script>
-  <script type="module" src="/voice-input.js?v=20260728-1"></script>
 </body>
 </html>

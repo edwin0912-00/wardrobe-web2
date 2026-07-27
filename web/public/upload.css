@@ -327,22 +327,3 @@ footer a {
     overflow: hidden;
   }
 }
-
-/* Voice input on the look description: live transcript + 5s tap-Enter window */
-.voice-field { position: relative; }
-.voice-field textarea { padding-right: 52px; }
-.voice-input-button {
-  position: absolute; right: 10px; bottom: 10px;
-  width: 34px; height: 34px; border-radius: 50%;
-  border: 1px solid rgba(23, 59, 40, .25); background: #fff;
-  font-size: 16px; line-height: 1; cursor: pointer;
-  transition: background .15s ease, border-color .15s ease, transform .15s ease;
-}
-.voice-input-button:hover { border-color: rgba(23, 59, 40, .55); }
-.voice-input-button.listening {
-  background: #ffe9e6; border-color: #d2544a;
-  animation: voicePulse 1.2s ease-in-out infinite;
-}
-.voice-input-button.armed { background: #142313; border-color: #142313; color: #d7ff86; font-weight: 700; }
-@keyframes voicePulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.12); } }
-@media (prefers-reduced-motion: reduce) { .voice-input-button.listening { animation: none; } }
