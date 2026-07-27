@@ -481,6 +481,17 @@ function safeProviderMetadata(metadata) {
     'source_aspect_ratio',
     'raw_output_sha256',
     'geometry_output_sha256',
+    // The frame-finish step sits after geometry and before storage, so when it
+    // runs the stored bytes are no longer the geometry output and the lineage
+    // needs its own last link. Listed here because this allowlist silently drops
+    // anything it does not name — a receipt field that is not on this list
+    // simply vanishes, which has cost two paid rounds before.
+    'delivered_output_sha256',
+    'frame_finish_grain_applied',
+    'frame_finish_grain_strength',
+    'frame_finish_oversample_requested',
+    'frame_finish_oversample_factor',
+    'frame_finish_oversample_honoured',
     'reference_role_order',
     'reference_evidence_sha256',
     'attached_reference_count',
@@ -794,7 +805,16 @@ function provenanceGate({
     && (provider.geometry_strategy !== 'centre_crop_to_exact_4_5'
       || (Number.isFinite(provider.geometry_crop_fraction) && provider.geometry_crop_fraction >= 0))
     && /^[a-f0-9]{64}$/.test(provider.raw_output_sha256 ?? '')
-    && provider.geometry_output_sha256 === attempt.provider_source.sha256;
+    // Lineage is a chain, not a single equality. Without the frame-finish step
+    // the geometry output IS the stored frame and the two hashes coincide; with
+    // it there is one more link, and the last one is what got stored. Asserting
+    // the old single equality would have failed the gate on the pipeline's own
+    // correct output — the same shape of defect as every other requirement in
+    // this codebase that ended up enforced in two places that disagreed.
+    && (provider.frame_finish_grain_applied === true
+      ? /^[a-f0-9]{64}$/.test(provider.geometry_output_sha256 ?? '')
+        && provider.delivered_output_sha256 === attempt.provider_source.sha256
+      : provider.geometry_output_sha256 === attempt.provider_source.sha256);
   if (!geometryReceiptValid) {
     return {
       id: 'PROVENANCE',

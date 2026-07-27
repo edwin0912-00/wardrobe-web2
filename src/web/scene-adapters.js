@@ -11,6 +11,11 @@ import {
   sanitizeExternalPrompt,
 } from '../providers/provider-prompt-privacy.js';
 import {
+  applyFilmGrain,
+  resolveFrameFinish,
+  resolveOversampleRequest,
+} from './frame-finish.js';
+import {
   IMAGE_MODEL_NAMES,
   IMAGE_MODEL_ROUTE,
   assertAllowedImageModel,
@@ -592,6 +597,10 @@ export class SceneGeneratorAdapter {
       + `${shotAnchorInstructions(attachedAnchors)}`,
     );
     assertExternalPromptPrivacy(prompt, { runtimeRoot: context.work_directory });
+    // Read per call rather than once at construction, so unsetting the variable
+    // takes effect on the next frame instead of on the next restart.
+    const frameFinish = resolveFrameFinish();
+    const oversample = resolveOversampleRequest(frameFinish, provider);
     const providerResult = await provider.generate({
       operation: 'generate',
       phase: 'scene',
@@ -602,6 +611,11 @@ export class SceneGeneratorAdapter {
       job_set_type: jobSetType,
       prompt,
       aspectRatio: requiredTransportAspectRatio,
+      // Only sent when a provider has declared it can obey it, so the request
+      // that goes to a provider which cannot is byte-for-byte what it was
+      // before — the journal replay hash does not move and no cached frame is
+      // invalidated by a flag the provider ignores anyway.
+      ...(oversample.honoured ? { oversample: oversample.factor } : {}),
       references: { ordered },
       idempotencyKey: context.idempotency_key,
       jobId: context.scene_id,
@@ -616,12 +630,17 @@ export class SceneGeneratorAdapter {
       throw new Error('Scene provider must return PNG bytes');
     }
     const geometry = await geometrySafeImage(raw, context);
+    // The last step on the frame, and the only one that can be switched off from
+    // the environment without touching code. Grain must land after geometry: a
+    // downscale would average it away, and the crosshatch it masks only becomes
+    // visible at the delivered size.
+    const finished = await applyFilmGrain(geometry.image, frameFinish.grain);
     const providerMetadata = providerResult.metadata ?? {};
     const providerJobId = providerMetadata.job_id ?? providerMetadata.provider_request_id;
     const requestId = context.idempotency_key;
     const evidence = referenceEvidence(references);
     return {
-      image: geometry.image,
+      image: finished.image,
       media_type: 'image/png',
       metadata: {
         provider: String(providerMetadata.provider ?? 'higgsfield'),
@@ -637,6 +656,19 @@ export class SceneGeneratorAdapter {
         source_aspect_ratio: reducedAspectRatio(geometry.source_width, geometry.source_height),
         raw_output_sha256: sha256(raw),
         geometry_output_sha256: sha256(geometry.image),
+        // The bytes that actually got stored. Equal to the geometry output
+        // whenever frame finish is off, which is the default, so a receipt from
+        // before this step reads the same as one written with it disabled.
+        delivered_output_sha256: sha256(finished.image),
+        frame_finish_grain_applied: finished.grain_applied,
+        ...(finished.grain_strength === undefined
+          ? {} : { frame_finish_grain_strength: finished.grain_strength }),
+        // Recorded even when nothing was honoured. A flag that was set and could
+        // not be obeyed has to be visible, or it looks like the fix is running
+        // when it is not.
+        frame_finish_oversample_requested: oversample.requested,
+        frame_finish_oversample_factor: oversample.factor,
+        frame_finish_oversample_honoured: oversample.honoured,
         transport_aspect_ratio: requiredTransportAspectRatio,
         geometry_strategy: geometry.strategy,
         // How much of the provider frame the delivery cost. Recorded because the
