@@ -99,16 +99,20 @@ export function resolveAddItemsSelection({ avatar, look = null }) {
 }
 
 /**
- * Pure UI transition: choosing an avatar opens its newest saved look when one
- * exists. It never starts, clears, or resets a draft.
+ * Pure UI transition: choosing an avatar opens its newest saved look when
+ * exactly one look exists.  When there are multiple looks, the transition
+ * filters the look grid so the user can pick, instead of auto-navigating
+ * to the latest look and hiding the rest.  It never starts, clears, or
+ * resets a draft.
  */
 export function resolveSavedAvatarTransition(profile, avatar) {
+  const avatarLooks = looksForAvatar(profile, avatar);
   const selection = resolveAddItemsSelection({
     avatar,
     look: latestLookForAvatar(profile, avatar),
   });
   return {
-    action: selection.look ? 'OPEN_LOOK' : 'FILTER_AVATAR',
+    action: avatarLooks.length === 1 ? 'OPEN_LOOK' : 'FILTER_AVATAR',
     selection,
   };
 }

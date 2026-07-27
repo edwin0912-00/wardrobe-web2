@@ -33,16 +33,35 @@ function profileFixture() {
   };
 }
 
-test('saved-avatar transition opens that avatar’s newest look by persisted create time', () => {
+test('saved-avatar transition shows the look grid when avatar has multiple looks', () => {
   const { avatar, newerLook, profile } = profileFixture();
   assert.strictEqual(flow.latestLookForAvatar(profile, avatar), newerLook);
 
   const transition = flow.resolveSavedAvatarTransition(profile, avatar);
-  assert.equal(transition.action, 'OPEN_LOOK');
+  assert.equal(transition.action, 'FILTER_AVATAR',
+    'multiple looks must show the grid, not auto-open the newest');
   assert.strictEqual(transition.selection.avatar, avatar);
   assert.strictEqual(transition.selection.look, newerLook);
   assert.equal(transition.selection.avatarId, 'avatar-a');
   assert.equal(transition.selection.lookId, 'look-a-new');
+});
+
+test('saved-avatar transition auto-opens the look when avatar has exactly one look', () => {
+  const avatar = { avatar_id: 'avatar-single' };
+  const look = {
+    look_id: 'look-single',
+    avatar_id: 'avatar-single',
+    created_at: '2026-07-27T01:00:00.000Z',
+  };
+  const profile = { avatars: [avatar], looks: [look] };
+
+  const transition = flow.resolveSavedAvatarTransition(profile, avatar);
+  assert.equal(transition.action, 'OPEN_LOOK',
+    'exactly one look must auto-open without showing the grid');
+  assert.strictEqual(transition.selection.avatar, avatar);
+  assert.strictEqual(transition.selection.look, look);
+  assert.equal(transition.selection.avatarId, 'avatar-single');
+  assert.equal(transition.selection.lookId, 'look-single');
 });
 
 test('Add items continuation receives the exact selected avatar and look once', async () => {
@@ -60,7 +79,7 @@ test('Add items continuation receives the exact selected avatar and look once', 
   assert.deepEqual(received, [{ avatar, look: newerLook }]);
 });
 
-test('saved-avatar selection executes only the open-look effect, never a draft action', async () => {
+test('saved-avatar selection executes only the filter-avatar effect for multi-look avatars', async () => {
   const { avatar, profile } = profileFixture();
   const counters = { start: 0, clear: 0, reset: 0 };
   const calls = [];
@@ -74,8 +93,8 @@ test('saved-avatar selection executes only the open-look effect, never a draft a
     resetDraft: () => { counters.reset += 1; },
   });
 
-  assert.equal(transition.action, 'OPEN_LOOK');
-  assert.deepEqual(calls, [['open-look', 'look-a-new']]);
+  assert.equal(transition.action, 'FILTER_AVATAR');
+  assert.deepEqual(calls, [['filter-avatar', 'avatar-a']]);
   assert.deepEqual(counters, { start: 0, clear: 0, reset: 0 });
 });
 
