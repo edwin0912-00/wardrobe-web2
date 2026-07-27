@@ -8,6 +8,10 @@ export async function registerPostShootRoutes(app, {
 } = {}) {
   const pipeline = await loadPostShootPipeline({ projectRoot });
 
+  app.get('/live', async (_request, reply) => reply
+    .header('Cache-Control', 'no-store')
+    .redirect('/post-shoot-mvp.html?release=20260727-3'));
+
   app.get('/api/post-shoot/pipeline', async (_request, reply) => reply
     .header('Cache-Control', 'no-store')
     .send({

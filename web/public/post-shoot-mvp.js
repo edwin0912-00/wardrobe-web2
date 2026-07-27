@@ -1,4 +1,4 @@
-import { fal } from './vendor/fal-client.js';
+import { fal } from './vendor/fal-client.js?v=20260727-3';
 
 const MODEL_ID = 'decart/lucy-2-5/realtime';
 const state = { stream: null, reference: null, connection: null, peer: null, timer: null, running: false };
