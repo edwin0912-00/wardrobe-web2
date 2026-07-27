@@ -2,7 +2,7 @@
   "schema_version": "1.0.0",
   "integration_branch": "integration/wardrobe-20260726",
   "orchestrator": "codex-main",
-  "updated_at": "2026-07-27T00:03:00.000Z",
+  "updated_at": "2026-07-27T00:09:57.000Z",
   "tasks": [
     {
       "id": "CTRL-001",
@@ -223,6 +223,106 @@
       "stop_conditions": [
         "Copied-edge headroom repair requires Edwin approval.",
         "Taupe-specific relaxation requires Edwin approval."
+      ]
+    },
+    {
+      "id": "CTRL-002",
+      "title": "Install durable agent queue listening, heartbeat reports, and the canonical context pack",
+      "priority": "P0",
+      "state": "ASSIGNED",
+      "owner": "codex-main",
+      "branch": "lane/CTRL-002/codex-main",
+      "base_sha": "ccea7dd7739883144a27388977ce8284a52a8027",
+      "lease": {
+        "generation": 1,
+        "issued_at": "2026-07-27T00:09:57.000Z",
+        "expires_at": "2026-07-28T00:09:57.000Z"
+      },
+      "lock_groups": [
+        "coordination"
+      ],
+      "allowed_paths": [
+        "AGENTS.md",
+        ".agents/README.md",
+        ".agents/status/CTRL-002.json",
+        "docs/coordination/**",
+        "schemas/agent-status.schema.json",
+        "tools/coordination/**",
+        "test/governance/**",
+        "ops/zeely-agent-coordination-loop/**",
+        ".agents/handoffs/CTRL-002.json"
+      ],
+      "forbidden_paths": [
+        "secrets/**",
+        ".env",
+        ".env.*",
+        "runtime/**",
+        "output/**"
+      ],
+      "required_context": [
+        {
+          "path": "AGENTS.md",
+          "git_blob_sha": "6f0ae66d783cafff3a62b73d091ede2f5395d0c2"
+        },
+        {
+          "path": "TASKS.json",
+          "git_blob_sha": "215e9768d74191bca287e447909e5da195ffe9a4"
+        },
+        {
+          "path": "tools/coordination/watch-assignments.mjs",
+          "git_blob_sha": "f34b627008e872bcd1732e1dd23919bfa2c56dad"
+        }
+      ],
+      "depends_on": [
+        "CTRL-001"
+      ],
+      "acceptance": [
+        {
+          "check_id": "agent-status-contract-tests",
+          "execution_class": "ci",
+          "command": [
+            "node",
+            "--test",
+            "test/governance/agent-status.test.js",
+            "test/governance/agent-control.test.js"
+          ],
+          "expected_exit_codes": [
+            0
+          ],
+          "expected": "An assigned agent can safely publish a schema-validated, non-secret status while the orchestrator reads it from GitHub without checking out or mutating the lane"
+        },
+        {
+          "check_id": "queue-board-validation",
+          "execution_class": "ci",
+          "command": [
+            "node",
+            "tools/coordination/validate-board.mjs",
+            "--board-only"
+          ],
+          "expected_exit_codes": [
+            0
+          ],
+          "expected": "The canonical board and all pinned context remain valid"
+        },
+        {
+          "check_id": "diff-hygiene",
+          "execution_class": "ci",
+          "command": [
+            "git",
+            "diff",
+            "--check",
+            "$TASK_BASE_SHA...$TESTED_CODE_SHA"
+          ],
+          "expected_exit_codes": [
+            0
+          ],
+          "expected": "No whitespace errors or conflict markers"
+        }
+      ],
+      "stop_conditions": [
+        "Do not start, wake, or impersonate an external agent process; the queue is a read-only contract until that agent starts its own runner.",
+        "Do not send secrets, media, prompts, local absolute paths, credentials, or external API calls through status artifacts.",
+        "Do not alter product code, live runtime, deployment, credentials, or external worker state."
       ]
     },
     {
