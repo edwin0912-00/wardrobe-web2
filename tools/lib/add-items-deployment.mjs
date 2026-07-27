@@ -85,6 +85,9 @@ const PRODUCT_DEPLOY_ROOTS = [
   'package-lock.json',
   'assets/editorial-blocking/',
   'assets/scene-presets/',
+  // The only docs subtree permitted in a product overlay: immutable Create
+  // Universe units consumed by the production resolver.
+  'docs/style-units/',
   'config/',
   'prompts/',
   'schemas/',

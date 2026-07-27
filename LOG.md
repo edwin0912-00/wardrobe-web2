@@ -18,6 +18,14 @@ weakened_checks: none | BLOCKED: …
 ## Entries
 
 2026-07-27 · INT-001 · lane/INT-001/codex-main · pending PR/update
+Change: add only `docs/style-units/` to the PRODUCT_SCENES_V1 deploy allowlist.
+Why: the verified Create Universe resolver consumes these immutable source
+units at runtime; a broad `docs/` exception would violate the release boundary.
+Evidence: deploy path validation now accepts the exact source-unit subtree and
+continues to reject every other `docs/` path.
+weakened_checks: none.
+
+2026-07-27 · INT-001 · lane/INT-001/codex-main · pending PR/update
 Change: wire Create Universe `shoot.*` units into the editorial resolver as a
 separate source-pack product: catalog, immutable PNG-reference shot packs,
 preview API, source-ledger URI contract, release inventory, and verification.
