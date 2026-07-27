@@ -1,0 +1,123 @@
+{
+  "unit_id": "shoot.window_gobo_warm",
+  "title": "Window Gobo Warm — one warm wall, a raking window shadow, cloth at rest",
+  "palette_size": 5,
+  "palette": [
+    {
+      "name": "warm cream",
+      "hex": "#E4D3BE",
+      "role": "brightest highlight, the wall inside the gobo's bright field"
+    },
+    {
+      "name": "greige mid",
+      "hex": "#C9B49C",
+      "role": "ground, the wall outside the bright field"
+    },
+    {
+      "name": "deep warm shadow",
+      "hex": "#6B4E3C",
+      "role": "shadow, the gobo's dark bars on the wall"
+    },
+    {
+      "name": "black garment",
+      "hex": "#1A1512",
+      "role": "deepest value, the ruched dark cloth against the lit wall"
+    },
+    {
+      "name": "warm skin",
+      "hex": "#D2A183",
+      "role": "skin in key light and in wall-bounce fill"
+    }
+  ],
+  "item_colours_exempt": true,
+  "palette_authority": {
+    "path": "palette-strip.svg",
+    "sha256": "da3afff5635ab2508a7050f920c2cde65c203d220b3ac141bb5f13a9907008d2",
+    "rendered_not_generated": true
+  },
+  "source_frames": [
+    "frame-01 — single supplied frame, portrait cropped mid-thigh, three-quarter stance against one warm cream-greige wall carrying a large soft-edged rectangular window gobo, dark gathered sheer garment, direct level gaze"
+  ],
+  "unknowns": [
+    "focal length in millimetres — never stated, only its consequences are recorded",
+    "aperture and shutter values",
+    "room size, and what stands behind the camera",
+    "the true window geometry — only the shadow it throws is readable, not the window itself",
+    "whether the light is late sun or a shaped lamp imitating it; the rake and the softness are readable, the source is not",
+    "the subject's footwear and full weight distribution — the frame cuts at mid-thigh"
+  ],
+  "sheets": [
+    {
+      "sheet_id": "camera_lens",
+      "path": "sheet-camera_lens.png",
+      "sha256": "0052cf60e50fb5c22369c64612293f6167918795300a5dde72100074cec7af2b",
+      "byte_size": 2502156,
+      "width": 2048,
+      "height": 1158,
+      "colour_authoritative": false
+    },
+    {
+      "sheet_id": "blocking",
+      "path": "sheet-blocking.png",
+      "sha256": "f60511bf942a68ea44da2a3fe040f16c4521ac3ce22e322649f03a53faa0f36c",
+      "byte_size": 1862108,
+      "width": 1344,
+      "height": 752,
+      "colour_authoritative": false
+    },
+    {
+      "sheet_id": "expression_gaze",
+      "path": "sheet-expression_gaze.png",
+      "sha256": "87d45bc802ff640c5e1ecdd2c627d256380ca32a957367a6918fea11b8a14921",
+      "byte_size": 3658272,
+      "width": 2048,
+      "height": 1365,
+      "colour_authoritative": false
+    },
+    {
+      "sheet_id": "garment_behaviour",
+      "path": "sheet-garment_behaviour.png",
+      "sha256": "a427021c0047af0b911f7476ad6df6811a015ef97e614019f73c1c5234d40e97",
+      "byte_size": 4201670,
+      "width": 2048,
+      "height": 1365,
+      "colour_authoritative": false
+    },
+    {
+      "sheet_id": "colour_grade",
+      "path": "sheet-colour_grade.png",
+      "sha256": "5f616c7e33f56b255abc118f7092a5df7218f83412cb16e255f4106bca391fe8",
+      "byte_size": 2721393,
+      "width": 2048,
+      "height": 1158,
+      "colour_authoritative": false
+    },
+    {
+      "sheet_id": "environment",
+      "path": "sheet-environment.png",
+      "sha256": "5c1891c50c8877a86872797e2a56759b4e58c7d316fd582af53e5daa32d04ca9",
+      "byte_size": 2649373,
+      "width": 2048,
+      "height": 877,
+      "colour_authoritative": false
+    },
+    {
+      "sheet_id": "person",
+      "path": "sheet-person.png",
+      "sha256": "dc5d9d0ad3780e08a62925be5fc7b3c2295b5a08db5f0e366a8f48006574be58",
+      "byte_size": 3615286,
+      "width": 1365,
+      "height": 2048,
+      "colour_authoritative": false
+    }
+  ],
+  "unit_sha256": "a0fff94d413fd6c304708311b2560423fa899eb6626576e5deb831fe0124fdbd",
+  "generated_with": {
+    "model": "gpt-2",
+    "transport": "magnific",
+    "tiers": {
+      "diagram": "1k/low",
+      "boards": "2k/medium"
+    }
+  }
+}

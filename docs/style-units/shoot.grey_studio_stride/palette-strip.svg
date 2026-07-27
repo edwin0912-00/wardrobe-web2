@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="260" viewBox="0 0 1600 260">
+  <rect width="100%" height="100%" fill="#141413"/>
+  <text x="16" y="26" font-family="sans-serif" font-size="18" fill="#e8e8e6">shoot.grey_studio_stride — CLOSED PALETTE · palette_size 7 · rendered, not generated</text>
+  <rect x="8" y="40" width="212.57142857142858" height="130" fill="#8A8C8E"/>
+  <text x="114.28571428571429" y="196" text-anchor="middle" font-family="monospace" font-size="22" fill="#e8e8e6">#8A8C8E</text>
+  <text x="114.28571428571429" y="224" text-anchor="middle" font-family="sans-serif" font-size="15" fill="#9a9a97">mid grey</text>
+  <text x="114.28571428571429" y="246" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#6e6e6b">ground, the seamless backdrop field</text>
+  <rect x="236.57142857142858" y="40" width="212.57142857142858" height="130" fill="#5F6266"/>
+  <text x="342.8571428571429" y="196" text-anchor="middle" font-family="monospace" font-size="22" fill="#e8e8e6">#5F6266</text>
+  <text x="342.8571428571429" y="224" text-anchor="middle" font-family="sans-serif" font-size="15" fill="#9a9a97">cool grey shadow</text>
+  <text x="342.8571428571429" y="246" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#6e6e6b">shadow, the darker edges of the backdrop gradient</text>
+  <rect x="465.14285714285717" y="40" width="212.57142857142858" height="130" fill="#F0E8D8"/>
+  <text x="571.4285714285714" y="196" text-anchor="middle" font-family="monospace" font-size="22" fill="#e8e8e6">#F0E8D8</text>
+  <text x="571.4285714285714" y="224" text-anchor="middle" font-family="sans-serif" font-size="15" fill="#9a9a97">ivory</text>
+  <text x="571.4285714285714" y="246" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#6e6e6b">brightest highlight, the garment in soft frontal light</text>
+  <rect x="693.7142857142858" y="40" width="212.57142857142858" height="130" fill="#A79877"/>
+  <text x="800.0000000000001" y="196" text-anchor="middle" font-family="monospace" font-size="22" fill="#e8e8e6">#A79877</text>
+  <text x="800.0000000000001" y="224" text-anchor="middle" font-family="sans-serif" font-size="15" fill="#9a9a97">khaki-taupe</text>
+  <text x="800.0000000000001" y="246" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#6e6e6b">accent, the print family on the garment</text>
+  <rect x="922.2857142857143" y="40" width="212.57142857142858" height="130" fill="#B79A6A"/>
+  <text x="1028.5714285714287" y="196" text-anchor="middle" font-family="monospace" font-size="22" fill="#e8e8e6">#B79A6A</text>
+  <text x="1028.5714285714287" y="224" text-anchor="middle" font-family="sans-serif" font-size="15" fill="#9a9a97">straw</text>
+  <text x="1028.5714285714287" y="246" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#6e6e6b">accent, the dried reeds along the base</text>
+  <rect x="1150.857142857143" y="40" width="212.57142857142858" height="130" fill="#1C1B1A"/>
+  <text x="1257.142857142857" y="196" text-anchor="middle" font-family="monospace" font-size="22" fill="#e8e8e6">#1C1B1A</text>
+  <text x="1257.142857142857" y="224" text-anchor="middle" font-family="sans-serif" font-size="15" fill="#9a9a97">near-black floor</text>
+  <text x="1257.142857142857" y="246" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#6e6e6b">deepest shadow, the matte dark floor</text>
+  <rect x="1379.4285714285716" y="40" width="212.57142857142858" height="130" fill="#7A4E33"/>
+  <text x="1485.7142857142858" y="196" text-anchor="middle" font-family="monospace" font-size="22" fill="#e8e8e6">#7A4E33</text>
+  <text x="1485.7142857142858" y="224" text-anchor="middle" font-family="sans-serif" font-size="15" fill="#9a9a97">warm deep skin</text>
+  <text x="1485.7142857142858" y="246" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#6e6e6b">skin, holding value under even soft light</text>
+</svg>
