@@ -1364,7 +1364,7 @@
       "id": "RELEASE-001",
       "title": "Bind deploy and recovery verification to the canonical iwas health target",
       "priority": "P0",
-      "state": "ASSIGNED",
+      "state": "IN_PROGRESS",
       "owner": "release-target",
       "branch": "lane/RELEASE-001/release-target",
       "base_sha": "d372e6a9762b332bf699a98b5d9950e423609a6a",
