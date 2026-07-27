@@ -165,3 +165,24 @@ for anything photoreal — `gpt-2` is for text, diagrams and layout.
 Append, do not rewrite. Put the date and which session you are. Keep it to what another agent needs to
 not repeat your work: what changed, what it cost, what broke, what is still open. This file is read
 first and trusted, so a stale line here is worse than no line.
+
+## 2026-07-27 · codex-main · coordination checkpoint
+
+- **Canonical work queue:** the authoritative assignment board is `TASKS.json` at the exact
+  `origin/integration/wardrobe-20260726` commit an agent fetched before starting. At this checkpoint
+  that ref resolves to `e1ff773`. The earlier reference above to `QUEUE.md` is stale: that file is not
+  present on the integration branch. Do not create a parallel queue or infer an assignment from chat.
+- **Active lanes:** `CTRL-002` (durable coordination), `WARD-002` (standard-scene headroom),
+  `STYLE-001` (style-unit extraction), `PROFILE-001` (saved-avatar lineage), `MONITOR-001`
+  (sanitized diagnostics), and `SITE-002` (private contact-sheet manifest). `WARD-001` remains
+  preserved but blocked; it is not an integration candidate.
+- **Coordination status:** `CTRL-002` is not merged yet. Its status/heartbeat protocol must remain
+  typed and privacy-safe; until it lands, use the assigned lane, `TASKS.json`, handoff, PR, and the
+  read-only assignment watcher as the source of truth. A terminal watcher is not an autonomous agent
+  and cannot make or merge a change.
+- **Style assets:** `shoot.skylight_haze` and `shoot.terracotta_hardlight` are reference units only
+  until Edwin approves their seven sheets. They must not be routed into product generation or used to
+  reintroduce the old `EDITORIAL_BASE_PRESETS` background coupling.
+
+Open: finish and independently review `CTRL-002`; then merge only compatible, evidenced lane slices.
+No provider outage, credit balance, or unverified runtime observation is recorded here as current fact.
