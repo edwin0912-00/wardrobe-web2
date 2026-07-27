@@ -213,3 +213,15 @@ boundary applies and the orchestrator reads the lane directly.
 Use a separate clone/worktree per worker. A standing listener reports a board
 change to that worker; it does not run a model, claim a task, change a file,
 or merge anything by itself.
+
+## 2026-07-27 · codex-main · first live worker check-in
+
+- `WARD-002` / Claude Code and `MONITOR-001` / Antigravity have both published
+  a Git-bound `STARTED` status on their assigned lanes. Their reported heads
+  descend from the issued task bases; the only changed files so far are their
+  own status artifacts.
+- Required next checkpoint for both: run the task's pre-change / focused
+  baseline, publish `HEARTBEAT` with the matching typed code, then make no
+  product change outside the exact leased paths.
+- `PROFILE-001` / OpenCode has not checked in yet. It remains assigned, not
+  failed; do not infer any work from its absence.
