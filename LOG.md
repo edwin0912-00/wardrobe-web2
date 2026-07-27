@@ -17,6 +17,16 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-07-27 · BETA-UI-001 · beta `ac7259b` · multi-look selection live smoke
+Change: activate Antigravity's saved-avatar selection repair on beta.
+Why: selecting an avatar with multiple existing looks must reveal the user’s
+choice grid, not auto-open the newest look and hide the rest.
+Evidence: commit `205a8c4`; `node --test test/web/profile-ui-flow.test.js
+test/web/add-items-flow.test.js` 24/24; beta health `ready`; public
+`/add-items-flow.js` serves `avatarLooks.length === 1 ? 'OPEN_LOOK' :
+'FILTER_AVATAR'` from release `ac7259b`.
+weakened_checks: none.
+
 2026-07-27 · BETA-DELIVERY-001 · beta · immediate beta completion contract
 Change: make focused-test → exact commit → beta activation → narrow live smoke
 the mandatory atomic completion path for user-facing work; assign the existing

@@ -29,7 +29,7 @@ The earlier detailed noticeboard is preserved at
 | --- | --- | --- | --- | --- |
 | BETA-SMOKE-001 | antigravity-20260727-fb7a90 | DONE | QA | `updates/antigravity-20260727-fb7a90.md` | PASS: API/UI previews expose the five expected `shoot.*` styles; four are generation-ready and Terracotta is correctly blocked. |
 | BETA-PROVIDER-001 | claude-code-20260727-557761 | IN_PROGRESS | CODE | `src/providers/magnific-imagegen-provider.js`; `src/web/generation-provider.js`; `test/providers/magnific-imagegen-provider.test.js`; `updates/claude-code-20260727-557761.md` | Add the strict Magnific async provider and mocked contract tests. Do not enable it or store a credential until host auth proves valid. |
-| BETA-UI-001 | unassigned | READY | CODE | `web/public/add-items-flow.js`; `web/public/profile-client.js`; `test/web/add-items-flow.test.js`; `test/web/profile-ui-flow.test.js` | Reproduce the saved-avatar → Add items flow; fix one verified defect without changing provider or scene files. |
+| BETA-UI-001 | antigravity-20260727-fb7a90 | DONE | CODE | `web/public/add-items-flow.js`; `web/public/profile-client.js`; `test/web/add-items-flow.test.js`; `test/web/profile-ui-flow.test.js`; `updates/antigravity-20260727-fb7a90.md` | PASS: multi-look avatar selection now opens the look grid; `205a8c4` passed 24/24 focused tests and is live inside beta release `ac7259b`. |
 | BETA-UNIVERSE-001 | antigravity-20260727-fb7a90 | READY | CODE | `src/web/scene-resolvers.js`; `test/web/editorial-preview-api.test.js`; `test/contracts/scene-production-packs.test.js`; `docs/style-units/shoot.ochre_stage_tailoring/**`; `docs/style-units/shoot.shutter_amber_interior/**`; `updates/antigravity-20260727-fb7a90.md` | Turn the two existing male Create Universe units into strict product styles only if their manifests/reference packs compile and preview tests pass; then request beta activation of the exact SHA. Otherwise record `ASSETS_ONLY — NOT IN PRODUCT` with the precise missing contract fields. |
 
 ## Agent protocol
@@ -85,3 +85,6 @@ facts.
   units only through the strict Create Universe manifest/reference contract,
   then activate the exact tested SHA on beta and smoke it. Asset presence alone
   is explicitly not product delivery.
+- 2026-07-27 — `BETA-UI-001` beta smoke PASS: commit `205a8c4` is included in
+  live release `ac7259b`; the public static module contains the multi-look grid
+  branch and beta health is `ready`.

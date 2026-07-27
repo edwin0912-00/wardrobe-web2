@@ -38,6 +38,10 @@
   units. They remain `ASSETS_ONLY — NOT IN PRODUCT` until strict manifests and
   reference packs compile, the focused preview checks pass, and the exact
   tested commit is activated and smoke-tested on beta.
+- `BETA-UI-001` is live on beta release `ac7259b`: a saved avatar with two or
+  more looks opens the look grid so the user selects a specific look; exactly
+  one look still opens directly. Focused tests: 24/24; live static-module and
+  health smoke: PASS.
 
 Updated: 2026-07-27 08:55 UTC.
 
