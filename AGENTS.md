@@ -87,10 +87,12 @@ architecture decisions are committed as ADRs.
 
 ## Queue listener and status reports
 
-Every active task has exactly one status artifact:
-`.agents/status/<task-id>.json`. The task board grants that exact path; a
-wildcard or another task's status artifact is invalid. The artifact is a
-sanitized operational signal, not a chat transcript and not a claim of trust.
+Status publishing is enabled only when an active task's `allowed_paths` grants
+the exact artifact `.agents/status/<task-id>.json`. A wildcard or another
+task's status artifact is invalid. Legacy active tasks without that exact grant
+remain valid but silent until they are reissued; the artifact, when enabled,
+is a sanitized operational signal, not a chat transcript and not a claim of
+trust.
 
 Before starting work, an assigned agent starts the read-only listener from its
 own isolated worktree:
