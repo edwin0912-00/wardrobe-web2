@@ -22,10 +22,10 @@ test('token route rejects missing cost approval before provider access', async (
   const response = await app.inject({
     method: 'POST',
     url: '/api/fal/realtime-token',
-    payload: { app: 'decart/lucy-2-5/realtime', max_session_seconds: 60 },
+    payload: { app: 'decart/lucy-2-5/realtime', max_session_seconds: 5 },
   });
   assert.equal(response.statusCode, 409);
-  assert.equal(response.json().maximum_cost_usd, 2.4);
+  assert.equal(response.json().maximum_cost_usd, 0.2);
   assert.equal(calls, 0);
 });
 
@@ -45,7 +45,7 @@ test('token route issues only an allowlisted bounded session token', async (t) =
     payload: {
       app: 'decart/lucy-2-5/realtime',
       cost_acknowledged: true,
-      max_session_seconds: 60,
+      max_session_seconds: 5,
     },
   });
   assert.equal(response.statusCode, 200);
@@ -53,6 +53,6 @@ test('token route issues only an allowlisted bounded session token', async (t) =
   assert.deepEqual(calls, [{
     app: 'decart/lucy-2-5/realtime',
     expiresInSeconds: 10,
-    maxSessionSeconds: 60,
+    maxSessionSeconds: 5,
   }]);
 });

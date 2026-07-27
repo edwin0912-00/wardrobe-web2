@@ -20,7 +20,7 @@
       "description": "Живе AI-дзеркало Lucy 2.5 з тим самим locked look.",
       "billable": true,
       "price_usd_per_second": 0.04,
-      "max_session_seconds": 60,
+      "max_session_seconds": 5,
       "provider": {
         "broker": "fal.ai",
         "model_id": "decart/lucy-2-5/realtime",

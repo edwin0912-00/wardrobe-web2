@@ -31,7 +31,7 @@
           "description": { "type": "string", "minLength": 1 },
           "billable": { "type": "boolean" },
           "price_usd_per_second": { "type": "number", "minimum": 0 },
-          "max_session_seconds": { "type": "integer", "minimum": 10, "maximum": 300 },
+          "max_session_seconds": { "type": "integer", "minimum": 5, "maximum": 300 },
           "provider": {
             "type": "object",
             "additionalProperties": false,

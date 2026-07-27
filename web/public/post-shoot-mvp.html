@@ -19,12 +19,21 @@
     </section>
 
     <section class="source-card" aria-label="Затверджене джерело">
-      <div class="source-visual">APPROVED<br>SHOOT</div>
+      <div class="source-visual">
+        <img id="reference-preview" class="hidden" alt="Завантажений reference look">
+        <span id="reference-placeholder">APPROVED<br>SHOOT</span>
+      </div>
       <div>
         <p class="overline">ART_SHOOT.05 · QA PASS</p>
         <h2>Amber Editorial · Look 04</h2>
         <p>Identity, outfit, palette, світло і location style зафіксовані.</p>
         <div class="locks"><span>IDENTITY LOCK</span><span>OUTFIT LOCK</span><span>STYLE LOCK</span></div>
+        <label class="reference-upload">
+          <input id="reference-upload" type="file" accept="image/jpeg,image/png,image/webp">
+          <b>Завантажити reference photo</b>
+          <small>JPEG / PNG / WebP · мінімум 512×512 · локально до Lucy start</small>
+        </label>
+        <p id="reference-status" class="reference-status">Використовується demo approved shoot.</p>
       </div>
     </section>
 
@@ -55,7 +64,7 @@
         <div class="live-controls">
           <button id="camera-start" class="secondary" type="button">Увімкнути безкоштовний preview</button>
           <button id="camera-stop" class="secondary hidden" type="button">Stop camera</button>
-          <label class="cost-consent"><input id="cost-consent" type="checkbox"> Я розумію: Lucy коштує $0.04/сек, максимум 60 сек = $2.40.</label>
+          <label class="cost-consent"><input id="cost-consent" type="checkbox"> Я розумію: Lucy коштує $0.04/сек, 5 секунд = максимум $0.20.</label>
           <button id="lucy-start" class="primary" type="button" disabled>Підготувати Lucy session</button>
           <p>Платний запуск не відбудеться без окремого provider activation та явного підтвердження.</p>
         </div>

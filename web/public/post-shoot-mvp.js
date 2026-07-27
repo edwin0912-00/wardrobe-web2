@@ -1,4 +1,11 @@
-const state = { pipeline: null, mode: null, stream: null, selectedMotion: 'editorial_micro' };
+const state = {
+  pipeline: null,
+  mode: null,
+  stream: null,
+  selectedMotion: 'editorial_micro',
+  referenceImage: null,
+  referenceUrl: null,
+};
 const $ = (selector) => document.querySelector(selector);
 
 async function loadPipeline() {
@@ -64,6 +71,10 @@ function stopCamera() {
 }
 
 async function prepareLucy() {
+  if (!state.referenceImage) {
+    $('#job-output').textContent = 'Спочатку завантаж reference photo мінімум 512×512.';
+    return;
+  }
   renderNodes(2);
   const response = await fetch('/api/fal/realtime-token', {
     method: 'POST',
@@ -71,7 +82,7 @@ async function prepareLucy() {
     body: JSON.stringify({
       app: 'decart/lucy-2-5/realtime',
       cost_acknowledged: true,
-      max_session_seconds: 60,
+      max_session_seconds: 5,
     }),
   });
   if (!response.ok) {
@@ -80,6 +91,27 @@ async function prepareLucy() {
     return;
   }
   $('#job-output').textContent = 'Provider token ready. WebRTC connection intentionally not auto-started in draft mode.';
+}
+
+async function loadReference(file) {
+  if (!['image/jpeg', 'image/png', 'image/webp'].includes(file?.type)) {
+    throw new Error('Потрібен JPEG, PNG або WebP.');
+  }
+  const url = URL.createObjectURL(file);
+  const image = new Image();
+  image.src = url;
+  await image.decode();
+  if (image.naturalWidth < 512 || image.naturalHeight < 512) {
+    URL.revokeObjectURL(url);
+    throw new Error('Reference photo має бути мінімум 512×512.');
+  }
+  if (state.referenceUrl) URL.revokeObjectURL(state.referenceUrl);
+  state.referenceImage = file;
+  state.referenceUrl = url;
+  $('#reference-preview').src = url;
+  $('#reference-preview').classList.remove('hidden');
+  $('#reference-placeholder').classList.add('hidden');
+  $('#reference-status').textContent = `${file.name} · ${image.naturalWidth}×${image.naturalHeight} · готово локально`;
 }
 
 function videoDryRun() {
@@ -111,12 +143,21 @@ $('#cost-consent').addEventListener('change', (event) => {
   $('#lucy-start').disabled = !event.target.checked;
 });
 $('#lucy-start').addEventListener('click', prepareLucy);
+$('#reference-upload').addEventListener('change', (event) => {
+  loadReference(event.target.files?.[0]).catch((error) => {
+    event.target.value = '';
+    $('#reference-status').textContent = error.message;
+  });
+});
 $('#video-dry-run').addEventListener('click', videoDryRun);
 $('#close-workspace').addEventListener('click', () => {
   stopCamera();
   $('#workspace').classList.add('hidden');
 });
-window.addEventListener('pagehide', stopCamera);
+window.addEventListener('pagehide', () => {
+  stopCamera();
+  if (state.referenceUrl) URL.revokeObjectURL(state.referenceUrl);
+});
 loadPipeline().catch((error) => {
   $('#mode-grid').textContent = error.message;
 });

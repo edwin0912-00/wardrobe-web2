@@ -20,11 +20,11 @@ export async function registerPostShootRoutes(app, {
     if (body.app !== MODEL_ID) {
       return reply.code(400).send({ code: 'MODEL_NOT_ALLOWED', error: 'Lucy model is not allowlisted' });
     }
-    if (body.cost_acknowledged !== true || body.max_session_seconds !== 60) {
+    if (body.cost_acknowledged !== true || body.max_session_seconds !== 5) {
       return reply.code(409).send({
         code: 'PAID_SESSION_APPROVAL_REQUIRED',
-        error: 'Потрібне явне підтвердження платної 60-секундної Lucy-сесії.',
-        maximum_cost_usd: 2.4,
+        error: 'Потрібне явне підтвердження платної 5-секундної Lucy-сесії.',
+        maximum_cost_usd: 0.2,
       });
     }
     if (typeof lucyTokenIssuer !== 'function') {
@@ -36,7 +36,7 @@ export async function registerPostShootRoutes(app, {
     const token = await lucyTokenIssuer({
       app: MODEL_ID,
       expiresInSeconds: 10,
-      maxSessionSeconds: 60,
+      maxSessionSeconds: 5,
     });
     if (typeof token !== 'string' || token.length < 16) throw new Error('Lucy token issuer returned an invalid token');
     return reply

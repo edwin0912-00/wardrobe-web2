@@ -14,15 +14,17 @@ transition або Lucy mode без ціни/timeout блокує запуск с
 ## Безпечний Lucy flow
 
 1. Browser запускає локальний camera preview через `getUserMedia`.
-2. UI показує `$0.04/сек`, hard limit 60 секунд і maximum `$2.40`.
+2. UI показує `$0.04/сек`, hard limit 5 секунд і maximum `$0.20`.
 3. Без checkbox cost consent backend повертає
    `PAID_SESSION_APPROVAL_REQUIRED` до будь-якого provider access.
-4. Backend приймає лише `decart/lucy-2-5/realtime` і видає короткоживучий
+4. Перед start користувач завантажує JPEG/PNG/WebP reference мінімум
+   512×512; файл залишається локальним до явного Lucy start.
+5. Backend приймає лише `decart/lucy-2-5/realtime` і видає короткоживучий
    token через injected `lucyTokenIssuer`.
-5. Production client використовує `fal.realtime.connect`, reference image
+6. Production client використовує `fal.realtime.connect`, reference image
    approved look і locked prompt. Постійний `FAL_KEY` ніколи не передається
    браузеру.
-6. Stop, timeout, page hide або WebRTC disconnect зупиняють camera tracks і
+7. Stop, timeout, page hide або WebRTC disconnect зупиняють camera tracks і
    provider session. Фоновий запис не створюється.
 
 ## Стан цього MVP

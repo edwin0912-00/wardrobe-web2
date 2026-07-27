@@ -51,3 +51,16 @@ Protocol ACK: 4472986
 - Add one local reference-photo upload and a five-second hard ceiling.
 - Maximum stated provider cost: `$0.20`.
 - Provider credential activation and billable smoke remain excluded.
+
+## BETA-LIVE-5S-001 — IMPLEMENTED
+
+- Added JPEG/PNG/WebP reference-photo selection with browser-side 512×512
+  validation and object-URL cleanup; the image remains local in draft mode.
+- Tightened the JSON contract, compiler assertion, API authorization route,
+  UI consent copy, and token-issuer request to exactly five seconds.
+- The server refuses any other duration before provider access and reports a
+  maximum session cost of `$0.20`.
+- Focused tests: `14/14 PASS`; JavaScript syntax and diff checks PASS;
+  credential-fragment scan PASS.
+- Billable/provider calls: `0`.
+- weakened_checks: none.
