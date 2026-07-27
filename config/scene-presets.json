@@ -421,6 +421,380 @@
       "prompt_path": "prompts/scenes/std.nature_architecture.concrete_grass_golden_hour.txt",
       "mvp_assets": ["mood_card"],
       "post_selection_assets": ["environment_plate", "lighting_preview"]
+    },
+    {
+      "preset_id": "std.city.amber_alley_cobblestone",
+      "version": "1.0.0",
+      "family": "city",
+      "ui_name_uk": "Бурштинова алея",
+      "source_authorities": [
+        {
+          "url": "https://unsplash.com/photos/concrete-road-beside-building-v095s_t1_6o",
+          "role": "lighting_composition_palette_inspiration",
+          "use": "warm amber backlight behavior, wet cobblestone reflections and narrow street depth only",
+          "not_authority_for": ["identity", "body", "hair", "outfit", "brands", "readable_text", "exact_architecture"]
+        },
+        {
+          "url": "https://unsplash.com/photos/a-car-driving-down-a-rain-soaked-street-at-night-X19Lp3_Kk-Q",
+          "role": "environment_material_inspiration",
+          "use": "secondary wet surface reflection behavior and atmospheric haze only",
+          "not_authority_for": ["identity", "body", "hair", "outfit", "brands", "readable_text", "exact_architecture"]
+        }
+      ],
+      "environment": "An original narrow European stone alley with weathered facades and cobblestone pavement, no recognizable landmark, sign or copied geometry.",
+      "lighting": {
+        "time_or_setup": "deep golden hour backlight",
+        "key": "low warm amber backlight streaming between buildings casting long dramatic shadows on cobblestones",
+        "fill": "minimal cool ambient fill preserving deep shadow mood",
+        "finish": "cinematic_editorial_gloss_without_skin_smoothing_or_hdr",
+        "protected_regions": ["eyes", "face_identity", "item_logos", "item_text", "critical_construction"]
+      },
+      "camera": { "aspect_ratio": "4:5", "lens_mm": 50, "height": "eye_level", "subject_height_percent": [74, 78], "minimum_clear_space_percent": { "above_hair": 8, "below_footwear": 2 }, "max_vertical_error_deg": 1.5 },
+      "palette": ["amber", "burnt sienna", "cool stone shadow", "warm gold", "dark slate"],
+      "hard_negatives": ["neon signs", "readable text", "cars", "people", "bright daylight", "tourist landmark", "cafe tables", "wide-angle distortion"],
+      "prompt_path": "prompts/scenes/std.city.amber_alley_cobblestone.txt",
+      "mvp_assets": ["mood_card"],
+      "post_selection_assets": ["environment_plate", "lighting_preview"]
+    },
+    {
+      "preset_id": "std.interior.abandoned_palace_light_shaft",
+      "version": "1.0.0",
+      "family": "interior",
+      "ui_name_uk": "Палац — промені",
+      "source_authorities": [
+        {
+          "url": "https://unsplash.com/photos/marble-staircase-and-ornate-wall-relief-in-grand-building-u1234567890",
+          "role": "environment_and_composition_inspiration",
+          "use": "neoclassical scale, arched window rhythm and crumbling plaster texture only",
+          "not_authority_for": ["identity", "body", "hair", "outfit", "brands", "readable_text", "exact_architecture"]
+        },
+        {
+          "url": "https://unsplash.com/photos/ornate-marble-balustrade-with-patterned-shadows-AbC456",
+          "role": "environment_material_inspiration",
+          "use": "light shaft behavior through tall windows and dusty atmosphere only",
+          "not_authority_for": ["identity", "body", "hair", "outfit", "brands", "readable_text", "exact_architecture"]
+        }
+      ],
+      "environment": "An original abandoned neoclassical palace hall with crumbling ornate plaster, tall arched windows, stone floor with debris cleared for subject, and no recognizable landmark.",
+      "lighting": {
+        "time_or_setup": "dramatic shafts through tall windows",
+        "key": "warm amber light shafts cutting diagonally through dusty air from tall arched windows",
+        "fill": "deep shadow with minimal cool ambient fill",
+        "finish": "cinematic_editorial_gloss_without_skin_smoothing_or_hdr",
+        "protected_regions": ["eyes", "face_identity", "item_logos", "item_text", "critical_construction"]
+      },
+      "camera": { "aspect_ratio": "4:5", "lens_mm": 50, "height": "eye_level", "subject_height_percent": [74, 78], "minimum_clear_space_percent": { "above_hair": 8, "below_footwear": 2 }, "max_vertical_error_deg": 1.5 },
+      "palette": ["warm plaster", "burnt gold", "deep shadow", "dust amber", "cool stone"],
+      "hard_negatives": ["recognizable palace", "tourist location", "furniture", "art on walls", "readable text", "graffiti", "rubble on subject", "unsafe structure"],
+      "prompt_path": "prompts/scenes/std.interior.abandoned_palace_light_shaft.txt",
+      "mvp_assets": ["mood_card"],
+      "post_selection_assets": ["environment_plate", "lighting_preview"]
+    },
+    {
+      "preset_id": "std.nature.foggy_forest_light_shaft",
+      "version": "1.0.0",
+      "family": "nature_architecture",
+      "ui_name_uk": "Туманний ліс",
+      "source_authorities": [
+        {
+          "url": "https://unsplash.com/photos/sunlit-forest-path-with-dappled-light-and-shadows-rO11U7uF4sA",
+          "role": "environment_and_composition_inspiration",
+          "use": "dappled forest light behavior, moss texture and path depth only",
+          "not_authority_for": ["identity", "body", "hair", "outfit", "brands", "readable_text", "exact_architecture"]
+        },
+        {
+          "url": "https://unsplash.com/photos/a-sun-dappled-forest-path-surrounded-by-lush-green-trees-B5t4c8fE2_M",
+          "role": "environment_material_inspiration",
+          "use": "canopy bokeh and atmospheric mist behavior only",
+          "not_authority_for": ["identity", "body", "hair", "outfit", "brands", "readable_text", "exact_architecture"]
+        }
+      ],
+      "environment": "An original mystical foggy forest path with dense tree canopy, moss-covered ground, atmospheric mist, and no recognizable trail or park.",
+      "lighting": {
+        "time_or_setup": "dawn light shafts through canopy",
+        "key": "warm amber light rays piercing through dense tree canopy catching fog particles",
+        "fill": "cool green-tinted ambient forest fill",
+        "finish": "cinematic_editorial_gloss_without_skin_smoothing_or_hdr",
+        "protected_regions": ["eyes", "face_identity", "item_logos", "item_text", "critical_construction"]
+      },
+      "camera": { "aspect_ratio": "4:5", "lens_mm": 50, "height": "eye_level", "subject_height_percent": [74, 78], "minimum_clear_space_percent": { "above_hair": 8, "below_footwear": 2 }, "max_vertical_error_deg": 1.5 },
+      "palette": ["moss green", "warm amber shaft", "deep forest shadow", "mist grey", "bark brown"],
+      "hard_negatives": ["recognizable park", "trail markers", "buildings", "people", "foliage across face", "foliage across item", "fantasy elements", "animals"],
+      "prompt_path": "prompts/scenes/std.nature.foggy_forest_light_shaft.txt",
+      "mvp_assets": ["mood_card"],
+      "post_selection_assets": ["environment_plate", "lighting_preview"]
+    },
+    {
+      "preset_id": "std.interior.industrial_brick_loft",
+      "version": "1.0.0",
+      "family": "interior",
+      "ui_name_uk": "Цегляний лофт",
+      "source_authorities": [
+        {
+          "url": "https://unsplash.com/photos/industrial-loft-bedroom-3d-render-J3522uS9n8w",
+          "role": "environment_and_composition_inspiration",
+          "use": "exposed brick texture, steel beam rhythm and factory window scale only",
+          "not_authority_for": ["identity", "body", "hair", "outfit", "brands", "readable_text", "exact_architecture"]
+        },
+        {
+          "url": "https://unsplash.com/photos/a-cozy-bedroom-with-a-brick-accent-wall-p5_4b8f59S4",
+          "role": "environment_material_inspiration",
+          "use": "brick-to-concrete material contrast and raw texture only",
+          "not_authority_for": ["identity", "body", "hair", "outfit", "brands", "readable_text", "exact_architecture"]
+        }
+      ],
+      "environment": "An original raw industrial loft with exposed red brick walls, poured concrete floor, steel beams overhead, and one large factory window, empty of furniture or equipment.",
+      "lighting": {
+        "time_or_setup": "late afternoon single factory window",
+        "key": "one dramatic warm light shaft from large factory window across dusty concrete floor",
+        "fill": "minimal dark ambient with slight warm bounce from brick",
+        "finish": "cinematic_editorial_gloss_without_skin_smoothing_or_hdr",
+        "protected_regions": ["eyes", "face_identity", "item_logos", "item_text", "critical_construction"]
+      },
+      "camera": { "aspect_ratio": "4:5", "lens_mm": 50, "height": "eye_level", "subject_height_percent": [74, 78], "minimum_clear_space_percent": { "above_hair": 8, "below_footwear": 2 }, "max_vertical_error_deg": 1.5 },
+      "palette": ["red brick", "concrete grey", "rust", "warm shaft gold", "steel blue"],
+      "hard_negatives": ["industrial grime", "machinery", "graffiti", "readable text", "furniture", "pipes in face", "unsafe elements", "smoke"],
+      "prompt_path": "prompts/scenes/std.interior.industrial_brick_loft.txt",
+      "mvp_assets": ["mood_card"],
+      "post_selection_assets": ["environment_plate", "lighting_preview"]
+    },
+    {
+      "preset_id": "std.city.rooftop_concrete_sunset",
+      "version": "1.0.0",
+      "family": "city",
+      "ui_name_uk": "Дах — захід",
+      "source_authorities": [
+        {
+          "url": "https://unsplash.com/photos/cityscape-at-sunset-viewed-from-a-rooftop-bar-fpeeters",
+          "role": "environment_and_composition_inspiration",
+          "use": "rooftop elevation, skyline bokeh depth and sunset horizon color only",
+          "not_authority_for": ["identity", "body", "hair", "outfit", "brands", "readable_text", "exact_architecture"]
+        },
+        {
+          "url": "https://unsplash.com/photos/a-view-of-a-city-from-a-rooftop-at-night-a7med7",
+          "role": "environment_material_inspiration",
+          "use": "concrete parapet texture and cool evening tone only",
+          "not_authority_for": ["identity", "body", "hair", "outfit", "brands", "readable_text", "exact_architecture"]
+        }
+      ],
+      "environment": "An original concrete rooftop terrace with raw parapet, overlooking an unrecognizable city skyline in deep bokeh, no furniture or equipment.",
+      "lighting": {
+        "time_or_setup": "sunset golden hour from horizon",
+        "key": "low warm golden sun at horizon creating long shadows across concrete, warm rim on subject",
+        "fill": "cool teal-blue sky fill from above",
+        "finish": "cinematic_editorial_gloss_without_skin_smoothing_or_hdr",
+        "protected_regions": ["eyes", "face_identity", "item_logos", "item_text", "critical_construction"]
+      },
+      "camera": { "aspect_ratio": "4:5", "lens_mm": 50, "height": "eye_level", "subject_height_percent": [74, 78], "minimum_clear_space_percent": { "above_hair": 8, "below_footwear": 2 }, "max_vertical_error_deg": 1.5 },
+      "palette": ["concrete grey", "sunset amber", "cool teal sky", "warm gold rim", "deep shadow"],
+      "hard_negatives": ["recognizable skyline", "readable signs", "rooftop furniture", "antenna dishes", "HVAC equipment", "people", "wide-angle distortion"],
+      "prompt_path": "prompts/scenes/std.city.rooftop_concrete_sunset.txt",
+      "mvp_assets": ["mood_card"],
+      "post_selection_assets": ["environment_plate", "lighting_preview"]
+    },
+    {
+      "preset_id": "std.city.night_neon_wet_asphalt",
+      "version": "1.0.0",
+      "family": "city",
+      "ui_name_uk": "Неонова ніч",
+      "source_authorities": [
+        {
+          "url": "https://unsplash.com/photos/concrete-road-beside-building-v095s_t1_6o",
+          "role": "environment_and_composition_inspiration",
+          "use": "wet urban asphalt reflection behavior and moody night atmosphere only",
+          "not_authority_for": ["identity", "body", "hair", "outfit", "brands", "readable_text", "exact_architecture"]
+        },
+        {
+          "url": "https://unsplash.com/photos/a-car-driving-down-a-rain-soaked-street-at-night-X19Lp3_Kk-Q",
+          "role": "lighting_composition_palette_inspiration",
+          "use": "neon color reflection on wet surfaces and volumetric fog behavior only",
+          "not_authority_for": ["identity", "body", "hair", "outfit", "brands", "readable_text", "exact_architecture"]
+        }
+      ],
+      "environment": "An original moody night city street after rain with wet reflective asphalt, no readable signs, no recognizable landmarks, deep urban canyon between dark buildings.",
+      "lighting": {
+        "time_or_setup": "nighttime with artificial neon sources",
+        "key": "diffused magenta and teal neon glow reflecting off wet asphalt with volumetric fog",
+        "fill": "deep ambient darkness with colored light spill on subject edges",
+        "finish": "cinematic_editorial_gloss_without_skin_smoothing_or_hdr",
+        "protected_regions": ["eyes", "face_identity", "item_logos", "item_text", "critical_construction"]
+      },
+      "camera": { "aspect_ratio": "4:5", "lens_mm": 50, "height": "eye_level", "subject_height_percent": [74, 78], "minimum_clear_space_percent": { "above_hair": 8, "below_footwear": 2 }, "max_vertical_error_deg": 1.5 },
+      "palette": ["wet asphalt black", "magenta neon", "teal neon", "deep purple", "warm amber accent"],
+      "hard_negatives": ["readable neon text", "recognizable brands", "cars", "people", "cyberpunk props", "anime elements", "color cast on items destroying original color"],
+      "prompt_path": "prompts/scenes/std.city.night_neon_wet_asphalt.txt",
+      "mvp_assets": ["mood_card"],
+      "post_selection_assets": ["environment_plate", "lighting_preview"]
+    },
+    {
+      "preset_id": "std.interior.sheer_curtain_golden_light",
+      "version": "1.0.0",
+      "family": "interior",
+      "ui_name_uk": "Тюль і вітер",
+      "source_authorities": [
+        {
+          "url": "https://unsplash.com/photos/a-large-glass-greenhouse-with-an-open-door-t54XqY9aK5s",
+          "role": "environment_and_composition_inspiration",
+          "use": "soft filtered light through fabric and tall window proportion only",
+          "not_authority_for": ["identity", "body", "hair", "outfit", "brands", "readable_text", "exact_architecture"]
+        },
+        {
+          "url": "https://unsplash.com/photos/a-glass-greenhouse-with-greenery-and-walkways-9XlqHqK5zV8",
+          "role": "environment_material_inspiration",
+          "use": "diffused daylight softness and atmospheric particles in light only",
+          "not_authority_for": ["identity", "body", "hair", "outfit", "brands", "readable_text", "exact_architecture"]
+        }
+      ],
+      "environment": "An original atmospheric interior room with tall French windows and flowing sheer white curtains billowing in a breeze, dark wooden floor, empty of furniture.",
+      "lighting": {
+        "time_or_setup": "golden hour diffused through sheer curtains",
+        "key": "warm golden light flooding through sheer fabric creating soft diffused glow and dust particles in beams",
+        "fill": "cool room shadow on non-window side",
+        "finish": "cinematic_editorial_gloss_without_skin_smoothing_or_hdr",
+        "protected_regions": ["eyes", "face_identity", "item_logos", "item_text", "critical_construction"]
+      },
+      "camera": { "aspect_ratio": "4:5", "lens_mm": 50, "height": "eye_level", "subject_height_percent": [74, 78], "minimum_clear_space_percent": { "above_hair": 8, "below_footwear": 2 }, "max_vertical_error_deg": 1.5 },
+      "palette": ["warm gold diffused", "ivory curtain", "dark wood", "cool shadow", "dust amber"],
+      "hard_negatives": ["furniture", "curtain across face", "curtain obscuring items", "outdoor view detail", "readable text", "people outside window", "blown highlights"],
+      "prompt_path": "prompts/scenes/std.interior.sheer_curtain_golden_light.txt",
+      "mvp_assets": ["mood_card"],
+      "post_selection_assets": ["environment_plate", "lighting_preview"]
+    },
+    {
+      "preset_id": "std.studio.black_spotlight_low_key",
+      "version": "1.0.0",
+      "family": "dramatic_studio",
+      "ui_name_uk": "Чорна студія",
+      "source_authorities": [
+        {
+          "url": "https://unsplash.com/photos/black-microphone-in-dimmed-room-mC1J-w3-Z54",
+          "role": "lighting_composition_palette_inspiration",
+          "use": "pitch black studio void and directional spotlight behavior only",
+          "not_authority_for": ["identity", "body", "hair", "outfit", "brands", "readable_text", "exact_architecture"]
+        },
+        {
+          "url": "https://unsplash.com/photos/young-woman-in-streetwear-posing-against-black-wall-r3am9AchMDH",
+          "role": "environment_material_inspiration",
+          "use": "pure black seamless backdrop absorption and rim-light separation only",
+          "not_authority_for": ["identity", "body", "hair", "outfit", "brands", "readable_text", "exact_architecture"]
+        }
+      ],
+      "environment": "An original pitch-black seamless photography studio, completely empty, with matte black floor and infinite void background.",
+      "lighting": {
+        "time_or_setup": "single hard spotlight from above-left",
+        "key": "one hard warm spotlight from upper-left creating sharp pool of light on floor and dramatic body sculpting",
+        "fill": "near-zero fill, deep blacks with subtle rim on hair edge",
+        "finish": "cinematic_editorial_gloss_without_skin_smoothing_or_hdr",
+        "protected_regions": ["eyes", "face_identity", "item_logos", "item_text", "critical_construction"]
+      },
+      "camera": { "aspect_ratio": "4:5", "lens_mm": 70, "height": "eye_level", "subject_height_percent": [74, 78], "minimum_clear_space_percent": { "above_hair": 8, "below_footwear": 2 }, "max_vertical_error_deg": 1.0 },
+      "palette": ["pure black", "warm spotlight", "dark matte floor", "subtle warm rim"],
+      "hard_negatives": ["visible studio equipment", "props", "grey background", "multiple light sources", "crushed item detail", "beauty smoothing", "smoke machine", "colored gels"],
+      "prompt_path": "prompts/scenes/std.studio.black_spotlight_low_key.txt",
+      "mvp_assets": ["mood_card"],
+      "post_selection_assets": ["environment_plate", "lighting_preview"]
+    },
+    {
+      "preset_id": "std.studio.terracotta_raking_light",
+      "version": "1.0.0",
+      "family": "dramatic_studio",
+      "ui_name_uk": "Теракота",
+      "source_authorities": [
+        {
+          "url": "https://www.pexels.com/photo/stylish-woman-in-dramatic-studio-lighting-32497260/",
+          "role": "lighting_composition_palette_inspiration",
+          "use": "raking side light and warm-cool color contrast only",
+          "not_authority_for": ["identity", "body", "hair", "outfit", "brands", "readable_text", "exact_architecture"]
+        },
+        {
+          "url": "https://unsplash.com/photos/a-woman-is-posing-for-a-picture-in-a-dark-room-_d0Uv9sIEmY",
+          "role": "environment_material_inspiration",
+          "use": "dark studio separation and textured wall behavior only",
+          "not_authority_for": ["identity", "body", "hair", "outfit", "brands", "readable_text", "exact_architecture"]
+        }
+      ],
+      "environment": "An original warm terracotta-colored textured concrete wall with dark polished concrete floor, minimalist set with atmospheric haze, no props.",
+      "lighting": {
+        "time_or_setup": "dramatic raking side light",
+        "key": "hard warm side light raking across textured terracotta wall creating deep relief shadows",
+        "fill": "cool teal shadow on non-lit side providing warm-cool contrast",
+        "finish": "cinematic_editorial_gloss_without_skin_smoothing_or_hdr",
+        "protected_regions": ["eyes", "face_identity", "item_logos", "item_text", "critical_construction"]
+      },
+      "camera": { "aspect_ratio": "4:5", "lens_mm": 65, "height": "eye_level", "subject_height_percent": [74, 78], "minimum_clear_space_percent": { "above_hair": 8, "below_footwear": 2 }, "max_vertical_error_deg": 1.0 },
+      "palette": ["terracotta #C06040", "burnt sienna", "teal shadow", "warm amber", "dark concrete"],
+      "hard_negatives": ["orange cast on items", "teal cast on items", "props", "readable text", "cracked wall distraction", "beauty smoothing", "neon"],
+      "prompt_path": "prompts/scenes/std.studio.terracotta_raking_light.txt",
+      "mvp_assets": ["mood_card"],
+      "post_selection_assets": ["environment_plate", "lighting_preview"]
+    },
+    {
+      "preset_id": "std.architecture.glass_corridor_sunset",
+      "version": "1.0.0",
+      "family": "interior",
+      "ui_name_uk": "Скляний коридор",
+      "source_authorities": [
+        {
+          "url": "https://unsplash.com/photos/modern-architectures-glass-facade-in-contrasting-sunlight-G5dKqL8nU1w",
+          "role": "environment_and_composition_inspiration",
+          "use": "glass facade geometry, clean lines and sunset reflection behavior only",
+          "not_authority_for": ["identity", "body", "hair", "outfit", "brands", "readable_text", "exact_architecture"]
+        },
+        {
+          "url": "https://unsplash.com/photos/architectural-glass-reflects-a-modern-building-uJ2kLq8mN5p",
+          "role": "environment_material_inspiration",
+          "use": "polished floor reflection and minimalist architectural scale only",
+          "not_authority_for": ["identity", "body", "hair", "outfit", "brands", "readable_text", "exact_architecture"]
+        }
+      ],
+      "environment": "An original sleek modern glass corridor with floor-to-ceiling panels creating geometric reflections and clean lines, polished concrete floor, no recognizable building.",
+      "lighting": {
+        "time_or_setup": "sunset through glass facade",
+        "key": "warm golden sunset light streaming through floor-to-ceiling glass creating long geometric shadows on polished floor",
+        "fill": "cool reflected light from glass panels",
+        "finish": "cinematic_editorial_gloss_without_skin_smoothing_or_hdr",
+        "protected_regions": ["eyes", "face_identity", "item_logos", "item_text", "critical_construction"]
+      },
+      "camera": { "aspect_ratio": "4:5", "lens_mm": 50, "height": "eye_level", "subject_height_percent": [74, 78], "minimum_clear_space_percent": { "above_hair": 8, "below_footwear": 2 }, "max_vertical_error_deg": 1.5 },
+      "palette": ["glass grey", "sunset gold", "polished concrete", "cool steel", "warm amber reflection"],
+      "hard_negatives": ["recognizable building", "office furniture", "readable text", "elevator doors", "corporate logos", "people in reflection", "crooked verticals"],
+      "prompt_path": "prompts/scenes/std.architecture.glass_corridor_sunset.txt",
+      "mvp_assets": ["mood_card"],
+      "post_selection_assets": ["environment_plate", "lighting_preview"]
+    },
+    {
+      "preset_id": "std.nature.ocean_dusk_blue_hour",
+      "version": "1.0.0",
+      "family": "nature_architecture",
+      "ui_name_uk": "Океан — блакитна година",
+      "source_authorities": [
+        {
+          "url": "https://unsplash.com/photos/sandy-beach-with-dunes-and-small-houses-along-the-coastline-h5tG98k2K4U",
+          "role": "environment_and_composition_inspiration",
+          "use": "sandy coastline scale, horizon line and wet sand reflections only",
+          "not_authority_for": ["identity", "body", "hair", "outfit", "brands", "readable_text", "exact_architecture"]
+        },
+        {
+          "url": "https://unsplash.com/photos/footprints-on-dark-sand-beach-leading-to-ocean-and-coastline-8zW7xJ9aL2M",
+          "role": "environment_material_inspiration",
+          "use": "dark wet sand texture and moody coastal atmosphere only",
+          "not_authority_for": ["identity", "body", "hair", "outfit", "brands", "readable_text", "exact_architecture"]
+        }
+      ],
+      "environment": "An original moody ocean coastline at blue hour dusk with dark wet sand, calm waves, atmospheric mist over water, and no recognizable beach or landmark.",
+      "lighting": {
+        "time_or_setup": "blue hour dusk at coast",
+        "key": "ambient cool teal-blue sky light with warm amber glow remaining on horizon",
+        "fill": "diffused overcast dusk light with wet sand reflections providing subtle uplighting",
+        "finish": "cinematic_editorial_gloss_without_skin_smoothing_or_hdr",
+        "protected_regions": ["eyes", "face_identity", "item_logos", "item_text", "critical_construction"]
+      },
+      "camera": { "aspect_ratio": "4:5", "lens_mm": 50, "height": "eye_level", "subject_height_percent": [74, 78], "minimum_clear_space_percent": { "above_hair": 8, "below_footwear": 2 }, "max_vertical_error_deg": 1.5 },
+      "palette": ["teal blue sky", "dark wet sand", "amber horizon glow", "mist grey", "ocean steel"],
+      "hard_negatives": ["recognizable beach", "beach furniture", "people", "boats", "readable text", "bright sunshine", "tropical elements", "palm trees"],
+      "prompt_path": "prompts/scenes/std.nature.ocean_dusk_blue_hour.txt",
+      "mvp_assets": ["mood_card"],
+      "post_selection_assets": ["environment_plate", "lighting_preview"]
     }
   ],
   "editorial_program": {

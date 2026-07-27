@@ -1,0 +1,8 @@
+Use case: photorealistic-natural
+Asset type: standalone lighting reference card for the selected preset
+Primary request: Create a premium 4:5 full-body fashion lighting test in an original invented minimalist studio with a terracotta textured concrete wall. Include exactly one anonymous neutral adult test model with non-distinct identity, wearing a plain matte mid-grey unbranded crewneck, straight grey trousers and simple grey shoes.
+Scene/backdrop: invented minimalist studio with a terracotta textured concrete wall, clean depth, unobstructed central staging zone, no recognizable landmark.
+Style/medium: photorealistic high-end fashion production test, natural skin and fabric texture, polished magazine color without retouching or HDR.
+Composition/framing: exact vertical 4:5; eye-level 50 mm equivalent; straight verticals; complete head and both shoes; hair-to-shoe bounding box visibly occupies three quarters of the entire canvas (74-78%); at least 8% clear space above the hair and 2% below the soles; centered grounded stance, arms relaxed, no wide-angle distortion.
+Lighting/mood: dramatic raking side light enhancing wall texture, contrasting teal shadows, face and grey clothing readable, physically coherent long contact shadow aligned with the environment, controlled highlights and no flare.
+Constraints: exactly one neutral test subject; no other people, mannequins, animals, vehicles, bicycles, signs, readable text, logos, bags, jewelry, props, storefronts, café furniture, monuments, watermarks, labels or borders. The test identity and clothing are lighting calibration only and have zero authority over future users.
