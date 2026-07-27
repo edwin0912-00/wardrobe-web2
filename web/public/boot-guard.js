@@ -34,5 +34,21 @@
       reveal('Застосунок не запустився за 8 секунд. Перезавантаж сторінку.');
     }
   }, 8000);
-  window.ZeelyBootGuard = { ready() { document.documentElement.classList.remove('workflow-pending'); document.body.dataset.appReady = 'true'; document.querySelector('#boot-error')?.setAttribute('hidden', ''); } };
+  window.ZeelyBootGuard = {
+    ready() {
+      document.documentElement.classList.remove('workflow-pending');
+      document.body.dataset.appReady = 'true';
+      document.querySelector('#boot-error')?.setAttribute('hidden', '');
+      const preloader = document.querySelector('#app-preloader');
+      if (preloader) {
+        const bar = preloader.querySelector('#preloader-bar');
+        const status = preloader.querySelector('#preloader-status');
+        if (bar) bar.style.width = '100%';
+        if (status) status.textContent = 'Готово!';
+        window.setTimeout(() => {
+          preloader.classList.add('is-hidden');
+        }, 300);
+      }
+    }
+  };
 })();
