@@ -22,6 +22,16 @@
 - Provider call: NOT RUN.
 - State: READY_FOR_BETA_DEPLOY.
 
+### Public activation
+
+- Product commit: `5268722`.
+- Release: `release-5268722-20260728010300`.
+- URL: `https://live.madeforthisjob.com/live`.
+- Public health: `ready`; reference asset HTTP 200 `image/png`.
+- Public browser smoke: `Hoodie + sneakers · READY`, Camera visible, paid Live
+  disabled before camera, console warnings/errors 0.
+- Provider call: NOT RUN.
+
 Protocol ACK: 29045a9
 
 ## BETA-POSTSHOOT-RECON-001 — RESUMED 2026-07-27
