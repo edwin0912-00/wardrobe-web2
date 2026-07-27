@@ -86,17 +86,20 @@ code.
 
 ## Current priority
 
-1. Accept only small compatible slices; WARD-001 remains preserved evidence,
+1. Install `CTRL-002`: a durable, GitHub-backed listener and sanitized status
+   channel. It will make assignment, progress, blocked state, and handoff
+   observable without granting an agent merge, deploy, or credential authority.
+2. Accept only small compatible slices; WARD-001 remains preserved evidence,
    not a merge candidate.
-2. Land the active profile, monitor, style-unit, and contact-sheet lanes with
+3. Land the active profile, monitor, style-unit, and contact-sheet lanes with
    their independent evidence.
-3. Build one complete fashion-shoot vertical slice: private contact sheet,
+4. Build one complete fashion-shoot vertical slice: private contact sheet,
    style unit, six approved stills, then a separate UI task.
-4. Remove `EDITORIAL_BASE_PRESETS` only in its own product-split task after
+5. Remove `EDITORIAL_BASE_PRESETS` only in its own product-split task after
    the vertical slice has a verified contract.
-5. Prove standard scenes on every preset and deploy only through
+6. Prove standard scenes on every preset and deploy only through
    `tools/deploy-add-items-release.mjs`.
-6. Start video only after the image/editorial surface is stable.
+7. Start video only after the image/editorial surface is stable.
 
 ## Parallel 24-hour lanes
 
@@ -116,6 +119,11 @@ code.
 They are disjoint from WARD-001's active scene/editorial/privacy locks. Each
 agent watches the canonical board with
 `node tools/coordination/watch-assignments.mjs --agent <agent-id> --interval 20`.
+
+`CTRL-002` is the active control-plane task that extends this read-only
+assignment listener into a schema-validated status/heartbeat protocol and a
+single context pack. It must not claim that a terminal watcher can wake an
+unattended LLM: the runner remains an explicit agent-side process.
 
 ## Stop conditions awaiting Edwin
 

@@ -17,6 +17,16 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-07-27 · CTRL-002 · durable agent coordination lease
+Change: issue a control-plane task for GitHub-backed assignment listening,
+sanitized agent heartbeat/status reports, and one canonical context pack.
+Why: a read-only task watcher alone cannot notify the orchestrator about
+progress or make disconnected agents share verified model/crop/pipeline rules.
+Evidence: the task is isolated to coordination artifacts, requires a new
+contract test and adversarial handoff, explicitly forbids secrets, local paths,
+external-agent impersonation, deployment, and product-code modification.
+weakened_checks: none.
+
 2026-07-27 · CTRL-001 · state-ref correction
 Change: update the recorded integration revision after the accepted control
 leases were merged.
