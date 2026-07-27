@@ -1,6 +1,6 @@
 # Wardrobe verified state
 
-Updated: 2026-07-26 23:55 UTC.
+Updated: 2026-07-27 00:03 UTC.
 
 ## Canonical source position
 
@@ -9,7 +9,7 @@ Updated: 2026-07-26 23:55 UTC.
 - Claude branch `feature/wardrobe-editorial-mvp-20260726` is `622c878`.
 - Codex branch `codex-new-2026-07-26` is `f891719`.
 - Their merge base is `d7f760f`; Claude has 6 unique commits and Codex has 14.
-- `integration/wardrobe-20260726` is `3e32d37`.
+- `integration/wardrobe-20260726` is `0e9bde1`.
 - WARD-001 implementation is frozen at `dc06b99` with isolated handoff
   `ee7d50f`; GitHub PR #5 preserved that evidence but its trusted acceptance
   runner lacked `rg`. Lease generation 3 reissues the unchanged implementation
