@@ -1,6 +1,6 @@
 # Wardrobe verified state
 
-Updated: 2026-07-27 02:40 UTC.
+Updated: 2026-07-27 02:48 UTC.
 
 ## Canonical position
 
@@ -32,6 +32,9 @@ remain prohibited.
 4. `SCENE-001` — restore the missing scene-contract export used by the live
    adapter. This is the narrow root repair for four suites that cannot load on
    the integration base; it does not change framing or QA policy.
+5. `RELEASE-001` — make deploy and recovery enforce the declared canonical
+   external health target `https://iwas.madeforthisjob.com/api/health`. The
+   target is healthy now, but the current tools accept an arbitrary URL.
 
 The issued worktrees start at `f578c28`, while the first queue record pinned
 their product baseline at `66968f9`. This exact-base mismatch was caught before
@@ -61,6 +64,9 @@ review requirement.
   product split. The four unapproved photoshoot styles are blocked on supplied
   rights/reference packs, not solvable by inventing sources or spending on
   generation.
+- `iwas.madeforthisjob.com/api/health` is currently healthy and is the
+  operator-declared target. `RELEASE-001` must pin it in code before any
+  release tool can claim it verified the intended domain.
 
 ## Known baseline limitation
 
