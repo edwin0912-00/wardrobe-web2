@@ -2,7 +2,7 @@
   "schema_version": "1.0.0",
   "integration_branch": "integration/wardrobe-20260726",
   "orchestrator": "codex-main",
-  "updated_at": "2026-07-27T08:48:00.000Z",
+  "updated_at": "2026-07-27T08:55:00.000Z",
   "tasks": [
     {
       "id": "CTRL-001",
@@ -989,13 +989,13 @@
       "id": "MONITOR-002",
       "title": "Persist typed stall diagnostics and recovery-safe heartbeat evidence",
       "priority": "P0",
-      "state": "REVIEW",
+      "state": "ASSIGNED",
       "owner": "monitor-diagnostics",
       "branch": "lane/MONITOR-002/monitor-diagnostics",
-      "base_sha": "f578c28a7e3db506c0e8dbe06ca7e3e405cfea21",
+      "base_sha": "5df0df404f3ed5ffb81d1c4490da57f042920bed",
       "lease": {
-        "generation": 1,
-        "issued_at": "2026-07-27T01:58:00.000Z",
+        "generation": 2,
+        "issued_at": "2026-07-27T08:55:00.000Z",
         "expires_at": "2026-07-27T10:30:00.000Z"
       },
       "lock_groups": [
@@ -1364,13 +1364,13 @@
       "id": "RELEASE-001",
       "title": "Bind deploy and recovery verification to the canonical iwas health target",
       "priority": "P0",
-      "state": "REVIEW",
+      "state": "ASSIGNED",
       "owner": "release-target",
       "branch": "lane/RELEASE-001/release-target",
-      "base_sha": "d372e6a9762b332bf699a98b5d9950e423609a6a",
+      "base_sha": "5df0df404f3ed5ffb81d1c4490da57f042920bed",
       "lease": {
-        "generation": 2,
-        "issued_at": "2026-07-27T03:15:00.000Z",
+        "generation": 3,
+        "issued_at": "2026-07-27T08:55:00.000Z",
         "expires_at": "2026-07-27T10:30:00.000Z"
       },
       "lock_groups": [
