@@ -38,6 +38,13 @@ Protocol ACK: 4472986
 
 ## READY_FOR_BETA_DEPLOY
 
+- Exact product commit: `942c9e8`.
+- Activation requested for that exact SHA.
+- Paid Lucy/WebRTC smoke remains excluded until Edwin explicitly authorizes
+  the stated five-second duration and maximum `$0.20` cost.
+
+## READY_FOR_BETA_DEPLOY
+
 - Exact product commit: `917e1ef`.
 - Activation requested for that exact SHA.
 - Narrow beta smoke: `/post-shoot-mvp.html` renders both choices and
