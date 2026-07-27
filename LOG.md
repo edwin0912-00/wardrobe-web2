@@ -17,6 +17,14 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-07-27 · BOARD-LANGUAGE-001 · beta · readable pipeline task names
+Change: require a Ukrainian plain-language product name and pipeline stage for
+every live task; retain terse IDs only for Git routing.
+Why: internal ticket labels must not replace an explanation of what changes for
+the user or where a task sits in the pipeline.
+Evidence: `UPDATE.md` maps every current task to a readable stage and outcome.
+weakened_checks: none.
+
 2026-07-27 · BETA-UI-001 · beta `ac7259b` · multi-look selection live smoke
 Change: activate Antigravity's saved-avatar selection repair on beta.
 Why: selecting an avatar with multiple existing looks must reveal the user’s

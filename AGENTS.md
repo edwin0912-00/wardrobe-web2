@@ -34,6 +34,10 @@ collisions or explicit agent help requests without writing anything.
 `UPDATE.md` is the live task board. `TASKS.json`, `OWNERS.md` historical lane
 rules, and old PRs are preserved evidence only; do not use them for a new task.
 
+Technical IDs such as `BETA-UNIVERSE-001` are routing labels only. Every task
+must also state a plain-language Ukrainian product name and the exact pipeline
+stage it changes. Never use a tracking ID as though it explained the work.
+
 Fast rules:
 
 1. Take a task assigned to your agent in `UPDATE.md`. If the orchestrator is
