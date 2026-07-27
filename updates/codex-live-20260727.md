@@ -10,6 +10,18 @@
   non-billable route/UI proof. Paid Lucy execution still requires the existing
   explicit five-second consent.
 
+### Implementation proof
+
+- Added a 1024×1024 outfit-only reference card from verified runtime garment
+  inputs: green hoodie plus black sneakers; no person pixels are present.
+- `/live` now redirects to the cache-busted `demo=outfit` mode and loads that
+  card automatically as a Lucy data-URI reference.
+- Focused tests: 8/8 PASS.
+- Local browser smoke: `Hoodie + sneakers · READY`; camera action visible;
+  paid Live remains disabled before camera activation.
+- Provider call: NOT RUN.
+- State: READY_FOR_BETA_DEPLOY.
+
 Protocol ACK: 29045a9
 
 ## BETA-POSTSHOOT-RECON-001 — RESUMED 2026-07-27

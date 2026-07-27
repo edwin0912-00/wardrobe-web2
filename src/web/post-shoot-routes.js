@@ -10,7 +10,7 @@ export async function registerPostShootRoutes(app, {
 
   app.get('/live', async (_request, reply) => reply
     .header('Cache-Control', 'no-store')
-    .redirect('/post-shoot-mvp.html?release=20260727-7'));
+    .redirect('/post-shoot-mvp.html?demo=outfit&release=20260728-1'));
 
   app.get('/api/post-shoot/pipeline', async (_request, reply) => reply
     .header('Cache-Control', 'no-store')
