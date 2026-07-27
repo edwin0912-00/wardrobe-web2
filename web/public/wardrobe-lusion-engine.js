@@ -142,29 +142,38 @@
       // Fresnel Rim Light
       float fresnel = pow(1.0 - max(dot(vNormal, viewDir), 0.0), 2.2);
       
-      // Velvet & Silk color blend
+      // Thin-Film Iridescent Holographic Shift
+      float iridescence = sin(vDisplacement * 10.0 + uTime * 1.5 + fresnel * 4.0) * 0.5 + 0.5;
+      vec3 iridColor = vec3(
+        sin(iridescence * 3.14159),
+        sin(iridescence * 3.14159 + 2.094),
+        sin(iridescence * 3.14159 + 4.188)
+      );
+
+      // Velvet & Iridescent Silk Blend
       vec3 fabricColor = mix(uColor1, uColor2, vDisplacement * 2.0 + 0.5);
-      fabricColor = mix(fabricColor, uColor3, fresnel * 0.85);
-      
+      fabricColor = mix(fabricColor, uColor3, fresnel * 0.6);
+      fabricColor = mix(fabricColor, iridColor * 0.9, fresnel * 0.55);
+
       // Add Micro-Weave Texture Detail
       float weave = fabricWeave(vUv);
       fabricColor += vec3(weave);
-      
-      // Subsurface scattering glow
-      vec3 sssGlow = vec3(0.9, 0.7, 0.5) * pow(fresnel, 3.0) * 0.5;
+
+      // Subsurface Scattering Cyan-Gold Glow
+      vec3 sssGlow = vec3(0.0, 0.9, 1.0) * pow(fresnel, 2.5) * 0.45;
       fabricColor += sssGlow;
-      
+
       // Specular highlight
       vec3 lightDir = normalize(vec3(0.8, 1.2, 2.0));
       vec3 halfDir = normalize(lightDir + viewDir);
       float spec = pow(max(dot(vNormal, halfDir), 0.0), 32.0);
-      fabricColor += vec3(0.95, 0.9, 0.8) * spec * 0.35;
-      
-      // Film Grain Overlay (6% opacity for analogue tactile feel)
-      float grain = (random(vUv * 2.0 + fract(uTime * 0.07)) - 0.5) * 0.09;
+      fabricColor += vec3(0.95, 0.95, 1.0) * spec * 0.45;
+
+      // Film Grain Overlay
+      float grain = (random(vUv * 2.0 + fract(uTime * 0.07)) - 0.5) * 0.08;
       fabricColor += grain;
-      
-      gl_FragColor = vec4(fabricColor, 0.92);
+
+      gl_FragColor = vec4(fabricColor, 0.95);
     }
   `;
 
@@ -307,28 +316,37 @@
   // ── 3D Mirror Frame in Background ──
   const mirrorGroup = new THREE.Group();
   const frameGeo = new THREE.RingGeometry(2.4, 2.45, 64);
-  const frameMat = new THREE.MeshBasicMaterial({
-    color: 0xc8a97e,
-    side: THREE.DoubleSide,
+  // ── 4 Volumetric Laser Light Rays (AURORA COUTURE Style) ──
+  const lasersGroup = new THREE.Group();
+  const laserGeo = new THREE.CylinderGeometry(0.01, 0.08, 12, 16);
+  
+  const laserMatCyan = new THREE.MeshBasicMaterial({
+    color: 0x00f0ff,
     transparent: true,
     opacity: 0.35,
+    blending: THREE.AdditiveBlending
   });
-  const mirrorFrame = new THREE.Mesh(frameGeo, frameMat);
-  mirrorFrame.position.z = -0.5;
-  mirrorGroup.add(mirrorFrame);
-
-  const glassGeo = new THREE.CircleGeometry(2.38, 64);
-  const glassMat = new THREE.MeshBasicMaterial({
-    color: 0x101518,
-    side: THREE.DoubleSide,
+  
+  const laserMatMagenta = new THREE.MeshBasicMaterial({
+    color: 0xff0088,
     transparent: true,
-    opacity: 0.25,
+    opacity: 0.35,
+    blending: THREE.AdditiveBlending
   });
-  const glassPlane = new THREE.Mesh(glassGeo, glassMat);
-  glassPlane.position.z = -0.52;
-  mirrorGroup.add(glassPlane);
 
-  scene.add(mirrorGroup);
+  const laser1 = new THREE.Mesh(laserGeo, laserMatCyan);
+  laser1.position.set(-3.5, 0, -2); laser1.rotation.z = -0.6; lasersGroup.add(laser1);
+
+  const laser2 = new THREE.Mesh(laserGeo, laserMatCyan);
+  laser2.position.set(3.5, 0, -2); laser2.rotation.z = 0.6; lasersGroup.add(laser2);
+
+  const laser3 = new THREE.Mesh(laserGeo, laserMatMagenta);
+  laser3.position.set(-2.5, 2.5, -3); laser3.rotation.z = -0.3; laser3.rotation.x = 0.4; lasersGroup.add(laser3);
+
+  const laser4 = new THREE.Mesh(laserGeo, laserMatMagenta);
+  laser4.position.set(2.5, -2.5, -3); laser4.rotation.z = 0.3; laser4.rotation.x = -0.4; lasersGroup.add(laser4);
+
+  scene.add(lasersGroup);
 
   // ── Ambient Dust Particles ──
   const particleCount = 500;
