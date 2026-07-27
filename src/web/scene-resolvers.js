@@ -971,7 +971,29 @@ export class FilesystemScenePresetResolver {
   async editorialModePreview({ modeId, version }) {
     if (!this.realProjectRoot) await this.initialize();
     const { mode } = await this.#editorialMode(modeId, version);
+    // A delivered photoshoot frame is a better preview than the unit's own
+    // reference sheet: the sheet is a technical contact sheet and reads as one.
+    // So a mood card wins whenever one exists on disk, and units without one
+    // keep the sheet exactly as before.
+    let hasMoodCard = false;
     if (mode.create_universe) {
+      try {
+        const cardRoot = inside(
+          this.realProjectRoot,
+          path.join(this.realProjectRoot, 'assets', 'scene-mood-cards'),
+          'Editorial preview root',
+        );
+        const [asset, sidecar] = await Promise.all([
+          lstat(inside(cardRoot, path.join(cardRoot, `${modeId}.webp`), 'Editorial preview asset')),
+          lstat(inside(cardRoot, path.join(cardRoot, `${modeId}.json`), 'Editorial preview sidecar')),
+        ]);
+        hasMoodCard = asset.isFile() && !asset.isSymbolicLink()
+          && sidecar.isFile() && !sidecar.isSymbolicLink();
+      } catch {
+        hasMoodCard = false;
+      }
+    }
+    if (mode.create_universe && !hasMoodCard) {
       const asset = mode.create_universe.assets.find((item) => item.role === mode.create_universe.preview_role);
       if (!asset) throw resolverError(422, 'Create Universe preview asset is unavailable');
       return {

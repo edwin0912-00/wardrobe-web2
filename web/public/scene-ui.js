@@ -23,6 +23,20 @@ import {
   writeSceneResume,
 } from './scene-state.js?v=20260724-2';
 
+const UK_PLURAL_SCENE = Object.freeze(['стандартна сцена', 'стандартні сцени', 'стандартних сцен']);
+const UK_PLURAL_MODE = Object.freeze(['напрям', 'напрями', 'напрямів']);
+
+// Ukrainian needs three forms, so a bare `N сцен` is wrong for 1 and for 2–4.
+function ukPlural(count, forms) {
+  const n = Math.abs(count) % 100;
+  const last = n % 10;
+  if (n > 10 && n < 20) return forms[2];
+  if (last === 1) return forms[0];
+  if (last >= 2 && last <= 4) return forms[1];
+  return forms[2];
+}
+
+
 function idOfLook(look) {
   return look?.look_id ?? look?.id ?? null;
 }
@@ -278,6 +292,15 @@ export class SceneUiController {
     const editorialTab = this.#element('#scene-tab-editorial');
     const standardPanel = this.#element('#scene-standard-panel');
     const editorialPanel = this.#element('#scene-editorial-panel');
+    // The counts used to be baked into index.html, so the tab still said five
+    // standard scenes after the catalog grew to sixteen. Both labels now come
+    // from the same data the grids are rendered from.
+    standardTab.textContent = this.presets.length
+      ? `${this.presets.length} ${ukPlural(this.presets.length, UK_PLURAL_SCENE)}`
+      : 'Стандартні сцени';
+    editorialTab.textContent = this.editorialModes.length
+      ? `Art Fashion · ${this.editorialModes.length} ${ukPlural(this.editorialModes.length, UK_PLURAL_MODE)}`
+      : 'Art Fashion';
     standardTab.setAttribute('aria-selected', String(!editorial));
     standardTab.tabIndex = editorial ? -1 : 0;
     editorialTab.setAttribute('aria-selected', String(editorial));

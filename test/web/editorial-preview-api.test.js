@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import {
+  access,
   mkdir,
   mkdtemp,
   readFile,
@@ -117,8 +118,22 @@ test('editorial catalog activates legacy modes and four integrity-ready Create U
       url: mode.preview_url,
     });
     assert.equal(preview.statusCode, 200, preview.body);
+    // A Create Universe mode falls back to its own reference sheet (PNG) only
+    // while it has no delivered mood card. Once a card exists the preview must
+    // be that card, because a technical contact sheet is not a shoot preview.
     const createUniverse = mode.mode_id.startsWith('shoot.');
-    assert.equal(preview.headers['content-type'], createUniverse ? 'image/png' : 'image/webp');
+    const moodCard = path.join(
+      path.resolve('.'),
+      'assets',
+      'scene-mood-cards',
+      `${mode.mode_id}.webp`,
+    );
+    const hasMoodCard = await access(moodCard).then(() => true, () => false);
+    assert.equal(
+      preview.headers['content-type'],
+      createUniverse && !hasMoodCard ? 'image/png' : 'image/webp',
+      `${mode.mode_id} (mood card present: ${hasMoodCard})`,
+    );
     assert.equal(preview.headers['cache-control'], 'public, max-age=31536000, immutable');
     assert.equal(preview.headers['cross-origin-resource-policy'], 'same-origin');
     assert.equal(preview.headers['x-content-type-options'], 'nosniff');
@@ -130,8 +145,11 @@ test('editorial catalog activates legacy modes and four integrity-ready Create U
       `/api/editorial-modes/${encodeURIComponent(mode.mode_id)}/${encodeURIComponent(mode.version)}/preview?v=${sha256(preview.rawPayload)}`,
     );
     const metadata = await sharp(preview.rawPayload).metadata();
-    assert.equal(metadata.format, createUniverse ? 'png' : 'webp');
-    if (!createUniverse) {
+    // Sheet fallback stays a PNG at the sheet's own size; a mood card is always
+    // the locked 1024x1280 4:5 WebP, whichever family the mode belongs to.
+    const sheetFallback = createUniverse && !hasMoodCard;
+    assert.equal(metadata.format, sheetFallback ? 'png' : 'webp');
+    if (!sheetFallback) {
       assert.equal(metadata.width, 1024);
       assert.equal(metadata.height, 1280);
     }
