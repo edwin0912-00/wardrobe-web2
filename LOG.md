@@ -17,6 +17,13 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-07-27 · OPS-REMOTE-001 · beta · remote operator access
+Change: add `USERS.md` with the remote-first operator and OAuth callback rule.
+Why: Edwin cannot approve browser windows or credentials on the build host.
+Evidence: the Magnific MCP OAuth redirect is host-local; a remote browser
+requires an explicit callback relay before authentication can complete.
+weakened_checks: none.
+
 2026-07-27 · FAST-007 · beta · dedicated external-agent entries
 Change: add distinct bootstrap entry files for Claude Code, Antigravity, and
 OpenCloud.

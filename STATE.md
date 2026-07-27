@@ -20,6 +20,8 @@
   `WARDROBE_AGENT_LABEL` makes that generated ID human-readable.
 - Dedicated bootstrap wrappers exist for Claude Code, Antigravity, and
   OpenCloud; each uses the same beta context and monitor.
+- Operator access is remote-first: `USERS.md` is the canonical rule for links
+  and localhost OAuth callbacks. A host-local browser is never assumed.
 
 Updated: 2026-07-27 08:55 UTC.
 
