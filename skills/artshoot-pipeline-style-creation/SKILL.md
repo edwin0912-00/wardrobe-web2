@@ -518,3 +518,50 @@ executed honestly, it would have stopped the failure.
 | 4 | Blocking diagrams were lettered "BODY 3/4 TO LENS" for slots whose spec declares no body rotation — an invented fact that read as canon | §0 | Every value names the frame it was observed in; unobservable means UNKNOWN |
 | 5 | A person sheet demanded forensic certainty for facts a photo cannot show, so it returned NEEDS_INPUT on a perfectly good portrait | §3 | Continuous geometry is inferable; only discrete surface facts must be observed, and the two are recorded separately |
 | 6 | A generator reproduced a subject's pose and place but lost the low angle and the blurred foreground hand — the two things that made the frame art | §4 items 1 and 4 | Camera roll and foreground occlusion are mandatory fields |
+
+### RULE 9 — coverage is a contract, and every frame in it has a person in it
+
+Two errors on 2026-07-27, both caught by the operator rather than by a gate, both from generating a
+shoot without reading what the product actually asks for.
+
+**First error: one framing repeated six times.** Six styles were generated and every single frame was
+the same shot — full length, centred, camera at chest height — with only the wallpaper changing. That
+is not a shoot, it is six pieces of wallpaper. It happened because the delivery lock ("full body, both
+shoes, clear headroom") was written into every prompt, which flattened the camera character out of six
+shoots that each had their own. Framing is read from the shoot: a monumental low angle up a ribbed wall,
+a low angle through converging trunks, a rooftop wide, a bag detail. Read it, then use it.
+
+**Second error: a detail frame with no human in it.** The product's detail slot declares `head: false`.
+That means *the head need not be visible*. It does not mean the person is absent. A crop of cloth with
+no body is a product shot, and this product sells a person wearing the item. Worse, the contract does
+not catch it: the detail slot requires no body at all, so a flat lay passes the gate. Until that is
+fixed in the contract, it is on the operator of this skill to keep a wrist, a neckline, a hand or a
+shoulder in the frame so it reads as worn.
+
+**The six slots and their real locks**, read from `editorialFramingLock` on 2026-07-27 rather than
+assumed. `subject` is the subject's share of frame height in per cent; `above` is the minimum headroom.
+
+| slot | subject | above | head | footwear |
+|---|---|---|---|---|
+| `clean_identity_hero` | 50–94 | 6 | required | not required |
+| `environmental_hero` | 40–95 | 5 | required | not required |
+| `sculptural_three_quarter` | 50–95 | 5 | required | not required |
+| `interference_frame` | 45–96 | 4 | required | not required |
+| `material_or_accessory_detail` | 45–100 | 0 | **not required** | not required |
+| `wide_campaign_coda` | 30–92 | 8 | required | not required |
+
+Consequences worth stating, because each one bit:
+
+- **There is no tight face close-up slot.** Five slots need the head visible AND the subject between
+  40 and 96 per cent; a collarbone-up crop is effectively 100 and would be rejected. A beautiful face
+  frame is not deliverable coverage, however good it looks.
+- **`wide_campaign_coda` bottoms out at 30 per cent.** A figure smaller than that fails, so "tiny
+  figure in a vast room" has a floor.
+- **Footwear is `false` in every one of the six.** Nothing in the coverage contract ever requires shoes
+  to be shown, which is exactly how a video generation borrowed a stranger's sandal — see RULE 8.
+
+**TRIGGER** — generating a coverage set, or writing a prompt per slot.
+**CHECK** — name the slot, quote its lock, and say where the framing came from in the source shoot.
+For the detail slot, name which piece of the body is in frame.
+**STOP** — if two slots would deliver the same composition, or if any frame contains no person, or if
+the intended framing is not inside its slot's subject range.
