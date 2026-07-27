@@ -17,6 +17,16 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-07-27 · CTRL-002 · active status-path grants
+Change: grant each current active task exactly one matching
+`.agents/status/<task-id>.json` path.
+Why: an authenticated worker needs a narrow place to commit a sanitized
+heartbeat, blocker, or ready report; absence of that exact lease otherwise
+keeps the shared queue silent.
+Evidence: five paths are exact task IDs, no wildcard or cross-task scope was
+added, and the trusted board validator accepts the candidate.
+weakened_checks: none.
+
 2026-07-27 · CTRL-002 · execution started
 Change: move the durable queue-listener and sanitized agent-status lease from
 ASSIGNED to IN_PROGRESS.
