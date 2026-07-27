@@ -17,6 +17,17 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-07-27 · SCENE-001 · execution acknowledged
+Change: move SCENE-001 generation 2 from ASSIGNED to IN_PROGRESS after its
+exact owner published the bounded evaluator-delivery repair and typed report.
+Why: the task now has observed evidence, not merely a leased intent; this
+transition neither approves a scene nor changes QA policy.
+Evidence: checkpoint `bbcfe71` and report `0e823ec` bind the current owner,
+branch, exact base `44aa829`, and generation 2. Independent review reproduced
+both exact-base failures and passed six scene suites (60/60), the source-only
+static regression, scanner, and diff hygiene.
+weakened_checks: none.
+
 2026-07-27 · RELEASE-001 · reissued generation 2 at 7cb13f6 · control queue
 Change: bind the lease acceptance to the exact deploy/recovery parser matrix
 that owns canonical external health validation.

@@ -1254,7 +1254,7 @@
       "id": "SCENE-001",
       "title": "Restore the scene contract and evaluator delivery handoff required by live scene QA",
       "priority": "P0",
-      "state": "ASSIGNED",
+      "state": "IN_PROGRESS",
       "owner": "scene-contract",
       "branch": "lane/SCENE-001/scene-contract",
       "base_sha": "44aa829176b76f8da0d08233d996ebac982ff06e",
