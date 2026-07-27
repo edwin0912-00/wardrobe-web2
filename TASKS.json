@@ -2,7 +2,7 @@
   "schema_version": "1.0.0",
   "integration_branch": "integration/wardrobe-20260726",
   "orchestrator": "codex-main",
-  "updated_at": "2026-07-27T00:37:00.000Z",
+  "updated_at": "2026-07-27T02:05:00.000Z",
   "tasks": [
     {
       "id": "CTRL-001",
@@ -229,7 +229,7 @@
       "id": "CTRL-002",
       "title": "Install durable agent queue listening, heartbeat reports, and the canonical context pack",
       "priority": "P0",
-      "state": "IN_PROGRESS",
+      "state": "DONE",
       "owner": "codex-main",
       "branch": "lane/CTRL-002/codex-main",
       "base_sha": "ccea7dd7739883144a27388977ce8284a52a8027",
@@ -333,7 +333,7 @@
       "id": "WARD-002",
       "title": "Make every standard preset enter an evidence-backed headroom repair without a gate waiver",
       "priority": "P0",
-      "state": "IN_PROGRESS",
+      "state": "CANCELLED",
       "owner": "claude-code-dev",
       "branch": "lane/WARD-002/claude-code-dev",
       "base_sha": "5b82a6118c2abe2f50816d7f6557181cf29d994e",
@@ -692,7 +692,7 @@
       "id": "STYLE-001",
       "title": "Preserve the fashion style-unit pipeline and one verified reference unit",
       "priority": "P0",
-      "state": "IN_PROGRESS",
+      "state": "BLOCKED",
       "owner": "codecod",
       "branch": "lane/STYLE-001/codecod",
       "base_sha": "fbd2c2cd85c8b41e6dc42854777cfe5cf1247602",
@@ -761,7 +761,7 @@
       "id": "PROFILE-001",
       "title": "Make saved avatars a durable backend library for add-items flows",
       "priority": "P0",
-      "state": "IN_PROGRESS",
+      "state": "CANCELLED",
       "owner": "opencode",
       "branch": "lane/PROFILE-001/opencode",
       "base_sha": "fbd2c2cd85c8b41e6dc42854777cfe5cf1247602",
@@ -832,7 +832,7 @@
       "id": "MONITOR-001",
       "title": "Make the live execution monitor diagnose stalled runs without exposing private data",
       "priority": "P0",
-      "state": "IN_PROGRESS",
+      "state": "CANCELLED",
       "owner": "antigravity",
       "branch": "lane/MONITOR-001/antigravity",
       "base_sha": "fbd2c2cd85c8b41e6dc42854777cfe5cf1247602",
@@ -903,7 +903,7 @@
       "id": "SITE-002",
       "title": "Expose a private immutable contact-sheet manifest for a completed fashion shoot",
       "priority": "P0",
-      "state": "IN_PROGRESS",
+      "state": "CANCELLED",
       "owner": "codex-contact-sheet",
       "branch": "lane/SITE-002/codex-contact-sheet",
       "base_sha": "3e32d37d89288c1172e513d8eff3492c281b5e89",
@@ -983,6 +983,271 @@
         "Do not generate, composite, resize, or derive image pixels in this task.",
         "Do not expose a shoot across browser-profile ownership boundaries or expose runtime paths/resource identifiers.",
         "Do not add UI or deployment behavior."
+      ]
+    },
+    {
+      "id": "MONITOR-002",
+      "title": "Persist typed stall diagnostics and recovery-safe heartbeat evidence",
+      "priority": "P0",
+      "state": "ASSIGNED",
+      "owner": "monitor-diagnostics",
+      "branch": "lane/MONITOR-002/monitor-diagnostics",
+      "base_sha": "66968f9915bbddb1095174711cfd845bf95da0f8",
+      "lease": {
+        "generation": 1,
+        "issued_at": "2026-07-27T01:58:00.000Z",
+        "expires_at": "2026-07-27T04:38:00.000Z"
+      },
+      "lock_groups": [
+        "core-pipeline"
+      ],
+      "allowed_paths": [
+        "src/monitor/event-store.js",
+        "src/monitor/agent-supervisor.js",
+        "src/monitor/routes.js",
+        "test/monitor/**",
+        ".agents/status/MONITOR-002.json",
+        ".agents/handoffs/MONITOR-002.json"
+      ],
+      "forbidden_paths": [
+        "secrets/**",
+        ".env",
+        ".env.*",
+        "runtime/**",
+        "output/**",
+        "src/monitor/start.js",
+        "src/security/**",
+        "src/web/**",
+        "web/public/**"
+      ],
+      "required_context": [
+        {
+          "path": "src/monitor/event-store.js",
+          "git_blob_sha": "267d17b67ddb1b09550cec1be858c25a41b634bd"
+        },
+        {
+          "path": "src/monitor/agent-supervisor.js",
+          "git_blob_sha": "01ad57687b763a7711e2cdaa58e0e78056f8395b"
+        },
+        {
+          "path": "src/monitor/routes.js",
+          "git_blob_sha": "07b61a91f734729dec3c0a913803ca36b2c93fd7"
+        }
+      ],
+      "depends_on": [
+        "CTRL-002"
+      ],
+      "acceptance": [
+        {
+          "check_id": "monitor-diagnostics-contract-tests",
+          "execution_class": "ci",
+          "command": [
+            "node",
+            "--test",
+            "test/monitor/agent-supervisor.test.js",
+            "test/monitor/event-store.test.js"
+          ],
+          "expected_exit_codes": [
+            0
+          ],
+          "expected": "A stale run has one durable typed diagnostic, a throttled recovery-safe heartbeat, and a bounded sanitized API/SSE projection."
+        },
+        {
+          "check_id": "diff-hygiene",
+          "execution_class": "ci",
+          "command": [
+            "git",
+            "diff",
+            "--check",
+            "$TASK_BASE_SHA...$TESTED_CODE_SHA"
+          ],
+          "expected_exit_codes": [
+            0
+          ],
+          "expected": "No whitespace errors or conflict markers."
+        }
+      ],
+      "stop_conditions": [
+        "Do not persist or emit raw prompt text, credentials, user image bytes, local paths, provider payloads, or unbounded error text.",
+        "If the required sanitizer is outside this lease, stop with a typed blocker instead of changing src/security.",
+        "Do not change monitor startup, deployment, live runtime, or UI."
+      ]
+    },
+    {
+      "id": "UI-002",
+      "title": "Make a saved avatar or look open and continue directly into add-items",
+      "priority": "P0",
+      "state": "ASSIGNED",
+      "owner": "profile-ui",
+      "branch": "lane/UI-002/profile-ui",
+      "base_sha": "66968f9915bbddb1095174711cfd845bf95da0f8",
+      "lease": {
+        "generation": 1,
+        "issued_at": "2026-07-27T01:58:00.000Z",
+        "expires_at": "2026-07-27T04:38:00.000Z"
+      },
+      "lock_groups": [
+        "public-ui"
+      ],
+      "allowed_paths": [
+        "web/public/**",
+        "test/web/profile-navigation.test.js",
+        "test/web/profile-ui-flow.test.js",
+        ".agents/status/UI-002.json",
+        ".agents/handoffs/UI-002.json"
+      ],
+      "forbidden_paths": [
+        "secrets/**",
+        ".env",
+        ".env.*",
+        "runtime/**",
+        "output/**",
+        "src/web/**",
+        "src/monitor/**",
+        "src/providers/**",
+        "assets/**"
+      ],
+      "required_context": [
+        {
+          "path": "web/public/app.js",
+          "git_blob_sha": "cc134a74fd483e797f7125aa6b47fba8e69e812a"
+        },
+        {
+          "path": "web/public/add-items-flow.js",
+          "git_blob_sha": "3f1bbd6fb135530842eb3e6c38db28ec000e8b15"
+        },
+        {
+          "path": "web/public/profile-client.js",
+          "git_blob_sha": "592a04ea6e411a6355f2b782d9e72652fac48278"
+        }
+      ],
+      "depends_on": [
+        "CTRL-002"
+      ],
+      "acceptance": [
+        {
+          "check_id": "saved-look-ui-contract-tests",
+          "execution_class": "ci",
+          "command": [
+            "node",
+            "--test",
+            "test/web/profile-navigation.test.js",
+            "test/web/profile-ui-flow.test.js"
+          ],
+          "expected_exit_codes": [
+            0
+          ],
+          "expected": "Selecting a saved avatar or look opens that exact library item, Add items binds it without returning to avatar creation, and Back preserves the draft."
+        },
+        {
+          "check_id": "diff-hygiene",
+          "execution_class": "ci",
+          "command": [
+            "git",
+            "diff",
+            "--check",
+            "$TASK_BASE_SHA...$TESTED_CODE_SHA"
+          ],
+          "expected_exit_codes": [
+            0
+          ],
+          "expected": "No whitespace errors or conflict markers."
+        }
+      ],
+      "stop_conditions": [
+        "First capture a concrete failing UI regression; if the stated flow cannot be reproduced, stop with a typed blocker and do not invent a backend or visual change.",
+        "Do not add accounts, authentication, server routes, deployment behavior, or a hidden fallback that discards selection state.",
+        "Do not change profile ownership, expiry, or immutable lineage contracts."
+      ]
+    },
+    {
+      "id": "FASHION-001",
+      "title": "Port the private immutable contact-sheet manifest into the current editorial contract",
+      "priority": "P0",
+      "state": "ASSIGNED",
+      "owner": "fashion-contact-sheet",
+      "branch": "lane/FASHION-001/fashion-contact-sheet",
+      "base_sha": "66968f9915bbddb1095174711cfd845bf95da0f8",
+      "lease": {
+        "generation": 1,
+        "issued_at": "2026-07-27T01:58:00.000Z",
+        "expires_at": "2026-07-27T04:38:00.000Z"
+      },
+      "lock_groups": [
+        "editorial"
+      ],
+      "allowed_paths": [
+        "src/web/editorial-contact-sheet.js",
+        "src/web/editorial-shoot-routes.js",
+        "test/web/editorial-contact-sheet.test.js",
+        "test/web/editorial-activation-backend.test.js",
+        ".agents/status/FASHION-001.json",
+        ".agents/handoffs/FASHION-001.json"
+      ],
+      "forbidden_paths": [
+        "secrets/**",
+        ".env",
+        ".env.*",
+        "runtime/**",
+        "output/**",
+        "src/web/app.js",
+        "web/public/**",
+        "src/providers/**",
+        "assets/**"
+      ],
+      "required_context": [
+        {
+          "path": "src/web/editorial-shoot-service.js",
+          "git_blob_sha": "e02897f4e7433b45f82ba608dc71a85182f4b682"
+        },
+        {
+          "path": "src/web/editorial-shoot-routes.js",
+          "git_blob_sha": "516b2ca5478e7f9d144e3e017070153b259c25ba"
+        },
+        {
+          "path": "schemas/editorial-shoot-job.schema.json",
+          "git_blob_sha": "f00c06e350428775fbf0198878194ce224f82a07"
+        }
+      ],
+      "depends_on": [
+        "CTRL-002"
+      ],
+      "acceptance": [
+        {
+          "check_id": "contact-sheet-contract-tests",
+          "execution_class": "ci",
+          "command": [
+            "node",
+            "--test",
+            "test/web/editorial-contact-sheet.test.js",
+            "test/web/editorial-activation-backend.test.js",
+            "test/web/editorial-shoot-service.test.js"
+          ],
+          "expected_exit_codes": [
+            0
+          ],
+          "expected": "Only the owner of a completed shoot receives a deterministic, private six-frame manifest of approved outputs."
+        },
+        {
+          "check_id": "diff-hygiene",
+          "execution_class": "ci",
+          "command": [
+            "git",
+            "diff",
+            "--check",
+            "$TASK_BASE_SHA...$TESTED_CODE_SHA"
+          ],
+          "expected_exit_codes": [
+            0
+          ],
+          "expected": "No whitespace errors or conflict markers."
+        }
+      ],
+      "stop_conditions": [
+        "Before implementation, fetch and inspect only the preserved source commit 352066443d0a8db46260db022b36f1c9b09adba1 from origin/lane/SITE-002/codex-contact-sheet: expected blobs are e53f70923faefa8b1f4bc22dd1f0dada12802396 for the contact-sheet module, f851b01af3c14f41c4888ccdbab1567f1eb91227 for routes, 83826afed89bd5494bd588e142222bd4c59a00fd for the contact-sheet test, and d840a26f2f558e9c683749a99e259d2151000d24 for activation coverage. If any source cannot be verified, stop with a typed blocker rather than recreating it from memory.",
+        "Do not generate, composite, resize, or derive image pixels; the task only indexes already-approved outputs.",
+        "Do not expose a shoot across browser-profile ownership boundaries or leak runtime paths, resource identifiers, prompts, or provider metadata.",
+        "Do not add UI, style-source approvals, generation, or deployment behavior."
       ]
     }
   ]
