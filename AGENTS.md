@@ -42,9 +42,10 @@ Fast rules:
    `IN_PROGRESS`, add its `STARTED` report, and push the small board commit.
    If the push races, rebase and stop unless the row is still unassigned.
    `WAITING`, `BLOCKED`, and `DONE` rows are never self-claimable.
-2. One code task writes at a time. Research and QA tasks may run in parallel.
-   A self-claiming code agent must first verify that no other code row is
-   `IN_PROGRESS`; it may not invent a new code row.
+2. Code, research, and QA tasks may run in parallel. Every code row declares
+   its exact reserved paths in `UPDATE.md`; two active code tasks may not share
+   a path. A self-claiming agent verifies that its row has concrete paths and
+   does not overlap another `IN_PROGRESS` code row. It may not invent a new row.
 3. Before a push: `git pull --rebase origin beta`, run the task's check, then
    commit only the task files plus `updates/<agent-id>.md`. Every commit
    subject starts with `[agent:<agent-id>]`, even when GitHub login is shared.

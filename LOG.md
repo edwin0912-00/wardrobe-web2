@@ -17,6 +17,15 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-07-27 · AGENT-PARALLEL-001 · beta · path-reserved parallel work
+Change: replace the one-code-task rule with exact path reservation; assign
+Magnific provider wiring to Claude Code and publish an independent Add-items
+UI task as READY.
+Why: logs and the task board should enable parallel delivery, not serialize it.
+Evidence: active code rows reserve disjoint paths; the board monitor now alerts
+only when two active code rows reserve the same concrete path.
+weakened_checks: none.
+
 2026-07-27 · AGENT-AUTONOMY-001 · beta · continuity self-claim
 Change: assign `BETA-SMOKE-001` to Antigravity and permit agents to atomically
 self-claim one existing READY board row when the orchestrator is unavailable.

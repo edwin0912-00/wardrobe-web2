@@ -21,15 +21,19 @@ render_once() {
   printf '\n%s\n' "$board"
   printf '\n--- monitor alerts ---\n'
   printf '%s\n' "$board" | awk -F'|' '
-    $4 ~ /IN_PROGRESS/ && $5 ~ /CODE/ { code += 1 }
-    $4 ~ /IN_PROGRESS/ && $6 !~ /^[[:space:]]*$/ {
-      scope=$6; gsub(/^[[:space:]]+|[[:space:]]+$/, "", scope)
-      if (seen[scope]++) overlap=1
+    $4 ~ /IN_PROGRESS/ && $5 ~ /CODE/ && $6 !~ /^[[:space:]]*$/ {
+      paths=$6; gsub(/`/, "", paths)
+      split(paths, parts, ";")
+      for (index in parts) {
+        path=parts[index]; gsub(/^[[:space:]]+|[[:space:]]+$/, "", path)
+        if (path == "") continue
+        if (seen[path] && seen[path] != $2) overlap=1
+        seen[path]=$2
+      }
     }
     END {
-      if (code > 1) print "ALERT: more than one CODE task is IN_PROGRESS"
-      if (overlap) print "ALERT: two active tasks have the same scope"
-      if (!code && !overlap) print "No board ownership collision detected."
+      if (overlap) print "ALERT: two active CODE tasks reserve the same path"
+      if (!overlap) print "No active code-path collision detected."
     }'
   help_found=0
   while IFS= read -r report; do

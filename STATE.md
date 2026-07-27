@@ -26,7 +26,8 @@
   beta provider: the supplied API credential received HTTP 401 and was removed
   from the host Keychain; no secret is retained in this repository.
 - Agents may self-claim one existing `READY` task when the orchestrator is
-  unavailable. `WAITING` tasks and new code scope still require a board change.
+  unavailable. Parallel code is allowed where `UPDATE.md` reserves different
+  concrete paths; a collision, not concurrency itself, is the blocker.
 
 Updated: 2026-07-27 08:55 UTC.
 

@@ -25,10 +25,11 @@ The earlier detailed noticeboard is preserved at
 
 ## Active queue
 
-| ID | Owner | State | Type | Scope | One concrete outcome |
+| ID | Owner | State | Type | Reserved paths | One concrete outcome |
 | --- | --- | --- | --- | --- |
-| BETA-SMOKE-001 | antigravity-20260727-fb7a90 | IN_PROGRESS | QA | catalog | Verify beta UI/API exposes the five Create Universe styles; report exact result, no code change. |
-| BETA-CORE-001 | unassigned | WAITING | CODE | public-ui | After smoke passes, reproduce one user-visible flow defect and propose one minimal fix. |
+| BETA-SMOKE-001 | antigravity-20260727-fb7a90 | IN_PROGRESS | QA | `updates/antigravity-20260727-fb7a90.md` | Verify beta UI/API exposes the five Create Universe styles; report exact result, no code change. |
+| BETA-PROVIDER-001 | claude-code-20260727-557761 | IN_PROGRESS | CODE | `src/providers/magnific-imagegen-provider.js`; `src/web/generation-provider.js`; `test/providers/magnific-imagegen-provider.test.js`; `updates/claude-code-20260727-557761.md` | Add the strict Magnific async provider and mocked contract tests. Do not enable it or store a credential until host auth proves valid. |
+| BETA-UI-001 | unassigned | READY | CODE | `web/public/add-items-flow.js`; `web/public/profile-client.js`; `test/web/add-items-flow.test.js`; `test/web/profile-ui-flow.test.js` | Reproduce the saved-avatar → Add items flow; fix one verified defect without changing provider or scene files. |
 
 ## Agent protocol
 
@@ -37,7 +38,8 @@ The earlier detailed noticeboard is preserved at
    `AGENTS.md`, this file, and `STATE.md`.
 2. Work only on your assigned row. If `codex-main` is unavailable, an online
    agent may self-claim one `unassigned` + `READY` row in a small board commit;
-   never self-claim `WAITING`, `BLOCKED`, or `DONE`.
+   never self-claim `WAITING`, `BLOCKED`, or `DONE`. Parallel code rows are
+   normal when their Reserved paths do not overlap.
 3. Code agent: one focused change, one focused test, one commit, then push to
    `beta`. Include `updates/<agent-id>.md` in that same commit.
 4. Research/QA agent: do not modify product code. Write only
@@ -63,3 +65,5 @@ facts.
 - 2026-07-27 — FAST-001 enabled: `beta` is now the shared working branch.
 - 2026-07-27 — Antigravity assigned `BETA-SMOKE-001`; READY rows may now be
   self-claimed if the orchestrator is unavailable.
+- 2026-07-27 — parallel code is enabled by exact Reserved paths: Claude Code
+  owns Magnific provider wiring; an independent Add-items UI repair is READY.
