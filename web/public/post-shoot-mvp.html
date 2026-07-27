@@ -9,13 +9,13 @@
 <body>
   <header class="topbar">
     <a href="/">← WARDROBE</a>
-    <span>DRAFT MVP · БЕЗ ПЛАТНИХ ВИКЛИКІВ</span>
+    <span>LUCY 2.5 · 5 SECOND LIVE</span>
   </header>
   <main>
     <section class="intro">
-      <p>POST-SHOOT STUDIO</p>
-      <h1>Один затверджений shoot.<br>Два наступні кроки.</h1>
-      <p>Video створює готовий motion clip. Live Camera перетворює webcam у живе fashion-дзеркало Lucy 2.5.</p>
+      <p>LIVE TRY-ON</p>
+      <h1>Подивись образ<br>на собі наживо.</h1>
+      <p>Завантаж reference, вистав безкоштовну камеру і запусти п’ять секунд live try-on.</p>
     </section>
 
     <section class="source-card" aria-label="Затверджене джерело">
@@ -24,38 +24,24 @@
         <span id="reference-placeholder">APPROVED<br>SHOOT</span>
       </div>
       <div>
-        <p class="overline">ART_SHOOT.05 · QA PASS</p>
-        <h2>Amber Editorial · Look 04</h2>
-        <p>Identity, outfit, palette, світло і location style зафіксовані.</p>
+        <p class="overline">OUTFIT REFERENCE</p>
+        <h2>Образ для примірки</h2>
+        <p>Це зображення визначає одяг. Обличчя та кімната беруться з live camera.</p>
         <div class="locks"><span>IDENTITY LOCK</span><span>OUTFIT LOCK</span><span>STYLE LOCK</span></div>
         <label class="reference-upload">
           <input id="reference-upload" type="file" accept="image/jpeg,image/png,image/webp">
           <b>Завантажити reference photo</b>
-          <small>JPEG / PNG / WebP · мінімум 512×512 · локально до Lucy start</small>
+          <small>JPEG / PNG / WebP · мінімум 512×512</small>
         </label>
         <p id="reference-status" class="reference-status">Використовується demo approved shoot.</p>
       </div>
     </section>
 
-    <section id="choice-view">
-      <p class="section-label">ОБЕРИ ПРОДОВЖЕННЯ</p>
-      <div id="mode-grid" class="mode-grid"></div>
-    </section>
-
-    <section id="workspace" class="workspace hidden" aria-live="polite">
+    <section id="workspace" class="workspace" aria-live="polite">
       <div class="workspace-head">
-        <div><p id="workspace-code" class="overline"></p><h2 id="workspace-title"></h2></div>
-        <button id="close-workspace" type="button">Закрити</button>
+        <div><p class="overline">FREE PREVIEW → PAID LIVE</p><h2>Live view</h2></div>
       </div>
-      <div id="video-panel" class="hidden">
-        <div class="preset-grid">
-          <button class="preset selected" data-motion="editorial_micro">Editorial micro-moment<small>4–6 сек · найнадійніше</small></button>
-          <button class="preset" data-motion="camera_drift">Camera drift<small>Повільний push-in</small></button>
-          <button class="preset" data-motion="garment_gesture">Garment gesture<small>Одна контрольована дія</small></button>
-        </div>
-        <button id="video-dry-run" class="primary" type="button">Перевірити JSON job без генерації</button>
-      </div>
-      <div id="live-panel" class="hidden">
+      <div id="live-panel">
         <div class="mirror">
           <video id="camera" autoplay muted playsinline></video>
           <div class="guide"><span></span><b>Тримай плечі в межах рамки</b></div>
@@ -65,12 +51,11 @@
           <button id="camera-start" class="secondary" type="button">Увімкнути безкоштовний preview</button>
           <button id="camera-stop" class="secondary hidden" type="button">Stop camera</button>
           <label class="cost-consent"><input id="cost-consent" type="checkbox"> Я розумію: Lucy коштує $0.04/сек, 5 секунд = максимум $0.20.</label>
-          <button id="lucy-start" class="primary" type="button" disabled>Підготувати Lucy session</button>
-          <p>Платний запуск не відбудеться без окремого provider activation та явного підтвердження.</p>
+          <button id="lucy-start" class="primary" type="button" disabled>Start 5-second Live · max $0.20</button>
+          <button id="lucy-stop" class="secondary" type="button">Stop live</button>
+          <p id="live-status">Спочатку завантаж reference та увімкни камеру.</p>
         </div>
       </div>
-      <ol id="node-list" class="node-list"></ol>
-      <pre id="job-output" class="job-output">Очікує дію</pre>
     </section>
   </main>
   <script type="module" src="/post-shoot-mvp.js"></script>

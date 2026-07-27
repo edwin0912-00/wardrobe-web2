@@ -10,6 +10,7 @@ import { RunService } from './run-service.js';
 import { runLocalPreflight } from './preflight.js';
 import { createSceneRuntimeDependencies } from './scene-runtime.js';
 import { createVlmEvaluator } from './vlm-provider.js';
+import { createFalRealtimeTokenIssuer } from './fal-realtime-token.js';
 
 const projectRoot = path.resolve(import.meta.dirname, '..', '..');
 const generationMode = process.env.ZEELY_GENERATION_PROVIDER ?? 'higgsfield';
@@ -91,6 +92,7 @@ const app = await createWebApp({
   drafts,
   profiles,
   sceneDependencies,
+  lucyTokenIssuer: createFalRealtimeTokenIssuer(),
 });
 const draftCleanupTimer = setInterval(() => drafts.cleanupExpired().catch(() => {}), 60_000);
 const profileCleanup = async () => {

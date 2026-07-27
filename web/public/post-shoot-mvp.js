@@ -1,163 +1,129 @@
-const state = {
-  pipeline: null,
-  mode: null,
-  stream: null,
-  selectedMotion: 'editorial_micro',
-  referenceImage: null,
-  referenceUrl: null,
-};
+import { fal } from './vendor/fal-client.js';
+
+const MODEL_ID = 'decart/lucy-2-5/realtime';
+const state = { stream: null, reference: null, connection: null, peer: null, timer: null, running: false };
 const $ = (selector) => document.querySelector(selector);
+const prompt = 'Replace only the current clothing with the outfit from the reference image. Preserve the person face, identity, hair, skin, body shape, pose and hands. Preserve the existing room, background, camera angle and lighting. Do not modify anything except the clothing.';
 
-async function loadPipeline() {
-  const response = await fetch('/api/post-shoot/pipeline', { cache: 'no-store' });
-  if (!response.ok) throw new Error('Pipeline config unavailable');
-  state.pipeline = await response.json();
-  renderModes();
+function status(text) { $('#live-status').textContent = text; }
+function ready() {
+  $('#lucy-start').disabled = state.running || !state.stream || !state.reference || !$('#cost-consent').checked;
 }
-
-function renderModes() {
-  const grid = $('#mode-grid');
-  grid.replaceChildren(...state.pipeline.modes.map((mode) => {
-    const button = document.createElement('button');
-    button.className = 'mode-card';
-    const price = mode.id === 'live_webcam'
-      ? `$${mode.price_usd_per_second.toFixed(2)}/сек · max $${(mode.price_usd_per_second * mode.max_session_seconds).toFixed(2)}`
-      : 'ASYNC · QA BEFORE SAVE';
-    button.innerHTML = `<small>${mode.nodes[0]} → ${mode.nodes.at(-1)}</small><b>${mode.title}</b><p>${mode.description}</p><small>${price}</small>`;
-    button.addEventListener('click', () => openMode(mode.id));
-    return button;
-  }));
+function dataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Не вдалося прочитати reference.'));
+    reader.onload = () => resolve(reader.result);
+    reader.readAsDataURL(file);
+  });
 }
-
-function openMode(modeId) {
-  state.mode = state.pipeline.modes.find((mode) => mode.id === modeId);
-  $('#workspace').classList.remove('hidden');
-  $('#video-panel').classList.toggle('hidden', modeId !== 'video');
-  $('#live-panel').classList.toggle('hidden', modeId !== 'live_webcam');
-  $('#workspace-code').textContent = state.mode.nodes.join(' → ');
-  $('#workspace-title').textContent = state.mode.title;
-  renderNodes(0);
-  $('#job-output').textContent = 'Очікує дію';
-  $('#workspace').scrollIntoView({ behavior: 'smooth' });
+async function loadReference(file) {
+  if (!['image/jpeg', 'image/png', 'image/webp'].includes(file?.type)) throw new Error('Потрібен JPEG, PNG або WebP.');
+  const url = URL.createObjectURL(file);
+  const image = new Image();
+  image.src = url;
+  await image.decode();
+  if (image.naturalWidth < 512 || image.naturalHeight < 512) throw new Error('Reference має бути мінімум 512×512.');
+  state.reference = await dataUrl(file);
+  $('#reference-preview').src = url;
+  $('#reference-preview').classList.remove('hidden');
+  $('#reference-placeholder').classList.add('hidden');
+  $('#reference-status').textContent = `${file.name} · ${image.naturalWidth}×${image.naturalHeight} · READY`;
+  ready();
 }
-
-function renderNodes(activeIndex, completed = false) {
-  const byId = new Map(state.pipeline.nodes.map((node) => [node.id, node]));
-  $('#node-list').replaceChildren(...state.mode.nodes.map((id, index) => {
-    const node = byId.get(id);
-    const item = document.createElement('li');
-    item.className = completed || index < activeIndex ? 'done' : index === activeIndex ? 'active' : '';
-    item.innerHTML = `<b>${node.id}</b><small>${node.title}</small>`;
-    return item;
-  }));
-}
-
 async function startCamera() {
-  state.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+  state.stream = await navigator.mediaDevices.getUserMedia({
+    video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } },
+    audio: false,
+  });
   $('#camera').srcObject = state.stream;
   $('#camera-placeholder').classList.add('hidden');
   $('#camera-start').classList.add('hidden');
   $('#camera-stop').classList.remove('hidden');
-  renderNodes(1);
+  status('Відійди так, щоб було видно голову, торс і одяг до стегон.');
+  ready();
 }
-
+function closeLive(message = 'Live зупинено.') {
+  clearTimeout(state.timer);
+  state.timer = null;
+  state.peer?.close();
+  state.connection?.close();
+  state.peer = null;
+  state.connection = null;
+  state.running = false;
+  if (state.stream) $('#camera').srcObject = state.stream;
+  status(message);
+  ready();
+}
 function stopCamera() {
+  closeLive('Камера вимкнена.');
   state.stream?.getTracks().forEach((track) => track.stop());
   state.stream = null;
   $('#camera').srcObject = null;
   $('#camera-placeholder').classList.remove('hidden');
   $('#camera-start').classList.remove('hidden');
   $('#camera-stop').classList.add('hidden');
+  ready();
 }
-
-async function prepareLucy() {
-  if (!state.referenceImage) {
-    $('#job-output').textContent = 'Спочатку завантаж reference photo мінімум 512×512.';
-    return;
+async function signal(result) {
+  const type = result.type;
+  if (type === 'iceservers' || type === 'iceServers') {
+    const servers = result.iceservers || result.iceServers || result.ice_servers || [];
+    state.peer = new RTCPeerConnection({ iceServers: servers });
+    state.stream.getTracks().forEach((track) => state.peer.addTrack(track, state.stream));
+    state.peer.ontrack = (event) => {
+      $('#camera').srcObject = event.streams[0];
+      status('LUCY LIVE · transformed stream');
+    };
+    state.peer.onicecandidate = (event) => {
+      if (event.candidate) state.connection.send({ type: 'icecandidate', candidate: event.candidate.toJSON() });
+    };
+    const offer = await state.peer.createOffer();
+    await state.peer.setLocalDescription(offer);
+    state.connection.send({ type: 'offer', sdp: offer.sdp });
+  } else if (type === 'answer') {
+    await state.peer?.setRemoteDescription({ type: 'answer', sdp: result.sdp });
+  } else if (type === 'icecandidate' && state.peer) {
+    await state.peer.addIceCandidate(new RTCIceCandidate(result.candidate));
+  } else if (type === 'error' || ((type === 'prompt_ack' || type === 'set_image_ack') && result.success === false)) {
+    throw new Error(result.error || 'Lucy realtime error.');
   }
-  renderNodes(2);
-  const response = await fetch('/api/fal/realtime-token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      app: 'decart/lucy-2-5/realtime',
-      cost_acknowledged: true,
-      max_session_seconds: 5,
-    }),
+}
+async function startLive() {
+  state.running = true;
+  ready();
+  status('Підключення до Lucy…');
+  state.timer = setTimeout(() => closeLive('5 секунд завершено. Live автоматично зупинено.'), 5_000);
+  state.connection = fal.realtime.connect(MODEL_ID, {
+    connectionKey: `zeely-${crypto.randomUUID()}`,
+    throttleInterval: 0,
+    tokenExpirationSeconds: 10,
+    tokenProvider: async (app) => {
+      const response = await fetch('/api/fal/realtime-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ app, cost_acknowledged: true, max_session_seconds: 5 }),
+      });
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.error || `Token request failed (${response.status})`);
+      }
+      return response.text();
+    },
+    onResult: (result) => signal(result).catch((error) => closeLive(`Помилка: ${error.message}`)),
+    onError: (error) => closeLive(`Помилка Lucy: ${error.message}`),
   });
-  if (!response.ok) {
-    const error = await response.json();
-    $('#job-output').textContent = JSON.stringify(error, null, 2);
-    return;
-  }
-  $('#job-output').textContent = 'Provider token ready. WebRTC connection intentionally not auto-started in draft mode.';
+  state.connection.send({ prompt, reference_image_url: state.reference, enable_prompt_expansion: false });
 }
 
-async function loadReference(file) {
-  if (!['image/jpeg', 'image/png', 'image/webp'].includes(file?.type)) {
-    throw new Error('Потрібен JPEG, PNG або WebP.');
-  }
-  const url = URL.createObjectURL(file);
-  const image = new Image();
-  image.src = url;
-  await image.decode();
-  if (image.naturalWidth < 512 || image.naturalHeight < 512) {
-    URL.revokeObjectURL(url);
-    throw new Error('Reference photo має бути мінімум 512×512.');
-  }
-  if (state.referenceUrl) URL.revokeObjectURL(state.referenceUrl);
-  state.referenceImage = file;
-  state.referenceUrl = url;
-  $('#reference-preview').src = url;
-  $('#reference-preview').classList.remove('hidden');
-  $('#reference-placeholder').classList.add('hidden');
-  $('#reference-status').textContent = `${file.name} · ${image.naturalWidth}×${image.naturalHeight} · готово локально`;
-}
-
-function videoDryRun() {
-  renderNodes(3, true);
-  $('#job-output').textContent = JSON.stringify({
-    schema_version: '1.0.0',
-    pipeline_node: 'VIDEO.03',
-    dry_run: true,
-    source: { shoot_id: 'demo.approved.shoot', status: 'APPROVED', hash_bound: true },
-    motion_plan: state.selectedMotion,
-    paid_create_authorized: false,
-    next_action: 'REVIEW_THEN_EXPLICITLY_AUTHORIZE_PROVIDER',
-  }, null, 2);
-}
-
-document.addEventListener('click', (event) => {
-  const preset = event.target.closest('[data-motion]');
-  if (!preset) return;
-  document.querySelectorAll('[data-motion]').forEach((item) => item.classList.remove('selected'));
-  preset.classList.add('selected');
-  state.selectedMotion = preset.dataset.motion;
-  renderNodes(1);
-});
-$('#camera-start').addEventListener('click', () => startCamera().catch((error) => {
-  $('#job-output').textContent = `Camera error: ${error.message}`;
+$('#reference-upload').addEventListener('change', (event) => loadReference(event.target.files?.[0]).catch((error) => {
+  event.target.value = '';
+  $('#reference-status').textContent = error.message;
 }));
+$('#camera-start').addEventListener('click', () => startCamera().catch((error) => status(`Camera error: ${error.message}`)));
 $('#camera-stop').addEventListener('click', stopCamera);
-$('#cost-consent').addEventListener('change', (event) => {
-  $('#lucy-start').disabled = !event.target.checked;
-});
-$('#lucy-start').addEventListener('click', prepareLucy);
-$('#reference-upload').addEventListener('change', (event) => {
-  loadReference(event.target.files?.[0]).catch((error) => {
-    event.target.value = '';
-    $('#reference-status').textContent = error.message;
-  });
-});
-$('#video-dry-run').addEventListener('click', videoDryRun);
-$('#close-workspace').addEventListener('click', () => {
-  stopCamera();
-  $('#workspace').classList.add('hidden');
-});
-window.addEventListener('pagehide', () => {
-  stopCamera();
-  if (state.referenceUrl) URL.revokeObjectURL(state.referenceUrl);
-});
-loadPipeline().catch((error) => {
-  $('#mode-grid').textContent = error.message;
-});
+$('#cost-consent').addEventListener('change', ready);
+$('#lucy-start').addEventListener('click', () => startLive().catch((error) => closeLive(`Помилка: ${error.message}`)));
+$('#lucy-stop').addEventListener('click', () => closeLive());
+window.addEventListener('pagehide', stopCamera);
+ready();
