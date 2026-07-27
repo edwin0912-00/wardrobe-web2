@@ -29,10 +29,11 @@ authorized in this run.
    editorial contact-sheet manifest to the current integration contract. It
    indexes approved outputs only; it does not generate media or create UI.
 
-Each lane is ASSIGNED, not claimed as active. It has a separate lock, branch,
-pinned source blobs, exact status path, test-first acceptance, isolated
-handoff, and independent review requirement. A lane moves to IN_PROGRESS only
-after its assigned worker publishes a typed STARTED report.
+Each lane is now IN_PROGRESS only after a typed STARTED report was committed
+on its exact branch: MONITOR-002 `70089c7`, UI-002 `0179927`, and
+FASHION-001 `3c01a19`. Each has a separate lock, pinned source blobs, exact
+status path, test-first acceptance, isolated handoff, and independent review
+requirement.
 
 ## Verified product facts
 
