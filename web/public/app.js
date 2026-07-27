@@ -25,6 +25,7 @@ import {
   formatLookCount,
   idOfAvatar,
   lineageFromStorage,
+  latestLookForAvatar,
   looksForAvatar,
   looksForProfile,
   resolveAddItemsSelection,
@@ -943,6 +944,11 @@ function restoreProfileReturnView() {
 }
 
 async function selectProfileAvatar(profile, avatar) {
+  const look = latestLookForAvatar(profile, avatar);
+  if (look) {
+    await openProfileLook(profile, look);
+    return;
+  }
   selectedProfileAvatarId = avatarId(avatar);
   selectedProfileLookId = null;
   profileLookPage = 0;
@@ -1171,6 +1177,7 @@ async function renderProfile(profileValueToRender = null) {
   avatarPage.entries.forEach(({ value: avatar, index }) => {
     const id = avatarId(avatar);
     const active = id === selectedProfileAvatarId;
+    const latestLook = latestLookForAvatar(profile, avatar);
     const card = document.createElement('article');
     card.className = 'profile-avatar-item';
     card.classList.toggle('is-active', active);
@@ -1180,7 +1187,12 @@ async function renderProfile(profileValueToRender = null) {
     selector.className = 'profile-avatar-select';
     selector.setAttribute('aria-pressed', String(active));
     selector.setAttribute('aria-controls', 'profile-look-grid');
-    selector.setAttribute('aria-label', `${active ? 'Вибрано' : 'Обрати'} ${avatar.name || `Аватар ${index + 1}`} і показати пов’язані образи`);
+    selector.setAttribute(
+      'aria-label',
+      latestLook
+        ? `Відкрити ${latestLook.name || 'останній збережений образ'} для ${avatar.name || `Аватар ${index + 1}`}`
+        : `${active ? 'Вибрано' : 'Обрати'} ${avatar.name || `Аватар ${index + 1}`} і показати пов’язані образи`,
+    );
     const image = document.createElement('img');
     image.src = avatarImageUrl(avatar);
     image.alt = avatar.name || `Аватар ${index + 1}`;
