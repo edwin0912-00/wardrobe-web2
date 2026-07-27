@@ -5,7 +5,7 @@
 
 ## 1. Що це за проєкт і де він лежить
 
-- Локальний git root: `/Users/jarvis1/Documents/Codex/2026-07-19/mvp-zeely-format-html5-1-2`
+- Локальний git root: `$ZEELY_REPO_ROOT` (локальний шлях не комітується).
 - GitHub (private): `https://github.com/edwin0912-00/zeely-ai-engineering-test`
 - Основна гілка локально й на origin: `main`, база `b12ecf53af8bf92e236c745f50ee41cf83ee7cd3`.
 - Існують додаткові remote branches, їх **не можна** зливати без окремого review:
@@ -18,15 +18,14 @@
 
 | Surface | Address | Current state |
 |---|---|---|
-| Studio | `https://www.madeforthisjob.com` | Health відповідає `ready` |
-| Backup studio | `https://beta.madeforthisjob.com` | резервний hostname |
+| Canonical release health | `https://iwas.madeforthisjob.com/api/health` | єдина адреса, яку release/recovery CLI мають право перевіряти |
 | Operations monitor | `https://monitor.madeforthisjob.com` | live monitor |
-| Health | `https://www.madeforthisjob.com/api/health` | JSON; на момент handoff: generation / semantic_qa / editorial_generation `available` |
+| Health rule | `--external-health-url` дорівнює рівно canonical release health | `www`, `beta`, apex, URL з credentials і довільні hosts відхиляються до mutation |
 
 Production запускається на Mac, а не на Cloudflare Workers:
 
-- live root symlink: `/Users/jarvis1/.local/share/madeforthisjob/app`
-- deploy state: `/Users/jarvis1/.local/share/madeforthisjob/.zeely-deploy/state/runtime`
+- live root symlink: `$ZEELY_LIVE_ROOT`
+- deploy state: `$ZEELY_DEPLOY_STATE/runtime`
 - дані jobs/scenes: `$STATE/scenes/<scene-id>/scene.json`
 - Fastify app: port `4173`; monitor: port `4174`
 - Cloudflare named Tunnel: `zeely-madeforthisjob` → `127.0.0.1:4173/4174`
@@ -142,7 +141,7 @@ Earlier schema error was separately fixed: the Codex provider rejected JSON sche
 There is a local build candidate made before the newest failure:
 
 ```text
-/Users/jarvis1/.local/share/madeforthisjob/.zeely-deploy/candidates/qa-auto-recovery-20260724-1740
+<historical local candidate; do not reuse without verification>
 digest: 81407cf86aa5cf3d42879989b44b123f0c4392f7eb238372fd6e4acb77cde5f4
 ```
 
@@ -193,7 +192,7 @@ node --test --test-reporter=spec \
 Build/verify an immutable release outside the repo:
 
 ```bash
-candidate=/Users/jarvis1/.local/share/madeforthisjob/.zeely-deploy/candidates/<unique-name>
+candidate="$ZEELY_CANDIDATES_ROOT/<unique-name>"
 node tools/build-product-release.mjs "$candidate"
 node tools/verify-product-release.mjs "$candidate"
 manifest_sha=$(shasum -a 256 "$candidate/ops/product-release-manifest.json" | awk '{print $1}')
@@ -205,14 +204,14 @@ Deploy only when no active/malformed runs; do **not** bypass this protection:
 ```bash
 node tools/deploy-add-items-release.mjs --apply \
   --release "$candidate" \
-  --live-root /Users/jarvis1/.local/share/madeforthisjob/app \
+  --live-root "$ZEELY_LIVE_ROOT" \
   --expected-digest "$content_digest" \
   --expected-manifest-sha256 "$manifest_sha" \
   --expected-base-commit b12ecf53af8bf92e236c745f50ee41cf83ee7cd3 \
-  --web-plist /Users/jarvis1/Library/LaunchAgents/com.madeforthisjob.zeely.plist \
-  --monitor-plist /Users/jarvis1/Library/LaunchAgents/com.madeforthisjob.monitor.plist \
-  --tunnel-plist /Users/jarvis1/Library/LaunchAgents/com.madeforthisjob.cloudflared.plist \
-  --external-health-url https://www.madeforthisjob.com/api/health
+  --web-plist "$ZEELY_WEB_PLIST" \
+  --monitor-plist "$ZEELY_MONITOR_PLIST" \
+  --tunnel-plist "$ZEELY_TUNNEL_PLIST" \
+  --external-health-url https://iwas.madeforthisjob.com/api/health
 ```
 
 The `--expected-digest` value must equal `content_digest_sha256` from the release manifest. Do not invent CLI arguments or bypass the verifier.
@@ -220,7 +219,7 @@ The `--expected-digest` value must equal `content_digest_sha256` from the releas
 After deploy:
 
 ```bash
-curl -sS https://www.madeforthisjob.com/api/health
+curl -sS https://iwas.madeforthisjob.com/api/health
 launchctl print gui/$(id -u)/com.madeforthisjob.zeely
 ```
 

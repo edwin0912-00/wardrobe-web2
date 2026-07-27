@@ -20,6 +20,7 @@ import {
   waitForJson,
   waitUntilUnavailable,
 } from './deploy-add-items-release.mjs';
+import { assertCanonicalExternalHealthUrl } from './lib/deployment-target.mjs';
 
 const APPLY_REQUIRED = [
   'web_plist',
@@ -83,6 +84,9 @@ export function parseRecoveryArguments(argv) {
     /^[0-9]{14}-[0-9a-f-]{36}$/.test(options.transaction_id),
     '--transaction-id is invalid',
   );
+  if (options.external_health_url !== undefined) {
+    options.external_health_url = assertCanonicalExternalHealthUrl(options.external_health_url);
+  }
   if (options.apply) {
     for (const required of APPLY_REQUIRED) {
       invariant(options[required], `--apply requires --${required.replaceAll('_', '-')}`);
@@ -90,12 +94,6 @@ export function parseRecoveryArguments(argv) {
         invariant(path.isAbsolute(options[required]), `--${required.replaceAll('_', '-')} must be absolute`);
       }
     }
-    const externalHealth = new URL(options.external_health_url);
-    invariant(externalHealth.protocol === 'https:', '--external-health-url must use HTTPS');
-    invariant(
-      externalHealth.username === '' && externalHealth.password === '',
-      '--external-health-url cannot contain credentials',
-    );
   }
   options.local_health_url ??= 'http://127.0.0.1:4173/api/health';
   options.monitor_health_url ??= 'http://127.0.0.1:4174/api/health';

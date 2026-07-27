@@ -3,6 +3,7 @@ import test from 'node:test';
 import { parseRecoveryArguments } from '../../tools/recover-add-items-deployment.mjs';
 
 const transactionId = '20260723170000-11111111-1111-4111-8111-111111111111';
+const canonicalExternalHealthUrl = 'https://iwas.madeforthisjob.com/api/health';
 const base = [
   '--live-root', '/tmp/zeely-live/app',
   '--transaction-id', transactionId,
@@ -12,6 +13,20 @@ test('recovery CLI is inspect-only by default and mutation requires every health
   const dryRun = parseRecoveryArguments(base);
   assert.equal(dryRun.apply, false);
   assert.equal(dryRun.transaction_id, transactionId);
+  const rejectedTargets = [
+    'https://www.madeforthisjob.com/api/health',
+    'https://unrelated.example/api/health',
+    'https://user:secret@iwas.madeforthisjob.com/api/health',
+  ];
+  for (const rejectedTarget of rejectedTargets) {
+    assert.throws(
+      () => parseRecoveryArguments([
+        ...base,
+        '--external-health-url', rejectedTarget,
+      ]),
+      /--external-health-url must equal https:\/\/iwas\.madeforthisjob\.com\/api\/health/,
+    );
+  }
   assert.throws(
     () => parseRecoveryArguments([...base, '--apply']),
     /--apply requires --web-plist/,
@@ -23,16 +38,16 @@ test('recovery CLI is inspect-only by default and mutation requires every health
     '--web-plist', '/tmp/web.plist',
     '--monitor-plist', '/tmp/monitor.plist',
     '--tunnel-plist', '/tmp/tunnel.plist',
-    '--external-health-url', 'https://www.madeforthisjob.com/api/health',
+    '--external-health-url', canonicalExternalHealthUrl,
   ]);
   assert.equal(apply.apply, true);
   assert.equal(
     apply.external_health_url,
-    'https://www.madeforthisjob.com/api/health',
+    canonicalExternalHealthUrl,
   );
 });
 
-test('recovery CLI rejects unpinned targets and credential-bearing external URLs', () => {
+test('recovery CLI rejects unpinned targets, old hosts, and credential-bearing external URLs', () => {
   assert.throws(
     () => parseRecoveryArguments([
       '--live-root', 'relative/app',
@@ -40,15 +55,21 @@ test('recovery CLI rejects unpinned targets and credential-bearing external URLs
     ]),
     /absolute path/,
   );
-  assert.throws(
-    () => parseRecoveryArguments([
-      ...base,
-      '--apply',
-      '--web-plist', '/tmp/web.plist',
-      '--monitor-plist', '/tmp/monitor.plist',
-      '--tunnel-plist', '/tmp/tunnel.plist',
-      '--external-health-url', 'https://user:secret@example.com/api/health',
-    ]),
-    /cannot contain credentials/,
-  );
+  for (const rejectedTarget of [
+    'https://www.madeforthisjob.com/api/health',
+    'https://unrelated.example/api/health',
+    'https://user:secret@iwas.madeforthisjob.com/api/health',
+  ]) {
+    assert.throws(
+      () => parseRecoveryArguments([
+        ...base,
+        '--apply',
+        '--web-plist', '/tmp/web.plist',
+        '--monitor-plist', '/tmp/monitor.plist',
+        '--tunnel-plist', '/tmp/tunnel.plist',
+        '--external-health-url', rejectedTarget,
+      ]),
+      /--external-health-url must equal https:\/\/iwas\.madeforthisjob\.com\/api\/health/,
+    );
+  }
 });

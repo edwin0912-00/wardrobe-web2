@@ -2,10 +2,10 @@
 
 ## Публічні адреси
 
-- `https://www.madeforthisjob.com` — активний production hostname.
-- `https://beta.madeforthisjob.com` — активний резервний hostname.
+- `https://iwas.madeforthisjob.com/api/health` — єдиний canonical external health target для release та recovery CLI.
 - `https://monitor.madeforthisjob.com` — live operations monitor.
-- `https://madeforthisjob.com` — очікує заміни старого parking DNS-запису на Tunnel route.
+
+Release та recovery приймають лише точне значення `https://iwas.madeforthisjob.com/api/health` для `--external-health-url`. Старі `www`, `beta`, apex або довільні HTTPS URL не є fallback і мають бути відхилені до будь-якої зміни live state.
 
 Studio hostnames проходять через Cloudflare named Tunnel `zeely-madeforthisjob` до `http://127.0.0.1:4173`; monitor hostname — до окремого `http://127.0.0.1:4174`. Зараз обидві surfaces тимчасово відкриті для тестування без PIN. Старі credentials залишені лише локально, тому захист можна повернути без ротації; secrets у Git не зберігаються.
 
@@ -17,7 +17,7 @@ Studio hostnames проходять через Cloudflare named Tunnel `zeely-ma
 | Fastify live monitor | `com.madeforthisjob.monitor` | так |
 | Cloudflare Tunnel | `com.madeforthisjob.cloudflared` | так |
 
-Tunnel config: `/Users/jarvis1/.cloudflared/config.yml`.
+Tunnel config: локальний шлях поза Git (`$ZEELY_TUNNEL_CONFIG`).
 
 Перевірка стану:
 
@@ -25,7 +25,7 @@ Tunnel config: `/Users/jarvis1/.cloudflared/config.yml`.
 launchctl print gui/$(id -u)/com.madeforthisjob.zeely
 launchctl print gui/$(id -u)/com.madeforthisjob.monitor
 launchctl print gui/$(id -u)/com.madeforthisjob.cloudflared
-curl -I https://beta.madeforthisjob.com/api/health
+curl -I https://iwas.madeforthisjob.com/api/health
 ```
 
 Безпечний restart:

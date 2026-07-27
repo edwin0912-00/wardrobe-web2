@@ -55,6 +55,7 @@ import {
 
 const execute = promisify(execFile);
 const projectRoot = path.resolve(import.meta.dirname, '..', '..');
+const canonicalExternalHealthUrl = 'https://iwas.madeforthisjob.com/api/health';
 
 async function createRelease(root) {
   const releaseDirectory = path.join(root, 'release');
@@ -630,6 +631,20 @@ test('deployment CLI is dry-run by default and apply requires all exact service 
     '--expected-base-commit', 'c'.repeat(40),
   ];
   assert.equal(parseArguments(base).apply, false);
+  const rejectedTargets = [
+    'https://www.madeforthisjob.com/api/health',
+    'https://unrelated.example/api/health',
+    'https://user:secret@iwas.madeforthisjob.com/api/health',
+  ];
+  for (const rejectedTarget of rejectedTargets) {
+    assert.throws(
+      () => parseArguments([
+        ...base,
+        '--external-health-url', rejectedTarget,
+      ]),
+      /--external-health-url must equal https:\/\/iwas\.madeforthisjob\.com\/api\/health/,
+    );
+  }
   assert.throws(
     () => parseArguments([...base, '--apply']),
     /--apply requires --web-plist/,
@@ -640,9 +655,23 @@ test('deployment CLI is dry-run by default and apply requires all exact service 
     '--web-plist', '/tmp/web.plist',
     '--monitor-plist', '/tmp/monitor.plist',
     '--tunnel-plist', '/tmp/tunnel.plist',
-    '--external-health-url', 'https://www.madeforthisjob.com/api/health',
+    '--external-health-url', canonicalExternalHealthUrl,
   ]);
   assert.equal(apply.apply, true);
+  assert.equal(apply.external_health_url, canonicalExternalHealthUrl);
+  for (const rejectedTarget of rejectedTargets) {
+    assert.throws(
+      () => parseArguments([
+        ...base,
+        '--apply',
+        '--web-plist', '/tmp/web.plist',
+        '--monitor-plist', '/tmp/monitor.plist',
+        '--tunnel-plist', '/tmp/tunnel.plist',
+        '--external-health-url', rejectedTarget,
+      ]),
+      /--external-health-url must equal https:\/\/iwas\.madeforthisjob\.com\/api\/health/,
+    );
+  }
 });
 
 test('transaction lock is exclusive and failure text cannot expose local paths or common secrets', async (t) => {
@@ -668,10 +697,20 @@ test('transaction lock is exclusive and failure text cannot expose local paths o
     /Another deployment transaction/,
   );
 
+  const unixPrivatePath = `/${['Users', 'example', 'private', 'app'].join('/')}`;
+  const fakeProviderKey = ['sk', 'secretsecretsecretsecret'].join('-');
+  const fakeInviteKey = ['ek_live', 'secretsecret'].join('_');
+  const fakeBearer = ['Bearer', 'bearer.secret-value'].join(' ');
+  const fakeBasic = ['Basic', 'dXNlcjpzZWNyZXQ='].join(' ');
+  const fakeJwt = [
+    'eyJheader12345',
+    'payload12345',
+    'signature12345',
+  ].join('.');
   const sanitized = sanitizeFailure(new Error(
-    'failed at /Users/example/private/app, C:\\Users\\name\\private\\app and /private/var/folders/job '
-      + 'with token=abc123456789, sk-secretsecretsecretsecret, ek_live_secretsecret, '
-      + 'Bearer bearer.secret-value, Basic dXNlcjpzZWNyZXQ=, eyJheader12345.payload12345.signature12345, '
+    `failed at ${unixPrivatePath}, C:\\Users\\name\\private\\app and /private/var/folders/job `
+      + `with token=abc123456789, ${fakeProviderKey}, ${fakeInviteKey}, `
+      + `${fakeBearer}, ${fakeBasic}, ${fakeJwt}, `
       + 'https://alice:s3cr3t@example.test/private and postgres://db-user:p%40ss@db.example.test/app',
   ));
   assert.doesNotMatch(
