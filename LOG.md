@@ -17,6 +17,19 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-07-27 · MONITOR-002 / RELEASE-001 · reissued on current integration
+Change: reissue MONITOR-002 generation 2 and RELEASE-001 generation 3 at
+current integration `5df0df4`, preserving each lane's exact allowed paths and
+acceptance checks.
+Why: after SCENE-001 merged, the prior task bases predated an unrelated product
+delta and the scope guard correctly returned TASK_BASE_PRODUCT_DRIFT. Extending
+an old base would hide that fact; the fresh base makes a current candidate
+provable.
+Evidence: all pinned required-context blobs resolve identically at `5df0df4`.
+Prior code/handoff evidence remains historical only; each lane must publish a
+new typed status and isolated final handoff before review/merge.
+weakened_checks: none.
+
 2026-07-27 · SCENE-001 / MONITOR-002 / RELEASE-001 · controlled continuation
 Change: mark merged SCENE-001 DONE and grant the already-evidenced MONITOR-002
 and RELEASE-001 lanes a bounded review/merge extension through 10:30 UTC;

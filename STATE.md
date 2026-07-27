@@ -1,12 +1,12 @@
 # Wardrobe verified state
 
-Updated: 2026-07-27 08:48 UTC.
+Updated: 2026-07-27 08:55 UTC.
 
 ## Canonical position
 
 - Repository: `edwin0912-00/zeely-ai-engineering-test`.
 - Development target: `integration/wardrobe-20260726` at
-  `df9e887a96ec14250671c0d8bf12dd07f4420a9a`.
+  `5df0df404f3ed5ffb81d1c4490da57f042920bed`.
 - `main` is not a deployment target for this sprint. Only independently
   reviewed, scoped PRs may merge into `integration`.
 - `CTRL-002` is merged through PR #22. The repository now has a typed,
@@ -55,15 +55,12 @@ baseline job remains unable to classify its pre-existing asset-hash fixture
 under that runner; exact PR-merge reproduction showed only the known
 `b2fd…`/`f909…` fixture mismatch, not a scene regression.
 
-`RELEASE-001` generation two is in REVIEW after its exact owner
-published checkpoint `4f5616a` and typed report `e7fff23`. Its independent
-review reproduced the two behavioral parser failures at exact base `d372e6a`
-and passed the candidate contract test (2/2), with no runtime, credential, or
-deployment operation. It is awaiting only its isolated handoff before a scoped
-PR; the broad release suite remains a later candidate gate. `MONITOR-002` is
-also in REVIEW with an isolated handoff. Their published evidence predates the
-lease deadline; the control board grants only a bounded review/merge extension,
-with no product scope change.
+`RELEASE-001` and `MONITOR-002` are reissued against current integration
+`5df0df4` (generations 3 and 2). Their old product candidates were clean, but
+their former bases predated SCENE-001 and therefore truthfully failed the
+task-base drift guard. The reissue changes no allowed path, acceptance rule,
+or product behavior; it requires refreshed status and isolated handoff after
+rebasing. The broad release suite remains a later candidate gate.
 
 ## Verified product facts
 
