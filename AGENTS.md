@@ -85,6 +85,54 @@ handoffs.
 `integration/wardrobe-20260726`. Code discussion stays on that PR. Durable
 architecture decisions are committed as ADRs.
 
+## Queue listener and status reports
+
+Status publishing is enabled only when an active task's `allowed_paths` grants
+the exact artifact `.agents/status/<task-id>.json`. A wildcard or another
+task's status artifact is invalid. Legacy active tasks without that exact grant
+remain valid but silent until they are reissued; the artifact, when enabled,
+is a sanitized operational signal, not a chat transcript and not a claim of
+trust.
+
+Before starting work, an assigned agent starts the read-only listener from its
+own isolated worktree:
+
+```bash
+WARDROBE_AGENT_ID=<agent-id> node tools/coordination/watch-assignments.mjs --interval 20
+```
+
+The listener fetches only the canonical integration board and emits typed JSON
+when the assignment changes. It does not check out code, make a claim, edit a
+file, merge, deploy, run a model, or wake an unattended LLM. A persistent
+agent runner must explicitly consume the event and decide whether to work.
+
+After reading the task's pinned context, publish `STARTED`. Publish
+`HEARTBEAT` after each meaningful checkpoint and at least every ten minutes
+while work is active; `STARTED` or `HEARTBEAT` becomes `STATUS_STALE` after
+fifteen minutes. Publish `BLOCKED` as soon as safe work cannot continue, and
+`READY_FOR_REVIEW` only after the code commit, focused
+proof, independent review, and final handoff are prepared. Use:
+
+```bash
+WARDROBE_AGENT_ID=<agent-id> node tools/coordination/publish-agent-status.mjs \
+  --task <TASK-ID> --state <STARTED|HEARTBEAT|BLOCKED|READY_FOR_REVIEW> \
+  --summary-code <SUMMARY_CODE> --next-action-code <NEXT_ACTION_CODE>
+```
+
+`BLOCKED` additionally requires `--blocker-code <BLOCKER_CODE>`. All three
+fields are closed enums defined by `schemas/agent-status.schema.json`; the
+watcher renders its human labels from checked-in mappings. There is no free
+text field. Commit and push a status only to the task's own lane. The
+orchestrator watches all reports without checking out or mutating those lanes:
+
+```bash
+node tools/coordination/watch-agent-reports.mjs --interval 20
+```
+
+The status channel is intentionally not a replacement for GitHub
+authentication, branch protections, focused tests, an independent review, or
+the final handoff.
+
 Only `codex-main` may use the permanent `control/codex-main` branch. It is a
 queue-administration route, not an implementation lane: every introduced
 commit and the final diff may change only `OWNERS.md`, `LOG.md`, `STATE.md`,

@@ -7,6 +7,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const taskSchema = readSchema('schemas/agent-task.schema.json');
 const boardSchema = readSchema('schemas/agent-board.schema.json');
 const handoffSchema = readSchema('schemas/agent-handoff.schema.json');
+const statusSchema = readSchema('schemas/agent-status.schema.json');
 const RFC3339 = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?(Z|[+-](\d{2}):(\d{2}))$/u;
 
 const ajv = new Ajv2020({ allErrors: true, strict: true });
@@ -17,6 +18,7 @@ ajv.addFormat('date-time', {
 ajv.addSchema(taskSchema);
 const boardValidator = ajv.compile(boardSchema);
 const handoffValidator = ajv.compile(handoffSchema);
+const statusValidator = ajv.compile(statusSchema);
 
 export function validateBoardShape(value) {
   return validateWith(boardValidator, value, 'BOARD_SCHEMA_INVALID');
@@ -24,6 +26,10 @@ export function validateBoardShape(value) {
 
 export function validateHandoffShape(value) {
   return validateWith(handoffValidator, value, 'HANDOFF_SCHEMA_INVALID');
+}
+
+export function validateStatusShape(value) {
+  return validateWith(statusValidator, value, 'STATUS_SCHEMA_INVALID');
 }
 
 export function isStrictRfc3339(value) {

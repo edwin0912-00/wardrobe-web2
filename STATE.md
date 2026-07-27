@@ -9,7 +9,7 @@ Updated: 2026-07-27 00:37 UTC.
 - Claude branch `feature/wardrobe-editorial-mvp-20260726` is `622c878`.
 - Codex branch `codex-new-2026-07-26` is `f891719`.
 - Their merge base is `d7f760f`; Claude has 6 unique commits and Codex has 14.
-- `integration/wardrobe-20260726` is `34be402`.
+- `integration/wardrobe-20260726` is `e1ff773`.
 - WARD-001 implementation is frozen at `dc06b99` with isolated handoff
   `ee7d50f`; GitHub PR #5 preserved that evidence but its trusted acceptance
   runner lacked `rg`. Lease generation 3 reissues the unchanged implementation
@@ -42,6 +42,11 @@ Updated: 2026-07-27 00:37 UTC.
   accepts only narrow command shapes, requires a changed focused test to fail
   against the pinned base, and scans every introduced commit for known
   credential families without emitting matched values.
+- The CTRL-002 candidate adds a strict code-only per-task status artifact, a report
+  watcher, an agent bootstrap pack, and a bounded coordination-observer loop.
+  Focused governance proof passes locally: 25/25 tests and a valid candidate
+  board. The Looper is deterministic (no model host or council), compiles and
+  lints with zero findings, and strips compiler-local paths before commit.
 - WARD-001 history scan and focused scene/privacy contracts pass. Independent
   adversarial review of exact implementation SHA `dc06b99` returned PASS with
   `weakened_checks: none`.
@@ -63,6 +68,11 @@ Updated: 2026-07-27 00:37 UTC.
 - A complete production contact sheet and independent six-frame
   style-faithfulness proof are not established.
 - Deployment from the merged integration commit has not happened.
+- The model-policy aliases are not yet a verified provider contract. In
+  particular, the current OpenRouter image adapter maps the internal
+  `gpt_image_2` route to an unrelated `openai/gpt-5.4-image-2` transport rather
+  than the approved GPT Image 2 route. This requires a dedicated fail-closed
+  provider-contract task; it is not repaired by a display-name change.
 
 ## Temporary test baseline
 
@@ -123,7 +133,10 @@ agent watches the canonical board with
 `CTRL-002` is IN_PROGRESS as the active control-plane task that extends this read-only
 assignment listener into a schema-validated status/heartbeat protocol and a
 single context pack. It must not claim that a terminal watcher can wake an
-unattended LLM: the runner remains an explicit agent-side process.
+unattended LLM: the runner remains an explicit agent-side process. A live
+`STARTED` or `HEARTBEAT` report becomes `STATUS_STALE` after fifteen minutes;
+terminal `BLOCKED` and `READY_FOR_REVIEW` reports are not treated as a liveness
+claim.
 
 The task lease has been widened only enough to activate reporting: it may
 change the ownership rule and grant each active task exactly one matching

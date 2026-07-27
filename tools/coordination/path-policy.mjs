@@ -34,6 +34,7 @@ export const BASELINE_EXEMPT_PATTERNS = Object.freeze([
   '.agents/README.md',
   '.agents/policies/**',
   '.agents/handoffs/**',
+  '.agents/status/**',
   'docs/coordination/**',
   'schemas/agent-*.schema.json',
   'tools/coordination/**',

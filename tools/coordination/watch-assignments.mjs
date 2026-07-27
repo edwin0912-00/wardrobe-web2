@@ -45,12 +45,23 @@ if (!isCanonicalOriginUrl(remoteUrl)) {
   process.exit(1);
 }
 
+process.stdout.write(`${JSON.stringify({
+  ok: true,
+  event: 'ASSIGNMENT_WATCH_READY',
+  observed_at: new Date().toISOString(),
+  integration_branch: CANONICAL_INTEGRATION_BRANCH,
+  agent,
+  interval_seconds: intervalSeconds,
+})}\n`);
+
 let previousDigest = null;
 do {
   try {
     execFileSync('git', ['fetch', '--quiet', remote, CANONICAL_INTEGRATION_BRANCH], {
       cwd: process.cwd(),
       stdio: ['ignore', 'ignore', 'pipe'],
+      timeout: 15_000,
+      killSignal: 'SIGTERM',
     });
     const raw = execFileSync('git', ['show', 'FETCH_HEAD:TASKS.json'], {
       cwd: process.cwd(),
@@ -76,7 +87,7 @@ do {
       previousDigest = digest;
     }
   } catch (error) {
-    emitError([{ code: 'ASSIGNMENT_WATCH_FAILED', message: error.message }]);
+    emitError([{ code: 'ASSIGNMENT_WATCH_FAILED' }]);
     if (once) process.exitCode = 1;
   }
   if (!once) await delay(intervalSeconds * 1000);

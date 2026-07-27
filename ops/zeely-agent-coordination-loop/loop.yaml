@@ -1,0 +1,125 @@
+version: 1
+meta:
+  name: zeely-agent-coordination
+  description: >
+    Observe sanitized GitHub task and agent-status evidence, verify its
+    contract, and record only actionable queue findings for the orchestrator.
+  author: wardrobe-team
+  created: 2026-07-27
+
+goal:
+  statement: >
+    Keep the GitHub coordination plane observable without editing product
+    code, contacting providers, or impersonating an agent. For each active
+    lease, determine whether its exact status artifact is present, schema and
+    lease valid, and reachable from its declared lane. Write a sanitized
+    coordination report that identifies only concrete follow-up actions.
+  context_sources:
+    - cmd: ["node", "../../tools/coordination/validate-board.mjs", "--board-only"]
+      timeout_sec: 60
+    - cmd: ["node", "../../tools/coordination/watch-agent-reports.mjs", "--once"]
+      timeout_sec: 60
+    - file: ./inputs/coordination-brief.md
+  definition_of_done: >
+    loop-workspace/coordination-report.md names the exact report state for
+    every active lease, separates a missing report from an invalid report or
+    unavailable lane, includes no secret, prompt, raw media, runtime/output
+    identifier, or local absolute path, and all programmatic checks pass.
+  verification:
+    - id: board-valid
+      type: programmatic
+      check: ["node", "../../tools/coordination/validate-board.mjs", "--board-only"]
+      expect: exit_zero
+      timeout_sec: 60
+    - id: report-snapshot
+      type: programmatic
+      check: ["node", "../../tools/coordination/watch-agent-reports.mjs", "--once"]
+      expect: exit_zero
+      timeout_sec: 60
+    - id: report-safe
+      type: programmatic
+      check: ["node", "../../tools/coordination/check-coordination-report.mjs", "loop-workspace/coordination-report.md"]
+      expect: exit_zero
+      timeout_sec: 60
+    - id: reporting-contract
+      type: programmatic
+      check: ["node", "--test", "../../test/governance/agent-status.test.js", "../../test/governance/agent-control.test.js"]
+      expect: exit_zero
+      timeout_sec: 120
+host:
+  # Deterministic local reporter, not an LLM and not a sandbox escape route.
+  # It only emits a report from the typed watch snapshot to stdout.
+  cli: python3
+  model: deterministic-report-builder
+  invoke: ["python3", "scripts/deterministic-observer.py"]
+  timeout_sec: 60
+
+council: []
+
+gates:
+  plan_gate:
+    when: after_plan
+    members: []
+    verdict_policy: fixed_passes
+    criteria: [board-valid, report-snapshot, report-safe, reporting-contract]
+    max_revisions: 0
+  delivery_gate:
+    when: after_each_delivery
+    members: []
+    verdict_policy: fixed_passes
+    criteria: [board-valid, report-snapshot, report-safe, reporting-contract]
+    max_revisions: 0
+
+loop_control:
+  max_iterations: 12
+  budget:
+    # Looper schema requires a positive cap. This is a hard guard only and
+    # does not authorize any paid provider, generation, or external action.
+    usd: 0.01
+    tokens: 300000
+    wall_clock_min: 30
+  no_progress:
+    max_stalled_iterations: 2
+    signals:
+      - same report snapshot repeats without a new valid agent report
+      - coordination report has no material change after a revision
+      - programmatic verifier has unchanged failure output
+    action: stop
+  human_checkpoints: []
+  stop_conditions:
+    - delivery gate passes clean
+    - max_iterations reached
+    - same blocker repeats twice
+    - any budget cap exceeded
+    - a report would require product, deployment, provider, or credential action
+
+execution:
+  mode: in_session
+  isolation: current_workspace
+  side_effects:
+    requires_approval: false
+    duplicate_action_check: true
+    notes: >
+      The user authorized autonomous coordination observation. This loop may
+      write only its own loop-workspace report. It never edits product code,
+      TASKS.json, another agent branch, credentials, media, provider state,
+      deployment, or a live process. Its host is a checked-in deterministic
+      reporter, not Codex or any external model.
+
+observability:
+  state_file: state.json
+  run_log: run-log.md
+  checkpoint_granularity: gate
+
+privacy:
+  egress: []
+
+workspace:
+  dir: ./loop-workspace
+  layout:
+    - plan.md
+    - "delivery-{n}.md"
+    - "review-{n}.md"
+    - coordination-report.md
+    - state.json
+    - run-log.md
