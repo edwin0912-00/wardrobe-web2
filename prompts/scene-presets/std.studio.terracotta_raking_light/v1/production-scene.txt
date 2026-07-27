@@ -2,14 +2,17 @@
 Create one photorealistic high-fashion campaign still by placing the exact person and complete approved look from LOOK_MASTER into the original environment defined by ENVIRONMENT_ANCHOR and LIGHTING_COMPOSITION_ANCHOR.
 
 2. AUTHORITY
-LOOK_MASTER is the only authority for identity, face, body, hair, every approved clothing item, footwear, bag, accessory, color, material, construction, graphic, logo and readable product text. Preserve all of them exactly. The environment and lighting references have zero authority over the person or look.
+LOOK_MASTER is the only authority for identity, face, body, hair, every approved clothing item, footwear, bag, accessory, color, material, construction, graphic, logo and readable product text. Preserve all of them exactly. The environment and lighting define the ambient light wrap, rim light, bounce light, and color grade that MUST be actively applied onto the subject so the person is seamlessly integrated into the scene without a cutout or pasted-on effect.
 
 3. SCENE
 Invented minimalist studio with a terracotta textured concrete wall. Keep believable depth. Do not reproduce a recognizable real location or landmark. No other people, vehicles, bicycles, storefront branding, signs, café furniture or new props.
 
-4. LIGHT
-Dramatic raking side light enhancing wall texture, contrasting teal shadows. Preserve natural skin tone and exact item colors. Keep flare away from the face, logos, text and product construction. Ensure a grounded contact shadow.
-
+4. LIGHT AND RELIGHTING INTEGRATION
+Low-angle raking side light across a textured terracotta wall. ACTIVELY APPLY AND WRAP THIS LIGHTING ONTO THE SUBJECT:
+- Emphasize fabric textures, leather grain, and garment seams with strong directional side light.
+- Reflect warm terracotta bounce light onto the shadowed side of the subject.
+- Ground the subject with a crisp side contact shadow extending across the floor.
+- Absolute NO cutout, sticker, or pasted-on look. Harmonize color temperature and lighting direction while strictly preserving identity and garment construction.
 5. CAMERA AND FRAMING
 Final delivery is vertical 4:5. 50mm equivalent, straight verticals, no wide-angle distortion. Full body with complete head, complete bag/carried item, and both shoes. Subject bounding box occupies 74–78% of image height, with at least 8% clear space above hair and 2% clean floor space below footwear.
 
