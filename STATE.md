@@ -1,12 +1,12 @@
 # Wardrobe verified state
 
-Updated: 2026-07-27 01:58 UTC.
+Updated: 2026-07-27 02:40 UTC.
 
 ## Canonical position
 
 - Repository: `edwin0912-00/zeely-ai-engineering-test`.
 - Development target: `integration/wardrobe-20260726` at
-  `66968f9915bbddb1095174711cfd845bf95da0f8`.
+  `44aa829176b76f8da0d08233d996ebac982ff06e`.
 - `main` is not a deployment target for this sprint. Only independently
   reviewed, scoped PRs may merge into `integration`.
 - `CTRL-002` is merged through PR #22. The repository now has a typed,
@@ -16,9 +16,10 @@ Updated: 2026-07-27 01:58 UTC.
 
 ## Three-hour recovery sprint
 
-Hard stop: 2026-07-27 04:38 UTC. No paid generation, deployment, credential
-operation, runtime/output mutation, synthetic pixels, or gate relaxation is
-authorized in this run.
+Hard stop: 2026-07-27 04:38 UTC. Edwin has now authorized generation and
+deployment in principle, but neither may run until a specific approved job and
+a verified release candidate exist. Credential operations and gate relaxation
+remain prohibited.
 
 1. `MONITOR-002` — add durable typed stall diagnostics and throttled recovery
    heartbeat evidence, with sanitized API/SSE projection only.
@@ -28,6 +29,9 @@ authorized in this run.
 3. `FASHION-001` — port the already-reviewed private immutable six-frame
    editorial contact-sheet manifest to the current integration contract. It
    indexes approved outputs only; it does not generate media or create UI.
+4. `SCENE-001` — restore the missing scene-contract export used by the live
+   adapter. This is the narrow root repair for four suites that cannot load on
+   the integration base; it does not change framing or QA policy.
 
 The issued worktrees start at `f578c28`, while the first queue record pinned
 their product baseline at `66968f9`. This exact-base mismatch was caught before
@@ -60,11 +64,14 @@ review requirement.
 
 ## Known baseline limitation
 
-`node tools/coordination/check-test-baseline.mjs --base e1ff773…` reports
-`UNEXPECTED_REGRESSION` on that base itself (82 affected test files). It is a
-pre-existing integration-baseline defect. Scoped governance and lane
-acceptance checks remain required; this fact is not a waiver and no check may
-be weakened to hide it.
+`node tools/coordination/check-test-baseline.mjs --base 44aa829…` reports
+`UNEXPECTED_REGRESSION` on that base itself (82 affected test files). The
+verified source defect is an import of `contactPointInsideFrame` in
+`src/web/scene-adapters.js` with no matching export from
+`src/web/scene-contract.js`; four scene suites fail to load before their
+assertions run. `SCENE-001` is assigned to restore only that primitive and add
+a regression test. Scoped governance and lane acceptance checks remain
+required; this fact is not a waiver and no check may be weakened to hide it.
 
 ## Retired or blocked assignments
 
@@ -83,6 +90,5 @@ be weakened to hide it.
 
 - Any new or reconstructed image pixels, including crop expansion.
 - Any global or preset-specific gate relaxation.
-- Any paid provider, credential, deploy, `site.madeforthisjob.com`, or port
-  `4180` action.
+- Any credential action, `site.madeforthisjob.com`, or port `4180` action.
 - Any style-reference approval without supplied rights and hash evidence.

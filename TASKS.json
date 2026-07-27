@@ -2,7 +2,7 @@
   "schema_version": "1.0.0",
   "integration_branch": "integration/wardrobe-20260726",
   "orchestrator": "codex-main",
-  "updated_at": "2026-07-27T02:14:00.000Z",
+  "updated_at": "2026-07-27T02:40:00.000Z",
   "tasks": [
     {
       "id": "CTRL-001",
@@ -1248,6 +1248,96 @@
         "Do not generate, composite, resize, or derive image pixels; the task only indexes already-approved outputs.",
         "Do not expose a shoot across browser-profile ownership boundaries or leak runtime paths, resource identifiers, prompts, or provider metadata.",
         "Do not add UI, style-source approvals, generation, or deployment behavior."
+      ]
+    },
+    {
+      "id": "SCENE-001",
+      "title": "Restore the sole scene-contract export required by the live adapter",
+      "priority": "P0",
+      "state": "ASSIGNED",
+      "owner": "scene-contract",
+      "branch": "lane/SCENE-001/scene-contract",
+      "base_sha": "44aa829176b76f8da0d08233d996ebac982ff06e",
+      "lease": {
+        "generation": 1,
+        "issued_at": "2026-07-27T02:40:00.000Z",
+        "expires_at": "2026-07-27T04:20:00.000Z"
+      },
+      "lock_groups": [
+        "scene-core"
+      ],
+      "allowed_paths": [
+        "src/web/scene-contract.js",
+        "test/web/scene-contract-contact-point.test.js",
+        ".agents/status/SCENE-001.json",
+        ".agents/handoffs/SCENE-001.json"
+      ],
+      "forbidden_paths": [
+        "secrets/**",
+        ".env",
+        ".env.*",
+        "runtime/**",
+        "output/**",
+        "src/providers/**",
+        "src/monitor/**",
+        "web/public/**",
+        "assets/**",
+        "tools/deploy-add-items-release.mjs"
+      ],
+      "required_context": [
+        {
+          "path": "src/web/scene-contract.js",
+          "git_blob_sha": "758c984c015b4e00c3089ebdddf54c84dcfd005a"
+        },
+        {
+          "path": "src/web/scene-adapters.js",
+          "git_blob_sha": "799fb99e20e21bf755293139e74dbba1613984b7"
+        },
+        {
+          "path": "test/web/scene-adapters.test.js",
+          "git_blob_sha": "f7a5db4b55ff82687c4f9922e5dd450bad505eb6"
+        }
+      ],
+      "depends_on": [
+        "CTRL-002"
+      ],
+      "acceptance": [
+        {
+          "check_id": "scene-contract-import-regression",
+          "execution_class": "ci",
+          "command": [
+            "node",
+            "--test",
+            "test/web/openrouter-scene-evaluator.test.js",
+            "test/web/scene-adapters.test.js",
+            "test/web/scene-runtime-vlm-provider.test.js",
+            "test/web/scene-runtime.test.js",
+            "test/web/scene-contract-contact-point.test.js"
+          ],
+          "expected_exit_codes": [
+            0
+          ],
+          "expected": "The live adapter import resolves, geometry rejects malformed evidence, and the four previously unloadable scene suites execute."
+        },
+        {
+          "check_id": "diff-hygiene",
+          "execution_class": "ci",
+          "command": [
+            "git",
+            "diff",
+            "--check",
+            "$TASK_BASE_SHA...$TESTED_CODE_SHA"
+          ],
+          "expected_exit_codes": [
+            0
+          ],
+          "expected": "No whitespace errors or conflict markers."
+        }
+      ],
+      "stop_conditions": [
+        "Restore only the existing contract geometry primitive consumed by scene-adapters; do not alter scene framing bands, QA thresholds, presets, or evaluator semantics.",
+        "The new regression test must fail from this exact base for the missing export or invalid geometry behavior before the repair is written.",
+        "Do not generate media, invoke a provider, mutate runtime/output, deploy, or change credentials."
       ]
     }
   ]
