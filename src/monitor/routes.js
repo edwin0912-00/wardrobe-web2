@@ -1,3 +1,5 @@
+import { projectMonitorEvent } from './event-store.js';
+
 const CLIENT_TYPES = new Set([
   'client.boot', 'client.ready', 'client.file_selected', 'client.file_removed',
   'client.draft_saved', 'client.draft_restored', 'client.draft_error',
@@ -34,6 +36,7 @@ function normalizeClientEvent(payload) {
 }
 
 export async function registerMonitorRoutes(app, { store, acceptClientTelemetry = false, statusProvider = async () => ({ status: 'ok' }) }) {
+  const publicEvents = async (limit) => (await store.tail(limit)).map(projectMonitorEvent);
   if (acceptClientTelemetry) {
     app.post('/api/telemetry', async (request, reply) => {
       const serialized = JSON.stringify(request.body ?? {});
@@ -48,7 +51,7 @@ export async function registerMonitorRoutes(app, { store, acceptClientTelemetry 
   }
 
   app.get('/api/monitor/status', async () => statusProvider());
-  app.get('/api/monitor/events', async (request) => ({ events: await store.tail(request.query?.limit) }));
+  app.get('/api/monitor/events', async (request) => ({ events: await publicEvents(request.query?.limit) }));
   app.get('/api/monitor/stream', async (request, reply) => {
     reply.hijack();
     reply.raw.writeHead(200, {
@@ -62,12 +65,12 @@ export async function registerMonitorRoutes(app, { store, acceptClientTelemetry 
       seen.add(event.id);
       reply.raw.write(`event: monitor\ndata: ${JSON.stringify(event)}\n\n`);
     };
-    for (const event of await store.tail(200)) send(event);
+    for (const event of await publicEvents(200)) send(event);
     const poll = setInterval(async () => {
       try {
-        for (const event of await store.tail(300)) if (!seen.has(event.id)) send(event);
+        for (const event of await publicEvents(300)) if (!seen.has(event.id)) send(event);
         if (seen.size > 2_000) {
-          const current = new Set((await store.tail(500)).map((event) => event.id));
+          const current = new Set((await publicEvents(500)).map((event) => event.id));
           for (const id of seen) if (!current.has(id)) seen.delete(id);
         }
       } catch { /* next poll retries */ }

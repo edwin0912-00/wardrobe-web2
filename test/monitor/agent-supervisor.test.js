@@ -55,6 +55,265 @@ async function readSupervisorState(root) {
   return JSON.parse(await readFile(path.join(root, 'supervisor', 'state.json'), 'utf8'));
 }
 
+test('a stalled run persists one typed diagnostic, emits throttled heartbeats, and survives restart without raw run text', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'zeely-supervisor-stall-diagnostic-'));
+  const runId = '55555555-5555-4555-8555-555555555555';
+  const startedAt = Date.parse('2026-07-22T14:00:00.000Z');
+  let now = startedAt;
+  const clock = () => new Date(now);
+  const checkpointAt = new Date(now - (25 * 60_000) - 1).toISOString();
+  const privatePath = ['', 'Users', 'diagnostic-private', 'input.png'].join('/');
+  const unsafeMessage = ['RAW_PROMPT_DO_NOT_PERSIST', privatePath, 'TOKEN_VALUE_DO_NOT_PERSIST'].join(' ');
+  await mkdir(path.join(root, 'runs', runId), { recursive: true });
+  await writeFile(path.join(root, 'runs', runId, 'run.json'), JSON.stringify({
+    run_id: runId,
+    status: 'RUNNING',
+    phase: 'CORE_PIPELINE',
+    message: unsafeMessage,
+    updated_at: checkpointAt,
+  }));
+  const store = new MonitorEventStore({ filename: path.join(root, 'events.jsonl'), clock });
+  await store.initialize();
+  const supervisor = new AgentSupervisor({
+    store,
+    runsRoot: path.join(root, 'runs'),
+    stateRoot: path.join(root, 'supervisor'),
+    sourceRoot: root,
+    clock,
+    agentEnabled: false,
+    stallHeartbeatMs: 60_000,
+  });
+  t.after(() => supervisor.close());
+
+  await supervisor.initialize();
+  await supervisor.tick();
+  let state = await readSupervisorState(root);
+  const [incident] = Object.values(state.incidents);
+  assert.deepEqual(incident.diagnostic, {
+    incident_id: incident.id,
+    diagnostic_code: 'RUN_CHECKPOINT_STALLED',
+    phase: 'CORE_PIPELINE',
+    checkpoint_at: checkpointAt,
+    threshold_ms: 25 * 60_000,
+    elapsed_ms: (25 * 60_000) + 1,
+    recovery_state: 'QUEUED',
+    attempt_count: 0,
+  });
+  let events = await store.tail(20);
+  assert.equal(events.filter((event) => event.type === 'agent.stall_detected').length, 1);
+  assert.deepEqual(events.find((event) => event.type === 'agent.stall_detected').data, incident.diagnostic);
+
+  now += 59_999;
+  await supervisor.tick();
+  assert.equal((await store.tail(20)).filter((event) => event.type === 'agent.stall_heartbeat').length, 0);
+  now += 1;
+  await supervisor.tick();
+  events = await store.tail(20);
+  assert.equal(events.filter((event) => event.type === 'agent.stall_heartbeat').length, 1);
+  assert.equal(events.find((event) => event.type === 'agent.stall_heartbeat').data.incident_id, incident.id);
+
+  const restarted = new AgentSupervisor({
+    store,
+    runsRoot: path.join(root, 'runs'),
+    stateRoot: path.join(root, 'supervisor'),
+    sourceRoot: root,
+    clock,
+    agentEnabled: false,
+    stallHeartbeatMs: 60_000,
+  });
+  t.after(() => restarted.close());
+  await restarted.initialize();
+  await restarted.tick();
+  state = await readSupervisorState(root);
+  assert.deepEqual(Object.keys(state.incidents), [incident.id]);
+  events = await store.tail(20);
+  assert.equal(events.filter((event) => event.type === 'agent.stall_detected').length, 1);
+  assert.equal(events.filter((event) => event.type === 'agent.repair_started').length, 0);
+
+  const persisted = JSON.stringify(state);
+  const emitted = JSON.stringify(events);
+  for (const forbidden of ['RAW_PROMPT_DO_NOT_PERSIST', 'TOKEN_VALUE_DO_NOT_PERSIST', privatePath]) {
+    assert.doesNotMatch(persisted, new RegExp(forbidden.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+    assert.doesNotMatch(emitted, new RegExp(forbidden.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  }
+});
+
+test('a malformed persisted stall incident is repaired from the current run and map key', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'zeely-supervisor-stall-repair-'));
+  const runId = '66666666-6666-4666-8666-666666666666';
+  const now = new Date('2026-07-22T14:00:00.000Z');
+  const checkpointAt = new Date(now.valueOf() - 1_500_001).toISOString();
+  await mkdir(path.join(root, 'runs', runId), { recursive: true });
+  await writeFile(path.join(root, 'runs', runId, 'run.json'), JSON.stringify({
+    run_id: runId,
+    status: 'RUNNING',
+    phase: 'CORE_PIPELINE',
+    message: 'Pipeline checkpoint has not advanced',
+    updated_at: checkpointAt,
+  }));
+  const store = new MonitorEventStore({ filename: path.join(root, 'events.jsonl'), clock: () => now });
+  await store.initialize();
+  const initial = new AgentSupervisor({
+    store,
+    runsRoot: path.join(root, 'runs'),
+    stateRoot: path.join(root, 'supervisor'),
+    sourceRoot: root,
+    clock: () => now,
+    agentEnabled: false,
+  });
+  t.after(() => initial.close());
+  await initial.initialize();
+  await initial.tick();
+  const firstState = await readSupervisorState(root);
+  const [incidentId] = Object.keys(firstState.incidents);
+  const legacyPayload = ['legacy', 'payload', 'must', 'not', 'survive'].join('_');
+  await seedSupervisorState(root, {
+    ...firstState,
+    incidents: {
+      [incidentId]: {
+        id: 'not-a-stall-identifier',
+        run_id: 'not-the-current-run',
+        status: 'unknown',
+        attempts: -100,
+        created_at: 'not-a-timestamp',
+        last_heartbeat_at: 'not-a-timestamp',
+        diagnostic: { provider_payload: legacyPayload },
+        provider_payload: legacyPayload,
+      },
+    },
+    active_incident: null,
+    active_lease: null,
+  });
+  const restarted = new AgentSupervisor({
+    store,
+    runsRoot: path.join(root, 'runs'),
+    stateRoot: path.join(root, 'supervisor'),
+    sourceRoot: root,
+    clock: () => now,
+    agentEnabled: false,
+  });
+  t.after(() => restarted.close());
+  await restarted.initialize();
+  await assert.doesNotReject(restarted.tick());
+
+  const repaired = (await readSupervisorState(root)).incidents[incidentId];
+  assert.equal(repaired.id, incidentId);
+  assert.equal(repaired.run_id, runId);
+  assert.equal(repaired.status, 'queued');
+  assert.equal(repaired.attempts, 0);
+  assert.equal(repaired.diagnostic.incident_id, incidentId);
+  assert.equal(repaired.diagnostic.recovery_state, 'QUEUED');
+  assert.deepEqual(Object.keys(repaired).sort(), ['attempts', 'created_at', 'diagnostic', 'id', 'last_heartbeat_at', 'run_id', 'status']);
+  const persistedIncident = await readFile(path.join(root, 'supervisor', 'incidents', `${incidentId}.json`), 'utf8');
+  assert.doesNotMatch(persistedIncident, new RegExp(legacyPayload));
+  const events = await store.tail(20);
+  assert.equal(events.filter((event) => event.type === 'agent.stall_detected').length, 1);
+  assert.equal(events.filter((event) => event.type === 'agent.stall_heartbeat').length, 1);
+});
+
+test('a future persisted stall heartbeat is reset and emits a current recovery heartbeat', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'zeely-supervisor-future-heartbeat-'));
+  const runId = '68686868-6868-4686-8686-686868686868';
+  const now = new Date('2026-07-27T01:00:00.000Z');
+  const checkpointAt = new Date(now.valueOf() - 1_500_001).toISOString();
+  await mkdir(path.join(root, 'runs', runId), { recursive: true });
+  await writeFile(path.join(root, 'runs', runId, 'run.json'), JSON.stringify({
+    run_id: runId,
+    status: 'RUNNING',
+    phase: 'CORE_PIPELINE',
+    message: 'Pipeline checkpoint has not advanced',
+    updated_at: checkpointAt,
+  }));
+  const store = new MonitorEventStore({ filename: path.join(root, 'events.jsonl'), clock: () => now });
+  await store.initialize();
+  const initial = new AgentSupervisor({
+    store,
+    runsRoot: path.join(root, 'runs'),
+    stateRoot: path.join(root, 'supervisor'),
+    sourceRoot: root,
+    clock: () => now,
+    agentEnabled: false,
+  });
+  t.after(() => initial.close());
+  await initial.initialize();
+  await initial.tick();
+  const firstState = await readSupervisorState(root);
+  const [incidentId] = Object.keys(firstState.incidents);
+  await seedSupervisorState(root, {
+    ...firstState,
+    incidents: {
+      [incidentId]: {
+        ...firstState.incidents[incidentId],
+        last_heartbeat_at: new Date(now.valueOf() + (24 * 60 * 60_000)).toISOString(),
+      },
+    },
+    active_incident: null,
+    active_lease: null,
+  });
+
+  const restarted = new AgentSupervisor({
+    store,
+    runsRoot: path.join(root, 'runs'),
+    stateRoot: path.join(root, 'supervisor'),
+    sourceRoot: root,
+    clock: () => now,
+    agentEnabled: false,
+  });
+  t.after(() => restarted.close());
+  await restarted.initialize();
+  await restarted.tick();
+
+  const repaired = (await readSupervisorState(root)).incidents[incidentId];
+  assert.equal(repaired.last_heartbeat_at, now.toISOString());
+  const events = await store.tail(20);
+  assert.equal(events.filter((event) => event.type === 'agent.stall_heartbeat').length, 1);
+});
+
+test('a heartbeat leaves an active stall recovery attached to its settling worker', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'zeely-supervisor-stall-active-'));
+  const runId = '77777777-7777-4777-8777-777777777777';
+  const now = new Date('2026-07-22T14:00:00.000Z');
+  await mkdir(path.join(root, 'runs', runId), { recursive: true });
+  await writeFile(path.join(root, 'runs', runId, 'run.json'), JSON.stringify({
+    run_id: runId,
+    status: 'RUNNING',
+    phase: 'CORE_PIPELINE',
+    message: 'Pipeline checkpoint has not advanced',
+    updated_at: new Date(now.valueOf() - 1_500_001).toISOString(),
+  }));
+  const store = new MonitorEventStore({ filename: path.join(root, 'events.jsonl'), clock: () => now });
+  await store.initialize();
+  const controlled = controlledExecutor();
+  const supervisor = new AgentSupervisor({
+    store,
+    runsRoot: path.join(root, 'runs'),
+    stateRoot: path.join(root, 'supervisor'),
+    sourceRoot: root,
+    clock: () => now,
+    agentEnabled: true,
+    executor: controlled.executor,
+    gitStatus: async () => true,
+  });
+  t.after(async () => {
+    controlled.calls.at(-1)?.gate.resolve({ stdout: '', stderr: '' });
+    await supervisor.close();
+  });
+  await supervisor.initialize();
+  await supervisor.tick();
+  await waitFor(() => controlled.calls.length === 1, 'stalled incident did not dispatch');
+  await supervisor.tick();
+  controlled.calls[0].gate.resolve({ stdout: '', stderr: '' });
+  await waitFor(async () => {
+    const state = await readSupervisorState(root);
+    return Object.values(state.incidents).at(0)?.status === 'review_required';
+  }, 'active stall recovery did not settle after its heartbeat');
+  const state = await readSupervisorState(root);
+  const [incident] = Object.values(state.incidents);
+  assert.equal(incident.status, 'review_required');
+  assert.equal(incident.diagnostic.recovery_state, 'REVIEW_REQUIRED');
+  assert.equal(controlled.calls.length, 1);
+});
+
 test('agent supervisor comments persisted phases and opens one deduplicated incident', async (t) => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'zeely-supervisor-'));
   const runId = 'c8780403-9adf-43d7-a600-653b751b8a75';
@@ -119,8 +378,23 @@ test('restart reconciles a legacy stale active incident and launches it from the
 test('an unexpired lease from a previous supervisor owner is stale and dispatches exactly once', async (t) => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'zeely-supervisor-lease-'));
   const now = new Date('2026-07-22T14:00:00.000Z');
-  const incident = { id: 'incident-leased', run_id: 'c8780403-9adf-43d7-a600-653b751b8a75', status: 'running', attempts: 1,
-    created_at: '2026-07-22T13:00:00.000Z' };
+  const incident = {
+    id: '0123456789abcdef',
+    run_id: 'c8780403-9adf-43d7-a600-653b751b8a75',
+    status: 'running',
+    attempts: 1,
+    created_at: '2026-07-22T13:00:00.000Z',
+    diagnostic: {
+      incident_id: '0123456789abcdef',
+      diagnostic_code: 'RUN_CHECKPOINT_STALLED',
+      phase: 'CORE_PIPELINE',
+      checkpoint_at: '2026-07-22T13:34:59.999Z',
+      threshold_ms: 1_500_000,
+      elapsed_ms: 1_500_001,
+      recovery_state: 'RUNNING',
+      attempt_count: 1,
+    },
+  };
   await seedSupervisorState(root, { version: 2, last_event_id: null, started_at: now.toISOString(),
     incidents: { [incident.id]: incident }, active_incident: incident.id,
     active_lease: { incident_id: incident.id, owner_id: 'previous-process', acquired_at: now.toISOString(),
@@ -140,14 +414,19 @@ test('an unexpired lease from a previous supervisor owner is stale and dispatche
   await waitFor(() => controlled.calls.length === 1, 'foreign lease did not return incident to dispatch');
   await Promise.all([supervisor.tick(), supervisor.tick()]);
   assert.equal(controlled.calls.length, 1);
-  assert.equal((await readSupervisorState(root)).incidents[incident.id].attempts, 2);
+  const state = await readSupervisorState(root);
+  assert.equal(state.incidents[incident.id].attempts, 2);
+  assert.equal(state.incidents[incident.id].diagnostic.incident_id, incident.id);
+  assert.equal(state.incidents[incident.id].diagnostic.recovery_state, 'RUNNING');
+  assert.equal(state.incidents[incident.id].diagnostic.attempt_count, 2);
 });
 
 test('dispatcher is FIFO, drains after settle, and never double launches on concurrent ticks', async (t) => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'zeely-supervisor-fifo-'));
   const now = new Date('2026-07-22T14:00:00.000Z');
+  const localPath = ['', 'Users', 'jarvis1', 'private', 'run.json'].join('/');
   const first = { id: 'incident-first', run_id: '11111111-1111-4111-8111-111111111111', status: 'queued', attempts: 0,
-    created_at: '2026-07-22T13:00:00.000Z', summary: { message: 'Zeely failed at /Users/jarvis1/private/run.json' } };
+    created_at: '2026-07-22T13:00:00.000Z', summary: { message: `Zeely failed at ${localPath}` } };
   const second = { id: 'incident-second', run_id: '22222222-2222-4222-8222-222222222222', status: 'queued', attempts: 0,
     created_at: '2026-07-22T13:01:00.000Z' };
   await seedSupervisorState(root, { version: 2, last_event_id: null, started_at: now.toISOString(),
