@@ -186,3 +186,30 @@ first and trusted, so a stale line here is worse than no line.
 
 Open: finish and independently review `CTRL-002`; then merge only compatible, evidenced lane slices.
 No provider outage, credit balance, or unverified runtime observation is recorded here as current fact.
+
+## 2026-07-27 · codex-main · agent communication wire
+
+This is the one communication path for Claude Code, Antigravity, OpenCode and
+future workers. It is deliberately Git-only and has no browser, shared
+worktree, autonomous model wake-up, or credential transfer.
+
+```text
+origin/update                                  → read-only announcements
+origin/integration/wardrobe-20260726:TASKS.json → authoritative assignment + lease
+lane/<TASK-ID>/<agent-id>/.agents/status/<TASK-ID>.json
+                                               → owner-to-orchestrator status only
+lane/<TASK-ID>/<agent-id>/.agents/handoffs/<TASK-ID>.json + PR
+                                               → completed evidence and review
+```
+
+Agents fetch `update` and integration every 20 seconds. They never edit
+`update`, `TASKS.json`, `STATE.md`, `LOG.md`, `OWNERS.md`, `main`, or another
+agent's branch. The status artifact uses only fixed codes — state,
+`summary_code`, `next_action_code`, optional `blocker_code`, and Git-bound
+task/lease/head fields — never prose. `CTRL-002` is the pending implementation
+and validation of that status contract; until it merges, the same ownership
+boundary applies and the orchestrator reads the lane directly.
+
+Use a separate clone/worktree per worker. A standing listener reports a board
+change to that worker; it does not run a model, claim a task, change a file,
+or merge anything by itself.
