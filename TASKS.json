@@ -2,7 +2,7 @@
   "schema_version": "1.0.0",
   "integration_branch": "integration/wardrobe-20260726",
   "orchestrator": "codex-main",
-  "updated_at": "2026-07-27T03:15:00.000Z",
+  "updated_at": "2026-07-27T08:48:00.000Z",
   "tasks": [
     {
       "id": "CTRL-001",
@@ -989,14 +989,14 @@
       "id": "MONITOR-002",
       "title": "Persist typed stall diagnostics and recovery-safe heartbeat evidence",
       "priority": "P0",
-      "state": "IN_PROGRESS",
+      "state": "REVIEW",
       "owner": "monitor-diagnostics",
       "branch": "lane/MONITOR-002/monitor-diagnostics",
       "base_sha": "f578c28a7e3db506c0e8dbe06ca7e3e405cfea21",
       "lease": {
         "generation": 1,
         "issued_at": "2026-07-27T01:58:00.000Z",
-        "expires_at": "2026-07-27T04:38:00.000Z"
+        "expires_at": "2026-07-27T10:30:00.000Z"
       },
       "lock_groups": [
         "core-pipeline"
@@ -1084,7 +1084,7 @@
       "lease": {
         "generation": 1,
         "issued_at": "2026-07-27T01:58:00.000Z",
-        "expires_at": "2026-07-27T04:38:00.000Z"
+        "expires_at": "2026-07-27T10:30:00.000Z"
       },
       "lock_groups": [
         "public-ui"
@@ -1171,7 +1171,7 @@
       "lease": {
         "generation": 1,
         "issued_at": "2026-07-27T01:58:00.000Z",
-        "expires_at": "2026-07-27T04:38:00.000Z"
+        "expires_at": "2026-07-27T10:30:00.000Z"
       },
       "lock_groups": [
         "editorial"
@@ -1254,7 +1254,7 @@
       "id": "SCENE-001",
       "title": "Restore the scene contract and evaluator delivery handoff required by live scene QA",
       "priority": "P0",
-      "state": "IN_PROGRESS",
+      "state": "DONE",
       "owner": "scene-contract",
       "branch": "lane/SCENE-001/scene-contract",
       "base_sha": "44aa829176b76f8da0d08233d996ebac982ff06e",
@@ -1364,14 +1364,14 @@
       "id": "RELEASE-001",
       "title": "Bind deploy and recovery verification to the canonical iwas health target",
       "priority": "P0",
-      "state": "IN_PROGRESS",
+      "state": "REVIEW",
       "owner": "release-target",
       "branch": "lane/RELEASE-001/release-target",
       "base_sha": "d372e6a9762b332bf699a98b5d9950e423609a6a",
       "lease": {
         "generation": 2,
         "issued_at": "2026-07-27T03:15:00.000Z",
-        "expires_at": "2026-07-27T04:30:00.000Z"
+        "expires_at": "2026-07-27T10:30:00.000Z"
       },
       "lock_groups": [
         "release-ops"
