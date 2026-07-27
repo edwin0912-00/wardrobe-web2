@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>NEO-LUXE — Cyberpunk Luxury Fashion & Avatar Studio</title>
-  <meta name="description" content="Cyberpunk luxury 3D fashion studio and avatar generator with bento grid layout and interactive WebGL canvas.">
+  <title>WARDROBE STUDIO — High-Art 3D Garment Collision &amp; AI Pipeline</title>
+  <meta name="description" content="Pure high-art digital fashion creation platform with zero-gravity 3D garment air collision physics and canon creation pipeline.">
   
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -20,141 +20,129 @@
 
 <body class="neo-luxe-theme">
 
-  <!-- LAYER 0: CRT Scanlines & Grain Overlay -->
+  <!-- CRT Scanlines & Grain Overlay -->
   <div class="l-crt-vhs-layer"></div>
 
-  <!-- LAYER 1: Fullscreen WebGL Canvas for Interactive 3D Models -->
+  <!-- Fullscreen WebGL Canvas for Floating 3D Garment Collision Physics -->
   <canvas id="canvas"></canvas>
 
-  <!-- LAYER 2: Main Application Container (Neo-Luxe Cyberpunk App Window) -->
+  <!-- Main High-Art Studio Container -->
   <div class="nl-app-wrapper">
 
-    <!-- Top Navigation Header -->
+    <!-- Top Navigation Header (Pure Creation Platform - Zero E-Commerce Junk) -->
     <header class="nl-header">
       <div class="nl-brand">
-        <span class="nl-logo-text">NEO-LUXE</span>
-        <span class="nl-brackets">[ &nbsp; ]</span>
+        <span class="nl-logo-text">WARDROBE STUDIO</span>
+        <span class="nl-brackets">[ ART DIRECTION ]</span>
       </div>
       <nav class="nl-nav">
-        <a href="#collection" class="nl-nav-item active">COLLECTION</a>
-        <a href="#atelier" class="nl-nav-item">ATELIER</a>
-        <a href="#drops" class="nl-nav-item">DROPS</a>
-        <a href="#profile" class="nl-nav-item">PROFILE</a>
+        <a href="#identity" class="nl-nav-item active">01 / IDENTITY</a>
+        <a href="#garments" class="nl-nav-item">02 / GARMENTS</a>
+        <a href="#atmosphere" class="nl-nav-item">03 / ATMOSPHERE</a>
+        <a href="#campaign" class="nl-nav-item">04 / CAMPAIGN</a>
       </nav>
       <div class="nl-user-actions">
-        <button class="nl-icon-btn" type="button">SEARCH 🔍</button>
-        <button class="nl-icon-btn nl-bag-btn" type="button">BAG 🛍️ <span class="nl-bag-count">0</span></button>
+        <span class="nl-status-node">● AIR COLLISION ACTIVE</span>
       </div>
     </header>
 
     <!-- Main Content Area -->
     <main class="nl-main-content">
 
-      <!-- Section Title & Filter Controls -->
+      <!-- Section Title -->
       <div class="nl-section-header">
-        <h1 class="nl-main-title">CYBERPUNK ESSENTIALS</h1>
+        <h1 class="nl-main-title">3D GARMENT AIR COLLISION</h1>
         <div class="nl-filter-bar">
-          <button class="nl-filter-btn" type="button">All Statistics ▾</button>
-          <button class="nl-filter-btn active" type="button">All &gt;</button>
+          <button class="nl-filter-btn active" type="button">PHYSICS: ZERO-GRAVITY ▾</button>
         </div>
       </div>
 
-      <!-- CYBERPUNK BENTO GRID LAYOUT -->
+      <!-- Bento Grid Creation Cards -->
       <div class="nl-bento-grid">
 
-        <!-- Card 1: Top-Left — NEO-JACKET V.3 -->
-        <div class="nl-card nl-card-jacket" onclick="selectBentoItem('jacket', 'NEO-JACKET V.3', 2450)">
-          <div class="nl-card-badge">01 / TOP</div>
-          <div class="nl-card-3d-slot" id="slot-jacket">
-            <!-- 3D Canvas element inside or WebGL overlay target -->
-            <img src="/scenes/black_studio.webp" alt="Neo Jacket Preview" class="nl-card-img-preview">
+        <!-- Card 1: Top-Left — 3D Outer Jacket -->
+        <div class="nl-card nl-card-jacket" onclick="selectBentoItem('jacket', 'OUTER JACKET SCULPTURE')">
+          <div class="nl-card-badge">01 / TOP SILHOUETTE</div>
+          <div class="nl-card-3d-slot">
+            <img src="/scenes/black_studio.webp" alt="Jacket Sculpture" class="nl-card-img-preview">
           </div>
           <div class="nl-card-footer">
-            <div>
-              <h3 class="nl-card-name">NEO-JACKET V.3</h3>
-              <p class="nl-card-sub">Technical Nylon, Armor Plating</p>
-            </div>
-            <div class="nl-card-price-group">
-              <span class="nl-price">2450 N¥</span>
-              <button class="nl-action-link" type="button">[ VIEW DETAILS ]</button>
-            </div>
+            <h3 class="nl-card-name">OUTER JACKET SCULPTURE</h3>
+            <p class="nl-card-sub">Technical Nylon, Armor Plating</p>
+            <button class="nl-action-link" type="button">[ SYNTHESIZE SILHOUETTE ]</button>
           </div>
         </div>
 
-        <!-- Card 2: Top-Center — LUNA BOOTS -->
-        <div class="nl-card nl-card-boots" onclick="selectBentoItem('boots', 'LUNA BOOTS', 1890)">
-          <div class="nl-card-badge">02 / FOOTWEAR</div>
-          <div class="nl-card-3d-slot" id="slot-boots">
-            <img src="/scenes/night_neon.webp" alt="Luna Boots Preview" class="nl-card-img-preview">
+        <!-- Card 2: Top-Center — 3D Sculpted Trousers -->
+        <div class="nl-card nl-card-boots" onclick="selectBentoItem('trousers', 'SCULPTED TROUSERS')">
+          <div class="nl-card-badge">02 / BOTTOM STRUCTURE</div>
+          <div class="nl-card-3d-slot">
+            <img src="/scenes/night_neon.webp" alt="Trousers Sculpture" class="nl-card-img-preview">
           </div>
           <div class="nl-card-footer">
-            <h3 class="nl-card-name">LUNA BOOTS</h3>
-            <span class="nl-price">1890 N¥</span>
-            <p class="nl-card-sub">AR Integration</p>
-            <button class="nl-action-link" type="button">[ EXPLORE ]</button>
+            <h3 class="nl-card-name">SCULPTED TROUSERS</h3>
+            <p class="nl-card-sub">Kinetic Drape Weave</p>
+            <button class="nl-action-link" type="button">[ SYNTHESIZE LEGS ]</button>
           </div>
         </div>
 
-        <!-- Card 3: Top-Right — GRID VISOR -->
-        <div class="nl-card nl-card-visor" onclick="selectBentoItem('visor', 'GRID VISOR', 980)">
-          <div class="nl-card-badge">03 / ACCESSORY</div>
-          <div class="nl-card-3d-slot" id="slot-visor">
-            <img src="/scenes/amber_alley.webp" alt="Grid Visor Preview" class="nl-card-img-preview">
+        <!-- Card 3: Top-Right — 3D Silk Visor Scarf -->
+        <div class="nl-card nl-card-visor" onclick="selectBentoItem('visor', 'HOLOGRAPHIC DRAPE')">
+          <div class="nl-card-badge">03 / ACCENT DRAPE</div>
+          <div class="nl-card-3d-slot">
+            <img src="/scenes/amber_alley.webp" alt="Accent Drape" class="nl-card-img-preview">
           </div>
           <div class="nl-card-footer">
-            <h3 class="nl-card-name">GRID VISOR</h3>
-            <span class="nl-price">980 N¥</span>
-            <p class="nl-card-sub">HMD Tech</p>
-            <button class="nl-action-link" type="button">[ SHOP ]</button>
+            <h3 class="nl-card-name">HOLOGRAPHIC DRAPE</h3>
+            <p class="nl-card-sub">Thin-Film Interference</p>
+            <button class="nl-action-link" type="button">[ SYNTHESIZE DRAPE ]</button>
           </div>
         </div>
 
-        <!-- Card 4: Featured Bottom-Left Large — AURORA DRESS -->
-        <div class="nl-card nl-card-featured" onclick="selectBentoItem('dress', 'AURORA DRESS', 5800)">
-          <div class="nl-featured-label">Featured Item:</div>
-          <h2 class="nl-featured-title">AURORA DRESS</h2>
+        <!-- Card 4: Featured Bottom-Left Large — MASTER OUTFIT ASSEMBLY -->
+        <div class="nl-card nl-card-featured" onclick="selectBentoItem('master', 'AURORA MASTER LOOK')">
+          <div class="nl-featured-label">Featured Art Assembly:</div>
+          <h2 class="nl-featured-title">AURORA MASTER LOOK</h2>
           
-          <div class="nl-featured-3d-stage" id="slot-dress">
-            <!-- Central 3D Floating Iridescent Dress & Wireframe Polyhedron -->
+          <div class="nl-featured-3d-stage">
             <div class="nl-wireframe-polyhedron"></div>
           </div>
 
           <div class="nl-featured-info">
-            <span class="nl-featured-price">5800 N¥</span>
-            <p class="nl-featured-desc">Smart Fabric<br>Kinetic LEDs</p>
-            <button class="nl-add-bag-btn" type="button">[ ADD TO BAG / BUILD LOOK ]</button>
+            <p class="nl-featured-desc">Iridescent Silk<br>Volumetric Lighting</p>
+            <button class="nl-add-bag-btn" type="button">[ CONFIRM MASTER LOOK &amp; RUN PIPELINE ]</button>
           </div>
         </div>
 
-        <!-- Card 5: Right Sidebar — NEW DROPS -->
+        <!-- Card 5: Right Sidebar — 3D ATMOSPHERES -->
         <div class="nl-card nl-card-sidebar">
           <div class="nl-sidebar-header">
-            <h3 class="nl-sidebar-title">NEW DROPS</h3>
+            <h3 class="nl-sidebar-title">ATMOSPHERES</h3>
             <span class="nl-sidebar-nav">≚</span>
           </div>
 
           <div class="nl-drops-list">
-            <div class="nl-drop-item" onclick="selectBentoItem('gloves', 'CYBER-GLOVES', 450)">
-              <div class="nl-drop-icon">🧤</div>
+            <div class="nl-drop-item" onclick="chooseAtmosphere('ocean_dusk', '#0a1520')">
+              <div class="nl-drop-icon">🌊</div>
               <div class="nl-drop-details">
-                <span class="nl-drop-name">CYBER-GLOVES</span>
-                <span class="nl-drop-price">450 N¥</span>
+                <span class="nl-drop-name">OCEAN DUSK</span>
+                <span class="nl-drop-price">Blue Hour Coastal</span>
               </div>
             </div>
 
-            <div class="nl-drop-item" onclick="selectBentoItem('sling', 'TECH-SLING', 720)">
-              <div class="nl-drop-icon">🎒</div>
+            <div class="nl-drop-item" onclick="chooseAtmosphere('night_neon', '#0f0a18')">
+              <div class="nl-drop-icon">🌃</div>
               <div class="nl-drop-details">
-                <span class="nl-drop-name">TECH-SLING</span>
-                <span class="nl-drop-price">720 N¥</span>
+                <span class="nl-drop-name">NIGHT NEON</span>
+                <span class="nl-drop-price">Wet Asphalt City</span>
               </div>
             </div>
 
-            <div class="nl-drop-item" onclick="selectBentoItem('mask', 'MASK V.1', 610)">
-              <div class="nl-drop-icon">🎭</div>
+            <div class="nl-drop-item" onclick="chooseAtmosphere('abandoned_palace', '#100e0a')">
+              <div class="nl-drop-icon">🏛️</div>
               <div class="nl-drop-details">
-                <span class="nl-drop-name">TACTICAL MASK V.1</span>
-                <span class="nl-drop-price">610 N¥</span>
+                <span class="nl-drop-name">ABANDONED PALACE</span>
+                <span class="nl-drop-price">Baroque Light Shaft</span>
               </div>
             </div>
           </div>
@@ -162,15 +150,17 @@
 
       </div><!-- /nl-bento-grid -->
 
-      <!-- Canon Step Pipeline Drawer (Unfolds when items are chosen) -->
+      <!-- Canon Execution Drawer -->
       <div class="nl-canon-drawer" id="canon-drawer">
         <div class="nl-drawer-inner">
           <div class="nl-drawer-header">
-            <span class="nl-badge-cyan">CANON PIPELINE</span>
-            <h2 class="nl-drawer-title" id="drawer-status-title">ОБРАНО 0 ЕЛЕМЕНТІВ ГАРДЕРОБУ</h2>
+            <span class="nl-badge-cyan">CANON PIPELINE CONTRACT</span>
+            <h2 class="nl-drawer-title" id="drawer-status-title">ОБРАЗ ЗАФІКСОВАНО · ОБЕРІТЬ НАПРЯМОК</h2>
           </div>
           <div class="nl-drawer-actions">
-            <button class="nl-primary-btn" onclick="openPathways()" type="button">ЗАТВЕРДИТИ OUTFIT &amp; ВІДКРИТИ 3 ВИХОДИ →</button>
+            <button class="nl-primary-btn" onclick="executePathway('photoshoot')" type="button">📸 ФОТОСЕСІЯ (6 КОРДІВ)</button>
+            <button class="nl-primary-btn" onclick="executePathway('video')" type="button" style="background:#00f0ff;color:#000;">🎬 FASHION VIDEO</button>
+            <button class="nl-primary-btn" onclick="executePathway('live')" type="button" style="background:#fff;color:#000;">🎥 LIVE WEBCAM</button>
           </div>
         </div>
       </div>
@@ -182,34 +172,44 @@
   <!-- WebGL Engine Script -->
   <script src="/wardrobe-lusion-engine.js"></script>
   <script>
-    const selectedItems = new Set();
-    
-    function selectBentoItem(id, name, price) {
+    const selectedGarments = new Set();
+
+    function selectBentoItem(id, name) {
       const card = event.currentTarget;
-      if (selectedItems.has(id)) {
-        selectedItems.delete(id);
+      if (selectedGarments.has(id)) {
+        selectedGarments.delete(id);
         card.classList.remove('selected');
       } else {
-        selectedItems.add(id);
+        selectedGarments.add(id);
         card.classList.add('selected');
       }
 
       const drawer = document.getElementById('canon-drawer');
       const statusTitle = document.getElementById('drawer-status-title');
-      const bagCount = document.querySelector('.nl-bag-count');
 
-      if (bagCount) bagCount.textContent = selectedItems.size;
-
-      if (selectedItems.size > 0) {
+      if (selectedGarments.size > 0) {
         if (drawer) drawer.classList.add('active');
-        if (statusTitle) statusTitle.textContent = `ЗАТВЕРДЖЕНО ${selectedItems.size} ЕЛЕМЕНТІВ · OUTFIT ГОТОВИЙ`;
+        if (statusTitle) statusTitle.textContent = `ЗАТВЕРДЖЕНО ${selectedGarments.size} 3D-ЕЛЕМЕНТІВ · OUTFIT ГОТОВИЙ`;
       } else {
         if (drawer) drawer.classList.remove('active');
       }
     }
 
-    function openPathways() {
-      alert(`Master Outfit (${selectedItems.size} елементів) зафіксовано! Відкриваються 3 рівноправні напрямки: Фотосесія з локацією, Fashion Video, Live Camera Try-on.`);
+    function chooseAtmosphere(sceneId, hexColor) {
+      if (window.wardrobeEngine) {
+        window.wardrobeEngine.setThemeColor(hexColor);
+      }
+      alert(`Світлову атмосферу 3D-сцени переключено на: ${sceneId}`);
+    }
+
+    function executePathway(type) {
+      if (type === 'photoshoot') {
+        alert('Запуск фотосесії: Створення 6-кадрової едіторіал серії у вибраній атмосфері...');
+      } else if (type === 'video') {
+        alert('Запуск Fashion Video: 3D Motion Kinetic Reel...');
+      } else if (type === 'live') {
+        alert('Запуск Live Web Примірки через веб-камеру (Lucy Engine)...');
+      }
     }
   </script>
 </body>
