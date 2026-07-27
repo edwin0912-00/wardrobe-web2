@@ -44,7 +44,14 @@
       <div id="live-panel">
         <div class="mirror">
           <video id="camera" autoplay muted playsinline></video>
-          <div class="guide"><span></span><b>Тримай плечі в межах рамки</b></div>
+          <div class="fit-guide" aria-hidden="true">
+            <div class="scan-line"></div>
+            <svg viewBox="0 0 240 420" role="presentation">
+              <path class="body-line" d="M120 24c-25 0-44 20-44 45 0 22 14 40 34 45v17c-12 3-26 8-40 16-23 14-32 42-34 74l-4 70m88-160v270m0-270c12 3 26 8 40 16 23 14 32 42 34 74l4 70M70 147c12 38 13 82 9 130l-15 124m106-254c-12 38-13 82-9 130l15 124"/>
+              <path class="shoulder-bracket" d="M38 179v-24h28m136 24v-24h-28M38 294v24h28m136-24v24h-28"/>
+            </svg>
+            <div class="distance-meter"><i></i><span>1.5–2 m</span></div>
+          </div>
           <div id="camera-placeholder">Камера вимкнена</div>
         </div>
         <div class="live-controls">
@@ -53,7 +60,7 @@
           <label class="cost-consent"><input id="cost-consent" type="checkbox"> Я розумію: Lucy коштує $0.04/сек, 5 секунд = максимум $0.20.</label>
           <button id="lucy-start" class="primary" type="button" disabled>Start 5-second Live · max $0.20</button>
           <button id="lucy-stop" class="secondary" type="button">Stop live</button>
-          <p id="live-status">Спочатку завантаж reference та увімкни камеру.</p>
+          <p id="live-status">Постав телефон на рівні грудей · відійди на 1.5–2 м · у кадрі мають бути голова, торс і стегна.</p>
         </div>
       </div>
     </section>
