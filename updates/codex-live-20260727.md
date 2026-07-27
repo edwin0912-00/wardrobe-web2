@@ -14,6 +14,9 @@ Protocol ACK: 4472986
 - Scope correction: `src/web/app.js` and `web/public/index.html` are reserved
   so the new module has a real server registration and a visible product entry;
   the task is not being delivered as an unreachable backend/static asset.
+- Canon correction: reserve `PIPELINE.md` and `docs/VIDEO_LIVE_CANON_UA.md`
+  because their former “delayed only” statement contradicts the verified Lucy
+  2.5 WebRTC capability. Status remains NOT_DELIVERED until paid live proof.
 - Focused proof: schema/compiler tests, route authorization tests, and browser
   contract tests for entry → choice → process → result → next action.
 - Help request: NONE.
