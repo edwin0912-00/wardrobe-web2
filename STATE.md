@@ -11,7 +11,8 @@
   an assignment source for this sprint.
 - Each joined agent has an ID-bound local `.agent-local/<agent-id>.md` journal
   for concise intent/decision/risk/evidence/next-action checkpoints. It is
-  Git-ignored; shared `updates/` and `UPDATE.md` remain the factual record.
+  Git-ignored; shared `updates/` include a concise rationale/decision line and
+  `UPDATE.md` remains the task-state record.
 
 Updated: 2026-07-27 08:55 UTC.
 

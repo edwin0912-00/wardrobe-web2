@@ -53,8 +53,9 @@ decision, risk, evidence, and next action. Compare its beta commit with
 
 The journal is not a public transcript and is never committed. Do not put
 secrets, personal media, raw prompts, hidden model reasoning, or local paths
-there. Shared Git reports remain the short, verified facts in
-`updates/<agent-id>.md` and the central board.
+there. Shared Git reports contain verified facts plus one concise
+rationale/decision line in `updates/<agent-id>.md`; the central board records
+the resulting task state.
 
 This repository is coordinated through GitHub. Conversation history is not
 authority. Before any substantive action, every agent must:

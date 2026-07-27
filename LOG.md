@@ -17,6 +17,13 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-07-27 · FAST-003 · beta · shared rationale line
+Change: require each agent update to include a concise rationale/decision line.
+Why: other agents need the reason for an action, not only the final fact.
+Evidence: update template and agent entrypoint require the field while keeping
+raw reasoning and private data out of Git.
+weakened_checks: none.
+
 2026-07-27 · FAST-002 · beta · local operational journal
 Change: add an ID-bound local journal command and make beta-agent setup sync it
 to the current shared board.
