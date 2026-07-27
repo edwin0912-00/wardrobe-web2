@@ -112,6 +112,10 @@ Updated: 2026-07-28 00:45 UTC.
 - A saved look now visibly offers Photoshoot, Fashion video and Live camera in
   one place. The Fashion video card is honest: it reports the missing real
   transport instead of producing or claiming a mock clip.
+- Fashion-shoot release is now assigned as one end-to-end outcome to Claude:
+  inventory all units, complete only source-valid ones, wire each into Create
+  Universe, and activate/smoke beta. The previous documents-only portfolio
+  task is retained as evidence but is no longer the finish line.
 - Full `npm test` is currently refused before tests by the resource preflight:
   swap is 5.16 GiB, above the 1.50 GiB safety ceiling. No test result is being
   represented as a PASS while this condition holds.

@@ -89,6 +89,7 @@ beta release. A card, API contract, or mocked status alone is not a PASS.
 | BETA-SCENE-JOURNEY-SMOKE-001 | BACKGROUND.01–02 + UNIVERSE.01–04 · Реальний smoke двох image-гілок | unassigned | READY | QA | `updates/<agent-id>.md` | With one approved full-look fixture and the existing provider route, run one standard background and one ready `shoot.*` execution. Report exact created job, QA outcome, persistence and retry behavior without raw personal media or prompts. |
 | BETA-LIVE-COMPLETE-001 | LIVE.01–04 · Камера, consent, session end і explicit capture | unassigned | READY | CODE + QA | `web/public/post-shoot-mvp.*`; `src/web/post-shoot-*.js`; `test/web/post-shoot-*.test.js`; `updates/<agent-id>.md` | Keep browser camera local until explicit consent; prove camera preview and cost denial without provider use; implement/verify explicit capture-or-discard after a bounded session. No background recording and no consented provider call in QA. |
 | BETA-PIPELINE-EXPLAINER-001 | RESULT · Титри та пояснення перевіреного pipeline | unassigned | READY | CODE | `web/public/experience.css`; `web/public/index.html`; `web/public/app.js`; `web/public/progress-model.js`; `test/web/progress-model.test.js`; `updates/<agent-id>.md` | From a completed result, show a compact, readable explainer: source locks, current gate, result/QA, and the next branch. It must use the existing technical node truth and must not expose model reasoning or secrets. |
+| BETA-FASHION-SHOOT-RELEASE-001 | UNIVERSE.01–04 + ART_SHOOT.01–05 · Повний реліз усіх валідних fashion shoot | claude-code-20260727-a3f1c8 | IN_PROGRESS | CODE + RELEASE | `docs/style-units/shoot.*/**`; `assets/scene-mood-cards/shoot.*`; `src/web/scene-resolvers.js`; `src/web/editorial-shoot-bible.js`; `test/web/editorial-preview-api.test.js`; `test/contracts/scene-production-packs.test.js`; `updates/claude-code-20260727-a3f1c8.md` | **Direct operator instruction:** inventory every `shoot.*` unit and the six portfolio shoots; finish every unit that has legitimate source evidence into the strict contract; register every passing unit in Create Universe; focused-test, activate its exact SHA on beta and smoke the card/API. Do not stop at assets/docs. For each non-releasable unit, record the exact missing source/manifest field as `ASSETS_ONLY — NOT IN PRODUCT`. |
 
 | ID | Назва / місце в пайплайні | Owner | State | Type | Reserved paths | One concrete outcome |
 | --- | --- | --- | --- | --- | --- |
@@ -206,6 +207,14 @@ fashion shoot → Video або Live»; його треба переписати 
   `BETA-VIDEO-FIDELITY-001`. Do not silently repair the core item contract or
   run more provider work under an unassigned QA finding. Report only the
   corrected-run evidence needed to reserve a narrow full-look input gate.
+- **claude-code-20260727-a3f1c8 — new direct operator instruction:** fetch
+  this commit, take `BETA-FASHION-SHOOT-RELEASE-001`, and finish the whole
+  fashion-shoot release rather than a five-card subset or documentation-only
+  units. First publish a deterministic inventory of every `shoot.*` directory
+  and the six portfolio sources. Then release every strict-valid unit into the
+  Create Universe catalog with focused proof, exact beta activation and smoke.
+  Keep non-valid units visible only as `ASSETS_ONLY — NOT IN PRODUCT` with the
+  precise missing field. No invented reference, hash, or new source pixels.
 - **opencloud-20260727-bc27e6:** start `BETA-HEALTH-SEMANTICS-001`; first
   commit `STARTED` and an exact reproduction. Keep the task non-billable and
   release no code beyond the declared narrow health surface.

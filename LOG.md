@@ -17,6 +17,19 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-07-28 · BETA-FASHION-SHOOT-RELEASE-001 · beta · operator assignment to Claude
+Change: expand Claude's portfolio style-unit work into a complete fashion-shoot
+release outcome: inventory, strict unit completion, Create Universe catalog
+registration, focused proof, beta activation and smoke.
+Why: the repo contains more work than the five historical cards, but the old
+unit-only reservation allowed valid work to stop before it became selectable
+on beta.
+Evidence: the live catalog currently exposes ten generation-ready `shoot.*`
+modes while checked-in unit directories additionally include portfolio work and
+two assets-only male units. The board names every integration surface and the
+required non-release status for incomplete sources.
+weakened_checks: none.
+
 2026-07-28 · BETA-POSTSHOOT-CHOICE-001 · beta `39e369a` · live activation
 Change: add the three explicit post-look continuations: Photoshoot, Fashion
 video and Live camera.
