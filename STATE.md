@@ -1,12 +1,12 @@
 # Wardrobe verified state
 
-Updated: 2026-07-27 03:18 UTC.
+Updated: 2026-07-27 03:16 UTC.
 
 ## Canonical position
 
 - Repository: `edwin0912-00/zeely-ai-engineering-test`.
 - Development target: `integration/wardrobe-20260726` at
-  `2b399a53a74893c7822d158a9764e31398b83686`.
+  `945f57d1154e11e5223340df0e17a7ffcc1737b7`.
 - `main` is not a deployment target for this sprint. Only independently
   reviewed, scoped PRs may merge into `integration`.
 - `CTRL-002` is merged through PR #22. The repository now has a typed,
@@ -54,6 +54,13 @@ the bounded product checkpoint `bbcfe71` and typed report `0e823ec`. Its
 independent review reproduced both exact-base failures and passed the six-suite
 candidate proof (60/60), static regression, scanner, and diff hygiene with no
 weakened checks. It is awaiting only its isolated handoff before a scoped PR.
+
+`RELEASE-001` generation two is now IN_PROGRESS after its exact owner
+published checkpoint `4f5616a` and typed report `e7fff23`. Its independent
+review reproduced the two behavioral parser failures at exact base `d372e6a`
+and passed the candidate contract test (2/2), with no runtime, credential, or
+deployment operation. It is awaiting only its isolated handoff before a scoped
+PR; the broad release suite remains a later candidate gate.
 
 ## Verified product facts
 

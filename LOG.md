@@ -17,6 +17,17 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-07-27 · RELEASE-001 · execution acknowledged
+Change: move RELEASE-001 generation 2 from ASSIGNED to IN_PROGRESS after its
+exact owner published its bounded canonical-target parser proof and report.
+Why: code may proceed only after a typed owner checkpoint; this transition does
+not approve a release or convert the broad resource-gated suite into a PASS.
+Evidence: checkpoint `4f5616a` and report `e7fff23` bind owner, branch, exact
+base `d372e6a`, and generation 2. Independent review reproduced two base
+behavioral failures and passed candidate contract tests (2/2), scanner, and
+diff hygiene; it found no runtime, credential, or deploy operation.
+weakened_checks: none.
+
 2026-07-27 · SCENE-001 · execution acknowledged
 Change: move SCENE-001 generation 2 from ASSIGNED to IN_PROGRESS after its
 exact owner published the bounded evaluator-delivery repair and typed report.
