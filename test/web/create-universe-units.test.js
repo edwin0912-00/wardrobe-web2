@@ -81,10 +81,10 @@ test('audit style units in docs/style-units/ for manifest and sheet completeness
 
   // Verify incomplete male units are strictly classified as ASSETS_ONLY — NOT IN PRODUCT
   assert.equal(report['shoot.ochre_stage_tailoring']?.status, 'ASSETS_ONLY — NOT IN PRODUCT');
-  assert.deepEqual(report['shoot.ochre_stage_tailoring']?.missing_sheet_roles, ['colour_grade', 'environment', 'person']);
-  assert.equal(report['shoot.ochre_stage_tailoring']?.has_manifest_json, false);
+  assert.deepEqual(report['shoot.ochre_stage_tailoring']?.missing_sheet_roles, ['person']);
+  assert.equal(report['shoot.ochre_stage_tailoring']?.has_manifest_json, true);
 
   assert.equal(report['shoot.shutter_amber_interior']?.status, 'ASSETS_ONLY — NOT IN PRODUCT');
-  assert.deepEqual(report['shoot.shutter_amber_interior']?.missing_sheet_roles, ['colour_grade', 'environment', 'person']);
-  assert.equal(report['shoot.shutter_amber_interior']?.has_manifest_json, false);
+  assert.deepEqual(report['shoot.shutter_amber_interior']?.missing_sheet_roles, ['person']);
+  assert.equal(report['shoot.shutter_amber_interior']?.has_manifest_json, true);
 });

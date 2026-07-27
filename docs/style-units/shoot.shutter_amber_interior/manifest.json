@@ -1,0 +1,31 @@
+{
+  "schema_version": "1.0",
+  "created_at": "2026-07-27T23:08:03.612Z",
+  "sheets": {
+    "environment": {
+      "path": "sheet-environment.png",
+      "sha256": "4427561d408df416cc9def93aaf4e954dd5d1bd2d190574d83459f17773ca9f0",
+      "size": 951388
+    },
+    "colour_grade": {
+      "path": "sheet-colour_grade.png",
+      "sha256": "4427561d408df416cc9def93aaf4e954dd5d1bd2d190574d83459f17773ca9f0",
+      "size": 951388
+    },
+    "camera_lens": {
+      "path": "sheet-camera_lens.png",
+      "sha256": "9dabf8e7f14d2594852e3bf45a6c7914eb5a1f938d446a326aff16e73d6e7bcf",
+      "size": 3393637
+    },
+    "garment_behaviour": {
+      "path": "sheet-garment_behaviour.png",
+      "sha256": "79678e679b196b53b2be2b8413634c06d5bc0e217bbd4837b1f26537bd63f29e",
+      "size": 5645610
+    },
+    "blocking": {
+      "path": "sheet-blocking.png",
+      "sha256": "30e06734724ddee8a6f0b5fe1153ba9c69e67765a36f88e48533506cfae2d824",
+      "size": 5975855
+    }
+  }
+}
