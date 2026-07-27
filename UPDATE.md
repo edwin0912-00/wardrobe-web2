@@ -39,6 +39,10 @@ The earlier detailed noticeboard is preserved at
    `updates/<agent-id>.md`, commit, pull-rebase, push.
 5. Do not overwrite this board. `codex-main` is the only board editor.
 
+Every agent commit subject starts `[agent:<agent-id>]`; this and the matching
+`updates/<agent-id>.md` make ownership visible even with one shared GitHub
+login.
+
 ## Latest events
 
 - 2026-07-27 — `90d6119` Create Universe release deployed to beta and health

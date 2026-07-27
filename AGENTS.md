@@ -29,7 +29,8 @@ Fast rules:
 2. One code task writes at a time. Other agents may research, reproduce, or QA
    in parallel, but do not edit product files until the board assigns them.
 3. Before a push: `git pull --rebase origin beta`, run the task's check, then
-   commit only the task files plus `updates/<agent-id>.md`.
+   commit only the task files plus `updates/<agent-id>.md`. Every commit
+   subject starts with `[agent:<agent-id>]`, even when GitHub login is shared.
 4. Push directly to `origin beta`; never force-push, reset, rewrite history,
    touch `main`, credentials, `site.madeforthisjob.com`, or port `4180`.
 5. The orchestrator copies verified results into `UPDATE.md`, `STATE.md`, and
