@@ -29,8 +29,10 @@ authorized in this run.
    editorial contact-sheet manifest to the current integration contract. It
    indexes approved outputs only; it does not generate media or create UI.
 
-Each lane has a separate lock, branch, pinned source blobs, exact status path,
-test-first acceptance, isolated handoff, and independent review requirement.
+Each lane is ASSIGNED, not claimed as active. It has a separate lock, branch,
+pinned source blobs, exact status path, test-first acceptance, isolated
+handoff, and independent review requirement. A lane moves to IN_PROGRESS only
+after its assigned worker publishes a typed STARTED report.
 
 ## Verified product facts
 
@@ -41,9 +43,10 @@ test-first acceptance, isolated handoff, and independent review requirement.
 - The monitor already detects stale persisted runs and emits recovery behavior.
   What is missing is a durable, typed, bounded diagnostic and restart-safe
   heartbeat proof.
-- A reviewed contact-sheet implementation exists on preserved PR #16, but it
-  is not yet safely integrated at the current base. `FASHION-001` is the
-  narrow port/reproof task.
+- A reviewed contact-sheet implementation exists on preserved source commit
+  `352066443d0a8db46260db022b36f1c9b09adba1` / PR #16, but it is not yet
+  safely integrated at the current base. `FASHION-001` is pinned to that
+  source and may port/reprove it narrowly; it may not recreate it from memory.
 - Standard scene repair code already contains the generic measured-headroom
   branch; the old `WARD-002` demand for a new failing test against a base that
   already contains the fix was invalid. It is not being fabricated.

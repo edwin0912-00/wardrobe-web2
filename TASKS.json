@@ -2,7 +2,7 @@
   "schema_version": "1.0.0",
   "integration_branch": "integration/wardrobe-20260726",
   "orchestrator": "codex-main",
-  "updated_at": "2026-07-27T01:58:00.000Z",
+  "updated_at": "2026-07-27T02:05:00.000Z",
   "tasks": [
     {
       "id": "CTRL-001",
@@ -989,7 +989,7 @@
       "id": "MONITOR-002",
       "title": "Persist typed stall diagnostics and recovery-safe heartbeat evidence",
       "priority": "P0",
-      "state": "IN_PROGRESS",
+      "state": "ASSIGNED",
       "owner": "monitor-diagnostics",
       "branch": "lane/MONITOR-002/monitor-diagnostics",
       "base_sha": "66968f9915bbddb1095174711cfd845bf95da0f8",
@@ -1077,7 +1077,7 @@
       "id": "UI-002",
       "title": "Make a saved avatar or look open and continue directly into add-items",
       "priority": "P0",
-      "state": "IN_PROGRESS",
+      "state": "ASSIGNED",
       "owner": "profile-ui",
       "branch": "lane/UI-002/profile-ui",
       "base_sha": "66968f9915bbddb1095174711cfd845bf95da0f8",
@@ -1164,7 +1164,7 @@
       "id": "FASHION-001",
       "title": "Port the private immutable contact-sheet manifest into the current editorial contract",
       "priority": "P0",
-      "state": "IN_PROGRESS",
+      "state": "ASSIGNED",
       "owner": "fashion-contact-sheet",
       "branch": "lane/FASHION-001/fashion-contact-sheet",
       "base_sha": "66968f9915bbddb1095174711cfd845bf95da0f8",
@@ -1244,6 +1244,7 @@
         }
       ],
       "stop_conditions": [
+        "Before implementation, fetch and inspect only the preserved source commit 352066443d0a8db46260db022b36f1c9b09adba1 from origin/lane/SITE-002/codex-contact-sheet: expected blobs are e53f70923faefa8b1f4bc22dd1f0dada12802396 for the contact-sheet module, f851b01af3c14f41c4888ccdbab1567f1eb91227 for routes, 83826afed89bd5494bd588e142222bd4c59a00fd for the contact-sheet test, and d840a26f2f558e9c683749a99e259d2151000d24 for activation coverage. If any source cannot be verified, stop with a typed blocker rather than recreating it from memory.",
         "Do not generate, composite, resize, or derive image pixels; the task only indexes already-approved outputs.",
         "Do not expose a shoot across browser-profile ownership boundaries or leak runtime paths, resource identifiers, prompts, or provider metadata.",
         "Do not add UI, style-source approvals, generation, or deployment behavior."

@@ -17,6 +17,18 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-07-27 · recovery dispatch review revision · PR #24
+Change: move MONITOR-002, UI-002, and FASHION-001 from IN_PROGRESS to
+ASSIGNED until each exact worker branch commits a typed STARTED report; bind
+FASHION-001 to the preserved reviewed source commit and four source blobs.
+Why: independent review found that a queue must not claim liveness before an
+acknowledgement, and a port task must have an immutable source rather than
+invite an unreviewed reconstruction.
+Evidence: independent reviewer verified all scope/lock/path/context checks and
+returned REVISE only for those two control defects; the corrected board remains
+schema-valid and has no overlapping active scopes.
+weakened_checks: none.
+
 2026-07-27 · CTRL-002 / recovery dispatch · integration 66968f9
 Change: mark CTRL-002 DONE after PR #22, retire stale or invalid duplicate
 leases, and issue MONITOR-002, UI-002, and FASHION-001 as three disjoint
