@@ -2,7 +2,7 @@
   "schema_version": "1.0.0",
   "integration_branch": "integration/wardrobe-20260726",
   "orchestrator": "codex-main",
-  "updated_at": "2026-07-27T02:48:00.000Z",
+  "updated_at": "2026-07-27T03:04:00.000Z",
   "tasks": [
     {
       "id": "CTRL-001",
@@ -1252,23 +1252,25 @@
     },
     {
       "id": "SCENE-001",
-      "title": "Restore the sole scene-contract export required by the live adapter",
+      "title": "Restore the scene contract and evaluator delivery handoff required by live scene QA",
       "priority": "P0",
       "state": "ASSIGNED",
       "owner": "scene-contract",
       "branch": "lane/SCENE-001/scene-contract",
       "base_sha": "44aa829176b76f8da0d08233d996ebac982ff06e",
       "lease": {
-        "generation": 1,
-        "issued_at": "2026-07-27T02:40:00.000Z",
-        "expires_at": "2026-07-27T04:20:00.000Z"
+        "generation": 2,
+        "issued_at": "2026-07-27T02:56:00.000Z",
+        "expires_at": "2026-07-27T04:30:00.000Z"
       },
       "lock_groups": [
         "scene-core"
       ],
       "allowed_paths": [
         "src/web/scene-contract.js",
+        "src/web/openrouter-scene-evaluator.js",
         "test/web/scene-contract-contact-point.test.js",
+        "test/web/openrouter-scene-evaluator-handoff.test.js",
         ".agents/status/SCENE-001.json",
         ".agents/handoffs/SCENE-001.json"
       ],
@@ -1296,12 +1298,29 @@
         {
           "path": "test/web/scene-adapters.test.js",
           "git_blob_sha": "f7a5db4b55ff82687c4f9922e5dd450bad505eb6"
+        },
+        {
+          "path": "src/web/openrouter-scene-evaluator.js",
+          "git_blob_sha": "e550483f50631d77267a38d654399cda332ddb6e"
         }
       ],
       "depends_on": [
         "CTRL-002"
       ],
       "acceptance": [
+        {
+          "check_id": "evaluator-delivery-handoff-static-regression",
+          "execution_class": "ci",
+          "command": [
+            "node",
+            "--test",
+            "test/web/openrouter-scene-evaluator-handoff.test.js"
+          ],
+          "expected_exit_codes": [
+            0
+          ],
+          "expected": "The static evaluator-handoff regression independently proves the delivery canvas reaches validation."
+        },
         {
           "check_id": "scene-contract-import-regression",
           "execution_class": "ci",
@@ -1312,12 +1331,13 @@
             "test/web/scene-adapters.test.js",
             "test/web/scene-runtime-vlm-provider.test.js",
             "test/web/scene-runtime.test.js",
-            "test/web/scene-contract-contact-point.test.js"
+            "test/web/scene-contract-contact-point.test.js",
+            "test/web/openrouter-scene-evaluator-handoff.test.js"
           ],
           "expected_exit_codes": [
             0
           ],
-          "expected": "The live adapter import resolves, geometry rejects malformed evidence, and the four previously unloadable scene suites execute."
+          "expected": "The live adapter import resolves, evaluator validation receives the actual delivery canvas, geometry rejects malformed evidence, and all six scene suites execute."
         },
         {
           "check_id": "diff-hygiene",
@@ -1335,8 +1355,8 @@
         }
       ],
       "stop_conditions": [
-        "Restore only the existing contract geometry primitive consumed by scene-adapters; do not alter scene framing bands, QA thresholds, presets, or evaluator semantics.",
-        "The new regression test must fail from this exact base for the missing export or invalid geometry behavior before the repair is written.",
+        "Restore only the existing contract geometry primitive and the evaluator's existing delivery handoff; do not alter scene framing bands, QA thresholds, presets, validation interface, evaluator policy, or model route.",
+        "The contact-point test and a static evaluator-handoff test must each fail from exact base 44aa829 before the repair; the static test may inspect source but must not import the evaluator or adapter.",
         "Do not generate media, invoke a provider, mutate runtime/output, deploy, or change credentials."
       ]
     },
