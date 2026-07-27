@@ -44,3 +44,10 @@ Protocol ACK: 4472986
   `/api/post-shoot/pipeline` returns the validated graph.
 - Real Lucy/WebRTC smoke is explicitly excluded until Edwin approves a stated
   duration and maximum cost.
+
+## BETA-LIVE-5S-001 — STARTED
+
+- Target: `live.madeforthisjob.com`.
+- Add one local reference-photo upload and a five-second hard ceiling.
+- Maximum stated provider cost: `$0.20`.
+- Provider credential activation and billable smoke remain excluded.
