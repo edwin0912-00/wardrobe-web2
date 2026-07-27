@@ -42,6 +42,7 @@ import {
   writeJournal,
 } from './lib/add-items-deployment.mjs';
 import { assertResourceCapacity } from './lib/resource-preflight.mjs';
+import { assertCanonicalExternalHealthUrl } from './lib/deployment-target.mjs';
 
 const execute = promisify(execFile);
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -126,6 +127,9 @@ export function parseArguments(argv) {
     '--expected-manifest-sha256 must be SHA-256',
   );
   invariant(/^[a-f0-9]{40}$/.test(options.expected_base_commit), '--expected-base-commit must be a Git SHA-1');
+  if (options.external_health_url !== undefined) {
+    options.external_health_url = assertCanonicalExternalHealthUrl(options.external_health_url);
+  }
   if (options.apply) {
     for (const required of [
       'web_plist',
@@ -138,12 +142,6 @@ export function parseArguments(argv) {
         invariant(path.isAbsolute(options[required]), `--${required.replaceAll('_', '-')} must be an absolute path`);
       }
     }
-    const externalHealth = new URL(options.external_health_url);
-    invariant(externalHealth.protocol === 'https:', '--external-health-url must use HTTPS');
-    invariant(
-      externalHealth.username === '' && externalHealth.password === '',
-      '--external-health-url cannot contain credentials',
-    );
   }
   options.local_health_url ??= 'http://127.0.0.1:4173/api/health';
   options.monitor_health_url ??= 'http://127.0.0.1:4174/api/health';
