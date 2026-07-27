@@ -30,7 +30,8 @@ leaves 56/59 scene assertions passing. The base contract already accepts
 only `context.delivery` at the evaluator call site and a static source test
 which proves that omission on exact base `44aa829` without importing the
 blocked evaluator/adapter module. It does not import or introduce any waiver
-policy and requires a new status acknowledgement before code resumes.
+policy, makes that static proof a separate acceptance check, and requires a
+new status acknowledgement before code resumes.
 weakened_checks: none.
 
 2026-07-27 · RELEASE-001 · assigned at d372e6a · control queue

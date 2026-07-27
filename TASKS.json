@@ -1309,6 +1309,19 @@
       ],
       "acceptance": [
         {
+          "check_id": "evaluator-delivery-handoff-static-regression",
+          "execution_class": "ci",
+          "command": [
+            "node",
+            "--test",
+            "test/web/openrouter-scene-evaluator-handoff.test.js"
+          ],
+          "expected_exit_codes": [
+            0
+          ],
+          "expected": "The static evaluator-handoff regression independently proves the delivery canvas reaches validation."
+        },
+        {
           "check_id": "scene-contract-import-regression",
           "execution_class": "ci",
           "command": [

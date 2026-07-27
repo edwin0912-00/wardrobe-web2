@@ -1,6 +1,6 @@
 # Wardrobe verified state
 
-Updated: 2026-07-27 03:04 UTC.
+Updated: 2026-07-27 03:07 UTC.
 
 ## Canonical position
 
@@ -79,7 +79,8 @@ verified source defects are an import of `contactPointInsideFrame` in
 `src/web/scene-contract.js`, and an evaluator call that omits its required
 delivery canvas. `SCENE-001` generation one proved the first repair and
 reported the second as out-of-lease; generation two is formally limited to both
-existing contract handoffs and regression coverage. Scoped governance and lane
+existing contract handoffs and regression coverage, including a separate static
+acceptance check for the evaluator handoff. Scoped governance and lane
 acceptance checks remain required; this fact is not a waiver and no check may
 be weakened to hide it.
 
