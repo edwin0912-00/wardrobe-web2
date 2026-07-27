@@ -42,6 +42,8 @@
   more looks opens the look grid so the user selects a specific look; exactly
   one look still opens directly. Focused tests: 24/24; live static-module and
   health smoke: PASS.
+- `PIPELINE.md` is the canonical 13-stage map. It distinguishes a core feature
+  from a live beta-proven feature, and binds every active task to `P#/13`.
 
 Updated: 2026-07-27 08:55 UTC.
 

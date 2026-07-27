@@ -21,6 +21,7 @@ git switch beta
 git pull --ff-only origin beta
 sed -n '1,180p' AGENTS.md
 sed -n '1,220p' UPDATE.md
+sed -n '1,220p' PIPELINE.md
 sed -n '1,120p' STATE.md
 ```
 
@@ -36,7 +37,8 @@ rules, and old PRs are preserved evidence only; do not use them for a new task.
 
 Technical IDs such as `BETA-UNIVERSE-001` are routing labels only. Every task
 must also state a plain-language Ukrainian product name and the exact pipeline
-stage it changes. Never use a tracking ID as though it explained the work.
+stage it changes as `P#/13` from `PIPELINE.md`. Never use a tracking ID as
+though it explained the work.
 
 Fast rules:
 

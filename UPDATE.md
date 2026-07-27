@@ -25,6 +25,9 @@ The earlier detailed noticeboard is preserved at
 
 ## Що робимо зараз — людською мовою
 
+Повна карта: [`PIPELINE.md`](PIPELINE.md). `P#/13` нижче — точний етап, а не
+внутрішній технічний рівень.
+
 1. **Профіль → аватар → обрати збережений образ → додати речі.** Уже live:
    якщо в аватара кілька образів, відкривається сітка вибору.
 2. **Образ → Create Universe → обрати fashion shoot.** Два нові стилі мають
@@ -38,12 +41,12 @@ The earlier detailed noticeboard is preserved at
 
 ## Active queue
 
-| ID | Назва / етап | Owner | State | Type | Reserved paths | One concrete outcome |
+| ID | Назва / місце в пайплайні | Owner | State | Type | Reserved paths | One concrete outcome |
 | --- | --- | --- | --- | --- | --- |
-| BETA-SMOKE-001 | Перевірка каталогу Create Universe | antigravity-20260727-fb7a90 | DONE | QA | `updates/antigravity-20260727-fb7a90.md` | PASS: API/UI previews expose the five expected `shoot.*` styles; four are generation-ready and Terracotta is correctly blocked. |
-| BETA-PROVIDER-001 | Генерація кадру → Magnific як резервний API | claude-code-20260727-557761 | IN_PROGRESS | CODE | `src/providers/magnific-imagegen-provider.js`; `src/web/generation-provider.js`; `test/providers/magnific-imagegen-provider.test.js`; `updates/claude-code-20260727-557761.md` | Add the strict Magnific async provider and mocked contract tests. Do not enable it or store a credential until host auth proves valid. |
-| BETA-UI-001 | Профіль → вибір одного з кількох образів | antigravity-20260727-fb7a90 | DONE | CODE | `web/public/add-items-flow.js`; `web/public/profile-client.js`; `test/web/add-items-flow.test.js`; `test/web/profile-ui-flow.test.js`; `updates/antigravity-20260727-fb7a90.md` | PASS: multi-look avatar selection now opens the look grid; `205a8c4` passed 24/24 focused tests and is live inside beta release `ac7259b`. |
-| BETA-UNIVERSE-001 | Образ → Create Universe → 2 нові fashion shoot стилі | antigravity-20260727-fb7a90 | READY | CODE | `src/web/scene-resolvers.js`; `test/web/editorial-preview-api.test.js`; `test/contracts/scene-production-packs.test.js`; `docs/style-units/shoot.ochre_stage_tailoring/**`; `docs/style-units/shoot.shutter_amber_interior/**`; `updates/antigravity-20260727-fb7a90.md` | Turn the two existing male Create Universe units into strict product styles only if their manifests/reference packs compile and preview tests pass; then request beta activation of the exact SHA. Otherwise record `ASSETS_ONLY — NOT IN PRODUCT` with the precise missing contract fields. |
+| BETA-SMOKE-001 | P10–P11/13 · Перевірка каталогу Create Universe | antigravity-20260727-fb7a90 | DONE | QA | `updates/antigravity-20260727-fb7a90.md` | PASS: API/UI previews expose the five expected `shoot.*` styles; four are generation-ready and Terracotta is correctly blocked. |
+| BETA-PROVIDER-001 | P12/13 · Генерація кадру → Magnific як резервний API | claude-code-20260727-557761 | IN_PROGRESS | CODE | `src/providers/magnific-imagegen-provider.js`; `src/web/generation-provider.js`; `test/providers/magnific-imagegen-provider.test.js`; `updates/claude-code-20260727-557761.md` | Add the strict Magnific async provider and mocked contract tests. Do not enable it or store a credential until host auth proves valid. |
+| BETA-UI-001 | P5/13 · Профіль → вибір одного з кількох образів | antigravity-20260727-fb7a90 | DONE | CODE | `web/public/add-items-flow.js`; `web/public/profile-client.js`; `test/web/add-items-flow.test.js`; `test/web/profile-ui-flow.test.js`; `updates/antigravity-20260727-fb7a90.md` | PASS: multi-look avatar selection now opens the look grid; `205a8c4` passed 24/24 focused tests and is live inside beta release `ac7259b`. |
+| BETA-UNIVERSE-001 | P10–P11/13 · Образ → Create Universe → 2 нові fashion shoot стилі | antigravity-20260727-fb7a90 | READY | CODE | `src/web/scene-resolvers.js`; `test/web/editorial-preview-api.test.js`; `test/contracts/scene-production-packs.test.js`; `docs/style-units/shoot.ochre_stage_tailoring/**`; `docs/style-units/shoot.shutter_amber_interior/**`; `updates/antigravity-20260727-fb7a90.md` | Turn the two existing male Create Universe units into strict product styles only if their manifests/reference packs compile and preview tests pass; then request beta activation of the exact SHA. Otherwise record `ASSETS_ONLY — NOT IN PRODUCT` with the precise missing contract fields. |
 
 ## Agent protocol
 
