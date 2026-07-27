@@ -103,7 +103,11 @@ async function signal(result) {
 }
 async function startLive() {
   if (!window.confirm('Запустити 5 секунд Lucy Live? Максимальна вартість — $0.20.')) return;
-  const { fal } = await import('./vendor/fal-client.js?v=20260727-4');
+  const falModule = await import('./vendor/fal-client.js?v=20260727-7');
+  const fal = falModule.fal ?? falModule.default?.fal;
+  if (typeof fal?.realtime?.connect !== 'function') {
+    throw new Error('fal realtime client не завантажився.');
+  }
   state.running = true;
   ready();
   status('Підключення до Lucy…');

@@ -31,6 +31,8 @@ test('browser draft requires a local reference photo and states the five-second 
   assert.match(client, /max_session_seconds:\s*5/);
   assert.match(client, /naturalWidth < 512/);
   assert.match(client, /naturalHeight < 512/);
+  assert.match(client, /falModule\.default\?\.fal/);
+  assert.match(client, /fal\?\.realtime\?\.connect/);
 });
 
 test('graph rejects a missing transition target', async () => {
