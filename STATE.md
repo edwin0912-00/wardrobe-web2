@@ -96,7 +96,21 @@ below. Earlier sections are preserved only as historical evidence.
   focused catalog tests. The required resolution is a product/catalog decision,
   not a test relaxation.
 
-Updated: 2026-07-27 08:55 UTC.
+Updated: 2026-07-28 00:45 UTC.
+
+## Beta completion truth — 2026-07-28
+
+- Running beta is `release-de07869-20260727233615`, while branch head is
+  `ac3d406`; pushed is not synonymous with deployed.
+- The live catalog returns 16 `std.*` backgrounds and 12 Art Fashion modes;
+  10 modes declare generation available. This proves catalog availability, not
+  one complete execution through image QA and persistence.
+- Live fitting is implemented with a five-second explicit $0.20 consent gate.
+  Fashion video has only a JSON graph; the repository currently has no
+  Seedance/Higgsfield video transport, video result store, or video UI choice.
+- Full `npm test` is currently refused before tests by the resource preflight:
+  swap is 5.16 GiB, above the 1.50 GiB safety ceiling. No test result is being
+  represented as a PASS while this condition holds.
 
 ## Canonical position
 

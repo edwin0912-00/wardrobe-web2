@@ -17,14 +17,20 @@ The earlier detailed noticeboard is preserved at
 
 **One current source of truth:** fetch `origin/beta` before every task; the
 branch moves as agents publish their small commits. The running product release
-was built from product commit `abd9afd`; later branch commits are not deployed.
-Do not call a change “live” merely because its row says
-`READY_FOR_BETA_DEPLOY`; it is live only after it is an ancestor of the running
-product commit and a narrow beta smoke is recorded here.
+is `release-de07869-20260727233615` (product commit `de07869`); branch HEAD is
+`ac3d406` and is **not** live merely because it is pushed. Do not call a change
+“live” merely because its row says `READY_FOR_BETA_DEPLOY`; it is live only
+after it is an ancestor of the running product commit and a narrow beta smoke
+is recorded here.
 
-- Beta is healthy (`ready`). Current live release is `abd9afd`; it exposes nine
-  editorial-mode records and five published `shoot.*` cards. Visual smoke of
-  the picker is PASS.
+- Beta HTTP health is `ready`, but this is not a full product proof: it exposes
+  16 standard-background cards and 12 Art Fashion modes (10 generation-ready),
+  while no current end-to-end paid generation has been run in this release.
+- Current beta has a Live fitting page with a five-second paid-consent gate.
+  It does **not** yet expose the required equal three-way choice from a saved
+  look (Photoshoot / Fashion video / Live), and it has no Seedance video
+  transport or saved-video result. Those are open product work, not hidden
+  behind the word “live”.
 - The running release directory measures 481 MiB. This is a capacity signal,
   not a deployment block: 160 MiB exists only as a test assertion in
   `test/release/product-release.test.js`; the trusted verifier and deploy
@@ -67,6 +73,22 @@ product commit and a narrow beta smoke is recorded here.
    reference-файлів не відповідають файлам. Обхідного увімкнення не буде.
 
 ## Active queue
+
+### Beta completion gate — one user journey, no decorative dead ends
+
+The release criterion is one saved approved look that can visibly and
+truthfully reach all branches below. A branch is PASS only when its **entry →
+choice → process → result → saved next action** is smoke-tested on the exact
+beta release. A card, API contract, or mocked status alone is not a PASS.
+
+| ID | Назва / місце в пайплайні | Owner | State | Type | Reserved paths | One concrete outcome |
+| --- | --- | --- | --- | --- | --- | --- |
+| BETA-FULL-JOURNEY-GATE-001 | RELEASE · Один прохід від saved look до всіх продуктів | codex-main | IN_PROGRESS | COORD + QA | `UPDATE.md`; `STATE.md`; `LOG.md`; `PIPELINE.md` | Maintain the exact beta release ledger: Profile/look, Background, Create Universe/Art Shoot, Video, Live, and pipeline explainer. Record only reproducible current-beta evidence; a missing result becomes the next atomic task. |
+| BETA-POSTSHOOT-CHOICE-001 | LOOK.06 → CHOICE.01 · Три рівноправні продовження образу | codex-main | IN_PROGRESS | CODE | `web/public/index.html`; `web/public/app.js`; `web/public/result.css`; `web/public/add-items-flow.js`; `test/web/profile-ui-flow.test.js`; `updates/codex-main.md` | A selected saved look opens one clear choice: **Photoshoot**, **Fashion video**, or **Live camera**. Each card preserves the selected look binding; no mode is silently substituted for another. |
+| BETA-VIDEO-SEEDANCE-001 | VIDEO.01–04 · Fashion video через Seedance 2.0 | unassigned | READY | CODE | `src/web/video-*.js`; `src/providers/higgsfield-video-provider.js`; `src/web/app.js`; `web/public/post-shoot-*`; `test/web/video-*.test.js`; `updates/<agent-id>.md` | Implement an idempotent Higgsfield CLI `seedance_2_0` route from one locked look/frame: explicit paid create, bounded status/retry, media QA, and saved clip in the profile. The request aspect/duration belong in the provider parameters, never prompt prose. |
+| BETA-SCENE-JOURNEY-SMOKE-001 | BACKGROUND.01–02 + UNIVERSE.01–04 · Реальний smoke двох image-гілок | unassigned | READY | QA | `updates/<agent-id>.md` | With one approved full-look fixture and the existing provider route, run one standard background and one ready `shoot.*` execution. Report exact created job, QA outcome, persistence and retry behavior without raw personal media or prompts. |
+| BETA-LIVE-COMPLETE-001 | LIVE.01–04 · Камера, consent, session end і explicit capture | unassigned | READY | CODE + QA | `web/public/post-shoot-mvp.*`; `src/web/post-shoot-*.js`; `test/web/post-shoot-*.test.js`; `updates/<agent-id>.md` | Keep browser camera local until explicit consent; prove camera preview and cost denial without provider use; implement/verify explicit capture-or-discard after a bounded session. No background recording and no consented provider call in QA. |
+| BETA-PIPELINE-EXPLAINER-001 | RESULT · Титри та пояснення перевіреного pipeline | unassigned | READY | CODE | `web/public/experience.css`; `web/public/index.html`; `web/public/app.js`; `web/public/progress-model.js`; `test/web/progress-model.test.js`; `updates/<agent-id>.md` | From a completed result, show a compact, readable explainer: source locks, current gate, result/QA, and the next branch. It must use the existing technical node truth and must not expose model reasoning or secrets. |
 
 | ID | Назва / місце в пайплайні | Owner | State | Type | Reserved paths | One concrete outcome |
 | --- | --- | --- | --- | --- | --- |

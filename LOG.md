@@ -17,6 +17,20 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-07-28 · BETA-FULL-JOURNEY-GATE-001 · beta `ac3d406` · release reconciliation
+Change: replace the stale beta-release claim with the actual running release
+`release-de07869-20260727233615` and create a concrete release ledger for the
+saved-look → Background / Create Universe / Fashion video / Live / explainer
+journey.
+Why: current beta has valid catalog and Live surfaces, but the Video transport,
+three-way choice and end-to-end smoke evidence do not exist yet and must not be
+mistaken for delivery.
+Evidence: live `/api/scene-presets` returns 16 cards; `/api/editorial-modes`
+returns 12 modes with 10 generation-ready; `/api/post-shoot/pipeline` declares
+Video and Live but `post-shoot-mvp.html` currently renders Live only; host
+release daemon points to `release-de07869-20260727233615`.
+weakened_checks: none.
+
 2026-07-27 · BETA-RELEASE-001 · beta `37e51c8` · latest committed product smoke
 Change: activate all latest committed beta work, including post-shoot MVP and
 production background assets, then run focused local and live API/UI smoke.
