@@ -119,19 +119,30 @@ body::before {
   gap: 2.25rem;
 }
 
-.nl-nav-item {
-  color: var(--text-dim);
-  text-decoration: none;
-  font-size: 0.8125rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  transition: all 0.2s;
-  padding-bottom: 0.25rem;
+.nl-nav-item.is-hidden {
+  display: none !important;
 }
 
-.nl-nav-item:hover, .nl-nav-item.active {
-  color: var(--text-white);
-  border-bottom: 2px solid var(--cyan);
+/* Progressive Journey Steps */
+.nl-journey-step {
+  display: none !important;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1), transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.nl-journey-step.active {
+  display: block !important;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.nl-status-node {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--cyan);
+  letter-spacing: 0.1em;
 }
 
 .nl-user-actions {

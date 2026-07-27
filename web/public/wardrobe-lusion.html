@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>WARDROBE STUDIO — High-Art 3D Garment Collision &amp; AI Pipeline</title>
-  <meta name="description" content="Pure high-art digital fashion creation platform with zero-gravity 3D garment air collision physics and canon creation pipeline.">
+  <title>WARDROBE STUDIO — Progressive Experience Journey</title>
+  <meta name="description" content="Reference-conditioned AI avatar and fashion campaign generator with progressive step-by-step experience journey.">
   
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -20,150 +20,254 @@
 
 <body class="neo-luxe-theme">
 
-  <!-- CRT Scanlines & Grain Overlay -->
+  <!-- CRT Scanlines Overlay -->
   <div class="l-crt-vhs-layer"></div>
 
-  <!-- Fullscreen WebGL Canvas for Floating 3D Garment Collision Physics -->
+  <!-- Fullscreen 3D WebGL Canvas (Air Collision Physics & Ambient 3D Lighting) -->
   <canvas id="canvas"></canvas>
 
-  <!-- Main High-Art Studio Container -->
+  <!-- Main High-Art Application Container -->
   <div class="nl-app-wrapper">
 
-    <!-- Top Navigation Header (Pure Creation Platform - Zero E-Commerce Junk) -->
+    <!-- Top Navigation Header (Linear Progressive Pipeline) -->
     <header class="nl-header">
       <div class="nl-brand">
         <span class="nl-logo-text">WARDROBE STUDIO</span>
-        <span class="nl-brackets">[ ART DIRECTION ]</span>
+        <span class="nl-brackets">[ EXPERIENCE JOURNEY ]</span>
       </div>
       <nav class="nl-nav">
-        <a href="#identity" class="nl-nav-item active">01 / IDENTITY</a>
-        <a href="#garments" class="nl-nav-item">02 / GARMENTS</a>
-        <a href="#atmosphere" class="nl-nav-item">03 / ATMOSPHERE</a>
-        <a href="#campaign" class="nl-nav-item">04 / CAMPAIGN</a>
+        <span class="nl-nav-item active" id="nav-step-1">01 / IDENTITY</span>
+        <span class="nl-nav-item is-hidden" id="nav-step-2">02 / WARDROBE</span>
+        <span class="nl-nav-item is-hidden" id="nav-step-3">03 / ATMOSPHERE</span>
+        <span class="nl-nav-item is-hidden" id="nav-step-4">04 / CAMPAIGN</span>
       </nav>
       <div class="nl-user-actions">
-        <span class="nl-status-node">● AIR COLLISION ACTIVE</span>
+        <span class="nl-status-node" id="status-node">● КРОК 1: ОБЕРІТЬ АВАТАР</span>
       </div>
     </header>
 
     <!-- Main Content Area -->
     <main class="nl-main-content">
 
-      <!-- Section Title -->
-      <div class="nl-section-header">
-        <h1 class="nl-main-title">3D GARMENT AIR COLLISION</h1>
-        <div class="nl-filter-bar">
-          <button class="nl-filter-btn active" type="button">PHYSICS: ZERO-GRAVITY ▾</button>
-        </div>
-      </div>
-
-      <!-- Bento Grid Creation Cards -->
-      <div class="nl-bento-grid">
-
-        <!-- Card 1: Top-Left — 3D Outer Jacket -->
-        <div class="nl-card nl-card-jacket" onclick="selectBentoItem('jacket', 'OUTER JACKET SCULPTURE')">
-          <div class="nl-card-badge">01 / TOP SILHOUETTE</div>
-          <div class="nl-card-3d-slot">
-            <img src="/scenes/black_studio.webp" alt="Jacket Sculpture" class="nl-card-img-preview">
+      <!-- ============================================================
+           STEP 1: IDENTITY (SELECT PHOTO OR SAVED MODEL)
+           ============================================================ -->
+      <section class="nl-journey-step active" id="journey-step-1">
+        <div class="nl-section-header">
+          <div>
+            <span class="nl-badge-cyan">01 / IDENTITY</span>
+            <h1 class="nl-main-title">Фіксація Обличчя та Моделі</h1>
           </div>
-          <div class="nl-card-footer">
-            <h3 class="nl-card-name">OUTER JACKET SCULPTURE</h3>
-            <p class="nl-card-sub">Technical Nylon, Armor Plating</p>
-            <button class="nl-action-link" type="button">[ SYNTHESIZE SILHOUETTE ]</button>
-          </div>
+          <p class="nl-step-desc">Завантажте фотографію людини або оберіть збережену модель для фіксації рисів обличчя.</p>
         </div>
 
-        <!-- Card 2: Top-Center — 3D Sculpted Trousers -->
-        <div class="nl-card nl-card-boots" onclick="selectBentoItem('trousers', 'SCULPTED TROUSERS')">
-          <div class="nl-card-badge">02 / BOTTOM STRUCTURE</div>
-          <div class="nl-card-3d-slot">
-            <img src="/scenes/night_neon.webp" alt="Trousers Sculpture" class="nl-card-img-preview">
-          </div>
-          <div class="nl-card-footer">
-            <h3 class="nl-card-name">SCULPTED TROUSERS</h3>
-            <p class="nl-card-sub">Kinetic Drape Weave</p>
-            <button class="nl-action-link" type="button">[ SYNTHESIZE LEGS ]</button>
-          </div>
-        </div>
+        <div class="l-glass-panel">
+          <div class="l-glass-grid">
+            
+            <label class="l-upload-box" id="box-person-photo">
+              <input type="file" id="input-person-photo" accept="image/png,image/jpeg,image/webp" onchange="onAvatarUploaded(this)">
+              <div class="l-upload-icon">+</div>
+              <strong class="l-upload-title">Портрет людини з вашого пристрою *</strong>
+              <small class="l-upload-sub">Будь-який фон і поза · PNG, JPEG, WEBP</small>
+              <div class="l-upload-filename" id="filename-person">Обрати фото з пристрою</div>
+            </label>
 
-        <!-- Card 3: Top-Right — 3D Silk Visor Scarf -->
-        <div class="nl-card nl-card-visor" onclick="selectBentoItem('visor', 'HOLOGRAPHIC DRAPE')">
-          <div class="nl-card-badge">03 / ACCENT DRAPE</div>
-          <div class="nl-card-3d-slot">
-            <img src="/scenes/amber_alley.webp" alt="Accent Drape" class="nl-card-img-preview">
+            <label class="l-upload-box">
+              <input type="file" id="input-identity-detail" accept="image/png,image/jpeg,image/webp">
+              <div class="l-upload-icon">+</div>
+              <strong class="l-upload-title">Додаткове фото (необов’язково)</strong>
+              <small class="l-upload-sub">Другий ракурс або повний зріст</small>
+              <div class="l-upload-filename">Обрати файл</div>
+            </label>
+
           </div>
-          <div class="nl-card-footer">
-            <h3 class="nl-card-name">HOLOGRAPHIC DRAPE</h3>
-            <p class="nl-card-sub">Thin-Film Interference</p>
-            <button class="nl-action-link" type="button">[ SYNTHESIZE DRAPE ]</button>
+
+          <div class="l-saved-library">
+            <div class="l-library-title">Або оберіть зафіксовану AI-модель:</div>
+            <div class="l-avatar-chips">
+              <button class="l-avatar-chip" onclick="selectModelAvatar('001', 'Male Model #001')" type="button">
+                <span class="chip-avatar-img">👤</span>
+                <span>Модель #001 (Male)</span>
+              </button>
+              <button class="l-avatar-chip" onclick="selectModelAvatar('002', 'Female Model #002')" type="button">
+                <span class="chip-avatar-img">👤</span>
+                <span>Модель #002 (Female)</span>
+              </button>
+            </div>
           </div>
         </div>
 
-        <!-- Card 4: Featured Bottom-Left Large — MASTER OUTFIT ASSEMBLY -->
-        <div class="nl-card nl-card-featured" onclick="selectBentoItem('master', 'AURORA MASTER LOOK')">
-          <div class="nl-featured-label">Featured Art Assembly:</div>
-          <h2 class="nl-featured-title">AURORA MASTER LOOK</h2>
+        <div class="nl-step-actions" style="margin-top: 2rem; text-align: right;">
+          <button class="nl-primary-btn" id="btn-to-step-2" onclick="goToStep(2)" type="button" disabled style="opacity: 0.4;">
+            ПЕРЕЙТИ ДО ВИБОРУ ГАРДЕРОБУ (02) →
+          </button>
+        </div>
+      </section>
+
+
+      <!-- ============================================================
+           STEP 2: WARDROBE / GARMENTS (REVEALS ONLY AFTER STEP 1)
+           ============================================================ -->
+      <section class="nl-journey-step" id="journey-step-2">
+        <div class="nl-section-header">
+          <div>
+            <span class="nl-badge-cyan">02 / WARDROBE</span>
+            <h1 class="nl-main-title">Конструктор Гардеробу</h1>
+          </div>
+          <p class="nl-step-desc">Додайте опис стилю або завантажте 5 окремих елементів одягу для створення образу.</p>
+        </div>
+
+        <div class="l-glass-panel">
+          <div class="l-field-group">
+            <label class="l-field-label" for="input-outfit-text">Опис образу (стиль, крій, тканина)</label>
+            <textarea id="input-outfit-text" class="l-textarea" rows="2" placeholder="Наприклад: чорний костюм з матовою текстурою linen та контрастними швами" oninput="onGarmentInput()"></textarea>
+          </div>
+
+          <div class="l-field-group" style="margin-top: 1.5rem;">
+            <label class="l-field-label">Або завантажте фотографії речей (5 слотів):</label>
+            <div class="l-garment-upload-grid-5">
+              
+              <label class="l-garment-box-5">
+                <input type="file" accept="image/png,image/jpeg,image/webp" onchange="onGarmentInput()">
+                <span class="g-icon">+</span>
+                <span class="g-name">01. Верх</span>
+              </label>
+
+              <label class="l-garment-box-5">
+                <input type="file" accept="image/png,image/jpeg,image/webp" onchange="onGarmentInput()">
+                <span class="g-icon">+</span>
+                <span class="g-name">02. Верхній одяг</span>
+              </label>
+
+              <label class="l-garment-box-5">
+                <input type="file" accept="image/png,image/jpeg,image/webp" onchange="onGarmentInput()">
+                <span class="g-icon">+</span>
+                <span class="g-name">03. Штани</span>
+              </label>
+
+              <label class="l-garment-box-5">
+                <input type="file" accept="image/png,image/jpeg,image/webp" onchange="onGarmentInput()">
+                <span class="g-icon">+</span>
+                <span class="g-name">04. Взуття</span>
+              </label>
+
+              <label class="l-garment-box-5">
+                <input type="file" accept="image/png,image/jpeg,image/webp" onchange="onGarmentInput()">
+                <span class="g-icon">+</span>
+                <span class="g-name">05. Аксесуар</span>
+              </label>
+
+            </div>
+          </div>
+        </div>
+
+        <div class="nl-step-actions" style="margin-top: 2rem; display: flex; justify-content: space-between;">
+          <button class="nl-icon-btn" onclick="goToStep(1)" type="button">← НАЗАД ДО АВАТАРА</button>
+          <button class="nl-primary-btn" id="btn-to-step-3" onclick="goToStep(3)" type="button" disabled style="opacity: 0.4;">
+            ЗАТВЕРДИТИ ОБРАЗ ТА ОБРАТИ АТМОСФЕРУ (03) →
+          </button>
+        </div>
+      </section>
+
+
+      <!-- ============================================================
+           STEP 3: ATMOSPHERE / LOCATION (REVEALS ONLY AFTER STEP 2)
+           ============================================================ -->
+      <section class="nl-journey-step" id="journey-step-3">
+        <div class="nl-section-header">
+          <div>
+            <span class="nl-badge-cyan">03 / ATMOSPHERE</span>
+            <h1 class="nl-main-title">Атмосфера Зйомки та Світло</h1>
+          </div>
+          <p class="nl-step-desc">Тепер, коли аватар та гардероб затверджені, оберіть локацію та освітлення для зйомки.</p>
+        </div>
+
+        <div class="l-location-chips" style="grid-template-columns: repeat(3, 1fr); gap: 1.5rem;">
           
-          <div class="nl-featured-3d-stage">
-            <div class="nl-wireframe-polyhedron"></div>
+          <div class="l-location-chip" onclick="selectAtmosphere('ocean_dusk', '#0a1520', 'Ocean Dusk')">
+            <div class="loc-img"><img src="/scenes/ocean_dusk.webp" alt="Ocean Dusk"></div>
+            <strong>Ocean Dusk</strong>
+            <small style="color: var(--text-dim);">Blue Hour Coastal • Cinematic</small>
           </div>
 
-          <div class="nl-featured-info">
-            <p class="nl-featured-desc">Iridescent Silk<br>Volumetric Lighting</p>
-            <button class="nl-add-bag-btn" type="button">[ CONFIRM MASTER LOOK &amp; RUN PIPELINE ]</button>
+          <div class="l-location-chip" onclick="selectAtmosphere('night_neon', '#0f0a18', 'Night Neon')">
+            <div class="loc-img"><img src="/scenes/night_neon.webp" alt="Night Neon"></div>
+            <strong>Night Neon</strong>
+            <small style="color: var(--text-dim);">Wet Asphalt City • Magenta/Cyan</small>
+          </div>
+
+          <div class="l-location-chip" onclick="selectAtmosphere('amber_alley', '#1a1208', 'Amber Alley')">
+            <div class="loc-img"><img src="/scenes/amber_alley.webp" alt="Amber Alley"></div>
+            <strong>Amber Alley</strong>
+            <small style="color: var(--text-dim);">Cobblestone • Golden Backlight</small>
+          </div>
+
+          <div class="l-location-chip" onclick="selectAtmosphere('abandoned_palace', '#100e0a', 'Abandoned Palace')">
+            <div class="loc-img"><img src="/scenes/abandoned_palace.webp" alt="Abandoned Palace"></div>
+            <strong>Abandoned Palace</strong>
+            <small style="color: var(--text-dim);">Neoclassical Hall • Light Shaft</small>
+          </div>
+
+          <div class="l-location-chip" onclick="selectAtmosphere('foggy_forest', '#080f08', 'Foggy Forest')">
+            <div class="loc-img"><img src="/scenes/foggy_forest.webp" alt="Foggy Forest"></div>
+            <strong>Foggy Forest</strong>
+            <small style="color: var(--text-dim);">Tree Canopy • Ethereal Mist</small>
+          </div>
+
+          <div class="l-location-chip" onclick="selectAtmosphere('black_studio', '#050505', 'Black Studio')">
+            <div class="loc-img"><img src="/scenes/black_studio.webp" alt="Black Studio"></div>
+            <strong>Black Studio</strong>
+            <small style="color: var(--text-dim);">Pitch-Black Seamless • Spotlight</small>
+          </div>
+
+        </div>
+
+        <div class="nl-step-actions" style="margin-top: 2.5rem; display: flex; justify-content: space-between;">
+          <button class="nl-icon-btn" onclick="goToStep(2)" type="button">← НАЗАД ДО ГАРДЕРОБУ</button>
+          <button class="nl-primary-btn" id="btn-to-step-4" onclick="goToStep(4)" type="button" disabled style="opacity: 0.4;">
+            ЗАПУСТИТИ ЗЙОМКУ КАМПАНІЇ (04) →
+          </button>
+        </div>
+      </section>
+
+
+      <!-- ============================================================
+           STEP 4: CAMPAIGN OUTPUT (REVEALS ONLY AFTER STEP 3)
+           ============================================================ -->
+      <section class="nl-journey-step" id="journey-step-4">
+        <div class="nl-section-header">
+          <div>
+            <span class="nl-badge-cyan">04 / CAMPAIGN OUTPUT</span>
+            <h1 class="nl-main-title" id="campaign-title">Art Fashion Campaign Series</h1>
+          </div>
+          <p class="nl-step-desc">Результат зйомки для зафіксованої моделі та обраного гардеробу.</p>
+        </div>
+
+        <!-- 6-Shot Editorial Gallery -->
+        <div class="l-gallery-track">
+          <div class="l-gallery-item">
+            <div class="l-gallery-item-frame"><img class="l-gallery-item-image" src="/gallery/shot_01.png" alt="Shot 01"></div>
+            <div class="l-gallery-item-label">Shot 01 · Identity Hero</div>
+          </div>
+          <div class="l-gallery-item">
+            <div class="l-gallery-item-frame"><img class="l-gallery-item-image" src="/gallery/shot_02.png" alt="Shot 02"></div>
+            <div class="l-gallery-item-label">Shot 02 · Environmental</div>
+          </div>
+          <div class="l-gallery-item">
+            <div class="l-gallery-item-frame"><img class="l-gallery-item-image" src="/gallery/shot_03.png" alt="Shot 03"></div>
+            <div class="l-gallery-item-label">Shot 03 · Sculptural</div>
+          </div>
+          <div class="l-gallery-item">
+            <div class="l-gallery-item-frame"><img class="l-gallery-item-image" src="/gallery/shot_04.png" alt="Shot 04"></div>
+            <div class="l-gallery-item-label">Shot 04 · Material Detail</div>
           </div>
         </div>
 
-        <!-- Card 5: Right Sidebar — 3D ATMOSPHERES -->
-        <div class="nl-card nl-card-sidebar">
-          <div class="nl-sidebar-header">
-            <h3 class="nl-sidebar-title">ATMOSPHERES</h3>
-            <span class="nl-sidebar-nav">≚</span>
-          </div>
-
-          <div class="nl-drops-list">
-            <div class="nl-drop-item" onclick="chooseAtmosphere('ocean_dusk', '#0a1520')">
-              <div class="nl-drop-icon">🌊</div>
-              <div class="nl-drop-details">
-                <span class="nl-drop-name">OCEAN DUSK</span>
-                <span class="nl-drop-price">Blue Hour Coastal</span>
-              </div>
-            </div>
-
-            <div class="nl-drop-item" onclick="chooseAtmosphere('night_neon', '#0f0a18')">
-              <div class="nl-drop-icon">🌃</div>
-              <div class="nl-drop-details">
-                <span class="nl-drop-name">NIGHT NEON</span>
-                <span class="nl-drop-price">Wet Asphalt City</span>
-              </div>
-            </div>
-
-            <div class="nl-drop-item" onclick="chooseAtmosphere('abandoned_palace', '#100e0a')">
-              <div class="nl-drop-icon">🏛️</div>
-              <div class="nl-drop-details">
-                <span class="nl-drop-name">ABANDONED PALACE</span>
-                <span class="nl-drop-price">Baroque Light Shaft</span>
-              </div>
-            </div>
-          </div>
+        <div class="nl-step-actions" style="margin-top: 3rem; display: flex; justify-content: space-between;">
+          <button class="nl-icon-btn" onclick="goToStep(3)" type="button">← ЗМІНИТИ АТМОСФЕРУ</button>
+          <button class="nl-primary-btn" onclick="location.reload()" type="button">СТВОРИТИ НОВИЙ ОБРАЗ ⟳</button>
         </div>
-
-      </div><!-- /nl-bento-grid -->
-
-      <!-- Canon Execution Drawer -->
-      <div class="nl-canon-drawer" id="canon-drawer">
-        <div class="nl-drawer-inner">
-          <div class="nl-drawer-header">
-            <span class="nl-badge-cyan">CANON PIPELINE CONTRACT</span>
-            <h2 class="nl-drawer-title" id="drawer-status-title">ОБРАЗ ЗАФІКСОВАНО · ОБЕРІТЬ НАПРЯМОК</h2>
-          </div>
-          <div class="nl-drawer-actions">
-            <button class="nl-primary-btn" onclick="executePathway('photoshoot')" type="button">📸 ФОТОСЕСІЯ (6 КОРДІВ)</button>
-            <button class="nl-primary-btn" onclick="executePathway('video')" type="button" style="background:#00f0ff;color:#000;">🎬 FASHION VIDEO</button>
-            <button class="nl-primary-btn" onclick="executePathway('live')" type="button" style="background:#fff;color:#000;">🎥 LIVE WEBCAM</button>
-          </div>
-        </div>
-      </div>
+      </section>
 
     </main>
 
@@ -172,43 +276,105 @@
   <!-- WebGL Engine Script -->
   <script src="/wardrobe-lusion-engine.js"></script>
   <script>
-    const selectedGarments = new Set();
+    let currentStep = 1;
+    let selectedAvatar = null;
+    let garmentDefined = false;
+    let selectedAtmosphere = null;
 
-    function selectBentoItem(id, name) {
-      const card = event.currentTarget;
-      if (selectedGarments.has(id)) {
-        selectedGarments.delete(id);
-        card.classList.remove('selected');
-      } else {
-        selectedGarments.add(id);
-        card.classList.add('selected');
+    function goToStep(stepNum) {
+      if (stepNum > 1 && !selectedAvatar) return;
+      if (stepNum > 2 && !garmentDefined) return;
+      if (stepNum > 3 && !selectedAtmosphere) return;
+
+      currentStep = stepNum;
+
+      // Toggle Active Step Section
+      document.querySelectorAll('.nl-journey-step').forEach((sec, idx) => {
+        if (idx + 1 === stepNum) {
+          sec.classList.add('active');
+        } else {
+          sec.classList.remove('active');
+        }
+      });
+
+      // Update Nav Buttons
+      for (let i = 1; i <= 4; i++) {
+        const navItem = document.getElementById(`nav-step-${i}`);
+        if (navItem) {
+          if (i <= stepNum) navItem.classList.remove('is-hidden');
+          if (i === stepNum) navItem.classList.add('active');
+          else navItem.classList.remove('active');
+        }
       }
 
-      const drawer = document.getElementById('canon-drawer');
-      const statusTitle = document.getElementById('drawer-status-title');
+      // Update Status Bar
+      const statusNode = document.getElementById('status-node');
+      if (statusNode) {
+        if (stepNum === 1) statusNode.textContent = '● КРОК 1: ОБЕРІТЬ АВАТАР';
+        else if (stepNum === 2) statusNode.textContent = '● КРОК 2: ФОРМУВАННЯ ГАРДЕРОБУ';
+        else if (stepNum === 3) statusNode.textContent = '● КРОК 3: ВИБІР АТМОСФЕРИ';
+        else if (stepNum === 4) statusNode.textContent = '● КРОК 4: КАМПАНІЯ СФОРМОВАНА';
+      }
 
-      if (selectedGarments.size > 0) {
-        if (drawer) drawer.classList.add('active');
-        if (statusTitle) statusTitle.textContent = `ЗАТВЕРДЖЕНО ${selectedGarments.size} 3D-ЕЛЕМЕНТІВ · OUTFIT ГОТОВИЙ`;
-      } else {
-        if (drawer) drawer.classList.remove('active');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // Step 1 Actions
+    function selectModelAvatar(id, name) {
+      selectedAvatar = { id, name };
+      document.querySelectorAll('.l-avatar-chip').forEach(c => c.classList.remove('is-selected'));
+      event.currentTarget.classList.add('is-selected');
+
+      const btn2 = document.getElementById('btn-to-step-2');
+      if (btn2) {
+        btn2.disabled = false;
+        btn2.style.opacity = '1';
       }
     }
 
-    function chooseAtmosphere(sceneId, hexColor) {
+    function onAvatarUploaded(input) {
+      if (input.files && input.files[0]) {
+        selectedAvatar = { file: input.files[0].name };
+        document.getElementById('filename-person').textContent = input.files[0].name;
+        document.getElementById('filename-person').classList.add('has-file');
+
+        const btn2 = document.getElementById('btn-to-step-2');
+        if (btn2) {
+          btn2.disabled = false;
+          btn2.style.opacity = '1';
+        }
+      }
+    }
+
+    // Step 2 Actions
+    function onGarmentInput() {
+      const text = document.getElementById('input-outfit-text')?.value || '';
+      const files = Array.from(document.querySelectorAll('.l-garment-box-5 input')).filter(i => i.files?.length > 0).length;
+
+      if (text.trim().length > 3 || files > 0) {
+        garmentDefined = true;
+        const btn3 = document.getElementById('btn-to-step-3');
+        if (btn3) {
+          btn3.disabled = false;
+          btn3.style.opacity = '1';
+        }
+      }
+    }
+
+    // Step 3 Actions
+    function selectAtmosphere(id, hexColor, title) {
+      selectedAtmosphere = { id, title };
+      document.querySelectorAll('.l-location-chip').forEach(c => c.classList.remove('is-active'));
+      event.currentTarget.classList.add('is-active');
+
       if (window.wardrobeEngine) {
         window.wardrobeEngine.setThemeColor(hexColor);
       }
-      alert(`Світлову атмосферу 3D-сцени переключено на: ${sceneId}`);
-    }
 
-    function executePathway(type) {
-      if (type === 'photoshoot') {
-        alert('Запуск фотосесії: Створення 6-кадрової едіторіал серії у вибраній атмосфері...');
-      } else if (type === 'video') {
-        alert('Запуск Fashion Video: 3D Motion Kinetic Reel...');
-      } else if (type === 'live') {
-        alert('Запуск Live Web Примірки через веб-камеру (Lucy Engine)...');
+      const btn4 = document.getElementById('btn-to-step-4');
+      if (btn4) {
+        btn4.disabled = false;
+        btn4.style.opacity = '1';
       }
     }
   </script>
