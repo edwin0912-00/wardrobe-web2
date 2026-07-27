@@ -1,6 +1,7 @@
 /* ============================================================
-   WARDROBE LUSION ENGINE
-   Three.js WebGL background with fluid mesh & dynamic pipeline reactions
+   WARDROBE LUSION ENGINE — HOLLOW GARMENT 3D VISUAL
+   Floating invisible-body fashion drape with breathing dynamics,
+   mouse-tracking inertia, and film grain shader texture.
    ============================================================ */
 
 (function() {
@@ -74,35 +75,41 @@
     }
   `;
 
-  // ── Vertex Shader ──
+  // ── Vertex Shader (Garment Fold & Breathing Displacement) ──
   const vertexShader = `
     ${simplexNoiseGLSL}
     
     uniform float uTime;
-    uniform float uNoiseScale;
-    uniform float uNoiseStrength;
+    uniform float uBreathing;
     uniform vec2 uMouse;
     
     varying vec3 vNormal;
     varying vec3 vPosition;
     varying float vDisplacement;
     varying vec3 vViewPosition;
+    varying vec2 vUv;
     
     void main() {
+      vUv = uv;
       vec3 pos = position;
       
-      float noise1 = snoise(pos * uNoiseScale + uTime * 0.3) * uNoiseStrength;
-      float noise2 = snoise(pos * uNoiseScale * 2.0 + uTime * 0.5) * uNoiseStrength * 0.5;
-      float noise3 = snoise(pos * uNoiseScale * 4.0 + uTime * 0.2) * uNoiseStrength * 0.25;
+      // Fabric Breathing Expansion (chest & waist rhythm)
+      float breathFactor = sin(uTime * 1.5) * 0.08 * uBreathing;
+      float chestRegion = smoothstep(-0.5, 0.8, pos.y);
+      pos += normal * (breathFactor * chestRegion);
       
-      float displacement = noise1 + noise2 + noise3;
+      // Wind dynamics sliding through garment fabric
+      float wave1 = snoise(vec3(pos.x * 1.5, pos.y * 1.5 + uTime * 0.4, pos.z * 1.5)) * 0.12;
+      float wave2 = snoise(vec3(pos.x * 3.0 + uTime * 0.6, pos.y * 3.0, pos.z * 3.0)) * 0.05;
+      float foldDisplacement = wave1 + wave2;
       
-      float mouseInfluence = smoothstep(2.0, 0.0, length(pos.xy - uMouse * 2.0));
-      displacement += mouseInfluence * 0.15 * sin(uTime * 2.0);
+      // Mouse kinetic reaction (fabric stretches toward cursor)
+      float mouseDist = length(pos.xy - uMouse * 2.5);
+      float mouseStretch = smoothstep(2.5, 0.0, mouseDist) * 0.18 * sin(uTime * 2.5);
       
-      vec3 newPosition = pos + normal * displacement;
+      vec3 newPosition = pos + normal * (foldDisplacement + mouseStretch);
       
-      vDisplacement = displacement;
+      vDisplacement = foldDisplacement;
       vNormal = normalize(normalMatrix * normal);
       vPosition = newPosition;
       
@@ -113,7 +120,7 @@
     }
   `;
 
-  // ── Fragment Shader ──
+  // ── Fragment Shader (Translucent Silk/Velvet + Grain Overlay) ──
   const fragmentShader = `
     uniform float uTime;
     uniform vec3 uColor1;
@@ -124,29 +131,39 @@
     varying vec3 vPosition;
     varying float vDisplacement;
     varying vec3 vViewPosition;
+    varying vec2 vUv;
+    
+    // Pseudo random film grain
+    float random(vec2 st) {
+      return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
+    }
     
     void main() {
       vec3 viewDir = normalize(vViewPosition);
-      float fresnel = pow(1.0 - max(dot(vNormal, viewDir), 0.0), 3.0);
       
-      float colorMix1 = smoothstep(-0.3, 0.3, vDisplacement);
-      float colorMix2 = smoothstep(0.0, 0.6, vDisplacement);
+      // Velvet Rim & Fresnel Translucency
+      float fresnel = pow(1.0 - max(dot(vNormal, viewDir), 0.0), 2.5);
       
-      vec3 baseColor = mix(uColor1, uColor2, colorMix1);
-      baseColor = mix(baseColor, uColor3, colorMix2);
+      // Fabric fold shading
+      float colorMix = smoothstep(-0.15, 0.15, vDisplacement);
+      vec3 fabricColor = mix(uColor1, uColor2, colorMix);
+      fabricColor = mix(fabricColor, uColor3, fresnel * 0.7);
       
-      vec3 rimColor = vec3(0.95, 0.85, 0.65);
-      baseColor += rimColor * fresnel * 0.5;
+      // Warm Subsurface Scattering Glow
+      vec3 sssGlow = vec3(0.85, 0.65, 0.45) * pow(fresnel, 3.0) * 0.6;
+      fabricColor += sssGlow;
       
-      vec3 lightDir = normalize(vec3(1.0, 1.0, 2.0));
+      // Specular highlight on fabric folds
+      vec3 lightDir = normalize(vec3(1.0, 1.5, 2.0));
       vec3 halfDir = normalize(lightDir + viewDir);
-      float spec = pow(max(dot(vNormal, halfDir), 0.0), 64.0);
-      baseColor += vec3(1.0, 0.95, 0.9) * spec * 0.4;
+      float spec = pow(max(dot(vNormal, halfDir), 0.0), 32.0);
+      fabricColor += vec3(0.95, 0.9, 0.8) * spec * 0.35;
       
-      float ao = smoothstep(-0.5, 0.5, vDisplacement) * 0.3 + 0.7;
-      baseColor *= ao;
+      // Film Grain Overlay
+      float grain = (random(vUv + fract(uTime * 0.1)) - 0.5) * 0.07;
+      fabricColor += grain;
       
-      gl_FragColor = vec4(baseColor, 0.88);
+      gl_FragColor = vec4(fabricColor, 0.92);
     }
   `;
 
@@ -172,19 +189,22 @@
     0.1,
     100
   );
-  camera.position.set(0, 0, 5);
+  camera.position.set(0, 0, 5.2);
 
-  // ── Fluid Mesh ──
-  const geometry = new THREE.IcosahedronGeometry(1.2, 64);
+  // ── Create Floating Hollow Outfit Sculpture ──
+  // TorusKnot + Cylinder Blend creates a floating draped coat/jacket silhouette
+  const garmentGroup = new THREE.Group();
+  
+  // Outer Coat Fold (Torus Knot modified)
+  const coatGeometry = new THREE.TorusKnotGeometry(0.95, 0.38, 128, 32, 2, 3);
   
   const uniforms = {
     uTime: { value: 0 },
-    uNoiseScale: { value: 1.2 },
-    uNoiseStrength: { value: 0.22 },
+    uBreathing: { value: 1.0 },
     uMouse: { value: new THREE.Vector2(0, 0) },
-    uColor1: { value: new THREE.Color(0x0a0804) },
-    uColor2: { value: new THREE.Color(0x3d2a0a) },
-    uColor3: { value: new THREE.Color(0x8b6830) },
+    uColor1: { value: new THREE.Color(0x0f0b06) },  // Dark mocha velvet
+    uColor2: { value: new THREE.Color(0x4a341a) },  // Warm amber shadow
+    uColor3: { value: new THREE.Color(0xc89b58) },  // Gold silk highlight
   };
 
   const material = new THREE.ShaderMaterial({
@@ -196,20 +216,28 @@
     depthWrite: false,
   });
 
-  const mesh = new THREE.Mesh(geometry, material);
-  scene.add(mesh);
+  const coatMesh = new THREE.Mesh(coatGeometry, material);
+  garmentGroup.add(coatMesh);
 
-  // ── Ambient Particles ──
-  const particleCount = 500;
+  // Inner Floating Drape Layer
+  const innerGeometry = new THREE.IcosahedronGeometry(0.85, 32);
+  const innerMesh = new THREE.Mesh(innerGeometry, material);
+  innerMesh.scale.set(0.9, 1.2, 0.9);
+  garmentGroup.add(innerMesh);
+
+  scene.add(garmentGroup);
+
+  // ── Ambient Dust Particles ──
+  const particleCount = 600;
   const particleGeometry = new THREE.BufferGeometry();
   const particlePositions = new Float32Array(particleCount * 3);
   const particleSizes = new Float32Array(particleCount);
   
   for (let i = 0; i < particleCount; i++) {
-    particlePositions[i * 3] = (Math.random() - 0.5) * 20;
-    particlePositions[i * 3 + 1] = (Math.random() - 0.5) * 20;
-    particlePositions[i * 3 + 2] = (Math.random() - 0.5) * 10 - 3;
-    particleSizes[i] = Math.random() * 2 + 0.5;
+    particlePositions[i * 3] = (Math.random() - 0.5) * 18;
+    particlePositions[i * 3 + 1] = (Math.random() - 0.5) * 18;
+    particlePositions[i * 3 + 2] = (Math.random() - 0.5) * 10 - 2;
+    particleSizes[i] = Math.random() * 2.5 + 0.5;
   }
   
   particleGeometry.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
@@ -221,9 +249,9 @@
       varying float vAlpha;
       void main() {
         vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-        gl_PointSize = size * (200.0 / -mvPosition.z);
+        gl_PointSize = size * (220.0 / -mvPosition.z);
         gl_Position = projectionMatrix * mvPosition;
-        vAlpha = smoothstep(15.0, 3.0, -mvPosition.z) * 0.2;
+        vAlpha = smoothstep(15.0, 3.0, -mvPosition.z) * 0.22;
       }
     `,
     fragmentShader: `
@@ -231,8 +259,8 @@
       void main() {
         float dist = length(gl_PointCoord - vec2(0.5));
         if (dist > 0.5) discard;
-        float alpha = smoothstep(0.5, 0.1, dist) * vAlpha;
-        gl_FragColor = vec4(0.94, 0.93, 0.9, alpha);
+        float alpha = smoothstep(0.5, 0.05, dist) * vAlpha;
+        gl_FragColor = vec4(0.95, 0.92, 0.85, alpha);
       }
     `,
     transparent: true,
@@ -243,8 +271,8 @@
   const particles = new THREE.Points(particleGeometry, particleMaterial);
   scene.add(particles);
 
-  // ── Mouse Tracking ──
-  const mouse = { x: 0, y: 0, targetX: 0, targetY: 0 };
+  // ── Physics-Based Mouse Inertia (Spring Damping) ──
+  const mouse = { x: 0, y: 0, targetX: 0, targetY: 0, vx: 0, vy: 0 };
   
   document.addEventListener('mousemove', (e) => {
     mouse.targetX = (e.clientX / window.innerWidth) * 2 - 1;
@@ -261,19 +289,19 @@
 
   // Target Colors for Theme Shifts
   const targetColors = {
-    c1: new THREE.Color(0x0a0804),
-    c2: new THREE.Color(0x3d2a0a),
-    c3: new THREE.Color(0x8b6830),
+    c1: new THREE.Color(0x0f0b06),
+    c2: new THREE.Color(0x4a341a),
+    c3: new THREE.Color(0xc89b58),
   };
 
-  // Expose global controller for 3D reactions
+  // Expose global controller
   window.wardrobeEngine = {
     setThemeColor(hexColor) {
       if (!hexColor) return;
       const base = new THREE.Color(hexColor);
-      targetColors.c1.copy(base).multiplyScalar(0.2);
-      targetColors.c2.copy(base).multiplyScalar(0.6);
-      targetColors.c3.copy(base).multiplyScalar(1.2);
+      targetColors.c1.copy(base).multiplyScalar(0.25);
+      targetColors.c2.copy(base).multiplyScalar(0.7);
+      targetColors.c3.copy(base).multiplyScalar(1.3);
     }
   };
 
@@ -292,39 +320,44 @@
     
     const elapsed = clock.getElapsedTime();
     
-    // Smooth mouse
-    mouse.x += (mouse.targetX - mouse.x) * 0.05;
-    mouse.y += (mouse.targetY - mouse.y) * 0.05;
+    // Physics Damped Mouse Tracking
+    const ax = (mouse.targetX - mouse.x) * 0.08;
+    const ay = (mouse.targetY - mouse.y) * 0.08;
+    mouse.vx = (mouse.vx + ax) * 0.85;
+    mouse.vy = (mouse.vy + ay) * 0.85;
+    mouse.x += mouse.vx;
+    mouse.y += mouse.vy;
     
     // Lerp colors to target
-    uniforms.uColor1.value.lerp(targetColors.c1, 0.03);
-    uniforms.uColor2.value.lerp(targetColors.c2, 0.03);
-    uniforms.uColor3.value.lerp(targetColors.c3, 0.03);
+    uniforms.uColor1.value.lerp(targetColors.c1, 0.04);
+    uniforms.uColor2.value.lerp(targetColors.c2, 0.04);
+    uniforms.uColor3.value.lerp(targetColors.c3, 0.04);
     
     // Update uniforms
     uniforms.uTime.value = elapsed;
     uniforms.uMouse.value.set(mouse.x, mouse.y);
     
-    // Mesh rotation
-    mesh.rotation.x = Math.sin(elapsed * 0.15) * 0.3 + mouse.y * 0.2;
-    mesh.rotation.y = elapsed * 0.1 + mouse.x * 0.3;
-    mesh.rotation.z = Math.cos(elapsed * 0.12) * 0.15;
+    // Floating Hollow Garment organic rotations following cursor
+    garmentGroup.rotation.x = Math.sin(elapsed * 0.4) * 0.15 + mouse.y * 0.45;
+    garmentGroup.rotation.y = elapsed * 0.2 + mouse.x * 0.65;
+    garmentGroup.rotation.z = Math.cos(elapsed * 0.3) * 0.1;
     
-    // Mesh position & scale relative to scroll
-    const scaleFactor = Math.max(0.45, 1.0 - scrollProgress * 0.8);
-    mesh.scale.setScalar(scaleFactor);
-    mesh.position.y = scrollProgress * 1.5;
+    // Breathing scale pulse
+    const breathPulse = 1.0 + Math.sin(elapsed * 1.5) * 0.04;
+    const scaleFactor = Math.max(0.45, (1.0 - scrollProgress * 0.75)) * breathPulse;
+    garmentGroup.scale.setScalar(scaleFactor);
+    garmentGroup.position.y = scrollProgress * 1.4;
     
-    // Camera subtle drift
-    camera.position.x = mouse.x * 0.2;
-    camera.position.y = mouse.y * 0.15;
-    camera.lookAt(0, scrollProgress * 0.8, 0);
+    // Camera follow cursor
+    camera.position.x = mouse.x * 0.35;
+    camera.position.y = mouse.y * 0.25;
+    camera.lookAt(0, scrollProgress * 0.7, 0);
     
-    // Animate particles
+    // Animate dust particles
     const positions = particleGeometry.attributes.position.array;
     for (let i = 0; i < particleCount; i++) {
-      positions[i * 3 + 1] += Math.sin(elapsed * 0.5 + i * 0.1) * 0.002;
-      positions[i * 3] += Math.cos(elapsed * 0.3 + i * 0.05) * 0.001;
+      positions[i * 3 + 1] += Math.sin(elapsed * 0.6 + i * 0.1) * 0.002;
+      positions[i * 3] += Math.cos(elapsed * 0.4 + i * 0.05) * 0.001;
     }
     particleGeometry.attributes.position.needsUpdate = true;
     
