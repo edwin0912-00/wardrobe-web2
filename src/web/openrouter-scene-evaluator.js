@@ -254,7 +254,7 @@ export class OpenRouterSceneEvaluator {
         });
       }
       let payload;
-      try { payload = validateEvaluatorPayload(JSON.parse(raw)); } catch (error) {
+      try { payload = validateEvaluatorPayload(JSON.parse(raw), context.delivery); } catch (error) {
         throw new SceneEvaluationInfrastructureError(`Scene evaluator contract failed: ${error.message}`, {
           code: 'SCENE_EVALUATOR_CONTRACT_FAILED',
           cause: error,
