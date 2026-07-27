@@ -86,6 +86,16 @@ rebasing. The broad release suite remains a later candidate gate.
   operator-declared target. `RELEASE-001` must pin it in code before any
   release tool can claim it verified the intended domain.
 
+## Live external-agent connectivity check
+
+At 2026-07-27 09:36 UTC the local watcher successfully fetched the canonical
+GitHub board for both `codecod` and `antigravity`, but returned no assignments:
+their only historic leases are BLOCKED or owned by different agent ids. Two
+temporary, non-product smoke leases now require each external agent to publish
+a typed `STARTED` status from its exact lane branch. The test is successful
+only after that status is observable on GitHub; starting a local watcher alone
+is not treated as proof that an external agent is alive.
+
 ## Known baseline limitation
 
 `node tools/coordination/check-test-baseline.mjs --base 44aa829…` reports

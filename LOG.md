@@ -30,6 +30,18 @@ Prior code/handoff evidence remains historical only; each lane must publish a
 new typed status and isolated final handoff before review/merge.
 weakened_checks: none.
 
+2026-07-27 · SMOKE-001 / SMOKE-002 · external queue connectivity check
+Change: issue two 45-minute, no-product-write smoke leases to `codecod` and
+`antigravity`.
+Why: a local watcher proved it can fetch GitHub, but cannot prove that an
+external agent process is alive until that agent publishes a typed status from
+its own GitHub lane.
+Evidence: each task has a unique owner, branch, lock, exact status path,
+current integration base, pinned `AGENTS.md`, and a focused governance test.
+Success requires an observable remote `STARTED` commit; no silence is counted
+as a successful connection.
+weakened_checks: none.
+
 2026-07-27 · SCENE-001 / MONITOR-002 / RELEASE-001 · controlled continuation
 Change: mark merged SCENE-001 DONE and grant the already-evidenced MONITOR-002
 and RELEASE-001 lanes a bounded review/merge extension through 10:30 UTC;
