@@ -83,53 +83,130 @@ class LusionMasterEngine {
     this.scene.add(this.particleMesh);
   }
 
-  setup3DTextures() {
-    const loader = new THREE.TextureLoader();
-    
-    // UI Concept Plane
-    loader.load('/ui-concept.png', (texture) => {
-      texture.minFilter = THREE.LinearFilter;
-      const mat = new THREE.MeshPhysicalMaterial({
-        map: texture,
-        transparent: true,
-        opacity: 0.94,
-        roughness: 0.15,
-        clearcoat: 1.0,
-        side: THREE.DoubleSide,
-      });
-      const mesh = new THREE.Mesh(new THREE.PlaneGeometry(6.5, 8.2), mat);
-      mesh.position.set(7.5, 0, -2);
-      mesh.rotation.y = -0.32;
-      this.scene.add(mesh);
-      this.cards.push(mesh);
-    });
+    // ── 3D AIR COLLISION GARMENTS SYSTEM ──
+    const collisionContainer = new THREE.Group();
+    this.scene.add(collisionContainer);
+    this.collisionContainer = collisionContainer;
 
-    // Clean Keyed Green Screen Neon Ring
-    if (window.ChromaKeyExtractor) {
-      window.ChromaKeyExtractor.extractTransparentCanvas('/isolated-neon-ring-green.png', {
-        keyColor: [0, 255, 0],
-        threshold: 100,
-      }).then(({ dataDataUrl }) => {
-        loader.load(dataDataUrl, (texture) => {
-          texture.minFilter = THREE.LinearFilter;
-          const mat = new THREE.MeshPhysicalMaterial({
-            map: texture,
-            transparent: true,
-            opacity: 0.95,
-            roughness: 0.1,
-            metalness: 0.8,
-            clearcoat: 1.0,
-            side: THREE.DoubleSide,
-          });
-          const mesh = new THREE.Mesh(new THREE.PlaneGeometry(6, 6), mat);
-          mesh.position.set(-8, -18, -1);
-          mesh.rotation.y = 0.35;
-          this.scene.add(mesh);
-          this.cards.push(mesh);
-        });
-      }).catch(() => {});
-    }
-  }
+    const simplexNoiseGLSL = `
+      vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+      vec4 mod289(vec4 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+      vec4 permute(vec4 x) { return mod289(((x * 34.0) + 1.0) * x); }
+      vec4 taylorInvSqrt(vec4 r) { return 1.79284291400159 - 0.85373472095314 * r; }
+      float snoise(vec3 v) {
+        const vec2 C = vec2(1.0/6.0, 1.0/3.0);
+        const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);
+        vec3 i  = floor(v + dot(v, C.yyy));
+        vec3 x0 = v - i + dot(i, C.xxx);
+        vec3 g = step(x0.yzx, x0.xyz);
+        vec3 l = 1.0 - g;
+        vec3 i1 = min(g.xyz, l.zxy);
+        vec3 i2 = max(g.xyz, l.zxy);
+        vec3 x1 = x0 - i1 + C.xxx;
+        vec3 x2 = x0 - i2 + C.yyy;
+        vec3 x3 = x0 - D.yyy;
+        i = mod289(i);
+        vec4 p = permute(permute(permute(
+                  i.z + vec4(0.0, i1.z, i2.z, 1.0))
+                + i.y + vec4(0.0, i1.y, i2.y, 1.0))
+                + i.x + vec4(0.0, i1.x, i2.x, 1.0));
+        float n_ = 0.142857142857;
+        vec3  ns = n_ * D.wyz - D.xzx;
+        vec4 x_ = floor(j * ns.z);
+        vec4 y_ = floor(j - 7.0 * x_);
+        vec4 x = x_ * ns.x + ns.yyyy;
+        vec4 y = y_ * ns.x + ns.yyyy;
+        vec4 h = 1.0 - abs(x) - abs(y);
+        vec4 b0 = vec4(x.xy, y.xy);
+        vec4 b1 = vec4(x.zw, y.zw);
+        vec4 s0 = floor(b0) * 2.0 + 1.0;
+        vec4 s1 = floor(b1) * 2.0 + 1.0;
+        vec4 sh = -step(h, vec4(0.0));
+        vec4 a0 = b0.xzyw + s0.xzyw * sh.xxyy;
+        vec4 a1 = b1.xzyw + s1.xzyw * sh.zzww;
+        vec3 p0 = vec3(a0.xy, h.x);
+        vec3 p1 = vec3(a0.zw, h.y);
+        vec3 p2 = vec3(a1.xy, h.z);
+        vec3 p3 = vec3(a1.zw, h.w);
+        vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2,p2), dot(p3,p3)));
+        p0 *= norm.x; p1 *= norm.y; p2 *= norm.z; p3 *= norm.w;
+        vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);
+        m = m * m;
+        return 42.0 * dot(m*m, vec4(dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3)));
+      }
+    `;
+
+    const garmentMaterial = new THREE.ShaderMaterial({
+      vertexShader: `
+        ${simplexNoiseGLSL}
+        uniform float uTime;
+        uniform vec2 uMouse;
+        varying vec3 vNormal;
+        varying vec3 vViewPosition;
+        varying float vDisplacement;
+        void main() {
+          vec3 pos = position;
+          float wave = snoise(vec3(pos.x * 2.0 + uMouse.x, pos.y * 2.0 + uTime * 0.5, pos.z * 2.0)) * 0.08;
+          vec3 newPos = pos + normal * wave;
+          vDisplacement = wave;
+          vNormal = normalize(normalMatrix * normal);
+          vec4 mvPosition = modelViewMatrix * vec4(newPos, 1.0);
+          vViewPosition = -mvPosition.xyz;
+          gl_Position = projectionMatrix * mvPosition;
+        }
+      `,
+      fragmentShader: `
+        uniform float uTime;
+        varying vec3 vNormal;
+        varying vec3 vViewPosition;
+        varying float vDisplacement;
+        void main() {
+          vec3 viewDir = normalize(vViewPosition);
+          float fresnel = pow(1.0 - max(dot(vNormal, viewDir), 0.0), 2.2);
+          vec3 baseColor = mix(vec3(0.05, 0.08, 0.1), vec3(0.15, 0.12, 0.08), vDisplacement * 2.0 + 0.5);
+          vec3 irid = vec3(sin(vDisplacement * 10.0 + uTime), sin(vDisplacement * 10.0 + uTime + 2.0), sin(vDisplacement * 10.0 + uTime + 4.0)) * 0.5 + 0.5;
+          baseColor = mix(baseColor, irid, fresnel * 0.5);
+          baseColor += vec3(0.0, 0.95, 1.0) * pow(fresnel, 2.5) * 0.45;
+          gl_FragColor = vec4(baseColor, 0.88);
+        }
+      `,
+      uniforms: {
+        uTime: { value: 0 },
+        uMouse: { value: new THREE.Vector2(0, 0) }
+      },
+      transparent: true, side: THREE.DoubleSide, depthWrite: false
+    });
+    this.garmentUniforms = garmentMaterial.uniforms;
+
+    // Floating Torso Jacket
+    const jacketMesh = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 0.9, 3.2, 32, 16, true), garmentMaterial);
+    jacketMesh.position.set(-4.5, 0, -4);
+    collisionContainer.add(jacketMesh);
+    this.jacketMesh = jacketMesh;
+
+    // Floating Left Sleeve
+    const lSleeveMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.3, 2.5, 24, 12, true), garmentMaterial);
+    lSleeveMesh.position.set(-7.5, 1.5, -2);
+    lSleeveMesh.rotation.z = 0.45;
+    collisionContainer.add(lSleeveMesh);
+    this.lSleeveMesh = lSleeveMesh;
+
+    // Floating Right Sleeve
+    const rSleeveMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.3, 2.5, 24, 12, true), garmentMaterial);
+    rSleeveMesh.position.set(-1.5, 1.5, -5);
+    rSleeveMesh.rotation.z = -0.45;
+    collisionContainer.add(rSleeveMesh);
+    this.rSleeveMesh = rSleeveMesh;
+
+    // Volumetric Lasers
+    const laserGroup = new THREE.Group();
+    const laserGeo = new THREE.CylinderGeometry(0.02, 0.15, 22, 16);
+    const laserMatCyan = new THREE.MeshBasicMaterial({ color: 0x00f0ff, transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending });
+    const laserMatMagenta = new THREE.MeshBasicMaterial({ color: 0xff0088, transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending });
+
+    const l1 = new THREE.Mesh(laserGeo, laserMatCyan); l1.position.set(-12, 0, -8); l1.rotation.z = -0.5; laserGroup.add(l1);
+    const l2 = new THREE.Mesh(laserGeo, laserMatMagenta); l2.position.set(12, 0, -8); l2.rotation.z = 0.5; laserGroup.add(l2);
+    this.scene.add(laserGroup);
 
   setupLenisScroll() {
     if (window.LenisEngine) {
@@ -203,6 +280,27 @@ class LusionMasterEngine {
     if (this.particleMesh) {
       this.particleMesh.rotation.y += 0.001;
       this.particleMesh.rotation.x = Math.sin(Date.now() * 0.0004) * 0.05;
+    }
+
+    // 3D Air Collision Garments Motion
+    if (this.garmentUniforms) {
+      const elapsed = Date.now() * 0.0015;
+      this.garmentUniforms.uTime.value = elapsed;
+      this.garmentUniforms.uMouse.value.set(this.mouse.x, this.mouse.y);
+
+      if (this.jacketMesh) {
+        this.jacketMesh.position.x = -4.5 + Math.sin(elapsed * 0.8) * 0.3 + this.mouse.x * 0.8;
+        this.jacketMesh.position.y = cameraY + Math.cos(elapsed * 0.6) * 0.2 + this.mouse.y * 0.6;
+        this.jacketMesh.rotation.y = Math.sin(elapsed * 0.5) * 0.3 + this.mouse.x * 0.4;
+      }
+      if (this.lSleeveMesh) {
+        this.lSleeveMesh.position.x = -7.5 + Math.cos(elapsed * 0.9) * 0.4 + this.mouse.x * 1.1;
+        this.lSleeveMesh.position.y = cameraY + 1.5 + Math.sin(elapsed * 0.7) * 0.3;
+      }
+      if (this.rSleeveMesh) {
+        this.rSleeveMesh.position.x = -1.5 - Math.cos(elapsed * 0.9) * 0.4 + this.mouse.x * 1.1;
+        this.rSleeveMesh.position.y = cameraY + 1.5 - Math.sin(elapsed * 0.7) * 0.3;
+      }
     }
 
     // 3D Card raycast tilt
