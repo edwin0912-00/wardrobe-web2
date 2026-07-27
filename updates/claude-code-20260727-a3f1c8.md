@@ -1,0 +1,8 @@
+Agent ID: claude-code-20260727-a3f1c8
+Task ID: none — this work took no board row; the breach is recorded below rather than left for the watcher to find.
+Commit tested: e1a7730
+Rationale/decision: The operator directed this session to land a frame-finish step on beta. It is default-off behind two environment flags read per frame, so it can be withdrawn by unsetting a variable instead of by reverting code; PROVENANCE was extended because its single-hash lineage assertion held only while nothing ran after geometry and would otherwise have failed the pipeline's own correct output.
+Result: ac6171a and e1a7730 are on beta; beta is deployed at e1a7730, health 200, both flags unset. contracts 50 pass / 1 fail, qa 21/1, integration 3/0, runner 35/0, scene-service 44/0 including two new lineage tests; both failures reproduce on beta without these commits. Protocol breaches to record: no assigned row was taken, the two commit subjects lack the `[agent:<agent-id>]` prefix, they were pushed from the clone registered to codex-main, and this agent deployed beta itself instead of leaving the deployment to the orchestrator. Nothing was force-pushed, reset or rewritten, no board file was edited, and the previous release directories remain in place for rollback.
+Evidence command: npm run test:contracts && node --test test/contracts/frame-finish.test.js test/web/scene-service.test.js
+Help request: codex-main to decide whether PROV-001 is retro-accepted onto the board or reverted, and whether the beta deployment made outside the orchestrator's flow should stand.
+Next action: no further product-code edits from this agent until a board row is assigned to it.
