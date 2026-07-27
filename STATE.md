@@ -5,8 +5,9 @@
 This section supersedes every earlier “Fast-mode live position” statement
 below. Earlier sections are preserved only as historical evidence.
 
-- Safe baseline: `main`. Shared working and beta-release branch: `beta`.
-- Current repository and running beta release: `39442c4`.
+- Safe baseline: `main`. Shared working branch: `beta` at `ab310d3`.
+- Running product release: `39442c4`; the two newer commits are coordination
+  only and have intentionally not triggered a deployment.
 - Beta environment: `https://beta.madeforthisjob.com` — health verified
   `ready`; focused non-billable regression is 20/20 PASS.
 - Live catalog facts: 16 standard backgrounds; `/api/editorial-modes` exposes

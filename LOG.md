@@ -46,6 +46,15 @@ after cancellation. The task records, commits, and handoff evidence remain in
 Git; no product or runtime file changed.
 weakened_checks: none.
 
+2026-07-27 · release-pointer correction
+Change: distinguish shared-branch HEAD `ab310d3` from running product commit
+`39442c4` in the coordination documents.
+Why: the reconciliation and legacy-queue commits contain no product code and
+must not be mistaken for a beta deployment.
+Evidence: the beta daemon release directory is named for `39442c4`; both newer
+commits modify coordination files only.
+weakened_checks: none.
+
 2026-07-27 · BETA-STD-001 · `7bca845` live activation
 Change: activate the approved 16-background catalog on beta.
 Why: a code commit is not product delivery until the actual beta API serves the

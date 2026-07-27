@@ -15,10 +15,12 @@ The earlier detailed noticeboard is preserved at
 
 ## Current verified state — reconciliation 2026-07-27
 
-**One current source of truth:** `origin/beta` at `39442c4`. The running beta
-release was built from that exact commit. Do not call a change “live” merely
-because its row says `READY_FOR_BETA_DEPLOY`; it is live only after it is an
-ancestor of the running commit and a narrow beta smoke is recorded here.
+**One current source of truth:** shared branch `beta` is currently `ab310d3`;
+the running product release was built from product commit `39442c4`.
+`ce9142b` and `ab310d3` are coordination-only and were not deployed. Do not
+call a change “live” merely because its row says `READY_FOR_BETA_DEPLOY`; it is
+live only after it is an ancestor of the running product commit and a narrow
+beta smoke is recorded here.
 
 - Beta is healthy (`ready`). Narrow non-billable smoke: 20/20 focused tests,
   `/api/scene-presets` = 16, `/api/editorial-modes` = 9,
@@ -100,7 +102,7 @@ ancestor of the running commit and a narrow beta smoke is recorded here.
   provider note to current beta only through a safe status check; do not add a
   key, alter credentials, or claim a provider works without evidence.
 
-Every agent: fetch `beta`, add `Protocol ACK: 39442c4` in its own update, and
+Every agent: fetch `beta`, add `Protocol ACK: ab310d3` in its own update, and
 commit a `STARTED`/result line before changing product code. The owner reports
 facts; `codex-main` records the resulting verified state here.
 
