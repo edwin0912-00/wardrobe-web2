@@ -11,6 +11,9 @@ Protocol ACK: 4472986
   logged, or sent, and no billable request is authorized.
 - Decision: real Lucy mode requires a server-issued short-lived token plus an
   explicit cost acknowledgement for a bounded session.
+- Scope correction: `src/web/app.js` and `web/public/index.html` are reserved
+  so the new module has a real server registration and a visible product entry;
+  the task is not being delivered as an unreachable backend/static asset.
 - Focused proof: schema/compiler tests, route authorization tests, and browser
   contract tests for entry → choice → process → result → next action.
 - Help request: NONE.
