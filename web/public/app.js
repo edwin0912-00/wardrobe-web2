@@ -1624,6 +1624,11 @@ document.querySelector('#profile-look-scene').addEventListener('click', (event) 
   if (!selectedProfileLook) return;
   sceneUi.openForLook(selectedProfileLook).catch(showProfileError);
 });
+document.querySelector('#profile-look-video').addEventListener('click', (event) => {
+  event.stopPropagation();
+  if (!selectedProfileLook) return;
+  showProfileError('Fashion video ще не запускаємо: Seedance 2 transport, QA і збереження кліпу проходять окремий beta-gate. Образ залишився вибраним — доступні Фотосесія та Live camera.');
+});
 function closeProfileLive() {
   const overlay = document.querySelector('#profile-live-overlay');
   const frame = document.querySelector('#profile-live-frame');

@@ -76,6 +76,15 @@ test('selected saved look becomes the in-product Live reference without upload i
   assert.doesNotMatch(indexSource, />Video \/ Live MVP</);
 });
 
+test('saved look exposes the three post-look directions without pretending video is already generated', () => {
+  for (const id of ['profile-look-scene', 'profile-look-video', 'profile-look-live']) {
+    assert.match(indexSource, new RegExp(`id="${id}"`));
+  }
+  assert.match(indexSource, /Video не підміняється mock-роликом/);
+  assert.match(appSource, /profile-look-video/);
+  assert.match(appSource, /Seedance 2 transport, QA і збереження кліпу/);
+});
+
 test('Add items continuation receives the exact selected avatar and look once', async () => {
   const { avatar, newerLook, profile } = profileFixture();
   const transition = flow.resolveSavedAvatarTransition(profile, avatar);
