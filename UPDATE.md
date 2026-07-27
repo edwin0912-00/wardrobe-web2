@@ -22,6 +22,8 @@ The earlier detailed noticeboard is preserved at
 - `iwas.madeforthisjob.com` is outside this sprint's deployment flow.
 - Higgsfield is authenticated on the beta host. Magnific has no accepted API
   credential on the host yet; it is not an active beta provider.
+- OpenRouter has a validated backup credential in the beta host secure store.
+  It is not the active provider and its secret is never committed or reported.
 
 ## Що робимо зараз — людською мовою
 

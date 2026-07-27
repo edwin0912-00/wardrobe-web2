@@ -25,6 +25,8 @@
 - Higgsfield host authentication is verified active. Magnific is not an active
   beta provider: the supplied API credential received HTTP 401 and was removed
   from the host Keychain; no secret is retained in this repository.
+- OpenRouter is a validated backup transport credential on the beta host. It
+  remains outside Git and is not the active provider.
 - Agents may self-claim one existing `READY` task when the orchestrator is
   unavailable. Parallel code is allowed where `UPDATE.md` reserves different
   concrete paths; a collision, not concurrency itself, is the blocker.

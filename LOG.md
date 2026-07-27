@@ -17,6 +17,15 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-07-27 · OPS-OPENROUTER-BACKUP-001 · beta host · validated reserve transport
+Change: register a validated OpenRouter credential in host-only secure storage
+as a reserve transport; document the non-secret operational fact for agents.
+Why: beta needs a verified fallback without exposing a credential through Git
+history, task reports, prompts, or public output.
+Evidence: authenticated OpenRouter key endpoint returned HTTP 200; host secure
+store and private runtime file accepted the credential with mode 600.
+weakened_checks: none.
+
 2026-07-27 · PIPELINE-MAP-001 · beta · canonical named-step product map
 Change: add `PIPELINE.md` and require all active tasks to name their actual
 pipeline step in plain Ukrainian, without a fictitious total stage count.

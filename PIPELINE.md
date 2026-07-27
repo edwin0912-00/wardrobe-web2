@@ -53,7 +53,8 @@
 
 - Higgsfield: активний current transport на beta.
 - Magnific: резервний API transport, Claude ще не здав реалізацію.
-- OpenRouter: резервний transport; credential зберігається тільки поза Git.
+- OpenRouter: перевірений резервний transport; credential зберігається тільки
+  в захищеному host store, ніколи не в Git, звітах чи prompts.
 
 ## Поточні задачі простими словами
 
