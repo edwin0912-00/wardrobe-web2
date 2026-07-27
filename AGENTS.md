@@ -22,6 +22,7 @@ git pull --ff-only origin beta
 sed -n '1,180p' AGENTS.md
 sed -n '1,220p' UPDATE.md
 sed -n '1,220p' PIPELINE.md
+test -f docs/VIDEO_LIVE_CANON_UA.md && sed -n '1,260p' docs/VIDEO_LIVE_CANON_UA.md || true
 sed -n '1,120p' STATE.md
 ```
 
@@ -68,6 +69,9 @@ Fast rules:
    Every user-visible pipeline task also names its `PIPELINE.md` step and
    proves the complete UI unit: entry, allowed choice, process, result, and
    persistence/next action. A backend-only completion is not product delivery.
+   Any `VIDEO.*` or `LIVE.*` task also follows `docs/VIDEO_LIVE_CANON_UA.md`.
+   It may not relabel a delayed generated preview as real-time live video, nor
+   add background recording or silent webcam upload.
 5. Push directly to `origin beta`; never force-push, reset, rewrite history,
    touch `main`, credentials, `site.madeforthisjob.com`, or port `4180`.
 6. `codex-main` curates `UPDATE.md`, `STATE.md`, and `LOG.md`, but an agent may

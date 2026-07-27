@@ -50,6 +50,9 @@
 - `ART_SHOOT`, `VIDEO`, and `LIVE_WEBCAM` are explicit downstream blocks in
   the canonical map. None is claimed live; video and live both start only from
   a concrete approved fashion-shoot output.
+- `docs/VIDEO_LIVE_CANON_UA.md` defines the current approved product boundary:
+  fashion motion is source-bound; Live Director is local-first; a generated
+  webcam result is labelled delayed preview and requires explicit capture.
 
 Updated: 2026-07-27 08:55 UTC.
 

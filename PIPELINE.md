@@ -75,6 +75,8 @@ Video ніколи не стартує з випадкового аватара 
 | `VIDEO.03` | Побачити live generation і per-frame/identity/style QA. | NOT_DELIVERED |
 | `VIDEO.04` | Отримати збережений motion clip поруч із source shoot. | NOT_DELIVERED |
 
+Детальний motion canon, locks, QA і UI: [VIDEO_LIVE_CANON_UA.md](docs/VIDEO_LIVE_CANON_UA.md).
+
 ## LIVE_WEBCAM — альтернатива або наступний режим після video
 
 Це не прихована заміна video. На одному approved shoot користувач обирає
@@ -88,6 +90,9 @@ Video ніколи не стартує з випадкового аватара 
 | `LIVE.02` | Дати browser permission, побачити preview та чіткий стан камери. | NOT_DELIVERED |
 | `LIVE.03` | Працювати з live overlay/experience, прив’язаним до locked style й look. | NOT_DELIVERED |
 | `LIVE.04` | За явною дією зберегти лише обраний результат або завершити сесію без збереження. | NOT_DELIVERED |
+
+Перший live продукт — Local Live Director; delayed generative preview є
+окремим наступним режимом. Деталі: [VIDEO_LIVE_CANON_UA.md](docs/VIDEO_LIVE_CANON_UA.md).
 
 ## GENERATION_TRANSPORT — невидимий технічний шар
 

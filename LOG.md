@@ -17,6 +17,16 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-07-27 · VIDEO-LIVE-CANON-001 · beta · source-bound motion and local-first live
+Change: define the canonical video modes, immutable visual locks, QA/delivery,
+and two explicitly separate live-camera products.
+Why: a fashion-motion product must inherit an approved shoot, while a webcam
+experience must not claim delayed generation is real-time or collect footage
+silently.
+Evidence: `docs/VIDEO_LIVE_CANON_UA.md` binds source, UI flow, privacy states,
+and prohibited behavior before implementation begins.
+weakened_checks: none.
+
 2026-07-27 · PIPELINE-EXTENSION-001 · beta · art shoot, video, live camera map
 Change: extend the named product map with separate `ART_SHOOT`, `VIDEO`, and
 `LIVE_WEBCAM` blocks and require every user-visible task to ship its whole UI
