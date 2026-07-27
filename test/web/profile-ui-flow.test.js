@@ -4,6 +4,7 @@ import test from 'node:test';
 const flow = await import('../../web/public/add-items-flow.js');
 
 const appSource = await readFile(new URL('../../web/public/app.js', import.meta.url), 'utf8');
+const indexSource = await readFile(new URL('../../web/public/index.html', import.meta.url), 'utf8');
 
 function profileFixture() {
   const avatar = { avatar_id: 'avatar-a' };
@@ -72,6 +73,7 @@ test('selected saved look becomes the in-product Live reference without upload i
   assert.throws(() => flow.selectedLookLiveUrl({}), /saved look id/i);
   assert.match(appSource, /profile-look-live/);
   assert.match(appSource, /selectedLookLiveUrl\(selectedProfileLook\)/);
+  assert.doesNotMatch(indexSource, />Video \/ Live MVP</);
 });
 
 test('Add items continuation receives the exact selected avatar and look once', async () => {
