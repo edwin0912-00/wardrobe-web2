@@ -36,16 +36,23 @@ rules, and old PRs are preserved evidence only; do not use them for a new task.
 
 Fast rules:
 
-1. Take only a task explicitly assigned to your agent in `UPDATE.md`.
-2. One code task writes at a time. Other agents may research, reproduce, or QA
-   in parallel, but do not edit product files until the board assigns them.
+1. Take a task assigned to your agent in `UPDATE.md`. If the orchestrator is
+   unavailable, an online agent may self-claim exactly one `unassigned` +
+   `READY` row: fetch/rebase, change only that row to its own ID +
+   `IN_PROGRESS`, add its `STARTED` report, and push the small board commit.
+   If the push races, rebase and stop unless the row is still unassigned.
+   `WAITING`, `BLOCKED`, and `DONE` rows are never self-claimable.
+2. One code task writes at a time. Research and QA tasks may run in parallel.
+   A self-claiming code agent must first verify that no other code row is
+   `IN_PROGRESS`; it may not invent a new code row.
 3. Before a push: `git pull --rebase origin beta`, run the task's check, then
    commit only the task files plus `updates/<agent-id>.md`. Every commit
    subject starts with `[agent:<agent-id>]`, even when GitHub login is shared.
 4. Push directly to `origin beta`; never force-push, reset, rewrite history,
    touch `main`, credentials, `site.madeforthisjob.com`, or port `4180`.
-5. The orchestrator copies verified results into `UPDATE.md`, `STATE.md`, and
-   `LOG.md`. A beta deployment happens only after that exact commit is tested.
+5. `codex-main` curates `UPDATE.md`, `STATE.md`, and `LOG.md`, but an agent may
+   make the narrowly defined self-claim/completion edit to its own board row.
+   A beta deployment happens only after the exact commit is tested.
 
 If there is no assignment, create or update only `updates/<agent-id>.md` with
 a short finding; do not start speculative code.

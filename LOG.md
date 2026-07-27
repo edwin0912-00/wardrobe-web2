@@ -17,6 +17,14 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-07-27 · AGENT-AUTONOMY-001 · beta · continuity self-claim
+Change: assign `BETA-SMOKE-001` to Antigravity and permit agents to atomically
+self-claim one existing READY board row when the orchestrator is unavailable.
+Why: the product must keep moving if the primary Codex session ends.
+Evidence: the board has one active QA task, zero active code tasks, and the
+claim protocol rejects WAITING/BLOCKED/DONE rows and push races.
+weakened_checks: none.
+
 2026-07-27 · OPS-REMOTE-001 · beta · remote operator access
 Change: add `USERS.md` with the remote-first operator and OAuth callback rule.
 Why: Edwin cannot approve browser windows or credentials on the build host.

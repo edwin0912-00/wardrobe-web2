@@ -22,6 +22,11 @@
   OpenCloud; each uses the same beta context and monitor.
 - Operator access is remote-first: `USERS.md` is the canonical rule for links
   and localhost OAuth callbacks. A host-local browser is never assumed.
+- Higgsfield host authentication is verified active. Magnific is not an active
+  beta provider: the supplied API credential received HTTP 401 and was removed
+  from the host Keychain; no secret is retained in this repository.
+- Agents may self-claim one existing `READY` task when the orchestrator is
+  unavailable. `WAITING` tasks and new code scope still require a board change.
 
 Updated: 2026-07-27 08:55 UTC.
 
