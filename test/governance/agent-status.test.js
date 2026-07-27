@@ -7,6 +7,7 @@ import test from 'node:test';
 import {
   createAgentStatus,
   statusPathForTask,
+  taskMayPublishStatus,
   validateAgentStatusDocument,
 } from '../../tools/coordination/agent-status.mjs';
 import { validateBoardDocument, validateTaskScope } from '../../tools/coordination/control-plane.mjs';
@@ -257,7 +258,7 @@ test('the board rejects wildcard or cross-task status ownership', () => {
   );
 });
 
-test('every active lease must reserve its exact status artifact', () => {
+test('a legacy active lease remains valid but cannot publish a status artifact', () => {
   const board = {
     schema_version: '1.0.0',
     integration_branch: 'integration/wardrobe-20260726',
@@ -288,9 +289,8 @@ test('every active lease must reserve its exact status artifact', () => {
       },
     }],
   };
-  assert.ok(
-    validateBoardDocument(board).some((error) => error.code === 'ACTIVE_TASK_STATUS_PATH_REQUIRED'),
-  );
+  assert.deepEqual(validateBoardDocument(board), []);
+  assert.equal(taskMayPublishStatus(board.tasks[0]), false);
 });
 
 test('a task may change only its exact leased status artifact', () => {
