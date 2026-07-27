@@ -2,7 +2,7 @@
   "schema_version": "1.0.0",
   "integration_branch": "integration/wardrobe-20260726",
   "orchestrator": "codex-main",
-  "updated_at": "2026-07-27T00:28:09.000Z",
+  "updated_at": "2026-07-27T00:37:00.000Z",
   "tasks": [
     {
       "id": "CTRL-001",
@@ -350,6 +350,7 @@
         "schemas/scene-*.schema.json",
         "test/web/scene-*.test.js",
         "test/contracts/scene-*.test.js",
+        ".agents/status/WARD-002.json",
         ".agents/handoffs/WARD-002.json"
       ],
       "forbidden_paths": [
@@ -708,6 +709,7 @@
         "docs/style-units/**",
         "docs/MERGE_JUDGEMENT.md",
         "test/style-units/**",
+        ".agents/status/STYLE-001.json",
         ".agents/handoffs/STYLE-001.json"
       ],
       "forbidden_paths": [
@@ -776,6 +778,7 @@
         "test/web/profile-service.test.js",
         "test/web/profile-app-integration.test.js",
         "test/web/profile-navigation.test.js",
+        ".agents/status/PROFILE-001.json",
         ".agents/handoffs/PROFILE-001.json"
       ],
       "forbidden_paths": [
@@ -846,6 +849,7 @@
         "src/monitor/agent-supervisor.js",
         "src/monitor/routes.js",
         "test/monitor/**",
+        ".agents/status/MONITOR-001.json",
         ".agents/handoffs/MONITOR-001.json"
       ],
       "forbidden_paths": [
@@ -916,6 +920,7 @@
         "src/web/editorial-shoot-routes.js",
         "test/web/editorial-contact-sheet.test.js",
         "test/web/editorial-activation-backend.test.js",
+        ".agents/status/SITE-002.json",
         ".agents/handoffs/SITE-002.json"
       ],
       "forbidden_paths": [
