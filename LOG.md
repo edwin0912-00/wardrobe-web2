@@ -17,6 +17,16 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-07-27 · FAST-001 · beta · direct beta workflow
+Change: create shared `beta` branch and replace lane/lease entry rules with a
+single live board in `UPDATE.md`.
+Why: the MVP needs small verified commits and immediate beta testing; the prior
+multi-lane workflow blocked work on expired leases and PR administration.
+Evidence: `beta` starts from verified Create Universe commit `90d6119`; beta
+health returns `ready` and its editorial catalog returns five `shoot.*` modes.
+weakened_checks: none; code changes remain serial and every beta deploy still
+requires a focused test.
+
 2026-07-27 · INT-001 · lane/INT-001/codex-main · pending PR/update
 Change: add only `docs/style-units/` to the PRODUCT_SCENES_V1 deploy allowlist.
 Why: the verified Create Universe resolver consumes these immutable source

@@ -1,5 +1,43 @@
 # Wardrobe agent entrypoint
 
+## FAST MODE — current sprint
+
+This section overrides the historical lane/lease/PR process below.
+
+There are only two branches that matter now:
+
+- `main` — safe baseline. Read-only for agents.
+- `beta` — the one shared working branch and the source for beta testing.
+
+Before doing anything, every agent runs:
+
+```bash
+git fetch origin
+git switch beta
+git pull --ff-only origin beta
+sed -n '1,180p' AGENTS.md
+sed -n '1,220p' UPDATE.md
+sed -n '1,120p' STATE.md
+```
+
+`UPDATE.md` is the live task board. `TASKS.json`, `OWNERS.md` historical lane
+rules, and old PRs are preserved evidence only; do not use them for a new task.
+
+Fast rules:
+
+1. Take only a task explicitly assigned to your agent in `UPDATE.md`.
+2. One code task writes at a time. Other agents may research, reproduce, or QA
+   in parallel, but do not edit product files until the board assigns them.
+3. Before a push: `git pull --rebase origin beta`, run the task's check, then
+   commit only the task files plus `updates/<agent-id>.md`.
+4. Push directly to `origin beta`; never force-push, reset, rewrite history,
+   touch `main`, credentials, `site.madeforthisjob.com`, or port `4180`.
+5. The orchestrator copies verified results into `UPDATE.md`, `STATE.md`, and
+   `LOG.md`. A beta deployment happens only after that exact commit is tested.
+
+If there is no assignment, create or update only `updates/<agent-id>.md` with
+a short finding; do not start speculative code.
+
 This repository is coordinated through GitHub. Conversation history is not
 authority. Before any substantive action, every agent must:
 

@@ -1,5 +1,15 @@
 # Wardrobe verified state
 
+## Fast-mode live position — 2026-07-27
+
+- Safe baseline: `main`.
+- Active shared branch: `beta` at `90d6119` plus the fast-mode control commit.
+- Beta environment: `https://beta.madeforthisjob.com` — health verified
+  `ready`; it runs the Create Universe release built from `90d6119`.
+- `iwas.madeforthisjob.com` was not changed during this beta release.
+- Current task board: `UPDATE.md`. Historical lanes and `TASKS.json` are not
+  an assignment source for this sprint.
+
 Updated: 2026-07-27 08:55 UTC.
 
 ## Canonical position

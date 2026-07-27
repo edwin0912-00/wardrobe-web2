@@ -1,5 +1,13 @@
 # Wardrobe ownership
 
+## FAST MODE — current sprint
+
+`beta` is the only shared working branch. `main` is read-only. The active
+assignment in `UPDATE.md` decides who may write product code right now.
+Agents report in their own `updates/<agent-id>.md`; only `codex-main` updates
+the central board and verified state. The detailed lane rules below remain an
+archive for prior work and do not govern new beta tasks.
+
 This file defines write authority. Everyone may read the full repository.
 Only the active task owner may write its assigned paths. `TASKS.json` narrows
 these lanes for each lease; it may never broaden a forbidden boundary below.
