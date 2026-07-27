@@ -1,0 +1,120 @@
+{
+  "schema_version": "1.0.0",
+  "task_id": "CTRL-002",
+  "agent_id": "codex-main",
+  "branch": "lane/CTRL-002/codex-main",
+  "base_sha": "ccea7dd7739883144a27388977ce8284a52a8027",
+  "lease_generation": 1,
+  "tested_code_sha": "47acb3641ee1feaf0f17a10fad9ebee56f66b9f8",
+  "status": "READY_FOR_REVIEW",
+  "summary": "Installed a GitHub-backed, privacy-safe agent coordination channel: exact leased status artifacts, typed heartbeat/blocker codes, a lane-side publisher, read-only report watcher with stale detection, a canonical agent bootstrap pack, and a deterministic no-model coordination observer. The status contract cannot persist arbitrary report text, and legacy boards without a status lease remain valid but cannot publish one.",
+  "changed_paths": [
+    ".agents/README.md",
+    ".agents/handoffs/CTRL-002.json",
+    ".agents/status/CTRL-002.json",
+    "AGENTS.md",
+    "LOG.md",
+    "OWNERS.md",
+    "STATE.md",
+    "docs/coordination/AGENT_BOOTSTRAP_UA.md",
+    "ops/zeely-agent-coordination-loop/.gitignore",
+    "ops/zeely-agent-coordination-loop/LOOP.md",
+    "ops/zeely-agent-coordination-loop/README.md",
+    "ops/zeely-agent-coordination-loop/RUN_IN_SESSION.md",
+    "ops/zeely-agent-coordination-loop/inputs/coordination-brief.md",
+    "ops/zeely-agent-coordination-loop/loop.resolved.json",
+    "ops/zeely-agent-coordination-loop/loop.yaml",
+    "ops/zeely-agent-coordination-loop/run-loop.py",
+    "ops/zeely-agent-coordination-loop/scripts/deterministic-observer.py",
+    "schemas/agent-status.schema.json",
+    "test/governance/agent-status.test.js",
+    "tools/coordination/agent-reporting.mjs",
+    "tools/coordination/agent-status-labels.mjs",
+    "tools/coordination/agent-status.mjs",
+    "tools/coordination/check-coordination-report.mjs",
+    "tools/coordination/control-plane.mjs",
+    "tools/coordination/path-policy.mjs",
+    "tools/coordination/publish-agent-status.mjs",
+    "tools/coordination/safe-report-text.mjs",
+    "tools/coordination/sanitize-looper-resolved.mjs",
+    "tools/coordination/schema-validation.mjs",
+    "tools/coordination/watch-agent-reports.mjs",
+    "tools/coordination/watch-assignments.mjs"
+  ],
+  "pre_change_proof": [
+    {
+      "check_id": "agent-status-contract-tests",
+      "command": [
+        "node",
+        "--test",
+        "test/governance/agent-status.test.js",
+        "test/governance/agent-control.test.js"
+      ],
+      "result": "FAIL",
+      "evidence": "Applied changed governance tests to the pinned base; the pre-change tree lacks the new agent-status module and the focused command fails before the implementation exists. The trusted acceptance runner replays this proof against the pinned base."
+    }
+  ],
+  "post_change_proof": [
+    {
+      "check_id": "agent-status-contract-tests",
+      "command": [
+        "node",
+        "--test",
+        "test/governance/agent-status.test.js",
+        "test/governance/agent-control.test.js"
+      ],
+      "result": "PASS",
+      "evidence": "Exact tested SHA passed 25 focused governance tests, including typed-only status persistence, free-text CLI rejection without echo, stale detection, and ignored Looper workspace coverage."
+    },
+    {
+      "check_id": "queue-board-validation",
+      "command": [
+        "node",
+        "tools/coordination/validate-board.mjs",
+        "--board-only"
+      ],
+      "result": "PASS",
+      "evidence": "Candidate board passed schema, scoped status-lease, ownership, dependency, and acceptance validation."
+    },
+    {
+      "check_id": "diff-hygiene",
+      "command": [
+        "git",
+        "diff",
+        "--check",
+        "$TASK_BASE_SHA...$TESTED_CODE_SHA"
+      ],
+      "result": "PASS",
+      "evidence": "Whitespace and conflict-marker check passed from the pinned task base through the exact tested SHA."
+    }
+  ],
+  "adversarial_review": {
+    "goal": "Find free-text persistence, private-data echo, stale-status bypass, scope escape, passive-watcher impersonation, raw loop-workspace retention, or a weakened check in the exact CTRL-002 chain.",
+    "result": "PASS",
+    "reviewer_id": "ctrl002_review",
+    "reviewed_code_sha": "47acb3641ee1feaf0f17a10fad9ebee56f66b9f8"
+  },
+  "weakened_checks": [],
+  "open_risks": [
+    {
+      "code": "REMOTE_AGENT_RUNNER_REQUIRED",
+      "severity": "WARNING",
+      "description": "The Git watcher is deliberately read-only and cannot wake a remote LLM. Each remote host still needs an explicit authenticated runner to consume watcher events and publish a typed acknowledgement."
+    },
+    {
+      "code": "GITHUB_FREE_ENFORCEMENT",
+      "severity": "WARNING",
+      "description": "The current private-repository plan cannot enforce required checks or CODEOWNERS; codex-main remains the sole merger."
+    },
+    {
+      "code": "SHARED_ACTOR_IDENTITY",
+      "severity": "WARNING",
+      "description": "Agent and reviewer IDs are routing labels; GitHub actor separation or signing is required for cryptographic identity isolation."
+    },
+    {
+      "code": "PRODUCT_BASE_NOT_GREEN",
+      "severity": "WARNING",
+      "description": "CTRL-002 is coordination-only and does not repair the known product regression baseline."
+    }
+  ]
+}
