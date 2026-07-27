@@ -2,69 +2,56 @@
 <html lang="uk">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>WARDROBE — Video / Live Camera MVP</title>
-  <link rel="stylesheet" href="/post-shoot-mvp.css?v=20260727-4">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>Made For This · Live</title>
+  <link rel="stylesheet" href="/post-shoot-mvp.css?v=20260727-5">
 </head>
 <body>
-  <header class="topbar">
-    <a href="/">← WARDROBE</a>
-    <span>LUCY 2.5 · 5 SECOND LIVE</span>
-  </header>
-  <main>
-    <section class="intro">
-      <p>LIVE TRY-ON</p>
-      <h1>Подивись образ<br>на собі наживо.</h1>
-      <p>Завантаж reference, вистав безкоштовну камеру і запусти п’ять секунд live try-on.</p>
-    </section>
+  <main class="live-shell">
+    <header class="live-header">
+      <a href="/" aria-label="Назад">MFT</a>
+      <span>LIVE FITTING</span>
+      <i></i>
+    </header>
 
-    <section class="source-card" aria-label="Затверджене джерело">
-      <div class="source-visual">
-        <img id="reference-preview" class="hidden" alt="Завантажений reference look">
-        <span id="reference-placeholder">APPROVED<br>SHOOT</span>
+    <section class="live-stage">
+      <video id="camera" autoplay muted playsinline></video>
+      <div id="camera-placeholder" class="empty-state">
+        <span class="aperture"></span>
+        <b>Увімкни камеру</b>
+        <small>Тримай телефон вертикально на рівні грудей</small>
       </div>
-      <div>
-        <p class="overline">OUTFIT REFERENCE</p>
-        <h2>Образ для примірки</h2>
-        <p>Це зображення визначає одяг. Обличчя та кімната беруться з live camera.</p>
-        <div class="locks"><span>IDENTITY LOCK</span><span>OUTFIT LOCK</span><span>STYLE LOCK</span></div>
-        <label class="reference-upload">
+
+      <div id="fit-guide" class="fit-guide" aria-hidden="true">
+        <div class="scan-line"></div>
+        <svg viewBox="0 0 240 420" role="presentation">
+          <path class="body-line" d="M120 24c-25 0-44 20-44 45 0 22 14 40 34 45v17c-12 3-26 8-40 16-23 14-32 42-34 74l-4 70m88-160v270m0-270c12 3 26 8 40 16 23 14 32 42 34 74l4 70M70 147c12 38 13 82 9 130l-15 124m106-254c-12 38-13 82-9 130l15 124"/>
+          <path class="shoulder-bracket" d="M38 179v-24h28m136 24v-24h-28M38 294v24h28m136-24v24h-28"/>
+        </svg>
+        <p><b>Відійди на 1.5–2 м</b><span>Голова, торс і стегна мають бути в рамці</span></p>
+      </div>
+
+      <div class="stage-top">
+        <span class="live-mark"><i></i> LIVE</span>
+        <span id="live-status">READY</span>
+      </div>
+
+      <div class="control-dock">
+        <label class="reference-control" aria-label="Додати образ">
           <input id="reference-upload" type="file" accept="image/jpeg,image/png,image/webp">
-          <b>Завантажити reference photo</b>
-          <small>JPEG / PNG / WebP · мінімум 512×512</small>
+          <span class="reference-visual">
+            <img id="reference-preview" class="hidden" alt="Reference look">
+            <i id="reference-placeholder">+</i>
+          </span>
+          <span><b>Образ</b><small id="reference-status">Додати фото</small></span>
         </label>
-        <p id="reference-status" class="reference-status">Використовується demo approved shoot.</p>
-      </div>
-    </section>
-
-    <section id="workspace" class="workspace" aria-live="polite">
-      <div class="workspace-head">
-        <div><p class="overline">FREE PREVIEW → PAID LIVE</p><h2>Live view</h2></div>
-      </div>
-      <div id="live-panel">
-        <div class="mirror">
-          <video id="camera" autoplay muted playsinline></video>
-          <div class="fit-guide" aria-hidden="true">
-            <div class="scan-line"></div>
-            <svg viewBox="0 0 240 420" role="presentation">
-              <path class="body-line" d="M120 24c-25 0-44 20-44 45 0 22 14 40 34 45v17c-12 3-26 8-40 16-23 14-32 42-34 74l-4 70m88-160v270m0-270c12 3 26 8 40 16 23 14 32 42 34 74l4 70M70 147c12 38 13 82 9 130l-15 124m106-254c-12 38-13 82-9 130l15 124"/>
-              <path class="shoulder-bracket" d="M38 179v-24h28m136 24v-24h-28M38 294v24h28m136-24v24h-28"/>
-            </svg>
-            <div class="distance-meter"><i></i><span>1.5–2 m</span></div>
-          </div>
-          <div id="camera-placeholder">Камера вимкнена</div>
-        </div>
-        <div class="live-controls">
-          <button id="camera-start" class="secondary" type="button">Увімкнути безкоштовний preview</button>
-          <button id="camera-stop" class="secondary hidden" type="button">Stop camera</button>
-          <label class="cost-consent"><input id="cost-consent" type="checkbox"> Я розумію: Lucy коштує $0.04/сек, 5 секунд = максимум $0.20.</label>
-          <button id="lucy-start" class="primary" type="button" disabled>Start 5-second Live · max $0.20</button>
-          <button id="lucy-stop" class="secondary" type="button">Stop live</button>
-          <p id="live-status">Постав телефон на рівні грудей · відійди на 1.5–2 м · у кадрі мають бути голова, торс і стегна.</p>
-        </div>
+        <button id="camera-start" class="camera-button" type="button">Camera</button>
+        <button id="camera-stop" class="camera-button hidden" type="button">Camera off</button>
+        <button id="lucy-start" class="test-button" type="button" disabled>Test</button>
+        <button id="lucy-stop" class="stop-button" type="button" aria-label="Зупинити">■</button>
       </div>
     </section>
   </main>
-  <script type="module" src="/post-shoot-mvp.js?v=20260727-4"></script>
+  <script type="module" src="/post-shoot-mvp.js?v=20260727-5"></script>
 </body>
 </html>

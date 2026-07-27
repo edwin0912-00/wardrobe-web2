@@ -21,7 +21,7 @@ test('live entrypoint always redirects to a cache-busted release', async (t) => 
   const response = await app.inject({ method: 'GET', url: '/live' });
   assert.equal(response.statusCode, 302);
   assert.equal(response.headers['cache-control'], 'no-store');
-  assert.equal(response.headers.location, '/post-shoot-mvp.html?release=20260727-4');
+  assert.equal(response.headers.location, '/post-shoot-mvp.html?release=20260727-5');
 });
 
 test('token route rejects missing cost approval before provider access', async (t) => {

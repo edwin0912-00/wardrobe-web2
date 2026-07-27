@@ -1,11 +1,11 @@
 const MODEL_ID = 'decart/lucy-2-5/realtime';
-const state = { stream: null, reference: null, connection: null, peer: null, timer: null, running: false };
+const state = { stream: null, reference: null, connection: null, peer: null, timer: null, guideTimer: null, running: false };
 const $ = (selector) => document.querySelector(selector);
 const prompt = 'Replace only the current clothing with the outfit from the reference image. Preserve the person face, identity, hair, skin, body shape, pose and hands. Preserve the existing room, background, camera angle and lighting. Do not modify anything except the clothing.';
 
 function status(text) { $('#live-status').textContent = text; }
 function ready() {
-  $('#lucy-start').disabled = state.running || !state.stream || !state.reference || !$('#cost-consent').checked;
+  $('#lucy-start').disabled = state.running || !state.stream || !state.reference;
 }
 function dataUrl(file) {
   return new Promise((resolve, reject) => {
@@ -43,6 +43,13 @@ async function startCamera() {
   $('#camera-placeholder').classList.add('hidden');
   $('#camera-start').classList.add('hidden');
   $('#camera-stop').classList.remove('hidden');
+  $('#fit-guide').classList.remove('is-complete');
+  $('#fit-guide').classList.add('is-active');
+  clearTimeout(state.guideTimer);
+  state.guideTimer = setTimeout(() => {
+    $('#fit-guide').classList.add('is-complete');
+    status('POSITION LOCKED');
+  }, 3_600);
   status('Відійди так, щоб було видно голову, торс і одяг до стегон.');
   ready();
 }
@@ -62,6 +69,8 @@ function stopCamera() {
   closeLive('Камера вимкнена.');
   state.stream?.getTracks().forEach((track) => track.stop());
   state.stream = null;
+  clearTimeout(state.guideTimer);
+  $('#fit-guide').classList.remove('is-active', 'is-complete');
   $('#camera').srcObject = null;
   $('#camera-placeholder').classList.remove('hidden');
   $('#camera-start').classList.remove('hidden');
@@ -93,6 +102,7 @@ async function signal(result) {
   }
 }
 async function startLive() {
+  if (!window.confirm('Запустити 5 секунд Lucy Live? Максимальна вартість — $0.20.')) return;
   const { fal } = await import('./vendor/fal-client.js?v=20260727-4');
   state.running = true;
   ready();
@@ -126,7 +136,6 @@ $('#reference-upload').addEventListener('change', (event) => loadReference(event
 }));
 $('#camera-start').addEventListener('click', () => startCamera().catch((error) => status(`Camera error: ${error.message}`)));
 $('#camera-stop').addEventListener('click', stopCamera);
-$('#cost-consent').addEventListener('change', ready);
 $('#lucy-start').addEventListener('click', () => startLive().catch((error) => closeLive(`Помилка: ${error.message}`)));
 $('#lucy-stop').addEventListener('click', () => closeLive());
 window.addEventListener('pagehide', stopCamera);
