@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>WARDROBE STUDIO — Integrated 3D AI Fashion Pipeline</title>
+  <title>WARDROBE STUDIO — Progressive AI Fashion Pipeline</title>
   <meta name="description" content="Reference-conditioned AI avatar and fashion campaign generator built with WebGL kinetic canvas and glassmorphic UI.">
   
   <!-- Fonts -->
@@ -31,7 +31,7 @@
   <canvas id="canvas"></canvas>
 
   <!-- ============================
-       LAYER 2: Interactive HUD Bar (With Locked Step Gating)
+       LAYER 2: Editorial HUD Bar (Progressive Unfolding Navigation)
        ============================ -->
   <div class="l-hud-bar">
     <div class="hud-brand">
@@ -39,19 +39,19 @@
       <span class="hud-name">WARDROBE STUDIO</span>
     </div>
     <nav class="hud-steps">
-      <button class="hud-step-btn is-active" id="hud-step-0" data-step="0" onclick="goToStep(0)" type="button">01 AVATAR</button>
-      <button class="hud-step-btn is-locked" id="hud-step-1" data-step="1" onclick="goToStep(1)" type="button">🔒 02 GARMENT</button>
-      <button class="hud-step-btn is-locked" id="hud-step-2" data-step="2" onclick="goToStep(2)" type="button">🔒 03 SCENES</button>
-      <button class="hud-step-btn is-locked" id="hud-step-3" data-step="3" onclick="goToStep(3)" type="button">🔒 04 CAMPAIGN</button>
+      <button class="hud-step-btn is-active" id="hud-step-0" onclick="goToStep(0)" type="button">01 IDENTITY</button>
+      <button class="hud-step-btn is-hidden" id="hud-step-1" onclick="goToStep(1)" type="button">02 WARDROBE</button>
+      <button class="hud-step-btn is-hidden" id="hud-step-2" onclick="goToStep(2)" type="button">03 ATMOSPHERE</button>
+      <button class="hud-step-btn is-hidden" id="hud-step-3" onclick="goToStep(3)" type="button">04 CAMPAIGN</button>
     </nav>
     <div class="hud-info">
       <span class="hud-live-dot"></span>
-      <span class="hud-status-text" id="hud-gate-status">ОБЕРІТЬ АВАТАР ДЛЯ РОЗБЛОКУВАННЯ</span>
+      <span class="hud-status-text" id="hud-gate-status">EDITORIAL STUDIO · PROGRESSIVE UNFOLDING</span>
     </div>
   </div>
 
   <!-- ============================
-       LAYER 3: HTML UI Overlay & Pipeline
+       LAYER 3: HTML UI Overlay & Progressive Pipeline
        ============================ -->
   <div id="ui">
 
@@ -59,12 +59,12 @@
     <section id="step-0" class="l-hero l-pipeline-step" data-step-index="0">
       <div class="l-hero-visual" id="hero-visual"></div>
       <h1 class="l-hero-title l-reveal">WARDROBE</h1>
-      <p class="l-hero-subtitle l-reveal l-reveal-delay-1">Твій AI-аватар та цифровий гардероб у 3D-середовищі.<br>Збереження зовнішності без випадковостей.</p>
+      <p class="l-hero-subtitle l-reveal l-reveal-delay-1">Твій AI-аватар та цифровий гардероб у кінематографічному середовищі.<br>Збереження зовнішності без випадковостей.</p>
       <div class="l-hero-line l-reveal l-reveal-delay-2"></div>
       
       <!-- 10 "W" Outfit Variation Selector -->
       <div class="l-w-variation-selector l-reveal l-reveal-delay-3">
-        <div class="w-var-label">Обери 3D Силует Образу (10 Варіантів):</div>
+        <div class="w-var-label">Обери силует образу (10 варіацій):</div>
         <div class="w-var-chips">
           <button class="w-var-chip is-active" onclick="switchWVariation(0)" type="button">01. Classic</button>
           <button class="w-var-chip" onclick="switchWVariation(1)" type="button">02. Puffer</button>
@@ -81,7 +81,7 @@
 
       <div class="l-hero-actions l-reveal l-reveal-delay-4" style="margin-top: 1.5rem;">
         <button class="l-goal-btn" onclick="goToStep(1)" type="button">
-          <span>Створити Аватар у 3D Studio</span>
+          <span>Розпочати створення образу</span>
           <svg width="16" height="16" fill="none" viewBox="0 0 16 16"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.343 8h11.314m0 0-4.984 4.984M13.657 8 8.673 3.016"/></svg>
         </button>
       </div>
@@ -89,20 +89,20 @@
       <div class="l-hero-scroll">
         <div class="l-cross"></div>
         <div class="l-cross"></div>
-        <span class="l-hero-scroll-text">скрольте або натисніть для вибору аватара</span>
+        <span class="l-hero-scroll-text">скрольте нижче для фіксації аватара</span>
         <div class="l-cross"></div>
         <div class="l-cross"></div>
       </div>
     </section>
 
 
-    <!-- ── Section 1: Step 01 — Avatar Input Panel (GATE 1) ── -->
+    <!-- ── Section 1: Step 01 — Identity / Avatar ── -->
     <section id="step-1" class="l-pipeline-section l-pipeline-step" data-step-index="1">
       <div class="l-container">
         <div class="l-step-header l-reveal">
-          <div class="l-step-badge" id="badge-step-1">ЕТАП 01 / 04 · ОБОВ'ЯЗКОВИЙ КРОК</div>
-          <h2 class="l-step-title">Фіксація Зовнішності</h2>
-          <p class="l-step-desc">Обери збережений аватар або завантаж фото людини для розблокування наступного екрану.</p>
+          <div class="l-step-badge" id="badge-step-1">01 / IDENTITY</div>
+          <h2 class="l-step-title">Фіксація Персонажа</h2>
+          <p class="l-step-desc">Завантаж фотографію людини або обери збережену модель для початку створення зйомки.</p>
         </div>
 
         <div class="l-glass-panel l-reveal l-reveal-delay-1">
@@ -111,7 +111,7 @@
             <label class="l-upload-box" id="box-person-photo">
               <input type="file" id="input-person-photo" accept="image/png,image/jpeg,image/webp">
               <div class="l-upload-icon">+</div>
-              <strong class="l-upload-title">Фото людини *</strong>
+              <strong class="l-upload-title">Портрет моделі *</strong>
               <small class="l-upload-sub">Будь-який фон і поза · PNG, JPEG, WEBP</small>
               <div class="l-upload-filename" id="filename-person">Обрати файл</div>
             </label>
@@ -119,7 +119,7 @@
             <label class="l-upload-box">
               <input type="file" id="input-identity-detail" accept="image/png,image/jpeg,image/webp">
               <div class="l-upload-icon">+</div>
-              <strong class="l-upload-title">Додаткове фото</strong>
+              <strong class="l-upload-title">Додатковий ракурс</strong>
               <small class="l-upload-sub">Обличчя або повний зріст (необов’язково)</small>
               <div class="l-upload-filename" id="filename-identity">Обрати файл</div>
             </label>
@@ -127,60 +127,53 @@
           </div>
 
           <div class="l-saved-library">
-            <div class="l-library-title">Або обери зафіксований аватар:</div>
+            <div class="l-library-title">Або обери зафіксовану модель:</div>
             <div class="l-avatar-chips">
               <button class="l-avatar-chip" onclick="selectAvatarChip(this, '001')" type="button">
                 <span class="chip-avatar-img">👤</span>
-                <span>Аватар #001 (Чоловічий)</span>
+                <span>Модель #001 (Male)</span>
               </button>
               <button class="l-avatar-chip" onclick="selectAvatarChip(this, '002')" type="button">
                 <span class="chip-avatar-img">👤</span>
-                <span>Аватар #002 (Жіночий)</span>
+                <span>Модель #002 (Female)</span>
               </button>
             </div>
-          </div>
-
-          <div class="l-panel-footer">
-            <button class="l-step-next-btn is-disabled" id="btn-next-step-1" onclick="submitStep1()" type="button" disabled>
-              <span>Оберіть аватар для продовження</span>
-              <span class="btn-arrow">🔒</span>
-            </button>
           </div>
         </div>
       </div>
     </section>
 
 
-    <!-- ── Section 2: Step 02 — 5-Garment & Outfit Panel (GATE 2) ── -->
-    <section id="step-2" class="l-pipeline-section l-pipeline-step is-step-locked" id="section-step-2" data-step-index="2">
+    <!-- ── Section 2: Step 02 — Wardrobe & 5 Garments (UNFOLDS ON STEP 1 COMPLETE) ── -->
+    <section id="step-2" class="l-pipeline-section l-pipeline-step l-section-unfold" data-step-index="2">
       <div class="l-container">
         <div class="l-step-header l-reveal">
-          <div class="l-step-badge" id="badge-step-2">ЕТАП 02 / 04 · 🔒 ЗАБЛОКОВАНО</div>
-          <h2 class="l-step-title">Картка Образу та 5 Речей</h2>
-          <p class="l-step-desc">Опиши стиль або додавай фотографії речей для розблокування 3D-сцен.</p>
+          <div class="l-step-badge" id="badge-step-2">02 / WARDROBE</div>
+          <h2 class="l-step-title">Конструктор Образу</h2>
+          <p class="l-step-desc">Додай опис стилю або завантаж до 5 окремих елементів одягу.</p>
         </div>
 
         <div class="l-glass-panel l-reveal l-reveal-delay-1">
           
           <div class="l-field-group">
-            <label class="l-field-label" for="input-outfit-text">Опис образу (стиль, посадка, настрій)</label>
+            <label class="l-field-label" for="input-outfit-text">Опис образу (стиль, крій, тканина)</label>
             <textarea id="input-outfit-text" class="l-textarea" rows="2" placeholder="Наприклад: мінімалістичний чорний костюм з широким кроєм та матовою текстурою linen" oninput="checkStep2Completion()"></textarea>
           </div>
 
           <div class="l-field-group" style="margin-top: 1.25rem;">
-            <label class="l-field-label">Фото 5 елементів гардеробу (додайте хоча б 1 фото або опис)</label>
+            <label class="l-field-label">Картка гардеробу (5 слотів)</label>
             <div class="l-garment-upload-grid-5">
               
               <label class="l-garment-box-5">
                 <input type="file" accept="image/png,image/jpeg,image/webp" onchange="checkStep2Completion()">
                 <span class="g-icon">+</span>
-                <span class="g-name">01. Верх / Сорочка</span>
+                <span class="g-name">01. Сорочка / Верх</span>
               </label>
 
               <label class="l-garment-box-5">
                 <input type="file" accept="image/png,image/jpeg,image/webp" onchange="checkStep2Completion()">
                 <span class="g-icon">+</span>
-                <span class="g-name">02. Верхній одяг</span>
+                <span class="g-name">02. Пальто / Куртка</span>
               </label>
 
               <label class="l-garment-box-5">
@@ -198,32 +191,25 @@
               <label class="l-garment-box-5">
                 <input type="file" accept="image/png,image/jpeg,image/webp" onchange="checkStep2Completion()">
                 <span class="g-icon">+</span>
-                <span class="g-name">05. Аксесуар / Сумка</span>
+                <span class="g-name">05. Сумка / Аксесуар</span>
               </label>
 
             </div>
-          </div>
-
-          <div class="l-panel-footer" style="margin-top: 1.5rem;">
-            <button class="l-step-next-btn is-disabled" id="btn-next-step-2" onclick="submitStep2()" type="button" disabled>
-              <span>Введіть опис або додайте фото</span>
-              <span class="btn-arrow">🔒</span>
-            </button>
           </div>
         </div>
       </div>
     </section>
 
 
-    <!-- ── Section 3: Step 03 — Interactive 3D Scenes (GATE 3) ── -->
-    <section id="step-3" class="l-featured l-pipeline-step is-step-locked" id="section-step-3" data-step-index="3">
+    <!-- ── Section 3: Step 03 — Atmosphere (UNFOLDS ON STEP 2 COMPLETE) ── -->
+    <section id="step-3" class="l-featured l-pipeline-step l-section-unfold" data-step-index="3">
       <div class="l-container">
         <div class="l-featured-header l-reveal">
           <div>
-            <div class="l-step-badge" id="badge-step-3">ЕТАП 03 / 04 · 🔒 ЗАБЛОКОВАНО</div>
-            <h2 class="l-featured-title">3D Сцени та Освітлення</h2>
+            <div class="l-step-badge" id="badge-step-3">03 / ATMOSPHERE</div>
+            <h2 class="l-featured-title">Атмосфера Зйомки</h2>
           </div>
-          <p class="l-featured-disclaimer">Натисни на одну з 11 студійних локацій для вибору освітлення та розблокування кампанії.</p>
+          <p class="l-featured-disclaimer">Обери кінематографічну локацію та світловий декор для зйомки.</p>
         </div>
 
         <div class="l-project-grid">
@@ -293,22 +279,15 @@
             </div>
           </div>
         </div>
-
-        <div style="margin-top: 3rem; text-align: center;">
-          <button class="l-goal-btn is-disabled" id="btn-next-step-3" onclick="submitStep3()" type="button" disabled>
-            <span>Оберіть локацію для 6-Shot Campaign</span>
-            <span class="btn-arrow">🔒</span>
-          </button>
-        </div>
       </div>
     </section>
 
 
-    <!-- ── Section 4: Step 04 — Campaign Studio Gallery (UNLOCKED LAST) ── -->
-    <section id="step-4" class="l-gallery l-pipeline-step is-step-locked" id="section-step-4" data-step-index="4">
+    <!-- ── Section 4: Step 04 — Campaign Gallery (UNFOLDS ON STEP 3 COMPLETE) ── -->
+    <section id="step-4" class="l-gallery l-pipeline-step l-section-unfold" data-step-index="4">
       <div class="l-container">
-        <div class="l-step-badge" id="badge-step-4">ЕТАП 04 / 04 · 🔒 ЗАБЛОКОВАНО</div>
-        <h3 class="l-gallery-title l-reveal">Art Fashion Campaign Gallery</h3>
+        <div class="l-step-badge" id="badge-step-4">04 / CAMPAIGN</div>
+        <h3 class="l-gallery-title l-reveal">Art Fashion Campaign Series</h3>
       </div>
       <div class="l-gallery-track" id="gallery-track">
         <div style="width: var(--container-pad); flex-shrink: 0;"></div>
@@ -370,26 +349,26 @@
       <div class="l-container l-footer-inner">
         <div class="l-footer-brand">Wardrobe Studio</div>
         <nav class="l-footer-links">
-          <a class="l-footer-link" href="#" onclick="goToStep(1)">Avatar</a>
-          <a class="l-footer-link" href="#" onclick="goToStep(2)">Garments</a>
-          <a class="l-footer-link" href="#" onclick="goToStep(3)">Scenes</a>
+          <a class="l-footer-link" href="#" onclick="goToStep(1)">Identity</a>
+          <a class="l-footer-link" href="#" onclick="goToStep(2)">Wardrobe</a>
+          <a class="l-footer-link" href="#" onclick="goToStep(3)">Atmosphere</a>
           <a class="l-footer-link" href="#" onclick="goToStep(4)">Campaign</a>
         </nav>
-        <span class="l-footer-copy">© 2026 Wardrobe. Gated Pipeline.</span>
+        <span class="l-footer-copy">© 2026 Wardrobe. Progressive Unfolding Pipeline.</span>
       </div>
     </footer>
 
   </div><!-- /ui -->
 
   <!-- ============================
-       LAYER 4: WebGL Engine & Gated Pipeline Controller
+       LAYER 4: WebGL Engine & Progressive Unfolding Controller
        ============================ -->
   <script src="/wardrobe-lusion-engine.js"></script>
   <script>
-    // ── Pipeline Gating State ──
-    let maxUnlockedStepIndex = 1; // Step 0 (Hero) & Step 1 (Avatar) are accessible
+    // ── Progressive Unfolding Pipeline Controller ──
+    let maxUnlockedStepIndex = 1; // Hero (0) & Identity (1) exist by default
     let currentStepIndex = 0;
-    const totalSteps = 5;
+    let totalUnlockedSteps = 2; // Steps present in DOM flow
     let isTransitioning = false;
     const transitionCooldownMs = 700;
 
@@ -405,44 +384,8 @@
       document.getElementById('step-4'),
     ];
 
-    function updateHudGateState() {
-      const hudStep1 = document.getElementById('hud-step-1');
-      const hudStep2 = document.getElementById('hud-step-2');
-      const hudStep3 = document.getElementById('hud-step-3');
-      const gateStatus = document.getElementById('hud-gate-status');
-
-      if (maxUnlockedStepIndex >= 2 && hudStep1) {
-        hudStep1.classList.remove('is-locked');
-        hudStep1.innerHTML = '02 GARMENT';
-      }
-      if (maxUnlockedStepIndex >= 3 && hudStep2) {
-        hudStep2.classList.remove('is-locked');
-        hudStep2.innerHTML = '03 SCENES';
-      }
-      if (maxUnlockedStepIndex >= 4 && hudStep3) {
-        hudStep3.classList.remove('is-locked');
-        hudStep3.innerHTML = '04 CAMPAIGN';
-      }
-
-      if (!avatarSelected) {
-        gateStatus.textContent = 'ОБЕРІТЬ АВАТАР ДЛЯ РОЗБЛОКУВАННЯ';
-      } else if (!garmentsSelected) {
-        gateStatus.textContent = 'ДОДАЙТЕ ОПИС ЧИ 5 РЕЧЕЙ';
-      } else if (!sceneSelected) {
-        gateStatus.textContent = 'ОБЕРІТЬ 3D СЦЕНУ';
-      } else {
-        gateStatus.textContent = 'УСІ ЕТАПИ РОЗБЛОКОВАНІ';
-      }
-    }
-
     function goToStep(index) {
-      if (index < 0 || index >= totalSteps || isTransitioning) return;
-
-      // PREVENT NAVIGATION PAST MAX UNLOCKED STEP!
-      if (index > maxUnlockedStepIndex) {
-        alert('Заблоковано! Виконайте умови попереднього етапу для розблокування.');
-        return;
-      }
+      if (index < 0 || index >= totalUnlockedSteps || isTransitioning) return;
       
       isTransitioning = true;
       currentStepIndex = index;
@@ -451,7 +394,6 @@
         stepElements[index].scrollIntoView({ behavior: 'smooth' });
       }
 
-      // Update HUD active tabs
       const hudButtons = document.querySelectorAll('.hud-step-btn');
       hudButtons.forEach((btn, i) => {
         if (i === (index > 0 ? index - 1 : 0)) btn.classList.add('is-active');
@@ -461,13 +403,13 @@
       setTimeout(() => { isTransitioning = false; }, transitionCooldownMs);
     }
 
-    // ── STEP 1: Select Avatar Chip or File Upload ──
+    // ── STEP 1: Select Model / Photo ──
     function selectAvatarChip(buttonEl, avatarId) {
       document.querySelectorAll('.l-avatar-chip').forEach(c => c.classList.remove('is-selected'));
       buttonEl.classList.add('is-selected');
       
       avatarSelected = true;
-      unlockStep2();
+      unfoldStep2();
     }
 
     function bindAvatarUpload() {
@@ -479,79 +421,70 @@
           filename.textContent = input.files[0].name;
           filename.classList.add('has-file');
           avatarSelected = true;
-          unlockStep2();
+          unfoldStep2();
         }
       });
     }
     bindAvatarUpload();
 
-    function unlockStep2() {
-      maxUnlockedStepIndex = Math.max(maxUnlockedStepIndex, 2);
-      
-      const btn = document.getElementById('btn-next-step-1');
-      if (btn) {
-        btn.disabled = false;
-        btn.classList.remove('is-disabled');
-        btn.innerHTML = '<span>Аватар зафіксовано · Далі до 5 речей</span><span class="btn-arrow">→</span>';
+    function unfoldStep2() {
+      if (maxUnlockedStepIndex >= 2) return;
+      maxUnlockedStepIndex = 2;
+      totalUnlockedSteps = 3;
+
+      // Reveal Section 2 in DOM smoothly
+      const sec2 = document.getElementById('step-2');
+      if (sec2) {
+        sec2.classList.add('is-unfolded');
       }
 
+      // Unhide HUD Step 2 Button
+      const hudStep1 = document.getElementById('hud-step-1');
+      if (hudStep1) hudStep1.classList.remove('is-hidden');
+
       const badge = document.getElementById('badge-step-1');
-      if (badge) badge.textContent = 'ЕТАП 01 / 04 · ✅ ЗАФІКСОВАНО';
+      if (badge) badge.textContent = '01 / IDENTITY · ✅ ЗАФІКСОВАНО';
 
-      const sec2 = document.getElementById('step-2');
-      if (sec2) sec2.classList.remove('is-step-locked');
+      document.getElementById('hud-gate-status').textContent = 'ПЕРСОНАЖ ЗАФІКСОВАНИЙ';
 
-      const badge2 = document.getElementById('badge-step-2');
-      if (badge2) badge2.textContent = 'ЕТАП 02 / 04 · 🔓 РОЗБЛОКОВАНО';
-
-      updateHudGateState();
+      // Smoothly scroll forward to the newly unfolded section!
+      setTimeout(() => { goToStep(2); }, 300);
     }
 
-    function submitStep1() {
-      if (avatarSelected) goToStep(2);
-    }
-
-    // ── STEP 2: Check Garments / Outfit Completion ──
+    // ── STEP 2: Check Garments Input ──
     function checkStep2Completion() {
       const text = document.getElementById('input-outfit-text')?.value || '';
       const filesCount = Array.from(document.querySelectorAll('.l-garment-box-5 input')).filter(i => i.files?.length > 0).length;
 
       if (text.trim().length > 3 || filesCount > 0) {
-        garmentsSelected = true;
-        unlockStep3();
+        if (!garmentsSelected) {
+          garmentsSelected = true;
+          unfoldStep3();
+        }
       }
     }
 
-    function unlockStep3() {
-      maxUnlockedStepIndex = Math.max(maxUnlockedStepIndex, 3);
-      
-      const btn = document.getElementById('btn-next-step-2');
-      if (btn) {
-        btn.disabled = false;
-        btn.classList.remove('is-disabled');
-        btn.innerHTML = '<span>Гардероб прийнято · Далі до 3D сцен</span><span class="btn-arrow">→</span>';
-      }
-
-      const badge = document.getElementById('badge-step-2');
-      if (badge) badge.textContent = 'ЕТАП 02 / 04 · ✅ ПРИЙНЯТО';
+    function unfoldStep3() {
+      if (maxUnlockedStepIndex >= 3) return;
+      maxUnlockedStepIndex = 3;
+      totalUnlockedSteps = 4;
 
       const sec3 = document.getElementById('step-3');
-      if (sec3) sec3.classList.remove('is-step-locked');
+      if (sec3) sec3.classList.add('is-unfolded');
 
-      const badge3 = document.getElementById('badge-step-3');
-      if (badge3) badge3.textContent = 'ЕТАП 03 / 04 · 🔓 РОЗБЛОКОВАНО';
+      const hudStep2 = document.getElementById('hud-step-2');
+      if (hudStep2) hudStep2.classList.remove('is-hidden');
 
-      updateHudGateState();
+      const badge = document.getElementById('badge-step-2');
+      if (badge) badge.textContent = '02 / WARDROBE · ✅ ПРИЙНЯТО';
+
+      document.getElementById('hud-gate-status').textContent = 'ОБРАЗ СФОРМОВАНИЙ';
+
+      setTimeout(() => { goToStep(3); }, 300);
     }
 
-    function submitStep2() {
-      if (garmentsSelected) goToStep(3);
-    }
-
-    // ── STEP 3: Select 3D Scene Card ──
+    // ── STEP 3: Select Atmosphere Scene ──
     function selectSceneCard(cardEl) {
-      if (currentStepIndex > maxUnlockedStepIndex) return;
-
       document.querySelectorAll('.l-project-item').forEach(c => c.classList.remove('is-selected'));
       cardEl.classList.add('is-selected');
 
@@ -559,45 +492,38 @@
       if (window.wardrobeEngine) {
         window.wardrobeEngine.setThemeColor(cardEl.dataset.colorBg);
       }
-      unlockStep4();
+      unfoldStep4();
     }
 
-    function unlockStep4() {
-      maxUnlockedStepIndex = Math.max(maxUnlockedStepIndex, 4);
-
-      const btn = document.getElementById('btn-next-step-3');
-      if (btn) {
-        btn.disabled = false;
-        btn.classList.remove('is-disabled');
-        btn.innerHTML = '<span>Сцена обрана · Згенерувати 6-Shot Campaign</span><span class="btn-arrow">→</span>';
-      }
-
-      const badge = document.getElementById('badge-step-3');
-      if (badge) badge.textContent = 'ЕТАП 03 / 04 · ✅ СЦЕНА ОБРАНА';
+    function unfoldStep4() {
+      if (maxUnlockedStepIndex >= 4) return;
+      maxUnlockedStepIndex = 4;
+      totalUnlockedSteps = 5;
 
       const sec4 = document.getElementById('step-4');
-      if (sec4) sec4.classList.remove('is-step-locked');
+      if (sec4) sec4.classList.add('is-unfolded');
 
-      const badge4 = document.getElementById('badge-step-4');
-      if (badge4) badge4.textContent = 'ЕТАП 04 / 04 · 🔓 РОЗБЛОКОВАНО';
+      const hudStep3 = document.getElementById('hud-step-3');
+      if (hudStep3) hudStep3.classList.remove('is-hidden');
 
-      updateHudGateState();
+      const badge = document.getElementById('badge-step-3');
+      if (badge) badge.textContent = '03 / ATMOSPHERE · ✅ СЦЕНА ОБРАНА';
+
+      document.getElementById('hud-gate-status').textContent = 'ЗЙОМКА СФОРМОВАНА';
+
+      setTimeout(() => { goToStep(4); }, 300);
     }
 
-    function submitStep3() {
-      if (sceneSelected) goToStep(4);
-    }
-
-    // ── Intercept Wheel Gestures for Gated Kinetic Snap ──
+    // ── Intercept Wheel Gestures for Progressive Unfolding ──
     window.addEventListener('wheel', (e) => {
       if (isTransitioning) { e.preventDefault(); return; }
       const threshold = 25;
       if (e.deltaY > threshold) {
-        if (currentStepIndex < maxUnlockedStepIndex && currentStepIndex < totalSteps - 1) {
+        if (currentStepIndex < totalUnlockedSteps - 1) {
           e.preventDefault();
           goToStep(currentStepIndex + 1);
-        } else if (currentStepIndex >= maxUnlockedStepIndex) {
-          e.preventDefault(); // Lock scroll!
+        } else if (currentStepIndex >= totalUnlockedSteps - 1) {
+          e.preventDefault(); // Cannot scroll past end of unfolded page!
         }
       } else if (e.deltaY < -threshold) {
         if (currentStepIndex > 0) { e.preventDefault(); goToStep(currentStepIndex - 1); }
@@ -610,7 +536,7 @@
     window.addEventListener('touchend', (e) => {
       if (isTransitioning) return;
       const deltaY = touchStartY - e.changedTouches[0].clientY;
-      if (deltaY > 50 && currentStepIndex < maxUnlockedStepIndex && currentStepIndex < totalSteps - 1) {
+      if (deltaY > 50 && currentStepIndex < totalUnlockedSteps - 1) {
         goToStep(currentStepIndex + 1);
       } else if (deltaY < -50 && currentStepIndex > 0) {
         goToStep(currentStepIndex - 1);

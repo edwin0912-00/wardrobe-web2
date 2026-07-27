@@ -225,29 +225,23 @@ img {
   border-color: var(--line-strong);
 }
 
-.hud-step-btn.is-locked {
-  opacity: 0.4;
-  cursor: not-allowed;
-  border-color: transparent !important;
-  background: transparent !important;
+.hud-step-btn.is-hidden {
+  display: none !important;
 }
 
-/* Locked Section Overlay */
-.l-pipeline-step.is-step-locked {
-  opacity: 0.35;
-  filter: grayscale(0.8);
-  pointer-events: none;
-  transition: all var(--duration-normal) var(--ease-out-expo);
+/* Progressive Unfolding Sections */
+.l-section-unfold {
+  display: none !important;
+  opacity: 0;
+  transform: translateY(60px);
+  transition: opacity var(--duration-slow) var(--ease-out-expo), transform var(--duration-slow) var(--ease-out-expo);
 }
 
-/* Disabled Next Step Button */
-.l-step-next-btn.is-disabled, .l-goal-btn.is-disabled {
-  opacity: 0.45;
-  cursor: not-allowed !important;
-  background: rgba(240, 237, 230, 0.1) !important;
-  color: var(--text-secondary) !important;
-  box-shadow: none !important;
-  transform: none !important;
+.l-section-unfold.is-unfolded {
+  display: flex !important;
+  opacity: 1;
+  transform: translateY(0);
+}
 }
 
 .hud-info {
