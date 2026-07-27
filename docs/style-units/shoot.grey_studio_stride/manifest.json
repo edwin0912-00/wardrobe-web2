@@ -1,0 +1,132 @@
+{
+  "unit_id": "shoot.grey_studio_stride",
+  "title": "Grey Studio Stride — long lens, level walk, dried reeds along the base",
+  "palette_size": 7,
+  "palette": [
+    {
+      "name": "mid grey",
+      "hex": "#8A8C8E",
+      "role": "ground, the seamless backdrop field"
+    },
+    {
+      "name": "cool grey shadow",
+      "hex": "#5F6266",
+      "role": "shadow, the darker edges of the backdrop gradient"
+    },
+    {
+      "name": "ivory",
+      "hex": "#F0E8D8",
+      "role": "brightest highlight, the garment in soft frontal light"
+    },
+    {
+      "name": "khaki-taupe",
+      "hex": "#A79877",
+      "role": "accent, the print family on the garment"
+    },
+    {
+      "name": "straw",
+      "hex": "#B79A6A",
+      "role": "accent, the dried reeds along the base"
+    },
+    {
+      "name": "near-black floor",
+      "hex": "#1C1B1A",
+      "role": "deepest shadow, the matte dark floor"
+    },
+    {
+      "name": "warm deep skin",
+      "hex": "#7A4E33",
+      "role": "skin, holding value under even soft light"
+    }
+  ],
+  "item_colours_exempt": true,
+  "palette_authority": {
+    "path": "palette-strip.svg",
+    "sha256": "fe75f1c1497c9a06456b3f518aaf6f9b21a9d36c2b0f51745d739565d0fbd734",
+    "rendered_not_generated": true
+  },
+  "source_frames": [
+    "frame-01 — single supplied frame, portrait roughly 4:5, full-length profile mid-stride walking across a seamless mid-grey studio backdrop, dried reeds along the base, matte near-black floor, footwear entirely in frame"
+  ],
+  "unknowns": [
+    "focal length in millimetres — never stated; only the long-lens consequences are recorded",
+    "aperture and shutter values",
+    "the backdrop's true width and where its seam falls — no seam is visible in frame",
+    "the number and placement of the lights; only one broad frontal source and a separately lit backdrop are readable",
+    "what the small flat object in the hand is — it is held edge-on and unreadable, and it carries no readable text or mark"
+  ],
+  "sheets": [
+    {
+      "sheet_id": "camera_lens",
+      "path": "sheet-camera_lens.png",
+      "sha256": "162b2045f7c0328e579c0801d6d5b4a5722171b9b4405bc49d5ab59ad27d39e2",
+      "byte_size": 2930755,
+      "width": 2048,
+      "height": 1158,
+      "colour_authoritative": false
+    },
+    {
+      "sheet_id": "blocking",
+      "path": "sheet-blocking.png",
+      "sha256": "071bba4b4545459a57157b7f3664c7032b75056c5b7b8b7576838cc1119c8394",
+      "byte_size": 1781343,
+      "width": 1344,
+      "height": 752,
+      "colour_authoritative": false
+    },
+    {
+      "sheet_id": "expression_gaze",
+      "path": "sheet-expression_gaze.png",
+      "sha256": "1b0c8422e7bb78c6ef48cfe9f209e4b45da1f3defca05d045b2e861434a01f77",
+      "byte_size": 3305214,
+      "width": 2048,
+      "height": 1365,
+      "colour_authoritative": false
+    },
+    {
+      "sheet_id": "garment_behaviour",
+      "path": "sheet-garment_behaviour.png",
+      "sha256": "7d81b8461dd22ce7e8271678e7a36ac631f6da7316f2cff33675141ef52ae2e3",
+      "byte_size": 3445460,
+      "width": 2048,
+      "height": 1365,
+      "colour_authoritative": false
+    },
+    {
+      "sheet_id": "colour_grade",
+      "path": "sheet-colour_grade.png",
+      "sha256": "d73dd9d963513d4c65200030df2b3713d21a21f4884794d54bc05e55557ba712",
+      "byte_size": 2514930,
+      "width": 2048,
+      "height": 1158,
+      "colour_authoritative": false
+    },
+    {
+      "sheet_id": "environment",
+      "path": "sheet-environment.png",
+      "sha256": "c8e248ba3f479f14c565af21b531c35b82907497caae327d0bdde894cc06b378",
+      "byte_size": 1767320,
+      "width": 2048,
+      "height": 877,
+      "colour_authoritative": false
+    },
+    {
+      "sheet_id": "person",
+      "path": "sheet-person.png",
+      "sha256": "68fa4f764ec23c5eac432e111b32e370ff2ef5272df18696984c8e7412a6dc6a",
+      "byte_size": 3511332,
+      "width": 1365,
+      "height": 2048,
+      "colour_authoritative": false
+    }
+  ],
+  "unit_sha256": "3f57c28191bdc12d3ce1d3dce6fbe11f460b74ac8f19a9526158cae97b4b30e3",
+  "generated_with": {
+    "model": "gpt-2",
+    "transport": "magnific",
+    "tiers": {
+      "diagram": "1k/low",
+      "boards": "2k/medium"
+    }
+  }
+}

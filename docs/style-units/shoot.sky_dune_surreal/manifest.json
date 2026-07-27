@@ -1,0 +1,133 @@
+{
+  "unit_id": "shoot.sky_dune_surreal",
+  "title": "Sky Dune Surreal — cloud sky, one sand ridge, deadpan frontal",
+  "palette_size": 7,
+  "palette": [
+    {
+      "name": "sky blue",
+      "hex": "#A8B6C8",
+      "role": "ground, the whole upper field behind the subject"
+    },
+    {
+      "name": "cloud white",
+      "hex": "#F4F5F5",
+      "role": "brightest highlight, the discrete cumulus"
+    },
+    {
+      "name": "warm sand",
+      "hex": "#C4A385",
+      "role": "ground, the sand ridge below the horizon"
+    },
+    {
+      "name": "pale lilac",
+      "hex": "#D9C3D6",
+      "role": "accent, the cool pastel note in cloud shadow"
+    },
+    {
+      "name": "peach",
+      "hex": "#E7C4A8",
+      "role": "accent, the warm pastel note on the lit sand"
+    },
+    {
+      "name": "cream",
+      "hex": "#EFE9DC",
+      "role": "highlight, the pale garment and lightest ground"
+    },
+    {
+      "name": "deep skin",
+      "hex": "#4A2E22",
+      "role": "deepest value, skin holding full saturation under even light"
+    }
+  ],
+  "item_colours_exempt": true,
+  "palette_authority": {
+    "path": "palette-strip.svg",
+    "sha256": "f0bb83147b4c18ae0390aab11687acf70d2485f9bba8b3b2e61b29fa4c2ad4f3",
+    "rendered_not_generated": true
+  },
+  "source_frames": [
+    "frame-01 — single supplied frame, portrait roughly 4:5, full-length dead-frontal standing figure on a clean sand ridge against a pale blue sky with discrete cumulus, opaque white-framed dark lenses, knitted cap, high collar, an object carried at thigh height, footwear entirely in frame"
+  ],
+  "unknowns": [
+    "focal length in millimetres — never stated; only the normal-perspective consequences are recorded",
+    "aperture and shutter values",
+    "whether the sky is real, painted or composited — the cleanliness suggests a built or composited set, and the look is recorded rather than the method",
+    "whether the sand ridge is a location dune or a built mound; its crest is too clean to settle the question",
+    "the eyes, the eyelids and the brows — occluded by opaque dark lenses and a knitted cap, and deliberately not inferred",
+    "what the object carried at thigh height is; it carries no readable text or mark"
+  ],
+  "sheets": [
+    {
+      "sheet_id": "camera_lens",
+      "path": "sheet-camera_lens.png",
+      "sha256": "aeb2115db3e08b6de0b558440a20f043db6c74540d3ae66215581ba480339850",
+      "byte_size": 2502461,
+      "width": 2048,
+      "height": 1158,
+      "colour_authoritative": false
+    },
+    {
+      "sheet_id": "blocking",
+      "path": "sheet-blocking.png",
+      "sha256": "1fb9673c2c3b1c50c9a5fe57eeb5568a4e7126b629668dfc00b1e79b2aaef951",
+      "byte_size": 1712120,
+      "width": 1344,
+      "height": 752,
+      "colour_authoritative": false
+    },
+    {
+      "sheet_id": "expression_gaze",
+      "path": "sheet-expression_gaze.png",
+      "sha256": "3ec2d1ce1a2a4c6c46b196c3399096c29e6c64413b2f0d45db09b3047330d7f2",
+      "byte_size": 3556056,
+      "width": 2048,
+      "height": 1365,
+      "colour_authoritative": false
+    },
+    {
+      "sheet_id": "garment_behaviour",
+      "path": "sheet-garment_behaviour.png",
+      "sha256": "2cfb8fd22c0da07b131f25a6ad5429904e7f4cdd6ab80e78f5ebc7515ac3a91d",
+      "byte_size": 4080615,
+      "width": 2048,
+      "height": 1365,
+      "colour_authoritative": false
+    },
+    {
+      "sheet_id": "colour_grade",
+      "path": "sheet-colour_grade.png",
+      "sha256": "75b13de84905ec02d732bac23992ce57d18317c990118ce52814a3ff181668e8",
+      "byte_size": 2590631,
+      "width": 2048,
+      "height": 1158,
+      "colour_authoritative": false
+    },
+    {
+      "sheet_id": "environment",
+      "path": "sheet-environment.png",
+      "sha256": "ab3356d4986572051678c632325fa5a774793d7deea4fb01593f2dece8d9d313",
+      "byte_size": 2137028,
+      "width": 2048,
+      "height": 877,
+      "colour_authoritative": false
+    },
+    {
+      "sheet_id": "person",
+      "path": "sheet-person.png",
+      "sha256": "762f2335d14effa8f6e94b672f13fd1b533d32f4eac5be96fe48aec116cf456a",
+      "byte_size": 3210938,
+      "width": 1365,
+      "height": 2048,
+      "colour_authoritative": false
+    }
+  ],
+  "unit_sha256": "916b60337014956cbfcf3c4d37c56cea3117c9a7886a38353493bf84059ac79e",
+  "generated_with": {
+    "model": "gpt-2",
+    "transport": "magnific",
+    "tiers": {
+      "diagram": "1k/low",
+      "boards": "2k/medium"
+    }
+  }
+}
