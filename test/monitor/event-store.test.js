@@ -3,7 +3,7 @@ import { appendFile, mkdtemp, readFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
-import { MonitorEventStore } from '../../src/monitor/event-store.js';
+import { MonitorEventStore, projectMonitorEvent } from '../../src/monitor/event-store.js';
 import { createWebApp } from '../../src/web/app.js';
 
 async function store() {
@@ -140,7 +140,9 @@ test('monitor REST and SSE project historical non-stall events through the same 
     severity: 'info',
     run_id: '55555555-5555-4555-8555-555555555555',
     data: {
-      status: 'RUNNING',
+      // This is token-shaped on purpose. A persisted value must not become
+      // public merely because it happens to satisfy a permissive regex.
+      status: 'UNTRUSTED_STATUS_TOKEN',
       stage: 'CORE_PIPELINE',
       message: 'UNTRUSTED_MESSAGE',
       provider_payload: { response: 'UNTRUSTED_PROVIDER_RESPONSE' },
@@ -163,12 +165,48 @@ test('monitor REST and SSE project historical non-stall events through the same 
     type: 'run.phase',
     severity: 'info',
     run_id: '55555555-5555-4555-8555-555555555555',
-    data: { status: 'RUNNING', stage: 'CORE_PIPELINE' },
+    data: { stage: 'CORE_PIPELINE' },
   };
   assert.deepEqual(restEvent, expected);
   assert.deepEqual(streamEvent, expected);
   const publicPayload = JSON.stringify({ restEvent, streamEvent });
-  assert.doesNotMatch(publicPayload, /UNTRUSTED_(?:MESSAGE|PROVIDER_RESPONSE|ERROR|PROMPT|TOP_LEVEL_ERROR)|provider-response\.json/);
+  assert.doesNotMatch(publicPayload, /UNTRUSTED_(?:STATUS_TOKEN|MESSAGE|PROVIDER_RESPONSE|ERROR|PROMPT|TOP_LEVEL_ERROR)|provider-response\.json/);
+});
+
+test('monitor projection uses finite enums for public stage, editorial event type, and worker code', () => {
+  const base = {
+    id: '99999999-9999-4999-8999-999999999999',
+    at: '2026-07-27T01:00:00.000Z',
+    severity: 'info',
+  };
+  assert.deepEqual(projectMonitorEvent({
+    ...base,
+    source: 'runner',
+    type: 'run.phase',
+    data: { status: 'RUNNING', stage: 'UNTRUSTED_STAGE_TOKEN' },
+  }).data, { status: 'RUNNING' });
+  assert.deepEqual(projectMonitorEvent({
+    ...base,
+    source: 'runner',
+    type: 'editorial.phase',
+    data: {
+      status: 'HERO_RUNNING',
+      stage: 'HERO_GENERATION',
+      event_type: 'shoot.untrusted_payload',
+    },
+  }).data, { status: 'HERO_RUNNING', stage: 'HERO_GENERATION' });
+  assert.deepEqual(projectMonitorEvent({
+    ...base,
+    source: 'server',
+    type: 'service.codex_worker_fatal',
+    data: { code: 'UNTRUSTED_CODE_TOKEN' },
+  }).data, {});
+  assert.deepEqual(projectMonitorEvent({
+    ...base,
+    source: 'server',
+    type: 'service.codex_worker_fatal',
+    data: { code: 'CHATGPT_AUTH_REQUIRED' },
+  }).data, { code: 'CHATGPT_AUTH_REQUIRED' });
 });
 
 test('client telemetry accepts only allowlisted event types and data fields', async () => {

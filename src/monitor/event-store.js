@@ -56,11 +56,128 @@ const PUBLIC_EVENT_TYPES = new Set([
   'service.monitor_started',
   'service.web_started',
 ]);
-const PUBLIC_TOKEN = /^[A-Za-z0-9_.:-]{1,80}$/;
 const PUBLIC_HTTP_METHODS = new Set(['DELETE', 'GET', 'HEAD', 'OPTIONS', 'PATCH', 'POST', 'PUT']);
 const PUBLIC_FIELDS = new Set(['garment_images', 'identity_detail', 'person', 'person_photo']);
 const PUBLIC_MIME_TYPES = new Set(['image/avif', 'image/heic', 'image/heif', 'image/jpeg', 'image/png', 'image/webp']);
 const MAX_PUBLIC_METRIC = 150 * 1024 * 1024;
+
+// The monitor is a public diagnostic view, not a pass-through for persisted
+// runtime data.  A token-shaped string is still untrusted: provider error
+// codes and future internal states routinely satisfy a permissive regex.
+// Keep every exposed enum tied to the event and field that owns it, and omit
+// an unknown value rather than turning a new private runtime detail into API
+// surface by accident.
+const PUBLIC_RUN_STATUSES = new Set([
+  'QUEUED',
+  'RUNNING',
+  'COMPLETED',
+  'NEEDS_INPUT',
+  'FAILED',
+]);
+const PUBLIC_RUN_STAGES = new Set([
+  'UPLOADED',
+  'GARMENT_CONDITIONING',
+  'GARMENT_GROUPING',
+  'GARMENT_GENERATING',
+  'GARMENT_QA',
+  'CORE_PIPELINE',
+  'OPTIONAL_SCENE',
+  'RECEIVED',
+  'VALIDATING',
+  'CONDITIONING_IDENTITY',
+  'CONDITIONING_OUTFIT',
+  'CONDITIONING_QA',
+  'CONDITIONING_RETRY',
+  'REFERENCES_READY',
+  'GENERATING_AVATAR',
+  'AVATAR_QA',
+  'AVATAR_RETRY',
+  'AVATAR_READY',
+  'GENERATING_OUTFIT',
+  'OUTFIT_QA',
+  'OUTFIT_RETRY',
+  'OUTFIT_READY',
+  'EXPORTING',
+  'COMPLETED',
+  'NEEDS_INPUT',
+  'FAILED',
+]);
+const PUBLIC_SCENE_STATUSES = new Set([
+  'QUEUED',
+  'RUNNING',
+  'COMPLETED',
+  'FAILED',
+  'CANCELLED',
+]);
+const PUBLIC_SCENE_STAGES = new Set([
+  'BOUND',
+  'RECOVERING',
+  'GENERATING',
+  'QA',
+  'EXPORTING',
+  'COMPLETED',
+  'QUEUED',
+  'CANCELLED',
+  'QA_EXHAUSTED',
+  'GENERATION_EXHAUSTED',
+  'POST_RELEASE_REJECTED',
+  'OUTPUT_INTEGRITY_FAILED',
+  'BOUND_INPUT_INTEGRITY_FAILED',
+  'QA_INFRASTRUCTURE_FAILED',
+  'PRIVACY_GATE_FAILED',
+  'REPAIR_OUTPUT_IDENTICAL_TO_REJECTED_RELEASE',
+  'INTERNAL_ERROR',
+]);
+const PUBLIC_EDITORIAL_STATUSES = new Set([
+  'BIBLE_PENDING_APPROVAL',
+  'HERO_RUNNING',
+  'HERO_PENDING_APPROVAL',
+  'SERIES_RUNNING',
+  'NEEDS_RETRY',
+  'COMPLETED',
+  'CANCELLED',
+]);
+const PUBLIC_EDITORIAL_STAGES = new Set([
+  'BIBLE_REVIEW',
+  'HERO_GENERATION',
+  'HERO_APPROVAL',
+  'HERO_NEEDS_RETRY',
+  'SERIES_GENERATION',
+  'SHOT_RETRY',
+  'RECOVERY_QUEUED',
+  'COMPLETED',
+  'CANCELLED',
+]);
+const PUBLIC_EDITORIAL_EVENT_TYPES = new Set([
+  'shoot.created',
+  'shoot.bible_approved',
+  'shoot.hero_approved',
+  'shoot.recovery_queued',
+  'shoot.cancelled',
+  'shot.started',
+  'shot.resumed',
+  'shot.qa_passed',
+  'shot.qa_failed',
+  'shot.executor_failed',
+  'shot.retry_queued',
+]);
+const PUBLIC_CODEX_WORKER_CODES = new Set([
+  'CODEX_WORKER_ERROR',
+  'CLIENT_CLOSED',
+  'WORKER_HOME_ISOLATION_FAILED',
+  'INVALID_CHILD_PROCESS',
+  'PROCESS_STDOUT_ERROR',
+  'PROCESS_STDOUT_CLOSED',
+  'PROCESS_STDIN_ERROR',
+  'PROCESS_STDIN_CLOSED',
+  'PROCESS_ERROR',
+  'PROCESS_EXITED',
+  'CHATGPT_AUTH_REQUIRED',
+  'IMAGE_GENERATION_UNAVAILABLE',
+  'NAMESPACE_TOOLS_UNAVAILABLE',
+  'IMAGEGEN_SKILL_MISSING',
+  'CODEX_APP_SERVER_ERROR',
+]);
 
 export function canonicalIsoTimestamp(value) {
   if (typeof value !== 'string') return null;
@@ -101,8 +218,8 @@ export function normalizeStallDiagnostic(value) {
   };
 }
 
-function publicToken(value) {
-  return typeof value === 'string' && PUBLIC_TOKEN.test(value) ? value : undefined;
+function publicEnum(value, allowed) {
+  return typeof value === 'string' && allowed.has(value) ? value : undefined;
 }
 
 function publicMetric(value, maximum = MAX_PUBLIC_METRIC) {
@@ -117,18 +234,24 @@ function publicData(data, type) {
   const source = data && typeof data === 'object' && !Array.isArray(data) ? data : {};
   const result = {};
   const add = (key, value) => { if (value !== undefined) result[key] = value; };
-  const addStatusAndStage = () => {
-    add('status', publicToken(source.status));
-    add('stage', publicToken(source.stage));
+  const addStatusAndStage = (statuses, stages) => {
+    add('status', publicEnum(source.status, statuses));
+    add('stage', publicEnum(source.stage, stages));
   };
 
   switch (type) {
     case 'run.phase':
+      addStatusAndStage(PUBLIC_RUN_STATUSES, PUBLIC_RUN_STAGES);
+      return result;
     case 'scene.phase':
+      addStatusAndStage(PUBLIC_SCENE_STATUSES, PUBLIC_SCENE_STAGES);
+      return result;
     case 'editorial.phase':
+      addStatusAndStage(PUBLIC_EDITORIAL_STATUSES, PUBLIC_EDITORIAL_STAGES);
+      add('event_type', publicEnum(source.event_type, PUBLIC_EDITORIAL_EVENT_TYPES));
+      return result;
     case 'agent.comment':
-      addStatusAndStage();
-      if (type === 'editorial.phase') add('event_type', publicToken(source.event_type));
+      addStatusAndStage(PUBLIC_RUN_STATUSES, PUBLIC_RUN_STAGES);
       return result;
     case 'run.upload_received':
       add('count', publicMetric(source.count, 7));
@@ -145,7 +268,7 @@ function publicData(data, type) {
       add('count', publicMetric(source.count, 1_000));
       return result;
     case 'service.codex_worker_fatal':
-      add('code', publicToken(source.code));
+      add('code', publicEnum(source.code, PUBLIC_CODEX_WORKER_CODES));
       return result;
     case 'client.file_selected':
     case 'client.file_removed':
@@ -180,7 +303,7 @@ function publicData(data, type) {
     case 'client.submit':
     case 'client.submit_response':
     case 'client.run_event':
-      addStatusAndStage();
+      addStatusAndStage(PUBLIC_RUN_STATUSES, PUBLIC_RUN_STAGES);
       add('duration_ms', publicMetric(source.duration_ms, MAX_DIAGNOSTIC_ELAPSED_MS));
       return result;
     default:
