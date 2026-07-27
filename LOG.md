@@ -17,6 +17,17 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-07-28 · BETA-LOOK-REFINE-001 · beta · product proposal recorded
+Change: record the optional «Покращити образ» step between approved master-look
+and standard backgrounds.
+Why: the operator wants a controlled refinement of non-selected styling,
+hair, modest makeup and pose without modifying the chosen wardrobe or
+identity.
+Evidence: `PIPELINE.md` defines `LOOK.07`; `UPDATE.md` preserves the task as
+`PROPOSED` with no product paths reserved and no implementation authorization.
+weakened_checks: none; no image/video provider call or pixel-generation work
+was performed.
+
 2026-07-28 · BETA-FASHION-SHOOT-RELEASE-001 · beta · operator assignment to Claude
 Change: expand Claude's portfolio style-unit work into a complete fashion-shoot
 release outcome: inventory, strict unit completion, Create Universe catalog

@@ -187,6 +187,13 @@ rebasing. The broad release suite remains a later candidate gate.
 
 ## Verified product facts
 
+- `LOOK.07` «Покращити образ» is an operator-approved **proposal**, not a
+  live feature. It sits after approved master-look and before backgrounds. Its
+  future contract must lock the user-selected garments and identity; only
+  unselected elements, hairstyle, subtle 15–20% makeup and a slight pose
+  adjustment may be considered. No generation, pixel change or beta release
+  has been performed for it.
+
 - Beta preview delivery is content-addressed as of the preview-revision fix:
   background and Create Universe catalog cards carry the SHA-256 of their
   exact preview bytes in `preview_url`. Immutable image caching therefore
