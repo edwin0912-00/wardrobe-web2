@@ -31,11 +31,11 @@ authorized in this run.
 
 The issued worktrees start at `f578c28`, while the first queue record pinned
 their product baseline at `66968f9`. This exact-base mismatch was caught before
-product edits. The tasks are reissued as ASSIGNED at `f578c28`; their original
-status-only commits are preserved as evidence, and each worker must publish a
-fresh STARTED artifact before it can become IN_PROGRESS. Each lane has a
-separate lock, pinned source blobs, exact status path, test-first acceptance,
-isolated handoff, and independent review requirement.
+product edits and corrected. Fresh typed STARTED reports now bind the corrected
+base: MONITOR-002 `c83a2a3`, UI-002 `b34d728`, and FASHION-001 `51ad26c`.
+All three are IN_PROGRESS. Each lane has a separate lock, pinned source blobs,
+exact status path, test-first acceptance, isolated handoff, and independent
+review requirement.
 
 ## Verified product facts
 

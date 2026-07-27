@@ -17,6 +17,15 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-07-27 · MONITOR-002 / UI-002 / FASHION-001 · corrected execution start
+Change: move the three tasks to IN_PROGRESS only after fresh STARTED reports
+bound to the corrected exact base `f578c28` were observed.
+Why: the earlier reports belonged to the old product-base pin and were
+intentionally not used as a liveness claim after correction.
+Evidence: watcher reports monitor `c83a2a3`, UI `b34d728`, and fashion
+`51ad26c` with exact owner/branch/base bindings and no report issues.
+weakened_checks: none.
+
 2026-07-27 · MONITOR-002 / UI-002 / FASHION-001 · exact-base correction
 Change: return the three tasks to ASSIGNED and repin their `base_sha` from
 `66968f9` to the exact issued worktree commit `f578c28`.
