@@ -23,6 +23,10 @@ sed -n '1,120p' STATE.md
 For a one-time identity setup plus an optional live board, run
 `bash tools/join-beta-agent.sh <agent-id> --watch` after cloning.
 
+The watcher is a lightweight local monitor, not an autonomous worker. It
+fetches `beta` every 20 seconds, renders the board and reports ownership
+collisions or explicit agent help requests without writing anything.
+
 `UPDATE.md` is the live task board. `TASKS.json`, `OWNERS.md` historical lane
 rules, and old PRs are preserved evidence only; do not use them for a new task.
 

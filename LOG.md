@@ -17,6 +17,15 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-07-27 · FAST-004 · beta · shared live board monitor
+Change: add a 20-second read-only beta board watcher with scope-collision and
+agent-help-request alerts.
+Why: agents need a common live view without autonomous writes or a second
+coordination system.
+Evidence: isolated agent-clone smoke rendered the board and monitor alerts;
+the watcher performs only `git fetch` and Git reads.
+weakened_checks: none.
+
 2026-07-27 · FAST-003 · beta · shared rationale line
 Change: require each agent update to include a concise rationale/decision line.
 Why: other agents need the reason for an action, not only the final fact.

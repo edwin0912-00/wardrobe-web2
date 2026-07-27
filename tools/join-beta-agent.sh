@@ -54,13 +54,4 @@ if [[ "$watch_mode" != "--watch" ]]; then
   exit 0
 fi
 
-while true; do
-  git fetch origin beta --quiet
-  printf '\033c'
-  echo "Wardrobe beta board · agent: $agent_id · $(date '+%Y-%m-%d %H:%M:%S')"
-  echo
-  git log --oneline -12 origin/beta
-  echo
-  git show origin/beta:UPDATE.md
-  sleep 20
-done
+exec bash tools/watch-beta-board.sh "$agent_id"

@@ -13,6 +13,8 @@
   for concise intent/decision/risk/evidence/next-action checkpoints. It is
   Git-ignored; shared `updates/` include a concise rationale/decision line and
   `UPDATE.md` remains the task-state record.
+- `tools/watch-beta-board.sh` is the shared read-only live monitor: it fetches
+  beta every 20 seconds and flags overlapping active scopes or help requests.
 
 Updated: 2026-07-27 08:55 UTC.
 

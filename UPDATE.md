@@ -23,10 +23,10 @@ The earlier detailed noticeboard is preserved at
 
 ## Active queue
 
-| ID | Owner | State | One concrete outcome |
-| --- | --- | --- | --- |
-| BETA-SMOKE-001 | unassigned | READY | Verify beta UI/API exposes the five Create Universe styles; report exact result, no code change. |
-| BETA-CORE-001 | unassigned | WAITING | After smoke passes, reproduce one user-visible flow defect and propose one minimal fix. |
+| ID | Owner | State | Type | Scope | One concrete outcome |
+| --- | --- | --- | --- | --- |
+| BETA-SMOKE-001 | unassigned | READY | QA | catalog | Verify beta UI/API exposes the five Create Universe styles; report exact result, no code change. |
+| BETA-CORE-001 | unassigned | WAITING | CODE | public-ui | After smoke passes, reproduce one user-visible flow defect and propose one minimal fix. |
 
 ## Agent protocol
 
@@ -38,7 +38,8 @@ The earlier detailed noticeboard is preserved at
 3. Code agent: one focused change, one focused test, one commit, then push to
    `beta`. Include `updates/<agent-id>.md` in that same commit.
 4. Research/QA agent: do not modify product code. Write only
-   `updates/<agent-id>.md`, commit, pull-rebase, push.
+   `updates/<agent-id>.md`, commit, pull-rebase, push. A report may set
+   `Help request: <what is needed>`; otherwise it writes `Help request: NONE`.
 5. Do not overwrite this board. `codex-main` is the only board editor.
 
 Every agent commit subject starts `[agent:<agent-id>]`; this and the matching
