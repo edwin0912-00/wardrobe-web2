@@ -1,15 +1,13 @@
 Agent ID: codex-main
-Task ID: BETA-POSTSHOOT-CHOICE-001
-Protocol ACK: b9882f8
-Commit tested: 39e369a
-Rationale/decision: the saved look is the approved source. It must visibly
-offer Photoshoot, Fashion video and Live camera as distinct next products;
-Video stays explicitly unavailable until its real Seedance route, QA and
-persistence exist rather than being disguised as a mock clip.
-Result: LIVE — cache-versioned activation `release-e05eb44-20260728003504`; health is 200
-and the public HTML/JS/CSS expose the exact three-choice binding.
-Evidence command: node --test test/web/profile-ui-flow.test.js (9/9 PASS).
+Task ID: BETA-LOOK-NEXT-ACTIONS-001
+Protocol ACK: 00cb600
+State: STARTED
+Rationale/decision: the operator requested one visual approval screen before
+the real saved-look choice flow is altered. It is therefore a standalone
+non-functional preview, not a mock video/camera implementation.
+Scope: only `web/public/choice-universe-preview.html` and its focused test.
+No provider call, camera permission, profile mutation or navigation binding.
+Evidence planned: focused static/UI contract test plus exact beta URL smoke.
 weakened_checks: none.
 Help request: NONE.
-Next action: implement the separate Seedance 2 video transport; do not turn
-the current honest unavailable state into a fake result.
+Next action: build the preview, validate it, then activate its exact beta SHA.
