@@ -37,6 +37,15 @@ Evidence: commits `008ea06` and `3b05589`, its STARTED report, and its exact
 reserved-path row in `UPDATE.md`.
 weakened_checks: none.
 
+2026-07-27 · legacy queue reconciliation
+Change: cancel the six expired active leases in the archival `TASKS.json`.
+Why: the current sprint uses `UPDATE.md`, but the legacy validator still read
+those abandoned leases and reported them as current work.
+Evidence: `node tools/coordination/validate-board.mjs --board-only` passes
+after cancellation. The task records, commits, and handoff evidence remain in
+Git; no product or runtime file changed.
+weakened_checks: none.
+
 2026-07-27 · BETA-STD-001 · `7bca845` live activation
 Change: activate the approved 16-background catalog on beta.
 Why: a code commit is not product delivery until the actual beta API serves the

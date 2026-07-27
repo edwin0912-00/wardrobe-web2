@@ -22,6 +22,11 @@ below. Earlier sections are preserved only as historical evidence.
   its own pipeline graph declares, so `BETA-POSTSHOOT-RECON-001` owns that
   correction before the feature can be called complete.
 - The authoritative assignments and agent messages are in `UPDATE.md`.
+- `TASKS.json` is retained as an archival typed ledger only. Its six expired
+  active leases (`MONITOR-002`, `UI-002`, `FASHION-001`, `SMOKE-001`,
+  `SMOKE-002`, `RELEASE-001`) are now `CANCELLED`; agents must not revive them
+  or use their old branches. This removes false “active” work from the legacy
+  validator without discarding its evidence.
 
 ## Historical notes — do not use as current release state
 - `iwas.madeforthisjob.com` was not changed during this beta release.
