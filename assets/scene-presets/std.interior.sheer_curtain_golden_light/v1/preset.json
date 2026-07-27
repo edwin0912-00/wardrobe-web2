@@ -26,7 +26,7 @@
   ],
   "lighting": {
     "fill": "cool room shadow on non-window side",
-    "finish": "cinematic_editorial_gloss_without_skin_smoothing_or_hdr",
+    "finish": "polished_editorial_gloss_without_skin_smoothing_or_hdr",
     "key": "warm golden light flooding through sheer fabric creating soft diffused glow and dust particles in beams",
     "protected_regions": [
       "eyes",

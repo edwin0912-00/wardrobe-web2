@@ -136,16 +136,27 @@ const FIXED_MODEL_ROUTE = Object.freeze([
 const MOVING_MODEL_VERSION = /^(?:builtin-current|current|latest|unknown)$/i;
 const SEMVER = /^[0-9]+\.[0-9]+\.[0-9]+$/;
 const STANDARD_PRESET_FAMILIES = Object.freeze({
+  'std.architecture.glass_corridor_sunset': 'interior',
+  'std.city.amber_alley_cobblestone': 'city',
   'std.city.early_morning_gloss': 'city',
   'std.city.golden_hour_gloss': 'city',
+  'std.city.night_neon_wet_asphalt': 'city',
+  'std.city.rooftop_concrete_sunset': 'city',
+  'std.interior.abandoned_palace_light_shaft': 'interior',
   'std.studio.peach_soft_gloss': 'light_studio',
   'std.studio.white_window_honeycomb': 'light_studio',
   'std.studio.taupe_rembrandt_gloss': 'dramatic_studio',
   'std.studio.charcoal_dawn_rim': 'dramatic_studio',
   'std.interior.gallery_morning_gloss': 'interior',
+  'std.interior.industrial_brick_loft': 'interior',
   'std.interior.loft_golden_hour_gloss': 'interior',
+  'std.interior.sheer_curtain_golden_light': 'interior',
+  'std.nature.foggy_forest_light_shaft': 'nature_architecture',
+  'std.nature.ocean_dusk_blue_hour': 'nature_architecture',
   'std.nature_architecture.stone_terrace_morning': 'nature_architecture',
   'std.nature_architecture.concrete_grass_golden_hour': 'nature_architecture',
+  'std.studio.black_spotlight_low_key': 'dramatic_studio',
+  'std.studio.terracotta_raking_light': 'dramatic_studio',
 });
 const SOURCE_AUTHORITY_ROLES = new Set([
   'environment_and_composition_inspiration',

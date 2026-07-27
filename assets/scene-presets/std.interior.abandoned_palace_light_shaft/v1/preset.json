@@ -27,7 +27,7 @@
   ],
   "lighting": {
     "fill": "deep shadow with minimal cool ambient fill",
-    "finish": "cinematic_editorial_gloss_without_skin_smoothing_or_hdr",
+    "finish": "polished_editorial_gloss_without_skin_smoothing_or_hdr",
     "key": "warm amber light shafts cutting diagonally through dusty air from tall arched windows",
     "protected_regions": [
       "eyes",

@@ -27,7 +27,7 @@
   ],
   "lighting": {
     "fill": "cool green-tinted ambient forest fill",
-    "finish": "cinematic_editorial_gloss_without_skin_smoothing_or_hdr",
+    "finish": "polished_editorial_gloss_without_skin_smoothing_or_hdr",
     "key": "warm amber light rays piercing through dense tree canopy catching fog particles",
     "protected_regions": [
       "eyes",

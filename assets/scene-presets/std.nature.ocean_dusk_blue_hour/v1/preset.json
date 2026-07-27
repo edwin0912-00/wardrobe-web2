@@ -27,7 +27,7 @@
   ],
   "lighting": {
     "fill": "diffused overcast dusk light with wet sand reflections providing subtle uplighting",
-    "finish": "cinematic_editorial_gloss_without_skin_smoothing_or_hdr",
+    "finish": "polished_editorial_gloss_without_skin_smoothing_or_hdr",
     "key": "ambient cool teal-blue sky light with warm amber glow remaining on horizon",
     "protected_regions": [
       "eyes",

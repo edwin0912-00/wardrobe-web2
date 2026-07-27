@@ -1,8 +1,8 @@
 {
   "preset_id": "std.interior.abandoned_palace_light_shaft",
-  "preset_sha256": "abe5c139bb90d24496f9c6f981a01fa8c08bd39532b0a464fe3520ffdec70fb8",
+  "preset_sha256": "30aa464dc75bf022c53b9820f5bf4f5b3cb4148e6d809014c5924444a19f3847",
   "preset_version": "1.0.0",
-  "prompt_sha256": "8fcc4f39285128776d5ccb1b055e4c6ba8db204ce3b2971df29d52b584128056",
+  "prompt_sha256": "5eb0ab329575315b0c6012065fd13cee6736225f8f7d2d89526948ac20d977c1",
   "reference_pack_id": "pack.std.interior.abandoned_palace_light_shaft.v1.1",
   "references": [
     {

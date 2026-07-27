@@ -1,8 +1,8 @@
 {
   "preset_id": "std.studio.black_spotlight_low_key",
-  "preset_sha256": "2b2e14c3768e683096fe5c2db841b02bf84ca65a5a0011aafa49309123822b7f",
+  "preset_sha256": "32cf71ca281d52d6ad881f65b9ba6bc2a80e598ffaa8b0a0039be84377a29ba1",
   "preset_version": "1.0.0",
-  "prompt_sha256": "ed28c1deea2b88d018aed4038a1428f9671bf6bbc51f4e8e21ddb7fd4d8ca8a7",
+  "prompt_sha256": "ad9ab1a183c1d158f2338bb8dc3cbebcf4288ab2e4a7db459ab44fce88ff74b6",
   "reference_pack_id": "pack.std.studio.black_spotlight_low_key.v1.1",
   "references": [
     {

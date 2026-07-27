@@ -624,3 +624,15 @@ Evidence: `node --test test/web/scene-api-integration.test.js
 test/web/editorial-preview-api.test.js` passes 8/8; the catalog now exposes a
 different `?v=<asset-sha256>` URL whenever preview bytes change.
 weakened_checks: none.
+
+2026-07-27 · BETA-STD-001 · publish eleven new background packs
+Change: record operator approval, publish all eleven new packs alongside the
+five existing packs, and bind every selected local pack index by SHA-256.
+Why: asset-only packs do not change the beta product; the user explicitly
+approved their publication. Existing packs remain published so historical
+saved scenes cannot lose their immutable scene reference.
+Evidence: all sixteen packs pass exact prompt, preset, reference-pack, source,
+role-asset, resolver, API preview and saved-scene regression checks (32/32).
+Eleven stale prompt hashes were corrected to their exact checked-in prompt
+bytes; their finish metadata was normalized to the existing production lock.
+weakened_checks: none.

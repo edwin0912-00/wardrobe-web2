@@ -26,7 +26,7 @@
   ],
   "lighting": {
     "fill": "cool teal shadow on non-lit side providing warm-cool contrast",
-    "finish": "cinematic_editorial_gloss_without_skin_smoothing_or_hdr",
+    "finish": "polished_editorial_gloss_without_skin_smoothing_or_hdr",
     "key": "hard warm side light raking across textured terracotta wall creating deep relief shadows",
     "protected_regions": [
       "eyes",

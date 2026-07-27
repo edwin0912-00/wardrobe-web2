@@ -26,7 +26,7 @@
   ],
   "lighting": {
     "fill": "deep ambient darkness with colored light spill on subject edges",
-    "finish": "cinematic_editorial_gloss_without_skin_smoothing_or_hdr",
+    "finish": "polished_editorial_gloss_without_skin_smoothing_or_hdr",
     "key": "diffused magenta and teal neon glow reflecting off wet asphalt with volumetric fog",
     "protected_regions": [
       "eyes",

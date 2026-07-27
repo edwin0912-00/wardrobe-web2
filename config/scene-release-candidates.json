@@ -1,17 +1,28 @@
 {
   "schema_version": "1.0.0",
-  "status": "READY_FOR_RECORDED_HUMAN_APPROVAL",
+  "status": "PUBLISHED_FOR_BETA",
   "selected_preset_ids": [
+    "std.architecture.glass_corridor_sunset",
+    "std.city.amber_alley_cobblestone",
     "std.city.golden_hour_gloss",
-    "std.studio.white_window_honeycomb",
-    "std.studio.taupe_rembrandt_gloss",
+    "std.city.night_neon_wet_asphalt",
+    "std.city.rooftop_concrete_sunset",
+    "std.interior.abandoned_palace_light_shaft",
     "std.interior.gallery_morning_gloss",
-    "std.nature_architecture.concrete_grass_golden_hour"
+    "std.interior.industrial_brick_loft",
+    "std.interior.sheer_curtain_golden_light",
+    "std.nature.foggy_forest_light_shaft",
+    "std.nature.ocean_dusk_blue_hour",
+    "std.nature_architecture.concrete_grass_golden_hour",
+    "std.studio.black_spotlight_low_key",
+    "std.studio.taupe_rembrandt_gloss",
+    "std.studio.terracotta_raking_light",
+    "std.studio.white_window_honeycomb"
   ],
   "approval": {
-    "status": "PENDING",
-    "actor": null,
-    "recorded_at": null,
+    "status": "APPROVED",
+    "actor": "operator",
+    "recorded_at": "2026-07-27T19:30:00Z",
     "evidence_path": "output/scene-production/preset-packs-contact-sheet.jpg"
   },
   "retrieved_at": "2026-07-23T09:40:00Z",

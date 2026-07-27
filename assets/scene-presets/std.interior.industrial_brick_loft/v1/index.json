@@ -1,12 +1,12 @@
 {
   "preset_id": "std.interior.industrial_brick_loft",
   "preset_path": "assets/scene-presets/std.interior.industrial_brick_loft/v1/preset.json",
-  "preset_sha256": "d1aa9b6c0f30b81c0cef5693e1f3bf23b9eac73b769b5b153b4f030ed3301e26",
+  "preset_sha256": "6fb8c43d1be724a35ea147ac546ec205e2c005935d2532b8c480405836cd866c",
   "preset_version": "1.0.0",
   "production_prompt_path": "prompts/scene-presets/std.interior.industrial_brick_loft/v1/production-scene.txt",
-  "prompt_sha256": "45309c0c58894684faa5b7ab82ac5f2138780de61409544e58f32b5a4559f55a",
+  "prompt_sha256": "48e7aa1fe5cbd37b27a42005d91b1b7eeacb29913b19df92a2ade0378f7e5e0c",
   "reference_pack_path": "assets/scene-presets/std.interior.industrial_brick_loft/v1/reference-pack.json",
-  "reference_pack_sha256": "d9b17d6ab149411803aae5770408fae9663003c2df2d3b88e005d77a69726586",
+  "reference_pack_sha256": "74ca55ad2f014fca9450cae5b4decb845fa455db4fa39e55b5b7e201192910e4",
   "references": [
     {
       "media_type": "application/json",

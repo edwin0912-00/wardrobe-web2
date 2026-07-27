@@ -1,12 +1,12 @@
 {
   "preset_id": "std.city.night_neon_wet_asphalt",
   "preset_path": "assets/scene-presets/std.city.night_neon_wet_asphalt/v1/preset.json",
-  "preset_sha256": "6b64832f8527b41c7be5b66142905c302db76767ee063ce08c7d16725c59cb3a",
+  "preset_sha256": "a5623d5967722873ac711421301b199c7507679c9977f0b673b4e3f08e8f67e4",
   "preset_version": "1.0.0",
   "production_prompt_path": "prompts/scene-presets/std.city.night_neon_wet_asphalt/v1/production-scene.txt",
-  "prompt_sha256": "5d7af26ccc11d54f64f9c3472b2ad7106bb5fa75273bfb08288ca5e196c65265",
+  "prompt_sha256": "b2a8ad4c1b6ff02f05f7c847d3b2f61c39afd6ff6c20f9182c8813a7e0260c62",
   "reference_pack_path": "assets/scene-presets/std.city.night_neon_wet_asphalt/v1/reference-pack.json",
-  "reference_pack_sha256": "9420f71ae7171f476312fe568b4072386ee7cea0a35f0f5c3960612eb45f43bc",
+  "reference_pack_sha256": "d3eb0a10563baa504774d0071bf1f0ffdb3341bea15429738219e2d34fdd07dd",
   "references": [
     {
       "media_type": "application/json",

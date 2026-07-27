@@ -26,7 +26,7 @@
   ],
   "lighting": {
     "fill": "cool teal-blue sky fill from above",
-    "finish": "cinematic_editorial_gloss_without_skin_smoothing_or_hdr",
+    "finish": "polished_editorial_gloss_without_skin_smoothing_or_hdr",
     "key": "low warm golden sun at horizon creating long shadows across concrete, warm rim on subject",
     "protected_regions": [
       "eyes",

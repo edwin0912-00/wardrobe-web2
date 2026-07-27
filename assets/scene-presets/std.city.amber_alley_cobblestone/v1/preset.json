@@ -27,7 +27,7 @@
   ],
   "lighting": {
     "fill": "minimal cool ambient fill preserving deep shadow mood",
-    "finish": "cinematic_editorial_gloss_without_skin_smoothing_or_hdr",
+    "finish": "polished_editorial_gloss_without_skin_smoothing_or_hdr",
     "key": "low warm amber backlight streaming between buildings casting long dramatic shadows on cobblestones",
     "protected_regions": [
       "eyes",

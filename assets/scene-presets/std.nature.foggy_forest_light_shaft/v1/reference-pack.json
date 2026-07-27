@@ -1,8 +1,8 @@
 {
   "preset_id": "std.nature.foggy_forest_light_shaft",
-  "preset_sha256": "c067b8b48c0ff092a1292fdc3bd33a196a5eda5479a9a1bd02034f5a99640b50",
+  "preset_sha256": "6c491192e256f300d7e34b46126a573f865e3439f0bfc56dfffa82a5c749559a",
   "preset_version": "1.0.0",
-  "prompt_sha256": "aafb8030994086f487b064ee1652a8f401e676a2572b32dde1a19aa304ffc812",
+  "prompt_sha256": "1fe64c1679c190281c5cad1a5822b003291f188cabc9b9803812ba12ad064ff3",
   "reference_pack_id": "pack.std.nature.foggy_forest_light_shaft.v1.1",
   "references": [
     {

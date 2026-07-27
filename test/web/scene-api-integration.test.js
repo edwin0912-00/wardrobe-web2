@@ -20,6 +20,25 @@ import {
 } from '../../src/web/scene-contract.js';
 import { FilesystemScenePresetResolver } from '../../src/web/scene-resolvers.js';
 
+const PUBLISHED_PRESET_IDS = [
+  'std.architecture.glass_corridor_sunset',
+  'std.city.amber_alley_cobblestone',
+  'std.city.golden_hour_gloss',
+  'std.city.night_neon_wet_asphalt',
+  'std.city.rooftop_concrete_sunset',
+  'std.interior.abandoned_palace_light_shaft',
+  'std.interior.gallery_morning_gloss',
+  'std.interior.industrial_brick_loft',
+  'std.interior.sheer_curtain_golden_light',
+  'std.nature.foggy_forest_light_shaft',
+  'std.nature.ocean_dusk_blue_hour',
+  'std.nature_architecture.concrete_grass_golden_hour',
+  'std.studio.black_spotlight_low_key',
+  'std.studio.taupe_rembrandt_gloss',
+  'std.studio.terracotta_raking_light',
+  'std.studio.white_window_honeycomb',
+];
+
 const PRESET_ID = 'std.city.golden_hour_gloss';
 const PRESET_VERSION = '1.0.0';
 
@@ -385,25 +404,19 @@ async function createFixture(t, { initialQaPass = true } = {}) {
   };
 }
 
-test('filesystem resolver verifies and exposes all five production packs without private paths', async () => {
+test('filesystem resolver verifies and exposes every beta-published production pack without private paths', async () => {
   const resolver = new FilesystemScenePresetResolver({
     rootDirectory: path.resolve('assets/scene-presets'),
     projectRoot: path.resolve('.'),
   });
   await resolver.initialize();
   const presets = await resolver.listPresets();
-  assert.equal(presets.length, 5);
+  assert.equal(presets.length, PUBLISHED_PRESET_IDS.length);
   assert.deepEqual(
     new Set(presets.map((item) => item.preset_id)),
-    new Set([
-      'std.city.golden_hour_gloss',
-      'std.interior.gallery_morning_gloss',
-      'std.nature_architecture.concrete_grass_golden_hour',
-      'std.studio.taupe_rembrandt_gloss',
-      'std.studio.white_window_honeycomb',
-    ]),
+    new Set(PUBLISHED_PRESET_IDS),
   );
-  assert.equal(new Set(presets.map((item) => item.preview_url)).size, 5);
+  assert.equal(new Set(presets.map((item) => item.preview_url)).size, PUBLISHED_PRESET_IDS.length);
   for (const preset of presets) {
     assert.match(
       preset.preview_url,
@@ -425,8 +438,8 @@ test('published scene preset previews are exact private-path-safe still WebPs wi
   assert.doesNotMatch(catalogResponse.body, /Users\/|file:\/\/|\.local\/share|candidate-provenance/);
 
   const presets = catalogResponse.json().presets;
-  assert.equal(presets.length, 5);
-  assert.equal(new Set(presets.map((preset) => preset.preview_url)).size, 5);
+  assert.equal(presets.length, PUBLISHED_PRESET_IDS.length);
+  assert.equal(new Set(presets.map((preset) => preset.preview_url)).size, PUBLISHED_PRESET_IDS.length);
   for (const preset of presets) {
     assert.match(preset.preview_url, /^\/api\/scene-presets\/[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+\/preview\?v=[a-f0-9]{64}$/);
     const provenance = JSON.parse(await readFile(path.join(
@@ -553,7 +566,7 @@ test('profile scene survives reload/restart with private ownership and exact dow
 
   const catalog = await first.app.inject({ method: 'GET', url: '/api/scene-presets' });
   assert.equal(catalog.statusCode, 200, catalog.body);
-  assert.equal(catalog.json().presets.length, 5);
+  assert.equal(catalog.json().presets.length, PUBLISHED_PRESET_IDS.length);
   assert.doesNotMatch(catalog.body, /Users\/|production_prompt_path|reference_pack_path/);
 
   const owner = await fixture.saveRunAsLook(first.app, 'completed-look-run');

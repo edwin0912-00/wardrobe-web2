@@ -1,12 +1,12 @@
 {
   "preset_id": "std.architecture.glass_corridor_sunset",
   "preset_path": "assets/scene-presets/std.architecture.glass_corridor_sunset/v1/preset.json",
-  "preset_sha256": "09db67a3690b76227af36129cc1a1cb1a2222238b19d837155402ed224c5befa",
+  "preset_sha256": "d6c86ea792c4d5bba18d10f306c1b0d89fcb1d5f47acf69c8630acca6d3ce6c6",
   "preset_version": "1.0.0",
   "production_prompt_path": "prompts/scene-presets/std.architecture.glass_corridor_sunset/v1/production-scene.txt",
-  "prompt_sha256": "80262952df281dead3c1805e4f2d315871233c6ae7494663c1927529af17d90b",
+  "prompt_sha256": "58e58aed00f31e22ae8ac88303939847c3580abe2a3a57a73dd95fdc9c35a95c",
   "reference_pack_path": "assets/scene-presets/std.architecture.glass_corridor_sunset/v1/reference-pack.json",
-  "reference_pack_sha256": "737d80be0af6c552266504944fc9c94b7b41950aa71d02ccea385f8d21cf7397",
+  "reference_pack_sha256": "15e8e313892b29bbc7f4919486fa8feff1cf68b34d5273b4e7196de383fa2230",
   "references": [
     {
       "media_type": "application/json",

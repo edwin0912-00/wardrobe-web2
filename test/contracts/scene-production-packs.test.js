@@ -25,18 +25,24 @@ async function json(filename) {
   return JSON.parse(await readFile(filename, 'utf8'));
 }
 
-test('five selected reference packs are schema-valid and retain pending human approval', async () => {
+async function publishedDescriptors(index) {
+  return Promise.all(index.selected_preset_ids.map((presetId) => json(
+    path.join(root, 'assets', 'scene-presets', presetId, 'v1', 'index.json'),
+  )));
+}
+
+test('all beta-published reference packs are schema-valid and retain recorded operator approval', async () => {
   const [candidate, index, packSchema, ledgerSchema] = await Promise.all([
     json(selectedPath),
     json(indexPath),
     json(path.join(root, 'schemas', 'scene-reference-pack.schema.json')),
     json(path.join(root, 'schemas', 'scene-source-ledger.schema.json')),
   ]);
-  assert.equal(candidate.approval.status, 'PENDING');
-  assert.equal(index.approval.status, 'PENDING');
-  assert.equal(candidate.selected_preset_ids.length, 5);
+  assert.equal(candidate.approval.status, 'APPROVED');
+  assert.equal(index.approval.status, 'APPROVED');
+  assert.equal(candidate.selected_preset_ids.length, 16);
   assert.deepEqual(index.selected_preset_ids, candidate.selected_preset_ids);
-  assert.equal(index.presets.length, 5);
+  assert.equal(index.published_preset_indexes.length, 16);
 
   const ajv = new Ajv2020({ allErrors: true, strict: false, validateFormats: false });
   ajv.addSchema(ledgerSchema);
@@ -116,7 +122,7 @@ test('every selected reference byte, source snapshot and rights receipt is hash-
   }
 });
 
-test('filesystem resolver fully loads all five immutable packs and every role asset', async () => {
+test('filesystem resolver fully loads every beta-published immutable pack and role asset', async () => {
   const index = await json(indexPath);
   const resolver = new FilesystemScenePresetResolver({
     rootDirectory: path.join(root, 'assets', 'scene-presets'),
@@ -124,7 +130,7 @@ test('filesystem resolver fully loads all five immutable packs and every role as
   });
   await resolver.initialize();
 
-  for (const descriptor of index.presets) {
+  for (const descriptor of await publishedDescriptors(index)) {
     const reference = await resolver.presetReference({
       presetId: descriptor.preset_id,
       presetVersion: descriptor.preset_version,
@@ -183,7 +189,7 @@ test('filesystem resolver fully loads all five immutable packs and every role as
 
 test('production prompts bind the look master and fail closed on framing and item drift', async () => {
   const index = await json(indexPath);
-  for (const descriptor of index.presets) {
+  for (const descriptor of await publishedDescriptors(index)) {
     const promptBytes = await readFile(path.join(root, descriptor.production_prompt_path));
     const prompt = promptBytes.toString('utf8');
     assert.equal(sha256(promptBytes), descriptor.prompt_sha256);
@@ -200,7 +206,7 @@ test('production prompts bind the look master and fail closed on framing and ite
 
 test('candidate provenance is explicit about missing provider receipts', async () => {
   const index = await json(indexPath);
-  for (const descriptor of index.presets) {
+  for (const descriptor of await publishedDescriptors(index)) {
     const provenance = await json(
       path.join(root, 'assets', 'scene-presets', descriptor.preset_id, 'v1', 'candidate-provenance.json'),
     );

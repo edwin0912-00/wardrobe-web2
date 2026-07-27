@@ -1,8 +1,8 @@
 {
   "preset_id": "std.nature.ocean_dusk_blue_hour",
-  "preset_sha256": "7433675999a87d34923689cb9fbcb1a688e0bb072583936f3cdd4175cdd9c3e6",
+  "preset_sha256": "a8c6f53f9c3d814ae2f74b2bfe273401b7cf6013882ce53ea57360987c1ddc33",
   "preset_version": "1.0.0",
-  "prompt_sha256": "345439d0310e1f92add101cf37910a728273373e6750979654be717c08391da1",
+  "prompt_sha256": "adece83623870fb663d0dc0de821e11613d62011a8dcb11fae1f7e9d075c65df",
   "reference_pack_id": "pack.std.nature.ocean_dusk_blue_hour.v1.1",
   "references": [
     {

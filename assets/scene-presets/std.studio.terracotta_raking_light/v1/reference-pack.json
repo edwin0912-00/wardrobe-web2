@@ -1,8 +1,8 @@
 {
   "preset_id": "std.studio.terracotta_raking_light",
-  "preset_sha256": "923c2f783eedf3be0001094a3ba8f5196ce0c86dd682b30b81af540982b0f5fb",
+  "preset_sha256": "dd5f6fb44e4808ca741290059b242172cff04a96c9dea399b982f1228326360b",
   "preset_version": "1.0.0",
-  "prompt_sha256": "78a2afc5d50758c22e47afd99947e8709c25d5d9505d1675280f7ab02e32f2fa",
+  "prompt_sha256": "d55024f73558c0164508cefd8f8373f76e55779cbcb019e908106053eab44b92",
   "reference_pack_id": "pack.std.studio.terracotta_raking_light.v1.1",
   "references": [
     {

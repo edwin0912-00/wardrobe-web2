@@ -295,6 +295,60 @@ export class FilesystemScenePresetResolver {
     if (!Array.isArray(catalog.presets)) {
       throw resolverError(422, 'Scene preset catalog has no presets');
     }
+    // Older isolated fixtures use the original self-contained catalog shape.
+    // Production catalogs must declare bindings before they may expand beyond
+    // the embedded pack entries.
+    if (!Array.isArray(catalog.published_preset_indexes)) {
+      this.catalog = catalog;
+      return;
+    }
+    if (!Array.isArray(catalog.selected_preset_ids) || catalog.selected_preset_ids.length === 0) {
+      throw resolverError(422, 'Scene preset catalog has no selected presets');
+    }
+
+    const selectedIds = new Set();
+    for (const presetId of catalog.selected_preset_ids) {
+      safeId(presetId, 'selected preset_id');
+      if (selectedIds.has(presetId)) {
+        throw resolverError(422, 'Scene preset catalog contains a duplicate selected preset');
+      }
+      selectedIds.add(presetId);
+    }
+
+    const published = new Map();
+    for (const binding of catalog.published_preset_indexes) {
+      safeId(binding?.preset_id, 'published preset_id');
+      safeId(binding?.preset_version, 'published preset_version');
+      expectedHash(binding?.index_sha256, 'published preset index_sha256');
+      const key = `${binding.preset_id}:${binding.preset_version}`;
+      if (published.has(key)) {
+        throw resolverError(422, 'Scene preset catalog contains a duplicate published pack binding');
+      }
+      const directory = path.join(this.realRoot, binding.preset_id, `v${/^([0-9]+)\./.exec(binding.preset_version)?.[1] ?? ''}`);
+      const bytes = await this.#safeRead(
+        path.join(directory, 'index.json'),
+        'Published scene preset pack index',
+        this.realRoot,
+      );
+      if (sha256(bytes) !== binding.index_sha256) {
+        throw resolverError(422, 'Published scene preset pack index SHA-256 mismatch');
+      }
+      const entry = parseJson(bytes, 'Published scene preset pack index');
+      if (entry?.preset_id !== binding.preset_id || entry?.preset_version !== binding.preset_version) {
+        throw resolverError(422, 'Published scene preset pack binding does not match its index');
+      }
+      published.set(key, entry);
+    }
+
+    if (published.size !== selectedIds.size) {
+      throw resolverError(422, 'Selected scene presets and published pack bindings differ');
+    }
+    const selectedEntries = catalog.selected_preset_ids.map((presetId) => {
+      const entry = published.get(`${presetId}:1.0.0`);
+      if (!entry) throw resolverError(422, 'Selected scene preset is not bound to a published pack');
+      return entry;
+    });
+    catalog.presets = selectedEntries;
     this.catalog = catalog;
   }
 

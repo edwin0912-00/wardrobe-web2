@@ -1,8 +1,8 @@
 {
   "preset_id": "std.city.amber_alley_cobblestone",
-  "preset_sha256": "d71eead2eb8ed02032a3495f083443dd77abe83e37d8620edf738f65a7828dd0",
+  "preset_sha256": "c479915ac74fec1ba44318c5da97c1b8316c397fe30dcaeaa53c9577a35218da",
   "preset_version": "1.0.0",
-  "prompt_sha256": "f9ca091d2b89a7ff37ffcb5bd3ce9986b41a9571027cfd2189815e33f0868c8e",
+  "prompt_sha256": "b17797f1049182dc0df5196431cd4b95e5389a6e02309ca8c73a9dab4ab98194",
   "reference_pack_id": "pack.std.city.amber_alley_cobblestone.v1.1",
   "references": [
     {

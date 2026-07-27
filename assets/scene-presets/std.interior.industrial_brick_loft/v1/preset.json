@@ -27,7 +27,7 @@
   ],
   "lighting": {
     "fill": "minimal dark ambient with slight warm bounce from brick",
-    "finish": "cinematic_editorial_gloss_without_skin_smoothing_or_hdr",
+    "finish": "polished_editorial_gloss_without_skin_smoothing_or_hdr",
     "key": "one dramatic warm light shaft from large factory window across dusty concrete floor",
     "protected_regions": [
       "eyes",

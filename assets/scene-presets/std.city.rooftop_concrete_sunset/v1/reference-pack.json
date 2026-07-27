@@ -1,8 +1,8 @@
 {
   "preset_id": "std.city.rooftop_concrete_sunset",
-  "preset_sha256": "ec7d5a3f7c13c45c5dc8feb2f126af7b2ee3f8b5c138c012cc0db1205c33feb4",
+  "preset_sha256": "dca7030383197e9fa4ba3decabeaaf846420f8b938a26cae9924f3b14bfea8de",
   "preset_version": "1.0.0",
-  "prompt_sha256": "5753bdacec3c697cb34bb1bae3a3f7169ea5e0d207d63b8c6443f496db4bbdc4",
+  "prompt_sha256": "e5c69b5dc618386cf1b8fa1f95038154a85774382c2f0f494565d55527658937",
   "reference_pack_id": "pack.std.city.rooftop_concrete_sunset.v1.1",
   "references": [
     {

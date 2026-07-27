@@ -137,14 +137,14 @@ rebasing. The broad release suite remains a later candidate gate.
   background and Create Universe catalog cards carry the SHA-256 of their
   exact preview bytes in `preview_url`. Immutable image caching therefore
   cannot preserve an older visual after a new release.
-- The checked-in background asset inventory contains more candidate packs than
-  the five selected production cards. Those candidates are not silently made
-  generatable or user-selectable: `assets/scene-presets/index.json` remains
-  the single publication boundary until their selection/approval decision is
-  recorded.
-- Beta is deployed at product commit `34f727f`; its health endpoint is ready
-  and the live catalog has five background cards and nine editorial/Create
-  Universe cards, with every current preview route verified HTTP 200.
+- The operator approved beta publication of the eleven new hash-bound
+  background packs. The published catalog retains the five prior packs so
+  saved scenes remain resolvable; it now has sixteen selectable backgrounds.
+  Every additional pack is bound by an exact local-pack-index SHA before the
+  resolver will expose it.
+- Beta is currently deployed at product commit `34f727f`. A 16-background
+  catalog release has passed focused contract/API verification and is pending
+  the immediate beta activation smoke check.
 
 - Browser-bound 30-day profile persistence, avatar → look → child-look lineage,
   immutable Add-items source binding, and cross-profile denial are already in

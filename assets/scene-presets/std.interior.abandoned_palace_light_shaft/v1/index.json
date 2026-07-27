@@ -1,12 +1,12 @@
 {
   "preset_id": "std.interior.abandoned_palace_light_shaft",
   "preset_path": "assets/scene-presets/std.interior.abandoned_palace_light_shaft/v1/preset.json",
-  "preset_sha256": "abe5c139bb90d24496f9c6f981a01fa8c08bd39532b0a464fe3520ffdec70fb8",
+  "preset_sha256": "30aa464dc75bf022c53b9820f5bf4f5b3cb4148e6d809014c5924444a19f3847",
   "preset_version": "1.0.0",
   "production_prompt_path": "prompts/scene-presets/std.interior.abandoned_palace_light_shaft/v1/production-scene.txt",
-  "prompt_sha256": "8fcc4f39285128776d5ccb1b055e4c6ba8db204ce3b2971df29d52b584128056",
+  "prompt_sha256": "5eb0ab329575315b0c6012065fd13cee6736225f8f7d2d89526948ac20d977c1",
   "reference_pack_path": "assets/scene-presets/std.interior.abandoned_palace_light_shaft/v1/reference-pack.json",
-  "reference_pack_sha256": "df74939173c33e03d9d37c38d3ce580d3f3ed9241e67c482a2de9321aa28c0a4",
+  "reference_pack_sha256": "4c4739e3357615a158701faacd6863e7cea3255786d9d16ee9e9bb14fa6bc444",
   "references": [
     {
       "media_type": "application/json",

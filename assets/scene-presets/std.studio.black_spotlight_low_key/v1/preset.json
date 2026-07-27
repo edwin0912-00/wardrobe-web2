@@ -27,7 +27,7 @@
   ],
   "lighting": {
     "fill": "near-zero fill, deep blacks with subtle rim on hair edge",
-    "finish": "cinematic_editorial_gloss_without_skin_smoothing_or_hdr",
+    "finish": "polished_editorial_gloss_without_skin_smoothing_or_hdr",
     "key": "one hard warm spotlight from upper-left creating sharp pool of light on floor and dramatic body sculpting",
     "protected_regions": [
       "eyes",
