@@ -4,6 +4,10 @@
 
 This section overrides the historical lane/lease/PR process below.
 
+New agents use the single bootstrap command in `tools/bootstrap-beta-agent.sh`;
+it creates an ID, installs the local help/journal flow, publishes `ONLINE`, and
+optionally starts the live board monitor.
+
 There are only two branches that matter now:
 
 - `main` — safe baseline. Read-only for agents.

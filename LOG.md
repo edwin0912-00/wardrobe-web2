@@ -17,6 +17,14 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-07-27 · FAST-005 · beta · one-command agent bootstrap
+Change: add automatic-ID beta bootstrap and `START_HERE.md` context entrypoint.
+Why: a replacement agent must be able to join, announce itself, and recover
+the same project context without a manual handoff.
+Evidence: dry-run cloned beta, configured an ID-bound local journal and help,
+and prepared the exact ONLINE report without publishing a synthetic agent.
+weakened_checks: none.
+
 2026-07-27 · FAST-004 · beta · shared live board monitor
 Change: add a 20-second read-only beta board watcher with scope-collision and
 agent-help-request alerts.

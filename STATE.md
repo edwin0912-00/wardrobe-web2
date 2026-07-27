@@ -15,6 +15,8 @@
   `UPDATE.md` remains the task-state record.
 - `tools/watch-beta-board.sh` is the shared read-only live monitor: it fetches
   beta every 20 seconds and flags overlapping active scopes or help requests.
+- `tools/bootstrap-beta-agent.sh` gives a replacement agent a generated unique
+  ID, the current help/context, local journal, ONLINE report, and live monitor.
 
 Updated: 2026-07-27 08:55 UTC.
 
