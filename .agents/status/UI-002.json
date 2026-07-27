@@ -6,9 +6,9 @@
   "base_sha": "f578c28a7e3db506c0e8dbe06ca7e3e405cfea21",
   "lease_generation": 1,
   "state": "HEARTBEAT",
-  "observed_at": "2026-07-27T02:18:20.666Z",
-  "observed_head_sha": "b34d7289b0997ba299ef1118871f424af82b0c9c",
-  "summary_code": "CHECKPOINT_VERIFIED",
-  "next_action_code": "IMPLEMENT",
+  "observed_at": "2026-07-27T02:19:43.820Z",
+  "observed_head_sha": "c73f9e5c2600e06b41ec2167fee0d4cf6a88f7c1",
+  "summary_code": "FOCUSED_PROOF_PASSED",
+  "next_action_code": "RUN_ADVERSARIAL_REVIEW",
   "blocker_code": null
 }
