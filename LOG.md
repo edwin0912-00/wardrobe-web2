@@ -17,6 +17,19 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-07-27 · SCENE-001 · assigned at 44aa829 · control queue
+Change: issue a narrow scene-core lease to restore the one missing
+`contactPointInsideFrame` export and add a regression test.
+Why: four scene suites cannot load on the integration base because
+`scene-adapters` imports a contract primitive that is absent from its export
+surface; that base failure blocks objective CI for otherwise-scoped lanes.
+Evidence: `node tools/coordination/check-test-baseline.mjs --base
+44aa829176b76f8da0d08233d996ebac982ff06e` fails on the base itself; the four
+named suites reproduce the same ESM import error. The lease pins the exact
+contract, adapter, and adapter-test blobs and prohibits any framing, QA,
+provider, runtime, media, or deployment change.
+weakened_checks: none.
+
 2026-07-27 · MONITOR-002 / UI-002 / FASHION-001 · corrected execution start
 Change: move the three tasks to IN_PROGRESS only after fresh STARTED reports
 bound to the corrected exact base `f578c28` were observed.
