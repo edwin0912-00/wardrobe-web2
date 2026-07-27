@@ -1,0 +1,64 @@
+{
+  "schema_version": "1.0.0",
+  "task_id": "UI-002",
+  "agent_id": "profile-ui",
+  "branch": "lane/UI-002/profile-ui",
+  "base_sha": "f578c28a7e3db506c0e8dbe06ca7e3e405cfea21",
+  "lease_generation": 1,
+  "tested_code_sha": "2139aa4b63cec2d7ba1919c3d12a84bc3e51301f",
+  "status": "READY_FOR_REVIEW",
+  "summary": "Saved-avatar navigation now resolves the newest own look from persisted creation time, opens that exact saved look, and continues Add items with the exact avatar-plus-look lineage. Leaving the profile restores the captured view state without clearing the draft.",
+  "changed_paths": [
+    ".agents/status/UI-002.json",
+    "web/public/add-items-flow.js",
+    "web/public/app.js",
+    "test/web/profile-navigation.test.js",
+    "test/web/profile-ui-flow.test.js",
+    ".agents/handoffs/UI-002.json"
+  ],
+  "pre_change_proof": [
+    {
+      "check_id": "saved-look-ui-contract-tests",
+      "command": [
+        "node",
+        "--test",
+        "test/web/profile-navigation.test.js",
+        "test/web/profile-ui-flow.test.js"
+      ],
+      "result": "FAIL",
+      "evidence": "PRECHANGE_UI_CONTRACT_MISSING: the exact f578c28 base selected A-old (2026-07-27T01:10:00.000Z) instead of A-new (2026-07-27T01:20:00.000Z) when the persisted look array was not API order."
+    }
+  ],
+  "post_change_proof": [
+    {
+      "check_id": "saved-look-ui-contract-tests",
+      "command": [
+        "node",
+        "--test",
+        "test/web/profile-navigation.test.js",
+        "test/web/profile-ui-flow.test.js"
+      ],
+      "result": "PASS",
+      "evidence": "14 of 14 passed at exact tested SHA 2139aa4, including newest-own-look ordering, exact one-time Add items continuation, no draft action during avatar selection, and draft-preserving Back restoration."
+    },
+    {
+      "check_id": "diff-hygiene",
+      "command": [
+        "git",
+        "diff",
+        "--check",
+        "$TASK_BASE_SHA...$TESTED_CODE_SHA"
+      ],
+      "result": "PASS",
+      "evidence": "Exact diff hygiene passed from f578c28 through 2139aa4."
+    }
+  ],
+  "adversarial_review": {
+    "goal": "Find an ordering regression, cross-avatar selection, duplicate continuation, an implicit draft clear or reset during saved-avatar selection, or a Back transition that discards captured draft state.",
+    "result": "PASS",
+    "reviewer_id": "ui_review_round2",
+    "reviewed_code_sha": "2139aa4b63cec2d7ba1919c3d12a84bc3e51301f"
+  },
+  "weakened_checks": [],
+  "open_risks": []
+}
