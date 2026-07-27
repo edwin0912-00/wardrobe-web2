@@ -17,6 +17,16 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-07-27 · CTRL-002 · execution started
+Change: move the durable queue-listener and sanitized agent-status lease from
+ASSIGNED to IN_PROGRESS.
+Why: its isolated implementation branch has begun work; this state is required
+before its evidence PR can be reviewed by the trusted queue runner.
+Evidence: owner, branch, pinned base, lease generation, scoped paths, and stop
+conditions are unchanged; no product, deployment, or credential authority was
+added.
+weakened_checks: none.
+
 2026-07-27 · CTRL-002 · reporting activation scope
 Change: widen the existing coordination lease to update the ownership and task
 board rules required for per-task status artifacts.
