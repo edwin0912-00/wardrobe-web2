@@ -55,6 +55,16 @@ Evidence: the beta daemon release directory is named for `39442c4`; both newer
 commits modify coordination files only.
 weakened_checks: none.
 
+2026-07-27 · BETA-VIDEO-FIDELITY-001 · QA finding recorded
+Change: record the reported video lower-body/footwear failure as a blocked
+input-contract issue, not a generation or model-quality issue.
+Why: the submitted look evidence contained only a locked hoodie, so the video
+gate had no approved bottoms or footwear to enforce.
+Evidence: agent report `51d46f4`; no product code or provider call was made by
+this reconciliation. A future code task must first reserve the exact affected
+contract paths and preserve, rather than relax, fidelity checks.
+weakened_checks: none.
+
 2026-07-27 · BETA-STD-001 · `7bca845` live activation
 Change: activate the approved 16-background catalog on beta.
 Why: a code commit is not product delivery until the actual beta API serves the

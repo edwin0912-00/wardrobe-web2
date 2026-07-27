@@ -15,12 +15,12 @@ The earlier detailed noticeboard is preserved at
 
 ## Current verified state — reconciliation 2026-07-27
 
-**One current source of truth:** shared branch `beta` is currently `ab310d3`;
-the running product release was built from product commit `39442c4`.
-`ce9142b` and `ab310d3` are coordination-only and were not deployed. Do not
-call a change “live” merely because its row says `READY_FOR_BETA_DEPLOY`; it is
-live only after it is an ancestor of the running product commit and a narrow
-beta smoke is recorded here.
+**One current source of truth:** fetch `origin/beta` before every task; the
+branch moves as agents publish their small commits. The running product release
+was built from product commit `39442c4`; subsequent coordination and QA commits
+were not deployed. Do not call a change “live” merely because its row says
+`READY_FOR_BETA_DEPLOY`; it is live only after it is an ancestor of the running
+product commit and a narrow beta smoke is recorded here.
 
 - Beta is healthy (`ready`). Narrow non-billable smoke: 20/20 focused tests,
   `/api/scene-presets` = 16, `/api/editorial-modes` = 9,
@@ -81,6 +81,7 @@ beta smoke is recorded here.
 | BETA-UNIVERSE-PREVIEW-001 | UNIVERSE.02 · Превʼю Art Fashion показує кадр зйомки, а не референс-шит | claude-code-20260727-ui4f2a | DONE | CODE | `assets/scene-mood-cards/shoot.*`; `src/web/scene-resolvers.js` (КОЛІЗІЯ); `updates/claude-code-20260727-ui4f2a.md` | ЗУПИНЕНО ДО РОЗВЕДЕННЯ КОЛІЗІЇ: `src/web/scene-resolvers.js` зарезервований активним BETA-UNIVERSE-001 (antigravity-20260727-fb7a90, READY). Пʼять мудкарт 1024x1280 webp зібрані з доставлених кадрів зйомок і проходять контракт превʼю, але без правки резолвера вони `ASSETS_ONLY — NOT IN PRODUCT`; бракує саме `editorialModePreview`, який для create_universe завжди віддає шит за `preview_role`. ЗАКРИТО: під'єднано в `dbc2442` (BETA-PICKER-001) після розведення колізії; асети більше не ASSETS_ONLY. |
 | BETA-PICKER-001 | UNIVERSE.02 · Превʼю Art Fashion + правдиві числа у вкладках | claude-code-20260727-ui4f2a | LIVE_CODE | CODE | `src/web/scene-resolvers.js`; `web/public/index.html`; `web/public/scene-ui.js`; `test/web/editorial-preview-api.test.js`; `updates/claude-code-20260727-ui4f2a.md` | `dbc2442` is an ancestor of live `39442c4`; focused regression remains green. It needs one browser visual confirmation rather than another code change. |
 | BETA-VISUAL-SMOKE-001 | PROFILE.03 + UNIVERSE.02 · Візуальна beta-перевірка live UI | claude-code-20260727-ui4f2a | READY | QA | `updates/claude-code-20260727-ui4f2a.md` only | On the actual beta URL, capture/inspect: saved-look panel opacity, 16 background cards, true tab counts, and Art Fashion cards showing mood cards rather than contact sheets. No product-code edit in this task; report PASS or the exact reproducible UI defect. |
+| BETA-VIDEO-FIDELITY-001 | VIDEO.01 · Повний approved look до старту відео | claude-code-20260727-a3f1c8 | BLOCKED | QA → CODE | `updates/claude-code-20260727-a3f1c8.md`; future paths require a new reservation | QA reports that a tested video look locked only the hoodie; untracked jeans/footwear can therefore copy the reference clip. Do not treat that as model drift or weaken QA. First report the corrected-run evidence without raw media/runtime paths; then `codex-main` will reserve the narrow contract/gate fix. No further provider generation under this unassigned finding. |
 
 ## Agent protocol
 
@@ -101,10 +102,15 @@ beta smoke is recorded here.
 - **claude-code-20260727-557761:** no product edit is assigned. Reconcile your
   provider note to current beta only through a safe status check; do not add a
   key, alter credentials, or claim a provider works without evidence.
+- **claude-code-20260727-a3f1c8:** your video fidelity finding is retained as
+  `BETA-VIDEO-FIDELITY-001`. Do not silently repair the core item contract or
+  run more provider work under an unassigned QA finding. Report only the
+  corrected-run evidence needed to reserve a narrow full-look input gate.
 
-Every agent: fetch `beta`, add `Protocol ACK: ab310d3` in its own update, and
-commit a `STARTED`/result line before changing product code. The owner reports
-facts; `codex-main` records the resulting verified state here.
+Every agent: fetch `beta`, add `Protocol ACK: <the fetched origin/beta SHA>` in
+its own update, and commit a `STARTED`/result line before changing product
+code. The owner reports facts; `codex-main` records the resulting verified
+state here.
 
 1. New agents run the one bootstrap command from `START_HERE.md`; existing
    clones run `bash tools/join-beta-agent.sh <agent-id> --watch`. Then read
