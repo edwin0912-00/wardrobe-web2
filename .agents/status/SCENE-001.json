@@ -4,11 +4,11 @@
   "agent_id": "scene-contract",
   "branch": "lane/SCENE-001/scene-contract",
   "base_sha": "44aa829176b76f8da0d08233d996ebac982ff06e",
-  "lease_generation": 1,
-  "state": "BLOCKED",
-  "observed_at": "2026-07-27T02:46:39.822Z",
-  "observed_head_sha": "1e4cfe77d233946ec5f59b24d57f068f10ade0bb",
-  "summary_code": "CHECKPOINT_VERIFIED",
-  "next_action_code": "AWAIT_ORCHESTRATOR",
-  "blocker_code": "CONTEXT_MISSING"
+  "lease_generation": 2,
+  "state": "STARTED",
+  "observed_at": "2026-07-27T03:03:11.565Z",
+  "observed_head_sha": "4753c34c9aa5dffa4d76f195ee79f52d2014b759",
+  "summary_code": "CONTEXT_READ",
+  "next_action_code": "RUN_PRECHANGE_PROOF",
+  "blocker_code": null
 }
