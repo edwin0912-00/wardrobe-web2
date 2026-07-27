@@ -5,10 +5,10 @@
   "branch": "lane/UI-002/profile-ui",
   "base_sha": "f578c28a7e3db506c0e8dbe06ca7e3e405cfea21",
   "lease_generation": 1,
-  "state": "READY_FOR_REVIEW",
-  "observed_at": "2026-07-27T02:19:59.674Z",
-  "observed_head_sha": "9a5421bc08fc4bf5d8282ce5560a69ce2e202464",
-  "summary_code": "REVIEW_READY",
-  "next_action_code": "AWAIT_ORCHESTRATOR",
+  "state": "HEARTBEAT",
+  "observed_at": "2026-07-27T02:29:40.050Z",
+  "observed_head_sha": "a996073bcaf3f2946a54b39309cac0297ea9311d",
+  "summary_code": "FOCUSED_PROOF_PASSED",
+  "next_action_code": "RUN_ADVERSARIAL_REVIEW",
   "blocker_code": null
 }
