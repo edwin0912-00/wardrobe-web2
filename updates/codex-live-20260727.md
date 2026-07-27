@@ -1,5 +1,16 @@
 # codex-live-20260727
 
+Protocol ACK: 29045a9
+
+## BETA-POSTSHOOT-RECON-001 — RESUMED 2026-07-27
+
+- Operator decision: integrate Lucy at the selected saved master-look, not on
+  the standalone upload test site.
+- Exact product flow: selected look → in-product Live surface → same-origin
+  saved-look image becomes the Lucy reference automatically → camera → separate
+  paid consent.
+- Implementation and QA will not make a consented or billable provider call.
+
 Protocol ACK: 4472986
 
 ## BETA-POST-SHOOT-001 — STARTED
