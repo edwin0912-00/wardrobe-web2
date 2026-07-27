@@ -43,8 +43,8 @@ test('profile exposes an explicit Back control and clear next actions', () => {
 
 test('Back restores the previous in-app view without resetting draft files', () => {
   const source = functionSource('restoreProfileReturnView', 'selectProfileAvatar');
-  assert.match(source, /setWorkflowActive\(Boolean\(target\.workflowActive\)\)/);
-  assert.match(source, /setView\(target\.view\)/);
+  assert.match(source, /restoreProfileReturnState\(profileReturnState, \{/);
+  assert.match(source, /restorePanel: \(target\) => \{/);
   assert.doesNotMatch(source, /beginDraft|clearDraft|clearServerDraft|uploads\.reset|form\.reset/);
 });
 
@@ -59,9 +59,12 @@ test('avatar and look cards are native, stateful selection controls', () => {
   assert.match(appSource, /open\.setAttribute\('aria-controls', 'profile-look-detail'\)/);
 });
 
-test('avatar selection only scopes the profile and never starts or clears work', () => {
+test('avatar selection opens its newest own look without starting or clearing work', () => {
   const source = functionSource('selectProfileAvatar', 'openProfileLook');
-  assert.match(source, /selectedProfileAvatarId = avatarId\(avatar\)/);
+  assert.match(source, /const transition = resolveSavedAvatarTransition\(profile, avatar\);/);
+  assert.match(source, /await executeSavedAvatarTransition\(transition, \{/);
+  assert.match(source, /openLook: \(look\) => openProfileLook\(profile, look\)/);
+  assert.match(source, /filterAvatar: async \(avatarId\) => \{/);
   assert.match(source, /renderProfile\(profile\)/);
   assert.doesNotMatch(source, /beginDraft|clearDraft|clearServerDraft|uploads\.reset|form\.reset/);
 });
@@ -70,7 +73,7 @@ test('look continuation is bound to the exact resolved owner and child actions d
   assert.match(appSource, /const selection = resolveProfileLookSelection\(profile, look\)/);
   assert.match(
     appSource,
-    /beginDraft\(\{\s*avatar: selectedProfileLookSelection\.avatar,\s*look: selectedProfileLookSelection\.look,\s*\}\)/,
+    /continueAddItemsFromSelection\(selectedProfileLookSelection, beginDraft\)/,
   );
   assert.ok(
     (appSource.match(/event\.stopPropagation\(\)/g) ?? []).length >= 7,

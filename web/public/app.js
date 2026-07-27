@@ -20,7 +20,9 @@ import { createSceneUi } from './scene-ui.js?v=20260724-2';
 import {
   addItemsScreenState,
   clearAddItemsSelection,
+  continueAddItemsFromSelection,
   createSceneActionLabel,
+  executeSavedAvatarTransition,
   finalizeConsumedRunState,
   formatLookCount,
   idOfAvatar,
@@ -31,7 +33,9 @@ import {
   resolveAddItemsSelection,
   resolveProfileLookSelection,
   resolveResultAddItemsSelection,
+  resolveSavedAvatarTransition,
   resolveStoredAddItemsLineage,
+  restoreProfileReturnState,
   restoreAddItemsSelection,
   saveCompletedProfileRun,
   scenesForLook,
@@ -39,7 +43,7 @@ import {
   sceneStatusLabel,
   storeAddItemsLineage,
   storeAddItemsSelection,
-} from './add-items-flow.js?v=20260723-4';
+} from './add-items-flow.js?v=20260727-1';
 
 const form = document.querySelector('#run-form');
 const submit = document.querySelector('#submit-button');
@@ -929,14 +933,15 @@ function captureProfileReturnState() {
 
 function restoreProfileReturnView() {
   sceneUi?.stopWatching();
-  const target = profileReturnState?.view && profileReturnState.view !== 'profile'
-    ? profileReturnState
-    : { view: 'empty', workflowActive: false };
-  if (target.panelTitle) resultPanelTitle.textContent = target.panelTitle;
-  if (target.statusText) statusChip.textContent = target.statusText;
-  if (target.statusClass) statusChip.className = target.statusClass;
-  setWorkflowActive(Boolean(target.workflowActive));
-  setView(target.view);
+  restoreProfileReturnState(profileReturnState, {
+    restorePanel: (target) => {
+      if (target.panelTitle) resultPanelTitle.textContent = target.panelTitle;
+      if (target.statusText) statusChip.textContent = target.statusText;
+      if (target.statusClass) statusChip.className = target.statusClass;
+    },
+    setWorkflowActive,
+    setView,
+  });
   requestAnimationFrame(() => {
     if (profileReturnFocus?.isConnected) profileReturnFocus.focus();
     else studioShell.focus?.({ preventScroll: true });
@@ -944,20 +949,21 @@ function restoreProfileReturnView() {
 }
 
 async function selectProfileAvatar(profile, avatar) {
-  const look = latestLookForAvatar(profile, avatar);
-  if (look) {
-    await openProfileLook(profile, look);
-    return;
-  }
-  selectedProfileAvatarId = avatarId(avatar);
-  selectedProfileLookId = null;
-  profileLookPage = 0;
-  await renderProfile(profile);
-  requestAnimationFrame(() => {
-    const firstRelatedLook = document.querySelector(
-      `#profile-look-grid [data-avatar-id="${CSS.escape(selectedProfileAvatarId)}"] .profile-look-open`,
-    );
-    (firstRelatedLook ?? document.querySelector('#profile-look-heading'))?.focus?.({ preventScroll: true });
+  const transition = resolveSavedAvatarTransition(profile, avatar);
+  await executeSavedAvatarTransition(transition, {
+    openLook: (look) => openProfileLook(profile, look),
+    filterAvatar: async (avatarId) => {
+      selectedProfileAvatarId = avatarId;
+      selectedProfileLookId = null;
+      profileLookPage = 0;
+      await renderProfile(profile);
+      requestAnimationFrame(() => {
+        const firstRelatedLook = document.querySelector(
+          `#profile-look-grid [data-avatar-id="${CSS.escape(selectedProfileAvatarId)}"] .profile-look-open`,
+        );
+        (firstRelatedLook ?? document.querySelector('#profile-look-heading'))?.focus?.({ preventScroll: true });
+      });
+    },
   });
 }
 
@@ -1210,7 +1216,10 @@ async function renderProfile(profileValueToRender = null) {
     actions.append(
       createProfileButton('Новий образ з цим аватаром', 'primary-result-action', (event) => {
         event.stopPropagation();
-        beginDraft({ avatar }).catch(showProfileError);
+        continueAddItemsFromSelection(
+          resolveSavedAvatarTransition(profile, avatar).selection,
+          beginDraft,
+        ).catch(showProfileError);
       }),
       createProfileButton('Видалити', 'profile-delete-action', async (event) => {
         event.stopPropagation();
@@ -1607,10 +1616,7 @@ document.querySelector('#profile-look-detail-close').addEventListener('click', (
 document.querySelector('#profile-look-add').addEventListener('click', (event) => {
   event.stopPropagation();
   if (!selectedProfileLookSelection) return;
-  beginDraft({
-    avatar: selectedProfileLookSelection.avatar,
-    look: selectedProfileLookSelection.look,
-  }).catch(showProfileError);
+  continueAddItemsFromSelection(selectedProfileLookSelection, beginDraft).catch(showProfileError);
 });
 document.querySelector('#profile-look-scene').addEventListener('click', (event) => {
   event.stopPropagation();
