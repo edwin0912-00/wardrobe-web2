@@ -1,0 +1,28 @@
+{
+  "schema_version": "1.0.0",
+  "preset_id": "shoot.overcast_street_stride",
+  "kind": "editorial",
+  "family": "create_universe",
+  "ui_name_uk": "Хмарна вулиця · крок",
+  "asset_role": "mood_card",
+  "file": "assets/scene-mood-cards/shoot.overcast_street_stride.webp",
+  "sha256": "788e234e3331ade5751f00259ebc2b19854aff2314d5fb772ee39463c7b8637a",
+  "origin": {
+    "kind": "OWN_GENERATED_PREVIEW",
+    "note": "Generated with our own pixels on the gpt_image_2 route. Style extracted from owner-supplied retail reference frames via the artshoot-pipeline-style-creation observation pass; the reference frames are extraction-only and are not committed. Plain unbranded wardrobe by operator ruling.",
+    "observation_log": "docs/style-units/shoot.overcast_street_stride/OBSERVATION.md",
+    "prompt_sha256": "5d8c232aa719e68da49c232d38ec8141bf84a01f249ba529f9ff730f63f61980",
+    "generator_route": "gpt_image_2",
+    "source_width": 896,
+    "source_height": 1120
+  },
+  "delivery": {
+    "width": 1024,
+    "height": 1280,
+    "format": "webp",
+    "aspect_ratio": "4:5"
+  },
+  "contains_personal_input": false,
+  "approval": "PENDING_VISUAL_JUDGE",
+  "created_at": "2026-07-27T00:00:00.000Z"
+}

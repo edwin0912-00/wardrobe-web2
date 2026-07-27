@@ -1,0 +1,26 @@
+{
+  "schema_version": "1.0.0",
+  "preset_id": "shoot.shutter_amber_interior",
+  "kind": "editorial",
+  "family": "create_universe",
+  "ui_name_uk": "Жалюзі · бурштиновий інтерʼєр",
+  "asset_role": "mood_card",
+  "file": "assets/scene-mood-cards/shoot.shutter_amber_interior.webp",
+  "sha256": "6389e677ade832e1fe429f942f681faa41e418bf1cc8a4c70be025aa3c904be6",
+  "origin": {
+    "kind": "OWNER_SUPPLIED_STYLE_FRAME",
+    "note": "Frame supplied by the owner as the style reference for this unit. Cover-cropped to 4:5 and re-encoded; no generation, no retouch.",
+    "source_width": 928,
+    "source_height": 1232,
+    "source_sha256": "1c01cb51b6a44fc48e178e39e6d5c1a40d4f32266df2e159e60d647887770ce8"
+  },
+  "delivery": {
+    "width": 1024,
+    "height": 1280,
+    "format": "webp",
+    "aspect_ratio": "4:5"
+  },
+  "contains_personal_input": false,
+  "approval": "PENDING_VISUAL_JUDGE",
+  "created_at": "2026-07-27T00:00:00.000Z"
+}

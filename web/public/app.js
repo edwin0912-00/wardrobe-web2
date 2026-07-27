@@ -41,9 +41,10 @@ import {
   scenesForLook,
   scenePresetLabel,
   sceneStatusLabel,
+  selectedLookLiveUrl,
   storeAddItemsLineage,
   storeAddItemsSelection,
-} from './add-items-flow.js?v=20260727-1';
+} from './add-items-flow.js?v=20260727-2';
 
 const form = document.querySelector('#run-form');
 const submit = document.querySelector('#submit-button');
@@ -1622,6 +1623,37 @@ document.querySelector('#profile-look-scene').addEventListener('click', (event) 
   event.stopPropagation();
   if (!selectedProfileLook) return;
   sceneUi.openForLook(selectedProfileLook).catch(showProfileError);
+});
+document.querySelector('#profile-look-video').addEventListener('click', (event) => {
+  event.stopPropagation();
+  if (!selectedProfileLook) return;
+  showProfileError('Fashion video ще не запускаємо: Seedance 2 transport, QA і збереження кліпу проходять окремий beta-gate. Образ залишився вибраним — доступні Фотосесія та Live camera.');
+});
+function closeProfileLive() {
+  const overlay = document.querySelector('#profile-live-overlay');
+  const frame = document.querySelector('#profile-live-frame');
+  overlay.classList.add('hidden');
+  frame.removeAttribute('src');
+  document.body.classList.remove('profile-live-open');
+}
+document.querySelector('#profile-look-live').addEventListener('click', (event) => {
+  event.stopPropagation();
+  if (!selectedProfileLook) return;
+  const overlay = document.querySelector('#profile-live-overlay');
+  const frame = document.querySelector('#profile-live-frame');
+  frame.src = selectedLookLiveUrl(selectedProfileLook);
+  overlay.classList.remove('hidden');
+  document.body.classList.add('profile-live-open');
+  document.querySelector('#profile-live-close').focus({ preventScroll: true });
+});
+document.querySelector('#profile-live-close').addEventListener('click', closeProfileLive);
+document.querySelector('#profile-live-overlay').addEventListener('click', (event) => {
+  if (event.target === event.currentTarget) closeProfileLive();
+});
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && !document.querySelector('#profile-live-overlay').classList.contains('hidden')) {
+    closeProfileLive();
+  }
 });
 document.querySelector('#profile-look-delete').addEventListener('click', async (event) => {
   event.stopPropagation();

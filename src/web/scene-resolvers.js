@@ -41,6 +41,9 @@ const CREATE_UNIVERSE_MODE_META = Object.freeze({
   'shoot.window_gobo_warm': 'Тепле вікно · gobo-тінь',
   'shoot.grey_studio_stride': 'Сіра студія · крок',
   'shoot.sky_dune_surreal': 'Небо й дюна · сюрреалізм',
+  'shoot.hardsun_brick_doorway': 'Жорстке сонце · цегляна брама',
+  'shoot.overcast_street_stride': 'Хмарна вулиця · крок',
+  'shoot.grey_wall_gloss': 'Сіра стіна · глянець',
 });
 const CREATE_UNIVERSE_REQUIRED_SHEETS = Object.freeze([
   'environment', 'colour_grade', 'camera_lens', 'garment_behaviour', 'blocking',

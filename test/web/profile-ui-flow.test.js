@@ -4,6 +4,7 @@ import test from 'node:test';
 const flow = await import('../../web/public/add-items-flow.js');
 
 const appSource = await readFile(new URL('../../web/public/app.js', import.meta.url), 'utf8');
+const indexSource = await readFile(new URL('../../web/public/index.html', import.meta.url), 'utf8');
 
 function profileFixture() {
   const avatar = { avatar_id: 'avatar-a' };
@@ -62,6 +63,26 @@ test('saved-avatar transition auto-opens the look when avatar has exactly one lo
   assert.strictEqual(transition.selection.look, look);
   assert.equal(transition.selection.avatarId, 'avatar-single');
   assert.equal(transition.selection.lookId, 'look-single');
+});
+
+test('selected saved look becomes the in-product Live reference without upload input', () => {
+  assert.equal(
+    flow.selectedLookLiveUrl({ look_id: 'look / exact' }),
+    '/post-shoot-mvp.html?look=look%20%2F%20exact&embed=1',
+  );
+  assert.throws(() => flow.selectedLookLiveUrl({}), /saved look id/i);
+  assert.match(appSource, /profile-look-live/);
+  assert.match(appSource, /selectedLookLiveUrl\(selectedProfileLook\)/);
+  assert.doesNotMatch(indexSource, />Video \/ Live MVP</);
+});
+
+test('saved look exposes the three post-look directions without pretending video is already generated', () => {
+  for (const id of ['profile-look-scene', 'profile-look-video', 'profile-look-live']) {
+    assert.match(indexSource, new RegExp(`id="${id}"`));
+  }
+  assert.match(indexSource, /Video не підміняється mock-роликом/);
+  assert.match(appSource, /profile-look-video/);
+  assert.match(appSource, /Seedance 2 transport, QA і збереження кліпу/);
 });
 
 test('Add items continuation receives the exact selected avatar and look once', async () => {

@@ -19,6 +19,9 @@ export const READY_EDITORIAL_MODE_IDS = Object.freeze([
   'shoot.window_gobo_warm',
   'shoot.grey_studio_stride',
   'shoot.sky_dune_surreal',
+  'shoot.hardsun_brick_doorway',
+  'shoot.overcast_street_stride',
+  'shoot.grey_wall_gloss',
 ]);
 
 export const EDITORIAL_BASE_PRESETS = Object.freeze({

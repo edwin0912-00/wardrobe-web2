@@ -8,8 +8,10 @@ below. Earlier sections are preserved only as historical evidence.
 - Safe baseline: `main`. Shared working branch: `beta`; every agent fetches
   `origin/beta` immediately before beginning a task rather than relying on a
   copied SHA in this document.
-- Running product release: `39442c4`; later coordination/QA commits have
-  intentionally not triggered a deployment.
+- Running product release: `abd9afd`; later branch commits have intentionally
+  not triggered a deployment. Its release directory measures 481 MiB, but the
+  160 MiB value is only a product-test assertion, not a deploy/verifier/server
+  ceiling. Treat it as a capacity signal, not a release blocker.
 - Beta environment: `https://beta.madeforthisjob.com` — health verified
   `ready`; focused non-billable regression is 20/20 PASS.
 - Live catalog facts: 16 standard backgrounds; `/api/editorial-modes` exposes
@@ -94,7 +96,29 @@ below. Earlier sections are preserved only as historical evidence.
   focused catalog tests. The required resolution is a product/catalog decision,
   not a test relaxation.
 
-Updated: 2026-07-27 08:55 UTC.
+Updated: 2026-07-28 00:45 UTC.
+
+## Beta completion truth — 2026-07-28
+
+- Running beta is `release-e05eb44-20260728003504`; current branch head
+  `e05eb44` contains the corresponding deployment record. Pushed is not
+  synonymous with deployed.
+- The live catalog returns 16 `std.*` backgrounds and 12 Art Fashion modes;
+  10 modes declare generation available. This proves catalog availability, not
+  one complete execution through image QA and persistence.
+- Live fitting is implemented with a five-second explicit $0.20 consent gate.
+  Fashion video has a product choice and JSON graph, but the repository has no
+  Seedance/Higgsfield video transport or video result store.
+- A saved look now visibly offers Photoshoot, Fashion video and Live camera in
+  one place. The Fashion video card is honest: it reports the missing real
+  transport instead of producing or claiming a mock clip.
+- Fashion-shoot release is now assigned as one end-to-end outcome to Claude:
+  inventory all units, complete only source-valid ones, wire each into Create
+  Universe, and activate/smoke beta. The previous documents-only portfolio
+  task is retained as evidence but is no longer the finish line.
+- Full `npm test` is currently refused before tests by the resource preflight:
+  swap is 5.16 GiB, above the 1.50 GiB safety ceiling. No test result is being
+  represented as a PASS while this condition holds.
 
 ## Canonical position
 
@@ -162,6 +186,18 @@ or product behavior; it requires refreshed status and isolated handoff after
 rebasing. The broad release suite remains a later candidate gate.
 
 ## Verified product facts
+
+- `LOOK.07` «Покращити образ» is an operator-approved **proposal**, not a
+  live feature. It sits after approved master-look and before backgrounds. Its
+  future contract must lock the user-selected garments and identity; only
+  unselected elements, hairstyle, subtle 15–20% makeup and a slight pose
+  adjustment may be considered. No generation, pixel change or beta release
+  has been performed for it.
+- Fashion video now has two distinct proposed product routes. Primary
+  `VIDEO.01–04` begins directly from an approved master-look and is independent
+  of photoshoots/backgrounds. `BACKGROUND_VIDEO.01–04` begins only from an
+  approved background result and offers exactly product-focused garment motion
+  or model posing. Neither route is live or implemented by this decision.
 
 - Beta preview delivery is content-addressed as of the preview-revision fix:
   background and Create Universe catalog cards carry the SHA-256 of their

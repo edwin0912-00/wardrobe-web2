@@ -1,0 +1,125 @@
+{
+  "unit_id": "shoot.grey_wall_gloss",
+  "title": "Grey Wall Gloss — one soft source, a flat wall, the material as the event",
+  "palette_size": 4,
+  "palette": [
+    {
+      "name": "deep burgundy",
+      "hex": "#5C2320",
+      "role": "subject mass / styling completion"
+    },
+    {
+      "name": "warm grey wall",
+      "hex": "#B8AFA6",
+      "role": "field"
+    },
+    {
+      "name": "olive knit",
+      "hex": "#6B6244",
+      "role": "secondary"
+    },
+    {
+      "name": "light denim",
+      "hex": "#A8BCCF",
+      "role": "lower mass"
+    }
+  ],
+  "item_colours_exempt": true,
+  "palette_authority": {
+    "path": "palette-strip.svg",
+    "sha256": "0fbe558a2a4c83e43bd0ae5ffc1d0cb258d85d471ffcba405212eaebc42c4af1",
+    "rendered_not_generated": true
+  },
+  "source_frames": [
+    "frame-01 — single supplied frame, portrait, eye-level camera, subject in three-quarter back turn before a flat warm-grey studio wall, one broad soft frontal-left source, high-gloss surface carrying elongated speculars"
+  ],
+  "unknowns": [
+    "mouth state (hair occlusion)",
+    "source size and exact distance",
+    "whether the wall is seamless paper or plaster"
+  ],
+  "sheets": [
+    {
+      "sheet_id": "camera_lens",
+      "path": "sheet-camera_lens.png",
+      "sha256": "005a4a848ca5e560dd53ca8554daeef3732fcc9db8093b450d6e89f7ee9cacee",
+      "byte_size": 1104399,
+      "width": 1280,
+      "height": 720,
+      "requested_aspect": "16:9",
+      "attempts": 1,
+      "colour_authoritative": false
+    },
+    {
+      "sheet_id": "blocking",
+      "path": "sheet-blocking.png",
+      "sha256": "7cc16dadbe56db3853642066d004122a94743dee4c79ee4ba45a85b7a319a803",
+      "byte_size": 1148536,
+      "width": 1280,
+      "height": 720,
+      "requested_aspect": "16:9",
+      "attempts": 1,
+      "colour_authoritative": false
+    },
+    {
+      "sheet_id": "expression_gaze",
+      "path": "sheet-expression_gaze.png",
+      "sha256": "0b636a318248d66fbdd1005131a4281bf288a6e8ed9d1b668101ccda5de8cb02",
+      "byte_size": 1581861,
+      "width": 1248,
+      "height": 832,
+      "requested_aspect": "3:2",
+      "attempts": 1,
+      "colour_authoritative": false
+    },
+    {
+      "sheet_id": "garment_behaviour",
+      "path": "sheet-garment_behaviour.png",
+      "sha256": "2846cc333f86b1f62379206d9d7190f70f31d12b5d8c65e3ba79726d744c8caf",
+      "byte_size": 1662925,
+      "width": 1248,
+      "height": 832,
+      "requested_aspect": "3:2",
+      "attempts": 1,
+      "colour_authoritative": false
+    },
+    {
+      "sheet_id": "colour_grade",
+      "path": "sheet-colour_grade.png",
+      "sha256": "e75483fc96334ff1fe5e882876332e81de2afb41e89213f9301be40933c3d5e2",
+      "byte_size": 1108489,
+      "width": 1280,
+      "height": 720,
+      "requested_aspect": "16:9",
+      "attempts": 1,
+      "colour_authoritative": false
+    },
+    {
+      "sheet_id": "environment",
+      "path": "sheet-environment.png",
+      "sha256": "b249a028f48a74960f3bca250e885db0bab117954929e097efe2977b0ffd812f",
+      "byte_size": 1072144,
+      "width": 1568,
+      "height": 672,
+      "requested_aspect": "21:9",
+      "attempts": 1,
+      "colour_authoritative": false
+    },
+    {
+      "sheet_id": "person",
+      "path": "sheet-person.png",
+      "sha256": "480ca62f057cf6a5d7d61c1968f83526e0c813c11b162336e48361b23f7bd4dd",
+      "byte_size": 1326755,
+      "width": 832,
+      "height": 1248,
+      "requested_aspect": "2:3",
+      "attempts": 1,
+      "colour_authoritative": false
+    }
+  ],
+  "unit_sha256": "70d441ae13fa03fd36d792e39f6b4949f96aa067dbaafcefdb32a2dc26fac7fe",
+  "generated_with": {
+    "model": "openai/gpt-5.4-image-2",
+    "transport": "openrouter"
+  }
+}

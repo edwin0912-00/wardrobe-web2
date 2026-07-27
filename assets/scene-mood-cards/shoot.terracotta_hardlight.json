@@ -6,12 +6,13 @@
   "ui_name_uk": "Теракота · жорстке сонце",
   "asset_role": "mood_card",
   "file": "assets/scene-mood-cards/shoot.terracotta_hardlight.webp",
-  "sha256": "8fb8f035b85b01b28d321afa0495b713f73f9d6ba239a0adabc5b51f51d9841e",
+  "sha256": "76fe58c9fbf4bcc6fa034ca1e0594ea0f8d80a40b96774f911bcaeb800f5fe81",
   "origin": {
-    "kind": "SHEET_PHOTO_PANEL",
-    "file": "docs/style-units/shoot.terracotta_hardlight/sheet-garment_behaviour.png",
-    "panel": "motion state",
-    "note": "No delivered frame exists for this unit; this is the real fabric photograph from its own garment-behaviour sheet."
+    "kind": "OWNER_SUPPLIED_STYLE_FRAME",
+    "note": "Frame supplied by the owner as the style reference for this unit. Cover-cropped to 4:5 and re-encoded; no generation, no retouch.",
+    "source_width": 928,
+    "source_height": 1232,
+    "source_sha256": "78738c995301c5a99de33a1a7e0a757665ce22c4fb321b61d42a6fffced7e127"
   },
   "delivery": {
     "width": 1024,

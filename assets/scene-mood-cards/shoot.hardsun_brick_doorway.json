@@ -1,0 +1,28 @@
+{
+  "schema_version": "1.0.0",
+  "preset_id": "shoot.hardsun_brick_doorway",
+  "kind": "editorial",
+  "family": "create_universe",
+  "ui_name_uk": "Жорстке сонце · цегляна брама",
+  "asset_role": "mood_card",
+  "file": "assets/scene-mood-cards/shoot.hardsun_brick_doorway.webp",
+  "sha256": "ad142f8775e5c575fd65fd95566a64bf73557fb826a6adb31db60a747649a1b8",
+  "origin": {
+    "kind": "OWN_GENERATED_PREVIEW",
+    "note": "Generated with our own pixels on the gpt_image_2 route. Style extracted from owner-supplied retail reference frames via the artshoot-pipeline-style-creation observation pass; the reference frames are extraction-only and are not committed. Plain unbranded wardrobe by operator ruling.",
+    "observation_log": "docs/style-units/shoot.hardsun_brick_doorway/OBSERVATION.md",
+    "prompt_sha256": "1c0581005b7fd0421ecd861314ebb1ed77cff085337a12a202b0a7b0695f03f2",
+    "generator_route": "gpt_image_2",
+    "source_width": 896,
+    "source_height": 1120
+  },
+  "delivery": {
+    "width": 1024,
+    "height": 1280,
+    "format": "webp",
+    "aspect_ratio": "4:5"
+  },
+  "contains_personal_input": false,
+  "approval": "PENDING_VISUAL_JUDGE",
+  "created_at": "2026-07-27T00:00:00.000Z"
+}

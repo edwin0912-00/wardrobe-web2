@@ -463,6 +463,37 @@ is. A signature that only sometimes arrives is not a signature.
 Record which half came from the model and which from post. A frame whose look was half applied
 afterwards is honest; a frame that claims the camera did it is not.
 
+### RULE 8 — a person reference carries a person and nothing else: cut out, on white
+
+Measured 2026-07-27 on the video block. A fifteen-second reel was generated from someone else's
+reference video with our own avatar, and half the shots relocated to a garden with a swimming pool
+that appears in no prompt and in no video reference. The refpack held six references: the reference
+video, four cut-outs on white, and one delivered scene frame of our avatar standing in that garden.
+That single frame was the only thing in the entire pack carrying a full environment, and it was
+enough to split the film between two locations.
+
+This is not a new principle. The codebase already has a `REFERENCE_ROLE_ISOLATION` gate, and an
+identity reference that also carries a location is exactly a role violation — it is two references
+wearing one file. The generator cannot be told which half to read.
+
+**TRIGGER** — any reference whose role is identity, body, garment or expression.
+**CHECK** — open it. Is there a background? Is there ground, sky, furniture, foliage, a wall, a
+recognisable interior, a reflection, a cast shadow falling on a visible surface?
+**STOP** — if yes. Cut the subject out onto flat white before it goes in the pack. Two acceptable
+sources: a matted look sheet, or a crop tight enough that no environment survives inside the frame.
+
+The environment gets its own reference with its own role, and the two must never travel in one image.
+Where the target environment is deliberately the anchor's own — a continuity anchor inside a single
+shoot, at the same location — that is an environment reference doing its job, not an exception to
+this rule; label it as such and do not also call it the identity reference.
+
+A close relative, same day and same cause: what a reference does not resolve, it cannot hold. Our
+avatar's shoes occupied about 150 soft pixels in a full-length frame while the reference video showed
+a stranger's sandal at 700 sharp pixels, and one shot came back with the stranger's bare leg and
+sandal. Full length is necessary and not sufficient. Every close shot the delivery may ask for needs
+its own detail reference at that scale — footwear, hem, cuff, fabric — and the honest source is a
+real crop of the approved item, never a prettier one the model invented.
+
 ## 6d. Where this sits in the product
 
 A shoot unit is not a background and must not be built on one. Concretely: a style whose identity
@@ -487,3 +518,65 @@ executed honestly, it would have stopped the failure.
 | 4 | Blocking diagrams were lettered "BODY 3/4 TO LENS" for slots whose spec declares no body rotation — an invented fact that read as canon | §0 | Every value names the frame it was observed in; unobservable means UNKNOWN |
 | 5 | A person sheet demanded forensic certainty for facts a photo cannot show, so it returned NEEDS_INPUT on a perfectly good portrait | §3 | Continuous geometry is inferable; only discrete surface facts must be observed, and the two are recorded separately |
 | 6 | A generator reproduced a subject's pose and place but lost the low angle and the blurred foreground hand — the two things that made the frame art | §4 items 1 and 4 | Camera roll and foreground occlusion are mandatory fields |
+
+### RULE 9 — coverage is a contract, and every frame in it has a person in it
+
+Two errors on 2026-07-27, both caught by the operator rather than by a gate, both from generating a
+shoot without reading what the product actually asks for.
+
+**First error: one framing repeated six times — mine, by hand, not the pipeline's.** Six styles were
+generated outside the product and every single frame was the same shot: full length, centred, camera at
+chest height, only the wallpaper changing. That is not a shoot, it is six pieces of wallpaper. Cause:
+the delivery lock ("full body, both shoes, clear headroom") was written into every hand-authored prompt,
+which flattened the camera character out of six shoots that each had their own.
+
+Checked afterwards, and worth recording because the assumption was wrong: **the product does not have
+this defect.** Its per-slot prompt already carries a distinct focal length (50/50/65/55/85/35), a
+distinct camera height, its own angle sentence, its own pose sentence, and the subject-height band read
+straight from that slot's lock. Only the crop token is shared across five slots, and a comment at the
+site explains why — `full_length` made the generator invent a lower garment and shoes the approved look
+never contained, ITEM_FIDELITY correctly refused to verify invented items, and the first slot became
+unpassable and blocked the rest. So the flattening there is a documented workaround for a real gate
+conflict, not laziness, and it is removable only once footwear is a locked item.
+
+The lesson is therefore the opposite of the first instinct: when a hand run and the pipeline disagree
+about coverage, check which one is wrong before "fixing" the pipeline. Framing is read from the shoot —
+a monumental low angle up a ribbed wall, a low angle through converging trunks, a rooftop wide, a bag
+detail — and the pipeline is already asking for that per slot.
+
+**Second error: a detail frame with no human in it — also mine, and also already covered upstream.**
+The product's detail slot declares `head: false`. That means *the head need not be visible*. It does not
+mean the person is absent. A crop of cloth with no body is a product shot, and this product sells a
+person wearing the item. The pipeline already asks for exactly that: the slot's pose directive reads
+"detail-led crop with anatomically plausible hand or body context". The flat lay happened because the
+prompt was hand-authored and that directive was simply not carried over. The framing lock alone would
+not have caught it — no slot requires a visible body part — so when authoring a detail frame outside the
+bible, keep a wrist, a neckline, a hand or a shoulder in it and say which one.
+
+**The six slots and their real locks**, read from `editorialFramingLock` on 2026-07-27 rather than
+assumed. `subject` is the subject's share of frame height in per cent; `above` is the minimum headroom.
+
+| slot | subject | above | head | footwear |
+|---|---|---|---|---|
+| `clean_identity_hero` | 50–94 | 6 | required | not required |
+| `environmental_hero` | 40–95 | 5 | required | not required |
+| `sculptural_three_quarter` | 50–95 | 5 | required | not required |
+| `interference_frame` | 45–96 | 4 | required | not required |
+| `material_or_accessory_detail` | 45–100 | 0 | **not required** | not required |
+| `wide_campaign_coda` | 30–92 | 8 | required | not required |
+
+Consequences worth stating, because each one bit:
+
+- **There is no tight face close-up slot.** Five slots need the head visible AND the subject between
+  40 and 96 per cent; a collarbone-up crop is effectively 100 and would be rejected. A beautiful face
+  frame is not deliverable coverage, however good it looks.
+- **`wide_campaign_coda` bottoms out at 30 per cent.** A figure smaller than that fails, so "tiny
+  figure in a vast room" has a floor.
+- **Footwear is `false` in every one of the six.** Nothing in the coverage contract ever requires shoes
+  to be shown, which is exactly how a video generation borrowed a stranger's sandal — see RULE 8.
+
+**TRIGGER** — generating a coverage set, or writing a prompt per slot.
+**CHECK** — name the slot, quote its lock, and say where the framing came from in the source shoot.
+For the detail slot, name which piece of the body is in frame.
+**STOP** — if two slots would deliver the same composition, or if any frame contains no person, or if
+the intended framing is not inside its slot's subject range.

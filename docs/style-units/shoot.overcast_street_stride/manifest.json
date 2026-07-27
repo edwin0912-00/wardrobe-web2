@@ -1,0 +1,135 @@
+{
+  "unit_id": "shoot.overcast_street_stride",
+  "title": "Overcast Street Stride — sky-dome light, a living street, a walk",
+  "palette_size": 6,
+  "palette": [
+    {
+      "name": "sand suede",
+      "hex": "#C7B08C",
+      "role": "key mid / styling completion"
+    },
+    {
+      "name": "indigo denim",
+      "hex": "#2E4468",
+      "role": "second mass"
+    },
+    {
+      "name": "brown leather",
+      "hex": "#7A4A2E",
+      "role": "accent"
+    },
+    {
+      "name": "grey-white sky",
+      "hex": "#C9CDD0",
+      "role": "brightest"
+    },
+    {
+      "name": "beige limestone",
+      "hex": "#CFC5B0",
+      "role": "field"
+    },
+    {
+      "name": "asphalt",
+      "hex": "#8A8A88",
+      "role": "ground"
+    }
+  ],
+  "item_colours_exempt": true,
+  "palette_authority": {
+    "path": "palette-strip.svg",
+    "sha256": "e60f4b429e0acf170982d1926a98e3e336665375e39b4cdc1f54be80b7e32f2f",
+    "rendered_not_generated": true
+  },
+  "source_frames": [
+    "frame-01 — single supplied frame, portrait, full-length figure mid-stride crossing a living European city street under bright overcast, pedestrians and parked cars visible, long-lens compression, soft short shadows"
+  ],
+  "unknowns": [
+    "exact city",
+    "lens focal length (consequences recorded instead)",
+    "whether the crossing is signal-controlled"
+  ],
+  "sheets": [
+    {
+      "sheet_id": "camera_lens",
+      "path": "sheet-camera_lens.png",
+      "sha256": "88bad4372a5435078f8c0d315e065c1ec942e85be1645dc2c722f941e9c7d812",
+      "byte_size": 1261146,
+      "width": 1280,
+      "height": 720,
+      "requested_aspect": "16:9",
+      "attempts": 1,
+      "colour_authoritative": false
+    },
+    {
+      "sheet_id": "blocking",
+      "path": "sheet-blocking.png",
+      "sha256": "b7b741f8de2616c11fffa02cb57274d8d95f5c042c7219b0cb39135d41ab1834",
+      "byte_size": 1105237,
+      "width": 1280,
+      "height": 720,
+      "requested_aspect": "16:9",
+      "attempts": 1,
+      "colour_authoritative": false
+    },
+    {
+      "sheet_id": "expression_gaze",
+      "path": "sheet-expression_gaze.png",
+      "sha256": "2a6a6e6b2fee16d4ce312c640ce72ec69a01dd5816515fb8f57420f8173b987e",
+      "byte_size": 1363269,
+      "width": 1248,
+      "height": 832,
+      "requested_aspect": "3:2",
+      "attempts": 1,
+      "colour_authoritative": false
+    },
+    {
+      "sheet_id": "garment_behaviour",
+      "path": "sheet-garment_behaviour.png",
+      "sha256": "7cba1cce087be8e5deb91a7acf72da508cc037e84f60e53ce6867bddc929caca",
+      "byte_size": 1784035,
+      "width": 1248,
+      "height": 832,
+      "requested_aspect": "3:2",
+      "attempts": 1,
+      "colour_authoritative": false
+    },
+    {
+      "sheet_id": "colour_grade",
+      "path": "sheet-colour_grade.png",
+      "sha256": "00f5e680627ab20036e495dc50192af2bfe9145ca292eac4631685c3ea64d1a4",
+      "byte_size": 969788,
+      "width": 1280,
+      "height": 720,
+      "requested_aspect": "16:9",
+      "attempts": 1,
+      "colour_authoritative": false
+    },
+    {
+      "sheet_id": "environment",
+      "path": "sheet-environment.png",
+      "sha256": "9b1d051bdf895173fc10b70106f57eed0fb854fba57f3f30d3f0bddb6c1a2de3",
+      "byte_size": 1652298,
+      "width": 1568,
+      "height": 672,
+      "requested_aspect": "21:9",
+      "attempts": 1,
+      "colour_authoritative": false
+    },
+    {
+      "sheet_id": "person",
+      "path": "sheet-person.png",
+      "sha256": "5a8967fb6c450f7a13547598acf643aada887762ec4c63290b7fcce9d0350154",
+      "byte_size": 1485710,
+      "width": 832,
+      "height": 1248,
+      "requested_aspect": "2:3",
+      "attempts": 1,
+      "colour_authoritative": false
+    }
+  ],
+  "unit_sha256": "e2173ad5cd671ce7ab59e9ea8a85dcfaa8e9b24419d2162f6809e086ccb2eace",
+  "generated_with": {
+    "model": "openai/gpt-5.4-image-2",
+    "transport": "openrouter"
+  }
+}

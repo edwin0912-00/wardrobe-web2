@@ -1,0 +1,72 @@
+{
+  "unit_id": "shoot.grey_wall_gloss",
+  "title": "Grey Wall Gloss — one soft source, a flat wall, the material as the event",
+  "palette_size": 4,
+  "palette": [
+    {
+      "name": "deep burgundy",
+      "hex": "#5C2320",
+      "role": "subject mass / styling completion"
+    },
+    {
+      "name": "warm grey wall",
+      "hex": "#B8AFA6",
+      "role": "field"
+    },
+    {
+      "name": "olive knit",
+      "hex": "#6B6244",
+      "role": "secondary"
+    },
+    {
+      "name": "light denim",
+      "hex": "#A8BCCF",
+      "role": "lower mass"
+    }
+  ],
+  "source_frames": [
+    "frame-01 — single supplied frame, portrait, eye-level camera, subject in three-quarter back turn before a flat warm-grey studio wall, one broad soft frontal-left source, high-gloss surface carrying elongated speculars"
+  ],
+  "unknowns": [
+    "mouth state (hair occlusion)",
+    "source size and exact distance",
+    "whether the wall is seamless paper or plaster"
+  ],
+  "sheets": {
+    "camera_lens": {
+      "aspect": "16:9",
+      "quality": "medium",
+      "prompt": "Editorial specification board titled GREY WALL GLOSS — CAMERA & LENS. Panels: 1 CAMERA POSITION — eye level, close, level roll; small diagram of camera and subject near a flat wall. 2 PERSPECTIVE CHARACTER — standard rendering, no convergence, background is one close plane. 3 DEPTH OF FIELD — subject sharp; the wall is textureless so depth reads only from the soft shadow behind the body. 4 FOREGROUND OCCLUSION — none. 5 OPTICAL SIGNATURE, FIXED — clean, slightly warm, fine grain, no flare, no halation; every frame of the unit carries this cleanliness. 6 FRAME — crop from clearly above the crown of the head to the hip, visible clear space above the hair. Include a small palette hex row strip labelled exactly: #5C2320 #B8AFA6 #6B6244 #A8BCCF. Typeset like a printed specification board with crisp fully legible labels. No version number, no date, no invented metadata, no board codes, no photographer credits, no brand marks, no readable third-party text, no watermark."
+    },
+    "blocking": {
+      "aspect": "16:9",
+      "quality": "low",
+      "prompt": "Technical blocking diagram board titled GREY WALL GLOSS — BLOCKING, neutral grey artist mannequin, schematic arrows and labels. Main view: mannequin torso turned three-quarter away from camera so the back and one full sleeve face the lens, head turned over the near shoulder to near-profile, weight on the far leg, near arm hanging with the sleeve fully visible. Joint-chain labels: pelvis rotated about 120 degrees from the lens, shoulder line follows, head counter-turned over the near shoulder, chin dropped slightly, no head roll. Top-down inset plan: subject close to a flat wall, one broad soft source drawn as a large rectangle at front camera-left close to the subject, camera at eye level directly ahead, soft shadow zone sketched just behind the body on the wall. Light symbol labelled ONE BROAD SOFT SOURCE — NO SECOND LIGHT. Include a small palette hex row strip labelled exactly: #5C2320 #B8AFA6 #6B6244 #A8BCCF. Typeset like a printed specification board with crisp fully legible labels. No version number, no date, no invented metadata, no board codes, no photographer credits, no brand marks, no readable third-party text, no watermark."
+    },
+    "expression_gaze": {
+      "aspect": "3:2",
+      "quality": "medium",
+      "prompt": "Editorial specification board titled GREY WALL GLOSS — EXPRESSION & GAZE, one large near-profile face panel plus small side panels, generic template model. 1 GAZE FORMAT — directed down and past the lens, withheld from the camera; withheld is deliberate and recorded as such. 2 EYELIDS — upper lids low. 3 BROWS — at rest. 4 CHEEKBONES — at rest, no lift. 5 MOUTH — relaxed; state on the board that the mouth may be partially occluded by hair and its state is UNKNOWN in the source. 6 JAW AND NECK — relaxed, neck lengthened by the over-shoulder turn. 7 HEAD ORIENTATION — turned over the near shoulder to near-profile, chin slightly down, no roll. Negatives: no smile, no parted-lips glamour default, no direct-to-lens gaze. Include a small palette hex row strip labelled exactly: #5C2320 #B8AFA6 #6B6244 #A8BCCF. Typeset like a printed specification board with crisp fully legible labels. No version number, no date, no invented metadata, no board codes, no photographer credits, no brand marks, no readable third-party text, no watermark."
+    },
+    "garment_behaviour": {
+      "aspect": "3:2",
+      "quality": "medium",
+      "prompt": "Editorial specification board titled GREY WALL GLOSS — GARMENT BEHAVIOUR. Six photographic panels of plain unbranded high-gloss patent-class cloth against a warm grey wall #B8AFA6, no person: 1 MOTION STATE — still, at rest. 2 AIR INTERACTION — none. 3 DRAPE AND WEIGHT — structured; folds numerous, sharp and crinkled; a ribbed hem gathers the volume. 4 TRANSPARENCY UNDER THIS LIGHT — fully opaque. 5 EDGE QUALITY — crisp. 6 SURFACE RESPONSE — the event of the unit: crisp elongated hot specular highlights run along every fold ridge and down the sleeve under one broad soft source; a matte knit layer beneath sits quiet. TRANSFER line: glossy materials in this unit carry the frame — highlights hot, elongated, high-contrast; matte layers stay quiet beneath; the garment's own surface response is the composition. Include a small palette hex row strip labelled exactly: #5C2320 #B8AFA6 #6B6244 #A8BCCF. Typeset like a printed specification board with crisp fully legible labels. No version number, no date, no invented metadata, no board codes, no photographer credits, no brand marks, no readable third-party text, no watermark."
+    },
+    "colour_grade": {
+      "aspect": "16:9",
+      "quality": "medium",
+      "prompt": "Editorial specification board titled GREY WALL GLOSS — COLOUR & GRADE. Declare palette_size 4 as a closed counted set with swatches and roles: #5C2320 deep burgundy subject mass, #B8AFA6 warm grey wall field, #6B6244 olive knit secondary, #A8BCCF light denim lower mass. Panels: tonal ramp from burgundy shadow to lit wall; GRADE BEHAVIOUR — moderate contrast, slightly warm balance, blacks soft, highlight roll-off clean so speculars stay crisp without clipping, saturation restrained; skin, hair, eyes and approved item colours exempt; FAIL CONDITION: any non-exempt cluster above two percent of frame area must map to a palette member. Include a small palette hex row strip labelled exactly: #5C2320 #B8AFA6 #6B6244 #A8BCCF. Typeset like a printed specification board with crisp fully legible labels. No version number, no date, no invented metadata, no board codes, no photographer credits, no brand marks, no readable third-party text, no watermark."
+    },
+    "environment": {
+      "aspect": "21:9",
+      "quality": "medium",
+      "prompt": "Wide editorial specification board titled GREY WALL GLOSS — ENVIRONMENT. Panel 1 PLAN — top-down drawing: one flat wall line, subject footprint close to it, one broad soft source rectangle at front camera-left close to the subject, camera at eye level ahead, soft shadow zone sketched behind the body. Panel 2 HERO VIEW — photographic: a flat warm-grey studio wall #B8AFA6 meeting a plain floor, gentle vertical gradient from the single soft source, one soft-edged shadow zone, nothing else in shot, no props, no texture features. Panel 3 REVERSE ANGLE, at least 120 degrees from the hero and visibly different — photographic: from the wall toward the studio space, the large soft source visible as a broad light panel with the camera position beyond it, floor stretching away. Panel 4 MATERIALS — wall surface and plain floor close-ups. Panel 5 DEPTH PLANES — wall, subject zone, source, camera space. Include a small palette hex row strip labelled exactly: #5C2320 #B8AFA6 #6B6244 #A8BCCF. Typeset like a printed specification board with crisp fully legible labels. No version number, no date, no invented metadata, no board codes, no photographer credits, no brand marks, no readable third-party text, no watermark."
+    },
+    "person": {
+      "aspect": "2:3",
+      "quality": "medium",
+      "prompt": "Editorial specification board titled GREY WALL GLOSS — PERSON SHEET, marked TEMPLATE, illustrated with a neutral generic template face, clearly not a specific person. Sections: 1 FACE GEOMETRY callouts. 2 EARS checklist. 3 EVERYTHING ON THE FACE checklist. 4 SKIN MARKS — observed versus plausible, separate. 5 SKIN TONE — value ramp lit versus shaded. 6 HOW THIS SKIN TAKES THIS LIGHT, unit-specific: speculars on the skin wide and gentle across forehead and cheek, never hot; shadow terminator very soft, almost absent under the broad close frontal source; the strongest speculars of the frame sit on dark glossy hair as tight bright strands, not on skin; no halation, no rim light against the warm grey wall #B8AFA6. Include a small palette hex row strip labelled exactly: #5C2320 #B8AFA6 #6B6244 #A8BCCF. Typeset like a printed specification board with crisp fully legible labels. No version number, no date, no invented metadata, no board codes, no photographer credits, no brand marks, no readable third-party text, no watermark."
+    }
+  }
+}

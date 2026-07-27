@@ -1,13 +1,12 @@
-import { fal } from './vendor/fal-client.js';
-
 const MODEL_ID = 'decart/lucy-2-5/realtime';
-const state = { stream: null, reference: null, connection: null, peer: null, timer: null, running: false };
+const state = { stream: null, reference: null, connection: null, peer: null, timer: null, guideTimer: null, running: false };
 const $ = (selector) => document.querySelector(selector);
 const prompt = 'Replace only the current clothing with the outfit from the reference image. Preserve the person face, identity, hair, skin, body shape, pose and hands. Preserve the existing room, background, camera angle and lighting. Do not modify anything except the clothing.';
+const query = new URLSearchParams(location.search);
 
 function status(text) { $('#live-status').textContent = text; }
 function ready() {
-  $('#lucy-start').disabled = state.running || !state.stream || !state.reference || !$('#cost-consent').checked;
+  $('#lucy-start').disabled = state.running || !state.stream || !state.reference;
 }
 function dataUrl(file) {
   return new Promise((resolve, reject) => {
@@ -31,7 +30,28 @@ async function loadReference(file) {
   $('#reference-status').textContent = `${file.name} · ${image.naturalWidth}×${image.naturalHeight} · READY`;
   ready();
 }
+async function loadSavedLookReference(lookId) {
+  const response = await fetch(`/api/profile/looks/${encodeURIComponent(lookId)}/image`, {
+    credentials: 'same-origin',
+    cache: 'no-store',
+  });
+  if (!response.ok) throw new Error('Не вдалося відкрити вибраний образ.');
+  const blob = await response.blob();
+  const file = new File([blob], `look-${lookId}.png`, {
+    type: blob.type || 'image/png',
+    lastModified: Date.now(),
+  });
+  await loadReference(file);
+  $('#reference-upload').disabled = true;
+  $('.reference-control').classList.add('is-bound');
+  $('#reference-status').textContent = 'Вибраний образ · READY';
+}
 async function startCamera() {
+  if (!window.isSecureContext) throw new Error('Камера потребує HTTPS.');
+  if (!navigator.mediaDevices?.getUserMedia) {
+    throw new Error('Цей вбудований браузер не дає доступу до камери. Відкрий сторінку в Safari або Chrome.');
+  }
+  status('Запит дозволу на камеру…');
   state.stream = await navigator.mediaDevices.getUserMedia({
     video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } },
     audio: false,
@@ -40,6 +60,13 @@ async function startCamera() {
   $('#camera-placeholder').classList.add('hidden');
   $('#camera-start').classList.add('hidden');
   $('#camera-stop').classList.remove('hidden');
+  $('#fit-guide').classList.remove('is-complete');
+  $('#fit-guide').classList.add('is-active');
+  clearTimeout(state.guideTimer);
+  state.guideTimer = setTimeout(() => {
+    $('#fit-guide').classList.add('is-complete');
+    status('POSITION LOCKED');
+  }, 3_600);
   status('Відійди так, щоб було видно голову, торс і одяг до стегон.');
   ready();
 }
@@ -59,6 +86,8 @@ function stopCamera() {
   closeLive('Камера вимкнена.');
   state.stream?.getTracks().forEach((track) => track.stop());
   state.stream = null;
+  clearTimeout(state.guideTimer);
+  $('#fit-guide').classList.remove('is-active', 'is-complete');
   $('#camera').srcObject = null;
   $('#camera-placeholder').classList.remove('hidden');
   $('#camera-start').classList.remove('hidden');
@@ -90,12 +119,18 @@ async function signal(result) {
   }
 }
 async function startLive() {
+  if (!window.confirm('Запустити 5 секунд Lucy Live? Максимальна вартість — $0.20.')) return;
+  const falModule = await import('./vendor/fal-client.js?v=20260727-7');
+  const fal = falModule.fal ?? falModule.default?.fal;
+  if (typeof fal?.realtime?.connect !== 'function') {
+    throw new Error('fal realtime client не завантажився.');
+  }
   state.running = true;
   ready();
   status('Підключення до Lucy…');
   state.timer = setTimeout(() => closeLive('5 секунд завершено. Live автоматично зупинено.'), 5_000);
   state.connection = fal.realtime.connect(MODEL_ID, {
-    connectionKey: `zeely-${crypto.randomUUID()}`,
+    connectionKey: `zeely-${crypto.randomUUID?.() || Date.now()}`,
     throttleInterval: 0,
     tokenExpirationSeconds: 10,
     tokenProvider: async (app) => {
@@ -122,8 +157,15 @@ $('#reference-upload').addEventListener('change', (event) => loadReference(event
 }));
 $('#camera-start').addEventListener('click', () => startCamera().catch((error) => status(`Camera error: ${error.message}`)));
 $('#camera-stop').addEventListener('click', stopCamera);
-$('#cost-consent').addEventListener('change', ready);
 $('#lucy-start').addEventListener('click', () => startLive().catch((error) => closeLive(`Помилка: ${error.message}`)));
 $('#lucy-stop').addEventListener('click', () => closeLive());
 window.addEventListener('pagehide', stopCamera);
 ready();
+const selectedLookId = query.get('look');
+if (query.get('embed') === '1') document.body.classList.add('is-embedded');
+if (selectedLookId) {
+  status('Завантажуємо вибраний образ…');
+  loadSavedLookReference(selectedLookId)
+    .then(() => status('Образ готовий. Увімкни камеру.'))
+    .catch((error) => status(`Помилка образу: ${error.message}`));
+}

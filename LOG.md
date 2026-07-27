@@ -17,6 +17,78 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-07-28 · VIDEO product split · beta · operator decision recorded
+Change: split primary Fashion Video from the later, simpler background-video
+product and define their different entry points and goals.
+Why: Fashion Video must be an equal button on the approved master-look, while
+a clip after a generated background is a distinct product with a garment-focus
+or posing choice.
+Evidence: `PIPELINE.md`, `docs/VIDEO_LIVE_CANON_UA.md` and `UPDATE.md` now
+define `VIDEO.01–04` and proposed `BACKGROUND_VIDEO.01–04`; no provider call,
+UI code, source-pixel change, or beta release was performed.
+weakened_checks: none.
+
+2026-07-28 · BETA-LOOK-REFINE-001 · beta · product proposal recorded
+Change: record the optional «Покращити образ» step between approved master-look
+and standard backgrounds.
+Why: the operator wants a controlled refinement of non-selected styling,
+hair, modest makeup and pose without modifying the chosen wardrobe or
+identity.
+Evidence: `PIPELINE.md` defines `LOOK.07`; `UPDATE.md` preserves the task as
+`PROPOSED` with no product paths reserved and no implementation authorization.
+weakened_checks: none; no image/video provider call or pixel-generation work
+was performed.
+
+2026-07-28 · BETA-FASHION-SHOOT-RELEASE-001 · beta · operator assignment to Claude
+Change: expand Claude's portfolio style-unit work into a complete fashion-shoot
+release outcome: inventory, strict unit completion, Create Universe catalog
+registration, focused proof, beta activation and smoke.
+Why: the repo contains more work than the five historical cards, but the old
+unit-only reservation allowed valid work to stop before it became selectable
+on beta.
+Evidence: the live catalog currently exposes ten generation-ready `shoot.*`
+modes while checked-in unit directories additionally include portfolio work and
+two assets-only male units. The board names every integration surface and the
+required non-release status for incomplete sources.
+weakened_checks: none.
+
+2026-07-28 · BETA-POSTSHOOT-CHOICE-001 · beta `39e369a` · live activation
+Change: add the three explicit post-look continuations: Photoshoot, Fashion
+video and Live camera.
+Why: Live had been the only visible continuation and the product contract was
+already clear that a selected master-look must offer three separate products.
+Evidence: `node --test test/web/profile-ui-flow.test.js` 9/9; beta health 200;
+the live `/`, `/app.js` and `/result.css` expose the three choice bindings in
+`release-39e369a-20260728003149`.
+weakened_checks: none. Fashion video remains explicitly unavailable until its
+real Seedance 2 transport, QA and persistence are implemented.
+
+2026-07-28 · beta activation recovery · host release
+Change: recover the beta daemon after the first copy of
+`release-39e369a-20260728003149` omitted `node_modules` and could not import
+Fastify.
+Why: the failed restart returned HTTP 502; restoring the already verified
+dependencies from the prior beta release was required to return the current
+release to service.
+Evidence: initial startup logged `ERR_MODULE_NOT_FOUND` for Fastify; after the
+dependency copy and one restart, the daemon logged listening on port 4176 and
+beta health returned HTTP 200.
+weakened_checks: none.
+
+2026-07-28 · BETA-FULL-JOURNEY-GATE-001 · beta `ac3d406` · release reconciliation
+Change: replace the stale beta-release claim with the actual running release
+`release-de07869-20260727233615` and create a concrete release ledger for the
+saved-look → Background / Create Universe / Fashion video / Live / explainer
+journey.
+Why: current beta has valid catalog and Live surfaces, but the Video transport,
+three-way choice and end-to-end smoke evidence do not exist yet and must not be
+mistaken for delivery.
+Evidence: live `/api/scene-presets` returns 16 cards; `/api/editorial-modes`
+returns 12 modes with 10 generation-ready; `/api/post-shoot/pipeline` declares
+Video and Live but `post-shoot-mvp.html` currently renders Live only; host
+release daemon points to `release-de07869-20260727233615`.
+weakened_checks: none.
+
 2026-07-27 · BETA-RELEASE-001 · beta `37e51c8` · latest committed product smoke
 Change: activate all latest committed beta work, including post-shoot MVP and
 production background assets, then run focused local and live API/UI smoke.
@@ -35,6 +107,27 @@ Why: video/live implementation is assigned to another chat; duplicate edits in
 its server, schema, public UI, and tests would corrupt the shared beta branch.
 Evidence: commits `008ea06` and `3b05589`, its STARTED report, and its exact
 reserved-path row in `UPDATE.md`.
+weakened_checks: none.
+
+2026-07-27 · release truth and task handoff
+Change: record `abd9afd` as the actual beta release and assign the exact next
+tasks to the connected agents.
+Why: the board must distinguish measured capacity from an actual deployment
+gate.
+Evidence: daemon points at `release-abd9afd-20260727202146`; beta health is
+ready; release directory measures 481 MiB. No product, credential, provider,
+or deployment mutation was performed by this coordination change.
+weakened_checks: none.
+
+2026-07-27 · correction · 160 MiB is not a deploy limit
+Change: cancel `BETA-RELEASE-SIZE-001` as a release blocker and correct the
+board/state wording.
+Why: the 160 MiB value was added by commit `f9326a3` as a single assertion in
+`test/release/product-release.test.js`, raised from 40 MiB to accommodate five
+Create Universe units. It is not present in `verify-product-release.mjs` or
+the deploy script.
+Evidence: `git blame` identifies `f9326a3` / `Codex Backup`; deploy calls the
+verifier, and verifier checks manifest integrity but has no size ceiling.
 weakened_checks: none.
 
 2026-07-27 · legacy queue reconciliation

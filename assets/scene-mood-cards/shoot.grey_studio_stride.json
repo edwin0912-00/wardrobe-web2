@@ -6,13 +6,13 @@
   "ui_name_uk": "Сіра студія · крок",
   "asset_role": "mood_card",
   "file": "assets/scene-mood-cards/shoot.grey_studio_stride.webp",
-  "sha256": "9bfde7822987251a1ee4db2788a5b7adac6bf8f1e38e6d125f25a020755160f4",
+  "sha256": "ad430351be38c72291ac2f9df721ce67d46ca9cc19828de9bf64362e09a6820f",
   "origin": {
-    "kind": "REAL_SHOOT_FRAME",
-    "file": "001-grey_studio_stride.png",
-    "source_width": 1856,
-    "source_height": 2304,
-    "note": "Delivered photoshoot frame for this style unit, cover-cropped to 4:5. No new generation."
+    "kind": "OWNER_SUPPLIED_STYLE_FRAME",
+    "note": "Frame supplied by the owner as the style reference for this unit. Cover-cropped to 4:5 and re-encoded; no generation, no retouch.",
+    "source_width": 1968,
+    "source_height": 2464,
+    "source_sha256": "dc75b31d1dca85cec9f54807d6f014a387c243b37e6f459e38c1f9b88967ed8d"
   },
   "delivery": {
     "width": 1024,

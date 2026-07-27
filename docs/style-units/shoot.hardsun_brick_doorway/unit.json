@@ -1,0 +1,82 @@
+{
+  "unit_id": "shoot.hardsun_brick_doorway",
+  "title": "Hard Sun Brick Doorway — one hard sun, a diagonal shadow, a dark doorway",
+  "palette_size": 6,
+  "palette": [
+    {
+      "name": "dark chocolate",
+      "hex": "#2E1B12",
+      "role": "deepest garment mass / styling completion"
+    },
+    {
+      "name": "terracotta brick",
+      "hex": "#A65A3C",
+      "role": "lit wall"
+    },
+    {
+      "name": "doorway shade",
+      "hex": "#24160F",
+      "role": "deepest shadow"
+    },
+    {
+      "name": "saturated sky",
+      "hex": "#2456C4",
+      "role": "accent"
+    },
+    {
+      "name": "pale concrete",
+      "hex": "#C9C2B8",
+      "role": "ground"
+    },
+    {
+      "name": "white road paint",
+      "hex": "#E8E6E0",
+      "role": "brightest highlight"
+    }
+  ],
+  "source_frames": [
+    "frame-01 — single supplied frame, portrait, chest-height camera, subject before a dark recessed doorway in a hard-lit terracotta brick facade, crisp diagonal shadow, saturated blue sky, crosswalk paint at the lower edge"
+  ],
+  "unknowns": [
+    "exact sun elevation",
+    "traffic state of the street behind",
+    "lens focal length (consequences recorded instead)"
+  ],
+  "sheets": {
+    "camera_lens": {
+      "aspect": "16:9",
+      "quality": "medium",
+      "prompt": "Editorial specification board titled HARD SUN BRICK DOORWAY — CAMERA & LENS. Panels: 1 CAMERA POSITION — chest height, short subject distance, level roll, verticals stay vertical; annotated small diagram of camera at chest height facing a doorway. 2 PERSPECTIVE CHARACTER — standard rendering, near shoulder mildly enlarged, far street small and soft. 3 DEPTH OF FIELD — plane of focus on face and collar, far street softly defocused, moderate falloff; illustrated with a focus-plane diagram. 4 FOREGROUND OCCLUSION — none; the clean unobstructed frame is the signature. 5 OPTICAL SIGNATURE, FIXED FOR THE UNIT — clean digital, no flare, no halation, no bloom, fine grain, no vignette; absence is the signature and every frame carries it. 6 FRAME — crop from above the head to mid-thigh, subject near centre. Include a small palette hex row strip labelled exactly: #2E1B12 #A65A3C #24160F #2456C4 #C9C2B8 #E8E6E0. Typeset like a printed specification board with crisp fully legible labels. No version number, no date, no invented metadata, no board codes, no photographer credits, no brand marks, no readable third-party text, no watermark."
+    },
+    "blocking": {
+      "aspect": "16:9",
+      "quality": "low",
+      "prompt": "Technical blocking diagram board titled HARD SUN BRICK DOORWAY — BLOCKING, drawn as a neutral grey artist mannequin, flat schematic style with arrows and labels. Main view: mannequin standing, weight even on both feet, hands resting in pockets, tall collar line indicated, facing the camera; camera icon at chest height in front. Joint-chain labels: shoulders level, elbows soft and close to the torso, wrists at pocket line, chin level, head panned slightly toward camera, no head roll. Top-down inset plan: subject a short step in front of a dark doorway recess in a brick facade, sun arrow from upper camera-right, hard diagonal shadow edge drawn across the wall, camera position marked at short distance. Light-direction arrow labelled HARD SUN. Include a small palette hex row strip labelled exactly: #2E1B12 #A65A3C #24160F #2456C4 #C9C2B8 #E8E6E0. Typeset like a printed specification board with crisp fully legible labels. No version number, no date, no invented metadata, no board codes, no photographer credits, no brand marks, no readable third-party text, no watermark."
+    },
+    "expression_gaze": {
+      "aspect": "3:2",
+      "quality": "medium",
+      "prompt": "Editorial specification board titled HARD SUN BRICK DOORWAY — EXPRESSION & GAZE, with one large frontal face panel and small side panels, generic template model, labelled callouts. 1 GAZE FORMAT — into the lens. 2 EYELIDS — upper lids slightly lowered in a sun squint, symmetric; lower-lid tension mild. 3 BROWS — at rest, no inner-brow pull. 4 CHEEKBONES — zygomatic at rest, no cheek lift, no crease under the lower lid. 5 MOUTH — closed, corners level, lips relaxed. 6 JAW AND NECK — jaw relaxed, chin level. 7 HEAD ORIENTATION — pan slightly toward camera, no tilt, no roll. State the negatives on the board: not lifted, not arched, no smile. Include a small palette hex row strip labelled exactly: #2E1B12 #A65A3C #24160F #2456C4 #C9C2B8 #E8E6E0. Typeset like a printed specification board with crisp fully legible labels. No version number, no date, no invented metadata, no board codes, no photographer credits, no brand marks, no readable third-party text, no watermark."
+    },
+    "garment_behaviour": {
+      "aspect": "3:2",
+      "quality": "medium",
+      "prompt": "Editorial specification board titled HARD SUN BRICK DOORWAY — GARMENT BEHAVIOUR. Six photographic panels of plain unbranded heavy cloth in hard direct sun against a terracotta brick wall #A65A3C, no person: 1 MOTION STATE — still, at rest. 2 AIR INTERACTION — none; the cloth hangs on its own weight. 3 DRAPE AND WEIGHT — heavy class, few broad slow folds, a tall stand collar holds its own shape unsupported. 4 TRANSPARENCY UNDER THIS LIGHT — fully opaque; the hard sun draws one bright hard-edged line along the uppermost fold. 5 EDGE QUALITY — crisp ribbed hem, clean edges. 6 SURFACE RESPONSE — smooth with a soft sheen; broad low-contrast highlights along fold ridges facing the sun; shaded side lifted by warm brick bounce. TRANSFER line: a heavy garment in this unit holds its silhouette, folds are few and broad, every sunward ridge carries one soft elongated highlight; matte fabric reads near-flat, glossy fabric reads as compact hot speculars. Include a small palette hex row strip labelled exactly: #2E1B12 #A65A3C #24160F #2456C4 #C9C2B8 #E8E6E0. Typeset like a printed specification board with crisp fully legible labels. No version number, no date, no invented metadata, no board codes, no photographer credits, no brand marks, no readable third-party text, no watermark."
+    },
+    "colour_grade": {
+      "aspect": "16:9",
+      "quality": "medium",
+      "prompt": "Editorial specification board titled HARD SUN BRICK DOORWAY — COLOUR & GRADE. Declare palette_size 6 as a closed counted set with swatches and roles: #2E1B12 deepest garment mass, #A65A3C lit terracotta brick, #24160F doorway shade deepest shadow, #2456C4 saturated sky accent, #C9C2B8 pale concrete ground, #E8E6E0 white road paint brightest highlight. Panels: tonal value ramp from doorway black to white paint; GRADE BEHAVIOUR — high frame contrast, blacks deep but not crushed, highlight roll-off short and hard, saturation full on brick and sky, neutral elsewhere; note that skin, hair, eyes and the approved item colours are exempt from the set; FAIL CONDITION stated: any non-exempt colour cluster above two percent of frame area must map to a palette member. Include a small palette hex row strip labelled exactly: #2E1B12 #A65A3C #24160F #2456C4 #C9C2B8 #E8E6E0. Typeset like a printed specification board with crisp fully legible labels. No version number, no date, no invented metadata, no board codes, no photographer credits, no brand marks, no readable third-party text, no watermark."
+    },
+    "environment": {
+      "aspect": "21:9",
+      "quality": "medium",
+      "prompt": "Wide editorial specification board titled HARD SUN BRICK DOORWAY — ENVIRONMENT. Panel 1 PLAN — top-down drawing: brick facade line, dark recessed doorway, subject footprint one step out, camera position at short distance, sun arrow from upper right, hard diagonal shadow band drawn on the wall and steps. Panel 2 HERO VIEW — photographic: warm terracotta brick facade #A65A3C with a near-black recessed doorway, crisp diagonal shadow edge across the wall, pale concrete kerb and white crosswalk paint at the lower edge, saturated cloudless blue sky above, hard midday-to-low sun, no people. Panel 3 REVERSE ANGLE, at least 120 degrees away from the hero view and visibly different — photographic: looking out from inside the dark doorway toward the sunlit street, doorway frame silhouetted, bright street and crosswalk beyond. Panel 4 MATERIALS — brick, painted concrete, road paint close-ups. Panel 5 DEPTH PLANES — sky, facade, subject zone, kerb. Include a small palette hex row strip labelled exactly: #2E1B12 #A65A3C #24160F #2456C4 #C9C2B8 #E8E6E0. Typeset like a printed specification board with crisp fully legible labels. No version number, no date, no invented metadata, no board codes, no photographer credits, no brand marks, no readable third-party text, no watermark."
+    },
+    "person": {
+      "aspect": "2:3",
+      "quality": "medium",
+      "prompt": "Editorial specification board titled HARD SUN BRICK DOORWAY — PERSON SHEET, marked TEMPLATE: a template of what must be observed about whoever is photographed in this unit, illustrated with a neutral generic template face, clearly not a specific person. Sections: 1 FACE GEOMETRY callouts (skull, jaw, cheekbone, brow ridge, nose, philtrum, lips, chin, hairline). 2 EARS — set height, protrusion, lobe, piercings checklist. 3 EVERYTHING ON THE FACE — brows, lashes, eye colour, sclera, under-eye. 4 SKIN MARKS — observed versus plausible checklists, kept separate. 5 SKIN TONE — value ramp with lit and shaded side. 6 HOW THIS SKIN TAKES THIS LIGHT, the unit-specific section: compact tight speculars on nose bridge, cheek top and lower lip; crisp shadow terminator with a short transition; shaded jaw side lifted by warm bounce off the brick #A65A3C with a faint orange cast; slight squint against the sun; no halation on the skin edge. Include a small palette hex row strip labelled exactly: #2E1B12 #A65A3C #24160F #2456C4 #C9C2B8 #E8E6E0. Typeset like a printed specification board with crisp fully legible labels. No version number, no date, no invented metadata, no board codes, no photographer credits, no brand marks, no readable third-party text, no watermark."
+    }
+  }
+}

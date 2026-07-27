@@ -26,11 +26,13 @@ test('browser draft requires a local reference photo and states the five-second 
   const client = await readFile(new URL('../../web/public/post-shoot-mvp.js', import.meta.url), 'utf8');
 
   assert.match(html, /id="reference-upload"/);
-  assert.match(html, /мінімум 512×512/);
-  assert.match(html, /5 секунд = максимум \$0\.20/);
+  assert.match(html, /id="fit-guide"/);
+  assert.match(client, /Максимальна вартість — \$0\.20/);
   assert.match(client, /max_session_seconds:\s*5/);
   assert.match(client, /naturalWidth < 512/);
   assert.match(client, /naturalHeight < 512/);
+  assert.match(client, /falModule\.default\?\.fal/);
+  assert.match(client, /fal\?\.realtime\?\.connect/);
 });
 
 test('graph rejects a missing transition target', async () => {

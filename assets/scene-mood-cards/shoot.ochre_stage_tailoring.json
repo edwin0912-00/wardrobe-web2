@@ -1,0 +1,26 @@
+{
+  "schema_version": "1.0.0",
+  "preset_id": "shoot.ochre_stage_tailoring",
+  "kind": "editorial",
+  "family": "create_universe",
+  "ui_name_uk": "Охра · сценічний кравець",
+  "asset_role": "mood_card",
+  "file": "assets/scene-mood-cards/shoot.ochre_stage_tailoring.webp",
+  "sha256": "87c4cea1529a6b3f65fb1de92249663c18e7275eaf666caa958d502a5a35966e",
+  "origin": {
+    "kind": "OWNER_SUPPLIED_STYLE_FRAME",
+    "note": "Frame supplied by the owner as the style reference for this unit. Cover-cropped to 4:5 and re-encoded; no generation, no retouch.",
+    "source_width": 928,
+    "source_height": 1232,
+    "source_sha256": "f7e62f7b63793930a9b4c205e67910a4a778d9aaa338416572edc81f684fb96b"
+  },
+  "delivery": {
+    "width": 1024,
+    "height": 1280,
+    "format": "webp",
+    "aspect_ratio": "4:5"
+  },
+  "contains_personal_input": false,
+  "approval": "PENDING_VISUAL_JUDGE",
+  "created_at": "2026-07-27T00:00:00.000Z"
+}

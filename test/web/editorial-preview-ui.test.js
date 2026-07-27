@@ -155,8 +155,15 @@ test('normal editorial states render controlled Ukrainian copy instead of raw se
 });
 
 test('standard scene workflow remains present beside Art Fashion', () => {
-  assert.match(indexHtml, />5 стандартних сцен<\/button>/);
-  assert.match(indexHtml, />Art Fashion · 6 кадрів<\/button>/);
+  // The counts must not be baked into the markup: the catalog grew from five to
+  // sixteen standard presets and the tab kept saying five. The labels are neutral
+  // in HTML and filled from the same data the grids render from.
+  assert.match(indexHtml, />Стандартні сцени<\/button>/);
+  assert.match(indexHtml, />Art Fashion<\/button>/);
+  assert.doesNotMatch(indexHtml, /\d+ стандартних сцен<\/button>/);
+  assert.match(sceneUiSource, /standardTab\.textContent = this\.presets\.length/);
+  assert.match(sceneUiSource, /editorialTab\.textContent = this\.editorialModes\.length/);
+  assert.match(sceneUiSource, /function ukPlural\(/);
   assert.match(sceneUiSource, /createProfileScene/);
   assert.match(sceneUiSource, /loadProfileScene/);
   assert.match(sceneUiSource, /retryProfileScene/);

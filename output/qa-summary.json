@@ -1,23 +1,23 @@
 {
-  "schema_version": "1.0.0",
-  "generated_at": "2026-07-22T10:49:54.307Z",
-  "output_directory": "/Users/jarvis1/Documents/Codex/2026-07-19/mvp-zeely-format-html5-1-2/output",
-  "visual_review_fixture": "/Users/jarvis1/Documents/Codex/2026-07-19/mvp-zeely-format-html5-1-2/reviews/visual-review.json",
-  "status": "PASS",
+  "schema_version": "1.1.0",
+  "generated_at": "2026-07-27T15:25:34.879Z",
+  "output_directory": "output",
+  "visual_review_fixture": "../reviews/visual-review.json",
+  "status": "NEEDS_REVIEW",
   "subjects": [
     {
       "subject_id": "001",
-      "status": "PASS",
+      "status": "NEEDS_REVIEW",
       "report": "001/qa-report.json"
     },
     {
       "subject_id": "002",
-      "status": "PASS",
+      "status": "NEEDS_REVIEW",
       "report": "002/qa-report.json"
     },
     {
       "subject_id": "003",
-      "status": "PASS",
+      "status": "NEEDS_REVIEW",
       "report": "003/qa-report.json"
     }
   ],

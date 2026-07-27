@@ -1,0 +1,27 @@
+html,
+body {
+  width: 100%;
+  height: 100%;
+}
+
+.live-shell {
+  height: 100vh;
+  min-height: 520px;
+  grid-template-rows: 44px minmax(440px, 1fr);
+}
+
+@supports (height: 100svh) {
+  .live-shell {
+    height: 100svh;
+  }
+}
+
+.live-stage {
+  min-height: 440px;
+}
+
+@media (max-width: 620px) {
+  .live-shell {
+    grid-template-rows: 0 minmax(440px, 1fr);
+  }
+}

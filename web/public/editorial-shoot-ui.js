@@ -390,20 +390,38 @@ export class EditorialShootUiController {
     const shoot = this.shoot;
     this.#show();
     const bibleReview = shoot.status === 'BIBLE_PENDING_APPROVAL';
-    this.#element('#editorial-bible-stage').hidden = !bibleReview;
-    this.#element('#editorial-gallery-stage').hidden = bibleReview;
+    // Picking a style is the decision; the plan of six frames is not something
+    // the user asked to review. The stage stays hidden and the shoot advances on
+    // its own, so the screen shows frames from the first moment.
+    this.#element('#editorial-bible-stage').hidden = true;
+    this.#element('#editorial-gallery-stage').hidden = false;
     this.#element('#editorial-phase').textContent = shoot.phase || shoot.status;
     this.#element('#editorial-message').textContent = displayShootMessage(shoot);
     this.#element('#editorial-connection').textContent = this.polling ? 'POLLING' : 'LIVE SSE';
     this.#element('#editorial-mode-name').textContent = modeName(this.mode);
-    this.#setHeader(
-      bibleReview ? 'Перевір ShootBible' : 'Art Fashion фотосесія',
-      shoot.status,
-      editorialTone(shoot),
-    );
-    if (bibleReview) this.#renderBible();
-    else this.#renderGallery();
+    this.#setHeader('Art Fashion фотосесія', shoot.status, editorialTone(shoot));
+    this.#renderGallery();
     this.#renderActionButtons();
+    if (bibleReview) void this.#autoApproveBible();
+  }
+
+  // The plan is still hash-confirmed with the exact SHA the server produced —
+  // the confirmation simply is not a human click any more.
+  async #autoApproveBible() {
+    if (this.autoBibleApproved || this.actionPending) return;
+    if (this.shoot?.status !== 'BIBLE_PENDING_APPROVAL') return;
+    if (!this.bible && !this.bibleSha256) {
+      await this.#ensureBible().catch(() => {});
+      if (this.shoot?.status !== 'BIBLE_PENDING_APPROVAL') return;
+    }
+    this.autoBibleApproved = true;
+    try {
+      await this.approveBible();
+    } catch {
+      // A failed auto-approval must not strand the screen: the action button
+      // stays available and the next poll retries.
+      this.autoBibleApproved = false;
+    }
   }
 
   #renderBible() {
