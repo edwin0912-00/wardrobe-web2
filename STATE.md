@@ -202,6 +202,11 @@ rebasing. The broad release suite remains a later candidate gate.
   Improve, Background, Photoshoot, Fashion Video and user-facing
   **Real-time Look** (technical `LIVE_WEBCAM`). Its color/motion hierarchy is
   a proposed UI contract only; no animated production UI has been shipped.
+- The standalone `choice-universe-preview.html` was implemented and its
+  focused static contract test passes 2/2 at beta commit `2a1a445`. Its beta
+  activation is blocked before packaging by the unrelated pre-existing invalid
+  editorial preview sidecar `editorial.edwin_novak.organic_contrast`; no
+  manual deployment bypass was used.
 
 - Beta preview delivery is content-addressed as of the preview-revision fix:
   background and Create Universe catalog cards carry the SHA-256 of their

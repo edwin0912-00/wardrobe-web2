@@ -17,6 +17,19 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-07-28 · BETA-LOOK-NEXT-ACTIONS-001 · beta `2a1a445` · preview built, deploy blocked
+Change: add a standalone interactive visual preview for the five post-look
+directions, with distinct slow glow/spotlight languages and reduced-motion
+fallback.
+Why: the operator requested the all-actions screen for visual approval before
+changing the working saved-look journey.
+Evidence: `node --test test/web/choice-universe-preview.test.js` passes 2/2.
+`node tools/build-product-release.mjs <candidate>` stops at the existing
+`editorial.edwin_novak.organic_contrast` sidecar-contract error before release
+packaging. No manual copy/bypass, provider call, camera request or runtime
+change was performed.
+weakened_checks: none.
+
 2026-07-28 · CHOICE.01–02 · beta · Real-time Look and choice-universe canon
 Change: name the user-facing webcam route Real-time Look and define five
 distinct post-look action cards with slow spotlight/glow motion.
