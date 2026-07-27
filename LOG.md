@@ -17,6 +17,17 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-07-27 · MONITOR-002 / UI-002 / FASHION-001 · exact-base correction
+Change: return the three tasks to ASSIGNED and repin their `base_sha` from
+`66968f9` to the exact issued worktree commit `f578c28`.
+Why: the control-only dispatch PR sat between the original product baseline
+and the actual worktrees. An agent caught that mismatch before product edits;
+the queue must not ask a worker to silently bridge it.
+Evidence: no product changes occurred after the hold. Existing status-only
+commits are preserved, including UI's typed `ASSIGNMENT_AMBIGUOUS` stop. Fresh
+STARTED reports are required before execution resumes.
+weakened_checks: none.
+
 2026-07-27 · MONITOR-002 / UI-002 / FASHION-001 · execution acknowledged
 Change: move all three assigned recovery tasks to IN_PROGRESS after each owner
 published a schema-valid STARTED artifact on its exact Git branch.
