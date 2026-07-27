@@ -193,6 +193,11 @@ rebasing. The broad release suite remains a later candidate gate.
   unselected elements, hairstyle, subtle 15–20% makeup and a slight pose
   adjustment may be considered. No generation, pixel change or beta release
   has been performed for it.
+- Fashion video now has two distinct proposed product routes. Primary
+  `VIDEO.01–04` begins directly from an approved master-look and is independent
+  of photoshoots/backgrounds. `BACKGROUND_VIDEO.01–04` begins only from an
+  approved background result and offers exactly product-focused garment motion
+  or model posing. Neither route is live or implemented by this decision.
 
 - Beta preview delivery is content-addressed as of the preview-revision fix:
   background and Create Universe catalog cards carry the SHA-256 of their

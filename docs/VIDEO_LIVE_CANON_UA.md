@@ -2,17 +2,18 @@
 
 ## Спільна основа
 
-**Редакція 2026-07-27, рішення оператора.** Точка входу — не `ART_SHOOT.05`, а
+**Редакція 2026-07-28, рішення оператора.** Точка входу — не `ART_SHOOT.05`, а
 **обраний образ**. Щойно в користувача є хоч один готовий master-look і він
-натиснув саме на цей образ, з нього відкриваються три рівноправні напрями:
+натиснув саме на цей образ, з нього відкриваються чотири рівноправні напрями:
 
-1. **Live** — примірка одягу з камерою.
+1. **Додати фон** — окремий стандартний фон.
 2. **Photoshoot** — фотозйомка в обраному style unit.
-3. **Fashion video** — відео зі стилем руху.
+3. **Fashion Video** — первинне відео з master-look.
+4. **Live** — примірка одягу з камерою.
 
 Порядок і взаємне розташування цих блоків ще можуть змінитися; зафіксована
-саме точка входу. Затверджена фотозйомка більше не є передумовою для відео —
-вона лишається одним із трьох виходів з образу, а не воротами до решти.
+саме точка входу. Затверджена фотозйомка і фон не є передумовою Fashion
+Video — це рівні продукти, а не ворота до решти.
 
 Попередня редакція цього абзацу вимагала, щоб обидва режими стартували лише
 після `ART_SHOOT.05`, за наявності затвердженого кадру або contact sheet
@@ -26,15 +27,18 @@ look, бренди/читабельний текст чи стиль локац�
 обраний master-look, а не довільне зображення.
 
 Дозволено змінювати тільки те, що явно обрано режимом: рух, тривалість,
-камеру, gesture і кадрування в межах канону style unit.
+камеру, gesture і кадрування в межах канону конкретного режиму.
 
-## VIDEO — fashion motion
+## VIDEO — первинне Fashion Video
 
 ### Що це
 
-Короткий fashion motion clip із затвердженої фотосесії. Це не «згенеруй будь
-яке відео з людиною»: його джерело, look і art direction видно користувачу до
-запуску.
+Короткий fashion motion clip із approved master-look. Це не «згенеруй будь
+яке відео з людиною»: його конкретний source і locked look видно користувачу
+до запуску. Він не залежить від фотосесії, фону або editorial style unit.
+
+Якщо користувач уже має approved фоновий кадр, це відкриває інший продукт —
+`BACKGROUND_VIDEO`, а не альтернативний source для первинного Fashion Video.
 
 ### Video transport decision
 
@@ -43,7 +47,7 @@ motion plan. Він є async генератором кліпу: не читає 
 забезпечує live preview. Не позначати Seedance 2 активним на beta, доки його
 окремий auth/API route не пройде точний test → beta activation → live smoke.
 
-### П’ять канонічних motion modes
+### Чотири канонічні motion modes
 
 1. **Editorial micro-moment** — 4–6 секунд: дихання, погляд, легкий рух рук,
    тканини й волосся; камера майже нерухома. Найнадійніший перший режим.
@@ -53,24 +57,35 @@ motion plan. Він є async генератором кліпу: не читає 
    Доступний лише коли взуття й ноги видно у source кадрі.
 4. **Garment gesture** — 4–6 секунд: одна дія, яка показує річ: поправити
    комір, повернутись на 3/4, рух рукава, сумка в руці. Не додає нових речей.
-5. **Campaign transition** — два вже approved кадри однієї фотосесії,
-   акуратний перехід між ними. Це не morph між різними образами.
 
 ### Непорушні locks
 
 - identity, волосся, силует і master-look;
 - усі затверджені речі, їхні колір, матеріал і місце на тілі;
-- style unit: світло, оптика, палітра, локація та допустимий framing;
 - aspect ratio, якщо він є частиною output contract.
 
 ### QA і delivery
 
 Кожен clip проходить: identity continuity, garment fidelity, anatomy/hands,
-framing, scene/style match і відсутність випадкових props/text. Якщо не
+framing, відповідність обраному motion plan і відсутність випадкових
+props/text. Якщо не
 пройшов один clip — повторюється тільки він. Loop називається loop лише після
 перевірки стику першого й останнього кадру. У профілі clip лежить поруч зі
-своїм source shoot і показує source frame, motion mode, версію style unit та
-QA status.
+своїм source master-look і показує motion mode та QA status.
+
+## BACKGROUND_VIDEO — два прості напрями після фону
+
+Після approved кадру на стандартному фоні доступний окремий короткий clip.
+Користувач обирає лише одну ціль:
+
+1. **Фокус на речі** — предметна презентація вибраної речі: деталь,
+   матеріал, посадка або контрольований рух тканини.
+2. **Позування** — модельна презентація людини в образі: поза, погляд,
+   контрольований крок або короткий жест.
+
+Джерело — exact approved background frame. Identity, look та фон locked;
+інша локація, нова річ, аксесуар або editorial style не дозволені. Це
+простий background-product clip, не fashion shoot і не primary Fashion Video.
 
 ## LIVE CAMERA — local fallback і справжній generative-live candidate
 
@@ -96,7 +111,7 @@ Decart Lucy 2.5 Realtime через fal.ai справді редагує webcam 
 тримають locked look/style.
 
 ```text
-approved ART_SHOOT.05
+approved master-look
 → explicit Live webcam choice
 → local camera permission + preview
 → visible $0.04/sec consent + 60-sec hard limit
@@ -211,12 +226,15 @@ WebRTC/LiveKit не потрібні для Local Live Director. Вони пот
 
 ### Video
 
-`Approved shoot → обрати source frame → motion mode → live progress → QA →
+`Approved master-look → Fashion Video → motion mode → live progress → QA →
 clip у профілі`.
+
+`Approved background frame → Фокус на речі | Позування → live progress → QA →
+clip поруч із цим кадром`.
 
 ### Live Camera
 
-`Approved shoot → Live camera consent → local preview → cost consent →
+`Approved master-look → Live camera consent → local preview → cost consent →
 bounded Lucy WebRTC stream → Stop/Capture → explicit Save`.
 
 Будь-який стан помилки називає конкретну дію: повторити clip, обрати інший

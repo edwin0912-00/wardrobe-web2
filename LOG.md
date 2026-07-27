@@ -17,6 +17,17 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-07-28 · VIDEO product split · beta · operator decision recorded
+Change: split primary Fashion Video from the later, simpler background-video
+product and define their different entry points and goals.
+Why: Fashion Video must be an equal button on the approved master-look, while
+a clip after a generated background is a distinct product with a garment-focus
+or posing choice.
+Evidence: `PIPELINE.md`, `docs/VIDEO_LIVE_CANON_UA.md` and `UPDATE.md` now
+define `VIDEO.01–04` and proposed `BACKGROUND_VIDEO.01–04`; no provider call,
+UI code, source-pixel change, or beta release was performed.
+weakened_checks: none.
+
 2026-07-28 · BETA-LOOK-REFINE-001 · beta · product proposal recorded
 Change: record the optional «Покращити образ» step between approved master-look
 and standard backgrounds.
