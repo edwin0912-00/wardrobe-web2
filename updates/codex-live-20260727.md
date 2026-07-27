@@ -24,6 +24,17 @@ Protocol ACK: 29045a9
 - Paid proof: NOT RUN. No consented token/provider request was made.
 - State: READY_FOR_BETA_DEPLOY; exact SHA will be recorded after commit.
 
+## BETA ACTIVATION
+
+- Product commit: `71a279c`.
+- Active beta release: `release-71a279c-20260727205200`.
+- `https://beta.madeforthisjob.com/api/health`: `ready`.
+- Public HTML smoke confirms the selected-look Live action, overlay, current
+  cache tokens, and removal of the standalone test-site header entry.
+- Safe token smoke without paid consent remains HTTP 409.
+- Beta log after restart has no startup/runtime error.
+- Paid Lucy/camera proof remains intentionally not run.
+
 Protocol ACK: 4472986
 
 ## BETA-POST-SHOOT-001 — STARTED
