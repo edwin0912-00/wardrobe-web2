@@ -15,9 +15,40 @@
   <link rel="stylesheet" href="/result.css?v=20260727-1">
   <link rel="stylesheet" href="/scene.css?v=20260723-4">
   <link rel="stylesheet" href="/scene-cta.css?v=20260727-1">
+  <link rel="stylesheet" href="/active-theory.css?v=20260727-3">
+  <link rel="stylesheet" href="/lusion-studio.css?v=20260727-4">
+  <script src="/three.min.js"></script>
+  <script type="module" src="/chroma-key-extractor.js"></script>
+  <script src="/lenis-scroll-engine.js" defer></script>
+  <script src="/lusion-master-engine.js" defer></script>
   <script type="module" src="/scene-cta.js?v=20260725-1"></script>
 </head>
-<body>
+<body class="active-theory-mode">
+
+  <!-- 3D WebGL Background Canvas -->
+  <div id="lusion-canvas-container"></div>
+
+  <!-- HUD Corner Overlay Layer -->
+  <div class="lusion-hud-layer">
+    <div class="hud-item hud-tl">
+      <div class="brand-monogram">W</div>
+      <span class="brand-text">WARDROBE STUDIO</span>
+    </div>
+    <nav class="hud-item hud-tr">
+      <button class="hud-nav-tab is-active" onclick="scrollToSection(0)" type="button">01 AVATAR</button>
+      <button class="hud-nav-tab" onclick="scrollToSection(1)" type="button">02 GARMENT</button>
+      <button class="hud-nav-tab" onclick="scrollToSection(2)" type="button">03 SCENES</button>
+      <button class="hud-nav-tab" onclick="scrollToSection(3)" type="button">04 CAMPAIGN</button>
+    </nav>
+    <div class="hud-item hud-bl">
+      <span class="hud-live-dot"></span>
+      <span>THREE.JS 8000 GPGPU PARTICLES · LENIS KINETIC SCROLL · 120 FPS</span>
+    </div>
+    <div class="hud-item hud-br" id="lusion-progress-indicator">
+      01 / 04 STOP-FRAMES
+    </div>
+  </div>
+
   <div id="app-preloader" class="app-preloader" aria-label="Завантаження Wardrobe Studio">
     <div class="preloader-content">
       <div class="preloader-mark">
