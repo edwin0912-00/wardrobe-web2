@@ -1,0 +1,60 @@
+{
+  "unit_id": "shoot.shutter_amber_interior",
+  "title": "Shutter Amber Interior — hard low sun through a slatted blind, dark warm room",
+  "palette_size": 6,
+  "palette": [
+    {
+      "name": "deep shadow",
+      "hex": "#1D1B0C",
+      "role": "measured from the supplied frames"
+    },
+    {
+      "name": "burnt red shadow",
+      "hex": "#5D200C",
+      "role": "measured from the supplied frames"
+    },
+    {
+      "name": "amber sunlit cloth",
+      "hex": "#A63F12",
+      "role": "measured from the supplied frames"
+    },
+    {
+      "name": "warm wall mid",
+      "hex": "#96714B",
+      "role": "measured from the supplied frames"
+    },
+    {
+      "name": "lit skin",
+      "hex": "#C19567",
+      "role": "measured from the supplied frames"
+    },
+    {
+      "name": "wall highlight",
+      "hex": "#DFC8AC",
+      "role": "measured from the supplied frames"
+    }
+  ],
+  "source_frames": [
+    "male-01-shutter-orange.png",
+    "male-03.png",
+    "male-05-armchair-dark.png"
+  ],
+  "compatibility": "male presentation; seated floor/step/armchair; heavy relaxed limbs",
+  "unknowns": [
+    "focal length in millimetres",
+    "whether the light is real sun or a lamp through a gobo",
+    "the floor material in frame male-03",
+    "what is outside the window"
+  ],
+  "sheets_present": [
+    "camera_lens",
+    "blocking",
+    "expression_gaze",
+    "garment_behaviour"
+  ],
+  "sheets_pending": [
+    "colour_grade (rendered locally as palette-strip.svg)",
+    "environment",
+    "person (comes from the approved look)"
+  ]
+}

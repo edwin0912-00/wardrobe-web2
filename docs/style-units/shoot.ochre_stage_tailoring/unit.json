@@ -1,0 +1,59 @@
+{
+  "unit_id": "shoot.ochre_stage_tailoring",
+  "title": "Ochre Stage Tailoring — warm studio, low camera, wide tailoring in movement",
+  "palette_size": 6,
+  "palette": [
+    {
+      "name": "deep shadow",
+      "hex": "#292118",
+      "role": "measured from the supplied frames"
+    },
+    {
+      "name": "olive stage",
+      "hex": "#5A5333",
+      "role": "measured from the supplied frames"
+    },
+    {
+      "name": "tan cloth",
+      "hex": "#9B6944",
+      "role": "measured from the supplied frames"
+    },
+    {
+      "name": "terracotta",
+      "hex": "#A5552A",
+      "role": "measured from the supplied frames"
+    },
+    {
+      "name": "sunlit wall",
+      "hex": "#D1BB9F",
+      "role": "measured from the supplied frames"
+    },
+    {
+      "name": "window highlight",
+      "hex": "#EFEFF0",
+      "role": "measured from the supplied frames"
+    }
+  ],
+  "source_frames": [
+    "male-02-chair-taupe.png",
+    "male-04.png"
+  ],
+  "compatibility": "male presentation; full-length movement or seated astride; wide tailoring",
+  "unknowns": [
+    "whether the chair and the balls belong to the shoot or the location",
+    "the exact gel colour",
+    "ceiling height",
+    "what creates the corner blur in male-04"
+  ],
+  "sheets_present": [
+    "camera_lens",
+    "blocking",
+    "expression_gaze",
+    "garment_behaviour"
+  ],
+  "sheets_pending": [
+    "colour_grade (rendered locally as palette-strip.svg)",
+    "environment",
+    "person (comes from the approved look)"
+  ]
+}
