@@ -32,3 +32,17 @@ Evidence command: `node --test test/web/create-universe-units.test.js`
 weakened_checks: none.
 Help request: NONE
 Next action: awaiting orchestrator acknowledgment.
+
+## Spatial 3D Architecture & OMNI Pipeline Audit
+
+1. **4 Spatial 3D Rooms & Navigation**:
+   - **Room 1 (Mirror / Дзеркала)**: Avatar & Outfit assembly. When generation starts, auto-transition camera glides to Studio / TV room during waiting state.
+   - **Room 2 (Studio / Студія)**: Background selection (`std.*` & `shoot.*`), OMNI relighting, 6-shot editorial gallery.
+   - **Room 3 (TV / Телевізор)**: OMNI / Seedance 2 Fashion Video Reel playback.
+   - **Room 4 (Laptop / Ноутбук)**: Live Web Camera Try-on with 5-second consent limit ($0.20).
+
+2. **Style & Production Prompt Audit**:
+   - Analyzed 16 `std.*` background presets and 7 `shoot.*` Art Fashion style units in `prompts/scene-presets/` and `docs/style-units/`.
+   - Verified 7-point strict prompt contract (Task, Authority, Scene, Light/Relighting, Camera/Framing 4:5, Finish, Fail Conditions).
+   - Documented full architectural audit in `docs/coordination/spatial_architecture_and_style_audit.md`.
+
