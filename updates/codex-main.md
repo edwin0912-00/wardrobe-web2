@@ -6,7 +6,7 @@ Rationale/decision: the saved look is the approved source. It must visibly
 offer Photoshoot, Fashion video and Live camera as distinct next products;
 Video stays explicitly unavailable until its real Seedance route, QA and
 persistence exist rather than being disguised as a mock clip.
-Result: LIVE — activated as `release-39e369a-20260728003149`; health is 200
+Result: LIVE — cache-versioned activation `release-e05eb44-20260728003504`; health is 200
 and the public HTML/JS/CSS expose the exact three-choice binding.
 Evidence command: node --test test/web/profile-ui-flow.test.js (9/9 PASS).
 weakened_checks: none.

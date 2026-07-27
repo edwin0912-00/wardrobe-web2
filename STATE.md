@@ -100,8 +100,8 @@ Updated: 2026-07-28 00:45 UTC.
 
 ## Beta completion truth — 2026-07-28
 
-- Running beta is `release-39e369a-20260728003149`; current branch head
-  `7488adc` contains the corresponding deployment record. Pushed is not
+- Running beta is `release-e05eb44-20260728003504`; current branch head
+  `e05eb44` contains the corresponding deployment record. Pushed is not
   synonymous with deployed.
 - The live catalog returns 16 `std.*` backgrounds and 12 Art Fashion modes;
   10 modes declare generation available. This proves catalog availability, not
