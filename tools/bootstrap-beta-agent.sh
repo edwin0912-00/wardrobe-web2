@@ -17,7 +17,12 @@ fi
 gh auth setup-git
 
 suffix="$(openssl rand -hex 3 2>/dev/null || date -u +%H%M%S)"
-agent_id="${WARDROBE_AGENT_ID:-agent-$(date -u +%Y%m%d)-$suffix}"
+agent_label="${WARDROBE_AGENT_LABEL:-agent}"
+[[ "$agent_label" =~ ^[a-z0-9][a-z0-9-]{1,18}$ ]] || {
+  echo "WARDROBE_AGENT_LABEL must match [a-z0-9][a-z0-9-]{1,18}" >&2
+  exit 64
+}
+agent_id="${WARDROBE_AGENT_ID:-$agent_label-$(date -u +%Y%m%d)-$suffix}"
 [[ "$agent_id" =~ ^[a-z0-9][a-z0-9-]{1,30}$ ]] || {
   echo "WARDROBE_AGENT_ID must match [a-z0-9][a-z0-9-]{1,30}" >&2
   exit 64

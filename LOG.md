@@ -17,6 +17,14 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-07-27 · FAST-006 · beta · readable generated agent IDs
+Change: bootstrap now prefixes each generated unique ID with an optional agent
+label, while retaining random uniqueness.
+Why: the live board must show both who joined and which instance they are.
+Evidence: dry-run generated a valid `antigravity-YYYYMMDD-hex` ID and completed
+local onboarding.
+weakened_checks: none.
+
 2026-07-27 · FAST-005 · beta · one-command agent bootstrap
 Change: add automatic-ID beta bootstrap and `START_HERE.md` context entrypoint.
 Why: a replacement agent must be able to join, announce itself, and recover

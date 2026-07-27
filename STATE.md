@@ -17,6 +17,7 @@
   beta every 20 seconds and flags overlapping active scopes or help requests.
 - `tools/bootstrap-beta-agent.sh` gives a replacement agent a generated unique
   ID, the current help/context, local journal, ONLINE report, and live monitor.
+  `WARDROBE_AGENT_LABEL` makes that generated ID human-readable.
 
 Updated: 2026-07-27 08:55 UTC.
 
