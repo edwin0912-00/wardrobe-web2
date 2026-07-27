@@ -184,8 +184,14 @@
 /* The blend needs a light backdrop, but it must be the *card's* own tone —
    painting our own paper colour here leaves a faintly mismatched rectangle
    where the image sits. Staying transparent lets the multiply land on
-   whatever surface actually wraps the image, so the seam disappears. */
-.profile-look-detail,
+   whatever surface actually wraps the image, so the seam disappears.
+
+   .profile-look-detail is deliberately NOT in this list. It is an absolutely
+   positioned overlay over .profile-look-grid, so a transparent background let
+   the saved-look cards read straight through the open panel — the two layers
+   looked like colliding panels. Its own opaque tone from result.css is the
+   surface that wraps the image, so multiply still lands on a matching colour
+   and the seam stays closed. */
 .profile-look-grid,
 .scene-look-strip,
 .scene-running-stage,
