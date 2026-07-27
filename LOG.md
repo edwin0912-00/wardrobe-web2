@@ -17,6 +17,14 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-07-27 · BETA-SMOKE-001 · beta · Create Universe catalog smoke
+Change: mark Antigravity's catalog smoke as DONE.
+Why: its report verified the public beta API and preview delivery, with no code
+change or weakened condition.
+Evidence: health `ready`; five `shoot.*` modes, all preview endpoints HTTP 200;
+four generation-ready and Terracotta correctly excluded for SHA mismatch.
+weakened_checks: none.
+
 2026-07-27 · AGENT-AUTONOMY-002 · beta · direct-assignment task creation
 Change: allow an agent directly instructed by Edwin to create its own
 path-reserved task row and STARTED report.

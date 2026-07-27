@@ -31,6 +31,9 @@
 - A direct Edwin assignment is also authority for that specific agent to create
   its own path-reserved row and STARTED report. The orchestrator observes and
   resolves collisions; it is not a task-creation bottleneck.
+- `BETA-SMOKE-001` PASS: beta exposes five expected `shoot.*` styles and each
+  preview returns HTTP 200. The two newer male style-unit directories are not
+  registered in the catalog and are therefore not yet user-selectable.
 
 Updated: 2026-07-27 08:55 UTC.
 

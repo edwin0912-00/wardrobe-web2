@@ -27,7 +27,7 @@ The earlier detailed noticeboard is preserved at
 
 | ID | Owner | State | Type | Reserved paths | One concrete outcome |
 | --- | --- | --- | --- | --- |
-| BETA-SMOKE-001 | antigravity-20260727-fb7a90 | IN_PROGRESS | QA | `updates/antigravity-20260727-fb7a90.md` | Verify beta UI/API exposes the five Create Universe styles; report exact result, no code change. |
+| BETA-SMOKE-001 | antigravity-20260727-fb7a90 | DONE | QA | `updates/antigravity-20260727-fb7a90.md` | PASS: API/UI previews expose the five expected `shoot.*` styles; four are generation-ready and Terracotta is correctly blocked. |
 | BETA-PROVIDER-001 | claude-code-20260727-557761 | IN_PROGRESS | CODE | `src/providers/magnific-imagegen-provider.js`; `src/web/generation-provider.js`; `test/providers/magnific-imagegen-provider.test.js`; `updates/claude-code-20260727-557761.md` | Add the strict Magnific async provider and mocked contract tests. Do not enable it or store a credential until host auth proves valid. |
 | BETA-UI-001 | unassigned | READY | CODE | `web/public/add-items-flow.js`; `web/public/profile-client.js`; `test/web/add-items-flow.test.js`; `test/web/profile-ui-flow.test.js` | Reproduce the saved-avatar → Add items flow; fix one verified defect without changing provider or scene files. |
 
@@ -71,3 +71,5 @@ facts.
   self-claimed if the orchestrator is unavailable.
 - 2026-07-27 — parallel code is enabled by exact Reserved paths: Claude Code
   owns Magnific provider wiring; an independent Add-items UI repair is READY.
+- 2026-07-27 — `BETA-SMOKE-001` PASS: all five Create Universe styles and
+  previews are live; the two newer male units are assets only, not catalogued.
