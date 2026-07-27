@@ -1,5 +1,15 @@
 # codex-live-20260727
 
+## BETA-LIVE-COMPLETE-001 — STARTED 2026-07-28
+
+- Direct operator request: reactivate the one-page Live test and preload a
+  garment-only reference rather than a person/avatar image.
+- Selected verified runtime inputs: green hoodie plus black sneakers from the
+  latest available beta run; the test card contains no person.
+- Scope: `/live`, static outfit reference, automatic reference loading, and
+  non-billable route/UI proof. Paid Lucy execution still requires the existing
+  explicit five-second consent.
+
 Protocol ACK: 29045a9
 
 ## BETA-POSTSHOOT-RECON-001 — RESUMED 2026-07-27
