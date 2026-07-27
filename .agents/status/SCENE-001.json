@@ -1,0 +1,14 @@
+{
+  "schema_version": "1.0.0",
+  "task_id": "SCENE-001",
+  "agent_id": "scene-contract",
+  "branch": "lane/SCENE-001/scene-contract",
+  "base_sha": "44aa829176b76f8da0d08233d996ebac982ff06e",
+  "lease_generation": 1,
+  "state": "STARTED",
+  "observed_at": "2026-07-27T02:43:46.908Z",
+  "observed_head_sha": "44aa829176b76f8da0d08233d996ebac982ff06e",
+  "summary_code": "WORK_STARTED",
+  "next_action_code": "RUN_PRECHANGE_PROOF",
+  "blocker_code": null
+}
