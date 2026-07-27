@@ -17,6 +17,13 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-07-27 · AGENT-PARALLEL-002 · beta · board monitor parser repair
+Change: repair the path-reservation monitor's macOS awk variable name.
+Why: the initial parallel-work commit used `index`, which collides with awk's
+built-in function and prevented the monitor from rendering alerts.
+Evidence: `bash -n tools/watch-beta-board.sh` and one live monitor render pass.
+weakened_checks: none.
+
 2026-07-27 · AGENT-PARALLEL-001 · beta · path-reserved parallel work
 Change: replace the one-code-task rule with exact path reservation; assign
 Magnific provider wiring to Claude Code and publish an independent Add-items

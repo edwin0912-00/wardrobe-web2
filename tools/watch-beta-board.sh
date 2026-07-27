@@ -24,8 +24,8 @@ render_once() {
     $4 ~ /IN_PROGRESS/ && $5 ~ /CODE/ && $6 !~ /^[[:space:]]*$/ {
       paths=$6; gsub(/`/, "", paths)
       split(paths, parts, ";")
-      for (index in parts) {
-        path=parts[index]; gsub(/^[[:space:]]+|[[:space:]]+$/, "", path)
+      for (partIndex in parts) {
+        path=parts[partIndex]; gsub(/^[[:space:]]+|[[:space:]]+$/, "", path)
         if (path == "") continue
         if (seen[path] && seen[path] != $2) overlap=1
         seen[path]=$2
