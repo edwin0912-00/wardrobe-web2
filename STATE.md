@@ -1,6 +1,6 @@
 # Wardrobe verified state
 
-Updated: 2026-07-27 02:56 UTC.
+Updated: 2026-07-27 03:04 UTC.
 
 ## Canonical position
 
@@ -30,7 +30,7 @@ remain prohibited.
    editorial contact-sheet manifest to the current integration contract. It
    indexes approved outputs only; it does not generate media or create UI.
 4. `SCENE-001` — generation two carries the preserved missing contract export
-   plus the evaluator's existing delivery/waiver handoff. The first scoped
+   plus the evaluator's existing delivery handoff. The first scoped
    checkpoint proved the export repair, then truthfully blocked on the adjacent
    evaluator call rather than changing it out of lease. This remains one
    scene-core rule surface and does not change framing or QA policy.
@@ -77,7 +77,7 @@ review requirement.
 verified source defects are an import of `contactPointInsideFrame` in
 `src/web/scene-adapters.js` with no matching export from
 `src/web/scene-contract.js`, and an evaluator call that omits its required
-delivery/waiver context. `SCENE-001` generation one proved the first repair and
+delivery canvas. `SCENE-001` generation one proved the first repair and
 reported the second as out-of-lease; generation two is formally limited to both
 existing contract handoffs and regression coverage. Scoped governance and lane
 acceptance checks remain required; this fact is not a waiver and no check may
