@@ -20,3 +20,18 @@ Protocol ACK: 4472986
 - Focused proof: schema/compiler tests, route authorization tests, and browser
   contract tests for entry → choice → process → result → next action.
 - Help request: NONE.
+
+## Implementation checkpoint
+
+- Added a closed, schema-validated JSON graph for `ART_SHOOT.05 → CHOICE →
+  VIDEO/LIVE`.
+- Added the visible `/post-shoot-mvp.html` product draft and a home-page entry.
+- Local camera preview is free; closing/page-hide stops every camera track.
+- Lucy token route allowlists only `decart/lucy-2-5/realtime`, requires
+  explicit `$0.04/sec` acknowledgement, caps the session at 60 seconds, and
+  cannot call an issuer when approval is absent.
+- Production token issuer/WebRTC create remains intentionally inactive.
+- Focused tests: `13/13 PASS`; browser visual/interaction smoke PASS; console
+  warnings/errors `0`; credential scan PASS.
+- Billable/provider calls: `0`.
+- weakened_checks: none.

@@ -91,9 +91,14 @@ Video ніколи не стартує з випадкового аватара 
 | `LIVE.03` | Працювати з live overlay/experience, прив’язаним до locked style й look. | NOT_DELIVERED |
 | `LIVE.04` | За явною дією зберегти лише обраний результат або завершити сесію без збереження. | NOT_DELIVERED |
 
-Перший live продукт — Local Live Director; delayed generative preview є
-окремим наступним режимом. Деталі, hardware і межа WebRTC:
-[VIDEO_LIVE_CANON_UA.md](docs/VIDEO_LIVE_CANON_UA.md).
+Безкоштовний fallback — Local Live Director. Основний generative-live кандидат
+для MVP — Decart Lucy 2.5 Realtime через fal.ai: browser webcam → WebRTC →
+prompt/reference-bound transformed stream. Він коштує `$0.04/сек`, тому
+вимагає видимого cost consent, hard timeout і server-issued short-lived token.
+Цей route залишається `NOT_DELIVERED`, доки exact paid smoke не буде окремо
+схвалений, виконаний і зафіксований. Деталі:
+[VIDEO_LIVE_CANON_UA.md](docs/VIDEO_LIVE_CANON_UA.md) і
+[LUCY_LIVE_MVP_UA.md](docs/LUCY_LIVE_MVP_UA.md).
 
 ## GENERATION_TRANSPORT — невидимий технічний шар
 
@@ -106,6 +111,8 @@ Video ніколи не стартує з випадкового аватара 
   в захищеному host store, ніколи не в Git, звітах чи prompts.
 - Seedance 2: обраний async transport для `VIDEO.03`; не є live-camera
   transport і ще не позначений active на beta без окремої перевірки.
+- Decart Lucy 2.5 Realtime через fal.ai: WebRTC transport для `LIVE.03`;
+  provider candidate, не active beta route без окремого платного smoke.
 
 ## Поточні задачі простими словами
 

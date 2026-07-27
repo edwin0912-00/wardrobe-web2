@@ -54,9 +54,9 @@ framing, scene/style match і відсутність випадкових props/
 своїм source shoot і показує source frame, motion mode, версію style unit та
 QA status.
 
-## LIVE CAMERA — два чесні режими, не один фальшивий
+## LIVE CAMERA — local fallback і справжній generative-live candidate
 
-### 1. Live Director — перший рекомендований продукт
+### 1. Live Director — безкоштовний fallback
 
 Це справді live browser camera experience без генерації нової людини в
 кожному кадрі. Камера лишається локальною, а поверх preview показуються:
@@ -70,9 +70,33 @@ QA status.
 Live Director не обіцяє, що користувач «в реальному часі одягнений» у
 генерований look. Він допомагає зняти реальний матеріал у каноні фотосесії.
 
-### 2. Generative Camera Preview — наступний, окремо позначений режим
+### 2. Lucy 2.5 Realtime — основний generative-live MVP
 
-Після явного Capture береться один кадр, створюється **delayed generated
+Decart Lucy 2.5 Realtime через fal.ai справді редагує webcam stream у
+реальному часі. Це не delayed preview: browser відкриває camera, WebRTC
+передає media peer-to-peer до Decart, а prompt і approved reference image
+тримають locked look/style.
+
+```text
+approved ART_SHOOT.05
+→ explicit Live webcam choice
+→ local camera permission + preview
+→ visible $0.04/sec consent + 60-sec hard limit
+→ server-issued short-lived fal token
+→ decart/lucy-2-5/realtime WebRTC session
+→ transformed mirror stream
+→ explicit Stop або Capture
+```
+
+Постійний `FAL_KEY` ніколи не потрапляє у browser. Без cost consent backend
+не має права навіть викликати token issuer. На першому MVP максимум однієї
+сесії — 60 секунд, тобто `$2.40`; paid smoke запускається тільки після
+окремого попередження й дозволу Edwin.
+
+### 3. Delayed Generative Camera Preview — fallback без live stream
+
+Якщо Lucy/WebRTC недоступний, після явного Capture береться один кадр,
+створюється **delayed generated
 preview** із locked look/style. Це не real-time stream і не має називатися
 «live try-on». UI прямо показує `Створюю preview`, source capture і результат
 окремо. Користувач або зберігає цей результат, або відкидає його; потокове
@@ -156,10 +180,12 @@ WebRTC/LiveKit не потрібні для Local Live Director. Вони пот
 ## Privacy canon для webcam
 
 1. Camera permission запитується тільки після натискання «Live camera».
-2. Preview за замовчуванням залишається в браузері й не пишеться на сервер.
+2. Local preview за замовчуванням залишається в браузері. Lucy media передається
+   тільки після окремого generative-live consent через заявлений WebRTC route.
 3. Немає прихованого recording, upload чи background capture.
-4. Відправка одного кадру можлива тільки через явний Capture і окремий стан
-   «Надіслати на створення preview».
+4. Для delayed fallback відправка одного кадру можлива тільки через явний
+   Capture. Для Lucy дозволяється лише bounded live session з видимим таймером
+   і Stop; прихований background stream заборонений.
 5. Користувач бачить Stop camera; при закритті режиму stream припиняється.
 6. Зберігається лише результат, який користувач явно натиснув «Зберегти».
 
@@ -170,10 +196,10 @@ WebRTC/LiveKit не потрібні для Local Live Director. Вони пот
 `Approved shoot → обрати source frame → motion mode → live progress → QA →
 clip у профілі`.
 
-### Live Director
+### Live Camera
 
-`Approved shoot → Live camera consent → local preview + guides → Capture або
-Stop → (опційно) delayed generated preview → explicit Save`.
+`Approved shoot → Live camera consent → local preview → cost consent →
+bounded Lucy WebRTC stream → Stop/Capture → explicit Save`.
 
 Будь-який стан помилки називає конкретну дію: повторити clip, обрати інший
 source frame, перевірити camera permission або закрити live session. Він не

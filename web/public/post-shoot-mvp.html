@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>WARDROBE — Video / Live Camera MVP</title>
+  <link rel="stylesheet" href="/post-shoot-mvp.css">
+</head>
+<body>
+  <header class="topbar">
+    <a href="/">← WARDROBE</a>
+    <span>DRAFT MVP · БЕЗ ПЛАТНИХ ВИКЛИКІВ</span>
+  </header>
+  <main>
+    <section class="intro">
+      <p>POST-SHOOT STUDIO</p>
+      <h1>Один затверджений shoot.<br>Два наступні кроки.</h1>
+      <p>Video створює готовий motion clip. Live Camera перетворює webcam у живе fashion-дзеркало Lucy 2.5.</p>
+    </section>
+
+    <section class="source-card" aria-label="Затверджене джерело">
+      <div class="source-visual">APPROVED<br>SHOOT</div>
+      <div>
+        <p class="overline">ART_SHOOT.05 · QA PASS</p>
+        <h2>Amber Editorial · Look 04</h2>
+        <p>Identity, outfit, palette, світло і location style зафіксовані.</p>
+        <div class="locks"><span>IDENTITY LOCK</span><span>OUTFIT LOCK</span><span>STYLE LOCK</span></div>
+      </div>
+    </section>
+
+    <section id="choice-view">
+      <p class="section-label">ОБЕРИ ПРОДОВЖЕННЯ</p>
+      <div id="mode-grid" class="mode-grid"></div>
+    </section>
+
+    <section id="workspace" class="workspace hidden" aria-live="polite">
+      <div class="workspace-head">
+        <div><p id="workspace-code" class="overline"></p><h2 id="workspace-title"></h2></div>
+        <button id="close-workspace" type="button">Закрити</button>
+      </div>
+      <div id="video-panel" class="hidden">
+        <div class="preset-grid">
+          <button class="preset selected" data-motion="editorial_micro">Editorial micro-moment<small>4–6 сек · найнадійніше</small></button>
+          <button class="preset" data-motion="camera_drift">Camera drift<small>Повільний push-in</small></button>
+          <button class="preset" data-motion="garment_gesture">Garment gesture<small>Одна контрольована дія</small></button>
+        </div>
+        <button id="video-dry-run" class="primary" type="button">Перевірити JSON job без генерації</button>
+      </div>
+      <div id="live-panel" class="hidden">
+        <div class="mirror">
+          <video id="camera" autoplay muted playsinline></video>
+          <div class="guide"><span></span><b>Тримай плечі в межах рамки</b></div>
+          <div id="camera-placeholder">Камера вимкнена</div>
+        </div>
+        <div class="live-controls">
+          <button id="camera-start" class="secondary" type="button">Увімкнути безкоштовний preview</button>
+          <button id="camera-stop" class="secondary hidden" type="button">Stop camera</button>
+          <label class="cost-consent"><input id="cost-consent" type="checkbox"> Я розумію: Lucy коштує $0.04/сек, максимум 60 сек = $2.40.</label>
+          <button id="lucy-start" class="primary" type="button" disabled>Підготувати Lucy session</button>
+          <p>Платний запуск не відбудеться без окремого provider activation та явного підтвердження.</p>
+        </div>
+      </div>
+      <ol id="node-list" class="node-list"></ol>
+      <pre id="job-output" class="job-output">Очікує дію</pre>
+    </section>
+  </main>
+  <script type="module" src="/post-shoot-mvp.js"></script>
+</body>
+</html>

@@ -16,6 +16,7 @@ import { createProfileApprovedLookResolver } from './scene-resolvers.js';
 import { registerSceneRoutes } from './scene-routes.js';
 import { SceneService } from './scene-service.js';
 import { sanitizeOutboundString } from '../security/outbound-redaction.js';
+import { registerPostShootRoutes } from './post-shoot-routes.js';
 
 export async function createWebApp({
   service,
@@ -28,6 +29,7 @@ export async function createWebApp({
   drafts = null,
   profiles = null,
   sceneDependencies = null,
+  lucyTokenIssuer = null,
 }) {
   // A degraded provider preflight means the local CLI cannot prove that it can
   // create and observe a paid Higgsfield job. Do not let a user enter the
@@ -79,6 +81,10 @@ export async function createWebApp({
   });
   await app.register(multipart, { limits: { files: 7, fileSize: 20 * 1024 * 1024, fields: 12, parts: 20 } });
   await app.register(fastifyStatic, { root: publicDirectory, prefix: '/' });
+  await registerPostShootRoutes(app, {
+    projectRoot: path.resolve(import.meta.dirname, '..', '..'),
+    lucyTokenIssuer,
+  });
   const secureCookie = process.env.ZEELY_COOKIE_SECURE !== 'false';
   let sceneService = null;
   let scenePresetResolver = null;
