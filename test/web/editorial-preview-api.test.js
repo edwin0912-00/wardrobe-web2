@@ -107,9 +107,9 @@ test('editorial catalog activates legacy modes and four integrity-ready Create U
       mode.generation_available,
       catalog.generation_mode_ids.includes(mode.mode_id),
     );
-    assert.equal(
+    assert.match(
       mode.preview_url,
-      `/api/editorial-modes/${encodeURIComponent(mode.mode_id)}/${encodeURIComponent(mode.version)}/preview`,
+      new RegExp(`^/api/editorial-modes/${encodeURIComponent(mode.mode_id)}/${encodeURIComponent(mode.version)}/preview\\?v=[a-f0-9]{64}$`),
     );
 
     const preview = await app.inject({
@@ -125,6 +125,10 @@ test('editorial catalog activates legacy modes and four integrity-ready Create U
     assert.equal(preview.headers['set-cookie'], undefined);
     assert.equal(preview.headers.vary, undefined);
     assert.equal(preview.headers.etag, `"${sha256(preview.rawPayload)}"`);
+    assert.equal(
+      mode.preview_url,
+      `/api/editorial-modes/${encodeURIComponent(mode.mode_id)}/${encodeURIComponent(mode.version)}/preview?v=${sha256(preview.rawPayload)}`,
+    );
     const metadata = await sharp(preview.rawPayload).metadata();
     assert.equal(metadata.format, createUniverse ? 'png' : 'webp');
     if (!createUniverse) {

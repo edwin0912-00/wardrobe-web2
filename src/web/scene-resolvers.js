@@ -78,12 +78,14 @@ function createUniverseUri(modeId, document) {
   return `create-universe://${modeId}/${document}`;
 }
 
-function scenePreviewUrl(presetId, presetVersion) {
-  return `/api/scene-presets/${encodeURIComponent(presetId)}/${encodeURIComponent(presetVersion)}/preview`;
+function scenePreviewUrl(presetId, presetVersion, revision) {
+  expectedHash(revision, 'Scene preview revision');
+  return `/api/scene-presets/${encodeURIComponent(presetId)}/${encodeURIComponent(presetVersion)}/preview?v=${revision}`;
 }
 
-function editorialPreviewUrl(modeId, version) {
-  return `/api/editorial-modes/${encodeURIComponent(modeId)}/${encodeURIComponent(version)}/preview`;
+function editorialPreviewUrl(modeId, version, revision) {
+  expectedHash(revision, 'Editorial preview revision');
+  return `/api/editorial-modes/${encodeURIComponent(modeId)}/${encodeURIComponent(version)}/preview?v=${revision}`;
 }
 
 function inside(root, filename, label = 'Scene preset path') {
@@ -1018,7 +1020,7 @@ export class FilesystemScenePresetResolver {
     for (const mode of program.modes) {
       safeId(mode?.preset_id, 'mode_id');
       safeId(mode?.version, 'version');
-      await this.editorialModePreview({
+      const preview = await this.editorialModePreview({
         modeId: mode.preset_id,
         version: mode.version,
       });
@@ -1031,7 +1033,7 @@ export class FilesystemScenePresetResolver {
         source_set_status: mode.source_set_status,
         generation_available: READY_EDITORIAL_MODE_IDS.includes(mode.preset_id)
           && mode.source_set_status === 'READY',
-        preview_url: editorialPreviewUrl(mode.preset_id, mode.version),
+        preview_url: editorialPreviewUrl(mode.preset_id, mode.version, preview.sha256),
       });
     }
     const generationModeIds = modes
@@ -1054,9 +1056,13 @@ export class FilesystemScenePresetResolver {
         presetId: item.preset_id,
         presetVersion: item.preset_version,
       });
+      const preview = await this.environmentPlatePreview({
+        presetId: reference.preset_id,
+        presetVersion: reference.preset_version,
+      });
       results.push({
         ...reference,
-        preview_url: scenePreviewUrl(reference.preset_id, reference.preset_version),
+        preview_url: scenePreviewUrl(reference.preset_id, reference.preset_version, preview.sha256),
       });
     }
     return results.sort((left, right) => left.preset_id.localeCompare(right.preset_id));

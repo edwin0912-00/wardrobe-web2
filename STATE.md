@@ -133,6 +133,16 @@ rebasing. The broad release suite remains a later candidate gate.
 
 ## Verified product facts
 
+- Beta preview delivery is content-addressed as of the preview-revision fix:
+  background and Create Universe catalog cards carry the SHA-256 of their
+  exact preview bytes in `preview_url`. Immutable image caching therefore
+  cannot preserve an older visual after a new release.
+- The checked-in background asset inventory contains more candidate packs than
+  the five selected production cards. Those candidates are not silently made
+  generatable or user-selectable: `assets/scene-presets/index.json` remains
+  the single publication boundary until their selection/approval decision is
+  recorded.
+
 - Browser-bound 30-day profile persistence, avatar → look → child-look lineage,
   immutable Add-items source binding, and cross-profile denial are already in
   the backend. The reported defect belongs to the public UI transition, not a

@@ -120,3 +120,7 @@ facts.
   mock UI/API smoke PASS; all five `shoot.*` previews return HTTP 200.
   Background expansion is BLOCKED: new plates are deployed but not catalogued,
   and its strict catalog contract has four real failures.
+- 2026-07-27 — preview cache repair is READY_FOR_BETA_DEPLOY: all background
+  and Create Universe preview URLs now include their exact asset SHA-256, so a
+  browser receives a new URL after a visual update instead of reusing a stale
+  one-year immutable cache entry. Focused route/resolver regression: 8/8 PASS.

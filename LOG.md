@@ -613,3 +613,14 @@ Evidence: governance passed on PR #5; task acceptance reported only
 `conflict-marker-scan` with no executable exit code. The replacement portable
 check is exact `git diff --check $TASK_BASE_SHA...$TESTED_CODE_SHA`.
 weakened_checks: none.
+
+2026-07-27 · BETA preview revision URLs
+Change: bind every published background and Create Universe preview URL to the
+SHA-256 of the bytes it serves.
+Why: previews were correctly replaced in a release while retaining the same
+`1.0.0` URL and a one-year immutable cache policy, so returning browsers could
+truthfully render stale cards.
+Evidence: `node --test test/web/scene-api-integration.test.js
+test/web/editorial-preview-api.test.js` passes 8/8; the catalog now exposes a
+different `?v=<asset-sha256>` URL whenever preview bytes change.
+weakened_checks: none.

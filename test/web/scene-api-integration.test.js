@@ -405,9 +405,9 @@ test('filesystem resolver verifies and exposes all five production packs without
   );
   assert.equal(new Set(presets.map((item) => item.preview_url)).size, 5);
   for (const preset of presets) {
-    assert.equal(
+    assert.match(
       preset.preview_url,
-      `/api/scene-presets/${encodeURIComponent(preset.preset_id)}/${encodeURIComponent(preset.preset_version)}/preview`,
+      new RegExp(`^/api/scene-presets/${encodeURIComponent(preset.preset_id)}/${encodeURIComponent(preset.preset_version)}/preview\\?v=[a-f0-9]{64}$`),
     );
   }
   assert.doesNotMatch(JSON.stringify(presets), /Users\/|production_prompt_path|reference_pack_path/);
@@ -428,7 +428,7 @@ test('published scene preset previews are exact private-path-safe still WebPs wi
   assert.equal(presets.length, 5);
   assert.equal(new Set(presets.map((preset) => preset.preview_url)).size, 5);
   for (const preset of presets) {
-    assert.match(preset.preview_url, /^\/api\/scene-presets\/[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+\/preview$/);
+    assert.match(preset.preview_url, /^\/api\/scene-presets\/[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+\/preview\?v=[a-f0-9]{64}$/);
     const provenance = JSON.parse(await readFile(path.join(
       'assets',
       'scene-presets',
@@ -447,6 +447,10 @@ test('published scene preset previews are exact private-path-safe still WebPs wi
     assert.equal(preview.headers['content-type'], 'image/webp');
     assert.equal(preview.headers['cache-control'], 'public, max-age=31536000, immutable');
     assert.equal(preview.headers.etag, `"${expected.sha256}"`);
+    assert.equal(
+      preset.preview_url,
+      `/api/scene-presets/${encodeURIComponent(preset.preset_id)}/${encodeURIComponent(preset.preset_version)}/preview?v=${expected.sha256}`,
+    );
     assert.equal(preview.headers['cross-origin-resource-policy'], 'same-origin');
     assert.equal(preview.headers['x-content-type-options'], 'nosniff');
     assert.equal(preview.headers['set-cookie'], undefined);
