@@ -50,7 +50,8 @@ WARDROBE_AGENT_ID=<agent-id> node tools/coordination/watch-assignments.mjs --int
 Відгалузь isolated worktree від цього SHA; не ребейзь тихо і не бери чужий
 lock group. Якщо відповідної задачі немає — тільки read-only робота.
 
-Після цього:
+Після цього перевір `allowed_paths` своєї active task. Якщо там є рівно
+`.agents/status/<TASK-ID>.json`, опублікуй `STARTED` так:
 
 ```bash
 node tools/coordination/validate-board.mjs
@@ -62,6 +63,10 @@ git add .agents/status/<TASK-ID>.json
 git commit -m 'status: <TASK-ID> started'
 git push origin lane/<TASK-ID>/<agent-id>
 ```
+
+Якщо exact status path відсутній, це legacy lease: не запускай publisher,
+не створюй status-файл і не вважай помилку `STATUS_PATH_NOT_LEASED` blocker-ом.
+Продовжуй лише в межах решти виданого lease та передай результат через handoff/PR.
 
 У довгій роботі повторюй `HEARTBEAT` після фактичного checkpoint і щонайменше
 раз на 10 хвилин. `STARTED` або `HEARTBEAT` старше 15 хвилин watcher позначить
