@@ -9,6 +9,12 @@ export function idOfLook(look) {
   return look?.id ?? look?.look_id ?? null;
 }
 
+export function selectedLookLiveUrl(look) {
+  const lookId = idOfLook(look);
+  if (!lookId) throw new TypeError('A saved look id is required for Live');
+  return `/post-shoot-mvp.html?look=${encodeURIComponent(lookId)}&embed=1`;
+}
+
 function lookAvatarId(look) {
   return look?.avatar_id ?? look?.avatarId ?? null;
 }

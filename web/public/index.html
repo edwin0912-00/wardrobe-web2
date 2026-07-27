@@ -210,6 +210,7 @@
                     <p id="profile-look-editorial-empty" class="profile-look-scenes-empty">Фотосесій ще немає. Відкрий «Створити сцену» → Art Fashion.</p>
                   </section>
                   <div class="profile-look-detail-actions">
+                    <button id="profile-look-live" class="primary-result-action profile-live-action" type="button">Приміряти Live</button>
                     <button id="profile-look-add" class="primary-result-action" type="button">Новий окремий образ</button>
                     <button id="profile-look-scene" class="secondary-result-action" type="button">Створити сцену</button>
                     <button id="profile-look-delete" class="profile-delete-action" type="button">Видалити</button>
@@ -219,6 +220,10 @@
             </div>
             <div class="profile-danger-zone"><p>Без акаунта цей профіль існує лише в цьому браузері.</p><button id="delete-profile" type="button">Видалити профіль і файли</button></div>
           </section>
+        </div>
+        <div id="profile-live-overlay" class="profile-live-overlay hidden" role="dialog" aria-modal="true" aria-label="Live примірка">
+          <button id="profile-live-close" class="profile-live-close" type="button" aria-label="Закрити Live">×</button>
+          <iframe id="profile-live-frame" title="Live примірка вибраного образу" allow="camera; fullscreen"></iframe>
         </div>
         <div id="scene-view" class="scene-view hidden">
           <section class="scene-shell" data-mode="picker">
@@ -358,6 +363,6 @@
     <button type="button" onclick="location.reload()">Перезавантажити</button>
   </aside>
   <script src="/boot-guard.js?v=20260722-3"></script>
-  <script type="module" src="/app.js?v=20260723-11"></script>
+  <script type="module" src="/app.js?v=20260727-12"></script>
 </body>
 </html>

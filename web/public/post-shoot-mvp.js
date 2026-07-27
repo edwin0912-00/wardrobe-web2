@@ -2,6 +2,7 @@ const MODEL_ID = 'decart/lucy-2-5/realtime';
 const state = { stream: null, reference: null, connection: null, peer: null, timer: null, guideTimer: null, running: false };
 const $ = (selector) => document.querySelector(selector);
 const prompt = 'Replace only the current clothing with the outfit from the reference image. Preserve the person face, identity, hair, skin, body shape, pose and hands. Preserve the existing room, background, camera angle and lighting. Do not modify anything except the clothing.';
+const query = new URLSearchParams(location.search);
 
 function status(text) { $('#live-status').textContent = text; }
 function ready() {
@@ -28,6 +29,22 @@ async function loadReference(file) {
   $('#reference-placeholder').classList.add('hidden');
   $('#reference-status').textContent = `${file.name} · ${image.naturalWidth}×${image.naturalHeight} · READY`;
   ready();
+}
+async function loadSavedLookReference(lookId) {
+  const response = await fetch(`/api/profile/looks/${encodeURIComponent(lookId)}/image`, {
+    credentials: 'same-origin',
+    cache: 'no-store',
+  });
+  if (!response.ok) throw new Error('Не вдалося відкрити вибраний образ.');
+  const blob = await response.blob();
+  const file = new File([blob], `look-${lookId}.png`, {
+    type: blob.type || 'image/png',
+    lastModified: Date.now(),
+  });
+  await loadReference(file);
+  $('#reference-upload').disabled = true;
+  $('.reference-control').classList.add('is-bound');
+  $('#reference-status').textContent = 'Вибраний образ · READY';
 }
 async function startCamera() {
   if (!window.isSecureContext) throw new Error('Камера потребує HTTPS.');
@@ -144,3 +161,11 @@ $('#lucy-start').addEventListener('click', () => startLive().catch((error) => cl
 $('#lucy-stop').addEventListener('click', () => closeLive());
 window.addEventListener('pagehide', stopCamera);
 ready();
+const selectedLookId = query.get('look');
+if (query.get('embed') === '1') document.body.classList.add('is-embedded');
+if (selectedLookId) {
+  status('Завантажуємо вибраний образ…');
+  loadSavedLookReference(selectedLookId)
+    .then(() => status('Образ готовий. Увімкни камеру.'))
+    .catch((error) => status(`Помилка образу: ${error.message}`));
+}

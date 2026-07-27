@@ -64,6 +64,16 @@ test('saved-avatar transition auto-opens the look when avatar has exactly one lo
   assert.equal(transition.selection.lookId, 'look-single');
 });
 
+test('selected saved look becomes the in-product Live reference without upload input', () => {
+  assert.equal(
+    flow.selectedLookLiveUrl({ look_id: 'look / exact' }),
+    '/post-shoot-mvp.html?look=look%20%2F%20exact&embed=1',
+  );
+  assert.throws(() => flow.selectedLookLiveUrl({}), /saved look id/i);
+  assert.match(appSource, /profile-look-live/);
+  assert.match(appSource, /selectedLookLiveUrl\(selectedProfileLook\)/);
+});
+
 test('Add items continuation receives the exact selected avatar and look once', async () => {
   const { avatar, newerLook, profile } = profileFixture();
   const transition = flow.resolveSavedAvatarTransition(profile, avatar);

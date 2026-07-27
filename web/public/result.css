@@ -579,6 +579,59 @@
   font-size: 10px;
 }
 
+body.profile-live-open {
+  overflow: hidden;
+}
+
+.profile-live-overlay {
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: clamp(8px, 2vw, 24px);
+  background: rgba(7, 8, 7, .88);
+  backdrop-filter: blur(18px);
+}
+
+.profile-live-overlay iframe {
+  width: min(1120px, 100%);
+  height: min(820px, 100%);
+  border: 1px solid rgba(255, 255, 255, .12);
+  border-radius: 22px;
+  background: #080808;
+  box-shadow: 0 32px 100px rgba(0, 0, 0, .55);
+}
+
+.profile-live-close {
+  position: fixed;
+  z-index: 2;
+  top: max(14px, env(safe-area-inset-top));
+  right: max(14px, env(safe-area-inset-right));
+  width: 44px;
+  height: 44px;
+  border: 1px solid rgba(255, 255, 255, .16);
+  border-radius: 50%;
+  background: rgba(15, 15, 15, .78);
+  color: #fff;
+  font: 300 28px/1 system-ui, sans-serif;
+  cursor: pointer;
+  backdrop-filter: blur(14px);
+}
+
+@media (max-width: 700px) {
+  .profile-live-overlay {
+    padding: 0;
+  }
+
+  .profile-live-overlay iframe {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    border-radius: 0;
+  }
+}
+
 .profile-danger-zone button {
   border: 0;
   background: transparent;

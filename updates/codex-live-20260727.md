@@ -11,6 +11,19 @@ Protocol ACK: 29045a9
   paid consent.
 - Implementation and QA will not make a consented or billable provider call.
 
+## BETA-POSTSHOOT-RECON-001 — IMPLEMENTATION PASS
+
+- The selected saved look now exposes `Приміряти Live`.
+- Live opens as a same-site overlay, not the standalone upload test flow.
+- The exact saved-look image is fetched through the authenticated profile image
+  route and converted into Lucy's reference input automatically.
+- Closing the overlay destroys the iframe, which triggers the existing
+  `pagehide` camera-track cleanup.
+- Focused proof: 33/33 PASS across profile flow, add-items regression,
+  post-shoot routes, and JSON graph contract; local HTTP entrypoints return 200.
+- Paid proof: NOT RUN. No consented token/provider request was made.
+- State: READY_FOR_BETA_DEPLOY; exact SHA will be recorded after commit.
+
 Protocol ACK: 4472986
 
 ## BETA-POST-SHOOT-001 — STARTED
