@@ -1,0 +1,14 @@
+{
+  "schema_version": "1.0.0",
+  "task_id": "UI-002",
+  "agent_id": "profile-ui",
+  "branch": "lane/UI-002/profile-ui",
+  "base_sha": "f578c28a7e3db506c0e8dbe06ca7e3e405cfea21",
+  "lease_generation": 1,
+  "state": "READY_FOR_REVIEW",
+  "observed_at": "2026-07-27T02:30:09.524Z",
+  "observed_head_sha": "0ad94639820ae19f3d9b86cb4c65c66e6a5e7145",
+  "summary_code": "REVIEW_READY",
+  "next_action_code": "AWAIT_ORCHESTRATOR",
+  "blocker_code": null
+}

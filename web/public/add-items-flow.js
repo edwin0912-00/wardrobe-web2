@@ -69,8 +69,23 @@ export function scenePresetLabel(preset) {
   })[presetId] || 'Збережена сцена';
 }
 
+function createdAtMilliseconds(look) {
+  const value = Date.parse(look?.created_at ?? '');
+  return Number.isFinite(value) ? value : Number.NEGATIVE_INFINITY;
+}
+
+function isNewerLook(candidate, current) {
+  const candidateCreatedAt = createdAtMilliseconds(candidate);
+  const currentCreatedAt = createdAtMilliseconds(current);
+  if (candidateCreatedAt !== currentCreatedAt) return candidateCreatedAt > currentCreatedAt;
+  return String(idOfLook(candidate) ?? '').localeCompare(String(idOfLook(current) ?? '')) < 0;
+}
+
 export function latestLookForAvatar(profile, avatar) {
-  return looksForAvatar(profile, avatar).at(0) ?? null;
+  return looksForAvatar(profile, avatar).reduce(
+    (latest, candidate) => (!latest || isNewerLook(candidate, latest) ? candidate : latest),
+    null,
+  );
 }
 
 export function resolveAddItemsSelection({ avatar, look = null }) {
@@ -81,6 +96,77 @@ export function resolveAddItemsSelection({ avatar, look = null }) {
     throw new Error('Збережений образ належить іншому аватару');
   }
   return { avatar, look, avatarId, lookId };
+}
+
+/**
+ * Pure UI transition: choosing an avatar opens its newest saved look when one
+ * exists. It never starts, clears, or resets a draft.
+ */
+export function resolveSavedAvatarTransition(profile, avatar) {
+  const selection = resolveAddItemsSelection({
+    avatar,
+    look: latestLookForAvatar(profile, avatar),
+  });
+  return {
+    action: selection.look ? 'OPEN_LOOK' : 'FILTER_AVATAR',
+    selection,
+  };
+}
+
+/**
+ * Executes only a saved-avatar navigation effect. The explicit effect surface
+ * deliberately excludes draft creation, clearing, and reset operations.
+ */
+export async function executeSavedAvatarTransition(transition, {
+  openLook,
+  filterAvatar,
+}) {
+  if (typeof openLook !== 'function' || typeof filterAvatar !== 'function') {
+    throw new TypeError('Saved-avatar transition requires navigation callbacks');
+  }
+  if (transition?.action === 'OPEN_LOOK') {
+    await openLook(transition.selection.look);
+    return transition.selection;
+  }
+  if (transition?.action === 'FILTER_AVATAR') {
+    await filterAvatar(transition.selection.avatarId);
+    return transition.selection;
+  }
+  throw new Error('Unknown saved-avatar transition');
+}
+
+/**
+ * Runs one explicit add-items continuation from a previously resolved
+ * selection. The caller owns all draft persistence and UI side effects.
+ */
+export async function continueAddItemsFromSelection(selection, startAddItems) {
+  if (typeof startAddItems !== 'function') throw new TypeError('startAddItems must be a function');
+  const exact = resolveAddItemsSelection(selection);
+  await startAddItems({ avatar: exact.avatar, look: exact.look });
+  return exact;
+}
+
+/**
+ * Restores only the captured view state when leaving the profile. Draft
+ * storage is deliberately not part of this transition.
+ */
+export function restoreProfileReturnState(profileReturnState, {
+  restorePanel,
+  setWorkflowActive,
+  setView,
+}) {
+  if (typeof restorePanel !== 'function'
+    || typeof setWorkflowActive !== 'function'
+    || typeof setView !== 'function') {
+    throw new TypeError('Profile return transition requires UI callbacks');
+  }
+  const target = profileReturnState?.view && profileReturnState.view !== 'profile'
+    ? profileReturnState
+    : { view: 'empty', workflowActive: false };
+  restorePanel(target);
+  setWorkflowActive(Boolean(target.workflowActive));
+  setView(target.view);
+  return target;
 }
 
 export function resolveProfileLookSelection(profile, look) {
