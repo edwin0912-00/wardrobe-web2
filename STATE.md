@@ -142,9 +142,9 @@ rebasing. The broad release suite remains a later candidate gate.
   saved scenes remain resolvable; it now has sixteen selectable backgrounds.
   Every additional pack is bound by an exact local-pack-index SHA before the
   resolver will expose it.
-- Beta is currently deployed at product commit `34f727f`. A 16-background
-  catalog release has passed focused contract/API verification and is pending
-  the immediate beta activation smoke check.
+- Beta is deployed at product commit `7bca845`: the 16-background catalog,
+  each of its 16 preview routes, and the post-shoot page/API are live-verified
+  HTTP 200. No billable image generation was run for this verification.
 
 - Browser-bound 30-day profile persistence, avatar → look → child-look lineage,
   immutable Add-items source binding, and cross-profile denial are already in

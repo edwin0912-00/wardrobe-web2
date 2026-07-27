@@ -37,6 +37,15 @@ Evidence: commits `008ea06` and `3b05589`, its STARTED report, and its exact
 reserved-path row in `UPDATE.md`.
 weakened_checks: none.
 
+2026-07-27 · BETA-STD-001 · `7bca845` live activation
+Change: activate the approved 16-background catalog on beta.
+Why: a code commit is not product delivery until the actual beta API serves the
+new catalog and preview assets.
+Evidence: beta health is `ready`; `/api/scene-presets` returns 16 entries;
+all 16 hash-versioned previews, `/post-shoot-mvp.html`, and
+`/api/post-shoot/pipeline` return HTTP 200.
+weakened_checks: none.
+
 2026-07-27 · VIDEO-TRANSPORT-001 · beta · Seedance 2 source-bound video decision
 Change: record Seedance 2 as the intended async fashion-video transport.
 Why: video generation must be distinct from local live camera and inherit an
