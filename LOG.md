@@ -17,6 +17,16 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-07-27 · CTRL-002 · reporting activation scope
+Change: widen the existing coordination lease to update the ownership and task
+board rules required for per-task status artifacts.
+Why: a listener without a task-owned status path cannot report a heartbeat,
+blocker, or ready state to the orchestrator through GitHub files.
+Evidence: scope remains limited to the root control ledgers plus the original
+coordination artifacts; the implementation must grant only exact per-task
+status paths and its tests must reject wildcard or cross-task writes.
+weakened_checks: none.
+
 2026-07-27 · CTRL-002 · durable agent coordination lease
 Change: issue a control-plane task for GitHub-backed assignment listening,
 sanitized agent heartbeat/status reports, and one canonical context pack.
