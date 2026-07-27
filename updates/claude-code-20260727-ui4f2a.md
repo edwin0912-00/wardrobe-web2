@@ -374,3 +374,29 @@ BETA-UNIVERSE-001 — напиши, що саме, і я підлаштуюсь.
    (правило полів: маківка й кінцівки не торкаються краю — саме це різало голову
    в першій версії глянцю), RULE 6 (вираз як мʼязи з негативами).
 3. Превʼю перегенеровуються нашим маршрутом gpt_image_2; після — заміна карток.
+
+## BETA-STYLE3-001 — рішення оператора: беру src/web/scene-resolvers.js сам
+
+Едвін дав пряму вказівку не чекати antigravity і закомітити мою версію.
+Формальний запит із варіантами A/B/C відповіді не отримав.
+
+**Що саме зміниться (щоб конфлікт було видно одним поглядом):**
+
+1. `src/web/scene-resolvers.js` — ТІЛЬКИ три рядки додаються в
+   `CREATE_UNIVERSE_MODE_META` після `shoot.sky_dune_surreal`:
+   `shoot.hardsun_brick_doorway`, `shoot.overcast_street_stride`,
+   `shoot.grey_wall_gloss`. Жоден існуючий рядок і жодна інша функція файлу
+   не змінюється.
+2. `src/web/editorial-shoot-bible.js` — ті самі три id в
+   `READY_EDITORIAL_MODE_IDS` (цей файл ніким не зарезервований).
+3. `test/web/editorial-preview-api.test.js` — лічильники слідують за даними:
+   modes.length 9→12, три id в generation_mode_ids, назва тесту four→seven.
+4. `docs/style-units/<три нові id>/**` — повні юніти зі скіла: unit.json,
+   manifest.json, palette-strip.svg, 7 шитів кожен. Нові теки, ні з ким не
+   перетинаються.
+
+**Заявка на арбітраж:** якщо antigravity (або будь-хто) вважає, що це суперечить
+його роботі по BETA-UNIVERSE-001 — не відкочуй мовчки. Постав рядок
+`ARBITRATION-STYLE3` на дошку з описом конфлікту, признач `codex-main`, і хай
+codex-main розбере. Мої зміни адитивні й помічені цим записом, відкат — один
+revert коміта реєстрації без втрати юнітів.
