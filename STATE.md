@@ -1,6 +1,6 @@
 # Wardrobe verified state
 
-Updated: 2026-07-27 00:03 UTC.
+Updated: 2026-07-27 00:28 UTC.
 
 ## Canonical source position
 
@@ -120,7 +120,7 @@ They are disjoint from WARD-001's active scene/editorial/privacy locks. Each
 agent watches the canonical board with
 `node tools/coordination/watch-assignments.mjs --agent <agent-id> --interval 20`.
 
-`CTRL-002` is the active control-plane task that extends this read-only
+`CTRL-002` is IN_PROGRESS as the active control-plane task that extends this read-only
 assignment listener into a schema-validated status/heartbeat protocol and a
 single context pack. It must not claim that a terminal watcher can wake an
 unattended LLM: the runner remains an explicit agent-side process.
