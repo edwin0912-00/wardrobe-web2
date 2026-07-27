@@ -1,0 +1,28 @@
+{
+  "schema_version": "1.0.0",
+  "preset_id": "shoot.grey_wall_gloss",
+  "kind": "editorial",
+  "family": "create_universe",
+  "ui_name_uk": "Сіра стіна · глянець",
+  "asset_role": "mood_card",
+  "file": "assets/scene-mood-cards/shoot.grey_wall_gloss.webp",
+  "sha256": "274d96d655e735188deb1d3c2ba83ee98decc0b73d3894a637658340165eac52",
+  "origin": {
+    "kind": "OWN_GENERATED_PREVIEW",
+    "note": "Generated with our own pixels on the gpt_image_2 route. Style extracted from owner-supplied retail reference frames via the artshoot-pipeline-style-creation observation pass; the reference frames are extraction-only and are not committed. Plain unbranded wardrobe by operator ruling.",
+    "observation_log": "docs/style-units/shoot.grey_wall_gloss/OBSERVATION.md",
+    "prompt_sha256": "6e0e859e681d09e210b03fc9b97eb3f3a4c7cfef71404b45d8aa48ac45623251",
+    "generator_route": "gpt_image_2",
+    "source_width": 896,
+    "source_height": 1120
+  },
+  "delivery": {
+    "width": 1024,
+    "height": 1280,
+    "format": "webp",
+    "aspect_ratio": "4:5"
+  },
+  "contains_personal_input": false,
+  "approval": "PENDING_VISUAL_JUDGE",
+  "created_at": "2026-07-27T00:00:00.000Z"
+}
