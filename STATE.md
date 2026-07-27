@@ -47,6 +47,9 @@
 - `PIPELINE.md` is the canonical named-step product map. It distinguishes a
   core feature from a live beta-proven feature, without a fictitious overall
   completion count.
+- `ART_SHOOT`, `VIDEO`, and `LIVE_WEBCAM` are explicit downstream blocks in
+  the canonical map. None is claimed live; video and live both start only from
+  a concrete approved fashion-shoot output.
 
 Updated: 2026-07-27 08:55 UTC.
 

@@ -17,6 +17,17 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-07-27 · PIPELINE-EXTENSION-001 · beta · art shoot, video, live camera map
+Change: extend the named product map with separate `ART_SHOOT`, `VIDEO`, and
+`LIVE_WEBCAM` blocks and require every user-visible task to ship its whole UI
+unit: entry, choice, process, result, persistence, and next action.
+Why: a fashion shoot must become a visible product after style selection, while
+video/live are explicit downstream modes of an approved shoot rather than
+unrelated generation paths.
+Evidence: `PIPELINE.md` declares the source boundaries and current status for
+every new step; no unbuilt path is labelled live.
+weakened_checks: none.
+
 2026-07-27 · OPS-OPENROUTER-BACKUP-001 · beta host · validated reserve transport
 Change: register a validated OpenRouter credential in host-only secure storage
 as a reserve transport; document the non-secret operational fact for agents.

@@ -65,6 +65,9 @@ Fast rules:
    files exist: it must be wired into the relevant product entry point, or the
    report must explicitly say `ASSETS_ONLY — NOT IN PRODUCT` and name the
    missing integration surface.
+   Every user-visible pipeline task also names its `PIPELINE.md` step and
+   proves the complete UI unit: entry, allowed choice, process, result, and
+   persistence/next action. A backend-only completion is not product delivery.
 5. Push directly to `origin beta`; never force-push, reset, rewrite history,
    touch `main`, credentials, `site.madeforthisjob.com`, or port `4180`.
 6. `codex-main` curates `UPDATE.md`, `STATE.md`, and `LOG.md`, but an agent may
