@@ -1,5 +1,3 @@
-import { fal } from './vendor/fal-client.js?v=20260727-3';
-
 const MODEL_ID = 'decart/lucy-2-5/realtime';
 const state = { stream: null, reference: null, connection: null, peer: null, timer: null, running: false };
 const $ = (selector) => document.querySelector(selector);
@@ -32,6 +30,11 @@ async function loadReference(file) {
   ready();
 }
 async function startCamera() {
+  if (!window.isSecureContext) throw new Error('Камера потребує HTTPS.');
+  if (!navigator.mediaDevices?.getUserMedia) {
+    throw new Error('Цей вбудований браузер не дає доступу до камери. Відкрий сторінку в Safari або Chrome.');
+  }
+  status('Запит дозволу на камеру…');
   state.stream = await navigator.mediaDevices.getUserMedia({
     video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } },
     audio: false,
@@ -90,12 +93,13 @@ async function signal(result) {
   }
 }
 async function startLive() {
+  const { fal } = await import('./vendor/fal-client.js?v=20260727-4');
   state.running = true;
   ready();
   status('Підключення до Lucy…');
   state.timer = setTimeout(() => closeLive('5 секунд завершено. Live автоматично зупинено.'), 5_000);
   state.connection = fal.realtime.connect(MODEL_ID, {
-    connectionKey: `zeely-${crypto.randomUUID()}`,
+    connectionKey: `zeely-${crypto.randomUUID?.() || Date.now()}`,
     throttleInterval: 0,
     tokenExpirationSeconds: 10,
     tokenProvider: async (app) => {
