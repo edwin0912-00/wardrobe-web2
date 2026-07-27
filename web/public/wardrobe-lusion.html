@@ -3,13 +3,13 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>WARDROBE STUDIO — Progressive AI Fashion Pipeline</title>
-  <meta name="description" content="Reference-conditioned AI avatar and fashion campaign generator built with WebGL kinetic canvas and glassmorphic UI.">
+  <title>WARDROBE STUDIO — High-Contrast Fashion Pipeline</title>
+  <meta name="description" content="Reference-conditioned AI avatar and fashion campaign generator with high-contrast typography and canon 3-way output pathways.">
   
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800;900&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   
   <!-- Styles -->
   <link rel="stylesheet" href="/wardrobe-lusion.css">
@@ -31,7 +31,7 @@
   <canvas id="canvas"></canvas>
 
   <!-- ============================
-       LAYER 2: Editorial HUD Bar (Progressive Unfolding Navigation)
+       LAYER 2: High-Contrast HUD Bar
        ============================ -->
   <div class="l-hud-bar">
     <div class="hud-brand">
@@ -40,26 +40,25 @@
     </div>
     <nav class="hud-steps">
       <button class="hud-step-btn is-active" id="hud-step-0" onclick="goToStep(0)" type="button">01 IDENTITY</button>
-      <button class="hud-step-btn is-hidden" id="hud-step-1" onclick="goToStep(1)" type="button">02 WARDROBE</button>
-      <button class="hud-step-btn is-hidden" id="hud-step-2" onclick="goToStep(2)" type="button">03 ATMOSPHERE</button>
-      <button class="hud-step-btn is-hidden" id="hud-step-3" onclick="goToStep(3)" type="button">04 CAMPAIGN</button>
+      <button class="hud-step-btn is-hidden" id="hud-step-1" onclick="goToStep(1)" type="button">02 APPROVED LOOK</button>
+      <button class="hud-step-btn is-hidden" id="hud-step-2" onclick="goToStep(2)" type="button">03 OUTPUT PATHWAYS</button>
     </nav>
     <div class="hud-info">
       <span class="hud-live-dot"></span>
-      <span class="hud-status-text" id="hud-gate-status">EDITORIAL STUDIO · PROGRESSIVE UNFOLDING</span>
+      <span class="hud-status-text" id="hud-gate-status">HIGH-CONTRAST CANON PIPELINE</span>
     </div>
   </div>
 
   <!-- ============================
-       LAYER 3: HTML UI Overlay & Progressive Pipeline
+       LAYER 3: HTML UI Overlay
        ============================ -->
   <div id="ui">
 
-    <!-- ── Section 0: Hero & 10 W-Outfit Variations ── -->
+    <!-- ── Section 0: Hero ── -->
     <section id="step-0" class="l-hero l-pipeline-step" data-step-index="0">
       <div class="l-hero-visual" id="hero-visual"></div>
       <h1 class="l-hero-title l-reveal">WARDROBE</h1>
-      <p class="l-hero-subtitle l-reveal l-reveal-delay-1">Твій AI-аватар та цифровий гардероб у кінематографічному середовищі.<br>Збереження зовнішності без випадковостей.</p>
+      <p class="l-hero-subtitle l-reveal l-reveal-delay-1">Твій AI-персонаж та цифровий гардероб у кінематографічному середовищі.<br>Збереження зовнішності без випадковостей.</p>
       <div class="l-hero-line l-reveal l-reveal-delay-2"></div>
       
       <!-- 10 "W" Outfit Variation Selector -->
@@ -82,27 +81,27 @@
       <div class="l-hero-actions l-reveal l-reveal-delay-4" style="margin-top: 1.5rem;">
         <button class="l-goal-btn" onclick="goToStep(1)" type="button">
           <span>Розпочати створення образу</span>
-          <svg width="16" height="16" fill="none" viewBox="0 0 16 16"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.343 8h11.314m0 0-4.984 4.984M13.657 8 8.673 3.016"/></svg>
+          <svg width="16" height="16" fill="none" viewBox="0 0 16 16"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.343 8h11.314m0 0-4.984 4.984M13.657 8 8.673 3.016"/></svg>
         </button>
       </div>
 
       <div class="l-hero-scroll">
         <div class="l-cross"></div>
         <div class="l-cross"></div>
-        <span class="l-hero-scroll-text">скрольте нижче для фіксації аватара</span>
+        <span class="l-hero-scroll-text">скрольте для фіксації персонажа</span>
         <div class="l-cross"></div>
         <div class="l-cross"></div>
       </div>
     </section>
 
 
-    <!-- ── Section 1: Step 01 — Identity / Avatar ── -->
+    <!-- ── Section 1: Step 01 — Identity (Model Selection) ── -->
     <section id="step-1" class="l-pipeline-section l-pipeline-step" data-step-index="1">
       <div class="l-container">
         <div class="l-step-header l-reveal">
           <div class="l-step-badge" id="badge-step-1">01 / IDENTITY</div>
           <h2 class="l-step-title">Фіксація Персонажа</h2>
-          <p class="l-step-desc">Завантаж фотографію людини або обери збережену модель для початку створення зйомки.</p>
+          <p class="l-step-desc">Обери збережену модель або завантаж фотографію для створення образу.</p>
         </div>
 
         <div class="l-glass-panel l-reveal l-reveal-delay-1">
@@ -119,7 +118,7 @@
             <label class="l-upload-box">
               <input type="file" id="input-identity-detail" accept="image/png,image/jpeg,image/webp">
               <div class="l-upload-icon">+</div>
-              <strong class="l-upload-title">Додатковий ракурс</strong>
+              <strong class="l-upload-title">Додаткове фото</strong>
               <small class="l-upload-sub">Обличчя або повний зріст (необов’язково)</small>
               <div class="l-upload-filename" id="filename-identity">Обрати файл</div>
             </label>
@@ -127,7 +126,7 @@
           </div>
 
           <div class="l-saved-library">
-            <div class="l-library-title">Або обери зафіксовану модель:</div>
+            <div class="l-library-title">Зафіксовані моделі:</div>
             <div class="l-avatar-chips">
               <button class="l-avatar-chip" onclick="selectAvatarChip(this, '001')" type="button">
                 <span class="chip-avatar-img">👤</span>
@@ -144,42 +143,42 @@
     </section>
 
 
-    <!-- ── Section 2: Step 02 — Wardrobe & 5 Garments (UNFOLDS ON STEP 1 COMPLETE) ── -->
+    <!-- ── Section 2: Step 02 — Approved Look Constructor (UNFOLDS ON STEP 1 COMPLETE) ── -->
     <section id="step-2" class="l-pipeline-section l-pipeline-step l-section-unfold" data-step-index="2">
       <div class="l-container">
         <div class="l-step-header l-reveal">
-          <div class="l-step-badge" id="badge-step-2">02 / WARDROBE</div>
-          <h2 class="l-step-title">Конструктор Образу</h2>
-          <p class="l-step-desc">Додай опис стилю або завантаж до 5 окремих елементів одягу.</p>
+          <div class="l-step-badge" id="badge-step-2">02 / APPROVED LOOK</div>
+          <h2 class="l-step-title">Формування Образу</h2>
+          <p class="l-step-desc">Додай опис стилю або 5 окремих елементів гардеробу для затвердження master-look.</p>
         </div>
 
         <div class="l-glass-panel l-reveal l-reveal-delay-1">
           
           <div class="l-field-group">
             <label class="l-field-label" for="input-outfit-text">Опис образу (стиль, крій, тканина)</label>
-            <textarea id="input-outfit-text" class="l-textarea" rows="2" placeholder="Наприклад: мінімалістичний чорний костюм з широким кроєм та матовою текстурою linen" oninput="checkStep2Completion()"></textarea>
+            <textarea id="input-outfit-text" class="l-textarea" rows="2" placeholder="Наприклад: чорний костюм з матовою текстурою linen" oninput="checkStep2Completion()"></textarea>
           </div>
 
           <div class="l-field-group" style="margin-top: 1.25rem;">
-            <label class="l-field-label">Картка гардеробу (5 слотів)</label>
+            <label class="l-field-label">Картка гардеробу (5 елементів)</label>
             <div class="l-garment-upload-grid-5">
               
               <label class="l-garment-box-5">
                 <input type="file" accept="image/png,image/jpeg,image/webp" onchange="checkStep2Completion()">
                 <span class="g-icon">+</span>
-                <span class="g-name">01. Сорочка / Верх</span>
+                <span class="g-name">01. Верх</span>
               </label>
 
               <label class="l-garment-box-5">
                 <input type="file" accept="image/png,image/jpeg,image/webp" onchange="checkStep2Completion()">
                 <span class="g-icon">+</span>
-                <span class="g-name">02. Пальто / Куртка</span>
+                <span class="g-name">02. Верхній одяг</span>
               </label>
 
               <label class="l-garment-box-5">
                 <input type="file" accept="image/png,image/jpeg,image/webp" onchange="checkStep2Completion()">
                 <span class="g-icon">+</span>
-                <span class="g-name">03. Штани / Спідниця</span>
+                <span class="g-name">03. Штани</span>
               </label>
 
               <label class="l-garment-box-5">
@@ -191,7 +190,7 @@
               <label class="l-garment-box-5">
                 <input type="file" accept="image/png,image/jpeg,image/webp" onchange="checkStep2Completion()">
                 <span class="g-icon">+</span>
-                <span class="g-name">05. Сумка / Аксесуар</span>
+                <span class="g-name">05. Аксесуар</span>
               </label>
 
             </div>
@@ -201,94 +200,87 @@
     </section>
 
 
-    <!-- ── Section 3: Step 03 — Atmosphere (UNFOLDS ON STEP 2 COMPLETE) ── -->
-    <section id="step-3" class="l-featured l-pipeline-step l-section-unfold" data-step-index="3">
+    <!-- ── Section 3: Step 03 — Three Equal Output Pathways (UNFOLDS ON LOOK APPROVED) ── -->
+    <section id="step-3" class="l-pipeline-section l-pipeline-step l-section-unfold" data-step-index="3">
       <div class="l-container">
-        <div class="l-featured-header l-reveal">
-          <div>
-            <div class="l-step-badge" id="badge-step-3">03 / ATMOSPHERE</div>
-            <h2 class="l-featured-title">Атмосфера Зйомки</h2>
-          </div>
-          <p class="l-featured-disclaimer">Обери кінематографічну локацію та світловий декор для зйомки.</p>
+        <div class="l-step-header l-reveal">
+          <div class="l-step-badge" id="badge-step-3">03 / OUTPUT PATHWAYS</div>
+          <h2 class="l-step-title">Затверджений Образ Готовий</h2>
+          <p class="l-step-desc">Обери один із трьох рівноправних напрямків використання обраного образу:</p>
         </div>
 
-        <div class="l-project-grid">
-          <div class="l-project-item l-reveal" data-scene-id="ocean_dusk" data-color-bg="#0a1520" data-color-text="#b8d4f0" onclick="selectSceneCard(this)">
-            <div class="l-project-item-main">
-              <img class="l-project-item-image" src="/scenes/ocean_dusk.webp" alt="Ocean Dusk scene" loading="lazy">
-              <div class="l-scene-select-badge">ОБРАНО</div>
-            </div>
-            <div class="l-project-item-footer">
-              <div class="l-project-item-tags">nature • blue hour • editorial</div>
-              <div class="l-project-item-name">Ocean Dusk</div>
-            </div>
+        <!-- 3 Equal Output Pathway Cards (Canon Contract) -->
+        <div class="l-pathways-grid l-reveal l-reveal-delay-1">
+          
+          <!-- Pathway A: Photoshoot & Atmosphere -->
+          <div class="l-pathway-card" onclick="selectPathway('photoshoot')">
+            <div class="pathway-icon">📸</div>
+            <h3 class="pathway-title">Фотосесія &amp; Локація</h3>
+            <p class="pathway-desc">Вибір атмосфери зйомки та створення 6-кадрової фото-серії у студійному середовищі.</p>
+            <div class="pathway-action">Обрати локацію →</div>
           </div>
 
-          <div class="l-project-item l-reveal l-reveal-delay-1" data-scene-id="night_neon" data-color-bg="#0f0a18" data-color-text="#e0c8ff" onclick="selectSceneCard(this)">
-            <div class="l-project-item-main">
-              <img class="l-project-item-image" src="/scenes/night_neon.webp" alt="Night Neon scene" loading="lazy">
-              <div class="l-scene-select-badge">ОБРАНО</div>
-            </div>
-            <div class="l-project-item-footer">
-              <div class="l-project-item-tags">city • neon • wet asphalt</div>
-              <div class="l-project-item-name">Night Neon</div>
-            </div>
+          <!-- Pathway B: Fashion Video -->
+          <div class="l-pathway-card" onclick="selectPathway('video')">
+            <div class="pathway-icon">🎬</div>
+            <h3 class="pathway-title">Fashion Video</h3>
+            <p class="pathway-desc">Динамічний відеоролик та канонічний кінетичний показ образу у русі.</p>
+            <div class="pathway-action">Запустити відео →</div>
           </div>
 
-          <div class="l-project-item l-reveal" data-scene-id="amber_alley" data-color-bg="#1a1208" data-color-text="#f0d8a8" onclick="selectSceneCard(this)">
-            <div class="l-project-item-main">
-              <img class="l-project-item-image" src="/scenes/amber_alley.webp" alt="Amber Alley scene" loading="lazy">
-              <div class="l-scene-select-badge">ОБРАНО</div>
-            </div>
-            <div class="l-project-item-footer">
-              <div class="l-project-item-tags">city • cobblestone • golden hour</div>
-              <div class="l-project-item-name">Amber Alley</div>
-            </div>
+          <!-- Pathway C: Live Web Try-on -->
+          <div class="l-pathway-card" onclick="selectPathway('live')">
+            <div class="pathway-icon">🎥</div>
+            <h3 class="pathway-title">Live Web Примірка</h3>
+            <p class="pathway-desc">Інтерактивна примірка в реальному часі через веб-камеру (двигун Lucy).</p>
+            <div class="pathway-action">Відкрити камеру →</div>
           </div>
 
-          <div class="l-project-item l-reveal l-reveal-delay-1" data-scene-id="abandoned_palace" data-color-bg="#100e0a" data-color-text="#e8d8c0" onclick="selectSceneCard(this)">
-            <div class="l-project-item-main">
-              <img class="l-project-item-image" src="/scenes/abandoned_palace.webp" alt="Abandoned Palace scene" loading="lazy">
-              <div class="l-scene-select-badge">ОБРАНО</div>
-            </div>
-            <div class="l-project-item-footer">
-              <div class="l-project-item-tags">interior • light shaft • baroque</div>
-              <div class="l-project-item-name">Abandoned Palace</div>
-            </div>
-          </div>
+        </div>
 
-          <div class="l-project-item l-reveal" data-scene-id="foggy_forest" data-color-bg="#080f08" data-color-text="#c0e8c0" onclick="selectSceneCard(this)">
-            <div class="l-project-item-main">
-              <img class="l-project-item-image" src="/scenes/foggy_forest.webp" alt="Foggy Forest scene" loading="lazy">
-              <div class="l-scene-select-badge">ОБРАНО</div>
-            </div>
-            <div class="l-project-item-footer">
-              <div class="l-project-item-tags">nature • forest • light shaft</div>
-              <div class="l-project-item-name">Foggy Forest</div>
-            </div>
-          </div>
-
-          <div class="l-project-item l-reveal l-reveal-delay-1" data-scene-id="black_studio" data-color-bg="#050505" data-color-text="#ffffff" onclick="selectSceneCard(this)">
-            <div class="l-project-item-main">
-              <img class="l-project-item-image" src="/scenes/black_studio.webp" alt="Black Studio scene" loading="lazy">
-              <div class="l-scene-select-badge">ОБРАНО</div>
-            </div>
-            <div class="l-project-item-footer">
-              <div class="l-project-item-tags">studio • spotlight • low key</div>
-              <div class="l-project-item-name">Black Studio</div>
-            </div>
+        <!-- Location Carousel (Reveals only when Photoshoot Pathway is selected) -->
+        <div class="l-location-drawer is-hidden" id="location-drawer">
+          <div class="l-drawer-title">Обери локацію зйомки:</div>
+          <div class="l-location-chips">
+            <button class="l-location-chip is-active" onclick="chooseLocation('ocean_dusk', '#0a1520')" type="button">
+              <span class="loc-img"><img src="/scenes/ocean_dusk.webp" alt="Ocean"></span>
+              <span>Ocean Dusk</span>
+            </button>
+            <button class="l-location-chip" onclick="chooseLocation('night_neon', '#0f0a18')" type="button">
+              <span class="loc-img"><img src="/scenes/night_neon.webp" alt="Night"></span>
+              <span>Night Neon</span>
+            </button>
+            <button class="l-location-chip" onclick="chooseLocation('amber_alley', '#1a1208')" type="button">
+              <span class="loc-img"><img src="/scenes/amber_alley.webp" alt="Amber"></span>
+              <span>Amber Alley</span>
+            </button>
+            <button class="l-location-chip" onclick="chooseLocation('abandoned_palace', '#100e0a')" type="button">
+              <span class="loc-img"><img src="/scenes/abandoned_palace.webp" alt="Palace"></span>
+              <span>Abandoned Palace</span>
+            </button>
+            <button class="l-location-chip" onclick="chooseLocation('foggy_forest', '#080f08')" type="button">
+              <span class="loc-img"><img src="/scenes/foggy_forest.webp" alt="Forest"></span>
+              <span>Foggy Forest</span>
+            </button>
+            <button class="l-location-chip" onclick="chooseLocation('black_studio', '#050505')" type="button">
+              <span class="loc-img"><img src="/scenes/black_studio.webp" alt="Studio"></span>
+              <span>Black Studio</span>
+            </button>
           </div>
         </div>
+
       </div>
     </section>
 
 
-    <!-- ── Section 4: Step 04 — Campaign Gallery (UNFOLDS ON STEP 3 COMPLETE) ── -->
+    <!-- ── Section 4: Output Result Gallery (UNFOLDS ON PATHWAY CHOSEN) ── -->
     <section id="step-4" class="l-gallery l-pipeline-step l-section-unfold" data-step-index="4">
       <div class="l-container">
-        <div class="l-step-badge" id="badge-step-4">04 / CAMPAIGN</div>
-        <h3 class="l-gallery-title l-reveal">Art Fashion Campaign Series</h3>
+        <div class="l-step-badge" id="badge-step-4">04 / OUTPUT RESULT</div>
+        <h3 class="l-gallery-title l-reveal" id="result-title">Результат Зйомки</h3>
       </div>
+      
+      <!-- 6-Shot Editorial Gallery -->
       <div class="l-gallery-track" id="gallery-track">
         <div style="width: var(--container-pad); flex-shrink: 0;"></div>
         <div class="l-gallery-item l-reveal">
@@ -330,10 +322,11 @@
         <div style="width: var(--container-pad); flex-shrink: 0;"></div>
       </div>
 
+      <!-- Fashion Motion Reel -->
       <div class="l-container" style="margin-top: 4rem;">
         <h4 class="l-reel-title l-reveal">Fashion Video Motion Reel</h4>
         <div class="l-reel-video l-reveal" id="reel-video">
-          <img src="/scenes/night_neon.webp" alt="Fashion showreel preview" style="width:100%;height:100%;object-fit:cover;opacity:0.75;">
+          <img src="/scenes/night_neon.webp" alt="Fashion showreel preview" style="width:100%;height:100%;object-fit:cover;opacity:0.85;">
           <div class="l-reel-video-placeholder">
             <div class="l-play-btn">
               <svg viewBox="0 0 24 24"><path d="M5 3.29c0-1.5 1.59-2.466 2.92-1.776l14.656 7.71c1.439.747 1.439 2.805 0 3.552L7.92 20.486C6.589 21.176 5 20.21 5 18.71V3.29Z"/></svg>
@@ -350,31 +343,29 @@
         <div class="l-footer-brand">Wardrobe Studio</div>
         <nav class="l-footer-links">
           <a class="l-footer-link" href="#" onclick="goToStep(1)">Identity</a>
-          <a class="l-footer-link" href="#" onclick="goToStep(2)">Wardrobe</a>
-          <a class="l-footer-link" href="#" onclick="goToStep(3)">Atmosphere</a>
-          <a class="l-footer-link" href="#" onclick="goToStep(4)">Campaign</a>
+          <a class="l-footer-link" href="#" onclick="goToStep(2)">Look</a>
+          <a class="l-footer-link" href="#" onclick="goToStep(3)">Pathways</a>
         </nav>
-        <span class="l-footer-copy">© 2026 Wardrobe. Progressive Unfolding Pipeline.</span>
+        <span class="l-footer-copy">© 2026 Wardrobe. High-Contrast Canon Flow.</span>
       </div>
     </footer>
 
   </div><!-- /ui -->
 
   <!-- ============================
-       LAYER 4: WebGL Engine & Progressive Unfolding Controller
+       LAYER 4: WebGL Engine & Canon Controller Script
        ============================ -->
   <script src="/wardrobe-lusion-engine.js"></script>
   <script>
-    // ── Progressive Unfolding Pipeline Controller ──
-    let maxUnlockedStepIndex = 1; // Hero (0) & Identity (1) exist by default
+    let maxUnlockedStepIndex = 1;
     let currentStepIndex = 0;
-    let totalUnlockedSteps = 2; // Steps present in DOM flow
+    let totalUnlockedSteps = 2;
     let isTransitioning = false;
     const transitionCooldownMs = 700;
 
     let avatarSelected = false;
     let garmentsSelected = false;
-    let sceneSelected = false;
+    let pathwayChosen = null;
 
     const stepElements = [
       document.getElementById('step-0'),
@@ -386,10 +377,8 @@
 
     function goToStep(index) {
       if (index < 0 || index >= totalUnlockedSteps || isTransitioning) return;
-      
       isTransitioning = true;
       currentStepIndex = index;
-      
       if (stepElements[index]) {
         stepElements[index].scrollIntoView({ behavior: 'smooth' });
       }
@@ -403,11 +392,10 @@
       setTimeout(() => { isTransitioning = false; }, transitionCooldownMs);
     }
 
-    // ── STEP 1: Select Model / Photo ──
+    // STEP 1: Select Model
     function selectAvatarChip(buttonEl, avatarId) {
       document.querySelectorAll('.l-avatar-chip').forEach(c => c.classList.remove('is-selected'));
       buttonEl.classList.add('is-selected');
-      
       avatarSelected = true;
       unfoldStep2();
     }
@@ -432,26 +420,19 @@
       maxUnlockedStepIndex = 2;
       totalUnlockedSteps = 3;
 
-      // Reveal Section 2 in DOM smoothly
       const sec2 = document.getElementById('step-2');
-      if (sec2) {
-        sec2.classList.add('is-unfolded');
-      }
+      if (sec2) sec2.classList.add('is-unfolded');
 
-      // Unhide HUD Step 2 Button
       const hudStep1 = document.getElementById('hud-step-1');
       if (hudStep1) hudStep1.classList.remove('is-hidden');
 
-      const badge = document.getElementById('badge-step-1');
-      if (badge) badge.textContent = '01 / IDENTITY · ✅ ЗАФІКСОВАНО';
-
+      document.getElementById('badge-step-1').textContent = '01 / IDENTITY · ✅ ЗАФІКСОВАНО';
       document.getElementById('hud-gate-status').textContent = 'ПЕРСОНАЖ ЗАФІКСОВАНИЙ';
 
-      // Smoothly scroll forward to the newly unfolded section!
       setTimeout(() => { goToStep(2); }, 300);
     }
 
-    // ── STEP 2: Check Garments Input ──
+    // STEP 2: Form Approved Look
     function checkStep2Completion() {
       const text = document.getElementById('input-outfit-text')?.value || '';
       const filesCount = Array.from(document.querySelectorAll('.l-garment-box-5 input')).filter(i => i.files?.length > 0).length;
@@ -475,46 +456,59 @@
       const hudStep2 = document.getElementById('hud-step-2');
       if (hudStep2) hudStep2.classList.remove('is-hidden');
 
-      const badge = document.getElementById('badge-step-2');
-      if (badge) badge.textContent = '02 / WARDROBE · ✅ ПРИЙНЯТО';
-
-      document.getElementById('hud-gate-status').textContent = 'ОБРАЗ СФОРМОВАНИЙ';
+      document.getElementById('badge-step-2').textContent = '02 / APPROVED LOOK · ✅ ЗАТВЕРДЖЕНО';
+      document.getElementById('hud-gate-status').textContent = 'ОБРАЗ ЗАТВЕРДЖЕНО · ОБЕРІТЬ НАПРЯМОК';
 
       setTimeout(() => { goToStep(3); }, 300);
     }
 
-    // ── STEP 3: Select Atmosphere Scene ──
-    function selectSceneCard(cardEl) {
-      document.querySelectorAll('.l-project-item').forEach(c => c.classList.remove('is-selected'));
-      cardEl.classList.add('is-selected');
+    // STEP 3: Select Pathway (Photoshoot / Video / Live)
+    function selectPathway(type) {
+      pathwayChosen = type;
 
-      sceneSelected = true;
-      if (window.wardrobeEngine) {
-        window.wardrobeEngine.setThemeColor(cardEl.dataset.colorBg);
+      document.querySelectorAll('.l-pathway-card').forEach(c => c.classList.remove('is-selected'));
+      event.currentTarget.classList.add('is-selected');
+
+      const drawer = document.getElementById('location-drawer');
+
+      if (type === 'photoshoot') {
+        if (drawer) drawer.classList.remove('is-hidden');
+      } else if (type === 'video') {
+        if (drawer) drawer.classList.add('is-hidden');
+        unfoldStep4('Fashion Video Reel');
+      } else if (type === 'live') {
+        if (drawer) drawer.classList.add('is-hidden');
+        alert('Відкриття Live Веб-примірки в реальному часі (Lucy Camera Engine)...');
       }
-      unfoldStep4();
     }
 
-    function unfoldStep4() {
-      if (maxUnlockedStepIndex >= 4) return;
-      maxUnlockedStepIndex = 4;
-      totalUnlockedSteps = 5;
+    function chooseLocation(sceneId, hexColor) {
+      if (window.wardrobeEngine) {
+        window.wardrobeEngine.setThemeColor(hexColor);
+      }
+      unfoldStep4(`Фотосесія · ${sceneId}`);
+    }
 
-      const sec4 = document.getElementById('step-4');
-      if (sec4) sec4.classList.add('is-unfolded');
+    function unfoldStep4(titleText) {
+      if (maxUnlockedStepIndex < 4) {
+        maxUnlockedStepIndex = 4;
+        totalUnlockedSteps = 5;
 
-      const hudStep3 = document.getElementById('hud-step-3');
-      if (hudStep3) hudStep3.classList.remove('is-hidden');
+        const sec4 = document.getElementById('step-4');
+        if (sec4) sec4.classList.add('is-unfolded');
 
-      const badge = document.getElementById('badge-step-3');
-      if (badge) badge.textContent = '03 / ATMOSPHERE · ✅ СЦЕНА ОБРАНА';
+        document.getElementById('hud-gate-status').textContent = 'РЕЗУЛЬТАТ СФОРМОВАНО';
+      }
 
-      document.getElementById('hud-gate-status').textContent = 'ЗЙОМКА СФОРМОВАНА';
+      if (titleText) {
+        const titleEl = document.getElementById('result-title');
+        if (titleEl) titleEl.textContent = titleText;
+      }
 
       setTimeout(() => { goToStep(4); }, 300);
     }
 
-    // ── Intercept Wheel Gestures for Progressive Unfolding ──
+    // Intercept Wheel Gestures
     window.addEventListener('wheel', (e) => {
       if (isTransitioning) { e.preventDefault(); return; }
       const threshold = 25;
@@ -523,7 +517,7 @@
           e.preventDefault();
           goToStep(currentStepIndex + 1);
         } else if (currentStepIndex >= totalUnlockedSteps - 1) {
-          e.preventDefault(); // Cannot scroll past end of unfolded page!
+          e.preventDefault();
         }
       } else if (e.deltaY < -threshold) {
         if (currentStepIndex > 0) { e.preventDefault(); goToStep(currentStepIndex - 1); }
@@ -536,14 +530,11 @@
     window.addEventListener('touchend', (e) => {
       if (isTransitioning) return;
       const deltaY = touchStartY - e.changedTouches[0].clientY;
-      if (deltaY > 50 && currentStepIndex < totalUnlockedSteps - 1) {
-        goToStep(currentStepIndex + 1);
-      } else if (deltaY < -50 && currentStepIndex > 0) {
-        goToStep(currentStepIndex - 1);
-      }
+      if (deltaY > 50 && currentStepIndex < totalUnlockedSteps - 1) goToStep(currentStepIndex + 1);
+      else if (deltaY < -50 && currentStepIndex > 0) goToStep(currentStepIndex - 1);
     }, { passive: true });
 
-    // ── Switch 10 W-Outfit Variations ──
+    // Switch 10 W-Outfit Variations
     function switchWVariation(index) {
       document.querySelectorAll('.w-var-chip').forEach((chip, i) => {
         if (i === index) chip.classList.add('is-active');
