@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#080a0c">
+  <title>Made For This · Обери продовження</title>
+  <style>
+    :root { color-scheme: dark; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    * { box-sizing: border-box; }
+    body { min-width: 320px; min-height: 100dvh; margin: 0; overflow-x: hidden; color: #f8f9f5; background: #080a0c; }
+    .universe { position: relative; isolation: isolate; display: grid; min-height: 100dvh; padding: clamp(16px, 3vw, 40px); overflow: hidden; background: radial-gradient(circle at 50% -20%, #202723 0, transparent 39%), #080a0c; }
+    .noise { position: absolute; z-index: -1; inset: 0; opacity: .18; pointer-events: none; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.7'/%3E%3C/svg%3E"); }
+    .topline { display: flex; align-items: center; justify-content: space-between; gap: 16px; width: min(1120px, 100%); margin: 0 auto clamp(18px, 3vh, 32px); }
+    .brand { display: inline-flex; align-items: center; gap: 10px; color: #f7f8f3; font-size: 11px; font-weight: 750; letter-spacing: .18em; text-decoration: none; }
+    .brand-mark { display: grid; width: 29px; height: 29px; place-items: center; border: 1px solid #d5ff59; border-radius: 50%; color: #d5ff59; font-family: Georgia, serif; font-size: 17px; font-style: italic; letter-spacing: 0; }
+    .preview-label { color: #a6ad9c; font-size: 9px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; }
+    .intro { width: min(1120px, 100%); margin: 0 auto clamp(20px, 3vh, 34px); }
+    .eyebrow { margin: 0 0 7px; color: #b8ff4c; font-size: 10px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; }
+    h1 { max-width: 780px; margin: 0; font-family: Georgia, "Times New Roman", serif; font-size: clamp(34px, 5vw, 68px); font-weight: 400; letter-spacing: -.06em; line-height: .91; }
+    h1 em { color: #dae7d2; font-weight: 400; }
+    .intro p { max-width: 510px; margin: 15px 0 0; color: #a9afa6; font-size: 13px; line-height: 1.45; }
+    .action-grid { display: grid; grid-template-columns: repeat(12, 1fr); grid-auto-rows: minmax(116px, 1fr); gap: clamp(9px, 1.2vw, 15px); width: min(1120px, 100%); min-height: min(500px, 56dvh); margin: 0 auto; }
+    .action-card { --light: #d5ff59; --wash: rgba(213,255,89,.18); --size: 1; position: relative; display: flex; min-width: 0; flex-direction: column; align-items: flex-start; justify-content: space-between; padding: clamp(15px, 2vw, 23px); overflow: hidden; border: 1px solid color-mix(in srgb, var(--light) 30%, #ffffff 10%); border-radius: 22px; color: inherit; background: linear-gradient(135deg, color-mix(in srgb, var(--wash) 45%, #111512 20%), #111311 62%); box-shadow: inset 0 1px 0 rgba(255,255,255,.12), 0 12px 42px rgba(0,0,0,.22); text-align: left; text-decoration: none; transition: transform .35s cubic-bezier(.2,.8,.2,1), border-color .35s, box-shadow .35s; }
+    .action-card::before { position: absolute; inset: -64%; z-index: -1; border: 1px solid color-mix(in srgb, var(--light) 50%, transparent); border-radius: 48%; opacity: .44; content: ""; transform: rotate(15deg); animation: orbit calc(25s / var(--size)) linear infinite; }
+    .action-card::after { position: absolute; z-index: -1; width: 110%; aspect-ratio: 1; border-radius: 50%; content: ""; filter: blur(24px); opacity: calc(.16 * var(--size)); background: radial-gradient(circle, var(--light), transparent 68%); transform: translate(-42%, -46%); animation: glow calc(6s / var(--size)) ease-in-out infinite alternate; }
+    .action-card:hover, .action-card:focus-visible { border-color: var(--light); outline: 0; box-shadow: inset 0 1px 0 rgba(255,255,255,.22), 0 0 calc(20px * var(--size)) var(--wash), 0 18px 45px rgba(0,0,0,.34); transform: translateY(-4px) scale(1.012); }
+    .action-card:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+    .card-top { display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 9px; }
+    .number, .state { font-size: 9px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+    .number { color: var(--light); }
+    .state { padding: 5px 7px; border: 1px solid color-mix(in srgb, var(--light) 40%, transparent); border-radius: 99px; color: #e8eee3; background: rgba(5,7,6,.28); }
+    .card-bottom { max-width: 270px; }
+    .card-bottom h2 { margin: 0; font-size: clamp(19px, 2vw, 29px); font-weight: 650; letter-spacing: -.055em; line-height: .98; }
+    .card-bottom p { margin: 8px 0 0; color: #c0c6bd; font-size: 11px; line-height: 1.35; }
+    .card-arrow { position: absolute; right: 17px; bottom: 15px; color: var(--light); font-size: 24px; line-height: 1; transition: transform .3s ease; }
+    .action-card:hover .card-arrow, .action-card:focus-visible .card-arrow { transform: translate(3px, -3px); }
+    .refine { --light: #c9ff75; --wash: rgba(161,255,80,.22); --size: 1; grid-column: span 3; }
+    .background { --light: #ffd65c; --wash: rgba(255,186,49,.24); --size: 1.28; grid-column: span 3; }
+    .photoshoot { --light: #77b9ff; --wash: rgba(55,129,255,.25); --size: 1.55; grid-column: span 3; }
+    .video { --light: #ff6767; --wash: rgba(255,54,54,.28); --size: 1.85; grid-column: span 3; }
+    .realtime { --light: #c789ff; --wash: rgba(163,62,255,.32); --size: 2.25; grid-column: 3 / span 8; min-height: 168px; }
+    .realtime .card-bottom { max-width: 440px; }
+    .realtime::after { width: 60%; opacity: .48; transform: translate(8%, -25%); }
+    .complexity { display: inline-flex; align-items: center; gap: 5px; margin-top: 12px; color: var(--light); font-size: 9px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+    .complexity i { display: block; width: 27px; height: 2px; background: linear-gradient(90deg, var(--light) calc(var(--level) * 20%), rgba(255,255,255,.2) 0); }
+    .footer { display: flex; align-items: center; justify-content: space-between; gap: 16px; width: min(1120px, 100%); margin: clamp(16px, 3vh, 32px) auto 0; color: #8e958c; font-size: 10px; line-height: 1.35; }
+    .footer strong { color: #dfe5d9; font-weight: 650; }
+    @keyframes orbit { to { transform: rotate(375deg); } }
+    @keyframes glow { to { transform: translate(-16%, -18%) scale(1.18); opacity: calc(.26 * var(--size)); } }
+    @media (max-width: 700px) { body { min-height: 100svh; } .universe { padding: max(14px, env(safe-area-inset-top)) 14px max(16px, env(safe-area-inset-bottom)); } .topline { margin-bottom: 17px; } .intro { margin-bottom: 18px; } h1 { font-size: clamp(35px, 11vw, 52px); } .intro p { margin-top: 11px; font-size: 11px; } .action-grid { grid-template-columns: repeat(2, 1fr); grid-auto-rows: 118px; min-height: 0; gap: 9px; } .action-card { grid-column: auto; padding: 14px; border-radius: 18px; } .card-bottom h2 { font-size: 19px; } .card-bottom p { font-size: 10px; } .card-arrow { right: 13px; bottom: 12px; font-size: 20px; } .realtime { grid-column: 1 / -1; min-height: 130px; } .footer { margin-top: 16px; font-size: 9px; } .footer span:last-child { display: none; } }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation: none !important; transition: none !important; } .action-card::after { opacity: .2; } }
+  </style>
+</head>
+<body>
+  <main class="universe">
+    <div class="noise" aria-hidden="true"></div>
+    <header class="topline">
+      <a class="brand" href="/" aria-label="Повернутися до Zeely"><span class="brand-mark">Z</span> ZEELY LAB</a>
+      <span class="preview-label">Visual prototype · CHOICE.01</span>
+    </header>
+
+    <section class="intro" aria-labelledby="choice-title">
+      <p class="eyebrow">Master look approved</p>
+      <h1 id="choice-title">Куди <em>продовжимо</em> образ?</h1>
+      <p>Один збережений образ — п’ять різних напрямків. Це візуальна перевірка вибору: кнопки поки нічого не запускають.</p>
+    </section>
+
+    <section class="action-grid" aria-label="Напрямки образу">
+      <button class="action-card refine" type="button" aria-label="Покращити образ, візуальний прототип">
+        <span class="card-top"><span class="number">01 · REFINE</span><span class="state">Candidate</span></span>
+        <span class="card-bottom"><h2>Покращити<br>образ</h2><p>Зачіска, легкий макіяж, поза.</p><span class="complexity" style="--level:1"><i></i> Рівень 1</span></span><span class="card-arrow" aria-hidden="true">↗</span>
+      </button>
+      <button class="action-card background" type="button" aria-label="Додати фон, візуальний прототип">
+        <span class="card-top"><span class="number">02 · BACKGROUND</span><span class="state">16 scenes</span></span>
+        <span class="card-bottom"><h2>Додати<br>фон</h2><p>Один образ у новій сцені.</p><span class="complexity" style="--level:2"><i></i> Рівень 2</span></span><span class="card-arrow" aria-hidden="true">↗</span>
+      </button>
+      <button class="action-card photoshoot" type="button" aria-label="Створити фотозйомку, візуальний прототип">
+        <span class="card-top"><span class="number">03 · PHOTO SHOOT</span><span class="state">8 styles</span></span>
+        <span class="card-bottom"><h2>Створити<br>фотозйомку</h2><p>Стиль, кадри, contact sheet.</p><span class="complexity" style="--level:3"><i></i> Рівень 3</span></span><span class="card-arrow" aria-hidden="true">↗</span>
+      </button>
+      <button class="action-card video" type="button" aria-label="Fashion Video, візуальний прототип">
+        <span class="card-top"><span class="number">04 · FASHION VIDEO</span><span class="state">Seedance 2</span></span>
+        <span class="card-bottom"><h2>Fashion<br>Video</h2><p>Рух із locked master-look.</p><span class="complexity" style="--level:4"><i></i> Рівень 4</span></span><span class="card-arrow" aria-hidden="true">↗</span>
+      </button>
+      <button class="action-card realtime" type="button" aria-label="Real-time Look, візуальний прототип">
+        <span class="card-top"><span class="number">05 · REAL-TIME LOOK</span><span class="state">Camera + consent</span></span>
+        <span class="card-bottom"><h2>Real-time Look</h2><p>Камера, локальний preview і лише за явною згодою — коротка generative-live сесія.</p><span class="complexity" style="--level:5"><i></i> Рівень 5 · найбільша взаємодія</span></span><span class="card-arrow" aria-hidden="true">↗</span>
+      </button>
+    </section>
+
+    <footer class="footer"><span><strong>Preview only.</strong> Світло показує складність режиму, не готовність і не ціну.</span><span>Slow orbit · Reduced-motion safe</span></footer>
+  </main>
+</body>
+</html>

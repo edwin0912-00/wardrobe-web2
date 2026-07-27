@@ -31,20 +31,27 @@ async function loadReference(file) {
   ready();
 }
 async function loadSavedLookReference(lookId) {
-  const response = await fetch(`/api/profile/looks/${encodeURIComponent(lookId)}/image`, {
+  await loadReferenceUrl(
+    `/api/profile/looks/${encodeURIComponent(lookId)}/image`,
+    `look-${lookId}.png`,
+    'Вибраний образ · READY',
+  );
+}
+async function loadReferenceUrl(url, fileName, readyLabel) {
+  const response = await fetch(url, {
     credentials: 'same-origin',
     cache: 'no-store',
   });
-  if (!response.ok) throw new Error('Не вдалося відкрити вибраний образ.');
+  if (!response.ok) throw new Error('Не вдалося відкрити тестовий образ.');
   const blob = await response.blob();
-  const file = new File([blob], `look-${lookId}.png`, {
+  const file = new File([blob], fileName, {
     type: blob.type || 'image/png',
     lastModified: Date.now(),
   });
   await loadReference(file);
   $('#reference-upload').disabled = true;
   $('.reference-control').classList.add('is-bound');
-  $('#reference-status').textContent = 'Вибраний образ · READY';
+  $('#reference-status').textContent = readyLabel;
 }
 async function startCamera() {
   if (!window.isSecureContext) throw new Error('Камера потребує HTTPS.');
@@ -162,10 +169,16 @@ $('#lucy-stop').addEventListener('click', () => closeLive());
 window.addEventListener('pagehide', stopCamera);
 ready();
 const selectedLookId = query.get('look');
+const demoOutfit = query.get('demo') === 'outfit';
 if (query.get('embed') === '1') document.body.classList.add('is-embedded');
 if (selectedLookId) {
   status('Завантажуємо вибраний образ…');
   loadSavedLookReference(selectedLookId)
     .then(() => status('Образ готовий. Увімкни камеру.'))
+    .catch((error) => status(`Помилка образу: ${error.message}`));
+} else if (demoOutfit) {
+  status('Завантажуємо тестовий outfit…');
+  loadReferenceUrl('/live-test-outfit.png?v=20260728-1', 'live-test-outfit.png', 'Hoodie + sneakers · READY')
+    .then(() => status('Outfit готовий. Увімкни камеру.'))
     .catch((error) => status(`Помилка образу: ${error.message}`));
 }
