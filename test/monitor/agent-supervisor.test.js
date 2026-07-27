@@ -211,6 +211,64 @@ test('a malformed persisted stall incident is repaired from the current run and 
   assert.equal(events.filter((event) => event.type === 'agent.stall_heartbeat').length, 1);
 });
 
+test('a future persisted stall heartbeat is reset and emits a current recovery heartbeat', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'zeely-supervisor-future-heartbeat-'));
+  const runId = '68686868-6868-4686-8686-686868686868';
+  const now = new Date('2026-07-27T01:00:00.000Z');
+  const checkpointAt = new Date(now.valueOf() - 1_500_001).toISOString();
+  await mkdir(path.join(root, 'runs', runId), { recursive: true });
+  await writeFile(path.join(root, 'runs', runId, 'run.json'), JSON.stringify({
+    run_id: runId,
+    status: 'RUNNING',
+    phase: 'CORE_PIPELINE',
+    message: 'Pipeline checkpoint has not advanced',
+    updated_at: checkpointAt,
+  }));
+  const store = new MonitorEventStore({ filename: path.join(root, 'events.jsonl'), clock: () => now });
+  await store.initialize();
+  const initial = new AgentSupervisor({
+    store,
+    runsRoot: path.join(root, 'runs'),
+    stateRoot: path.join(root, 'supervisor'),
+    sourceRoot: root,
+    clock: () => now,
+    agentEnabled: false,
+  });
+  t.after(() => initial.close());
+  await initial.initialize();
+  await initial.tick();
+  const firstState = await readSupervisorState(root);
+  const [incidentId] = Object.keys(firstState.incidents);
+  await seedSupervisorState(root, {
+    ...firstState,
+    incidents: {
+      [incidentId]: {
+        ...firstState.incidents[incidentId],
+        last_heartbeat_at: new Date(now.valueOf() + (24 * 60 * 60_000)).toISOString(),
+      },
+    },
+    active_incident: null,
+    active_lease: null,
+  });
+
+  const restarted = new AgentSupervisor({
+    store,
+    runsRoot: path.join(root, 'runs'),
+    stateRoot: path.join(root, 'supervisor'),
+    sourceRoot: root,
+    clock: () => now,
+    agentEnabled: false,
+  });
+  t.after(() => restarted.close());
+  await restarted.initialize();
+  await restarted.tick();
+
+  const repaired = (await readSupervisorState(root)).incidents[incidentId];
+  assert.equal(repaired.last_heartbeat_at, now.toISOString());
+  const events = await store.tail(20);
+  assert.equal(events.filter((event) => event.type === 'agent.stall_heartbeat').length, 1);
+});
+
 test('a heartbeat leaves an active stall recovery attached to its settling worker', async (t) => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'zeely-supervisor-stall-active-'));
   const runId = '77777777-7777-4777-8777-777777777777';

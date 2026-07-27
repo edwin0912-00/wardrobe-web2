@@ -209,7 +209,10 @@ export class AgentSupervisor {
       ? 'stopped'
       : !active && requestedStatus === 'running' ? 'queued' : requestedStatus;
     const createdAt = canonicalIsoTimestamp(legacy.created_at) ?? now.toISOString();
-    const lastHeartbeatAt = canonicalIsoTimestamp(legacy.last_heartbeat_at);
+    const legacyHeartbeatAt = canonicalIsoTimestamp(legacy.last_heartbeat_at);
+    const lastHeartbeatAt = legacyHeartbeatAt && Date.parse(legacyHeartbeatAt) <= now.valueOf()
+      ? legacyHeartbeatAt
+      : null;
     const exactDiagnostic = (() => {
       try {
         const normalized = normalizeStallDiagnostic(legacy.diagnostic);

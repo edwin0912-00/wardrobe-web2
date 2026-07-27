@@ -18,6 +18,31 @@ const service = {
   outputFile: async () => null, retry: async () => null, deleteRun: async () => {},
 };
 
+async function readFirstMonitorStreamEvent(app) {
+  const address = await app.listen({ host: '127.0.0.1', port: 0 });
+  const controller = new AbortController();
+  let reader;
+  try {
+    const response = await fetch(`${address}/api/monitor/stream`, { signal: controller.signal });
+    assert.equal(response.status, 200);
+    reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let payload = '';
+    while (!payload.includes('\n\n')) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      payload += decoder.decode(value, { stream: true });
+    }
+    const line = payload.split('\n').find((candidate) => candidate.startsWith('data: '));
+    assert.ok(line, 'monitor stream must emit one JSON event');
+    return JSON.parse(line.slice('data: '.length));
+  } finally {
+    controller.abort();
+    await reader?.cancel().catch(() => {});
+    await app.close();
+  }
+}
+
 test('monitor store appends structured events and returns a bounded tail', async () => {
   const monitor = await store();
   await monitor.append({ source: 'test', type: 'run.phase', run_id: 'run-1', data: { stage: 'UPLOADED' } });
@@ -102,6 +127,48 @@ test('monitor routes suppress malformed legacy stall payloads', async () => {
   assert.deepEqual(event.data, { diagnostic_code: 'DIAGNOSTIC_UNAVAILABLE' });
   assert.doesNotMatch(response.body, /RAW_LEGACY_PROMPT_DO_NOT_EMIT|TOKEN_VALUE_DO_NOT_EMIT/);
   await app.close();
+});
+
+test('monitor REST and SSE project historical non-stall events through the same strict public schema', async () => {
+  const monitor = await store();
+  const localPath = ['', 'private', 'monitor', 'provider-response.json'].join('/');
+  await appendFile(monitor.filename, `${JSON.stringify({
+    id: '99999999-9999-4999-8999-999999999999',
+    at: '2026-07-27T01:00:00.000Z',
+    source: 'runner',
+    type: 'run.phase',
+    severity: 'info',
+    run_id: '55555555-5555-4555-8555-555555555555',
+    data: {
+      status: 'RUNNING',
+      stage: 'CORE_PIPELINE',
+      message: 'UNTRUSTED_MESSAGE',
+      provider_payload: { response: 'UNTRUSTED_PROVIDER_RESPONSE' },
+      error: 'UNTRUSTED_ERROR',
+      prompt: 'UNTRUSTED_PROMPT',
+      local_path: localPath,
+    },
+    raw_error: 'UNTRUSTED_TOP_LEVEL_ERROR',
+  })}\n`, 'utf8');
+
+  const app = await createWebApp({ service, monitor });
+  const rest = await app.inject({ method: 'GET', url: '/api/monitor/events' });
+  assert.equal(rest.statusCode, 200);
+  const [restEvent] = rest.json().events;
+  const streamEvent = await readFirstMonitorStreamEvent(app);
+  const expected = {
+    id: '99999999-9999-4999-8999-999999999999',
+    at: '2026-07-27T01:00:00.000Z',
+    source: 'runner',
+    type: 'run.phase',
+    severity: 'info',
+    run_id: '55555555-5555-4555-8555-555555555555',
+    data: { status: 'RUNNING', stage: 'CORE_PIPELINE' },
+  };
+  assert.deepEqual(restEvent, expected);
+  assert.deepEqual(streamEvent, expected);
+  const publicPayload = JSON.stringify({ restEvent, streamEvent });
+  assert.doesNotMatch(publicPayload, /UNTRUSTED_(?:MESSAGE|PROVIDER_RESPONSE|ERROR|PROMPT|TOP_LEVEL_ERROR)|provider-response\.json/);
 });
 
 test('client telemetry accepts only allowlisted event types and data fields', async () => {
