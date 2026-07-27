@@ -7,6 +7,9 @@ publishes an `ONLINE` update to `beta`, and can keep the live board open.
 Set `WARDROBE_AGENT_LABEL` before bootstrap for a readable generated ID, for
 example `antigravity-20260727-a1b2c3`.
 
+Ready-made entries are in `tools/agent-entry/`: `claude-code.sh`,
+`antigravity.sh`, and `opencloud.sh`.
+
 After bootstrap, read in this order:
 
 1. `AGENTS.md` — hard rules and what is forbidden.

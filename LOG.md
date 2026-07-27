@@ -17,6 +17,15 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-07-27 · FAST-007 · beta · dedicated external-agent entries
+Change: add distinct bootstrap entry files for Claude Code, Antigravity, and
+OpenCloud.
+Why: each external agent needs an unmistakable identity prefix without manual
+environment configuration.
+Evidence: each wrapper fixes only its label and delegates to the tested shared
+bootstrap; generated instance IDs remain unique.
+weakened_checks: none.
+
 2026-07-27 · FAST-006 · beta · readable generated agent IDs
 Change: bootstrap now prefixes each generated unique ID with an optional agent
 label, while retaining random uniqueness.
