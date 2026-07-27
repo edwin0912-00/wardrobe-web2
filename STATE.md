@@ -53,9 +53,16 @@
 - `docs/VIDEO_LIVE_CANON_UA.md` defines the current approved product boundary:
   fashion motion is source-bound; Live Director is local-first; a generated
   webcam result is labelled delayed preview and requires explicit capture.
-- `BETA-POST-SHOOT-001` is now owned by external agent `codex-live-20260727`.
-  It is an in-progress UI/pipeline MVP for approved shoot → Video/Lucy Live;
-  its current source changes are not yet a tested or deployed beta feature.
+- `BETA-POST-SHOOT-001` was owned by external agent `codex-live-20260727` and
+  is now beta-smoked as the local/mock approved shoot → Video/Lucy Live MVP.
+- Beta release `37e51c8` is active and health is `ready`. The post-shoot mock
+  UI and validated graph API are live; real paid Lucy/WebRTC is deliberately
+  disabled. All five `shoot.*` previews return HTTP 200.
+- Standard-background expansion is not accepted: 11 new production plates are
+  deployed but the live catalog exposes only 5 canonical cards, while the
+  committed config has 21 presets against a strict maximum of 10 and fails 4
+  focused catalog tests. The required resolution is a product/catalog decision,
+  not a test relaxation.
 
 Updated: 2026-07-27 08:55 UTC.
 

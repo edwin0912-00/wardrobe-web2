@@ -17,6 +17,17 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-07-27 · BETA-RELEASE-001 · beta `37e51c8` · latest committed product smoke
+Change: activate all latest committed beta work, including post-shoot MVP and
+production background assets, then run focused local and live API/UI smoke.
+Why: committed product work must be visible on beta immediately, while real
+contract failures must remain visible rather than be represented as delivery.
+Evidence: health `ready`; `/post-shoot-mvp.html` HTTP 200; post-shoot graph API
+HTTP 200; five `shoot.*` previews HTTP 200; focused suite 44/49 PASS. Four
+background-catalog failures are new (21 config entries versus strict 10); one
+production-pack SHA mismatch is the known Terracotta condition.
+weakened_checks: none; BETA-STD-001 remains BLOCKED.
+
 2026-07-27 · COORD-POST-SHOOT-001 · beta · external video/live owner recorded
 Change: record `codex-live-20260727` as the sole in-progress owner of the
 approved-shoot → Video/Lucy Live MVP and broadcast its reserved scope.
