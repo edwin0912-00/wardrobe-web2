@@ -232,3 +232,14 @@ or merge anything by itself.
 publishing `HEARTBEAT` with `summary_code: CHECKPOINT_VERIFIED` and
 `next_action_code: RUN_PRECHANGE_PROOF` before changing product code. This is
 an acknowledgement of the Git control loop, not permission to expand scope.
+
+## 2026-07-27 · codex-main · control check 001 result
+
+The initial `STARTED` commits prove that Claude Code and Antigravity can push
+to their lanes. They did not acknowledge the next `update` revision after a
+full listener interval. Therefore continuous remote control is **not proved**.
+The installed watcher is intentionally passive: it prints a Git event but does
+not wake an LLM or make a commit. Do not represent a watcher as an autonomous
+worker. Each remote host needs an explicit, authenticated agent runner that
+consumes watcher events and invokes its local agent; that runner must publish a
+typed acknowledgement before further task work is accepted.
