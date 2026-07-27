@@ -1,18 +1,18 @@
 {
   "schema_version": "1.0.0",
-  "preset_id": "shoot.sky_dune_surreal",
+  "preset_id": "shoot.ochre_stage_tailoring",
   "kind": "editorial",
   "family": "create_universe",
-  "ui_name_uk": "Небо й дюна · сюрреалізм",
+  "ui_name_uk": "Охра · сценічний кравець",
   "asset_role": "mood_card",
-  "file": "assets/scene-mood-cards/shoot.sky_dune_surreal.webp",
-  "sha256": "415d09e80eb31b4238b17001e85f57ef28a1cb1f3bf236b1e6a050a368cc0385",
+  "file": "assets/scene-mood-cards/shoot.ochre_stage_tailoring.webp",
+  "sha256": "87c4cea1529a6b3f65fb1de92249663c18e7275eaf666caa958d502a5a35966e",
   "origin": {
     "kind": "OWNER_SUPPLIED_STYLE_FRAME",
     "note": "Frame supplied by the owner as the style reference for this unit. Cover-cropped to 4:5 and re-encoded; no generation, no retouch.",
-    "source_width": 1968,
-    "source_height": 2464,
-    "source_sha256": "bc8331019e3e8a1de6043124e32f967c7eaae99e487bae50eda26cd83269bcaf"
+    "source_width": 928,
+    "source_height": 1232,
+    "source_sha256": "f7e62f7b63793930a9b4c205e67910a4a778d9aaa338416572edc81f684fb96b"
   },
   "delivery": {
     "width": 1024,

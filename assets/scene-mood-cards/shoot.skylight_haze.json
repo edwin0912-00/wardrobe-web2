@@ -6,13 +6,13 @@
   "ui_name_uk": "Скляний дах · теплий серпанок",
   "asset_role": "mood_card",
   "file": "assets/scene-mood-cards/shoot.skylight_haze.webp",
-  "sha256": "629c1312d4aef7f2f285388be3f7cc2891256a9ab7c9a948230a054afb3d4800",
+  "sha256": "c9fc3bc9bf66494dd72cd906bda0761f38feb3da5ca8db68bf2a7b9b8eb0baf8",
   "origin": {
-    "kind": "REAL_SHOOT_FRAME",
-    "file": "002-skylight_haze.png",
-    "source_width": 1856,
-    "source_height": 2304,
-    "note": "Delivered photoshoot frame for this style unit, cover-cropped to 4:5. No new generation."
+    "kind": "OWNER_SUPPLIED_STYLE_FRAME",
+    "note": "Frame supplied by the owner as the style reference for this unit. Cover-cropped to 4:5 and re-encoded; no generation, no retouch.",
+    "source_width": 928,
+    "source_height": 1232,
+    "source_sha256": "381de785933225b0b977b218e542d53e500c6f6c063f95d87f01d1cff154d97c"
   },
   "delivery": {
     "width": 1024,

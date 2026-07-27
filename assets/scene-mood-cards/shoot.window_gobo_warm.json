@@ -6,13 +6,13 @@
   "ui_name_uk": "Тепле вікно · gobo-тінь",
   "asset_role": "mood_card",
   "file": "assets/scene-mood-cards/shoot.window_gobo_warm.webp",
-  "sha256": "841a0217f941c5a587e0113d27cc22a31026dc1d647944f32d3b363636c08860",
+  "sha256": "6e95433cf70ab2c81f35308ad7cbc429669ddfcdd35ab7ca8b60abb1f3b0aa88",
   "origin": {
-    "kind": "REAL_SHOOT_FRAME",
-    "file": "001-window_gobo_warm.png",
-    "source_width": 1856,
-    "source_height": 2304,
-    "note": "Delivered photoshoot frame for this style unit, cover-cropped to 4:5. No new generation."
+    "kind": "OWNER_SUPPLIED_STYLE_FRAME",
+    "note": "Frame supplied by the owner as the style reference for this unit. Cover-cropped to 4:5 and re-encoded; no generation, no retouch.",
+    "source_width": 928,
+    "source_height": 1232,
+    "source_sha256": "c305ccae7abb38bd9562e189a6ba7728bc29898c47551b4f66c1781c68eefe97"
   },
   "delivery": {
     "width": 1024,
