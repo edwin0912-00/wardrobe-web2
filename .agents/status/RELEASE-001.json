@@ -1,0 +1,14 @@
+{
+  "schema_version": "1.0.0",
+  "task_id": "RELEASE-001",
+  "agent_id": "release-target",
+  "branch": "lane/RELEASE-001/release-target",
+  "base_sha": "5df0df404f3ed5ffb81d1c4490da57f042920bed",
+  "lease_generation": 3,
+  "state": "STARTED",
+  "observed_at": "2026-07-27T08:59:37.515Z",
+  "observed_head_sha": "1c74369b2f4b8937dade42d9bf16f423ac447085",
+  "summary_code": "CONTEXT_READ",
+  "next_action_code": "RUN_PRECHANGE_PROOF",
+  "blocker_code": null
+}
