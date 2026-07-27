@@ -198,6 +198,10 @@ rebasing. The broad release suite remains a later candidate gate.
   of photoshoots/backgrounds. `BACKGROUND_VIDEO.01–04` begins only from an
   approved background result and offers exactly product-focused garment motion
   or model posing. Neither route is live or implemented by this decision.
+- The planned post-look selector is a five-card `CHOICE.01–02` universe:
+  Improve, Background, Photoshoot, Fashion Video and user-facing
+  **Real-time Look** (technical `LIVE_WEBCAM`). Its color/motion hierarchy is
+  a proposed UI contract only; no animated production UI has been shipped.
 
 - Beta preview delivery is content-addressed as of the preview-revision fix:
   background and Create Universe catalog cards carry the SHA-256 of their

@@ -17,6 +17,16 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-07-28 · CHOICE.01–02 · beta · Real-time Look and choice-universe canon
+Change: name the user-facing webcam route Real-time Look and define five
+distinct post-look action cards with slow spotlight/glow motion.
+Why: the operator wants all continuations to feel desirable and visibly
+different while their light intensity communicates mode complexity.
+Evidence: `PIPELINE.md` defines color, motion, reduced-motion and honest-state
+rules; `docs/VIDEO_LIVE_CANON_UA.md` maps Real-time Look to `LIVE_WEBCAM`.
+No UI code, camera operation, provider call or beta release was performed.
+weakened_checks: none.
+
 2026-07-28 · VIDEO product split · beta · operator decision recorded
 Change: split primary Fashion Video from the later, simpler background-video
 product and define their different entry points and goals.
