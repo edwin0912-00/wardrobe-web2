@@ -1,8 +1,15 @@
 Agent ID: codex-main
-Task ID: COORDINATION — BETA RECONCILIATION
-Commit tested: 39442c4
-Rationale/decision: align board claims to the exact running beta commit before assigning further work.
-Result: VERIFIED — current release truth and agent next actions are recorded in UPDATE.md/STATE.md.
-Evidence command: focused non-billable suite 20/20; beta health ready; catalog 16; editorial modes 9; unconsented Lucy route 409.
-Help request: NONE
-Next action: observe agent acknowledgements and merge only focused, evidence-backed work.
+Task ID: BETA-POSTSHOOT-CHOICE-001
+Protocol ACK: b9882f8
+Commit tested: 39e369a
+Rationale/decision: the saved look is the approved source. It must visibly
+offer Photoshoot, Fashion video and Live camera as distinct next products;
+Video stays explicitly unavailable until its real Seedance route, QA and
+persistence exist rather than being disguised as a mock clip.
+Result: READY_FOR_BETA_DEPLOY — focused source/UI proof is complete; host
+activation and a narrow live smoke are the next atomic action.
+Evidence command: node --test test/web/profile-ui-flow.test.js (9/9 PASS).
+weakened_checks: none.
+Help request: NONE.
+Next action: activate exact commit 39e369a on beta and smoke the saved-look
+choice surface.
