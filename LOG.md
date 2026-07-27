@@ -17,6 +17,23 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-07-27 · CTRL-002 / recovery dispatch · integration 66968f9
+Change: mark CTRL-002 DONE after PR #22, retire stale or invalid duplicate
+leases, and issue MONITOR-002, UI-002, and FASHION-001 as three disjoint
+current-base lanes.
+Why: the previous remote assignments either had no fresh heartbeat/product
+diff, requested a regression against code that already contained the repair,
+or targeted a backend that already met the stated ownership contract. The new
+lanes cover the actual remaining user-visible flow, live diagnostic evidence,
+and fashion-shoot contact-sheet foundation without paid generation or copied
+media.
+Evidence: CTRL-002 isolated acceptance and independent review passed before
+merge; the queue candidate validates with exact task status paths, pinned
+context blobs, no active lock/scope overlap, and a 04:38 UTC hard stop.
+The known global baseline failure remains reproducible on its own historical
+base and is not represented as green.
+weakened_checks: none.
+
 2026-07-27 · CTRL-002 · active status-path grants
 Change: grant each current active task exactly one matching
 `.agents/status/<task-id>.json` path.
