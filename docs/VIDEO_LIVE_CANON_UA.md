@@ -9,7 +9,7 @@
 1. **Додати фон** — окремий стандартний фон.
 2. **Photoshoot** — фотозйомка в обраному style unit.
 3. **Fashion Video** — первинне відео з master-look.
-4. **Live** — примірка одягу з камерою.
+4. **Real-time Look** — примірка одягу з камерою.
 
 Порядок і взаємне розташування цих блоків ще можуть змінитися; зафіксована
 саме точка входу. Затверджена фотозйомка і фон не є передумовою Fashion
@@ -212,7 +212,7 @@ WebRTC/LiveKit не потрібні для Local Live Director. Вони пот
 
 ## Privacy canon для webcam
 
-1. Camera permission запитується тільки після натискання «Live camera».
+1. Camera permission запитується тільки після натискання «Real-time Look».
 2. Local preview за замовчуванням залишається в браузері. Lucy media передається
    тільки після окремого generative-live consent через заявлений WebRTC route.
 3. Немає прихованого recording, upload чи background capture.
@@ -234,12 +234,16 @@ clip поруч із цим кадром`.
 
 ### Live Camera
 
-`Approved master-look → Live camera consent → local preview → cost consent →
+У UI цей напрям називається **Real-time Look**; `LIVE_WEBCAM` — лише
+технічна назва pipeline. Його фіолетова анімація не є заявою, що камера вже
+увімкнена або що provider session створено.
+
+`Approved master-look → Real-time Look → camera consent → local preview → cost consent →
 bounded Lucy WebRTC stream → Stop/Capture → explicit Save`.
 
 Будь-який стан помилки називає конкретну дію: повторити clip, обрати інший
 source frame, перевірити camera permission або закрити live session. Він не
-має скидати approved shoot чи look.
+має скидати approved master-look.
 
 ## Первинні технічні джерела
 
