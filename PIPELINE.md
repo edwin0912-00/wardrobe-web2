@@ -92,7 +92,8 @@ Video ніколи не стартує з випадкового аватара 
 | `LIVE.04` | За явною дією зберегти лише обраний результат або завершити сесію без збереження. | NOT_DELIVERED |
 
 Перший live продукт — Local Live Director; delayed generative preview є
-окремим наступним режимом. Деталі: [VIDEO_LIVE_CANON_UA.md](docs/VIDEO_LIVE_CANON_UA.md).
+окремим наступним режимом. Деталі, hardware і межа WebRTC:
+[VIDEO_LIVE_CANON_UA.md](docs/VIDEO_LIVE_CANON_UA.md).
 
 ## GENERATION_TRANSPORT — невидимий технічний шар
 

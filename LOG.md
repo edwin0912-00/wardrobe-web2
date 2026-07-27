@@ -17,6 +17,15 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-07-27 · LIVE-ARCHITECTURE-001 · beta · local-first camera architecture
+Change: define the hardware, browser, local inference, server, provider, and
+optional WebRTC transport boundaries for Live Camera.
+Why: live camera must be an observable local camera experience, not an
+ambiguous label for delayed cloud generation or a silent media upload.
+Evidence: the canonical document cites W3C Media Capture, MDN getUserMedia,
+MediaPipe Pose Landmarker and LiveKit transport documentation.
+weakened_checks: none.
+
 2026-07-27 · VIDEO-LIVE-CANON-001 · beta · source-bound motion and local-first live
 Change: define the canonical video modes, immutable visual locks, QA/delivery,
 and two explicitly separate live-camera products.

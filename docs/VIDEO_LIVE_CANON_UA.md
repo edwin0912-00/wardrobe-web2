@@ -71,6 +71,81 @@ preview** із locked look/style. Це не real-time stream і не має на
 окремо. Користувач або зберігає цей результат, або відкидає його; потокове
 надсилання всіх webcam кадрів не допускається.
 
+## Звідки береться live: залізо, browser, server, provider
+
+### A. Local Live Director — перша реалізація
+
+```text
+Камера iPhone / Mac / USB webcam
+        ↓  (явний browser permission)
+Safari / Chrome: MediaStream
+        ↓
+<video> preview + Canvas/WebGL guides + local pose landmarks
+        ↓
+екран користувача
+```
+
+- **Залізо:** фронтальна/основна камера iPhone, вбудована камера Mac або USB
+  webcam. Воно належить користувачу; Zeely не має «своєї» камери.
+- **Хто відкриває камеру:** браузер через `navigator.mediaDevices.getUserMedia`.
+  Це працює тільки в HTTPS secure context і тільки після browser permission.
+- **Що робить live:** `<video>` показує локальний `MediaStream`; Canvas/WebGL
+  малює framing, світло, pose guide і target composition поверх нього.
+- **Хто дає pose/тіло:** `@mediapipe/tasks-vision` Pose Landmarker локально в
+  web app. Він повертає landmarks; це не identity engine і не генератор одягу.
+  Відеодетекцію треба виконувати у Web Worker, бо sync виклик на main thread
+  блокує UI.
+- **Що робить наш сервер:** віддає public style-guide metadata й короткоживучу
+  session state. Він не отримує MediaStream і не зберігає webcam video.
+- **Що роблять Higgsfield / OpenRouter / Magnific:** нічого в цьому local live
+  режимі. Вони не є webcam transport і не відповідають за camera preview.
+
+Це єдиний режим, який чесно можна назвати **live** у першому релізі: camera
+preview та guides справді оновлюються на девайсі користувача.
+
+### B. Delayed Generative Preview — другий рівень
+
+```text
+Local Live Director
+        ↓  (лише явний Capture)
+один JPEG/HEIC кадр
+        ↓
+Zeely beta API → current image provider
+        ↓
+згенерований preview → QA → Save / Discard
+```
+
+Тут current provider — той, що активний у beta на момент запиту (зараз
+Higgsfield; OpenRouter — validated fallback). Це асинхронна генерація, тому в
+UI статус тільки `Створюю preview`, ніколи не `Live`. Камера далі лишається
+локальною; на сервер йде один конкретний capture, а не stream.
+
+### C. Коли реально потрібен WebRTC/LiveKit
+
+WebRTC/LiveKit не потрібні для Local Live Director. Вони потрібні тільки якщо
+з’являється хоча б одна з цих можливостей:
+
+- віддалений art director або інший користувач бачить camera stream;
+- stream має дійти до server-side real-time processor;
+- потрібні кімнати, multi-device, remote audio або запис стріму.
+
+Тоді LiveKit може бути transport layer: він публікує/передає camera track,
+керує короткоживучими room tokens, permission і індикаторами capture. Він не
+є image/video model і не створює fashion look. Для MVP не підключати його:
+це додає відправку медіа поза девайс, TURN/SFU інфраструктуру, session security
+та інший privacy contract.
+
+### Мінімальний hardware/performance canon
+
+- Пріоритет — iPhone Safari та desktop Chrome/Safari з камерою; microphone не
+  просимо, якщо він не потрібен конкретному режиму.
+- Просимо тільки `video`; стартуємо з адаптивних constraints, не вимагаємо
+  4K/60 fps, які можуть бути недоступні на конкретній камері.
+- Якщо pose inference не встигає, знижуємо частоту guide update, а не quality
+  camera preview і не перекидаємо відео на server без consent.
+- При denial/no camera/track ended UI не падає: показує конкретну дію
+  `Дозволити камеру`, `Обрати іншу камеру` або `Повернутися до фотосесії`.
+
 ## Privacy canon для webcam
 
 1. Camera permission запитується тільки після натискання «Live camera».
@@ -96,3 +171,16 @@ Stop → (опційно) delayed generated preview → explicit Save`.
 Будь-який стан помилки називає конкретну дію: повторити clip, обрати інший
 source frame, перевірити camera permission або закрити live session. Він не
 має скидати approved shoot чи look.
+
+## Первинні технічні джерела
+
+- [W3C Media Capture and Streams](https://www.w3.org/TR/mediacapture-streams/)
+  — модель camera source, MediaStream і MediaStreamTrack.
+- [MDN getUserMedia](https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia)
+  — HTTPS, permission і camera errors у browser.
+- [Google MediaPipe Pose Landmarker for Web](https://developers.google.com/edge/mediapipe/solutions/vision/pose_landmarker/web_js)
+  — browser pose landmarks, video inference і вимога винести sync detection з
+  main thread у worker.
+- [LiveKit camera and microphone documentation](https://docs.livekit.io/transport/media/publish/)
+  — transport camera tracks і permission/recording indicators для випадку,
+  коли з’явиться віддалений real-time media transport.
