@@ -1249,6 +1249,30 @@ export function normalizeEvaluatorResult(result) {
   };
 }
 
+// One owner for the space below the subject. The below-footwear framing lock
+// and the contact-point observation ask the same geometry question at two
+// resolutions, so consumers must not rederive it independently.
+function clearSpaceBelowSubjectPercent(bbox, height) {
+  const [, y, , bboxHeight] = bbox;
+  return Number((((height - y - bboxHeight) / height) * 100).toFixed(4));
+}
+
+// A subject box ending strictly above the canvas bottom leaves the contact
+// point inside the frame. This says nothing about foreground occlusion; that
+// separate observed claim is audited by scene-adapters.
+export function contactPointInsideFrame(evidence, { height }) {
+  if (!Number.isInteger(height) || height < 1) {
+    throw new Error('A contact-point observation requires a positive integer canvas height');
+  }
+  const bbox = evidence?.subject_bbox_xywh_px;
+  if (!Array.isArray(bbox)
+    || bbox.length !== 4
+    || bbox.some((value) => !Number.isInteger(value))) {
+    throw new Error('framing_evidence.subject_bbox_xywh_px must contain four integers');
+  }
+  return clearSpaceBelowSubjectPercent(bbox, height) > 0;
+}
+
 // The measurement primitive. Production code must not call it: it reaches the lock
 // through assessSceneFraming, which is the only function allowed to spell these option
 // names. See the note there.
@@ -1300,7 +1324,7 @@ export function assessFramingEvidence(evidence, {
   }
   const subjectHeight = Number(((bboxHeight / height) * 100).toFixed(4));
   const aboveHair = Number(((y / height) * 100).toFixed(4));
-  const belowFootwear = Number((((height - y - bboxHeight) / height) * 100).toFixed(4));
+  const belowFootwear = clearSpaceBelowSubjectPercent(bbox, height);
   const defects = [];
   if (subjectHeight < expectedSubjectHeightPercent[0] || subjectHeight > expectedSubjectHeightPercent[1]) {
     defects.push('SUBJECT_HEIGHT_OUTSIDE_PRESET_RANGE');
