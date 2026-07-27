@@ -1,13 +1,13 @@
 /* ============================================================
-   WARDROBE LUSION ENGINE — HOLLOW GARMENT 3D VISUAL
-   Floating invisible-body fashion drape with breathing dynamics,
-   mouse-tracking inertia, and film grain shader texture.
+   WARDROBE LUSION ENGINE — HOLLOW MAN OUTFIT & MIRROR SCENE
+   Invisible body wearing Shirt, Sleeves & Pants floating in 3D space.
+   Faces and tracks the mouse cursor continuously in 3D space.
    ============================================================ */
 
 (function() {
   'use strict';
 
-  // ── GLSL Noise (Simplex 3D) ──
+  // ── GLSL Noise ──
   const simplexNoiseGLSL = `
     vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
     vec4 mod289(vec4 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
@@ -75,7 +75,7 @@
     }
   `;
 
-  // ── Vertex Shader (Garment Fold & Breathing Displacement) ──
+  // ── Vertex Shader (Garment Fold Waves + Chest Breathing) ──
   const vertexShader = `
     ${simplexNoiseGLSL}
     
@@ -93,23 +93,15 @@
       vUv = uv;
       vec3 pos = position;
       
-      // Fabric Breathing Expansion (chest & waist rhythm)
-      float breathFactor = sin(uTime * 1.5) * 0.08 * uBreathing;
-      float chestRegion = smoothstep(-0.5, 0.8, pos.y);
-      pos += normal * (breathFactor * chestRegion);
+      // Chest & Torso Breathing Pulse
+      float breathFactor = sin(uTime * 1.6) * 0.06 * uBreathing;
+      pos += normal * breathFactor;
       
-      // Wind dynamics sliding through garment fabric
-      float wave1 = snoise(vec3(pos.x * 1.5, pos.y * 1.5 + uTime * 0.4, pos.z * 1.5)) * 0.12;
-      float wave2 = snoise(vec3(pos.x * 3.0 + uTime * 0.6, pos.y * 3.0, pos.z * 3.0)) * 0.05;
-      float foldDisplacement = wave1 + wave2;
+      // Fabric folds dynamics
+      float wave = snoise(vec3(pos.x * 2.0, pos.y * 2.0 + uTime * 0.5, pos.z * 2.0)) * 0.08;
+      vec3 newPosition = pos + normal * wave;
       
-      // Mouse kinetic reaction (fabric stretches toward cursor)
-      float mouseDist = length(pos.xy - uMouse * 2.5);
-      float mouseStretch = smoothstep(2.5, 0.0, mouseDist) * 0.18 * sin(uTime * 2.5);
-      
-      vec3 newPosition = pos + normal * (foldDisplacement + mouseStretch);
-      
-      vDisplacement = foldDisplacement;
+      vDisplacement = wave;
       vNormal = normalize(normalMatrix * normal);
       vPosition = newPosition;
       
@@ -120,7 +112,7 @@
     }
   `;
 
-  // ── Fragment Shader (Translucent Silk/Velvet + Grain Overlay) ──
+  // ── Fragment Shader (Velvet/Silk Translucency + Film Grain) ──
   const fragmentShader = `
     uniform float uTime;
     uniform vec3 uColor1;
@@ -133,7 +125,6 @@
     varying vec3 vViewPosition;
     varying vec2 vUv;
     
-    // Pseudo random film grain
     float random(vec2 st) {
       return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
     }
@@ -141,29 +132,28 @@
     void main() {
       vec3 viewDir = normalize(vViewPosition);
       
-      // Velvet Rim & Fresnel Translucency
-      float fresnel = pow(1.0 - max(dot(vNormal, viewDir), 0.0), 2.5);
+      // Fresnel Rim Light
+      float fresnel = pow(1.0 - max(dot(vNormal, viewDir), 0.0), 2.2);
       
-      // Fabric fold shading
-      float colorMix = smoothstep(-0.15, 0.15, vDisplacement);
-      vec3 fabricColor = mix(uColor1, uColor2, colorMix);
-      fabricColor = mix(fabricColor, uColor3, fresnel * 0.7);
+      // Velvet color mix
+      vec3 fabricColor = mix(uColor1, uColor2, vDisplacement * 2.0 + 0.5);
+      fabricColor = mix(fabricColor, uColor3, fresnel * 0.8);
       
-      // Warm Subsurface Scattering Glow
-      vec3 sssGlow = vec3(0.85, 0.65, 0.45) * pow(fresnel, 3.0) * 0.6;
+      // Subsurface scattering glow
+      vec3 sssGlow = vec3(0.9, 0.7, 0.5) * pow(fresnel, 3.0) * 0.5;
       fabricColor += sssGlow;
       
-      // Specular highlight on fabric folds
-      vec3 lightDir = normalize(vec3(1.0, 1.5, 2.0));
+      // Specular highlight
+      vec3 lightDir = normalize(vec3(0.8, 1.2, 2.0));
       vec3 halfDir = normalize(lightDir + viewDir);
-      float spec = pow(max(dot(vNormal, halfDir), 0.0), 32.0);
-      fabricColor += vec3(0.95, 0.9, 0.8) * spec * 0.35;
+      float spec = pow(max(dot(vNormal, halfDir), 0.0), 24.0);
+      fabricColor += vec3(0.95, 0.9, 0.8) * spec * 0.3;
       
-      // Film Grain Overlay
-      float grain = (random(vUv + fract(uTime * 0.1)) - 0.5) * 0.07;
+      // Film Grain
+      float grain = (random(vUv + fract(uTime * 0.05)) - 0.5) * 0.06;
       fabricColor += grain;
       
-      gl_FragColor = vec4(fabricColor, 0.92);
+      gl_FragColor = vec4(fabricColor, 0.9);
     }
   `;
 
@@ -189,25 +179,19 @@
     0.1,
     100
   );
-  camera.position.set(0, 0, 5.2);
+  camera.position.set(0, 0, 6.0);
 
-  // ── Create Floating Hollow Outfit Sculpture ──
-  // TorusKnot + Cylinder Blend creates a floating draped coat/jacket silhouette
-  const garmentGroup = new THREE.Group();
-  
-  // Outer Coat Fold (Torus Knot modified)
-  const coatGeometry = new THREE.TorusKnotGeometry(0.95, 0.38, 128, 32, 2, 3);
-  
+  // ── Uniforms & Shared Material ──
   const uniforms = {
     uTime: { value: 0 },
     uBreathing: { value: 1.0 },
     uMouse: { value: new THREE.Vector2(0, 0) },
-    uColor1: { value: new THREE.Color(0x0f0b06) },  // Dark mocha velvet
-    uColor2: { value: new THREE.Color(0x4a341a) },  // Warm amber shadow
-    uColor3: { value: new THREE.Color(0xc89b58) },  // Gold silk highlight
+    uColor1: { value: new THREE.Color(0x0a0804) },
+    uColor2: { value: new THREE.Color(0x3a2812) },
+    uColor3: { value: new THREE.Color(0xaa8042) },
   };
 
-  const material = new THREE.ShaderMaterial({
+  const garmentMaterial = new THREE.ShaderMaterial({
     vertexShader,
     fragmentShader,
     uniforms,
@@ -216,19 +200,83 @@
     depthWrite: false,
   });
 
-  const coatMesh = new THREE.Mesh(coatGeometry, material);
-  garmentGroup.add(coatMesh);
+  // ── Build Hollow Man Outfit (Shirt + Sleeves + Pants) ──
+  const hollowOutfitGroup = new THREE.Group();
 
-  // Inner Floating Drape Layer
-  const innerGeometry = new THREE.IcosahedronGeometry(0.85, 32);
-  const innerMesh = new THREE.Mesh(innerGeometry, material);
-  innerMesh.scale.set(0.9, 1.2, 0.9);
-  garmentGroup.add(innerMesh);
+  // 1. Torso / Shirt (Shirt & Chest)
+  const shirtGeo = new THREE.CylinderGeometry(0.55, 0.45, 1.4, 32, 16, true);
+  const shirtMesh = new THREE.Mesh(shirtGeo, garmentMaterial);
+  shirtMesh.position.y = 0.5;
+  hollowOutfitGroup.add(shirtMesh);
 
-  scene.add(garmentGroup);
+  // Collar Rim
+  const collarGeo = new THREE.TorusGeometry(0.32, 0.05, 16, 32);
+  const collarMesh = new THREE.Mesh(collarGeo, garmentMaterial);
+  collarMesh.rotation.x = Math.PI / 2;
+  collarMesh.position.y = 1.18;
+  hollowOutfitGroup.add(collarMesh);
+
+  // 2. Left Sleeve
+  const sleeveLeftGeo = new THREE.CylinderGeometry(0.18, 0.14, 1.1, 24, 12, true);
+  const sleeveLeftMesh = new THREE.Mesh(sleeveLeftGeo, garmentMaterial);
+  sleeveLeftMesh.position.set(-0.72, 0.45, 0);
+  sleeveLeftMesh.rotation.z = 0.35;
+  sleeveLeftMesh.rotation.x = 0.15;
+  hollowOutfitGroup.add(sleeveLeftMesh);
+
+  // 3. Right Sleeve
+  const sleeveRightGeo = new THREE.CylinderGeometry(0.18, 0.14, 1.1, 24, 12, true);
+  const sleeveRightMesh = new THREE.Mesh(sleeveRightGeo, garmentMaterial);
+  sleeveRightMesh.position.set(0.72, 0.45, 0);
+  sleeveRightMesh.rotation.z = -0.35;
+  sleeveRightMesh.rotation.x = 0.15;
+  hollowOutfitGroup.add(sleeveRightMesh);
+
+  // 4. Left Pant Leg
+  const pantLeftGeo = new THREE.CylinderGeometry(0.24, 0.18, 1.5, 24, 16, true);
+  const pantLeftMesh = new THREE.Mesh(pantLeftGeo, garmentMaterial);
+  pantLeftMesh.position.set(-0.28, -0.9, 0);
+  pantLeftMesh.rotation.z = 0.08;
+  hollowOutfitGroup.add(pantLeftMesh);
+
+  // 5. Right Pant Leg
+  const pantRightGeo = new THREE.CylinderGeometry(0.24, 0.18, 1.5, 24, 16, true);
+  const pantRightMesh = new THREE.Mesh(pantRightGeo, garmentMaterial);
+  pantRightMesh.position.set(0.28, -0.9, 0);
+  pantRightMesh.rotation.z = -0.08;
+  hollowOutfitGroup.add(pantRightMesh);
+
+  scene.add(hollowOutfitGroup);
+
+  // ── 3D Mirror Frame in Background ──
+  const mirrorGroup = new THREE.Group();
+  const frameGeo = new THREE.RingGeometry(2.4, 2.45, 64);
+  const frameMat = new THREE.MeshBasicMaterial({
+    color: 0xc8a97e,
+    side: THREE.DoubleSide,
+    transparent: true,
+    opacity: 0.35,
+  });
+  const mirrorFrame = new THREE.Mesh(frameGeo, frameMat);
+  mirrorFrame.position.z = -0.5;
+  mirrorGroup.add(mirrorFrame);
+
+  // Mirror Glass Plane
+  const glassGeo = new THREE.CircleGeometry(2.38, 64);
+  const glassMat = new THREE.MeshBasicMaterial({
+    color: 0x101518,
+    side: THREE.DoubleSide,
+    transparent: true,
+    opacity: 0.25,
+  });
+  const glassPlane = new THREE.Mesh(glassGeo, glassMat);
+  glassPlane.position.z = -0.52;
+  mirrorGroup.add(glassPlane);
+
+  scene.add(mirrorGroup);
 
   // ── Ambient Dust Particles ──
-  const particleCount = 600;
+  const particleCount = 500;
   const particleGeometry = new THREE.BufferGeometry();
   const particlePositions = new Float32Array(particleCount * 3);
   const particleSizes = new Float32Array(particleCount);
@@ -271,7 +319,7 @@
   const particles = new THREE.Points(particleGeometry, particleMaterial);
   scene.add(particles);
 
-  // ── Physics-Based Mouse Inertia (Spring Damping) ──
+  // ── Physics-Based Mouse Tracking (Outfit Looks Directly at Mouse) ──
   const mouse = { x: 0, y: 0, targetX: 0, targetY: 0, vx: 0, vy: 0 };
   
   document.addEventListener('mousemove', (e) => {
@@ -289,9 +337,9 @@
 
   // Target Colors for Theme Shifts
   const targetColors = {
-    c1: new THREE.Color(0x0f0b06),
-    c2: new THREE.Color(0x4a341a),
-    c3: new THREE.Color(0xc89b58),
+    c1: new THREE.Color(0x0a0804),
+    c2: new THREE.Color(0x3a2812),
+    c3: new THREE.Color(0xaa8042),
   };
 
   // Expose global controller
@@ -314,6 +362,7 @@
 
   // ── Animation Loop ──
   const clock = new THREE.Clock();
+  const targetLookAt = new THREE.Vector3();
 
   function animate() {
     requestAnimationFrame(animate);
@@ -328,7 +377,7 @@
     mouse.x += mouse.vx;
     mouse.y += mouse.vy;
     
-    // Lerp colors to target
+    // Lerp colors
     uniforms.uColor1.value.lerp(targetColors.c1, 0.04);
     uniforms.uColor2.value.lerp(targetColors.c2, 0.04);
     uniforms.uColor3.value.lerp(targetColors.c3, 0.04);
@@ -337,20 +386,24 @@
     uniforms.uTime.value = elapsed;
     uniforms.uMouse.value.set(mouse.x, mouse.y);
     
-    // Floating Hollow Garment organic rotations following cursor
-    garmentGroup.rotation.x = Math.sin(elapsed * 0.4) * 0.15 + mouse.y * 0.45;
-    garmentGroup.rotation.y = elapsed * 0.2 + mouse.x * 0.65;
-    garmentGroup.rotation.z = Math.cos(elapsed * 0.3) * 0.1;
+    // Hollow Man Outfit LOOKS DIRECTLY AT MOUSE CURSOR in 3D
+    targetLookAt.set(mouse.x * 4.0, mouse.y * 3.0 + 0.2, 5.0);
+    hollowOutfitGroup.lookAt(targetLookAt);
     
-    // Breathing scale pulse
-    const breathPulse = 1.0 + Math.sin(elapsed * 1.5) * 0.04;
-    const scaleFactor = Math.max(0.45, (1.0 - scrollProgress * 0.75)) * breathPulse;
-    garmentGroup.scale.setScalar(scaleFactor);
-    garmentGroup.position.y = scrollProgress * 1.4;
+    // Slight sway & breathing
+    const breathScale = 1.0 + Math.sin(elapsed * 1.6) * 0.035;
+    const scaleFactor = Math.max(0.45, (1.0 - scrollProgress * 0.75)) * breathScale;
+    hollowOutfitGroup.scale.setScalar(scaleFactor);
+    hollowOutfitGroup.position.y = scrollProgress * 1.4;
     
-    // Camera follow cursor
-    camera.position.x = mouse.x * 0.35;
-    camera.position.y = mouse.y * 0.25;
+    // Mirror Frame Subtle Rotation
+    mirrorGroup.rotation.y = mouse.x * 0.15;
+    mirrorGroup.rotation.x = -mouse.y * 0.1;
+    mirrorGroup.position.y = scrollProgress * 1.4;
+    
+    // Camera drift
+    camera.position.x = mouse.x * 0.25;
+    camera.position.y = mouse.y * 0.2;
     camera.lookAt(0, scrollProgress * 0.7, 0);
     
     // Animate dust particles
