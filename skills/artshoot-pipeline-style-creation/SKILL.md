@@ -524,19 +524,34 @@ executed honestly, it would have stopped the failure.
 Two errors on 2026-07-27, both caught by the operator rather than by a gate, both from generating a
 shoot without reading what the product actually asks for.
 
-**First error: one framing repeated six times.** Six styles were generated and every single frame was
-the same shot — full length, centred, camera at chest height — with only the wallpaper changing. That
-is not a shoot, it is six pieces of wallpaper. It happened because the delivery lock ("full body, both
-shoes, clear headroom") was written into every prompt, which flattened the camera character out of six
-shoots that each had their own. Framing is read from the shoot: a monumental low angle up a ribbed wall,
-a low angle through converging trunks, a rooftop wide, a bag detail. Read it, then use it.
+**First error: one framing repeated six times — mine, by hand, not the pipeline's.** Six styles were
+generated outside the product and every single frame was the same shot: full length, centred, camera at
+chest height, only the wallpaper changing. That is not a shoot, it is six pieces of wallpaper. Cause:
+the delivery lock ("full body, both shoes, clear headroom") was written into every hand-authored prompt,
+which flattened the camera character out of six shoots that each had their own.
 
-**Second error: a detail frame with no human in it.** The product's detail slot declares `head: false`.
-That means *the head need not be visible*. It does not mean the person is absent. A crop of cloth with
-no body is a product shot, and this product sells a person wearing the item. Worse, the contract does
-not catch it: the detail slot requires no body at all, so a flat lay passes the gate. Until that is
-fixed in the contract, it is on the operator of this skill to keep a wrist, a neckline, a hand or a
-shoulder in the frame so it reads as worn.
+Checked afterwards, and worth recording because the assumption was wrong: **the product does not have
+this defect.** Its per-slot prompt already carries a distinct focal length (50/50/65/55/85/35), a
+distinct camera height, its own angle sentence, its own pose sentence, and the subject-height band read
+straight from that slot's lock. Only the crop token is shared across five slots, and a comment at the
+site explains why — `full_length` made the generator invent a lower garment and shoes the approved look
+never contained, ITEM_FIDELITY correctly refused to verify invented items, and the first slot became
+unpassable and blocked the rest. So the flattening there is a documented workaround for a real gate
+conflict, not laziness, and it is removable only once footwear is a locked item.
+
+The lesson is therefore the opposite of the first instinct: when a hand run and the pipeline disagree
+about coverage, check which one is wrong before "fixing" the pipeline. Framing is read from the shoot —
+a monumental low angle up a ribbed wall, a low angle through converging trunks, a rooftop wide, a bag
+detail — and the pipeline is already asking for that per slot.
+
+**Second error: a detail frame with no human in it — also mine, and also already covered upstream.**
+The product's detail slot declares `head: false`. That means *the head need not be visible*. It does not
+mean the person is absent. A crop of cloth with no body is a product shot, and this product sells a
+person wearing the item. The pipeline already asks for exactly that: the slot's pose directive reads
+"detail-led crop with anatomically plausible hand or body context". The flat lay happened because the
+prompt was hand-authored and that directive was simply not carried over. The framing lock alone would
+not have caught it — no slot requires a visible body part — so when authoring a detail frame outside the
+bible, keep a wrist, a neckline, a hand or a shoulder in it and say which one.
 
 **The six slots and their real locks**, read from `editorialFramingLock` on 2026-07-27 rather than
 assumed. `subject` is the subject's share of frame height in per cent; `above` is the minimum headroom.
