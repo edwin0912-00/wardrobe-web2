@@ -17,6 +17,18 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-07-27 · RELEASE-001 · assigned at d372e6a · control queue
+Change: issue a narrow release-ops lease that makes deploy and recovery accept
+only `https://iwas.madeforthisjob.com/api/health` as external health.
+Why: the declared target is healthy, but current tools validate HTTPS and lack
+credentials while accepting any external host; that cannot prove a release
+reached the intended domain.
+Evidence: read-only health check returned 200/ready for `iwas`; repository
+search found no existing canonical target. The lease is limited to one shared
+validator, both CLIs, their tests, and operator docs; it excludes runtime,
+plists, tunnel, credentials, candidates, and deploy apply.
+weakened_checks: none.
+
 2026-07-27 · SCENE-001 · assigned at 44aa829 · control queue
 Change: issue a narrow scene-core lease to restore the one missing
 `contactPointInsideFrame` export and add a regression test.

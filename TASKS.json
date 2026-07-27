@@ -2,7 +2,7 @@
   "schema_version": "1.0.0",
   "integration_branch": "integration/wardrobe-20260726",
   "orchestrator": "codex-main",
-  "updated_at": "2026-07-27T02:40:00.000Z",
+  "updated_at": "2026-07-27T02:48:00.000Z",
   "tasks": [
     {
       "id": "CTRL-001",
@@ -1338,6 +1338,102 @@
         "Restore only the existing contract geometry primitive consumed by scene-adapters; do not alter scene framing bands, QA thresholds, presets, or evaluator semantics.",
         "The new regression test must fail from this exact base for the missing export or invalid geometry behavior before the repair is written.",
         "Do not generate media, invoke a provider, mutate runtime/output, deploy, or change credentials."
+      ]
+    },
+    {
+      "id": "RELEASE-001",
+      "title": "Bind deploy and recovery verification to the canonical iwas health target",
+      "priority": "P0",
+      "state": "ASSIGNED",
+      "owner": "release-target",
+      "branch": "lane/RELEASE-001/release-target",
+      "base_sha": "d372e6a9762b332bf699a98b5d9950e423609a6a",
+      "lease": {
+        "generation": 1,
+        "issued_at": "2026-07-27T02:48:00.000Z",
+        "expires_at": "2026-07-27T04:25:00.000Z"
+      },
+      "lock_groups": [
+        "release-ops"
+      ],
+      "allowed_paths": [
+        "tools/lib/deployment-target.mjs",
+        "tools/deploy-add-items-release.mjs",
+        "tools/recover-add-items-deployment.mjs",
+        "test/release/add-items-deployment.test.js",
+        "test/release/add-items-recovery-cli.test.js",
+        "docs/DEPLOYMENT_UA.md",
+        "docs/AGENT_HANDOFF_2026-07-24_UA.md",
+        ".agents/status/RELEASE-001.json",
+        ".agents/handoffs/RELEASE-001.json"
+      ],
+      "forbidden_paths": [
+        "secrets/**",
+        ".env",
+        ".env.*",
+        "runtime/**",
+        "output/**",
+        "src/**",
+        "web/public/**",
+        "assets/**",
+        "ops/**",
+        "config/**"
+      ],
+      "required_context": [
+        {
+          "path": "tools/deploy-add-items-release.mjs",
+          "git_blob_sha": "f59fed326c24f6819a7c20f7f402f9d79a828b36"
+        },
+        {
+          "path": "tools/recover-add-items-deployment.mjs",
+          "git_blob_sha": "9e48e70d387a042bd6eae12b694c9b1e44d2e3d3"
+        },
+        {
+          "path": "test/release/add-items-deployment.test.js",
+          "git_blob_sha": "5d41f0463d303bbe219042f8c683b845645c0246"
+        },
+        {
+          "path": "test/release/add-items-recovery-cli.test.js",
+          "git_blob_sha": "120d158f4576f368d3dc91fd844abee7baef6a92"
+        }
+      ],
+      "depends_on": [
+        "CTRL-002"
+      ],
+      "acceptance": [
+        {
+          "check_id": "canonical-target-release-tests",
+          "execution_class": "ci",
+          "command": [
+            "node",
+            "--test",
+            "test/release/add-items-deployment.test.js",
+            "test/release/add-items-recovery-cli.test.js"
+          ],
+          "expected_exit_codes": [
+            0
+          ],
+          "expected": "Deploy and recovery accept only https://iwas.madeforthisjob.com/api/health as external health and reject arbitrary or credential-bearing URLs."
+        },
+        {
+          "check_id": "diff-hygiene",
+          "execution_class": "ci",
+          "command": [
+            "git",
+            "diff",
+            "--check",
+            "$TASK_BASE_SHA...$TESTED_CODE_SHA"
+          ],
+          "expected_exit_codes": [
+            0
+          ],
+          "expected": "No whitespace errors or conflict markers."
+        }
+      ],
+      "stop_conditions": [
+        "Enforce only the canonical external health URL https://iwas.madeforthisjob.com/api/health; do not touch DNS, Cloudflare, tunnel, plist, runtime, release candidate, or live deployment state.",
+        "Do not inspect, add, modify, or expose credentials, and do not add a fallback host.",
+        "Do not deploy or invoke --apply; this task establishes the precondition for a later verified deployment."
       ]
     }
   ]
