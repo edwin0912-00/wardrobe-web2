@@ -19,6 +19,24 @@ until Edwin explicitly authorizes the product change.
 `WARNING`, or `BLOCKING`; any `BLOCKING` risk makes the handoff invalid.
 Reviewer IDs identify the review route but are not cryptographic identities.
 
+## Status reports
+
+For an active task whose `allowed_paths` contains the exact matching path, the
+owner may also write `.agents/status/<task-id>.json`. It conforms to
+`schemas/agent-status.schema.json` and is validated against the canonical
+integration board before the publishing tool writes it.
+
+Status is a code-only snapshot of one task lease: `STARTED`, `HEARTBEAT`,
+`BLOCKED`, or `READY_FOR_REVIEW`. It carries checked-in `summary_code`,
+`next_action_code`, and optional `blocker_code`, not prose. It is committed
+only to that task's lane, never directly to integration. It does not replace
+the final handoff or grant a merge, deployment, or credential action.
+
+`STARTED` and `HEARTBEAT` are live states: publish a heartbeat at least every
+ten minutes. The watcher reports `STATUS_STALE` after fifteen minutes without
+a fresh live status. `BLOCKED` and `READY_FOR_REVIEW` remain readable until the
+task state itself changes.
+
 After bootstrap, GitHub runs the trusted base acceptance runner. It executes
 only `ci` argv from the trusted task board in a secret-free PR job, verifies
 their expected exit codes on `tested_code_sha`, and proves the focused changed

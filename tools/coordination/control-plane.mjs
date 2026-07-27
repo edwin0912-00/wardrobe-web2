@@ -285,6 +285,26 @@ function validateTask(task, index, orchestrator, now) {
     errors.push({ code: 'ACTIVE_TASK_LEASE_EXPIRED', ...at });
   }
   const acceptanceIds = new Set();
+  const expectedStatusPath = `.agents/status/${task.id}.json`;
+  const hasExpectedStatusPath = (task.allowed_paths ?? [])
+    .includes(expectedStatusPath);
+  for (const allowedPath of task.allowed_paths ?? []) {
+    if (allowedPath.startsWith('.agents/status/') && allowedPath !== expectedStatusPath) {
+      errors.push({
+        code: 'TASK_STATUS_PATH_NOT_EXACT',
+        path: allowedPath,
+        expected: expectedStatusPath,
+        ...at,
+      });
+    }
+  }
+  if (ACTIVE_STATES.has(task.state) && !hasExpectedStatusPath) {
+    errors.push({
+      code: 'ACTIVE_TASK_STATUS_PATH_REQUIRED',
+      expected: expectedStatusPath,
+      ...at,
+    });
+  }
   for (const check of task.acceptance) {
     if (acceptanceIds.has(check.check_id)) {
       errors.push({

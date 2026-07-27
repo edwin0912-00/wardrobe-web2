@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:wardrobe:agent-status:1.0.0",
+  "title": "Wardrobe agent status",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "task_id",
+    "agent_id",
+    "branch",
+    "base_sha",
+    "lease_generation",
+    "state",
+    "observed_at",
+    "observed_head_sha",
+    "summary_code",
+    "next_action_code",
+    "blocker_code"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0.0"
+    },
+    "task_id": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9]+-[0-9]{3,4}$"
+    },
+    "agent_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,119}$"
+    },
+    "branch": {
+      "type": "string",
+      "pattern": "^lane/[A-Z][A-Z0-9]+-[0-9]{3,4}/[a-z0-9][a-z0-9._-]{0,119}$"
+    },
+    "base_sha": {
+      "$ref": "#/$defs/sha"
+    },
+    "lease_generation": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "state": {
+      "enum": [
+        "STARTED",
+        "HEARTBEAT",
+        "BLOCKED",
+        "READY_FOR_REVIEW"
+      ]
+    },
+    "observed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "observed_head_sha": {
+      "$ref": "#/$defs/sha"
+    },
+    "summary_code": {
+      "enum": [
+        "CONTEXT_READ",
+        "WORK_STARTED",
+        "IMPLEMENTATION_ACTIVE",
+        "CHECKPOINT_VERIFIED",
+        "FOCUSED_PROOF_RUNNING",
+        "FOCUSED_PROOF_PASSED",
+        "REVIEW_READY",
+        "SAFE_STOP"
+      ]
+    },
+    "next_action_code": {
+      "enum": [
+        "READ_PINNED_CONTEXT",
+        "RUN_PRECHANGE_PROOF",
+        "IMPLEMENT",
+        "RUN_FOCUSED_PROOF",
+        "RUN_ADVERSARIAL_REVIEW",
+        "PUBLISH_HANDOFF",
+        "AWAIT_ORCHESTRATOR",
+        "NONE"
+      ]
+    },
+    "blocker_code": {
+      "enum": [
+        null,
+        "ASSIGNMENT_AMBIGUOUS",
+        "CONTEXT_MISSING",
+        "LEASE_EXPIRED",
+        "DEPENDENCY_BLOCKED",
+        "TEST_ENVIRONMENT_UNAVAILABLE",
+        "REQUIRES_EDWIN_DECISION",
+        "REMOTE_UNAVAILABLE",
+        "UNKNOWN_SAFE_STOP"
+      ]
+    }
+  },
+  "$defs": {
+    "sha": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
+    }
+  }
+}

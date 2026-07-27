@@ -37,7 +37,9 @@ Only `codex-main` may edit:
 - `test/governance/**`
 
 Task owners may write only their own
-`.agents/handoffs/<task-id>.json`.
+`.agents/handoffs/<task-id>.json` and, when their active lease grants the exact
+path, `.agents/status/<task-id>.json`. A task owner never receives a wildcard
+status path, another task's report, or authority to edit `TASKS.json`.
 
 ## Lock groups
 

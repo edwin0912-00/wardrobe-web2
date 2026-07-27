@@ -37,6 +37,24 @@ conditions are unchanged; no product, deployment, or credential authority was
 added.
 weakened_checks: none.
 
+2026-07-27 · CTRL-002 · durable report protocol candidate
+Change: add an exact per-task status schema, authenticated lane-side status
+writer, read-only report watcher, bootstrap pack, and bounded coordination
+observer loop; require every active lease to reserve only its exact status
+artifact.
+Why: remote agents need one shared, durable queue and factual progress signal
+without shared conversation context, shared credentials, broad write authority,
+or an unattended process pretending to be an agent.
+Evidence: the focused governance command passed 25/25, the candidate board
+validates, the legacy free-text publisher regression fails against the
+pre-change implementation and passes after the typed error repair, status
+writer and both watchers emit typed startup events, and the
+deterministic Looper compiler/linter reports zero findings. Fresh live reports
+expire after fifteen minutes; compiler-local paths and report text containing
+credentials, prompts, runtime identifiers, local paths, email, or phone are
+rejected. A new test is recorded as failing against the pinned pre-change tree
+because the status contract module did not exist there.
+weakened_checks: none.
 2026-07-27 · CTRL-002 · reporting activation scope
 Change: widen the existing coordination lease to update the ownership and task
 board rules required for per-task status artifacts.
