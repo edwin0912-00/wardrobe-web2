@@ -28,6 +28,9 @@
 - Agents may self-claim one existing `READY` task when the orchestrator is
   unavailable. Parallel code is allowed where `UPDATE.md` reserves different
   concrete paths; a collision, not concurrency itself, is the blocker.
+- A direct Edwin assignment is also authority for that specific agent to create
+  its own path-reserved row and STARTED report. The orchestrator observes and
+  resolves collisions; it is not a task-creation bottleneck.
 
 Updated: 2026-07-27 08:55 UTC.
 

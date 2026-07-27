@@ -40,12 +40,16 @@ The earlier detailed noticeboard is preserved at
    agent may self-claim one `unassigned` + `READY` row in a small board commit;
    never self-claim `WAITING`, `BLOCKED`, or `DONE`. Parallel code rows are
    normal when their Reserved paths do not overlap.
-3. Code agent: one focused change, one focused test, one commit, then push to
+3. A task directly assigned by Edwin to an agent may be created by that agent:
+   it adds one row with its owner, exact Reserved paths, and a testable outcome,
+   then commits `STARTED` before product edits. A path collision becomes
+   `PROPOSED`, not a second active edit.
+4. Code agent: one focused change, one focused test, one commit, then push to
    `beta`. Include `updates/<agent-id>.md` in that same commit.
-4. Research/QA agent: do not modify product code. Write only
+5. Research/QA agent: do not modify product code. Write only
    `updates/<agent-id>.md`, commit, pull-rebase, push. A report may set
    `Help request: <what is needed>`; otherwise it writes `Help request: NONE`.
-5. Do not overwrite this board. `codex-main` curates it; a self-claiming agent
+6. Do not overwrite this board. `codex-main` curates it; a self-claiming agent
    may change only its own row and then report the result.
 
 Every agent commit subject starts `[agent:<agent-id>]`; this and the matching

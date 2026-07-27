@@ -45,13 +45,19 @@ Fast rules:
 2. Code, research, and QA tasks may run in parallel. Every code row declares
    its exact reserved paths in `UPDATE.md`; two active code tasks may not share
    a path. A self-claiming agent verifies that its row has concrete paths and
-   does not overlap another `IN_PROGRESS` code row. It may not invent a new row.
-3. Before a push: `git pull --rebase origin beta`, run the task's check, then
+   does not overlap another `IN_PROGRESS` code row.
+3. An agent may create and start one new row without waiting for `codex-main`
+   only when Edwin has directly given that agent the concrete task. The row
+   must name its owner, exact reserved paths, and one testable outcome; the
+   agent commits the row plus its `STARTED` report before editing product code.
+   If a reserved path overlaps an active row, it records `PROPOSED` and stops
+   for collision resolution instead of starting work.
+4. Before a push: `git pull --rebase origin beta`, run the task's check, then
    commit only the task files plus `updates/<agent-id>.md`. Every commit
    subject starts with `[agent:<agent-id>]`, even when GitHub login is shared.
-4. Push directly to `origin beta`; never force-push, reset, rewrite history,
+5. Push directly to `origin beta`; never force-push, reset, rewrite history,
    touch `main`, credentials, `site.madeforthisjob.com`, or port `4180`.
-5. `codex-main` curates `UPDATE.md`, `STATE.md`, and `LOG.md`, but an agent may
+6. `codex-main` curates `UPDATE.md`, `STATE.md`, and `LOG.md`, but an agent may
    make the narrowly defined self-claim/completion edit to its own board row.
    A beta deployment happens only after the exact commit is tested.
 

@@ -17,6 +17,14 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-07-27 · AGENT-AUTONOMY-002 · beta · direct-assignment task creation
+Change: allow an agent directly instructed by Edwin to create its own
+path-reserved task row and STARTED report.
+Why: agent autonomy must not wait on the orchestrator for routine task entry.
+Evidence: a new row is valid only with owner, concrete paths, testable outcome,
+and no active-path collision; otherwise it stays PROPOSED.
+weakened_checks: none.
+
 2026-07-27 · AGENT-PARALLEL-002 · beta · board monitor parser repair
 Change: repair the path-reservation monitor's macOS awk variable name.
 Why: the initial parallel-work commit used `index`, which collides with awk's
