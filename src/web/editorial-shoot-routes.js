@@ -1,5 +1,9 @@
 import { createReadStream } from 'node:fs';
 import { isEditorialSha256 } from './editorial-shoot-contract.js';
+import {
+  EditorialContactSheetError,
+  createEditorialContactSheetManifest,
+} from './editorial-contact-sheet.js';
 import { ProfileError } from './profile-service.js';
 
 const TERMINAL_SHOOT_STATES = new Set(['COMPLETED', 'CANCELLED']);
@@ -280,6 +284,31 @@ export async function registerEditorialShootRoutes(app, {
         .header('Cache-Control', 'private, no-store')
         .header('Vary', 'Cookie')
         .send(editorialShootView(shoot));
+    });
+
+    app.get('/api/profile/editorial-shoots/:shootId/contact-sheet', async (request, reply) => {
+      const session = await profileApi.resolveRequestProfile(request, reply);
+      const shoot = await currentOwnedShoot({
+        profiles,
+        profileId: session.profileId,
+        editorialShootService,
+        shootId: request.params.shootId,
+      });
+      if (!shoot) return reply.code(404).send({ error: 'Editorial shoot not found' });
+      try {
+        return reply
+          .header('Cache-Control', 'private, no-store')
+          .header('Vary', 'Cookie')
+          .send(createEditorialContactSheetManifest(shoot));
+      } catch (error) {
+        if (error instanceof EditorialContactSheetError) {
+          return reply.code(error.statusCode).send({
+            error: error.message,
+            code: error.code,
+          });
+        }
+        throw error;
+      }
     });
 
     app.get('/api/profile/editorial-shoots/:shootId/bible', async (request, reply) => {

@@ -1,0 +1,71 @@
+{
+  "schema_version": "1.0.0",
+  "task_id": "FASHION-001",
+  "agent_id": "fashion-contact-sheet",
+  "branch": "lane/FASHION-001/fashion-contact-sheet",
+  "base_sha": "f578c28a7e3db506c0e8dbe06ca7e3e405cfea21",
+  "lease_generation": 1,
+  "tested_code_sha": "a6d43439d7df0dcb6cda597544dc33f5fe3386ea",
+  "status": "READY_FOR_REVIEW",
+  "summary": "Ported the preserved private immutable editorial contact-sheet projection and its owner-checked route into the current editorial contract. A manifest is emitted only for a completed shoot with exactly six approved canonical slots and hash-bound PNG outputs; it is deterministic and excludes private resource, execution, runtime, prompt, and provider metadata.",
+  "changed_paths": [
+    ".agents/handoffs/FASHION-001.json",
+    ".agents/status/FASHION-001.json",
+    "src/web/editorial-contact-sheet.js",
+    "src/web/editorial-shoot-routes.js",
+    "test/web/editorial-contact-sheet.test.js"
+  ],
+  "pre_change_proof": [
+    {
+      "check_id": "contact-sheet-contract-tests",
+      "command": [
+        "node",
+        "--test",
+        "test/web/editorial-contact-sheet.test.js",
+        "test/web/editorial-activation-backend.test.js",
+        "test/web/editorial-shoot-service.test.js"
+      ],
+      "result": "FAIL",
+      "evidence": "The preserved contact-sheet regression test was applied to the exact task base; the exact acceptance command failed with ERR_MODULE_NOT_FOUND because the contact-sheet module did not exist before this change."
+    }
+  ],
+  "post_change_proof": [
+    {
+      "check_id": "contact-sheet-contract-tests",
+      "command": [
+        "node",
+        "--test",
+        "test/web/editorial-contact-sheet.test.js",
+        "test/web/editorial-activation-backend.test.js",
+        "test/web/editorial-shoot-service.test.js"
+      ],
+      "result": "PASS",
+      "evidence": "The exact focused acceptance command passed 21 of 21 tests, including deterministic canonical ordering, completed-and-approved gating, private no-store routing, and rejection before a foreign profile triggers a service lookup."
+    },
+    {
+      "check_id": "diff-hygiene",
+      "command": [
+        "git",
+        "diff",
+        "--check",
+        "$TASK_BASE_SHA...$TESTED_CODE_SHA"
+      ],
+      "result": "PASS",
+      "evidence": "Whitespace and conflict-marker validation passed from the exact task base through the exact tested code SHA."
+    }
+  ],
+  "adversarial_review": {
+    "goal": "Find a fail-open completed-state check, incomplete or duplicate frame acceptance, cross-profile lookup or disclosure, nondeterministic order or hash, leakage of private resource, runtime, prompt, or provider data, or any weakened quality check.",
+    "result": "PASS",
+    "reviewer_id": "fashion_review",
+    "reviewed_code_sha": "a6d43439d7df0dcb6cda597544dc33f5fe3386ea"
+  },
+  "weakened_checks": [],
+  "open_risks": [
+    {
+      "code": "PRECHANGE_TRANSCRIPT_LOCAL_ONLY",
+      "severity": "INFO",
+      "description": "The raw pre-change command transcript is local-only; the exact command, preserved regression test, base SHA, and deterministic failure reason are recorded so the acceptance runner can replay the proof."
+    }
+  ]
+}

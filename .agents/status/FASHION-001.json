@@ -1,0 +1,14 @@
+{
+  "schema_version": "1.0.0",
+  "task_id": "FASHION-001",
+  "agent_id": "fashion-contact-sheet",
+  "branch": "lane/FASHION-001/fashion-contact-sheet",
+  "base_sha": "f578c28a7e3db506c0e8dbe06ca7e3e405cfea21",
+  "lease_generation": 1,
+  "state": "READY_FOR_REVIEW",
+  "observed_at": "2026-07-27T02:18:54.556Z",
+  "observed_head_sha": "fde59e5c1174511fed313376c5b95059ec07a96f",
+  "summary_code": "REVIEW_READY",
+  "next_action_code": "AWAIT_ORCHESTRATOR",
+  "blocker_code": null
+}
