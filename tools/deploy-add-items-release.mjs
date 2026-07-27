@@ -41,7 +41,6 @@ import {
   verifyManagedState,
   writeJournal,
 } from './lib/add-items-deployment.mjs';
-import { assertResourceCapacity } from './lib/resource-preflight.mjs';
 import { assertCanonicalExternalHealthUrl } from './lib/deployment-target.mjs';
 
 const execute = promisify(execFile);
@@ -709,10 +708,6 @@ export function scopedLiveChanges(preimage, deployRecords, releaseType = 'ADD_IT
 
 async function main() {
   const options = parseArguments(process.argv.slice(2));
-  const resources = await assertResourceCapacity({
-    mode: 'deploy',
-    rootDirectory: path.dirname(options.live_root),
-  });
   const release = await loadPinnedRelease({
     releaseDirectory: options.release,
     expectedContentDigest: options.expected_digest,
@@ -776,7 +771,6 @@ async function main() {
       unexpected_changes: 0,
     },
     disk,
-    resources,
   };
   if (!options.apply) {
     process.stdout.write(`${JSON.stringify(plan)}\n`);
