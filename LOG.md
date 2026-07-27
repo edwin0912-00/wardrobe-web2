@@ -17,6 +17,14 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-07-27 · VIDEO-TRANSPORT-001 · beta · Seedance 2 source-bound video decision
+Change: record Seedance 2 as the intended async fashion-video transport.
+Why: video generation must be distinct from local live camera and inherit an
+approved art-shoot source.
+Evidence: canonical video contract binds Seedance 2 to `VIDEO.03` only and
+requires separate route verification before any active-beta claim.
+weakened_checks: none.
+
 2026-07-27 · LIVE-ARCHITECTURE-001 · beta · local-first camera architecture
 Change: define the hardware, browser, local inference, server, provider, and
 optional WebRTC transport boundaries for Live Camera.

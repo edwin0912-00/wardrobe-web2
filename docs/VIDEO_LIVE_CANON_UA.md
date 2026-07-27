@@ -18,6 +18,13 @@ sheet. Вони не приймають випадкову фотографію 
 яке відео з людиною»: його джерело, look і art direction видно користувачу до
 запуску.
 
+### Video transport decision
+
+Для fashion video обраний **Seedance 2** з reference-bound source кадром і
+motion plan. Він є async генератором кліпу: не читає webcam stream і не
+забезпечує live preview. Не позначати Seedance 2 активним на beta, доки його
+окремий auth/API route не пройде точний test → beta activation → live smoke.
+
 ### П’ять канонічних motion modes
 
 1. **Editorial micro-moment** — 4–6 секунд: дихання, погляд, легкий рух рук,

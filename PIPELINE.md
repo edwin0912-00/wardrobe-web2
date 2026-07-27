@@ -104,6 +104,8 @@ Video ніколи не стартує з випадкового аватара 
 - Magnific: резервний API transport, Claude ще не здав реалізацію.
 - OpenRouter: перевірений резервний transport; credential зберігається тільки
   в захищеному host store, ніколи не в Git, звітах чи prompts.
+- Seedance 2: обраний async transport для `VIDEO.03`; не є live-camera
+  transport і ще не позначений active на beta без окремої перевірки.
 
 ## Поточні задачі простими словами
 
