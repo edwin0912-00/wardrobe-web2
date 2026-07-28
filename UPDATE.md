@@ -271,6 +271,34 @@ Higgsfield повернутий на beta й захищений піном пл�
 довільний файл, а платний токен додатково вимагає `look_id` плюс три хеші й
 падає на розходженні. Тоді `APPROVED_SOURCE_ONLY` у графі стає правдою.
 
+## Статус · 2026-07-28 · claude-code-20260727-557761 · VIDEO.01
+
+`BETA-VIDEO-SEEDANCE-001` рухається. Два шари в гілці, платних викликів нуль,
+23/23 фокусних тести зелені.
+
+**Транспорт** — `src/providers/higgsfield-video-provider.js`: CLI `seedance_2_0`,
+двофазний create/wait, job id віддається наверх ДО очікування, тож обрив не
+означає повторної оплати. Зашито три рішення: аспект **16:9** за рішенням
+оператора; `generate_audio=false` завжди, бо модельний звук у доставку не йде;
+і запит падає з `GEOMETRY_IN_PROMPT`, якщо аспект, тривалість або роздільність
+названі в промті замість параметрів. Тестом зафіксовано, що **4:5 у Seedance не
+існує** — коли він знадобиться, це буде явний кроп окремим кроком.
+
+**План руху** — `src/web/video-motion-plan.js`: чотири канонічні режими з
+власними вікнами тривалості. `walk_stride` відмовляє, якщо source-кадр не
+показує ноги й взуття. Локи ідентичності, речей і «жодних нових props» додаються
+до кожного промта автоматично. Тест перевіряє, що кожен згенерований план
+приймається транспортом.
+
+**Питання, яке лишається відкритим і не моє одноосібно:** канон руху каже сесія
+Live 60 секунд, а `config/post-shoot-pipeline.json` має `max_session_seconds: 5`.
+Розбіжність у дванадцять разів. Оператор сказав, що вартість зараз не пріоритет,
+тож я не блокуюсь на цьому, але власнику Live варто звести одне з одним.
+
+**Далі від мене:** сервіс, який зʼєднує залокований образ або кадр із транспортом,
+зберігає кліп у профіль і проганяє QA. Реєстрацію роуту віддам wire-контрактом,
+бо `src/web/app.js` за іншим агентом.
+
 ## Agent protocol
 | BETA-SKILL-RULE8-001 | SKILL · Реф людини вирізаний на білому | claude-code-20260727-a3f1c8 | DONE | DOCS | `skills/artshoot-pipeline-style-creation/SKILL.md`; `docs/coordination/SKILL_VERSION_COMPARE_2026-07-27.md`; `updates/claude-code-20260727-a3f1c8.md` | Directly assigned by Edwin. Add RULE 8 to the style-unit skill in the repo, additively, and record the divergent PR #6 copy in a compare file instead of merging it. No product code, no provider work. |
 | BETA-TERRACOTTA-001 | UNIVERSE · Теракота: байти під оголошені хеші | claude-code-20260727-a3f1c8 | DONE | CODE | `docs/style-units/shoot.terracotta_hardlight/**`; `updates/claude-code-20260727-a3f1c8.md` | Directly assigned by Edwin. Restore the six original sheet PNGs whose sha256 the manifest already declares, replacing downscaled 2048px copies committed by this same agent. No manifest hash is rewritten. Expected: 7/7 hashes match and the mode leaves BLOCKED_INTEGRITY_MISMATCH after the next beta release. |
