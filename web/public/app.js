@@ -986,7 +986,6 @@ function renderProfileSceneLibrary(look) {
   const list = document.querySelector('#profile-look-scene-list');
   const emptyState = document.querySelector('#profile-look-scenes-empty');
   const count = document.querySelector('#profile-look-scenes-count');
-  const createButton = document.querySelector('#profile-look-scene');
   list.replaceChildren();
   count.textContent = String(scenes.length);
   count.setAttribute(
@@ -994,7 +993,6 @@ function renderProfileSceneLibrary(look) {
     scenes.length === 1 ? '1 збережена сцена' : `${scenes.length} збережених сцен`,
   );
   emptyState.classList.toggle('hidden', scenes.length > 0);
-  createButton.textContent = createSceneActionLabel(look);
 
   scenes.forEach((scene, index) => {
     const status = sceneStatusLabel(scene.status);

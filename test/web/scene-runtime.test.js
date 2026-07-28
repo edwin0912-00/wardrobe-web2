@@ -96,7 +96,7 @@ test('scene runtime monitor observer exposes useful state but redacts paths and 
   assert.match(events[0].data.message, /\[redacted/);
 });
 
-test('production scene runtime resolver opens the checked-in five-preset catalog', async () => {
+test('production scene runtime resolver opens the checked-in sixteen-preset catalog', async () => {
   const dependencies = createSceneRuntimeDependencies({
     projectRoot: realProjectRoot,
     qaEvaluator: async () => ({ decision: 'PASS' }),
@@ -104,10 +104,21 @@ test('production scene runtime resolver opens the checked-in five-preset catalog
   await dependencies.presetResolver.initialize();
   const presets = await dependencies.presetResolver.listPresets();
   assert.deepEqual(presets.map((preset) => preset.preset_id), [
+    'std.architecture.glass_corridor_sunset',
+    'std.city.amber_alley_cobblestone',
     'std.city.golden_hour_gloss',
+    'std.city.night_neon_wet_asphalt',
+    'std.city.rooftop_concrete_sunset',
+    'std.interior.abandoned_palace_light_shaft',
     'std.interior.gallery_morning_gloss',
+    'std.interior.industrial_brick_loft',
+    'std.interior.sheer_curtain_golden_light',
     'std.nature_architecture.concrete_grass_golden_hour',
+    'std.nature.foggy_forest_light_shaft',
+    'std.nature.ocean_dusk_blue_hour',
+    'std.studio.black_spotlight_low_key',
     'std.studio.taupe_rembrandt_gloss',
+    'std.studio.terracotta_raking_light',
     'std.studio.white_window_honeycomb',
   ]);
 });

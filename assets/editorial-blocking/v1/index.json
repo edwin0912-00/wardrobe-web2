@@ -140,23 +140,23 @@
     {
       "slot": "wide_campaign_coda",
       "file": "assets/editorial-blocking/v1/wide_campaign_coda.png",
-      "sha256": "08fe125369b185f57ae2a26823aac6134bdb622b667e193364e7a1d8f12b722a",
+      "sha256": "1c928fc81f613d5417c814af7f9f72eab142d901322bb844264b974b02d2ce80",
       "media_type": "image/png",
       "width": 1280,
       "height": 720,
       "drawn_facts": {
         "lens_mm": 35,
-        "framing": "three_quarter",
+        "framing": "wide_full_body",
         "subject_height_percent": [
           30,
           92
         ],
         "minimum_clear_space_percent": {
           "above_hair": 8,
-          "below_footwear": 0
+          "below_footwear": 2
         },
         "require_full_head": true,
-        "require_full_footwear": false
+        "require_full_footwear": true
       }
     }
   ]

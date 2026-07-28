@@ -79,12 +79,13 @@ test('audit style units in docs/style-units/ for manifest and sheet completeness
   assert.equal(report['shoot.grey_studio_stride']?.status, 'PRODUCT_READY');
   assert.equal(report['shoot.sky_dune_surreal']?.status, 'PRODUCT_READY');
 
-  // Verify incomplete male units are strictly classified as ASSETS_ONLY — NOT IN PRODUCT
-  assert.equal(report['shoot.ochre_stage_tailoring']?.status, 'ASSETS_ONLY — NOT IN PRODUCT');
-  assert.deepEqual(report['shoot.ochre_stage_tailoring']?.missing_sheet_roles, ['person']);
+  // The two male units were completed in BETA-MALE-UNITS-001 (5a70860: full sheet
+  // sets + hashed manifests, live since 58703b9) and are product styles now.
+  assert.equal(report['shoot.ochre_stage_tailoring']?.status, 'PRODUCT_READY');
+  assert.deepEqual(report['shoot.ochre_stage_tailoring']?.missing_sheet_roles, []);
   assert.equal(report['shoot.ochre_stage_tailoring']?.has_manifest_json, true);
 
-  assert.equal(report['shoot.shutter_amber_interior']?.status, 'ASSETS_ONLY — NOT IN PRODUCT');
-  assert.deepEqual(report['shoot.shutter_amber_interior']?.missing_sheet_roles, ['person']);
+  assert.equal(report['shoot.shutter_amber_interior']?.status, 'PRODUCT_READY');
+  assert.deepEqual(report['shoot.shutter_amber_interior']?.missing_sheet_roles, []);
   assert.equal(report['shoot.shutter_amber_interior']?.has_manifest_json, true);
 });

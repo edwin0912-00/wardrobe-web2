@@ -435,3 +435,14 @@ revert-у знову зелені, кнопки в розмітці немає.
 - Ремонт у 58703b9: чотири копії вирівняні; EDITORIAL_MODE_IDS та копія READY-сету в scene-contract +5 нових ідентифікаторів; бут-гард — невалідна збережена зйомка їде в quarantine/ з інцидентом замість смерті процесу.
 - Прод: 200 локально і на домені, 14 модів / 12 генерують, обидва чоловічі READY (превʼю webp 1024×1280, 200). 10 історичних зйомок у карантині з інцидентами MALFORMED_PERSISTED_EDITORIAL_SHOOT — відновні, не видалені.
 - Реліз: release-58703b9-20260728134233, бекап скрипта .bak-bootguard.
+
+## 2026-07-28 · BETA-SUITE-GREEN-001 · розбір запитів агентів → 427/427 → реліз
+
+Відповіді на відкриті запити:
+- **a3f1c8** («ui4f2a to reconcile the male-unit readiness assertion»): зроблено — create-universe-units.test тепер очікує PRODUCT_READY/[] для обох чоловічих юнітів, з коментарем на 5a70860/58703b9.
+- **codex-main** (рядок FULL-LOOK: «until the clean suite result is recorded»): записано — повна сюїта web+contracts+conditioning 427/427 PASS на цьому коміті.
+- **codex-video-fidelity**: знайдені і закриті ще ДВІ stale-копії 58dd637 — піксели блокінг-діаграми wide_campaign_coda (перемальовано хірургічно: клонована текстура паперу + ChalkboardSE, факти FULL FOOTWEAR REQUIRED / CLEAR BELOW 2% / WIDE_FULL_BODY, sha в index.json оновлено) і фікстура SHOT_CAMERA в editorial-shot-anchors.test. Разом із чотирма з 58703b9 це вже шість копій одного лока; висновок: наступного разу лок міняється разом із `git grep three_quarter`.
+- **Живий краш профілю** (нове, знайдено при розборі): 914ebf6 видалив кнопку #profile-look-scene, а app.js:989/997 далі її dereference-ив — відкриття збереженого образу з бібліотекою сцен падало на TypeError на живому сайті. app.js полагоджено (два рядки видалені), index.html cache-bust v=20260728-3, тест тепер стереже саме відсутність dangling-референсу.
+- **scene-runtime.test**: давня червона — очікував 5 пресетів проти 16 закомічених; звірено з фактичним каталогом (16 id).
+
+Не чіпав: STYLE3 арбітраж (відкритий, чекає codex-main), два editorial-режими BLOCKED_MISSING_SECOND_SOURCE (потрібні фото від оператора).

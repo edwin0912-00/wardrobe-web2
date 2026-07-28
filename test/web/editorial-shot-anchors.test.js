@@ -26,7 +26,7 @@ const SHOT_CAMERA = Object.freeze({
   sculptural_three_quarter: { lens_mm: 65, framing: 'three_quarter' },
   interference_frame: { lens_mm: 55, framing: 'three_quarter' },
   material_or_accessory_detail: { lens_mm: 85, framing: 'detail' },
-  wide_campaign_coda: { lens_mm: 35, framing: 'three_quarter' },
+  wide_campaign_coda: { lens_mm: 35, framing: 'wide_full_body' },
 });
 
 function gates() {

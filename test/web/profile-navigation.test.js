@@ -25,9 +25,15 @@ test('profile exposes an explicit Back control and clear next actions', () => {
     indexHtml,
     /<button id="profile-look-add"[^>]*>Новий окремий образ<\/button>/,
   );
+  // 914ebf6 replaced the single «Створити сцену» button with the action set;
+  // 1e8ccef made those actions label-free, so intent lives in aria-label.
   assert.match(
     indexHtml,
-    /<button id="profile-look-scene"[^>]*>Створити сцену<\/button>/,
+    /<button id="profile-look-background-primary"[^>]*aria-label="Додати стандартний фон"/,
+  );
+  assert.match(
+    indexHtml,
+    /<button id="profile-look-photoshoot"[^>]*aria-label="Відкрити Art Fashion фотозйомку"/,
   );
   assert.match(
     indexHtml,
@@ -90,7 +96,10 @@ test('selected look exposes its persisted scene library through native controls'
   assert.match(source, /open\.type = 'button'/);
   assert.match(source, /open\.setAttribute\('aria-label', `Відкрити \$\{title\.textContent\}\. Статус:/);
   assert.match(source, /sceneUi\.openExisting\(scene, look\)/);
-  assert.match(source, /createButton\.textContent = createSceneActionLabel\(look\)/);
+  // The #profile-look-scene button is gone (914ebf6); the renderer must not
+  // dereference it — that null crashed the saved-look panel in production.
+  assert.doesNotMatch(source, /#profile-look-scene'/);
+  assert.doesNotMatch(source, /createButton/);
 });
 
 test('an open mobile look becomes the active full-height screen instead of clipping its scenes', () => {
