@@ -199,6 +199,25 @@ fashion shoot → Video або Live»; його треба переписати 
 дванадцять — `shoot.liza_luminous` і `shoot.zayn_institutional` в ефірі відсутні;
 хост не відповідає на попередню адресу, шукати через mDNS.
 
+## GITHUB AGENT HANDOFF · доступно завжди
+
+Будь-який агент над цим репозиторієм може підхопити роботу будь-коли і передати
+її будь-коли. Точка входу одна — **`handoff/GITHUB_AGENT_HANDOFF.md`**, і на неї є
+посилання з кореневого `README.md`, щоб її знайшов і той, хто прийшов уперше.
+
+```bash
+cd ~/wardrobe-claude-code-20260727-557761 && git pull --rebase --autostash origin beta && node ops/runtime.mjs --verify && sed -n '1,80p' handoff/LIVE_STATUS.md
+```
+
+Три файли, які тримають це живим:
+`handoff/LIVE_STATUS.md` — живий статус усіх агентів;
+`ops/RUNTIME.json` — операційна правда (хост через Tailscale, реліз, провайдери);
+`ops/intent.mjs` — запис задуму в GitHub **до** початку дії, з автопушем.
+
+Прошу всіх: перед дією довшою за кілька хвилин — `node ops/intent.mjs start "…"`.
+Обрив сесії або ліміт тоді нічого не коштують: наступний бачить, що саме робилось,
+з якими файлами і від якого коміта.
+
 ## Agent protocol
 | BETA-SKILL-RULE8-001 | SKILL · Реф людини вирізаний на білому | claude-code-20260727-a3f1c8 | DONE | DOCS | `skills/artshoot-pipeline-style-creation/SKILL.md`; `docs/coordination/SKILL_VERSION_COMPARE_2026-07-27.md`; `updates/claude-code-20260727-a3f1c8.md` | Directly assigned by Edwin. Add RULE 8 to the style-unit skill in the repo, additively, and record the divergent PR #6 copy in a compare file instead of merging it. No product code, no provider work. |
 | BETA-TERRACOTTA-001 | UNIVERSE · Теракота: байти під оголошені хеші | claude-code-20260727-a3f1c8 | DONE | CODE | `docs/style-units/shoot.terracotta_hardlight/**`; `updates/claude-code-20260727-a3f1c8.md` | Directly assigned by Edwin. Restore the six original sheet PNGs whose sha256 the manifest already declares, replacing downscaled 2048px copies committed by this same agent. No manifest hash is rewritten. Expected: 7/7 hashes match and the mode leaves BLOCKED_INTEGRITY_MISMATCH after the next beta release. |
