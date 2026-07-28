@@ -446,3 +446,10 @@ revert-у знову зелені, кнопки в розмітці немає.
 - **scene-runtime.test**: давня червона — очікував 5 пресетів проти 16 закомічених; звірено з фактичним каталогом (16 id).
 
 Не чіпав: STYLE3 арбітраж (відкритий, чекає codex-main), два editorial-режими BLOCKED_MISSING_SECOND_SOURCE (потрібні фото від оператора).
+
+## 2026-07-28 · Реліз fa6176c LIVE + системний фікс launchd
+
+- Активація fa6176c спершу падала: launchd повертав `EX_CONFIG (78)` ще ДО запуску run-beta-daemon.sh. Причина поза репо: у plist `com.madeforthisjob.beta` `WorkingDirectory` вказував на `.zeely-deploy/candidates/wardrobe-mvp-20260725f`, який хтось видалив сьогодні вдень (у `candidates/` лишився тільки `product-basic-ui-20260728-d04d2df`). Будь-який рестарт демона з моменту видалення вбив би сайт — бомба сповільненої дії для кожного агента, що деплоїть.
+- Фікс: `WorkingDirectory` → стабільний `/Users/jarvis1/.local/share/madeforthisjob` (скрипт сам робить `cd "$app_root"`); бекап `com.madeforthisjob.beta.plist.bak-workdir`; сервіс перезавантажено через bootout/bootstrap.
+- Смоук fa6176c: local+domain 200; app.js v=20260728-3 без createButton (краш-фікс доїхав); 14 модів / 12 генерують; обидва чоловічі READY; 16 пресетів; нових карантинів немає (10 історичних без змін).
+- Активний реліз: `release-fa6176c-20260728185216`, бекап демон-скрипта `.bak-suitegreen`. Дублікат `release-fa6176c-20260728185141` (перший перерваний прогін) не активний, лишений як є.
