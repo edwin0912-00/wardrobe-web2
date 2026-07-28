@@ -4,3 +4,8 @@
 */assets/
 */audio/
 a/
+
+# Local safety copies made before surgical edits (safe-artifact-stewardship). Not history.
+*.bak
+*.bak-*
+*.bak-precanon

@@ -1,276 +1,433 @@
-/* WARDROBE — the interface on the glass.
+/* WARDROBE — the interface in the apartment.
  *
- * Information architecture comes from the handoff, not from here:
+ * Canon: LEVEL-DESIGN.md, fixed by the owner 2026-07-28. Read that first; this file
+ * implements it and nothing more.
  *
- *   Required:            LOOK -> WORLD -> MOTION
- *   Optional premium:    SIGNATURE
- *   Optional beta edge:  LIVE LAB
+ * WHERE THINGS HAPPEN. One continuous drive, and each station is a PLACE, not a screen:
  *
- * And two behavioural rules from the same source:
+ *   assembly         the room builds itself. No controls — this is the titles.
+ *   empty rails      choose the PERSON: yourself. Up to two photographs.
+ *   rail of clothes  choose the THINGS, where the things physically hang.
+ *   two mirrors      the look, and everything that can be done with it.
+ *   television       the GALLERY of finished work. Not a step in the flow.
+ *   laptop           the pipeline as a live page.
  *
- *   "Product decisions мають відбуватися на стабільних зупинках, а не під час руху
- *    камери" — controls are inert unless the engine reports a station. Nothing here
- *    reads scroll; it watches the flag the engine writes.
+ * NOTHING IS SOLD HERE. No prices, no basket, no "order". The verbs are згенерувати,
+ * приміряти, подивитись. The previous build had a filled button reading "Замовити
+ * фотосесію", which invented a transaction this product does not have.
  *
- *   "image input/output та зрозумілі кнопки" — every step takes an input and names its
- *    output, and buttons say what they do.
+ * THERE CAN BE SEVERAL LOOKS, and the selected one is the context for everything else —
+ * change its background, shoot it, wear it live. Actions appear ONLY once a look with
+ * things in it is visible: before that the viewer may still want to change the things and
+ * look again, so offering to shoot it would be offering to shoot nothing.
  *
- * THREE INTERACTION MODELS are implemented behind a switch, because the open question is
- * which one fits — arrows, a list, or a tray. Visual style is deliberately identical
- * across all three so the comparison is about behaviour and nothing else.
+ * TWO MIRRORS, TWO JOBS. Left asks, right shows — the look, or the shoot, or the live view.
+ * The concrete pier between them is the divider, so the split is real architecture rather
+ * than a layout decision.
  *
- *   carousel  one slot at a time, ‹ › to cycle, the look assembles as you go
- *   list      all slots visible at once, picking one reveals its options in a row
- *   tray      slots on the left, a full tray of options along the bottom of the glass
+ * WHAT IS SIMULATED, STATED PLAINLY: no generation backend is attached to this page. Every
+ * result frame is a declared stand-in that says so on its face, and state() reports
+ * `simulated: true`. No stock photograph is ever shown as output.
  *
- * Left pane is always STATE (what exists so far). Right pane is always ACTION. The
- * concrete pier between the two mirrors is the divider, which is what makes two panes
- * structural rather than decorative.
+ * One behavioural rule from the handoff: "Product decisions мають відбуватися на стабільних
+ * зупинках, а не під час руху камери" — controls are inert unless the engine reports a
+ * station. Nothing here reads scroll; it watches the flag the engine writes, so there is
+ * still one clock.
  */
 (function (global) {
   'use strict';
 
-  /* The wardrobe. Slots are the parts of a look; each carries real options so the
-   * choosing is exercised rather than implied. */
-  var SLOTS = [
-    { id: 'top',   label: 'Верх',   options: ['вовняний джемпер', 'бавовняна сорочка', 'трикотажний лонгслів', 'лляний жакет'] },
-    { id: 'bottom', label: 'Низ',   options: ['лляні штани', 'вовняні брюки', 'широкі джинси', 'спідниця міді'] },
-    { id: 'shoes', label: 'Взуття', options: ['без взуття', 'шкіряні лофери', 'білі кеди', 'замшеві боти'] },
-    { id: 'layer', label: 'Шар',    options: ['без шару', 'довге пальто', 'вʼязаний кардиган', 'дощовик'] }
-  ];
+  var MAX_ITEMS = 5;
+  var MIN_ITEMS = 1;
 
+  /* How long a result frame sits pending. A stated stand-in for a request that does not
+   * exist yet, not an estimate of anything. */
+  var SIM_MS = 1100;
+
+  /* The three places where the viewer is asked something, in travel order. Named for the
+   * place, because that is what the canon fixes — the surface follows the room. */
   var STEPS = [
-    { id: 'look',   label: 'LOOK',   title: 'Зібрати образ', input: 'ваші речі', output: 'аватар в образі', cta: 'Створити образ' },
-    { id: 'world',  label: 'WORLD',  title: 'Обрати світ',   input: 'локація',   output: 'фон під образ',   cta: 'Створити світ' },
-    { id: 'motion', label: 'MOTION', title: 'Оживити',       input: 'образ і світ', output: 'фільм',        cta: 'Створити фільм' }
+    { id: 'person', label: 'ВИ',     title: 'Завантажте себе',  cta: 'Далі — речі' },
+    { id: 'items',  label: 'РЕЧІ',   title: 'Ваші пʼять речей', cta: 'Створити образ' },
+    { id: 'looks',  label: 'ОБРАЗИ', title: 'Ваш образ',        cta: 'Ще один образ' }
   ];
 
-  var WORLDS = ['ця квартира', 'бетонна галерея', 'ранкове місто', 'студія, нейтральний фон'];
-  var MOTIONS = ['повільний оберт', 'крок до камери', 'вітер у тканині', 'статичний портрет'];
+  /* Secondary path only — for someone with nothing to photograph. */
+  var PRESET_ITEMS = [
+    'вовняний джемпер', 'бавовняна сорочка', 'лляні штани', 'вовняні брюки',
+    'широкі джинси', 'довге пальто', 'вʼязаний кардиган', 'шкіряні лофери', 'білі кеди'
+  ];
+  var BACKGROUNDS = ['ця квартира', 'бетонна галерея', 'ранкове місто', 'студія, нейтральний фон'];
 
-  function create() {
-    var stateRoot = document.querySelector('[data-ui-state]');
-    var stepRoot = document.querySelector('[data-ui-step]');
+  function create(opts) {
+    opts = opts || {};
+    var askRoot = document.querySelector('[data-ui-ask]') || document.querySelector('[data-ui-state]');
+    var showRoot = document.querySelector('[data-ui-show]') || document.querySelector('[data-ui-step]');
     var stage = document.querySelector('[data-stage]');
-    if (!stateRoot || !stepRoot) return null;
+    if (!askRoot || !showRoot) return null;
 
-    var variant = 'carousel';
-    var step = 0;                       // 0 look, 1 world, 2 motion
-    var slot = 0;                       // active slot inside LOOK
-    var chosen = { top: 0, bottom: 0, shoes: 0, layer: 0 };
-    var world = 0, motion = 0;
-    var doneLook = false, doneWorld = false, doneMotion = false;
-    var signature = false;
+    var step = 0;
+
+    /* TWO PHOTOGRAPHS OF THE VIEWER, doing different jobs. Full length with feet is
+     * required — a look cropped at the shins cannot be dressed below the crop. The face
+     * close-up is optional and exists because a reference only carries what DISTINGUISHES:
+     * at full-length scale there is no face to read. */
+    var person = { full: null, face: null };
+
+    /* The things currently being gathered for the NEXT look. */
+    var items = [];
+    var presetsOpen = false;
+
+    /* Several looks are allowed, and one is selected. Each carries what was done to it, so
+     * the actions are per-look rather than global. */
+    var looks = [];
+    var selected = -1;
+    var pending = false;
+    var pendingTimer = 0;
+
+    /* Which face of the selected look the right mirror is showing. */
+    var view = 'look';          // 'look' | 'shoot' | 'video' | 'live'
+    var bgOpen = false;         // the background list is open in the left mirror
+
+    /* What the last programmatic travel did: 'arrived' means the page moved the viewer,
+     * 'user took over' means they moved themselves. Different facts. */
+    var travel = null;
 
     function station() { return stage.getAttribute('data-station') === '1'; }
     function locked() { return !station(); }
+    function hasFull() { return !!person.full; }
+    function hasItems() { return items.length >= MIN_ITEMS; }
+    function current() { return selected >= 0 ? looks[selected] : null; }
+    /* THE gate for every action: a look with things in it must be VISIBLE first. */
+    function lookVisible() { return !!current() && !pending; }
 
-    /* ---------------------------------------------------------------- state pane */
-    function renderState() {
-      /* The assembled look, one row per slot, each with the slot where its image lands. */
-      var rows = SLOTS.map(function (s, i) {
-        var on = (step === 0 && i === slot);
-        return '<button class="step step--withph" type="button" data-slot="' + i + '"' +
-          ' aria-current="' + (on ? 'step' : 'false') + '" data-done="1">' +
-          tile('garment', s.label) +
-          '<span class="step__label">' + s.options[chosen[s.id]] + '</span>' +
-          '<span class="step__status">' + (on ? 'зараз' : 'змінити') + '</span>' +
-          '</button>';
-      }).join('');
+    function esc(s) {
+      return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+    function plural(n, one, few, many) { return n === 1 ? one : n < 5 ? few : many; }
 
-      var stepRows = STEPS.map(function (s, i) {
-        var done = (i === 0 && doneLook) || (i === 1 && doneWorld) || (i === 2 && doneMotion);
-        return '<button class="step" type="button" data-step="' + i + '"' +
-          ' aria-current="' + (step === i ? 'step' : 'false') + '" data-done="' + (done ? '1' : '0') + '"' +
-          (i === 0 || doneLook ? '' : ' disabled') + '>' +
-          '<span class="step__n">' + (i + 1) + '</span>' +
-          '<span class="step__label">' + s.label + '</span>' +
-          '<span class="step__status">' + (done ? 'готово' : step === i ? 'зараз' : 'далі') + '</span>' +
-          '</button>';
-      }).join('');
-
-      stateRoot.innerHTML =
-        '<div class="glass__eyebrow">Дзеркало</div>' +
-        '<div class="glass__h">' + (step === 0 ? 'Ваш образ' : 'Що вже зібрано') + '</div>' +
-        '<div class="steps">' + (step === 0 ? rows : stepRows) + '</div>' +
-        '<div class="opt">' +
-          '<button class="opt__btn" type="button" data-signature aria-pressed="' + (signature ? 'true' : 'false') + '">' +
-            'SIGNATURE · власна фотосесія</button>' +
-          '<p class="opt__note">' + (signature ? 'додано' : 'необовʼязково, за вашими референсами') + '</p>' +
-        '</div>';
+    function makeLook() {
+      if (!hasFull() || !hasItems() || pending) return;
+      pending = true; view = 'look';
+      render();
+      clearTimeout(pendingTimer);
+      pendingTimer = setTimeout(function () {
+        looks.push({ id: 'look-' + (looks.length + 1), items: items.slice(),
+                     bg: null, shot: false, video: false });
+        selected = looks.length - 1;
+        items = [];                 // the next look starts empty
+        pending = false;
+        step = 2;
+        render();
+        /* Forward travel was closed until a look existed, so the page carries the viewer on
+         * itself rather than leaving them to discover that scrolling works again. The move
+         * belongs to the engine — this layer never animates position, or there would be two
+         * clocks. */
+        if (typeof opts.onLookReady === 'function') opts.onLookReady();
+      }, SIM_MS);
     }
 
-    /* --------------------------------------------------------------- action pane */
-    function currentChoices() {
-      if (step === 0) return { list: SLOTS[slot].options, index: chosen[SLOTS[slot].id], name: SLOTS[slot].label };
-      if (step === 1) return { list: WORLDS, index: world, name: 'Світ' };
-      return { list: MOTIONS, index: motion, name: 'Рух' };
+    /* ============================================================== ASK — left mirror */
+
+    function photoSlot(kind, label, note) {
+      var p = person[kind];
+      return '<label class="pslot' + (p ? ' pslot--has' : '') + '" for="io-' + kind + '">' +
+        (p ? '<img class="pslot__img" src="' + p.url + '" alt="">'
+           : '<span class="pslot__t">' + label + '</span>') +
+        '<span class="pslot__n">' + (p ? 'замінити' : note) + '</span>' +
+        '<input id="io-' + kind + '" type="file" accept="image/*" hidden>' +
+      '</label>';
     }
 
-    /* PLACEHOLDER TILES.
-     *
-     * Every pipeline element the viewer will choose gets a visible slot now, before the
-     * imagery exists, so the layout is judged at real size rather than imagined. A slot
-     * says what it is waiting for instead of showing a grey box: an empty frame that
-     * explains itself is reviewable, an anonymous one is not.
-     *
-     * `kind` drives the little glyph so a garment, a room and a movement are not all the
-     * same shape. When real assets land, only the inner markup changes — the geometry,
-     * the states and the click targets are already settled here.
-     */
-    function tile(kind, label, size) {
-      var glyph =
-        kind === 'garment' ? '<span class="ph__g ph__g--garment"></span>' :
-        kind === 'world'   ? '<span class="ph__g ph__g--world"></span>' :
-                             '<span class="ph__g ph__g--motion"></span>';
-      return '<span class="ph ph--' + (size || 'sm') + '" aria-hidden="true">' +
-               glyph +
-               '<span class="ph__tag">' + label + '</span>' +
-             '</span>';
-    }
-
-    function tileKind() {
-      return step === 0 ? 'garment' : step === 1 ? 'world' : 'motion';
-    }
-
-    function pickerCarousel(c) {
-      var k = tileKind();
-      return '' +
-        '<div class="pick">' +
-          '<button class="pick__arrow" type="button" data-nudge="-1" aria-label="попереднє"' + (locked() ? ' disabled' : '') + '>‹</button>' +
-          '<div class="pick__now">' +
-            tile(k, 'зображення', 'lg') +
-            '<span class="pick__name">' + c.list[c.index] + '</span>' +
-            '<span class="pick__count">' + (c.index + 1) + ' / ' + c.list.length + '</span>' +
-          '</div>' +
-          '<button class="pick__arrow" type="button" data-nudge="1" aria-label="наступне"' + (locked() ? ' disabled' : '') + '>›</button>' +
+    function askPerson() {
+      return '<div class="pslots">' +
+          photoSlot('full', 'на весь зріст', 'потрібне') +
+          photoSlot('face', 'обличчя', 'за бажанням') +
         '</div>' +
-        '<div class="dots">' + c.list.map(function (_, i) {
-          return '<i data-choose="' + i + '"' + (i === c.index ? ' data-on="1"' : '') + '></i>';
-        }).join('') + '</div>';
+        '<p class="glass__lede">Зріст — зі ступнями, інакше образ нема на чому тримати. ' +
+        'Обличчя окремо, бо на повному кадрі його не прочитати.</p>';
     }
 
-    function pickerList(c) {
-      var k = tileKind();
-      return '<div class="rowpick">' + c.list.map(function (o, i) {
-        return '<button class="rowpick__item" type="button" data-choose="' + i + '"' +
-          (i === c.index ? ' aria-pressed="true"' : ' aria-pressed="false"') +
-          (locked() ? ' disabled' : '') + '>' +
-          tile(k, String(i + 1)) +
-          '<span class="rowpick__name">' + o + '</span>' +
-          '</button>';
-      }).join('') + '</div>';
-    }
-
-    function pickerTray(c) {
-      var k = tileKind();
-      return '<div class="tray">' + c.list.map(function (o, i) {
-        return '<button class="tray__chip" type="button" data-choose="' + i + '"' +
-          (i === c.index ? ' aria-pressed="true"' : ' aria-pressed="false"') +
-          (locked() ? ' disabled' : '') + '>' +
-          tile(k, String(i + 1), 'md') +
-          '<span>' + o + '</span>' +
-          '</button>';
-      }).join('') + '</div>';
-    }
-
-    function renderStep() {
-      var s = STEPS[step];
-      var c = currentChoices();
-      var picker =
-        variant === 'list' ? pickerList(c) :
-        variant === 'tray' ? pickerTray(c) : pickerCarousel(c);
-
-      var nextLabel = step === 0
-        ? (slot < SLOTS.length - 1 ? 'Далі: ' + SLOTS[slot + 1].label : s.cta)
-        : s.cta;
-
-      stepRoot.innerHTML =
-        '<div class="glass__eyebrow">' +
-          (step === 0 ? 'Крок 1 з 3 · LOOK · ' + c.name : 'Крок ' + (step + 1) + ' з 3 · ' + s.label) +
-        '</div>' +
-        '<div class="glass__h">' + (step === 0 ? 'Оберіть ' + c.name.toLowerCase() : s.title) + '</div>' +
-        picker +
-        '<div class="io">' +
-          '<label class="io__drop" for="io-' + s.id + '">' +
-            '<span>або своє зображення</span>' +
-            '<input id="io-' + s.id + '" type="file" accept="image/*" hidden' + (locked() ? ' disabled' : '') + '>' +
-          '</label>' +
-        '</div>' +
-        '<div class="acts">' +
-          '<button class="glass__cta glass__cta--ghost" type="button" data-back' +
-            (step === 0 && slot === 0 ? ' disabled' : locked() ? ' disabled' : '') + '>Назад</button>' +
-          '<button class="glass__cta" type="button" data-next' + (locked() ? ' disabled' : '') + '>' + nextLabel + '</button>' +
-        '</div>' +
-        '<div class="vary">' +
-          ['carousel', 'list', 'tray'].map(function (v) {
-            return '<button class="vary__b" type="button" data-variant="' + v + '"' +
-              ' aria-pressed="' + (variant === v ? 'true' : 'false') + '">' + v + '</button>';
-          }).join('') +
-        '</div>' +
-        (locked() ? '<p class="glass__hint">камера рухається — рішення на зупинці</p>' : '');
-    }
-
-    function render() { renderState(); renderStep(); }
-
-    function setChoice(i) {
-      var c = currentChoices();
-      var n = c.list.length;
-      var v = ((i % n) + n) % n;
-      if (step === 0) chosen[SLOTS[slot].id] = v;
-      else if (step === 1) world = v;
-      else motion = v;
-    }
-
-    function advance() {
-      if (step === 0) {
-        if (slot < SLOTS.length - 1) { slot++; return; }
-        doneLook = true; step = 1; return;
+    function askItems() {
+      var full = items.length >= MAX_ITEMS;
+      /* Five slots and one button. An empty slot IS the drop target, so the slots are the
+       * whole interface — there used to be a drop zone, a thumbnail strip, a counter and a
+       * row naming the output: five things describing one action. */
+      var cells = '';
+      for (var i = 0; i < MAX_ITEMS; i++) {
+        var it = items[i];
+        cells += it
+          ? '<div class="slot" data-filled="1">' +
+              (it.url ? '<img class="slot__img" src="' + it.url + '" alt="">'
+                      : '<span class="slot__ph"><span class="ph__g ph__g--garment"></span></span>') +
+              '<button class="slot__x" type="button" data-remove="' + i + '" aria-label="прибрати">×</button>' +
+            '</div>'
+          : '<label class="slot slot--drop" data-filled="0" for="io-items">' +
+              '<span class="slot__empty">' + (i + 1) + '</span></label>';
       }
-      if (step === 1) { doneWorld = true; step = 2; return; }
-      doneMotion = true;
+      return '<div class="slots slots--big">' + cells + '</div>' +
+        '<input id="io-items" type="file" accept="image/*" multiple hidden' + (full ? ' disabled' : '') + '>' +
+        '<button class="secondary" type="button" data-presets aria-expanded="' + (presetsOpen ? 'true' : 'false') + '">' +
+          'нічого під рукою — обрати з готових</button>' +
+        (presetsOpen
+          ? '<div class="tray">' + PRESET_ITEMS.map(function (o, i) {
+              var on = items.some(function (x) { return !x.url && x.name === o; });
+              return '<button class="tray__chip" type="button" data-preset="' + i + '"' +
+                ' aria-pressed="' + (on ? 'true' : 'false') + '"' +
+                ' data-blocked="' + (full && !on ? '1' : '0') + '">' +
+                '<span>' + esc(o) + '</span></button>';
+            }).join('') + '</div>'
+          : '');
     }
 
-    function back() {
-      if (step === 0) { if (slot > 0) slot--; return; }
-      if (step === 1) { step = 0; slot = SLOTS.length - 1; return; }
-      step = 1;
+    /* At the mirrors the left pane is where you CHOOSE: which look is the context, and —
+     * when asked for — which background it stands in. */
+    function askLooks() {
+      var l = current();
+      var strip = looks.map(function (x, i) {
+        return '<button class="lookpick" type="button" data-select="' + i + '"' +
+          ' aria-pressed="' + (i === selected ? 'true' : 'false') + '">' +
+          '<span class="lookpick__n">' + (i + 1) + '</span>' +
+          '<span class="lookpick__d">' + x.items.length + ' ' +
+            plural(x.items.length, 'річ', 'речі', 'речей') + '</span>' +
+          (x.bg != null ? '<span class="lookpick__b">' + esc(BACKGROUNDS[x.bg]) + '</span>' : '') +
+        '</button>';
+      }).join('');
+      return '<div class="lookpicks">' + strip + '</div>' +
+        (bgOpen && l
+          ? '<div class="rowpick">' + BACKGROUNDS.map(function (o, i) {
+              return '<button class="rowpick__item" type="button" data-bg="' + i + '"' +
+                ' aria-pressed="' + (l.bg === i ? 'true' : 'false') + '">' +
+                '<span class="rowpick__name">' + esc(o) + '</span></button>';
+            }).join('') + '</div>'
+          : '');
+    }
+
+    function renderAsk() {
+      var s = STEPS[step];
+      var blocked = (step === 0 && !hasFull()) || (step === 1 && (!hasItems() || pending));
+
+      /* UNREACHED STEPS ARE NOT RENDERED AT ALL. A greyed-out label still advertises an
+       * offer, and there is no offer before the thing it applies to exists. */
+      var reachable = [true, hasFull(), looks.length > 0];
+      var doneFlag  = [hasFull(), looks.length > 0, looks.length > 0];
+      var trail = STEPS.map(function (x, i) {
+        if (!reachable[i]) return '';
+        return '<button class="trail__i" type="button" data-step="' + i + '"' +
+          ' aria-current="' + (step === i ? 'step' : 'false') + '" data-done="' + (doneFlag[i] ? '1' : '0') + '">' +
+          x.label + '</button>';
+      }).join('');
+
+      var body = step === 0 ? askPerson() : step === 1 ? askItems() : askLooks();
+
+      askRoot.innerHTML =
+        /* Digits and a slash, never "КРОК 1 З 3": at this tracking the Cyrillic З between
+         * two digits reads as a third digit — on screen it said "КРОК 1 3 3". */
+        '<div class="glass__eyebrow">0' + (step + 1) + ' / 0' + STEPS.length + ' · ' + s.label + '</div>' +
+        '<div class="glass__h">' + s.title + '</div>' +
+        '<div class="askbody">' + body + '</div>' +
+        '<div class="acts">' +
+          (step > 0 ? '<button class="glass__cta glass__cta--ghost" type="button" data-back>Назад</button>' : '') +
+          '<button class="glass__cta" type="button" data-next data-blocked="' + (blocked ? '1' : '0') + '">' +
+            (pending ? 'Створюємо…' : s.cta) +
+          '</button>' +
+        '</div>' +
+        '<p class="glass__hint" data-hint></p>' +
+        '<div class="trail">' + trail + '</div>';
+      applyEnabled();
+    }
+
+    /* ============================================================ SHOW — right mirror */
+
+    /* Every result frame carries the same admission: no render is attached. The viewer's own
+     * photograph is all we have, so it is shown desaturated under the placeholder hatching.
+     * An undressed input photo presented as a finished look would be input passed off as
+     * output. */
+    function resultFrame(caption, state) {
+      var src = person.full ? person.full.url : '';
+      return '<div class="lookframe" data-state="' + state + '">' +
+        (src ? '<img class="lookframe__img" src="' + src + '" alt="">' : '') +
+        '<span class="lookframe__cap">' + caption + '</span>' +
+      '</div>';
+    }
+
+    function actionBlocks() {
+      var l = current();
+      /* PHOTOSHOOT AND FASHION VIDEO ARE SIBLINGS, not a shoot with a video bolted on. The
+       * canon is explicit: the fashion style is one for now and it must be a full offer. So
+       * they sit in one row at equal weight, and neither is a footnote to the other. */
+      return '<div class="acts2">' +
+          '<button class="act" type="button" data-view="shoot" aria-pressed="' + (view === 'shoot' ? 'true' : 'false') + '">' +
+            '<span class="act__t">Фотозйомка в стилі</span>' +
+            '<span class="act__d">' + (l.shot ? 'зроблено' : 'згенерувати') + '</span></button>' +
+          '<button class="act" type="button" data-view="video" aria-pressed="' + (view === 'video' ? 'true' : 'false') + '">' +
+            '<span class="act__t">Фешн-відео</span>' +
+            '<span class="act__d">' + (l.video ? 'зроблено' : 'згенерувати') + '</span></button>' +
+        '</div>' +
+        '<div class="acts2">' +
+          '<button class="act" type="button" data-bgopen aria-pressed="' + (bgOpen ? 'true' : 'false') + '">' +
+            '<span class="act__t">Змінити фон</span>' +
+            '<span class="act__d">' + (l.bg != null ? esc(BACKGROUNDS[l.bg]) : 'обрати') + '</span></button>' +
+          '<button class="act" type="button" data-view="live" aria-pressed="' + (view === 'live' ? 'true' : 'false') + '">' +
+            '<span class="act__t">Приміряти лайв</span>' +
+            '<span class="act__d">камера</span></button>' +
+        '</div>' +
+        /* The OMNI 3 branch exists only once a background is chosen — it generates video ON
+         * that background, so without one there is nothing to generate onto. */
+        (l.bg != null
+          ? '<button class="act act--wide" type="button" data-view="video" data-omni>' +
+              '<span class="act__t">Відео на фоні «' + esc(BACKGROUNDS[l.bg]) + '»</span>' +
+              '<span class="act__d">згенерувати в OMNI 3</span></button>'
+          : '');
+    }
+
+    function renderShow() {
+      /* The right mirror opens when a look is asked for, so the pending state is itself the
+       * reveal. Before that there is no second mirror at all — not a stub, not a plate. */
+      var open = pending || looks.length > 0;
+      showRoot.setAttribute('data-live', open ? '1' : '0');
+      showRoot.setAttribute('aria-hidden', open ? 'false' : 'true');
+
+      var lab = document.querySelector('[data-livelab]');
+      if (lab) {
+        lab.setAttribute('data-live', lookVisible() ? '1' : '0');
+        lab.setAttribute('aria-hidden', lookVisible() ? 'false' : 'true');
+        lab.disabled = !lookVisible() || locked();
+      }
+
+      if (!open) { showRoot.innerHTML = ''; return; }
+
+      if (pending) {
+        showRoot.innerHTML = '<div class="glass__eyebrow">Образ створюється</div>' +
+          resultFrame('створюємо образ…', 'pending');
+        applyEnabled();
+        return;
+      }
+
+      var l = current();
+      var head = view === 'shoot' ? 'Фотозйомка'
+               : view === 'video' ? 'Фешн-відео'
+               : view === 'live'  ? 'Лайв-примірка' : 'Ваш образ';
+      var cap = view === 'live' ? 'камера не підключена' : 'рендер не підключений';
+
+      showRoot.innerHTML =
+        '<div class="glass__eyebrow">' + head + '</div>' +
+        resultFrame(cap, 'ready') +
+        '<div class="glass__rows glass__rows--show">' +
+          '<div class="glass__row"><span>З речей</span> ' + l.items.length + ' ' +
+            plural(l.items.length, 'річ', 'речі', 'речей') + '</div>' +
+          (l.bg != null ? '<div class="glass__row"><span>Фон</span> ' + esc(BACKGROUNDS[l.bg]) + '</div>' : '') +
+        '</div>' +
+        actionBlocks();
+      applyEnabled();
+    }
+
+    /* A station change is a change of PERMISSION, not of content. Re-rendering innerHTML on
+     * every flip tore the panels down and rebuilt them — that was the flicker, and it also
+     * dropped focus and restarted every image decode mid-swipe. */
+    function applyEnabled() {
+      var lock = locked();
+      document.querySelectorAll('[data-ui-ask] button, [data-ui-show] button, [data-ui-ask] input')
+        .forEach(function (el) {
+          if (el.hasAttribute('data-presets')) return;
+          var blocked = el.getAttribute('data-blocked') === '1';
+          var full = el.id === 'io-items' && items.length >= MAX_ITEMS;
+          el.disabled = lock || blocked || full;
+        });
+      var hint = askRoot.querySelector('[data-hint]');
+      if (hint) {
+        hint.textContent = (step === 0 && !hasFull()) ? 'потрібне одне фото на весь зріст'
+                         : (step === 1 && !hasItems()) ? 'додайте хоча б одну річ'
+                         : lock ? 'камера рухається — рішення на зупинці' : '';
+      }
+      var lab = document.querySelector('[data-livelab]');
+      if (lab) lab.disabled = !lookVisible() || lock;
+    }
+
+    function render() { renderAsk(); renderShow(); }
+
+    function addFiles(fileList) {
+      var room = MAX_ITEMS - items.length;
+      Array.prototype.slice.call(fileList, 0, Math.max(0, room)).forEach(function (f) {
+        items.push({ name: f.name, url: URL.createObjectURL(f) });
+      });
+      render();
+    }
+
+    function setPhoto(kind, file) {
+      if (!file) return;
+      /* Release the old object URL: camera-sized photographs are real memory and nothing
+       * else references them. */
+      if (person[kind] && person[kind].url) URL.revokeObjectURL(person[kind].url);
+      person[kind] = { name: file.name, url: URL.createObjectURL(file) };
+      render();
+    }
+
+    function removeAt(i) {
+      if (items[i] && items[i].url) URL.revokeObjectURL(items[i].url);
+      items.splice(i, 1);
+      render();
+    }
+
+    function togglePreset(name) {
+      var at = -1;
+      for (var i = 0; i < items.length; i++) {
+        if (!items[i].url && items[i].name === name) { at = i; break; }
+      }
+      if (at >= 0) items.splice(at, 1);
+      else if (items.length < MAX_ITEMS) items.push({ name: name, url: null });
+      render();
     }
 
     document.addEventListener('click', function (ev) {
-      var t = ev.target;
-      var b;
-
-      if ((b = t.closest('[data-variant]'))) { variant = b.getAttribute('data-variant'); render(); return; }
+      var t = ev.target, b;
+      if (t.closest('[data-presets]')) { presetsOpen = !presetsOpen; renderAsk(); return; }
       if (locked()) return;
 
-      if ((b = t.closest('[data-nudge]'))) { setChoice(currentChoices().index + Number(b.getAttribute('data-nudge'))); render(); return; }
-      if ((b = t.closest('[data-choose]'))) { setChoice(Number(b.getAttribute('data-choose'))); render(); return; }
-      if ((b = t.closest('[data-slot]')))   { step = 0; slot = Number(b.getAttribute('data-slot')); render(); return; }
-      if ((b = t.closest('[data-step]')) && !b.disabled) { step = Number(b.getAttribute('data-step')); render(); return; }
-      if (t.closest('[data-signature]'))    { signature = !signature; render(); return; }
-      if (t.closest('[data-next]'))         { advance(); render(); return; }
-      if (t.closest('[data-back]'))         { back(); render(); return; }
-    });
-
-    /* Keyboard: arrows cycle the current choice. Cheap to add, and it is how anyone
-     * comparing four garments actually wants to move. */
-    document.addEventListener('keydown', function (ev) {
-      if (locked()) return;
-      if (ev.key === 'ArrowRight') { setChoice(currentChoices().index + 1); render(); }
-      else if (ev.key === 'ArrowLeft') { setChoice(currentChoices().index - 1); render(); }
+      if ((b = t.closest('[data-remove]'))) { removeAt(Number(b.getAttribute('data-remove'))); return; }
+      if ((b = t.closest('[data-preset]'))) { togglePreset(PRESET_ITEMS[Number(b.getAttribute('data-preset'))]); return; }
+      if ((b = t.closest('[data-select]'))) { selected = Number(b.getAttribute('data-select')); view = 'look'; render(); return; }
+      if ((b = t.closest('[data-bg]'))) {
+        var lb = current(); if (lb) lb.bg = Number(b.getAttribute('data-bg'));
+        bgOpen = false; render(); return;
+      }
+      if (t.closest('[data-bgopen]')) { bgOpen = !bgOpen; render(); return; }
+      if ((b = t.closest('[data-view]'))) {
+        view = b.getAttribute('data-view');
+        var cur = current();
+        if (cur) { if (view === 'shoot') cur.shot = true; if (view === 'video') cur.video = true; }
+        render(); return;
+      }
+      if ((b = t.closest('[data-step]'))) { step = Number(b.getAttribute('data-step')); render(); return; }
+      if ((b = t.closest('[data-next]')) && !b.disabled) {
+        if (step === 0) { if (hasFull()) { step = 1; render(); } }
+        else if (step === 1) { makeLook(); }
+        else { step = 1; view = 'look'; render(); }   // another look starts at the things
+        return;
+      }
+      if ((b = t.closest('[data-back]')) && !b.disabled) { step = Math.max(0, step - 1); render(); return; }
     });
 
     document.addEventListener('change', function (ev) {
-      if (ev.target.matches('input[type="file"]')) {
-        var l = ev.target.closest('.io__drop');
-        var f = ev.target.files && ev.target.files[0];
-        if (l && f) l.querySelector('span').textContent = f.name;
-      }
+      if (ev.target.matches('#io-items')) addFiles(ev.target.files);
+      else if (ev.target.matches('#io-full')) setPhoto('full', ev.target.files[0]);
+      else if (ev.target.matches('#io-face')) setPhoto('face', ev.target.files[0]);
     });
 
-    /* The station flag belongs to the engine. Watching it keeps one clock. */
-    new MutationObserver(renderStep)
+    ['dragover', 'drop'].forEach(function (type) {
+      document.addEventListener(type, function (ev) {
+        var zone = ev.target.closest && ev.target.closest('.pslot, .slot--drop');
+        if (!zone || locked()) return;
+        ev.preventDefault();
+        if (type !== 'drop' || !ev.dataTransfer || !ev.dataTransfer.files) return;
+        var inp = zone.querySelector('input');
+        if (inp && inp.id === 'io-full') setPhoto('full', ev.dataTransfer.files[0]);
+        else if (inp && inp.id === 'io-face') setPhoto('face', ev.dataTransfer.files[0]);
+        else addFiles(ev.dataTransfer.files);
+      });
+    });
+
+    new MutationObserver(applyEnabled)
       .observe(stage, { attributes: true, attributeFilter: ['data-station', 'data-leg'] });
 
     render();
@@ -278,22 +435,34 @@
     return {
       state: function () {
         return {
-          variant: variant, step: step, stepId: STEPS[step].id, slot: slot,
-          slotId: SLOTS[slot].id,
-          chosen: Object.keys(chosen).reduce(function (a, k) {
-            var s = SLOTS.filter(function (x) { return x.id === k; })[0];
-            a[k] = s.options[chosen[k]]; return a;
-          }, {}),
-          world: WORLDS[world], motion: MOTIONS[motion],
-          doneLook: doneLook, doneWorld: doneWorld, doneMotion: doneMotion,
-          signature: signature, station: station(),
-          controlsEnabled: !locked()
+          step: step, stepId: STEPS[step].id,
+          person: { full: !!person.full, face: !!person.face },
+          hasFull: hasFull(),
+          items: items.map(function (i) { return { name: i.name, uploaded: !!i.url }; }),
+          itemCount: items.length, max: MAX_ITEMS,
+          looks: looks.map(function (l) {
+            return { id: l.id, items: l.items.length,
+                     background: l.bg != null ? BACKGROUNDS[l.bg] : null,
+                     shot: l.shot, video: l.video };
+          }),
+          selected: selected, lookVisible: lookVisible(), pending: pending,
+          view: view, bgOpen: bgOpen,
+          actionsOffered: lookVisible(),
+          simulated: true,               // no render backend is attached to this page
+          sells: false,                  // no prices, no basket, by canon
+          station: station(), controlsEnabled: !locked(), travel: travel
         };
       },
-      setVariant: function (v) { variant = v; render(); return variant; },
-      variants: ['carousel', 'list', 'tray']
+      /* Asked by the engine at every station through config.canAdvance. Leg 0 holds until a
+       * look exists: the next room is a gallery of finished work, so arriving with nothing
+       * made would be arriving at an empty shelf. */
+      canAdvance: function (leg) { return leg === 0 ? looks.length > 0 : true; },
+      travelled: function (how) { travel = how || null; return travel; },
+      addPreset: function (name) { togglePreset(name); return items.length; },
+      makeLook: makeLook,
+      steps: STEPS, presets: PRESET_ITEMS, backgrounds: BACKGROUNDS
     };
   }
 
-  global.WardrobeUI = { create: create, SLOTS: SLOTS, STEPS: STEPS };
+  global.WardrobeUI = { create: create, STEPS: STEPS, MAX_ITEMS: MAX_ITEMS };
 })(window);

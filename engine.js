@@ -55,6 +55,50 @@
 
   function create(config) {
     var legs = config.legs;                    // [{ video, name, copy }]
+
+    /* ONE OWNER for the station threshold.
+     *
+     * It was written twice: the UI flag used a hard-coded 0.86 while the gate lock and
+     * the resistance ramp read config.stationAt (0.92). Two numbers for one idea meant
+     * the interface appeared six percent of a leg before the thing that blocks passage
+     * engaged, and a change to one would silently not reach the other. An independent
+     * review flagged it as a drift surface; it is now a single function every call site
+     * reads. */
+    function stationAt() {
+      return config.stationAt !== undefined ? config.stationAt : 0.92;
+    }
+
+    /* TWO THRESHOLDS, BECAUSE ONE FLICKERS.
+     *
+     * A single threshold means the smallest movement across it toggles the station flag, and
+     * the interface it drives blinks on and off while the viewer's hand is still resting. So
+     * the station LATCHES: it engages at `stationEnter` and does not let go until progress
+     * falls all the way back to `stationExit`. The band between them is dead — nothing
+     * happens inside it in either direction.
+     *
+     * Defaults keep the old single-threshold behaviour exactly, so a page that configures
+     * neither is unchanged. The latch is per leg and resets on a leg change: carrying a
+     * latched station across a seam would show the next room's interface before it arrived. */
+    function stationEnter() {
+      return config.stationEnter !== undefined ? config.stationEnter : stationAt();
+    }
+    function stationExit() {
+      var e = config.stationExit !== undefined ? config.stationExit : stationEnter();
+      return Math.min(e, stationEnter());          // an exit above the entry could never fire
+    }
+
+    var stationLatched = false;
+    var stationLatchLeg = -1;
+
+    function stationOn(r) {
+      if (r.idx !== stationLatchLeg) { stationLatchLeg = r.idx; stationLatched = false; }
+      if (stationLatched) {
+        if (r.local < stationExit()) stationLatched = false;
+      } else if (r.local >= stationEnter()) {
+        stationLatched = true;
+      }
+      return stationLatched;
+    }
     var stage = document.querySelector('[data-stage]');
     var loader = document.querySelector('[data-loader]');
     var loaderBar = document.querySelector('[data-loader-bar]');
@@ -94,10 +138,45 @@
     }
     var film = document.querySelector('[data-film]');
 
+    /* ---- THE INTRO ------------------------------------------------------------
+     *
+     * A film that plays before the rooms and is not one of them. It is deliberately NOT
+     * added to `legs`: the copy lines, the mirror panels and ui.js are all keyed to
+     * data-leg 0..3, and renumbering them to make room for an intro would silently move
+     * every one of those. So the intro gets its own scroll span in front of the legs and
+     * the leg indices stay exactly as they were.
+     *
+     * config.intro = { screens, handoverAt, fadeFrom }
+     *   screens     how much scroll the intro owns, in viewport heights
+     *   handoverAt  where inside the intro's span the scroll STOPS being the intro's alone
+     *               and starts driving room one as well. Both advance from here: nothing
+     *               freezes, and by the time the intro dissolves the room has already begun
+     *               assembling. This is the "swipe is bound to the second video slightly
+     *               before the first one starts to fade" requirement.
+     *   fadeFrom    where the intro starts dissolving. Must be >= handoverAt, otherwise the
+     *               room would be revealed before it had started moving.
+     */
+    var intro = config.intro || null;
+    var introEl = document.querySelector('[data-intro]');
+    if (intro && !introEl) intro = null;          // configured but absent: carry on without
+
+    function introScreens() { return intro ? (intro.screens || 1.6) : 0; }
+    function totalScreens() { return introScreens() + config.screensPerLeg * legs.length; }
+
+    /* Fraction of the whole page the intro owns, and where the legs' own 0..1 begins.
+     * The legs start EARLY — at handoverAt inside the intro's span — so leg progress is
+     * continuous across the dissolve instead of jumping from nothing to something. */
+    function introFrac() { return intro ? introScreens() / totalScreens() : 0; }
+    function legsStart() {
+      if (!intro) return 0;
+      var h = intro.handoverAt !== undefined ? intro.handoverAt : 0.74;
+      return introFrac() * h;
+    }
+
     function layout() {
       var vh = viewport();
       stage.style.height = vh + 'px';
-      track.style.height = (vh * config.screensPerLeg * legs.length) + 'px';
+      track.style.height = (vh * totalScreens()) + 'px';
 
       /* SIZE FRAME SPACE.
        *
@@ -119,10 +198,42 @@
       var aspect = config.filmAspect || (16 / 9);
       var over = config.overscan || 1.045;
 
-      var w = sw, h = sw / aspect;
-      if (h < sh) { h = sh; w = sh * aspect; }   // cover, not contain
-      w *= over; h *= over;
+      /* WIDTH FIRST, NOT COVER — because the interface lives on the far left and right.
+       *
+       * The old rule covered the stage: on a window taller than 16:9 it grew the box until
+       * the height was filled, which pushed the sides past the edges. Measured on the
+       * shipped mirror rectangles (x 5.0-44.0% and 55.7-94.6%): at 1512x982 each mirror lost
+       * 9% of its width, at 1024x768 23%, at 1280x1024 29%. The panels were never misplaced
+       * — they were glued to mirrors that had left the screen. That is the drift the owner
+       * sees when the browser zoom changes, and shrinking the panels would not touch it.
+       *
+       * So the horizontal is authoritative: the film is exactly as wide as the stage, which
+       * keeps the whole 0-100% of frame space — and therefore both mirrors — on screen at
+       * every window shape. If that leaves the frame shorter than the stage, the remainder
+       * is let be: the grade and vignette already darken top and bottom, and a hair of
+       * background is cheaper than an interface that walks off the edge.
+       *
+       * Overscan is only spent when there is height to spare, so it can never re-introduce
+       * the horizontal crop it is not there to cause. */
+      /* How much of frame WIDTH the interface occupies. The film may be enlarged only until
+       * that span still fits the stage; past it, a mirror leaves the screen. Shipped panels
+       * run 5.0% to 94.6%, so 0.90 with a little margin. */
+      var span = config.uiSpan || 0.92;
 
+      var w = sw;                    // start locked to the stage: the whole frame is on screen
+      var h = w / aspect;
+
+      if (h < sh) {
+        /* Window is WIDER than the footage, so the frame is shorter than the stage and
+         * background would show above and below. Grow it to cover — but only as far as the
+         * interface span allows, so covering height can never crop a mirror away.
+         * On a 16:9 window these two are the same number and nothing is given up. */
+        var toCover = sh * aspect;
+        var toKeepUi = sw / span;
+        w = Math.min(toCover * over, toKeepUi);
+        w = Math.max(w, sw);         // never narrower than the stage
+        h = w / aspect;
+      }
       film.style.width = Math.round(w) + 'px';
       film.style.height = Math.round(h) + 'px';
     }
@@ -163,7 +274,11 @@
       /* `holdLoader` leaves the loader on screen once preloading is done, so a page that
        * needs a gesture to unlock audio can put its button there. Dismissing it then
        * belongs to whoever owns that button — the engine must not race it. */
-      if (loader && !config.holdLoader) loader.setAttribute('data-done', '1');
+      /* The page owns the loader when it preloaded, so dismissing it is the page's call
+       * and the engine racing it would flash the journey before the reveal. */
+      if (loader && !config.holdLoader && !config.preloaded) {
+        loader.setAttribute('data-done', '1');
+      }
       current = target = readTarget();
       write(current, true);
     }
@@ -182,13 +297,79 @@
       return max > 0 ? clamp01(window.scrollY / max) : 0;
     }
 
-    /* Split the global scalar into a leg index plus eased local progress. */
+    /* Split the global scalar into a leg index plus eased local progress.
+     *
+     * The legs live on [legsStart, 1] rather than on the whole page, so an intro can own
+     * the front of the scroll. legsStart is INSIDE the intro's span, which is what makes
+     * the handover early: room one is already advancing while the intro is still on screen.
+     * With no intro configured legsStart is 0 and this is the original mapping exactly. */
     function resolve(p) {
       var n = legs.length;
-      var scaled = clamp01(p) * n;
+      var s = legsStart();
+      var q = s >= 1 ? 1 : clamp01((clamp01(p) - s) / (1 - s));
+      var scaled = q * n;
       var idx = Math.min(n - 1, Math.floor(scaled));
       var local = clamp01(scaled - idx);
       return { idx: idx, local: local, eased: easeSine(local) };
+    }
+
+    /* ---- THE LAPTOP SCREEN, AS GEOMETRY -------------------------------------
+     *
+     * The last leg pushes in on a monitor and the pipeline page has to sit ON that screen.
+     * It does NOT need a homography. Measured on the shipped master: the screen's centre
+     * stays at x 0.5012 with a standard deviation of 0.0008 across the whole push, and the
+     * top edge is exactly horizontal in every sample — so the camera really is travelling
+     * along the lens axis and the screen stays an axis-aligned rectangle. No keystone, no
+     * rotation, nothing for matrix3d to correct.
+     *
+     * That collapses the whole thing to ONE number per frame, the half-width:
+     *   left = cx - hw      right = cx + hw
+     *   top  = cy - k*hw    bottom = cy + k*hw
+     * Fitted against ten measured frames, the top edge lands within 0.17% of frame height
+     * everywhere — under two pixels at 1080p. k implies a 1.476 screen aspect, which is the
+     * 3:2 of the laptop in shot.
+     *
+     * hw itself is not linear in time (a constant dolly does not scale linearly on screen),
+     * so it is sampled from the measurement rather than modelled. Below `from` the screen is
+     * too small to read anything on and the layer stays away. */
+    var SCREEN = {
+      cx: 0.5012, cy: 0.6124, k: 1.2046,
+      /* t -> half-width, measured. Interpolated between samples. */
+      t:  [9.0,    10.0,   11.0,   12.0,   12.5,   13.0,   13.5,   14.0,   14.5,   15.05],
+      hw: [0.1459, 0.1714, 0.2047, 0.2500, 0.2735, 0.3099, 0.3463, 0.3890, 0.4411, 0.4954],
+      from: 9.0
+    };
+
+    function screenRect(videoTime) {
+      if (videoTime < SCREEN.from) return null;
+      var hw = null;
+      for (var i = 0; i < SCREEN.t.length - 1; i++) {
+        if (videoTime <= SCREEN.t[i + 1]) {
+          var span = SCREEN.t[i + 1] - SCREEN.t[i];
+          var f = span > 0 ? (videoTime - SCREEN.t[i]) / span : 0;
+          hw = SCREEN.hw[i] + (SCREEN.hw[i + 1] - SCREEN.hw[i]) * clamp01(f);
+          break;
+        }
+      }
+      if (hw === null) hw = SCREEN.hw[SCREEN.hw.length - 1];
+      return {
+        l: SCREEN.cx - hw, r: SCREEN.cx + hw,
+        t: SCREEN.cy - SCREEN.k * hw, b: SCREEN.cy + SCREEN.k * hw,
+        hw: hw
+      };
+    }
+
+    /* Where the intro is, and how visible. Linear in time on purpose: the silk flows
+     * continuously and has no station to arrive at, so the measured sine correction the
+     * rooms need would only fight it. */
+    function introState(p) {
+      if (!intro) return null;
+      var f = introFrac();
+      var u = f > 0 ? clamp01(clamp01(p) / f) : 1;
+      var from = intro.fadeFrom !== undefined ? intro.fadeFrom : 0.86;
+      var x = clamp01((u - from) / Math.max(0.0001, 1 - from));
+      var s = x * x * (3 - 2 * x);              // smoothstep, same ramp as the seams
+      return { u: u, opacity: 1 - s, gone: u >= 1 };
     }
 
     /* Where in a leg's own film a given local progress sits. */
@@ -215,6 +396,24 @@
     function write(p, force) {
       var r = resolve(p);
 
+      /* ---- the intro, scrubbed and dissolving ----------------------------------
+       * Painted above the rooms so it hides them until it fades. Once gone it is taken out
+       * of the compositor entirely rather than left at opacity 0 — a full-frame transparent
+       * layer still costs a blend on every frame of the rest of the journey. */
+      if (intro) {
+        var ist = introState(p);
+        if (ist.gone) {
+          if (!introEl.hidden) { introEl.hidden = true; introEl.style.opacity = '0'; }
+        } else {
+          if (introEl.hidden) introEl.hidden = false;
+          introEl.style.opacity = ist.opacity.toFixed(4);
+          introEl.style.zIndex = '4';
+          var id = introEl.duration;
+          if (id && isFinite(id)) seekTo(introEl, Math.min(id - 0.001, ist.u * (id - 0.001)), force);
+        }
+        stage.setAttribute('data-intro', ist.gone ? 'gone' : (ist.opacity > 0.999 ? 'solid' : 'fading'));
+      }
+
       /* ---- the seam ------------------------------------------------------------
        * Swapping one element for another at a leg boundary is visible even though the
        * outgoing last frame and the incoming first frame are the same picture — what
@@ -228,7 +427,9 @@
        * The ramp is smoothstep rather than linear so there is no perceptible kink at
        * either end of the crossfade — a linear opacity ramp announces its own start and
        * finish, which is exactly the thing being hidden. */
-      var W = config.seamWindow || 0.10;   // fraction of a leg spent overlapping
+      /* `|| 0.10` treated a deliberate 0 as absent, so asking for a clean cut silently
+       * got the 10% dissolve back. Only null/undefined may fall through to the default. */
+      var W = config.seamWindow == null ? 0.10 : config.seamWindow;
       var partner = -1, partnerLocal = 0, mix = 0;
 
       if (r.local > 1 - W && r.idx < videos.length - 1) {
@@ -284,10 +485,35 @@
 
       /* A station is a leg's settled end — where the camera has stopped and the
        * interface belongs. Held slightly before 1 so it is reached before the seam. */
-      var station = r.local > 0.86 ? 1 : 0;
+      var station = stationOn(r) ? 1 : 0;
       root.style.setProperty('--station', String(station));
       stage.setAttribute('data-leg', String(r.idx));
       stage.setAttribute('data-station', String(station));
+
+      /* THE SCREEN RECTANGLE, published for the layer that sits on it.
+       * Only on the last leg, and only once the monitor is big enough to read. Written as
+       * fractions of frame space, the same coordinates the mirror panels use, so the layer
+       * is positioned by the same rule as everything else painted on the picture. */
+      if (r.idx === legs.length - 1 && d && isFinite(d)) {
+        var sr = screenRect(v.currentTime);
+        if (sr) {
+          root.style.setProperty('--scr-x', (sr.l * 100).toFixed(3) + '%');
+          root.style.setProperty('--scr-y', (sr.t * 100).toFixed(3) + '%');
+          root.style.setProperty('--scr-w', ((sr.r - sr.l) * 100).toFixed(3) + '%');
+          root.style.setProperty('--scr-h', ((sr.b - sr.t) * 100).toFixed(3) + '%');
+          /* Fade the page in over the first fifth of the push, so it arrives rather than
+           * appearing. 0 until `from`, 1 by the time the screen is half the frame. */
+          var lit = clamp01((sr.hw - SCREEN.hw[0]) / (0.28 - SCREEN.hw[0]));
+          root.style.setProperty('--scr-on', lit.toFixed(4));
+          stage.setAttribute('data-screen', '1');
+        } else {
+          root.style.setProperty('--scr-on', '0');
+          stage.removeAttribute('data-screen');
+        }
+      } else if (stage.hasAttribute('data-screen')) {
+        root.style.setProperty('--scr-on', '0');
+        stage.removeAttribute('data-screen');
+      }
 
       if (readout) {
         readout.textContent =
@@ -302,9 +528,22 @@
       raf = null;
 
       if (!ready) {
-        var pr = preloadProgress();
-        paintLoader(pr);
-        if (pr > 0.995) { openJourney(); } else { schedule(); return; }
+        /* ONE OWNER for loading.
+         *
+         * When the page has already downloaded everything itself — loader.js counts real
+         * bytes and hands the elements blob URLs — the engine must not second-guess it.
+         * It used to recompute progress from video.buffered and REPAINT the bar, and a
+         * freshly assigned blob URL reports buffered 0, so the bar snapped back to "00"
+         * and the journey stayed shut until a 25-second fallback timer fired. That is the
+         * loader "not finishing, or disappearing". Two writers, one progress bar.
+         *
+         * With `preloaded` the engine opens at once and never touches the loader. */
+        if (config.preloaded) { openJourney(); }
+        else {
+          var pr = preloadProgress();
+          paintLoader(pr);
+          if (pr > 0.995) { openJourney(); } else { schedule(); return; }
+        }
       }
 
       /* Exponential chase. `ease` is per-frame catch-up; lower is heavier. */
@@ -375,7 +614,7 @@
     function resistance(p) {
       var r = resolve(p);
       var enter = config.dampFrom !== undefined ? config.dampFrom : 0.72;
-      var at = config.stationAt !== undefined ? config.stationAt : 0.92;
+      var at = stationAt();
       if (r.local <= enter) return 0;
       /* Normalised over enter -> STATION, not enter -> 1. Ramping to the end of the leg
        * meant the resistance was still only a third of maximum when the hard gate took
@@ -387,30 +626,80 @@
       return clamp01(x * x * x) * (config.dampMax !== undefined ? config.dampMax : 0.94);
     }
 
+    /* MAY THE JOURNEY LEAVE THIS LEG'S STATION?
+     *
+     * The answer is not the engine's to give. The interface layer knows whether the step is
+     * finished — whether a look exists yet — so it hands in a predicate and the clock obeys.
+     * `canAdvance` is the current name; `gateFor` is still honoured because it is what the
+     * page used to pass and silently ignoring it would turn a closed gate into an open one. */
     function gateOpen(idx) {
-      if (typeof config.gateFor !== 'function') return true;
-      return config.gateFor(idx) !== false;
+      var fn = typeof config.canAdvance === 'function' ? config.canAdvance
+             : (typeof config.gateFor === 'function' ? config.gateFor : null);
+      if (!fn) return true;
+      return fn(idx) !== false;
     }
 
-    /* The scroll position that corresponds to the current leg's station. */
+    /* Is a leg's film actually usable — arrived, decoded far enough to seek into?
+     *
+     * The page no longer waits for all forty megabytes before opening. It loads the first
+     * room, starts, and fetches the rest underneath. That is the honest reading of "the
+     * loading is of the first scene": the bar measures what is required to begin, and 100
+     * means begin. The consequence is that a fast scroller can reach a seam before the
+     * next room has landed, so readiness has to be checked rather than assumed.
+     *
+     * The criterion is a finite duration, which is exactly what timeFor() needs to produce
+     * a seek target — without it every seek silently does nothing and the room looks frozen
+     * rather than absent.
+     *
+     * It is deliberately NOT readyState >= 2. That was tried and measured wrong: a film
+     * whose blob is entirely in memory reports readyState 1 while its element is hidden and
+     * has never been seeked, so the guard held rooms that were already there. Every film
+     * here is handed a blob URL, so parsed metadata means the bytes are local — there is no
+     * network left to stall on. */
+    function filmReady(idx) {
+      var v = videos[idx];
+      return !!(v && v.src && v.duration && isFinite(v.duration));
+    }
+
+    /* The scroll position that corresponds to the current leg's station.
+     *
+     * Must invert resolve(), including the intro offset — pinning to a raw legs-only
+     * fraction would park the page in the wrong place by the whole width of the intro,
+     * which reads as the gate yanking you backwards. */
     function stationScrollFor(idx) {
       var max = root.scrollHeight - viewport();
-      var pStation = (idx + (config.stationAt !== undefined ? config.stationAt : 0.92)) / legs.length;
+      var s = legsStart();
+      var q = (idx + stationAt()) / legs.length;         // position within the legs' domain
+      var pStation = s + q * (1 - s);                    // back out to page coordinates
       return Math.round(clamp01(pStation) * max);
     }
 
     var lockedLeg = -1;
 
     function applyLock() {
-      var r = resolve(current);
-      var shouldLock = r.local >= (config.stationAt !== undefined ? config.stationAt : 0.92) &&
-                       r.idx < legs.length - 1 &&
-                       !gateOpen(r.idx);
+      /* An auto-advance is a deliberate move past a station that has just opened. Locking
+       * during it would fight the very transition it was called to perform. */
+      if (autoDrive) return false;
 
-      if (shouldLock && lockedLeg !== r.idx) {
+      var r = resolve(current);
+      var atSeam = r.local >= stationEnter() && r.idx < legs.length - 1;
+      /* THREE STATES, NOT ONE FLAG.
+       *   loading — the next room's film has not arrived. Says so on the banner, because the
+       *             viewer did nothing wrong and silence would read as a broken page.
+       *   held    — the step is not finished. Deliberately carries NO on-screen plaque: the
+       *             owner asked for the block to live in the MOVEMENT, not in a panel. It is
+       *             not silent even so — the resistance ramp has already made the film creep
+       *             for the whole approach, so stopping is the end of a gesture the viewer
+       *             can feel rather than an unexplained wall.
+       * `closed` is gone. Any CSS still keyed to it can no longer fire — that is the point. */
+      var nextMissing = atSeam && !filmReady(r.idx + 1);
+      var shouldLock = atSeam && (nextMissing || !gateOpen(r.idx));
+      var why = nextMissing ? 'loading' : 'held';
+
+      if (shouldLock && (lockedLeg !== r.idx || root.getAttribute('data-gate') !== why)) {
         lockedLeg = r.idx;
-        root.setAttribute('data-gate', 'closed');
-        stage.setAttribute('data-gate', 'closed');
+        root.setAttribute('data-gate', why);
+        stage.setAttribute('data-gate', why);
       } else if (!shouldLock && lockedLeg !== -1) {
         lockedLeg = -1;
         root.removeAttribute('data-gate');
@@ -419,8 +708,125 @@
       return shouldLock;
     }
 
+    /* ---- AUTO-ADVANCE ---------------------------------------------------------
+     *
+     * "When it has generated, it swipes there by itself." The interface layer knows when the
+     * look is ready; it calls this and the clock performs the move.
+     *
+     * It drives the real scroll position, not an internal variable. That matters: scroll IS
+     * the source of truth here, so animating anything else would make a second clock that
+     * disagrees with the first the moment the viewer touches the trackpad — which is exactly
+     * the bug this engine exists to avoid. Because it moves scrollY, the ordinary tick picks
+     * it up and every downstream reader (film time, parallax, score echo) follows for free.
+     *
+     * The chase constant is the same `inertia` a hand gets, so a programmatic arrival is
+     * indistinguishable from a scrolled one. A real wheel or touch cancels it immediately —
+     * the viewer always wins over the machine. */
+    var autoDrive = null;
+    var autoY = -1;      // the last scroll position advanceTo wrote, so a hand can be told apart
+
+    /* Real input, listened for only while an automatic move is in flight. These are the
+     * events a person generates; a programmatic scrollTo generates none of them, which is
+     * what makes this unambiguous where a position comparison was not. Passive, so nothing
+     * here can delay a scroll. */
+    var TAKEOVER = ['wheel', 'touchstart', 'keydown', 'pointerdown'];
+
+    function onTakeover(e) {
+      /* Ignore keys that do not scroll — a viewer typing into the interface has not taken
+       * over the film. */
+      if (e.type === 'keydown' &&
+          ' ArrowUp ArrowDown PageUp PageDown Home End '.indexOf(' ' + e.key + ' ') === -1) return;
+      cancelAuto('user took over');
+    }
+
+    function listenTakeover(on) {
+      for (var i = 0; i < TAKEOVER.length; i++) {
+        if (on) window.addEventListener(TAKEOVER[i], onTakeover, { passive: true });
+        else window.removeEventListener(TAKEOVER[i], onTakeover, { passive: true });
+      }
+    }
+
+    function cancelAuto(why) {
+      if (!autoDrive) return;
+      var done = autoDrive.resolve;
+      autoDrive = null;
+      listenTakeover(false);
+      root.removeAttribute('data-auto');
+      if (done) done(why || 'cancelled');
+    }
+
+    function advanceTo(idx, opts) {
+      opts = opts || {};
+      var n = legs.length;
+      var leg = Math.max(0, Math.min(n - 1, idx));
+      var dest = opts.toStation === false
+        ? Math.round(clamp01(legsStart() + (leg / n) * (1 - legsStart())) * (root.scrollHeight - viewport()))
+        : stationScrollFor(leg);
+
+      cancelAuto('superseded');
+      /* Release the hold for the duration. The gate that was closed a moment ago is the
+       * reason this call exists, and applyLock re-locking mid-flight would pin the page
+       * back to the station it is trying to leave. */
+      lockedLeg = -1;
+      root.removeAttribute('data-gate');
+      stage.removeAttribute('data-gate');
+      root.setAttribute('data-auto', '1');
+
+      return new Promise(function (resolve) {
+        autoDrive = {
+          dest: dest, resolve: resolve,
+          ease: opts.ease || config.inertia || 0.085,
+          /* Which way this move travels, so the backstop can tell an external jump from
+           * ordinary interpolation. */
+          dir: dest >= window.scrollY ? 1 : -1
+        };
+        listenTakeover(true);
+        step();
+        function step() {
+          if (!autoDrive) return;
+          var y = window.scrollY;
+          var d = autoDrive.dest - y;
+          if (Math.abs(d) < 1.5) {
+            autoY = autoDrive.dest;
+            window.scrollTo(0, autoDrive.dest);
+            target = readTarget();
+            schedule();
+            cancelAuto('arrived');
+            return;
+          }
+          /* Advance at least one whole pixel. Rounding a sub-pixel step to the same integer
+           * would write the identical position every frame and the move would sit still
+           * short of its destination forever, never reaching the 1.5 px finish. */
+          var stepPx = d * autoDrive.ease;
+          if (Math.abs(stepPx) < 1) stepPx = autoDrive.dir;
+          autoY = Math.round(y + stepPx);
+          window.scrollTo(0, autoY);
+          target = readTarget();
+          schedule();
+          requestAnimationFrame(step);
+        }
+      });
+    }
+
     function onScroll() {
       var raw = readTarget();
+
+      /* A HAND OUTRANKS THE MACHINE — but a hand is detected from its INPUT, not from the
+       * scroll position it produces. See the listeners in advanceTo.
+       *
+       * This used to compare window.scrollY against advanceTo's own last write and call any
+       * difference over 2 px a takeover. It reported "user took over" on moves nobody
+       * touched: an independent session measured a clean 2237 px arrival that still resolved
+       * as interrupted. Inferring intent from an effect the engine itself causes cannot be
+       * made reliable by widening the tolerance — a threshold loose enough to stop the false
+       * positive is also loose enough to miss a real nudge. So the inference is gone.
+       *
+       * What remains is a backstop for a genuine external jump: something moved the page
+       * AGAINST the direction of travel, which no interpolation toward a destination can do. */
+      if (autoDrive) {
+        var awayFromDest = (autoDrive.dest - window.scrollY) * autoDrive.dir < 0;
+        if (awayFromDest && Math.abs(window.scrollY - autoY) > 24) cancelAuto('scroll moved elsewhere');
+      }
 
       /* A closed gate holds the page at the station. Scrolling further does nothing and
        * says so — the page simply does not move forward. Scrolling back is untouched. */
@@ -477,7 +883,12 @@
     });
 
     /* If a decode stalls, open anyway rather than trapping the viewer on a loader. */
-    setTimeout(function () { if (!ready) openJourney(); }, config.loaderTimeoutMs || 25000);
+    /* Fallback for the engine's OWN preload path, so a stalled decode cannot trap the
+     * viewer on a loader. Not needed when the page preloaded — there it would just be a
+     * second thing racing to open the journey. */
+    if (!config.preloaded) {
+      setTimeout(function () { if (!ready) openJourney(); }, config.loaderTimeoutMs || 25000);
+    }
 
     schedule();
 
@@ -495,7 +906,7 @@
           legName: legs[r.idx].name,
           local: r.local,
           eased: r.eased,
-          station: r.local > 0.86,
+          station: stationLatched,
           videoTime: videos[r.idx].currentTime,
           videoDuration: videos[r.idx].duration,
           durations: videos.map(function (v) { return v.duration; }),
@@ -510,6 +921,11 @@
       },
       seek: function (p) { target = current = clamp01(p); write(current, true); applyLock(); return this.state(); },
       forceOpen: openJourney,
+      /* Programmatic arrival, for the interface layer to call when a step completes. Same
+       * easing as a hand, and a hand cancels it. Returns a promise resolving to why it ended:
+       * 'arrived' | 'user took over' | 'superseded'. */
+      advanceTo: advanceTo,
+      releaseAndAdvance: function (opts) { return advanceTo(resolve(current).idx + 1, opts); },
       /* The UI calls this when a step's media has arrived and generated, which is the
        * only thing that opens a gate. */
       refreshGate: refreshGate

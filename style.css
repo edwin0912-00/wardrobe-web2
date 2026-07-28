@@ -35,10 +35,16 @@ body {
 
 /* ---------------------------------------------------------------- loader ---- */
 
+/* LIGHT, WITH A GREY SLIDER.
+ *
+ * The loading screen is pale and the bar is grey on grey — it is a quiet instrument, not a
+ * feature. It also has to hand over to the intro, whose own background is a soft graphite
+ * gradient, so the pale field dissolving into that darker frame is the first move of the
+ * film rather than a light being switched off. */
 .loader {
   position: fixed; inset: 0; z-index: 100;
   display: grid; place-content: center; gap: 22px;
-  background: var(--ink);
+  background: #EDECE8;
   transition: opacity 900ms cubic-bezier(0.22, 1, 0.36, 1), visibility 900ms;
 }
 .loader[data-done="1"] { opacity: 0; visibility: hidden; pointer-events: none; }
@@ -47,20 +53,20 @@ body {
   font-family: ui-sans-serif, -apple-system, "Helvetica Neue", sans-serif;
   font-size: clamp(26px, 5vw, 44px); font-weight: 300;
   letter-spacing: 0.34em; text-indent: 0.34em;
-  text-align: center; color: var(--milk);
+  text-align: center; color: #45463F;
 }
 .loader__rail {
-  width: min(320px, 62vw); height: 1px; background: var(--rule);
+  width: min(320px, 62vw); height: 1px; background: rgba(29, 30, 28, 0.14);
   margin: 0 auto; position: relative; overflow: hidden;
 }
 .loader__bar {
-  position: absolute; inset: 0; background: var(--milk);
+  position: absolute; inset: 0; background: #6E6F68;
   transform: scaleX(0); transform-origin: 0 50%;
   transition: transform 260ms linear;
 }
 .loader__pct {
   text-align: center; font-size: 11px; letter-spacing: 0.3em;
-  color: var(--alum); font-variant-numeric: tabular-nums;
+  color: #8A8B84; font-variant-numeric: tabular-nums;
 }
 .loader__note {
   text-align: center; font-size: 10px; letter-spacing: 0.2em;
@@ -118,14 +124,45 @@ body {
     radial-gradient(120% 80% at 50% 45%, rgba(0,0,0,0) 42%, rgba(0,0,0,0.42) 100%),
     linear-gradient(180deg, rgba(29,30,28,0.30) 0%, rgba(29,30,28,0) 26%, rgba(29,30,28,0) 74%, rgba(29,30,28,0.46) 100%);
 }
+/* GRAIN — variant 5 of six, chosen by the owner from grain.html: fine silver plus halation.
+ *
+ * Two layers doing two different jobs. The noise is desaturated, soft-light blended and
+ * fine (baseFrequency 1.15, one octave — no clumping), so it sits IN the picture rather than
+ * on top of it. The halation is a separate screen-blended warm veil weighted to the centre,
+ * which is what film actually does around highlights; without it fine grain alone reads as
+ * digital noise.
+ *
+ * Soft-light, not overlay: overlay drives midtones hard and the concrete in this film is
+ * almost entirely midtone, so overlay made the walls crawl. Soft-light leaves the wall alone
+ * and shows in the shadows and the sheen, where grain belongs.
+ *
+ * The two numbers are the only things worth tuning and they live here, once. Defaults are
+ * the page's own defaults — say a number and it is a one-line change. */
+:root { --grain-base: 0.16; --grain-move: 0.10; --grain-scale: 1; }
+
 .grain {
-  position: absolute; inset: 0; pointer-events: none; opacity: 0.16;
-  mix-blend-mode: overlay;
+  position: absolute; inset: 0; pointer-events: none;
+  /* ONE owner for the strength. --grain-base is the number to tune; the speed term is added
+     here and nowhere else, so movement widening the grain can never drift out of step with
+     the resting value. Two separate .grain rules used to set this and the later one silently
+     won. */
+  opacity: calc(var(--grain-base) + var(--grain-move) * var(--speed, 0));
+  mix-blend-mode: soft-light;
   background-image: url("data:image/svg+xml;utf8,\
-<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'>\
-<filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/></filter>\
-<rect width='140' height='140' filter='url(%23n)' opacity='0.5'/></svg>");
+<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'>\
+<filter id='n'><feTurbulence type='fractalNoise' baseFrequency='1.15' numOctaves='1' stitchTiles='stitch'/>\
+<feColorMatrix type='saturate' values='0'/></filter>\
+<rect width='180' height='180' filter='url(%23n)'/></svg>");
+  background-size: calc(180px * var(--grain-scale));
 }
+/* The halation rides on the same element so nothing new is added to the DOM. */
+.grain::after {
+  content: ""; position: absolute; inset: 0;
+  mix-blend-mode: screen;
+  background: radial-gradient(120% 80% at 50% 42%,
+              rgba(255, 214, 170, 0.10) 0%, rgba(255, 190, 140, 0) 62%);
+}
+
 
 /* ------------------------------------------------------------------ copy ---- */
 
@@ -137,6 +174,15 @@ body {
 }
 .copy__line {
   grid-area: 1 / 1;
+  /* MUTUALLY EXCLUSIVE, not merely faded.
+   *
+   * All lines share one grid cell, so they sit exactly on top of each other. Switching
+   * them on opacity alone means any interrupted fade leaves two of them readable at once
+   * — which is the text-on-text you saw. `visibility` is not continuously interpolated:
+   * it flips at the boundary, so at most one line can ever be rendered no matter what
+   * state a transition is stuck in. Opacity still does the fade; visibility guarantees
+   * the exclusivity. */
+  visibility: hidden;
   font-family: ui-sans-serif, -apple-system, "Helvetica Neue", sans-serif;
   font-weight: 300;
   font-size: clamp(22px, 4.6vw, 58px);
@@ -158,6 +204,7 @@ body {
 .stage[data-leg="1"] .copy__line[data-on="1"],
 .stage[data-leg="2"] .copy__line[data-on="2"],
 .stage[data-leg="3"] .copy__line[data-on="3"] {
+  visibility: visible;
   opacity: calc(
     min(1, max(0, (var(--leg-p, 0) - 0.10) * 6)) *
     min(1, max(0, (0.82 - var(--leg-p, 0)) * 6))
@@ -168,22 +215,47 @@ body {
 /* -------------------------------------------------------------- mirror UI --- */
 
 /* Placed on the glass using rectangles measured off the real footage. Percentages of
- * the stage, so it tracks any viewport. Only opacity and transform animate. */
+ * the stage, so it tracks any viewport. Only opacity and transform animate.
+ *
+ * NO FRAME. There is no border and no plate: a bordered rectangle sitting on a mirror is
+ * a second, competing frame, and the mirror in the footage already is the frame. What
+ * remains is a soft pool of shade for legibility and an edge fade, both fitted inside the
+ * measured rectangle, so the interface dissolves into the glass instead of being mounted
+ * on top of it. The backdrop-filter went with the border for the same reason — a blur
+ * stops at a hard rectangular edge, which is a frame drawn in blur.
+ *
+ * IT CANNOT LEAVE THE MIRROR. Two mechanisms, because one was not enough:
+ *   - container-type: size, so every type size below is in cqh — a share of THIS panel's
+ *     height. The old sizes were in vw while the panel is a percentage of the film box:
+ *     two different coordinate systems, which is why text overflowed the glass at some
+ *     window shapes and not others.
+ *   - overflow: hidden as the backstop, and because the mask fades the last few percent,
+ *     anything that ever does reach the edge fades out rather than being cut. */
 .glass {
   position: absolute; z-index: 8;
   left: var(--gx, 50%); top: var(--gy, 20%);
   width: var(--gw, 30%); height: var(--gh, 60%);
-  display: flex; flex-direction: column; gap: 14px;
-  padding: clamp(14px, 2vw, 30px);
+  container-type: size;
+  display: flex; flex-direction: column; gap: clamp(5px, 1.8cqh, 14px);
+  padding: clamp(16px, 5cqh, 38px) clamp(14px, 4cqw, 30px);
   color: var(--milk);
-  background: linear-gradient(152deg, rgba(245,243,237,0.10), rgba(245,243,237,0.02));
-  border: 1px solid rgba(245,243,237,0.20);
-  backdrop-filter: blur(3px) saturate(0.9);
+  overflow: hidden;
+  /* The fade band is 3.5%, and the block padding above is always larger than it, so the
+   * first and last lines sit clear of it instead of arriving half-dimmed. */
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 3.5%, #000 96.5%, transparent 100%);
+          mask-image: linear-gradient(to bottom, transparent 0, #000 3.5%, #000 96.5%, transparent 100%);
   opacity: 0;
   transform: translate3d(0, 14px, 0) scale(0.985);
   transition: opacity 620ms cubic-bezier(0.22, 1, 0.36, 1),
               transform 760ms cubic-bezier(0.22, 1, 0.36, 1);
   pointer-events: none;
+}
+/* The shade, not a panel: darkest under the text and gone well before any edge, so it
+ * reads as light behaving oddly in the glass rather than as a rectangle. */
+.glass::before {
+  content: ''; position: absolute; inset: 0; z-index: -1;
+  background:
+    radial-gradient(118% 88% at 42% 44%, rgba(18,19,18,0.62) 0%, rgba(18,19,18,0.34) 46%, rgba(18,19,18,0) 78%);
 }
 /* The interface belongs to the station — the settled end of the mirror leg. */
 .stage[data-leg="0"][data-station="1"] .glass {
@@ -191,30 +263,57 @@ body {
   transform: translate3d(0, 0, 0) scale(1);
   pointer-events: auto;
 }
+/* ONE MIRROR FIRST, THEN THE OTHER.
+ * The right-hand pane shows the look, so before a look exists it has nothing to show and
+ * is not there at all — not a stub, not an empty plate. ui.js flips data-live the moment
+ * the first photograph lands, and the pane arrives a beat slower than the left one so the
+ * order is legible as an event: you put something in one mirror, the second one answers. */
+.stage[data-leg="0"][data-station="1"] .glass[data-live="0"] {
+  opacity: 0;
+  transform: translate3d(0, 14px, 0) scale(0.985);
+  pointer-events: none;
+}
+.glass[data-ui-show] {
+  transition: opacity 900ms cubic-bezier(0.22, 1, 0.36, 1) 90ms,
+              transform 1100ms cubic-bezier(0.22, 1, 0.36, 1) 90ms;
+}
 
+/* Every size below is a share of the panel's own height (cqh), so the interface scales
+ * with the mirror it is painted on and can never outgrow it. */
 .glass__eyebrow {
-  font-size: clamp(9px, 1vw, 11px); letter-spacing: 0.3em; text-transform: uppercase;
+  font-size: clamp(10px, 2.1cqh, 11px); letter-spacing: 0.3em; text-transform: uppercase;
   color: rgba(245,243,237,0.62);
+  flex: 0 0 auto;
 }
 .glass__h {
   font-family: ui-sans-serif, -apple-system, sans-serif;
-  font-size: clamp(17px, 2.2vw, 30px); font-weight: 300; line-height: 1.12;
+  font-size: clamp(17px, 5.2cqh, 30px); font-weight: 300; line-height: 1.12;
+  flex: 0 0 auto;
 }
-.glass__rows { display: flex; flex-direction: column; gap: 0; margin-top: auto; }
+/* The body of a step is the part allowed to shrink. Everything else keeps its size and
+ * this gives way, which is what stops a tall pick list pushing the button out of the
+ * mirror. */
+.askbody { flex: 1 1 auto; min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
+.glass__rows { display: flex; flex-direction: column; gap: 0; margin-top: auto; flex: 0 0 auto; }
+.glass__rows--show { margin-top: clamp(6px, 2cqh, 16px); }
 .glass__row {
   display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
-  padding: 10px 0; border-bottom: 1px solid rgba(245,243,237,0.18);
-  font-size: clamp(12px, 1.3vw, 15px);
+  padding: clamp(6px, 2cqh, 10px) 0; border-bottom: 1px solid rgba(245,243,237,0.18);
+  font-size: clamp(12px, 3cqh, 15px);
 }
 .glass__row span {
-  font-size: clamp(9px, 1vw, 11px); letter-spacing: 0.2em;
+  font-size: clamp(10px, 2.1cqh, 11px); letter-spacing: 0.2em;
   text-transform: uppercase; color: rgba(245,243,237,0.55);
 }
+.glass__row .ok {
+  font-style: normal; font-size: clamp(10px, 2cqh, 10.5px);
+  letter-spacing: 0.14em; color: rgba(245,243,237,0.45);
+}
 .glass__cta {
-  align-self: flex-start; margin-top: 14px;
-  font: inherit; font-size: clamp(10px, 1.1vw, 13px);
+  align-self: flex-start;
+  font: inherit; font-size: clamp(11px, 2.4cqh, 13px);
   letter-spacing: 0.22em; text-transform: uppercase;
-  padding: 12px 20px; cursor: pointer;
+  padding: clamp(8px, 2.6cqh, 13px) clamp(13px, 4cqw, 22px); cursor: pointer;
   background: none; color: var(--milk);
   border: 1px solid rgba(245,243,237,0.7);
   transition: background 200ms;
@@ -228,8 +327,8 @@ body {
   color: rgba(245,243,237,0.62);
 }
 .glass__hint {
-  font-size: clamp(9px, 1vw, 11px); letter-spacing: 0.14em;
-  color: rgba(245,243,237,0.5); margin-top: 8px;
+  font-size: clamp(10px, 2cqh, 11px); letter-spacing: 0.14em;
+  color: rgba(245,243,237,0.5); margin-top: clamp(4px, 1.6cqh, 8px); flex: 0 0 auto;
 }
 
 /* --- LOOK -> WORLD -> MOTION, the required path --------------------------------
@@ -303,6 +402,14 @@ body {
   pointer-events: none;
 }
 .stage[data-leg="0"][data-station="1"] .edge { opacity: 1; pointer-events: auto; }
+/* LIVE LAB is a camera pointed at a look. Before there is one it is an offer of nothing, so
+ * it is not on the frame at all — it was appearing the moment the camera settled and
+ * competing with the only thing the viewer is meant to do first. ui.js writes data-live
+ * when the avatar is ready; the attribute is in the markup as "0" so the button is hidden
+ * on the very first frame, before any script has run. */
+.stage[data-leg="0"][data-station="1"] .edge[data-live="0"] {
+  opacity: 0; pointer-events: none;
+}
 .edge:hover { color: var(--milk); border-color: rgba(245,243,237,0.5); }
 
 /* --- three interaction models, identical style so the comparison is behaviour only --- */
@@ -337,7 +444,8 @@ body {
 .dots i[data-on="1"] { background: var(--milk); height: 2px; }
 
 /* list: every option visible, one row */
-.rowpick { display: flex; flex-direction: column; gap: 0; margin-top: 14px; }
+.rowpick { display: flex; flex-direction: column; gap: 0; margin-top: clamp(6px, 2.2cqh, 14px);
+  flex: 1 1 auto; min-height: 0; overflow: hidden; }
 .rowpick__item {
   font: inherit; font-size: clamp(11px, 1.3vw, 15px); text-align: left;
   color: rgba(245,243,237,0.66); background: none; border: 0;
@@ -349,14 +457,14 @@ body {
 
 /* tray: chips along the bottom of the glass, scrollable */
 .tray {
-  display: flex; gap: 8px; margin-top: 16px;
-  overflow-x: auto; padding-bottom: 6px;
+  display: flex; gap: 8px; margin-top: clamp(8px, 2.8cqh, 16px);
+  overflow-x: auto; padding-bottom: 6px; flex: 0 0 auto;
   scrollbar-width: none;
 }
 .tray::-webkit-scrollbar { display: none; }
 .tray__chip {
   flex: 0 0 auto;
-  font: inherit; font-size: clamp(9px, 1.1vw, 12px);
+  font: inherit; font-size: clamp(11px, 2.2cqh, 12px);
   letter-spacing: 0.06em;
   color: rgba(245,243,237,0.66); background: rgba(245,243,237,0.05);
   border: 1px solid rgba(245,243,237,0.18);
@@ -365,7 +473,7 @@ body {
 .tray__chip[aria-pressed="true"] { color: var(--milk); border-color: var(--milk); background: rgba(245,243,237,0.12); }
 .tray__chip:disabled { opacity: 0.35; cursor: default; }
 
-.acts { display: flex; gap: 10px; margin-top: 14px; align-items: center; }
+.acts { display: flex; gap: 10px; margin-top: clamp(8px, 2.6cqh, 14px); align-items: center; flex: 0 0 auto; }
 .glass__cta--ghost { border-color: rgba(245,243,237,0.28); color: rgba(245,243,237,0.7); }
 .glass__cta:disabled { opacity: 0.35; cursor: default; }
 
@@ -382,13 +490,15 @@ body {
 /* --- loader hand-off and sound --- */
 /* Real byte counts under the bar. The point is that the number is checkable: if it says
  * 18.4 of 24.1 MB, that is what has actually arrived. */
+/* Grey on the pale field. These were milk-on-ink and became invisible the moment the
+ * loading screen turned light — the numbers were still correct and nobody could read them. */
 .loader__bytes {
   text-align: center; font-size: 10px; letter-spacing: 0.16em;
-  color: var(--alum); font-variant-numeric: tabular-nums;
+  color: #8A8B84; font-variant-numeric: tabular-nums;
 }
 .loader__files {
   text-align: center; font-size: 9px; letter-spacing: 0.18em;
-  text-transform: uppercase; color: rgba(245,243,237,0.34);
+  text-transform: uppercase; color: rgba(29, 30, 28, 0.36);
 }
 /* The bar is driven per chunk, so it must not carry a transition — a 260ms ease would
  * lag behind the real figure and turn an honest bar back into a decorative one. */
@@ -404,7 +514,7 @@ body {
 .sound[aria-pressed="true"] { color: var(--milk); }
 
 /* Movement widens the grain a touch — the picture answers the echo. */
-.grain { opacity: calc(0.16 + 0.10 * var(--speed, 0)); }
+
 
 /* --- placeholders for the pipeline elements ------------------------------------
  * Empty slots that say what they are waiting for. Sized and positioned exactly where
@@ -457,13 +567,279 @@ body {
 .ph--lg .ph__g--world   { width: 40px; height: 30px; }
 .ph--lg .ph__g--motion  { width: 40px; height: 24px; }
 
+/* --- LOOK: one to five photographs of your own things ------------------------- */
+
+.glass__lede {
+  font-size: clamp(11px, 2.4cqh, 12px); line-height: 1.5;
+  color: rgba(245, 243, 237, 0.6); flex: 0 0 auto;
+}
+
+/* The assembled look in the left pane: five slots, filled left to right. */
+.slots { display: flex; gap: 6px; margin-top: 12px; }
+.slot {
+  position: relative; flex: 1 1 0; aspect-ratio: 3 / 4;
+  border: 1px solid rgba(245, 243, 237, 0.18);
+  background: rgba(245, 243, 237, 0.04);
+  display: grid; place-items: center; overflow: hidden;
+}
+.slot[data-filled="1"] { border-color: rgba(245, 243, 237, 0.5); }
+.slot__img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.slot__ph { display: grid; place-items: center; opacity: 0.55; }
+.slot__empty {
+  font-size: 9px; letter-spacing: 0.1em;
+  color: rgba(245, 243, 237, 0.26); font-variant-numeric: tabular-nums;
+}
+.slot__n {
+  position: absolute; left: 3px; bottom: 2px;
+  font-size: 8px; letter-spacing: 0.1em; color: rgba(245, 243, 237, 0.7);
+  text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+}
+.slot__x {
+  position: absolute; right: 2px; top: 2px;
+  width: 16px; height: 16px; line-height: 1;
+  font: inherit; font-size: 12px;
+  color: var(--milk); background: rgba(29,30,28,0.72);
+  border: 1px solid rgba(245,243,237,0.3); cursor: pointer; padding: 0;
+}
+.slot__x:disabled { opacity: 0.3; cursor: default; }
+
+.count {
+  margin-top: clamp(5px, 1.8cqh, 9px); flex: 0 0 auto;
+  font-size: clamp(10px, 2cqh, 10.5px); letter-spacing: 0.12em;
+  color: rgba(245, 243, 237, 0.5); font-variant-numeric: tabular-nums;
+}
+/* The requirement is stated, not hidden behind a disabled button with no explanation. */
+.count--short { color: #F0997B; }
+
+/* The primary input. Deliberately the largest thing in the pane, because photographs of
+ * your own things are the basis of the step and the written presets are not.
+ * It is the one element allowed to give up height when the mirror is short: the button
+ * below it must stay reachable, and a drop target that is merely smaller still works. */
+.drop {
+  display: grid; gap: 6px; place-content: center;
+  flex: 1 1 auto; min-height: clamp(48px, 12cqh, 108px);
+  padding: clamp(10px, 5cqh, 26px) 14px;
+  text-align: center; cursor: pointer;
+  border: 1px dashed rgba(245, 243, 237, 0.32);
+  background: rgba(245, 243, 237, 0.03);
+}
+.drop:hover { border-color: rgba(245, 243, 237, 0.66); background: rgba(245, 243, 237, 0.06); }
+.drop--full { cursor: default; border-style: solid; opacity: 0.6; }
+.drop__t {
+  font-size: clamp(10px, 2.1cqh, 11px); letter-spacing: 0.1em;
+  color: rgba(245, 243, 237, 0.72);
+}
+.drop__n {
+  font-size: clamp(12px, 3cqh, 15px); letter-spacing: 0.16em;
+  color: var(--milk); font-variant-numeric: tabular-nums;
+}
+
+/* Secondary path, and it looks secondary: a line of text, not a panel. */
+.secondary {
+  margin-top: clamp(7px, 2.4cqh, 12px); align-self: flex-start; flex: 0 0 auto;
+  font: inherit; font-size: clamp(10px, 2cqh, 11px);
+  letter-spacing: 0.1em; text-align: left;
+  color: rgba(245, 243, 237, 0.52);
+  background: none; border: 0; border-bottom: 1px solid rgba(245, 243, 237, 0.24);
+  padding: 0 0 3px; cursor: pointer;
+}
+.secondary:hover { color: var(--milk); border-bottom-color: var(--milk); }
+.secondary[aria-expanded="true"] { color: var(--milk); }
+
 /* rows that carry a placeholder need a slot for it */
 .step--withph { grid-template-columns: auto 1fr auto; }
 .rowpick__item {
-  display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 12px;
+  display: grid; grid-template-columns: 1fr; align-items: center; gap: 12px;
+  font-size: clamp(12px, 3.1cqh, 15px); padding: clamp(6px, 2.2cqh, 11px) 0;
 }
 .rowpick__name { text-align: left; }
 .tray__chip { display: grid; gap: 6px; justify-items: center; }
+
+/* ============================================ THE RIGHT MIRROR: what you have made ===
+ *
+ * The look itself, at the size of the subject rather than of a thumbnail row. The left
+ * mirror asks for photographs; this is where they are, and where anything done TO them
+ * happens — which is why the remove control lives here and not next to the file input. */
+.look {
+  display: flex; gap: clamp(4px, 1.4cqh, 8px);
+  flex: 1 1 auto; min-height: 0;
+  margin-top: clamp(6px, 2.2cqh, 14px);
+}
+.look__i {
+  position: relative; flex: 1 1 0; min-width: 0;
+  border: 1px solid rgba(245, 243, 237, 0.28);
+  background: rgba(245, 243, 237, 0.04);
+  display: grid; place-items: center; overflow: hidden;
+}
+.look__img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.look__ph { display: grid; place-items: center; opacity: 0.5; }
+.look__x {
+  position: absolute; right: 3px; top: 3px;
+  width: clamp(15px, 4cqh, 21px); height: clamp(15px, 4cqh, 21px); line-height: 1;
+  font: inherit; font-size: clamp(11px, 2.8cqh, 14px);
+  color: var(--milk); background: rgba(20,21,20,0.66);
+  border: 1px solid rgba(245,243,237,0.26); cursor: pointer; padding: 0;
+  opacity: 0; transition: opacity 180ms;
+}
+.look__i:hover .look__x, .look__x:focus-visible { opacity: 1; }
+.look__x:disabled { opacity: 0; cursor: default; }
+
+/* ============================== THE LOOK, IN THE MIRROR THAT SHOWS ==================
+ * A cutout standing between the two mirrors was tried and cut as superfluous. The result
+ * belongs in the panel whose job is showing results.
+ *
+ * It stays visibly unfinished while there is no render backend: the viewer's own
+ * photograph, desaturated, under the placeholder hatching, captioned with the fact. That is
+ * the difference between a placeholder and a lie.
+ *
+ * `flex: 1 1 auto` with `min-height: 0` matters more than it looks: the frame is the ONLY
+ * element in this panel allowed to give up height, because the action blocks below it must
+ * stay reachable. Without those two declarations the raw photograph sets the height from its
+ * own pixels — measured at 707px inside a 515px mirror. */
+.lookframe {
+  position: relative; flex: 1 1 auto; min-height: 0; width: 100%;
+  margin-top: clamp(6px, 2.2cqh, 14px);
+  border: 1px solid rgba(245, 243, 237, 0.24);
+  background: rgba(245, 243, 237, 0.045);
+  overflow: hidden;
+}
+.lookframe__img {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; object-position: top center; display: block;
+  filter: grayscale(0.8) brightness(0.78);
+}
+.lookframe::after {
+  content: ''; position: absolute; inset: 0;
+  background: repeating-linear-gradient(135deg,
+    rgba(245,243,237,0.07) 0 6px, transparent 6px 12px);
+}
+.lookframe__cap {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 2;
+  padding: clamp(4px, 1.4cqh, 7px) 8px; text-align: center;
+  font-size: clamp(9px, 2cqh, 11px); letter-spacing: 0.18em; text-transform: uppercase;
+  color: rgba(245,243,237,0.82); background: rgba(16,17,15,0.66);
+}
+
+/* ============================= ACTIONS ON THE SELECTED LOOK =========================
+ *
+ * Replaces the old SIGNATURE block, which was a filled button reading "Замовити
+ * фотосесію" — an invented transaction. The canon is explicit that nothing is sold here:
+ * no prices, no basket, no ordering. The verbs are згенерувати, приміряти, подивитись.
+ *
+ * Photoshoot and fashion video are SIBLINGS in one row at equal weight. The canon says the
+ * fashion style must be a full offer, not an add-on to the shoot, and a row of two makes
+ * that structural rather than a matter of wording.
+ *
+ * These blocks exist only once a look with things in it is visible — before that the viewer
+ * may still change the things, so an action on the look would act on nothing. */
+.acts2 {
+  display: grid; grid-template-columns: 1fr 1fr; gap: clamp(5px, 1.6cqh, 9px);
+  flex: 0 0 auto; margin-top: clamp(6px, 2cqh, 12px);
+}
+.act {
+  display: flex; flex-direction: column; gap: 3px; text-align: left;
+  font: inherit; cursor: pointer;
+  padding: clamp(7px, 2.4cqh, 13px) clamp(9px, 2.6cqw, 14px);
+  color: var(--milk); background: rgba(245,243,237,0.07);
+  border: 1px solid rgba(245,243,237,0.34);
+  transition: background 200ms, border-color 200ms;
+}
+.act:hover:not(:disabled) { background: rgba(245,243,237,0.14); border-color: rgba(245,243,237,0.7); }
+.act[aria-pressed="true"] { border-color: var(--milk); background: rgba(245,243,237,0.16); }
+.act:disabled { opacity: 0.35; cursor: default; }
+.act:focus-visible { outline: 2px solid var(--milk); outline-offset: 2px; }
+.act__t { font-size: clamp(10px, 2.4cqh, 13px); line-height: 1.25; }
+.act__d {
+  font-size: clamp(9px, 1.9cqh, 10px); letter-spacing: 0.16em; text-transform: uppercase;
+  color: rgba(245,243,237,0.6);
+}
+/* The OMNI 3 branch spans the row: it only exists once a background has been chosen, so it
+ * is a consequence of a decision rather than a fifth equal option. */
+.act--wide { grid-column: 1 / -1; margin-top: clamp(5px, 1.6cqh, 9px); }
+.act--wide .act__d { color: rgba(228, 205, 160, 0.86); }
+
+/* --- several looks, one of them the context ---------------------------------------- */
+.lookpicks {
+  display: flex; flex-direction: column; gap: 0;
+  flex: 1 1 auto; min-height: 0; overflow: hidden;
+  margin-top: clamp(6px, 2.2cqh, 14px);
+}
+.lookpick {
+  display: grid; grid-template-columns: 22px 1fr auto; align-items: baseline; gap: 10px;
+  width: 100%; text-align: left; font: inherit; cursor: pointer;
+  color: rgba(245,243,237,0.66); background: none; border: 0;
+  border-bottom: 1px solid rgba(245,243,237,0.18);
+  padding: clamp(6px, 2.2cqh, 11px) 0;
+}
+.lookpick[aria-pressed="true"] { color: var(--milk); border-bottom-color: var(--milk); }
+.lookpick:disabled { opacity: 0.35; cursor: default; }
+.lookpick__n {
+  font-size: clamp(9px, 2cqh, 11px); color: rgba(245,243,237,0.45);
+  font-variant-numeric: tabular-nums;
+}
+.lookpick__d { font-size: clamp(11px, 2.8cqh, 14px); }
+.lookpick__b {
+  font-size: clamp(9px, 1.9cqh, 10px); letter-spacing: 0.14em;
+  color: rgba(245,243,237,0.5);
+}
+
+/* --- 01 · YOU: two photographs, doing different jobs ------------------------------- */
+.pslots {
+  display: grid; grid-template-columns: 1.35fr 1fr; gap: clamp(5px, 1.8cqh, 10px);
+  flex: 1 1 auto; min-height: 0;
+  margin-top: clamp(6px, 2.2cqh, 14px);
+}
+.pslot {
+  position: relative; overflow: hidden; cursor: pointer;
+  display: grid; place-content: center; text-align: center;
+  border: 1px dashed rgba(245,243,237,0.32);
+  background: rgba(245,243,237,0.03);
+}
+.pslot:hover { border-color: rgba(245,243,237,0.66); background: rgba(245,243,237,0.07); }
+.pslot--has { border-style: solid; border-color: rgba(245,243,237,0.55); }
+.pslot__img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.pslot__t {
+  font-size: clamp(9px, 2.1cqh, 11px); letter-spacing: 0.1em;
+  color: rgba(245,243,237,0.72); padding: 0 6px;
+}
+.pslot__n {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 2;
+  padding: clamp(3px, 1.2cqh, 6px) 4px; text-align: center;
+  font-size: clamp(9px, 1.9cqh, 10px); letter-spacing: 0.14em; text-transform: uppercase;
+  color: rgba(245,243,237,0.82); background: rgba(16,17,15,0.66);
+}
+
+/* SHORT MIRRORS DROP THE SUBTITLES, NOT THE OFFERS.
+ * On a wide-but-short window the mirror rectangle is only ~310px tall and the result frame
+ * plus four action blocks overran it. What goes is the second line inside each action — the
+ * offer itself survives, because hiding an action is hiding a feature. `.glass` is a size
+ * container, so this asks the mirror's own height, not the window's. */
+@container (max-height: 400px) {
+  .act__d { display: none; }
+  .lookframe__cap { letter-spacing: 0.1em; }
+  .acts2 { margin-top: clamp(4px, 1.4cqh, 8px); }
+}
+@container (max-height: 320px) {
+  .glass__rows--show { display: none; }
+}
+
+/* The trail: where you are in the sequence of questions. Sits at the foot of the ASKING
+ * mirror because it is information about the asking, not about the result. */
+.trail {
+  display: flex; gap: clamp(8px, 3cqw, 18px); flex: 0 0 auto;
+  margin-top: clamp(8px, 2.6cqh, 16px);
+}
+.trail__i {
+  font: inherit; font-size: clamp(9px, 1.9cqh, 10px);
+  letter-spacing: 0.22em; text-transform: uppercase;
+  color: rgba(245, 243, 237, 0.34);
+  background: none; border: 0; border-top: 1px solid rgba(245, 243, 237, 0.18);
+  padding: clamp(4px, 1.4cqh, 8px) 0 0; cursor: pointer; flex: 1 1 0;
+  text-align: left;
+}
+.trail__i[aria-current="step"] { color: var(--milk); border-top-color: var(--milk); }
+.trail__i[data-done="1"] { color: rgba(245, 243, 237, 0.62); border-top-color: rgba(245, 243, 237, 0.5); }
+.trail__i:disabled { cursor: default; }
 
 /* ------------------------------------------------------------------ chrome -- */
 
@@ -512,22 +888,6 @@ body {
   transition: opacity 300ms;
 }
 
-/* ------------------------------------------------------------------ outro --- */
-
-.outro {
-  position: relative; z-index: 10;
-  min-height: 480px;
-  display: grid; place-content: center; gap: 18px;
-  padding: 90px 6vw;
-  background: var(--ink);
-  text-align: center;
-}
-.outro h2 {
-  font-family: ui-sans-serif, -apple-system, sans-serif;
-  font-weight: 300; font-size: clamp(20px, 3.4vw, 38px); line-height: 1.14;
-}
-.outro p { color: var(--alum); font-size: 13px; max-width: 56ch; margin: 0 auto; }
-
 /* ------------------------------------------------------- reduced motion ----- */
 
 @media (prefers-reduced-motion: reduce) {
@@ -544,19 +904,34 @@ body:not([data-ready="1"]) .stage { visibility: hidden; }
    Appended deliberately so these rules win over the earlier ones by order.
    ========================================================================== */
 
-/* ---- 1. the glass has to be readable over bright concrete ----------------
- * The panels were a 10% milk wash over a pale wall, which is why the copy
- * disappeared. A dark scrim goes UNDER the milk tint: the panel still reads as
- * glass laid on a mirror, but text now has something to sit against. Two layers
- * rather than one flat fill so the top edge stays brighter and it still looks
- * like a lit surface rather than a grey box. */
-.glass {
+/* ---- 1. readable over bright concrete, WITHOUT a plate -------------------
+ * The problem this block was written for is real: milk text on a pale wall
+ * disappears. The first answer was a flat 72-80% dark fill, a border and a
+ * 24px drop shadow — which solved contrast by mounting an opaque panel on the
+ * mirror. Two frames then competed, the mirror's and the interface's, and the
+ * interface won.
+ *
+ * Same contrast, no rectangle:
+ *   - the shade is a radial pool that is fully transparent before it reaches any
+ *     edge, and the whole element carries an edge-fade mask, so there is no line
+ *     anywhere for the eye to read as a frame;
+ *   - text carries its own shadow. A glow around a glyph buys local contrast
+ *     exactly where it is needed and costs no geometry at all — the wall stays
+ *     visible through the interface, which is the point of putting it on glass.
+ * No backdrop-filter and no box-shadow: a blur and a cast shadow both stop at a
+ * hard rectangular edge, which is a frame drawn by other means. */
+.glass::before {
   background:
-    linear-gradient(152deg, rgba(245,243,237,0.13), rgba(245,243,237,0.04)),
-    linear-gradient(180deg, rgba(20,21,15,0.72) 0%, rgba(20,21,15,0.80) 100%);
-  border-color: rgba(245,243,237,0.30);
-  backdrop-filter: blur(14px) saturate(0.85) brightness(0.92);
-  box-shadow: 0 24px 70px rgba(0,0,0,0.42), inset 0 1px 0 rgba(245,243,237,0.10);
+    radial-gradient(116% 86% at 44% 42%,
+      rgba(16,17,15,0.74) 0%,
+      rgba(16,17,15,0.56) 38%,
+      rgba(16,17,15,0.26) 62%,
+      rgba(16,17,15,0) 82%);
+}
+.glass__eyebrow, .glass__h, .glass__lede, .glass__hint,
+.glass__row, .count, .drop__t, .drop__n, .secondary,
+.rowpick__item, .trail__i, .act__t, .act__d, .lookpick__d, .pslot__t {
+  text-shadow: 0 1px 2px rgba(0,0,0,0.55), 0 0 16px rgba(0,0,0,0.72);
 }
 
 /* Tracking belongs on labels, not on sentences. Wide letter-spacing on running
@@ -618,8 +993,10 @@ body:not([data-ready="1"]) .stage { visibility: hidden; }
 .stage[data-leg="0"][data-station="1"] .glass {
   transform: translate3d(calc(var(--ui-lag, 0px) * 0.55), 0, 0) scale(1);
 }
-/* The two panes lag by different amounts, so they do not move as one slab. */
-.stage[data-leg="0"][data-station="1"] .glass[data-ui-step] {
+/* The two panes lag by different amounts, so they do not move as one slab.
+ * Selector follows the rename: the right-hand pane is data-ui-show now, and it only
+ * carries lag once it is live — before that it has nothing in it to shove. */
+.stage[data-leg="0"][data-station="1"] .glass[data-ui-show][data-live="1"] {
   transform: translate3d(calc(var(--ui-lag, 0px) * 0.78), 0, 0) scale(1);
 }
 
@@ -658,6 +1035,16 @@ body:not([data-ready="1"]) .stage { visibility: hidden; }
 
 /* While the gate is closed the cue to keep scrolling would be a lie. */
 :root[data-gate="closed"] .scroll-cue { opacity: 0; }
+
+/* A SECOND, DIFFERENT HOLD: the next room has not downloaded yet.
+ * The page now opens on the first room and fetches the rest underneath, so a fast
+ * scroller can reach a seam before the next film has landed. That is not a step the
+ * viewer failed — so it shows the banner and drops the scroll cue like a closed gate,
+ * but deliberately does NOT bring up the media panel, which would ask them for files
+ * that have nothing to do with why they are stopped.
+ * Additive rules only; nothing above is redefined. */
+:root[data-gate="loading"] .gate { display: flex; }
+:root[data-gate="loading"] .scroll-cue { opacity: 0; }
 
 @media (prefers-reduced-motion: reduce) {
   .glass { transform: none !important; }
@@ -720,4 +1107,65 @@ body:not([data-ready="1"]) .stage { visibility: hidden; }
   color: rgba(250,199,117,0.92);
   border: 1px dashed rgba(250,199,117,0.42);
   background: rgba(250,199,117,0.07);
+}
+
+/* Clearing a need is the only path that revokes its object URLs, so it is a real
+ * control rather than a convenience. */
+.drop__clear {
+  display: inline-block; margin: 9px 0 0 8px; cursor: pointer;
+  font: inherit; font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+  padding: 8px 13px;
+  border: 1px solid rgba(245,243,237,0.34); background: none;
+  color: rgba(245,243,237,0.78);
+}
+.drop__clear:hover { color: var(--milk); border-color: rgba(245,243,237,0.7); }
+
+/* ---------------------------------------------- the pipeline page, on the screen --- */
+
+/* KEYED ON BLACK, NOT PASTED ON TOP.
+ *
+ * `screen` blending makes every black pixel in this layer transparent and every light pixel
+ * add to what is underneath. That is exactly the owner's spec — the black of the presentation
+ * merges with the black of the filmed monitor, so the page reads as light coming OUT of the
+ * screen instead of a rectangle glued over it.
+ *
+ * The white point is held at 254, not 255: a pure white would clip against the filmed screen's
+ * own highlights and the edge of the page would go hard. One value below full is invisible as
+ * a colour and keeps the blend soft.
+ *
+ * The rectangle is NOT authored here. The engine measures the real screen in the master and
+ * writes --scr-x/y/w/h per frame, in the same frame-space fractions the mirror panels use.
+ * Measured fit: the top edge lands within 0.17% of frame height across the whole push, so this
+ * needs no perspective transform — the camera travels along the lens axis and the screen stays
+ * an axis-aligned rectangle. */
+.screen {
+  position: absolute;
+  left: var(--scr-x, 50%); top: var(--scr-y, 50%);
+  width: var(--scr-w, 0%); height: var(--scr-h, 0%);
+  opacity: var(--scr-on, 0);
+  mix-blend-mode: screen;
+  pointer-events: none;
+  z-index: 5;
+  overflow: hidden;
+  /* No transition on the geometry: the engine writes it every frame and a transition would
+     lag the footage, which is the one thing that would give the trick away. Only the fade
+     is eased, and it is driven by --scr-on, not by time. */
+}
+.screen__page {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; justify-content: space-between;
+  padding: 6% 7%;
+  background: #000;                    /* becomes transparent under `screen` */
+  color: #FEFEFE;                      /* the 254 white point */
+  font: 400 clamp(6px, 1.1vw, 14px)/1.4 ui-monospace, "SF Mono", Menlo, monospace;
+  letter-spacing: 0.14em; text-transform: uppercase;
+}
+.screen__row { display: flex; justify-content: space-between; align-items: baseline; gap: 8%; }
+.screen__row b { font-weight: 500; letter-spacing: 0.3em; }
+.screen__row span { color: #9A9A96; }
+.screen__bars { display: flex; align-items: flex-end; gap: 3%; height: 46%; }
+.screen__bars i {
+  flex: 1; display: block;
+  height: calc(var(--v) * 100%);
+  background: linear-gradient(to top, #2A2A28, #FEFEFE);
 }

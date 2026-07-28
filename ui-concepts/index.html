@@ -1,0 +1,470 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WARDROBE — п'ять розкладок інтерфейсу</title>
+<style>
+/* FIVE LAYOUTS, ON THE REAL GLASS.
+ *
+ * Drawn over an actual frame from the film at the actual measured rectangles — left mirror
+ * x 5.0-44.0%, right x 55.7-94.6%, both y 17.4-83.2% — because the mirrors ARE the
+ * constraint. A layout that reads well on a blank artboard and misses the glass is not a
+ * layout, it is a picture of one.
+ *
+ * No commerce anywhere: no prices, no cart, no "order". The verbs are згенерувати,
+ * приміряти, подивитись.
+ */
+:root{
+  --milk:#F5F3ED; --sand:#E9E5DC; --alum:#A6A8A3; --ink:#1D1E1C;
+  --rule:rgba(245,243,237,.16); --rule-soft:rgba(245,243,237,.07);
+  --hot:#E86050; --cy:#78BEC8;
+  /* the measured mirror rectangles */
+  --Lx:5.0%; --Rx:55.7%; --Mw:39.0%; --My:17.4%; --Mh:65.8%;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--ink);color:var(--milk);
+  font:400 14px/1.5 ui-monospace,"SF Mono",Menlo,monospace;-webkit-font-smoothing:antialiased}
+
+header{padding:18px 22px 12px}
+h1{font:300 14px/1.3 ui-sans-serif,-apple-system,sans-serif;letter-spacing:.3em;text-transform:uppercase}
+header p{color:var(--alum);font-size:11px;margin-top:6px;max-width:96ch}
+
+.bars{display:flex;flex-wrap:wrap;gap:18px;padding:10px 22px 16px;align-items:center;
+  border-bottom:1px solid var(--rule-soft)}
+.grp{display:flex;gap:6px;align-items:center}
+.grp b{font-weight:400;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:#6E6F68;margin-right:4px}
+button{font:inherit;font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--alum);background:rgba(245,243,237,.04);border:1px solid var(--rule-soft);
+  padding:7px 11px;cursor:pointer}
+button[aria-pressed="true"]{color:var(--milk);border-color:rgba(245,243,237,.45);background:rgba(245,243,237,.11)}
+
+.stagewrap{max-width:1700px;margin:0 auto;padding:16px 22px 8px}
+.stage{position:relative;width:100%;aspect-ratio:16/9;background:#000;overflow:hidden;
+  /* so the panels can answer the size of the PICTURE, not the size of the page */
+  container-type:inline-size}
+
+/* On a small picture the verb rows drop their explanatory halves and keep only the verbs.
+   Measured: layout 1's right panel is the densest of the five and was the first to spill —
+   22px over at an 800px stage, everything else clean. Losing the description is a real loss
+   and it is the right one: an unreadable explanation helps nobody, and the verb alone still
+   says what will happen. */
+/* Nothing needs hiding any more: the row holds one word each at every width, and the type
+   scales with the mirror. The old rule tried to hide the qualifier here and silently lost to
+   the more specific `.v2 .act i` below — a reminder that a responsive rule placed above the
+   component it targets is not a rule at all. */
+.stage img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+.veil{position:absolute;inset:0;background:
+  radial-gradient(120% 80% at 50% 45%,rgba(0,0,0,0) 44%,rgba(0,0,0,.40) 100%),
+  linear-gradient(180deg,rgba(29,30,28,.26) 0%,rgba(29,30,28,0) 26%,rgba(29,30,28,0) 74%,rgba(29,30,28,.44) 100%)}
+
+/* ---- glass: no frame, no plate. A pool of shade and an edge fade, inside the measured
+        rectangle, so the interface dissolves into the mirror instead of being mounted. ---- */
+.glass{position:absolute;pointer-events:none;
+  padding:2.2% 2.4%;
+  /* THE PANEL'S TYPE SCALES WITH THE MIRROR IT SITS ON.
+     It was a fixed 11.5px at every width — measured identical at 800 and 1700 — because the
+     em chain started at the page's body size and the glass never entered it. So the glass
+     shrank and the text did not, which is how four sentences ended up wrapping to four lines.
+     cqi is 1% of the stage width, and the floor keeps it readable on a poor screen. */
+  font-size:clamp(10.5px, 1.02cqi, 19px);
+  display:flex;flex-direction:column;
+  -webkit-mask-image:radial-gradient(120% 110% at 50% 45%,#000 58%,transparent 100%);
+  mask-image:radial-gradient(120% 110% at 50% 45%,#000 58%,transparent 100%);
+  text-shadow:0 1px 18px rgba(0,0,0,.85), 0 0 3px rgba(0,0,0,.7)}
+.glass::before{content:"";position:absolute;inset:0;z-index:-1;
+  background:radial-gradient(120% 100% at 50% 45%,rgba(12,13,12,.52) 0%,rgba(12,13,12,0) 78%)}
+.L{left:var(--Lx);top:var(--My);width:var(--Mw);height:var(--Mh)}
+.R{left:var(--Rx);top:var(--My);width:var(--Mw);height:var(--Mh)}
+
+.eyebrow{font-size:.66em;letter-spacing:.04em;color:#A9AAA4;margin-bottom:.4em}
+.h{font-family:ui-sans-serif,-apple-system,sans-serif;font-weight:300;
+  font-size:1.7em;line-height:1.12;letter-spacing:.01em;margin-bottom:.5em}
+.sub{font-size:.72em;line-height:1.55;color:#C9CAC4;max-width:34ch}
+.spacer{flex:1}
+
+/* slots for items and photos */
+.slots{display:flex;gap:3%;margin:.7em 0}
+.slot{flex:1;aspect-ratio:3/4;border:1px solid rgba(245,243,237,.26);
+  display:grid;place-content:center;font-size:.62em;color:#9FA09A}
+.slot[data-filled="1"]{border-color:rgba(245,243,237,.5);background:rgba(245,243,237,.09);color:var(--milk)}
+/* The person station carries two portrait slots plus a heading and a button. Driving the
+   slots by ASPECT made the stack a fixed multiple of the glass WIDTH, so on a narrow window
+   it grew taller than the glass it lives in — measured 12px over at 1440, 28 at 1280, 54 at
+   1024, in all five layouts, because it is one shared panel. Aspect 4/5 fixed everything
+   down to 1024 and still spilled 13px at 900.
+   Binding them to a share of the glass HEIGHT instead removes the failure mode rather than
+   pushing it to a narrower width: the slots now compress with the surface they sit on, so
+   the stack cannot outgrow it at any size. */
+.two .slot{aspect-ratio:auto;height:34%;min-height:0}
+
+/* the look, shown in glass */
+.look{flex:1;border:1px solid rgba(245,243,237,.18);display:grid;place-content:center;
+  font-size:.66em;letter-spacing:.2em;color:#9FA09A;background:rgba(245,243,237,.045)}
+
+/* looks gallery, three shapes depending on the concept */
+.looks{display:flex;gap:2.5%}
+.looks i{flex:1;aspect-ratio:3/4;border:1px solid rgba(245,243,237,.22);display:block}
+.looks i[data-on="1"]{border-color:var(--milk);box-shadow:inset 0 0 0 1px rgba(245,243,237,.35)}
+.looksCol{display:flex;flex-direction:column;gap:5%;width:17%}
+.looksCol i{width:100%;aspect-ratio:3/4;border:1px solid rgba(245,243,237,.22)}
+.looksCol i[data-on="1"]{border-color:var(--milk)}
+
+/* THE ACTIONS ARE THE DESIRABLE PART, SO THEY ARE MADE OF LIGHT.
+ *
+ * They used to be thin rows with the verb pushed left and its qualifier pushed right, which
+ * split one sentence across the whole width — "фотозйомка ....... у вибраному стилі" read as
+ * two unrelated things. Now each action is ONE phrase on one line, and it carries its own
+ * pool of light instead of a border: this interface has no frames anywhere, so the way to
+ * make something inviting is to light it, not to box it.
+ *
+ * PHOTOSHOOT AND FASHION VIDEO SIT AS A PAIR, side by side, because that is the relationship
+ * the owner specified — the video is not a step after the shoot, it is its twin. Background
+ * and live try-on sit below as their own pair. */
+.acts{display:flex;flex-direction:column;gap:.85em;align-items:flex-end;
+  align-self:flex-end;width:70%}
+.actPair{display:contents}
+.act{position:relative;padding:0 0 .3em;text-align:right;
+  font-size:1.0em;line-height:1.3;color:var(--milk);letter-spacing:.005em;
+  font-family:ui-sans-serif,-apple-system,sans-serif;font-weight:400}
+/* MINIMAL, per the owner on layout 3: the frosted plates were too much furniture.
+ * An action is now just its sentence, sitting directly on the mirror, with ONE lit hairline
+ * beneath it — the same ignited-edge idea reduced to its last line. Legibility comes from
+ * the text shadow the whole glass already carries, weight 400, and nothing else.
+ * No plate, no blur, no fill: if a surface exists, it is the mirror itself. */
+.act::after{content:"";position:absolute;right:0;width:58%;bottom:0;height:1px;
+  background:linear-gradient(to left, rgba(245,243,237,.65), rgba(245,243,237,0))}
+.act b{font-weight:400;display:inline}
+/* the qualifier joins the sentence inline — one line, one thought */
+.act i{font-style:normal;display:inline;font-size:.78em;color:#C4C5BF;margin-left:.45em;
+  letter-spacing:.01em}
+/* the pair reads as one object: a hairline of light between the twins, not around them */
+.actPair .act + .act::after{background:linear-gradient(to bottom,
+  rgba(245,243,237,0),rgba(245,243,237,.5),rgba(245,243,237,0))}
+.cta{margin-top:.9em;padding:0 0 .3em;position:relative;align-self:flex-start;
+  font-family:ui-sans-serif,-apple-system,sans-serif;font-weight:400;
+  font-size:.8em;letter-spacing:.01em;border:0;border-bottom:1px solid rgba(245,243,237,.55)}
+.cta[data-off="1"]{border-color:rgba(245,243,237,.14);color:#6E6F68}
+
+/* ---- ACTION TREATMENTS, five voices for the same four sentences (?v=1..5) ----------
+   v1 tихий стовпчик праворуч (як зараз)
+   v2 один рядок по низу скла — як підпис під кадром
+   v3 нумерований список унизу зліва — як зміст
+   v4 великі дієслова без уточнень — плакатний мінімум
+   v5 по кутах скла — дії як сторони світу */
+.actwrap{display:flex;flex-direction:column;gap:.5em;align-self:stretch;margin-top:auto}
+.actsay{font-size:.7em;color:#C4C5BF;letter-spacing:.01em;
+  font-family:ui-monospace,Menlo,monospace}
+.v2 .acts{flex-direction:row;align-items:baseline;align-self:stretch;width:100%;
+  justify-content:space-between;gap:.9em}
+.v2 .act{text-align:left;white-space:nowrap;padding-bottom:.34em}
+/* the lit hairline marks the focused one only — the others are simply there */
+.v2 .act::after{right:auto;left:0;width:100%;opacity:.22;
+  background:linear-gradient(to right,rgba(245,243,237,.8),rgba(245,243,237,.25))}
+.v2 .act[data-on="1"]::after{opacity:1}
+.v2 .act[data-on="0"]{color:#C9CAC4}
+
+.v3 .acts{align-items:flex-start;align-self:flex-start;width:auto;gap:.7em}
+.v3 .act{text-align:left;padding-left:1.5em}
+.v3 .act::after{display:none}
+.v3 .act::before{content:counter(actn);counter-increment:actn;
+  position:absolute;left:0;top:.1em;font-size:.66em;color:#B9BAB4;
+  font-family:ui-monospace,Menlo,monospace}
+.v3 .acts{counter-reset:actn}
+
+.v4 .acts{align-items:flex-start;align-self:flex-start;width:auto;gap:.5em}
+.v4 .act{text-align:left;font-size:1.5em;font-weight:300;padding:0}
+.v4 .act::after{display:none}
+.v4 .act i{display:none}
+
+.v5 .acts{position:absolute;inset:2.2% 2.4%;width:auto;display:block}
+.v5 .act{position:absolute;max-width:46%;font-size:.9em}
+.v5 .act:nth-child(1){left:0;top:0;text-align:left}
+.v5 .act:nth-child(2){right:0;top:0;text-align:right}
+.v5 .act:nth-child(3){left:0;bottom:0;text-align:left}
+.v5 .act:nth-child(4){right:0;bottom:0;text-align:right}
+.v5 .act::after{display:none}
+.v5 .act i{display:block;margin-left:0;margin-top:.15em}
+
+/* pier strip: the concrete between the mirrors is real architecture, so a gallery can live on it */
+.pier{position:absolute;left:44.6%;top:var(--My);width:10.6%;height:var(--Mh);
+  display:flex;flex-direction:column;gap:4%;padding:1% .8%;pointer-events:none;
+  -webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 12%,#000 88%,transparent 100%);
+  mask-image:linear-gradient(to bottom,transparent 0,#000 12%,#000 88%,transparent 100%)}
+.pier i{width:100%;aspect-ratio:3/4;border:1px solid rgba(245,243,237,.3);display:block}
+.pier i[data-on="1"]{border-color:var(--milk);background:rgba(245,243,237,.12)}
+.pier span{font-size:8px;letter-spacing:.2em;color:#8E8F89;text-align:center}
+
+/* frame-edge strip, in stage space rather than on glass */
+.edgeStrip{position:absolute;left:6%;right:6%;bottom:3.4%;display:flex;gap:1.2%;
+  align-items:flex-end;pointer-events:none}
+.edgeStrip i{width:5.4%;aspect-ratio:3/4;border:1px solid rgba(245,243,237,.3)}
+.edgeStrip i[data-on="1"]{border-color:var(--milk);background:rgba(245,243,237,.14)}
+.edgeStrip b{font-weight:400;font-size:9px;letter-spacing:.22em;color:#9FA09A;margin-right:1%}
+
+.dark{filter:brightness(.34) saturate(.7)}
+.hide{display:none !important}
+
+.notes{max-width:1700px;margin:0 auto;padding:6px 22px 30px;color:var(--alum);font-size:11.5px;line-height:1.65}
+.notes h3{color:var(--cy);font-size:11.5px;font-weight:400;letter-spacing:.16em;text-transform:uppercase;margin-bottom:6px}
+.notes p{max-width:104ch}
+.notes p + p{margin-top:6px}
+.notes u{text-decoration:none;color:var(--milk)}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>П'ять розкладок інтерфейсу</h1>
+  <p>Намальовано на справжньому кадрі, на зміряних прямокутниках дзеркал — ліве 5.0–44.0%, праве 55.7–94.6%,
+     обидва по вертикалі 17.4–83.2%. Рамок і плашок немає ніде: тільки м'яка тінь під текстом і згасання по краю,
+     вписані всередину дзеркала. Нічого не продається: ні цін, ні кошика, ні «замовити».</p>
+</header>
+
+<div class="bars">
+  <div class="grp"><b>розкладка</b>
+    <button data-c="1" aria-pressed="true">1 · стовпець</button>
+    <button data-c="2" aria-pressed="false">2 · полиця на пілоні</button>
+    <button data-c="3" aria-pressed="false">3 · дві половини</button>
+    <button data-c="4" aria-pressed="false">4 · дієслова зліва</button>
+    <button data-c="5" aria-pressed="false">5 · одне дзеркало</button>
+  </div>
+  <div class="grp"><b>станція</b>
+    <button data-s="person" aria-pressed="false">персонаж</button>
+    <button data-s="items" aria-pressed="false">речі</button>
+    <button data-s="look" aria-pressed="true">образ і дії</button>
+  </div>
+</div>
+
+<div class="stagewrap">
+  <div class="stage" id="stage">
+    <img src="plate.jpg" alt="">
+    <div class="veil"></div>
+
+    <!-- LEFT GLASS -->
+    <aside class="glass L" id="gl"></aside>
+    <!-- RIGHT GLASS -->
+    <aside class="glass R" id="gr"></aside>
+    <!-- the concrete pier between them -->
+    <div class="pier hide" id="pier"></div>
+    <!-- frame-edge strip -->
+    <div class="edgeStrip hide" id="edge"></div>
+  </div>
+</div>
+
+<div class="notes" id="notes"></div>
+
+<script>
+(function () {
+  var gl = document.getElementById('gl'), gr = document.getElementById('gr');
+  var pier = document.getElementById('pier'), edge = document.getElementById('edge');
+  var notes = document.getElementById('notes');
+  /* Preselect from the address, so each layout can be linked, screenshotted and compared
+     without clicking: ?c=1..5&s=person|items|look  ·  &bare=1 hides the chrome for a clean shot. */
+  var Q = new URLSearchParams(location.search);
+  /* v2 chosen by the owner: the actions live as one row along the bottom of the glass.
+     They stop competing with the look for height, and sitting on one baseline makes them read
+     as four equal choices rather than a list with a first item. */
+  var V = (Q.get('v') || '2');
+  if (!/^[1-5]$/.test(V)) V = '1';
+  var C = (Q.get('c') || '1'), S = (Q.get('s') || 'look');
+  if (!/^[1-5]$/.test(C)) C = '1';
+  if (['person','items','look'].indexOf(S) === -1) S = 'look';
+  if (Q.get('bare') === '1') {
+    document.querySelector('header').style.display = 'none';
+    document.querySelector('.bars').style.display = 'none';
+    document.querySelector('.stagewrap').style.padding = '0';
+    document.querySelector('.notes').style.display = 'none';
+    document.body.style.background = '#000';
+  }
+
+  /* ---- content fragments. Real labels, Ukrainian, no commerce ---------------- */
+  function personPanel() {
+    return '<div class="eyebrow">крок · ви</div>' +
+      '<div class="h">Хто в дзеркалі</div>' +
+      '<div class="sub">На весь зріст, зі ступнями. Друге — обличчя, за бажанням.</div>' +
+      '<div class="slots two"><div class="slot" data-filled="1">на весь зріст</div>' +
+      '<div class="slot">обличчя · за бажанням</div></div>' +
+      '<div class="spacer"></div><div class="cta">далі до речей</div>';
+  }
+  function itemsPanel() {
+    return '<div class="eyebrow">крок · речі</div>' +
+      '<div class="h">Що ви носите</div>' +
+      '<div class="sub">До п'+"ʼ"+'яти речей. Знімайте як лежить — розкладку зробимо самі.</div>' +
+      '<div class="slots"><div class="slot" data-filled="1">верх</div><div class="slot" data-filled="1">низ</div>' +
+      '<div class="slot">взуття</div><div class="slot">+</div><div class="slot">+</div></div>' +
+      '<div class="spacer"></div><div class="cta">зібрати образ</div>';
+  }
+  /* One phrase, one action. The qualifier is part of the sentence, on its own quieter line,
+     never pushed to the far edge where it stops belonging to the verb. */
+  /* SHORT IN THE ROW, FULL IN THE DESCRIPTION.
+     Measured: a 39%-wide mirror gives each of four items about 95px at 1440 and 63px at 800,
+     which cannot hold a sentence — it broke into 2 and 4 lines. So the row carries one word
+     each, all four equal, and the full phrase belongs to whichever is focused, printed once
+     beneath the row. Nothing is lost; it is just not shouted four times at once. */
+  var ACTS = {
+    shoot: ['Фотосесія',  'зняти фотосесію у вибраному стилі'],
+    fash:  ['Фешн-відео', 'зняти відео у фешн-стилі'],
+    bg:    ['Новий фон',  'змінити фон і зняти відео на ньому'],
+    live:  ['Примірка',   'приміряти зараз живою камерою']
+  };
+  function act(k, focus) {
+    return '<div class="act" data-on="' + (k === focus ? '1' : '0') + '"><b>' +
+           ACTS[k][0] + '</b></div>';
+  }
+  /* The twins first, as one object; then the other pair. */
+  function verbLines(focus) {
+    focus = focus || 'shoot';
+    return '<div class="actwrap">' +
+      '<div class="acts">' + act('shoot', focus) + act('fash', focus) +
+                             act('bg', focus) + act('live', focus) + '</div>' +
+      '<div class="actsay">' + ACTS[focus][1] + '</div>' +
+      '</div>';
+  }
+  function verbTiles() { return verbLines(); }
+  function looksRow(n) {
+    var s = '<div class="looks">';
+    for (var i = 0; i < n; i++) s += '<i data-on="' + (i === 0 ? 1 : 0) + '"></i>';
+    return s + '</div>';
+  }
+
+  var LAYOUTS = {
+    '1': { /* СТОВПЕЦЬ */
+      title: '1 · СТОВПЕЦЬ',
+      note: ['Ліве дзеркало — один вузький стовпець питання, і нічого більше. Праве — образ на все скло, ' +
+             'дії тонкими рядками по низу того ж скла, образи вертикальною колонкою по внутрішньому краю правого дзеркала.',
+             'Найтихіший і найбільш редакційний. Читається як розворот журналу, а не як застосунок.',
+             'ЦІНА, ЗМІРЯНА: це єдина з п\'яти, що не влазить у скло на вузькому екрані. Чотири дієслова ' +
+             'під образом переповнюють праве дзеркало на 6 px при картинці 800 px і на 16 px при 720 px; ' +
+             'від 900 px і вище — чисто, як і решта чотирьох на всіх ширинах від 720 до 1700.'],
+      look: function () {
+        gl.innerHTML = '<div class="eyebrow">образ 01 · зібрано</div><div class="h">Ваш образ</div>' +
+          '<div class="sub">Три речі, ваше обличчя, ця квартира. Змінити речі — і образ перезбереться.</div>' +
+          '<div class="spacer"></div><div class="cta">змінити речі</div>';
+        gr.innerHTML = '<div style="display:flex;gap:4%;flex:1">' +
+          '<div class="looksCol"><i data-on="1"></i><i></i><i></i></div>' +
+          '<div class="look" style="flex:1">ОБРАЗ</div></div>' + verbLines();
+      }
+    },
+    '2': { /* ПОЛИЦЯ НА ПІЛОНІ */
+      title: '2 · ПОЛИЦЯ НА ПІЛОНІ',
+      note: ['Образи живуть на бетонному пілоні МІЖ дзеркалами — на справжній архітектурі, а не в панелі. ' +
+             'Ліве дзеркало питає, праве показує обраний образ на все скло, дії — правим краєм правого скла.',
+             'Єдина розкладка, де галерея має фізичне місце в кімнаті. Пілон вузький, тому образів видно 3–4, ' +
+             'решта прокруткою — це і обмеження, і чесна межа.'],
+      look: function () {
+        gl.innerHTML = '<div class="eyebrow">образ 01</div><div class="h">Ваш образ</div>' +
+          '<div class="sub">Оберіть образ на пілоні — і дії праворуч працюють з ним.</div>' +
+          '<div class="spacer"></div><div class="cta">змінити речі</div>';
+        gr.innerHTML = '<div class="look" style="margin-bottom:.7em">ОБРАЗ</div>' +
+          '<div style="align-self:flex-end;width:74%">' + verbLines() + '</div>';
+        pier.classList.remove('hide');
+        pier.innerHTML = '<span>образи</span><i data-on="1"></i><i></i><i></i><i></i>';
+      }
+    },
+    '3': { /* ДВІ ПОЛОВИНИ */
+      title: '3 · ДВІ ПОЛОВИНИ',
+      note: ['Праве дзеркало ділиться поперек: зверху образ, знизу три дії однаковими плитками. ' +
+             'Ліве так само: зверху крок, знизу смуга образів.',
+             'Найзрозуміліша і найщільніша — усе видно одразу, нічого шукати не треба. ' +
+             'Ціна: чотири блоки в кадрі одночасно, і кімната починає читатися як інтерфейс, а не як кімната.'],
+      look: function () {
+        gl.innerHTML = '<div class="h" style="font-size:1.35em">Образ 1</div>' +
+          '<div class="sub">Три речі, ваше обличчя.</div><div class="spacer"></div>' +
+          '<div class="eyebrow">ваші образи</div>' + looksRow(4) +
+          '<div class="cta">Змінити речі</div>';
+        gr.innerHTML = '<div class="look" style="flex:2.2;margin-bottom:.7em">ОБРАЗ</div>' + verbTiles() +
+          '';
+      }
+    },
+    '4': { /* ДІЄСЛОВА ЗЛІВА */
+      title: '4 · ДІЄСЛОВА ЗЛІВА',
+      note: ['Щойно образ існує, ліве дзеркало перестає питати і стає панеллю дій — чотири дієслова великими. ' +
+             'Праве далі показує. Образи — смугою по низу КАДРУ, не на склі: галерея це хроніка, а не питання.',
+             'Сильна ідея: дзеркало питань перетворюється на дзеркало дій, і зміна ролі сама розповідає, що етап пройдено. ' +
+             'Ціна: щоб змінити речі, ліва панель мусить уміти повернутися в режим питання — один зайвий стан.'],
+      look: function () {
+        gl.innerHTML = '<div class="eyebrow">образ 01 · що далі</div>' +
+          '<div class="h" style="font-size:1.35em;margin-bottom:.7em">Що зробити<br>з цим образом</div>' +
+          verbLines() + '<div class="spacer"></div><div class="cta">повернутись до речей</div>';
+        gr.innerHTML = '<div class="look" style="flex:1">ОБРАЗ</div>';
+        edge.classList.remove('hide');
+        edge.innerHTML = '<b>ВАШІ ОБРАЗИ</b><i data-on="1"></i><i></i><i></i><i></i><i></i>';
+      }
+    },
+    '5': { /* ОДНЕ ДЗЕРКАЛО */
+      title: '5 · ОДНЕ ДЗЕРКАЛО',
+      note: ['Світиться лише одне дзеркало, друге — темне скло. Кроки йдуть ліворуч; коли образ готовий, ' +
+             'увага переходить праворуч, а ліве гасне. Дії — одним рядом на пілоні між ними.',
+             'Найменше одночасної інформації: у кадрі завжди рівно одна річ, якої від вас чекають. ' +
+             'Ціна: щоб порівняти два образи, доводиться перемикатися, а не дивитися.'],
+      look: function () {
+        gl.innerHTML = '<div class="eyebrow">крок пройдено</div><div class="h" style="font-size:1.2em">Речі зібрано</div>';
+        gl.classList.add('dark');
+        gr.innerHTML = '<div class="eyebrow">образ 01</div><div class="look" style="flex:1;margin:.5em 0">ОБРАЗ</div>' +
+          '<div class="sub">Дії — на пілоні ліворуч.</div>';
+        pier.classList.remove('hide');
+        pier.innerHTML = '<span>дії</span>' + ['shoot','fash','bg','live'].map(function (k) {
+          return '<div style="font-size:8.5px;letter-spacing:.1em;color:#E9E5DC;text-align:center;line-height:1.35">' +
+                 ACTS[k][0] + '</div>';
+        }).join('');
+      }
+    }
+  };
+
+  function render() {
+    gl.className = 'glass L'; gr.className = 'glass R v' + V;
+    gl.innerHTML = ''; gr.innerHTML = '';
+    pier.classList.add('hide'); pier.innerHTML = '';
+    edge.classList.add('hide'); edge.innerHTML = '';
+
+    var L = LAYOUTS[C];
+    if (S === 'person') {
+      /* The person and items stations are NOT on the mirrors — at that point in the film the
+         mirrors are not in frame yet. The panel sits on the picture near the rails. Shown here
+         on the left rectangle only so the type size and measure can be judged. */
+      gl.innerHTML = personPanel();
+      gr.innerHTML = '<div class="eyebrow">ще нічого не показано</div>' +
+        '<div class="sub">Праве дзеркало порожнє, доки нема образу. Другого дзеркала не існує, ' +
+        'поки нема чого в нього покласти.</div>';
+      gr.classList.add('dark');
+    } else if (S === 'items') {
+      gl.innerHTML = itemsPanel();
+      gr.innerHTML = '<div class="eyebrow">попередній перегляд</div><div class="look" style="flex:1">РЕЧІ</div>';
+    } else {
+      L.look();
+    }
+
+    notes.innerHTML = '<h3>' + L.title + '</h3>' + L.note.map(function (p) {
+      return '<p>' + p + '</p>';
+    }).join('') +
+    '<p style="margin-top:10px">Станція <u>' +
+      (S === 'person' ? 'ПЕРСОНАЖ — біля порожніх рейлів, дзеркал у кадрі ще немає'
+      : S === 'items' ? 'РЕЧІ — біля рейла з одягом, там де речі фізично висять'
+      : 'ОБРАЗ І ДІЇ — на двох дзеркалах у кінці сцени') + '</u>. ' +
+    'Результати фотозйомок і відео лежать далі, на екрані телевізора — це галерея, не крок.</p>';
+  }
+
+  document.querySelectorAll('[data-c]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      document.querySelectorAll('[data-c]').forEach(function (o) { o.setAttribute('aria-pressed','false'); });
+      b.setAttribute('aria-pressed','true'); C = b.dataset.c; render();
+    });
+  });
+  document.querySelectorAll('[data-s]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      document.querySelectorAll('[data-s]').forEach(function (o) { o.setAttribute('aria-pressed','false'); });
+      b.setAttribute('aria-pressed','true'); S = b.dataset.s; render();
+    });
+  });
+  document.querySelectorAll('[data-c]').forEach(function (b) {
+    b.setAttribute('aria-pressed', String(b.dataset.c === C));
+  });
+  document.querySelectorAll('[data-s]').forEach(function (b) {
+    b.setAttribute('aria-pressed', String(b.dataset.s === S));
+  });
+  render();
+})();
+</script>
+</body>
+</html>

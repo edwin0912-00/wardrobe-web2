@@ -182,7 +182,11 @@
 
     var activeIndex = -1;
     var unlocked = false;
-    var muted = false;
+    var muted = config.startMuted === true ? true : (false);
+    /* Muted at the start means the score can begin playing under the loader without a
+     * gesture — a muted element is allowed to play. The sound button then unmutes, and
+     * that click is itself the gesture the browser was waiting for. */
+
     /* Long fades that OVERLAP. `gapMs` is allowed to be negative, and a negative value is
      * an overlap: the incoming track starts that many milliseconds BEFORE the outgoing one
      * has finished falling. The earlier build took the handover all the way down to
@@ -256,21 +260,59 @@
       to(i);
     }
 
+    /* START IMMEDIATELY IF THE BROWSER ALLOWS IT.
+     *
+     * Audible playback without a user gesture is blocked by policy, but NOT always: a
+     * visitor who has used the site before carries enough engagement for it to be
+     * permitted outright. The earlier version never even asked — it waited for a gesture
+     * unconditionally, which meant silence for everyone including the cases where sound
+     * was allowed.
+     *
+     * So: try now. Resolve tells us it played, and nothing else is needed. Reject means
+     * policy really did block it, and only then is a gesture listener attached — quietly,
+     * so the page is not nagging about something that may not even apply.
+     *
+     * Resolves to true if sound is already running, false if it is waiting on a gesture.
+     */
+    function start() {
+      var resumed = ctx.state === 'suspended' ? ctx.resume() : Promise.resolve();
+      return Promise.resolve(resumed).then(function () {
+        var first = els[activeIndex >= 0 ? activeIndex : 0];
+        return first.play();
+      }).then(function () {
+        unlock();
+        return true;
+      }).catch(function () {
+        /* Blocked. Wait for the first real gesture, then come up. */
+        var wake = function () {
+          detach();
+          unlock();
+        };
+        var evts = ['pointerdown', 'keydown', 'touchstart', 'wheel'];
+        var detach = function () {
+          evts.forEach(function (e) { window.removeEventListener(e, wake); });
+        };
+        evts.forEach(function (e) { window.addEventListener(e, wake, { passive: true, once: false }); });
+        return false;
+      });
+    }
+
     /* ---- speed -> echo -------------------------------------------------------
      * `speed` arrives already normalised and smoothed from the engine. Fast movement
      * opens the repeats; stillness closes them. Ramps are short so it tracks a flick,
      * but not so short that they click. */
-    var maxEcho = typeof config.echoMax === 'number' ? config.echoMax : 0.78;
+    var maxEcho = typeof config.echoMax === 'number' ? config.echoMax : 0.80;
     var maxFeedback = typeof config.feedbackMax === 'number' ? config.feedbackMax : 0.66;
-    var echoCurve = typeof config.echoCurve === 'number' ? config.echoCurve : 0.75;
 
     function setSpeed(speed) {
       var s = clamp01(speed);
-      /* The first version squared this, so anything short of a hard flick stayed dry and
-       * the effect was effectively invisible in normal use — which is why it read as
-       * missing. An exponent BELOW one does the opposite: ordinary scrolling already
-       * opens the room, and a fast swipe drives it hard. */
-      var shaped = Math.pow(s, echoCurve);
+      /* SINE, as specified: the echo comes UP on a sine to its ceiling at speed and falls
+       * back to nothing at rest. Not a power curve — a power curve is steep at one end and
+       * flat at the other, so it either ignores ordinary scrolling or slams on a flick.
+       * A raised cosine is symmetric: gentle out of stillness, steepest in the middle,
+       * easing into the ceiling. It is also the same shape the camera moves on, so the room
+       * opens in step with the picture instead of on its own schedule. */
+      var shaped = 0.5 - 0.5 * Math.cos(Math.PI * s);
       rampGain(echoWet.gain, muted ? 0 : maxEcho * shaped, 90);
       rampGain(feedback.gain, maxFeedback * shaped, 140);
 
@@ -280,10 +322,12 @@
       echoDamp.frequency.cancelScheduledValues(ctx.currentTime);
       echoDamp.frequency.linearRampToValueAtTime(f, ctx.currentTime + 0.12);
 
-      /* Movement also pushes more signal into the room itself, on top of the baseline.
-       * The room swelling with the movement is what makes the space feel physical
-       * rather than like an effect sitting on the music. */
-      rampGain(reverbWet.gain, baseReverb + (1 - baseReverb) * 0.55 * shaped, 180);
+      /* THE ROOM IS CONSTANT. Reverb sits at its configured share and does not follow the
+       * speed: the apartment does not get more concrete when you scroll faster. It used to
+       * rise to 0.55 of the remaining headroom with movement, which made two effects answer
+       * one gesture and muddied the echo it was supposed to sit behind. The echo alone
+       * carries the movement now. */
+      rampGain(reverbWet.gain, baseReverb, 180);
     }
 
     function setMuted(m) {
@@ -300,6 +344,7 @@
 
     return {
       unlock: unlock,
+      start: start,
       setSpeed: setSpeed,
       toggleMute: function () { return setMuted(!muted); },
       setMuted: setMuted,

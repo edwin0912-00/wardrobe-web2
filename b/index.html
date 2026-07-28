@@ -38,21 +38,56 @@
        No src attributes on purpose: loader.js downloads each master itself so the bar can
        count real bytes, then hands the elements blob URLs. -->
   <div class="film" data-film>
+    <!-- THE INTRO. Silk, before any room, scrubbed by the same scroll and dissolving into
+         room one. It is NOT a leg: data-leg 0..3 stay bound to the four rooms, so the copy
+         lines, the mirror rectangles and ui.js are untouched by its arrival. It sits inside
+         .film so it is cropped and scaled exactly like the footage it hands over to. -->
+    <video data-intro data-src="assets/intro.mp4" muted playsinline preload="auto" aria-hidden="true"></video>
+
     <video data-leg="0" data-src="assets/seg1.mp4" muted playsinline preload="auto" aria-hidden="true"></video>
     <video data-leg="1" data-src="assets/seg2.mp4" muted playsinline preload="auto" aria-hidden="true" hidden></video>
     <video data-leg="2" data-src="assets/seg3.mp4" muted playsinline preload="auto" aria-hidden="true" hidden></video>
+    <video data-leg="3" data-src="assets/seg4.mp4" muted playsinline preload="auto" aria-hidden="true" hidden></video>
 
-    <!-- TWO panels on rectangles measured off this version's own final frame:
-         pane A x 5.0-44.0%, pane B x 55.7-94.6%, both y 17.4-83.2%. Axis-aligned, no
-         shear, because the camera is frontal and the mirrors are flush. The concrete
-         pier between them is the divider, so one interface is split by real
-         architecture. Left pane is STATE, right pane is the ACTIVE STEP. -->
-    <aside class="glass" data-ui-state style="--gx:5.0%; --gy:17.4%; --gw:39.0%; --gh:65.8%;"></aside>
-    <aside class="glass" data-ui-step  style="--gx:55.7%; --gy:17.4%; --gw:39.0%; --gh:65.8%;"></aside>
+    <!-- TWO MIRRORS, TWO JOBS: one asks, the other shows.
+         Rectangles measured off this version's own final frame: left mirror x 5.0-44.0%,
+         right mirror x 55.7-94.6%, both y 17.4-83.2%. Axis-aligned, no shear, because the
+         camera is frontal and the mirrors are flush. The concrete pier between them is the
+         divider, so the split is real architecture rather than a layout decision.
 
-    <!-- The step gate, on the right-hand pane so what blocks progress sits beside what
-         makes it. -->
-    <aside class="glass glass--gate" data-gate-panel style="--gx:55.7%; --gy:17.4%; --gw:39.0%; --gh:65.8%;"></aside>
+         LEFT asks — the questions, the inputs, the button that closes a step.
+         RIGHT shows — the look itself, the choices taken, and the actions on the look,
+         SIGNATURE among them. It starts data-live="0" and has no content at all: there is
+         no second mirror until there is something to put in it. ui.js flips the flag when
+         the first photograph lands.
+
+         The gate panel that used to sit on the right rectangle is gone. Nothing blocks
+         forward travel any more, so an empty aside on top of the SHOW mirror was a dead
+         element in the one place it could do damage. gate.js and its CSS are untouched. -->
+    <aside class="glass" data-ui-ask style="--gx:5.0%; --gy:17.4%; --gw:39.0%; --gh:65.8%;"></aside>
+    <aside class="glass" data-ui-show data-live="0" aria-hidden="true"
+           style="--gx:55.7%; --gy:17.4%; --gw:39.0%; --gh:65.8%;"></aside>
+
+    <!-- The centre figure between the mirrors is gone: Edwin cut it as superfluous. The
+         look belongs in the right-hand mirror, which is the panel whose whole job is
+         showing the result. -->
+
+    <!-- THE PIPELINE PAGE, ON THE LAPTOP SCREEN.
+         Last leg only. Its rectangle is written per frame by the engine into --scr-x/y/w/h
+         from a measurement of the real footage, so it tracks the push-in. Blended, not
+         pasted: black in this layer lets the filmed screen through and light adds to it,
+         which is what makes it read as emitted rather than stuck on.
+         Content is a placeholder until the interface layer hands over the real fragment. -->
+    <div class="screen" data-screen-layer aria-hidden="true">
+      <div class="screen__page" data-screen-page>
+        <div class="screen__row"><b>WARDROBE</b><span>пайплайн</span></div>
+        <div class="screen__bars">
+          <i style="--v:.92"></i><i style="--v:.64"></i><i style="--v:.78"></i>
+          <i style="--v:.41"></i><i style="--v:.86"></i><i style="--v:.55"></i>
+        </div>
+        <div class="screen__row"><span>LOOK</span><span>WORLD</span><span>MOTION</span></div>
+      </div>
+    </div>
   </div>
 
   <div class="grade" aria-hidden="true"></div>
@@ -62,25 +97,22 @@
     <h1 class="copy__line" data-on="0">YOUR DAY STARTS IN THE MIRROR</h1>
     <p class="copy__line" data-on="1">FROM PIECES, A PRESENCE.</p>
     <p class="copy__line" data-on="2">THE SAME LOOK, EVERY SCREEN.</p>
+    <p class="copy__line" data-on="3">AND IT LEAVES THE ROOM WITH YOU.</p>
   </div>
 
   <!-- Edge-mounted, per "LIVE LAB як edge-mounted optional feature". Stays in stage
        space on purpose: it is chrome on the frame edge, not something painted on glass. -->
-  <button class="edge" type="button" data-livelab>LIVE LAB · камера</button>
+  <button class="edge" type="button" data-livelab data-live="0" aria-hidden="true" disabled>LIVE LAB · камера</button>
 </main>
 
-<div class="legs" aria-hidden="true"><i></i><i></i><i></i></div>
+<div class="legs" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
 <div class="hud" data-readout>—</div>
-<button class="sound" type="button" data-sound aria-pressed="true">звук</button>
+<button class="sound" type="button" data-sound aria-pressed="false">без звуку</button>
 <div class="gate" role="status" aria-live="polite">
   <i></i><b data-gate-text>Завантажте медіа цього кроку, щоб іти далі</b>
 </div>
 <div class="scroll-cue">крути</div>
 
-<section class="outro">
-  <h2>Версія B</h2>
-  <p>Знято в 4k, зведено в 1080p: три відрізки, 24 кадри на секунду, камера на рейках, геометрія фронтальна й симетрична весь час. Обидві панелі інтерфейсу стоять на зміряних прямокутниках власного футеджу — 5.0–44.0% і 55.7–94.6% ширини кадру, обидві 17.4–83.2% висоти, без зсуву. Розділяє їх справжній бетонний пілон, а не намальована лінія.</p>
-</section>
 
 <div data-track></div>
 
@@ -88,10 +120,21 @@
 <script src="../engine.js"></script>
 <script src="../ui.js"></script>
 <script src="../audio.js"></script>
-<script src="../gate.js"></script>
 <script>
 (function () {
-  var VIDEOS = ['assets/seg1.mp4', 'assets/seg2.mp4', 'assets/seg3.mp4'];
+  /* SCENE ONE IS SWITCHABLE: ?s1=A, ?s1=B, ?s1=C, or nothing for the original.
+   * Three candidates for the opening room are in b/assets alongside the current one, all
+   * already through the delivery contract. Swapping by hand meant a file copy and a reload
+   * per look; this way the comparison is one click, on the real site, with the real scroll.
+   * Rewritten BEFORE the loader reads the elements, so nothing is fetched twice. */
+  var S1 = (location.search.match(/[?&]s1=([ABC])/i) || [])[1];
+  var SEG1 = S1 ? 'assets/seg1-' + S1.toUpperCase() + '.mp4' : 'assets/seg1.mp4';
+  if (S1) {
+    var v0 = document.querySelector('video[data-leg="0"]');
+    if (v0) v0.setAttribute('data-src', SEG1);
+  }
+
+  var VIDEOS = [SEG1, 'assets/seg2.mp4', 'assets/seg3.mp4', 'assets/seg4.mp4'];
   var TRACKS = ['audio/t1.mp3', 'audio/t2.mp3', 'audio/t3.mp3'];
 
   var loaderEl = document.querySelector('[data-loader]');
@@ -106,102 +149,305 @@
   /* Every byte of the experience, counted. Audio is in the list because it is part of
      the load — reporting only the video would be the same kind of half-truth the old
      bar told. */
-  WardrobeLoader.load(VIDEOS.concat(TRACKS), function (p) {
+  /* MUSIC STARTS DURING THE LOAD, AND STARTS MUTED.
+   *
+   * Two requirements that fit together: the score must be off when the page opens, and it
+   * must begin earlier than the reveal. A muted element needs no gesture to play, so the
+   * score can be rolling under the loader from the moment its own file has arrived; the
+   * sound button then unmutes, and the click is itself the gesture the browser wants.
+   * Starting it at the reveal instead meant the first track began from nothing exactly
+   * when the picture appeared, which is the busiest moment on screen. */
+  var scoreStarted = false;
+  function startScoreEarly(blobs, from) {
+    if (scoreStarted || !blobs || !blobs[TRACKS[0]]) return;
+    scoreStarted = true;
+    /* Which path actually started the score, and how far the load had got. Readable from
+       the console, because "the music starts during the load" is otherwise a claim nobody
+       can check — and on a warm cache the whole load finishes before anything can be
+       sampled from outside. */
+    window.scoreStartedFrom = from || 'unknown';
+    window.score = WardrobeAudio.create({
+      tracks: TRACKS.map(function (t) { return blobs[t] || t; }),
+      startMuted: true,
+      volume: 0.55,
+      /* 15% — the owner's number. Constant: the room does not get more concrete when you
+         scroll faster, only the echo answers the movement. */
+      reverb: 0.15,
+      roomSeconds: 3.6,
+      roomDecay: 1.5,
+      /* No overlap: the outgoing track falls to silence, the room empties for longer than
+         its own 3.6 s tail, and only then does the next rise. A negative gap used to make
+         them play together — and t2/t3 are two renders of the same piece, identical in
+         duration to six decimals, so that overlap was one track phasing against itself. */
+      fadeOutMs: 3600,
+      gapMs: 1500,
+      fadeInMs: 3000,
+      delaySeconds: 0.34,
+      /* Echo rises on a SINE to 80% at speed and falls to nothing at rest. echoCurve is
+         gone — the shape is no longer a tunable exponent, it is the sine, same as the camera. */
+      echoMax: 0.80,
+      feedbackMax: 0.66
+    });
+    window.score.unlock();
+  }
+
+  /* THE SCORE'S FIRST TRACK LOADS ON ITS OWN, AHEAD OF EVERYTHING.
+     Two cheaper attempts were measured and both failed: listing it first made it finish
+     LAST (this server delivers in reverse request order, twice over), and hinting the
+     fetch 'high' moved it from 98.8 percent to 100. Neither lever is binding. Its own
+     wave is, so the room has music from the first seconds of the load instead of the last.
+     4.9 MB before 40 MB of masters — the masters start a moment later, deliberately. */
+  var FIRST_WAVE = [TRACKS[0]];
+
+  /* THE BAR MEASURES WHAT IS REQUIRED TO BEGIN, AND NOTHING ELSE.
+   *
+   * It used to count all seven files — 40 MB — so the viewer waited for the fourth room
+   * before seeing the first. Now the loader gates on exactly what the opening needs: the
+   * score's first track and the first room's film. The other three rooms and the two later
+   * tracks download afterwards, underneath a journey that has already started.
+   *
+   * The percentage is the raw ratio of bytes received to bytes required. No clamp, no
+   * reserved tail, no minimum duration. It was briefly held at 99 until every blob had
+   * been assembled, which was pinning the number to a value rather than reporting one —
+   * and the thing it was hiding is a fraction of a millisecond of memory work, not
+   * loading. All the bytes really have arrived at 100.
+   *
+   * The engine will not enter a room whose film has not landed, so starting early cannot
+   * show an empty frame; it holds at the seam with data-gate="loading" instead. */
+  /* What the opening genuinely needs: the score's first track, the intro that plays first,
+     and room one complete — because the intro hands over to it before it has finished
+     dissolving, so a half-loaded room one would be visible through the fade. 22 MB, not 66. */
+  var INTRO = 'assets/intro.mp4';
+  var REQUIRED = [TRACKS[0], INTRO, VIDEOS[0]];
+  /* Films only. The two later tracks are NOT listed here: the score's own <audio> elements
+     are given those URLs directly and fetch them natively, so putting them in this list
+     too would download 9.8 MB twice. */
+  var REST = VIDEOS.slice(1);
+
+  function paint(p) {
     barEl.style.transform = 'scaleX(' + p.ratio + ')';
     var pct = Math.round(p.ratio * 100);
     pctEl.textContent = (pct < 10 ? '0' : '') + pct;
     bytesEl.textContent = mb(p.loaded) + ' / ' + mb(p.total) + ' МБ';
     filesEl.textContent = p.files.filter(function (f) { return f.done; }).length +
                           ' / ' + p.files.length + ' файлів';
-  }).then(function (res) {
+  }
+
+  var loadStartedAt = performance.now();
+
+  WardrobeLoader.load(REQUIRED, function (p) {
+    paint(p);
+
+    /* As soon as the score's own first track is in memory, start it — muted, under the
+       loader. It does not wait for the film. */
+    var t0 = p.files.filter(function (f) { return f.url === TRACKS[0] && f.blobUrl; })[0];
+    if (t0) {
+      var blobs = {};
+      p.files.forEach(function (f) { if (f.blobUrl) blobs[f.url] = f.blobUrl; });
+      startScoreEarly(blobs, 'during-load @ ' + Math.round(p.ratio * 100) + '%');
+    }
+  }, { firstWave: FIRST_WAVE }).then(function (res) {
     if (res.unmeasurable.length) {
       /* Never let an unmeasured file hide inside a full-looking bar. */
       bytesEl.textContent += ' · без розміру: ' + res.unmeasurable.length;
     }
 
     /* Hand the downloaded bytes to the elements. Nothing is fetched twice. */
-    document.querySelectorAll('video[data-src]').forEach(function (v) {
-      v.src = res.blobs[v.getAttribute('data-src')];
+    function handOver(blobs) {
+      document.querySelectorAll('video[data-src]').forEach(function (v) {
+        var key = v.getAttribute('data-src');
+        if (!v.src && blobs[key]) v.src = blobs[key];
+      });
+    }
+    handOver(res.blobs);
+
+    /* THE REST OF THE FILM, UNDERNEATH A RUNNING JOURNEY.
+     * Rooms two to four and the later tracks are fetched after the reveal, and each element
+     * is handed its bytes the moment its own file lands.
+     * The readout it writes to lives on the loader panel, which has already faded, so this
+     * is diagnostics rather than something the viewer reads. What the VIEWER gets is the
+     * seam hold: the engine will not enter a room whose film has not arrived, and says so
+     * with data-gate="loading" instead of showing a blank frame.
+     * Failures here are non-fatal by design: the first room already works. */
+    window.rest = WardrobeLoader.load(REST, function (p) {
+      var done = p.files.filter(function (f) { return f.done; }).length;
+      bytesEl.textContent = 'решта фільму ' + mb(p.loaded) + ' / ' + mb(p.total) + ' МБ · ' +
+                            done + '/' + p.files.length;
+      var blobs = {};
+      p.files.forEach(function (f) { if (f.blobUrl) blobs[f.url] = f.blobUrl; });
+      handOver(blobs);
+    }).then(function (r2) {
+      handOver(r2.blobs);
+      bytesEl.textContent = 'фільм у памʼяті · ' + mb(r2.bytes) + ' МБ';
+      return r2;
+    }).catch(function (err) {
+      bytesEl.textContent = 'решта фільму не дозавантажилась: ' + err.message;
     });
 
-    window.score = WardrobeAudio.create({
-      tracks: TRACKS.map(function (t) { return res.blobs[t]; }),
-      volume: 0.55,
-      /* A LARGE ROOM WITH CONCRETE WALLS. Baseline wet is well up from the first
-         attempt, the tail is long and evenly decaying the way hard parallel walls
-         decay, and movement pushes still more signal into the room on top. */
-      reverb: 0.35,
-      roomSeconds: 3.6,
-      roomDecay: 1.5,
-      /* Fades OVERLAP: a negative gap means the incoming track starts before the
-         outgoing one has finished falling, so the score never drops to silence. */
-      fadeOutMs: 4200,
-      gapMs: -1200,
-      fadeInMs: 3400,
-      delaySeconds: 0.34,
-      /* Echo opens with swipe speed. The exponent is below one on purpose so ordinary
-         scrolling already opens the room instead of only a hard flick doing it. */
-      echoMax: 0.78,
-      feedbackMax: 0.66,
-      echoCurve: 0.75
-    });
-
+    /* The score already exists — it started under the loader. Creating another here would
+       leave two mixers running the same tracks, which is exactly the doubling being
+       removed. Only start it if the early path never fired. */
+    startScoreEarly(res.blobs, 'after-load (early path did not fire)');
     window.journey = WardrobeJourney.create({
+      /* The page downloaded everything itself, so the engine must not run a second
+         preload nor repaint the bar. One owner for loading. */
+      preloaded: true,
       inertia: 0.085,
-      screensPerLeg: 3.6,   // slightly more scroll per leg: three legs, not four
+      screensPerLeg: 3.4,   // four legs now, so a touch less scroll each
       motionTable: 'motion.json',   // measured; makes visual motion follow an exact sine
+
+      /* THE INTRO, IN FRONT OF THE ROOMS.
+       *
+       * screens 1.8    the silk is 8 s of film; less scroll than a room because it has no
+       *                station to arrive at and nothing to read on it.
+       * handoverAt .72 from 72% of the intro's span the scroll drives ROOM ONE as well.
+       *                Both advance from here, so nothing freezes and by the time the silk
+       *                dissolves the room has already started assembling — the swipe is on
+       *                the second film BEFORE the first one begins to fade, as asked.
+       * fadeFrom  .84  the dissolve starts here, twelve points of scroll after the handover.
+       *                That gap is the whole point: it is where room one gets a head start
+       *                behind a still-opaque intro. */
+      intro: { screens: 1.8, handoverAt: 0.72, fadeFrom: 0.84 },
+      /* CUT AT THE SEAM, DO NOT DISSOLVE.
+       *
+       * The default is 0.10 — a tenth of a leg spent with both films painted and
+       * cross-dissolved. The premise was that the outgoing last frame and the incoming
+       * first frame are the same picture, so a blend costs nothing. That premise only
+       * holds at the exact boundary: across the rest of the window the OUTGOING leg is
+       * still travelling (local 0.90 -> 1.00) while the incoming one sits frozen on its
+       * first frame, so what actually gets composited is a moving image over a still one.
+       * That is the double exposure.
+       *
+       * Measured on these four masters: end-of-leg against start-of-next differs by a mean
+       * of 2.5% per pixel (4.0-5.6% of pixels beyond a visible threshold). Near-identical,
+       * so a straight cut has almost nothing to hide — which is the whole point of chaining
+       * the last frame of each scene into the first frame of the next.
+       *
+       * Not zero: `config.seamWindow || 0.10` treats 0 as absent and would silently restore
+       * the default, and a window of a few frames still lets the next element be painted
+       * and seeked before it is needed, which is what actually prevents the decoder
+       * handover from popping. So the window stays just wide enough to pre-warm and far too
+       * short to read as a dissolve. */
+      seamWindow: 0.012,
       onSpeed: function (s) { if (window.score) window.score.setSpeed(s); },
-      /* ATTENTION, then a GATE.
-       * dampFrom / dampMax: where the swipe starts going insensitive and how far it
-       * goes. Capped at 0.94 rather than 1 so the film still creeps — the viewer can
-       * tell it is resisting rather than that the page has broken.
-       * stationAt: where the hard gate sits. */
+      /* ATTENTION without a hard gate.
+       * dampFrom / dampMax: where the swipe starts going insensitive and how far it goes.
+       * Capped at 0.94 rather than 1 so the film always still creeps — the viewer can feel
+       * it resisting rather than think the page has broken.
+       * stationAt: where the interface appears. */
       dampFrom: 0.70,
       dampMax: 0.94,
       stationAt: 0.92,
-      /* Forward travel past a station is allowed ONLY once that step's required media
-       * has been supplied and generated. The UI owns that answer; the engine only asks,
-       * and defaults to open so a missing UI can never trap the viewer. */
-      gateFor: function (leg) {
-        return window.gate ? window.gate.gateOpen(leg) : true;
+      /* TWO THRESHOLDS so the interface stops blinking. Enter at 0.90, and do not let go
+         until progress falls back to 0.72 — a wide dead band, so a hand resting near the
+         station cannot toggle it. Asked for by the interface layer, which was rebuilding
+         itself on every flip; it now only enables and disables. */
+      stationEnter: 0.90,
+      stationExit: 0.72,
+      /* FORWARD TRAVEL IS CLOSED UNTIL THE STEP HAS PRODUCED SOMETHING.
+       *
+       * There is nothing to travel to before a look exists — the next room shows a result,
+       * so arriving there early would mean arriving at an empty one. The engine reports
+       * this as data-gate="held", which deliberately has no CSS: no plate appears. The
+       * reason is already on screen, in the mirror, as an unfinished step with its button
+       * still waiting — which is a truer explanation than a banner would be.
+       *
+       * Asked lazily: ui.js is created after the journey, so this reads window.ui at call
+       * time instead of capturing it. Before the interface exists nothing is gated, which
+       * is correct — there is no step to be incomplete yet. */
+      canAdvance: function (leg) {
+        return window.ui ? window.ui.canAdvance(leg) : true;
       },
       legs: [
         { id: 0, name: 'диван → два дзеркала' },
         { id: 1, name: 'дзеркала → телевізор' },
-        { id: 2, name: 'телевізор → ноутбук' }
+        { id: 2, name: 'телевізор → ноутбук' },
+        { id: 3, name: 'наїзд на монітор' }
       ]
     });
 
-    window.ui = WardrobeUI.create();
+    window.ui = WardrobeUI.create({
+      /* The look landed, so the hold is over and the page moves on by itself. advanceTo
+         drives the real window scroll with the hand's own inertia, so the film, the
+         parallax and the score's echo all follow from the one clock they already read.
+         A hand outranks it: if the viewer scrolls during the move, the engine cancels. */
+      onLookReady: function () {
+        if (!window.journey || !window.journey.releaseAndAdvance) return;
+        window.journey.releaseAndAdvance().then(function (how) {
+          /* THE OUTCOME IS ACTED ON, NOT JUST RECORDED.
+           *
+           *   'arrived'        the page carried the viewer to the next room; nothing to do.
+           *   'user took over' the viewer grabbed the film mid-flight. Their hand outranks
+           *                    the page, so the move is NOT retried and nothing is forced —
+           *                    but the interface must not treat the journey as having moved
+           *                    on, or a later arrival at this station would be skipped.
+           *   'superseded'     another travel request replaced this one; that one reports.
+           *
+           * The engine detects the hand by real input (wheel, touch, arrow keys) rather than
+           * by inferring it from scroll position, so this value can be trusted. Typing a
+           * letter into the interface does not count as steering the film. */
+          if (window.ui && window.ui.travelled) window.ui.travelled(how);
+        });
+      }
+    });
+
+    /* The banner must say WHY the journey stopped. Its default sentence asks for media,
+       which is the right sentence for a closed step gate and the wrong one for a room
+       that is still arriving — so the text follows the state rather than sitting there
+       being confidently wrong. */
+    var gateText = document.querySelector('[data-gate-text]');
+    var GATE_COPY = {
+      loading: 'Наступна кімната ще завантажується',
+      closed:  'Завантажте медіа цього кроку, щоб іти далі'
+    };
+    function reflectGate() {
+      var s = document.documentElement.getAttribute('data-gate');
+      if (s && GATE_COPY[s] && gateText) gateText.textContent = GATE_COPY[s];
+    }
+    new MutationObserver(reflectGate)
+      .observe(document.documentElement, { attributes: true, attributeFilter: ['data-gate'] });
+    reflectGate();
 
     /* The gate owns media and generation. No adapter is handed in, so it runs as a
        declared placeholder and says so on screen. */
-    window.gate = WardrobeGate.create({});
 
-    /* No button. Everything is in memory, so the journey opens by itself. */
-    loaderEl.setAttribute('data-done', '1');
+    /* No button. Everything is in memory, so the journey opens by itself — but not before
+     * the loading screen has been on screen long enough to have been a moment.
+     *
+     * THE NUMBER IS NEVER FAKED. On a warm cache the whole 22 MB arrives in a few hundred
+     * milliseconds and the pale field with the mark flashed and vanished, which is the
+     * "loading disappears" the owner reported. So the REVEAL has a floor; the percentage
+     * does not. The bar still reports real bytes the whole way and 100 still means every
+     * byte arrived — it simply may sit at 100 for the remainder of the second before the
+     * silk appears. A padded number would be a lie; a minimum curtain is staging. */
+    var MIN_LOADER_MS = 1000;
+    var waited = performance.now() - loadStartedAt;
+    var hold = Math.max(0, MIN_LOADER_MS - waited);
+    window.loaderHeldMs = Math.round(hold);
+    setTimeout(function () { loaderEl.setAttribute('data-done', '1'); }, hold);
 
-    /* Sound needs a user gesture and SCROLL DOES NOT COUNT as one, so it joins at the
-       first click, key or touch anywhere on the page rather than demanding its own
-       button. Until then the toggle says so instead of lying about being on. */
-    soundBtn.setAttribute('aria-pressed', 'false');
-    soundBtn.textContent = 'звук: торкніться';
-    function wake() {
-      if (!window.score) return;
-      window.score.unlock();
-      soundBtn.setAttribute('aria-pressed', 'true');
-      soundBtn.textContent = 'звук';
-      ['pointerdown', 'keydown', 'touchstart'].forEach(function (e) {
-        window.removeEventListener(e, wake);
-      });
-    }
-    ['pointerdown', 'keydown', 'touchstart'].forEach(function (e) {
-      window.addEventListener(e, wake, { passive: true });
+    /* THE BUTTON STATES WHETHER THERE IS SOUND, NOT WHETHER A TRACK IS ROLLING.
+     *
+     * The score starts muted and rolling, which is the point — it is already underway
+     * when the picture arrives. But the label used to be driven by "did playback begin",
+     * and playback does begin, so the control read "звук" and announced aria-pressed=true
+     * over a silent room: the opposite of the truth, and for a screen reader the only
+     * thing it says. It now reports the mute state, which is the thing a listener can
+     * actually hear. The one case worth distinguishing is a browser that refused to play
+     * at all — then the button has to ask for the gesture instead of claiming silence. */
+    window.score.start().then(function (playing) {
+      var m = window.score.state().muted;
+      soundBtn.setAttribute('aria-pressed', String(playing && !m));
+      soundBtn.textContent = !playing ? 'звук: торкніться' : (m ? 'без звуку' : 'звук');
     });
 
     soundBtn.addEventListener('click', function (ev) {
       ev.stopPropagation();
       if (!window.score) return;
+      /* This click is a real gesture, so it is also the moment a browser that refused
+         autoplay will accept a resume. Unlocking here means the first press works even
+         when the score was started under a suspended context. */
+      window.score.unlock();
       var m = window.score.toggleMute();
       soundBtn.setAttribute('aria-pressed', String(!m));
       soundBtn.textContent = m ? 'без звуку' : 'звук';

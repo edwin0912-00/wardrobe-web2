@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WARDROBE — вибір зерна</title>
+<style>
+/* GRAIN CHOOSER.
+ *
+ * Grain cannot be judged from a still: it lives in motion, over real footage, at real size.
+ * So this page runs the actual master and puts each candidate over it, switchable, at 1:1.
+ *
+ * Everything is generated in-page — an SVG feTurbulence tile as a data URI, gradients for the
+ * CRT structure. No external assets, nothing to download, so what you see is exactly what
+ * would ship into style.css.
+ */
+:root{
+  --ink:#1D1E1C; --milk:#F5F3ED; --dim:#A6A8A3; --rule:rgba(245,243,237,.14);
+  --grain-op:.16;      /* live-adjustable */
+  --grain-scale:1;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--ink);color:var(--milk);
+  font:400 14px/1.5 ui-monospace,"SF Mono",Menlo,monospace;-webkit-font-smoothing:antialiased}
+
+header{padding:18px 22px;border-bottom:1px solid var(--rule)}
+h1{font:300 15px/1.3 ui-sans-serif,-apple-system,sans-serif;letter-spacing:.28em;text-transform:uppercase}
+header p{color:var(--dim);font-size:11px;margin-top:6px;max-width:88ch}
+
+.bar{display:flex;flex-wrap:wrap;gap:8px;padding:14px 22px;border-bottom:1px solid var(--rule);align-items:center}
+button{font:inherit;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--dim);background:rgba(245,243,237,.05);border:1px solid var(--rule);
+  padding:8px 12px;cursor:pointer}
+button[aria-pressed="true"]{color:var(--milk);border-color:rgba(245,243,237,.5);background:rgba(245,243,237,.12)}
+.sliders{display:flex;gap:18px;margin-left:auto;align-items:center;font-size:11px;color:var(--dim)}
+input[type=range]{width:150px}
+
+.stage{position:relative;width:100%;max-width:1600px;margin:0 auto;background:#000;
+  aspect-ratio:16/9;overflow:hidden}
+.stage video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+
+/* ---- the layer under test ------------------------------------------------- */
+.fx{position:absolute;inset:0;pointer-events:none}
+
+/* A single noise tile, reused by every grain mode at different frequencies.
+   baseFrequency drives grain SIZE: higher = finer. numOctaves adds clumping. */
+.fx[data-mode="fine"]{
+  opacity:var(--grain-op); mix-blend-mode:soft-light;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='1' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='180' height='180' filter='url(%23n)'/></svg>");
+  background-size:calc(180px * var(--grain-scale));
+}
+.fx[data-mode="35mm"]{
+  opacity:calc(var(--grain-op) * 1.25); mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.72' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0.18'/></filter><rect width='200' height='200' filter='url(%23n)'/></svg>");
+  background-size:calc(200px * var(--grain-scale));
+}
+.fx[data-mode="push"]{
+  opacity:calc(var(--grain-op) * 1.7); mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.42' numOctaves='3' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/><feComponentTransfer><feFuncA type='gamma' exponent='1.7'/></feComponentTransfer></filter><rect width='220' height='220' filter='url(%23n)'/></svg>");
+  background-size:calc(220px * var(--grain-scale));
+}
+/* STATIC PLATE — identical tile to `fine`, but it never moves. The difference is the whole
+   point: animated grain shimmers, and on a scroll-scrubbed film the shimmer fights the
+   picture. A fixed plate is what a printed frame actually looks like. */
+.fx[data-mode="plate"]{
+  opacity:calc(var(--grain-op) * 1.1); mix-blend-mode:soft-light;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='1.0' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='180' height='180' filter='url(%23n)'/></svg>");
+  background-size:calc(180px * var(--grain-scale));
+}
+/* HALATION — fine grain plus a warm bloom that only shows around highlights. Two stacked
+   backgrounds: the noise, and a screen-blended warm veil weighted to the bright areas. */
+.fx[data-mode="halation"]{
+  opacity:var(--grain-op); mix-blend-mode:soft-light;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='1.15' numOctaves='1' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='180' height='180' filter='url(%23n)'/></svg>");
+  background-size:calc(180px * var(--grain-scale));
+}
+.fx[data-mode="halation"]::after{
+  content:"";position:absolute;inset:0;mix-blend-mode:screen;
+  background:radial-gradient(120% 80% at 50% 42%, rgba(255,214,170,.10) 0%, rgba(255,190,140,0) 62%);
+}
+/* CRT, HIGH RESOLUTION. Not the retro look: the scanline pitch is 3 device px, so on any
+   normal screen it reads as structure rather than as stripes, plus a faint aperture-grille
+   triad and a soft bloom. Deliberately no curvature and no chromatic fringing — those are
+   the things that make CRT emulation look like a filter. */
+.fx[data-mode="crt"]{opacity:1}
+.fx[data-mode="crt"]::before{
+  content:"";position:absolute;inset:0;mix-blend-mode:multiply;
+  background:repeating-linear-gradient(to bottom,
+    rgba(0,0,0,.22) 0px, rgba(0,0,0,.22) 1px, rgba(0,0,0,0) 1px, rgba(0,0,0,0) 3px);
+}
+.fx[data-mode="crt"]::after{
+  content:"";position:absolute;inset:0;mix-blend-mode:screen;
+  background:
+    repeating-linear-gradient(to right,
+      rgba(255,60,60,.045) 0px, rgba(255,60,60,.045) 1px,
+      rgba(60,255,90,.045) 1px, rgba(60,255,90,.045) 2px,
+      rgba(70,90,255,.045) 2px, rgba(70,90,255,.045) 3px),
+    radial-gradient(130% 90% at 50% 48%, rgba(190,215,255,.05) 0%, rgba(190,215,255,0) 70%);
+}
+.fx[data-mode="none"]{display:none}
+
+/* Animated variants move the tile in whole-pixel steps, never smoothly: a smooth drift
+   reads as the picture sliding, which is the one thing grain must not do. */
+.fx.anim{animation:shift 640ms steps(8,end) infinite}
+@keyframes shift{
+  0%{background-position:0 0} 12.5%{background-position:-31px 17px}
+  25%{background-position:19px -29px} 37.5%{background-position:-13px -21px}
+  50%{background-position:27px 11px} 62.5%{background-position:-23px 25px}
+  75%{background-position:11px -17px} 87.5%{background-position:-29px -9px}
+  100%{background-position:0 0}
+}
+
+footer{padding:16px 22px;color:var(--dim);font-size:11px;border-top:1px solid var(--rule);max-width:110ch}
+code{color:var(--milk)}
+.readout{padding:10px 22px;color:var(--dim);font-size:11px}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Вибір зерна</h1>
+  <p>Справжній майстер під шаром. Перемикайте — зерно судиться в русі й у натуральному масштабі,
+     на статичному кадрі воно бреше. «Рух зерна» окремою кнопкою: анімоване мерехтить,
+     статична плита — ні, і на скрабі це відчутна різниця.</p>
+</header>
+
+<div class="bar">
+  <button data-pick="none" aria-pressed="false">без зерна</button>
+  <button data-pick="fine" aria-pressed="true">1 · дрібне срібло</button>
+  <button data-pick="35mm" aria-pressed="false">2 · 35 мм</button>
+  <button data-pick="push" aria-pressed="false">3 · пуш, грубіше</button>
+  <button data-pick="plate" aria-pressed="false">4 · статична плита</button>
+  <button data-pick="halation" aria-pressed="false">5 · зерно + гало</button>
+  <button data-pick="crt" aria-pressed="false">6 · CRT високої роздільності</button>
+  <div class="sliders">
+    <label>рух зерна <input type="checkbox" id="anim" checked></label>
+    <label>сила <input type="range" id="op" min="0" max="60" value="16"></label>
+    <label>розмір <input type="range" id="sc" min="50" max="200" value="100"></label>
+  </div>
+</div>
+
+<div class="stage">
+  <video id="v" src="b/assets/seg1.mp4" muted loop autoplay playsinline></video>
+  <div class="fx anim" id="fx" data-mode="fine"></div>
+</div>
+
+<div class="readout" id="readout">—</div>
+
+<footer>
+  Що я поставлю в <code>style.css</code> після вибору: рівно один шар над відео, без залежностей,
+  на CSS. Поточний шар сайту — <code>.grain</code> з opacity 0.16 і <code>mix-blend-mode: overlay</code>,
+  тобто десь між варіантами 1 і 2, і він анімований не є. CRT — це варіант замість зерна, не разом:
+  його структура сама по собі шум, і накладати на неї ще й зерно означає подвоїти шум і втратити обидва.
+</footer>
+
+<script>
+(function(){
+  var fx=document.getElementById('fx'), out=document.getElementById('readout');
+  var opEl=document.getElementById('op'), scEl=document.getElementById('sc'), animEl=document.getElementById('anim');
+  function report(){
+    var m=fx.dataset.mode;
+    out.textContent='режим: '+m+
+      '  ·  сила '+(opEl.value/100).toFixed(2)+
+      '  ·  розмір '+(scEl.value/100).toFixed(2)+'x'+
+      '  ·  рух '+(fx.classList.contains('anim')?'увімкнено':'вимкнено')+
+      (m==='crt' ? '  ·  крок скан-лінії 3 px, без кривизни й без хроматичного розʼїзду' : '')+
+      (m==='plate' ? '  ·  плита не рухається за визначенням, кнопка руху її не стосується' : '');
+  }
+  document.querySelectorAll('[data-pick]').forEach(function(b){
+    b.addEventListener('click',function(){
+      document.querySelectorAll('[data-pick]').forEach(function(o){o.setAttribute('aria-pressed','false')});
+      b.setAttribute('aria-pressed','true');
+      fx.dataset.mode=b.dataset.pick;
+      /* The static plate must never animate, whatever the checkbox says — that is the
+         difference being demonstrated. CRT structure is fixed to the screen too. */
+      var fixed = (b.dataset.pick==='plate' || b.dataset.pick==='crt');
+      fx.classList.toggle('anim', animEl.checked && !fixed);
+      report();
+    });
+  });
+  opEl.addEventListener('input',function(){document.documentElement.style.setProperty('--grain-op',opEl.value/100);report()});
+  scEl.addEventListener('input',function(){document.documentElement.style.setProperty('--grain-scale',scEl.value/100);report()});
+  animEl.addEventListener('change',function(){
+    var fixed=(fx.dataset.mode==='plate'||fx.dataset.mode==='crt');
+    fx.classList.toggle('anim', animEl.checked && !fixed); report();
+  });
+  report();
+})();
+</script>
+</body>
+</html>

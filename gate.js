@@ -51,6 +51,32 @@
     /* status[leg] = 'idle' | 'generating' | 'done' | 'failed' */
     var status = {};
 
+    /* Every object URL this module hands out, so none is ever orphaned.
+     *
+     * A blob URL keeps its entire File alive until it is revoked, so a viewer who
+     * re-picks their photos a few times leaks every earlier pick for the life of the
+     * document. Tracked here rather than trusted to garbage collection, because the
+     * browser deliberately will not collect them. */
+    var created = [];
+
+    function revokeAll() {
+      for (var i = 0; i < created.length; i++) {
+        try { URL.revokeObjectURL(created[i]); } catch (e) { /* already gone */ }
+      }
+      created.length = 0;
+    }
+
+    function revoke(url) {
+      if (!url) return;
+      try { URL.revokeObjectURL(url); } catch (e) { /* already gone */ }
+      var i = created.indexOf(url);
+      if (i !== -1) created.splice(i, 1);
+    }
+
+    /* A page unload without this still frees the memory, but doing it explicitly keeps
+     * the invariant true for anything that tears the gate down and rebuilds it. */
+    window.addEventListener('pagehide', revokeAll);
+
     function bucket(leg, id) {
       if (!files[leg]) files[leg] = {};
       if (!files[leg][id]) files[leg][id] = [];
@@ -162,6 +188,11 @@
               (have.length ? 'Додати ще' : 'Вибрати файли') +
               '<input type="file" accept="image/*" multiple hidden data-need="' + esc(n.id) + '">' +
             '</label>' +
+            /* Without this there is no way to undo a wrong pick, and no path that can
+             * revoke an object URL — the leak an independent review flagged. */
+            (have.length
+              ? '<button class="drop__clear" type="button" data-clear="' + esc(n.id) + '">Скинути</button>'
+              : '') +
           '</div>';
       }).join('');
 
@@ -189,7 +220,12 @@
       var list = bucket(leg, id);
       Array.prototype.forEach.call(input.files || [], function (f) {
         if (!/^image\//.test(f.type)) return;   // images only, silently ignore the rest
-        list.push({ name: f.name, size: f.size, url: URL.createObjectURL(f) });
+        /* Every object URL created here is tracked so it can be revoked. An unrevoked
+         * blob URL pins its whole File in memory for the life of the document, so a
+         * viewer who re-picks their photos a few times leaks every earlier pick. */
+        var url = URL.createObjectURL(f);
+        created.push(url);
+        list.push({ name: f.name, size: f.size, url: url });
       });
       /* Supplying new media invalidates any previous result. */
       if (status[leg] === 'done' || status[leg] === 'failed') status[leg] = 'idle';
@@ -198,6 +234,20 @@
     });
 
     document.addEventListener('click', function (e) {
+      var clr = e.target.closest ? e.target.closest('[data-clear]') : null;
+      if (clr) {
+        var cleg = currentLeg();
+        var cid = clr.getAttribute('data-clear');
+        var clist = bucket(cleg, cid);
+        for (var ci = 0; ci < clist.length; ci++) revoke(clist[ci].url);
+        clist.length = 0;
+        /* Removing media invalidates any result generated from it. */
+        if (status[cleg] === 'done' || status[cleg] === 'failed') status[cleg] = 'idle';
+        render();
+        notify();
+        return;
+      }
+
       var btn = e.target.closest ? e.target.closest('[data-generate]') : null;
       if (!btn || btn.disabled) return;
       var leg = currentLeg();
