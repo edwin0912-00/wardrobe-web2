@@ -1,13 +1,12 @@
 /* ============================================================
-   WARDROBE STUDIO — 3D AIR COLLISION & KINETIC PHYSICS ENGINE
-   Multiple floating 3D fashion garments (Jacket, Pants, Sleeves, Drapes)
-   floating in zero-gravity mid-air behind the UI, colliding dynamically
-   and reacting to mouse turbulence & breathing rhythm.
+   WARDROBE LUSION ENGINE
+   Three.js WebGL background with fluid mesh hero visual
    ============================================================ */
 
 (function() {
   'use strict';
 
+  // ── GLSL Noise (Simplex 3D) ──
   const simplexNoiseGLSL = `
     vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
     vec4 mod289(vec4 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
@@ -39,6 +38,8 @@
       float n_ = 0.142857142857;
       vec3  ns = n_ * D.wyz - D.xzx;
 
+      vec4 j = p - 49.0 * floor(p * ns.z * ns.z);
+
       vec4 x_ = floor(j * ns.z);
       vec4 y_ = floor(j - 7.0 * x_);
 
@@ -62,7 +63,10 @@
       vec3 p3 = vec3(a1.zw, h.w);
 
       vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2,p2), dot(p3,p3)));
-      p0 *= norm.x; p1 *= norm.y; p2 *= norm.z; p3 *= norm.w;
+      p0 *= norm.x;
+      p1 *= norm.y;
+      p2 *= norm.z;
+      p3 *= norm.w;
 
       vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);
       m = m * m;
@@ -70,35 +74,48 @@
     }
   `;
 
+  // ── Vertex Shader ──
   const vertexShader = `
     ${simplexNoiseGLSL}
+    
     uniform float uTime;
+    uniform float uNoiseScale;
+    uniform float uNoiseStrength;
     uniform vec2 uMouse;
     
     varying vec3 vNormal;
     varying vec3 vPosition;
     varying float vDisplacement;
     varying vec3 vViewPosition;
-    varying vec2 vUv;
     
     void main() {
-      vUv = uv;
       vec3 pos = position;
       
-      // Floating Air turbulence wave
-      float wave = snoise(vec3(pos.x * 2.5 + uMouse.x, pos.y * 2.5 + uTime * 0.5, pos.z * 2.5 + uMouse.y)) * 0.09;
-      vec3 newPos = pos + normal * wave;
+      // Multi-octave noise displacement
+      float noise1 = snoise(pos * uNoiseScale + uTime * 0.3) * uNoiseStrength;
+      float noise2 = snoise(pos * uNoiseScale * 2.0 + uTime * 0.5) * uNoiseStrength * 0.5;
+      float noise3 = snoise(pos * uNoiseScale * 4.0 + uTime * 0.2) * uNoiseStrength * 0.25;
       
-      vDisplacement = wave;
+      float displacement = noise1 + noise2 + noise3;
+      
+      // Mouse influence
+      float mouseInfluence = smoothstep(2.0, 0.0, length(pos.xy - uMouse * 2.0));
+      displacement += mouseInfluence * 0.15 * sin(uTime * 2.0);
+      
+      vec3 newPosition = pos + normal * displacement;
+      
+      vDisplacement = displacement;
       vNormal = normalize(normalMatrix * normal);
-      vPosition = newPos;
+      vPosition = newPosition;
       
-      vec4 mvPosition = modelViewMatrix * vec4(newPos, 1.0);
+      vec4 mvPosition = modelViewMatrix * vec4(newPosition, 1.0);
       vViewPosition = -mvPosition.xyz;
+      
       gl_Position = projectionMatrix * mvPosition;
     }
   `;
 
+  // ── Fragment Shader ──
   const fragmentShader = `
     uniform float uTime;
     uniform vec3 uColor1;
@@ -109,186 +126,200 @@
     varying vec3 vPosition;
     varying float vDisplacement;
     varying vec3 vViewPosition;
-    varying vec2 vUv;
-    
-    float random(vec2 st) {
-      return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
-    }
     
     void main() {
+      // Fresnel rim effect
       vec3 viewDir = normalize(vViewPosition);
-      float fresnel = pow(1.0 - max(dot(vNormal, viewDir), 0.0), 2.2);
+      float fresnel = pow(1.0 - max(dot(vNormal, viewDir), 0.0), 3.0);
       
-      // Holographic Iridescent Shift
-      float irid = sin(vDisplacement * 12.0 + uTime * 1.8 + fresnel * 4.0) * 0.5 + 0.5;
-      vec3 iridColor = vec3(
-        sin(irid * 3.14159),
-        sin(irid * 3.14159 + 2.094),
-        sin(irid * 3.14159 + 4.188)
-      );
-
-      vec3 color = mix(uColor1, uColor2, vDisplacement * 2.0 + 0.5);
-      color = mix(color, uColor3, fresnel * 0.7);
-      color = mix(color, iridColor * 0.8, fresnel * 0.6);
-
-      // Cyan-Gold rim glow
-      vec3 glow = vec3(0.0, 0.95, 1.0) * pow(fresnel, 2.5) * 0.5;
-      color += glow;
-
-      float grain = (random(vUv * 2.0 + fract(uTime * 0.07)) - 0.5) * 0.08;
-      color += grain;
-
-      gl_FragColor = vec4(color, 0.94);
+      // Color mixing based on displacement and position
+      float colorMix1 = smoothstep(-0.3, 0.3, vDisplacement);
+      float colorMix2 = smoothstep(0.0, 0.6, vDisplacement);
+      
+      vec3 baseColor = mix(uColor1, uColor2, colorMix1);
+      baseColor = mix(baseColor, uColor3, colorMix2);
+      
+      // Rim light
+      vec3 rimColor = vec3(0.95, 0.85, 0.65);
+      baseColor += rimColor * fresnel * 0.6;
+      
+      // Specular highlights
+      vec3 lightDir = normalize(vec3(1.0, 1.0, 2.0));
+      vec3 halfDir = normalize(lightDir + viewDir);
+      float spec = pow(max(dot(vNormal, halfDir), 0.0), 64.0);
+      baseColor += vec3(1.0, 0.95, 0.9) * spec * 0.5;
+      
+      // Subtle ambient occlusion from displacement
+      float ao = smoothstep(-0.5, 0.5, vDisplacement) * 0.3 + 0.7;
+      baseColor *= ao;
+      
+      // Final alpha with fresnel fade
+      float alpha = 0.85 + fresnel * 0.15;
+      
+      gl_FragColor = vec4(baseColor, alpha);
     }
   `;
 
+  // ── Scene Setup ──
   const canvas = document.getElementById('canvas');
   if (!canvas) return;
 
   const renderer = new THREE.WebGLRenderer({
-    canvas, antialias: true, alpha: true, powerPreference: 'high-performance'
+    canvas: canvas,
+    antialias: true,
+    alpha: true,
+    powerPreference: 'high-performance'
   });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setClearColor(0x000000, 0);
 
   const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
-  camera.position.set(0, 0, 7.0);
+  
+  const camera = new THREE.PerspectiveCamera(
+    45,
+    window.innerWidth / window.innerHeight,
+    0.1,
+    100
+  );
+  camera.position.set(0, 0, 5);
 
+  // ── Fluid Mesh ──
+  const geometry = new THREE.IcosahedronGeometry(1.2, 64);
+  
   const uniforms = {
     uTime: { value: 0 },
+    uNoiseScale: { value: 1.5 },
+    uNoiseStrength: { value: 0.35 },
     uMouse: { value: new THREE.Vector2(0, 0) },
-    uColor1: { value: new THREE.Color(0x06080a) },
-    uColor2: { value: new THREE.Color(0x281a08) },
-    uColor3: { value: new THREE.Color(0xdcb888) },
+    uColor1: { value: new THREE.Color(0x1a1008) },  // Dark bronze
+    uColor2: { value: new THREE.Color(0x8b6914) },  // Gold
+    uColor3: { value: new THREE.Color(0xc8a050) },  // Bright gold
   };
 
-  const garmentMaterial = new THREE.ShaderMaterial({
-    vertexShader, fragmentShader, uniforms, transparent: true, side: THREE.DoubleSide, depthWrite: false
+  const material = new THREE.ShaderMaterial({
+    vertexShader,
+    fragmentShader,
+    uniforms,
+    transparent: true,
+    side: THREE.DoubleSide,
+    depthWrite: false,
   });
 
-  // ── 3D AIR COLLISION OBJECTS SYSTEM ──
-  const collisionContainer = new THREE.Group();
-  scene.add(collisionContainer);
+  const mesh = new THREE.Mesh(geometry, material);
+  scene.add(mesh);
 
-  // Floating Garment 1: Outer Jacket Torso
-  const jacketGeo = new THREE.CylinderGeometry(0.7, 0.55, 1.6, 32, 16, true);
-  const jacketMesh = new THREE.Mesh(jacketGeo, garmentMaterial);
-  jacketMesh.position.set(-0.2, 0.3, 0);
+  // ── Ambient Particles (Background Dust) ──
+  const particleCount = 800;
+  const particleGeometry = new THREE.BufferGeometry();
+  const particlePositions = new Float32Array(particleCount * 3);
+  const particleSizes = new Float32Array(particleCount);
+  
+  for (let i = 0; i < particleCount; i++) {
+    particlePositions[i * 3] = (Math.random() - 0.5) * 20;
+    particlePositions[i * 3 + 1] = (Math.random() - 0.5) * 20;
+    particlePositions[i * 3 + 2] = (Math.random() - 0.5) * 10 - 3;
+    particleSizes[i] = Math.random() * 2 + 0.5;
+  }
+  
+  particleGeometry.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
+  particleGeometry.setAttribute('size', new THREE.BufferAttribute(particleSizes, 1));
 
-  // Floating Garment 2: Left Floating Sleeve
-  const lSleeveGeo = new THREE.CylinderGeometry(0.22, 0.16, 1.3, 24, 12, true);
-  const lSleeveMesh = new THREE.Mesh(lSleeveGeo, garmentMaterial);
-  lSleeveMesh.position.set(-1.3, 0.5, 0.5);
-  lSleeveMesh.rotation.z = 0.45;
+  const particleMaterial = new THREE.ShaderMaterial({
+    vertexShader: `
+      attribute float size;
+      varying float vAlpha;
+      void main() {
+        vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+        gl_PointSize = size * (200.0 / -mvPosition.z);
+        gl_Position = projectionMatrix * mvPosition;
+        vAlpha = smoothstep(15.0, 3.0, -mvPosition.z) * 0.3;
+      }
+    `,
+    fragmentShader: `
+      varying float vAlpha;
+      void main() {
+        float dist = length(gl_PointCoord - vec2(0.5));
+        if (dist > 0.5) discard;
+        float alpha = smoothstep(0.5, 0.1, dist) * vAlpha;
+        gl_FragColor = vec4(0.94, 0.93, 0.9, alpha);
+      }
+    `,
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+  });
 
-  // Floating Garment 3: Right Floating Sleeve
-  const rSleeveGeo = new THREE.CylinderGeometry(0.22, 0.16, 1.3, 24, 12, true);
-  const rSleeveMesh = new THREE.Mesh(rSleeveGeo, garmentMaterial);
-  rSleeveMesh.position.set(1.3, 0.5, -0.3);
-  rSleeveMesh.rotation.z = -0.45;
+  const particles = new THREE.Points(particleGeometry, particleMaterial);
+  scene.add(particles);
 
-  // Floating Garment 4: Left Trousers Leg
-  const lLegGeo = new THREE.CylinderGeometry(0.28, 0.2, 1.7, 24, 16, true);
-  const lLegMesh = new THREE.Mesh(lLegGeo, garmentMaterial);
-  lLegMesh.position.set(-0.45, -1.2, 0.2);
-  lLegMesh.rotation.z = 0.12;
-
-  // Floating Garment 5: Right Trousers Leg
-  const rLegGeo = new THREE.CylinderGeometry(0.28, 0.2, 1.7, 24, 16, true);
-  const rLegMesh = new THREE.Mesh(rLegGeo, garmentMaterial);
-  rLegMesh.position.set(0.45, -1.2, -0.2);
-  rLegMesh.rotation.z = -0.12;
-
-  // Floating Garment 6: Silk Drape Scarf
-  const scarfGeo = new THREE.TorusKnotGeometry(0.9, 0.18, 96, 24, 2, 3);
-  const scarfMesh = new THREE.Mesh(scarfGeo, garmentMaterial);
-  scarfMesh.position.set(0, 0.2, -0.8);
-
-  collisionContainer.add(jacketMesh, lSleeveMesh, rSleeveMesh, lLegMesh, rLegMesh, scarfMesh);
-
-  // ── Volumetric Laser Beams ──
-  const laserGroup = new THREE.Group();
-  const laserGeo = new THREE.CylinderGeometry(0.01, 0.08, 14, 16);
-  const laserMatCyan = new THREE.MeshBasicMaterial({ color: 0x00f0ff, transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending });
-  const laserMatMagenta = new THREE.MeshBasicMaterial({ color: 0xff0088, transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending });
-
-  const l1 = new THREE.Mesh(laserGeo, laserMatCyan); l1.position.set(-4, 0, -2); l1.rotation.z = -0.6; laserGroup.add(l1);
-  const l2 = new THREE.Mesh(laserGeo, laserMatCyan); l2.position.set(4, 0, -2); l2.rotation.z = 0.6; laserGroup.add(l2);
-  const l3 = new THREE.Mesh(laserGeo, laserMatMagenta); l3.position.set(-3, 3, -3); l3.rotation.z = -0.3; l3.rotation.x = 0.4; laserGroup.add(l3);
-  const l4 = new THREE.Mesh(laserGeo, laserMatMagenta); l4.position.set(3, -3, -3); l4.rotation.z = 0.3; l4.rotation.x = -0.4; laserGroup.add(l4);
-  scene.add(laserGroup);
-
-  // ── Mouse Air Interaction & Collision Physics ──
-  const mouse = { x: 0, y: 0, targetX: 0, targetY: 0, vx: 0, vy: 0 };
-  const crtLayer = document.querySelector('.l-crt-vhs-layer');
-
+  // ── Mouse Tracking ──
+  const mouse = { x: 0, y: 0, targetX: 0, targetY: 0 };
+  
   document.addEventListener('mousemove', (e) => {
     mouse.targetX = (e.clientX / window.innerWidth) * 2 - 1;
     mouse.targetY = -(e.clientY / window.innerHeight) * 2 + 1;
-    if (crtLayer) {
-      crtLayer.style.transform = `translate(${-mouse.targetX * 12}px, ${-mouse.targetY * 12}px)`;
-    }
   });
 
-  window.wardrobeEngine = {
-    setThemeColor(hexColor) {
-      if (!hexColor) return;
-      const base = new THREE.Color(hexColor);
-      uniforms.uColor1.value.copy(base).multiplyScalar(0.2);
-      uniforms.uColor2.value.copy(base).multiplyScalar(0.6);
-      uniforms.uColor3.value.copy(base).multiplyScalar(1.4);
-    }
-  };
+  // ── Scroll Progress ──
+  let scrollProgress = 0;
+  
+  window.addEventListener('scroll', () => {
+    const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+    scrollProgress = Math.max(0, Math.min(1, window.scrollY / maxScroll));
+  });
 
+  // ── Resize ──
   window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
   });
 
+  // ── Animation Loop ──
   const clock = new THREE.Clock();
 
   function animate() {
     requestAnimationFrame(animate);
+    
     const elapsed = clock.getElapsedTime();
-
-    // Damped Mouse Physics
-    mouse.vx += (mouse.targetX - mouse.x) * 0.08;
-    mouse.vy += (mouse.targetY - mouse.y) * 0.08;
-    mouse.vx *= 0.82; mouse.vy *= 0.82;
-    mouse.x += mouse.vx; mouse.y += mouse.vy;
-
+    
+    // Smooth mouse
+    mouse.x += (mouse.targetX - mouse.x) * 0.05;
+    mouse.y += (mouse.targetY - mouse.y) * 0.05;
+    
+    // Update uniforms
     uniforms.uTime.value = elapsed;
     uniforms.uMouse.value.set(mouse.x, mouse.y);
-
-    // Dynamic Zero-Gravity Air Collision Motion for 3D Garment Parts
-    const t = elapsed * 1.2;
-    jacketMesh.position.x = -0.2 + Math.sin(t * 0.8) * 0.25 + mouse.x * 0.8;
-    jacketMesh.position.y = 0.3 + Math.cos(t * 0.6) * 0.18 + mouse.y * 0.6;
-    jacketMesh.rotation.y = Math.sin(t * 0.5) * 0.3 + mouse.x * 0.5;
-
-    lSleeveMesh.position.x = -1.3 + Math.cos(t * 0.9) * 0.35 + mouse.x * 1.2;
-    lSleeveMesh.position.y = 0.5 + Math.sin(t * 0.7) * 0.25 + mouse.y * 0.9;
-    lSleeveMesh.rotation.z = 0.45 + Math.sin(t * 1.1) * 0.2;
-
-    rSleeveMesh.position.x = 1.3 - Math.cos(t * 0.9) * 0.35 + mouse.x * 1.2;
-    rSleeveMesh.position.y = 0.5 - Math.sin(t * 0.7) * 0.25 + mouse.y * 0.9;
-    rSleeveMesh.rotation.z = -0.45 - Math.sin(t * 1.1) * 0.2;
-
-    lLegMesh.position.x = -0.45 + Math.sin(t * 0.7) * 0.2 + mouse.x * 0.6;
-    lLegMesh.position.y = -1.2 + Math.cos(t * 0.5) * 0.2 + mouse.y * 0.4;
-
-    rLegMesh.position.x = 0.45 - Math.sin(t * 0.7) * 0.2 + mouse.x * 0.6;
-    rLegMesh.position.y = -1.2 - Math.cos(t * 0.5) * 0.2 + mouse.y * 0.4;
-
-    scarfMesh.rotation.x = t * 0.2 + mouse.y * 0.4;
-    scarfMesh.rotation.y = t * 0.3 + mouse.x * 0.4;
-
+    
+    // Mesh rotation (slow, organic)
+    mesh.rotation.x = Math.sin(elapsed * 0.15) * 0.3 + mouse.y * 0.2;
+    mesh.rotation.y = elapsed * 0.1 + mouse.x * 0.3;
+    mesh.rotation.z = Math.cos(elapsed * 0.12) * 0.15;
+    
+    // Scale based on scroll — shrink as user scrolls past hero
+    const heroScale = Math.max(0.3, 1.0 - scrollProgress * 2);
+    mesh.scale.setScalar(heroScale);
+    
+    // Move mesh up as user scrolls
+    mesh.position.y = scrollProgress * 3;
+    
+    // Fade mesh opacity
+    material.opacity = Math.max(0, 1.0 - scrollProgress * 3);
+    
+    // Camera subtle movement
     camera.position.x = mouse.x * 0.3;
-    camera.position.y = mouse.y * 0.25;
-    camera.lookAt(0, 0, 0);
-
+    camera.position.y = mouse.y * 0.2;
+    camera.lookAt(0, scrollProgress * 1.5, 0);
+    
+    // Animate particles
+    const positions = particleGeometry.attributes.position.array;
+    for (let i = 0; i < particleCount; i++) {
+      positions[i * 3 + 1] += Math.sin(elapsed * 0.5 + i * 0.1) * 0.002;
+      positions[i * 3] += Math.cos(elapsed * 0.3 + i * 0.05) * 0.001;
+    }
+    particleGeometry.attributes.position.needsUpdate = true;
+    
     renderer.render(scene, camera);
   }
 
