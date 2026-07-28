@@ -2,11 +2,22 @@
 set -euo pipefail
 
 repository="edwin0912-00/zeely-ai-engineering-test"
-watch_mode="${1:-}"
-[[ -z "$watch_mode" || "$watch_mode" == "--watch" || "$watch_mode" == "--dry-run" ]] || {
-  echo "Usage: bash bootstrap-beta-agent.sh [--watch|--dry-run]" >&2
-  exit 64
-}
+watch_mode=""
+dry_run="false"
+recover_from=""
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --watch) watch_mode="--watch" ;;
+    --dry-run) dry_run="true" ;;
+    --recover-from)
+      recover_from="${2:-}"
+      [[ -n "$recover_from" ]] || { echo "--recover-from requires an existing workspace path" >&2; exit 64; }
+      shift
+      ;;
+    *) echo "Usage: bash bootstrap-beta-agent.sh [--watch] [--dry-run] [--recover-from <workspace>]" >&2; exit 64 ;;
+  esac
+  shift
+done
 command -v gh >/dev/null 2>&1 || {
   echo "Install GitHub CLI (gh), then run this command again." >&2
   exit 2
@@ -33,10 +44,67 @@ workspace="${WARDROBE_AGENT_WORKSPACE:-$PWD/wardrobe-$agent_id}"
   exit 3
 }
 
+recovery_tmp=""
+source_workspace=""
+source_status=""
+if [[ -n "$recover_from" ]]; then
+  source_workspace="$(cd "$recover_from" && pwd)" || {
+    echo "Recovery workspace is not accessible: $recover_from" >&2
+    exit 5
+  }
+  git -C "$source_workspace" rev-parse --show-toplevel >/dev/null 2>&1 || {
+    echo "Recovery workspace is not a Git repository: $source_workspace" >&2
+    exit 5
+  }
+  source_remote="$(git -C "$source_workspace" remote get-url origin 2>/dev/null || true)"
+  [[ "$source_remote" == *"$repository"* ]] || {
+    echo "Recovery workspace origin does not match $repository; refusing to mix projects." >&2
+    exit 5
+  }
+  recovery_tmp="$(mktemp -d)"
+  trap '[[ -n "$recovery_tmp" ]] && rm -rf "$recovery_tmp"' EXIT
+  git -C "$source_workspace" status --short > "$recovery_tmp/status.txt"
+  git -C "$source_workspace" diff --binary HEAD > "$recovery_tmp/tracked.patch"
+  git -C "$source_workspace" rev-parse HEAD > "$recovery_tmp/source-head.txt"
+  source_status="$(cat "$recovery_tmp/status.txt")"
+fi
+
 git clone --branch beta --single-branch "https://github.com/$repository.git" "$workspace"
 cd "$workspace"
 bash tools/join-beta-agent.sh "$agent_id"
 test -f START_HERE.md && cp START_HERE.md .agent-local/HELP.md
+
+if [[ -n "$source_workspace" ]]; then
+  rescue_workspace="${workspace}-rescue"
+  rescue_branch="recovery/${agent_id}-$(date -u +%Y%m%d%H%M%S)"
+  git worktree add -b "$rescue_branch" "$rescue_workspace" beta >/dev/null
+  mkdir -p "$rescue_workspace/.recovery"
+  cp "$recovery_tmp/status.txt" "$rescue_workspace/.recovery/original-status.txt"
+  cp "$recovery_tmp/source-head.txt" "$rescue_workspace/.recovery/original-head.txt"
+  cp "$recovery_tmp/tracked.patch" "$rescue_workspace/.recovery/tracked-changes.patch"
+  if [[ -s "$recovery_tmp/tracked.patch" ]]; then
+    if git -C "$rescue_workspace" apply --3way "$recovery_tmp/tracked.patch"; then
+      tracked_result="applied as uncommitted changes"
+    else
+      tracked_result="not applied automatically; patch preserved at .recovery/tracked-changes.patch"
+    fi
+  else
+    tracked_result="none"
+  fi
+  mkdir -p "$rescue_workspace/.recovery/untracked"
+  while IFS= read -r -d '' relative_path; do
+    mkdir -p "$rescue_workspace/.recovery/untracked/$(dirname "$relative_path")"
+    cp -a "$source_workspace/$relative_path" "$rescue_workspace/.recovery/untracked/$relative_path"
+  done < <(git -C "$source_workspace" ls-files --others --exclude-standard -z)
+  if [[ -d "$source_workspace/.agent-local" ]]; then
+    cp -a "$source_workspace/.agent-local" "$rescue_workspace/.recovery/local-journal"
+  fi
+  printf '%s\n' "Source workspace: $source_workspace" "Source beta/base: $(cat "$recovery_tmp/source-head.txt")" "Tracked recovery: $tracked_result" "Untracked source files are preserved under .recovery/untracked/; local journal under .recovery/local-journal/." > "$rescue_workspace/.recovery/README.txt"
+  echo "RECOVERY PRESERVED: $rescue_workspace"
+  echo "RECOVERY BRANCH: $rescue_branch"
+  echo "RECOVERY TRACKED CHANGES: $tracked_result"
+  [[ -n "$source_status" ]] && echo "RECOVERY SOURCE STATUS WAS NOT CLEAN. Inspect rescue before using it."
+fi
 
 # A fresh chat has no conversation memory. Print the canonical recovery pack
 # from beta itself before the agent can take a task. These are policy and state
@@ -77,7 +145,7 @@ Evidence command: tools/bootstrap-beta-agent.sh
 Help request: NONE
 Next action: monitoring UPDATE.md for an assigned task.
 EOF
-if [[ "$watch_mode" == "--dry-run" ]]; then
+if [[ "$dry_run" == "true" ]]; then
   echo "DRY RUN READY: $agent_id"
   echo "Workspace: $workspace"
   exit 0

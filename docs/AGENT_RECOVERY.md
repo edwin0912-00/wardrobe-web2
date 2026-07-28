@@ -24,3 +24,23 @@ keys, or provider credentials into chat, Markdown, Git, or the local journal.
 
 The new agent starts read-only. It may take only a task allowed by `UPDATE.md`;
 the board owns assignments and path reservations.
+
+## Recover an old local workspace too
+
+When a lost agent may have important work that exists only on an SSD, point the
+same command at that workspace:
+
+```bash
+export WARDROBE_AGENT_LABEL=codex-recovery
+export WARDROBE_RECOVER_FROM="/absolute/path/to/old/zeely-workspace"
+curl -fsSL https://raw.githubusercontent.com/edwin0912-00/zeely-ai-engineering-test/beta/tools/bootstrap-beta-agent.sh | bash -s -- --watch --recover-from "$WARDROBE_RECOVER_FROM"
+```
+
+The old workspace is read-only. The command first verifies that its `origin`
+is this exact repository, then creates a separate `*-rescue` worktree and
+branch. It preserves tracked changes as an uncommitted three-way patch, stores
+the original status and base SHA, copies untracked files under
+`.recovery/untracked/`, and copies the ignored local agent journal under
+`.recovery/local-journal/`. Nothing is force-applied to `beta`, committed,
+pushed, deleted, or changed in the old workspace. A recovery agent reviews the
+rescue worktree and moves only verified changes into a normally assigned task.
