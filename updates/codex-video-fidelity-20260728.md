@@ -4,6 +4,8 @@ Protocol ACK: 985fcec
 
 ## BETA-FULL-LOOK-LOCK-001 — IMPLEMENTED, AWAITING BETA ACTIVATION
 
+Implementation commit: `58dd6370feb0d1ecfe3f3016618f95545d256e26` (pushed to `beta`; not live-claimed).
+
 - Pipeline: `LOOK.04–06` → `VIDEO.01`.
 - Direct operator instruction: make bottoms and footwear first-class locked items; an item visible in delivery must be locked. Existing items use real crops; only absent bottoms may be synthesized once, disclosed and frozen.
 - Reservation: the exact paths in `UPDATE.md`; no active row owns them.
