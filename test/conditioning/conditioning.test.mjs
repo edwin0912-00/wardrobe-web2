@@ -32,7 +32,7 @@ test('the full-look fixture locks the observed sneaker and one declared syntheti
   assert.deepEqual(trousers.extraction.observed_facts.pattern, ['plain washed-black denim weave']);
 });
 
-test('the wide editorial coda is full length only after the full-look lock exists', async () => {
+test('the wide editorial coda keeps its full-length framing while item locks are maintained separately', async () => {
   const resolver = new FilesystemScenePresetResolver({
     rootDirectory: path.resolve('assets/scene-presets'),
     projectRoot: path.resolve('.'),

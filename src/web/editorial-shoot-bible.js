@@ -249,12 +249,12 @@ function shotSpec(modeDefinition, slot) {
     item_evidence: [
       'Preserve every approved item that intersects the intentional crop in exact type, silhouette, color, material and construction.',
       'Preserve every visible logo, graphic, letter, number, pattern, closure, hardware and footwear detail exactly; never invent an out-of-frame item.',
-      'Every visible garment, accessory and footwear item must be an approved locked item. Do not complete an uncovered body region by inventing styling.',
+      'Preserve every already approved item exactly. When a full-body approved look visibly carries an unregistered lower garment or footwear, treat those pixels as first-appearance evidence: capture and lock that item before it is reused; never replace it with a prettier synthesis.',
     ],
     optical_device: shot.optical_device,
     negative_constraints: [
       'No identity drift, age change, face replacement, body redesign or skin smoothing.',
-      'No removed, substituted, recolored or redesigned approved garment, accessory, footwear, logo or text; no invented styling completion.',
+      'No removed, substituted, recolored or redesigned approved garment, accessory, footwear, logo or text. Do not replace an unregistered item already visible in the approved look with a synthesized alternative.',
       'No copied source person, landmark, readable signage or exact source architecture.',
       'No malformed hands, merged limbs, destructive crop or incoherent contact shadow.',
     ],

@@ -455,20 +455,6 @@ async function approvedItemSnapshot(value, expectedSourceRunId) {
   };
 }
 
-function assertFullLookForEditorialCoda(snapshot, preset) {
-  if (preset?.editorial?.shot_slot !== 'wide_campaign_coda') return;
-  const categories = new Set((snapshot?.items ?? []).map((item) => item.logical.category));
-  const required = ['top', 'bottom', 'footwear'];
-  const missing = required.filter((category) => !categories.has(category));
-  if (missing.length) {
-    throw new SceneServiceError(
-      422,
-      'FULL_LOOK_ITEMS_REQUIRED',
-      `Wide campaign coda requires locked approved items: ${missing.join(', ')}`,
-    );
-  }
-}
-
 function extensionFor(mediaType) {
   const extension = MIME_EXTENSION[mediaType];
   if (!extension) throw new Error(`Unsupported scene reference media type: ${mediaType}`);
@@ -2651,7 +2637,6 @@ export class SceneService {
       throw new Error('Scene preset SHA-256 mismatch');
     }
     validatePresetSnapshot(presetSnapshot.document, presetReference);
-    assertFullLookForEditorialCoda(approvedItemsSnapshot, presetSnapshot.document);
     const promptBytes = await binaryFrom(resolvedPreset.prompt, 'Resolved scene prompt');
     const promptHash = sha256(promptBytes);
     if (promptHash !== presetReference.prompt_sha256) {

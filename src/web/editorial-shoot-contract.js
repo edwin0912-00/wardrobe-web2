@@ -267,9 +267,9 @@ function validateShotSpec(shot, index) {
     throw new Error('The clean identity hero must require full-face identity evidence');
   }
   const camera = validateCamera(shot.camera, expectedSlot);
-  // Only the coda is full length. SceneService rejects it before generation
-  // unless top, bottom and footwear are all locked approved items, so this
-  // never reintroduces an invented lower half.
+  // Only the coda is full length. A visible lower garment or footwear is
+  // first-appearance evidence: it is captured and locked from its own pixels
+  // before reuse, rather than replaced by a synthetic substitute.
   const requiredFraming = {
     clean_identity_hero: 'three_quarter',
     environmental_hero: 'three_quarter',
