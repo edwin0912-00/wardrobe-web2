@@ -45,7 +45,9 @@
         const status = preloader.querySelector('#preloader-status');
         if (bar) bar.style.width = '100%';
         if (status) status.textContent = 'Готово!';
-        preloader.classList.add('is-hidden');
+        window.setTimeout(() => {
+          preloader.classList.add('is-hidden');
+        }, 300);
       }
     }
   };

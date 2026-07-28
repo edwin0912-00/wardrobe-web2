@@ -1,82 +1,425 @@
 <!doctype html>
 <html lang="uk">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>WARDROBE — Studio Experience A</title>
-<link rel="icon" href="/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="/style.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="WARDROBE reference-conditioned AI avatar generator">
+  <title>WARDROBE — AI Avatar Studio</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <script>try{const q=new URLSearchParams(location.search);if(q.has('run')||q.has('scene')||q.has('shoot')||localStorage.getItem('zeely_active_run_id')||localStorage.getItem('zeely_pending_finalization_id')||localStorage.getItem('zeely_source_avatar_id')||localStorage.getItem('zeely_active_scene_v1')||localStorage.getItem('zeely_active_editorial_shoot_v1'))document.documentElement.classList.add('workflow-pending')}catch{}</script>
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/upload.css?v=20260723-2">
+  <link rel="stylesheet" href="/progress.css?v=20260724-1">
+  <link rel="stylesheet" href="/conflict.css?v=20260722-3">
+  <link rel="stylesheet" href="/experience.css?v=20260723-6">
+  <link rel="stylesheet" href="/result.css?v=20260728-2">
+  <link rel="stylesheet" href="/scene.css?v=20260723-4">
+  <link rel="stylesheet" href="/scene-cta.css?v=20260727-1">
+  <link rel="stylesheet" href="/active-theory.css?v=20260727-3">
+  <link rel="stylesheet" href="/lusion-studio.css?v=20260727-4">
+  <script src="/three.min.js"></script>
+  <script type="module" src="/chroma-key-extractor.js"></script>
+  <script src="/lenis-scroll-engine.js" defer></script>
+  <script src="/lusion-master-engine.js" defer></script>
+  <script type="module" src="/scene-cta.js?v=20260725-1"></script>
 </head>
-<body>
+<body class="active-theory-mode">
 
-<div class="progress" aria-hidden="true"></div>
+  <!-- 3D WebGL Background Canvas -->
+  <div id="lusion-canvas-container"></div>
 
-<div class="loader" data-loader>
-  <div class="loader__mark">WARDROBE</div>
-  <div class="loader__rail"><div class="loader__bar" data-loader-bar></div></div>
-  <div class="loader__pct" data-loader-pct>00</div>
-  <div class="loader__note">версія A · 30 к/с · чотири відрізки</div>
-</div>
-
-<div class="mark">WARDROBE</div>
-
-<main class="stage" data-stage data-leg="0" data-station="0">
-  <!-- FRAME SPACE. Anything painted on the picture is a child of .film, which script sizes
-       to the footage's aspect and which carries the parallax. Positioned in stage space
-       instead, the panels missed the mirrors and drifted as the picture moved. -->
-  <div class="film" data-film>
-    <video data-leg="0" src="/assets/scroll-assembly-to-mirror-v1.mp4" muted playsinline preload="auto" aria-hidden="true"></video>
-    <video data-leg="1" src="/assets/scroll-mirror-to-tv-v1.mp4" muted playsinline preload="auto" aria-hidden="true" hidden></video>
-    <video data-leg="2" src="/assets/scroll-tv-to-laptop-v1.mp4" muted playsinline preload="auto" aria-hidden="true" hidden></video>
-    <video data-leg="3" src="/assets/scroll-laptop-to-browser-v1.mp4" muted playsinline preload="auto" aria-hidden="true" hidden></video>
-
-    <!-- Same interface as B: LEFT mirror asks, RIGHT mirror shows the look and the actions
-         on it. The right one starts empty and data-live="0" — no second mirror until there
-         is something to put in it. -->
-    <aside class="glass" data-ui-ask style="--gx:10%; --gy:18%; --gw:39%; --gh:58%;"></aside>
-    <aside class="glass" data-ui-show data-live="0" aria-hidden="true"
-           style="--gx:52%; --gy:18%; --gw:39%; --gh:58%;"></aside>
+  <!-- HUD Corner Overlay Layer -->
+  <div class="lusion-hud-layer">
+    <div class="hud-item hud-tl">
+      <div class="brand-monogram">W</div>
+      <span class="brand-text">WARDROBE STUDIO</span>
+    </div>
+    <nav class="hud-item hud-tr">
+      <button class="hud-nav-tab is-active" onclick="scrollToSection(0)" type="button">01 AVATAR</button>
+      <button class="hud-nav-tab" onclick="scrollToSection(1)" type="button">02 GARMENT</button>
+      <button class="hud-nav-tab" onclick="scrollToSection(2)" type="button">03 SCENES</button>
+      <button class="hud-nav-tab" onclick="scrollToSection(3)" type="button">04 CAMPAIGN</button>
+    </nav>
+    <div class="hud-item hud-bl">
+      <span class="hud-live-dot"></span>
+      <span>THREE.JS 8000 GPGPU PARTICLES · LENIS KINETIC SCROLL · 120 FPS</span>
+    </div>
+    <div class="hud-item hud-br" id="lusion-progress-indicator">
+      01 / 04 STOP-FRAMES
+    </div>
   </div>
 
-  <div class="grade" aria-hidden="true"></div>
-  <div class="grain" aria-hidden="true"></div>
-
-  <div class="copy">
-    <h1 class="copy__line" data-on="0">YOUR DAY STARTS IN THE MIRROR</h1>
-    <p class="copy__line" data-on="1">FROM PIECES, A PRESENCE.</p>
-    <p class="copy__line" data-on="2">THE SAME LOOK, EVERY SCREEN.</p>
-    <p class="copy__line" data-on="3">AND THEN IT LEAVES THE ROOM.</p>
+  <div id="app-preloader" class="app-preloader" aria-label="Завантаження Wardrobe Studio">
+    <div class="preloader-content">
+      <div class="preloader-mark">
+        <span class="preloader-monogram">W</span>
+        <span class="preloader-pulse"></span>
+      </div>
+      <div class="preloader-copy">
+        <h2>WARDROBE STUDIO</h2>
+        <p id="preloader-status">Завантаження AI-двигуна та пресетів...</p>
+      </div>
+      <div class="preloader-bar-track">
+        <div id="preloader-bar" class="preloader-bar" style="width: 25%;"></div>
+      </div>
+    </div>
   </div>
-</main>
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="Wardrobe home"><span class="brand-mark">W</span><span>WARDROBE</span></a>
+    <div class="topbar-actions">
+      <button id="open-profile-global" class="header-profile-button" type="button">Мої образи</button>
+      <div class="engine-status"><span class="pulse"></span> GPT Image 2 · strict QA</div>
+    </div>
+  </header>
+  <main>
+    <section class="hero">
+      <p class="eyebrow">REFERENCE-CONDITIONED AVATAR ENGINE</p>
+      <h1>Ти. Твій гардероб.<br><em>Без випадковостей.</em></h1>
+      <p class="hero-copy">Завантаж фото себе й будь-які фотографії речей. Система розпізнає, очищує та фіксує кожне фото перед генерацією.</p>
+      <div class="proof-row"><span>01 Фіксація зовнішності</span><span>02 Картка речі</span><span>03 Незалежна перевірка</span></div>
+    </section>
 
-<div class="legs" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
-<div class="hud" data-readout>—</div>
-<div class="gate" role="status" aria-live="polite">
-  <i></i><b data-gate-text>Завантажте медіа цього кроку, щоб іти далі</b>
-</div>
-<div class="scroll-cue">крути</div>
+    <section id="studio-shell" class="studio-grid" data-screen="input">
+      <form id="run-form" class="panel form-panel" data-mode="new-avatar">
+        <div class="panel-head"><div><span id="material-step" class="step">01</span><h2 id="material-title">Матеріали</h2></div><span class="required-note">* обов’язково</span></div>
+        <p id="add-items-kicker" class="add-items-kicker hidden">ПРОДОВЖЕННЯ ЗБЕРЕЖЕНОГО АВАТАРА · БЕЗ ПОВТОРНОГО СТВОРЕННЯ ЛЮДИНИ</p>
+        <div id="new-avatar-inputs">
+          <label class="upload-card">
+            <input id="person-photo" name="person_photo" type="file" accept="image/png,image/jpeg,image/webp">
+            <span class="upload-icon">＋</span><strong>Фото людини *</strong><small>Довільний фон і поза · PNG, JPEG або WEBP</small><span class="file-name" data-for="person-photo">Обрати файл</span>
+          </label>
+          <div id="person-preview" class="file-preview" aria-live="polite"></div>
+          <label class="upload-card compact">
+            <input id="identity-detail" name="identity_detail" type="file" accept="image/png,image/jpeg,image/webp">
+            <span class="upload-icon">＋</span><strong>Додаткове фото людини</strong><small>Обличчя або повний зріст — необов’язково</small><span class="file-name" data-for="identity-detail">Обрати файл</span>
+          </label>
+          <div id="identity-preview" class="file-preview" aria-live="polite"></div>
+        </div>
 
-<div data-track></div>
+        <section id="source-avatar-context" class="source-avatar-context hidden" aria-label="Обраний збережений аватар">
+          <img id="source-avatar-preview" alt="Обраний збережений аватар">
+          <div>
+            <p>ЗАФІКСОВАНИЙ АВАТАР</p>
+            <strong id="source-avatar-name">Аватар</strong>
+            <small id="source-avatar-detail">Зовнішність уже затверджена — повторно завантажувати фото не потрібно.</small>
+          </div>
+          <button id="change-source-avatar" type="button">Обрати інший</button>
+        </section>
 
-<script src="/engine.js"></script>
-<script src="/ui.js"></script>
-<script>
-  window.journey = WardrobeJourney.create({
-    inertia: 0.085,        // per-frame catch-up; lower is heavier
-    screensPerLeg: 3.2,    // how much scroll each leg is given
-    motionTable: '/motion.json',
-    dampFrom: 0.70,
-    dampMax: 0.94,
-    stationAt: 0.92,
-    legs: [
-      { id: 0, name: 'диван → дзеркало' },
-      { id: 1, name: 'дзеркало → телевізор' },
-      { id: 2, name: 'телевізор → ноутбук' },
-      { id: 3, name: 'ноутбук → браузер' }
-    ]
-  });
+        <div class="divider"><span id="look-divider-label">НОВИЙ ОБРАЗ</span></div>
+        <label class="field-label" for="outfit-text">Опис образу</label>
+        <textarea id="outfit-text" name="outfit_text" rows="3" placeholder="Наприклад: мінімалістичний чорний образ із м’якою посадкою"></textarea>
+        <label class="upload-card wardrobe-card">
+          <input id="garment-images" name="garment_images" type="file" accept="image/png,image/jpeg,image/webp" multiple>
+          <span class="upload-icon">＋</span><strong>Фото речей</strong><small>До 5 довільних фото — система сама визначить категорії</small><span class="file-name" data-for="garment-images">Додати гардероб</span>
+        </label>
+        <div id="garment-preview" class="file-preview garment-preview" aria-live="polite"></div>
+        <label class="consent"><input type="checkbox" name="consent" required><span>Я маю право використовувати ці фото та погоджуюсь на їх обробку зовнішніми AI-сервісами.</span></label>
+        <p id="draft-status" class="draft-status" aria-live="polite">Чернетка зберігається на 15 хвилин</p>
+        <button id="submit-button" class="primary-button" type="submit"><span id="submit-label">Створити аватар</span><b>→</b></button>
+        <p id="form-error" class="error" role="alert"></p>
+      </form>
 
-  window.ui = WardrobeUI.create();
-</script>
+      <section class="panel result-panel">
+        <div class="panel-head"><div><span class="step">02</span><h2 id="result-panel-title">Процес</h2></div><span id="status-chip" class="status-chip idle" role="status" aria-live="polite">Очікує матеріали</span></div>
+        <div id="empty-state" class="empty-state"><div class="mirror-graphic"><span></span><span></span></div><h3 id="empty-state-title">Тут з’явиться твій образ</h3><p id="empty-state-copy">Спочатку перевіряємо базовий аватар, потім — одяг.</p></div>
+        <div id="progress-view" class="progress-view hidden">
+          <div class="progress-layout">
+            <section class="ai-progress-card">
+              <div class="progress-orbit"><canvas id="progress-orb-canvas" data-state="listening"></canvas></div>
+              <p class="ai-live"><i></i> AI ENGINE ACTIVE</p>
+              <h3 id="progress-title">Підготовка матеріалів</h3>
+              <p id="progress-message" aria-live="polite">Перевіряємо матеріали…</p>
+              <div class="progress-meter">
+                <div class="progress-meter-head"><div class="progress-value"><strong id="progress-stage">4%</strong><small>за станом сервера</small></div><span id="progress-count">CHECKPOINT SYNC</span></div>
+                <div id="progress-track" class="progress-track" role="progressbar" aria-label="Pipeline progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="4"><i id="progress-bar"></i></div>
+              </div>
+            </section>
+            <div id="pipeline-board-slot" class="pipeline-board-slot">
+              <section class="pipeline-board" aria-labelledby="pipeline-map-title">
+                <figure id="pipeline-live-visualizer" class="pipeline-live-visualizer" aria-labelledby="live-visualizer-title" aria-describedby="live-visualizer-status">
+                  <div class="live-visualizer-stage">
+                    <canvas id="live-visualizer-canvas" aria-hidden="true"></canvas>
+                    <span class="live-visualizer-badge">ЗБЕРЕЖЕНИЙ КАДР</span>
+                    <span id="live-visualizer-metric" class="live-visualizer-metric" hidden></span>
+                  </div>
+                  <figcaption>
+                    <span id="live-visualizer-title">Очікуємо збережений кадр</span>
+                    <small id="live-visualizer-status">Показуємо тільки зображення, які вже збережені сервером.</small>
+                  </figcaption>
+                  <p id="live-visualizer-announcement" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></p>
+                </figure>
+                <header class="pipeline-board-head">
+                  <div><p>LIVE EXECUTION GRAPH</p><h4 id="pipeline-map-title">Persisted pipeline checkpoints</h4></div>
+                  <div class="pipeline-legend" aria-label="Статуси pipeline"><span><i class="legend-done">✓</i> Saved</span><span><i class="legend-active">●</i> Active</span><span><i class="legend-pending">○</i> Pending</span></div>
+                </header>
+                <ol id="pipeline-nodes" class="pipeline-grid" aria-label="15 етапів production pipeline"></ol>
+                <aside id="pipeline-inspector" class="pipeline-inspector" role="status" aria-live="polite" aria-atomic="true">
+                  <header><span>LIVE CHECKPOINT</span><code id="checkpoint-code">CHECKPOINT_SYNC</code></header>
+                  <dl>
+                    <div><dt>INPUT</dt><dd id="checkpoint-input">run_id from this browser</dd></div>
+                    <div><dt>OPERATION</dt><dd id="checkpoint-operation">Fetch persisted state and reconnect SSE</dd></div>
+                    <div><dt>OUTPUT</dt><dd id="checkpoint-output">last server checkpoint</dd></div>
+                    <div><dt>GATE</dt><dd id="checkpoint-gate">never reset an active run locally</dd></div>
+                  </dl>
+                </aside>
+              </section>
+            </div>
+          </div>
+        </div>
+        <div id="result-view" class="result-view hidden">
+          <section class="result-shell">
+            <header class="result-header">
+              <div class="result-title-group"><p class="result-kicker">YOUR WARDROBE AVATAR</p><h3 class="result-heading">Твій образ готовий</h3></div>
+              <span id="result-save-state" class="result-qa">Перевірку пройдено</span>
+            </header>
+            <div class="result-workspace">
+              <div class="result-main">
+                <figure class="result-stage">
+                  <img id="active-result-image" alt="Згенерований образ">
+                  <figcaption class="media-actions"><strong id="active-result-label">Образ</strong><a id="active-result-download" download>Завантажити PNG ↓</a></figcaption>
+                </figure>
+              </div>
+              <aside class="result-sidebar">
+                <article class="avatar-profile-card">
+                  <img id="profile-avatar-preview" class="profile-avatar-preview" alt="Збережений аватар">
+                  <div class="profile-meta"><p>АНОНІМНИЙ ПРОФІЛЬ</p><strong id="result-avatar-name">Аватар 01</strong><small id="result-profile-expiry">Зберігаємо в цьому браузері 30 днів</small></div>
+                </article>
+                <nav id="result-tabs" class="result-tabs" aria-label="Варіанти результату"></nav>
+                <div class="result-actions">
+                  <button id="add-look" class="primary-result-action" type="button">Новий образ з цим аватаром</button>
+                  <button id="create-scene" class="secondary-result-action" type="button" disabled>Створити сцену</button>
+                  <button id="new-avatar" class="secondary-result-action" type="button">Створити новий аватар</button>
+                  <button id="open-profile" class="secondary-result-action" type="button">Усі мої образи</button>
+                </div>
+                <details class="quality-details"><summary>Розпізнані речі</summary><div id="passport-list" class="passport-list"></div></details>
+              </aside>
+            </div>
+            <details id="completed-pipeline-trace" class="terminal-pipeline-trace"><summary>Execution graph · final server evidence</summary><div id="completed-pipeline-host"></div></details>
+          </section>
+        </div>
+        <div id="profile-view" class="profile-view hidden">
+          <section class="result-shell profile-library">
+            <header class="result-header profile-header">
+              <button id="profile-back" class="profile-back" type="button" aria-label="Повернутися назад"><span aria-hidden="true">←</span><b>Назад</b></button>
+              <div class="result-title-group"><p class="result-kicker">ЗБЕРЕЖЕНО В ЦЬОМУ БРАУЗЕРІ</p><h3 class="result-heading">Мої аватари й образи</h3><p id="profile-expiry" class="profile-expiry"></p></div>
+              <span class="result-qa">Тільки цей браузер</span>
+            </header>
+            <div id="profile-avatar-list" class="profile-avatar-list"></div>
+            <div class="profile-section-head">
+              <div><p id="profile-look-context" class="result-kicker" aria-live="polite">УСІ ЗБЕРЕЖЕНІ ОБРАЗИ</p><h4 id="profile-look-heading">Збережені образи</h4></div>
+              <div class="profile-section-actions">
+                <button id="profile-clear-avatar" class="secondary-result-action hidden" type="button">Усі образи</button>
+                <button id="profile-new-avatar" class="secondary-result-action" type="button">+ Новий аватар</button>
+              </div>
+            </div>
+            <div class="profile-look-workspace">
+              <div id="profile-look-grid" class="profile-look-grid"></div>
+              <section id="profile-look-detail" class="profile-look-detail hidden" tabindex="-1" aria-labelledby="profile-look-detail-title">
+                <button id="profile-look-detail-close" class="profile-look-detail-close" type="button" aria-label="Закрити збережений образ">×</button>
+                <img id="profile-look-detail-image" alt="Вибраний збережений образ">
+                <div class="profile-look-detail-copy">
+                  <p class="result-kicker">ЗБЕРЕЖЕНИЙ ОБРАЗ</p>
+                  <h4 id="profile-look-detail-title">Образ</h4>
+                  <p id="profile-look-detail-owner"></p>
+                  <p id="profile-look-add-explainer" class="profile-look-add-explainer">Нові речі створять окремий образ із тією самою зовнішністю та пропорціями тіла. Цей збережений образ не зміниться.</p>
+                  <section id="profile-look-scenes" class="profile-look-scenes" aria-labelledby="profile-look-scenes-title">
+                    <div class="profile-look-scenes-head">
+                      <h5 id="profile-look-scenes-title">Сцени цього образу</h5>
+                      <span id="profile-look-scenes-count" aria-live="polite">0</span>
+                    </div>
+                    <ul id="profile-look-scene-list" class="profile-look-scene-list"></ul>
+                    <p id="profile-look-scenes-empty" class="profile-look-scenes-empty">Сцен ще немає. Створи першу, не змінюючи збережений образ.</p>
+                  </section>
+                  <section id="profile-look-editorial" class="profile-look-scenes profile-look-editorial" aria-labelledby="profile-look-editorial-title">
+                    <div class="profile-look-scenes-head">
+                      <h5 id="profile-look-editorial-title">Fashion-фотосесії цього образу</h5>
+                      <span id="profile-look-editorial-count" aria-live="polite">0</span>
+                    </div>
+                    <ul id="profile-look-editorial-list" class="profile-look-scene-list"></ul>
+                    <p id="profile-look-editorial-empty" class="profile-look-scenes-empty">Фотосесій ще немає. Відкрий «Створити сцену» → Art Fashion.</p>
+                  </section>
+                  <section class="profile-look-next" aria-labelledby="profile-look-next-title">
+                    <div class="profile-look-next-head">
+                      <p class="result-kicker">ЩО РОБИМО З ЦИМ ОБРАЗОМ</p>
+                      <h5 id="profile-look-next-title">Обери наступний формат</h5>
+                    </div>
+                    <button id="profile-look-background-primary" class="profile-look-primary-action" type="button" aria-label="Додати стандартний фон">
+                      <span class="profile-action-signal" aria-hidden="true">✦</span>
+                      <span class="profile-action-orbit" aria-hidden="true"></span>
+                      <span class="profile-action-arrow" aria-hidden="true">→</span>
+                    </button>
+                    <div class="profile-look-next-actions" role="group" aria-label="Інші формати для цього образу">
+                      <button id="profile-look-refine" class="profile-next-action profile-next-action-refine" type="button" disabled aria-label="Покращити образ — скоро" aria-describedby="profile-look-video-note">
+                        <span class="profile-action-icon" aria-hidden="true">✦</span>
+                      </button>
+                      <button id="profile-look-background" class="profile-next-action profile-next-action-background" type="button" aria-label="Додати стандартний фон">
+                        <span class="profile-action-icon" aria-hidden="true">◐</span>
+                      </button>
+                      <button id="profile-look-photoshoot" class="profile-next-action profile-next-action-photoshoot" type="button" aria-label="Відкрити Art Fashion фотозйомку">
+                        <span class="profile-action-icon" aria-hidden="true">◉</span>
+                      </button>
+                      <button id="profile-look-video" class="profile-next-action profile-next-action-video" type="button" disabled aria-label="Fashion video — очікує video route" aria-describedby="profile-look-video-note">
+                        <span class="profile-action-icon" aria-hidden="true">▷</span>
+                      </button>
+                      <button id="profile-look-live" class="profile-next-action profile-next-action-live" type="button" aria-label="Відкрити Real-time Look">
+                        <span class="profile-action-icon" aria-hidden="true">◌</span>
+                      </button>
+                    </div>
+                    <p id="profile-look-video-note" class="sr-only">Покращити образ збереже master і locked речі. Fashion video не підміняється mock-роликом: запуск з’явиться лише після Seedance route, QA і збереження кліпу.</p>
+                  </section>
+                  <div class="profile-look-detail-actions">
+                    <button id="profile-look-add" class="primary-result-action" type="button">Новий окремий образ</button>
+                    <button id="profile-look-delete" class="profile-delete-action" type="button">Видалити</button>
+                  </div>
+                </div>
+              </section>
+            </div>
+            <div class="profile-danger-zone"><p>Без акаунта цей профіль існує лише в цьому браузері.</p><button id="delete-profile" type="button">Видалити профіль і файли</button></div>
+          </section>
+        </div>
+        <div id="profile-live-overlay" class="profile-live-overlay hidden" role="dialog" aria-modal="true" aria-label="Live примірка">
+          <button id="profile-live-close" class="profile-live-close" type="button" aria-label="Закрити Live">×</button>
+          <iframe id="profile-live-frame" title="Live примірка вибраного образу" allow="camera; fullscreen"></iframe>
+        </div>
+        <div id="scene-view" class="scene-view hidden">
+          <section class="scene-shell" data-mode="picker">
+            <header class="scene-header">
+              <button id="scene-back" class="scene-back" type="button" aria-label="Назад до моїх образів">←</button>
+              <div class="scene-header-copy">
+                <p class="scene-eyebrow">SCENE BETA · SAVED LOOK ONLY</p>
+                <h3 id="scene-execution-title">Обери сцену</h3>
+              </div>
+              <span id="scene-server-status" class="scene-live-chip" data-tone="running">ПРЕВ’Ю</span>
+            </header>
+
+            <div id="scene-picker" class="scene-picker">
+              <article class="scene-look-strip">
+                <img data-scene-look-image alt="Збережений образ для сцени">
+                <div>
+                  <p>НЕЗМІННИЙ MASTER-ОБРАЗ</p>
+                  <strong data-scene-look-name>Збережений образ</strong>
+                  <small>Зовнішність і речі зафіксовані. Змінюється лише простір, світло та камера.</small>
+                </div>
+                <small id="scene-picker-status" class="scene-picker-status">Завантажуємо сцени…</small>
+              </article>
+              <div class="scene-picker-tabs" role="tablist" aria-label="Тип сцени">
+                <button id="scene-tab-standard" type="button" role="tab" aria-selected="true" aria-controls="scene-standard-panel">Стандартні сцени</button>
+                <button id="scene-tab-editorial" type="button" role="tab" aria-selected="false" aria-controls="scene-editorial-panel" tabindex="-1">Art Fashion</button>
+              </div>
+              <p id="scene-error" class="scene-error" role="alert" hidden></p>
+              <section id="scene-standard-panel" class="scene-picker-panel scene-standard-panel" role="tabpanel" aria-labelledby="scene-tab-standard">
+                <div id="scene-preset-grid" class="scene-preset-grid" aria-label="Доступні стандартні сцени"></div>
+              </section>
+              <section id="scene-editorial-panel" class="scene-picker-panel editorial-preview-panel" role="tabpanel" aria-labelledby="scene-tab-editorial" hidden>
+                <div id="editorial-mode-grid" class="editorial-mode-grid" aria-label="Art Fashion mood-напрями"></div>
+                <aside class="editorial-preview-gate">
+                  <span><strong>ShootBible → hero → твоє підтвердження → ще 5 кадрів</strong><small>Готові напрями запускаються тут. Решта лишаються заблокованими до повного reference pack.</small></span>
+                  <button id="editorial-resume" class="editorial-resume" type="button" hidden>Відкрити останню фотосесію</button>
+                </aside>
+              </section>
+            </div>
+
+            <div id="scene-confirm" class="scene-confirm hidden">
+              <div class="scene-confirm-stage" aria-label="Образ і вибрана сцена">
+                <div class="scene-confirm-look"><img data-scene-look-image alt="Збережений образ"></div>
+                <div id="scene-confirm-preset" class="scene-confirm-preset"></div>
+              </div>
+              <aside class="scene-confirm-copy">
+                <p id="scene-confirm-family">СЦЕНА</p>
+                <h4 id="scene-confirm-name">Вибрана сцена</h4>
+                <small id="scene-confirm-camera">4:5</small>
+                <button id="scene-start" class="scene-text-button primary" type="button">Створити сцену</button>
+                <button id="scene-picker-back" class="scene-text-button" type="button">Обрати іншу</button>
+              </aside>
+            </div>
+
+            <div id="scene-execution" class="scene-execution hidden">
+              <div class="scene-execution-stage">
+                <div id="scene-running-stage" class="scene-running-stage">
+                  <span class="scene-running-orbit" aria-hidden="true"></span>
+                  <img data-scene-look-image alt="Збережений образ у процесі створення сцени">
+                </div>
+                <figure id="scene-output" class="scene-output" hidden>
+                  <img id="scene-output-image" alt="Готова сцена">
+                  <a id="scene-output-download" download="scene.png">Завантажити 4:5 ↓</a>
+                </figure>
+              </div>
+              <aside class="scene-execution-panel">
+                <p>ВИБРАНА СЦЕНА</p>
+                <strong id="scene-active-preset">Сцена</strong>
+                <div class="scene-server-block">
+                  <p>SERVER PHASE · <span id="scene-connection">CONNECTING</span></p>
+                  <code id="scene-server-phase">AWAITING_SERVER</code>
+                  <small id="scene-server-message">Очікуємо повідомлення сервера</small>
+                </div>
+                <ol id="scene-phase-stream" class="scene-phase-stream" aria-label="Отримані фази сервера"></ol>
+                <small id="scene-model" class="scene-model">Модель ще не призначена</small>
+                <div class="scene-controls">
+                  <button id="scene-reconnect" class="scene-control" type="button" hidden>Перевірити стан</button>
+                  <button id="scene-cancel" class="scene-control" type="button" hidden>Зупинити</button>
+                  <button id="scene-retry" class="scene-control primary" type="button" hidden>Повторити сцену</button>
+                  <button id="scene-delete" class="scene-control danger" type="button" hidden>Видалити</button>
+                </div>
+              </aside>
+            </div>
+
+            <div id="editorial-shoot" class="editorial-shoot hidden">
+              <article class="editorial-master-strip">
+                <img data-scene-look-image alt="Незмінний master-образ для Art Fashion фотосесії">
+                <span><small>НЕЗМІННИЙ MASTER</small><strong data-scene-look-name>Збережений образ</strong></span>
+                <span class="editorial-runtime"><small id="editorial-connection">CONNECTING</small><code id="editorial-phase">AWAITING_SERVER</code></span>
+              </article>
+              <p id="editorial-error" class="scene-error editorial-error" role="alert" hidden></p>
+
+              <section id="editorial-bible-stage" class="editorial-bible-stage" aria-labelledby="editorial-bible-title">
+                <header>
+                  <div><p>SHOOT BIBLE · 6 КАДРІВ</p><h4 id="editorial-bible-title">План фотосесії</h4></div>
+                  <span id="editorial-mode-name">Art Fashion</span>
+                </header>
+                <p id="editorial-bible-system" class="editorial-bible-system">Завантажуємо візуальну систему…</p>
+                <div id="editorial-bible-shots" class="editorial-bible-shots" aria-label="План шести кадрів"></div>
+                <footer>
+                  <p id="editorial-message" aria-live="polite">Фіксуємо master-образ і план кадрів</p>
+                  <button id="editorial-approve-bible" class="scene-text-button primary" type="button">Затвердити план і створити hero</button>
+                  <button id="editorial-cancel-bible" class="scene-text-button" type="button">Скасувати</button>
+                </footer>
+              </section>
+
+              <section id="editorial-gallery-stage" class="editorial-gallery-stage" hidden>
+                <header>
+                  <div><p>ART FASHION · SERVER JOB</p><strong id="editorial-series-progress">0/6 кадрів пройшли QA</strong></div>
+                  <span>Hero спочатку · потім concurrency 2</span>
+                </header>
+                <div id="editorial-gallery" class="editorial-gallery" aria-label="Кадри Art Fashion фотосесії"></div>
+                <footer class="editorial-controls">
+                  <button id="editorial-reconnect" class="scene-control" type="button" hidden>Перевірити стан</button>
+                  <button id="editorial-approve-hero" class="scene-control primary" type="button" hidden>Затвердити hero й створити 5 кадрів</button>
+                  <button id="editorial-cancel" class="scene-control" type="button" hidden>Зупинити</button>
+                  <button id="editorial-delete" class="scene-control danger" type="button" hidden>Видалити фотосесію</button>
+                </footer>
+              </section>
+              <dialog id="editorial-shot-inspector" class="editorial-shot-inspector" aria-labelledby="editorial-shot-inspector-title">
+                <header>
+                  <strong id="editorial-shot-inspector-title">Повний кадр</strong>
+                  <button id="editorial-shot-inspector-close" type="button" aria-label="Закрити повний кадр">×</button>
+                </header>
+                <figure><img id="editorial-shot-inspector-image" alt=""></figure>
+                <a id="editorial-shot-inspector-download" download="art-fashion.png">Завантажити PNG ↓</a>
+              </dialog>
+            </div>
+          </section>
+        </div>
+        <div id="failure-view" class="failure-view hidden"><span class="failure-mark">!</span><h3 id="failure-title">Потрібне інше фото</h3><p id="failure-message"></p><div id="conflict-picker" class="conflict-picker"></div><div class="failure-actions"><button id="edit-input" class="secondary-button" type="button">Змінити матеріали</button><button id="retry-run" class="secondary-button" type="button">Спробувати ще раз</button></div><details id="failure-pipeline-trace" class="terminal-pipeline-trace failure-trace"><summary>Технічний журнал виконання</summary><div id="failure-pipeline-host"></div></details></div>
+      </section>
+    </section>
+  </main>
+  <footer><span>WARDROBE AI ENGINEERING TEST</span><a href="https://monitor.madeforthisjob.com">Live monitor →</a><span>Immutable jobs · Hash-bound QA · Cloud models</span></footer>
+  <aside id="boot-error" class="boot-error" role="alert" hidden>
+    <strong>Інтерфейс не відповідає</strong><span data-error-message>Сталася помилка запуску.</span>
+    <button type="button" onclick="location.reload()">Перезавантажити</button>
+  </aside>
+  <script src="/boot-guard.js?v=20260722-3"></script>
+  <script type="module" src="/app.js?v=20260728-3"></script>
 </body>
 </html>

@@ -58,15 +58,6 @@ Higgsfield на хості вилікуваний: 1.1.19 -> 0.2.3 через np
 HEAD на момент запису: `b31bb4a`
 
 
-### 2026-07-28 18:38 · antigravity-20260727-fb7a90 · PROGRESS
-
-Сайт А повністю підключений і активований у web/public/index.html
-
-Файли: web/public/index.html,web/public/engine.js,web/public/ui.js,web/public/style.css
-
-HEAD на момент запису: `e07a948`
-
-
 ### 2026-07-28 18:31 · claude-code-20260727-557761 · DONE
 
 хендоф-команда зроблена клон-незалежною (git rev-parse --show-toplevel) у README, UPDATE, handoff і resume-доку; роздатковий файл у Downloads перезібраний

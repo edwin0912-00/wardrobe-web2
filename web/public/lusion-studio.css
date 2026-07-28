@@ -90,28 +90,33 @@ html, body {
 }
 
 .hud-tl {
-  display: none !important;
+  top: 36px;
+  left: 48px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
 }
 
 .brand-monogram {
-  width: 40px;
-  height: 40px;
+  width: 46px;
+  height: 46px;
   border-radius: 50%;
-  background: var(--lusion-accent);
-  color: #000;
+  background: #153826;
+  color: var(--lusion-accent);
   display: grid;
   place-items: center;
   font-family: Georgia, serif;
-  font-size: 22px;
-  font-weight: 900;
-  box-shadow: 0 0 20px var(--lusion-accent-glow);
+  font-size: 24px;
+  font-weight: 700;
+  box-shadow: 0 0 30px var(--lusion-accent-glow);
+  border: 1px solid rgba(184, 255, 61, 0.3);
 }
 
 .brand-text {
   font-family: var(--font-display);
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 850;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.2em;
   color: #ffffff;
 }
 
