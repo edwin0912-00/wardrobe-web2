@@ -637,11 +637,11 @@ export class RunService {
       const manifest = JSON.parse(await readFile(result.outputs.manifest, 'utf8'));
       state.qa = manifest.qa;
       state.outputs = outputs;
-      const baseEvidence = await this.#baseApprovedItemEvidenceForRun(runId, {
-        expectedReceiptSha256: sha256(await readFile(result.outputs.manifest)),
-        expectedLookSha256: sha256(await readFile(result.outputs.avatar_outfit)),
-      });
-      const categories = new Set((baseEvidence?.items ?? []).map((item) => item.category));
+      // The durable approved-item evidence is intentionally readable only after
+      // this run becomes COMPLETED. At this point the in-memory garment list is
+      // already hash-bound by the runner checkpoint and is sufficient to decide
+      // whether lower-body first-appearance capture is required.
+      const categories = new Set((state.garments ?? []).map((item) => item.category));
       if (!categories.has('bottom') || !categories.has('footwear')) {
         const firstAppearance = await lockFirstAppearance({
           approvedLookPath: result.outputs.avatar_outfit,
