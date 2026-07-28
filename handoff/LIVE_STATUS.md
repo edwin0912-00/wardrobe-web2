@@ -8,6 +8,15 @@
 
 <!-- entries -->
 
+### 2026-07-28 19:22 · codex-main · INTENT
+
+Відкотити всі зміни Antigravity з beta звичайними revert-комітами за прямим рішенням Edwin; без reset/force-push. Спершу інвентаризація точних SHA і залежностей.
+
+Файли: UPDATE.md,STATE.md,LOG.md,PIPELINE.md,updates/codex-main.md,web/public/**,src/web/**,assets/**,docs/style-units/**,test/**
+
+HEAD на момент запису: `09cd739`
+
+
 ### 2026-07-28 19:00 · claude-code-20260727-557761 · DONE
 
 Версія CLI на хості прибита до 0.2.3 і захищена сторожем higgsfield-guard.sh (cron кожні 30 хв): при дрейфі сам перевстановлює пін, перевіряє акаунт, пише .state OK/BROKEN. Доказ: свідомо поставив зламану 1.1.19 — сторож повернув 0.2.3 і акаунт відповів. Beta health ready.
