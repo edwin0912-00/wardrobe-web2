@@ -1,0 +1,95 @@
+{
+  "schema_version": "1.0.0",
+  "purpose": "Shared operational truth for every agent and every chat. Read it before touching the host or the provider; update it the moment you change either. Prose belongs in STATE.md; this file holds only facts a machine can check.",
+  "updated_at": "2026-07-28T17:20:00.000Z",
+  "updated_by": "claude-code-20260727-557761",
+  "host": {
+    "role": "beta and production deployment host",
+    "reach": "tailscale",
+    "tailscale_name": "jarviss-macbook-pro",
+    "ssh_user": "jarvis1",
+    "note": "Resolve the address with `tailscale status`; never hard-code a LAN IP. The LAN address has changed three times in two days (.16, .35, .33) and is not a reliable identifier.",
+    "verified_at": "2026-07-28T17:03:00.000Z",
+    "reachable": true,
+    "disk_free_gib": 14,
+    "release_rotation": "prune-deploys.sh, cron hourly at :17, keeps the three newest per directory and never the running one"
+  },
+  "beta": {
+    "url": "https://beta.madeforthisjob.com",
+    "release": "release-fa6176c-20260728185216",
+    "health": "ready",
+    "verified_at": "2026-07-28T17:03:00.000Z"
+  },
+  "generation": {
+    "active_provider": "codex-imagegen-test",
+    "vlm": "codex",
+    "changed_by": "claude-code-20260727-a3f1c8",
+    "reason": "The Higgsfield CLI build on the host (1.1.19) fails every call; the codex path is the only live transport there. This is a broken build, not a dead service and not a missing login."
+  },
+  "providers": {
+    "higgsfield": {
+      "kind": "cli",
+      "note": "Higgsfield is invoked as a CLI binary, never as an HTTP API. Two accounts exist: nebula.marketing@gen.tech and nebula.marketing-remote@gen.tech. Device login stores one shared token, so logging in replaces the previous account.",
+      "operator_mac": {
+        "binary": "/opt/homebrew/bin/higgsfield",
+        "version": "0.2.3",
+        "status": "working",
+        "account": "nebula.marketing-remote@gen.tech",
+        "credits": 1283
+      },
+      "host": {
+        "version": "1.1.19",
+        "status": "broken_build",
+        "last_error": "request failed (no response received)",
+        "fix": "install the working 0.2.3 build on the host; the stored token is valid, re-authentication is not the fix"
+      }
+    },
+    "openrouter": {
+      "kind": "api",
+      "role": "last-resort fallback",
+      "api": "dead",
+      "last_error": "HTTP 401",
+      "note": "Only transport that served the 4:5 delivery aspect natively."
+    },
+    "magnific": {
+      "kind": "mcp",
+      "status": "cancelled_as_app_provider",
+      "note": "Works only inside an interactive agent session; a server process cannot use it. REST exists (api.magnific.com, x-magnific-api-key) but the key is gated to a higher plan and is not issued."
+    },
+    "fal": {
+      "kind": "api",
+      "role": "live camera (Lucy)",
+      "key_on_host": "fal-realtime-api-key",
+      "status": "key present, unverified"
+    },
+    "codex": {
+      "kind": "cli",
+      "status": "logged_in_both_machines",
+      "role": "active VLM and the current generation path"
+    }
+  },
+  "blockers": [
+    {
+      "id": "release-size",
+      "what": "Product release is about 249 MiB against a 160 MiB budget, so no release verifies and no deploy is possible.",
+      "owner": "codex-main",
+      "contributors": "commit d1b6ab5 added 43.6 MiB of unregistered style units; eleven new preset plates added about 77 MiB."
+    },
+    {
+      "id": "presentation-split-missing",
+      "what": "No man/woman value exists anywhere, so female-read style units are offered for male looks.",
+      "owner": "unassigned"
+    },
+    {
+      "id": "catalog-families-merged",
+      "what": "/api/editorial-modes returns shoot.* and legacy editorial.* in one list with no field distinguishing them.",
+      "owner": "unassigned"
+    },
+    {
+      "id": "health-not-probed",
+      "what": "/api/health reports a construction-time boolean, so a provider outage is invisible.",
+      "owner": "unassigned"
+    }
+  ],
+  "catalog_check": "node ops/runtime.mjs --verify prints a two-way diff between the live catalogue and the ids declared in the SHA you are about to deploy. WOULD LOSE must be empty before any activation."
+}
