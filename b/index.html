@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WARDROBE — версія B</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+
+<div class="progress" aria-hidden="true"></div>
+
+<div class="loader" data-loader>
+  <div class="loader__mark">WARDROBE</div>
+  <div class="loader__rail"><div class="loader__bar" data-loader-bar></div></div>
+  <div class="loader__pct" data-loader-pct>00</div>
+  <!-- Real bytes, not a guess. Filled by loader.js from Content-Length and the actual
+       number of bytes read off each stream. -->
+  <div class="loader__bytes" data-loader-bytes>—</div>
+  <div class="loader__files" data-loader-files></div>
+</div>
+
+<div class="mark">WARDROBE</div>
+
+<main class="stage" data-stage data-leg="0" data-station="0">
+  <!-- No src attributes on purpose. loader.js downloads each master itself so the bar can
+       count real bytes, then hands the elements blob URLs. Leaving a src here would start
+       a second, unmeasured download in parallel. -->
+  <!-- FRAME SPACE.
+       Everything that must sit ON the picture lives inside .film, because .film is sized
+       and transformed to match the video exactly. The panels were previously siblings of
+       the video, positioned in percentages of the STAGE — but the video is cropped by
+       object-fit, scaled, and translated by the parallax, so stage percentages are a
+       different coordinate system entirely. That is why the interface missed the mirrors
+       and drifted as you scrolled: the picture moved and the panels did not.
+       Now they are children of the same transformed box, so a percentage means the same
+       thing for the glass as it does for the glass in the footage.
+       No src attributes on purpose: loader.js downloads each master itself so the bar can
+       count real bytes, then hands the elements blob URLs. -->
+  <div class="film" data-film>
+    <video data-leg="0" data-src="assets/seg1.mp4" muted playsinline preload="auto" aria-hidden="true"></video>
+    <video data-leg="1" data-src="assets/seg2.mp4" muted playsinline preload="auto" aria-hidden="true" hidden></video>
+    <video data-leg="2" data-src="assets/seg3.mp4" muted playsinline preload="auto" aria-hidden="true" hidden></video>
+
+    <!-- TWO panels on rectangles measured off this version's own final frame:
+         pane A x 5.0-44.0%, pane B x 55.7-94.6%, both y 17.4-83.2%. Axis-aligned, no
+         shear, because the camera is frontal and the mirrors are flush. The concrete
+         pier between them is the divider, so one interface is split by real
+         architecture. Left pane is STATE, right pane is the ACTIVE STEP. -->
+    <aside class="glass" data-ui-state style="--gx:5.0%; --gy:17.4%; --gw:39.0%; --gh:65.8%;"></aside>
+    <aside class="glass" data-ui-step  style="--gx:55.7%; --gy:17.4%; --gw:39.0%; --gh:65.8%;"></aside>
+
+    <!-- The step gate, on the right-hand pane so what blocks progress sits beside what
+         makes it. -->
+    <aside class="glass glass--gate" data-gate-panel style="--gx:55.7%; --gy:17.4%; --gw:39.0%; --gh:65.8%;"></aside>
+  </div>
+
+  <div class="grade" aria-hidden="true"></div>
+  <div class="grain" aria-hidden="true"></div>
+
+  <div class="copy">
+    <h1 class="copy__line" data-on="0">YOUR DAY STARTS IN THE MIRROR</h1>
+    <p class="copy__line" data-on="1">FROM PIECES, A PRESENCE.</p>
+    <p class="copy__line" data-on="2">THE SAME LOOK, EVERY SCREEN.</p>
+  </div>
+
+  <!-- Edge-mounted, per "LIVE LAB як edge-mounted optional feature". Stays in stage
+       space on purpose: it is chrome on the frame edge, not something painted on glass. -->
+  <button class="edge" type="button" data-livelab>LIVE LAB · камера</button>
+</main>
+
+<div class="legs" aria-hidden="true"><i></i><i></i><i></i></div>
+<div class="hud" data-readout>—</div>
+<button class="sound" type="button" data-sound aria-pressed="true">звук</button>
+<div class="gate" role="status" aria-live="polite">
+  <i></i><b data-gate-text>Завантажте медіа цього кроку, щоб іти далі</b>
+</div>
+<div class="scroll-cue">крути</div>
+
+<section class="outro">
+  <h2>Версія B</h2>
+  <p>Знято в 4k, зведено в 1080p: три відрізки, 24 кадри на секунду, камера на рейках, геометрія фронтальна й симетрична весь час. Обидві панелі інтерфейсу стоять на зміряних прямокутниках власного футеджу — 5.0–44.0% і 55.7–94.6% ширини кадру, обидві 17.4–83.2% висоти, без зсуву. Розділяє їх справжній бетонний пілон, а не намальована лінія.</p>
+</section>
+
+<div data-track></div>
+
+<script src="../loader.js"></script>
+<script src="../engine.js"></script>
+<script src="../ui.js"></script>
+<script src="../audio.js"></script>
+<script src="../gate.js"></script>
+<script>
+(function () {
+  var VIDEOS = ['assets/seg1.mp4', 'assets/seg2.mp4', 'assets/seg3.mp4'];
+  var TRACKS = ['audio/t1.mp3', 'audio/t2.mp3', 'audio/t3.mp3'];
+
+  var loaderEl = document.querySelector('[data-loader]');
+  var barEl = document.querySelector('[data-loader-bar]');
+  var pctEl = document.querySelector('[data-loader-pct]');
+  var bytesEl = document.querySelector('[data-loader-bytes]');
+  var filesEl = document.querySelector('[data-loader-files]');
+  var soundBtn = document.querySelector('[data-sound]');
+
+  function mb(n) { return (n / 1048576).toFixed(1); }
+
+  /* Every byte of the experience, counted. Audio is in the list because it is part of
+     the load — reporting only the video would be the same kind of half-truth the old
+     bar told. */
+  WardrobeLoader.load(VIDEOS.concat(TRACKS), function (p) {
+    barEl.style.transform = 'scaleX(' + p.ratio + ')';
+    var pct = Math.round(p.ratio * 100);
+    pctEl.textContent = (pct < 10 ? '0' : '') + pct;
+    bytesEl.textContent = mb(p.loaded) + ' / ' + mb(p.total) + ' МБ';
+    filesEl.textContent = p.files.filter(function (f) { return f.done; }).length +
+                          ' / ' + p.files.length + ' файлів';
+  }).then(function (res) {
+    if (res.unmeasurable.length) {
+      /* Never let an unmeasured file hide inside a full-looking bar. */
+      bytesEl.textContent += ' · без розміру: ' + res.unmeasurable.length;
+    }
+
+    /* Hand the downloaded bytes to the elements. Nothing is fetched twice. */
+    document.querySelectorAll('video[data-src]').forEach(function (v) {
+      v.src = res.blobs[v.getAttribute('data-src')];
+    });
+
+    window.score = WardrobeAudio.create({
+      tracks: TRACKS.map(function (t) { return res.blobs[t]; }),
+      volume: 0.55,
+      /* A LARGE ROOM WITH CONCRETE WALLS. Baseline wet is well up from the first
+         attempt, the tail is long and evenly decaying the way hard parallel walls
+         decay, and movement pushes still more signal into the room on top. */
+      reverb: 0.35,
+      roomSeconds: 3.6,
+      roomDecay: 1.5,
+      /* Fades OVERLAP: a negative gap means the incoming track starts before the
+         outgoing one has finished falling, so the score never drops to silence. */
+      fadeOutMs: 4200,
+      gapMs: -1200,
+      fadeInMs: 3400,
+      delaySeconds: 0.34,
+      /* Echo opens with swipe speed. The exponent is below one on purpose so ordinary
+         scrolling already opens the room instead of only a hard flick doing it. */
+      echoMax: 0.78,
+      feedbackMax: 0.66,
+      echoCurve: 0.75
+    });
+
+    window.journey = WardrobeJourney.create({
+      inertia: 0.085,
+      screensPerLeg: 3.6,   // slightly more scroll per leg: three legs, not four
+      motionTable: 'motion.json',   // measured; makes visual motion follow an exact sine
+      onSpeed: function (s) { if (window.score) window.score.setSpeed(s); },
+      /* ATTENTION, then a GATE.
+       * dampFrom / dampMax: where the swipe starts going insensitive and how far it
+       * goes. Capped at 0.94 rather than 1 so the film still creeps — the viewer can
+       * tell it is resisting rather than that the page has broken.
+       * stationAt: where the hard gate sits. */
+      dampFrom: 0.70,
+      dampMax: 0.94,
+      stationAt: 0.92,
+      /* Forward travel past a station is allowed ONLY once that step's required media
+       * has been supplied and generated. The UI owns that answer; the engine only asks,
+       * and defaults to open so a missing UI can never trap the viewer. */
+      gateFor: function (leg) {
+        return window.gate ? window.gate.gateOpen(leg) : true;
+      },
+      legs: [
+        { id: 0, name: 'диван → два дзеркала' },
+        { id: 1, name: 'дзеркала → телевізор' },
+        { id: 2, name: 'телевізор → ноутбук' }
+      ]
+    });
+
+    window.ui = WardrobeUI.create();
+
+    /* The gate owns media and generation. No adapter is handed in, so it runs as a
+       declared placeholder and says so on screen. */
+    window.gate = WardrobeGate.create({});
+
+    /* No button. Everything is in memory, so the journey opens by itself. */
+    loaderEl.setAttribute('data-done', '1');
+
+    /* Sound needs a user gesture and SCROLL DOES NOT COUNT as one, so it joins at the
+       first click, key or touch anywhere on the page rather than demanding its own
+       button. Until then the toggle says so instead of lying about being on. */
+    soundBtn.setAttribute('aria-pressed', 'false');
+    soundBtn.textContent = 'звук: торкніться';
+    function wake() {
+      if (!window.score) return;
+      window.score.unlock();
+      soundBtn.setAttribute('aria-pressed', 'true');
+      soundBtn.textContent = 'звук';
+      ['pointerdown', 'keydown', 'touchstart'].forEach(function (e) {
+        window.removeEventListener(e, wake);
+      });
+    }
+    ['pointerdown', 'keydown', 'touchstart'].forEach(function (e) {
+      window.addEventListener(e, wake, { passive: true });
+    });
+
+    soundBtn.addEventListener('click', function (ev) {
+      ev.stopPropagation();
+      if (!window.score) return;
+      var m = window.score.toggleMute();
+      soundBtn.setAttribute('aria-pressed', String(!m));
+      soundBtn.textContent = m ? 'без звуку' : 'звук';
+    });
+  }).catch(function (err) {
+    /* A failed load must say so on the loader rather than hanging at 97 percent. */
+    bytesEl.textContent = 'не завантажилось: ' + err.message;
+  });
+})();
+</script>
+</body>
+</html>
