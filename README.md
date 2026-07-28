@@ -4,6 +4,22 @@
 
 Він також містить working local web app для fresh inputs: користувач завантажує власне фото, текст образу та/або до п’яти довільних фото речей. Система класифікує гардероб, створює canonical references, запускає той самий immutable runner і повертає downloadable `avatar.png` та `avatar_outfit.png`.
 
+## GITHUB AGENT HANDOFF
+
+Над цим репозиторієм працює кілька агентів одночасно — Claude Code і Codex — з
+різних сесій і машин. Будь-який з них може підхопити роботу будь-коли і передати
+її будь-коли, без уточнень у чаті.
+
+Єдина точка входу: **[`handoff/GITHUB_AGENT_HANDOFF.md`](handoff/GITHUB_AGENT_HANDOFF.md)**.
+
+```bash
+cd ~/wardrobe-claude-code-20260727-557761 && git pull --rebase --autostash origin beta && node ops/runtime.mjs --verify && sed -n '1,80p' handoff/LIVE_STATUS.md
+```
+
+Живий статус — `handoff/LIVE_STATUS.md`, операційна правда — `ops/RUNTIME.json`.
+Правило, яке робить це працюючим: дія, довша за кілька хвилин, спершу пишеться в
+GitHub (`node ops/intent.mjs start "…"`), і лише потім робиться.
+
 ## Запустити working web app
 
 Передумови: Node.js 22+, авторизовані `higgsfield` і `codex` CLI. Startup preflight перевіряє обидва CLI та Higgsfield balance до відкриття сервера.
