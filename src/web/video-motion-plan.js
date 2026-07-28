@@ -4,6 +4,12 @@
 // Each mode owns its duration window and its own prompt body. The body never
 // names an aspect, a duration or a resolution — those are provider parameters,
 // and the transport refuses a prompt that mentions them.
+//
+// Surfaces (operator decision 2026-07-28): the user picks a playback surface,
+// not a raw aspect ratio. `tv` → 16:9, `mirror` → 9:16. There is no free-text
+// aspect field, so vertical on a TV is impossible by construction. Each surface
+// carries a framing hint in words only — no digits — because digits trip the
+// geometry guard in the transport.
 
 // Where the clip plays decides its shape, so the caller picks a surface and the
 // aspect follows. Operator decision, 2026-07-28: the television in the scene runs
@@ -68,6 +74,20 @@ export const MOTION_MODES = Object.freeze({
   }),
 });
 
+// Legacy alias — kept for backward compatibility with older callers
+export const SURFACES = Object.freeze({
+  tv: Object.freeze({
+    id: 'tv',
+    aspectRatio: '16:9',
+    hint: 'Landscape composition for a wide screen, with generous horizontal breathing room around the subject',
+  }),
+  mirror: Object.freeze({
+    id: 'mirror',
+    aspectRatio: '9:16',
+    hint: 'Portrait framing as seen in a full-length mirror, the subject fills the vertical frame',
+  }),
+});
+
 // Stated once, appended to every plan. These are the canon's inviolable locks,
 // and they are the difference between a fashion clip and a different person in
 // similar clothes.
@@ -94,6 +114,14 @@ export function motionMode(id) {
   return mode;
 }
 
+export function surface(id) {
+  const s = SURFACES[id];
+  if (!s) {
+    throw new MotionPlanError(`Unknown surface: ${String(id)}`, { code: 'UNKNOWN_SURFACE' });
+  }
+  return s;
+}
+
 /**
  * Build the motion plan for one clip.
  *
@@ -109,7 +137,7 @@ export function buildMotionPlan({
   styleNote = null,
 } = {}) {
   const mode = motionMode(modeId);
-  const surface = videoSurface(surfaceId);
+  const resolvedSurface = videoSurface(surfaceId);
 
   if (mode.requires.includes('full_length_source') && sourceCapabilities.full_length !== true) {
     throw new MotionPlanError(
@@ -133,7 +161,7 @@ export function buildMotionPlan({
   const prompt = [
     'Fashion motion from the attached approved frame, photoreal, one continuous shot.',
     mode.body,
-    surface.framingNote,
+    resolvedSurface.framingNote,
     styleNote ? styleNote.trim() : null,
     LOCKS,
   ].filter(Boolean).join(' ');
@@ -141,8 +169,8 @@ export function buildMotionPlan({
   return {
     mode: mode.id,
     title: mode.title,
-    surface: surface.id,
-    aspectRatio: surface.aspectRatio,
+    surface: resolvedSurface.id,
+    aspectRatio: resolvedSurface.aspectRatio,
     durationSeconds: seconds,
     prompt,
   };

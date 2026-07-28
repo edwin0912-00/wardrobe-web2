@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { MOTION_MODES, MotionPlanError, buildMotionPlan } from '../../src/web/video-motion-plan.js';
+import { MOTION_MODES, VIDEO_SURFACES, SURFACES, MotionPlanError, buildMotionPlan, videoSurface, surface } from '../../src/web/video-motion-plan.js';
 import { buildVideoCreateArgs } from '../../src/providers/higgsfield-video-provider.js';
 
 test('the canon has exactly four motion modes', () => {
@@ -86,6 +86,8 @@ test('a style note is carried through, and an empty one is refused', () => {
   assert.throws(() => buildMotionPlan({ modeId: 'camera_drift', styleNote: '   ' }), MotionPlanError);
 });
 
+// -- Surface tests (VIDEO_SURFACES — primary, rich framing notes) --
+
 test('the surface decides the shape: television is wide, mirror is tall', () => {
   const tv = buildMotionPlan({ modeId: 'editorial_micro_moment', surface: 'tv' });
   const mirror = buildMotionPlan({ modeId: 'editorial_micro_moment', surface: 'mirror' });
@@ -111,12 +113,27 @@ test('an unknown surface is refused rather than silently defaulted', () => {
   );
 });
 
+// -- Legacy SURFACES alias tests --
+
+test('exactly two legacy surfaces exist: tv and mirror', () => {
+  assert.deepEqual(Object.keys(SURFACES), ['tv', 'mirror']);
+});
+
+test('legacy surface() helper works', () => {
+  assert.equal(surface('tv').aspectRatio, '16:9');
+  assert.equal(surface('mirror').aspectRatio, '9:16');
+  assert.throws(() => surface('projector'), (error) => {
+    assert.equal(error.code, 'UNKNOWN_SURFACE');
+    return true;
+  });
+});
+
 test('the framing note never names a ratio, so the geometry guard stays happy', () => {
-  for (const surface of ['tv', 'mirror']) {
+  for (const surfaceId of ['tv', 'mirror']) {
     for (const mode of Object.values(MOTION_MODES)) {
       const plan = buildMotionPlan({
         modeId: mode.id,
-        surface,
+        surface: surfaceId,
         sourceCapabilities: { full_length: true },
       });
       const args = buildVideoCreateArgs({
@@ -125,7 +142,7 @@ test('the framing note never names a ratio, so the geometry guard stays happy', 
         aspectRatio: plan.aspectRatio,
         durationSeconds: plan.durationSeconds,
       });
-      assert.equal(args[args.indexOf('--aspect_ratio') + 1], plan.aspectRatio, `${surface}/${mode.id}`);
+      assert.equal(args[args.indexOf('--aspect_ratio') + 1], plan.aspectRatio, `${surfaceId}/${mode.id}`);
     }
   }
 });
