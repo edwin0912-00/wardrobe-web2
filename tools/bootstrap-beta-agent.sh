@@ -38,6 +38,26 @@ cd "$workspace"
 bash tools/join-beta-agent.sh "$agent_id"
 test -f START_HERE.md && cp START_HERE.md .agent-local/HELP.md
 
+# A fresh chat has no conversation memory. Print the canonical recovery pack
+# from beta itself before the agent can take a task. These are policy and state
+# documents only; credentials and personal media are intentionally excluded.
+echo
+echo "=== WARDROBE CONTEXT RECOVERY · $agent_id · $(git rev-parse --short HEAD) ==="
+for context_file in USERS.md AGENTS.md UPDATE.md PIPELINE.md docs/VIDEO_LIVE_CANON_UA.md STATE.md LOG.md OWNERS.md; do
+  [[ -f "$context_file" ]] || continue
+  echo
+  echo "===== $context_file ====="
+  case "$context_file" in
+    AGENTS.md) sed -n '1,260p' "$context_file" ;;
+    UPDATE.md) sed -n '1,260p' "$context_file" ;;
+    PIPELINE.md) sed -n '1,320p' "$context_file" ;;
+    docs/VIDEO_LIVE_CANON_UA.md) sed -n '1,300p' "$context_file" ;;
+    STATE.md|LOG.md) sed -n '1,260p' "$context_file" ;;
+    *) cat "$context_file" ;;
+  esac
+done
+echo "=== END WARDROBE CONTEXT RECOVERY ==="
+
 initial_commit="$(git rev-parse --short HEAD)"
 bash tools/agent-local-log.sh note "$agent_id" ONBOARDING \
   --intent "join the shared beta workflow" \
