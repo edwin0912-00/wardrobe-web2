@@ -2,6 +2,11 @@
 set -euo pipefail
 
 repository="edwin0912-00/zeely-ai-engineering-test"
+git_transport="${WARDROBE_GIT_TRANSPORT:-https}"
+[[ "$git_transport" == "https" || "$git_transport" == "ssh" ]] || {
+  echo "WARDROBE_GIT_TRANSPORT must be https or ssh" >&2
+  exit 64
+}
 watch_mode=""
 dry_run="false"
 recover_from=""
@@ -18,14 +23,19 @@ while [[ $# -gt 0 ]]; do
   esac
   shift
 done
-command -v gh >/dev/null 2>&1 || {
-  echo "Install GitHub CLI (gh), then run this command again." >&2
-  exit 2
-}
-if ! gh auth status --hostname github.com >/dev/null 2>&1; then
-  gh auth login --hostname github.com --git-protocol https --web
+if [[ "$git_transport" == "https" ]]; then
+  command -v gh >/dev/null 2>&1 || {
+    echo "Install GitHub CLI (gh), then run this command again." >&2
+    exit 2
+  }
+  if ! gh auth status --hostname github.com >/dev/null 2>&1; then
+    gh auth login --hostname github.com --git-protocol https --web
+  fi
+  gh auth setup-git
+  clone_url="https://github.com/$repository.git"
+else
+  clone_url="git@github.com:$repository.git"
 fi
-gh auth setup-git
 
 suffix="$(openssl rand -hex 3 2>/dev/null || date -u +%H%M%S)"
 agent_label="${WARDROBE_AGENT_LABEL:-agent}"
@@ -69,7 +79,7 @@ if [[ -n "$recover_from" ]]; then
   source_status="$(cat "$recovery_tmp/status.txt")"
 fi
 
-git clone --branch beta --single-branch "https://github.com/$repository.git" "$workspace"
+git clone --branch beta --single-branch "$clone_url" "$workspace"
 cd "$workspace"
 bash tools/join-beta-agent.sh "$agent_id"
 test -f START_HERE.md && cp START_HERE.md .agent-local/HELP.md

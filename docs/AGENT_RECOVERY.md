@@ -25,6 +25,34 @@ keys, or provider credentials into chat, Markdown, Git, or the local journal.
 The new agent starts read-only. It may take only a task allowed by `UPDATE.md`;
 the board owns assignments and path reservations.
 
+## SSH-only recovery — no GitHub web login
+
+Use this when the Mac already has an SSH private key whose public key has
+write access to this repository on GitHub. It uses no GitHub CLI session or
+browser approval:
+
+```bash
+export WARDROBE_AGENT_LABEL=codex-recovery
+export WARDROBE_GIT_TRANSPORT=ssh
+export GIT_SSH_COMMAND='ssh -o StrictHostKeyChecking=accept-new'
+bootstrap_dir="$(mktemp -d)" && git clone --depth=1 --branch beta git@github.com:edwin0912-00/zeely-ai-engineering-test.git "$bootstrap_dir" && bash "$bootstrap_dir/tools/bootstrap-beta-agent.sh" --watch
+```
+
+For an old SSD workspace, use this one-command variant instead:
+
+```bash
+export WARDROBE_AGENT_LABEL=codex-recovery
+export WARDROBE_GIT_TRANSPORT=ssh
+export GIT_SSH_COMMAND='ssh -o StrictHostKeyChecking=accept-new'
+export WARDROBE_RECOVER_FROM="/absolute/path/to/old/zeely-workspace"
+bootstrap_dir="$(mktemp -d)" && git clone --depth=1 --branch beta git@github.com:edwin0912-00/zeely-ai-engineering-test.git "$bootstrap_dir" && bash "$bootstrap_dir/tools/bootstrap-beta-agent.sh" --watch --recover-from "$WARDROBE_RECOVER_FROM"
+```
+
+GitHub does not grant Git access by IP address. This works without a login only
+when the existing SSH key is already registered with the required repository
+access. `StrictHostKeyChecking=accept-new` only records GitHub's host key on
+the first connection; it does not bypass repository authorization.
+
 ## Recover an old local workspace too
 
 When a lost agent may have important work that exists only on an SSD, point the
