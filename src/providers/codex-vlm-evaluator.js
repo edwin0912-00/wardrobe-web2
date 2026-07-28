@@ -116,7 +116,14 @@ export function qaPrompt(phase, images, evidence = {}) {
     ? `\nAUTHORITATIVE TARGET OUTFIT TEXT\n${outfitText}\nThe clothing visible in identity photos is identity context only. Do not treat it as the target outfit or reject its intentional replacement.`
     : '';
   const phaseRules = {
-    conditioning: 'Check whether source identity and garment evidence are usable. Never infer hidden body or garment details. Missing evidence is NEEDS_INPUT.',
+    // A mirror selfie with a phone covering roughly 2% of the face and an ordinary
+    // bathroom wall behind it was rejected as NEEDS_INPUT, reasoning that the phone
+    // and the wall prevent "a clean frontal avatar on white background" -- a standard
+    // no downstream stage actually asks the source photo to meet. The source photo is
+    // identity evidence, not the avatar; the white background and full-length framing
+    // belong to the generated avatar (see the 'avatar' rule below), and asking a raw
+    // selfie for either fabricates a requirement it was never held to.
+    conditioning: 'Check whether source identity and garment evidence are usable. A normal mirror-selfie or handheld photo commonly has a phone, hand or arm covering a small part of the face or body, and an ordinary room in the background -- neither is a defect. Judge usability only by whether enough of the face (eyes, nose, mouth) and body is visible to identify the person and reconstruct their garments; minor or incidental occlusion under roughly 10 percent of the face is usable evidence, and background content is never a reason to reject. Never infer hidden body or garment details. Use NEEDS_INPUT only when identity or garment evidence is actually insufficient -- for example the face is substantially hidden, no person is visible, or the image quality itself is unusable.',
     // prompts/avatar.txt makes the avatar the full-length continuity authority
     // that every later stage is measured against. Asking QA for a half-body
     // crop here rejected all three avatar attempts of run 0810e427 on framing

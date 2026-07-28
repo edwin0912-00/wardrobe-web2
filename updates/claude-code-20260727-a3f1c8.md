@@ -18,3 +18,19 @@ Rationale/decision: The contract shipped in 09cd739 refused a shot list on Seeda
 Found, not caused: test/contracts/scene-production-packs.test.js is red again (1 pass / 4 fail) at HEAD with my changes stashed — a reference sha256 mismatch and "Published scene preset pack index is not available". It was green at 0577846 after the terracotta restore; last touch on the area is 7bca845 [agent:codex-main] "publish beta background catalog". Not mine to fix silently; flagged here.
 Evidence command: node --test test/contracts/motion-contract.test.js
 Next action: the motion service layer (motion-service.js, config/motion-modes.json, routes, tests) on the codex-CLI MCP boundary.
+
+---
+## 2026-07-29 — conditioning QA rejected a normal mirror selfie
+Agent ID: claude-code-20260727-a3f1c8
+Protocol ACK: 036b20a
+Task ID: none — bugfix on the operators report, reserved by no row.
+---
+## 2026-07-29 — conditioning QA rejected a normal mirror selfie
+Agent ID: claude-code-20260727-a3f1c8
+Protocol ACK: 036b20a
+Task ID: none — bugfix on the operator's report, `src/providers/codex-vlm-evaluator.js` reserved by no row.
+Commit tested: test/providers/codex-vlm-evaluator.test.js, test/web/vlm-provider.test.js, test/runner/pipeline-runner.test.js — 25 pass, 0 fail
+Rationale/decision: a mirror selfie with a phone covering about 2% of the face and an ordinary bathroom wall behind it was rejected NEEDS_INPUT, reasoning that the phone and the wall block "a clean frontal avatar on white background." That standard belongs to the generated avatar (see the `avatar` phase rule in the same file), not the source photo — no code path asks an uploaded identity photo for a white background or full-length framing, `#buildIdentityPack` in run-service.js explicitly defers all semantic judgment to this exact `conditioning` phase prompt, and the prompt itself never said occlusion or background were tolerable. It left "usable" entirely to the model's own judgment with no floor, so the model invented one. Confirmed this is genuinely new: `git log -S'occlud'` and `-i --grep phone|mirror` across all branches found no prior fix to revert or that had regressed — the gap has been open since the rule was introduced in a4c1780.
+Result: `conditioning` in `phaseRules` (codex-vlm-evaluator.js, buildQaPrompt) now states explicitly that a phone/hand/arm covering a small part of the face or body in a normal selfie is not a defect, that background content is never a rejection reason, and gives a concrete floor (roughly 10% face occlusion is still usable) instead of leaving the threshold to the model. NEEDS_INPUT is now scoped to when identity/garment evidence is actually insufficient — face substantially hidden, no person visible, or unusable image quality.
+Evidence command: node --test test/providers/codex-vlm-evaluator.test.js test/web/vlm-provider.test.js test/runner/pipeline-runner.test.js
+Next action: back to BETA-VIDEO-SEEDANCE-001 (motion service module).
