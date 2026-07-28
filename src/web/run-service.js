@@ -20,6 +20,7 @@ import { PipelineRunner } from '../runner/pipeline-runner.js';
 import { assessImageQuality, normalizeReference } from '../conditioning/index.mjs';
 import { normalizeWhitePngBytes } from '../qa/white-normalizer.mjs';
 import { GarmentNeedsInputError, GarmentConditioner } from './garment-conditioner.js';
+import { lockFirstAppearance } from './first-appearance-lock.js';
 import {
   GARMENT_CATEGORIES,
   compileFullLookText,
@@ -636,6 +637,24 @@ export class RunService {
       const manifest = JSON.parse(await readFile(result.outputs.manifest, 'utf8'));
       state.qa = manifest.qa;
       state.outputs = outputs;
+      const baseEvidence = await this.#baseApprovedItemEvidenceForRun(runId, {
+        expectedReceiptSha256: sha256(await readFile(result.outputs.manifest)),
+        expectedLookSha256: sha256(await readFile(result.outputs.avatar_outfit)),
+      });
+      const categories = new Set((baseEvidence?.items ?? []).map((item) => item.category));
+      if (!categories.has('bottom') || !categories.has('footwear')) {
+        const firstAppearance = await lockFirstAppearance({
+          approvedLookPath: result.outputs.avatar_outfit,
+          outputDirectory: path.join(this.runDirectory(runId), 'conditioned', 'first-appearance'),
+          runId,
+          vlm: this.vlm,
+          clock: this.clock,
+        });
+        state.first_appearance_lock = {
+          record_sha256: sha256(await readFile(firstAppearance.recordPath)),
+          categories: firstAppearance.items.map((item) => item.category),
+        };
+      }
       if (state.inputs.generate_scene) await this.#generateScene(state, result.outputs.avatar_outfit);
       await this.#prepareVisualFailSoft(state, {
         runDirectory: this.runDirectory(runId),
@@ -1090,7 +1109,68 @@ export class RunService {
    * facts and bytes only: filesystem paths and raw source-pack fields never
    * leave RunService.
    */
-  async approvedItemEvidenceForRun(runId, {
+  async approvedItemEvidenceForRun(runId, options = {}) {
+    const base = await this.#baseApprovedItemEvidenceForRun(runId, options);
+    const directory = path.join(this.runDirectory(runId), 'conditioned', 'first-appearance');
+    const recordPath = path.join(directory, 'lock.json');
+    let recordBytes;
+    try { recordBytes = await readFile(recordPath); } catch { return base; }
+    let record;
+    try { record = JSON.parse(recordBytes.toString('utf8')); } catch {
+      throw evidenceError('APPROVED_ITEM_EVIDENCE_INVALID', 'First-appearance lock is not valid JSON');
+    }
+    if (record?.schema_version !== '1.0.0'
+      || record.kind !== 'FIRST_APPEARANCE_ITEM_LOCK'
+      || record.run_id !== runId
+      || record.approved_look_sha256 !== options.expectedLookSha256
+      || record.provenance !== 'OBSERVED_FROM_APPROVED_LOOK'
+      || record.immutable_after_creation !== true
+      || !Array.isArray(record.items)) {
+      throw evidenceError('APPROVED_ITEM_EVIDENCE_INVALID', 'First-appearance lock is not bound to this approved look');
+    }
+    const known = new Set((base?.items ?? []).map((item) => item.category));
+    const nextIndex = Math.max(-1, ...(base?.items ?? []).flatMap((item) => item.source_indexes ?? [])) + 1;
+    const locked = [];
+    for (const [index, item] of record.items.entries()) {
+      if (!['bottom', 'footwear'].includes(item?.category) || known.has(item.category)
+        || item.role !== `GARMENT_${item.category.toUpperCase()}`
+        || !SHA256.test(item.cutout?.sha256 ?? '') || typeof item.cutout?.path !== 'string') {
+        throw evidenceError('APPROVED_ITEM_EVIDENCE_INVALID', 'First-appearance item is invalid or duplicates an approved item');
+      }
+      const filename = path.resolve(item.cutout.path);
+      if (!isInside(directory, filename)) throw evidenceError('APPROVED_ITEM_EVIDENCE_PATH_ESCAPE', 'First-appearance cutout escapes its lock directory');
+      const data = await this.#readApprovedItemEvidenceFile(filename, directory, 'First-appearance cutout', MAX_APPROVED_ITEM_CUTOUT_BYTES);
+      if (sha256(data) !== item.cutout.sha256) throw evidenceError('APPROVED_ITEM_EVIDENCE_HASH_MISMATCH', 'First-appearance cutout SHA-256 mismatch');
+      locked.push({
+        order: (base?.items.length ?? 0) + index + 1,
+        role: item.role,
+        category: item.category,
+        reference_set_id: item.reference_set_id,
+        source_indexes: [nextIndex + index],
+        same_item_confidence: item.same_item_confidence,
+        grouping_evidence: item.grouping_evidence,
+        confidence: item.confidence,
+        observed: item.observed,
+        unknowns: item.unknowns,
+        sha256: item.cutout.sha256,
+        media_type: 'image/png',
+        data,
+      });
+    }
+    const all = [...(base?.items ?? []), ...locked];
+    if (!all.length) return null;
+    return {
+      schema_version: '1.0.0', kind: 'APPROVED_ITEM_EVIDENCE', source_run_id: runId,
+      reference_pack: base?.reference_pack ?? {
+        schema_version: '1.0.0', asset_id: `${runId}-wardrobe`, kind: 'GARMENT',
+        sha256: sha256(recordBytes), extraction: { method: 'first_appearance_crop', provenance: 'OBSERVED' },
+        readiness: { decision: 'READY', reasons: ['FIRST_APPEARANCE_LOCKED_FROM_APPROVED_LOOK'], actions: [], terminal: false },
+      },
+      items: all,
+    };
+  }
+
+  async #baseApprovedItemEvidenceForRun(runId, {
     expectedReceiptSha256,
     expectedLookSha256,
   } = {}) {

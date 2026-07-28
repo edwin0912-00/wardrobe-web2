@@ -8,6 +8,7 @@ Protocol ACK: 985fcec
 
 - Direct operator authorization: implement the real first-appearance producer and test it on the real pipeline after local contract checks.
 - Reserved implementation boundary: `RunService` + `GarmentConditioner` + isolated first-appearance test. No `app.js`, video transport, provider credential, or another agent's active route is touched.
+- Real-pipeline crop/VLM proof (no image/video generation): a completed beta full-body look produced immutable observed `bottom` and `footwear` locks. Record SHA-256: `c8c455671a18e33250a12b6024c7640f6c5087d92eb2e6e752036f503bd82fe1`; source-crop SHA-256 values: `8f97f69ff841ba95f7b2b095c765dc9115918c6495b7d88bee073380f55ef4f7`, `f28766ab4c9988b80fabffe14c635a795f3d6b91e927f0c264b3d8f64199a6df`; cutout SHA-256 values: `a5e7b8995aa4b00d3fc58cbfd57eafc5fbf26f307e4e9b7cd7f801ad4abc3303`, `bdf737260ba304360ed3d5a3ec9229a6ca3c3155fc3bc591e41846d00530e8b8`. Two stricter crop boundaries correctly returned `FIRST_APPEARANCE_NEEDS_INPUT` instead of mislabelling; final deterministic boundary passed.
 
 Implementation commit: `58dd6370feb0d1ecfe3f3016618f95545d256e26` (pushed to `beta`; not live-claimed).
 
