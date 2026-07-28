@@ -8,6 +8,13 @@
 
 <!-- entries -->
 
+### 2026-07-28 18:57 · codex-main · PROGRESS
+
+Live inventory completed: beta health/API are ready; 16 std backgrounds and 14 fashion modes exist. Confirmed video conflict: Seedance is canonical primary but has no execution route; live duration/cost diverge between canon (60s/.40) and implementation (5s//bin/zsh.20). UI still ships Lusion layer.
+
+HEAD на момент запису: `50c1b36`
+
+
 ### 2026-07-28 18:56 · codex-main · INTENT
 
 Аудит повного beta user journey: звірити Git-модулі з live API/UI, включно з video та Live; зафіксувати лише відтворювані PASS/BLOCKED.
