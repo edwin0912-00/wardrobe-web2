@@ -102,6 +102,7 @@ beta release. A card, API contract, or mocked status alone is not a PASS.
 | BETA-PROVIDER-001 | GENERATION_TRANSPORT · Magnific як резервний API | claude-code-20260727-557761 | CANCELLED | CODE | `src/providers/magnific-imagegen-provider.js`; `src/web/generation-provider.js`; `test/providers/magnific-imagegen-provider.test.js`; `updates/claude-code-20260727-557761.md` | Cancelled by operator decision 2026-07-27: the Magnific route is dropped, work stays on beta with the Higgsfield route that is already authenticated on the host. No provider file was created. |
 | BETA-UI-001 | PROFILE.03 · Вибір одного з кількох образів | antigravity-20260727-fb7a90 | DONE | CODE | `web/public/add-items-flow.js`; `web/public/profile-client.js`; `test/web/add-items-flow.test.js`; `test/web/profile-ui-flow.test.js`; `updates/antigravity-20260727-fb7a90.md` | PASS: multi-look avatar selection now opens the look grid; `205a8c4` passed 24/24 focused tests and is live inside beta release `ac7259b`. |
 | BETA-UNIVERSE-001 | UNIVERSE.01–02 · Два нові fashion shoot стилі | antigravity-20260727-fb7a90 | READY | CODE | `src/web/scene-resolvers.js`; `test/web/editorial-preview-api.test.js`; `test/contracts/scene-production-packs.test.js`; `docs/style-units/shoot.ochre_stage_tailoring/**`; `docs/style-units/shoot.shutter_amber_interior/**`; `updates/antigravity-20260727-fb7a90.md` | Turn the two existing male Create Universe units into strict product styles only if their manifests/reference packs compile and preview tests pass; then request beta activation of the exact SHA. Otherwise record `ASSETS_ONLY — NOT IN PRODUCT` with the precise missing contract fields. |
+| BETA-LIVE-LOOKREF-001 | LIVE · залокований person-free референс для дзеркала | claude-code-20260727-557761 | READY_FOR_HANDOFF | CODE | `src/web/live-look-reference.js`; `src/web/profile-service.js`; `test/live/**`; `updates/claude-code-20260727-557761.md` | Operator-directed. Дзеркало живиться залокованим образом ЗА ID, а не завантаженим файлом: два нові GET-роути віддають картку **тільких речей**, складену з уже хеш-перевірених cutout-ів через наявний лок (`#verifiedLook` → `approvedItemEvidenceForRun`), плюс її власний sha256 для біндингу. Людина в референс не потрапляє — вона приходить із камери. 15/15 фокусних тестів. Клієнт і платний токен — хендоф до `codex-live-20260727`, їхні файли не чіпані. |
 | BETA-STD-001 | BACKGROUND.01–02 · Звичайні фони `std.*` | codex-main | DONE | CODE | `assets/scene-presets/**`; `config/scene-release-candidates.json`; `src/web/scene-resolvers.js`; `src/web/scene-contract.js`; scene contract/API tests | Live on beta release `7bca845`: all 11 new packs plus 5 existing packs are user-selectable (16 total). Each local pack index is SHA-bound in the published catalog; stale prompt hashes were repaired to the exact checked-in prompts; the production finish was normalized to the existing strict lock rather than weakening it. Focused regression 32/32; live previews 16/16 HTTP 200. |
 | BETA-POST-SHOOT-001 | VIDEO.01–04 + LIVE.01–04 · Post-shoot graph | codex-live-20260727 | SUPERSEDED | CODE | historical implementation paths | Superseded by `BETA-POSTSHOOT-RECON-001`: the running release now contains real provider-token code, so the former “mock only / disabled” description is no longer current. Historical evidence is retained in `updates/codex-live-20260727.md`. |
 | BETA-LIVE-5S-001 | LIVE.01–04 · Reference photo + 5-second Lucy ceiling | codex-live-20260727 | SUPERSEDED | CODE | historical implementation paths | The five-second consent guard is in live code. It is not proof of a paid Lucy session and does not close the missing Video-versus-Live product choice. |
@@ -181,6 +182,22 @@ style-units, 43.6 MiB, які збірник тягне в реліз, хоч в
 `BETA-POSTSHOOT-RECON-001`, чий outcome досі сформульований як «approved
 fashion shoot → Video або Live»; його треба переписати на «обраний образ →
 три виходи».
+
+## Оголошення · 2026-07-28 · хендоф-конвенція
+
+`docs/AGENT_RESUME_HANDOFF_UA.md` — покрокова інструкція, як будь-який агент, у
+тому числі Codex, підхоплює роботу з нуля: команда старту, де лежать матеріали й
+транскрипти воркфлоу, що доведено й чим, що не закомічено, і що зараз зламано або
+несинхронно.
+
+Прошу всіх тримати перші рядки свого `updates/<agent-id>.md` у форматі:
+`HANDOFF:` / `Materials:` / `Uncommitted:` / `Next action:`. Тоді статус підхвату
+видно без читання історії. Мій файл уже так виглядає.
+
+Найважливіше з несинхрону просто зараз: реліз ~249 MiB проти ліміту 160 MiB, тому
+деплой неможливий; живий каталог віддає десять `shoot.*`, а в гілці їх
+дванадцять — `shoot.liza_luminous` і `shoot.zayn_institutional` в ефірі відсутні;
+хост не відповідає на попередню адресу, шукати через mDNS.
 
 ## Agent protocol
 | BETA-SKILL-RULE8-001 | SKILL · Реф людини вирізаний на білому | claude-code-20260727-a3f1c8 | DONE | DOCS | `skills/artshoot-pipeline-style-creation/SKILL.md`; `docs/coordination/SKILL_VERSION_COMPARE_2026-07-27.md`; `updates/claude-code-20260727-a3f1c8.md` | Directly assigned by Edwin. Add RULE 8 to the style-unit skill in the repo, additively, and record the divergent PR #6 copy in a compare file instead of merging it. No product code, no provider work. |
