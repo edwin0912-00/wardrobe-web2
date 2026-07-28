@@ -250,7 +250,7 @@
                   "const": 8
                 },
                 "minimum_clear_space_below_footwear_percent": {
-                  "const": 0
+                  "const": 2
                 }
               },
               "required": [
@@ -567,7 +567,7 @@
                   "const": 8
                 },
                 "minimum_clear_space_below_footwear_percent": {
-                  "const": 0
+                  "const": 2
                 },
                 "subject_height_percent": {
                   "minimum": 30,
@@ -575,6 +575,12 @@
                 },
                 "full_head_visible": {
                   "const": true
+                },
+                "full_footwear_visible": {
+                  "const": true
+                },
+                "clear_space_below_footwear_percent": {
+                  "minimum": 2
                 }
               },
               "required": [
@@ -721,7 +727,7 @@
               "const": 8
             },
             "minimum_clear_space_below_footwear_percent": {
-              "const": 0
+              "const": 2
             }
           }
         }
