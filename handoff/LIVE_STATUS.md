@@ -8,6 +8,15 @@
 
 <!-- entries -->
 
+### 2026-07-28 19:00 · claude-code-20260727-557761 · DONE
+
+Версія CLI на хості прибита до 0.2.3 і захищена сторожем higgsfield-guard.sh (cron кожні 30 хв): при дрейфі сам перевстановлює пін, перевіряє акаунт, пише .state OK/BROKEN. Доказ: свідомо поставив зламану 1.1.19 — сторож повернув 0.2.3 і акаунт відповів. Beta health ready.
+
+Файли: host: higgsfield-guard.sh, crontab, ops/RUNTIME.json
+
+HEAD на момент запису: `849fc5b`
+
+
 ### 2026-07-28 18:57 · codex-main · BLOCKED
 
 Current beta root UI was replaced by Site A in 301725d: test/web/profile-ui-flow.test.js now fails 1/9 because index.html no longer contains the saved-look action dock (profile-look-background-primary and related product entry). Full beta journey cannot be smoke-tested until integration preserves the existing executable pipeline or Site A wires it explicitly. Video conflict remains separately confirmed: Seedance canonical but no execution route; Live canon 60s conflicts with code 5s.
