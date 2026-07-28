@@ -17,6 +17,12 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-07-28 · LIGHT-STAGE.01 · beta · portable UI component
+Change: add a reusable black-and-gold `Light Stage` component, CSS, demo entry point and deterministic white-edge matte test.
+Why: an approved master needs a premium 3D presentation treatment without changing any source pixels or downstream generation inputs.
+Evidence: `node --test test/web/light-stage.test.js` passes 3/3; `git diff --check` passes. Component documentation explicitly refuses a generative fallback and marks its output presentation-only.
+weakened_checks: none.
+
 2026-07-28 · BETA-LOOK-NEXT-ACTIONS-001 · beta `2a1a445` · preview built, deploy blocked
 Change: add a standalone interactive visual preview for the five post-look
 directions, with distinct slow glow/spotlight languages and reduced-motion

@@ -96,6 +96,11 @@ below. Earlier sections are preserved only as historical evidence.
   focused catalog tests. The required resolution is a product/catalog decision,
   not a test relaxation.
 
+## Presentation-only Light Stage — 2026-07-28
+
+- `web/public/light-stage.js` is a portable, black-and-gold presentation block. It derives an in-memory alpha matte only from near-white pixels connected to the edge of an approved master image.
+- It cannot modify master pixels, QA receipts, scene/photo-shoot/video inputs, or persistence. If the master does not have a clean white border or canvas access fails, the integration must retain the original master rather than generate a replacement.
+
 Updated: 2026-07-28 00:45 UTC.
 
 ## Beta completion truth — 2026-07-28
