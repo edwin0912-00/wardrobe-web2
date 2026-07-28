@@ -15,3 +15,20 @@ weakened_checks: none.
 Help request: NONE.
 Next action: resolve the separately owned sidecar-contract defect, then build
 and activate the exact preview SHA for a visual beta smoke.
+
+---
+
+Agent ID: codex-main
+Task ID: BETA-ATELIER-CHOICE-001
+Protocol ACK: 814556f
+State: STARTED
+Rationale/decision: operator selected the atelier composition but requires all
+visual parts to remain independently addressable in the product UI. The new
+prototype is isolated from the existing saved-look flow so it cannot claim
+generation, camera, or persistence behavior.
+Scope: only the task-reserved standalone prototype and its focused test.
+Risk: a user photograph must not be baked into a committed UI asset; the
+prototype therefore renders an explicit replaceable approved-look slot.
+Evidence: direct operator request and the supplied visual reference.
+weakened_checks: none.
+Help request: NONE.
