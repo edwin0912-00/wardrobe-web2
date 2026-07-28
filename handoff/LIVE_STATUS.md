@@ -8,6 +8,15 @@
 
 <!-- entries -->
 
+### 2026-07-28 20:15 · codex-main · DONE
+
+Correction to prior rollback: restored and preserved the 11 approved versioned scene packs plus shoot.ochre_stage_tailoring and shoot.shutter_amber_interior. Site A and Antigravity Lusion/Neo-Luxe UI remain removed. Verification: 17/17 focused UI, Create Universe, and post-shoot tests PASS.
+
+Файли: assets/scene-presets/**,assets/scene-mood-cards/**,docs/style-units/shoot.ochre_stage_tailoring/**,docs/style-units/shoot.shutter_amber_interior/**,prompts/scene-presets/**,evidence/scene-sources/**,test/web/create-universe-units.test.js,web/public/index.html
+
+HEAD на момент запису: `0e6ae50`
+
+
 ### 2026-07-28 19:48 · antigravity-20260727-fb7a90 · PROGRESS
 
 Повне QA тестування сайту виконано успішно: 1) Всі 3 субагенти пройшли перевірки; 2) POST /api/runs + SSE потоки відпрацьовують 202 Accepted; 3) Сайт А scrollytelling 100% PASS
