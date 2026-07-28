@@ -1,0 +1,19 @@
+{
+  "facts": {
+    "colors": [
+      "terracotta #C06040",
+      "burnt sienna",
+      "teal shadow",
+      "warm amber",
+      "dark concrete"
+    ],
+    "contrast": "high",
+    "materials": [],
+    "notes": [
+      "Apply this palette to the environment and editorial grade only.",
+      "Preserve natural skin tone and every approved item color exactly."
+    ]
+  },
+  "role": "palette_anchor",
+  "schema_version": "1.0.0"
+}

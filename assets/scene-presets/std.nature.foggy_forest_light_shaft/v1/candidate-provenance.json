@@ -1,0 +1,27 @@
+{
+  "assets": [
+    {
+      "exact_prompt_path": "prompts/scene-presets/std.nature.foggy_forest_light_shaft/v1/environment-plate.txt",
+      "path": "assets/scene-presets/std.nature.foggy_forest_light_shaft/v1/environment-plate.webp",
+      "provider_receipt_status": "MISSING_FROM_BUILTIN_IMAGE_TOOL",
+      "role": "environment_plate",
+      "sha256": "3d803b35aa7f2cf945bbd73a1d3792e1ed94b9636a5d21f6d1c11b2d8e7f1479"
+    },
+    {
+      "derivation": {
+        "exact_prompt_path": "prompts/scenes/std.nature.foggy_forest_light_shaft.txt",
+        "operation": "ROLE_REASSIGNMENT_FROM_VISUALLY_APPROVED_MOOD_CARD",
+        "source_path": "assets/scene-mood-cards/std.nature.foggy_forest_light_shaft.webp",
+        "source_sha256": "7e2844ae350030f97917f347678981ebc737b95027a43c65b8eaf6d34753e35f"
+      },
+      "path": "assets/scene-presets/std.nature.foggy_forest_light_shaft/v1/lighting-preview.webp",
+      "provider_receipt_status": "MISSING_FROM_BUILTIN_IMAGE_TOOL",
+      "role": "lighting_preview",
+      "sha256": "7e2844ae350030f97917f347678981ebc737b95027a43c65b8eaf6d34753e35f"
+    }
+  ],
+  "preset_id": "std.nature.foggy_forest_light_shaft",
+  "preset_version": "1.0.0",
+  "release_status": "BLOCKED_MISSING_STABLE_PROVIDER_RECEIPTS",
+  "schema_version": "1.0.0"
+}

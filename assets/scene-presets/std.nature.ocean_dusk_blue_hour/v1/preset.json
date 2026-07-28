@@ -1,0 +1,89 @@
+{
+  "camera": {
+    "aspect_ratio": "4:5",
+    "height": "eye_level",
+    "lens_mm": 50,
+    "max_vertical_error_deg": 1.5,
+    "minimum_clear_space_percent": {
+      "above_hair": 8,
+      "below_footwear": 2
+    },
+    "subject_height_percent": [
+      74,
+      78
+    ]
+  },
+  "environment": "An original moody ocean coastline at blue hour dusk with dark wet sand, calm waves, atmospheric mist over water, and no recognizable beach or landmark.",
+  "family": "nature_architecture",
+  "hard_negatives": [
+    "recognizable beach",
+    "beach furniture",
+    "people",
+    "boats",
+    "readable text",
+    "bright sunshine",
+    "tropical elements",
+    "palm trees"
+  ],
+  "lighting": {
+    "fill": "diffused overcast dusk light with wet sand reflections providing subtle uplighting",
+    "finish": "polished_editorial_gloss_without_skin_smoothing_or_hdr",
+    "key": "ambient cool teal-blue sky light with warm amber glow remaining on horizon",
+    "protected_regions": [
+      "eyes",
+      "face_identity",
+      "item_logos",
+      "item_text",
+      "critical_construction"
+    ],
+    "time_or_setup": "blue hour dusk at coast"
+  },
+  "mvp_assets": [
+    "mood_card"
+  ],
+  "palette": [
+    "teal blue sky",
+    "dark wet sand",
+    "amber horizon glow",
+    "mist grey",
+    "ocean steel"
+  ],
+  "post_selection_assets": [
+    "environment_plate",
+    "lighting_preview"
+  ],
+  "preset_id": "std.nature.ocean_dusk_blue_hour",
+  "prompt_path": "prompts/scenes/std.nature.ocean_dusk_blue_hour.txt",
+  "source_authorities": [
+    {
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit",
+        "brands",
+        "readable_text",
+        "exact_architecture"
+      ],
+      "role": "environment_and_composition_inspiration",
+      "url": "https://unsplash.com/photos/sandy-beach-with-dunes-and-small-houses-along-the-coastline-h5tG98k2K4U",
+      "use": "sandy coastline scale, horizon line and wet sand reflections only"
+    },
+    {
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit",
+        "brands",
+        "readable_text",
+        "exact_architecture"
+      ],
+      "role": "environment_material_inspiration",
+      "url": "https://unsplash.com/photos/footprints-on-dark-sand-beach-leading-to-ocean-and-coastline-8zW7xJ9aL2M",
+      "use": "dark wet sand texture and moody coastal atmosphere only"
+    }
+  ],
+  "ui_name_uk": "Океан — блакитна година",
+  "version": "1.0.0"
+}

@@ -1,0 +1,134 @@
+{
+  "preset_id": "std.architecture.glass_corridor_sunset",
+  "preset_sha256": "d6c86ea792c4d5bba18d10f306c1b0d89fcb1d5f47acf69c8630acca6d3ce6c6",
+  "preset_version": "1.0.0",
+  "prompt_sha256": "58e58aed00f31e22ae8ac88303939847c3580abe2a3a57a73dd95fdc9c35a95c",
+  "reference_pack_id": "pack.std.architecture.glass_corridor_sunset.v1.1",
+  "references": [
+    {
+      "media_type": "application/json",
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit"
+      ],
+      "reference_id": "std.architecture.glass_corridor_sunset.environment",
+      "role": "environment_anchor",
+      "sha256": "f3bf479ff5385a91375f3326a9150236976f0e9053a0c617dad86bbecbf82666"
+    },
+    {
+      "media_type": "application/json",
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit"
+      ],
+      "reference_id": "std.architecture.glass_corridor_sunset.lighting",
+      "role": "lighting_anchor",
+      "sha256": "9984ba36739f15567347e39cc047cd42dae57c05922b1c16fe45a1319c07e9f7"
+    },
+    {
+      "media_type": "application/json",
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit"
+      ],
+      "reference_id": "std.architecture.glass_corridor_sunset.composition",
+      "role": "composition_anchor",
+      "sha256": "1303554a5b10f3a3a4d7865d3b7eeae68a6718d76521fc66f362bc0b5c7ab061"
+    },
+    {
+      "media_type": "application/json",
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit"
+      ],
+      "reference_id": "std.architecture.glass_corridor_sunset.palette",
+      "role": "palette_anchor",
+      "sha256": "25b04cea718e961f8ccf96ac79c4d0e6e408876263621c41736b69ce7975de19"
+    },
+    {
+      "media_type": "application/json",
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit"
+      ],
+      "reference_id": "std.architecture.glass_corridor_sunset.negative",
+      "role": "negative_reference",
+      "sha256": "28a91a379861ea61de6f86ccc96459ad1fb1fa61423ff1cf7ee7156b27efa9eb"
+    }
+  ],
+  "schema_version": "1.0.0",
+  "source_ledger": {
+    "created_at": "2026-07-23T09:40:00Z",
+    "ledger_id": "ledger.std.architecture.glass_corridor_sunset.v1",
+    "preset_id": "std.architecture.glass_corridor_sunset",
+    "preset_version": "1.0.0",
+    "revision": 1,
+    "schema_version": "1.0.0",
+    "sources": [
+      {
+        "content_sha256": "0d6e972252a5e782abe3b2f268825acb4eacb2f8f45b5a3c383830e553f3a665",
+        "not_authority_for": [
+          "identity",
+          "body",
+          "hair",
+          "outfit",
+          "brands",
+          "readable_text",
+          "exact_architecture"
+        ],
+        "retrieved_at": "2026-07-23T09:40:00Z",
+        "rights": {
+          "basis": "LICENSED",
+          "evidence_sha256": "86a558a192adac12108998fb02dd40db4b72dc06a04c09719d47db91854dacb5",
+          "evidence_uri": "evidence/licenses/unsplash-license-2026-07-23.md",
+          "rights_holder": "Declan Sun via Unsplash license",
+          "status": "VERIFIED",
+          "verified_at": "2026-07-23T09:40:00Z"
+        },
+        "role": "environment_and_composition_inspiration",
+        "snapshot_uri": "evidence/scene-sources/unsplash.G5dKqL8nU1w.json",
+        "source_id": "unsplash.G5dKqL8nU1w",
+        "url": "https://unsplash.com/photos/modern-architectures-glass-facade-in-contrasting-sunlight-G5dKqL8nU1w",
+        "use": "glass facade geometry, clean lines and sunset reflection behavior only"
+      },
+      {
+        "content_sha256": "f3ca074e5748169fa3dff7d375bc8e534c0d47bb7e7cbc7e8ddc09f5ae90c69e",
+        "not_authority_for": [
+          "identity",
+          "body",
+          "hair",
+          "outfit",
+          "brands",
+          "readable_text",
+          "exact_architecture"
+        ],
+        "retrieved_at": "2026-07-23T09:40:00Z",
+        "rights": {
+          "basis": "LICENSED",
+          "evidence_sha256": "86a558a192adac12108998fb02dd40db4b72dc06a04c09719d47db91854dacb5",
+          "evidence_uri": "evidence/licenses/unsplash-license-2026-07-23.md",
+          "rights_holder": "Felicia Varzari via Unsplash license",
+          "status": "VERIFIED",
+          "verified_at": "2026-07-23T09:40:00Z"
+        },
+        "role": "environment_material_inspiration",
+        "snapshot_uri": "evidence/scene-sources/unsplash.uJ2kLq8mN5p.json",
+        "source_id": "unsplash.uJ2kLq8mN5p",
+        "url": "https://unsplash.com/photos/architectural-glass-reflects-a-modern-building-uJ2kLq8mN5p",
+        "use": "polished floor reflection and minimalist architectural scale only"
+      }
+    ],
+    "status": "VERIFIED_FOR_RELEASE"
+  },
+  "version": "1.1.0"
+}

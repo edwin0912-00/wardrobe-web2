@@ -1,0 +1,23 @@
+{
+  "availability": "VERIFIED",
+  "creator": "Unsplash Contributor",
+  "extraction_role": "environment_material_inspiration",
+  "license_evidence": "evidence/licenses/unsplash-license-2026-07-23.md",
+  "not_authority_for": [
+    "identity",
+    "body",
+    "hair",
+    "outfit",
+    "brands",
+    "readable_text",
+    "exact_architecture"
+  ],
+  "page_title": "Pure black seamless background with rim light",
+  "permitted_observation": "pure black seamless backdrop absorption and rim-light separation only",
+  "pixel_policy": "PAGE_METADATA_AND_ROLE_LIMITS_ONLY_SOURCE_PIXELS_NOT_SHIPPED",
+  "platform": "Unsplash",
+  "retrieved_at": "2026-07-23T09:40:00Z",
+  "schema_version": "1.0.0",
+  "source_id": "unsplash.r3am9AchMDH",
+  "url": "https://unsplash.com/photos/young-woman-in-streetwear-posing-against-black-wall-r3am9AchMDH"
+}

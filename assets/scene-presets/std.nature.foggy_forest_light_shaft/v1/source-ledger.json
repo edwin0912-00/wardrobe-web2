@@ -1,0 +1,63 @@
+{
+  "created_at": "2026-07-23T09:40:00Z",
+  "ledger_id": "ledger.std.nature.foggy_forest_light_shaft.v1",
+  "preset_id": "std.nature.foggy_forest_light_shaft",
+  "preset_version": "1.0.0",
+  "revision": 1,
+  "schema_version": "1.0.0",
+  "sources": [
+    {
+      "content_sha256": "10986117f8aeabbdd06e26b0ef447fb7ddb4f540d1255f282588642c58ac95ba",
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit",
+        "brands",
+        "readable_text",
+        "exact_architecture"
+      ],
+      "retrieved_at": "2026-07-23T09:40:00Z",
+      "rights": {
+        "basis": "LICENSED",
+        "evidence_sha256": "86a558a192adac12108998fb02dd40db4b72dc06a04c09719d47db91854dacb5",
+        "evidence_uri": "evidence/licenses/unsplash-license-2026-07-23.md",
+        "rights_holder": "Nature Lens via Unsplash license",
+        "status": "VERIFIED",
+        "verified_at": "2026-07-23T09:40:00Z"
+      },
+      "role": "environment_and_composition_inspiration",
+      "snapshot_uri": "evidence/scene-sources/unsplash.rO11U7uF4sA.json",
+      "source_id": "unsplash.rO11U7uF4sA",
+      "url": "https://unsplash.com/photos/sunlit-forest-path-with-dappled-light-and-shadows-rO11U7uF4sA",
+      "use": "dappled forest light behavior, moss texture and path depth only"
+    },
+    {
+      "content_sha256": "ce6930193124338ab85059a3c2660ac70f944baceba87867624fa881276d622e",
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit",
+        "brands",
+        "readable_text",
+        "exact_architecture"
+      ],
+      "retrieved_at": "2026-07-23T09:40:00Z",
+      "rights": {
+        "basis": "LICENSED",
+        "evidence_sha256": "86a558a192adac12108998fb02dd40db4b72dc06a04c09719d47db91854dacb5",
+        "evidence_uri": "evidence/licenses/unsplash-license-2026-07-23.md",
+        "rights_holder": "Forest Explorer via Unsplash license",
+        "status": "VERIFIED",
+        "verified_at": "2026-07-23T09:40:00Z"
+      },
+      "role": "environment_material_inspiration",
+      "snapshot_uri": "evidence/scene-sources/unsplash.B5t4c8fE2_M.json",
+      "source_id": "unsplash.B5t4c8fE2_M",
+      "url": "https://unsplash.com/photos/a-sun-dappled-forest-path-surrounded-by-lush-green-trees-B5t4c8fE2_M",
+      "use": "canopy bokeh and atmospheric mist behavior only"
+    }
+  ],
+  "status": "VERIFIED_FOR_RELEASE"
+}

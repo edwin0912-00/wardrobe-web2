@@ -1,0 +1,55 @@
+{
+  "preset_id": "std.studio.terracotta_raking_light",
+  "preset_path": "assets/scene-presets/std.studio.terracotta_raking_light/v1/preset.json",
+  "preset_sha256": "dd5f6fb44e4808ca741290059b242172cff04a96c9dea399b982f1228326360b",
+  "preset_version": "1.0.0",
+  "production_prompt_path": "prompts/scene-presets/std.studio.terracotta_raking_light/v1/production-scene.txt",
+  "prompt_sha256": "d55024f73558c0164508cefd8f8373f76e55779cbcb019e908106053eab44b92",
+  "reference_pack_path": "assets/scene-presets/std.studio.terracotta_raking_light/v1/reference-pack.json",
+  "reference_pack_sha256": "17be36ce8833c51018b28db488c65bc1cb068b20a090f84783060508d75cbf94",
+  "references": [
+    {
+      "media_type": "application/json",
+      "order": 1,
+      "path": "assets/scene-presets/std.studio.terracotta_raking_light/v1/environment-reference.json",
+      "reference_id": "std.studio.terracotta_raking_light.environment",
+      "role": "environment_anchor",
+      "sha256": "91d64a4977e40a3f3f3bb1d0eb9ec6ef6b3abbd632e8ace0883c6f1e233faca3"
+    },
+    {
+      "media_type": "application/json",
+      "order": 2,
+      "path": "assets/scene-presets/std.studio.terracotta_raking_light/v1/lighting-reference.json",
+      "reference_id": "std.studio.terracotta_raking_light.lighting",
+      "role": "lighting_anchor",
+      "sha256": "2d1338afec5025dd9cc1b42d734623fcfd52a139eae0034f246574f305e6683d"
+    },
+    {
+      "media_type": "application/json",
+      "order": 3,
+      "path": "assets/scene-presets/std.studio.terracotta_raking_light/v1/composition-reference.json",
+      "reference_id": "std.studio.terracotta_raking_light.composition",
+      "role": "composition_anchor",
+      "sha256": "9b1e1b443eeec151edcaea96b16e0a962e6490b8fc0e59c3200809bbc6332e62"
+    },
+    {
+      "media_type": "application/json",
+      "order": 4,
+      "path": "assets/scene-presets/std.studio.terracotta_raking_light/v1/palette-anchor.json",
+      "reference_id": "std.studio.terracotta_raking_light.palette",
+      "role": "palette_anchor",
+      "sha256": "8d2f51cc5d4c6c2b01250cb37840f483d8ba26fc1395c0876baba91033e1cdd8"
+    },
+    {
+      "media_type": "application/json",
+      "order": 5,
+      "path": "assets/scene-presets/std.studio.terracotta_raking_light/v1/negative-reference.json",
+      "reference_id": "std.studio.terracotta_raking_light.negative",
+      "role": "negative_reference",
+      "sha256": "e1a4ecef3cb1792764bbdc3ab7803c234d386d38fef76850f607c85c51d44605"
+    }
+  ],
+  "schema_version": "1.0.0",
+  "source_ledger_path": "assets/scene-presets/std.studio.terracotta_raking_light/v1/source-ledger.json",
+  "source_ledger_sha256": "6ed2af09c522761ea7027301f452ea909c809151254c7069b27a8cacfa087fb4"
+}

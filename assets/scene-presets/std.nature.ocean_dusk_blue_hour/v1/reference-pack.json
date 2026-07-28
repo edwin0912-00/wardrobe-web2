@@ -1,0 +1,134 @@
+{
+  "preset_id": "std.nature.ocean_dusk_blue_hour",
+  "preset_sha256": "a8c6f53f9c3d814ae2f74b2bfe273401b7cf6013882ce53ea57360987c1ddc33",
+  "preset_version": "1.0.0",
+  "prompt_sha256": "adece83623870fb663d0dc0de821e11613d62011a8dcb11fae1f7e9d075c65df",
+  "reference_pack_id": "pack.std.nature.ocean_dusk_blue_hour.v1.1",
+  "references": [
+    {
+      "media_type": "application/json",
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit"
+      ],
+      "reference_id": "std.nature.ocean_dusk_blue_hour.environment",
+      "role": "environment_anchor",
+      "sha256": "891353fa7623de8556ffa0fac3291b43ddfb0ee95baf266c6adc03deb50ce786"
+    },
+    {
+      "media_type": "application/json",
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit"
+      ],
+      "reference_id": "std.nature.ocean_dusk_blue_hour.lighting",
+      "role": "lighting_anchor",
+      "sha256": "7acb3f8178ce2b216721223977086eefa7c8b5d2643e30edbd538dfba986a98e"
+    },
+    {
+      "media_type": "application/json",
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit"
+      ],
+      "reference_id": "std.nature.ocean_dusk_blue_hour.composition",
+      "role": "composition_anchor",
+      "sha256": "1303554a5b10f3a3a4d7865d3b7eeae68a6718d76521fc66f362bc0b5c7ab061"
+    },
+    {
+      "media_type": "application/json",
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit"
+      ],
+      "reference_id": "std.nature.ocean_dusk_blue_hour.palette",
+      "role": "palette_anchor",
+      "sha256": "26a46c867b997fb262923edddadf039b18a78aed82441c1286bb9d403d9cfe17"
+    },
+    {
+      "media_type": "application/json",
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit"
+      ],
+      "reference_id": "std.nature.ocean_dusk_blue_hour.negative",
+      "role": "negative_reference",
+      "sha256": "fea1cac3c4b44ab535657a749dc5c3ebd97d964c7e27a9bf4730c51e66cd4d11"
+    }
+  ],
+  "schema_version": "1.0.0",
+  "source_ledger": {
+    "created_at": "2026-07-23T09:40:00Z",
+    "ledger_id": "ledger.std.nature.ocean_dusk_blue_hour.v1",
+    "preset_id": "std.nature.ocean_dusk_blue_hour",
+    "preset_version": "1.0.0",
+    "revision": 1,
+    "schema_version": "1.0.0",
+    "sources": [
+      {
+        "content_sha256": "eb57e88f39b9f5d3f9607f5c2723cde02fb598adce9352788ac33675f533a1bc",
+        "not_authority_for": [
+          "identity",
+          "body",
+          "hair",
+          "outfit",
+          "brands",
+          "readable_text",
+          "exact_architecture"
+        ],
+        "retrieved_at": "2026-07-23T09:40:00Z",
+        "rights": {
+          "basis": "LICENSED",
+          "evidence_sha256": "86a558a192adac12108998fb02dd40db4b72dc06a04c09719d47db91854dacb5",
+          "evidence_uri": "evidence/licenses/unsplash-license-2026-07-23.md",
+          "rights_holder": "Kellen Riggin via Unsplash license",
+          "status": "VERIFIED",
+          "verified_at": "2026-07-23T09:40:00Z"
+        },
+        "role": "environment_and_composition_inspiration",
+        "snapshot_uri": "evidence/scene-sources/unsplash.h5tG98k2K4U.json",
+        "source_id": "unsplash.h5tG98k2K4U",
+        "url": "https://unsplash.com/photos/sandy-beach-with-dunes-and-small-houses-along-the-coastline-h5tG98k2K4U",
+        "use": "sandy coastline scale, horizon line and wet sand reflections only"
+      },
+      {
+        "content_sha256": "a3dc6878c35be061d019f010d4bdf62a1aeadad34c099c0905715cf0d0248395",
+        "not_authority_for": [
+          "identity",
+          "body",
+          "hair",
+          "outfit",
+          "brands",
+          "readable_text",
+          "exact_architecture"
+        ],
+        "retrieved_at": "2026-07-23T09:40:00Z",
+        "rights": {
+          "basis": "LICENSED",
+          "evidence_sha256": "86a558a192adac12108998fb02dd40db4b72dc06a04c09719d47db91854dacb5",
+          "evidence_uri": "evidence/licenses/unsplash-license-2026-07-23.md",
+          "rights_holder": "Luise and Nic via Unsplash license",
+          "status": "VERIFIED",
+          "verified_at": "2026-07-23T09:40:00Z"
+        },
+        "role": "environment_material_inspiration",
+        "snapshot_uri": "evidence/scene-sources/unsplash.8zW7xJ9aL2M.json",
+        "source_id": "unsplash.8zW7xJ9aL2M",
+        "url": "https://unsplash.com/photos/footprints-on-dark-sand-beach-leading-to-ocean-and-coastline-8zW7xJ9aL2M",
+        "use": "dark wet sand texture and moody coastal atmosphere only"
+      }
+    ],
+    "status": "VERIFIED_FOR_RELEASE"
+  },
+  "version": "1.1.0"
+}

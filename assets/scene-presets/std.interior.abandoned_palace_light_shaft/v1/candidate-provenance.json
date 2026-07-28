@@ -1,0 +1,27 @@
+{
+  "assets": [
+    {
+      "exact_prompt_path": "prompts/scene-presets/std.interior.abandoned_palace_light_shaft/v1/environment-plate.txt",
+      "path": "assets/scene-presets/std.interior.abandoned_palace_light_shaft/v1/environment-plate.webp",
+      "provider_receipt_status": "MISSING_FROM_BUILTIN_IMAGE_TOOL",
+      "role": "environment_plate",
+      "sha256": "f945e21e03e90b3ae3a2a0fab0ada57f80200ba7245a389b96e23b9efe047e75"
+    },
+    {
+      "derivation": {
+        "exact_prompt_path": "prompts/scenes/std.interior.abandoned_palace_light_shaft.txt",
+        "operation": "ROLE_REASSIGNMENT_FROM_VISUALLY_APPROVED_MOOD_CARD",
+        "source_path": "assets/scene-mood-cards/std.interior.abandoned_palace_light_shaft.webp",
+        "source_sha256": "4f72917fcc2e47d6383eb6a625be1004dd550b286f0ee642d6e497db5d77b92f"
+      },
+      "path": "assets/scene-presets/std.interior.abandoned_palace_light_shaft/v1/lighting-preview.webp",
+      "provider_receipt_status": "MISSING_FROM_BUILTIN_IMAGE_TOOL",
+      "role": "lighting_preview",
+      "sha256": "4f72917fcc2e47d6383eb6a625be1004dd550b286f0ee642d6e497db5d77b92f"
+    }
+  ],
+  "preset_id": "std.interior.abandoned_palace_light_shaft",
+  "preset_version": "1.0.0",
+  "release_status": "BLOCKED_MISSING_STABLE_PROVIDER_RECEIPTS",
+  "schema_version": "1.0.0"
+}

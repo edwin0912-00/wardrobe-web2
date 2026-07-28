@@ -1,0 +1,63 @@
+{
+  "created_at": "2026-07-23T09:40:00Z",
+  "ledger_id": "ledger.std.interior.industrial_brick_loft.v1",
+  "preset_id": "std.interior.industrial_brick_loft",
+  "preset_version": "1.0.0",
+  "revision": 1,
+  "schema_version": "1.0.0",
+  "sources": [
+    {
+      "content_sha256": "c50b9b65cd1e801f840344ecb59056aa1741f3e6ae7cada597b7502c06e27e11",
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit",
+        "brands",
+        "readable_text",
+        "exact_architecture"
+      ],
+      "retrieved_at": "2026-07-23T09:40:00Z",
+      "rights": {
+        "basis": "LICENSED",
+        "evidence_sha256": "86a558a192adac12108998fb02dd40db4b72dc06a04c09719d47db91854dacb5",
+        "evidence_uri": "evidence/licenses/unsplash-license-2026-07-23.md",
+        "rights_holder": "Alexander S. via Unsplash license",
+        "status": "VERIFIED",
+        "verified_at": "2026-07-23T09:40:00Z"
+      },
+      "role": "environment_and_composition_inspiration",
+      "snapshot_uri": "evidence/scene-sources/unsplash.J3522uS9n8w.json",
+      "source_id": "unsplash.J3522uS9n8w",
+      "url": "https://unsplash.com/photos/industrial-loft-bedroom-3d-render-J3522uS9n8w",
+      "use": "exposed brick texture, steel beam rhythm and factory window scale only"
+    },
+    {
+      "content_sha256": "d04e449a663c6519550652dedb8fe9674ec6af37c32ee581fbc6896ae5733001",
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit",
+        "brands",
+        "readable_text",
+        "exact_architecture"
+      ],
+      "retrieved_at": "2026-07-23T09:40:00Z",
+      "rights": {
+        "basis": "LICENSED",
+        "evidence_sha256": "86a558a192adac12108998fb02dd40db4b72dc06a04c09719d47db91854dacb5",
+        "evidence_uri": "evidence/licenses/unsplash-license-2026-07-23.md",
+        "rights_holder": "Max B. via Unsplash license",
+        "status": "VERIFIED",
+        "verified_at": "2026-07-23T09:40:00Z"
+      },
+      "role": "environment_material_inspiration",
+      "snapshot_uri": "evidence/scene-sources/unsplash.p5_4b8f59S4.json",
+      "source_id": "unsplash.p5_4b8f59S4",
+      "url": "https://unsplash.com/photos/a-cozy-bedroom-with-a-brick-accent-wall-p5_4b8f59S4",
+      "use": "brick-to-concrete material contrast and raw texture only"
+    }
+  ],
+  "status": "VERIFIED_FOR_RELEASE"
+}

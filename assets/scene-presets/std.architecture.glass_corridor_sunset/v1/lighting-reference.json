@@ -1,0 +1,17 @@
+{
+  "facts": {
+    "fill": "cool reflected light from glass panels",
+    "finish": "cinematic_editorial_gloss_without_skin_smoothing_or_hdr",
+    "key": "warm golden sunset light streaming through floor-to-ceiling glass creating long geometric shadows on polished floor",
+    "protected_regions": [
+      "eyes",
+      "face_identity",
+      "item_logos",
+      "item_text",
+      "critical_construction"
+    ],
+    "time_or_setup": "sunset through glass facade"
+  },
+  "role": "lighting_anchor",
+  "schema_version": "1.0.0"
+}

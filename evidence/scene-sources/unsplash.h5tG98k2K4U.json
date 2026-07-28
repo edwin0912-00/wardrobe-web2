@@ -1,0 +1,23 @@
+{
+  "availability": "VERIFIED",
+  "creator": "Kellen Riggin",
+  "extraction_role": "environment_and_composition_inspiration",
+  "license_evidence": "evidence/licenses/unsplash-license-2026-07-23.md",
+  "not_authority_for": [
+    "identity",
+    "body",
+    "hair",
+    "outfit",
+    "brands",
+    "readable_text",
+    "exact_architecture"
+  ],
+  "page_title": "Sandy beach with dunes and ocean horizon line",
+  "permitted_observation": "sandy coastline scale, horizon line and wet sand reflections only",
+  "pixel_policy": "PAGE_METADATA_AND_ROLE_LIMITS_ONLY_SOURCE_PIXELS_NOT_SHIPPED",
+  "platform": "Unsplash",
+  "retrieved_at": "2026-07-23T09:40:00Z",
+  "schema_version": "1.0.0",
+  "source_id": "unsplash.h5tG98k2K4U",
+  "url": "https://unsplash.com/photos/sandy-beach-with-dunes-and-small-houses-along-the-coastline-h5tG98k2K4U"
+}

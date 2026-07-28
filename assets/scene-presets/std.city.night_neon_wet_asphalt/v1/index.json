@@ -1,0 +1,55 @@
+{
+  "preset_id": "std.city.night_neon_wet_asphalt",
+  "preset_path": "assets/scene-presets/std.city.night_neon_wet_asphalt/v1/preset.json",
+  "preset_sha256": "a5623d5967722873ac711421301b199c7507679c9977f0b673b4e3f08e8f67e4",
+  "preset_version": "1.0.0",
+  "production_prompt_path": "prompts/scene-presets/std.city.night_neon_wet_asphalt/v1/production-scene.txt",
+  "prompt_sha256": "b2a8ad4c1b6ff02f05f7c847d3b2f61c39afd6ff6c20f9182c8813a7e0260c62",
+  "reference_pack_path": "assets/scene-presets/std.city.night_neon_wet_asphalt/v1/reference-pack.json",
+  "reference_pack_sha256": "d3eb0a10563baa504774d0071bf1f0ffdb3341bea15429738219e2d34fdd07dd",
+  "references": [
+    {
+      "media_type": "application/json",
+      "order": 1,
+      "path": "assets/scene-presets/std.city.night_neon_wet_asphalt/v1/environment-reference.json",
+      "reference_id": "std.city.night_neon_wet_asphalt.environment",
+      "role": "environment_anchor",
+      "sha256": "247ab36e80bbc2962fe91c4becab29ee102111b83f622c771f7e448710f49d64"
+    },
+    {
+      "media_type": "application/json",
+      "order": 2,
+      "path": "assets/scene-presets/std.city.night_neon_wet_asphalt/v1/lighting-reference.json",
+      "reference_id": "std.city.night_neon_wet_asphalt.lighting",
+      "role": "lighting_anchor",
+      "sha256": "19919983752cfe7f6f8633caea5915899427d177f986eeb778ff92795a75276f"
+    },
+    {
+      "media_type": "application/json",
+      "order": 3,
+      "path": "assets/scene-presets/std.city.night_neon_wet_asphalt/v1/composition-reference.json",
+      "reference_id": "std.city.night_neon_wet_asphalt.composition",
+      "role": "composition_anchor",
+      "sha256": "1303554a5b10f3a3a4d7865d3b7eeae68a6718d76521fc66f362bc0b5c7ab061"
+    },
+    {
+      "media_type": "application/json",
+      "order": 4,
+      "path": "assets/scene-presets/std.city.night_neon_wet_asphalt/v1/palette-anchor.json",
+      "reference_id": "std.city.night_neon_wet_asphalt.palette",
+      "role": "palette_anchor",
+      "sha256": "9a03414fe3f658e51cc84bad8c41f26e2670d533664e9730b0c81f672595af9a"
+    },
+    {
+      "media_type": "application/json",
+      "order": 5,
+      "path": "assets/scene-presets/std.city.night_neon_wet_asphalt/v1/negative-reference.json",
+      "reference_id": "std.city.night_neon_wet_asphalt.negative",
+      "role": "negative_reference",
+      "sha256": "71388287c49683cee3039762fe14a804846078efec7638b562fe08d3f96aebef"
+    }
+  ],
+  "schema_version": "1.0.0",
+  "source_ledger_path": "assets/scene-presets/std.city.night_neon_wet_asphalt/v1/source-ledger.json",
+  "source_ledger_sha256": "0b4e12d4a07497bb9031ffa947056d5597bde6fd30615904cc840fd48e2c8f19"
+}

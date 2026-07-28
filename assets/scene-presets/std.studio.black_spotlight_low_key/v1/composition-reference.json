@@ -1,0 +1,22 @@
+{
+  "facts": {
+    "aspect_ratio": "4:5",
+    "camera_height": "eye_level",
+    "lens_mm": 70,
+    "max_vertical_error_deg": 1,
+    "minimum_clear_space_percent": {
+      "above_hair": 8,
+      "below_footwear": 2
+    },
+    "notes": [
+      "Show the complete approved head or headwear and both shoes.",
+      "Avoid wide-angle distortion, accidental crop and merged limbs."
+    ],
+    "subject_height_percent": [
+      74,
+      78
+    ]
+  },
+  "role": "composition_anchor",
+  "schema_version": "1.0.0"
+}

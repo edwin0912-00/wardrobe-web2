@@ -1,0 +1,88 @@
+{
+  "camera": {
+    "aspect_ratio": "4:5",
+    "height": "eye_level",
+    "lens_mm": 70,
+    "max_vertical_error_deg": 1,
+    "minimum_clear_space_percent": {
+      "above_hair": 8,
+      "below_footwear": 2
+    },
+    "subject_height_percent": [
+      74,
+      78
+    ]
+  },
+  "environment": "An original pitch-black seamless photography studio, completely empty, with matte black floor and infinite void background.",
+  "family": "dramatic_studio",
+  "hard_negatives": [
+    "visible studio equipment",
+    "props",
+    "grey background",
+    "multiple light sources",
+    "crushed item detail",
+    "beauty smoothing",
+    "smoke machine",
+    "colored gels"
+  ],
+  "lighting": {
+    "fill": "near-zero fill, deep blacks with subtle rim on hair edge",
+    "finish": "polished_editorial_gloss_without_skin_smoothing_or_hdr",
+    "key": "one hard warm spotlight from upper-left creating sharp pool of light on floor and dramatic body sculpting",
+    "protected_regions": [
+      "eyes",
+      "face_identity",
+      "item_logos",
+      "item_text",
+      "critical_construction"
+    ],
+    "time_or_setup": "single hard spotlight from above-left"
+  },
+  "mvp_assets": [
+    "mood_card"
+  ],
+  "palette": [
+    "pure black",
+    "warm spotlight",
+    "dark matte floor",
+    "subtle warm rim"
+  ],
+  "post_selection_assets": [
+    "environment_plate",
+    "lighting_preview"
+  ],
+  "preset_id": "std.studio.black_spotlight_low_key",
+  "prompt_path": "prompts/scenes/std.studio.black_spotlight_low_key.txt",
+  "source_authorities": [
+    {
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit",
+        "brands",
+        "readable_text",
+        "exact_architecture"
+      ],
+      "role": "lighting_composition_palette_inspiration",
+      "url": "https://unsplash.com/photos/black-microphone-in-dimmed-room-mC1J-w3-Z54",
+      "use": "pitch black studio void and directional spotlight behavior only"
+    },
+    {
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit",
+        "brands",
+        "readable_text",
+        "exact_architecture"
+      ],
+      "role": "environment_material_inspiration",
+      "url": "https://unsplash.com/photos/young-woman-in-streetwear-posing-against-black-wall-r3am9AchMDH",
+      "use": "pure black seamless backdrop absorption and rim-light separation only"
+    }
+  ],
+  "ui_name_uk": "Чорна студія",
+  "version": "1.0.0"
+}
