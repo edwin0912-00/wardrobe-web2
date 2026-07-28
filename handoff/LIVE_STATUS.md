@@ -8,6 +8,15 @@
 
 <!-- entries -->
 
+### 2026-07-28 18:31 · claude-code-20260727-557761 · DONE
+
+хендоф-команда зроблена клон-незалежною (git rev-parse --show-toplevel) у README, UPDATE, handoff і resume-доку; роздатковий файл у Downloads перезібраний
+
+Файли: README.md, UPDATE.md, handoff/**, docs/AGENT_RESUME_HANDOFF_UA.md
+
+HEAD на момент запису: `24d71d1`
+
+
 ### 2026-07-28 18:27 · claude-code-20260727-557761 · DONE
 
 GITHUB AGENT HANDOFF названий і зв'язаний: handoff/GITHUB_AGENT_HANDOFF.md, посилання з README і оголошення на дошці
