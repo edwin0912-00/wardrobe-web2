@@ -4,6 +4,11 @@ Protocol ACK: 985fcec
 
 ## BETA-FULL-LOOK-LOCK-001 — HANDOFF: UPSTREAM FIRST-APPEARANCE CAPTURE REQUIRED
 
+## Re-opened — 2026-07-29
+
+- Direct operator authorization: implement the real first-appearance producer and test it on the real pipeline after local contract checks.
+- Reserved implementation boundary: `RunService` + `GarmentConditioner` + isolated first-appearance test. No `app.js`, video transport, provider credential, or another agent's active route is touched.
+
 Implementation commit: `58dd6370feb0d1ecfe3f3016618f95545d256e26` (pushed to `beta`; not live-claimed).
 
 Final correction: the registry-only `FULL_LOOK_ITEMS_REQUIRED` pre-gate has been removed; no runtime duplicate remains. The remaining task is upstream: make `RunService` crop and dossier a visibly present unregistered item from the approved full-body look, then bind it under the existing hash-verified approved-item evidence contract.
