@@ -8,6 +8,15 @@
 
 <!-- entries -->
 
+### 2026-07-28 20:28 · claude-code-20260727-557761 · PROGRESS
+
+рішення оператора по відео: аспект 16:9. generate_audio=false завжди (модельний звук у доставку не йде). Аспект і тривалість — параметри провайдера, не промт. Будую higgsfield-video-provider на CLI seedance_2_0.
+
+Файли: src/providers/higgsfield-video-provider.js, test/video/**
+
+HEAD на момент запису: `7fde738`
+
+
 ### 2026-07-28 20:22 · claude-code-20260727-557761 · INTENT
 
 беру BETA-VIDEO-SEEDANCE-001: fashion video через Seedance 2.0 з залокованого образу/кадру. Клієнтську частину post-shoot не чіпаю — вона за codex-live. Спершу читаю відео-канон і провайдер-контракт, потім провайдер + тести, потім wire-контракт для UI.
