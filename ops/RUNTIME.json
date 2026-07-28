@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0.0",
   "purpose": "Shared operational truth for every agent and every chat. Read it before touching the host or the provider; update it the moment you change either. Prose belongs in STATE.md; this file holds only facts a machine can check.",
-  "updated_at": "2026-07-28T17:20:00.000Z",
+  "updated_at": "2026-07-28T18:40:00.000Z",
   "updated_by": "claude-code-20260727-557761",
   "host": {
     "role": "beta and production deployment host",
@@ -21,27 +21,27 @@
     "verified_at": "2026-07-28T17:03:00.000Z"
   },
   "generation": {
-    "active_provider": "codex-imagegen-test",
+    "active_provider": "higgsfield",
     "vlm": "codex",
-    "changed_by": "claude-code-20260727-a3f1c8",
-    "reason": "The Higgsfield CLI build on the host (1.1.19) fails every call; the codex path is the only live transport there. This is a broken build, not a dead service and not a missing login."
+    "changed_by": "claude-code-20260727-557761",
+    "reason": "The host CLI was downgraded from the broken 1.1.19 to the working 0.2.3 and re-authenticated by the operator, so the Higgsfield route answers again. The previous switch to the codex path by claude-code-20260727-a3f1c8 was correct while the CLI was broken.",
+    "rollback": "one line in run-beta-daemon.sh plus a kickstart; the pre-change copy is kept as run-beta-daemon.sh.bak-20260728-preprovider"
   },
   "providers": {
     "higgsfield": {
       "kind": "cli",
-      "note": "Higgsfield is invoked as a CLI binary, never as an HTTP API. Two accounts exist: nebula.marketing@gen.tech and nebula.marketing-remote@gen.tech. Device login stores one shared token, so logging in replaces the previous account.",
+      "note": "Invoked as a CLI binary, never as an HTTP API. Both builds target higgsfield.ai; api.higgsfield.ai returning 521 is an unrelated subdomain. Two accounts exist and the device login stores one shared token, so a new login replaces the previous account.",
       "operator_mac": {
-        "binary": "/opt/homebrew/bin/higgsfield",
         "version": "0.2.3",
         "status": "working",
-        "account": "nebula.marketing-remote@gen.tech",
-        "credits": 1283
+        "account": "nebula.marketing-remote@gen.tech"
       },
       "host": {
-        "version": "1.1.19",
-        "status": "broken_build",
-        "last_error": "request failed (no response received)",
-        "fix": "install the working 0.2.3 build on the host; the stored token is valid, re-authentication is not the fix"
+        "version": "0.2.3",
+        "status": "working",
+        "account": "nebula.marketing@gen.tech",
+        "credits": 3707,
+        "history": "A homebrew upgrade to 1.1.19 broke every call and the stored credentials file disappeared. Fixed by npm i -g @higgsfield/cli@0.2.3 plus a fresh device login. Pin the version before any future upgrade."
       }
     },
     "openrouter": {
