@@ -67,6 +67,15 @@ and activate the exact preview SHA for a visual beta smoke.
 ---
 
 Agent ID: codex-main
+Task ID: BETA-FULL-LOOK-LOCK-001 status correction
+State: NOT_READY_FOR_BETA_DEPLOY
+Decision: removed the premature deploy-ready state on the operator's direct instruction.
+Evidence: current beta includes `13e3161` schema regeneration and `58703b9` fixture reconciliation; `node --test test/web/editorial-shoot-service.test.js` is 14/14 PASS. A clean web-suite proof does not yet exist; direct `create-universe-units.test.js` is red because its expected state predates BETA-MALE-UNITS-001.
+weakened_checks: none. No deployment or provider call.
+
+---
+
+Agent ID: codex-main
 Task ID: BETA-LOOK-ACTION-UI-002
 Protocol ACK: 00cb600
 State: STARTED
