@@ -12,6 +12,12 @@ Deploy blocker: immutable product-release build stops at pre-existing invalid
 editorial preview sidecar `editorial.edwin_novak.organic_contrast` before it
 can package the preview. No bypass/manual file copy was used.
 weakened_checks: none.
+
+State: READY_FOR_BETA_DEPLOY
+Exact product commit: `969bc57`.
+Deployment request: publish the standalone route
+`/atelier-choice-prototype.html` with the exact tested SHA, then visually
+smoke tap selection on one mobile viewport and one desktop viewport.
 Help request: NONE.
 
 Implementation checkpoint: the prototype composes the paper, two swatches,
