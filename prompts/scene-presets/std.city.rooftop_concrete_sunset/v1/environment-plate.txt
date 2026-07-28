@@ -1,9 +1,0 @@
-Use case: photorealistic-natural
-Asset type: production environment plate for later full-body fashion compositing
-Primary request: Create an original, empty premium environment. This must be an environment plate only, with no person or clothing.
-Scene/backdrop: invented concrete rooftop terrace with an out-of-focus city skyline in bokeh, one clean vanishing point or coherent depth, contemporary editorial simplicity, believable texture, enough open ground at center for a full-body subject and a physically coherent future contact shadow. Architecture/nature must be invented and non-identifiable, not a real landmark.
-Style/medium: high-end contemporary fashion campaign photography, photorealistic, natural material grain, polished magazine color without HDR.
-Composition/framing: vertical 4:5, eye-level 50 mm equivalent, straight verticals, camera approximately 7-9 meters from the intended central subject position, generous but controlled headroom and floor space, no wide-angle distortion, center staging area unobstructed.
-Lighting/mood: sunset lighting with strong cool-warm contrast, directional warm key, cool ambient fill, highlights controlled, no flare in the central subject zone.
-Color palette: sunset orange, cool concrete grey, dusky blue, deep shadows, restrained neutral grade where appropriate.
-Constraints: empty environment plate; no people, faces, mannequins, silhouettes, animals, vehicles, bicycles, signage, readable text, logos, storefront branding, café furniture, trash, wet pavement (unless specified in setting), monuments or distinctive landmark geometry. No added subject shadow without a subject. No watermark. No borders or labels.
