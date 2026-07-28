@@ -23,6 +23,29 @@ approve the exact beta-targeted activation path, then visually smoke tap
 selection on one mobile viewport and one desktop viewport.
 Help request: NONE.
 
+Implementation checkpoint: `914ebf6` replaces the equal three-card row in
+the actual saved-look panel with a single amber primary action, four compact
+category modules and one full-width Real-time Look action. Standard background
+and Create Universe now enter their existing picker on the correct tab. Live
+is unchanged and executable; Improve and Fashion Video are disabled and make
+no false transport/provider claim. Cache references for app, picker and result
+CSS were versioned with this change.
+Focused proof: `node --test test/web/profile-ui-flow.test.js` — 9/9 PASS;
+`node --test test/web/atelier-choice-prototype.test.js` — 3/3 PASS;
+`git diff --check` PASS. The new control is absent from parent `f6fde02`, so
+the added focused assertion is a real regression test, not a pre-existing
+green test.
+Visual check: inspected the isolated static surface and its action dock. A full
+profile smoke remains pending beta activation; the isolated clone lacks the
+Fastify dependency required to launch its API/profile runtime locally.
+Deploy blocker: deployment target enforcement still accepts only protected
+`iwas.madeforthisjob.com`, never beta. No target substitution or manual
+release was attempted.
+weakened_checks: none.
+Next action: release owner supplies the exact beta-targeted activation path,
+then run one saved-look mobile and desktop smoke of Background, Photoshoot and
+Real-time Look.
+
 Implementation checkpoint: the prototype composes the paper, two swatches,
 lamp, replaceable look slot and five controls from independent DOM/CSS layers.
 Selecting a control updates only the local explanation and pressed state; no
