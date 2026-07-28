@@ -36,7 +36,7 @@ import {
 
 const ZERO_SHA256 = '0'.repeat(64);
 const NO_CHANGE = Symbol('NO_CHANGE');
-const RESERVED_DIRECTORIES = new Set(['.locks', 'incidents']);
+const RESERVED_DIRECTORIES = new Set(['.locks', 'incidents', 'quarantine']);
 const LOCK_WAIT_MS = 10_000;
 const LOCK_POLL_MS = 20;
 const PROCESS_STARTED_AT_MS = Date.now() - Math.round(process.uptime() * 1_000);
@@ -704,10 +704,22 @@ export class EditorialShootService {
       } catch {
         continue;
       }
-      await this.#withLock(entry.name, 'state', () => this.#recoverTransactions(entry.name));
-      const state = await this.#read(entry.name);
-      if (!state) continue;
-      await this.listEvents(entry.name);
+      // One unloadable shoot must cost that shoot, never the process. Before
+      // this guard, a contract change (58dd637 re-locking wide_campaign_coda to
+      // wide_full_body) made every pre-change persisted shoot fail validation
+      // here, initialize() threw, and the whole app refused to boot — the same
+      // disease the scene service already cures with its malformed-scene
+      // quarantine, so this is that exact pattern applied to editorial shoots.
+      let state;
+      try {
+        await this.#withLock(entry.name, 'state', () => this.#recoverTransactions(entry.name));
+        state = await this.#read(entry.name);
+        if (!state) continue;
+        await this.listEvents(entry.name);
+      } catch (error) {
+        await this.#quarantineMalformedShoot(entry.name, error);
+        continue;
+      }
       if (EDITORIAL_TERMINAL_SHOOT_STATES.has(state.status)
         || [
           EDITORIAL_SHOOT_STATES.BIBLE_PENDING_APPROVAL,
@@ -746,6 +758,30 @@ export class EditorialShootService {
       }
       this.start(entry.name);
     }
+  }
+
+  async #quarantineMalformedShoot(shootId, error) {
+    const createdAt = nowIso(this.clock);
+    const suffix = `${createdAt.replaceAll(/[^0-9]/g, '')}-${randomUUID()}`;
+    const quarantinePath = path.join(this.rootDirectory, 'quarantine', `malformed-${shootId}-${suffix}`);
+    await mkdir(path.dirname(quarantinePath), { recursive: true });
+    await rename(this.shootDirectory(shootId), quarantinePath);
+    const incident = {
+      schema_version: EDITORIAL_SCHEMA_VERSION,
+      incident_id: `incident_${randomUUID()}`,
+      shoot_id: shootId,
+      status: 'QUARANTINED',
+      code: 'MALFORMED_PERSISTED_EDITORIAL_SHOOT',
+      message: `Persisted editorial shoot failed strict validation at boot: ${error?.message ?? error}`,
+      quarantine_relative_path: `quarantine/${path.basename(quarantinePath)}`,
+      created_at: createdAt,
+    };
+    const incidentDirectory = path.join(this.rootDirectory, 'incidents');
+    await mkdir(incidentDirectory, { recursive: true });
+    await writeFile(
+      path.join(incidentDirectory, `${shootId}-${suffix}.json`),
+      `${JSON.stringify(incident, null, 2)}\n`,
+    );
   }
 
   async createShoot({

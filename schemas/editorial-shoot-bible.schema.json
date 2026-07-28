@@ -124,7 +124,7 @@
                 "camera": {
                   "allOf": [
                     { "$ref": "#/$defs/camera" },
-                    { "properties": { "framing": { "const": "three_quarter" } } }
+                    { "properties": { "framing": { "const": "wide_full_body" } } }
                   ]
                 }
               }

@@ -23,6 +23,11 @@ export const EDITORIAL_MODE_IDS = Object.freeze([
   'shoot.window_gobo_warm',
   'shoot.grey_studio_stride',
   'shoot.sky_dune_surreal',
+  'shoot.hardsun_brick_doorway',
+  'shoot.overcast_street_stride',
+  'shoot.grey_wall_gloss',
+  'shoot.ochre_stage_tailoring',
+  'shoot.shutter_amber_interior',
 ]);
 
 export const EDITORIAL_QA_GATES = Object.freeze([

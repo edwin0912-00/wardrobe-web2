@@ -109,13 +109,21 @@ test('READY editorial and Create Universe modes compile six strict per-shot pack
     'editorial.edwin_novak.organic_contrast',
     'editorial.edwin_novak.urban_monochrome',
     'shoot.skylight_haze',
+    'shoot.terracotta_hardlight',
     'shoot.window_gobo_warm',
     'shoot.grey_studio_stride',
     'shoot.sky_dune_surreal',
+    'shoot.hardsun_brick_doorway',
+    'shoot.overcast_street_stride',
+    'shoot.grey_wall_gloss',
+    'shoot.ochre_stage_tailoring',
+    'shoot.shutter_amber_interior',
   ]);
+  // Terracotta's six original sheets were restored in 0577846; the unit is
+  // integrity-ready again, so the catalog must say READY, not the old block.
   assert.equal(
     catalog.modes.find((mode) => mode.mode_id === 'shoot.terracotta_hardlight')?.source_set_status,
-    'BLOCKED_INTEGRITY_MISMATCH',
+    'READY',
   );
 
   for (const modeId of catalog.generation_mode_ids) {

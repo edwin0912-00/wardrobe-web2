@@ -47,7 +47,7 @@ function makeBible(overrides = {}) {
     sculptural_three_quarter: ['three_quarter', [68, 80]],
     interference_frame: ['three_quarter', [62, 74]],
     material_or_accessory_detail: ['detail', [55, 90]],
-    wide_campaign_coda: ['three_quarter', [52, 64]],
+    wide_campaign_coda: ['wide_full_body', [52, 64]],
   };
   return {
     schema_version: '1.0.0',

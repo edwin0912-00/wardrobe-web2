@@ -181,6 +181,11 @@ const READY_EDITORIAL_MODE_IDS = new Set([
   'shoot.window_gobo_warm',
   'shoot.grey_studio_stride',
   'shoot.sky_dune_surreal',
+  'shoot.hardsun_brick_doorway',
+  'shoot.overcast_street_stride',
+  'shoot.grey_wall_gloss',
+  'shoot.ochre_stage_tailoring',
+  'shoot.shutter_amber_interior',
 ]);
 const EDITORIAL_SHOT_SLOTS = new Set([
   'clean_identity_hero',
@@ -747,7 +752,10 @@ function validateEditorialPresetCamera(camera, editorial) {
     sculptural_three_quarter: 'three_quarter',
     interference_frame: 'three_quarter',
     material_or_accessory_detail: 'detail',
-    wide_campaign_coda: 'three_quarter',
+    // 58dd637 re-locked the coda to full length in editorial-shoot-contract but
+    // left this second copy of the table behind, so every compiled coda snapshot
+    // failed here. Same value in both owners or the slot is unshootable.
+    wide_campaign_coda: 'wide_full_body',
   }[editorial.shot_slot];
   if (camera.framing !== expectedFraming) {
     throw new Error('Resolved editorial camera framing does not match its shot slot');
