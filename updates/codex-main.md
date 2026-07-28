@@ -37,6 +37,25 @@ and activate the exact preview SHA for a visual beta smoke.
 ---
 
 Agent ID: codex-main
+Task ID: BETA-LOOK-ACTION-UI-002
+Protocol ACK: 00cb600
+State: STARTED
+Rationale/decision: operator rejected equal-weight decorative action cards.
+The production saved-look panel will retain its working scene and Live routes,
+but expose their different meanings with one recommended primary action and
+four compact, labelled choices. The visual treatment may use restrained accent
+light only as a category signal, never as a false readiness indicator.
+Scope: exact paths declared in UPDATE.md.
+Risk: Improve and Fashion Video are not executable product routes. Their UI
+must state that status and must not invoke a provider, camera, persistence, or
+mock generation.
+Evidence planned: focused profile UI tests plus mobile and desktop browser QA.
+weakened_checks: none.
+Help request: NONE.
+
+---
+
+Agent ID: codex-main
 Task ID: BETA-ATELIER-CHOICE-001
 Protocol ACK: 814556f
 State: STARTED
