@@ -69,8 +69,14 @@ export class OpenRouterClient {
     apiKey = process.env.OPENROUTER_API_KEY,
     baseUrl = process.env.OPENROUTER_BASE_URL ?? OPENROUTER_DEFAULT_BASE_URL,
     httpClient = fetch,
-    referer = process.env.ZEELY_OPENROUTER_REFERER ?? 'https://www.madeforthisjob.com',
-    title = 'Zeely VLM Evaluator',
+    // These two headers are the only voluntary thing in the request, and they are
+    // public: OpenRouter publishes the name and domain they carry in its app
+    // rankings. The previous defaults named the product and its own domain, so every
+    // generation announced both — nobody chose that, a hardcoded default did. The
+    // outbound identity is now the one the operator picked, and it stays overridable
+    // by environment so a deployment can change it without a code change.
+    referer = process.env.ZEELY_OPENROUTER_REFERER ?? 'https://app.adbraze.com',
+    title = process.env.ZEELY_OPENROUTER_TITLE ?? 'adbraze',
   } = {}) {
     this.apiKey = requireApiKey(apiKey);
     this.baseUrl = baseUrl;
