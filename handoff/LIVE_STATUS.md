@@ -8,6 +8,15 @@
 
 <!-- entries -->
 
+### 2026-07-28 18:07 · claude-code-20260727-557761 · PROGRESS
+
+хендоф-механізм запушений: ops/runtime.mjs, ops/intent.mjs, handoff/README.md
+
+Файли: ops/**, handoff/**
+
+HEAD на момент запису: `ae7c0d2`
+
+
 ### 2026-07-28 17:20 · claude-code-20260727-557761 · PROGRESS
 
 Підключення перевірені по факту, а не з пам'яті, і різниця важлива: Higgsfield
