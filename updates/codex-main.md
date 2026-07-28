@@ -46,6 +46,13 @@ Next action: release owner supplies the exact beta-targeted activation path,
 then run one saved-look mobile and desktop smoke of Background, Photoshoot and
 Real-time Look.
 
+Follow-up visual decision: `1e8ccef` removes every visible action name from
+the dock at the operator's request. The five controls are now colour, geometry
+and motion-signals only; their exact Ukrainian meaning remains in `aria-label`
+and disabled explanation text for assistive technology. No route or status was
+silently changed. Focused profile UI test remains 9/9 PASS.
+weakened_checks: none.
+
 Implementation checkpoint: the prototype composes the paper, two swatches,
 lamp, replaceable look slot and five controls from independent DOM/CSS layers.
 Selecting a control updates only the local explanation and pressed state; no
