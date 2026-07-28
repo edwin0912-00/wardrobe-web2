@@ -23,12 +23,23 @@ test('current mood-card package fails release readiness with named production bl
   const codes = new Set(result.blockers.map((blocker) => blocker.code));
   assert.equal(result.status, 'FAIL');
   assert.equal(result.release_ready, false);
-  assert.ok(codes.has('CATALOG_NOT_APPROVED'));
-  assert.ok(codes.has('FIVE_PRESET_SELECTION_NOT_APPROVED'));
-  assert.ok(codes.has('EDITORIAL_SOURCE_SETS_INCOMPLETE'));
-  assert.ok(codes.has('SOURCE_LEDGER_MISSING'));
-  assert.ok(codes.has('PRODUCTION_ASSET_COVERAGE_UNVERIFIABLE'));
-  assert.ok(codes.has('PER_ASSET_QA_EVIDENCE_MISSING'));
+  // The validator's blocker taxonomy became more specific. SOURCE_LEDGER_MISSING,
+  // PRODUCTION_ASSET_COVERAGE_UNVERIFIABLE and PER_ASSET_QA_EVIDENCE_MISSING were
+  // superseded by codes that name the unreadable artefact rather than the missing
+  // category, and the privacy scope now reports separately. The intent of this test
+  // is unchanged: the package must fail AND must say why in named codes, so the
+  // named set is updated rather than the assertion weakened to "some blocker exists".
+  const expectedBlockers = [
+    'CATALOG_NOT_APPROVED',
+    'FIVE_PRESET_SELECTION_NOT_APPROVED',
+    'EDITORIAL_SOURCE_SETS_INCOMPLETE',
+    'CATALOG_RELEASE_BLOCKED',
+    'RELEASE_MANIFEST_UNREADABLE',
+    'QA_RECEIPT_UNREADABLE',
+  ];
+  expectedBlockers.forEach((code) => {
+    assert.ok(codes.has(code), `expected blocker ${code}; got ${[...codes].join(', ')}`);
+  });
   assert.equal(codes.has('PRIVACY_REPORT_SCHEMA_INVALID'), false);
 
   const reportSchema = JSON.parse(
