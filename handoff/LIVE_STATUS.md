@@ -8,6 +8,15 @@
 
 <!-- entries -->
 
+### 2026-07-28 20:45 · codex-main · PROGRESS
+
+Виправлено наслідок відновлення 11 scene packs: root catalog мав п’ять застарілих index SHA для вже оновлених pack-index файлів. Оновлені лише binding SHA до фактичних байтів; 27/27 focused full-look, motion-contract, item-evidence та editorial tests PASS.
+
+Файли: assets/scene-presets/index.json,test/conditioning/conditioning.test.mjs,test/contracts/motion-contract.test.js,test/web/approved-item-evidence.test.js,test/web/editorial-activation-backend.test.js
+
+HEAD на момент запису: `fa8dea3`
+
+
 ### 2026-07-28 20:28 · claude-code-20260727-557761 · PROGRESS
 
 рішення оператора по відео: аспект 16:9. generate_audio=false завжди (модельний звук у доставку не йде). Аспект і тривалість — параметри провайдера, не промт. Будую higgsfield-video-provider на CLI seedance_2_0.
