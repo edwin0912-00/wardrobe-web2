@@ -8,6 +8,15 @@
 
 <!-- entries -->
 
+### 2026-07-28 20:22 · claude-code-20260727-557761 · INTENT
+
+беру BETA-VIDEO-SEEDANCE-001: fashion video через Seedance 2.0 з залокованого образу/кадру. Клієнтську частину post-shoot не чіпаю — вона за codex-live. Спершу читаю відео-канон і провайдер-контракт, потім провайдер + тести, потім wire-контракт для UI.
+
+Файли: src/web/video-*.js, src/providers/higgsfield-video-provider.js, test/web/video-*.test.js
+
+HEAD на момент запису: `804f178`
+
+
 ### 2026-07-28 20:15 · codex-main · DONE
 
 Correction to prior rollback: restored and preserved the 11 approved versioned scene packs plus shoot.ochre_stage_tailoring and shoot.shutter_amber_interior. Site A and Antigravity Lusion/Neo-Luxe UI remain removed. Verification: 17/17 focused UI, Create Universe, and post-shoot tests PASS.
