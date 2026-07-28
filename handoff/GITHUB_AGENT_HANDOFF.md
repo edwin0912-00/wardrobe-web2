@@ -11,7 +11,7 @@ Claude Code і навпаки, у будь-який момент, без уто�
 ## Стартова команда
 
 ```bash
-cd ~/wardrobe-claude-code-20260727-557761 && git pull --rebase --autostash origin beta && node ops/runtime.mjs --verify && sed -n '1,80p' handoff/LIVE_STATUS.md
+cd "$(git rev-parse --show-toplevel)" && git pull --rebase --autostash origin beta && node ops/runtime.mjs --verify && sed -n '1,80p' handoff/LIVE_STATUS.md
 ```
 
 Три речі одразу: свіжа гілка, перевірений стан інфраструктури, і останні записи

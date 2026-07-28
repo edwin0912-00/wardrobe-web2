@@ -13,7 +13,7 @@
 Єдина точка входу: **[`handoff/GITHUB_AGENT_HANDOFF.md`](handoff/GITHUB_AGENT_HANDOFF.md)**.
 
 ```bash
-cd ~/wardrobe-claude-code-20260727-557761 && git pull --rebase --autostash origin beta && node ops/runtime.mjs --verify && sed -n '1,80p' handoff/LIVE_STATUS.md
+cd "$(git rev-parse --show-toplevel)" && git pull --rebase --autostash origin beta && node ops/runtime.mjs --verify && sed -n '1,80p' handoff/LIVE_STATUS.md
 ```
 
 Живий статус — `handoff/LIVE_STATUS.md`, операційна правда — `ops/RUNTIME.json`.

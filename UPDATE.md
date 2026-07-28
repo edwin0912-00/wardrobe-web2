@@ -206,7 +206,7 @@ fashion shoot → Video або Live»; його треба переписати 
 посилання з кореневого `README.md`, щоб її знайшов і той, хто прийшов уперше.
 
 ```bash
-cd ~/wardrobe-claude-code-20260727-557761 && git pull --rebase --autostash origin beta && node ops/runtime.mjs --verify && sed -n '1,80p' handoff/LIVE_STATUS.md
+cd "$(git rev-parse --show-toplevel)" && git pull --rebase --autostash origin beta && node ops/runtime.mjs --verify && sed -n '1,80p' handoff/LIVE_STATUS.md
 ```
 
 Три файли, які тримають це живим:
