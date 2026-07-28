@@ -140,12 +140,15 @@
     }
 
     function askPerson() {
+      /* No pose dictated. The full-body mandate was the earlier assumption — the owner
+       * rejected it outright — so this slot now asks for a photo, not a stance. `full` stays
+       * the internal name only because hasFull()/gates elsewhere key on it; nothing here
+       * tells the viewer how to stand or frame themselves. */
       return '<div class="pslots">' +
-          photoSlot('full', 'на весь зріст', 'потрібне') +
+          photoSlot('full', 'фото', 'потрібне') +
           photoSlot('face', 'обличчя', 'за бажанням') +
         '</div>' +
-        '<p class="glass__lede">Зріст — зі ступнями, інакше образ нема на чому тримати. ' +
-        'Обличчя окремо, бо на повному кадрі його не прочитати.</p>';
+        '<p class="glass__lede">Обличчя окремо — за бажанням, якщо хочете точніше.</p>';
     }
 
     function askItems() {
@@ -336,7 +339,7 @@
         });
       var hint = askRoot.querySelector('[data-hint]');
       if (hint) {
-        hint.textContent = (step === 0 && !hasFull()) ? 'потрібне одне фото на весь зріст'
+        hint.textContent = (step === 0 && !hasFull()) ? 'потрібне одне фото'
                          : (step === 1 && !hasItems()) ? 'додайте хоча б одну річ'
                          : lock ? 'камера рухається — рішення на зупинці' : '';
       }
