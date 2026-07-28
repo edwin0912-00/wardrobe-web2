@@ -2,9 +2,11 @@
 
 Protocol ACK: 985fcec
 
-## BETA-FULL-LOOK-LOCK-001 — IMPLEMENTED, AWAITING BETA ACTIVATION
+## BETA-FULL-LOOK-LOCK-001 — HANDOFF: UPSTREAM FIRST-APPEARANCE CAPTURE REQUIRED
 
 Implementation commit: `58dd6370feb0d1ecfe3f3016618f95545d256e26` (pushed to `beta`; not live-claimed).
+
+Final correction: the registry-only `FULL_LOOK_ITEMS_REQUIRED` pre-gate has been removed; no runtime duplicate remains. The remaining task is upstream: make `RunService` crop and dossier a visibly present unregistered item from the approved full-body look, then bind it under the existing hash-verified approved-item evidence contract.
 
 - Pipeline: `LOOK.04–06` → `VIDEO.01`.
 - Direct operator instruction: make bottoms and footwear first-class locked items; an item visible in delivery must be locked. Existing items use real crops; only absent bottoms may be synthesized once, disclosed and frozen.

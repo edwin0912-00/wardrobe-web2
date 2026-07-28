@@ -228,7 +228,7 @@ RUN → пайплайн-граф UI: SAVED/ACTIVE/WAIT/SKIP/REUSE/STOP
 
 Нюанс (`scene-contract.js:272`): в editorial headroom — **advisory**, коли голова видима повністю (`aboveIsAdvisoryWhenHeadVisible: true`); вирішує `full_head_visible`, а не проксі-відсоток. У стандартних сценах headroom БЛОКУЄ.
 
-**wide_campaign_coda** додатково: framing строго `wide_full_body` і **`FULL_LOOK_ITEMS_REQUIRED`** — кадр не стартує без locked `top` + `bottom` + `footwear` evidence (повний образ; заборонено «домальовувати» стиль).
+**wide_campaign_coda** додатково: framing строго `wide_full_body`. Якщо у full-body master look уже видно незареєстрований низ або взуття, ці пікселі є доказом першої появи: їх треба crop+lock-нути перед повторним використанням, а не замінювати синтезом. Для справді top-only look, де цих пікселів немає, потрібен окремий declared once-only lock або новий input; це не фальшивий pre-generation `FULL_LOOK_ITEMS_REQUIRED`.
 
 ### C-2. Дев'ять QA-гейтів кожного кадру
 
@@ -295,7 +295,7 @@ RUN → пайплайн-граф UI: SAVED/ACTIVE/WAIT/SKIP/REUSE/STOP
 | N4 | Disabled-мод | клік по картці BLOCKED-мода | нічого не відбувається (кнопка disabled); POST руками → відмова, генерації нема |
 | N5 | 8-ме фото / файл > 20MB | форма/curl | multipart-ліміт, аплоад відбитий |
 | N6 | approve-hero не в тому стані | `POST …/approve-hero` коли статус ≠ `HERO_PENDING_APPROVAL` | відмова (перевірка стану, `editorial-shoot-service.js:984`) |
-| N7 | Coda без повного образу | зйомка на образі без locked bottom/footwear | кадр coda відбитий `FULL_LOOK_ITEMS_REQUIRED`; «домальованих» штанів БУТИ НЕ МОЖЕ |
+| N7 | Coda з незафіксованим низом/взуттям | full-body look без registry-рядка предмета | кадр не відкидається тільки через відсутність registry-рядка: видимі пікселі стають кандидатом на first-appearance crop+lock; синтетична заміна заборонена |
 | N8 | Рестарт із битою зйомкою | (тільки в погодженому вікні) поклади в `editorial-shoots/` копію зйомки зі старим framing і рестартни | сервер ПІДНЯВСЯ; зйомка в `quarantine/`, інцидент `MALFORMED_PERSISTED_EDITORIAL_SHOOT`; сайт 200 |
 
 ---
@@ -328,7 +328,7 @@ A: A1 ✅ (draft 250ms ok) … A6 ✅
 B: B1 ✅ 202/1.1s · B2 ✅ SSE · B3 ✅ 218s QA_PASS · … | scene_id=…, evidence: scene.json, image sha256=…
 C: C1 ✅ · C2 ✅ hero 387s QA_PASSED · C3 ✅ approve → SERIES_RUNNING · C4 ⚠️ slot interference_frame NEEDS_RETRY (QA gate SCENE_MATCH, retry ok) · C5 ✅ 6/6
 D: D1–D9 ✅ (D4: консоль чиста)
-N: N1 ✅ 409 · … N7 ✅ FULL_LOOK_ITEMS_REQUIRED
+N: N1 ✅ 409 · … N7 ✅ first-appearance item is captured/locked before reuse
 Витрачені генерації: <n> (сцен: x, кадрів зйомки: y)
 Вердикт: PASS / FAIL(кроки …)
 ```

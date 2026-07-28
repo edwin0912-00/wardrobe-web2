@@ -177,9 +177,9 @@ const SLOT_CONTENT = withVerticalLock({
     title: 'Широкий campaign-фінал',
     objective: 'Close the series with a wide campaign frame that preserves the exact complete person and look inside strong original negative space.',
     lens_mm: 35,
-    // This becomes full length only because the SceneService now refuses the
-    // coda before a locked top, bottom and footwear set is bound. No styling
-    // completion may fill the lower half of this delivery frame.
+    // A full-body coda makes any visible lower garment or footwear a
+    // first-appearance evidence candidate. Capture those existing pixels into
+    // an immutable item lock before reuse; never replace them with synthesis.
     framing: 'wide_full_body',
     height: 'waist_level',
     angle: 'Waist-level wide composition with corrected verticals and no wide-angle body distortion.',
