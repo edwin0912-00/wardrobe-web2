@@ -4,6 +4,8 @@ import { mkdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 
+import { buildLiveLookReferenceCard } from './live-look-reference.js';
+
 export const PROFILE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const TOKEN_BYTES = 32;
 const TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/;
@@ -654,6 +656,45 @@ export class ProfileService {
       image: verified.image,
       receipt: verified.receipt,
       approved_item_evidence: approvedItemEvidence,
+    };
+  }
+
+  // The Live mirror's only legitimate person-free reference. It goes through the
+  // same lock as every other consumer — the look's receipt, its QA gates and its
+  // item evidence — and then composites the already-verified cutouts. The person
+  // is never part of it: on the mirror the person arrives on the camera track,
+  // and a second identity in the reference is exactly the drift this lock exists
+  // to prevent.
+  async approvedLookLiveReference(profileId, lookId, runService) {
+    const reference = await this.approvedLookReference(profileId, lookId, runService);
+    const resolved = await this.resolveApprovedLook(reference, runService);
+    if (!resolved.approved_item_evidence) {
+      throw new ProfileError(
+        409,
+        'LOOK_ITEM_EVIDENCE_INVALID',
+        'Saved look item evidence is missing or invalid',
+      );
+    }
+    let card;
+    try {
+      card = await buildLiveLookReferenceCard(resolved.approved_item_evidence);
+    } catch (error) {
+      throw new ProfileError(
+        error?.status ?? 422,
+        error?.code ?? 'LIVE_REFERENCE_INVALID',
+        error?.message ?? 'Live reference could not be built',
+      );
+    }
+    return {
+      look_id: resolved.look_id,
+      source_run_id: resolved.source_run_id,
+      image_sha256: reference.image_sha256,
+      receipt_sha256: reference.receipt_sha256,
+      reference_sha256: card.sha256,
+      width: card.width,
+      height: card.height,
+      items: card.items,
+      image: card.image,
     };
   }
 
@@ -1329,6 +1370,47 @@ export async function registerProfileRoutes(app, {
 
   app.get('/api/profile/avatars/:avatarId/image', async (request, reply) => serveProfileImage(request, reply, 'avatar'));
   app.get('/api/profile/looks/:lookId/image', async (request, reply) => serveProfileImage(request, reply, 'look'));
+
+  // Two views of the same locked artifact: the binding a caller must echo back,
+  // and the bytes themselves. Both fail closed — an unverifiable look, missing
+  // item evidence or an incomplete set answers with a code, never with a
+  // best-effort image.
+  app.get('/api/profile/looks/:lookId/live-reference', async (request, reply) => {
+    const session = await resolveRequestProfile(request, reply);
+    const built = await service.approvedLookLiveReference(
+      session.profileId,
+      request.params.lookId,
+      runService,
+    );
+    return reply
+      .header('Cache-Control', 'private, no-store')
+      .header('Vary', 'Cookie')
+      .send({
+        look_id: built.look_id,
+        image_sha256: built.image_sha256,
+        receipt_sha256: built.receipt_sha256,
+        reference_sha256: built.reference_sha256,
+        width: built.width,
+        height: built.height,
+        items: built.items,
+      });
+  });
+
+  app.get('/api/profile/looks/:lookId/live-reference.png', async (request, reply) => {
+    const session = await resolveRequestProfile(request, reply);
+    const built = await service.approvedLookLiveReference(
+      session.profileId,
+      request.params.lookId,
+      runService,
+    );
+    return reply
+      .type('image/png')
+      .header('Cache-Control', 'private, no-store')
+      .header('Vary', 'Cookie')
+      .header('X-Live-Reference-Sha256', built.reference_sha256)
+      .header('Content-Disposition', 'inline; filename="live-reference.png"')
+      .send(built.image);
+  });
 
   return {
     cookieName,
