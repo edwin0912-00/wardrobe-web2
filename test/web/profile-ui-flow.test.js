@@ -5,6 +5,7 @@ const flow = await import('../../web/public/add-items-flow.js');
 
 const appSource = await readFile(new URL('../../web/public/app.js', import.meta.url), 'utf8');
 const indexSource = await readFile(new URL('../../web/public/index.html', import.meta.url), 'utf8');
+const sceneUiSource = await readFile(new URL('../../web/public/scene-ui.js', import.meta.url), 'utf8');
 
 function profileFixture() {
   const avatar = { avatar_id: 'avatar-a' };
@@ -76,11 +77,25 @@ test('selected saved look becomes the in-product Live reference without upload i
   assert.doesNotMatch(indexSource, />Video \/ Live MVP</);
 });
 
-test('saved look exposes the three post-look directions without pretending video is already generated', () => {
-  for (const id of ['profile-look-scene', 'profile-look-video', 'profile-look-live']) {
+test('saved look exposes one primary action plus four truthful next directions', () => {
+  for (const id of [
+    'profile-look-background-primary',
+    'profile-look-refine',
+    'profile-look-background',
+    'profile-look-photoshoot',
+    'profile-look-video',
+    'profile-look-live',
+  ]) {
     assert.match(indexSource, new RegExp(`id="${id}"`));
   }
-  assert.match(indexSource, /Video не підміняється mock-роликом/);
+  assert.match(indexSource, /Fashion video не підміняється mock-роликом/);
+  assert.match(indexSource, /id="profile-look-refine"[^>]*disabled/);
+  assert.match(indexSource, /id="profile-look-video"[^>]*disabled/);
+  assert.match(indexSource, /Real-time Look/);
+  assert.match(appSource, /openSelectedLookScene\('standard'\)/);
+  assert.match(appSource, /openSelectedLookScene\('editorial'\)/);
+  assert.match(sceneUiSource, /async openForLook\(look, \{ initialTab = 'standard' \} = \{\}\)/);
+  assert.match(sceneUiSource, /this\.pickerTab = initialTab === 'editorial' \? 'editorial' : 'standard';/);
   assert.match(appSource, /profile-look-video/);
   assert.match(appSource, /Seedance 2 transport, QA і збереження кліпу/);
 });

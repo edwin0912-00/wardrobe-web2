@@ -328,7 +328,7 @@ export class SceneUiController {
     });
   }
 
-  async openForLook(look) {
+  async openForLook(look, { initialTab = 'standard' } = {}) {
     const lookId = idOfLook(look);
     if (!lookId) throw new Error('Збережений образ не знайдено');
     this.stopWatching();
@@ -337,7 +337,7 @@ export class SceneUiController {
     this.resumeRecord = null;
     this.phaseHistory = [];
     this.selectedPreset = null;
-    this.pickerTab = 'standard';
+    this.pickerTab = initialTab === 'editorial' ? 'editorial' : 'standard';
     this.#setLook(look);
     this.#activateView();
     this.#setMode('picker');
@@ -351,7 +351,7 @@ export class SceneUiController {
     editorialLoading.className = 'editorial-mode-unavailable';
     editorialLoading.textContent = 'Завантажуємо Art Fashion напрями…';
     this.#element('#editorial-mode-grid').replaceChildren(editorialLoading);
-    this.#setPickerTab('standard');
+    this.#setPickerTab(this.pickerTab);
     this.#element('#scene-picker-status').textContent = 'Завантажуємо доступні сцени…';
     this.editorialLoading = true;
     this.telemetry('client.scene_picker_opened', { look_id: lookId, stage: 'scene' });

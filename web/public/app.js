@@ -16,7 +16,7 @@ import { createLiveVisualizer, isProviderWaitStage } from './live-visualizer.js?
 import { fetchRunWithRetry, RunNotFoundError } from './run-resume.js?v=20260722-3';
 import { claimProfileRun, deleteAnonymousProfile, deleteProfileAvatar, deleteProfileLook, listProfileLookEditorialShoots, loadProfile, saveProfileRun } from './profile-client.js?v=20260724-5';
 import { neutralizeItemTerms } from './visible-copy.js?v=20260722-1';
-import { createSceneUi } from './scene-ui.js?v=20260724-2';
+import { createSceneUi } from './scene-ui.js?v=20260728-2';
 import {
   addItemsScreenState,
   clearAddItemsSelection,
@@ -1619,10 +1619,21 @@ document.querySelector('#profile-look-add').addEventListener('click', (event) =>
   if (!selectedProfileLookSelection) return;
   continueAddItemsFromSelection(selectedProfileLookSelection, beginDraft).catch(showProfileError);
 });
-document.querySelector('#profile-look-scene').addEventListener('click', (event) => {
-  event.stopPropagation();
+function openSelectedLookScene(initialTab) {
   if (!selectedProfileLook) return;
-  sceneUi.openForLook(selectedProfileLook).catch(showProfileError);
+  sceneUi.openForLook(selectedProfileLook, { initialTab }).catch(showProfileError);
+}
+document.querySelector('#profile-look-background-primary').addEventListener('click', (event) => {
+  event.stopPropagation();
+  openSelectedLookScene('standard');
+});
+document.querySelector('#profile-look-background').addEventListener('click', (event) => {
+  event.stopPropagation();
+  openSelectedLookScene('standard');
+});
+document.querySelector('#profile-look-photoshoot').addEventListener('click', (event) => {
+  event.stopPropagation();
+  openSelectedLookScene('editorial');
 });
 document.querySelector('#profile-look-video').addEventListener('click', (event) => {
   event.stopPropagation();
