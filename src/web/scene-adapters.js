@@ -491,6 +491,13 @@ export class SceneGeneratorAdapter {
         'repair_candidate',
       )
       : null;
+    const compositionGuide = context.composition_guide
+      ? await verifiedImageBinding(
+        context.composition_guide,
+        'mechanical_framing_guide',
+        'composition_guide',
+      )
+      : null;
     if (
       repairCandidate
       && (
@@ -536,6 +543,14 @@ export class SceneGeneratorAdapter {
         sha256: repairCandidate.sha256,
         mediaType: repairCandidate.media_type,
         source: 'REPAIR_CANDIDATE',
+      }] : []),
+      ...(compositionGuide ? [{
+        scope: 'outfit',
+        role: 'MECHANICAL_FRAMING_GUIDE',
+        path: compositionGuide.path,
+        sha256: compositionGuide.sha256,
+        mediaType: compositionGuide.media_type,
+        source: 'CONDITIONED',
       }] : []),
       ...items.map((item) => ({
         scope: 'outfit',
@@ -591,9 +606,13 @@ export class SceneGeneratorAdapter {
     const attachedAnchors = attachedDiscretionary
       .filter((item) => item.anchor)
       .map((item) => ({ ...item.anchor, order: item.order }));
+    const guideAttachment = compositionGuide
+      ? ordered.find((item) => item.role === 'MECHANICAL_FRAMING_GUIDE')
+      : null;
     const prompt = sanitizeExternalPrompt(
       `${basePrompt}${structuredInstructions(references)}`
       + `${itemGenerationInstructions(items, repairCandidate ? 3 : 2)}`
+      + `${guideAttachment ? `\nMECHANICAL COMPOSITION GUIDE\n- ATTACHMENT_${guideAttachment.order} is a transparent mechanical layout derivative of the failed candidate, not a new scene or content authority. It places the same candidate at the measured target scale: ${compositionGuide.target_subject_height_percent}% visible person height and ${compositionGuide.target_clear_space_above_hair_percent}% clear space above hair. Use it only to match framing; preserve the exact person, look, item details, environment and lighting from their authoritative attachments.\n` : ''}`
       + `${shotAnchorInstructions(attachedAnchors)}`,
     );
     assertExternalPromptPrivacy(prompt, { runtimeRoot: context.work_directory });
@@ -689,6 +708,12 @@ export class SceneGeneratorAdapter {
         ...(repairCandidate ? {
           repair_candidate_sha256: repairCandidate.sha256,
           repair_from_attempt: repairCandidate.attempt,
+        } : {}),
+        ...(compositionGuide ? {
+          mechanical_framing_guide_sha256: compositionGuide.sha256,
+          mechanical_framing_guide_source_attempt: compositionGuide.source_attempt,
+          mechanical_framing_guide_target_subject_height_percent: compositionGuide.target_subject_height_percent,
+          mechanical_framing_guide_target_clear_space_above_hair_percent: compositionGuide.target_clear_space_above_hair_percent,
         } : {}),
         reference_evidence: evidence,
       },

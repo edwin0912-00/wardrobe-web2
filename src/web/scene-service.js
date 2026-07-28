@@ -342,6 +342,88 @@ async function verifiedRepairCandidate(directory, state, repairAttempt) {
   };
 }
 
+// This is deliberately a layout derivative, not an image repair.  It has no
+// authority to add scene pixels: it rescales the already failed candidate onto
+// a transparent 4:5 canvas so the provider can see the measured target framing
+// instead of trying to infer "76% of frame height" from prose alone.
+async function mechanicalFramingGuide(directory, state, repairAttempt, repairCandidate) {
+  if (!repairAttempt || !repairCandidate) return null;
+  const defects = repairAttempt.qa?.gates
+    ?.find((gate) => gate.id === 'FRAMING_AND_ANATOMY')
+    ?.defects ?? [];
+  const evidence = repairAttempt.qa?.framing_evidence;
+  const bbox = evidence?.subject_bbox_xywh_px;
+  const range = evidence?.expected_subject_height_percent;
+  const measured = evidence?.subject_height_percent;
+  const minimumAbove = evidence?.minimum_clear_space_above_hair_percent;
+  if (
+    !Array.isArray(defects)
+    || !defects.includes('SUBJECT_HEIGHT_OUTSIDE_PRESET_RANGE')
+    || !defects.includes('INSUFFICIENT_CLEAR_SPACE_ABOVE_HAIR')
+    || !Array.isArray(bbox) || bbox.length !== 4 || !bbox.every(Number.isFinite)
+    || !Array.isArray(range) || range.length !== 2 || !range.every(Number.isFinite)
+    || !Number.isFinite(measured) || !Number.isFinite(minimumAbove)
+    || measured <= range[1] || range[0] <= 0 || range[0] > range[1]
+  ) return null;
+
+  const [sourceX, sourceY] = bbox;
+  const targetSubjectHeight = (range[0] + range[1]) / 2;
+  const scale = targetSubjectHeight / measured;
+  const source = await sharp(repairCandidate.path).metadata();
+  if (!source.width || !source.height || source.width !== state.delivery.width || source.height !== state.delivery.height) {
+    return null;
+  }
+  const resizedWidth = Math.round(source.width * scale);
+  const resizedHeight = Math.round(source.height * scale);
+  if (resizedWidth < 1 || resizedHeight < 1 || resizedWidth > state.delivery.width || resizedHeight > state.delivery.height) {
+    return null;
+  }
+  const targetTop = Math.round(((minimumAbove + 1) / 100) * state.delivery.height);
+  const left = Math.round((state.delivery.width - resizedWidth) / 2);
+  const top = Math.round(targetTop - (sourceY * scale));
+  if (left < 0 || top < 0 || left + resizedWidth > state.delivery.width || top + resizedHeight > state.delivery.height) {
+    return null;
+  }
+  const bytes = await sharp({
+    create: {
+      width: state.delivery.width,
+      height: state.delivery.height,
+      channels: 4,
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    },
+  })
+    .composite([{
+      input: await sharp(repairCandidate.path).resize({ width: resizedWidth, height: resizedHeight }).png().toBuffer(),
+      left,
+      top,
+    }])
+    .png()
+    .toBuffer();
+  const filename = path.join(
+    directory,
+    `attempts/${String(repairAttempt.number + 1).padStart(3, '0')}/mechanical-framing-guide.png`,
+  );
+  const expectedHash = sha256(bytes);
+  try {
+    const existing = await readFile(filename);
+    if (sha256(existing) !== expectedHash) {
+      throw new Error('Mechanical framing guide already exists with a different immutable SHA-256');
+    }
+  } catch (error) {
+    if (error?.code !== 'ENOENT') throw error;
+    await writeImmutable(filename, bytes);
+  }
+  return {
+    path: filename,
+    sha256: expectedHash,
+    media_type: 'image/png',
+    role: 'mechanical_framing_guide',
+    source_attempt: repairAttempt.number,
+    target_subject_height_percent: targetSubjectHeight,
+    target_clear_space_above_hair_percent: minimumAbove + 1,
+  };
+}
+
 async function binaryFrom(value, label) {
   if (Buffer.isBuffer(value)) return value;
   if (value instanceof Uint8Array) return Buffer.from(value);
@@ -3265,6 +3347,12 @@ export class SceneService {
       state,
       repairAttempt,
     );
+    const compositionGuide = await mechanicalFramingGuide(
+      directory,
+      state,
+      repairAttempt,
+      repairCandidate,
+    );
     const prompt = compiledPrompt({
       basePrompt: bound.prompt,
       state,
@@ -3326,6 +3414,7 @@ export class SceneService {
         item_evidence: bound.approvedItems,
         shot_anchors: bound.shotAnchors,
         repair_candidate: repairCandidate,
+        composition_guide: compositionGuide,
         work_directory: this.attemptDirectory(sceneId, attempt.number),
         signal,
       });

@@ -1875,6 +1875,38 @@ test('the short-headroom repair fires on the recorded clearance defect with a su
   assert.doesNotMatch(repair, /around the same optical center/);
 });
 
+test('an oversized framing repair carries a mechanical scale guide made only from the failed candidate', async (t) => {
+  const current = await fixture(t, {
+    evaluator: {
+      async evaluateScene() {
+        const result = passEvaluation();
+        // 94.6875% person height, 1.875% above hair and 3.4375% below footwear:
+        // the actual shape that exhausted the real standard-scene canary.
+        result.framing_evidence = {
+          subject_bbox_xywh_px: [200, 24, 620, 1212],
+          full_head_visible: true,
+          full_footwear_visible: true,
+        };
+        return result;
+      },
+    },
+  });
+  const created = await current.service.createScene({
+    ...current.request,
+    idempotencyKey: 'oversized-framing-composition-guide',
+  });
+  await waitFor(current.service, created.scene_id);
+
+  const guide = current.calls.generator[1].composition_guide;
+  assert.ok(guide, 'the second attempt must receive an immutable mechanical composition guide');
+  assert.equal(guide.role, 'mechanical_framing_guide');
+  assert.equal(guide.source_attempt, 1);
+  assert.match(guide.sha256, /^[a-f0-9]{64}$/);
+  const metadata = await sharp(await readFile(guide.path)).metadata();
+  assert.equal(metadata.width, 1024);
+  assert.equal(metadata.height, 1280);
+});
+
 test('the crop refusal names the in-band guard the plan returned at, not a crop window it never computed', async (t) => {
   // Same live frame. deterministicFramingCropPlan returns at
   // `framing.subject_height_percent >= minimumPercent`, before it computes a crop height at
