@@ -8,6 +8,15 @@
 
 <!-- entries -->
 
+### 2026-07-28 18:27 · claude-code-20260727-557761 · DONE
+
+GITHUB AGENT HANDOFF названий і зв'язаний: handoff/GITHUB_AGENT_HANDOFF.md, посилання з README і оголошення на дошці
+
+Файли: README.md, handoff/**, UPDATE.md
+
+HEAD на момент запису: `49d1750`
+
+
 ### 2026-07-28 18:07 · claude-code-20260727-557761 · PROGRESS
 
 хендоф-механізм запушений: ops/runtime.mjs, ops/intent.mjs, handoff/README.md
