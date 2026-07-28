@@ -23,6 +23,16 @@ approve the exact beta-targeted activation path, then visually smoke tap
 selection on one mobile viewport and one desktop viewport.
 Help request: NONE.
 
+---
+
+Agent ID: codex-main
+Task ID: BETA-SCENE-JOURNEY-SMOKE-001
+State: IN_PROGRESS
+Decision: use one controlled, non-personal full-length test input with separately supplied top, bottom and footwear; do not reuse an old half-body or fabricate a PASS receipt.
+Current evidence: isolated real runtime `/api/health` reports generation and editorial generation available. Higgsfield CLI account is authenticated. Run `deef65fb-a4da-4608-a223-96b026fa5b39` entered `GARMENT_CONDITIONING`; footwear reference-normalisation provider job `ca6945c8-ebbf-46f1-b88b-ec46fe4c5667` is in progress. No terminal result has been claimed.
+Plan: wait for a real full-look QA receipt, then execute one std.* background and one ready shoot.* hero. Expand only when both canaries have terminal receipts.
+weakened_checks: none.
+
 Implementation checkpoint: `914ebf6` replaces the equal three-card row in
 the actual saved-look panel with a single amber primary action, four compact
 category modules and one full-width Real-time Look action. Standard background
