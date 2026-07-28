@@ -15,9 +15,12 @@ weakened_checks: none.
 
 State: READY_FOR_BETA_DEPLOY
 Exact product commit: `969bc57`.
-Deployment request: publish the standalone route
-`/atelier-choice-prototype.html` with the exact tested SHA, then visually
-smoke tap selection on one mobile viewport and one desktop viewport.
+Deployment blocker: `tools/lib/deployment-target.mjs` permits only
+`https://iwas.madeforthisjob.com/api/health`, which is a separately protected
+target and not the beta domain. No substitution, manual copy or release was
+attempted. The next safe action is for the beta release owner to provide or
+approve the exact beta-targeted activation path, then visually smoke tap
+selection on one mobile viewport and one desktop viewport.
 Help request: NONE.
 
 Implementation checkpoint: the prototype composes the paper, two swatches,
