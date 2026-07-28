@@ -13,6 +13,15 @@ editorial preview sidecar `editorial.edwin_novak.organic_contrast` before it
 can package the preview. No bypass/manual file copy was used.
 weakened_checks: none.
 Help request: NONE.
+
+Implementation checkpoint: the prototype composes the paper, two swatches,
+lamp, replaceable look slot and five controls from independent DOM/CSS layers.
+Selecting a control updates only the local explanation and pressed state; no
+media, profile or provider path is invoked.
+Focused proof: `node --test test/web/atelier-choice-prototype.test.js` — 3/3
+PASS; `git diff --check` PASS; inline interaction script parses with `node
+--check`.
+weakened_checks: none.
 Next action: resolve the separately owned sidecar-contract defect, then build
 and activate the exact preview SHA for a visual beta smoke.
 

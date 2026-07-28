@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#ece8dd">
+  <title>Atelier choice prototype</title>
+  <style>
+    :root { font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #171811; background: #d8d0bd; }
+    * { box-sizing: border-box; }
+    body { min-width: 320px; min-height: 100dvh; margin: 0; overflow-x: hidden; background: radial-gradient(circle at 38% 18%, #fffdf6 0 17%, transparent 47%), linear-gradient(135deg, #eee9dd, #c7bca8); }
+    button { font: inherit; }
+    .atelier { position: relative; isolation: isolate; min-height: 100dvh; padding: clamp(16px, 4vw, 54px); overflow: hidden; }
+    .atelier::before { position: absolute; z-index: -4; inset: 0; content: ""; opacity: .25; background-image: linear-gradient(#a69c8a 1px, transparent 1px), linear-gradient(90deg, #a69c8a 1px, transparent 1px); background-size: 27px 27px; mask-image: linear-gradient(#000, transparent 85%); }
+    .atelier::after { position: absolute; z-index: -3; inset: 0; content: ""; pointer-events: none; opacity: .14; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='170' height='170' viewBox='0 0 170 170'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.92' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='.7'/%3E%3C/svg%3E"); }
+    .bar { display: flex; align-items: center; justify-content: space-between; gap: 14px; width: min(1180px, 100%); margin: 0 auto 26px; color: #4c4b40; font-size: 11px; font-weight: 760; letter-spacing: .13em; text-transform: uppercase; }
+    .back { width: 42px; height: 42px; border: 1px solid #d6d0c2; border-radius: 50%; color: #34352e; background: rgba(250,248,241,.76); box-shadow: 0 6px 18px rgba(70,59,37,.1); cursor: pointer; }
+    .back:hover { background: #fffdf8; }
+    .prototype-chip { padding: 7px 10px; border: 1px solid #cec4af; border-radius: 99px; color: #716b5c; background: rgba(255,253,247,.6); font-size: 9px; }
+    .board { position: relative; display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(300px, .78fr); gap: clamp(22px, 4vw, 60px); width: min(1180px, 100%); margin: 0 auto; }
+    .swatch { position: absolute; z-index: -1; width: clamp(120px, 18vw, 220px); aspect-ratio: 1.1; border: 1px solid rgba(76,58,37,.22); box-shadow: 12px 16px 28px rgba(63,47,26,.12); transform: rotate(-9deg); }
+    .swatch.left { top: 13%; left: -14%; background: repeating-linear-gradient(45deg, #39362e, #39362e 2px, #24231f 2px, #24231f 5px); }
+    .swatch.right { right: -12%; bottom: 3%; background: repeating-linear-gradient(0deg, #684523, #684523 3px, #593b20 3px, #593b20 7px); transform: rotate(12deg); }
+    .swatch::after { position: absolute; inset: 0; content: ""; opacity: .18; background: repeating-linear-gradient(90deg, transparent, transparent 8px, #fff 9px, transparent 10px); }
+    .hero { min-width: 0; }
+    .eyebrow { margin: 0 0 12px; color: #667227; font-size: 10px; font-weight: 800; letter-spacing: .18em; text-transform: uppercase; }
+    h1 { max-width: 630px; margin: 0; color: #161711; font-family: Georgia, "Times New Roman", serif; font-size: clamp(44px, 6vw, 82px); font-weight: 400; letter-spacing: -.065em; line-height: .88; }
+    .verified { display: inline-flex; align-items: center; gap: 8px; margin: 18px 0 28px; color: #55594d; font-size: 13px; }
+    .verified b { display: grid; width: 20px; height: 20px; place-items: center; border-radius: 50%; color: #0c2c1f; background: #b1e773; font-size: 12px; }
+    .look-paper { position: relative; display: grid; min-height: min(580px, 58vh); place-items: center; overflow: hidden; border: 1px solid #d5ccbb; background: linear-gradient(145deg, #f8f3e8, #ded4bf); box-shadow: 0 26px 55px rgba(63,49,29,.2), inset 0 1px rgba(255,255,255,.8); transform: rotate(-1deg); }
+    .look-paper::before { position: absolute; inset: 8%; border: 1px solid rgba(129,112,86,.18); content: ""; }
+    .look-paper::after { position: absolute; top: 15px; width: 22px; height: 22px; border: 1px solid #80673e; border-radius: 50%; content: ""; background: radial-gradient(circle at 34% 30%, #f4c86e 0 12%, #a77a27 13% 45%, #6d4d1e 46%); box-shadow: 0 3px 6px rgba(61,41,16,.38); }
+    .look-slot { position: relative; z-index: 1; display: grid; min-width: min(57vw, 330px); min-height: min(48vh, 500px); place-items: end center; border-radius: 52% 48% 13% 13% / 16% 16% 6% 6%; background: radial-gradient(ellipse at 50% 24%, #ead9bc, transparent 34%), linear-gradient(180deg, transparent 38%, rgba(106,81,48,.1)); }
+    .figure { position: relative; width: 170px; height: 390px; filter: drop-shadow(0 15px 12px rgba(47,36,25,.22)); }
+    .head { position: absolute; top: 9px; left: 57px; width: 55px; height: 62px; border-radius: 45% 45% 44% 44%; background: linear-gradient(110deg, #5f412e 0 20%, #d3a77d 21% 76%, #8f5e3a 77%); }
+    .hair { position: absolute; top: 0; left: 48px; width: 70px; height: 45px; border-radius: 50% 55% 35% 40%; background: #34211b; }
+    .neck { position: absolute; top: 62px; left: 72px; width: 28px; height: 30px; background: #c89569; }
+    .torso { position: absolute; top: 82px; left: 32px; width: 106px; height: 143px; border-radius: 23px 23px 13px 13px; background: linear-gradient(90deg, #3c2519 0 13%, #694321 14% 47%, #271e1c 48% 59%, #613b1e 60% 88%, #352018 89%); }
+    .torso::before, .torso::after { position: absolute; top: 27px; width: 29px; height: 38px; border: 1px solid rgba(232,203,158,.22); border-radius: 5px; content: ""; }
+    .torso::before { left: 11px; } .torso::after { right: 11px; }
+    .arm { position: absolute; top: 93px; width: 35px; height: 144px; border-radius: 22px; background: #5f3b20; transform-origin: top center; }
+    .arm.left { left: 18px; transform: rotate(8deg); } .arm.right { right: 18px; transform: rotate(-8deg); }
+    .hand { position: absolute; top: 216px; width: 25px; height: 32px; border-radius: 10px; background: #ca9b75; } .hand.left { left: 21px; } .hand.right { right: 21px; }
+    .leg { position: absolute; top: 216px; width: 47px; height: 142px; border-radius: 7px 7px 15px 15px; background: linear-gradient(90deg, #282a2b, #46484a 55%, #222426); } .leg.left { left: 37px; transform: rotate(2deg); } .leg.right { right: 37px; transform: rotate(-2deg); }
+    .shoe { position: absolute; top: 347px; width: 59px; height: 24px; border-radius: 60% 48% 9px 9px; background: linear-gradient(#242526, #070808); box-shadow: inset 0 2px rgba(255,255,255,.12); } .shoe.left { left: 25px; transform: rotate(-5deg); } .shoe.right { right: 25px; transform: rotate(5deg); }
+    .slot-label { position: absolute; z-index: 2; right: 12%; bottom: 11%; max-width: 195px; padding: 12px 14px; border: 1px solid rgba(108,88,58,.25); color: #514a3c; background: rgba(251,247,237,.78); box-shadow: 0 10px 25px rgba(69,48,22,.12); font-size: 10px; line-height: 1.45; transform: rotate(5deg); }
+    .slot-label strong { display: block; color: #191a15; font-size: 12px; }
+    .lamp { position: absolute; top: 2%; right: -8%; z-index: -1; width: clamp(155px, 24vw, 300px); aspect-ratio: 1; border-radius: 50%; background: conic-gradient(from 19deg, #7b581e, #d6b56b 11%, #6c4a18 21%, #21190e 33%, transparent 34%); filter: drop-shadow(-22px 18px 20px rgba(70,43,12,.22)); transform: rotate(22deg); }
+    .lamp::after { position: absolute; top: 36%; left: 8%; width: 54%; height: 45%; border-radius: 50%; content: ""; background: radial-gradient(ellipse, #fff9d5 0 13%, #ffcf65 35%, transparent 72%); filter: blur(5px); transform: rotate(-22deg); }
+    .control-panel { align-self: end; min-width: 0; padding: clamp(17px, 2vw, 26px); border: 1px solid rgba(116,100,73,.2); background: rgba(243,239,229,.76); box-shadow: 0 18px 44px rgba(60,46,26,.14), inset 0 1px rgba(255,255,255,.8); backdrop-filter: blur(12px); }
+    .control-panel h2 { margin: 0 0 7px; color: #292a22; font-family: Georgia, serif; font-size: clamp(27px, 3vw, 40px); font-weight: 400; letter-spacing: -.05em; }
+    .control-panel > p { margin: 0 0 18px; color: #6a675c; font-size: 12px; line-height: 1.45; }
+    .actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .action { --accent: #b5e54d; --ink: #1f2c18; position: relative; min-height: 128px; padding: 15px; overflow: hidden; border: 1px solid color-mix(in srgb, var(--accent) 38%, #7e7668); color: var(--ink); background: linear-gradient(142deg, #1c1f18, #0d0f0d); box-shadow: inset 0 1px rgba(255,255,255,.12), 0 8px 17px rgba(62,46,26,.12); text-align: left; cursor: pointer; transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease; }
+    .action::before { position: absolute; top: -80%; left: -31%; width: 190%; aspect-ratio: 1; border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent); border-radius: 48%; content: ""; opacity: .45; animation: orbit 20s linear infinite; }
+    .action::after { position: absolute; right: -34px; bottom: -42px; width: 112px; height: 112px; border-radius: 50%; content: ""; opacity: .55; background: radial-gradient(circle, var(--accent), transparent 70%); filter: blur(7px); }
+    .action:hover, .action:focus-visible, .action[aria-pressed="true"] { z-index: 1; border-color: var(--accent); outline: 0; box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 23%, transparent), 0 12px 26px rgba(62,46,26,.22), inset 0 1px rgba(255,255,255,.2); transform: translateY(-3px); }
+    .action[aria-pressed="true"] { background: linear-gradient(142deg, color-mix(in srgb, var(--accent) 30%, #182017), #10110f); }
+    .action .icon { display: grid; position: relative; z-index: 1; width: 31px; height: 31px; place-items: center; border: 1px solid color-mix(in srgb, var(--accent) 70%, white 10%); border-radius: 8px; color: var(--accent); font-size: 16px; }
+    .action strong, .action small { position: relative; z-index: 1; display: block; } .action strong { margin-top: 18px; color: #f4f0e8; font-family: Georgia, serif; font-size: 21px; font-weight: 400; line-height: .95; } .action small { margin-top: 7px; color: #d6d5cd; font-size: 10px; }
+    .background { --accent: #ffc14f; } .photoshoot { --accent: #70b9ff; } .video { --accent: #ff6a62; } .live { --accent: #c58aff; grid-column: 1 / -1; min-height: 116px; } .live strong { font-size: 28px; }
+    .selection { min-height: 63px; margin-top: 13px; padding: 13px 14px; border-left: 3px solid #b5e54d; color: #504d42; background: #eeeadf; font-size: 12px; line-height: 1.42; }
+    .selection b { color: #181a13; }
+    @keyframes orbit { to { transform: rotate(360deg); } }
+    @media (max-width: 770px) { .atelier { padding: 14px 14px calc(18px + env(safe-area-inset-bottom)); } .bar { margin-bottom: 17px; } .board { grid-template-columns: 1fr; gap: 15px; } .hero { order: 1; } .control-panel { order: 2; } .look-paper { min-height: 485px; } .lamp { top: 3%; right: -19%; } .swatch.left { left: -26%; top: 21%; } .swatch.right { right: -22%; bottom: 21%; } .actions { gap: 8px; } .action { min-height: 115px; padding: 12px; } .action strong { margin-top: 14px; font-size: 18px; } .live { min-height: 99px; } }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+  </style>
+</head>
+<body>
+  <main class="atelier">
+    <header class="bar"><button class="back" type="button" aria-label="Назад">←</button><span>Atelier prototype · LOOK.06 → CHOICE.01</span><span class="prototype-chip">інтерактивна перевірка</span></header>
+    <div class="swatch left" aria-hidden="true"></div><div class="swatch right" aria-hidden="true"></div><div class="lamp" aria-hidden="true"></div>
+    <section class="board" aria-label="Вибір наступної дії після образу">
+      <div class="hero">
+        <p class="eyebrow">Approved master look</p><h1>Ваш образ готовий</h1><p class="verified"><b>✓</b> Образ перевірено</p>
+        <div class="look-paper" data-look-slot aria-label="Змінний слот для approved look">
+          <div class="look-slot" aria-hidden="true"><div class="figure"><i class="hair"></i><i class="head"></i><i class="neck"></i><i class="arm left"></i><i class="arm right"></i><i class="torso"></i><i class="hand left"></i><i class="hand right"></i><i class="leg left"></i><i class="leg right"></i><i class="shoe left"></i><i class="shoe right"></i></div></div>
+          <aside class="slot-label"><strong>Approved look slot</strong>У продукті сюди підставляється збережений full-body master без зміни його пікселів.</aside>
+        </div>
+      </div>
+      <section class="control-panel" aria-labelledby="next-title">
+        <h2 id="next-title">Що створимо далі?</h2><p>Кожний об’єкт цього екрану незалежний: light, card, pin, paper, swatch і look slot.</p>
+        <div class="actions" role="group" aria-label="П’ять напрямків">
+          <button class="action refine" type="button" data-action="Покращити образ" data-detail="Створить окремий candidate: лише не обрані елементи, волосся, до 20% makeup і малий рух пози. Master-look не змінюється."><span class="icon">✦</span><strong>Покращити<br>образ</strong><small>Скоро</small></button>
+          <button class="action background" type="button" data-action="Додати фон" data-detail="Відкриє окремий вибір стандартної сцени. Master-look та всі locked речі залишаються джерелом кадру."><span class="icon">▧</span><strong>Додати фон</strong><small>Готово</small></button>
+          <button class="action photoshoot" type="button" data-action="Фотозйомка" data-detail="Відкриє Create Universe: один locked style unit, hero, серія та contact sheet."><span class="icon">◉</span><strong>Фотозйомка</strong><small>Готово</small></button>
+          <button class="action video" type="button" data-action="Fashion Video" data-detail="Потребує валідний full-look input і доступний video transport. Жодне mock-відео не буде підставлене."><span class="icon">▷</span><strong>Fashion Video</strong><small>Очікує доступ</small></button>
+          <button class="action live" type="button" data-action="Real-time Look" data-detail="Камера та explicit consent — окремий mode. Це не записує фон і не називає delayed preview real-time."><span class="icon">◌</span><strong>Real-time Look</strong><small>Скоро</small></button>
+        </div>
+        <output class="selection" aria-live="polite"><b>Оберіть дію.</b> Натисніть одну картку, щоб перевірити її стан і межу.</output>
+      </section>
+    </section>
+  </main>
+  <script>
+    const actions = [...document.querySelectorAll('.action')];
+    const selection = document.querySelector('.selection');
+    actions.forEach((button) => button.addEventListener('click', () => {
+      actions.forEach((item) => item.setAttribute('aria-pressed', String(item === button)));
+      selection.innerHTML = `<b>${button.dataset.action}</b><br>${button.dataset.detail}`;
+    }));
+  </script>
+</body>
+</html>
