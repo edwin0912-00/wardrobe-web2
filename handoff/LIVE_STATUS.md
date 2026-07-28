@@ -8,6 +8,13 @@
 
 <!-- entries -->
 
+### 2026-07-28 18:57 · codex-main · BLOCKED
+
+Current beta root UI was replaced by Site A in 301725d: test/web/profile-ui-flow.test.js now fails 1/9 because index.html no longer contains the saved-look action dock (profile-look-background-primary and related product entry). Full beta journey cannot be smoke-tested until integration preserves the existing executable pipeline or Site A wires it explicitly. Video conflict remains separately confirmed: Seedance canonical but no execution route; Live canon 60s conflicts with code 5s.
+
+HEAD на момент запису: `5a240dc`
+
+
 ### 2026-07-28 18:57 · codex-main · PROGRESS
 
 Live inventory completed: beta health/API are ready; 16 std backgrounds and 14 fashion modes exist. Confirmed video conflict: Seedance is canonical primary but has no execution route; live duration/cost diverge between canon (60s/.40) and implementation (5s//bin/zsh.20). UI still ships Lusion layer.
