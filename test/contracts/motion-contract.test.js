@@ -83,20 +83,48 @@ test('each model is held to its own measured ceilings', () => {
   assert.ok(longReference.includes('VIDEO_REFERENCE_ABOVE_MODEL_CEILING'));
 });
 
-test('a shot list is refused on the model that ignores shot order', () => {
-  const shotList = [{ index: 1, seconds: 2, prompt: 'full length at the gate' }];
-  // Seedance produces its own order, so accepting the list would promise something the
-  // delivery cannot keep.
-  assert.ok(codes(job({ route: { ...job().route, shot_list: shotList } })).includes('SHOT_LIST_IGNORED_BY_MODEL'));
+test('a shot list is held to the call shape each model requires', () => {
+  const shots = [
+    { index: 1, seconds: 8, prompt: 'full length at the gate, walking in' },
+    { index: 2, seconds: 7, prompt: 'close on the hem as she turns away' },
+  ];
+
+  // Seedance takes a shot list — but only alongside a whole-clip prompt. Without one
+  // its API refuses the call with `Undefined array key "prompt"`, which names nothing,
+  // so the contract names it here instead.
+  const bare = job({ route: { ...job().route, shot_list: shots } });
+  assert.ok(codes(bare).includes('SHOT_LIST_WITHOUT_WHOLE_CLIP_PROMPT'));
+
+  const paired = job({
+    route: { ...job().route, shot_list: shots, prompt: 'one continuous evening crossing of the courtyard' },
+  });
+  assert.deepEqual(codes(paired), []);
+
+  // The shots must account for the delivery they claim to fill.
+  const short = job({ route: { ...paired.route, shot_list: [shots[0]] } });
+  assert.ok(codes(short).includes('SHOT_LIST_DOES_NOT_SUM_TO_DURATION'));
+
+  // Omni needs no whole-clip prompt alongside its list. The reference clip is trimmed
+  // to three seconds because that is Omni's own ceiling; the default five-second clip
+  // is a Seedance figure and the contract caught it.
   const omni = job({
     source: { ...job().source, scene_kind: 'standard_background', style_unit_id: null },
     delivery: { aspect_ratio: '9:16', duration_seconds: 10, resolution: '720p' },
-    route: { model_slug: 'gemini-omni-preview', transport: 'mcp', camera_motion: null, shot_list: shotList },
-    // Trimmed to three seconds because that is Omni's own reference ceiling; the
-    // default five-second clip is a Seedance figure and the contract caught it.
+    route: {
+      model_slug: 'gemini-omni-preview', transport: 'mcp', camera_motion: null,
+      shot_list: [
+        { index: 1, seconds: 4, prompt: 'she steps into the frame from the left' },
+        { index: 2, seconds: 6, prompt: 'slow push in to a half-length hold' },
+      ],
+    },
     references: [reference('identity'), reference('footwear_detail'), reference('environment_motion', { seconds: 3 })],
   });
   assert.deepEqual(codes(omni), []);
+
+  // Seven shots is above every ceiling. The schema holds the global maximum of six;
+  // the per-model maxShots in MODEL_LIMITS backs any future model with a lower one.
+  const seven = Array.from({ length: 7 }, (_, i) => ({ index: i + 1, seconds: 2, prompt: 'a two second beat held here' }));
+  assert.ok(codes(job({ route: { ...paired.route, shot_list: seven } })).includes('SCHEMA_INVALID'));
 });
 
 test('a person reference that carries its own background is refused', () => {

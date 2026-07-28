@@ -68,10 +68,15 @@
           "description": "Higgsfield and Magnific are reached only over MCP here, never over an API or a CLI. A job with any other transport is refused rather than attempted."
         },
         "camera_motion": { "type": ["string", "null"] },
+        "prompt": {
+          "type": ["string", "null"],
+          "minLength": 12,
+          "description": "The whole-clip prompt. Seedance refuses a shot list that arrives without one — its API answers `Undefined array key \"prompt\"`, which names nothing — so the contract requires the pair up front."
+        },
         "shot_list": {
           "type": "array",
           "maxItems": 6,
-          "description": "Only Omni executes a written shot list in order; Seedance ignores it and produces its own. Measured both ways on 2026-07-27.",
+          "description": "Both models take a shot list of up to six shots. Omni executed nine timecoded beats in the order given, measured 2026-07-27. An earlier version of this description claimed Seedance ignores the list; that was never measured — the one attempt was a malformed call refused before the model saw it.",
           "items": {
             "type": "object",
             "additionalProperties": false,

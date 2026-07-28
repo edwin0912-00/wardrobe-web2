@@ -22,8 +22,8 @@ export const MOTION_SCHEMA = JSON.parse(readFileSync(schemaPath, 'utf8'));
 
 // Ordinary backgrounds go to Omni; art and fashion shoots go to Seedance. Operator
 // decision, taken on measured behaviour: Omni is the more realistic of the two and
-// is the only one that executes a written shot list in the order given, while
-// Seedance carries the energy of a supplied reference clip and ignores shot order.
+// executed a written shot list in the order given, while Seedance carries the
+// energy of a supplied reference clip. Both take a shot list — see MODEL_LIMITS.
 export const ROUTE_BY_SCENE_KIND = Object.freeze({
   standard_background: 'gemini-omni-preview',
   art_fashion_shoot: 'bytedance-seedance-pro-2.0',
@@ -37,13 +37,21 @@ export const MODEL_LIMITS = Object.freeze({
     maxDurationSeconds: 10,
     resolutions: Object.freeze(['720p']),
     maxVideoReferenceSeconds: 3,
-    honoursShotList: true,
+    // Omni executed nine timecoded beats in the order given, measured.
+    shotList: 'supported',
+    maxShots: 6,
   }),
   'bytedance-seedance-pro-2.0': Object.freeze({
     maxDurationSeconds: 15,
     resolutions: Object.freeze(['720p', '1080p']),
     maxVideoReferenceSeconds: 15,
-    honoursShotList: false,
+    // Multishot IS supported: the catalogue declares it allowed, up to six shots of
+    // one to twelve seconds each. An earlier note here claimed Seedance ignores a
+    // shot list; that was wrong. The single attempt to prove it died on a malformed
+    // call — the API answered `Undefined array key "prompt"` — so the model was never
+    // actually asked. A call shape defect is not a model limitation.
+    shotList: 'supported_requires_prompt_alongside',
+    maxShots: 6,
   }),
 });
 
@@ -102,13 +110,32 @@ export function motionJobDefects(job) {
     });
   }
 
-  // A shot list on a model that ignores it is not a small waste — it is a promise to
-  // the caller that the delivery will not keep.
-  if ((job.route.shot_list?.length ?? 0) > 0 && !limits.honoursShotList) {
-    defects.push({
-      code: 'SHOT_LIST_IGNORED_BY_MODEL',
-      detail: `${job.route.model_slug} produces its own shot order; move the list to the other route or drop it`,
-    });
+  // Both routes take a shot list. Seedance additionally requires a whole-clip prompt
+  // alongside the per-shot list — its API refuses a multishot call that carries only
+  // the list, and the refusal reads `Undefined array key "prompt"`, which says nothing
+  // about what is missing. So the contract requires the pair rather than letting a
+  // caller discover it from an opaque server error.
+  const shots = job.route.shot_list ?? [];
+  if (shots.length > 0) {
+    if (shots.length > limits.maxShots) {
+      defects.push({
+        code: 'SHOT_LIST_ABOVE_MODEL_CEILING',
+        detail: `${job.route.model_slug} takes at most ${limits.maxShots} shots`,
+      });
+    }
+    if (limits.shotList === 'supported_requires_prompt_alongside' && !job.route.prompt) {
+      defects.push({
+        code: 'SHOT_LIST_WITHOUT_WHOLE_CLIP_PROMPT',
+        detail: `${job.route.model_slug} refuses a shot list that is not accompanied by a whole-clip prompt`,
+      });
+    }
+    const total = shots.reduce((sum, shot) => sum + shot.seconds, 0);
+    if (Math.abs(total - job.delivery.duration_seconds) > 1) {
+      defects.push({
+        code: 'SHOT_LIST_DOES_NOT_SUM_TO_DURATION',
+        detail: `shots total ${total}s against a ${job.delivery.duration_seconds}s delivery`,
+      });
+    }
   }
 
   if (job.source.scene_kind === 'art_fashion_shoot' && !job.source.style_unit_id) {
