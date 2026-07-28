@@ -91,7 +91,8 @@ test('saved look exposes one primary action plus four truthful next directions',
   assert.match(indexSource, /Fashion video не підміняється mock-роликом/);
   assert.match(indexSource, /id="profile-look-refine"[^>]*disabled/);
   assert.match(indexSource, /id="profile-look-video"[^>]*disabled/);
-  assert.match(indexSource, /Real-time Look/);
+  assert.match(indexSource, /aria-label="Відкрити Real-time Look"/);
+  assert.match(indexSource, /aria-label="Додати стандартний фон"/);
   assert.match(appSource, /openSelectedLookScene\('standard'\)/);
   assert.match(appSource, /openSelectedLookScene\('editorial'\)/);
   assert.match(sceneUiSource, /async openForLook\(look, \{ initialTab = 'standard' \} = \{\}\)/);
