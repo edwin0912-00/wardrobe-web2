@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0.0",
   "purpose": "Shared operational truth for every agent and every chat. Read it before touching the host or the provider; update it the moment you change either. Prose belongs in STATE.md; this file holds only facts a machine can check.",
-  "updated_at": "2026-07-28T19:02:00.000Z",
+  "updated_at": "2026-07-28T19:30:00.000Z",
   "updated_by": "claude-code-20260727-557761",
   "host": {
     "role": "beta and production deployment host",
@@ -43,7 +43,10 @@
         "credits": 3707,
         "history": "A homebrew upgrade to 1.1.19 broke every call and the stored credentials file disappeared. Fixed by npm i -g @higgsfield/cli@0.2.3 plus a fresh device login. Pin the version before any future upgrade.",
         "pinned_version": "0.2.3",
-        "guard": "higgsfield-guard.sh on the host, cron every 30 minutes: reinstalls the pinned version if it drifted, probes the account, and writes higgsfield-guard.state (OK/BROKEN) plus higgsfield-guard.log. Proven by deliberately installing the broken 1.1.19 and watching the guard restore 0.2.3 on the next run."
+        "guard": "higgsfield-guard.sh on the host, cron every 30 minutes: reinstalls the pinned version if it drifted, probes the account, and writes higgsfield-guard.state (OK/BROKEN) plus higgsfield-guard.log. Proven by deliberately installing the broken 1.1.19 and watching the guard restore 0.2.3 on the next run.",
+        "why_pinned": "The 1.x line targets a new gateway (fnf-api-gw.higgsfield.ai) and requires a workspace: 1.1.20 says 'No workspace selected', 1.1.19 hides the same cause behind 'request failed (no response received)'. This account cannot even list workspaces on that gateway, so the whole 1.x line is unusable until a workspace exists in the account. 0.2.x uses fnf.higgsfield.ai and works. api.higgsfield.ai returning 521 is an unrelated subdomain.",
+        "if_it_breaks_again": "1) check `higgsfield --version` on the host, it must be 0.2.3; 2) read higgsfield-guard.state (OK/BROKEN) and higgsfield-guard.log; 3) BROKEN with 'Not authenticated' means the token is gone and only the operator can re-login; 4) never run `npm i -g @higgsfield/cli` without a version — that is what broke it on 2026-07-28.",
+        "stale_binary_removed": "A duplicate standalone 1.1.19 binary in ~/.local/bin shadowed PATH; moved out on 2026-07-28."
       }
     },
     "openrouter": {
