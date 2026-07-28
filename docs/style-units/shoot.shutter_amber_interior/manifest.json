@@ -1,31 +1,110 @@
 {
-  "schema_version": "1.0",
-  "created_at": "2026-07-27T23:08:03.612Z",
-  "sheets": {
-    "environment": {
-      "path": "sheet-environment.png",
-      "sha256": "4427561d408df416cc9def93aaf4e954dd5d1bd2d190574d83459f17773ca9f0",
-      "size": 951388
+  "unit_id": "shoot.shutter_amber_interior",
+  "title": "Shutter Amber Interior — hard low sun through a slatted blind, dark warm room",
+  "palette_size": 6,
+  "palette": [
+    {
+      "name": "deep shadow",
+      "hex": "#1D1B0C",
+      "role": "measured from the supplied frames"
     },
-    "colour_grade": {
-      "path": "sheet-colour_grade.png",
-      "sha256": "4427561d408df416cc9def93aaf4e954dd5d1bd2d190574d83459f17773ca9f0",
-      "size": 951388
+    {
+      "name": "burnt red shadow",
+      "hex": "#5D200C",
+      "role": "measured from the supplied frames"
     },
-    "camera_lens": {
+    {
+      "name": "amber sunlit cloth",
+      "hex": "#A63F12",
+      "role": "measured from the supplied frames"
+    },
+    {
+      "name": "warm wall mid",
+      "hex": "#96714B",
+      "role": "measured from the supplied frames"
+    },
+    {
+      "name": "lit skin",
+      "hex": "#C19567",
+      "role": "measured from the supplied frames"
+    },
+    {
+      "name": "wall highlight",
+      "hex": "#DFC8AC",
+      "role": "measured from the supplied frames"
+    }
+  ],
+  "item_colours_exempt": true,
+  "palette_authority": "palette-strip.svg",
+  "source_frames": [
+    "male-01-shutter-orange.png",
+    "male-03.png",
+    "male-05-armchair-dark.png"
+  ],
+  "unknowns": [
+    "focal length in millimetres",
+    "whether the light is real sun or a lamp through a gobo",
+    "the floor material in frame male-03",
+    "what is outside the window"
+  ],
+  "sheets": [
+    {
+      "sheet_id": "camera_lens",
       "path": "sheet-camera_lens.png",
       "sha256": "9dabf8e7f14d2594852e3bf45a6c7914eb5a1f938d446a326aff16e73d6e7bcf",
-      "size": 3393637
+      "byte_size": 3393637,
+      "width": 2048,
+      "height": 1360
     },
-    "garment_behaviour": {
-      "path": "sheet-garment_behaviour.png",
-      "sha256": "79678e679b196b53b2be2b8413634c06d5bc0e217bbd4837b1f26537bd63f29e",
-      "size": 5645610
-    },
-    "blocking": {
+    {
+      "sheet_id": "blocking",
       "path": "sheet-blocking.png",
       "sha256": "30e06734724ddee8a6f0b5fe1153ba9c69e67765a36f88e48533506cfae2d824",
-      "size": 5975855
+      "byte_size": 5975855,
+      "width": 2048,
+      "height": 1360
+    },
+    {
+      "sheet_id": "expression_gaze",
+      "path": "sheet-expression_gaze.png",
+      "sha256": "f1b0d97879b9b4788147363a5a313b71b81428c164f882b24ba4e3d37c2d67d3",
+      "byte_size": 4138527,
+      "width": 2048,
+      "height": 1360
+    },
+    {
+      "sheet_id": "garment_behaviour",
+      "path": "sheet-garment_behaviour.png",
+      "sha256": "79678e679b196b53b2be2b8413634c06d5bc0e217bbd4837b1f26537bd63f29e",
+      "byte_size": 5645610,
+      "width": 2048,
+      "height": 1360
+    },
+    {
+      "sheet_id": "colour_grade",
+      "path": "sheet-colour_grade.png",
+      "sha256": "2f28052bf1f5cdaf30917a4ab34e989a90e60cf5095626b6e777d53b0073f0ac",
+      "byte_size": 1264357,
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "sheet_id": "environment",
+      "path": "sheet-environment.png",
+      "sha256": "b6045842f365fcb66be8ac3942c9ff9b4dfb8ce6b684bafd2a64208b840d9a54",
+      "byte_size": 1580513,
+      "width": 1568,
+      "height": 672
+    },
+    {
+      "sheet_id": "person",
+      "path": "sheet-person.png",
+      "sha256": "237efd03d397165e512cb54837e1eb1e19877d8ba803850859f6368b58e0a6ab",
+      "byte_size": 1344817,
+      "width": 832,
+      "height": 1248
     }
-  }
+  ],
+  "unit_sha256": "da229f53e9bb11541a9ad64001d35ad07d9c3726f1378462414abec87dc7473a",
+  "generated_with": "artshoot-pipeline-style-creation · completion pass 2026-07-27 (environment, colour_grade, person added to the four existing sheets)"
 }

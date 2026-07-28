@@ -22,6 +22,8 @@ export const READY_EDITORIAL_MODE_IDS = Object.freeze([
   'shoot.hardsun_brick_doorway',
   'shoot.overcast_street_stride',
   'shoot.grey_wall_gloss',
+  'shoot.ochre_stage_tailoring',
+  'shoot.shutter_amber_interior',
 ]);
 
 export const EDITORIAL_BASE_PRESETS = Object.freeze({

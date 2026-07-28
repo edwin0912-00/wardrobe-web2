@@ -50,11 +50,9 @@
     "camera_lens",
     "blocking",
     "expression_gaze",
-    "garment_behaviour"
-  ],
-  "sheets_pending": [
-    "colour_grade (rendered locally as palette-strip.svg)",
+    "garment_behaviour",
+    "colour_grade",
     "environment",
-    "person (comes from the approved look)"
+    "person"
   ]
 }
