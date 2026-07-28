@@ -1,0 +1,7 @@
+Create one original high-fashion editorial mood card, vertical 4:5, photorealistic.
+SUBJECT: one anonymous adult test model with neutral expression, wearing a plain unbranded matte ivory tailored set and simple black ankle boots. The model is lighting/composition evidence only, not an identity reference.
+COMPOSITION: full body, complete head and footwear, 50 mm equivalent, eye level, straight verticals, a invented pitch-black seamless studio environment. FINAL 4:5 SAFE-WINDOW LOCK: after a centered 4:5 crop the visible human bounding box from topmost hair to lowest footwear must occupy 74-78% of final height, with at least 8% clear space above the hair and 4% clean space below the shoes. If the source canvas is taller than 4:5, keep the person at only 55-58% of source height and visibly center the shoes well above the source bottom edge.
+SETTING: invented pitch-black seamless studio environment; no recognizable landmark and no copied source geometry.
+LIGHTING: extreme low-key lighting with a single hard spotlight from above, dust visible in the beam, deep black shadows; the face and outfit retain detail.
+FINISH: luxurious fashion-magazine gloss, clean shadows, restrained saturation and natural fabric detail; no HDR, bloom or skin smoothing.
+CONSTRAINTS: no other people, cars, cafes, advertisements, readable text, brand marks, tourist cues, props, crop, wide-angle distortion, anatomy defects or invented accessories.

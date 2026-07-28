@@ -5,7 +5,7 @@
       "path": "assets/scene-presets/std.interior.gallery_morning_gloss/v1/environment-plate.webp",
       "provider_receipt_status": "MISSING_FROM_BUILTIN_IMAGE_TOOL",
       "role": "environment_plate",
-      "sha256": "3097a79d9784030f65473216742fd7823f09e1f6f4c36cd46f47be66013a9059"
+      "sha256": "0c64054e1afc591d36b17e0c5f57b8360ab554945397fd1458720c3ef335887f"
     },
     {
       "derivation": {
@@ -17,7 +17,7 @@
       "path": "assets/scene-presets/std.interior.gallery_morning_gloss/v1/lighting-preview.webp",
       "provider_receipt_status": "MISSING_FROM_BUILTIN_IMAGE_TOOL",
       "role": "lighting_preview",
-      "sha256": "3c26ef4978344dd9c7ee6a93f49e955974ede9a3836879062537690befe889ee"
+      "sha256": "1e726a3d193c96143682d365fc7968f52885f9a80c2c8a48628a606dae5dd497"
     }
   ],
   "preset_id": "std.interior.gallery_morning_gloss",

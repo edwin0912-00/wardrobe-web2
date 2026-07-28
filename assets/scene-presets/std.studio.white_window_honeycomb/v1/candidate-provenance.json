@@ -5,7 +5,7 @@
       "path": "assets/scene-presets/std.studio.white_window_honeycomb/v1/environment-plate.webp",
       "provider_receipt_status": "MISSING_FROM_BUILTIN_IMAGE_TOOL",
       "role": "environment_plate",
-      "sha256": "c429be29d1b4883592e1a4e62d2a8c08888bdea39dfada174c880a24fb5c8221"
+      "sha256": "35addc49d0debd5e44c76357eb53f1a126d3bd2cf30ab842da81761cd7673fea"
     },
     {
       "derivation": {
@@ -17,7 +17,7 @@
       "path": "assets/scene-presets/std.studio.white_window_honeycomb/v1/lighting-preview.webp",
       "provider_receipt_status": "MISSING_FROM_BUILTIN_IMAGE_TOOL",
       "role": "lighting_preview",
-      "sha256": "efce1f075bb28d9c1015d0d6d92e0e84f039a03d6a8eec07660d474d8643109b"
+      "sha256": "7c1b4d58e79a817be6673a50ed7efdd9c13d818b2b10eeaaa533c2e7df5730e2"
     }
   ],
   "preset_id": "std.studio.white_window_honeycomb",

@@ -6,7 +6,7 @@
   "production_prompt_path": "prompts/scene-presets/std.interior.gallery_morning_gloss/v1/production-scene.txt",
   "prompt_sha256": "0c100a7ece3ff37ae776ef6d1b254294cf02f47497bd80194a94177bfce8721e",
   "reference_pack_path": "assets/scene-presets/std.interior.gallery_morning_gloss/v1/reference-pack.json",
-  "reference_pack_sha256": "522de4cc7eb07a999442781614ed34c1fcddd3fd7bb461453ed053f090533151",
+  "reference_pack_sha256": "81af94f7c0fd537ce6a5fda7dd99ef77c34e507b23c5eab22fcbb7750e80424d",
   "references": [
     {
       "media_type": "application/json",
@@ -51,5 +51,5 @@
   ],
   "schema_version": "1.0.0",
   "source_ledger_path": "assets/scene-presets/std.interior.gallery_morning_gloss/v1/source-ledger.json",
-  "source_ledger_sha256": "18bd427dde5ac8eb167b6bb7f45474ee88f3d3f4a11e2968e8486a9822c35a76"
+  "source_ledger_sha256": "6643c592df912d43b4e5b73c6421841461540e462382a6eec27f503161aa5c07"
 }

@@ -5,7 +5,7 @@
       "path": "assets/scene-presets/std.nature_architecture.concrete_grass_golden_hour/v1/environment-plate.webp",
       "provider_receipt_status": "MISSING_FROM_BUILTIN_IMAGE_TOOL",
       "role": "environment_plate",
-      "sha256": "3556f021e768214a6c53e3c6965d88500acaebe844df62c982596e9e91b51849"
+      "sha256": "ea105c7c78c2ed7958d7227c115601aee74f2621f69a40eec1d9e2c9c9d16050"
     },
     {
       "derivation": {
@@ -17,7 +17,7 @@
       "path": "assets/scene-presets/std.nature_architecture.concrete_grass_golden_hour/v1/lighting-preview.webp",
       "provider_receipt_status": "MISSING_FROM_BUILTIN_IMAGE_TOOL",
       "role": "lighting_preview",
-      "sha256": "04c22cef0c9213999d440c2596d421c9b2d091e76c2228384b64692d9e50daf5"
+      "sha256": "30ded9477f499a315fb4ee2860e5e1eb0d1f781ac9525ffc4bdc1bd11389bc28"
     }
   ],
   "preset_id": "std.nature_architecture.concrete_grass_golden_hour",

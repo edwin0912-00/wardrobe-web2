@@ -5,7 +5,7 @@
       "path": "assets/scene-presets/std.city.golden_hour_gloss/v1/environment-plate.webp",
       "provider_receipt_status": "MISSING_FROM_BUILTIN_IMAGE_TOOL",
       "role": "environment_plate",
-      "sha256": "8716f4bdb2ee63141ea6768272c70636ba563da1218d07b56654aa0c8fc0c6e7"
+      "sha256": "5f01ff92f5a4bf98ef9e50b2d4858a310439be45b6100caba9e325355d1d361e"
     },
     {
       "derivation": {
@@ -15,7 +15,7 @@
       "path": "assets/scene-presets/std.city.golden_hour_gloss/v1/lighting-preview.webp",
       "provider_receipt_status": "MISSING_FROM_BUILTIN_IMAGE_TOOL",
       "role": "lighting_preview",
-      "sha256": "f0d6ff298abc4a6f17d35413d7388e26ea53e797368d976c01d30916e44c0b5d"
+      "sha256": "a5116f0124f3c5d03f4a362430dae9e0976ca8a1db4993857dd143cfdb351ce3"
     }
   ],
   "preset_id": "std.city.golden_hour_gloss",

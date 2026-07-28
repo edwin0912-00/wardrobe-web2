@@ -14,7 +14,7 @@
       "production_prompt_path": "prompts/scene-presets/std.city.golden_hour_gloss/v1/production-scene.txt",
       "prompt_sha256": "91b8a40cf482ae93ce35337f5e727774ace2a0869b58a420725cdb104ed19c27",
       "reference_pack_path": "assets/scene-presets/std.city.golden_hour_gloss/v1/reference-pack.json",
-      "reference_pack_sha256": "229da2fc786c936de2f0b105bdfdd7096f0deb7c1b5ef1d8d586bb1e00146f3f",
+      "reference_pack_sha256": "3bb7240baa609c6b50ab48c0e7daa255984991e0a1d1d2c480f3866cd94db028",
       "references": [
         {
           "media_type": "application/json",
@@ -59,7 +59,7 @@
       ],
       "schema_version": "1.0.0",
       "source_ledger_path": "assets/scene-presets/std.city.golden_hour_gloss/v1/source-ledger.json",
-      "source_ledger_sha256": "f6ea4d1c6123af2e30123c68924107cb218787ad6bbe30242eb8229c7db99590"
+      "source_ledger_sha256": "3337351b74ca8eea4dfda67c868957ac08930efcf5d7c5ab3b9902b05959c668"
     },
     {
       "preset_id": "std.studio.white_window_honeycomb",
@@ -69,7 +69,7 @@
       "production_prompt_path": "prompts/scene-presets/std.studio.white_window_honeycomb/v1/production-scene.txt",
       "prompt_sha256": "89708f7bff1aa4fcb62ad33b3b2bae9f243cf3679f72683407391497f7a94284",
       "reference_pack_path": "assets/scene-presets/std.studio.white_window_honeycomb/v1/reference-pack.json",
-      "reference_pack_sha256": "82cf111ae9b0a633d57db2e2d6512fe3edfd87a44844c58cb25bf64535c071aa",
+      "reference_pack_sha256": "5206a24ab1ccf0aebb438fb734bd165ca206fa1efaae6a067453dfcab71f65ab",
       "references": [
         {
           "media_type": "application/json",
@@ -114,7 +114,7 @@
       ],
       "schema_version": "1.0.0",
       "source_ledger_path": "assets/scene-presets/std.studio.white_window_honeycomb/v1/source-ledger.json",
-      "source_ledger_sha256": "9e80798a4edb7369b8180a7c343c1eb0567611c6a9ef95ba8500f3a8bca7d15a"
+      "source_ledger_sha256": "3d4de8f6d74ac921e7f1736b8d046317fb08bd5cd3e364ff73a3f34fbecb2476"
     },
     {
       "preset_id": "std.studio.taupe_rembrandt_gloss",
@@ -124,7 +124,7 @@
       "production_prompt_path": "prompts/scene-presets/std.studio.taupe_rembrandt_gloss/v1/production-scene.txt",
       "prompt_sha256": "8dde4619df1d9cf975514e76c056bfd578989234aea88639f5fd828047f8171f",
       "reference_pack_path": "assets/scene-presets/std.studio.taupe_rembrandt_gloss/v1/reference-pack.json",
-      "reference_pack_sha256": "8ed728250cff1f55c0e7e094cfdccbcff39d731ad461f91a6c9345a6eb134914",
+      "reference_pack_sha256": "8b20666d6113098fe9f4ad3fc560978e98fb9811d4ee7551a9ab8f3a5a90bf37",
       "references": [
         {
           "media_type": "application/json",
@@ -169,7 +169,7 @@
       ],
       "schema_version": "1.0.0",
       "source_ledger_path": "assets/scene-presets/std.studio.taupe_rembrandt_gloss/v1/source-ledger.json",
-      "source_ledger_sha256": "78a2bc497754cdf443a5edc1934e66a2794e85f9b54fcad6b49086bf70ddce6a"
+      "source_ledger_sha256": "d32741f2690b945337a4a67e0c708b61dc826a987a78391066484596dd39f694"
     },
     {
       "preset_id": "std.interior.gallery_morning_gloss",
@@ -179,7 +179,7 @@
       "production_prompt_path": "prompts/scene-presets/std.interior.gallery_morning_gloss/v1/production-scene.txt",
       "prompt_sha256": "0c100a7ece3ff37ae776ef6d1b254294cf02f47497bd80194a94177bfce8721e",
       "reference_pack_path": "assets/scene-presets/std.interior.gallery_morning_gloss/v1/reference-pack.json",
-      "reference_pack_sha256": "522de4cc7eb07a999442781614ed34c1fcddd3fd7bb461453ed053f090533151",
+      "reference_pack_sha256": "81af94f7c0fd537ce6a5fda7dd99ef77c34e507b23c5eab22fcbb7750e80424d",
       "references": [
         {
           "media_type": "application/json",
@@ -224,7 +224,7 @@
       ],
       "schema_version": "1.0.0",
       "source_ledger_path": "assets/scene-presets/std.interior.gallery_morning_gloss/v1/source-ledger.json",
-      "source_ledger_sha256": "18bd427dde5ac8eb167b6bb7f45474ee88f3d3f4a11e2968e8486a9822c35a76"
+      "source_ledger_sha256": "6643c592df912d43b4e5b73c6421841461540e462382a6eec27f503161aa5c07"
     },
     {
       "preset_id": "std.nature_architecture.concrete_grass_golden_hour",
@@ -234,7 +234,7 @@
       "production_prompt_path": "prompts/scene-presets/std.nature_architecture.concrete_grass_golden_hour/v1/production-scene.txt",
       "prompt_sha256": "71b8d45d5d8f4468b49b768e5d46184dc0d3213ad50976bac31848764d9090f4",
       "reference_pack_path": "assets/scene-presets/std.nature_architecture.concrete_grass_golden_hour/v1/reference-pack.json",
-      "reference_pack_sha256": "43d66e903e21f5756df927dff6a091b575650cba7405d46914d4c3f45a8cb28b",
+      "reference_pack_sha256": "3cc81220cd19a3235b8899d2060a1b14628ff8ebad2dd43ebe3033e291647bfa",
       "references": [
         {
           "media_type": "application/json",
@@ -279,7 +279,7 @@
       ],
       "schema_version": "1.0.0",
       "source_ledger_path": "assets/scene-presets/std.nature_architecture.concrete_grass_golden_hour/v1/source-ledger.json",
-      "source_ledger_sha256": "03d72c78f66a9226096ff95e957888b66ac5b90653d20ed767e59acdfb1a0875"
+      "source_ledger_sha256": "729191db8e1091cb8a84e8957d593cb30f79a6723ed6570bbc21e4ce298c88e0"
     }
   ],
   "schema_version": "1.0.0",
