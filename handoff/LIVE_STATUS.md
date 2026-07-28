@@ -8,6 +8,15 @@
 
 <!-- entries -->
 
+### 2026-07-28 19:28 · codex-main · DONE
+
+Відкат Antigravity завершено і запушено у beta: 30 прямих комітів прибрані звичайними revert-комітами, merge-коміти не чіпались. Site A / Neo-Luxe / Lusion маркери з web/public прибрані. Перевірка: git diff --check + 16/16 focused UI/post-shoot tests PASS. Live deployment не запускався цим кроком.
+
+Файли: web/public/**,assets/scene-presets/**,assets/scene-mood-cards/**,prompts/**,config/scene-presets.json,test/web/**,handoff/LIVE_STATUS.md
+
+HEAD на момент запису: `b596d3c`
+
+
 ### 2026-07-28 19:22 · codex-main · INTENT
 
 Відкотити всі зміни Antigravity з beta звичайними revert-комітами за прямим рішенням Edwin; без reset/force-push. Спершу інвентаризація точних SHA і залежностей.
