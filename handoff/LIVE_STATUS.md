@@ -8,6 +8,15 @@
 
 <!-- entries -->
 
+### 2026-07-28 21:20 · claude-code-20260727-557761 · PROGRESS
+
+VIDEO.01: транспорт seedance (16:9, аудіо off, geometry-guard) і чотири канонічні motion modes у гілці, 23/23 зелені. Далі — video-service: локований source -> транспорт -> збереження -> QA.
+
+Файли: src/providers/higgsfield-video-provider.js, src/web/video-motion-plan.js, test/video/**
+
+HEAD на момент запису: `47718e2`
+
+
 ### 2026-07-28 20:45 · codex-main · PROGRESS
 
 Виправлено наслідок відновлення 11 scene packs: root catalog мав п’ять застарілих index SHA для вже оновлених pack-index файлів. Оновлені лише binding SHA до фактичних байтів; 27/27 focused full-look, motion-contract, item-evidence та editorial tests PASS.
