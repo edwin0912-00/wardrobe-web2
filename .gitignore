@@ -6,3 +6,4 @@ tmp/
 .env.*
 !.env.example
 secrets/
+assets/generated_videos/
