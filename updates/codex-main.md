@@ -13,6 +13,15 @@ editorial preview sidecar `editorial.edwin_novak.organic_contrast` before it
 can package the preview. No bypass/manual file copy was used.
 weakened_checks: none.
 
+---
+
+Agent ID: codex-main
+Task ID: BETA-SCENE-JOURNEY-SMOKE-001
+State: BLOCKED_INPUT
+Actual terminal evidence: `deef65fb-a4da-4608-a223-96b026fa5b39` reached `CONDITIONING_QA` through the real Higgsfield CLI. Top and bottom passed; footwear was classified at 0.97 but refused because the single lateral image cannot evidence the other side, top, heel, sole or pair-level construction. Provider normalisation job `ca6945c8-ebbf-46f1-b88b-ec46fe4c5667` completed. No scene was created and no duplicate retry occurred.
+Required input: extra images of the exact pair—opposite side, top/toe, heel, and sole where relevant. This is an honest source-evidence gate, not a provider outage or timeout.
+weakened_checks: none.
+
 State: READY_FOR_BETA_DEPLOY
 Exact product commit: `969bc57`.
 Deployment blocker: `tools/lib/deployment-target.mjs` permits only

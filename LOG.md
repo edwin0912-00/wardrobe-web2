@@ -23,6 +23,21 @@ Why: an approved master needs a premium 3D presentation treatment without changi
 Evidence: `node --test test/web/light-stage.test.js` passes 3/3; `git diff --check` passes. Component documentation explicitly refuses a generative fallback and marks its output presentation-only.
 weakened_checks: none.
 
+2026-07-29 · BETA-SCENE-JOURNEY-SMOKE-001 · real controlled preflight
+Change: ran one non-mock Higgsfield/Codex full-look preflight and recorded the
+typed terminal receipt instead of issuing a duplicate retry.
+Why: Create Universe and standard background output must begin with a completed
+PASS full look; an earlier half-body source or a manually asserted receipt is
+not acceptable evidence.
+Evidence: run `deef65fb-a4da-4608-a223-96b026fa5b39` reached
+`CONDITIONING_QA`; Higgsfield job `ca6945c8-ebbf-46f1-b88b-ec46fe4c5667`
+completed. Top/bottom passed. Single lateral footwear view was refused with
+`FOOTWEAR_REFERENCE_INSUFFICIENT`; redacted receipt is in the bounded smoke
+workspace. `node ops/loops/create-universe-real-smoke-20260729/scripts/check-receipts.mjs
+ops/loops/create-universe-real-smoke-20260729/loop-workspace` passes; Create
+Universe catalogue test passes 2/2.
+weakened_checks: none.
+
 2026-07-28 · BETA-LOOK-NEXT-ACTIONS-001 · beta `2a1a445` · preview built, deploy blocked
 Change: add a standalone interactive visual preview for the five post-look
 directions, with distinct slow glow/spotlight languages and reduced-motion

@@ -291,3 +291,18 @@ be weakened to hide it.
 - Any global or preset-specific gate relaxation.
 - Any credential action, `site.madeforthisjob.com`, or port `4180` action.
 - Any style-reference approval without supplied rights and hash evidence.
+
+## Current real image-pipeline proof — 2026-07-29
+
+- Higgsfield CLI 0.2.3 is authenticated and accepted a real controlled smoke.
+  Run `deef65fb-a4da-4608-a223-96b026fa5b39` reached `CONDITIONING_QA`; its
+  footwear-normalisation provider job `ca6945c8-ebbf-46f1-b88b-ec46fe4c5667`
+  completed.
+- Top and bottom evidence passed; footwear was correctly refused because the
+  supplied source shows only one lateral view. The run is `NEEDS_INPUT`, not a
+  provider failure. Required next input is the exact pair from opposite side,
+  top/toe, heel and sole where relevant.
+- Therefore no background or `shoot.*` image job has been claimed as passed.
+  The bounded smoke resumes from a newly completed PASS full-look receipt;
+  it does not retry the same insufficient source or relax the item lock.
+  Redacted receipt/report: `ops/loops/create-universe-real-smoke-20260729/`.

@@ -1,0 +1,28 @@
+{
+  "kind": "REAL_PIPELINE_PRECONDITION_RECEIPT",
+  "mock": false,
+  "transport": "higgsfield-cli + codex-vlm",
+  "run_id": "deef65fb-a4da-4608-a223-96b026fa5b39",
+  "status": "NEEDS_INPUT",
+  "phase": "CONDITIONING_QA",
+  "terminal": true,
+  "provider_job_ids": ["ca6945c8-ebbf-46f1-b88b-ec46fe4c5667"],
+  "categories": [
+    {"category": "top", "confidence": 0.99, "decision": "PASS"},
+    {"category": "bottom", "confidence": 0.99, "decision": "PASS"},
+    {"category": "footwear", "confidence": 0.97, "decision": "NEEDS_INPUT"}
+  ],
+  "typed_defect": "FOOTWEAR_REFERENCE_INSUFFICIENT",
+  "required_input": [
+    "the same pair: opposite/medial side",
+    "top or front/toe view",
+    "heel view",
+    "sole where material and construction need evidence"
+  ],
+  "evidence": {
+    "receipt_id": "fd2b0e59b3d674e518f07bb0854e73403f55331d663a2bc5695fc5fd780826ae",
+    "evaluator": "openai-codex-cli:gpt-5.6-terra",
+    "subject_sha256": "011cfb5a0fc1aff045294b60a38b8de7b0578d5d05564e691fb57c9de54eb075",
+    "evidence_manifest_sha256": "2d7641fc779a0be8b9f763dd65b169a7bf12ed2cb693e689980a83ccf2a90acc"
+  }
+}
