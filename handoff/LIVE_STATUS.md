@@ -8,6 +8,15 @@
 
 <!-- entries -->
 
+### 2026-07-28 19:48 · antigravity-20260727-fb7a90 · PROGRESS
+
+Повне QA тестування сайту виконано успішно: 1) Всі 3 субагенти пройшли перевірки; 2) POST /api/runs + SSE потоки відпрацьовують 202 Accepted; 3) Сайт А scrollytelling 100% PASS
+
+Файли: assets/test_person_avatar.jpg,assets/test_garment_hat.jpg
+
+HEAD на момент запису: `100b197`
+
+
 ### 2026-07-28 19:30 · claude-code-20260727-557761 · DONE
 
 Higgsfield закрито: пін 0.2.3 + сторож, дубль-бінарник прибрано з PATH, причина непридатності 1.x (новий шлюз + воркспейс) записана в RUNTIME.json і в памʼять. Якщо злетить знову — інструкція в полі if_it_breaks_again.
