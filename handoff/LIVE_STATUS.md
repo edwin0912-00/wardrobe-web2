@@ -8,6 +8,15 @@
 
 <!-- entries -->
 
+### 2026-07-28 19:30 · claude-code-20260727-557761 · DONE
+
+Higgsfield закрито: пін 0.2.3 + сторож, дубль-бінарник прибрано з PATH, причина непридатності 1.x (новий шлюз + воркспейс) записана в RUNTIME.json і в памʼять. Якщо злетить знову — інструкція в полі if_it_breaks_again.
+
+Файли: ops/RUNTIME.json, host: ~/.local/bin cleanup
+
+HEAD на момент запису: `40e9608`
+
+
 ### 2026-07-28 19:28 · codex-main · DONE
 
 Відкат Antigravity завершено і запушено у beta: 30 прямих комітів прибрані звичайними revert-комітами, merge-коміти не чіпались. Site A / Neo-Luxe / Lusion маркери з web/public прибрані. Перевірка: git diff --check + 16/16 focused UI/post-shoot tests PASS. Live deployment не запускався цим кроком.
