@@ -8,6 +8,15 @@
 
 <!-- entries -->
 
+### 2026-07-28 18:56 · codex-main · INTENT
+
+Аудит повного beta user journey: звірити Git-модулі з live API/UI, включно з video та Live; зафіксувати лише відтворювані PASS/BLOCKED.
+
+Файли: UPDATE.md,STATE.md,LOG.md,PIPELINE.md,updates/codex-main.md
+
+HEAD на момент запису: `360511b`
+
+
 ### 2026-07-28 18:53 · claude-code-20260727-557761 · DONE
 
 Higgsfield на хості вилікуваний: 1.1.19 -> 0.2.3 через npm, оператор підтвердив device-логін (nebula.marketing, 3707 кредитів), beta перемкнена з codex-imagegen-test на higgsfield, health ready. Відкат = один рядок у run-beta-daemon.sh (.bak-20260728-preprovider) + kickstart. Причина поломки: апгрейд homebrew до 1.1.19 плюс зниклий credentials.json; версію треба пінити.
