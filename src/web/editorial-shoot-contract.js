@@ -262,19 +262,15 @@ function validateShotSpec(shot, index) {
     throw new Error('The clean identity hero must require full-face identity evidence');
   }
   const camera = validateCamera(shot.camera, expectedSlot);
-  // Art direction is not a fitting shot, so no editorial slot demands a
-  // full-length figure. While three slots required full_body / wide_full_body,
-  // a half-length approved look forced the generator to invent a lower garment
-  // and footwear it had never been given, and ITEM_FIDELITY then correctly
-  // refused to verify invented items — making the hero, and therefore the whole
-  // series behind it, unpassable. The framing intent that matters editorially is
-  // the crop character, which three_quarter already expresses.
+  // Only the coda is full length. SceneService rejects it before generation
+  // unless top, bottom and footwear are all locked approved items, so this
+  // never reintroduces an invented lower half.
   const requiredFraming = {
     clean_identity_hero: 'three_quarter',
     environmental_hero: 'three_quarter',
     sculptural_three_quarter: 'three_quarter',
     material_or_accessory_detail: 'detail',
-    wide_campaign_coda: 'three_quarter',
+    wide_campaign_coda: 'wide_full_body',
   }[expectedSlot];
   if (requiredFraming && camera.framing !== requiredFraming) {
     throw new Error(`${expectedSlot} must use ${requiredFraming} framing`);

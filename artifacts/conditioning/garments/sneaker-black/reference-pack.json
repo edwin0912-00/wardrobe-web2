@@ -17,6 +17,14 @@
         "black laces",
         "sculpted sole",
         "visible air units"
+      ],
+      "material": [
+        "mesh textile",
+        "synthetic overlay",
+        "rubber sole"
+      ],
+      "pattern": [
+        "plain black technical paneling"
       ]
     },
     "provenance": "OBSERVED",
@@ -129,15 +137,28 @@
     ]
   },
   "readiness": {
-    "decision": "INCOMPATIBLE",
+    "decision": "REPAIRABLE",
     "reasons": [
-      "GARMENT_FOOTWEAR_NOT_VISIBLE_IN_HALF_BODY"
+      "BELOW_PREFERRED_RESOLUTION"
     ],
     "actions": [
-      "CHANGE_TARGET_FRAMING_OR_REFERENCE"
+      "CONSERVATIVE_UPSCALE"
     ],
-    "terminal": true
+    "terminal": false
   },
-  "generation_bindings": [],
-  "created_at": "2026-07-22T00:37:53.983Z"
+  "generation_bindings": [
+    {
+      "order": 1,
+      "role": "GARMENT_PRIMARY",
+      "path": "artifacts/conditioning/garments/sneaker-black/cutout.png",
+      "sha256": "655d6fec39dd4b5bea52f6e92a02aff668e6f29d49444f25606387d4dfb0e2ed"
+    },
+    {
+      "order": 2,
+      "role": "GARMENT_REFERENCE_CARD",
+      "path": "artifacts/conditioning/garments/sneaker-black/reference-card.png",
+      "sha256": "1c3221bc937727f02eddbde03d31f20f2cb8efba904c17d2d7f75982fccfda51"
+    }
+  ],
+  "created_at": "2026-07-28T11:00:03.443Z"
 }

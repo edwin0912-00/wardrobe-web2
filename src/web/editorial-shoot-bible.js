@@ -175,11 +175,10 @@ const SLOT_CONTENT = withVerticalLock({
     title: 'Широкий campaign-фінал',
     objective: 'Close the series with a wide campaign frame that preserves the exact complete person and look inside strong original negative space.',
     lens_mm: 35,
-    // The coda stays wide — that is its whole point — but a wide frame does not
-    // have to be a full-length one. Requiring footwear here would reintroduce
-    // the same unpassable gate at the end of the series that it did at the
-    // start: an invented lower half no reference can verify.
-    framing: 'three_quarter',
+    // This becomes full length only because the SceneService now refuses the
+    // coda before a locked top, bottom and footwear set is bound. No styling
+    // completion may fill the lower half of this delivery frame.
+    framing: 'wide_full_body',
     height: 'waist_level',
     angle: 'Waist-level wide composition with corrected verticals and no wide-angle body distortion.',
     pose: 'Small but fully readable figure with separated limbs and an unmistakable complete approved silhouette.',
@@ -248,21 +247,12 @@ function shotSpec(modeDefinition, slot) {
     item_evidence: [
       'Preserve every approved item that intersects the intentional crop in exact type, silhouette, color, material and construction.',
       'Preserve every visible logo, graphic, letter, number, pattern, closure, hardware and footwear detail exactly; never invent an out-of-frame item.',
-      // A styled frame usually needs a garment the wardrobe does not contain —
-      // most often a lower garment, when the approved look is a top only. Left
-      // unaddressed the generator invents a branded-looking one, and the
-      // forensic gate then fails a technically good frame because nothing can
-      // verify it. So the completion is permitted, but confined: it is drawn
-      // from this mode's own palette and materials so it reads as art direction
-      // rather than filler, and it must stay plainly unbranded so it can never
-      // be mistaken for, or compete with, an approved product.
-      'STYLING COMPLETION: complete any body region this crop leaves uncovered by the approved look with one plain garment drawn from the mode palette and materials above.',
-      'A styling completion is plain and unbranded: no logo, brand mark, slogan, number or graphic print. It is styling, not product, so it is neither claimed as approved nor verified against it.',
+      'Every visible garment, accessory and footwear item must be an approved locked item. Do not complete an uncovered body region by inventing styling.',
     ],
     optical_device: shot.optical_device,
     negative_constraints: [
       'No identity drift, age change, face replacement, body redesign or skin smoothing.',
-      'No removed, substituted, recolored or redesigned APPROVED garment, accessory, logo or text. A plain unbranded styling-completion garment is permitted only where the approved look leaves a region of this crop uncovered.',
+      'No removed, substituted, recolored or redesigned approved garment, accessory, footwear, logo or text; no invented styling completion.',
       'No copied source person, landmark, readable signage or exact source architecture.',
       'No malformed hands, merged limbs, destructive crop or incoherent contact shadow.',
     ],

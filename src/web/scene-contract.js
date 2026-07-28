@@ -217,7 +217,7 @@ const EDITORIAL_HEAD_GUARDS = Object.freeze({
   sculptural_three_quarter: { above: 5, below: 0, head: true, footwear: false },
   interference_frame: { above: 4, below: 0, head: true, footwear: false },
   material_or_accessory_detail: { above: 0, below: 0, head: false, footwear: false },
-  wide_campaign_coda: { above: 8, below: 0, head: true, footwear: false },
+  wide_campaign_coda: { above: 8, below: 2, head: true, footwear: true },
 });
 
 // The floor cannot be derived from the head guard, so it stays a chosen number — but a

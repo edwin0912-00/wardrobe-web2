@@ -1,0 +1,141 @@
+{
+  "schema_version": "1.0.0",
+  "asset_id": "outfit-locked-black-trousers",
+  "kind": "GARMENT",
+  "source": {
+    "path": "inputs/zeely-test/outfits/locked-black-trousers.png",
+    "sha256": "43236b483d8e5acfee4d4c33d2e3cd94a64ec3c31ee0b5b5e4cccd00fe6cf9d8",
+    "immutable": true
+  },
+  "extraction": {
+    "method": "explicit_visual_review",
+    "category": "BOTTOM",
+    "observed_facts": {
+      "garmentType": "charcoal-black straight-leg five-pocket jeans",
+      "structure": [
+        "straight leg",
+        "mid-rise waistband",
+        "zip fly",
+        "button closure",
+        "five-pocket construction",
+        "belt loops"
+      ],
+      "material": [
+        "opaque mid-weight cotton denim"
+      ],
+      "pattern": [
+        "plain washed-black denim weave"
+      ],
+      "logo_text": []
+    },
+    "provenance": "SYNTHETIC_LOCKED",
+    "unknowns": [],
+    "synthetic_lock": {
+      "policy": "ONE_TIME_OPERATOR_APPROVED_SYNTHESIS",
+      "source_artifact": "inputs/zeely-test/outfits/locked-black-trousers.source-magenta.png",
+      "source_sha256": "f4f27a29e778fc3ed875f46b1d29210105546c13e02857c5f422d793044c053f",
+      "immutable_after_approval": true
+    }
+  },
+  "technical_assessment": {
+    "schema_version": "1.0.0",
+    "metadata": {
+      "format": "png",
+      "mime_type": "image/png",
+      "source_width": 1024,
+      "source_height": 1536,
+      "display_width": 1024,
+      "display_height": 1536,
+      "orientation": 1,
+      "color_space": "srgb",
+      "channels": 4,
+      "has_alpha": true,
+      "density": 72,
+      "pages": 1,
+      "byte_length": 1548679,
+      "source_sha256": "43236b483d8e5acfee4d4c33d2e3cd94a64ec3c31ee0b5b5e4cccd00fe6cf9d8"
+    },
+    "signals": {
+      "analysis_width": 171,
+      "analysis_height": 256,
+      "mean_luminance": 0.062137,
+      "black_clip_ratio": 0.554368,
+      "white_clip_ratio": 0.000343,
+      "luminance_range_p05_p95": 0.164706,
+      "edge_energy": 0.01015,
+      "subject_coverage": null
+    },
+    "resize_evidence": {
+      "preferred_long_edge": 1024,
+      "current_long_edge": 1536,
+      "factor_to_preferred": 0.666667,
+      "max_upscale_factor": 2,
+      "applied_upscale_factor": 1,
+      "target_reachable": true
+    },
+    "fatal_issues": [],
+    "repairable_issues": [],
+    "risks": []
+  },
+  "conditioning": {
+    "normalized": {
+      "path": "artifacts/conditioning/garments/trousers-black/normalized.png",
+      "sha256": "36b6f82d38970da5620efa36204fca44636d1845dbc2cc72f0fc6231157cc646",
+      "bytes": 1524109
+    },
+    "cutout": {
+      "path": "artifacts/conditioning/garments/trousers-black/cutout.png",
+      "sha256": "94e25b8ac87da692695e77a966dbf56544d1726903112f9876fd386d19462802",
+      "bytes": 1442188,
+      "is_isolated": true,
+      "isolation_method": "SOURCE_ALPHA"
+    },
+    "reference_card": {
+      "path": "artifacts/conditioning/garments/trousers-black/reference-card.png",
+      "sha256": "3eec69f7e38f51c3f58cd03e4d20d7bcfce72a7e333552bf105d37dd2d6ed5af",
+      "bytes": 1294914
+    },
+    "warnings": [],
+    "operations": [
+      {
+        "type": "AUTO_ORIENT"
+      },
+      {
+        "type": "CONVERT_COLOR_SPACE",
+        "to": "srgb"
+      },
+      {
+        "type": "SOURCE_ALPHA",
+        "bbox_pixels": null
+      },
+      {
+        "type": "CREATE_REFERENCE_CARD",
+        "width": 1024,
+        "height": 1280
+      }
+    ]
+  },
+  "readiness": {
+    "decision": "READY",
+    "reasons": [
+      "ALL_REQUIRED_EVIDENCE_AND_TECHNICAL_GATES_PASS"
+    ],
+    "actions": [],
+    "terminal": false
+  },
+  "generation_bindings": [
+    {
+      "order": 1,
+      "role": "GARMENT_PRIMARY",
+      "path": "artifacts/conditioning/garments/trousers-black/cutout.png",
+      "sha256": "94e25b8ac87da692695e77a966dbf56544d1726903112f9876fd386d19462802"
+    },
+    {
+      "order": 2,
+      "role": "GARMENT_REFERENCE_CARD",
+      "path": "artifacts/conditioning/garments/trousers-black/reference-card.png",
+      "sha256": "3eec69f7e38f51c3f58cd03e4d20d7bcfce72a7e333552bf105d37dd2d6ed5af"
+    }
+  ],
+  "created_at": "2026-07-28T11:00:03.443Z"
+}

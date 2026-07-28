@@ -189,6 +189,36 @@
       ]
     },
     {
+      "asset_id": "outfit-locked-black-trousers",
+      "local_path": "outfits/locked-black-trousers.png",
+      "sha256": "43236b483d8e5acfee4d4c33d2e3cd94a64ec3c31ee0b5b5e4cccd00fe6cf9d8",
+      "mime_type": "image/png",
+      "width": 1024,
+      "height": 1536,
+      "mode": "reference_image",
+      "target_region": "lower_body_clothing",
+      "conditioning_reference_pack": "../../artifacts/conditioning/garments/trousers-black/reference-pack.json",
+      "provenance": {
+        "kind": "SYNTHETIC_LOCKED",
+        "policy": "ONE_TIME_OPERATOR_APPROVED_SYNTHESIS",
+        "source_sha256": "f4f27a29e778fc3ed875f46b1d29210105546c13e02857c5f422d793044c053f",
+        "immutable_after_approval": true
+      },
+      "readiness": {
+        "decision": "READY",
+        "reason": "ONE_TIME_SYNTHETIC_ITEM_LOCKED_WITH_HASH_BOUND_DOSSIER"
+      },
+      "generation_bindings": [
+        "../../artifacts/conditioning/garments/trousers-black/cutout.png",
+        "../../artifacts/conditioning/garments/trousers-black/reference-card.png"
+      ],
+      "must_match": [
+        "charcoal-black straight-leg five-pocket jeans",
+        "mid-rise waistband, zip fly, button closure and belt loops",
+        "plain washed-black opaque cotton denim with no branding, text, graphic or distressing"
+      ]
+    },
+    {
       "asset_id": "outfit-cowboy-hat",
       "local_path": "outfits/images.jpeg",
       "drive_file_id": "1TWf0SiOunEXqbjk9Lz0AYgHRIsq3gXtF",

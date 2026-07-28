@@ -2,13 +2,16 @@
 
 Protocol ACK: 985fcec
 
-## BETA-FULL-LOOK-LOCK-001 — STARTED
+## BETA-FULL-LOOK-LOCK-001 — IMPLEMENTED, AWAITING BETA ACTIVATION
 
 - Pipeline: `LOOK.04–06` → `VIDEO.01`.
 - Direct operator instruction: make bottoms and footwear first-class locked items; an item visible in delivery must be locked. Existing items use real crops; only absent bottoms may be synthesized once, disclosed and frozen.
 - Reservation: the exact paths in `UPDATE.md`; no active row owns them.
-- Initial evidence: `approved-items` is currently top-only. `outfit-black-sneaker` has a real source and existing conditioner output but an obsolete incompatible readiness result. No lower-garment source exists in this fixture, so the operator-approved one-time synthetic lock is required.
-- Safety: no QA weakening, no manifest hash rewrite, no provider/video request, and no synthetic replacement for the real sneaker source.
-- Next: create the immutable trousers source + both dossiers, then prove the full-length gate rejects incomplete items before accepting the three-item set.
+- Initial evidence: `approved-items` was top-only. `outfit-black-sneaker` has a real source; no lower-garment source existed in this fixture, so the operator-approved one-time synthetic lock was required.
+- Locked footwear: `outfit-black-sneaker` remains `OBSERVED`, sourced only from `inputs/zeely-test/outfits/68d39339521f3-6389105.webp` (`5075f38ef46f9811640c2e0d22849e72f042f43f91d3cc706ae107fa8a62c346`). Its immutable dossier now declares all-black technical sneaker, mesh textile / synthetic overlay / rubber sole, laces / sculpted sole / air units, and plain black technical paneling. Product cutout SHA-256: `655d6fec39dd4b5bea52f6e92a02aff668e6f29d49444f25606387d4dfb0e2ed`; review-card SHA-256: `1c3221bc937727f02eddbde03d31f20f2cb8efba904c17d2d7f75982fccfda51`.
+- Locked bottom: `outfit-locked-black-trousers` is the sole disclosed `SYNTHETIC_LOCKED` item. The one-time original is `locked-black-trousers.source-magenta.png` (`f4f27a29e778fc3ed875f46b1d29210105546c13e02857c5f422d793044c053f`); immutable approved source is `locked-black-trousers.png` (`43236b483d8e5acfee4d4c33d2e3cd94a64ec3c31ee0b5b5e4cccd00fe6cf9d8`). Its dossier declares charcoal-black straight-leg five-pocket denim, mid-rise waistband / zip fly / button / belt loops, opaque mid-weight cotton denim, and plain washed-black denim weave. Product cutout SHA-256: `94e25b8ac87da692695e77a966dbf56544d1726903112f9876fd386d19462802`; review-card SHA-256: `3eec69f7e38f51c3f58cd03e4d20d7bcfce72a7e333552bf105d37dd2d6ed5af`.
+- Gate: `wide_campaign_coda` is restored to `wide_full_body`. `SceneService` now refuses that coda with `FULL_LOOK_ITEMS_REQUIRED` unless locked `top`, `bottom`, and `footwear` evidence is bound before any generation. Prompt constraints explicitly prohibit filling a visible region with invented styling.
+- Safety: no QA weakening, no manifest hash rewrite, no provider/video request, and no synthetic replacement for the real sneaker source. The sneaker source is technically `REPAIRABLE` because 437px cannot conservatively reach the preferred 1024px detail target; that risk remains visible and requires a better real source for finer detail, not fabricated replacement pixels.
+- Verification: `node --test test/conditioning/conditioning.test.mjs test/conditioning/decision.test.mjs test/conditioning/hash-lineage.test.mjs test/conditioning/image-conditioning.test.mjs` passed 23/23. `git diff --check` passed. The broader selected suite has two pre-existing catalogue expectation failures exactly matching the known beta report (editorial expected 6 but now sees 10; standard expected 5 but now sees 16); they are out of scope and unchanged.
 
 weakened_checks: none.

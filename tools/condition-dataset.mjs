@@ -17,6 +17,12 @@ import {
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const artifactRoot = path.join(repositoryRoot, 'artifacts', 'conditioning');
 const recordedAt = new Date().toISOString();
+const requestedGarmentIds = new Set(
+  String(process.env.ZEELY_CONDITION_GARMENTS ?? '')
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean),
+);
 
 const humanSpecs = [
   {
@@ -105,6 +111,31 @@ const garmentSpecs = [
     observed: {
       garmentType: 'all-black athletic sneaker',
       structure: ['mesh and synthetic upper', 'black laces', 'sculpted sole', 'visible air units'],
+      material: ['mesh textile', 'synthetic overlay', 'rubber sole'],
+      pattern: ['plain black technical paneling'],
+    },
+  },
+  {
+    id: 'trousers-black',
+    assetId: 'outfit-locked-black-trousers',
+    source: 'inputs/zeely-test/outfits/locked-black-trousers.png',
+    category: 'BOTTOM',
+    bbox: null,
+    allowFullImage: false,
+    requireExactDetail: false,
+    provenance: 'SYNTHETIC_LOCKED',
+    syntheticLock: {
+      policy: 'ONE_TIME_OPERATOR_APPROVED_SYNTHESIS',
+      source_artifact: 'inputs/zeely-test/outfits/locked-black-trousers.source-magenta.png',
+      source_sha256: 'TO_BE_FILLED_BY_CONDITIONER',
+      immutable_after_approval: true,
+    },
+    observed: {
+      garmentType: 'charcoal-black straight-leg five-pocket jeans',
+      structure: ['straight leg', 'mid-rise waistband', 'zip fly', 'button closure', 'five-pocket construction', 'belt loops'],
+      material: ['opaque mid-weight cotton denim'],
+      pattern: ['plain washed-black denim weave'],
+      logo_text: [],
     },
   },
   {
@@ -332,8 +363,14 @@ async function conditionGarment(spec) {
       method: 'explicit_visual_review',
       category: spec.category,
       observed_facts: spec.observed,
-      provenance: 'OBSERVED',
+      provenance: spec.provenance ?? 'OBSERVED',
       unknowns: spec.observed.limitations ?? [],
+      ...(spec.syntheticLock ? {
+        synthetic_lock: {
+          ...spec.syntheticLock,
+          source_sha256: await sha256Input(path.join(repositoryRoot, spec.syntheticLock.source_artifact)),
+        },
+      } : {}),
     },
     technical_assessment: preflight,
     conditioning: {
@@ -362,10 +399,29 @@ async function conditionGarment(spec) {
   };
 }
 
+const selectiveGarmentRun = requestedGarmentIds.size > 0;
 const humanResults = [];
-for (const spec of humanSpecs) humanResults.push(await conditionHuman(spec));
+if (!selectiveGarmentRun) {
+  for (const spec of humanSpecs) humanResults.push(await conditionHuman(spec));
+}
 const garmentResults = [];
-for (const spec of garmentSpecs) garmentResults.push(await conditionGarment(spec));
+const selectedGarmentSpecs = selectiveGarmentRun
+  ? garmentSpecs.filter((spec) => requestedGarmentIds.has(spec.id))
+  : garmentSpecs;
+if (selectiveGarmentRun && selectedGarmentSpecs.length !== requestedGarmentIds.size) {
+  throw new Error('ZEELY_CONDITION_GARMENTS names an unknown garment spec');
+}
+for (const spec of selectedGarmentSpecs) garmentResults.push(await conditionGarment(spec));
+
+if (selectiveGarmentRun) {
+  process.stdout.write(`${JSON.stringify({
+    schema_version: '1.0.0',
+    mode: 'SELECTIVE_GARMENT_CONDITIONING',
+    created_at: recordedAt,
+    garments: garmentResults,
+  }, null, 2)}\n`);
+  process.exit(0);
+}
 
 const qualityTarget = await extractQualityTarget({
   writtenRules: {
