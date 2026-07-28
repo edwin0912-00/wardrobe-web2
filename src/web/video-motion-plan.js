@@ -5,6 +5,36 @@
 // names an aspect, a duration or a resolution — those are provider parameters,
 // and the transport refuses a prompt that mentions them.
 
+// Where the clip plays decides its shape, so the caller picks a surface and the
+// aspect follows. Operator decision, 2026-07-28: the television in the scene runs
+// 16:9, the mirror runs 9:16. Exposing a free aspect field instead would make a
+// vertical clip on the television a one-keystroke mistake.
+export const VIDEO_SURFACES = Object.freeze({
+  tv: Object.freeze({
+    id: 'tv',
+    title: 'Телевізор',
+    aspectRatio: '16:9',
+    // Never names the ratio: the transport refuses a prompt that does.
+    framingNote: 'Compose for a wide landscape screen: the figure sits within the frame with air on both sides, and the horizon of the set reads across the width.',
+  }),
+  mirror: Object.freeze({
+    id: 'mirror',
+    title: 'Дзеркало',
+    aspectRatio: '9:16',
+    framingNote: 'Compose for a tall upright screen: the figure fills the height, the set falls away above and below, and nothing important sits near the left or right edge.',
+  }),
+});
+
+export const DEFAULT_VIDEO_SURFACE = 'tv';
+
+export function videoSurface(id = DEFAULT_VIDEO_SURFACE) {
+  const surface = VIDEO_SURFACES[id];
+  if (!surface) {
+    throw new MotionPlanError(`Unknown video surface: ${String(id)}`, { code: 'UNKNOWN_VIDEO_SURFACE' });
+  }
+  return surface;
+}
+
 export const MOTION_MODES = Object.freeze({
   editorial_micro_moment: Object.freeze({
     id: 'editorial_micro_moment',
@@ -74,10 +104,12 @@ export function motionMode(id) {
 export function buildMotionPlan({
   modeId,
   durationSeconds,
+  surface: surfaceId = DEFAULT_VIDEO_SURFACE,
   sourceCapabilities = {},
   styleNote = null,
 } = {}) {
   const mode = motionMode(modeId);
+  const surface = videoSurface(surfaceId);
 
   if (mode.requires.includes('full_length_source') && sourceCapabilities.full_length !== true) {
     throw new MotionPlanError(
@@ -101,9 +133,17 @@ export function buildMotionPlan({
   const prompt = [
     'Fashion motion from the attached approved frame, photoreal, one continuous shot.',
     mode.body,
+    surface.framingNote,
     styleNote ? styleNote.trim() : null,
     LOCKS,
   ].filter(Boolean).join(' ');
 
-  return { mode: mode.id, title: mode.title, durationSeconds: seconds, prompt };
+  return {
+    mode: mode.id,
+    title: mode.title,
+    surface: surface.id,
+    aspectRatio: surface.aspectRatio,
+    durationSeconds: seconds,
+    prompt,
+  };
 }

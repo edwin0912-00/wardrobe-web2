@@ -85,3 +85,47 @@ test('a style note is carried through, and an empty one is refused', () => {
   assert.match(plan.prompt, /shutter amber interior/);
   assert.throws(() => buildMotionPlan({ modeId: 'camera_drift', styleNote: '   ' }), MotionPlanError);
 });
+
+test('the surface decides the shape: television is wide, mirror is tall', () => {
+  const tv = buildMotionPlan({ modeId: 'editorial_micro_moment', surface: 'tv' });
+  const mirror = buildMotionPlan({ modeId: 'editorial_micro_moment', surface: 'mirror' });
+
+  assert.equal(tv.aspectRatio, '16:9');
+  assert.equal(mirror.aspectRatio, '9:16');
+  assert.match(tv.prompt, /wide landscape screen/);
+  assert.match(mirror.prompt, /tall upright screen/);
+});
+
+test('the television is the default surface', () => {
+  assert.equal(buildMotionPlan({ modeId: 'camera_drift' }).surface, 'tv');
+  assert.equal(buildMotionPlan({ modeId: 'camera_drift' }).aspectRatio, '16:9');
+});
+
+test('an unknown surface is refused rather than silently defaulted', () => {
+  assert.throws(
+    () => buildMotionPlan({ modeId: 'camera_drift', surface: 'billboard' }),
+    (error) => {
+      assert.equal(error.code, 'UNKNOWN_VIDEO_SURFACE');
+      return true;
+    },
+  );
+});
+
+test('the framing note never names a ratio, so the geometry guard stays happy', () => {
+  for (const surface of ['tv', 'mirror']) {
+    for (const mode of Object.values(MOTION_MODES)) {
+      const plan = buildMotionPlan({
+        modeId: mode.id,
+        surface,
+        sourceCapabilities: { full_length: true },
+      });
+      const args = buildVideoCreateArgs({
+        prompt: plan.prompt,
+        mediaPaths: ['/tmp/source.png'],
+        aspectRatio: plan.aspectRatio,
+        durationSeconds: plan.durationSeconds,
+      });
+      assert.equal(args[args.indexOf('--aspect_ratio') + 1], plan.aspectRatio, `${surface}/${mode.id}`);
+    }
+  }
+});
