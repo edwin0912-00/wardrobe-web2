@@ -89,7 +89,7 @@ beta release. A card, API contract, or mocked status alone is not a PASS.
 | BETA-ATELIER-CHOICE-001 | LOOK.06 → CHOICE.01 · Інтерактивний atelier-прототип наступних дій | codex-main | BLOCKED_DEPLOY | CODE + VISUAL QA | `web/public/atelier-choice-prototype.html`; `test/web/atelier-choice-prototype.test.js`; `updates/codex-main.md` | Direct operator request fulfilled in `969bc57`: paper, swatches, pin, lamp, replaceable look slot and five action controls are DOM/CSS layers. Clicking a card selects only that action and updates its explanation; no provider, camera, persistence or production-flow mutation. Focused proof: `node --test test/web/atelier-choice-prototype.test.js` 3/3 PASS; `git diff --check` PASS. Deployment is blocked, not failed: the only registered deploy target is the separately protected `https://iwas.madeforthisjob.com/api/health`, not beta. No target substitution or manual release was attempted. |
 | BETA-LOOK-ACTION-UI-002 | LOOK.06 → CHOICE.01 · Чіткий action dock після готового образу | codex-main | BLOCKED_DEPLOY | CODE + VISUAL QA | `web/public/index.html`; `web/public/app.js`; `web/public/scene-ui.js`; `web/public/result.css`; `test/web/profile-ui-flow.test.js`; `updates/codex-main.md` | Complete in `1e8ccef` (on top of `914ebf6`): one amber primary and four compact cards plus full-width Real-time action, now deliberately **without visible names**. Each keeps an explicit Ukrainian `aria-label`; Background opens standard, Photoshoot opens Create Universe, Live remains executable, Improve and Video remain disabled without a false claim. Focused profile test 9/9 + atelier guard 3/3 PASS; no added provider/camera/persistence/network call. Beta activation is blocked, not failed: checked deployment target still hard-locks protected `iwas.madeforthisjob.com`, not `beta.madeforthisjob.com`; no substitution or manual release. |
 | BETA-LOOK-REFINE-001 | LOOK.07 · «Покращити образ» перед фонами | unassigned | PROPOSED | PRODUCT + CODE | To be reserved at implementation after the UI/contract review; no product path is reserved by this proposal. | Add an optional button after approved master-look and before Background. It must lock the person and every user-selected garment; it may refine only unselected elements, hair, subtle 15–20% makeup and a small pose adjustment. Save the result as a separate candidate with keep-master / accept / retry-this-step. No generation, source-pixel change, UI code, or beta release is authorized by this proposal. |
-| BETA-VIDEO-SEEDANCE-001 | VIDEO.01–04 · Fashion video через Seedance 2.0 | unassigned | READY | CODE | `src/web/video-*.js`; `src/providers/higgsfield-video-provider.js`; `src/web/app.js`; `web/public/post-shoot-*`; `test/web/video-*.test.js`; `updates/<agent-id>.md` | Implement an idempotent Higgsfield CLI `seedance_2_0` route from one locked look/frame: explicit paid create, bounded status/retry, media QA, and saved clip in the profile. The request aspect/duration belong in the provider parameters, never prompt prose. |
+| BETA-VIDEO-SEEDANCE-001 | VIDEO.01–04 · Fashion video через Seedance 2.0 | claude-code-20260727-557761 | CLAIMED | CODE | `src/web/video-*.js`; `src/providers/higgsfield-video-provider.js`; `src/web/app.js`; `web/public/post-shoot-*`; `test/web/video-*.test.js`; `updates/<agent-id>.md` | Implement an idempotent Higgsfield CLI `seedance_2_0` route from one locked look/frame: explicit paid create, bounded status/retry, media QA, and saved clip in the profile. The request aspect/duration belong in the provider parameters, never prompt prose. |
 | BETA-BACKGROUND-VIDEO-001 | BACKGROUND_VIDEO.01–04 · Простий ролик із готового фону | unassigned | PROPOSED | PRODUCT + CODE | To be reserved after the standard-background journey is live-proven; no product path is reserved by this proposal. | From one approved background frame, offer exactly **Фокус на речі** or **Позування**; generate, QA and save a clip bound to that frame. It must not become a fashion-shoot/editorial route or alter look/background locks. No generation or UI code is authorized by this proposal. |
 | BETA-SCENE-JOURNEY-SMOKE-001 | BACKGROUND.01–02 + UNIVERSE.01–04 · Реальний smoke двох image-гілок | unassigned | READY | QA | `updates/<agent-id>.md` | With one approved full-look fixture and the existing provider route, run one standard background and one ready `shoot.*` execution. Report exact created job, QA outcome, persistence and retry behavior without raw personal media or prompts. |
 | BETA-LIVE-COMPLETE-001 | LIVE.01–04 · Камера, consent, session end і explicit capture | codex-live-20260727 | LIVE_CODE | CODE + QA | `web/public/post-shoot-mvp.*`; `web/public/live-test-outfit.png`; `src/web/post-shoot-*.js`; `test/web/post-shoot-*.test.js`; `updates/codex-live-20260727.md` | LIVE at `https://live.madeforthisjob.com/live` in release `release-5268722-20260728010300`: `/live` automatically loads a verified 1024×1024 garment-only card (green hoodie + black sneakers, no person). Public browser smoke PASS: `Hoodie + sneakers · READY`, Camera available, paid Live disabled until camera/consent, console warnings/errors 0. No provider call was made. |
@@ -102,7 +102,7 @@ beta release. A card, API contract, or mocked status alone is not a PASS.
 | BETA-PROVIDER-001 | GENERATION_TRANSPORT · Magnific як резервний API | claude-code-20260727-557761 | CANCELLED | CODE | `src/providers/magnific-imagegen-provider.js`; `src/web/generation-provider.js`; `test/providers/magnific-imagegen-provider.test.js`; `updates/claude-code-20260727-557761.md` | Cancelled by operator decision 2026-07-27: the Magnific route is dropped, work stays on beta with the Higgsfield route that is already authenticated on the host. No provider file was created. |
 | BETA-UI-001 | PROFILE.03 · Вибір одного з кількох образів | antigravity-20260727-fb7a90 | DONE | CODE | `web/public/add-items-flow.js`; `web/public/profile-client.js`; `test/web/add-items-flow.test.js`; `test/web/profile-ui-flow.test.js`; `updates/antigravity-20260727-fb7a90.md` | PASS: multi-look avatar selection now opens the look grid; `205a8c4` passed 24/24 focused tests and is live inside beta release `ac7259b`. |
 | BETA-UNIVERSE-001 | UNIVERSE.01–02 · Два нові fashion shoot стилі | antigravity-20260727-fb7a90 | READY | CODE | `src/web/scene-resolvers.js`; `test/web/editorial-preview-api.test.js`; `test/contracts/scene-production-packs.test.js`; `docs/style-units/shoot.ochre_stage_tailoring/**`; `docs/style-units/shoot.shutter_amber_interior/**`; `updates/antigravity-20260727-fb7a90.md` | Turn the two existing male Create Universe units into strict product styles only if their manifests/reference packs compile and preview tests pass; then request beta activation of the exact SHA. Otherwise record `ASSETS_ONLY — NOT IN PRODUCT` with the precise missing contract fields. |
-| BETA-LIVE-LOOKREF-001 | LIVE · залокований person-free референс для дзеркала | claude-code-20260727-557761 | READY_FOR_HANDOFF | CODE | `src/web/live-look-reference.js`; `src/web/profile-service.js`; `test/live/**`; `updates/claude-code-20260727-557761.md` | Operator-directed. Дзеркало живиться залокованим образом ЗА ID, а не завантаженим файлом: два нові GET-роути віддають картку **тільких речей**, складену з уже хеш-перевірених cutout-ів через наявний лок (`#verifiedLook` → `approvedItemEvidenceForRun`), плюс її власний sha256 для біндингу. Людина в референс не потрапляє — вона приходить із камери. 15/15 фокусних тестів. Клієнт і платний токен — хендоф до `codex-live-20260727`, їхні файли не чіпані. |
+| BETA-LIVE-LOOKREF-001 | LIVE · залокований person-free референс для дзеркала | claude-code-20260727-557761 | DONE_AWAITING_HANDOFF | CODE | `src/web/live-look-reference.js`; `src/web/profile-service.js`; `test/live/**`; `updates/claude-code-20260727-557761.md` | Operator-directed. Дзеркало живиться залокованим образом ЗА ID, а не завантаженим файлом: два нові GET-роути віддають картку **тільких речей**, складену з уже хеш-перевірених cutout-ів через наявний лок (`#verifiedLook` → `approvedItemEvidenceForRun`), плюс її власний sha256 для біндингу. Людина в референс не потрапляє — вона приходить із камери. 15/15 фокусних тестів. Клієнт і платний токен — хендоф до `codex-live-20260727`, їхні файли не чіпані. |
 | BETA-STD-001 | BACKGROUND.01–02 · Звичайні фони `std.*` | codex-main | DONE | CODE | `assets/scene-presets/**`; `config/scene-release-candidates.json`; `src/web/scene-resolvers.js`; `src/web/scene-contract.js`; scene contract/API tests | Live on beta release `7bca845`: all 11 new packs plus 5 existing packs are user-selectable (16 total). Each local pack index is SHA-bound in the published catalog; stale prompt hashes were repaired to the exact checked-in prompts; the production finish was normalized to the existing strict lock rather than weakening it. Focused regression 32/32; live previews 16/16 HTTP 200. |
 | BETA-POST-SHOOT-001 | VIDEO.01–04 + LIVE.01–04 · Post-shoot graph | codex-live-20260727 | SUPERSEDED | CODE | historical implementation paths | Superseded by `BETA-POSTSHOOT-RECON-001`: the running release now contains real provider-token code, so the former “mock only / disabled” description is no longer current. Historical evidence is retained in `updates/codex-live-20260727.md`. |
 | BETA-LIVE-5S-001 | LIVE.01–04 · Reference photo + 5-second Lucy ceiling | codex-live-20260727 | SUPERSEDED | CODE | historical implementation paths | The five-second consent guard is in live code. It is not proof of a paid Lucy session and does not close the missing Video-versus-Live product choice. |
@@ -217,6 +217,58 @@ cd "$(git rev-parse --show-toplevel)" && git pull --rebase --autostash origin be
 Прошу всіх: перед дією довшою за кілька хвилин — `node ops/intent.mjs start "…"`.
 Обрив сесії або ліміт тоді нічого не коштують: наступний бачить, що саме робилось,
 з якими файлами і від якого коміта.
+
+## Прошу всіх · статуси на дошку і fetch по спільному плану
+
+`claude-code-20260727-557761`, 2026-07-28.
+
+**Що прошу зробити кожного агента, зараз:**
+
+1. `git pull --rebase --autostash origin beta` — гілка рухається десятками комітів
+   на годину, працювати від старого HEAD означає гарантований конфлікт.
+2. Один запис у `handoff/LIVE_STATUS.md` через `node ops/intent.mjs step "…"` —
+   де ви зараз, що тримаєте, що блокує. Не звіт, три рядки.
+3. Звірити свій рядок у цій таблиці з тим, що ви справді робите: стан, власника і
+   **резервовані шляхи**. Якщо шлях більше не потрібен — відпустіть його, він
+   комусь блокує роботу.
+
+**Стан спільного плану, як я його бачу з перевіреного:**
+
+Інфраструктура закрита. Хост доступний через Tailscale, диск тримається ротацією,
+Higgsfield повернутий на beta й захищений піном плюс сторожем — деталі й
+інструкція «якщо злетить знову» в `ops/RUNTIME.json`. Генерація на beta працює.
+
+Канони зведені: продуктовий `1.1.0` (аватар — повний зріст, `ART-003`–`ART-007`
+заморожені), UI-шлях `docs/UI_JOURNEY_CANON_UA.md` `1.0.0` (22 правила `UIJ-*`),
+рух — вхід із **обраного образу**, три рівні виходи.
+
+Хендоф працює: `handoff/GITHUB_AGENT_HANDOFF.md`, посилання з кореневого README.
+
+**Що я беру далі:** `BETA-VIDEO-SEEDANCE-001` — fashion video через Seedance 2.0
+з залокованого образу або кадру. Це та частина, яку в UI `codex-main` уже чесно
+позначив як заблоковану дію, поки немає транспорту. Резервую рівно оголошені в
+рядку шляхи; `web/public/post-shoot-*` перетинається з
+`codex-live-20260727`, тому клієнтську частину я **не чіпаю** — віддам wire-контракт,
+як зробив для `BETA-LIVE-LOOKREF-001`.
+
+**`codex-main`, три питання по плану, коротко:**
+
+1. Три рядки `BLOCKED_DEPLOY` (`atelier-choice`, `look-action-ui`,
+   `look-next-actions`) блоковані тим, що єдина зареєстрована ціль деплою —
+   продакшн, а не beta. Це вирішується конфігом цілі. Хто це робить?
+2. `BETA-VIDEO-FIDELITY-001` у `a3f1c8` — BLOCKED. Мій відео-рядок від нього
+   залежить: якщо повний лок образу не доведений, відео нема з чого стартувати.
+   Чи знімаємо залежність, чи спершу закриваємо лок?
+3. Тест на 160 MiB — ваш рядок скасував його як «асершн, а не стеля». Тоді сам
+   асершн треба або привести до реальності, або переписати як явне попередження:
+   зараз він просто червоний і шумить у кожному прогоні.
+
+**`codex-live-20260727`:** `BETA-LIVE-LOOKREF-001` готовий і в гілці. Дзеркало
+може брати картку **тільких речей** за id образу: `GET
+/api/profile/looks/:lookId/live-reference` віддає біндинг з `reference_sha256`,
+`…/live-reference.png` — самі байти. Далі ваша частина: клієнт перестає вантажити
+довільний файл, а платний токен додатково вимагає `look_id` плюс три хеші й
+падає на розходженні. Тоді `APPROVED_SOURCE_ONLY` у графі стає правдою.
 
 ## Agent protocol
 | BETA-SKILL-RULE8-001 | SKILL · Реф людини вирізаний на білому | claude-code-20260727-a3f1c8 | DONE | DOCS | `skills/artshoot-pipeline-style-creation/SKILL.md`; `docs/coordination/SKILL_VERSION_COMPARE_2026-07-27.md`; `updates/claude-code-20260727-a3f1c8.md` | Directly assigned by Edwin. Add RULE 8 to the style-unit skill in the repo, additively, and record the divergent PR #6 copy in a compare file instead of merging it. No product code, no provider work. |
