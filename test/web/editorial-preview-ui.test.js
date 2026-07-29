@@ -73,6 +73,11 @@ test('catalog is production ACTIVE and only READY modes become controls', () => 
   assert.doesNotMatch(indexHtml, /Legacy Editorial/);
   assert.doesNotMatch(indexHtml, /editorial-mode-grid-legacy/);
   assert.doesNotMatch(sceneUiSource, /editorial-mode-grid-legacy/);
+  assert.match(
+    sceneCss,
+    /\.editorial-mode-grid\s*\{[\s\S]*?grid-template-columns:\s*repeat\(auto-fill, minmax\(300px, 1fr\)\);[\s\S]*?grid-auto-rows:\s*168px;/,
+  );
+  assert.match(sceneCss, /\.editorial-mode-copy > \.editorial-mode-action\s*\{[\s\S]*?display:\s*inline-flex;/);
 });
 
 test('Fashion Shoot binds its style pack and keeps the initial identity check internal', () => {
