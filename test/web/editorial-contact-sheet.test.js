@@ -112,7 +112,7 @@ async function contactSheetRoutes(t, shoot) {
   };
 }
 
-test('private contact-sheet manifest is deterministic, ordered, complete, and omits internal identifiers', async (t) => {
+test('private contact-sheet exposes five delivered frames and keeps the identity check internal', async (t) => {
   const shoot = completedShoot();
   // The persisted service validates its own order, but this projection must not trust a
   // caller to retain it: the contact sheet has one permanent slot order.
@@ -130,8 +130,12 @@ test('private contact-sheet manifest is deterministic, ordered, complete, and om
   assert.equal(ownerResponse.headers['cache-control'], 'private, no-store');
   assert.equal(ownerResponse.headers.vary, 'Cookie');
   assert.deepEqual(ownerResponse.json(), expected);
-  assert.deepEqual(ownerResponse.json().frames.map((frame) => frame.slot), EDITORIAL_SHOT_SLOTS);
-  assert.equal(ownerResponse.json().frames.length, 6);
+  assert.deepEqual(
+    ownerResponse.json().frames.map((frame) => frame.slot),
+    EDITORIAL_SHOT_SLOTS.slice(1),
+  );
+  assert.equal(ownerResponse.json().frames.length, 5);
+  assert.doesNotMatch(ownerResponse.body, /clean_identity_hero/);
   const serialized = ownerResponse.body;
   assert.doesNotMatch(
     serialized,

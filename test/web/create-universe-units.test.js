@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { readFile, readdir } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
 
@@ -17,83 +17,181 @@ const REQUIRED_SHEET_ROLES = [
   'environment',
   'person',
 ];
+const REQUIRED_SHOT_SLOTS = [
+  'clean_identity_hero',
+  'environmental_hero',
+  'sculptural_three_quarter',
+  'interference_frame',
+  'material_or_accessory_detail',
+  'wide_campaign_coda',
+];
+const LEGACY_BLOCKED_SOURCE_IDS = [
+  'shoot.skylight_haze',
+  'shoot.terracotta_hardlight',
+  'shoot.window_gobo_warm',
+  'shoot.grey_studio_stride',
+  'shoot.sky_dune_surreal',
+  'shoot.hardsun_brick_doorway',
+  'shoot.overcast_street_stride',
+  'shoot.grey_wall_gloss',
+  'shoot.ochre_stage_tailoring',
+  'shoot.shutter_amber_interior',
+];
+const PORTFOLIO_READY_IDS = [
+  'shoot.zayn_institutional',
+  'shoot.liza_luminous',
+  'shoot.duckweed_forest_ophelia',
+  'shoot.rooftop_veil_monochrome',
+  'shoot.autumn_park_mediated_sun',
+];
+const PORTFOLIO_BLOCKED_SOURCE_IDS = [
+  'shoot.hardsun_street_monochrome',
+];
 
-test('audit style units in docs/style-units/ for manifest and sheet completeness', async () => {
-  const unitsDir = path.resolve('docs/style-units');
-  const entries = await readdir(unitsDir, { withFileTypes: true });
-  const unitDirs = entries.filter((e) => e.isDirectory() && e.name.startsWith('shoot.')).map((e) => e.name);
-
-  const report = {};
-
-  for (const unitId of unitDirs) {
-    const dir = path.join(unitsDir, unitId);
-    let unitJson = null;
-    let manifestJson = null;
-
-    try {
-      unitJson = JSON.parse(await readFile(path.join(dir, 'unit.json'), 'utf8'));
-    } catch {
-      // unit.json missing
-    }
-
-    try {
-      manifestJson = JSON.parse(await readFile(path.join(dir, 'manifest.json'), 'utf8'));
-    } catch {
-      // manifest.json missing
-    }
-
-    const dirFiles = await readdir(dir);
-    const existingSheets = dirFiles.filter((f) => f.startsWith('sheet-') && f.endsWith('.png'));
-
-    const missingSheets = [];
-    if (manifestJson && Array.isArray(manifestJson.sheets)) {
-      const declaredRoles = new Set(manifestJson.sheets.map((s) => s.sheet_id));
-      for (const role of REQUIRED_SHEET_ROLES) {
-        if (!declaredRoles.has(role)) {
-          missingSheets.push(role);
-        }
-      }
-    } else {
-      for (const role of REQUIRED_SHEET_ROLES) {
-        if (!dirFiles.includes(`sheet-${role}.png`)) {
-          missingSheets.push(role);
-        }
-      }
-    }
-
-    const isComplete = Boolean(manifestJson) && missingSheets.length === 0;
-
-    report[unitId] = {
-      status: isComplete ? 'PRODUCT_READY' : 'ASSETS_ONLY — NOT IN PRODUCT',
-      has_unit_json: Boolean(unitJson),
-      has_manifest_json: Boolean(manifestJson),
-      existing_sheet_count: existingSheets.length,
-      missing_sheet_roles: missingSheets,
-    };
-  }
-
-  // Every selectable Fashion Shoot is a complete Creative Universe unit. Do
-  // not silently publish a directory that has only a mood card or observation.
-  const selectableFashionShootIds = [
-    'shoot.skylight_haze',
-    'shoot.terracotta_hardlight',
-    'shoot.window_gobo_warm',
-    'shoot.grey_studio_stride',
-    'shoot.sky_dune_surreal',
-    'shoot.hardsun_brick_doorway',
-    'shoot.overcast_street_stride',
-    'shoot.grey_wall_gloss',
-    'shoot.ochre_stage_tailoring',
-    'shoot.shutter_amber_interior',
+function runtimeStyleIsComplete(runtimeStyle) {
+  if (!runtimeStyle || typeof runtimeStyle !== 'object') return false;
+  const expectedKeys = [
+    'visual_system',
+    'mood_line',
+    'environment',
+    'lighting',
+    'materials',
+    'contrast',
+    'expression_signature',
+    'garment_behaviour',
+    'optical_signature',
+    'shot_directions',
   ];
-  assert.equal(selectableFashionShootIds.length, 10);
-  for (const unitId of selectableFashionShootIds) {
-    assert.equal(report[unitId]?.status, 'PRODUCT_READY', unitId);
-    assert.deepEqual(report[unitId]?.missing_sheet_roles, [], unitId);
+  if (JSON.stringify(Object.keys(runtimeStyle).sort()) !== JSON.stringify(expectedKeys.sort())) {
+    return false;
   }
+  return Array.isArray(runtimeStyle.materials)
+    && runtimeStyle.materials.length > 0
+    && Array.isArray(runtimeStyle.optical_signature)
+    && runtimeStyle.optical_signature.length > 0
+    && REQUIRED_SHOT_SLOTS.every((slot) => {
+      const direction = runtimeStyle.shot_directions?.[slot];
+      return direction
+        && typeof direction.camera_consequence === 'string'
+        && typeof direction.pose_joint_chain === 'string'
+        && typeof direction.focus === 'string'
+        && typeof direction.foreground === 'string'
+        && Array.isArray(direction.provenance)
+        && direction.provenance.length > 0;
+    });
+}
 
-  // The two male units were completed in BETA-MALE-UNITS-001 (5a70860: full sheet
-  // sets + hashed manifests, live since 58703b9) and are product styles now.
-  assert.equal(report['shoot.ochre_stage_tailoring']?.has_manifest_json, true);
-  assert.equal(report['shoot.shutter_amber_interior']?.has_manifest_json, true);
+test('source-incomplete legacy and mixed-gallery units fail closed', async () => {
+  for (const unitId of [...LEGACY_BLOCKED_SOURCE_IDS, ...PORTFOLIO_BLOCKED_SOURCE_IDS]) {
+    const directory = path.resolve('docs', 'style-units', unitId);
+    const unit = JSON.parse(await readFile(path.join(directory, 'unit.json'), 'utf8'));
+    const observation = await readFile(path.join(directory, 'OBSERVATION.md'), 'utf8');
+
+    assert.equal(unit.unit_id, unitId);
+    assert.equal(unit.style_unit_status, 'BLOCKED_SOURCE', unitId);
+    assert.equal(unit.source_reconciliation?.status, 'BLOCKED_SOURCE', unitId);
+    assert.ok(unit.source_reconciliation?.needs_source?.length >= 8, unitId);
+    assert.ok(observation.length >= 500, unitId);
+    assert.notEqual(
+      runtimeStyleIsComplete(unit.runtime_style),
+      true,
+      `${unitId} must not turn generated sheets into missing source evidence`,
+    );
+  }
+});
+
+test('five source-backed portfolio shoots are fully bound Creative Universe units', async () => {
+  const unitBindings = new Set();
+
+  for (const unitId of PORTFOLIO_READY_IDS) {
+    const directory = path.resolve('docs', 'style-units', unitId);
+    const [
+      unitBytes,
+      manifestBytes,
+      observationBytes,
+      selfVerificationBytes,
+      paletteAuthorityBytes,
+    ] = await Promise.all([
+      readFile(path.join(directory, 'unit.json')),
+      readFile(path.join(directory, 'manifest.json')),
+      readFile(path.join(directory, 'OBSERVATION.md')),
+      readFile(path.join(directory, 'SELF-VERIFY.md')),
+      readFile(path.join(directory, 'palette-strip.svg')),
+    ]);
+    const unit = JSON.parse(unitBytes.toString('utf8'));
+    const manifest = JSON.parse(manifestBytes.toString('utf8'));
+    const selfVerification = selfVerificationBytes.toString('utf8');
+
+    assert.equal(unit.unit_id, unitId);
+    assert.equal(unit.style_unit_status, 'READY', unitId);
+    assert.equal(runtimeStyleIsComplete(unit.runtime_style), true, unitId);
+    assert.ok(observationBytes.length >= 500, unitId);
+    assert.ok(selfVerificationBytes.length >= 500, unitId);
+    assert.match(selfVerification, /^UNIT VERDICT:\s*APPROVED\s*$/im, unitId);
+    for (const label of [...REQUIRED_SHEET_ROLES, ...REQUIRED_SHOT_SLOTS]) {
+      assert.ok(selfVerification.includes(label), `${unitId}: ${label}`);
+    }
+
+    assert.equal(manifest.unit_id, unitId);
+    assert.deepEqual(manifest.palette, unit.palette);
+    assert.deepEqual(manifest.source_frames, unit.source_frames);
+    assert.deepEqual(manifest.unknowns, unit.unknowns);
+    assert.ok(manifest.generated_with, unitId);
+
+    const unitContractSha256 = sha256(unitBytes);
+    const observationSha256 = sha256(observationBytes);
+    const selfVerificationSha256 = sha256(selfVerificationBytes);
+    const runtimeStyleSha256 = sha256(Buffer.from(`${JSON.stringify(unit.runtime_style)}\n`));
+    const paletteAuthoritySha256 = sha256(paletteAuthorityBytes);
+    assert.deepEqual(manifest.unit_contract, {
+      path: 'unit.json',
+      sha256: unitContractSha256,
+    });
+    assert.deepEqual(manifest.observation_log, {
+      path: 'OBSERVATION.md',
+      sha256: observationSha256,
+    });
+    assert.deepEqual(manifest.self_verification, {
+      path: 'SELF-VERIFY.md',
+      sha256: selfVerificationSha256,
+      status: 'APPROVED',
+    });
+    assert.deepEqual(manifest.palette_authority, {
+      path: 'palette-strip.svg',
+      sha256: paletteAuthoritySha256,
+      rendered_not_generated: true,
+    });
+    assert.equal(manifest.runtime_style_sha256, runtimeStyleSha256);
+
+    assert.equal(manifest.sheets.length, REQUIRED_SHEET_ROLES.length, unitId);
+    const byRole = new Map(manifest.sheets.map((sheet) => [sheet.sheet_id, sheet]));
+    assert.equal(byRole.size, REQUIRED_SHEET_ROLES.length, unitId);
+    const sheetBindingLines = [];
+    for (const role of REQUIRED_SHEET_ROLES) {
+      const sheet = byRole.get(role);
+      assert.equal(sheet?.path, `sheet-${role}.png`, `${unitId}: ${role}`);
+      const bytes = await readFile(path.join(directory, sheet.path));
+      assert.equal(sha256(bytes), sheet.sha256, `${unitId}: ${role}`);
+      assert.equal(sheet.provider_receipt?.output_sha256, sheet.sha256, `${unitId}: ${role}`);
+      assert.ok(sheet.provider_receipt?.job_id, `${unitId}: ${role}`);
+      sheetBindingLines.push(`${role}:${sheet.sha256}`);
+    }
+
+    const expectedUnitSha256 = sha256(Buffer.from([
+      `unit_contract:${unitContractSha256}`,
+      `observation_log:${observationSha256}`,
+      `self_verification:${selfVerificationSha256}`,
+      `runtime_style:${runtimeStyleSha256}`,
+      `palette_authority:${paletteAuthoritySha256}`,
+      ...sheetBindingLines,
+    ].join('\n')));
+    assert.equal(manifest.unit_sha256, expectedUnitSha256, unitId);
+    assert.equal(unitBindings.has(expectedUnitSha256), false, unitId);
+    unitBindings.add(expectedUnitSha256);
+
+    for (const sourceFrame of unit.source_frames) {
+      const label = String(sourceFrame).split(/\s+—\s+/, 1)[0].trim();
+      assert.ok(observationBytes.toString('utf8').includes(label), `${unitId}: ${label}`);
+    }
+  }
 });

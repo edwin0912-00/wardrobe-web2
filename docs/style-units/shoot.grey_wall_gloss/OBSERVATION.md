@@ -1,50 +1,63 @@
 # OBSERVATION LOG — shoot.grey_wall_gloss
-Source: frame-01, one supplied retail frame. Extraction-only. Garment design does not transfer.
 
-## CAMERA POSITION
-Eye level, close, level roll. Crop head to hip. Shallow space — subject near a flat wall.
+## Current audit status — BLOCKED_SOURCE
 
-## PERSPECTIVE CHARACTER
-Standard; no convergence; background is a single close plane.
+`frame-01` is named in `unit.json`, but no source image bytes or source hash are present in this
+unit directory or elsewhere in the checked-in source ledger. The public mood-card sidecar identifies
+the available WebP as `OWN_GENERATED_PREVIEW`; it is not the extraction-only source frame and cannot
+be used to verify the style. The audit therefore cannot independently point any style fact at source
+pixels. No `runtime_style` may be certified and no paid sheet regeneration is allowed from this log.
 
-## DEPTH OF FIELD
-Subject sharp; the wall is textureless so depth reads only from the soft shadow.
+What would settle the block: restore the exact extraction-only `frame-01` bytes plus a SHA-256
+receipt, or provide the complete coherent source-shoot frame set and its ledger.
 
-## FOREGROUND OCCLUSION
-None.
+## Historical extract — UNVERIFIED, not current authority
 
-## OPTICAL SIGNATURE (fixed)
-Clean, slightly warm, fine grain, no flare, no halation.
+The following text is preserved from the earlier observation pass so evidence is not silently
+discarded. It must not be promoted into runtime facts until `frame-01` is restored and visually
+re-checked.
 
-## LIGHT
-One broad soft source from front camera-left, close to the subject — large-softbox character.
-Wall carries a gentle gradient and one soft-edged shadow just behind the body. No second source.
-Undramatic by intent: the material, not the light, is the event.
+- Camera: described as close, approximately eye-level and level-roll, with a head-to-hip crop
+  against one close wall plane.
+- Perspective: described as restrained, without visible convergence.
+- Focus: described as the subject sharp and the wall readable mainly through a soft body shadow.
+- Foreground: described as clear, with no lens-crossing object.
+- Optics: described as clean and slightly warm, with fine grain and no flare or halation.
+- Light: described as one broad soft source from front frame-left with a soft wall gradient.
+- Expression: described as an over-shoulder near-profile, gaze down past the lens, low lids, brows
+  at rest and relaxed jaw; mouth state `UNKNOWN` because hair obscures it.
+- Material response: described as still, opaque, high-gloss material producing elongated
+  high-contrast speculars while matte layers remain quiet. Any prior ribbed-hem or garment-silhouette
+  wording is design-specific and is explicitly non-transferable.
 
-## HOW SKIN TAKES THIS LIGHT
-Pale skin under a broad close frontal source: speculars are wide and gentle across the forehead
-and cheek, never hot. The shadow terminator is very soft, almost absent. The strongest speculars
-in the frame sit not on skin but on the hair — dark glossy waves carry tight bright strands.
-No halation, no rim.
+## Master gamma audit
 
-## GARMENT BEHAVIOUR (transfers)
-At rest. High-gloss patent-class surface IS the subject of the picture: crinkled texture throws
-crisp elongated hot speculars along every fold ridge and down the sleeve. Folds numerous and sharp.
-Ribbed hem gathers the volume. Opaque. A matte knit layer beneath sits quiet.
-TRANSFER: glossy materials in this unit carry the frame — highlights hot, elongated, high-contrast;
-matte layers stay quiet beneath; the garment's own surface response is the composition.
+The prior four-colour set is not re-approved. Three entries are named after reference garments
+(`deep burgundy`, `olive knit`, `light denim`) even though approved item colours are exempt and
+reference garment colour/design must not become style authority. Only the warm-grey field could
+potentially be an environment member, and even that remains unverified without `frame-01`.
 
-## EXPRESSION & GAZE
-Three-quarter back to the lens; head turned over the shoulder to near-profile; gaze directed down
-and past the lens — withheld, deliberate. Lids low. Brows at rest. Jaw relaxed.
-Mouth state partially occluded by hair: UNKNOWN.
+## Existing sheet audit
 
-## PALETTE — closed set, palette_size: 4
-#5C2320 deep burgundy (subject mass / styling completion)
-#B8AFA6 warm grey wall (field)
-#6B6244 olive knit (secondary)
-#A8BCCF light denim (lower mass)
-Nothing outside the set except skin, hair, eyes.
+All seven PNG files are present and their individual hashes and byte sizes match `manifest.json`;
+the recorded `unit_sha256` also recomputes under the current labelled-sheet formula. Semantic QA
+still fails:
 
-## UNKNOWNS
-Mouth state (hair occlusion); source size; whether the wall is seamless paper or plaster.
+- the environment sheet invents a reverse studio angle and equipment that cannot be established
+  from a single missing frame;
+- blocking prints an unsupported approximate 120-degree body rotation;
+- expression labels the mouth both relaxed and `UNKNOWN`;
+- garment behaviour depicts a specific bomber silhouette and ribbed hem rather than transferable
+  cloth behaviour;
+- person guidance assumes symmetry rather than preserving observed subject asymmetry.
+
+Cryptographic consistency proves only that the same files remain present. It does not prove that
+their contents were extracted honestly.
+
+## Unknowns
+
+- Every source-pixel claim until `frame-01` is restored.
+- Source capture dimensions and SHA-256.
+- Whether the wall is seamless paper, plaster, or another flat surface.
+- Exact focus falloff, grain scale, optical cleanliness, light size and light distance.
+- Any source-derived pose coverage beyond the single historical crop.

@@ -1,0 +1,70 @@
+{
+  "schema_version": "1.0.0",
+  "preset_id": "shoot.liza_luminous",
+  "kind": "editorial",
+  "family": "create_universe",
+  "ui_name_uk": "Блакитне поле · білий тюль",
+  "asset_role": "mood_card",
+  "file": "assets/scene-mood-cards/shoot.liza_luminous.webp",
+  "sha256": "051b2274218a41a33d36cdeec07b97c95bafb976a10c7f282de9b400c8c59615",
+  "origin": {
+    "kind": "OWN_GENERATED_PREVIEW",
+    "note": "Original preview generated solely from the immutable runtime_style contract and deterministic palette authority. No source photographs, approved looks, source identity, or personal input were supplied to the provider.",
+    "unit_contract": "docs/style-units/shoot.liza_luminous/unit.json",
+    "unit_contract_sha256": "7a727809e303f62a28fbb38197e228173e081f045b3584a05192464c0c522fb8",
+    "unit_binding_sha256": "d2aa12d26306af70d085a6e97f1e2a78a18410f76967298312627f84ba7ee32b",
+    "runtime_style_sha256": "4e905fc0527c89839adf025e283b9607484b3a242050b39a5fb3718839f4d44c",
+    "palette_authority": {
+      "file": "docs/style-units/shoot.liza_luminous/palette-strip.svg",
+      "sha256": "20fdd413dfee4b5352215e0f7d908afe59176ed94accb8689c291ca0e52f2503",
+      "rendered_not_generated": true
+    }
+  },
+  "generation": {
+    "provider_path": "higgsfield-cli",
+    "prompt_contract_version": "create-universe-mood-card-v1",
+    "prompt_sha256": "3e3bdad78461829af33e657816d8a511097713f64b282fdc5fbcc669c8c9420c",
+    "composition_slot": "environmental_hero",
+    "provider_receipt": {
+      "provider": "higgsfield",
+      "transport": "higgsfield-cli",
+      "generation_mode": "journaled",
+      "job_id": "a9a4d9d9-fc6d-49c7-8aec-9af8bd8d2161",
+      "job_set_type": "nano_banana_2",
+      "model_name": "Nano Banana Pro",
+      "provider_internal_model": null,
+      "requested_aspect_ratio": "4:5",
+      "requested_resolution": "2k",
+      "requested_quality": null,
+      "output_sha256": "6e00fa00c7e9b7b53aed2f28f0081029d7ffdf27290a771579d2aea4fdee8e66",
+      "provider_journal_sha256": "8766119b60aa2cc12f6d8df089ff612dabf8d5e187e679f99d3d7f0b9909034c",
+      "request_sha256": "e4197afa869fc0b64c0f2d9d6b828b5b2d987f9f7bda41aaac72c99d1bafbe91",
+      "palette_input_sha256": "3cb880fce6faee7aa443285c6cf89dea80ddeed6304841ed64d9768a40d49796"
+    },
+    "source_width": 1856,
+    "source_height": 2304,
+    "normalization": {
+      "method": "deterministic_4x5_cover",
+      "crop_position": "centre",
+      "width": 1024,
+      "height": 1280,
+      "format": "webp"
+    }
+  },
+  "delivery": {
+    "width": 1024,
+    "height": 1280,
+    "format": "webp",
+    "aspect_ratio": "4:5"
+  },
+  "contains_personal_input": false,
+  "approval": "APPROVED",
+  "visual_review": {
+    "status": "APPROVED",
+    "reviewed_at": "2026-07-29T21:15:39.760Z",
+    "reviewed_source_width": 1856,
+    "reviewed_source_height": 2304,
+    "notes": "Full-resolution review passed: luminous blue-white palette, low-angle open-sky composition, warm rim and translucent garment behavior, meadow atmosphere, correct negative space, and no source identity leakage."
+  },
+  "created_at": "2026-07-29T21:15:39.760Z"
+}

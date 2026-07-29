@@ -59,7 +59,7 @@ async function routeFixture(t) {
   return app;
 }
 
-test('editorial catalog activates the single recovered source-backed Creative Universe shoot', async (t) => {
+test('editorial catalog activates all five source-backed Creative Universe shoots', async (t) => {
   const app = await routeFixture(t);
   const catalogResponse = await app.inject({
     method: 'GET',
@@ -80,10 +80,14 @@ test('editorial catalog activates the single recovered source-backed Creative Un
   assert.deepEqual(catalog.generation_mode_ids, [
     'editorial.edwin_novak.organic_contrast',
     'editorial.edwin_novak.urban_monochrome',
+    'shoot.zayn_institutional',
+    'shoot.liza_luminous',
+    'shoot.duckweed_forest_ophelia',
+    'shoot.rooftop_veil_monochrome',
     'shoot.autumn_park_mediated_sun',
   ]);
   assert.deepEqual(catalog.shot_sequence, EXPECTED_SHOT_SEQUENCE);
-  assert.equal(catalog.modes.length, 15);
+  assert.equal(catalog.modes.length, 19);
   assert.doesNotMatch(
     catalogResponse.body,
     /edwinnovak\.com|"sources?"|"source_(?:url|path)"|prompt|provider|model_|\/Users\/|file:\/\/|\.local\/share|assets\//i,

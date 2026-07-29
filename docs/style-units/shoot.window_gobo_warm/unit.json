@@ -1,6 +1,18 @@
 {
   "unit_id": "shoot.window_gobo_warm",
   "title": "Window Gobo Warm — one warm wall, a raking window shadow, cloth at rest",
+  "style_unit_status": "BLOCKED_SOURCE",
+  "source_reconciliation": {
+    "status": "BLOCKED_SOURCE",
+    "included": [
+      "frame-01 — provenance-bound 1024×1280 cover crop; one three-quarter portrait with hands near the waist against a warm patterned wall"
+    ],
+    "excluded": [
+      "unavailable 928×1232 owner-source bytes",
+      "unavailable additional same-shoot frames"
+    ],
+    "needs_source": "Provide the original owner frame plus distinct same-shoot frames sufficient to substantiate all six canonical shot directions, alternate camera consequences, and the off-frame environment."
+  },
   "palette_size": 5,
   "palette": [
     { "name": "warm cream", "hex": "#E4D3BE", "role": "brightest highlight, the wall inside the gobo's bright field" },

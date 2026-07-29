@@ -1,0 +1,182 @@
+{
+  "unit_id": "shoot.zayn_institutional",
+  "style_unit_status": "READY",
+  "title": "Institutional Modernism — ceremonial stillness under monumental concrete",
+  "palette_size": 9,
+  "palette": [
+    {
+      "name": "deepest void",
+      "hex": "#0C0E0C",
+      "role": "deepest shadow and black anchor"
+    },
+    {
+      "name": "structural charcoal",
+      "hex": "#2F332B",
+      "role": "dark concrete bay and secondary shadow"
+    },
+    {
+      "name": "institutional olive",
+      "hex": "#626452",
+      "role": "green-olive interior midtone"
+    },
+    {
+      "name": "cool raw concrete",
+      "hex": "#9EA293",
+      "role": "structural concrete midtone"
+    },
+    {
+      "name": "pale chalk concrete",
+      "hex": "#C6C4B0",
+      "role": "pale architectural field"
+    },
+    {
+      "name": "aperture white",
+      "hex": "#FDFEFD",
+      "role": "brightest ceiling opening and highlight"
+    },
+    {
+      "name": "warm sun concrete",
+      "hex": "#C5A87B",
+      "role": "warm exterior light and reflected ceiling"
+    },
+    {
+      "name": "muted sky",
+      "hex": "#7C908B",
+      "role": "desaturated blue-green exterior sky"
+    },
+    {
+      "name": "rust metal accent",
+      "hex": "#8A6539",
+      "role": "restrained rust and warm metal accent"
+    }
+  ],
+  "source_frames": [
+    "frame-01.jpg — 1365×2048, central-axis seated hall with circular ceiling wells and repeated desks, SHA-256 05f7b9dda68fdff0ebf9da4dc755e37a8ced418a863a47d3f584eb1d9593ba0d",
+    "frame-02.jpg — 2048×1365, hooded central table portrait with near device interference, SHA-256 5ae684e3c8ac5ae99d79ea79519aaf418bfa21bdd3457acc46a10c0e484bae9f",
+    "frame-03.jpg — 2048×1365, extreme low exterior human-context accessory frame, SHA-256 76c009ae80ae38a62c388bd0a76c060d72f2b1f1cd2b1bea3f18e25252f5cf00",
+    "frame-04.jpg — 1365×2048, warm profile portrait against repeated vertical ribs, SHA-256 c5a29c4cd341f40849cc25840d4018d28cf4a661e4f30f1673facdc08162d935",
+    "frame-05.jpg — 2048×1365, low frontal formation inside raw concrete shell, SHA-256 af27dbedf9e91c25611939a5102bc5bce3542bb7f5bc15ec2b9af7d50d876ea7",
+    "frame-06.jpg — 2048×1365, distant wide with diagonal stair, repeated figures and haze, SHA-256 3ac28b35415f7d2187cbfff93d4a65d99052df03d66b3ff97e38981b6c3e8031",
+    "frame-07.jpg — 2048×1365, extreme modular-concrete wide with warm apertures, SHA-256 ad0249e3e809de795e0ad2d9fb86ed6d293f56274964b926a780f525fa565589"
+  ],
+  "unknowns": [
+    "focal lengths, apertures, shutter speeds, camera makes and film stock",
+    "whether the interior green cast comes from fixtures, grade, surfaces or a combination",
+    "the physical haze method in frame-06.jpg",
+    "exact room dimensions and the identity of the architecture",
+    "all source-person names, biographies, face geometry, skin marks and body dimensions"
+  ],
+  "runtime_style": {
+    "visual_system": "Monumental institutional modernism: one approved subject held in ceremonial stillness within original repeated concrete modules, strict axes, low viewpoints and pale-versus-black tonal masses.",
+    "mood_line": "Ceremonial stillness beneath architecture that feels larger, colder and more ordered than the individual.",
+    "environment": "An original non-recognisable brutalist complex using circular ceiling wells, repeated desk or rail rhythms, vertical ribs, raw slabs, columns, stairs and deep structural voids.",
+    "lighting": "Use only the two observed states: green-olive diffuse top light for the institutional hall, or warm hard side light on exterior concrete; a shell wide may add directional opening light through environmental haze.",
+    "materials": [
+      "raw cast concrete with seams, pores and restrained rust streaks",
+      "chrome or stainless rails and desk legs with pale matte tabletops",
+      "dark matte floor and deep concrete voids",
+      "abstract glass-and-metal architectural modules without copying the source building"
+    ],
+    "contrast": "Deep near-black anchors oppose pale concrete and aperture highlights; olive interiors keep muted midtones while warm exteriors retain a soft highlight roll-off.",
+    "expression_signature": "Cheekbones at rest, no smile, lids neutral to low, chin level, mouth closed or softly parted, and gaze directed sideways, past the lens or deliberately withheld.",
+    "garment_behaviour": "Approved items stay opaque and still: structured layers hold broad folds and volume, long layers hang plumb, and only real free edges may move; never copy source uniform, mask, strap or accessory design.",
+    "optical_signature": [
+      "Every frame is optically clean and rectilinear with crisp architectural edges and no swirl, chromatic fringe or vignette.",
+      "No added flare, halation or global diffusion; retain concrete and textile microcontrast.",
+      "Atmospheric haze is allowed only as a physical environment layer in the shell wide, never as a lens change."
+    ],
+    "shot_directions": {
+      "clean_identity_hero": {
+        "camera_consequence": "Vertical profile portrait from slightly below face level; repeated upright ribs fill one side while pale sky provides negative space.",
+        "pose_joint_chain": "Torso in profile, shoulders lowered, neck long, chin level, head looking off-frame, with both arms quiet below the crop.",
+        "focus": "Approved subject face and near shoulder sharp; vertical ribs and distant roof blocks fall gently softer.",
+        "foreground": "No foreground occluder; preserve a clean subject-to-architecture separation.",
+        "provenance": [
+          "frame-04.jpg — profile chain, warm side light, rib field and clean foreground"
+        ]
+      },
+      "environmental_hero": {
+        "camera_consequence": "Central-axis vertical from seated chest or eye height; circular ceiling modules dominate above compressed repeating desk rows.",
+        "pose_joint_chain": "Pelvis centred on a chair, knees separated and feet grounded, shoulders still, arms resting, neck rotating the head sideways with chin level.",
+        "focus": "Front approved subject is sharp; desk rows and anonymous non-identifying background figures fall progressively softer.",
+        "foreground": "A pale desk rail or tabletop may frame the lower edge without hiding the subject.",
+        "provenance": [
+          "frame-01.jpg — seated central axis, ceiling wells, row compression and gradual focus falloff"
+        ]
+      },
+      "sculptural_three_quarter": {
+        "camera_consequence": "Low level frontal-to-three-quarter composition inside stacked raw slabs; the approved subject anchors a triangular still formation.",
+        "pose_joint_chain": "Feet planted, pelvis square to slight three-quarter, spine upright, shoulders low, hands clasped below waist, chin level and head just off-axis.",
+        "focus": "Approved subject and nearest formation plane sharp; upper ledges and deep voids remain readable but secondary.",
+        "foreground": "No object crosses the lens; neighbouring shoulders may tighten the lateral frame without covering the approved subject.",
+        "provenance": [
+          "frame-05.jpg — low monumental formation, clasped-hand chain and raw concrete depth"
+        ]
+      },
+      "interference_frame": {
+        "camera_consequence": "Horizontal frontal table portrait on a strict centre axis with a shallow background and repeated ceiling circles.",
+        "pose_joint_chain": "Approved subject seated square, elbows slightly open, both forearms forward, hands planted wide on the table, head visible and held still.",
+        "focus": "Hands, approved subject and central clipboard plane are sharp; repeated background rows are deliberately softer.",
+        "foreground": "A pale tabletop fills the lower quarter and one near desk device intrudes at frame left, slightly softer under the fixed clean no-flare, no-halation optic.",
+        "provenance": [
+          "frame-02.jpg — tabletop edge, near device interference, planted hands and soft symmetric rows"
+        ]
+      },
+      "material_or_accessory_detail": {
+        "camera_consequence": "Very low upward human-context detail; an approved hand-held item rises through the frame against abstract pale geometry and sky.",
+        "pose_joint_chain": "Torso remains present, one shoulder-elbow-wrist chain raises the approved accessory while the opposite hand stabilises it near the body.",
+        "focus": "Approved accessory surface, gripping hand and adjacent torso detail are sharp; architecture softens behind.",
+        "foreground": "The approved accessory occupies the near central plane but keeps a hand, wrist, shoulder or torso visibly attached.",
+        "provenance": [
+          "frame-03.jpg — low accessory scale, gripping hands, warm metal response and human body context"
+        ]
+      },
+      "wide_campaign_coda": {
+        "camera_consequence": "Distant level horizontal wide; a diagonal concrete stair divides deep bays while the approved subject remains at least thirty percent of frame height.",
+        "pose_joint_chain": "Full standing chain in profile or three-quarter with feet grounded, torso upright, one elbow bent and wrist raised in a precise repeated gesture.",
+        "focus": "Approved subject and near structural plane stay legible; haze reveals opening-light shafts through deeper bays.",
+        "foreground": "Dark empty floor forms a low foreground band without occluding the body.",
+        "provenance": [
+          "frame-06.jpg — distant level wide, diagonal stair, repeated hand gesture, deep bays and environmental haze"
+        ]
+      }
+    }
+  },
+  "sheets": {
+    "camera_lens": {
+      "aspect": "16:9",
+      "quality": "medium",
+      "prompt": "Create a 3-by-2 illustrated grid titled INSTITUTIONAL MODERNISM — CAMERA & LENS. Every panel must contain a large anonymous featureless JOINTED ARTIST MANNEQUIN wearing a plain opaque full-coverage neutral jumpsuit image in its upper half and exactly four short text lines below it: SLOT + SOURCE, CAM, FOCUS, FG. No table, no extra narrative paragraph, no empty mini-frame. Copy these concise panel lines exactly. Panel 1: CLEAN IDENTITY HERO — frame-04.jpg; CAM: SLIGHTLY-LOW TRUE SIDE PROFILE; FOCUS: FACE + NEAR SHOULDER SHARP, RIBS SOFT; FG: NONE. Panel 2: ENVIRONMENTAL HERO — frame-01.jpg; CAM: CENTRED SEATED AXIS; FOCUS: SUBJECT SHARP, ROWS PROGRESSIVELY SOFT; FG: PALE DESK EDGE, NEVER COVER SUBJECT. Panel 3: SCULPTURAL THREE-QUARTER — frame-05.jpg; CAM: LOW MONUMENTAL THREE-QUARTER; FOCUS: SUBJECT + NEAR PLANE SHARP, VOIDS SECONDARY; FG: NOTHING CROSSES LENS. Panel 4: INTERFERENCE FRAME — frame-02.jpg; CAM: FRONTAL TABLE, CENTRE AXIS; FOCUS: HANDS + FACE + CLIPBOARD SHARP, ROWS SOFT; FG: TABLETOP + SOFT NEAR-LEFT DEVICE. Panel 5: MATERIAL OR ACCESSORY DETAIL — frame-03.jpg; CAM: VERY LOW ACCESSORY WITH BODY CONTEXT; FOCUS: ACCESSORY + GRIP + TORSO SHARP; FG: ACCESSORY NEAR, MANNEQUIN WRIST + SHOULDER + TORSO ATTACHED, HEAD OPTIONAL. Panel 6: WIDE CAMPAIGN CODA — frame-06.jpg; CAM: DISTANT LEVEL WIDE, DIAGONAL STAIR; FOCUS: SUBJECT + NEAR STRUCTURE LEGIBLE, DEEPER HAZE; FG: DARK FLOOR BAND, NO OCCLUSION, SUBJECT AT LEAST 30 PERCENT HEIGHT. Panel 6 composition lock: place one full-body jumpsuited mannequin on the near stair landing in the middle distance, and make the mannequin fill ONE THIRD of the panel image height from feet to head; the figure must be obviously large and readable, never tiny, never far-background and never empty architecture. Use original non-recognisable architecture and anonymous mannequins only. Below the grid print FIXED OPTIC: RECTILINEAR; CRISP MICROCONTRAST; NO FLARE, HALATION, SWIRL, CHROMATIC FRINGE, VIGNETTE OR GLOBAL DIFFUSION; PHYSICAL HAZE ONLY IN SHELL WIDE. Print UNKNOWN: FOCAL LENGTH, APERTURE, SHUTTER, CAMERA MAKE, NUMERICAL HEIGHT, NUMERICAL FOCUS DISTANCE. Print exact Master Gamma once: #0C0E0C #2F332B #626452 #9EA293 #C6C4B0 #FDFEFD #C5A87B #7C908B #8A6539. Fully legible text only; do not paraphrase or add prose. No version number, no date, no invented metadata, no board codes, no photographer credits, no brand marks, no readable third-party text, no watermark."
+    },
+    "blocking": {
+      "aspect": "16:9",
+      "quality": "medium",
+      "prompt": "Create a strict six-panel diagram board titled INSTITUTIONAL MODERNISM — BLOCKING & POSE. Use only featureless articulated mannequins and simple axis lines. Never invent a named pose. Copy these six qualitative joint chains exactly and place the source label directly under each panel. CLEAN IDENTITY HERO — frame-04.jpg: torso in profile, shoulders lowered, neck long, chin level, both arms quiet below crop. ENVIRONMENTAL HERO — frame-01.jpg: pelvis centred on chair, knees separated, feet grounded, shoulders still, arms resting, head turned sideways, chin level. SCULPTURAL THREE-QUARTER — frame-05.jpg: feet planted, pelvis square to slight three-quarter, spine upright, shoulders low, hands clasped below waist, chin level, head just off-axis. INTERFERENCE FRAME — frame-02.jpg: seated square, elbows slightly open, forearms forward, hands planted wide on table, head visible and still. MATERIAL OR ACCESSORY DETAIL — frame-03.jpg: torso present, one shoulder-elbow-wrist chain raises an approved accessory, opposite hand stabilises it near body. WIDE CAMPAIGN CODA — frame-06.jpg: full standing profile or three-quarter, feet grounded, torso upright, one elbow bent, wrist raised. Show shoulder-to-elbow-to-wrist and hip-to-knee-to-ankle chains where visible; mark hidden or unsupported joints UNKNOWN. Show camera axis and crop qualitatively; body-to-architecture distance and support side are UNKNOWN unless stated above. Do not print degrees, percentages, ratios, weight values, support values, asymmetry indexes, compression values or wind claims. No alternative poses. Anonymous spacing markers only; no copied body, face, uniform, mask, instrument, accessory design or building. Print the exact Master Gamma row once and exactly: #0C0E0C #2F332B #626452 #9EA293 #C6C4B0 #FDFEFD #C5A87B #7C908B #8A6539. Fully legible short labels only. No version number, no date, no invented metadata, no board codes, no photographer credits, no brand marks, no readable third-party text, no watermark."
+    },
+    "expression_gaze": {
+      "aspect": "3:2",
+      "quality": "medium",
+      "prompt": "Create a sparse two-column board titled INSTITUTIONAL MODERNISM — EXPRESSION & GAZE. LEFT COLUMN: one blank generic plaster mannequin head and, beside it, a simple typeset list with these labels exactly once and no leader lines: UPPER LIDS NEUTRAL TO LOW; LOWER LIDS QUIET; BROWS AT REST; CHEEKBONES NOT ENGAGED; JAW RELAXED; CHIN LEVEL; MOUTH CLOSED OR SOFTLY PARTED, LEVEL CORNERS; NO SMILE; NO PERFORMED EMOTION. Do not place any extra word, duplicate label or callout around the head. RIGHT COLUMN: three small generic heads with arrows and these exact captions: SIDEWAYS PAST LENS — frame-01.jpg + frame-04.jpg; JUST OFF AXIS — frame-05.jpg; GAZE WITHHELD — frame-02.jpg, HOOD OBSCURES EVIDENCE. BOTTOM: three icons PAN, TILT, ROLL with no numerical values; NECK ENGAGEMENT UNKNOWN; PROVENANCE: HUMAN SOURCE FRAMES frame-01.jpg, frame-02.jpg, frame-04.jpg, frame-05.jpg; APPROVED PRODUCT SUBJECT SUPPLIES ALL IDENTITY GEOMETRY. Print the exact Master Gamma row once: #0C0E0C #2F332B #626452 #9EA293 #C6C4B0 #FDFEFD #C5A87B #7C908B #8A6539. Use no recognisable identity, no numerical angles, no extra labels and no invented anatomy. Fully legible short text only. No version number, no date, no invented metadata, no board codes, no photographer credits, no brand marks, no readable third-party text, no watermark."
+    },
+    "garment_behaviour": {
+      "aspect": "3:2",
+      "quality": "medium",
+      "prompt": "Create an editorial specification board titled INSTITUTIONAL MODERNISM — GARMENT BEHAVIOUR. Use abstract neutral cloth studies attached to anonymous mannequin shoulders, wrists and hips; do not reproduce any source garment cut, pocket, strap, mask, uniform, accessory, colourway or logo. Panels: MOTION STATE — ceremonial stillness, no wind-driven action; AIR INTERACTION — long free layers hang plumb and only true free edges may shift; DRAPE/WEIGHT — structured approved items hold broad slow folds and their own volume, lighter approved items settle without ballooning; TRANSPARENCY — preserve the approved item's real opacity, never make opaque product sheer; EDGE QUALITY — crisp held edges with no motion blur; SURFACE RESPONSE — pale matte surfaces take broad highlights, dark matte surfaces retain low-detail folds without crushing; TRANSFER RULE — apply force and fold radius to the user's approved item, never the reference design. Cite frame-01.jpg through frame-05.jpg and frame-07.jpg; mark material composition UNKNOWN. Include the exact Master Gamma hex row: #0C0E0C #2F332B #626452 #9EA293 #C6C4B0 #FDFEFD #C5A87B #7C908B #8A6539. Crisp fully legible labels. No version number, no date, no invented metadata, no board codes, no photographer credits, no brand marks, no readable third-party text, no watermark."
+    },
+    "colour_grade": {
+      "aspect": "16:9",
+      "quality": "medium",
+      "prompt": "Create a colour-science specification board titled INSTITUTIONAL MODERNISM — COLOUR & GRADE. Declare CLOSED PALETTE, palette_size: 9. Print the exact authoritative row #0C0E0C deepest void; #2F332B structural charcoal; #626452 institutional olive; #9EA293 cool raw concrete; #C6C4B0 pale chalk concrete; #FDFEFD aperture white; #C5A87B warm sun concrete; #7C908B muted sky; #8A6539 rust metal accent. State that palette-strip.svg, not painted swatches, is colour authority. Show grade diagrams: deep near-black anchors without losing folds, muted olive interior midtones, warm exterior highlights with soft roll-off, restrained saturation, no foreign saturated prop. Exempt only approved item colours and human skin/hair/eyes plus neutral ramps. Print the countable FAIL gate: after exemptions, every cluster at least 2% of pixels maps to a palette member or neutral ramp within RGB Euclidean distance 28. Provenance: frame-01.jpg through frame-07.jpg. Use illustrative swatches only, crisp fully legible labels. No version number, no date, no invented metadata, no board codes, no photographer credits, no brand marks, no readable third-party text, no watermark."
+    },
+    "environment": {
+      "aspect": "21:9",
+      "quality": "medium",
+      "prompt": "Create a wide abstract diagram board titled INSTITUTIONAL MODERNISM — ENVIRONMENT. No photographic plates and no recognisable real building. Show exactly three states. HALL — provenance frame-01.jpg and frame-02.jpg: green-olive field, repeated circular ceiling wells, pale matte wall, chrome-legged rows, pale tabletops, dark floor. Its material keys are PALE WALL #C6C4B0; OLIVE FIELD #626452; DARK FLOOR #0C0E0C; CHROME LEGS use only a neutral ramp between #9EA293 and #FDFEFD; PALE TABLETOP #C6C4B0. Never colour a desk or tabletop #8A6539. RIB EXTERIOR — provenance frame-04.jpg: WARM RIBS #C5A87B; MUTED SKY #7C908B; DEEP SHADOW #2F332B. CONCRETE SHELL — provenance frame-05.jpg, frame-06.jpg, frame-07.jpg: RAW CONCRETE #9EA293 and #C6C4B0; DEEP VOID #0C0E0C and #2F332B; APERTURE #FDFEFD; RESTRAINED RUST TRACE #8A6539; physical haze only in shell wide. For each state show an unscaled axis plan, qualitative depth-plane order, material keys and qualitative light direction. Print NOT TO SCALE; ALL DIMENSIONS UNKNOWN; SUBJECT SCALE UNKNOWN. No numerical scale, distance, ratio, north arrow or exact floor plan. Show only olive diffuse top light or warm hard architectural side/opening light. Print NO SIGNAGE, LOGOS, COPIED RADIAL FACADE, EXACT FLOOR PLAN OR LANDMARK. Print the exact Master Gamma row once: #0C0E0C #2F332B #626452 #9EA293 #C6C4B0 #FDFEFD #C5A87B #7C908B #8A6539. Fully legible short labels only. No version number, no date, no invented metadata, no board codes, no photographer credits, no brand marks, no readable third-party text, no watermark."
+    },
+    "person": {
+      "aspect": "2:3",
+      "quality": "medium",
+      "prompt": "Create a vertical typographic form titled INSTITUTIONAL MODERNISM — PERSON SHEET TEMPLATE. This is an EMPTY worksheet, not an illustrated person. NO FACIAL DRAWING ANYWHERE. Use empty checkboxes, blank lines and white unfilled boxes. FACE GEOMETRY may contain one empty oval outline with only straight construction guides: no eyes, brows, nose, mouth or marks. EARS may contain simple outline icons. EVERYTHING ON THE FACE must contain only blank checklist lines and no face diagram. SKIN MARKS has blank OBSERVED and PLAUSIBLE columns plus PLAUSIBLE IS NEVER FACT. SKIN TONE has eight separate white unfilled boxes labelled SUBJECT-SUPPLIED VALUE RAMP; no gradient, grey fill, colour fill or example. LIGHT RESPONSE has two blank white circles only, with arrows and separate rectangular light-direction keys outside the circles: OLIVE DIFFUSE TOP LIGHT and WARM HARD SIDE LIGHT. The circles must contain no eyes, brows, nose, mouth, face shading or anatomy. PROVENANCE and UNKNOWN are blank lines. Do not draw freckles, moles, scars, piercings, hair, skin, complexion, body, age, gender or ethnicity. No field is filled. State STYLE SOURCE PROVIDES LIGHT ONLY; APPROVED PRODUCT SUBJECT PROVIDES IDENTITY. Keep the style palette only in a separate footer and print it once: #0C0E0C #2F332B #626452 #9EA293 #C6C4B0 #FDFEFD #C5A87B #7C908B #8A6539. Fully legible labels only. No version number, no date, no invented metadata, no board codes, no photographer credits, no brand marks, no readable third-party text, no watermark."
+    }
+  }
+}

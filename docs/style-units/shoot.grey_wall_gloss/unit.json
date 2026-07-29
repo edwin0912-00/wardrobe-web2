@@ -27,10 +27,21 @@
   "source_frames": [
     "frame-01 — single supplied frame, portrait, eye-level camera, subject in three-quarter back turn before a flat warm-grey studio wall, one broad soft frontal-left source, high-gloss surface carrying elongated speculars"
   ],
+  "style_unit_status": "BLOCKED_SOURCE",
+  "source_reconciliation": {
+    "status": "BLOCKED_SOURCE",
+    "primary_frame": "frame-01",
+    "source_bytes_present": false,
+    "reason": "The extraction-only source frame and its SHA-256 receipt are absent. The available mood card is an OWN_GENERATED_PREVIEW and cannot verify source observations.",
+    "needs_source": "Restore the exact frame-01 bytes plus SHA-256 receipt, preferably with the remaining coherent frames from the same photoshoot."
+  },
   "unknowns": [
+    "all source-pixel claims until frame-01 is restored",
+    "source capture dimensions and sha256",
     "mouth state (hair occlusion)",
     "source size and exact distance",
-    "whether the wall is seamless paper or plaster"
+    "whether the wall is seamless paper or plaster",
+    "real six-slot camera and pose coverage"
   ],
   "sheets": {
     "camera_lens": {

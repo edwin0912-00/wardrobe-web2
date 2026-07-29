@@ -46,6 +46,10 @@ const CREATE_UNIVERSE_MODE_META = Object.freeze({
   'shoot.grey_wall_gloss': 'Сіра стіна · глянець',
   'shoot.ochre_stage_tailoring': 'Охра · сценічний кравець',
   'shoot.shutter_amber_interior': 'Жалюзі · бурштиновий інтерʼєр',
+  'shoot.zayn_institutional': 'Інституційний модернізм · ритуальна симетрія',
+  'shoot.liza_luminous': 'Блакитне поле · білий тюль',
+  'shoot.duckweed_forest_ophelia': 'Ряска й ліс · Ophelia',
+  'shoot.rooftop_veil_monochrome': 'Дах і вуаль · монохром',
   'shoot.autumn_park_mediated_sun': 'Осінній парк · мʼяке сонце',
 });
 const CREATE_UNIVERSE_REQUIRED_SHEETS = Object.freeze([

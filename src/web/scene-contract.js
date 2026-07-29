@@ -186,6 +186,10 @@ const READY_EDITORIAL_MODE_IDS = new Set([
   'shoot.grey_wall_gloss',
   'shoot.ochre_stage_tailoring',
   'shoot.shutter_amber_interior',
+  'shoot.zayn_institutional',
+  'shoot.liza_luminous',
+  'shoot.duckweed_forest_ophelia',
+  'shoot.rooftop_veil_monochrome',
   'shoot.autumn_park_mediated_sun',
 ]);
 const EDITORIAL_SHOT_SLOTS = new Set([

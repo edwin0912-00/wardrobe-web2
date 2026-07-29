@@ -34,13 +34,23 @@
       "role": "ground"
     }
   ],
+  "style_unit_status": "BLOCKED_SOURCE",
   "source_frames": [
-    "frame-01 — single supplied frame, portrait, full-length figure mid-stride crossing a living European city street under bright overcast, pedestrians and parked cars visible, long-lens compression, soft short shadows"
+    "frame-01 [BLOCKED_SOURCE] — historical private retail screenshot named only in the old extraction; no source bytes, resolvable path or source hash are available on this host, and the repository mood card is an OWN_GENERATED_PREVIEW rather than evidence"
   ],
+  "source_reconciliation": {
+    "status": "BLOCKED_SOURCE",
+    "primary_frame": "frame-01",
+    "source_bytes_present": false,
+    "reason": "The historical private retail screenshot is absent, and the repository mood card is an OWN_GENERATED_PREVIEW; current street, camera, lighting and coverage claims cannot be checked against source pixels.",
+    "needs_source": "Restore the actual private source screenshot with stable path and SHA-256, then add neighbouring frames from the same shoot if that single image does not prove five unique compositions and all six canonical runtime slots."
+  },
   "unknowns": [
-    "exact city",
-    "lens focal length (consequences recorded instead)",
-    "whether the crossing is signal-controlled"
+    "all frame-level visual facts until the private source screenshot is restored and inspected",
+    "exact city, street geometry, traffic state and whether the crossing is signal-controlled",
+    "camera consequences, depth falloff, light behaviour and material response",
+    "all alternate poses and angles needed for five unique frames and six canonical runtime slots",
+    "lens focal length, aperture, shutter speed and physical camera height"
   ],
   "sheets": {
     "camera_lens": {

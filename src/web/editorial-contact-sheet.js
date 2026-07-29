@@ -9,9 +9,12 @@ import {
 
 export const CONTACT_SHEET_NOT_READY = 'EDITORIAL_CONTACT_SHEET_NOT_READY';
 const CONTACT_SHEET_SCHEMA_VERSION = '1.0.0';
+const PUBLIC_EDITORIAL_SHOT_SLOTS = EDITORIAL_SHOT_SLOTS.filter(
+  (slot) => slot !== 'clean_identity_hero',
+);
 
 export class EditorialContactSheetError extends Error {
-  constructor(message = 'Contact sheet is available only after six approved frames') {
+  constructor(message = 'Contact sheet is available only after the internal identity check and five delivered frames are approved') {
     super(message);
     this.name = 'EditorialContactSheetError';
     this.statusCode = 409;
@@ -79,6 +82,11 @@ export function createEditorialContactSheetManifest(shoot) {
     || [...bySlot.keys()].some((slot) => !EDITORIAL_SHOT_SLOTS.includes(slot))) {
     unavailable();
   }
+  const approvedBySlot = new Map(
+    EDITORIAL_SHOT_SLOTS.map(
+      (slot) => [slot, approvedFrame(shoot.shoot_id, slot, bySlot.get(slot))],
+    ),
+  );
 
   const core = {
     schema_version: CONTACT_SHEET_SCHEMA_VERSION,
@@ -90,7 +98,12 @@ export function createEditorialContactSheetManifest(shoot) {
       mode_version: shoot.bindings.shoot_bible.mode_version,
       sha256: shoot.bindings.shoot_bible.sha256,
     },
-    frames: EDITORIAL_SHOT_SLOTS.map((slot) => approvedFrame(shoot.shoot_id, slot, bySlot.get(slot))),
+    // clean_identity_hero is a production identity gate, not one of the five
+    // photographs the customer bought. It remains hash-bound in shoot state but
+    // never appears in this public contact-sheet projection.
+    frames: PUBLIC_EDITORIAL_SHOT_SLOTS.map(
+      (slot) => approvedBySlot.get(slot),
+    ),
   };
   return {
     ...core,

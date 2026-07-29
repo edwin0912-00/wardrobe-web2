@@ -1,0 +1,205 @@
+{
+  "unit_id": "shoot.duckweed_forest_ophelia",
+  "title": "Duckweed Forest Ophelia — clean low-sun woodland and reflective green water",
+  "palette_size": 9,
+  "palette": [
+    {
+      "name": "forest green-black",
+      "hex": "#0D1306",
+      "role": "deep forest shadow"
+    },
+    {
+      "name": "duckweed field",
+      "hex": "#496740",
+      "role": "duckweed water plane"
+    },
+    {
+      "name": "sunlit foliage",
+      "hex": "#667E01",
+      "role": "sunlit green accent"
+    },
+    {
+      "name": "slate open water",
+      "hex": "#384755",
+      "role": "open-water cool field"
+    },
+    {
+      "name": "open sky blue",
+      "hex": "#8FB8C8",
+      "role": "cool sky field"
+    },
+    {
+      "name": "burnt orange",
+      "hex": "#882600",
+      "role": "hot styling accent"
+    },
+    {
+      "name": "off-white cotton",
+      "hex": "#F1E7DB",
+      "role": "bright cloth mass"
+    },
+    {
+      "name": "dusk reflected gold",
+      "hex": "#E4D3B9",
+      "role": "warm water highlight"
+    },
+    {
+      "name": "magenta makeup",
+      "hex": "#893F6E",
+      "role": "small makeup accent"
+    }
+  ],
+  "item_colours_exempt": true,
+  "palette_authority": "palette-strip.svg rendered from these manifest hex values; generated sheet swatches are never sampled",
+  "style_unit_status": "READY",
+  "source_frames": [
+    "frame-01.jpg — 2048x1365; sha256 13c312381d95be4422eddafcbc82ffe3c126fa03fd27f1c83da863f495939216; extreme-low close portrait with near arm, blouse, converging trees and blue sky",
+    "frame-02.jpg — 1365x2048; sha256 19a0959132872825aa32baf1f9125e4c622b856bddf1236913e42b1af8dea2d3; compact-reflection torso/detail with reflected face sharp and real body soft",
+    "frame-03.jpg — 2048x1365; sha256 b02ee5cc153e363b98c3591c23fadf141b0c4ee234eb8dd691b71da22fcb5d93; closed-eye water-surface profile amid duckweed",
+    "frame-04.jpg — 1365x2048; sha256 17ead8f12772cdd5f33185a955c8056da38c1df0aa12e613494df434bde903c4; low-angle hard-sun medium portrait with raised sculptural arms",
+    "frame-05.jpg — 1365x2048; sha256 077c196e1f7adf2486f08a3b515fb86433dd4a379697fd16c3c78f509c6b6269; shaded full-length forest stance with broken-wrist arm chain",
+    "frame-06.jpg — 1365x2048; sha256 7876f2ef59a0b60682155ad225e969089a5f3f7a5c3dc0633cf14974936d5f75; distinct side-lean full-length forest stance",
+    "frame-07.jpg — 2048x1365; sha256 a41a5eddd41e8ecd316962f3e0907efeb25c61419e27d371b55838d535821c30; elevated wide supine body in duckweed and open water",
+    "frame-08.jpg — 2048x1365; sha256 99d4d05fd0a8313deb6057c57472bbc3fc640c97f5678c46a2445862824a2153; waterline face and inverted reflection",
+    "frame-09.jpg — 1365x2048; sha256 cea72e2258b356824e3ff73f3cd39899f5e01710e5c8519b61b607c500416eb3; arched environmental three-quarter in a direct sun patch",
+    "frame-10.jpg — 1365x2048; sha256 2c76d07d836daa1cd9a14ecc1a03ddb8f6f5e25130f6b937dbde89cd5d980b4c; extreme close direct-gaze portrait with near forearm",
+    "frame-11.jpg — 2048x1365; sha256 2d39c51b71c61546e7ede84b79945d6513763d84fdb220a38d61a5b1d85cceb7; extreme-low sky-heavy environmental wide"
+  ],
+  "source_reconciliation": {
+    "status": "COHERENT_SOURCE_SET",
+    "included_frames": [
+      "frame-01.jpg",
+      "frame-02.jpg",
+      "frame-03.jpg",
+      "frame-04.jpg",
+      "frame-05.jpg",
+      "frame-06.jpg",
+      "frame-07.jpg",
+      "frame-08.jpg",
+      "frame-09.jpg",
+      "frame-10.jpg",
+      "frame-11.jpg"
+    ],
+    "excluded_frames": [],
+    "continuity_basis": "Recurring white gathered cloth, burnt-orange lower styling, wet duckweed debris, dark woodland planes, low warm sun and the same photographic treatment connect dry forest and water chapters."
+  },
+  "unknowns": [
+    "camera body, sensor or film stock, focal lengths, apertures, ISO and shutter speeds",
+    "exact lens model or number of optics used",
+    "exact time elapsed between direct-sun, open-shade and dusk-reflection frames",
+    "exact woodland and pond geometry, orientation, dimensions and unseen reverse angles",
+    "whether any apparent roll was captured in camera or introduced later",
+    "the manufacturer and design of the handheld reflective compact",
+    "identity traits, marks, piercings and facial measurements of any approved future subject"
+  ],
+  "runtime_style": {
+    "visual_system": "A low-sun forest fashion story moves between dark woodland, green duckweed water, extreme-low portraits, sculptural full figures, authored reflections and wide environmental surrender.",
+    "mood_line": "Dreamlike but optically clean: the face remains quiet while off-axis joints, water and a near-black forest carry the drama.",
+    "environment": "A generic temperate woodland edge and adjacent still water with grass and leaf litter, pale birch and dark trunks, dense shaded undergrowth, green duckweed, breaks of open water, bright foliage and visible cool sky.",
+    "lighting": "One low warm sun appears as direct face or cloth patches, hair rim or background burn depending on camera position; cool open sky provides the shaded fill and direct-versus-shaded face remains shot-specific.",
+    "materials": [
+      "dark fissured and pale birch bark",
+      "grass, leaf litter and shaded undergrowth",
+      "dense matte duckweed and still reflective water",
+      "dry gathered matte cotton",
+      "wet cloth with clinging vertical folds and duckweed specks",
+      "one small handheld reflective surface used only in its detail direction"
+    ],
+    "contrast": "Strong depth contrast from near-black woodland mid-planes against white cloth, warm sun patches, green water and occasional blue sky; highlights retain cloth and skin texture without bloom.",
+    "expression_signature": "Brows and cheeks rest, lids are low or fully closed, mouths are relaxed closed or slightly parted, and direct gaze is allowed only without smile or facial performance.",
+    "garment_behaviour": "Dry cloth hangs by gravity in gathers and broad slow folds with little wind; wet cloth darkens, clings in vertical wrinkles, becomes partly translucent at contact and carries duckweed flecks.",
+    "optical_signature": [
+      "Clean rendering with no authored flare shape, veiling glow, bloom, halation, vignette, chromatic fringe or swirl.",
+      "Close portraits use rapid smooth focus falloff, while full-length and wide environmental frames retain progressively more spatial detail.",
+      "Low camera height, water-level reflection, elevated water view and connected foreground limbs are shot-specific camera devices rather than one stacked effect.",
+      "Blue sky and white cloth keep texture and colour separation; no fake diffusion is added around highlights."
+    ],
+    "shot_directions": {
+      "clean_identity_hero": {
+        "camera_consequence": "Use the source-observed vertical low-angle medium portrait: camera below chest height looking upward, with the visible face above the shoulder line and dark softened trees behind.",
+        "pose_joint_chain": "Keep the torso long, lift both arms into an asymmetrical overhead and behind-head chain, let shoulders stay down, carry lids low and hold the mouth neutral without copying any source facial geometry.",
+        "focus": "Place critical focus on the approved subject's near eye and sunlit face plane; let the tree background fall away smoothly while cloth texture stays readable.",
+        "foreground": "Keep the frame clean except for connected upper arms near the edges; no water reflection, compact, detached hand or veil crosses the approved face.",
+        "provenance": [
+          "frame-04.jpg: low-angle medium portrait, direct low-sun face patch, raised sculptural arms, low lids and dark tree bokeh"
+        ]
+      },
+      "environmental_hero": {
+        "camera_consequence": "Use a level vertical full-length frame from roughly waist-to-chest height and preserve a much larger forest field around the person, including uneven ground and dark trunk depth.",
+        "pose_joint_chain": "Plant one foot while the other crosses or lightens, push the pelvis slightly one way and counter-lean the torso, bend both elbows into unequal angles and let wrists drop without athletic tension.",
+        "focus": "Keep the complete approved person and immediate ground readable while the darkest mid-plane separates the silhouette and the far foliage softens.",
+        "foreground": "Allow a narrow grass or leaf-litter ground band only; nothing may cover the approved item, feet, hands or face.",
+        "provenance": [
+          "frame-05.jpg: full-length shaded forest stance with large dark environment, angular elbows, limp wrists and off-camera gaze",
+          "frame-06.jpg: distinct side-lean, hip counterbalance and lens-directed variant"
+        ]
+      },
+      "sculptural_three_quarter": {
+        "camera_consequence": "Frame vertically from head through lower torso or thigh with substantial negative dark woodland around the figure; stay near chest height rather than repeating the low identity camera.",
+        "pose_joint_chain": "Arch the upper torso, take both arms behind the body, release the head back and then tilt it off the body axis so throat and shoulder line form the principal geometry.",
+        "focus": "Hold face, neck, shoulder and near cloth on one readable plane; let the surrounding forest become a broad dark field with a controlled direct-sun patch.",
+        "foreground": "No separate foreground device; the body silhouette and negative woodland must remain uninterrupted.",
+        "provenance": [
+          "frame-09.jpg: environmental three-quarter arch, head dropped and tilted, arms behind, direct sun patch and dark forest negative space"
+        ]
+      },
+      "interference_frame": {
+        "camera_consequence": "Move to a horizontal waterline close portrait and divide the composition between the upright approved face above and one physically coherent inverted water reflection below.",
+        "pose_joint_chain": "Keep shoulders low in the water, turn the head only slightly, open one eye toward the lens or close both without tension, and let wet cloth settle against the body.",
+        "focus": "Prioritise the approved eye and facial plane while retaining enough reflected facial structure to read as water; keep the distant pond soft.",
+        "foreground": "Still water and its duckweed edge are the only interference layer; do not add double exposure, glass, fog, compact mirror or extra optical distortion.",
+        "provenance": [
+          "frame-08.jpg: upright face in the upper field, inverted water reflection below, wet cloth, duckweed edge and warm reflected sky"
+        ]
+      },
+      "material_or_accessory_detail": {
+        "camera_consequence": "Use a vertical torso/detail crop with a small approved reflective accessory enlarged in the lower foreground and the real body receding behind it.",
+        "pose_joint_chain": "Connect the holding hand anatomically to a relaxed arm, keep fingers separated around the accessory edge and leave shoulders quiet; no detached hand or duplicated limb.",
+        "focus": "Place the sharp plane on the single upside-down reflection and accessory edge while allowing the real torso and face behind to fall deliberately soft.",
+        "foreground": "The one handheld reflective surface owns the lower foreground; no water reflection, near forearm wall or secondary prop is added.",
+        "provenance": [
+          "frame-02.jpg: compact or mirror dominates lower foreground, reflected face is sharp and the real white-clothed body is soft"
+        ]
+      },
+      "wide_campaign_coda": {
+        "camera_consequence": "Use a horizontal elevated wide above the pond so duckweed, open dark water and one fallen birch diagonal occupy more area than the approved person.",
+        "pose_joint_chain": "Let the body float or rest supine on a diagonal, arms open with soft elbows and relaxed fingers, chest lifted only by buoyancy and head rolled upward rather than posed toward a portrait camera.",
+        "focus": "Retain the person, nearby duckweed boundary and fallen trunk as readable environmental planes without portrait-style background obliteration.",
+        "foreground": "The water surface fills the frame; preserve one open-water break and one fallen birch crossing, with no invented shoreline architecture or extra props.",
+        "provenance": [
+          "frame-07.jpg: elevated wide supine water composition, open arms, duckweed/open-water pattern and diagonal fallen birch"
+        ]
+      }
+    }
+  },
+  "sheets": {
+    "camera_lens": {
+      "aspect": "16:9",
+      "prompt": "Create a dense technical CAMERA & LENS reference board titled DUCKWEED FOREST OPHELIA — CAMERA & LENS. Diagram only with featureless mannequins and abstract camera silhouettes; never reproduce a source face, body identity, garment design or product. Show four observed camera consequences: extreme-low close portrait with converging trunks and sky from frame-01.jpg; low vertical medium from frame-04.jpg; waterline close reflection from frame-08.jpg; elevated environmental water wide from frame-07.jpg. State that roll is shot-local and UNKNOWN as capture versus post, never a unit-wide angle. Show scale-dependent focus: rapid smooth falloff for frame-02.jpg/frame-10.jpg portraits, more environmental detail for frame-05.jpg/frame-07.jpg/frame-11.jpg. Fix the shoot-wide optic: clean, no flare shape, glow, bloom, halation, vignette, chromatic fringe or swirl; whites retain texture. Mark focal length, aperture, camera body and stock UNKNOWN. Print closed gamma #0D1306 #496740 #667E01 #384755 #8FB8C8 #882600 #F1E7DB #E4D3B9 #893F6E. No version number, no date, no invented metadata, no fabricated lens numbers, no credits, no brand, no watermark."
+    },
+    "blocking": {
+      "aspect": "16:9",
+      "prompt": "Create a rough graphite BLOCKING sheet titled DUCKWEED FOREST OPHELIA — BLOCKING with featureless wooden mannequins, visible construction lines and no source likeness or clothing. Give six separate source-backed joint chains: asymmetrical raised arms in a low medium from frame-04.jpg; full-length hip counter-lean with bent elbows and relaxed wrists from frame-05.jpg/frame-06.jpg; torso arch with arms behind and head dropped off-axis from frame-09.jpg; low waterline shoulders and gently turned head from frame-08.jpg; connected relaxed hand holding one reflective accessory from frame-02.jpg; supine diagonal with open soft arms from frame-07.jpg. Pair each mannequin with a simple camera-height icon and foreground note, not a surveyed site plan. Do not invent north, metric scale, pond shape, camera coordinates, reverse-angle geography or unseen landmarks. Use only these lighting labels: frame-04 DIRECT LOW-SUN PATCH ON FACE AND CLOTH; frames-05/06 SHADED FACE WITH WARM HAIR RIM; frame-09 DIRECT SUN PATCH; frame-08 COOL OPEN SHADE WITH WARM WATER REFLECTION; frame-02 LIGHT DIRECTION UNKNOWN; frame-07 OPEN SHADE WITH REFLECTED HIGHLIGHTS. Do not infer any other per-frame lighting claim. Print gamma #0D1306 #496740 #667E01 #384755 #8FB8C8 #882600 #F1E7DB #E4D3B9 #893F6E. No version number, no date, no invented metadata, no identity, no brand, no watermark."
+    },
+    "expression_gaze": {
+      "aspect": "3:2",
+      "prompt": "Create a purely schematic EXPRESSION & GAZE board titled DUCKWEED FOREST OPHELIA — EXPRESSION & GAZE. ABSOLUTE STOP: draw no human face and no reference-model identity. Use only neutral featureless mannequin head ovals with coordinate grids and vector arrows: no hair, hairline, ears, eyes, irises, eyelids, brows, nose, nostrils, lips, mouth shape, jaw shape, cheekbones, skin texture, skin colour or photoreal rendering. Encode three source-observed states as abstract vectors and labels, never anatomy reconstruction: LOW-LID / DIRECT GAZE BAND, RESTING BROW VECTOR, LEVEL MOUTH-CORNER VECTOR and RELAXED JAW from frames 01/04/10; FULL EYE-CLOSURE BAND, UNSQUEEZED VECTOR and RESTING FACE from frame-03; AVERTED GAZE ARROW with HEAD PAN/TILT/ROLL and NECK EXTENSION from frames 05/09. Every facial field must read UNKNOWN UNTIL APPROVED USER REFERENCE. State APPROVED USER IDENTITY IS THE ONLY IDENTITY AUTHORITY; SOURCE FACES NEVER TRANSFER. Lighting is text only: low warm sun, cool open shade, warm hair rim; do not render it on a face. Print gamma #0D1306 #496740 #667E01 #384755 #8FB8C8 #882600 #F1E7DB #E4D3B9 #893F6E. No version number, no date, no invented metadata, no personal name, no source likeness, no brand, no watermark."
+    },
+    "garment_behaviour": {
+      "aspect": "3:2",
+      "prompt": "Create a GARMENT BEHAVIOUR board titled DUCKWEED FOREST OPHELIA — GARMENT BEHAVIOUR. Study only anonymous unbranded fabric behavior, never copy source garment silhouettes, embroidery, print, cut, closures or product geometry. Show dry light-to-mid matte cloth forming tight gathers at a tension point and broad gravity-led folds; a sleeve settling and bunching where an elbow bends; wet cloth darkening, clinging in vertical wrinkles, becoming partly translucent at body contact and carrying small matte duckweed specks; and a restrained hem response caused by body movement rather than wind. State that the approved inserted item's design, construction and colours remain exact and exempt; only observed cloth response transfers. Do not invent billowing, shine, fraying or a specific lace/embroidery motif. Print gamma #0D1306 #496740 #667E01 #384755 #8FB8C8 #882600 #F1E7DB #E4D3B9 #893F6E. No version number, no date, no invented metadata, no people, no identity, no logo, no brand, no watermark."
+    },
+    "colour_grade": {
+      "aspect": "16:9",
+      "prompt": "Create a COLOUR & GRADE specification board titled DUCKWEED FOREST OPHELIA — COLOUR & GRADE. Declare CLOSED SET, palette_size 9, and show exact swatches with source-observed roles: #0D1306 forest green-black; #496740 duckweed ground; #667E01 sunlit foliage; #384755 slate open water; #8FB8C8 visible cool sky; #882600 burnt-orange styling accent; #F1E7DB off-white cloth; #E4D3B9 warm reflected water and sun highlight; #893F6E small magenta makeup accent. Diagram strong spatial contrast, near-black woodland mid-planes, warm low-sun patches, cool open shade, preserved white-cloth texture and clean non-blooming highlights. Explicitly state BLUE SKY IS SOURCE-BACKED in frames 01, 04 and 11. Skin, hair, eyes and approved item colours are exempt. No people, faces or source products. No version number, no date, no invented metadata, no board code, no credits, no brand, no watermark."
+    },
+    "environment": {
+      "aspect": "21:9",
+      "prompt": "Create an ENVIRONMENT plate board titled DUCKWEED FOREST OPHELIA — ENVIRONMENT with no people. Show only source-observed environmental planes, organised as evidence tiles rather than a fabricated map: uneven grass and leaf-litter woodland ground from frames 05/06; pale birch and dark trunks against shaded undergrowth from frames 01/05/11; green duckweed beside open dark reflective water and one fallen birch from frames 03/07/08; bright foliage and source-visible blue sky from frames 01/04/11. Treat dry forest and adjacent water as two chapters of one generic temperate woodland edge, without asserting their exact geometry. Show one low warm sun as direct patches or back rim and cool open-sky fill. Do not invent north arrows, scale bars, site dimensions, exact pond outline, camera stations, reverse-angle views, buildings, paths, sound, smell or weather data. Print gamma #0D1306 #496740 #667E01 #384755 #8FB8C8 #882600 #F1E7DB #E4D3B9 #893F6E. No version number, no date, no invented metadata, no landmark, no identity, no brand, no watermark."
+    },
+    "person": {
+      "aspect": "2:3",
+      "prompt": "Create a blank per-subject PERSON TEMPLATE titled DUCKWEED FOREST OPHELIA — PERSON. ABSOLUTE STOP: do not draw a human face, human skull mesh, portrait, synthetic identity or reconstructed anatomy. The identity placeholder must be three identical SMOOTH SEALED EGG-SHAPED CALIBRATION ELLIPSOIDS on plain cylindrical neck plinths, rotated front, three-quarter and side. Each ellipsoid is one continuous blank oval with only a uniform latitude-longitude grid. It is NOT a human-head mesh. Forbidden on every ellipsoid: eye sockets, orbital holes or topology, eyelids, eyes, brows, brow ridge, nose or nose protrusion, nostrils, mouth line or groove, lips, chin, jaw angle or jaw contour, cheek planes, ears or ear protrusions, hair, scalp shape, hairline, skin texture, marks, freckles, tattoos and piercings. Do not change the perfect smooth egg silhouette into a facial profile. If any panel would contain a face feature or human-head topology, replace the whole object with a plain perfect ellipsoid. Add one connected-hand topology diagram made only from simple joint nodes and straight connecting rods, without skin, nails, marks or identity. Put all identity data in separate empty checklist boxes, each printed UNKNOWN UNTIL APPROVED USER REFERENCE: FACE GEOMETRY, EAR GEOMETRY, HAIRLINE, EYES, NOSE, MOUTH, JAW, NECK, SKIN TONE, MARKS, TATTOOS, PIERCINGS, EYE COLOUR. Show source-backed lighting response only on separate abstract spheres, cylinders, flat cloth and water droplets, never on an ellipsoid or face: warm direct low-sun patch with crisp local shadow; cool open-sky fill with warm rim; wet surface with broad clean sheen and duckweed specks; white-cloth bounce. State APPROVED USER IDENTITY IS THE SOLE PERSON AUTHORITY and SOURCE IDENTITY NEVER TRANSFERS. Print gamma #0D1306 #496740 #667E01 #384755 #8FB8C8 #882600 #F1E7DB #E4D3B9 #893F6E. No version number, no date, no invented metadata, no personal name, no copied marks, no brand, no watermark."
+    }
+  }
+}

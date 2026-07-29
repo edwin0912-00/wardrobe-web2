@@ -1,0 +1,220 @@
+{
+  "unit_id": "shoot.liza_luminous",
+  "title": "Luminous Field — low sun, open sky, wind and tactile flowers",
+  "palette_size": 6,
+  "palette": [
+    {
+      "name": "deep sky blue",
+      "hex": "#254D6C",
+      "role": "deepest saturated sky"
+    },
+    {
+      "name": "clear sky blue",
+      "hex": "#5C8EB0",
+      "role": "mid-blue sky field"
+    },
+    {
+      "name": "luminous white",
+      "hex": "#FCFCFB",
+      "role": "brightest petal, blown sky and highlight"
+    },
+    {
+      "name": "sun veil cream",
+      "hex": "#E6CEB0",
+      "role": "warm sun veil and petal inner warmth"
+    },
+    {
+      "name": "sunlit grass",
+      "hex": "#76883F",
+      "role": "grass and leaf midtone"
+    },
+    {
+      "name": "deep grass shadow",
+      "hex": "#252611",
+      "role": "deepest field shadow"
+    }
+  ],
+  "item_colours_exempt": true,
+  "palette_authority": {
+    "path": "palette-strip.svg",
+    "sha256": "20fdd413dfee4b5352215e0f7d908afe59176ed94accb8689c291ca0e52f2503",
+    "rendered_not_generated": true
+  },
+  "source_frames": [
+    "frame-01.jpg — 1365×2048, full-body backlit field frame with tall grass and direct sun, SHA-256 95883cd7a74d529354370ed015b3fe49fa55cd0a8da90aa1f19cc4e1b070c253",
+    "frame-02.jpg — 1365×2048, close low-angle clean identity portrait against deep blue sky, SHA-256 3e5811f573d06e73d371d00a94cfe84555f54b80981a59e9048937481b126513",
+    "frame-05.jpg — 1365×2048, extreme low sculptural body frame with wind-driven translucent textile, SHA-256 cac3d8b35d2bc38e6b98e1c47ebee0f38fc48c53f9b976734b686472b7c0b0d5",
+    "frame-06.jpg — 1365×2048, extreme flower-interference face frame from below, SHA-256 adbeaf1ed844d8b5f8ba99ab925ff8c9991c919d20cc962d18062f9f72c68557",
+    "frame-07.jpg — 2048×1365, top-down body-in-grass frame with flowers and bent joint chain, SHA-256 2fe01bd7f10dfc78dce8db193cf5ee8544bd313dc25266f9ecdb6ade24c368c6",
+    "frame-08.jpg — 1365×2048, low close portrait with hair and translucent layer crossing, SHA-256 b93c6cd5a8cb294b44e6e98556f12c93a9544b631e33fb9fab89762058e4273b",
+    "frame-09.jpg — 1365×2048, low medium bouquet/material portrait against pale sky, SHA-256 eb8989d3a71b4b594d0b7992396a8af4f7d546f807de04248652f49ac23bc14a"
+  ],
+  "unknowns": [
+    "focal lengths, apertures, shutter speeds, camera make and film stock",
+    "whether exposure or grading contributes more to pale skies in frame-01.jpg and frame-09.jpg",
+    "wind speed and whether an off-frame fan supplemented natural wind",
+    "exact field location, flower cultivar and time of day",
+    "all source-person names, biographies, face geometry, skin marks and body dimensions"
+  ],
+  "unit_contract": {
+    "path": "unit.json",
+    "sha256": "7a727809e303f62a28fbb38197e228173e081f045b3584a05192464c0c522fb8"
+  },
+  "observation_log": {
+    "path": "OBSERVATION.md",
+    "sha256": "fe1e16ff08a6be93f6ed67456ff994e95bce862f7a6cbbb796d9bac986c08a81"
+  },
+  "self_verification": {
+    "path": "SELF-VERIFY.md",
+    "sha256": "952ee807e8e368cc98477bf677cdbb527c1dd3eacc19e457cd5fb62c620da66e",
+    "status": "APPROVED"
+  },
+  "runtime_style_sha256": "4e905fc0527c89839adf025e283b9607484b3a242050b39a5fb3718839f4d44c",
+  "sheets": [
+    {
+      "sheet_id": "camera_lens",
+      "path": "sheet-camera_lens.png",
+      "sha256": "b6490d7e197a7a8eb8cfff4eb9637d18befa0b1fa2c8271951c9a3f39f8949aa",
+      "byte_size": 4972433,
+      "width": 2752,
+      "height": 1536,
+      "requested_aspect": "16:9",
+      "attempts": 1,
+      "provider_receipt": {
+        "provider": "higgsfield",
+        "transport": "higgsfield-cli",
+        "job_id": "0e27cad4-ddca-449f-a383-a1b83e5bd7c1",
+        "model": "nano_banana_2",
+        "model_name": "Nano Banana Pro",
+        "output_sha256": "b6490d7e197a7a8eb8cfff4eb9637d18befa0b1fa2c8271951c9a3f39f8949aa",
+        "provider_journal_sha256": "f6f21ffe1707b70d84b3c62cb1e6695ca8dab7a152209c1410b9c44f775eb853"
+      },
+      "colour_authoritative": false
+    },
+    {
+      "sheet_id": "blocking",
+      "path": "sheet-blocking.png",
+      "sha256": "30d8b3cbced5487cf306c01337744a86ef27628e8b8e143e566f77dae308fb8a",
+      "byte_size": 3561327,
+      "width": 2752,
+      "height": 1536,
+      "requested_aspect": "16:9",
+      "attempts": 1,
+      "provider_receipt": {
+        "provider": "higgsfield",
+        "transport": "higgsfield-cli",
+        "job_id": "51e58e29-1e15-4a30-8a30-258c23c87d71",
+        "model": "nano_banana_2",
+        "model_name": "Nano Banana Pro",
+        "output_sha256": "30d8b3cbced5487cf306c01337744a86ef27628e8b8e143e566f77dae308fb8a",
+        "provider_journal_sha256": "3709f4eafa29a8e1c12ca1598d50ddbe7e1315e1c6e95018960eac6887844826"
+      },
+      "colour_authoritative": false
+    },
+    {
+      "sheet_id": "expression_gaze",
+      "path": "sheet-expression_gaze.png",
+      "sha256": "f94ec98af21c5ab460c984b459e67940e26788822f9a7f2c3c7ee3bcc0396e27",
+      "byte_size": 4852862,
+      "width": 2528,
+      "height": 1696,
+      "requested_aspect": "3:2",
+      "attempts": 1,
+      "provider_receipt": {
+        "provider": "higgsfield",
+        "transport": "higgsfield-cli",
+        "job_id": "d06a8d8f-8922-40aa-8e96-6e7ccf31eabd",
+        "model": "nano_banana_2",
+        "model_name": "Nano Banana Pro",
+        "output_sha256": "f94ec98af21c5ab460c984b459e67940e26788822f9a7f2c3c7ee3bcc0396e27",
+        "provider_journal_sha256": "0cf3b3cc2c0df565bbbb336f0d14b47c55473707710f2290b875344515c344f8"
+      },
+      "colour_authoritative": false
+    },
+    {
+      "sheet_id": "garment_behaviour",
+      "path": "sheet-garment_behaviour.png",
+      "sha256": "f7097fb1d4fb66342a6bacb99682d9480f19d4451ad87a69afd06e2d208ecf43",
+      "byte_size": 6328199,
+      "width": 2528,
+      "height": 1696,
+      "requested_aspect": "3:2",
+      "attempts": 1,
+      "provider_receipt": {
+        "provider": "higgsfield",
+        "transport": "higgsfield-cli",
+        "job_id": "390a7f22-a6ca-4761-9fe1-b657eeb81337",
+        "model": "nano_banana_2",
+        "model_name": "Nano Banana Pro",
+        "output_sha256": "f7097fb1d4fb66342a6bacb99682d9480f19d4451ad87a69afd06e2d208ecf43",
+        "provider_journal_sha256": "dfbb489acb401603c3725be832907bff31ea8478c5b8e24a96e7dcef79476f63"
+      },
+      "colour_authoritative": false
+    },
+    {
+      "sheet_id": "colour_grade",
+      "path": "sheet-colour_grade.png",
+      "sha256": "d2155c04d5b817a5f0cbc97fd6ad6e24f8c015a44a254573102722fc78c55a88",
+      "byte_size": 3241068,
+      "width": 2752,
+      "height": 1536,
+      "requested_aspect": "16:9",
+      "attempts": 1,
+      "provider_receipt": {
+        "provider": "higgsfield",
+        "transport": "higgsfield-cli",
+        "job_id": "0fd0d27d-d621-4600-88bf-3cf34edbda0f",
+        "model": "nano_banana_2",
+        "model_name": "Nano Banana Pro",
+        "output_sha256": "d2155c04d5b817a5f0cbc97fd6ad6e24f8c015a44a254573102722fc78c55a88",
+        "provider_journal_sha256": "da7704ba7e97b789343a74cf0f6aa171673b937e04d6215344c803e56c156f4a"
+      },
+      "colour_authoritative": false
+    },
+    {
+      "sheet_id": "environment",
+      "path": "sheet-environment.png",
+      "sha256": "2556c894b97a2503656bf9c2b86aaf07020af6f68c6e1df3f669a71d2d5698b9",
+      "byte_size": 5061131,
+      "width": 2752,
+      "height": 1536,
+      "requested_aspect": "16:9",
+      "attempts": 1,
+      "provider_receipt": {
+        "provider": "higgsfield",
+        "transport": "higgsfield-cli",
+        "job_id": "32eaf7a1-e922-4c67-a3bc-c77af5a140fa",
+        "model": "nano_banana_2",
+        "model_name": "Nano Banana Pro",
+        "output_sha256": "2556c894b97a2503656bf9c2b86aaf07020af6f68c6e1df3f669a71d2d5698b9",
+        "provider_journal_sha256": "2ef07eba4a3fe21b4e77e5d531507710c7581528c6734507fe8c5c17b42b27be"
+      },
+      "colour_authoritative": false
+    },
+    {
+      "sheet_id": "person",
+      "path": "sheet-person.png",
+      "sha256": "c7bd30d98b5887c30e19b5dc6550e600367c2281810995a8be44340442fd6592",
+      "byte_size": 3473255,
+      "width": 1696,
+      "height": 2528,
+      "requested_aspect": "2:3",
+      "attempts": 1,
+      "provider_receipt": {
+        "provider": "higgsfield",
+        "transport": "higgsfield-cli",
+        "job_id": "1e175edc-466f-4af4-95e8-597b52e9bf83",
+        "model": "nano_banana_2",
+        "model_name": "Nano Banana Pro",
+        "output_sha256": "c7bd30d98b5887c30e19b5dc6550e600367c2281810995a8be44340442fd6592",
+        "provider_journal_sha256": "1b5d78db2dfba1b5c1e080fcbcb574687530f7b8621c88dd1afa12e8f12b78b5"
+      },
+      "colour_authoritative": false
+    }
+  ],
+  "unit_sha256": "d2aa12d26306af70d085a6e97f1e2a78a18410f76967298312627f84ba7ee32b",
+  "generated_with": {
+    "model": "nano_banana_2",
+    "transport": "higgsfield-cli"
+  }
+}

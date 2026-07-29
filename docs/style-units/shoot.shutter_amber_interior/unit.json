@@ -39,12 +39,34 @@
     "male-03.png",
     "male-05-armchair-dark.png"
   ],
+  "style_unit_status": "BLOCKED_SOURCE",
+  "source_reconciliation": {
+    "status": "BLOCKED_SOURCE",
+    "primary_frame": "male-01-shutter-orange.png",
+    "included_frames": [
+      "male-01-shutter-orange.png"
+    ],
+    "excluded_frames": [
+      {
+        "frame": "male-03.png",
+        "reason": "Different ribbed-window ledge environment with a strong lower-left veiling haze and broad window patches instead of the primary narrow slatted-band system."
+      },
+      {
+        "frame": "male-05-armchair-dark.png",
+        "reason": "Different armchair and wooden-floor environment with a clean narrow spotlight, wider camera distance and no window bands or veiling wash."
+      }
+    ],
+    "needs_source": "Additional frames from the exact male-01-shutter-orange.png photoshoot establishing six unique camera, pose, focus and foreground directions."
+  },
   "compatibility": "male presentation; seated floor/step/armchair; heavy relaxed limbs",
   "unknowns": [
     "focal length in millimetres",
-    "whether the light is real sun or a lamp through a gobo",
-    "the floor material in frame male-03",
-    "what is outside the window"
+    "whether the primary light is real sun, a lamp or a gobo",
+    "actual blind or window geometry outside the primary crop",
+    "primary wall material",
+    "whether highlight softness is lens bloom or grade",
+    "whether additional coherent frames from the male-01 shoot exist",
+    "real six-slot camera and pose coverage"
   ],
   "sheets_present": [
     "camera_lens",

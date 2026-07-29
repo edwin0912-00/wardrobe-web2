@@ -11,14 +11,22 @@
     { "name": "cream", "hex": "#EFE9DC", "role": "highlight, the pale garment and lightest ground" },
     { "name": "deep skin", "hex": "#4A2E22", "role": "deepest value, skin holding full saturation under even light" }
   ],
-  "source_frames": ["frame-01 — single supplied frame, portrait roughly 4:5, full-length dead-frontal standing figure on a clean sand ridge against a pale blue sky with discrete cumulus, opaque white-framed dark lenses, knitted cap, high collar, an object carried at thigh height, footwear entirely in frame"],
+  "style_unit_status": "BLOCKED_SOURCE",
+  "source_frames": ["assets/scene-mood-cards/shoot.sky_dune_surreal.webp — visually inspected 1024x1280 owner-supplied derivative, mood-card sha256 415d09e80eb31b4238b17001e85f57ef28a1cb1f3bf236b1e6a050a368cc0385; sidecar records cover crop/re-encode only from 1968x2464 source sha256 bc8331019e3e8a1de6043124e32f967c7eaae99e487bae50eda26cd83269bcaf"],
+  "source_reconciliation": {
+    "status": "BLOCKED_SOURCE",
+    "primary_frame": "assets/scene-mood-cards/shoot.sky_dune_surreal.webp",
+    "source_bytes_present": true,
+    "reason": "One authentic owner-supplied derivative was inspected, but one frame cannot prove five unique shots or the six canonical runtime directions; the uncropped original and neighbouring shoot frames are absent.",
+    "needs_source": "Restore the original shoot/contact sequence with enough genuinely different frames to establish at least five unique compositions and all six canonical runtime slots."
+  },
   "unknowns": [
-    "focal length in millimetres — never stated; only the normal-perspective consequences are recorded",
-    "aperture and shutter values",
-    "whether the sky is real, painted or composited — the cleanliness suggests a built or composited set, and the look is recorded rather than the method",
-    "whether the sand ridge is a location dune or a built mound; its crest is too clean to settle the question",
-    "the eyes, the eyelids and the brows — occluded by opaque dark lenses and a knitted cap, and deliberately not inferred",
-    "what the object carried at thigh height is; it carries no readable text or mark"
+    "focal length, aperture, shutter speed and physical camera height",
+    "whether sky, clouds and sand are a location, a built set or a composite",
+    "the uncropped outer composition of the 1968x2464 original source",
+    "eyes, eyelids, brows and exact gaze direction, occluded by opaque lenses and knitted headwear",
+    "any reverse angle, wide coda, material-detail angle or alternate pose from the same shoot",
+    "a five-frame or six-slot coverage grammar; only one owner-supplied derivative is available on this host"
   ],
   "sheets": {
     "camera_lens": {

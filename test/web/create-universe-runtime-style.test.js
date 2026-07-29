@@ -4,10 +4,14 @@ import test from 'node:test';
 import { FilesystemScenePresetResolver } from '../../src/web/scene-resolvers.js';
 
 const READY_SHOOT_IDS = [
+  'shoot.zayn_institutional',
+  'shoot.liza_luminous',
+  'shoot.duckweed_forest_ophelia',
+  'shoot.rooftop_veil_monochrome',
   'shoot.autumn_park_mediated_sun',
 ];
 
-test('the recovered source-backed Creative Universe unit compiles its observed runtime style', async () => {
+test('all recovered source-backed Creative Universe units compile their observed runtime style', async () => {
   const projectRoot = path.resolve('.');
   const resolver = new FilesystemScenePresetResolver({
     rootDirectory: path.join(projectRoot, 'assets', 'scene-presets'),

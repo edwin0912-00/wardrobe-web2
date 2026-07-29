@@ -35,8 +35,19 @@ const requiredCreateUniverseModeIds = [
   'shoot.grey_wall_gloss',
   'shoot.ochre_stage_tailoring',
   'shoot.shutter_amber_interior',
+  'shoot.zayn_institutional',
+  'shoot.liza_luminous',
+  'shoot.duckweed_forest_ophelia',
+  'shoot.rooftop_veil_monochrome',
+  'shoot.autumn_park_mediated_sun',
 ];
-const requiredCreateUniverseGenerationModeIds = requiredCreateUniverseModeIds;
+const requiredCreateUniverseGenerationModeIds = [
+  'shoot.zayn_institutional',
+  'shoot.liza_luminous',
+  'shoot.duckweed_forest_ophelia',
+  'shoot.rooftop_veil_monochrome',
+  'shoot.autumn_park_mediated_sun',
+];
 const requiredReleasePreviewModeIds = [
   ...requiredEditorialModeIds,
   ...requiredCreateUniverseModeIds,

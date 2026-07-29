@@ -1,0 +1,241 @@
+{
+  "unit_id": "shoot.duckweed_forest_ophelia",
+  "title": "Duckweed Forest Ophelia — clean low-sun woodland and reflective green water",
+  "palette_size": 9,
+  "palette": [
+    {
+      "name": "forest green-black",
+      "hex": "#0D1306",
+      "role": "deep forest shadow"
+    },
+    {
+      "name": "duckweed field",
+      "hex": "#496740",
+      "role": "duckweed water plane"
+    },
+    {
+      "name": "sunlit foliage",
+      "hex": "#667E01",
+      "role": "sunlit green accent"
+    },
+    {
+      "name": "slate open water",
+      "hex": "#384755",
+      "role": "open-water cool field"
+    },
+    {
+      "name": "open sky blue",
+      "hex": "#8FB8C8",
+      "role": "cool sky field"
+    },
+    {
+      "name": "burnt orange",
+      "hex": "#882600",
+      "role": "hot styling accent"
+    },
+    {
+      "name": "off-white cotton",
+      "hex": "#F1E7DB",
+      "role": "bright cloth mass"
+    },
+    {
+      "name": "dusk reflected gold",
+      "hex": "#E4D3B9",
+      "role": "warm water highlight"
+    },
+    {
+      "name": "magenta makeup",
+      "hex": "#893F6E",
+      "role": "small makeup accent"
+    }
+  ],
+  "item_colours_exempt": true,
+  "palette_authority": {
+    "path": "palette-strip.svg",
+    "sha256": "e12009065e4074f020a9b66b74fff483d2f4d672bb897697aace84700bf70c39",
+    "rendered_not_generated": true
+  },
+  "source_frames": [
+    "frame-01.jpg — 2048x1365; sha256 13c312381d95be4422eddafcbc82ffe3c126fa03fd27f1c83da863f495939216; extreme-low close portrait with near arm, blouse, converging trees and blue sky",
+    "frame-02.jpg — 1365x2048; sha256 19a0959132872825aa32baf1f9125e4c622b856bddf1236913e42b1af8dea2d3; compact-reflection torso/detail with reflected face sharp and real body soft",
+    "frame-03.jpg — 2048x1365; sha256 b02ee5cc153e363b98c3591c23fadf141b0c4ee234eb8dd691b71da22fcb5d93; closed-eye water-surface profile amid duckweed",
+    "frame-04.jpg — 1365x2048; sha256 17ead8f12772cdd5f33185a955c8056da38c1df0aa12e613494df434bde903c4; low-angle hard-sun medium portrait with raised sculptural arms",
+    "frame-05.jpg — 1365x2048; sha256 077c196e1f7adf2486f08a3b515fb86433dd4a379697fd16c3c78f509c6b6269; shaded full-length forest stance with broken-wrist arm chain",
+    "frame-06.jpg — 1365x2048; sha256 7876f2ef59a0b60682155ad225e969089a5f3f7a5c3dc0633cf14974936d5f75; distinct side-lean full-length forest stance",
+    "frame-07.jpg — 2048x1365; sha256 a41a5eddd41e8ecd316962f3e0907efeb25c61419e27d371b55838d535821c30; elevated wide supine body in duckweed and open water",
+    "frame-08.jpg — 2048x1365; sha256 99d4d05fd0a8313deb6057c57472bbc3fc640c97f5678c46a2445862824a2153; waterline face and inverted reflection",
+    "frame-09.jpg — 1365x2048; sha256 cea72e2258b356824e3ff73f3cd39899f5e01710e5c8519b61b607c500416eb3; arched environmental three-quarter in a direct sun patch",
+    "frame-10.jpg — 1365x2048; sha256 2c76d07d836daa1cd9a14ecc1a03ddb8f6f5e25130f6b937dbde89cd5d980b4c; extreme close direct-gaze portrait with near forearm",
+    "frame-11.jpg — 2048x1365; sha256 2d39c51b71c61546e7ede84b79945d6513763d84fdb220a38d61a5b1d85cceb7; extreme-low sky-heavy environmental wide"
+  ],
+  "unknowns": [
+    "camera body, sensor or film stock, focal lengths, apertures, ISO and shutter speeds",
+    "exact lens model or number of optics used",
+    "exact time elapsed between direct-sun, open-shade and dusk-reflection frames",
+    "exact woodland and pond geometry, orientation, dimensions and unseen reverse angles",
+    "whether any apparent roll was captured in camera or introduced later",
+    "the manufacturer and design of the handheld reflective compact",
+    "identity traits, marks, piercings and facial measurements of any approved future subject"
+  ],
+  "unit_contract": {
+    "path": "unit.json",
+    "sha256": "d0175a32157353097d21ee04e63f0630b541d7010a32c7d67b188aeb9f8c172a"
+  },
+  "observation_log": {
+    "path": "OBSERVATION.md",
+    "sha256": "d547405e1a4f550fe46575e9238d2a7cdb0177208ae13b73214d120a4f5f0afc"
+  },
+  "self_verification": {
+    "path": "SELF-VERIFY.md",
+    "sha256": "15fe0ebdb9838266e33c9d70709f46164eb1714bbc8abe13d5475ca786fd9a79",
+    "status": "APPROVED"
+  },
+  "runtime_style_sha256": "0fa43de15137f5b762ea5baffc320a4b2ef65ce1aad0bce7a465bba2ca003724",
+  "sheets": [
+    {
+      "sheet_id": "camera_lens",
+      "path": "sheet-camera_lens.png",
+      "sha256": "00df7902d3320bee091096f96f1789d835bf0e9224445d74126e1560d7ba2e0e",
+      "byte_size": 5120488,
+      "width": 2752,
+      "height": 1536,
+      "requested_aspect": "16:9",
+      "attempts": 1,
+      "provider_receipt": {
+        "provider": "higgsfield",
+        "transport": "higgsfield-cli",
+        "job_id": "48e7c3e2-c40a-436e-a8d2-32c06d25ec53",
+        "model": "nano_banana_2",
+        "model_name": "Nano Banana Pro",
+        "output_sha256": "00df7902d3320bee091096f96f1789d835bf0e9224445d74126e1560d7ba2e0e",
+        "provider_journal_sha256": "195627591b464ab5913661deab20144c320795e5d714ac5a7b87bd9809d44181"
+      },
+      "colour_authoritative": false
+    },
+    {
+      "sheet_id": "blocking",
+      "path": "sheet-blocking.png",
+      "sha256": "e008de7667c5fdb29bc87d8d10c891878f4b6ed9cac091f25ad555c416ccaf91",
+      "byte_size": 6508965,
+      "width": 2752,
+      "height": 1536,
+      "requested_aspect": "16:9",
+      "attempts": 1,
+      "provider_receipt": {
+        "provider": "higgsfield",
+        "transport": "higgsfield-cli",
+        "job_id": "b0083c95-9074-40ec-ab42-1529bb4b94aa",
+        "model": "nano_banana_2",
+        "model_name": "Nano Banana Pro",
+        "output_sha256": "e008de7667c5fdb29bc87d8d10c891878f4b6ed9cac091f25ad555c416ccaf91",
+        "provider_journal_sha256": "6331afca615e7ade47e0f6c3b47567b8f78df9f4ac9d39c95b455b7bc055f739"
+      },
+      "colour_authoritative": false
+    },
+    {
+      "sheet_id": "expression_gaze",
+      "path": "sheet-expression_gaze.png",
+      "sha256": "38ecf2e78cdae1abce82597938b4d58cd815f347f1bdb0de789bb93a92da5998",
+      "byte_size": 4861087,
+      "width": 2528,
+      "height": 1696,
+      "requested_aspect": "3:2",
+      "attempts": 1,
+      "provider_receipt": {
+        "provider": "higgsfield",
+        "transport": "higgsfield-cli",
+        "job_id": "a8fe7c97-d2f4-4e7b-9e98-f0a57bb25395",
+        "model": "nano_banana_2",
+        "model_name": "Nano Banana Pro",
+        "output_sha256": "38ecf2e78cdae1abce82597938b4d58cd815f347f1bdb0de789bb93a92da5998",
+        "provider_journal_sha256": "876ac8441fe95a44713dd6bbfe551541512c3c3306502fda3ee6b95469f62804"
+      },
+      "colour_authoritative": false
+    },
+    {
+      "sheet_id": "garment_behaviour",
+      "path": "sheet-garment_behaviour.png",
+      "sha256": "0a0cd68dd4f94f0cecb4385a470b00d27a80fd63bbbf0c280a2ea1d7346ac340",
+      "byte_size": 5004183,
+      "width": 2528,
+      "height": 1696,
+      "requested_aspect": "3:2",
+      "attempts": 1,
+      "provider_receipt": {
+        "provider": "higgsfield",
+        "transport": "higgsfield-cli",
+        "job_id": "48a90595-32af-4e45-945f-b5fd783ed08f",
+        "model": "nano_banana_2",
+        "model_name": "Nano Banana Pro",
+        "output_sha256": "0a0cd68dd4f94f0cecb4385a470b00d27a80fd63bbbf0c280a2ea1d7346ac340",
+        "provider_journal_sha256": "05e7c531a398e9797a712a1f7cfba19d6f9ff7f63ddd66d50dc721090b8f359f"
+      },
+      "colour_authoritative": false
+    },
+    {
+      "sheet_id": "colour_grade",
+      "path": "sheet-colour_grade.png",
+      "sha256": "aebd088b008acd18cf8dd9ce6f462f1ac2f2ec93e9edd440c6d6b839080f0af7",
+      "byte_size": 3388475,
+      "width": 2752,
+      "height": 1536,
+      "requested_aspect": "16:9",
+      "attempts": 1,
+      "provider_receipt": {
+        "provider": "higgsfield",
+        "transport": "higgsfield-cli",
+        "job_id": "069d5dc9-fa5b-40a2-828f-ac22ccb6f030",
+        "model": "nano_banana_2",
+        "model_name": "Nano Banana Pro",
+        "output_sha256": "aebd088b008acd18cf8dd9ce6f462f1ac2f2ec93e9edd440c6d6b839080f0af7",
+        "provider_journal_sha256": "116f1b152ee7bc5541347594d40c3e31ec3f2907fe7b3e159a22903d627184fd"
+      },
+      "colour_authoritative": false
+    },
+    {
+      "sheet_id": "environment",
+      "path": "sheet-environment.png",
+      "sha256": "6681d8232acb5eb66b2318e787cca4d966081caed61863ad59e342dfdc424f5e",
+      "byte_size": 7645667,
+      "width": 3168,
+      "height": 1344,
+      "requested_aspect": "21:9",
+      "attempts": 1,
+      "provider_receipt": {
+        "provider": "higgsfield",
+        "transport": "higgsfield-cli",
+        "job_id": "a8789275-d555-4061-bacd-85ae244e257f",
+        "model": "nano_banana_2",
+        "model_name": "Nano Banana Pro",
+        "output_sha256": "6681d8232acb5eb66b2318e787cca4d966081caed61863ad59e342dfdc424f5e",
+        "provider_journal_sha256": "dca271ef8e727b29aafcb9d580777cbbb21ddd881fefc3bf57b09beced062b75"
+      },
+      "colour_authoritative": false
+    },
+    {
+      "sheet_id": "person",
+      "path": "sheet-person.png",
+      "sha256": "cd0c99896d1b6012d47a99dd7e2558dba66ae1f6a6b4615d033812c886394a5e",
+      "byte_size": 3896842,
+      "width": 1696,
+      "height": 2528,
+      "requested_aspect": "2:3",
+      "attempts": 1,
+      "provider_receipt": {
+        "provider": "higgsfield",
+        "transport": "higgsfield-cli",
+        "job_id": "210e4391-01f8-4db1-b806-9d9e61d916b4",
+        "model": "nano_banana_2",
+        "model_name": "Nano Banana Pro",
+        "output_sha256": "cd0c99896d1b6012d47a99dd7e2558dba66ae1f6a6b4615d033812c886394a5e",
+        "provider_journal_sha256": "4f2869e45f5211ae0403c039db67129a92b94e4197924a08f4149806ed16f276"
+      },
+      "colour_authoritative": false
+    }
+  ],
+  "unit_sha256": "c3616e09d378ca3f8244effd7a2474b080b65555a04bc4cf0e86ce918cd1ab88",
+  "generated_with": {
+    "model": "nano_banana_2",
+    "transport": "higgsfield-cli"
+  }
+}

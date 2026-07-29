@@ -1,6 +1,18 @@
 {
   "unit_id": "shoot.grey_studio_stride",
   "title": "Grey Studio Stride — long lens, level walk, dried reeds along the base",
+  "style_unit_status": "BLOCKED_SOURCE",
+  "source_reconciliation": {
+    "status": "BLOCKED_SOURCE",
+    "included": [
+      "frame-01 — provenance-bound 1024×1280 cover crop; one full-length profile/near-profile stride on a grey studio field"
+    ],
+    "excluded": [
+      "unavailable 1968×2464 owner-source bytes",
+      "unavailable additional same-shoot frames"
+    ],
+    "needs_source": "Provide the original owner frame plus distinct same-shoot frames sufficient to substantiate all six canonical shot directions and a repeatable camera, light, and movement system."
+  },
   "palette_size": 7,
   "palette": [
     { "name": "mid grey", "hex": "#8A8C8E", "role": "ground, the seamless backdrop field" },

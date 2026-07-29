@@ -43,6 +43,18 @@ const requiredCreateUniverseModeIds = [
   'shoot.grey_wall_gloss',
   'shoot.ochre_stage_tailoring',
   'shoot.shutter_amber_interior',
+  'shoot.zayn_institutional',
+  'shoot.liza_luminous',
+  'shoot.duckweed_forest_ophelia',
+  'shoot.rooftop_veil_monochrome',
+  'shoot.autumn_park_mediated_sun',
+];
+const requiredCreateUniverseGenerationModeIds = [
+  'shoot.zayn_institutional',
+  'shoot.liza_luminous',
+  'shoot.duckweed_forest_ophelia',
+  'shoot.rooftop_veil_monochrome',
+  'shoot.autumn_park_mediated_sun',
 ];
 const requiredReleasePreviewModeIds = [
   ...requiredEditorialModeIds,
@@ -50,7 +62,7 @@ const requiredReleasePreviewModeIds = [
 ];
 const requiredReleaseGenerationModeIds = [
   ...requiredEditorialGenerationModeIds,
-  ...requiredCreateUniverseModeIds,
+  ...requiredCreateUniverseGenerationModeIds,
 ];
 const requiredEditorialPreviewFiles = requiredReleasePreviewModeIds.flatMap((modeId) => [
   `assets/scene-mood-cards/${modeId}.json`,
@@ -180,7 +192,7 @@ test('product release is deterministic, complete, scene-enabled and cache-bound'
   assert.equal(verified.editorial_modes, requiredReleasePreviewModeIds.length);
   assert.equal(verified.editorial_generation_modes, requiredReleaseGenerationModeIds.length);
   assert.equal(verified.create_universe_modes, requiredCreateUniverseModeIds.length);
-  assert.equal(verified.create_universe_generation_modes, requiredCreateUniverseModeIds.length);
+  assert.equal(verified.create_universe_generation_modes, requiredCreateUniverseGenerationModeIds.length);
   // Legacy editorial modes compile through the legacy ShootBible compiler.
   // Create Universe units compile through their own hash-bound scene route and
   // are asserted separately below; they must not be forced back onto the old
@@ -437,7 +449,7 @@ test('product verifier rejects tamper, stale cache, private paths, disabled scen
   await chmod(manifestPath, 0o600);
   await assert.rejects(
     verify(releaseDirectory),
-    /exact two approved mode IDs/,
+    /does not contain every registered generation mode ID/,
   );
   await writeFile(manifestPath, originalManifest);
   await chmod(manifestPath, 0o600);

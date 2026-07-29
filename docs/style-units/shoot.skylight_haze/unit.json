@@ -1,6 +1,18 @@
 {
   "unit_id": "shoot.skylight_haze",
   "title": "Skylight Haze — backlit glass-roof editorial",
+  "style_unit_status": "BLOCKED_SOURCE",
+  "source_reconciliation": {
+    "status": "BLOCKED_SOURCE",
+    "included": [
+      "frame-01 — provenance-bound 1024×1280 cover crop; one low-angle raised-arm moment with a defocused near limb and warm veiling backlight"
+    ],
+    "excluded": [
+      "unavailable 928×1232 owner-source bytes",
+      "unavailable additional same-shoot frames"
+    ],
+    "needs_source": "Provide the original owner frame plus distinct same-shoot frames sufficient to substantiate all six canonical shot directions and a repeatable optical/environment system."
+  },
   "palette_size": 6,
   "palette": [
     { "name": "blown skylight", "hex": "#EAF0F2", "role": "brightest highlight, the blown source behind the head" },

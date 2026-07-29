@@ -1,0 +1,70 @@
+{
+  "schema_version": "1.0.0",
+  "preset_id": "shoot.zayn_institutional",
+  "kind": "editorial",
+  "family": "create_universe",
+  "ui_name_uk": "Інституційний модернізм · ритуальна симетрія",
+  "asset_role": "mood_card",
+  "file": "assets/scene-mood-cards/shoot.zayn_institutional.webp",
+  "sha256": "7835ba82c42b205a16dc7929dc822ad10ff310264430f303b8888bc7f31927c5",
+  "origin": {
+    "kind": "OWN_GENERATED_PREVIEW",
+    "note": "Original preview generated solely from the immutable runtime_style contract and deterministic palette authority. No source photographs, approved looks, source identity, or personal input were supplied to the provider.",
+    "unit_contract": "docs/style-units/shoot.zayn_institutional/unit.json",
+    "unit_contract_sha256": "1b60e7d21bc4e3d421ee2a6612cec0cdea99aa62ca0df677da1205c1e1ce75d7",
+    "unit_binding_sha256": "2a6893fd3849fab4d5a3f4508a045b74dfa89d0912a549c3caecd0e35a5ecf70",
+    "runtime_style_sha256": "74821b0887559f37b5c5f74bc107b63859d45efb3eaebf9d3c4b71a5c1392429",
+    "palette_authority": {
+      "file": "docs/style-units/shoot.zayn_institutional/palette-strip.svg",
+      "sha256": "526912e93894e1d8cbedb6d0b7b13b4071d2db32057445ef3354f33525cf992e",
+      "rendered_not_generated": true
+    }
+  },
+  "generation": {
+    "provider_path": "higgsfield-cli",
+    "prompt_contract_version": "create-universe-mood-card-v1",
+    "prompt_sha256": "14124def2f9d01d3b5f9d38a4c2657f5373d6234232af145834a31461a98d2f2",
+    "composition_slot": "environmental_hero",
+    "provider_receipt": {
+      "provider": "higgsfield",
+      "transport": "higgsfield-cli",
+      "generation_mode": "journaled",
+      "job_id": "bcbec856-40bd-4811-a4f8-7639446f5d2c",
+      "job_set_type": "nano_banana_2",
+      "model_name": "Nano Banana Pro",
+      "provider_internal_model": null,
+      "requested_aspect_ratio": "4:5",
+      "requested_resolution": "2k",
+      "requested_quality": null,
+      "output_sha256": "a4f9f87bae09c1acbc8fa1991c2b35fd64301909292373bfae116a0e08f87b2a",
+      "provider_journal_sha256": "e468feaad76913592324f7b23895d8eb149b0aa50537d5b80e804819fcfeaf17",
+      "request_sha256": "74cc36be88d621306ab5c87b045fdc79aaf64e70fbb607a21787ae8781a645d5",
+      "palette_input_sha256": "0d1cef59b803f06d1c1382ee7f13f41ffb111c9a284dcf314aa5c1479bb9a2ca"
+    },
+    "source_width": 1856,
+    "source_height": 2304,
+    "normalization": {
+      "method": "deterministic_4x5_cover",
+      "crop_position": "centre",
+      "width": 1024,
+      "height": 1280,
+      "format": "webp"
+    }
+  },
+  "delivery": {
+    "width": 1024,
+    "height": 1280,
+    "format": "webp",
+    "aspect_ratio": "4:5"
+  },
+  "contains_personal_input": false,
+  "approval": "APPROVED",
+  "visual_review": {
+    "status": "APPROVED",
+    "reviewed_at": "2026-07-29T21:14:38.305Z",
+    "reviewed_source_width": 1856,
+    "reviewed_source_height": 2304,
+    "notes": "Full-resolution review passed: institutional concrete geometry, olive-grey closed palette, controlled overhead apertures, restrained seated tailoring, clean negative space, and no source identity or personal input leakage."
+  },
+  "created_at": "2026-07-29T21:14:38.305Z"
+}

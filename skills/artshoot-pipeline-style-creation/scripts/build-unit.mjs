@@ -6,6 +6,9 @@
 //
 // Usage:
 //   OPENROUTER_API_KEY=$(cat <keyfile>) node build-unit.mjs <unit-dir>
+//   node build-unit.mjs --higgsfield <unit-dir>
+//   node build-unit.mjs --dry-run <unit-dir>
+//   node build-unit.mjs --bind-existing <unit-dir>
 //
 // <unit-dir> must contain unit.json:
 //   {
@@ -26,6 +29,7 @@ import path from 'node:path';
 
 const ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions';
 const MODEL = 'openai/gpt-5.4-image-2';
+const HIGGSFIELD_MODEL = 'nano_banana_2';
 
 // The seven sheets, in ATTACHMENT order (§6), not in the order they happen to be written. A model
 // attends sharply to the first few references and less after that, so positions 1-4 go to what prose
@@ -45,6 +49,14 @@ const REQUIRED_SHEETS = Object.freeze([
 // Positions 1-4 are the image slots a real generation can usually afford. Everything at or below
 // TEXT_CARRIED_FROM must survive as structured text, and the sheet exists for human approval.
 const TEXT_CARRIED_FROM = 4;
+const SHOT_SLOTS = Object.freeze([
+  'clean_identity_hero',
+  'environmental_hero',
+  'sculptural_three_quarter',
+  'interference_frame',
+  'material_or_accessory_detail',
+  'wide_campaign_coda',
+]);
 
 const HEX = /^#[0-9a-fA-F]{6}$/;
 const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
@@ -56,6 +68,67 @@ function sha256(bytes) {
 function pngSize(bytes) {
   if (bytes.length < 24 || !bytes.subarray(0, 8).equals(PNG_SIGNATURE)) return null;
   return { width: bytes.readUInt32BE(16), height: bytes.readUInt32BE(20) };
+}
+
+function runtimeStyleSha256(unit) {
+  return sha256(Buffer.from(`${JSON.stringify(unit.runtime_style)}\n`));
+}
+
+function unitBindingSha256({
+  unitContractSha256,
+  observationSha256,
+  selfVerificationSha256,
+  runtimeSha256,
+  paletteAuthoritySha256,
+  sheets,
+}) {
+  return sha256(Buffer.from([
+    `unit_contract:${unitContractSha256}`,
+    `observation_log:${observationSha256}`,
+    `self_verification:${selfVerificationSha256 ?? 'MISSING'}`,
+    `runtime_style:${runtimeSha256}`,
+    `palette_authority:${paletteAuthoritySha256}`,
+    ...REQUIRED_SHEETS.map((id) => {
+      const sheet = sheets.find((entry) => entry.sheet_id === id);
+      return `${id}:${sheet?.sha256 ?? 'MISSING'}`;
+    }),
+  ].join('\n')));
+}
+
+function assertSelfVerification(bytes) {
+  if (!bytes || bytes.length < 500) {
+    throw new Error('Unit refused before binding:\n  - SELF-VERIFY.md is missing or too thin; inspect every sheet before approval');
+  }
+  const text = bytes.toString('utf8');
+  const omissions = [
+    ...REQUIRED_SHEETS.filter((id) => !text.includes(id)),
+    ...SHOT_SLOTS.filter((slot) => !text.includes(slot)),
+  ];
+  if (omissions.length > 0) {
+    throw new Error(`Unit refused before binding:\n  - SELF-VERIFY.md does not name every reviewed sheet and shot direction: ${omissions.join(', ')}`);
+  }
+  if (!/^UNIT VERDICT:\s*APPROVED\s*$/im.test(text)) {
+    throw new Error('Unit refused before binding:\n  - SELF-VERIFY.md must end the review with UNIT VERDICT: APPROVED');
+  }
+}
+
+function expectedAspect(value) {
+  const match = /^([1-9][0-9]*):([1-9][0-9]*)$/.exec(String(value ?? ''));
+  return match ? Number(match[1]) / Number(match[2]) : null;
+}
+
+function assertSheetGeometry({ id, bytes, size, aspect }) {
+  if (!size || size.width < 640 || size.height < 640 || bytes.length < 20_000) {
+    throw new Error(`Unit refused before binding:\n  - sheet-${id}.png is not a substantial decodable PNG`);
+  }
+  const requestedRatio = expectedAspect(aspect);
+  if (!requestedRatio) {
+    throw new Error(`Unit refused before binding:\n  - sheets.${id}.aspect must be a positive W:H ratio`);
+  }
+  const actualRatio = size.width / size.height;
+  if (Math.abs(actualRatio - requestedRatio) / requestedRatio > 0.04) {
+    throw new Error(`Unit refused before binding:\n  - sheet-${id}.png is ${size.width}x${size.height}, outside the declared ${aspect} aspect`);
+  }
 }
 
 // Refuse before spending. Every condition here is one the skill's §2 and §5 state in prose; this is
@@ -88,6 +161,9 @@ function assertUnit(unit) {
     if (!sheet.prompt || sheet.prompt.length < 200) {
       problems.push(`sheet "${id}" has no substantial prompt; a thin prompt produces a decorative sheet`);
     }
+    if (!expectedAspect(sheet.aspect)) {
+      problems.push(`sheet "${id}" has no valid positive W:H aspect`);
+    }
     // §2 master-gamma gate: every sheet carries its own hex row derived from the master.
     const carriesHex = palette?.some?.((entry) => sheet.prompt?.includes(entry.hex));
     if (!carriesHex) problems.push(`sheet "${id}" prompt names no palette hex — the master-gamma gate fails it before approval`);
@@ -108,6 +184,83 @@ function assertUnit(unit) {
   }
   if (!Array.isArray(unit.unknowns)) {
     problems.push('unknowns must be an array, even an empty one — an absent list means nobody looked');
+  }
+
+  const runtime = unit.runtime_style;
+  const runtimeKeys = [
+    'visual_system',
+    'mood_line',
+    'environment',
+    'lighting',
+    'materials',
+    'contrast',
+    'expression_signature',
+    'garment_behaviour',
+    'optical_signature',
+    'shot_directions',
+  ];
+  if (!runtime || typeof runtime !== 'object' || Array.isArray(runtime)) {
+    problems.push('runtime_style is missing — sheets without a machine-readable style contract cannot drive a shoot');
+  } else {
+    const actualKeys = Object.keys(runtime).sort();
+    if (JSON.stringify(actualKeys) !== JSON.stringify([...runtimeKeys].sort())) {
+      problems.push(`runtime_style must contain exactly: ${runtimeKeys.join(', ')}`);
+    }
+    for (const field of [
+      'visual_system',
+      'mood_line',
+      'environment',
+      'lighting',
+      'contrast',
+      'expression_signature',
+      'garment_behaviour',
+    ]) {
+      if (typeof runtime[field] !== 'string' || runtime[field].trim().length < 8) {
+        problems.push(`runtime_style.${field} must be substantive observed text`);
+      }
+    }
+    for (const field of ['materials', 'optical_signature']) {
+      if (!Array.isArray(runtime[field])
+        || runtime[field].length < 1
+        || runtime[field].some((item) => typeof item !== 'string' || item.trim().length < 3)) {
+        problems.push(`runtime_style.${field} must be a non-empty observed-text list`);
+      }
+    }
+    const directions = runtime.shot_directions;
+    if (!directions || typeof directions !== 'object' || Array.isArray(directions)
+      || JSON.stringify(Object.keys(directions).sort()) !== JSON.stringify([...SHOT_SLOTS].sort())) {
+      problems.push('runtime_style.shot_directions must cover all six canonical slots');
+    } else {
+      const compositionSignatures = new Set();
+      for (const slot of SHOT_SLOTS) {
+        const direction = directions[slot];
+        const keys = ['camera_consequence', 'pose_joint_chain', 'focus', 'foreground', 'provenance'];
+        if (!direction || typeof direction !== 'object' || Array.isArray(direction)
+          || JSON.stringify(Object.keys(direction).sort()) !== JSON.stringify([...keys].sort())) {
+          problems.push(`runtime_style.shot_directions.${slot} must contain exactly ${keys.join(', ')}`);
+          continue;
+        }
+        for (const field of ['camera_consequence', 'pose_joint_chain', 'focus', 'foreground']) {
+          if (typeof direction[field] !== 'string' || direction[field].trim().length < 8) {
+            problems.push(`runtime_style.shot_directions.${slot}.${field} must be observed text`);
+          }
+        }
+        if (!Array.isArray(direction.provenance)
+          || direction.provenance.length < 1
+          || direction.provenance.some((item) => typeof item !== 'string' || item.trim().length < 3)) {
+          problems.push(`runtime_style.shot_directions.${slot}.provenance must name source-frame observations`);
+        }
+        compositionSignatures.add(JSON.stringify([
+          direction.camera_consequence?.trim(),
+          direction.pose_joint_chain?.trim(),
+          direction.focus?.trim(),
+          direction.foreground?.trim(),
+        ]));
+      }
+      if (compositionSignatures.size !== SHOT_SLOTS.length) {
+        problems.push('runtime_style.shot_directions must contain six unique camera/pose/focus/foreground compositions');
+      }
+    }
   }
 
   if (problems.length) {
@@ -160,15 +313,100 @@ async function generateSheet({ apiKey, prompt, aspect }) {
   const url = payload?.choices?.[0]?.message?.images?.[0]?.image_url?.url;
   const match = /^data:image\/[a-z0-9.+-]+;base64,(.+)$/is.exec(String(url ?? '').trim());
   if (!match) throw new Error('OpenRouter returned no inline image');
-  return Buffer.from(match[1], 'base64');
+  if (typeof payload.id !== 'string' || payload.id.trim() === '') {
+    throw new Error('OpenRouter returned no provider job receipt');
+  }
+  const bytes = Buffer.from(match[1], 'base64');
+  return {
+    bytes,
+    receipt: {
+      provider: 'openrouter',
+      transport: 'openrouter',
+      job_id: payload.id,
+      model: MODEL,
+      model_name: MODEL,
+      output_sha256: sha256(bytes),
+      provider_journal_sha256: null,
+    },
+  };
+}
+
+async function generateSheetWithHiggsfield({
+  prompt,
+  aspect,
+  unit,
+  sheetId,
+  unitDir,
+  paletteSeedPath,
+}) {
+  const { HiggsfieldCliProvider } = await import('../../../src/providers/higgsfield-cli-provider.js');
+  const providerPrompt = [
+    prompt,
+    'The sole attached image is a deterministic rendered palette strip. It is colour authority only.',
+    'It is not authority for person, identity, scene, architecture, pose, garment, typography, metadata, or composition.',
+  ].join('\n\n');
+  const provider = new HiggsfieldCliProvider({
+    aspectRatio: aspect,
+    resolution: '2k',
+    generationMode: 'journaled',
+    journalDirectory: path.join('/private/tmp', 'zeely-creative-universe-jobs', unit.unit_id),
+  });
+  const generated = await provider.generate({
+    job_set_type: HIGGSFIELD_MODEL,
+    phase: 'scene',
+    attempt: 1,
+    jobId: `${unit.unit_id}.${sheetId}`,
+    idempotencyKey: sha256(Buffer.from([
+      'creative-universe-sheet-v2',
+      unit.unit_id,
+      sheetId,
+      aspect,
+      providerPrompt,
+    ].join('\n'))),
+    prompt: providerPrompt,
+    references: { identity: { artifact: { path: paletteSeedPath } } },
+    workDirectory: unitDir,
+  });
+  return {
+    bytes: generated.image,
+    receipt: {
+      provider: generated.metadata.provider,
+      transport: generated.metadata.transport,
+      job_id: generated.metadata.job_id,
+      model: generated.metadata.job_set_type,
+      model_name: generated.metadata.model_name,
+      output_sha256: generated.metadata.output_sha256,
+      provider_journal_sha256: generated.metadata.provider_journal?.sha256 ?? null,
+    },
+  };
 }
 
 async function main() {
   const args = process.argv.slice(2);
   const dryRun = args.includes('--dry-run');
+  const bindExisting = args.includes('--bind-existing');
+  const useHiggsfield = args.includes('--higgsfield');
+  if (dryRun && bindExisting) {
+    throw new Error('--dry-run and --bind-existing are mutually exclusive');
+  }
+  if ((dryRun || bindExisting) && useHiggsfield) {
+    throw new Error('--higgsfield is only valid for new sheet generation');
+  }
   const unitDir = path.resolve(args.find((a) => !a.startsWith('--')) ?? '.');
 
-  const unit = JSON.parse(await readFile(path.join(unitDir, 'unit.json'), 'utf8'));
+  const unitBytes = await readFile(path.join(unitDir, 'unit.json'));
+  const unit = JSON.parse(unitBytes.toString('utf8'));
+  const observationBytes = await readFile(path.join(unitDir, 'OBSERVATION.md')).catch(() => null);
+  if (!observationBytes || observationBytes.length < 500) {
+    throw new Error('Unit refused before generation:\n  - OBSERVATION.md is missing or too thin; inspect every source frame before any sheet');
+  }
+  const observation = observationBytes.toString('utf8');
+  for (const sourceFrame of unit.source_frames ?? []) {
+    const sourceLabel = String(sourceFrame).split(/\s+—\s+/, 1)[0].trim();
+    if (sourceLabel.length > 0 && !observation.includes(sourceLabel)) {
+      throw new Error(`Unit refused before generation:\n  - OBSERVATION.md does not name source frame ${sourceLabel}`);
+    }
+  }
 
   // The gate is the valuable half and it must not depend on which transport is alive. OpenRouter died
   // mid-session with a 401 and the gate went down with it, which is backwards: refusing a malformed
@@ -185,26 +423,146 @@ async function main() {
     return;
   }
 
+  const paletteAuthoritySha256 = sha256(Buffer.from(stripOnly));
+  const observationSha256 = sha256(observationBytes);
+  const contractSha256 = sha256(unitBytes);
+  const runtimeSha256 = runtimeStyleSha256(unit);
+  const previousManifest = await readFile(path.join(unitDir, 'manifest.json'), 'utf8')
+    .then((text) => JSON.parse(text))
+    .catch(() => null);
+
+  if (bindExisting) {
+    if (unit.style_unit_status !== 'READY') {
+      throw new Error('Unit refused before binding:\n  - unit.json style_unit_status must be READY after sheet review');
+    }
+    const selfVerificationBytes = await readFile(path.join(unitDir, 'SELF-VERIFY.md')).catch(() => null);
+    assertSelfVerification(selfVerificationBytes);
+    if (!previousManifest?.generated_with) {
+      throw new Error('Unit refused before binding:\n  - existing sheets have no prior generated_with receipt');
+    }
+
+    const results = [];
+    for (const id of REQUIRED_SHEETS) {
+      const file = path.join(unitDir, `sheet-${id}.png`);
+      const bytes = await readFile(file).catch(() => null);
+      if (!bytes) {
+        throw new Error(`Unit refused before binding:\n  - sheet-${id}.png is missing`);
+      }
+      const size = pngSize(bytes);
+      assertSheetGeometry({ id, bytes, size, aspect: unit.sheets[id].aspect });
+      const previous = Array.isArray(previousManifest.sheets)
+        ? previousManifest.sheets.find((entry) => entry?.sheet_id === id)
+        : null;
+      const currentSha256 = sha256(bytes);
+      const receipt = previous?.provider_receipt;
+      if (!receipt
+        || receipt.output_sha256 !== currentSha256
+        || typeof receipt.provider !== 'string'
+        || receipt.provider.trim() === ''
+        || typeof receipt.transport !== 'string'
+        || receipt.transport.trim() === ''
+        || typeof receipt.job_id !== 'string'
+        || receipt.job_id.trim() === '') {
+        throw new Error(`Unit refused before binding:\n  - sheet-${id}.png has no matching provider receipt`);
+      }
+      results.push({
+        sheet_id: id,
+        path: `sheet-${id}.png`,
+        sha256: currentSha256,
+        byte_size: bytes.length,
+        width: size.width,
+        height: size.height,
+        requested_aspect: unit.sheets[id].aspect,
+        attempts: Number.isInteger(previous?.attempts) ? previous.attempts : null,
+        provider_receipt: receipt,
+        colour_authoritative: false,
+      });
+    }
+    const selfVerificationSha256 = sha256(selfVerificationBytes);
+    const manifest = {
+      unit_id: unit.unit_id,
+      title: unit.title ?? null,
+      palette_size: unit.palette_size,
+      palette: unit.palette,
+      item_colours_exempt: true,
+      palette_authority: {
+        path: 'palette-strip.svg',
+        sha256: paletteAuthoritySha256,
+        rendered_not_generated: true,
+      },
+      source_frames: unit.source_frames,
+      unknowns: unit.unknowns,
+      unit_contract: { path: 'unit.json', sha256: contractSha256 },
+      observation_log: { path: 'OBSERVATION.md', sha256: observationSha256 },
+      self_verification: {
+        path: 'SELF-VERIFY.md',
+        sha256: selfVerificationSha256,
+        status: 'APPROVED',
+      },
+      runtime_style_sha256: runtimeSha256,
+      sheets: results,
+      unit_sha256: unitBindingSha256({
+        unitContractSha256: contractSha256,
+        observationSha256,
+        selfVerificationSha256,
+        runtimeSha256,
+        paletteAuthoritySha256,
+        sheets: results,
+      }),
+      generated_with: previousManifest.generated_with,
+    };
+    await writeFile(path.join(unitDir, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`);
+    process.stdout.write(`bound and APPROVED ${unit.unit_id}: ${REQUIRED_SHEETS.length} existing sheets\n`);
+    process.stdout.write(`unit_sha256 ${manifest.unit_sha256}\n`);
+    return;
+  }
+
   const apiKey = String(process.env.OPENROUTER_API_KEY ?? '').trim();
-  if (!apiKey) throw new Error('OPENROUTER_API_KEY is required for the OpenRouter transport (read it from a file; never inline it). Use --dry-run to run the gate alone.');
+  if (!useHiggsfield && !apiKey) throw new Error('OPENROUTER_API_KEY is required for the OpenRouter transport (read it from a file; never inline it), or pass --higgsfield for the authenticated project transport. Use --dry-run to run the gate alone.');
+  let paletteSeedPath = null;
+  if (useHiggsfield) {
+    const { default: sharp } = await import('sharp');
+    const seedRoot = path.join('/private/tmp', 'zeely-creative-universe-seeds');
+    await mkdir(seedRoot, { recursive: true });
+    paletteSeedPath = path.join(seedRoot, `${unit.unit_id}.palette-authority.png`);
+    await sharp(Buffer.from(stripOnly)).png().toFile(paletteSeedPath);
+  }
 
   // Already written above the dry-run return, so the colour authority exists even if generation dies.
-  const strip = stripOnly;
-
   const results = [];
 
   for (const id of REQUIRED_SHEETS) {
     const sheet = unit.sheets[id];
     const aspect = sheet.aspect ?? '16:9';
     let bytes;
+    let providerReceipt = null;
     let attempt = 0;
     // Three attempts, because a text-heavy sheet occasionally comes back with unreadable labels and
     // the cheapest fix is another draw. More than three means the prompt is wrong, not the draw.
     while (attempt < 3) {
       attempt += 1;
       try {
-        bytes = await generateSheet({ apiKey, prompt: sheet.prompt, aspect });
-        if (pngSize(bytes) || bytes.length > 20_000) break;
+        if (useHiggsfield) {
+          const generated = await generateSheetWithHiggsfield({
+            prompt: sheet.prompt,
+            aspect,
+            unit,
+            sheetId: id,
+            unitDir,
+            paletteSeedPath,
+          });
+          bytes = generated.bytes;
+          providerReceipt = generated.receipt;
+        } else {
+          const generated = await generateSheet({ apiKey, prompt: sheet.prompt, aspect });
+          bytes = generated.bytes;
+          providerReceipt = generated.receipt;
+        }
+        const size = pngSize(bytes);
+        if (size) {
+          assertSheetGeometry({ id, bytes, size, aspect });
+          break;
+        }
         bytes = undefined;
       } catch (error) {
         if (attempt === 3) throw error;
@@ -225,6 +583,7 @@ async function main() {
       height: size?.height ?? null,
       requested_aspect: aspect,
       attempts: attempt,
+      provider_receipt: providerReceipt,
       // Rule 1: a swatch a model painted is never the colour. The generated colour sheet is for a
       // human to read; palette-strip.svg and the manifest hex are what anything else may trust.
       colour_authoritative: false,
@@ -239,13 +598,31 @@ async function main() {
     palette: unit.palette,
     item_colours_exempt: true,
     // The single colour authority. Rule 1: never sample a swatch off a generated sheet.
-    palette_authority: { path: 'palette-strip.svg', sha256: sha256(Buffer.from(strip)), rendered_not_generated: true },
+    palette_authority: {
+      path: 'palette-strip.svg',
+      sha256: paletteAuthoritySha256,
+      rendered_not_generated: true,
+    },
     source_frames: unit.source_frames,
     unknowns: unit.unknowns,
+    unit_contract: { path: 'unit.json', sha256: contractSha256 },
+    observation_log: { path: 'OBSERVATION.md', sha256: observationSha256 },
+    self_verification: null,
+    runtime_style_sha256: runtimeSha256,
     sheets: results,
-    // Bound so a later frame cannot claim this unit while a sheet has been swapped underneath it.
-    unit_sha256: sha256(Buffer.from(results.map((r) => `${r.sheet_id}:${r.sha256}`).join('\n'))),
-    generated_with: { model: MODEL, transport: 'openrouter' },
+    // A generation manifest is intentionally not approval-ready. --bind-existing adds a reviewed
+    // SELF-VERIFY.md and rebinds all evidence after a person/agent has inspected every sheet.
+    unit_sha256: unitBindingSha256({
+      unitContractSha256: contractSha256,
+      observationSha256,
+      selfVerificationSha256: null,
+      runtimeSha256,
+      paletteAuthoritySha256,
+      sheets: results,
+    }),
+    generated_with: useHiggsfield
+      ? { model: HIGGSFIELD_MODEL, transport: 'higgsfield-cli' }
+      : { model: MODEL, transport: 'openrouter' },
   };
   await writeFile(path.join(unitDir, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`);
 

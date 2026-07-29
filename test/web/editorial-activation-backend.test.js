@@ -108,6 +108,10 @@ test('READY editorial and Create Universe modes compile six strict per-shot pack
   assert.deepEqual(catalog.generation_mode_ids, [
     'editorial.edwin_novak.organic_contrast',
     'editorial.edwin_novak.urban_monochrome',
+    'shoot.zayn_institutional',
+    'shoot.liza_luminous',
+    'shoot.duckweed_forest_ophelia',
+    'shoot.rooftop_veil_monochrome',
     'shoot.autumn_park_mediated_sun',
   ]);
 

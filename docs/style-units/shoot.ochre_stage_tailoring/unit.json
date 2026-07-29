@@ -38,12 +38,29 @@
     "male-02-chair-taupe.png",
     "male-04.png"
   ],
+  "style_unit_status": "BLOCKED_SOURCE",
+  "source_reconciliation": {
+    "status": "BLOCKED_SOURCE",
+    "primary_frame": "male-04.png",
+    "included_frames": [
+      "male-04.png"
+    ],
+    "excluded_frames": [
+      {
+        "frame": "male-02-chair-taupe.png",
+        "reason": "Different warm-wall chair environment, patterned frame-left light, seated camera/pose system and foreground treatment; it is not the dark olive stage-and-spheres shoot."
+      }
+    ],
+    "needs_source": "Additional frames from the exact male-04.png photoshoot establishing six unique camera, pose, focus and foreground directions."
+  },
   "compatibility": "male presentation; full-length movement or seated astride; wide tailoring",
   "unknowns": [
-    "whether the chair and the balls belong to the shoot or the location",
-    "the exact gel colour",
-    "ceiling height",
-    "what creates the corner blur in male-04"
+    "whether the male-04 field is a cyclorama, curtain or open stage",
+    "sphere material and support method",
+    "exact light source type and distance",
+    "exact focus distance, grain and diffusion process",
+    "whether additional coherent frames from the male-04 shoot exist",
+    "real six-slot camera and pose coverage"
   ],
   "sheets_present": [
     "camera_lens",
