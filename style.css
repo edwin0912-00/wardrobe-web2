@@ -1030,13 +1030,29 @@ body {
 .stage[data-leg="2"] ~ .legs i:nth-child(-n+3),
 .stage[data-leg="3"] ~ .legs i:nth-child(-n+4) { background: var(--milk); }
 
+/* An elegant direction, not a bare verb. Natural scroll: a swipe UP is what advances the
+ * film, so the arrow points the way the hand should move, and bobs gently in that same
+ * direction — read as a gesture rather than static chrome. Same eyebrow register as
+ * .glass__eyebrow (caps + tracking is a label here, not a verb on a control). */
 .scroll-cue {
   position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%);
   z-index: 30;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
   font-size: 10px; letter-spacing: 0.24em; text-transform: uppercase;
   color: var(--alum);
   opacity: calc(1 - min(1, var(--p, 0) * 26));
   transition: opacity 300ms;
+}
+.scroll-cue__arrow {
+  font-size: 14px; line-height: 1;
+  animation: scrollCueBob 1800ms ease-in-out infinite;
+}
+@keyframes scrollCueBob {
+  0%, 100% { transform: translateY(2px); opacity: 0.7; }
+  50%      { transform: translateY(-4px); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .scroll-cue__arrow { animation: none; }
 }
 
 /* ------------------------------------------------------- reduced motion ----- */
