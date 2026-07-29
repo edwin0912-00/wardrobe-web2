@@ -227,10 +227,10 @@ export class EditorialShootUiController {
 
   #showConnecting(phase, message) {
     this.#show();
-    this.#setHeader('Fashion Shoot', 'CONNECTING');
-    this.#element('#editorial-phase').textContent = phase;
+    this.#setHeader('Fashion Shoot', 'ПІДГОТОВКА');
+    this.#element('#editorial-phase').textContent = 'ПІДГОТОВКА';
     this.#element('#editorial-message').textContent = message;
-    this.#element('#editorial-connection').textContent = 'CONNECTING';
+    this.#element('#editorial-connection').textContent = 'З’ЄДНУЄМОСЯ ІЗ СЕРВЕРОМ';
     this.#element('#editorial-bible-stage').hidden = true;
     this.#element('#editorial-gallery-stage').hidden = false;
     this.#element('#editorial-gallery').replaceChildren();
@@ -335,7 +335,7 @@ export class EditorialShootUiController {
         slot: null,
       },
     });
-    this.#showConnecting('BINDING_STYLE_PACK', 'Фіксуємо master-образ і style pack Creative Universe');
+    this.#showConnecting('BINDING_STYLE_PACK', 'Фіксуємо збережений образ і вибраний стиль.');
     await this.#createFromResume();
   }
 
@@ -715,7 +715,7 @@ export class EditorialShootUiController {
     this.eventSource?.close();
     this.eventSource = null;
     this.polling = true;
-    this.#element('#editorial-connection').textContent = 'POLLING';
+    this.#element('#editorial-connection').textContent = 'ОНОВЛЮЄМО СТАН';
     const poll = async () => {
       if (!this.polling) return;
       try {

@@ -964,6 +964,16 @@ Live browser screen has no favicon error, and 16 background + 10 Fashion Shoot
 preview endpoints all resolve.
 weakened_checks: none.
 
+2026-07-29 · Fashion Shoot visual cleanup · `937c157` → beta
+Change: removed raw pipeline-state and source-file UI content from the Fashion
+Shoot screen, compacted the five empty output windows, and replaced the large
+numeric skeletons with one centered human status per future frame.
+Why: internal state names and source filenames are noise; empty frames must
+read as progress, not broken content.
+Evidence: focused Fashion Shoot/profile UI suite 17/17 PASS; exact beta
+release health returned `ready`.
+weakened_checks: none.
+
 2026-07-29 · Fashion Shoot visible progress · `a2dd191` → beta
 Change: style preview plus five-frame progress meter replace the internal
 Shoot Bible/six-slot display in the customer-facing Fashion Shoot screen.

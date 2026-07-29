@@ -183,6 +183,9 @@ connector.
 Evidence: monitor captured the outage; after the isolated tunnel session was
 removed, five root/health probes were HTTP 200.
 weakened_checks: none.
+
+Release: beta activated at 2026-07-29 21:01 CEST from exact commit `937c157`.
+Public proof: `/api/health` returned `ready`; Fashion Shoot UI focused suite 17/17 PASS.
 Next action: any preview hostname needs an ingress entry in the canonical
 Cloudflare connector, never a second connector with the same tunnel ID.
 Help request: NONE.
