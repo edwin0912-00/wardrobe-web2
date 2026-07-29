@@ -100,24 +100,36 @@ function displayShootMessage(shoot) {
   const phase = shoot?.phase;
   const status = shoot?.status;
   return ({
-    BIBLE_REVIEW: 'Фіксуємо style pack із Creative Universe.',
-    HERO_GENERATION: 'Перевіряємо master-образ у вибраному стилі.',
-    HERO_RETRY: 'Повторюємо лише первинну перевірку, не змінюючи master-образ.',
-    HERO_APPROVAL: 'Master-образ пройшов перевірку. Запускаємо п’ять fashion-кадрів.',
+    BIBLE_REVIEW: 'Готуємо вибраний стиль.',
+    HERO_GENERATION: 'Перевіряємо образ перед зйомкою.',
+    HERO_RETRY: 'Повторюємо перевірку образу.',
+    HERO_APPROVAL: 'Образ пройшов перевірку. Створюємо п’ять кадрів.',
     SERIES_GENERATION: 'Створюємо п’ять унікальних fashion-кадрів паралельно по два.',
     SHOT_RETRY: 'Готові кадри збережено. Повтори лише кадри, які не пройшли QA.',
     RECOVERY_QUEUED: 'Після перезапуску продовжуємо незавершені кадри без повтору готових.',
     COMPLETED: 'Усі п’ять fashion-кадрів готові та пройшли QA.',
     CANCELLED: 'Фотосесію зупинено. Уже готові кадри збережено.',
   })[phase] ?? ({
-    BIBLE_PENDING_APPROVAL: 'Фіксуємо style pack із Creative Universe.',
-    HERO_RUNNING: 'Перевіряємо master-образ у вибраному стилі.',
-    HERO_PENDING_APPROVAL: 'Master-образ пройшов перевірку. Запускаємо п’ять fashion-кадрів.',
+    BIBLE_PENDING_APPROVAL: 'Готуємо вибраний стиль.',
+    HERO_RUNNING: 'Перевіряємо образ перед зйомкою.',
+    HERO_PENDING_APPROVAL: 'Образ пройшов перевірку. Створюємо п’ять кадрів.',
     SERIES_RUNNING: 'Створюємо п’ять унікальних fashion-кадрів паралельно по два.',
     NEEDS_RETRY: 'Один або кілька кадрів потрібно повторити окремо.',
     COMPLETED: 'Усі п’ять fashion-кадрів готові та пройшли QA.',
     CANCELLED: 'Фотосесію зупинено. Уже готові кадри збережено.',
   })[status] ?? 'Стан фотосесії оновлено.';
+}
+
+function displayShootState(status) {
+  return ({
+    BIBLE_PENDING_APPROVAL: 'ПІДГОТОВКА',
+    HERO_RUNNING: 'ПЕРЕВІРКА ОБРАЗУ',
+    HERO_PENDING_APPROVAL: 'ЗАПУСК КАДРІВ',
+    SERIES_RUNNING: 'СТВОРЮЄМО',
+    NEEDS_RETRY: 'ПОТРІБЕН ПОВТОР',
+    COMPLETED: 'ГОТОВО',
+    CANCELLED: 'ЗУПИНЕНО',
+  })[status] ?? 'ОНОВЛЮЄМО СТАН';
 }
 
 function modeFromShoot(shoot) {
@@ -414,11 +426,11 @@ export class EditorialShootUiController {
     // as a customer-facing approval or sixth output.
     this.#element('#editorial-bible-stage').hidden = false;
     this.#element('#editorial-gallery-stage').hidden = false;
-    this.#element('#editorial-phase').textContent = shoot.phase || shoot.status;
+    this.#element('#editorial-phase').textContent = displayShootState(shoot.status);
     this.#element('#editorial-message').textContent = displayShootMessage(shoot);
-    this.#element('#editorial-connection').textContent = this.polling ? 'POLLING' : 'LIVE SSE';
+    this.#element('#editorial-connection').textContent = 'СТАН ОНОВЛЮЄТЬСЯ';
     this.#element('#editorial-mode-name').textContent = modeName(this.mode);
-    this.#setHeader('Fashion Shoot', shoot.status, editorialTone(shoot));
+    this.#setHeader('Fashion Shoot', displayShootState(shoot.status), editorialTone(shoot));
     this.#renderGallery();
     this.#renderActionButtons();
     if (bibleReview) void this.#autoApproveBible();
@@ -445,8 +457,8 @@ export class EditorialShootUiController {
   }
 
   #renderBible() {
-    const title = this.bible?.title || modeName(this.mode);
-    const system = this.bible?.visual_system || this.mode?.visual_system || 'Авторська fashion-система';
+    const title = modeName(this.mode);
+    const system = 'Світло, локація та подача вже зафіксовані для цієї фотозйомки.';
     const preview = this.#element('#editorial-style-preview-image');
     this.#element('#editorial-bible-title').textContent = title;
     this.#element('#editorial-bible-system').textContent = system;
@@ -499,18 +511,25 @@ export class EditorialShootUiController {
         }));
         visual.append(inspect);
       } else {
-        const number = document.createElement('b');
-        number.textContent = String(index + 1).padStart(2, '0');
         const state = document.createElement('span');
-        state.textContent = displayShotStatus(shot.status);
-        visual.append(number, state);
+        state.textContent = shot.status === 'RUNNING'
+          ? 'Створюємо кадр'
+          : shot.status === 'QUEUED'
+            ? 'Кадр у черзі'
+            : 'Готуємо кадр';
+        visual.append(state);
       }
+      const showCaption = Boolean(imageUrl) || shot.status === 'FAILED';
       const caption = document.createElement('footer');
-      const title = document.createElement('strong');
-      title.textContent = editorialShotLabel(shot.slot);
-      const status = document.createElement('small');
-      status.textContent = displayShotStatus(shot.status);
-      caption.append(title, status);
+      if (showCaption) {
+        const title = document.createElement('strong');
+        title.textContent = `Кадр ${String(index + 1).padStart(2, '0')}`;
+        const status = document.createElement('small');
+        status.textContent = displayShotStatus(shot.status);
+        caption.append(title, status);
+      } else {
+        card.classList.add('is-pending');
+      }
       const downloadUrl = outputDownloadUrl(shot.output);
       if (downloadUrl) {
         const download = document.createElement('a');
@@ -529,7 +548,8 @@ export class EditorialShootUiController {
         retry.addEventListener('click', () => this.retryShot(shot.slot));
         visual.append(retry);
       }
-      card.append(visual, caption);
+      card.append(visual);
+      if (showCaption) card.append(caption);
       return card;
     });
     this.#element('#editorial-gallery').replaceChildren(...cards);

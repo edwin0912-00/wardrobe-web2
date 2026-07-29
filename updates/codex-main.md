@@ -388,6 +388,19 @@ weakened_checks: none.
 
 ---
 
+Task ID: BETA-FASHION-SHOOT-CLEANUP-001
+Product line: beta-placeholder
+State: READY_FOR_BETA_DEPLOY
+Change: remove raw stage codes and source-file strings from Fashion Shoot,
+replace pending cards with one centered human status, and make the five output
+windows compact and fixed-height. The selected-style card now names only the
+style and describes its locked visual direction.
+Evidence: `node --test test/web/editorial-preview-ui.test.js
+test/web/profile-ui-flow.test.js` — 17/17 PASS.
+weakened_checks: none.
+
+---
+
 Task ID: BETA-LOOK-RESUME-001
 Protocol ACK: 5e4e0bb
 State: READY_FOR_BETA_DEPLOY

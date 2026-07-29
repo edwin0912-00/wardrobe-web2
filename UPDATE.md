@@ -83,6 +83,12 @@ frame or a user-facing contact sheet.
   yet registered by the beta server (`/api/motion/modes` = 404); the old
   single-reference clip route remains disabled in the product UI by design.
 
+### Pending beta deployment — Fashion Shoot visual cleanup
+
+- **UNIVERSE.04:** selected style and five output windows are customer-facing;
+  internal codes, source filenames, Bible titles and six-slot vocabulary are
+  removed from the visible journey.
+
 ## Current verification rule — 2026-07-29
 
 `BLOCK_STATUS.md` is the canonical concise map of pipeline blocks. Every

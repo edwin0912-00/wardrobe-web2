@@ -945,6 +945,13 @@ Eleven stale prompt hashes were corrected to their exact checked-in prompt
 bytes; their finish metadata was normalized to the existing production lock.
 weakened_checks: none.
 
+2026-07-29 · Fashion Shoot visual cleanup · pending commit
+Change: compact style card and compact five-frame progress grid; removed raw
+file-derived title, internal stage codes, placeholder numerals and duplicate
+pending labels.
+Evidence: focused Fashion Shoot/profile UI suite 17/17 PASS.
+weakened_checks: none.
+
 2026-07-29 · Real-time Look screen audit · `d4e0c54` → beta
 Change: localised and rebranded the live camera surface; linked favicon fixes
 the sole browser-console error found in the live visual check.
