@@ -32,6 +32,20 @@ construction mismatch, missing item and unauthorized addition remain blocking.
 ---
 
 Agent ID: codex-main
+Task ID: BETA-DEPLOY-ACTIVE-WORK-GUARD-001
+Product line: beta-placeholder
+Pipeline: PLATFORM.01 · release safety for LOOK / BACKGROUND / FASHION SHOOT
+State: CODE_VERIFIED — deployment waits for current persisted work to finish
+Decision: beta release is refused while a run, scene, or Fashion Shoot has a
+queued/running execution. Completed records and user-approval wait states do
+not cause a permanent deploy lock.
+Evidence: focused deployment test 4/4 PASS. Current dry-run names only live
+scene/shoot work and ignores service incident/quarantine directories.
+weakened_checks: none. Unknown job-shaped directories fail closed.
+
+---
+
+Agent ID: codex-main
 Task ID: BETA-LOOK-FAST-ROUTE-001
 Product line: beta-placeholder
 Pipeline: LOOK.02–06 · source item → reference card → avatar → master look

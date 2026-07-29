@@ -17,6 +17,16 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-07-29 · BETA-DEPLOY-ACTIVE-WORK-GUARD-001 · beta · codex-main
+Change: extend the beta deploy refusal check from active master-look runs to
+active standard scenes and Fashion Shoot slots. Completed history and explicit
+approval-waiting states are not treated as running work.
+Why: a dry-run during a real background generation showed the old guard could
+have restart-killed it even though it correctly blocked an active master run.
+Evidence: focused deployment test 4/4 PASS; current dry-run names only the
+actual running scene/shoot ids and ignores incident/quarantine ledgers.
+weakened_checks: none. Unknown durable job directories remain fail-closed.
+
 2026-07-29 · BETA-STANDARD-SCENE-VISIBLE-FACTS-001 · beta · codex-main
 Change: standard-background QA now treats an item fact that is naturally
 occluded by another approved item or too small at required full-body scale as

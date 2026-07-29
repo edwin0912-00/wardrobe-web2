@@ -66,6 +66,65 @@ export async function activeBetaRunIds(runnerSource) {
   return active.sort();
 }
 
+async function activePersistedIds(root, {
+  stateFile,
+  idField,
+  prefix,
+  isActive,
+}) {
+  let entries;
+  try {
+    entries = await readdir(root, { withFileTypes: true });
+  } catch (error) {
+    if (error.code === 'ENOENT') return [];
+    throw error;
+  }
+  const active = [];
+  for (const entry of entries) {
+    if (!entry.isDirectory() || entry.name.startsWith('.')) continue;
+    // These are service-owned ledgers, not executable jobs. Any other unknown
+    // directory remains fail-closed rather than being silently ignored.
+    if (['incidents', 'quarantine'].includes(entry.name)) continue;
+    if (!entry.name.startsWith(`${prefix}_`) && prefix !== 'run') {
+      active.push(`${prefix}:${entry.name}`);
+      continue;
+    }
+    try {
+      const state = JSON.parse(await readFile(path.join(root, entry.name, stateFile), 'utf8'));
+      if (state?.[idField] !== entry.name || isActive(state.status, state)) active.push(`${prefix}:${entry.name}`);
+    } catch {
+      // Unknown durable state cannot be treated as safe to kill during deploy.
+      active.push(`${prefix}:${entry.name}`);
+    }
+  }
+  return active.sort();
+}
+
+// A beta release is a process restart. Runs, standard scenes and Fashion Shoot
+// each persist independently, so checking only /runs left a path that could kill
+// an active provider/QA phase midway. Block each submitted or queued job, not
+// completed history or a user decision waiting for approval.
+export async function activeBetaWorkIds(runnerSource) {
+  const runtimeRoot = runnerSource.match(/^runtime_root="([^"]+)"$/m)?.[1];
+  invariant(runtimeRoot, 'Beta runner runtime_root is missing');
+  const [runs, scenes, shoots] = await Promise.all([
+    activePersistedIds(path.join(runtimeRoot, 'runs'), {
+      stateFile: 'run.json', idField: 'run_id', prefix: 'run',
+      isActive: (status) => ['QUEUED', 'RUNNING'].includes(status),
+    }),
+    activePersistedIds(path.join(runtimeRoot, 'scenes'), {
+      stateFile: 'scene.json', idField: 'scene_id', prefix: 'scene',
+      isActive: (status) => ['QUEUED', 'RUNNING'].includes(status),
+    }),
+    activePersistedIds(path.join(runtimeRoot, 'editorial-shoots'), {
+      stateFile: 'shoot.json', idField: 'shoot_id', prefix: 'shoot',
+      isActive: (status, state) => ['HERO_RUNNING', 'SERIES_RUNNING'].includes(status)
+        || state?.shots?.some((shot) => ['QUEUED', 'RUNNING'].includes(shot?.status)),
+    }),
+  ]);
+  return [...runs, ...scenes, ...shoots].sort();
+}
+
 async function exists(target) {
   try { await lstat(target); return true; } catch (error) { if (error.code === 'ENOENT') return false; throw error; }
 }
@@ -109,11 +168,12 @@ async function main() {
   invariant(currentRoot, 'Beta runner app_root is missing');
   invariant(await exists(currentRoot), 'Current beta app_root is missing');
   const activeRunIds = await activeBetaRunIds(runnerBefore);
+  const activeWorkIds = await activeBetaWorkIds(runnerBefore);
   const betaVersions = path.join(path.dirname(options.runner), '.zeely-deploy', 'beta-versions');
   const nextRoot = path.join(betaVersions, `release-${verified.base_commit.slice(0, 7)}-${Date.now()}`);
-  const plan = { ok: true, mode: options.apply ? 'APPLY' : 'DRY_RUN', current_release: currentRoot, next_release: nextRoot, base_commit: verified.base_commit, cache_token: verified.cache_token, active_run_ids: activeRunIds };
+  const plan = { ok: true, mode: options.apply ? 'APPLY' : 'DRY_RUN', current_release: currentRoot, next_release: nextRoot, base_commit: verified.base_commit, cache_token: verified.cache_token, active_run_ids: activeRunIds, active_work_ids: activeWorkIds };
   if (!options.apply) { process.stdout.write(`${JSON.stringify(plan)}\n`); return; }
-  invariant(activeRunIds.length === 0, `Beta deployment refused while run(s) are active: ${activeRunIds.join(', ')}`);
+  invariant(activeWorkIds.length === 0, `Beta deployment refused while persisted work is active: ${activeWorkIds.join(', ')}`);
 
   await mkdir(betaVersions, { recursive: true, mode: 0o700 });
   invariant(!await exists(nextRoot), 'Target beta release already exists');

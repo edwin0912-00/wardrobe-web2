@@ -39,6 +39,10 @@ The earlier detailed noticeboard is preserved at
   this beta service.
 - **New deploy rule:** the adapter reads every persisted run before kickstart
   and refuses activation if any valid `QUEUED` or `RUNNING` run exists.
+- **Guard extension, pending deployment:** the next adapter revision also scans
+  persisted standard scenes and Fashion Shoot work. It refuses a restart only
+  for a queued/running provider or QA phase; completed history and a Bible/hero
+  awaiting human approval do not block a release.
 - **New garment resume rule:** every candidate is published once and paired
   with an immutable receipt containing source hashes, route model, candidate
   hash and QA verdict. A restart skips persisted RETRY/REJECT candidates,
@@ -68,6 +72,8 @@ The earlier detailed noticeboard is preserved at
   logo/text/pattern, silhouette/color/material/construction, missing item or
   unauthorized added item remains a blocking failure. Fashion Shoot keeps the
   existing strict shot-specific item contract.
+- **Live proof:** the corrected white-window canary completed on its first GPT
+  Image 2 attempt with all nine gates PASS at 1536×2048.
 
 ## Git ↔ beta reconciliation — 2026-07-29
 

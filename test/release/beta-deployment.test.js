@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { activeBetaRunIds, parseBetaReleaseArguments, replaceRunnerAppRoot } from '../../tools/deploy-beta-release.mjs';
+import { activeBetaRunIds, activeBetaWorkIds, parseBetaReleaseArguments, replaceRunnerAppRoot } from '../../tools/deploy-beta-release.mjs';
 
 test('beta deploy parser requires explicit safe paths and canonical beta health', () => {
   const options = parseBetaReleaseArguments([
@@ -28,4 +28,21 @@ test('beta deploy discovers active runs before it can kickstart the service', as
   await writeFile(path.join(runtimeRoot, 'runs', 'finished', 'run.json'), JSON.stringify({ run_id: 'finished', status: 'COMPLETED' }));
   const runner = `#!/bin/zsh\nruntime_root="${runtimeRoot}"\n`;
   assert.deepEqual(await activeBetaRunIds(runner), ['still-running']);
+});
+
+test('beta deploy refuses to restart through an active standard scene or Fashion Shoot', async () => {
+  const runtimeRoot = await mkdtemp(path.join(os.tmpdir(), 'zeely-beta-work-'));
+  await mkdir(path.join(runtimeRoot, 'scenes', 'scene_running'), { recursive: true });
+  await mkdir(path.join(runtimeRoot, 'scenes', 'scene_complete'), { recursive: true });
+  await mkdir(path.join(runtimeRoot, 'editorial-shoots', 'shoot_running'), { recursive: true });
+  await mkdir(path.join(runtimeRoot, 'editorial-shoots', 'shoot_cancelled'), { recursive: true });
+  await mkdir(path.join(runtimeRoot, 'editorial-shoots', 'shoot_pending'), { recursive: true });
+  await mkdir(path.join(runtimeRoot, 'scenes', 'incidents'), { recursive: true });
+  await writeFile(path.join(runtimeRoot, 'scenes', 'scene_running', 'scene.json'), JSON.stringify({ scene_id: 'scene_running', status: 'RUNNING' }));
+  await writeFile(path.join(runtimeRoot, 'scenes', 'scene_complete', 'scene.json'), JSON.stringify({ scene_id: 'scene_complete', status: 'COMPLETED' }));
+  await writeFile(path.join(runtimeRoot, 'editorial-shoots', 'shoot_running', 'shoot.json'), JSON.stringify({ shoot_id: 'shoot_running', status: 'HERO_RUNNING' }));
+  await writeFile(path.join(runtimeRoot, 'editorial-shoots', 'shoot_cancelled', 'shoot.json'), JSON.stringify({ shoot_id: 'shoot_cancelled', status: 'CANCELLED' }));
+  await writeFile(path.join(runtimeRoot, 'editorial-shoots', 'shoot_pending', 'shoot.json'), JSON.stringify({ shoot_id: 'shoot_pending', status: 'BIBLE_PENDING_APPROVAL' }));
+  const runner = `#!/bin/zsh\nruntime_root="${runtimeRoot}"\n`;
+  assert.deepEqual(await activeBetaWorkIds(runner), ['scene:scene_running', 'shoot:shoot_running']);
 });
