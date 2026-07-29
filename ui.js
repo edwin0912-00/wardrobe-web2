@@ -80,6 +80,11 @@
   };
   var ACT_ORDER = ['shoot', 'fash', 'bg', 'live'];
 
+  /* THE ASPECT CHOICE. No real backend means no real result to read an aspect off of, so
+   * the viewer states it up front instead — and the choice decides where the result gets
+   * watched: 16:9 belongs on the television, 9:16 belongs right here in the mirror. */
+  var ASPECTS = ['16:9', '9:16'];
+
   function create(opts) {
     opts = opts || {};
     var askRoot = document.querySelector('[data-ui-ask]') || document.querySelector('[data-ui-state]');
@@ -109,6 +114,15 @@
     /* Which face of the selected look the right mirror is showing. */
     var view = 'look';          // 'look' | 'shoot' | 'video' | 'live'
     var bgOpen = false;         // the background list is open in the left mirror
+
+    /* An action (shoot/fash/bg — not live) waits for its aspect pick, then runs a
+     * generating phase before it resolves. Both states gate the scroll: a light swipe
+     * must not carry the viewer off a room that is still working. */
+    var awaitingAspect = null;   // null | 'shoot' | 'fash' | 'bg'
+    var pendingAction = null;    // null | { kind, aspect }
+    var pendingActionTimer = 0;
+
+    function notifyGateChange() { if (typeof opts.onGateChange === 'function') opts.onGateChange(); }
 
     function station() { return stage.getAttribute('data-station') === '1'; }
     function locked() { return !station(); }
@@ -314,6 +328,7 @@
       if (!stream) return;
       stream.getTracks().forEach(function (t) { t.stop(); });
       stream = null;
+      notifyGateChange();
     }
 
     function startCamera() {
@@ -325,6 +340,7 @@
         .then(function (st) {
           stream = st; camError = '';
           render();
+          notifyGateChange();
           var v = showRoot.querySelector('[data-cam]');
           if (v) { v.srcObject = st; v.play().catch(function () {}); }
         })
@@ -380,7 +396,7 @@
     /* view uses 'video'; the approved table calls the same thing 'fash'. One mapping, here. */
     function activeAct() {
       return view === 'video' ? 'fash'
-           : view === 'shoot' || view === 'live' ? view
+           : view === 'shoot' || view === 'live' || view === 'bg' ? view
            : bgOpen ? 'bg' : null;
     }
 
@@ -400,6 +416,20 @@
       return '<div class="actwrap">' +
           '<div class="acts">' + row + '</div>' +
           '<div class="actsay" data-actsay>' + say + '</div>' +
+        '</div>';
+    }
+
+    /* THE ASPECT PICK. No real backend to read a result's aspect off of, so the viewer
+     * states it before generating — and it decides where the result gets watched (see
+     * onWideResult below). Same list-of-choices shape as the background picker
+     * (`.rowpick`), not a new pattern. */
+    function aspectPicker(kind) {
+      return '<div class="actwrap">' +
+          '<div class="actsay">' + esc(ACTS[kind][1]) + ' — який формат?</div>' +
+          '<div class="rowpick">' + ASPECTS.map(function (a) {
+            return '<button class="rowpick__item" type="button" data-aspect="' + a + '">' +
+              '<span class="rowpick__name">' + a + '</span></button>';
+          }).join('') + '</div>' +
         '</div>';
     }
 
@@ -427,12 +457,23 @@
         return;
       }
 
+      /* An action (shoot/fash/bg) is working — no result to show yet, and nothing to
+       * click until it clears. Same pending treatment as the look itself, labelled for
+       * which action it is. */
+      if (pendingAction) {
+        showRoot.innerHTML = '<div class="glass__eyebrow">' + esc(ACTS[pendingAction.kind][0]) + '</div>' +
+          resultFrame('генерується…', 'pending');
+        applyEnabled();
+        return;
+      }
+
       var l = current();
       /* view 'look' is the approved picture exactly: no eyebrow, no details rows —
        * just the watermarked frame and the action row beneath it. The other views
-       * (shoot/video/live) are not what was approved here, so they keep what they had. */
+       * (shoot/video/bg/live) are not what was approved here, so they keep what they had. */
       var head = view === 'shoot' ? 'Фотозйомка'
                : view === 'video' ? 'Фешн-відео'
+               : view === 'bg'    ? 'Новий фон'
                : view === 'live'  ? 'Лайв-примірка' : null;
       var cap = view === 'live' ? 'камера не підключена' : 'рендер не підключений';
 
@@ -445,7 +486,7 @@
               plural(l.items.length, 'річ', 'речі', 'речей') + '</div>' +
             (l.bg != null ? '<div class="glass__row"><span>Фон</span> ' + esc(BACKGROUNDS[l.bg]) + '</div>' : '') +
           '</div>') +
-        actionBlocks();
+        (awaitingAspect ? aspectPicker(awaitingAspect) : actionBlocks());
       applyEnabled();
     }
 
@@ -516,19 +557,48 @@
       if ((b = t.closest('[data-select]'))) { stopCamera(); selected = Number(b.getAttribute('data-select')); view = 'look'; render(); return; }
       if ((b = t.closest('[data-bg]'))) {
         var lb = current(); if (lb) lb.bg = Number(b.getAttribute('data-bg'));
-        bgOpen = false; render(); return;
+        bgOpen = false;
+        /* Choosing a background is what actually starts "Новий фон" — the video on it.
+         * Same aspect-then-generate flow as shoot/fash below. */
+        awaitingAspect = 'bg';
+        render(); return;
       }
       if (t.closest('[data-bgopen]')) { bgOpen = !bgOpen; render(); return; }
       if (t.closest('[data-edit-items]')) { stopCamera(); step = 1; view = 'look'; render(); return; }
       if ((b = t.closest('[data-act]'))) {
         var k = b.getAttribute('data-act');
         if (k === 'bg') { bgOpen = !bgOpen; render(); return; }
-        var want = k === 'fash' ? 'video' : k;
-        if (view === 'live' && want !== 'live') { stopCamera(); camError = ''; }
-        view = want;
-        var cur2 = current();
-        if (cur2) { if (want === 'shoot') cur2.shot = true; if (want === 'video') cur2.video = true; }
+        /* Live is not a generation — there is nothing to await an aspect for, it just
+         * opens the camera. shoot/fash do generate, so they ask which aspect first. */
+        if (k === 'live') { view = 'live'; render(); return; }
+        awaitingAspect = k;
         render(); return;
+      }
+      if ((b = t.closest('[data-aspect]'))) {
+        var kind = awaitingAspect;
+        if (!kind) return;
+        var aspect = b.getAttribute('data-aspect');
+        awaitingAspect = null;
+        pendingAction = { kind: kind, aspect: aspect };
+        render(); notifyGateChange();
+        clearTimeout(pendingActionTimer);
+        pendingActionTimer = setTimeout(function () {
+          var want = kind === 'fash' ? 'video' : kind;
+          if (view === 'live' && want !== 'live') { stopCamera(); camError = ''; }
+          view = want;
+          var cur3 = current();
+          if (cur3) {
+            if (kind === 'shoot') { cur3.shot = true; cur3.shotAspect = aspect; }
+            if (kind === 'fash')  { cur3.video = true; cur3.videoAspect = aspect; }
+            if (kind === 'bg')    { cur3.bgVideo = true; cur3.bgAspect = aspect; }
+          }
+          pendingAction = null;
+          render(); notifyGateChange();
+          /* 16:9 belongs on the television — go look at it there. 9:16 belongs right
+           * here in the mirror; nothing carries the viewer anywhere for it. */
+          if (aspect === '16:9' && typeof opts.onWideResult === 'function') opts.onWideResult();
+        }, SIM_MS);
+        return;
       }
       if (t.closest('[data-cam-start]')) { startCamera(); return; }
       if (t.closest('[data-cam-stop]')) { stopCamera(); camError = ''; render(); return; }
@@ -612,6 +682,7 @@
                      shot: l.shot, video: l.video };
           }),
           selected: selected, lookVisible: lookVisible(), pending: pending,
+          awaitingAspect: awaitingAspect, pendingAction: pendingAction,
           view: view, bgOpen: bgOpen, cameraOn: !!stream, cameraError: camError || null,
           actionsOffered: lookVisible(),
           simulated: true,               // no render backend is attached to this page
@@ -619,10 +690,19 @@
           station: station(), controlsEnabled: !locked()
         };
       },
-      /* Asked by the engine at every station through config.canAdvance. Leg 0 holds until a
-       * look exists: the next room is a gallery of finished work, so arriving with nothing
-       * made would be arriving at an empty shelf. */
-      canAdvance: function (leg) { return leg === 0 ? looks.length > 0 : true; },
+      /* Asked by the engine at every station through config.canAdvance.
+       * Leg 0 holds until a look exists — the next room is a gallery of finished work, so
+       * arriving with nothing made would be arriving at an empty shelf. It also holds
+       * while an action is actually working: generating a photoshoot/video/background
+       * (`pendingAction`), or the live camera actually streaming (`stream`) — a swipe
+       * should not carry the viewer off a room that's still busy. */
+      canAdvance: function (leg) {
+        if (leg !== 0) return true;
+        if (!looks.length) return false;
+        if (pendingAction) return false;
+        if (stream) return false;
+        return true;
+      },
       addPreset: function (name) { togglePreset(name); return items.length; },
       makeLook: makeLook,
       steps: STEPS, presets: PRESET_ITEMS, backgrounds: BACKGROUNDS

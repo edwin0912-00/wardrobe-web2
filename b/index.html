@@ -425,6 +425,22 @@
          onward works the moment the viewer chooses to — nothing moves on their behalf. */
       onLookReady: function () {
         if (window.journey && window.journey.refreshGate) window.journey.refreshGate();
+      },
+      /* An action (shoot/fash/bg) started or finished working, or the live camera
+       * started/stopped streaming — canAdvance's answer may just have changed, so the
+       * gate needs to re-check itself. Same call as onLookReady; the trigger differs. */
+      onGateChange: function () {
+        if (window.journey && window.journey.refreshGate) window.journey.refreshGate();
+      },
+      /* A 16:9 result belongs on the television — carry the viewer there to see it
+       * widescreen. A 9:16 result stays right here in the mirror, so this is never
+       * called for it; nothing moves on its own. Reuses releaseAndAdvance() exactly as
+       * onLookReady used to — that call site was removed this morning because it fired
+       * too early (before the action row was even reachable), not because the primitive
+       * itself was wrong. Here it fires only after the viewer has already used the
+       * action row and chosen a widescreen result, so it does not reopen that problem. */
+      onWideResult: function () {
+        if (window.journey && window.journey.releaseAndAdvance) window.journey.releaseAndAdvance();
       }
     });
 
