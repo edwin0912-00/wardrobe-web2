@@ -87,7 +87,7 @@ const SHA256_PATTERN = /^[a-f0-9]{64}$/;
 // Change this only when the bytes sent to the image provider change. It is part
 // of provider idempotency, so an old journal can never be replayed against a
 // materially different repair contract.
-const SCENE_GENERATION_CONTRACT_VERSION = 'scene-generation-contract-v5-native-4-5';
+const SCENE_GENERATION_CONTRACT_VERSION = 'scene-generation-contract-v6-native-4-5-safe-margin';
 
 function nowIso(clock) {
   const value = clock();
@@ -442,7 +442,10 @@ async function initialComposedMasterGuide(directory, state, attemptNumber, appro
   if (!approvedLook?.path || !approvedLook?.sha256 || !Number.isInteger(attemptNumber)) return null;
   const source = await sharp(approvedLook.path).metadata();
   if (!source.width || !source.height || (source.pages ?? 1) !== 1) return null;
-  const scale = 0.8;
+  // The initial live native-4:5 smoke measured 78.2031% at 0.8. Use 0.775
+  // to land the same master around the middle of the immutable 74–78% band,
+  // leaving real margin for provider rounding rather than composing on a gate.
+  const scale = 0.775;
   const resizedWidth = Math.round(state.delivery.width * scale);
   const resizedHeight = Math.round(state.delivery.height * scale);
   const top = Math.round(state.delivery.height * 0.09);
