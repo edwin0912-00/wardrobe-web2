@@ -925,12 +925,17 @@ body {
  * mirror's askbody has left to give — measured at 255px wanted against 110px actually
  * available, so the ratio version clipped the wider slot's content out of existence
  * entirely under `askbody`'s overflow: hidden while the narrower one merely peeked through.
- * A height clamp is the same fix already used everywhere else in this file for the same
- * reason (`.glass__h`, `.glass__cta`, the action row): it can shrink with the mirror
- * instead of overflowing it. */
+ *
+ * A fixed `height: clamp(...)` fixed THAT window shape and then clipped again on a
+ * different one — the clamp is a floor for how small the box may go, not a promise that
+ * three lines of text (plus, label, two-line note) always fit inside it. `min-height`
+ * keeps the same floor (still never collapses to unreadable) but lets the box GROW to
+ * whatever its own content actually needs, so it can never clip its own three lines on
+ * any window shape — that's the whole class of bug, closed structurally instead of
+ * patched per viewport. */
 .pslot {
-  position: relative; overflow: hidden; cursor: pointer;
-  height: clamp(56px, 24cqh, 130px);
+  position: relative; cursor: pointer;
+  min-height: clamp(48px, 21cqh, 130px);
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: clamp(3px, 1cqh, 6px);
   text-align: center;
@@ -985,6 +990,23 @@ body {
   .actwrap { margin-top: 0.7em; }
   .actsay { margin-top: 0.45em; }
   .lookframe__cap { letter-spacing: 0.1em; }
+  /* Measured at glass height 333px: .pslots needed 74px, askbody had 59px left —
+   * the note text (bottom line of each slot) clipped again, on yet another window
+   * shape. .glass__lede repeats what each slot's own note already says ("за бажанням"),
+   * so it is the subtitle to cut here, not the photo slots themselves — same rule as
+   * the action row above: drop the second line, keep the offer. Hiding it alone was
+   * not enough (askbody's own height budget doesn't grow just because its content
+   * asked for less), so the slot itself also tightens here. */
+  .glass__lede { display: none; }
+  /* Fixed px, not cqh, on purpose here: the cqh-derived floor kept landing a few px
+   * over askbody's actual remaining budget no matter how it was retuned (measured
+   * 457, then 455, then 454 against askbody's fixed 450.79) — small residual clips
+   * survived three rounds of clamp math. A flat small size that is provably shorter
+   * than the budget closes it instead of chasing it. */
+  .pslot { min-height: 40px; gap: 2px; }
+  .pslot__plus { font-size: 13px; }
+  .pslot__t { font-size: 10px; }
+  .pslot__n { font-size: 8px; }
 }
 @container (max-height: 320px) {
   .glass__rows--show { display: none; }
@@ -1108,11 +1130,13 @@ body:not([data-ready="1"]) .stage { visibility: hidden; }
  * Halved the peak and eased the middle stops down with it; text-shadow (below) is
  * carrying more of the contrast now, which is the whole point of putting it there. */
 .glass::before {
+  inset: 20px;
+  filter: blur(24px);
   background:
     radial-gradient(116% 86% at 44% 42%,
-      rgba(16,17,15,0.38) 0%,
-      rgba(16,17,15,0.26) 38%,
-      rgba(16,17,15,0.12) 62%,
+      rgba(16,17,15,0.11) 0%,
+      rgba(16,17,15,0.08) 38%,
+      rgba(16,17,15,0.04) 62%,
       rgba(16,17,15,0) 82%);
 }
 .glass__eyebrow, .glass__h, .glass__lede, .glass__hint,
