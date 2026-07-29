@@ -139,7 +139,7 @@ export class VideoService {
 
     const plan = buildMotionPlan({
       modeId,
-      surfaceId,
+      surface: surfaceId,
       durationSeconds,
       sourceCapabilities,
       styleNote,
