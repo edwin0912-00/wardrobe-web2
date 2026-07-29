@@ -3,13 +3,13 @@ import test from 'node:test';
 import { parseArguments } from '../../tools/deploy-add-items-release.mjs';
 import { parseRecoveryArguments } from '../../tools/recover-add-items-deployment.mjs';
 
-const canonicalExternalHealthUrl = 'https://iwas.madeforthisjob.com/api/health';
+const canonicalExternalHealthUrl = 'https://beta.madeforthisjob.com/api/health';
 const rejectedExternalHealthUrls = [
   'https://www.madeforthisjob.com/api/health',
   'https://unrelated.example/api/health',
   'https://user:secret@iwas.madeforthisjob.com/api/health',
 ];
-const canonicalTargetError = /--external-health-url must equal https:\/\/iwas\.madeforthisjob\.com\/api\/health/;
+const canonicalTargetError = /--external-health-url must equal https:\/\/beta\.madeforthisjob\.com\/api\/health/;
 
 const deploymentBase = [
   '--release', '/tmp/release',

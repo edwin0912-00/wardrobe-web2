@@ -55,7 +55,7 @@ import {
 
 const execute = promisify(execFile);
 const projectRoot = path.resolve(import.meta.dirname, '..', '..');
-const canonicalExternalHealthUrl = 'https://iwas.madeforthisjob.com/api/health';
+const canonicalExternalHealthUrl = 'https://beta.madeforthisjob.com/api/health';
 
 async function createRelease(root) {
   const releaseDirectory = path.join(root, 'release');
@@ -642,7 +642,7 @@ test('deployment CLI is dry-run by default and apply requires all exact service 
         ...base,
         '--external-health-url', rejectedTarget,
       ]),
-      /--external-health-url must equal https:\/\/iwas\.madeforthisjob\.com\/api\/health/,
+        /--external-health-url must equal https:\/\/beta\.madeforthisjob\.com\/api\/health/,
     );
   }
   assert.throws(
@@ -669,7 +669,7 @@ test('deployment CLI is dry-run by default and apply requires all exact service 
         '--tunnel-plist', '/tmp/tunnel.plist',
         '--external-health-url', rejectedTarget,
       ]),
-      /--external-health-url must equal https:\/\/iwas\.madeforthisjob\.com\/api\/health/,
+      /--external-health-url must equal https:\/\/beta\.madeforthisjob\.com\/api\/health/,
     );
   }
 });

@@ -1,6 +1,6 @@
 // This module owns the single public endpoint that may attest a release or
 // recovery.  Callers must not derive, normalize, or substitute this target.
-export const CANONICAL_EXTERNAL_HEALTH_URL = 'https://iwas.madeforthisjob.com/api/health';
+export const CANONICAL_EXTERNAL_HEALTH_URL = 'https://beta.madeforthisjob.com/api/health';
 
 export function assertCanonicalExternalHealthUrl(value) {
   if (value !== CANONICAL_EXTERNAL_HEALTH_URL) {

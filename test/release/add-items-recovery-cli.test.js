@@ -3,7 +3,7 @@ import test from 'node:test';
 import { parseRecoveryArguments } from '../../tools/recover-add-items-deployment.mjs';
 
 const transactionId = '20260723170000-11111111-1111-4111-8111-111111111111';
-const canonicalExternalHealthUrl = 'https://iwas.madeforthisjob.com/api/health';
+const canonicalExternalHealthUrl = 'https://beta.madeforthisjob.com/api/health';
 const base = [
   '--live-root', '/tmp/zeely-live/app',
   '--transaction-id', transactionId,
@@ -24,7 +24,7 @@ test('recovery CLI is inspect-only by default and mutation requires every health
         ...base,
         '--external-health-url', rejectedTarget,
       ]),
-      /--external-health-url must equal https:\/\/iwas\.madeforthisjob\.com\/api\/health/,
+  /--external-health-url must equal https:\/\/beta\.madeforthisjob\.com\/api\/health/,
     );
   }
   assert.throws(
@@ -69,7 +69,7 @@ test('recovery CLI rejects unpinned targets, old hosts, and credential-bearing e
         '--tunnel-plist', '/tmp/tunnel.plist',
         '--external-health-url', rejectedTarget,
       ]),
-      /--external-health-url must equal https:\/\/iwas\.madeforthisjob\.com\/api\/health/,
+      /--external-health-url must equal https:\/\/beta\.madeforthisjob\.com\/api\/health/,
     );
   }
 });
