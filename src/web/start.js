@@ -11,7 +11,8 @@ import { runLocalPreflight } from './preflight.js';
 import { createSceneRuntimeDependencies } from './scene-runtime.js';
 import { createVlmEvaluator } from './vlm-provider.js';
 import { createFalRealtimeTokenIssuer } from './fal-realtime-token.js';
-import { VideoService, ClipStore } from './video-service.js';
+import { createVideoRuntime } from './video-runtime.js';
+import { createVideoAssetUrlResolver } from './video-source-bridge.js';
 
 const projectRoot = path.resolve(import.meta.dirname, '..', '..');
 const generationMode = process.env.ZEELY_GENERATION_PROVIDER ?? 'higgsfield';
@@ -83,10 +84,14 @@ if (adoptedShootIds.length > 0) {
     data: { count: adoptedShootIds.length, shoot_ids: adoptedShootIds },
   });
 }
-const clipStore = new ClipStore(path.join(runtimeRoot, 'video-clips'));
-const videoService = new VideoService({
-  provider: generation.provider,
-  clipStore,
+const videoSourceBridge = createVideoAssetUrlResolver({
+  clipStoreRoot: path.join(runtimeRoot, 'video-clips'),
+  httpsOrigin: process.env.ZEELY_PUBLIC_HTTPS_ORIGIN,
+});
+const videoService = createVideoRuntime({
+  runtimeRoot,
+  openRouterApiKey: process.env.OPENROUTER_API_KEY,
+  assetUrlResolver: videoSourceBridge.videoAssetUrlResolver,
 });
 const app = await createWebApp({
   service,
@@ -100,6 +105,7 @@ const app = await createWebApp({
   sceneDependencies,
   lucyTokenIssuer: createFalRealtimeTokenIssuer(),
   videoService,
+  videoSourceBridge,
 });
 const draftCleanupTimer = setInterval(() => drafts.cleanupExpired().catch(() => {}), 60_000);
 const profileCleanup = async () => {
