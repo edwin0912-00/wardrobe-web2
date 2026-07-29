@@ -13,6 +13,11 @@ const BEARER_TOKEN = /\bBearer\s+[A-Za-z0-9._~+/-]{8,}=*/gi;
 const URL_QUERY = /(https?:\/\/[^\s"'<>?#]+)(?:\?[^\s"'<>#]*)?(?:#[^\s"'<>]*)?/gi;
 
 export const SCENE_PROVIDER_RUNTIME_CONFIG = Object.freeze({
+  gpt_image_2: Object.freeze({
+    aspectRatio: '3:4',
+    resolution: '2k',
+    quality: 'high',
+  }),
   nano_banana_flash: Object.freeze({
     aspectRatio: '4:5',
     resolution: '2k',
@@ -67,14 +72,13 @@ export function createSceneRuntimeDependencies({
 
   const resolvedProjectRoot = path.resolve(projectRoot);
   const journalRoot = path.join(resolvedProjectRoot, 'runtime', 'provider-journals', 'scenes');
-  // A vertical scene is native 4:5 end-to-end. The Higgsfield GPT Image 2
-  // transport cannot serve 4:5, so it is intentionally not a scene route.
-  // OpenRouterImageGenProvider covers every remaining route through its own map.
+  // GPT Image 2 is the primary 3:4 transport; Nano routes are native 4:5.
+  // OpenRouterImageGenProvider covers every route through its own map.
   const generationProviderCoversAllRoutes = generationProvider instanceof OpenRouterImageGenProvider;
   const providers = Object.fromEntries(
     Object.entries(SCENE_PROVIDER_RUNTIME_CONFIG).map(([model, config]) => [
       model,
-      generationProviderCoversAllRoutes
+      generationProviderCoversAllRoutes || (model === 'gpt_image_2' && generationProvider)
         ? generationProvider
         : new HiggsfieldCliProvider({
         qaEvaluator,

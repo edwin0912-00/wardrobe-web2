@@ -87,7 +87,7 @@ const SHA256_PATTERN = /^[a-f0-9]{64}$/;
 // Change this only when the bytes sent to the image provider change. It is part
 // of provider idempotency, so an old journal can never be replayed against a
 // materially different repair contract.
-const SCENE_GENERATION_CONTRACT_VERSION = 'scene-generation-contract-v6-native-4-5-safe-margin';
+const SCENE_GENERATION_CONTRACT_VERSION = 'scene-generation-contract-v7-gpt-3-4-composed-master';
 
 function nowIso(clock) {
   const value = clock();
@@ -438,14 +438,14 @@ async function mechanicalFramingGuide(directory, state, repairAttempt, repairCan
 // reference. A full-body master commonly fills its source frame; without this
 // separate geometry authority the provider faithfully repeats that oversized
 // composition in every new environment.
-async function initialComposedMasterGuide(directory, state, attemptNumber, approvedLook) {
+async function initialComposedMasterGuide(directory, state, attemptNumber, approvedLook, transportAspectRatio) {
   if (!approvedLook?.path || !approvedLook?.sha256 || !Number.isInteger(attemptNumber)) return null;
   const source = await sharp(approvedLook.path).metadata();
   if (!source.width || !source.height || (source.pages ?? 1) !== 1) return null;
-  // The initial live native-4:5 smoke measured 78.2031% at 0.8. Use 0.775
-  // to land the same master around the middle of the immutable 74–78% band,
-  // leaving real margin for provider rounding rather than composing on a gate.
-  const scale = 0.775;
+  // Native 4:5 measured 76.4% at 0.775. GPT's 3:4 delivery loses 6.25%
+  // vertically in its explicit centre crop, so it needs a smaller composition
+  // reference to land in the same final 74–78% band.
+  const scale = transportAspectRatio === '3:4' ? 0.725 : 0.775;
   const resizedWidth = Math.round(state.delivery.width * scale);
   const resizedHeight = Math.round(state.delivery.height * scale);
   const top = Math.round(state.delivery.height * 0.09);
@@ -929,7 +929,9 @@ function provenanceGate({
   // route has two truthful values: 3:4 from the Higgsfield CLI, which offered
   // nothing closer, and 4:5 from OpenRouter, which serves the delivery aspect
   // directly. Pinning it to 3:4 by model name would reject the better one.
-  const expectedTransportAspectRatios = ['4:5'];
+  const expectedTransportAspectRatios = attempt.route.job_set_type === 'gpt_image_2'
+    ? ['3:4']
+    : ['4:5'];
   const geometryReceiptValid = typeof provider.provider === 'string'
     && provider.provider.length > 0
     && provider.model === attempt.route.model
@@ -947,6 +949,7 @@ function provenanceGate({
       'provider_exact_4_5',
       'provider_exact_4_5_rescaled',
       'provider_native_4_5_tolerance_rescaled',
+      'centre_crop_to_exact_4_5',
       // Accepted for reading receipts written before blur padding was removed.
       'blurred_canvas_contain_no_subject_crop',
     ].includes(provider.geometry_strategy)
@@ -3426,7 +3429,7 @@ export class SceneService {
       : await initialComposedMasterGuide(directory, state, attempt.number, {
         path: bound.approvedLookPath,
         sha256: state.bindings.approved_look.image_sha256,
-      });
+      }, attempt.route.job_set_type === 'gpt_image_2' ? '3:4' : '4:5');
     const prompt = compiledPrompt({
       basePrompt: bound.prompt,
       state,

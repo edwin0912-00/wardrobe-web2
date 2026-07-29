@@ -17,6 +17,7 @@ import {
 } from './frame-finish.js';
 import {
   IMAGE_MODEL_NAMES,
+  IMAGE_MODEL_ROUTE,
   assertAllowedImageModel,
 } from '../runner/model-policy.js';
 import {
@@ -38,13 +39,6 @@ const GENERATION_REFERENCE_ORDER = Object.freeze([
   'composition_anchor',
   'palette_anchor',
   'negative_reference',
-]);
-// Avatar generation may still use GPT Image 2. Scene delivery is different:
-// its strict full-body contract is native 4:5, and the current Higgsfield GPT
-// transport cannot serve that geometry.
-const NATIVE_SCENE_IMAGE_MODEL_ROUTE = Object.freeze([
-  'nano_banana_flash',
-  'nano_banana_2',
 ]);
 const IMAGE_MEDIA_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
 const PNG_SIGNATURE = Buffer.from('89504e470d0a1a0a', 'hex');
@@ -360,10 +354,10 @@ export async function mapWithConcurrency(values, limit, mapper) {
 
 function assertSceneRoute(context) {
   const jobSetType = assertAllowedImageModel(context?.job_set_type);
-  const routeIndex = NATIVE_SCENE_IMAGE_MODEL_ROUTE.indexOf(jobSetType);
+  const routeIndex = IMAGE_MODEL_ROUTE.indexOf(jobSetType);
   const routeAttempt = Number(context?.cycle_attempt ?? context?.attempt);
   if (routeIndex !== routeAttempt - 1) {
-    throw new Error('Scene attempt does not match the fixed native-4:5 Nano Banana 2 → Nano Banana Pro route');
+    throw new Error('Scene attempt does not match the fixed GPT Image 2 → Nano Banana 2 → Nano Banana Pro route');
   }
   if (context.model !== IMAGE_MODEL_NAMES[jobSetType] || context.model_version !== jobSetType || context.quality !== 'high') {
     throw new Error('Scene model metadata does not match the locked production route');
@@ -385,7 +379,7 @@ function assertSceneRoute(context) {
 // can actually act on by retrying; silently padding it could not be acted on by
 // anyone. Requesting the aspect up front (see the provider's image_config) is
 // what keeps this path on the cheap branches.
-async function geometrySafeImage(bytes, { width, height }) {
+async function geometrySafeImage(bytes, { width, height, transportAspectRatio }) {
   const metadata = await sharp(bytes).metadata();
   if (!metadata.width || !metadata.height || (metadata.pages ?? 1) !== 1) {
     throw new Error('Scene provider returned an undecodable or animated image');
@@ -431,6 +425,20 @@ async function geometrySafeImage(bytes, { width, height }) {
     );
   }
 
+  if (transportAspectRatio === '3:4' && metadata.width * 4 === metadata.height * 3) {
+    const cropHeight = Math.round(metadata.width / (width / height));
+    return rescaleOnly(
+      sharp(bytes).extract({
+        left: 0,
+        top: Math.round((metadata.height - cropHeight) / 2),
+        width: metadata.width,
+        height: cropHeight,
+      }),
+      'centre_crop_to_exact_4_5',
+      { crop_fraction: Number(((metadata.height - cropHeight) / metadata.height).toFixed(4)) },
+    );
+  }
+
   throw new Error(
     `Scene provider returned ${metadata.width}×${metadata.height}, outside the native 4:5 tolerance; cropping is forbidden`,
   );
@@ -455,13 +463,12 @@ export class SceneGeneratorAdapter {
     if (typeof provider?.generate !== 'function') {
       throw new Error(`SceneGeneratorAdapter has no provider for ${jobSetType}`);
     }
-    // Full-body scene framing is evaluated on the delivered image. Therefore
-    // the provider must produce native 4:5 — no transport detour or crop.
+    // GPT Image 2 has an approved 3:4 transport; Nano routes are native 4:5.
     const requiredTransportAspectRatio = typeof provider.transportAspectRatio === 'string'
       ? provider.transportAspectRatio
-      : '4:5';
-    if (requiredTransportAspectRatio !== '4:5') {
-      throw new Error(`${context.model} cannot serve the native 4:5 scene contract`);
+      : (jobSetType === 'gpt_image_2' ? '3:4' : '4:5');
+    if (!['3:4', '4:5'].includes(requiredTransportAspectRatio)) {
+      throw new Error(`${context.model} has no approved vertical scene transport`);
     }
     if (typeof provider.aspectRatio === 'string' && provider.aspectRatio !== requiredTransportAspectRatio) {
       throw new Error(`${context.model} provider must be configured with aspectRatio: ${requiredTransportAspectRatio}`);
@@ -643,7 +650,7 @@ export class SceneGeneratorAdapter {
     if (!raw || raw.length < PNG_SIGNATURE.length || !raw.subarray(0, PNG_SIGNATURE.length).equals(PNG_SIGNATURE)) {
       throw new Error('Scene provider must return PNG bytes');
     }
-    const geometry = await geometrySafeImage(raw, context);
+    const geometry = await geometrySafeImage(raw, { ...context, transportAspectRatio: requiredTransportAspectRatio });
     // The last step on the frame, and the only one that can be switched off from
     // the environment without touching code. Grain must land after geometry: a
     // downscale would average it away, and the crosshatch it masks only becomes
