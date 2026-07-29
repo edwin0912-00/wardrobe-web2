@@ -1,138 +1,77 @@
 # OBSERVATION LOG — shoot.sky_dune_surreal
 
-## AUDIT RESULT
+## Restoration authority and verdict
 
-`BLOCKED_SOURCE`.
+Verdict: **READY under owner-authorized legacy artifact restoration**.
 
-One authentic owner-supplied derivative is available and was inspected, but it is
-only one 4:5 frame. It cannot support the requested five unique shoot frames or
-the six canonical runtime slots without inventing unseen poses, angles and
-foreground applications. No `runtime_style` is written and no regeneration is
-authorised.
+The owner explicitly corrected the earlier same-shoot requirement: one authentic source image may
+define a whole creative universe. The inspected owner-supplied image, this observation, and the
+seven git-preserved canonical sheets therefore act together as style authority. Six runtime shot
+directions are original coverage constructions inside that universe, not claims that six historic
+source frames were recovered.
 
-## SOURCE LEDGER
+The previous `BLOCKED_SOURCE` conclusion is superseded and remains available in git history.
 
-### assets/scene-mood-cards/shoot.sky_dune_surreal.webp
+## Source and artifact ledger
 
-- Inspected visually at its native delivery size, 1024x1280.
-- Delivery sha256:
+- `assets/scene-mood-cards/shoot.sky_dune_surreal.webp` was inspected at 1024×1280. Its SHA-256 is
   `415d09e80eb31b4238b17001e85f57ef28a1cb1f3bf236b1e6a050a368cc0385`.
-- `assets/scene-mood-cards/shoot.sky_dune_surreal.json` records
-  `origin.kind: OWNER_SUPPLIED_STYLE_FRAME`.
-- The sidecar says the asset is a cover crop and re-encode only, with no
-  generation and no retouch, from a 1968x2464 source whose sha256 is
+- The sidecar identifies it as an owner-supplied derivative and records cover crop/re-encode only
+  from a 1968×2464 source with SHA-256
   `bc8331019e3e8a1de6043124e32f967c7eaae99e487bae50eda26cd83269bcaf`.
-- The original 1968x2464 bytes and any neighbouring frames from the same shoot
-  are not available on this host.
+- The uncropped source bytes and neighbouring frames are unavailable. That limits historical
+  claims but no longer blocks the authorized artifact-defined universe.
+- The original legacy manifest SHA-256 is
+  `617746eea674a34b90884ac98cdcf0193fe34e8a357bba6d00203d562c2fa0fe`.
+- Canonical generated assets are preserved by
+  `2f27dfff5e2579527b289cd42e23d82b78aae93e`; the catalog tree in
+  `58cc099646c457ec50ca3613ec61ee100b2c96cc` preserves the reviewed bytes.
 
-## FRAME-LEVEL OBSERVATION
+## Frame and universe observation
 
-### Composition and camera consequences
+The authentic frame establishes a full-length person against a large blue-grey sky, separate white
+cloud forms and a low warm sand ridge. The preserved sheet set intentionally resolves that seed into
+a cleaner surreal universe: level normal perspective, low horizon, deep readable focus, no lens
+occlusion, clean optics, pastel palette, inert plush volume and an affectless face whose eyes are
+withheld by opaque lenses. This restoration treats those resolved sheet decisions as authored
+style, not as measurements falsely attributed to unseen source photographs.
 
-Portrait 4:5. One full-length standing person occupies most of the frame, with
-both oversized shoes fully visible and only modest headroom. The person is near
-centre but not geometrically dead-frontal: shoulders, head and facial plane carry
-a slight three-quarter turn. The feet are close rather than shoulder-width apart.
-No architecture supplies reliable vanishing lines. Body proportions do not show
-obvious wide-angle limb enlargement, but focal length, physical camera height,
-aperture and shutter remain `UNKNOWN`.
+Source identity, exact face, body, skin marks, hair, garment design, rainbow motif, accessory
+design and flower species do not transfer. The approved product subject and approved item remain
+the only authorities for person and product.
 
-The sand ridge crosses the lower quarter of the frame. The figure, the ground at
-the feet and the cloud forms are all legible. There is no object between the lens
-and the person. Whether the apparent depth comes from capture, compositing or a
-built backdrop is `UNKNOWN`.
+## Seven-sheet native visual review
 
-### Pose joint chain
+All seven manifest-bound PNGs were opened individually at native resolution:
 
-Upright, near-static stance. Hips and shoulders are quiet. Arms hang beside the
-torso; one hand holds a large woven flower basket at thigh-to-knee height and the
-other hangs open. Feet sit close with a small fore/aft offset. The head is held
-upright with a slight pan rather than neutral dead-frontal alignment. Exact weight
-distribution is not recoverable from the single view.
+- `camera_lens` defines level chest-height consequence, normal undistorted perspective, deep focus,
+  no foreground occlusion, subtle grain and a low sand horizon.
+- `blocking` defines a still frontal chain with close-set or balanced feet, quiet shoulders,
+  lowered arms and one connected hand carrying an object.
+- `expression_gaze` defines withheld eyes behind opaque lenses, resting cheeks, closed level mouth,
+  relaxed jaw and neutral head carriage. The generic rendered face is demonstration-only and is
+  not identity authority.
+- `garment_behaviour` defines fully still, heavy plush, opaque, matte, light-absorbing material with
+  broad soft folds and no flutter.
+- `colour_grade` defines the closed seven-colour pastel system, lifted blacks, soft highlights and
+  cool-sky/warm-ground object contrast.
+- `environment` defines empty sky, discrete cumulus, a single clean ridge curve, sand detail and
+  distinct broadside and along-spine views.
+- `person` is a retained legacy checklist. Its rendered anatomy and skin ramp are not attached as
+  person identity; the opaque-lens occlusion rules and soft-light response transfer only as text.
 
-### Expression and gaze
+`sheet-environment-v2.png` is noncanonical, is not in the manifest, and is not used as authority.
 
-Opaque dark lenses and knitted headwear hide eyes, eyelids and brows. Do not
-infer them. The mouth is closed or almost closed, corners quiet, jaw relaxed.
-The readable affect is reserved and deadpan. Exact eye direction is `UNKNOWN`;
-only the slightly turned head plane is observed.
+## Runtime coverage reconciliation
 
-### Environment and materials
+The preserved universe supports six unique constructions: a medium identity figure with withheld
+eyes, a frontal full-length environment hero, a compact three-quarter still life of body and
+accessory, a cloud/silhouette collision with no lens occluder, a connected hand-and-basket detail,
+and a wide ridge coda. Each changes camera crop, pose, focus and foreground without abandoning the
+clean low-horizon sky-and-sand system.
 
-A clean blue-grey sky fills most of the frame. Discrete white cumulus clouds sit
-behind the figure. A low, simple sand ridge with fine surface texture forms the
-ground. No mountains, vegetation, buildings, road, reverse angle or distant
-landscape are visible.
+## Unknowns retained
 
-Observed surface classes include plush piled fleece, crisp woven cargo cloth,
-coarse knit headwear and socks, opaque hard eyewear, plush oversized footwear, a
-woven basket and densely packed fresh flowers. These are material behaviours,
-not transferable garment design, brand or colourway.
-
-### Light, contrast and skin response
-
-The frame is directionally lit. Cast shadows on the sand and compact shadows
-under clothing, eyewear and the basket have readable edges; the source does not
-support the old claim “low contrast, no hard edge anywhere.” The visible skin
-retains deep value and warm saturation, with compact highlights on lips and
-forward facial planes and deeper shadow under the headwear. Exact sun elevation
-and whether the lighting belongs to one physical capture remain `UNKNOWN`.
-
-### Colour
-
-The dominant environment is blue-grey sky, white cloud and warm sand. Cream
-clothing and deep skin provide large value anchors. The frame also contains a
-clearly vivid rainbow motif and a multicolour flower basket with saturated reds,
-oranges, yellows, greens, blues and violets. Therefore the existing seven-colour
-board statement “nothing in the frame is allowed to be vivid” is contradicted by
-the inspected source. Skin is also listed as a palette member while the sheet
-simultaneously calls skin exempt. The current closed palette is not reconciled.
-
-### Optical signature
-
-Clean and graphic. No visible flare, halation, bloom or strong vignette. Edges
-are crisp without swirl or radial distortion. Fine texture is present, but the
-single re-encoded derivative cannot prove a particular grain recipe. The only
-safe fixed signature is the absence of flare, bloom, halation, vignette and
-swirl.
-
-## VISUAL AUDIT OF EXISTING SHEETS
-
-All seven canonical sheets were opened and inspected at native resolution.
-
-- `sheet-camera_lens.png` — `FAIL`: declares chest height, dead-frontal
-  alignment, low knee-height horizon and generous headroom; those claims are not
-  all supported by the frame.
-- `sheet-blocking.png` — `FAIL`: feet apart, even weight, neutral head pan,
-  unidentified object and veiled soft light contradict visible evidence.
-- `sheet-expression_gaze.png` — `FAIL`: correctly preserves occluded eyes, but
-  uses an unrelated light-skinned face and asserts neutral dead-frontal head
-  orientation.
-- `sheet-garment_behaviour.png` — `FAIL`: the plush pile behaviour is useful,
-  but the board generalises it to the whole wardrobe and omits the visibly
-  different woven, knitted, basket and flower materials.
-- `sheet-colour_grade.png` — `FAIL`: its pastel-only/no-vivid rule is directly
-  contradicted by the rainbow and flower basket; its low-contrast claim is not
-  reconciled to the directional source.
-- `sheet-environment.png` — `FAIL`: invents a plan, reverse angle, dune forms,
-  scale, direction, sound and smell not present in the source.
-- `sheet-person.png` — `FAIL`: depicts and annotates a different identity and
-  skin response instead of leaving unobserved identity geometry unknown.
-
-`sheet-environment-v2.png` is an eighth, non-canonical artifact and also fails:
-it invents a 20-degree sun, compass direction, 50-metre scale, mountains, a shoe
-close-up and terrain that are not visible in the source.
-
-The rendered `palette-strip.svg` was inspected. Its declared hex swatches render,
-but long role labels overlap and the palette itself is semantically unreconciled
-to the vivid source elements.
-
-## COVERAGE BLOCKER
-
-The available source demonstrates one full-length hero only. It does not show a
-clean identity close view, a distinct environmental hero, a separate sculptural
-three-quarter, an optical-interference application, a material/accessory detail
-or a wide campaign coda. Reusing this one composition six times would violate
-the unique-frame requirement. Restore at least the neighbouring source/contact
-frames from this shoot, then repeat observation before writing `runtime_style`
-or generating any sheet.
+Physical focal length, camera height, aperture, shutter, the origin of the subtle grain, whether
+the sky or ridge was captured or built, exact site geometry and the history of any additional
+source frames remain unknown.

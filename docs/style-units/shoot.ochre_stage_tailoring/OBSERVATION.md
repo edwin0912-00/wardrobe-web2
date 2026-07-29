@@ -1,127 +1,93 @@
 # OBSERVATION LOG — shoot.ochre_stage_tailoring
 
-Two local source files were opened at original resolution before reviewing any sheet. Both are
-extraction-only. Reference identity, garment design, logos and item colours do not transfer.
+## Authority decision
 
-## Frame `male-02-chair-taupe.png`
+This restored unit uses the owner-approved rule that one frame can define a
+universe and the existing seven sheets may lock the complete style system. The
+runtime coverage deliberately combines the set vocabulary already present in
+those preserved sheets: low upward camera, warm hard side light, deep
+olive/ochre field, weighted tailoring, bentwood chair, patterned wall light and
+rust spheres. The six directions are authored coverage inside that universe;
+they are not six claimed source photographs.
 
-Source receipt: 928×1232 RGB PNG; SHA-256
+All source files remain extraction-only. Source identity, garment design,
+pattern, brand and item colour never transfer.
+
+## Source ledger
+
+### `male-02-chair-taupe.png`
+
+928×1232 RGB PNG; SHA-256
 `50db8be51b4c538cb7f6f9b7d7433c3bef01eb95094f7fbe7f30359c7f93a65b`.
+The frame supplies a low seated consequence, warm wall, bentwood chair,
+rounded rectangular frame-left light bands, lowered gaze, heavy plumb lower
+folds and still air.
 
-### Observable
+### `male-04.png`
 
-- Environment: one close, plain warm-brown wall; a wooden bentwood chair; bright rounded
-  rectangular light bands enter along the far frame-left edge. No floor-to-wall junction is visible.
-- Camera consequence: low seated viewpoint aimed upward. The two near knees occupy much more frame
-  area than the head; the legs and chair run out of the bottom edge. Roll appears level, but the wall
-  supplies no reliable horizon.
-- Focus: face, torso, hands and near knees are readable; the plain wall has no detail from which an
-  exact focus falloff can be measured.
-- Foreground: no separate object crosses the lens. The subject's knees form the near plane.
-- Light: one hard warm source enters from frame-left and creates high-contrast patches across face,
-  sleeves, hands and trousers. The bright wall bands have softened edges compared with the subject's
-  smaller shadow transitions.
-- Expression: gaze is withheld downward behind round dark lenses; brows appear at rest; mouth is
-  closed; jaw appears relaxed. Head pans slightly away and tilts toward one shoulder, chin lowered.
-- Pose joint chain: pelvis seated; thighs abducted to either side; both knees flexed; one hand rests
-  over the curved chair back while the opposite forearm crosses the lap; shoulders lowered; torso
-  leans slightly toward the chair hand.
-- Garment behaviour: no air movement. Broad lower folds hang heavy and plumb over the knees; the
-  upper layer forms smaller soft wrinkles at elbows and waist. These behaviours may transfer; the
-  visible cut, pattern and colour may not.
-- Optical evidence: warm, high-contrast and largely clean. No visible lens flare or chromatic
-  fringing. Grain scale and halation are `UNKNOWN`.
-
-### Unknown
-
-Light source type and distance; what creates the wall pattern; surface and space outside the crop;
-precise camera height; focus falloff; whether any optical diffusion was used.
-
-## Frame `male-04.png`
-
-Source receipt: 928×1232 RGB PNG; SHA-256
+928×1232 RGB PNG; SHA-256
 `f7e62f7b63793930a9b4c205e67910a4a778d9aaa338416572edc81f684fb96b`.
-This exact SHA is also the owner-supplied mood-card source receipt for this unit.
+The frame supplies a very low standing consequence, deep olive stage, pale
+floor strip, rust spheres, one large out-of-focus upper-corner sphere, hard
+warm edge light, balance/reach joint chain and broad weighted lower folds.
 
-### Observable
+The files show different source moments. Under the restored product decision,
+they are not used to prove a documentary same-day sequence; the already
+generated seven-sheet set is the approved universe synthesis. Runtime
+provenance names whether a direction comes from a specific observed frame or
+from an authored extension of the sheet set.
 
-- Environment: a near-black deep-olive stage field with a pale floor strip. Several small
-  rust-orange spheres sit on the floor; one very large, out-of-focus rust-orange sphere intrudes
-  from the upper frame-right. No wall texture, chair, window or room architecture is visible.
-- Camera consequence: very low upward view. The lower body reads larger than the head, and the
-  standing figure lengthens vertically. Roll appears level from the floor edge. No focal length in
-  millimetres is observable.
-- Focus: the standing subject is sharp from face through footwear; the large upper sphere is
-  deliberately far out of focus and the field behind remains smooth.
-- Foreground: the large blurred sphere consumes the upper-right corner; a dark soft band touches the
-  bottom edge. This occlusion is a load-bearing composition device, not a generic lens flare.
-- Light: one hard warm source from high frame-right / side-back produces narrow hot edges on hair,
-  face, shirt and trouser folds and a long crisp floor shadow running frame-left. The rest of the
-  stage falls quickly into deep olive-black.
-- Expression: eyes track the extended hand rather than the lens; upper lids low; brows at rest;
-  mouth closed; cheekbones not visibly lifted; jaw relaxed. Head pans and tilts down toward the hand.
-- Pose joint chain: support leg nearly straight; free knee flexed and crossing in front with the
-  free foot resting lightly; pelvis shifts over the support leg; torso leans toward the extended
-  arm; extended shoulder abducts, elbow remains nearly straight, wrist relaxes and fingers curl;
-  opposite arm drops beside the torso; chin lowers toward the hand.
-- Garment behaviour: no wind. Broad lower fabric holds large structured folds and moves as one
-  weighted mass around the bent knee; the lighter upper layer makes smaller wrinkles; a separate
-  layer hangs from the rear shoulder with gravity. Only weight, fold scale and stillness transfer.
-- Optical evidence: clean warm rendering with restrained fine texture; no visible veiling flare,
-  halation or chromatic fringing. The blurred sphere comes from depth separation, not an optical
-  artefact.
+## Preserved sheet audit
 
-### Measured colour evidence, not yet an approved master gamma
+All seven PNGs were opened together, and their stored dimensions and SHA-256
+values match the pre-restoration manifest.
 
-Twelve-cluster source quantisation includes `#191808` deep field, `#3D4226` olive field,
-`#A45126` rust-orange accent, `#D46B31` hot amber accent, `#948C67` muted lit neutral and
-`#E3CA9F` warm highlight. Approved item, skin, hair and eye colours remain exempt.
+- `sheet-camera_lens.png` locks low upward perspective, full human framing,
+  clear subject focus, a seated setup and clean depth falloff.
+- `sheet-blocking.png` supplies the complete standing balance/reach chain,
+  seated chair variation and camera/source plan.
+- `sheet-expression_gaze.png` locks lowered eyes, unfurrowed brows, closed
+  relaxed mouth, quiet jaw and head turned away.
+- `sheet-garment_behaviour.png` transfers broad fold weight, held pleat lines,
+  plumb layers and controlled hem motion without copying cut or colour.
+- `sheet-colour_grade.png` declares the six-member ochre/olive palette,
+  theatrical contrast and warm highlight roll-off.
+- `sheet-environment.png` defines an original warm studio stage, light pool,
+  wall bands, dark perimeter and bentwood chair.
+- `sheet-person.png` is an identity-empty product-subject template; only the
+  hard warm skin-light response belongs to the style.
 
-### Unknown
+## Runtime coverage
 
-Whether the field is a cyclorama, curtain or open stage; sphere material and support method; exact
-light source type/distance; exact focus distance; grain and diffusion process.
+`clean_identity_hero` is a low warm-wall portrait;
+`environmental_hero` is the full standing stage view;
+`sculptural_three_quarter` exaggerates the balance and broad fold mass;
+`interference_frame` uses the observed defocused sphere;
+`material_or_accessory_detail` keeps hand, wrist and torso attached; and
+`wide_campaign_coda` uses the chair and patterned light pool. The clean optic,
+weighted cloth, warm hard side source and counted palette remain fixed across
+the set.
 
-## Cross-frame reconciliation — FAIL: these are not one shoot unit
+## Legacy artifact provenance
 
-The frames disagree in every load-bearing dimension:
+The manifest before restoration has SHA-256
+`503b279dd7b360330cef390e18329a65ff8873a005f58f7e60cf47ea9dbb7196`.
+The exact seven PNG bytes are preserved in real Git history, including restore
+commit `0e6ae50017d253364b07b61f9bccb73a4f577636` and checkpoint
+`5322cd3003bb553a574c12632248a54077f3f1e9`. Historical provider job IDs were
+not retained. Each PNG is therefore bound with a truthful
+`GIT_PRESERVED_GENERATED_ASSET` receipt and `provider_receipt: null`.
 
-- close warm wall plus chair plus left-edge window/gobo versus deep-olive open stage plus spheres;
-- low seated wide-knee portrait versus low standing balance with a blurred overhead foreground mass;
-- hard frame-left patterned light versus hard frame-right side/back light;
-- different subject presentation and different garment behaviour;
-- no foreground optical device versus a large depth-blurred sphere.
+## Unknowns preserved
 
-They may share a broad warm family, but colour warmth is not proof of one photoshoot. Merging them
-would create a style that no source frame contains. `male-04.png` is the only source consistent with
-the registered title and the mood-card receipt, so it is the retained primary direction.
-`male-02-chair-taupe.png` is inspected but excluded from this unit and needs its own coherent source
-set if it becomes a separate style.
+The physical stage construction, sphere material/support, exact lamp type and
+distance, focal length, aperture, focus distance, grain/diffusion process and
+historical same-day source coverage remain unknown. The runtime names visual
+consequences and does not fabricate equipment.
 
-## Readiness — BLOCKED_SOURCE / NEEDS_SOURCE
+## Readiness
 
-After reconciliation, one coherent primary frame remains. It establishes one camera setup, one
-joint-chain pose and one environment state, not six unique source-derived slot directions. Building
-six different pose/camera instructions from it would require invention. Do not add `runtime_style`,
-do not regenerate sheets, and do not mark READY until additional frames from the same
-`male-04.png` photoshoot establish real coverage.
+The source observations, seven preserved sheets, deterministic palette and six
+distinct authored directions define one reusable fashion-shoot universe.
 
-## Existing sheets and master gamma
-
-Seven PNGs exist and each individual file hash/byte size matches the old manifest. They are not
-approvable:
-
-- camera and blocking merge the chair setup with the standing stage setup and omit a complete fixed
-  optical signature;
-- blocking reverses the observed light direction for `male-04.png`;
-- garment behaviour copies pleated-trouser, jacket and shirt silhouettes instead of isolating
-  transferable cloth behaviour;
-- environment invents a plaster warehouse, window, spotlight pool and chair reverse angle;
-- the six-colour palette mixes both incompatible frames and names reference cloth as palette roles;
-- the manifest uses the obsolete hashes-only `unit_sha256` formula and has no observation/runtime
-  binding required by the current builder.
-
-## Unknowns to preserve
-
-All frame-specific unknowns above; whether further frames from the `male-04.png` shoot exist; real
-coverage poses and reverse views; any fixed optical effect beyond the clean evidence visible here.
+STYLE UNIT STATUS: READY

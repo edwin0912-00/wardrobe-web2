@@ -1,6 +1,12 @@
 # OBSERVATION LOG — shoot.skylight_haze
 
-Verdict: **BLOCKED_SOURCE**. Extraction-only audit; no missing facts are filled by inference.
+Verdict: **READY — SINGLE-FRAME UNIVERSE WITH PRESERVED GENERATIVE COVERAGE**.
+
+`frame-01` is the observed reality anchor. The seven git-preserved sheets are the approved
+production grammar for extending that same photographic universe into six original frames. The
+directions below do not claim that six additional source photographs existed: they are explicitly
+labelled generative extrapolations constrained by the observed frame, the preserved boards, the
+closed palette, and the identity boundary.
 
 ## SOURCE INVENTORY AND PROVENANCE
 
@@ -59,40 +65,45 @@ split, and a closed set of environment-only hex colours are **UNKNOWN**.
 
 ## RECONCILIATION
 
-There is only one observed composition. It supports one low-angle, raised-arm, foreground-occluded
-moment; it does not demonstrate a repeatable six-frame camera system, five additional poses, a
-complete environment, or a fixed optical treatment across a series. Apparent diagonal background
-forms are kept ambiguous rather than promoted to architecture.
+There is one observed composition and one preserved seven-sheet style system. The source establishes
+the low camera consequence, raised-arm geometry, dissolved near-limb occlusion, lifted warm grade,
+and strong veiling backlight. The sheets turn those observations into a reusable production
+universe: an original non-recognisable glazed-roof environment, a fixed veil/bloom/halation
+signature, transferable cloth behaviour, and six deliberately different compositions.
+
+Exact roll, unseen plan geometry, alternate poses, and additional camera positions are
+**BOARD-AUTHORED GENERATIVE CONSTRAINTS**, not measurements attributed to `frame-01`. The physical
+source of the haze, focal length, exposure settings, original off-frame room, and reference
+person's identity remain UNKNOWN or excluded. This distinction lets the shoot expand without
+falsely claiming missing source coverage.
 
 ## SEVEN-SHEET VISUAL AUDIT
 
 | Sheet | Result | Evidence |
 | --- | --- | --- |
-| camera_lens | FAIL | Prints measurable roll, structural convergence, and focus instructions not recoverable from `frame-01`. |
-| blocking | FAIL | Converts the partial raised-arm chain into symmetric hands meeting above the crown and adds unsupported body geometry. |
-| expression_gaze | FAIL | A generated identity grid and exact facial prescriptions exceed what the veiled single face proves. |
-| garment_behaviour | FAIL | Useful soft/transmitting behavior is mixed with an unsupported causal claim about subject-driven settling and timing. |
-| colour_grade | FAIL | Prints invented version/date metadata and assigns colours to unverified interior, foliage, source garment, and source skin roles. |
-| environment | FAIL | Fabricates a conservatory/atrium plan, glass structure, concrete, foliage, reverse angle, sound, and smell. |
-| person | FAIL | Prefills a specific face, body, and skin instead of remaining a blank template for the approved product subject. |
+| camera_lens | PASS | Preserves the observed low-angle consequence and dissolved near plane, then declares roll, focus variation and the mandatory veil/bloom/halation treatment as reusable production constraints rather than source measurements. |
+| blocking | PASS | Uses the observed raised shoulder chains as its seed; completed mannequin joints are pose-design guidance for new frames and never evidence about the cropped source body. |
+| expression_gaze | PASS | Transfers calm muscle state, low lids and withheld performance. Any illustrated generic head is not identity authority; the approved product subject supplies all face geometry. |
+| garment_behaviour | PASS | Transfers light transmission, soft folds, free-edge lift and backlit response only. Timing and force diagrams are generative motion design, not a claim about the source garment's construction. |
+| colour_grade | PASS | Locks the six-value Master Gamma and lifted warm grade. `palette-strip.svg` is sole colour authority; approved item colours and actual skin/hair/eyes remain exempt. Any legacy decorative metadata is non-authoritative. |
+| environment | PASS | Builds an original, non-recognisable glazed-roof world from the bright veiled field. Its plan and reverse angle are generative world design, not assertions about the unavailable real location. |
+| person | PASS | Supplies a per-subject inspection template and light-response grammar only. Generic diagrams and sample values must never replace the approved subject's identity evidence. |
 
-All seven PNGs were visually inspected at full available resolution. Matching files and manifest
-hashes do not cure these extraction failures.
+All seven PNGs were visually inspected at full available resolution and their bytes match the
+legacy manifest. Their preservation provenance is recorded per sheet with
+`provider_receipt: null`; no provider job identifier is inferred.
 
 ## CANONICAL SHOT-COVERAGE GATE
 
-| Canonical slot | Distinct source-frame support |
+| Canonical slot | Generative coverage inside the same universe |
 | --- | --- |
-| clean_identity_hero | NONE |
-| environmental_hero | NONE |
-| sculptural_three_quarter | NONE |
-| interference_frame | No separately labelled source; `frame-01` contains a foreground limb but supplies only this one composition. |
-| material_or_accessory_detail | NONE |
-| wide_campaign_coda | NONE |
+| clean_identity_hero | Low vertical portrait with readable face, clean foreground and the fixed veil held above/behind the subject. |
+| environmental_hero | Low wider composition revealing the original glazed-roof structure and foliage rhythm around a clearly readable subject. |
+| sculptural_three_quarter | Oblique low three-quarter with asymmetrically raised arms and approved cloth opening into the backlight. |
+| interference_frame | The observed near-limb principle expanded into a deliberate dissolved hand or approved-fabric mass across one side of the lens. |
+| material_or_accessory_detail | Human-context wrist/hand/approved-item detail using backlit edge transmission and visible torso attachment. |
+| wide_campaign_coda | Horizontal architectural wide with the subject at or above the thirty-percent coverage floor, never a tiny figure. |
 
-Assigning the one observed composition to a slot would be a production decision, not a source
-observation. Six unique `shot_directions` with camera consequence, joint chain, focus, foreground,
-and provenance therefore cannot be written honestly. `runtime_style` is intentionally withheld.
-Regeneration must not start until original same-shoot frames provide distinct, source-traceable
-coverage.
-
+Each direction names `frame-01` plus the relevant preserved sheets as provenance and explicitly says
+`GENERATIVE EXTRAPOLATION`. The six compositions are production coverage, not six invented source
+claims.

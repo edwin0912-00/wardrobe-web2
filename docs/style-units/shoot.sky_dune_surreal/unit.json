@@ -11,23 +11,101 @@
     { "name": "cream", "hex": "#EFE9DC", "role": "highlight, the pale garment and lightest ground" },
     { "name": "deep skin", "hex": "#4A2E22", "role": "deepest value, skin holding full saturation under even light" }
   ],
-  "style_unit_status": "BLOCKED_SOURCE",
+  "style_unit_status": "READY",
   "source_frames": ["assets/scene-mood-cards/shoot.sky_dune_surreal.webp — visually inspected 1024x1280 owner-supplied derivative, mood-card sha256 415d09e80eb31b4238b17001e85f57ef28a1cb1f3bf236b1e6a050a368cc0385; sidecar records cover crop/re-encode only from 1968x2464 source sha256 bc8331019e3e8a1de6043124e32f967c7eaae99e487bae50eda26cd83269bcaf"],
   "source_reconciliation": {
-    "status": "BLOCKED_SOURCE",
+    "status": "RESTORED_LEGACY_ARTIFACT_AUTHORITY",
+    "authority_mode": "OWNER_AUTHORIZED_ONE_SOURCE_PLUS_PRESERVED_GENERATED_SHEETS",
     "primary_frame": "assets/scene-mood-cards/shoot.sky_dune_surreal.webp",
     "source_bytes_present": true,
-    "reason": "One authentic owner-supplied derivative was inspected, but one frame cannot prove five unique shots or the six canonical runtime directions; the uncropped original and neighbouring shoot frames are absent.",
-    "needs_source": "Restore the original shoot/contact sequence with enough genuinely different frames to establish at least five unique compositions and all six canonical runtime slots."
+    "included_artifacts": "Seven canonical generated sheets preserved in git and reviewed at native resolution.",
+    "coverage_policy": "One source defines the universe. Six runtime directions are original coverage constructions from the preserved sheet system and are not claims of additional historical source frames."
   },
   "unknowns": [
     "focal length, aperture, shutter speed and physical camera height",
     "whether sky, clouds and sand are a location, a built set or a composite",
     "the uncropped outer composition of the 1968x2464 original source",
     "eyes, eyelids, brows and exact gaze direction, occluded by opaque lenses and knitted headwear",
-    "any reverse angle, wide coda, material-detail angle or alternate pose from the same shoot",
-    "a five-frame or six-slot coverage grammar; only one owner-supplied derivative is available on this host"
+    "whether the six runtime coverage constructions existed in the historical shoot; they are owner-authorized extensions of the preserved universe",
+    "the origin of the subtle grain and the physical construction of the artifact-defined sky and ridge"
   ],
+  "runtime_style": {
+    "visual_system": "A clean pastel surreal campaign places an approved subject against a vast blue-grey cloud sky and one immaculate warm sand ridge, using a low horizon, deep focus, frontal stillness and inert sculptural cloth.",
+    "mood_line": "Affectless and presented rather than performed: the person stands still while scale, empty sky and withheld eyes make the image strange.",
+    "environment": "An empty pale blue-grey sky with discrete separate cumulus clouds above one clean untracked sand ridge, shown broadside or along its crest; no buildings, plants, furniture, roads, mountains or heat shimmer.",
+    "lighting": "Soft mildly diffused daylight sits slightly above and frontal, giving short soft ground contact, low contrast, broad quiet skin response and no backlit glow.",
+    "materials": [
+      "fine warm sand with readable grain",
+      "soft-edged white cumulus against a flat sky field",
+      "heavy plush opaque approved cloth with broad pile-softened folds",
+      "coarse knit or matte styling completion when required",
+      "one plain woven hand-held accessory with no readable mark"
+    ],
+    "contrast": "Low pastel contrast with lifted blacks, soft non-clipped highlights and cool-sky versus warm-ground separation carried by object colour rather than split-tone.",
+    "expression_signature": "Opaque approved lenses withhold the eyes; the approved mouth stays closed with level corners, cheeks rest, jaw relaxes and head carriage remains neutral or only slightly panned, with no smile or source identity transfer.",
+    "garment_behaviour": "Approved cloth is completely still, opaque and light-absorbing, holding broad soft volume through weight and construction with rounded pile edges, no flutter, no motion blur and no specular hotspot.",
+    "optical_signature": [
+      "Normal clean perspective with parallel verticals, even body proportions and no limb enlargement.",
+      "Level roll, deep readable focus across subject, sand and cloud, with no foreground object between lens and person.",
+      "No flare, halation, bloom or vignette; only subtle very fine grain and a clean graphic finish."
+    ],
+    "shot_directions": {
+      "clean_identity_hero": {
+        "camera_consequence": "Use a vertical centred crop from above the approved head through below the knees, level at chest height, with a low sand horizon and a large quiet sky field.",
+        "pose_joint_chain": "Keep shoulders level, arms long beside the ribs, one connected hand holding a plain accessory at thigh height, knees unlocked and head nearly frontal behind opaque approved lenses.",
+        "focus": "Hold the approved face outline, lens frame, mouth, accessory hand and plush surface sharply while retaining cloud edges and sand grain.",
+        "foreground": "Nothing crosses the lens; leave clean sky around the approved head and keep the ridge as a low band.",
+        "provenance": [
+          "owner-supplied derivative plus legacy camera_lens frame panel and expression_gaze; owner-authorized identity coverage construction"
+        ]
+      },
+      "environmental_hero": {
+        "camera_consequence": "Use the canonical portrait full-length frontal composition with complete person, modest headroom, low horizon around knee height and most of the frame given to sky.",
+        "pose_joint_chain": "Plant both feet close and nearly parallel with a small fore-aft offset, keep hips quiet, let both arms hang and connect one hand to the low plain accessory.",
+        "focus": "Keep person, footwear contact, ridge crest and discrete clouds all legible with deep clean focus.",
+        "foreground": "The sand surface is the only lower plane and nothing sits between lens and subject.",
+        "provenance": [
+          "owner-supplied full-length seed plus legacy blocking, environment hero and camera_lens deep-focus system"
+        ]
+      },
+      "sculptural_three_quarter": {
+        "camera_consequence": "Use a vertical head-through-calf frame from a shallow three-quarter axis while keeping roll level, proportions normal and the sand horizon low.",
+        "pose_joint_chain": "Turn shoulders and pelvis a few degrees together, keep feet close, raise the accessory-bearing forearm across the lower torso and let the free hand rest open beside the thigh; head pans only slightly.",
+        "focus": "Place the sharp plane on approved lens frame, mouth, connected hands and the broad plush volume around the torso.",
+        "foreground": "Use empty sky and one clean dune curve; no cloth, plant or prop crosses the lens.",
+        "provenance": [
+          "legacy garment_behaviour broad-volume system, expression head-carriage rules and camera_lens normal perspective; extrapolated within the authorized universe"
+        ]
+      },
+      "interference_frame": {
+        "camera_consequence": "Use a horizontal waist-up frame with the approved subject offset from centre and one large cloud mass touching the outer silhouette while the low ridge remains visible.",
+        "pose_joint_chain": "Keep the torso frontal, drop one shoulder slightly through a relaxed elbow, hold the accessory low and turn the head a few degrees away without exposing an eye through the lenses.",
+        "focus": "Hold the approved outline and opaque lenses sharp while the contacting cloud edge remains readable rather than dissolved.",
+        "foreground": "Interference is a background silhouette collision only; no physical object or synthetic haze crosses the lens.",
+        "provenance": [
+          "legacy environment cloud field and camera_lens explicit no-occlusion rule; owner-authorized interference interpretation"
+        ]
+      },
+      "material_or_accessory_detail": {
+        "camera_consequence": "Use a vertical torso-to-knee detail with the connected accessory hand enlarged at centre, normal perspective and a strip of sand behind.",
+        "pose_joint_chain": "Connect relaxed fingers around one plain woven handle, keep the wrist below the hip and include the opposite forearm, side torso and upper legs so the person is never reduced to a flat lay.",
+        "focus": "Put critical focus on hand connection, woven surface, plush pile and one broad rounded fold; retain enough body context to prove wear.",
+        "foreground": "The approved hand and accessory own the near plane; no detached object, vivid flower, logo or additional colour family.",
+        "provenance": [
+          "owner-supplied hand-held basket relation plus legacy garment_behaviour texture panels and blocking connected-hand placement"
+        ]
+      },
+      "wide_campaign_coda": {
+        "camera_consequence": "Use a wide horizontal level frame with the complete approved person at roughly one third of frame height on the ridge and an expansive field of separate clouds above.",
+        "pose_joint_chain": "Stand still with feet close, arms long and one accessory hand weighted downward; turn the head only slightly while maintaining withheld eyes and a neutral mouth.",
+        "focus": "Keep person, full ridge crest, sand texture and cloud field readable in one clean deep-focus hierarchy.",
+        "foreground": "Use only uninterrupted sand in the lower band; no footprints, vegetation, architecture or foreground occluder.",
+        "provenance": [
+          "legacy environment hero wide and reverse ridge plates plus camera_lens deep-focus rule; owner-authorized wide coda"
+        ]
+      }
+    }
+  },
   "sheets": {
     "camera_lens": {
       "aspect": "16:9",

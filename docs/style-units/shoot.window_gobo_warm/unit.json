@@ -1,25 +1,27 @@
 {
   "unit_id": "shoot.window_gobo_warm",
   "title": "Window Gobo Warm — one warm wall, a raking window shadow, cloth at rest",
-  "style_unit_status": "BLOCKED_SOURCE",
+  "style_unit_status": "READY",
   "source_reconciliation": {
-    "status": "BLOCKED_SOURCE",
+    "status": "READY",
+    "mode": "SINGLE_FRAME_UNIVERSE_WITH_GENERATIVE_COVERAGE",
     "included": [
-      "frame-01 — provenance-bound 1024×1280 cover crop; one three-quarter portrait with hands near the waist against a warm patterned wall"
+      "frame-01 — provenance-bound 1024×1280 cover crop; observed three-quarter portrait with hands near the waist against a warm patterned wall",
+      "seven git-preserved reference sheets — approved generative grammar for camera, blocking, expression, garment behaviour, colour, environment and person-template boundaries"
     ],
     "excluded": [
       "unavailable 928×1232 owner-source bytes",
       "unavailable additional same-shoot frames"
     ],
-    "needs_source": "Provide the original owner frame plus distinct same-shoot frames sufficient to substantiate all six canonical shot directions, alternate camera consequences, and the off-frame environment."
+    "coverage_policy": "frame-01 defines the observed universe; all six runtime shot directions are explicitly labelled original generative extrapolations constrained by the seven preserved sheets, never additional source claims."
   },
   "palette_size": 5,
   "palette": [
     { "name": "warm cream", "hex": "#E4D3BE", "role": "brightest highlight, the wall inside the gobo's bright field" },
     { "name": "greige mid", "hex": "#C9B49C", "role": "ground, the wall outside the bright field" },
     { "name": "deep warm shadow", "hex": "#6B4E3C", "role": "shadow, the gobo's dark bars on the wall" },
-    { "name": "black garment", "hex": "#1A1512", "role": "deepest value, the ruched dark cloth against the lit wall" },
-    { "name": "warm skin", "hex": "#D2A183", "role": "skin in key light and in wall-bounce fill" }
+    { "name": "deep warm black", "hex": "#1A1512", "role": "deepest shadow or styling-completion value; never source-garment authority" },
+    { "name": "warm bounce", "hex": "#D2A183", "role": "wall-bounce midtone and light-response reference; never a required skin value" }
   ],
   "source_frames": ["frame-01 — single supplied frame, portrait cropped mid-thigh, three-quarter stance against one warm cream-greige wall carrying a large soft-edged rectangular window gobo, dark gathered sheer garment, direct level gaze"],
   "unknowns": [
@@ -30,6 +32,82 @@
     "whether the light is late sun or a shaped lamp imitating it; the rake and the softness are readable, the source is not",
     "the subject's footwear and full weight distribution — the frame cuts at mid-thigh"
   ],
+  "runtime_style": {
+    "visual_system": "A still, warm-neutral fashion universe in which one approved subject, one matte wall plane and one broad soft-edged rectangular gobo carry the entire composition; camera geometry is restrained and cloth is settled.",
+    "mood_line": "Direct gaze and complete stillness hold against a warm wall while one raking rectangular shadow supplies all the drama.",
+    "environment": "Invent a new non-recognisable cream-greige wall set with subtle matte grain and a large soft-edged upright-and-horizontal gobo pattern; retain the deliberate two-plane flatness and add no furniture, plant, signage, landmark or copied room.",
+    "lighting": "A hard low production source from camera-right rakes along the wall and subject while broad warm wall bounce keeps the shadow side readable; the gobo edge is softened, the air is clear, and the real physical source remains UNKNOWN.",
+    "materials": [
+      "warm cream and greige matte wall plane with restrained surface grain",
+      "deep warm rectangular gobo shadow with a visible soft transition",
+      "clear air and an otherwise empty set with no third depth plane",
+      "the approved item in its verified construction, texture and colours; never the source gathered garment design"
+    ],
+    "contrast": "A gentle warm S-curve keeps deep values open, preserves texture in dark approved items, rolls the brightest wall patch softly and holds lit and shadowed values inside one warm-neutral family.",
+    "expression_signature": "Direct or near-direct level gaze, upper lids slightly low, brows and cheekbones at rest, jaw relaxed, chin level, neck long, mouth closed or softly parted with level corners, and zero performed smile.",
+    "garment_behaviour": "Keep approved items still and settled: gathers stay where placed, single layers may transmit the rake, stacked layers stay opaque, and texture remains visible. Never copy source cut, ruching or colourway.",
+    "optical_signature": [
+      "Every frame is nearly clean: moderate perspective, level geometry, no flare, no vignette, no chromatic fringe and no swirl.",
+      "Every frame carries only gentle bloom in the brightest wall patch and slight warm halation where a lit edge meets a deep value; global glow is forbidden.",
+      "Fine low grain and crisp approved-item texture are fixed throughout, while the wall remains gently softer behind the subject."
+    ],
+    "shot_directions": {
+      "clean_identity_hero": {
+        "camera_consequence": "Level vertical portrait from chest height with moderate perspective; the approved subject fills roughly sixty to eighty percent of frame height and a gobo bar occupies clean negative space above the head.",
+        "pose_joint_chain": "Torso turns three-quarter, head returns fully to lens, chin level, shoulders low, near elbow bends outward with hand at the waist and far forearm rests near the opposite waist rather than disappearing.",
+        "focus": "Approved eyes, face and nearest approved-item texture are sharp; wall grain softens but the gobo boundary stays readable.",
+        "foreground": "Nothing crosses the lens; preserve direct identity evidence and a clean subject-to-wall separation.",
+        "provenance": [
+          "frame-01 level three-quarter/direct-gaze observations + preserved camera_lens, blocking and expression_gaze sheets — GENERATIVE EXTRAPOLATION"
+        ]
+      },
+      "environmental_hero": {
+        "camera_consequence": "Level square-on horizontal or wide vertical at chest height; the subject remains forty to fifty-five percent of frame height while the full upright-and-horizontal gobo field surrounds the body.",
+        "pose_joint_chain": "Pelvis and spine stay upright, torso turns only slightly off-axis, both elbows relax near the waist with hands separated, and head remains level toward lens.",
+        "focus": "Subject and main gobo transition are jointly readable; outer wall texture falls gently softer without adding a third plane.",
+        "foreground": "No physical foreground object; empty warm wall is intentional environmental information rather than missing set dressing.",
+        "provenance": [
+          "frame-01 warm plane/gobo observations + preserved environment and camera_lens sheets — GENERATIVE EXTRAPOLATION"
+        ]
+      },
+      "sculptural_three_quarter": {
+        "camera_consequence": "Slightly lower oblique three-quarter camera looking along the wall; gobo bars skew across the plane while the approved subject fills fifty-five to seventy-five percent of frame height.",
+        "pose_joint_chain": "Weight remains plausible but unspecified, near hand rests at hip crest with elbow out, far forearm crosses inward at the waist, shoulders counter-rotate slightly and head returns to lens.",
+        "focus": "Face, near shoulder, hip-hand chain and lit approved-cloth folds are sharp; skewed gobo edge and far wall soften gradually.",
+        "foreground": "No lens-crossing prop; the near elbow may tighten the frame edge but cannot be cropped into an anatomically ambiguous fragment.",
+        "provenance": [
+          "frame-01 three-quarter/waist-hand seed + preserved blocking and camera_lens sheets — GENERATIVE EXTRAPOLATION"
+        ]
+      },
+      "interference_frame": {
+        "camera_consequence": "Close chest-height portrait in which one soft gobo boundary crosses the wall and the approved subject's shoulder or torso while the face remains entirely clear.",
+        "pose_joint_chain": "Torso rotates farther from camera, head turns back into direct gaze, near elbow bends across the rib line and far hand settles at the opposite hip to make a closed angular chain.",
+        "focus": "Eyes and face remain sharp; the illuminated approved-item texture is next, and the wall/gobo edge stays soft but recognisable.",
+        "foreground": "No object sits between lens and subject; interference comes from the broad light/shadow boundary crossing the body-wall field, never from fake flare or foreground fabric.",
+        "provenance": [
+          "frame-01 rectilinear light-pattern observation + preserved environment, camera_lens and blocking sheets — GENERATIVE EXTRAPOLATION"
+        ]
+      },
+      "material_or_accessory_detail": {
+        "camera_consequence": "Close waist-to-chest-height human-context detail of one approved-item gather, seam, accessory or closure held against the raking wall light; head visibility is optional.",
+        "pose_joint_chain": "One shoulder-elbow-wrist chain brings a hand to the waist detail while the opposite forearm stabilises the approved item; fingers, wrist and adjacent torso remain connected.",
+        "focus": "Approved construction, surface texture, hand contact and the transition from single to stacked material are sharp; wall and gobo soften behind.",
+        "foreground": "The approved detail may dominate the near frame but must retain hand, wrist and torso context; never deliver an isolated product or source-garment copy.",
+        "provenance": [
+          "frame-01 gathered/transmitting cloth observation + preserved garment_behaviour and camera_lens sheets — GENERATIVE EXTRAPOLATION"
+        ]
+      },
+      "wide_campaign_coda": {
+        "camera_consequence": "Horizontal oblique view along the wall from a level camera; the approved subject stays thirty to forty percent of frame height inside a visibly skewed gobo pattern and is never a tiny figure.",
+        "pose_joint_chain": "Full or near-full standing chain with feet plausibly grounded, spine upright, one hand at hip, opposite arm lowered with elbow soft, and head turned level toward or just past lens.",
+        "focus": "Subject and nearest gobo transition remain legible; wall grain and the far end of the pattern fall gradually softer.",
+        "foreground": "A narrow empty greige wall or floor-toned band may anchor the bottom without hiding the body; no prop or unrelated architecture enters.",
+        "provenance": [
+          "frame-01 wall/gobo universe + preserved environment, camera_lens and blocking sheets — GENERATIVE EXTRAPOLATION"
+        ]
+      }
+    }
+  },
   "sheets": {
     "camera_lens": {
       "aspect": "16:9",

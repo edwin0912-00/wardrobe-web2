@@ -6,15 +6,50 @@
   "ui_name_uk": "Сіра стіна · глянець",
   "asset_role": "mood_card",
   "file": "assets/scene-mood-cards/shoot.grey_wall_gloss.webp",
-  "sha256": "274d96d655e735188deb1d3c2ba83ee98decc0b73d3894a637658340165eac52",
+  "sha256": "e9fa3c720492ff98ebc011242af87f46f47231c30bf93f4f67d7a512cb99f6a7",
   "origin": {
     "kind": "OWN_GENERATED_PREVIEW",
-    "note": "Generated with our own pixels on the gpt_image_2 route. Style extracted from owner-supplied retail reference frames via the artshoot-pipeline-style-creation observation pass; the reference frames are extraction-only and are not committed. Plain unbranded wardrobe by operator ruling.",
-    "observation_log": "docs/style-units/shoot.grey_wall_gloss/OBSERVATION.md",
-    "prompt_sha256": "6e0e859e681d09e210b03fc9b97eb3f3a4c7cfef71404b45d8aa48ac45623251",
-    "generator_route": "gpt_image_2",
-    "source_width": 896,
-    "source_height": 1120
+    "note": "Original preview generated solely from the immutable runtime_style contract and deterministic palette authority. No source photographs, approved looks, source identity, or personal input were supplied to the provider.",
+    "unit_contract": "docs/style-units/shoot.grey_wall_gloss/unit.json",
+    "unit_contract_sha256": "04e405b62dd5a42beafde680030345a7b03e5af2cb11f4b9c86f7243a5975d63",
+    "unit_binding_sha256": "28296c3aa26bc0bf211e07318ba1cfe41adb8456dfd3e5995d91ee83a6d1eba1",
+    "runtime_style_sha256": "1ce39600d2579686c8f6c72fd17b3036090021c3c4f7e04fe5bddcbcf4c22493",
+    "palette_authority": {
+      "file": "docs/style-units/shoot.grey_wall_gloss/palette-strip.svg",
+      "sha256": "0fbe558a2a4c83e43bd0ae5ffc1d0cb258d85d471ffcba405212eaebc42c4af1",
+      "rendered_not_generated": true
+    }
+  },
+  "generation": {
+    "provider_path": "higgsfield-cli",
+    "prompt_contract_version": "create-universe-mood-card-v1",
+    "prompt_sha256": "fad8a649b774090e1447ad16fd19f2dcee48fa1d702f9f12f61016bc60a0c6ca",
+    "composition_slot": "environmental_hero",
+    "provider_receipt": {
+      "provider": "higgsfield",
+      "transport": "higgsfield-cli",
+      "generation_mode": "journaled",
+      "job_id": "85376c24-7644-48fb-a15d-389afc05803f",
+      "job_set_type": "nano_banana_2",
+      "model_name": "Nano Banana Pro",
+      "provider_internal_model": null,
+      "requested_aspect_ratio": "4:5",
+      "requested_resolution": "2k",
+      "requested_quality": null,
+      "output_sha256": "6aacd7f9e5fcaf817d2cf537b13f93677bc6775357c171f656f9980e1e2c5beb",
+      "provider_journal_sha256": "4aa939a0915f3e999af5aa9c939eddea4bbccfc80d72234fa7144b7dbc3d3e9f",
+      "request_sha256": "1681f38325a8b80608e73c9a2d0ae2599544f740b6ea394e77757f3c0f6ee067",
+      "palette_input_sha256": "38fc1112a042a1ed5130e7e9d38f6843f5b57ea71298f96d2c32fd1804bdb39e"
+    },
+    "source_width": 1856,
+    "source_height": 2304,
+    "normalization": {
+      "method": "deterministic_4x5_cover",
+      "crop_position": "centre",
+      "width": 1024,
+      "height": 1280,
+      "format": "webp"
+    }
   },
   "delivery": {
     "width": 1024,
@@ -23,6 +58,13 @@
     "aspect_ratio": "4:5"
   },
   "contains_personal_input": false,
-  "approval": "PENDING_VISUAL_JUDGE",
-  "created_at": "2026-07-27T00:00:00.000Z"
+  "approval": "APPROVED",
+  "visual_review": {
+    "status": "APPROVED",
+    "reviewed_at": "2026-07-29T22:01:06.229Z",
+    "reviewed_source_width": 1856,
+    "reviewed_source_height": 2304,
+    "notes": "Full-resolution review passed: restrained grey-wall studio, burgundy gloss material response, clean three-quarter turn, precise highlight control, generous negative field, and no source identity leakage."
+  },
+  "created_at": "2026-07-29T22:01:06.229Z"
 }

@@ -53,8 +53,23 @@
     "aperture and shutter values",
     "the backdrop's true width and where its seam falls — no seam is visible in frame",
     "the number and placement of the lights; only one broad frontal source and a separately lit backdrop are readable",
-    "what the small flat object in the hand is — it is held edge-on and unreadable, and it carries no readable text or mark"
+    "what the small flat object in the hand is — it is held edge-on and unreadable, and it carries no readable text or mark",
+    "whether the six runtime coverage constructions existed in the historical shoot; they are owner-authorized extensions of the preserved universe"
   ],
+  "unit_contract": {
+    "path": "unit.json",
+    "sha256": "01eddeaeecba62984fd910c76e4f786c3fe7e8da501d0f15b13f0cf2a0df7870"
+  },
+  "observation_log": {
+    "path": "OBSERVATION.md",
+    "sha256": "e25663c7681759cc734ba98f6bb4652a692ca3dcf8587fe8c2ffb27501d20df9"
+  },
+  "self_verification": {
+    "path": "SELF-VERIFY.md",
+    "sha256": "9a7812bf568c8b17a36821383bfcee2c552106881a976a3ca52c068ee1ca3fea",
+    "status": "APPROVED"
+  },
+  "runtime_style_sha256": "5650679ea59191c99da4b12a66482a328b98f4e4ed142a1eafa70fe399acdccb",
   "sheets": [
     {
       "sheet_id": "camera_lens",
@@ -63,6 +78,18 @@
       "byte_size": 2930755,
       "width": 2048,
       "height": 1158,
+      "requested_aspect": "16:9",
+      "attempts": null,
+      "provider_receipt": null,
+      "legacy_artifact_receipt": {
+        "kind": "GIT_PRESERVED_GENERATED_ASSET",
+        "output_sha256": "162b2045f7c0328e579c0801d6d5b4a5722171b9b4405bc49d5ab59ad27d39e2",
+        "original_manifest_sha256": "68b5a81d09a51270f9bbe199bb222696bd6a2ef52e32d5328c8089e659f5280e",
+        "preserving_commits": [
+          "2f27dfff5e2579527b289cd42e23d82b78aae93e"
+        ],
+        "provider_receipt_status": "UNAVAILABLE_LEGACY"
+      },
       "colour_authoritative": false
     },
     {
@@ -72,6 +99,18 @@
       "byte_size": 1781343,
       "width": 1344,
       "height": 752,
+      "requested_aspect": "16:9",
+      "attempts": null,
+      "provider_receipt": null,
+      "legacy_artifact_receipt": {
+        "kind": "GIT_PRESERVED_GENERATED_ASSET",
+        "output_sha256": "071bba4b4545459a57157b7f3664c7032b75056c5b7b8b7576838cc1119c8394",
+        "original_manifest_sha256": "68b5a81d09a51270f9bbe199bb222696bd6a2ef52e32d5328c8089e659f5280e",
+        "preserving_commits": [
+          "2f27dfff5e2579527b289cd42e23d82b78aae93e"
+        ],
+        "provider_receipt_status": "UNAVAILABLE_LEGACY"
+      },
       "colour_authoritative": false
     },
     {
@@ -81,6 +120,18 @@
       "byte_size": 3305214,
       "width": 2048,
       "height": 1365,
+      "requested_aspect": "3:2",
+      "attempts": null,
+      "provider_receipt": null,
+      "legacy_artifact_receipt": {
+        "kind": "GIT_PRESERVED_GENERATED_ASSET",
+        "output_sha256": "1b0c8422e7bb78c6ef48cfe9f209e4b45da1f3defca05d045b2e861434a01f77",
+        "original_manifest_sha256": "68b5a81d09a51270f9bbe199bb222696bd6a2ef52e32d5328c8089e659f5280e",
+        "preserving_commits": [
+          "2f27dfff5e2579527b289cd42e23d82b78aae93e"
+        ],
+        "provider_receipt_status": "UNAVAILABLE_LEGACY"
+      },
       "colour_authoritative": false
     },
     {
@@ -90,6 +141,18 @@
       "byte_size": 3445460,
       "width": 2048,
       "height": 1365,
+      "requested_aspect": "3:2",
+      "attempts": null,
+      "provider_receipt": null,
+      "legacy_artifact_receipt": {
+        "kind": "GIT_PRESERVED_GENERATED_ASSET",
+        "output_sha256": "7d81b8461dd22ce7e8271678e7a36ac631f6da7316f2cff33675141ef52ae2e3",
+        "original_manifest_sha256": "68b5a81d09a51270f9bbe199bb222696bd6a2ef52e32d5328c8089e659f5280e",
+        "preserving_commits": [
+          "2f27dfff5e2579527b289cd42e23d82b78aae93e"
+        ],
+        "provider_receipt_status": "UNAVAILABLE_LEGACY"
+      },
       "colour_authoritative": false
     },
     {
@@ -99,6 +162,18 @@
       "byte_size": 2514930,
       "width": 2048,
       "height": 1158,
+      "requested_aspect": "16:9",
+      "attempts": null,
+      "provider_receipt": null,
+      "legacy_artifact_receipt": {
+        "kind": "GIT_PRESERVED_GENERATED_ASSET",
+        "output_sha256": "d73dd9d963513d4c65200030df2b3713d21a21f4884794d54bc05e55557ba712",
+        "original_manifest_sha256": "68b5a81d09a51270f9bbe199bb222696bd6a2ef52e32d5328c8089e659f5280e",
+        "preserving_commits": [
+          "2f27dfff5e2579527b289cd42e23d82b78aae93e"
+        ],
+        "provider_receipt_status": "UNAVAILABLE_LEGACY"
+      },
       "colour_authoritative": false
     },
     {
@@ -108,6 +183,18 @@
       "byte_size": 1767320,
       "width": 2048,
       "height": 877,
+      "requested_aspect": "21:9",
+      "attempts": null,
+      "provider_receipt": null,
+      "legacy_artifact_receipt": {
+        "kind": "GIT_PRESERVED_GENERATED_ASSET",
+        "output_sha256": "c8e248ba3f479f14c565af21b531c35b82907497caae327d0bdde894cc06b378",
+        "original_manifest_sha256": "68b5a81d09a51270f9bbe199bb222696bd6a2ef52e32d5328c8089e659f5280e",
+        "preserving_commits": [
+          "2f27dfff5e2579527b289cd42e23d82b78aae93e"
+        ],
+        "provider_receipt_status": "UNAVAILABLE_LEGACY"
+      },
       "colour_authoritative": false
     },
     {
@@ -117,10 +204,22 @@
       "byte_size": 3511332,
       "width": 1365,
       "height": 2048,
+      "requested_aspect": "2:3",
+      "attempts": null,
+      "provider_receipt": null,
+      "legacy_artifact_receipt": {
+        "kind": "GIT_PRESERVED_GENERATED_ASSET",
+        "output_sha256": "68fa4f764ec23c5eac432e111b32e370ff2ef5272df18696984c8e7412a6dc6a",
+        "original_manifest_sha256": "68b5a81d09a51270f9bbe199bb222696bd6a2ef52e32d5328c8089e659f5280e",
+        "preserving_commits": [
+          "2f27dfff5e2579527b289cd42e23d82b78aae93e"
+        ],
+        "provider_receipt_status": "UNAVAILABLE_LEGACY"
+      },
       "colour_authoritative": false
     }
   ],
-  "unit_sha256": "3f57c28191bdc12d3ce1d3dce6fbe11f460b74ac8f19a9526158cae97b4b30e3",
+  "unit_sha256": "5709a54afdbd4dc18f9135610fa3752076dbf498cff4d1aabee9c87ee385cc83",
   "generated_with": {
     "model": "gpt-2",
     "transport": "magnific",

@@ -455,15 +455,25 @@ async function main() {
         : null;
       const currentSha256 = sha256(bytes);
       const receipt = previous?.provider_receipt;
-      if (!receipt
-        || receipt.output_sha256 !== currentSha256
-        || typeof receipt.provider !== 'string'
-        || receipt.provider.trim() === ''
-        || typeof receipt.transport !== 'string'
-        || receipt.transport.trim() === ''
-        || typeof receipt.job_id !== 'string'
-        || receipt.job_id.trim() === '') {
-        throw new Error(`Unit refused before binding:\n  - sheet-${id}.png has no matching provider receipt`);
+      const legacyReceipt = previous?.legacy_artifact_receipt;
+      const hasProviderReceipt = Boolean(receipt
+        && receipt.output_sha256 === currentSha256
+        && typeof receipt.provider === 'string'
+        && receipt.provider.trim() !== ''
+        && typeof receipt.transport === 'string'
+        && receipt.transport.trim() !== ''
+        && typeof receipt.job_id === 'string'
+        && receipt.job_id.trim() !== '');
+      const hasLegacyReceipt = Boolean(legacyReceipt
+        && legacyReceipt.kind === 'GIT_PRESERVED_GENERATED_ASSET'
+        && legacyReceipt.output_sha256 === currentSha256
+        && /^[a-f0-9]{64}$/.test(legacyReceipt.original_manifest_sha256 ?? '')
+        && Array.isArray(legacyReceipt.preserving_commits)
+        && legacyReceipt.preserving_commits.length > 0
+        && legacyReceipt.preserving_commits.every((commit) => /^[a-f0-9]{7,40}$/.test(commit))
+        && legacyReceipt.provider_receipt_status === 'UNAVAILABLE_LEGACY');
+      if (!hasProviderReceipt && !hasLegacyReceipt) {
+        throw new Error(`Unit refused before binding:\n  - sheet-${id}.png has neither a matching provider receipt nor a verified legacy artifact receipt`);
       }
       results.push({
         sheet_id: id,
@@ -474,7 +484,8 @@ async function main() {
         height: size.height,
         requested_aspect: unit.sheets[id].aspect,
         attempts: Number.isInteger(previous?.attempts) ? previous.attempts : null,
-        provider_receipt: receipt,
+        provider_receipt: hasProviderReceipt ? receipt : null,
+        legacy_artifact_receipt: hasLegacyReceipt ? legacyReceipt : null,
         colour_authoritative: false,
       });
     }

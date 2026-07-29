@@ -41,13 +41,28 @@
     "rendered_not_generated": true
   },
   "source_frames": [
-    "frame-01 — single supplied frame, portrait, full-length figure mid-stride crossing a living European city street under bright overcast, pedestrians and parked cars visible, long-lens compression, soft short shadows"
+    "frame-01 — legacy extraction description: portrait full-length figure mid-stride across a living European street under bright overcast, with pedestrians, parked cars, long-lens compression and soft short shadows; source bytes are no longer retained"
   ],
   "unknowns": [
-    "exact city",
-    "lens focal length (consequences recorded instead)",
-    "whether the crossing is signal-controlled"
+    "exact city and whether the crossing is signal-controlled",
+    "lens focal length, aperture, shutter speed and numerical physical camera height",
+    "exact source capture dimensions and SHA-256 of the unavailable extraction-only frame",
+    "which six coverage directions, beyond the observed stride, existed in the historical source shoot"
   ],
+  "unit_contract": {
+    "path": "unit.json",
+    "sha256": "5d0ff917253d5e9c886228b949bdc017741135fc5fa5446e2a7ee93bca045e44"
+  },
+  "observation_log": {
+    "path": "OBSERVATION.md",
+    "sha256": "cb022f131a538ec7b10a52784f596bc376d8bb224de573ca2ef7c5ca3087a207"
+  },
+  "self_verification": {
+    "path": "SELF-VERIFY.md",
+    "sha256": "614ea70aefbac4d2d1285d76e8bdc492b8e1189b16d3c1d842cbf629941ec98b",
+    "status": "APPROVED"
+  },
+  "runtime_style_sha256": "884c5bf666cea228bb12938d9f3f9258cfa9adabf444b74ac274232ffa1bb7d7",
   "sheets": [
     {
       "sheet_id": "camera_lens",
@@ -58,6 +73,17 @@
       "height": 720,
       "requested_aspect": "16:9",
       "attempts": 1,
+      "provider_receipt": null,
+      "legacy_artifact_receipt": {
+        "kind": "GIT_PRESERVED_GENERATED_ASSET",
+        "output_sha256": "88bad4372a5435078f8c0d315e065c1ec942e85be1645dc2c722f941e9c7d812",
+        "original_manifest_sha256": "38b1a30ebf25e203b7004640dbf05545831fc4522958c1a04504999fbc7a3bc7",
+        "preserving_commits": [
+          "8fca4ea8471e81fe65459f5f50dd8893a3a20f8e",
+          "5322cd3003bb553a574c12632248a54077f3f1e9"
+        ],
+        "provider_receipt_status": "UNAVAILABLE_LEGACY"
+      },
       "colour_authoritative": false
     },
     {
@@ -69,6 +95,17 @@
       "height": 720,
       "requested_aspect": "16:9",
       "attempts": 1,
+      "provider_receipt": null,
+      "legacy_artifact_receipt": {
+        "kind": "GIT_PRESERVED_GENERATED_ASSET",
+        "output_sha256": "b7b741f8de2616c11fffa02cb57274d8d95f5c042c7219b0cb39135d41ab1834",
+        "original_manifest_sha256": "38b1a30ebf25e203b7004640dbf05545831fc4522958c1a04504999fbc7a3bc7",
+        "preserving_commits": [
+          "8fca4ea8471e81fe65459f5f50dd8893a3a20f8e",
+          "5322cd3003bb553a574c12632248a54077f3f1e9"
+        ],
+        "provider_receipt_status": "UNAVAILABLE_LEGACY"
+      },
       "colour_authoritative": false
     },
     {
@@ -80,6 +117,17 @@
       "height": 832,
       "requested_aspect": "3:2",
       "attempts": 1,
+      "provider_receipt": null,
+      "legacy_artifact_receipt": {
+        "kind": "GIT_PRESERVED_GENERATED_ASSET",
+        "output_sha256": "2a6a6e6b2fee16d4ce312c640ce72ec69a01dd5816515fb8f57420f8173b987e",
+        "original_manifest_sha256": "38b1a30ebf25e203b7004640dbf05545831fc4522958c1a04504999fbc7a3bc7",
+        "preserving_commits": [
+          "8fca4ea8471e81fe65459f5f50dd8893a3a20f8e",
+          "5322cd3003bb553a574c12632248a54077f3f1e9"
+        ],
+        "provider_receipt_status": "UNAVAILABLE_LEGACY"
+      },
       "colour_authoritative": false
     },
     {
@@ -91,6 +139,17 @@
       "height": 832,
       "requested_aspect": "3:2",
       "attempts": 1,
+      "provider_receipt": null,
+      "legacy_artifact_receipt": {
+        "kind": "GIT_PRESERVED_GENERATED_ASSET",
+        "output_sha256": "7cba1cce087be8e5deb91a7acf72da508cc037e84f60e53ce6867bddc929caca",
+        "original_manifest_sha256": "38b1a30ebf25e203b7004640dbf05545831fc4522958c1a04504999fbc7a3bc7",
+        "preserving_commits": [
+          "8fca4ea8471e81fe65459f5f50dd8893a3a20f8e",
+          "5322cd3003bb553a574c12632248a54077f3f1e9"
+        ],
+        "provider_receipt_status": "UNAVAILABLE_LEGACY"
+      },
       "colour_authoritative": false
     },
     {
@@ -102,6 +161,17 @@
       "height": 720,
       "requested_aspect": "16:9",
       "attempts": 1,
+      "provider_receipt": null,
+      "legacy_artifact_receipt": {
+        "kind": "GIT_PRESERVED_GENERATED_ASSET",
+        "output_sha256": "00f5e680627ab20036e495dc50192af2bfe9145ca292eac4631685c3ea64d1a4",
+        "original_manifest_sha256": "38b1a30ebf25e203b7004640dbf05545831fc4522958c1a04504999fbc7a3bc7",
+        "preserving_commits": [
+          "8fca4ea8471e81fe65459f5f50dd8893a3a20f8e",
+          "5322cd3003bb553a574c12632248a54077f3f1e9"
+        ],
+        "provider_receipt_status": "UNAVAILABLE_LEGACY"
+      },
       "colour_authoritative": false
     },
     {
@@ -113,6 +183,17 @@
       "height": 672,
       "requested_aspect": "21:9",
       "attempts": 1,
+      "provider_receipt": null,
+      "legacy_artifact_receipt": {
+        "kind": "GIT_PRESERVED_GENERATED_ASSET",
+        "output_sha256": "9b1d051bdf895173fc10b70106f57eed0fb854fba57f3f30d3f0bddb6c1a2de3",
+        "original_manifest_sha256": "38b1a30ebf25e203b7004640dbf05545831fc4522958c1a04504999fbc7a3bc7",
+        "preserving_commits": [
+          "8fca4ea8471e81fe65459f5f50dd8893a3a20f8e",
+          "5322cd3003bb553a574c12632248a54077f3f1e9"
+        ],
+        "provider_receipt_status": "UNAVAILABLE_LEGACY"
+      },
       "colour_authoritative": false
     },
     {
@@ -124,10 +205,21 @@
       "height": 1248,
       "requested_aspect": "2:3",
       "attempts": 1,
+      "provider_receipt": null,
+      "legacy_artifact_receipt": {
+        "kind": "GIT_PRESERVED_GENERATED_ASSET",
+        "output_sha256": "5a8967fb6c450f7a13547598acf643aada887762ec4c63290b7fcce9d0350154",
+        "original_manifest_sha256": "38b1a30ebf25e203b7004640dbf05545831fc4522958c1a04504999fbc7a3bc7",
+        "preserving_commits": [
+          "8fca4ea8471e81fe65459f5f50dd8893a3a20f8e",
+          "5322cd3003bb553a574c12632248a54077f3f1e9"
+        ],
+        "provider_receipt_status": "UNAVAILABLE_LEGACY"
+      },
       "colour_authoritative": false
     }
   ],
-  "unit_sha256": "e2173ad5cd671ce7ab59e9ea8a85dcfaa8e9b24419d2162f6809e086ccb2eace",
+  "unit_sha256": "637fad0f1f7d8c03e4fa03037298f49ed1ea62e18dfabcda3c3567396f0fa25f",
   "generated_with": {
     "model": "openai/gpt-5.4-image-2",
     "transport": "openrouter"

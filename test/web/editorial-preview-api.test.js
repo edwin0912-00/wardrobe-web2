@@ -59,7 +59,7 @@ async function routeFixture(t) {
   return app;
 }
 
-test('editorial catalog activates all five source-backed Creative Universe shoots', async (t) => {
+test('editorial catalog activates every Creative Universe shoot', async (t) => {
   const app = await routeFixture(t);
   const catalogResponse = await app.inject({
     method: 'GET',
@@ -80,6 +80,16 @@ test('editorial catalog activates all five source-backed Creative Universe shoot
   assert.deepEqual(catalog.generation_mode_ids, [
     'editorial.edwin_novak.organic_contrast',
     'editorial.edwin_novak.urban_monochrome',
+    'shoot.skylight_haze',
+    'shoot.terracotta_hardlight',
+    'shoot.window_gobo_warm',
+    'shoot.grey_studio_stride',
+    'shoot.sky_dune_surreal',
+    'shoot.hardsun_brick_doorway',
+    'shoot.overcast_street_stride',
+    'shoot.grey_wall_gloss',
+    'shoot.ochre_stage_tailoring',
+    'shoot.shutter_amber_interior',
     'shoot.zayn_institutional',
     'shoot.liza_luminous',
     'shoot.duckweed_forest_ophelia',

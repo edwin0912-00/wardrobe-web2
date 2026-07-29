@@ -894,13 +894,24 @@ export class FilesystemScenePresetResolver {
       }
       for (const role of CREATE_UNIVERSE_REQUIRED_SHEETS) {
         const declared = byRole.get(role);
+        const providerReceiptValid = declared?.provider_receipt?.output_sha256 === declared?.sha256
+          && typeof declared?.provider_receipt?.provider === 'string'
+          && typeof declared?.provider_receipt?.transport === 'string'
+          && typeof declared?.provider_receipt?.job_id === 'string';
+        const legacyReceiptValid = declared?.legacy_artifact_receipt?.kind
+            === 'GIT_PRESERVED_GENERATED_ASSET'
+          && declared?.legacy_artifact_receipt?.output_sha256 === declared?.sha256
+          && SHA256.test(declared?.legacy_artifact_receipt?.original_manifest_sha256 ?? '')
+          && Array.isArray(declared?.legacy_artifact_receipt?.preserving_commits)
+          && declared.legacy_artifact_receipt.preserving_commits.length > 0
+          && declared.legacy_artifact_receipt.preserving_commits.every(
+            (commit) => /^[a-f0-9]{7,40}$/.test(commit),
+          )
+          && declared?.legacy_artifact_receipt?.provider_receipt_status === 'UNAVAILABLE_LEGACY';
         if (!declared
           || declared.path !== `sheet-${role}.png`
           || !SHA256.test(declared.sha256 ?? '')
-          || declared?.provider_receipt?.output_sha256 !== declared.sha256
-          || typeof declared?.provider_receipt?.provider !== 'string'
-          || typeof declared?.provider_receipt?.transport !== 'string'
-          || typeof declared?.provider_receipt?.job_id !== 'string') {
+          || (!providerReceiptValid && !legacyReceiptValid)) {
           integrity = false;
           continue;
         }

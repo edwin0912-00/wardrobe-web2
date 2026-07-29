@@ -4,6 +4,16 @@ import test from 'node:test';
 import { FilesystemScenePresetResolver } from '../../src/web/scene-resolvers.js';
 
 const READY_SHOOT_IDS = [
+  'shoot.skylight_haze',
+  'shoot.terracotta_hardlight',
+  'shoot.window_gobo_warm',
+  'shoot.grey_studio_stride',
+  'shoot.sky_dune_surreal',
+  'shoot.hardsun_brick_doorway',
+  'shoot.overcast_street_stride',
+  'shoot.grey_wall_gloss',
+  'shoot.ochre_stage_tailoring',
+  'shoot.shutter_amber_interior',
   'shoot.zayn_institutional',
   'shoot.liza_luminous',
   'shoot.duckweed_forest_ophelia',
@@ -11,7 +21,7 @@ const READY_SHOOT_IDS = [
   'shoot.autumn_park_mediated_sun',
 ];
 
-test('all recovered source-backed Creative Universe units compile their observed runtime style', async () => {
+test('all Creative Universe units compile their observed runtime style', async () => {
   const projectRoot = path.resolve('.');
   const resolver = new FilesystemScenePresetResolver({
     rootDirectory: path.join(projectRoot, 'assets', 'scene-presets'),

@@ -15,10 +15,10 @@
   <text x="800" y="246" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#6e6e6b">shadow, the gobo's dark bars on the wall</text>
   <rect x="968" y="40" width="304" height="130" fill="#1A1512"/>
   <text x="1120" y="196" text-anchor="middle" font-family="monospace" font-size="22" fill="#e8e8e6">#1A1512</text>
-  <text x="1120" y="224" text-anchor="middle" font-family="sans-serif" font-size="15" fill="#9a9a97">black garment</text>
-  <text x="1120" y="246" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#6e6e6b">deepest value, the ruched dark cloth against the lit wall</text>
+  <text x="1120" y="224" text-anchor="middle" font-family="sans-serif" font-size="15" fill="#9a9a97">deep warm black</text>
+  <text x="1120" y="246" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#6e6e6b">deepest shadow or styling-completion value; never source-garment authority</text>
   <rect x="1288" y="40" width="304" height="130" fill="#D2A183"/>
   <text x="1440" y="196" text-anchor="middle" font-family="monospace" font-size="22" fill="#e8e8e6">#D2A183</text>
-  <text x="1440" y="224" text-anchor="middle" font-family="sans-serif" font-size="15" fill="#9a9a97">warm skin</text>
-  <text x="1440" y="246" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#6e6e6b">skin in key light and in wall-bounce fill</text>
+  <text x="1440" y="224" text-anchor="middle" font-family="sans-serif" font-size="15" fill="#9a9a97">warm bounce</text>
+  <text x="1440" y="246" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#6e6e6b">wall-bounce midtone and light-response reference; never a required skin value</text>
 </svg>

@@ -42,6 +42,16 @@ const requiredCreateUniverseModeIds = [
   'shoot.autumn_park_mediated_sun',
 ];
 const requiredCreateUniverseGenerationModeIds = [
+  'shoot.skylight_haze',
+  'shoot.terracotta_hardlight',
+  'shoot.window_gobo_warm',
+  'shoot.grey_studio_stride',
+  'shoot.sky_dune_surreal',
+  'shoot.hardsun_brick_doorway',
+  'shoot.overcast_street_stride',
+  'shoot.grey_wall_gloss',
+  'shoot.ochre_stage_tailoring',
+  'shoot.shutter_amber_interior',
   'shoot.zayn_institutional',
   'shoot.liza_luminous',
   'shoot.duckweed_forest_ophelia',

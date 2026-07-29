@@ -1,1 +1,28 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="840" height="180"><g><rect x="0" y="0" width="140" height="134" fill="#1D1B0C"/><text x="10" y="154" font-family="monospace" font-size="16">#1D1B0C</text><text x="10" y="172" font-family="sans-serif" font-size="12" fill="#555">deep shadow</text></g><g><rect x="140" y="0" width="140" height="134" fill="#5D200C"/><text x="150" y="154" font-family="monospace" font-size="16">#5D200C</text><text x="150" y="172" font-family="sans-serif" font-size="12" fill="#555">burnt red shadow</text></g><g><rect x="280" y="0" width="140" height="134" fill="#A63F12"/><text x="290" y="154" font-family="monospace" font-size="16">#A63F12</text><text x="290" y="172" font-family="sans-serif" font-size="12" fill="#555">amber sunlit cloth</text></g><g><rect x="420" y="0" width="140" height="134" fill="#96714B"/><text x="430" y="154" font-family="monospace" font-size="16">#96714B</text><text x="430" y="172" font-family="sans-serif" font-size="12" fill="#555">warm wall mid</text></g><g><rect x="560" y="0" width="140" height="134" fill="#C19567"/><text x="570" y="154" font-family="monospace" font-size="16">#C19567</text><text x="570" y="172" font-family="sans-serif" font-size="12" fill="#555">lit skin</text></g><g><rect x="700" y="0" width="140" height="134" fill="#DFC8AC"/><text x="710" y="154" font-family="monospace" font-size="16">#DFC8AC</text><text x="710" y="172" font-family="sans-serif" font-size="12" fill="#555">wall highlight</text></g></svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="260" viewBox="0 0 1600 260">
+  <rect width="100%" height="100%" fill="#141413"/>
+  <text x="16" y="26" font-family="sans-serif" font-size="18" fill="#e8e8e6">shoot.shutter_amber_interior — CLOSED PALETTE · palette_size 6 · rendered, not generated</text>
+  <rect x="8" y="40" width="250.66666666666669" height="130" fill="#1D1B0C"/>
+  <text x="133.33333333333334" y="196" text-anchor="middle" font-family="monospace" font-size="22" fill="#e8e8e6">#1D1B0C</text>
+  <text x="133.33333333333334" y="224" text-anchor="middle" font-family="sans-serif" font-size="15" fill="#9a9a97">deep shadow</text>
+  <text x="133.33333333333334" y="246" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#6e6e6b">deepest room shadow</text>
+  <rect x="274.6666666666667" y="40" width="250.66666666666669" height="130" fill="#5D200C"/>
+  <text x="400" y="196" text-anchor="middle" font-family="monospace" font-size="22" fill="#e8e8e6">#5D200C</text>
+  <text x="400" y="224" text-anchor="middle" font-family="sans-serif" font-size="15" fill="#9a9a97">burnt red shadow</text>
+  <text x="400" y="246" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#6e6e6b">warm shadow accent</text>
+  <rect x="541.3333333333334" y="40" width="250.66666666666669" height="130" fill="#A63F12"/>
+  <text x="666.6666666666667" y="196" text-anchor="middle" font-family="monospace" font-size="22" fill="#e8e8e6">#A63F12</text>
+  <text x="666.6666666666667" y="224" text-anchor="middle" font-family="sans-serif" font-size="15" fill="#9a9a97">amber sunlit cloth</text>
+  <text x="666.6666666666667" y="246" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#6e6e6b">hard-light accent and styling completion</text>
+  <rect x="808" y="40" width="250.66666666666669" height="130" fill="#96714B"/>
+  <text x="933.3333333333334" y="196" text-anchor="middle" font-family="monospace" font-size="22" fill="#e8e8e6">#96714B</text>
+  <text x="933.3333333333334" y="224" text-anchor="middle" font-family="sans-serif" font-size="15" fill="#9a9a97">warm wall mid</text>
+  <text x="933.3333333333334" y="246" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#6e6e6b">environment midtone</text>
+  <rect x="1074.6666666666667" y="40" width="250.66666666666669" height="130" fill="#C19567"/>
+  <text x="1200" y="196" text-anchor="middle" font-family="monospace" font-size="22" fill="#e8e8e6">#C19567</text>
+  <text x="1200" y="224" text-anchor="middle" font-family="sans-serif" font-size="15" fill="#9a9a97">lit skin reference</text>
+  <text x="1200" y="246" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#6e6e6b">legacy grade reference; real subject skin remains exempt</text>
+  <rect x="1341.3333333333335" y="40" width="250.66666666666669" height="130" fill="#DFC8AC"/>
+  <text x="1466.6666666666667" y="196" text-anchor="middle" font-family="monospace" font-size="22" fill="#e8e8e6">#DFC8AC</text>
+  <text x="1466.6666666666667" y="224" text-anchor="middle" font-family="sans-serif" font-size="15" fill="#9a9a97">wall highlight</text>
+  <text x="1466.6666666666667" y="246" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#6e6e6b">brightest slatted-light band</text>
+</svg>

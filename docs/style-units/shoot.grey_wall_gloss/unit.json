@@ -27,22 +27,90 @@
   "source_frames": [
     "frame-01 — single supplied frame, portrait, eye-level camera, subject in three-quarter back turn before a flat warm-grey studio wall, one broad soft frontal-left source, high-gloss surface carrying elongated speculars"
   ],
-  "style_unit_status": "BLOCKED_SOURCE",
-  "source_reconciliation": {
-    "status": "BLOCKED_SOURCE",
-    "primary_frame": "frame-01",
-    "source_bytes_present": false,
-    "reason": "The extraction-only source frame and its SHA-256 receipt are absent. The available mood card is an OWN_GENERATED_PREVIEW and cannot verify source observations.",
-    "needs_source": "Restore the exact frame-01 bytes plus SHA-256 receipt, preferably with the remaining coherent frames from the same photoshoot."
-  },
+  "style_unit_status": "READY",
   "unknowns": [
-    "all source-pixel claims until frame-01 is restored",
-    "source capture dimensions and sha256",
+    "source capture dimensions and SHA-256 of the unavailable extraction-only frame",
     "mouth state (hair occlusion)",
     "source size and exact distance",
     "whether the wall is seamless paper or plaster",
-    "real six-slot camera and pose coverage"
+    "which six coverage directions, beyond the observed over-shoulder turn, existed in the historical source shoot"
   ],
+  "runtime_style": {
+    "visual_system": "Minimal close-wall studio fashion in which one warm-grey plane, one broad frontal-left soft source and the approved material's truthful specular response carry the entire image.",
+    "mood_line": "Quiet and tactile: the body turns away, the gaze drops, and one controlled highlight makes material more eventful than the empty room.",
+    "environment": "A featureless original warm-grey studio wall meeting a plain neutral floor, with no props, architecture, signage or decorative texture; depth reads from the body shadow and wall gradient.",
+    "lighting": "One broad soft source close to front camera-left, with no second light or artificial rim; it wraps skin gently, draws one soft wall shadow and creates elongated clean highlights only where the approved material is truly reflective.",
+    "materials": [
+      "flat warm-grey wall with a soft vertical value gradient",
+      "plain neutral studio floor",
+      "approved glossy surfaces carrying elongated fold-ridge highlights",
+      "approved matte surfaces remaining quiet and materially truthful"
+    ],
+    "contrast": "Moderate slightly warm contrast with soft blacks, a clean highlight roll-off that preserves specular shape, restrained saturation and the four-colour environment set #5C2320 #B8AFA6 #6B6244 #A8BCCF.",
+    "expression_signature": "Gaze withheld down and past the lens, upper lids low, brows and cheekbones at rest, jaw relaxed, chin slightly lowered and head counter-turned over the near shoulder; never direct-to-lens glamour, lifted brows or a smile.",
+    "garment_behaviour": "Still air and structured rest: approved folds hold rather than fly; genuinely glossy approved material receives hot elongated highlights along fold ridges, while matte approved layers remain soft and quiet without invented sheen.",
+    "optical_signature": [
+      "Every frame is optically clean and slightly warm with restrained fine grain, no flare, no halation and no chromatic fringe.",
+      "Perspective remains restrained with level roll and no visible convergence; the wall is one close flat plane.",
+      "The approved subject is sharp while wall depth is communicated by a soft body shadow rather than artificial blur or texture."
+    ],
+    "shot_directions": {
+      "clean_identity_hero": {
+        "camera_consequence": "Vertical head-to-hip portrait at eye level, close to the wall, with the body three-quarter away and the face returning over the near shoulder.",
+        "pose_joint_chain": "Pelvis and shoulders rotate away together, near shoulder stays low, neck lengthens, head counter-turns to near-profile and chin drops slightly.",
+        "focus": "Approved visible eye, face edge and near shoulder sharp; hair and the soft wall shadow fall gently softer.",
+        "foreground": "No separate foreground object; the near shoulder and reflective approved sleeve form the closest planes.",
+        "provenance": [
+          "frame-01 plus sheet-camera_lens.png and sheet-expression_gaze.png — approved primary composition and muscle-state authority"
+        ]
+      },
+      "environmental_hero": {
+        "camera_consequence": "Vertical full-body frame from chest height with the subject offset against uninterrupted warm-grey wall and a visible strip of plain floor.",
+        "pose_joint_chain": "Weight settles on the far leg, near knee softens, pelvis stays three-quarter away, shoulders follow, one arm hangs and head turns back over shoulder.",
+        "focus": "Approved subject sharp from head through grounded feet; the wall and floor junction remain readable but secondary.",
+        "foreground": "A narrow plain floor band enters below the feet with no prop or lens-crossing object.",
+        "provenance": [
+          "sheet-environment.png and sheet-blocking.png — authored full-body extension inside the approved flat-wall, one-source universe"
+        ]
+      },
+      "sculptural_three_quarter": {
+        "camera_consequence": "Vertical knee-to-head three-quarter from slightly below shoulder height, bringing one reflective fold plane nearer while the wall remains flat.",
+        "pose_joint_chain": "Near hip shifts toward camera, torso twists away, far shoulder retracts, near elbow bends across the waist, wrist relaxes and head pans down past lens.",
+        "focus": "Face, near shoulder and dominant approved fold ridge sharp; far elbow and wall shadow soften modestly.",
+        "foreground": "The near elbow and approved material create one close diagonal; nothing unrelated crosses the lens.",
+        "provenance": [
+          "sheet-blocking.png and sheet-garment_behaviour.png — authored three-quarter geometry using the approved stillness and material response"
+        ]
+      },
+      "interference_frame": {
+        "camera_consequence": "Vertical medium portrait at eye level with one raised approved sleeve or forearm close to camera while the over-shoulder face remains visible.",
+        "pose_joint_chain": "Body stays turned away, near shoulder rotates forward, elbow bends upward, wrist passes beside but never over the eye plane, and head counter-turns down.",
+        "focus": "Approved face and one mid-distance fold ridge sharp; the near cuff or forearm falls deliberately softer.",
+        "foreground": "A single approved sleeve or forearm consumes less than one quarter of the lower side, creating material interference without hiding the face.",
+        "provenance": [
+          "sheet-camera_lens.png and sheet-garment_behaviour.png — authored near-material interference under the fixed clean optic"
+        ]
+      },
+      "material_or_accessory_detail": {
+        "camera_consequence": "Vertical shoulder-to-waist detail at close eye-to-chest height, keeping neck, wrist and torso context attached to the approved material.",
+        "pose_joint_chain": "Near elbow bends across torso, wrist turns a real cuff or approved accessory toward the source, fingers rest naturally and shoulder remains connected above.",
+        "focus": "Approved surface texture, fold ridge, hand and wrist sharp; face edge stays legible but secondary.",
+        "foreground": "The approved cuff, fold or accessory fills the near plane with a visible hand-to-elbow-to-shoulder chain.",
+        "provenance": [
+          "sheet-garment_behaviour.png — authored human-context detail from the approved elongated-specular and still-cloth rules"
+        ]
+      },
+      "wide_campaign_coda": {
+        "camera_consequence": "Horizontal studio wide from eye height with the subject at least thirty percent of frame height, placed against a large warm-grey negative-space field.",
+        "pose_joint_chain": "Feet ground in a restrained contrapposto, pelvis turns away, shoulders remain low, one arm hangs, the other crosses lightly and head looks down beyond frame.",
+        "focus": "Approved subject and adjacent wall-shadow edge legible; the broad empty wall remains clean and tonally even.",
+        "foreground": "Plain floor occupies a low band and the rest of the frame remains free of props and occluders.",
+        "provenance": [
+          "sheet-environment.png plus sheet-blocking.png — authored wide coda preserving the exact one-wall, one-source visual system"
+        ]
+      }
+    }
+  },
   "sheets": {
     "camera_lens": {
       "aspect": "16:9",

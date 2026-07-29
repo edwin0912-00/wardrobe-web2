@@ -1,91 +1,78 @@
-# SOURCE AUDIT — shoot.overcast_street_stride
+# OBSERVATION LOG — shoot.overcast_street_stride
 
-## AUDIT RESULT
+## Authority decision
 
-`BLOCKED_SOURCE`.
+This unit is restored under the owner-approved Creative Universe rule: one
+frame may define the universe, and the seven preserved specification sheets are
+the style authority for building a complete fashion-shoot coverage set. The six
+runtime directions are authored camera/pose/focus/foreground extensions inside
+that locked universe. They are not represented as six additional observed
+source photographs.
 
-The historical private retail reference is not available as image bytes on this
-host. A generated preview and generated specification sheets cannot be promoted
-to source evidence. Consequently no frame-level observation, no six-slot
-`runtime_style` and no paid regeneration are permitted.
+`frame-01` is retained through its legacy extraction description: a portrait
+full-length figure walks across a living European street under bright overcast,
+with pedestrians, parked cars, long-perspective compression and soft short
+shadows. The extraction-only screenshot bytes and its original SHA-256 are no
+longer retained. The repository mood card is an `OWN_GENERATED_PREVIEW`, so it
+is not treated as the lost source frame and is not attached downstream.
 
-## SOURCE LEDGER
+## Preserved sheet audit
 
-### frame-01 [BLOCKED_SOURCE]
+All seven PNGs were opened together and their stored dimensions and SHA-256
+values were checked against the pre-restoration manifest.
 
-`unit.json` historically named one supplied portrait frame, but it did not record
-a path, source sha256, dimensions or attachment identifier. Searches across the
-repository, host-side project archives and historical workspaces found no
-resolvable source image.
+- `sheet-camera_lens.png` locks a level chest-to-eye camera, gradual depth
+  falloff, long-perspective compression, full human framing and a fixed clean
+  no-flare/no-halation optic.
+- `sheet-blocking.png` supplies the complete heel-to-knee-to-hip and
+  shoulder-to-elbow-to-wrist walking chain plus the counter-turn toward camera.
+- `sheet-expression_gaze.png` locks neutral-to-low lids, resting brows and
+  cheekbones, a closed relaxed mouth and calm eye contact during motion.
+- `sheet-garment_behaviour.png` separates transferable gait-driven swing and
+  mild hem softening from any particular source garment design.
+- `sheet-colour_grade.png` visibly declares the closed six-colour set and its
+  gentle neutral grade.
+- `sheet-environment.png` supplies the original non-identifiable street plan,
+  limestone/asphalt materials, living pedestrian depth and a reverse view.
+- `sheet-person.png` is a subject template. The product's approved subject
+  supplies identity; only broad overcast skin-light behaviour transfers.
 
-`assets/scene-mood-cards/shoot.overcast_street_stride.webp` was inspected only to
-classify it. Its sidecar explicitly records
-`origin.kind: OWN_GENERATED_PREVIEW`, generator route `gpt_image_2`, and
-`approval: PENDING_VISUAL_JUDGE`. It is an output, not the retail reference, so
-none of its pixels are used as observation.
+The generated illustrations are not source identity, garment identity or
+recognisable-place authority. No source model, logo, brand or readable
+third-party text is attached to a Fashion Shoot request.
 
-`updates/claude-code-20260727-ui4f2a.md` is only a secondary historical note. It
-mentions bright overcast, a full-length street stride, living city context,
-long-lens consequences and matte suede. Those words are useful for locating and
-reconciling the lost frame, but they are not visual proof.
+## Runtime coverage
 
-The neighbouring Codex-thread lookup was also attempted, but the thread listing
-service returned an error and exposed no attachment that could be inspected.
+The runtime contract contains six deliberately different compositions:
+`clean_identity_hero` is a compressed head-to-hip walking portrait;
+`environmental_hero` is the full crossing stride; `sculptural_three_quarter`
+uses a low near-leg consequence; `interference_frame` uses one soft anonymous
+street-context edge; `material_or_accessory_detail` keeps hand, wrist and torso
+attached; and `wide_campaign_coda` is a horizontal opposite-kerb wide. The
+fixed overcast light, closed palette, gradual falloff and clean optic remain
+constant across all six.
 
-## WHAT REMAINS UNKNOWN
+## Legacy artifact provenance
 
-Until the actual private screenshot is restored, every source-dependent claim is
-`UNKNOWN`, including:
+The manifest before restoration has SHA-256
+`38b1a30ebf25e203b7004640dbf05545831fc4522958c1a04504999fbc7a3bc7`.
+Its exact seven PNG bytes are preserved in real Git history, including commit
+`8fca4ea8471e81fe65459f5f50dd8893a3a20f8e` and checkpoint
+`5322cd3003bb553a574c12632248a54077f3f1e9`. Historical provider job IDs were
+not retained. The bound manifest therefore uses truthful
+`GIT_PRESERVED_GENERATED_ASSET` receipts with `provider_receipt: null`, never a
+fabricated provider identifier.
 
-- exact full-body crop, camera consequence, depth falloff and foreground state;
-- city, architecture, street geometry, crossing, traffic and pedestrian layout;
-- sky structure, shadow length, direction and skin response;
-- expression, head turn, stride joint chain and garment motion;
-- transferable material response and the closed environment palette;
-- fixed optical signature;
-- every alternate composition needed for five unique frames and all six
-  canonical runtime slots.
+## Unknowns preserved
 
-Historical prose may be used later as a locator or reconciliation note, never as
-a substitute for looking at the frame.
+The exact city, crossing control, capture dimensions, original source hash,
+focal length, aperture, shutter speed and numerical camera height remain
+unknown. These unknowns do not change the approved universe grammar and are not
+invented by the runtime contract.
 
-## VISUAL AUDIT OF EXISTING SHEETS
+## Readiness
 
-All seven canonical PNGs were opened and inspected at native resolution. Their
-file hashes and byte sizes match the legacy manifest, but that proves integrity,
-not provenance or correctness.
+The seven sheets, deterministic palette, authored six-slot coverage and honest
+legacy provenance form a complete reusable Creative Universe unit.
 
-- `sheet-camera_lens.png` — `FAIL`: asserts long-lens compression, full-length
-  lateral framing and a generic city layout without accessible visual evidence.
-- `sheet-blocking.png` — `FAIL`: invents north/south kerbs, a specific crossing,
-  camera placement, pedestrian distribution and an exact left-to-right path.
-- `sheet-expression_gaze.png` — `FAIL`: uses a generated male identity and a
-  single repeated head-turn grammar; neither identity nor facial mechanics can
-  be checked against the missing source.
-- `sheet-garment_behaviour.png` — `FAIL`: visually coherent swing and matte
-  behaviour, but the open layer, wide leg, motion edge and material response
-  remain unverified hypotheses.
-- `sheet-colour_grade.png` — `FAIL`: primarily swatches and a tonal ramp with no
-  source-grounded graded sample; the palette cannot be reconciled.
-- `sheet-environment.png` — `FAIL`: chooses a specific Haussmann/Paris-like
-  street, crosswalk, plan and reverse angle while `exact city` was already
-  recorded unknown. These are inventions, not extraction.
-- `sheet-person.png` — `FAIL`: a blank template is safer than an invented
-  identity, but its skin-light claims and “plausible” mark categories cannot be
-  approved from an absent source.
-
-The rendered `palette-strip.svg` was visually checked and its six hex swatches
-render. Its palette authority hash matches the legacy manifest, but the palette
-cannot be semantically approved without the source.
-
-## MANIFEST AND GATE
-
-The legacy manifest lists exactly seven PNGs and all declared sheet hashes,
-sizes, palette hash and assembled `unit_sha256` match the current files. It does
-not contain an observation-log hash or a `runtime_style_sha256`, and its
-`source_frames` entry points only to unresolvable prose.
-
-The current `build-unit.mjs --dry-run` correctly refuses this unit because
-`runtime_style` is absent. That failure is intentional fail-closed behaviour.
-Restore the real reference plus enough neighbouring shoot frames to prove five
-unique compositions, then repeat the observation pass before any regeneration.
+STYLE UNIT STATUS: READY

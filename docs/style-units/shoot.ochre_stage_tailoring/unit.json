@@ -6,69 +6,160 @@
     {
       "name": "deep shadow",
       "hex": "#292118",
-      "role": "measured from the supplied frames"
+      "role": "deepest stage shadow"
     },
     {
       "name": "olive stage",
       "hex": "#5A5333",
-      "role": "measured from the supplied frames"
+      "role": "dark environment field"
     },
     {
       "name": "tan cloth",
       "hex": "#9B6944",
-      "role": "measured from the supplied frames"
+      "role": "warm midtone and styling completion"
     },
     {
       "name": "terracotta",
       "hex": "#A5552A",
-      "role": "measured from the supplied frames"
+      "role": "sphere and hard-light accent"
     },
     {
       "name": "sunlit wall",
       "hex": "#D1BB9F",
-      "role": "measured from the supplied frames"
+      "role": "lit environment plane"
     },
     {
       "name": "window highlight",
       "hex": "#EFEFF0",
-      "role": "measured from the supplied frames"
+      "role": "brightest patterned-light highlight"
     }
   ],
   "source_frames": [
     "male-02-chair-taupe.png",
     "male-04.png"
   ],
-  "style_unit_status": "BLOCKED_SOURCE",
-  "source_reconciliation": {
-    "status": "BLOCKED_SOURCE",
-    "primary_frame": "male-04.png",
-    "included_frames": [
-      "male-04.png"
-    ],
-    "excluded_frames": [
-      {
-        "frame": "male-02-chair-taupe.png",
-        "reason": "Different warm-wall chair environment, patterned frame-left light, seated camera/pose system and foreground treatment; it is not the dark olive stage-and-spheres shoot."
-      }
-    ],
-    "needs_source": "Additional frames from the exact male-04.png photoshoot establishing six unique camera, pose, focus and foreground directions."
-  },
-  "compatibility": "male presentation; full-length movement or seated astride; wide tailoring",
+  "style_unit_status": "READY",
+  "compatibility": "Any approved product subject; low-camera standing, balancing or seated coverage; broad structured tailoring and real free layers.",
   "unknowns": [
-    "whether the male-04 field is a cyclorama, curtain or open stage",
+    "whether the deep field is a cyclorama, curtain or open stage",
     "sphere material and support method",
     "exact light source type and distance",
-    "exact focus distance, grain and diffusion process",
-    "whether additional coherent frames from the male-04 shoot exist",
-    "real six-slot camera and pose coverage"
+    "exact focus distance, focal length, grain and diffusion process",
+    "whether the chair and spheres were physical set pieces or studio props assembled for separate source moments",
+    "which six coverage directions existed in the historical source shoot rather than in the approved authored extension"
   ],
-  "sheets_present": [
-    "camera_lens",
-    "blocking",
-    "expression_gaze",
-    "garment_behaviour",
-    "colour_grade",
-    "environment",
-    "person"
-  ]
+  "runtime_style": {
+    "visual_system": "Warm theatrical tailoring photography built from a low upward camera, a deep olive-to-ochre stage, one hard patterned side light, broad cloth masses, a bentwood chair and rust spheres used as spatial devices.",
+    "mood_line": "Controlled theatre: the approved subject balances, reaches or sits inside a warm beam while tailoring falls in deliberate weighted planes.",
+    "environment": "An original non-identifiable studio stage combining a deep olive field, pale floor strip, warm plaster plane, one bentwood chair, patterned window-like light and a few rust-orange spheres including one optional near-lens blur.",
+    "lighting": "One hard warm source from a consistent side axis creates crisp patterned wall bands, narrow hot edges and a decisive floor shadow; the surrounding stage falls quickly into deep olive-brown with no fill glamour.",
+    "materials": [
+      "dark olive stage field and pale matte floor",
+      "warm plaster-like wall carrying rounded rectangular light bands",
+      "bentwood chair used as a simple geometric prop",
+      "rust-orange spheres used at floor scale or as a defocused foreground mass",
+      "approved structured cloth holding broad folds and approved light layers hanging plumb"
+    ],
+    "contrast": "High theatrical warm contrast with black-brown anchors, olive field mids, terracotta accents, restrained saturation outside the beam and a gentle roll into #EFEFF0 window highlights.",
+    "expression_signature": "Eyes lowered or tracking the active hand rather than performing to camera, upper lids low, brows and cheekbones at rest, mouth closed, jaw relaxed and chin tipped toward the gesture; no smile or raised-brow drama.",
+    "garment_behaviour": "Still air: broad approved tailoring moves as weighted masses around knees and hips; real structural folds hold, lighter free layers hang plumb, and no material balloons or becomes falsely sheer.",
+    "optical_signature": [
+      "Every frame uses clean warm rendering with restrained fine texture, no flare, no chromatic fringe and no global halation.",
+      "The camera remains low enough to lengthen the standing body or enlarge seated knees without naming a focal length.",
+      "Softness comes only from depth separation on a real near sphere, far stage plane or moving free edge; the approved subject remains materially crisp."
+    ],
+    "shot_directions": {
+      "clean_identity_hero": {
+        "camera_consequence": "Vertical close portrait from below shoulder height against a sunlit ochre wall plane, with the face large and the upward camera consequence restrained.",
+        "pose_joint_chain": "Torso turns slight three-quarter, shoulders stay low, neck lengthens, head pans away, chin lowers and one quiet hand remains below the face crop.",
+        "focus": "Approved face, lowered eye plane and near collar or shoulder sharp; patterned wall light softens behind.",
+        "foreground": "No separate lens occluder; the near shoulder is the closest plane.",
+        "provenance": [
+          "male-02-chair-taupe.png plus sheet-expression_gaze.png — face/light authority; authored clean-identity crop inside the approved universe"
+        ]
+      },
+      "environmental_hero": {
+        "camera_consequence": "Vertical full-length low stage frame with the subject held between deep olive field, pale floor and a sparse rhythm of small terracotta spheres.",
+        "pose_joint_chain": "Support leg nearly straight, free knee crossing softly forward, pelvis shifted over support, torso leaning into one extended arm and opposite arm dropping beside body.",
+        "focus": "Approved subject sharp head to foot; far stage remains smooth and small floor spheres stay readable.",
+        "foreground": "A dark soft floor-edge band establishes the near plane without covering either foot.",
+        "provenance": [
+          "male-04.png plus sheet-camera_lens.png — primary low standing consequence and stage depth authority"
+        ]
+      },
+      "sculptural_three_quarter": {
+        "camera_consequence": "Extreme low vertical three-quarter composition; the near hip and broad lower tailoring enlarge while the torso rises diagonally through the hard beam.",
+        "pose_joint_chain": "Pelvis rotates three-quarter, one knee bends across support, spine lengthens, active shoulder abducts, elbow nearly extends, wrist releases and fingers curl toward the light.",
+        "focus": "Approved face, torso and dominant trouser fold sharp; far hand and stage edge soften modestly.",
+        "foreground": "The near hip and broad approved fold form the closest planes with no unrelated prop.",
+        "provenance": [
+          "male-04.png and sheet-blocking.png — observed balance and reach chain expanded into the sculptural slot"
+        ]
+      },
+      "interference_frame": {
+        "camera_consequence": "Low vertical medium portrait through one very large defocused terracotta sphere entering from the upper corner.",
+        "pose_joint_chain": "Weight remains on one leg, torso angles beneath the sphere, one arm reaches across frame, opposite elbow drops and chin follows the active wrist.",
+        "focus": "Approved face, reaching hand and central torso sharp; the near sphere dissolves into a soft colour mass.",
+        "foreground": "One rust-orange sphere consumes roughly one quarter of an upper corner without touching the visible eye plane.",
+        "provenance": [
+          "male-04.png plus sheet-camera_lens.png — observed sphere occlusion and clean depth-separated optic"
+        ]
+      },
+      "material_or_accessory_detail": {
+        "camera_consequence": "Vertical waist-to-shoulder low detail with a hand controlling a broad approved fold or real accessory while body context remains attached.",
+        "pose_joint_chain": "Shoulder lowers, elbow bends across the waist, wrist turns the approved material toward the warm side light and fingers gather without crushing its real structure.",
+        "focus": "Approved weave, fold ridge, hand and wrist sharp; face remains visible but secondary.",
+        "foreground": "The attached hand and approved material fill the near lower plane; no flat lay and no detached product crop.",
+        "provenance": [
+          "sheet-garment_behaviour.png — approved broad-fold, pleat-memory and plumb-layer authority translated into human-context detail"
+        ]
+      },
+      "wide_campaign_coda": {
+        "camera_consequence": "Horizontal low-to-level stage wide with the subject at least thirty percent of frame height, one bentwood chair and a large patterned light pool defining the set.",
+        "pose_joint_chain": "Pelvis sits or leans against the chair, one knee opens, opposite leg extends, one forearm rests across the chair back and the other hand drops loosely as head looks away.",
+        "focus": "Approved subject and chair sharp; wall bands and dark stage perimeter remain readable with mild depth falloff.",
+        "foreground": "A clean dark floor band and one small sphere may enter low frame without hiding the human chain.",
+        "provenance": [
+          "male-02-chair-taupe.png plus sheet-environment.png — chair, warm wall and patterned-light authority for the authored campaign coda"
+        ]
+      }
+    }
+  },
+  "sheets": {
+    "camera_lens": {
+      "aspect": "3:2",
+      "quality": "medium",
+      "prompt": "Preserved editorial specification board titled OCHRE STAGE TAILORING — CAMERA & LENS. It must show the existing low side-elevation camera, upward perspective consequence, clean focus ramp, standing full-length frame and seated chair setup, without naming a focal length or aperture. The fixed optic is clean, warm and restrained: no flare, no chromatic fringe, no global halation. Carry the exact palette row #292118 #5A5333 #9B6944 #A5552A #D1BB9F #EFEFF0. Crisp legible labels only. No version number, no date, no invented metadata, no board code, no photographer credit, no logo, no readable brand text and no watermark."
+    },
+    "blocking": {
+      "aspect": "3:2",
+      "quality": "low",
+      "prompt": "Preserved blocking board titled OCHRE STAGE TAILORING — BLOCKING. Keep the existing featureless articulated mannequin stepping and reaching from a low frontal camera, plus a seated chair inset and top-down stage plan. The joint chain must show support leg, bent crossing knee, low shoulders, near-straight active elbow, relaxed wrist and chin following the hand; the pose is a chain, not a name. Carry the exact palette row #292118 #5A5333 #9B6944 #A5552A #D1BB9F #EFEFF0. No source identity or copied garment design. No version number, no date, no invented metadata, no board code, no photographer credit, no logo, no readable brand text and no watermark."
+    },
+    "expression_gaze": {
+      "aspect": "3:2",
+      "quality": "medium",
+      "prompt": "Preserved expression board titled OCHRE STAGE TAILORING — EXPRESSION. Keep the muscle-state authority: lowered eyes or gaze following the active hand, upper lids low, brow unfurrowed, cheekbones at rest, mouth closed, jaw relaxed and head turned away from lens. The pictured face is a generic generated illustration and never identity authority; the approved product subject supplies the face. Carry the exact palette row #292118 #5A5333 #9B6944 #A5552A #D1BB9F #EFEFF0. Crisp legible labels only. No version number, no date, no invented metadata, no board code, no photographer credit, no logo, no readable brand text and no watermark."
+    },
+    "garment_behaviour": {
+      "aspect": "3:2",
+      "quality": "medium",
+      "prompt": "Preserved garment-behaviour board titled OCHRE STAGE TAILORING — GARMENT BEHAVIOUR. Treat the pictured clothing as abstract behaviour only: structured broad folds hold their line, a hem swings as one weighted mass, real free layers hang plumb, and lighter approved cloth may blouse at the waist without changing item identity, colour or cut. Carry the exact palette row #292118 #5A5333 #9B6944 #A5552A #D1BB9F #EFEFF0. No copied pattern, logo, silhouette or brand. No version number, no date, no invented metadata, no board code, no photographer credit, no readable brand text and no watermark."
+    },
+    "colour_grade": {
+      "aspect": "16:9",
+      "quality": "medium",
+      "prompt": "Preserved colour board titled OCHRE STAGE TAILORING — COLOUR & GRADE. Declare palette_size 6 and the closed exact set: deep shadow #292118, olive stage #5A5333, tan cloth #9B6944, terracotta #A5552A, sunlit wall #D1BB9F, window highlight #EFEFF0. Keep warm single-source theatrical contrast, black anchors, restrained saturation outside the beam and gentle highlight roll-off. Approved item colours and human skin, hair and eyes are exempt. Any non-exempt cluster above two percent must map to the set. No version number, no date, no invented metadata, no board code, no photographer credit, no logo, no readable brand text and no watermark."
+    },
+    "environment": {
+      "aspect": "21:9",
+      "quality": "medium",
+      "prompt": "Preserved environment board titled OCHRE STAGE TAILORING — ENVIRONMENT. Keep the existing original non-identifiable warm studio plan, hard patterned side light, deep stage perimeter, pale floor pool, simple bentwood chair, warm wall and visibly different reverse angle. Treat chair and light bands as set devices rather than source architecture. Carry the exact palette row #292118 #5A5333 #9B6944 #A5552A #D1BB9F #EFEFF0. No recognisable building, logo or readable signage. No version number, no date, no invented metadata, no board code, no photographer credit, no readable brand text and no watermark."
+    },
+    "person": {
+      "aspect": "2:3",
+      "quality": "medium",
+      "prompt": "Preserved vertical PERSON SHEET TEMPLATE for OCHRE STAGE TAILORING. Keep empty sections for face geometry, ears, everything on the face, observed versus plausible skin marks, subject-supplied skin value ramp and provenance. The only style fact is how the approved subject's real skin takes one hard warm side light: defined terminator, warm lit plane, deep olive-brown shadow and no invented identity. Carry the exact palette row #292118 #5A5333 #9B6944 #A5552A #D1BB9F #EFEFF0. No filled identity facts. No version number, no date, no invented metadata, no board code, no photographer credit, no logo, no readable brand text and no watermark."
+    }
+  }
 }

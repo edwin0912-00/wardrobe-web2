@@ -1,17 +1,19 @@
 {
   "unit_id": "shoot.grey_studio_stride",
   "title": "Grey Studio Stride — long lens, level walk, dried reeds along the base",
-  "style_unit_status": "BLOCKED_SOURCE",
+  "style_unit_status": "READY",
   "source_reconciliation": {
-    "status": "BLOCKED_SOURCE",
+    "status": "RESTORED_LEGACY_ARTIFACT_AUTHORITY",
+    "authority_mode": "OWNER_AUTHORIZED_ONE_SOURCE_PLUS_PRESERVED_GENERATED_SHEETS",
     "included": [
-      "frame-01 — provenance-bound 1024×1280 cover crop; one full-length profile/near-profile stride on a grey studio field"
+      "frame-01 — provenance-bound 1024×1280 cover crop; one full-length profile/near-profile stride on a grey studio field",
+      "seven canonical generated sheets preserved in git and reviewed at native resolution"
     ],
     "excluded": [
       "unavailable 1968×2464 owner-source bytes",
       "unavailable additional same-shoot frames"
     ],
-    "needs_source": "Provide the original owner frame plus distinct same-shoot frames sufficient to substantiate all six canonical shot directions and a repeatable camera, light, and movement system."
+    "coverage_policy": "One source defines the universe. Six runtime directions are original coverage constructions from the preserved sheet system and are not claims of additional historical source frames."
   },
   "palette_size": 7,
   "palette": [
@@ -29,8 +31,86 @@
     "aperture and shutter values",
     "the backdrop's true width and where its seam falls — no seam is visible in frame",
     "the number and placement of the lights; only one broad frontal source and a separately lit backdrop are readable",
-    "what the small flat object in the hand is — it is held edge-on and unreadable, and it carries no readable text or mark"
+    "what the small flat object in the hand is — it is held edge-on and unreadable, and it carries no readable text or mark",
+    "whether the six runtime coverage constructions existed in the historical shoot; they are owner-authorized extensions of the preserved universe"
   ],
+  "runtime_style": {
+    "visual_system": "A level, long-perspective studio movement study crosses a smooth grey field above a near-black floor, with a dried-reed base band and controlled opaque cloth trailing behind the approved subject.",
+    "mood_line": "Inward and disciplined in motion: the body advances while the face withholds itself from the lens.",
+    "environment": "A seamless mid-grey backdrop with a smooth central value lift, cool grey edge falloff, a continuous straw-coloured dried-reed band at the base and a matte near-black studio floor; no furniture, exterior sky or saturated prop.",
+    "lighting": "One broad soft frontal field sits slightly camera-left and a separate backdrop field maintains the grey gradient; transitions are soft, floor shadows short and the air clear.",
+    "materials": [
+      "smooth painted seamless backdrop",
+      "dry individual reed and straw stems",
+      "matte mildly reflective dark studio floor",
+      "opaque mid-weight approved cloth with broad slow folds",
+      "one small plain flat hand-held object with no readable mark"
+    ],
+    "contrast": "Gentle neutral contrast with near-black floor detail retained, rolled ivory highlights and warmth carried by physical straw or approved objects rather than by split-toning.",
+    "expression_signature": "The approved face stays in profile or near-profile with gaze down and forward past the lens, upper lids low, brows and cheeks at rest, mouth closed with level corners and jaw relaxed; no smile or source-face transfer.",
+    "garment_behaviour": "Approved cloth is caught in controlled walk-driven motion, trails moderately behind the travel direction, holds long broad folds, stays opaque and finishes with crisp readable edges rather than flutter or blur.",
+    "optical_signature": [
+      "Long-perspective consequence with parallel verticals, undistorted body proportions and no conspicuous near-limb enlargement.",
+      "Level roll and an optically clean result: no flare, visible halation, bloom or vignette.",
+      "Very fine grain only; the approved subject is crisp while floor and reeds remain readable and subordinate."
+    ],
+    "shot_directions": {
+      "clean_identity_hero": {
+        "camera_consequence": "Use a vertical profile crop from above the approved head through below the knee, camera level around waist height and perpendicular to the travel path, with the smooth grey field dominant behind.",
+        "pose_joint_chain": "Advance one thigh with a softly bent knee, trail the other leg, swing the opposite arm forward, carry the neck long and tip the head slightly down so the gaze passes forward beneath the lens.",
+        "focus": "Hold the approved eye line, profile edge, near shoulder and cloth texture critically sharp while the seamless gradient remains smooth.",
+        "foreground": "Keep the identity frame clean; the reed band stays below the knee and does not cross the approved face, hands or torso.",
+        "provenance": [
+          "frame-01 profile stride plus legacy camera_lens panel 1 and expression_gaze; owner-authorized identity coverage construction"
+        ]
+      },
+      "environmental_hero": {
+        "camera_consequence": "Use the canonical portrait full-length side view with complete footwear, generous headroom and floor, camera level at waist-to-hip height and travel space open ahead.",
+        "pose_joint_chain": "Plant the leading heel with weight arriving through a slightly bent knee, extend the trailing leg to a lifted heel, and use a clear contralateral arm swing with the head following the walk.",
+        "focus": "Keep the complete approved subject crisp and retain individual reeds and the immediate floor, allowing only the far grey gradient to smooth away.",
+        "foreground": "The continuous reed band sits at the backdrop base and may overlap the feet visually without becoming a blurred lens occluder.",
+        "provenance": [
+          "frame-01 full-length stride plus legacy blocking main frame and environment hero field"
+        ]
+      },
+      "sculptural_three_quarter": {
+        "camera_consequence": "Tighten to a vertical head-through-calf frame and shift a few degrees off the perpendicular so the walking torso becomes a shallow three-quarter wedge while verticals and level roll remain clean.",
+        "pose_joint_chain": "Catch the transition between steps: leading knee crossing the body axis, trailing toe still contacting, one elbow bent ahead of the waist and the opposite wrist behind the hip; keep the approved head in profile and down.",
+        "focus": "Place the focus plane across approved face, leading shoulder and the broad cloth fold that bridges torso to moving leg.",
+        "foreground": "Use empty grey floor at the lower corner and a low sparse reed edge only; no prop or detached limb crosses the body.",
+        "provenance": [
+          "legacy blocking joint chain, garment_behaviour motion panels and camera_lens long-perspective rule; extrapolated within the owner-authorized universe"
+        ]
+      },
+      "interference_frame": {
+        "camera_consequence": "Use a horizontal knee-to-head profile composition from a lower level axis so the reed band becomes a strong lower strip while the grey field remains open above.",
+        "pose_joint_chain": "Freeze a long forward step with the near forearm passing close to the torso, the other arm trailing and the head tipped down-forward without addressing the lens.",
+        "focus": "Keep face and upper body sharp; allow the nearest reed tips to soften slightly while their stem structure remains recognisable.",
+        "foreground": "Reeds are the only interference and may cover the lower shins; they never cross the approved face, item identity or connected hands.",
+        "provenance": [
+          "legacy camera_lens foreground panel, environment reed detail and frame-01 base-band relationship"
+        ]
+      },
+      "material_or_accessory_detail": {
+        "camera_consequence": "Use a vertical connected-body detail from upper torso through mid-thigh, level to the walking path, with the hand-held flat object and moving sleeve enlarged but without wide-angle distortion.",
+        "pose_joint_chain": "Connect the object-holding hand to a relaxed trailing forearm and bent elbow while the opposite arm swings forward; include the side waist and top of the advancing thigh as body context.",
+        "focus": "Put critical focus on connected fingers, plain object edge, crisp hem and one broad trailing fold; let the grey field and reeds fall subordinate.",
+        "foreground": "The approved hand and plain object own the near plane; no flat lay, detached hand, text, logo or second prop.",
+        "provenance": [
+          "frame-01 carried-object observation plus legacy garment_behaviour edge and surface panels"
+        ]
+      },
+      "wide_campaign_coda": {
+        "camera_consequence": "Use a wide horizontal level frame with the complete approved person around one third to two fifths of frame height, crossing the lower field while broad empty grey space carries the composition.",
+        "pose_joint_chain": "Use the longest readable stride, leading heel extended and trailing toe released, arms counter-swinging with controlled cloth departure and the head down-forward.",
+        "focus": "Retain the entire person, reed band and immediate floor as distinct planes while keeping the seamless free of texture or seam.",
+        "foreground": "The matte floor forms a clean lower plane and the reed band runs horizontally behind the stride; no other object enters.",
+        "provenance": [
+          "legacy environment hero wide, camera_lens frame panel and frame-01 movement system; owner-authorized wide coverage construction"
+        ]
+      }
+    }
+  },
   "sheets": {
     "camera_lens": {
       "aspect": "16:9",

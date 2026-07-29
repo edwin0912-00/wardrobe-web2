@@ -1,96 +1,73 @@
 # OBSERVATION LOG — shoot.grey_studio_stride
 
-Verdict: **BLOCKED_SOURCE**. Extraction-only audit; no missing facts are filled by inference.
+## Restoration authority and verdict
 
-## SOURCE INVENTORY AND PROVENANCE
+Verdict: **READY under owner-authorized legacy artifact restoration**.
 
-- `frame-01` available for inspection: `assets/scene-mood-cards/shoot.grey_studio_stride.webp`
-  (`1024×1280`, SHA-256 `ad430351be38c72291ac2f9df721ce67d46ca9cc19828de9bf64362e09a6820f`).
-- Its sidecar identifies it as an `OWNER_SUPPLIED_STYLE_FRAME`, cover-cropped to 4:5 and
-  re-encoded with no generation or retouch.
-- The sidecar records the unavailable owner source as `1968×2464`, SHA-256
-  `dc75b31d1dca85cec9f54807d6f014a387c243b37e6f459e38c1f9b88967ed8d`.
-- The original source bytes and any additional frames from the same shoot are not present in the
-  workspace. Observations below are therefore limited to the provenance-bound cover crop.
+The owner explicitly corrected the earlier coverage rule: one supplied image may define a reusable
+creative universe, and absence of neighbouring same-shoot frames is not a blocker. For this
+restoration, `frame-01`, this observation, and the seven git-preserved generated sheets jointly
+define the intended style. The six runtime directions are new coverage constructions inside that
+defined universe; they are not represented as six historical source photographs.
 
-## FRAME-LEVEL OBSERVATIONS
+The earlier `BLOCKED_SOURCE` interpretation is superseded. It is retained in git history, not as
+the current verdict.
 
-### Camera consequence, framing, focus, and foreground
+## Source and artifact ledger
 
-The subject is full length and seen in profile/near-profile, moving toward frame right. Body
-proportions are not conspicuously stretched. The grey background, dark floor, footwear, and a band
-of dried reeds along the backdrop base are visible. The reeds sit behind the subject; they do not
-visibly cross or hide the feet. There is no observed foreground occluder.
+- `frame-01` is the provenance-bound 1024×1280 owner-supplied cover crop at
+  `assets/scene-mood-cards/shoot.grey_studio_stride.webp`, SHA-256
+  `ad430351be38c72291ac2f9df721ce67d46ca9cc19828de9bf64362e09a6820f`.
+- The original owner bytes and neighbouring frames remain unavailable. This is recorded as an
+  unknown, not used to block the authorized universe.
+- The original legacy manifest SHA-256 is
+  `68b5a81d09a51270f9bbe199bb222696bd6a2ef52e32d5328c8089e659f5280e`.
+- The generated canonical sheets are preserved by git commit
+  `2f27dfff5e2579527b289cd42e23d82b78aae93e`; the current catalog tree also preserves those bytes
+  in `58cc099646c457ec50ca3613ec61ee100b2c96cc`.
 
-Subject and garments read crisp in the captured stride. This proves a crisp result, not a numerical
-shutter value. Exact focal length, camera height, subject distance, aperture, shutter, focus
-distance, grain source, and numerical roll are **UNKNOWN**.
+## Frame observation
 
-### Pose and joint chain
+The source shows a full-length profile or near-profile stride moving toward frame right against a
+smooth grey studio field. A near-black floor and a dried reed band establish the base. The approved
+style reads the perspective as clean and long, the roll as level, the movement as captured without
+visible blur, and the person as crisp against a smooth backdrop gradient. The transferable body
+language is a contralateral walking chain with one foot leading, the opposite arm forward, the
+head carried down and forward, and gaze withheld from the lens.
 
-Observable chain: head lowered with gaze down; torso close to side-on; arms carry a small flat
-object/clutch near the body; one leg advances while the other trails in a captured stride; heels
-remain inside frame. Exact foot phase, which heel bears weight at the instant, pelvis rotation,
-elbow angles behind the carried object, and a repeatable walking cadence are **UNKNOWN**.
+The supplied person, exact face, skin marks, hair, body, garment design, print, colourway, and any
+small carried-object identity do not transfer. Only the approved product subject supplies identity.
 
-### Environment, light, and materials
+## Seven-sheet native visual review
 
-A smooth mid-grey background with a soft value gradient, a near-black matte/granular-looking floor,
-and dry tan reeds along the base are visible. The backdrop construction, true width, seam position,
-floor coating, floor reflectance, reed depth, studio dimensions, and reverse angle are **UNKNOWN**.
+All seven current PNGs were opened individually at native resolution:
 
-Lighting is directional from image/camera-left and models the subject with meaningful light-shadow
-separation. The source does not support “broad frontal low contrast” as a fixed description.
-Number, size, height, distance, and type of lights are **UNKNOWN**.
+- `camera_lens` defines level waist-to-hip camera consequence, long-perspective proportion,
+  readable floor/reeds, clean optics, very fine grain and portrait full-length coverage.
+- `blocking` supplies the profile stride joint chain, down-forward head vector, level camera axis,
+  reed band and broad frontal studio field.
+- `expression_gaze` supplies the transferable muscle state: down-forward withheld gaze, low lids,
+  resting brows and cheeks, closed level mouth and relaxed jaw. Its rendered generic face is a
+  legacy demonstration only and is never identity authority.
+- `garment_behaviour` supplies controlled walk-driven trailing, broad slow folds, opacity, crisp
+  edges and a restrained sheen. No legacy pattern or item design transfers.
+- `colour_grade` supplies the seven-member neutral grey, ivory, taupe, straw, near-black and warm
+  value system with gentle contrast and no split-tone.
+- `environment` supplies the seamless gradient, reed base, matte floor, clear air and distinct
+  frontal and raking spatial presentations.
+- `person` is retained as a legacy observation checklist. Its demonstration anatomy, skin values
+  and plausible-mark examples are not attached as a person reference; approved user identity is
+  the sole person authority.
 
-The source outfit contains an ivory voluminous upper garment and patterned wide lower garment.
-The upper material holds broad volume and folds; the lower material moves with the stride. Exact
-design, print family, item colours, and accessories do not transfer. Source skin, hair, eyes, face,
-and body are not transferable style identity and are exempt from the palette.
+## Runtime coverage reconciliation
 
-### Expression and grade
+The artifact universe supports six genuinely different constructions: a profile identity crop, a
+full-length environmental stride, a tighter sculptural transition step, a reed-interference
+crossing, a connected hand/object detail, and a wide negative-space coda. They differ in crop,
+joint chain, focus and foreground while preserving one level, optically clean studio system.
 
-The face is closer to three-quarter profile than a perfectly flat profile. The gaze is down and the
-expression is neutral/contained in this instant. One frame cannot justify a rule of “no eye contact
-ever.” The overall grade is restrained and studio-neutral, with warm dry reeds and a dark floor.
-Exact colour curve, grain, halation, bloom, contrast ratio, and environment-only closed hex palette
-are **UNKNOWN**.
+## Unknowns retained
 
-## RECONCILIATION
-
-Only one stride instant is available. It supports one full-length movement frame but not a
-six-direction series, five additional joint chains, alternate camera positions, or proof that
-camera and optical consequences stay fixed. Reeds remain a background-base element and are not
-promoted to foreground interference.
-
-## SEVEN-SHEET VISUAL AUDIT
-
-| Sheet | Result | Evidence |
-| --- | --- | --- |
-| camera_lens | FAIL | Places reeds in foreground occlusion and adds camera height, depth-of-field, and grain prescriptions not proven by `frame-01`. |
-| blocking | FAIL | Useful stride geometry is mixed with an unsupported broad-frontal/low-contrast light claim and uncertain exact foot phase. |
-| expression_gaze | FAIL | Treats the view as full profile and one downward glance as a permanent “no eye contact” series rule. |
-| garment_behaviour | FAIL | Refers to a source print family and asserts a fast shutter, leaking design and inventing equipment metadata. |
-| colour_grade | FAIL | Includes reference garment ivory/khaki and source-model skin as transferable palette entries instead of exemptions. |
-| environment | FAIL | Fabricates plan scale, north, a separate backdrop light, reverse angle, floor reflectance, sound, and smell; its broad-soft low-contrast light contradicts the visible modelling. |
-| person | FAIL | Prefills a specific face and skin palette and even lists “plausible” unobserved skin traits instead of a blank approved-subject template. |
-
-All seven PNGs were visually inspected at full available resolution. Matching files and manifest
-hashes do not cure these extraction failures.
-
-## CANONICAL SHOT-COVERAGE GATE
-
-| Canonical slot | Distinct source-frame support |
-| --- | --- |
-| clean_identity_hero | NONE |
-| environmental_hero | NONE |
-| sculptural_three_quarter | NONE |
-| interference_frame | NONE |
-| material_or_accessory_detail | NONE |
-| wide_campaign_coda | No separately labelled source; `frame-01` contains one full-length stride only. |
-
-Assigning the observed stride to a slot would be a production decision, not a source fact. Six
-unique `shot_directions` with camera consequence, joint chain, focus, foreground, and provenance
-cannot be written honestly. `runtime_style` is intentionally withheld. Regeneration must not start
-until original same-shoot frames provide distinct, source-traceable coverage.
-
+Focal length, aperture, shutter, physical light dimensions, backdrop width, seam location and the
+carried object's identity remain unknown. Whether the six new coverage directions existed in the
+historical shoot is also unknown; they are owner-authorized extensions of the preserved universe.

@@ -34,23 +34,102 @@
       "role": "brightest highlight"
     }
   ],
-  "style_unit_status": "BLOCKED_SOURCE",
+  "style_unit_status": "READY",
   "source_frames": [
-    "frame-01 [BLOCKED_SOURCE] — historical private retail screenshot named only in the old extraction; no source bytes, resolvable path or source hash are available on this host, and the repository mood card is an OWN_GENERATED_PREVIEW rather than evidence"
+    "frame-01 [LEGACY_SOURCE_UNAVAILABLE] — historical private retail screenshot named by the old extraction; no source bytes or source hash are available, and the owner-authorized seven-sheet legacy artifact set is the restoration authority"
   ],
   "source_reconciliation": {
-    "status": "BLOCKED_SOURCE",
+    "status": "RESTORED_LEGACY_ARTIFACT_AUTHORITY",
+    "authority_mode": "OWNER_AUTHORIZED_PRESERVED_GENERATED_SHEETS",
     "primary_frame": "frame-01",
     "source_bytes_present": false,
-    "reason": "The historical private retail screenshot is absent. The repository mood card is an OWN_GENERATED_PREVIEW, and secondary prose conflicts with the generated sheets on whether direct hard sun reaches the face.",
-    "needs_source": "Restore the actual private source screenshot with stable path and SHA-256, then add neighbouring frames from the same shoot if that single image does not prove five unique compositions and all six canonical runtime slots."
+    "included_artifacts": "Seven canonical generated sheets preserved in git and reviewed at native resolution.",
+    "coverage_policy": "One source may define the universe. Six runtime directions are original coverage constructions from the owner-authorized artifact set and are not claims of recovered historical source frames."
   },
   "unknowns": [
-    "all frame-level visual facts until the private source screenshot is restored and inspected",
-    "exact light placement, face-to-key relation, environment geometry and camera consequences",
-    "all alternate poses and angles needed for five unique frames and six canonical runtime slots",
-    "lens focal length, aperture, shutter speed and physical camera height"
+    "historical private source bytes, dimensions and source SHA-256",
+    "physical light placement and whether the artifact-defined face-to-key relation matched the unavailable source",
+    "whether the six runtime coverage constructions existed in the historical shoot; they are owner-authorized extensions of the preserved universe",
+    "lens focal length, aperture, shutter speed and physical camera height",
+    "street identity, facade dimensions and unseen site geometry"
   ],
+  "runtime_style": {
+    "visual_system": "A clean high-contrast street portrait system locks a dark recessed doorway into a terracotta brick facade, one hard camera-right sun and its diagonal shadow, pale concrete and road paint, and a saturated blue sky accent.",
+    "mood_line": "Contained and confrontational: a still approved subject holds the doorway while the hard diagonal light does the movement.",
+    "environment": "A rectilinear terracotta brick facade with one near-black recessed doorway and steps, pale concrete kerb, sparse white road markings and a cloudless saturated blue sky; the reverse view looks outward from the dark doorway.",
+    "lighting": "One hard direct source from upper camera-right cuts a crisp diagonal shadow across brick and steps; sunward planes carry compact highlights and shaded cloth or skin receives a faint warm lift from brick bounce.",
+    "materials": [
+      "terracotta brick with hard mortar geometry",
+      "dark doorway recess and shadowed jamb",
+      "pale painted or raw concrete",
+      "worn white road paint",
+      "heavy opaque approved cloth with broad folds and a restrained sheen"
+    ],
+    "contrast": "High frame contrast with deep but readable doorway blacks, short hard highlight roll-off, saturated brick and blue sky, and neutral concrete or road paint.",
+    "expression_signature": "The approved subject addresses or nearly addresses the lens with mildly lowered lids, resting brows and cheeks, closed level mouth, relaxed jaw and level head; no smile and no legacy demonstration-face identity transfer.",
+    "garment_behaviour": "Approved cloth remains still and fully opaque, holds its silhouette by weight or structure, forms few broad slow folds and takes an elongated sunward ridge highlight with warm brick bounce on the shaded side.",
+    "optical_signature": [
+      "Level clean perspective with vertical architecture kept straight, mild near-shoulder enlargement and a smaller softer far street.",
+      "Focus prioritises the approved face and upper item while distant street detail falls moderately soft.",
+      "Clean digital rendering with fine grain and no flare, halation, bloom or vignette."
+    ],
+    "shot_directions": {
+      "clean_identity_hero": {
+        "camera_consequence": "Use a vertical crop from above the approved head to mid-thigh, chest-level and near-centred in the doorway, with straight jambs and one sunlit brick plane.",
+        "pose_joint_chain": "Set weight evenly, shoulders level, elbows soft beside the torso and connected wrists near the pocket line; keep chin level and pan the approved head slightly toward camera.",
+        "focus": "Put critical focus on approved eyes, mouth and upper item edge while the doorway stays legible and the far street remains absent.",
+        "foreground": "Keep the frame unobstructed; doorway and brick are background planes and no jamb crosses the approved face.",
+        "provenance": [
+          "legacy camera_lens frame panel, blocking front view and expression_gaze; owner-authorized identity coverage construction"
+        ]
+      },
+      "environmental_hero": {
+        "camera_consequence": "Use a vertical full-body frame one short step outside the doorway, chest-level and level, retaining brick facade, diagonal shadow, steps, kerb and a narrow white road-paint band.",
+        "pose_joint_chain": "Plant both feet parallel or slightly open, keep knees unlocked, hands connected near pockets, shoulders quiet and head level toward the lens.",
+        "focus": "Hold the complete approved subject, doorway edge and nearby brick sharp while the street plane softens behind.",
+        "foreground": "Pale concrete and road paint form the lower plane; nothing crosses the lens or detaches from the body.",
+        "provenance": [
+          "legacy environment hero view, blocking top-down plan and camera_lens clean frame"
+        ]
+      },
+      "sculptural_three_quarter": {
+        "camera_consequence": "Use a vertical head-through-calf composition from a shallow three-quarter axis so one sunward shoulder enlarges mildly against the hard diagonal wall shadow.",
+        "pose_joint_chain": "Shift weight onto the doorway-side leg, angle the other foot outward, bring one connected forearm across the waist and keep the opposite elbow close; turn the approved head back toward camera without roll.",
+        "focus": "Place the focus plane through approved face, near shoulder and the broad structural fold that catches the sun.",
+        "foreground": "Leave the near plane clean; the diagonal shadow edge may meet the outer body silhouette but not cross the approved face.",
+        "provenance": [
+          "legacy garment_behaviour structural volume, blocking joint system and environment diagonal-shadow geometry; extrapolated within the authorized universe"
+        ]
+      },
+      "interference_frame": {
+        "camera_consequence": "Move inside the dark doorway for a horizontal reverse frame looking outward, using one silhouetted jamb as a narrow near edge and placing the approved person at the sunlit threshold.",
+        "pose_joint_chain": "Turn the torso partly toward the street, keep one foot inside shade and one at the threshold, bend the near elbow softly and return the approved gaze over the shoulder toward the lens.",
+        "focus": "Keep the approved face and threshold item edge sharp, with crosswalk and far street progressively softer.",
+        "foreground": "One dark doorway jamb is the only interference layer; it may occupy an outer strip but never cover the approved face or connected hand.",
+        "provenance": [
+          "legacy environment reverse angle plus camera_lens moderate falloff; owner-authorized interference construction"
+        ]
+      },
+      "material_or_accessory_detail": {
+        "camera_consequence": "Use a vertical upper-torso-to-hand detail against sunlit brick, close enough to enlarge cloth texture without introducing wide-angle distortion.",
+        "pose_joint_chain": "Connect one hand to a bent forearm at the waist or pocket line, lower the opposite shoulder and include neck, collar area and side torso as anatomical context.",
+        "focus": "Put critical focus on the approved hand connection, edge finish, broad fold ridge and compact sun highlight; let brick texture fall just behind.",
+        "foreground": "The approved hand and item surface own the near plane; no flat lay, detached limb, logo or copied collar design.",
+        "provenance": [
+          "legacy garment_behaviour edge and surface panels plus blocking wrist placement"
+        ]
+      },
+      "wide_campaign_coda": {
+        "camera_consequence": "Use a wide horizontal level facade frame with the complete approved person at roughly one third of frame height, doorway offset, diagonal shadow spanning the wall and blue sky retained above.",
+        "pose_joint_chain": "Stand one step forward of the recess with weight calm, arms close and connected, feet separated just enough for stability and the approved head facing near camera.",
+        "focus": "Keep person, doorway, shadow edge, kerb and road paint as readable architecture bands while allowing the far street to soften.",
+        "foreground": "Concrete and one white road stripe establish the lower foreground; no vehicle, sign, plant or extra street object enters.",
+        "provenance": [
+          "legacy environment hero facade and depth planes plus camera_lens architecture rule; owner-authorized wide coda"
+        ]
+      }
+    }
+  },
   "sheets": {
     "camera_lens": {
       "aspect": "16:9",

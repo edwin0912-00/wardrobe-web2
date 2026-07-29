@@ -20,6 +20,16 @@ const model = 'nano_banana_2';
 const promptContractVersion = 'create-universe-mood-card-v1';
 
 const unitNames = Object.freeze({
+  'shoot.skylight_haze': 'Скляний дах · теплий серпанок',
+  'shoot.terracotta_hardlight': 'Теракота · жорстке сонце',
+  'shoot.window_gobo_warm': 'Тепле вікно · gobo-тінь',
+  'shoot.grey_studio_stride': 'Сіра студія · крок',
+  'shoot.sky_dune_surreal': 'Небо й дюна · сюрреалізм',
+  'shoot.hardsun_brick_doorway': 'Жорстке сонце · цегляна брама',
+  'shoot.overcast_street_stride': 'Хмарна вулиця · крок',
+  'shoot.grey_wall_gloss': 'Сіра стіна · глянець',
+  'shoot.ochre_stage_tailoring': 'Охра · сценічний кравець',
+  'shoot.shutter_amber_interior': 'Жалюзі · бурштиновий інтерʼєр',
   'shoot.zayn_institutional': 'Інституційний модернізм · ритуальна симетрія',
   'shoot.liza_luminous': 'Блакитне поле · білий тюль',
   'shoot.duckweed_forest_ophelia': 'Ряска й ліс · Ophelia',

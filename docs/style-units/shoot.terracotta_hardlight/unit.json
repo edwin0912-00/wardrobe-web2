@@ -1,25 +1,27 @@
 {
   "unit_id": "shoot.terracotta_hardlight",
   "title": "Terracotta Hardlight — one wall, one sun, cloth in motion",
-  "style_unit_status": "BLOCKED_SOURCE",
+  "style_unit_status": "READY",
   "source_reconciliation": {
-    "status": "BLOCKED_SOURCE",
+    "status": "READY",
+    "mode": "SINGLE_FRAME_UNIVERSE_WITH_GENERATIVE_COVERAGE",
     "included": [
-      "frame-01 — provenance-bound 1024×1280 cover crop; one back-three-quarter head-return moment with hard graphic light and cloth interference"
+      "frame-01 — provenance-bound 1024×1280 cover crop; observed back-three-quarter head-return moment with hard graphic light and cloth interference",
+      "seven git-preserved reference sheets — approved generative grammar for camera, blocking, expression, garment behaviour, colour, environment and person-template boundaries"
     ],
     "excluded": [
       "unavailable 928×1232 owner-source bytes",
       "unavailable additional same-shoot frames"
     ],
-    "needs_source": "Provide the original owner frame plus distinct same-shoot frames sufficient to substantiate all six canonical shot directions and a repeatable camera/environment system."
+    "coverage_policy": "frame-01 defines the observed universe; all six runtime shot directions are explicitly labelled original generative extrapolations constrained by the seven preserved sheets, never additional source claims."
   },
   "palette_size": 5,
   "palette": [
     { "name": "terracotta wall", "hex": "#B5543A", "role": "ground, the whole field behind the subject" },
     { "name": "shadowed brown", "hex": "#5A2A20", "role": "deepest shadow, the cast diagonal, warm not neutral" },
-    { "name": "off-white linen", "hex": "#F2EDE4", "role": "brightest highlight, the garment in sun" },
-    { "name": "warm skin", "hex": "#C89275", "role": "skin in key light" },
-    { "name": "rust", "hex": "#B8552F", "role": "accent, lower garment against the wall" }
+    { "name": "off-white highlight", "hex": "#F2EDE4", "role": "brightest sunlit completion or highlight; never source-garment authority" },
+    { "name": "warm bounce", "hex": "#C89275", "role": "terracotta-reflected warm midtone; never a required skin value" },
+    { "name": "rust accent", "hex": "#B8552F", "role": "restrained environmental or styling-completion accent" }
   ],
   "source_frames": ["frame-01 — single supplied frame, portrait, back three-quarter turn, white linen open in motion against a terracotta wall"],
   "unknowns": [
@@ -29,6 +31,82 @@
     "what casts the diagonal shadow — the caster is off-frame and only its straight edge is readable",
     "the subject's weight distribution and footwear — the frame cuts above them"
   ],
+  "runtime_style": {
+    "visual_system": "A graphic warm fashion universe built from one flat terracotta-colour plane, one hard diagonal light/shadow cut, clear air, a back-three-quarter subject with head returned to lens, and approved cloth held in a decisive moving plane.",
+    "mood_line": "Heat, still attention and one captured cloth movement are cut into a flat field by hard directional light.",
+    "environment": "Invent a new non-recognisable matte terracotta-colour set plane with subtle mineral texture and one straight diagonal light/shadow field; show no landmark, copied wall, door, vase, signage, floor plan or unsupported room detail.",
+    "lighting": "One hard directional production source from high camera-left rakes the plane and approved subject, producing a sharp diagonal graphic and warm reflected fill; the physical real-world caster remains UNKNOWN and clear air contains no haze.",
+    "materials": [
+      "original matte mineral or painted set plane in terracotta and deep warm shadow values",
+      "subtle surface grain revealed only by the hard rake",
+      "clear air with no atmospheric layer or unrelated prop",
+      "the approved item in its verified material, construction and colours; never the source white cloth or rust garment design"
+    ],
+    "contrast": "High warm contrast with deep brown shadows retaining texture, off-white highlights rolled rather than clipped, and the full environment held inside a near-monochromatic terracotta/rust family.",
+    "expression_signature": "Head returns toward the lens against a body turned away; gaze is direct or near-direct, lids slightly low, brows and cheekbones at rest, jaw relaxed, mouth closed or softly parted, corners level, and no smile.",
+    "garment_behaviour": "Apply one moving plane to the approved item without claiming its cause: free layers may open beyond the shoulder with a crisp edge; heavy items lift as one broad curved fold. Never copy source design.",
+    "optical_signature": [
+      "Every frame is optically clean with moderate non-wide perspective, parallel set-plane edges and no added flare or vignette.",
+      "Every frame keeps fine low grain, smooth off-white highlight roll-off and only slight halation on the brightest sunlit approved-cloth edge.",
+      "No global bloom, diffusion, haze, chromatic fringe or swirl; hard light geometry and textile microcontrast stay legible."
+    ],
+    "shot_directions": {
+      "clean_identity_hero": {
+        "camera_consequence": "Vertical chest-to-shoulder-height portrait with moderate perspective; body occupies roughly sixty to eighty percent of frame height while the clean diagonal shadow passes through negative space above and beside the head.",
+        "pose_joint_chain": "Torso turns back-three-quarter away, near shoulder blade leads, neck rotates the head back to lens, chin level, near elbow relaxed below crop and far arm quiet so no cloth covers the face.",
+        "focus": "Approved face, returned eye line and near shoulder are sharp; the terracotta plane is gently softer but the diagonal edge remains legible.",
+        "foreground": "No lens-crossing object; reserve this frame for clean identity and keep moving approved cloth behind the near shoulder.",
+        "provenance": [
+          "frame-01 body-away/head-return and hard-graphic observations + preserved camera_lens and expression_gaze sheets — GENERATIVE EXTRAPOLATION"
+        ]
+      },
+      "environmental_hero": {
+        "camera_consequence": "Level horizontal or wide vertical from chest height; the approved subject stays forty to fifty-five percent of frame height while the full straight diagonal light/shadow field dominates the flat set plane.",
+        "pose_joint_chain": "Body stands side-to-three-quarter, pelvis stable, spine upright, one arm lowered and the other elbow slightly opened behind the torso to expose a clear silhouette against both light values.",
+        "focus": "Subject and diagonal boundary are both readable; subtle set texture falls slightly softer away from the subject.",
+        "foreground": "Nothing crosses the lens; use empty terracotta field as deliberate negative space rather than adding props.",
+        "provenance": [
+          "frame-01 flat orange/dark field + preserved environment and camera_lens sheets — GENERATIVE EXTRAPOLATION"
+        ]
+      },
+      "sculptural_three_quarter": {
+        "camera_consequence": "Slightly low oblique view from the subject's far side, cropped around knee-to-full three-quarter; hard light catches one large approved-cloth plane against the dark half of the wall.",
+        "pose_joint_chain": "Pelvis turns away, spine rotates back, both upper arms lift from the ribs, elbows bend back and outward, and forearms separate so the approved item opens asymmetrically behind the shoulders.",
+        "focus": "Returned face, leading shoulder and tautest sunlit cloth plane are sharp; trailing edge and wall texture fall a step softer.",
+        "foreground": "The opened approved layer remains in the subject plane and never becomes a detached prop or flat lay.",
+        "provenance": [
+          "frame-01 turn and displaced cloth + preserved blocking and garment_behaviour sheets — GENERATIVE EXTRAPOLATION"
+        ]
+      },
+      "interference_frame": {
+        "camera_consequence": "Close oblique head-and-upper-torso frame from chest height; the lens looks through an opening formed by one near approved-cloth edge while the diagonal wall graphic cuts the opposite side.",
+        "pose_joint_chain": "Torso continues turning away, head rotates fully back, near elbow opens laterally, near wrist drives the approved free edge toward the lens, and far shoulder anchors the opposite side.",
+        "focus": "Eyes and cheek on the returned head are sharp; the near cloth is deliberately soft and the wall diagonal remains secondary but legible.",
+        "foreground": "A defocused approved free edge crosses roughly one quarter of the right or lower frame without hiding both eyes or identity evidence.",
+        "provenance": [
+          "frame-01 observed cloth interference + preserved camera_lens, blocking and garment_behaviour sheets — GENERATIVE EXTRAPOLATION"
+        ]
+      },
+      "material_or_accessory_detail": {
+        "camera_consequence": "Close side-on human-context detail at waist-to-chest height, isolating a gripping hand, approved material edge and adjacent torso against the lit terracotta plane.",
+        "pose_joint_chain": "One shoulder-elbow-wrist chain draws the approved layer outward while the opposite hand stabilises it at the waist or rib line; wrist, fingers and torso connection remain visible.",
+        "focus": "Approved weave, construction detail, fingers and hard sunlit edge are sharp; face may be absent and the wall softens behind.",
+        "foreground": "The approved item fills the near half of frame but must remain attached to a visible hand, wrist and torso; never deliver a product-only cutout.",
+        "provenance": [
+          "frame-01 bright cloth edge + preserved garment_behaviour and camera_lens sheets — GENERATIVE EXTRAPOLATION"
+        ]
+      },
+      "wide_campaign_coda": {
+        "camera_consequence": "Horizontal oblique view along the original flat set plane from a level camera; the approved subject remains thirty to forty percent of frame height where the diagonal shadow changes value.",
+        "pose_joint_chain": "Full or near-full standing chain with feet plausibly grounded, torso turned away, head returned toward lens, one elbow extended behind and one lowered so a single cloth plane trails clear of the body.",
+        "focus": "Subject and the nearest diagonal boundary remain legible; surface texture falls evenly softer along the wall with no added depth set.",
+        "foreground": "A narrow empty dark-warm band may anchor the lower edge without covering the body; no furniture, foliage or unrelated object enters.",
+        "provenance": [
+          "frame-01 warm field/cloth-motion universe + preserved environment, blocking and camera_lens sheets — GENERATIVE EXTRAPOLATION"
+        ]
+      }
+    }
+  },
   "sheets": {
     "camera_lens": {
       "aspect": "16:9",

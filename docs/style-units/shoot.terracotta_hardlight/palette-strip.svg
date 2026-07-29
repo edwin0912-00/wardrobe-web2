@@ -11,14 +11,14 @@
   <text x="480" y="246" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#6e6e6b">deepest shadow, the cast diagonal, warm not neutral</text>
   <rect x="648" y="40" width="304" height="130" fill="#F2EDE4"/>
   <text x="800" y="196" text-anchor="middle" font-family="monospace" font-size="22" fill="#e8e8e6">#F2EDE4</text>
-  <text x="800" y="224" text-anchor="middle" font-family="sans-serif" font-size="15" fill="#9a9a97">off-white linen</text>
-  <text x="800" y="246" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#6e6e6b">brightest highlight, the garment in sun</text>
+  <text x="800" y="224" text-anchor="middle" font-family="sans-serif" font-size="15" fill="#9a9a97">off-white highlight</text>
+  <text x="800" y="246" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#6e6e6b">brightest sunlit completion or highlight; never source-garment authority</text>
   <rect x="968" y="40" width="304" height="130" fill="#C89275"/>
   <text x="1120" y="196" text-anchor="middle" font-family="monospace" font-size="22" fill="#e8e8e6">#C89275</text>
-  <text x="1120" y="224" text-anchor="middle" font-family="sans-serif" font-size="15" fill="#9a9a97">warm skin</text>
-  <text x="1120" y="246" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#6e6e6b">skin in key light</text>
+  <text x="1120" y="224" text-anchor="middle" font-family="sans-serif" font-size="15" fill="#9a9a97">warm bounce</text>
+  <text x="1120" y="246" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#6e6e6b">terracotta-reflected warm midtone; never a required skin value</text>
   <rect x="1288" y="40" width="304" height="130" fill="#B8552F"/>
   <text x="1440" y="196" text-anchor="middle" font-family="monospace" font-size="22" fill="#e8e8e6">#B8552F</text>
-  <text x="1440" y="224" text-anchor="middle" font-family="sans-serif" font-size="15" fill="#9a9a97">rust</text>
-  <text x="1440" y="246" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#6e6e6b">accent, lower garment against the wall</text>
+  <text x="1440" y="224" text-anchor="middle" font-family="sans-serif" font-size="15" fill="#9a9a97">rust accent</text>
+  <text x="1440" y="246" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#6e6e6b">restrained environmental or styling-completion accent</text>
 </svg>

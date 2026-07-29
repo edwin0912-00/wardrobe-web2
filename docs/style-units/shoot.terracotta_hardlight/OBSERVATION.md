@@ -1,6 +1,11 @@
 # OBSERVATION LOG — shoot.terracotta_hardlight
 
-Verdict: **BLOCKED_SOURCE**. Extraction-only audit; no missing facts are filled by inference.
+Verdict: **READY — SINGLE-FRAME UNIVERSE WITH PRESERVED GENERATIVE COVERAGE**.
+
+`frame-01` is the observed reality anchor. The seven git-preserved sheets are the approved
+production grammar for extending its hard, warm, graphic photographic universe into six original
+frames. The added compositions are generative extrapolations, not claims that additional source
+photographs existed.
 
 ## SOURCE INVENTORY AND PROVENANCE
 
@@ -59,39 +64,46 @@ and environment-only closed hex palette are **UNKNOWN** from this derivative alo
 
 ## RECONCILIATION
 
-Only one captured turn is available. It can establish one combination of back-three-quarter body,
-head return, hard graphic light, and cloth interference. It cannot establish six distinct poses,
-repeatable camera positions, or a complete physical set. Graphic orange shapes remain described as
-shapes rather than promoted to plaster, architecture, or sunlight.
+The observed frame establishes a back-three-quarter body with head return, near-direct unsmiling
+gaze, hard graphic warm light, saturated orange against deep warm shadow, and light cloth
+interference. The preserved sheets compile those facts into a reusable original set: a flat
+terracotta-colour plane, one sharp diagonal light/shadow graphic, clear air, fixed clean optics,
+and transferable cloth-in-motion behaviour.
+
+The completed wall, alternate angles, full joint chains, and exact production light placement are
+**BOARD-AUTHORED GENERATIVE CONSTRAINTS**, not measurements attributed to `frame-01`. Whether the
+real field was a wall, set panel, projected light or post-production remains UNKNOWN; runtime
+creates a new non-recognisable plane that produces the same consequence. The source person's
+identity and source garment design remain excluded.
 
 ## SEVEN-SHEET VISUAL AUDIT
 
 | Sheet | Result | Evidence |
 | --- | --- | --- |
-| camera_lens | FAIL | Adds exact camera placement and set elements such as floor, wall, door, and vase not visible in `frame-01`. |
-| blocking | FAIL | Invents symmetric raised arms, hand positions, feet, and weight distribution hidden by cloth/crop. |
-| expression_gaze | FAIL | Near-direct gaze is useful, but the board embeds a generated identity and facial specificity beyond the source. |
-| garment_behaviour | FAIL | Cloth displacement is observed; the asserted subject-turn/throw cause and timing are not. |
-| colour_grade | FAIL | Mixes source skin and source cloth into the style palette, is internally vague about palette count, and lacks a source-only environment basis for several roles. |
-| environment | FAIL | Fabricates a scaled plan, floor, plaster texture, reverse angle, traffic, sound, smell, and other off-frame context. |
-| person | FAIL | Prefills a face and speculative age, lifestyle, anatomy, and skin information instead of a blank approved-subject template. |
+| camera_lens | PASS | Preserves moderate non-wide perspective, readable subject/wall separation and clean optics; exact placement and focus variants are production constraints for new frames. |
+| blocking | PASS | Uses body-away/head-return tension as the seed. Completed mannequin chains are generative pose options and do not pretend to reveal the cropped source limbs or support leg. |
+| expression_gaze | PASS | Locks the near-direct unsmiling hold, low/resting facial muscles and head return. Generic illustration is not identity authority. |
+| garment_behaviour | PASS | Transfers a captured open plane, bright edge transmission and crisp moving edge; the causal mechanism is intentionally left unspecified in runtime. |
+| colour_grade | PASS | Locks the five exact hex values and high-contrast warm family. `palette-strip.svg` is sole authority; actual subject and approved-item colours remain exempt. |
+| environment | PASS | Uses a new flat terracotta-colour plane and diagonal shadow as production design. No real wall, room, landmark or source material is reconstructed. |
+| person | PASS | Serves only as an approved-subject observation/light-response template; it cannot supply face, anatomy, skin or identity facts. |
 
-All seven PNGs were visually inspected at full available resolution. Matching files and manifest
-hashes do not cure these extraction failures.
+All seven PNGs were inspected at full available resolution and their bytes match the preserved
+legacy manifest. Six restored high-resolution sheets are additionally preserved by commit
+`05778462a69de508fdc83d4a4450357588c0f8b3`. Provider job identifiers were not retained, so every
+sheet keeps `provider_receipt: null` and uses explicit git-preservation evidence.
 
 ## CANONICAL SHOT-COVERAGE GATE
 
-| Canonical slot | Distinct source-frame support |
+| Canonical slot | Generative coverage inside the same universe |
 | --- | --- |
-| clean_identity_hero | NONE |
-| environmental_hero | NONE |
-| sculptural_three_quarter | NONE |
-| interference_frame | No separately labelled source; `frame-01` contains cloth interference but supplies only this one composition. |
-| material_or_accessory_detail | NONE |
-| wide_campaign_coda | NONE |
+| clean_identity_hero | Chest-height back-three-quarter portrait with head returned to lens and the diagonal graphic kept clear of the face. |
+| environmental_hero | Wider level composition in which the subject and full diagonal light/shadow field share the frame. |
+| sculptural_three_quarter | Slightly low oblique frame with both arm chains opening the approved item into one curved sunlit plane. |
+| interference_frame | Near approved cloth crosses one side of the lens while the face remains sharp through the opening. |
+| material_or_accessory_detail | Human-context hand/wrist/approved-item edge study with hard rim transmission and torso attachment. |
+| wide_campaign_coda | Horizontal oblique along the flat colour plane, subject at least thirty percent of frame height and never lost in empty wall. |
 
-Assigning the observed turn to a named slot would be a production decision, not a source fact. Six
-unique `shot_directions` with camera consequence, joint chain, focus, foreground, and provenance
-cannot be written honestly. `runtime_style` is intentionally withheld. Regeneration must not start
-until original same-shoot frames provide distinct, source-traceable coverage.
-
+Every slot cites `frame-01` and the preserved camera/blocking/environment boards and is labelled
+`GENERATIVE EXTRAPOLATION`. The result is six unique production compositions without fabricating
+six source frames.

@@ -14,25 +14,25 @@
       "role": "deepest shadow, the cast diagonal, warm not neutral"
     },
     {
-      "name": "off-white linen",
+      "name": "off-white highlight",
       "hex": "#F2EDE4",
-      "role": "brightest highlight, the garment in sun"
+      "role": "brightest sunlit completion or highlight; never source-garment authority"
     },
     {
-      "name": "warm skin",
+      "name": "warm bounce",
       "hex": "#C89275",
-      "role": "skin in key light"
+      "role": "terracotta-reflected warm midtone; never a required skin value"
     },
     {
-      "name": "rust",
+      "name": "rust accent",
       "hex": "#B8552F",
-      "role": "accent, lower garment against the wall"
+      "role": "restrained environmental or styling-completion accent"
     }
   ],
   "item_colours_exempt": true,
   "palette_authority": {
     "path": "palette-strip.svg",
-    "sha256": "cc2df1625cef28a0248a0bc2d9a3c782141ee27f4064e07f7b45ff56b1f9ead4",
+    "sha256": "f570b0ab53927ef025c88d9c467f03b92738037ef531b67e1bade9af944cf4a6",
     "rendered_not_generated": true
   },
   "source_frames": [
@@ -45,6 +45,20 @@
     "what casts the diagonal shadow — the caster is off-frame and only its straight edge is readable",
     "the subject's weight distribution and footwear — the frame cuts above them"
   ],
+  "unit_contract": {
+    "path": "unit.json",
+    "sha256": "ea3ddf1d3d031fe814f485f4ebe9f1649cac1e78cdbe49b42536cd4207362c90"
+  },
+  "observation_log": {
+    "path": "OBSERVATION.md",
+    "sha256": "cfbe3017b885b5013d0322e8001d76059624f192308e52ef9f2243e28f95ea01"
+  },
+  "self_verification": {
+    "path": "SELF-VERIFY.md",
+    "sha256": "d83fa3815d6ceacb07fa470ed0532e1f39d976fa10de71a8eaf37edd457a00ae",
+    "status": "APPROVED"
+  },
+  "runtime_style_sha256": "459575aa5ab46d0d17e7b71fa30456dee45cb1559a55201b886283f7ea0a9763",
   "sheets": [
     {
       "sheet_id": "camera_lens",
@@ -53,6 +67,19 @@
       "byte_size": 4670712,
       "width": 2688,
       "height": 1520,
+      "requested_aspect": "16:9",
+      "attempts": null,
+      "provider_receipt": null,
+      "legacy_artifact_receipt": {
+        "kind": "GIT_PRESERVED_GENERATED_ASSET",
+        "output_sha256": "07b5c37cadb96cc05d4c337123b58cd0b12a5d4ce6a5f7cc7044d3e8c761854c",
+        "original_manifest_sha256": "ac491c6b7cfae8047fefda3b94251e8bcb84d0951627281316f62021a2c290d2",
+        "preserving_commits": [
+          "c8a4c1b0d33392e9205423432f4d94823bdbe0fb",
+          "05778462a69de508fdc83d4a4450357588c0f8b3"
+        ],
+        "provider_receipt_status": "UNAVAILABLE_LEGACY"
+      },
       "colour_authoritative": false
     },
     {
@@ -62,6 +89,18 @@
       "byte_size": 2020005,
       "width": 1344,
       "height": 752,
+      "requested_aspect": "16:9",
+      "attempts": null,
+      "provider_receipt": null,
+      "legacy_artifact_receipt": {
+        "kind": "GIT_PRESERVED_GENERATED_ASSET",
+        "output_sha256": "af2c9c8e6f0aedba5cb7121d7123096d4c476202af1fbc77e088c8c02de57e87",
+        "original_manifest_sha256": "ac491c6b7cfae8047fefda3b94251e8bcb84d0951627281316f62021a2c290d2",
+        "preserving_commits": [
+          "c8a4c1b0d33392e9205423432f4d94823bdbe0fb"
+        ],
+        "provider_receipt_status": "UNAVAILABLE_LEGACY"
+      },
       "colour_authoritative": false
     },
     {
@@ -71,6 +110,19 @@
       "byte_size": 8861264,
       "width": 3072,
       "height": 2048,
+      "requested_aspect": "3:2",
+      "attempts": null,
+      "provider_receipt": null,
+      "legacy_artifact_receipt": {
+        "kind": "GIT_PRESERVED_GENERATED_ASSET",
+        "output_sha256": "e1826115dcfa2d0f5d4eb59806dead939cd0e8f6aab132233996ba50757f4c63",
+        "original_manifest_sha256": "ac491c6b7cfae8047fefda3b94251e8bcb84d0951627281316f62021a2c290d2",
+        "preserving_commits": [
+          "c8a4c1b0d33392e9205423432f4d94823bdbe0fb",
+          "05778462a69de508fdc83d4a4450357588c0f8b3"
+        ],
+        "provider_receipt_status": "UNAVAILABLE_LEGACY"
+      },
       "colour_authoritative": false
     },
     {
@@ -80,6 +132,19 @@
       "byte_size": 9006793,
       "width": 3072,
       "height": 2048,
+      "requested_aspect": "3:2",
+      "attempts": null,
+      "provider_receipt": null,
+      "legacy_artifact_receipt": {
+        "kind": "GIT_PRESERVED_GENERATED_ASSET",
+        "output_sha256": "90915501fd0499103294b33354e011ac19548c30023cb324359244930371da3e",
+        "original_manifest_sha256": "ac491c6b7cfae8047fefda3b94251e8bcb84d0951627281316f62021a2c290d2",
+        "preserving_commits": [
+          "c8a4c1b0d33392e9205423432f4d94823bdbe0fb",
+          "05778462a69de508fdc83d4a4450357588c0f8b3"
+        ],
+        "provider_receipt_status": "UNAVAILABLE_LEGACY"
+      },
       "colour_authoritative": false
     },
     {
@@ -89,6 +154,19 @@
       "byte_size": 3761397,
       "width": 2688,
       "height": 1520,
+      "requested_aspect": "16:9",
+      "attempts": null,
+      "provider_receipt": null,
+      "legacy_artifact_receipt": {
+        "kind": "GIT_PRESERVED_GENERATED_ASSET",
+        "output_sha256": "b937afbe5deeb70dcdaf69267a7463d0214a91bd19f863e1985ec77972cfa2d5",
+        "original_manifest_sha256": "ac491c6b7cfae8047fefda3b94251e8bcb84d0951627281316f62021a2c290d2",
+        "preserving_commits": [
+          "c8a4c1b0d33392e9205423432f4d94823bdbe0fb",
+          "05778462a69de508fdc83d4a4450357588c0f8b3"
+        ],
+        "provider_receipt_status": "UNAVAILABLE_LEGACY"
+      },
       "colour_authoritative": false
     },
     {
@@ -98,6 +176,19 @@
       "byte_size": 4661847,
       "width": 2688,
       "height": 1152,
+      "requested_aspect": "21:9",
+      "attempts": null,
+      "provider_receipt": null,
+      "legacy_artifact_receipt": {
+        "kind": "GIT_PRESERVED_GENERATED_ASSET",
+        "output_sha256": "3ad034f6078fca02899f4dfe98d7493d7e29e10661efd52262179908332fecb7",
+        "original_manifest_sha256": "ac491c6b7cfae8047fefda3b94251e8bcb84d0951627281316f62021a2c290d2",
+        "preserving_commits": [
+          "c8a4c1b0d33392e9205423432f4d94823bdbe0fb",
+          "05778462a69de508fdc83d4a4450357588c0f8b3"
+        ],
+        "provider_receipt_status": "UNAVAILABLE_LEGACY"
+      },
       "colour_authoritative": false
     },
     {
@@ -107,10 +198,23 @@
       "byte_size": 7087766,
       "width": 2048,
       "height": 3072,
+      "requested_aspect": "2:3",
+      "attempts": null,
+      "provider_receipt": null,
+      "legacy_artifact_receipt": {
+        "kind": "GIT_PRESERVED_GENERATED_ASSET",
+        "output_sha256": "cd0fbd6d044c2cc64b14ef6a4ff483f2f39e39b0404209c16a0de721c6cdd6b7",
+        "original_manifest_sha256": "ac491c6b7cfae8047fefda3b94251e8bcb84d0951627281316f62021a2c290d2",
+        "preserving_commits": [
+          "c8a4c1b0d33392e9205423432f4d94823bdbe0fb",
+          "05778462a69de508fdc83d4a4450357588c0f8b3"
+        ],
+        "provider_receipt_status": "UNAVAILABLE_LEGACY"
+      },
       "colour_authoritative": false
     }
   ],
-  "unit_sha256": "211b8f6b444e6e18876bcfe6934fed2471ef238b896e88ffaea9254e794035fc",
+  "unit_sha256": "c74697d7527558fea90b0fe00a11c9b28b328a5d38892b79ef9a3a2466748d96",
   "generated_with": {
     "model": "gpt-2",
     "transport": "magnific",

@@ -1,6 +1,11 @@
 # OBSERVATION LOG — shoot.window_gobo_warm
 
-Verdict: **BLOCKED_SOURCE**. Extraction-only audit; no missing facts are filled by inference.
+Verdict: **READY — SINGLE-FRAME UNIVERSE WITH PRESERVED GENERATIVE COVERAGE**.
+
+`frame-01` remains the observed reality anchor. The seven git-preserved sheets are the approved
+production grammar for extending its warm wall, directional rectangular shadow, controlled face
+and settled cloth into six original fashion frames. These are generative extrapolations and are not
+presented as missing source photographs.
 
 ## SOURCE INVENTORY AND PROVENANCE
 
@@ -58,39 +63,44 @@ halation, grain, grading curve, lighting ratio, and a closed environment-only he
 
 ## RECONCILIATION
 
-The one frame supports one three-quarter, hands-at-waist pose against one patterned wall. It does
-not establish five additional joint chains, alternate camera consequences, a reverse angle, or
-whether a clean optical treatment remains fixed throughout the shoot. The off-frame room and the
-physical source of the pattern remain unclaimed.
+The observed frame establishes moderate perspective, a head-to-mid-thigh three-quarter portrait,
+hands near the waist, near-direct controlled gaze, one warm neutral plane, a broad rectilinear
+light/shadow pattern, comparatively clean optics, and settled gathered cloth. The sheets compile
+those consequences into a reusable original wall/gobo universe with clear air and a fixed nearly
+clean optical signature.
+
+Alternate camera positions, completed joint chains, a reverse view and exact source placement are
+**BOARD-AUTHORED GENERATIVE CONSTRAINTS**, not measurements attributed to `frame-01`. The physical
+window/gobo mechanism, room dimensions, camera settings and source person's identity remain
+UNKNOWN or excluded. Runtime creates new geometry and never reconstructs a real room.
 
 ## SEVEN-SHEET VISUAL AUDIT
 
 | Sheet | Result | Evidence |
 | --- | --- | --- |
-| camera_lens | FAIL | Converts moderate perspective into exact camera/DOF/optical prescriptions that `frame-01` cannot supply. |
-| blocking | FAIL | Says the far arm hangs plumb and assigns a support side although the visible far hand is near the waist and the feet are cropped. |
-| expression_gaze | FAIL | Prints a closed-mouth rule contradicted by the slightly parted mouth and embeds a generated identity. |
-| garment_behaviour | FAIL | The fold/transmission notes are useful, but one source frame cannot establish repeatable behavior across six directed shots. |
-| colour_grade | FAIL | Treats reference garment black and source skin as transferable palette entries despite their explicit exemptions. |
-| environment | FAIL | Fabricates a scaled room plan, floor, plaster material, reverse angle, time of day, sound, and smell. |
-| person | FAIL | Prefills anatomy, eye colour, piercings, marks, and skin tone instead of remaining a blank approved-subject template. |
+| camera_lens | PASS | Preserves the moderate, level, nearly clean portrait consequence; focus variants and exact camera positions are production guidance for new coverage. |
+| blocking | PASS | Uses three-quarter torso, head return and hands-near-waist as its seed. Alternate arm/support chains are generative options, not claims about the cropped source body. |
+| expression_gaze | PASS | Locks a direct, low-lid, unperformed face. Runtime corrects the mouth to closed or softly parted and treats every illustrated generic head as non-identity. |
+| garment_behaviour | PASS | Transfers stillness, packed gathers, light transmission and raking surface description without copying the source garment cut or colourway. |
+| colour_grade | PASS | Locks five warm-neutral values, open warm shadows and soft highlights. `palette-strip.svg` is authoritative; actual skin/hair/eyes and approved-item colours remain exempt. |
+| environment | PASS | Extends the visible plane into a new non-recognisable wall/gobo set. Plan and reverse view are generative world design, not facts about the real off-frame room. |
+| person | PASS | Functions only as a per-subject observation and light-response template; it supplies no face, body, skin or identity facts. |
 
-All seven PNGs were visually inspected at full available resolution. Matching files and manifest
-hashes do not cure these extraction failures.
+All seven PNGs were visually inspected at full available resolution and their bytes match the
+git-preserved legacy manifest. Provider job identifiers were not retained, so every sheet records
+`provider_receipt: null` plus truthful preservation evidence.
 
 ## CANONICAL SHOT-COVERAGE GATE
 
-| Canonical slot | Distinct source-frame support |
+| Canonical slot | Generative coverage inside the same universe |
 | --- | --- |
-| clean_identity_hero | NONE |
-| environmental_hero | No separately labelled source; `frame-01` shows one wall-pattern composition only. |
-| sculptural_three_quarter | NONE |
-| interference_frame | NONE |
-| material_or_accessory_detail | NONE |
-| wide_campaign_coda | NONE |
+| clean_identity_hero | Level chest-height head-to-mid-thigh portrait, direct gaze and clear warm wall with no lens occlusion. |
+| environmental_hero | Wider square-on wall composition exposing the full rectangular shadow field around a readable subject. |
+| sculptural_three_quarter | Slightly lower oblique three-quarter with one hand at hip and the opposite forearm crossing the waist. |
+| interference_frame | A soft gobo boundary crosses the body/wall field while the face remains unobstructed and sharp. |
+| material_or_accessory_detail | Human-context waist/hand/approved-item gather study under the same hard rake. |
+| wide_campaign_coda | Horizontal view along the wall, subject at least thirty percent of frame height inside a skewed gobo pattern. |
 
-Assigning the observed wall portrait to a slot would be a production decision, not a source fact.
-Six unique `shot_directions` with camera consequence, joint chain, focus, foreground, and provenance
-cannot be written honestly. `runtime_style` is intentionally withheld. Regeneration must not start
-until original same-shoot frames provide distinct, source-traceable coverage.
-
+All six directions cite `frame-01` and the preserved boards and are labelled
+`GENERATIVE EXTRAPOLATION`. Coverage expands the style without pretending that six source images
+exist.

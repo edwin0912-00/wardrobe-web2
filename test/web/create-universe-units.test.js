@@ -26,6 +26,8 @@ const REQUIRED_SHOT_SLOTS = [
   'wide_campaign_coda',
 ];
 const LEGACY_BLOCKED_SOURCE_IDS = [
+];
+const PORTFOLIO_READY_IDS = [
   'shoot.skylight_haze',
   'shoot.terracotta_hardlight',
   'shoot.window_gobo_warm',
@@ -36,8 +38,6 @@ const LEGACY_BLOCKED_SOURCE_IDS = [
   'shoot.grey_wall_gloss',
   'shoot.ochre_stage_tailoring',
   'shoot.shutter_amber_interior',
-];
-const PORTFOLIO_READY_IDS = [
   'shoot.zayn_institutional',
   'shoot.liza_luminous',
   'shoot.duckweed_forest_ophelia',
@@ -81,7 +81,7 @@ function runtimeStyleIsComplete(runtimeStyle) {
     });
 }
 
-test('source-incomplete legacy and mixed-gallery units fail closed', async () => {
+test('unrestored mixed-gallery units fail closed', async () => {
   for (const unitId of [...LEGACY_BLOCKED_SOURCE_IDS, ...PORTFOLIO_BLOCKED_SOURCE_IDS]) {
     const directory = path.resolve('docs', 'style-units', unitId);
     const unit = JSON.parse(await readFile(path.join(directory, 'unit.json'), 'utf8'));
@@ -100,7 +100,7 @@ test('source-incomplete legacy and mixed-gallery units fail closed', async () =>
   }
 });
 
-test('five source-backed portfolio shoots are fully bound Creative Universe units', async () => {
+test('all restored portfolio shoots are fully bound Creative Universe units', async () => {
   const unitBindings = new Set();
 
   for (const unitId of PORTFOLIO_READY_IDS) {
@@ -172,8 +172,13 @@ test('five source-backed portfolio shoots are fully bound Creative Universe unit
       assert.equal(sheet?.path, `sheet-${role}.png`, `${unitId}: ${role}`);
       const bytes = await readFile(path.join(directory, sheet.path));
       assert.equal(sha256(bytes), sheet.sha256, `${unitId}: ${role}`);
-      assert.equal(sheet.provider_receipt?.output_sha256, sheet.sha256, `${unitId}: ${role}`);
-      assert.ok(sheet.provider_receipt?.job_id, `${unitId}: ${role}`);
+      const providerBound = sheet.provider_receipt?.output_sha256 === sheet.sha256
+        && typeof sheet.provider_receipt?.job_id === 'string';
+      const legacyBound = sheet.legacy_artifact_receipt?.kind === 'GIT_PRESERVED_GENERATED_ASSET'
+        && sheet.legacy_artifact_receipt?.output_sha256 === sheet.sha256
+        && /^[a-f0-9]{64}$/.test(sheet.legacy_artifact_receipt?.original_manifest_sha256 ?? '')
+        && sheet.legacy_artifact_receipt?.provider_receipt_status === 'UNAVAILABLE_LEGACY';
+      assert.equal(providerBound || legacyBound, true, `${unitId}: ${role}`);
       sheetBindingLines.push(`${role}:${sheet.sha256}`);
     }
 

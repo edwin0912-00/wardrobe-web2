@@ -6,47 +6,67 @@
     {
       "name": "deep shadow",
       "hex": "#1D1B0C",
-      "role": "measured from the supplied frames"
+      "role": "deepest room shadow"
     },
     {
       "name": "burnt red shadow",
       "hex": "#5D200C",
-      "role": "measured from the supplied frames"
+      "role": "warm shadow accent"
     },
     {
       "name": "amber sunlit cloth",
       "hex": "#A63F12",
-      "role": "measured from the supplied frames"
+      "role": "hard-light accent and styling completion"
     },
     {
       "name": "warm wall mid",
       "hex": "#96714B",
-      "role": "measured from the supplied frames"
+      "role": "environment midtone"
     },
     {
-      "name": "lit skin",
+      "name": "lit skin reference",
       "hex": "#C19567",
-      "role": "measured from the supplied frames"
+      "role": "legacy grade reference; real subject skin remains exempt"
     },
     {
       "name": "wall highlight",
       "hex": "#DFC8AC",
-      "role": "measured from the supplied frames"
+      "role": "brightest slatted-light band"
     }
   ],
   "item_colours_exempt": true,
-  "palette_authority": "palette-strip.svg",
+  "palette_authority": {
+    "path": "palette-strip.svg",
+    "sha256": "d1518b0d83398f10f0fa6118d5dd083e74ac24ae75017aae6a32bd6d7504b6cc",
+    "rendered_not_generated": true
+  },
   "source_frames": [
     "male-01-shutter-orange.png",
     "male-03.png",
     "male-05-armchair-dark.png"
   ],
   "unknowns": [
-    "focal length in millimetres",
-    "whether the light is real sun or a lamp through a gobo",
-    "the floor material in frame male-03",
-    "what is outside the window"
+    "focal length, aperture, shutter speed and numerical camera height",
+    "whether the hard primary light is real sun, a lamp or a gobo",
+    "actual blind or window geometry outside the observed crops",
+    "exact wall and floor construction",
+    "whether primary highlight softness is lens bloom or grade",
+    "which six coverage directions existed in the historical source shoot rather than in the approved authored extension"
   ],
+  "unit_contract": {
+    "path": "unit.json",
+    "sha256": "838359340d1d176be4fe16045f6a92662f4b21a9ac2bee6231f85a43e0c748c1"
+  },
+  "observation_log": {
+    "path": "OBSERVATION.md",
+    "sha256": "a8cd620bff6bc68cb24476ce43edfef1f0c48b2d3b7cd767d248698867928077"
+  },
+  "self_verification": {
+    "path": "SELF-VERIFY.md",
+    "sha256": "3fe77ef76dd5960766f12da3de72268b5151548e6c079cc69778f9b533fb0493",
+    "status": "APPROVED"
+  },
+  "runtime_style_sha256": "805db2da02ffeaf49e764ca3741d284d2c15a7cb8e32f4234f7c6a6b11488f70",
   "sheets": [
     {
       "sheet_id": "camera_lens",
@@ -54,7 +74,21 @@
       "sha256": "9dabf8e7f14d2594852e3bf45a6c7914eb5a1f938d446a326aff16e73d6e7bcf",
       "byte_size": 3393637,
       "width": 2048,
-      "height": 1360
+      "height": 1360,
+      "requested_aspect": "3:2",
+      "attempts": null,
+      "provider_receipt": null,
+      "legacy_artifact_receipt": {
+        "kind": "GIT_PRESERVED_GENERATED_ASSET",
+        "output_sha256": "9dabf8e7f14d2594852e3bf45a6c7914eb5a1f938d446a326aff16e73d6e7bcf",
+        "original_manifest_sha256": "316a27ab21d7c7c7134d2feda0c0649005eec65fae2bfdc19dcf3288911dc785",
+        "preserving_commits": [
+          "0e6ae50017d253364b07b61f9bccb73a4f577636",
+          "5322cd3003bb553a574c12632248a54077f3f1e9"
+        ],
+        "provider_receipt_status": "UNAVAILABLE_LEGACY"
+      },
+      "colour_authoritative": false
     },
     {
       "sheet_id": "blocking",
@@ -62,7 +96,21 @@
       "sha256": "30e06734724ddee8a6f0b5fe1153ba9c69e67765a36f88e48533506cfae2d824",
       "byte_size": 5975855,
       "width": 2048,
-      "height": 1360
+      "height": 1360,
+      "requested_aspect": "3:2",
+      "attempts": null,
+      "provider_receipt": null,
+      "legacy_artifact_receipt": {
+        "kind": "GIT_PRESERVED_GENERATED_ASSET",
+        "output_sha256": "30e06734724ddee8a6f0b5fe1153ba9c69e67765a36f88e48533506cfae2d824",
+        "original_manifest_sha256": "316a27ab21d7c7c7134d2feda0c0649005eec65fae2bfdc19dcf3288911dc785",
+        "preserving_commits": [
+          "0e6ae50017d253364b07b61f9bccb73a4f577636",
+          "5322cd3003bb553a574c12632248a54077f3f1e9"
+        ],
+        "provider_receipt_status": "UNAVAILABLE_LEGACY"
+      },
+      "colour_authoritative": false
     },
     {
       "sheet_id": "expression_gaze",
@@ -70,7 +118,21 @@
       "sha256": "f1b0d97879b9b4788147363a5a313b71b81428c164f882b24ba4e3d37c2d67d3",
       "byte_size": 4138527,
       "width": 2048,
-      "height": 1360
+      "height": 1360,
+      "requested_aspect": "3:2",
+      "attempts": null,
+      "provider_receipt": null,
+      "legacy_artifact_receipt": {
+        "kind": "GIT_PRESERVED_GENERATED_ASSET",
+        "output_sha256": "f1b0d97879b9b4788147363a5a313b71b81428c164f882b24ba4e3d37c2d67d3",
+        "original_manifest_sha256": "316a27ab21d7c7c7134d2feda0c0649005eec65fae2bfdc19dcf3288911dc785",
+        "preserving_commits": [
+          "0e6ae50017d253364b07b61f9bccb73a4f577636",
+          "5322cd3003bb553a574c12632248a54077f3f1e9"
+        ],
+        "provider_receipt_status": "UNAVAILABLE_LEGACY"
+      },
+      "colour_authoritative": false
     },
     {
       "sheet_id": "garment_behaviour",
@@ -78,7 +140,21 @@
       "sha256": "79678e679b196b53b2be2b8413634c06d5bc0e217bbd4837b1f26537bd63f29e",
       "byte_size": 5645610,
       "width": 2048,
-      "height": 1360
+      "height": 1360,
+      "requested_aspect": "3:2",
+      "attempts": null,
+      "provider_receipt": null,
+      "legacy_artifact_receipt": {
+        "kind": "GIT_PRESERVED_GENERATED_ASSET",
+        "output_sha256": "79678e679b196b53b2be2b8413634c06d5bc0e217bbd4837b1f26537bd63f29e",
+        "original_manifest_sha256": "316a27ab21d7c7c7134d2feda0c0649005eec65fae2bfdc19dcf3288911dc785",
+        "preserving_commits": [
+          "0e6ae50017d253364b07b61f9bccb73a4f577636",
+          "5322cd3003bb553a574c12632248a54077f3f1e9"
+        ],
+        "provider_receipt_status": "UNAVAILABLE_LEGACY"
+      },
+      "colour_authoritative": false
     },
     {
       "sheet_id": "colour_grade",
@@ -86,7 +162,21 @@
       "sha256": "2f28052bf1f5cdaf30917a4ab34e989a90e60cf5095626b6e777d53b0073f0ac",
       "byte_size": 1264357,
       "width": 1280,
-      "height": 720
+      "height": 720,
+      "requested_aspect": "16:9",
+      "attempts": null,
+      "provider_receipt": null,
+      "legacy_artifact_receipt": {
+        "kind": "GIT_PRESERVED_GENERATED_ASSET",
+        "output_sha256": "2f28052bf1f5cdaf30917a4ab34e989a90e60cf5095626b6e777d53b0073f0ac",
+        "original_manifest_sha256": "316a27ab21d7c7c7134d2feda0c0649005eec65fae2bfdc19dcf3288911dc785",
+        "preserving_commits": [
+          "0e6ae50017d253364b07b61f9bccb73a4f577636",
+          "5322cd3003bb553a574c12632248a54077f3f1e9"
+        ],
+        "provider_receipt_status": "UNAVAILABLE_LEGACY"
+      },
+      "colour_authoritative": false
     },
     {
       "sheet_id": "environment",
@@ -94,7 +184,21 @@
       "sha256": "b6045842f365fcb66be8ac3942c9ff9b4dfb8ce6b684bafd2a64208b840d9a54",
       "byte_size": 1580513,
       "width": 1568,
-      "height": 672
+      "height": 672,
+      "requested_aspect": "21:9",
+      "attempts": null,
+      "provider_receipt": null,
+      "legacy_artifact_receipt": {
+        "kind": "GIT_PRESERVED_GENERATED_ASSET",
+        "output_sha256": "b6045842f365fcb66be8ac3942c9ff9b4dfb8ce6b684bafd2a64208b840d9a54",
+        "original_manifest_sha256": "316a27ab21d7c7c7134d2feda0c0649005eec65fae2bfdc19dcf3288911dc785",
+        "preserving_commits": [
+          "0e6ae50017d253364b07b61f9bccb73a4f577636",
+          "5322cd3003bb553a574c12632248a54077f3f1e9"
+        ],
+        "provider_receipt_status": "UNAVAILABLE_LEGACY"
+      },
+      "colour_authoritative": false
     },
     {
       "sheet_id": "person",
@@ -102,9 +206,26 @@
       "sha256": "237efd03d397165e512cb54837e1eb1e19877d8ba803850859f6368b58e0a6ab",
       "byte_size": 1344817,
       "width": 832,
-      "height": 1248
+      "height": 1248,
+      "requested_aspect": "2:3",
+      "attempts": null,
+      "provider_receipt": null,
+      "legacy_artifact_receipt": {
+        "kind": "GIT_PRESERVED_GENERATED_ASSET",
+        "output_sha256": "237efd03d397165e512cb54837e1eb1e19877d8ba803850859f6368b58e0a6ab",
+        "original_manifest_sha256": "316a27ab21d7c7c7134d2feda0c0649005eec65fae2bfdc19dcf3288911dc785",
+        "preserving_commits": [
+          "0e6ae50017d253364b07b61f9bccb73a4f577636",
+          "5322cd3003bb553a574c12632248a54077f3f1e9"
+        ],
+        "provider_receipt_status": "UNAVAILABLE_LEGACY"
+      },
+      "colour_authoritative": false
     }
   ],
-  "unit_sha256": "da229f53e9bb11541a9ad64001d35ad07d9c3726f1378462414abec87dc7473a",
-  "generated_with": "artshoot-pipeline-style-creation · completion pass 2026-07-27 (environment, colour_grade, person added to the four existing sheets)"
+  "unit_sha256": "223dbb4e2bc37a4a7b366e11d589ae0ae185ce3ae887b1471b3543241d70c3ae",
+  "generated_with": {
+    "model": "UNAVAILABLE_LEGACY",
+    "transport": "GIT_PRESERVED_GENERATED_ASSET"
+  }
 }

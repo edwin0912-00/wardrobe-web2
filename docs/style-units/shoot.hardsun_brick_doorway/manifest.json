@@ -41,13 +41,29 @@
     "rendered_not_generated": true
   },
   "source_frames": [
-    "frame-01 — single supplied frame, portrait, chest-height camera, subject before a dark recessed doorway in a hard-lit terracotta brick facade, crisp diagonal shadow, saturated blue sky, crosswalk paint at the lower edge"
+    "frame-01 [LEGACY_SOURCE_UNAVAILABLE] — historical private retail screenshot named by the old extraction; no source bytes or source hash are available, and the owner-authorized seven-sheet legacy artifact set is the restoration authority"
   ],
   "unknowns": [
-    "exact sun elevation",
-    "traffic state of the street behind",
-    "lens focal length (consequences recorded instead)"
+    "historical private source bytes, dimensions and source SHA-256",
+    "physical light placement and whether the artifact-defined face-to-key relation matched the unavailable source",
+    "whether the six runtime coverage constructions existed in the historical shoot; they are owner-authorized extensions of the preserved universe",
+    "lens focal length, aperture, shutter speed and physical camera height",
+    "street identity, facade dimensions and unseen site geometry"
   ],
+  "unit_contract": {
+    "path": "unit.json",
+    "sha256": "ce41fde33e54bd79d82b967d225485b7a987fbf011baa8ce76bbef7a1201b2e9"
+  },
+  "observation_log": {
+    "path": "OBSERVATION.md",
+    "sha256": "61cd5a290a987945bcbe9f799970fdb1a078b3e8673463928c54bf992c8ca541"
+  },
+  "self_verification": {
+    "path": "SELF-VERIFY.md",
+    "sha256": "ff7f63f7799fbabb353f7a9f8302f787475976a59bf7aa87ed60c3600a4ba2af",
+    "status": "APPROVED"
+  },
+  "runtime_style_sha256": "6b762653c4299fa458e824990ab8a5e9a2a80d61626acdaabcaf04364014e53a",
   "sheets": [
     {
       "sheet_id": "camera_lens",
@@ -58,6 +74,16 @@
       "height": 720,
       "requested_aspect": "16:9",
       "attempts": 1,
+      "provider_receipt": null,
+      "legacy_artifact_receipt": {
+        "kind": "GIT_PRESERVED_GENERATED_ASSET",
+        "output_sha256": "53aec87026e68a540491bcb04f448058ed312a81479ba9f13bbb10a10a5262a1",
+        "original_manifest_sha256": "7df1d70e6b1bf0b57be41c420ac830206d480bdea0d762ab18d6b5b344eb7e6a",
+        "preserving_commits": [
+          "8fca4ea8471e81fe65459f5f50dd8893a3a20f8e"
+        ],
+        "provider_receipt_status": "UNAVAILABLE_LEGACY"
+      },
       "colour_authoritative": false
     },
     {
@@ -69,6 +95,16 @@
       "height": 720,
       "requested_aspect": "16:9",
       "attempts": 1,
+      "provider_receipt": null,
+      "legacy_artifact_receipt": {
+        "kind": "GIT_PRESERVED_GENERATED_ASSET",
+        "output_sha256": "4fd23fe9f4b23b29ca77732eb9f994db029eb379441aece50433a5beab2f0ba6",
+        "original_manifest_sha256": "7df1d70e6b1bf0b57be41c420ac830206d480bdea0d762ab18d6b5b344eb7e6a",
+        "preserving_commits": [
+          "8fca4ea8471e81fe65459f5f50dd8893a3a20f8e"
+        ],
+        "provider_receipt_status": "UNAVAILABLE_LEGACY"
+      },
       "colour_authoritative": false
     },
     {
@@ -80,6 +116,16 @@
       "height": 832,
       "requested_aspect": "3:2",
       "attempts": 1,
+      "provider_receipt": null,
+      "legacy_artifact_receipt": {
+        "kind": "GIT_PRESERVED_GENERATED_ASSET",
+        "output_sha256": "ca3b1c33adeace9e2e11f31bef19e5c54b487739ea27c88135983aa74e06d23e",
+        "original_manifest_sha256": "7df1d70e6b1bf0b57be41c420ac830206d480bdea0d762ab18d6b5b344eb7e6a",
+        "preserving_commits": [
+          "8fca4ea8471e81fe65459f5f50dd8893a3a20f8e"
+        ],
+        "provider_receipt_status": "UNAVAILABLE_LEGACY"
+      },
       "colour_authoritative": false
     },
     {
@@ -91,6 +137,16 @@
       "height": 832,
       "requested_aspect": "3:2",
       "attempts": 1,
+      "provider_receipt": null,
+      "legacy_artifact_receipt": {
+        "kind": "GIT_PRESERVED_GENERATED_ASSET",
+        "output_sha256": "77dc2d212282537c9e13cb7461b08e3b02cc45de347985ae3799515308b44343",
+        "original_manifest_sha256": "7df1d70e6b1bf0b57be41c420ac830206d480bdea0d762ab18d6b5b344eb7e6a",
+        "preserving_commits": [
+          "8fca4ea8471e81fe65459f5f50dd8893a3a20f8e"
+        ],
+        "provider_receipt_status": "UNAVAILABLE_LEGACY"
+      },
       "colour_authoritative": false
     },
     {
@@ -102,6 +158,16 @@
       "height": 720,
       "requested_aspect": "16:9",
       "attempts": 1,
+      "provider_receipt": null,
+      "legacy_artifact_receipt": {
+        "kind": "GIT_PRESERVED_GENERATED_ASSET",
+        "output_sha256": "c671f1da31534fd1a0febac4cfff2c191663d669ffd961ac04bcf407737dc476",
+        "original_manifest_sha256": "7df1d70e6b1bf0b57be41c420ac830206d480bdea0d762ab18d6b5b344eb7e6a",
+        "preserving_commits": [
+          "8fca4ea8471e81fe65459f5f50dd8893a3a20f8e"
+        ],
+        "provider_receipt_status": "UNAVAILABLE_LEGACY"
+      },
       "colour_authoritative": false
     },
     {
@@ -113,6 +179,16 @@
       "height": 672,
       "requested_aspect": "21:9",
       "attempts": 1,
+      "provider_receipt": null,
+      "legacy_artifact_receipt": {
+        "kind": "GIT_PRESERVED_GENERATED_ASSET",
+        "output_sha256": "96c82d06323c5ed9abcd974584019c3ff1eac9ce1c50ad77652d93c979baf263",
+        "original_manifest_sha256": "7df1d70e6b1bf0b57be41c420ac830206d480bdea0d762ab18d6b5b344eb7e6a",
+        "preserving_commits": [
+          "8fca4ea8471e81fe65459f5f50dd8893a3a20f8e"
+        ],
+        "provider_receipt_status": "UNAVAILABLE_LEGACY"
+      },
       "colour_authoritative": false
     },
     {
@@ -124,10 +200,20 @@
       "height": 1248,
       "requested_aspect": "2:3",
       "attempts": 1,
+      "provider_receipt": null,
+      "legacy_artifact_receipt": {
+        "kind": "GIT_PRESERVED_GENERATED_ASSET",
+        "output_sha256": "d9ede3d2fc12067cfe3901b95c71635be82c0ee01a776445cfa43228c4d10dfa",
+        "original_manifest_sha256": "7df1d70e6b1bf0b57be41c420ac830206d480bdea0d762ab18d6b5b344eb7e6a",
+        "preserving_commits": [
+          "8fca4ea8471e81fe65459f5f50dd8893a3a20f8e"
+        ],
+        "provider_receipt_status": "UNAVAILABLE_LEGACY"
+      },
       "colour_authoritative": false
     }
   ],
-  "unit_sha256": "035a0ca91fd41dd4aff1a58630da5de947c6f4d3d7011892d99fd5431036c08b",
+  "unit_sha256": "e50f899f8a0c956da01a1682a45eeb5ed4e9d7daee82aa06e4545902c6c880a8",
   "generated_with": {
     "model": "openai/gpt-5.4-image-2",
     "transport": "openrouter"

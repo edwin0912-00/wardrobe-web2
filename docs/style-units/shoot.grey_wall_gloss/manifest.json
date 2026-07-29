@@ -34,10 +34,26 @@
     "frame-01 — single supplied frame, portrait, eye-level camera, subject in three-quarter back turn before a flat warm-grey studio wall, one broad soft frontal-left source, high-gloss surface carrying elongated speculars"
   ],
   "unknowns": [
+    "source capture dimensions and SHA-256 of the unavailable extraction-only frame",
     "mouth state (hair occlusion)",
     "source size and exact distance",
-    "whether the wall is seamless paper or plaster"
+    "whether the wall is seamless paper or plaster",
+    "which six coverage directions, beyond the observed over-shoulder turn, existed in the historical source shoot"
   ],
+  "unit_contract": {
+    "path": "unit.json",
+    "sha256": "04e405b62dd5a42beafde680030345a7b03e5af2cb11f4b9c86f7243a5975d63"
+  },
+  "observation_log": {
+    "path": "OBSERVATION.md",
+    "sha256": "7bb194def9b2fd235ea8dc2e28f6119a3440409052e27593cabd74aafa1a20e1"
+  },
+  "self_verification": {
+    "path": "SELF-VERIFY.md",
+    "sha256": "33704f6c88a6387dda3a1d7542d28d8064b9e9012f0cfabc14724518c0b78c0c",
+    "status": "APPROVED"
+  },
+  "runtime_style_sha256": "1ce39600d2579686c8f6c72fd17b3036090021c3c4f7e04fe5bddcbcf4c22493",
   "sheets": [
     {
       "sheet_id": "camera_lens",
@@ -48,6 +64,17 @@
       "height": 720,
       "requested_aspect": "16:9",
       "attempts": 1,
+      "provider_receipt": null,
+      "legacy_artifact_receipt": {
+        "kind": "GIT_PRESERVED_GENERATED_ASSET",
+        "output_sha256": "005a4a848ca5e560dd53ca8554daeef3732fcc9db8093b450d6e89f7ee9cacee",
+        "original_manifest_sha256": "c4ae7b529493cff3fbd63cbdff0773d178cbad802bcdb5ab46db95e22a3f9fef",
+        "preserving_commits": [
+          "8fca4ea8471e81fe65459f5f50dd8893a3a20f8e",
+          "5322cd3003bb553a574c12632248a54077f3f1e9"
+        ],
+        "provider_receipt_status": "UNAVAILABLE_LEGACY"
+      },
       "colour_authoritative": false
     },
     {
@@ -59,6 +86,17 @@
       "height": 720,
       "requested_aspect": "16:9",
       "attempts": 1,
+      "provider_receipt": null,
+      "legacy_artifact_receipt": {
+        "kind": "GIT_PRESERVED_GENERATED_ASSET",
+        "output_sha256": "7cc16dadbe56db3853642066d004122a94743dee4c79ee4ba45a85b7a319a803",
+        "original_manifest_sha256": "c4ae7b529493cff3fbd63cbdff0773d178cbad802bcdb5ab46db95e22a3f9fef",
+        "preserving_commits": [
+          "8fca4ea8471e81fe65459f5f50dd8893a3a20f8e",
+          "5322cd3003bb553a574c12632248a54077f3f1e9"
+        ],
+        "provider_receipt_status": "UNAVAILABLE_LEGACY"
+      },
       "colour_authoritative": false
     },
     {
@@ -70,6 +108,17 @@
       "height": 832,
       "requested_aspect": "3:2",
       "attempts": 1,
+      "provider_receipt": null,
+      "legacy_artifact_receipt": {
+        "kind": "GIT_PRESERVED_GENERATED_ASSET",
+        "output_sha256": "0b636a318248d66fbdd1005131a4281bf288a6e8ed9d1b668101ccda5de8cb02",
+        "original_manifest_sha256": "c4ae7b529493cff3fbd63cbdff0773d178cbad802bcdb5ab46db95e22a3f9fef",
+        "preserving_commits": [
+          "8fca4ea8471e81fe65459f5f50dd8893a3a20f8e",
+          "5322cd3003bb553a574c12632248a54077f3f1e9"
+        ],
+        "provider_receipt_status": "UNAVAILABLE_LEGACY"
+      },
       "colour_authoritative": false
     },
     {
@@ -81,6 +130,17 @@
       "height": 832,
       "requested_aspect": "3:2",
       "attempts": 1,
+      "provider_receipt": null,
+      "legacy_artifact_receipt": {
+        "kind": "GIT_PRESERVED_GENERATED_ASSET",
+        "output_sha256": "2846cc333f86b1f62379206d9d7190f70f31d12b5d8c65e3ba79726d744c8caf",
+        "original_manifest_sha256": "c4ae7b529493cff3fbd63cbdff0773d178cbad802bcdb5ab46db95e22a3f9fef",
+        "preserving_commits": [
+          "8fca4ea8471e81fe65459f5f50dd8893a3a20f8e",
+          "5322cd3003bb553a574c12632248a54077f3f1e9"
+        ],
+        "provider_receipt_status": "UNAVAILABLE_LEGACY"
+      },
       "colour_authoritative": false
     },
     {
@@ -92,6 +152,17 @@
       "height": 720,
       "requested_aspect": "16:9",
       "attempts": 1,
+      "provider_receipt": null,
+      "legacy_artifact_receipt": {
+        "kind": "GIT_PRESERVED_GENERATED_ASSET",
+        "output_sha256": "e75483fc96334ff1fe5e882876332e81de2afb41e89213f9301be40933c3d5e2",
+        "original_manifest_sha256": "c4ae7b529493cff3fbd63cbdff0773d178cbad802bcdb5ab46db95e22a3f9fef",
+        "preserving_commits": [
+          "8fca4ea8471e81fe65459f5f50dd8893a3a20f8e",
+          "5322cd3003bb553a574c12632248a54077f3f1e9"
+        ],
+        "provider_receipt_status": "UNAVAILABLE_LEGACY"
+      },
       "colour_authoritative": false
     },
     {
@@ -103,6 +174,17 @@
       "height": 672,
       "requested_aspect": "21:9",
       "attempts": 1,
+      "provider_receipt": null,
+      "legacy_artifact_receipt": {
+        "kind": "GIT_PRESERVED_GENERATED_ASSET",
+        "output_sha256": "b249a028f48a74960f3bca250e885db0bab117954929e097efe2977b0ffd812f",
+        "original_manifest_sha256": "c4ae7b529493cff3fbd63cbdff0773d178cbad802bcdb5ab46db95e22a3f9fef",
+        "preserving_commits": [
+          "8fca4ea8471e81fe65459f5f50dd8893a3a20f8e",
+          "5322cd3003bb553a574c12632248a54077f3f1e9"
+        ],
+        "provider_receipt_status": "UNAVAILABLE_LEGACY"
+      },
       "colour_authoritative": false
     },
     {
@@ -114,10 +196,21 @@
       "height": 1248,
       "requested_aspect": "2:3",
       "attempts": 1,
+      "provider_receipt": null,
+      "legacy_artifact_receipt": {
+        "kind": "GIT_PRESERVED_GENERATED_ASSET",
+        "output_sha256": "480ca62f057cf6a5d7d61c1968f83526e0c813c11b162336e48361b23f7bd4dd",
+        "original_manifest_sha256": "c4ae7b529493cff3fbd63cbdff0773d178cbad802bcdb5ab46db95e22a3f9fef",
+        "preserving_commits": [
+          "8fca4ea8471e81fe65459f5f50dd8893a3a20f8e",
+          "5322cd3003bb553a574c12632248a54077f3f1e9"
+        ],
+        "provider_receipt_status": "UNAVAILABLE_LEGACY"
+      },
       "colour_authoritative": false
     }
   ],
-  "unit_sha256": "70d441ae13fa03fd36d792e39f6b4949f96aa067dbaafcefdb32a2dc26fac7fe",
+  "unit_sha256": "28296c3aa26bc0bf211e07318ba1cfe41adb8456dfd3e5995d91ee83a6d1eba1",
   "generated_with": {
     "model": "openai/gpt-5.4-image-2",
     "transport": "openrouter"
