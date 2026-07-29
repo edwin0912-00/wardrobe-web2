@@ -20,17 +20,22 @@ action or execution route is deployed. Neither is “live product”.
 
 ## Current manual beta audit — 2026-07-29
 
-Three independent read-only browser checks plus direct HTTP verification found
-that the deployed host is still serving an obsolete shell: it throws a parse
-error on load and a missing-navigation-function error on click. That shell is
-**not** a repair target, a source for main, or a candidate for beta recovery.
-Direct evidence: `/api/health` is `200 ready`; `/api/video/contract` is `404`;
-`/api/post-shoot/pipeline` is `200` metadata only. No paid generation, camera
-consent or personal-media upload was used in this audit.
+The current beta process on `127.0.0.1:4176` runs release `aa2dfd2`: the root
+placeholder opens, `GET /api/editorial-modes` returns 14 modes and all 14
+preview WebPs return `200`. This is a local-server proof, not a public-beta
+proof: `beta.madeforthisjob.com` currently returns Cloudflare `404` before a
+request reaches this Mac. Tunnel inspection shows two active connectors; their
+public-hostname configuration must be checked before calling the public beta
+live.
 
-**First shared atom:** package and deploy the current beta-placeholder source,
-then manually verify its 01–04 navigation. Do not patch, revive or copy the
-obsolete shell merely to make the old page appear healthy.
+`/api/video/contract`, `/api/video/health` and `/api/video` are still `404` on
+this beta release. Video is not live and must remain visibly unavailable.
+No paid generation, camera consent or personal-media upload was used in this
+audit.
+
+**First shared atom:** restore one deterministic public beta tunnel route, then
+repeat the manual 01–04 navigation against the public hostname. Do not patch,
+revive or copy any obsolete shell to make the old page appear healthy.
 
 ## Product structure — read this before taking a task
 

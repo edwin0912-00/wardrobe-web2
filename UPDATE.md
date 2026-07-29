@@ -38,11 +38,13 @@ main-scroll asset, controller or landing replacement may be pulled into beta.
 ## Current verification rule — 2026-07-29
 
 `BLOCK_STATUS.md` is the canonical concise map of pipeline blocks. Every
-claim now carries three independent facts: code proof, deployed beta surface,
-and real beta journey proof. In particular, the current beta host is healthy
-but `/api/video/*` is HTTP 404, so the newly committed Seedance implementation
-is **not deployed** and must not be called live. The 14-mode Create Universe
-catalog is live, but it is not a current hero/series/contact-sheet journey
+claim now carries three independent facts: code proof, beta-server surface,
+and real public-beta journey proof. Release `aa2dfd2` proves locally that all
+14 Create Universe previews are served by beta; public
+`beta.madeforthisjob.com` is currently blocked at Cloudflare `404` before it
+reaches the Mac. `/api/video/*` is HTTP `404` on beta, so the committed
+Seedance implementation is **not deployed** and must not be called live. The
+14-mode Create Universe catalog is not yet a hero/series/contact-sheet journey
 proof.
 
 ## Board protocol release — 2026-07-29
