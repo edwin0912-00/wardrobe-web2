@@ -388,29 +388,48 @@ body {
   letter-spacing: 0.1em; color: rgba(245,243,237,0.42);
 }
 
-/* LIVE LAB sits on the edge of the frame, not inside the glass. */
-.edge {
-  position: absolute; right: 0; top: 50%; z-index: 9;
-  transform: translate(0, -50%) rotate(180deg);
-  writing-mode: vertical-rl;
-  font: inherit; font-size: clamp(9px, 1vw, 11px);
-  letter-spacing: 0.24em; text-transform: uppercase;
-  color: rgba(245,243,237,0.62);
-  background: rgba(29,30,28,0.5); border: 1px solid rgba(245,243,237,0.18);
-  border-right: 0; padding: 16px 9px; cursor: pointer;
-  opacity: 0; transition: opacity 500ms;
+/* LIVE — AN INVITATION THAT ARRIVES.
+ *
+ * The side-mounted button this replaces was on the frame from the moment the camera settled,
+ * which put an optional feature in competition with the required first step. The owner cut
+ * it. This rises from the bottom edge instead, and only once there is a look to try things
+ * on — so it reads as something offered at the right moment rather than chrome that was
+ * always there.
+ *
+ * It leaves again while the live view is open: an invitation to a room you are standing in
+ * is noise. Stage space, not frame space — it is chrome on the picture, not painted on it. */
+.live {
+  position: absolute; z-index: 12;
+  left: 50%; bottom: 0;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  font: inherit; cursor: pointer; text-align: center;
+  padding: 13px 30px 15px;
+  color: var(--milk);
+  background: rgba(20,21,19,0.72);
+  border: 1px solid rgba(245,243,237,0.26);
+  border-bottom: 0;
+  backdrop-filter: blur(10px);
+  /* Comes up from below, and the translate carries the centring with it. */
+  transform: translate(-50%, 110%);
+  opacity: 0;
+  transition: transform 900ms cubic-bezier(0.22, 1, 0.36, 1) 160ms,
+              opacity 700ms ease 160ms;
   pointer-events: none;
 }
-.stage[data-leg="0"][data-station="1"] .edge { opacity: 1; pointer-events: auto; }
-/* LIVE LAB is a camera pointed at a look. Before there is one it is an offer of nothing, so
- * it is not on the frame at all — it was appearing the moment the camera settled and
- * competing with the only thing the viewer is meant to do first. ui.js writes data-live
- * when the avatar is ready; the attribute is in the markup as "0" so the button is hidden
- * on the very first frame, before any script has run. */
-.stage[data-leg="0"][data-station="1"] .edge[data-live="0"] {
-  opacity: 0; pointer-events: none;
+.stage[data-leg="0"][data-station="1"] .live[data-live="1"] {
+  transform: translate(-50%, 0);
+  opacity: 1;
+  pointer-events: auto;
 }
-.edge:hover { color: var(--milk); border-color: rgba(245,243,237,0.5); }
+.live:hover { background: rgba(28,29,26,0.86); border-color: rgba(245,243,237,0.5); }
+.live:focus-visible { outline: 2px solid var(--milk); outline-offset: 3px; }
+.live__t {
+  font-size: clamp(11px, 1.2vw, 14px); letter-spacing: 0.16em; text-transform: uppercase;
+}
+.live__d {
+  font-size: clamp(9px, 1vw, 10px); letter-spacing: 0.14em;
+  color: rgba(245,243,237,0.6);
+}
 
 /* --- three interaction models, identical style so the comparison is behaviour only --- */
 
@@ -718,6 +737,23 @@ body {
   padding: clamp(4px, 1.4cqh, 7px) 8px; text-align: center;
   font-size: clamp(9px, 2cqh, 11px); letter-spacing: 0.18em; text-transform: uppercase;
   color: rgba(245,243,237,0.82); background: rgba(16,17,15,0.66);
+}
+
+/* The live view: a real camera feed in the mirror. Mirrored horizontally, because a mirror
+ * is what the viewer expects to be standing in front of — an unflipped feed reads as a video
+ * call, not as trying something on. No hatching over it: unlike the look, this IS live and
+ * real, so marking it as a placeholder would be the lie in the other direction. */
+.lookframe__cam {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; display: block;
+  transform: scaleX(-1);
+}
+.lookframe[data-state="live"]::after { content: none; }
+.lookframe[data-state="camoff"] {
+  display: grid; place-items: center;
+}
+.lookframe[data-state="camoff"] .lookframe__cap {
+  position: static; background: none; padding: 0;
 }
 
 /* ============================= ACTIONS ON THE SELECTED LOOK =========================

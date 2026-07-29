@@ -242,6 +242,59 @@
 
     /* ============================================================ SHOW — right mirror */
 
+    /* THE CAMERA. Held here so it can be switched off again: a live view that leaves the
+     * device streaming after the viewer has moved on is a privacy fault, not a feature.
+     * Nothing is requested until the viewer presses for it — arriving at the mirror must not
+     * by itself turn a camera on. */
+    var stream = null;
+    var camError = '';
+
+    function stopCamera() {
+      if (!stream) return;
+      stream.getTracks().forEach(function (t) { t.stop(); });
+      stream = null;
+    }
+
+    function startCamera() {
+      if (stream || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        if (!navigator.mediaDevices) { camError = 'браузер не дає доступу до камери'; render(); }
+        return;
+      }
+      navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false })
+        .then(function (st) {
+          stream = st; camError = '';
+          render();
+          var v = showRoot.querySelector('[data-cam]');
+          if (v) { v.srcObject = st; v.play().catch(function () {}); }
+        })
+        .catch(function (err) {
+          /* Say WHICH refusal it was. "Не вдалося" for a denied permission and for an absent
+           * camera sends the viewer looking in two different wrong places. */
+          camError = err && err.name === 'NotAllowedError' ? 'доступ до камери відхилено'
+                   : err && err.name === 'NotFoundError'   ? 'камери не знайдено'
+                   : 'камера недоступна';
+          render();
+        });
+    }
+
+    function liveWindow() {
+      if (stream) {
+        return '<div class="lookframe" data-state="live">' +
+            '<video class="lookframe__cam" data-cam autoplay playsinline muted></video>' +
+            '<span class="lookframe__cap">камера · ' + esc(BACKGROUNDS[current().bg != null ? current().bg : 0]) + '</span>' +
+          '</div>' +
+          '<button class="act act--wide" type="button" data-cam-stop>' +
+            '<span class="act__t">Вимкнути камеру</span>' +
+            '<span class="act__d">потік зупиниться</span></button>';
+      }
+      return '<div class="lookframe" data-state="camoff">' +
+          '<span class="lookframe__cap">' + (camError ? esc(camError) : 'камера вимкнена') + '</span>' +
+        '</div>' +
+        '<button class="act act--wide" type="button" data-cam-start>' +
+          '<span class="act__t">Увімкнути камеру</span>' +
+          '<span class="act__d">' + (camError ? 'спробувати ще' : 'браузер спитає дозвіл') + '</span></button>';
+    }
+
     /* Every result frame carries the same admission: no render is attached. The viewer's own
      * photograph is all we have, so it is shown desaturated under the placeholder hatching.
      * An undressed input photo presented as a finished look would be input passed off as
@@ -291,11 +344,12 @@
       showRoot.setAttribute('data-live', open ? '1' : '0');
       showRoot.setAttribute('aria-hidden', open ? 'false' : 'true');
 
-      var lab = document.querySelector('[data-livelab]');
-      if (lab) {
-        lab.setAttribute('data-live', lookVisible() ? '1' : '0');
-        lab.setAttribute('aria-hidden', lookVisible() ? 'false' : 'true');
-        lab.disabled = !lookVisible() || locked();
+      /* The invitation only exists once there is a look to try things on. */
+      var invite = document.querySelector('[data-live-invite]');
+      if (invite) {
+        invite.setAttribute('data-live', lookVisible() && view !== 'live' ? '1' : '0');
+        invite.setAttribute('aria-hidden', lookVisible() && view !== 'live' ? 'false' : 'true');
+        invite.disabled = !lookVisible() || locked() || view === 'live';
       }
 
       if (!open) { showRoot.innerHTML = ''; return; }
@@ -315,7 +369,7 @@
 
       showRoot.innerHTML =
         '<div class="glass__eyebrow">' + head + '</div>' +
-        resultFrame(cap, 'ready') +
+        (view === 'live' ? liveWindow() : resultFrame(cap, 'ready')) +
         '<div class="glass__rows glass__rows--show">' +
           '<div class="glass__row"><span>З речей</span> ' + l.items.length + ' ' +
             plural(l.items.length, 'річ', 'речі', 'речей') + '</div>' +
@@ -343,8 +397,8 @@
                          : (step === 1 && !hasItems()) ? 'додайте хоча б одну річ'
                          : lock ? 'камера рухається — рішення на зупинці' : '';
       }
-      var lab = document.querySelector('[data-livelab]');
-      if (lab) lab.disabled = !lookVisible() || lock;
+      var invite = document.querySelector('[data-live-invite]');
+      if (invite) invite.disabled = !lookVisible() || lock || view === 'live';
     }
 
     function render() { renderAsk(); renderShow(); }
@@ -389,14 +443,21 @@
 
       if ((b = t.closest('[data-remove]'))) { removeAt(Number(b.getAttribute('data-remove'))); return; }
       if ((b = t.closest('[data-preset]'))) { togglePreset(PRESET_ITEMS[Number(b.getAttribute('data-preset'))]); return; }
-      if ((b = t.closest('[data-select]'))) { selected = Number(b.getAttribute('data-select')); view = 'look'; render(); return; }
+      if ((b = t.closest('[data-select]'))) { stopCamera(); selected = Number(b.getAttribute('data-select')); view = 'look'; render(); return; }
       if ((b = t.closest('[data-bg]'))) {
         var lb = current(); if (lb) lb.bg = Number(b.getAttribute('data-bg'));
         bgOpen = false; render(); return;
       }
       if (t.closest('[data-bgopen]')) { bgOpen = !bgOpen; render(); return; }
+      if (t.closest('[data-cam-start]')) { startCamera(); return; }
+      if (t.closest('[data-cam-stop]')) { stopCamera(); camError = ''; render(); return; }
+      if (t.closest('[data-live-invite]')) { view = 'live'; render(); return; }
       if ((b = t.closest('[data-view]'))) {
-        view = b.getAttribute('data-view');
+        var next = b.getAttribute('data-view');
+        /* Leaving the live view switches the device off. Nothing keeps streaming behind a
+         * panel the viewer is no longer looking at. */
+        if (view === 'live' && next !== 'live') { stopCamera(); camError = ''; }
+        view = next;
         var cur = current();
         if (cur) { if (view === 'shoot') cur.shot = true; if (view === 'video') cur.video = true; }
         render(); return;
@@ -405,7 +466,7 @@
       if ((b = t.closest('[data-next]')) && !b.disabled) {
         if (step === 0) { if (hasMain()) { step = 1; render(); } }
         else if (step === 1) { makeLook(); }
-        else { step = 1; view = 'look'; render(); }   // another look starts at the things
+        else { stopCamera(); step = 1; view = 'look'; render(); }   // another look starts at the things
         return;
       }
       if ((b = t.closest('[data-back]')) && !b.disabled) { step = Math.max(0, step - 1); render(); return; }
@@ -449,7 +510,7 @@
                      shot: l.shot, video: l.video };
           }),
           selected: selected, lookVisible: lookVisible(), pending: pending,
-          view: view, bgOpen: bgOpen,
+          view: view, bgOpen: bgOpen, cameraOn: !!stream, cameraError: camError || null,
           actionsOffered: lookVisible(),
           simulated: true,               // no render backend is attached to this page
           sells: false,                  // no prices, no basket, by canon
