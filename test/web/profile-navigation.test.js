@@ -125,6 +125,22 @@ test('an open mobile look becomes the active full-height screen instead of clipp
   );
 });
 
+test('a short desktop look reserves its remaining height for the next actions', () => {
+  const shortDesktop = resultCss.slice(resultCss.indexOf('@media (min-width: 701px) and (max-height: 850px)'));
+  assert.match(
+    shortDesktop,
+    /\.profile-library\.has-open-look \.profile-look-next \{[\s\S]*?flex:\s*1 1 auto;[\s\S]*?grid-template-rows:\s*auto 54px minmax\(0, 1fr\);/,
+  );
+  assert.match(
+    shortDesktop,
+    /\.profile-library\.has-open-look \.profile-look-next-actions \{[\s\S]*?grid-template-rows:\s*repeat\(2, minmax\(0, 1fr\)\);/,
+  );
+  assert.match(
+    shortDesktop,
+    /\.profile-library\.has-open-look \.profile-look-detail-actions \{[\s\S]*?display:\s*none;/,
+  );
+});
+
 test('profile mobile copy and controls retain readable type and touch targets', () => {
   assert.match(resultCss, /\.profile-back,[\s\S]*?min-width:\s*44px;[\s\S]*?min-height:\s*44px;/);
   assert.match(

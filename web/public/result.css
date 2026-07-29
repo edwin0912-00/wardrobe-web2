@@ -1905,6 +1905,9 @@ body.profile-live-open {
   }
 
   .profile-library.has-open-look .profile-look-next {
+    flex: 1 1 auto;
+    min-height: 0;
+    grid-template-rows: auto 54px minmax(0, 1fr);
     gap: 7px;
     padding: 10px;
   }
@@ -1924,11 +1927,14 @@ body.profile-live-open {
   }
 
   .profile-library.has-open-look .profile-look-next-actions {
+    grid-template-rows: repeat(2, minmax(0, 1fr));
     gap: 6px;
+    min-height: 0;
   }
 
   .profile-library.has-open-look .profile-next-action {
-    min-height: 46px;
+    min-height: 0;
+    height: 100%;
     padding: 7px 9px;
   }
 
@@ -1947,12 +1953,7 @@ body.profile-live-open {
   }
 
   .profile-library.has-open-look .profile-look-detail-actions {
-    margin-top: 8px;
-  }
-
-  .profile-library.has-open-look .profile-look-detail-actions :is(button, .primary-result-action, .secondary-result-action, .profile-delete-action) {
-    min-height: 38px;
-    padding: 7px 10px;
+    display: none;
   }
 }
 
