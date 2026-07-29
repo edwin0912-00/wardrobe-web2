@@ -69,17 +69,21 @@ test('catalog is production ACTIVE and only READY modes become controls', () => 
   assert.match(cardSource, /mode\.source_set_status === 'READY'/);
   assert.match(cardSource, /mode\.generation_available === true/);
   assert.match(cardSource, /addEventListener\('click'/);
+  assert.match(sceneUiSource, /mode_id\.startsWith\('shoot\.'\)/);
+  assert.doesNotMatch(indexHtml, /Legacy Editorial/);
+  assert.doesNotMatch(indexHtml, /editorial-mode-grid-legacy/);
 });
 
-test('Art Fashion has an explicit Bible and hero approval barrier', () => {
+test('Fashion Shoot binds its style pack and keeps the initial identity check internal', () => {
   assert.match(indexHtml, /id="editorial-bible-stage"/);
-  assert.match(indexHtml, /id="editorial-approve-bible"[^>]*>Затвердити план і створити hero<\/button>/);
-  assert.match(indexHtml, /id="editorial-approve-hero"[^>]*>Затвердити hero й створити 5 кадрів<\/button>/);
-  assert.match(indexHtml, /ShootBible → hero → твоє підтвердження → ще 5 кадрів/);
+  assert.match(indexHtml, /id="editorial-approve-bible"[^>]*>Підтвердити style pack<\/button>/);
+  assert.match(indexHtml, /Style pack → внутрішня QA-перевірка → 5 fashion-кадрів/);
   assert.match(editorialUiSource, /shoot\?\.status !== 'BIBLE_PENDING_APPROVAL'/);
   assert.match(editorialUiSource, /shoot\?\.status !== 'HERO_PENDING_APPROVAL'/);
   assert.match(editorialUiSource, /expected_bible_sha256|expectedBibleSha256/);
   assert.match(editorialUiSource, /expected_output_sha256|expectedOutputSha256/);
+  assert.match(editorialUiSource, /async #autoApproveHero\(\)/);
+  assert.match(editorialUiSource, /INTERNAL_STYLE_CHECK_SLOT = 'clean_identity_hero'/);
 });
 
 test('shoot survives reload and replays only persisted idempotent actions', () => {
@@ -108,7 +112,7 @@ test('generation uses SSE with polling fallback and keeps per-shot retry isolate
   assert.match(editorialUiSource, /retryProfileEditorialShot\(this\.shoot\.shoot_id, slot/);
 });
 
-test('gallery is a fixed 2x3 mobile series with uncropped full-frame inspection and accessible 44px actions', () => {
+test('gallery exposes five Fashion Shoot frames, not its internal style check', () => {
   assert.match(indexHtml, /id="editorial-gallery"[^>]*aria-label="Кадри Fashion Shoot"/);
   const portraitStart = sceneCss.lastIndexOf('@media (max-width: 700px) and (orientation: portrait)');
   const portraitCss = sceneCss.slice(portraitStart);
@@ -123,6 +127,9 @@ test('gallery is a fixed 2x3 mobile series with uncropped full-frame inspection 
   assert.match(indexHtml, /id="editorial-shot-inspector"/);
   assert.match(editorialUiSource, /className = 'editorial-shot-inspect'/);
   assert.match(editorialUiSource, /dialog\.showModal\(\)/);
+  assert.match(editorialUiSource, /function fashionFrames\(shoot\)/);
+  assert.match(editorialUiSource, /\.filter\(\(shot\) => shot\?\.slot !== INTERNAL_STYLE_CHECK_SLOT\)/);
+  assert.match(editorialUiSource, /\/5 fashion-кадрів пройшли QA/);
   assert.match(
     portraitCss,
     /body\.workflow-active\.scene-active\s*\{[\s\S]*?height:\s*100svh;[\s\S]*?overflow:\s*hidden;/,
@@ -151,7 +158,7 @@ test('normal editorial states render controlled Ukrainian copy instead of raw se
     '  #renderBible() {',
   );
   assert.match(editorialUiSource, /function displayShootMessage\(shoot\)/);
-  assert.match(editorialUiSource, /Створюємо решту п’яти кадрів паралельно по два/);
+  assert.match(editorialUiSource, /Створюємо п’ять унікальних fashion-кадрів паралельно по два/);
   assert.match(renderSource, /displayShootMessage\(shoot\)/);
   assert.doesNotMatch(renderSource, /shoot\.message/);
 });
@@ -164,7 +171,8 @@ test('standard scene workflow remains present beside Fashion Shoot', () => {
   assert.match(indexHtml, />Fashion Shoot<\/button>/);
   assert.doesNotMatch(indexHtml, /\d+ стандартних сцен<\/button>/);
   assert.match(sceneUiSource, /standardTab\.textContent = this\.presets\.length/);
-  assert.match(sceneUiSource, /editorialTab\.textContent = this\.editorialModes\.length/);
+  assert.match(sceneUiSource, /const fashionModes = this\.editorialModes\.filter\(\(mode\) => mode\.mode_id\.startsWith\('shoot\.'\)\)/);
+  assert.match(sceneUiSource, /editorialTab\.textContent = fashionModes\.length/);
   assert.match(sceneUiSource, /function ukPlural\(/);
   assert.match(sceneUiSource, /createProfileScene/);
   assert.match(sceneUiSource, /loadProfileScene/);

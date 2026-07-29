@@ -72,20 +72,28 @@ test('audit style units in docs/style-units/ for manifest and sheet completeness
     };
   }
 
-  // Verify complete units
-  assert.equal(report['shoot.skylight_haze']?.status, 'PRODUCT_READY');
-  assert.equal(report['shoot.terracotta_hardlight']?.status, 'PRODUCT_READY');
-  assert.equal(report['shoot.window_gobo_warm']?.status, 'PRODUCT_READY');
-  assert.equal(report['shoot.grey_studio_stride']?.status, 'PRODUCT_READY');
-  assert.equal(report['shoot.sky_dune_surreal']?.status, 'PRODUCT_READY');
+  // Every selectable Fashion Shoot is a complete Creative Universe unit. Do
+  // not silently publish a directory that has only a mood card or observation.
+  const selectableFashionShootIds = [
+    'shoot.skylight_haze',
+    'shoot.terracotta_hardlight',
+    'shoot.window_gobo_warm',
+    'shoot.grey_studio_stride',
+    'shoot.sky_dune_surreal',
+    'shoot.hardsun_brick_doorway',
+    'shoot.overcast_street_stride',
+    'shoot.grey_wall_gloss',
+    'shoot.ochre_stage_tailoring',
+    'shoot.shutter_amber_interior',
+  ];
+  assert.equal(selectableFashionShootIds.length, 10);
+  for (const unitId of selectableFashionShootIds) {
+    assert.equal(report[unitId]?.status, 'PRODUCT_READY', unitId);
+    assert.deepEqual(report[unitId]?.missing_sheet_roles, [], unitId);
+  }
 
   // The two male units were completed in BETA-MALE-UNITS-001 (5a70860: full sheet
   // sets + hashed manifests, live since 58703b9) and are product styles now.
-  assert.equal(report['shoot.ochre_stage_tailoring']?.status, 'PRODUCT_READY');
-  assert.deepEqual(report['shoot.ochre_stage_tailoring']?.missing_sheet_roles, []);
   assert.equal(report['shoot.ochre_stage_tailoring']?.has_manifest_json, true);
-
-  assert.equal(report['shoot.shutter_amber_interior']?.status, 'PRODUCT_READY');
-  assert.deepEqual(report['shoot.shutter_amber_interior']?.missing_sheet_roles, []);
   assert.equal(report['shoot.shutter_amber_interior']?.has_manifest_json, true);
 });

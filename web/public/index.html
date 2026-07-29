@@ -225,7 +225,7 @@
                       <ul>
                         <li><b>Покращити</b><span>Окремий candidate: lock людини й вибраних речей; дозволені лише незадані деталі, волосся, легкий макіяж і невелика зміна пози. Поки що очікує generator route.</span></li>
                         <li><b>Фон</b><span>Відкриває 16 стандартних сцен. Master-образ не перегенеровується.</span></li>
-                        <li><b>Фотозйомка</b><span>Обери готову зйомку: її стиль, світло, локація, камера, пози та кадри вже зібрані в один locked reference pack → hero → серія → contact sheet.</span></li>
+                        <li><b>Fashion Shoot</b><span>Обери готовий стиль: Creative Universe вже зафіксував світло, локацію, камеру, пози та reference pack. Результат — п’ять унікальних fashion-кадрів.</span></li>
                         <li><b>Fashion Video</b><span>Створює окремий fashion-ролик із master-образу. Ти задаєш тільки подачу кадру й рух; модель, job та clip QA працюють на сервері й зберігають результат до цього образу.</span></li>
                         <li><b>Real-time Look</b><span>Відкриває окрему consented camera-сесію. Вона не замінює згенероване відео.</span></li>
                         <li><b>Відео зі сцени</b><span>Після готового фону з’явиться окрема гілка «Фокус на речі» / «Позування». Її server route ще не зібраний — запускати фальшивий ролик не будемо.</span></li>
@@ -350,12 +350,9 @@
                 <div class="editorial-mode-scroll-container" style="overflow-y: auto; padding-right: 8px;">
                   <h4 class="editorial-section-title" style="margin: 0 0 8px 0; font-size: 13px; color: var(--text-secondary); text-transform: uppercase;">Fashion Shoot</h4>
                   <div id="editorial-mode-grid-new" class="editorial-mode-grid" aria-label="Напрями Fashion Shoot"></div>
-                  
-                  <h4 class="editorial-section-title" style="margin: 16px 0 8px 0; font-size: 13px; color: var(--text-secondary); text-transform: uppercase;">Legacy Editorial</h4>
-                  <div id="editorial-mode-grid-legacy" class="editorial-mode-grid" aria-label="Архівні напрями Fashion Shoot"></div>
                 </div>
                 <aside class="editorial-preview-gate">
-                  <span><strong>ShootBible → hero → твоє підтвердження → ще 5 кадрів</strong><small>Готові напрями запускаються тут. Решта лишаються заблокованими до повного reference pack.</small></span>
+                  <span><strong>Style pack → внутрішня QA-перевірка → 5 fashion-кадрів</strong><small>Готові напрями запускаються тут. Решта лишаються заблокованими до повного reference pack.</small></span>
                   <button id="editorial-resume" class="editorial-resume" type="button" hidden>Відкрити останню фотосесію</button>
                 </aside>
               </section>
@@ -419,23 +416,23 @@
                   <span id="editorial-mode-name">Fashion Shoot</span>
                 </header>
                 <p id="editorial-bible-system" class="editorial-bible-system">Завантажуємо візуальну систему…</p>
-                <div id="editorial-bible-shots" class="editorial-bible-shots" aria-label="План шести кадрів"></div>
+                <div id="editorial-bible-shots" class="editorial-bible-shots" aria-label="Внутрішній план style pack" hidden></div>
                 <footer>
                   <p id="editorial-message" aria-live="polite">Фіксуємо master-образ і план кадрів</p>
-                  <button id="editorial-approve-bible" class="scene-text-button primary" type="button">Затвердити план і створити hero</button>
+                  <button id="editorial-approve-bible" class="scene-text-button primary" type="button">Підтвердити style pack</button>
                   <button id="editorial-cancel-bible" class="scene-text-button" type="button">Скасувати</button>
                 </footer>
               </section>
 
               <section id="editorial-gallery-stage" class="editorial-gallery-stage" hidden>
                 <header>
-                  <div><p>ART FASHION · SERVER JOB</p><strong id="editorial-series-progress">0/6 кадрів пройшли QA</strong></div>
-                  <span>Hero спочатку · потім concurrency 2</span>
+                  <div><p>FASHION SHOOT · SERVER JOB</p><strong id="editorial-series-progress">0/5 fashion-кадрів пройшли QA</strong></div>
+                  <span>Внутрішня QA-перевірка · потім concurrency 2</span>
                 </header>
                 <div id="editorial-gallery" class="editorial-gallery" aria-label="Кадри Fashion Shoot"></div>
                 <footer class="editorial-controls">
                   <button id="editorial-reconnect" class="scene-control" type="button" hidden>Перевірити стан</button>
-                  <button id="editorial-approve-hero" class="scene-control primary" type="button" hidden>Затвердити hero й створити 5 кадрів</button>
+                  <button id="editorial-approve-hero" class="scene-control primary" type="button" hidden>Продовжити</button>
                   <button id="editorial-cancel" class="scene-control" type="button" hidden>Зупинити</button>
                   <button id="editorial-delete" class="scene-control danger" type="button" hidden>Видалити фотосесію</button>
                 </footer>

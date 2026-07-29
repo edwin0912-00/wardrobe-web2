@@ -65,9 +65,19 @@ function outputDownloadUrl(output) {
   );
 }
 
+// The first engine slot proves that the saved person and approved look still
+// hold under the selected style. It is a QA prerequisite, never one of the
+// five Fashion Shoot photographs the user receives.
+const INTERNAL_STYLE_CHECK_SLOT = 'clean_identity_hero';
+
+function fashionFrames(shoot) {
+  return (Array.isArray(shoot?.shots) ? shoot.shots : [])
+    .filter((shot) => shot?.slot !== INTERNAL_STYLE_CHECK_SLOT);
+}
+
 function displayShotStatus(status) {
   return ({
-    BLOCKED: 'Очікує hero',
+    BLOCKED: 'Очікує первинну перевірку образу',
     QUEUED: 'У черзі',
     RUNNING: 'Створюється',
     QA_PASSED: 'QA пройдено',
@@ -81,22 +91,22 @@ function displayShootMessage(shoot) {
   const phase = shoot?.phase;
   const status = shoot?.status;
   return ({
-    BIBLE_REVIEW: 'Перевір план шести кадрів перед запуском генерації.',
-    HERO_GENERATION: 'Створюємо перший hero-кадр і перевіряємо всі дев’ять QA-гейтів.',
-    HERO_RETRY: 'Повторюємо лише hero-кадр, не змінюючи master-образ.',
-    HERO_APPROVAL: 'Hero пройшов QA. Перевір повний кадр і підтвердь запуск серії.',
-    SERIES_GENERATION: 'Створюємо решту п’яти кадрів паралельно по два.',
+    BIBLE_REVIEW: 'Фіксуємо style pack із Creative Universe.',
+    HERO_GENERATION: 'Перевіряємо master-образ у вибраному стилі.',
+    HERO_RETRY: 'Повторюємо лише первинну перевірку, не змінюючи master-образ.',
+    HERO_APPROVAL: 'Master-образ пройшов перевірку. Запускаємо п’ять fashion-кадрів.',
+    SERIES_GENERATION: 'Створюємо п’ять унікальних fashion-кадрів паралельно по два.',
     SHOT_RETRY: 'Готові кадри збережено. Повтори лише кадри, які не пройшли QA.',
     RECOVERY_QUEUED: 'Після перезапуску продовжуємо незавершені кадри без повтору готових.',
-    COMPLETED: 'Усі шість кадрів готові та пройшли QA.',
+    COMPLETED: 'Усі п’ять fashion-кадрів готові та пройшли QA.',
     CANCELLED: 'Фотосесію зупинено. Уже готові кадри збережено.',
   })[phase] ?? ({
-    BIBLE_PENDING_APPROVAL: 'Перевір план шести кадрів перед запуском генерації.',
-    HERO_RUNNING: 'Створюємо та перевіряємо hero-кадр.',
-    HERO_PENDING_APPROVAL: 'Перевір повний hero-кадр перед запуском решти серії.',
-    SERIES_RUNNING: 'Створюємо решту серії паралельно по два кадри.',
+    BIBLE_PENDING_APPROVAL: 'Фіксуємо style pack із Creative Universe.',
+    HERO_RUNNING: 'Перевіряємо master-образ у вибраному стилі.',
+    HERO_PENDING_APPROVAL: 'Master-образ пройшов перевірку. Запускаємо п’ять fashion-кадрів.',
+    SERIES_RUNNING: 'Створюємо п’ять унікальних fashion-кадрів паралельно по два.',
     NEEDS_RETRY: 'Один або кілька кадрів потрібно повторити окремо.',
-    COMPLETED: 'Усі шість кадрів готові та пройшли QA.',
+    COMPLETED: 'Усі п’ять fashion-кадрів готові та пройшли QA.',
     CANCELLED: 'Фотосесію зупинено. Уже готові кадри збережено.',
   })[status] ?? 'Стан фотосесії оновлено.';
 }
@@ -304,7 +314,7 @@ export class EditorialShootUiController {
         slot: null,
       },
     });
-    this.#showConnecting('CREATING_SHOOT_BIBLE', 'Фіксуємо master-образ і формуємо план шести кадрів');
+    this.#showConnecting('BINDING_STYLE_PACK', 'Фіксуємо master-образ і style pack Creative Universe');
     await this.#createFromResume();
   }
 
@@ -403,6 +413,7 @@ export class EditorialShootUiController {
     this.#renderGallery();
     this.#renderActionButtons();
     if (bibleReview) void this.#autoApproveBible();
+    if (shoot.status === 'HERO_PENDING_APPROVAL') void this.#autoApproveHero();
   }
 
   // The plan is still hash-confirmed with the exact SHA the server produced —
@@ -458,10 +469,10 @@ export class EditorialShootUiController {
   }
 
   #renderGallery() {
-    const shots = Array.isArray(this.shoot?.shots) ? this.shoot.shots : [];
+    const shots = fashionFrames(this.shoot);
     this.#element('#editorial-series-progress').textContent = `${shots.filter(
       (shot) => ['QA_PASSED', 'APPROVED'].includes(shot.status),
-    ).length}/6 кадрів пройшли QA`;
+    ).length}/5 fashion-кадрів пройшли QA`;
     const cards = shots.map((shot, index) => {
       const card = document.createElement('article');
       card.className = 'editorial-shot-card';
@@ -558,8 +569,9 @@ export class EditorialShootUiController {
     const cancelBible = this.#element('#editorial-cancel-bible');
     const remove = this.#element('#editorial-delete');
     approveBible.hidden = shoot?.status !== 'BIBLE_PENDING_APPROVAL';
-    approveHero.hidden = shoot?.status !== 'HERO_PENDING_APPROVAL'
-      || !shoot?.shots?.[0]?.output?.sha256;
+    // The initial style check is an internal QA barrier. Its exact hash is
+    // still bound before output frames begin, but it is never a user decision.
+    approveHero.hidden = true;
     cancel.hidden = !editorialCanCancel(shoot);
     cancelBible.hidden = shoot?.status !== 'BIBLE_PENDING_APPROVAL';
     remove.hidden = !editorialCanDelete(shoot);
@@ -605,6 +617,20 @@ export class EditorialShootUiController {
       expectedOutputSha256: expectedSha256,
       idempotencyKey: action.idempotency_key,
     }), 'approve_hero');
+  }
+
+  async #autoApproveHero() {
+    if (this.autoHeroApproved || this.actionPending) return;
+    if (this.shoot?.status !== 'HERO_PENDING_APPROVAL') return;
+    if (!this.shoot?.shots?.[0]?.output?.sha256) return;
+    this.autoHeroApproved = true;
+    try {
+      await this.approveHero();
+    } catch {
+      // Preserve the immutable server state and retry through normal reconnect
+      // handling; do not replace the approved look or create a second job.
+      this.autoHeroApproved = false;
+    }
   }
 
   async retryShot(slot) {

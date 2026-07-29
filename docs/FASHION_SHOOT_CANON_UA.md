@@ -11,8 +11,10 @@ User-facing product name: **Fashion Shoot**.
 2. **Fashion Shoot** — the owner selects one locked visual unit (`shoot.*` or a
    legacy-compatible `editorial.*`). Its location, lighting, lens, grade,
    poses, framing and reference pack are one indivisible creative system.
-   The user-facing output cardinality is a separate product decision; it is
-   not inferred from the style-build artifacts.
+The user-facing output cardinality is a separate product decision; it is
+   not inferred from the style-build artifacts. The current operator decision
+   fixes it at **five unique Fashion Shoot photographs**. The initial technical
+   identity/look check is not one of those five photographs.
 
 ## Creative Universe is the style-build backend, not a user output
 
@@ -42,7 +44,8 @@ they bind existing receipts, URLs and immutable event history.
   editorial execution. It owns immutable Bible binding, SSE with polling
   fallback, hero gate, five-slot concurrency limit, isolated retry and gallery
   display. It is **not the approved Fashion Shoot product contract** until a
-  separate decision explicitly chooses a multi-frame consumer output.
+  separate decision explicitly chooses a multi-frame consumer output. That
+  decision is now five user-facing frames after the internal check.
 - `scene-ui.js` is only the chooser: it keeps **Background** and **Fashion
   Shoot** separate before handing the selected fashion unit to the shoot UI.
 

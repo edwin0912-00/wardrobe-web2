@@ -47,6 +47,15 @@ sheet. The legacy multi-frame editorial UI is not an approved Fashion Shoot
 contract. See
 [`docs/FASHION_SHOOT_CANON_UA.md`](docs/FASHION_SHOOT_CANON_UA.md).
 
+## Fashion Shoot delivery decision · 2026-07-29
+
+Creative Universe styles are built from their own immutable reference sheets.
+Only the ten complete `shoot.*` units are selectable in the beta Fashion Shoot
+picker. A selected style runs an internal identity/look QA prerequisite, then
+delivers **five unique Fashion Shoot frames**. The prerequisite and Creative
+Universe contact/reference sheets stay backend-only; neither is a sixth user
+frame or a user-facing contact sheet.
+
 ## Current verified state — reconciliation 2026-07-27
 
 ## Current verification rule — 2026-07-29

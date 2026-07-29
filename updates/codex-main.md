@@ -16,6 +16,22 @@ weakened_checks: none.
 ---
 
 Agent ID: codex-main
+Task ID: BETA-FASHION-SHOOT-FIVE-UI-001
+Product line: beta-placeholder
+Pipeline: UNIVERSE.01–04 → FASHION_SHOOT.01–03
+State: READY_FOR_BETA_DEPLOY
+Decision: only the ten complete `shoot.*` Creative Universe units appear in
+the Fashion Shoot picker. The internal first identity/look verification remains
+hash-bound and auto-approved after PASS; the user sees five unique output
+frames, with isolated retry per output. Contact/reference sheets remain
+Creative Universe backend evidence and are not shown as an output.
+Evidence: `node --test test/web/create-universe-units.test.js test/web/editorial-preview-api.test.js test/web/editorial-preview-ui.test.js test/web/editorial-state.test.js test/web/editorial-shoot-service.test.js` PASS.
+Code: ready. Beta: not yet activated. Journey: no paid Fashion Shoot run.
+weakened_checks: none.
+
+---
+
+Agent ID: codex-main
 Task ID: BETA-FASHION-SHOOT-CANON-001
 Product line: beta-placeholder
 State: DONE — awaiting beta deployment

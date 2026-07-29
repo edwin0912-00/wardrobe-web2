@@ -292,14 +292,15 @@ export class SceneUiController {
     const editorialTab = this.#element('#scene-tab-editorial');
     const standardPanel = this.#element('#scene-standard-panel');
     const editorialPanel = this.#element('#scene-editorial-panel');
+    const fashionModes = this.editorialModes.filter((mode) => mode.mode_id.startsWith('shoot.'));
     // The counts used to be baked into index.html, so the tab still said five
     // standard scenes after the catalog grew to sixteen. Both labels now come
     // from the same data the grids are rendered from.
     standardTab.textContent = this.presets.length
       ? `${this.presets.length} ${ukPlural(this.presets.length, UK_PLURAL_SCENE)}`
       : 'Стандартні сцени';
-    editorialTab.textContent = this.editorialModes.length
-      ? `Fashion Shoot · ${this.editorialModes.length} ${ukPlural(this.editorialModes.length, UK_PLURAL_MODE)}`
+    editorialTab.textContent = fashionModes.length
+      ? `Fashion Shoot · ${fashionModes.length} ${ukPlural(fashionModes.length, UK_PLURAL_MODE)}`
       : 'Fashion Shoot';
     standardTab.setAttribute('aria-selected', String(!editorial));
     standardTab.tabIndex = editorial ? -1 : 0;
@@ -315,7 +316,7 @@ export class SceneUiController {
         ? 'Завантажуємо Fashion Shoot напрями…'
         : this.editorialLoadError
         ? 'Fashion Shoot недоступний'
-        : `${this.editorialModes.filter((mode) => mode.generation_available).length} напрями готові`)
+        : `${fashionModes.filter((mode) => mode.generation_available).length} напрями готові`)
       : `${this.presets.length} сцен · обери одну`;
     const resume = this.#element('#editorial-resume');
     const hasResume = editorial && this.editorialUi.hasResumeForLook(idOfLook(this.look));
@@ -428,25 +429,24 @@ export class SceneUiController {
 
   #renderEditorialModes() {
     const gridNew = this.#element('#editorial-mode-grid-new');
-    const gridLegacy = this.#element('#editorial-mode-grid-legacy');
     if (this.editorialLoadError) {
       const unavailable = document.createElement('p');
       unavailable.className = 'editorial-mode-unavailable';
       unavailable.textContent = 'Mood-board зараз не завантажився. Стандартні сцени продовжують працювати.';
       gridNew.replaceChildren(unavailable);
-      gridLegacy.replaceChildren();
       return;
     }
-    
+
+    // Only complete Creative Universe style units are a Fashion Shoot choice.
+    // Historical editorial records remain addressable for owners, but they are
+    // not silently presented as a second style product in the new picker.
     const newModes = this.editorialModes.filter((m) => m.mode_id.startsWith('shoot.'));
-    const legacyModes = this.editorialModes.filter((m) => m.mode_id.startsWith('editorial.'));
     
     const onSelect = (selected) => this.editorialUi.openForMode(selected, this.look).catch(
       (error) => this.#setError(error.message),
     );
     
     gridNew.replaceChildren(...newModes.map((mode) => createEditorialModeCard(mode, onSelect)));
-    gridLegacy.replaceChildren(...legacyModes.map((mode) => createEditorialModeCard(mode, onSelect)));
   }
 
   showPicker() {

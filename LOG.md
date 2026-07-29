@@ -17,6 +17,17 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-07-29 · BETA-FASHION-SHOOT-FIVE-UI-001 · beta · codex-main
+Change: Fashion Shoot picker now exposes only complete `shoot.*` Creative
+Universe units; its internal identity/look check is auto-approved after PASS
+and excluded from the user gallery, which presents exactly five output frames.
+Why: Creative Universe contact/reference sheets are conditioning evidence, not
+a sixth customer frame or a customer-facing contact sheet.
+Evidence: focused Create Universe, catalog, UI state and shoot-service suite
+passes 30/30. The unit audit asserts all ten selectable `shoot.*` units have
+their manifest and required sheet roles.
+weakened_checks: none.
+
 2026-07-29 · BETA-FASHION-SHOOT-CANON-001 · beta · codex-main
 Change: preserve the single-frame experiment on a comparison branch; restore
 the Fashion Shoot UI/state machine and change its user-facing product name to
