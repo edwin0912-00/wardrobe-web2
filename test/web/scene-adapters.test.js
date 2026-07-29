@@ -974,6 +974,41 @@ test('SceneEvaluatorAdapter runs independent per-item forensic checks and blocks
   assert.match(normalized.item_fidelity_evidence[1].request_id, /^[a-f0-9]{64}$/);
 });
 
+test('standard-background item QA keeps unobservable master details locked without accepting a visible substitution', async () => {
+  const fixture = await contextFixture();
+  const itemEvidence = await approvedItemEvidenceFixture(fixture.root);
+  const candidate = await imageFile(fixture.root, 'candidate-standard-item-qa.png', {
+    width: 1024,
+    height: 1280,
+    color: '#b98f72',
+  });
+  const mainCalls = [];
+  const itemCalls = [];
+  const adapter = new SceneEvaluatorAdapter({
+    commandRunner: evaluatorRunner(evaluatorPayload(), mainCalls),
+    itemCommandRunner: itemEvaluatorRunner(itemCalls),
+  });
+  const presetPath = path.join(fixture.root, 'standard-background-preset.json');
+  await writeFile(presetPath, JSON.stringify({ preset_id: 'std.test', camera: {} }));
+  const result = await adapter.evaluateScene({
+    scene_id: 'scene_standard_visible_only_qa',
+    attempt: 1,
+    candidate,
+    approved_look: fixture.approved,
+    references: fixture.references,
+    item_evidence: itemEvidence,
+    preset: { path: presetPath },
+    required_gates: SCENE_EVALUATOR_GATES,
+    delivery: { width: 1024, height: 1280 },
+  });
+  assert.match(mainCalls[0].args[1], /full-body standard-background photograph/);
+  assert.match(mainCalls[0].args[1], /unobservable details/);
+  assert.ok(itemCalls.every((call) => /full-body standard-background photograph/.test(call.args[1])));
+  assert.ok(itemCalls.every((call) => /visible contradiction or substitution/.test(call.args[1])));
+  assert.equal(result.gates.find((gate) => gate.id === 'ITEM_FIDELITY').decision, 'FAIL');
+  assert.equal(result.item_fidelity_evidence.find((item) => item.item_id === 'set-2').verdict, 'REVISE');
+});
+
 test('SceneEvaluatorAdapter applies shot-scoped editorial item QA while retaining all generation authority', async () => {
   const fixture = await contextFixture();
   const baseItems = await approvedItemEvidenceFixture(fixture.root);

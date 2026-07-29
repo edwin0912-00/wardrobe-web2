@@ -16,6 +16,22 @@ is explicitly not misrepresented as resumable because no candidate exists.
 ---
 
 Agent ID: codex-main
+Task ID: BETA-STANDARD-SCENE-VISIBLE-FACTS-001
+Product line: beta-placeholder
+Pipeline: BACKGROUND.01 · approved master look → standard scene → QA
+State: CODE_VERIFIED — deployment pending
+Decision: a full-body background must reject a visible product substitution,
+not an approved detail that the frame naturally cannot expose. The master-look
+receipt keeps such unobservable details locked. Fashion Shoot is not relaxed.
+Evidence: real white-window candidate had identity/scene/light/framing PASS and
+only failed naturally covered jeans construction + tiny shoe geometry; focused
+adapter proof 4/4 PASS.
+weakened_checks: none. Visible logo/text/pattern, silhouette, color, material,
+construction mismatch, missing item and unauthorized addition remain blocking.
+
+---
+
+Agent ID: codex-main
 Task ID: BETA-LOOK-FAST-ROUTE-001
 Product line: beta-placeholder
 Pipeline: LOOK.02–06 · source item → reference card → avatar → master look

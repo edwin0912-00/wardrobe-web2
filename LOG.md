@@ -17,6 +17,19 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-07-29 · BETA-STANDARD-SCENE-VISIBLE-FACTS-001 · beta · codex-main
+Change: standard-background QA now treats an item fact that is naturally
+occluded by another approved item or too small at required full-body scale as
+unobservable, not as a fabricated mismatch. Visible contradiction or
+substitution remains a blocking item-fidelity failure.
+Why: a real white-window studio candidate passed identity, scene, contact shadow
+and framing but was rejected solely because the full-body crop cannot expose
+jeans waistband construction and a shoe air unit beneath an approved hoodie.
+Evidence: focused adapter tests prove standard prompt scope and preserve a
+visible-substitution `REVISE`; editorial remains on its existing strict scope.
+weakened_checks: none. The approved master and all visible item facts remain
+immutable blocking authority.
+
 2026-07-29 · BETA-RESTART-RESUME-001 · beta activation · codex-main
 Change: activated the immutable garment-attempt resume repair as
 `release-bda3ee9-1785350382449`, then completed one fresh controlled full-look

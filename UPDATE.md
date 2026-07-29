@@ -56,6 +56,19 @@ The earlier detailed noticeboard is preserved at
   the deploy adapter correctly reported its run id and would have refused a
   release restart.
 
+## Standard-background visible-facts QA — 2026-07-29
+
+- A real `std.studio.white_window_honeycomb` canary proved the old false block:
+  it preserved the person, hoodie, full-body framing, studio and contact shadow,
+  but failed because the hoodie naturally covered jeans construction and a
+  full-body shoe was too small to inspect its air-unit.
+- **Repair:** only standard backgrounds now distinguish `not visible at this
+  required full-body scale` from a visible substitution. Their immutable master
+  look remains the lock for naturally unobservable details. A visible changed
+  logo/text/pattern, silhouette/color/material/construction, missing item or
+  unauthorized added item remains a blocking failure. Fashion Shoot keeps the
+  existing strict shot-specific item contract.
+
 ## Git ↔ beta reconciliation — 2026-07-29
 
 - Two immutable pre-reconciliation backups were made before any control-plane

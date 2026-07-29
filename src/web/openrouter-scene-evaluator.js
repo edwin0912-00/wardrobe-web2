@@ -72,6 +72,7 @@ export class OpenRouterSceneEvaluator {
     sceneId,
     attempt,
     index,
+    standardBackground,
   }) {
     const candidateMetadata = await sharp(candidate.path).metadata();
     if (!candidateMetadata.width || !candidateMetadata.height) {
@@ -109,7 +110,7 @@ export class OpenRouterSceneEvaluator {
         .jpeg({ quality: 92, chromaSubsampling: '4:4:4' })
         .toFile(fullPath),
     ]);
-    const prompt = itemFidelityPrompt(item);
+    const prompt = itemFidelityPrompt(item, { standardBackground });
     assertExternalPromptPrivacy(prompt, { runtimeRoot: temporaryRoot });
     let raw;
     try {
@@ -270,6 +271,7 @@ export class OpenRouterSceneEvaluator {
           sceneId: context.scene_id,
           attempt: context.attempt,
           index,
+          standardBackground: Boolean(preset && !preset.editorial),
         }),
       );
       const itemGate = payload.gates.find((gate) => gate.id === 'ITEM_FIDELITY');

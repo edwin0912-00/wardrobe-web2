@@ -960,6 +960,7 @@ export function evaluatorPrompt(delivery, references, preset = null, qaItems = [
   const framing = camera.framing ?? 'full_body';
   const requireFullHead = camera.required_visibility?.full_head ?? true;
   const requireFullFootwear = camera.required_visibility?.full_footwear ?? true;
+  const standardBackground = Boolean(preset && !editorial);
   const imageReferences = references.filter((item) => item.transport === 'image');
   const detailAttachmentStart = imageReferences.length + 3;
   const attachments = [
@@ -988,7 +989,12 @@ export function evaluatorPrompt(delivery, references, preset = null, qaItems = [
     ] : []),
     'For each item compare: item count and type, silhouette, color, material, construction, seams and closures, print/pattern, exact emblem or logo, exact readable text, and distinctive shoe or accessory geometry.',
     'Any substituted emblem, missing monogram, rewritten letter or number, altered stripe/print, changed bag hardware, changed shoe construction, missing item, or invented accessory is ITEM_FIDELITY FAIL.',
-    'Never infer that two marks match merely because they resemble the same luxury style. If a required small logo, pattern, text, or construction detail is not visibly verifiable in the candidate, return FAIL with ITEM_DETAIL_NOT_VERIFIABLE.',
+    ...(standardBackground ? [
+      'This is a full-body standard-background photograph, not an ecommerce detail frame. Compare all visible approved item facts strictly, but do not fail for a detail that is naturally covered by another approved garment, outside the visible surface, or too small at the required full-body scale. The immutable approved master remains the authority for unobservable details.',
+      'A visible contradiction, visible substitution, missing approved item, or unauthorized added item is still ITEM_FIDELITY FAIL. Never call an unobservable detail a visible contradiction.',
+    ] : [
+      'Never infer that two marks match merely because they resemble the same luxury style. If a required small logo, pattern, text, or construction detail is not visibly verifiable in the candidate, return FAIL with ITEM_DETAIL_NOT_VERIFIABLE.',
+    ]),
     ...(editorial ? [
       // A styled frame routinely needs a garment the approved wardrobe does not
       // contain, most often a lower garment when the look is a top only. The
@@ -1119,7 +1125,7 @@ export function itemDetailZone(category, height) {
   };
 }
 
-export function itemFidelityPrompt(item) {
+export function itemFidelityPrompt(item, { standardBackground = false } = {}) {
   return sanitizeExternalPrompt([
     'Perform one forensic product-fidelity comparison. This is not category or style matching.',
     'ATTACHMENT_1 [GENERATED_SCENE_ITEM_ZONE] contains the rendered product inside the generated scene.',
@@ -1130,7 +1136,13 @@ export function itemFidelityPrompt(item) {
     `OBSERVED APPROVED FACTS: ${item.structured_facts}`,
     'Compare item count/type, silhouette, color, material, construction, seams, closures, print/pattern character-by-character, exact emblem/logo/letters/numbers, hardware, and distinctive geometry.',
     'A merely similar product is REVISE. A substituted emblem, genericized monogram, rewritten text, missing construction detail, altered hat trim, or different shoe sole/panel geometry is REVISE.',
-    'If the generated product is too small or blurred to verify a required exact detail, return REVISE with ITEM_DETAIL_NOT_VERIFIABLE.',
+    ...(standardBackground ? [
+      'This is a full-body standard-background photograph, not a product-detail frame. Judge only the facts that are actually visible at this shot scale.',
+      'When an approved detail is naturally covered by another approved garment, outside the visible surface, or too small at full-body scale, do not call it missing and do not return ITEM_DETAIL_NOT_VERIFIABLE. The immutable approved master remains the authority for that unobservable detail. Record only the visible category, silhouette, color, material, and any legible distinguishing feature.',
+      'Return REVISE only for a visible contradiction or substitution: a changed visible logo/text/pattern, different visible silhouette/color/material/construction, a missing approved item, or an unauthorized added item. A merely unobservable detail is not a contradiction.',
+    ] : [
+      'If the generated product is too small or blurred to verify a required exact detail, return REVISE with ITEM_DETAIL_NOT_VERIFIABLE.',
+    ]),
     'Return only schema-valid JSON. item_id must exactly match ITEM_ID. PASS requires defects=[]. REVISE requires at least one concrete visible defect.',
   ].join('\n'));
 }
@@ -1174,6 +1186,7 @@ export class SceneEvaluatorAdapter {
     sceneId,
     attempt,
     index,
+    standardBackground,
   }) {
     const candidateMetadata = await sharp(candidate.path).metadata();
     if (!candidateMetadata.width || !candidateMetadata.height) {
@@ -1213,7 +1226,7 @@ export class SceneEvaluatorAdapter {
       temporaryRoot,
       `item-${String(index + 1).padStart(2, '0')}-result.json`,
     );
-    const prompt = itemFidelityPrompt(item);
+    const prompt = itemFidelityPrompt(item, { standardBackground });
     assertExternalPromptPrivacy(prompt, { runtimeRoot: temporaryRoot });
     const args = [
       'exec',
@@ -1423,6 +1436,7 @@ export class SceneEvaluatorAdapter {
           sceneId: context.scene_id,
           attempt: context.attempt,
           index,
+          standardBackground: Boolean(preset && !preset.editorial),
         }),
       );
       const itemGate = payload.gates.find((gate) => gate.id === 'ITEM_FIDELITY');
