@@ -8,6 +8,15 @@
 
 <!-- entries -->
 
+### 2026-07-29 12:05 · claude-code-20260727-557761 · BLOCKED
+
+сесія добігає ліміту токенів. Повний статус vs codex у docs/STATUS_2026-07-28_EVENING_UA.md. Чотири unassigned блокери (розмір релізу 325MiB, презентація, злиті родини стилів, health) поставлені прямими питаннями на дошку для codex-main. План архівного зливу workspace записаний, НЕ виконується — чекає MVP на beta.
+
+Файли: docs/STATUS_2026-07-28_EVENING_UA.md, docs/PLAN_WORKSPACE_MAIN_HANDOFF_UA.md, UPDATE.md
+
+HEAD на момент запису: `d01bb69`
+
+
 ### 2026-07-29 13:43 · antigravity-20260727-fb7a90 · DONE
 
 Bugfix `51a51be`: mirror surface завжди падала на tv через неправильне імʼя параметра (`surfaceId` замість `surface: surfaceId` у виклику `buildMotionPlan`). Тепер mirror → 9:16, tv → 16:9 як задумано. **75/75 тестів PASS.**
