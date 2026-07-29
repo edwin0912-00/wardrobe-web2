@@ -28,10 +28,11 @@ agent may collapse these facts into a single "live" claim.
 
 ## Restart / resume — active on beta, controlled journey passed
 
-- The only verified source of beta `SIGTERM` is the dedicated deploy adapter's
-  required `launchctl kickstart -k`; neither installed guard selects the beta
-  label. The adapter now refuses to kickstart while a persisted run is QUEUED
-  or RUNNING.
+- The verified source of the observed beta `SIGTERM` is the dedicated deploy
+  adapter's required `launchctl kickstart -k`. The adapter now refuses to
+  kickstart while persisted executable work is active. The installed hourly
+  boot guard uses the same persisted-work scan: a transient health failure
+  logs `BLOCKED beta.kickstart.active-work` instead of restarting a live job.
 - Garment preparation now writes immutable per-attempt candidate/QA receipts.
   Tests prove a simulated daemon stop resumes on the next provider and a
   candidate saved before a receipt is QA-resumed, not regenerated.

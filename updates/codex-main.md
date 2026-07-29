@@ -1,4 +1,18 @@
 Agent ID: codex-main
+Task ID: BETA-BOOT-GUARD-ACTIVE-WORK-001
+Product line: beta-placeholder
+Pipeline: PLATFORM.01 · restart safety for all execution branches
+State: ACTIVE_ON_HOST — source committed with beta branch
+Decision: scheduled recovery cannot restart beta while any persisted master
+run, background scene or Fashion Shoot slot is queued/running. It records a
+blocked recovery instead; it does not manufacture a restart or a duplicate run.
+Evidence: both copies pass `zsh -n`; live persisted scene/shoot state makes the
+guard's active-work check return true.
+weakened_checks: none. Unknown durable work fails closed.
+
+---
+
+Agent ID: codex-main
 Task ID: BETA-RESTART-RESUME-001
 Product line: beta-placeholder
 Pipeline: LOOK.02 · garment reference-card preparation

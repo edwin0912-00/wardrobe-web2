@@ -17,6 +17,18 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-07-29 · BETA-BOOT-GUARD-ACTIVE-WORK-001 · beta host + beta · codex-main
+Change: the installed hourly beta boot guard and its tracked source now scan
+persisted master runs, standard scenes and Fashion Shoot slots before recovery.
+When any executable work is live, a failed health probe emits
+`BLOCKED beta.kickstart.active-work` and does not call `launchctl kickstart`.
+Why: the deploy adapter was the observed SIGTERM source, but a future transient
+health failure in the independently scheduled guard could otherwise reproduce
+the same destructive restart path.
+Evidence: `zsh -n` passed for both tracked and installed guard copies; the
+function returned active against the real current persisted scene/shoot work.
+weakened_checks: none. Unknown/malformed job directories remain restart-blocking.
+
 2026-07-29 · BETA-DEPLOY-ACTIVE-WORK-GUARD-001 · beta · codex-main
 Change: extend the beta deploy refusal check from active master-look runs to
 active standard scenes and Fashion Shoot slots. Completed history and explicit

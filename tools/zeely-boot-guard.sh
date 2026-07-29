@@ -60,11 +60,59 @@ public_health() {
     | /usr/bin/grep -q '"status":"ready"'
 }
 
+# A restart is destructive while a provider call or QA is in flight: launchd
+# sends SIGTERM to the daemon and an older release could re-enter the same
+# stage. Treat an unreadable persisted job as active too. The deploy adapter
+# uses the same status contract; this guard is intentionally independent so a
+# transient health failure cannot bypass it.
+active_work_exists() {
+  local entry name state_file id_field
+  local runs_root="$runtime_root/runs"
+  local scenes_root="$runtime_root/scenes"
+  local shoots_root="$runtime_root/editorial-shoots"
+
+  for entry in "$runs_root"/*(N/); do
+    name="${entry:t}"
+    [[ -r "$entry/run.json" ]] || return 0
+    /usr/bin/jq -e --arg id "$name" '
+      .run_id == $id and (.status == "QUEUED" or .status == "RUNNING")
+    ' "$entry/run.json" >/dev/null 2>&1 && return 0
+  done
+
+  for entry in "$scenes_root"/*(N/); do
+    name="${entry:t}"
+    [[ "$name" == 'incidents' || "$name" == 'quarantine' ]] && continue
+    [[ "$name" == scene_* && -r "$entry/scene.json" ]] || return 0
+    /usr/bin/jq -e --arg id "$name" '
+      .scene_id == $id and (.status == "QUEUED" or .status == "RUNNING")
+    ' "$entry/scene.json" >/dev/null 2>&1 && return 0
+  done
+
+  for entry in "$shoots_root"/*(N/); do
+    name="${entry:t}"
+    [[ "$name" == 'incidents' || "$name" == 'quarantine' ]] && continue
+    [[ "$name" == shoot_* && -r "$entry/shoot.json" ]] || return 0
+    /usr/bin/jq -e --arg id "$name" '
+      .shoot_id == $id and (
+        .status == "HERO_RUNNING" or .status == "SERIES_RUNNING" or
+        any(.shots[]?; .status == "QUEUED" or .status == "RUNNING")
+      )
+    ' "$entry/shoot.json" >/dev/null 2>&1 && return 0
+  done
+
+  return 1
+}
+
 if ! check 'beta.local-health' local_health; then
-  write 'RECOVERY beta.kickstart'
-  /bin/launchctl kickstart -k "gui/$UID/$beta_label" >/dev/null 2>&1 || true
-  /bin/sleep 3
-  check 'beta.local-health.after-restart' local_health || true
+  if active_work_exists; then
+    write 'BLOCKED beta.kickstart.active-work'
+    (( warn += 1 ))
+  else
+    write 'RECOVERY beta.kickstart'
+    /bin/launchctl kickstart -k "gui/$UID/$beta_label" >/dev/null 2>&1 || true
+    /bin/sleep 3
+    check 'beta.local-health.after-restart' local_health || true
+  fi
 fi
 check 'beta.public-health' public_health || true
 

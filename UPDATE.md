@@ -35,14 +35,14 @@ The earlier detailed noticeboard is preserved at
 
 - **Cause of the observed `SIGTERM`:** the beta deploy adapter itself invokes
   `launchctl kickstart -k com.madeforthisjob.beta` after changing the release
-  pointer. The hourly boot guard and the 60-second identity guard do not manage
-  this beta service.
+  pointer. The installed hourly boot guard now uses the same active-work check:
+  it logs and does not kickstart when a run, background or Fashion Shoot is live.
 - **New deploy rule:** the adapter reads every persisted run before kickstart
   and refuses activation if any valid `QUEUED` or `RUNNING` run exists.
-- **Guard extension, pending deployment:** the next adapter revision also scans
-  persisted standard scenes and Fashion Shoot work. It refuses a restart only
-  for a queued/running provider or QA phase; completed history and a Bible/hero
-  awaiting human approval do not block a release.
+- **Guard extension:** the deploy adapter scans persisted standard scenes and
+  Fashion Shoot work; the installed boot guard applies the same rule. They
+  refuse a restart only for a queued/running provider or QA phase; completed
+  history and a Bible/hero awaiting human approval do not block a release.
 - **New garment resume rule:** every candidate is published once and paired
   with an immutable receipt containing source hashes, route model, candidate
   hash and QA verdict. A restart skips persisted RETRY/REJECT candidates,
