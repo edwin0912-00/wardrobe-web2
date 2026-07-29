@@ -162,6 +162,21 @@ function exactStatus(scene) {
   return String(scene?.status ?? 'CONNECTING');
 }
 
+function scenePhasePresentation(scene) {
+  const phase = exactPhase(scene).toUpperCase();
+  const status = exactStatus(scene).toUpperCase();
+  if (status === 'COMPLETED') return { phase: 'Сцена готова', estimate: 'Готово' };
+  if (status === 'FAILED') return { phase: 'Потрібна перевірка', estimate: 'Створення зупинено до наступної дії' };
+  if (/(QA|VERIFY|VALIDAT)/.test(phase)) return { phase: 'Перевіряємо результат', estimate: 'Зазвичай ще до 1 хвилини' };
+  if (/(GENERAT|RENDER|EXECUT)/.test(phase)) return { phase: 'Створюємо кадр', estimate: 'Зазвичай ще 2–4 хвилини' };
+  if (/(QUEUED|RECEIVED|POSTING|BIND|AWAIT|FETCH|CONNECT)/.test(`${phase} ${status}`)) return { phase: 'Готуємо запуск', estimate: 'Зазвичай до 5 хвилин' };
+  return { phase: 'Оновлюємо сцену', estimate: 'Зазвичай до 5 хвилин' };
+}
+
+function sceneConnectionPresentation(polling) {
+  return polling ? 'ОНОВЛЮЄМО СТАН' : 'З’ЄДНАННЯ АКТИВНЕ';
+}
+
 export class SceneUiController {
   constructor({
     setView,
@@ -524,10 +539,11 @@ export class SceneUiController {
     this.#setMode('execution');
     this.#element('#scene-output').hidden = true;
     this.#element('#scene-running-stage').hidden = false;
-    this.#element('#scene-server-status').textContent = 'CONNECTING';
-    this.#element('#scene-server-phase').textContent = phase;
-    this.#element('#scene-server-message').textContent = message;
-    this.#element('#scene-connection').textContent = 'CONNECTING';
+    const presentation = scenePhasePresentation({ status: 'CONNECTING', phase });
+    this.#element('#scene-server-status').textContent = 'ПІДГОТОВКА';
+    this.#element('#scene-server-phase').textContent = presentation.phase;
+    this.#element('#scene-server-message').textContent = presentation.estimate;
+    this.#element('#scene-connection').textContent = 'З’ЄДНУЄМОСЯ ІЗ СЕРВЕРОМ';
     this.#element('#scene-execution-title').textContent = 'Створюємо сцену';
     this.#element('#scene-reconnect').hidden = true;
     this.#syncActionButtons();
@@ -539,7 +555,7 @@ export class SceneUiController {
     this.#element('#scene-server-message').textContent = this.humanize(
       error?.message || 'Не вдалося з’єднатися із сервером',
     );
-    this.#element('#scene-connection').textContent = 'CONNECTION LOST';
+    this.#element('#scene-connection').textContent = 'З’ЄДНАННЯ ПЕРЕРВАЛОСЯ';
     this.#element('#scene-reconnect').hidden = false;
     this.telemetry('client.scene_error', {
       message: String(error?.message ?? error).slice(0, 500),
@@ -569,15 +585,14 @@ export class SceneUiController {
     this.#setMode('execution');
     const status = exactStatus(scene);
     const phase = exactPhase(scene);
+    const presentation = scenePhasePresentation(scene);
     const tone = sceneTone(scene);
     const statusElement = this.#element('#scene-server-status');
     statusElement.textContent = status;
     statusElement.dataset.tone = tone;
-    this.#element('#scene-server-phase').textContent = phase;
-    this.#element('#scene-server-message').textContent = this.humanize(
-      scene.message || 'Очікуємо повідомлення сервера',
-    );
-    this.#element('#scene-connection').textContent = this.polling ? 'POLLING' : 'LIVE SSE';
+    this.#element('#scene-server-phase').textContent = presentation.phase;
+    this.#element('#scene-server-message').textContent = presentation.estimate;
+    this.#element('#scene-connection').textContent = sceneConnectionPresentation(this.polling);
     this.#element('#scene-reconnect').hidden = true;
     this.#recordPhase(status, phase);
 
@@ -638,7 +653,7 @@ export class SceneUiController {
       const copy = document.createElement('span');
       const code = document.createElement('code');
       const time = document.createElement('time');
-      code.textContent = item.phase;
+      code.textContent = scenePhasePresentation({ status: item.status, phase: item.phase }).phase;
       time.textContent = item.time;
       copy.append(code, time);
       entry.append(marker, copy);
@@ -697,7 +712,7 @@ export class SceneUiController {
     this.eventSource?.close();
     this.eventSource = null;
     this.polling = true;
-    this.#element('#scene-connection').textContent = 'POLLING';
+    this.#element('#scene-connection').textContent = 'ОНОВЛЮЄМО СТАН';
     const poll = async () => {
       if (!this.polling) return;
       try {

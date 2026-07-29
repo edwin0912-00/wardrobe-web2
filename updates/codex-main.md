@@ -200,6 +200,12 @@ actions use a compact visible layout without an inner scroll container.
 Follow-up: the same action-first compact composition is applied to a short
 desktop/tablet viewport; the saved-look overlay no longer clips its action grid
 below the panel edge.
+
+Task ID: BETA-SCENE-STATUS-COPY-001
+State: READY_FOR_BETA_DEPLOY
+Change: provider naming is removed from the top bar. The standard-scene screen
+now renders plain progress labels and a bounded expected wait time instead of
+transport codes. A server scene job remains persistent if the user exits.
 Next action: any preview hostname needs an ingress entry in the canonical
 Cloudflare connector, never a second connector with the same tunnel ID.
 Help request: NONE.
