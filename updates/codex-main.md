@@ -127,3 +127,21 @@ prototype therefore renders an explicit replaceable approved-look slot.
 Evidence: direct operator request and the supplied visual reference.
 weakened_checks: none.
 Help request: NONE.
+
+---
+
+Agent ID: codex-main
+Task ID: BETA-LOOK-ACTIONS-MINIMUM-001
+State: DONE — beta release `87b8fdf`.
+Decision: the saved-look screen now explains all product branches in one
+visible guide while retaining their existing action controls. Background opens
+the standard-scene picker; Photoshoot opens Create Universe; Fashion Video
+opens its Seedance control; Real-time Look opens its consented camera surface.
+Improve and Background Video are explicitly described as pending server routes
+and do not fake a generation or alter the master look.
+Evidence: `node --test test/web/profile-ui-flow.test.js` 8/8 PASS; public
+beta `GET /api/editorial-modes` returns 14 modes / 12 generation-ready and all
+14 previews return 200; public root contains the new guide copy.
+weakened_checks: none.
+Next action: run a real saved-look journey, then one controlled background,
+Create Universe, video and Live branch smoke in that order.
