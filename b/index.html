@@ -279,9 +279,26 @@
     var introVideo = document.querySelector('[data-intro]');
     var filmEl = document.querySelector('[data-film]');
     if (introVideo && filmEl) {
-      introVideo.addEventListener('loadeddata', function () {
+      /* `loadeddata` can arrive before Safari has composited a frame.  Keep the
+         poster until a seek/play has actually produced one; otherwise iPhone shows
+         a black rectangle even though the element reports itself ready. */
+      var revealIntroFrame = function () {
         filmEl.removeAttribute('data-intro-pending');
-      }, { once: true });
+      };
+      introVideo.addEventListener('seeked', revealIntroFrame, { once: true });
+      introVideo.addEventListener('timeupdate', revealIntroFrame, { once: true });
+      if (IOS_MEDIA) {
+        introVideo.addEventListener('loadedmetadata', function () {
+          introVideo.muted = true;
+          introVideo.currentTime = Math.min(0.12, Math.max(0, introVideo.duration - 0.01));
+          var prime = introVideo.play();
+          if (prime && prime.then) {
+            prime.then(function () {
+              setTimeout(function () { introVideo.pause(); }, 120);
+            }).catch(function () {});
+          }
+        }, { once: true });
+      }
     }
     handOver(res.blobs);
 
