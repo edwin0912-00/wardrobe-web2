@@ -126,15 +126,17 @@ test('gallery exposes five Fashion Shoot frames, not its internal style check', 
   );
   assert.match(portraitCss, /\.editorial-controls \.scene-control\s*\{[\s\S]*?min-height:\s*44px;/);
   assert.match(sceneCss, /\.editorial-shot-retry\s*\{[\s\S]*?min-height:\s*44px;/);
-  assert.match(sceneCss, /\.editorial-shot-card footer a\s*\{[\s\S]*?width:\s*44px;[\s\S]*?height:\s*44px;/);
+  assert.match(sceneCss, /\.editorial-shot-download\s*\{[\s\S]*?width:\s*44px;[\s\S]*?height:\s*44px;/);
   assert.match(sceneCss, /\.editorial-shot-visual img\s*\{[\s\S]*?object-fit:\s*contain;/);
   assert.match(indexHtml, /id="editorial-shot-inspector"/);
   assert.match(editorialUiSource, /className = 'editorial-shot-inspect'/);
   assert.match(editorialUiSource, /dialog\.showModal\(\)/);
   assert.match(editorialUiSource, /function fashionFrames\(shoot\)/);
   assert.match(editorialUiSource, /\.filter\(\(shot\) => shot\?\.slot !== INTERNAL_STYLE_CHECK_SLOT\)/);
-  assert.match(editorialUiSource, /\/5 fashion-кадрів готово/);
+  assert.match(editorialUiSource, /Готово: \$\{completed\} з 5/);
   assert.match(editorialUiSource, /editorial-progress-meter/);
+  assert.doesNotMatch(editorialUiSource, /Кадр \$\{String\(index \+ 1\)/);
+  assert.doesNotMatch(editorialUiSource, /Кадр у черзі/);
   assert.match(
     portraitCss,
     /body\.workflow-active\.scene-active\s*\{[\s\S]*?height:\s*100svh;[\s\S]*?overflow:\s*hidden;/,
@@ -164,7 +166,7 @@ test('normal editorial states render controlled Ukrainian copy instead of raw se
   );
   assert.match(editorialUiSource, /function displayShootMessage\(shoot\)/);
   assert.match(editorialUiSource, /Створюємо п’ять унікальних fashion-кадрів паралельно по два/);
-  assert.match(renderSource, /displayShootMessage\(shoot\)/);
+  assert.match(editorialUiSource, /displayShootMessage\(this\.shoot\)/);
   assert.doesNotMatch(renderSource, /shoot\.message/);
 });
 

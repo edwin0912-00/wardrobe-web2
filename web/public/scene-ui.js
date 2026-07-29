@@ -97,13 +97,6 @@ function createPresetVisual(preset, { large = false } = {}) {
   return wrapper;
 }
 
-function editorialSourceStatusLabel(status) {
-  return ({
-    READY: 'ДЖЕРЕЛА ГОТОВІ',
-    BLOCKED_MISSING_SECOND_SOURCE: 'ПОТРІБНЕ ЩЕ 1 ДЖЕРЕЛО',
-  })[status] ?? String(status ?? 'СТАТУС НЕВІДОМИЙ').replaceAll('_', ' ');
-}
-
 function createEditorialModeCard(mode, onSelect) {
   const ready = mode.source_set_status === 'READY' && mode.generation_available === true;
   const card = document.createElement('button');
@@ -111,9 +104,10 @@ function createEditorialModeCard(mode, onSelect) {
   card.className = 'editorial-mode-card';
   card.dataset.modeId = mode.mode_id;
   card.disabled = !ready;
+  const nameText = mode.ui_name_uk || 'Fashion Shoot';
   card.setAttribute('aria-label', ready
-    ? `Створити Fashion Shoot: ${mode.ui_name_uk || mode.mode_id}`
-    : `${mode.ui_name_uk || mode.mode_id}: генерація ще недоступна`);
+    ? `Створити Fashion Shoot: ${nameText}`
+    : `${nameText}: поки недоступно`);
 
   const preview = document.createElement('span');
   preview.className = 'editorial-mode-preview';
@@ -121,24 +115,22 @@ function createEditorialModeCard(mode, onSelect) {
   if (previewUrl) {
     const image = document.createElement('img');
     image.src = previewUrl;
-    image.alt = `Fashion Shoot preview: ${mode.ui_name_uk || mode.mode_id}`;
+    image.alt = `Приклад стилю: ${nameText}`;
     image.loading = 'eager';
     preview.append(image);
   } else {
     preview.classList.add('is-missing');
-    preview.textContent = 'PREVIEW НЕДОСТУПНЕ';
+    preview.textContent = 'Приклад стилю недоступний';
   }
 
   const copy = document.createElement('span');
   copy.className = 'editorial-mode-copy';
-  const status = document.createElement('small');
-  status.textContent = editorialSourceStatusLabel(mode.source_set_status);
-  status.dataset.sourceStatus = mode.source_set_status ?? 'UNKNOWN';
   const name = document.createElement('strong');
-  name.textContent = mode.ui_name_uk || mode.mode_id;
-  const visualSystem = document.createElement('span');
-  visualSystem.textContent = mode.visual_system || 'Візуальна система не описана';
-  copy.append(status, name, visualSystem);
+  name.textContent = nameText;
+  const action = document.createElement('span');
+  action.className = 'editorial-mode-action';
+  action.textContent = ready ? 'Створити' : 'Незабаром';
+  copy.append(name, action);
   card.append(preview, copy);
   if (ready) card.addEventListener('click', () => onSelect(mode));
   return card;

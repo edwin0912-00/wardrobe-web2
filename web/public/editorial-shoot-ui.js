@@ -427,8 +427,9 @@ export class EditorialShootUiController {
     this.#element('#editorial-bible-stage').hidden = false;
     this.#element('#editorial-gallery-stage').hidden = false;
     this.#element('#editorial-phase').textContent = displayShootState(shoot.status);
-    this.#element('#editorial-message').textContent = displayShootMessage(shoot);
-    this.#element('#editorial-connection').textContent = 'СТАН ОНОВЛЮЄТЬСЯ';
+    this.#element('#editorial-message').hidden = true;
+    this.#element('#editorial-connection').hidden = true;
+    this.#element('#editorial-phase').hidden = true;
     this.#element('#editorial-mode-name').textContent = modeName(this.mode);
     this.#setHeader('Fashion Shoot', displayShootState(shoot.status), editorialTone(shoot));
     this.#renderGallery();
@@ -458,10 +459,9 @@ export class EditorialShootUiController {
 
   #renderBible() {
     const title = modeName(this.mode);
-    const system = 'Світло, локація та подача вже зафіксовані для цієї фотозйомки.';
     const preview = this.#element('#editorial-style-preview-image');
     this.#element('#editorial-bible-title').textContent = title;
-    this.#element('#editorial-bible-system').textContent = system;
+    this.#element('#editorial-bible-system').hidden = true;
     const url = modePreviewUrl(this.mode);
     if (url) {
       preview.src = url;
@@ -479,7 +479,7 @@ export class EditorialShootUiController {
     ).length;
     const meter = this.#element('#editorial-progress-meter');
     meter.value = completed;
-    this.#element('#editorial-series-progress').textContent = `${completed}/5 fashion-кадрів готово`;
+    this.#element('#editorial-series-progress').textContent = `Готово: ${completed} з 5`;
     this.#element('#editorial-progress-detail').textContent = completed === 5
       ? 'Усі кадри пройшли QA'
       : displayShootMessage(this.shoot);
@@ -510,26 +510,8 @@ export class EditorialShootUiController {
           label: editorialShotLabel(shot.slot),
         }));
         visual.append(inspect);
-      } else {
-        const state = document.createElement('span');
-        state.textContent = shot.status === 'RUNNING'
-          ? 'Створюємо кадр'
-          : shot.status === 'QUEUED'
-            ? 'Кадр у черзі'
-            : 'Готуємо кадр';
-        visual.append(state);
       }
-      const showCaption = Boolean(imageUrl) || shot.status === 'FAILED';
-      const caption = document.createElement('footer');
-      if (showCaption) {
-        const title = document.createElement('strong');
-        title.textContent = `Кадр ${String(index + 1).padStart(2, '0')}`;
-        const status = document.createElement('small');
-        status.textContent = displayShotStatus(shot.status);
-        caption.append(title, status);
-      } else {
-        card.classList.add('is-pending');
-      }
+      card.classList.toggle('is-pending', !imageUrl && shot.status !== 'FAILED');
       const downloadUrl = outputDownloadUrl(shot.output);
       if (downloadUrl) {
         const download = document.createElement('a');
@@ -537,7 +519,8 @@ export class EditorialShootUiController {
         download.download = `${shot.slot}.png`;
         download.setAttribute('aria-label', `Завантажити ${editorialShotLabel(shot.slot)}`);
         download.textContent = '↓';
-        caption.append(download);
+        download.className = 'editorial-shot-download';
+        visual.append(download);
       }
       if (shot.status === 'FAILED') {
         const retry = document.createElement('button');
@@ -549,7 +532,6 @@ export class EditorialShootUiController {
         visual.append(retry);
       }
       card.append(visual);
-      if (showCaption) card.append(caption);
       return card;
     });
     this.#element('#editorial-gallery').replaceChildren(...cards);
