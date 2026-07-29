@@ -72,7 +72,7 @@
      * required — a look cropped at the shins cannot be dressed below the crop. The face
      * close-up is optional and exists because a reference only carries what DISTINGUISHES:
      * at full-length scale there is no face to read. */
-    var person = { full: null, face: null };
+    var person = { main: null, face: null };
 
     /* The things currently being gathered for the NEXT look. */
     var items = [];
@@ -95,7 +95,7 @@
 
     function station() { return stage.getAttribute('data-station') === '1'; }
     function locked() { return !station(); }
-    function hasFull() { return !!person.full; }
+    function hasMain() { return !!person.main; }
     function hasItems() { return items.length >= MIN_ITEMS; }
     function current() { return selected >= 0 ? looks[selected] : null; }
     /* THE gate for every action: a look with things in it must be VISIBLE first. */
@@ -107,7 +107,7 @@
     function plural(n, one, few, many) { return n === 1 ? one : n < 5 ? few : many; }
 
     function makeLook() {
-      if (!hasFull() || !hasItems() || pending) return;
+      if (!hasMain() || !hasItems() || pending) return;
       pending = true; view = 'look';
       render();
       clearTimeout(pendingTimer);
@@ -142,10 +142,10 @@
     function askPerson() {
       /* No pose dictated. The full-body mandate was the earlier assumption — the owner
        * rejected it outright — so this slot now asks for a photo, not a stance. `full` stays
-       * the internal name only because hasFull()/gates elsewhere key on it; nothing here
+       * the internal name only because hasMain()/gates elsewhere key on it; nothing here
        * tells the viewer how to stand or frame themselves. */
       return '<div class="pslots">' +
-          photoSlot('full', 'фото', 'потрібне') +
+          photoSlot('main', 'фото', 'потрібне') +
           photoSlot('face', 'обличчя', 'за бажанням') +
         '</div>' +
         '<p class="glass__lede">Обличчя окремо — за бажанням, якщо хочете точніше.</p>';
@@ -208,12 +208,12 @@
 
     function renderAsk() {
       var s = STEPS[step];
-      var blocked = (step === 0 && !hasFull()) || (step === 1 && (!hasItems() || pending));
+      var blocked = (step === 0 && !hasMain()) || (step === 1 && (!hasItems() || pending));
 
       /* UNREACHED STEPS ARE NOT RENDERED AT ALL. A greyed-out label still advertises an
        * offer, and there is no offer before the thing it applies to exists. */
-      var reachable = [true, hasFull(), looks.length > 0];
-      var doneFlag  = [hasFull(), looks.length > 0, looks.length > 0];
+      var reachable = [true, hasMain(), looks.length > 0];
+      var doneFlag  = [hasMain(), looks.length > 0, looks.length > 0];
       var trail = STEPS.map(function (x, i) {
         if (!reachable[i]) return '';
         return '<button class="trail__i" type="button" data-step="' + i + '"' +
@@ -247,7 +247,7 @@
      * An undressed input photo presented as a finished look would be input passed off as
      * output. */
     function resultFrame(caption, state) {
-      var src = person.full ? person.full.url : '';
+      var src = person.main ? person.main.url : '';
       return '<div class="lookframe" data-state="' + state + '">' +
         (src ? '<img class="lookframe__img" src="' + src + '" alt="">' : '') +
         '<span class="lookframe__cap">' + caption + '</span>' +
@@ -339,7 +339,7 @@
         });
       var hint = askRoot.querySelector('[data-hint]');
       if (hint) {
-        hint.textContent = (step === 0 && !hasFull()) ? 'потрібне одне фото'
+        hint.textContent = (step === 0 && !hasMain()) ? 'потрібне одне фото'
                          : (step === 1 && !hasItems()) ? 'додайте хоча б одну річ'
                          : lock ? 'камера рухається — рішення на зупинці' : '';
       }
@@ -403,7 +403,7 @@
       }
       if ((b = t.closest('[data-step]'))) { step = Number(b.getAttribute('data-step')); render(); return; }
       if ((b = t.closest('[data-next]')) && !b.disabled) {
-        if (step === 0) { if (hasFull()) { step = 1; render(); } }
+        if (step === 0) { if (hasMain()) { step = 1; render(); } }
         else if (step === 1) { makeLook(); }
         else { step = 1; view = 'look'; render(); }   // another look starts at the things
         return;
@@ -413,7 +413,7 @@
 
     document.addEventListener('change', function (ev) {
       if (ev.target.matches('#io-items')) addFiles(ev.target.files);
-      else if (ev.target.matches('#io-full')) setPhoto('full', ev.target.files[0]);
+      else if (ev.target.matches('#io-main')) setPhoto('main', ev.target.files[0]);
       else if (ev.target.matches('#io-face')) setPhoto('face', ev.target.files[0]);
     });
 
@@ -424,7 +424,7 @@
         ev.preventDefault();
         if (type !== 'drop' || !ev.dataTransfer || !ev.dataTransfer.files) return;
         var inp = zone.querySelector('input');
-        if (inp && inp.id === 'io-full') setPhoto('full', ev.dataTransfer.files[0]);
+        if (inp && inp.id === 'io-main') setPhoto('main', ev.dataTransfer.files[0]);
         else if (inp && inp.id === 'io-face') setPhoto('face', ev.dataTransfer.files[0]);
         else addFiles(ev.dataTransfer.files);
       });
@@ -439,8 +439,8 @@
       state: function () {
         return {
           step: step, stepId: STEPS[step].id,
-          person: { full: !!person.full, face: !!person.face },
-          hasFull: hasFull(),
+          person: { main: !!person.main, face: !!person.face },
+          hasMain: hasMain(),
           items: items.map(function (i) { return { name: i.name, uploaded: !!i.url }; }),
           itemCount: items.length, max: MAX_ITEMS,
           looks: looks.map(function (l) {
