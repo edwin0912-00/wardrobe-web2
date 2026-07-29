@@ -1907,6 +1907,25 @@ test('an oversized framing repair carries a mechanical scale guide made only fro
   assert.equal(metadata.height, 1280);
 });
 
+test('item-fidelity repair makes jeans and footwear observable without weakening the product gate', async (t) => {
+  const current = await fixture(t, {
+    evaluator: {
+      async evaluateScene() {
+        return passEvaluation({ ITEM_FIDELITY: 'FAIL' });
+      },
+    },
+  });
+  const created = await current.service.createScene({
+    ...current.request,
+    idempotencyKey: 'item-fidelity-visibility-repair',
+  });
+  await waitFor(current.service, created.scene_id);
+  const repair = current.calls.generator[1].prompt;
+  assert.match(repair, /PRODUCT VISIBILITY LOCK/);
+  assert.match(repair, /Do not cover the jeans waistband, closure, belt loops, front pockets or rivets with hands, hoodie or props/);
+  assert.match(repair, /both shoes large enough to inspect their side overlays, sole units and color accents/);
+});
+
 test('the crop refusal names the in-band guard the plan returned at, not a crop window it never computed', async (t) => {
   // Same live frame. deterministicFramingCropPlan returns at
   // `framing.subject_height_percent >= minimumPercent`, before it computes a crop height at

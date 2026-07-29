@@ -84,6 +84,10 @@ const POST_RELEASE_REJECTION_LEDGER_TYPE = 'POST_RELEASE_SCENE_REJECTION_LEDGER_
 const POST_RELEASE_REJECTION_GATES = new Set(SCENE_EVALUATOR_GATES);
 const MOVING_REVIEWER_VERSION = /^(?:builtin-current|current|latest|unknown)$/i;
 const SHA256_PATTERN = /^[a-f0-9]{64}$/;
+// Change this only when the bytes sent to the image provider change. It is part
+// of provider idempotency, so an old journal can never be replayed against a
+// materially different repair contract.
+const SCENE_GENERATION_CONTRACT_VERSION = 'scene-generation-contract-v2-product-visibility';
 
 function nowIso(clock) {
   const value = clock();
@@ -1295,6 +1299,7 @@ function compiledPrompt({
       .filter((gate) => gate.decision === 'FAIL')
       .map((gate) => gate.id)
     : [];
+  const itemFidelityFailed = failedGates.includes('ITEM_FIDELITY');
   const framingFailed = repairAttempt?.qa.gates.some(
     (gate) => gate.id === 'FRAMING_AND_ANATOMY' && gate.decision === 'FAIL',
   ) ?? false;
@@ -1393,6 +1398,13 @@ function compiledPrompt({
       '- Make the smallest local edit required to pass QA. Do not regenerate or redesign scene content that already passed.',
       `- Preserve these passed gates exactly: ${passedGates.join(', ') || 'none recorded'}.`,
       `- Repair only these failed gates: ${failedGates.join(', ') || 'none recorded'}.`,
+      ...(itemFidelityFailed ? [
+        'PRODUCT VISIBILITY LOCK',
+        '- Do not cover the jeans waistband, closure, belt loops, front pockets or rivets with hands, hoodie or props.',
+        '- Keep the approved jeans as a clean straight-leg silhouette with its washed-charcoal fade and contrast stitching visibly readable.',
+        '- Keep both shoes large enough to inspect their side overlays, sole units and color accents; never turn an exact multi-color shoe into a generic all-black sneaker.',
+        '- This is a composition and visibility repair only. Do not alter identity, item construction, color, logos or scene authority.',
+      ] : []),
       ...(framingFailed ? [
         ...(subjectTooLarge ? [
           '- Outpaint the existing scene and pull the camera back while keeping the same person, pose, outfit, products, environment, light and camera character.',
@@ -3097,7 +3109,7 @@ export class SceneService {
       status: 'GENERATING',
       route,
       generation_idempotency_key: sha256(
-        `${sceneId}:${state.request_fingerprint}:${state.bindings.approved_items?.evidence_sha256 ?? 'no-approved-items'}:${state.cycle}:${cycleAttempt}:${route.model_version}:generate`,
+        `${sceneId}:${state.request_fingerprint}:${state.bindings.approved_items?.evidence_sha256 ?? 'no-approved-items'}:${SCENE_GENERATION_CONTRACT_VERSION}:${state.cycle}:${cycleAttempt}:${route.model_version}:generate`,
       ),
       started_at: nowIso(this.clock),
       updated_at: nowIso(this.clock),
