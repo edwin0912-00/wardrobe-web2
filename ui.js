@@ -166,8 +166,8 @@
        * the internal name only because hasMain()/gates elsewhere key on it; nothing here
        * tells the viewer how to stand or frame themselves. */
       return '<div class="pslots">' +
-          photoSlot('main', 'фото', 'потрібне') +
-          photoSlot('face', 'обличчя', 'за бажанням') +
+          photoSlot('main', 'ваше фото', 'потрібне') +
+          photoSlot('face', 'обличчя', 'детальніше, за бажанням') +
         '</div>' +
         '<p class="glass__lede">Обличчя окремо — за бажанням, якщо хочете точніше.</p>';
     }

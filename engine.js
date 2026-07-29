@@ -599,12 +599,17 @@
      *      feels the journey arriving somewhere rather than sliding through it.
      *   2. AT a station whose step is unfinished, forward motion is BLOCKED. The gate
      *      opens only when the step's required media has been supplied and generated.
-     *      Backward motion is never blocked — leaving is always allowed.
+     *      Backward motion is never BLOCKED — leaving is always possible — but it is
+     *      damped by the same ramp the arrival used. Without that, a station was a
+     *      deadzone in one direction only: any light backward flick shot the viewer
+     *      straight out at full speed, undoing an arrival the forward ramp had spent the
+     *      whole approach building up. A deadzone is not one-way.
      *
      * Damping is applied to the TARGET, not to the wheel. Native scroll is never
      * intercepted while a gate is open, so trackpad, keyboard and reverse scrolling
-     * behave normally. Only a closed gate pins the page, and it pins it honestly by
-     * holding the scroll position rather than by swallowing events.
+     * behave normally — resisted, not swallowed. Only a closed gate pins the page, and
+     * it pins it honestly by holding the scroll position rather than by swallowing
+     * events.
      */
     function stationLocalOf(p) {
       return resolve(p).local;
@@ -841,13 +846,18 @@
       }
 
       /* Resistance: the target only follows part of the way, so the film crawls as the
-       * station arrives while the page itself keeps scrolling normally. */
+       * station arrives AND as it is left. The same zone the arrival crawls through is
+       * the deadzone a light swipe back cannot punch through — one tick of a small wheel
+       * delta moves the target by only (1-res) of it, so a flick barely dents the
+       * position while a sustained scroll still leaves eventually. This used to check
+       * `raw > current` and let a departure through at full speed unconditionally, which
+       * is exactly why a light swipe back bounced you straight out — resistance is a
+       * function of POSITION, not of the direction you happen to be moving in, so it has
+       * to apply both ways to mean anything. Never a hard block: the target still moves
+       * every tick, just slower, so leaving is still always possible, only no longer
+       * effortless. */
       var res = resistance(current);
-      if (res > 0 && raw > current) {
-        target = current + (raw - current) * (1 - res);
-      } else {
-        target = raw;   // leaving, or free travel
-      }
+      target = res > 0 ? current + (raw - current) * (1 - res) : raw;
       schedule();
     }
 
