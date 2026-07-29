@@ -17,6 +17,17 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-07-29 · BOARD-PROTOCOL-002 · beta · agent onboarding and block map
+Change: make `BLOCK_STATUS.md` a mandatory onboarding document and require
+Code/Beta/Journey labels in every product-task report; publish the current
+product-block structure on the live board.
+Why: code existence, beta activation, and a completed real provider journey
+were being conflated as “live”, making it impossible to see what actually
+changed or what still needs a node-level test.
+Evidence: `bash -n tools/join-beta-agent.sh tools/bootstrap-beta-agent.sh` and
+the board files are committed together.
+weakened_checks: none.
+
 2026-07-29 · BETA-SCENE-JOURNEY-SMOKE-001 · beta · full standard-scene run
 Change: fixed the repair reference transport to retain the provider-required
 `APPROVED_LOOK_MASTER → FAILED_SCENE_CANDIDATE` order and changed the third

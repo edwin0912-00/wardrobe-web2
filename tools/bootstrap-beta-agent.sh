@@ -121,13 +121,13 @@ fi
 # documents only; credentials and personal media are intentionally excluded.
 echo
 echo "=== WARDROBE CONTEXT RECOVERY · $agent_id · $(git rev-parse --short HEAD) ==="
-for context_file in USERS.md AGENTS.md UPDATE.md PIPELINE.md docs/VIDEO_LIVE_CANON_UA.md STATE.md LOG.md OWNERS.md; do
+for context_file in USERS.md AGENTS.md UPDATE.md BLOCK_STATUS.md PIPELINE.md docs/VIDEO_LIVE_CANON_UA.md STATE.md LOG.md OWNERS.md; do
   [[ -f "$context_file" ]] || continue
   echo
   echo "===== $context_file ====="
   case "$context_file" in
     AGENTS.md) sed -n '1,260p' "$context_file" ;;
-    UPDATE.md) sed -n '1,260p' "$context_file" ;;
+    UPDATE.md|BLOCK_STATUS.md) sed -n '1,260p' "$context_file" ;;
     PIPELINE.md) sed -n '1,320p' "$context_file" ;;
     docs/VIDEO_LIVE_CANON_UA.md) sed -n '1,300p' "$context_file" ;;
     STATE.md|LOG.md) sed -n '1,260p' "$context_file" ;;
@@ -152,6 +152,7 @@ Commit tested: $initial_commit
 Rationale/decision: joined beta; no product task starts before board assignment.
 Result: ONLINE
 Evidence command: tools/bootstrap-beta-agent.sh
+Block-map ACK: $initial_commit; Code=NOT_STARTED; Beta=NOT_STARTED; Journey=NOT_STARTED.
 Help request: NONE
 Next action: monitoring UPDATE.md for an assigned task.
 EOF

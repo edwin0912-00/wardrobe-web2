@@ -46,9 +46,11 @@ bash tools/agent-local-log.sh sync "$agent_id"
 
 echo "Agent ID: $agent_id"
 echo "Branch: $(git branch --show-current)"
-echo "Read now: AGENTS.md, UPDATE.md, STATE.md"
+echo "Read now: AGENTS.md, UPDATE.md, BLOCK_STATUS.md, PIPELINE.md, STATE.md"
 sed -n '1,90p' AGENTS.md
 sed -n '1,160p' UPDATE.md
+sed -n '1,260p' BLOCK_STATUS.md
+sed -n '1,220p' PIPELINE.md
 
 if [[ "$watch_mode" != "--watch" ]]; then
   exit 0

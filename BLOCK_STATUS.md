@@ -14,6 +14,25 @@ Read it after `UPDATE.md` and before claiming a task.
   gates → persisted result was observed. A catalog card, HTTP 200, unit test,
   or `generation: available` is not an E2E pass.
 
+## Product structure — read this before taking a task
+
+```text
+PROFILE.01–03  save/select avatar and approved looks
+  └─ LOOK.01–06  avatar + garments → approved white/master look
+       ├─ LOOK.07          Improve look (proposed; not live)
+       ├─ BACKGROUND.01–02 choose standard background → scene result
+       │    └─ BACKGROUND_VIDEO.01–04 product-focus or posing video
+       ├─ UNIVERSE.01–04 / ART_SHOOT.01–05
+       │    choose one locked fashion-shoot universe → hero → six-frame series/contact sheet
+       ├─ VIDEO.01–04      primary Fashion Video from the approved look
+       └─ LIVE.01–04       consented Real-time Look; separate from generated video
+```
+
+`BACKGROUND.*` and `UNIVERSE/ART_SHOOT.*` are different products. A fashion
+shoot’s place, light, camera, palette, pose system and references are one
+locked unit; it is not a generic background selector. `VIDEO.*` starts from
+the approved master look and does not require a shoot or background.
+
 ## Current block map
 
 | Block | Code | Beta | Journey | Exact evidence / next atom |
@@ -31,6 +50,20 @@ Read it after `UPDATE.md` and before claiming a task.
 | `LIVE.01–04` Real-time Look | TESTED historical | LIVE_SURFACE | PAID_E2E_NOT_RUN | Post-shoot API/page are live; provider/camera paid session has not been authorized and run. |
 | Pipeline explainer | CODE_PARTIAL | LIVE_SURFACE_PARTIAL | NOT_CURRENT | Technical nodes exist; current result-to-explainer journey still needs beta click smoke. |
 | Generation transport | TESTED local | HEALTH_LIVE | PARTIAL | Beta health says generation/semantic QA available. Local GPT Image 2 actually returned a scene; availability is not a successful scene or shoot. |
+
+## Required report shape
+
+Every new task row and `updates/<agent-id>.md` must say, in plain Ukrainian:
+
+```text
+Pipeline step: LOOK.06 → VIDEO.01
+Code: TESTED — command and commit.
+Beta: NOT_DEPLOYED | LIVE_SURFACE — exact release/URL.
+Journey: NOT_RUN | E2E_PASS | E2E_FAIL — exact beta run/receipt.
+Next atom: one concrete action.
+```
+
+No agent may collapse these three statuses into the word “live”.
 
 ## Agent position
 

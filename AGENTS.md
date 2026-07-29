@@ -21,6 +21,7 @@ git switch beta
 git pull --ff-only origin beta
 sed -n '1,180p' AGENTS.md
 sed -n '1,220p' UPDATE.md
+sed -n '1,260p' BLOCK_STATUS.md
 sed -n '1,220p' PIPELINE.md
 test -f docs/VIDEO_LIVE_CANON_UA.md && sed -n '1,260p' docs/VIDEO_LIVE_CANON_UA.md || true
 sed -n '1,120p' STATE.md
@@ -33,7 +34,9 @@ The watcher is a lightweight local monitor, not an autonomous worker. It
 fetches `beta` every 20 seconds, renders the board and reports ownership
 collisions or explicit agent help requests without writing anything.
 
-`UPDATE.md` is the live task board. `TASKS.json`, `OWNERS.md` historical lane
+`UPDATE.md` is the live task board. `BLOCK_STATUS.md` is the mandatory
+pipeline truth map: it says separately whether each block has code proof,
+an activated beta surface, and a real beta journey. `TASKS.json`, `OWNERS.md` historical lane
 rules, and old PRs are preserved evidence only; do not use them for a new task.
 
 Technical IDs such as `BETA-UNIVERSE-001` are routing labels only. Every task
@@ -72,6 +75,9 @@ Fast rules:
    Any `VIDEO.*` or `LIVE.*` task also follows `docs/VIDEO_LIVE_CANON_UA.md`.
    It may not relabel a delayed generated preview as real-time live video, nor
    add background recording or silent webcam upload.
+   In the same report, state `Code`, `Beta`, and `Journey` exactly as defined
+   in `BLOCK_STATUS.md`, followed by the command, receipt, or URL that proves
+   each claim. A local green test cannot be written as a beta journey pass.
 5. Push directly to `origin beta`; never force-push, reset, rewrite history,
    touch `main`, credentials, `site.madeforthisjob.com`, or port `4180`.
 6. `codex-main` curates `UPDATE.md`, `STATE.md`, and `LOG.md`, but an agent may
@@ -100,6 +106,10 @@ hide it behind a broad release or continue as if it were delivered.
 Every currently online agent must acknowledge the policy commit in its own
 `updates/<agent-id>.md` before taking its next product-code task:
 `Protocol ACK: <policy-commit-sha>`.
+
+Every currently online agent must also acknowledge the block map before its
+next product task:
+`Block-map ACK: <beta-sha>; Code=<…>; Beta=<…>; Journey=<…>.`
 
 If there is no assignment, create or update only `updates/<agent-id>.md` with
 a short finding; do not start speculative code.

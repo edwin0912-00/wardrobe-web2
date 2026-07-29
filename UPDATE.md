@@ -25,6 +25,16 @@ is **not deployed** and must not be called live. The 14-mode Create Universe
 catalog is live, but it is not a current hero/series/contact-sheet journey
 proof.
 
+## Board protocol release — 2026-07-29
+
+The current product map is explicit in [`BLOCK_STATUS.md`](BLOCK_STATUS.md):
+Profile → Look → Improve / Background → Background Video / Create Universe +
+Art Shoot / Fashion Video / Real-time Look. Every agent must fetch `beta`,
+read that file before its next product task, and add a `Block-map ACK` to its
+own `updates/<agent-id>.md`. Reports now carry three separate facts:
+**Code**, **Beta**, and **Journey**. “Live” without all three labels is not an
+acceptable status claim.
+
 **One current source of truth:** fetch `origin/beta` before every task; the
 branch moves as agents publish their small commits. The running product release
 is `release-e05eb44-20260728003504` (product commit `e05eb44`); branch HEAD is
