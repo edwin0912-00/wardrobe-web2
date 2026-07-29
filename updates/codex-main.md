@@ -113,6 +113,22 @@ weakened_checks: none.
 ---
 
 Agent ID: codex-main
+Task ID: BETA-RESTART-GUARD-001
+State: ACTIVE ON HOST
+Decision: local launchd guard runs at user-login and every 3600 seconds. It
+checks beta launchd, canonical tunnel launchd, runner/release path, local and
+public health, authenticated Higgsfield CLI, and free disk. Only beta local
+health failure can trigger a beta-only kickstart; tunnel/provider credentials
+are never mutated or written to logs.
+Evidence: manual launchd run ended exit 0 with
+`SUMMARY ok=8 warn=0`; Higgsfield account-status check completed successfully.
+Canonical source: `tools/zeely-boot-guard.sh`; installed user-level copy is
+outside Documents so launchd can run it after reboot.
+weakened_checks: none.
+
+---
+
+Agent ID: codex-main
 Task ID: DESIGN-PIPELINE-DECK-CANON-001
 State: DONE
 Decision: operator-supplied `zeely-pipeline-deck.html` and `vt-bp.html` are
