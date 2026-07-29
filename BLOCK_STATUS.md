@@ -14,6 +14,25 @@ Read it after `UPDATE.md` and before claiming a task.
   gates → persisted result was observed. A catalog card, HTTP 200, unit test,
   or `generation: available` is not an E2E pass.
 
+`CATALOG_ONLY` means that cards/API previews respond, but the user cannot yet
+enter the product journey. `CONTRACT_ONLY` means metadata responds but no user
+action or execution route is deployed. Neither is “live product”.
+
+## Current manual beta audit — 2026-07-29
+
+Three independent read-only browser checks plus direct HTTP verification agree:
+the root beta UI currently throws `Unexpected identifier 'collisionContainer'`
+on load; any top navigation click throws `ReferenceError: scrollToSection is
+not defined` and shows the fatal “Інтерфейс не відповідає” overlay. Direct
+evidence: root HTML has four inline `scrollToSection(...)` calls; `/api/health`
+is `200 ready`; `/api/video/contract` is `404`; `/api/post-shoot/pipeline` is
+`200` metadata only. No paid generation, camera consent or personal-media
+upload was used in this audit.
+
+**First shared atom:** repair and deploy the root UI before any user-journey
+claim. Then the same manual QA cells re-run their block — they do not infer a
+pass from API health.
+
 ## Product structure — read this before taking a task
 
 ```text
@@ -37,18 +56,18 @@ the approved master look and does not require a shoot or background.
 
 | Block | Code | Beta | Journey | Exact evidence / next atom |
 | --- | --- | --- | --- | --- |
-| `PROFILE.01–03` | TESTED historical | LIVE_SURFACE | NOT_CURRENT | Saved profile/look routes are deployed. Re-run one current-beta saved-look selection before calling it E2E. |
-| `LOOK.01–06` | TESTED locally | LIVE_SURFACE | NOT_CURRENT | A local full-look run exists; perform fresh beta upload → approved master → saved look. |
+| `PROFILE.01–03` | TESTED historical | LIVE_SURFACE, ROOT UI BLOCKED | NOT_CURRENT | Profile empty state opens, but root navigation crash prevents a complete saved-look journey. |
+| `LOOK.01–06` | TESTED locally | ROOT UI BLOCKED | NOT_CURRENT | A local full-look run exists; repair root UI, then perform fresh beta upload → approved master → saved look. |
 | `LOOK.07` Improve | MISSING | NOT_DEPLOYED | NOT_RUN | Product canon only; no generation or UI route may be claimed. |
-| `BACKGROUND.01` picker | TESTED historical | LIVE_SURFACE | NOT_CURRENT | Beta returns 16 `std.*` cards and their previews. |
+| `BACKGROUND.01` picker | TESTED historical | CATALOG_ONLY | NOT_CURRENT | Beta returns 16 `std.*` cards/previews, but `03 SCENES` crashes before manual entry. |
 | `BACKGROUND.02` scene | TESTED (`f23ca9b`) | NOT_DEPLOYED | E2E_FAIL_LOCAL | Native 3:4 route tested; real GPT scene returned but failed strict item fidelity/framing. Next: repair only those failed gates, then run beta. |
 | `BACKGROUND_VIDEO.01–04` | MISSING | NOT_DEPLOYED | NOT_RUN | Proposal only; must start from an approved background result. |
-| `UNIVERSE.01–02` style picker/packs | TESTED historical | LIVE_SURFACE | NOT_CURRENT | Live API has 14 modes, 12 generation-available. |
-| `UNIVERSE.03–04` hero/series/contact sheet | CODE_PARTIAL | LIVE_SURFACE | NOT_CURRENT | No current beta style → hero → six QA-passed frames → persisted contact-sheet proof. |
-| `ART_SHOOT.01–05` | CODE_PARTIAL | LIVE_SURFACE | NOT_CURRENT | Same missing real execution proof as Universe; do not infer it from previews. |
+| `UNIVERSE.01–02` style picker/packs | TESTED historical | CATALOG_ONLY | NOT_CURRENT | API has 14 modes (12 available) and all previews respond, but root UI blocks picker testing. |
+| `UNIVERSE.03–04` hero/series/contact sheet | CODE_PARTIAL | ROOT UI BLOCKED | NOT_CURRENT | No current beta style → hero → six QA-passed frames → persisted contact-sheet proof. |
+| `ART_SHOOT.01–05` | CODE_PARTIAL | ROOT UI BLOCKED | NOT_CURRENT | Same missing real execution proof as Universe; do not infer it from previews. |
 | `VIDEO.01–04` Fashion Video | REPORTED (`544e602`) | NOT_DEPLOYED | NOT_RUN | Current beta returns 404 for `/api/video/*`; deploy exact commit, then one controlled clip → ffprobe/clip QA → saved result. |
-| `LIVE.01–04` Real-time Look | TESTED historical | LIVE_SURFACE | PAID_E2E_NOT_RUN | Post-shoot API/page are live; provider/camera paid session has not been authorized and run. |
-| Pipeline explainer | CODE_PARTIAL | LIVE_SURFACE_PARTIAL | NOT_CURRENT | Technical nodes exist; current result-to-explainer journey still needs beta click smoke. |
+| `LIVE.01–04` Real-time Look | TESTED historical | CONTRACT_ONLY | PAID_E2E_NOT_RUN | `/api/post-shoot/pipeline` describes Live, but user actions and execution routes are not on current beta. |
+| Pipeline explainer | CODE_PARTIAL | ROOT UI BLOCKED | NOT_CURRENT | Technical nodes exist; current result-to-explainer journey still needs beta click smoke. |
 | Generation transport | TESTED local | HEALTH_LIVE | PARTIAL | Beta health says generation/semantic QA available. Local GPT Image 2 actually returned a scene; availability is not a successful scene or shoot. |
 
 ## Required report shape

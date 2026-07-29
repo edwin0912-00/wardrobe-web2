@@ -17,6 +17,18 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-07-29 · BETA-MANUAL-AUDIT-001 · beta · independent browser/API audit
+Change: record the first independent manual checks for Look/Background,
+Create Universe/Art Shoot, and Video/Live; set root UI recovery as the shared
+first atom.
+Why: health and catalog APIs were being mistaken for a reachable user journey.
+The root page currently cannot navigate into those products.
+Evidence: three read-only QA cells reproduced `Unexpected identifier
+'collisionContainer'` and `scrollToSection is not defined`; direct check:
+`/api/health` 200, `/api/post-shoot/pipeline` 200, `/api/video/contract` 404.
+No paid provider call, camera permission or personal media was used.
+weakened_checks: none.
+
 2026-07-29 · BOARD-PROTOCOL-002 · beta · agent onboarding and block map
 Change: make `BLOCK_STATUS.md` a mandatory onboarding document and require
 Code/Beta/Journey labels in every product-task report; publish the current
