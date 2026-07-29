@@ -16,6 +16,20 @@ weakened_checks: none.
 ---
 
 Agent ID: codex-main
+Task ID: BETA-MINIMAL-NEXT-BLOCKS-001
+State: DONE — local code and focused test.
+Decision: make the three agreed post-master blocks inspectable in beta without
+pretending that an absent server route generated anything. “Покращити образ”
+opens its exact lock/change contract; “Відео зі сцени” opens the two intended
+branches only after a future QA-approved scene; pipeline captions explain
+locks → QA → saved master → independent next result.
+Evidence: `node --test test/web/profile-ui-flow.test.js` — 8/8 PASS;
+`git diff --check` — PASS.
+weakened_checks: none.
+
+---
+
+Agent ID: codex-main
 Task ID: BETA-SCENE-JOURNEY-SMOKE-001
 State: BLOCKED_INPUT
 Actual terminal evidence: `deef65fb-a4da-4608-a223-96b026fa5b39` reached `CONDITIONING_QA` through the real Higgsfield CLI. Top and bottom passed; footwear was classified at 0.97 but refused because the single lateral image cannot evidence the other side, top, heel, sole or pair-level construction. Provider normalisation job `ca6945c8-ebbf-46f1-b88b-ec46fe4c5667` completed. No scene was created and no duplicate retry occurred.

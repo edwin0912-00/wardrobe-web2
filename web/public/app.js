@@ -1625,6 +1625,16 @@ function setLookActionStatus(message) {
   const target = document.querySelector('#profile-look-action-status');
   if (target) target.textContent = message;
 }
+function showLookBrief(id, message) {
+  document.querySelectorAll('.profile-branch-brief').forEach((element) => {
+    element.classList.toggle('hidden', element.id !== id);
+  });
+  setLookActionStatus(message);
+  document.querySelector(`#${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+function hideLookBriefs() {
+  document.querySelectorAll('.profile-branch-brief').forEach((element) => element.classList.add('hidden'));
+}
 document.querySelector('#profile-look-background-primary').addEventListener('click', (event) => {
   event.stopPropagation();
   setLookActionStatus('Фон: обери одну стандартну сцену. Master-образ і вибрані речі залишаються locked.');
@@ -1660,8 +1670,25 @@ document.querySelector('#profile-look-video').addEventListener('click', (event) 
 document.querySelector('#profile-look-refine').addEventListener('click', (event) => {
   event.stopPropagation();
   if (!selectedProfileLook) return;
-  setLookActionStatus('Покращити: master і вибрані речі будуть locked, а результат піде окремим candidate. Мінімальний generator route ще не підключений — нічого не перезапускаємо і не змінюємо поточний образ.');
+  showLookBrief('profile-refine-brief', 'Покращити: master і вибрані речі locked. Candidate буде окремим; поточний образ не змінюється.');
 });
+document.querySelector('#profile-look-background-video').addEventListener('click', (event) => {
+  event.stopPropagation();
+  if (!selectedProfileLook) return;
+  showLookBrief('profile-background-video-brief', 'Відео зі сцени запускається лише після QA-approved scene-result. Наразі серверний запуск ще не підключений.');
+});
+document.querySelector('#profile-look-pipeline').addEventListener('click', (event) => {
+  event.stopPropagation();
+  if (!selectedProfileLook) return;
+  showLookBrief('profile-pipeline-explainer', 'Pipeline: locks → QA → збережений master → окрема наступна гілка.');
+});
+for (const id of ['profile-refine-brief-close', 'profile-background-video-brief-close', 'profile-pipeline-explainer-close']) {
+  document.querySelector(`#${id}`).addEventListener('click', (event) => {
+    event.stopPropagation();
+    hideLookBriefs();
+    setLookActionStatus('Обери формат — master-образ лишається незмінним.');
+  });
+}
 // Video overlay: option selection
 document.querySelectorAll('#video-surface-options .video-option, #video-motion-options .video-option').forEach((btn) => {
   btn.addEventListener('click', () => {

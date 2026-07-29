@@ -230,6 +230,34 @@
                         <li><b>Real-time Look</b><span>Відкриває окрему consented camera-сесію. Вона не замінює згенероване відео.</span></li>
                         <li><b>Відео зі сцени</b><span>Після готового фону з’явиться окрема гілка «Фокус на речі» / «Позування». Її server route ще не зібраний — запускати фальшивий ролик не будемо.</span></li>
                       </ul>
+                      <div class="profile-action-guide-controls" role="group" aria-label="Пояснення наступних блоків">
+                        <button id="profile-look-background-video" type="button">Відео зі сцени</button>
+                        <button id="profile-look-pipeline" type="button">Як працює pipeline</button>
+                      </div>
+                    </section>
+                    <section id="profile-refine-brief" class="profile-branch-brief hidden" aria-labelledby="profile-refine-brief-title">
+                      <header><p class="result-kicker">ПОКРАЩИТИ ОБРАЗ · ПЕРЕД ФОНАМИ</p><h5 id="profile-refine-brief-title">Що буде змінено</h5></header>
+                      <p><b>Locked:</b> людина, зовнішність, усі вибрані речі та master-образ.</p>
+                      <p><b>Можна змінювати:</b> лише невибрані деталі, волосся, до 20% макіяжу та невелику корекцію пози.</p>
+                      <p>Результат має бути окремим candidate із діями «залишити master» / «прийняти candidate». Generator route ще не підключений, тому цей блок нічого не генерує і не змінює поточний образ.</p>
+                      <button id="profile-refine-brief-close" type="button">Зрозуміло</button>
+                    </section>
+                    <section id="profile-background-video-brief" class="profile-branch-brief hidden" aria-labelledby="profile-background-video-brief-title">
+                      <header><p class="result-kicker">ПІСЛЯ ГОТОВОГО ФОНУ</p><h5 id="profile-background-video-brief-title">Відео зі сцени</h5></header>
+                      <p><b>Фокус на речі</b> — короткий рух, який показує конкретний предмет для product-задачі.</p>
+                      <p><b>Позування</b> — короткий рух людини в готовому образі та вибраній сцені.</p>
+                      <p>Цей блок активується тільки від QA-approved scene-result. Окремий server route ще не підключений, тому жоден ролик не імітується.</p>
+                      <button id="profile-background-video-brief-close" type="button">Зрозуміло</button>
+                    </section>
+                    <section id="profile-pipeline-explainer" class="profile-branch-brief hidden" aria-labelledby="profile-pipeline-explainer-title">
+                      <header><p class="result-kicker">ENGINEERING BETA · ПОЯСНЕННЯ</p><h5 id="profile-pipeline-explainer-title">Що вже сталося з образом</h5></header>
+                      <ol>
+                        <li><b>Locks:</b> фото людини й вибрані речі зафіксовані для master-образу.</li>
+                        <li><b>QA:</b> результат проходить перевірку зовнішності, речей, кадру й технічної якості.</li>
+                        <li><b>Збереження:</b> approved master лишається незмінним; кожна наступна гілка створює окремий результат.</li>
+                        <li><b>Наступна дія:</b> фон, фотозйомка, Fashion Video, Real-time Look або майбутнє відео зі сцени.</li>
+                      </ol>
+                      <button id="profile-pipeline-explainer-close" type="button">Повернутися до образу</button>
                     </section>
                     <p id="profile-look-video-note" class="sr-only">Покращити образ збереже master і locked речі. Fashion video не підміняється mock-роликом: запуск з’явиться лише після Seedance route, QA і збереження кліпу.</p>
                   </section>

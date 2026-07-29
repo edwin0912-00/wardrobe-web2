@@ -73,6 +73,9 @@ test('saved look exposes actionable branches and their honest pipeline explanati
   assert.match(indexSource, /id="profile-look-action-status"/);
   assert.match(indexSource, /Відео зі сцени/);
   assert.match(indexSource, /Фокус на речі/);
+  assert.match(indexSource, /id="profile-refine-brief"/);
+  assert.match(indexSource, /id="profile-background-video-brief"/);
+  assert.match(indexSource, /id="profile-pipeline-explainer"/);
   assert.match(indexSource, /готову зйомку: її стиль, світло, локація, камера, пози та кадри/);
   assert.match(indexSource, /aria-label="Відкрити Real-time Look"/);
   assert.match(indexSource, /aria-label="Додати стандартний фон"/);
@@ -82,6 +85,8 @@ test('saved look exposes actionable branches and their honest pipeline explanati
   assert.match(sceneUiSource, /this\.pickerTab = initialTab === 'editorial' \? 'editorial' : 'standard';/);
   assert.match(appSource, /profile-look-video/);
   assert.match(appSource, /Fashion Video: обери формат кадру й подачу/);
+  assert.match(appSource, /showLookBrief\('profile-background-video-brief'/);
+  assert.match(appSource, /showLookBrief\('profile-pipeline-explainer'/);
 });
 test('Add items continuation receives the exact selected avatar and look once', async () => {
   const { avatar, newerLook, profile } = profileFixture();
