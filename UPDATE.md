@@ -24,6 +24,13 @@ The earlier detailed noticeboard is preserved at
   evidence-preserving orientation. QA judges only facts visibly evidenced by
   raw uploads; it still rejects a positive contradiction, a missing clearly
   visible feature, a crop, or a non-white/non-product candidate.
+- **Operator decision — surface fidelity:** a close difference in weave,
+  grain, gloss or material rendering alone is satisfactory and no longer
+  advances the fast route. It remains visible in QA evidence as an advisory
+  note. A different product type, silhouette, color, visible logo/text,
+  panel layout or distinctive geometry still blocks the candidate. This rule
+  applies to the next evaluation; already immutable run receipts are never
+  rewritten.
 - **Not implemented in this change:** a multi-angle footwear sheet. It needs a
   distinct artifact/QA contract because model-invented rear/sole views must
   never become source evidence. It is a follow-up, not an implicit QA waiver.

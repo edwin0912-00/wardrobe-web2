@@ -144,6 +144,8 @@ test('garment QA prompt preserves raw-versus-generated roles and decision semant
   assert.match(prompt, /Never use NEEDS_INPUT merely because the generated candidate differs from usable raw evidence/);
   assert.match(prompt, /only where that fact is clearly visible in at least one raw view/);
   assert.match(prompt, /is UNKNOWN: it is not a mismatch/);
+  assert.match(prompt, /Surface weave, grain, gloss, microtexture, or a close material-rendering difference is advisory only/);
+  assert.match(prompt, /mesh versus a pebbled texture/);
   assert.equal(calls[0].args.filter((value) => value === '--image').length, 3, 'duplicate primary binding must be removed without erasing image roles');
 });
 

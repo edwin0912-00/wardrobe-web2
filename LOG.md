@@ -1158,6 +1158,18 @@ Eleven stale prompt hashes were corrected to their exact checked-in prompt
 bytes; their finish metadata was normalized to the existing production lock.
 weakened_checks: none.
 
+2026-07-29 · Look-reference QA surface-fidelity threshold · pending commit
+Change: garment-reference QA now treats a close weave, grain, gloss or
+material-rendering difference as advisory when product identity, silhouette,
+panel layout, color, visible branding and distinctive geometry agree.
+Why: operator reviewed the Nano Banana 2 footwear candidate and accepted it
+as product-satisfactory; retrying it for surface texture alone adds cost and
+latency without improving the usable reference.
+Evidence: focused provider + garment-conditioner tests 17/17 PASS. The rule
+does not alter historical immutable receipts and has not yet been deployed.
+weakened_checks: material microtexture is non-blocking only; product identity,
+silhouette, color, visible branding, layout and geometry remain blocking.
+
 2026-07-29 · Fashion Shoot visual cleanup · pending commit
 Change: compact style card and compact five-frame progress grid; removed raw
 file-derived title, internal stage codes, placeholder numerals and duplicate
