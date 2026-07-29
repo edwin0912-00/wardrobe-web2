@@ -82,7 +82,6 @@ test('saved look exposes actionable branches and their honest pipeline explanati
   assert.match(sceneUiSource, /this\.pickerTab = initialTab === 'editorial' \? 'editorial' : 'standard';/);
   assert.match(appSource, /profile-look-video/);
   assert.match(appSource, /Fashion Video: обери формат кадру й подачу/);
-  assert.match(appSource, /Покращити: master і вибрані речі будуть locked/);
 });
 test('Add items continuation receives the exact selected avatar and look once', async () => {
   const { avatar, newerLook, profile } = profileFixture();

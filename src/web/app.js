@@ -62,7 +62,7 @@ export async function createWebApp({
     logger,
     bodyLimit: 150 * 1024 * 1024,
     logController: new Fastify.LogController({
-      disableRequestLogging: (request) => request.url.split('?')[0] === '/api/health',
+      disableRequestLogging: (request) => false,
     }),
   });
   const activeSseCleanups = new Set();
@@ -226,7 +226,7 @@ export async function createWebApp({
     });
     app.addHook('onResponse', async (request, reply) => {
       const pathname = request.url.split('?')[0];
-      if (!pathname.startsWith('/api/') || pathname.startsWith('/api/monitor') || pathname === '/api/telemetry' || pathname === '/api/health') return;
+      if (!pathname.startsWith('/api/') || pathname.startsWith('/api/monitor') || pathname === '/api/telemetry') return;
       await monitor.append({
         source: 'http', type: 'http.response', severity: reply.statusCode >= 400 ? 'error' : 'info',
         run_id: request.params?.id,
@@ -235,25 +235,7 @@ export async function createWebApp({
     });
   }
 
-  app.get('/api/health', async () => {
-    const resolved = await currentHealth();
-    const status = resolved.status === 'ready' || resolved.status === 'ok' ? resolved.status : 'degraded';
-    const runtimeStatus = resolved.runtime_status
-      ? (resolved.runtime_status === 'ready' ? 'ready' : 'degraded')
-      : null;
-    return {
-      status,
-      service: 'web',
-      generation: generationAvailable ? 'available' : 'unavailable',
-      semantic_qa: 'available',
-      ...(runtimeStatus ? { runtime_status: runtimeStatus } : {}),
-      // Existing product mode exposes editorial availability. The isolated
-      // worker canary intentionally exposes only the generic public contract.
-      ...(health.test_only ? { editorial_generation: 'available' } : { editorial_generation: editorialShootService
-        ? (generationAvailable ? 'available' : 'unavailable')
-        : 'disabled' }),
-    };
-  });
+
 
   app.post('/api/runs', async (request, reply) => {
     const uploads = { garments: [] };

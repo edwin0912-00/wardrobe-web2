@@ -319,7 +319,13 @@
                 <div id="scene-preset-grid" class="scene-preset-grid" aria-label="Доступні стандартні сцени"></div>
               </section>
               <section id="scene-editorial-panel" class="scene-picker-panel editorial-preview-panel" role="tabpanel" aria-labelledby="scene-tab-editorial" hidden>
-                <div id="editorial-mode-grid" class="editorial-mode-grid" aria-label="Art Fashion mood-напрями"></div>
+                <div class="editorial-mode-scroll-container" style="overflow-y: auto; padding-right: 8px;">
+                  <h4 class="editorial-section-title" style="margin: 0 0 8px 0; font-size: 13px; color: var(--text-secondary); text-transform: uppercase;">Create Universe</h4>
+                  <div id="editorial-mode-grid-new" class="editorial-mode-grid" aria-label="Нові Create Universe напрями"></div>
+                  
+                  <h4 class="editorial-section-title" style="margin: 16px 0 8px 0; font-size: 13px; color: var(--text-secondary); text-transform: uppercase;">Legacy Editorial</h4>
+                  <div id="editorial-mode-grid-legacy" class="editorial-mode-grid" aria-label="Art Fashion mood-напрями"></div>
+                </div>
                 <aside class="editorial-preview-gate">
                   <span><strong>ShootBible → hero → твоє підтвердження → ще 5 кадрів</strong><small>Готові напрями запускаються тут. Решта лишаються заблокованими до повного reference pack.</small></span>
                   <button id="editorial-resume" class="editorial-resume" type="button" hidden>Відкрити останню фотосесію</button>

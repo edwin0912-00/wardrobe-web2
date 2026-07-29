@@ -557,3 +557,7 @@ facts.
   returns SHA-versioned preview URLs; all 5 published background and all 9
   editorial/Create Universe previews return HTTP 200. No provider generation
   was invoked during this release check.
+
+### PROPOSALS
+
+- **BETA-PRESENTATION-001 (Gender Split)**: Розділення на чоловіка і жінку повинно відбуватися на етапі візуальної QA моделі, яка зчитує правильність образу. Якщо QA проходить успішно, модель повинна додатково класифікувати презентацію і повертати значення (наприклад, `man` або `woman`). Це значення буде зберігатися для образу/аватара і використовуватися для фільтрації сумісних стилів (field `compatibility`), без додавання нових полів вводу для користувача.

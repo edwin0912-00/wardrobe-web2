@@ -423,20 +423,26 @@ export class SceneUiController {
   }
 
   #renderEditorialModes() {
-    const grid = this.#element('#editorial-mode-grid');
+    const gridNew = this.#element('#editorial-mode-grid-new');
+    const gridLegacy = this.#element('#editorial-mode-grid-legacy');
     if (this.editorialLoadError) {
       const unavailable = document.createElement('p');
       unavailable.className = 'editorial-mode-unavailable';
       unavailable.textContent = 'Mood-board зараз не завантажився. Стандартні сцени продовжують працювати.';
-      grid.replaceChildren(unavailable);
+      gridNew.replaceChildren(unavailable);
+      gridLegacy.replaceChildren();
       return;
     }
-    grid.replaceChildren(...this.editorialModes.map((mode) => createEditorialModeCard(
-      mode,
-      (selected) => this.editorialUi.openForMode(selected, this.look).catch(
-        (error) => this.#setError(error.message),
-      ),
-    )));
+    
+    const newModes = this.editorialModes.filter((m) => m.mode_id.startsWith('shoot.'));
+    const legacyModes = this.editorialModes.filter((m) => m.mode_id.startsWith('editorial.'));
+    
+    const onSelect = (selected) => this.editorialUi.openForMode(selected, this.look).catch(
+      (error) => this.#setError(error.message),
+    );
+    
+    gridNew.replaceChildren(...newModes.map((mode) => createEditorialModeCard(mode, onSelect)));
+    gridLegacy.replaceChildren(...legacyModes.map((mode) => createEditorialModeCard(mode, onSelect)));
   }
 
   showPicker() {
