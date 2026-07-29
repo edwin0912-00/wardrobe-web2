@@ -171,11 +171,17 @@ body {
 
 /* ------------------------------------------------------------------ copy ---- */
 
+/* Anchored high, not dead-centre. place-content: center used to put every headline
+ * exactly where the mirrors/TV/laptop screen are themselves compositionally centred in
+ * their own footage — a long headline at up to 58px spans the full width, so it crossed
+ * both mirror panels every time (mirrors sit at 5-44% and 55.7-94.7%; the gap between
+ * them is only ~11.7% of frame width, nowhere near enough to hold a sentence). Top-anchored
+ * clears the featured object in all four legs without needing per-leg positions. */
 .copy {
   position: absolute; inset: 0; z-index: 6;
-  display: grid; place-content: center;
+  display: grid; justify-content: center; align-content: start;
   pointer-events: none;
-  padding: 0 6vw;
+  padding: 6vh 6vw 0;
 }
 .copy__line {
   grid-area: 1 / 1;
@@ -1094,12 +1100,16 @@ body:not([data-ready="1"]) .stage { visibility: hidden; }
  *     visible through the interface, which is the point of putting it on glass.
  * No backdrop-filter and no box-shadow: a blur and a cast shadow both stop at a
  * hard rectangular edge, which is a frame drawn by other means. */
+/* Owner, later: even this shade — no rectangle, edge-fade already doing legibility
+ * work — still read as heavy enough to feel like a mounted panel rather than glass.
+ * Halved the peak and eased the middle stops down with it; text-shadow (below) is
+ * carrying more of the contrast now, which is the whole point of putting it there. */
 .glass::before {
   background:
     radial-gradient(116% 86% at 44% 42%,
-      rgba(16,17,15,0.74) 0%,
-      rgba(16,17,15,0.56) 38%,
-      rgba(16,17,15,0.26) 62%,
+      rgba(16,17,15,0.38) 0%,
+      rgba(16,17,15,0.26) 38%,
+      rgba(16,17,15,0.12) 62%,
       rgba(16,17,15,0) 82%);
 }
 .glass__eyebrow, .glass__h, .glass__lede, .glass__hint,
