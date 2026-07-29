@@ -615,6 +615,13 @@
       return resolve(p).local;
     }
 
+    /* State for the true deadzone below — where the departure is measured from, and
+     * which leg it was armed on (reset on any leg change, same pattern as the station
+     * latch itself). */
+    var deadAnchor = null;
+    var deadArmedLeg = -1;
+    function deadSpan() { return config.deadSpan !== undefined ? config.deadSpan : 0.014; }
+
     /* How much a station resists, 0 free .. 1 immovable. */
     function resistance(p) {
       var r = resolve(p);
@@ -843,6 +850,33 @@
           schedule();
           return;
         }
+      }
+
+      /* A TRUE DEADZONE while the mirror UI is showing (leg 0's station — the only leg
+       * with an interactive panel right now). The resistance ramp below is still a ramp:
+       * even at dampMax it lets 6% of every tick through, which reads as "sticky", not
+       * "stopped" — the owner asked for genuinely zero movement until a swipe back is
+       * committed to, so leaving is a deliberate gesture rather than a slow leak.
+       *
+       * `deadAnchor` is where the viewer was resting when they started pulling back.
+       * `shortfall` is how far the RAW scroll position has since drifted below that
+       * anchor. Below `deadSpan()`, target is pinned to the anchor exactly — not damped,
+       * literally unchanged, however hard or however many times the wheel fires. Past
+       * it, the anchor stays put and the ordinary resistance ramp below takes over
+       * computed from `current` (which has been sitting at the anchor the whole time),
+       * so the handoff is smooth rather than a jump: at dampMax the first tick past the
+       * threshold only moves 6% of the way to `raw`, same as any other departure. */
+      var r = resolve(current);
+      if (r.idx === 0 && stationOn(r)) {
+        if (deadArmedLeg !== r.idx) { deadArmedLeg = r.idx; deadAnchor = current; }
+        var shortfall = deadAnchor - raw;
+        if (shortfall > 0) {
+          if (shortfall < deadSpan()) { target = deadAnchor; schedule(); return; }
+        } else {
+          deadAnchor = current;   // not pulling back right now — keep the anchor at "here"
+        }
+      } else {
+        deadAnchor = null; deadArmedLeg = -1;
       }
 
       /* Resistance: the target only follows part of the way, so the film crawls as the
