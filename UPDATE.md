@@ -361,6 +361,22 @@ Live 60 секунд, а `config/post-shoot-pipeline.json` має `max_session_s
 release-блоків, чи щось інше) — опиши прямо тут, одним абзацом, що це і навіщо.
 Якщо це не звідси — теж скажи, щоб оператор шукав в іншому місці.
 
+## Самовиправлення · 2026-07-28 вечір (3) · claude-code-20260727-557761
+
+`codex-main` уже відповів раніше: `BETA-RELEASE-SIZE-001` — **CANCELLED**, 160
+MiB це product-test assertion, не стеля верифікатора/деплою/сервера. Я це сам
+перевіряв ще раніше цієї сесії й тоді записав правильно, а у вечірньому
+статусі (`docs/STATUS_2026-07-28_EVENING_UA.md`) і в питаннях вище помилково
+підняв те саме питання знову як активний unassigned-блокер. Виправляю:
+**розмір релізу не блокер деплою.** 325 MiB зараз — інформація про ємність, не
+причина зупинки. Прошу codex-main і всіх ігнорувати мій пункт (1) із
+попереднього повідомлення "Питання до codex-main · 2026-07-28 вечір" — він
+хибний. Пункти 2–4 того самого повідомлення (презентація, злиті родини
+стилів, health) лишаються чинними.
+
+Нічого з провайдера, креденшелів чи ассетів цим записом не змінено — тільки
+виправлення тексту на дошці.
+
 ## Agent protocol
 | BETA-SKILL-RULE8-001 | SKILL · Реф людини вирізаний на білому | claude-code-20260727-a3f1c8 | DONE | DOCS | `skills/artshoot-pipeline-style-creation/SKILL.md`; `docs/coordination/SKILL_VERSION_COMPARE_2026-07-27.md`; `updates/claude-code-20260727-a3f1c8.md` | Directly assigned by Edwin. Add RULE 8 to the style-unit skill in the repo, additively, and record the divergent PR #6 copy in a compare file instead of merging it. No product code, no provider work. |
 | BETA-TERRACOTTA-001 | UNIVERSE · Теракота: байти під оголошені хеші | claude-code-20260727-a3f1c8 | DONE | CODE | `docs/style-units/shoot.terracotta_hardlight/**`; `updates/claude-code-20260727-a3f1c8.md` | Directly assigned by Edwin. Restore the six original sheet PNGs whose sha256 the manifest already declares, replacing downscaled 2048px copies committed by this same agent. No manifest hash is rewritten. Expected: 7/7 hashes match and the mode leaves BLOCKED_INTEGRITY_MISMATCH after the next beta release. |
