@@ -48,6 +48,8 @@ test('client exposes every profile-owned production editorial route', () => {
 });
 
 test('catalog is production ACTIVE and only READY modes become controls', () => {
+  assert.match(sceneUiSource, /#editorial-mode-grid-new'\)\.replaceChildren\(editorialLoading\)/);
+  assert.doesNotMatch(sceneUiSource, /#editorial-mode-grid'\)\.replaceChildren\(editorialLoading\)/);
   const ensureSource = sourceBetween(
     sceneUiSource,
     'async #ensureEditorialModes()',
