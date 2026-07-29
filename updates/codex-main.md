@@ -17,6 +17,20 @@ weakened_checks: none.
 
 Agent ID: codex-main
 Task ID: BETA-MINIMAL-NEXT-BLOCKS-001
+State: BLOCKED_DEPLOY — code remains committed on beta as `17df194`.
+Deployment evidence: product package build completed, but the release verifier
+refused activation before restart: required `web/public/editorial-shoot-ui.js`
+is absent from the current beta tree. The incomplete release directory was
+deleted; the currently active beta release was not changed.
+Required repair: reconcile the verifier's required-scene file list with the
+current `scene-ui.js` implementation, or restore the required module from its
+authoritative commit. No manual bypass.
+weakened_checks: none.
+
+---
+
+Agent ID: codex-main
+Task ID: BETA-MINIMAL-NEXT-BLOCKS-001
 State: DONE — local code and focused test.
 Decision: make the three agreed post-master blocks inspectable in beta without
 pretending that an absent server route generated anything. “Покращити образ”
