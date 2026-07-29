@@ -87,7 +87,7 @@ const SHA256_PATTERN = /^[a-f0-9]{64}$/;
 // Change this only when the bytes sent to the image provider change. It is part
 // of provider idempotency, so an old journal can never be replayed against a
 // materially different repair contract.
-const SCENE_GENERATION_CONTRACT_VERSION = 'scene-generation-contract-v4-opaque-guide';
+const SCENE_GENERATION_CONTRACT_VERSION = 'scene-generation-contract-v5-native-4-5';
 
 function nowIso(clock) {
   const value = clock();
@@ -432,6 +432,62 @@ async function mechanicalFramingGuide(directory, state, repairAttempt, repairCan
   };
 }
 
+// The initial composed master is a deterministic layout derivative of the
+// approved master, never a generated replacement. It gives the provider the
+// exact approved pixels at the delivery safe-area before it sees any scene
+// reference. A full-body master commonly fills its source frame; without this
+// separate geometry authority the provider faithfully repeats that oversized
+// composition in every new environment.
+async function initialComposedMasterGuide(directory, state, attemptNumber, approvedLook) {
+  if (!approvedLook?.path || !approvedLook?.sha256 || !Number.isInteger(attemptNumber)) return null;
+  const source = await sharp(approvedLook.path).metadata();
+  if (!source.width || !source.height || (source.pages ?? 1) !== 1) return null;
+  const scale = 0.8;
+  const resizedWidth = Math.round(state.delivery.width * scale);
+  const resizedHeight = Math.round(state.delivery.height * scale);
+  const top = Math.round(state.delivery.height * 0.09);
+  const left = Math.round((state.delivery.width - resizedWidth) / 2);
+  const bytes = await sharp({
+    create: {
+      width: state.delivery.width,
+      height: state.delivery.height,
+      channels: 4,
+      background: { r: 240, g: 238, b: 232, alpha: 1 },
+    },
+  })
+    .composite([{
+      input: await sharp(approvedLook.path)
+        .resize({ width: resizedWidth, height: resizedHeight, fit: 'fill' })
+        .png()
+        .toBuffer(),
+      left,
+      top,
+    }])
+    .png()
+    .toBuffer();
+  const filename = path.join(
+    directory,
+    `attempts/${String(attemptNumber).padStart(3, '0')}/initial-composed-master-guide.png`,
+  );
+  const expectedHash = sha256(bytes);
+  try {
+    const existing = await readFile(filename);
+    if (sha256(existing) !== expectedHash) throw new Error('Initial composed master guide has different immutable bytes');
+  } catch (error) {
+    if (error?.code !== 'ENOENT') throw error;
+    await writeImmutable(filename, bytes);
+  }
+  return {
+    path: filename,
+    sha256: expectedHash,
+    media_type: 'image/png',
+    role: 'mechanical_framing_guide',
+    source_kind: 'approved_look',
+    target_subject_height_percent: 76,
+    target_clear_space_above_hair_percent: 9,
+  };
+}
+
 async function binaryFrom(value, label) {
   if (Buffer.isBuffer(value)) return value;
   if (value instanceof Uint8Array) return Buffer.from(value);
@@ -565,6 +621,7 @@ function safeProviderMetadata(metadata) {
     'seed',
     'geometry_strategy',
     'geometry_crop_fraction',
+    'aspect_error_fraction',
     'transport_aspect_ratio',
     'source_width',
     'source_height',
@@ -869,9 +926,7 @@ function provenanceGate({
   // route has two truthful values: 3:4 from the Higgsfield CLI, which offered
   // nothing closer, and 4:5 from OpenRouter, which serves the delivery aspect
   // directly. Pinning it to 3:4 by model name would reject the better one.
-  const expectedTransportAspectRatios = attempt.route.job_set_type === 'gpt_image_2'
-    ? ['3:4', '4:5']
-    : ['4:5'];
+  const expectedTransportAspectRatios = ['4:5'];
   const geometryReceiptValid = typeof provider.provider === 'string'
     && provider.provider.length > 0
     && provider.model === attempt.route.model
@@ -888,7 +943,7 @@ function provenanceGate({
     && [
       'provider_exact_4_5',
       'provider_exact_4_5_rescaled',
-      'centre_crop_to_exact_4_5',
+      'provider_native_4_5_tolerance_rescaled',
       // Accepted for reading receipts written before blur padding was removed.
       'blurred_canvas_contain_no_subject_crop',
     ].includes(provider.geometry_strategy)
@@ -3363,12 +3418,12 @@ export class SceneService {
       state,
       repairAttempt,
     );
-    const compositionGuide = await mechanicalFramingGuide(
-      directory,
-      state,
-      repairAttempt,
-      repairCandidate,
-    );
+    const compositionGuide = repairCandidate
+      ? await mechanicalFramingGuide(directory, state, repairAttempt, repairCandidate)
+      : await initialComposedMasterGuide(directory, state, attempt.number, {
+        path: bound.approvedLookPath,
+        sha256: state.bindings.approved_look.image_sha256,
+      });
     const prompt = compiledPrompt({
       basePrompt: bound.prompt,
       state,
@@ -3545,7 +3600,7 @@ export class SceneService {
       raw_output_sha256: attempt.provider_metadata.raw_output_sha256 ?? attempt.provider_source.sha256,
       geometry_output_sha256: attempt.provider_metadata.geometry_output_sha256 ?? attempt.provider_source.sha256,
       transport_aspect_ratio: attempt.provider_metadata.transport_aspect_ratio
-        ?? (attempt.route.job_set_type === 'gpt_image_2' ? '3:4' : '4:5'),
+        ?? '4:5',
       geometry_strategy: attempt.provider_metadata.geometry_strategy ?? 'provider_exact_4_5',
     };
     if (attempt.provider_metadata.rejection_id

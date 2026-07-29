@@ -244,7 +244,7 @@ test('SceneGeneratorAdapter attaches hash-bound item cutouts before optional sce
   assert.doesNotMatch(calls[0].prompt, /approved-set-2\.png|\/tmp\//);
 });
 
-test('SceneGeneratorAdapter requires GPT 3:4 transport and native 4:5 for both Nano routes', async () => {
+test('SceneGeneratorAdapter refuses the non-native GPT scene route before provider execution', async () => {
   const fixture = await contextFixture();
   const adapter = new SceneGeneratorAdapter({
     provider: { aspectRatio: '4:5', generate: async () => { throw new Error('must not run'); } },
@@ -252,8 +252,11 @@ test('SceneGeneratorAdapter requires GPT 3:4 transport and native 4:5 for both N
   await assert.rejects(() => adapter.generateScene({
     ...fixture.base,
     attempt: 1,
-    ...DEFAULT_SCENE_MODEL_ROUTE[0],
-  }), /configured with aspectRatio: 3:4/);
+    model: 'GPT Image 2',
+    model_version: 'gpt_image_2',
+    job_set_type: 'gpt_image_2',
+    quality: 'high',
+  }), /native-4:5 Nano Banana 2/);
 });
 
 test('SceneGeneratorAdapter restarts the fixed route from GPT on a new cycle while preserving the global attempt number', async () => {
@@ -401,15 +404,37 @@ test('an exact-ratio frame at the provider bucket size is rescaled without disca
   const result = await adapter.generateScene({
     ...fixture.base,
     attempt: 1,
-    model: 'GPT Image 2',
-    model_version: 'gpt_image_2',
-    job_set_type: 'gpt_image_2',
+    ...DEFAULT_SCENE_MODEL_ROUTE[0],
     quality: 'high',
   });
   assert.equal(result.metadata.geometry_strategy, 'provider_exact_4_5_rescaled');
   assert.equal(result.metadata.geometry_crop_fraction, undefined);
   const delivered = await sharp(result.image).metadata();
   assert.deepEqual([delivered.width, delivered.height], [1024, 1280]);
+});
+
+test('a provider-native 4:5 bucket with sub-one-percent rounding is rescaled without crop', async () => {
+  const fixture = await contextFixture();
+  const providerOutput = await sharp({
+    create: { width: 1856, height: 2304, channels: 3, background: '#8f7360' },
+  }).png().toBuffer();
+  const adapter = new SceneGeneratorAdapter({
+    provider: {
+      aspectRatio: '4:5',
+      async generate() {
+        return { image: providerOutput, mediaType: 'image/png', metadata: { provider: 'higgsfield', job_id: 'rounded-45-job' } };
+      },
+    },
+  });
+  const result = await adapter.generateScene({
+    ...fixture.base,
+    attempt: 1,
+    ...DEFAULT_SCENE_MODEL_ROUTE[0],
+  });
+  assert.equal(result.metadata.transport_aspect_ratio, '4:5');
+  assert.equal(result.metadata.geometry_strategy, 'provider_native_4_5_tolerance_rescaled');
+  assert.equal(result.metadata.geometry_crop_fraction, undefined);
+  assert.ok(result.metadata.aspect_error_fraction < 0.01);
 });
 
 test('a landscape provider frame fails the attempt instead of faking the delivery size', async () => {
@@ -436,12 +461,10 @@ test('a landscape provider frame fails the attempt instead of faking the deliver
     adapter.generateScene({
       ...fixture.base,
       attempt: 1,
-      model: 'GPT Image 2',
-      model_version: 'gpt_image_2',
-      job_set_type: 'gpt_image_2',
+      ...DEFAULT_SCENE_MODEL_ROUTE[0],
       quality: 'high',
     }),
-    /1200×900, which cannot reach the 4:5 delivery without discarding 40% of the frame/,
+    /1200×900, outside the native 4:5 tolerance; cropping is forbidden/,
   );
 });
 

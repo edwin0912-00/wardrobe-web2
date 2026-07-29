@@ -82,20 +82,13 @@ export const SCENE_SOURCE_FORBIDDEN_AUTHORITIES = Object.freeze([
 export const DEFAULT_SCENE_MODEL_ROUTE = Object.freeze([
   Object.freeze({
     order: 1,
-    job_set_type: 'gpt_image_2',
-    model: 'GPT Image 2',
-    model_version: 'gpt_image_2',
-    quality: 'high',
-  }),
-  Object.freeze({
-    order: 2,
     job_set_type: 'nano_banana_flash',
     model: 'Nano Banana 2',
     model_version: 'nano_banana_flash',
     quality: 'high',
   }),
   Object.freeze({
-    order: 3,
+    order: 2,
     job_set_type: 'nano_banana_2',
     model: 'Nano Banana Pro',
     model_version: 'nano_banana_2',
@@ -129,7 +122,6 @@ function isVerifiedSourceUri(value) {
   return typeof value === 'string' && (value.startsWith('https://') || CREATE_UNIVERSE_SOURCE_URI.test(value));
 }
 const FIXED_MODEL_ROUTE = Object.freeze([
-  Object.freeze({ job_set_type: 'gpt_image_2', model: 'GPT Image 2' }),
   Object.freeze({ job_set_type: 'nano_banana_flash', model: 'Nano Banana 2' }),
   Object.freeze({ job_set_type: 'nano_banana_2', model: 'Nano Banana Pro' }),
 ]);
@@ -359,7 +351,7 @@ export function assertIdempotencyKey(value) {
 
 export function normalizeModelRoute(route = DEFAULT_SCENE_MODEL_ROUTE) {
   if (!Array.isArray(route) || route.length !== FIXED_MODEL_ROUTE.length) {
-    throw new Error('Scene model route must contain exactly the three approved models');
+    throw new Error('Scene model route must contain exactly the two native-4:5 approved models');
   }
   const seenTypes = new Set();
   const normalized = route.map((entry, index) => {
@@ -382,7 +374,7 @@ export function normalizeModelRoute(route = DEFAULT_SCENE_MODEL_ROUTE) {
     }
     const fixed = FIXED_MODEL_ROUTE[index];
     if (entry.job_set_type !== fixed.job_set_type || entry.model !== fixed.model || entry.quality !== 'high') {
-      throw new Error('Scene model route must exactly match GPT Image 2 → Nano Banana 2 → Nano Banana Pro at high quality');
+      throw new Error('Scene model route must exactly match Nano Banana 2 → Nano Banana Pro at high quality');
     }
     if (MOVING_MODEL_VERSION.test(entry.model_version)) {
       throw new Error(`Scene model route entry ${expectedOrder} uses a moving model_version alias`);

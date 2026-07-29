@@ -17,7 +17,6 @@ import {
 } from './frame-finish.js';
 import {
   IMAGE_MODEL_NAMES,
-  IMAGE_MODEL_ROUTE,
   assertAllowedImageModel,
 } from '../runner/model-policy.js';
 import {
@@ -39,6 +38,13 @@ const GENERATION_REFERENCE_ORDER = Object.freeze([
   'composition_anchor',
   'palette_anchor',
   'negative_reference',
+]);
+// Avatar generation may still use GPT Image 2. Scene delivery is different:
+// its strict full-body contract is native 4:5, and the current Higgsfield GPT
+// transport cannot serve that geometry.
+const NATIVE_SCENE_IMAGE_MODEL_ROUTE = Object.freeze([
+  'nano_banana_flash',
+  'nano_banana_2',
 ]);
 const IMAGE_MEDIA_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
 const PNG_SIGNATURE = Buffer.from('89504e470d0a1a0a', 'hex');
@@ -354,10 +360,10 @@ export async function mapWithConcurrency(values, limit, mapper) {
 
 function assertSceneRoute(context) {
   const jobSetType = assertAllowedImageModel(context?.job_set_type);
-  const routeIndex = IMAGE_MODEL_ROUTE.indexOf(jobSetType);
+  const routeIndex = NATIVE_SCENE_IMAGE_MODEL_ROUTE.indexOf(jobSetType);
   const routeAttempt = Number(context?.cycle_attempt ?? context?.attempt);
   if (routeIndex !== routeAttempt - 1) {
-    throw new Error('Scene attempt does not match the fixed GPT Image 2 → Nano Banana 2 → Nano Banana Pro route');
+    throw new Error('Scene attempt does not match the fixed native-4:5 Nano Banana 2 → Nano Banana Pro route');
   }
   if (context.model !== IMAGE_MODEL_NAMES[jobSetType] || context.model_version !== jobSetType || context.quality !== 'high') {
     throw new Error('Scene model metadata does not match the locked production route');
@@ -379,14 +385,13 @@ function assertSceneRoute(context) {
 // can actually act on by retrying; silently padding it could not be acted on by
 // anyone. Requesting the aspect up front (see the provider's image_config) is
 // what keeps this path on the cheap branches.
-const MAX_GEOMETRY_CROP_FRACTION = 0.22;
-
 async function geometrySafeImage(bytes, { width, height }) {
   const metadata = await sharp(bytes).metadata();
   if (!metadata.width || !metadata.height || (metadata.pages ?? 1) !== 1) {
     throw new Error('Scene provider returned an undecodable or animated image');
   }
   const exactAspect = metadata.width * height === metadata.height * width;
+  const aspectError = Math.abs((metadata.width / metadata.height) - (width / height)) / (width / height);
   if (exactAspect && metadata.width === width && metadata.height === height) {
     return {
       image: bytes,
@@ -415,32 +420,19 @@ async function geometrySafeImage(bytes, { width, height }) {
     return rescaleOnly(sharp(bytes), 'provider_exact_4_5_rescaled');
   }
 
-  const targetAspect = width / height;
-  const tooWide = metadata.width / metadata.height > targetAspect;
-  const cropWidth = tooWide ? Math.round(metadata.height * targetAspect) : metadata.width;
-  const cropHeight = tooWide ? metadata.height : Math.round(metadata.width / targetAspect);
-  const cropFraction = tooWide
-    ? (metadata.width - cropWidth) / metadata.width
-    : (metadata.height - cropHeight) / metadata.height;
-
-  if (cropFraction > MAX_GEOMETRY_CROP_FRACTION) {
-    throw new Error(
-      `Scene provider returned ${metadata.width}×${metadata.height}, which cannot reach the 4:5 delivery `
-      + `without discarding ${Math.round(cropFraction * 100)}% of the frame`,
+  // The provider's advertised 4:5 bucket can arrive as e.g. 1856×2304
+  // (0.69% from 4:5) due to its internal bucket dimensions. It is still a
+  // native vertical 4:5 response, unlike 3:4. Rescale only; never crop.
+  if (aspectError <= 0.01) {
+    return rescaleOnly(
+      sharp(bytes),
+      'provider_native_4_5_tolerance_rescaled',
+      { aspect_error_fraction: Number(aspectError.toFixed(6)) },
     );
   }
 
-  // The crop is not a silent trade: FRAMING_AND_ANATOMY judges the delivered
-  // frame, so a crop that clips a hand or a foot fails loudly rather than ships.
-  return rescaleOnly(
-    sharp(bytes).extract({
-      left: Math.round((metadata.width - cropWidth) / 2),
-      top: Math.round((metadata.height - cropHeight) / 2),
-      width: cropWidth,
-      height: cropHeight,
-    }),
-    'centre_crop_to_exact_4_5',
-    { crop_fraction: Number(cropFraction.toFixed(4)) },
+  throw new Error(
+    `Scene provider returned ${metadata.width}×${metadata.height}, outside the native 4:5 tolerance; cropping is forbidden`,
   );
 }
 
@@ -463,13 +455,14 @@ export class SceneGeneratorAdapter {
     if (typeof provider?.generate !== 'function') {
       throw new Error(`SceneGeneratorAdapter has no provider for ${jobSetType}`);
     }
-    // What the transport can actually hand over, which is a property of the
-    // transport and not of the model name. The Higgsfield CLI could only serve
-    // gpt-image at 3:4; the OpenRouter transport serves it at a true 4:5 when
-    // asked, so it declares that and the delivery needs no crop at all.
+    // Full-body scene framing is evaluated on the delivered image. Therefore
+    // the provider must produce native 4:5 — no transport detour or crop.
     const requiredTransportAspectRatio = typeof provider.transportAspectRatio === 'string'
       ? provider.transportAspectRatio
-      : (jobSetType === 'gpt_image_2' ? '3:4' : '4:5');
+      : '4:5';
+    if (requiredTransportAspectRatio !== '4:5') {
+      throw new Error(`${context.model} cannot serve the native 4:5 scene contract`);
+    }
     if (typeof provider.aspectRatio === 'string' && provider.aspectRatio !== requiredTransportAspectRatio) {
       throw new Error(`${context.model} provider must be configured with aspectRatio: ${requiredTransportAspectRatio}`);
     }
@@ -614,7 +607,7 @@ export class SceneGeneratorAdapter {
     const prompt = sanitizeExternalPrompt(
       `${basePrompt}${structuredInstructions(references)}`
       + `${itemGenerationInstructions(items, itemAttachmentStart)}`
-      + `${guideAttachment ? `\nMECHANICAL COMPOSITION GUIDE\n- ATTACHMENT_${guideAttachment.order} is an opaque neutral mechanical layout derivative of the failed candidate, not a new scene or content authority. It places the same candidate at the measured target scale: ${compositionGuide.target_subject_height_percent}% visible person height and ${compositionGuide.target_clear_space_above_hair_percent}% clear space above hair. Use it only to match framing; preserve the exact person, look, item details, environment and lighting from their authoritative attachments.\n` : ''}`
+      + `${guideAttachment ? `\nMECHANICAL COMPOSITION GUIDE\n- ATTACHMENT_${guideAttachment.order} is an opaque neutral mechanical layout derivative of ${compositionGuide.source_kind === 'approved_look' ? 'the approved master' : 'the failed candidate'}, not a new scene or content authority. It places the same pixels at the measured target scale: ${compositionGuide.target_subject_height_percent}% visible person height and ${compositionGuide.target_clear_space_above_hair_percent}% clear space above hair. Use it only to match framing; preserve the exact person, look, item details, environment and lighting from their authoritative attachments.\n` : ''}`
       + `${shotAnchorInstructions(attachedAnchors)}`,
     );
     assertExternalPromptPrivacy(prompt, { runtimeRoot: context.work_directory });
@@ -695,6 +688,7 @@ export class SceneGeneratorAdapter {
         // How much of the provider frame the delivery cost. Recorded because the
         // strategy name alone hid the scale of what geometry did to the image.
         ...(geometry.crop_fraction === undefined ? {} : { geometry_crop_fraction: geometry.crop_fraction }),
+        ...(geometry.aspect_error_fraction === undefined ? {} : { aspect_error_fraction: geometry.aspect_error_fraction }),
         reference_role_order: evidence.map((item) => item.role).join(':'),
         reference_evidence_sha256: sha256(Buffer.from(JSON.stringify(evidence))),
         attached_reference_count: ordered.length,
