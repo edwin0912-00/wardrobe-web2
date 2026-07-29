@@ -186,6 +186,10 @@ weakened_checks: none.
 
 Release: beta activated at 2026-07-29 21:06 CEST from exact commit `cf4a877`.
 Public proof: `/api/health` returned `ready`; Fashion Shoot UI focused suite 17/17 PASS.
+
+Follow-up: the previous module URL was cache-stable (`v=20260724-1`), so an
+already-open browser could keep the old gallery renderer. Cache token bumped
+for the Fashion Shoot module before the next beta activation.
 Next action: any preview hostname needs an ingress entry in the canonical
 Cloudflare connector, never a second connector with the same tunnel ID.
 Help request: NONE.
