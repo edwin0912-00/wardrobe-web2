@@ -104,6 +104,11 @@ export async function registerVideoRoutes(app, {
     if (!sourceImagePath) {
       throw new ProfileError(404, 'LOOK_IMAGE_NOT_FOUND', 'Look source image not found on disk');
     }
+    const approvedLook = await profiles.approvedLookReference(
+      session.profileId,
+      look_id,
+      runService,
+    );
 
     try {
       const result = await videoService.createClip({
@@ -115,6 +120,8 @@ export async function registerVideoRoutes(app, {
         lookBinding: {
           profileId: session.profileId,
           lookId: look_id,
+          sourceSha256: approvedLook.image_sha256,
+          approvedLookReceiptSha256: approvedLook.receipt_sha256,
         },
       });
 

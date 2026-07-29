@@ -27,7 +27,7 @@ export function installDemoAuth(app, auth) {
 
   app.addHook('onRequest', async (request, reply) => {
     const pathname = request.url.split('?')[0];
-    if (PUBLIC_PATHS.has(pathname)) return;
+    if (PUBLIC_PATHS.has(pathname) || pathname.startsWith('/api/video-source/')) return;
     const supplied = cookies(request.headers.cookie)[COOKIE_NAME];
     if (supplied && equalDigest(secret, supplied, sessionToken)) return;
     if (pathname.startsWith('/api/')) return reply.code(401).send({ error: 'PIN authentication required' });

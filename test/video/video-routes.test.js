@@ -7,6 +7,7 @@ import { registerVideoRoutes } from '../../src/web/video-routes.js';
 
 function fixture() {
   const projected = [];
+  const createRequests = [];
   let liveClip = {
     clipId: '11111111-1111-4111-8111-111111111111',
     jobId: 'higgs-job-1',
@@ -20,6 +21,10 @@ function fixture() {
   const profiles = {
     ownsLook: () => true,
     lookAsset: () => ({ runId: '22222222-2222-4222-8222-222222222222', filename: 'avatar_outfit.png' }),
+    approvedLookReference: async () => ({
+      image_sha256: 'b'.repeat(64),
+      receipt_sha256: 'c'.repeat(64),
+    }),
     projectVideoClip(profileId, lookId, clip) {
       projected.push({ profileId, lookId, clip });
       return {
@@ -38,7 +43,8 @@ function fixture() {
     listVideoClips: () => [],
   };
   const videoService = {
-    async createClip() {
+    async createClip(request) {
+      createRequests.push(request);
       return { clipId: liveClip.clipId, jobId: liveClip.jobId, status: liveClip.status };
     },
     async getClip() {
@@ -55,7 +61,7 @@ function fixture() {
       return { clipId: liveClip.clipId, status: liveClip.status };
     },
   };
-  return { profiles, projected, videoService };
+  return { profiles, projected, createRequests, videoService };
 }
 
 test('create projects the exact approved-look binding expected by ProfileService', async (t) => {
@@ -88,6 +94,12 @@ test('create projects the exact approved-look binding expected by ProfileService
     approved_look: { look_id: '33333333-3333-4333-8333-333333333333' },
     motion_mode: 'editorial_micro_moment',
     surface: 'mirror',
+  });
+  assert.deepEqual(current.createRequests[0].lookBinding, {
+    profileId: 'profile-1',
+    lookId: '33333333-3333-4333-8333-333333333333',
+    sourceSha256: 'b'.repeat(64),
+    approvedLookReceiptSha256: 'c'.repeat(64),
   });
 });
 

@@ -18,6 +18,10 @@ import { SceneService } from './scene-service.js';
 import { sanitizeOutboundString } from '../security/outbound-redaction.js';
 import { registerPostShootRoutes } from './post-shoot-routes.js';
 import { registerVideoRoutes } from './video-routes.js';
+import {
+  redactVideoSourceRequestPath,
+  registerVideoSourceBridgeRoutes,
+} from './video-source-bridge.js';
 
 export async function createWebApp({
   service,
@@ -32,6 +36,7 @@ export async function createWebApp({
   sceneDependencies = null,
   lucyTokenIssuer = null,
   videoService = null,
+  videoSourceBridge = null,
 }) {
   // A degraded provider preflight means the local CLI cannot prove that it can
   // create and observe a paid Higgsfield job. Do not let a user enter the
@@ -191,6 +196,9 @@ export async function createWebApp({
       runService: service,
     });
   }
+  if (videoSourceBridge) {
+    await registerVideoSourceBridgeRoutes(app, { videoSourceBridge });
+  }
   if (drafts) await registerDraftRoutes(app, {
     service: drafts,
     runService: service,
@@ -227,10 +235,11 @@ export async function createWebApp({
     app.addHook('onResponse', async (request, reply) => {
       const pathname = request.url.split('?')[0];
       if (!pathname.startsWith('/api/') || pathname.startsWith('/api/monitor') || pathname === '/api/telemetry') return;
+      const stage = redactVideoSourceRequestPath(pathname);
       await monitor.append({
         source: 'http', type: 'http.response', severity: reply.statusCode >= 400 ? 'error' : 'info',
         run_id: request.params?.id,
-        data: { method: request.method, stage: pathname, status: reply.statusCode },
+        data: { method: request.method, stage, status: reply.statusCode },
       });
     });
   }
@@ -417,7 +426,12 @@ export async function createWebApp({
     const publicMessage = sanitizeOutboundString(error.message);
     if (monitor) monitor.append({
       source: 'server', type: 'server.error', severity: 'error', run_id: request.params?.id,
-      data: { method: request.method, stage: request.url.split('?')[0], status: statusCode, message: publicMessage },
+      data: {
+        method: request.method,
+        stage: redactVideoSourceRequestPath(request.url.split('?')[0]),
+        status: statusCode,
+        message: publicMessage,
+      },
     }).catch(() => {});
     const payload = {
       error: publicMessage,

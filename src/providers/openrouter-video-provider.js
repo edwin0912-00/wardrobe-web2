@@ -101,7 +101,7 @@ export class OpenRouterVideoProvider {
         code: 'MISSING_VIDEO_SOURCE',
       });
     }
-    const sourceUrl = await this.assetUrlResolver(mediaPaths[0]);
+    const sourceUrl = await this.assetUrlResolver(mediaPaths[0], request.sourceBinding);
     if (typeof sourceUrl !== 'string' || !sourceUrl.startsWith('https://')) {
       throw new OpenRouterVideoError('Source resolver must return a private HTTPS asset URL', {
         code: 'VIDEO_SOURCE_URL_INVALID',

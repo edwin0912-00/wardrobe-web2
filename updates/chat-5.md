@@ -49,3 +49,58 @@ Minimal integration-only `start.js` handoff (not applied):
 `videoAssetUrlResolver` is an explicit deployment-owned prerequisite: it must map the exact clip-owned source path to a short-lived private HTTPS URL. No such resolver exists in this branch, so the handoff intentionally does not invent one or weaken source privacy.
 
 weakened_checks: none for the controlled clip. Integration remains blocked only on the missing deployment-owned private HTTPS `videoAssetUrlResolver`; beta was deliberately not exercised.
+
+## No-paid private video-source bridge — 2026-07-29
+
+Implemented `src/web/video-source-bridge.js`, owned by the video module. `createVideoAssetUrlResolver` issues a random opaque capability URL under the deployment-supplied bare HTTPS origin. Clip id, source SHA, approved-look receipt SHA and filesystem path remain server-side. Each capability is bound to the exact clip-owned `source.png`, source SHA-256, approved-look receipt SHA-256, detected media type and byte size.
+
+Security gates:
+
+- TTL is bounded to 1 second–10 minutes; default 2 minutes.
+- Fetch count is bounded to 1–5; default one.
+- Source must equal `{clipStoreRoot}/clips/{clipId}/source.png`; traversal, alternate files and symlinks are rejected.
+- Issuance and every fetch re-read and SHA-256-check the bytes.
+- PNG/JPEG/WebP media type and exact byte size are locked.
+- Replay, expiry and explicit revocation fail closed.
+- Capability tokens are stored only as SHA-256 map keys.
+- The route uses `logLevel: silent`; monitor/error stages redact the token as `/api/video-source/[redacted-capability]`.
+- Responses are `private, no-store`, `nosniff`, and never contain a token or local path.
+- Profile video creation now obtains the existing verified `image_sha256 + receipt_sha256` pair from `ProfileService.approvedLookReference`, checks the source bytes again in VideoService, and forwards the exact binding to OpenRouter only after the primary retry policy selects fallback.
+
+Evidence:
+
+- `node --test test/video/*.test.js` — PASS 111/111.
+- Focused app/profile/privacy regression suite — PASS 15/15.
+- Bridge security suite after final receipt-binding assertion — PASS 11/11.
+- Tamper, expiry, wrong hash, traversal, replay limit, explicit revoke, invalid media, PIN-auth capability access and logging-redaction tests all PASS.
+- Full `npm test` did not start because the repository resource preflight refused the host: swap 5.81 GiB exceeded 1.50 GiB and disk free 3.21 GiB was below 8.00 GiB. The resource gate was not bypassed.
+- No provider call or paid generation was run.
+- `src/web/start.js` remains unchanged; beta remains NOT_EDITED / NOT_DEPLOYED.
+
+Minimal integration-only `start.js` handoff (not applied):
+
+```diff
+-import { VideoService, ClipStore } from './video-service.js';
++import { createVideoRuntime } from './video-runtime.js';
++import { createVideoAssetUrlResolver } from './video-source-bridge.js';
+@@
+-const clipStore = new ClipStore(path.join(runtimeRoot, 'video-clips'));
+-const videoService = new VideoService({
+-  provider: generation.provider,
+-  clipStore,
++const videoSourceBridge = createVideoAssetUrlResolver({
++  clipStoreRoot: path.join(runtimeRoot, 'video-clips'),
++  httpsOrigin: process.env.ZEELY_PUBLIC_HTTPS_ORIGIN,
++});
++const videoService = createVideoRuntime({
++  runtimeRoot,
++  openRouterApiKey: process.env.OPENROUTER_API_KEY,
++  assetUrlResolver: videoSourceBridge.videoAssetUrlResolver,
+ });
+@@
+   videoService,
++  videoSourceBridge,
+ });
+```
+
+Deployment must supply a bare HTTPS `ZEELY_PUBLIC_HTTPS_ORIGIN` and `OPENROUTER_API_KEY`. `weakened_checks: full npm test blocked before execution by RESOURCE_PREFLIGHT_FAILED; focused code/security suites pass`.

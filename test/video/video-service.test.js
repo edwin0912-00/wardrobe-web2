@@ -207,6 +207,63 @@ test('createClip without sourceImagePath is refused', async () => {
   });
 });
 
+test('createClip refuses approved-look bytes that do not match their binding', async () => {
+  await withTempDir(async (dir, sourcePath) => {
+    const { provider } = makeStubProvider();
+    const store = new ClipStore(dir);
+    const service = new VideoService({ provider, clipStore: store });
+    await assert.rejects(
+      () => service.createClip({
+        modeId: 'editorial_micro_moment',
+        surfaceId: 'tv',
+        sourceImagePath: sourcePath,
+        lookBinding: {
+          sourceSha256: 'f'.repeat(64),
+          approvedLookReceiptSha256: 'e'.repeat(64),
+        },
+      }),
+      (error) => {
+        assert.equal(error.code, 'VIDEO_SOURCE_HASH_MISMATCH');
+        return true;
+      },
+    );
+  });
+});
+
+test('createClip passes exact clip/source/receipt binding to the provider', async () => {
+  await withTempDir(async (dir, sourcePath) => {
+    const requests = [];
+    const provider = {
+      async createJob(request) {
+        requests.push(request);
+        return { jobId: 'job_bound', raw: { job_id: 'job_bound' } };
+      },
+    };
+    const store = new ClipStore(dir);
+    const service = new VideoService({ provider, clipStore: store });
+    const sourceSha256 = '6796fa7544369e1a072cc7a76ab119b0150d7b4ef3f4aad47b64c4ef043b50b7';
+    const receiptSha256 = 'e'.repeat(64);
+    const created = await service.createClip({
+      modeId: 'editorial_micro_moment',
+      surfaceId: 'tv',
+      sourceImagePath: sourcePath,
+      lookBinding: {
+        sourceSha256,
+        approvedLookReceiptSha256: receiptSha256,
+      },
+    });
+    assert.deepEqual(requests[0].sourceBinding, {
+      clipId: created.clipId,
+      sourceSha256,
+      approvedLookReceiptSha256: receiptSha256,
+    });
+    const receipt = JSON.parse(
+      await readFile(path.join(store.clipDir(created.clipId), 'create-receipt.json'), 'utf8'),
+    );
+    assert.equal(receipt.request.approved_look_receipt_sha256, receiptSha256);
+  });
+});
+
 test('awaitAndFinalize downloads video, runs QA, and marks PASS', async () => {
   await withTempDir(async (dir, sourcePath) => {
     const { provider } = makeStubProvider();

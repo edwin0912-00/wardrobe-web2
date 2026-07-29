@@ -195,6 +195,13 @@ export class VideoService {
       });
     }
     const sourceSha256 = sha256(sourceBytes);
+    if (lookBinding?.sourceSha256
+      && lookBinding.sourceSha256 !== sourceSha256) {
+      throw new VideoServiceError('The approved look bytes changed before video submission', {
+        code: 'VIDEO_SOURCE_HASH_MISMATCH',
+        status: 409,
+      });
+    }
     const lockedSourcePath = await this.#store.saveSource(clipId, sourceBytes);
 
     // Resolve aspect from the surface, or fall back to the provider default.
@@ -206,6 +213,11 @@ export class VideoService {
       mediaPaths: [lockedSourcePath],
       aspectRatio,
       durationSeconds: plan.durationSeconds,
+      sourceBinding: {
+        clipId,
+        sourceSha256,
+        approvedLookReceiptSha256: lookBinding?.approvedLookReceiptSha256 ?? null,
+      },
     };
 
     const submitting = {
@@ -240,6 +252,7 @@ export class VideoService {
       fallback_used: created.fallbackUsed === true,
       request: {
         source_sha256: sourceSha256,
+        approved_look_receipt_sha256: lookBinding?.approvedLookReceiptSha256 ?? null,
         prompt: plan.prompt,
         aspect_ratio: aspectRatio,
         duration_seconds: plan.durationSeconds,

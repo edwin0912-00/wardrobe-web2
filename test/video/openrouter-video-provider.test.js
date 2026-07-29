@@ -22,17 +22,27 @@ const request = Object.freeze({
 
 test('create submits one exact first frame with audio disabled', async () => {
   const calls = [];
+  const resolverCalls = [];
   const provider = new OpenRouterVideoProvider({
     apiKey: 'test-key',
-    assetUrlResolver: async () => 'https://assets.example/signed/look.png',
+    assetUrlResolver: async (...args) => {
+      resolverCalls.push(args);
+      return 'https://assets.example/signed/look.png';
+    },
     fetchFn: async (url, init) => {
       calls.push({ url, init });
       return jsonResponse({ id: 'openrouter-job-1', status: 'pending' }, 202);
     },
   });
 
-  const created = await provider.createJob(request);
+  const sourceBinding = {
+    clipId: 'clip-1',
+    sourceSha256: 'a'.repeat(64),
+    approvedLookReceiptSha256: 'b'.repeat(64),
+  };
+  const created = await provider.createJob({ ...request, sourceBinding });
   assert.equal(created.jobId, 'openrouter-job-1');
+  assert.deepEqual(resolverCalls, [[request.mediaPaths[0], sourceBinding]]);
   const body = JSON.parse(calls[0].init.body);
   assert.equal(body.model, 'bytedance/seedance-2.0');
   assert.equal(body.aspect_ratio, '9:16');
