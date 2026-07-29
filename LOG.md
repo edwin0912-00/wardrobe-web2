@@ -17,6 +17,16 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-07-29 · BETA-TUNNEL-ISOLATION-001 · beta · routing incident containment
+Change: stop the conflicting `wardrobe-tunnel` tmux session while preserving
+its separate preview server process.
+Why: the preview connector used the beta named-tunnel ID with a different
+ingress map, intermittently returning default 404 for every beta route.
+Evidence: read-only monitor recorded all-route 404s; after removal, five
+consecutive root/health probes returned 200 and only the canonical connector
+remained. No product code, runtime data, beta run, or preview server was deleted.
+weakened_checks: none.
+
 2026-07-29 · BETA-HEALTH-GUARD-001 · beta · release safety repair
 Change: restore the canonical web `/api/health` handler after a shared-branch
 UI commit removed it.

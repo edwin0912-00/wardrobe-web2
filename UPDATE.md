@@ -502,6 +502,14 @@ facts.
 
 ## Latest events
 
+- 2026-07-29 — Beta routing incident: a separate `wardrobe-tunnel` tmux
+  preview process joined the same named Cloudflare tunnel with an ingress file
+  that knew only its preview host. Cloudflare could therefore send beta traffic
+  to that process, producing all-route 404s. The preview server was preserved;
+  only its conflicting tunnel/watch step was stopped. Read-only beta monitor
+  recorded the outage and recovery. Do not start a second connector for this
+  tunnel; add an ingress to the canonical connector instead.
+
 - 2026-07-29 — Shared beta source briefly lost the canonical `/api/health`
   route in a UI commit. It was restored in `6d7d673` before source deployment;
   focused privacy/health and profile UI tests pass 11/11. The active beta

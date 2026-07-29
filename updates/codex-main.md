@@ -35,6 +35,22 @@ Help request: NONE.
 ---
 
 Agent ID: codex-main
+Task ID: BETA-TUNNEL-ISOLATION-001
+Protocol ACK: f6e2c41
+State: DONE
+Decision: preserve the foreign preview server but stop its duplicate connector
+to the shared named tunnel; beta must be routed only through the canonical
+connector.
+Evidence: monitor captured the outage; after the isolated tunnel session was
+removed, five root/health probes were HTTP 200.
+weakened_checks: none.
+Next action: any preview hostname needs an ingress entry in the canonical
+Cloudflare connector, never a second connector with the same tunnel ID.
+Help request: NONE.
+
+---
+
+Agent ID: codex-main
 Task ID: BETA-HEALTH-GUARD-001
 Protocol ACK: 4169a68
 State: DONE — code commit `6d7d673`.
