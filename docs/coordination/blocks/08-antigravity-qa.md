@@ -36,6 +36,10 @@ Before testing, record:
 - browser, viewport and timestamp;
 - whether the flow may create a paid provider job.
 
+`tools/join-antigravity-qa.sh ... --watch` starts the 20-second GitHub watcher
+as a background process. The main Antigravity session must continue into
+`RUN_IN_SESSION.md`; it must not sit idle merely displaying the board.
+
 If the deployed release does not match the commit being evaluated, return
 `BLOCKED_RELEASE_MISMATCH`. Do not test one SHA and report another.
 
@@ -183,4 +187,3 @@ receipts, release scripts, `beta`, or `main`. Never deploy.
 - Never delete, overwrite, regenerate or “repair” user artifacts.
 - Never mark PASS from health, unit tests, source inspection or API calls
   alone.
-

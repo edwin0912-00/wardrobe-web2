@@ -58,6 +58,23 @@ sed -n '1,320p' docs/coordination/blocks/08-antigravity-qa.md
 sed -n '1,300p' ops/loops/antigravity-beta-qa/RUN_IN_SESSION.md
 
 if [[ "$watch_mode" == "--watch" ]]; then
-  exec bash tools/watch-beta-blocks.sh "$agent_id"
+  watch_dir=".agent-local/antigravity-qa"
+  watch_log="$watch_dir/watch.log"
+  watch_pid_file="$watch_dir/watch.pid"
+  mkdir -p "$watch_dir"
+  running_pid=''
+  if [[ -f "$watch_pid_file" ]]; then
+    running_pid="$(sed -n '1p' "$watch_pid_file")"
+  fi
+  if [[ "$running_pid" =~ ^[0-9]+$ ]] && kill -0 "$running_pid" 2>/dev/null; then
+    echo "GitHub watcher already running: PID $running_pid"
+  else
+    nohup bash tools/watch-beta-blocks.sh "$agent_id" \
+      >"$watch_log" 2>&1 </dev/null &
+    running_pid="$!"
+    printf '%s\n' "$running_pid" >"$watch_pid_file"
+    echo "GitHub watcher started: PID $running_pid"
+  fi
+  echo "Watcher log: $watch_log"
+  echo "Continue in this agent session with RUN_IN_SESSION.md; the watcher is background-only."
 fi
-

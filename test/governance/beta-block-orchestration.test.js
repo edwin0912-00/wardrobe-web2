@@ -72,6 +72,9 @@ test('Antigravity QA is browser-evidence-only and cannot edit product code', asy
   assert.match(handoff, /Evidence critic/);
   assert.match(join, /beta-block-08-antigravity-qa/);
   assert.match(join, /\[agent:\$agent_id\] \[qa\]/);
+  assert.match(join, /nohup bash tools\/watch-beta-blocks\.sh/);
+  assert.match(join, /Continue in this agent session with RUN_IN_SESSION\.md/);
+  assert.doesNotMatch(join, /exec bash tools\/watch-beta-blocks\.sh/);
   assert.match(loop, /host:\n  cli: gemini/);
   assert.match(loop, /max_iterations: 8/);
   assert.match(loop, /wall_clock_min: 45/);
