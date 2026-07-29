@@ -92,7 +92,7 @@
             {
               "properties": {
                 "slot": { "const": "interference_frame" },
-                "optical_device": { "type": "string", "minLength": 1, "maxLength": 300 }
+                "optical_device": { "type": "string", "minLength": 1, "maxLength": 500 }
               }
             }
           ]
@@ -169,7 +169,13 @@
         "shoot.terracotta_hardlight",
         "shoot.window_gobo_warm",
         "shoot.grey_studio_stride",
-        "shoot.sky_dune_surreal"
+        "shoot.sky_dune_surreal",
+        "shoot.hardsun_brick_doorway",
+        "shoot.overcast_street_stride",
+        "shoot.grey_wall_gloss",
+        "shoot.ochre_stage_tailoring",
+        "shoot.shutter_amber_interior",
+        "shoot.autumn_park_mediated_sun"
       ]
     },
     "sourceReference": {
@@ -203,7 +209,7 @@
         "framing": {
           "enum": ["full_body", "three_quarter", "detail", "wide_full_body"]
         },
-        "angle": { "type": "string", "minLength": 1, "maxLength": 300 },
+        "angle": { "type": "string", "minLength": 1, "maxLength": 500 },
         "subject_height_percent": {
           "type": "array",
           "minItems": 2,

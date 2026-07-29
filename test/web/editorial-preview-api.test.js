@@ -59,7 +59,7 @@ async function routeFixture(t) {
   return app;
 }
 
-test('editorial catalog activates legacy modes and ten integrity-ready Create Universe modes', async (t) => {
+test('editorial catalog activates the single recovered source-backed Creative Universe shoot', async (t) => {
   const app = await routeFixture(t);
   const catalogResponse = await app.inject({
     method: 'GET',
@@ -80,19 +80,10 @@ test('editorial catalog activates legacy modes and ten integrity-ready Create Un
   assert.deepEqual(catalog.generation_mode_ids, [
     'editorial.edwin_novak.organic_contrast',
     'editorial.edwin_novak.urban_monochrome',
-    'shoot.skylight_haze',
-    'shoot.terracotta_hardlight',
-    'shoot.window_gobo_warm',
-    'shoot.grey_studio_stride',
-    'shoot.sky_dune_surreal',
-    'shoot.hardsun_brick_doorway',
-    'shoot.overcast_street_stride',
-    'shoot.grey_wall_gloss',
-    'shoot.ochre_stage_tailoring',
-    'shoot.shutter_amber_interior',
+    'shoot.autumn_park_mediated_sun',
   ]);
   assert.deepEqual(catalog.shot_sequence, EXPECTED_SHOT_SEQUENCE);
-  assert.equal(catalog.modes.length, 14);
+  assert.equal(catalog.modes.length, 15);
   assert.doesNotMatch(
     catalogResponse.body,
     /edwinnovak\.com|"sources?"|"source_(?:url|path)"|prompt|provider|model_|\/Users\/|file:\/\/|\.local\/share|assets\//i,

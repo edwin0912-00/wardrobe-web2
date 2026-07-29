@@ -46,9 +46,30 @@ const CREATE_UNIVERSE_MODE_META = Object.freeze({
   'shoot.grey_wall_gloss': 'Сіра стіна · глянець',
   'shoot.ochre_stage_tailoring': 'Охра · сценічний кравець',
   'shoot.shutter_amber_interior': 'Жалюзі · бурштиновий інтерʼєр',
+  'shoot.autumn_park_mediated_sun': 'Осінній парк · мʼяке сонце',
 });
 const CREATE_UNIVERSE_REQUIRED_SHEETS = Object.freeze([
-  'environment', 'colour_grade', 'camera_lens', 'garment_behaviour', 'blocking',
+  'camera_lens',
+  'blocking',
+  'expression_gaze',
+  'garment_behaviour',
+  'colour_grade',
+  'environment',
+  'person',
+]);
+const CREATE_UNIVERSE_GENERATION_SHEETS = new Set([
+  'camera_lens',
+  'blocking',
+  'expression_gaze',
+  'garment_behaviour',
+]);
+const CREATE_UNIVERSE_SHOT_SLOTS = Object.freeze([
+  'clean_identity_hero',
+  'environmental_hero',
+  'sculptural_three_quarter',
+  'interference_frame',
+  'material_or_accessory_detail',
+  'wide_campaign_coda',
 ]);
 const CREATE_UNIVERSE_DENIED_AUTHORITIES = Object.freeze([
   'identity', 'body', 'hair', 'outfit', 'brands', 'readable_text', 'exact_architecture',
@@ -106,6 +127,149 @@ function parseJson(bytes, label) {
   } catch {
     throw resolverError(422, `${label} contains invalid JSON`);
   }
+}
+
+function createUniverseText(value, label, maximum = 2_000) {
+  if (typeof value !== 'string' || value.trim().length < 8 || value.length > maximum) {
+    throw resolverError(422, `${label} must be substantive observed text`);
+  }
+  return value.trim();
+}
+
+function createUniverseTexts(value, label, { minimum = 1, maximum = 20 } = {}) {
+  if (!Array.isArray(value)
+    || value.length < minimum
+    || value.length > maximum
+    || value.some((item) => typeof item !== 'string' || item.trim().length < 3 || item.length > 500)
+    || new Set(value.map((item) => item.trim())).size !== value.length) {
+    throw resolverError(422, `${label} must be a unique observed-text list`);
+  }
+  return value.map((item) => item.trim());
+}
+
+function validateCreateUniverseRuntimeStyle(value, modeId) {
+  const label = `Create Universe runtime style ${modeId}`;
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw resolverError(422, `${label} is missing`);
+  }
+  const expected = [
+    'visual_system',
+    'mood_line',
+    'environment',
+    'lighting',
+    'materials',
+    'contrast',
+    'expression_signature',
+    'garment_behaviour',
+    'optical_signature',
+    'shot_directions',
+  ];
+  if (!isDeepStrictEqual(Object.keys(value).sort(), [...expected].sort())) {
+    throw resolverError(422, `${label} must contain exactly the observed style contract`);
+  }
+  if (!value.shot_directions
+    || typeof value.shot_directions !== 'object'
+    || Array.isArray(value.shot_directions)
+    || !isDeepStrictEqual(
+      Object.keys(value.shot_directions).sort(),
+      [...CREATE_UNIVERSE_SHOT_SLOTS].sort(),
+    )) {
+    throw resolverError(422, `${label}.shot_directions must cover all six canonical slots`);
+  }
+  const shotDirections = {};
+  const compositionSignatures = new Set();
+  for (const slot of CREATE_UNIVERSE_SHOT_SLOTS) {
+    const direction = value.shot_directions[slot];
+    const directionKeys = ['camera_consequence', 'pose_joint_chain', 'focus', 'foreground', 'provenance'];
+    if (!direction
+      || typeof direction !== 'object'
+      || Array.isArray(direction)
+      || !isDeepStrictEqual(Object.keys(direction).sort(), [...directionKeys].sort())) {
+      throw resolverError(422, `${label}.${slot} must contain the exact shot direction contract`);
+    }
+    shotDirections[slot] = {
+      camera_consequence: createUniverseText(
+        direction.camera_consequence,
+        `${label}.${slot}.camera_consequence`,
+        500,
+      ),
+      pose_joint_chain: createUniverseText(
+        direction.pose_joint_chain,
+        `${label}.${slot}.pose_joint_chain`,
+        800,
+      ),
+      focus: createUniverseText(direction.focus, `${label}.${slot}.focus`, 500),
+      foreground: createUniverseText(direction.foreground, `${label}.${slot}.foreground`, 500),
+      provenance: createUniverseTexts(
+        direction.provenance,
+        `${label}.${slot}.provenance`,
+        { minimum: 1, maximum: 12 },
+      ),
+    };
+    compositionSignatures.add(JSON.stringify([
+      shotDirections[slot].camera_consequence,
+      shotDirections[slot].pose_joint_chain,
+      shotDirections[slot].focus,
+      shotDirections[slot].foreground,
+    ]));
+  }
+  if (compositionSignatures.size !== CREATE_UNIVERSE_SHOT_SLOTS.length) {
+    throw resolverError(422, `${label}.shot_directions must contain six unique compositions`);
+  }
+  return {
+    visual_system: createUniverseText(value.visual_system, `${label}.visual_system`),
+    mood_line: createUniverseText(value.mood_line, `${label}.mood_line`, 500),
+    environment: createUniverseText(value.environment, `${label}.environment`),
+    lighting: createUniverseText(value.lighting, `${label}.lighting`),
+    materials: createUniverseTexts(value.materials, `${label}.materials`),
+    contrast: createUniverseText(value.contrast, `${label}.contrast`, 500),
+    expression_signature: createUniverseText(
+      value.expression_signature,
+      `${label}.expression_signature`,
+      1_000,
+    ),
+    garment_behaviour: createUniverseText(
+      value.garment_behaviour,
+      `${label}.garment_behaviour`,
+      1_000,
+    ),
+    optical_signature: createUniverseTexts(
+      value.optical_signature,
+      `${label}.optical_signature`,
+      { minimum: 1, maximum: 12 },
+    ),
+    shot_directions: shotDirections,
+  };
+}
+
+function createUniverseUnitBindingSha256({
+  unitContractSha256,
+  observationSha256,
+  selfVerificationSha256,
+  runtimeStyleSha256,
+  paletteAuthoritySha256,
+  sheetSha256ByRole,
+}) {
+  return sha256(Buffer.from([
+    `unit_contract:${unitContractSha256}`,
+    `observation_log:${observationSha256}`,
+    `self_verification:${selfVerificationSha256}`,
+    `runtime_style:${runtimeStyleSha256}`,
+    `palette_authority:${paletteAuthoritySha256}`,
+    ...CREATE_UNIVERSE_REQUIRED_SHEETS.map(
+      (role) => `${role}:${sheetSha256ByRole.get(role) ?? 'MISSING'}`,
+    ),
+  ].join('\n')));
+}
+
+function createUniverseSelfVerificationIsApproved(bytes) {
+  if (!Buffer.isBuffer(bytes) || bytes.length < 500) return false;
+  const text = bytes.toString('utf8');
+  return [
+    ...CREATE_UNIVERSE_REQUIRED_SHEETS,
+    ...CREATE_UNIVERSE_SHOT_SLOTS,
+  ].every((label) => text.includes(label))
+    && /^UNIT VERDICT:\s*APPROVED\s*$/im.test(text);
 }
 
 function assertLogicalApprovedItemEvidence(value, field = 'approved_item_evidence') {
@@ -689,13 +853,15 @@ export class FilesystemScenePresetResolver {
       const unitRoot = inside(root, path.join(root, modeId), `Create Universe unit ${modeId}`);
       let manifest;
       let unit;
+      let manifestBytes;
+      let unitBytes;
       try {
-        [manifest, unit] = await Promise.all([
-          this.#safeRead(path.join(unitRoot, 'manifest.json'), `Create Universe manifest ${modeId}`, root)
-            .then((bytes) => parseJson(bytes, `Create Universe manifest ${modeId}`)),
-          this.#safeRead(path.join(unitRoot, 'unit.json'), `Create Universe unit ${modeId}`, root)
-            .then((bytes) => parseJson(bytes, `Create Universe unit ${modeId}`)),
+        [manifestBytes, unitBytes] = await Promise.all([
+          this.#safeRead(path.join(unitRoot, 'manifest.json'), `Create Universe manifest ${modeId}`, root),
+          this.#safeRead(path.join(unitRoot, 'unit.json'), `Create Universe unit ${modeId}`, root),
         ]);
+        manifest = parseJson(manifestBytes, `Create Universe manifest ${modeId}`);
+        unit = parseJson(unitBytes, `Create Universe unit ${modeId}`);
       } catch (error) {
         modes.push({
           preset_id: modeId,
@@ -711,10 +877,26 @@ export class FilesystemScenePresetResolver {
       const sheets = Array.isArray(manifest?.sheets) ? manifest.sheets : [];
       const byRole = new Map(sheets.map((sheet) => [sheet?.sheet_id, sheet]));
       const assets = [];
-      let integrity = manifest?.unit_id === modeId && unit?.unit_id === modeId;
+      let integrity = manifest?.unit_id === modeId
+        && unit?.unit_id === modeId
+        && sheets.length === CREATE_UNIVERSE_REQUIRED_SHEETS.length
+        && byRole.size === CREATE_UNIVERSE_REQUIRED_SHEETS.length;
+      let runtimeStyle = null;
+      let runtimeStyleError = null;
+      try {
+        runtimeStyle = validateCreateUniverseRuntimeStyle(unit?.runtime_style, modeId);
+      } catch (error) {
+        runtimeStyleError = error.message;
+      }
       for (const role of CREATE_UNIVERSE_REQUIRED_SHEETS) {
         const declared = byRole.get(role);
-        if (!declared || typeof declared.path !== 'string' || !SHA256.test(declared.sha256 ?? '')) {
+        if (!declared
+          || declared.path !== `sheet-${role}.png`
+          || !SHA256.test(declared.sha256 ?? '')
+          || declared?.provider_receipt?.output_sha256 !== declared.sha256
+          || typeof declared?.provider_receipt?.provider !== 'string'
+          || typeof declared?.provider_receipt?.transport !== 'string'
+          || typeof declared?.provider_receipt?.job_id !== 'string') {
           integrity = false;
           continue;
         }
@@ -736,16 +918,105 @@ export class FilesystemScenePresetResolver {
         : [];
       const sourceFrame = Array.isArray(unit?.source_frames) ? unit.source_frames[0] : null;
       if (palette.length === 0 || typeof sourceFrame !== 'string' || sourceFrame.length < 10) integrity = false;
-      const manifestBytes = await this.#safeRead(path.join(unitRoot, 'manifest.json'), `Create Universe manifest ${modeId}`, root);
-      const unitBytes = await this.#safeRead(path.join(unitRoot, 'unit.json'), `Create Universe unit ${modeId}`, root);
+      if (!manifest?.generated_with
+        || typeof manifest.generated_with !== 'object'
+        || Array.isArray(manifest.generated_with)
+        || typeof manifest.generated_with.model !== 'string'
+        || typeof manifest.generated_with.transport !== 'string') {
+        integrity = false;
+      }
+      if (!isDeepStrictEqual(manifest?.palette, unit?.palette)
+        || !isDeepStrictEqual(manifest?.source_frames, unit?.source_frames)
+        || !isDeepStrictEqual(manifest?.unknowns, unit?.unknowns)) {
+        integrity = false;
+      }
+
+      const unitContractSha256 = sha256(unitBytes);
+      if (manifest?.unit_contract?.path !== 'unit.json'
+        || manifest?.unit_contract?.sha256 !== unitContractSha256) {
+        integrity = false;
+      }
+      let observationBytes = null;
+      let selfVerificationBytes = null;
+      let paletteAuthorityBytes = null;
+      try {
+        [observationBytes, selfVerificationBytes, paletteAuthorityBytes] = await Promise.all([
+          this.#safeRead(path.join(unitRoot, 'OBSERVATION.md'), `Create Universe observation ${modeId}`, unitRoot),
+          this.#safeRead(path.join(unitRoot, 'SELF-VERIFY.md'), `Create Universe self verification ${modeId}`, unitRoot),
+          this.#safeRead(path.join(unitRoot, 'palette-strip.svg'), `Create Universe palette authority ${modeId}`, unitRoot),
+        ]);
+      } catch {
+        integrity = false;
+      }
+      const observationSha256 = observationBytes ? sha256(observationBytes) : null;
+      const selfVerificationSha256 = selfVerificationBytes ? sha256(selfVerificationBytes) : null;
+      const paletteAuthoritySha256 = paletteAuthorityBytes ? sha256(paletteAuthorityBytes) : null;
+      const runtimeStyleSha256 = runtimeStyle
+        ? sha256(Buffer.from(`${JSON.stringify(unit.runtime_style)}\n`))
+        : null;
+      if (manifest?.observation_log?.path !== 'OBSERVATION.md'
+        || manifest?.observation_log?.sha256 !== observationSha256
+        || !observationBytes
+        || observationBytes.length < 500) {
+        integrity = false;
+      }
+      if (manifest?.self_verification?.path !== 'SELF-VERIFY.md'
+        || manifest?.self_verification?.sha256 !== selfVerificationSha256
+        || manifest?.self_verification?.status !== 'APPROVED'
+        || !createUniverseSelfVerificationIsApproved(selfVerificationBytes)) {
+        integrity = false;
+      }
+      if (manifest?.palette_authority?.path !== 'palette-strip.svg'
+        || manifest?.palette_authority?.sha256 !== paletteAuthoritySha256
+        || manifest?.palette_authority?.rendered_not_generated !== true) {
+        integrity = false;
+      }
+      if (!runtimeStyleSha256 || manifest?.runtime_style_sha256 !== runtimeStyleSha256) {
+        integrity = false;
+      }
+      for (const source of unit?.source_frames ?? []) {
+        const sourceLabel = String(source).split(/\s+—\s+/, 1)[0].trim();
+        if (sourceLabel && !observationBytes?.toString('utf8').includes(sourceLabel)) {
+          integrity = false;
+        }
+      }
+      const expectedUnitSha256 = createUniverseUnitBindingSha256({
+        unitContractSha256,
+        observationSha256,
+        selfVerificationSha256,
+        runtimeStyleSha256,
+        paletteAuthoritySha256,
+        sheetSha256ByRole: new Map(
+          CREATE_UNIVERSE_REQUIRED_SHEETS.map(
+            (role) => [role, byRole.get(role)?.sha256 ?? 'MISSING'],
+          ),
+        ),
+      });
+      if (manifest?.unit_sha256 !== expectedUnitSha256) integrity = false;
+
+      const sourceBlocked = unit?.style_unit_status === 'BLOCKED_SOURCE';
+      const declaredReady = unit?.style_unit_status === 'READY';
+      if (sourceBlocked
+        && (unit?.source_reconciliation?.status !== 'BLOCKED_SOURCE'
+          || typeof unit?.source_reconciliation?.needs_source !== 'string'
+          || unit.source_reconciliation.needs_source.trim().length < 8)) {
+        integrity = false;
+      }
       const manifestUri = createUniverseUri(modeId, 'manifest');
       const unitUri = createUniverseUri(modeId, 'unit');
+      const sourceSetStatus = sourceBlocked
+        ? 'BLOCKED_SOURCE'
+        : !integrity
+          ? 'BLOCKED_INTEGRITY_MISMATCH'
+          : runtimeStyle && declaredReady
+            ? 'READY'
+            : 'BLOCKED_STYLE_CONTRACT';
       modes.push({
         preset_id: modeId,
         version: '1.0.0',
-        source_set_status: integrity ? 'READY' : 'BLOCKED_INTEGRITY_MISMATCH',
+        source_set_status: sourceSetStatus,
         ui_name_uk: uiName,
-        visual_system: sourceFrame ?? 'Hash-verified Create Universe visual unit.',
+        visual_system: runtimeStyle?.visual_system ?? 'Creative Universe style contract is incomplete.',
         sources: [
           {
             url: manifestUri,
@@ -761,13 +1032,27 @@ export class FilesystemScenePresetResolver {
           },
         ],
         create_universe: {
+          integrity: integrity ? 'HASH_VERIFIED' : 'HASH_MISMATCH',
+          runtime_style_error: runtimeStyleError,
+          source_reconciliation: sourceBlocked
+            ? {
+                status: 'BLOCKED_SOURCE',
+                needs_source: unit.source_reconciliation.needs_source.trim(),
+              }
+            : null,
+          runtime_style: runtimeStyle,
           content: {
             title: `${uiName} — Create Universe fashion-фотосесія`,
-            environment: sourceFrame ?? 'Original environment described only by the locked Create Universe unit.',
+            environment: runtimeStyle?.environment ?? 'BLOCKED: no observed environment contract.',
             palette: palette.join(', '),
-            lighting: `Follow the hash-verified Create Universe lighting and grade sheets; preserve contact shadows and the approved look exactly.`,
-            materials: ['reference-defined location materials', 'reference-defined light behaviour'],
-            contrast: 'reference-defined',
+            lighting: runtimeStyle
+              ? `${runtimeStyle.lighting} Fixed optical signature on every frame: ${runtimeStyle.optical_signature.join(' | ')}.`
+              : 'BLOCKED: no observed lighting and optical contract.',
+            materials: runtimeStyle?.materials ?? [],
+            contrast: runtimeStyle?.contrast ?? 'BLOCKED',
+            expression_signature: runtimeStyle?.expression_signature ?? null,
+            garment_behaviour: runtimeStyle?.garment_behaviour ?? null,
+            optical_signature: runtimeStyle?.optical_signature ?? [],
           },
           manifest_sha256: sha256(manifestBytes),
           unit_sha256: sha256(unitBytes),
@@ -816,20 +1101,30 @@ export class FilesystemScenePresetResolver {
         },
       ],
     };
-    const references = universe.assets.map((asset) => ({
-      reference_id: `${mode.preset_id}.${asset.role}`,
-      role: asset.role === 'environment' ? 'environment_anchor'
-        : asset.role === 'colour_grade' ? 'lighting_anchor'
-        : asset.role === 'camera_lens' ? 'composition_anchor'
-        : asset.role === 'garment_behaviour' ? 'palette_anchor'
-        : 'negative_reference',
-      sha256: asset.sha256,
-      media_type: 'image/png',
-      not_authority_for: ['identity', 'body', 'hair', 'outfit'],
-    }));
+    const assetsByRole = new Map(universe.assets.map((asset) => [asset.role, asset]));
+    const referenceDefinitions = [
+      ['environment_anchor', 'environment', 'environment'],
+      ['composition_anchor', 'camera_lens', 'style_camera_lens'],
+      ['negative_reference', 'blocking', 'style_blocking'],
+      ['lighting_anchor', 'expression_gaze', 'style_expression_gaze'],
+      ['palette_anchor', 'garment_behaviour', 'style_garment_behaviour'],
+    ];
+    const references = referenceDefinitions.map(([role, sourceRole, referenceSuffix]) => {
+      const asset = assetsByRole.get(sourceRole);
+      if (!asset) throw resolverError(422, `Create Universe unit is missing ${sourceRole}`);
+      return {
+        reference_id: `${mode.preset_id}.${referenceSuffix}`,
+        role,
+        sha256: asset.sha256,
+        media_type: 'image/png',
+        not_authority_for: ['identity', 'body', 'hair', 'outfit'],
+      };
+    });
     return {
       create_universe_mode: structuredClone(mode),
-      create_universe_assets: universe.assets.map((asset) => ({ ...asset, data: Buffer.from(asset.data) })),
+      create_universe_assets: universe.assets
+        .filter((asset) => CREATE_UNIVERSE_GENERATION_SHEETS.has(asset.role))
+        .map((asset) => ({ ...asset, data: Buffer.from(asset.data) })),
       preset: {
         preset_id: mode.preset_id,
         version: mode.version,

@@ -28,6 +28,7 @@ export const EDITORIAL_MODE_IDS = Object.freeze([
   'shoot.grey_wall_gloss',
   'shoot.ochre_stage_tailoring',
   'shoot.shutter_amber_interior',
+  'shoot.autumn_park_mediated_sun',
 ]);
 
 export const EDITORIAL_QA_GATES = Object.freeze([
@@ -219,7 +220,7 @@ function validateCamera(camera, slot) {
     throw new Error(`${label}.lens_mm must be an integer from 24 to 135`);
   }
   if (!FRAMINGS.has(camera.framing)) throw new Error(`${label}.framing is unsupported`);
-  nonEmptyText(camera.angle, `${label}.angle`, 300);
+  nonEmptyText(camera.angle, `${label}.angle`, 500);
   // The upper bound reaches 100 because an editorial ceiling is the complement of the
   // slot's clear-space guard, and the detail slot reserves no clear space at all.
   if (!Array.isArray(camera.subject_height_percent)
@@ -281,7 +282,7 @@ function validateShotSpec(shot, index) {
     throw new Error(`${expectedSlot} must use ${requiredFraming} framing`);
   }
   if (expectedSlot === 'interference_frame') {
-    nonEmptyText(shot.optical_device, `${label}.optical_device`, 300);
+    nonEmptyText(shot.optical_device, `${label}.optical_device`, 500);
   } else if (shot.optical_device !== null) {
     throw new Error('Only the interference frame may declare one optical device');
   }

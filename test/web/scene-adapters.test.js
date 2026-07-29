@@ -199,6 +199,97 @@ test('SceneGeneratorAdapter maps the exact three-model route and sends approved 
   }
 });
 
+test('Create Universe generation carries four canonical sheets in fixed priority and environment as facts', async () => {
+  const fixture = await contextFixture();
+  const presetId = 'shoot.fixture_environmental.environmental_hero';
+  const environment = {
+    ...await structuredReferenceFile(
+      fixture.root,
+      'create-universe-environment.json',
+      {
+        schema_version: '1.0.0',
+        role: 'environment_anchor',
+        facts: {
+          description: 'Invented raw-concrete hall with repeated circular ceiling apertures.',
+          spatial_cues: ['Low axial perspective with disciplined negative space.'],
+          materials: ['raw concrete', 'dark mineral floor'],
+          originality_rules: ['Invent new geometry; never reconstruct the source location.'],
+        },
+      },
+    ),
+    role: 'environment_anchor',
+    reference_id: `${presetId}.environment`,
+  };
+  const imageDefinitions = [
+    ['lighting_anchor', 'expression_gaze', '#887766'],
+    ['composition_anchor', 'camera_lens', '#665544'],
+    ['palette_anchor', 'garment_behaviour', '#776655'],
+    ['negative_reference', 'blocking', '#554433'],
+  ];
+  const imageReferences = await Promise.all(imageDefinitions.map(
+    async ([role, sheet, color]) => ({
+      ...await imageFile(fixture.root, `${sheet}.png`, { color }),
+      role,
+      reference_id: `${presetId}.style_${sheet}`,
+    }),
+  ));
+  const heroContinuity = {
+    ...await imageFile(fixture.root, 'create-universe-hero.png', {
+      width: 1024,
+      height: 1280,
+      color: '#998877',
+    }),
+    order: 1,
+    role: 'hero_continuity_anchor',
+    reference_id: 'hero.create-universe-fixture',
+  };
+  const references = [environment, ...imageReferences];
+  const calls = [];
+  const providerOutput = await sharp({
+    create: { width: 900, height: 1200, channels: 3, background: '#b98f72' },
+  }).png().toBuffer();
+  const adapter = new SceneGeneratorAdapter({
+    provider: {
+      aspectRatio: '3:4',
+      maxOrderedReferences: 5,
+      async generate(context) {
+        calls.push(context);
+        return {
+          image: providerOutput,
+          mediaType: 'image/png',
+          metadata: { provider: 'fixture', job_id: 'create-universe-order' },
+        };
+      },
+    },
+  });
+  const generated = await adapter.generateScene({
+    ...fixture.base,
+    references,
+    preset: { preset_id: presetId },
+    shot_anchors: [heroContinuity],
+    attempt: 1,
+    ...DEFAULT_SCENE_MODEL_ROUTE[0],
+  });
+  assert.deepEqual(
+    calls[0].references.ordered.map((item) => item.role),
+    [
+      'APPROVED_LOOK_MASTER',
+      'CREATE_UNIVERSE_CAMERA_LENS',
+      'CREATE_UNIVERSE_BLOCKING',
+      'CREATE_UNIVERSE_EXPRESSION_GAZE',
+      'CREATE_UNIVERSE_GARMENT_BEHAVIOUR',
+    ],
+  );
+  assert.match(calls[0].prompt, /SCENE_ENVIRONMENT_ANCHOR .*raw-concrete hall/);
+  assert.match(calls[0].prompt, /ATTACHMENT_2 \[CREATE_UNIVERSE_CAMERA_LENS\]/);
+  assert.match(calls[0].prompt, /ATTACHMENT_3 \[CREATE_UNIVERSE_BLOCKING\]/);
+  assert.match(calls[0].prompt, /ATTACHMENT_4 \[CREATE_UNIVERSE_EXPRESSION_GAZE\]/);
+  assert.match(calls[0].prompt, /ATTACHMENT_5 \[CREATE_UNIVERSE_GARMENT_BEHAVIOUR\]/);
+  assert.equal(generated.metadata.structured_reference_count, 1);
+  assert.equal(generated.metadata.attached_reference_count, 5);
+  assert.equal(generated.metadata.dropped_attachment_roles, 'SHOT_HERO_CONTINUITY_ANCHOR');
+});
+
 test('SceneGeneratorAdapter attaches hash-bound item cutouts before optional scene images and compiles exact facts', async () => {
   const fixture = await contextFixture();
   const itemEvidence = await approvedItemEvidenceFixture(fixture.root);
@@ -925,6 +1016,78 @@ test('SceneEvaluatorAdapter attaches candidate, look and all five roles and retu
   });
   assert.equal(framing.subject_height_percent, 75);
   assert.equal(framing.clear_space_above_hair_percent, 10);
+});
+
+test('Create Universe QA makes whole-shoot style fidelity and fixed optics blocking evidence', () => {
+  const prompt = evaluatorPrompt(
+    { width: 1024, height: 1280 },
+    [],
+    {
+      environment: 'Invented axial raw-concrete hall with repeated circular ceiling light wells.',
+      lighting: { key: 'Olive diffuse top light with restrained warm aperture accents.' },
+      palette: ['olive grey', 'warm aperture amber', 'raw concrete'],
+      camera: {
+        framing: 'three_quarter',
+        required_visibility: { full_head: true, full_footwear: false },
+      },
+      editorial: {
+        identity_visibility: 'full_face',
+        item_scope: 'ALL',
+        style_contract: {
+          visual_system: 'Institutional modernism, ritual symmetry and ceremonial stillness.',
+          mood_line: 'Still, ceremonial and tightly controlled without theatrical gesture.',
+          materials: ['raw concrete', 'dark mineral floor'],
+          contrast: 'Restrained midtone contrast with dense blacks and protected highlights.',
+          camera_consequence: 'Low centered camera with rectilinear perspective.',
+          focus: 'Face and approved look sharp; architecture falls away without swirl.',
+          foreground: 'One restrained near-device interruption below the face.',
+          expression_signature: 'Reserved mouth and direct steady gaze without transferred facial geometry.',
+          garment_behaviour: 'Approved cloth falls in heavy controlled planes with one restrained wind response.',
+          optical_signature: ['clean rectilinear rendering', 'fine restrained grain'],
+        },
+      },
+    },
+  );
+  assert.match(prompt, /SCENE_MATCH is also the explicit style-fidelity gate/);
+  assert.match(prompt, /Institutional modernism, ritual symmetry/);
+  assert.match(prompt, /Still, ceremonial and tightly controlled/);
+  assert.match(prompt, /raw concrete \| dark mineral floor/);
+  assert.match(prompt, /Restrained midtone contrast/);
+  assert.match(prompt, /Low centered camera with rectilinear perspective/);
+  assert.match(prompt, /Face and approved look sharp/);
+  assert.match(prompt, /Reserved mouth and direct steady gaze/);
+  assert.match(prompt, /heavy controlled planes/);
+  assert.match(prompt, /fixed unit-wide optical signature/);
+  assert.match(prompt, /olive grey \| warm aperture amber \| raw concrete/);
+  assert.match(prompt, /clean rectilinear rendering \| fine restrained grain/);
+  assert.match(prompt, /Fail SCENE_MATCH when the mood, environment, materials, palette, contrast, composition, focus, foreground, expression or garment behaviour becomes generic/);
+});
+
+test('post-hero QA judges series continuity without permitting a duplicate composition', () => {
+  const prompt = evaluatorPrompt(
+    { width: 1024, height: 1280 },
+    [],
+    {
+      environment: 'One invented field campaign environment.',
+      lighting: { key: 'One fixed warm hard daylight setup.' },
+      camera: {
+        framing: 'three_quarter',
+        required_visibility: { full_head: true, full_footwear: false },
+      },
+      editorial: {
+        identity_visibility: 'full_face',
+        item_scope: 'ALL',
+        style_contract: null,
+      },
+    },
+    [],
+    [{ role: 'hero_continuity_anchor' }],
+  );
+  assert.match(prompt, /ATTACHMENT_3 \[APPROVED_SERIES_HERO_CONTINUITY\]/);
+  assert.match(prompt, /authority only for series continuity/);
+  assert.match(prompt, /must obey its own distinct shot direction/);
+  assert.match(prompt, /fails if the candidate merely duplicates the hero composition/);
+  assert.match(prompt, /ATTACHMENT_4 \[CANDIDATE_UPPER_ITEM_DETAIL\]/);
 });
 
 test('SceneEvaluatorAdapter runs independent per-item forensic checks and blocks a category-similar product', async () => {

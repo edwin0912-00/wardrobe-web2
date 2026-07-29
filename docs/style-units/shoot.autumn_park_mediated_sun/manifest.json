@@ -1,0 +1,240 @@
+{
+  "unit_id": "shoot.autumn_park_mediated_sun",
+  "title": "Autumn Park Mediated Sun — low sun filtered through foliage, bodies and a translucent scrim",
+  "palette_size": 8,
+  "palette": [
+    {
+      "name": "ink",
+      "hex": "#04070C",
+      "role": "deepest observed shadow in trunks, undergrowth and shaded figure masses; texture remains above zero"
+    },
+    {
+      "name": "worn camel",
+      "hex": "#7F6A5C",
+      "role": "warm structural neutral observed in bark, dry vegetation and low-sun midtones"
+    },
+    {
+      "name": "ecru white",
+      "hex": "#C2C2C6",
+      "role": "bright neutral field and soft highlight observed in the campaign"
+    },
+    {
+      "name": "dim ochre",
+      "hex": "#786446",
+      "role": "low-saturation warm midtone observed across dry grass, leaves and shaded vegetation"
+    },
+    {
+      "name": "foliage gold",
+      "hex": "#E2B036",
+      "role": "key environmental accent observed in sunlit autumn foliage"
+    },
+    {
+      "name": "dry sage",
+      "hex": "#6B7A5F",
+      "role": "ground-plane neutral observed in grass and undergrowth"
+    },
+    {
+      "name": "dried mauve",
+      "hex": "#6C4650",
+      "role": "small organic accent observed in dried flowers"
+    },
+    {
+      "name": "october sky",
+      "hex": "#2291D4",
+      "role": "sole cool field observed in the clear autumn sky"
+    }
+  ],
+  "item_colours_exempt": true,
+  "palette_authority": {
+    "path": "palette-strip.svg",
+    "sha256": "95961c22ce01ed08e81a43fe67d1237604262dcd79d4af02ae7129de4e8d8aa3",
+    "rendered_not_generated": true
+  },
+  "source_frames": [
+    "frame-01.jpg — low ground-up four-person environmental group in grass under clear sky",
+    "frame-02.jpg — extreme face close-up through a crumpled translucent plastic scrim",
+    "frame-03.jpg — shallow-focus hand, dried-flower and carried-textile detail",
+    "frame-04.jpg — solitary back-facing full figure in the park with a long carried textile",
+    "frame-05.jpg — landscape torso-and-carried-textile crop against backlit trees",
+    "frame-06.jpg — low-angle two-person embrace with several carried textile masses",
+    "frame-07.jpg — landscape torso crop of two still figures against smooth autumn bokeh",
+    "frame-08.jpg — close portrait under a translucent plastic scrim with hand and textile foreground",
+    "frame-09.jpg — close garment, flower and carried-textile material study",
+    "frame-10.jpg — lower three-quarter two-person crop with hands, carried textiles and leaf-litter ground",
+    "frame-11.jpg — extreme shoulder-tie and hair detail in raking low sun",
+    "frame-12.jpg — portrait torso-and-carried-textile crop with mediated sun behind",
+    "frame-13.jpg — near-full standing figure in woodland holding a long textile at thigh height",
+    "frame-14.jpg — hand and gathered textile-handle detail against autumn bokeh",
+    "frame-15.jpg — landscape lower-body environmental crop with a long textile in dense undergrowth",
+    "frame-16.jpg — low-angle four-person campaign group arranged around one large tree"
+  ],
+  "unknowns": [
+    "camera body, sensor or film stock, focal lengths, apertures, ISO and shutter speeds",
+    "exact lens model and whether one or more optics were used",
+    "exact time elapsed between clear-sky, white-sky and lower-sun frames",
+    "whether the small green flare trace in the group frame is optical or a later artifact",
+    "exact thickness and material specification of the translucent scrim",
+    "exact focus distances and depth-of-field measurements"
+  ],
+  "unit_contract": {
+    "path": "unit.json",
+    "sha256": "bea3dca2b11848baa1dfeb2c6aaba413ae6e9f57ca86e959abf312a06654d065"
+  },
+  "observation_log": {
+    "path": "OBSERVATION.md",
+    "sha256": "676fb86dea59723173ddb2c0b4f7614da617949adfff56681b8c0746c08ba7e1"
+  },
+  "self_verification": {
+    "path": "SELF-VERIFY.md",
+    "sha256": "579fda8b8af351918c128f89727fc0422bc9232425e3f33f7a1d7fa5677fe735",
+    "status": "APPROVED"
+  },
+  "runtime_style_sha256": "2fb3f1eb17515b484ee6c58898aef21a427252155d79113a9da3b4847f814672",
+  "sheets": [
+    {
+      "sheet_id": "camera_lens",
+      "path": "sheet-camera_lens.png",
+      "sha256": "979e6c98ac17c468265e44c60069f4014322117b6e2259549d6a15aec8f9c0d3",
+      "byte_size": 5643769,
+      "width": 2752,
+      "height": 1536,
+      "requested_aspect": "16:9",
+      "attempts": 1,
+      "provider_receipt": {
+        "provider": "higgsfield",
+        "transport": "higgsfield-cli",
+        "job_id": "1e4291fd-aad5-41f0-aca0-a954b7c69a49",
+        "model": "nano_banana_2",
+        "model_name": "Nano Banana Pro",
+        "output_sha256": "979e6c98ac17c468265e44c60069f4014322117b6e2259549d6a15aec8f9c0d3",
+        "provider_journal_sha256": "b2d7411972efffb682e30972a80136106c84125fc907ac524b8fcd8cefdf7a99"
+      },
+      "colour_authoritative": false
+    },
+    {
+      "sheet_id": "blocking",
+      "path": "sheet-blocking.png",
+      "sha256": "ab6fe867d0fafde2790e8c8c59edcbc9c357265fbe23db0f975336e8ca626e1b",
+      "byte_size": 6359172,
+      "width": 2752,
+      "height": 1536,
+      "requested_aspect": "16:9",
+      "attempts": 1,
+      "provider_receipt": {
+        "provider": "higgsfield",
+        "transport": "higgsfield-cli",
+        "job_id": "76302d6a-c947-49ae-84a5-7b76740b3cb3",
+        "model": "nano_banana_2",
+        "model_name": "Nano Banana Pro",
+        "output_sha256": "ab6fe867d0fafde2790e8c8c59edcbc9c357265fbe23db0f975336e8ca626e1b",
+        "provider_journal_sha256": "edb2e0fda26833996d50dbe6ea040fe3e79927d3a6a46f5c8ab33ca5d0d7f52d"
+      },
+      "colour_authoritative": false
+    },
+    {
+      "sheet_id": "expression_gaze",
+      "path": "sheet-expression_gaze.png",
+      "sha256": "4a6ad60868a42320d04cd1c34bba8c68aa2e4eb5c4b0ec2b2764e3697ad74a90",
+      "byte_size": 4164616,
+      "width": 2528,
+      "height": 1696,
+      "requested_aspect": "3:2",
+      "attempts": 1,
+      "provider_receipt": {
+        "provider": "higgsfield",
+        "transport": "higgsfield-cli",
+        "job_id": "7f0d6601-46c8-4987-a3fb-57b57de0a0ff",
+        "model": "nano_banana_2",
+        "model_name": "Nano Banana Pro",
+        "output_sha256": "4a6ad60868a42320d04cd1c34bba8c68aa2e4eb5c4b0ec2b2764e3697ad74a90",
+        "provider_journal_sha256": "94f37deb008db9086e9dad7f580c66d732846988d3208038df4985955ff44c84"
+      },
+      "colour_authoritative": false
+    },
+    {
+      "sheet_id": "garment_behaviour",
+      "path": "sheet-garment_behaviour.png",
+      "sha256": "79ef491a76c5b9046de7dc28287cee3b0fc23130c116e595da9985f1a26ba151",
+      "byte_size": 4567393,
+      "width": 2528,
+      "height": 1696,
+      "requested_aspect": "3:2",
+      "attempts": 1,
+      "provider_receipt": {
+        "provider": "higgsfield",
+        "transport": "higgsfield-cli",
+        "job_id": "8010092b-ce62-4fb0-874a-18da241d7895",
+        "model": "nano_banana_2",
+        "model_name": "Nano Banana Pro",
+        "output_sha256": "79ef491a76c5b9046de7dc28287cee3b0fc23130c116e595da9985f1a26ba151",
+        "provider_journal_sha256": "24b8d696d90a78030f43398a03ec49d1f54d31b8dee1f82a821befe5d8f0963b"
+      },
+      "colour_authoritative": false
+    },
+    {
+      "sheet_id": "colour_grade",
+      "path": "sheet-colour_grade.png",
+      "sha256": "d7c85156cb0d82d2e3af9cfc4d7f91a4d40c9f1e9219215fdfea28593e6b6e26",
+      "byte_size": 3681209,
+      "width": 2752,
+      "height": 1536,
+      "requested_aspect": "16:9",
+      "attempts": 1,
+      "provider_receipt": {
+        "provider": "higgsfield",
+        "transport": "higgsfield-cli",
+        "job_id": "02d2391e-6be2-476f-bf02-92ab937981b9",
+        "model": "nano_banana_2",
+        "model_name": "Nano Banana Pro",
+        "output_sha256": "d7c85156cb0d82d2e3af9cfc4d7f91a4d40c9f1e9219215fdfea28593e6b6e26",
+        "provider_journal_sha256": "2edd6a25b9bec3cc687ef214d84096a9317ecf55924ae5220c1eed45522a86b2"
+      },
+      "colour_authoritative": false
+    },
+    {
+      "sheet_id": "environment",
+      "path": "sheet-environment.png",
+      "sha256": "3c6e06f44ed2f6cddd4c0e2a84f7240c7d4657ad0962d1809e651806e7ae8c94",
+      "byte_size": 9196986,
+      "width": 3168,
+      "height": 1344,
+      "requested_aspect": "21:9",
+      "attempts": 1,
+      "provider_receipt": {
+        "provider": "higgsfield",
+        "transport": "higgsfield-cli",
+        "job_id": "d13c604e-8a29-4b1b-b097-1e907d4f2e72",
+        "model": "nano_banana_2",
+        "model_name": "Nano Banana Pro",
+        "output_sha256": "3c6e06f44ed2f6cddd4c0e2a84f7240c7d4657ad0962d1809e651806e7ae8c94",
+        "provider_journal_sha256": "9e50480218b88730b9b86b5f2785395b0e9e52ca94eb3725c48a1bfc8e0df9ed"
+      },
+      "colour_authoritative": false
+    },
+    {
+      "sheet_id": "person",
+      "path": "sheet-person.png",
+      "sha256": "02eddf44b35959ead0af0df93c1ccc903ea97e5b386656a5455401bdbd8f4ba0",
+      "byte_size": 5018320,
+      "width": 1696,
+      "height": 2528,
+      "requested_aspect": "2:3",
+      "attempts": 1,
+      "provider_receipt": {
+        "provider": "higgsfield",
+        "transport": "higgsfield-cli",
+        "job_id": "d017dd52-7cb9-4e92-bf88-16d59fbdf5be",
+        "model": "nano_banana_2",
+        "model_name": "Nano Banana Pro",
+        "output_sha256": "02eddf44b35959ead0af0df93c1ccc903ea97e5b386656a5455401bdbd8f4ba0",
+        "provider_journal_sha256": "36a06479ad47c7de92fe5e6e16500836dd4b4767efb9f08bf83780d775899f57"
+      },
+      "colour_authoritative": false
+    }
+  ],
+  "unit_sha256": "9f2526c20134685281a9482aad5c11df9477f0871f2a5f500b78a9c42c93737f",
+  "generated_with": {
+    "model": "nano_banana_2",
+    "transport": "higgsfield-cli"
+  }
+}

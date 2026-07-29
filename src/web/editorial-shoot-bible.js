@@ -24,6 +24,7 @@ export const READY_EDITORIAL_MODE_IDS = Object.freeze([
   'shoot.grey_wall_gloss',
   'shoot.ochre_stage_tailoring',
   'shoot.shutter_amber_interior',
+  'shoot.autumn_park_mediated_sun',
 ]);
 
 export const EDITORIAL_BASE_PRESETS = Object.freeze({
@@ -83,6 +84,15 @@ function modeContent(mode) {
     throw new Error('Editorial mode has no verified visual content');
   }
   return content;
+}
+
+function createUniverseRuntimeStyle(mode) {
+  const runtime = mode?.create_universe?.runtime_style;
+  if (!mode?.preset_id?.startsWith('shoot.')) return null;
+  if (!runtime || typeof runtime !== 'object' || Array.isArray(runtime)) {
+    throw new Error('Create Universe mode has no verified runtime style contract');
+  }
+  return runtime;
 }
 
 // The vertical lock of a slot — subject-height band, clear space, and head and footwear
@@ -231,6 +241,13 @@ function bibleSourceReferences(basePack) {
 function shotSpec(modeDefinition, slot) {
   const mode = modeContent(modeDefinition);
   const shot = SLOT_CONTENT[slot];
+  const runtime = createUniverseRuntimeStyle(modeDefinition);
+  const direction = runtime?.shot_directions?.[slot] ?? null;
+  const cameraAngle = direction ? direction.camera_consequence : shot.angle;
+  const pose = direction ? direction.pose_joint_chain : shot.pose;
+  const opticalDevice = slot === 'interference_frame' && direction
+    ? direction.foreground
+    : shot.optical_device;
   return {
     slot,
     title: shot.title,
@@ -238,10 +255,10 @@ function shotSpec(modeDefinition, slot) {
     camera: {
       lens_mm: shot.lens_mm,
       framing: shot.framing,
-      angle: shot.angle,
+      angle: cameraAngle,
       subject_height_percent: [...shot.subject_height_percent],
     },
-    pose: shot.pose,
+    pose,
     lighting: mode.lighting,
     environment: mode.environment,
     palette: mode.palette,
@@ -250,13 +267,19 @@ function shotSpec(modeDefinition, slot) {
       'Preserve every approved item that intersects the intentional crop in exact type, silhouette, color, material and construction.',
       'Preserve every visible logo, graphic, letter, number, pattern, closure, hardware and footwear detail exactly; never invent an out-of-frame item.',
       'Preserve every already approved item exactly. When a full-body approved look visibly carries an unregistered lower garment or footwear, treat those pixels as first-appearance evidence: capture and lock that item before it is reused; never replace it with a prettier synthesis.',
+      ...(runtime ? [`Transfer only the observed cloth behaviour, never the source garment: ${runtime.garment_behaviour}`] : []),
     ],
-    optical_device: shot.optical_device,
+    optical_device: opticalDevice,
     negative_constraints: [
       'No identity drift, age change, face replacement, body redesign or skin smoothing.',
       'No removed, substituted, recolored or redesigned approved garment, accessory, footwear, logo or text. Do not replace an unregistered item already visible in the approved look with a synthesized alternative.',
       'No copied source person, landmark, readable signage or exact source architecture.',
       'No malformed hands, merged limbs, destructive crop or incoherent contact shadow.',
+      ...(runtime
+        ? runtime.optical_signature.map(
+          (entry) => `Do not omit or replace this unit-wide optical rule: ${entry}`,
+        )
+        : []),
     ],
   };
 }
@@ -310,18 +333,16 @@ function compiledReferenceAssets({ presetId, modeId, shotSpec: shot, basePack })
   const createUniverseAssets = basePack.create_universe_assets;
   if (Array.isArray(createUniverseAssets)) {
     const byRole = new Map(createUniverseAssets.map((asset) => [asset.role, asset]));
-    const required = [
-      ['environment_anchor', 'environment'],
-      ['lighting_anchor', 'colour_grade'],
+    const imageReferences = [
       ['composition_anchor', 'camera_lens'],
-      ['palette_anchor', 'garment_behaviour'],
       ['negative_reference', 'blocking'],
-    ];
-    return required.map(([role, sourceRole]) => {
+      ['lighting_anchor', 'expression_gaze'],
+      ['palette_anchor', 'garment_behaviour'],
+    ].map(([role, sourceRole]) => {
       const asset = byRole.get(sourceRole);
       if (!asset) throw new Error(`Create Universe unit is missing ${sourceRole}`);
       return {
-        reference_id: `${presetId}.${role}`,
+        reference_id: `${presetId}.style_${sourceRole}`,
         role,
         media_type: 'image/png',
         data: Buffer.from(asset.data),
@@ -329,6 +350,28 @@ function compiledReferenceAssets({ presetId, modeId, shotSpec: shot, basePack })
         not_authority_for: ['identity', 'body', 'hair', 'outfit'],
       };
     });
+    const environmentReference = referenceAsset(
+      `${presetId}.environment`,
+      'environment_anchor',
+      {
+        schema_version: '1.0.0',
+        role: 'environment_anchor',
+        facts: {
+          description: shot.environment,
+          spatial_cues: [
+            shot.camera.angle,
+            `Focus: ${basePack.create_universe_mode.create_universe.runtime_style.shot_directions[shot.slot].focus}`,
+            `Foreground: ${basePack.create_universe_mode.create_universe.runtime_style.shot_directions[shot.slot].foreground}`,
+          ],
+          materials: [...mode.materials],
+          originality_rules: [
+            'Invent new geometry; do not reconstruct a source photograph, landmark or identifiable place.',
+            'The source environment is extraction-only and is never an image attachment.',
+          ],
+        },
+      },
+    );
+    return [environmentReference, ...imageReferences];
   }
   const assets = [
     referenceAsset(`${presetId}.environment`, 'environment_anchor', {
@@ -404,6 +447,7 @@ function compiledReferenceAssets({ presetId, modeId, shotSpec: shot, basePack })
 
 function compiledPrompt({ mode, shotSpec: shot }) {
   const slot = SLOT_CONTENT[shot.slot];
+  const runtime = createUniverseRuntimeStyle(mode);
   const lines = [
     'Create exactly one premium fashion editorial photograph from the immutable approved look.',
     `MODE: ${mode.ui_name_uk}`,
@@ -423,6 +467,19 @@ function compiledPrompt({ mode, shotSpec: shot }) {
     `PALETTE: ${shot.palette}`,
     `IDENTITY VISIBILITY: ${shot.identity_visibility}`,
     `ITEM EVIDENCE: ${shot.item_evidence.join(' | ')}`,
+    ...(runtime
+      ? [
+        `MOOD/TENSION: ${runtime.mood_line}`,
+        `ENVIRONMENT MATERIAL SYSTEM: ${runtime.materials.join(' | ')}`,
+        `CONTRAST/TONAL RESPONSE: ${runtime.contrast}`,
+        `FIXED OPTICAL SIGNATURE — MANDATORY ON EVERY FRAME: ${runtime.optical_signature.join(' | ')}`,
+        `EXPRESSION SIGNATURE: ${runtime.expression_signature}`,
+        `GARMENT BEHAVIOUR: ${runtime.garment_behaviour}`,
+        `FOCUS PLANE AND FALLOFF: ${runtime.shot_directions[shot.slot].focus}`,
+        `FOREGROUND/OCCLUSION: ${runtime.shot_directions[shot.slot].foreground}`,
+        `SOURCE PROVENANCE FOR THIS SHOT DIRECTION: ${runtime.shot_directions[shot.slot].provenance.join(' | ')}`,
+      ]
+      : []),
     ...(shot.optical_device ? [`ONE OPTICAL DEVICE: ${shot.optical_device}`] : []),
     `BLOCKING NEGATIVES: ${shot.negative_constraints.join(' | ')}`,
     'The named editorial pages are style observations only. Do not copy their people, bodies, hair, clothing, brands, readable text or exact architecture.',
@@ -448,6 +505,7 @@ export function compileEditorialShotPack({
   const presetId = `${modeId}.${shot.slot}`;
   const version = mode.version;
   const slot = SLOT_CONTENT[shot.slot];
+  const runtimeStyle = createUniverseRuntimeStyle(mode);
   const assets = compiledReferenceAssets({
     presetId,
     modeId,
@@ -511,6 +569,20 @@ export function compileEditorialShotPack({
         : ['sculptural_three_quarter', 'interference_frame'].includes(shot.slot)
         ? 'EXCLUDE_FOOTWEAR'
         : 'ALL',
+      style_contract: runtimeStyle
+        ? {
+            visual_system: runtimeStyle.visual_system,
+            mood_line: runtimeStyle.mood_line,
+            materials: [...runtimeStyle.materials],
+            contrast: runtimeStyle.contrast,
+            camera_consequence: runtimeStyle.shot_directions[shot.slot].camera_consequence,
+            focus: runtimeStyle.shot_directions[shot.slot].focus,
+            foreground: runtimeStyle.shot_directions[shot.slot].foreground,
+            expression_signature: runtimeStyle.expression_signature,
+            garment_behaviour: runtimeStyle.garment_behaviour,
+            optical_signature: [...runtimeStyle.optical_signature],
+          }
+        : null,
     },
   };
   const presetBytes = sceneCanonicalJsonBytes(preset);

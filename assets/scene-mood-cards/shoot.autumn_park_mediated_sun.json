@@ -1,0 +1,70 @@
+{
+  "schema_version": "1.0.0",
+  "preset_id": "shoot.autumn_park_mediated_sun",
+  "kind": "editorial",
+  "family": "create_universe",
+  "ui_name_uk": "Осінній парк · мʼяке сонце",
+  "asset_role": "mood_card",
+  "file": "assets/scene-mood-cards/shoot.autumn_park_mediated_sun.webp",
+  "sha256": "06f6d94f65a84599dd12b73aa458484e584937e9f51a31e6c8e70fcc615bcf63",
+  "origin": {
+    "kind": "OWN_GENERATED_PREVIEW",
+    "note": "Original preview generated solely from the immutable runtime_style contract and deterministic palette authority. No source photographs, approved looks, source identity, or personal input were supplied to the provider.",
+    "unit_contract": "docs/style-units/shoot.autumn_park_mediated_sun/unit.json",
+    "unit_contract_sha256": "bea3dca2b11848baa1dfeb2c6aaba413ae6e9f57ca86e959abf312a06654d065",
+    "unit_binding_sha256": "9f2526c20134685281a9482aad5c11df9477f0871f2a5f500b78a9c42c93737f",
+    "runtime_style_sha256": "2fb3f1eb17515b484ee6c58898aef21a427252155d79113a9da3b4847f814672",
+    "palette_authority": {
+      "file": "docs/style-units/shoot.autumn_park_mediated_sun/palette-strip.svg",
+      "sha256": "95961c22ce01ed08e81a43fe67d1237604262dcd79d4af02ae7129de4e8d8aa3",
+      "rendered_not_generated": true
+    }
+  },
+  "generation": {
+    "provider_path": "higgsfield-cli",
+    "prompt_contract_version": "create-universe-mood-card-v1",
+    "prompt_sha256": "6a4dc4792a2802beb948a54585fe843b07b3580a6f2f22a288c404a78e5c5640",
+    "composition_slot": "environmental_hero",
+    "provider_receipt": {
+      "provider": "higgsfield",
+      "transport": "higgsfield-cli",
+      "generation_mode": "journaled",
+      "job_id": "28973bad-9411-499b-a4a7-ae57cca8ddc8",
+      "job_set_type": "nano_banana_2",
+      "model_name": "Nano Banana Pro",
+      "provider_internal_model": null,
+      "requested_aspect_ratio": "4:5",
+      "requested_resolution": "2k",
+      "requested_quality": null,
+      "output_sha256": "dc94bf5f81c2662b89ed09033b6ed25cb1c6826f3bbcb003325a976592bdd368",
+      "provider_journal_sha256": "5ecf785d32c5654d1b3b4dd97d7f08e2226cd69cd9daab2074acf9b850f3cc66",
+      "request_sha256": "dd5d33f3578950db77a6e51d7e49ca5c5a1298cc114818569d57f4740bba22bd",
+      "palette_input_sha256": "913cf3cccdb4ef6da8cbb962af0fb507201452e1af5942cc0471cf497f5ddda3"
+    },
+    "source_width": 1856,
+    "source_height": 2304,
+    "normalization": {
+      "method": "deterministic_4x5_cover",
+      "crop_position": "centre",
+      "width": 1024,
+      "height": 1280,
+      "format": "webp"
+    }
+  },
+  "delivery": {
+    "width": 1024,
+    "height": 1280,
+    "format": "webp",
+    "aspect_ratio": "4:5"
+  },
+  "contains_personal_input": false,
+  "approval": "APPROVED",
+  "visual_review": {
+    "status": "APPROVED",
+    "reviewed_at": "2026-07-29T20:24:46.868Z",
+    "reviewed_source_width": 1856,
+    "reviewed_source_height": 2304,
+    "notes": "Full-size 1856x2304 review PASS: exactly one fully clothed fictional back-facing adult with no identity anchor; original unbranded coat and folded textile; semi-wild autumn park, leaf litter, dry weeds, gold foliage, mauve flowers, dark trunks and cool sky all match the runtime system. Low hard side light, cool fill, broad gravity folds, smooth depth separation and clean no-flare/no-swirl optics are intact. No source likeness, copied look, text, logo, diagram, contact sheet, collage or anatomy defect."
+  },
+  "created_at": "2026-07-29T20:24:46.868Z"
+}

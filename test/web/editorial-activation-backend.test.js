@@ -108,23 +108,8 @@ test('READY editorial and Create Universe modes compile six strict per-shot pack
   assert.deepEqual(catalog.generation_mode_ids, [
     'editorial.edwin_novak.organic_contrast',
     'editorial.edwin_novak.urban_monochrome',
-    'shoot.skylight_haze',
-    'shoot.terracotta_hardlight',
-    'shoot.window_gobo_warm',
-    'shoot.grey_studio_stride',
-    'shoot.sky_dune_surreal',
-    'shoot.hardsun_brick_doorway',
-    'shoot.overcast_street_stride',
-    'shoot.grey_wall_gloss',
-    'shoot.ochre_stage_tailoring',
-    'shoot.shutter_amber_interior',
+    'shoot.autumn_park_mediated_sun',
   ]);
-  // Terracotta's six original sheets were restored in 0577846; the unit is
-  // integrity-ready again, so the catalog must say READY, not the old block.
-  assert.equal(
-    catalog.modes.find((mode) => mode.mode_id === 'shoot.terracotta_hardlight')?.source_set_status,
-    'READY',
-  );
 
   for (const modeId of catalog.generation_mode_ids) {
     const bible = await resolver.compileEditorialShootBible({
@@ -150,6 +135,23 @@ test('READY editorial and Create Universe modes compile six strict per-shot pack
         pack.preset,
       );
       validateResolvedReferenceAssets(pack.reference_pack, pack.assets);
+      if (modeId.startsWith('shoot.')) {
+        const styleContract = pack.preset.editorial.style_contract;
+        assert.ok(styleContract, modeId);
+        assert.equal(
+          styleContract.camera_consequence,
+          shotSpec.camera.angle,
+          `${modeId}/${shotSpec.slot}`,
+        );
+        assert.ok(styleContract.mood_line.length >= 8, `${modeId}/${shotSpec.slot}`);
+        assert.ok(styleContract.materials.length >= 1, `${modeId}/${shotSpec.slot}`);
+        assert.ok(styleContract.contrast.length >= 8, `${modeId}/${shotSpec.slot}`);
+        assert.ok(styleContract.focus.length >= 8, `${modeId}/${shotSpec.slot}`);
+        assert.ok(styleContract.foreground.length >= 8, `${modeId}/${shotSpec.slot}`);
+        assert.ok(styleContract.expression_signature.length >= 8, `${modeId}/${shotSpec.slot}`);
+        assert.ok(styleContract.garment_behaviour.length >= 8, `${modeId}/${shotSpec.slot}`);
+        assert.ok(styleContract.optical_signature.length >= 1, `${modeId}/${shotSpec.slot}`);
+      }
       // Assert the derivation, not a number: an editorial ceiling is whatever the
       // slot's head guard does not reserve. Two frames were rejected at 84.7656% and
       // 93.9063% by ceilings picked by hand, so no hand-picked ceiling may come back.
@@ -170,8 +172,27 @@ test('READY editorial and Create Universe modes compile six strict per-shot pack
         (source) => source.rights.status === 'VERIFIED',
       ));
       const createUniverse = modeId.startsWith('shoot.');
-      assert.ok(pack.assets.every((asset) => asset.media_type === (createUniverse ? 'image/png' : 'application/json')));
-      if (createUniverse) continue;
+      if (createUniverse) {
+        const canonicalTransports = new Map([
+          ['environment_anchor', ['application/json', '.environment']],
+          ['composition_anchor', ['image/png', '.style_camera_lens']],
+          ['negative_reference', ['image/png', '.style_blocking']],
+          ['lighting_anchor', ['image/png', '.style_expression_gaze']],
+          ['palette_anchor', ['image/png', '.style_garment_behaviour']],
+        ]);
+        assert.equal(pack.assets.length, 5);
+        assert.equal(
+          pack.assets.filter((asset) => asset.media_type.startsWith('image/')).length,
+          4,
+        );
+        for (const asset of pack.assets) {
+          const [expectedMediaType, expectedSuffix] = canonicalTransports.get(asset.role);
+          assert.equal(asset.media_type, expectedMediaType, `${modeId}/${asset.role}`);
+          assert.ok(asset.reference_id.endsWith(expectedSuffix), `${modeId}/${asset.role}`);
+        }
+        continue;
+      }
+      assert.ok(pack.assets.every((asset) => asset.media_type === 'application/json'));
       // Declaring the media type proved nothing about the bytes. Every one of these
       // documents is refused at generation time by this exact schema, before any
       // provider call, so a slot whose compiled anchor cannot satisfy it is not wrong

@@ -40,6 +40,18 @@ const GENERATION_REFERENCE_ORDER = Object.freeze([
   'palette_anchor',
   'negative_reference',
 ]);
+const CREATE_UNIVERSE_IMAGE_REFERENCE_ORDER = Object.freeze([
+  'composition_anchor',
+  'negative_reference',
+  'lighting_anchor',
+  'palette_anchor',
+]);
+const CREATE_UNIVERSE_STYLE_SHEET_BY_ROLE = Object.freeze({
+  composition_anchor: 'camera_lens',
+  negative_reference: 'blocking',
+  lighting_anchor: 'expression_gaze',
+  palette_anchor: 'garment_behaviour',
+});
 const IMAGE_MEDIA_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
 const PNG_SIGNATURE = Buffer.from('89504e470d0a1a0a', 'hex');
 const STRUCTURED_REFERENCE_SCHEMA_PATH = path.resolve(
@@ -223,6 +235,51 @@ function structuredInstructions(references) {
     'STRICT STRUCTURED SCENE FACTS',
     ...lines,
     'Use each fact set only for its declared environment, lighting, composition, palette or avoidance role. Invent original geometry. These facts never control identity, body, hair, outfit, brands, readable text or landmarks.',
+  ].join('\n');
+}
+
+function isCreateUniversePresetId(value) {
+  return typeof value === 'string' && value.startsWith('shoot.');
+}
+
+function createUniverseStyleSheetRole(reference, presetId) {
+  if (!isCreateUniversePresetId(presetId) || reference?.transport !== 'image') return null;
+  const sheetRole = CREATE_UNIVERSE_STYLE_SHEET_BY_ROLE[reference.role] ?? null;
+  if (!sheetRole || !String(reference.reference_id ?? '').endsWith(`.style_${sheetRole}`)) {
+    throw new Error(`Create Universe ${reference?.role ?? 'reference'} is not bound to its canonical style sheet`);
+  }
+  return sheetRole;
+}
+
+function prioritizedImageReferences(references, presetId) {
+  const images = references.filter((item) => item.transport === 'image');
+  if (!isCreateUniversePresetId(presetId)) return images;
+  const byRole = new Map(images.map((item) => [item.role, item]));
+  if (byRole.size !== CREATE_UNIVERSE_IMAGE_REFERENCE_ORDER.length) {
+    throw new Error('Create Universe generation requires exactly four canonical image sheets');
+  }
+  return CREATE_UNIVERSE_IMAGE_REFERENCE_ORDER.map((role) => {
+    const reference = byRole.get(role);
+    createUniverseStyleSheetRole(reference, presetId);
+    return reference;
+  });
+}
+
+function createUniverseStyleAttachmentInstructions(attachments, presetId) {
+  if (!isCreateUniversePresetId(presetId)) return '';
+  const lines = attachments
+    .filter((item) => item.styleSheetRole)
+    .map((item) => (
+      `- ATTACHMENT_${item.order} [CREATE_UNIVERSE_${item.styleSheetRole.toUpperCase()}]`
+    ));
+  if (lines.length === 0) return '';
+  return [
+    '',
+    'CREATE UNIVERSE STYLE-SHEET AUTHORITY — FIXED PRIORITY',
+    ...lines,
+    'Their canonical priority is CAMERA_LENS → BLOCKING → EXPRESSION_GAZE → GARMENT_BEHAVIOUR. Never reinterpret their generic scene-role transport labels as a different authority.',
+    'CAMERA_LENS controls camera consequence, perspective, focus falloff and unit-wide optics. BLOCKING controls only body-to-camera and joint-chain geometry. EXPRESSION_GAZE controls only muscular state and gaze, never facial identity or geometry. GARMENT_BEHAVIOUR controls only what the approved item cloth does under this shoot, never its design, colour, logo or construction.',
+    'Environment, palette, lighting, contrast and optical rules also remain mandatory as exact structured prompt facts. Source people, source garments and exact source places never transfer.',
   ].join('\n');
 }
 
@@ -502,6 +559,11 @@ export class SceneGeneratorAdapter {
     for (const [index, role] of GENERATION_REFERENCE_ORDER.entries()) {
       references.push(await verifiedSceneReference(byRole.get(role), role, `references[${index}]`));
     }
+    const createUniverse = isCreateUniversePresetId(context.preset?.preset_id);
+    const prioritizedSceneImages = prioritizedImageReferences(
+      references,
+      context.preset?.preset_id,
+    );
     const anchors = await verifiedShotAnchors(context.shot_anchors);
     const maxAttachments = Number.isInteger(provider.maxOrderedReferences)
       ? provider.maxOrderedReferences
@@ -548,11 +610,17 @@ export class SceneGeneratorAdapter {
     if (required.length > maxAttachments) {
       throw new Error('Approved item evidence exceeds the provider attachment limit');
     }
-    // The discretionary tail, most valuable first. Anchors outrank the image-transport
-    // scene roles because a role that loses its image still reaches the model as its
-    // compiled structured facts, while an anchor dropped here reaches it as nothing.
-    const discretionary = [
-      ...anchors.map((anchor) => ({
+    if (
+      createUniverse
+      && required.length + CREATE_UNIVERSE_IMAGE_REFERENCE_ORDER.length > maxAttachments
+    ) {
+      throw new Error('Provider attachment limit cannot carry all four Create Universe style sheets');
+    }
+    // The discretionary tail, most valuable first. Standard scenes keep continuity
+    // anchors ahead of optional scene images. Create Universe reverses that order:
+    // all four canonical style sheets are indivisible shoot authority, while an
+    // over-budget hero continuity anchor is explicitly named as dropped.
+    const anchorAttachments = anchors.map((anchor) => ({
         // 'outfit' is the transport's bucket for every conditioning image, the same one
         // the image scene roles use. The 'scene' scope reads closer but is reserved:
         // the provider refuses a scene-scoped binding that is not the repair candidate.
@@ -563,18 +631,24 @@ export class SceneGeneratorAdapter {
         sha256: anchor.sha256,
         mediaType: anchor.media_type,
         source: 'CONDITIONED',
-      })),
-      ...references
-        .filter((item) => item.transport === 'image')
-        .map((item) => ({
+      }));
+    const sceneImageAttachments = prioritizedSceneImages.map((item) => {
+      const styleSheetRole = createUniverseStyleSheetRole(item, context.preset?.preset_id);
+      return {
           scope: 'outfit',
-          role: `SCENE_${item.role.toUpperCase()}`,
+          role: styleSheetRole
+            ? `CREATE_UNIVERSE_${styleSheetRole.toUpperCase()}`
+            : `SCENE_${item.role.toUpperCase()}`,
+          styleSheetRole,
           path: item.path,
           sha256: item.sha256,
           mediaType: item.media_type,
           source: 'CONDITIONED',
-        })),
-    ];
+        };
+    });
+    const discretionary = createUniverse
+      ? [...sceneImageAttachments, ...anchorAttachments]
+      : [...anchorAttachments, ...sceneImageAttachments];
     const attachedDiscretionary = discretionary.slice(0, maxAttachments - required.length);
     // The truncation used to be one silent .slice(): a request that quietly sent
     // five of seven attachments produced a receipt that read exactly like full
@@ -599,6 +673,7 @@ export class SceneGeneratorAdapter {
       `${basePrompt}${structuredInstructions(references)}`
       + `${itemGenerationInstructions(items, itemAttachmentStart)}`
       + `${guideAttachment ? `\nMECHANICAL COMPOSITION GUIDE\n- ATTACHMENT_${guideAttachment.order} is an opaque neutral mechanical layout derivative of ${compositionGuide.source_kind === 'approved_look' ? 'the approved master' : 'the failed candidate'}, not a new scene or content authority. It places the same pixels at the measured target scale: ${compositionGuide.target_subject_height_percent}% visible person height and ${compositionGuide.target_clear_space_above_hair_percent}% clear space above hair. Use it only to match framing; preserve the exact person, look, item details, environment and lighting from their authoritative attachments.\n` : ''}`
+      + `${createUniverseStyleAttachmentInstructions(attachedDiscretionary, context.preset?.preset_id)}`
       + `${shotAnchorInstructions(attachedAnchors)}`,
     );
     assertExternalPromptPrivacy(prompt, { runtimeRoot: context.work_directory });
@@ -954,19 +1029,35 @@ export function assertFramingDefectVocabulary(payload) {
   return payload;
 }
 
-export function evaluatorPrompt(delivery, references, preset = null, qaItems = []) {
+export function evaluatorPrompt(
+  delivery,
+  references,
+  preset = null,
+  qaItems = [],
+  shotAnchors = [],
+) {
   const camera = preset?.camera ?? {};
   const editorial = preset?.editorial ?? null;
+  const styleContract = editorial?.style_contract ?? null;
   const framing = camera.framing ?? 'full_body';
   const requireFullHead = camera.required_visibility?.full_head ?? true;
   const requireFullFootwear = camera.required_visibility?.full_footwear ?? true;
   const standardBackground = Boolean(preset && !editorial);
-  const imageReferences = references.filter((item) => item.transport === 'image');
-  const detailAttachmentStart = imageReferences.length + 3;
+  const imageReferences = prioritizedImageReferences(references, preset?.preset_id);
+  const heroAnchors = shotAnchors.filter((item) => item.role === 'hero_continuity_anchor');
+  const detailAttachmentStart = imageReferences.length + heroAnchors.length + 3;
   const attachments = [
     'ATTACHMENT_1 [GENERATED_SCENE_CANDIDATE]',
     'ATTACHMENT_2 [APPROVED_LOOK_MASTER]',
-    ...imageReferences.map((item, index) => `ATTACHMENT_${index + 3} [SCENE_${item.role.toUpperCase()}]`),
+    ...imageReferences.map((item, index) => {
+      const styleSheetRole = createUniverseStyleSheetRole(item, preset?.preset_id);
+      return `ATTACHMENT_${index + 3} [${styleSheetRole
+        ? `CREATE_UNIVERSE_${styleSheetRole.toUpperCase()}`
+        : `SCENE_${item.role.toUpperCase()}`}]`;
+    }),
+    ...heroAnchors.map((item, index) => (
+      `ATTACHMENT_${imageReferences.length + index + 3} [APPROVED_SERIES_HERO_CONTINUITY]`
+    )),
     `ATTACHMENT_${detailAttachmentStart} [CANDIDATE_UPPER_ITEM_DETAIL]`,
     `ATTACHMENT_${detailAttachmentStart + 1} [APPROVED_LOOK_UPPER_ITEM_DETAIL]`,
     `ATTACHMENT_${detailAttachmentStart + 2} [CANDIDATE_LOWER_ITEM_DETAIL]`,
@@ -978,7 +1069,30 @@ export function evaluatorPrompt(delivery, references, preset = null, qaItems = [
     '',
     'Authority: ATTACHMENT_2 alone controls identity, body, hair, outfit, product details, logos and garment text.',
     'The five scene role inputs are authority only for their declared environment, lighting, composition, palette or avoidance role. They are never authority for a person, clothing, brands, readable text, landmarks or exact source architecture.',
+    ...(heroAnchors.length > 0 ? [
+      `ATTACHMENT_${imageReferences.length + 3} is the already approved hero from this exact shoot. It is authority only for series continuity in invented environment geometry, light direction and quality, colour grade and unit-wide optics.`,
+      'Use the hero to judge continuity, never to demand the same pose, crop or camera. The current frame must obey its own distinct shot direction and still read as the same campaign made minutes later.',
+      'SCENE_MATCH fails if the candidate becomes a different place or generic visual system relative to the approved hero. It also fails if the candidate merely duplicates the hero composition instead of delivering its own shot slot.',
+    ] : []),
     'Return exactly six gates in this exact order: NEAR_COPY_AND_LEAKAGE, IDENTITY, ITEM_FIDELITY, SCENE_MATCH, LIGHT_AND_CONTACT_SHADOW, FRAMING_AND_ANATOMY.',
+    ...(styleContract ? [
+      'For this Create Universe frame, SCENE_MATCH is also the explicit style-fidelity gate. It must judge the whole photographic system, not merely whether a plausible location exists.',
+      'The four Create Universe style attachments have fixed authority and priority: CAMERA_LENS controls optics and camera consequence; BLOCKING controls pose geometry; EXPRESSION_GAZE controls muscular state and gaze but never face geometry; GARMENT_BEHAVIOUR controls cloth response but never approved item design.',
+      `SCENE_MATCH requires visible compliance with this visual system: ${styleContract.visual_system}`,
+      `SCENE_MATCH requires this mood and tension: ${styleContract.mood_line}`,
+      `SCENE_MATCH requires this environment material system: ${styleContract.materials.join(' | ')}`,
+      `SCENE_MATCH requires this contrast and tonal response: ${styleContract.contrast}`,
+      `SCENE_MATCH requires this camera consequence: ${styleContract.camera_consequence}`,
+      `SCENE_MATCH requires this focus plane and falloff: ${styleContract.focus}`,
+      `SCENE_MATCH requires this foreground/occlusion treatment: ${styleContract.foreground}`,
+      `SCENE_MATCH requires this expression and gaze signature without borrowing face geometry: ${styleContract.expression_signature}`,
+      `SCENE_MATCH requires this garment behaviour without changing approved item design: ${styleContract.garment_behaviour}`,
+      `LIGHT_AND_CONTACT_SHADOW must also preserve this fixed unit-wide optical signature on the frame: ${styleContract.optical_signature.join(' | ')}`,
+      `The declared environment is: ${preset.environment}`,
+      `The declared lighting is: ${preset.lighting?.key ?? ''}`,
+      `The declared colour palette is: ${(preset.palette ?? []).join(' | ')}`,
+      'Fail SCENE_MATCH when the mood, environment, materials, palette, contrast, composition, focus, foreground, expression or garment behaviour becomes generic or contradicts the declared shoot. Fail LIGHT_AND_CONTACT_SHADOW when the lighting or fixed optical signature is absent or replaced, even if exposure is otherwise attractive.',
+    ] : []),
     'ITEM_FIDELITY is a forensic comparison, not a general style judgment. Compare every visible approved item separately across the full images and paired upper/lower detail attachments.',
     ...(editorial?.item_scope === 'FIRST_ORDERED_ITEM' ? [
       `This intentional detail frame targets only the first ordered approved item${qaItems[0] ? ` (${qaItems[0].item_id})` : ''}. Judge that target exactly; do not fail solely because other approved items are intentionally outside the crop.`,
@@ -1331,6 +1445,10 @@ export class SceneEvaluatorAdapter {
       for (const [index, role] of SCENE_REFERENCE_ROLES.entries()) {
         references.push(await verifiedSceneReference(byRole.get(role), role, `evaluation reference ${index + 1}`));
       }
+      const shotAnchors = await verifiedShotAnchors(context.shot_anchors);
+      const heroContinuityAnchors = shotAnchors.filter(
+        (anchor) => anchor.role === 'hero_continuity_anchor',
+      );
       const allItems = await verifiedItemEvidence(context.item_evidence);
       let preset = null;
       if (context.preset?.path) {
@@ -1341,7 +1459,8 @@ export class SceneEvaluatorAdapter {
         }
       }
       const items = sceneQaItemScope(allItems, preset);
-      bindings.push(...references.filter((item) => item.transport === 'image'));
+      bindings.push(...prioritizedImageReferences(references, preset?.preset_id));
+      bindings.push(...heroContinuityAnchors);
       const prepared = [];
       for (const [index, binding] of bindings.entries()) {
         const filename = path.join(temporaryRoot, `attachment-${String(index + 1).padStart(2, '0')}.jpg`);
@@ -1381,7 +1500,13 @@ export class SceneEvaluatorAdapter {
           .toFile(filename);
         prepared.push(filename);
       }
-      const prompt = evaluatorPrompt(context.delivery, references, preset, items);
+      const prompt = evaluatorPrompt(
+        context.delivery,
+        references,
+        preset,
+        items,
+        heroContinuityAnchors,
+      );
       assertExternalPromptPrivacy(prompt, { runtimeRoot: temporaryRoot });
       const outputPath = path.join(temporaryRoot, 'result.json');
       const args = [

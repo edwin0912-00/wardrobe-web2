@@ -186,6 +186,7 @@ const READY_EDITORIAL_MODE_IDS = new Set([
   'shoot.grey_wall_gloss',
   'shoot.ochre_stage_tailoring',
   'shoot.shutter_amber_interior',
+  'shoot.autumn_park_mediated_sun',
 ]);
 const EDITORIAL_SHOT_SLOTS = new Set([
   'clean_identity_hero',
@@ -823,6 +824,7 @@ function validateEditorialPresetSnapshot(preset, reference) {
       'base_preset_version',
       'identity_visibility',
       'item_scope',
+      'style_contract',
     ],
     'Resolved editorial SceneSpec editorial binding',
   );
@@ -847,6 +849,58 @@ function validateEditorialPresetSnapshot(preset, reference) {
     : 'ALL';
   if (preset.editorial.item_scope !== expectedItemScope) {
     throw new Error('Resolved editorial SceneSpec item scope does not match its shot slot');
+  }
+  const styleContract = preset.editorial.style_contract;
+  if (preset.editorial.mode_id.startsWith('shoot.')) {
+    if (!styleContract || typeof styleContract !== 'object' || Array.isArray(styleContract)) {
+      throw new Error('Resolved Create Universe SceneSpec is missing its style contract');
+    }
+    assertExactKeys(
+      styleContract,
+      [
+        'visual_system',
+        'mood_line',
+        'materials',
+        'contrast',
+        'camera_consequence',
+        'focus',
+        'foreground',
+        'expression_signature',
+        'garment_behaviour',
+        'optical_signature',
+      ],
+      'Resolved Create Universe style contract',
+    );
+    for (const field of [
+      'visual_system',
+      'mood_line',
+      'contrast',
+      'camera_consequence',
+      'focus',
+      'foreground',
+      'expression_signature',
+      'garment_behaviour',
+    ]) {
+      if (typeof styleContract[field] !== 'string'
+        || styleContract[field].trim().length < 8
+        || styleContract[field].length > 2_000) {
+        throw new Error(`Resolved Create Universe style contract ${field} is invalid`);
+      }
+    }
+    assertUniqueStringArray(styleContract.materials, {
+      label: 'Resolved Create Universe materials',
+      minItems: 1,
+      maxItems: 20,
+      minLength: 3,
+    });
+    assertUniqueStringArray(styleContract.optical_signature, {
+      label: 'Resolved Create Universe optical_signature',
+      minItems: 1,
+      maxItems: 12,
+      minLength: 3,
+    });
+  } else if (styleContract !== null) {
+    throw new Error('Legacy editorial SceneSpec may not claim a Create Universe style contract');
   }
   assertSha256(preset.editorial.shot_spec_sha256, 'editorial shot_spec_sha256');
   if (typeof preset.ui_name_uk !== 'string' || preset.ui_name_uk.trim().length < 5
@@ -1033,6 +1087,43 @@ export function validateReferencePack(referencePack, reference, presetHash, prom
   }
   for (const role of SCENE_REFERENCE_ROLES) {
     if (!roles.has(role)) throw new Error(`Scene reference pack is missing ${role}`);
+  }
+  if (preset?.editorial?.mode_id?.startsWith('shoot.')) {
+    const expectedCreateUniverseReferences = new Map([
+      ['environment_anchor', {
+        mediaType: 'application/json',
+        suffix: '.environment',
+      }],
+      ['composition_anchor', {
+        mediaType: 'image/png',
+        suffix: '.style_camera_lens',
+      }],
+      ['negative_reference', {
+        mediaType: 'image/png',
+        suffix: '.style_blocking',
+      }],
+      ['lighting_anchor', {
+        mediaType: 'image/png',
+        suffix: '.style_expression_gaze',
+      }],
+      ['palette_anchor', {
+        mediaType: 'image/png',
+        suffix: '.style_garment_behaviour',
+      }],
+    ]);
+    let imageCount = 0;
+    for (const item of referencePack.references) {
+      const expectedReference = expectedCreateUniverseReferences.get(item.role);
+      if (!expectedReference
+        || item.media_type !== expectedReference.mediaType
+        || !item.reference_id.endsWith(expectedReference.suffix)) {
+        throw new Error(`Create Universe ${item.role} is not bound to its canonical transport`);
+      }
+      if (item.media_type.startsWith('image/')) imageCount += 1;
+    }
+    if (imageCount !== 4) {
+      throw new Error('Create Universe generation requires exactly four canonical image sheets');
+    }
   }
   const ledger = referencePack.source_ledger;
   if (!ledger || typeof ledger !== 'object' || Array.isArray(ledger)) {
