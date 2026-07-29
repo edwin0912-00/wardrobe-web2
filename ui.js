@@ -204,30 +204,70 @@
           : '');
     }
 
-    /* At the mirrors the left pane is where you CHOOSE: which look is the context, and —
-     * when asked for — which background it stands in. */
-    function askLooks() {
-      var l = current();
-      var strip = looks.map(function (x, i) {
-        return '<button class="lookpick" type="button" data-select="' + i + '"' +
+    /* Small counts read as words in running Ukrainian text ("три речі"), not digits —
+     * matches the approved picture, which never puts a numeral in a sentence. */
+    var NUM_WORDS = ['', 'одна', 'дві', 'три', 'чотири', 'пʼять', 'шість'];
+    function numWord(n) { return NUM_WORDS[n] || String(n); }
+
+    function lookLede(l) {
+      var parts = [numWord(l.items.length) + ' ' + plural(l.items.length, 'річ', 'речі', 'речей')];
+      if (person.face) parts.push('ваше обличчя');
+      var s = parts.join(', ') + '.';
+      return s.charAt(0).toUpperCase() + s.slice(1);
+    }
+
+    /* THE APPROVED LOOKS SCREEN — a picture the owner pointed at directly, so this is
+     * data copied from it, not a paraphrase: heading "Образ N", one lede sentence, a
+     * labelled row of square thumbnails matching the item slots' own shape language, and
+     * one plain underlined line back to the things. No eyebrow, no CTA button, no trail —
+     * the picture has none of those once a look already exists. */
+    function askLookThumbs() {
+      var cells = looks.map(function (l, i) {
+        var thumb = l.items[0] && l.items[0].url;
+        return '<button class="lookthumb" type="button" data-select="' + i + '"' +
           ' aria-pressed="' + (i === selected ? 'true' : 'false') + '">' +
-          '<span class="lookpick__n">' + (i + 1) + '</span>' +
-          '<span class="lookpick__d">' + x.items.length + ' ' +
-            plural(x.items.length, 'річ', 'речі', 'речей') + '</span>' +
-          (x.bg != null ? '<span class="lookpick__b">' + esc(BACKGROUNDS[x.bg]) + '</span>' : '') +
-        '</button>';
+          (thumb ? '<img class="lookthumb__img" src="' + thumb + '" alt="">' : '') +
+          '</button>';
       }).join('');
-      return '<div class="lookpicks">' + strip + '</div>' +
-        (bgOpen && l
-          ? '<div class="rowpick">' + BACKGROUNDS.map(function (o, i) {
-              return '<button class="rowpick__item" type="button" data-bg="' + i + '"' +
-                ' aria-pressed="' + (l.bg === i ? 'true' : 'false') + '">' +
-                '<span class="rowpick__name">' + esc(o) + '</span></button>';
-            }).join('') + '</div>'
-          : '');
+      /* Padded to at least four so the row reads as an ongoing strip rather than a tally
+       * that stops. The empty cells are inert — a fifth action hiding as a thumbnail
+       * would be exactly the kind of thing the approved row was designed to avoid. */
+      for (var i = looks.length; i < 4; i++) cells += '<span class="lookthumb" aria-hidden="true"></span>';
+      return cells;
+    }
+
+    /* The background picker survives from the earlier build: it opens from the 'bg'
+     * action in the right mirror regardless of which screen this is, so it is appended
+     * here rather than folded into the approved layout above, which has no such state
+     * in the picture it was copied from. */
+    function bgPicker() {
+      var l = current();
+      if (!bgOpen || !l) return '';
+      return '<div class="rowpick">' + BACKGROUNDS.map(function (o, i) {
+        return '<button class="rowpick__item" type="button" data-bg="' + i + '"' +
+          ' aria-pressed="' + (l.bg === i ? 'true' : 'false') + '">' +
+          '<span class="rowpick__name">' + esc(o) + '</span></button>';
+      }).join('') + '</div>';
+    }
+
+    function renderAskLook() {
+      var l = current();
+      askRoot.innerHTML =
+        '<div class="glass__h">Образ ' + (selected + 1) + '</div>' +
+        '<p class="glass__lede">' + esc(lookLede(l)) + '</p>' +
+        '<div class="looklabel">ваші образи</div>' +
+        '<div class="lookthumbs">' + askLookThumbs() + '</div>' +
+        '<button class="secondary" type="button" data-edit-items>Змінити речі</button>' +
+        bgPicker();
+      applyEnabled();
     }
 
     function renderAsk() {
+      /* THE APPROVED LOOKS SCREEN has its own shape entirely — no eyebrow, no generic
+       * CTA, no trail — so it bypasses the shared template below rather than bending it
+       * to fit. */
+      if (step === 2) { renderAskLook(); return; }
+
       var s = STEPS[step];
       var blocked = (step === 0 && !hasMain()) || (step === 1 && (!hasItems() || pending));
 
@@ -242,7 +282,7 @@
           x.label + '</button>';
       }).join('');
 
-      var body = step === 0 ? askPerson() : step === 1 ? askItems() : askLooks();
+      var body = step === 0 ? askPerson() : askItems();
 
       askRoot.innerHTML =
         /* Digits and a slash, never "КРОК 1 З 3": at this tracking the Cyrillic З between
@@ -325,6 +365,18 @@
       '</div>';
     }
 
+    /* THE APPROVED LOOK FRAME — a watermark, not a caption bar. Copied from the same
+     * picture as the thumbnail strip: the freshly-made look carries one faint centred
+     * word, the way a proof print is stamped, instead of the bottom label the other
+     * result states use. */
+    function lookResultFrame() {
+      var src = person.main ? person.main.url : '';
+      return '<div class="lookframe" data-state="ready">' +
+        (src ? '<img class="lookframe__img" src="' + src + '" alt="">' : '') +
+        '<span class="lookframe__word">образ</span>' +
+      '</div>';
+    }
+
     /* view uses 'video'; the approved table calls the same thing 'fash'. One mapping, here. */
     function activeAct() {
       return view === 'video' ? 'fash'
@@ -376,19 +428,23 @@
       }
 
       var l = current();
+      /* view 'look' is the approved picture exactly: no eyebrow, no details rows —
+       * just the watermarked frame and the action row beneath it. The other views
+       * (shoot/video/live) are not what was approved here, so they keep what they had. */
       var head = view === 'shoot' ? 'Фотозйомка'
                : view === 'video' ? 'Фешн-відео'
-               : view === 'live'  ? 'Лайв-примірка' : 'Ваш образ';
+               : view === 'live'  ? 'Лайв-примірка' : null;
       var cap = view === 'live' ? 'камера не підключена' : 'рендер не підключений';
 
       showRoot.innerHTML =
-        '<div class="glass__eyebrow">' + head + '</div>' +
-        (view === 'live' ? liveWindow() : resultFrame(cap, 'ready')) +
-        '<div class="glass__rows glass__rows--show">' +
-          '<div class="glass__row"><span>З речей</span> ' + l.items.length + ' ' +
-            plural(l.items.length, 'річ', 'речі', 'речей') + '</div>' +
-          (l.bg != null ? '<div class="glass__row"><span>Фон</span> ' + esc(BACKGROUNDS[l.bg]) + '</div>' : '') +
-        '</div>' +
+        (head ? '<div class="glass__eyebrow">' + head + '</div>' : '') +
+        (view === 'live' ? liveWindow() : view === 'look' ? lookResultFrame() : resultFrame(cap, 'ready')) +
+        (view === 'look' ? '' :
+          '<div class="glass__rows glass__rows--show">' +
+            '<div class="glass__row"><span>З речей</span> ' + l.items.length + ' ' +
+              plural(l.items.length, 'річ', 'речі', 'речей') + '</div>' +
+            (l.bg != null ? '<div class="glass__row"><span>Фон</span> ' + esc(BACKGROUNDS[l.bg]) + '</div>' : '') +
+          '</div>') +
         actionBlocks();
       applyEnabled();
     }
@@ -463,6 +519,7 @@
         bgOpen = false; render(); return;
       }
       if (t.closest('[data-bgopen]')) { bgOpen = !bgOpen; render(); return; }
+      if (t.closest('[data-edit-items]')) { stopCamera(); step = 1; view = 'look'; render(); return; }
       if ((b = t.closest('[data-act]'))) {
         var k = b.getAttribute('data-act');
         if (k === 'bg') { bgOpen = !bgOpen; render(); return; }

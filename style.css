@@ -746,6 +746,17 @@ body {
   font-size: clamp(9px, 2cqh, 11px); letter-spacing: 0.18em; text-transform: uppercase;
   color: rgba(245,243,237,0.82); background: rgba(16,17,15,0.66);
 }
+/* APPROVED: the freshly-made look carries a watermark, not a caption bar. Copied from
+ * the picture — a single faint word sitting in the middle of the frame, the way a photo
+ * lab stamps a proof. The bottom caption bar belongs to the other result states (shoot,
+ * video, live), which the approved picture does not touch — so this is additive, not a
+ * replacement of `.lookframe__cap` in general. */
+.lookframe__word {
+  position: absolute; inset: 0; z-index: 2;
+  display: grid; place-items: center;
+  font-size: clamp(11px, 2.4cqh, 13px); letter-spacing: 0.34em; text-indent: 0.34em;
+  text-transform: uppercase; color: rgba(245, 243, 237, 0.4);
+}
 
 /* The live view: a real camera feed in the mirror. Mirrored horizontally, because a mirror
  * is what the viewer expects to be standing in front of — an unflipped feed reads as a video
@@ -827,6 +838,29 @@ body {
 }
 .camctl:hover { background: rgba(245,243,237,0.14); border-color: rgba(245,243,237,0.7); }
 .camctl:disabled { opacity: 0.35; cursor: default; }
+
+/* --- APPROVED: looks as a thumbnail strip, not a list ------------------------------
+ * Copied from the picture the owner approved. "Образ N" is the heading (not a step
+ * label), a one-line tally of what is in it sits under that, then a labelled row of
+ * square picks — the same shape language as the five item slots on the previous step,
+ * so the two screens read as one family. "Змінити речі" is a plain underlined line,
+ * not a button: it returns to the previous choice rather than committing to a new one. */
+.looklabel {
+  font-size: clamp(9px, 1.9cqh, 10px); letter-spacing: 0.14em;
+  color: rgba(245,243,237,0.5); flex: 0 0 auto;
+  margin-top: clamp(6px, 2.2cqh, 14px);
+}
+.lookthumbs { display: flex; gap: 6px; flex: 0 0 auto; margin-top: clamp(4px, 1.4cqh, 8px); }
+.lookthumb {
+  position: relative; flex: 1 1 0; aspect-ratio: 3 / 4;
+  border: 1px solid rgba(245, 243, 237, 0.18);
+  background: rgba(245, 243, 237, 0.04);
+  display: grid; place-items: center; overflow: hidden;
+  cursor: pointer;
+}
+.lookthumb[aria-pressed="true"] { border-color: var(--milk); }
+.lookthumb:disabled { opacity: 0.4; cursor: default; }
+.lookthumb__img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
 /* --- several looks, one of them the context ---------------------------------------- */
 .lookpicks {
