@@ -79,6 +79,9 @@ body {
   position: sticky; top: 0; height: 800px;   /* pixels; script sets the real value */
   overflow: hidden;
   background: #000;
+  /* The approved panel scale is measured in cqi against THIS box — 1.02cqi is 1.02% of the
+   * stage width. See the .glass font-size below. */
+  container-type: inline-size;
 }
 
 /* FRAME SPACE.
@@ -236,6 +239,11 @@ body {
   left: var(--gx, 50%); top: var(--gy, 20%);
   width: var(--gw, 30%); height: var(--gh, 60%);
   container-type: size;
+  /* THE PANEL'S TYPE SCALES WITH THE MIRROR IT SITS ON — the approved figure, copied from
+   * ui-concepts. Without it the em chain inside the glass starts at the body size, so the
+   * mirror shrank and the text did not. Everything in the action row below is in em and
+   * therefore rides on this one number. */
+  font-size: clamp(10.5px, 1.02cqi, 19px);
   display: flex; flex-direction: column; gap: clamp(5px, 1.8cqh, 14px);
   padding: clamp(16px, 5cqh, 38px) clamp(14px, 4cqw, 30px);
   color: var(--milk);
@@ -756,43 +764,69 @@ body {
   position: static; background: none; padding: 0;
 }
 
-/* ============================= ACTIONS ON THE SELECTED LOOK =========================
+/* ===================== THE APPROVED ACTION ROW — layout 3, variant 2 ================
  *
- * Replaces the old SIGNATURE block, which was a filled button reading "Замовити
- * фотосесію" — an invented transaction. The canon is explicit that nothing is sold here:
- * no prices, no basket, no ordering. The verbs are згенерувати, приміряти, подивитись.
+ * Copied from ui-concepts/index.html, which is what the owner approved on a picture. The
+ * geometry is the point: four short words in ONE row across the mirror, each over a dim
+ * underline, and exactly one full sentence beneath belonging to the active action.
  *
- * Photoshoot and fashion video are SIBLINGS in one row at equal weight. The canon says the
- * fashion style must be a full offer, not an add-on to the shoot, and a row of two makes
- * that structural rather than a matter of wording.
+ * What this replaces: two rows of two tiles, each with its own bordered box and its own
+ * little sub-verb. Four boxes shouting four half-sentences is what the single row was
+ * designed to stop — and it is also why the panel kept overrunning short mirrors.
  *
- * These blocks exist only once a look with things in it is visible — before that the viewer
- * may still change the things, so an action on the look would act on nothing. */
-.acts2 {
-  display: grid; grid-template-columns: 1fr 1fr; gap: clamp(5px, 1.6cqh, 9px);
-  flex: 0 0 auto; margin-top: clamp(6px, 2cqh, 12px);
+ * Sizes are in em on purpose. The chain starts at .glass's own font-size, which is tied to
+ * the mirror's width, so the row scales with the surface it is painted on rather than with
+ * the window. */
+.actwrap { flex: 0 0 auto; margin-top: 1.1em; }
+
+.acts {
+  display: flex; flex-direction: row; align-items: baseline;
+  align-self: stretch; width: 100%;
+  justify-content: space-between; gap: 0.9em;
 }
+
 .act {
-  display: flex; flex-direction: column; gap: 3px; text-align: left;
-  font: inherit; cursor: pointer;
-  padding: clamp(7px, 2.4cqh, 13px) clamp(9px, 2.6cqw, 14px);
+  position: relative;
+  text-align: left; white-space: nowrap;
+  padding: 0 0 0.34em;
+  font: 400 1em/1.3 ui-sans-serif, -apple-system, sans-serif;
+  letter-spacing: 0.005em;
+  color: var(--milk);
+  background: none; border: 0; cursor: pointer;
+}
+.act b { font-weight: inherit; }
+/* The underline is the whole indicator: bright under the active word, 22% under the rest. */
+.act::after {
+  content: ""; position: absolute;
+  left: 0; right: auto; bottom: 0; width: 100%; height: 1px;
+  opacity: 0.22;
+  background: linear-gradient(to right, rgba(245,243,237,0.8), rgba(245,243,237,0.25));
+}
+.act[data-on="1"]::after { opacity: 1; }
+.act[data-on="0"] { color: #C9CAC4; }
+.act:disabled { opacity: 0.4; cursor: default; }
+.act:focus-visible { outline: 2px solid var(--milk); outline-offset: 3px; }
+
+/* ONE sentence, under the row, belonging to whichever action is active or hovered. */
+.actsay {
+  margin-top: 0.7em;
+  font: 400 0.7em/1.45 ui-monospace, Menlo, monospace;
+  letter-spacing: 0.01em;
+  color: #C4C5BF;
+}
+
+/* The camera's own controls are not part of the approved row — they belong to the live
+ * window, so they stay a plain control rather than a fifth action word. */
+.camctl {
+  flex: 0 0 auto; margin-top: 0.8em; align-self: flex-start;
+  font: 400 0.78em/1.3 ui-monospace, Menlo, monospace;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  padding: 0.7em 1.2em; cursor: pointer;
   color: var(--milk); background: rgba(245,243,237,0.07);
-  border: 1px solid rgba(245,243,237,0.34);
-  transition: background 200ms, border-color 200ms;
+  border: 1px solid rgba(245,243,237,0.4);
 }
-.act:hover:not(:disabled) { background: rgba(245,243,237,0.14); border-color: rgba(245,243,237,0.7); }
-.act[aria-pressed="true"] { border-color: var(--milk); background: rgba(245,243,237,0.16); }
-.act:disabled { opacity: 0.35; cursor: default; }
-.act:focus-visible { outline: 2px solid var(--milk); outline-offset: 2px; }
-.act__t { font-size: clamp(10px, 2.4cqh, 13px); line-height: 1.25; }
-.act__d {
-  font-size: clamp(9px, 1.9cqh, 10px); letter-spacing: 0.16em; text-transform: uppercase;
-  color: rgba(245,243,237,0.6);
-}
-/* The OMNI 3 branch spans the row: it only exists once a background has been chosen, so it
- * is a consequence of a decision rather than a fifth equal option. */
-.act--wide { grid-column: 1 / -1; margin-top: clamp(5px, 1.6cqh, 9px); }
-.act--wide .act__d { color: rgba(228, 205, 160, 0.86); }
+.camctl:hover { background: rgba(245,243,237,0.14); border-color: rgba(245,243,237,0.7); }
+.camctl:disabled { opacity: 0.35; cursor: default; }
 
 /* --- several looks, one of them the context ---------------------------------------- */
 .lookpicks {
@@ -850,10 +884,12 @@ body {
  * plus four action blocks overran it. What goes is the second line inside each action — the
  * offer itself survives, because hiding an action is hiding a feature. `.glass` is a size
  * container, so this asks the mirror's own height, not the window's. */
+/* A short mirror tightens the row rather than dropping anything from it: with one row and
+ * one sentence there is nothing left that can be cut without cutting a feature. */
 @container (max-height: 400px) {
-  .act__d { display: none; }
+  .actwrap { margin-top: 0.7em; }
+  .actsay { margin-top: 0.45em; }
   .lookframe__cap { letter-spacing: 0.1em; }
-  .acts2 { margin-top: clamp(4px, 1.4cqh, 8px); }
 }
 @container (max-height: 320px) {
   .glass__rows--show { display: none; }
@@ -966,7 +1002,7 @@ body:not([data-ready="1"]) .stage { visibility: hidden; }
 }
 .glass__eyebrow, .glass__h, .glass__lede, .glass__hint,
 .glass__row, .count, .drop__t, .drop__n, .secondary,
-.rowpick__item, .trail__i, .act__t, .act__d, .lookpick__d, .pslot__t {
+.rowpick__item, .trail__i, .act, .actsay, .lookpick__d, .pslot__t {
   text-shadow: 0 1px 2px rgba(0,0,0,0.55), 0 0 16px rgba(0,0,0,0.72);
 }
 

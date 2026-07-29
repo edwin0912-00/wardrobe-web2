@@ -59,6 +59,27 @@
   ];
   var BACKGROUNDS = ['ця квартира', 'бетонна галерея', 'ранкове місто', 'студія, нейтральний фон'];
 
+  /* THE APPROVED ACTION ROW — layout 3, variant 2, copied verbatim from
+   * ui-concepts/index.html. Not paraphrased and not re-worded: the owner approved these four
+   * words and these four sentences on a picture, so they are data, not copy to improve.
+   *
+   * The shape matters as much as the words. FOUR SHORT WORDS in one row across the mirror,
+   * each over a dim underline, and exactly ONE full sentence underneath belonging to whichever
+   * action is active. The build this replaces had two rows of two tiles, each carrying its own
+   * little sub-verb — four sentences competing at once, which is what the row was designed to
+   * stop.
+   *
+   * Note what `bg` promises: change the background AND shoot video on it. The separate OMNI
+   * button is gone because this sentence already covers it — the approved layout has four
+   * actions, not five. */
+  var ACTS = {
+    shoot: ['Фотосесія',  'зняти фотосесію у вибраному стилі'],
+    fash:  ['Фешн-відео', 'зняти відео у фешн-стилі'],
+    bg:    ['Новий фон',  'змінити фон і зняти відео на ньому'],
+    live:  ['Примірка',   'приміряти зараз живою камерою']
+  };
+  var ACT_ORDER = ['shoot', 'fash', 'bg', 'live'];
+
   function create(opts) {
     opts = opts || {};
     var askRoot = document.querySelector('[data-ui-ask]') || document.querySelector('[data-ui-state]');
@@ -283,16 +304,13 @@
             '<video class="lookframe__cam" data-cam autoplay playsinline muted></video>' +
             '<span class="lookframe__cap">камера · ' + esc(BACKGROUNDS[current().bg != null ? current().bg : 0]) + '</span>' +
           '</div>' +
-          '<button class="act act--wide" type="button" data-cam-stop>' +
-            '<span class="act__t">Вимкнути камеру</span>' +
-            '<span class="act__d">потік зупиниться</span></button>';
+          '<button class="camctl" type="button" data-cam-stop>Вимкнути камеру</button>';
       }
       return '<div class="lookframe" data-state="camoff">' +
           '<span class="lookframe__cap">' + (camError ? esc(camError) : 'камера вимкнена') + '</span>' +
         '</div>' +
-        '<button class="act act--wide" type="button" data-cam-start>' +
-          '<span class="act__t">Увімкнути камеру</span>' +
-          '<span class="act__d">' + (camError ? 'спробувати ще' : 'браузер спитає дозвіл') + '</span></button>';
+        '<button class="camctl" type="button" data-cam-start>' +
+          (camError ? 'Спробувати ще' : 'Увімкнути камеру') + '</button>';
     }
 
     /* Every result frame carries the same admission: no render is attached. The viewer's own
@@ -307,34 +325,30 @@
       '</div>';
     }
 
+    /* view uses 'video'; the approved table calls the same thing 'fash'. One mapping, here. */
+    function activeAct() {
+      return view === 'video' ? 'fash'
+           : view === 'shoot' || view === 'live' ? view
+           : bgOpen ? 'bg' : null;
+    }
+
     function actionBlocks() {
-      var l = current();
-      /* PHOTOSHOOT AND FASHION VIDEO ARE SIBLINGS, not a shoot with a video bolted on. The
-       * canon is explicit: the fashion style is one for now and it must be a full offer. So
-       * they sit in one row at equal weight, and neither is a footnote to the other. */
-      return '<div class="acts2">' +
-          '<button class="act" type="button" data-view="shoot" aria-pressed="' + (view === 'shoot' ? 'true' : 'false') + '">' +
-            '<span class="act__t">Фотозйомка в стилі</span>' +
-            '<span class="act__d">' + (l.shot ? 'зроблено' : 'згенерувати') + '</span></button>' +
-          '<button class="act" type="button" data-view="video" aria-pressed="' + (view === 'video' ? 'true' : 'false') + '">' +
-            '<span class="act__t">Фешн-відео</span>' +
-            '<span class="act__d">' + (l.video ? 'зроблено' : 'згенерувати') + '</span></button>' +
-        '</div>' +
-        '<div class="acts2">' +
-          '<button class="act" type="button" data-bgopen aria-pressed="' + (bgOpen ? 'true' : 'false') + '">' +
-            '<span class="act__t">Змінити фон</span>' +
-            '<span class="act__d">' + (l.bg != null ? esc(BACKGROUNDS[l.bg]) : 'обрати') + '</span></button>' +
-          '<button class="act" type="button" data-view="live" aria-pressed="' + (view === 'live' ? 'true' : 'false') + '">' +
-            '<span class="act__t">Приміряти лайв</span>' +
-            '<span class="act__d">камера</span></button>' +
-        '</div>' +
-        /* The OMNI 3 branch exists only once a background is chosen — it generates video ON
-         * that background, so without one there is nothing to generate onto. */
-        (l.bg != null
-          ? '<button class="act act--wide" type="button" data-view="video" data-omni>' +
-              '<span class="act__t">Відео на фоні «' + esc(BACKGROUNDS[l.bg]) + '»</span>' +
-              '<span class="act__d">згенерувати в OMNI 3</span></button>'
-          : '');
+      /* The approved mock always has exactly ONE action lit, and the sentence beneath belongs
+       * to it — `focus = focus || 'shoot'` in the concept. So the fallback applies to the
+       * underline as well as to the sentence: a sentence about a photoshoot with nothing lit
+       * leaves the reader hunting for which word it describes.
+       * Lit means "this is what the sentence is about", not "this has been chosen" — nothing
+       * is marked done by being read. */
+      var on = activeAct() || 'shoot';
+      var say = ACTS[on][1];
+      var row = ACT_ORDER.map(function (k) {
+        return '<button class="act" type="button" data-act="' + k + '"' +
+          ' data-on="' + (k === on ? '1' : '0') + '"><b>' + ACTS[k][0] + '</b></button>';
+      }).join('');
+      return '<div class="actwrap">' +
+          '<div class="acts">' + row + '</div>' +
+          '<div class="actsay" data-actsay>' + say + '</div>' +
+        '</div>';
     }
 
     function renderShow() {
@@ -449,6 +463,16 @@
         bgOpen = false; render(); return;
       }
       if (t.closest('[data-bgopen]')) { bgOpen = !bgOpen; render(); return; }
+      if ((b = t.closest('[data-act]'))) {
+        var k = b.getAttribute('data-act');
+        if (k === 'bg') { bgOpen = !bgOpen; render(); return; }
+        var want = k === 'fash' ? 'video' : k;
+        if (view === 'live' && want !== 'live') { stopCamera(); camError = ''; }
+        view = want;
+        var cur2 = current();
+        if (cur2) { if (want === 'shoot') cur2.shot = true; if (want === 'video') cur2.video = true; }
+        render(); return;
+      }
       if (t.closest('[data-cam-start]')) { startCamera(); return; }
       if (t.closest('[data-cam-stop]')) { stopCamera(); camError = ''; render(); return; }
       if (t.closest('[data-live-invite]')) { view = 'live'; render(); return; }
@@ -470,6 +494,27 @@
         return;
       }
       if ((b = t.closest('[data-back]')) && !b.disabled) { step = Math.max(0, step - 1); render(); return; }
+    });
+
+    /* HOVERING A WORD SWAPS THE SENTENCE, and nothing else moves.
+     * The approved mock keys the sentence off focus, so pointing at an action explains it
+     * before committing to it. Written straight into the one text node — a re-render here
+     * would rebuild the row under the cursor and drop the hover. */
+    ['pointerover', 'focusin'].forEach(function (type) {
+      document.addEventListener(type, function (ev) {
+        var a = ev.target.closest && ev.target.closest('[data-ui-show] [data-act]');
+        if (!a) return;
+        var say = showRoot.querySelector('[data-actsay]');
+        var k = a.getAttribute('data-act');
+        if (say && ACTS[k]) say.textContent = ACTS[k][1];
+      });
+    });
+    /* Leaving the row puts the active action's own sentence back. */
+    document.addEventListener('pointerout', function (ev) {
+      var row = ev.target.closest && ev.target.closest('[data-ui-show] .acts');
+      if (!row || (ev.relatedTarget && row.contains(ev.relatedTarget))) return;
+      var say = showRoot.querySelector('[data-actsay]');
+      if (say) say.textContent = ACTS[activeAct() || 'shoot'][1];
     });
 
     document.addEventListener('change', function (ev) {
