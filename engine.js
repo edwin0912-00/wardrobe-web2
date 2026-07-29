@@ -515,11 +515,11 @@
         stage.removeAttribute('data-screen');
       }
 
+      /* Just the number. This is a dev readout, not shipped UI — the leg fraction, leg
+       * name and "станція" word were noise for what it is actually used for: reading the
+       * current frame time while testing. */
       if (readout) {
-        readout.textContent =
-          'відрізок ' + (r.idx + 1) + '/' + legs.length + ' · ' + legs[r.idx].name +
-          '  ·  ' + (d && isFinite(d) ? v.currentTime.toFixed(2) : '—') + 's' +
-          (station ? '  ·  станція' : '');
+        readout.textContent = (d && isFinite(d) ? v.currentTime.toFixed(2) : '—') + 's';
       }
       lastWritten = p;
     }
