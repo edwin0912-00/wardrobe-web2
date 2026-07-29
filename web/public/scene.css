@@ -1544,6 +1544,11 @@
   background: rgba(255, 255, 255, .82);
 }
 
+.editorial-bible-stage[hidden],
+.editorial-gallery-stage[hidden] {
+  display: none !important;
+}
+
 .editorial-bible-stage {
   grid-template-rows: auto minmax(0, 1fr) auto;
   min-height: 560px;
@@ -1935,8 +1940,8 @@
   body.workflow-active.scene-active .scene-view,
   body.workflow-active.scene-active .scene-shell {
     height: 100%;
-    min-height: 0;
-  }
+  min-height: 0;
+}
 
   body.workflow-active.scene-active .result-panel[data-view="scene"] {
     max-height: 100%;

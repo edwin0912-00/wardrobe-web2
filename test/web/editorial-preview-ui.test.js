@@ -98,6 +98,7 @@ test('Fashion Shoot binds its style pack and keeps the initial identity check in
   assert.match(editorialUiSource, /async #autoApproveHero\(\)/);
   assert.match(editorialUiSource, /INTERNAL_STYLE_CHECK_SLOT = 'clean_identity_hero'/);
   assert.match(sceneCss, /\.editorial-style-preview\s*\{[\s\S]*?aspect-ratio:\s*4 \/ 5;/);
+  assert.match(sceneCss, /\.editorial-bible-stage\[hidden\],\s*\.editorial-gallery-stage\[hidden\]\s*\{\s*display:\s*none !important;/);
   assert.match(sceneCss, /\.editorial-start-shoot\s*\{[\s\S]*?animation:\s*editorial-start-pulse/);
 });
 
