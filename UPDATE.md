@@ -74,6 +74,15 @@ frame or a user-facing contact sheet.
   customer decision or a sixth frame. Public DOM smoke passed; no paid
   Fashion Shoot generation was started.
 
+### Pending beta deployment — screen audit / Real-time Look
+
+- **LIVE.01–04:** saved-look → consented camera iframe is wired. The visual
+  surface has been relabelled to WARDROBE / Real-time Look and no longer emits
+  a favicon 404. Provider readiness is verified but no paid session was run.
+- **VIDEO.01–04:** not live. The committed two-reference MotionService is not
+  yet registered by the beta server (`/api/motion/modes` = 404); the old
+  single-reference clip route remains disabled in the product UI by design.
+
 ## Current verification rule — 2026-07-29
 
 `BLOCK_STATUS.md` is the canonical concise map of pipeline blocks. Every

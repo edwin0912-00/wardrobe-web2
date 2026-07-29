@@ -86,7 +86,7 @@ async function startCamera() {
   clearTimeout(state.guideTimer);
   state.guideTimer = setTimeout(() => {
     $('#fit-guide').classList.add('is-complete');
-    status('POSITION LOCKED');
+    status('Позицію зафіксовано. Можна запускати Live.');
   }, 3_600);
   status('Відійди так, щоб було видно голову, торс і одяг до стегон.');
   ready();
@@ -131,7 +131,7 @@ async function signal(result) {
     state.stream.getTracks().forEach((track) => state.peer.addTrack(track, state.stream));
     state.peer.ontrack = (event) => {
       $('#camera').srcObject = event.streams[0] || new MediaStream([event.track]);
-      status('LUCY LIVE · transformed stream');
+      status('Real-time Look активний. Показуємо live-потік.');
     };
     state.peer.onconnectionstatechange = () => {
       const connectionState = state.peer?.connectionState;
@@ -168,7 +168,7 @@ async function startLive() {
   state.countdownTimer = setInterval(renderStatus, 250);
   state.timer = setTimeout(() => closeLive(
     $('#camera').srcObject === state.stream
-      ? '15 секунд завершено до отримання transformed stream.'
+      ? '15 секунд завершено до отримання live-потоку.'
       : '15 секунд завершено. Live автоматично зупинено.',
   ), SESSION_SECONDS * 1_000);
   state.connection = fal.realtime.connect(MODEL_ID, {
@@ -201,7 +201,7 @@ $('#reference-upload').addEventListener('change', (event) => loadReference(event
   event.target.value = '';
   $('#reference-status').textContent = error.message;
 }));
-$('#camera-start').addEventListener('click', () => startCamera().catch((error) => status(`Camera error: ${error.message}`)));
+$('#camera-start').addEventListener('click', () => startCamera().catch((error) => status(`Помилка камери: ${error.message}`)));
 $('#camera-stop').addEventListener('click', stopCamera);
 $('#lucy-start').addEventListener('click', () => startLive().catch((error) => closeLive(`Помилка: ${error.message}`)));
 $('#lucy-stop').addEventListener('click', () => closeLive());
@@ -223,6 +223,6 @@ if (selectedLookId) {
     'Hoodie + sneakers · READY',
     { publicProviderUrl: true },
   )
-    .then(() => status('Outfit готовий. Увімкни камеру.'))
+    .then(() => status('Образ готовий. Увімкни камеру.'))
     .catch((error) => status(`Помилка образу: ${error.message}`));
 }

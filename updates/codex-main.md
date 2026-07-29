@@ -369,6 +369,23 @@ weakened_checks: none.
 
 ---
 
+Task ID: BETA-SCREEN-AUDIT-001
+Product line: beta-placeholder
+State: READY_FOR_BETA_DEPLOY
+Change: audited public beta screens. Real-time Look is wired from a saved look
+to `/post-shoot-mvp.html?look=…&embed=1`; its user-facing shell now uses
+WARDROBE/Real-time Look and Ukrainian controls, with favicon loaded. The
+backend reports `provider_ready: true`; its paid 15-second session remains
+behind explicit consent.
+Verified blocker: `/api/motion/modes` returns 404. The newer two-reference
+MotionService and routes are committed but are not constructed or registered
+by `src/web/start.js`/`src/web/app.js`; it is not a live video route yet.
+Evidence: post-shoot/profile tests 16/16 PASS; browser visual pass found only
+the favicon 404, which this patch removes. No paid provider action was run.
+weakened_checks: none.
+
+---
+
 Task ID: BETA-LOOK-RESUME-001
 Protocol ACK: 5e4e0bb
 State: READY_FOR_BETA_DEPLOY
