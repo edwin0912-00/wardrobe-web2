@@ -30,6 +30,12 @@ agent may collapse these facts into a single "live" claim.
   structure and then probes the activated API.
 - The deploy-file allowlist now admits the whole hash-bound mood-card root;
   manifest inventory and SHA-256 verification still decide the exact files.
+- Beta release `release-95beffb-202607291945` is active and public health is
+  `ready`; its Fashion Shoot catalog reports 14 styles, 12 generation-ready,
+  and 10 `shoot.*` units. The generic deploy transaction remains incompatible
+  with the separately established beta runner (`com.madeforthisjob.beta`), so
+  it must be reconciled before it is used for beta again; it was not bypassed
+  for source code or content verification.
 
 ## Current release truth — 2026-07-27
 

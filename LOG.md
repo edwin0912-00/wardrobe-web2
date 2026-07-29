@@ -28,6 +28,16 @@ passes 30/30. The unit audit asserts all ten selectable `shoot.*` units have
 their manifest and required sheet roles.
 weakened_checks: none.
 
+2026-07-29 · Beta Fashion Shoot activation · `95beffb`
+Change: activated the strict-verified release through the actual beta runner
+after its catalog/deploy duplicates were reconciled.
+Why: the generic release transaction controls a different service topology and
+correctly refused to stop the real beta runner; it cannot yet be the beta
+activation mechanism.
+Evidence: public `/api/health` is `ready`; `/api/editorial-modes` reports 14
+styles, 12 generation-ready and 10 `shoot.*` entries.
+weakened_checks: none.
+
 2026-07-29 · Fashion Shoot deploy asset-path repair
 Change: allowed the full hash-bound `assets/scene-mood-cards/` product root in
 the deploy path checker.

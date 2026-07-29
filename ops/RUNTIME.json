@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0.0",
   "purpose": "Shared operational truth for every agent and every chat. Read it before touching the host or the provider; update it the moment you change either. Prose belongs in STATE.md; this file holds only facts a machine can check.",
-  "updated_at": "2026-07-29T17:15:00.000Z",
+  "updated_at": "2026-07-29T17:45:00.000Z",
   "updated_by": "codex-main",
   "host": {
     "role": "beta and production deployment host",
@@ -16,9 +16,9 @@
   },
   "beta": {
     "url": "https://beta.madeforthisjob.com",
-    "release": "release-1253aa3-20260729191158",
+    "release": "release-95beffb-202607291945",
     "health": "ready",
-    "verified_at": "2026-07-29T17:15:00.000Z"
+    "verified_at": "2026-07-29T17:45:00.000Z"
   },
   "generation": {
     "active_provider": "higgsfield",
