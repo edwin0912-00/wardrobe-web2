@@ -351,11 +351,10 @@ export class SceneUiController {
     const editorialLoading = document.createElement('p');
     editorialLoading.className = 'editorial-mode-unavailable';
     editorialLoading.textContent = 'Завантажуємо Fashion Shoot напрями…';
-    // Fashion Shoot is split into current `shoot.*` and legacy `editorial.*`
-    // grids. The former one-grid selector was removed from the markup; using
-    // it here aborted picker boot before either catalogue request could render.
+    // The Fashion Shoot picker has one grid containing complete `shoot.*`
+    // Creative Universe units. Do not dereference removed legacy markup here:
+    // doing so aborts picker boot before either catalogue can render.
     this.#element('#editorial-mode-grid-new').replaceChildren(editorialLoading);
-    this.#element('#editorial-mode-grid-legacy').replaceChildren();
     this.#setPickerTab(this.pickerTab);
     this.#element('#scene-picker-status').textContent = 'Завантажуємо доступні сцени…';
     this.editorialLoading = true;
