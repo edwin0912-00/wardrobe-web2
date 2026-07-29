@@ -166,6 +166,9 @@ export class VideoService {
     const metadata = {
       clipId,
       jobId: created.jobId,
+      providerKey: created.providerKey ?? 'higgsfield',
+      providerCreateAttempt: created.createAttempt ?? 1,
+      fallbackUsed: created.fallbackUsed === true,
       status: 'CREATED',
       mode: plan.mode,
       title: plan.title,
@@ -207,7 +210,10 @@ export class VideoService {
     await this.#store.save(clipId, clip);
 
     // Phase 2: wait for the job to finish
-    const finished = await this.#provider.waitForJob({ jobId: clip.jobId });
+    const finished = await this.#provider.waitForJob({
+      jobId: clip.jobId,
+      providerKey: clip.providerKey,
+    });
 
     if (!finished.url) {
       clip.status = 'FAILED';

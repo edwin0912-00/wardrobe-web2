@@ -253,6 +253,45 @@ test('getClip returns persisted metadata', async () => {
     assert.equal(loaded.jobId, 'job_test_123');
     assert.equal(loaded.surface, 'mirror');
     assert.equal(loaded.aspectRatio, '9:16');
+    assert.equal(loaded.providerKey, 'higgsfield');
+    assert.equal(loaded.providerCreateAttempt, 1);
+    assert.equal(loaded.fallbackUsed, false);
+  });
+});
+
+test('awaitAndFinalize polls only the provider persisted at create time', async () => {
+  await withTempDir(async (dir) => {
+    const calls = [];
+    const provider = {
+      async createJob() {
+        return {
+          jobId: 'openrouter-job-1',
+          providerKey: 'openrouter',
+          createAttempt: 1,
+          fallbackUsed: true,
+        };
+      },
+      async waitForJob(request) {
+        calls.push(request);
+        return { jobId: request.jobId, url: 'https://cdn.example/clip.mp4' };
+      },
+    };
+    const service = new VideoService({ provider, clipStore: new ClipStore(dir) });
+    const created = await service.createClip({
+      modeId: 'editorial_micro_moment',
+      surfaceId: 'tv',
+      sourceImagePath: '/tmp/locked-frame.png',
+    });
+
+    await service.awaitAndFinalize(created.clipId, {
+      downloadFn: makeStubDownload(),
+      ...makeStubQa(),
+    });
+
+    assert.deepEqual(calls, [{
+      jobId: 'openrouter-job-1',
+      providerKey: 'openrouter',
+    }]);
   });
 });
 
