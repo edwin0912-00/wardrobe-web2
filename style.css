@@ -141,7 +141,9 @@ body {
  *
  * The two numbers are the only things worth tuning and they live here, once. Defaults are
  * the page's own defaults — say a number and it is a one-line change. */
-:root { --grain-base: 0.16; --grain-move: 0.10; --grain-scale: 1; }
+/* --grain-base raised to 0.60 — the top of the "сила" slider tested in grain.html
+ * (range 0-60, i.e. 0-0.60). Owner asked for the tested maximum, not a new number. */
+:root { --grain-base: 0.60; --grain-move: 0.10; --grain-scale: 1; }
 
 .grain {
   position: absolute; inset: 0; pointer-events: none;
