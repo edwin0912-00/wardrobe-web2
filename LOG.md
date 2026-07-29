@@ -1275,3 +1275,15 @@ both succeed; focused non-billable suite is 20/20 PASS; beta health is `ready`;
 the API reports 16 backgrounds and 9 editorial-mode records; post-shoot page
 is HTTP 200; unconsented Lucy token request returns HTTP 409 before provider use.
 weakened_checks: none.
+
+2026-07-30 · Consolidated beta product release · `b94484b` → beta
+Change: integrated every completed deployable atom from the current block
+branches: drag/drop + HEIC, the restored Fashion Shoot catalog/style units,
+and the resumable Fashion Video runtime with its private source bridge.
+Why: committed agent work existed on isolated branches but was absent from the
+running beta release.
+Evidence: video 111/111 PASS; Fashion Shoot/Create Universe 11/11 PASS;
+product release 2/2 PASS; strict verifier PASS; public health ready; 16
+backgrounds, 19 Fashion Shoot previews, 17 generation modes, and 15 complete
+Create Universe units. Browser console errors: 0.
+weakened_checks: none.

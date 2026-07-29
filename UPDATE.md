@@ -708,6 +708,15 @@ facts.
 
 ## Latest events
 
+- 2026-07-30 — Consolidated beta release `b94484b3271ac37b509aeb99e216b32991767d9f`
+  is active with cache `product-b94484b3-a6876a734321`. It integrates all
+  currently completed deployable block commits: upload drag/drop + HEIC, all
+  restored Fashion Shoot style units, and Fashion Video runtime/private source
+  bridge. Strict release verification PASS; public health ready; browser
+  console errors 0. Catalog proof: 16 backgrounds, 19 previews, 17 generation
+  modes, 15 complete Create Universe units. No paid provider job was started.
+  `weakened_checks: none`.
+
 - 2026-07-30 — Drag-and-drop and HEIC are active on public beta. Release source
   is `6f1736779b799eb71171bafdcc35ede4efaad4a5`; cache token is
   `product-6f173677-40947f90c94b`. Browser proof used a real PNG drop and a real

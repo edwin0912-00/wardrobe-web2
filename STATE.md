@@ -430,3 +430,16 @@ be weakened to hide it.
 - Physical beta browser proof verified drag highlight, PNG drop, real HEIC
   decode, server draft persistence, reload, and restoration of both previews.
 - Active release cache: `product-6f173677-40947f90c94b`.
+
+## Consolidated public beta — 2026-07-30
+
+- Active source: `b94484b3271ac37b509aeb99e216b32991767d9f`.
+- Active cache: `product-b94484b3-a6876a734321`.
+- Catalog: 16 standard backgrounds; 19 Fashion Shoot previews; 17 Fashion
+  Shoot generation modes; 15 complete Create Universe units.
+- Fashion Video runtime, retry/resume, immutable receipts, semantic first/last
+  frame QA, Seedance job-set parsing and the private one-use source bridge are
+  deployed. The API route is live; a new paid generation was not spent during
+  this deployment.
+- Public browser root rendered with zero console errors. Drag/drop and HEIC
+  remain present.
