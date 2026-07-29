@@ -30,6 +30,18 @@ weakened_checks: none.
 ---
 
 Agent ID: codex-main
+Task ID: DESIGN-PIPELINE-DECK-CANON-001
+State: DONE
+Decision: operator-supplied `zeely-pipeline-deck.html` and `vt-bp.html` are
+recorded as the visual/narrative canon for the final post-result engineering
+deck, not as a claim that their old stage counts, providers or gates are live.
+Evidence: both source SHA-256 values and the exact adoption boundary are in
+`docs/references/PIPELINE_DECK_FORMAT_CANON_UA.md`.
+weakened_checks: none.
+
+---
+
+Agent ID: codex-main
 Task ID: BETA-MINIMAL-NEXT-BLOCKS-001
 State: DONE — local code and focused test.
 Decision: make the three agreed post-master blocks inspectable in beta without
