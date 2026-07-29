@@ -354,6 +354,19 @@ implemented and separately proved.
 
 ---
 
+Task ID: BETA-FASHION-SHOOT-PROGRESS-001
+Product line: beta-placeholder
+State: READY_FOR_BETA_DEPLOY
+Change: replace the leaked internal Shoot Bible screen with a persistent
+preview of the selected Fashion Shoot style and a visible `0/5` to `5/5`
+meter. The five output cards remain the sole customer-facing progress/result;
+the six-slot Bible and its approval button remain server-only.
+Evidence: `node --test test/web/editorial-preview-ui.test.js
+test/web/profile-ui-flow.test.js` — 17/17 PASS.
+weakened_checks: none.
+
+---
+
 Task ID: BETA-LOOK-RESUME-001
 Protocol ACK: 5e4e0bb
 State: READY_FOR_BETA_DEPLOY

@@ -77,8 +77,11 @@ test('catalog is production ACTIVE and only READY modes become controls', () => 
 
 test('Fashion Shoot binds its style pack and keeps the initial identity check internal', () => {
   assert.match(indexHtml, /id="editorial-bible-stage"/);
-  assert.match(indexHtml, /id="editorial-approve-bible"[^>]*>Підтвердити style pack<\/button>/);
-  assert.match(indexHtml, /Style pack → внутрішня QA-перевірка → 5 fashion-кадрів/);
+  assert.match(indexHtml, /id="editorial-style-preview-image"/);
+  assert.match(indexHtml, /id="editorial-progress-meter"/);
+  assert.match(indexHtml, /id="editorial-approve-bible"[^>]*hidden/);
+  assert.match(editorialUiSource, /function modePreviewUrl\(mode\)/);
+  assert.match(editorialUiSource, /internal six-slot Bible remains a server artifact/);
   assert.match(editorialUiSource, /shoot\?\.status !== 'BIBLE_PENDING_APPROVAL'/);
   assert.match(editorialUiSource, /shoot\?\.status !== 'HERO_PENDING_APPROVAL'/);
   assert.match(editorialUiSource, /expected_bible_sha256|expectedBibleSha256/);
@@ -130,7 +133,8 @@ test('gallery exposes five Fashion Shoot frames, not its internal style check', 
   assert.match(editorialUiSource, /dialog\.showModal\(\)/);
   assert.match(editorialUiSource, /function fashionFrames\(shoot\)/);
   assert.match(editorialUiSource, /\.filter\(\(shot\) => shot\?\.slot !== INTERNAL_STYLE_CHECK_SLOT\)/);
-  assert.match(editorialUiSource, /\/5 fashion-кадрів пройшли QA/);
+  assert.match(editorialUiSource, /\/5 fashion-кадрів готово/);
+  assert.match(editorialUiSource, /editorial-progress-meter/);
   assert.match(
     portraitCss,
     /body\.workflow-active\.scene-active\s*\{[\s\S]*?height:\s*100svh;[\s\S]*?overflow:\s*hidden;/,

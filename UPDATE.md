@@ -66,6 +66,13 @@ frame or a user-facing contact sheet.
   consent. Fashion Video is visibly disabled until the two-reference input
   contract exists. Code test and public DOM smoke pass; no generation was run.
 
+### Pending beta deployment — Fashion Shoot visible progress
+
+- **UNIVERSE.04 / Fashion Shoot:** selected-style preview is always visible.
+  The customer sees a meter and five output cards only; the service retains
+  its internal Bible and primary identity check without rendering either as a
+  customer decision or a sixth frame.
+
 ## Current verification rule — 2026-07-29
 
 `BLOCK_STATUS.md` is the canonical concise map of pipeline blocks. Every

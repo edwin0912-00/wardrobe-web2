@@ -413,22 +413,24 @@
 
               <section id="editorial-bible-stage" class="editorial-bible-stage" aria-labelledby="editorial-bible-title">
                 <header>
-                  <div><p>SHOOT BIBLE · 6 КАДРІВ</p><h4 id="editorial-bible-title">План фотосесії</h4></div>
+                  <div><p>ВИБРАНИЙ СТИЛЬ</p><h4 id="editorial-bible-title">Fashion Shoot</h4></div>
                   <span id="editorial-mode-name">Fashion Shoot</span>
                 </header>
-                <p id="editorial-bible-system" class="editorial-bible-system">Завантажуємо візуальну систему…</p>
-                <div id="editorial-bible-shots" class="editorial-bible-shots" aria-label="Внутрішній план style pack" hidden></div>
+                <figure class="editorial-style-preview">
+                  <img id="editorial-style-preview-image" alt="Приклад обраного стилю Fashion Shoot">
+                  <figcaption id="editorial-bible-system">Завантажуємо приклад стилю…</figcaption>
+                </figure>
                 <footer>
-                  <p id="editorial-message" aria-live="polite">Фіксуємо master-образ і план кадрів</p>
-                  <button id="editorial-approve-bible" class="scene-text-button primary" type="button">Підтвердити style pack</button>
+                  <p id="editorial-message" aria-live="polite">Готуємо фотосесію…</p>
+                  <button id="editorial-approve-bible" class="scene-text-button primary" type="button" hidden>Внутрішня перевірка</button>
                   <button id="editorial-cancel-bible" class="scene-text-button" type="button">Скасувати</button>
                 </footer>
               </section>
 
               <section id="editorial-gallery-stage" class="editorial-gallery-stage" hidden>
                 <header>
-                  <div><p>FASHION SHOOT · SERVER JOB</p><strong id="editorial-series-progress">0/5 fashion-кадрів пройшли QA</strong></div>
-                  <span>Внутрішня QA-перевірка · потім concurrency 2</span>
+                  <div><p>FASHION SHOOT · ПРОГРЕС</p><strong id="editorial-series-progress">0/5 fashion-кадрів готово</strong></div>
+                  <label class="editorial-progress-wrap"><progress id="editorial-progress-meter" max="5" value="0">0 з 5</progress><span id="editorial-progress-detail">Очікуємо запуск</span></label>
                 </header>
                 <div id="editorial-gallery" class="editorial-gallery" aria-label="Кадри Fashion Shoot"></div>
                 <footer class="editorial-controls">

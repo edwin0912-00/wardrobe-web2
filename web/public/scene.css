@@ -1508,7 +1508,7 @@
 }
 
 .editorial-bible-stage {
-  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr) auto;
   gap: 9px;
   padding: 14px;
 }
@@ -1555,68 +1555,31 @@
   white-space: nowrap;
 }
 
-.editorial-bible-system {
+.editorial-style-preview {
+  display: grid;
+  grid-template-columns: minmax(140px, 28%) minmax(0, 1fr);
+  gap: 12px;
+  min-height: 0;
   margin: 0;
   overflow: hidden;
-  color: var(--scene-muted);
-  font-size: 9px;
-  line-height: 1.35;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.editorial-bible-shots {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  grid-template-rows: repeat(2, minmax(0, 1fr));
-  gap: 7px;
-  min-height: 0;
-  overflow: hidden;
-}
-
-.editorial-bible-shot {
-  display: grid;
-  min-width: 0;
-  min-height: 0;
-  padding: 9px;
-  overflow: hidden;
   border: 1px solid var(--scene-line);
-  border-radius: 12px;
+  border-radius: 14px;
   background: #f6f8f2;
-  align-content: center;
 }
 
-.editorial-bible-shot small {
-  color: #74a127;
-  font-size: 8px;
-  font-weight: 900;
+.editorial-style-preview img {
+  width: 100%;
+  height: 150px;
+  object-fit: cover;
+  background: #e9ede3;
 }
 
-.editorial-bible-shot strong,
-.editorial-bible-shot span,
-.editorial-bible-shot p {
-  display: block;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.editorial-bible-shot strong {
-  margin-top: 4px;
-  font-size: 11px;
-}
-
-.editorial-bible-shot span {
-  margin-top: 3px;
+.editorial-style-preview figcaption {
+  align-self: center;
+  padding: 12px 14px 12px 0;
   color: var(--scene-deep);
-  font-size: 8px;
-}
-
-.editorial-bible-shot p {
-  margin: 5px 0 0;
-  color: var(--scene-muted);
-  font-size: 8px;
+  font-size: 12px;
+  line-height: 1.42;
 }
 
 .editorial-loading {
@@ -1654,6 +1617,26 @@
   display: block;
   margin-top: 2px;
   font-size: 12px;
+}
+
+.editorial-progress-wrap {
+  display: grid;
+  justify-items: end;
+  gap: 4px;
+  min-width: 210px;
+}
+
+.editorial-progress-wrap progress {
+  width: min(100%, 220px);
+  height: 7px;
+  accent-color: #8dbb32;
+}
+
+.editorial-progress-wrap span {
+  color: var(--scene-muted);
+  font-size: 9px;
+  font-weight: 700;
+  text-align: right;
 }
 
 .editorial-gallery {

@@ -65,6 +65,15 @@ function outputDownloadUrl(output) {
   );
 }
 
+function modePreviewUrl(mode) {
+  const direct = String(mode?.preview_url ?? '');
+  if (direct.startsWith('/api/editorial-modes/')) return direct;
+  const modeId = String(mode?.mode_id ?? '');
+  const version = String(mode?.mode_version ?? mode?.version ?? '');
+  if (!modeId || !version) return null;
+  return `/api/editorial-modes/${encodeURIComponent(modeId)}/${encodeURIComponent(version)}/preview`;
+}
+
 // The first engine slot proves that the saved person and approved look still
 // hold under the selected style. It is a QA prerequisite, never one of the
 // five Fashion Shoot photographs the user receives.
@@ -400,10 +409,10 @@ export class EditorialShootUiController {
     const shoot = this.shoot;
     this.#show();
     const bibleReview = shoot.status === 'BIBLE_PENDING_APPROVAL';
-    // Picking a style is the decision; the plan of six frames is not something
-    // the user asked to review. The stage stays hidden and the shoot advances on
-    // its own, so the screen shows frames from the first moment.
-    this.#element('#editorial-bible-stage').hidden = true;
+    // The style is visible as a visual reference throughout the job. The
+    // internal six-slot Bible remains a server artifact; it is never rendered
+    // as a customer-facing approval or sixth output.
+    this.#element('#editorial-bible-stage').hidden = false;
     this.#element('#editorial-gallery-stage').hidden = false;
     this.#element('#editorial-phase').textContent = shoot.phase || shoot.status;
     this.#element('#editorial-message').textContent = displayShootMessage(shoot);
@@ -436,43 +445,32 @@ export class EditorialShootUiController {
   }
 
   #renderBible() {
-    const host = this.#element('#editorial-bible-shots');
-    if (!this.bible) {
-      const loading = document.createElement('p');
-      loading.className = 'editorial-loading';
-      loading.textContent = 'Завантажуємо точний план кадрів…';
-      host.replaceChildren(loading);
-      return;
+    const title = this.bible?.title || modeName(this.mode);
+    const system = this.bible?.visual_system || this.mode?.visual_system || 'Авторська fashion-система';
+    const preview = this.#element('#editorial-style-preview-image');
+    this.#element('#editorial-bible-title').textContent = title;
+    this.#element('#editorial-bible-system').textContent = system;
+    const url = modePreviewUrl(this.mode);
+    if (url) {
+      preview.src = url;
+      preview.hidden = false;
+    } else {
+      preview.removeAttribute('src');
+      preview.hidden = true;
     }
-    this.#element('#editorial-bible-title').textContent = this.bible.title || modeName(this.mode);
-    this.#element('#editorial-bible-system').textContent = this.bible.visual_system
-      || this.mode?.visual_system
-      || 'Авторська fashion-система';
-    const cards = (this.bible.shots ?? []).map((shot, index) => {
-      const card = document.createElement('article');
-      card.className = 'editorial-bible-shot';
-      const number = document.createElement('small');
-      number.textContent = String(index + 1).padStart(2, '0');
-      const name = document.createElement('strong');
-      name.textContent = shot.title || editorialShotLabel(shot.slot);
-      const camera = document.createElement('span');
-      const lens = Number.isFinite(Number(shot.camera?.lens_mm))
-        ? `${shot.camera.lens_mm} мм`
-        : '4:5';
-      camera.textContent = `${lens} · ${String(shot.camera?.framing ?? '').replaceAll('_', ' ')}`;
-      const objective = document.createElement('p');
-      objective.textContent = shot.objective || shot.environment || 'Кадр із зафіксованою зовнішністю та образом';
-      card.append(number, name, camera, objective);
-      return card;
-    });
-    host.replaceChildren(...cards);
   }
 
   #renderGallery() {
     const shots = fashionFrames(this.shoot);
-    this.#element('#editorial-series-progress').textContent = `${shots.filter(
+    const completed = shots.filter(
       (shot) => ['QA_PASSED', 'APPROVED'].includes(shot.status),
-    ).length}/5 fashion-кадрів пройшли QA`;
+    ).length;
+    const meter = this.#element('#editorial-progress-meter');
+    meter.value = completed;
+    this.#element('#editorial-series-progress').textContent = `${completed}/5 fashion-кадрів готово`;
+    this.#element('#editorial-progress-detail').textContent = completed === 5
+      ? 'Усі кадри пройшли QA'
+      : displayShootMessage(this.shoot);
     const cards = shots.map((shot, index) => {
       const card = document.createElement('article');
       card.className = 'editorial-shot-card';
@@ -568,7 +566,7 @@ export class EditorialShootUiController {
     const cancel = this.#element('#editorial-cancel');
     const cancelBible = this.#element('#editorial-cancel-bible');
     const remove = this.#element('#editorial-delete');
-    approveBible.hidden = shoot?.status !== 'BIBLE_PENDING_APPROVAL';
+    approveBible.hidden = true;
     // The initial style check is an internal QA barrier. Its exact hash is
     // still bound before output frames begin, but it is never a user decision.
     approveHero.hidden = true;
