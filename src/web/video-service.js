@@ -93,6 +93,25 @@ export class ClipStore {
     return filePath;
   }
 
+  async saveIdentityItemQa(clipId, receiptBytes) {
+    const dir = this.clipDir(clipId);
+    await mkdir(dir, { recursive: true });
+    const filePath = path.join(dir, 'identity-item-qa.json');
+    try {
+      await writeFile(filePath, receiptBytes, { flag: 'wx' });
+    } catch (error) {
+      if (error?.code !== 'EEXIST') throw error;
+      const existing = await readFile(filePath);
+      if (!existing.equals(receiptBytes)) {
+        throw new VideoServiceError('Identity/item QA receipt is immutable', {
+          code: 'QA_RECEIPT_CONFLICT',
+          status: 409,
+        });
+      }
+    }
+    return filePath;
+  }
+
   videoPath(clipId) {
     return path.join(this.clipDir(clipId), 'clip.mp4');
   }
@@ -252,6 +271,80 @@ export class VideoService {
   }
 
   /**
+   * Attach a provider job after the provider accepted a request but its create
+   * response could not be parsed. Recovery is strict: the provider's persisted
+   * request must match the immutable local prompt, aspect and duration.
+   */
+  async recoverSubmittedClip(clipId, {
+    jobId,
+    providerKey = 'higgsfield',
+    raw,
+    createAttempt = 1,
+  } = {}) {
+    const clip = await this.#store.load(clipId);
+    if (!clip) {
+      throw new VideoServiceError('Clip not found', { code: 'CLIP_NOT_FOUND', status: 404 });
+    }
+    if (clip.status !== 'SUBMITTING' || clip.jobId) {
+      throw new VideoServiceError('Only an unbound SUBMITTING clip can be recovered', {
+        code: 'CLIP_STATUS_INVALID',
+        status: 409,
+      });
+    }
+    const params = raw?.params;
+    const exactMatch = typeof jobId === 'string'
+      && jobId.length > 0
+      && params?.prompt === clip.prompt
+      && params?.aspect_ratio === clip.aspectRatio
+      && Number(params?.duration) === clip.durationSeconds
+      && (raw?.job_set_type ?? params?.model) === 'seedance_2_0';
+    if (!exactMatch) {
+      throw new VideoServiceError('Provider job does not match the immutable clip request', {
+        code: 'RECOVERY_JOB_MISMATCH',
+        status: 409,
+      });
+    }
+
+    const recoveredAt = new Date(this.#clock()).toISOString();
+    const receipt = {
+      schema_version: '1.0.0',
+      clip_id: clipId,
+      created_at: clip.createdAt,
+      recovered_at: recoveredAt,
+      provider: providerKey,
+      provider_create_attempt: createAttempt,
+      fallback_used: false,
+      request: {
+        source_sha256: clip.sourceSha256,
+        prompt: clip.prompt,
+        aspect_ratio: clip.aspectRatio,
+        duration_seconds: clip.durationSeconds,
+      },
+      response: {
+        job_id: jobId,
+        payload: raw,
+      },
+    };
+    const receiptBytes = Buffer.from(`${JSON.stringify(receipt, null, 2)}\n`);
+    const createReceiptSha256 = sha256(receiptBytes);
+    await this.#store.saveCreateReceipt(clipId, receiptBytes);
+    const metadata = {
+      ...clip,
+      jobId,
+      providerKey,
+      providerCreateAttempt: createAttempt,
+      fallbackUsed: false,
+      status: 'CREATED',
+      createReceiptSha256,
+      createReceiptFile: 'create-receipt.json',
+      recoveredAt,
+      updatedAt: recoveredAt,
+    };
+    await this.#store.save(clipId, metadata);
+    return { clipId, jobId, status: 'CREATED', recovered: true };
+  }
+
+  /**
    * Wait for a created job to finish, download the result, run QA.
    *
    * `downloadFn(url)` must return the video bytes as a Buffer/Uint8Array.
@@ -369,6 +462,52 @@ export class VideoService {
       probeFn,
       extractFrameFn,
     });
+  }
+
+  /**
+   * Persist the independently evaluated first/last-frame identity and item QA.
+   * Technical MP4 QA cannot override this semantic gate.
+   */
+  async recordIdentityItemQa(clipId, receipt) {
+    const clip = await this.#store.load(clipId);
+    if (!clip) {
+      throw new VideoServiceError('Clip not found', { code: 'CLIP_NOT_FOUND', status: 404 });
+    }
+    const exactBinding = receipt?.clip_id === clip.clipId
+      && receipt?.job_id === clip.jobId
+      && receipt?.source_sha256 === clip.sourceSha256;
+    const firstDecision = receipt?.results?.first?.decision;
+    const lastDecision = receipt?.results?.last?.decision;
+    if (!exactBinding || typeof firstDecision !== 'string' || typeof lastDecision !== 'string') {
+      throw new VideoServiceError('Identity/item QA does not match the persisted clip', {
+        code: 'QA_RECEIPT_MISMATCH',
+        status: 409,
+      });
+    }
+    const receiptBytes = Buffer.from(`${JSON.stringify(receipt, null, 2)}\n`);
+    const identityItemQaSha256 = sha256(receiptBytes);
+    await this.#store.saveIdentityItemQa(clipId, receiptBytes);
+    const pass = firstDecision === 'PASS' && lastDecision === 'PASS';
+    const updated = {
+      ...clip,
+      status: pass ? clip.status : 'FAIL',
+      identityItemQa: {
+        pass,
+        firstDecision,
+        lastDecision,
+        evaluator: receipt.evaluator ?? null,
+      },
+      identityItemQaSha256,
+      identityItemQaFile: 'identity-item-qa.json',
+      updatedAt: new Date(this.#clock()).toISOString(),
+    };
+    await this.#store.save(clipId, updated);
+    return {
+      clipId,
+      status: updated.status,
+      identityItemQa: updated.identityItemQa,
+      identityItemQaSha256,
+    };
   }
 
   /** Load clip metadata. */

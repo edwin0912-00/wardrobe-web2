@@ -184,8 +184,26 @@ function parseJson(stdout, what) {
 }
 
 function findJobId(payload) {
-  const candidates = [payload?.job_id, payload?.id, payload?.job?.id, payload?.jobs?.[0]?.id];
-  return candidates.find((value) => typeof value === 'string' && SAFE_JOB_ID.test(value)) ?? null;
+  const queue = [payload];
+  const seen = new Set();
+  while (queue.length > 0) {
+    const value = queue.shift();
+    if (!value || typeof value !== 'object' || seen.has(value)) continue;
+    seen.add(value);
+    const candidates = [
+      value.job_id,
+      value.id,
+      value.job?.id,
+      value.job_ids?.[0],
+      value.jobs?.[0]?.id,
+    ];
+    const match = candidates.find(
+      (candidate) => typeof candidate === 'string' && SAFE_JOB_ID.test(candidate),
+    );
+    if (match) return match;
+    if (Array.isArray(value)) queue.push(...value);
+  }
+  return null;
 }
 
 function findVideoUrl(payload) {

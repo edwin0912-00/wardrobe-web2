@@ -6,7 +6,7 @@ const execFileAsync = promisify(execFile);
 /**
  * Probe a video file using ffprobe.
  *
- * Returns { durationSeconds, width, height, hasAudio }.
+ * Returns { durationSeconds, width, height, fps, hasAudio }.
  * The `ffprobePath` option lets tests or environments override the binary.
  */
 export async function probeVideo(videoPath, { ffprobePath = 'ffprobe' } = {}) {
@@ -27,6 +27,7 @@ export async function probeVideo(videoPath, { ffprobePath = 'ffprobe' } = {}) {
 
   let width = 0;
   let height = 0;
+  let fps = 0;
   let hasAudio = false;
 
   if (data.streams) {
@@ -34,6 +35,13 @@ export async function probeVideo(videoPath, { ffprobePath = 'ffprobe' } = {}) {
       if (stream.codec_type === 'video' && !width) {
         width = stream.width || 0;
         height = stream.height || 0;
+        const frameRate = stream.avg_frame_rate || stream.r_frame_rate;
+        if (typeof frameRate === 'string') {
+          const [numerator, denominator = '1'] = frameRate.split('/').map(Number);
+          if (Number.isFinite(numerator) && Number.isFinite(denominator) && denominator !== 0) {
+            fps = numerator / denominator;
+          }
+        }
       }
       if (stream.codec_type === 'audio') {
         hasAudio = true;
@@ -45,7 +53,7 @@ export async function probeVideo(videoPath, { ffprobePath = 'ffprobe' } = {}) {
     ? parseFloat(data.format.duration)
     : 0;
 
-  return { durationSeconds, width, height, hasAudio };
+  return { durationSeconds, width, height, fps, hasAudio };
 }
 
 /**

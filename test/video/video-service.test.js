@@ -93,6 +93,82 @@ test('createClip builds a motion plan and persists the job id', async () => {
   });
 });
 
+test('recoverSubmittedClip binds only an exact provider request and persists its receipt', async () => {
+  await withTempDir(async (dir) => {
+    const { provider } = makeStubProvider();
+    const store = new ClipStore(dir);
+    const service = new VideoService({ provider, clipStore: store });
+    const clipId = 'recoverable-clip';
+    await store.save(clipId, {
+      clipId,
+      jobId: null,
+      providerKey: null,
+      status: 'SUBMITTING',
+      prompt: 'locked prompt',
+      aspectRatio: '9:16',
+      durationSeconds: 5,
+      sourceSha256: 'a'.repeat(64),
+      createdAt: '2026-07-29T21:00:13.025Z',
+      updatedAt: '2026-07-29T21:00:13.025Z',
+    });
+    const raw = {
+      id: 'job_recovered',
+      job_set_type: 'seedance_2_0',
+      params: {
+        prompt: 'locked prompt',
+        aspect_ratio: '9:16',
+        duration: 5,
+      },
+    };
+
+    const recovered = await service.recoverSubmittedClip(clipId, {
+      jobId: 'job_recovered',
+      raw,
+    });
+    assert.equal(recovered.status, 'CREATED');
+    assert.equal(recovered.recovered, true);
+    const saved = await store.load(clipId);
+    assert.equal(saved.jobId, 'job_recovered');
+    assert.equal(saved.providerKey, 'higgsfield');
+    const receipt = JSON.parse(
+      await readFile(path.join(store.clipDir(clipId), 'create-receipt.json'), 'utf8'),
+    );
+    assert.equal(receipt.response.job_id, 'job_recovered');
+    assert.deepEqual(receipt.response.payload, raw);
+  });
+});
+
+test('recoverSubmittedClip refuses a provider job with different immutable geometry', async () => {
+  await withTempDir(async (dir) => {
+    const { provider } = makeStubProvider();
+    const store = new ClipStore(dir);
+    const service = new VideoService({ provider, clipStore: store });
+    await store.save('mismatch', {
+      clipId: 'mismatch',
+      jobId: null,
+      status: 'SUBMITTING',
+      prompt: 'locked prompt',
+      aspectRatio: '9:16',
+      durationSeconds: 5,
+      sourceSha256: 'a'.repeat(64),
+      createdAt: '2026-07-29T21:00:13.025Z',
+    });
+    await assert.rejects(
+      () => service.recoverSubmittedClip('mismatch', {
+        jobId: 'wrong_job',
+        raw: {
+          job_set_type: 'seedance_2_0',
+          params: { prompt: 'locked prompt', aspect_ratio: '16:9', duration: 5 },
+        },
+      }),
+      (error) => {
+        assert.equal(error.code, 'RECOVERY_JOB_MISMATCH');
+        return true;
+      },
+    );
+  });
+});
+
 test('createClip with mirror surface uses 9:16 aspect', async () => {
   await withTempDir(async (dir, sourcePath) => {
     const { provider, calls } = makeStubProvider();
@@ -175,6 +251,42 @@ test('awaitAndFinalize marks FAIL when QA detects audio', async () => {
     assert.equal(result.status, 'FAIL');
     assert.equal(result.qa.pass, false);
     assert.ok(result.qa.defects.some((d) => d.code === 'CLIP_HAS_AUDIO'));
+  });
+});
+
+test('recordIdentityItemQa makes a semantic RETRY fail a technically valid clip', async () => {
+  await withTempDir(async (dir) => {
+    const { provider } = makeStubProvider();
+    const store = new ClipStore(dir);
+    const service = new VideoService({ provider, clipStore: store });
+    await store.save('semantic-clip', {
+      clipId: 'semantic-clip',
+      jobId: 'job_semantic',
+      status: 'PASS',
+      sourceSha256: 'b'.repeat(64),
+    });
+    const receipt = {
+      clip_id: 'semantic-clip',
+      job_id: 'job_semantic',
+      source_sha256: 'b'.repeat(64),
+      evaluator: 'test/evaluator',
+      results: {
+        first: { decision: 'RETRY' },
+        last: { decision: 'PASS' },
+      },
+    };
+    const result = await service.recordIdentityItemQa('semantic-clip', receipt);
+    assert.equal(result.status, 'FAIL');
+    assert.deepEqual(result.identityItemQa, {
+      pass: false,
+      firstDecision: 'RETRY',
+      lastDecision: 'PASS',
+      evaluator: 'test/evaluator',
+    });
+    assert.ok(result.identityItemQaSha256);
+    const saved = await store.load('semantic-clip');
+    assert.equal(saved.status, 'FAIL');
+    assert.equal(saved.identityItemQaFile, 'identity-item-qa.json');
   });
 });
 

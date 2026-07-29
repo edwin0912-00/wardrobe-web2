@@ -134,6 +134,17 @@ test('the job id is handed over before the wait phase, so a restart can resume',
   assert.equal(result.request.aspectRatio, '16:9');
 });
 
+test('a batched CLI create response still yields the created job id', async () => {
+  const provider = new HiggsfieldVideoProvider({
+    commandRunner: async () => ({
+      stdout: JSON.stringify([{ id: 'job_from_batch', status: 'queued' }]),
+      stderr: '',
+    }),
+  });
+  const created = await provider.createJob(BASE);
+  assert.equal(created.jobId, 'job_from_batch');
+});
+
 test('a wait answering about another job is refused', async () => {
   const provider = new HiggsfieldVideoProvider({
     commandRunner: async (binary, args) => (args[1] === 'create'
