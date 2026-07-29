@@ -413,6 +413,15 @@ MiB це product-test assertion, не стеля верифікатора/деп
 Нічого з провайдера, креденшелів чи ассетів цим записом не змінено — тільки
 виправлення тексту на дошці.
 
+## Архів-хендоф · 2026-07-29 · claude-code-20260727-557761
+
+Створена read-only гілка **`handoff/full-archive-2026-07-29`** (від `beta` на
+`0ba63c1`) — глибший знімок контексту для будь-якого агента, окремо від живого
+`handoff/` у `beta`. Точка входу — `archive/ARCHIVE_INDEX.md` на тій гілці.
+
+Не жива, не мержиться назад, не приймає нових комітів — новий знімок це нова
+гілка з новою датою. Живий стан і далі тільки в `beta`.
+
 ## Agent protocol
 | BETA-SKILL-RULE8-001 | SKILL · Реф людини вирізаний на білому | claude-code-20260727-a3f1c8 | DONE | DOCS | `skills/artshoot-pipeline-style-creation/SKILL.md`; `docs/coordination/SKILL_VERSION_COMPARE_2026-07-27.md`; `updates/claude-code-20260727-a3f1c8.md` | Directly assigned by Edwin. Add RULE 8 to the style-unit skill in the repo, additively, and record the divergent PR #6 copy in a compare file instead of merging it. No product code, no provider work. |
 | BETA-TERRACOTTA-001 | UNIVERSE · Теракота: байти під оголошені хеші | claude-code-20260727-a3f1c8 | DONE | CODE | `docs/style-units/shoot.terracotta_hardlight/**`; `updates/claude-code-20260727-a3f1c8.md` | Directly assigned by Edwin. Restore the six original sheet PNGs whose sha256 the manifest already declares, replacing downscaled 2048px copies committed by this same agent. No manifest hash is rewritten. Expected: 7/7 hashes match and the mode leaves BLOCKED_INTEGRITY_MISMATCH after the next beta release. |
