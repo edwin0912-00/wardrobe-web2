@@ -74,7 +74,7 @@ frame or a user-facing contact sheet.
   customer decision or a sixth frame. Public DOM smoke passed; no paid
   Fashion Shoot generation was started.
 
-### Pending beta deployment — screen audit / Real-time Look
+### Live on beta — screen audit / Real-time Look (`d4e0c54`)
 
 - **LIVE.01–04:** saved-look → consented camera iframe is wired. The visual
   surface has been relabelled to WARDROBE / Real-time Look and no longer emits

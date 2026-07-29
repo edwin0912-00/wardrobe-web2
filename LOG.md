@@ -945,14 +945,16 @@ Eleven stale prompt hashes were corrected to their exact checked-in prompt
 bytes; their finish metadata was normalized to the existing production lock.
 weakened_checks: none.
 
-2026-07-29 · Real-time Look screen audit · pending commit
+2026-07-29 · Real-time Look screen audit · `d4e0c54` → beta
 Change: localised and rebranded the live camera surface; linked favicon fixes
 the sole browser-console error found in the live visual check.
 Verified limitation: MotionService/video routes are committed but not wired
 into app startup; `/api/motion/modes` is 404. The old video route remains
 intentionally unavailable from the saved-look button because it has only one
 reference.
-Evidence: live/profile contract suite 16/16 PASS; browser screenshots taken.
+Evidence: live/profile contract suite 16/16 PASS; public beta health ready,
+Live browser screen has no favicon error, and 16 background + 10 Fashion Shoot
+preview endpoints all resolve.
 weakened_checks: none.
 
 2026-07-29 · Fashion Shoot visible progress · `a2dd191` → beta
