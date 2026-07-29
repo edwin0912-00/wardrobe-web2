@@ -1,4 +1,17 @@
 Agent ID: codex-main
+Task ID: BETA-SCENE-E2E-ROUTE-ALIGNMENT-001
+Product line: beta-placeholder
+Pipeline: BACKGROUND.01 · real provider/QA control runner
+State: CODE_VERIFIED — first provider rerun next
+Decision: the control runner reads the same immutable item evidence and 3:4
+model route as beta rather than maintaining a partial duplicate.
+Evidence: saved master resolves 3 item records and all three route entries are
+3:4.
+weakened_checks: none.
+
+---
+
+Agent ID: codex-main
 Task ID: BETA-BACKGROUND-RELEASE-16-001
 Product line: beta-placeholder
 Pipeline: BACKGROUND.01 · catalogue release safety

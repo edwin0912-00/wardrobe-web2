@@ -13,10 +13,11 @@ import {
   createProfileApprovedLookResolver,
   FilesystemScenePresetResolver,
 } from '../src/web/scene-resolvers.js';
+import { RunService } from '../src/web/run-service.js';
+import { SCENE_PROVIDER_RUNTIME_CONFIG } from '../src/web/scene-runtime.js';
 import { SceneService } from '../src/web/scene-service.js';
 
 const SAFE_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
-const ALLOWED_OUTPUTS = new Set(['avatar_outfit.png', 'run-manifest.json']);
 
 function parseArgs(argv) {
   const values = {};
@@ -52,42 +53,32 @@ function sha256(bytes) {
   return createHash('sha256').update(bytes).digest('hex');
 }
 
-function safeRunOutputReader(runtimeRoot) {
-  const runRoot = path.join(runtimeRoot, 'runs');
-  return {
-    async getRun(runId) {
-      if (!SAFE_ID.test(runId)) return null;
-      return JSON.parse(await readFile(path.join(runRoot, runId, 'run.json'), 'utf8'));
-    },
-    async outputFile(runId, name) {
-      if (!SAFE_ID.test(runId) || !ALLOWED_OUTPUTS.has(name)) return null;
-      return path.join(runRoot, runId, 'outputs', name);
-    },
-  };
+function readOnlyRunService(runtimeRoot) {
+  // Scene QA must resolve the exact same immutable garment evidence as the
+  // live daemon. The former two-method reader omitted
+  // approvedItemEvidenceForRun(), so every real saved look failed before a
+  // provider request. These null dependencies stay inert: this helper only
+  // reads completed run artifacts and cannot start or mutate a run.
+  return new RunService({
+    rootDirectory: path.join(runtimeRoot, 'runs'),
+    provider: null,
+    vlm: null,
+    assetGenerator: null,
+  });
 }
 
 function providerRoute(outputRoot) {
-  const common = {
-    resolution: '2k',
-    quality: 'high',
-  };
-  return {
-    gpt_image_2: new HiggsfieldCliProvider({
-      ...common,
-      aspectRatio: '3:4',
-      journalDirectory: path.join(outputRoot, 'provider-journals', 'gpt-image-2'),
+  // One delivery authority: every standard background is 3:4. Importing the
+  // live runtime map prevents this helper drifting to 4:5 for Nano Banana.
+  return Object.fromEntries(Object.entries(SCENE_PROVIDER_RUNTIME_CONFIG).map(([model, config]) => [
+    model,
+    new HiggsfieldCliProvider({
+      resolution: config.resolution,
+      quality: config.quality,
+      aspectRatio: config.aspectRatio,
+      journalDirectory: path.join(outputRoot, 'provider-journals', model),
     }),
-    nano_banana_flash: new HiggsfieldCliProvider({
-      ...common,
-      aspectRatio: '4:5',
-      journalDirectory: path.join(outputRoot, 'provider-journals', 'nano-banana-2'),
-    }),
-    nano_banana_2: new HiggsfieldCliProvider({
-      ...common,
-      aspectRatio: '4:5',
-      journalDirectory: path.join(outputRoot, 'provider-journals', 'nano-banana-pro'),
-    }),
-  };
+  ]));
 }
 
 async function waitForTerminal(service, sceneId) {
@@ -110,7 +101,7 @@ const profiles = new ProfileService({
 
 try {
   await profiles.initialize();
-  const runService = safeRunOutputReader(runtimeRoot);
+  const runService = readOnlyRunService(runtimeRoot);
   const presetResolver = new FilesystemScenePresetResolver({
     rootDirectory: path.join(projectRoot, 'assets', 'scene-presets'),
     projectRoot,

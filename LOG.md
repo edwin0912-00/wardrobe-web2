@@ -17,6 +17,17 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-07-29 · BETA-SCENE-E2E-ROUTE-ALIGNMENT-001 · beta tooling · codex-main
+Change: repaired the real-scene control runner to use RunService's immutable
+approved-item-evidence reader and the one shared 3:4 scene provider map.
+Why: its hand-written read facade omitted garment evidence and duplicated Nano
+Banana as 4:5. Both caused immediate pre-provider failures and made a control
+run falsely look like a background-model failure.
+Evidence: the saved full-look resolves three approved item-evidence records;
+the shared runtime map reports 3:4 for GPT Image 2, Nano Banana 2 and Nano
+Banana Pro.
+weakened_checks: none. This reuses the live item lock and aspect contract.
+
 2026-07-29 · BETA-BACKGROUND-RELEASE-16-001 · beta · codex-main
 Change: removed the stale five-background verifier list. Release verification
 now derives the complete background loop from the approved candidate selection
