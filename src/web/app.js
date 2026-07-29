@@ -22,6 +22,7 @@ import {
   redactVideoSourceRequestPath,
   registerVideoSourceBridgeRoutes,
 } from './video-source-bridge.js';
+import { registerHeicConversionRoute } from './heic-converter.js';
 
 export async function createWebApp({
   service,
@@ -87,6 +88,7 @@ export async function createWebApp({
       });
   });
   await app.register(multipart, { limits: { files: 7, fileSize: 20 * 1024 * 1024, fields: 12, parts: 20 } });
+  await registerHeicConversionRoute(app);
   await app.register(fastifyStatic, { root: publicDirectory, prefix: '/' });
   await registerPostShootRoutes(app, {
     projectRoot: path.resolve(import.meta.dirname, '..', '..'),

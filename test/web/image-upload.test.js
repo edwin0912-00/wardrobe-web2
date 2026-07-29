@@ -5,6 +5,7 @@ import {
   decodeBitmapForUpload,
   isHeicImage,
   prepareImageFile,
+  requestServerHeicConversion,
 } from '../../web/public/image-upload.js';
 
 test('browser upload preparation leaves an already bounded image unchanged', async () => {
@@ -61,4 +62,39 @@ test('HEIC fails explicitly when neither native nor bundled decoding is availabl
     }),
     /HEIC decoder не завантажився/,
   );
+});
+
+test('HEIC uses the server converter when the bundled decoder rejects an iPhone variant', async () => {
+  const source = new File(['modern heic bytes'], 'IMG_5355.HEIC', { type: 'image/heic' });
+  const serverJpeg = new Blob(['server jpeg'], { type: 'image/jpeg' });
+  const bitmap = { width: 3024, height: 4032, close() {} };
+  const result = await decodeBitmapForUpload(source, {
+    bitmapDecoder: async (value) => {
+      if (value === source) throw new Error('Chrome has no HEIC codec');
+      assert.equal(value, serverJpeg);
+      return bitmap;
+    },
+    heicDecoder: async () => { throw new Error('libheif cannot decode HDR container'); },
+    serverHeicDecoder: async (value) => {
+      assert.equal(value, source);
+      return serverJpeg;
+    },
+  });
+  assert.equal(result, bitmap);
+});
+
+test('server HEIC request returns its JPEG blob without exposing implementation paths', async () => {
+  const source = new File(['heic bytes'], 'IMG_5355.HEIC', { type: 'image/heic' });
+  const jpeg = new Blob(['jpeg bytes'], { type: 'image/jpeg' });
+  const result = await requestServerHeicConversion(source, {
+    fetchFn: async (url, options) => {
+      assert.equal(url, '/api/uploads/heic-to-jpeg');
+      assert.equal(options.method, 'POST');
+      assert.equal(options.credentials, 'same-origin');
+      assert.ok(options.body instanceof FormData);
+      return new Response(jpeg, { status: 200, headers: { 'Content-Type': 'image/jpeg' } });
+    },
+  });
+  assert.equal(result.type, 'image/jpeg');
+  assert.equal(await result.text(), 'jpeg bytes');
 });

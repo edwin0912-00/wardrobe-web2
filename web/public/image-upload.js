@@ -26,9 +26,34 @@ export function isHeicImage(file) {
     || HEIC_EXTENSION.test(String(file?.name ?? ''));
 }
 
+export async function requestServerHeicConversion(file, {
+  fetchFn = globalThis.fetch,
+} = {}) {
+  if (typeof fetchFn !== 'function') throw new Error('Server HEIC fallback unavailable');
+  const body = new FormData();
+  body.append('image', file, file.name);
+  const response = await fetchFn('/api/uploads/heic-to-jpeg', {
+    method: 'POST',
+    credentials: 'same-origin',
+    body,
+  });
+  if (!response.ok) {
+    const payload = await response.json().catch(() => null);
+    throw new Error(payload?.error ?? `Server HEIC conversion failed: HTTP ${response.status}`);
+  }
+  const converted = await response.blob();
+  if (converted.type !== 'image/jpeg' || converted.size < 1) {
+    throw new Error('Server HEIC conversion returned an invalid image');
+  }
+  return converted;
+}
+
 export async function decodeBitmapForUpload(file, {
   bitmapDecoder = globalThis.createImageBitmap,
   heicDecoder = globalThis.heic2any,
+  serverHeicDecoder = typeof globalThis.document === 'object'
+    ? requestServerHeicConversion
+    : null,
 } = {}) {
   if (typeof bitmapDecoder !== 'function') {
     throw new Error('Browser не має image decoder');
@@ -37,15 +62,25 @@ export async function decodeBitmapForUpload(file, {
     return await bitmapDecoder(file, { imageOrientation: 'from-image' });
   } catch (nativeError) {
     if (!isHeicImage(file)) throw nativeError;
-    if (typeof heicDecoder !== 'function') {
-      throw new Error('HEIC decoder не завантажився');
+    let converted = null;
+    if (typeof heicDecoder === 'function') {
+      try {
+        converted = await heicDecoder({
+          blob: file,
+          toType: 'image/jpeg',
+          quality: 0.92,
+        });
+      } catch {
+        converted = null;
+      }
     }
-    const converted = await heicDecoder({
-      blob: file,
-      toType: 'image/jpeg',
-      quality: 0.92,
-    });
-    const primary = Array.isArray(converted) ? converted[0] : converted;
+    let primary = Array.isArray(converted) ? converted[0] : converted;
+    if (!(primary instanceof Blob) || primary.size < 1) {
+      if (typeof serverHeicDecoder !== 'function') {
+        throw new Error('HEIC decoder не завантажився');
+      }
+      primary = await serverHeicDecoder(file);
+    }
     if (!(primary instanceof Blob) || primary.size < 1) {
       throw new Error('HEIC decoder не повернув зображення');
     }
