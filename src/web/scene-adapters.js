@@ -536,14 +536,6 @@ export class SceneGeneratorAdapter {
         mediaType: approved.media_type,
         source: 'APPROVED_AVATAR',
       },
-      ...(compositionGuide ? [{
-        scope: 'outfit',
-        role: 'MECHANICAL_FRAMING_GUIDE',
-        path: compositionGuide.path,
-        sha256: compositionGuide.sha256,
-        mediaType: compositionGuide.media_type,
-        source: 'CONDITIONED',
-      }] : []),
       ...(repairCandidate ? [{
         scope: 'scene',
         role: 'FAILED_SCENE_CANDIDATE',
@@ -551,6 +543,14 @@ export class SceneGeneratorAdapter {
         sha256: repairCandidate.sha256,
         mediaType: repairCandidate.media_type,
         source: 'REPAIR_CANDIDATE',
+      }] : []),
+      ...(compositionGuide ? [{
+        scope: 'outfit',
+        role: 'MECHANICAL_FRAMING_GUIDE',
+        path: compositionGuide.path,
+        sha256: compositionGuide.sha256,
+        mediaType: compositionGuide.media_type,
+        source: 'CONDITIONED',
       }] : []),
       ...items.map((item) => ({
         scope: 'outfit',
@@ -609,11 +609,12 @@ export class SceneGeneratorAdapter {
     const guideAttachment = compositionGuide
       ? ordered.find((item) => item.role === 'MECHANICAL_FRAMING_GUIDE')
       : null;
-    const itemAttachmentStart = 1 + Number(Boolean(repairCandidate)) + Number(Boolean(guideAttachment)) + 1;
+    const firstItemAttachment = repairCandidate ? 3 : 2;
+    const itemAttachmentStart = guideAttachment ? firstItemAttachment + 1 : firstItemAttachment;
     const prompt = sanitizeExternalPrompt(
       `${basePrompt}${structuredInstructions(references)}`
       + `${itemGenerationInstructions(items, itemAttachmentStart)}`
-      + `${guideAttachment ? `\nMECHANICAL COMPOSITION GUIDE\n- ATTACHMENT_${guideAttachment.order} is a transparent mechanical layout derivative of the failed candidate, not a new scene or content authority. It places the same candidate at the measured target scale: ${compositionGuide.target_subject_height_percent}% visible person height and ${compositionGuide.target_clear_space_above_hair_percent}% clear space above hair. Use it only to match framing; preserve the exact person, look, item details, environment and lighting from their authoritative attachments.\n` : ''}`
+      + `${guideAttachment ? `\nMECHANICAL COMPOSITION GUIDE\n- ATTACHMENT_${guideAttachment.order} is an opaque neutral mechanical layout derivative of the failed candidate, not a new scene or content authority. It places the same candidate at the measured target scale: ${compositionGuide.target_subject_height_percent}% visible person height and ${compositionGuide.target_clear_space_above_hair_percent}% clear space above hair. Use it only to match framing; preserve the exact person, look, item details, environment and lighting from their authoritative attachments.\n` : ''}`
       + `${shotAnchorInstructions(attachedAnchors)}`,
     );
     assertExternalPromptPrivacy(prompt, { runtimeRoot: context.work_directory });

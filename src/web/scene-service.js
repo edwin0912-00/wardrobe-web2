@@ -87,7 +87,7 @@ const SHA256_PATTERN = /^[a-f0-9]{64}$/;
 // Change this only when the bytes sent to the image provider change. It is part
 // of provider idempotency, so an old journal can never be replayed against a
 // materially different repair contract.
-const SCENE_GENERATION_CONTRACT_VERSION = 'scene-generation-contract-v3-guide-priority';
+const SCENE_GENERATION_CONTRACT_VERSION = 'scene-generation-contract-v4-opaque-guide';
 
 function nowIso(clock) {
   const value = clock();
@@ -348,7 +348,7 @@ async function verifiedRepairCandidate(directory, state, repairAttempt) {
 
 // This is deliberately a layout derivative, not an image repair.  It has no
 // authority to add scene pixels: it rescales the already failed candidate onto
-// a transparent 4:5 canvas so the provider can see the measured target framing
+// a neutral opaque 4:5 canvas so the provider can see the measured target framing
 // instead of trying to infer "76% of frame height" from prose alone.
 async function mechanicalFramingGuide(directory, state, repairAttempt, repairCandidate) {
   if (!repairAttempt || !repairCandidate) return null;
@@ -393,7 +393,11 @@ async function mechanicalFramingGuide(directory, state, repairAttempt, repairCan
       width: state.delivery.width,
       height: state.delivery.height,
       channels: 4,
-      background: { r: 0, g: 0, b: 0, alpha: 0 },
+      // Transparency is rendered as black by the provider's reference viewer, making
+      // an otherwise correct 76% guide read like a dark vignette rather than a layout.
+      // This deterministic neutral canvas exists only in conditioning and has no
+      // authority over delivery pixels, palette or lighting.
+      background: { r: 240, g: 238, b: 232, alpha: 1 },
     },
   })
     .composite([{
@@ -1274,7 +1278,6 @@ function compiledPrompt({
   preset = null,
   approvedItems = [],
   repairAttempt = selectRepairAttempt(state, attempt),
-  compositionGuide = null,
 }) {
   const camera = preset?.camera ?? null;
   const editorial = preset?.editorial ?? null;
@@ -1370,10 +1373,7 @@ function compiledPrompt({
     '',
     'PRODUCTION INPUT AUTHORITY',
     '- ATTACHMENT_1 is the immutable approved look and is the only authority for identity, body, hair, outfit, product details, logos and readable garment text.',
-    ...(repairAttempt && compositionGuide ? [
-      `- ATTACHMENT_2 is a mechanical layout derivative of failed attempt ${repairAttempt.number}. It is geometry-only: use its visible scale and empty margin as the composition authority; it cannot change identity, item details, environment or lighting.`,
-      `- ATTACHMENT_3 is the hash-bound failed scene candidate from attempt ${repairAttempt.number}. Edit this exact scene; it is not authority for identity or item details.`,
-    ] : repairAttempt ? [
+    ...(repairAttempt ? [
       `- ATTACHMENT_2 is the hash-bound failed scene candidate from attempt ${repairAttempt.number}. Edit this exact scene; it is not authority for identity or item details.`,
     ] : []),
     '- Environment, lighting, composition, palette and negative references are role-limited exactly as declared by the attached reference pack.',
@@ -3376,7 +3376,6 @@ export class SceneService {
       preset: bound.preset,
       approvedItems: bound.approvedItems,
       repairAttempt,
-      compositionGuide,
     });
     const promptBytes = Buffer.from(prompt);
     const promptRelativePath = `attempts/${String(attempt.number).padStart(3, '0')}/compiled-prompt.txt`;
