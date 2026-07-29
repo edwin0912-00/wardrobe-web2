@@ -35,9 +35,9 @@ pass from API health.
 
 ## Product structure — read this before taking a task
 
-**Line boundary:** this map is for `beta-placeholder` only. Main-scroll/WebGL
-work is preserved separately on `backup/main-scroll-ui-20260729` and must not
-be counted as a beta capability or deployed to beta.
+**Line boundary:** this map is for `beta-placeholder` only. The current Cloud
+Code main-scroll source has not yet been identified by exact branch/commit;
+until it is, no historic UI work may be labelled main-scroll or deployed here.
 
 ```text
 PROFILE.01–03  save/select avatar and approved looks
