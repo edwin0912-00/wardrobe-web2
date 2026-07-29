@@ -28,6 +28,18 @@ passes 30/30. The unit audit asserts all ten selectable `shoot.*` units have
 their manifest and required sheet roles.
 weakened_checks: none.
 
+2026-07-29 · Git ↔ beta reconciliation capture
+Change: created immutable pre-reconciliation Git and active-release backups;
+made GitHub beta the explicit code authority and corrected the runtime ledger
+to the actual active release `release-1253aa3-20260729191158`.
+Why: a stale release ledger made the public beta and Git history look like two
+different products even though the only source delta was a release-journal
+entry.
+Evidence: Git bundle verified; active release archive listed successfully;
+public `/api/health` returned `ready`; `1253aa3..88a20ac` changes only
+`updates/codex-main.md`.
+weakened_checks: none.
+
 2026-07-29 · Standard scene scale contract 70–80% · pending beta release
 Change: widened the standard full-body scale band from 74–78% to 70–80% and
 rebuilt every published standard-scene pack, its composition anchor, prompt

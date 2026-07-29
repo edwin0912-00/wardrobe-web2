@@ -13,6 +13,21 @@ The earlier detailed noticeboard is preserved at
 - Live test: `https://beta.madeforthisjob.com` — deploy the exact tested beta
   commit, then record its result below.
 
+## Git ↔ beta reconciliation — 2026-07-29
+
+- Two immutable pre-reconciliation backups were made before any control-plane
+  change: the complete Git history plus working-tree patches, and the exact
+  active beta release. Raw runtime runs, uploads, drafts and credentials were
+  deliberately excluded.
+- **Source rule:** `origin/beta` is the only source for code. An active
+  `release-*` directory is deploy output, never an editing target.
+- **Release rule:** agent commits and pushes the tested SHA to `beta`; release
+  owner activates that exact SHA; a narrow public-beta smoke is then recorded.
+  Runtime receipts/logs are evidence, not code to copy into Git.
+- At reconciliation: active beta is `release-1253aa3-20260729191158`
+  (`1253aa3`); GitHub beta is `88a20ac`. The only intervening GitHub change is
+  a verified release-journal update, so no product code is being discarded.
+
 ## Product-line separation — operator decision · 2026-07-29
 
 There are two deliberately separate products. Do not merge their UI work or

@@ -9,6 +9,21 @@ post-shoot API is 200; the new `/api/video/*` routes are 404. Therefore the
 branch contains capabilities that the live host does not yet contain. No
 agent may collapse these facts into a single "live" claim.
 
+## Git ↔ beta release truth — 2026-07-29
+
+- Immutable pre-reconciliation backups exist for the complete Git history and
+  exact active beta release. Raw runtime runs, uploads, drafts and credentials
+  are not part of those code/release backups.
+- `origin/beta` is the code authority. Active `release-*` directories are
+  generated deploy outputs and must never be edited as source.
+- At the capture point the active release was
+  `release-1253aa3-20260729191158` (`1253aa3`) and GitHub beta was `88a20ac`.
+  The only intervening GitHub change was a release-journal entry, not product
+  code. `ops/RUNTIME.json` was corrected from an obsolete 28 July release to
+  the captured active release.
+- Runtime receipts and logs are operational evidence. They may justify a
+  reviewed source change, but are never copied into Git as code.
+
 ## Current release truth — 2026-07-27
 
 This section supersedes every earlier “Fast-mode live position” statement

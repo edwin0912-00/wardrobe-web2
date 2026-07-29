@@ -83,6 +83,14 @@ Fast rules:
 6. `codex-main` curates `UPDATE.md`, `STATE.md`, and `LOG.md`, but an agent may
    make the narrowly defined self-claim/completion edit to its own board row.
    A beta deployment happens only after the exact commit is tested.
+7. **GitHub is the sole code source of truth.** Never patch an active
+   `release-*` directory or a running beta process. For every code change:
+   commit and push the exact SHA to `origin/beta` first; the release owner then
+   builds/activates that SHA and records a narrow public-beta smoke. Runtime
+   data, provider receipts and logs remain host evidence — they are not source
+   code and are never copied back into Git without a reviewed, secret-free
+   source change. If server code differs from `origin/beta`, capture it as a
+   dated preservation patch and stop for reconciliation; do not deploy it.
 
 ## User-facing completion contract — mandatory
 
