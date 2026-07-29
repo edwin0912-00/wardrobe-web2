@@ -72,9 +72,9 @@ async function contextFixture() {
       cycle: 1,
       route_hash: 'a'.repeat(64),
       idempotency_key: 'b'.repeat(64),
-      aspect_ratio: '4:5',
-      width: 1024,
-      height: 1280,
+      aspect_ratio: '3:4',
+      width: 1536,
+      height: 2048,
       prompt,
       prompt_sha256: sha256(Buffer.from(prompt)),
       approved_look: { ...approved, role: 'look_master' },
@@ -244,7 +244,7 @@ test('SceneGeneratorAdapter attaches hash-bound item cutouts before optional sce
   assert.doesNotMatch(calls[0].prompt, /approved-set-2\.png|\/tmp\//);
 });
 
-test('SceneGeneratorAdapter requires GPT 3:4 transport and native 4:5 for both Nano routes', async () => {
+test('SceneGeneratorAdapter requires native 3:4 transport for every scene route', async () => {
   const fixture = await contextFixture();
   const adapter = new SceneGeneratorAdapter({
     provider: { aspectRatio: '4:5', generate: async () => { throw new Error('must not run'); } },
@@ -381,12 +381,12 @@ test('SceneGeneratorAdapter drives the Higgsfield CLI harness with GPT 3:4 and s
   );
 });
 
-test('an exact-ratio frame at the provider bucket size is rescaled without discarding a pixel', async () => {
+test('an exact 3:4 frame at a provider bucket size is rescaled without discarding a pixel', async () => {
   const fixture = await contextFixture();
-  // 896×1120 is what gpt-image actually returns for a 4:5 request. Right shape,
+  // 900×1200 is a 3:4 provider bucket. Right shape,
   // wrong size — so it rescales and nothing is cropped or invented.
   const providerOutput = await sharp({
-    create: { width: 896, height: 1120, channels: 3, background: '#8f7360' },
+    create: { width: 900, height: 1200, channels: 3, background: '#8f7360' },
   }).png().toBuffer();
   const adapter = new SceneGeneratorAdapter({
     provider: {
@@ -401,25 +401,25 @@ test('an exact-ratio frame at the provider bucket size is rescaled without disca
   });
   const result = await adapter.generateScene({
     ...fixture.base,
-    attempt: 2,
-    cycle_attempt: 2,
-    ...DEFAULT_SCENE_MODEL_ROUTE[1],
+    attempt: 1,
+    cycle_attempt: 1,
+    ...DEFAULT_SCENE_MODEL_ROUTE[0],
     quality: 'high',
   });
-  assert.equal(result.metadata.geometry_strategy, 'provider_exact_4_5_rescaled');
+  assert.equal(result.metadata.geometry_strategy, 'provider_exact_3_4_rescaled');
   assert.equal(result.metadata.geometry_crop_fraction, undefined);
   const delivered = await sharp(result.image).metadata();
-  assert.deepEqual([delivered.width, delivered.height], [1024, 1280]);
+  assert.deepEqual([delivered.width, delivered.height], [1536, 2048]);
 });
 
-test('a provider-native 4:5 bucket with sub-one-percent rounding is rescaled without crop', async () => {
+test('a provider-native 3:4 bucket with sub-one-percent rounding is rescaled without crop', async () => {
   const fixture = await contextFixture();
   const providerOutput = await sharp({
-    create: { width: 1856, height: 2304, channels: 3, background: '#8f7360' },
+    create: { width: 1744, height: 2336, channels: 3, background: '#8f7360' },
   }).png().toBuffer();
   const adapter = new SceneGeneratorAdapter({
     provider: {
-      aspectRatio: '4:5',
+      aspectRatio: '3:4',
       async generate() {
         return { image: providerOutput, mediaType: 'image/png', metadata: { provider: 'higgsfield', job_id: 'rounded-45-job' } };
       },
@@ -427,21 +427,21 @@ test('a provider-native 4:5 bucket with sub-one-percent rounding is rescaled wit
   });
   const result = await adapter.generateScene({
     ...fixture.base,
-    attempt: 2,
-    cycle_attempt: 2,
-    ...DEFAULT_SCENE_MODEL_ROUTE[1],
+    attempt: 1,
+    cycle_attempt: 1,
+    ...DEFAULT_SCENE_MODEL_ROUTE[0],
   });
-  assert.equal(result.metadata.transport_aspect_ratio, '4:5');
-  assert.equal(result.metadata.geometry_strategy, 'provider_native_4_5_tolerance_rescaled');
+  assert.equal(result.metadata.transport_aspect_ratio, '3:4');
+  assert.equal(result.metadata.geometry_strategy, 'provider_native_3_4_tolerance_rescaled');
   assert.equal(result.metadata.geometry_crop_fraction, undefined);
   assert.ok(result.metadata.aspect_error_fraction < 0.01);
 });
 
-test('a rounded GPT 3:4 response is centre-cropped once into the fixed 4:5 delivery', async () => {
+test('a rounded GPT 3:4 response is rescaled without cropping into the 3:4 delivery', async () => {
   const fixture = await contextFixture();
   // GPT Image 2 returned 1744×2336 in the real smoke. This is a 3:4 bucket
-  // rounded by 0.46%, not a malformed landscape frame. Keep only the central
-  // 4:5 region and record the crop; never pad, stretch, or hide the transport.
+  // rounded by 0.46%, not a malformed landscape frame. Preserve all pixels;
+  // never crop it into another product ratio.
   const providerOutput = await sharp({
     create: { width: 1744, height: 2336, channels: 3, background: '#8f7360' },
   }).png().toBuffer();
@@ -460,17 +460,17 @@ test('a rounded GPT 3:4 response is centre-cropped once into the fixed 4:5 deliv
     ...DEFAULT_SCENE_MODEL_ROUTE[0],
   });
   assert.equal(result.metadata.transport_aspect_ratio, '3:4');
-  assert.equal(result.metadata.geometry_strategy, 'centre_crop_to_exact_4_5');
-  assert.ok(result.metadata.geometry_crop_fraction > 0);
+  assert.equal(result.metadata.geometry_strategy, 'provider_native_3_4_tolerance_rescaled');
+  assert.equal(result.metadata.geometry_crop_fraction, undefined);
   assert.ok(result.metadata.transport_aspect_error_fraction < 0.01);
   const delivered = await sharp(result.image).metadata();
-  assert.deepEqual([delivered.width, delivered.height], [1024, 1280]);
+  assert.deepEqual([delivered.width, delivered.height], [1536, 2048]);
 });
 
 test('a landscape provider frame fails the attempt instead of faking the delivery size', async () => {
   const fixture = await contextFixture();
-  // 1200×900 needs 40% of its width removed to reach 4:5. The old code padded
-  // this onto a blurred stretch of itself and shipped it as a valid 1024×1280
+  // 1200×900 cannot become 3:4 without discarding pixels. The old code padded
+  // this onto a blurred stretch of itself and shipped it as a valid delivery
   // frame. Nothing downstream could see that a fifth of the delivery was filler,
   // so it now fails where the route can retry.
   const providerOutput = await sharp({
@@ -495,7 +495,7 @@ test('a landscape provider frame fails the attempt instead of faking the deliver
       ...DEFAULT_SCENE_MODEL_ROUTE[1],
       quality: 'high',
     }),
-    /1200×900, outside the native 4:5 tolerance; cropping is forbidden/,
+    /1200×900, outside the native 3:4 tolerance; cropping is forbidden/,
   );
 });
 

@@ -388,6 +388,14 @@ facts.
 
 ## Latest events
 
+- 2026-07-29 — Native standard-scene delivery is now 3:4 (`1536×2048`) on
+  GPT Image 2, Nano Banana 2 and Nano Banana Pro. The legacy 4:5 composition
+  annotation inside a reference pack is explicitly non-authoritative for
+  delivery geometry; environment, lighting and palette assets are unchanged.
+  Regression: adapter 5/5 and immutable scene release 1/1 PASS. A real
+  standard-scene request binds the existing pack and enters GPT generation as
+  `3:4` without a crop step.
+
 - 2026-07-27 — `90d6119` Create Universe release deployed to beta and health
   verified `ready`.
 - 2026-07-27 — FAST-001 enabled: `beta` is now the shared working branch.

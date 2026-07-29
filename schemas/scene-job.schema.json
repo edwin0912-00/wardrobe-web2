@@ -1208,9 +1208,9 @@
       "additionalProperties": false,
       "required": ["aspect_ratio", "width", "height", "media_type", "extension", "color_space"],
       "properties": {
-        "aspect_ratio": { "const": "4:5" },
-        "width": { "const": 1024 },
-        "height": { "const": 1280 },
+        "aspect_ratio": { "const": "3:4" },
+        "width": { "const": 1536 },
+        "height": { "const": 2048 },
         "media_type": { "const": "image/png" },
         "extension": { "const": ".png" },
         "color_space": { "const": "srgb" }
@@ -1682,17 +1682,17 @@
         "full_footwear_visible"
       ],
       "properties": {
-        "canvas_width": { "const": 1024 },
-        "canvas_height": { "const": 1280 },
+        "canvas_width": { "const": 1536 },
+        "canvas_height": { "const": 2048 },
         "subject_bbox_xywh_px": {
           "type": "array",
           "minItems": 4,
           "maxItems": 4,
           "prefixItems": [
-            { "type": "integer", "minimum": 0, "maximum": 1023 },
-            { "type": "integer", "minimum": 0, "maximum": 1279 },
-            { "type": "integer", "minimum": 1, "maximum": 1024 },
-            { "type": "integer", "minimum": 1, "maximum": 1280 }
+            { "type": "integer", "minimum": 0, "maximum": 1535 },
+            { "type": "integer", "minimum": 0, "maximum": 2047 },
+            { "type": "integer", "minimum": 1, "maximum": 1536 },
+            { "type": "integer", "minimum": 1, "maximum": 2048 }
           ],
           "items": false
         },
@@ -1783,8 +1783,8 @@
         "sha256": { "$ref": "#/$defs/sha256" },
         "size": { "type": "integer", "minimum": 1 },
         "media_type": { "const": "image/png" },
-        "width": { "const": 1024 },
-        "height": { "const": 1280 }
+        "width": { "const": 1536 },
+        "height": { "const": 2048 }
       }
     },
     "providerMetadata": {
@@ -1873,13 +1873,13 @@
       "properties": {
         "source_width": { "type": "integer", "minimum": 1 },
         "source_height": { "type": "integer", "minimum": 1 },
-        "target_width": { "const": 1024 },
-        "target_height": { "const": 1280 },
+        "target_width": { "const": 1536 },
+        "target_height": { "const": 2048 },
         "strategy": {
           "enum": ["same_aspect_lossless_resize", "deterministic_bbox_crop"]
         },
         "color_space": { "const": "srgb" },
-        "exact_aspect_ratio": { "const": "4:5" },
+        "exact_aspect_ratio": { "const": "3:4" },
         "source_attempt": { "type": "integer", "minimum": 1 },
         "source_candidate_sha256": { "$ref": "#/$defs/sha256" },
         "crop_xywh_px": {
@@ -1887,8 +1887,8 @@
           "prefixItems": [
             { "type": "integer", "minimum": 0 },
             { "type": "integer", "minimum": 0 },
-            { "type": "integer", "minimum": 1, "maximum": 1024 },
-            { "type": "integer", "minimum": 1, "maximum": 1280 }
+            { "type": "integer", "minimum": 1, "maximum": 1536 },
+            { "type": "integer", "minimum": 1, "maximum": 2048 }
           ],
           "items": false,
           "minItems": 4,
@@ -2103,8 +2103,8 @@
         "privacy_report_sha256": { "$ref": "#/$defs/sha256" },
         "size": { "type": "integer", "minimum": 1 },
         "media_type": { "const": "image/png" },
-        "width": { "const": 1024 },
-        "height": { "const": 1280 }
+        "width": { "const": 1536 },
+        "height": { "const": 2048 }
       }
     }
   }

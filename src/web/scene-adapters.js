@@ -362,8 +362,8 @@ function assertSceneRoute(context) {
   if (context.model !== IMAGE_MODEL_NAMES[jobSetType] || context.model_version !== jobSetType || context.quality !== 'high') {
     throw new Error('Scene model metadata does not match the locked production route');
   }
-  if (context.aspect_ratio !== '4:5' || context.width * 5 !== context.height * 4) {
-    throw new Error('Scene delivery must be exact 4:5');
+  if (context.aspect_ratio !== '3:4' || context.width * 4 !== context.height * 3) {
+    throw new Error('Scene delivery must be exact 3:4');
   }
   return jobSetType;
 }
@@ -373,12 +373,8 @@ function assertSceneRoute(context) {
 // editorial frames each shipped a 128px band of blur above and below a 1024×1024
 // core: the file measured 1024×1280 and passed every dimension check while a
 // fifth of it was smeared filler. That is a defect, not a fallback, so it is
-// gone. Only two things may reach delivery — the provider's own pixels rescaled,
-// or a centre crop small enough that the composition survives it. Anything
-// further off is a generation failure and says so, which the fixed model route
-// can actually act on by retrying; silently padding it could not be acted on by
-// anyone. Requesting the aspect up front (see the provider's image_config) is
-// what keeps this path on the cheap branches.
+// gone. Only provider pixels at the selected delivery aspect may reach delivery,
+// optionally rescaled. The product never crops a scene into another aspect.
 async function geometrySafeImage(bytes, { width, height, transportAspectRatio }) {
   const metadata = await sharp(bytes).metadata();
   if (!metadata.width || !metadata.height || (metadata.pages ?? 1) !== 1) {
@@ -386,12 +382,12 @@ async function geometrySafeImage(bytes, { width, height, transportAspectRatio })
   }
   const exactAspect = metadata.width * height === metadata.height * width;
   const aspectError = Math.abs((metadata.width / metadata.height) - (width / height)) / (width / height);
-  const transportRatio = transportAspectRatio === '3:4' ? 3 / 4 : 4 / 5;
+  const transportRatio = 3 / 4;
   const transportAspectError = Math.abs((metadata.width / metadata.height) - transportRatio) / transportRatio;
   if (exactAspect && metadata.width === width && metadata.height === height) {
     return {
       image: bytes,
-      strategy: 'provider_exact_4_5',
+      strategy: 'provider_exact_3_4',
       source_width: metadata.width,
       source_height: metadata.height,
     };
@@ -409,43 +405,26 @@ async function geometrySafeImage(bytes, { width, height, transportAspectRatio })
     ...extra,
   });
 
-  // Right shape, wrong size: the providers' 4:5 buckets are 896×1120 and
-  // 928×1152, never the canonical canvas. Pure rescale — no pixel is discarded
-  // and none is invented.
+  // Right shape, wrong size: rescale only. No pixel is discarded or invented.
   if (exactAspect) {
-    return rescaleOnly(sharp(bytes), 'provider_exact_4_5_rescaled');
+    return rescaleOnly(sharp(bytes), 'provider_exact_3_4_rescaled');
   }
 
-  // The provider's advertised 4:5 bucket can arrive as e.g. 1856×2304
-  // (0.69% from 4:5) due to its internal bucket dimensions. It is still a
-  // native vertical 4:5 response, unlike 3:4. Rescale only; never crop.
-  if (aspectError <= 0.01) {
+  // GPT Image 2 returned 1744×2336 in smoke: a 0.46% 3:4 bucket rounding.
+  // Preserve all pixels and rescale it; do not crop it to a different ratio.
+  if (transportAspectRatio === '3:4' && transportAspectError <= 0.01 && aspectError <= 0.01) {
     return rescaleOnly(
       sharp(bytes),
-      'provider_native_4_5_tolerance_rescaled',
-      { aspect_error_fraction: Number(aspectError.toFixed(6)) },
-    );
-  }
-
-  if (transportAspectRatio === '3:4' && transportAspectError <= 0.01) {
-    const cropHeight = Math.round(metadata.width / (width / height));
-    return rescaleOnly(
-      sharp(bytes).extract({
-        left: 0,
-        top: Math.round((metadata.height - cropHeight) / 2),
-        width: metadata.width,
-        height: cropHeight,
-      }),
-      'centre_crop_to_exact_4_5',
+      'provider_native_3_4_tolerance_rescaled',
       {
-        crop_fraction: Number(((metadata.height - cropHeight) / metadata.height).toFixed(4)),
+        aspect_error_fraction: Number(aspectError.toFixed(6)),
         transport_aspect_error_fraction: Number(transportAspectError.toFixed(6)),
       },
     );
   }
 
   throw new Error(
-    `Scene provider returned ${metadata.width}×${metadata.height}, outside the native 4:5 tolerance; cropping is forbidden`,
+    `Scene provider returned ${metadata.width}×${metadata.height}, outside the native 3:4 tolerance; cropping is forbidden`,
   );
 }
 
@@ -468,12 +447,12 @@ export class SceneGeneratorAdapter {
     if (typeof provider?.generate !== 'function') {
       throw new Error(`SceneGeneratorAdapter has no provider for ${jobSetType}`);
     }
-    // GPT Image 2 has an approved 3:4 transport; Nano routes are native 4:5.
+    // The product has a single native 3:4 scene delivery across the fixed route.
     const requiredTransportAspectRatio = typeof provider.transportAspectRatio === 'string'
       ? provider.transportAspectRatio
-      : (jobSetType === 'gpt_image_2' ? '3:4' : '4:5');
-    if (!['3:4', '4:5'].includes(requiredTransportAspectRatio)) {
-      throw new Error(`${context.model} has no approved vertical scene transport`);
+      : '3:4';
+    if (requiredTransportAspectRatio !== '3:4') {
+      throw new Error(`${context.model} must use the native 3:4 scene transport`);
     }
     if (typeof provider.aspectRatio === 'string' && provider.aspectRatio !== requiredTransportAspectRatio) {
       throw new Error(`${context.model} provider must be configured with aspectRatio: ${requiredTransportAspectRatio}`);

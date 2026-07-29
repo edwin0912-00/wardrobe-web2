@@ -104,9 +104,9 @@ export const DEFAULT_SCENE_MODEL_ROUTE = Object.freeze([
 ]);
 
 export const DEFAULT_SCENE_DELIVERY = Object.freeze({
-  aspect_ratio: '4:5',
-  width: 1024,
-  height: 1280,
+  aspect_ratio: '3:4',
+  width: 1536,
+  height: 2048,
   media_type: 'image/png',
   extension: '.png',
   color_space: 'srgb',
@@ -413,16 +413,16 @@ export function normalizeDelivery(delivery = DEFAULT_SCENE_DELIVERY) {
   );
   const width = Number(delivery.width);
   const height = Number(delivery.height);
-  if (width !== 1024 || height !== 1280) {
-    throw new Error('Scene delivery must be the canonical 1024×1280 4:5 canvas');
+  if (width !== 1536 || height !== 2048) {
+    throw new Error('Scene delivery must be the canonical 1536×2048 3:4 canvas');
   }
-  if (delivery.aspect_ratio !== '4:5') throw new Error('Scene delivery aspect_ratio must be 4:5');
+  if (delivery.aspect_ratio !== '3:4') throw new Error('Scene delivery aspect_ratio must be 3:4');
   if (delivery.media_type !== 'image/png' || delivery.extension !== '.png') {
     throw new Error('Scene delivery must be lossless PNG');
   }
   if (delivery.color_space !== 'srgb') throw new Error('Scene delivery color_space must be srgb');
   return Object.freeze({
-    aspect_ratio: '4:5',
+    aspect_ratio: '3:4',
     width,
     height,
     media_type: 'image/png',
@@ -617,7 +617,10 @@ function validatePresetCamera(camera) {
     ],
     'Resolved scene preset camera',
   );
-  if (camera.aspect_ratio !== '4:5'
+  // This describes an inherited composition reference, not the delivery
+  // contract. Existing approved packs may say 4:5; standard-scene delivery is
+  // independently locked to native 3:4 in DEFAULT_SCENE_DELIVERY.
+  if (!['3:4', '4:5'].includes(camera.aspect_ratio)
     || !Number.isInteger(camera.lens_mm)
     || camera.lens_mm < 45
     || camera.lens_mm > 70
@@ -1459,7 +1462,7 @@ export function deterministicFramingCropPlan(framing, delivery) {
   const maximumCropHeight = Math.floor(boxHeight / (minimumPercent / 100) / 5) * 5;
   let cropHeight = Math.round(boxHeight / (targetPercent / 100) / 5) * 5;
   cropHeight = Math.max(minimumCropHeight, Math.min(maximumCropHeight, cropHeight, delivery.height));
-  const cropWidth = cropHeight * 4 / 5;
+  const cropWidth = cropHeight * 3 / 4;
   if (!Number.isInteger(cropWidth)
     || cropWidth > delivery.width
     || cropHeight > delivery.height
@@ -1610,7 +1613,7 @@ function validatePersistedNormalization(normalization, { attempt, state }) {
     || normalization.target_height !== state.delivery.height
     || !['same_aspect_lossless_resize', 'deterministic_bbox_crop'].includes(normalization.strategy)
     || normalization.color_space !== 'srgb'
-    || normalization.exact_aspect_ratio !== '4:5') {
+    || normalization.exact_aspect_ratio !== '3:4') {
     throw new Error(`Persisted scene attempt ${attempt.number} normalization geometry is invalid`);
   }
   if (!deterministic) return;
@@ -1639,7 +1642,7 @@ function validatePersistedNormalization(normalization, { attempt, state }) {
     || height < 1
     || left + width > normalization.source_width
     || top + height > normalization.source_height
-    || width * 5 !== height * 4
+    || width * 4 !== height * 3
     || Number((state.delivery.height / height).toFixed(6)) !== normalization.output_scale) {
     throw new Error(`Persisted scene attempt ${attempt.number} deterministic crop geometry is invalid`);
   }
@@ -1966,8 +1969,8 @@ export function validatePersistedSceneState(state, expectedSceneId) {
       assertSha256(attempt.candidate.sha256, 'scene attempt candidate sha256');
       assertRelativeArtifactPath(attempt.candidate.relative_path, 'scene attempt candidate path');
       if (attempt.candidate.media_type !== 'image/png'
-        || attempt.candidate.width !== 1024
-        || attempt.candidate.height !== 1280
+        || attempt.candidate.width !== 1536
+        || attempt.candidate.height !== 2048
         || !Number.isInteger(attempt.candidate.size)
         || attempt.candidate.size < 1) {
         throw new Error('Persisted scene attempt candidate metadata is invalid');
@@ -2145,8 +2148,8 @@ export function validatePersistedSceneState(state, expectedSceneId) {
       || state.output.qa_receipt_relative_path !== 'outputs/scene-qa-receipt.json'
       || state.output.privacy_report_relative_path !== 'outputs/scene-privacy-report.json'
       || state.output.media_type !== 'image/png'
-      || state.output.width !== 1024
-      || state.output.height !== 1280
+      || state.output.width !== 1536
+      || state.output.height !== 2048
       || !Number.isInteger(state.output.size)
       || state.output.size < 1
       || !allGatesPass(state.qa.gates)) {

@@ -87,7 +87,7 @@ const SHA256_PATTERN = /^[a-f0-9]{64}$/;
 // Change this only when the bytes sent to the image provider change. It is part
 // of provider idempotency, so an old journal can never be replayed against a
 // materially different repair contract.
-const SCENE_GENERATION_CONTRACT_VERSION = 'scene-generation-contract-v8-gpt-3-4-tolerance';
+const SCENE_GENERATION_CONTRACT_VERSION = 'scene-generation-contract-v9-native-3-4';
 
 function nowIso(clock) {
   const value = clock();
@@ -348,7 +348,7 @@ async function verifiedRepairCandidate(directory, state, repairAttempt) {
 
 // This is deliberately a layout derivative, not an image repair.  It has no
 // authority to add scene pixels: it rescales the already failed candidate onto
-// a neutral opaque 4:5 canvas so the provider can see the measured target framing
+// a neutral opaque 3:4 canvas so the provider can see the measured target framing
 // instead of trying to infer "76% of frame height" from prose alone.
 async function mechanicalFramingGuide(directory, state, repairAttempt, repairCandidate) {
   if (!repairAttempt || !repairCandidate) return null;
@@ -442,10 +442,9 @@ async function initialComposedMasterGuide(directory, state, attemptNumber, appro
   if (!approvedLook?.path || !approvedLook?.sha256 || !Number.isInteger(attemptNumber)) return null;
   const source = await sharp(approvedLook.path).metadata();
   if (!source.width || !source.height || (source.pages ?? 1) !== 1) return null;
-  // Native 4:5 measured 76.4% at 0.775. GPT's 3:4 delivery loses 6.25%
-  // vertically in its explicit centre crop, so it needs a smaller composition
-  // reference to land in the same final 74–78% band.
-  const scale = transportAspectRatio === '3:4' ? 0.725 : 0.775;
+  // The scene contract is now natively 3:4: every provider sees the same
+  // measured canvas and no route loses pixels in a post-generation crop.
+  const scale = 0.725;
   const resizedWidth = Math.round(state.delivery.width * scale);
   const resizedHeight = Math.round(state.delivery.height * scale);
   const top = Math.round(state.delivery.height * 0.09);
@@ -928,11 +927,7 @@ function provenanceGate({
   const provider = attempt.provider_metadata;
   // The transport aspect is what the serving transport handed over, so the GPT
   // route has two truthful values: 3:4 from the Higgsfield CLI, which offered
-  // nothing closer, and 4:5 from OpenRouter, which serves the delivery aspect
-  // directly. Pinning it to 3:4 by model name would reject the better one.
-  const expectedTransportAspectRatios = attempt.route.job_set_type === 'gpt_image_2'
-    ? ['3:4']
-    : ['4:5'];
+  const expectedTransportAspectRatios = ['3:4'];
   const geometryReceiptValid = typeof provider.provider === 'string'
     && provider.provider.length > 0
     && provider.model === attempt.route.model
@@ -947,15 +942,13 @@ function provenanceGate({
     && provider.source_aspect_ratio.length > 0
     && expectedTransportAspectRatios.includes(provider.transport_aspect_ratio)
     && [
-      'provider_exact_4_5',
-      'provider_exact_4_5_rescaled',
-      'provider_native_4_5_tolerance_rescaled',
-      'centre_crop_to_exact_4_5',
+      'provider_exact_3_4',
+      'provider_exact_3_4_rescaled',
+      'provider_native_3_4_tolerance_rescaled',
       // Accepted for reading receipts written before blur padding was removed.
       'blurred_canvas_contain_no_subject_crop',
     ].includes(provider.geometry_strategy)
-    && (provider.geometry_strategy !== 'centre_crop_to_exact_4_5'
-      || (Number.isFinite(provider.geometry_crop_fraction) && provider.geometry_crop_fraction >= 0))
+    && provider.geometry_crop_fraction === undefined
     && /^[a-f0-9]{64}$/.test(provider.raw_output_sha256 ?? '')
     // Lineage is a chain, not a single equality. Without the frame-finish step
     // the geometry output IS the stored frame and the two hashes coincide; with
@@ -1184,8 +1177,8 @@ function validatePostReleaseRejectionReceipt(receipt, expectedSceneId) {
     || !Number.isInteger(output.size)
     || output.size < 1
     || output.media_type !== 'image/png'
-    || output.width !== 1024
-    || output.height !== 1280) {
+    || output.width !== 1536
+    || output.height !== 2048) {
     throw new Error('Rejected release output receipt is invalid');
   }
 
@@ -1200,8 +1193,8 @@ function validatePostReleaseRejectionReceipt(receipt, expectedSceneId) {
   assertHash(receipt.repair_source.sha256, 'rejection repair source sha256');
   if (receipt.repair_source.sha256 !== output.sha256
     || receipt.repair_source.media_type !== 'image/png'
-    || receipt.repair_source.width !== 1024
-    || receipt.repair_source.height !== 1280
+    || receipt.repair_source.width !== 1536
+    || receipt.repair_source.height !== 2048
     || receipt.repair_source.source_attempt !== receipt.rejected_release.attempt
     || receipt.repair_source.relative_path
       !== `${receipt.quarantine_relative_path}/outputs/scene.png`) {
@@ -1442,7 +1435,7 @@ function compiledPrompt({
     '- Never copy a person, identity, garment, brand, text, landmark or exact architecture from a scene reference.',
     '',
     'DELIVERY LOCK',
-    `- Output exactly one ${state.delivery.width}x${state.delivery.height} sRGB image at 4:5.`,
+    `- Output exactly one ${state.delivery.width}x${state.delivery.height} sRGB image at 3:4.`,
     ...(editorial ? [
       `- Execute the immutable editorial slot ${editorial.shot_slot} with ${framingIntent} framing.`,
       `- Complete head visibility is ${requireFullHead ? 'required' : 'not required by this intentional crop'}; complete footwear visibility is ${requireFullFootwear ? 'required' : 'not required by this intentional crop'}.`,
@@ -3300,7 +3293,7 @@ export class SceneService {
         target_height: state.delivery.height,
         strategy: 'deterministic_bbox_crop',
         color_space: 'srgb',
-        exact_aspect_ratio: '4:5',
+        exact_aspect_ratio: '3:4',
         source_attempt: sourceAttempt.number,
         source_candidate_sha256: sourceAttempt.candidate.sha256,
         crop_xywh_px: [
@@ -3430,7 +3423,7 @@ export class SceneService {
       : await initialComposedMasterGuide(directory, state, attempt.number, {
         path: bound.approvedLookPath,
         sha256: state.bindings.approved_look.image_sha256,
-      }, attempt.route.job_set_type === 'gpt_image_2' ? '3:4' : '4:5');
+      }, '3:4');
     const prompt = compiledPrompt({
       basePrompt: bound.prompt,
       state,
@@ -3465,7 +3458,7 @@ export class SceneService {
         quality: attempt.route.quality,
         route_hash: state.model_route.sha256,
         idempotency_key: attempt.generation_idempotency_key,
-        aspect_ratio: '4:5',
+        aspect_ratio: '3:4',
         width: state.delivery.width,
         height: state.delivery.height,
         prompt,
@@ -3561,8 +3554,8 @@ export class SceneService {
       if (!sourceMetadata.width || !sourceMetadata.height || (sourceMetadata.pages ?? 1) !== 1) {
         throw new Error('Provider scene output must be one still image');
       }
-      if (sourceMetadata.width * 5 !== sourceMetadata.height * 4) {
-        throw new Error('Provider scene output must already preserve the requested 4:5 framing');
+      if (sourceMetadata.width * 4 !== sourceMetadata.height * 3) {
+        throw new Error('Provider scene output must already preserve the requested 3:4 framing');
       }
       normalized = await sharp(sourceBytes)
         .rotate()
@@ -3607,7 +3600,7 @@ export class SceneService {
       raw_output_sha256: attempt.provider_metadata.raw_output_sha256 ?? attempt.provider_source.sha256,
       geometry_output_sha256: attempt.provider_metadata.geometry_output_sha256 ?? attempt.provider_source.sha256,
       transport_aspect_ratio: attempt.provider_metadata.transport_aspect_ratio
-        ?? '4:5',
+        ?? '3:4',
       geometry_strategy: attempt.provider_metadata.geometry_strategy ?? 'provider_exact_4_5',
     };
     if (attempt.provider_metadata.rejection_id
@@ -3630,7 +3623,7 @@ export class SceneService {
           target_height: state.delivery.height,
           strategy: 'same_aspect_lossless_resize',
           color_space: 'srgb',
-          exact_aspect_ratio: '4:5',
+          exact_aspect_ratio: '3:4',
         },
         provider_metadata: observedProviderMetadata,
         error: {
@@ -3659,7 +3652,7 @@ export class SceneService {
         target_height: state.delivery.height,
         strategy: 'same_aspect_lossless_resize',
         color_space: 'srgb',
-        exact_aspect_ratio: '4:5',
+        exact_aspect_ratio: '3:4',
       },
       provider_metadata: observedProviderMetadata,
       error: null,
@@ -3810,7 +3803,7 @@ export class SceneService {
           target_height: state.delivery.height,
           strategy: 'deterministic_bbox_crop',
           color_space: 'srgb',
-          exact_aspect_ratio: '4:5',
+          exact_aspect_ratio: '3:4',
           source_attempt: attempt.number,
           source_candidate_sha256: sourceCandidate.sha256,
           crop_xywh_px: [

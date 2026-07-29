@@ -49,7 +49,7 @@ function passEvaluation(overrides = {}) {
       request_id: `fixture-review-${Math.random().toString(16).slice(2)}`,
     },
     framing_evidence: {
-      subject_bbox_xywh_px: [200, 103, 620, 973],
+      subject_bbox_xywh_px: [300, 165, 930, 1550],
       full_head_visible: true,
       full_footwear_visible: true,
     },
@@ -57,8 +57,8 @@ function passEvaluation(overrides = {}) {
 }
 
 function providerMetadata(context, bytes, requestId, {
-  sourceWidth = 800,
-  sourceHeight = 1000,
+  sourceWidth = 900,
+  sourceHeight = 1200,
 } = {}) {
   const outputHash = sha256(bytes);
   return {
@@ -75,8 +75,8 @@ function providerMetadata(context, bytes, requestId, {
     source_aspect_ratio: `${sourceWidth / 200}:${sourceHeight / 200}`,
     raw_output_sha256: outputHash,
     geometry_output_sha256: outputHash,
-    transport_aspect_ratio: context.job_set_type === 'gpt_image_2' ? '3:4' : '4:5',
-    geometry_strategy: 'provider_exact_4_5',
+    transport_aspect_ratio: '3:4',
+    geometry_strategy: 'provider_exact_3_4',
   };
 }
 
@@ -230,7 +230,7 @@ async function fixture(t, {
     generator: [],
     evaluator: [],
   };
-  const generatedImage = await image({ width: 800, height: 1000, color: '#c79782' });
+  const generatedImage = await image({ width: 900, height: 1200, color: '#c79782' });
   const dependencies = {
     approvedLookResolver: {
       async resolveApprovedLook() {
@@ -378,7 +378,7 @@ function postReleaseRejection(outputSha256, overrides = {}) {
   };
 }
 
-test('creates one immutable scene, normalizes it to exact 4:5, and releases only after all nine gates pass', async (t) => {
+test('creates one immutable scene, normalizes it to exact 3:4, and releases only after all nine gates pass', async (t) => {
   const { root, service, request, calls } = await fixture(t);
   const created = await service.createScene(request);
   assert.equal(created.status, 'QUEUED');
@@ -389,9 +389,9 @@ test('creates one immutable scene, normalizes it to exact 4:5, and releases only
   assert.ok(completed.qa.gates.every((gate) => gate.decision === 'PASS'));
   assert.equal(completed.qa.score, 100);
   assert.equal(calls.generator.length, 1);
-  assert.equal(calls.generator[0].aspect_ratio, '4:5');
-  assert.equal(calls.generator[0].width, 1024);
-  assert.equal(calls.generator[0].height, 1280);
+  assert.equal(calls.generator[0].aspect_ratio, '3:4');
+  assert.equal(calls.generator[0].width, 1536);
+  assert.equal(calls.generator[0].height, 2048);
   assert.equal(calls.generator[0].model_version, 'gpt_image_2');
   assert.equal(calls.generator[0].approved_look.sha256, request.approvedLookReference.image_sha256);
   assert.equal(calls.generator[0].references.length, 5);
@@ -400,7 +400,7 @@ test('creates one immutable scene, normalizes it to exact 4:5, and releases only
 
   const outputPath = await service.outputFile(created.scene_id);
   const outputMetadata = await sharp(outputPath).metadata();
-  assert.deepEqual([outputMetadata.width, outputMetadata.height, outputMetadata.format], [1024, 1280, 'png']);
+  assert.deepEqual([outputMetadata.width, outputMetadata.height, outputMetadata.format], [1536, 2048, 'png']);
   assert.equal(sha256(await readFile(outputPath)), completed.output.sha256);
   const manifestPath = await service.outputFile(created.scene_id, 'scene-manifest.json');
   const manifestBytes = await readFile(manifestPath);

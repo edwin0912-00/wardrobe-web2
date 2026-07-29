@@ -19,12 +19,12 @@ export const SCENE_PROVIDER_RUNTIME_CONFIG = Object.freeze({
     quality: 'high',
   }),
   nano_banana_flash: Object.freeze({
-    aspectRatio: '4:5',
+    aspectRatio: '3:4',
     resolution: '2k',
     quality: 'high',
   }),
   nano_banana_2: Object.freeze({
-    aspectRatio: '4:5',
+    aspectRatio: '3:4',
     resolution: '2k',
     quality: 'high',
   }),
@@ -72,7 +72,8 @@ export function createSceneRuntimeDependencies({
 
   const resolvedProjectRoot = path.resolve(projectRoot);
   const journalRoot = path.join(resolvedProjectRoot, 'runtime', 'provider-journals', 'scenes');
-  // GPT Image 2 is the primary 3:4 transport; Nano routes are native 4:5.
+  // All scene routes use the one 3:4 delivery contract. No scene route crops
+  // one provider's output into a different product aspect ratio.
   // OpenRouterImageGenProvider covers every route through its own map.
   const generationProviderCoversAllRoutes = generationProvider instanceof OpenRouterImageGenProvider;
   const providers = Object.fromEntries(

@@ -33,6 +33,18 @@ each output was evaluated. All failed the unchanged `ITEM_FIDELITY` and
 `FRAMING_AND_ANATOMY` gates; full receipts remain in the isolated runtime.
 weakened_checks: none.
 
+2026-07-29 · SCENE-DELIVERY-3-4 · native standard-scene output
+Change: standard-scene delivery is `1536×2048` / `3:4`; GPT Image 2 and both
+Nano routes request the same native ratio. Rounded 3:4 provider buckets are
+rescaled only. The former 3:4→4:5 centre crop is removed.
+Why: operator decision — preserve every generated image pixel rather than
+discarding vertical content to fit 4:5. Reference images remain authorities
+for environment, lighting, composition and palette, not delivery geometry.
+Evidence: adapter geometry regression 5/5 PASS; immutable scene release test
+1/1 PASS; real request binds `std.city.golden_hour_gloss` with delivery 3:4
+and enters GPT Image 2 generation.
+weakened_checks: none.
+
 2026-07-28 · LIGHT-STAGE.01 · beta · portable UI component
 Change: add a reusable black-and-gold `Light Stage` component, CSS, demo entry point and deterministic white-edge matte test.
 Why: an approved master needs a premium 3D presentation treatment without changing any source pixels or downstream generation inputs.
