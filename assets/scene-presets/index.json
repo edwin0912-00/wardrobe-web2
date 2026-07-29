@@ -12,9 +12,9 @@
       "preset_sha256": "ebd8a4ef30c84cc14b9f869d605afd41f6bbb082cede80bc8fea359615db94c1",
       "preset_version": "1.0.0",
       "production_prompt_path": "prompts/scene-presets/std.city.golden_hour_gloss/v1/production-scene.txt",
-      "prompt_sha256": "0265b99c006a5c7f4adb2e452f47cc3d8038e8a1dbfeb48ffcaff8e2d4257afe",
+      "prompt_sha256": "8f8a4890c4265f4dd6bcb5862b153de0f29265dd9c9cb534fd8d2d06153f8533",
       "reference_pack_path": "assets/scene-presets/std.city.golden_hour_gloss/v1/reference-pack.json",
-      "reference_pack_sha256": "b4609051ead99f99a0e70112dbcdc6869d650bcbf866bb9018f94a5234a67aab",
+      "reference_pack_sha256": "a6ab1ff0fecf9030b090863d4f2ed9dbc32f58a3d358ad16ca105f9a6108f4e7",
       "references": [
         {
           "media_type": "application/json",
@@ -67,9 +67,9 @@
       "preset_sha256": "e00b6ff4b97b631bbd0fa5c4707831f79426882424e76f72a6fe0410a65d9d2f",
       "preset_version": "1.0.0",
       "production_prompt_path": "prompts/scene-presets/std.studio.white_window_honeycomb/v1/production-scene.txt",
-      "prompt_sha256": "3b639744bcc2b1e81b3ba4be563136a7a56988948480147a29bbf49574139c66",
+      "prompt_sha256": "33e4d095cbe2635cd425b58cdf11cad6c43259e2e726230f916104d2834a09a4",
       "reference_pack_path": "assets/scene-presets/std.studio.white_window_honeycomb/v1/reference-pack.json",
-      "reference_pack_sha256": "6db65abb58f288fac4faf74a0c6786c9ad8c58e5206b8c9aa36c47f21d30a6ea",
+      "reference_pack_sha256": "5010622ce6fcaea845f54fc4fa04adb67c5769118d7e19fffb202b12faaa22ca",
       "references": [
         {
           "media_type": "application/json",
@@ -122,9 +122,9 @@
       "preset_sha256": "6cfa2df1aabbcd2481ab5e8a023773b85cf4fd8d5cacae57aca05d67207201a3",
       "preset_version": "1.0.0",
       "production_prompt_path": "prompts/scene-presets/std.studio.taupe_rembrandt_gloss/v1/production-scene.txt",
-      "prompt_sha256": "2253f9fd2dc91b83ca132632619f3663eafd305835a45229d3e318667b9de137",
+      "prompt_sha256": "4475ed0d95f17f4d4a91cb7f3bff8eeaf9c5fc0abf9b7c13f6252ecf8e965fed",
       "reference_pack_path": "assets/scene-presets/std.studio.taupe_rembrandt_gloss/v1/reference-pack.json",
-      "reference_pack_sha256": "a63205ac744e79f439cd1fe07eedb47b3807f806594f7ba3f15c9b0506995c17",
+      "reference_pack_sha256": "4cba74aadcbc100a9d0e80113c8cc6ebd38eb323b30b8fd4700769c2661e70aa",
       "references": [
         {
           "media_type": "application/json",
@@ -177,9 +177,9 @@
       "preset_sha256": "d0291e5d657e87b7384078facdc4689231968ebfd19f09c13425a44942ccd3ef",
       "preset_version": "1.0.0",
       "production_prompt_path": "prompts/scene-presets/std.interior.gallery_morning_gloss/v1/production-scene.txt",
-      "prompt_sha256": "6a6798db591fbb858e0c7528cb380c4391a4c1a5fb87d998f1204cfa7141a5c2",
+      "prompt_sha256": "3e73a1f2ff0c9cf20dc84ce9dd1ea85ba4c78e96816a0fbe391104a2ef9c13b9",
       "reference_pack_path": "assets/scene-presets/std.interior.gallery_morning_gloss/v1/reference-pack.json",
-      "reference_pack_sha256": "3b71f1dde6614544c1e8898c4a5cd43f46f3f8d63e79d08792c935a21a401ef4",
+      "reference_pack_sha256": "95dc3f9228bb4d080c2f988c669331cd439276340d78e998ee0b3b931d917c7a",
       "references": [
         {
           "media_type": "application/json",
@@ -232,9 +232,9 @@
       "preset_sha256": "4e10219da33af3b16966ba56d6ed9f60983763f23762c9653846d64f7cec34e4",
       "preset_version": "1.0.0",
       "production_prompt_path": "prompts/scene-presets/std.nature_architecture.concrete_grass_golden_hour/v1/production-scene.txt",
-      "prompt_sha256": "c45fa3cc048807033999917071fcdeb2ffd8263946404af11df196c7467290f1",
+      "prompt_sha256": "f62249799886162fbaf1b08c80c41433d7a89a8ff82472113763bfdb2dc721b8",
       "reference_pack_path": "assets/scene-presets/std.nature_architecture.concrete_grass_golden_hour/v1/reference-pack.json",
-      "reference_pack_sha256": "77b168544f69a573583a52ecff803372060b99e366f749469e54d334dd5c4400",
+      "reference_pack_sha256": "0f3d5a4a320c0dbe180dedc717fa9273b08a06547696e5284a20c2fc77306b60",
       "references": [
         {
           "media_type": "application/json",
@@ -284,82 +284,82 @@
   ],
   "published_preset_indexes": [
     {
-      "index_sha256": "0645590cc736b2226bd2f06a53fab3b2c3e410ccfa97789fa566146cedd73678",
+      "index_sha256": "27e0295a1533fa4e03160bc247477f1455b753d070e73d8a12b6d1b2ebb22be0",
       "preset_id": "std.architecture.glass_corridor_sunset",
       "preset_version": "1.0.0"
     },
     {
-      "index_sha256": "adc56f5c016b23b55ed7d0f74755990852466c78240144bf8b273f479d2cec25",
+      "index_sha256": "eb4e94f54eb062c2508fd5429949732a4181e01a01b659aef7ee9915261f2088",
       "preset_id": "std.city.amber_alley_cobblestone",
       "preset_version": "1.0.0"
     },
     {
-      "index_sha256": "6bcb43b109057a2e11c6e430a16882df1a5e7cbc54ec52a52ae847f3511d5cfb",
+      "index_sha256": "ee4fe3df41d820a776703d13e816e5c09f5f2a083f1e40dda52b1be8ce2ba337",
       "preset_id": "std.city.golden_hour_gloss",
       "preset_version": "1.0.0"
     },
     {
-      "index_sha256": "c76ce586dd75b625cb52db6f947d692e8735f19056ca1a730e0d42886a02de20",
+      "index_sha256": "092c72c2c86a814af963b94683a811e0410bc62133af233e90ea8110e5bd9439",
       "preset_id": "std.city.night_neon_wet_asphalt",
       "preset_version": "1.0.0"
     },
     {
-      "index_sha256": "7383aa1fc5926c63ea1fda0f8a86b7a82eee2b4bd79da93fceb6bfaeab8d7715",
+      "index_sha256": "044a07e6c1f749e6cc36be98af3db1124a55e41c2c2dc0442d26e96a66f173c2",
       "preset_id": "std.city.rooftop_concrete_sunset",
       "preset_version": "1.0.0"
     },
     {
-      "index_sha256": "9a77c7a4b47b1e90e28cf69e17879f52856337099a5501c713a87fb54e1e6daf",
+      "index_sha256": "d338553e025f48cc860e2045cb87ff2eca2f58f86c3a68959b4bacff668a2041",
       "preset_id": "std.interior.abandoned_palace_light_shaft",
       "preset_version": "1.0.0"
     },
     {
-      "index_sha256": "37e164abe9c82b8e22c9d8cc85f37b96d4b7db1640cf72d8166c114202d15171",
+      "index_sha256": "dfc427304d8062b2e3f70bf349f34acb52a83562487f8506b576c184e4ea0a4e",
       "preset_id": "std.interior.gallery_morning_gloss",
       "preset_version": "1.0.0"
     },
     {
-      "index_sha256": "6fbf4fd0b7b4080e3530628a6339456bea60069f3b0b0cf4c7ca36932809d0c6",
+      "index_sha256": "13c113a407a76c14ed12af1634b08e6d0d3423b1bff3c022aa2038c9b89327d1",
       "preset_id": "std.interior.industrial_brick_loft",
       "preset_version": "1.0.0"
     },
     {
-      "index_sha256": "f21e68a6df14eaaea25b94eeabb56915a4023d8e5bece8bda49c9216ca4ab6a5",
+      "index_sha256": "dbb54b773c655326ced686dd218bc059e509bf16c3fc1e5dbadb2f6da7f07dae",
       "preset_id": "std.interior.sheer_curtain_golden_light",
       "preset_version": "1.0.0"
     },
     {
-      "index_sha256": "4241d0e5f9810e025ee5709b800b01781940eb678880379d5e0c0dd2eb4aad21",
+      "index_sha256": "f4ec9d378e785d3c61a9e761fd22be8894b683c7f78334330105ae5851c09f08",
       "preset_id": "std.nature.foggy_forest_light_shaft",
       "preset_version": "1.0.0"
     },
     {
-      "index_sha256": "f6add91bb96c7eac4ba83f227878610b2e14efc75a48ac7731db0b4c27b718c1",
+      "index_sha256": "97d7c7fd5e9ec0664573ce960b097bdafd42c7ace4eba5d6060bc66c20f197a1",
       "preset_id": "std.nature.ocean_dusk_blue_hour",
       "preset_version": "1.0.0"
     },
     {
-      "index_sha256": "303869148a733602e6f697cea32083a0d6b9f2b629827e09ba0f0aaec4266b25",
+      "index_sha256": "062087e68b7966f20d83fbddde49ac4ce8b6c5d5f5744494d4536297ae582f66",
       "preset_id": "std.nature_architecture.concrete_grass_golden_hour",
       "preset_version": "1.0.0"
     },
     {
-      "index_sha256": "c0400b1bfb42b06313e29ae5d0d434f3c2817f25072b4c33b60758089e5ce1d4",
+      "index_sha256": "6609ba26aaa2aef4774d14a5df8fdbd4069ae513de07e8379bd1d43bfbf60820",
       "preset_id": "std.studio.black_spotlight_low_key",
       "preset_version": "1.0.0"
     },
     {
-      "index_sha256": "4359fa243c617bd05d6f855486a506193dfbb4aa5d05e64b8f5a0de87c170f06",
+      "index_sha256": "0a7f7e6937636f46ee85d8895bec9807140b986785b0aaf9a92c292905260349",
       "preset_id": "std.studio.taupe_rembrandt_gloss",
       "preset_version": "1.0.0"
     },
     {
-      "index_sha256": "8d190891df656a35d8d0875565b6258eea0092ffc292f17f8ca9edaf39e7c1a9",
+      "index_sha256": "97cc0dac4bf132ebb6d386374191401404af6e3cebb70f32668917d6545a8c64",
       "preset_id": "std.studio.terracotta_raking_light",
       "preset_version": "1.0.0"
     },
     {
-      "index_sha256": "ff9a75fa5b5eabc28b5be21920ef9cd5e282f9fb74a263b48c5251072cb95f8a",
+      "index_sha256": "2f84fa3180105029a4b6e747effbcb2460ddf55e3f01dabfa746f4e7b2e7fbec",
       "preset_id": "std.studio.white_window_honeycomb",
       "preset_version": "1.0.0"
     }

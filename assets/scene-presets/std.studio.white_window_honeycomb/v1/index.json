@@ -4,9 +4,9 @@
   "preset_sha256": "e00b6ff4b97b631bbd0fa5c4707831f79426882424e76f72a6fe0410a65d9d2f",
   "preset_version": "1.0.0",
   "production_prompt_path": "prompts/scene-presets/std.studio.white_window_honeycomb/v1/production-scene.txt",
-  "prompt_sha256": "3b639744bcc2b1e81b3ba4be563136a7a56988948480147a29bbf49574139c66",
+  "prompt_sha256": "33e4d095cbe2635cd425b58cdf11cad6c43259e2e726230f916104d2834a09a4",
   "reference_pack_path": "assets/scene-presets/std.studio.white_window_honeycomb/v1/reference-pack.json",
-  "reference_pack_sha256": "6db65abb58f288fac4faf74a0c6786c9ad8c58e5206b8c9aa36c47f21d30a6ea",
+  "reference_pack_sha256": "5010622ce6fcaea845f54fc4fa04adb67c5769118d7e19fffb202b12faaa22ca",
   "references": [
     {
       "media_type": "application/json",

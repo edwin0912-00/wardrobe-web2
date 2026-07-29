@@ -2,7 +2,7 @@
   "preset_id": "std.interior.industrial_brick_loft",
   "preset_sha256": "dfdc86cfec674321ec7c1c1881683b372138effd7d301387630f67b6b7a31b41",
   "preset_version": "1.0.0",
-  "prompt_sha256": "81da062f5cd6637c46193eeea1ae090a7372a851b3cf464db90fb26287e66d95",
+  "prompt_sha256": "e6f6795615673d83235e7fcda879e804d2cd9889260d0667cc11ae835b299de0",
   "reference_pack_id": "pack.std.interior.industrial_brick_loft.v1.1",
   "references": [
     {

@@ -4,9 +4,9 @@
   "preset_sha256": "dfdc86cfec674321ec7c1c1881683b372138effd7d301387630f67b6b7a31b41",
   "preset_version": "1.0.0",
   "production_prompt_path": "prompts/scene-presets/std.interior.industrial_brick_loft/v1/production-scene.txt",
-  "prompt_sha256": "81da062f5cd6637c46193eeea1ae090a7372a851b3cf464db90fb26287e66d95",
+  "prompt_sha256": "e6f6795615673d83235e7fcda879e804d2cd9889260d0667cc11ae835b299de0",
   "reference_pack_path": "assets/scene-presets/std.interior.industrial_brick_loft/v1/reference-pack.json",
-  "reference_pack_sha256": "2342b6ea31ca029030203b06af06994dc879e12492019afff0adbcd2cb5b63f4",
+  "reference_pack_sha256": "8ca5fcedb83f120766891b0b41b6501281ece7440500256391f8416c20a5c76d",
   "references": [
     {
       "media_type": "application/json",

@@ -2,7 +2,7 @@
   "preset_id": "std.architecture.glass_corridor_sunset",
   "preset_sha256": "32ce38cb643987df70a8f12ccf2f1d91d0fd0bd24b2bf316dac09139a5b0cee8",
   "preset_version": "1.0.0",
-  "prompt_sha256": "ae51e4e8031746b9ee2917c441b41fc509aa44df0de84eacea3571303710e41d",
+  "prompt_sha256": "9e9814f2f995e0cca142b32400d66c51f821748b0f2c94b727ac30027ca6d062",
   "reference_pack_id": "pack.std.architecture.glass_corridor_sunset.v1.1",
   "references": [
     {

@@ -1,6 +1,6 @@
 Create one original environmental high-fashion mood card, vertical 4:5, photorealistic.
 SUBJECT: one anonymous adult test model with neutral expression, wearing a plain unbranded charcoal tailored set and simple dark shoes. The model is lighting/composition evidence only, not an identity reference.
-COMPOSITION: full body, complete head and footwear, 50 mm equivalent, eye level, straight verticals, architecture supports rather than overwhelms the figure. SOURCE-SCALE LOCK: the complete person occupies only 60–64% of the tall source image, with at least 16% clean space above the head and 12% below the footwear; these margins are mandatory for a later centered 4:5 crop.
+COMPOSITION: full body, complete head and footwear, 50 mm equivalent, eye level, straight verticals, architecture supports rather than overwhelms the figure. SOURCE-SCALE LOCK: the complete person occupies only 60–64% of the tall source image, with at least 16% clean space above the head and 12% below the footwear; these margins are mandatory for a later centered 3:4 crop.
 SETTING: a newly invented minimalist gallery with off-white plaster, pale travertine and a small light-oak accent; one large high window, broad empty surfaces, no artwork or recognizable design.
 LIGHTING: long soft early-morning side light with a gentle warm edge, clean cool room fill and a physically coherent contact shadow; window exposure retains detail.
 FINISH: refined glossy fashion editorial, pearl shadows, restrained saturation, natural skin and exact garment color, crisp fabric; no HDR, bloom or smoothing.

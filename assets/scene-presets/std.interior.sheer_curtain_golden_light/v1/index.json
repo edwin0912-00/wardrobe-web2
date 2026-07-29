@@ -4,9 +4,9 @@
   "preset_sha256": "107c90d3246e6376ad567b7de31f90e3366fa81fbc5f880fba6c23d07e64abdf",
   "preset_version": "1.0.0",
   "production_prompt_path": "prompts/scene-presets/std.interior.sheer_curtain_golden_light/v1/production-scene.txt",
-  "prompt_sha256": "3d8ffb0b8373d2c052250eca532935852c1d2bae1f479d78b279f4b2e8928ece",
+  "prompt_sha256": "3ac41a4f10c375ad19c424f354b5f45ba14b52529a403869dd250d601c38a94a",
   "reference_pack_path": "assets/scene-presets/std.interior.sheer_curtain_golden_light/v1/reference-pack.json",
-  "reference_pack_sha256": "ab01c41f137fd11c9dcf059c649206f3dcb76a5c94f4b4cc3151e93d8210f250",
+  "reference_pack_sha256": "a62f243c9debd0d1a0b10fa751b49aa3883d7d1a887f7546f5054144cb048558",
   "references": [
     {
       "media_type": "application/json",

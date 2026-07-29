@@ -4,9 +4,9 @@
   "preset_sha256": "64d699b334fa4ec748fcb1718d642eedcf4bc932716a284fdb20a71f1a8c6160",
   "preset_version": "1.0.0",
   "production_prompt_path": "prompts/scene-presets/std.city.rooftop_concrete_sunset/v1/production-scene.txt",
-  "prompt_sha256": "0e983b611a7dae97f3c9ee385d722e77e4600714d4f05959c85d2e2e9b5e9aea",
+  "prompt_sha256": "2dd3ea7106bdb587f852d7ac5d41b48d79cfe5d1ea186c6cdc219d7d0b7a35b1",
   "reference_pack_path": "assets/scene-presets/std.city.rooftop_concrete_sunset/v1/reference-pack.json",
-  "reference_pack_sha256": "9e2b958be74d1ca3e14499a75290f30a99c96bed55280f3e4cee229fefeaa0aa",
+  "reference_pack_sha256": "ba1f462f5dabcc8cd0f52d1461e00666d3434baea4fbd7687b49ca014bcd7075",
   "references": [
     {
       "media_type": "application/json",

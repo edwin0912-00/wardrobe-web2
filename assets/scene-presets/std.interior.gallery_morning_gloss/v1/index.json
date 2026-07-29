@@ -4,9 +4,9 @@
   "preset_sha256": "d0291e5d657e87b7384078facdc4689231968ebfd19f09c13425a44942ccd3ef",
   "preset_version": "1.0.0",
   "production_prompt_path": "prompts/scene-presets/std.interior.gallery_morning_gloss/v1/production-scene.txt",
-  "prompt_sha256": "6a6798db591fbb858e0c7528cb380c4391a4c1a5fb87d998f1204cfa7141a5c2",
+  "prompt_sha256": "3e73a1f2ff0c9cf20dc84ce9dd1ea85ba4c78e96816a0fbe391104a2ef9c13b9",
   "reference_pack_path": "assets/scene-presets/std.interior.gallery_morning_gloss/v1/reference-pack.json",
-  "reference_pack_sha256": "3b71f1dde6614544c1e8898c4a5cd43f46f3f8d63e79d08792c935a21a401ef4",
+  "reference_pack_sha256": "95dc3f9228bb4d080c2f988c669331cd439276340d78e998ee0b3b931d917c7a",
   "references": [
     {
       "media_type": "application/json",

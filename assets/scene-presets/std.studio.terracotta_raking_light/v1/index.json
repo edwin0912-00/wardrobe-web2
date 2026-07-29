@@ -4,9 +4,9 @@
   "preset_sha256": "f7e188d5d05bf8e885fe6ed5d6379a25e7062359a3b9e43f438b8b1f0cebba55",
   "preset_version": "1.0.0",
   "production_prompt_path": "prompts/scene-presets/std.studio.terracotta_raking_light/v1/production-scene.txt",
-  "prompt_sha256": "a15acd051fb9656cba81b9a4487f6b1e658f3bd4b1f27e2e0e7f8b47150e34ff",
+  "prompt_sha256": "8eeab10d4ed4826ca32592f4d1d61a87a2a2b87d8789db593c5470fde4c96d66",
   "reference_pack_path": "assets/scene-presets/std.studio.terracotta_raking_light/v1/reference-pack.json",
-  "reference_pack_sha256": "32f8c3930cfe9561d4cdb3ad839e6739ceb031697aceb97f3e2530d6ac9b1a3f",
+  "reference_pack_sha256": "45117c134c2e8ffb5f04df5d217d4a4fdb957c3ea8f6e4568920708a2281d410",
   "references": [
     {
       "media_type": "application/json",

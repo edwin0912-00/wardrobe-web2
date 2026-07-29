@@ -2,7 +2,7 @@
   "preset_id": "std.city.golden_hour_gloss",
   "preset_sha256": "ebd8a4ef30c84cc14b9f869d605afd41f6bbb082cede80bc8fea359615db94c1",
   "preset_version": "1.0.0",
-  "prompt_sha256": "0265b99c006a5c7f4adb2e452f47cc3d8038e8a1dbfeb48ffcaff8e2d4257afe",
+  "prompt_sha256": "8f8a4890c4265f4dd6bcb5862b153de0f29265dd9c9cb534fd8d2d06153f8533",
   "reference_pack_id": "pack.std.city.golden_hour_gloss.v1.1",
   "references": [
     {

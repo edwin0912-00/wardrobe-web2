@@ -4,9 +4,9 @@
   "preset_sha256": "8cf661723543c7649a0e7b1a8ec65d71f3c73a7d90cd3d88f029ccc1ac39d55f",
   "preset_version": "1.0.0",
   "production_prompt_path": "prompts/scene-presets/std.city.amber_alley_cobblestone/v1/production-scene.txt",
-  "prompt_sha256": "92f315c6b267242ddcb223f38222f57668e17102fdfee3cf29c6804d419fadc8",
+  "prompt_sha256": "ae8e888f1fae3ce4b20ded1035931544a083d79e3080ee7475f3458a26841a78",
   "reference_pack_path": "assets/scene-presets/std.city.amber_alley_cobblestone/v1/reference-pack.json",
-  "reference_pack_sha256": "2893a0427e674651014668c6df14832d84ee0ea2b3ba2544639cb40d42bdf47a",
+  "reference_pack_sha256": "3276e96eb32c9cbb22d65003758d44059c8fa9ce8e43b0ed2bd7930f57db31ae",
   "references": [
     {
       "media_type": "application/json",

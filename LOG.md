@@ -42,6 +42,16 @@ weakened_checks: subject-scale acceptance widened by explicit operator decision;
 identity, item, full-head, footwear, 3:4 geometry, headroom and ground-space
 checks are unchanged.
 
+2026-07-29 · Standard scene aspect-ratio prompt repair · pending beta release
+Change: active production prompts were changed from legacy 4:5 wording to the
+native 3:4 delivery wording and every corresponding published-pack hash was
+re-bound.
+Why: runtime already sends `aspect_ratio: 3:4`, `1536×2048` and rejects a
+non-3:4 provider response; a 4:5 literal in the inherited base prompt was a
+contradiction, not a fallback.
+Evidence: standard contract/catalog/API suite remains 27/27 PASS.
+weakened_checks: none.
+
 2026-07-29 · Standard scene framing crop quantisation · pending beta release
 Change: crop height now aligns to both the 5px mechanical grid and the delivery
 ratio's integral-width step. The former 5px-only grid could refuse a valid 3:4

@@ -4,9 +4,9 @@
   "preset_sha256": "ebd8a4ef30c84cc14b9f869d605afd41f6bbb082cede80bc8fea359615db94c1",
   "preset_version": "1.0.0",
   "production_prompt_path": "prompts/scene-presets/std.city.golden_hour_gloss/v1/production-scene.txt",
-  "prompt_sha256": "0265b99c006a5c7f4adb2e452f47cc3d8038e8a1dbfeb48ffcaff8e2d4257afe",
+  "prompt_sha256": "8f8a4890c4265f4dd6bcb5862b153de0f29265dd9c9cb534fd8d2d06153f8533",
   "reference_pack_path": "assets/scene-presets/std.city.golden_hour_gloss/v1/reference-pack.json",
-  "reference_pack_sha256": "b4609051ead99f99a0e70112dbcdc6869d650bcbf866bb9018f94a5234a67aab",
+  "reference_pack_sha256": "a6ab1ff0fecf9030b090863d4f2ed9dbc32f58a3d358ad16ca105f9a6108f4e7",
   "references": [
     {
       "media_type": "application/json",

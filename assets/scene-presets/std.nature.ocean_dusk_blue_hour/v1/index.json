@@ -4,9 +4,9 @@
   "preset_sha256": "587f3f8a36c51c7931c9d282ba98ea42e86990923d5e6f76603397bedced73f4",
   "preset_version": "1.0.0",
   "production_prompt_path": "prompts/scene-presets/std.nature.ocean_dusk_blue_hour/v1/production-scene.txt",
-  "prompt_sha256": "5b4a7275e8a1780b83c7f48c648ff83c0be4e326c8b4dd3e9b7d3199d3d1e379",
+  "prompt_sha256": "34b5a98ca56eccf53c2bba69afea5b9a301302a2ab7ad3de0382b142dc7cb0a9",
   "reference_pack_path": "assets/scene-presets/std.nature.ocean_dusk_blue_hour/v1/reference-pack.json",
-  "reference_pack_sha256": "bd541cfc78d20bae5caa27ceb3accfbeb552e0bbb449432118ad8e5993bd595c",
+  "reference_pack_sha256": "75c273feb8c2b3a980e5a248088a2989b8f415886d055a2c2d3bfdce0f0e2f9c",
   "references": [
     {
       "media_type": "application/json",

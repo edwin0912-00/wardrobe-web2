@@ -221,7 +221,7 @@ Release evidence: public beta health is `ready`; public HTML serves
 `product-49582eeb-a3bc22ae8b3c`.
 
 Task ID: BETA-STANDARD-SCENE-SCALE-001
-State: LIVE_ON_BETA — release `4cd70dd`
+State: READY_FOR_BETA_DEPLOY
 Decision: standard backgrounds accept a full person at 70–80% of the native
 3:4 delivery. Headroom stays 8%, ground space stays 2%, and head/footwear
 remain mandatory. This is an operator-approved relaxation of scale only.
@@ -234,6 +234,10 @@ and real scene API integration suite 6/6 PASS.
 weakened_checks: only the declared subject scale band (74–78 → 70–80).
 Release evidence: public beta health is `ready`; public HTML serves
 `product-4cd70dd1-0ad4ec665dd7`.
+Correction before next release: legacy production prompt text still named 4:5
+while the immutable runtime delivery was 3:4. All active production prompts
+and their pack hashes now state 3:4/1536×2048 too; this removes the final
+cross-layer aspect-ratio contradiction.
 Next action: any preview hostname needs an ingress entry in the canonical
 Cloudflare connector, never a second connector with the same tunnel ID.
 Help request: NONE.
