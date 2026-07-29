@@ -986,7 +986,9 @@ function renderProfileSceneLibrary(look) {
   const list = document.querySelector('#profile-look-scene-list');
   const emptyState = document.querySelector('#profile-look-scenes-empty');
   const count = document.querySelector('#profile-look-scenes-count');
+  const section = document.querySelector('#profile-look-scenes');
   list.replaceChildren();
+  section.classList.toggle('hidden', scenes.length === 0);
   count.textContent = String(scenes.length);
   count.setAttribute(
     'aria-label',
@@ -1070,7 +1072,9 @@ function renderProfileEditorialLibrary(look, profile = currentProfile, supplied 
   const list = document.querySelector('#profile-look-editorial-list');
   const emptyState = document.querySelector('#profile-look-editorial-empty');
   const count = document.querySelector('#profile-look-editorial-count');
+  const section = document.querySelector('#profile-look-editorial');
   list.replaceChildren();
+  section.classList.toggle('hidden', shoots.length === 0);
   count.textContent = String(shoots.length);
   count.setAttribute(
     'aria-label',

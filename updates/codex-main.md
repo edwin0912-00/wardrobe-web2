@@ -190,6 +190,12 @@ Public proof: `/api/health` returned `ready`; Fashion Shoot UI focused suite 17/
 Follow-up: the previous module URL was cache-stable (`v=20260724-1`), so an
 already-open browser could keep the old gallery renderer. Cache token bumped
 for the Fashion Shoot module before the next beta activation.
+
+Task ID: BETA-SAVED-LOOK-FIT-001
+State: READY_FOR_BETA_DEPLOY
+Change: the phone saved-look view is now an action hub: empty history does not
+render, long explanatory lists do not occupy the fixed viewport, and all next
+actions use a compact visible layout without an inner scroll container.
 Next action: any preview hostname needs an ingress entry in the canonical
 Cloudflare connector, never a second connector with the same tunnel ID.
 Help request: NONE.

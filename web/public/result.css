@@ -2523,7 +2523,7 @@ body.profile-live-open {
 
   .profile-library.has-open-look .profile-look-detail-copy {
     justify-content: flex-start;
-    padding: 37px 0 0;
+    padding: 34px 0 0;
     overflow: hidden;
   }
 
@@ -2538,12 +2538,79 @@ body.profile-live-open {
   }
 
   .profile-library.has-open-look .profile-look-detail-copy > .profile-look-add-explainer {
-    max-height: 58px;
-    margin-top: 5px;
-    padding: 5px 6px;
-    overflow: hidden;
-    font-size: 9.5px;
-    line-height: 1.22;
+    display: none;
+  }
+
+  /* The saved-look view is an action hub. Empty history and long explanatory
+     copy must not compete with the five next actions inside a fixed phone
+     viewport. Existing scenes remain available from the profile library. */
+  .profile-library.has-open-look .profile-look-scenes,
+  .profile-library.has-open-look .profile-action-guide,
+  .profile-library.has-open-look .profile-branch-brief {
+    display: none;
+  }
+
+  .profile-library.has-open-look .profile-look-next {
+    gap: 5px;
+    padding: 7px;
+    border-radius: 11px;
+  }
+
+  .profile-library.has-open-look .profile-look-next-head .result-kicker {
+    display: none;
+  }
+
+  .profile-library.has-open-look .profile-look-next-head h5 {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.1;
+  }
+
+  .profile-library.has-open-look .profile-look-primary-action {
+    min-height: 46px;
+    padding: 6px 8px;
+    border-radius: 10px;
+  }
+
+  .profile-library.has-open-look .profile-look-primary-action .profile-action-signal {
+    width: 27px;
+    height: 27px;
+    font-size: 14px;
+  }
+
+  .profile-library.has-open-look .profile-look-primary-action .profile-action-copy strong {
+    font-size: 12px;
+  }
+
+  .profile-library.has-open-look .profile-look-primary-action .profile-action-copy small,
+  .profile-library.has-open-look .profile-action-arrow {
+    display: none;
+  }
+
+  .profile-library.has-open-look .profile-look-next-actions {
+    gap: 5px;
+  }
+
+  .profile-library.has-open-look .profile-next-action {
+    grid-template-columns: 25px minmax(0, 1fr);
+    min-height: 42px;
+    padding: 6px;
+    gap: 5px;
+    border-radius: 10px;
+  }
+
+  .profile-library.has-open-look .profile-action-icon {
+    width: 25px;
+    height: 25px;
+    font-size: 14px;
+  }
+
+  .profile-library.has-open-look .profile-action-copy strong {
+    font-size: 10px;
+  }
+
+  .profile-library.has-open-look .profile-action-copy small {
+    display: none;
   }
 
   .profile-library.has-open-look .profile-look-scenes {
@@ -2571,7 +2638,7 @@ body.profile-live-open {
   }
 
   .profile-library.has-open-look .profile-look-detail-actions {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr) 44px;
     gap: 5px;
     margin-top: 7px;
   }
@@ -2586,7 +2653,7 @@ body.profile-live-open {
     .secondary-result-action,
     .profile-delete-action
   ) {
-    min-height: 44px;
+    min-height: 38px;
     padding: 5px 6px;
     font-size: 10px;
     line-height: 1.12;
