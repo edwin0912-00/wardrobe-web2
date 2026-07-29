@@ -221,7 +221,7 @@ Release evidence: public beta health is `ready`; public HTML serves
 `product-49582eeb-a3bc22ae8b3c`.
 
 Task ID: BETA-STANDARD-SCENE-SCALE-001
-State: READY_FOR_BETA_DEPLOY
+State: LIVE_ON_BETA — release `4cd70dd`
 Decision: standard backgrounds accept a full person at 70–80% of the native
 3:4 delivery. Headroom stays 8%, ground space stays 2%, and head/footwear
 remain mandatory. This is an operator-approved relaxation of scale only.
@@ -232,6 +232,8 @@ Evidence: actual beta attempt `scene_dcfb6…/001` measures 72.2168% subject,
 11.9141% above hair and 15.8691% below footwear; focused contract suite 21/21
 and real scene API integration suite 6/6 PASS.
 weakened_checks: only the declared subject scale band (74–78 → 70–80).
+Release evidence: public beta health is `ready`; public HTML serves
+`product-4cd70dd1-0ad4ec665dd7`.
 Next action: any preview hostname needs an ingress entry in the canonical
 Cloudflare connector, never a second connector with the same tunnel ID.
 Help request: NONE.
