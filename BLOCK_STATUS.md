@@ -64,7 +64,7 @@ the approved master look and does not require a shoot or background.
 
 | Block | Code | Beta | Journey | Exact evidence / next atom |
 | --- | --- | --- | --- | --- |
-| `PROFILE.01–03` | TESTED historical | LIVE_SURFACE | NOT_CURRENT | Public beta root and profile entry open; a fresh saved-look journey still needs proof. |
+| `PROFILE.01–03` | TESTED | LIVE | E2E_PASS | Same public beta session as `922f8a25…`: explicit completed-run save returned 201 and profile then contained one persisted avatar and one persisted look with 30-day expiry. |
 | `LOOK.01–06` | TESTED | LIVE | E2E_PASS | Public beta run `922f8a25…` completed: Conditioning, Avatar and Outfit QA each PASS; approved master/avatar-outfit output and immutable receipts were persisted. The resume repair was active through this journey. |
 | `LOOK.07` Improve | MISSING | NOT_DEPLOYED | NOT_RUN | Product canon only; no generation or UI route may be claimed. |
 | `BACKGROUND.01` picker | TESTED historical | CATALOG_ONLY | NOT_CURRENT | Beta returns 16 `std.*` cards/previews; public saved-look → picker click is still unproven. |

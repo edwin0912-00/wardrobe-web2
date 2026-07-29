@@ -42,6 +42,8 @@ Decision: mark only LOOK.01–06 as E2E_PASS. Background, Create Universe,
 Fashion Video and Live are not inferred from the saved master look.
 Evidence: public beta run `922f8a25-ab08-46ae-b1f4-f9488d3fa03f` completed;
 conditioning, Avatar and Outfit QA receipts are all PASS.
+The explicit completed-run save returned 201 and profile state contains one
+avatar and one look with 30-day retention.
 weakened_checks: none.
 Next action: implement the missing two-reference Fashion Video request contract
 before attempting a paid video journey.

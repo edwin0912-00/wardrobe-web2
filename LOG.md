@@ -25,6 +25,8 @@ binds the inputs, provider jobs, QA receipts and saved outputs together.
 Evidence: run `922f8a25-ab08-46ae-b1f4-f9488d3fa03f` reached `COMPLETED`.
 Conditioning, Avatar and Outfit QA receipts each returned PASS; the output
 manifest exposes persisted `avatar.png` and `avatar_outfit.png`.
+The completed-run profile save returned 201; the same browser profile then
+listed exactly one avatar and its one saved look with the configured 30-day TTL.
 weakened_checks: none.
 
 2026-07-29 · BETA-LOOK-RESUME-001 · beta · immutable restart repair
