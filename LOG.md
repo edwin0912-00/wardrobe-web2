@@ -974,6 +974,12 @@ Evidence: focused Fashion Shoot/profile UI suite 17/17 PASS; exact beta
 release health returned `ready`.
 weakened_checks: none.
 
+2026-07-29 · Fashion Shoot connection language · `cf4a877` → beta
+Change: localized the short-lived connection and polling states too; no raw
+transport state is rendered while a shoot begins or reconnects.
+Evidence: focused UI suite 17/17 PASS; beta health `ready` after restart.
+weakened_checks: none.
+
 2026-07-29 · Fashion Shoot visible progress · `a2dd191` → beta
 Change: style preview plus five-frame progress meter replace the internal
 Shoot Bible/six-slot display in the customer-facing Fashion Shoot screen.

@@ -609,7 +609,7 @@ facts.
 
 - 2026-07-27 — `90d6119` Create Universe release deployed to beta and health
   verified `ready`.
-- 2026-07-29 — `937c157` Fashion Shoot visual cleanup is active on beta:
+- 2026-07-29 — `cf4a877` Fashion Shoot visual cleanup is active on beta:
   customer copy replaces raw pipeline codes and source filenames, and the
   five not-yet-generated frames are compact progress windows. Focused UI
   suite 17/17 PASS; public health `ready`.
