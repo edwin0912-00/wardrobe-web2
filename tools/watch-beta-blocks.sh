@@ -23,7 +23,11 @@ branches=(
 )
 
 render_once() {
-  git fetch origin beta "${branches[@]}" --quiet
+  fetch_refspecs=("+refs/heads/beta:refs/remotes/origin/beta")
+  for branch in "${branches[@]}"; do
+    fetch_refspecs+=("+refs/heads/$branch:refs/remotes/origin/$branch")
+  done
+  git fetch origin "${fetch_refspecs[@]}" --quiet
   printf '\033c'
   printf 'Wardrobe beta blocks · observer: %s · %s\n\n' "$agent_id" "$(date '+%Y-%m-%d %H:%M:%S')"
   printf 'Integration beta: %s\n' "$(git log -1 --format='%h %s' origin/beta)"

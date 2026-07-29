@@ -34,7 +34,10 @@ cd "$repo_root"
   exit 3
 }
 
-git fetch origin beta "$branch" --quiet
+git fetch origin \
+  "+refs/heads/beta:refs/remotes/origin/beta" \
+  "+refs/heads/$branch:refs/remotes/origin/$branch" \
+  --quiet
 if git show-ref --verify --quiet "refs/heads/$branch"; then
   git switch "$branch"
 else
