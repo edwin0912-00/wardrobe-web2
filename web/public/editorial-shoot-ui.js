@@ -228,9 +228,9 @@ export class EditorialShootUiController {
   #showConnecting(phase, message) {
     this.#show();
     this.#setHeader('Fashion Shoot', 'ПІДГОТОВКА');
-    this.#element('#editorial-phase').textContent = 'ПІДГОТОВКА';
-    this.#element('#editorial-message').textContent = message;
-    this.#element('#editorial-connection').textContent = 'З’ЄДНУЄМОСЯ ІЗ СЕРВЕРОМ';
+    this.#element('#editorial-phase').hidden = true;
+    this.#element('#editorial-message').hidden = true;
+    this.#element('#editorial-connection').hidden = true;
     this.#element('#editorial-bible-stage').hidden = true;
     this.#element('#editorial-gallery-stage').hidden = false;
     this.#element('#editorial-gallery').replaceChildren();
@@ -240,7 +240,7 @@ export class EditorialShootUiController {
   #showConnectionFailure(error, stage) {
     this.#show();
     this.#setError(error?.message || 'Не вдалося з’єднатися із сервером');
-    this.#element('#editorial-connection').textContent = 'CONNECTION LOST';
+    this.#element('#editorial-connection').hidden = true;
     this.connectionFailed = true;
     this.#element('#editorial-reconnect').hidden = false;
     this.telemetry('client.editorial_error', {
