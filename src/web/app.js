@@ -235,6 +235,23 @@ export async function createWebApp({
     });
   }
 
+  app.get('/api/health', async () => {
+    const resolved = await currentHealth();
+    const status = resolved.status === 'ready' || resolved.status === 'ok' ? resolved.status : 'degraded';
+    const runtimeStatus = resolved.runtime_status
+      ? (resolved.runtime_status === 'ready' ? 'ready' : 'degraded')
+      : null;
+    return {
+      status,
+      service: 'web',
+      generation: generationAvailable ? 'available' : 'unavailable',
+      semantic_qa: 'available',
+      ...(runtimeStatus ? { runtime_status: runtimeStatus } : {}),
+      ...(health.test_only ? { editorial_generation: 'available' } : { editorial_generation: editorialShootService
+        ? (generationAvailable ? 'available' : 'unavailable')
+        : 'disabled' }),
+    };
+  });
 
 
   app.post('/api/runs', async (request, reply) => {
