@@ -17,6 +17,16 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-07-29 · BETA-LOOK-E2E-001 · beta `7314256` · public node journey
+Change: verify the full first product block from uploaded person + garment to
+persisted approved master look on the deployed beta runtime.
+Why: a local/unit proof cannot establish that the public beta server actually
+binds the inputs, provider jobs, QA receipts and saved outputs together.
+Evidence: run `922f8a25-ab08-46ae-b1f4-f9488d3fa03f` reached `COMPLETED`.
+Conditioning, Avatar and Outfit QA receipts each returned PASS; the output
+manifest exposes persisted `avatar.png` and `avatar_outfit.png`.
+weakened_checks: none.
+
 2026-07-29 · BETA-LOOK-RESUME-001 · beta · immutable restart repair
 Change: retain an existing run `job.json` during automatic resume and remove it
 only after an explicit garment re-selection changes the immutable input.

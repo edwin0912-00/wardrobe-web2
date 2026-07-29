@@ -502,6 +502,12 @@ facts.
 
 ## Latest events
 
+- 2026-07-29 — `LOOK.01–06` now has current public beta proof: run
+  `922f8a25-ab08-46ae-b1f4-f9488d3fa03f` completed from one person photo plus
+  one garment reference. Conditioning QA, full-body Avatar QA and Outfit QA
+  all returned `PASS`; avatar and approved master-look outputs were persisted.
+  The old checkpoint/hash failure did not recur after the resume repair.
+
 - 2026-07-29 — Current beta Look journey audit found a real server-side resume
   defect, not a UI failure: upload reached Avatar QA PASS, then a beta process
   restart recompiled `job.json` with release-local paths, so the immutable

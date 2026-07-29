@@ -35,6 +35,21 @@ Help request: NONE.
 ---
 
 Agent ID: codex-main
+Task ID: BETA-LOOK-E2E-001
+Protocol ACK: 7314256
+State: DONE
+Decision: mark only LOOK.01–06 as E2E_PASS. Background, Create Universe,
+Fashion Video and Live are not inferred from the saved master look.
+Evidence: public beta run `922f8a25-ab08-46ae-b1f4-f9488d3fa03f` completed;
+conditioning, Avatar and Outfit QA receipts are all PASS.
+weakened_checks: none.
+Next action: implement the missing two-reference Fashion Video request contract
+before attempting a paid video journey.
+Help request: NONE.
+
+---
+
+Agent ID: codex-main
 Task ID: BETA-SCENE-JOURNEY-SMOKE-001
 State: IN_PROGRESS
 Decision: use one controlled, non-personal full-length test input with separately supplied top, bottom and footwear; do not reuse an old half-body or fabricate a PASS receipt.

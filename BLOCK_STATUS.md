@@ -65,7 +65,7 @@ the approved master look and does not require a shoot or background.
 | Block | Code | Beta | Journey | Exact evidence / next atom |
 | --- | --- | --- | --- | --- |
 | `PROFILE.01–03` | TESTED historical | LIVE_SURFACE | NOT_CURRENT | Public beta root and profile entry open; a fresh saved-look journey still needs proof. |
-| `LOOK.01–06` | TESTED locally | LIVE_SURFACE | E2E_FAIL | Fresh beta upload reached Avatar QA PASS, then a server restart rebuilt release-local job bytes and correctly rejected the old immutable checkpoint. Repair is focused-tested but not deployed; next atom is deploy → one fresh beta upload → approved master/saved-look proof. |
+| `LOOK.01–06` | TESTED | LIVE | E2E_PASS | Public beta run `922f8a25…` completed: Conditioning, Avatar and Outfit QA each PASS; approved master/avatar-outfit output and immutable receipts were persisted. The resume repair was active through this journey. |
 | `LOOK.07` Improve | MISSING | NOT_DEPLOYED | NOT_RUN | Product canon only; no generation or UI route may be claimed. |
 | `BACKGROUND.01` picker | TESTED historical | CATALOG_ONLY | NOT_CURRENT | Beta returns 16 `std.*` cards/previews; public saved-look → picker click is still unproven. |
 | `BACKGROUND.02` scene | TESTED (`f23ca9b`) | NOT_DEPLOYED | E2E_FAIL_LOCAL | Native 3:4 route tested; real GPT scene returned but failed strict item fidelity/framing. Next: repair only those failed gates, then run beta. |
