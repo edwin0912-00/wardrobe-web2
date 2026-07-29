@@ -17,6 +17,20 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-07-29 · BETA-LOOK-FAST-ROUTE-001 · beta · codex-main
+Change: added one explicit, reversible `fast` route for avatar and garment
+reference preparation: Nano Banana 2 → GPT Image 2 → Nano Banana Pro. The
+default release route remains unchanged for Background and Fashion Shoot.
+Also removed the prompt/QA contradiction that forced a front-facing canonical
+item from a side-only source photo; unknown unseen details are now explicitly
+unknown rather than a generated-candidate mismatch.
+Why: side footwear input was wasting all three candidates on an orientation
+that contradicted its own source evidence. This corrects the requirement; it
+does not accept invented or visibly wrong clothing.
+Evidence: `node --test test/runner/model-policy.test.js test/web/garment-conditioner.test.js test/providers/codex-vlm-evaluator.test.js test/runner/pipeline-runner.test.js` — 27/27 PASS; `git diff --check` PASS.
+weakened_checks: none. QA still rejects positive contradictions, omitted
+visible features, crop, background and product-card defects.
+
 2026-07-29 · BETA-FASHION-SHOOT-FIVE-UI-001 · beta · codex-main
 Change: Fashion Shoot picker now exposes only complete `shoot.*` Creative
 Universe units; its internal identity/look check is auto-approved after PASS

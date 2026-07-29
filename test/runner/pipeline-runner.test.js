@@ -272,12 +272,12 @@ test('reconditions references after a retryable conditioning failure and remains
   assert.equal(result.attempts.conditioning, 2);
 });
 
-test('rejects any job model route that differs from the fixed allowlist order', async () => {
+test('rejects any job model route that differs from an approved route order', async () => {
   const files = await fixture({
     jobOverrides: { model_route: ['nano_banana_2', 'gpt_image_2', 'nano_banana_flash'] },
   });
   await assert.rejects(
     () => new PipelineRunner({ provider: new MockProvider() }).runJobFile(files.jobPath),
-    /must exactly match the fixed Zeely model route/,
+    /must exactly match an approved Zeely model route prefix/,
   );
 });

@@ -2,7 +2,7 @@ import { CodexAppServerClient } from '../providers/codex-app-server-client.js';
 import { CodexImagegenProvider } from '../providers/codex-imagegen-provider.js';
 import { HiggsfieldCliProvider } from '../providers/higgsfield-cli-provider.js';
 import { OpenRouterImageGenProvider } from '../providers/openrouter-imagegen-provider.js';
-import { IMAGE_MODEL_ROUTE } from '../runner/model-policy.js';
+import { resolveLookImageRoute } from '../runner/model-policy.js';
 import { HiggsfieldAssetGenerator as ProviderAssetGenerator } from './higgsfield-asset-generator.js';
 
 export const HIGGSFIELD_MODE = 'higgsfield';
@@ -24,6 +24,7 @@ export async function createGenerationRuntime({
   vlm,
   projectRoot,
   codexWorker,
+  lookImageRoute = resolveLookImageRoute(process.env.ZEELY_LOOK_IMAGE_ROUTE ?? 'quality'),
   onCloseReady = () => {},
   onFatal = () => {},
 } = {}) {
@@ -36,7 +37,7 @@ export async function createGenerationRuntime({
       mode,
       provider,
       assetGenerator: new ProviderAssetGenerator({ provider }),
-      generationRoute: [...IMAGE_MODEL_ROUTE],
+      generationRoute: [...lookImageRoute],
       label: 'Higgsfield CLI',
       status: null,
       healthStatus: () => ({ status: 'ready' }),
@@ -51,7 +52,7 @@ export async function createGenerationRuntime({
       mode,
       provider,
       assetGenerator: new ProviderAssetGenerator({ provider }),
-      generationRoute: [...IMAGE_MODEL_ROUTE],
+      generationRoute: [...lookImageRoute],
       label: 'OpenRouter Image Generation',
       status: null,
       healthStatus: () => ({ status: 'ready' }),

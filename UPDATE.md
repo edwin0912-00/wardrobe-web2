@@ -13,6 +13,21 @@ The earlier detailed noticeboard is preserved at
 - Live test: `https://beta.madeforthisjob.com` — deploy the exact tested beta
   commit, then record its result below.
 
+## Look-reference fast route — 2026-07-29
+
+- **Scope:** only avatar and garment-reference preparation for a new look.
+  Standard Background and Fashion Shoot retain their release-defined route.
+- **Current beta setting:** `ZEELY_LOOK_IMAGE_ROUTE=fast` resolves exactly to
+  **Nano Banana 2 → GPT Image 2 → Nano Banana Pro**. Each candidate still
+  goes through the same QA before the next provider is reached.
+- **QA correction:** a single side view of footwear is now requested in its
+  evidence-preserving orientation. QA judges only facts visibly evidenced by
+  raw uploads; it still rejects a positive contradiction, a missing clearly
+  visible feature, a crop, or a non-white/non-product candidate.
+- **Not implemented in this change:** a multi-angle footwear sheet. It needs a
+  distinct artifact/QA contract because model-invented rear/sole views must
+  never become source evidence. It is a follow-up, not an implicit QA waiver.
+
 ## Git ↔ beta reconciliation — 2026-07-29
 
 - Two immutable pre-reconciliation backups were made before any control-plane

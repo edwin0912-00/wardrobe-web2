@@ -94,6 +94,9 @@ test('a REJECT candidate advances to the next fixed image-model route', async ()
   assert.equal(result.items[0].attempts[0].candidate.path.endsWith('candidate-1.png'), true);
   assert.equal(result.items[0].selected_model, IMAGE_MODEL_ROUTE[1]);
   assert.match(generatorCalls[0].prompt, /ATTACHMENT_1 \[GARMENT_RAW_VIEW_1\]/);
+  assert.match(generatorCalls[0].prompt, /most evidence-preserving orientation/);
+  assert.match(generatorCalls[0].prompt, /Preserve the primary raw view orientation/);
+  assert.doesNotMatch(generatorCalls[0].prompt, /front-facing/);
   assert.doesNotMatch(generatorCalls[0].prompt, /\/Users\/|\/tmp\/|\bzeely\b/i);
 });
 
