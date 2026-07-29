@@ -420,3 +420,13 @@ be weakened to hide it.
   The bounded smoke resumes from a newly completed PASS full-look receipt;
   it does not retry the same insufficient source or relax the item lock.
   Redacted receipt/report: `ops/loops/create-universe-real-smoke-20260729/`.
+
+## Public beta upload proof — 2026-07-30
+
+- Every person and garment upload field accepts file-picker input and native
+  drag-and-drop.
+- PNG/JPEG/WEBP/AVIF remain unchanged. HEIC/HEIF is decoded locally to JPEG
+  before the existing upload and persistence contract.
+- Physical beta browser proof verified drag highlight, PNG drop, real HEIC
+  decode, server draft persistence, reload, and restoration of both previews.
+- Active release cache: `product-6f173677-40947f90c94b`.

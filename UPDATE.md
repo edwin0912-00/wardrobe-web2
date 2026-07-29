@@ -708,6 +708,12 @@ facts.
 
 ## Latest events
 
+- 2026-07-30 — Drag-and-drop and HEIC are active on public beta. Release source
+  is `6f1736779b799eb71171bafdcc35ede4efaad4a5`; cache token is
+  `product-6f173677-40947f90c94b`. Browser proof used a real PNG drop and a real
+  macOS HEIC drop, then reloaded the page and restored both server-backed draft
+  previews. Focused upload tests 23/23 PASS; weakened_checks: none.
+
 - 2026-07-29 — Beta routing incident: a separate `wardrobe-tunnel` tmux
   preview process joined the same named Cloudflare tunnel with an ingress file
   that knew only its preview host. Cloudflare could therefore send beta traffic

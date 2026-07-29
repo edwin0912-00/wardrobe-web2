@@ -44,6 +44,15 @@ Evidence: governance block-map tests and shell syntax checks are required
 before this control-plane commit is integrated.
 weakened_checks: none.
 
+2026-07-30 · Upload drag-and-drop + HEIC · `6f17367` → beta
+Change: every person/garment upload field accepts pointer drag-and-drop; HEIC
+and HEIF are decoded in-browser to a server-supported JPEG before upload.
+Why: the deployed beta still required the file picker and rejected iPhone HEIC.
+Evidence: focused upload suite 23/23 PASS; strict release verification PASS;
+public beta cache `product-6f173677-40947f90c94b`; physical browser smoke
+dropped PNG + real HEIC, persisted both, reloaded, and restored both previews.
+weakened_checks: none.
+
 2026-07-29 · BETA-SCENE-E2E-ROUTE-ALIGNMENT-001 · beta tooling · codex-main
 Change: repaired the real-scene control runner to use RunService's immutable
 approved-item-evidence reader and the one shared 3:4 scene provider map.
