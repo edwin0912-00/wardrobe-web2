@@ -30,6 +30,22 @@ weakened_checks: none.
 ---
 
 Agent ID: codex-main
+Task ID: BETA-EDITORIAL-RESTORE-001
+State: DONE — ready for beta deployment.
+Decision: do not weaken the product verifier after the one-frame simplification
+deleted the full editorial UI. Restored the authoritative six-shot flow:
+Shoot Bible → hero approval → five remaining shots (concurrency two) →
+per-shot QA/retry/contact-sheet-capable gallery. Standard scenes remain a
+separate branch.
+Evidence: `node --test test/web/editorial-preview-ui.test.js
+test/web/profile-ui-flow.test.js` — 17/17 PASS. Product package build and
+verifier PASS: 632 deploy files, 14 editorial modes / 12 generation-enabled,
+10 Create Universe modes / 10 generation-enabled.
+weakened_checks: none.
+
+---
+
+Agent ID: codex-main
 Task ID: DESIGN-PIPELINE-DECK-CANON-001
 State: DONE
 Decision: operator-supplied `zeely-pipeline-deck.html` and `vt-bp.html` are

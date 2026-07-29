@@ -4,6 +4,11 @@ export const EDITORIAL_SCHEMA_VERSION = '1.0.0';
 
 export const EDITORIAL_SHOT_SLOTS = Object.freeze([
   'clean_identity_hero',
+  'environmental_hero',
+  'sculptural_three_quarter',
+  'interference_frame',
+  'material_or_accessory_detail',
+  'wide_campaign_coda',
 ]);
 
 export const EDITORIAL_HERO_SLOT = EDITORIAL_SHOT_SLOTS[0];
