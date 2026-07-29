@@ -945,11 +945,13 @@ Eleven stale prompt hashes were corrected to their exact checked-in prompt
 bytes; their finish metadata was normalized to the existing production lock.
 weakened_checks: none.
 
-2026-07-29 · Fashion Shoot visible progress · pending commit
+2026-07-29 · Fashion Shoot visible progress · `a2dd191` → beta
 Change: style preview plus five-frame progress meter replace the internal
 Shoot Bible/six-slot display in the customer-facing Fashion Shoot screen.
 Why: reference sheets and internal QA are conditioning artifacts, not output.
-Evidence: focused Fashion Shoot/profile UI suite 17/17 PASS.
+Evidence: focused Fashion Shoot/profile UI suite 17/17 PASS; public beta
+health ready and DOM smoke confirms style example, five-step meter, internal
+approval hidden, and five-frame output region.
 weakened_checks: none.
 
 2026-07-29 · Saved-look action labels · `ac87c0a` → beta
