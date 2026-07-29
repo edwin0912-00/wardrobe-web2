@@ -192,6 +192,7 @@ function findJobId(payload) {
     seen.add(value);
     const candidates = [
       value.job_id,
+      value.job_set_id,
       value.id,
       value.job?.id,
       value.job_ids?.[0],
