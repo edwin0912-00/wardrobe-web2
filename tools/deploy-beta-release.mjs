@@ -91,7 +91,7 @@ async function main() {
   await mkdir(betaVersions, { recursive: true, mode: 0o700 });
   invariant(!await exists(nextRoot), 'Target beta release already exists');
   const stage = `${nextRoot}.staging`;
-  await cp(options.release, stage, { recursive: true, dereference: false, errorOnExist: true, mode: 0o700 });
+  await cp(options.release, stage, { recursive: true, dereference: false, errorOnExist: true });
   await symlink(path.join(projectRoot, 'node_modules'), path.join(stage, 'node_modules'));
   await mkdir(path.join(stage, 'runtime'), { mode: 0o700 });
   await rename(stage, nextRoot);
