@@ -20,18 +20,17 @@ action or execution route is deployed. Neither is “live product”.
 
 ## Current manual beta audit — 2026-07-29
 
-Three independent read-only browser checks plus direct HTTP verification agree:
-the root beta UI currently throws `Unexpected identifier 'collisionContainer'`
-on load; any top navigation click throws `ReferenceError: scrollToSection is
-not defined` and shows the fatal “Інтерфейс не відповідає” overlay. Direct
-evidence: root HTML has four inline `scrollToSection(...)` calls; `/api/health`
-is `200 ready`; `/api/video/contract` is `404`; `/api/post-shoot/pipeline` is
-`200` metadata only. No paid generation, camera consent or personal-media
-upload was used in this audit.
+Three independent read-only browser checks plus direct HTTP verification found
+that the deployed host is still serving an obsolete shell: it throws a parse
+error on load and a missing-navigation-function error on click. That shell is
+**not** a repair target, a source for main, or a candidate for beta recovery.
+Direct evidence: `/api/health` is `200 ready`; `/api/video/contract` is `404`;
+`/api/post-shoot/pipeline` is `200` metadata only. No paid generation, camera
+consent or personal-media upload was used in this audit.
 
-**First shared atom:** repair and deploy the root UI before any user-journey
-claim. Then the same manual QA cells re-run their block — they do not infer a
-pass from API health.
+**First shared atom:** package and deploy the current beta-placeholder source,
+then manually verify its 01–04 navigation. Do not patch, revive or copy the
+obsolete shell merely to make the old page appear healthy.
 
 ## Product structure — read this before taking a task
 
