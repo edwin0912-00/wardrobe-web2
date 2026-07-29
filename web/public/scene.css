@@ -1545,7 +1545,8 @@
 }
 
 .editorial-bible-stage {
-  grid-template-rows: auto 104px auto;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  min-height: 560px;
   gap: 9px;
   padding: 14px;
 }
@@ -1595,10 +1596,11 @@
 .editorial-bible-stage header > span { display: none; }
 
 .editorial-style-preview {
-  display: grid;
-  grid-template-columns: 132px minmax(0, 1fr);
-  gap: 10px;
+  display: block;
+  width: min(100%, 420px);
   min-height: 0;
+  aspect-ratio: 4 / 5;
+  justify-self: center;
   margin: 0;
   overflow: hidden;
   border: 1px solid var(--scene-line);
@@ -1608,8 +1610,8 @@
 
 .editorial-style-preview img {
   width: 100%;
-  height: 104px;
-  object-fit: cover;
+  height: 100%;
+  object-fit: contain;
   background: #e9ede3;
 }
 
@@ -1636,10 +1638,52 @@
 }
 
 .editorial-bible-stage > footer {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  display: flex;
+  justify-content: center;
   gap: 10px;
   align-items: center;
+}
+
+.editorial-start-shoot {
+  position: relative;
+  min-width: min(100%, 290px);
+  min-height: 54px;
+  padding: 0 24px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 999px;
+  background: #101410;
+  color: #fff;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 850;
+  cursor: pointer;
+  box-shadow: 0 0 0 1px rgba(184, 255, 61, .38), 0 0 24px rgba(184, 255, 61, .26);
+  animation: editorial-start-pulse 2.8s ease-in-out infinite;
+}
+
+.editorial-start-shoot::after {
+  position: absolute;
+  inset: -70% auto -70% -28%;
+  width: 35%;
+  background: linear-gradient(90deg, transparent, rgba(184, 255, 61, .56), transparent);
+  content: '';
+  transform: rotate(18deg) translateX(-260%);
+  animation: editorial-start-sweep 3.2s ease-in-out infinite;
+}
+
+.editorial-start-shoot:disabled {
+  cursor: wait;
+  opacity: .52;
+  animation: none;
+}
+
+@keyframes editorial-start-pulse {
+  50% { box-shadow: 0 0 0 1px rgba(184, 255, 61, .72), 0 0 36px rgba(184, 255, 61, .42); }
+}
+
+@keyframes editorial-start-sweep {
+  45%, 100% { transform: rotate(18deg) translateX(600%); }
 }
 
 .editorial-bible-stage > footer p {

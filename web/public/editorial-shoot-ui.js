@@ -411,6 +411,7 @@ export class EditorialShootUiController {
           ?? response?.binding?.sha256
           ?? null;
         this.#renderBible();
+        this.#renderActionButtons();
       })
       .catch((error) => this.#showConnectionFailure(error, 'bible'))
       .finally(() => { this.bibleRequest = null; });
@@ -424,8 +425,8 @@ export class EditorialShootUiController {
     // The style is visible as a visual reference throughout the job. The
     // internal six-slot Bible remains a server artifact; it is never rendered
     // as a customer-facing approval or sixth output.
-    this.#element('#editorial-bible-stage').hidden = false;
-    this.#element('#editorial-gallery-stage').hidden = false;
+    this.#element('#editorial-bible-stage').hidden = !bibleReview;
+    this.#element('#editorial-gallery-stage').hidden = bibleReview;
     this.#element('#editorial-phase').textContent = displayShootState(shoot.status);
     this.#element('#editorial-message').hidden = true;
     this.#element('#editorial-connection').hidden = true;
@@ -434,27 +435,7 @@ export class EditorialShootUiController {
     this.#setHeader('Fashion Shoot', displayShootState(shoot.status), editorialTone(shoot));
     this.#renderGallery();
     this.#renderActionButtons();
-    if (bibleReview) void this.#autoApproveBible();
     if (shoot.status === 'HERO_PENDING_APPROVAL') void this.#autoApproveHero();
-  }
-
-  // The plan is still hash-confirmed with the exact SHA the server produced —
-  // the confirmation simply is not a human click any more.
-  async #autoApproveBible() {
-    if (this.autoBibleApproved || this.actionPending) return;
-    if (this.shoot?.status !== 'BIBLE_PENDING_APPROVAL') return;
-    if (!this.bible && !this.bibleSha256) {
-      await this.#ensureBible().catch(() => {});
-      if (this.shoot?.status !== 'BIBLE_PENDING_APPROVAL') return;
-    }
-    this.autoBibleApproved = true;
-    try {
-      await this.approveBible();
-    } catch {
-      // A failed auto-approval must not strand the screen: the action button
-      // stays available and the next poll retries.
-      this.autoBibleApproved = false;
-    }
   }
 
   #renderBible() {
@@ -568,9 +549,17 @@ export class EditorialShootUiController {
     const cancel = this.#element('#editorial-cancel');
     const cancelBible = this.#element('#editorial-cancel-bible');
     const remove = this.#element('#editorial-delete');
-    approveBible.hidden = true;
-    // The initial style check is an internal QA barrier. Its exact hash is
-    // still bound before output frames begin, but it is never a user decision.
+    const hasBoundBible = Boolean(
+      shoot?.bindings?.shoot_bible?.sha256
+      ?? shoot?.shoot_bible?.sha256
+      ?? shoot?.bible?.sha256
+      ?? shoot?.bible_sha256
+      ?? this.bibleSha256,
+    );
+    approveBible.hidden = shoot?.status !== 'BIBLE_PENDING_APPROVAL';
+    approveBible.textContent = hasBoundBible ? 'Розпочати фотозйомку' : 'Готуємо стиль…';
+    // The initial style check remains a hash-bound QA barrier, but the user
+    // explicitly starts the shoot after seeing the selected style in full.
     approveHero.hidden = true;
     cancel.hidden = !editorialCanCancel(shoot);
     cancelBible.hidden = shoot?.status !== 'BIBLE_PENDING_APPROVAL';
@@ -578,6 +567,7 @@ export class EditorialShootUiController {
     for (const button of [approveBible, approveHero, cancel, cancelBible, remove]) {
       button.disabled = pending;
     }
+    approveBible.disabled = pending || !hasBoundBible;
     this.#element('#editorial-reconnect').hidden = !this.connectionFailed;
   }
 

@@ -106,7 +106,7 @@ function createEditorialModeCard(mode, onSelect) {
   card.disabled = !ready;
   const nameText = mode.ui_name_uk || 'Fashion Shoot';
   card.setAttribute('aria-label', ready
-    ? `Створити Fashion Shoot: ${nameText}`
+    ? `Обрати Fashion Shoot: ${nameText}`
     : `${nameText}: поки недоступно`);
 
   const preview = document.createElement('span');
@@ -129,7 +129,7 @@ function createEditorialModeCard(mode, onSelect) {
   name.textContent = nameText;
   const action = document.createElement('span');
   action.className = 'editorial-mode-action';
-  action.textContent = ready ? 'Створити' : 'Незабаром';
+  action.textContent = ready ? 'Обрати стиль' : 'Незабаром';
   copy.append(name, action);
   card.append(preview, copy);
   if (ready) card.addEventListener('click', () => onSelect(mode));

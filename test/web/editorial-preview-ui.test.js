@@ -85,14 +85,20 @@ test('Fashion Shoot binds its style pack and keeps the initial identity check in
   assert.match(indexHtml, /id="editorial-style-preview-image"/);
   assert.match(indexHtml, /id="editorial-progress-meter"/);
   assert.match(indexHtml, /id="editorial-approve-bible"[^>]*hidden/);
+  assert.match(indexHtml, /id="editorial-approve-bible"[^>]*>Розпочати фотозйомку</);
   assert.match(editorialUiSource, /function modePreviewUrl\(mode\)/);
   assert.match(editorialUiSource, /internal six-slot Bible remains a server artifact/);
   assert.match(editorialUiSource, /shoot\?\.status !== 'BIBLE_PENDING_APPROVAL'/);
+  assert.doesNotMatch(editorialUiSource, /#autoApproveBible\(/);
+  assert.match(editorialUiSource, /approveBible\.hidden = shoot\?\.status !== 'BIBLE_PENDING_APPROVAL'/);
+  assert.match(editorialUiSource, /Розпочати фотозйомку/);
   assert.match(editorialUiSource, /shoot\?\.status !== 'HERO_PENDING_APPROVAL'/);
   assert.match(editorialUiSource, /expected_bible_sha256|expectedBibleSha256/);
   assert.match(editorialUiSource, /expected_output_sha256|expectedOutputSha256/);
   assert.match(editorialUiSource, /async #autoApproveHero\(\)/);
   assert.match(editorialUiSource, /INTERNAL_STYLE_CHECK_SLOT = 'clean_identity_hero'/);
+  assert.match(sceneCss, /\.editorial-style-preview\s*\{[\s\S]*?aspect-ratio:\s*4 \/ 5;/);
+  assert.match(sceneCss, /\.editorial-start-shoot\s*\{[\s\S]*?animation:\s*editorial-start-pulse/);
 });
 
 test('shoot survives reload and replays only persisted idempotent actions', () => {
