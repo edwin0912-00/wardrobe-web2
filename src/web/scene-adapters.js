@@ -609,9 +609,11 @@ export class SceneGeneratorAdapter {
     const guideAttachment = compositionGuide
       ? ordered.find((item) => item.role === 'MECHANICAL_FRAMING_GUIDE')
       : null;
+    const firstItemAttachment = repairCandidate ? 3 : 2;
+    const itemAttachmentStart = guideAttachment ? firstItemAttachment + 1 : firstItemAttachment;
     const prompt = sanitizeExternalPrompt(
       `${basePrompt}${structuredInstructions(references)}`
-      + `${itemGenerationInstructions(items, repairCandidate ? 3 : 2)}`
+      + `${itemGenerationInstructions(items, itemAttachmentStart)}`
       + `${guideAttachment ? `\nMECHANICAL COMPOSITION GUIDE\n- ATTACHMENT_${guideAttachment.order} is a transparent mechanical layout derivative of the failed candidate, not a new scene or content authority. It places the same candidate at the measured target scale: ${compositionGuide.target_subject_height_percent}% visible person height and ${compositionGuide.target_clear_space_above_hair_percent}% clear space above hair. Use it only to match framing; preserve the exact person, look, item details, environment and lighting from their authoritative attachments.\n` : ''}`
       + `${shotAnchorInstructions(attachedAnchors)}`,
     );

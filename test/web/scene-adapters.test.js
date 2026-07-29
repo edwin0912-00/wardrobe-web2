@@ -1498,6 +1498,41 @@ test('SceneGeneratorAdapter drops the hero anchor before the blocking diagram an
   assert.match(calls[0].prompt, /ATTACHMENT_8 \[BLOCKING_TOPDOWN\]/);
 });
 
+test('SceneGeneratorAdapter reserves a distinct attachment number for a mechanical framing guide', async () => {
+  const fixture = await contextFixture();
+  const items = await approvedItemEvidenceFixture(fixture.root);
+  const repair = {
+    ...(await imageFile(fixture.root, 'failed-candidate-with-guide.png', { width: 1024, height: 1280 })),
+    role: 'failed_candidate',
+    attempt: 1,
+  };
+  const guide = {
+    ...(await imageFile(fixture.root, 'mechanical-framing-guide.png', { width: 1024, height: 1280 })),
+    role: 'mechanical_framing_guide',
+    source_attempt: 1,
+    target_subject_height_percent: 76,
+    target_clear_space_above_hair_percent: 9,
+  };
+  const calls = [];
+  const adapter = new SceneGeneratorAdapter({ provider: recordingProvider(await providerFrame(), calls, { aspectRatio: '4:5' }) });
+  await adapter.generateScene({
+    ...fixture.base,
+    attempt: 2,
+    cycle_attempt: 2,
+    ...DEFAULT_SCENE_MODEL_ROUTE[1],
+    item_evidence: items,
+    repair_candidate: repair,
+    composition_guide: guide,
+  });
+  assert.deepEqual(
+    calls[0].references.ordered.slice(0, 5).map((item) => item.role),
+    ['APPROVED_LOOK_MASTER', 'FAILED_SCENE_CANDIDATE', 'MECHANICAL_FRAMING_GUIDE', 'ITEM_TOP', 'ITEM_BAG'],
+  );
+  assert.match(calls[0].prompt, /ATTACHMENT_3 is a transparent mechanical layout derivative/);
+  assert.match(calls[0].prompt, /ATTACHMENT_4 \[APPROVED_ITEM_SET-0\]/);
+  assert.match(calls[0].prompt, /ATTACHMENT_5 \[APPROVED_ITEM_SET-2\]/);
+});
+
 test('SceneGeneratorAdapter spends the budget on anchors before image scene roles', async () => {
   const fixture = await contextFixture();
   const items = await approvedItemEvidenceFixture(fixture.root);
