@@ -196,6 +196,10 @@ State: READY_FOR_BETA_DEPLOY
 Change: the phone saved-look view is now an action hub: empty history does not
 render, long explanatory lists do not occupy the fixed viewport, and all next
 actions use a compact visible layout without an inner scroll container.
+
+Follow-up: the same action-first compact composition is applied to a short
+desktop/tablet viewport; the saved-look overlay no longer clips its action grid
+below the panel edge.
 Next action: any preview hostname needs an ingress entry in the canonical
 Cloudflare connector, never a second connector with the same tunnel ID.
 Help request: NONE.
