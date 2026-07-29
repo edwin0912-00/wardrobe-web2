@@ -28,6 +28,8 @@ agent may collapse these facts into a single "live" claim.
   carried 14 styles. That duplicate was removed; the strict release verifier
   is the one exact-catalog owner, while deploy additionally checks manifest
   structure and then probes the activated API.
+- The deploy-file allowlist now admits the whole hash-bound mood-card root;
+  manifest inventory and SHA-256 verification still decide the exact files.
 
 ## Current release truth — 2026-07-27
 

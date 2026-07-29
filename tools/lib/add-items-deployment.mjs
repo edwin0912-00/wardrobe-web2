@@ -74,6 +74,11 @@ const PRODUCT_DEPLOY_ROOTS = [
   'package.json',
   'package-lock.json',
   'assets/editorial-blocking/',
+  // The product manifest is the exact hash-bound authority for every mood
+  // card. Keeping only the four historical legacy card paths here made a
+  // verified Create Universe release undeployable as soon as it contained a
+  // valid shoot.* preview.
+  'assets/scene-mood-cards/',
   'assets/scene-presets/',
   // The only docs subtree permitted in a product overlay: immutable Create
   // Universe units consumed by the production resolver.

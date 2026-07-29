@@ -28,6 +28,17 @@ passes 30/30. The unit audit asserts all ten selectable `shoot.*` units have
 their manifest and required sheet roles.
 weakened_checks: none.
 
+2026-07-29 · Fashion Shoot deploy asset-path repair
+Change: allowed the full hash-bound `assets/scene-mood-cards/` product root in
+the deploy path checker.
+Why: the release verifier accepted the current 14-style catalogue, but deploy
+still allowed only four legacy preview-card paths and refused the first valid
+`shoot.*` card.
+Evidence: the exact candidate was refused before mutation with `Product
+release path is outside the deploy allowlist:
+assets/scene-mood-cards/shoot.grey_studio_stride.json`.
+weakened_checks: none.
+
 2026-07-29 · Git ↔ beta reconciliation capture
 Change: created immutable pre-reconciliation Git and active-release backups;
 made GitHub beta the explicit code authority and corrected the runtime ledger
