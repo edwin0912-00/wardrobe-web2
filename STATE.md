@@ -24,6 +24,20 @@ agent may collapse these facts into a single "live" claim.
   `release-4eb84ac-1785349827315` is active; its local and public health both
   returned `ready`. A fresh paid beta run is not yet evidence for this revision.
 
+## Restart / resume — code verified, beta activation pending
+
+- The only verified source of beta `SIGTERM` is the dedicated deploy adapter's
+  required `launchctl kickstart -k`; neither installed guard selects the beta
+  label. The adapter now refuses to kickstart while a persisted run is QUEUED
+  or RUNNING.
+- Garment preparation now writes immutable per-attempt candidate/QA receipts.
+  Tests prove a simulated daemon stop resumes on the next provider and a
+  candidate saved before a receipt is QA-resumed, not regenerated.
+- Focused proof: `node --test test/web/garment-conditioner.test.js
+  test/release/beta-deployment.test.js test/runner/model-policy.test.js
+  test/runner/pipeline-runner.test.js test/providers/codex-vlm-evaluator.test.js`
+  — 32/32 PASS. This revision is not active on beta yet.
+
 ## Git ↔ beta release truth — 2026-07-29
 
 - Immutable pre-reconciliation backups exist for the complete Git history and

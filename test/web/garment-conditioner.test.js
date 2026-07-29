@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtemp } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -160,4 +160,62 @@ test('genuinely insufficient raw evidence remains NEEDS_INPUT and does not consu
     },
   );
   assert.equal(generatorCalls.length, 1);
+});
+
+test('restart resumes from the next provider after an immutable failed-attempt receipt', async () => {
+  const { root, sourcePath, candidate } = await fixture();
+  const outputDirectory = path.join(root, 'conditioned');
+  const firstGeneratorCalls = [];
+  const first = conditionerFor({
+    candidate,
+    generatorCalls: firstGeneratorCalls,
+    decisions: [qa('RETRY', 'candidate one is not faithful enough')],
+  });
+  let generationSteps = 0;
+  await assert.rejects(
+    () => first.condition({
+      imagePaths: [sourcePath], outputDirectory, runId: 'restart-resume',
+      onProgress: async (stage) => {
+        if (stage === 'GARMENT_GENERATING' && ++generationSteps === 2) {
+          throw new Error('simulated daemon stop after attempt receipt');
+        }
+      },
+    }),
+    /simulated daemon stop/,
+  );
+  assert.deepEqual(firstGeneratorCalls.map((call) => call.model), [IMAGE_MODEL_ROUTE[0]]);
+  const receipt = JSON.parse(await readFile(path.join(outputDirectory, '01', 'attempts', 'attempt-01.json'), 'utf8'));
+  assert.equal(receipt.model, IMAGE_MODEL_ROUTE[0]);
+  assert.equal(receipt.qa.decision, 'RETRY');
+
+  const resumedGeneratorCalls = [];
+  const resumed = conditionerFor({
+    candidate,
+    generatorCalls: resumedGeneratorCalls,
+    decisions: [qa('PASS', 'second candidate matches all visible raw facts')],
+  });
+  const result = await resumed.condition({ imagePaths: [sourcePath], outputDirectory, runId: 'restart-resume' });
+  assert.deepEqual(resumedGeneratorCalls.map((call) => call.model), [IMAGE_MODEL_ROUTE[1]]);
+  assert.deepEqual(result.items[0].attempts.map((entry) => entry.qa.decision), ['RETRY', 'PASS']);
+});
+
+test('candidate written before a daemon stop is QA-resumed instead of generated again', async () => {
+  const { root, sourcePath, candidate } = await fixture();
+  const outputDirectory = path.join(root, 'conditioned');
+  const itemDirectory = path.join(outputDirectory, '01');
+  await mkdir(itemDirectory, { recursive: true });
+  await writeFile(path.join(itemDirectory, 'candidate-1.png'), candidate, { flag: 'wx' });
+  const generatorCalls = [];
+  const conditioner = conditionerFor({
+    candidate,
+    generatorCalls,
+    decisions: [
+      qa('RETRY', 'recovered first candidate needs a different provider'),
+      qa('PASS', 'second candidate matches visible evidence'),
+    ],
+  });
+  const result = await conditioner.condition({ imagePaths: [sourcePath], outputDirectory, runId: 'candidate-resume' });
+  assert.deepEqual(generatorCalls.map((call) => call.model), [IMAGE_MODEL_ROUTE[1]]);
+  assert.equal(result.items[0].attempts[0].provider.provider, 'resumed-unreceipted-candidate');
+  assert.equal(result.items[0].attempts[1].qa.decision, 'PASS');
 });

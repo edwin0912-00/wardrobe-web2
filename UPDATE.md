@@ -31,6 +31,24 @@ The earlier detailed noticeboard is preserved at
   `4eb84ac`; local and public health both returned `ready`. No paid fresh-look
   generation was run as part of this activation.
 
+## Beta restart / resume repair — 2026-07-29
+
+- **Cause of the observed `SIGTERM`:** the beta deploy adapter itself invokes
+  `launchctl kickstart -k com.madeforthisjob.beta` after changing the release
+  pointer. The hourly boot guard and the 60-second identity guard do not manage
+  this beta service.
+- **New deploy rule:** the adapter reads every persisted run before kickstart
+  and refuses activation if any valid `QUEUED` or `RUNNING` run exists.
+- **New garment resume rule:** every candidate is published once and paired
+  with an immutable receipt containing source hashes, route model, candidate
+  hash and QA verdict. A restart skips persisted RETRY/REJECT candidates,
+  reuses a persisted PASS candidate, and QA-resumes a candidate written before
+  its receipt. It never submits the same persisted candidate again.
+- **Scope boundary:** a signal while an upstream provider has accepted a job
+  but before it returns image bytes remains a provider-outcome recovery case;
+  no candidate exists yet to resume. The deploy block prevents our own release
+  path from creating that case during an active run.
+
 ## Git ↔ beta reconciliation — 2026-07-29
 
 - Two immutable pre-reconciliation backups were made before any control-plane

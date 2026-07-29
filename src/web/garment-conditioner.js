@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
+import { link, mkdir, readFile, rename, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import sharp from 'sharp';
 import { normalizeWhitePngBytes } from '../qa/white-normalizer.mjs';
@@ -9,11 +9,102 @@ import { assertExternalPromptPrivacy, sanitizeExternalPrompt } from '../provider
 import { compileFullLookText, findGarmentConflicts, garmentLocks, groupGarmentViews } from './garment-passport.js';
 
 function sha256(bytes) { return createHash('sha256').update(bytes).digest('hex'); }
+let immutableWriteSequence = 0;
 async function atomicWrite(filename, bytes) {
   await mkdir(path.dirname(filename), { recursive: true });
   const temporary = `${filename}.${process.pid}.tmp`;
   await writeFile(temporary, bytes);
   await rename(temporary, filename);
+}
+async function immutableWrite(filename, bytes) {
+  await mkdir(path.dirname(filename), { recursive: true });
+  const payload = Buffer.from(bytes);
+  const temporary = `${filename}.${process.pid}.${Date.now()}.${immutableWriteSequence += 1}.tmp`;
+  await writeFile(temporary, payload, { flag: 'wx' });
+  try {
+    // link() is a no-replace publish on one filesystem. A restart can therefore
+    // never overwrite an already persisted candidate or its QA decision.
+    await link(temporary, filename);
+    await unlink(temporary);
+    return payload;
+  } catch (error) {
+    await unlink(temporary).catch(() => {});
+    if (error.code !== 'EEXIST') throw error;
+    const existing = await readFile(filename);
+    if (sha256(existing) !== sha256(payload)) {
+      throw new Error(`Immutable garment checkpoint conflict: ${path.basename(filename)}`);
+    }
+    return existing;
+  }
+}
+function attemptReceiptPath(itemDirectory, attempt) {
+  return path.join(itemDirectory, 'attempts', `attempt-${String(attempt).padStart(2, '0')}.json`);
+}
+function candidatePathForAttempt(itemDirectory, attempt) {
+  return path.join(itemDirectory, `candidate-${attempt}.png`);
+}
+function validQaDecision(qa) {
+  return qa && ['PASS', 'RETRY', 'REJECT', 'NEEDS_INPUT'].includes(qa.decision)
+    && typeof qa.reason === 'string' && Array.isArray(qa.checks) && Array.isArray(qa.defects);
+}
+async function sourceHashes(sourcePaths) {
+  return Promise.all(sourcePaths.map(async (sourcePath) => ({
+    filename: path.basename(sourcePath),
+    sha256: sha256(await readFile(sourcePath)),
+  })));
+}
+async function loadAttemptReceipt({ itemDirectory, attempt, model, runId, referenceSetId, sources }) {
+  const receiptPath = attemptReceiptPath(itemDirectory, attempt);
+  let receipt;
+  try {
+    receipt = JSON.parse(await readFile(receiptPath, 'utf8'));
+  } catch (error) {
+    if (error.code === 'ENOENT') return null;
+    throw new Error(`Garment attempt receipt is invalid: ${path.basename(receiptPath)}`);
+  }
+  const expectedCandidatePath = candidatePathForAttempt(itemDirectory, attempt);
+  const sourceMatches = Array.isArray(receipt.sources)
+    && JSON.stringify(receipt.sources) === JSON.stringify(sources);
+  if (receipt.schema_version !== '1.0.0' || receipt.kind !== 'GARMENT_ATTEMPT'
+    || receipt.run_id !== runId || receipt.reference_set_id !== referenceSetId
+    || receipt.attempt !== attempt || receipt.model !== model || !sourceMatches
+    || receipt.candidate?.filename !== path.basename(expectedCandidatePath)
+    || !/^[a-f0-9]{64}$/.test(receipt.candidate?.sha256 ?? '')
+    || !validQaDecision(receipt.qa)) {
+    throw new Error(`Garment attempt receipt does not match immutable run evidence: ${path.basename(receiptPath)}`);
+  }
+  const candidate = await readFile(expectedCandidatePath);
+  if (sha256(candidate) !== receipt.candidate.sha256) {
+    throw new Error(`Garment attempt candidate hash mismatch: ${path.basename(expectedCandidatePath)}`);
+  }
+  return {
+    attempt,
+    model,
+    candidate: { path: expectedCandidatePath, sha256: receipt.candidate.sha256 },
+    qa: receipt.qa,
+    provider: receipt.provider ?? {},
+    image: candidate,
+  };
+}
+async function persistAttemptReceipt({ itemDirectory, attempt, model, runId, referenceSetId, sources, candidatePath, candidate, qa, provider, clock }) {
+  const receipt = {
+    schema_version: '1.0.0',
+    kind: 'GARMENT_ATTEMPT',
+    run_id: runId,
+    reference_set_id: referenceSetId,
+    attempt,
+    model,
+    sources,
+    candidate: { filename: path.basename(candidatePath), sha256: sha256(candidate) },
+    qa,
+    provider: provider ?? {},
+    created_at: clock().toISOString(),
+  };
+  await immutableWrite(
+    attemptReceiptPath(itemDirectory, attempt),
+    Buffer.from(`${JSON.stringify(receipt, null, 2)}\n`),
+  );
+  return receipt;
 }
 function canonicalPrompt(item, referenceCount) {
   const locks = garmentLocks(item).map((value) => `- ${value}`).join('\n');
@@ -130,6 +221,7 @@ export class GarmentConditioner {
       const sourcePaths = item.source_indexes.map((index) => imagePaths[index]);
       const sourcePath = sourcePaths[0];
       const itemDirectory = path.join(outputDirectory, String(item.source_index + 1).padStart(2, '0'));
+      const sources = await sourceHashes(sourcePaths);
       let accepted;
       const attempts = [];
       // An already isolated, sufficiently sized source is stronger evidence
@@ -143,6 +235,41 @@ export class GarmentConditioner {
         && (sourceMetadata.hasAlpha === true || await hasCleanWhiteBorder(sourcePath));
       const route = preserveSource ? ['source_preserved'] : this.generationRoute;
       for (const [routeIndex, model] of route.entries()) {
+        const attempt = routeIndex + 1;
+        const candidatePath = candidatePathForAttempt(itemDirectory, attempt);
+        const persisted = await loadAttemptReceipt({
+          itemDirectory,
+          attempt,
+          model,
+          runId,
+          referenceSetId: item.reference_set_id,
+          sources,
+        });
+        if (persisted) {
+          attempts.push({
+            attempt: persisted.attempt,
+            model: persisted.model,
+            candidate: persisted.candidate,
+            qa: persisted.qa,
+            provider: persisted.provider,
+          });
+          if (persisted.qa.decision === 'PASS') {
+            accepted = {
+              model,
+              candidatePath,
+              image: persisted.image,
+              qa: persisted.qa,
+              provider: persisted.provider,
+            };
+            break;
+          }
+          if (persisted.qa.decision === 'NEEDS_INPUT') {
+            throw new GarmentNeedsInputError(persisted.qa.reason, { item, qa: persisted.qa, attempts });
+          }
+          // RETRY and REJECT are durable outcomes for this exact candidate.
+          // Never re-submit it after a daemon restart.
+          continue;
+        }
         if (routeIndex > 0) await emitVisual({ reset: true, reason: 'ITEM_CANDIDATE_RETRY' });
         await onProgress(
           'GARMENT_GENERATING',
@@ -150,23 +277,35 @@ export class GarmentConditioner {
             ? `Зберігаємо точний еталон речі ${conditioned.length + 1} з ${selectedGarments.length}`
             : `Готуємо еталонне зображення речі ${conditioned.length + 1} з ${selectedGarments.length}`,
         );
-        const generated = preserveSource
-          ? {
-            image: await sharp(sourcePath, { failOn: 'error', limitInputPixels: 100_000_000 })
-              .flatten({ background: '#ffffff' }).png().toBuffer(),
-            metadata: { provider: 'deterministic-source-preservation', mode: 'ALREADY_ISOLATED_REFERENCE' },
-          }
-          : await this.generator.generateGarment({
-            sourcePath, sourcePaths, model, prompt: canonicalPrompt(item, sourcePaths.length), workDirectory: itemDirectory,
-            operationId: `${runId}-garment-${item.source_index}-${routeIndex + 1}`,
-          });
-        // Canonical item reference cards are intentionally opaque white. Flattening is
-        // explicit here (and nowhere in core avatar QA) before deterministic
-        // border-connected white normalization and cutout creation.
-        const opaqueCandidate = await sharp(generated.image).flatten({ background: '#ffffff' }).png().toBuffer();
-        const normalized = await normalizeWhitePngBytes(opaqueCandidate);
-        const candidatePath = path.join(itemDirectory, `candidate-${routeIndex + 1}.png`);
-        await atomicWrite(candidatePath, normalized.image);
+        let candidate;
+        let provider;
+        try {
+          // A process may have exited after storing the candidate but before
+          // QA was written. Resume from the pixels and evaluate them once;
+          // do not pay for an identical provider retry.
+          candidate = await readFile(candidatePath);
+          await sharp(candidate, { failOn: 'error', limitInputPixels: 100_000_000 }).metadata();
+          provider = { provider: 'resumed-unreceipted-candidate' };
+        } catch (error) {
+          if (error.code !== 'ENOENT') throw error;
+          const generated = preserveSource
+            ? {
+              image: await sharp(sourcePath, { failOn: 'error', limitInputPixels: 100_000_000 })
+                .flatten({ background: '#ffffff' }).png().toBuffer(),
+              metadata: { provider: 'deterministic-source-preservation', mode: 'ALREADY_ISOLATED_REFERENCE' },
+            }
+            : await this.generator.generateGarment({
+              sourcePath, sourcePaths, model, prompt: canonicalPrompt(item, sourcePaths.length), workDirectory: itemDirectory,
+              operationId: `${runId}-garment-${item.source_index}-${attempt}`,
+            });
+          // Canonical item reference cards are intentionally opaque white. Flattening is
+          // explicit here (and nowhere in core avatar QA) before deterministic
+          // border-connected white normalization and cutout creation.
+          const opaqueCandidate = await sharp(generated.image).flatten({ background: '#ffffff' }).png().toBuffer();
+          const normalized = await normalizeWhitePngBytes(opaqueCandidate);
+          candidate = await immutableWrite(candidatePath, normalized.image);
+          provider = generated.metadata ?? {};
+        }
         await emitVisual({
           stage: 'ITEM_CANDIDATE_READY',
           subject: {
@@ -183,9 +322,9 @@ export class GarmentConditioner {
           layers: [{
             role: 'CANDIDATE',
             path: candidatePath,
-            sha256: sha256(normalized.image),
+            sha256: sha256(candidate),
           }],
-          metrics: { attempt: routeIndex + 1 },
+          metrics: { attempt },
         });
         await onProgress('GARMENT_QA', `Звіряємо підготовлену річ ${conditioned.length + 1} з оригінальними фото`);
         await emitVisual({
@@ -202,22 +341,35 @@ export class GarmentConditioner {
           layers: [{
             role: 'CANDIDATE',
             path: candidatePath,
-            sha256: sha256(normalized.image),
+            sha256: sha256(candidate),
           }],
-          metrics: { attempt: routeIndex + 1 },
+          metrics: { attempt },
         });
         const qa = await this.vlm.evaluateQa({ phase: 'garment', evidence: {
           identity: { artifact: { path: sourcePath } }, candidate: { artifact: { path: candidatePath } },
           reference_packs: { outfit: { bindings: sourcePaths.map((filename) => ({ artifact: { path: filename } })) } },
         } });
-        attempts.push({
-          attempt: routeIndex + 1,
+        const receipt = await persistAttemptReceipt({
+          itemDirectory,
+          attempt,
           model,
-          candidate: { path: candidatePath, sha256: sha256(normalized.image) },
+          runId,
+          referenceSetId: item.reference_set_id,
+          sources,
+          candidatePath,
+          candidate,
           qa,
-          provider: generated.metadata ?? {},
+          provider,
+          clock: this.clock,
         });
-        if (qa.decision === 'PASS') { accepted = { model, candidatePath, image: normalized.image, qa, provider: generated.metadata ?? {} }; break; }
+        attempts.push({
+          attempt,
+          model,
+          candidate: { path: candidatePath, sha256: receipt.candidate.sha256 },
+          qa,
+          provider,
+        });
+        if (qa.decision === 'PASS') { accepted = { model, candidatePath, image: candidate, qa, provider }; break; }
         // NEEDS_INPUT is reserved for genuinely insufficient raw garment
         // evidence. RETRY and REJECT describe this generated candidate, so both
         // advance through the fixed, bounded image-model route.

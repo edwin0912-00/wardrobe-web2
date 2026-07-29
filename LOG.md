@@ -17,6 +17,20 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-07-29 · BETA-RESTART-RESUME-001 · beta · codex-main
+Change: every garment candidate now has an immutable attempt receipt containing
+the exact source hashes, route model, candidate hash and QA verdict. Restart
+continues from the next model or the existing PASS candidate; a stored candidate
+without a receipt is QA-resumed once. The beta deployment adapter now rejects
+activation while a persisted run is QUEUED or RUNNING.
+Why: beta deployment used `launchctl kickstart -k`, sending SIGTERM and
+previously causing garment candidates to be regenerated and overwritten.
+Evidence: targeted suite 32/32 PASS, including an injected daemon-stop test
+and a no-duplicate-generation test. Adapter dry-run on the host reported
+`active_run_ids: []`.
+weakened_checks: none. Candidate/source hash mismatch fails closed; no raw
+garment evidence, QA condition or provider route was relaxed.
+
 2026-07-29 · BETA-LOOK-FAST-ROUTE-001 · beta · codex-main
 Change: added one explicit, reversible `fast` route for avatar and garment
 reference preparation: Nano Banana 2 → GPT Image 2 → Nano Banana Pro. The

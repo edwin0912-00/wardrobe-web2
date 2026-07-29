@@ -2,7 +2,7 @@
 
 import { execFile } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { cp, lstat, mkdir, readFile, rename, symlink, writeFile } from 'node:fs/promises';
+import { cp, lstat, mkdir, readFile, readdir, rename, symlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
@@ -39,6 +39,31 @@ export function replaceRunnerAppRoot(source, nextRoot) {
   const matches = source.match(/^app_root="[^"]+"$/m);
   invariant(matches?.length === 1, 'Beta runner must contain exactly one app_root declaration');
   return source.replace(/^app_root="[^"]+"$/m, `app_root="${nextRoot}"`);
+}
+
+export async function activeBetaRunIds(runnerSource) {
+  const runtimeRoot = runnerSource.match(/^runtime_root="([^"]+)"$/m)?.[1];
+  invariant(runtimeRoot, 'Beta runner runtime_root is missing');
+  const runsRoot = path.join(runtimeRoot, 'runs');
+  let entries;
+  try {
+    entries = await readdir(runsRoot, { withFileTypes: true });
+  } catch (error) {
+    if (error.code === 'ENOENT') return [];
+    throw error;
+  }
+  const active = [];
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
+    try {
+      const state = JSON.parse(await readFile(path.join(runsRoot, entry.name, 'run.json'), 'utf8'));
+      if (['QUEUED', 'RUNNING'].includes(state.status) && state.run_id === entry.name) active.push(entry.name);
+    } catch {
+      // A malformed unrelated directory cannot be treated as a safe completed run.
+      active.push(entry.name);
+    }
+  }
+  return active.sort();
 }
 
 async function exists(target) {
@@ -83,10 +108,12 @@ async function main() {
   const currentRoot = runnerBefore.match(/^app_root="([^"]+)"$/m)?.[1];
   invariant(currentRoot, 'Beta runner app_root is missing');
   invariant(await exists(currentRoot), 'Current beta app_root is missing');
+  const activeRunIds = await activeBetaRunIds(runnerBefore);
   const betaVersions = path.join(path.dirname(options.runner), '.zeely-deploy', 'beta-versions');
   const nextRoot = path.join(betaVersions, `release-${verified.base_commit.slice(0, 7)}-${Date.now()}`);
-  const plan = { ok: true, mode: options.apply ? 'APPLY' : 'DRY_RUN', current_release: currentRoot, next_release: nextRoot, base_commit: verified.base_commit, cache_token: verified.cache_token };
+  const plan = { ok: true, mode: options.apply ? 'APPLY' : 'DRY_RUN', current_release: currentRoot, next_release: nextRoot, base_commit: verified.base_commit, cache_token: verified.cache_token, active_run_ids: activeRunIds };
   if (!options.apply) { process.stdout.write(`${JSON.stringify(plan)}\n`); return; }
+  invariant(activeRunIds.length === 0, `Beta deployment refused while run(s) are active: ${activeRunIds.join(', ')}`);
 
   await mkdir(betaVersions, { recursive: true, mode: 0o700 });
   invariant(!await exists(nextRoot), 'Target beta release already exists');
