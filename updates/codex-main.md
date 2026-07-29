@@ -17,6 +17,18 @@ weakened_checks: none.
 
 Agent ID: codex-main
 Task ID: BETA-FASHION-SHOOT-FIVE-UI-001
+State: BETA_SURFACE_PASS
+Deployment: `release-9cfcd5a-20260729180500` from beta commit `9cfcd5a`.
+Evidence: public `GET /api/health` is `ready`; public root contains `Style pack
+→ внутрішня QA-перевірка → 5 fashion-кадрів`; public `scene-ui.js` contains no
+legacy-grid dereference; public API reports exactly 10 `shoot.*`, all READY.
+Journey: NOT_RUN — no paid Fashion Shoot was started for this deployment.
+weakened_checks: none.
+
+---
+
+Agent ID: codex-main
+Task ID: BETA-FASHION-SHOOT-FIVE-UI-001
 Product line: beta-placeholder
 Pipeline: UNIVERSE.01–04 → FASHION_SHOOT.01–03
 State: READY_FOR_BETA_DEPLOY

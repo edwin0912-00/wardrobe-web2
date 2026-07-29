@@ -28,6 +28,15 @@ passes 30/30. The unit audit asserts all ten selectable `shoot.*` units have
 their manifest and required sheet roles.
 weakened_checks: none.
 
+2026-07-29 · BETA-FASHION-SHOOT-FIVE-UI-001 · 9cfcd5a · codex-main
+Change: activate the DOM-safe five-frame Fashion Shoot picker on public beta.
+Why: the first release had removed legacy markup while an older client line
+still dereferenced it during picker boot; that was a real public UI crash.
+Evidence: release verifier passed; external health is ready; public source has
+the five-frame marker and no legacy-grid dereference; API reports ten READY
+`shoot.*` units.
+weakened_checks: none.
+
 2026-07-29 · BETA-FASHION-SHOOT-CANON-001 · beta · codex-main
 Change: preserve the single-frame experiment on a comparison branch; restore
 the Fashion Shoot UI/state machine and change its user-facing product name to
