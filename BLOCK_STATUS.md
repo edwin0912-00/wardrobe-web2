@@ -22,19 +22,19 @@ action or execution route is deployed. Neither is “live product”.
 
 The current beta process on `127.0.0.1:4176` runs release `aa2dfd2`: the root
 placeholder opens, `GET /api/editorial-modes` returns 14 modes and all 14
-preview WebPs return `200`. This is a local-server proof, not a public-beta
-proof: `beta.madeforthisjob.com` currently returns Cloudflare `404` before a
-request reaches this Mac. Tunnel inspection shows two active connectors; their
-public-hostname configuration must be checked before calling the public beta
-live.
+preview WebPs return `200`. The same public-beta checks now pass at
+`beta.madeforthisjob.com` after two unrelated preview tunnels using the same
+named tunnel were stopped.
 
-`/api/video/contract`, `/api/video/health` and `/api/video` are still `404` on
-this beta release. Video is not live and must remain visibly unavailable.
+Video is routed under the saved profile, not under `/api/video/*`:
+`GET /api/profile/video-clips/:id` reaches the live handler and returns the
+expected `CLIP_NOT_FOUND` for an unknown id. The UI opens the video control
+from a saved look. A paid clip generation and clip QA have not run yet.
 No paid generation, camera consent or personal-media upload was used in this
 audit.
 
-**First shared atom:** restore one deterministic public beta tunnel route, then
-repeat the manual 01–04 navigation against the public hostname. Do not patch,
+**First shared atom:** take one saved-look path through the public 01–04 UI,
+then run one controlled video clip through provider and clip QA. Do not patch,
 revive or copy any obsolete shell to make the old page appear healthy.
 
 ## Product structure — read this before taking a task
@@ -64,16 +64,16 @@ the approved master look and does not require a shoot or background.
 
 | Block | Code | Beta | Journey | Exact evidence / next atom |
 | --- | --- | --- | --- | --- |
-| `PROFILE.01–03` | TESTED historical | LIVE_SURFACE, ROOT UI BLOCKED | NOT_CURRENT | Profile empty state opens, but root navigation crash prevents a complete saved-look journey. |
-| `LOOK.01–06` | TESTED locally | ROOT UI BLOCKED | NOT_CURRENT | A local full-look run exists; repair root UI, then perform fresh beta upload → approved master → saved look. |
+| `PROFILE.01–03` | TESTED historical | LIVE_SURFACE | NOT_CURRENT | Public beta root and profile entry open; a fresh saved-look journey still needs proof. |
+| `LOOK.01–06` | TESTED locally | LIVE_SURFACE | NOT_CURRENT | A local full-look run exists; perform fresh public beta upload → approved master → saved look. |
 | `LOOK.07` Improve | MISSING | NOT_DEPLOYED | NOT_RUN | Product canon only; no generation or UI route may be claimed. |
-| `BACKGROUND.01` picker | TESTED historical | CATALOG_ONLY | NOT_CURRENT | Beta returns 16 `std.*` cards/previews, but `03 SCENES` crashes before manual entry. |
+| `BACKGROUND.01` picker | TESTED historical | CATALOG_ONLY | NOT_CURRENT | Beta returns 16 `std.*` cards/previews; public saved-look → picker click is still unproven. |
 | `BACKGROUND.02` scene | TESTED (`f23ca9b`) | NOT_DEPLOYED | E2E_FAIL_LOCAL | Native 3:4 route tested; real GPT scene returned but failed strict item fidelity/framing. Next: repair only those failed gates, then run beta. |
 | `BACKGROUND_VIDEO.01–04` | MISSING | NOT_DEPLOYED | NOT_RUN | Proposal only; must start from an approved background result. |
-| `UNIVERSE.01–02` style picker/packs | TESTED historical | CATALOG_ONLY | NOT_CURRENT | API has 14 modes (12 available) and all previews respond, but root UI blocks picker testing. |
-| `UNIVERSE.03–04` hero/series/contact sheet | CODE_PARTIAL | ROOT UI BLOCKED | NOT_CURRENT | No current beta style → hero → six QA-passed frames → persisted contact-sheet proof. |
-| `ART_SHOOT.01–05` | CODE_PARTIAL | ROOT UI BLOCKED | NOT_CURRENT | Same missing real execution proof as Universe; do not infer it from previews. |
-| `VIDEO.01–04` Fashion Video | REPORTED (`544e602`) | NOT_DEPLOYED | NOT_RUN | Current beta returns 404 for `/api/video/*`; deploy exact commit, then one controlled clip → ffprobe/clip QA → saved result. |
+| `UNIVERSE.01–02` style picker/packs | TESTED historical | LIVE_SURFACE | NOT_CURRENT | API has 14 modes (12 available) and all previews respond; public saved-look → picker click is still unproven. |
+| `UNIVERSE.03–04` hero/series/contact sheet | CODE_PARTIAL | LIVE_SURFACE | NOT_CURRENT | No current beta style → hero → six QA-passed frames → persisted contact-sheet proof. |
+| `ART_SHOOT.01–05` | CODE_PARTIAL | LIVE_SURFACE | NOT_CURRENT | Same missing real execution proof as Universe; do not infer it from previews. |
+| `VIDEO.01–04` Fashion Video | TESTED route surface (`544e602`) | LIVE_SURFACE | NOT_RUN | Video lives at `/api/profile/video-clips*`; unknown clip returns the expected `CLIP_NOT_FOUND`, and the saved-look UI has the control. Next: one controlled clip → ffprobe/clip QA → saved result. |
 | `LIVE.01–04` Real-time Look | TESTED historical | CONTRACT_ONLY | PAID_E2E_NOT_RUN | `/api/post-shoot/pipeline` describes Live, but user actions and execution routes are not on current beta. |
 | Pipeline explainer | CODE_PARTIAL | ROOT UI BLOCKED | NOT_CURRENT | Technical nodes exist; current result-to-explainer journey still needs beta click smoke. |
 | Generation transport | TESTED local | HEALTH_LIVE | PARTIAL | Beta health says generation/semantic QA available. Local GPT Image 2 actually returned a scene; availability is not a successful scene or shoot. |

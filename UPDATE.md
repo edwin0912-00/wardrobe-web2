@@ -39,13 +39,13 @@ main-scroll asset, controller or landing replacement may be pulled into beta.
 
 `BLOCK_STATUS.md` is the canonical concise map of pipeline blocks. Every
 claim now carries three independent facts: code proof, beta-server surface,
-and real public-beta journey proof. Release `aa2dfd2` proves locally that all
-14 Create Universe previews are served by beta; public
-`beta.madeforthisjob.com` is currently blocked at Cloudflare `404` before it
-reaches the Mac. `/api/video/*` is HTTP `404` on beta, so the committed
-Seedance implementation is **not deployed** and must not be called live. The
-14-mode Create Universe catalog is not yet a hero/series/contact-sheet journey
-proof.
+and real public-beta journey proof. Release `aa2dfd2` proves on the public
+beta hostname that all 14 Create Universe previews are served. Two unrelated
+preview tunnels on the same named tunnel were stopped to restore the route.
+Video is deployed under `/api/profile/video-clips*`, not `/api/video/*`; its
+route and saved-look UI are present, but paid generation/clip QA has not run.
+The 14-mode Create Universe catalog is not yet a hero/series/contact-sheet
+journey proof.
 
 ## Board protocol release — 2026-07-29
 
@@ -143,9 +143,9 @@ beta release. A card, API contract, or mocked status alone is not a PASS.
 
 | Chat | Owns the product block | Separate manual QA cell | First pass result |
 | --- | --- | --- | --- |
-| A · Look + Background | `PROFILE` / `LOOK` / `BACKGROUND` | `qa-look-background` | Profile empty state and 16 background cards/API pass; `03 SCENES` crashes on undefined `scrollToSection`. |
-| B · Create Universe + Art Shoot | `UNIVERSE` / `ART_SHOOT` | `qa-universe-shoot` | 14 mode records, 12 available and 14 preview files pass; picker/journey unreachable because root UI crashes. |
-| C · Video + Live | `VIDEO` / `LIVE` | `qa-video-live` | post-shoot metadata responds; `/api/video/*`, `/api/live/*` and video UI are absent/currently 404. |
+| A · Look + Background | `PROFILE` / `LOOK` / `BACKGROUND` | `qa-look-background` | Public root opens; profile and 16 background cards/API pass. A fresh saved-look journey is pending. |
+| B · Create Universe + Art Shoot | `UNIVERSE` / `ART_SHOOT` | `qa-universe-shoot` | 14 mode records, 12 available and 14 public preview files pass; picker/hero/series journey is pending. |
+| C · Video + Live | `VIDEO` / `LIVE` | `qa-video-live` | Video UI and `/api/profile/video-clips*` route surface pass; no paid clip or Live session has run. |
 | D · Manual beta gate | no product-code ownership | independent QA only | Re-runs A–C after every exact beta deployment and records UI, console, network, node/job, QA and persistence evidence. |
 
 No QA cell edits product code or spends provider credits by default. A product chat
