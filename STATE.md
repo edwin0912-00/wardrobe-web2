@@ -22,8 +22,9 @@ agent may collapse these facts into a single "live" claim.
   differences (weave, grain, gloss, microtexture) are advisory rather than a
   route-blocking mismatch. This is not a waiver for changed product identity,
   silhouette, visible design/branding, color, panel layout or distinctive
-  geometry. The source change is committed with focused 19/19 tests;
-  deployment is intentionally pending until no paid beta run is active.
+  geometry. Focused tests are 19/19 PASS. Beta release
+  `release-babd2c6-1785354288108` from commit `babd2c6` is active; strict
+  release verification and local/public health returned `ready`.
 - Focused code proof: `node --test test/runner/model-policy.test.js
   test/web/garment-conditioner.test.js test/providers/codex-vlm-evaluator.test.js
   test/runner/pipeline-runner.test.js` — 27/27 PASS. Beta release

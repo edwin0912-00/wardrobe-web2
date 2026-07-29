@@ -31,6 +31,9 @@ The earlier detailed noticeboard is preserved at
   panel layout or distinctive geometry still blocks the candidate. This rule
   applies to the next evaluation; already immutable run receipts are never
   rewritten.
+  **Activated:** beta release `release-babd2c6-1785354288108` from commit
+  `babd2c6`; strict release verification, local health and public health all
+  returned `ready`.
 - **Not implemented in this change:** a multi-angle footwear sheet. It needs a
   distinct artifact/QA contract because model-invented rear/sole views must
   never become source evidence. It is a follow-up, not an implicit QA waiver.

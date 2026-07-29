@@ -1167,8 +1167,9 @@ as product-satisfactory; retrying it for surface texture alone adds cost and
 latency without improving the usable reference.
 Evidence: focused provider + garment-conditioner tests 19/19 PASS, including
 the accepted mesh-versus-pebbled candidate and a negative changed-silhouette
-case. The rule does not alter historical immutable receipts and has not yet
-been deployed.
+case. The rule does not alter historical immutable receipts. Exact beta release
+`release-babd2c6-1785354288108` was strict-verified and activated; local and
+public health both returned `ready`.
 weakened_checks: material microtexture is non-blocking only; product identity,
 silhouette, color, visible branding, layout and geometry remain blocking.
 
