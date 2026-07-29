@@ -61,6 +61,11 @@ verifier PASS: 632 deploy files, 14 editorial modes / 12 generation-enabled,
 10 Create Universe modes / 10 generation-enabled.
 weakened_checks: none.
 
+Deployment: ACTIVE. Product release `release-df4f129-20260729195500` is the
+beta app root. Public `GET /api/health` returned `runtime_status: ready` and
+the deployed `scene-ui.js` imports the restored `editorial-shoot-ui.js` under
+the same release cache token.
+
 ---
 
 Agent ID: codex-main
