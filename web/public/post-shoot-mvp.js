@@ -37,7 +37,7 @@ async function loadSavedLookReference(lookId) {
     'Вибраний образ · READY',
   );
 }
-async function loadReferenceUrl(url, fileName, readyLabel) {
+async function loadReferenceUrl(url, fileName, readyLabel, { publicProviderUrl = false } = {}) {
   const response = await fetch(url, {
     credentials: 'same-origin',
     cache: 'no-store',
@@ -49,6 +49,7 @@ async function loadReferenceUrl(url, fileName, readyLabel) {
     lastModified: Date.now(),
   });
   await loadReference(file);
+  if (publicProviderUrl) state.reference = new URL(url, location.origin).href;
   $('#reference-upload').disabled = true;
   $('.reference-control').classList.add('is-bound');
   $('#reference-status').textContent = readyLabel;
@@ -102,26 +103,38 @@ function stopCamera() {
   ready();
 }
 async function signal(result) {
-  const type = result.type;
-  if (type === 'iceservers' || type === 'iceServers') {
+  const type = String(result?.type ?? '').toLowerCase().replaceAll('_', '');
+  if (type === 'iceservers'
+    || Array.isArray(result?.iceservers)
+    || Array.isArray(result?.iceServers)
+    || Array.isArray(result?.ice_servers)) {
+    if (state.peer) return;
     const servers = result.iceservers || result.iceServers || result.ice_servers || [];
+    status('Lucy · налаштовуємо WebRTC…');
     state.peer = new RTCPeerConnection({ iceServers: servers });
     state.stream.getTracks().forEach((track) => state.peer.addTrack(track, state.stream));
     state.peer.ontrack = (event) => {
-      $('#camera').srcObject = event.streams[0];
+      $('#camera').srcObject = event.streams[0] || new MediaStream([event.track]);
       status('LUCY LIVE · transformed stream');
+    };
+    state.peer.onconnectionstatechange = () => {
+      const connectionState = state.peer?.connectionState;
+      if (connectionState === 'failed') closeLive('Помилка WebRTC: connection failed.');
+      else if (connectionState === 'connected') status('Lucy · WebRTC connected, очікуємо відео…');
     };
     state.peer.onicecandidate = (event) => {
       if (event.candidate) state.connection.send({ type: 'icecandidate', candidate: event.candidate.toJSON() });
     };
     const offer = await state.peer.createOffer();
     await state.peer.setLocalDescription(offer);
+    status('Lucy · надсилаємо camera offer…');
     state.connection.send({ type: 'offer', sdp: offer.sdp });
-  } else if (type === 'answer') {
+  } else if (type === 'answer' || (result?.sdp && state.peer?.localDescription)) {
+    status('Lucy · отримано video answer…');
     await state.peer?.setRemoteDescription({ type: 'answer', sdp: result.sdp });
-  } else if (type === 'icecandidate' && state.peer) {
+  } else if ((type === 'icecandidate' || (result?.candidate && !result?.sdp)) && state.peer) {
     await state.peer.addIceCandidate(new RTCIceCandidate(result.candidate));
-  } else if (type === 'error' || ((type === 'prompt_ack' || type === 'set_image_ack') && result.success === false)) {
+  } else if (result?.error || type === 'error' || ((type === 'promptack' || type === 'setimageack') && result.success === false)) {
     throw new Error(result.error || 'Lucy realtime error.');
   }
 }
@@ -135,7 +148,11 @@ async function startLive() {
   state.running = true;
   ready();
   status('Підключення до Lucy…');
-  state.timer = setTimeout(() => closeLive('5 секунд завершено. Live автоматично зупинено.'), 5_000);
+  state.timer = setTimeout(() => closeLive(
+    $('#camera').srcObject === state.stream
+      ? '5 секунд завершено до отримання transformed stream.'
+      : '5 секунд завершено. Live автоматично зупинено.',
+  ), 5_000);
   state.connection = fal.realtime.connect(MODEL_ID, {
     connectionKey: `zeely-${crypto.randomUUID?.() || Date.now()}`,
     throttleInterval: 0,
@@ -178,7 +195,12 @@ if (selectedLookId) {
     .catch((error) => status(`Помилка образу: ${error.message}`));
 } else if (demoOutfit) {
   status('Завантажуємо тестовий outfit…');
-  loadReferenceUrl('/live-test-outfit.png?v=20260728-1', 'live-test-outfit.png', 'Hoodie + sneakers · READY')
+  loadReferenceUrl(
+    '/live-test-outfit.png?v=20260729-1',
+    'live-test-outfit.png',
+    'Hoodie + sneakers · READY',
+    { publicProviderUrl: true },
+  )
     .then(() => status('Outfit готовий. Увімкни камеру.'))
     .catch((error) => status(`Помилка образу: ${error.message}`));
 }

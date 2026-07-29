@@ -32,6 +32,20 @@
   disabled before camera, console warnings/errors 0.
 - Provider call: NOT RUN.
 
+## BETA-LIVE-COMPLETE-001 — WEBRTC REPAIR 2026-07-29
+
+- Reproduction evidence from the public request log: the outfit reference,
+  camera flow and bundled fal client loaded, and the paid token endpoint
+  returned HTTP 200. Failure therefore occurred after token issuance in the
+  browser-to-Lucy signaling path.
+- The demo no longer sends the 1.2 MiB PNG as a WebSocket data URI; it supplies
+  the same public HTTPS reference URL supported by the provider schema.
+- Signaling now accepts typed and untyped ICE-server, SDP-answer and candidate
+  envelopes, including all documented casing variants.
+- The UI exposes the exact phase (`ICE`, offer, answer, connected, transformed
+  stream) and reports a specific five-second no-stream timeout.
+- Focused non-billable proof: 8/8 PASS. No additional paid provider call.
+
 Protocol ACK: 29045a9
 
 ## BETA-POSTSHOOT-RECON-001 — RESUMED 2026-07-27
