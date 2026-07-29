@@ -1,8 +1,4 @@
-# Masters and audio are large binaries produced by paid generation. They belong in the
-# media ledger on jarvis1, not in source control — a review of this repo is a review of
-# the engine, not of 50 MB of video.
-*/assets/
-*/audio/
+# `a/` is the archived, superseded version-A build — not part of the current site.
 a/
 
 # Local safety copies made before surgical edits (safe-artifact-stewardship). Not history.
