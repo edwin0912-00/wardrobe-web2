@@ -9,7 +9,7 @@ post-shoot API is 200; the new `/api/video/*` routes are 404. Therefore the
 branch contains capabilities that the live host does not yet contain. No
 agent may collapse these facts into a single "live" claim.
 
-## Look-reference route — code verified, beta activation pending
+## Look-reference route — active on beta, real paid run pending
 
 - Avatar and garment-reference processing has a reversible server route
   setting. `fast` is explicitly Nano Banana 2 → GPT Image 2 → Nano Banana Pro;
@@ -20,8 +20,9 @@ agent may collapse these facts into a single "live" claim.
   side-oriented evidence request; hidden sole/rear facts remain UNKNOWN.
 - Focused code proof: `node --test test/runner/model-policy.test.js
   test/web/garment-conditioner.test.js test/providers/codex-vlm-evaluator.test.js
-  test/runner/pipeline-runner.test.js` — 27/27 PASS. A fresh paid beta run is
-  not yet evidence for this revision.
+  test/runner/pipeline-runner.test.js` — 27/27 PASS. Beta release
+  `release-4eb84ac-1785349827315` is active; its local and public health both
+  returned `ready`. A fresh paid beta run is not yet evidence for this revision.
 
 ## Git ↔ beta release truth — 2026-07-29
 

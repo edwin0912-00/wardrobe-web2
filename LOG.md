@@ -31,6 +31,16 @@ Evidence: `node --test test/runner/model-policy.test.js test/web/garment-conditi
 weakened_checks: none. QA still rejects positive contradictions, omitted
 visible features, crop, background and product-card defects.
 
+2026-07-29 · BETA-LOOK-FAST-ROUTE-001 · beta activation · codex-main
+Change: activated the exact tested `4eb84ac` candidate through the dedicated
+beta release adapter.
+Why: make the fast look route and source-evidence QA correction available for
+the next controlled user journey.
+Evidence: release `release-4eb84ac-1785349827315`; local and public
+`/api/health` both returned `status: ready`; runner contains
+`ZEELY_LOOK_IMAGE_ROUTE=fast`.
+weakened_checks: none. No paid fresh-look generation was spent for activation.
+
 2026-07-29 · BETA-FASHION-SHOOT-FIVE-UI-001 · beta · codex-main
 Change: Fashion Shoot picker now exposes only complete `shoot.*` Creative
 Universe units; its internal identity/look check is auto-approved after PASS

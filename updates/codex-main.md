@@ -2,13 +2,13 @@ Agent ID: codex-main
 Task ID: BETA-LOOK-FAST-ROUTE-001
 Product line: beta-placeholder
 Pipeline: LOOK.02–06 · source item → reference card → avatar → master look
-State: CODE_VERIFIED — beta activation pending
+State: ACTIVE_ON_BETA — paid journey pending
 Decision: only avatar/garment reference preparation has an explicit server
 fast route: Nano Banana 2 → GPT Image 2 → Nano Banana Pro. Background and
 Fashion Shoot do not inherit it. A raw side-oriented shoe now requests an
 evidence-preserving side card; QA evaluates only source-visible facts and
 retains all visible-fidelity gates.
-Evidence: `node --test test/runner/model-policy.test.js test/web/garment-conditioner.test.js test/providers/codex-vlm-evaluator.test.js test/runner/pipeline-runner.test.js` — 27/27 PASS; `git diff --check` PASS.
+Evidence: `node --test test/runner/model-policy.test.js test/web/garment-conditioner.test.js test/providers/codex-vlm-evaluator.test.js test/runner/pipeline-runner.test.js` — 27/27 PASS; release `release-4eb84ac-1785349827315` is locally and publicly `ready`.
 weakened_checks: none. A single source view cannot establish an invented rear,
 sole or alternate-angle fact; a footwear sheet remains a separate follow-up.
 

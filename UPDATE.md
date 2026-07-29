@@ -27,6 +27,9 @@ The earlier detailed noticeboard is preserved at
 - **Not implemented in this change:** a multi-angle footwear sheet. It needs a
   distinct artifact/QA contract because model-invented rear/sole views must
   never become source evidence. It is a follow-up, not an implicit QA waiver.
+- **Activated:** beta release `release-4eb84ac-1785349827315` from commit
+  `4eb84ac`; local and public health both returned `ready`. No paid fresh-look
+  generation was run as part of this activation.
 
 ## Git ↔ beta reconciliation — 2026-07-29
 
