@@ -13,6 +13,28 @@ The earlier detailed noticeboard is preserved at
 - Live test: `https://beta.madeforthisjob.com` — deploy the exact tested beta
   commit, then record its result below.
 
+## Product-line separation — operator decision · 2026-07-29
+
+There are two deliberately separate products. Do not merge their UI work or
+describe one as a broken version of the other.
+
+- **`beta`** is the engineering placeholder: the original basic pipeline UI,
+  upload → nodes → QA → saved result. It must stay simple and executable for
+  pipeline testing. Scroll, WebGL, Lusion, Site A and campaign-showcase UI do
+  not belong in beta.
+- **`main`** is the future client experience: scroll-driven presentation,
+  WebGL/Three.js and the editorial/campaign surface. It receives pipeline
+  capabilities only after their beta journey has a real proof.
+- Historical scroll/UI work is preserved — not deleted — at
+  `origin/backup/main-scroll-ui-20260729`, anchored at `301725d`. It contains
+  the Lusion/Site A line beginning with `525fa74`. Treat it as the recovery
+  source for main UI, never as a beta deployment candidate.
+
+Before changing `web/public/**`, every agent must write in its task/report:
+`Product line: beta-placeholder | main-scroll`. A UI task without that label
+is not claimable. Beta deploys use only `beta` commits; no main-scroll asset,
+scroll controller or landing replacement may be pulled into a beta release.
+
 ## Current verified state — reconciliation 2026-07-27
 
 ## Current verification rule — 2026-07-29
