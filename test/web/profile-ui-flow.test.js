@@ -73,7 +73,7 @@ test('saved look exposes actionable branches and their honest pipeline explanati
   assert.match(indexSource, /id="profile-look-action-status"/);
   assert.match(indexSource, /Відео зі сцени/);
   assert.match(indexSource, /Фокус на речі/);
-  assert.match(indexSource, /Create Universe: обрати один locked стиль/);
+  assert.match(indexSource, /готову зйомку: її стиль, світло, локація, камера, пози та кадри/);
   assert.match(indexSource, /aria-label="Відкрити Real-time Look"/);
   assert.match(indexSource, /aria-label="Додати стандартний фон"/);
   assert.match(appSource, /openSelectedLookScene\('standard'\)/);
@@ -81,7 +81,7 @@ test('saved look exposes actionable branches and their honest pipeline explanati
   assert.match(sceneUiSource, /async openForLook\(look, \{ initialTab = 'standard' \} = \{\}\)/);
   assert.match(sceneUiSource, /this\.pickerTab = initialTab === 'editorial' \? 'editorial' : 'standard';/);
   assert.match(appSource, /profile-look-video/);
-  assert.match(appSource, /Fashion Video: обери рух і surface/);
+  assert.match(appSource, /Fashion Video: обери формат кадру й подачу/);
   assert.match(appSource, /Покращити: master і вибрані речі будуть locked/);
 });
 test('Add items continuation receives the exact selected avatar and look once', async () => {

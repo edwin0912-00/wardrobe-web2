@@ -1637,7 +1637,7 @@ document.querySelector('#profile-look-background').addEventListener('click', (ev
 });
 document.querySelector('#profile-look-photoshoot').addEventListener('click', (event) => {
   event.stopPropagation();
-  setLookActionStatus('Фотозйомка: обери один Create Universe стиль; далі буде hero і серія кадрів.');
+  setLookActionStatus('Фотозйомка: обери готову зйомку з її locked стилем, світлом, локацією, камерою та планом кадрів. Далі — hero і серія.');
   openSelectedLookScene('editorial');
 });
 document.querySelector('#profile-look-video').addEventListener('click', (event) => {
@@ -1647,7 +1647,7 @@ document.querySelector('#profile-look-video').addEventListener('click', (event) 
   if (!lookId) return;
   const overlay = document.querySelector('#video-overlay');
   const sourceImg = document.querySelector('#video-source-image');
-  setLookActionStatus('Fashion Video: обери рух і surface. Після запуску кліп проходить перевірку та зберігається до цього образу.');
+  setLookActionStatus('Fashion Video: обери формат кадру й подачу. Після запуску сервер створює кліп, перевіряє його та зберігає до цього образу.');
   sourceImg.src = selectedProfileLook.image_url ?? `/api/profile/looks/${encodeURIComponent(lookId)}/image`;
   document.querySelector('#video-progress').hidden = true;
   document.querySelector('#video-result').hidden = true;

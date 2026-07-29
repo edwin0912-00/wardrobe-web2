@@ -225,8 +225,8 @@
                       <ul>
                         <li><b>Покращити</b><span>Окремий candidate: lock людини й вибраних речей; дозволені лише незадані деталі, волосся, легкий макіяж і невелика зміна пози. Поки що очікує generator route.</span></li>
                         <li><b>Фон</b><span>Відкриває 16 стандартних сцен. Master-образ не перегенеровується.</span></li>
-                        <li><b>Фотозйомка</b><span>Відкриває Create Universe: обрати один locked стиль → hero → серія → contact sheet.</span></li>
-                        <li><b>Fashion Video</b><span>Відкриває Seedance 2 control: рух, surface, job, clip QA та збереження до цього образу.</span></li>
+                        <li><b>Фотозйомка</b><span>Обери готову зйомку: її стиль, світло, локація, камера, пози та кадри вже зібрані в один locked reference pack → hero → серія → contact sheet.</span></li>
+                        <li><b>Fashion Video</b><span>Створює окремий fashion-ролик із master-образу. Ти задаєш тільки подачу кадру й рух; модель, job та clip QA працюють на сервері й зберігають результат до цього образу.</span></li>
                         <li><b>Real-time Look</b><span>Відкриває окрему consented camera-сесію. Вона не замінює згенероване відео.</span></li>
                         <li><b>Відео зі сцени</b><span>Після готового фону з’явиться окрема гілка «Фокус на речі» / «Позування». Її server route ще не зібраний — запускати фальшивий ролик не будемо.</span></li>
                       </ul>
@@ -251,7 +251,7 @@
           <button id="video-overlay-close" class="profile-live-close" type="button" aria-label="Закрити Video">×</button>
           <div class="video-overlay-content">
             <div class="video-overlay-header">
-              <p class="result-kicker">FASHION VIDEO · SEEDANCE 2</p>
+              <p class="result-kicker">FASHION VIDEO</p>
               <h3 id="video-overlay-title">Створити відео</h3>
             </div>
             <div class="video-overlay-body">
@@ -261,18 +261,18 @@
               </div>
               <div class="video-overlay-controls">
                 <div class="video-control-group">
-                  <label class="video-label">Surface</label>
-                  <div id="video-surface-options" class="video-options" role="radiogroup" aria-label="Тип поверхні">
-                    <button type="button" class="video-option active" data-value="mirror" aria-pressed="true">🪞 Mirror</button>
-                    <button type="button" class="video-option" data-value="tv" aria-pressed="false">📺 TV</button>
+                  <label class="video-label">Формат кадру</label>
+                  <div id="video-surface-options" class="video-options" role="radiogroup" aria-label="Формат кадру">
+                    <button type="button" class="video-option active" data-value="mirror" aria-pressed="true">Вертикальний</button>
+                    <button type="button" class="video-option" data-value="tv" aria-pressed="false">Широкий</button>
                   </div>
                 </div>
                 <div class="video-control-group">
-                  <label class="video-label">Motion Mode</label>
-                  <div id="video-motion-options" class="video-options" role="radiogroup" aria-label="Тип руху">
-                    <button type="button" class="video-option active" data-value="gentle_sway" aria-pressed="true">🌊 Gentle Sway</button>
-                    <button type="button" class="video-option" data-value="confident_turn" aria-pressed="false">🔄 Confident Turn</button>
-                    <button type="button" class="video-option" data-value="editorial_pose" aria-pressed="false">📸 Editorial Pose</button>
+                  <label class="video-label">Подача</label>
+                  <div id="video-motion-options" class="video-options" role="radiogroup" aria-label="Подача у відео">
+                    <button type="button" class="video-option active" data-value="gentle_sway" aria-pressed="true">М’який рух</button>
+                    <button type="button" class="video-option" data-value="confident_turn" aria-pressed="false">Поворот</button>
+                    <button type="button" class="video-option" data-value="editorial_pose" aria-pressed="false">Позування</button>
                   </div>
                 </div>
                 <button id="video-generate" class="primary-result-action" type="button">Створити відео →</button>
