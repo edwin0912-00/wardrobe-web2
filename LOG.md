@@ -1287,3 +1287,19 @@ product release 2/2 PASS; strict verifier PASS; public health ready; 16
 backgrounds, 19 Fashion Shoot previews, 17 generation modes, and 15 complete
 Create Universe units. Browser console errors: 0.
 weakened_checks: none.
+
+2026-07-30 · Modern iPhone HEIC fallback · `c094a0a` → beta
+Change: when Chrome and bundled libheif cannot decode an HEIC/HEIF variant,
+the browser sends the file to a same-origin transient conversion route; macOS
+`sips` returns a validated JPEG and the existing draft pipeline continues.
+Evidence: focused upload/conversion suite 15/15 PASS; a real HEIC passed the
+public endpoint and returned a 96×96 JPEG; browser upload persisted the
+converted `-upload.jpg`; public health ready.
+weakened_checks: none.
+
+2026-07-30 · Chat 00 release ownership
+Change: separated beta integration/version/deploy authority from Chat 01
+product development. Chat 00 writes no feature code and accepts only exact,
+tested handoffs.
+Why: deployment is a persistent control-plane responsibility; combining it
+with Block 1 implementation creates avoidable queueing and context overload.

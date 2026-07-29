@@ -6,6 +6,8 @@ The active ownership contract is
 [`docs/coordination/BETA_BLOCKS_2026-07-29.md`](docs/coordination/BETA_BLOCKS_2026-07-29.md).
 It supersedes the shared-`beta` write model below.
 
+- Chat 00 / `beta-release-master` / `chat-00-master`: integration, exact beta
+  versions, deploy, rollback and central release evidence only. No product code.
 - Block 1 / `beta-block-1-core-look` / `codex-main`: input, extraction,
   avatar, clothing, master-look, profile backend, image/VLM providers and all
   core/background QA.
@@ -25,14 +27,15 @@ It supersedes the shared-`beta` write model below.
   public-beta browser verification and QA reports only. It owns no product
   code and cannot approve its own product change.
 
-Only `codex-main` owns integration-only files and may update `beta`, deploy or
-edit the central ledgers. `main` remains read-only.
+Only `chat-00-master` owns integration-only files and may update `beta`, deploy
+or edit the central ledgers. Chat 01 remains the Block 1 product owner.
+`main` remains read-only.
 
 ## RETIRED FAST MODE — historical reference only
 
 `beta` is the only shared working branch. `main` is read-only. The active
 assignment in `UPDATE.md` decides who may write product code right now.
-Agents report in their own `updates/<agent-id>.md`; only `codex-main` updates
+Agents report in their own `updates/<agent-id>.md`; only `chat-00-master` updates
 the central board and verified state. The detailed lane rules below remain an
 archive for prior work and do not govern new beta tasks.
 
@@ -42,8 +45,10 @@ these lanes for each lease; it may never broaden a forbidden boundary below.
 
 ## Permanent roles
 
-- `codex-main` — orchestrator, integration reviewer, ledger owner, release
-  coordinator. This is a persistent role, not a task.
+- `chat-00-master` — integration reviewer, ledger owner, version and release
+  coordinator. This is a persistent role, not a feature task.
+- `codex-main` / Chat 01 — Block 1 product owner. It submits commits to Chat 00
+  under the same handoff contract as every other block.
 - `edwin` — product authority for the stop conditions in `AGENTS.md`.
 - task agents — isolated implementers or reviewers with no integration,
   release, credential, or deployment authority unless a task explicitly says
@@ -51,7 +56,7 @@ these lanes for each lease; it may never broaden a forbidden boundary below.
 
 ## Control plane
 
-Only `codex-main` may edit:
+Only `chat-00-master` may edit:
 
 - `.gitattributes`
 - `.gitmodules`

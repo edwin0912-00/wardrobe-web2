@@ -1,8 +1,8 @@
-# Wardrobe beta — seven-block operating model
+# Wardrobe beta — release master plus seven-block operating model
 
 Effective: 2026-07-29.
 
-This document is the shared work contract for chats 1–7. `beta` is the tested
+This document is the shared work contract for Chat 00 and chats 1–7. `beta` is the tested
 integration line and the only source that may be deployed to
 `beta.madeforthisjob.com`. Product agents work only in their assigned block
 branch. `main` remains the future customer-site line and is not changed by this
@@ -12,6 +12,7 @@ workflow.
 
 ```text
 beta
+├── beta-release-master
 ├── beta-block-08-antigravity-qa
 ├── beta-block-1-core-look
 ├── beta-block-2-profile-ui
@@ -22,8 +23,9 @@ beta
 └── beta-block-7-realtime-look
 ```
 
-Only `codex-main` integrates a tested block commit into `beta`, builds the exact
-release, activates it, and records public-beta evidence. Block owners never
+Only `chat-00-master` integrates a tested block commit into `beta`, builds the
+exact release, activates it, and records public-beta evidence. Its complete
+contract is `docs/coordination/blocks/00-release-master.md`. Block owners never
 push directly to `beta` or `main` and never deploy.
 
 `beta-block-08-antigravity-qa` is a permanent observer, not an eighth product
@@ -46,7 +48,7 @@ explicit approval before integration.
 ## Block 1 — inputs, avatar, clothing, master look and QA
 
 - Branch: `beta-block-1-core-look`
-- Owner: `codex-main` / chat 1.
+- Owner: `codex-main` / chat 1. This is product ownership, not release authority.
 - Pipeline: `LOOK.01–07`, backend persistence needed by `PROFILE.01–03`, and
   the complete QA contract used by `BACKGROUND.02`.
 
@@ -220,7 +222,7 @@ saves an artifact; no personal media leaves the browser before consent.
 
 ## Integration-only paths
 
-These are changed only by `codex-main` while integrating an accepted handoff:
+These are changed only by `chat-00-master` while integrating an accepted handoff:
 
 - `src/web/app.js`
 - `src/web/start.js`
@@ -257,7 +259,7 @@ iterations, or 45 minutes.
 4. Commit code + focused test + `updates/chat-<N>.md`.
 5. Push only the assigned block branch.
 6. Report commit, changed paths, Code/Beta/Journey, blocker and next atom.
-7. `codex-main` reviews, integrates one atomic change into `beta`, deploys the
+7. `chat-00-master` reviews, integrates one atomic change into `beta`, deploys the
    exact SHA and records the public journey.
 
 No branch may hide failing checks, rewrite immutable evidence, commit secrets

@@ -443,3 +443,11 @@ be weakened to hide it.
   this deployment.
 - Public browser root rendered with zero console errors. Drag/drop and HEIC
   remain present.
+
+## HEIC compatibility — 2026-07-30
+
+- Active source: `c094a0ac723677b2060ce847e3ed3c68ce186067`.
+- Active cache: `product-c094a0ac-91c86ff9cf9d`.
+- HEIC decode order is browser native → bundled decoder → same-origin macOS
+  converter. Only the resulting validated JPEG enters draft/run storage.
+- Public endpoint and browser draft persistence are verified; beta is ready.

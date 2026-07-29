@@ -708,6 +708,16 @@ facts.
 
 ## Latest events
 
+- 2026-07-30 — Chat 00 is now the narrow beta release master. It owns exact
+  integration SHAs, release builds, deploy, public smoke and rollback evidence,
+  but no product implementation. Chat 01 remains Block 1 product owner. Contract:
+  `docs/coordination/blocks/00-release-master.md`.
+- 2026-07-30 — Release `c094a0ac723677b2060ce847e3ed3c68ce186067`
+  is active with cache `product-c094a0ac-91c86ff9cf9d`. Modern iPhone HEIC now
+  falls back from Chrome/libheif to a same-origin transient macOS conversion.
+  Focused tests 15/15 PASS; real public HEIC → JPEG PASS; browser draft save
+  PASS; weakened_checks: none.
+
 - 2026-07-30 — Consolidated beta release `b94484b3271ac37b509aeb99e216b32991767d9f`
   is active with cache `product-b94484b3-a6876a734321`. It integrates all
   currently completed deployable block commits: upload drag/drop + HEIC, all
