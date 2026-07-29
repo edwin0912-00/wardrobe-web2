@@ -14,7 +14,7 @@ transition або Lucy mode без ціни/timeout блокує запуск с
 ## Безпечний Lucy flow
 
 1. Browser запускає локальний camera preview через `getUserMedia`.
-2. UI показує `$0.04/сек`, hard limit 5 секунд і maximum `$0.20`.
+2. UI показує `$0.04/сек`, hard limit 15 секунд і maximum `$0.60`.
 3. Без checkbox cost consent backend повертає
    `PAID_SESSION_APPROVAL_REQUIRED` до будь-якого provider access.
 4. Перед start користувач завантажує JPEG/PNG/WebP reference мінімум

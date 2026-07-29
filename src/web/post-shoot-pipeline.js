@@ -36,7 +36,7 @@ export function assertGraph(pipeline) {
     }
   }
   const live = pipeline.modes.find((mode) => mode.id === 'live_webcam');
-  if (!live?.billable || live.price_usd_per_second !== 0.04 || live.max_session_seconds !== 5) {
+  if (!live?.billable || live.price_usd_per_second !== 0.04 || live.max_session_seconds !== 15) {
     throw new Error('Lucy live mode must expose price and a hard session ceiling');
   }
   return true;

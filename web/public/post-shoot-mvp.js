@@ -1,10 +1,23 @@
 const MODEL_ID = 'decart/lucy-2-5/realtime';
-const state = { stream: null, reference: null, connection: null, peer: null, timer: null, guideTimer: null, running: false };
+const SESSION_SECONDS = 15;
+const state = {
+  stream: null, reference: null, connection: null, peer: null, timer: null,
+  countdownTimer: null, deadline: null, guideTimer: null, running: false, phase: 'READY',
+};
 const $ = (selector) => document.querySelector(selector);
 const prompt = 'Replace only the current clothing with the outfit from the reference image. Preserve the person face, identity, hair, skin, body shape, pose and hands. Preserve the existing room, background, camera angle and lighting. Do not modify anything except the clothing.';
 const query = new URLSearchParams(location.search);
 
-function status(text) { $('#live-status').textContent = text; }
+function renderStatus() {
+  const remaining = state.running && state.deadline
+    ? Math.max(0, Math.ceil((state.deadline - Date.now()) / 1000))
+    : null;
+  $('#live-status').textContent = remaining === null ? state.phase : `${state.phase} · ${remaining}s`;
+}
+function status(text) {
+  state.phase = text;
+  renderStatus();
+}
 function ready() {
   $('#lucy-start').disabled = state.running || !state.stream || !state.reference;
 }
@@ -80,7 +93,10 @@ async function startCamera() {
 }
 function closeLive(message = 'Live зупинено.') {
   clearTimeout(state.timer);
+  clearInterval(state.countdownTimer);
   state.timer = null;
+  state.countdownTimer = null;
+  state.deadline = null;
   state.peer?.close();
   state.connection?.close();
   state.peer = null;
@@ -139,20 +155,22 @@ async function signal(result) {
   }
 }
 async function startLive() {
-  if (!window.confirm('Запустити 5 секунд Lucy Live? Максимальна вартість — $0.20.')) return;
+  if (!window.confirm('Запустити 15 секунд Lucy Live? Максимальна вартість — $0.60.')) return;
   const falModule = await import('./vendor/fal-client.js?v=20260727-7');
   const fal = falModule.fal ?? falModule.default?.fal;
   if (typeof fal?.realtime?.connect !== 'function') {
     throw new Error('fal realtime client не завантажився.');
   }
   state.running = true;
+  state.deadline = Date.now() + SESSION_SECONDS * 1_000;
   ready();
   status('Підключення до Lucy…');
+  state.countdownTimer = setInterval(renderStatus, 250);
   state.timer = setTimeout(() => closeLive(
     $('#camera').srcObject === state.stream
-      ? '5 секунд завершено до отримання transformed stream.'
-      : '5 секунд завершено. Live автоматично зупинено.',
-  ), 5_000);
+      ? '15 секунд завершено до отримання transformed stream.'
+      : '15 секунд завершено. Live автоматично зупинено.',
+  ), SESSION_SECONDS * 1_000);
   state.connection = fal.realtime.connect(MODEL_ID, {
     connectionKey: `zeely-${crypto.randomUUID?.() || Date.now()}`,
     throttleInterval: 0,
@@ -161,7 +179,7 @@ async function startLive() {
       const response = await fetch('/api/fal/realtime-token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ app, cost_acknowledged: true, max_session_seconds: 5 }),
+        body: JSON.stringify({ app, cost_acknowledged: true, max_session_seconds: SESSION_SECONDS }),
       });
       if (!response.ok) {
         const error = await response.json().catch(() => ({}));

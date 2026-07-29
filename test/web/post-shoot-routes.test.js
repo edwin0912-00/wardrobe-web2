@@ -21,7 +21,7 @@ test('live entrypoint opens a cache-busted test with the outfit-only reference p
   const response = await app.inject({ method: 'GET', url: '/live' });
   assert.equal(response.statusCode, 302);
   assert.equal(response.headers['cache-control'], 'no-store');
-  assert.equal(response.headers.location, '/post-shoot-mvp.html?demo=outfit&release=20260729-1');
+  assert.equal(response.headers.location, '/post-shoot-mvp.html?demo=outfit&release=20260729-2');
 });
 
 test('token route rejects missing cost approval before provider access', async (t) => {
@@ -32,10 +32,10 @@ test('token route rejects missing cost approval before provider access', async (
   const response = await app.inject({
     method: 'POST',
     url: '/api/fal/realtime-token',
-    payload: { app: 'decart/lucy-2-5/realtime', max_session_seconds: 5 },
+    payload: { app: 'decart/lucy-2-5/realtime', max_session_seconds: 15 },
   });
   assert.equal(response.statusCode, 409);
-  assert.equal(response.json().maximum_cost_usd, 0.2);
+  assert.equal(response.json().maximum_cost_usd, 0.6);
   assert.equal(calls, 0);
 });
 
@@ -55,7 +55,7 @@ test('token route issues only an allowlisted bounded session token', async (t) =
     payload: {
       app: 'decart/lucy-2-5/realtime',
       cost_acknowledged: true,
-      max_session_seconds: 5,
+      max_session_seconds: 15,
     },
   });
   assert.equal(response.statusCode, 200);
@@ -63,6 +63,6 @@ test('token route issues only an allowlisted bounded session token', async (t) =
   assert.deepEqual(calls, [{
     app: 'decart/lucy-2-5/realtime',
     expiresInSeconds: 10,
-    maxSessionSeconds: 5,
+    maxSessionSeconds: 15,
   }]);
 });

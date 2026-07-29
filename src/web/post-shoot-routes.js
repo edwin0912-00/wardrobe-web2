@@ -1,6 +1,8 @@
 import { loadPostShootPipeline, publicPostShootPipeline } from './post-shoot-pipeline.js';
 
 const MODEL_ID = 'decart/lucy-2-5/realtime';
+const MAX_SESSION_SECONDS = 15;
+const MAXIMUM_COST_USD = 0.6;
 
 export async function registerPostShootRoutes(app, {
   projectRoot,
@@ -10,7 +12,7 @@ export async function registerPostShootRoutes(app, {
 
   app.get('/live', async (_request, reply) => reply
     .header('Cache-Control', 'no-store')
-    .redirect('/post-shoot-mvp.html?demo=outfit&release=20260729-1'));
+    .redirect('/post-shoot-mvp.html?demo=outfit&release=20260729-2'));
 
   app.get('/api/post-shoot/pipeline', async (_request, reply) => reply
     .header('Cache-Control', 'no-store')
@@ -24,11 +26,11 @@ export async function registerPostShootRoutes(app, {
     if (body.app !== MODEL_ID) {
       return reply.code(400).send({ code: 'MODEL_NOT_ALLOWED', error: 'Lucy model is not allowlisted' });
     }
-    if (body.cost_acknowledged !== true || body.max_session_seconds !== 5) {
+    if (body.cost_acknowledged !== true || body.max_session_seconds !== MAX_SESSION_SECONDS) {
       return reply.code(409).send({
         code: 'PAID_SESSION_APPROVAL_REQUIRED',
-        error: 'Потрібне явне підтвердження платної 5-секундної Lucy-сесії.',
-        maximum_cost_usd: 0.2,
+        error: 'Потрібне явне підтвердження платної 15-секундної Lucy-сесії.',
+        maximum_cost_usd: MAXIMUM_COST_USD,
       });
     }
     if (typeof lucyTokenIssuer !== 'function') {
@@ -40,7 +42,7 @@ export async function registerPostShootRoutes(app, {
     const token = await lucyTokenIssuer({
       app: MODEL_ID,
       expiresInSeconds: 10,
-      maxSessionSeconds: 5,
+      maxSessionSeconds: MAX_SESSION_SECONDS,
     });
     if (typeof token !== 'string' || token.length < 16) throw new Error('Lucy token issuer returned an invalid token');
     return reply
