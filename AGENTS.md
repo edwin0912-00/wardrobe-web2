@@ -91,6 +91,10 @@ Fast rules:
    code and are never copied back into Git without a reviewed, secret-free
    source change. If server code differs from `origin/beta`, capture it as a
    dated preservation patch and stop for reconciliation; do not deploy it.
+8. **Beta activation uses `tools/deploy-beta-release.mjs` only.** Build and
+   strict-verify an immutable candidate first, then use the beta adapter with
+   `com.madeforthisjob.beta`. `deploy-add-items-release.mjs` controls a
+   different `app` topology and must not be used for beta.
 
 ## User-facing completion contract — mandatory
 

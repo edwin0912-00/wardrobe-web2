@@ -28,6 +28,15 @@ passes 30/30. The unit audit asserts all ten selectable `shoot.*` units have
 their manifest and required sheet roles.
 weakened_checks: none.
 
+2026-07-29 · Beta deployment adapter
+Change: added the dedicated `deploy-beta-release` adapter and focused tests.
+Why: beta's persistent runner topology differs from the generic `app`
+topology; treating them as interchangeable caused a safe transaction refusal.
+Evidence: `node --test test/release/beta-deployment.test.js` — 2/2 PASS.
+The adapter rejects an already-staged runtime release with local symlinks and
+accepts only a clean immutable candidate before staging.
+weakened_checks: none.
+
 2026-07-29 · Beta Fashion Shoot activation · `95beffb`
 Change: activated the strict-verified release through the actual beta runner
 after its catalog/deploy duplicates were reconciled.

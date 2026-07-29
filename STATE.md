@@ -36,6 +36,10 @@ agent may collapse these facts into a single "live" claim.
   with the separately established beta runner (`com.madeforthisjob.beta`), so
   it must be reconciled before it is used for beta again; it was not bypassed
   for source code or content verification.
+- `tools/deploy-beta-release.mjs` now owns beta activation: it verifies a
+  clean candidate before staging, atomically updates the beta runner pointer,
+  restarts `com.madeforthisjob.beta`, probes local/public health, and rolls the
+  runner pointer back on a failed health check.
 
 ## Current release truth — 2026-07-27
 
