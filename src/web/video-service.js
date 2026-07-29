@@ -80,7 +80,17 @@ export class ClipStore {
   async saveSource(clipId, sourceBytes) {
     const dir = this.clipDir(clipId);
     await mkdir(dir, { recursive: true });
-    await writeFile(path.join(dir, 'source.png'), sourceBytes);
+    const filePath = path.join(dir, 'source.png');
+    await writeFile(filePath, sourceBytes);
+    return filePath;
+  }
+
+  async saveCreateReceipt(clipId, receiptBytes) {
+    const dir = this.clipDir(clipId);
+    await mkdir(dir, { recursive: true });
+    const filePath = path.join(dir, 'create-receipt.json');
+    await writeFile(filePath, receiptBytes, { flag: 'wx' });
+    return filePath;
   }
 
   videoPath(clipId) {
@@ -155,6 +165,18 @@ export class VideoService {
 
     const clipId = randomUUID();
     const createdAt = new Date(this.#clock()).toISOString();
+    let sourceBytes;
+    try {
+      sourceBytes = await readFile(sourceImagePath);
+    } catch (cause) {
+      throw new VideoServiceError('The locked source image cannot be read', {
+        code: 'SOURCE_UNREADABLE',
+        status: 409,
+        cause,
+      });
+    }
+    const sourceSha256 = sha256(sourceBytes);
+    const lockedSourcePath = await this.#store.saveSource(clipId, sourceBytes);
 
     // Resolve aspect from the surface, or fall back to the provider default.
     const resolvedSurface = surfaceId ? surface(surfaceId) : null;
@@ -162,30 +184,65 @@ export class VideoService {
 
     const request = {
       prompt: plan.prompt,
-      mediaPaths: [sourceImagePath],
+      mediaPaths: [lockedSourcePath],
       aspectRatio,
       durationSeconds: plan.durationSeconds,
     };
 
-    // Phase 1: create the job. The onJobCreated hook persists the job id
-    // before the wait phase starts, so a crash cannot orphan a paid job.
-    const created = await this.#provider.createJob(request);
-
-    const metadata = {
+    const submitting = {
       clipId,
-      jobId: created.jobId,
-      providerKey: created.providerKey ?? 'higgsfield',
-      providerCreateAttempt: created.createAttempt ?? 1,
-      fallbackUsed: created.fallbackUsed === true,
-      status: 'CREATED',
+      jobId: null,
+      providerKey: null,
+      status: 'SUBMITTING',
       mode: plan.mode,
       title: plan.title,
       surface: plan.surface ?? null,
       aspectRatio,
       durationSeconds: plan.durationSeconds,
       prompt: plan.prompt,
+      sourceSha256,
+      sourceFile: 'source.png',
       lookBinding,
       createdAt,
+      updatedAt: createdAt,
+    };
+    await this.#store.save(clipId, submitting);
+
+    // Phase 1: create the job. The onJobCreated hook persists the job id
+    // before the wait phase starts, so a crash cannot orphan a paid job.
+    const created = await this.#provider.createJob(request);
+
+    const receipt = {
+      schema_version: '1.0.0',
+      clip_id: clipId,
+      created_at: createdAt,
+      provider: created.providerKey ?? 'higgsfield',
+      provider_create_attempt: created.createAttempt ?? 1,
+      fallback_used: created.fallbackUsed === true,
+      request: {
+        source_sha256: sourceSha256,
+        prompt: plan.prompt,
+        aspect_ratio: aspectRatio,
+        duration_seconds: plan.durationSeconds,
+      },
+      response: {
+        job_id: created.jobId,
+        payload: created.raw ?? null,
+      },
+    };
+    const receiptBytes = Buffer.from(`${JSON.stringify(receipt, null, 2)}\n`);
+    const createReceiptSha256 = sha256(receiptBytes);
+    await this.#store.saveCreateReceipt(clipId, receiptBytes);
+
+    const metadata = {
+      ...submitting,
+      jobId: created.jobId,
+      providerKey: created.providerKey ?? 'higgsfield',
+      providerCreateAttempt: created.createAttempt ?? 1,
+      fallbackUsed: created.fallbackUsed === true,
+      status: 'CREATED',
+      createReceiptSha256,
+      createReceiptFile: 'create-receipt.json',
       updatedAt: createdAt,
     };
 

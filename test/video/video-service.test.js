@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { tmpdir } from 'node:os';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
 
@@ -45,15 +45,17 @@ function makeStubQa({
 
 async function withTempDir(fn) {
   const dir = await mkdtemp(path.join(tmpdir(), 'video-test-'));
+  const sourcePath = path.join(dir, 'locked-frame.png');
+  await writeFile(sourcePath, Buffer.from('locked-source-image'));
   try {
-    await fn(dir);
+    await fn(dir, sourcePath);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
 }
 
 test('createClip builds a motion plan and persists the job id', async () => {
-  await withTempDir(async (dir) => {
+  await withTempDir(async (dir, sourcePath) => {
     const { provider, calls } = makeStubProvider();
     const store = new ClipStore(dir);
     const service = new VideoService({ provider, clipStore: store });
@@ -61,7 +63,7 @@ test('createClip builds a motion plan and persists the job id', async () => {
     const result = await service.createClip({
       modeId: 'editorial_micro_moment',
       surfaceId: 'tv',
-      sourceImagePath: '/tmp/locked-frame.png',
+      sourceImagePath: sourcePath,
     });
 
     assert.ok(result.clipId);
@@ -76,6 +78,14 @@ test('createClip builds a motion plan and persists the job id', async () => {
     assert.equal(saved.jobId, 'job_test_123');
     assert.equal(saved.status, 'CREATED');
     assert.equal(saved.surface, 'tv');
+    assert.equal(saved.sourceSha256, '6796fa7544369e1a072cc7a76ab119b0150d7b4ef3f4aad47b64c4ef043b50b7');
+    assert.ok(saved.createReceiptSha256);
+    const receipt = JSON.parse(
+      await readFile(path.join(store.clipDir(result.clipId), 'create-receipt.json'), 'utf8'),
+    );
+    assert.equal(receipt.response.job_id, 'job_test_123');
+    assert.equal(receipt.request.source_sha256, saved.sourceSha256);
+    assert.equal(receipt.request.prompt.includes(sourcePath), false);
 
     // Only the create phase should have been called
     assert.equal(calls.length, 1);
@@ -84,7 +94,7 @@ test('createClip builds a motion plan and persists the job id', async () => {
 });
 
 test('createClip with mirror surface uses 9:16 aspect', async () => {
-  await withTempDir(async (dir) => {
+  await withTempDir(async (dir, sourcePath) => {
     const { provider, calls } = makeStubProvider();
     const store = new ClipStore(dir);
     const service = new VideoService({ provider, clipStore: store });
@@ -92,7 +102,7 @@ test('createClip with mirror surface uses 9:16 aspect', async () => {
     const result = await service.createClip({
       modeId: 'camera_drift',
       surfaceId: 'mirror',
-      sourceImagePath: '/tmp/locked-frame.png',
+      sourceImagePath: sourcePath,
     });
 
     assert.equal(result.plan.surface, 'mirror');
@@ -106,7 +116,7 @@ test('createClip with mirror surface uses 9:16 aspect', async () => {
 });
 
 test('createClip without sourceImagePath is refused', async () => {
-  await withTempDir(async (dir) => {
+  await withTempDir(async (dir, sourcePath) => {
     const { provider } = makeStubProvider();
     const store = new ClipStore(dir);
     const service = new VideoService({ provider, clipStore: store });
@@ -122,7 +132,7 @@ test('createClip without sourceImagePath is refused', async () => {
 });
 
 test('awaitAndFinalize downloads video, runs QA, and marks PASS', async () => {
-  await withTempDir(async (dir) => {
+  await withTempDir(async (dir, sourcePath) => {
     const { provider } = makeStubProvider();
     const store = new ClipStore(dir);
     const service = new VideoService({ provider, clipStore: store });
@@ -130,7 +140,7 @@ test('awaitAndFinalize downloads video, runs QA, and marks PASS', async () => {
     const created = await service.createClip({
       modeId: 'editorial_micro_moment',
       surfaceId: 'tv',
-      sourceImagePath: '/tmp/locked-frame.png',
+      sourceImagePath: sourcePath,
     });
 
     const result = await service.awaitAndFinalize(created.clipId, {
@@ -146,7 +156,7 @@ test('awaitAndFinalize downloads video, runs QA, and marks PASS', async () => {
 });
 
 test('awaitAndFinalize marks FAIL when QA detects audio', async () => {
-  await withTempDir(async (dir) => {
+  await withTempDir(async (dir, sourcePath) => {
     const { provider } = makeStubProvider();
     const store = new ClipStore(dir);
     const service = new VideoService({ provider, clipStore: store });
@@ -154,7 +164,7 @@ test('awaitAndFinalize marks FAIL when QA detects audio', async () => {
     const created = await service.createClip({
       modeId: 'editorial_micro_moment',
       surfaceId: 'tv',
-      sourceImagePath: '/tmp/locked-frame.png',
+      sourceImagePath: sourcePath,
     });
 
     const result = await service.awaitAndFinalize(created.clipId, {
@@ -169,7 +179,7 @@ test('awaitAndFinalize marks FAIL when QA detects audio', async () => {
 });
 
 test('awaitAndFinalize marks NEEDS_QA when no probeFn provided', async () => {
-  await withTempDir(async (dir) => {
+  await withTempDir(async (dir, sourcePath) => {
     const { provider } = makeStubProvider();
     const store = new ClipStore(dir);
     const service = new VideoService({ provider, clipStore: store });
@@ -177,7 +187,7 @@ test('awaitAndFinalize marks NEEDS_QA when no probeFn provided', async () => {
     const created = await service.createClip({
       modeId: 'editorial_micro_moment',
       surfaceId: 'tv',
-      sourceImagePath: '/tmp/locked-frame.png',
+      sourceImagePath: sourcePath,
     });
 
     const result = await service.awaitAndFinalize(created.clipId, {
@@ -192,7 +202,7 @@ test('awaitAndFinalize marks NEEDS_QA when no probeFn provided', async () => {
 });
 
 test('generateClip runs the full flow in one call', async () => {
-  await withTempDir(async (dir) => {
+  await withTempDir(async (dir, sourcePath) => {
     const { provider, calls } = makeStubProvider();
     const store = new ClipStore(dir);
     const service = new VideoService({ provider, clipStore: store });
@@ -201,7 +211,7 @@ test('generateClip runs the full flow in one call', async () => {
       {
         modeId: 'garment_gesture',
         surfaceId: 'tv',
-        sourceImagePath: '/tmp/locked-frame.png',
+        sourceImagePath: sourcePath,
       },
       {
         downloadFn: makeStubDownload(),
@@ -220,7 +230,7 @@ test('generateClip runs the full flow in one call', async () => {
 });
 
 test('awaitAndFinalize on a non-existent clip throws CLIP_NOT_FOUND', async () => {
-  await withTempDir(async (dir) => {
+  await withTempDir(async (dir, sourcePath) => {
     const { provider } = makeStubProvider();
     const store = new ClipStore(dir);
     const service = new VideoService({ provider, clipStore: store });
@@ -236,7 +246,7 @@ test('awaitAndFinalize on a non-existent clip throws CLIP_NOT_FOUND', async () =
 });
 
 test('getClip returns persisted metadata', async () => {
-  await withTempDir(async (dir) => {
+  await withTempDir(async (dir, sourcePath) => {
     const { provider } = makeStubProvider();
     const store = new ClipStore(dir);
     const service = new VideoService({ provider, clipStore: store });
@@ -244,7 +254,7 @@ test('getClip returns persisted metadata', async () => {
     const created = await service.createClip({
       modeId: 'camera_drift',
       surfaceId: 'mirror',
-      sourceImagePath: '/tmp/locked-frame.png',
+      sourceImagePath: sourcePath,
     });
 
     const loaded = await service.getClip(created.clipId);
@@ -260,7 +270,7 @@ test('getClip returns persisted metadata', async () => {
 });
 
 test('awaitAndFinalize polls only the provider persisted at create time', async () => {
-  await withTempDir(async (dir) => {
+  await withTempDir(async (dir, sourcePath) => {
     const calls = [];
     const provider = {
       async createJob() {
@@ -280,7 +290,7 @@ test('awaitAndFinalize polls only the provider persisted at create time', async 
     const created = await service.createClip({
       modeId: 'editorial_micro_moment',
       surfaceId: 'tv',
-      sourceImagePath: '/tmp/locked-frame.png',
+      sourceImagePath: sourcePath,
     });
 
     await service.awaitAndFinalize(created.clipId, {
@@ -306,7 +316,7 @@ test('VideoService refuses to construct without provider', () => {
 });
 
 test('finalizeClip refuses a runtime without real download and ffprobe dependencies', async () => {
-  await withTempDir(async (dir) => {
+  await withTempDir(async (dir, sourcePath) => {
     const { provider } = makeStubProvider();
     const service = new VideoService({
       provider,
@@ -320,7 +330,7 @@ test('finalizeClip refuses a runtime without real download and ffprobe dependenc
 });
 
 test('finalizeClip resumes through configured runtime dependencies', async () => {
-  await withTempDir(async (dir) => {
+  await withTempDir(async (dir, sourcePath) => {
     const { provider } = makeStubProvider();
     const service = new VideoService({
       provider,
@@ -333,7 +343,7 @@ test('finalizeClip resumes through configured runtime dependencies', async () =>
     const created = await service.createClip({
       modeId: 'editorial_micro_moment',
       surfaceId: 'tv',
-      sourceImagePath: '/tmp/locked-frame.png',
+      sourceImagePath: sourcePath,
     });
     const finalized = await service.finalizeClip(created.clipId);
     assert.equal(finalized.status, 'PASS');
@@ -362,7 +372,7 @@ test('ClipStore refuses to construct without root directory', () => {
 });
 
 test('walk_stride mode is refused without full_length capability', async () => {
-  await withTempDir(async (dir) => {
+  await withTempDir(async (dir, sourcePath) => {
     const { provider } = makeStubProvider();
     const store = new ClipStore(dir);
     const service = new VideoService({ provider, clipStore: store });
@@ -371,7 +381,7 @@ test('walk_stride mode is refused without full_length capability', async () => {
       () => service.createClip({
         modeId: 'walk_stride',
         surfaceId: 'tv',
-        sourceImagePath: '/tmp/locked-frame.png',
+        sourceImagePath: sourcePath,
         sourceCapabilities: {},
       }),
       (error) => {
@@ -383,7 +393,7 @@ test('walk_stride mode is refused without full_length capability', async () => {
 });
 
 test('walk_stride mode with full_length capability succeeds', async () => {
-  await withTempDir(async (dir) => {
+  await withTempDir(async (dir, sourcePath) => {
     const { provider } = makeStubProvider();
     const store = new ClipStore(dir);
     const service = new VideoService({ provider, clipStore: store });
@@ -391,7 +401,7 @@ test('walk_stride mode with full_length capability succeeds', async () => {
     const result = await service.createClip({
       modeId: 'walk_stride',
       surfaceId: 'tv',
-      sourceImagePath: '/tmp/locked-frame.png',
+      sourceImagePath: sourcePath,
       sourceCapabilities: { full_length: true },
     });
 
