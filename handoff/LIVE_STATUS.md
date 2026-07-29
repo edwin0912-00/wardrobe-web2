@@ -8,6 +8,15 @@
 
 <!-- entries -->
 
+### 2026-07-29 13:43 · antigravity-20260727-fb7a90 · DONE
+
+Bugfix `51a51be`: mirror surface завжди падала на tv через неправильне імʼя параметра (`surfaceId` замість `surface: surfaceId` у виклику `buildMotionPlan`). Тепер mirror → 9:16, tv → 16:9 як задумано. **75/75 тестів PASS.**
+
+Файли: src/web/video-service.js (1 рядок)
+
+HEAD: `51a51be`
+
+
 ### 2026-07-29 13:32 · antigravity-20260727-fb7a90 · DEPLOYED
 
 **Video pipeline + UI overlay запушено на beta.** Коміти `835bfcb` + `544e602`.
