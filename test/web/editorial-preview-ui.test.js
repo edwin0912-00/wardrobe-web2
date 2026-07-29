@@ -107,7 +107,7 @@ test('generation uses SSE with polling fallback and keeps per-shot retry isolate
 });
 
 test('gallery is a fixed 2x3 mobile series with uncropped full-frame inspection and accessible 44px actions', () => {
-  assert.match(indexHtml, /id="editorial-gallery"[^>]*aria-label="Кадри Art Fashion фотосесії"/);
+  assert.match(indexHtml, /id="editorial-gallery"[^>]*aria-label="Кадри Fashion Shoot"/);
   const portraitStart = sceneCss.lastIndexOf('@media (max-width: 700px) and (orientation: portrait)');
   const portraitCss = sceneCss.slice(portraitStart);
   assert.match(
@@ -154,12 +154,12 @@ test('normal editorial states render controlled Ukrainian copy instead of raw se
   assert.doesNotMatch(renderSource, /shoot\.message/);
 });
 
-test('standard scene workflow remains present beside Art Fashion', () => {
+test('standard scene workflow remains present beside Fashion Shoot', () => {
   // The counts must not be baked into the markup: the catalog grew from five to
   // sixteen standard presets and the tab kept saying five. The labels are neutral
   // in HTML and filled from the same data the grids render from.
   assert.match(indexHtml, />Стандартні сцени<\/button>/);
-  assert.match(indexHtml, />Art Fashion<\/button>/);
+  assert.match(indexHtml, />Fashion Shoot<\/button>/);
   assert.doesNotMatch(indexHtml, /\d+ стандартних сцен<\/button>/);
   assert.match(sceneUiSource, /standardTab\.textContent = this\.presets\.length/);
   assert.match(sceneUiSource, /editorialTab\.textContent = this\.editorialModes\.length/);

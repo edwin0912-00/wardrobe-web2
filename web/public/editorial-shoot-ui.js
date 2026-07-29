@@ -45,7 +45,7 @@ function modeName(mode) {
     'editorial.edwin_novak.urban_monochrome': 'Міський монохром',
     'editorial.edwin_novak.institutional_modernism': 'Інституційний модернізм',
     'editorial.edwin_novak.luminous_blue_white': 'Світлий синьо-білий',
-  })[modeId] || 'Art Fashion';
+  })[modeId] || 'Fashion Shoot';
 }
 
 function outputImageUrl(output) {
@@ -196,7 +196,7 @@ export class EditorialShootUiController {
 
   #showConnecting(phase, message) {
     this.#show();
-    this.#setHeader('Art Fashion фотосесія', 'CONNECTING');
+    this.#setHeader('Fashion Shoot', 'CONNECTING');
     this.#element('#editorial-phase').textContent = phase;
     this.#element('#editorial-message').textContent = message;
     this.#element('#editorial-connection').textContent = 'CONNECTING';
@@ -248,7 +248,7 @@ export class EditorialShootUiController {
 
   async openExisting(projection, look) {
     const shootId = projection?.shoot_id ?? projection?.id;
-    if (!shootId) throw new Error('Збережену Art Fashion фотосесію не знайдено');
+    if (!shootId) throw new Error('Збережений Fashion Shoot не знайдено');
     this.stopWatching();
     this.look = look;
     this.setLook(look);
@@ -280,9 +280,9 @@ export class EditorialShootUiController {
     const version = modeVersion(mode);
     if (!lookId) throw new Error('Збережений образ не знайдено');
     if (mode?.source_set_status !== 'READY' || mode?.generation_available !== true) {
-      throw new Error('Цей Art Fashion напрям ще не готовий до генерації');
+      throw new Error('Цей напрям Fashion Shoot ще не готовий до генерації');
     }
-    if (!version) throw new Error('Версію Art Fashion напряму не опубліковано');
+    if (!version) throw new Error('Версію Fashion Shoot напряму не опубліковано');
     this.stopWatching();
     this.shoot = null;
     this.bible = null;
@@ -399,7 +399,7 @@ export class EditorialShootUiController {
     this.#element('#editorial-message').textContent = displayShootMessage(shoot);
     this.#element('#editorial-connection').textContent = this.polling ? 'POLLING' : 'LIVE SSE';
     this.#element('#editorial-mode-name').textContent = modeName(this.mode);
-    this.#setHeader('Art Fashion фотосесія', shoot.status, editorialTone(shoot));
+    this.#setHeader('Fashion Shoot', shoot.status, editorialTone(shoot));
     this.#renderGallery();
     this.#renderActionButtons();
     if (bibleReview) void this.#autoApproveBible();

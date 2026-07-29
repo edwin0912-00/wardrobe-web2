@@ -191,7 +191,7 @@
                       <span id="profile-look-editorial-count" aria-live="polite">0</span>
                     </div>
                     <ul id="profile-look-editorial-list" class="profile-look-scene-list"></ul>
-                    <p id="profile-look-editorial-empty" class="profile-look-scenes-empty">Фотосесій ще немає. Відкрий «Створити сцену» → Art Fashion.</p>
+                    <p id="profile-look-editorial-empty" class="profile-look-scenes-empty">Фотосесій ще немає. Відкрий «Створити сцену» → Fashion Shoot.</p>
                   </section>
                   <section class="profile-look-next" aria-labelledby="profile-look-next-title">
                     <div class="profile-look-next-head">
@@ -210,7 +210,7 @@
                       <button id="profile-look-background" class="profile-next-action profile-next-action-background" type="button" aria-label="Додати стандартний фон">
                         <span class="profile-action-icon" aria-hidden="true">◐</span>
                       </button>
-                      <button id="profile-look-photoshoot" class="profile-next-action profile-next-action-photoshoot" type="button" aria-label="Відкрити Art Fashion фотозйомку">
+                      <button id="profile-look-photoshoot" class="profile-next-action profile-next-action-photoshoot" type="button" aria-label="Відкрити Fashion Shoot">
                         <span class="profile-action-icon" aria-hidden="true">◉</span>
                       </button>
                       <button id="profile-look-video" class="profile-next-action profile-next-action-video" type="button" aria-label="Створити Fashion Video" aria-describedby="profile-look-video-note">
@@ -340,7 +340,7 @@
               </article>
               <div class="scene-picker-tabs" role="tablist" aria-label="Тип сцени">
                 <button id="scene-tab-standard" type="button" role="tab" aria-selected="true" aria-controls="scene-standard-panel">Стандартні сцени</button>
-                <button id="scene-tab-editorial" type="button" role="tab" aria-selected="false" aria-controls="scene-editorial-panel" tabindex="-1">Art Fashion</button>
+                <button id="scene-tab-editorial" type="button" role="tab" aria-selected="false" aria-controls="scene-editorial-panel" tabindex="-1">Fashion Shoot</button>
               </div>
               <p id="scene-error" class="scene-error" role="alert" hidden></p>
               <section id="scene-standard-panel" class="scene-picker-panel scene-standard-panel" role="tabpanel" aria-labelledby="scene-tab-standard">
@@ -348,11 +348,11 @@
               </section>
               <section id="scene-editorial-panel" class="scene-picker-panel editorial-preview-panel" role="tabpanel" aria-labelledby="scene-tab-editorial" hidden>
                 <div class="editorial-mode-scroll-container" style="overflow-y: auto; padding-right: 8px;">
-                  <h4 class="editorial-section-title" style="margin: 0 0 8px 0; font-size: 13px; color: var(--text-secondary); text-transform: uppercase;">Create Universe</h4>
-                  <div id="editorial-mode-grid-new" class="editorial-mode-grid" aria-label="Нові Create Universe напрями"></div>
+                  <h4 class="editorial-section-title" style="margin: 0 0 8px 0; font-size: 13px; color: var(--text-secondary); text-transform: uppercase;">Fashion Shoot</h4>
+                  <div id="editorial-mode-grid-new" class="editorial-mode-grid" aria-label="Напрями Fashion Shoot"></div>
                   
                   <h4 class="editorial-section-title" style="margin: 16px 0 8px 0; font-size: 13px; color: var(--text-secondary); text-transform: uppercase;">Legacy Editorial</h4>
-                  <div id="editorial-mode-grid-legacy" class="editorial-mode-grid" aria-label="Art Fashion mood-напрями"></div>
+                  <div id="editorial-mode-grid-legacy" class="editorial-mode-grid" aria-label="Архівні напрями Fashion Shoot"></div>
                 </div>
                 <aside class="editorial-preview-gate">
                   <span><strong>ShootBible → hero → твоє підтвердження → ще 5 кадрів</strong><small>Готові напрями запускаються тут. Решта лишаються заблокованими до повного reference pack.</small></span>
@@ -407,7 +407,7 @@
 
             <div id="editorial-shoot" class="editorial-shoot hidden">
               <article class="editorial-master-strip">
-                <img data-scene-look-image alt="Незмінний master-образ для Art Fashion фотосесії">
+                <img data-scene-look-image alt="Незмінний master-образ для Fashion Shoot">
                 <span><small>НЕЗМІННИЙ MASTER</small><strong data-scene-look-name>Збережений образ</strong></span>
                 <span class="editorial-runtime"><small id="editorial-connection">CONNECTING</small><code id="editorial-phase">AWAITING_SERVER</code></span>
               </article>
@@ -416,7 +416,7 @@
               <section id="editorial-bible-stage" class="editorial-bible-stage" aria-labelledby="editorial-bible-title">
                 <header>
                   <div><p>SHOOT BIBLE · 6 КАДРІВ</p><h4 id="editorial-bible-title">План фотосесії</h4></div>
-                  <span id="editorial-mode-name">Art Fashion</span>
+                  <span id="editorial-mode-name">Fashion Shoot</span>
                 </header>
                 <p id="editorial-bible-system" class="editorial-bible-system">Завантажуємо візуальну систему…</p>
                 <div id="editorial-bible-shots" class="editorial-bible-shots" aria-label="План шести кадрів"></div>
@@ -432,7 +432,7 @@
                   <div><p>ART FASHION · SERVER JOB</p><strong id="editorial-series-progress">0/6 кадрів пройшли QA</strong></div>
                   <span>Hero спочатку · потім concurrency 2</span>
                 </header>
-                <div id="editorial-gallery" class="editorial-gallery" aria-label="Кадри Art Fashion фотосесії"></div>
+                <div id="editorial-gallery" class="editorial-gallery" aria-label="Кадри Fashion Shoot"></div>
                 <footer class="editorial-controls">
                   <button id="editorial-reconnect" class="scene-control" type="button" hidden>Перевірити стан</button>
                   <button id="editorial-approve-hero" class="scene-control primary" type="button" hidden>Затвердити hero й створити 5 кадрів</button>

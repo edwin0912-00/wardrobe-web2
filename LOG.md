@@ -17,6 +17,18 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-07-29 · BETA-FASHION-SHOOT-CANON-001 · beta · codex-main
+Change: preserve the single-frame experiment on a comparison branch; restore
+the Fashion Shoot UI/state machine and change its user-facing product name to
+Fashion Shoot.
+Why: a standard Background is a one-frame scene, while a Fashion Shoot is a
+locked creative unit with hero, QA-gated series and contact sheet.
+Evidence: `comparison/fashion-shoot-single-frame-0ba63c1` points to `0ba63c1`;
+focused Fashion Shoot tests pass 31/31. Three separate scene API fixture tests
+remain red because their provider fixture outputs 4:5 while the delivery
+contract is 3:4; they are not a Fashion Shoot UI regression.
+weakened_checks: none.
+
 2026-07-29 · BETA-TUNNEL-ISOLATION-001 · beta · routing incident containment
 Change: stop the conflicting `wardrobe-tunnel` tmux session while preserving
 its separate preview server process.

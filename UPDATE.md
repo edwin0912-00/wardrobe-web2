@@ -33,6 +33,20 @@ Before changing `web/public/**`, every agent must write in its task/report:
 is not claimable. Beta deploys use only `beta` commits; no unverified
 main-scroll asset, controller or landing replacement may be pulled into beta.
 
+## Fashion Shoot vocabulary and rejected comparison · 2026-07-29
+
+**Fashion Shoot** is the sole user-facing name for the creative-shoot product.
+`editorial`, `Create Universe` and `Art Fashion` are legacy/internal terms,
+not separate user choices. **Background** remains a separate one-frame product.
+
+Commit `0ba63c1` is preserved at
+`comparison/fashion-shoot-single-frame-0ba63c1`. It replaces a Fashion Shoot
+with a one-frame scene and removes the series UI/state machine. It is a
+comparison experiment, **not a beta release candidate**. The beta worktree
+restores the approved path: locked style → hero gate → five independently
+retriable frames → contact sheet. See
+[`docs/FASHION_SHOOT_CANON_UA.md`](docs/FASHION_SHOOT_CANON_UA.md).
+
 ## Current verified state — reconciliation 2026-07-27
 
 ## Current verification rule — 2026-07-29

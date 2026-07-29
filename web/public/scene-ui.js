@@ -112,7 +112,7 @@ function createEditorialModeCard(mode, onSelect) {
   card.dataset.modeId = mode.mode_id;
   card.disabled = !ready;
   card.setAttribute('aria-label', ready
-    ? `Створити Art Fashion фотосесію: ${mode.ui_name_uk || mode.mode_id}`
+    ? `Створити Fashion Shoot: ${mode.ui_name_uk || mode.mode_id}`
     : `${mode.ui_name_uk || mode.mode_id}: генерація ще недоступна`);
 
   const preview = document.createElement('span');
@@ -121,7 +121,7 @@ function createEditorialModeCard(mode, onSelect) {
   if (previewUrl) {
     const image = document.createElement('img');
     image.src = previewUrl;
-    image.alt = `Art Fashion preview: ${mode.ui_name_uk || mode.mode_id}`;
+    image.alt = `Fashion Shoot preview: ${mode.ui_name_uk || mode.mode_id}`;
     image.loading = 'eager';
     preview.append(image);
   } else {
@@ -277,7 +277,7 @@ export class SceneUiController {
       || modes.some((mode) => mode?.generation_available === true
         && mode?.source_set_status !== 'READY')
       || !modes.some((mode) => mode?.generation_available === true)) {
-      throw new Error('Art Fashion API повернув невалідний production-контракт');
+      throw new Error('Fashion Shoot API повернув невалідний production-контракт');
     }
     this.editorialModes = modes;
     this.editorialCatalog = response;
@@ -299,8 +299,8 @@ export class SceneUiController {
       ? `${this.presets.length} ${ukPlural(this.presets.length, UK_PLURAL_SCENE)}`
       : 'Стандартні сцени';
     editorialTab.textContent = this.editorialModes.length
-      ? `Art Fashion · ${this.editorialModes.length} ${ukPlural(this.editorialModes.length, UK_PLURAL_MODE)}`
-      : 'Art Fashion';
+      ? `Fashion Shoot · ${this.editorialModes.length} ${ukPlural(this.editorialModes.length, UK_PLURAL_MODE)}`
+      : 'Fashion Shoot';
     standardTab.setAttribute('aria-selected', String(!editorial));
     standardTab.tabIndex = editorial ? -1 : 0;
     editorialTab.setAttribute('aria-selected', String(editorial));
@@ -308,13 +308,13 @@ export class SceneUiController {
     standardPanel.hidden = editorial;
     editorialPanel.hidden = !editorial;
     this.#element('#scene-execution-title').textContent = editorial
-      ? 'Art Fashion напрями'
+      ? 'Fashion Shoot напрями'
       : 'Обери сцену';
     this.#element('#scene-picker-status').textContent = editorial
       ? (this.editorialLoading
-        ? 'Завантажуємо Art Fashion напрями…'
+        ? 'Завантажуємо Fashion Shoot напрями…'
         : this.editorialLoadError
-        ? 'Art Fashion фотосесія недоступна'
+        ? 'Fashion Shoot недоступний'
         : `${this.editorialModes.filter((mode) => mode.generation_available).length} напрями готові`)
       : `${this.presets.length} сцен · обери одну`;
     const resume = this.#element('#editorial-resume');
@@ -349,7 +349,7 @@ export class SceneUiController {
     this.#element('#scene-preset-grid').replaceChildren();
     const editorialLoading = document.createElement('p');
     editorialLoading.className = 'editorial-mode-unavailable';
-    editorialLoading.textContent = 'Завантажуємо Art Fashion напрями…';
+    editorialLoading.textContent = 'Завантажуємо Fashion Shoot напрями…';
     this.#element('#editorial-mode-grid').replaceChildren(editorialLoading);
     this.#setPickerTab(this.pickerTab);
     this.#element('#scene-picker-status').textContent = 'Завантажуємо доступні сцени…';

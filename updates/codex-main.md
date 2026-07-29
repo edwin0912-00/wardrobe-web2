@@ -16,6 +16,24 @@ weakened_checks: none.
 ---
 
 Agent ID: codex-main
+Task ID: BETA-FASHION-SHOOT-CANON-001
+Product line: beta-placeholder
+State: DONE — awaiting beta deployment
+Decision: preserve Antigravity's one-frame implementation as comparison commit
+`0ba63c1`, but restore the approved Fashion Shoot state machine on beta.
+User-facing copy now uses one name, **Fashion Shoot**; internal `editorial-*`
+identifiers remain stable because they bind existing routes, receipts and state.
+Evidence: `comparison/fashion-shoot-single-frame-0ba63c1` created; focused
+Fashion Shoot tests 31/31 PASS. The single-frame experiment deletes the
+server-backed resume/SSE/hero/series/contact-sheet UI and is therefore not
+equivalent to a Fashion Shoot.
+Risk: three unrelated standard-scene integration fixtures remain red on their
+4:5 provider bytes versus the current 3:4 delivery contract; no QA was relaxed.
+weakened_checks: none.
+
+---
+
+Agent ID: codex-main
 Task ID: BETA-MINIMAL-NEXT-BLOCKS-001
 State: BLOCKED_DEPLOY — code remains committed on beta as `17df194`.
 Deployment evidence: product package build completed, but the release verifier
