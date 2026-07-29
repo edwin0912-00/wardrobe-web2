@@ -17,6 +17,18 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-07-29 · ANTIGRAVITY-QA-LOOP-001 · beta QA observer · codex-main
+Change: add Block 0.8 as an independent Gemini/Antigravity observer. Its
+bounded loop watches GitHub, tests the exact deployed beta through visible
+browser UI, records screenshot/console/network/persistence evidence, and
+publishes a typed verdict.
+Why: integrated code and health checks do not prove that a user can complete
+the public journey; the project needs a permanent third-party browser witness.
+Evidence: compiled Looper contract, report-schema checker, governance tests and
+one-shot all-branch watcher.
+weakened_checks: none. Product files, QA thresholds, beta, main and deployment
+remain read-only to the observer.
+
 2026-07-29 · SEVEN-BLOCK-BETA-001 · beta coordination · codex-main
 Change: replace direct multi-agent writes to shared `beta` with seven isolated
 `beta-block-*` branches. `codex-main` owns Block 1 and remains the only

@@ -15,6 +15,8 @@ Execution ownership is now split without changing those statuses:
 - Block 5: `UNIVERSE.03–04` and `ART_SHOOT.*`.
 - Block 6: `VIDEO.*` and `BACKGROUND_VIDEO.*` execution.
 - Block 7: `LIVE.*`.
+- Block 0.8: independent Antigravity browser QA across the exact deployed
+  Block 1–7 journeys; observer only, no product ownership.
 
 See `docs/coordination/BETA_BLOCKS_2026-07-29.md`. A block-branch commit is
 still `Beta: NOT_DEPLOYED` until `codex-main` integrates it into `beta`,

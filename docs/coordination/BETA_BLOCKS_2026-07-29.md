@@ -12,6 +12,7 @@ workflow.
 
 ```text
 beta
+├── beta-block-08-antigravity-qa
 ├── beta-block-1-core-look
 ├── beta-block-2-profile-ui
 ├── beta-block-3-backgrounds
@@ -24,6 +25,11 @@ beta
 Only `codex-main` integrates a tested block commit into `beta`, builds the exact
 release, activates it, and records public-beta evidence. Block owners never
 push directly to `beta` or `main` and never deploy.
+
+`beta-block-08-antigravity-qa` is a permanent observer, not an eighth product
+owner. It watches all seven branches, tests the exact deployed beta SHA in a
+real browser, and publishes independent evidence. Its contract is
+`docs/coordination/blocks/08-antigravity-qa.md`.
 
 ## Shared proof language
 
@@ -226,9 +232,26 @@ These are changed only by `codex-main` while integrating an accepted handoff:
 A block owner that needs one of these files supplies the exact minimal wiring
 diff in its report; it does not edit the shared file.
 
+## Block 0.8 — independent Antigravity QA
+
+- Branch: `beta-block-08-antigravity-qa`
+- Owner: `antigravity-qa`, running Gemini/Antigravity.
+- Pipeline: observes every Block 1–7 journey after integration.
+
+It owns only `updates/antigravity-qa.md`,
+`docs/qa-reports/antigravity/**`, and local ignored evidence. It starts at the
+visible public UI, records screenshots plus console/network evidence, refreshes
+at persistence boundaries, and binds every verdict to the exact code and
+deployed SHAs. It never edits product code or deploys.
+
+Its bounded goal-loop is compiled under
+`ops/loops/antigravity-beta-qa/`. The Git watcher may run continuously, but
+each browser campaign stops on PASS, the first confirmed defect, two stalled
+iterations, or 45 minutes.
+
 ## Agent cycle
 
-1. Fetch `origin/beta` and all `origin/beta-block-*` refs.
+1. Fetch `origin/beta`, all seven product refs and the Block 0.8 QA ref.
 2. Read this document plus the assigned block handoff.
 3. Work only in the assigned branch and paths.
 4. Commit code + focused test + `updates/chat-<N>.md`.

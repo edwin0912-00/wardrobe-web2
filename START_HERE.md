@@ -20,3 +20,12 @@ Only start the assigned block task. Shared facts go to
 `updates/chat-<block>.md` on that block branch; local rationale stays in
 `.agent-local/` and is never committed. Agents never push directly to `beta`;
 `codex-main` integrates and deploys reviewed commits.
+
+Independent Antigravity QA uses a separate observer entry:
+
+```bash
+bash tools/join-antigravity-qa.sh antigravity-qa --watch
+```
+
+Its detailed browser procedure and stop rules are in
+`docs/coordination/blocks/08-antigravity-qa.md`.

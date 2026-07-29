@@ -9,6 +9,10 @@ The detailed contract is
 Every chat commits only to its block branch. Only `codex-main` integrates into
 `beta` and deploys the exact tested beta SHA.
 
+Independent QA is permanently assigned to `antigravity-qa` on
+`beta-block-08-antigravity-qa`. It watches all commits, executes real public
+beta browser journeys and reports evidence; it never edits product code.
+
 | Block | Branch | Owner | Product scope | First atom |
 | --- | --- | --- | --- | --- |
 | 1 | `beta-block-1-core-look` | `codex-main` | Inputs → avatar → clothing → master look + all core/background QA | Repeat one real person + clothing beta journey, persist the approved look, then run one standard background through terminal QA. |
@@ -18,6 +22,10 @@ Every chat commits only to its block branch. Only `codex-main` integrates into
 | 5 | `beta-block-5-fashion-shoot` | `chat-5` | Shoot Bible, hero, five frames, shoot QA/retry/save | Run one complete style to an honest hero QA receipt before any series generation. |
 | 6 | `beta-block-6-fashion-video` | `chat-6` | Fashion Video and background-video execution/QA/save | Reconcile the two committed video services and prove one executable controlled clip route. |
 | 7 | `beta-block-7-realtime-look` | `chat-7` | Camera, consent, live overlay, explicit capture/teardown | Prove denied/granted camera and no-save teardown; paid Lucy remains separately authorized. |
+
+Observer 0.8: `antigravity-qa` runs
+`tools/join-antigravity-qa.sh antigravity-qa --watch`; detailed contract:
+`docs/coordination/blocks/08-antigravity-qa.md`.
 
 All active agents run `tools/watch-beta-blocks.sh`. Each branch publishes
 `updates/chat-<N>.md` with separate Code/Beta/Journey fields and

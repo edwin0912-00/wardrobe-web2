@@ -1,4 +1,18 @@
 Agent ID: codex-main
+Task ID: ANTIGRAVITY-QA-LOOP-001
+Product line: beta-placeholder
+Pipeline: Block 0.8 · independent verification of Blocks 1–7
+State: CONTROL_PLANE_READY
+Decision: Antigravity/Gemini watches all block branches and tests only the
+exact deployed beta SHA through visible browser UI. It writes reports and
+evidence manifests, never product code or deployments.
+Evidence: compiled Looper contract, governance checks, QA report schema and
+one-shot watcher.
+weakened_checks: none.
+
+---
+
+Agent ID: codex-main
 Task ID: BETA-SCENE-E2E-ROUTE-ALIGNMENT-001
 Product line: beta-placeholder
 Pipeline: BACKGROUND.01 · real provider/QA control runner

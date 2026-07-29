@@ -21,6 +21,9 @@ It supersedes the shared-`beta` write model below.
   transport, QA, persistence and dedicated UI.
 - Block 7 / `beta-block-7-realtime-look` / `chat-7`: camera, consent, realtime,
   explicit capture and teardown.
+- Block 0.8 / `beta-block-08-antigravity-qa` / `antigravity-qa`: read-only
+  public-beta browser verification and QA reports only. It owns no product
+  code and cannot approve its own product change.
 
 Only `codex-main` owns integration-only files and may update `beta`, deploy or
 edit the central ledgers. `main` remains read-only.

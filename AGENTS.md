@@ -7,6 +7,7 @@ below.
 
 ```text
 origin/beta                         tested integration + beta deploy source
+├── beta-block-08-antigravity-qa    independent browser QA observer
 ├── beta-block-1-core-look          chat 1 / codex-main
 ├── beta-block-2-profile-ui         chat 2
 ├── beta-block-3-backgrounds        chat 3
@@ -41,6 +42,17 @@ and the assigned file in `docs/coordination/blocks/` before any product action.
    ```bash
    bash tools/join-beta-block-agent.sh <agent-id> <1-7> --watch
    ```
+
+Antigravity is not a product owner. It joins the permanent Block 0.8 observer
+branch with:
+
+```bash
+bash tools/join-antigravity-qa.sh antigravity-qa --watch
+```
+
+It may write only its QA reports. It tests the deployed public beta through
+visible UI, publishes evidence, and requests the responsible Block 1–7 owner.
+It never edits product code, weakens checks, integrates or deploys.
 
 The mixed 2026-07-29 Creative Universe work is preserved at
 `part-job/2026-07-29-universe-checkpoint`. It is not a beta release candidate

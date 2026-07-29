@@ -13,6 +13,11 @@ Block 4 — Creative Universe packs; Block 5 — Fashion Shoot; Block 6 —
 generated video; Block 7 — Real-time Look. Точні межі:
 [`docs/coordination/BETA_BLOCKS_2026-07-29.md`](docs/coordination/BETA_BLOCKS_2026-07-29.md).
 
+Block 0.8 — це не продуктова стадія. Це постійний незалежний
+Gemini/Antigravity QA-спостерігач, який після інтеграції проходить відповідний
+user-flow на реальному beta-сайті та повертає доказовий verdict власнику
+Block 1–7.
+
 ## PROFILE — збережений користувач у браузері
 
 | Step | Для користувача | Стан |

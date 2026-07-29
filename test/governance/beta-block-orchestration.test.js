@@ -54,6 +54,26 @@ test('join script maps each block to its exact branch and never pushes beta', as
 test('all-block watcher observes beta and every block branch without writes', async () => {
   const source = await readFile(path.join(root, 'tools/watch-beta-blocks.sh'), 'utf8');
   for (const branch of branches) assert.match(source, new RegExp(branch));
+  assert.match(source, /beta-block-08-antigravity-qa/);
+  assert.match(source, /updates\/antigravity-qa\.md/);
   assert.match(source, /sleep 20/);
   assert.doesNotMatch(source, /^\s*git (?:add|commit|push|switch|merge(?:\s|$)|rebase)\b/m);
+});
+
+test('Antigravity QA is browser-evidence-only and cannot edit product code', async () => {
+  const handoff = await readFile(path.join(root, 'docs/coordination/blocks/08-antigravity-qa.md'), 'utf8');
+  const join = await readFile(path.join(root, 'tools/join-antigravity-qa.sh'), 'utf8');
+  const loop = await readFile(path.join(root, 'ops/loops/antigravity-beta-qa/loop.yaml'), 'utf8');
+  assert.match(handoff, /real public beta/i);
+  assert.match(handoff, /Browser procedure/);
+  assert.match(handoff, /Never edit product code/);
+  assert.match(handoff, /GitHub observer/);
+  assert.match(handoff, /Browser operator/);
+  assert.match(handoff, /Evidence critic/);
+  assert.match(join, /beta-block-08-antigravity-qa/);
+  assert.match(join, /\[agent:\$agent_id\] \[qa\]/);
+  assert.match(loop, /host:\n  cli: gemini/);
+  assert.match(loop, /max_iterations: 8/);
+  assert.match(loop, /wall_clock_min: 45/);
+  assert.match(loop, /max_stalled_iterations: 2/);
 });

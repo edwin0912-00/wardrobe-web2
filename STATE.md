@@ -5,6 +5,9 @@
 - `beta` remains the tested integration/deploy line.
 - Seven `beta-block-*` branches isolate product ownership; only `codex-main`
   integrates and deploys.
+- `antigravity-qa` is a permanent read-only browser observer on
+  `beta-block-08-antigravity-qa`; it reports exact deployed-SHA journeys and
+  owns no product paths.
 - Block 1 is permanently owned by `codex-main`: person/clothing inputs,
   extraction, candidate routes, avatar, master look, immutable receipts and
   all core plus standard-background QA.
