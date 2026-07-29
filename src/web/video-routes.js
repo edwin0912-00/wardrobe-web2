@@ -77,6 +77,17 @@ export async function registerVideoRoutes(app, {
   // POST /api/profile/video-clips — create a new video clip
   app.post('/api/profile/video-clips', async (request, reply) => {
     sameOriginMutation(request);
+    // The current provider adapter can bind only the approved master-look.
+    // A generic motion prompt is not a Fashion Video style authority: without
+    // an immutable visual/motion reference pack it produces a plain animation
+    // of the white-background source. Keep reads/finalization for existing
+    // evidence, but never spend a new job through this incomplete product route.
+    return reply.code(409).send({
+      error: 'Fashion Video потребує перевірений style pack і motion reference. Запуск без них вимкнено.',
+      code: 'FASHION_VIDEO_REFERENCE_PACK_REQUIRED',
+      next_action: 'SELECT_VERIFIED_VIDEO_STYLE',
+    });
+    /* c8 ignore start -- unreachable until the reference-pack contract replaces this guard */
     const session = await profileApi.resolveRequestProfile(request, reply);
     const { look_id, surface, motion_mode, duration_seconds, style_note } = request.body ?? {};
 
@@ -143,6 +154,7 @@ export async function registerVideoRoutes(app, {
       }
       throw err;
     }
+    /* c8 ignore stop */
   });
 
   // POST /api/profile/video-clips/:clipId/finalize — resume the persisted job,

@@ -64,7 +64,7 @@ function fixture() {
   return { profiles, projected, createRequests, videoService };
 }
 
-test('create projects the exact approved-look binding expected by ProfileService', async (t) => {
+test('create fails closed before provider spend while Fashion Video has no reference pack', async (t) => {
   const current = fixture();
   const app = Fastify();
   t.after(() => app.close());
@@ -88,19 +88,10 @@ test('create projects the exact approved-look binding expected by ProfileService
       motion_mode: 'editorial_micro_moment',
     },
   });
-  assert.equal(response.statusCode, 202, response.body);
-  assert.equal(current.projected.length, 1);
-  assert.deepEqual(current.projected[0].clip.bindings, {
-    approved_look: { look_id: '33333333-3333-4333-8333-333333333333' },
-    motion_mode: 'editorial_micro_moment',
-    surface: 'mirror',
-  });
-  assert.deepEqual(current.createRequests[0].lookBinding, {
-    profileId: 'profile-1',
-    lookId: '33333333-3333-4333-8333-333333333333',
-    sourceSha256: 'b'.repeat(64),
-    approvedLookReceiptSha256: 'c'.repeat(64),
-  });
+  assert.equal(response.statusCode, 409, response.body);
+  assert.equal(response.json().code, 'FASHION_VIDEO_REFERENCE_PACK_REQUIRED');
+  assert.equal(current.projected.length, 0);
+  assert.equal(current.createRequests.length, 0);
 });
 
 test('finalize resumes the existing job and projects the real MP4 result', async (t) => {
