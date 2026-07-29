@@ -122,13 +122,6 @@ const privateTextPatterns = [
   { label: 'private key', pattern: /-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/ },
   { label: 'credential-bearing URL', pattern: /\bhttps?:\/\/[^/\s:@]+:[^/\s@]+@/i },
 ];
-const requiredPresetIds = [
-  'std.city.golden_hour_gloss',
-  'std.studio.white_window_honeycomb',
-  'std.studio.taupe_rembrandt_gloss',
-  'std.interior.gallery_morning_gloss',
-  'std.nature_architecture.concrete_grass_golden_hour',
-];
 const requiredSceneFiles = [
   'src/web/approved-item-evidence.js',
   'src/web/editorial-shoot-bible.js',
@@ -894,12 +887,18 @@ const catalog = await readReleaseJson('assets/scene-presets/index.json');
 const releaseCandidates = await readReleaseJson('config/scene-release-candidates.json');
 const selectedPresetIds = releaseCandidates.selected_preset_ids;
 assert(
-  Array.isArray(selectedPresetIds) && selectedPresetIds.length > 0
+  Array.isArray(selectedPresetIds) && selectedPresetIds.length === 16
+    && new Set(selectedPresetIds).size === selectedPresetIds.length
     && isDeepStrictEqual(catalog.selected_preset_ids, selectedPresetIds),
   'Scene release selected presets do not match the approved release candidates',
 );
+// The approved candidate file is the only authority for the full background
+// catalog. Do not keep a second five-preset verifier list: runtime expands
+// from `selected_preset_ids`, so a smaller verifier silently leaves live
+// backgrounds unverified and makes the next release able to drop them.
+const requiredPresetIds = selectedPresetIds;
 assert(Array.isArray(catalog.published_preset_indexes), 'Scene catalog has no published preset bindings');
-for (const presetId of selectedPresetIds) {
+for (const presetId of requiredPresetIds) {
   const matches = catalog.published_preset_indexes.filter((entry) => entry?.preset_id === presetId);
   assert(matches.length === 1, `Scene catalog binding is missing or duplicated: ${presetId}`);
   const binding = matches[0];

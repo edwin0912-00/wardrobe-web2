@@ -75,6 +75,16 @@ The earlier detailed noticeboard is preserved at
 - **Live proof:** the corrected white-window canary completed on its first GPT
   Image 2 attempt with all nine gates PASS at 1536×2048.
 
+## Background release contract — 2026-07-29
+
+- **Fixed source of truth:** `config/scene-release-candidates.json` is the
+  approved 16-background selection. The release verifier now validates every
+  selected pack and its hash-bound references, instead of a stale hard-coded
+  set of five.
+- **Proof:** a rebuilt candidate returns `scene_presets: 16`; the product
+  release regression completes with the same count. No background was removed
+  or downgraded to make the number look green.
+
 ## Git ↔ beta reconciliation — 2026-07-29
 
 - Two immutable pre-reconciliation backups were made before any control-plane

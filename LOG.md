@@ -17,6 +17,20 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-07-29 · BETA-BACKGROUND-RELEASE-16-001 · beta · codex-main
+Change: removed the stale five-background verifier list. Release verification
+now derives the complete background loop from the approved candidate selection
+and requires exactly 16 unique packs; the regression test asserts the same
+full catalog count and all selected release assets.
+Why: live beta resolves 16 packs, while the former verifier only performed
+deep hash/reference validation for five. A successful release could therefore
+silently regress eleven backgrounds.
+Evidence: rebuilt candidate reports `scene_presets: 16`; product release test
+passes after the change. The focused test failed against the prior verifier
+because it still reported five.
+weakened_checks: none. The complete 16-pack reference/hash verification is
+strictly broader than before.
+
 2026-07-29 · BETA-BOOT-GUARD-ACTIVE-WORK-001 · beta host + beta · codex-main
 Change: the installed hourly beta boot guard and its tracked source now scan
 persisted master runs, standard scenes and Fashion Shoot slots before recovery.

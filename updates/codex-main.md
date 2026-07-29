@@ -1,4 +1,18 @@
 Agent ID: codex-main
+Task ID: BETA-BACKGROUND-RELEASE-16-001
+Product line: beta-placeholder
+Pipeline: BACKGROUND.01 · catalogue release safety
+State: CODE_VERIFIED — awaiting safe beta activation
+Decision: all 16 standard backgrounds are one approved release selection. The
+verifier reads that selection and validates every pack; it cannot retain a
+separate five-item list.
+Evidence: rebuilt product candidate reports `scene_presets: 16`; regression
+test verifies the 16-pack release contract.
+weakened_checks: none. This expands full verification from five to sixteen.
+
+---
+
+Agent ID: codex-main
 Task ID: BETA-BOOT-GUARD-ACTIVE-WORK-001
 Product line: beta-placeholder
 Pipeline: PLATFORM.01 · restart safety for all execution branches

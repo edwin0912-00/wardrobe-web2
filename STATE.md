@@ -43,6 +43,16 @@ agent may collapse these facts into a single "live" claim.
   deploy adapter reported the controlled run id while it was RUNNING, proving
   that it would refuse a restart instead of sending `SIGTERM`.
 
+## Background catalog release proof — 16, not an unverified five
+
+- The beta resolver expands `selected_preset_ids`, which currently names 16
+  standard backgrounds. The former release verifier checked only a stale,
+  hard-coded subset of five. That would have left eleven background packs
+  outside the full hash/reference verification performed before deployment.
+- The verifier now derives its complete pack loop from the approved candidate
+  file and requires exactly the 16 selected IDs. A release build verified all
+  16 packs; it did not trim the live catalog to match the old test.
+
 ## Git ↔ beta release truth — 2026-07-29
 
 - Immutable pre-reconciliation backups exist for the complete Git history and

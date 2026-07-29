@@ -32,7 +32,27 @@ const requiredEditorialGenerationModeIds = [
   'editorial.edwin_novak.organic_contrast',
   'editorial.edwin_novak.urban_monochrome',
 ];
-const requiredEditorialPreviewFiles = requiredEditorialModeIds.flatMap((modeId) => [
+const requiredCreateUniverseModeIds = [
+  'shoot.skylight_haze',
+  'shoot.terracotta_hardlight',
+  'shoot.window_gobo_warm',
+  'shoot.grey_studio_stride',
+  'shoot.sky_dune_surreal',
+  'shoot.hardsun_brick_doorway',
+  'shoot.overcast_street_stride',
+  'shoot.grey_wall_gloss',
+  'shoot.ochre_stage_tailoring',
+  'shoot.shutter_amber_interior',
+];
+const requiredReleasePreviewModeIds = [
+  ...requiredEditorialModeIds,
+  ...requiredCreateUniverseModeIds,
+];
+const requiredReleaseGenerationModeIds = [
+  ...requiredEditorialGenerationModeIds,
+  ...requiredCreateUniverseModeIds,
+];
+const requiredEditorialPreviewFiles = requiredReleasePreviewModeIds.flatMap((modeId) => [
   `assets/scene-mood-cards/${modeId}.json`,
   `assets/scene-mood-cards/${modeId}.webp`,
 ]);
@@ -64,13 +84,6 @@ const individualFiles = [
   'package-lock.json',
   'tools/run-monitor-daemon.sh',
   'tools/run-web-daemon.sh',
-];
-const requiredPresetIds = [
-  'std.city.golden_hour_gloss',
-  'std.studio.white_window_honeycomb',
-  'std.studio.taupe_rembrandt_gloss',
-  'std.interior.gallery_morning_gloss',
-  'std.nature_architecture.concrete_grass_golden_hour',
 ];
 
 function comparePath(left, right) {
@@ -152,23 +165,33 @@ test('product release is deterministic, complete, scene-enabled and cache-bound'
 
   await execute(process.execPath, [builder, releaseA]);
   const verified = JSON.parse((await verify(releaseA)).stdout);
+  const expectedScenePresetIds = JSON.parse(await readFile(
+    path.join(projectRoot, 'config', 'scene-release-candidates.json'),
+    'utf8',
+  )).selected_preset_ids;
+  assert.equal(expectedScenePresetIds.length, 16);
   assert.equal(verified.ok, true);
-  assert.equal(verified.scene_presets, 5);
+  assert.equal(verified.scene_presets, expectedScenePresetIds.length);
   assert.equal(verified.scene_ui, 'ENABLED');
   assert.equal(verified.scene_api, 'ENABLED');
   assert.equal(verified.scene_runtime, 'ENABLED');
   assert.equal(verified.editorial_preview, 'ACTIVE');
   assert.equal(verified.editorial_generation, 'ENABLED');
-  assert.equal(verified.editorial_modes, 4);
-  assert.equal(verified.editorial_generation_modes, 2);
-  assert.equal(verified.create_universe_modes, 5);
-  assert.equal(verified.create_universe_generation_modes, 4);
-  assert.equal(verified.editorial_bibles_compiled, 2);
+  assert.equal(verified.editorial_modes, requiredReleasePreviewModeIds.length);
+  assert.equal(verified.editorial_generation_modes, requiredReleaseGenerationModeIds.length);
+  assert.equal(verified.create_universe_modes, requiredCreateUniverseModeIds.length);
+  assert.equal(verified.create_universe_generation_modes, requiredCreateUniverseModeIds.length);
+  // Legacy editorial modes compile through the legacy ShootBible compiler.
+  // Create Universe units compile through their own hash-bound scene route and
+  // are asserted separately below; they must not be forced back onto the old
+  // `EDITORIAL_BASE_PRESETS` coupling just to satisfy this count.
+  assert.equal(verified.editorial_bibles_compiled, requiredEditorialGenerationModeIds.length);
   // Create Universe deliberately ships its immutable contact-sheet source
   // units. The former 40 MB ceiling predated that product and would force the
   // runtime to silently omit the actual references. Keep a finite budget,
-  // with room for five reviewed units but not an unbounded media dump.
-  assert.ok(verified.release_size_bytes < 160 * 1024 * 1024);
+  // with room for the approved 16 backgrounds and 10 reviewed style units,
+  // but not an unbounded media dump.
+  assert.ok(verified.release_size_bytes < 512 * 1024 * 1024);
 
   const manifest = JSON.parse(await readFile(
     path.join(releaseA, manifestRelativePath),
@@ -189,16 +212,16 @@ test('product release is deterministic, complete, scene-enabled and cache-bound'
   });
   assert.equal(manifest.editorial_preview.status, 'ACTIVE');
   assert.equal(manifest.editorial_preview.generation, 'ENABLED');
-  assert.deepEqual(manifest.editorial_preview.mode_ids, requiredEditorialModeIds);
+  assert.deepEqual(manifest.editorial_preview.mode_ids, requiredReleasePreviewModeIds);
   assert.ok(manifest.deploy_files.some((entry) => entry.path === 'docs/style-units/shoot.skylight_haze/manifest.json'));
   assert.ok(manifest.deploy_files.some((entry) => entry.path === 'docs/style-units/shoot.sky_dune_surreal/unit.json'));
   assert.deepEqual(
     manifest.editorial_preview.generation_mode_ids,
-    requiredEditorialGenerationModeIds,
+    requiredReleaseGenerationModeIds,
   );
   assert.deepEqual(
     manifest.editorial_preview.assets.map((asset) => asset.mode_id),
-    requiredEditorialModeIds,
+    requiredReleasePreviewModeIds,
   );
   assert.match(manifest.cache_token, /^product-[a-f0-9]{8}-[a-f0-9]{12}$/);
   assert.equal(
@@ -231,7 +254,7 @@ test('product release is deterministic, complete, scene-enabled and cache-bound'
       .filter((relativePath) => relativePath.startsWith('assets/editorial-blocking/')),
     [...requiredEditorialBlockingFiles].sort(comparePath),
   );
-  for (const modeId of requiredEditorialModeIds) {
+  for (const modeId of requiredReleasePreviewModeIds) {
     const authority = manifest.editorial_preview.assets.find((asset) => asset.mode_id === modeId);
     const sidecarPath = `assets/scene-mood-cards/${modeId}.json`;
     const imagePath = `assets/scene-mood-cards/${modeId}.webp`;
@@ -258,8 +281,9 @@ test('product release is deterministic, complete, scene-enabled and cache-bound'
     path.join(releaseA, 'config/scene-release-candidates.json'),
     'utf8',
   ));
-  assert.deepEqual(catalog.selected_preset_ids, releaseCandidates.selected_preset_ids);
-  assert.equal(catalog.presets.length, 5);
+  assert.deepEqual(catalog.selected_preset_ids, expectedScenePresetIds);
+  assert.deepEqual(releaseCandidates.selected_preset_ids, expectedScenePresetIds);
+  assert.equal(catalog.published_preset_indexes.length, expectedScenePresetIds.length);
   for (const presetId of releaseCandidates.selected_preset_ids) {
     for (const relativePath of [
       `assets/scene-presets/${presetId}/v1/index.json`,
