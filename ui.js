@@ -110,10 +110,6 @@
     var view = 'look';          // 'look' | 'shoot' | 'video' | 'live'
     var bgOpen = false;         // the background list is open in the left mirror
 
-    /* What the last programmatic travel did: 'arrived' means the page moved the viewer,
-     * 'user took over' means they moved themselves. Different facts. */
-    var travel = null;
-
     function station() { return stage.getAttribute('data-station') === '1'; }
     function locked() { return !station(); }
     function hasMain() { return !!person.main; }
@@ -140,10 +136,10 @@
         pending = false;
         step = 2;
         render();
-        /* Forward travel was closed until a look existed, so the page carries the viewer on
-         * itself rather than leaving them to discover that scrolling works again. The move
-         * belongs to the engine — this layer never animates position, or there would be two
-         * clocks. */
+        /* Forward travel was closed until a look existed; this is only the unlock. The
+         * viewer stays exactly where they are, at the mirrors, with the action row now
+         * reachable — moving them on automatically would carry them past the very row this
+         * step exists to reveal. */
         if (typeof opts.onLookReady === 'function') opts.onLookReady();
       }, SIM_MS);
     }
@@ -620,14 +616,13 @@
           actionsOffered: lookVisible(),
           simulated: true,               // no render backend is attached to this page
           sells: false,                  // no prices, no basket, by canon
-          station: station(), controlsEnabled: !locked(), travel: travel
+          station: station(), controlsEnabled: !locked()
         };
       },
       /* Asked by the engine at every station through config.canAdvance. Leg 0 holds until a
        * look exists: the next room is a gallery of finished work, so arriving with nothing
        * made would be arriving at an empty shelf. */
       canAdvance: function (leg) { return leg === 0 ? looks.length > 0 : true; },
-      travelled: function (how) { travel = how || null; return travel; },
       addPreset: function (name) { togglePreset(name); return items.length; },
       makeLook: makeLook,
       steps: STEPS, presets: PRESET_ITEMS, backgrounds: BACKGROUNDS

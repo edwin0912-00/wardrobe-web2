@@ -375,27 +375,17 @@
     });
 
     window.ui = WardrobeUI.create({
-      /* The look landed, so the hold is over and the page moves on by itself. advanceTo
-         drives the real window scroll with the hand's own inertia, so the film, the
-         parallax and the score's echo all follow from the one clock they already read.
-         A hand outranks it: if the viewer scrolls during the move, the engine cancels. */
+      /* The look landed, so the HOLD is over — the gate unlocks — but the page does not
+         carry the viewer anywhere. This used to call releaseAndAdvance(), which drives the
+         real scroll straight into leg 1 (the television) the instant a look exists, so the
+         mirror's own action row (shoot / fashion video / new background / live) was never
+         actually reachable in the normal flow — only by forcing position for testing. The
+         owner caught this directly: the mirrors are where the actions live, so arriving at
+         a look has to mean staying at the mirrors to use them, not being swept past them.
+         refreshGate() re-checks canAdvance (now true) and lifts the hold so scrolling
+         onward works the moment the viewer chooses to — nothing moves on their behalf. */
       onLookReady: function () {
-        if (!window.journey || !window.journey.releaseAndAdvance) return;
-        window.journey.releaseAndAdvance().then(function (how) {
-          /* THE OUTCOME IS ACTED ON, NOT JUST RECORDED.
-           *
-           *   'arrived'        the page carried the viewer to the next room; nothing to do.
-           *   'user took over' the viewer grabbed the film mid-flight. Their hand outranks
-           *                    the page, so the move is NOT retried and nothing is forced —
-           *                    but the interface must not treat the journey as having moved
-           *                    on, or a later arrival at this station would be skipped.
-           *   'superseded'     another travel request replaced this one; that one reports.
-           *
-           * The engine detects the hand by real input (wheel, touch, arrow keys) rather than
-           * by inferring it from scroll position, so this value can be trusted. Typing a
-           * letter into the interface does not count as steering the film. */
-          if (window.ui && window.ui.travelled) window.ui.travelled(how);
-        });
+        if (window.journey && window.journey.refreshGate) window.journey.refreshGate();
       }
     });
 
