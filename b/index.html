@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>WARDROBE — версія B</title>
+<title>WARDROBE</title>
 <link rel="stylesheet" href="../style.css">
 </head>
 <body>
@@ -176,7 +176,10 @@
     window.scoreStartedFrom = from || 'unknown';
     window.score = WardrobeAudio.create({
       tracks: TRACKS.map(function (t) { return blobs[t] || t; }),
-      startMuted: true,
+      /* Browsers may reject audible autoplay, but the first real swipe/touch is a
+         permitted gesture.  Keep the intended state audible so audio.js can start
+         the score on that gesture instead of silently unlocking a muted mixer. */
+      startMuted: false,
       volume: 0.55,
       /* 15% — the owner's number. Constant: the room does not get more concrete when you
          scroll faster, only the echo answers the movement. */
@@ -222,15 +225,15 @@
    *
    * The engine will not enter a room whose film has not landed, so starting early cannot
    * show an empty frame; it holds at the seam with data-gate="loading" instead. */
-  /* What the opening genuinely needs: the score's first track, the intro that plays first,
-     and room one complete — because the intro hands over to it before it has finished
-     dissolving, so a half-loaded room one would be visible through the fade. 22 MB, not 66. */
+  /* The first visible movement is the fabric intro.  Do not hold that movement behind
+     the first room: room one is warmed in the background and the engine already owns a
+     truthful seam hold if it has not landed by the handover. */
   var INTRO = 'assets/intro.mp4';
-  var REQUIRED = [TRACKS[0], INTRO, VIDEOS[0]];
+  var REQUIRED = [TRACKS[0], INTRO];
   /* Films only. The two later tracks are NOT listed here: the score's own <audio> elements
      are given those URLs directly and fetch them natively, so putting them in this list
      too would download 9.8 MB twice. */
-  var REST = VIDEOS.slice(1);
+  var REST = VIDEOS;
 
   function paint(p) {
     barEl.style.transform = 'scaleX(' + p.ratio + ')';
