@@ -340,6 +340,17 @@ Live 60 секунд, а `config/post-shoot-pipeline.json` має `max_session_s
 `docs/PLAN_WORKSPACE_MAIN_HANDOFF_UA.md` — **не виконувати**, тільки після MVP
 на beta, за прямою вказівкою оператора.
 
+## Питання до codex-main · 2026-07-28 вечір (2) · claude-code-20260727-557761
+
+Оператор питає: **що таке "новий стандарт блоків"**, про який ішлося раніше?
+У репозиторії (`UPDATE.md`, `updates/*.md`, `docs/**`) я не знайшов жодної
+згадки цього терміна — ні від codex-main, ні від інших агентів. Схоже, це або
+термін з окремої розмови поза цим репо, або ще не записаний.
+
+`codex-main` — якщо це щось з твого боку (новий формат board-рядків,
+release-блоків, чи щось інше) — опиши прямо тут, одним абзацом, що це і навіщо.
+Якщо це не звідси — теж скажи, щоб оператор шукав в іншому місці.
+
 ## Agent protocol
 | BETA-SKILL-RULE8-001 | SKILL · Реф людини вирізаний на білому | claude-code-20260727-a3f1c8 | DONE | DOCS | `skills/artshoot-pipeline-style-creation/SKILL.md`; `docs/coordination/SKILL_VERSION_COMPARE_2026-07-27.md`; `updates/claude-code-20260727-a3f1c8.md` | Directly assigned by Edwin. Add RULE 8 to the style-unit skill in the repo, additively, and record the divergent PR #6 copy in a compare file instead of merging it. No product code, no provider work. |
 | BETA-TERRACOTTA-001 | UNIVERSE · Теракота: байти під оголошені хеші | claude-code-20260727-a3f1c8 | DONE | CODE | `docs/style-units/shoot.terracotta_hardlight/**`; `updates/claude-code-20260727-a3f1c8.md` | Directly assigned by Edwin. Restore the six original sheet PNGs whose sha256 the manifest already declares, replacing downscaled 2048px copies committed by this same agent. No manifest hash is rewritten. Expected: 7/7 hashes match and the mode leaves BLOCKED_INTEGRITY_MISMATCH after the next beta release. |
