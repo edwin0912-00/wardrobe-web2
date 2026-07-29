@@ -159,6 +159,21 @@
     var intro = config.intro || null;
     var introEl = document.querySelector('[data-intro]');
     if (intro && !introEl) intro = null;          // configured but absent: carry on without
+    /* Do not remove the textile safety frame until room one has produced a meaningful
+     * seek/timeupdate.  Metadata and readyState alone do not prove that Safari painted
+     * the native video plane.  The engine's initial 0.001 s nudge is deliberately below
+     * this threshold, so it cannot falsely certify the handover. */
+    var firstLegPainted = !intro;
+    if (intro && videos[0]) {
+      var confirmFirstLegFrame = function () {
+        if (videos[0].currentTime > 0.02) {
+          firstLegPainted = true;
+          schedule();
+        }
+      };
+      videos[0].addEventListener('seeked', confirmFirstLegFrame);
+      videos[0].addEventListener('timeupdate', confirmFirstLegFrame);
+    }
 
     function introScreens() { return intro ? (intro.screens || 1.6) : 0; }
     function totalScreens() { return introScreens() + config.screensPerLeg * legs.length; }
@@ -402,16 +417,20 @@
        * layer still costs a blend on every frame of the rest of the journey. */
       if (intro) {
         var ist = introState(p);
-        if (ist.gone) {
+        if (ist.gone && firstLegPainted) {
           if (!introEl.hidden) { introEl.hidden = true; introEl.style.opacity = '0'; }
         } else {
           if (introEl.hidden) introEl.hidden = false;
-          introEl.style.opacity = ist.opacity.toFixed(4);
+          /* Once its own timeline is over, keep the final textile frame opaque only
+           * while Safari is still preparing room one's first painted frame. */
+          introEl.style.opacity = (ist.gone ? 1 : ist.opacity).toFixed(4);
           introEl.style.zIndex = '4';
           var id = introEl.duration;
           if (id && isFinite(id)) seekTo(introEl, Math.min(id - 0.001, ist.u * (id - 0.001)), force);
         }
-        stage.setAttribute('data-intro', ist.gone ? 'gone' : (ist.opacity > 0.999 ? 'solid' : 'fading'));
+        stage.setAttribute('data-intro',
+          ist.gone ? (firstLegPainted ? 'gone' : 'waiting-room') :
+          (ist.opacity > 0.999 ? 'solid' : 'fading'));
       }
 
       /* ---- the seam ------------------------------------------------------------

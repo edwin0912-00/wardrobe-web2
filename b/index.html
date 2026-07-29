@@ -153,6 +153,44 @@
   var IOS_MEDIA = /iP(ad|hone|od)/.test(navigator.userAgent) ||
     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
+  /* Safari can expose metadata for a paused native MP4 yet keep its compositor plane
+     dormant.  Priming only the textile intro fixed the opening frame but left the first
+     room vulnerable at the handover: the scroll clock advanced while the room stayed on
+     its initial/black plane.  A real gesture is the reliable moment at which iOS permits
+     play(), so use that same gesture to wake every film plane, then pause it again. */
+  function primeIOSFilmPlanes() {
+    if (!IOS_MEDIA) return;
+    var films = Array.prototype.slice.call(document.querySelectorAll('video[data-src]'));
+    films.forEach(function (v) {
+      if (v.dataset.iosPrime === 'done' || v.dataset.iosPrime === 'pending') return;
+      if (!v.src || !v.duration || !isFinite(v.duration)) return;
+      v.dataset.iosPrime = 'pending';
+      v.muted = true;
+      try {
+        if (v.currentTime === 0) v.currentTime = Math.min(0.001, v.duration - 0.001);
+        var wake = v.play();
+        if (wake && wake.then) {
+          wake.then(function () {
+            setTimeout(function () {
+              v.pause();
+              v.dataset.iosPrime = 'done';
+            }, 120);
+          }).catch(function () {
+            delete v.dataset.iosPrime;
+          });
+        } else {
+          v.pause();
+          v.dataset.iosPrime = 'done';
+        }
+      } catch (err) {
+        delete v.dataset.iosPrime;
+      }
+    });
+  }
+  ['touchstart', 'pointerdown', 'wheel', 'keydown'].forEach(function (eventName) {
+    window.addEventListener(eventName, primeIOSFilmPlanes, { passive: true });
+  });
+
   function mb(n) { return (n / 1048576).toFixed(1); }
 
   /* Every byte of the experience, counted. Audio is in the list because it is part of
