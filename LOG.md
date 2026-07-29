@@ -17,6 +17,22 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-07-29 · BETA-SCENE-JOURNEY-SMOKE-001 · beta · full standard-scene run
+Change: fixed the repair reference transport to retain the provider-required
+`APPROVED_LOOK_MASTER → FAILED_SCENE_CANDIDATE` order and changed the third
+mechanical layout attachment to a deterministic neutral opaque canvas.
+Why: the earlier attempted priority order caused the provider to reject repair
+attempts before generation; a transparent guide rendered as a dark field in
+the provider viewer.
+Evidence: focused mechanical-guide tests pass 4/4. Commit `694757e` is pushed
+to `beta`. Real scene `scene_c5d47bf2144e1b9ecfb236dd5d9378f27c106cf54d7f65d1`
+completed all three Higgsfield jobs (`8387b8a5-372f-4090-a72f-02b635999323`,
+`9075d63c-0c4f-484b-9751-2a2ccd914ba6`,
+`737fda57-147a-4090-86fa-dba7be8e2582`) and reached `QA_EXHAUSTED` only after
+each output was evaluated. All failed the unchanged `ITEM_FIDELITY` and
+`FRAMING_AND_ANATOMY` gates; full receipts remain in the isolated runtime.
+weakened_checks: none.
+
 2026-07-28 · LIGHT-STAGE.01 · beta · portable UI component
 Change: add a reusable black-and-gold `Light Stage` component, CSS, demo entry point and deterministic white-edge matte test.
 Why: an approved master needs a premium 3D presentation treatment without changing any source pixels or downstream generation inputs.
