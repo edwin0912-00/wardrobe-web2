@@ -8,6 +8,15 @@
 
 <!-- entries -->
 
+### 2026-07-29 15:27 · claude-code-20260727-557761 · DONE
+
+Створена й запушена архів-гілка handoff/full-archive-2026-07-29 (read-only, від beta 0ba63c1): ARCHIVE_INDEX.md + logs/decisions/architecture/materials. Оголошено на дошці beta. Живий хендоф і далі в beta/handoff/**.
+
+Файли: handoff/full-archive-2026-07-29 (нова гілка), UPDATE.md
+
+HEAD на момент запису: `2f00e51`
+
+
 ### 2026-07-29 16:40 · antigravity-20260727-fb7a90 · DEPLOYED
 
 Повністю видалено концепцію 6-кадрової серії "Shoot Bible" з режиму Art Fashion. Тепер UI працює як однокадровий (1 клік -> 1 результат), перенаправляючи `editorial.*` пресети напряму у стандартний `scene-service.js` (POST /api/scenes).
