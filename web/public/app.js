@@ -1621,16 +1621,23 @@ function openSelectedLookScene(initialTab) {
   if (!selectedProfileLook) return;
   sceneUi.openForLook(selectedProfileLook, { initialTab }).catch(showProfileError);
 }
+function setLookActionStatus(message) {
+  const target = document.querySelector('#profile-look-action-status');
+  if (target) target.textContent = message;
+}
 document.querySelector('#profile-look-background-primary').addEventListener('click', (event) => {
   event.stopPropagation();
+  setLookActionStatus('Фон: обери одну стандартну сцену. Master-образ і вибрані речі залишаються locked.');
   openSelectedLookScene('standard');
 });
 document.querySelector('#profile-look-background').addEventListener('click', (event) => {
   event.stopPropagation();
+  setLookActionStatus('Фон: обери одну стандартну сцену. Master-образ і вибрані речі залишаються locked.');
   openSelectedLookScene('standard');
 });
 document.querySelector('#profile-look-photoshoot').addEventListener('click', (event) => {
   event.stopPropagation();
+  setLookActionStatus('Фотозйомка: обери один Create Universe стиль; далі буде hero і серія кадрів.');
   openSelectedLookScene('editorial');
 });
 document.querySelector('#profile-look-video').addEventListener('click', (event) => {
@@ -1640,6 +1647,7 @@ document.querySelector('#profile-look-video').addEventListener('click', (event) 
   if (!lookId) return;
   const overlay = document.querySelector('#video-overlay');
   const sourceImg = document.querySelector('#video-source-image');
+  setLookActionStatus('Fashion Video: обери рух і surface. Після запуску кліп проходить перевірку та зберігається до цього образу.');
   sourceImg.src = selectedProfileLook.image_url ?? `/api/profile/looks/${encodeURIComponent(lookId)}/image`;
   document.querySelector('#video-progress').hidden = true;
   document.querySelector('#video-result').hidden = true;
@@ -1652,7 +1660,7 @@ document.querySelector('#profile-look-video').addEventListener('click', (event) 
 document.querySelector('#profile-look-refine').addEventListener('click', (event) => {
   event.stopPropagation();
   if (!selectedProfileLook) return;
-  showProfileError('Покращення образу (Refine) з\'явиться у наступному релізі. Зараз доступні: Фон, Фотосесія, Відео та Live camera.');
+  setLookActionStatus('Покращити: master і вибрані речі будуть locked, а результат піде окремим candidate. Мінімальний generator route ще не підключений — нічого не перезапускаємо і не змінюємо поточний образ.');
 });
 // Video overlay: option selection
 document.querySelectorAll('#video-surface-options .video-option, #video-motion-options .video-option').forEach((btn) => {
@@ -1756,6 +1764,7 @@ function closeProfileLive() {
 document.querySelector('#profile-look-live').addEventListener('click', (event) => {
   event.stopPropagation();
   if (!selectedProfileLook) return;
+  setLookActionStatus('Real-time Look: відкриваємо окрему camera-сесію з consent. Вона не змінює master-образ.');
   const overlay = document.querySelector('#profile-live-overlay');
   const frame = document.querySelector('#profile-live-frame');
   frame.src = selectedLookLiveUrl(selectedProfileLook);

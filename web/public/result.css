@@ -239,6 +239,49 @@
 
 .profile-next-action:disabled { cursor: not-allowed; opacity: .62; }
 .profile-next-action:disabled:hover { border-color: color-mix(in srgb, var(--action-accent) 36%, #dbe3d2); box-shadow: none; transform: none; }
+
+.profile-action-guide {
+  display: grid;
+  gap: 9px;
+  padding: 12px;
+  border: 1px solid var(--result-line);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, .68);
+}
+
+.profile-look-action-status {
+  margin: 0;
+  color: var(--result-deep);
+  font-size: 12px;
+  font-weight: 720;
+  line-height: 1.35;
+}
+
+.profile-action-guide ul {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.profile-action-guide li {
+  display: grid;
+  gap: 2px;
+  padding-top: 7px;
+  border-top: 1px solid rgba(23, 59, 40, .10);
+}
+
+.profile-action-guide b {
+  color: var(--result-ink);
+  font-size: 11px;
+}
+
+.profile-action-guide span {
+  color: var(--result-muted);
+  font-size: 11px;
+  line-height: 1.38;
+}
 .profile-action-icon { display: grid; width: 34px; height: 34px; place-items: center; border: 1px solid color-mix(in srgb, var(--action-accent) 65%, transparent); border-radius: 50%; color: var(--action-accent); font-size: 18px; box-shadow: 0 0 16px color-mix(in srgb, var(--action-accent) 18%, transparent); }
 .profile-next-action-refine { --action-accent: #91bd45; }
 .profile-next-action-background { --action-accent: #d29a24; }

@@ -58,7 +58,7 @@ test('selected saved look becomes the in-product Live reference without upload i
   assert.doesNotMatch(indexSource, />Video \/ Live MVP</);
 });
 
-test('saved look exposes one primary action plus four truthful next directions', () => {
+test('saved look exposes actionable branches and their honest pipeline explanations', () => {
   for (const id of [
     'profile-look-background-primary',
     'profile-look-refine',
@@ -70,8 +70,10 @@ test('saved look exposes one primary action plus four truthful next directions',
     assert.match(indexSource, new RegExp(`id="${id}"`));
   }
   assert.match(indexSource, /Fashion video не підміняється mock-роликом/);
-  assert.match(indexSource, /id="profile-look-refine"[^>]*disabled/);
-  assert.match(indexSource, /id="profile-look-video"[^>]*disabled/);
+  assert.match(indexSource, /id="profile-look-action-status"/);
+  assert.match(indexSource, /Відео зі сцени/);
+  assert.match(indexSource, /Фокус на речі/);
+  assert.match(indexSource, /Create Universe: обрати один locked стиль/);
   assert.match(indexSource, /aria-label="Відкрити Real-time Look"/);
   assert.match(indexSource, /aria-label="Додати стандартний фон"/);
   assert.match(appSource, /openSelectedLookScene\('standard'\)/);
@@ -79,7 +81,8 @@ test('saved look exposes one primary action plus four truthful next directions',
   assert.match(sceneUiSource, /async openForLook\(look, \{ initialTab = 'standard' \} = \{\}\)/);
   assert.match(sceneUiSource, /this\.pickerTab = initialTab === 'editorial' \? 'editorial' : 'standard';/);
   assert.match(appSource, /profile-look-video/);
-  assert.match(appSource, /Seedance 2 transport, QA і збереження кліпу/);
+  assert.match(appSource, /Fashion Video: обери рух і surface/);
+  assert.match(appSource, /Покращити: master і вибрані речі будуть locked/);
 });
 test('Add items continuation receives the exact selected avatar and look once', async () => {
   const { avatar, newerLook, profile } = profileFixture();
