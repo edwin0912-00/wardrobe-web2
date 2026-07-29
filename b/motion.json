@@ -4,11 +4,11 @@
   "note": "t = C-inverse(S(u)); index the table with scroll fraction inside the leg",
   "legs": [
     {
-      "file": "seg1-D.mp4",
+      "file": "seg1.mp4",
       "duration": 15.05,
       "frames": 903,
       "table": [
-        0.0,
+        0,
         0.0311,
         0.1161,
         0.3709,
@@ -146,7 +146,7 @@
       "duration": 15.05,
       "frames": 903,
       "table": [
-        0.0,
+        0,
         0.0059,
         0.0199,
         0.0334,
@@ -284,7 +284,7 @@
       "duration": 15.05,
       "frames": 903,
       "table": [
-        0.0,
+        0,
         0.0169,
         0.026,
         0.0548,
@@ -422,7 +422,7 @@
       "duration": 15.05,
       "frames": 903,
       "table": [
-        0.0,
+        0,
         0.0112,
         0.022,
         0.0327,

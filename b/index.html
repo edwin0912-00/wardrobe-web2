@@ -130,19 +130,15 @@
 <script src="../audio.js"></script>
 <script>
 (function () {
-  /* SCENE ONE IS SWITCHABLE: ?s1=A, ?s1=B, ?s1=C, or nothing for the original.
-   * Three candidates for the opening room are in b/assets alongside the current one, all
-   * already through the delivery contract. Swapping by hand meant a file copy and a reload
-   * per look; this way the comparison is one click, on the real site, with the real scroll.
-   * Rewritten BEFORE the loader reads the elements, so nothing is fetched twice. */
-  var S1 = (location.search.match(/[?&]s1=([ABCD])/i) || [])[1];
-  var SEG1 = S1 ? 'assets/seg1-' + S1.toUpperCase() + '.mp4' : 'assets/seg1.mp4';
-  if (S1) {
-    var v0 = document.querySelector('video[data-leg="0"]');
-    if (v0) v0.setAttribute('data-src', SEG1);
-  }
-
-  var VIDEOS = [SEG1, 'assets/seg2.mp4', 'assets/seg3.mp4', 'assets/seg4.mp4'];
+  /* SCENE ONE IS DECIDED: variant D, 2026-07-29. Three earlier candidates (A/B/C) and the
+   * original all lived behind a ?s1= switch for comparison — the owner picked D as final
+   * ("якщо це було Д, добре... але це основна зараз") and asked for the rest archived, not
+   * kept as live options. The switch is gone; A/B/C and the pre-D original are backed up
+   * at ~/wardrobe-media-local/archived-2026-07-29/ (seg1-A/B/C.mp4, seg1-original.mp4),
+   * not deleted. `assets/seg1.mp4` IS variant D now — the file was replaced in place so
+   * nothing else in this file (the data-src below, motion.json's leg-0 table) needed to
+   * change. */
+  var VIDEOS = ['assets/seg1.mp4', 'assets/seg2.mp4', 'assets/seg3.mp4', 'assets/seg4.mp4'];
   var TRACKS = ['audio/t1.mp3', 'audio/t2.mp3', 'audio/t3.mp3'];
 
   var loaderEl = document.querySelector('[data-loader]');
