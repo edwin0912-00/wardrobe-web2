@@ -23,6 +23,11 @@ agent may collapse these facts into a single "live" claim.
   the captured active release.
 - Runtime receipts and logs are operational evidence. They may justify a
   reviewed source change, but are never copied into Git as code.
+- The Fashion Shoot deployment verifier previously duplicated an obsolete
+  four-style catalog while the strict product-release verifier and live catalog
+  carried 14 styles. That duplicate was removed; the strict release verifier
+  is the one exact-catalog owner, while deploy additionally checks manifest
+  structure and then probes the activated API.
 
 ## Current release truth — 2026-07-27
 

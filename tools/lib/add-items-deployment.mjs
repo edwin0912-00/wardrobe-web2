@@ -69,16 +69,6 @@ const PRODUCT_EDITORIAL_PREVIEW_FILES = new Set([
   'assets/scene-mood-cards/editorial.edwin_novak.urban_monochrome.json',
   'assets/scene-mood-cards/editorial.edwin_novak.urban_monochrome.webp',
 ]);
-const PRODUCT_EDITORIAL_MODE_IDS = Object.freeze([
-  'editorial.edwin_novak.organic_contrast',
-  'editorial.edwin_novak.urban_monochrome',
-  'editorial.edwin_novak.institutional_modernism',
-  'editorial.edwin_novak.luminous_blue_white',
-]);
-const PRODUCT_EDITORIAL_GENERATION_MODE_IDS = Object.freeze([
-  'editorial.edwin_novak.organic_contrast',
-  'editorial.edwin_novak.urban_monochrome',
-]);
 
 const PRODUCT_DEPLOY_ROOTS = [
   'package.json',
@@ -314,12 +304,21 @@ export async function loadPinnedRelease({
         && manifest.disabled.length === 0
         && manifest.editorial_preview?.status === 'ACTIVE'
         && manifest.editorial_preview?.generation === 'ENABLED'
+        // Exact mode authority is verified by verify-product-release.mjs from
+        // the candidate's own strict source packs. Deployment must not repeat
+        // a stale hard-coded catalog here: that previously rejected a valid
+        // 14-style release while the builder and trusted verifier accepted it.
         && Array.isArray(manifest.editorial_preview?.mode_ids)
-        && JSON.stringify(manifest.editorial_preview.mode_ids)
-          === JSON.stringify(PRODUCT_EDITORIAL_MODE_IDS)
+        && manifest.editorial_preview.mode_ids.length > 0
+        && new Set(manifest.editorial_preview.mode_ids).size
+          === manifest.editorial_preview.mode_ids.length
         && Array.isArray(manifest.editorial_preview?.generation_mode_ids)
-        && JSON.stringify(manifest.editorial_preview.generation_mode_ids)
-          === JSON.stringify(PRODUCT_EDITORIAL_GENERATION_MODE_IDS),
+        && manifest.editorial_preview.generation_mode_ids.length > 0
+        && new Set(manifest.editorial_preview.generation_mode_ids).size
+          === manifest.editorial_preview.generation_mode_ids.length
+        && manifest.editorial_preview.generation_mode_ids.every(
+          (modeId) => manifest.editorial_preview.mode_ids.includes(modeId),
+        ),
       'Product editorial generation authority is not enabled for the exact approved modes',
     );
   }

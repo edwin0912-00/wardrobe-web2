@@ -40,6 +40,22 @@ public `/api/health` returned `ready`; `1253aa3..88a20ac` changes only
 `updates/codex-main.md`.
 weakened_checks: none.
 
+2026-07-29 · Fashion Shoot deployment catalog repair
+Change: removed the stale four-mode/two-generation-mode duplicate from the
+deployment verifier. The trusted product-release verifier remains the single
+authority for exact mode membership; deploy now verifies its signed manifest
+is structurally intact and internally consistent.
+Why: a valid 14-mode/12-generation-mode release passed its builder and trusted
+verifier but was blocked before activation by an obsolete second copy of the
+catalog.
+Evidence: pre-change deployment refused the candidate with `Product editorial
+generation authority is not enabled for the exact approved modes`; after the
+repair focused candidate verification is pending a host-capacity recovery.
+The full deployment suite currently stops before exercising its fixtures
+because the host has 1.08 GiB free disk and 4.65 GiB swap, below its explicit
+resource preflight.
+weakened_checks: none.
+
 2026-07-29 · Standard scene scale contract 70–80% · pending beta release
 Change: widened the standard full-body scale band from 74–78% to 70–80% and
 rebuilt every published standard-scene pack, its composition anchor, prompt

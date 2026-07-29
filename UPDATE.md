@@ -27,6 +27,10 @@ The earlier detailed noticeboard is preserved at
 - At reconciliation: active beta is `release-1253aa3-20260729191158`
   (`1253aa3`); GitHub beta is `88a20ac`. The only intervening GitHub change is
   a verified release-journal update, so no product code is being discarded.
+- Release repair queued: the Fashion Shoot deploy gate now relies on the
+  strict product-release verifier's 14-style authority instead of an obsolete
+  duplicate four-style list. It still rejects an empty, duplicated or escaping
+  generation subset and still probes the exact activated catalog.
 
 ## Product-line separation — operator decision · 2026-07-29
 
