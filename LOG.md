@@ -28,6 +28,14 @@ passes 30/30. The unit audit asserts all ten selectable `shoot.*` units have
 their manifest and required sheet roles.
 weakened_checks: none.
 
+2026-07-29 · Beta adapter real smoke · `5b452ab`
+Change: deployed a clean immutable candidate through the dedicated beta adapter.
+Why: prove the repaired beta deployment path end to end rather than leaving it
+as an unexercised tool.
+Evidence: adapter receipt reports `local_status: ready` and
+`external_status: ready`; runner now points to the staged `5b452ab` release.
+weakened_checks: none.
+
 2026-07-29 · Beta deployment adapter
 Change: added the dedicated `deploy-beta-release` adapter and focused tests.
 Why: beta's persistent runner topology differs from the generic `app`

@@ -40,6 +40,10 @@ agent may collapse these facts into a single "live" claim.
   clean candidate before staging, atomically updates the beta runner pointer,
   restarts `com.madeforthisjob.beta`, probes local/public health, and rolls the
   runner pointer back on a failed health check.
+- The beta adapter completed its first real activation on 2026-07-29: clean
+  candidate `5b452ab` → staged beta release → `com.madeforthisjob.beta`
+  restart → local and public `ready`. The previous runner file is retained as
+  an on-host rollback backup; the temporary candidate was archived externally.
 
 ## Current release truth — 2026-07-27
 
