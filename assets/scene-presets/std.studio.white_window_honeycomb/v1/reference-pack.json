@@ -1,8 +1,8 @@
 {
   "preset_id": "std.studio.white_window_honeycomb",
-  "preset_sha256": "51bffa9c9eaf1f5f9e65c346dd8eac9b73cc4aa485150ec7e7f39e8449a0905d",
+  "preset_sha256": "e00b6ff4b97b631bbd0fa5c4707831f79426882424e76f72a6fe0410a65d9d2f",
   "preset_version": "1.0.0",
-  "prompt_sha256": "89708f7bff1aa4fcb62ad33b3b2bae9f243cf3679f72683407391497f7a94284",
+  "prompt_sha256": "3b639744bcc2b1e81b3ba4be563136a7a56988948480147a29bbf49574139c66",
   "reference_pack_id": "pack.std.studio.white_window_honeycomb.v1.1",
   "references": [
     {
@@ -39,7 +39,7 @@
       ],
       "reference_id": "std.studio.white_window_honeycomb.composition",
       "role": "composition_anchor",
-      "sha256": "9b1e1b443eeec151edcaea96b16e0a962e6490b8fc0e59c3200809bbc6332e62"
+      "sha256": "224f96b26152d89862312849874356cf512790f6b9367a4b135667b836151e54"
     },
     {
       "media_type": "application/json",

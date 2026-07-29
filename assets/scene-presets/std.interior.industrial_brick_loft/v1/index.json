@@ -1,12 +1,12 @@
 {
   "preset_id": "std.interior.industrial_brick_loft",
   "preset_path": "assets/scene-presets/std.interior.industrial_brick_loft/v1/preset.json",
-  "preset_sha256": "6fb8c43d1be724a35ea147ac546ec205e2c005935d2532b8c480405836cd866c",
+  "preset_sha256": "dfdc86cfec674321ec7c1c1881683b372138effd7d301387630f67b6b7a31b41",
   "preset_version": "1.0.0",
   "production_prompt_path": "prompts/scene-presets/std.interior.industrial_brick_loft/v1/production-scene.txt",
-  "prompt_sha256": "48e7aa1fe5cbd37b27a42005d91b1b7eeacb29913b19df92a2ade0378f7e5e0c",
+  "prompt_sha256": "81da062f5cd6637c46193eeea1ae090a7372a851b3cf464db90fb26287e66d95",
   "reference_pack_path": "assets/scene-presets/std.interior.industrial_brick_loft/v1/reference-pack.json",
-  "reference_pack_sha256": "74ca55ad2f014fca9450cae5b4decb845fa455db4fa39e55b5b7e201192910e4",
+  "reference_pack_sha256": "2342b6ea31ca029030203b06af06994dc879e12492019afff0adbcd2cb5b63f4",
   "references": [
     {
       "media_type": "application/json",
@@ -30,7 +30,7 @@
       "path": "assets/scene-presets/std.interior.industrial_brick_loft/v1/composition-reference.json",
       "reference_id": "std.interior.industrial_brick_loft.composition",
       "role": "composition_anchor",
-      "sha256": "1303554a5b10f3a3a4d7865d3b7eeae68a6718d76521fc66f362bc0b5c7ab061"
+      "sha256": "2217cac41aee3f4b30716465a41fee37885fd02ad84e8c3a51b8c4a210b6b03b"
     },
     {
       "media_type": "application/json",

@@ -221,7 +221,7 @@ function validQaReceipt() {
           canvas_width: 1024,
           canvas_height: 1280,
           subject_bbox_xywh_px: [200, 103, 620, 973],
-          expected_subject_height_percent: [74, 78],
+          expected_subject_height_percent: [70, 80],
           subject_height_percent: 76.02,
           minimum_clear_space_above_hair_percent: 8,
           minimum_clear_space_below_footwear_percent: 2,

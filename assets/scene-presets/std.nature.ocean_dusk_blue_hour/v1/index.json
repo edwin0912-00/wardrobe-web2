@@ -1,12 +1,12 @@
 {
   "preset_id": "std.nature.ocean_dusk_blue_hour",
   "preset_path": "assets/scene-presets/std.nature.ocean_dusk_blue_hour/v1/preset.json",
-  "preset_sha256": "a8c6f53f9c3d814ae2f74b2bfe273401b7cf6013882ce53ea57360987c1ddc33",
+  "preset_sha256": "587f3f8a36c51c7931c9d282ba98ea42e86990923d5e6f76603397bedced73f4",
   "preset_version": "1.0.0",
   "production_prompt_path": "prompts/scene-presets/std.nature.ocean_dusk_blue_hour/v1/production-scene.txt",
-  "prompt_sha256": "adece83623870fb663d0dc0de821e11613d62011a8dcb11fae1f7e9d075c65df",
+  "prompt_sha256": "5b4a7275e8a1780b83c7f48c648ff83c0be4e326c8b4dd3e9b7d3199d3d1e379",
   "reference_pack_path": "assets/scene-presets/std.nature.ocean_dusk_blue_hour/v1/reference-pack.json",
-  "reference_pack_sha256": "328c550b346141d11a4fd9809858927589efb9fa4bee61c1d1ca0d2499718c50",
+  "reference_pack_sha256": "bd541cfc78d20bae5caa27ceb3accfbeb552e0bbb449432118ad8e5993bd595c",
   "references": [
     {
       "media_type": "application/json",
@@ -30,7 +30,7 @@
       "path": "assets/scene-presets/std.nature.ocean_dusk_blue_hour/v1/composition-reference.json",
       "reference_id": "std.nature.ocean_dusk_blue_hour.composition",
       "role": "composition_anchor",
-      "sha256": "1303554a5b10f3a3a4d7865d3b7eeae68a6718d76521fc66f362bc0b5c7ab061"
+      "sha256": "2217cac41aee3f4b30716465a41fee37885fd02ad84e8c3a51b8c4a210b6b03b"
     },
     {
       "media_type": "application/json",

@@ -1,8 +1,8 @@
 {
   "preset_id": "std.nature.foggy_forest_light_shaft",
-  "preset_sha256": "6c491192e256f300d7e34b46126a573f865e3439f0bfc56dfffa82a5c749559a",
+  "preset_sha256": "5462d82c55945e4fea04b8faff868b2e85fa682b3d6c50699d40730ac6ca2f57",
   "preset_version": "1.0.0",
-  "prompt_sha256": "1fe64c1679c190281c5cad1a5822b003291f188cabc9b9803812ba12ad064ff3",
+  "prompt_sha256": "d7557834cd66ded328a935f903efd0dfcb14850585c42b5179f49f985124df33",
   "reference_pack_id": "pack.std.nature.foggy_forest_light_shaft.v1.1",
   "references": [
     {
@@ -39,7 +39,7 @@
       ],
       "reference_id": "std.nature.foggy_forest_light_shaft.composition",
       "role": "composition_anchor",
-      "sha256": "1303554a5b10f3a3a4d7865d3b7eeae68a6718d76521fc66f362bc0b5c7ab061"
+      "sha256": "2217cac41aee3f4b30716465a41fee37885fd02ad84e8c3a51b8c4a210b6b03b"
     },
     {
       "media_type": "application/json",

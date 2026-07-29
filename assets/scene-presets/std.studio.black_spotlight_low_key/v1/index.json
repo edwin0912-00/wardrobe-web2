@@ -1,12 +1,12 @@
 {
   "preset_id": "std.studio.black_spotlight_low_key",
   "preset_path": "assets/scene-presets/std.studio.black_spotlight_low_key/v1/preset.json",
-  "preset_sha256": "32cf71ca281d52d6ad881f65b9ba6bc2a80e598ffaa8b0a0039be84377a29ba1",
+  "preset_sha256": "ed46a44226aedca0b9ca3a3fc3442fcc62089918a090394d9abf2b50eb911c32",
   "preset_version": "1.0.0",
   "production_prompt_path": "prompts/scene-presets/std.studio.black_spotlight_low_key/v1/production-scene.txt",
-  "prompt_sha256": "ad9ab1a183c1d158f2338bb8dc3cbebcf4288ab2e4a7db459ab44fce88ff74b6",
+  "prompt_sha256": "506aaab573ac0d04b6c2a03d7c8f79d09bbdf7d3cd302a1fbc48f31cfe516178",
   "reference_pack_path": "assets/scene-presets/std.studio.black_spotlight_low_key/v1/reference-pack.json",
-  "reference_pack_sha256": "b6d3318ce79ef1e7c28ba9c2076d4d63da59e0eae6b6eb37a053628c6d350098",
+  "reference_pack_sha256": "1468f9eea675bddc9013689398fa8390b65d577f63272b8f70419562e5982716",
   "references": [
     {
       "media_type": "application/json",
@@ -30,7 +30,7 @@
       "path": "assets/scene-presets/std.studio.black_spotlight_low_key/v1/composition-reference.json",
       "reference_id": "std.studio.black_spotlight_low_key.composition",
       "role": "composition_anchor",
-      "sha256": "ad922393368f27640bdb9d9f7008c3753bd82bd6a11d79569779721acb3b7694"
+      "sha256": "16ceb5ed7ab3d79c30d32398d644ffe099cfe2ed94875a1b67b1562a2faa800c"
     },
     {
       "media_type": "application/json",

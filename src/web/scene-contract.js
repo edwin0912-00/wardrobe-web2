@@ -202,7 +202,7 @@ const EDITORIAL_FRAMINGS = new Set([
   'wide_full_body',
 ]);
 const EDITORIAL_IDENTITY_VISIBILITY = new Set(['full_face', 'partial_face', 'not_intended']);
-// A standard scene keeps the tight [74, 78] band below because it promises the same
+// A standard scene keeps the controlled [70, 80] band below because it promises the same
 // avatar at the same scale in a new environment — there, consistent scale IS the
 // product. Editorial is art direction: the crop is the style, and the only vertical
 // promise it makes is the breathing room reserved above the hair. Hand-picking a
@@ -284,7 +284,7 @@ export function editorialFramingLock(slot) {
 }
 
 const STANDARD_FRAMING_LOCK = Object.freeze({
-  subject: Object.freeze([74, 78]),
+  subject: Object.freeze([70, 80]),
   above: 8,
   below: 2,
   head: true,
@@ -296,7 +296,7 @@ const STANDARD_FRAMING_LOCK = Object.freeze({
 // caller holds: the live QA path has the parsed SceneSpec, the persisted-state
 // validators have only the binding. Both are safe to key on, since
 // validatePresetSnapshot refuses a SceneSpec whose camera disagrees with the lock its
-// id resolves to — standard against [74, 78]/8/2 and editorial against
+// id resolves to — standard against [70, 80]/8/2 and editorial against
 // EDITORIAL_FRAMING_LOCKS[shot_slot], with the id itself pinned to
 // `${mode_id}.${shot_slot}`.
 export function sceneFramingLock(preset) {
@@ -632,9 +632,9 @@ function validatePresetCamera(camera) {
   }
   if (!Array.isArray(camera.subject_height_percent)
     || camera.subject_height_percent.length !== 2
-    || camera.subject_height_percent[0] !== 74
-    || camera.subject_height_percent[1] !== 78) {
-    throw new Error('Resolved standard scene preset must lock subject_height_percent to [74, 78]');
+    || camera.subject_height_percent[0] !== 70
+    || camera.subject_height_percent[1] !== 80) {
+    throw new Error('Resolved standard scene preset must lock subject_height_percent to [70, 80]');
   }
   if (!camera.minimum_clear_space_percent
     || typeof camera.minimum_clear_space_percent !== 'object'

@@ -28,6 +28,20 @@ passes 30/30. The unit audit asserts all ten selectable `shoot.*` units have
 their manifest and required sheet roles.
 weakened_checks: none.
 
+2026-07-29 · Standard scene scale contract 70–80% · pending beta release
+Change: widened the standard full-body scale band from 74–78% to 70–80% and
+rebuilt every published standard-scene pack, its composition anchor, prompt
+hash and catalog binding. Native delivery remains exactly 3:4 (1536×2048);
+headroom/footwear locks remain 8%/2%.
+Why: `scene_dcfb6…` attempt 01 measured 72.2168% person height and passed
+every other gate. The prior band rejected a usable, complete frame.
+Evidence: 21/21 framing/catalog tests PASS; 6/6 published-pack and scene API
+integration tests PASS. The live request still contains an explicit 1536×2048
+3:4 transport lock and rejects provider outputs of another aspect ratio.
+weakened_checks: subject-scale acceptance widened by explicit operator decision;
+identity, item, full-head, footwear, 3:4 geometry, headroom and ground-space
+checks are unchanged.
+
 2026-07-29 · Standard scene framing crop quantisation · pending beta release
 Change: crop height now aligns to both the 5px mechanical grid and the delivery
 ratio's integral-width step. The former 5px-only grid could refuse a valid 3:4

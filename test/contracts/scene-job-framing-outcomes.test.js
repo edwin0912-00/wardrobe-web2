@@ -33,7 +33,7 @@ function passingFraming() {
     canvas_width: 1024,
     canvas_height: 1280,
     subject_bbox_xywh_px: [202, 104, 620, 973],
-    expected_subject_height_percent: [74, 78],
+    expected_subject_height_percent: [70, 80],
     subject_height_percent: 76.0156,
     minimum_clear_space_above_hair_percent: 8,
     minimum_clear_space_below_footwear_percent: 2,
@@ -49,7 +49,7 @@ function observedBadFraming() {
     canvas_width: 1024,
     canvas_height: 1280,
     subject_bbox_xywh_px: [100, 64, 824, 1088],
-    expected_subject_height_percent: [74, 78],
+    expected_subject_height_percent: [70, 80],
     subject_height_percent: 85,
     minimum_clear_space_above_hair_percent: 8,
     minimum_clear_space_below_footwear_percent: 2,
@@ -163,14 +163,14 @@ test('non-final attempt states retain their existing nullable QA contract', asyn
   }
 });
 
-test('QA_PASS attempt requires exactly eight ordered PASS gates and strict 74-78 framing', async () => {
+test('QA_PASS attempt requires exactly eight ordered PASS gates and strict 70-80 framing', async () => {
   const { validateAttempt } = await validators();
   const valid = attempt();
   assert.equal(validateAttempt(valid), true, validationMessage(validateAttempt));
 
   const badFraming = structuredClone(valid);
   badFraming.qa.framing_evidence = observedBadFraming();
-  assert.equal(validateAttempt(badFraming), false, 'QA_PASS must reject observed framing outside 74-78%');
+  assert.equal(validateAttempt(badFraming), false, 'QA_PASS must reject observed framing outside 70-80%');
 
   const failedGate = structuredClone(valid);
   failedGate.qa.gates[4].decision = 'FAIL';

@@ -1,8 +1,8 @@
 {
   "preset_id": "std.studio.taupe_rembrandt_gloss",
-  "preset_sha256": "fe5572a8c217cfc83891d3d9392320b4b1c81bac00aa2a8b0e4a47f299389b6d",
+  "preset_sha256": "6cfa2df1aabbcd2481ab5e8a023773b85cf4fd8d5cacae57aca05d67207201a3",
   "preset_version": "1.0.0",
-  "prompt_sha256": "8dde4619df1d9cf975514e76c056bfd578989234aea88639f5fd828047f8171f",
+  "prompt_sha256": "2253f9fd2dc91b83ca132632619f3663eafd305835a45229d3e318667b9de137",
   "reference_pack_id": "pack.std.studio.taupe_rembrandt_gloss.v1.1",
   "references": [
     {
@@ -39,7 +39,7 @@
       ],
       "reference_id": "std.studio.taupe_rembrandt_gloss.composition",
       "role": "composition_anchor",
-      "sha256": "ad922393368f27640bdb9d9f7008c3753bd82bd6a11d79569779721acb3b7694"
+      "sha256": "16ceb5ed7ab3d79c30d32398d644ffe099cfe2ed94875a1b67b1562a2faa800c"
     },
     {
       "media_type": "application/json",

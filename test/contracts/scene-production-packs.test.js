@@ -194,7 +194,7 @@ test('production prompts bind the look master and fail closed on framing and ite
     const prompt = promptBytes.toString('utf8');
     assert.equal(sha256(promptBytes), descriptor.prompt_sha256);
     assert.match(prompt, /LOOK_MASTER/);
-    assert.match(prompt, /74–78%/);
+    assert.match(prompt, /70–80%/);
     assert.match(prompt, /at least 8%/);
     assert.match(prompt, /2%/);
     assert.match(prompt, /both shoes/);

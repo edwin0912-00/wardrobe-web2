@@ -41,7 +41,7 @@
     "measurement_basis": "final_1024x1280_delivery",
     "subject_bbox_definition": "topmost visible hair pixel through lowest visible footwear pixel",
     "percent_formula": "subject_bbox_height_px / 1280 * 100",
-    "standard_subject_height_percent": [74, 78],
+    "standard_subject_height_percent": [70, 80],
     "editorial_subject_height_percent": {
       "editorial.edwin_novak.organic_contrast": [66, 70],
       "editorial.edwin_novak.urban_monochrome": [62, 70],
@@ -109,7 +109,7 @@
         "finish": "polished_editorial_gloss_without_skin_smoothing_or_hdr",
         "protected_regions": ["eyes", "face_identity", "item_logos", "item_text", "critical_construction"]
       },
-      "camera": { "aspect_ratio": "4:5", "lens_mm": 50, "height": "eye_level", "subject_height_percent": [74, 78], "minimum_clear_space_percent": { "above_hair": 8, "below_footwear": 2 }, "max_vertical_error_deg": 1.5 },
+      "camera": { "aspect_ratio": "4:5", "lens_mm": 50, "height": "eye_level", "subject_height_percent": [70, 80], "minimum_clear_space_percent": { "above_hair": 8, "below_footwear": 2 }, "max_vertical_error_deg": 1.5 },
       "palette": ["limestone", "pearl white", "blue grey", "muted sage", "pale warm gold"],
       "hard_negatives": ["people", "cars", "brands", "readable text", "recognizable landmarks", "wet pavement", "postcard decoration", "wide-angle distortion"],
       "prompt_path": "prompts/scenes/std.city.early_morning_gloss.txt",
@@ -143,7 +143,7 @@
         "finish": "polished_editorial_gloss_without_skin_smoothing_or_hdr",
         "protected_regions": ["eyes", "face_identity", "item_logos", "item_text", "critical_construction"]
       },
-      "camera": { "aspect_ratio": "4:5", "lens_mm": 50, "height": "eye_level", "subject_height_percent": [74, 78], "minimum_clear_space_percent": { "above_hair": 8, "below_footwear": 2 }, "max_vertical_error_deg": 1.5 },
+      "camera": { "aspect_ratio": "4:5", "lens_mm": 50, "height": "eye_level", "subject_height_percent": [70, 80], "minimum_clear_space_percent": { "above_hair": 8, "below_footwear": 2 }, "max_vertical_error_deg": 1.5 },
       "palette": ["honey", "cream stone", "olive shadow", "cool blue grey"],
       "hard_negatives": ["orange teal grade", "cafe clutter", "advertising", "readable text", "flare across face", "flare across product", "tourist landmark"],
       "prompt_path": "prompts/scenes/std.city.golden_hour_gloss.txt",
@@ -177,7 +177,7 @@
         "finish": "polished_editorial_gloss_without_skin_smoothing_or_hdr",
         "protected_regions": ["eyes", "lips", "face_identity", "item_logos", "item_text", "critical_construction"]
       },
-      "camera": { "aspect_ratio": "4:5", "lens_mm": 65, "height": "eye_level", "subject_height_percent": [74, 78], "minimum_clear_space_percent": { "above_hair": 8, "below_footwear": 2 }, "max_vertical_error_deg": 1.0 },
+      "camera": { "aspect_ratio": "4:5", "lens_mm": 65, "height": "eye_level", "subject_height_percent": [70, 80], "minimum_clear_space_percent": { "above_hair": 8, "below_footwear": 2 }, "max_vertical_error_deg": 1.0 },
       "palette": ["dusty peach #E4AD96", "warm ivory", "cocoa", "neutral skin"],
       "hard_negatives": ["neon peach", "coral cast", "visible paper edge", "props", "plastic skin", "peach recolor on items", "background blotches"],
       "prompt_path": "prompts/scenes/std.studio.peach_soft_gloss.txt",
@@ -211,7 +211,7 @@
         "finish": "polished_editorial_gloss_without_skin_smoothing_or_hdr",
         "protected_regions": ["eyes", "lips", "face_identity", "item_logos", "item_text", "critical_construction"]
       },
-      "camera": { "aspect_ratio": "4:5", "lens_mm": 65, "height": "eye_level", "subject_height_percent": [74, 78], "minimum_clear_space_percent": { "above_hair": 8, "below_footwear": 2 }, "max_vertical_error_deg": 1.0 },
+      "camera": { "aspect_ratio": "4:5", "lens_mm": 65, "height": "eye_level", "subject_height_percent": [70, 80], "minimum_clear_space_percent": { "above_hair": 8, "below_footwear": 2 }, "max_vertical_error_deg": 1.0 },
       "palette": ["optical white", "warm sun", "cool pearl shadow", "neutral skin"],
       "hard_negatives": ["pattern across eyes", "pattern across logos", "prison bars", "zebra stripes", "blown white", "random geometry", "invented text"],
       "prompt_path": "prompts/scenes/std.studio.white_window_honeycomb.txt",
@@ -245,7 +245,7 @@
         "finish": "polished_editorial_gloss_without_skin_smoothing_or_hdr",
         "protected_regions": ["eyes", "lips", "face_identity", "item_logos", "item_text", "critical_construction"]
       },
-      "camera": { "aspect_ratio": "4:5", "lens_mm": 70, "height": "eye_level", "subject_height_percent": [74, 78], "minimum_clear_space_percent": { "above_hair": 8, "below_footwear": 2 }, "max_vertical_error_deg": 1.0 },
+      "camera": { "aspect_ratio": "4:5", "lens_mm": 70, "height": "eye_level", "subject_height_percent": [70, 80], "minimum_clear_space_percent": { "above_hair": 8, "below_footwear": 2 }, "max_vertical_error_deg": 1.0 },
       "palette": ["dark taupe", "espresso", "champagne", "neutral skin"],
       "hard_negatives": ["split light", "fully black eye", "smoke", "theatre props", "neon", "crushed item detail", "beauty smoothing"],
       "prompt_path": "prompts/scenes/std.studio.taupe_rembrandt_gloss.txt",
@@ -279,7 +279,7 @@
         "finish": "polished_editorial_gloss_without_skin_smoothing_or_hdr",
         "protected_regions": ["eyes", "face_identity", "item_logos", "item_text", "critical_construction"]
       },
-      "camera": { "aspect_ratio": "4:5", "lens_mm": 70, "height": "eye_level", "subject_height_percent": [74, 78], "minimum_clear_space_percent": { "above_hair": 8, "below_footwear": 2 }, "max_vertical_error_deg": 1.0 },
+      "camera": { "aspect_ratio": "4:5", "lens_mm": 70, "height": "eye_level", "subject_height_percent": [70, 80], "minimum_clear_space_percent": { "above_hair": 8, "below_footwear": 2 }, "max_vertical_error_deg": 1.0 },
       "palette": ["graphite", "steel blue", "pale amber", "soft black"],
       "hard_negatives": ["neon", "science fiction", "dense fog", "featureless silhouette", "shaft across face", "shaft across logo", "crushed blacks"],
       "prompt_path": "prompts/scenes/std.studio.charcoal_dawn_rim.txt",
@@ -313,7 +313,7 @@
         "finish": "polished_editorial_gloss_without_skin_smoothing_or_hdr",
         "protected_regions": ["eyes", "face_identity", "item_logos", "item_text", "critical_construction"]
       },
-      "camera": { "aspect_ratio": "4:5", "lens_mm": 50, "height": "eye_level", "subject_height_percent": [74, 78], "minimum_clear_space_percent": { "above_hair": 8, "below_footwear": 2 }, "max_vertical_error_deg": 1.5 },
+      "camera": { "aspect_ratio": "4:5", "lens_mm": 50, "height": "eye_level", "subject_height_percent": [70, 80], "minimum_clear_space_percent": { "above_hair": 8, "below_footwear": 2 }, "max_vertical_error_deg": 1.5 },
       "palette": ["off white", "travertine", "light oak", "pearl shadow", "pale gold"],
       "hard_negatives": ["furniture clutter", "artwork", "posters", "readable text", "hotel decoration", "blown windows", "crooked verticals"],
       "prompt_path": "prompts/scenes/std.interior.gallery_morning_gloss.txt",
@@ -347,7 +347,7 @@
         "finish": "polished_editorial_gloss_without_skin_smoothing_or_hdr",
         "protected_regions": ["eyes", "face_identity", "item_logos", "item_text", "critical_construction"]
       },
-      "camera": { "aspect_ratio": "4:5", "lens_mm": 50, "height": "eye_level", "subject_height_percent": [74, 78], "minimum_clear_space_percent": { "above_hair": 8, "below_footwear": 2 }, "max_vertical_error_deg": 1.5 },
+      "camera": { "aspect_ratio": "4:5", "lens_mm": 50, "height": "eye_level", "subject_height_percent": [70, 80], "minimum_clear_space_percent": { "above_hair": 8, "below_footwear": 2 }, "max_vertical_error_deg": 1.5 },
       "palette": ["cream", "warm plaster", "terracotta", "honey", "cool stone shadow"],
       "hard_negatives": ["industrial grime", "exposed pipes", "boho props", "orange item cast", "furniture catalogue", "readable text", "crooked verticals"],
       "prompt_path": "prompts/scenes/std.interior.loft_golden_hour_gloss.txt",
@@ -381,7 +381,7 @@
         "finish": "polished_editorial_gloss_without_skin_smoothing_or_hdr",
         "protected_regions": ["eyes", "face_identity", "item_logos", "item_text", "critical_construction"]
       },
-      "camera": { "aspect_ratio": "4:5", "lens_mm": 50, "height": "eye_level", "subject_height_percent": [74, 78], "minimum_clear_space_percent": { "above_hair": 8, "below_footwear": 2 }, "max_vertical_error_deg": 1.5 },
+      "camera": { "aspect_ratio": "4:5", "lens_mm": 50, "height": "eye_level", "subject_height_percent": [70, 80], "minimum_clear_space_percent": { "above_hair": 8, "below_footwear": 2 }, "max_vertical_error_deg": 1.5 },
       "palette": ["limestone", "fog blue", "dry sage", "pale gold", "warm ivory"],
       "hard_negatives": ["park", "forest", "flowers", "tourist location", "garden furniture", "foliage across face", "foliage across item"],
       "prompt_path": "prompts/scenes/std.nature_architecture.stone_terrace_morning.txt",
@@ -415,7 +415,7 @@
         "finish": "polished_editorial_gloss_without_skin_smoothing_or_hdr",
         "protected_regions": ["eyes", "face_identity", "item_logos", "item_text", "critical_construction"]
       },
-      "camera": { "aspect_ratio": "4:5", "lens_mm": 50, "height": "low_max_5deg", "subject_height_percent": [74, 78], "minimum_clear_space_percent": { "above_hair": 8, "below_footwear": 2 }, "max_vertical_error_deg": 1.5 },
+      "camera": { "aspect_ratio": "4:5", "lens_mm": 50, "height": "low_max_5deg", "subject_height_percent": [70, 80], "minimum_clear_space_percent": { "above_hair": 8, "below_footwear": 2 }, "max_vertical_error_deg": 1.5 },
       "palette": ["concrete grey", "straw", "ochre", "olive", "cool sky shadow"],
       "hard_negatives": ["highway", "underpass", "wild meadow", "strong flare", "grass across face", "grass across item", "recognizable landmark"],
       "prompt_path": "prompts/scenes/std.nature_architecture.concrete_grass_golden_hour.txt",

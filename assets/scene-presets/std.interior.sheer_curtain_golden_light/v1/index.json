@@ -1,12 +1,12 @@
 {
   "preset_id": "std.interior.sheer_curtain_golden_light",
   "preset_path": "assets/scene-presets/std.interior.sheer_curtain_golden_light/v1/preset.json",
-  "preset_sha256": "10f52fbd344084a72cdb0e7103e14a60a372d4e37858bd6b501035c538f37640",
+  "preset_sha256": "107c90d3246e6376ad567b7de31f90e3366fa81fbc5f880fba6c23d07e64abdf",
   "preset_version": "1.0.0",
   "production_prompt_path": "prompts/scene-presets/std.interior.sheer_curtain_golden_light/v1/production-scene.txt",
-  "prompt_sha256": "103298c0f7451e0daa74fb718e3f65ca61f550e44423832ebbe58c64eeb0b0ea",
+  "prompt_sha256": "3d8ffb0b8373d2c052250eca532935852c1d2bae1f479d78b279f4b2e8928ece",
   "reference_pack_path": "assets/scene-presets/std.interior.sheer_curtain_golden_light/v1/reference-pack.json",
-  "reference_pack_sha256": "43ff8816a66f34e91aaa94945ffc61ed0c37b9a104f9c8046289f8be6d51c9c0",
+  "reference_pack_sha256": "ab01c41f137fd11c9dcf059c649206f3dcb76a5c94f4b4cc3151e93d8210f250",
   "references": [
     {
       "media_type": "application/json",
@@ -30,7 +30,7 @@
       "path": "assets/scene-presets/std.interior.sheer_curtain_golden_light/v1/composition-reference.json",
       "reference_id": "std.interior.sheer_curtain_golden_light.composition",
       "role": "composition_anchor",
-      "sha256": "1303554a5b10f3a3a4d7865d3b7eeae68a6718d76521fc66f362bc0b5c7ab061"
+      "sha256": "2217cac41aee3f4b30716465a41fee37885fd02ad84e8c3a51b8c4a210b6b03b"
     },
     {
       "media_type": "application/json",

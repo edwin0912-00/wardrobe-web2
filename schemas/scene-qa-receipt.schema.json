@@ -130,8 +130,8 @@
               "properties": {
                 "expected_subject_height_percent": {
                   "const": [
-                    74,
-                    78
+                    70,
+                    80
                   ]
                 },
                 "minimum_clear_space_above_hair_percent": {
@@ -287,8 +287,8 @@
               "properties": {
                 "expected_subject_height_percent": {
                   "const": [
-                    74,
-                    78
+                    70,
+                    80
                   ]
                 },
                 "minimum_clear_space_above_hair_percent": {
@@ -298,8 +298,8 @@
                   "const": 2
                 },
                 "subject_height_percent": {
-                  "minimum": 74,
-                  "maximum": 78
+                  "minimum": 70,
+                  "maximum": 80
                 },
                 "full_head_visible": {
                   "const": true
@@ -643,8 +643,8 @@
           "properties": {
             "expected_subject_height_percent": {
               "const": [
-                74,
-                78
+                70,
+                80
               ]
             },
             "minimum_clear_space_above_hair_percent": {

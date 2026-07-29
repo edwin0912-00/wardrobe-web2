@@ -128,7 +128,7 @@ function evaluation(shouldPass) {
       request_id: `review-${Math.random().toString(16).slice(2)}`,
     },
     framing_evidence: {
-      subject_bbox_xywh_px: [200, 120, 620, 970],
+      subject_bbox_xywh_px: [300, 180, 930, 1460],
       full_head_visible: true,
       full_footwear_visible: true,
     },
@@ -148,7 +148,7 @@ async function createFixture(t, { initialQaPass = true } = {}) {
   const runs = new Map();
   const calls = { generator: 0, evaluator: 0, deleteRun: 0 };
   const qa = { pass: initialQaPass };
-  const generated = await png('#c79782', 800, 1000);
+  const generated = await png('#c79782', 960, 1280);
 
   async function addCompletedRun(runId) {
     const directory = path.join(runRoot, runId);
@@ -308,13 +308,13 @@ async function createFixture(t, { initialQaPass = true } = {}) {
                 model_version: context.model_version,
                 job_set_type: context.job_set_type,
                 quality: context.quality,
-                source_width: 800,
-                source_height: 1000,
-                source_aspect_ratio: '4:5',
+                source_width: 960,
+                source_height: 1280,
+                source_aspect_ratio: '3:4',
                 raw_output_sha256: sha256(generated),
                 geometry_output_sha256: sha256(generated),
-                transport_aspect_ratio: context.job_set_type === 'gpt_image_2' ? '3:4' : '4:5',
-                geometry_strategy: 'provider_exact_4_5',
+                transport_aspect_ratio: '3:4',
+                geometry_strategy: 'provider_exact_3_4',
               },
             };
           },

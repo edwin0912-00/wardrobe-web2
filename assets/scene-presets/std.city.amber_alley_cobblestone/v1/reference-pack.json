@@ -1,8 +1,8 @@
 {
   "preset_id": "std.city.amber_alley_cobblestone",
-  "preset_sha256": "c479915ac74fec1ba44318c5da97c1b8316c397fe30dcaeaa53c9577a35218da",
+  "preset_sha256": "8cf661723543c7649a0e7b1a8ec65d71f3c73a7d90cd3d88f029ccc1ac39d55f",
   "preset_version": "1.0.0",
-  "prompt_sha256": "b17797f1049182dc0df5196431cd4b95e5389a6e02309ca8c73a9dab4ab98194",
+  "prompt_sha256": "92f315c6b267242ddcb223f38222f57668e17102fdfee3cf29c6804d419fadc8",
   "reference_pack_id": "pack.std.city.amber_alley_cobblestone.v1.1",
   "references": [
     {
@@ -39,7 +39,7 @@
       ],
       "reference_id": "std.city.amber_alley_cobblestone.composition",
       "role": "composition_anchor",
-      "sha256": "1303554a5b10f3a3a4d7865d3b7eeae68a6718d76521fc66f362bc0b5c7ab061"
+      "sha256": "2217cac41aee3f4b30716465a41fee37885fd02ad84e8c3a51b8c4a210b6b03b"
     },
     {
       "media_type": "application/json",

@@ -1,8 +1,8 @@
 {
   "preset_id": "std.city.rooftop_concrete_sunset",
-  "preset_sha256": "dca7030383197e9fa4ba3decabeaaf846420f8b938a26cae9924f3b14bfea8de",
+  "preset_sha256": "64d699b334fa4ec748fcb1718d642eedcf4bc932716a284fdb20a71f1a8c6160",
   "preset_version": "1.0.0",
-  "prompt_sha256": "e5c69b5dc618386cf1b8fa1f95038154a85774382c2f0f494565d55527658937",
+  "prompt_sha256": "0e983b611a7dae97f3c9ee385d722e77e4600714d4f05959c85d2e2e9b5e9aea",
   "reference_pack_id": "pack.std.city.rooftop_concrete_sunset.v1.1",
   "references": [
     {
@@ -39,7 +39,7 @@
       ],
       "reference_id": "std.city.rooftop_concrete_sunset.composition",
       "role": "composition_anchor",
-      "sha256": "1303554a5b10f3a3a4d7865d3b7eeae68a6718d76521fc66f362bc0b5c7ab061"
+      "sha256": "2217cac41aee3f4b30716465a41fee37885fd02ad84e8c3a51b8c4a210b6b03b"
     },
     {
       "media_type": "application/json",

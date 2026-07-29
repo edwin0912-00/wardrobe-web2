@@ -168,7 +168,7 @@ test('OpenRouterSceneEvaluator attaches candidate, look and all five roles and r
   const framing = validateFramingEvidence(normalized.framing_evidence, {
     width: 1024,
     height: 1280,
-    expectedSubjectHeightPercent: [74, 78],
+    expectedSubjectHeightPercent: [70, 80],
   });
   assert.equal(framing.subject_height_percent, 75);
 });

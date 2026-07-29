@@ -1,8 +1,8 @@
 {
   "preset_id": "std.city.golden_hour_gloss",
-  "preset_sha256": "d4ce72f050375b5461f4142b4fdbc676018d13bd81b300105c72f7a2d872fee3",
+  "preset_sha256": "ebd8a4ef30c84cc14b9f869d605afd41f6bbb082cede80bc8fea359615db94c1",
   "preset_version": "1.0.0",
-  "prompt_sha256": "91b8a40cf482ae93ce35337f5e727774ace2a0869b58a420725cdb104ed19c27",
+  "prompt_sha256": "0265b99c006a5c7f4adb2e452f47cc3d8038e8a1dbfeb48ffcaff8e2d4257afe",
   "reference_pack_id": "pack.std.city.golden_hour_gloss.v1.1",
   "references": [
     {
@@ -39,7 +39,7 @@
       ],
       "reference_id": "std.city.golden_hour_gloss.composition",
       "role": "composition_anchor",
-      "sha256": "1303554a5b10f3a3a4d7865d3b7eeae68a6718d76521fc66f362bc0b5c7ab061"
+      "sha256": "2217cac41aee3f4b30716465a41fee37885fd02ad84e8c3a51b8c4a210b6b03b"
     },
     {
       "media_type": "application/json",

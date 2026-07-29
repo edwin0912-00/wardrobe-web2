@@ -7,7 +7,7 @@
 // recording the lock-derived [50, 94] / [40, 95] / [50, 95] / [45, 96] / [45, 100] /
 // [30, 92] with minimums of 6 / 5 / 5 / 4 / 0 / 8 above the hair and 0 below the footwear.
 // Those branches could not match a receipt, so ajv rejected all seventeen live editorial
-// receipts on the standard [74, 78] / 8 / 2 and editorial QA was validating nothing.
+// receipts on the standard [70, 80] / 8 / 2 and editorial QA was validating nothing.
 //
 // So this script is the only writer of those literals. It asks the same resolver the QA
 // path asks, one row per lock, and splices the result into each schema's `framingLock`

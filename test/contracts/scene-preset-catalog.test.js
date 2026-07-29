@@ -129,7 +129,7 @@ test('final framing has one measurable bbox definition for standard and editoria
   const framing = catalog.framing_measurement;
   assert.equal(framing.measurement_basis, 'final_1024x1280_delivery');
   assert.equal(framing.percent_formula, 'subject_bbox_height_px / 1280 * 100');
-  assert.deepEqual(framing.standard_subject_height_percent, [74, 78]);
+  assert.deepEqual(framing.standard_subject_height_percent, [70, 80]);
   assert.deepEqual(framing.minimum_clear_space_percent, { above_hair: 8, below_footwear: 2 });
   assert.deepEqual(framing.editorial_subject_height_percent, {
     'editorial.edwin_novak.organic_contrast': [66, 70],

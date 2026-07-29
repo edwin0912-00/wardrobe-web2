@@ -1,8 +1,8 @@
 {
   "preset_id": "std.studio.terracotta_raking_light",
-  "preset_sha256": "dd5f6fb44e4808ca741290059b242172cff04a96c9dea399b982f1228326360b",
+  "preset_sha256": "f7e188d5d05bf8e885fe6ed5d6379a25e7062359a3b9e43f438b8b1f0cebba55",
   "preset_version": "1.0.0",
-  "prompt_sha256": "d55024f73558c0164508cefd8f8373f76e55779cbcb019e908106053eab44b92",
+  "prompt_sha256": "a15acd051fb9656cba81b9a4487f6b1e658f3bd4b1f27e2e0e7f8b47150e34ff",
   "reference_pack_id": "pack.std.studio.terracotta_raking_light.v1.1",
   "references": [
     {
@@ -39,7 +39,7 @@
       ],
       "reference_id": "std.studio.terracotta_raking_light.composition",
       "role": "composition_anchor",
-      "sha256": "9b1e1b443eeec151edcaea96b16e0a962e6490b8fc0e59c3200809bbc6332e62"
+      "sha256": "224f96b26152d89862312849874356cf512790f6b9367a4b135667b836151e54"
     },
     {
       "media_type": "application/json",

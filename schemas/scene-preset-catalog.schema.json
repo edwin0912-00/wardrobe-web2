@@ -260,7 +260,7 @@
     },
     "standardSubjectRange": {
       "type": "array",
-      "prefixItems": [{ "const": 74 }, { "const": 78 }],
+      "prefixItems": [{ "const": 70 }, { "const": 80 }],
       "items": false,
       "minItems": 2,
       "maxItems": 2

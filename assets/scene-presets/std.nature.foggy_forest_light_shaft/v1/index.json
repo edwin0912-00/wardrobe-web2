@@ -1,12 +1,12 @@
 {
   "preset_id": "std.nature.foggy_forest_light_shaft",
   "preset_path": "assets/scene-presets/std.nature.foggy_forest_light_shaft/v1/preset.json",
-  "preset_sha256": "6c491192e256f300d7e34b46126a573f865e3439f0bfc56dfffa82a5c749559a",
+  "preset_sha256": "5462d82c55945e4fea04b8faff868b2e85fa682b3d6c50699d40730ac6ca2f57",
   "preset_version": "1.0.0",
   "production_prompt_path": "prompts/scene-presets/std.nature.foggy_forest_light_shaft/v1/production-scene.txt",
-  "prompt_sha256": "1fe64c1679c190281c5cad1a5822b003291f188cabc9b9803812ba12ad064ff3",
+  "prompt_sha256": "d7557834cd66ded328a935f903efd0dfcb14850585c42b5179f49f985124df33",
   "reference_pack_path": "assets/scene-presets/std.nature.foggy_forest_light_shaft/v1/reference-pack.json",
-  "reference_pack_sha256": "3aae3fc8778033bc7808b7625c70749a763130291da9ac7c492d3d2db9850417",
+  "reference_pack_sha256": "b2b7632aa0bcbd7a413bcf52dea74a43dc5ca96abe05387223ab402476d3a5bd",
   "references": [
     {
       "media_type": "application/json",
@@ -30,7 +30,7 @@
       "path": "assets/scene-presets/std.nature.foggy_forest_light_shaft/v1/composition-reference.json",
       "reference_id": "std.nature.foggy_forest_light_shaft.composition",
       "role": "composition_anchor",
-      "sha256": "1303554a5b10f3a3a4d7865d3b7eeae68a6718d76521fc66f362bc0b5c7ab061"
+      "sha256": "2217cac41aee3f4b30716465a41fee37885fd02ad84e8c3a51b8c4a210b6b03b"
     },
     {
       "media_type": "application/json",

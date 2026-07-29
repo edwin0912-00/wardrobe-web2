@@ -84,10 +84,10 @@ function declaredFunction(source, signature) {
 
 function standardFramingEvidence(overrides = {}) {
   return {
-    canvas_width: 1024,
-    canvas_height: 1280,
+    canvas_width: 1536,
+    canvas_height: 2048,
     subject_bbox_xywh_px: [202, 104, 620, 973],
-    expected_subject_height_percent: [74, 78],
+    expected_subject_height_percent: [70, 80],
     subject_height_percent: 76.0156,
     minimum_clear_space_above_hair_percent: 8,
     minimum_clear_space_below_footwear_percent: 2,
@@ -179,7 +179,7 @@ test('the framing lock owner reproduces them for every compiled editorial shot',
 
 test('a preset without an id cannot resolve a framing lock at all', () => {
   // Silently answering with the standard lock is how an editorial shot would get judged
-  // as a fitting shot: [74, 78] with footwear required, on an art crop.
+  // as a fitting shot: [70, 80] with footwear required, on an art crop.
   assert.throws(() => sceneFramingLock({}), /requires a preset carrying its preset_id/);
   assert.throws(() => sceneFramingLock(undefined), /requires a preset carrying its preset_id/);
 });
@@ -245,25 +245,24 @@ test('an editorial receipt states the headroom waiver instead of leaving it to b
   assert.ok(standard.defects.includes('INSUFFICIENT_CLEAR_SPACE_ABOVE_HAIR'));
 });
 
-test('3:4 crop planning aligns its pixel grid to an integral 3:4 crop width', () => {
+test('70–80 standard framing accepts the beta scene scale without a crop', () => {
   // Regression from beta scene_dcfb6… attempt 1: 72.2168% subject height,
-  // 11.9141% headroom and 15.8691% below. The strict [74,78]/8/2 contract has
-  // a valid mechanical crop; the old 5px-only quantisation selected 1945px
-  // and rejected it because 1945 × 3/4 is fractional.
-  const plan = deterministicFramingCropPlan({
+  // 11.9141% headroom and 15.8691% below. This standard full-body result is
+  // now a valid delivery directly; no crop or generated pixels are required.
+  const assessment = assessSceneFraming({
     subject_bbox_xywh_px: [519, 244, 498, 1479],
-    expected_subject_height_percent: [74, 78],
-    subject_height_percent: 72.2168,
-    minimum_clear_space_above_hair_percent: 8,
-    minimum_clear_space_below_footwear_percent: 2,
     full_head_visible: true,
     full_footwear_visible: true,
-  }, { width: 1536, height: 2048 });
-  assert.deepEqual(plan && [plan.left, plan.top, plan.width, plan.height], [41, 14, 1455, 1940]);
-  assert.equal(plan.width * 4, plan.height * 3, 'crop is exactly 3:4 before resize');
-  assert.ok((1479 / plan.height) * 100 >= 74);
-  assert.ok((1479 / plan.height) * 100 <= 78);
-  assert.ok(((244 - plan.top) / plan.height) * 100 >= 8);
+  }, {
+    preset: { preset_id: 'std.city.golden_hour_gloss' },
+    width: 1536,
+    height: 2048,
+  });
+  assert.equal(assessment.evidence.subject_height_percent, 72.2168);
+  assert.equal(assessment.evidence.clear_space_above_hair_percent, 11.9141);
+  assert.deepEqual(assessment.evidence.expected_subject_height_percent, [70, 80]);
+  assert.deepEqual(assessment.defects, []);
+  assert.equal(deterministicFramingCropPlan(assessment.evidence, { width: 1536, height: 2048 }), null);
 });
 
 test('the receipt reports the waiver the assessment found, never one the evaluator claims', () => {

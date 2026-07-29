@@ -1504,6 +1504,7 @@ export async function registerProfileRoutes(app, {
   runService,
   sceneService = null,
   editorialShootService = null,
+  videoService = null,
   secureCookie = true,
   cookieName = secureCookie ? '__Host-zeely_profile' : 'zeely_profile_dev',
 } = {}) {
@@ -1590,7 +1591,7 @@ export async function registerProfileRoutes(app, {
     sameOriginMutation(request);
     const session = await resolveRequestProfile(request, reply);
     if (!service.deleteAvatar(session.profileId, request.params.avatarId)) return reply.code(404).send({ error: 'Avatar not found' });
-    await service.flushDeletionQueue({ runService, sceneService, editorialShootService, videoService: services?.videoService ?? null });
+    await service.flushDeletionQueue({ runService, sceneService, editorialShootService, videoService });
     return reply.code(204).send();
   });
 
@@ -1598,7 +1599,7 @@ export async function registerProfileRoutes(app, {
     sameOriginMutation(request);
     const session = await resolveRequestProfile(request, reply);
     if (!service.deleteLook(session.profileId, request.params.lookId)) return reply.code(404).send({ error: 'Look not found' });
-    await service.flushDeletionQueue({ runService, sceneService, editorialShootService, videoService: services?.videoService ?? null });
+    await service.flushDeletionQueue({ runService, sceneService, editorialShootService, videoService });
     return reply.code(204).send();
   });
 
@@ -1606,7 +1607,7 @@ export async function registerProfileRoutes(app, {
     sameOriginMutation(request);
     const session = await resolveRequestProfile(request, reply);
     service.deleteProfile(session.profileId);
-    await service.flushDeletionQueue({ runService, sceneService, editorialShootService, videoService: services?.videoService ?? null });
+    await service.flushDeletionQueue({ runService, sceneService, editorialShootService, videoService });
     appendSetCookie(reply, clearCookie(cookieName, { secure: secureCookie }));
     return reply.code(204).send();
   });
@@ -1665,7 +1666,7 @@ export async function registerProfileRoutes(app, {
         runService,
         sceneService,
         editorialShootService,
-        videoService: services?.videoService ?? null,
+        videoService,
       });
       return { ...expired, ...deletion };
     },
