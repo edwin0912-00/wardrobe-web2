@@ -500,6 +500,11 @@ export async function postStartSmoke({ origin, release }) {
     return response.json();
   };
   const sceneCatalog = await fetchProductJson('/api/scene-presets');
+  const hasVersionedPreviewUrl = (value, pathname) => (
+    typeof value === 'string'
+    && value.startsWith(`${pathname}?v=`)
+    && /^[a-f0-9]{64}$/.test(value.slice(`${pathname}?v=`.length))
+  );
   invariant(Array.isArray(sceneCatalog?.presets), 'Scene preset API returned an invalid catalog');
   const releasedCatalog = JSON.parse(await readFile(path.join(release.directory, 'assets', 'scene-presets', 'index.json'), 'utf8'));
   const expectedPresetIds = [...releasedCatalog.selected_preset_ids].sort();
@@ -512,8 +517,10 @@ export async function postStartSmoke({ origin, release }) {
     sceneCatalog.presets.every((entry) => (
       typeof entry?.preset_version === 'string'
       && entry.preset_version.length > 0
-      && entry.preview_url
-        === `/api/scene-presets/${encodeURIComponent(entry.preset_id)}/${encodeURIComponent(entry.preset_version)}/preview`
+      && hasVersionedPreviewUrl(
+        entry.preview_url,
+        `/api/scene-presets/${encodeURIComponent(entry.preset_id)}/${encodeURIComponent(entry.preset_version)}/preview`,
+      )
     )),
     'Scene preset API returned an invalid preview contract',
   );
@@ -546,8 +553,10 @@ export async function postStartSmoke({ origin, release }) {
       entry?.generation_available
         === expectedGenerationIds.includes(entry?.mode_id)
       && typeof entry?.version === 'string'
-      && entry.preview_url
-        === `/api/editorial-modes/${encodeURIComponent(entry.mode_id)}/${encodeURIComponent(entry.version)}/preview`
+      && hasVersionedPreviewUrl(
+        entry.preview_url,
+        `/api/editorial-modes/${encodeURIComponent(entry.mode_id)}/${encodeURIComponent(entry.version)}/preview`,
+      )
     )),
     'Editorial mode API returned invalid per-mode generation authority or preview contract',
   );
