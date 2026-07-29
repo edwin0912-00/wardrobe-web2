@@ -93,13 +93,20 @@ export class VideoService {
   #store;
   #clock;
 
+  #finalizer;
+
   /**
    * @param {object} options
    * @param {object} options.provider — HiggsfieldVideoProvider instance
    * @param {ClipStore} options.clipStore
    * @param {function} [options.clock] — () => Date.now(), for testing
    */
-  constructor({ provider, clipStore, clock = () => Date.now() } = {}) {
+  constructor({
+    provider,
+    clipStore,
+    clock = () => Date.now(),
+    finalizer = {},
+  } = {}) {
     if (!provider) {
       throw new VideoServiceError('A video provider is required', {
         code: 'SERVICE_MISCONFIGURED',
@@ -113,6 +120,7 @@ export class VideoService {
     this.#provider = provider;
     this.#store = clipStore;
     this.#clock = clock;
+    this.#finalizer = finalizer;
   }
 
   /**
@@ -282,6 +290,28 @@ export class VideoService {
       extractFrameFn,
     });
     return { ...created, ...result };
+  }
+
+  /**
+   * Resume/finalize using the runtime-owned dependencies. This is the method
+   * exposed to HTTP so a restart polls the persisted provider job instead of
+   * issuing another paid create.
+   */
+  async finalizeClip(clipId) {
+    const { downloadFn, probeFn, extractFrameFn } = this.#finalizer;
+    if (typeof downloadFn !== 'function'
+      || typeof probeFn !== 'function'
+      || typeof extractFrameFn !== 'function') {
+      throw new VideoServiceError('Video finalization runtime is not configured', {
+        code: 'FINALIZER_MISCONFIGURED',
+        status: 503,
+      });
+    }
+    return this.awaitAndFinalize(clipId, {
+      downloadFn,
+      probeFn,
+      extractFrameFn,
+    });
   }
 
   /** Load clip metadata. */

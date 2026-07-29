@@ -51,6 +51,29 @@ export async function registerVideoRoutes(app, {
     throw new Error('registerVideoRoutes requires profileApi, profiles, videoService, and runService');
   }
 
+  const projectClip = (profileId, lookId, liveClip) => profiles.projectVideoClip(
+    profileId,
+    lookId,
+    {
+      clip_id: liveClip.clipId,
+      bindings: {
+        approved_look: { look_id: lookId },
+        motion_mode: liveClip.mode,
+        surface: liveClip.surface,
+      },
+      status: liveClip.status,
+      job_id: liveClip.jobId ?? null,
+      output: liveClip.videoSha256
+        ? {
+            sha256: liveClip.videoSha256,
+            duration_seconds: liveClip.durationSeconds,
+          }
+        : null,
+      created_at: liveClip.createdAt,
+      updated_at: liveClip.updatedAt,
+    },
+  );
+
   // POST /api/profile/video-clips — create a new video clip
   app.post('/api/profile/video-clips', async (request, reply) => {
     sameOriginMutation(request);
@@ -96,15 +119,8 @@ export async function registerVideoRoutes(app, {
       });
 
       // Project into profile database
-      const now = new Date().toISOString();
-      profiles.projectVideoClip(session.profileId, look_id, {
-        clip_id: result.clipId,
-        bindings: { motion_mode, surface },
-        status: result.status,
-        job_id: result.jobId ?? null,
-        created_at: now,
-        updated_at: now,
-      });
+      const liveClip = await videoService.getClip(result.clipId);
+      projectClip(session.profileId, look_id, liveClip);
 
       return reply.code(202).send({
         clip_id: result.clipId,
@@ -113,6 +129,34 @@ export async function registerVideoRoutes(app, {
         surface,
         motion_mode,
         look_id,
+      });
+    } catch (err) {
+      if (err instanceof VideoServiceError) {
+        return reply.code(err.status).send({ error: err.message, code: err.code });
+      }
+      throw err;
+    }
+  });
+
+  // POST /api/profile/video-clips/:clipId/finalize — resume the persisted job,
+  // download its real MP4 and run ffprobe/frame QA. It never creates a new job.
+  app.post('/api/profile/video-clips/:clipId/finalize', async (request, reply) => {
+    sameOriginMutation(request);
+    const session = await profileApi.resolveRequestProfile(request, reply);
+    const projection = profiles.videoClipProjection(session.profileId, request.params.clipId);
+    if (!projection) {
+      return reply.code(404).send({ error: 'Video clip not found', code: 'CLIP_NOT_FOUND' });
+    }
+    try {
+      await videoService.finalizeClip(request.params.clipId);
+      const liveClip = await videoService.getClip(request.params.clipId);
+      const updated = projectClip(session.profileId, projection.look_id, liveClip);
+      return reply.code(200).send({
+        ...updated,
+        qa: liveClip.qa,
+        video_url: liveClip.status === 'PASS'
+          ? `/api/profile/video-clips/${liveClip.clipId}/video`
+          : null,
       });
     } catch (err) {
       if (err instanceof VideoServiceError) {

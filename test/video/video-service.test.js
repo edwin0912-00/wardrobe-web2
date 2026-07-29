@@ -305,6 +305,41 @@ test('VideoService refuses to construct without provider', () => {
   );
 });
 
+test('finalizeClip refuses a runtime without real download and ffprobe dependencies', async () => {
+  await withTempDir(async (dir) => {
+    const { provider } = makeStubProvider();
+    const service = new VideoService({
+      provider,
+      clipStore: new ClipStore(dir),
+    });
+    await assert.rejects(
+      () => service.finalizeClip('missing'),
+      (error) => error.code === 'FINALIZER_MISCONFIGURED' && error.status === 503,
+    );
+  });
+});
+
+test('finalizeClip resumes through configured runtime dependencies', async () => {
+  await withTempDir(async (dir) => {
+    const { provider } = makeStubProvider();
+    const service = new VideoService({
+      provider,
+      clipStore: new ClipStore(dir),
+      finalizer: {
+        downloadFn: makeStubDownload(),
+        ...makeStubQa(),
+      },
+    });
+    const created = await service.createClip({
+      modeId: 'editorial_micro_moment',
+      surfaceId: 'tv',
+      sourceImagePath: '/tmp/locked-frame.png',
+    });
+    const finalized = await service.finalizeClip(created.clipId);
+    assert.equal(finalized.status, 'PASS');
+  });
+});
+
 test('VideoService refuses to construct without clipStore', () => {
   const { provider } = makeStubProvider();
   assert.throws(
