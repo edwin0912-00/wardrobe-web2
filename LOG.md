@@ -17,6 +17,15 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-07-29 · BETA-HEALTH-GUARD-001 · beta · release safety repair
+Change: restore the canonical web `/api/health` handler after a shared-branch
+UI commit removed it.
+Why: release verification, beta tunnel monitoring and the public readiness
+contract depend on this endpoint; it is not fake UI state.
+Evidence: `node --test test/web/outbound-privacy.test.js test/web/profile-ui-flow.test.js` passes 11/11.
+weakened_checks: none. Current running beta already retains this handler; the
+source guard is pending a later source release.
+
 2026-07-29 · BETA-LOOK-E2E-001 · beta `7314256` · public node journey
 Change: verify the full first product block from uploaded person + garment to
 persisted approved master look on the deployed beta runtime.

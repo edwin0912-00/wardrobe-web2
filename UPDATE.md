@@ -502,6 +502,11 @@ facts.
 
 ## Latest events
 
+- 2026-07-29 — Shared beta source briefly lost the canonical `/api/health`
+  route in a UI commit. It was restored in `6d7d673` before source deployment;
+  focused privacy/health and profile UI tests pass 11/11. The active beta
+  release already retained health and was never replaced by that broken source.
+
 - 2026-07-29 — `LOOK.01–06` now has current public beta proof: run
   `922f8a25-ab08-46ae-b1f4-f9488d3fa03f` completed from one person photo plus
   one garment reference. Conditioning QA, full-body Avatar QA and Outfit QA
