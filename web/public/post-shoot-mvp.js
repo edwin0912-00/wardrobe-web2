@@ -176,6 +176,10 @@ async function startLive() {
     throttleInterval: 0,
     tokenExpirationSeconds: 10,
     tokenProvider: async (app) => {
+      // Keep the SDK-provided app value intact here. The server validates the
+      // full endpoint, then scopes fal's temporary JWT to the endpoint alias.
+      // Sending the full endpoint in JWT allowed_apps makes Lucy close the
+      // WebSocket with "Forbidden", even though token creation returns 200.
       const response = await fetch('/api/fal/realtime-token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
