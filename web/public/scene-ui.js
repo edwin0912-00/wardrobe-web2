@@ -7,7 +7,7 @@ import {
   loadScenePresets,
   retryProfileScene,
 } from './profile-client.js?v=20260724-5';
-import { createEditorialShootUi } from './editorial-shoot-ui.js?v=20260724-1';
+
 import {
   clearSceneResume,
   presetCameraLabel,
@@ -192,17 +192,6 @@ export class SceneUiController {
     this.polling = false;
     this.phaseHistory = [];
     this.actionPending = false;
-    this.editorialUi = createEditorialShootUi({
-      activate: () => {
-        this.#activateView();
-        this.#setMode('editorial');
-      },
-      setLook: (look) => this.#setLook(look),
-      loadProfile: this.loadProfile,
-      renderProfile: this.renderProfile,
-      humanize: this.humanize,
-      telemetry: this.telemetry,
-    });
     this.#bind();
   }
 
@@ -220,9 +209,6 @@ export class SceneUiController {
     this.#element('#scene-reconnect').addEventListener('click', () => this.reconnect());
     this.#element('#scene-tab-standard').addEventListener('click', () => this.#setPickerTab('standard'));
     this.#element('#scene-tab-editorial').addEventListener('click', () => this.#setPickerTab('editorial'));
-    this.#element('#editorial-resume').addEventListener('click', () => {
-      this.editorialUi.openStoredForLook(this.look).catch((error) => this.#setError(error.message));
-    });
   }
 
   #activateView() {
@@ -233,8 +219,8 @@ export class SceneUiController {
   #setMode(mode) {
     const shell = this.#element('.scene-shell');
     shell.dataset.mode = mode;
-    for (const name of ['picker', 'confirm', 'execution', 'editorial']) {
-      const element = this.#element(name === 'editorial' ? '#editorial-shoot' : `#scene-${name}`);
+    for (const name of ['picker', 'confirm', 'execution']) {
+      const element = this.#element(`#scene-${name}`);
       element.classList.toggle('hidden', name !== mode);
     }
   }
@@ -390,11 +376,11 @@ export class SceneUiController {
   }
 
   editorialResumeProjectionForLook(lookId) {
-    return this.editorialUi.resumeProjectionForLook(lookId);
+    return null;
   }
 
   openExistingEditorial(projection, look) {
-    return this.editorialUi.openExisting(projection, look);
+    return Promise.reject(new Error("6-frame editorial shoots have been removed"));
   }
 
   #renderPresets() {
@@ -437,9 +423,13 @@ export class SceneUiController {
     const newModes = this.editorialModes.filter((m) => m.mode_id.startsWith('shoot.'));
     const legacyModes = this.editorialModes.filter((m) => m.mode_id.startsWith('editorial.'));
     
-    const onSelect = (selected) => this.editorialUi.openForMode(selected, this.look).catch(
-      (error) => this.#setError(error.message),
-    );
+    const onSelect = (selected) => this.confirmPreset({
+      preset_id: selected.mode_id,
+      preset_version: selected.version || selected.mode_version,
+      ui_name_uk: selected.ui_name_uk,
+      family: selected.mode_id,
+      camera: 'editorial'
+    });
     
     gridNew.replaceChildren(...newModes.map((mode) => createEditorialModeCard(mode, onSelect)));
     gridLegacy.replaceChildren(...legacyModes.map((mode) => createEditorialModeCard(mode, onSelect)));

@@ -544,6 +544,16 @@ export class FilesystemScenePresetResolver {
   }
 
   async presetReference({ presetId, presetVersion }) {
+    if (presetId.startsWith('editorial.') || presetId.startsWith('shoot.')) {
+      const mode = await this.editorialModeDefinition({ modeId: presetId, version: presetVersion });
+      const pack = await this.editorialShotPresetReference({ mode, slot: 'clean_identity_hero' });
+      return {
+        ...pack.reference,
+        ui_name_uk: mode.ui_name_uk,
+        family: mode.preset_id,
+        camera: 'editorial',
+      };
+    }
     const pack = await this.#load(presetId, presetVersion);
     return {
       ...pack.reference,

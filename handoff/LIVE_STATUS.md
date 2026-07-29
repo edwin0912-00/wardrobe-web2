@@ -8,6 +8,15 @@
 
 <!-- entries -->
 
+### 2026-07-29 16:40 · antigravity-20260727-fb7a90 · DEPLOYED
+
+Повністю видалено концепцію 6-кадрової серії "Shoot Bible" з режиму Art Fashion. Тепер UI працює як однокадровий (1 клік -> 1 результат), перенаправляючи `editorial.*` пресети напряму у стандартний `scene-service.js` (POST /api/scenes).
+Видалено старі UI-скрипти `editorial-shoot-ui.js` та `editorial-state.js`.
+
+Файли: src/web/editorial-shoot-contract.js, src/web/scene-resolvers.js, web/public/index.html, web/public/scene-ui.js
+
+HEAD на момент запису: `f530bee`
+
 ### 2026-07-29 13:42 · claude-code-20260727-557761 · PROGRESS
 
 план архіву доповнено: промти відео вже персистяться у video_clips.metadata.prompt на кожен clipId (не в чаті), тож 9:16-версія бере точний промт звідти. Прибрав застарілу умову про розмір релізу з плану — вона вже CANCELLED. План і далі НЕ виконується.
