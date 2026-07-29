@@ -17,6 +17,7 @@ import { registerSceneRoutes } from './scene-routes.js';
 import { SceneService } from './scene-service.js';
 import { sanitizeOutboundString } from '../security/outbound-redaction.js';
 import { registerPostShootRoutes } from './post-shoot-routes.js';
+import { registerVideoRoutes } from './video-routes.js';
 
 export async function createWebApp({
   service,
@@ -30,6 +31,7 @@ export async function createWebApp({
   profiles = null,
   sceneDependencies = null,
   lucyTokenIssuer = null,
+  videoService = null,
 }) {
   // A degraded provider preflight means the local CLI cannot prove that it can
   // create and observe a paid Higgsfield job. Do not let a user enter the
@@ -179,6 +181,14 @@ export async function createWebApp({
       runService: service,
       presetResolver: scenePresetResolver,
       sceneService,
+    });
+  }
+  if (videoService && profileApi && profiles) {
+    await registerVideoRoutes(app, {
+      profileApi,
+      profiles,
+      videoService,
+      runService: service,
     });
   }
   if (drafts) await registerDraftRoutes(app, {

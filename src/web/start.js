@@ -11,6 +11,7 @@ import { runLocalPreflight } from './preflight.js';
 import { createSceneRuntimeDependencies } from './scene-runtime.js';
 import { createVlmEvaluator } from './vlm-provider.js';
 import { createFalRealtimeTokenIssuer } from './fal-realtime-token.js';
+import { VideoService, ClipStore } from './video-service.js';
 
 const projectRoot = path.resolve(import.meta.dirname, '..', '..');
 const generationMode = process.env.ZEELY_GENERATION_PROVIDER ?? 'higgsfield';
@@ -82,6 +83,11 @@ if (adoptedShootIds.length > 0) {
     data: { count: adoptedShootIds.length, shoot_ids: adoptedShootIds },
   });
 }
+const clipStore = new ClipStore(path.join(runtimeRoot, 'video-clips'));
+const videoService = new VideoService({
+  provider: generation.provider,
+  clipStore,
+});
 const app = await createWebApp({
   service,
   health,
@@ -93,6 +99,7 @@ const app = await createWebApp({
   profiles,
   sceneDependencies,
   lucyTokenIssuer: createFalRealtimeTokenIssuer(),
+  videoService,
 });
 const draftCleanupTimer = setInterval(() => drafts.cleanupExpired().catch(() => {}), 60_000);
 const profileCleanup = async () => {

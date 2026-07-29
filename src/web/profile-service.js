@@ -108,6 +108,24 @@ function rowEditorialShoot(row) {
   };
 }
 
+function rowVideoClip(row) {
+  const hasOutput = typeof row.output_sha256 === 'string' && row.output_sha256.length > 0;
+  return {
+    clip_id: row.clip_id,
+    look_id: row.look_id,
+    motion_mode: row.motion_mode,
+    surface: row.surface,
+    job_id: row.job_id ?? null,
+    status: row.status,
+    output_sha256: row.output_sha256 ?? null,
+    duration_seconds: row.duration_seconds ?? null,
+    created_at: iso(row.created_at),
+    updated_at: iso(row.updated_at),
+    expires_at: iso(row.expires_at),
+    video_url: hasOutput ? `/api/profile/video-clips/${encodeURIComponent(row.clip_id)}/video` : null,
+  };
+}
+
 export class ProfileError extends Error {
   constructor(statusCode, code, message) {
     super(message);
@@ -229,6 +247,26 @@ export class ProfileService {
       CREATE INDEX IF NOT EXISTS editorial_shoots_look_idx
       ON editorial_shoots(look_id, updated_at DESC);
 
+      CREATE TABLE IF NOT EXISTS video_clips (
+        clip_id TEXT PRIMARY KEY,
+        profile_id TEXT NOT NULL,
+        look_id TEXT NOT NULL,
+        motion_mode TEXT NOT NULL,
+        surface TEXT NOT NULL,
+        job_id TEXT,
+        status TEXT NOT NULL,
+        output_sha256 TEXT,
+        duration_seconds REAL,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        expires_at INTEGER NOT NULL,
+        FOREIGN KEY (profile_id) REFERENCES profiles(profile_id) ON DELETE CASCADE,
+        FOREIGN KEY (look_id) REFERENCES looks(look_id) ON DELETE CASCADE
+      ) STRICT;
+
+      CREATE INDEX IF NOT EXISTS video_clips_profile_idx ON video_clips(profile_id, updated_at DESC);
+      CREATE INDEX IF NOT EXISTS video_clips_look_idx ON video_clips(look_id, updated_at DESC);
+
       CREATE TABLE IF NOT EXISTS pending_run_deletions (
         run_id TEXT PRIMARY KEY,
         queued_at INTEGER NOT NULL,
@@ -237,7 +275,7 @@ export class ProfileService {
       ) STRICT;
 
       CREATE TABLE IF NOT EXISTS pending_resource_deletions (
-        resource_kind TEXT NOT NULL CHECK(resource_kind IN ('RUN', 'SCENE_EXECUTION', 'EDITORIAL_SHOOT')),
+        resource_kind TEXT NOT NULL CHECK(resource_kind IN ('RUN', 'SCENE_EXECUTION', 'EDITORIAL_SHOOT', 'VIDEO_CLIP')),
         resource_id TEXT NOT NULL,
         queued_at INTEGER NOT NULL,
         attempts INTEGER NOT NULL DEFAULT 0,
@@ -260,13 +298,13 @@ export class ProfileService {
       SELECT sql FROM sqlite_master
       WHERE type = 'table' AND name = 'pending_resource_deletions'
     `).get();
-    if (!String(deletionTable?.sql ?? '').includes('EDITORIAL_SHOOT')) {
+    if (!String(deletionTable?.sql ?? '').includes('VIDEO_CLIP')) {
       this.database.exec(`
         BEGIN IMMEDIATE;
         ALTER TABLE pending_resource_deletions
         RENAME TO pending_resource_deletions_legacy;
         CREATE TABLE pending_resource_deletions (
-          resource_kind TEXT NOT NULL CHECK(resource_kind IN ('RUN', 'SCENE_EXECUTION', 'EDITORIAL_SHOOT')),
+          resource_kind TEXT NOT NULL CHECK(resource_kind IN ('RUN', 'SCENE_EXECUTION', 'EDITORIAL_SHOOT', 'VIDEO_CLIP')),
           resource_id TEXT NOT NULL,
           queued_at INTEGER NOT NULL,
           attempts INTEGER NOT NULL DEFAULT 0,
@@ -377,14 +415,22 @@ export class ProfileService {
       FROM editorial_shoots WHERE profile_id = ?
       ORDER BY updated_at DESC, shoot_id
     `).all(profileId);
+    const videoClipRows = this.#db().prepare(`
+      SELECT clip_id, look_id, motion_mode, surface, job_id, status, output_sha256,
+             duration_seconds, created_at, updated_at, expires_at
+      FROM video_clips WHERE profile_id = ?
+      ORDER BY updated_at DESC, clip_id
+    `).all(profileId);
     const scenes = sceneRows.map(rowScene);
     const editorialShoots = editorialRows.map(rowEditorialShoot);
+    const videoClips = videoClipRows.map(rowVideoClip);
     const looks = lookRows.map((row) => {
       const look = rowLook(row);
       return {
         ...look,
         scenes: scenes.filter((scene) => scene.look_id === look.look_id),
         editorial_shoots: editorialShoots.filter((shoot) => shoot.look_id === look.look_id),
+        video_clips: videoClips.filter((clip) => clip.look_id === look.look_id),
       };
     });
     const avatars = avatarRows.map((row) => {
@@ -400,6 +446,7 @@ export class ProfileService {
       looks,
       scenes,
       editorial_shoots: editorialShoots,
+      video_clips: videoClips,
     };
   }
 
@@ -968,6 +1015,165 @@ export class ProfileService {
     });
   }
 
+  projectVideoClip(profileId, lookId, clip) {
+    assertAssetId(lookId, 'look id');
+    if (!clip
+      || typeof clip !== 'object'
+      || typeof clip.clip_id !== 'string'
+      || typeof clip.status !== 'string') {
+      throw new ProfileError(400, 'INVALID_VIDEO_CLIP', 'Video clip projection is invalid');
+    }
+    assertRunId(clip.clip_id);
+    return this.#transaction((database) => {
+      const profile = this.#activeProfile(profileId);
+      const look = database.prepare(
+        'SELECT look_id FROM looks WHERE look_id = ? AND profile_id = ?',
+      ).get(lookId, profileId);
+      if (!profile || !look) throw new ProfileError(404, 'LOOK_NOT_FOUND', 'Look not found');
+      if (clip.bindings?.approved_look?.look_id !== lookId) {
+        throw new ProfileError(
+          409,
+          'VIDEO_CLIP_LOOK_MISMATCH',
+          'Video clip is bound to a different look',
+        );
+      }
+      const motionMode = clip.bindings?.motion_mode;
+      const surface = clip.bindings?.surface;
+      if (typeof motionMode !== 'string' || typeof surface !== 'string') {
+        throw new ProfileError(
+          400,
+          'INVALID_VIDEO_CLIP_BINDINGS',
+          'Video clip bindings projection is invalid',
+        );
+      }
+      const existing = database.prepare(`
+        SELECT profile_id, look_id, motion_mode, surface
+        FROM video_clips WHERE clip_id = ?
+      `).get(clip.clip_id);
+      if (existing && (
+        existing.profile_id !== profileId
+        || existing.look_id !== lookId
+        || existing.motion_mode !== motionMode
+        || existing.surface !== surface
+      )) {
+        throw new ProfileError(404, 'VIDEO_CLIP_NOT_FOUND', 'Video clip not found');
+      }
+      const createdAt = Number.isFinite(Date.parse(clip.created_at))
+        ? Date.parse(clip.created_at)
+        : nowFrom(this.clock);
+      const updatedAt = Number.isFinite(Date.parse(clip.updated_at))
+        ? Date.parse(clip.updated_at)
+        : nowFrom(this.clock);
+      
+      const jobId = clip.job_id ?? null;
+      const outputSha256 = clip.output?.sha256 ?? null;
+      const durationSeconds = clip.output?.duration_seconds ?? null;
+      
+      database.prepare(`
+        INSERT INTO video_clips(
+          clip_id, profile_id, look_id, motion_mode, surface, job_id, status,
+          output_sha256, duration_seconds, created_at, updated_at, expires_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(clip_id) DO UPDATE SET
+          status = excluded.status,
+          job_id = excluded.job_id,
+          output_sha256 = excluded.output_sha256,
+          duration_seconds = excluded.duration_seconds,
+          updated_at = excluded.updated_at
+      `).run(
+        clip.clip_id,
+        profileId,
+        lookId,
+        motionMode,
+        surface,
+        jobId,
+        clip.status,
+        outputSha256,
+        durationSeconds,
+        createdAt,
+        updatedAt,
+        profile.expires_at,
+      );
+      return this.videoClipProjection(profileId, clip.clip_id);
+    });
+  }
+
+  syncVideoClipProjection(clip) {
+    if (!clip
+      || typeof clip.clip_id !== 'string'
+      || typeof clip.status !== 'string'
+      || typeof clip.bindings?.approved_look?.look_id !== 'string') return null;
+    const updatedAt = Number.isFinite(Date.parse(clip.updated_at))
+      ? Date.parse(clip.updated_at)
+      : nowFrom(this.clock);
+    const result = this.#db().prepare(`
+      UPDATE video_clips
+      SET status = ?, job_id = ?, output_sha256 = ?, duration_seconds = ?, updated_at = ?
+      WHERE clip_id = ? AND look_id = ?
+    `).run(
+      clip.status,
+      clip.job_id ?? null,
+      clip.output?.sha256 ?? null,
+      clip.output?.duration_seconds ?? null,
+      updatedAt,
+      clip.clip_id,
+      clip.bindings.approved_look.look_id,
+    );
+    if (result.changes === 0) return null;
+    return this.#db().prepare(
+      'SELECT profile_id FROM video_clips WHERE clip_id = ?',
+    ).get(clip.clip_id) ?? null;
+  }
+
+  videoClipProjectionRecords() {
+    return this.#db().prepare(`
+      SELECT clip_id, profile_id, look_id
+      FROM video_clips
+      ORDER BY created_at, clip_id
+    `).all();
+  }
+
+  videoClipProjection(profileId, clipId) {
+    assertRunId(clipId);
+    const row = this.#db().prepare(`
+      SELECT v.clip_id, v.look_id, v.motion_mode, v.surface, v.job_id, v.status,
+             v.output_sha256, v.duration_seconds,
+             v.created_at, v.updated_at, v.expires_at
+      FROM video_clips v JOIN profiles p ON p.profile_id = v.profile_id
+      WHERE v.clip_id = ? AND v.profile_id = ?
+        AND p.revoked_at IS NULL AND p.expires_at > ?
+    `).get(clipId, profileId, nowFrom(this.clock));
+    return row ? rowVideoClip(row) : null;
+  }
+
+  listVideoClips(profileId, lookId) {
+    assertAssetId(lookId, 'look id');
+    if (!this.ownsLook(profileId, lookId)) return null;
+    return this.#db().prepare(`
+      SELECT clip_id, look_id, motion_mode, surface, job_id, status, output_sha256,
+             duration_seconds, created_at, updated_at, expires_at
+      FROM video_clips
+      WHERE profile_id = ? AND look_id = ?
+      ORDER BY updated_at DESC, clip_id
+    `).all(profileId, lookId).map(rowVideoClip);
+  }
+
+  deleteVideoClip(profileId, clipId) {
+    assertRunId(clipId);
+    return this.#transaction((database) => {
+      const clip = database.prepare(`
+        SELECT clip_id FROM video_clips
+        WHERE clip_id = ? AND profile_id = ?
+      `).get(clipId, profileId);
+      if (!clip) return false;
+      this.#queueResource(database, 'VIDEO_CLIP', clipId, nowFrom(this.clock));
+      database.prepare(`
+        DELETE FROM video_clips WHERE clip_id = ? AND profile_id = ?
+      `).run(clipId, profileId);
+      return true;
+    });
+  }
+
   deleteScene(profileId, sceneId) {
     return this.#transaction((database) => {
       const scene = database.prepare('SELECT scene_id FROM scenes WHERE scene_id = ? AND profile_id = ?').get(sceneId, profileId);
@@ -1003,11 +1209,17 @@ export class ProfileService {
       const editorialShootIds = database.prepare(`
         SELECT shoot_id FROM editorial_shoots WHERE look_id = ? AND profile_id = ?
       `).all(lookId, profileId);
+      const videoClipIds = database.prepare(`
+        SELECT clip_id FROM video_clips WHERE look_id = ? AND profile_id = ?
+      `).all(lookId, profileId);
       for (const { scene_id: sceneId } of sceneIds) {
         this.#queueResource(database, 'SCENE_EXECUTION', sceneId, nowFrom(this.clock));
       }
       for (const { shoot_id: shootId } of editorialShootIds) {
         this.#queueResource(database, 'EDITORIAL_SHOOT', shootId, nowFrom(this.clock));
+      }
+      for (const { clip_id: clipId } of videoClipIds) {
+        this.#queueResource(database, 'VIDEO_CLIP', clipId, nowFrom(this.clock));
       }
       database.prepare('UPDATE run_claims SET saved_look_id = NULL WHERE saved_look_id = ?').run(lookId);
       database.prepare('DELETE FROM looks WHERE look_id = ? AND profile_id = ?').run(lookId, profileId);
@@ -1043,11 +1255,19 @@ export class ProfileService {
         FROM editorial_shoots e JOIN looks l ON l.look_id = e.look_id
         WHERE l.avatar_id = ? AND e.profile_id = ?
       `).all(avatarId, profileId);
+      const videoClipIds = database.prepare(`
+        SELECT v.clip_id
+        FROM video_clips v JOIN looks l ON l.look_id = v.look_id
+        WHERE l.avatar_id = ? AND v.profile_id = ?
+      `).all(avatarId, profileId);
       for (const { scene_id: sceneId } of sceneIds) {
         this.#queueResource(database, 'SCENE_EXECUTION', sceneId, nowFrom(this.clock));
       }
       for (const { shoot_id: shootId } of editorialShootIds) {
         this.#queueResource(database, 'EDITORIAL_SHOOT', shootId, nowFrom(this.clock));
+      }
+      for (const { clip_id: clipId } of videoClipIds) {
+        this.#queueResource(database, 'VIDEO_CLIP', clipId, nowFrom(this.clock));
       }
       for (const runId of runIds) {
         database.prepare('DELETE FROM run_claims WHERE run_id = ? AND profile_id = ?').run(runId, profileId);
@@ -1068,10 +1288,16 @@ export class ProfileService {
       const editorialShootIds = database.prepare(`
         SELECT shoot_id FROM editorial_shoots WHERE profile_id = ?
       `).all(profileId).map((row) => row.shoot_id);
+      const videoClipIds = database.prepare(`
+        SELECT clip_id FROM video_clips WHERE profile_id = ?
+      `).all(profileId).map((row) => row.clip_id);
       for (const runId of runIds) this.#queueRun(database, runId, now);
       for (const sceneId of sceneIds) this.#queueResource(database, 'SCENE_EXECUTION', sceneId, now);
       for (const shootId of editorialShootIds) {
         this.#queueResource(database, 'EDITORIAL_SHOOT', shootId, now);
+      }
+      for (const clipId of videoClipIds) {
+        this.#queueResource(database, 'VIDEO_CLIP', clipId, now);
       }
       database.prepare('DELETE FROM profiles WHERE profile_id = ?').run(profileId);
       return true;
@@ -1087,11 +1313,15 @@ export class ProfileService {
       const runIds = [];
       const sceneIds = [];
       const editorialShootIds = [];
+      const videoClipIds = [];
       for (const profile of profiles) {
         const claimed = database.prepare('SELECT run_id FROM run_claims WHERE profile_id = ?').all(profile.profile_id);
         const scenes = database.prepare('SELECT scene_id FROM scenes WHERE profile_id = ?').all(profile.profile_id);
         const editorialShoots = database.prepare(`
           SELECT shoot_id FROM editorial_shoots WHERE profile_id = ?
+        `).all(profile.profile_id);
+        const videoClips = database.prepare(`
+          SELECT clip_id FROM video_clips WHERE profile_id = ?
         `).all(profile.profile_id);
         for (const { run_id: runId } of claimed) {
           runIds.push(runId);
@@ -1105,6 +1335,10 @@ export class ProfileService {
           editorialShootIds.push(shootId);
           this.#queueResource(database, 'EDITORIAL_SHOOT', shootId, now);
         }
+        for (const { clip_id: clipId } of videoClips) {
+          videoClipIds.push(clipId);
+          this.#queueResource(database, 'VIDEO_CLIP', clipId, now);
+        }
         database.prepare('DELETE FROM profiles WHERE profile_id = ?').run(profile.profile_id);
       }
       return {
@@ -1112,6 +1346,7 @@ export class ProfileService {
         queuedRuns: [...new Set(runIds)],
         queuedScenes: [...new Set(sceneIds)],
         queuedEditorialShoots: [...new Set(editorialShootIds)],
+        queuedVideoClips: [...new Set(videoClipIds)],
       };
     });
   }
@@ -1137,6 +1372,7 @@ export class ProfileService {
     const runService = services?.runService ?? services;
     const sceneService = services?.sceneService ?? optionalSceneService;
     const editorialShootService = services?.editorialShootService ?? null;
+    const videoService = services?.videoService ?? null;
     const pending = this.pendingResourceDeletions();
     const result = {
       deleted: [],
@@ -1144,6 +1380,7 @@ export class ProfileService {
       deletedRuns: [],
       deletedScenes: [],
       deletedEditorialShoots: [],
+      deletedVideoClips: [],
     };
     for (const item of pending) {
       try {
@@ -1164,12 +1401,18 @@ export class ProfileService {
             await sceneService.deleteScene(item.resource_id);
           }
           result.deletedScenes.push(item.resource_id);
-        } else {
+        } else if (item.resource_kind === 'EDITORIAL_SHOOT') {
           if (!editorialShootService?.deleteShoot) {
             throw new Error('Editorial shoot deletion service is unavailable');
           }
           await editorialShootService.deleteShoot(item.resource_id);
           result.deletedEditorialShoots.push(item.resource_id);
+        } else if (item.resource_kind === 'VIDEO_CLIP') {
+          if (!videoService?.deleteClip) {
+            throw new Error('Video clip deletion service is unavailable');
+          }
+          await videoService.deleteClip(item.resource_id);
+          result.deletedVideoClips.push(item.resource_id);
         }
         this.#db().prepare(`
           DELETE FROM pending_resource_deletions WHERE resource_kind = ? AND resource_id = ?
@@ -1347,7 +1590,7 @@ export async function registerProfileRoutes(app, {
     sameOriginMutation(request);
     const session = await resolveRequestProfile(request, reply);
     if (!service.deleteAvatar(session.profileId, request.params.avatarId)) return reply.code(404).send({ error: 'Avatar not found' });
-    await service.flushDeletionQueue({ runService, sceneService, editorialShootService });
+    await service.flushDeletionQueue({ runService, sceneService, editorialShootService, videoService: services?.videoService ?? null });
     return reply.code(204).send();
   });
 
@@ -1355,7 +1598,7 @@ export async function registerProfileRoutes(app, {
     sameOriginMutation(request);
     const session = await resolveRequestProfile(request, reply);
     if (!service.deleteLook(session.profileId, request.params.lookId)) return reply.code(404).send({ error: 'Look not found' });
-    await service.flushDeletionQueue({ runService, sceneService, editorialShootService });
+    await service.flushDeletionQueue({ runService, sceneService, editorialShootService, videoService: services?.videoService ?? null });
     return reply.code(204).send();
   });
 
@@ -1363,7 +1606,7 @@ export async function registerProfileRoutes(app, {
     sameOriginMutation(request);
     const session = await resolveRequestProfile(request, reply);
     service.deleteProfile(session.profileId);
-    await service.flushDeletionQueue({ runService, sceneService, editorialShootService });
+    await service.flushDeletionQueue({ runService, sceneService, editorialShootService, videoService: services?.videoService ?? null });
     appendSetCookie(reply, clearCookie(cookieName, { secure: secureCookie }));
     return reply.code(204).send();
   });
@@ -1422,6 +1665,7 @@ export async function registerProfileRoutes(app, {
         runService,
         sceneService,
         editorialShootService,
+        videoService: services?.videoService ?? null,
       });
       return { ...expired, ...deletion };
     },

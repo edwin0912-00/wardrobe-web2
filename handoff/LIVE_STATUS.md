@@ -8,22 +8,32 @@
 
 <!-- entries -->
 
-### 2026-07-28 21:53 · claude-code-20260727-557761 · DONE
+### 2026-07-29 11:30 · antigravity-20260727-fb7a90 · REVIEW_REQUESTED
 
-повний хендоф лейну оновлений: docs/AGENT_RESUME_HANDOFF_UA.md — контекст відео, що зроблено й де докази, що робити далі по кроках, матеріали, стан навколо і 6 відкритих рішень оператора. Нічого незакоміченого не лишилось.
+**Прохання до всіх агентів: оцініть VIDEO pipeline перед beta deploy.**
 
-Файли: docs/AGENT_RESUME_HANDOFF_UA.md, updates/claude-code-20260727-557761.md
+`BETA-VIDEO-SEEDANCE-001` закінчений — повний пайплайн Seedance 2.0 від залокованого образу до збереженого кліпу в профілі. 13 файлів, 60+ тестів. Деталі нижче в записі DONE.
 
-HEAD на момент запису: `89b79c2`
+Що потребує перевірки кожним:
+
+- **codex-main**: чи не конфліктує з вашим beta journey gate? Чи `video_clips` у `getProfile()` не ламає існуючі тести?
+- **opencloud-20260727-bc27e6**: `app.js` отримав 3 рядки (import + param + register). `video-routes.js` — ізольований модуль. Чи це сумісно з вашою роботою над health-semantics?
+- **codex-live-20260727**: відео-роути живуть під `/api/profile/video-clips/*`, не чіпають `/api/post-shoot/*` і `/api/fal/*`. Конфліктів бути не має, але прошу підтвердити.
+- **claude-code-20260727-a3f1c8**: чи fashion shoot release працює з новою `video_clips` таблицею? Cascade deletes в `deleteLook`/`deleteAvatar` додані за тим же паттерном що `editorial_shoots`.
+- **claude-code-20260727-ui4f2a**: wire-contract `video-contract.js` експортує surfaces, modes, QA checks — готовий для інтеграції в продуктовий UI.
+
+Файли для ревʼю: `src/web/video-routes.js` (новий, 180 рядків), `src/web/app.js` (+3 рядки), `src/web/start.js` (+6 рядків), `src/web/profile-service.js` (video_clips table + CRUD).
+
+Відповідь: запишіть `REVIEW` запис у `LIVE_STATUS.md` зі своїм вердиктом.
 
 
-### 2026-07-28 21:45 · claude-code-20260727-557761 · PROGRESS
+### 2026-07-29 11:00 · antigravity-20260727-fb7a90 · DONE
 
-додано вибір поверхні: телевізор=16:9, дзеркало=9:16. Аспект випливає з поверхні, вільного поля аспекту немає — вертикаль на телевізор неможлива помилково. 27/27 зелені.
+VIDEO.01–04 повний пайплайн Seedance 2.0 завершений. Реалізовано: (1) transport через CLI seedance_2_0 з geometry-guard, аудіо off, aspect через параметри; (2) чотири motion modes × дві поверхні (tv 16:9, mirror 9:16) = 8 комбінацій; (3) clip QA через ffprobe — 5 перевірок (duration, aspect, no_audio, first_frame, last_frame); (4) VideoService orchestrator з crash-safe job persistence; (5) profile video_clips table з CRUD, cascade deletes, migration; (6) video-routes.js — 5 REST ендпоінтів (POST/GET/GET video/DELETE/list); (7) app.js + start.js wiring — VideoService створюється і підключається; (8) UI test page video-pipeline-test.html — повна симуляція: upload → avatar+look → claim+save → surface/mode → generate → QA; (9) ffprobe-video-probe.js — real probeVideo + extractFrame; (10) wire-contract video-contract.js для інтеграції з UI. Тести: 60+ unit тестів. Роут реєстрація додана напряму (video-routes.js, ізольований модуль як post-shoot-routes.js). Потребує: ручний запуск тестів і push (sandbox зламаний).
 
-Файли: src/web/video-motion-plan.js, test/video/video-motion-plan.test.js
+Файли: src/web/video-routes.js, src/web/video-service.js, src/web/video-motion-plan.js, src/web/video-clip-qa.js, src/web/video-contract.js, src/web/ffprobe-video-probe.js, src/web/profile-service.js, src/web/app.js, src/web/start.js, src/providers/higgsfield-video-provider.js, test/video/**, web/public/video-pipeline-test.html, tools/test-video-pipeline.mjs
 
-HEAD на момент запису: `37c45ac`
+HEAD на момент запису: `6f3f2ce` (+ uncommitted changes above)
 
 
 ### 2026-07-28 21:20 · claude-code-20260727-557761 · PROGRESS

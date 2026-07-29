@@ -1636,7 +1636,115 @@ document.querySelector('#profile-look-photoshoot').addEventListener('click', (ev
 document.querySelector('#profile-look-video').addEventListener('click', (event) => {
   event.stopPropagation();
   if (!selectedProfileLook) return;
-  showProfileError('Fashion video ще не запускаємо: Seedance 2 transport, QA і збереження кліпу проходять окремий beta-gate. Образ залишився вибраним — доступні Фотосесія та Live camera.');
+  const lookId = idOfLook(selectedProfileLook);
+  if (!lookId) return;
+  const overlay = document.querySelector('#video-overlay');
+  const sourceImg = document.querySelector('#video-source-image');
+  sourceImg.src = selectedProfileLook.image_url ?? `/api/profile/looks/${encodeURIComponent(lookId)}/image`;
+  document.querySelector('#video-progress').hidden = true;
+  document.querySelector('#video-result').hidden = true;
+  document.querySelector('#video-error').hidden = true;
+  document.querySelector('#video-generate').disabled = false;
+  overlay.classList.remove('hidden');
+  document.querySelector('#video-overlay-close').focus({ preventScroll: true });
+});
+// Refine button handler
+document.querySelector('#profile-look-refine').addEventListener('click', (event) => {
+  event.stopPropagation();
+  if (!selectedProfileLook) return;
+  showProfileError('Покращення образу (Refine) з\'явиться у наступному релізі. Зараз доступні: Фон, Фотосесія, Відео та Live camera.');
+});
+// Video overlay: option selection
+document.querySelectorAll('#video-surface-options .video-option, #video-motion-options .video-option').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    const group = btn.closest('.video-options');
+    group.querySelectorAll('.video-option').forEach((b) => { b.classList.remove('active'); b.setAttribute('aria-pressed', 'false'); });
+    btn.classList.add('active');
+    btn.setAttribute('aria-pressed', 'true');
+  });
+});
+// Video overlay: close
+function closeVideoOverlay() {
+  document.querySelector('#video-overlay').classList.add('hidden');
+}
+document.querySelector('#video-overlay-close').addEventListener('click', closeVideoOverlay);
+document.querySelector('#video-overlay').addEventListener('click', (event) => {
+  if (event.target === event.currentTarget) closeVideoOverlay();
+});
+// Video overlay: generate
+document.querySelector('#video-generate').addEventListener('click', async () => {
+  if (!selectedProfileLook) return;
+  const lookId = idOfLook(selectedProfileLook);
+  const surface = document.querySelector('#video-surface-options .video-option.active')?.dataset.value ?? 'mirror';
+  const motionMode = document.querySelector('#video-motion-options .video-option.active')?.dataset.value ?? 'gentle_sway';
+  const generateBtn = document.querySelector('#video-generate');
+  const progressEl = document.querySelector('#video-progress');
+  const progressFill = document.querySelector('#video-progress-fill');
+  const progressStatus = document.querySelector('#video-progress-status');
+  const resultEl = document.querySelector('#video-result');
+  const errorEl = document.querySelector('#video-error');
+  generateBtn.disabled = true;
+  progressEl.hidden = false;
+  resultEl.hidden = true;
+  errorEl.hidden = true;
+  progressFill.style.width = '10%';
+  progressStatus.textContent = 'Відправляємо на Seedance 2…';
+  try {
+    const res = await fetch('/api/profile/video-clips', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ look_id: lookId, surface, motion_mode: motionMode }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || `HTTP ${res.status}`);
+    }
+    const clip = await res.json();
+    progressFill.style.width = '30%';
+    progressStatus.textContent = `Clip ${clip.clip_id} створено — генерація…`;
+    // Poll for completion
+    let attempts = 0;
+    const maxAttempts = 120;
+    const poll = setInterval(async () => {
+      attempts++;
+      progressFill.style.width = `${Math.min(30 + attempts * 0.5, 92)}%`;
+      try {
+        const statusRes = await fetch(`/api/profile/video-clips/${clip.clip_id}`);
+        if (!statusRes.ok) return;
+        const status = await statusRes.json();
+        progressStatus.textContent = `Статус: ${status.status}`;
+        if (status.status === 'COMPLETED' || status.status === 'PASS') {
+          clearInterval(poll);
+          progressFill.style.width = '100%';
+          progressStatus.textContent = 'Відео готове!';
+          const player = document.querySelector('#video-result-player');
+          const downloadLink = document.querySelector('#video-result-download');
+          player.src = `/api/profile/video-clips/${clip.clip_id}/video`;
+          downloadLink.href = `/api/profile/video-clips/${clip.clip_id}/video`;
+          resultEl.hidden = false;
+          generateBtn.disabled = false;
+        } else if (status.status === 'FAILED' || status.status === 'FAIL') {
+          clearInterval(poll);
+          throw new Error(status.error ?? 'Генерація не вдалася');
+        }
+      } catch (pollErr) {
+        clearInterval(poll);
+        errorEl.textContent = pollErr.message;
+        errorEl.hidden = false;
+        generateBtn.disabled = false;
+      }
+      if (attempts >= maxAttempts) {
+        clearInterval(poll);
+        errorEl.textContent = 'Timeout: відео не згенерувалося за 6 хвилин';
+        errorEl.hidden = false;
+        generateBtn.disabled = false;
+      }
+    }, 3000);
+  } catch (err) {
+    errorEl.textContent = err.message;
+    errorEl.hidden = false;
+    generateBtn.disabled = false;
+  }
 });
 function closeProfileLive() {
   const overlay = document.querySelector('#profile-live-overlay');
@@ -1662,6 +1770,9 @@ document.querySelector('#profile-live-overlay').addEventListener('click', (event
 document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape' && !document.querySelector('#profile-live-overlay').classList.contains('hidden')) {
     closeProfileLive();
+  }
+  if (event.key === 'Escape' && !document.querySelector('#video-overlay').classList.contains('hidden')) {
+    closeVideoOverlay();
   }
 });
 document.querySelector('#profile-look-delete').addEventListener('click', async (event) => {

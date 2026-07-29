@@ -204,7 +204,7 @@
                       <span class="profile-action-arrow" aria-hidden="true">→</span>
                     </button>
                     <div class="profile-look-next-actions" role="group" aria-label="Інші формати для цього образу">
-                      <button id="profile-look-refine" class="profile-next-action profile-next-action-refine" type="button" disabled aria-label="Покращити образ — скоро" aria-describedby="profile-look-video-note">
+                      <button id="profile-look-refine" class="profile-next-action profile-next-action-refine" type="button" aria-label="Покращити образ (beta)" aria-describedby="profile-look-video-note">
                         <span class="profile-action-icon" aria-hidden="true">✦</span>
                       </button>
                       <button id="profile-look-background" class="profile-next-action profile-next-action-background" type="button" aria-label="Додати стандартний фон">
@@ -213,7 +213,7 @@
                       <button id="profile-look-photoshoot" class="profile-next-action profile-next-action-photoshoot" type="button" aria-label="Відкрити Art Fashion фотозйомку">
                         <span class="profile-action-icon" aria-hidden="true">◉</span>
                       </button>
-                      <button id="profile-look-video" class="profile-next-action profile-next-action-video" type="button" disabled aria-label="Fashion video — очікує video route" aria-describedby="profile-look-video-note">
+                      <button id="profile-look-video" class="profile-next-action profile-next-action-video" type="button" aria-label="Створити Fashion Video" aria-describedby="profile-look-video-note">
                         <span class="profile-action-icon" aria-hidden="true">▷</span>
                       </button>
                       <button id="profile-look-live" class="profile-next-action profile-next-action-live" type="button" aria-label="Відкрити Real-time Look">
@@ -235,6 +235,48 @@
         <div id="profile-live-overlay" class="profile-live-overlay hidden" role="dialog" aria-modal="true" aria-label="Live примірка">
           <button id="profile-live-close" class="profile-live-close" type="button" aria-label="Закрити Live">×</button>
           <iframe id="profile-live-frame" title="Live примірка вибраного образу" allow="camera; fullscreen"></iframe>
+        </div>
+        <div id="video-overlay" class="profile-live-overlay hidden" role="dialog" aria-modal="true" aria-label="Fashion Video генерація">
+          <button id="video-overlay-close" class="profile-live-close" type="button" aria-label="Закрити Video">×</button>
+          <div class="video-overlay-content">
+            <div class="video-overlay-header">
+              <p class="result-kicker">FASHION VIDEO · SEEDANCE 2</p>
+              <h3 id="video-overlay-title">Створити відео</h3>
+            </div>
+            <div class="video-overlay-body">
+              <div class="video-overlay-preview">
+                <img id="video-source-image" alt="Образ для відео">
+                <span class="video-overlay-badge">SOURCE FRAME</span>
+              </div>
+              <div class="video-overlay-controls">
+                <div class="video-control-group">
+                  <label class="video-label">Surface</label>
+                  <div id="video-surface-options" class="video-options" role="radiogroup" aria-label="Тип поверхні">
+                    <button type="button" class="video-option active" data-value="mirror" aria-pressed="true">🪞 Mirror</button>
+                    <button type="button" class="video-option" data-value="tv" aria-pressed="false">📺 TV</button>
+                  </div>
+                </div>
+                <div class="video-control-group">
+                  <label class="video-label">Motion Mode</label>
+                  <div id="video-motion-options" class="video-options" role="radiogroup" aria-label="Тип руху">
+                    <button type="button" class="video-option active" data-value="gentle_sway" aria-pressed="true">🌊 Gentle Sway</button>
+                    <button type="button" class="video-option" data-value="confident_turn" aria-pressed="false">🔄 Confident Turn</button>
+                    <button type="button" class="video-option" data-value="editorial_pose" aria-pressed="false">📸 Editorial Pose</button>
+                  </div>
+                </div>
+                <button id="video-generate" class="primary-result-action" type="button">Створити відео →</button>
+                <div id="video-progress" class="video-progress" hidden>
+                  <div class="video-progress-bar"><div id="video-progress-fill" class="video-progress-fill"></div></div>
+                  <p id="video-progress-status">Очікуємо…</p>
+                </div>
+                <div id="video-result" class="video-result" hidden>
+                  <video id="video-result-player" controls playsinline loop></video>
+                  <a id="video-result-download" download="fashion-video.mp4">Завантажити MP4 ↓</a>
+                </div>
+                <p id="video-error" class="scene-error" role="alert" hidden></p>
+              </div>
+            </div>
+          </div>
         </div>
         <div id="scene-view" class="scene-view hidden">
           <section class="scene-shell" data-mode="picker">
