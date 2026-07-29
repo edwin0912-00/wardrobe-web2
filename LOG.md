@@ -17,6 +17,19 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-07-29 · BETA-RESTART-RESUME-001 · beta activation · codex-main
+Change: activated the immutable garment-attempt resume repair as
+`release-bda3ee9-1785350382449`, then completed one fresh controlled full-look
+and saved its avatar/master-look in the browser profile.
+Why: prove the repair on the actual beta process before opening background and
+Fashion Shoot branches.
+Evidence: run `01b1195f-4653-4275-9293-cdc66fc58cfd` completed. The footwear
+receipt records Nano Banana 2 `RETRY`, then GPT Image 2 `PASS`; avatar and
+complete-look QA passed. During the running interval, the deploy adapter
+reported that exact active run id and would have refused `kickstart`.
+weakened_checks: none. No candidate, source hash, item, identity or framing
+rule was weakened.
+
 2026-07-29 · BETA-RESTART-RESUME-001 · beta · codex-main
 Change: every garment candidate now has an immutable attempt receipt containing
 the exact source hashes, route model, candidate hash and QA verdict. Restart

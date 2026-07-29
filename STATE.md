@@ -9,7 +9,7 @@ post-shoot API is 200; the new `/api/video/*` routes are 404. Therefore the
 branch contains capabilities that the live host does not yet contain. No
 agent may collapse these facts into a single "live" claim.
 
-## Look-reference route — active on beta, real paid run pending
+## Look-reference route — active on beta, controlled journey passed
 
 - Avatar and garment-reference processing has a reversible server route
   setting. `fast` is explicitly Nano Banana 2 → GPT Image 2 → Nano Banana Pro;
@@ -21,10 +21,12 @@ agent may collapse these facts into a single "live" claim.
 - Focused code proof: `node --test test/runner/model-policy.test.js
   test/web/garment-conditioner.test.js test/providers/codex-vlm-evaluator.test.js
   test/runner/pipeline-runner.test.js` — 27/27 PASS. Beta release
-  `release-4eb84ac-1785349827315` is active; its local and public health both
-  returned `ready`. A fresh paid beta run is not yet evidence for this revision.
+  `release-bda3ee9-1785350382449` is active; its local and public health both
+  returned `ready`. Controlled public run `01b1195f-4653-4275-9293-cdc66fc58cfd`
+  completed and was saved to its browser profile. It recorded a Nano Banana 2
+  footwear retry followed by GPT Image 2 PASS; avatar and complete-look QA PASS.
 
-## Restart / resume — code verified, beta activation pending
+## Restart / resume — active on beta, controlled journey passed
 
 - The only verified source of beta `SIGTERM` is the dedicated deploy adapter's
   required `launchctl kickstart -k`; neither installed guard selects the beta
@@ -36,7 +38,9 @@ agent may collapse these facts into a single "live" claim.
 - Focused proof: `node --test test/web/garment-conditioner.test.js
   test/release/beta-deployment.test.js test/runner/model-policy.test.js
   test/runner/pipeline-runner.test.js test/providers/codex-vlm-evaluator.test.js`
-  — 32/32 PASS. This revision is not active on beta yet.
+  — 32/32 PASS. Beta release `release-bda3ee9-1785350382449` is active. The
+  deploy adapter reported the controlled run id while it was RUNNING, proving
+  that it would refuse a restart instead of sending `SIGTERM`.
 
 ## Git ↔ beta release truth — 2026-07-29
 

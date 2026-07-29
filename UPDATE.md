@@ -48,6 +48,13 @@ The earlier detailed noticeboard is preserved at
   but before it returns image bytes remains a provider-outcome recovery case;
   no candidate exists yet to resume. The deploy block prevents our own release
   path from creating that case during an active run.
+- **Activated and proved:** beta release `release-bda3ee9-1785350382449` is
+  active. A fresh controlled full-look completed through the fast route. The
+  footwear card recorded Nano Banana 2 as a QA retry, then GPT Image 2 as PASS;
+  avatar QA and full-look QA both passed. The completed run was then explicitly
+  saved as one browser-profile avatar and one master look. While it was active,
+  the deploy adapter correctly reported its run id and would have refused a
+  release restart.
 
 ## Git ↔ beta reconciliation — 2026-07-29
 

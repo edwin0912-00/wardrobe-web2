@@ -2,11 +2,14 @@ Agent ID: codex-main
 Task ID: BETA-RESTART-RESUME-001
 Product line: beta-placeholder
 Pipeline: LOOK.02 · garment reference-card preparation
-State: CODE_VERIFIED — beta activation pending
+State: ACTIVE_ON_BETA — controlled full-look completed
 Decision: restart now resumes from immutable per-attempt evidence, not from a
 fresh provider submission. The deploy adapter is the verified SIGTERM source;
 it now refuses an activation whenever persisted beta work is active.
-Evidence: targeted 32/32 PASS; host dry run returned `active_run_ids: []`.
+Evidence: targeted 32/32 PASS; beta release `release-bda3ee9-1785350382449`;
+controlled run `01b1195f-4653-4275-9293-cdc66fc58cfd` completed and was saved
+as one browser-profile avatar/master look. The active-run guard observed that
+run id while it was running.
 weakened_checks: none. The remaining provider-accepted/no-image-yet outcome
 is explicitly not misrepresented as resumable because no candidate exists.
 
