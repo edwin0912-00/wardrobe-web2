@@ -70,6 +70,21 @@ the same release cache token.
 ---
 
 Agent ID: codex-main
+Task ID: BETA-SCENE-CATALOG-RENDER-001
+State: DONE — deployed.
+Root cause: picker initialization still queried deleted `#editorial-mode-grid`.
+That null element stopped the client before either already-live catalogue could
+render, leaving the screen at zero.
+Fix: render the loading state into the two actual grids
+`#editorial-mode-grid-new` and `#editorial-mode-grid-legacy`.
+Evidence: focused UI tests 17/17 PASS; public-browser smoke on beta returned
+`standard:16`, `shoot:14`, `status:"16 сцен · обери одну"`, and no application
+console error.
+weakened_checks: none.
+
+---
+
+Agent ID: codex-main
 Task ID: DESIGN-PIPELINE-DECK-CANON-001
 State: DONE
 Decision: operator-supplied `zeely-pipeline-deck.html` and `vt-bp.html` are
