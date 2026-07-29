@@ -437,6 +437,36 @@ test('a provider-native 4:5 bucket with sub-one-percent rounding is rescaled wit
   assert.ok(result.metadata.aspect_error_fraction < 0.01);
 });
 
+test('a rounded GPT 3:4 response is centre-cropped once into the fixed 4:5 delivery', async () => {
+  const fixture = await contextFixture();
+  // GPT Image 2 returned 1744×2336 in the real smoke. This is a 3:4 bucket
+  // rounded by 0.46%, not a malformed landscape frame. Keep only the central
+  // 4:5 region and record the crop; never pad, stretch, or hide the transport.
+  const providerOutput = await sharp({
+    create: { width: 1744, height: 2336, channels: 3, background: '#8f7360' },
+  }).png().toBuffer();
+  const adapter = new SceneGeneratorAdapter({
+    provider: {
+      aspectRatio: '3:4',
+      async generate() {
+        return { image: providerOutput, mediaType: 'image/png', metadata: { provider: 'openrouter', job_id: 'rounded-34-job' } };
+      },
+    },
+  });
+  const result = await adapter.generateScene({
+    ...fixture.base,
+    attempt: 1,
+    cycle_attempt: 1,
+    ...DEFAULT_SCENE_MODEL_ROUTE[0],
+  });
+  assert.equal(result.metadata.transport_aspect_ratio, '3:4');
+  assert.equal(result.metadata.geometry_strategy, 'centre_crop_to_exact_4_5');
+  assert.ok(result.metadata.geometry_crop_fraction > 0);
+  assert.ok(result.metadata.transport_aspect_error_fraction < 0.01);
+  const delivered = await sharp(result.image).metadata();
+  assert.deepEqual([delivered.width, delivered.height], [1024, 1280]);
+});
+
 test('a landscape provider frame fails the attempt instead of faking the delivery size', async () => {
   const fixture = await contextFixture();
   // 1200×900 needs 40% of its width removed to reach 4:5. The old code padded

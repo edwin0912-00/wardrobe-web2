@@ -386,6 +386,8 @@ async function geometrySafeImage(bytes, { width, height, transportAspectRatio })
   }
   const exactAspect = metadata.width * height === metadata.height * width;
   const aspectError = Math.abs((metadata.width / metadata.height) - (width / height)) / (width / height);
+  const transportRatio = transportAspectRatio === '3:4' ? 3 / 4 : 4 / 5;
+  const transportAspectError = Math.abs((metadata.width / metadata.height) - transportRatio) / transportRatio;
   if (exactAspect && metadata.width === width && metadata.height === height) {
     return {
       image: bytes,
@@ -425,7 +427,7 @@ async function geometrySafeImage(bytes, { width, height, transportAspectRatio })
     );
   }
 
-  if (transportAspectRatio === '3:4' && metadata.width * 4 === metadata.height * 3) {
+  if (transportAspectRatio === '3:4' && transportAspectError <= 0.01) {
     const cropHeight = Math.round(metadata.width / (width / height));
     return rescaleOnly(
       sharp(bytes).extract({
@@ -435,7 +437,10 @@ async function geometrySafeImage(bytes, { width, height, transportAspectRatio })
         height: cropHeight,
       }),
       'centre_crop_to_exact_4_5',
-      { crop_fraction: Number(((metadata.height - cropHeight) / metadata.height).toFixed(4)) },
+      {
+        crop_fraction: Number(((metadata.height - cropHeight) / metadata.height).toFixed(4)),
+        transport_aspect_error_fraction: Number(transportAspectError.toFixed(6)),
+      },
     );
   }
 
@@ -696,6 +701,7 @@ export class SceneGeneratorAdapter {
         // strategy name alone hid the scale of what geometry did to the image.
         ...(geometry.crop_fraction === undefined ? {} : { geometry_crop_fraction: geometry.crop_fraction }),
         ...(geometry.aspect_error_fraction === undefined ? {} : { aspect_error_fraction: geometry.aspect_error_fraction }),
+        ...(geometry.transport_aspect_error_fraction === undefined ? {} : { transport_aspect_error_fraction: geometry.transport_aspect_error_fraction }),
         reference_role_order: evidence.map((item) => item.role).join(':'),
         reference_evidence_sha256: sha256(Buffer.from(JSON.stringify(evidence))),
         attached_reference_count: ordered.length,

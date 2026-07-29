@@ -87,7 +87,7 @@ const SHA256_PATTERN = /^[a-f0-9]{64}$/;
 // Change this only when the bytes sent to the image provider change. It is part
 // of provider idempotency, so an old journal can never be replayed against a
 // materially different repair contract.
-const SCENE_GENERATION_CONTRACT_VERSION = 'scene-generation-contract-v7-gpt-3-4-composed-master';
+const SCENE_GENERATION_CONTRACT_VERSION = 'scene-generation-contract-v8-gpt-3-4-tolerance';
 
 function nowIso(clock) {
   const value = clock();
@@ -625,6 +625,7 @@ function safeProviderMetadata(metadata) {
     'geometry_strategy',
     'geometry_crop_fraction',
     'aspect_error_fraction',
+    'transport_aspect_error_fraction',
     'transport_aspect_ratio',
     'source_width',
     'source_height',
