@@ -334,6 +334,24 @@ Create Universe, video and Live branch smoke in that order.
 ---
 
 Agent ID: codex-main
+Task ID: BETA-LOOK-ACTION-LABELS-001
+Product line: beta-placeholder
+State: READY_FOR_BETA_DEPLOY
+Change: the saved-look action surface now names every action and states its
+actual scope: `Додати фон` (16 standard scenes), `Покращити образ` (soon),
+`Fashion Shoot` (five fashion frames), `Fashion Video` (disabled until the
+two-reference contract exists), and `Real-time Look` (camera consent).
+Removed the duplicate background button. Fashion Shoot opens the style picker;
+background opens standard scenes; Real-time Look keeps its consented camera
+route. Video cannot open generation while disabled.
+Evidence: `node --test test/web/profile-ui-flow.test.js
+test/web/editorial-preview-ui.test.js` — 17/17 PASS.
+weakened_checks: none.
+Next: deploy the exact commit to beta and smoke the public labels/routes
+without starting a paid generation.
+
+---
+
 Task ID: BETA-LOOK-RESUME-001
 Protocol ACK: 5e4e0bb
 State: READY_FOR_BETA_DEPLOY

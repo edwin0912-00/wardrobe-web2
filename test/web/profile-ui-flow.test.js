@@ -62,7 +62,6 @@ test('saved look exposes actionable branches and their honest pipeline explanati
   for (const id of [
     'profile-look-background-primary',
     'profile-look-refine',
-    'profile-look-background',
     'profile-look-photoshoot',
     'profile-look-video',
     'profile-look-live',
@@ -76,15 +75,24 @@ test('saved look exposes actionable branches and their honest pipeline explanati
   assert.match(indexSource, /id="profile-refine-brief"/);
   assert.match(indexSource, /id="profile-background-video-brief"/);
   assert.match(indexSource, /id="profile-pipeline-explainer"/);
-  assert.match(indexSource, /готову зйомку: її стиль, світло, локація, камера, пози та кадри/);
+  assert.match(indexSource, /Обери готовий стиль: Creative Universe вже зафіксував світло, локацію, камеру, пози та reference pack/);
   assert.match(indexSource, /aria-label="Відкрити Real-time Look"/);
-  assert.match(indexSource, /aria-label="Додати стандартний фон"/);
+  assert.match(indexSource, /Додати фон<\/strong><small>16 стандартних сцен/);
+  assert.match(indexSource, /Покращити образ<\/strong><small>Скоро/);
+  assert.match(indexSource, /Fashion Shoot<\/strong><small>5 fashion-кадрів/);
+  assert.match(indexSource, /Fashion Video<\/strong><small>Готуємо 2 референси/);
+  assert.match(indexSource, /id="profile-look-video"[^>]*disabled/);
+  assert.match(indexSource, /без другого референсу ролик не стартує/);
+  assert.match(indexSource, /Real-time Look<\/strong><small>Камера з дозволом/);
   assert.match(appSource, /openSelectedLookScene\('standard'\)/);
   assert.match(appSource, /openSelectedLookScene\('editorial'\)/);
+  assert.doesNotMatch(appSource, /document\.querySelector\('#profile-look-background'\)/);
+  assert.match(appSource, /п’ять унікальних fashion-кадрів/);
   assert.match(sceneUiSource, /async openForLook\(look, \{ initialTab = 'standard' \} = \{\}\)/);
   assert.match(sceneUiSource, /this\.pickerTab = initialTab === 'editorial' \? 'editorial' : 'standard';/);
   assert.match(appSource, /profile-look-video/);
   assert.match(appSource, /Fashion Video: обери формат кадру й подачу/);
+  assert.match(appSource, /потрібні два перевірені референси/);
   assert.match(appSource, /showLookBrief\('profile-background-video-brief'/);
   assert.match(appSource, /showLookBrief\('profile-pipeline-explainer'/);
 });

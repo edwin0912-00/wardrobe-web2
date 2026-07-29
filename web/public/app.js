@@ -1640,18 +1640,17 @@ document.querySelector('#profile-look-background-primary').addEventListener('cli
   setLookActionStatus('Фон: обери одну стандартну сцену. Master-образ і вибрані речі залишаються locked.');
   openSelectedLookScene('standard');
 });
-document.querySelector('#profile-look-background').addEventListener('click', (event) => {
-  event.stopPropagation();
-  setLookActionStatus('Фон: обери одну стандартну сцену. Master-образ і вибрані речі залишаються locked.');
-  openSelectedLookScene('standard');
-});
 document.querySelector('#profile-look-photoshoot').addEventListener('click', (event) => {
   event.stopPropagation();
-  setLookActionStatus('Фотозйомка: обери готову зйомку з її locked стилем, світлом, локацією, камерою та планом кадрів. Далі — hero і серія.');
+  setLookActionStatus('Fashion Shoot: обери готовий стиль із Creative Universe. Після внутрішньої QA-перевірки отримаєш п’ять унікальних fashion-кадрів.');
   openSelectedLookScene('editorial');
 });
 document.querySelector('#profile-look-video').addEventListener('click', (event) => {
   event.stopPropagation();
+  if (event.currentTarget.disabled) {
+    setLookActionStatus('Fashion Video ще готуємо: потрібні два перевірені референси. Запуск поки вимкнений.');
+    return;
+  }
   if (!selectedProfileLook) return;
   const lookId = idOfLook(selectedProfileLook);
   if (!lookId) return;

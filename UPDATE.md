@@ -58,6 +58,14 @@ frame or a user-facing contact sheet.
 
 ## Current verified state — reconciliation 2026-07-27
 
+### Pending beta deployment — saved-look actions
+
+- **LOOK.06 / choice UI:** labels now state each post-look action and its
+  honest availability. Background opens the 16-scene picker; Fashion Shoot
+  opens its five-frame style workflow; Real-time Look opens only after camera
+  consent. Fashion Video is visibly disabled until the two-reference input
+  contract exists. This is code-tested, awaiting exact beta deployment.
+
 ## Current verification rule — 2026-07-29
 
 `BLOCK_STATUS.md` is the canonical concise map of pipeline blocks. Every

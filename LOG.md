@@ -945,6 +945,15 @@ Eleven stale prompt hashes were corrected to their exact checked-in prompt
 bytes; their finish metadata was normalized to the existing production lock.
 weakened_checks: none.
 
+2026-07-29 · Saved-look action labels · pending commit
+Change: replaced icon-only saved-look controls with names and scoped states;
+removed duplicate background action; disabled Fashion Video until its required
+two-reference route is actually available.
+Why: controls must say what they do and must not imply a generation capability
+that the current video contract cannot satisfy.
+Evidence: profile and Fashion Shoot UI suite 17/17 PASS.
+weakened_checks: none.
+
 2026-07-27 · BETA reconciliation · `39442c4`
 Change: reconcile the shared board and verified state to the actual running
 beta commit, and give each connected agent one explicit next action.

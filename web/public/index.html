@@ -200,24 +200,25 @@
                     </div>
                     <button id="profile-look-background-primary" class="profile-look-primary-action" type="button" aria-label="Додати стандартний фон">
                       <span class="profile-action-signal" aria-hidden="true">✦</span>
-                      <span class="profile-action-orbit" aria-hidden="true"></span>
+                      <span class="profile-action-copy"><strong>Додати фон</strong><small>16 стандартних сцен</small></span>
                       <span class="profile-action-arrow" aria-hidden="true">→</span>
                     </button>
                     <div class="profile-look-next-actions" role="group" aria-label="Інші формати для цього образу">
                       <button id="profile-look-refine" class="profile-next-action profile-next-action-refine" type="button" aria-label="Покращити образ (beta)" aria-describedby="profile-look-video-note">
                         <span class="profile-action-icon" aria-hidden="true">✦</span>
-                      </button>
-                      <button id="profile-look-background" class="profile-next-action profile-next-action-background" type="button" aria-label="Додати стандартний фон">
-                        <span class="profile-action-icon" aria-hidden="true">◐</span>
+                        <span class="profile-action-copy"><strong>Покращити образ</strong><small>Скоро</small></span>
                       </button>
                       <button id="profile-look-photoshoot" class="profile-next-action profile-next-action-photoshoot" type="button" aria-label="Відкрити Fashion Shoot">
                         <span class="profile-action-icon" aria-hidden="true">◉</span>
+                        <span class="profile-action-copy"><strong>Fashion Shoot</strong><small>5 fashion-кадрів</small></span>
                       </button>
-                      <button id="profile-look-video" class="profile-next-action profile-next-action-video" type="button" aria-label="Створити Fashion Video" aria-describedby="profile-look-video-note">
+                      <button id="profile-look-video" class="profile-next-action profile-next-action-video" type="button" aria-label="Fashion Video ще готується: потрібні два референси" aria-describedby="profile-look-video-note" disabled>
                         <span class="profile-action-icon" aria-hidden="true">▷</span>
+                        <span class="profile-action-copy"><strong>Fashion Video</strong><small>Готуємо 2 референси</small></span>
                       </button>
                       <button id="profile-look-live" class="profile-next-action profile-next-action-live" type="button" aria-label="Відкрити Real-time Look">
                         <span class="profile-action-icon" aria-hidden="true">◌</span>
+                        <span class="profile-action-copy"><strong>Real-time Look</strong><small>Камера з дозволом</small></span>
                       </button>
                     </div>
                     <section class="profile-action-guide" aria-label="Що робить кожна дія">
@@ -226,7 +227,7 @@
                         <li><b>Покращити</b><span>Окремий candidate: lock людини й вибраних речей; дозволені лише незадані деталі, волосся, легкий макіяж і невелика зміна пози. Поки що очікує generator route.</span></li>
                         <li><b>Фон</b><span>Відкриває 16 стандартних сцен. Master-образ не перегенеровується.</span></li>
                         <li><b>Fashion Shoot</b><span>Обери готовий стиль: Creative Universe вже зафіксував світло, локацію, камеру, пози та reference pack. Результат — п’ять унікальних fashion-кадрів.</span></li>
-                        <li><b>Fashion Video</b><span>Створює окремий fashion-ролик із master-образу. Ти задаєш тільки подачу кадру й рух; модель, job та clip QA працюють на сервері й зберігають результат до цього образу.</span></li>
+                        <li><b>Fashion Video</b><span>Поки готуємо правильний запуск із двома референсами. Кнопка навмисно вимкнена: без другого референсу ролик не стартує.</span></li>
                         <li><b>Real-time Look</b><span>Відкриває окрему consented camera-сесію. Вона не замінює згенероване відео.</span></li>
                         <li><b>Відео зі сцени</b><span>Після готового фону з’явиться окрема гілка «Фокус на речі» / «Позування». Її server route ще не зібраний — запускати фальшивий ролик не будемо.</span></li>
                       </ul>

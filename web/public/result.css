@@ -216,7 +216,9 @@
 .profile-next-action {
   --action-accent: #8f9a80;
   display: grid;
-  place-items: center;
+  grid-template-columns: 34px minmax(0, 1fr);
+  align-items: center;
+  gap: 9px;
   min-width: 0;
   min-height: 68px;
   padding: 12px;
@@ -322,6 +324,9 @@
 .profile-branch-brief li { color: var(--result-muted); font-size: 12px; line-height: 1.43; }
 .profile-branch-brief ol { display: grid; gap: 5px; padding-left: 19px; }
 .profile-action-icon { display: grid; width: 34px; height: 34px; place-items: center; border: 1px solid color-mix(in srgb, var(--action-accent) 65%, transparent); border-radius: 50%; color: var(--action-accent); font-size: 18px; box-shadow: 0 0 16px color-mix(in srgb, var(--action-accent) 18%, transparent); }
+.profile-action-copy { display: grid; gap: 2px; min-width: 0; }
+.profile-action-copy strong { overflow: hidden; color: currentColor; font-size: 13px; line-height: 1.1; text-overflow: ellipsis; white-space: nowrap; }
+.profile-action-copy small { color: color-mix(in srgb, currentColor 64%, transparent); font-size: 10px; line-height: 1.2; }
 .profile-next-action-refine { --action-accent: #91bd45; }
 .profile-next-action-background { --action-accent: #d29a24; }
 .profile-next-action-photoshoot { --action-accent: #357fd2; }
@@ -351,7 +356,8 @@
 .profile-look-primary-action:hover,
 .profile-look-primary-action:focus-visible { outline: 0; box-shadow: 0 13px 28px rgba(84, 58, 18, .28), 0 0 0 3px rgba(210, 154, 36, .2); transform: translateY(-1px); }
 .profile-action-signal { display: grid; width: 38px; height: 38px; place-items: center; border: 1px solid rgba(255, 204, 93, .68); border-radius: 50%; color: #ffd166; font-size: 19px; }
-.profile-action-orbit { width: min(100%, 166px); height: 28px; border: 1px solid rgba(255, 209, 110, .42); border-radius: 50%; box-shadow: inset 0 0 16px rgba(255, 194, 61, .12), 0 0 18px rgba(255, 194, 61, .12); transform: rotate(-9deg); }
+.profile-look-primary-action .profile-action-copy strong { color: #fffdf6; font-size: 15px; }
+.profile-look-primary-action .profile-action-copy small { color: rgba(255, 230, 177, .82); font-size: 11px; }
 .profile-action-arrow { color: #ffda85; font-size: 25px; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 
