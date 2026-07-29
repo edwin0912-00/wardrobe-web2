@@ -30,8 +30,21 @@ const requiredCreateUniverseModeIds = [
   'shoot.window_gobo_warm',
   'shoot.grey_studio_stride',
   'shoot.sky_dune_surreal',
+  'shoot.hardsun_brick_doorway',
+  'shoot.overcast_street_stride',
+  'shoot.grey_wall_gloss',
+  'shoot.ochre_stage_tailoring',
+  'shoot.shutter_amber_interior',
 ];
 const requiredCreateUniverseGenerationModeIds = requiredCreateUniverseModeIds;
+const requiredReleasePreviewModeIds = [
+  ...requiredEditorialModeIds,
+  ...requiredCreateUniverseModeIds,
+];
+const requiredReleaseGenerationModeIds = [
+  ...requiredEditorialGenerationModeIds,
+  ...requiredCreateUniverseGenerationModeIds,
+];
 const requiredEditorialShotSlots = [
   'clean_identity_hero',
   'environmental_hero',
@@ -40,7 +53,7 @@ const requiredEditorialShotSlots = [
   'material_or_accessory_detail',
   'wide_campaign_coda',
 ];
-const requiredEditorialPreviewFiles = requiredEditorialModeIds.flatMap((modeId) => [
+const requiredEditorialPreviewFiles = requiredReleasePreviewModeIds.flatMap((modeId) => [
   `assets/scene-mood-cards/${modeId}.json`,
   `assets/scene-mood-cards/${modeId}.webp`,
 ]);
@@ -397,23 +410,23 @@ assert(
   'Editorial authority must be active and generation-enabled',
 );
 assert(
-  isDeepStrictEqual(manifest.editorial_preview?.mode_ids, requiredEditorialModeIds),
-  'Editorial preview authority does not contain the exact four mode IDs',
+  isDeepStrictEqual(manifest.editorial_preview?.mode_ids, requiredReleasePreviewModeIds),
+  'Release preview authority does not contain every registered legacy and Create Universe mode ID',
 );
 assert(
-  new Set(manifest.editorial_preview.mode_ids).size === requiredEditorialModeIds.length,
+  new Set(manifest.editorial_preview.mode_ids).size === requiredReleasePreviewModeIds.length,
   'Editorial preview authority contains duplicate mode IDs',
 );
 assert(
   isDeepStrictEqual(
     manifest.editorial_preview?.generation_mode_ids,
-    requiredEditorialGenerationModeIds,
+    requiredReleaseGenerationModeIds,
   ),
-  'Editorial generation authority does not contain the exact two approved mode IDs',
+  'Release generation authority does not contain every registered generation mode ID',
 );
 assert(
   new Set(manifest.editorial_preview.generation_mode_ids).size
-    === requiredEditorialGenerationModeIds.length
+    === requiredReleaseGenerationModeIds.length
     && manifest.editorial_preview.generation_mode_ids.every(
       (modeId) => manifest.editorial_preview.mode_ids.includes(modeId),
     ),
@@ -421,8 +434,8 @@ assert(
 );
 assert(
   Array.isArray(manifest.editorial_preview?.assets)
-    && manifest.editorial_preview.assets.length === requiredEditorialModeIds.length,
-  'Editorial preview asset authority must contain four entries',
+    && manifest.editorial_preview.assets.length === requiredReleasePreviewModeIds.length,
+  'Release preview asset authority must contain every registered mode',
 );
 
 const records = manifest.deploy_files.map((record) => {
@@ -793,7 +806,7 @@ assert(
     editorialModes.map((mode) => mode?.preset_id),
     requiredEditorialModeIds,
   ),
-  'Editorial mode catalog does not contain the exact four ordered mode IDs',
+  'Legacy editorial mode catalog does not contain the exact four ordered mode IDs',
 );
 assert(
   isDeepStrictEqual(
@@ -814,11 +827,12 @@ const editorialAssets = manifest.editorial_preview.assets;
 assert(
   isDeepStrictEqual(
     editorialAssets.map((asset) => asset?.mode_id),
-    requiredEditorialModeIds,
+    requiredReleasePreviewModeIds,
   ),
-  'Editorial preview manifest assets do not contain the exact four ordered mode IDs',
+  'Release preview manifest assets do not contain every registered mode ID',
 );
-for (const modeId of requiredEditorialModeIds) {
+for (const modeId of requiredReleasePreviewModeIds) {
+  const isCreateUniverse = requiredCreateUniverseModeIds.includes(modeId);
   const catalogMode = editorialModes.find((mode) => mode.preset_id === modeId);
   const authority = editorialAssets.find((asset) => asset?.mode_id === modeId);
   const sidecarPath = `assets/scene-mood-cards/${modeId}.json`;
@@ -842,13 +856,15 @@ for (const modeId of requiredEditorialModeIds) {
     sidecar.schema_version === '1.0.0'
       && sidecar.preset_id === modeId
       && sidecar.kind === 'editorial'
-      && sidecar.family === 'edwin_novak'
-      && sidecar.ui_name_uk === catalogMode.ui_name_uk
+      && sidecar.family === (isCreateUniverse ? 'create_universe' : 'edwin_novak')
+      && (isCreateUniverse || sidecar.ui_name_uk === catalogMode?.ui_name_uk)
       && sidecar.asset_role === 'mood_card'
       && sidecar.file === imagePath
       && sidecar.sha256 === recordByPath.get(imagePath)?.sha256
-      && sidecar.prompt_path === promptPath
-      && sidecar.prompt_sha256 === recordByPath.get(promptPath)?.sha256
+      && (isCreateUniverse || (
+        sidecar.prompt_path === promptPath
+        && sidecar.prompt_sha256 === recordByPath.get(promptPath)?.sha256
+      ))
       && sidecar.delivery?.width === 1024
       && sidecar.delivery?.height === 1280
       && sidecar.delivery?.format === 'webp'
@@ -987,7 +1003,7 @@ const releaseBible = await import(pathToFileURL(
   path.join(releaseDirectory, 'src/web/editorial-shoot-bible.js'),
 ).href);
 assert(
-  [...requiredEditorialGenerationModeIds, ...requiredCreateUniverseModeIds]
+  requiredReleaseGenerationModeIds
     .every((modeId) => releaseBible.READY_EDITORIAL_MODE_IDS.includes(modeId)),
   'Released ShootBible compiler does not carry every registered legacy and Create Universe mode',
 );
@@ -1057,8 +1073,8 @@ process.stdout.write(`${JSON.stringify({
   scene_runtime: 'ENABLED',
   editorial_preview: 'ACTIVE',
   editorial_generation: 'ENABLED',
-  editorial_modes: requiredEditorialModeIds.length,
-  editorial_generation_modes: requiredEditorialGenerationModeIds.length,
+  editorial_modes: requiredReleasePreviewModeIds.length,
+  editorial_generation_modes: requiredReleaseGenerationModeIds.length,
   create_universe_modes: requiredCreateUniverseModeIds.length,
   create_universe_generation_modes: requiredCreateUniverseGenerationModeIds.length,
   editorial_bibles_compiled: compiledBibleIds.length,

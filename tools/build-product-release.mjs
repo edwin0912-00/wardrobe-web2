@@ -27,10 +27,30 @@ const editorialPreviewModeIds = [
   'editorial.edwin_novak.urban_monochrome',
   'editorial.edwin_novak.institutional_modernism',
   'editorial.edwin_novak.luminous_blue_white',
+  'shoot.skylight_haze',
+  'shoot.terracotta_hardlight',
+  'shoot.window_gobo_warm',
+  'shoot.grey_studio_stride',
+  'shoot.sky_dune_surreal',
+  'shoot.hardsun_brick_doorway',
+  'shoot.overcast_street_stride',
+  'shoot.grey_wall_gloss',
+  'shoot.ochre_stage_tailoring',
+  'shoot.shutter_amber_interior',
 ];
 const editorialGenerationModeIds = [
   'editorial.edwin_novak.organic_contrast',
   'editorial.edwin_novak.urban_monochrome',
+  'shoot.skylight_haze',
+  'shoot.terracotta_hardlight',
+  'shoot.window_gobo_warm',
+  'shoot.grey_studio_stride',
+  'shoot.sky_dune_surreal',
+  'shoot.hardsun_brick_doorway',
+  'shoot.overcast_street_stride',
+  'shoot.grey_wall_gloss',
+  'shoot.ochre_stage_tailoring',
+  'shoot.shutter_amber_interior',
 ];
 const editorialPreviewFiles = editorialPreviewModeIds.flatMap((modeId) => [
   `assets/scene-mood-cards/${modeId}.json`,
@@ -179,13 +199,14 @@ async function buildEditorialPreviewAuthority(snapshots) {
   const snapshotByPath = new Map(snapshots.map((snapshot) => [snapshot.path, snapshot]));
   const assets = [];
   for (const modeId of editorialPreviewModeIds) {
+    const isCreateUniverse = modeId.startsWith('shoot.');
     const sidecarPath = `assets/scene-mood-cards/${modeId}.json`;
     const imagePath = `assets/scene-mood-cards/${modeId}.webp`;
     const promptPath = `prompts/scenes/${modeId}.txt`;
     const sidecarSnapshot = snapshotByPath.get(sidecarPath);
     const imageSnapshot = snapshotByPath.get(imagePath);
     const promptSnapshot = snapshotByPath.get(promptPath);
-    if (!sidecarSnapshot || !imageSnapshot || !promptSnapshot) {
+    if (!sidecarSnapshot || !imageSnapshot || (!isCreateUniverse && !promptSnapshot)) {
       throw new Error(`Editorial preview source set is incomplete: ${modeId}`);
     }
 
@@ -195,24 +216,29 @@ async function buildEditorialPreviewAuthority(snapshots) {
     } catch (error) {
       throw new Error(`Editorial preview sidecar is invalid JSON (${modeId}): ${error.message}`);
     }
-    if (
+    const commonValid = (
       sidecar?.schema_version !== '1.0.0'
       || sidecar.preset_id !== modeId
       || sidecar.kind !== 'editorial'
-      || sidecar.family !== 'edwin_novak'
       || typeof sidecar.ui_name_uk !== 'string'
       || sidecar.ui_name_uk.trim() === ''
       || sidecar.asset_role !== 'mood_card'
       || sidecar.file !== imagePath
-      || sidecar.prompt_path !== promptPath
-      || sidecar.prompt_sha256 !== sha256(promptSnapshot.bytes)
       || sidecar.sha256 !== sha256(imageSnapshot.bytes)
       || sidecar.delivery?.width !== 1024
       || sidecar.delivery?.height !== 1280
       || sidecar.delivery?.format !== 'webp'
       || sidecar.delivery?.aspect_ratio !== '4:5'
       || sidecar.contains_personal_input !== false
-    ) {
+    );
+    const contractInvalid = commonValid || (isCreateUniverse
+      ? sidecar.family !== 'create_universe'
+      : (
+        sidecar.family !== 'edwin_novak'
+        || sidecar.prompt_path !== promptPath
+        || sidecar.prompt_sha256 !== sha256(promptSnapshot.bytes)
+      ));
+    if (contractInvalid) {
       throw new Error(`Editorial preview sidecar contract is invalid: ${modeId}`);
     }
 
