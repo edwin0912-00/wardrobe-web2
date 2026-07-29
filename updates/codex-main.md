@@ -149,6 +149,22 @@ Create Universe, video and Live branch smoke in that order.
 ---
 
 Agent ID: codex-main
+Task ID: BETA-LOOK-RESUME-001
+Protocol ACK: 5e4e0bb
+State: READY_FOR_BETA_DEPLOY
+Decision: automatic resume keeps the original immutable job bytes. Explicit
+garment re-selection is the sole branch that deletes `job.json`, because that
+is the only action here that changes the input contract.
+Evidence: `node --test --test-name-pattern='restart resumes the original immutable job|initialize resumes persisted' test/web/run-service.test.js` passes 2/2. The new restart regression changes release root and proves the job is not recompiled.
+Risk: this protects an in-flight run across beta release restarts; it does not
+relax any image, item, identity, framing, or QA condition.
+weakened_checks: none.
+Next action: deploy exact commit to beta, then one fresh public person + garment run.
+Help request: NONE.
+
+---
+
+Agent ID: codex-main
 Task ID: BETA-PRODUCT-LANGUAGE-001
 State: DONE — beta release `7ef5ec8`.
 Decision: remove implementation names from user-facing saved-look copy. A user

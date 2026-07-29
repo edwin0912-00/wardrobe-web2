@@ -17,6 +17,15 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-07-29 · BETA-LOOK-RESUME-001 · beta · immutable restart repair
+Change: retain an existing run `job.json` during automatic resume and remove it
+only after an explicit garment re-selection changes the immutable input.
+Why: a beta process restart recompiled release-local prompt paths, changing the
+job hash while the runner checkpoint correctly remained bound to its original
+job. A real public upload reached Avatar QA PASS and then failed at that guard.
+Evidence: `node --test --test-name-pattern='restart resumes the original immutable job|initialize resumes persisted' test/web/run-service.test.js` passes 2/2.
+weakened_checks: none. Deployment and fresh public journey evidence pending.
+
 2026-07-29 · BETA-MANUAL-AUDIT-001 · beta · independent browser/API audit
 Change: record the first independent manual checks for Look/Background,
 Create Universe/Art Shoot, and Video/Live; set root UI recovery as the shared

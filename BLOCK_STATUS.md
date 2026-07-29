@@ -65,7 +65,7 @@ the approved master look and does not require a shoot or background.
 | Block | Code | Beta | Journey | Exact evidence / next atom |
 | --- | --- | --- | --- | --- |
 | `PROFILE.01–03` | TESTED historical | LIVE_SURFACE | NOT_CURRENT | Public beta root and profile entry open; a fresh saved-look journey still needs proof. |
-| `LOOK.01–06` | TESTED locally | LIVE_SURFACE | NOT_CURRENT | A local full-look run exists; perform fresh public beta upload → approved master → saved look. |
+| `LOOK.01–06` | TESTED locally | LIVE_SURFACE | E2E_FAIL | Fresh beta upload reached Avatar QA PASS, then a server restart rebuilt release-local job bytes and correctly rejected the old immutable checkpoint. Repair is focused-tested but not deployed; next atom is deploy → one fresh beta upload → approved master/saved-look proof. |
 | `LOOK.07` Improve | MISSING | NOT_DEPLOYED | NOT_RUN | Product canon only; no generation or UI route may be claimed. |
 | `BACKGROUND.01` picker | TESTED historical | CATALOG_ONLY | NOT_CURRENT | Beta returns 16 `std.*` cards/previews; public saved-look → picker click is still unproven. |
 | `BACKGROUND.02` scene | TESTED (`f23ca9b`) | NOT_DEPLOYED | E2E_FAIL_LOCAL | Native 3:4 route tested; real GPT scene returned but failed strict item fidelity/framing. Next: repair only those failed gates, then run beta. |
@@ -73,7 +73,7 @@ the approved master look and does not require a shoot or background.
 | `UNIVERSE.01–02` style picker/packs | TESTED historical | LIVE_SURFACE | NOT_CURRENT | API has 14 modes (12 available) and all previews respond; public saved-look → picker click is still unproven. |
 | `UNIVERSE.03–04` hero/series/contact sheet | CODE_PARTIAL | LIVE_SURFACE | NOT_CURRENT | No current beta style → hero → six QA-passed frames → persisted contact-sheet proof. |
 | `ART_SHOOT.01–05` | CODE_PARTIAL | LIVE_SURFACE | NOT_CURRENT | Same missing real execution proof as Universe; do not infer it from previews. |
-| `VIDEO.01–04` Fashion Video | TESTED route surface (`544e602`) | LIVE_SURFACE | NOT_RUN | Video lives at `/api/profile/video-clips*`; unknown clip returns the expected `CLIP_NOT_FOUND`, and the saved-look UI has the control. Next: one controlled clip → ffprobe/clip QA → saved result. |
+| `VIDEO.01–04` Fashion Video | TESTED route surface (`544e602`) | LIVE_SURFACE | NOT_RUN | Video lives at `/api/profile/video-clips*`; unknown clip returns the expected `CLIP_NOT_FOUND`, and the saved-look UI has the control. Current implementation binds one approved-look reference only; the required second reference is not yet part of its immutable request/receipt. Next: add the two-reference contract, then one controlled clip → ffprobe/clip QA → saved result. |
 | `LIVE.01–04` Real-time Look | TESTED historical | CONTRACT_ONLY | PAID_E2E_NOT_RUN | `/api/post-shoot/pipeline` describes Live, but user actions and execution routes are not on current beta. |
 | Pipeline explainer | CODE_PARTIAL | ROOT UI BLOCKED | NOT_CURRENT | Technical nodes exist; current result-to-explainer journey still needs beta click smoke. |
 | Generation transport | TESTED local | HEALTH_LIVE | PARTIAL | Beta health says generation/semantic QA available. Local GPT Image 2 actually returned a scene; availability is not a successful scene or shoot. |

@@ -877,6 +877,17 @@ export class RunService {
   }
 
   async #buildJob(state, conditioned) {
+    const jobPath = path.join(this.runDirectory(state.run_id), 'job.json');
+    // A running job survives a beta release. Its checkpoint is bound to the
+    // exact original job bytes, including the release-local prompt paths that
+    // existed when the run began. Recompiling after a daemon restart changes
+    // that hash and destroys an otherwise resumable paid generation.
+    try {
+      await access(jobPath);
+      return jobPath;
+    } catch (error) {
+      if (error.code !== 'ENOENT') throw error;
+    }
     const outfitText = conditioned?.outfitText
       ? [state.inputs.outfit_text, conditioned.outfitText].filter(Boolean).join('\n')
       : state.inputs.outfit_text;
@@ -908,7 +919,6 @@ export class RunService {
       model_route: [...this.generationRoute], max_attempts: this.generationRoute.length, conditioning_max_attempts: this.generationRoute.length,
       ...(state.inputs.approved_avatar ? { approved_avatar_reference: state.inputs.approved_avatar } : {}),
     };
-    const jobPath = path.join(this.runDirectory(state.run_id), 'job.json');
     await atomicJson(jobPath, job);
     return jobPath;
   }
@@ -1745,6 +1755,9 @@ export class RunService {
     }
     await rm(path.join(this.runDirectory(runId), 'conditioned', 'garments'), { recursive: true, force: true });
     await rm(path.join(this.runDirectory(runId), 'outputs'), { recursive: true, force: true });
+    // A user-selected alternative garment is a new immutable input contract.
+    // Only this explicit branch may discard the former job before rebuilding.
+    await rm(path.join(this.runDirectory(runId), 'job.json'), { force: true });
     state.inputs.garment_passport = state.error.details.passport;
     state.inputs.garment_selections = normalized;
     resetVisualState(state);

@@ -502,6 +502,19 @@ facts.
 
 ## Latest events
 
+- 2026-07-29 — Current beta Look journey audit found a real server-side resume
+  defect, not a UI failure: upload reached Avatar QA PASS, then a beta process
+  restart recompiled `job.json` with release-local paths, so the immutable
+  checkpoint correctly refused the changed hash. `RunService` now reuses an
+  existing immutable job on resume; only an explicit garment re-selection
+  discards it. Focused restart regressions pass 2/2. This is Code evidence
+  until the exact commit is deployed and one new public beta look finishes.
+
+- 2026-07-29 — Video route audit: current beta has saved-look video endpoints
+  and Seedance service/unit coverage, but it binds only the approved master
+  look. The requested two-reference video contract is not implemented and is
+  not represented as a completed journey.
+
 - 2026-07-29 — Native standard-scene delivery is now 3:4 (`1536×2048`) on
   GPT Image 2, Nano Banana 2 and Nano Banana Pro. The legacy 4:5 composition
   annotation inside a reference pack is explicitly non-authoritative for

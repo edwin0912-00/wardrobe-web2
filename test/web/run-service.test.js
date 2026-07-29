@@ -85,7 +85,17 @@ test('public run state never exposes transport paths, private prompts, or projec
 
 test('initialize resumes persisted QUEUED and RUNNING runs from their existing checkpoints', async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'zeely-web-restart-'));
-  const original = new RunService({ rootDirectory: root, ...dependencies() });
+  const garmentInspector = async () => ({
+    status: 'READY',
+    reason: 'two distinct locked garments',
+    items: [
+      { source_index: 0, category: 'bottom', confidence: 0.95, observed: { garment_type: 'navy trousers' }, unknowns: [], blockers: [] },
+      { source_index: 1, category: 'footwear', confidence: 0.95, observed: { garment_type: 'black shoes' }, unknowns: [], blockers: [] },
+    ],
+  });
+  const originalDependencies = dependencies();
+  originalDependencies.vlm.inspectGarments = garmentInspector;
+  const original = new RunService({ rootDirectory: root, ...originalDependencies });
   await original.initialize();
   const runIds = ['queued-recovery', 'running-recovery'];
   for (const runId of runIds) {
@@ -93,7 +103,7 @@ test('initialize resumes persisted QUEUED and RUNNING runs from their existing c
       runId,
       person: await upload(),
       outfitText: 'navy blazer',
-      garments: runId === 'running-recovery' ? [await upload('#275b36')] : [],
+      garments: [await upload('#1d3157'), await upload('#151515')],
       generateScene: false,
     });
     await original.running.get(runId);
@@ -103,6 +113,7 @@ test('initialize resumes persisted QUEUED and RUNNING runs from their existing c
   await rewriteRunStatus(root, runIds[1], 'RUNNING');
 
   const restartedDependencies = dependencies();
+  restartedDependencies.vlm.inspectGarments = garmentInspector;
   let repeatedGarmentGenerations = 0;
   const generateGarment = restartedDependencies.assetGenerator.generateGarment;
   restartedDependencies.assetGenerator.generateGarment = async (...args) => {
@@ -121,6 +132,45 @@ test('initialize resumes persisted QUEUED and RUNNING runs from their existing c
     await access(path.join(root, runId, 'outputs', '.zeely-run', 'checkpoint.json'));
   }
   assert.equal(repeatedGarmentGenerations, 0, 'persisted conditioned references must be reused byte-for-byte');
+});
+
+test('restart resumes the original immutable job instead of recompiling release-local prompt paths', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'zeely-web-release-resume-'));
+  const originalDependencies = dependencies();
+  originalDependencies.vlm.inspectGarments = async () => ({
+    status: 'READY',
+    reason: 'two distinct locked garments',
+    items: [
+      { source_index: 0, category: 'bottom', confidence: 0.95, observed: { garment_type: 'navy trousers' }, unknowns: [], blockers: [] },
+      { source_index: 1, category: 'footwear', confidence: 0.95, observed: { garment_type: 'black shoes' }, unknowns: [], blockers: [] },
+    ],
+  });
+  const original = new RunService({ rootDirectory: root, ...originalDependencies });
+  await original.initialize();
+  const created = await original.createRun({
+    runId: 'release-resume-run',
+    person: await upload(),
+    garments: [await upload('#1d3157'), await upload('#151515')],
+    outfitText: 'navy blazer',
+    generateScene: false,
+  });
+  await original.running.get(created.run_id);
+  const jobPath = path.join(root, created.run_id, 'job.json');
+  const originalJob = await readFile(jobPath, 'utf8');
+  await rewriteRunStatus(root, created.run_id, 'RUNNING');
+
+  const restartedDependencies = dependencies();
+  restartedDependencies.vlm.inspectGarments = originalDependencies.vlm.inspectGarments;
+  const restarted = new RunService({
+    rootDirectory: root,
+    ...restartedDependencies,
+    projectRoot: path.join(root, 'new-release-root-without-prompts'),
+  });
+  await restarted.initialize();
+  await restarted.running.get(created.run_id);
+
+  assert.equal((await restarted.getRun(created.run_id)).status, 'COMPLETED');
+  assert.equal(await readFile(jobPath, 'utf8'), originalJob);
 });
 
 test('retry resumes an orphaned nonterminal run without deleting outputs or checkpoint state', async () => {
