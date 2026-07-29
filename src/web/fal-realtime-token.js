@@ -1,5 +1,12 @@
 const TOKEN_ENDPOINT = 'https://rest.fal.ai/tokens/';
 
+export function falAllowedAppAlias(app) {
+  if (typeof app !== 'string') throw new TypeError('fal app id must be a string');
+  const parts = app.split('/').filter(Boolean);
+  if (parts.length < 2) throw new TypeError('fal app id must be <owner>/<alias>');
+  return parts[0] === 'workflows' || parts[0] === 'comfy' ? parts[2] : parts[1];
+}
+
 export function createFalRealtimeTokenIssuer({
   apiKey = process.env.FAL_KEY,
   fetchImpl = globalThis.fetch,
@@ -15,7 +22,10 @@ export function createFalRealtimeTokenIssuer({
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        allowed_apps: [app],
+        // fal temporary tokens are scoped to the endpoint alias, not its
+        // owner/path form (for example, lucy-2-5 rather than
+        // decart/lucy-2-5/realtime). This mirrors @fal-ai/client auth.
+        allowed_apps: [falAllowedAppAlias(app)],
         token_expiration: expiresInSeconds,
       }),
     });

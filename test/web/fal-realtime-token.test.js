@@ -21,7 +21,7 @@ test('fal realtime token issuer allowlists one app without exposing the key', as
   });
   assert.equal(token, 'short-lived-token-value');
   assert.deepEqual(JSON.parse(calls[0].options.body), {
-    allowed_apps: ['decart/lucy-2-5/realtime'],
+    allowed_apps: ['lucy-2-5'],
     token_expiration: 10,
   });
   assert.equal(calls[0].options.headers.Authorization, 'Key server-only-secret');
