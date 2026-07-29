@@ -100,9 +100,17 @@
     <p class="copy__line" data-on="3">AND IT LEAVES THE ROOM WITH YOU.</p>
   </div>
 
-  <!-- Edge-mounted, per "LIVE LAB як edge-mounted optional feature". Stays in stage
-       space on purpose: it is chrome on the frame edge, not something painted on glass. -->
-  <button class="edge" type="button" data-livelab data-live="0" aria-hidden="true" disabled>LIVE LAB · камера</button>
+  <!-- LIVE — an invitation that ARRIVES, rather than chrome that was always there.
+       The side-mounted button is gone: the owner cut it, and it was on the frame from the
+       moment the camera settled, competing with the one thing the viewer is meant to do
+       first. This rises from the bottom edge once a look is visible, offers itself, and the
+       trying-on itself happens in the right mirror — a camera pointed at a look belongs on
+       the surface that shows the look.
+       Stage space on purpose: it is chrome on the frame, not something painted on glass. -->
+  <button class="live" type="button" data-live-invite data-live="0" aria-hidden="true" disabled>
+    <span class="live__t">Приміряти лайв</span>
+    <span class="live__d">камера · у правому дзеркалі</span>
+  </button>
 </main>
 
 <div class="legs" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
@@ -127,7 +135,7 @@
    * already through the delivery contract. Swapping by hand meant a file copy and a reload
    * per look; this way the comparison is one click, on the real site, with the real scroll.
    * Rewritten BEFORE the loader reads the elements, so nothing is fetched twice. */
-  var S1 = (location.search.match(/[?&]s1=([ABC])/i) || [])[1];
+  var S1 = (location.search.match(/[?&]s1=([ABCD])/i) || [])[1];
   var SEG1 = S1 ? 'assets/seg1-' + S1.toUpperCase() + '.mp4' : 'assets/seg1.mp4';
   if (S1) {
     var v0 = document.querySelector('video[data-leg="0"]');
