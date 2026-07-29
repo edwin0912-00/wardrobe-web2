@@ -28,6 +28,18 @@ passes 30/30. The unit audit asserts all ten selectable `shoot.*` units have
 their manifest and required sheet roles.
 weakened_checks: none.
 
+2026-07-29 · Standard scene framing crop quantisation · pending beta release
+Change: crop height now aligns to both the 5px mechanical grid and the delivery
+ratio's integral-width step. The former 5px-only grid could refuse a valid 3:4
+crop solely because its derived width was fractional.
+Why: beta scene_dcfb6… failed all three routes only for subject scale, despite
+headroom and all non-framing gates passing. The first candidate admits a
+1455×1940 crop that yields 76.2371% subject height with 11.8557% headroom.
+Evidence: new exact-geometry regression PASS. Existing 1024×1280 schema
+fixtures remain failing against the canonical 1536×2048 delivery and are not
+counted as proof or altered here.
+weakened_checks: none.
+
 2026-07-29 · BETA-FASHION-SHOOT-FIVE-UI-001 · 9cfcd5a · codex-main
 Change: activate the DOM-safe five-frame Fashion Shoot picker on public beta.
 Why: the first release had removed legacy markup while an older client line

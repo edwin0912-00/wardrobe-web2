@@ -5,6 +5,7 @@ import path from 'node:path';
 import Ajv2020 from 'ajv/dist/2020.js';
 import {
   assessSceneFraming,
+  deterministicFramingCropPlan,
   editorialFramingLock,
   sceneFramingLock,
 } from '../../src/web/scene-contract.js';
@@ -242,6 +243,27 @@ test('an editorial receipt states the headroom waiver instead of leaving it to b
   }, { preset: { preset_id: 'std.city.golden_hour_gloss' }, ...DELIVERY });
   assert.equal(standard.evidence.clear_space_above_hair_waived_by_full_head, false);
   assert.ok(standard.defects.includes('INSUFFICIENT_CLEAR_SPACE_ABOVE_HAIR'));
+});
+
+test('3:4 crop planning aligns its pixel grid to an integral 3:4 crop width', () => {
+  // Regression from beta scene_dcfb6… attempt 1: 72.2168% subject height,
+  // 11.9141% headroom and 15.8691% below. The strict [74,78]/8/2 contract has
+  // a valid mechanical crop; the old 5px-only quantisation selected 1945px
+  // and rejected it because 1945 × 3/4 is fractional.
+  const plan = deterministicFramingCropPlan({
+    subject_bbox_xywh_px: [519, 244, 498, 1479],
+    expected_subject_height_percent: [74, 78],
+    subject_height_percent: 72.2168,
+    minimum_clear_space_above_hair_percent: 8,
+    minimum_clear_space_below_footwear_percent: 2,
+    full_head_visible: true,
+    full_footwear_visible: true,
+  }, { width: 1536, height: 2048 });
+  assert.deepEqual(plan && [plan.left, plan.top, plan.width, plan.height], [41, 14, 1455, 1940]);
+  assert.equal(plan.width * 4, plan.height * 3, 'crop is exactly 3:4 before resize');
+  assert.ok((1479 / plan.height) * 100 >= 74);
+  assert.ok((1479 / plan.height) * 100 <= 78);
+  assert.ok(((244 - plan.top) / plan.height) * 100 >= 8);
 });
 
 test('the receipt reports the waiver the assessment found, never one the evaluator claims', () => {

@@ -206,6 +206,17 @@ State: READY_FOR_BETA_DEPLOY
 Change: provider naming is removed from the top bar. The standard-scene screen
 now renders plain progress labels and a bounded expected wait time instead of
 transport codes. A server scene job remains persistent if the user exits.
+
+Task ID: BETA-SCENE-FRAMING-CROP-001
+State: READY_FOR_BETA_DEPLOY
+Evidence: failed beta scene `scene_dcfb6…` passed identity, item fidelity,
+scene match and light/contact-shadow on all three model attempts. It failed
+only `SUBJECT_HEIGHT_OUTSIDE_PRESET_RANGE` at 72.2168%, 71.1426%, 63.5254%
+against [74,78]; headroom was already 11.91%, 11.96%, 10.64% against 8%.
+Root cause: a 5px-only crop-height quantisation could select a fractional
+3:4 crop width and refused a valid mechanical crop. No QA lock is weakened.
+Proof: exact production geometry now selects [41, 14, 1455, 1940], yielding
+76.2371% subject height and 11.8557% headroom. Focused regression PASS.
 Next action: any preview hostname needs an ingress entry in the canonical
 Cloudflare connector, never a second connector with the same tunnel ID.
 Help request: NONE.

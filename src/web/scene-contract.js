@@ -1458,11 +1458,24 @@ export function deterministicFramingCropPlan(framing, delivery) {
     return null;
   }
   const targetPercent = (minimumPercent + maximumPercent) / 2;
-  const minimumCropHeight = Math.ceil(boxHeight / (maximumPercent / 100) / 5) * 5;
-  const maximumCropHeight = Math.floor(boxHeight / (minimumPercent / 100) / 5) * 5;
-  let cropHeight = Math.round(boxHeight / (targetPercent / 100) / 5) * 5;
+  // A crop height has two independent integer requirements: the historic 5px
+  // grid and an integral width at the immutable delivery ratio.  Quantising
+  // only to 5px made a perfectly legal 3:4 crop such as 1945px fail because
+  // 1945 × 3/4 is fractional; the planner then returned null instead of using
+  // the adjacent valid 1940px crop.  This is a geometry repair only — it adds
+  // no pixels and never relaxes a framing lock.
+  const divisor = greatestCommonDivisor(delivery.width, delivery.height);
+  const integralWidthHeightUnit = delivery.height / divisor;
+  const cropHeightUnit = leastCommonMultiple(5, integralWidthHeightUnit);
+  const minimumCropHeight = Math.ceil(boxHeight / (maximumPercent / 100) / cropHeightUnit)
+    * cropHeightUnit;
+  const maximumCropHeight = Math.floor(boxHeight / (minimumPercent / 100) / cropHeightUnit)
+    * cropHeightUnit;
+  if (minimumCropHeight > maximumCropHeight) return null;
+  let cropHeight = Math.round(boxHeight / (targetPercent / 100) / cropHeightUnit)
+    * cropHeightUnit;
   cropHeight = Math.max(minimumCropHeight, Math.min(maximumCropHeight, cropHeight, delivery.height));
-  const cropWidth = cropHeight * 3 / 4;
+  const cropWidth = cropHeight * delivery.width / delivery.height;
   if (!Number.isInteger(cropWidth)
     || cropWidth > delivery.width
     || cropHeight > delivery.height
@@ -1500,6 +1513,17 @@ export function deterministicFramingCropPlan(framing, delivery) {
     target_subject_height_percent: targetPercent,
     output_scale: Number((delivery.height / cropHeight).toFixed(6)),
   };
+}
+
+function greatestCommonDivisor(left, right) {
+  let a = Math.abs(left);
+  let b = Math.abs(right);
+  while (b) [a, b] = [b, a % b];
+  return a;
+}
+
+function leastCommonMultiple(left, right) {
+  return Math.abs(left * right) / greatestCommonDivisor(left, right);
 }
 
 export function allGatesPass(gates) {
