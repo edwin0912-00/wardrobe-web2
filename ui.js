@@ -150,11 +150,15 @@
 
     /* ============================================================== ASK — left mirror */
 
+    /* The plus is the affordance: an empty dashed box with two lines of text did not read
+     * as an upload target on its own, so an empty slot now says so with a glyph before it
+     * says anything else. Gone the moment a photograph fills the slot — the photograph
+     * itself is the evidence then, and "замінити" takes over as the one word that matters. */
     function photoSlot(kind, label, note) {
       var p = person[kind];
       return '<label class="pslot' + (p ? ' pslot--has' : '') + '" for="io-' + kind + '">' +
         (p ? '<img class="pslot__img" src="' + p.url + '" alt="">'
-           : '<span class="pslot__t">' + label + '</span>') +
+           : '<span class="pslot__plus" aria-hidden="true">+</span><span class="pslot__t">' + label + '</span>') +
         '<span class="pslot__n">' + (p ? 'замінити' : note) + '</span>' +
         '<input id="io-' + kind + '" type="file" accept="image/*" hidden>' +
       '</label>';
