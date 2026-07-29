@@ -103,6 +103,7 @@ body {
   position: absolute;
   top: 50%; left: 50%;
   width: 100%; height: 100%;                 /* script overwrites both in px */
+  background: #000 url("b/assets/intro-poster.jpg") center / cover no-repeat;
   transform: translate(-50%, -50%)
              translate3d(calc(var(--par-slow, 0px) * -0.06), 0, 0);
   will-change: transform;
@@ -118,6 +119,8 @@ body {
   will-change: opacity;
 }
 .film video[hidden] { display: none; }
+/* Never reveal a black native video plane before its first decoded frame. */
+.film[data-intro-pending="1"] video[data-intro] { visibility: hidden; }
 
 /* Grade and vignette, so the footage sits in one world rather than reading as raw clips. */
 .grade {

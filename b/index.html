@@ -37,12 +37,12 @@
        thing for the glass as it does for the glass in the footage.
        No src attributes on purpose: loader.js downloads each master itself so the bar can
        count real bytes, then hands the elements blob URLs. -->
-  <div class="film" data-film>
+  <div class="film" data-film data-intro-pending="1">
     <!-- THE INTRO. Silk, before any room, scrubbed by the same scroll and dissolving into
          room one. It is NOT a leg: data-leg 0..3 stay bound to the four rooms, so the copy
          lines, the mirror rectangles and ui.js are untouched by its arrival. It sits inside
          .film so it is cropped and scaled exactly like the footage it hands over to. -->
-    <video data-intro data-src="assets/intro.mp4" muted playsinline preload="auto" aria-hidden="true"></video>
+    <video data-intro data-src="assets/intro.mp4" poster="assets/intro-poster.jpg" muted playsinline preload="auto" aria-hidden="true"></video>
 
     <video data-leg="0" data-src="assets/seg1.mp4" muted playsinline preload="auto" aria-hidden="true"></video>
     <video data-leg="1" data-src="assets/seg2.mp4" muted playsinline preload="auto" aria-hidden="true" hidden></video>
@@ -151,6 +151,11 @@
   var bytesEl = document.querySelector('[data-loader-bytes]');
   var filesEl = document.querySelector('[data-loader-files]');
   var soundBtn = document.querySelector('[data-sound]');
+  /* iPhone Safari can fetch an MP4 into a Blob yet leave its video compositor black.
+     Let it use the native Range-backed source instead; Chrome keeps the measured Blob
+     path for instant desktop scrubbing. */
+  var IOS_MEDIA = /iP(ad|hone|od)/.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
   function mb(n) { return (n / 1048576).toFixed(1); }
 
@@ -267,8 +272,16 @@
     function handOver(blobs) {
       document.querySelectorAll('video[data-src]').forEach(function (v) {
         var key = v.getAttribute('data-src');
-        if (!v.src && blobs[key]) v.src = blobs[key];
+        var source = IOS_MEDIA ? key : blobs[key];
+        if (!v.src && source) v.src = source;
       });
+    }
+    var introVideo = document.querySelector('[data-intro]');
+    var filmEl = document.querySelector('[data-film]');
+    if (introVideo && filmEl) {
+      introVideo.addEventListener('loadeddata', function () {
+        filmEl.removeAttribute('data-intro-pending');
+      }, { once: true });
     }
     handOver(res.blobs);
 
