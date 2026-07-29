@@ -267,9 +267,16 @@ body {
   background:
     radial-gradient(118% 88% at 42% 44%, rgba(18,19,18,0.62) 0%, rgba(18,19,18,0.34) 46%, rgba(18,19,18,0) 78%);
 }
-/* The interface belongs to the station — the settled end of the mirror leg. */
+/* The interface belongs to the station — the settled end of the mirror leg. Opacity used
+ * to be a flat 1 the instant data-station latched at stationEnter (0.90), while the
+ * resistance ramp underneath was still only ~70% of its own ceiling there — visibly still
+ * decelerating, not at rest. `--rest` (engine.js, resistance/dampMax normalised to 0..1) is
+ * 1 only once truly settled, and it starts falling the moment real departure motion
+ * begins — well before data-station itself flips off at the leg boundary — so the panel
+ * now appears only at genuine rest and starts hiding the instant a swipe actually commits,
+ * not just when the leg changes. */
 .stage[data-leg="0"][data-station="1"] .glass {
-  opacity: 1;
+  opacity: var(--rest, 1);
   transform: translate3d(0, 0, 0) scale(1);
   pointer-events: auto;
 }

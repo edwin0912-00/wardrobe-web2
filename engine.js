@@ -583,6 +583,13 @@
       if (Math.abs(uiLag) < 0.05) uiLag = 0;
       root.style.setProperty('--ui-lag', uiLag.toFixed(2) + 'px');
       root.style.setProperty('--resist', resistance(current).toFixed(4));
+      /* --resist normalised to its OWN ceiling (dampMax), so CSS can ask "how settled is
+       * this, 0..1" without hardcoding dampMax and drifting from it — the exact two-numbers-
+       * for-one-idea trap `stationAt`/`stationEnter` already got fixed for once. Used by
+       * `.glass` to appear only once truly at rest and start hiding the instant real
+       * departure motion begins, rather than snapping on the discrete station latch alone. */
+      var dampMax = config.dampMax !== undefined ? config.dampMax : 0.94;
+      root.style.setProperty('--rest', (dampMax > 0 ? clamp01(resistance(current) / dampMax) : 0).toFixed(4));
       if (uiLag !== 0) schedule();
     }
 
