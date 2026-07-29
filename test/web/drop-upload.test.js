@@ -7,12 +7,15 @@ function file(name, type = '') {
   return { name, type };
 }
 
-test('single-image fields accept one PNG, JPEG or WEBP drop', () => {
+test('single-image fields accept popular browser and phone image formats', () => {
   for (const candidate of [
     file('person.png', 'image/png'),
     file('person.jpg', 'image/jpeg'),
     file('person.webp', 'image/webp'),
     file('person.JPEG'),
+    file('phone.HEIC'),
+    file('phone.heif', 'image/heif'),
+    file('phone.avif', 'image/avif'),
   ]) {
     assert.deepEqual(acceptedDroppedImages([candidate]), [candidate]);
   }
@@ -40,6 +43,6 @@ test('garment field preserves every dropped image for the existing store and dra
 test('unsupported dropped material is refused before it reaches preview or draft persistence', () => {
   assert.throws(
     () => acceptedDroppedImages([file('notes.pdf', 'application/pdf')], { multiple: true }),
-    /PNG, JPEG або WEBP/,
+    /PNG, JPEG, WEBP, AVIF або HEIC/,
   );
 });

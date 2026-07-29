@@ -2,6 +2,8 @@ export const MAX_UPLOAD_FILE_BYTES = 18 * 1024 * 1024;
 const MAX_EDGE = 4096;
 const JPEG_QUALITIES = [0.9, 0.82, 0.72, 0.62];
 const ALLOWED_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+const HEIC_MIME_TYPES = new Set(['image/heic', 'image/heif']);
+const HEIC_EXTENSION = /\.(?:heic|heif)$/i;
 
 function mimeFromFilename(name) {
   const extension = name.toLowerCase().split('.').pop();
@@ -19,6 +21,38 @@ function canvasBlob(canvas, type, quality) {
   ));
 }
 
+export function isHeicImage(file) {
+  return HEIC_MIME_TYPES.has(String(file?.type ?? '').toLowerCase())
+    || HEIC_EXTENSION.test(String(file?.name ?? ''));
+}
+
+export async function decodeBitmapForUpload(file, {
+  bitmapDecoder = globalThis.createImageBitmap,
+  heicDecoder = globalThis.heic2any,
+} = {}) {
+  if (typeof bitmapDecoder !== 'function') {
+    throw new Error('Browser не має image decoder');
+  }
+  try {
+    return await bitmapDecoder(file, { imageOrientation: 'from-image' });
+  } catch (nativeError) {
+    if (!isHeicImage(file)) throw nativeError;
+    if (typeof heicDecoder !== 'function') {
+      throw new Error('HEIC decoder не завантажився');
+    }
+    const converted = await heicDecoder({
+      blob: file,
+      toType: 'image/jpeg',
+      quality: 0.92,
+    });
+    const primary = Array.isArray(converted) ? converted[0] : converted;
+    if (!(primary instanceof Blob) || primary.size < 1) {
+      throw new Error('HEIC decoder не повернув зображення');
+    }
+    return bitmapDecoder(primary, { imageOrientation: 'from-image' });
+  }
+}
+
 export async function prepareImageFile(file) {
   if (file.size <= MAX_UPLOAD_FILE_BYTES && ALLOWED_MIME_TYPES.has(file.type)) return { file, changed: false };
   const inferredMime = mimeFromFilename(file.name);
@@ -33,9 +67,9 @@ export async function prepareImageFile(file) {
 
   let bitmap;
   try {
-    bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
+    bitmap = await decodeBitmapForUpload(file);
   } catch {
-    throw new Error(`${file.name}: браузер не зміг прочитати або конвертувати цей image format`);
+    throw new Error(`${file.name}: браузер не зміг прочитати або конвертувати цей формат зображення`);
   }
   const longest = Math.max(bitmap.width, bitmap.height);
   const initialScale = Math.min(1, MAX_EDGE / longest);

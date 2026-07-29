@@ -38,12 +38,12 @@
         <p id="add-items-kicker" class="add-items-kicker hidden">ПРОДОВЖЕННЯ ЗБЕРЕЖЕНОГО АВАТАРА · БЕЗ ПОВТОРНОГО СТВОРЕННЯ ЛЮДИНИ</p>
         <div id="new-avatar-inputs">
           <label class="upload-card">
-            <input id="person-photo" name="person_photo" type="file" accept="image/png,image/jpeg,image/webp">
-            <span class="upload-icon">＋</span><strong>Фото людини *</strong><small>Довільний фон і поза · PNG, JPEG або WEBP</small><span class="file-name" data-for="person-photo">Обрати файл</span>
+            <input id="person-photo" name="person_photo" type="file" accept="image/png,image/jpeg,image/webp,image/avif,image/heic,image/heif,.heic,.heif">
+            <span class="upload-icon">＋</span><strong>Фото людини *</strong><small>Довільний фон і поза · PNG, JPEG, WEBP, AVIF або HEIC</small><span class="file-name" data-for="person-photo">Обрати файл</span>
           </label>
           <div id="person-preview" class="file-preview" aria-live="polite"></div>
           <label class="upload-card compact">
-            <input id="identity-detail" name="identity_detail" type="file" accept="image/png,image/jpeg,image/webp">
+            <input id="identity-detail" name="identity_detail" type="file" accept="image/png,image/jpeg,image/webp,image/avif,image/heic,image/heif,.heic,.heif">
             <span class="upload-icon">＋</span><strong>Додаткове фото людини</strong><small>Обличчя або повний зріст — необов’язково</small><span class="file-name" data-for="identity-detail">Обрати файл</span>
           </label>
           <div id="identity-preview" class="file-preview" aria-live="polite"></div>
@@ -63,7 +63,7 @@
         <label class="field-label" for="outfit-text">Опис образу</label>
         <textarea id="outfit-text" name="outfit_text" rows="3" placeholder="Наприклад: мінімалістичний чорний образ із м’якою посадкою"></textarea>
         <label class="upload-card wardrobe-card">
-          <input id="garment-images" name="garment_images" type="file" accept="image/png,image/jpeg,image/webp" multiple>
+          <input id="garment-images" name="garment_images" type="file" accept="image/png,image/jpeg,image/webp,image/avif,image/heic,image/heif,.heic,.heif" multiple>
           <span class="upload-icon">＋</span><strong>Фото речей</strong><small>До 5 довільних фото — система сама визначить категорії</small><span class="file-name" data-for="garment-images">Додати гардероб</span>
         </label>
         <div id="garment-preview" class="file-preview garment-preview" aria-live="polite"></div>
@@ -460,6 +460,7 @@
     <button type="button" onclick="location.reload()">Перезавантажити</button>
   </aside>
   <script src="/boot-guard.js?v=20260722-3"></script>
-  <script type="module" src="/app.js?v=20260729-1"></script>
+  <script src="/vendor/heic2any.min.js?v=0.0.4"></script>
+  <script type="module" src="/app.js?v=20260729-2"></script>
 </body>
 </html>

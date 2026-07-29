@@ -2,7 +2,7 @@ import { createThinkingOrb } from './thinking-orb.js?v=20260722-10';
 import { UploadSelectionStore } from './upload-state.js?v=20260722-8';
 import { clearDraft, loadDraft, requestPersistentStorage, saveDraft } from './draft-store.js?v=20260722-10';
 import { fileSummary, telemetry } from './telemetry.js?v=20260722-8';
-import { prepareImageFile } from './image-upload.js?v=20260722-8';
+import { prepareImageFile } from './image-upload.js?v=20260729-1';
 import { bindImageDropZone } from './drop-upload.js?v=20260729-1';
 import { clearDefinitivelyRejectedRunState, clearServerDraft, createRunFromServerDraft, loadServerDraft, removeServerDraftFile, updateServerDraftMetadata, uploadDraftFile } from './server-draft.js?v=20260723-13';
 import {
@@ -434,10 +434,23 @@ async function removeFile(kind, index) {
 
 async function handleSelected(kind, files) {
   try {
-    if (kind === 'person') uploads.setPerson(files[0]);
-    else if (kind === 'identity') uploads.setIdentityDetail(files[0]);
+    draftStatus.textContent = files.some((file) => /\.(?:heic|heif)$/i.test(file.name)
+      || ['image/heic', 'image/heif'].includes(file.type))
+      ? 'Конвертуємо HEIC на цьому пристрої…'
+      : 'Готуємо фото…';
+    const preparedFiles = await Promise.all(files.map(async (file) => {
+      const prepared = await prepareImageFile(file);
+      if (prepared.changed) telemetry('client.file_prepared', {
+        original_bytes: prepared.originalBytes,
+        prepared_bytes: prepared.preparedBytes,
+        stage: `select_${kind}`,
+      });
+      return prepared.file;
+    }));
+    if (kind === 'person') uploads.setPerson(preparedFiles[0]);
+    else if (kind === 'identity') uploads.setIdentityDetail(preparedFiles[0]);
     else {
-      uploads.addGarments(files);
+      uploads.addGarments(preparedFiles);
     }
     formError.textContent = '';
     renderUploads();

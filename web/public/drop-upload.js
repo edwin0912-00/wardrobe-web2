@@ -2,9 +2,12 @@ const SUPPORTED_IMAGE_TYPES = new Set([
   'image/jpeg',
   'image/png',
   'image/webp',
+  'image/avif',
+  'image/heic',
+  'image/heif',
 ]);
 
-const SUPPORTED_IMAGE_EXTENSION = /\.(?:jpe?g|png|webp)$/i;
+const SUPPORTED_IMAGE_EXTENSION = /\.(?:avif|heic|heif|jpe?g|png|webp)$/i;
 
 function containsFiles(dataTransfer) {
   return [...(dataTransfer?.types ?? [])].includes('Files')
@@ -20,7 +23,7 @@ export function acceptedDroppedImages(files, { multiple = false } = {}) {
       || (!type && SUPPORTED_IMAGE_EXTENSION.test(String(file?.name ?? ''))));
   });
   if (unsupported.length) {
-    throw new Error('Перетягніть фото у форматі PNG, JPEG або WEBP.');
+    throw new Error('Перетягніть фото у форматі PNG, JPEG, WEBP, AVIF або HEIC.');
   }
   if (!multiple && selected.length > 1) {
     throw new Error('У це поле можна додати лише одне фото.');
