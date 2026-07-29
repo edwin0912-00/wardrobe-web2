@@ -11,8 +11,20 @@ User-facing product name: **Fashion Shoot**.
 2. **Fashion Shoot** — the owner selects one locked visual unit (`shoot.*` or a
    legacy-compatible `editorial.*`). Its location, lighting, lens, grade,
    poses, framing and reference pack are one indivisible creative system.
-   The output is a QA-gated hero followed by a six-frame series and contact
-   sheet. It is executed by `EditorialShootService` through its scene executor.
+   The user-facing output cardinality is a separate product decision; it is
+   not inferred from the style-build artifacts.
+
+## Creative Universe is the style-build backend, not a user output
+
+During creation of a Fashion Shoot style, Creative Universe extracts and
+records the supplied shoot references: environment, lighting, camera,
+composition, palette, pose language and negative constraints. Its internal
+contact/reference sheets are a conditioning and QA artifact. They bind the
+style unit so the selected style can be reproduced with an approved avatar.
+
+They are **not** a contact sheet that the user must receive after generating a
+Fashion Shoot. They do not define a required `hero → six-frame series` product
+flow.
 
 ## Naming rule
 
@@ -26,9 +38,11 @@ they bind existing receipts, URLs and immutable event history.
 
 - `editorial-state.js` keeps the persisted, validated resume state. It prevents
   reload from duplicating paid jobs and restores only the server-owned shoot.
-- `editorial-shoot-ui.js` owns Fashion Shoot state transitions: immutable Bible
-  binding, SSE with polling fallback, hero gate, five-slot concurrency limit,
-  isolated retry, cancel/delete and full-frame/contact-sheet display.
+- `editorial-shoot-ui.js` is an existing legacy prototype for a multi-frame
+  editorial execution. It owns immutable Bible binding, SSE with polling
+  fallback, hero gate, five-slot concurrency limit, isolated retry and gallery
+  display. It is **not the approved Fashion Shoot product contract** until a
+  separate decision explicitly chooses a multi-frame consumer output.
 - `scene-ui.js` is only the chooser: it keeps **Background** and **Fashion
   Shoot** separate before handing the selected fashion unit to the shoot UI.
 
@@ -36,6 +50,6 @@ they bind existing receipts, URLs and immutable event history.
 
 `comparison/fashion-shoot-single-frame-0ba63c1` preserves Antigravity commit
 `0ba63c1` exactly. It maps `shoot.*`/`editorial.*` to a single `SceneService`
-image and deletes the state/UI modules. It is useful only as a comparison; it
-is not a beta product candidate because it removes the approved Fashion Shoot
-contract (hero → series → contact sheet).
+image and deletes the legacy multi-frame prototype. It is a comparison only:
+it does not prove that its immutable style binding or user output is the right
+Fashion Shoot implementation.

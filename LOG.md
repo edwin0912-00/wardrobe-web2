@@ -21,8 +21,9 @@ weakened_checks: none | BLOCKED: …
 Change: preserve the single-frame experiment on a comparison branch; restore
 the Fashion Shoot UI/state machine and change its user-facing product name to
 Fashion Shoot.
-Why: a standard Background is a one-frame scene, while a Fashion Shoot is a
-locked creative unit with hero, QA-gated series and contact sheet.
+Why: a standard Background is a one-frame scene. A Fashion Shoot is a locked
+creative unit; Creative Universe contact sheets are internal style-build/QA
+artifacts, not a promised user-facing output sequence.
 Evidence: `comparison/fashion-shoot-single-frame-0ba63c1` points to `0ba63c1`;
 focused Fashion Shoot tests pass 31/31. Three separate scene API fixture tests
 remain red because their provider fixture outputs 4:5 while the delivery

@@ -40,11 +40,11 @@ main-scroll asset, controller or landing replacement may be pulled into beta.
 not separate user choices. **Background** remains a separate one-frame product.
 
 Commit `0ba63c1` is preserved at
-`comparison/fashion-shoot-single-frame-0ba63c1`. It replaces a Fashion Shoot
-with a one-frame scene and removes the series UI/state machine. It is a
-comparison experiment, **not a beta release candidate**. The beta worktree
-restores the approved path: locked style → hero gate → five independently
-retriable frames → contact sheet. See
+`comparison/fashion-shoot-single-frame-0ba63c1`. It is a comparison experiment,
+**not a beta release candidate**. Creative Universe reference/contact sheets
+are style-build and QA artifacts, not a required user-facing series/contact
+sheet. The legacy multi-frame editorial UI is not an approved Fashion Shoot
+contract. See
 [`docs/FASHION_SHOOT_CANON_UA.md`](docs/FASHION_SHOOT_CANON_UA.md).
 
 ## Current verified state — reconciliation 2026-07-27

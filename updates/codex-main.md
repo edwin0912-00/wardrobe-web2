@@ -20,13 +20,14 @@ Task ID: BETA-FASHION-SHOOT-CANON-001
 Product line: beta-placeholder
 State: DONE — awaiting beta deployment
 Decision: preserve Antigravity's one-frame implementation as comparison commit
-`0ba63c1`, but restore the approved Fashion Shoot state machine on beta.
+`0ba63c1`, but restore the legacy multi-frame prototype for comparison only.
 User-facing copy now uses one name, **Fashion Shoot**; internal `editorial-*`
 identifiers remain stable because they bind existing routes, receipts and state.
 Evidence: `comparison/fashion-shoot-single-frame-0ba63c1` created; focused
 Fashion Shoot tests 31/31 PASS. The single-frame experiment deletes the
-server-backed resume/SSE/hero/series/contact-sheet UI and is therefore not
-equivalent to a Fashion Shoot.
+server-backed legacy UI, but neither variant is a released Fashion Shoot
+contract until its consumer output is specified separately from Creative
+Universe style-build artifacts.
 Risk: three unrelated standard-scene integration fixtures remain red on their
 4:5 provider bytes versus the current 3:4 delivery contract; no QA was relaxed.
 weakened_checks: none.
