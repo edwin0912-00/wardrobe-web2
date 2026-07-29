@@ -1165,8 +1165,10 @@ panel layout, color, visible branding and distinctive geometry agree.
 Why: operator reviewed the Nano Banana 2 footwear candidate and accepted it
 as product-satisfactory; retrying it for surface texture alone adds cost and
 latency without improving the usable reference.
-Evidence: focused provider + garment-conditioner tests 17/17 PASS. The rule
-does not alter historical immutable receipts and has not yet been deployed.
+Evidence: focused provider + garment-conditioner tests 19/19 PASS, including
+the accepted mesh-versus-pebbled candidate and a negative changed-silhouette
+case. The rule does not alter historical immutable receipts and has not yet
+been deployed.
 weakened_checks: material microtexture is non-blocking only; product identity,
 silhouette, color, visible branding, layout and geometry remain blocking.
 

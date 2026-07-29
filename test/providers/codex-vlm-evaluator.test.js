@@ -4,7 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import sharp from 'sharp';
-import { CodexVlmEvaluator } from '../../src/providers/codex-vlm-evaluator.js';
+import { applyGarmentSurfaceFidelityPolicy, CodexVlmEvaluator } from '../../src/providers/codex-vlm-evaluator.js';
 
 async function imageFixture(background = '#ffffff', basename = 'image.png') {
   const root = await mkdtemp(path.join(os.tmpdir(), 'zeely-codex-test-'));
@@ -147,6 +147,34 @@ test('garment QA prompt preserves raw-versus-generated roles and decision semant
   assert.match(prompt, /Surface weave, grain, gloss, microtexture, or a close material-rendering difference is advisory only/);
   assert.match(prompt, /mesh versus a pebbled texture/);
   assert.equal(calls[0].args.filter((value) => value === '--image').length, 3, 'duplicate primary binding must be removed without erasing image roles');
+});
+
+test('garment QA accepts an otherwise faithful item with only a close surface-rendering difference', () => {
+  const result = applyGarmentSurfaceFidelityPolicy({
+    decision: 'RETRY',
+    reason: 'Candidate is a close product match but its upper appears woven mesh instead of pebbled texture.',
+    checks: [
+      { name: 'silhouette', pass: true, score: 0.98, evidence: 'same TN silhouette and sole' },
+      { name: 'upper material and panel construction', pass: false, score: 0.35, evidence: 'different forefoot panel texture; candidate appears woven mesh rather than pebbled grain' },
+      { name: 'logo', pass: true, score: 0.96, evidence: 'same visible swoosh' },
+    ],
+    defects: ['close surface texture difference only'],
+  });
+  assert.equal(result.decision, 'PASS');
+  assert.match(result.reason, /^PASS_WITH_SURFACE_RENDERING_NOTE:/);
+  assert.equal(result.defects.length, 0);
+  assert.match(result.checks[1].name, /surface-rendering advisory/);
+  assert.equal(result.checks[1].pass, true);
+});
+
+test('garment QA does not accept a surface claim when visible product identity changed', () => {
+  const result = applyGarmentSurfaceFidelityPolicy({
+    decision: 'RETRY',
+    reason: 'Candidate uses mesh and has a different silhouette.',
+    checks: [{ name: 'silhouette', pass: false, score: 0.2, evidence: 'different product silhouette with mesh upper' }],
+    defects: ['different product silhouette'],
+  });
+  assert.equal(result.decision, 'RETRY');
 });
 
 test('outfit QA receives authoritative text and separates it from identity clothing', async () => {
