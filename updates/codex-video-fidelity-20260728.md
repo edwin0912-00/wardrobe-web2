@@ -26,3 +26,12 @@ Final correction: the registry-only `FULL_LOOK_ITEMS_REQUIRED` pre-gate has been
 - Verification: `node --test test/conditioning/conditioning.test.mjs test/conditioning/decision.test.mjs test/conditioning/hash-lineage.test.mjs test/conditioning/image-conditioning.test.mjs` passed 23/23. `git diff --check` passed. The broader selected suite has two pre-existing catalogue expectation failures exactly matching the known beta report (editorial expected 6 but now sees 10; standard expected 5 but now sees 16); they are out of scope and unchanged.
 
 weakened_checks: none.
+# Release repair — 2026-07-29
+
+Verified first-appearance evidence is immutable on repeat writes and accepts an
+optional expected-look binding. Release QA exposed stale cache scanning and
+pre-catalog assumptions: cache checks now inspect actual ES module specifiers,
+the deploy smoke reads the release's approved selected preset list, and every
+READY Create Universe unit (including restored Terracotta) is SHA-verified.
+
+`node tools/verify-product-release.mjs` passed for base commit `5ab0fa3`.

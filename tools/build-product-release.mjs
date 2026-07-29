@@ -369,12 +369,16 @@ function bindHtmlAssets(source, cacheToken) {
 }
 
 function bindJavaScriptModules(source, cacheToken) {
-  return source.replace(
-    /(["'])((?:\.\.?\/|\/)[^"'?#]+\.js)(?:\?[^"'#]*)?(#[^"']*)?\1/g,
-    (match, quote, pathname, hash = '') => (
-      `${quote}${pathname}?v=${cacheToken}${hash}${quote}`
-    ),
-  );
+  const bind = (prefix, pathname, hash = '') => `${prefix}${pathname}?v=${cacheToken}${hash}`;
+  return source
+    .replace(
+      /(\bimport\s*\(\s*["'])((?:\.\.?\/|\/)[^"'?#]+\.js)(?:\?[^"'#]*)?(#[^"']*)?/g,
+      (match, prefix, pathname, hash = '') => bind(prefix, pathname, hash),
+    )
+    .replace(
+      /(\b(?:import|export)\s+(?:[^'";]*?\s+\bfrom\s+)?["'])((?:\.\.?\/|\/)[^"'?#]+\.js)(?:\?[^"'#]*)?(#[^"']*)?/g,
+      (match, prefix, pathname, hash = '') => bind(prefix, pathname, hash),
+    );
 }
 
 function bindCssImports(source, cacheToken) {

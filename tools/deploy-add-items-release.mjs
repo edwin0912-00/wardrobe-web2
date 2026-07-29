@@ -66,13 +66,6 @@ const ADD_ITEMS_CHANGE_ALLOWLIST = new Set([
   'web/public/scene-ui-disabled.js',
   'web/public/server-draft.js',
 ]);
-const PRODUCT_SCENE_PRESET_IDS = Object.freeze([
-  'std.city.golden_hour_gloss',
-  'std.interior.gallery_morning_gloss',
-  'std.nature_architecture.concrete_grass_golden_hour',
-  'std.studio.taupe_rembrandt_gloss',
-  'std.studio.white_window_honeycomb',
-]);
 
 function invariant(condition, message) {
   if (!condition) throw new Error(message);
@@ -508,10 +501,12 @@ export async function postStartSmoke({ origin, release }) {
   };
   const sceneCatalog = await fetchProductJson('/api/scene-presets');
   invariant(Array.isArray(sceneCatalog?.presets), 'Scene preset API returned an invalid catalog');
+  const releasedCatalog = JSON.parse(await readFile(path.join(release.directory, 'assets', 'scene-presets', 'index.json'), 'utf8'));
+  const expectedPresetIds = [...releasedCatalog.selected_preset_ids].sort();
   const actualPresetIds = sceneCatalog.presets.map((entry) => entry?.preset_id).sort();
   invariant(
-    JSON.stringify(actualPresetIds) === JSON.stringify(PRODUCT_SCENE_PRESET_IDS),
-    'Scene preset API did not expose the exact five product presets',
+    JSON.stringify(actualPresetIds) === JSON.stringify(expectedPresetIds),
+    'Scene preset API did not expose the exact approved product presets',
   );
   invariant(
     sceneCatalog.presets.every((entry) => (

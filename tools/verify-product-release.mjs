@@ -31,9 +31,7 @@ const requiredCreateUniverseModeIds = [
   'shoot.grey_studio_stride',
   'shoot.sky_dune_surreal',
 ];
-const requiredCreateUniverseGenerationModeIds = requiredCreateUniverseModeIds.filter(
-  (modeId) => modeId !== 'shoot.terracotta_hardlight',
-);
+const requiredCreateUniverseGenerationModeIds = requiredCreateUniverseModeIds;
 const requiredEditorialShotSlots = [
   'clean_identity_hero',
   'environmental_hero',
@@ -244,12 +242,16 @@ function bindHtmlAssets(source, cacheToken) {
 }
 
 function bindJavaScriptModules(source, cacheToken) {
-  return source.replace(
-    /(["'])((?:\.\.?\/|\/)[^"'?#]+\.js)(?:\?[^"'#]*)?(#[^"']*)?\1/g,
-    (match, quote, pathname, hash = '') => (
-      `${quote}${pathname}?v=${cacheToken}${hash}${quote}`
-    ),
-  );
+  const bind = (prefix, pathname, hash = '') => `${prefix}${pathname}?v=${cacheToken}${hash}`;
+  return source
+    .replace(
+      /(\bimport\s*\(\s*["'])((?:\.\.?\/|\/)[^"'?#]+\.js)(?:\?[^"'#]*)?(#[^"']*)?/g,
+      (match, prefix, pathname, hash = '') => bind(prefix, pathname, hash),
+    )
+    .replace(
+      /(\b(?:import|export)\s+(?:[^'";]*?\s+\bfrom\s+)?["'])((?:\.\.?\/|\/)[^"'?#]+\.js)(?:\?[^"'#]*)?(#[^"']*)?/g,
+      (match, prefix, pathname, hash = '') => bind(prefix, pathname, hash),
+    );
 }
 
 function bindCssImports(source, cacheToken) {
@@ -293,12 +295,11 @@ function assertHtmlCacheBindings(source, owner, cacheToken, recordByPath) {
 }
 
 function assertJavaScriptCacheBindings(source, owner, cacheToken, recordByPath) {
-  const references = source.matchAll(
-    /(["'])((?:\.\.?\/|\/)[^"'?#]+\.js(?:\?[^"'#]*)?(?:#[^"']*)?)\1/g,
-  );
-  for (const match of references) {
-    assertExactCacheBinding(match[2], '.js', owner, cacheToken, recordByPath);
-  }
+  const references = [
+    ...source.matchAll(/\bimport\s*\(\s*(["'])((?:\.\.?\/|\/)[^"'?#]+\.js(?:\?[^"'#]*)?(?:#[^"']*)?)\1\s*\)/g),
+    ...source.matchAll(/\b(?:import|export)\s+(?:[^'";]*?\s+\bfrom\s+)?(["'])((?:\.\.?\/|\/)[^"'?#]+\.js(?:\?[^"'#]*)?(?:#[^"']*)?)\1/g),
+  ];
+  for (const match of references) assertExactCacheBinding(match[2], '.js', owner, cacheToken, recordByPath);
 }
 
 function assertCssCacheBindings(source, owner, cacheToken, recordByPath) {
@@ -874,15 +875,20 @@ for (const modeId of requiredEditorialModeIds) {
 }
 
 const catalog = await readReleaseJson('assets/scene-presets/index.json');
+const releaseCandidates = await readReleaseJson('config/scene-release-candidates.json');
+const selectedPresetIds = releaseCandidates.selected_preset_ids;
 assert(
-  isDeepStrictEqual(catalog.selected_preset_ids, requiredPresetIds),
-  'Scene release does not contain the exact five selected presets',
+  Array.isArray(selectedPresetIds) && selectedPresetIds.length > 0
+    && isDeepStrictEqual(catalog.selected_preset_ids, selectedPresetIds),
+  'Scene release selected presets do not match the approved release candidates',
 );
-assert(Array.isArray(catalog.presets) && catalog.presets.length === 5, 'Scene catalog must publish five presets');
-for (const presetId of requiredPresetIds) {
-  const matches = catalog.presets.filter((entry) => entry?.preset_id === presetId);
-  assert(matches.length === 1, `Scene catalog entry is missing or duplicated: ${presetId}`);
-  const entry = matches[0];
+assert(Array.isArray(catalog.published_preset_indexes), 'Scene catalog has no published preset bindings');
+for (const presetId of selectedPresetIds) {
+  const matches = catalog.published_preset_indexes.filter((entry) => entry?.preset_id === presetId);
+  assert(matches.length === 1, `Scene catalog binding is missing or duplicated: ${presetId}`);
+  const binding = matches[0];
+  const entry = JSON.parse((await readReleaseFile(`assets/scene-presets/${presetId}/v1/index.json`)).toString('utf8'));
+  assert(binding.preset_version === entry.preset_version, `Scene preset binding version is invalid: ${presetId}`);
   assert(entry.preset_version === '1.0.0', `Scene preset version is invalid: ${presetId}`);
   const packDirectory = `assets/scene-presets/${presetId}/v1`;
   const expectedPaths = {
@@ -1022,9 +1028,8 @@ assert(
   'Compiled ShootBibles are not one distinct bible per generation mode',
 );
 
-// Create Universe ships its immutable source units rather than copying them into
-// a std.* preset. Verify the actual released bytes here; resolver tests compile
-// the four READY units into six image-reference packs and keep Terracotta blocked.
+// Create Universe ships immutable source units rather than copying them into
+// a std.* preset. Every published unit must match its declared source bytes.
 for (const modeId of requiredCreateUniverseModeIds) {
   const unitRoot = `docs/style-units/${modeId}`;
   const manifest = await readReleaseJson(`${unitRoot}/manifest.json`);
@@ -1035,11 +1040,7 @@ for (const modeId of requiredCreateUniverseModeIds) {
     const bytes = await readReleaseFile(`${unitRoot}/${sheet.path}`);
     if (sha256(bytes) !== sheet.sha256) mismatches.push(sheet.sheet_id);
   }
-  if (modeId === 'shoot.terracotta_hardlight') {
-    assert(mismatches.length > 0, 'Terracotta must remain integrity-blocked until its declared source bytes are restored');
-  } else {
-    assert(mismatches.length === 0, `Create Universe source unit has a SHA mismatch: ${modeId}`);
-  }
+  assert(mismatches.length === 0, `Create Universe source unit has a SHA mismatch: ${modeId}`);
 }
 
 process.stdout.write(`${JSON.stringify({

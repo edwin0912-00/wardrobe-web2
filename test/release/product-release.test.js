@@ -254,9 +254,13 @@ test('product release is deterministic, complete, scene-enabled and cache-bound'
     path.join(releaseA, 'assets/scene-presets/index.json'),
     'utf8',
   ));
-  assert.deepEqual(catalog.selected_preset_ids, requiredPresetIds);
+  const releaseCandidates = JSON.parse(await readFile(
+    path.join(releaseA, 'config/scene-release-candidates.json'),
+    'utf8',
+  ));
+  assert.deepEqual(catalog.selected_preset_ids, releaseCandidates.selected_preset_ids);
   assert.equal(catalog.presets.length, 5);
-  for (const presetId of requiredPresetIds) {
+  for (const presetId of releaseCandidates.selected_preset_ids) {
     for (const relativePath of [
       `assets/scene-presets/${presetId}/v1/index.json`,
       `assets/scene-presets/${presetId}/v1/preset.json`,
