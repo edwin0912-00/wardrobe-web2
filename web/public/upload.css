@@ -29,6 +29,32 @@
   background: #f8ffea;
 }
 
+.upload-card.is-dragover {
+  border-color: #5f8f16;
+  background: #efffcf;
+  box-shadow:
+    0 0 0 4px rgba(184, 255, 61, .24),
+    0 14px 34px rgba(23, 59, 40, .12);
+  transform: translateY(-2px);
+}
+
+.upload-card.is-dragover .upload-icon {
+  background: var(--green);
+  color: var(--ink);
+  transform: scale(1.08);
+}
+
+.upload-card.is-dragover small {
+  color: var(--deep);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .upload-card.is-dragover,
+  .upload-card.is-dragover .upload-icon {
+    transform: none;
+  }
+}
+
 .source-avatar-context {
   display: grid;
   grid-template-columns: 82px minmax(0, 1fr) auto;

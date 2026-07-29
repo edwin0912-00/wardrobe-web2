@@ -223,6 +223,16 @@ test('file-change wiring registers the mutation barrier before local persistence
     "document.querySelector('#person-photo').addEventListener('change'",
     "form.elements.outfit_text.addEventListener('input'",
   );
+  const queueHelper = sourceRegion(
+    source,
+    'function queueSelectedFiles',
+    "document.querySelector('#person-photo').addEventListener('change'",
+  );
+  assert.match(
+    queueHelper,
+    /queueDraftMutation\(\(\) => handleSelected\(kind, files\), stage\)/,
+    'file picker and drag/drop must share the same synchronous mutation barrier',
+  );
   for (const [selector, kind, stage] of [
     ['person-photo', 'person', 'select_person'],
     ['identity-detail', 'identity', 'select_identity'],
@@ -237,8 +247,20 @@ test('file-change wiring registers the mutation barrier before local persistence
     assert.match(eventRegion, /event\.target\.value = '';/);
     assert.match(
       eventRegion,
-      new RegExp(`queueDraftMutation\\(\\(\\) => handleSelected\\('${kind}', files\\), '${stage}'\\)`),
+      new RegExp(`queueSelectedFiles\\('${kind}', files, '${stage}'\\)`),
       `${selector} must synchronously enqueue its full local-persist + server-sync mutation`,
+    );
+  }
+
+  for (const [selector, kind, stage] of [
+    ['#person-photo', 'person', 'select_person'],
+    ['#identity-detail', 'identity', 'select_identity'],
+    ['#garment-images', 'garment', 'select_item'],
+  ]) {
+    assert.match(
+      changeWiring,
+      new RegExp(`\\['${selector}', '${kind}', '${stage}'\\]`),
+      `${selector} must bind drag/drop to the same field-specific mutation path`,
     );
   }
 

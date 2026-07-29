@@ -3,6 +3,7 @@ import { UploadSelectionStore } from './upload-state.js?v=20260722-8';
 import { clearDraft, loadDraft, requestPersistentStorage, saveDraft } from './draft-store.js?v=20260722-10';
 import { fileSummary, telemetry } from './telemetry.js?v=20260722-8';
 import { prepareImageFile } from './image-upload.js?v=20260722-8';
+import { bindImageDropZone } from './drop-upload.js?v=20260729-1';
 import { clearDefinitivelyRejectedRunState, clearServerDraft, createRunFromServerDraft, loadServerDraft, removeServerDraftFile, updateServerDraftMetadata, uploadDraftFile } from './server-draft.js?v=20260723-13';
 import {
   draftBindingsFromManifest,
@@ -454,21 +455,45 @@ async function handleSelected(kind, files) {
   }
 }
 
+function queueSelectedFiles(kind, files, stage) {
+  if (!files.length) return;
+  queueDraftMutation(() => handleSelected(kind, files), stage);
+}
+
 document.querySelector('#person-photo').addEventListener('change', (event) => {
   const files = [...event.target.files];
   event.target.value = '';
-  if (files.length) queueDraftMutation(() => handleSelected('person', files), 'select_person');
+  queueSelectedFiles('person', files, 'select_person');
 });
 document.querySelector('#identity-detail').addEventListener('change', (event) => {
   const files = [...event.target.files];
   event.target.value = '';
-  if (files.length) queueDraftMutation(() => handleSelected('identity', files), 'select_identity');
+  queueSelectedFiles('identity', files, 'select_identity');
 });
 document.querySelector('#garment-images').addEventListener('change', (event) => {
   const files = [...event.target.files];
   event.target.value = '';
-  if (files.length) queueDraftMutation(() => handleSelected('garment', files), 'select_item');
+  queueSelectedFiles('garment', files, 'select_item');
 });
+
+for (const [selector, kind, stage] of [
+  ['#person-photo', 'person', 'select_person'],
+  ['#identity-detail', 'identity', 'select_identity'],
+  ['#garment-images', 'garment', 'select_item'],
+]) {
+  const input = document.querySelector(selector);
+  bindImageDropZone(input.closest('.upload-card'), {
+    input,
+    onFiles: (files) => queueSelectedFiles(kind, files, stage),
+    onError: (error) => {
+      formError.textContent = humanizeVisibleText(error.message);
+      telemetry('client.error', {
+        message: error.message.slice(0, 500),
+        stage: `${stage}_drop`,
+      });
+    },
+  });
+}
 form.elements.outfit_text.addEventListener('input', () => scheduleDraftSave('outfit_text'));
 
 function setWorkflowActive(active, { reveal = true } = {}) {
