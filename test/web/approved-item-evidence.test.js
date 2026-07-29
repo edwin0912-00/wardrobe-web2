@@ -12,6 +12,7 @@ import {
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+import { DatabaseSync } from 'node:sqlite';
 import sharp from 'sharp';
 import {
   ApprovedItemEvidenceError,
@@ -307,7 +308,90 @@ test('item evidence rejects symlinked pack components even when target bytes and
   );
 });
 
-test('profile approved-look resolution adds item evidence and the scene adapter rejects transport paths', async (t) => {
+test('first-appearance evidence safely rebases an exact hash-bound cutout after runtime relocation', async (t) => {
+  const fixture = await evidenceFixture(t);
+  fixture.pack.extraction.items[0].category = 'footwear';
+  fixture.pack.extraction.items[0].observed.garment_type = 'shoes';
+  fixture.pack.generation_bindings[0].role = 'GARMENT_FOOTWEAR';
+  const updatedPackBytes = Buffer.from(`${JSON.stringify(fixture.pack, null, 2)}\n`);
+  await writeFile(fixture.packPath, updatedPackBytes);
+  fixture.checkpoint.inputs.outfit_reference_pack.sha256 = sha256(updatedPackBytes);
+  fixture.checkpoint.inputs.outfit_reference_pack_binding_001.role = 'GARMENT_FOOTWEAR';
+  await rewriteExecutionReceipt(fixture);
+  const directory = path.join(
+    fixture.root,
+    fixture.runId,
+    'conditioned',
+    'first-appearance',
+  );
+  const cutout = await png('#182a46');
+  const cutoutPath = path.join(directory, '01', 'cutout.png');
+  await mkdir(path.dirname(cutoutPath), { recursive: true });
+  await writeFile(cutoutPath, cutout);
+  await writeFile(path.join(directory, 'lock.json'), `${JSON.stringify({
+    schema_version: '1.0.0',
+    kind: 'FIRST_APPEARANCE_ITEM_LOCK',
+    run_id: fixture.runId,
+    approved_look_sha256: 'f'.repeat(64),
+    provenance: 'OBSERVED_FROM_APPROVED_LOOK',
+    immutable_after_creation: true,
+    items: [{
+      order: 1,
+      role: 'GARMENT_BOTTOM',
+      category: 'bottom',
+      reference_set_id: 'first-appearance-bottom',
+      source_indexes: [0],
+      same_item_confidence: 1,
+      grouping_evidence: ['One immutable crop from the approved full-body look.'],
+      confidence: 0.98,
+      observed: {
+        garment_type: 'jeans',
+        colors: ['dark indigo blue'],
+        material: ['denim'],
+        pattern: [],
+        logo_text: [],
+        construction: ['five-pocket construction'],
+      },
+      unknowns: [],
+      cutout: {
+        path: `/previous/runtime/${fixture.runId}/conditioned/first-appearance/01/cutout.png`,
+        sha256: sha256(cutout),
+      },
+    }, {
+      order: 2,
+      role: 'GARMENT_FOOTWEAR',
+      category: 'footwear',
+      reference_set_id: 'redundant-first-appearance-footwear',
+      source_indexes: [1],
+      confidence: 0.98,
+      observed: {
+        garment_type: 'shoes',
+        colors: ['black'],
+        material: [],
+        pattern: [],
+        logo_text: [],
+        construction: [],
+      },
+      unknowns: [],
+      cutout: {
+        path: `/previous/runtime/${fixture.runId}/conditioned/first-appearance/02/cutout.png`,
+        sha256: 'e'.repeat(64),
+      },
+    }],
+  }, null, 2)}\n`);
+
+  const evidence = await fixture.service.approvedItemEvidenceForRun(fixture.runId);
+  assert.equal(evidence.items.length, 2);
+  assert.equal(evidence.items[1].category, 'bottom');
+  assert.deepEqual(evidence.items[1].data, cutout);
+  assert.equal(
+    evidence.items.filter((item) => item.category === 'footwear').length,
+    1,
+    'the original approved footwear remains the only footwear authority',
+  );
+});
+
+test('saved look keeps content-addressed item evidence across profile restart and run evidence cleanup', async (t) => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'approved-item-profile-'));
   const outputs = path.join(root, 'outputs');
   await mkdir(outputs, { recursive: true });
@@ -369,7 +453,8 @@ test('profile approved-look resolution adds item evidence and the scene adapter 
     },
     async approvedItemEvidenceForRun() { return itemEvidence; },
   };
-  const profiles = new ProfileService({ databasePath: path.join(root, 'profiles.sqlite') });
+  const databasePath = path.join(root, 'profiles.sqlite');
+  const profiles = new ProfileService({ databasePath });
   await profiles.initialize();
   const session = profiles.createSession();
   profiles.claimRun(session.profileId, runId);
@@ -379,12 +464,45 @@ test('profile approved-look resolution adds item evidence and the scene adapter 
     saved.look.look_id,
     runService,
   );
-  const resolver = createProfileApprovedLookResolver({ profiles, runService });
+  const snapshot = await profiles.saveApprovedLookSnapshot(
+    session.profileId,
+    saved.look.look_id,
+    {
+      sourceRunId: runId,
+      runService,
+      evidence: itemEvidence,
+    },
+  );
+  assert.match(snapshot.bundle_sha256, /^[a-f0-9]{64}$/);
+  profiles.close();
+
+  const restartedProfiles = new ProfileService({ databasePath });
+  await restartedProfiles.initialize();
+  const lifecycleRunService = {
+    ...runService,
+    async getRun() {
+      return { run_id: runId, status: 'FAILED' };
+    },
+    async outputFile() {
+      return null;
+    },
+    async approvedItemEvidenceForRun() {
+      throw new Error('conditioned run-local evidence was cleaned');
+    },
+  };
+  const resolver = createProfileApprovedLookResolver({
+    profiles: restartedProfiles,
+    runService: lifecycleRunService,
+  });
   const resolved = await resolver.resolveApprovedLook(reference);
-  assert.equal(resolved.approved_item_evidence, itemEvidence);
+  assert.deepEqual(resolved.approved_item_evidence, itemEvidence);
+  assert.deepEqual(
+    restartedProfiles.savedLookImage(session.profileId, saved.look.look_id).bytes,
+    image,
+  );
 
   const unsafeResolver = createProfileApprovedLookResolver({
-    runService,
+    runService: lifecycleRunService,
     profiles: {
       async resolveApprovedLook() {
         return {
@@ -404,6 +522,17 @@ test('profile approved-look resolution adds item evidence and the scene adapter 
     () => unsafeResolver.resolveApprovedLook(reference),
     /private transport metadata/,
   );
-  profiles.close();
+  restartedProfiles.close();
+  const tamper = new DatabaseSync(databasePath);
+  tamper.prepare('UPDATE approved_look_snapshots SET look_image = ? WHERE look_id = ?')
+    .run(Buffer.from('tampered'), saved.look.look_id);
+  tamper.close();
+  const corruptedProfiles = new ProfileService({ databasePath });
+  await corruptedProfiles.initialize();
+  assert.throws(
+    () => corruptedProfiles.savedLookImage(session.profileId, saved.look.look_id),
+    (error) => error?.code === 'LOOK_BINDING_MISMATCH',
+  );
+  corruptedProfiles.close();
   await rm(root, { recursive: true, force: true });
 });

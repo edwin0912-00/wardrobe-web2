@@ -169,6 +169,33 @@ function sceneConnectionPresentation(polling) {
   return polling ? 'ОНОВЛЮЄМО СТАН' : 'З’ЄДНАННЯ АКТИВНЕ';
 }
 
+export function sceneRequestFailurePresentation(error) {
+  const code = String(error?.code ?? '');
+  const structured = Number.isInteger(error?.status) && error.status >= 400;
+  const messageByCode = {
+    LOOK_ITEM_EVIDENCE_INVALID: 'Збережений образ не має цілісного підтвердження речей. Запуск сцени зупинено без генерації.',
+    LOOK_BINDING_MISMATCH: 'Збережений образ змінився після підтвердження. Обери образ повторно.',
+    LOOK_RECEIPT_INVALID: 'Підтвердження збереженого образу пошкоджене або застаріле.',
+    LOOK_RECEIPT_MISSING: 'Не знайдено підтвердження збереженого образу.',
+  };
+  if (structured) {
+    return {
+      status: 'ЗАПУСК ВІДХИЛЕНО',
+      phase: 'Потрібна перевірка збереженого образу',
+      connection: 'СЕРВЕР НА ЗВ’ЯЗКУ',
+      message: messageByCode[code] ?? String(error?.message || `Сервер відхилив запуск (${error.status})`),
+      reconnect: false,
+    };
+  }
+  return {
+    status: 'НЕМАЄ З’ЄДНАННЯ',
+    phase: 'Не вдалося отримати стан',
+    connection: 'З’ЄДНАННЯ ПЕРЕРВАЛОСЯ',
+    message: String(error?.message || 'Не вдалося з’єднатися із сервером'),
+    reconnect: true,
+  };
+}
+
 export class SceneUiController {
   constructor({
     setView,
@@ -544,13 +571,16 @@ export class SceneUiController {
   #showConnectionFailure(error, stage) {
     this.#activateView();
     this.#setMode('execution');
-    this.#element('#scene-server-message').textContent = this.humanize(
-      error?.message || 'Не вдалося з’єднатися із сервером',
-    );
-    this.#element('#scene-connection').textContent = 'З’ЄДНАННЯ ПЕРЕРВАЛОСЯ';
-    this.#element('#scene-reconnect').hidden = false;
+    const presentation = sceneRequestFailurePresentation(error);
+    this.#element('#scene-server-status').textContent = presentation.status;
+    this.#element('#scene-server-phase').textContent = presentation.phase;
+    this.#element('#scene-server-message').textContent = this.humanize(presentation.message);
+    this.#element('#scene-connection').textContent = presentation.connection;
+    this.#element('#scene-reconnect').hidden = !presentation.reconnect;
     this.telemetry('client.scene_error', {
       message: String(error?.message ?? error).slice(0, 500),
+      code: String(error?.code ?? '').slice(0, 120),
+      status: Number.isInteger(error?.status) ? error.status : null,
       scene_id: this.scene?.scene_id,
       stage,
     });

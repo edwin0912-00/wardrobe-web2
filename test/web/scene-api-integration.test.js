@@ -146,6 +146,7 @@ async function createFixture(t, { initialQaPass = true } = {}) {
   ]);
 
   const runs = new Map();
+  const itemEvidence = new Map();
   const calls = { generator: 0, evaluator: 0, deleteRun: 0 };
   const qa = { pass: initialQaPass };
   const generated = await png('#c79782', 960, 1280);
@@ -155,6 +156,7 @@ async function createFixture(t, { initialQaPass = true } = {}) {
     await mkdir(directory, { recursive: true });
     const avatar = await png('#e9dfd0');
     const look = await png('#315543');
+    const cutout = await png('#315543', 320, 480);
     const manifest = {
       job_id: `web-${runId}`,
       state: 'COMPLETED',
@@ -172,7 +174,52 @@ async function createFixture(t, { initialQaPass = true } = {}) {
       writeFile(path.join(directory, 'avatar_outfit.png'), look),
       writeFile(path.join(directory, 'run-manifest.json'), canonicalJsonBytes(manifest)),
     ]);
-    runs.set(runId, { run_id: runId, status: 'COMPLETED', phase: 'COMPLETED' });
+    runs.set(runId, {
+      run_id: runId,
+      status: 'COMPLETED',
+      phase: 'COMPLETED',
+      inputs: { garments: [{ name: 'fixture-top.png' }] },
+    });
+    itemEvidence.set(runId, {
+      schema_version: '1.0.0',
+      kind: 'APPROVED_ITEM_EVIDENCE',
+      source_run_id: runId,
+      reference_pack: {
+        schema_version: '1.0.0',
+        asset_id: `${runId}-wardrobe`,
+        kind: 'GARMENT',
+        sha256: sha256(Buffer.from(`pack:${runId}`)),
+        extraction: { method: 'strict_schema', provenance: 'OBSERVED' },
+        readiness: {
+          decision: 'READY',
+          reasons: ['VISIBLE_ITEM_FACTS_VERIFIED'],
+          actions: [],
+          terminal: false,
+        },
+      },
+      items: [{
+        order: 1,
+        role: 'GARMENT_TOP',
+        category: 'top',
+        reference_set_id: 'set-0',
+        source_indexes: [0],
+        same_item_confidence: 1,
+        grouping_evidence: ['single approved view'],
+        confidence: 0.99,
+        observed: {
+          garment_type: 'top',
+          colors: ['green'],
+          material: [],
+          pattern: [],
+          logo_text: [],
+          construction: [],
+        },
+        unknowns: [],
+        sha256: sha256(cutout),
+        media_type: 'image/png',
+        data: cutout,
+      }],
+    });
     return { directory, avatar, look, manifest };
   }
 
@@ -198,6 +245,10 @@ async function createFixture(t, { initialQaPass = true } = {}) {
       } catch {
         return null;
       }
+    },
+    async approvedItemEvidenceForRun(runId) {
+      if (!itemEvidence.has(runId)) throw new Error('run-local item evidence was cleaned');
+      return itemEvidence.get(runId);
     },
     async deleteRun(runId) {
       calls.deleteRun += 1;
@@ -320,9 +371,23 @@ async function createFixture(t, { initialQaPass = true } = {}) {
           },
         },
         evaluator: {
-          async evaluateScene() {
+          async evaluateScene(context) {
             calls.evaluator += 1;
-            return evaluation(qa.pass);
+            return {
+              ...evaluation(qa.pass),
+              item_fidelity_evidence: (context.item_evidence ?? []).map((item, index) => ({
+                item_id: item.reference_set_id,
+                item_sha256: item.sha256,
+                item_category: item.category,
+                item_facts_sha256: item.facts_sha256,
+                verdict: 'PASS',
+                confidence: 0.99,
+                evidence: 'Exact approved item retained',
+                matching_features: ['visible construction retained'],
+                defects: [],
+                request_id: sha256(Buffer.from(`fixture-item-review-${calls.evaluator}-${index}`)),
+              })),
+            };
           },
         },
       },
@@ -396,6 +461,9 @@ async function createFixture(t, { initialQaPass = true } = {}) {
     qa,
     runService,
     addCompletedRun,
+    clearRunEvidence(runId) {
+      itemEvidence.delete(runId);
+    },
     openApp,
     close,
     saveRunAsLook,
@@ -570,6 +638,7 @@ test('profile scene survives reload/restart with private ownership and exact dow
   assert.doesNotMatch(catalog.body, /Users\/|production_prompt_path|reference_pack_path/);
 
   const owner = await fixture.saveRunAsLook(first.app, 'completed-look-run');
+  fixture.clearRunEvidence('completed-look-run');
   const created = await fixture.createScene(first.app, owner);
   assert.equal(created.statusCode, 202, created.body);
   const sceneId = created.json().scene_id;
@@ -671,7 +740,7 @@ test('profile scene survives reload/restart with private ownership and exact dow
   assert.equal(afterDelete.statusCode, 404, afterDelete.body);
 });
 
-test('failed scene retries independently and exact saved-look tampering blocks provider work', async (t) => {
+test('failed scene retries independently and durable saved look ignores later source-run tampering', async (t) => {
   const fixture = await createFixture(t, { initialQaPass: false });
   const source = await fixture.addCompletedRun('retry-look-run');
   const current = await fixture.openApp();
@@ -698,10 +767,12 @@ test('failed scene retries independently and exact saved-look tampering blocks p
 
   const generatorCallsBeforeTamper = fixture.calls.generator;
   await writeFile(path.join(source.directory, 'avatar_outfit.png'), await png('#ff0000'));
-  const blocked = await fixture.createScene(current.app, owner, 'scene-create-tampered-0001');
-  assert.equal(blocked.statusCode, 409, blocked.body);
-  assert.match(blocked.json().error, /receipt|PASS/i);
+  const durable = await fixture.createScene(current.app, owner, 'scene-create-tampered-0001');
+  assert.equal(durable.statusCode, 202, durable.body);
   assert.equal(fixture.calls.generator, generatorCallsBeforeTamper);
+  const durableScene = await fixture.settle(current.app, durable.json().scene_id);
+  assert.equal(durableScene.status, 'COMPLETED', JSON.stringify(durableScene));
+  assert.equal(fixture.calls.generator, generatorCallsBeforeTamper + 1);
 });
 
 test('deleting a parent look cascades its scene execution and source run through the typed cleanup queue', async (t) => {

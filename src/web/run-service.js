@@ -1142,13 +1142,38 @@ export class RunService {
     const nextIndex = Math.max(-1, ...(base?.items ?? []).flatMap((item) => item.source_indexes ?? [])) + 1;
     const locked = [];
     for (const [index, item] of record.items.entries()) {
-      if (!['bottom', 'footwear'].includes(item?.category) || known.has(item.category)
+      if (!['bottom', 'footwear'].includes(item?.category)
         || item.role !== `GARMENT_${item.category.toUpperCase()}`
         || !SHA256.test(item.cutout?.sha256 ?? '') || typeof item.cutout?.path !== 'string') {
-        throw evidenceError('APPROVED_ITEM_EVIDENCE_INVALID', 'First-appearance item is invalid or duplicates an approved item');
+        throw evidenceError('APPROVED_ITEM_EVIDENCE_INVALID', 'First-appearance item is invalid');
       }
-      const filename = path.resolve(item.cutout.path);
-      if (!isInside(directory, filename)) throw evidenceError('APPROVED_ITEM_EVIDENCE_PATH_ESCAPE', 'First-appearance cutout escapes its lock directory');
+      // A user-supplied approved garment is the higher-authority reference.
+      // First-appearance capture only fills categories absent from that pack;
+      // an accidentally duplicated lower-body crop must not replace or block it.
+      if (known.has(item.category)) continue;
+      const declaredFilename = path.resolve(item.cutout.path);
+      const deterministicFilename = path.join(
+        directory,
+        String(index + 1).padStart(2, '0'),
+        'cutout.png',
+      );
+      const relocationSuffix = path.join(
+        'conditioned',
+        'first-appearance',
+        String(index + 1).padStart(2, '0'),
+        'cutout.png',
+      );
+      const filename = isInside(directory, declaredFilename)
+        ? declaredFilename
+        : (declaredFilename.endsWith(`${path.sep}${relocationSuffix}`)
+          ? deterministicFilename
+          : null);
+      if (!filename) {
+        throw evidenceError(
+          'APPROVED_ITEM_EVIDENCE_PATH_ESCAPE',
+          'First-appearance cutout escapes its lock directory',
+        );
+      }
       const data = await this.#readApprovedItemEvidenceFile(filename, directory, 'First-appearance cutout', MAX_APPROVED_ITEM_CUTOUT_BYTES);
       if (sha256(data) !== item.cutout.sha256) throw evidenceError('APPROVED_ITEM_EVIDENCE_HASH_MISMATCH', 'First-appearance cutout SHA-256 mismatch');
       locked.push({
@@ -1630,9 +1655,35 @@ export class RunService {
       throw new Error('Strict completed output checkpoint is missing');
     }
     const store = new FilesystemArtifactStore(path.join(outputDirectory, '.zeely-run'));
-    const avatarArtifact = checkpoint.artifacts?.avatar?.artifact;
-    const outfitArtifact = checkpoint.artifacts?.outfit?.artifact;
-    const manifestArtifact = checkpoint.artifacts?.run_manifest;
+    const relocateArtifact = (artifact) => {
+      if (!artifact
+        || typeof artifact.path !== 'string'
+        || !SHA256.test(artifact.digest ?? '')
+        || typeof artifact.extension !== 'string') return artifact;
+      const filename = `${artifact.digest}${artifact.extension}`;
+      const currentPath = path.join(
+        outputDirectory,
+        '.zeely-run',
+        'artifacts',
+        'sha256',
+        filename,
+      );
+      const relocationSuffix = path.join(
+        'outputs',
+        '.zeely-run',
+        'artifacts',
+        'sha256',
+        filename,
+      );
+      if (path.resolve(artifact.path) === currentPath
+        || path.resolve(artifact.path).endsWith(`${path.sep}${relocationSuffix}`)) {
+        return { ...artifact, path: currentPath };
+      }
+      return artifact;
+    };
+    const avatarArtifact = relocateArtifact(checkpoint.artifacts?.avatar?.artifact);
+    const outfitArtifact = relocateArtifact(checkpoint.artifacts?.outfit?.artifact);
+    const manifestArtifact = relocateArtifact(checkpoint.artifacts?.run_manifest);
     if (avatarArtifact?.extension !== '.png'
       || avatarArtifact?.mediaType !== 'image/png'
       || outfitArtifact?.extension !== '.png'
@@ -1656,7 +1707,7 @@ export class RunService {
       if (!result?.artifact || !Number.isInteger(attempt)) {
         throw new Error(`Strict ${phase} QA receipt is missing`);
       }
-      const receipt = await store.readJsonArtifact(result.artifact);
+      const receipt = await store.readJsonArtifact(relocateArtifact(result.artifact));
       const verified = verifyCoreQaReceipt(receipt, {
         phase,
         attempt,
@@ -1696,9 +1747,16 @@ export class RunService {
       || storedManifest.outputs?.avatar_outfit?.sha256 !== outfitArtifact.digest) {
       throw new Error('Strict completed manifest is stale');
     }
-    if (checkpoint.outputs?.avatar !== paths.avatar
-      || checkpoint.outputs?.avatar_outfit !== paths.outfit
-      || checkpoint.outputs?.manifest !== paths.manifest) {
+    const matchesRelocatedOutput = (declared, current, filename) => (
+      declared === current
+      || (typeof declared === 'string'
+        && path.resolve(declared).endsWith(
+          `${path.sep}runs${path.sep}${runId}${path.sep}outputs${path.sep}${filename}`,
+        ))
+    );
+    if (!matchesRelocatedOutput(checkpoint.outputs?.avatar, paths.avatar, 'avatar.png')
+      || !matchesRelocatedOutput(checkpoint.outputs?.avatar_outfit, paths.outfit, 'avatar_outfit.png')
+      || !matchesRelocatedOutput(checkpoint.outputs?.manifest, paths.manifest, 'run-manifest.json')) {
       throw new Error('Strict completed output paths are stale');
     }
 

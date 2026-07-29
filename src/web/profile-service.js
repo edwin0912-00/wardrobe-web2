@@ -24,6 +24,184 @@ function sha256(value) {
   return createHash('sha256').update(value).digest('hex');
 }
 
+function containsPrivateEvidenceTransport(value) {
+  if (value === null || value === undefined || Buffer.isBuffer(value)) return false;
+  if (Array.isArray(value)) return value.some(containsPrivateEvidenceTransport);
+  if (typeof value !== 'object') return false;
+  return Object.entries(value).some(([key, item]) => (
+    ['path', 'paths', 'filename', 'source_path', 'source_paths'].includes(key)
+    || containsPrivateEvidenceTransport(item)
+  ));
+}
+
+function serializeApprovedItemEvidence(evidence, sourceRunId) {
+  if (evidence === null || evidence === undefined) return null;
+  if (!evidence
+    || evidence.schema_version !== '1.0.0'
+    || evidence.kind !== 'APPROVED_ITEM_EVIDENCE'
+    || evidence.source_run_id !== sourceRunId
+    || !Array.isArray(evidence.items)
+    || evidence.items.length === 0
+    || containsPrivateEvidenceTransport(evidence)) {
+    throw new ProfileError(
+      409,
+      'LOOK_ITEM_EVIDENCE_INVALID',
+      'Saved look item evidence is missing or invalid',
+    );
+  }
+  const serialized = {
+    schema_version: evidence.schema_version,
+    kind: evidence.kind,
+    source_run_id: evidence.source_run_id,
+    reference_pack: structuredClone(evidence.reference_pack),
+    items: evidence.items.map((item) => {
+      const data = Buffer.isBuffer(item?.data)
+        ? item.data
+        : (item?.data instanceof Uint8Array ? Buffer.from(item.data) : null);
+      if (!data || data.length === 0 || sha256(data) !== item.sha256) {
+        throw new ProfileError(
+          409,
+          'LOOK_ITEM_EVIDENCE_INVALID',
+          'Saved look item evidence is missing or invalid',
+        );
+      }
+      const { data: _data, ...logical } = item;
+      return { ...structuredClone(logical), data_base64: data.toString('base64') };
+    }),
+  };
+  const bytes = Buffer.from(JSON.stringify(serialized));
+  return { bytes, sha256: sha256(bytes) };
+}
+
+function sqliteBytes(value) {
+  if (Buffer.isBuffer(value)) return value;
+  return value instanceof Uint8Array ? Buffer.from(value) : null;
+}
+
+function verifiedApprovedLookBytes({
+  sourceRunId,
+  image,
+  receipt,
+  expectedImageSha256 = null,
+  expectedReceiptSha256 = null,
+}) {
+  if (!Buffer.isBuffer(image) || image.length === 0
+    || !Buffer.isBuffer(receipt) || receipt.length === 0) {
+    throw new ProfileError(409, 'LOOK_RECEIPT_MISSING', 'Saved look output or receipt is missing');
+  }
+  const imageSha256 = sha256(image);
+  const receiptSha256 = sha256(receipt);
+  if ((expectedImageSha256 && imageSha256 !== expectedImageSha256)
+    || (expectedReceiptSha256 && receiptSha256 !== expectedReceiptSha256)) {
+    throw new ProfileError(409, 'LOOK_BINDING_MISMATCH', 'Approved look bytes no longer match the requested hashes');
+  }
+  let manifest;
+  try {
+    manifest = JSON.parse(receipt.toString('utf8'));
+  } catch {
+    throw new ProfileError(409, 'LOOK_RECEIPT_INVALID', 'Saved look receipt is invalid');
+  }
+  if (manifest.job_id !== `web-${sourceRunId}`
+    || manifest.state !== 'COMPLETED'
+    || manifest.outputs?.avatar_outfit?.sha256 !== imageSha256
+    || manifest.qa?.avatar?.decision !== 'PASS'
+    || manifest.qa?.outfit?.decision !== 'PASS') {
+    throw new ProfileError(409, 'LOOK_RECEIPT_INVALID', 'Saved look is not bound to completed PASS receipts');
+  }
+  return { image, receipt, imageSha256, receiptSha256 };
+}
+
+function deserializeApprovedItemEvidence(evidenceJson, evidenceSha256, sourceRunId) {
+  const evidenceBytes = sqliteBytes(evidenceJson);
+  if (!evidenceBytes || sha256(evidenceBytes) !== evidenceSha256) {
+    throw new ProfileError(
+      409,
+      'LOOK_ITEM_EVIDENCE_INVALID',
+      'Saved look item evidence is missing or invalid',
+    );
+  }
+  let serialized;
+  try {
+    serialized = JSON.parse(evidenceBytes.toString('utf8'));
+  } catch {
+    throw new ProfileError(
+      409,
+      'LOOK_ITEM_EVIDENCE_INVALID',
+      'Saved look item evidence is missing or invalid',
+    );
+  }
+  if (serialized?.schema_version !== '1.0.0'
+    || serialized.kind !== 'APPROVED_ITEM_EVIDENCE'
+    || serialized.source_run_id !== sourceRunId
+    || !Array.isArray(serialized.items)
+    || serialized.items.length === 0
+    || containsPrivateEvidenceTransport(serialized)) {
+    throw new ProfileError(
+      409,
+      'LOOK_ITEM_EVIDENCE_INVALID',
+      'Saved look item evidence is missing or invalid',
+    );
+  }
+  const items = serialized.items.map((item) => {
+    const { data_base64: dataBase64, ...logical } = item;
+    if (typeof dataBase64 !== 'string' || dataBase64.length === 0) {
+      throw new ProfileError(
+        409,
+        'LOOK_ITEM_EVIDENCE_INVALID',
+        'Saved look item evidence is missing or invalid',
+      );
+    }
+    const data = Buffer.from(dataBase64, 'base64');
+    if (data.length === 0 || sha256(data) !== logical.sha256) {
+      throw new ProfileError(
+        409,
+        'LOOK_ITEM_EVIDENCE_INVALID',
+        'Saved look item evidence is missing or invalid',
+      );
+    }
+    return { ...logical, data };
+  });
+  return {
+    schema_version: serialized.schema_version,
+    kind: serialized.kind,
+    source_run_id: serialized.source_run_id,
+    reference_pack: serialized.reference_pack,
+    items,
+  };
+}
+
+function deserializeApprovedLookSnapshot(row) {
+  const image = sqliteBytes(row?.look_image);
+  const receipt = sqliteBytes(row?.look_receipt);
+  if (!row || !image || !receipt) {
+    throw new ProfileError(409, 'LOOK_RECEIPT_MISSING', 'Saved look output or receipt is missing');
+  }
+  const verified = verifiedApprovedLookBytes({
+    sourceRunId: row.source_run_id,
+    image,
+    receipt,
+    expectedImageSha256: row.look_image_sha256,
+    expectedReceiptSha256: row.look_receipt_sha256,
+  });
+  const evidence = row.evidence_json === null
+    ? null
+    : deserializeApprovedItemEvidence(
+      row.evidence_json,
+      row.evidence_sha256,
+      row.source_run_id,
+    );
+  const expectedBundleSha256 = sha256(Buffer.from(JSON.stringify({
+    source_run_id: row.source_run_id,
+    look_image_sha256: verified.imageSha256,
+    look_receipt_sha256: verified.receiptSha256,
+    evidence_sha256: row.evidence_sha256 ?? null,
+  })));
+  if (row.bundle_sha256 !== expectedBundleSha256) {
+    throw new ProfileError(409, 'LOOK_BINDING_MISMATCH', 'Saved look bundle no longer matches its immutable binding');
+  }
+  return { ...verified, approved_item_evidence: evidence };
+}
+
 function constantTimeTextEqual(left, right) {
   const leftBytes = Buffer.from(String(left));
   const rightBytes = Buffer.from(String(right));
@@ -192,6 +370,20 @@ export class ProfileService {
 
       CREATE INDEX IF NOT EXISTS looks_profile_idx ON looks(profile_id, created_at DESC);
       CREATE INDEX IF NOT EXISTS looks_avatar_idx ON looks(avatar_id, created_at DESC);
+
+      CREATE TABLE IF NOT EXISTS approved_look_snapshots (
+        look_id TEXT PRIMARY KEY,
+        source_run_id TEXT NOT NULL,
+        look_image_sha256 TEXT NOT NULL,
+        look_receipt_sha256 TEXT NOT NULL,
+        look_image BLOB NOT NULL,
+        look_receipt BLOB NOT NULL,
+        evidence_sha256 TEXT,
+        evidence_json BLOB,
+        bundle_sha256 TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        FOREIGN KEY (look_id) REFERENCES looks(look_id) ON DELETE CASCADE
+      ) STRICT;
 
       CREATE TABLE IF NOT EXISTS run_claims (
         run_id TEXT PRIMARY KEY,
@@ -609,6 +801,23 @@ export class ProfileService {
     return row ? { lookId: row.look_id, runId: row.source_run_id, filename: 'avatar_outfit.png' } : null;
   }
 
+  savedLookImage(profileId, lookId) {
+    assertAssetId(lookId, 'look id');
+    const row = this.#db().prepare(`
+      SELECT s.source_run_id, s.look_image_sha256, s.look_receipt_sha256,
+             s.look_image, s.look_receipt, s.evidence_sha256, s.evidence_json,
+             s.bundle_sha256
+      FROM approved_look_snapshots s
+      JOIN looks l ON l.look_id = s.look_id
+      JOIN profiles p ON p.profile_id = l.profile_id
+      WHERE s.look_id = ? AND l.profile_id = ?
+        AND p.revoked_at IS NULL AND p.expires_at > ?
+    `).get(lookId, profileId, nowFrom(this.clock));
+    if (!row) return null;
+    const snapshot = deserializeApprovedLookSnapshot(row);
+    return { bytes: snapshot.image, sha256: snapshot.imageSha256 };
+  }
+
   async #verifiedLook(row, runService) {
     const run = await runService.getRun(row.source_run_id);
     if (!run || run.status !== 'COMPLETED') {
@@ -622,29 +831,47 @@ export class ProfileService {
       throw new ProfileError(409, 'LOOK_RECEIPT_MISSING', 'Saved look output or receipt is missing');
     }
     const [image, receipt] = await Promise.all([readFile(imagePath), readFile(receiptPath)]);
-    const imageSha256 = sha256(image);
-    const receiptSha256 = sha256(receipt);
-    let manifest;
-    try {
-      manifest = JSON.parse(receipt.toString('utf8'));
-    } catch {
-      throw new ProfileError(409, 'LOOK_RECEIPT_INVALID', 'Saved look receipt is invalid');
-    }
-    if (manifest.job_id !== `web-${row.source_run_id}`
-      || manifest.state !== 'COMPLETED'
-      || manifest.outputs?.avatar_outfit?.sha256 !== imageSha256
-      || manifest.qa?.avatar?.decision !== 'PASS'
-      || manifest.qa?.outfit?.decision !== 'PASS') {
-      throw new ProfileError(409, 'LOOK_RECEIPT_INVALID', 'Saved look is not bound to completed PASS receipts');
-    }
+    const verified = verifiedApprovedLookBytes({
+      sourceRunId: row.source_run_id,
+      image,
+      receipt,
+    });
     return {
       look_id: row.look_id,
       avatar_id: row.avatar_id,
       source_run_id: row.source_run_id,
-      image,
-      receipt,
-      image_sha256: imageSha256,
-      receipt_sha256: receiptSha256,
+      ...verified,
+      image_sha256: verified.imageSha256,
+      receipt_sha256: verified.receiptSha256,
+      expires_at: iso(row.expires_at),
+    };
+  }
+
+  #approvedLookSnapshot(lookId) {
+    return this.#db().prepare(`
+      SELECT source_run_id, look_image_sha256, look_receipt_sha256,
+             look_image, look_receipt, evidence_sha256, evidence_json,
+             bundle_sha256
+      FROM approved_look_snapshots WHERE look_id = ?
+    `).get(lookId);
+  }
+
+  async #verifiedSavedLook(row, runService) {
+    const snapshot = this.#approvedLookSnapshot(row.look_id);
+    if (!snapshot) return this.#verifiedLook(row, runService);
+    if (snapshot.source_run_id !== row.source_run_id) {
+      throw new ProfileError(409, 'LOOK_BINDING_MISMATCH', 'Saved look source changed after snapshot creation');
+    }
+    const durable = deserializeApprovedLookSnapshot(snapshot);
+    return {
+      look_id: row.look_id,
+      avatar_id: row.avatar_id,
+      source_run_id: row.source_run_id,
+      image: durable.image,
+      receipt: durable.receipt,
+      image_sha256: durable.imageSha256,
+      receipt_sha256: durable.receiptSha256,
+      approved_item_evidence: durable.approved_item_evidence,
       expires_at: iso(row.expires_at),
     };
   }
@@ -652,13 +879,13 @@ export class ProfileService {
   async approvedLookReference(profileId, lookId, runService) {
     assertAssetId(lookId, 'look id');
     const row = this.#db().prepare(`
-      SELECT l.look_id, l.avatar_id, l.source_run_id, l.expires_at
+      SELECT l.look_id, l.profile_id, l.avatar_id, l.source_run_id, l.expires_at
       FROM looks l JOIN profiles p ON p.profile_id = l.profile_id
       WHERE l.look_id = ? AND l.profile_id = ?
         AND p.revoked_at IS NULL AND p.expires_at > ?
     `).get(lookId, profileId, nowFrom(this.clock));
     if (!row) throw new ProfileError(404, 'LOOK_NOT_FOUND', 'Look not found');
-    const verified = await this.#verifiedLook(row, runService);
+    const verified = await this.#verifiedSavedLook(row, runService);
     return {
       look_id: verified.look_id,
       image_sha256: verified.image_sha256,
@@ -666,21 +893,87 @@ export class ProfileService {
     };
   }
 
+  async saveApprovedLookSnapshot(profileId, lookId, {
+    sourceRunId,
+    runService,
+    evidence,
+  }) {
+    assertAssetId(lookId, 'look id');
+    assertRunId(sourceRunId);
+    const snapshot = serializeApprovedItemEvidence(evidence, sourceRunId);
+    const row = this.#db().prepare(`
+      SELECT look_id, profile_id, avatar_id, source_run_id, expires_at
+      FROM looks WHERE look_id = ? AND profile_id = ?
+    `).get(lookId, profileId);
+    if (!row) throw new ProfileError(404, 'LOOK_NOT_FOUND', 'Look not found');
+    if (row.source_run_id !== sourceRunId) {
+      throw new ProfileError(409, 'LOOK_BINDING_MISMATCH', 'Saved look source changed before snapshot persistence');
+    }
+    const verified = await this.#verifiedLook(row, runService);
+    const bundleSha256 = sha256(Buffer.from(JSON.stringify({
+      source_run_id: sourceRunId,
+      look_image_sha256: verified.image_sha256,
+      look_receipt_sha256: verified.receipt_sha256,
+      evidence_sha256: snapshot?.sha256 ?? null,
+    })));
+    return this.#transaction((database) => {
+      const existing = database.prepare(`
+        SELECT source_run_id, look_image_sha256, look_receipt_sha256,
+               evidence_sha256, bundle_sha256
+        FROM approved_look_snapshots WHERE look_id = ?
+      `).get(lookId);
+      if (existing) {
+        if (existing.source_run_id !== sourceRunId
+          || existing.look_image_sha256 !== verified.image_sha256
+          || existing.look_receipt_sha256 !== verified.receipt_sha256
+          || (existing.evidence_sha256 ?? null) !== (snapshot?.sha256 ?? null)
+          || existing.bundle_sha256 !== bundleSha256) {
+          throw new ProfileError(
+            409,
+            'LOOK_SNAPSHOT_CONFLICT',
+            'Saved look conflicts with its immutable snapshot',
+          );
+        }
+        return { bundle_sha256: existing.bundle_sha256, replayed: true };
+      }
+      database.prepare(`
+        INSERT INTO approved_look_snapshots(
+          look_id, source_run_id, look_image_sha256, look_receipt_sha256,
+          look_image, look_receipt, evidence_sha256, evidence_json,
+          bundle_sha256, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        lookId,
+        sourceRunId,
+        verified.image_sha256,
+        verified.receipt_sha256,
+        verified.image,
+        verified.receipt,
+        snapshot?.sha256 ?? null,
+        snapshot?.bytes ?? null,
+        bundleSha256,
+        nowFrom(this.clock),
+      );
+      return { bundle_sha256: bundleSha256, replayed: false };
+    });
+  }
+
   async resolveApprovedLook(reference, runService) {
     assertAssetId(reference?.look_id, 'look id');
     const row = this.#db().prepare(`
-      SELECT l.look_id, l.avatar_id, l.source_run_id, l.expires_at
+      SELECT l.look_id, l.profile_id, l.avatar_id, l.source_run_id, l.expires_at
       FROM looks l JOIN profiles p ON p.profile_id = l.profile_id
       WHERE l.look_id = ? AND p.revoked_at IS NULL AND p.expires_at > ?
     `).get(reference.look_id, nowFrom(this.clock));
     if (!row) throw new ProfileError(404, 'LOOK_NOT_FOUND', 'Look not found');
-    const verified = await this.#verifiedLook(row, runService);
+    const verified = await this.#verifiedSavedLook(row, runService);
     if (reference.image_sha256 !== verified.image_sha256
       || reference.receipt_sha256 !== verified.receipt_sha256) {
       throw new ProfileError(409, 'LOOK_BINDING_MISMATCH', 'Approved look bytes no longer match the requested hashes');
     }
-    let approvedItemEvidence = null;
-    if (typeof runService.approvedItemEvidenceForRun === 'function') {
+    let approvedItemEvidence = verified.approved_item_evidence ?? null;
+    const hasSnapshot = Boolean(this.#approvedLookSnapshot(verified.look_id));
+    if (!hasSnapshot && typeof runService.approvedItemEvidenceForRun === 'function') {
       try {
         approvedItemEvidence = await runService.approvedItemEvidenceForRun(
           verified.source_run_id,
@@ -696,6 +989,11 @@ export class ProfileService {
           'Saved look item evidence is missing or invalid',
         );
       }
+      await this.saveApprovedLookSnapshot(row.profile_id, verified.look_id, {
+          sourceRunId: verified.source_run_id,
+          runService,
+          evidence: approvedItemEvidence,
+      });
     }
     return {
       look_id: verified.look_id,
@@ -1532,6 +1830,18 @@ export async function registerProfileRoutes(app, {
 
   async function serveProfileImage(request, reply, type) {
     const session = await resolveRequestProfile(request, reply);
+    if (type === 'look') {
+      const saved = service.savedLookImage(session.profileId, request.params.lookId);
+      if (saved) {
+        return reply
+          .type('image/png')
+          .header('Cache-Control', 'private, no-store')
+          .header('Vary', 'Cookie')
+          .header('ETag', `"sha256-${saved.sha256}"`)
+          .header('Content-Disposition', 'inline; filename="avatar_outfit.png"')
+          .send(saved.bytes);
+      }
+    }
     const descriptor = type === 'avatar'
       ? service.avatarAsset(session.profileId, request.params.avatarId)
       : service.lookAsset(session.profileId, request.params.lookId);
@@ -1584,6 +1894,36 @@ export async function registerProfileRoutes(app, {
       throw new ProfileError(409, 'LOOK_OUTPUT_MISSING', 'Completed run has no look output');
     }
     const saved = service.saveClaimedRun(session.profileId, runId);
+    if (typeof runService.approvedItemEvidenceForRun === 'function') {
+      const garmentBacked = Array.isArray(run.inputs?.garments) && run.inputs.garments.length > 0;
+      try {
+        const reference = await service.approvedLookReference(
+          session.profileId,
+          saved.look.look_id,
+          runService,
+        );
+        const evidence = await runService.approvedItemEvidenceForRun(runId, {
+          expectedReceiptSha256: reference.receipt_sha256,
+          expectedLookSha256: reference.image_sha256,
+        });
+        if (garmentBacked && !evidence) {
+          throw new Error('Garment-backed saved look has no approved item evidence');
+        }
+        await service.saveApprovedLookSnapshot(session.profileId, saved.look.look_id, {
+          sourceRunId: runId,
+          runService,
+          evidence,
+        });
+      } catch {
+        if (garmentBacked) {
+          throw new ProfileError(
+            409,
+            'LOOK_ITEM_EVIDENCE_INVALID',
+            'Saved look item evidence is missing or invalid',
+          );
+        }
+      }
+    }
     return reply.code(saved.replayed ? 200 : 201).send({ ...saved, profile: service.getProfile(session.profileId) });
   });
 
