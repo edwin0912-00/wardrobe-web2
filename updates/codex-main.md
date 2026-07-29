@@ -31,7 +31,7 @@ Agent ID: codex-main
 Task ID: BETA-FASHION-SHOOT-FIVE-UI-001
 Product line: beta-placeholder
 Pipeline: UNIVERSE.01–04 → FASHION_SHOOT.01–03
-State: READY_FOR_BETA_DEPLOY
+State: DEPLOYED_TO_BETA
 Decision: only the ten complete `shoot.*` Creative Universe units appear in
 the Fashion Shoot picker. The internal first identity/look verification remains
 hash-bound and auto-approved after PASS; the user sees five unique output
@@ -345,10 +345,12 @@ Removed the duplicate background button. Fashion Shoot opens the style picker;
 background opens standard scenes; Real-time Look keeps its consented camera
 route. Video cannot open generation while disabled.
 Evidence: `node --test test/web/profile-ui-flow.test.js
-test/web/editorial-preview-ui.test.js` — 17/17 PASS.
+test/web/editorial-preview-ui.test.js` — 17/17 PASS. Public beta release
+`ac87c0a`: health `ready`; DOM confirms five labelled actions, no duplicate
+background button, and Fashion Video is disabled.
 weakened_checks: none.
-Next: deploy the exact commit to beta and smoke the public labels/routes
-without starting a paid generation.
+Next: enable Fashion Video only after its two-reference server contract is
+implemented and separately proved.
 
 ---
 

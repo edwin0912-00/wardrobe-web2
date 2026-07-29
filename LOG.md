@@ -945,13 +945,15 @@ Eleven stale prompt hashes were corrected to their exact checked-in prompt
 bytes; their finish metadata was normalized to the existing production lock.
 weakened_checks: none.
 
-2026-07-29 · Saved-look action labels · pending commit
+2026-07-29 · Saved-look action labels · `ac87c0a` → beta
 Change: replaced icon-only saved-look controls with names and scoped states;
 removed duplicate background action; disabled Fashion Video until its required
 two-reference route is actually available.
 Why: controls must say what they do and must not imply a generation capability
 that the current video contract cannot satisfy.
-Evidence: profile and Fashion Shoot UI suite 17/17 PASS.
+Evidence: profile and Fashion Shoot UI suite 17/17 PASS; public beta health
+ready and browser DOM smoke confirms all five labels, exactly one background
+action, and disabled Fashion Video.
 weakened_checks: none.
 
 2026-07-27 · BETA reconciliation · `39442c4`

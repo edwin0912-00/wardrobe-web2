@@ -58,13 +58,13 @@ frame or a user-facing contact sheet.
 
 ## Current verified state — reconciliation 2026-07-27
 
-### Pending beta deployment — saved-look actions
+### Live on beta — saved-look actions (`ac87c0a`)
 
 - **LOOK.06 / choice UI:** labels now state each post-look action and its
   honest availability. Background opens the 16-scene picker; Fashion Shoot
   opens its five-frame style workflow; Real-time Look opens only after camera
   consent. Fashion Video is visibly disabled until the two-reference input
-  contract exists. This is code-tested, awaiting exact beta deployment.
+  contract exists. Code test and public DOM smoke pass; no generation was run.
 
 ## Current verification rule — 2026-07-29
 
