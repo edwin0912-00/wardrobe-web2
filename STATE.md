@@ -1,5 +1,20 @@
 # Wardrobe verified state
 
+## Seven-block coordination state — 2026-07-29
+
+- `beta` remains the tested integration/deploy line.
+- Seven `beta-block-*` branches isolate product ownership; only `codex-main`
+  integrates and deploys.
+- Block 1 is permanently owned by `codex-main`: person/clothing inputs,
+  extraction, candidate routes, avatar, master look, immutable receipts and
+  all core plus standard-background QA.
+- The pre-split mixed Universe work is safely preserved at `46d1650` on
+  `part-job/2026-07-29-universe-checkpoint`. It is not deployable evidence:
+  14/16 focused tests pass and the strict runtime draft currently disables all
+  ten `shoot.*` routes.
+- Ephemeral Playwright and generated QA output was copied with SHA-256 inventory
+  to the external SSD and deliberately excluded from Git.
+
 ## Current reconciliation — 2026-07-29
 
 See `BLOCK_STATUS.md` for the canonical compact matrix. Verified directly on

@@ -17,6 +17,21 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-07-29 · SEVEN-BLOCK-BETA-001 · beta coordination · codex-main
+Change: replace direct multi-agent writes to shared `beta` with seven isolated
+`beta-block-*` branches. `codex-main` owns Block 1 and remains the only
+integration/deployment owner. Add per-block handoffs, join command, read-only
+all-branch monitor and explicit Code/Beta/Journey reporting.
+Why: parallel agents need visible ownership and status without mixing
+unfinished work or making every agent a release authority.
+Preservation: all secret-free current source changes were captured at `46d1650`
+on `part-job/2026-07-29-universe-checkpoint`. The checkpoint is not merged
+because focused proof is 14/16 and the draft makes all ten `shoot.*`
+generation routes unavailable.
+Evidence: governance block-map tests and shell syntax checks are required
+before this control-plane commit is integrated.
+weakened_checks: none.
+
 2026-07-29 · BETA-SCENE-E2E-ROUTE-ALIGNMENT-001 · beta tooling · codex-main
 Change: repaired the real-scene control runner to use RunService's immutable
 approved-item-evidence reader and the one shared 3:4 scene provider map.

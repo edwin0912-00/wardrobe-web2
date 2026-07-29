@@ -1,8 +1,55 @@
 # Wardrobe agent entrypoint
 
-## FAST MODE — current sprint
+## SEVEN-BLOCK MODE — current sprint
 
-This section overrides the historical lane/lease/PR process below.
+This section overrides every older branch, lane, lease, direct-beta and PR rule
+below.
+
+```text
+origin/beta                         tested integration + beta deploy source
+├── beta-block-1-core-look          chat 1 / codex-main
+├── beta-block-2-profile-ui         chat 2
+├── beta-block-3-backgrounds        chat 3
+├── beta-block-4-universe           chat 4
+├── beta-block-5-fashion-shoot      chat 5
+├── beta-block-6-fashion-video      chat 6
+└── beta-block-7-realtime-look      chat 7
+```
+
+Read
+[`docs/coordination/BETA_BLOCKS_2026-07-29.md`](docs/coordination/BETA_BLOCKS_2026-07-29.md)
+and the assigned file in `docs/coordination/blocks/` before any product action.
+
+1. A block agent works only in its named `beta-block-*` branch and reserved
+   paths. It never pushes to `beta` or `main` and never deploys.
+2. Each commit starts `[agent:<agent-id>] [block:<1-7>]` and includes the
+   focused test plus `updates/chat-<N>.md`.
+3. Reports keep `Code`, `Beta`, and `Journey` separate and include
+   `weakened_checks`.
+4. `codex-main` reviews and integrates one tested atomic change into `beta`,
+   deploys that exact beta SHA, and records the public-beta journey.
+5. Shared bootstrap, release and app-registration files are integration-only.
+   A block owner supplies a minimal wiring handoff instead of editing them.
+6. Every active agent runs:
+
+   ```bash
+   bash tools/watch-beta-blocks.sh <agent-id>
+   ```
+
+7. Join an assigned block from an existing clean clone with:
+
+   ```bash
+   bash tools/join-beta-block-agent.sh <agent-id> <1-7> --watch
+   ```
+
+The mixed 2026-07-29 Creative Universe work is preserved at
+`part-job/2026-07-29-universe-checkpoint`. It is not a beta release candidate
+and must be recovered into Block 4/5 atomically rather than merged wholesale.
+
+## RETIRED FAST MODE — historical reference only
+
+This section is preserved for audit only. It does not override Seven-Block
+Mode.
 
 New agents use the single bootstrap command in `tools/bootstrap-beta-agent.sh`;
 it creates an ID, installs the local help/journal flow, publishes `ONLINE`, and

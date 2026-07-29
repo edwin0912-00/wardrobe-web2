@@ -1,6 +1,31 @@
 # Wardrobe ownership
 
-## FAST MODE — current sprint
+## SEVEN-BLOCK MODE — current sprint
+
+The active ownership contract is
+[`docs/coordination/BETA_BLOCKS_2026-07-29.md`](docs/coordination/BETA_BLOCKS_2026-07-29.md).
+It supersedes the shared-`beta` write model below.
+
+- Block 1 / `beta-block-1-core-look` / `codex-main`: input, extraction,
+  avatar, clothing, master-look, profile backend, image/VLM providers and all
+  core/background QA.
+- Block 2 / `beta-block-2-profile-ui` / `chat-2`: profile/upload/progress/
+  choice/explainer UI only.
+- Block 3 / `beta-block-3-backgrounds` / `chat-3`: `std.*` packs and scene UI;
+  no scene backend or QA.
+- Block 4 / `beta-block-4-universe` / `chat-4`: `shoot.*` source packs,
+  observations, sheets, manifests, catalog and integrity.
+- Block 5 / `beta-block-5-fashion-shoot` / `chat-5`: Shoot Bible, hero, series,
+  shoot QA/retry/persistence and shoot UI.
+- Block 6 / `beta-block-6-fashion-video` / `chat-6`: generated video/motion
+  transport, QA, persistence and dedicated UI.
+- Block 7 / `beta-block-7-realtime-look` / `chat-7`: camera, consent, realtime,
+  explicit capture and teardown.
+
+Only `codex-main` owns integration-only files and may update `beta`, deploy or
+edit the central ledgers. `main` remains read-only.
+
+## RETIRED FAST MODE — historical reference only
 
 `beta` is the only shared working branch. `main` is read-only. The active
 assignment in `UPDATE.md` decides who may write product code right now.

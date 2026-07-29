@@ -1,14 +1,13 @@
 # Start here — Wardrobe beta agents
 
-Run the bootstrap command supplied by the orchestrator. It gives this clone a
-unique agent ID, reads the current context, creates a local operational journal,
-publishes an `ONLINE` update to `beta`, and can keep the live board open.
+Run the block-join command supplied by the orchestrator. It binds this clone to
+one agent ID and one `beta-block-*` branch, creates a local operational journal,
+publishes `ONLINE` only on that branch, and can keep all seven block reports
+open.
 
-Set `WARDROBE_AGENT_LABEL` before bootstrap for a readable generated ID, for
-example `antigravity-20260727-a1b2c3`.
-
-Ready-made entries are in `tools/agent-entry/`: `claude-code.sh`,
-`antigravity.sh`, and `opencloud.sh`.
+```bash
+bash tools/join-beta-block-agent.sh <agent-id> <1-7> --watch
+```
 
 After bootstrap, read in this order:
 
@@ -17,6 +16,7 @@ After bootstrap, read in this order:
 3. `STATE.md` — verified product/runtime position.
 4. `LOG.md` — why verified changes happened.
 
-Only start a product task explicitly assigned in `UPDATE.md`. Shared facts go
-to `updates/<agent-id>.md`; local rationale stays in `.agent-local/` and is
-never committed.
+Only start the assigned block task. Shared facts go to
+`updates/chat-<block>.md` on that block branch; local rationale stays in
+`.agent-local/` and is never committed. Agents never push directly to `beta`;
+`codex-main` integrates and deploys reviewed commits.

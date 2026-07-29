@@ -3,6 +3,23 @@
 Updated: 2026-07-29. This is the short operational map for every agent.
 Read it after `UPDATE.md` and before claiming a task.
 
+## Branch ownership overlay
+
+The product-status table below remains the truth for Code/Beta/Journey.
+Execution ownership is now split without changing those statuses:
+
+- Block 1: `LOOK.*` core, profile backend and `BACKGROUND.02` QA.
+- Block 2: profile/look/choice/explainer UI.
+- Block 3: `BACKGROUND.*` packs and UX.
+- Block 4: `UNIVERSE.01–02`.
+- Block 5: `UNIVERSE.03–04` and `ART_SHOOT.*`.
+- Block 6: `VIDEO.*` and `BACKGROUND_VIDEO.*` execution.
+- Block 7: `LIVE.*`.
+
+See `docs/coordination/BETA_BLOCKS_2026-07-29.md`. A block-branch commit is
+still `Beta: NOT_DEPLOYED` until `codex-main` integrates it into `beta`,
+activates the exact beta SHA and records the public journey.
+
 ## Status vocabulary
 
 - **Code** — `TESTED` means a named local test passed on the recorded commit;

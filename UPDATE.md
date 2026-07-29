@@ -2,6 +2,33 @@
 
 This is the only live coordination board for the current sprint.
 
+## Seven beta block branches — active 2026-07-29
+
+The detailed contract is
+[`docs/coordination/BETA_BLOCKS_2026-07-29.md`](docs/coordination/BETA_BLOCKS_2026-07-29.md).
+Every chat commits only to its block branch. Only `codex-main` integrates into
+`beta` and deploys the exact tested beta SHA.
+
+| Block | Branch | Owner | Product scope | First atom |
+| --- | --- | --- | --- | --- |
+| 1 | `beta-block-1-core-look` | `codex-main` | Inputs → avatar → clothing → master look + all core/background QA | Repeat one real person + clothing beta journey, persist the approved look, then run one standard background through terminal QA. |
+| 2 | `beta-block-2-profile-ui` | `chat-2` | Profile, upload/draft, saved-look navigation, nodes, choice UI, explainer | Prove refresh recovery and saved avatar → Add clothing → result actions; fix only the first reproducible UI defect. |
+| 3 | `beta-block-3-backgrounds` | `chat-3` | Sixteen `std.*` packs, picker and result UX | Prove sixteen cards, then one saved look → selected preset → Block 1 QA → persisted scene. |
+| 4 | `beta-block-4-universe` | `chat-4` | Creative Universe source packs, sheets, manifests, catalog | Recover the checkpoint by ownership and make one legitimate style unit fully green. |
+| 5 | `beta-block-5-fashion-shoot` | `chat-5` | Shoot Bible, hero, five frames, shoot QA/retry/save | Run one complete style to an honest hero QA receipt before any series generation. |
+| 6 | `beta-block-6-fashion-video` | `chat-6` | Fashion Video and background-video execution/QA/save | Reconcile the two committed video services and prove one executable controlled clip route. |
+| 7 | `beta-block-7-realtime-look` | `chat-7` | Camera, consent, live overlay, explicit capture/teardown | Prove denied/granted camera and no-save teardown; paid Lucy remains separately authorized. |
+
+All active agents run `tools/watch-beta-blocks.sh`. Each branch publishes
+`updates/chat-<N>.md` with separate Code/Beta/Journey fields and
+`weakened_checks`.
+
+The mixed source work captured from the shared worktree is preserved at commit
+`46d1650` on `part-job/2026-07-29-universe-checkpoint`. It is intentionally not
+merged into `beta`: the focused suite is 14/16 and the draft currently makes
+all ten `shoot.*` routes unavailable. Runtime/browser evidence was copied to
+the external SSD and excluded from Git.
+
 The earlier detailed noticeboard is preserved at
 [`docs/coordination/UPDATE_ARCHIVE_2026-07-27.md`](docs/coordination/UPDATE_ARCHIVE_2026-07-27.md).
 

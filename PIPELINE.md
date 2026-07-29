@@ -5,6 +5,14 @@
 `SHOOT.02`. Статус означає тільки один із трьох фактів: `LIVE`, `CORE_ONLY`
 або `NOT_DELIVERED`.
 
+## Робочі блоки
+
+Продуктова карта нижче не змінюється, але робота розділена на сім паралельних
+гілок: Block 1 — core look/QA; Block 2 — profile/UI; Block 3 — backgrounds;
+Block 4 — Creative Universe packs; Block 5 — Fashion Shoot; Block 6 —
+generated video; Block 7 — Real-time Look. Точні межі:
+[`docs/coordination/BETA_BLOCKS_2026-07-29.md`](docs/coordination/BETA_BLOCKS_2026-07-29.md).
+
 ## PROFILE — збережений користувач у браузері
 
 | Step | Для користувача | Стан |
