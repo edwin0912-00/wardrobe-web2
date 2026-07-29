@@ -87,7 +87,7 @@ const SHA256_PATTERN = /^[a-f0-9]{64}$/;
 // Change this only when the bytes sent to the image provider change. It is part
 // of provider idempotency, so an old journal can never be replayed against a
 // materially different repair contract.
-const SCENE_GENERATION_CONTRACT_VERSION = 'scene-generation-contract-v2-product-visibility';
+const SCENE_GENERATION_CONTRACT_VERSION = 'scene-generation-contract-v3-guide-priority';
 
 function nowIso(clock) {
   const value = clock();
@@ -1274,6 +1274,7 @@ function compiledPrompt({
   preset = null,
   approvedItems = [],
   repairAttempt = selectRepairAttempt(state, attempt),
+  compositionGuide = null,
 }) {
   const camera = preset?.camera ?? null;
   const editorial = preset?.editorial ?? null;
@@ -1369,7 +1370,10 @@ function compiledPrompt({
     '',
     'PRODUCTION INPUT AUTHORITY',
     '- ATTACHMENT_1 is the immutable approved look and is the only authority for identity, body, hair, outfit, product details, logos and readable garment text.',
-    ...(repairAttempt ? [
+    ...(repairAttempt && compositionGuide ? [
+      `- ATTACHMENT_2 is a mechanical layout derivative of failed attempt ${repairAttempt.number}. It is geometry-only: use its visible scale and empty margin as the composition authority; it cannot change identity, item details, environment or lighting.`,
+      `- ATTACHMENT_3 is the hash-bound failed scene candidate from attempt ${repairAttempt.number}. Edit this exact scene; it is not authority for identity or item details.`,
+    ] : repairAttempt ? [
       `- ATTACHMENT_2 is the hash-bound failed scene candidate from attempt ${repairAttempt.number}. Edit this exact scene; it is not authority for identity or item details.`,
     ] : []),
     '- Environment, lighting, composition, palette and negative references are role-limited exactly as declared by the attached reference pack.',
@@ -3372,6 +3376,7 @@ export class SceneService {
       preset: bound.preset,
       approvedItems: bound.approvedItems,
       repairAttempt,
+      compositionGuide,
     });
     const promptBytes = Buffer.from(prompt);
     const promptRelativePath = `attempts/${String(attempt.number).padStart(3, '0')}/compiled-prompt.txt`;

@@ -536,14 +536,6 @@ export class SceneGeneratorAdapter {
         mediaType: approved.media_type,
         source: 'APPROVED_AVATAR',
       },
-      ...(repairCandidate ? [{
-        scope: 'scene',
-        role: 'FAILED_SCENE_CANDIDATE',
-        path: repairCandidate.path,
-        sha256: repairCandidate.sha256,
-        mediaType: repairCandidate.media_type,
-        source: 'REPAIR_CANDIDATE',
-      }] : []),
       ...(compositionGuide ? [{
         scope: 'outfit',
         role: 'MECHANICAL_FRAMING_GUIDE',
@@ -551,6 +543,14 @@ export class SceneGeneratorAdapter {
         sha256: compositionGuide.sha256,
         mediaType: compositionGuide.media_type,
         source: 'CONDITIONED',
+      }] : []),
+      ...(repairCandidate ? [{
+        scope: 'scene',
+        role: 'FAILED_SCENE_CANDIDATE',
+        path: repairCandidate.path,
+        sha256: repairCandidate.sha256,
+        mediaType: repairCandidate.media_type,
+        source: 'REPAIR_CANDIDATE',
       }] : []),
       ...items.map((item) => ({
         scope: 'outfit',
@@ -609,8 +609,7 @@ export class SceneGeneratorAdapter {
     const guideAttachment = compositionGuide
       ? ordered.find((item) => item.role === 'MECHANICAL_FRAMING_GUIDE')
       : null;
-    const firstItemAttachment = repairCandidate ? 3 : 2;
-    const itemAttachmentStart = guideAttachment ? firstItemAttachment + 1 : firstItemAttachment;
+    const itemAttachmentStart = 1 + Number(Boolean(repairCandidate)) + Number(Boolean(guideAttachment)) + 1;
     const prompt = sanitizeExternalPrompt(
       `${basePrompt}${structuredInstructions(references)}`
       + `${itemGenerationInstructions(items, itemAttachmentStart)}`

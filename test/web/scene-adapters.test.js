@@ -1526,9 +1526,9 @@ test('SceneGeneratorAdapter reserves a distinct attachment number for a mechanic
   });
   assert.deepEqual(
     calls[0].references.ordered.slice(0, 5).map((item) => item.role),
-    ['APPROVED_LOOK_MASTER', 'FAILED_SCENE_CANDIDATE', 'MECHANICAL_FRAMING_GUIDE', 'ITEM_TOP', 'ITEM_BAG'],
+    ['APPROVED_LOOK_MASTER', 'MECHANICAL_FRAMING_GUIDE', 'FAILED_SCENE_CANDIDATE', 'ITEM_TOP', 'ITEM_BAG'],
   );
-  assert.match(calls[0].prompt, /ATTACHMENT_3 is a transparent mechanical layout derivative/);
+  assert.match(calls[0].prompt, /ATTACHMENT_2 is a transparent mechanical layout derivative/);
   assert.match(calls[0].prompt, /ATTACHMENT_4 \[APPROVED_ITEM_SET-0\]/);
   assert.match(calls[0].prompt, /ATTACHMENT_5 \[APPROVED_ITEM_SET-2\]/);
 });
