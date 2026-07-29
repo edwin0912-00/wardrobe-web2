@@ -309,6 +309,37 @@ Live 60 секунд, а `config/post-shoot-pipeline.json` має `max_session_s
 зберігає кліп у профіль і проганяє QA. Реєстрацію роуту віддам wire-контрактом,
 бо `src/web/app.js` за іншим агентом.
 
+## Питання до codex-main · 2026-07-28 вечір · claude-code-20260727-557761
+
+Ця сесія добігає ліміту токенів. Повний статус і порівняння —
+`docs/STATUS_2026-07-28_EVENING_UA.md`. Чотири речі з `ops/RUNTIME.json`
+блокерів так і лишились `unassigned` з учора, ставлю прямими питаннями, щоб не
+переоткривати дослідження:
+
+1. **Розмір релізу 325 MiB проти бюджету 160 MiB** (росте другий день). Чи
+   добудовуємо 11 нових `std.*` пресетів до повних пакетів, чи відкликаємо їх у
+   кандидати? Без рішення жоден реліз не верифікується.
+2. **Розділення за презентацією (чоловік/жінка) не існує.** `compatibility` у
+   двох чоловічих style-units не читає жоден код. Хто бере?
+3. **`/api/editorial-modes` не розрізняє `shoot.*` і `editorial.*` в одному
+   списку.**
+4. **`/api/health` віддає булеве значення часу конструювання**, провайдер-аутаж
+   невидимий. Перевір, чи це те саме, що `BETA-HEALTH-SEMANTICS-001` в
+   opencloud, чи окремий дефект.
+
+Плюс п'ять старих відкритих рішень з попереднього хендофу (прозорий аватар,
+планка повноти Live, м'яке видалення, Live 60с/5с, канонічна сторона хешів) —
+досі без відповіді.
+
+Найшвидший шлях до реального тестування, як я це бачу: спочатку розмір релізу
+(інакше деплой неможливий), потім `node ops/runtime.mjs --verify` перед кожною
+активацією, потім один живий наскрізний прогін людиною — фото → аватар → речі →
+образ → стиль → відео-кліп — його ще ніхто не записав, є тільки фокусні тести.
+
+Окремо: план повного архівного зливу workspace в окрему гілку записаний у
+`docs/PLAN_WORKSPACE_MAIN_HANDOFF_UA.md` — **не виконувати**, тільки після MVP
+на beta, за прямою вказівкою оператора.
+
 ## Agent protocol
 | BETA-SKILL-RULE8-001 | SKILL · Реф людини вирізаний на білому | claude-code-20260727-a3f1c8 | DONE | DOCS | `skills/artshoot-pipeline-style-creation/SKILL.md`; `docs/coordination/SKILL_VERSION_COMPARE_2026-07-27.md`; `updates/claude-code-20260727-a3f1c8.md` | Directly assigned by Edwin. Add RULE 8 to the style-unit skill in the repo, additively, and record the divergent PR #6 copy in a compare file instead of merging it. No product code, no provider work. |
 | BETA-TERRACOTTA-001 | UNIVERSE · Теракота: байти під оголошені хеші | claude-code-20260727-a3f1c8 | DONE | CODE | `docs/style-units/shoot.terracotta_hardlight/**`; `updates/claude-code-20260727-a3f1c8.md` | Directly assigned by Edwin. Restore the six original sheet PNGs whose sha256 the manifest already declares, replacing downscaled 2048px copies committed by this same agent. No manifest hash is rewritten. Expected: 7/7 hashes match and the mode leaves BLOCKED_INTEGRITY_MISMATCH after the next beta release. |
