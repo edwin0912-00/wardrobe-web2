@@ -1122,7 +1122,7 @@ export class RunService {
     if (record?.schema_version !== '1.0.0'
       || record.kind !== 'FIRST_APPEARANCE_ITEM_LOCK'
       || record.run_id !== runId
-      || record.approved_look_sha256 !== options.expectedLookSha256
+      || (options.expectedLookSha256 !== undefined && record.approved_look_sha256 !== options.expectedLookSha256)
       || record.provenance !== 'OBSERVED_FROM_APPROVED_LOOK'
       || record.immutable_after_creation !== true
       || !Array.isArray(record.items)) {

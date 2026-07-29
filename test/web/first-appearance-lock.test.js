@@ -18,10 +18,12 @@ test('locks real bottom and footwear crops from a full-body approved look withou
     ]).png().toBuffer();
   await writeFile(lookPath, look);
   const calls = [];
+  const clock = () => new Date('2026-07-29T09:00:00.000Z');
   const result = await lockFirstAppearance({
     approvedLookPath: lookPath,
     outputDirectory: path.join(root, 'first-appearance'),
     runId: 'run_first_appearance',
+    clock,
     vlm: { async inspectGarments(paths) {
       calls.push(paths);
       return { status: 'READY', items: [
@@ -36,4 +38,13 @@ test('locks real bottom and footwear crops from a full-body approved look withou
   assert.equal(result.record.provenance, 'OBSERVED_FROM_APPROVED_LOOK');
   assert.equal(result.record.immutable_after_creation, true);
   assert.deepEqual(await sharp(await readFile(result.items[0].reference_card.path)).metadata().then(({ format }) => format), 'png');
+
+  const repeated = await lockFirstAppearance({
+    approvedLookPath: lookPath,
+    outputDirectory: path.join(root, 'first-appearance'),
+    runId: 'run_first_appearance',
+    clock,
+    vlm: { async inspectGarments() { return { status: 'READY', items: result.items.map((item) => ({ category: item.category, confidence: item.confidence, observed: item.observed, unknowns: item.unknowns })) }; } },
+  });
+  assert.deepEqual(repeated.record, result.record);
 });

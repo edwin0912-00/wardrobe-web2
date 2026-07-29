@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
-import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
+import { randomUUID } from 'node:crypto';
+import { link, mkdir, readFile, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import sharp from 'sharp';
 import { removeBorderConnectedWhiteToAlpha } from '../conditioning/transparent-cutout.mjs';
@@ -15,11 +16,21 @@ export class FirstAppearanceNeedsInputError extends Error {
   }
 }
 
-async function atomicWrite(filename, bytes) {
+async function writeImmutable(filename, bytes) {
   await mkdir(path.dirname(filename), { recursive: true });
-  const temporary = `${filename}.${process.pid}.tmp`;
-  await writeFile(temporary, bytes);
-  await rename(temporary, filename);
+  const temporary = `${filename}.${process.pid}.${randomUUID()}.immutable`;
+  await writeFile(temporary, bytes, { flag: 'wx' });
+  try {
+    await link(temporary, filename);
+  } catch (error) {
+    if (error?.code !== 'EEXIST') throw error;
+    const existing = await readFile(filename);
+    if (!existing.equals(Buffer.isBuffer(bytes) ? bytes : Buffer.from(bytes))) {
+      throw new Error(`Immutable first-appearance artifact conflict: ${path.basename(filename)}`);
+    }
+  } finally {
+    await unlink(temporary).catch(() => {});
+  }
 }
 
 function visibleBounds(data, { width, height, channels }) {
@@ -72,7 +83,7 @@ export async function lockFirstAppearance({ approvedLookPath, outputDirectory, r
   for (const region of regions) {
     const bytes = await crop(look, region);
     const filename = path.join(sourceDirectory, `${region.name}.png`);
-    await atomicWrite(filename, bytes);
+    await writeImmutable(filename, bytes);
     sourcePaths.push(filename);
   }
   const passport = await vlm.inspectGarments(sourcePaths);
@@ -90,8 +101,8 @@ export async function lockFirstAppearance({ approvedLookPath, outputDirectory, r
     const directory = path.join(outputDirectory, String(index + 1).padStart(2, '0'));
     const referenceCard = path.join(directory, 'reference-card.png');
     const cutoutPath = path.join(directory, 'cutout.png');
-    await atomicWrite(referenceCard, source);
-    await atomicWrite(cutoutPath, cutout.image);
+    await writeImmutable(referenceCard, source);
+    await writeImmutable(cutoutPath, cutout.image);
     locked.push({
       order: index + 1,
       role: expected.role,
@@ -116,6 +127,6 @@ export async function lockFirstAppearance({ approvedLookPath, outputDirectory, r
     created_at: clock().toISOString(),
   };
   const recordPath = path.join(outputDirectory, 'lock.json');
-  await atomicWrite(recordPath, Buffer.from(`${JSON.stringify(record, null, 2)}\n`));
+  await writeImmutable(recordPath, Buffer.from(`${JSON.stringify(record, null, 2)}\n`));
   return { record, recordPath, items: locked };
 }
