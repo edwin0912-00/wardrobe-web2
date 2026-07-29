@@ -1,0 +1,59 @@
+# Wardrobe — verified block status
+
+Updated: 2026-07-29. This is the short operational map for every agent.
+Read it after `UPDATE.md` and before claiming a task.
+
+## Status vocabulary
+
+- **Code** — `TESTED` means a named local test passed on the recorded commit;
+  `REPORTED` means an agent reported evidence that the orchestrator has not
+  re-run; `MISSING` means no usable implementation.
+- **Beta** — `LIVE_SURFACE` means the deployed beta endpoint/card exists;
+  `NOT_DEPLOYED` means branch code is not on the beta host.
+- **Journey** — only `E2E_PASS` means real beta input → provider/job → all QA
+  gates → persisted result was observed. A catalog card, HTTP 200, unit test,
+  or `generation: available` is not an E2E pass.
+
+## Current block map
+
+| Block | Code | Beta | Journey | Exact evidence / next atom |
+| --- | --- | --- | --- | --- |
+| `PROFILE.01–03` | TESTED historical | LIVE_SURFACE | NOT_CURRENT | Saved profile/look routes are deployed. Re-run one current-beta saved-look selection before calling it E2E. |
+| `LOOK.01–06` | TESTED locally | LIVE_SURFACE | NOT_CURRENT | A local full-look run exists; perform fresh beta upload → approved master → saved look. |
+| `LOOK.07` Improve | MISSING | NOT_DEPLOYED | NOT_RUN | Product canon only; no generation or UI route may be claimed. |
+| `BACKGROUND.01` picker | TESTED historical | LIVE_SURFACE | NOT_CURRENT | Beta returns 16 `std.*` cards and their previews. |
+| `BACKGROUND.02` scene | TESTED (`f23ca9b`) | NOT_DEPLOYED | E2E_FAIL_LOCAL | Native 3:4 route tested; real GPT scene returned but failed strict item fidelity/framing. Next: repair only those failed gates, then run beta. |
+| `BACKGROUND_VIDEO.01–04` | MISSING | NOT_DEPLOYED | NOT_RUN | Proposal only; must start from an approved background result. |
+| `UNIVERSE.01–02` style picker/packs | TESTED historical | LIVE_SURFACE | NOT_CURRENT | Live API has 14 modes, 12 generation-available. |
+| `UNIVERSE.03–04` hero/series/contact sheet | CODE_PARTIAL | LIVE_SURFACE | NOT_CURRENT | No current beta style → hero → six QA-passed frames → persisted contact-sheet proof. |
+| `ART_SHOOT.01–05` | CODE_PARTIAL | LIVE_SURFACE | NOT_CURRENT | Same missing real execution proof as Universe; do not infer it from previews. |
+| `VIDEO.01–04` Fashion Video | REPORTED (`544e602`) | NOT_DEPLOYED | NOT_RUN | Current beta returns 404 for `/api/video/*`; deploy exact commit, then one controlled clip → ffprobe/clip QA → saved result. |
+| `LIVE.01–04` Real-time Look | TESTED historical | LIVE_SURFACE | PAID_E2E_NOT_RUN | Post-shoot API/page are live; provider/camera paid session has not been authorized and run. |
+| Pipeline explainer | CODE_PARTIAL | LIVE_SURFACE_PARTIAL | NOT_CURRENT | Technical nodes exist; current result-to-explainer journey still needs beta click smoke. |
+| Generation transport | TESTED local | HEALTH_LIVE | PARTIAL | Beta health says generation/semantic QA available. Local GPT Image 2 actually returned a scene; availability is not a successful scene or shoot. |
+
+## Agent position
+
+- **codex-main** — integration, exact deploy ledger, block evidence. Active:
+  `BETA-FULL-JOURNEY-GATE-001`.
+- **claude-code-20260727-a3f1c8** — style-unit release and motion-stage
+  executor. Both remain code work until beta activation and journey proof.
+- **antigravity-20260727-fb7a90** — Seedance video implementation is committed
+  on `beta`; no live deployment evidence exists yet.
+- **codex-video-fidelity-20260728** — full-look first-appearance locking is
+  in progress; it protects video and shoot inputs, but does not prove either
+  product journey.
+- **opencloud-20260727-bc27e6** — health semantic correction is in progress.
+
+## Release rule
+
+1. Agent commits code with a focused test and adds a report.
+2. `codex-main` records the commit as **Code** only.
+3. Exact commit is deployed to `beta.madeforthisjob.com`.
+4. A real beta journey runs through the relevant node/service and persists a
+   result or exact failure receipt.
+5. Only then the block becomes `E2E_PASS` (or an explicit `E2E_FAIL`).
+
+`main` is the customer-site integration line. It receives a beta capability
+only after steps 1–4 are evidenced. Beta remains the parallel engineering
+product and does not disappear when main receives the new UI.

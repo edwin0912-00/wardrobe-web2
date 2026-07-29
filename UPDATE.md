@@ -15,6 +15,16 @@ The earlier detailed noticeboard is preserved at
 
 ## Current verified state — reconciliation 2026-07-27
 
+## Current verification rule — 2026-07-29
+
+`BLOCK_STATUS.md` is the canonical concise map of pipeline blocks. Every
+claim now carries three independent facts: code proof, deployed beta surface,
+and real beta journey proof. In particular, the current beta host is healthy
+but `/api/video/*` is HTTP 404, so the newly committed Seedance implementation
+is **not deployed** and must not be called live. The 14-mode Create Universe
+catalog is live, but it is not a current hero/series/contact-sheet journey
+proof.
+
 **One current source of truth:** fetch `origin/beta` before every task; the
 branch moves as agents publish their small commits. The running product release
 is `release-e05eb44-20260728003504` (product commit `e05eb44`); branch HEAD is

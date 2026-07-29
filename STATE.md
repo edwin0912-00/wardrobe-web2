@@ -1,5 +1,14 @@
 # Wardrobe verified state
 
+## Current reconciliation — 2026-07-29
+
+See `BLOCK_STATUS.md` for the canonical compact matrix. Verified directly on
+the beta host today: health is `ready`; 16 standard-background cards and 14
+Create Universe modes are served (12 generation-available); the existing
+post-shoot API is 200; the new `/api/video/*` routes are 404. Therefore the
+branch contains capabilities that the live host does not yet contain. No
+agent may collapse these facts into a single "live" claim.
+
 ## Current release truth — 2026-07-27
 
 This section supersedes every earlier “Fast-mode live position” statement

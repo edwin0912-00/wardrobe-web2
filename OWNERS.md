@@ -33,6 +33,7 @@ Only `codex-main` may edit:
 - `OWNERS.md`
 - `LOG.md`
 - `STATE.md`
+- `BLOCK_STATUS.md`
 - `TASKS.json`
 - `package.json`
 - `package-lock.json`
@@ -100,3 +101,7 @@ part of repository ownership.
 The machine-readable active assignment is `TASKS.json`. If this prose and the
 board disagree, stop: the orchestrator must repair both in one control-plane
 commit before work resumes.
+
+Every task report must state both its **Code** and **Beta/Journey** status using
+`BLOCK_STATUS.md`. A local test, preview, catalog card, or provider-health
+endpoint cannot be represented as a beta end-to-end result.

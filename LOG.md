@@ -33,6 +33,16 @@ each output was evaluated. All failed the unchanged `ITEM_FIDELITY` and
 `FRAMING_AND_ANATOMY` gates; full receipts remain in the isolated runtime.
 weakened_checks: none.
 
+2026-07-29 · BLOCK-STATUS-001 · separate code proof from beta journey proof
+Change: add `BLOCK_STATUS.md` and make it part of the control plane.
+Why: branch commits, catalog availability and real beta execution had been
+reported under the same word "live", hiding that current beta lacks the new
+Video API while serving healthy background and Universe catalogs.
+Evidence: direct beta HTTP checks — health `ready`; 16 `std.*` cards; 14
+editorial modes / 12 generation-available; `/api/video/*` 404; post-shoot API
+200. No provider request was made for this reconciliation.
+weakened_checks: none.
+
 2026-07-29 · SCENE-DELIVERY-3-4 · native standard-scene output
 Change: standard-scene delivery is `1536×2048` / `3:4`; GPT Image 2 and both
 Nano routes request the same native ratio. Rounded 3:4 provider buckets are
