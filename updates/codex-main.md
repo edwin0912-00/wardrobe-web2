@@ -145,3 +145,21 @@ beta `GET /api/editorial-modes` returns 14 modes / 12 generation-ready and all
 weakened_checks: none.
 Next action: run a real saved-look journey, then one controlled background,
 Create Universe, video and Live branch smoke in that order.
+
+---
+
+Agent ID: codex-main
+Task ID: BETA-PRODUCT-LANGUAGE-001
+State: DONE — beta release `7ef5ec8`.
+Decision: remove implementation names from user-facing saved-look copy. A user
+sees a ready fashion shoot and its reference-defined direction, not “Create
+Universe”; they see Fashion Video with frame format and delivery, not a model
+control. The Create Universe/style compiler and Seedance provider remain
+server-side implementation details.
+Evidence: `node --test test/web/profile-ui-flow.test.js` 8/8 PASS; public
+beta serves the updated three copy markers and `/api/health` is ready.
+Incident: a temporary `com.wardrobe.preview.tunnel` LaunchAgent shared beta's
+named tunnel and intermittently returned public 404. It was booted out; the
+public beta smoke is now 200. No beta, main, site:4180, or video-preview
+service was stopped.
+weakened_checks: none.
