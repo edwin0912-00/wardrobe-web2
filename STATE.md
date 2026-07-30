@@ -451,3 +451,23 @@ be weakened to hide it.
 - HEIC decode order is browser native → bundled decoder → same-origin macOS
   converter. Only the resulting validated JPEG enters draft/run storage.
 - Public endpoint and browser draft persistence are verified; beta is ready.
+
+## Durable saved look and beta runtime recovery — 2026-07-30
+
+- Active source: `afa34d8fcc92026824e20fb98c7e5e9532a772a4`; it contains the
+  saved-look lifecycle repair `3a387c2674832958e682b135bdf5d9809e928674`.
+- Active cache: `product-afa34d8f-8b3076d910e9`.
+- Approved look image, PASS receipt and item evidence are stored as one
+  hash-bound SQLite snapshot. They survive process restart and run-local
+  evidence relocation/cleanup.
+- The previously failing saved look now resolves three immutable item records:
+  `top`, `footwear`, `bottom`; its durable snapshot exists.
+- Structured HTTP 409 responses are no longer shown as a lost connection.
+- Beta application and Cloudflare Tunnel are `running`; local and public health
+  are `ready`.
+- LaunchAgent logs and the minimal active runtime/credential set live on the
+  internal SSD. Large release archives and backups remain on the external SSD.
+- Evidence: focused lifecycle, scene, UI and Fashion Shoot suites PASS `40/40`;
+  strict product release verification PASS; 16 background presets, 19 Fashion
+  Shoot modes and 17 generation-ready modes are public.
+- weakened_checks: none.
