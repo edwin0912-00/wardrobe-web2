@@ -70,7 +70,15 @@ export class EditorialSceneExecutor {
    * place and continuity was only ever hash-checked, never conditioned.
    */
   async #shotAnchors(context) {
-    const anchors = [await editorialBlockingReference({ shotSpec: context.shot_spec })];
+    // A slot diagram is a generic framing aid, not a per-style pose illustration.
+    // Create Universe already carries its own immutable observations. Until a unit
+    // binds a slot-specific illustrated pose panel to the exact joint chain, sending
+    // this unrelated diagram would make the provider arbitrate between pixels and
+    // the compiled shot direction. Text is the only honest pose authority here.
+    const isCreateUniverseShoot = context.shoot_bible?.mode_id?.startsWith('shoot.');
+    const anchors = isCreateUniverseShoot
+      ? []
+      : [await editorialBlockingReference({ shotSpec: context.shot_spec })];
     const hero = context.hero_output;
     if (hero) {
       const filename = await this.outputFile({

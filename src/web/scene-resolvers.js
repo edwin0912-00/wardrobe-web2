@@ -185,10 +185,12 @@ function validateCreateUniverseRuntimeStyle(value, modeId) {
   for (const slot of CREATE_UNIVERSE_SHOT_SLOTS) {
     const direction = value.shot_directions[slot];
     const directionKeys = ['camera_consequence', 'pose_joint_chain', 'focus', 'foreground', 'provenance'];
+    const allowedDirectionKeys = [...directionKeys, 'subject_lighting'];
     if (!direction
       || typeof direction !== 'object'
       || Array.isArray(direction)
-      || !isDeepStrictEqual(Object.keys(direction).sort(), [...directionKeys].sort())) {
+      || directionKeys.some((key) => !Object.hasOwn(direction, key))
+      || Object.keys(direction).some((key) => !allowedDirectionKeys.includes(key))) {
       throw resolverError(422, `${label}.${slot} must contain the exact shot direction contract`);
     }
     shotDirections[slot] = {
@@ -204,6 +206,13 @@ function validateCreateUniverseRuntimeStyle(value, modeId) {
       ),
       focus: createUniverseText(direction.focus, `${label}.${slot}.focus`, 500),
       foreground: createUniverseText(direction.foreground, `${label}.${slot}.foreground`, 500),
+      ...(Object.hasOwn(direction, 'subject_lighting') ? {
+        subject_lighting: createUniverseText(
+          direction.subject_lighting,
+          `${label}.${slot}.subject_lighting`,
+          800,
+        ),
+      } : {}),
       provenance: createUniverseTexts(
         direction.provenance,
         `${label}.${slot}.provenance`,

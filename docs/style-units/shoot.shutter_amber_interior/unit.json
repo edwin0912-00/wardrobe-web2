@@ -72,6 +72,7 @@
       "clean_identity_hero": {
         "camera_consequence": "Vertical face-to-chest portrait from slightly above or level with the seated face, with a flat warm wall and slatted bands behind.",
         "pose_joint_chain": "Torso reclines lightly into the wall, shoulders drop, neck stays long, head tips slightly back, chin level and one raised elbow remains outside the eye plane.",
+        "subject_lighting": "Hard low amber light through the slats must cross the approved face, near collar and torso in crisp parallel bands; the unlit eye-side and far shoulder fall into the room's deep warm shadow. No frontal fill may flatten the bands.",
         "focus": "Approved eyes, face and near collar sharp; wall bands and the raised arm soften modestly.",
         "foreground": "No separate prop crosses the lens; the near shoulder is the closest clean plane.",
         "provenance": [
@@ -81,6 +82,7 @@
       "environmental_hero": {
         "camera_consequence": "Vertical seated three-quarter frame at eye-to-chest height, showing the window zone, sill or low step, slatted wall bands and enough floor to locate the body.",
         "pose_joint_chain": "Pelvis sits low, one knee flexes toward torso, opposite leg extends, same-side elbow bends behind the head, other palm braces on the sill and torso leans into the corner.",
+        "subject_lighting": "The slatted source must rake diagonally from the window across the raised knee, bracing forearm and one side of the approved torso, leaving alternating amber highlights and deep shadow bands. The face receives only the same patterned spill dictated by its position, never a separate soft key.",
         "focus": "Approved face and torso sharp; window texture, sill and floor remain legible with gradual falloff.",
         "foreground": "A low sill or floor band enters beneath the seated chain without covering hands or knees.",
         "provenance": [
@@ -90,6 +92,7 @@
       "sculptural_three_quarter": {
         "camera_consequence": "Vertical three-quarter seated frame from slightly above waist height, compressing raised knee, bent overhead arm and face into a strong triangular silhouette.",
         "pose_joint_chain": "Weight drops into one hip, near knee rises, opposite leg angles away, one elbow bends behind the crown, other shoulder drops and loose wrist hangs across the knee.",
+        "subject_lighting": "At least one crisp warm slat must visibly traverse the returned face or near shoulder and continue across the raised knee and approved cloth; adjacent planes remain deeply shadowed. Do not light the whole body evenly or add a camera-side softbox.",
         "focus": "Approved face, raised knee and central torso sharp; far hand and wall bands soften gently.",
         "foreground": "The raised knee and near forearm create the closest connected body planes; no unrelated object enters.",
         "provenance": [
@@ -99,6 +102,7 @@
       "interference_frame": {
         "camera_consequence": "Close vertical portrait with the seated subject behind one large soft near forearm and hand, while the eyes remain unobstructed.",
         "pose_joint_chain": "Near shoulder drops forward, elbow extends toward camera, forearm crosses the lower frame, wrist relaxes, opposite elbow stays overhead and head remains steady.",
+        "subject_lighting": "The same hard slatted source must break across the visible face and the forward forearm, with sharp amber strips separated by warm shadow. The soft near forearm is optical depth only, not an excuse for an unrelated frontal fill.",
         "focus": "Approved eyes and face sharp; near hand and forearm deliberately soft, wall bands readable but secondary.",
         "foreground": "The subject's own forearm and open relaxed hand consume the lower quarter without covering the face.",
         "provenance": [
@@ -108,6 +112,7 @@
       "material_or_accessory_detail": {
         "camera_consequence": "Vertical shoulder-to-knee detail at seated chest height, keeping hand, wrist, torso and bent knee attached to the approved material.",
         "pose_joint_chain": "Elbow rests on or beside the knee, wrist turns an approved cuff or accessory into the raking bands and fingers remain naturally open.",
+        "subject_lighting": "Hard parallel amber bands must rake across the approved cuff or accessory, fingers and wrinkle ridge so the material's real relief alternates between lit and shadowed planes; no uniform studio illumination.",
         "focus": "Approved weave, wrinkle ridge, cuff or accessory, hand and wrist sharp; face remains visible but secondary.",
         "foreground": "The approved sleeve or trouser fold fills the near lower plane with a continuous hand-to-arm-to-torso chain.",
         "provenance": [
@@ -117,6 +122,7 @@
       "wide_campaign_coda": {
         "camera_consequence": "Horizontal room wide from chest height with the approved subject at least thirty percent of frame height between window, slatted light field and one dark armchair.",
         "pose_joint_chain": "Pelvis settles deep in the chair, one leg crosses or extends, near elbow bends with hand near the jaw, opposite arm rests long and head turns down past the light.",
+        "subject_lighting": "The window-side slats must project a continuous field across wall, chair and the visible approved body: selected bands strike the hand, jawline, torso or leg while the rest settles into deep warm room shadow. The figure may not be evenly front-lit against a merely patterned wall.",
         "focus": "Approved subject and front chair structure legible; window, worn floor and far wall fall progressively softer.",
         "foreground": "A dark floor band and one chair arm establish depth without obscuring the full seated chain.",
         "provenance": [

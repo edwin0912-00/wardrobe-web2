@@ -282,6 +282,10 @@ function shotSpec(modeDefinition, slot) {
   const direction = runtime?.shot_directions?.[slot] ?? null;
   const cameraAngle = direction ? direction.camera_consequence : shot.angle;
   const pose = direction ? direction.pose_joint_chain : shot.pose;
+  const expressionSignature = direction?.expression_signature ?? runtime?.expression_signature
+    ?? 'Natural neutral expression: relaxed brows and jaw, no performed smile, with gaze determined by this frame\'s pose.';
+  const subjectLighting = direction?.subject_lighting
+    ?? `The approved subject is lit only by the declared environmental source for this ${slot.replaceAll('_', ' ')} frame. Show its direction, pattern, contrast and shadow transition on visible skin and approved cloth; no unmotivated camera-axis beauty fill, neutral softbox or rim light.`;
   const opticalDevice = slot === 'interference_frame' && direction
     ? direction.foreground
     : shot.optical_device;
@@ -296,6 +300,8 @@ function shotSpec(modeDefinition, slot) {
       subject_height_percent: [...shot.subject_height_percent],
     },
     pose,
+    expression_signature: expressionSignature,
+    subject_lighting: subjectLighting,
     lighting: mode.lighting,
     environment: mode.environment,
     palette: mode.palette,
@@ -405,6 +411,7 @@ function compiledReferenceAssets({ presetId, modeId, shotSpec: shot, basePack })
             shot.camera.angle,
             `Focus: ${runtime.shot_directions[shot.slot].focus}`,
             `Foreground: ${runtime.shot_directions[shot.slot].foreground}`,
+            `Subject light interaction: ${shot.subject_lighting}`,
           ],
           materials: [...mode.materials],
           originality_rules: [
@@ -506,6 +513,7 @@ function compiledPrompt({ mode, shotSpec: shot }) {
     `CAMERA: ${shot.camera.lens_mm} mm; ${shot.camera.framing}; ${shot.camera.angle}; subject height ${slot.subject_height_percent.join('–')}% of frame height${slot.clear_space.above_hair > 0 ? `, and at least ${slot.clear_space.above_hair}% of frame height must stay clear above the hair` : ''}.`,
     `POSE: ${shot.pose}`,
     `LIGHT: ${shot.lighting}`,
+    `SUBJECT LIGHT INTERACTION: ${shot.subject_lighting}`,
     `ENVIRONMENT: ${shot.environment}`,
     `PALETTE: ${shot.palette}`,
     `IDENTITY VISIBILITY: ${shot.identity_visibility}`,
@@ -516,7 +524,7 @@ function compiledPrompt({ mode, shotSpec: shot }) {
         `ENVIRONMENT MATERIAL SYSTEM: ${runtime.materials.join(' | ')}`,
         `CONTRAST/TONAL RESPONSE: ${runtime.contrast}`,
         `FIXED OPTICAL SIGNATURE — MANDATORY ON EVERY FRAME: ${runtime.optical_signature.join(' | ')}`,
-        `EXPRESSION SIGNATURE: ${runtime.expression_signature}`,
+        `EXPRESSION SIGNATURE: ${shot.expression_signature}`,
         `GARMENT BEHAVIOUR: ${runtime.garment_behaviour}`,
         `FOCUS PLANE AND FALLOFF: ${runtime.shot_directions[shot.slot].focus}`,
         `FOREGROUND/OCCLUSION: ${runtime.shot_directions[shot.slot].foreground}`,
@@ -621,7 +629,8 @@ export function compileEditorialShotPack({
             camera_consequence: runtimeStyle.shot_directions[shot.slot].camera_consequence,
             focus: runtimeStyle.shot_directions[shot.slot].focus,
             foreground: runtimeStyle.shot_directions[shot.slot].foreground,
-            expression_signature: runtimeStyle.expression_signature,
+            expression_signature: shot.expression_signature,
+            subject_lighting: shot.subject_lighting,
             garment_behaviour: runtimeStyle.garment_behaviour,
             optical_signature: [...runtimeStyle.optical_signature],
           }

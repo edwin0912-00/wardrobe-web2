@@ -199,7 +199,7 @@ test('SceneGeneratorAdapter maps the exact three-model route and sends approved 
   }
 });
 
-test('Create Universe generation carries four canonical sheets in fixed priority and environment as facts', async () => {
+test('Create Universe generation omits an unbound blocking board and keeps the three non-pose sheets in fixed priority', async () => {
   const fixture = await contextFixture();
   const presetId = 'shoot.fixture_environmental.environmental_hero';
   const environment = {
@@ -275,19 +275,20 @@ test('Create Universe generation carries four canonical sheets in fixed priority
     [
       'APPROVED_LOOK_MASTER',
       'CREATE_UNIVERSE_CAMERA_LENS',
-      'CREATE_UNIVERSE_BLOCKING',
       'CREATE_UNIVERSE_EXPRESSION_GAZE',
       'CREATE_UNIVERSE_GARMENT_BEHAVIOUR',
+      'SHOT_HERO_CONTINUITY_ANCHOR',
     ],
   );
   assert.match(calls[0].prompt, /SCENE_ENVIRONMENT_ANCHOR .*raw-concrete hall/);
   assert.match(calls[0].prompt, /ATTACHMENT_2 \[CREATE_UNIVERSE_CAMERA_LENS\]/);
-  assert.match(calls[0].prompt, /ATTACHMENT_3 \[CREATE_UNIVERSE_BLOCKING\]/);
-  assert.match(calls[0].prompt, /ATTACHMENT_4 \[CREATE_UNIVERSE_EXPRESSION_GAZE\]/);
-  assert.match(calls[0].prompt, /ATTACHMENT_5 \[CREATE_UNIVERSE_GARMENT_BEHAVIOUR\]/);
+  assert.doesNotMatch(calls[0].prompt, /CREATE_UNIVERSE_BLOCKING/);
+  assert.match(calls[0].prompt, /ATTACHMENT_3 \[CREATE_UNIVERSE_EXPRESSION_GAZE\]/);
+  assert.match(calls[0].prompt, /ATTACHMENT_4 \[CREATE_UNIVERSE_GARMENT_BEHAVIOUR\]/);
+  assert.match(calls[0].prompt, /POSE is the sole physical-pose authority/);
   assert.equal(generated.metadata.structured_reference_count, 1);
   assert.equal(generated.metadata.attached_reference_count, 5);
-  assert.equal(generated.metadata.dropped_attachment_roles, 'SHOT_HERO_CONTINUITY_ANCHOR');
+  assert.equal(generated.metadata.dropped_attachment_roles, undefined);
 });
 
 test('Create Universe mechanically packs all four canonical sheets when item locks fill the provider budget', async () => {
@@ -1144,6 +1145,7 @@ test('Create Universe QA makes whole-shoot style fidelity and fixed optics block
           focus: 'Face and approved look sharp; architecture falls away without swirl.',
           foreground: 'One restrained near-device interruption below the face.',
           expression_signature: 'Reserved mouth and direct steady gaze without transferred facial geometry.',
+          subject_lighting: 'One declared environmental key visibly shapes the face and approved cloth without camera-axis fill.',
           garment_behaviour: 'Approved cloth falls in heavy controlled planes with one restrained wind response.',
           optical_signature: ['clean rectilinear rendering', 'fine restrained grain'],
         },

@@ -165,6 +165,8 @@ test('READY editorial and Create Universe modes compile six strict per-shot pack
         assert.ok(styleContract.expression_signature.length >= 8, `${modeId}/${shotSpec.slot}`);
         assert.ok(styleContract.garment_behaviour.length >= 8, `${modeId}/${shotSpec.slot}`);
         assert.ok(styleContract.optical_signature.length >= 1, `${modeId}/${shotSpec.slot}`);
+        assert.ok(styleContract.subject_lighting.length >= 8, `${modeId}/${shotSpec.slot}`);
+        assert.match(pack.prompt, /SUBJECT LIGHT INTERACTION:/, `${modeId}/${shotSpec.slot}`);
       }
       // Assert the derivation, not a number: an editorial ceiling is whatever the
       // slot's head guard does not reserve. Two frames were rejected at 84.7656% and

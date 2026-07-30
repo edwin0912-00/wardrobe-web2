@@ -90,7 +90,7 @@ function executorFixture({ heroFrame = null, heroOutput = null } = {}) {
   return { calls, executor: new EditorialSceneExecutor({ sceneService, presetResolver }) };
 }
 
-function shotContext(slot, { heroOutput = null } = {}) {
+function shotContext(slot, { heroOutput = null, modeId = 'editorial.edwin_novak.organic_contrast' } = {}) {
   return {
     idempotency_key: sha256(`editorial-anchor-${slot}`),
     approved_look: {
@@ -100,7 +100,7 @@ function shotContext(slot, { heroOutput = null } = {}) {
     },
     shoot_bible: {
       bible_id: 'bible_editorial_fixture_1_0_0',
-      mode_id: 'editorial.edwin_novak.organic_contrast',
+      mode_id: modeId,
       mode_version: '1.0.0',
       sha256: 'a'.repeat(64),
     },
@@ -120,6 +120,14 @@ test('the hero shot binds only its own blocking diagram and no continuity anchor
   assert.deepEqual(calls[0].shotAnchorReferences.map((anchor) => anchor.role), ['blocking_topdown']);
   assert.equal(calls[0].shotAnchorReferences[0].sha256, declared.sha256);
   assert.equal(calls[0].shotAnchorReferences[0].reference_id, 'blocking.v1.clean_identity_hero');
+});
+
+test('a Create Universe shot never receives a generic slot diagram as a pose reference', async () => {
+  const { calls, executor } = executorFixture();
+  await executor.executeShot(shotContext('sculptural_three_quarter', {
+    modeId: 'shoot.terracotta_hardlight',
+  }));
+  assert.deepEqual(calls[0].shotAnchorReferences, []);
 });
 
 test('each of the five post-hero shots binds its own blocking diagram plus the approved hero frame', async (t) => {

@@ -888,6 +888,7 @@ function validateEditorialPresetSnapshot(preset, reference) {
         'focus',
         'foreground',
         'expression_signature',
+        'subject_lighting',
         'garment_behaviour',
         'optical_signature',
       ],
@@ -901,6 +902,7 @@ function validateEditorialPresetSnapshot(preset, reference) {
       'focus',
       'foreground',
       'expression_signature',
+      'subject_lighting',
       'garment_behaviour',
     ]) {
       if (typeof styleContract[field] !== 'string'

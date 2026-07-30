@@ -42,7 +42,6 @@ const GENERATION_REFERENCE_ORDER = Object.freeze([
 ]);
 const CREATE_UNIVERSE_IMAGE_REFERENCE_ORDER = Object.freeze([
   'composition_anchor',
-  'negative_reference',
   'lighting_anchor',
   'palette_anchor',
 ]);
@@ -255,7 +254,7 @@ function prioritizedImageReferences(references, presetId) {
   const images = references.filter((item) => item.transport === 'image');
   if (!isCreateUniversePresetId(presetId)) return images;
   const byRole = new Map(images.map((item) => [item.role, item]));
-  if (byRole.size !== CREATE_UNIVERSE_IMAGE_REFERENCE_ORDER.length) {
+  if (byRole.size !== Object.keys(CREATE_UNIVERSE_STYLE_SHEET_BY_ROLE).length) {
     throw new Error('Create Universe generation requires exactly four canonical image sheets');
   }
   return CREATE_UNIVERSE_IMAGE_REFERENCE_ORDER.map((role) => {
@@ -283,8 +282,9 @@ function createUniverseStyleAttachmentInstructions(attachments, presetId) {
     '',
     'CREATE UNIVERSE STYLE-SHEET AUTHORITY — FIXED PRIORITY',
     ...lines,
-    'Their canonical priority is CAMERA_LENS → BLOCKING → EXPRESSION_GAZE → GARMENT_BEHAVIOUR. Never reinterpret their generic scene-role transport labels as a different authority.',
-    'CAMERA_LENS controls camera consequence, perspective, focus falloff and unit-wide optics. BLOCKING controls only body-to-camera and joint-chain geometry. EXPRESSION_GAZE controls only muscular state and gaze, never facial identity or geometry. GARMENT_BEHAVIOUR controls only what the approved item cloth does under this shoot, never its design, colour, logo or construction.',
+    'Their canonical priority is CAMERA_LENS → EXPRESSION_GAZE → GARMENT_BEHAVIOUR. Never reinterpret their generic scene-role transport labels as a different authority.',
+    'CAMERA_LENS controls camera consequence, perspective, focus falloff and unit-wide optics. EXPRESSION_GAZE controls only muscular state and gaze, never facial identity or geometry. GARMENT_BEHAVIOUR controls only what the approved item cloth does under this shoot, never its design, colour, logo or construction.',
+    'POSE is the sole physical-pose authority for this frame. A generic unit blocking board is deliberately not attached: it is not evidence that it illustrates this slot\'s exact joint chain.',
     'Environment, palette, lighting, contrast and optical rules also remain mandatory as exact structured prompt facts. Source people, source garments and exact source places never transfer.',
   ].join('\n');
 }
@@ -1162,7 +1162,7 @@ export function evaluatorPrompt(
     'Return exactly six gates in this exact order: NEAR_COPY_AND_LEAKAGE, IDENTITY, ITEM_FIDELITY, SCENE_MATCH, LIGHT_AND_CONTACT_SHADOW, FRAMING_AND_ANATOMY.',
     ...(styleContract ? [
       'For this Create Universe frame, SCENE_MATCH is also the explicit style-fidelity gate. It must judge the whole photographic system, not merely whether a plausible location exists.',
-      'The four Create Universe style attachments have fixed authority and priority: CAMERA_LENS controls optics and camera consequence; BLOCKING controls pose geometry; EXPRESSION_GAZE controls muscular state and gaze but never face geometry; GARMENT_BEHAVIOUR controls cloth response but never approved item design.',
+      'The three attached Create Universe style sheets have fixed authority and priority: CAMERA_LENS controls optics and camera consequence; EXPRESSION_GAZE controls muscular state and gaze but never face geometry; GARMENT_BEHAVIOUR controls cloth response but never approved item design. This frame has no illustrated pose attachment unless its immutable pack explicitly binds one; evaluate its pose from its compiled shot direction, never from a generic unit diagram.',
       `SCENE_MATCH requires visible compliance with this visual system: ${styleContract.visual_system}`,
       `SCENE_MATCH requires this mood and tension: ${styleContract.mood_line}`,
       `SCENE_MATCH requires this environment material system: ${styleContract.materials.join(' | ')}`,
@@ -1171,12 +1171,13 @@ export function evaluatorPrompt(
       `SCENE_MATCH requires this focus plane and falloff: ${styleContract.focus}`,
       `SCENE_MATCH requires this foreground/occlusion treatment: ${styleContract.foreground}`,
       `SCENE_MATCH requires this expression and gaze signature without borrowing face geometry: ${styleContract.expression_signature}`,
+      `LIGHT_AND_CONTACT_SHADOW requires this exact subject-light interaction: ${styleContract.subject_lighting}`,
       `SCENE_MATCH requires this garment behaviour without changing approved item design: ${styleContract.garment_behaviour}`,
       `LIGHT_AND_CONTACT_SHADOW must also preserve this fixed unit-wide optical signature on the frame: ${styleContract.optical_signature.join(' | ')}`,
       `The declared environment is: ${preset.environment}`,
       `The declared lighting is: ${preset.lighting?.key ?? ''}`,
       `The declared colour palette is: ${(preset.palette ?? []).join(' | ')}`,
-      'Fail SCENE_MATCH when the mood, environment, materials, palette, contrast, composition, focus, foreground, expression or garment behaviour becomes generic or contradicts the declared shoot. Fail LIGHT_AND_CONTACT_SHADOW when the lighting or fixed optical signature is absent or replaced, even if exposure is otherwise attractive.',
+      'Fail SCENE_MATCH when the mood, environment, materials, palette, contrast, composition, focus, foreground, expression or garment behaviour becomes generic or contradicts the declared shoot. Fail LIGHT_AND_CONTACT_SHADOW when the declared environmental source fails to visibly strike, shadow or otherwise motivate the approved subject and cloth as required by the subject-light interaction, or when an unmotivated frontal beauty fill, neutral softbox or artificial rim replaces it — even if exposure is otherwise attractive.',
     ] : []),
     'ITEM_FIDELITY is a forensic comparison, not a general style judgment. Compare every visible approved item separately across the full images and paired upper/lower detail attachments.',
     ...(editorial?.item_scope === 'FIRST_ORDERED_ITEM' ? [
