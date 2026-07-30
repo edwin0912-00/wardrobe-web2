@@ -616,6 +616,7 @@
 
 .profile-item-actions .primary-result-action {
   min-height: 34px;
+  width: 100%;
   padding: 7px 10px;
   font-size: 9px;
 }
@@ -1683,8 +1684,7 @@ body.profile-live-open {
     margin-top: 6px;
   }
 
-  .profile-avatar-item:only-child .profile-item-actions .primary-result-action,
-  .profile-avatar-item:only-child .profile-delete-action {
+  .profile-avatar-item:only-child .profile-item-actions .primary-result-action {
     min-height: 30px;
     padding-inline: 9px;
     font-size: 7.5px;
@@ -1941,8 +1941,7 @@ body.profile-live-open {
   margin-top: 0;
 }
 
-.profile-item-actions .primary-result-action,
-.profile-item-actions .profile-delete-action {
+.profile-item-actions .primary-result-action {
   min-height: 44px;
   font-size: 12px;
 }
@@ -2445,20 +2444,11 @@ body.profile-live-open {
   }
 
   .profile-item-actions .primary-result-action,
-  .profile-item-actions .profile-delete-action,
-  .profile-avatar-item:only-child .profile-item-actions .primary-result-action,
-  .profile-avatar-item:only-child .profile-delete-action {
+  .profile-avatar-item:only-child .profile-item-actions .primary-result-action {
     min-height: 44px;
     padding: 6px 8px;
     border-radius: 8px;
     font-size: 12px;
-  }
-
-  .profile-item-actions .profile-delete-action,
-  .profile-avatar-item:only-child .profile-item-actions .profile-delete-action {
-    flex: 0 0 70px;
-    min-width: 70px;
-    padding-inline: 4px;
   }
 
   .profile-section-head {
