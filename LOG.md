@@ -1303,3 +1303,18 @@ product development. Chat 00 writes no feature code and accepts only exact,
 tested handoffs.
 Why: deployment is a persistent control-plane responsibility; combining it
 with Block 1 implementation creates avoidable queueing and context overload.
+
+2026-07-30 · Durable saved-look boundary and runtime recovery · `afa34d8`
+Change: deployed the hash-bound approved-look snapshot from `3a387c2`, including
+the look bytes, PASS receipt and immutable item evidence. Restored the beta web
+and Cloudflare LaunchAgents after offload by keeping their log/runtime control
+paths on the internal SSD while retaining bulk releases and backups externally.
+Why: a completed saved look could return `LOOK_ITEM_EVIDENCE_INVALID` before a
+background generation, while the UI falsely called HTTP 409 a connection loss;
+LaunchAgents also returned `EX_CONFIG` because stdout/stderr resolved through an
+external-volume symlink.
+Evidence: the exact previously failing saved look resolves `top`, `footwear`
+and `bottom` and owns a durable snapshot; focused tests PASS `40/40`; strict
+release verification PASS; local/public health ready; public catalogs report
+16 backgrounds and 19 Fashion Shoot modes.
+weakened_checks: none.

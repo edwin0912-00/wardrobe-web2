@@ -817,3 +817,15 @@ facts.
 ### PROPOSALS
 
 - **BETA-PRESENTATION-001 (Gender Split)**: Розділення на чоловіка і жінку повинно відбуватися на етапі візуальної QA моделі, яка зчитує правильність образу. Якщо QA проходить успішно, модель повинна додатково класифікувати презентацію і повертати значення (наприклад, `man` або `woman`). Це значення буде зберігатися для образу/аватара і використовуватися для фільтрації сумісних стилів (field `compatibility`), без додавання нових полів вводу для користувача.
+
+### 2026-07-30 · LIVE BETA
+
+- `afa34d8` deployed and healthy; includes durable saved-look repair `3a387c2`.
+- Chat 03 blocker `LOOK_ITEM_EVIDENCE_INVALID` is resolved on the exact saved
+  look: approved binding PASS, three item records recovered, durable snapshot
+  persisted.
+- HTTP 409 is presented as a server-side launch rejection, not a network loss.
+- LaunchAgent control paths must remain internal; do not point stdout/stderr at
+  external-volume symlinks. Bulk release archives may remain external.
+- Verification: `40/40` focused tests, strict release PASS, local/public health
+  ready. weakened_checks: none.
