@@ -3,6 +3,30 @@ Thread: 019faf52-0a8b-7de0-a123-7cea87d3124b
 Compatibility branch: beta-block-6-fashion-video
 Task: executable Fashion Video runtime and one controlled real clip
 Base: 0b788bd13c569e850482bb664ba1ca28f4a25b9d
+
+## Narrow capability integration — 2026-07-30
+
+Code: READY_FOR_BETA_DEPLOY. The useful backend portion of the later Block 6
+capability atom is ported onto the consolidated beta without its older profile
+UI, overlays, CSS, labels or action-card layout. One shared server contract
+requires an immutable approved-look image/receipt SHA, a style-pack SHA and a
+motion-reference SHA. The capability GET and create POST consume that same
+contract. Missing resolver or malformed/missing hashes remain fail-closed with
+`FASHION_VIDEO_REFERENCE_PACK_REQUIRED` before `VideoService.createClip`.
+
+Action Hub: unchanged. Its existing capability fetch, AI orb, full-viewport
+overlay, duplicate-submit lock and Live action remain the UI authority.
+
+Evidence: `node --test test/video/*.test.js test/web/profile-ui-flow.test.js
+test/web/video-capability-ui.test.js test/web/e-live-ui.test.js` — PASS
+130/130; syntax and `git diff --check` PASS.
+
+Beta: pending activation of this exact integration commit.
+Journey: not claimed; the deployed runtime does not yet expose a verified
+motion-reference resolver, so the truthful public state remains unavailable.
+No provider call or paid generation was made.
+weakened_checks: none.
+
 Rationale/decision: VideoService remains the single profile HTTP execution path. The runtime constructs Higgsfield plus the three-attempt OpenRouter fallback router, supplies authenticated/size-bounded MP4 download and real ffprobe/frame extraction, and exposes resume/finalize without creating a second paid job. Higgsfield CLI 0.2.3 returned a batched create response, so the adapter now resolves job IDs from both object and array envelopes. A strict recovery path binds an orphaned SUBMITTING clip only when provider prompt/aspect/duration/model exactly match. Semantic first/last-frame QA is persisted as an immutable receipt and overrides technical MP4 PASS.
 Code: ACTIVE — commits da407ac707f8001d9a7f3165dd73847d012e394f and 78bf5b77f1425e845f57d0600378bb621c195be6 plus current recovery/FPS/semantic-QA atom.
 Beta: NOT_DEPLOYED

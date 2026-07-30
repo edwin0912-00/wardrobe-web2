@@ -1,5 +1,18 @@
 # Wardrobe verified state
 
+## Block 6 capability integration — 2026-07-30
+
+- The consolidated beta source now has one backend capability contract for
+  Fashion Video. It verifies the approved master-look receipt/image, selected
+  style pack and motion reference by SHA before the existing VideoService may
+  create a provider job.
+- The GET readiness route and POST create route use the same contract. Missing
+  resolver or incomplete evidence fails before provider spend.
+- The saved-look Action Hub was deliberately not replaced by Block 6's older
+  UI implementation. Focused video/profile/Live regression is 130/130 PASS.
+- Code proof is ready for deployment. A real beta journey remains unavailable
+  until the runtime supplies a verified motion-reference resolver.
+
 ## Seven-block coordination state — 2026-07-29
 
 - `beta` remains the tested integration/deploy line.

@@ -17,6 +17,17 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-07-30 · BETA-BLOCK-6-CAPABILITY-PORT · beta integration · codex-main
+Change: port only the server-owned Fashion Video capability contract from the
+latest Block 6 branch. GET readiness and POST creation now share immutable
+approved-look, style-pack and motion-reference SHA gates. The older Block 6 UI
+was not integrated, so the consolidated Action Hub remains unchanged.
+Why: the raw branch could report READY while its conflicting UI and a separate
+unconditional POST guard disagreed. One server contract now owns both answers.
+Evidence: focused video/profile/Live suite 130/130 PASS; syntax and diff checks
+PASS; no provider call or paid generation.
+weakened_checks: none. Missing resolver or reference hash remains fail-closed.
+
 2026-07-29 · ANTIGRAVITY-QA-LOOP-001 · beta QA observer · codex-main
 Change: add Block 0.8 as an independent Gemini/Antigravity observer. Its
 bounded loop watches GitHub, tests the exact deployed beta through visible

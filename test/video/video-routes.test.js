@@ -22,6 +22,7 @@ function fixture() {
     ownsLook: () => true,
     lookAsset: () => ({ runId: '22222222-2222-4222-8222-222222222222', filename: 'avatar_outfit.png' }),
     approvedLookReference: async () => ({
+      look_id: '33333333-3333-4333-8333-333333333333',
       image_sha256: 'b'.repeat(64),
       receipt_sha256: 'c'.repeat(64),
     }),
@@ -127,6 +128,81 @@ test('saved-look capability fails closed when the runtime cannot prove both refe
   });
   assert.equal(response.headers['cache-control'], 'private, no-store');
   assert.equal(current.createRequests.length, 0);
+});
+
+test('saved-look capability opens only from the server-verified two-reference contract', async (t) => {
+  const current = fixture();
+  current.videoService.fashionVideoCapability = async () => ({
+    state: 'READY',
+    reference_sha256: 'd'.repeat(64),
+    reference_pack_sha256: 'e'.repeat(64),
+  });
+  const app = Fastify();
+  t.after(() => app.close());
+  await registerVideoRoutes(app, {
+    profileApi: {
+      resolveRequestProfile: async () => ({ profileId: 'profile-1' }),
+    },
+    profiles: current.profiles,
+    videoService: current.videoService,
+    runService: { outputFile: async () => null },
+  });
+
+  const response = await app.inject({
+    method: 'GET',
+    url: '/api/profile/looks/33333333-3333-4333-8333-333333333333/video-capability',
+  });
+  assert.equal(response.statusCode, 200, response.body);
+  assert.deepEqual(response.json(), {
+    capability: 'fashion_video',
+    look_id: '33333333-3333-4333-8333-333333333333',
+    available: true,
+    create_route: '/api/profile/video-clips',
+    requirements: {
+      approved_master_look: true,
+      verified_style_reference: true,
+      verified_motion_reference: true,
+    },
+    reason_code: 'FASHION_VIDEO_READY',
+    next_action: 'CREATE_FASHION_VIDEO',
+  });
+  assert.equal(current.createRequests.length, 0);
+});
+
+test('create reaches VideoService only after the same two-reference contract is ready', async (t) => {
+  const current = fixture();
+  current.videoService.fashionVideoCapability = async () => ({
+    state: 'READY',
+    reference_sha256: 'd'.repeat(64),
+    reference_pack_sha256: 'e'.repeat(64),
+  });
+  const app = Fastify();
+  t.after(() => app.close());
+  await registerVideoRoutes(app, {
+    profileApi: {
+      resolveRequestProfile: async () => ({ profileId: 'profile-1' }),
+    },
+    profiles: current.profiles,
+    videoService: current.videoService,
+    runService: {
+      outputFile: async () => '/runtime/runs/source/avatar_outfit.png',
+    },
+  });
+
+  const response = await app.inject({
+    method: 'POST',
+    url: '/api/profile/video-clips',
+    payload: {
+      look_id: '33333333-3333-4333-8333-333333333333',
+      surface: 'mirror',
+      motion_mode: 'editorial_micro_moment',
+    },
+  });
+  assert.equal(response.statusCode, 202, response.body);
+  assert.equal(response.json().status, 'CREATED');
+  assert.equal(current.createRequests.length, 1);
+  assert.equal(current.createRequests[0].lookBinding.sourceSha256, 'b'.repeat(64));
+  assert.equal(current.projected.length, 1);
 });
 
 test('saved-look capability refuses a look outside the browser profile', async (t) => {

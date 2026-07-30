@@ -12,6 +12,7 @@
 import { createReadStream } from 'node:fs';
 import { stat } from 'node:fs/promises';
 import { ProfileError } from './profile-service.js';
+import { fashionVideoCapability } from './video-capability.js';
 import { VideoServiceError } from './video-service.js';
 
 function sameOriginMutation(request) {
@@ -76,48 +77,37 @@ export async function registerVideoRoutes(app, {
   );
 
   // GET /api/profile/looks/:lookId/video-capability — the saved-look action
-  // hub reads this before enabling Fashion Video. Route presence is not
-  // capability: the create route remains unavailable until the runtime can
-  // prove a verified style reference and a verified motion reference.
+  // hub reads this before enabling Fashion Video. The optional service hook
+  // must return two immutable hashes: the selected style/reference pack and
+  // the motion authority. Missing hook or hashes remains fail-closed.
   app.get('/api/profile/looks/:lookId/video-capability', async (request, reply) => {
     const session = await profileApi.resolveRequestProfile(request, reply);
     const lookId = request.params.lookId;
     if (!profiles.ownsLook(session.profileId, lookId)) {
       return reply.code(404).send({ error: 'Look not found', code: 'LOOK_NOT_FOUND' });
     }
+    const approvedLook = await profiles.approvedLookReference(
+      session.profileId,
+      lookId,
+      runService,
+    );
+    const motionReference = typeof videoService.fashionVideoCapability === 'function'
+      ? await videoService.fashionVideoCapability({
+          profileId: session.profileId,
+          lookId,
+          approvedLook,
+        })
+      : null;
 
     return reply
       .header('Cache-Control', 'private, no-store')
       .header('Vary', 'Cookie')
-      .send({
-        capability: 'fashion_video',
-        look_id: lookId,
-        available: false,
-        create_route: '/api/profile/video-clips',
-        requirements: {
-          approved_master_look: true,
-          verified_style_reference: false,
-          verified_motion_reference: false,
-        },
-        reason_code: 'FASHION_VIDEO_REFERENCE_PACK_REQUIRED',
-        next_action: 'SELECT_VERIFIED_VIDEO_STYLE',
-      });
+      .send(fashionVideoCapability({ lookId, approvedLook, motionReference }));
   });
 
   // POST /api/profile/video-clips — create a new video clip
   app.post('/api/profile/video-clips', async (request, reply) => {
     sameOriginMutation(request);
-    // The current provider adapter can bind only the approved master-look.
-    // A generic motion prompt is not a Fashion Video style authority: without
-    // an immutable visual/motion reference pack it produces a plain animation
-    // of the white-background source. Keep reads/finalization for existing
-    // evidence, but never spend a new job through this incomplete product route.
-    return reply.code(409).send({
-      error: 'Fashion Video потребує перевірений style pack і motion reference. Запуск без них вимкнено.',
-      code: 'FASHION_VIDEO_REFERENCE_PACK_REQUIRED',
-      next_action: 'SELECT_VERIFIED_VIDEO_STYLE',
-    });
-    /* c8 ignore start -- unreachable until the reference-pack contract replaces this guard */
     const session = await profileApi.resolveRequestProfile(request, reply);
     const { look_id, surface, motion_mode, duration_seconds, style_note } = request.body ?? {};
 
@@ -150,6 +140,26 @@ export async function registerVideoRoutes(app, {
       look_id,
       runService,
     );
+    const motionReference = typeof videoService.fashionVideoCapability === 'function'
+      ? await videoService.fashionVideoCapability({
+          profileId: session.profileId,
+          lookId: look_id,
+          approvedLook,
+        })
+      : null;
+    const capability = fashionVideoCapability({
+      lookId: look_id,
+      approvedLook,
+      motionReference,
+    });
+    if (!capability.available) {
+      return reply.code(409).send({
+        error: 'Fashion Video потребує перевірений style pack і motion reference. Запуск без них вимкнено.',
+        code: capability.reason_code,
+        next_action: capability.next_action,
+        requirements: capability.requirements,
+      });
+    }
 
     try {
       const result = await videoService.createClip({
@@ -184,7 +194,6 @@ export async function registerVideoRoutes(app, {
       }
       throw err;
     }
-    /* c8 ignore stop */
   });
 
   // POST /api/profile/video-clips/:clipId/finalize — resume the persisted job,
