@@ -1806,12 +1806,6 @@ document.querySelector('#profile-look-video').addEventListener('click', (event) 
   overlay.classList.remove('hidden');
   document.querySelector('#video-overlay-close').focus({ preventScroll: true });
 });
-// Refine button handler
-document.querySelector('#profile-look-refine').addEventListener('click', (event) => {
-  event.stopPropagation();
-  if (!selectedProfileLook) return;
-  setLookActionStatus('Покращити: master і вибрані речі locked. Функція ще готується і нічого не змінює.');
-});
 // Video overlay: option selection
 document.querySelectorAll('#video-surface-options .video-option, #video-motion-options .video-option').forEach((btn) => {
   btn.addEventListener('click', () => {
@@ -1908,7 +1902,7 @@ document.querySelector('#profile-look-live').addEventListener('click', (event) =
   event.stopPropagation();
   const lookId = idOfLook(selectedProfileLook);
   if (!lookId || realtimeLookCapability?.lookId !== lookId) return;
-  setLookActionStatus('Real-time Look: переходимо в окрему consented camera-сесію на весь екран.');
+  setLookActionStatus('Live Look: переходимо в окрему camera-сесію на весь екран після явної згоди.');
   window.location.assign(realtimeLookCapability.href);
 });
 document.addEventListener('keydown', (event) => {

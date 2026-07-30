@@ -216,8 +216,7 @@
 
 .profile-look-next-actions {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  grid-template-rows: auto auto auto;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 7px;
   min-height: 0;
 }
@@ -263,15 +262,33 @@
 .profile-action-copy { display: grid; gap: 2px; min-width: 0; }
 .profile-action-copy strong { overflow: visible; color: currentColor; font-size: 13px; line-height: 1.1; overflow-wrap: anywhere; text-overflow: clip; white-space: normal; }
 .profile-action-copy small { color: color-mix(in srgb, currentColor 64%, transparent); font-size: 10px; line-height: 1.2; }
-.profile-next-action-refine { --action-accent: #91bd45; }
 .profile-next-action-background { --action-accent: #d29a24; }
 .profile-next-action-photoshoot { --action-accent: #357fd2; }
 .profile-next-action-video { --action-accent: #c95d58; }
-.profile-next-action-live { --action-accent: #9161ca; }
-.profile-look-primary-action {
+.profile-next-action-live {
+  --action-accent: #8cbf36;
+  border-color: rgba(140, 191, 54, .62);
+  background:
+    radial-gradient(circle at 90% 18%, rgba(184, 255, 61, .22), transparent 36%),
+    linear-gradient(135deg, #182017, #0c100c);
+  color: #f7ffe9;
+  box-shadow: 0 10px 22px rgba(25, 50, 18, .18);
+}
+.profile-next-action-live .profile-action-copy small { color: rgba(224, 244, 198, .72); }
+.profile-live-signal {
+  border-color: rgba(184, 255, 61, .58);
+  background: rgba(184, 255, 61, .08);
+}
+.profile-live-signal i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #b8ff3d;
+  box-shadow: 0 0 0 5px rgba(184, 255, 61, .11), 0 0 16px rgba(184, 255, 61, .7);
+}
+.profile-look-background-action {
   --action-accent: #d29a24;
   display: grid;
-  grid-column: 1 / -1;
   grid-template-columns: 38px minmax(0, 1fr) auto;
   align-items: center;
   gap: 11px;
@@ -290,18 +307,18 @@
   box-shadow: 0 10px 22px rgba(84, 58, 18, .18);
   transition: transform .18s ease, box-shadow .18s ease;
 }
-.profile-look-primary-action:hover,
-.profile-look-primary-action:focus-visible { outline: 0; box-shadow: 0 13px 28px rgba(84, 58, 18, .28), 0 0 0 3px rgba(210, 154, 36, .2); transform: translateY(-1px); }
+.profile-look-background-action:hover,
+.profile-look-background-action:focus-visible { outline: 0; box-shadow: 0 13px 28px rgba(84, 58, 18, .28), 0 0 0 3px rgba(210, 154, 36, .2); transform: translateY(-1px); }
 .profile-action-signal { display: grid; width: 38px; height: 38px; place-items: center; border: 1px solid rgba(255, 204, 93, .68); border-radius: 50%; color: #ffd166; font-size: 19px; }
-.profile-look-primary-action .profile-action-copy strong { color: #fffdf6; font-size: 15px; }
-.profile-look-primary-action .profile-action-copy small { color: rgba(255, 230, 177, .82); font-size: 11px; }
+.profile-look-background-action .profile-action-copy strong { color: #fffdf6; font-size: 15px; }
+.profile-look-background-action .profile-action-copy small { color: rgba(255, 230, 177, .82); font-size: 11px; }
 .profile-action-arrow { color: #ffda85; font-size: 25px; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 
 @media (max-width: 620px) {
-  .profile-look-next-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .profile-look-next-actions { grid-template-columns: 1fr; }
   .profile-next-action { min-height: 44px; padding: 8px; }
-  .profile-look-primary-action { min-height: 48px; }
+  .profile-look-background-action { min-height: 48px; }
 }
 
 .avatar-profile-card {
@@ -1856,13 +1873,13 @@ body.profile-live-open {
     font-size: 15px;
   }
 
-  .profile-library.has-open-look .profile-look-primary-action {
+  .profile-library.has-open-look .profile-look-background-action {
     min-height: 54px;
     padding: 8px 10px;
   }
 
   .profile-library.has-open-look .profile-look-next-actions {
-    grid-template-rows: repeat(3, minmax(0, 1fr));
+    grid-template-rows: minmax(0, 1fr);
     gap: 6px;
     min-height: 0;
   }
@@ -1960,7 +1977,16 @@ body.profile-live-open {
   line-height: 1;
 }
 
-.profile-look-detail > img {
+.profile-look-visual {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  align-self: stretch;
+  gap: 10px;
+  min-width: 0;
+  min-height: 0;
+}
+
+.profile-look-visual > img {
   display: block;
   align-self: center;
   width: 100%;
@@ -2375,7 +2401,7 @@ body.profile-live-open {
     border-radius: 14px;
   }
 
-  .profile-look-detail > img {
+  .profile-look-visual > img {
     max-height: 100%;
     border-radius: 10px;
   }
@@ -2529,7 +2555,11 @@ body.profile-live-open {
     border-radius: 14px;
   }
 
-  .profile-library.has-open-look .profile-look-detail > img {
+  .profile-library.has-open-look .profile-look-visual {
+    height: 100%;
+  }
+
+  .profile-library.has-open-look .profile-look-visual > img {
     height: 100%;
     max-height: none;
   }
@@ -2577,28 +2607,29 @@ body.profile-live-open {
     line-height: 1.1;
   }
 
-  .profile-library.has-open-look .profile-look-primary-action {
+  .profile-library.has-open-look .profile-look-background-action {
     min-height: 46px;
     padding: 6px 8px;
     border-radius: 10px;
   }
 
-  .profile-library.has-open-look .profile-look-primary-action .profile-action-signal {
+  .profile-library.has-open-look .profile-look-background-action .profile-action-signal {
     width: 27px;
     height: 27px;
     font-size: 14px;
   }
 
-  .profile-library.has-open-look .profile-look-primary-action .profile-action-copy strong {
+  .profile-library.has-open-look .profile-look-background-action .profile-action-copy strong {
     font-size: 12px;
   }
 
-  .profile-library.has-open-look .profile-look-primary-action .profile-action-copy small,
+  .profile-library.has-open-look .profile-look-background-action .profile-action-copy small,
   .profile-library.has-open-look .profile-action-arrow {
     display: none;
   }
 
   .profile-library.has-open-look .profile-look-next-actions {
+    grid-template-columns: 1fr;
     grid-template-rows: repeat(3, minmax(0, 1fr));
     gap: 5px;
   }

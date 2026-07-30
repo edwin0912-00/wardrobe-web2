@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="/progress.css?v=20260724-1">
   <link rel="stylesheet" href="/conflict.css?v=20260722-3">
   <link rel="stylesheet" href="/experience.css?v=20260723-6">
-  <link rel="stylesheet" href="/result.css?v=20260730-1">
+  <link rel="stylesheet" href="/result.css?v=20260730-2">
   <link rel="stylesheet" href="/scene.css?v=20260723-4">
   <link rel="stylesheet" href="/scene-cta.css?v=20260727-1">
   <script type="module" src="/scene-cta.js?v=20260725-1"></script>
@@ -170,7 +170,14 @@
               <div id="profile-look-grid" class="profile-look-grid"></div>
               <section id="profile-look-detail" class="profile-look-detail hidden" tabindex="-1" aria-labelledby="profile-look-detail-title">
                 <button id="profile-look-detail-close" class="profile-look-detail-close" type="button" aria-label="Закрити збережений образ">×</button>
-                <img id="profile-look-detail-image" alt="Вибраний збережений образ">
+                <div class="profile-look-visual">
+                  <img id="profile-look-detail-image" alt="Вибраний збережений образ">
+                  <button id="profile-look-background-primary" class="profile-look-background-action" type="button" aria-label="Додати стандартний фон">
+                    <span class="profile-action-signal" aria-hidden="true">✦</span>
+                    <span class="profile-action-copy"><strong>Додати фон</strong><small>16 стандартних сцен</small></span>
+                    <span class="profile-action-arrow" aria-hidden="true">→</span>
+                  </button>
+                </div>
                 <div class="profile-look-detail-copy">
                   <p class="result-kicker">ЗБЕРЕЖЕНИЙ ОБРАЗ</p>
                   <h4 id="profile-look-detail-title">Образ</h4>
@@ -194,38 +201,29 @@
                   </section>
                   <section class="profile-look-next" aria-labelledby="profile-look-next-title">
                     <div class="profile-look-next-head">
-                      <p class="result-kicker">ЩО РОБИМО З ЦИМ ОБРАЗОМ</p>
-                      <h5 id="profile-look-next-title">Обери наступний формат</h5>
+                      <p class="result-kicker">СТВОРИТИ З ЦЬОГО ОБРАЗУ</p>
+                      <h5 id="profile-look-next-title">Обери формат</h5>
                       <p id="profile-look-action-status" class="profile-look-action-status" aria-live="polite">Master-образ лишається незмінним.</p>
                     </div>
                     <div class="profile-look-next-actions" role="group" aria-label="Формати для цього образу">
-                      <button id="profile-look-background-primary" class="profile-look-primary-action" type="button" aria-label="Додати стандартний фон">
-                        <span class="profile-action-signal" aria-hidden="true">✦</span>
-                        <span class="profile-action-copy"><strong>Додати фон</strong><small>16 стандартних сцен</small></span>
-                        <span class="profile-action-arrow" aria-hidden="true">→</span>
-                      </button>
-                      <button id="profile-look-refine" class="profile-next-action profile-next-action-refine" type="button" aria-label="Покращити образ (beta)" aria-describedby="profile-look-video-note">
-                        <span class="profile-action-icon" aria-hidden="true">✦</span>
-                        <span class="profile-action-copy"><strong>Покращити образ</strong><small>Скоро</small></span>
-                      </button>
                       <button id="profile-look-photoshoot" class="profile-next-action profile-next-action-photoshoot" type="button" aria-label="Відкрити Fashion Shoot">
                         <span class="profile-action-icon" aria-hidden="true">◉</span>
-                        <span class="profile-action-copy"><strong>Fashion Shoot</strong><small>5 fashion-кадрів</small></span>
+                        <span class="profile-action-copy"><strong>Fashion Shoot</strong><small>5 арткадрів</small></span>
                       </button>
                       <button id="profile-look-video" class="profile-next-action profile-next-action-video" type="button" aria-label="Fashion Video ще готується: потрібні два референси" aria-describedby="profile-look-video-note" disabled>
                         <span class="profile-action-icon" aria-hidden="true">▷</span>
                         <span class="profile-action-copy"><strong>Fashion Video</strong><small id="profile-look-video-state">Перевіряємо доступність</small></span>
                       </button>
-                      <button id="profile-look-live" class="profile-next-action profile-next-action-live" type="button" aria-label="Відкрити Real-time Look" disabled>
-                        <span class="profile-action-icon" aria-hidden="true">◌</span>
-                        <span class="profile-action-copy"><strong>Real-time Look</strong><small id="profile-look-live-state">Перевіряємо доступність</small></span>
+                      <button id="profile-look-live" class="profile-next-action profile-next-action-live" type="button" aria-label="Відкрити Live Look" disabled>
+                        <span class="profile-action-icon profile-live-signal" aria-hidden="true"><i></i></span>
+                        <span class="profile-action-copy"><strong>Live Look</strong><small id="profile-look-live-state">Перевіряємо доступність</small></span>
                       </button>
                     </div>
                     <div class="profile-look-detail-actions">
                       <button id="profile-look-add" class="primary-result-action" type="button">Новий окремий образ</button>
                       <button id="profile-look-delete" class="profile-delete-action" type="button" aria-label="Видалити збережений образ">×</button>
                     </div>
-                    <p id="profile-look-video-note" class="sr-only">Покращити образ збереже master і locked речі. Fashion video не підміняється mock-роликом: без другого референсу ролик не стартує; обидва мають бути перевірені.</p>
+                    <p id="profile-look-video-note" class="sr-only">Fashion video не підміняється mock-роликом: без другого референсу ролик не стартує; обидва мають бути перевірені.</p>
                   </section>
                 </div>
               </section>
@@ -419,6 +417,6 @@
   </aside>
   <script src="/boot-guard.js?v=20260722-3"></script>
   <script src="/vendor/heic2any.min.js?v=0.0.4"></script>
-  <script type="module" src="/app.js?v=20260729-2"></script>
+  <script type="module" src="/app.js?v=20260730-1"></script>
 </body>
 </html>

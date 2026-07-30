@@ -33,6 +33,10 @@ test('profile exposes an explicit Back control and clear next actions', () => {
   );
   assert.match(
     indexHtml,
+    /class="profile-look-visual"[\s\S]*?id="profile-look-detail-image"[\s\S]*?id="profile-look-background-primary"/,
+  );
+  assert.match(
+    indexHtml,
     /<button id="profile-look-photoshoot"[^>]*aria-label="Відкрити Fashion Shoot"/,
   );
   assert.match(
@@ -136,7 +140,7 @@ test('saved look is one compact action hub without nested guides or forced scrol
   );
 });
 
-test('Video and Real-time Look use full-viewport single surfaces without nested scrolling', () => {
+test('Fashion Video and Live Look use full-viewport single surfaces without nested scrolling', () => {
   assert.doesNotMatch(resultCss, /\.profile-live-overlay iframe/);
   assert.match(resultCss, /\.profile-live-overlay \{[\s\S]*?inset:\s*0;[\s\S]*?place-items:\s*stretch;[\s\S]*?padding:\s*0;/);
   const videoSurface = resultCss.slice(
@@ -159,7 +163,7 @@ test('a short desktop look reserves its remaining height for the compact action 
   );
   assert.match(
     shortDesktop,
-    /\.profile-library\.has-open-look \.profile-look-next-actions \{[\s\S]*?grid-template-rows:\s*repeat\(3, minmax\(0, 1fr\)\);/,
+    /\.profile-library\.has-open-look \.profile-look-next-actions \{[\s\S]*?grid-template-rows:\s*minmax\(0, 1fr\);/,
   );
   assert.match(
     shortDesktop,

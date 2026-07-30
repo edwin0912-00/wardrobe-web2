@@ -69,7 +69,6 @@ test('saved look exposes actionable branches and their honest pipeline explanati
   );
   for (const id of [
     'profile-look-background-primary',
-    'profile-look-refine',
     'profile-look-photoshoot',
     'profile-look-video',
     'profile-look-live',
@@ -82,14 +81,14 @@ test('saved look exposes actionable branches and their honest pipeline explanati
   assert.doesNotMatch(indexSource, /class="profile-branch-brief/);
   assert.doesNotMatch(indexSource, /id="profile-background-video-brief"/);
   assert.doesNotMatch(indexSource, /id="profile-pipeline-explainer"/);
-  assert.match(indexSource, /aria-label="Відкрити Real-time Look"/);
+  assert.match(indexSource, /aria-label="Відкрити Live Look"/);
   assert.match(indexSource, /Додати фон<\/strong><small>16 стандартних сцен/);
-  assert.match(indexSource, /Покращити образ<\/strong><small>Скоро/);
-  assert.match(indexSource, /Fashion Shoot<\/strong><small>5 fashion-кадрів/);
+  assert.doesNotMatch(indexSource, /Покращити образ<\/strong>/);
+  assert.match(indexSource, /Fashion Shoot<\/strong><small>5 арткадрів/);
   assert.match(indexSource, /Fashion Video<\/strong><small id="profile-look-video-state">Перевіряємо доступність/);
   assert.match(indexSource, /id="profile-look-video"[^>]*disabled/);
   assert.match(indexSource, /без другого референсу ролик не стартує/);
-  assert.match(indexSource, /Real-time Look<\/strong><small id="profile-look-live-state">Перевіряємо доступність/);
+  assert.match(indexSource, /Live Look<\/strong><small id="profile-look-live-state">Перевіряємо доступність/);
   assert.match(appSource, /openSelectedLookScene\('standard'\)/);
   assert.match(appSource, /openSelectedLookScene\('editorial'\)/);
   assert.doesNotMatch(appSource, /document\.querySelector\('#profile-look-background'\)/);
@@ -105,7 +104,7 @@ test('saved look exposes actionable branches and their honest pipeline explanati
   assert.match(appSource, /Потрібні 2 референси/);
   assert.doesNotMatch(appSource, /function showLookBrief/);
   assert.doesNotMatch(appSource, /function hideLookBriefs/);
-  assert.match(appSource, /Покращити: master і вибрані речі locked/);
+  assert.doesNotMatch(appSource, /#profile-look-refine/);
 });
 test('Add items continuation receives the exact selected avatar and look once', async () => {
   const { avatar, newerLook, profile } = profileFixture();
