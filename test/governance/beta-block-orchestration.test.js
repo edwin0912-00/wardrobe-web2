@@ -156,3 +156,28 @@ test('Antigravity QA is browser-evidence-only and cannot edit product code', asy
   assert.match(loop, /wall_clock_min: 45/);
   assert.match(loop, /max_stalled_iterations: 2/);
 });
+
+test('Handoff Cloud Code is a distinct browser-QA writer with no product authority', async () => {
+  const ownerMap = await loadBetaThreadOwnerMap();
+  const handoff = await readFile(
+    path.join(root, 'docs/coordination/blocks/09-handoff-cloud-code-qa.md'),
+    'utf8',
+  );
+  const join = await readFile(path.join(root, 'tools/join-handoff-cloud-code-qa.sh'), 'utf8');
+  assert.deepEqual(ownerMap.observers.map(({ agent_id, branch, report }) => [
+    agent_id, branch, report,
+  ]), [
+    ['antigravity-qa', 'beta-block-08-antigravity-qa', 'updates/antigravity-qa.md'],
+    [
+      'handoff-cloud-code-qa',
+      'beta-block-09-handoff-cloud-code-qa',
+      'updates/handoff-cloud-code-qa.md',
+    ],
+  ]);
+  assert.match(handoff, /clean browser/i);
+  assert.match(handoff, /Everything else is read-only/);
+  assert.match(join, /agent_id="\$\{1:-handoff-cloud-code-qa\}"/);
+  assert.match(join, /beta-block-09-handoff-cloud-code-qa/);
+  assert.match(join, /\[agent:\$agent_id\] \[qa\]/);
+  assert.doesNotMatch(join, /git push origin beta/);
+});

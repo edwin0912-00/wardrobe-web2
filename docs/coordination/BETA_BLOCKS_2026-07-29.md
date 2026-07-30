@@ -270,6 +270,18 @@ Its bounded goal-loop is compiled under
 each browser campaign stops on PASS, the first confirmed defect, two stalled
 iterations, or 45 minutes.
 
+## Observer 0.9 — Handoff Cloud Code external QA
+
+- Branch: `beta-block-09-handoff-cloud-code-qa`
+- Agent ID: `handoff-cloud-code-qa`
+- Contract: `docs/coordination/blocks/09-handoff-cloud-code-qa.md`
+
+This is a second read-only product observer, not another product owner. It
+must reproduce the public journey independently of Antigravity and challenge
+the claimed verdict. Its only committed outputs are
+`updates/handoff-cloud-code-qa.md` and
+`docs/qa-reports/handoff-cloud-code/**`.
+
 ## Agent cycle
 
 1. Fetch `origin/beta`, all seven product refs and the Block 0.8 QA ref.

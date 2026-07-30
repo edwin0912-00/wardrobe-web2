@@ -26,6 +26,10 @@ It supersedes the shared-`beta` write model below.
 - Block 0.8 / `beta-block-08-antigravity-qa` / `antigravity-qa`: read-only
   public-beta browser verification and QA reports only. It owns no product
   code and cannot approve its own product change.
+- Observer 0.9 / `beta-block-09-handoff-cloud-code-qa` /
+  `handoff-cloud-code-qa`: independent external browser QA and adversarial
+  verification only. It owns no product code, deploy, integration or
+  Antigravity report paths.
 
 Only `chat-00-master` owns integration-only files and may update `beta`, deploy
 or edit the central ledgers. Chat 01 remains the Block 1 product owner.

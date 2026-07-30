@@ -115,5 +115,21 @@
     "block": "0.8",
     "branch": "beta-block-08-antigravity-qa",
     "report": "updates/antigravity-qa.md"
-  }
+  },
+  "observers": [
+    {
+      "agent_id": "antigravity-qa",
+      "block": "0.8",
+      "branch": "beta-block-08-antigravity-qa",
+      "report": "updates/antigravity-qa.md",
+      "contract": "docs/coordination/blocks/08-antigravity-qa.md"
+    },
+    {
+      "agent_id": "handoff-cloud-code-qa",
+      "block": "0.9",
+      "branch": "beta-block-09-handoff-cloud-code-qa",
+      "report": "updates/handoff-cloud-code-qa.md",
+      "contract": "docs/coordination/blocks/09-handoff-cloud-code-qa.md"
+    }
+  ]
 }

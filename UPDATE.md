@@ -15,6 +15,13 @@ Independent QA is permanently assigned to `antigravity-qa` on
 `beta-block-08-antigravity-qa`. It watches all commits, executes real public
 beta browser journeys and reports evidence; it never edits product code.
 
+A second independent observer is permanently assigned to the distinct agent
+ID `handoff-cloud-code-qa` on `beta-block-09-handoff-cloud-code-qa`. It runs
+the same exact-SHA browser journeys as an external adversarial verifier and
+writes only `updates/handoff-cloud-code-qa.md` plus
+`docs/qa-reports/handoff-cloud-code/**`. The two observers never share a
+branch, worktree, report or browser evidence directory.
+
 | Block | Branch | Owner | Product scope | First atom |
 | --- | --- | --- | --- | --- |
 | 1 | `beta-block-1-core-look` | `codex-main` | Inputs → avatar → clothing → master look + all core/background QA | Repeat one real person + clothing beta journey, persist the approved look, then run one standard background through terminal QA. |
@@ -28,6 +35,10 @@ beta browser journeys and reports evidence; it never edits product code.
 Observer 0.8: `antigravity-qa` runs
 `tools/join-antigravity-qa.sh antigravity-qa --watch`; detailed contract:
 `docs/coordination/blocks/08-antigravity-qa.md`.
+
+Observer 0.9: `handoff-cloud-code-qa` runs
+`tools/join-handoff-cloud-code-qa.sh handoff-cloud-code-qa --watch`; contract:
+`docs/coordination/blocks/09-handoff-cloud-code-qa.md`.
 
 Chat 06 / `chat-6` is MAIN_SITE-only and is outside this beta table. All active
 beta agents run `tools/watch-beta-blocks.sh`. Each branch publishes the

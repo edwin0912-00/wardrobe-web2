@@ -494,3 +494,13 @@ be weakened to hide it.
 - Runtime availability depends on the configured SSD reference root and a
   successful real-path, size and SHA-256 verification.
 - Focused suite PASS `138/138`; paid generation was not run.
+
+## Independent browser QA and runtime monitor repair — 2026-07-30
+
+- `antigravity-qa` remains Observer 0.8 on its own branch and report paths.
+- `handoff-cloud-code-qa` is a distinct Observer 0.9 with a separate branch,
+  report, evidence directory, Git identity and commit hook.
+- The monitor accepts an explicit beta runtime root and loopback application
+  health URL instead of assuming the retired port `4173`.
+- `tools/watch-beta-runtime.mjs` renders sanitized live Block 1–7 node
+  transitions from the append-only beta event log.

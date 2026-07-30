@@ -67,6 +67,18 @@ Evidence: real-path/size/hash verification passed for all three SSD files; all
 four modes select exactly one reference; focused suites PASS 138/138.
 weakened_checks: none.
 
+2026-07-30 · Two independent browser-QA observers and beta node monitor
+Change: preserved Antigravity as Observer 0.8 and added a separate external
+Handoff Cloud Code Observer 0.9 with unique identity, branch, report and
+evidence paths. Monitor runtime configuration now binds the current beta
+runtime and loopback health endpoint; a sanitized terminal watcher maps
+persisted events to Blocks 1–7.
+Why: two QA writers must never share a branch or evidence file, and the live
+monitor was still tied to a retired source path and port.
+Evidence: focused governance/monitor tests, shell syntax, strict release and
+local/public monitor health are required before activation.
+weakened_checks: none.
+
 2026-07-30 · Upload drag-and-drop + HEIC · `6f17367` → beta
 Change: every person/garment upload field accepts pointer drag-and-drop; HEIC
 and HEIF are decoded in-browser to a server-supported JPEG before upload.
