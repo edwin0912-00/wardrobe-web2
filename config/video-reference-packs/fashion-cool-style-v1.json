@@ -1,0 +1,51 @@
+{
+  "schema_version": "1.0.0",
+  "pack_id": "fashion.cool_style.v1",
+  "title": "Cool Style Fashion Motion",
+  "source_folder": "https://drive.google.com/drive/folders/1GJrJOjGJTuyNcDxvA_ZfRUGZubgD0H65",
+  "references": [
+    {
+      "id": "editorial-detail",
+      "filename": "reference-01.mp4",
+      "source_file_id": "1hQ3JLP8v0bL9yyRXerPn473D5pb5I1_A",
+      "sha256": "12ff78b162da5a66e1cb05ddae9c878e18468ebeeabce07ddf36821b196c2d72",
+      "bytes": 163838342,
+      "width": 1080,
+      "height": 1920,
+      "fps": 25,
+      "duration_seconds": 13.24,
+      "motion_modes": [
+        "editorial_micro_moment"
+      ]
+    },
+    {
+      "id": "walk-camera-energy",
+      "filename": "reference-02.mp4",
+      "source_file_id": "1Oq-_VJcMO9skBVjoTUCs0lG8SWQYfKw1",
+      "sha256": "90cea68c0bf6191e987fcabf7a922386867620f06cad8eeeb51bc1da0e91455e",
+      "bytes": 87672785,
+      "width": 1080,
+      "height": 1920,
+      "fps": 25,
+      "duration_seconds": 15.16,
+      "motion_modes": [
+        "walk_stride",
+        "garment_gesture"
+      ]
+    },
+    {
+      "id": "hard-sun-pose",
+      "filename": "reference-03.mp4",
+      "source_file_id": "1JNumOqtXXRQYJ6BpHWOrV1W_KqPYC4sY",
+      "sha256": "e78ecce55f6bb694c17246b3bd16c172348fde85d7f22afc438f839b9466ed02",
+      "bytes": 61479953,
+      "width": 1080,
+      "height": 1920,
+      "fps": 25,
+      "duration_seconds": 15.12,
+      "motion_modes": [
+        "camera_drift"
+      ]
+    }
+  ]
+}

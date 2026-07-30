@@ -72,6 +72,7 @@ export function createVideoRuntime({
   runtimeRoot,
   openRouterApiKey,
   assetUrlResolver,
+  fashionVideoReferenceResolver = null,
   commandRunner = execFileAsync,
   fetchFn = globalThis.fetch,
 } = {}) {
@@ -93,6 +94,7 @@ export function createVideoRuntime({
   return new VideoService({
     provider,
     clipStore: new ClipStore(path.join(runtimeRoot, 'video-clips')),
+    fashionVideoReferenceResolver,
     finalizer: {
       downloadFn: (url) => downloadVideoBytes(url, { fetchFn, openRouterApiKey }),
       probeFn: probeVideo,

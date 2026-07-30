@@ -116,6 +116,7 @@ export function buildVideoCreateArgs({
   model = DEFAULT_VIDEO_REQUEST.model,
   prompt,
   mediaPaths = [],
+  videoPaths = [],
   aspectRatio = DEFAULT_VIDEO_REQUEST.aspectRatio,
   resolution = DEFAULT_VIDEO_REQUEST.resolution,
   durationSeconds = DEFAULT_VIDEO_REQUEST.durationSeconds,
@@ -136,6 +137,12 @@ export function buildVideoCreateArgs({
       code: 'MISSING_VIDEO_SOURCE',
     });
   }
+  if (!Array.isArray(videoPaths)
+    || videoPaths.some((videoPath) => typeof videoPath !== 'string' || videoPath.length === 0)) {
+    throw new VideoProviderError('Video references must be local file paths', {
+      code: 'INVALID_VIDEO_REFERENCE',
+    });
+  }
 
   const args = [
     'generate', 'create', model,
@@ -150,6 +157,7 @@ export function buildVideoCreateArgs({
     '--generate_audio', 'false',
   ];
   for (const mediaPath of mediaPaths) args.push('--image', mediaPath);
+  for (const videoPath of videoPaths) args.push('--video', videoPath);
   args.push('--json', '--no-color');
   return args;
 }

@@ -45,6 +45,15 @@ test('aspect, duration and resolution travel as parameters, not prose', () => {
   assert.equal(args[2], 'seedance_2_0');
 });
 
+test('a verified motion reference travels through the dedicated video flag', () => {
+  const args = buildVideoCreateArgs({
+    ...BASE,
+    videoPaths: ['/runtime/references/walk.mp4'],
+  });
+  assert.equal(flag(args, '--image'), BASE.mediaPaths[0]);
+  assert.equal(flag(args, '--video'), '/runtime/references/walk.mp4');
+});
+
 test('a prompt that names geometry is refused', () => {
   for (const prompt of [
     'A 16:9 editorial clip of the subject walking',

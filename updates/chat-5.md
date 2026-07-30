@@ -128,3 +128,27 @@ Minimal integration-only `start.js` handoff (not applied):
 ```
 
 Deployment must supply a bare HTTPS `ZEELY_PUBLIC_HTTPS_ORIGIN` and `OPENROUTER_API_KEY`. `weakened_checks: full npm test blocked before execution by RESOURCE_PREFLIGHT_FAILED; focused code/security suites pass`.
+
+## Fashion Video motion-reference pack — 2026-07-30
+
+Three operator-provided vertical MP4 references are registered as one
+content-addressed pack. The large media stays in the runtime SSD reference
+root; Git stores only source identifiers, media facts, allowed motion modes and
+SHA-256 bindings.
+
+- `editorial-detail` → `editorial_micro_moment`
+- `walk-camera-energy` → `walk_stride`, `garment_gesture`
+- `hard-sun-pose` → `camera_drift`
+
+The resolver rechecks the real path, byte size and SHA-256 immediately before
+use. Higgsfield Seedance receives the selected video through its native
+`--video` input in addition to the approved look image. The current OpenRouter
+image-only route refuses this contract before any network call instead of
+silently discarding the motion reference. Capability remains unavailable when
+the runtime pack is absent or invalid.
+
+Evidence: all four product motion modes resolve one deterministic authority
+against the three real SSD files; focused video/profile/Live suite PASS
+`138/138`; no provider call or paid generation was run.
+
+weakened_checks: none.
