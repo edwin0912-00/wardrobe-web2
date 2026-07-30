@@ -166,13 +166,28 @@ export async function removeBorderConnectedWhiteToAlpha(input, {
     }
     const centerX = width / 2;
     const minimumRelativePixels = Math.max(16, Math.round(width * height * 0.0025));
-    const centralComponents = relativeComponents.filter((component) => (
+    const minimumAnchorPixels = Math.max(64, Math.round(width * height * 0.01));
+    const compactRelativeComponents = relativeComponents.filter((component) => (
       component.pixels >= minimumRelativePixels
       && component.right - component.left + 1 < width * 0.8
       && component.bottom - component.top + 1 < height * 0.95
+    ));
+    const centralAnchors = compactRelativeComponents.filter((component) => (
+      component.pixels >= minimumAnchorPixels
+      && component.right - component.left + 1 >= width * 0.1
+      && component.bottom - component.top + 1 >= height * 0.2
       && Math.max(0, component.left - centerX, centerX - component.right) <= width * 0.1
     ));
-    if (centralComponents.length > 0) {
+    if (centralAnchors.length > 0) {
+      const anchorLeft = Math.min(...centralAnchors.map(({ left }) => left));
+      const anchorTop = Math.min(...centralAnchors.map(({ top }) => top));
+      const anchorRight = Math.max(...centralAnchors.map(({ right }) => right));
+      const anchorBottom = Math.max(...centralAnchors.map(({ bottom }) => bottom));
+      const centralComponents = compactRelativeComponents.filter((component) => {
+        const overlapsHorizontally = component.right >= anchorLeft && component.left <= anchorRight;
+        const verticalGap = Math.max(0, anchorTop - component.bottom - 1, component.top - anchorBottom - 1);
+        return overlapsHorizontally && verticalGap <= height * 0.3;
+      });
       const relativeLeft = Math.min(...centralComponents.map(({ left }) => left));
       const relativeTop = Math.min(...centralComponents.map(({ top }) => top));
       const relativeRight = Math.max(...centralComponents.map(({ right }) => right));
