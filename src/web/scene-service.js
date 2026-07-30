@@ -1666,10 +1666,12 @@ function candidateEligibleForFramingPolicyRecheck(state) {
   const failed = attempt.qa.gates.filter((gate) => gate.decision === 'FAIL');
   if (failed.length !== 1 || failed[0].id !== 'FRAMING_AND_ANATOMY') return false;
   const defects = failed[0].defects ?? [];
-  if (defects.length < 1
-    || defects.some((defect) => defect !== 'SUBJECT_HEIGHT_OUTSIDE_PRESET_RANGE')) {
-    return false;
-  }
+  // The persisted defect names describe the policy that rejected the old
+  // candidate. Do not hardcode one historic rule here: eligibility comes from
+  // the current framing owner below. We still require a real old framing defect,
+  // exactly one failed gate and a complete current re-assessment with zero
+  // defects; every non-framing failure remains fail-closed.
+  if (defects.length < 1) return false;
   try {
     return assessSceneFraming(attempt.qa.framing_evidence, {
       preset: { preset_id: state.bindings.preset.preset_id },

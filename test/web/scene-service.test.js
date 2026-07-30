@@ -2355,6 +2355,83 @@ test('retry rechecks the preserved candidate when only the old standard scale ce
   assert.equal(persisted.attempts.at(-1).status, 'QA_PASS');
 });
 
+test('retry rechecks the preserved candidate when only the old standard headroom floor rejected it', async (t) => {
+  let evaluations = 0;
+  const current = await fixture(t, {
+    maxManualRetries: 0,
+    evaluator: {
+      async evaluateScene() {
+        evaluations += 1;
+        const result = passEvaluation();
+        if (evaluations <= 3) {
+          result.framing_evidence = {
+            // 153/2048 = 7.4707%, still below the current 7.5% delivery floor.
+            subject_bbox_xywh_px: [420, 153, 696, 1570],
+            full_head_visible: true,
+            full_footwear_visible: true,
+          };
+        }
+        return result;
+      },
+    },
+  });
+  const created = await current.service.createScene({
+    ...current.request,
+    idempotencyKey: 'legacy-standard-headroom-tolerance',
+  });
+  const exhausted = await waitFor(current.service, created.scene_id);
+  assert.equal(exhausted.status, 'FAILED');
+  assert.equal(exhausted.phase, 'QA_EXHAUSTED');
+  assert.equal(current.calls.generator.length, 3);
+  assert.equal(evaluations, 3);
+
+  const filename = current.service.statePath(created.scene_id);
+  const state = JSON.parse(await readFile(filename, 'utf8'));
+  const attempt = state.attempts.at(-1);
+  const acceptedNow = assessSceneFraming({
+    // Exact live retry measurement: 155/2048 = 7.5684%, whole head visible.
+    subject_bbox_xywh_px: [420, 155, 696, 1570],
+    full_head_visible: true,
+    full_footwear_visible: true,
+  }, {
+    preset: { preset_id: PRESET_ID },
+    width: 1536,
+    height: 2048,
+  }).evidence;
+  attempt.qa.framing_evidence = acceptedNow;
+  state.qa.framing_evidence = acceptedNow;
+  // Keep the old persisted gate verdict/defect: the policy recheck must decide
+  // from the current lock, not by recognizing one hardcoded historic code.
+  assert.deepEqual(
+    attempt.qa.gates.find((gate) => gate.id === 'FRAMING_AND_ANATOMY').defects,
+    ['INSUFFICIENT_CLEAR_SPACE_ABOVE_HAIR'],
+  );
+  await Promise.all([
+    writeFile(filename, `${JSON.stringify(state, null, 2)}\n`),
+    writeFile(
+      path.join(current.service.attemptDirectory(created.scene_id, attempt.number), 'attempt.json'),
+      `${JSON.stringify(attempt, null, 2)}\n`,
+    ),
+  ]);
+
+  const queued = await current.service.retryScene(created.scene_id, {
+    idempotencyKey: 'legacy-standard-headroom-tolerance-recheck',
+  });
+  assert.equal(queued.status, 'QUEUED');
+  assert.equal(queued.execution.cycle, 1);
+  assert.equal(queued.execution.manual_retries, 0);
+
+  const completed = await waitFor(current.service, created.scene_id);
+  assert.equal(completed.status, 'COMPLETED', JSON.stringify(completed, null, 2));
+  assert.equal(current.calls.generator.length, 3, 'the preserved image must not be generated again');
+  assert.equal(evaluations, 4, 'only one fresh QA pass is allowed');
+  const persisted = JSON.parse(await readFile(filename, 'utf8'));
+  assert.equal(persisted.attempts.length, 3);
+  assert.equal(persisted.cycle, 1);
+  assert.equal(persisted.manual_retries, 0);
+  assert.equal(persisted.attempts.at(-1).status, 'QA_PASS');
+});
+
 test('malformed framing visibility retries only QA for the preserved candidate and fails as infrastructure', async (t) => {
   let evaluations = 0;
   const current = await fixture(t, {
