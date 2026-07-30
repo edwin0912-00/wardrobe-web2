@@ -39,6 +39,7 @@ const NO_CHANGE = Symbol('NO_CHANGE');
 const RESERVED_DIRECTORIES = new Set(['.locks', 'incidents', 'quarantine']);
 const LOCK_WAIT_MS = 10_000;
 const LOCK_POLL_MS = 20;
+const AUTO_REPAIR_MAX_RETRIES = 3;
 const PROCESS_STARTED_AT_MS = Date.now() - Math.round(process.uptime() * 1_000);
 const PROCESS_STARTED_AT_ISO = new Date(PROCESS_STARTED_AT_MS).toISOString();
 
@@ -186,6 +187,28 @@ function safeErrorMessage(error) {
 
 function clone(value) {
   return structuredClone(value);
+}
+
+function repairInstructions(attempt) {
+  if (!attempt) return null;
+  const failedGates = Array.isArray(attempt.qa?.gates)
+    ? attempt.qa.gates
+      .filter((gate) => gate.decision === 'FAIL')
+      .map((gate) => ({
+        id: gate.id,
+        defects: Array.isArray(gate.defects) ? [...gate.defects] : [],
+      }))
+    : [];
+  return {
+    source_attempt: attempt.number,
+    failure_code: attempt.error?.code ?? null,
+    failed_gates: failedGates,
+  };
+}
+
+function canAutoRepair(shot, failureCode) {
+  return failureCode !== 'EXECUTION_CANCELLED'
+    && shot.retry_count < AUTO_REPAIR_MAX_RETRIES;
 }
 
 function eventHash(event) {
@@ -1216,6 +1239,7 @@ export class EditorialShootService {
         shot_spec: clone(shotSpec),
         shot_spec_sha256: shot.shot_spec_sha256,
         hero_output: heroOutput ? clone(heroOutput) : null,
+        repair: repairInstructions(shot.attempts.at(-2)),
         delivery: {
           aspect_ratio: '4:5',
           width: 1024,
@@ -1257,23 +1281,28 @@ export class EditorialShootService {
         };
         const attempts = [...currentShot.attempts];
         attempts[attempts.length - 1] = completedAttempt;
+        const failure = result.decision === 'PASS' ? null : completedAttempt.error;
+        const autoRepair = failure !== null && canAutoRepair(currentShot, failure.code);
         const nextShot = {
           ...currentShot,
           status: result.decision === 'PASS'
             ? (slot === EDITORIAL_HERO_SLOT
               ? EDITORIAL_SHOT_STATES.QA_PASSED
               : EDITORIAL_SHOT_STATES.APPROVED)
-            : EDITORIAL_SHOT_STATES.FAILED,
+            : (autoRepair ? EDITORIAL_SHOT_STATES.QUEUED : EDITORIAL_SHOT_STATES.FAILED),
+          retry_count: autoRepair ? currentShot.retry_count + 1 : currentShot.retry_count,
           attempts,
-          output: result.output,
-          error: completedAttempt.error,
+          output: result.decision === 'PASS' ? result.output : null,
+          error: autoRepair ? null : failure,
           lease: null,
         };
         const shots = [...current.shots];
         shots[index] = nextShot;
         return {
           state: stateAfterShotMutation(current, shots),
-          event_type: result.decision === 'PASS' ? 'shot.qa_passed' : 'shot.qa_failed',
+          event_type: result.decision === 'PASS'
+            ? 'shot.qa_passed'
+            : (autoRepair ? 'shot.auto_repair_queued' : 'shot.qa_failed'),
           slot,
           shot_output_sha256: result.output?.sha256 ?? null,
           data: {
@@ -1282,6 +1311,11 @@ export class EditorialShootService {
             decision: result.decision,
             candidate_sha256: result.qa.candidate_sha256,
             receipt_sha256: result.output?.receipt_sha256 ?? null,
+            auto_repair: autoRepair,
+            retry_count: nextShot.retry_count,
+            failed_gates: result.qa.gates
+              .filter((gate) => gate.decision === 'FAIL')
+              .map((gate) => gate.id),
           },
         };
       });
@@ -1307,23 +1341,27 @@ export class EditorialShootService {
           completed_at: completedAt,
           error: failure,
         };
+        const autoRepair = canAutoRepair(currentShot, failure.code);
         const shots = [...current.shots];
         shots[index] = {
           ...currentShot,
-          status: EDITORIAL_SHOT_STATES.FAILED,
+          status: autoRepair ? EDITORIAL_SHOT_STATES.QUEUED : EDITORIAL_SHOT_STATES.FAILED,
+          retry_count: autoRepair ? currentShot.retry_count + 1 : currentShot.retry_count,
           attempts,
           output: null,
-          error: failure,
+          error: autoRepair ? null : failure,
           lease: null,
         };
         return {
           state: stateAfterShotMutation(current, shots),
-          event_type: 'shot.executor_failed',
+          event_type: autoRepair ? 'shot.auto_repair_queued' : 'shot.executor_failed',
           slot,
           data: {
             attempt: currentAttempt.number,
             operation_id: operationId,
             code: failure.code,
+            auto_repair: autoRepair,
+            retry_count: shots[index].retry_count,
           },
         };
       });

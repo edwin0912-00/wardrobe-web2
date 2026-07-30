@@ -59,7 +59,6 @@ export function editorialCanDelete(shoot) {
 export function editorialTone(shoot) {
   if (shoot?.status === 'COMPLETED') return 'completed';
   if (shoot?.status === 'CANCELLED') return 'cancelled';
-  if (shoot?.status === 'NEEDS_RETRY') return 'failed';
   return 'running';
 }
 

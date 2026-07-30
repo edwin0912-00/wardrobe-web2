@@ -91,7 +91,7 @@ function displayShotStatus(status) {
     RUNNING: 'Створюється',
     QA_PASSED: 'QA пройдено',
     APPROVED: 'Готово',
-    FAILED: 'Потрібен retry',
+    FAILED: 'Допрацьовуємо',
     CANCELLED: 'Зупинено',
   })[status] ?? String(status ?? 'Очікує');
 }
@@ -102,10 +102,11 @@ function displayShootMessage(shoot) {
   return ({
     BIBLE_REVIEW: 'Готуємо вибраний стиль.',
     HERO_GENERATION: 'Перевіряємо образ перед зйомкою.',
-    HERO_RETRY: 'Повторюємо перевірку образу.',
+    HERO_RETRY: 'Автоматично допрацьовуємо перевірку образу.',
+    HERO_NEEDS_RETRY: 'Допрацьовуємо перевірку образу на сервері.',
     HERO_APPROVAL: 'Образ пройшов перевірку. Створюємо п’ять кадрів.',
     SERIES_GENERATION: 'Створюємо п’ять унікальних fashion-кадрів паралельно по два.',
-    SHOT_RETRY: 'Готові кадри збережено. Повтори лише кадри, які не пройшли QA.',
+    SHOT_RETRY: 'Готові кадри збережено. Решту автоматично допрацьовуємо окремо.',
     RECOVERY_QUEUED: 'Після перезапуску продовжуємо незавершені кадри без повтору готових.',
     COMPLETED: 'Усі п’ять fashion-кадрів готові та пройшли QA.',
     CANCELLED: 'Фотосесію зупинено. Уже готові кадри збережено.',
@@ -114,7 +115,7 @@ function displayShootMessage(shoot) {
     HERO_RUNNING: 'Перевіряємо образ перед зйомкою.',
     HERO_PENDING_APPROVAL: 'Образ пройшов перевірку. Створюємо п’ять кадрів.',
     SERIES_RUNNING: 'Створюємо п’ять унікальних fashion-кадрів паралельно по два.',
-    NEEDS_RETRY: 'Один або кілька кадрів потрібно повторити окремо.',
+    NEEDS_RETRY: 'Готові кадри збережено. Решту допрацьовуємо на сервері.',
     COMPLETED: 'Усі п’ять fashion-кадрів готові та пройшли QA.',
     CANCELLED: 'Фотосесію зупинено. Уже готові кадри збережено.',
   })[status] ?? 'Стан фотосесії оновлено.';
@@ -126,7 +127,7 @@ function displayShootState(status) {
     HERO_RUNNING: 'ПЕРЕВІРКА ОБРАЗУ',
     HERO_PENDING_APPROVAL: 'ЗАПУСК КАДРІВ',
     SERIES_RUNNING: 'СТВОРЮЄМО',
-    NEEDS_RETRY: 'ПОТРІБЕН ПОВТОР',
+    NEEDS_RETRY: 'ДОПРАЦЬОВУЄМО',
     COMPLETED: 'ГОТОВО',
     CANCELLED: 'ЗУПИНЕНО',
   })[status] ?? 'ОНОВЛЮЄМО СТАН';
@@ -502,15 +503,6 @@ export class EditorialShootUiController {
         download.textContent = '↓';
         download.className = 'editorial-shot-download';
         visual.append(download);
-      }
-      if (shot.status === 'FAILED') {
-        const retry = document.createElement('button');
-        retry.type = 'button';
-        retry.className = 'editorial-shot-retry';
-        retry.textContent = 'Повторити кадр';
-        retry.disabled = this.actionPending;
-        retry.addEventListener('click', () => this.retryShot(shot.slot));
-        visual.append(retry);
       }
       card.append(visual);
       return card;

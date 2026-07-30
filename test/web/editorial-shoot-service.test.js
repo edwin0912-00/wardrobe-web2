@@ -544,7 +544,7 @@ test('two live service instances enforce one persisted global concurrency limit 
   );
 });
 
-test('one failed shot retries idempotently without regenerating the look, hero, or passed siblings', async (t) => {
+test('one failed shot automatically repairs without regenerating the look, hero, or passed siblings', async (t) => {
   const attemptBySlot = new Map();
   const failedSlot = 'interference_frame';
   const executor = new FakeSceneExecutor({
@@ -571,30 +571,6 @@ test('one failed shot retries idempotently without regenerating the look, hero, 
     idempotencyKey: 'approve-hero-for-one-shot-retry',
     expectedOutputSha256: heroPassed.shots[0].output.sha256,
   });
-  const needsRetry = await waitForState(
-    current.service,
-    created.shoot_id,
-    (state) => state.status === 'NEEDS_RETRY',
-    5_000,
-  );
-  await current.service.waitForIdle(created.shoot_id);
-  assert.equal(needsRetry.shots.find((shot) => shot.slot === failedSlot).status, 'FAILED');
-
-  const before = new Map(needsRetry.shots.map((shot) => [
-    shot.slot,
-    {
-      status: shot.status,
-      output: shot.output ? cloneForAssertion(shot.output) : null,
-      attempts: shot.attempts.length,
-    },
-  ]));
-  const retryRequest = {
-    idempotencyKey: 'retry-only-interference-frame-0001',
-  };
-  await Promise.all([
-    current.service.retryShot(created.shoot_id, failedSlot, retryRequest),
-    current.service.retryShot(created.shoot_id, failedSlot, retryRequest),
-  ]);
   const completed = await waitForState(
     current.service,
     created.shoot_id,
@@ -603,16 +579,19 @@ test('one failed shot retries idempotently without regenerating the look, hero, 
   );
   await current.service.waitForIdle(created.shoot_id);
 
+  const hero = completed.shots.find((shot) => shot.slot === 'clean_identity_hero');
   for (const shot of completed.shots) {
     if (shot.slot === failedSlot) {
       assert.equal(shot.attempts.length, 2);
       assert.equal(shot.retry_count, 1);
       assert.equal(shot.status, 'APPROVED');
     } else {
-      assert.equal(shot.attempts.length, before.get(shot.slot).attempts);
-      assert.deepEqual(shot.output, before.get(shot.slot).output);
+      assert.equal(shot.attempts.length, 1);
+      assert.equal(shot.retry_count, 0);
+      assert.equal(shot.status, 'APPROVED');
     }
   }
+  assert.equal(hero.attempts.length, 1);
   assert.equal(
     executor.invocations.filter((call) => call.slot === 'clean_identity_hero').length,
     1,
@@ -625,6 +604,59 @@ test('one failed shot retries idempotently without regenerating the look, hero, 
   assert.ok(executor.invocations.every(
     (call) => call.approved_look.image_sha256 === LOOK.image_sha256,
   ));
+  const repairCall = executor.invocations.find(
+    (call) => call.slot === failedSlot && call.attempt === 2,
+  );
+  assert.deepEqual(repairCall.repair.failed_gates.map((gate) => gate.id), [
+    'NEAR_COPY_AND_LEAKAGE',
+  ]);
+});
+
+test('automatic repair is bounded and escalates only the exhausted frame', async (t) => {
+  const failedSlot = 'interference_frame';
+  const executor = new FakeSceneExecutor({
+    plans: {
+      [failedSlot]: (context) => executionResult(context, {
+        decision: 'FAIL',
+        failGate: 'NEAR_COPY_AND_LEAKAGE',
+      }),
+    },
+    defaultDelayMs: 10,
+  });
+  const current = await fixture(t, { executor });
+  const created = await createAndApproveBible(current);
+  const heroPassed = await waitForState(
+    current.service,
+    created.shoot_id,
+    (state) => state.status === 'HERO_PENDING_APPROVAL',
+  );
+  await current.service.approveHero(created.shoot_id, {
+    idempotencyKey: 'approve-hero-before-bounded-auto-repair',
+    expectedOutputSha256: heroPassed.shots[0].output.sha256,
+  });
+  const escalated = await waitForState(
+    current.service,
+    created.shoot_id,
+    (state) => state.status === 'NEEDS_RETRY',
+    5_000,
+  );
+  await current.service.waitForIdle(created.shoot_id);
+
+  const exhausted = escalated.shots.find((shot) => shot.slot === failedSlot);
+  assert.equal(exhausted.status, 'FAILED');
+  assert.equal(exhausted.retry_count, 3);
+  assert.equal(exhausted.attempts.length, 4);
+  assert.equal(exhausted.error.code, 'BLOCKING_QA_FAILED');
+  for (const shot of escalated.shots.filter((item) => item.slot !== failedSlot)) {
+    assert.equal(shot.status, 'APPROVED');
+    assert.equal(shot.retry_count, 0);
+    assert.equal(shot.attempts.length, 1);
+  }
+  assert.equal(
+    executor.invocations.filter((call) => call.slot === failedSlot).length,
+    4,
+  );
+  assert.equal(executor.providerOperations.size, 9);
 });
 
 test('write-ahead journal restores both state and event after an interrupted commit', async (t) => {
@@ -1027,7 +1059,7 @@ test('a re-shoot of the same look and mode drives its own six slots, not the ear
   );
 });
 
-test('a resumed attempt and a replayed retry each spend one generation, not two', async (t) => {
+test('a resumed attempt and an automatic repair each spend one generation, not two', async (t) => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'zeely-editorial-replay-'));
   t.after(() => rm(root, { recursive: true, force: true }));
   const store = new SharedSceneStore();
@@ -1084,36 +1116,22 @@ test('a resumed attempt and a replayed retry each spend one generation, not two'
     idempotencyKey: 'approve-hero-before-the-replayed-retry',
     expectedOutputSha256: heroPassed.shots[0].output.sha256,
   });
-  const needsRetry = await waitForState(
-    restarted,
-    created.shoot_id,
-    (state) => state.status === 'NEEDS_RETRY',
-    5_000,
-  );
-  await Promise.all([
-    current.service.waitForIdle(created.shoot_id),
-    restarted.waitForIdle(created.shoot_id),
-  ]);
-  assert.equal(needsRetry.shots.find((shot) => shot.slot === failedSlot).status, 'FAILED');
-  assert.equal(store.generations.length, 6);
-
-  const retryRequest = { idempotencyKey: 'retry-the-interference-frame-once-0001' };
-  await Promise.all([
-    restarted.retryShot(created.shoot_id, failedSlot, retryRequest),
-    restarted.retryShot(created.shoot_id, failedSlot, retryRequest),
-  ]);
   const completed = await waitForState(
     restarted,
     created.shoot_id,
     (state) => state.status === 'COMPLETED',
     5_000,
   );
-  await restarted.waitForIdle(created.shoot_id);
+  await Promise.all([
+    current.service.waitForIdle(created.shoot_id),
+    restarted.waitForIdle(created.shoot_id),
+  ]);
+  assert.equal(completed.shots.find((shot) => shot.slot === failedSlot).status, 'APPROVED');
   assert.equal(completed.shots.find((shot) => shot.slot === failedSlot).attempts.length, 2);
   assert.equal(
     store.generations.length,
     7,
-    'the replayed retry must not buy a second generation for the same attempt',
+    'the automatic repair must spend exactly one new generation',
   );
   assert.deepEqual(store.conflicts, []);
 

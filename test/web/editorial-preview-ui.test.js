@@ -116,7 +116,7 @@ test('shoot survives reload and replays only persisted idempotent actions', () =
   assert.match(appSource, /queryShootId/);
 });
 
-test('generation uses SSE with polling fallback and keeps per-shot retry isolated', () => {
+test('generation uses SSE with polling fallback and keeps repair automatic and per-shot', () => {
   assert.match(
     editorialUiSource,
     /\/api\/profile\/editorial-shoots\/\$\{encodeURIComponent\(shootId\)\}\/events/,
@@ -124,8 +124,10 @@ test('generation uses SSE with polling fallback and keeps per-shot retry isolate
   assert.match(editorialUiSource, /source\.addEventListener\('shoot'/);
   assert.match(editorialUiSource, /source\.addEventListener\('editorial-shoot'/);
   assert.match(editorialUiSource, /#beginPolling\(shootId\)/);
-  assert.match(editorialUiSource, /shot\.status === 'FAILED'/);
-  assert.match(editorialUiSource, /retryProfileEditorialShot\(this\.shoot\.shoot_id, slot/);
+  assert.match(editorialUiSource, /NEEDS_RETRY:\s*'ДОПРАЦЬОВУЄМО'/);
+  assert.doesNotMatch(editorialUiSource, /retry\.textContent = 'Повторити кадр'/);
+  assert.doesNotMatch(editorialUiSource, /retry\.addEventListener\('click'/);
+  assert.doesNotMatch(editorialStateSource, /status === 'NEEDS_RETRY'\) return 'failed'/);
 });
 
 test('gallery exposes five Fashion Shoot frames, not its internal style check', () => {
@@ -137,7 +139,6 @@ test('gallery exposes five Fashion Shoot frames, not its internal style check', 
     /\.editorial-gallery\s*\{[\s\S]*?grid-template-columns:\s*repeat\(2,[\s\S]*?grid-template-rows:\s*repeat\(3,/,
   );
   assert.match(portraitCss, /\.editorial-controls \.scene-control\s*\{[\s\S]*?min-height:\s*44px;/);
-  assert.match(sceneCss, /\.editorial-shot-retry\s*\{[\s\S]*?min-height:\s*44px;/);
   assert.match(sceneCss, /\.editorial-shot-download\s*\{[\s\S]*?width:\s*44px;[\s\S]*?height:\s*44px;/);
   assert.match(sceneCss, /\.editorial-shot-visual img\s*\{[\s\S]*?object-fit:\s*contain;/);
   assert.match(indexHtml, /id="editorial-shot-inspector"/);
