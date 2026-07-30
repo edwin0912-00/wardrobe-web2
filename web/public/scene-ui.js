@@ -853,10 +853,13 @@ export class SceneUiController {
     }
   }
 
-  async resume() {
-    if (await this.editorialUi.resume()) return true;
-    let resume = readSceneResume();
-    const querySceneId = new URLSearchParams(location.search).get('scene');
+  async resume({ allowStored = true } = {}) {
+    const query = new URLSearchParams(location.search);
+    const queryShootId = query.get('shoot');
+    const querySceneId = query.get('scene');
+    if (queryShootId && await this.editorialUi.resume({ allowStored: false })) return true;
+    if (!querySceneId && allowStored && await this.editorialUi.resume()) return true;
+    let resume = allowStored ? readSceneResume() : null;
     if (!resume && !querySceneId) return false;
     this.resumeRecord = resume;
     this.#showConnecting(

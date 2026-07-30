@@ -267,11 +267,17 @@ function prioritizedImageReferences(references, presetId) {
 
 function createUniverseStyleAttachmentInstructions(attachments, presetId) {
   if (!isCreateUniversePresetId(presetId)) return '';
-  const lines = attachments
-    .filter((item) => item.styleSheetRole)
-    .map((item) => (
-      `- ATTACHMENT_${item.order} [CREATE_UNIVERSE_${item.styleSheetRole.toUpperCase()}]`
-    ));
+  const lines = attachments.flatMap((item) => {
+    if (Array.isArray(item.styleSheetRoles)) {
+      return [
+        `- ATTACHMENT_${item.order} [CREATE_UNIVERSE_AUTHORITY_SHEET] is one mechanical 2×2 transport sheet:`,
+        '  TOP_LEFT=CAMERA_LENS; TOP_RIGHT=BLOCKING; BOTTOM_LEFT=EXPRESSION_GAZE; BOTTOM_RIGHT=GARMENT_BEHAVIOUR.',
+      ];
+    }
+    return item.styleSheetRole
+      ? [`- ATTACHMENT_${item.order} [CREATE_UNIVERSE_${item.styleSheetRole.toUpperCase()}]`]
+      : [];
+  });
   if (lines.length === 0) return '';
   return [
     '',
@@ -281,6 +287,58 @@ function createUniverseStyleAttachmentInstructions(attachments, presetId) {
     'CAMERA_LENS controls camera consequence, perspective, focus falloff and unit-wide optics. BLOCKING controls only body-to-camera and joint-chain geometry. EXPRESSION_GAZE controls only muscular state and gaze, never facial identity or geometry. GARMENT_BEHAVIOUR controls only what the approved item cloth does under this shoot, never its design, colour, logo or construction.',
     'Environment, palette, lighting, contrast and optical rules also remain mandatory as exact structured prompt facts. Source people, source garments and exact source places never transfer.',
   ].join('\n');
+}
+
+async function createUniverseAuthoritySheet(references, workDirectory) {
+  if (references.length !== CREATE_UNIVERSE_IMAGE_REFERENCE_ORDER.length) {
+    throw new Error('Create Universe authority sheet requires exactly four canonical image sheets');
+  }
+  const sourceBytes = await Promise.all(references.map((item) => readFile(item.path)));
+  const metadata = await Promise.all(sourceBytes.map((bytes) => sharp(bytes).metadata()));
+  const width = metadata[0]?.width;
+  const height = metadata[0]?.height;
+  if (
+    !Number.isInteger(width)
+    || !Number.isInteger(height)
+    || metadata.some((item) => item.width !== width || item.height !== height)
+  ) {
+    throw new Error('Create Universe style sheets must share one exact canvas before mechanical packing');
+  }
+  const sourceSha256 = references.map((item) => item.sha256);
+  const authorityBytes = await sharp({
+    create: {
+      width: width * 2,
+      height: height * 2,
+      channels: 4,
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    },
+  }).composite([
+    { input: sourceBytes[0], left: 0, top: 0 },
+    { input: sourceBytes[1], left: width, top: 0 },
+    { input: sourceBytes[2], left: 0, top: height },
+    { input: sourceBytes[3], left: width, top: height },
+  ]).png({ compressionLevel: 9, adaptiveFiltering: false }).toBuffer();
+  const authoritySha256 = sha256(authorityBytes);
+  const filename = path.join(
+    path.resolve(workDirectory),
+    `create-universe-authority-${authoritySha256.slice(0, 16)}.png`,
+  );
+  await writeFile(filename, authorityBytes);
+  return {
+    scope: 'outfit',
+    role: 'CREATE_UNIVERSE_AUTHORITY_SHEET',
+    styleSheetRoles: [
+      'camera_lens',
+      'blocking',
+      'expression_gaze',
+      'garment_behaviour',
+    ],
+    styleSheetSourceSha256: sourceSha256,
+    path: filename,
+    sha256: authoritySha256,
+    mediaType: 'image/png',
+    source: 'CONDITIONED',
+  };
 }
 
 export function referenceEvidence(references) {
@@ -610,12 +668,6 @@ export class SceneGeneratorAdapter {
     if (required.length > maxAttachments) {
       throw new Error('Approved item evidence exceeds the provider attachment limit');
     }
-    if (
-      createUniverse
-      && required.length + CREATE_UNIVERSE_IMAGE_REFERENCE_ORDER.length > maxAttachments
-    ) {
-      throw new Error('Provider attachment limit cannot carry all four Create Universe style sheets');
-    }
     // The discretionary tail, most valuable first. Standard scenes keep continuity
     // anchors ahead of optional scene images. Create Universe reverses that order:
     // all four canonical style sheets are indivisible shoot authority, while an
@@ -632,7 +684,7 @@ export class SceneGeneratorAdapter {
         mediaType: anchor.media_type,
         source: 'CONDITIONED',
       }));
-    const sceneImageAttachments = prioritizedSceneImages.map((item) => {
+    let sceneImageAttachments = prioritizedSceneImages.map((item) => {
       const styleSheetRole = createUniverseStyleSheetRole(item, context.preset?.preset_id);
       return {
           scope: 'outfit',
@@ -646,6 +698,20 @@ export class SceneGeneratorAdapter {
           source: 'CONDITIONED',
         };
     });
+    let createUniverseAuthority = null;
+    if (
+      createUniverse
+      && required.length + sceneImageAttachments.length > maxAttachments
+    ) {
+      if (required.length >= maxAttachments) {
+        throw new Error('Provider attachment limit has no slot for the Create Universe authority sheet');
+      }
+      createUniverseAuthority = await createUniverseAuthoritySheet(
+        prioritizedSceneImages,
+        context.work_directory,
+      );
+      sceneImageAttachments = [createUniverseAuthority];
+    }
     const discretionary = createUniverse
       ? [...sceneImageAttachments, ...anchorAttachments]
       : [...anchorAttachments, ...sceneImageAttachments];
@@ -766,6 +832,13 @@ export class SceneGeneratorAdapter {
         ...(droppedAttachmentRoles.length > 0 ? {
           dropped_attachment_roles: droppedAttachmentRoles.join(':'),
           dropped_attachment_count: droppedAttachmentRoles.length,
+        } : {}),
+        ...(createUniverseAuthority ? {
+          create_universe_authority_sheet_sha256: createUniverseAuthority.sha256,
+          create_universe_authority_source_sha256:
+            createUniverseAuthority.styleSheetSourceSha256.join(':'),
+          create_universe_authority_layout:
+            'TOP_LEFT_CAMERA_LENS:TOP_RIGHT_BLOCKING:BOTTOM_LEFT_EXPRESSION_GAZE:BOTTOM_RIGHT_GARMENT_BEHAVIOUR',
         } : {}),
         outbound_prompt_sha256: sha256(Buffer.from(prompt)),
         ...(repairCandidate ? {

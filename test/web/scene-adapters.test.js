@@ -290,6 +290,104 @@ test('Create Universe generation carries four canonical sheets in fixed priority
   assert.equal(generated.metadata.dropped_attachment_roles, 'SHOT_HERO_CONTINUITY_ANCHOR');
 });
 
+test('Create Universe mechanically packs all four canonical sheets when item locks fill the provider budget', async () => {
+  const fixture = await contextFixture();
+  const presetId = 'shoot.fixture_environmental.environmental_hero';
+  const environment = {
+    ...await structuredReferenceFile(
+      fixture.root,
+      'packed-create-universe-environment.json',
+      {
+        schema_version: '1.0.0',
+        role: 'environment_anchor',
+        facts: {
+          description: 'Invented mineral studio.',
+          spatial_cues: ['Disciplined full-length fashion frame.'],
+          materials: ['plaster'],
+          originality_rules: ['Invent new geometry.'],
+        },
+      },
+    ),
+    role: 'environment_anchor',
+    reference_id: `${presetId}.environment`,
+  };
+  const definitions = [
+    ['composition_anchor', 'camera_lens', '#665544'],
+    ['negative_reference', 'blocking', '#554433'],
+    ['lighting_anchor', 'expression_gaze', '#887766'],
+    ['palette_anchor', 'garment_behaviour', '#776655'],
+  ];
+  const imageReferences = await Promise.all(definitions.map(
+    async ([role, sheet, color]) => ({
+      ...await imageFile(fixture.root, `packed-${sheet}.png`, { color }),
+      role,
+      reference_id: `${presetId}.style_${sheet}`,
+    }),
+  ));
+  const itemEvidence = await Promise.all(
+    ['top', 'bottom', 'footwear', 'bag'].map(async (category, index) => ({
+      order: index + 1,
+      role: `ITEM_${category.toUpperCase()}`,
+      category,
+      item_id: `set-${category}`,
+      reference_set_id: `set-${category}`,
+      observed: { garment_type: category, colors: ['black'] },
+      ...(await imageFile(fixture.root, `packed-item-${category}.png`, { color: '#222222' })),
+    })),
+  );
+  const calls = [];
+  const adapter = new SceneGeneratorAdapter({
+    provider: {
+      aspectRatio: '3:4',
+      maxOrderedReferences: 8,
+      async generate(context) {
+        calls.push(context);
+        return {
+          image: await providerFrame(),
+          mediaType: 'image/png',
+          metadata: { provider: 'fixture', job_id: 'packed-create-universe' },
+        };
+      },
+    },
+  });
+  const generated = await adapter.generateScene({
+    ...fixture.base,
+    references: [environment, ...imageReferences],
+    preset: { preset_id: presetId },
+    item_evidence: itemEvidence,
+    attempt: 1,
+    ...DEFAULT_SCENE_MODEL_ROUTE[0],
+  });
+  assert.deepEqual(
+    calls[0].references.ordered.map((item) => item.role),
+    [
+      'APPROVED_LOOK_MASTER',
+      'ITEM_TOP',
+      'ITEM_BOTTOM',
+      'ITEM_FOOTWEAR',
+      'ITEM_BAG',
+      'CREATE_UNIVERSE_AUTHORITY_SHEET',
+    ],
+  );
+  const authority = calls[0].references.ordered.at(-1);
+  const authorityMetadata = await sharp(await readFile(authority.path)).metadata();
+  assert.deepEqual([authorityMetadata.width, authorityMetadata.height], [640, 800]);
+  assert.equal(authority.sha256, generated.metadata.create_universe_authority_sheet_sha256);
+  assert.equal(
+    generated.metadata.create_universe_authority_source_sha256,
+    imageReferences
+      .sort((left, right) => (
+        ['composition_anchor', 'negative_reference', 'lighting_anchor', 'palette_anchor'].indexOf(left.role)
+        - ['composition_anchor', 'negative_reference', 'lighting_anchor', 'palette_anchor'].indexOf(right.role)
+      ))
+      .map((item) => item.sha256)
+      .join(':'),
+  );
+  assert.match(calls[0].prompt, /ATTACHMENT_6 \[CREATE_UNIVERSE_AUTHORITY_SHEET\]/);
+  assert.match(calls[0].prompt, /TOP_LEFT=CAMERA_LENS/);
+  assert.equal(generated.metadata.dropped_attachment_count, undefined);
+});
+
 test('SceneGeneratorAdapter attaches hash-bound item cutouts before optional scene images and compiles exact facts', async () => {
   const fixture = await contextFixture();
   const itemEvidence = await approvedItemEvidenceFixture(fixture.root);

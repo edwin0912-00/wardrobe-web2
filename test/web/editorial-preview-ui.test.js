@@ -115,7 +115,7 @@ test('shoot survives reload and replays only persisted idempotent actions', () =
   assert.match(editorialUiSource, /pending_action:\s*action/);
   const preboot = indexHtml.match(/<script>try\{[\s\S]*?<\/script>/)?.[0] ?? '';
   assert.match(preboot, /q\.has\('shoot'\)/);
-  assert.match(preboot, /zeely_active_editorial_shoot_v1/);
+  assert.doesNotMatch(preboot, /zeely_active_editorial_shoot_v1/);
   assert.match(appSource, /queryShootId/);
 });
 
@@ -127,9 +127,9 @@ test('generation uses SSE with polling fallback and keeps repair automatic and p
   assert.match(editorialUiSource, /source\.addEventListener\('shoot'/);
   assert.match(editorialUiSource, /source\.addEventListener\('editorial-shoot'/);
   assert.match(editorialUiSource, /#beginPolling\(shootId\)/);
-  assert.match(editorialUiSource, /NEEDS_RETRY:\s*'ДОПРАЦЬОВУЄМО'/);
+  assert.match(editorialUiSource, /NEEDS_RETRY:\s*'ПОТРІБЕН ПОВТОР'/);
   assert.doesNotMatch(editorialUiSource, /retry\.textContent = 'Повторити кадр'/);
-  assert.doesNotMatch(editorialUiSource, /retry\.addEventListener\('click'/);
+  assert.match(editorialUiSource, /this\.retryShot\(failed\.slot\)/);
   assert.doesNotMatch(editorialStateSource, /status === 'NEEDS_RETRY'\) return 'failed'/);
 });
 
@@ -174,6 +174,24 @@ test('saved-look library can reopen server-backed editorial shoots', () => {
   assert.match(sceneUiSource, /openExistingEditorial\(projection, look\)/);
 });
 
+test('plain homepage never auto-opens a stored scene or Fashion Shoot', () => {
+  assert.match(
+    appSource,
+    /if \(\(queryShootId \|\| querySceneId\) && await sceneUi\.resume\(\{ allowStored: false \}\)\)/,
+  );
+  assert.doesNotMatch(appSource, /queryShootId \|\| querySceneId \|\| !queryRunId/);
+  assert.match(sceneUiSource, /async resume\(\{ allowStored = true \} = \{\}\)/);
+  assert.match(sceneUiSource, /queryShootId && await this\.editorialUi\.resume\(\{ allowStored: false \}\)/);
+  assert.doesNotMatch(
+    indexHtml,
+    /localStorage\.getItem\('zeely_active_editorial_shoot_v1'\)/,
+  );
+  assert.doesNotMatch(
+    indexHtml,
+    /localStorage\.getItem\('zeely_active_scene_v1'\)/,
+  );
+});
+
 test('normal editorial states render controlled Ukrainian copy instead of raw service messages', () => {
   const renderSource = sourceBetween(
     editorialUiSource,
@@ -184,6 +202,13 @@ test('normal editorial states render controlled Ukrainian copy instead of raw se
   assert.match(editorialUiSource, /Створюємо п’ять унікальних fashion-кадрів паралельно по два/);
   assert.match(editorialUiSource, /displayShootMessage\(this\.shoot\)/);
   assert.doesNotMatch(renderSource, /shoot\.message/);
+});
+
+test('a stopped Fashion Shoot exposes a real retry instead of pretending to keep working', () => {
+  assert.match(indexHtml, /id="editorial-retry-failed"/);
+  assert.match(editorialUiSource, /NEEDS_RETRY: 'ПОТРІБЕН ПОВТОР'/);
+  assert.match(editorialUiSource, /'Повторити перший кадр'/);
+  assert.match(editorialUiSource, /this\.retryShot\(failed\.slot\)/);
 });
 
 test('standard scene workflow remains present beside Fashion Shoot', () => {

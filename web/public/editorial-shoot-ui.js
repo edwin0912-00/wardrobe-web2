@@ -116,7 +116,7 @@ function displayShootMessage(shoot) {
     HERO_RUNNING: 'Створюємо перший кадр у вибраному стилі.',
     HERO_PENDING_APPROVAL: 'Перший кадр готовий. Створюємо п’ять кадрів.',
     SERIES_RUNNING: 'Створюємо п’ять унікальних fashion-кадрів паралельно по два.',
-    NEEDS_RETRY: 'Готові кадри збережено. Решту допрацьовуємо на сервері.',
+    NEEDS_RETRY: 'Перший або один із наступних кадрів не завершився. Готові кадри збережено; повторюється лише невдалий.',
     COMPLETED: 'Усі п’ять fashion-кадрів готові та пройшли QA.',
     CANCELLED: 'Фотосесію зупинено. Уже готові кадри збережено.',
   })[status] ?? 'Стан фотосесії оновлено.';
@@ -128,7 +128,7 @@ function displayShootState(status) {
     HERO_RUNNING: 'ГЕНЕРАЦІЯ СТИЛЮ',
     HERO_PENDING_APPROVAL: 'ЗАПУСК КАДРІВ',
     SERIES_RUNNING: 'СТВОРЮЄМО',
-    NEEDS_RETRY: 'ДОПРАЦЬОВУЄМО',
+    NEEDS_RETRY: 'ПОТРІБЕН ПОВТОР',
     COMPLETED: 'ГОТОВО',
     CANCELLED: 'ЗУПИНЕНО',
   })[status] ?? 'ОНОВЛЮЄМО СТАН';
@@ -234,6 +234,10 @@ export class EditorialShootUiController {
     this.#element('#editorial-cancel-bible').addEventListener('click', () => this.cancel());
     this.#element('#editorial-cancel').addEventListener('click', () => this.cancel());
     this.#element('#editorial-delete').addEventListener('click', () => this.remove());
+    this.#element('#editorial-retry-failed').addEventListener('click', () => {
+      const failed = this.shoot?.shots?.find((shot) => shot.status === 'FAILED');
+      if (failed?.slot) void this.retryShot(failed.slot);
+    });
     this.#element('#editorial-reconnect').addEventListener('click', () => this.reconnect());
     this.#element('#editorial-shot-inspector-close').addEventListener(
       'click',
@@ -596,6 +600,7 @@ export class EditorialShootUiController {
     const cancel = this.#element('#editorial-cancel');
     const cancelBible = this.#element('#editorial-cancel-bible');
     const remove = this.#element('#editorial-delete');
+    const retryFailed = this.#element('#editorial-retry-failed');
     const hasBoundBible = Boolean(
       shoot?.bindings?.shoot_bible?.sha256
       ?? shoot?.shoot_bible?.sha256
@@ -611,7 +616,12 @@ export class EditorialShootUiController {
     cancel.hidden = !editorialCanCancel(shoot);
     cancelBible.hidden = shoot?.status !== 'BIBLE_PENDING_APPROVAL';
     remove.hidden = !editorialCanDelete(shoot);
-    for (const button of [approveBible, approveHero, cancel, cancelBible, remove]) {
+    const failedShot = shoot?.shots?.find((shot) => shot.status === 'FAILED');
+    retryFailed.hidden = shoot?.status !== 'NEEDS_RETRY' || !failedShot;
+    retryFailed.textContent = failedShot?.slot === INTERNAL_STYLE_CHECK_SLOT
+      ? 'Повторити перший кадр'
+      : 'Повторити невдалий кадр';
+    for (const button of [approveBible, approveHero, cancel, cancelBible, remove, retryFailed]) {
       button.disabled = pending;
     }
     approveBible.disabled = pending || !hasBoundBible;
@@ -829,8 +839,8 @@ export class EditorialShootUiController {
     await this.#executeAction(operation, `${action.type}_replay`);
   }
 
-  async resume() {
-    let resume = readEditorialResume();
+  async resume({ allowStored = true } = {}) {
+    let resume = allowStored ? readEditorialResume() : null;
     const queryShootId = new URLSearchParams(location.search).get('shoot');
     if (!resume && !queryShootId) return false;
     this.resumeRecord = resume;

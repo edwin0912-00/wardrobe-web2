@@ -6,7 +6,7 @@
   <meta name="description" content="WARDROBE reference-conditioned AI avatar generator">
   <title>WARDROBE — AI Avatar Studio</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-  <script>try{const q=new URLSearchParams(location.search);if(q.has('run')||q.has('scene')||q.has('shoot')||localStorage.getItem('zeely_active_run_id')||localStorage.getItem('zeely_pending_finalization_id')||localStorage.getItem('zeely_source_avatar_id')||localStorage.getItem('zeely_active_scene_v1')||localStorage.getItem('zeely_active_editorial_shoot_v1'))document.documentElement.classList.add('workflow-pending')}catch{}</script>
+  <script>try{const q=new URLSearchParams(location.search);if(q.has('run')||q.has('scene')||q.has('shoot')||localStorage.getItem('zeely_active_run_id')||localStorage.getItem('zeely_pending_finalization_id')||localStorage.getItem('zeely_source_avatar_id'))document.documentElement.classList.add('workflow-pending')}catch{}</script>
   <link rel="stylesheet" href="/styles.css">
   <link rel="stylesheet" href="/upload.css?v=20260729-1">
   <link rel="stylesheet" href="/progress.css?v=20260724-1">
@@ -387,6 +387,7 @@
                 </header>
                 <div id="editorial-gallery" class="editorial-gallery" aria-label="Кадри Fashion Shoot"></div>
                 <footer class="editorial-controls">
+                  <button id="editorial-retry-failed" class="scene-control primary" type="button" hidden>Повторити невдалий кадр</button>
                   <button id="editorial-reconnect" class="scene-control" type="button" hidden>Перевірити стан</button>
                   <button id="editorial-approve-hero" class="scene-control primary" type="button" hidden>Продовжити</button>
                   <button id="editorial-cancel" class="scene-control" type="button" hidden>Зупинити</button>
@@ -415,6 +416,6 @@
   </aside>
   <script src="/boot-guard.js?v=20260722-3"></script>
   <script src="/vendor/heic2any.min.js?v=0.0.4"></script>
-  <script type="module" src="/app.js?v=20260730-7"></script>
+  <script type="module" src="/app.js?v=20260730-8"></script>
 </body>
 </html>

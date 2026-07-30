@@ -2151,7 +2151,7 @@ async function initialize() {
   const pendingRunId = localStorage.getItem(PENDING_FINALIZATION_KEY);
   const candidates = [...new Set([queryRunId, storedRunId, pendingRunId].filter(Boolean))];
   await pendingProfile;
-  if ((queryShootId || querySceneId || !queryRunId) && await sceneUi.resume()) {
+  if ((queryShootId || querySceneId) && await sceneUi.resume({ allowStored: false })) {
     window.ZeelyBootGuard?.ready();
     telemetry('client.ready', {
       scene_id: querySceneId,
