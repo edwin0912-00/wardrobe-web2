@@ -1683,6 +1683,17 @@ function candidateEligibleForDeliveryPolicyRecheck(state) {
   }
 }
 
+function candidateEligibleForExportRetry(state) {
+  const attempt = state.attempts.at(-1);
+  return state.status === SCENE_STATES.FAILED
+    && state.error?.code === 'PRIVACY_GATE_FAILED'
+    && attempt?.status === 'QA_PASS'
+    && Boolean(attempt.candidate)
+    && attempt.qa?.decision === 'PASS'
+    && Array.isArray(attempt.qa?.gates)
+    && attempt.qa.gates.every((gate) => gate.decision === 'PASS');
+}
+
 async function deterministicFramingCrop(bytes, cropPlan, delivery) {
   return sharp(bytes)
     .extract({
@@ -4284,6 +4295,28 @@ export class SceneService {
       'outputs/scene-manifest.json',
     );
     if (finalManifestFindings.length > 0) {
+      const finalPrivacyReport = {
+        schema_version: SCENE_SCHEMA_VERSION,
+        status: 'FAIL',
+        scope: ['outputs/scene-manifest.json'],
+        excluded_paths: ['attempts/**', 'inputs/**'],
+        checked_rules: [...SCENE_PRIVACY_RULES],
+        checked_files: [{
+          path: 'outputs/scene-manifest.json',
+          sha256: sha256(manifestBytes),
+          inspection: 'TEXT',
+        }],
+        findings: finalManifestFindings,
+        completed_at: approvedAt,
+      };
+      await writeImmutable(
+        path.join(
+          directory,
+          'quarantine',
+          `privacy-final-manifest-report-${attempt.number}-${randomUUID()}.json`,
+        ),
+        canonicalJsonBytes(finalPrivacyReport),
+      );
       throw new SceneServiceError(
         409,
         'PRIVACY_GATE_FAILED',
@@ -4675,9 +4708,14 @@ export class SceneService {
       const framingPolicyRecheck = !rejectionRepair
         && !qaOnlyRetry
         && candidateEligibleForDeliveryPolicyRecheck(current);
+      const exportOnlyRetry = !rejectionRepair
+        && !qaOnlyRetry
+        && !framingPolicyRecheck
+        && candidateEligibleForExportRetry(current);
       const deterministicSource = !rejectionRepair
         && !qaOnlyRetry
         && !framingPolicyRecheck
+        && !exportOnlyRetry
         && current.status === SCENE_STATES.FAILED
         && current.error?.code === 'SCENE_QA_EXHAUSTED'
         ? selectDeterministicFramingRepair(current)
@@ -4685,6 +4723,7 @@ export class SceneService {
       if (!rejectionRepair
         && !rejectionQaOnlyRetry
         && !framingPolicyRecheck
+        && !exportOnlyRetry
         && !deterministicSource
         && current.manual_retries >= this.maxManualRetries) {
         throw new SceneServiceError(
@@ -4716,6 +4755,7 @@ export class SceneService {
         if (!rejectionRepair
           && !rejectionQaOnlyRetry
           && !framingPolicyRecheck
+          && !exportOnlyRetry
           && !deterministicAttempt
           && current.manual_retries >= this.maxManualRetries) {
           throw new SceneServiceError(409, 'SCENE_RETRY_LIMIT', 'The scene manual retry limit has been reached');
@@ -4735,6 +4775,8 @@ export class SceneService {
         const preserveCandidateForQa = qaOnlyRetry || framingPolicyRecheck;
         const attempts = deterministicAttempt
           ? [...current.attempts, deterministicAttempt]
+          : exportOnlyRetry
+          ? current.attempts
           : preserveCandidateForQa
           ? current.attempts.map((attempt, index) => index === current.attempts.length - 1
             ? {
@@ -4752,6 +4794,8 @@ export class SceneService {
           phase: 'QUEUED',
           message: rejectionQaOnlyRetry
             ? 'Post-release repair QA retry queued for the preserved candidate'
+            : exportOnlyRetry
+            ? 'Privacy-safe export retry queued for the preserved approved candidate'
             : framingPolicyRecheck
             ? 'Framing-policy QA recheck queued for the preserved candidate'
             : rejectionRepair
@@ -4759,22 +4803,25 @@ export class SceneService {
             : deterministicAttempt
             ? `Deterministic framing repair queued from attempt ${deterministicSource.number}`
             : 'Scene-only retry queued from immutable inputs',
-          cycle: preserveCandidateForQa ? current.cycle : current.cycle + 1,
-          manual_retries: rejectionRepair || rejectionQaOnlyRetry || framingPolicyRecheck || deterministicAttempt
+          cycle: preserveCandidateForQa || exportOnlyRetry ? current.cycle : current.cycle + 1,
+          manual_retries: rejectionRepair || rejectionQaOnlyRetry || framingPolicyRecheck
+            || exportOnlyRetry || deterministicAttempt
             ? current.manual_retries
             : current.manual_retries + 1,
           retry_requests: [...current.retry_requests, retryHash],
           attempts,
-          qa: {
-            decision: 'PENDING',
-            gates: createPreflightGates(
-              current.bindings.approved_look.image_sha256,
-              current.bindings.reference_pack.sha256,
-              current.bindings.approved_items?.evidence_sha256 ?? null,
-            ),
-            score: null,
-            summary: '',
-          },
+          qa: exportOnlyRetry
+            ? current.qa
+            : {
+              decision: 'PENDING',
+              gates: createPreflightGates(
+                current.bindings.approved_look.image_sha256,
+                current.bindings.reference_pack.sha256,
+                current.bindings.approved_items?.evidence_sha256 ?? null,
+              ),
+              score: null,
+              summary: '',
+            },
           output: null,
           error: null,
           cancellation: null,

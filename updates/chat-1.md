@@ -41,3 +41,12 @@ Retry: candidates refused only by old ITEM_FIDELITY/FRAMING delivery policy can 
 Evidence: presentation policy + preserved retry focused 3/3 PASS; framing/schema 18/18 PASS; schema generator 3/3; syntax and diff checks PASS.
 weakened_checks: OPERATOR_APPROVED_STANDARD_PRESENTATION_TOLERANCE — numeric delivery warning band is 4 percentage points; minor full-body hardware/finishing deviations are advisory. Hard identity/product/category/logo/text/anatomy gates remain blocking.
 Compatibility repair: delivery-tolerance flags are current-policy conclusions, not raw visual observations. Persisted historic true/false values may drift across a policy release and are recomputed on read; canvas, bbox, measured percentages, full-head and full-footwear evidence remain strict. The exact quarantined scene_99d60… validates from its incident directory under this repair; raw bbox and visibility tamper regressions still fail closed.
+
+---
+
+Task ID: BLOCK-1-SCENE-PRIVACY-EXPORT-RECOVERY
+Trigger: the preserved standard scene passed all eight evaluator gates under the approved presentation tolerance, then failed only while scanning the final production manifest for private material.
+Implementation: a final-manifest privacy refusal now writes an immutable sanitized report containing the manifest hash and matched rule without reproducing the private value. A failed scene whose last immutable attempt is still `QA_PASS` may retry export only: no new attempt, generation, evaluator call, cycle or manual retry.
+Safety: export-only recovery remains ineligible when any evaluator gate failed, the approved candidate is absent, or the error is not `PRIVACY_GATE_FAILED`. Bound inputs, candidate hash, provenance, privacy scan and output hashes are all rechecked.
+Evidence: focused privacy regressions 2/2 PASS; the new regression proves two attempts remain two, generator calls remain two and evaluator calls remain two while the corrected manifest exports successfully. Full scene-service suite remains affected by the previously recorded fixture/policy drift outside this atom (26/49 PASS); no failing assertion was introduced or suppressed by this focused repair.
+weakened_checks: none — this changes observability and restart point, not the privacy rules.

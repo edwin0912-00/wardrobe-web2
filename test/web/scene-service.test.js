@@ -2593,6 +2593,96 @@ test('release privacy gate blocks credential-shaped evaluator evidence and keeps
     .some((name) => name.startsWith('privacy-report-')));
 });
 
+test('final manifest privacy failure is observable and retries export without generation or QA', async (t) => {
+  let evaluations = 0;
+  let enterSecondEvaluation;
+  let releaseSecondEvaluation;
+  const secondEvaluationEntered = new Promise((resolve) => { enterSecondEvaluation = resolve; });
+  const secondEvaluationRelease = new Promise((resolve) => { releaseSecondEvaluation = resolve; });
+  const current = await fixture(t, {
+    evaluator: {
+      async evaluateScene() {
+        evaluations += 1;
+        const result = evaluations === 1
+          ? passEvaluation({ SCENE_MATCH: 'FAIL' })
+          : passEvaluation();
+        if (evaluations === 2) {
+          enterSecondEvaluation();
+          await secondEvaluationRelease;
+        }
+        return result;
+      },
+    },
+  });
+  const created = await current.service.createScene({
+    ...current.request,
+    idempotencyKey: 'final-manifest-privacy-scene',
+  });
+  await secondEvaluationEntered;
+  const scenePath = current.service.statePath(created.scene_id);
+  const inFlight = JSON.parse(await readFile(scenePath, 'utf8'));
+  inFlight.attempts[0].qa.gates.find((gate) => gate.id === 'SCENE_MATCH').evidence =
+    'Rejected source file:///Users/fixture/private-look.png';
+  await Promise.all([
+    writeFile(scenePath, `${JSON.stringify(inFlight, null, 2)}\n`),
+    writeFile(
+      path.join(current.service.attemptDirectory(created.scene_id, 1), 'attempt.json'),
+      `${JSON.stringify(inFlight.attempts[0], null, 2)}\n`,
+    ),
+  ]);
+  releaseSecondEvaluation();
+  const failed = await waitFor(current.service, created.scene_id);
+  assert.equal(failed.status, 'FAILED', JSON.stringify(failed, null, 2));
+  assert.equal(failed.phase, 'PRIVACY_GATE_FAILED');
+  assert.equal(failed.error.code, 'PRIVACY_GATE_FAILED');
+  const failedState = JSON.parse(await readFile(scenePath, 'utf8'));
+  assert.equal(failedState.attempts.length, 2);
+  assert.equal(failedState.attempts.at(-1).status, 'QA_PASS');
+  assert.equal(current.calls.generator.length, 2);
+  assert.equal(evaluations, 2);
+
+  const quarantineDirectory = path.join(
+    current.service.sceneDirectory(created.scene_id),
+    'quarantine',
+  );
+  const reportName = (await readdir(quarantineDirectory))
+    .find((name) => name.startsWith('privacy-final-manifest-report-'));
+  assert.ok(reportName);
+  const report = JSON.parse(await readFile(path.join(quarantineDirectory, reportName), 'utf8'));
+  assert.equal(report.status, 'FAIL');
+  assert.equal(report.checked_files[0].path, 'outputs/scene-manifest.json');
+  assert.ok(report.findings.some((finding) => finding.rule === 'NO_ABSOLUTE_USER_PATHS'));
+  assert.doesNotMatch(JSON.stringify(report), /private-look|\/Users\/fixture/);
+
+  const persisted = JSON.parse(await readFile(scenePath, 'utf8'));
+  persisted.attempts[0].qa.gates.find((gate) => gate.id === 'SCENE_MATCH').evidence =
+    'Rejected scene mismatch';
+  await Promise.all([
+    writeFile(scenePath, `${JSON.stringify(persisted, null, 2)}\n`),
+    writeFile(
+      path.join(current.service.attemptDirectory(created.scene_id, 1), 'attempt.json'),
+      `${JSON.stringify(persisted.attempts[0], null, 2)}\n`,
+    ),
+  ]);
+
+  const queued = await current.service.retryScene(created.scene_id, {
+    idempotencyKey: 'final-manifest-export-only-retry',
+  });
+  assert.equal(queued.status, 'QUEUED');
+  const queuedState = JSON.parse(await readFile(scenePath, 'utf8'));
+  assert.equal(queuedState.attempts.length, 2);
+  assert.equal(queuedState.attempts.at(-1).status, 'QA_PASS');
+  assert.equal(queued.execution.cycle, failed.execution.cycle);
+  assert.equal(queued.execution.manual_retries, failed.execution.manual_retries);
+  const completed = await waitFor(current.service, created.scene_id);
+  assert.equal(completed.status, 'COMPLETED', JSON.stringify(completed, null, 2));
+  const completedState = JSON.parse(await readFile(scenePath, 'utf8'));
+  assert.equal(completedState.attempts.length, 2);
+  assert.equal(current.calls.generator.length, 2);
+  assert.equal(evaluations, 2);
+  assert.ok(await current.service.outputFile(created.scene_id));
+});
+
 test('cancel is durable and a retry token starts one new scene-only cycle', async (t) => {
   let invocation = 0;
   let entered;
