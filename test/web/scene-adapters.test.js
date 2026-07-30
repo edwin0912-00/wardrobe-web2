@@ -291,7 +291,7 @@ test('Create Universe generation omits an unbound blocking board and keeps the t
   assert.equal(generated.metadata.dropped_attachment_roles, undefined);
 });
 
-test('Create Universe mechanically packs all four canonical sheets when item locks fill the provider budget', async () => {
+test('Create Universe keeps the three slot-safe canonical sheets when item locks fill the provider budget', async () => {
   const fixture = await contextFixture();
   const presetId = 'shoot.fixture_environmental.environmental_hero';
   const environment = {
@@ -367,29 +367,17 @@ test('Create Universe mechanically packs all four canonical sheets when item loc
       'ITEM_BOTTOM',
       'ITEM_FOOTWEAR',
       'ITEM_BAG',
-      'CREATE_UNIVERSE_AUTHORITY_SHEET',
+      'CREATE_UNIVERSE_CAMERA_LENS',
+      'CREATE_UNIVERSE_EXPRESSION_GAZE',
+      'CREATE_UNIVERSE_GARMENT_BEHAVIOUR',
     ],
   );
-  const authority = calls[0].references.ordered.at(-1);
-  const authorityMetadata = await sharp(await readFile(authority.path)).metadata();
-  assert.deepEqual([authorityMetadata.width, authorityMetadata.height], [3072, 2048]);
-  assert.equal(authority.sha256, generated.metadata.create_universe_authority_sheet_sha256);
-  assert.equal(
-    generated.metadata.create_universe_authority_source_sha256,
-    imageReferences
-      .sort((left, right) => (
-        ['composition_anchor', 'negative_reference', 'lighting_anchor', 'palette_anchor'].indexOf(left.role)
-        - ['composition_anchor', 'negative_reference', 'lighting_anchor', 'palette_anchor'].indexOf(right.role)
-      ))
-      .map((item) => item.sha256)
-      .join(':'),
-  );
-  assert.equal(
-    generated.metadata.create_universe_authority_source_geometry,
-    '2688x1520:1344x752:3072x2048:3072x2048',
-  );
-  assert.match(calls[0].prompt, /ATTACHMENT_6 \[CREATE_UNIVERSE_AUTHORITY_SHEET\]/);
-  assert.match(calls[0].prompt, /TOP_LEFT=CAMERA_LENS/);
+  assert.equal(generated.metadata.create_universe_authority_sheet_sha256, undefined);
+  assert.doesNotMatch(calls[0].prompt, /CREATE_UNIVERSE_AUTHORITY_SHEET/);
+  assert.doesNotMatch(calls[0].prompt, /CREATE_UNIVERSE_BLOCKING/);
+  assert.match(calls[0].prompt, /ATTACHMENT_6 \[CREATE_UNIVERSE_CAMERA_LENS\]/);
+  assert.match(calls[0].prompt, /ATTACHMENT_7 \[CREATE_UNIVERSE_EXPRESSION_GAZE\]/);
+  assert.match(calls[0].prompt, /ATTACHMENT_8 \[CREATE_UNIVERSE_GARMENT_BEHAVIOUR\]/);
   assert.equal(generated.metadata.dropped_attachment_count, undefined);
 });
 
