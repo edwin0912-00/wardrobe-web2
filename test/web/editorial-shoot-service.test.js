@@ -772,6 +772,51 @@ test('a PASS result that still names a defect is rejected at the executor contra
   assert.deepEqual(failed.shots.slice(1).map((shot) => shot.status), Array(5).fill('BLOCKED'));
 });
 
+test('manual retry reuses the exact child scene after a post-generation executor failure', async (t) => {
+  const invocations = [];
+  const executor = {
+    async executeShot(context) {
+      invocations.push(context);
+      if (invocations.length <= 4) {
+        throw new Error('Editorial output used the previous parent canvas contract');
+      }
+      return executionResult(context);
+    },
+  };
+  const current = await fixture(t, { executor });
+  const created = await createAndApproveBible(current);
+  const failed = await waitForState(
+    current.service,
+    created.shoot_id,
+    (state) => state.status === 'NEEDS_RETRY',
+  );
+  const originalAttempt = failed.shots[0].attempts[0];
+  assert.equal(originalAttempt.error.code, 'EXECUTOR_FAILED');
+
+  await current.service.retryShot(created.shoot_id, 'clean_identity_hero', {
+    idempotencyKey: 'resume-post-generation-executor-failure',
+  });
+  let recovered;
+  try {
+    recovered = await waitForState(
+      current.service,
+      created.shoot_id,
+      (state) => state.status !== 'HERO_RUNNING',
+    );
+  } catch (error) {
+    const stuck = await current.service.getShoot(created.shoot_id);
+    assert.fail(`${error.message}: ${JSON.stringify(stuck.shots[0])}`);
+  }
+  assert.equal(recovered.status, 'HERO_PENDING_APPROVAL', JSON.stringify(recovered.shots[0]));
+  assert.equal(recovered.shots[0].attempts.length, 4);
+  assert.equal(invocations.length, 5);
+  assert.equal(invocations[4].attempt, invocations[3].attempt);
+  assert.equal(invocations[4].operation_id, invocations[3].operation_id);
+  assert.equal(invocations[4].idempotency_key, invocations[3].idempotency_key);
+  assert.equal(recovered.shots[0].output.width, 1536);
+  assert.equal(recovered.shots[0].output.height, 2048);
+});
+
 test('current state must still match the event head even when polling after the latest cursor', async (t) => {
   const current = await fixture(t);
   const created = await current.service.createShoot(current.request);

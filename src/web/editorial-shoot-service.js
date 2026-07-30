@@ -1241,9 +1241,9 @@ export class EditorialShootService {
         hero_output: heroOutput ? clone(heroOutput) : null,
         repair: repairInstructions(shot.attempts.at(-2)),
         delivery: {
-          aspect_ratio: '4:5',
-          width: 1024,
-          height: 1280,
+          aspect_ratio: '3:4',
+          width: 1536,
+          height: 2048,
           media_type: 'image/png',
         },
         signal: controller.signal,
@@ -1410,6 +1410,14 @@ export class EditorialShootService {
         );
       }
       const previousAttempt = shot.attempts.at(-1) ?? null;
+      // An executor can fail after its child SceneService has already finished
+      // and persisted a valid output (for example, when this parent still
+      // expected the legacy 4:5 canvas). A manual retry must replay the exact
+      // execution address so SceneService can return that immutable result; a
+      // new attempt number would create a new provider job for no new pixels.
+      const resumeExecutorFailure = previousAttempt?.status === 'FAIL'
+        && previousAttempt?.error?.code === 'EXECUTOR_FAILED'
+        && previousAttempt?.execution_id === null;
       const requestFingerprint = sha256(canonicalJsonBytes({
         shoot_id: shootId,
         slot,
@@ -1417,10 +1425,24 @@ export class EditorialShootService {
         previous_candidate_sha256: previousAttempt?.qa?.candidate_sha256 ?? null,
       }));
       const shots = [...current.shots];
+      const attempts = resumeExecutorFailure
+        ? [
+            ...shot.attempts.slice(0, -1),
+            {
+              ...previousAttempt,
+              status: 'RUNNING',
+              completed_at: null,
+              output: null,
+              qa: null,
+              error: null,
+            },
+          ]
+        : shot.attempts;
       shots[index] = {
         ...shot,
         status: EDITORIAL_SHOT_STATES.QUEUED,
         retry_count: shot.retry_count + 1,
+        attempts,
         output: null,
         error: null,
         lease: null,
@@ -1451,6 +1473,7 @@ export class EditorialShootService {
         data: {
           retry_count: shot.retry_count + 1,
           request_fingerprint: requestFingerprint,
+          resumed_executor_failure: resumeExecutorFailure,
         },
       };
     });
