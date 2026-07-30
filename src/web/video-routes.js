@@ -2,6 +2,7 @@
 // post-shoot-routes.js) so that app.js stays minimal: one import + one call.
 //
 // Endpoints:
+//   GET    /api/profile/looks/:lookId/video-capability — truthful create readiness
 //   POST   /api/profile/video-clips              — create a clip from a look
 //   GET    /api/profile/video-clips/:clipId       — get clip status
 //   GET    /api/profile/video-clips/:clipId/video — stream the clip mp4
@@ -73,6 +74,35 @@ export async function registerVideoRoutes(app, {
       updated_at: liveClip.updatedAt,
     },
   );
+
+  // GET /api/profile/looks/:lookId/video-capability — the saved-look action
+  // hub reads this before enabling Fashion Video. Route presence is not
+  // capability: the create route remains unavailable until the runtime can
+  // prove a verified style reference and a verified motion reference.
+  app.get('/api/profile/looks/:lookId/video-capability', async (request, reply) => {
+    const session = await profileApi.resolveRequestProfile(request, reply);
+    const lookId = request.params.lookId;
+    if (!profiles.ownsLook(session.profileId, lookId)) {
+      return reply.code(404).send({ error: 'Look not found', code: 'LOOK_NOT_FOUND' });
+    }
+
+    return reply
+      .header('Cache-Control', 'private, no-store')
+      .header('Vary', 'Cookie')
+      .send({
+        capability: 'fashion_video',
+        look_id: lookId,
+        available: false,
+        create_route: '/api/profile/video-clips',
+        requirements: {
+          approved_master_look: true,
+          verified_style_reference: false,
+          verified_motion_reference: false,
+        },
+        reason_code: 'FASHION_VIDEO_REFERENCE_PACK_REQUIRED',
+        next_action: 'SELECT_VERIFIED_VIDEO_STYLE',
+      });
+  });
 
   // POST /api/profile/video-clips — create a new video clip
   app.post('/api/profile/video-clips', async (request, reply) => {

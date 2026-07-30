@@ -94,6 +94,63 @@ test('create fails closed before provider spend while Fashion Video has no refer
   assert.equal(current.createRequests.length, 0);
 });
 
+test('saved-look capability fails closed when the runtime cannot prove both references', async (t) => {
+  const current = fixture();
+  const app = Fastify();
+  t.after(() => app.close());
+  await registerVideoRoutes(app, {
+    profileApi: {
+      resolveRequestProfile: async () => ({ profileId: 'profile-1' }),
+    },
+    profiles: current.profiles,
+    videoService: current.videoService,
+    runService: { outputFile: async () => null },
+  });
+
+  const response = await app.inject({
+    method: 'GET',
+    url: '/api/profile/looks/33333333-3333-4333-8333-333333333333/video-capability',
+  });
+  assert.equal(response.statusCode, 200, response.body);
+  assert.deepEqual(response.json(), {
+    capability: 'fashion_video',
+    look_id: '33333333-3333-4333-8333-333333333333',
+    available: false,
+    create_route: '/api/profile/video-clips',
+    requirements: {
+      approved_master_look: true,
+      verified_style_reference: false,
+      verified_motion_reference: false,
+    },
+    reason_code: 'FASHION_VIDEO_REFERENCE_PACK_REQUIRED',
+    next_action: 'SELECT_VERIFIED_VIDEO_STYLE',
+  });
+  assert.equal(response.headers['cache-control'], 'private, no-store');
+  assert.equal(current.createRequests.length, 0);
+});
+
+test('saved-look capability refuses a look outside the browser profile', async (t) => {
+  const current = fixture();
+  current.profiles.ownsLook = () => false;
+  const app = Fastify();
+  t.after(() => app.close());
+  await registerVideoRoutes(app, {
+    profileApi: {
+      resolveRequestProfile: async () => ({ profileId: 'profile-1' }),
+    },
+    profiles: current.profiles,
+    videoService: current.videoService,
+    runService: { outputFile: async () => null },
+  });
+
+  const response = await app.inject({
+    method: 'GET',
+    url: '/api/profile/looks/33333333-3333-4333-8333-333333333333/video-capability',
+  });
+  assert.equal(response.statusCode, 404, response.body);
+  assert.equal(response.json().code, 'LOOK_NOT_FOUND');
+});
+
 test('finalize resumes the existing job and projects the real MP4 result', async (t) => {
   const current = fixture();
   const app = Fastify();
