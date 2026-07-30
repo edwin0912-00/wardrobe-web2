@@ -260,6 +260,10 @@ export async function createWebApp({
       service: 'web',
       generation: generationAvailable ? 'available' : 'unavailable',
       semantic_qa: 'available',
+      fashion_shoot_qa_mode: ['strict', 'review', 'off']
+        .includes(resolved.fashion_shoot_qa_mode)
+        ? resolved.fashion_shoot_qa_mode
+        : 'strict',
       ...(releaseIdentity ? releaseIdentity : {}),
       ...(runtimeStatus ? { runtime_status: runtimeStatus } : {}),
       ...(health.test_only ? { editorial_generation: 'available' } : { editorial_generation: editorialShootService
