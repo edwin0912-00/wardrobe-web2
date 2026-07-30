@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="/progress.css?v=20260724-1">
   <link rel="stylesheet" href="/conflict.css?v=20260722-3">
   <link rel="stylesheet" href="/experience.css?v=20260723-6">
-  <link rel="stylesheet" href="/result.css?v=20260730-3">
+  <link rel="stylesheet" href="/result.css?v=20260730-4">
   <link rel="stylesheet" href="/scene.css?v=20260723-4">
   <link rel="stylesheet" href="/scene-cta.css?v=20260727-1">
   <script type="module" src="/scene-cta.js?v=20260725-1"></script>
@@ -211,11 +211,17 @@
                         <span class="profile-action-copy"><strong>Fashion Shoot</strong><small>5 арткадрів</small></span>
                       </button>
                       <button id="profile-look-video" class="profile-next-action profile-next-action-video" type="button" aria-label="Fashion Video ще готується: потрібні два референси" aria-describedby="profile-look-video-note" disabled>
-                        <span class="profile-action-icon" aria-hidden="true">▷</span>
+                        <span class="profile-action-icon" aria-hidden="true">
+                          <span class="profile-action-static-icon">▷</span>
+                          <canvas id="profile-video-orb" class="profile-action-orb"></canvas>
+                        </span>
                         <span class="profile-action-copy"><strong>Fashion Video</strong><small id="profile-look-video-state">Перевіряємо доступність</small></span>
                       </button>
                       <button id="profile-look-live" class="profile-next-action profile-next-action-live" type="button" aria-label="Відкрити Live Look" disabled>
-                        <span class="profile-action-icon profile-live-signal" aria-hidden="true"><i></i></span>
+                        <span class="profile-action-icon profile-live-signal" aria-hidden="true">
+                          <i class="profile-action-static-icon"></i>
+                          <canvas id="profile-live-orb" class="profile-action-orb"></canvas>
+                        </span>
                         <span class="profile-action-copy"><strong>Live Look</strong><small id="profile-look-live-state">Перевіряємо доступність</small></span>
                       </button>
                     </div>
@@ -261,6 +267,10 @@
                 </div>
                 <button id="video-generate" class="primary-result-action" type="button">Створити відео →</button>
                 <div id="video-progress" class="video-progress" hidden>
+                  <div id="video-ai-thinking" class="video-ai-thinking" role="status" aria-live="polite">
+                    <canvas id="video-thinking-orb"></canvas>
+                    <span><strong id="video-ai-title">AI готує запуск</strong><small id="video-ai-detail">Перевіряємо reference pack</small></span>
+                  </div>
                   <div class="video-progress-bar"><div id="video-progress-fill" class="video-progress-fill"></div></div>
                   <p id="video-progress-status">Очікуємо…</p>
                 </div>
@@ -417,6 +427,6 @@
   </aside>
   <script src="/boot-guard.js?v=20260722-3"></script>
   <script src="/vendor/heic2any.min.js?v=0.0.4"></script>
-  <script type="module" src="/app.js?v=20260730-2"></script>
+  <script type="module" src="/app.js?v=20260730-3"></script>
 </body>
 </html>

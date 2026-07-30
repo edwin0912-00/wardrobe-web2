@@ -1,3 +1,5 @@
+import { createThinkingOrb } from './thinking-orb.js?v=20260722-10';
+
 const MODEL_ID = 'decart/lucy-2-5/realtime';
 const SESSION_SECONDS = 15;
 const state = {
@@ -6,6 +8,7 @@ const state = {
   cameraPermission: 'prompt',
 };
 const $ = (selector) => document.querySelector(selector);
+const liveThinkingOrb = createThinkingOrb($('#live-thinking-orb'), 'searching');
 const prompt = 'Replace only the current clothing with the outfit from the reference image. Preserve the person face, identity, hair, skin, body shape, pose and hands. Preserve the existing room, background, camera angle and lighting. Do not modify anything except the clothing.';
 const query = new URLSearchParams(location.search);
 
@@ -18,6 +21,14 @@ function renderStatus() {
 function status(text) {
   state.phase = text;
   renderStatus();
+}
+function setAiThinking(active, orbState = 'working', title = 'AI працює', detail = 'Очікуємо наступний checkpoint') {
+  const surface = $('#live-ai-thinking');
+  surface.classList.toggle('hidden', !active);
+  if (!active) return;
+  liveThinkingOrb.setState(orbState);
+  $('#live-ai-title').textContent = title;
+  $('#live-ai-detail').textContent = detail;
 }
 function ready() {
   const privacyApproved = $('#privacy-consent').checked;
@@ -147,6 +158,7 @@ function closeLive(message = 'Live зупинено.') {
   state.peer = null;
   state.connection = null;
   state.running = false;
+  setAiThinking(false);
   if (state.stream) $('#camera').srcObject = state.stream;
   status(message);
   ready();
@@ -171,17 +183,22 @@ async function signal(result) {
     || Array.isArray(result?.ice_servers)) {
     if (state.peer) return;
     const servers = result.iceservers || result.iceServers || result.ice_servers || [];
+    setAiThinking(true, 'solving', 'AI налаштовує потік', 'Узгоджуємо WebRTC та camera stream');
     status('Lucy · налаштовуємо WebRTC…');
     state.peer = new RTCPeerConnection({ iceServers: servers });
     state.stream.getTracks().forEach((track) => state.peer.addTrack(track, state.stream));
     state.peer.ontrack = (event) => {
       $('#camera').srcObject = event.streams[0] || new MediaStream([event.track]);
+      setAiThinking(false);
       status('Real-time Look активний. Показуємо live-потік.');
     };
     state.peer.onconnectionstatechange = () => {
       const connectionState = state.peer?.connectionState;
       if (connectionState === 'failed') closeLive('Помилка WebRTC: connection failed.');
-      else if (connectionState === 'connected') status('Lucy · WebRTC connected, очікуємо відео…');
+      else if (connectionState === 'connected') {
+        setAiThinking(true, 'composing', 'AI формує Live-потік', 'WebRTC підключено, очікуємо перший кадр');
+        status('Lucy · WebRTC connected, очікуємо відео…');
+      }
     };
     state.peer.onicecandidate = (event) => {
       if (event.candidate) state.connection.send({ type: 'icecandidate', candidate: event.candidate.toJSON() });
@@ -191,6 +208,7 @@ async function signal(result) {
     status('Lucy · надсилаємо camera offer…');
     state.connection.send({ type: 'offer', sdp: offer.sdp });
   } else if (type === 'answer' || (result?.sdp && state.peer?.localDescription)) {
+    setAiThinking(true, 'composing', 'AI формує Live-потік', 'Отримано video answer');
     status('Lucy · отримано video answer…');
     await state.peer?.setRemoteDescription({ type: 'answer', sdp: result.sdp });
   } else if ((type === 'icecandidate' || (result?.candidate && !result?.sdp)) && state.peer) {
@@ -203,6 +221,7 @@ async function startLive() {
   if (!$('#privacy-consent').checked) throw new Error('Не підтверджено використання camera-потоку.');
   if (!$('#cost-consent').checked) throw new Error('Не підтверджено ліміт платної 15-секундної сесії.');
   if (!selectedLookId) throw new Error('Live запускається лише зі збереженого образу.');
+  setAiThinking(true, 'working', 'AI підключає Live', 'Готуємо захищену realtime-сесію');
   const falModule = await import('./vendor/fal-client.js?v=20260727-7');
   const fal = falModule.fal ?? falModule.default?.fal;
   if (typeof fal?.realtime?.connect !== 'function') {
@@ -276,11 +295,19 @@ const demoOutfit = query.get('demo') === 'outfit';
 if (query.get('embed') === '1') document.body.classList.add('is-embedded');
 if (query.get('surface') === 'full') document.body.classList.add('is-full-surface');
 if (selectedLookId) {
+  setAiThinking(true, 'searching', 'AI відкриває образ', 'Завантажуємо перевірений reference');
   status('Завантажуємо вибраний образ…');
   loadSavedLookReference(selectedLookId)
-    .then(() => status('Образ готовий. Увімкни камеру.'))
-    .catch((error) => status(`Помилка образу: ${error.message}`));
+    .then(() => {
+      setAiThinking(false);
+      status('Образ готовий. Увімкни камеру.');
+    })
+    .catch((error) => {
+      setAiThinking(false);
+      status(`Помилка образу: ${error.message}`);
+    });
 } else if (demoOutfit) {
+  setAiThinking(true, 'searching', 'AI відкриває образ', 'Завантажуємо тестовий reference');
   status('Завантажуємо тестовий outfit…');
   loadReferenceUrl(
     '/live-test-outfit.png?v=20260729-1',
@@ -288,8 +315,14 @@ if (selectedLookId) {
     'Hoodie + sneakers · READY',
     { publicProviderUrl: true },
   )
-    .then(() => status('Образ готовий. Увімкни камеру.'))
-    .catch((error) => status(`Помилка образу: ${error.message}`));
+    .then(() => {
+      setAiThinking(false);
+      status('Образ готовий. Увімкни камеру.');
+    })
+    .catch((error) => {
+      setAiThinking(false);
+      status(`Помилка образу: ${error.message}`);
+    });
 }
 renderCameraPermission();
 observeCameraPermission();

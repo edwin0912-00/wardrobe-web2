@@ -31,6 +31,12 @@ test('browser draft requires a local reference photo and states the fifteen-seco
   assert.match(html, /id="privacy-consent"/);
   assert.match(html, /id="cost-consent"/);
   assert.match(html, /id="camera-permission-status"/);
+  assert.match(html, /id="live-ai-thinking"[\s\S]*?id="live-thinking-orb"/);
+  assert.match(client, /createThinkingOrb\(\$\('#live-thinking-orb'\), 'searching'\)/);
+  assert.match(client, /setAiThinking\(true, 'working', 'AI підключає Live'/);
+  assert.match(client, /setAiThinking\(true, 'solving', 'AI налаштовує потік'/);
+  assert.match(client, /setAiThinking\(true, 'composing', 'AI формує Live-потік'/);
+  assert.match(client, /state\.peer\.ontrack = \(event\) => \{[\s\S]*?setAiThinking\(false\)/);
   assert.match(client, /max_session_seconds:\s*SESSION_SECONDS/);
   assert.match(client, /privacy_consent:\s*true/);
   assert.match(client, /look_id:\s*selectedLookId/);

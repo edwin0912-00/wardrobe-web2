@@ -61,6 +61,9 @@ const failure = document.querySelector('#failure-view');
 const studioShell = document.querySelector('#studio-shell');
 const resultPanelTitle = document.querySelector('#result-panel-title');
 const thinkingOrb = createThinkingOrb(document.querySelector('#progress-orb-canvas'));
+const fashionVideoCapabilityOrb = createThinkingOrb(document.querySelector('#profile-video-orb'), 'searching');
+const realtimeLookCapabilityOrb = createThinkingOrb(document.querySelector('#profile-live-orb'), 'searching');
+const videoThinkingOrb = createThinkingOrb(document.querySelector('#video-thinking-orb'), 'searching');
 const liveVisualizer = createLiveVisualizer(document.querySelector('#pipeline-live-visualizer'));
 const uploads = new UploadSelectionStore({ maxGarments: 5 });
 let previewUrls = [];
@@ -1683,6 +1686,7 @@ function syncFashionVideoAction({ state = 'checking', capability = null } = {}) 
   action.dataset.state = state;
   action.classList.toggle('is-checking', state === 'checking');
   action.setAttribute('aria-busy', String(state === 'checking'));
+  if (state === 'checking') fashionVideoCapabilityOrb.setState('searching');
   action.disabled = !selectedProfileLook || state !== 'ready';
   action.setAttribute(
     'aria-label',
@@ -1733,6 +1737,7 @@ function syncRealtimeLookAction({ state = 'checking', capability = null } = {}) 
   action.dataset.state = state;
   action.classList.toggle('is-checking', state === 'checking');
   action.setAttribute('aria-busy', String(state === 'checking'));
+  if (state === 'checking') realtimeLookCapabilityOrb.setState('searching');
   action.disabled = !selectedProfileLook || state !== 'ready';
   action.setAttribute(
     'aria-label',
@@ -1836,10 +1841,18 @@ function closeVideoOverlay() {
 }
 function setVideoGenerateBusy(busy) {
   const action = document.querySelector('#video-generate');
+  const thinking = document.querySelector('#video-ai-thinking');
   videoGenerationBusy = busy;
   action.disabled = busy;
   action.classList.toggle('is-loading', busy);
   action.setAttribute('aria-busy', String(busy));
+  thinking.hidden = !busy;
+  if (busy) setVideoThinkingState('searching', 'AI готує запуск', 'Перевіряємо reference pack');
+}
+function setVideoThinkingState(state, title, detail) {
+  videoThinkingOrb.setState(state);
+  document.querySelector('#video-ai-title').textContent = title;
+  document.querySelector('#video-ai-detail').textContent = detail;
 }
 document.querySelector('#video-overlay-close').addEventListener('click', closeVideoOverlay);
 document.querySelector('#video-overlay').addEventListener('click', (event) => {
@@ -1873,6 +1886,7 @@ document.querySelector('#video-generate').addEventListener('click', async () => 
       throw new Error(err.error || `HTTP ${res.status}`);
     }
     const clip = await res.json();
+    setVideoThinkingState('composing', 'AI збирає рух', 'Створюємо fashion motion із перевірених референсів');
     progressFill.style.width = '30%';
     progressStatus.textContent = `Clip ${clip.clip_id} створено — генерація…`;
     // Poll for completion
@@ -1886,6 +1900,14 @@ document.querySelector('#video-generate').addEventListener('click', async () => 
         if (!statusRes.ok) return;
         const status = await statusRes.json();
         progressStatus.textContent = `Статус: ${status.status}`;
+        const normalizedStatus = String(status.status ?? '').toUpperCase();
+        if (/QA|CHECK|VERIFY|REVIEW/.test(normalizedStatus)) {
+          setVideoThinkingState('solving', 'AI перевіряє відео', 'Звіряємо образ, речі та рух');
+        } else if (/GENERAT|PROCESS|RUNNING|QUEUED/.test(normalizedStatus)) {
+          setVideoThinkingState('composing', 'AI збирає рух', 'Генеруємо та монтуємо fashion clip');
+        } else {
+          setVideoThinkingState('working', 'AI працює', 'Очікуємо наступний server checkpoint');
+        }
         if (status.status === 'COMPLETED' || status.status === 'PASS') {
           clearInterval(poll);
           progressFill.style.width = '100%';
@@ -1925,6 +1947,7 @@ document.querySelector('#profile-look-live').addEventListener('click', (event) =
   if (!lookId || realtimeLookCapability?.lookId !== lookId) return;
   setLookActionStatus('Live Look: переходимо в окрему camera-сесію на весь екран після явної згоди.');
   const action = document.querySelector('#profile-look-live');
+  realtimeLookCapabilityOrb.setState('working');
   action.classList.add('is-loading');
   action.setAttribute('aria-busy', 'true');
   action.disabled = true;

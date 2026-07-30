@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <title>WARDROBE · Real-time Look</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/post-shoot-mvp.css?v=20260727-8">
+  <link rel="stylesheet" href="/post-shoot-mvp.css?v=20260730-1">
   <link rel="stylesheet" href="/live-layout-fix.css?v=20260727-8">
 </head>
 <body>
@@ -22,6 +22,10 @@
         <span class="aperture"></span>
         <b>Увімкни камеру</b>
         <small>Тримай телефон вертикально на рівні грудей</small>
+      </div>
+      <div id="live-ai-thinking" class="live-ai-thinking hidden" role="status" aria-live="polite">
+        <canvas id="live-thinking-orb"></canvas>
+        <span><b id="live-ai-title">AI готує Live</b><small id="live-ai-detail">Завантажуємо перевірений образ</small></span>
       </div>
 
       <div id="fit-guide" class="fit-guide" aria-hidden="true">
@@ -65,6 +69,6 @@
       </div>
     </section>
   </main>
-  <script type="module" src="/post-shoot-mvp.js?v=20260730-1"></script>
+  <script type="module" src="/post-shoot-mvp.js?v=20260730-2"></script>
 </body>
 </html>

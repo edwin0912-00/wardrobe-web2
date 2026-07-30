@@ -141,12 +141,25 @@ test('saved look is one compact action hub without nested guides or forced scrol
 });
 
 test('saved-look actions expose complete keyboard, disabled and loading states', () => {
-  assert.match(resultCss, /\.profile-next-action:active \{[\s\S]*?transform:\s*scale\(\.98\);/);
+  assert.match(resultCss, /\.profile-next-action:active \{[\s\S]*?transform:\s*none;[\s\S]*?box-shadow:\s*inset/);
   assert.match(resultCss, /\.profile-next-action:focus-visible \{[\s\S]*?outline:\s*3px solid/);
   assert.match(resultCss, /\.profile-next-action:disabled \{[\s\S]*?pointer-events:\s*none;[\s\S]*?cursor:\s*not-allowed;/);
-  assert.match(resultCss, /\.profile-next-action\.is-checking \.profile-action-icon::after \{[\s\S]*?profile-action-spin/);
-  assert.match(resultCss, /#video-generate\.is-loading::after \{[\s\S]*?profile-action-spin/);
-  assert.match(resultCss, /@media \(prefers-reduced-motion:\s*reduce\)[\s\S]*?#video-generate\.is-loading::after \{[\s\S]*?animation:\s*none;/);
+  assert.match(resultCss, /\.profile-next-action:is\(\.is-checking, \.is-loading\) \.profile-action-static-icon \{[\s\S]*?visibility:\s*hidden;/);
+  assert.match(resultCss, /\.profile-next-action:is\(\.is-checking, \.is-loading\) \.profile-action-orb \{[\s\S]*?display:\s*block;/);
+  assert.doesNotMatch(resultCss, /profile-action-spin/);
+  assert.doesNotMatch(resultCss, /#video-generate\.is-loading::after/);
+});
+
+test('canonical AI orbs lead capability checks and Fashion Video progress', () => {
+  assert.match(indexHtml, /id="profile-video-orb" class="profile-action-orb"/);
+  assert.match(indexHtml, /id="profile-live-orb" class="profile-action-orb"/);
+  assert.match(indexHtml, /id="video-thinking-orb"/);
+  assert.match(indexHtml, /id="video-ai-title">AI готує запуск/);
+  assert.match(appSource, /createThinkingOrb\(document\.querySelector\('#profile-video-orb'\), 'searching'\)/);
+  assert.match(appSource, /createThinkingOrb\(document\.querySelector\('#profile-live-orb'\), 'searching'\)/);
+  assert.match(appSource, /createThinkingOrb\(document\.querySelector\('#video-thinking-orb'\), 'searching'\)/);
+  assert.match(appSource, /setVideoThinkingState\('composing', 'AI збирає рух'/);
+  assert.match(appSource, /setVideoThinkingState\('solving', 'AI перевіряє відео'/);
 });
 
 test('Fashion Video and Live Look use full-viewport single surfaces without nested scrolling', () => {

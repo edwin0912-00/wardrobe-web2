@@ -245,7 +245,10 @@
   transform: translateY(-1px);
 }
 
-.profile-next-action:active { transform: scale(.98); }
+.profile-next-action:active {
+  transform: none;
+  box-shadow: inset 0 2px 5px color-mix(in srgb, var(--action-accent) 18%, transparent);
+}
 .profile-next-action:focus-visible {
   border-color: var(--action-accent);
   outline: 3px solid #173b28;
@@ -254,17 +257,6 @@
 .profile-next-action:disabled { pointer-events: none; cursor: not-allowed; opacity: .62; }
 .profile-next-action:disabled:hover { border-color: color-mix(in srgb, var(--action-accent) 36%, #dbe3d2); box-shadow: none; transform: none; }
 .profile-next-action.is-checking { opacity: .82; }
-.profile-next-action.is-checking .profile-action-icon::after {
-  position: absolute;
-  width: 10px;
-  height: 10px;
-  border: 2px solid currentColor;
-  border-right-color: transparent;
-  border-radius: 50%;
-  content: "";
-  animation: profile-action-spin .8s linear infinite;
-}
-.profile-next-action.is-checking .profile-action-icon > * { visibility: hidden; }
 .profile-next-action.is-loading { pointer-events: none; cursor: wait; opacity: .76; }
 
 .profile-look-action-status {
@@ -276,6 +268,15 @@
 }
 
 .profile-action-icon { position: relative; display: grid; width: 34px; height: 34px; place-items: center; border: 1px solid color-mix(in srgb, var(--action-accent) 65%, transparent); border-radius: 50%; color: var(--action-accent); font-size: 18px; box-shadow: 0 0 16px color-mix(in srgb, var(--action-accent) 18%, transparent); }
+.profile-action-static-icon { grid-area: 1 / 1; }
+.profile-action-orb {
+  display: none;
+  grid-area: 1 / 1;
+  width: 30px;
+  height: 30px;
+}
+.profile-next-action:is(.is-checking, .is-loading) .profile-action-static-icon { visibility: hidden; }
+.profile-next-action:is(.is-checking, .is-loading) .profile-action-orb { display: block; }
 .profile-action-copy { display: grid; gap: 2px; min-width: 0; }
 .profile-action-copy strong { overflow: visible; color: currentColor; font-size: 13px; line-height: 1.1; overflow-wrap: anywhere; text-overflow: clip; white-space: normal; }
 .profile-action-copy small { color: color-mix(in srgb, currentColor 64%, transparent); font-size: 10px; line-height: 1.2; }
@@ -325,7 +326,10 @@
   transition: transform .18s ease, box-shadow .18s ease;
 }
 .profile-look-background-action:hover { box-shadow: 0 13px 28px rgba(84, 58, 18, .28); transform: translateY(-1px); }
-.profile-look-background-action:active { transform: scale(.98); }
+.profile-look-background-action:active {
+  transform: none;
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, .24);
+}
 .profile-look-background-action:focus-visible {
   outline: 3px solid #173b28;
   outline-offset: 2px;
@@ -877,7 +881,7 @@ body.profile-live-open {
   border-color: rgba(255, 255, 255, .2);
 }
 
-.video-option:active { transform: scale(.98); }
+.video-option:active { box-shadow: inset 0 2px 5px rgba(0, 0, 0, .3); }
 .video-option:focus-visible {
   outline: 3px solid #b8ff3d;
   outline-offset: 2px;
@@ -903,21 +907,51 @@ body.profile-live-open {
   opacity: .76;
 }
 
-#video-generate.is-loading::after {
-  width: 13px;
-  height: 13px;
-  flex: 0 0 auto;
-  border: 2px solid currentColor;
-  border-right-color: transparent;
-  border-radius: 50%;
-  content: "";
-  animation: profile-action-spin .8s linear infinite;
-}
-
 .video-progress {
   display: flex;
   flex-direction: column;
   gap: .5rem;
+}
+
+.video-ai-thinking {
+  display: grid;
+  grid-template-columns: 74px minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
+  min-height: 88px;
+  padding: 7px 14px 7px 7px;
+  border: 1px solid rgba(184, 255, 61, .22);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 18% 50%, rgba(184, 255, 61, .13), transparent 31%),
+    rgba(255, 255, 255, .035);
+}
+
+.video-ai-thinking canvas {
+  display: block;
+  width: 74px;
+  height: 74px;
+  filter: drop-shadow(0 10px 24px rgba(184, 255, 61, .2));
+}
+
+.video-ai-thinking span,
+.video-ai-thinking strong,
+.video-ai-thinking small {
+  display: block;
+  min-width: 0;
+}
+
+.video-ai-thinking strong {
+  color: #f7ffe9;
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+.video-ai-thinking small {
+  margin-top: 5px;
+  color: rgba(224, 244, 198, .66);
+  font-size: 10px;
+  line-height: 1.35;
 }
 
 .video-progress-bar {
@@ -1212,10 +1246,6 @@ body.profile-live-open {
     animation-iteration-count: 1 !important;
   }
 
-  .profile-next-action.is-checking .profile-action-icon::after,
-  #video-generate.is-loading::after {
-    animation: none;
-  }
 }
 
 @media (prefers-contrast: more) {
@@ -1227,10 +1257,6 @@ body.profile-live-open {
   .profile-look-card {
     border-width: 2px;
   }
-}
-
-@keyframes profile-action-spin {
-  to { transform: rotate(360deg); }
 }
 
 @keyframes result-reveal {
