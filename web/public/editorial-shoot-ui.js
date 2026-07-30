@@ -133,6 +133,37 @@ function displayShootState(status) {
   })[status] ?? 'ОНОВЛЮЄМО СТАН';
 }
 
+// A 409 is a deliberate server refusal, not a user-facing "Conflict" and not
+// a lost connection. In particular, no provider job has been started yet when
+// a saved-look evidence gate refuses a new Fashion Shoot. Keep the machine
+// code in telemetry but give the person one concrete next action.
+export function editorialRequestFailurePresentation(error) {
+  const statusCode = Number(error?.status);
+  const code = String(error?.code ?? '');
+  const messageByCode = {
+    LOOK_ITEM_EVIDENCE_INVALID: 'Збережений образ не має цілісного підтвердження речей. Фотосесію не запускали. Повернися до образу й створи його заново після перевірки.',
+    LOOK_ITEM_EVIDENCE_CONFLICT: 'Підтвердження речей у збереженому образі суперечливе. Фотосесію не запускали. Повернися до образу й створи його заново після перевірки.',
+    LOOK_RECEIPT_MISSING: 'Не знайдено підтвердження збереженого образу. Фотосесію не запускали.',
+    LOOK_RECEIPT_INVALID: 'Підтвердження збереженого образу застаріле або пошкоджене. Фотосесію не запускали.',
+    LOOK_BINDING_MISMATCH: 'Збережений образ змінився після перевірки. Повернися до образу та обери Fashion Shoot ще раз.',
+    LOOK_SOURCE_NOT_COMPLETED: 'Збережений образ ще не завершив перевірку. Дочекайся статусу «збережено» перед Fashion Shoot.',
+    IDEMPOTENCY_CONFLICT: 'Попередня спроба запуску не збігається з поточним вибором. Фотосесію не запускали.',
+  };
+  if (Number.isInteger(statusCode) && statusCode >= 400 && statusCode < 500) {
+    return {
+      status: 'ПОТРІБНА ПЕРЕВІРКА',
+      message: messageByCode[code]
+        ?? 'Сервер зупинив запуск до генерації, бо збережений образ або вибраний стиль потребує перевірки. Повернися до образу та спробуй ще раз.',
+      retryable: false,
+    };
+  }
+  return {
+    status: 'З’ЄДНАННЯ ПЕРЕРВАЛОСЯ',
+    message: 'Не вдалося отримати відповідь сервера. Натисни «Перевірити стан», щоб безпечно відновити цю саму фотосесію.',
+    retryable: true,
+  };
+}
+
 function modeFromShoot(shoot) {
   return {
     mode_id: shoot?.bindings?.shoot_bible?.mode_id ?? shoot?.mode?.mode_id ?? shoot?.mode_id,
@@ -240,14 +271,27 @@ export class EditorialShootUiController {
 
   #showConnectionFailure(error, stage) {
     this.#show();
-    this.#setError(error?.message || 'Не вдалося з’єднатися із сервером');
+    const presentation = editorialRequestFailurePresentation(error);
+    this.#setHeader('Fashion Shoot', presentation.status, presentation.retryable ? 'running' : 'failed');
+    this.#setError(presentation.message);
     this.#element('#editorial-connection').hidden = true;
-    this.connectionFailed = true;
-    this.#element('#editorial-reconnect').hidden = false;
+    this.#element('#editorial-message').hidden = true;
+    // A creation refusal does not have five pending frames. Leaving the empty
+    // gallery on screen made the server-side refusal look like a failed shoot.
+    if (!this.shoot) {
+      this.#element('#editorial-bible-stage').hidden = true;
+      this.#element('#editorial-gallery-stage').hidden = true;
+    }
+    this.connectionFailed = presentation.retryable;
+    const reconnect = this.#element('#editorial-reconnect');
+    reconnect.textContent = 'Перевірити стан';
+    reconnect.hidden = !presentation.retryable;
     this.telemetry('client.editorial_error', {
       shoot_id: this.shoot?.shoot_id,
       stage,
       message: String(error?.message ?? error).slice(0, 500),
+      code: String(error?.code ?? '').slice(0, 120),
+      status: Number.isInteger(error?.status) ? error.status : null,
     });
   }
 
