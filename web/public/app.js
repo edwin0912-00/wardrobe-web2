@@ -101,6 +101,7 @@ let fashionVideoCapabilityRequestVersion = 0;
 let fashionVideoCapability = null;
 let realtimeLookCapabilityRequestVersion = 0;
 let realtimeLookCapability = null;
+let videoGenerationBusy = false;
 
 const ACTIVE_RUN_KEY = 'zeely_active_run_id';
 const PENDING_FINALIZATION_KEY = 'zeely_pending_finalization_id';
@@ -1679,6 +1680,9 @@ function syncFashionVideoAction({ state = 'checking', capability = null } = {}) 
   const label = document.querySelector('#profile-look-video-state');
   if (!action || !label) return;
   fashionVideoCapability = capability;
+  action.dataset.state = state;
+  action.classList.toggle('is-checking', state === 'checking');
+  action.setAttribute('aria-busy', String(state === 'checking'));
   action.disabled = !selectedProfileLook || state !== 'ready';
   action.setAttribute(
     'aria-label',
@@ -1726,7 +1730,18 @@ function syncRealtimeLookAction({ state = 'checking', capability = null } = {}) 
   const label = document.querySelector('#profile-look-live-state');
   if (!action || !label) return;
   realtimeLookCapability = capability;
+  action.dataset.state = state;
+  action.classList.toggle('is-checking', state === 'checking');
+  action.setAttribute('aria-busy', String(state === 'checking'));
   action.disabled = !selectedProfileLook || state !== 'ready';
+  action.setAttribute(
+    'aria-label',
+    state === 'ready'
+      ? 'Відкрити Live Look'
+      : state === 'unavailable'
+        ? 'Live Look тимчасово недоступний'
+        : 'Перевіряємо доступність Live Look',
+  );
   label.textContent = state === 'ready'
     ? capability.paidLiveReady
       ? 'Камера й AI доступні'
@@ -1802,7 +1817,7 @@ document.querySelector('#profile-look-video').addEventListener('click', (event) 
   document.querySelector('#video-progress').hidden = true;
   document.querySelector('#video-result').hidden = true;
   document.querySelector('#video-error').hidden = true;
-  document.querySelector('#video-generate').disabled = false;
+  setVideoGenerateBusy(videoGenerationBusy);
   overlay.classList.remove('hidden');
   document.querySelector('#video-overlay-close').focus({ preventScroll: true });
 });
@@ -1819,6 +1834,13 @@ document.querySelectorAll('#video-surface-options .video-option, #video-motion-o
 function closeVideoOverlay() {
   document.querySelector('#video-overlay').classList.add('hidden');
 }
+function setVideoGenerateBusy(busy) {
+  const action = document.querySelector('#video-generate');
+  videoGenerationBusy = busy;
+  action.disabled = busy;
+  action.classList.toggle('is-loading', busy);
+  action.setAttribute('aria-busy', String(busy));
+}
 document.querySelector('#video-overlay-close').addEventListener('click', closeVideoOverlay);
 document.querySelector('#video-overlay').addEventListener('click', (event) => {
   if (event.target === event.currentTarget) closeVideoOverlay();
@@ -1829,13 +1851,12 @@ document.querySelector('#video-generate').addEventListener('click', async () => 
   const lookId = idOfLook(selectedProfileLook);
   const surface = document.querySelector('#video-surface-options .video-option.active')?.dataset.value ?? 'mirror';
   const motionMode = document.querySelector('#video-motion-options .video-option.active')?.dataset.value ?? 'gentle_sway';
-  const generateBtn = document.querySelector('#video-generate');
   const progressEl = document.querySelector('#video-progress');
   const progressFill = document.querySelector('#video-progress-fill');
   const progressStatus = document.querySelector('#video-progress-status');
   const resultEl = document.querySelector('#video-result');
   const errorEl = document.querySelector('#video-error');
-  generateBtn.disabled = true;
+  setVideoGenerateBusy(true);
   progressEl.hidden = false;
   resultEl.hidden = true;
   errorEl.hidden = true;
@@ -1874,7 +1895,7 @@ document.querySelector('#video-generate').addEventListener('click', async () => 
           player.src = `/api/profile/video-clips/${clip.clip_id}/video`;
           downloadLink.href = `/api/profile/video-clips/${clip.clip_id}/video`;
           resultEl.hidden = false;
-          generateBtn.disabled = false;
+          setVideoGenerateBusy(false);
         } else if (status.status === 'FAILED' || status.status === 'FAIL') {
           clearInterval(poll);
           throw new Error(status.error ?? 'Генерація не вдалася');
@@ -1883,19 +1904,19 @@ document.querySelector('#video-generate').addEventListener('click', async () => 
         clearInterval(poll);
         errorEl.textContent = pollErr.message;
         errorEl.hidden = false;
-        generateBtn.disabled = false;
+        setVideoGenerateBusy(false);
       }
       if (attempts >= maxAttempts) {
         clearInterval(poll);
         errorEl.textContent = 'Timeout: відео не згенерувалося за 6 хвилин';
         errorEl.hidden = false;
-        generateBtn.disabled = false;
+        setVideoGenerateBusy(false);
       }
     }, 3000);
   } catch (err) {
     errorEl.textContent = err.message;
     errorEl.hidden = false;
-    generateBtn.disabled = false;
+    setVideoGenerateBusy(false);
   }
 });
 document.querySelector('#profile-look-live').addEventListener('click', (event) => {
@@ -1903,6 +1924,10 @@ document.querySelector('#profile-look-live').addEventListener('click', (event) =
   const lookId = idOfLook(selectedProfileLook);
   if (!lookId || realtimeLookCapability?.lookId !== lookId) return;
   setLookActionStatus('Live Look: переходимо в окрему camera-сесію на весь екран після явної згоди.');
+  const action = document.querySelector('#profile-look-live');
+  action.classList.add('is-loading');
+  action.setAttribute('aria-busy', 'true');
+  action.disabled = true;
   window.location.assign(realtimeLookCapability.href);
 });
 document.addEventListener('keydown', (event) => {

@@ -138,6 +138,19 @@ test('saved look is one compact action hub without nested guides or forced scrol
     resultCss,
     /\.profile-action-copy strong \{[\s\S]*?overflow:\s*visible;[\s\S]*?text-overflow:\s*clip;[\s\S]*?white-space:\s*normal;/,
   );
+  assert.match(
+    resultCss,
+    /\.profile-library\.has-open-look \.profile-look-scenes \{[\s\S]*?display:\s*none;/,
+  );
+});
+
+test('saved-look actions expose complete keyboard, disabled and loading states', () => {
+  assert.match(resultCss, /\.profile-next-action:active \{[\s\S]*?transform:\s*scale\(\.98\);/);
+  assert.match(resultCss, /\.profile-next-action:focus-visible \{[\s\S]*?outline:\s*3px solid/);
+  assert.match(resultCss, /\.profile-next-action:disabled \{[\s\S]*?pointer-events:\s*none;[\s\S]*?cursor:\s*not-allowed;/);
+  assert.match(resultCss, /\.profile-next-action\.is-checking \.profile-action-icon::after \{[\s\S]*?profile-action-spin/);
+  assert.match(resultCss, /#video-generate\.is-loading::after \{[\s\S]*?profile-action-spin/);
+  assert.match(resultCss, /@media \(prefers-reduced-motion:\s*reduce\)[\s\S]*?#video-generate\.is-loading::after \{[\s\S]*?animation:\s*none;/);
 });
 
 test('Fashion Video and Live Look use full-viewport single surfaces without nested scrolling', () => {
@@ -192,5 +205,9 @@ test('profile mobile copy and controls retain readable type and touch targets', 
   assert.match(
     resultCss,
     /\.profile-look-scene-open \{[\s\S]*?min-height:\s*68px;[\s\S]*?cursor:\s*pointer;/,
+  );
+  assert.match(
+    resultCss,
+    /\.profile-library\.has-open-look \.profile-next-action \{[\s\S]*?min-height:\s*44px;/,
   );
 });

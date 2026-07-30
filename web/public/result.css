@@ -239,16 +239,33 @@
   transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
 }
 
-.profile-next-action:hover,
-.profile-next-action:focus-visible {
+.profile-next-action:hover {
   border-color: var(--action-accent);
   box-shadow: 0 9px 18px color-mix(in srgb, var(--action-accent) 18%, transparent);
-  outline: 0;
   transform: translateY(-1px);
 }
 
-.profile-next-action:disabled { cursor: not-allowed; opacity: .62; }
+.profile-next-action:active { transform: scale(.98); }
+.profile-next-action:focus-visible {
+  border-color: var(--action-accent);
+  outline: 3px solid #173b28;
+  outline-offset: 2px;
+}
+.profile-next-action:disabled { pointer-events: none; cursor: not-allowed; opacity: .62; }
 .profile-next-action:disabled:hover { border-color: color-mix(in srgb, var(--action-accent) 36%, #dbe3d2); box-shadow: none; transform: none; }
+.profile-next-action.is-checking { opacity: .82; }
+.profile-next-action.is-checking .profile-action-icon::after {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  content: "";
+  animation: profile-action-spin .8s linear infinite;
+}
+.profile-next-action.is-checking .profile-action-icon > * { visibility: hidden; }
+.profile-next-action.is-loading { pointer-events: none; cursor: wait; opacity: .76; }
 
 .profile-look-action-status {
   margin: 0;
@@ -258,7 +275,7 @@
   line-height: 1.25;
 }
 
-.profile-action-icon { display: grid; width: 34px; height: 34px; place-items: center; border: 1px solid color-mix(in srgb, var(--action-accent) 65%, transparent); border-radius: 50%; color: var(--action-accent); font-size: 18px; box-shadow: 0 0 16px color-mix(in srgb, var(--action-accent) 18%, transparent); }
+.profile-action-icon { position: relative; display: grid; width: 34px; height: 34px; place-items: center; border: 1px solid color-mix(in srgb, var(--action-accent) 65%, transparent); border-radius: 50%; color: var(--action-accent); font-size: 18px; box-shadow: 0 0 16px color-mix(in srgb, var(--action-accent) 18%, transparent); }
 .profile-action-copy { display: grid; gap: 2px; min-width: 0; }
 .profile-action-copy strong { overflow: visible; color: currentColor; font-size: 13px; line-height: 1.1; overflow-wrap: anywhere; text-overflow: clip; white-space: normal; }
 .profile-action-copy small { color: color-mix(in srgb, currentColor 64%, transparent); font-size: 10px; line-height: 1.2; }
@@ -307,8 +324,13 @@
   box-shadow: 0 10px 22px rgba(84, 58, 18, .18);
   transition: transform .18s ease, box-shadow .18s ease;
 }
-.profile-look-background-action:hover,
-.profile-look-background-action:focus-visible { outline: 0; box-shadow: 0 13px 28px rgba(84, 58, 18, .28), 0 0 0 3px rgba(210, 154, 36, .2); transform: translateY(-1px); }
+.profile-look-background-action:hover { box-shadow: 0 13px 28px rgba(84, 58, 18, .28); transform: translateY(-1px); }
+.profile-look-background-action:active { transform: scale(.98); }
+.profile-look-background-action:focus-visible {
+  outline: 3px solid #173b28;
+  outline-offset: 2px;
+  box-shadow: 0 13px 28px rgba(84, 58, 18, .28);
+}
 .profile-action-signal { display: grid; width: 38px; height: 38px; place-items: center; border: 1px solid rgba(255, 204, 93, .68); border-radius: 50%; color: #ffd166; font-size: 19px; }
 .profile-look-background-action .profile-action-copy strong { color: #fffdf6; font-size: 15px; }
 .profile-look-background-action .profile-action-copy small { color: rgba(255, 230, 177, .82); font-size: 11px; }
@@ -839,6 +861,7 @@ body.profile-live-open {
 }
 
 .video-option {
+  min-height: 44px;
   border: 1px solid rgba(255, 255, 255, .12);
   border-radius: 10px;
   background: rgba(255, 255, 255, .04);
@@ -854,10 +877,41 @@ body.profile-live-open {
   border-color: rgba(255, 255, 255, .2);
 }
 
+.video-option:active { transform: scale(.98); }
+.video-option:focus-visible {
+  outline: 3px solid #b8ff3d;
+  outline-offset: 2px;
+}
+
 .video-option.active {
   background: rgba(184, 255, 61, .12);
   border-color: rgba(184, 255, 61, .35);
   color: #b8ff3d;
+}
+
+#video-generate {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+}
+
+#video-generate.is-loading {
+  pointer-events: none;
+  cursor: wait;
+  opacity: .76;
+}
+
+#video-generate.is-loading::after {
+  width: 13px;
+  height: 13px;
+  flex: 0 0 auto;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  content: "";
+  animation: profile-action-spin .8s linear infinite;
 }
 
 .video-progress {
@@ -1157,6 +1211,11 @@ body.profile-live-open {
     animation-duration: .01ms !important;
     animation-iteration-count: 1 !important;
   }
+
+  .profile-next-action.is-checking .profile-action-icon::after,
+  #video-generate.is-loading::after {
+    animation: none;
+  }
 }
 
 @media (prefers-contrast: more) {
@@ -1168,6 +1227,10 @@ body.profile-live-open {
   .profile-look-card {
     border-width: 2px;
   }
+}
+
+@keyframes profile-action-spin {
+  to { transform: rotate(360deg); }
 }
 
 @keyframes result-reveal {
@@ -1820,6 +1883,12 @@ body.profile-live-open {
   position: relative;
   min-width: 0;
   min-height: 300px;
+}
+
+/* The open detail is an action hub, not a second library. Keeping histories
+   out of this fixed surface removes nested scroll areas at every viewport. */
+.profile-library.has-open-look .profile-look-scenes {
+  display: none;
 }
 
 /* The open panel is absolutely positioned inside the workspace, so its height
@@ -2636,7 +2705,7 @@ body.profile-live-open {
 
   .profile-library.has-open-look .profile-next-action {
     grid-template-columns: 25px minmax(0, 1fr);
-    min-height: 42px;
+    min-height: 44px;
     padding: 6px;
     gap: 5px;
     border-radius: 10px;
@@ -2696,7 +2765,7 @@ body.profile-live-open {
     .secondary-result-action,
     .profile-delete-action
   ) {
-    min-height: 38px;
+    min-height: 44px;
     padding: 5px 6px;
     font-size: 10px;
     line-height: 1.12;
