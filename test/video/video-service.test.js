@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { tmpdir } from 'node:os';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
 
@@ -91,6 +91,39 @@ test('createClip builds a motion plan and persists the job id', async () => {
     // Only the create phase should have been called
     assert.equal(calls.length, 1);
     assert.equal(calls[0].phase, 'create');
+  });
+});
+
+test('createClip settles a definite provider rejection instead of leaving a phantom submitting clip', async () => {
+  await withTempDir(async (dir, sourcePath) => {
+    const provider = {
+      async createJob() {
+        const error = new Error('CLI rejected the media shape before submission');
+        error.code = 'INVALID_MEDIA_SET';
+        throw error;
+      },
+    };
+    const store = new ClipStore(dir);
+    const service = new VideoService({
+      provider,
+      clipStore: store,
+      clock: () => Date.parse('2026-07-30T22:00:00.000Z'),
+    });
+
+    await assert.rejects(
+      () => service.createClip({
+        modeId: 'editorial_micro_moment',
+        surfaceId: 'tv',
+        sourceImagePath: sourcePath,
+      }),
+      (error) => error.code === 'VIDEO_CREATE_REJECTED',
+    );
+
+    const [clipId] = await readdir(path.join(dir, 'clips'));
+    const saved = await store.load(clipId);
+    assert.equal(saved.status, 'FAILED');
+    assert.equal(saved.failureCode, 'VIDEO_CREATE_REJECTED');
+    assert.equal(saved.jobId, null);
   });
 });
 

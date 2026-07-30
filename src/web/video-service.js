@@ -400,7 +400,27 @@ export class VideoService {
 
     // Phase 1: create the job. The onJobCreated hook persists the job id
     // before the wait phase starts, so a crash cannot orphan a paid job.
-    const created = await this.#provider.createJob(request);
+    let created;
+    try {
+      created = await this.#provider.createJob(request);
+    } catch (cause) {
+      // A provider can reject locally before it accepts a job (invalid media
+      // shape, expired local authentication, etc.). Leaving such a clip in
+      // SUBMITTING makes it look paid/active forever and blocks a safe release.
+      // The one exception is an acknowledgement we cannot parse: that outcome
+      // may already be billed, so it stays recoverable until reconciled.
+      if (cause?.code === 'CREATE_OUTCOME_UNKNOWN') throw cause;
+      await this.#store.save(clipId, {
+        ...submitting,
+        status: 'FAILED',
+        failureCode: 'VIDEO_CREATE_REJECTED',
+        updatedAt: new Date(this.#clock()).toISOString(),
+      });
+      throw new VideoServiceError('Video provider rejected the create request', {
+        code: 'VIDEO_CREATE_REJECTED',
+        status: 502,
+      });
+    }
 
     const receipt = {
       schema_version: '1.0.0',
