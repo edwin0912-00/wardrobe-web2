@@ -135,6 +135,73 @@ test('cutout removes a detached low-contrast background ghost without deleting r
   assert.equal(result.stats.removed_residue_pixels, 20 * 70);
 });
 
+test('cutout never deletes the largest component when the primary garment is light', async () => {
+  const input = await sharp({
+    create: {
+      width: 160,
+      height: 120,
+      channels: 3,
+      background: { r: 250, g: 251, b: 246 },
+    },
+  })
+    .composite([
+      {
+        input: await solid(42, 84, { r: 241, g: 242, b: 238 }),
+        left: 82,
+        top: 18,
+      },
+      {
+        input: await solid(12, 12, { r: 55, g: 65, b: 70 }),
+        left: 132,
+        top: 94,
+      },
+    ])
+    .png()
+    .toBuffer();
+  const result = await removeBorderConnectedWhiteToAlpha(input, {
+    removeDetachedLowContrastResidue: true,
+  });
+  const { data, info } = await sharp(result.image).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const alphaAt = (x, y) => data[(y * info.width + x) * info.channels + 3];
+  assert.equal(alphaAt(90, 40), 255, 'the largest light primary component must remain');
+  assert.equal(alphaAt(136, 98), 255, 'the smaller dark detail must remain');
+  assert.equal(result.stats.removed_residue_components, 0);
+  assert.equal(result.stats.removed_residue_pixels, 0);
+});
+
+test('cutout preserves a nearby light detached garment detail', async () => {
+  const input = await sharp({
+    create: {
+      width: 160,
+      height: 120,
+      channels: 3,
+      background: { r: 250, g: 251, b: 246 },
+    },
+  })
+    .composite([
+      {
+        input: await solid(42, 84, { r: 30, g: 42, b: 54 }),
+        left: 82,
+        top: 18,
+      },
+      {
+        input: await solid(8, 12, { r: 241, g: 242, b: 238 }),
+        left: 70,
+        top: 50,
+      },
+    ])
+    .png()
+    .toBuffer();
+  const result = await removeBorderConnectedWhiteToAlpha(input, {
+    removeDetachedLowContrastResidue: true,
+  });
+  const { data, info } = await sharp(result.image).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const alphaAt = (x, y) => data[(y * info.width + x) * info.channels + 3];
+  assert.equal(alphaAt(74, 56), 255, 'a nearby light garment detail must remain');
+  assert.equal(result.stats.removed_residue_components, 0);
+  assert.equal(result.stats.removed_residue_pixels, 0);
+});
+
 test('garment source alpha creates an isolated cutout and exact-white review card', async () => {
   const redPatch = await solid(20, 20, { r: 220, g: 20, b: 30, alpha: 1 }, 4);
   const input = await sharp({

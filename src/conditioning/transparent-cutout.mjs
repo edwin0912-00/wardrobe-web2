@@ -84,13 +84,57 @@ export async function removeBorderConnectedWhiteToAlpha(input, {
           }
         }
       }
-      components.push({ label, pixels, strongPixels });
+      components.push({ label, pixels, strongPixels, nearPrimaryStrongPixels: 0 });
     }
     const hasStrongForeground = components.some(({ strongPixels }) => strongPixels > 0);
+    const primary = components.reduce(
+      (largest, component) => (!largest || component.pixels > largest.pixels ? component : largest),
+      null,
+    );
+    const proximityThreshold = Math.max(3, Math.round(Math.max(width, height) * 0.04));
+    const primaryDistance = new Uint16Array(width * height);
+    primaryDistance.fill(0xffff);
+    head = 0;
+    tail = 0;
+    if (primary?.strongPixels > 0) {
+      for (let index = 0; index < labels.length; index += 1) {
+        if (labels[index] !== primary.label || !isStrongForeground(index)) continue;
+        primaryDistance[index] = 0;
+        queue[tail++] = index;
+      }
+      while (head < tail) {
+        const index = queue[head++];
+        const distance = primaryDistance[index];
+        if (distance >= proximityThreshold) continue;
+        const x = index % width;
+        const y = Math.floor(index / width);
+        for (let yOffset = -1; yOffset <= 1; yOffset += 1) {
+          for (let xOffset = -1; xOffset <= 1; xOffset += 1) {
+            if (xOffset === 0 && yOffset === 0) continue;
+            const nextX = x + xOffset;
+            const nextY = y + yOffset;
+            if (nextX < 0 || nextX >= width || nextY < 0 || nextY >= height) continue;
+            const next = nextY * width + nextX;
+            if (primaryDistance[next] <= distance + 1) continue;
+            primaryDistance[next] = distance + 1;
+            queue[tail++] = next;
+          }
+        }
+      }
+      for (let index = 0; index < labels.length; index += 1) {
+        const label = labels[index];
+        if (label === 0 || label === primary.label || primaryDistance[index] > proximityThreshold) continue;
+        components[label - 1].nearPrimaryStrongPixels += 1;
+      }
+    }
     const residueLabels = new Set(components
-      .filter(({ pixels, strongPixels }) => (
+      .filter((component) => (
         hasStrongForeground
-        && strongPixels / pixels < minimumStrongPixelRatio
+        && primary?.strongPixels > 0
+        && component.label !== primary.label
+        && component.pixels < primary.pixels * 0.5
+        && component.strongPixels / component.pixels < minimumStrongPixelRatio
+        && component.nearPrimaryStrongPixels / component.pixels < 0.25
       ))
       .map(({ label }) => label));
     if (residueLabels.size > 0) {
