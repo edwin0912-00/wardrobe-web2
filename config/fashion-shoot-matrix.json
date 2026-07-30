@@ -1,0 +1,13 @@
+{
+  "schema_version": "1.0.0",
+  "product": "Fashion Shoot",
+  "scope": "all_ready_shoot_styles",
+  "expected_style_count": 15,
+  "customer_frames_per_style": 5,
+  "hero_role": "technical_identity_and_look_check",
+  "per_shoot_post_hero_concurrency": 2,
+  "matrix_max_inflight_generation_requests": 8,
+  "matrix_max_parallel_shoots": 4,
+  "failure_policy": "stop_after_the_current_wave_and_report_the_exact_failed_style",
+  "approval_policy": "only_qa_passed_hero_with_exact_output_hash"
+}
