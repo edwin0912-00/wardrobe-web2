@@ -27,6 +27,7 @@ import {
   finalizeConsumedRunState,
   formatLookCount,
   idOfAvatar,
+  idOfLook,
   lineageFromStorage,
   latestLookForAvatar,
   looksForAvatar,

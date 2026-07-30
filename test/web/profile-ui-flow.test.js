@@ -62,6 +62,11 @@ test('selected saved look consumes the fail-closed full-viewport Live capability
 });
 
 test('saved look exposes actionable branches and their honest pipeline explanations', () => {
+  assert.match(
+    appSource,
+    /idOfAvatar,\s*idOfLook,\s*lineageFromStorage,/,
+    'capability refresh must import the shared saved-look id resolver it executes at runtime',
+  );
   for (const id of [
     'profile-look-background-primary',
     'profile-look-refine',
