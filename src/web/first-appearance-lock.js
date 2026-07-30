@@ -66,6 +66,7 @@ async function crop(bytes, region) {
 export async function lockFirstAppearance({ approvedLookPath, outputDirectory, runId, vlm, clock = () => new Date() }) {
   const look = await readFile(approvedLookPath);
   const isolated = await removeBorderConnectedWhiteToAlpha(look, {
+    removeBorderConnectedNeutralGradient: true,
     removeDetachedLowContrastResidue: true,
   });
   const { data, info } = await sharp(isolated.image).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
@@ -100,6 +101,7 @@ export async function lockFirstAppearance({ approvedLookPath, outputDirectory, r
     }
     const source = await readFile(sourcePaths[index]);
     const cutout = await removeBorderConnectedWhiteToAlpha(source, {
+      removeBorderConnectedNeutralGradient: true,
       removeDetachedLowContrastResidue: true,
     });
     const directory = path.join(outputDirectory, String(index + 1).padStart(2, '0'));

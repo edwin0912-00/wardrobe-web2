@@ -383,6 +383,7 @@ export class GarmentConditioner {
       const referenceCardPath = path.join(itemDirectory, 'reference-card.png');
       await atomicWrite(referenceCardPath, accepted.image);
       const cutout = await removeBorderConnectedWhiteToAlpha(accepted.image, {
+        removeBorderConnectedNeutralGradient: true,
         removeDetachedLowContrastResidue: true,
       });
       const cutoutPath = path.join(itemDirectory, 'cutout.png');

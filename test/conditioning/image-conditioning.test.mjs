@@ -159,6 +159,7 @@ test('cutout never deletes the largest component when the primary garment is lig
     .png()
     .toBuffer();
   const result = await removeBorderConnectedWhiteToAlpha(input, {
+    removeBorderConnectedNeutralGradient: true,
     removeDetachedLowContrastResidue: true,
   });
   const { data, info } = await sharp(result.image).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
@@ -200,6 +201,46 @@ test('cutout preserves a nearby light detached garment detail', async () => {
   assert.equal(alphaAt(74, 56), 255, 'a nearby light garment detail must remain');
   assert.equal(result.stats.removed_residue_components, 0);
   assert.equal(result.stats.removed_residue_pixels, 0);
+});
+
+test('cutout follows a neutral floor gradient from the border without erasing footwear', async () => {
+  const width = 160;
+  const height = 120;
+  const background = Buffer.alloc(width * height * 3);
+  for (let y = 0; y < height; y += 1) {
+    const value = Math.round(248 - (34 * y) / (height - 1));
+    for (let x = 0; x < width; x += 1) {
+      const offset = (y * width + x) * 3;
+      background[offset] = value;
+      background[offset + 1] = value;
+      background[offset + 2] = value - 3;
+    }
+  }
+  const input = await sharp(background, { raw: { width, height, channels: 3 } })
+    .composite([
+      {
+        input: await solid(42, 70, { r: 65, g: 68, b: 70 }),
+        left: 59,
+        top: 12,
+      },
+      {
+        input: await solid(30, 18, { r: 216, g: 202, b: 184 }),
+        left: 65,
+        top: 82,
+      },
+    ])
+    .png()
+    .toBuffer();
+  const result = await removeBorderConnectedWhiteToAlpha(input, {
+    removeBorderConnectedNeutralGradient: true,
+  });
+  const { data, info } = await sharp(result.image).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const alphaAt = (x, y) => data[(y * info.width + x) * info.channels + 3];
+  assert.equal(alphaAt(10, 110), 0, 'the darker neutral floor gradient must become transparent');
+  assert.equal(alphaAt(70, 40), 255, 'the primary garment must remain');
+  assert.equal(alphaAt(75, 90), 255, 'light footwear must remain');
+  assert.ok(result.stats.removed_gradient_pixels > 0);
+  assert.equal(result.stats.border_gradient_cleanup, true);
 });
 
 test('garment source alpha creates an isolated cutout and exact-white review card', async () => {
