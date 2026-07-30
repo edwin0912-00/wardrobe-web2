@@ -90,10 +90,6 @@ export async function createWebApp({
   await app.register(multipart, { limits: { files: 7, fileSize: 20 * 1024 * 1024, fields: 12, parts: 20 } });
   await registerHeicConversionRoute(app);
   await app.register(fastifyStatic, { root: publicDirectory, prefix: '/' });
-  await registerPostShootRoutes(app, {
-    projectRoot: path.resolve(import.meta.dirname, '..', '..'),
-    lucyTokenIssuer,
-  });
   const secureCookie = process.env.ZEELY_COOKIE_SECURE !== 'false';
   let sceneService = null;
   let scenePresetResolver = null;
@@ -170,6 +166,12 @@ export async function createWebApp({
         secureCookie,
       })
     : null;
+  await registerPostShootRoutes(app, {
+    projectRoot: path.resolve(import.meta.dirname, '..', '..'),
+    lucyTokenIssuer,
+    profileApi,
+    profiles,
+  });
   if (sceneService) {
     await registerSceneRoutes(app, {
       sceneService,

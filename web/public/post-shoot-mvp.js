@@ -202,6 +202,7 @@ async function signal(result) {
 async function startLive() {
   if (!$('#privacy-consent').checked) throw new Error('Не підтверджено використання camera-потоку.');
   if (!$('#cost-consent').checked) throw new Error('Не підтверджено ліміт платної 15-секундної сесії.');
+  if (!selectedLookId) throw new Error('Live запускається лише зі збереженого образу.');
   const falModule = await import('./vendor/fal-client.js?v=20260727-7');
   const fal = falModule.fal ?? falModule.default?.fal;
   if (typeof fal?.realtime?.connect !== 'function') {
@@ -234,6 +235,7 @@ async function startLive() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           app,
+          look_id: selectedLookId,
           privacy_consent: true,
           cost_acknowledged: true,
           max_session_seconds: SESSION_SECONDS,

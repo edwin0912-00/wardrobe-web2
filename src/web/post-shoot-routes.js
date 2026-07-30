@@ -1,13 +1,36 @@
 import { loadPostShootPipeline, publicPostShootPipeline } from './post-shoot-pipeline.js';
+import { ProfileError } from './profile-service.js';
 
 const MODEL_ID = 'decart/lucy-2-5/realtime';
 const MAX_SESSION_SECONDS = 15;
 const MAXIMUM_COST_USD = 0.6;
 const SAVED_LOOK_ID = /^[A-Za-z0-9][A-Za-z0-9-]{0,127}$/;
 
+function sameOriginMutation(request) {
+  if (request.headers['sec-fetch-site'] === 'cross-site') {
+    throw new ProfileError(403, 'CROSS_SITE_REQUEST', 'Cross-site Live mutation is not allowed');
+  }
+  const origin = request.headers.origin;
+  if (!origin) return;
+  let originHost;
+  try {
+    originHost = new URL(origin).host;
+  } catch {
+    throw new ProfileError(403, 'INVALID_ORIGIN', 'Invalid Live mutation origin');
+  }
+  const requestHost = String(request.headers['x-forwarded-host'] ?? request.headers.host ?? '')
+    .split(',')[0]
+    .trim();
+  if (!requestHost || originHost !== requestHost) {
+    throw new ProfileError(403, 'CROSS_SITE_REQUEST', 'Cross-site Live mutation is not allowed');
+  }
+}
+
 export async function registerPostShootRoutes(app, {
   projectRoot,
   lucyTokenIssuer = null,
+  profileApi = null,
+  profiles = null,
 } = {}) {
   const pipeline = await loadPostShootPipeline({ projectRoot });
 
@@ -30,8 +53,22 @@ export async function registerPostShootRoutes(app, {
         error: 'Real-time Look потребує валідний збережений образ.',
       });
     }
+    if (!profileApi || !profiles) {
+      return reply.code(503).send({
+        code: 'PROFILE_OWNERSHIP_UNAVAILABLE',
+        error: 'Перевірка власника образу недоступна.',
+      });
+    }
+    const session = await profileApi.resolveRequestProfile(request, reply);
+    if (!profiles.ownsLook(session.profileId, lookId)) {
+      return reply.code(404).send({
+        code: 'LOOK_NOT_FOUND',
+        error: 'Look not found',
+      });
+    }
     return reply
       .header('Cache-Control', 'private, no-store')
+      .header('Vary', 'Cookie')
       .send({
         capability: 'REALTIME_LOOK',
         camera_preview_ready: true,
@@ -62,6 +99,7 @@ export async function registerPostShootRoutes(app, {
   });
 
   app.post('/api/fal/realtime-token', async (request, reply) => {
+    sameOriginMutation(request);
     const body = request.body ?? {};
     if (body.app !== MODEL_ID) {
       return reply.code(400).send({ code: 'MODEL_NOT_ALLOWED', error: 'Lucy model is not allowlisted' });
@@ -79,6 +117,26 @@ export async function registerPostShootRoutes(app, {
         error: 'Потрібна явна згода на передачу camera-потоку для цієї Live-сесії.',
       });
     }
+    const lookId = String(body.look_id ?? '');
+    if (!SAVED_LOOK_ID.test(lookId)) {
+      return reply.code(400).send({
+        code: 'INVALID_LOOK_ID',
+        error: 'Real-time Look потребує валідний збережений образ.',
+      });
+    }
+    if (!profileApi || !profiles) {
+      return reply.code(503).send({
+        code: 'PROFILE_OWNERSHIP_UNAVAILABLE',
+        error: 'Перевірка власника образу недоступна.',
+      });
+    }
+    const session = await profileApi.resolveRequestProfile(request, reply);
+    if (!profiles.ownsLook(session.profileId, lookId)) {
+      return reply.code(404).send({
+        code: 'LOOK_NOT_FOUND',
+        error: 'Look not found',
+      });
+    }
     if (typeof lucyTokenIssuer !== 'function') {
       return reply.code(503).send({
         code: 'LUCY_PROVIDER_NOT_CONFIGURED',
@@ -93,6 +151,7 @@ export async function registerPostShootRoutes(app, {
     if (typeof token !== 'string' || token.length < 16) throw new Error('Lucy token issuer returned an invalid token');
     return reply
       .header('Cache-Control', 'private, no-store')
+      .header('Vary', 'Cookie')
       .type('text/plain')
       .send(token);
   });

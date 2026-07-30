@@ -33,6 +33,7 @@ test('browser draft requires a local reference photo and states the fifteen-seco
   assert.match(html, /id="camera-permission-status"/);
   assert.match(client, /max_session_seconds:\s*SESSION_SECONDS/);
   assert.match(client, /privacy_consent:\s*true/);
+  assert.match(client, /look_id:\s*selectedLookId/);
   assert.match(client, /!state\.running \|\| !\$\('#privacy-consent'\)\.checked \|\| !\$\('#cost-consent'\)\.checked/);
   assert.match(client, /\/api\/profile\/looks\/\$\{encodeURIComponent\(lookId\)\}\/live-reference\.png/);
   assert.doesNotMatch(client, /window\.confirm/);
@@ -44,6 +45,15 @@ test('browser draft requires a local reference photo and states the fifteen-seco
   assert.match(client, /naturalHeight < 512/);
   assert.match(client, /falModule\.default\?\.fal/);
   assert.match(client, /fal\?\.realtime\?\.connect/);
+});
+
+test('web app registers profile ownership before protected Real-time Look routes', async () => {
+  const appSource = await readFile(new URL('../../src/web/app.js', import.meta.url), 'utf8');
+  assert.ok(
+    appSource.indexOf('registerProfileRoutes(app') < appSource.indexOf('registerPostShootRoutes(app'),
+    'profile routes must produce profileApi before Real-time Look routes are registered',
+  );
+  assert.match(appSource, /registerPostShootRoutes\(app,\s*\{[\s\S]*?profileApi,[\s\S]*?profiles,/);
 });
 
 test('graph rejects a missing transition target', async () => {
