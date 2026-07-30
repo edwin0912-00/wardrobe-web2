@@ -312,14 +312,14 @@ test('Create Universe mechanically packs all four canonical sheets when item loc
     reference_id: `${presetId}.environment`,
   };
   const definitions = [
-    ['composition_anchor', 'camera_lens', '#665544'],
-    ['negative_reference', 'blocking', '#554433'],
-    ['lighting_anchor', 'expression_gaze', '#887766'],
-    ['palette_anchor', 'garment_behaviour', '#776655'],
+    ['composition_anchor', 'camera_lens', '#665544', 2688, 1520],
+    ['negative_reference', 'blocking', '#554433', 1344, 752],
+    ['lighting_anchor', 'expression_gaze', '#887766', 3072, 2048],
+    ['palette_anchor', 'garment_behaviour', '#776655', 3072, 2048],
   ];
   const imageReferences = await Promise.all(definitions.map(
-    async ([role, sheet, color]) => ({
-      ...await imageFile(fixture.root, `packed-${sheet}.png`, { color }),
+    async ([role, sheet, color, width, height]) => ({
+      ...await imageFile(fixture.root, `packed-${sheet}.png`, { color, width, height }),
       role,
       reference_id: `${presetId}.style_${sheet}`,
     }),
@@ -371,7 +371,7 @@ test('Create Universe mechanically packs all four canonical sheets when item loc
   );
   const authority = calls[0].references.ordered.at(-1);
   const authorityMetadata = await sharp(await readFile(authority.path)).metadata();
-  assert.deepEqual([authorityMetadata.width, authorityMetadata.height], [640, 800]);
+  assert.deepEqual([authorityMetadata.width, authorityMetadata.height], [3072, 2048]);
   assert.equal(authority.sha256, generated.metadata.create_universe_authority_sheet_sha256);
   assert.equal(
     generated.metadata.create_universe_authority_source_sha256,
@@ -382,6 +382,10 @@ test('Create Universe mechanically packs all four canonical sheets when item loc
       ))
       .map((item) => item.sha256)
       .join(':'),
+  );
+  assert.equal(
+    generated.metadata.create_universe_authority_source_geometry,
+    '2688x1520:1344x752:3072x2048:3072x2048',
   );
   assert.match(calls[0].prompt, /ATTACHMENT_6 \[CREATE_UNIVERSE_AUTHORITY_SHEET\]/);
   assert.match(calls[0].prompt, /TOP_LEFT=CAMERA_LENS/);

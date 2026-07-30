@@ -295,15 +295,24 @@ async function createUniverseAuthoritySheet(references, workDirectory) {
   }
   const sourceBytes = await Promise.all(references.map((item) => readFile(item.path)));
   const metadata = await Promise.all(sourceBytes.map((bytes) => sharp(bytes).metadata()));
-  const width = metadata[0]?.width;
-  const height = metadata[0]?.height;
-  if (
-    !Number.isInteger(width)
-    || !Number.isInteger(height)
-    || metadata.some((item) => item.width !== width || item.height !== height)
-  ) {
-    throw new Error('Create Universe style sheets must share one exact canvas before mechanical packing');
+  if (metadata.some((item) => !Number.isInteger(item.width) || !Number.isInteger(item.height))) {
+    throw new Error('Create Universe style sheets must expose exact source geometry');
   }
+  // The source boards deliberately use different landscape canvases. Normalise
+  // transport, never content: every complete board is contained in one fixed
+  // transparent cell with no crop, stretch or generated pixels.
+  const width = 1536;
+  const height = 1024;
+  const cells = await Promise.all(sourceBytes.map((bytes) => sharp(bytes)
+    .resize({
+      width,
+      height,
+      fit: 'contain',
+      position: 'centre',
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    })
+    .png({ compressionLevel: 9, adaptiveFiltering: false })
+    .toBuffer()));
   const sourceSha256 = references.map((item) => item.sha256);
   const authorityBytes = await sharp({
     create: {
@@ -313,10 +322,10 @@ async function createUniverseAuthoritySheet(references, workDirectory) {
       background: { r: 0, g: 0, b: 0, alpha: 0 },
     },
   }).composite([
-    { input: sourceBytes[0], left: 0, top: 0 },
-    { input: sourceBytes[1], left: width, top: 0 },
-    { input: sourceBytes[2], left: 0, top: height },
-    { input: sourceBytes[3], left: width, top: height },
+    { input: cells[0], left: 0, top: 0 },
+    { input: cells[1], left: width, top: 0 },
+    { input: cells[2], left: 0, top: height },
+    { input: cells[3], left: width, top: height },
   ]).png({ compressionLevel: 9, adaptiveFiltering: false }).toBuffer();
   const authoritySha256 = sha256(authorityBytes);
   const filename = path.join(
@@ -334,6 +343,7 @@ async function createUniverseAuthoritySheet(references, workDirectory) {
       'garment_behaviour',
     ],
     styleSheetSourceSha256: sourceSha256,
+    styleSheetSourceGeometry: metadata.map((item) => `${item.width}x${item.height}`),
     path: filename,
     sha256: authoritySha256,
     mediaType: 'image/png',
@@ -837,6 +847,8 @@ export class SceneGeneratorAdapter {
           create_universe_authority_sheet_sha256: createUniverseAuthority.sha256,
           create_universe_authority_source_sha256:
             createUniverseAuthority.styleSheetSourceSha256.join(':'),
+          create_universe_authority_source_geometry:
+            createUniverseAuthority.styleSheetSourceGeometry.join(':'),
           create_universe_authority_layout:
             'TOP_LEFT_CAMERA_LENS:TOP_RIGHT_BLOCKING:BOTTOM_LEFT_EXPRESSION_GAZE:BOTTOM_RIGHT_GARMENT_BEHAVIOUR',
         } : {}),
