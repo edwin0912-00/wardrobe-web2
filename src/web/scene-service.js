@@ -84,10 +84,58 @@ const POST_RELEASE_REJECTION_LEDGER_TYPE = 'POST_RELEASE_SCENE_REJECTION_LEDGER_
 const POST_RELEASE_REJECTION_GATES = new Set(SCENE_EVALUATOR_GATES);
 const MOVING_REVIEWER_VERSION = /^(?:builtin-current|current|latest|unknown)$/i;
 const SHA256_PATTERN = /^[a-f0-9]{64}$/;
+const FASHION_SHOOT_ADVISORY_GATES = new Set([
+  'ITEM_FIDELITY',
+  'SCENE_MATCH',
+  'LIGHT_AND_CONTACT_SHADOW',
+]);
+const FASHION_SHOOT_BLOCKING_ANATOMY_DEFECTS = new Set([
+  'MALFORMED_HAND_OR_FINGERS',
+  'MALFORMED_FOOT_OR_TOES',
+  'MALFORMED_FACE_OR_EARS',
+  'DUPLICATED_OR_MISSING_BODY_PART',
+  'IMPOSSIBLE_JOINT_OR_LIMB_GEOMETRY',
+  'IMPLAUSIBLE_BODY_PROPORTION',
+  'SUBJECT_FUSED_WITH_ENVIRONMENT',
+]);
 // Change this only when the bytes sent to the image provider change. It is part
 // of provider idempotency, so an old journal can never be replayed against a
 // materially different repair contract.
 const SCENE_GENERATION_CONTRACT_VERSION = 'scene-generation-contract-v9-native-3-4';
+
+export function applyFashionShootVisualReviewPolicy(evaluation, presetId) {
+  if (typeof presetId !== 'string' || !presetId.startsWith('shoot.')) return evaluation;
+  const result = structuredClone(evaluation);
+  const notes = [];
+  for (const gate of result.gates) {
+    if (gate.decision !== 'FAIL') continue;
+    const framingIsOnlyArtDirection = gate.id === 'FRAMING_AND_ANATOMY'
+      && !gate.defects.some((defect) => FASHION_SHOOT_BLOCKING_ANATOMY_DEFECTS.has(defect));
+    if (!FASHION_SHOOT_ADVISORY_GATES.has(gate.id) && !framingIsOnlyArtDirection) continue;
+    notes.push({
+      id: gate.id,
+      defects: [...gate.defects],
+      evidence: gate.evidence,
+    });
+    const originalDefects = gate.defects.length > 0 ? gate.defects.join(', ') : 'visual review note';
+    gate.decision = 'PASS';
+    gate.defects = [];
+    gate.evidence = sanitizeOutboundString(
+      `NON_BLOCKING_FASHION_REVIEW (${originalDefects}): ${gate.evidence}`,
+    ).slice(0, 2_000);
+  }
+  if (notes.length > 0) {
+    const review = notes
+      .map((note) => `${note.id}[${note.defects.join(', ') || 'review'}]`)
+      .join('; ');
+    result.summary = sanitizeOutboundString(
+      [result.summary, `Non-blocking Fashion Shoot review: ${review}`]
+        .filter(Boolean)
+        .join('; '),
+    ).slice(0, 2_000);
+  }
+  return result;
+}
 
 function nowIso(clock) {
   const value = clock();
@@ -3802,6 +3850,10 @@ export class SceneService {
           `Deterministic framing lock failed: ${framingAssessment.defects.join(', ')}`,
         ].filter(Boolean).join('; '));
       }
+      normalized = applyFashionShootVisualReviewPolicy(
+        normalized,
+        state.bindings.preset.preset_id,
+      );
     } catch (error) {
       if (signal.aborted) return attempt;
       if (error?.code === 'BOUND_INPUT_INTEGRITY_FAILED') throw error;

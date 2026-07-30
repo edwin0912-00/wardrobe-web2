@@ -14,7 +14,10 @@ import {
   sha256,
   validatePersistedSceneState,
 } from '../../src/web/scene-contract.js';
-import { SceneService } from '../../src/web/scene-service.js';
+import {
+  SceneService,
+  applyFashionShootVisualReviewPolicy,
+} from '../../src/web/scene-service.js';
 
 const PRESET_ID = 'std.studio.peach_soft_gloss';
 const PRESET_VERSION = '1.0.0';
@@ -55,6 +58,59 @@ function passEvaluation(overrides = {}) {
     },
   };
 }
+
+test('Fashion Shoot records creative QA as review notes while preserving safety blockers', () => {
+  const creative = passEvaluation({
+    ITEM_FIDELITY: 'FAIL',
+    SCENE_MATCH: 'FAIL',
+    LIGHT_AND_CONTACT_SHADOW: 'FAIL',
+    FRAMING_AND_ANATOMY: 'FAIL',
+  });
+  creative.gates.find((gate) => gate.id === 'FRAMING_AND_ANATOMY').defects = [
+    'FULL_FOOTWEAR_NOT_VISIBLE',
+  ];
+  const reviewed = applyFashionShootVisualReviewPolicy(
+    creative,
+    'shoot.terracotta_hardlight.environmental_hero',
+  );
+  assert.ok(reviewed.gates.every((gate) => gate.decision === 'PASS'));
+  assert.match(reviewed.summary, /Non-blocking Fashion Shoot review/);
+  assert.match(
+    reviewed.gates.find((gate) => gate.id === 'ITEM_FIDELITY').evidence,
+    /NON_BLOCKING_FASHION_REVIEW/,
+  );
+
+  const unsafe = passEvaluation({
+    NEAR_COPY_AND_LEAKAGE: 'FAIL',
+    IDENTITY: 'FAIL',
+    FRAMING_AND_ANATOMY: 'FAIL',
+  });
+  unsafe.gates.find((gate) => gate.id === 'FRAMING_AND_ANATOMY').defects = [
+    'DUPLICATED_OR_MISSING_BODY_PART',
+  ];
+  const blocked = applyFashionShootVisualReviewPolicy(
+    unsafe,
+    'shoot.terracotta_hardlight.environmental_hero',
+  );
+  assert.equal(
+    blocked.gates.find((gate) => gate.id === 'NEAR_COPY_AND_LEAKAGE').decision,
+    'FAIL',
+  );
+  assert.equal(blocked.gates.find((gate) => gate.id === 'IDENTITY').decision, 'FAIL');
+  assert.equal(
+    blocked.gates.find((gate) => gate.id === 'FRAMING_AND_ANATOMY').decision,
+    'FAIL',
+  );
+
+  const standard = applyFashionShootVisualReviewPolicy(
+    creative,
+    'std.studio.peach_soft_gloss',
+  );
+  assert.equal(
+    standard.gates.find((gate) => gate.id === 'ITEM_FIDELITY').decision,
+    'FAIL',
+  );
+});
 
 function providerMetadata(context, bytes, requestId, {
   sourceWidth = 900,
