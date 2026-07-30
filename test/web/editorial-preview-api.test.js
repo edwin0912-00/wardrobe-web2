@@ -61,10 +61,15 @@ async function routeFixture(t) {
 
 test('editorial catalog activates every Creative Universe shoot', async (t) => {
   const app = await routeFixture(t);
+  const catalogStartedAt = performance.now();
   const catalogResponse = await app.inject({
     method: 'GET',
     url: '/api/editorial-modes',
   });
+  assert.ok(
+    performance.now() - catalogStartedAt < 500,
+    'the user catalog request must read deploy-prepared memory, not re-run integrity validation',
+  );
   assert.equal(catalogResponse.statusCode, 200, catalogResponse.body);
   assert.equal(catalogResponse.headers['cache-control'], 'private, no-store');
   assert.deepEqual(Object.keys(catalogResponse.json()).sort(), [

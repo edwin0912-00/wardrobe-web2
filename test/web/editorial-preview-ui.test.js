@@ -61,14 +61,17 @@ test('catalog is production ACTIVE and only READY modes become controls', () => 
   assert.match(ensureSource, /mode\?\.generation_available === true[\s\S]*?mode\?\.source_set_status !== 'READY'/);
   const cardSource = sourceBetween(
     sceneUiSource,
-    'function createEditorialModeCard(mode, onSelect)',
+    'function createEditorialModeCard(mode, onSelect, { eager = false } = {})',
     'function lookDescriptor(profile, lookId)',
   );
   assert.match(cardSource, /document\.createElement\('button'\)/);
   assert.match(cardSource, /card\.disabled = !ready/);
   assert.match(cardSource, /mode\.source_set_status === 'READY'/);
   assert.match(cardSource, /mode\.generation_available === true/);
+  assert.match(cardSource, /image\.loading = eager \? 'eager' : 'lazy'/);
+  assert.match(cardSource, /if \(eager\) image\.fetchPriority = 'high'/);
   assert.match(cardSource, /addEventListener\('click'/);
+  assert.match(sceneUiSource, /createEditorialModeCard\(mode, onSelect, \{ eager: index < 4 \}\)/);
   assert.match(sceneUiSource, /mode_id\.startsWith\('shoot\.'\)/);
   assert.doesNotMatch(indexHtml, /Legacy Editorial/);
   assert.doesNotMatch(indexHtml, /editorial-mode-grid-legacy/);

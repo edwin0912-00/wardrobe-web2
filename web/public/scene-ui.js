@@ -97,7 +97,7 @@ function createPresetVisual(preset, { large = false } = {}) {
   return wrapper;
 }
 
-function createEditorialModeCard(mode, onSelect) {
+function createEditorialModeCard(mode, onSelect, { eager = false } = {}) {
   const ready = mode.source_set_status === 'READY' && mode.generation_available === true;
   const card = document.createElement('button');
   card.type = 'button';
@@ -116,7 +116,8 @@ function createEditorialModeCard(mode, onSelect) {
     const image = document.createElement('img');
     image.src = previewUrl;
     image.alt = `Приклад стилю: ${nameText}`;
-    image.loading = 'eager';
+    image.loading = eager ? 'eager' : 'lazy';
+    if (eager) image.fetchPriority = 'high';
     preview.append(image);
   } else {
     preview.classList.add('is-missing');
@@ -479,7 +480,9 @@ export class SceneUiController {
       (error) => this.#setError(error.message),
     );
     
-    gridNew.replaceChildren(...newModes.map((mode) => createEditorialModeCard(mode, onSelect)));
+    gridNew.replaceChildren(...newModes.map(
+      (mode, index) => createEditorialModeCard(mode, onSelect, { eager: index < 4 }),
+    ));
   }
 
   showPicker() {

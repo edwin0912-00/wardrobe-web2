@@ -453,6 +453,9 @@ export class FilesystemScenePresetResolver {
     this.realProjectRoot = null;
     this.catalog = null;
     this.editorialShotPacks = new Map();
+    this.editorialCatalogCache = null;
+    this.editorialPreviewCache = new Map();
+    this.editorialPresentationPromise = null;
   }
 
   async initialize() {
@@ -1208,6 +1211,11 @@ export class FilesystemScenePresetResolver {
       throw resolverError(404, 'Editorial mode version is not published in the catalog');
     }
     const mode = matches[0];
+    this.#assertEditorialModeRecord(mode);
+    return { program, mode };
+  }
+
+  #assertEditorialModeRecord(mode) {
     if (typeof mode.ui_name_uk !== 'string'
       || mode.ui_name_uk.trim() === ''
       || typeof mode.visual_system !== 'string'
@@ -1216,7 +1224,6 @@ export class FilesystemScenePresetResolver {
       || mode.source_set_status.trim() === '') {
       throw resolverError(422, 'Editorial mode catalog entry is incomplete');
     }
-    return { program, mode };
   }
 
   async editorialModeDefinition({ modeId, version, requireReady = false }) {
@@ -1283,9 +1290,15 @@ export class FilesystemScenePresetResolver {
     return structuredClone(pack.reference);
   }
 
-  async editorialModePreview({ modeId, version }) {
-    if (!this.realProjectRoot) await this.initialize();
-    const { mode } = await this.#editorialMode(modeId, version);
+  #cloneEditorialPreview(preview) {
+    return {
+      ...preview,
+      data: Buffer.from(preview.data),
+      delivery: preview.delivery ? { ...preview.delivery } : null,
+    };
+  }
+
+  async #resolveEditorialModePreview({ modeId, version, mode }) {
     // A delivered photoshoot frame is a better preview than the unit's own
     // reference sheet: the sheet is a technical contact sheet and reads as one.
     // So a mood card wins whenever one exists on disk, and units without one
@@ -1404,17 +1417,27 @@ export class FilesystemScenePresetResolver {
     };
   }
 
-  async listEditorialModes() {
+  async #buildEditorialPresentationCache() {
     if (!this.realProjectRoot) await this.initialize();
     const program = await this.#editorialProgram();
     const modes = [];
+    const previews = new Map();
+    const published = new Set();
     for (const mode of program.modes) {
       safeId(mode?.preset_id, 'mode_id');
       safeId(mode?.version, 'version');
-      const preview = await this.editorialModePreview({
+      this.#assertEditorialModeRecord(mode);
+      const key = `${mode.preset_id}:${mode.version}`;
+      if (published.has(key)) {
+        throw resolverError(404, 'Editorial mode version is not published in the catalog');
+      }
+      published.add(key);
+      const preview = await this.#resolveEditorialModePreview({
         modeId: mode.preset_id,
         version: mode.version,
+        mode,
       });
+      previews.set(key, preview);
       modes.push({
         mode_id: mode.preset_id,
         version: mode.version,
@@ -1430,13 +1453,40 @@ export class FilesystemScenePresetResolver {
     const generationModeIds = modes
       .filter((mode) => mode.generation_available)
       .map((mode) => mode.mode_id);
-    return {
+    this.editorialPreviewCache = previews;
+    this.editorialCatalogCache = {
       status: 'ACTIVE',
       generation_available: generationModeIds.length > 0,
       generation_mode_ids: generationModeIds,
       shot_sequence: [...program.shot_sequence],
       modes,
     };
+  }
+
+  async prepareEditorialPresentation() {
+    if (!this.editorialCatalogCache) {
+      this.editorialPresentationPromise ??= this.#buildEditorialPresentationCache()
+        .catch((error) => {
+          this.editorialPresentationPromise = null;
+          throw error;
+        });
+      await this.editorialPresentationPromise;
+    }
+    return structuredClone(this.editorialCatalogCache);
+  }
+
+  async editorialModePreview({ modeId, version }) {
+    if (!this.realProjectRoot) await this.initialize();
+    safeId(modeId, 'mode_id');
+    safeId(version, 'version');
+    const cached = this.editorialPreviewCache.get(`${modeId}:${version}`);
+    if (cached) return this.#cloneEditorialPreview(cached);
+    const { mode } = await this.#editorialMode(modeId, version);
+    return this.#resolveEditorialModePreview({ modeId, version, mode });
+  }
+
+  async listEditorialModes() {
+    return this.prepareEditorialPresentation();
   }
 
   async listPresets() {

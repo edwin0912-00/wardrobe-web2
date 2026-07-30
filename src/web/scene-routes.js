@@ -98,6 +98,10 @@ export async function registerSceneRoutes(app, {
   if (!sceneService || !profiles || !profileApi || !runService || !presetResolver) {
     throw new Error('registerSceneRoutes requires sceneService, profiles, profileApi, runService and presetResolver');
   }
+  // A user opening Fashion Shoot must only read already-verified presentation
+  // data. Fail the server startup if the immutable catalog or previews do not
+  // pass integrity checks; never move that audit into a browser request.
+  await presetResolver.prepareEditorialPresentation?.();
 
   // Bring pre-existing SQLite projections up to date after a service restart.
   // A projection without a durable execution is removed from the visible
