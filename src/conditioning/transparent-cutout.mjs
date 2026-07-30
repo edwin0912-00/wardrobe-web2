@@ -100,60 +100,91 @@ export async function removeBorderConnectedWhiteToAlpha(input, {
       && protectedLightPrimary.strongPixels / protectedLightPrimary.pixels < minimumStrongPixelRatio
       ? protectedLightPrimary.label
       : 0;
-    const totalPreGradientStrongPixels = preGradientComponents
-      .reduce((total, component) => total + component.strongPixels, 0);
-    const hasStrongSubjectEvidence = totalPreGradientStrongPixels / (width * height) >= minimumStrongPixelRatio;
-    if (!hasStrongSubjectEvidence) {
-      const borderBand = Math.max(1, Math.round(width * 0.08));
-      let relativePixels = 0;
-      let relativeLeft = width;
-      let relativeTop = height;
-      let relativeRight = -1;
-      let relativeBottom = -1;
-      for (let y = 0; y < height; y += 1) {
-        const background = [0, 0, 0];
-        for (let x = 0; x < borderBand; x += 1) {
-          const leftOffset = (y * width + x) * channels;
-          const rightOffset = (y * width + width - x - 1) * channels;
-          for (let channel = 0; channel < 3; channel += 1) {
-            background[channel] += data[leftOffset + channel] + data[rightOffset + channel];
-          }
-        }
-        for (let channel = 0; channel < 3; channel += 1) background[channel] /= borderBand * 2;
-        for (let x = borderBand; x < width - borderBand; x += 1) {
-          const index = y * width + x;
-          if (visited[index]) continue;
-          const offset = index * channels;
-          const difference = Math.max(
-            Math.abs(data[offset] - background[0]),
-            Math.abs(data[offset + 1] - background[1]),
-            Math.abs(data[offset + 2] - background[2]),
-          );
-          if (difference < 4) continue;
-          relativePixels += 1;
-          relativeLeft = Math.min(relativeLeft, x);
-          relativeTop = Math.min(relativeTop, y);
-          relativeRight = Math.max(relativeRight, x);
-          relativeBottom = Math.max(relativeBottom, y);
+    const borderBand = Math.max(1, Math.round(width * 0.08));
+    const relativeMask = new Uint8Array(width * height);
+    for (let y = 0; y < height; y += 1) {
+      const background = [0, 0, 0];
+      for (let x = 0; x < borderBand; x += 1) {
+        const leftOffset = (y * width + x) * channels;
+        const rightOffset = (y * width + width - x - 1) * channels;
+        for (let channel = 0; channel < 3; channel += 1) {
+          background[channel] += data[leftOffset + channel] + data[rightOffset + channel];
         }
       }
-      const relativeWidth = relativeRight - relativeLeft + 1;
-      const relativeHeight = relativeBottom - relativeTop + 1;
-      const centerX = width / 2;
-      if (relativePixels >= Math.max(16, Math.round(width * height * 0.0025))
-        && relativeWidth > 0 && relativeWidth < width * 0.8
-        && relativeHeight > 0 && relativeHeight < height * 0.95
-        && relativeLeft <= centerX && relativeRight >= centerX) {
-        relativeSubjectProtectionBbox = {
-          left: relativeLeft,
-          top: relativeTop,
-          width: relativeWidth,
-          height: relativeHeight,
-        };
+      for (let channel = 0; channel < 3; channel += 1) background[channel] /= borderBand * 2;
+      for (let x = borderBand; x < width - borderBand; x += 1) {
+        const index = y * width + x;
+        if (visited[index]) continue;
+        const offset = index * channels;
+        const difference = Math.max(
+          Math.abs(data[offset] - background[0]),
+          Math.abs(data[offset + 1] - background[1]),
+          Math.abs(data[offset + 2] - background[2]),
+        );
+        if (difference < 4) continue;
+        relativeMask[index] = 1;
       }
     }
-    const gradientFloodSafe = hasStrongSubjectEvidence
-      || protectedLightPrimaryLabel !== 0
+    const relativeLabels = new Int32Array(width * height);
+    const relativeComponents = [];
+    const enqueueRelative = (index, label) => {
+      if (!relativeMask[index] || relativeLabels[index] !== 0) return;
+      relativeLabels[index] = label;
+      queue[tail++] = index;
+    };
+    for (let start = 0; start < relativeMask.length; start += 1) {
+      if (!relativeMask[start] || relativeLabels[start] !== 0) continue;
+      const label = relativeComponents.length + 1;
+      head = 0;
+      tail = 0;
+      enqueueRelative(start, label);
+      let pixels = 0;
+      let left = width;
+      let top = height;
+      let right = -1;
+      let bottom = -1;
+      while (head < tail) {
+        const index = queue[head++];
+        pixels += 1;
+        const x = index % width;
+        const y = Math.floor(index / width);
+        left = Math.min(left, x);
+        top = Math.min(top, y);
+        right = Math.max(right, x);
+        bottom = Math.max(bottom, y);
+        for (let yOffset = -1; yOffset <= 1; yOffset += 1) {
+          for (let xOffset = -1; xOffset <= 1; xOffset += 1) {
+            if (xOffset === 0 && yOffset === 0) continue;
+            const nextX = x + xOffset;
+            const nextY = y + yOffset;
+            if (nextX < 0 || nextX >= width || nextY < 0 || nextY >= height) continue;
+            enqueueRelative(nextY * width + nextX, label);
+          }
+        }
+      }
+      relativeComponents.push({ label, pixels, left, top, right, bottom });
+    }
+    const centerX = width / 2;
+    const minimumRelativePixels = Math.max(16, Math.round(width * height * 0.0025));
+    const centralComponents = relativeComponents.filter((component) => (
+      component.pixels >= minimumRelativePixels
+      && component.right - component.left + 1 < width * 0.8
+      && component.bottom - component.top + 1 < height * 0.95
+      && Math.max(0, component.left - centerX, centerX - component.right) <= width * 0.1
+    ));
+    if (centralComponents.length > 0) {
+      const relativeLeft = Math.min(...centralComponents.map(({ left }) => left));
+      const relativeTop = Math.min(...centralComponents.map(({ top }) => top));
+      const relativeRight = Math.max(...centralComponents.map(({ right }) => right));
+      const relativeBottom = Math.max(...centralComponents.map(({ bottom }) => bottom));
+      relativeSubjectProtectionBbox = {
+        left: relativeLeft,
+        top: relativeTop,
+        width: relativeRight - relativeLeft + 1,
+        height: relativeBottom - relativeTop + 1,
+      };
+    }
+    const gradientFloodSafe = protectedLightPrimaryLabel !== 0
       || relativeSubjectProtectionBbox !== null;
     gradientCleanupApplied = gradientFloodSafe;
     if (!gradientFloodSafe) {

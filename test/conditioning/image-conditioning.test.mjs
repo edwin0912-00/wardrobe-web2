@@ -317,6 +317,52 @@ test('gradient cleanup fails closed for an off-center ambiguous light primary', 
   assert.equal(result.stats.removed_gradient_pixels, 0);
 });
 
+test('gradient cleanup protects a light primary surrounding a small dark panel', async () => {
+  const width = 160;
+  const height = 120;
+  const background = Buffer.alloc(width * height * 3);
+  for (let y = 0; y < height; y += 1) {
+    const value = Math.round(248 - (34 * y) / (height - 1));
+    for (let x = 0; x < width; x += 1) {
+      const offset = (y * width + x) * 3;
+      background[offset] = value;
+      background[offset + 1] = value;
+      background[offset + 2] = value - 3;
+    }
+  }
+  const input = await sharp(background, { raw: { width, height, channels: 3 } })
+    .composite([
+      {
+        input: await solid(42, 88, { r: 225, g: 225, b: 222 }),
+        left: 59,
+        top: 12,
+      },
+      {
+        input: await solid(16, 16, { r: 55, g: 65, b: 70 }),
+        left: 72,
+        top: 50,
+      },
+    ])
+    .png()
+    .toBuffer();
+  const result = await removeBorderConnectedWhiteToAlpha(input, {
+    removeBorderConnectedNeutralGradient: true,
+    removeDetachedLowContrastResidue: true,
+  });
+  const { data, info } = await sharp(result.image).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const alphaAt = (x, y) => data[(y * info.width + x) * info.channels + 3];
+  assert.equal(alphaAt(80, 20), 255, 'the light primary top must remain');
+  assert.equal(alphaAt(80, 95), 255, 'the light primary bottom must remain');
+  assert.equal(alphaAt(80, 55), 255, 'the dark panel must remain');
+  assert.deepEqual(result.stats.relative_subject_protection_bbox, {
+    left: 59,
+    top: 12,
+    width: 42,
+    height: 88,
+  });
+  assert.equal(result.stats.border_gradient_cleanup_applied, true);
+});
+
 test('garment source alpha creates an isolated cutout and exact-white review card', async () => {
   const redPatch = await solid(20, 20, { r: 220, g: 20, b: 30, alpha: 1 }, 4);
   const input = await sharp({
