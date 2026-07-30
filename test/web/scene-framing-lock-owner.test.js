@@ -310,6 +310,45 @@ test('standard delivery accepts a fully visible 86% subject as an explicit compo
   assert.ok(cropped.defects.includes('FULL_HEAD_NOT_VISIBLE'));
 });
 
+test('standard delivery accepts 7.5–8% headroom only with a fully visible head', () => {
+  const accepted = assessSceneFraming({
+    // Fresh re-QA of scene_99d60… attempt 003 measured 155/2048 = 7.5684%.
+    subject_bbox_xywh_px: [420, 155, 696, 1570],
+    full_head_visible: true,
+    full_footwear_visible: true,
+  }, {
+    preset: { preset_id: 'std.city.amber_alley_cobblestone' },
+    width: 1536,
+    height: 2048,
+  });
+  assert.equal(accepted.evidence.clear_space_above_hair_percent, 7.5684);
+  assert.equal(accepted.evidence.minimum_clear_space_above_hair_percent, 8);
+  assert.equal(accepted.evidence.clear_space_above_hair_delivery_tolerance_applied, true);
+  assert.deepEqual(accepted.defects, []);
+
+  const tooShort = assessSceneFraming({
+    subject_bbox_xywh_px: [420, 153, 696, 1570],
+    full_head_visible: true,
+    full_footwear_visible: true,
+  }, {
+    preset: { preset_id: 'std.city.amber_alley_cobblestone' },
+    width: 1536,
+    height: 2048,
+  });
+  assert.ok(tooShort.defects.includes('INSUFFICIENT_CLEAR_SPACE_ABOVE_HAIR'));
+
+  const cropped = assessSceneFraming({
+    subject_bbox_xywh_px: [420, 155, 696, 1570],
+    full_head_visible: false,
+    full_footwear_visible: true,
+  }, {
+    preset: { preset_id: 'std.city.amber_alley_cobblestone' },
+    width: 1536,
+    height: 2048,
+  });
+  assert.ok(cropped.defects.includes('FULL_HEAD_NOT_VISIBLE'));
+});
+
 test('the receipt reports the waiver the assessment found, never one the evaluator claims', () => {
   const claimed = assessSceneFraming({
     subject_bbox_xywh_px: [202, 128, 620, 973],

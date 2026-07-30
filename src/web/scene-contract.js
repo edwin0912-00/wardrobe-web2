@@ -296,6 +296,10 @@ const STANDARD_FRAMING_LOCK = Object.freeze({
   // target: providers are still instructed to compose at 70–80%.
   deliverySubjectMaximum: 88,
   above: 8,
+  // Keep 8% as the provider target, but accept a fully visible standard
+  // delivery from 7.5%. On a 2048px image this is at most a ten-pixel
+  // measurement tolerance; it never permits a cropped head.
+  deliveryAboveMinimum: 7.5,
   below: 2,
   head: true,
   footwear: true,
@@ -1416,6 +1420,7 @@ export function assessFramingEvidence(evidence, {
   expectedSubjectHeightPercent,
   deliverySubjectHeightMaximum = expectedSubjectHeightPercent?.[1],
   minimumAboveHairPercent = 8,
+  deliveryMinimumAboveHairPercent = minimumAboveHairPercent,
   minimumBelowFootwearPercent = 2,
   requireFullHead = true,
   requireFullFootwear = true,
@@ -1431,6 +1436,11 @@ export function assessFramingEvidence(evidence, {
     || minimumBelowFootwearPercent < 0
     || minimumBelowFootwearPercent > 100) {
     throw new Error('Scene framing clear-space locks must be finite percentages from 0 to 100');
+  }
+  if (!Number.isFinite(deliveryMinimumAboveHairPercent)
+    || deliveryMinimumAboveHairPercent < 0
+    || deliveryMinimumAboveHairPercent > minimumAboveHairPercent) {
+    throw new Error('Scene delivery headroom minimum must be finite and not exceed the preferred minimum');
   }
   if (typeof requireFullHead !== 'boolean' || typeof requireFullFootwear !== 'boolean') {
     throw new Error('Scene framing visibility locks must be booleans');
@@ -1471,7 +1481,11 @@ export function assessFramingEvidence(evidence, {
   if (subjectHeight < expectedSubjectHeightPercent[0] || subjectHeight > deliverySubjectHeightMaximum) {
     defects.push('SUBJECT_HEIGHT_OUTSIDE_PRESET_RANGE');
   }
-  const headroomShort = requireFullHead && aboveHair < minimumAboveHairPercent;
+  const headroomDeliveryToleranceApplied = requireFullHead
+    && aboveHair < minimumAboveHairPercent
+    && aboveHair >= deliveryMinimumAboveHairPercent
+    && evidence.full_head_visible === true;
+  const headroomShort = requireFullHead && aboveHair < deliveryMinimumAboveHairPercent;
   const headroomWaived = headroomShort
     && aboveIsAdvisoryWhenHeadVisible
     && evidence.full_head_visible === true;
@@ -1496,6 +1510,7 @@ export function assessFramingEvidence(evidence, {
       minimum_clear_space_above_hair_percent: minimumAboveHairPercent,
       minimum_clear_space_below_footwear_percent: minimumBelowFootwearPercent,
       clear_space_above_hair_percent: aboveHair,
+      clear_space_above_hair_delivery_tolerance_applied: headroomDeliveryToleranceApplied,
       // Without this the allowance was only inferable — headroom under its own minimum
       // and no INSUFFICIENT_CLEAR_SPACE_ABOVE_HAIR beside it — and a reader who did not
       // know the editorial lock existed read the receipt as a passing frame that simply
@@ -1525,6 +1540,7 @@ export function assessSceneFraming(evidence, { preset, width, height }) {
     expectedSubjectHeightPercent: lock.subject,
     deliverySubjectHeightMaximum: lock.deliverySubjectMaximum ?? lock.subject[1],
     minimumAboveHairPercent: lock.above,
+    deliveryMinimumAboveHairPercent: lock.deliveryAboveMinimum ?? lock.above,
     minimumBelowFootwearPercent: lock.below,
     requireFullHead: lock.head,
     requireFullFootwear: lock.footwear,

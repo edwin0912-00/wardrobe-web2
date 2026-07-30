@@ -12,3 +12,14 @@ Evidence: framing/schema suites 17/17 PASS; focused preserved-candidate + standa
 weakened_checks: OPERATOR_APPROVED_STANDARD_COMPOSITION_TOLERANCE — preferred target stays 70–80%; delivery extends only to 88%. Full head, full footwear, 8% headroom, 2% floor, anatomy, identity and item fidelity remain blocking.
 Known limitation: environment-plate.webp and lighting-preview.webp are not promoted into generation authority because their checked-in candidate provenance still says MISSING_FROM_BUILTIN_IMAGE_TOOL; this change does not falsify or bypass that provenance.
 Help request: Chat00 review/cherry-pick the exact owner commit, deploy that SHA, then re-QA the preserved scene candidate before any new paid generation.
+
+---
+
+Task ID: BLOCK-1-STANDARD-SCENE-HEADROOM-DELIVERY
+Trigger: after the first atom was deployed, fresh re-QA of preserved scene_99d60… attempt 003 measured 76.6602% subject height and passed identity, items, scene, lighting, contact shadow, anatomy, full head and full footwear. Its sole refusal was 7.5684% clear space above hair against the 8% provider target.
+Decision: keep 8% as the provider composition target; permit a standard delivery from 7.5% only when the full head is explicitly visible. The receipt records `clear_space_above_hair_delivery_tolerance_applied=true`. Below 7.5% remains blocking.
+Code: READY_FOR_REVIEW — runtime owner, generated schemas and regression evidence updated.
+Beta: NOT_DEPLOYED for this second atom.
+Evidence: framing + schema suites 18/18 PASS; schema generator 3/3; node check and diff check PASS.
+weakened_checks: OPERATOR_APPROVED_STANDARD_HEADROOM_MEASUREMENT_TOLERANCE — 8% target retained; delivery floor is 7.5% with full-head visibility. Cropped head, <7.5% headroom, footwear, floor, anatomy, identity and item fidelity remain blocking.
+Help request: Chat00 cherry-pick only the new headroom atom atop deployed integration 6890a90…, deploy the exact integration SHA, then retry the same preserved scene with zero provider generation.
