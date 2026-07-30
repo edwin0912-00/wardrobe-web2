@@ -35,7 +35,18 @@
 
       <div class="stage-top">
         <span class="live-mark"><i></i> LIVE</span>
-        <span id="live-status">READY</span>
+        <span><i id="camera-permission-status">КАМЕРА · НЕ ЗАПИТАНО</i> <b id="live-status">READY</b></span>
+      </div>
+
+      <div class="consent-panel" aria-label="Дозволи Real-time Look">
+        <label>
+          <input id="privacy-consent" type="checkbox">
+          <span><b>Камера лише для цієї сесії</b><small>Без запису й автоматичного збереження</small></span>
+        </label>
+        <label>
+          <input id="cost-consent" type="checkbox">
+          <span><b>Платний Live · до $0.60</b><small>Максимум 15 секунд, потім автозупинка</small></span>
+        </label>
       </div>
 
       <div class="control-dock">
@@ -47,13 +58,13 @@
           </span>
           <span><b>Образ</b><small id="reference-status">Додати фото</small></span>
         </label>
-        <button id="camera-start" class="camera-button" type="button">Увімкнути камеру</button>
+        <button id="camera-start" class="camera-button" type="button" disabled>Увімкнути камеру</button>
         <button id="camera-stop" class="camera-button hidden" type="button">Вимкнути камеру</button>
         <button id="lucy-start" class="test-button" type="button" disabled>Запустити Live</button>
         <button id="lucy-stop" class="stop-button" type="button" aria-label="Зупинити">■</button>
       </div>
     </section>
   </main>
-  <script type="module" src="/post-shoot-mvp.js?v=20260729-2"></script>
+  <script type="module" src="/post-shoot-mvp.js?v=20260730-1"></script>
 </body>
 </html>

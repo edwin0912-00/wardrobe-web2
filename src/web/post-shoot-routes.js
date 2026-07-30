@@ -3,6 +3,7 @@ import { loadPostShootPipeline, publicPostShootPipeline } from './post-shoot-pip
 const MODEL_ID = 'decart/lucy-2-5/realtime';
 const MAX_SESSION_SECONDS = 15;
 const MAXIMUM_COST_USD = 0.6;
+const SAVED_LOOK_ID = /^[A-Za-z0-9][A-Za-z0-9-]{0,127}$/;
 
 export async function registerPostShootRoutes(app, {
   projectRoot,
@@ -21,6 +22,45 @@ export async function registerPostShootRoutes(app, {
       provider_ready: typeof lucyTokenIssuer === 'function',
     }));
 
+  app.get('/api/post-shoot/realtime-look-capability', async (request, reply) => {
+    const lookId = String(request.query?.look_id ?? '');
+    if (!SAVED_LOOK_ID.test(lookId)) {
+      return reply.code(400).send({
+        code: 'INVALID_LOOK_ID',
+        error: 'Real-time Look потребує валідний збережений образ.',
+      });
+    }
+    return reply
+      .header('Cache-Control', 'private, no-store')
+      .send({
+        capability: 'REALTIME_LOOK',
+        camera_preview_ready: true,
+        paid_live_ready: typeof lucyTokenIssuer === 'function',
+        launch: {
+          href: `/post-shoot-mvp.html?look=${encodeURIComponent(lookId)}&surface=full`,
+          presentation: 'FULL_VIEWPORT',
+          target: '_self',
+          nested: false,
+          internal_scroll: false,
+        },
+        consent: {
+          privacy_required: true,
+          cost_required: true,
+          maximum_cost_usd: MAXIMUM_COST_USD,
+          maximum_session_seconds: MAX_SESSION_SECONDS,
+        },
+        camera: {
+          permission_required: true,
+          video: true,
+          audio: false,
+        },
+        capture: {
+          automatic_recording: false,
+          automatic_upload: false,
+        },
+      });
+  });
+
   app.post('/api/fal/realtime-token', async (request, reply) => {
     const body = request.body ?? {};
     if (body.app !== MODEL_ID) {
@@ -31,6 +71,12 @@ export async function registerPostShootRoutes(app, {
         code: 'PAID_SESSION_APPROVAL_REQUIRED',
         error: 'Потрібне явне підтвердження платної 15-секундної Lucy-сесії.',
         maximum_cost_usd: MAXIMUM_COST_USD,
+      });
+    }
+    if (body.privacy_consent !== true) {
+      return reply.code(409).send({
+        code: 'PRIVACY_CONSENT_REQUIRED',
+        error: 'Потрібна явна згода на передачу camera-потоку для цієї Live-сесії.',
       });
     }
     if (typeof lucyTokenIssuer !== 'function') {

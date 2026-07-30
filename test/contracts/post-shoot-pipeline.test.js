@@ -24,11 +24,22 @@ test('Lucy node exposes provider, cost, hard timeout, and no credential', async 
 test('browser draft requires a local reference photo and states the fifteen-second cost ceiling', async () => {
   const html = await readFile(new URL('../../web/public/post-shoot-mvp.html', import.meta.url), 'utf8');
   const client = await readFile(new URL('../../web/public/post-shoot-mvp.js', import.meta.url), 'utf8');
+  const css = await readFile(new URL('../../web/public/post-shoot-mvp.css', import.meta.url), 'utf8');
 
   assert.match(html, /id="reference-upload"/);
   assert.match(html, /id="fit-guide"/);
+  assert.match(html, /id="privacy-consent"/);
+  assert.match(html, /id="cost-consent"/);
+  assert.match(html, /id="camera-permission-status"/);
   assert.match(client, /max_session_seconds:\s*SESSION_SECONDS/);
-  assert.match(client, /Максимальна вартість — \$0\.60/);
+  assert.match(client, /privacy_consent:\s*true/);
+  assert.match(client, /!state\.running \|\| !\$\('#privacy-consent'\)\.checked \|\| !\$\('#cost-consent'\)\.checked/);
+  assert.match(client, /\/api\/profile\/looks\/\$\{encodeURIComponent\(lookId\)\}\/live-reference\.png/);
+  assert.doesNotMatch(client, /window\.confirm/);
+  assert.doesNotMatch(client, /MediaRecorder|getDisplayMedia/);
+  assert.doesNotMatch(html, /<iframe/i);
+  assert.doesNotMatch(css, /overflow-y:\s*auto/);
+  assert.match(css, /body\.is-full-surface\{overflow:hidden\}/);
   assert.match(client, /naturalWidth < 512/);
   assert.match(client, /naturalHeight < 512/);
   assert.match(client, /falModule\.default\?\.fal/);
