@@ -1717,6 +1717,8 @@ function validatePersistedFramingEvidence(evidence, {
       ? ['clear_space_above_hair_waived_by_full_head'] : []),
     ...(evidence?.subject_height_delivery_tolerance_applied === undefined
       ? ['subject_height_delivery_tolerance_applied'] : []),
+    ...(evidence?.clear_space_above_hair_delivery_tolerance_applied === undefined
+      ? ['clear_space_above_hair_delivery_tolerance_applied'] : []),
   ]);
   const comparable = derivedKeysAbsentFromLegacyEvidence.size > 0
     ? Object.fromEntries(Object.entries(assessment.evidence)

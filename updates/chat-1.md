@@ -23,3 +23,7 @@ Beta: NOT_DEPLOYED for this second atom.
 Evidence: framing + schema suites 18/18 PASS; schema generator 3/3; node check and diff check PASS.
 weakened_checks: OPERATOR_APPROVED_STANDARD_HEADROOM_MEASUREMENT_TOLERANCE — 8% target retained; delivery floor is 7.5% with full-head visibility. Cropped head, <7.5% headroom, footwear, floor, anatomy, identity and item fidelity remain blocking.
 Help request: Chat00 cherry-pick only the new headroom atom atop deployed integration 6890a90…, deploy the exact integration SHA, then retry the same preserved scene with zero provider generation.
+
+Repair before release: Chat00 correctly reproduced that the new derived headroom-tolerance field was absent from pre-field attempts 001–003 and the strict persisted-state comparison would quarantine them on restart. The compatibility set now recomputes only that missing derived value, while an explicitly supplied false/tampered value still fails closed.
+Exact live-state proof: `validatePersistedSceneState()` successfully reopened scene_99d60… with status FAILED, exactly three attempts and the new field absent from all legacy attempt receipts.
+Repair evidence: legacy+tamper regression 1/1 PASS; framing/schema 18/18 PASS; schema generator 3/3; node and diff checks PASS.

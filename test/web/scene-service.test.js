@@ -1025,11 +1025,13 @@ test('a framing rule reaches the persisted receipts and the live verdict or neit
     /PASS framing evidence violates INSUFFICIENT_CLEAR_SPACE_ABOVE_HAIR/,
   );
 
-  // A receipt written before the waiver was stated omits the flag; recomputing it from
-  // the same measurements is exact, so those scenes must still read back.
+  // A receipt written before either derived framing flag was stated omits them;
+  // recomputing them from the same measurements is exact, so those scenes must
+  // still read back after a deploy/restart.
   const legacy = structuredClone(editorial);
   for (const receipt of [legacy.attempts.at(-1).qa.framing_evidence, legacy.qa.framing_evidence]) {
     delete receipt.clear_space_above_hair_waived_by_full_head;
+    delete receipt.clear_space_above_hair_delivery_tolerance_applied;
   }
   assert.doesNotThrow(() => validatePersistedSceneState(legacy, legacy.scene_id));
 
@@ -1040,6 +1042,20 @@ test('a framing rule reaches the persisted receipts and the live verdict or neit
   }
   assert.throws(
     () => validatePersistedSceneState(forged, forged.scene_id),
+    /framing evidence does not match its measured bounding box/,
+  );
+
+  // Missing legacy fields are compatible; supplied false evidence is not. A
+  // receipt cannot forge the standard headroom tolerance and survive restart.
+  const forgedHeadroomTolerance = structuredClone(baseState);
+  for (const receipt of [
+    forgedHeadroomTolerance.attempts.at(-1).qa.framing_evidence,
+    forgedHeadroomTolerance.qa.framing_evidence,
+  ]) {
+    receipt.clear_space_above_hair_delivery_tolerance_applied = true;
+  }
+  assert.throws(
+    () => validatePersistedSceneState(forgedHeadroomTolerance, forgedHeadroomTolerance.scene_id),
     /framing evidence does not match its measured bounding box/,
   );
 });
