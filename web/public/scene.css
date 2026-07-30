@@ -1913,11 +1913,19 @@
   cursor: pointer;
 }
 
-.editorial-controls {
+.editorial-gallery-stage > .editorial-controls {
   display: flex;
+  width: 100%;
+  max-width: none;
   min-height: 44px;
+  margin: 0;
+  padding: 0;
+  border: 0;
   justify-content: flex-end;
   gap: 6px;
+  color: inherit;
+  font-size: inherit;
+  letter-spacing: normal;
 }
 
 .editorial-controls .scene-control {
@@ -2212,7 +2220,7 @@
     font-size: 7px;
   }
 
-  .editorial-controls {
+  .editorial-gallery-stage > .editorial-controls {
     display: grid;
     grid-auto-flow: column;
     grid-auto-columns: minmax(0, 1fr);

@@ -142,6 +142,10 @@ test('gallery exposes five Fashion Shoot frames, not its internal style check', 
     /\.editorial-gallery\s*\{[\s\S]*?grid-template-columns:\s*repeat\(3,[\s\S]*?grid-template-rows:\s*none;/,
   );
   assert.match(portraitCss, /\.editorial-active-state canvas\s*\{[\s\S]*?width:\s*54px;[\s\S]*?height:\s*54px;/);
+  assert.match(
+    sceneCss,
+    /\.editorial-gallery-stage > \.editorial-controls\s*\{[\s\S]*?max-width:\s*none;[\s\S]*?margin:\s*0;[\s\S]*?padding:\s*0;[\s\S]*?border:\s*0;/,
+  );
   assert.match(portraitCss, /\.editorial-controls \.scene-control\s*\{[\s\S]*?min-height:\s*44px;/);
   assert.match(sceneCss, /\.editorial-shot-download\s*\{[\s\S]*?width:\s*44px;[\s\S]*?height:\s*44px;/);
   assert.match(sceneCss, /\.editorial-shot-visual img\s*\{[\s\S]*?object-fit:\s*contain;/);
