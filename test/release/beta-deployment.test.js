@@ -30,19 +30,32 @@ test('beta deploy discovers active runs before it can kickstart the service', as
   assert.deepEqual(await activeBetaRunIds(runner), ['still-running']);
 });
 
-test('beta deploy refuses to restart through an active standard scene or Fashion Shoot', async () => {
+test('beta deploy refuses to restart through active scene, shoot, or video work', async () => {
   const runtimeRoot = await mkdtemp(path.join(os.tmpdir(), 'zeely-beta-work-'));
+  const submittingClipId = '11111111-1111-4111-8111-111111111111';
+  const createdClipId = '22222222-2222-4222-8222-222222222222';
+  const completedClipId = '33333333-3333-4333-8333-333333333333';
   await mkdir(path.join(runtimeRoot, 'scenes', 'scene_running'), { recursive: true });
   await mkdir(path.join(runtimeRoot, 'scenes', 'scene_complete'), { recursive: true });
   await mkdir(path.join(runtimeRoot, 'editorial-shoots', 'shoot_running'), { recursive: true });
   await mkdir(path.join(runtimeRoot, 'editorial-shoots', 'shoot_cancelled'), { recursive: true });
   await mkdir(path.join(runtimeRoot, 'editorial-shoots', 'shoot_pending'), { recursive: true });
+  await mkdir(path.join(runtimeRoot, 'video-clips', 'clips', submittingClipId), { recursive: true });
+  await mkdir(path.join(runtimeRoot, 'video-clips', 'clips', createdClipId), { recursive: true });
+  await mkdir(path.join(runtimeRoot, 'video-clips', 'clips', completedClipId), { recursive: true });
   await mkdir(path.join(runtimeRoot, 'scenes', 'incidents'), { recursive: true });
   await writeFile(path.join(runtimeRoot, 'scenes', 'scene_running', 'scene.json'), JSON.stringify({ scene_id: 'scene_running', status: 'RUNNING' }));
   await writeFile(path.join(runtimeRoot, 'scenes', 'scene_complete', 'scene.json'), JSON.stringify({ scene_id: 'scene_complete', status: 'COMPLETED' }));
   await writeFile(path.join(runtimeRoot, 'editorial-shoots', 'shoot_running', 'shoot.json'), JSON.stringify({ shoot_id: 'shoot_running', status: 'HERO_RUNNING' }));
   await writeFile(path.join(runtimeRoot, 'editorial-shoots', 'shoot_cancelled', 'shoot.json'), JSON.stringify({ shoot_id: 'shoot_cancelled', status: 'CANCELLED' }));
   await writeFile(path.join(runtimeRoot, 'editorial-shoots', 'shoot_pending', 'shoot.json'), JSON.stringify({ shoot_id: 'shoot_pending', status: 'BIBLE_PENDING_APPROVAL' }));
+  await writeFile(path.join(runtimeRoot, 'video-clips', 'clips', submittingClipId, 'clip.json'), JSON.stringify({ clipId: submittingClipId, status: 'SUBMITTING' }));
+  await writeFile(path.join(runtimeRoot, 'video-clips', 'clips', createdClipId, 'clip.json'), JSON.stringify({ clipId: createdClipId, status: 'CREATED', jobId: 'durable-provider-job' }));
+  await writeFile(path.join(runtimeRoot, 'video-clips', 'clips', completedClipId, 'clip.json'), JSON.stringify({ clipId: completedClipId, status: 'PASS' }));
   const runner = `#!/bin/zsh\nruntime_root="${runtimeRoot}"\n`;
-  assert.deepEqual(await activeBetaWorkIds(runner), ['scene:scene_running', 'shoot:shoot_running']);
+  assert.deepEqual(await activeBetaWorkIds(runner), [
+    `clip:${submittingClipId}`,
+    'scene:scene_running',
+    'shoot:shoot_running',
+  ]);
 });

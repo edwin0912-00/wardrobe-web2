@@ -27,6 +27,26 @@ motion-reference resolver, so the truthful public state remains unavailable.
 No provider call or paid generation was made.
 weakened_checks: none.
 
+## Fashion Video HTTP 502 incident — 2026-07-30
+
+The public `POST /api/profile/video-clips` began at 19:05:15Z and persisted clip
+`0b5e30f3-0c3e-436f-aea0-877074c2bd65` as `SUBMITTING` without a provider job
+id. Beta release `f352a9b` activated at 19:05:25Z and killed that in-flight
+request, so Cloudflare returned HTTP 502. A read-only Higgsfield video-job audit
+found no Seedance job at or after the submission time; no paid duplicate exists.
+
+`activeBetaWorkIds` now scans `video-clips/clips/*/clip.json`, blocks deployment
+for active, unknown, malformed, or mismatched clip state, and permits restart
+only for durable `CREATED` or settled terminal states.
+
+Evidence:
+
+- `node --test test/release/beta-deployment.test.js` — PASS 4/4.
+- The fixed scanner detects the interrupted clip plus the currently active
+  scenes and shoots in the real beta runtime.
+- No paid generation or retry was run.
+- `weakened_checks: none`.
+
 Rationale/decision: VideoService remains the single profile HTTP execution path. The runtime constructs Higgsfield plus the three-attempt OpenRouter fallback router, supplies authenticated/size-bounded MP4 download and real ffprobe/frame extraction, and exposes resume/finalize without creating a second paid job. Higgsfield CLI 0.2.3 returned a batched create response, so the adapter now resolves job IDs from both object and array envelopes. A strict recovery path binds an orphaned SUBMITTING clip only when provider prompt/aspect/duration/model exactly match. Semantic first/last-frame QA is persisted as an immutable receipt and overrides technical MP4 PASS.
 Code: ACTIVE — commits da407ac707f8001d9a7f3165dd73847d012e394f and 78bf5b77f1425e845f57d0600378bb621c195be6 plus current recovery/FPS/semantic-QA atom.
 Beta: NOT_DEPLOYED

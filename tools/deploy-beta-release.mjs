@@ -71,6 +71,7 @@ async function activePersistedIds(root, {
   idField,
   prefix,
   isActive,
+  entryNameIsValid = (name) => name.startsWith(`${prefix}_`) || prefix === 'run',
 }) {
   let entries;
   try {
@@ -85,7 +86,7 @@ async function activePersistedIds(root, {
     // These are service-owned ledgers, not executable jobs. Any other unknown
     // directory remains fail-closed rather than being silently ignored.
     if (['incidents', 'quarantine'].includes(entry.name)) continue;
-    if (!entry.name.startsWith(`${prefix}_`) && prefix !== 'run') {
+    if (!entryNameIsValid(entry.name)) {
       active.push(`${prefix}:${entry.name}`);
       continue;
     }
@@ -100,14 +101,14 @@ async function activePersistedIds(root, {
   return active.sort();
 }
 
-// A beta release is a process restart. Runs, standard scenes and Fashion Shoot
-// each persist independently, so checking only /runs left a path that could kill
-// an active provider/QA phase midway. Block each submitted or queued job, not
-// completed history or a user decision waiting for approval.
+// A beta release is a process restart. Runs, standard scenes, Fashion Shoot and
+// Fashion Video each persist independently, so checking only /runs left a path
+// that could kill an active provider/QA phase midway. Block each submitted or
+// queued job, not completed history or a user decision waiting for approval.
 export async function activeBetaWorkIds(runnerSource) {
   const runtimeRoot = runnerSource.match(/^runtime_root="([^"]+)"$/m)?.[1];
   invariant(runtimeRoot, 'Beta runner runtime_root is missing');
-  const [runs, scenes, shoots] = await Promise.all([
+  const [runs, scenes, shoots, clips] = await Promise.all([
     activePersistedIds(path.join(runtimeRoot, 'runs'), {
       stateFile: 'run.json', idField: 'run_id', prefix: 'run',
       isActive: (status) => ['QUEUED', 'RUNNING'].includes(status),
@@ -121,8 +122,26 @@ export async function activeBetaWorkIds(runnerSource) {
       isActive: (status, state) => ['HERO_RUNNING', 'SERIES_RUNNING'].includes(status)
         || state?.shots?.some((shot) => ['QUEUED', 'RUNNING'].includes(shot?.status)),
     }),
+    activePersistedIds(path.join(runtimeRoot, 'video-clips', 'clips'), {
+      stateFile: 'clip.json',
+      idField: 'clipId',
+      prefix: 'clip',
+      entryNameIsValid: (name) => (
+        /^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(name)
+      ),
+      // CREATED is restart-safe because the paid provider job id is durable.
+      // PASS / FAIL / FAILED / NEEDS_QA are settled. Every other state is
+      // active or unknown and must finish before launchd can kill beta.
+      isActive: (status) => ![
+        'CREATED',
+        'PASS',
+        'FAIL',
+        'FAILED',
+        'NEEDS_QA',
+      ].includes(status),
+    }),
   ]);
-  return [...runs, ...scenes, ...shoots].sort();
+  return [...runs, ...scenes, ...shoots, ...clips].sort();
 }
 
 async function exists(target) {
