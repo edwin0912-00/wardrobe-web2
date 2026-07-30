@@ -1270,20 +1270,6 @@ async function renderProfile(profileValueToRender = null) {
           beginDraft,
         ).catch(showProfileError);
       }),
-      createProfileButton('Видалити', 'profile-delete-action', async (event) => {
-        event.stopPropagation();
-        try {
-          if (!confirm('Видалити цей аватар і всі пов’язані образи?')) return;
-          await deleteProfileAvatar(id);
-          if (selectedProfileAvatarId === id) {
-            selectedProfileAvatarId = null;
-            selectedProfileLookId = null;
-          }
-          await renderProfile(await loadCurrentProfile({ refresh: true }));
-        } catch (error) {
-          showProfileError(error);
-        }
-      }),
     );
     card.append(selector, actions);
     avatarList.append(card);

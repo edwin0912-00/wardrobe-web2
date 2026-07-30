@@ -59,10 +59,13 @@ test('Back restores the previous in-app view without resetting draft files', () 
 });
 
 test('avatar and look cards are native, stateful selection controls', () => {
+  const renderProfileSource = functionSource('renderProfile', 'showProfileError');
   assert.match(appSource, /selector\.type = 'button'/);
   assert.match(appSource, /selector\.className = 'profile-avatar-select'/);
   assert.match(appSource, /selector\.setAttribute\('aria-pressed', String\(active\)\)/);
   assert.match(appSource, /selector\.setAttribute\('aria-controls', 'profile-look-grid'\)/);
+  assert.match(renderProfileSource, /createProfileButton\('Новий образ з цим аватаром'/);
+  assert.doesNotMatch(renderProfileSource, /createProfileButton\('Видалити'/);
   assert.match(appSource, /open\.type = 'button'/);
   assert.match(appSource, /open\.className = 'profile-look-open'/);
   assert.match(appSource, /open\.setAttribute\('aria-expanded', String\(active\)\)/);
@@ -207,10 +210,7 @@ test('profile mobile copy and controls retain readable type and touch targets', 
     resultCss,
     /\.profile-page-button \{[\s\S]*?width:\s*44px;[\s\S]*?height:\s*44px;[\s\S]*?font-size:\s*14px;/,
   );
-  assert.match(
-    resultCss,
-    /\.profile-item-actions \.profile-delete-action,[\s\S]*?flex:\s*0 0 70px;[\s\S]*?min-width:\s*70px;/,
-  );
+  assert.doesNotMatch(resultCss, /\.profile-item-actions \.profile-delete-action/);
   assert.match(
     resultCss,
     /\.profile-look-scene-open \{[\s\S]*?min-height:\s*68px;[\s\S]*?cursor:\s*pointer;/,
