@@ -2651,7 +2651,10 @@ test('final manifest privacy failure is observable and retries export without ge
   const report = JSON.parse(await readFile(path.join(quarantineDirectory, reportName), 'utf8'));
   assert.equal(report.status, 'FAIL');
   assert.equal(report.checked_files[0].path, 'outputs/scene-manifest.json');
-  assert.ok(report.findings.some((finding) => finding.rule === 'NO_ABSOLUTE_USER_PATHS'));
+  assert.ok(report.findings.some((finding) => (
+    finding.rule === 'NO_ABSOLUTE_USER_PATHS'
+      && finding.path === 'outputs/scene-manifest.json#/attempt_history/0/qa/gates/5/evidence'
+  )));
   assert.doesNotMatch(JSON.stringify(report), /private-look|\/Users\/fixture/);
 
   const persisted = JSON.parse(await readFile(scenePath, 'utf8'));

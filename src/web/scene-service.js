@@ -836,6 +836,30 @@ function privacyFindingsForText(value, artifactPath) {
   return findings;
 }
 
+function privacyFindingsForStructuredText(value, artifactPath) {
+  const findings = [];
+  const visit = (current, tokens) => {
+    if (typeof current === 'string') {
+      const pointer = tokens.length === 0
+        ? ''
+        : `#/${tokens
+          .map((token) => String(token).replaceAll('~', '~0').replaceAll('/', '~1'))
+          .join('/')}`;
+      findings.push(...privacyFindingsForText(current, `${artifactPath}${pointer}`));
+      return;
+    }
+    if (Array.isArray(current)) {
+      current.forEach((item, index) => visit(item, [...tokens, index]));
+      return;
+    }
+    if (current && typeof current === 'object') {
+      Object.entries(current).forEach(([key, item]) => visit(item, [...tokens, key]));
+    }
+  };
+  visit(value, []);
+  return findings;
+}
+
 async function imageMetadataPrivacyFindings(bytes, artifactPath) {
   const metadata = await sharp(bytes).metadata();
   const embedded = ['exif', 'xmp', 'iptc', 'comments'].filter((field) => metadata[field]);
@@ -4290,8 +4314,8 @@ export class SceneService {
       },
     };
     const manifestBytes = canonicalJsonBytes(manifest);
-    const finalManifestFindings = privacyFindingsForText(
-      manifestBytes.toString('utf8'),
+    const finalManifestFindings = privacyFindingsForStructuredText(
+      manifest,
       'outputs/scene-manifest.json',
     );
     if (finalManifestFindings.length > 0) {
