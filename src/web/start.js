@@ -14,8 +14,10 @@ import { createFalRealtimeTokenIssuer } from './fal-realtime-token.js';
 import { createVideoRuntime } from './video-runtime.js';
 import { createFashionVideoReferenceResolver } from './video-reference-registry.js';
 import { createVideoAssetUrlResolver } from './video-source-bridge.js';
+import { loadReleaseIdentity } from './release-identity.js';
 
 const projectRoot = path.resolve(import.meta.dirname, '..', '..');
+const releaseIdentity = await loadReleaseIdentity(projectRoot);
 const generationMode = process.env.ZEELY_GENERATION_PROVIDER ?? 'higgsfield';
 const runtimeRoot = process.env.ZEELY_RUNTIME_ROOT
   ? path.resolve(process.env.ZEELY_RUNTIME_ROOT)
@@ -117,6 +119,7 @@ const app = await createWebApp({
   lucyTokenIssuer: createFalRealtimeTokenIssuer(),
   videoService,
   videoSourceBridge,
+  releaseIdentity,
 });
 const draftCleanupTimer = setInterval(() => drafts.cleanupExpired().catch(() => {}), 60_000);
 const profileCleanup = async () => {

@@ -79,6 +79,14 @@ Evidence: focused governance/monitor tests, shell syntax, strict release and
 local/public monitor health are required before activation.
 weakened_checks: none.
 
+2026-07-30 · Public health release binding
+Change: release runtime loads the immutable product manifest and publishes only
+its exact Git SHA and cache token in `/api/health`.
+Why: independent browser QA must prove it tested the deployed release, not
+merely a healthy endpoint or stale browser cache.
+Evidence: manifest validation and public health regression tests.
+weakened_checks: none.
+
 2026-07-30 · Upload drag-and-drop + HEIC · `6f17367` → beta
 Change: every person/garment upload field accepts pointer drag-and-drop; HEIC
 and HEIF are decoded in-browser to a server-supported JPEG before upload.

@@ -504,3 +504,5 @@ be weakened to hide it.
   health URL instead of assuming the retired port `4173`.
 - `tools/watch-beta-runtime.mjs` renders sanitized live Block 1–7 node
   transitions from the append-only beta event log.
+- Public `/api/health` exposes the immutable release SHA and cache token so
+  both observers can fail closed on a release mismatch.

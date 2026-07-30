@@ -38,6 +38,7 @@ export async function createWebApp({
   lucyTokenIssuer = null,
   videoService = null,
   videoSourceBridge = null,
+  releaseIdentity = null,
 }) {
   // A degraded provider preflight means the local CLI cannot prove that it can
   // create and observe a paid Higgsfield job. Do not let a user enter the
@@ -259,6 +260,7 @@ export async function createWebApp({
       service: 'web',
       generation: generationAvailable ? 'available' : 'unavailable',
       semantic_qa: 'available',
+      ...(releaseIdentity ? releaseIdentity : {}),
       ...(runtimeStatus ? { runtime_status: runtimeStatus } : {}),
       ...(health.test_only ? { editorial_generation: 'available' } : { editorial_generation: editorialShootService
         ? (generationAvailable ? 'available' : 'unavailable')
