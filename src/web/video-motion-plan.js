@@ -98,6 +98,35 @@ const LOCKS = [
   'No anatomy defects, no extra fingers, no melted hands, no face drift.',
 ].join(' ');
 
+export function buildFashionVideoReferencePrompt({
+  hasIdentityReference = false,
+  hasGarmentReference = false,
+} = {}) {
+  const lines = [
+    '[Video 1] is the exact temporal, editorial and scene master.',
+    'Preserve its complete shot sequence, cut timing, transitions, action timing, pose choreography, camera movement, framing, environment, lighting, colour grade, optical effects, props and environmental text.',
+    'Do not copy the original performer identity, body identity, hair or clothing from [Video 1].',
+    '[Image 1] is the exact approved person wearing the exact complete approved outfit.',
+    'Replace only the primary performer and that performer’s clothing with [Image 1]. Keep every other property of [Video 1].',
+  ];
+  if (hasIdentityReference) {
+    lines.push(
+      '[Image 2] defines face identity and hair only. Ignore its clothing and background.',
+    );
+  }
+  if (hasGarmentReference) {
+    lines.push(
+      `[Image ${hasIdentityReference ? 3 : 2}] defines the approved garment and footwear construction, colour, material, pattern, hardware, logo and text only. Do not redesign any item.`,
+    );
+  }
+  lines.push(
+    'Never replace the reference environment with the background of an appearance image.',
+    'Do not simplify the reference into a static portrait or a single continuous camera setup.',
+    'Do not add people, props, scene text, wardrobe changes, music, dialogue, voice or sound effects.',
+  );
+  return lines.join(' ');
+}
+
 export class MotionPlanError extends Error {
   constructor(message, { code = 'MOTION_PLAN_INVALID' } = {}) {
     super(message);

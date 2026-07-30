@@ -4,6 +4,52 @@ Compatibility branch: beta-block-6-fashion-video
 Task: executable Fashion Video runtime and one controlled real clip
 Base: 0b788bd13c569e850482bb664ba1ca28f4a25b9d
 
+## Full-reference Fashion Video correction — 2026-07-30
+
+Code: TESTED_BRANCH on `fix/video-deploy-inflight-20260730`. The reference
+video is now ordered before appearance images and is the explicit authority for
+the full shot sequence, cuts, transitions, motion, camera, environment,
+lighting, grade and optical effects. The approved full look, immutable identity
+reference and deterministic person-free garment card remain appearance-only
+authorities. A reference-bound job uses the reference duration (bounded to the
+provider's 15-second integer limit), and OpenRouter is not allowed to discard
+Video 1. An unparseable create acknowledgement is an unknown paid outcome and
+cannot trigger another automatic spend.
+
+Reference-bound clips remain `NEEDS_QA` after MP4/ffprobe checks. `PASS` now
+requires both first/last identity-item QA and an immutable reference-adherence
+receipt covering motion/pose timing, camera/framing, environment/lighting,
+grade/optical effects and shot sequence/transitions. Either semantic failure
+blocks the clip; the two receipts may arrive in either order.
+
+Evidence:
+
+- `node --test test/video/*.test.js` — PASS 133/133.
+- `node --test --test-name-pattern='approved identity reference returns'
+  test/web/run-service.test.js` — PASS 1/1.
+- Exact zero-create packet: Higgsfield `seedance_2_0`, vertical, 13 seconds,
+  silent, 720p, Video 1 SHA
+  `12ff78b162da5a66e1cb05ddae9c878e18468ebeeabce07ddf36821b196c2d72`,
+  Image 1 approved look SHA
+  `0f154d1d46df84858a8c56bf2cad612a56858b9363fb603031dc245cefe6c6af`,
+  Image 2 identity SHA
+  `6d0d53680ba7cca9c99d92264d9f61efa088c601ff99cc1ed5472b3a2fb59ff1`,
+  Image 3 garment card SHA
+  `9a3e0618adf88dfa6c928d8cfcddce7c67902bb71ea78d2484a38a9cb1cd5d0a`.
+  Packet fingerprint:
+  `6df2c9617f75cfbbce34ef79365559489223d4cf9ec01bbca8f5e0440d8d26fd`.
+- Higgsfield zero-create model estimate for the same geometry: 58.5 credits.
+- No generation job was created.
+
+Beta: NOT_DEPLOYED. Release ownership remains with Chat 00; this correction
+must replace the current image-animation request before another customer or
+controlled generation.
+
+Journey: NOT_RUN after correction. The three earlier static-white-background
+outputs are rejected evidence and must not be reused.
+
+weakened_checks: none.
+
 ## Narrow capability integration — 2026-07-30
 
 Code: READY_FOR_BETA_DEPLOY. The useful backend portion of the later Block 6

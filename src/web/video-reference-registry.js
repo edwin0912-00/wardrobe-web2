@@ -33,6 +33,15 @@ function validateManifest(manifest) {
       || reference.bytes < 1
       || !Number.isInteger(reference?.preview_bytes)
       || reference.preview_bytes < 1
+      || !Number.isFinite(reference?.duration_seconds)
+      || reference.duration_seconds < 3
+      || reference.duration_seconds > 15.5
+      || !Number.isInteger(reference?.width)
+      || !Number.isInteger(reference?.height)
+      || reference.width < 1
+      || reference.height < 1
+      || !Number.isFinite(reference?.fps)
+      || reference.fps <= 0
       || !Array.isArray(reference?.motion_modes)
       || reference.motion_modes.length === 0
       || !reference.motion_modes.includes(reference?.default_motion_mode)) {
@@ -131,6 +140,11 @@ export function createFashionVideoReferenceResolver({
       reference_path: referencePath,
       reference_sha256: selected.sha256,
       reference_pack_sha256: sha256(manifestBytes),
+      duration_seconds: selected.duration_seconds,
+      provider_duration_seconds: Math.min(15, Math.round(selected.duration_seconds)),
+      width: selected.width,
+      height: selected.height,
+      fps: selected.fps,
       motion_modes: Object.freeze([...selected.motion_modes]),
       available_styles: Object.freeze(availableStyles),
       selected_style_id: selected.id,

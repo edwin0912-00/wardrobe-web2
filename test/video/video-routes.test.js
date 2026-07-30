@@ -26,6 +26,10 @@ function fixture() {
       image_sha256: 'b'.repeat(64),
       receipt_sha256: 'c'.repeat(64),
     }),
+    approvedLookLiveReference: async () => ({
+      image: Buffer.from('garment-reference'),
+      reference_sha256: 'f'.repeat(64),
+    }),
     projectVideoClip(profileId, lookId, clip) {
       projected.push({ profileId, lookId, clip });
       return {
@@ -84,6 +88,11 @@ test('create fails closed before provider spend while Fashion Video has no refer
     videoService: current.videoService,
     runService: {
       outputFile: async () => '/runtime/runs/source/avatar_outfit.png',
+      approvedIdentityReferenceForRun: async () => ({
+        role: 'identity_face',
+        data: Buffer.from('identity-reference'),
+        sha256: 'a'.repeat(64),
+      }),
     },
   });
 
@@ -206,6 +215,11 @@ test('create reaches VideoService only after the same two-reference contract is 
     videoService: current.videoService,
     runService: {
       outputFile: async () => '/runtime/runs/source/avatar_outfit.png',
+      approvedIdentityReferenceForRun: async () => ({
+        role: 'identity_face',
+        data: Buffer.from('identity-reference'),
+        sha256: 'a'.repeat(64),
+      }),
     },
   });
 
@@ -222,6 +236,10 @@ test('create reaches VideoService only after the same two-reference contract is 
   assert.equal(response.json().status, 'CREATED');
   assert.equal(current.createRequests.length, 1);
   assert.equal(current.createRequests[0].lookBinding.sourceSha256, 'b'.repeat(64));
+  assert.deepEqual(
+    current.createRequests[0].appearanceReferences.map((reference) => reference.role),
+    ['identity_face', 'garment_detail'],
+  );
   assert.equal(current.projected.length, 1);
 });
 

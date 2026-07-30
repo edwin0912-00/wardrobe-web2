@@ -186,6 +186,10 @@ export async function registerVideoRoutes(app, {
         requirements: capability.requirements,
       });
     }
+    const [identityReference, garmentReference] = await Promise.all([
+      runService.approvedIdentityReferenceForRun(lookDescriptor.runId),
+      profiles.approvedLookLiveReference(session.profileId, look_id, runService),
+    ]);
 
     try {
       const result = await videoService.createClip({
@@ -195,6 +199,18 @@ export async function registerVideoRoutes(app, {
         styleNote: style_note ?? null,
         sourceImagePath,
         videoReference: motionReference,
+        appearanceReferences: [
+          {
+            role: identityReference.role,
+            bytes: Buffer.from(identityReference.data),
+            sha256: identityReference.sha256,
+          },
+          {
+            role: 'garment_detail',
+            bytes: Buffer.from(garmentReference.image),
+            sha256: garmentReference.reference_sha256,
+          },
+        ],
         lookBinding: {
           profileId: session.profileId,
           lookId: look_id,

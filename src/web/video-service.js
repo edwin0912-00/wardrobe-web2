@@ -17,7 +17,11 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import { sha256 } from './scene-contract.js';
-import { buildMotionPlan, surface } from './video-motion-plan.js';
+import {
+  buildFashionVideoReferencePrompt,
+  buildMotionPlan,
+  surface,
+} from './video-motion-plan.js';
 import { evaluateClipQa } from './video-clip-qa.js';
 
 export class VideoServiceError extends Error {
@@ -82,6 +86,25 @@ export class ClipStore {
     await mkdir(dir, { recursive: true });
     const filePath = path.join(dir, 'source.png');
     await writeFile(filePath, sourceBytes);
+    return filePath;
+  }
+
+  async saveAppearanceReference(clipId, role, imageBytes) {
+    const filenames = {
+      identity_face: 'identity-face.png',
+      garment_detail: 'garment-detail.png',
+    };
+    const filename = filenames[role];
+    if (!filename) {
+      throw new VideoServiceError('Unknown Fashion Video appearance reference role', {
+        code: 'VIDEO_APPEARANCE_REFERENCE_INVALID',
+        status: 409,
+      });
+    }
+    const dir = this.clipDir(clipId);
+    await mkdir(dir, { recursive: true });
+    const filePath = path.join(dir, filename);
+    await writeFile(filePath, imageBytes, { flag: 'wx' });
     return filePath;
   }
 
@@ -189,6 +212,7 @@ export class VideoService {
     sourceImagePath,
     lookBinding = null,
     videoReference = null,
+    appearanceReferences = [],
   }) {
     if (!sourceImagePath) {
       throw new VideoServiceError('A locked source image path is required', {
@@ -229,7 +253,11 @@ export class VideoService {
       if (videoReference?.state !== 'READY'
         || typeof videoReference.reference_path !== 'string'
         || !/^[a-f0-9]{64}$/.test(videoReference.reference_sha256 ?? '')
-        || !/^[a-f0-9]{64}$/.test(videoReference.reference_pack_sha256 ?? '')) {
+        || !/^[a-f0-9]{64}$/.test(videoReference.reference_pack_sha256 ?? '')
+        || !Number.isFinite(videoReference.duration_seconds)
+        || !Number.isInteger(videoReference.provider_duration_seconds)
+        || videoReference.provider_duration_seconds < 3
+        || videoReference.provider_duration_seconds > 15) {
         throw new VideoServiceError('Fashion Video reference binding is incomplete', {
           code: 'VIDEO_REFERENCE_INVALID',
           status: 409,
@@ -256,20 +284,71 @@ export class VideoService {
         sha256: videoReference.reference_sha256,
         packSha256: videoReference.reference_pack_sha256,
         referenceId: videoReference.reference_id ?? null,
+        durationSeconds: videoReference.duration_seconds,
+        providerDurationSeconds: videoReference.provider_duration_seconds,
+        width: videoReference.width ?? null,
+        height: videoReference.height ?? null,
+        fps: videoReference.fps ?? null,
       };
     }
+    if (!Array.isArray(appearanceReferences)
+      || appearanceReferences.length > 2
+      || appearanceReferences.some((reference) => (
+        !['identity_face', 'garment_detail'].includes(reference?.role)
+        || !Buffer.isBuffer(reference?.bytes)
+        || reference.bytes.length === 0
+        || !/^[a-f0-9]{64}$/.test(reference?.sha256 ?? '')
+        || sha256(reference.bytes) !== reference.sha256
+      ))
+      || new Set(appearanceReferences.map((reference) => reference.role)).size
+        !== appearanceReferences.length) {
+      throw new VideoServiceError('Fashion Video appearance references are invalid', {
+        code: 'VIDEO_APPEARANCE_REFERENCE_INVALID',
+        status: 409,
+      });
+    }
     const lockedSourcePath = await this.#store.saveSource(clipId, sourceBytes);
+    const lockedAppearanceReferences = [];
+    for (const reference of appearanceReferences) {
+      const referencePath = await this.#store.saveAppearanceReference(
+        clipId,
+        reference.role,
+        reference.bytes,
+      );
+      lockedAppearanceReferences.push({
+        role: reference.role,
+        path: referencePath,
+        sha256: reference.sha256,
+      });
+    }
 
     // Resolve aspect from the surface, or fall back to the provider default.
     const resolvedSurface = surfaceId ? surface(surfaceId) : null;
     const aspectRatio = resolvedSurface ? resolvedSurface.aspectRatio : '16:9';
 
+    const referenceBound = verifiedVideoReference !== null;
+    const prompt = referenceBound
+      ? buildFashionVideoReferencePrompt({
+          hasIdentityReference: lockedAppearanceReferences.some(
+            (reference) => reference.role === 'identity_face',
+          ),
+          hasGarmentReference: lockedAppearanceReferences.some(
+            (reference) => reference.role === 'garment_detail',
+          ),
+        })
+      : plan.prompt;
+    const duration = referenceBound
+      ? verifiedVideoReference.providerDurationSeconds
+      : plan.durationSeconds;
     const request = {
-      prompt: plan.prompt,
-      mediaPaths: [lockedSourcePath],
+      prompt,
+      mediaPaths: [
+        lockedSourcePath,
+        ...lockedAppearanceReferences.map((reference) => reference.path),
+      ],
       videoPaths: verifiedVideoReference ? [verifiedVideoReference.path] : [],
       aspectRatio,
-      durationSeconds: plan.durationSeconds,
+      durationSeconds: duration,
       sourceBinding: {
         clipId,
         sourceSha256,
@@ -292,10 +371,27 @@ export class VideoService {
       title: plan.title,
       surface: plan.surface ?? null,
       aspectRatio,
-      durationSeconds: plan.durationSeconds,
-      prompt: plan.prompt,
+      durationSeconds: duration,
+      prompt,
       sourceSha256,
       sourceFile: 'source.png',
+      appearanceReferences: lockedAppearanceReferences.map((reference) => ({
+        role: reference.role,
+        file: path.basename(reference.path),
+        sha256: reference.sha256,
+      })),
+      motionReferenceBinding: verifiedVideoReference
+        ? {
+            referenceId: verifiedVideoReference.referenceId,
+            sha256: verifiedVideoReference.sha256,
+            packSha256: verifiedVideoReference.packSha256,
+            durationSeconds: verifiedVideoReference.durationSeconds,
+            providerDurationSeconds: verifiedVideoReference.providerDurationSeconds,
+            width: verifiedVideoReference.width,
+            height: verifiedVideoReference.height,
+            fps: verifiedVideoReference.fps,
+          }
+        : null,
       lookBinding,
       createdAt,
       updatedAt: createdAt,
@@ -318,9 +414,13 @@ export class VideoService {
         approved_look_receipt_sha256: lookBinding?.approvedLookReceiptSha256 ?? null,
         motion_reference_sha256: verifiedVideoReference?.sha256 ?? null,
         reference_pack_sha256: verifiedVideoReference?.packSha256 ?? null,
-        prompt: plan.prompt,
+        prompt,
         aspect_ratio: aspectRatio,
-        duration_seconds: plan.durationSeconds,
+        duration_seconds: duration,
+        appearance_references: lockedAppearanceReferences.map((reference) => ({
+          role: reference.role,
+          sha256: reference.sha256,
+        })),
       },
       response: {
         job_id: created.jobId,
@@ -345,7 +445,17 @@ export class VideoService {
 
     await this.#store.save(clipId, metadata);
 
-    return { clipId, jobId: created.jobId, status: 'CREATED', plan };
+    return {
+      clipId,
+      jobId: created.jobId,
+      status: 'CREATED',
+      plan: {
+        ...plan,
+        prompt,
+        durationSeconds: duration,
+        referenceBound,
+      },
+    };
   }
 
   /**
@@ -490,7 +600,11 @@ export class VideoService {
       qa = evaluateClipQa(expected, { ...probe, firstFrameRgb, lastFrameRgb });
     }
 
-    clip.status = qa ? (qa.pass ? 'PASS' : 'FAIL') : 'NEEDS_QA';
+    clip.status = qa
+      ? (qa.pass
+          ? (clip.motionReferenceBinding ? 'NEEDS_QA' : 'PASS')
+          : 'FAIL')
+      : 'NEEDS_QA';
     clip.videoUrl = finished.url;
     clip.videoSha256 = videoSha256;
     clip.videoPath = videoPath;
@@ -566,9 +680,17 @@ export class VideoService {
     const identityItemQaSha256 = sha256(receiptBytes);
     await this.#store.saveIdentityItemQa(clipId, receiptBytes);
     const pass = firstDecision === 'PASS' && lastDecision === 'PASS';
+    const referencePass = clip.referenceAdherenceQa?.pass === true;
+    const technicalPass = clip.qa?.pass;
     const updated = {
       ...clip,
-      status: pass ? clip.status : 'FAIL',
+      status: !pass || technicalPass === false
+        ? 'FAIL'
+        : technicalPass !== true
+          ? 'NEEDS_QA'
+          : clip.motionReferenceBinding
+            ? (referencePass ? 'PASS' : 'NEEDS_QA')
+            : 'PASS',
       identityItemQa: {
         pass,
         firstDecision,
@@ -585,6 +707,84 @@ export class VideoService {
       status: updated.status,
       identityItemQa: updated.identityItemQa,
       identityItemQaSha256,
+    };
+  }
+
+  /**
+   * Persist the blocking Fashion Video reference-transfer decision. Technical
+   * validity and identity stability cannot substitute for this gate.
+   */
+  async recordReferenceAdherenceQa(clipId, receipt) {
+    const clip = await this.#store.load(clipId);
+    if (!clip) {
+      throw new VideoServiceError('Clip not found', { code: 'CLIP_NOT_FOUND', status: 404 });
+    }
+    const expectedReferenceSha256 = clip.motionReferenceBinding?.sha256;
+    const checks = receipt?.checks;
+    const exactBinding = receipt?.clip_id === clip.clipId
+      && receipt?.job_id === clip.jobId
+      && receipt?.source_sha256 === clip.sourceSha256
+      && receipt?.motion_reference_sha256 === expectedReferenceSha256;
+    const requiredChecks = [
+      'motion_and_pose_timing',
+      'camera_and_framing',
+      'environment_and_lighting',
+      'grade_and_optical_effects',
+      'shot_sequence_and_transitions',
+    ];
+    const decisions = new Map(
+      Array.isArray(checks)
+        ? checks.map((check) => [check?.name, check?.decision])
+        : [],
+    );
+    if (!exactBinding
+      || requiredChecks.some((name) => !['PASS', 'FAIL'].includes(decisions.get(name)))) {
+      throw new VideoServiceError('Reference-adherence QA does not match the persisted clip', {
+        code: 'REFERENCE_QA_RECEIPT_MISMATCH',
+        status: 409,
+      });
+    }
+    const pass = requiredChecks.every((name) => decisions.get(name) === 'PASS');
+    const receiptBytes = Buffer.from(`${JSON.stringify(receipt, null, 2)}\n`);
+    const referenceAdherenceQaSha256 = sha256(receiptBytes);
+    const dir = this.#store.clipDir(clipId);
+    const receiptPath = path.join(dir, 'reference-adherence-qa.json');
+    try {
+      await writeFile(receiptPath, receiptBytes, { flag: 'wx' });
+    } catch (error) {
+      if (error?.code !== 'EEXIST') throw error;
+      const existing = await readFile(receiptPath);
+      if (!existing.equals(receiptBytes)) {
+        throw new VideoServiceError('Reference-adherence QA receipt is immutable', {
+          code: 'REFERENCE_QA_RECEIPT_CONFLICT',
+          status: 409,
+        });
+      }
+    }
+    const identityPass = clip.identityItemQa?.pass === true;
+    const technicalPass = clip.qa?.pass;
+    const updated = {
+      ...clip,
+      status: !pass || technicalPass === false
+        ? 'FAIL'
+        : technicalPass !== true || !identityPass
+          ? 'NEEDS_QA'
+          : 'PASS',
+      referenceAdherenceQa: {
+        pass,
+        decisions: Object.fromEntries(requiredChecks.map((name) => [name, decisions.get(name)])),
+        evaluator: receipt.evaluator ?? null,
+      },
+      referenceAdherenceQaSha256,
+      referenceAdherenceQaFile: 'reference-adherence-qa.json',
+      updatedAt: new Date(this.#clock()).toISOString(),
+    };
+    await this.#store.save(clipId, updated);
+    return {
+      clipId,
+      status: updated.status,
+      referenceAdherenceQa: updated.referenceAdherenceQa,
+      referenceAdherenceQaSha256,
     };
   }
 

@@ -90,6 +90,30 @@ test('a non-retryable Higgsfield refusal never spends through fallback', async (
   assert.equal(fallback.calls.length, 0);
 });
 
+test('a video-reference request never falls back to a provider that would drop Video 1', async () => {
+  const primary = provider({
+    creates: [
+      retryableFailure('HIGGS_TEMP_1'),
+      retryableFailure('HIGGS_TEMP_2'),
+      retryableFailure('HIGGS_TEMP_3'),
+    ],
+  });
+  const fallback = provider({ creates: [{ jobId: 'must-not-run' }] });
+  const router = new VideoProviderRouter({ primary, fallback });
+
+  await assert.rejects(
+    () => router.createJob({
+      prompt: 'reference-bound fashion transfer',
+      mediaPaths: ['/runtime/approved-look.png'],
+      videoPaths: ['/runtime/reference.mp4'],
+    }),
+    (error) => error instanceof VideoProviderRouterError
+      && error.code === 'VIDEO_REFERENCE_FALLBACK_UNAVAILABLE',
+  );
+  assert.equal(primary.calls.length, 3);
+  assert.equal(fallback.calls.length, 0);
+});
+
 test('polling requires the provider persisted with the paid job', async () => {
   const router = new VideoProviderRouter({
     primary: provider(),

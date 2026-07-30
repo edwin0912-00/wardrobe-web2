@@ -269,6 +269,8 @@ test('createClip rechecks and passes the exact video reference binding', async (
   await withTempDir(async (dir, sourcePath) => {
     const referencePath = path.join(dir, 'motion.mp4');
     const referenceBytes = Buffer.from('motion-reference-bytes');
+    const identityBytes = Buffer.from('identity-reference-bytes');
+    const garmentBytes = Buffer.from('garment-reference-bytes');
     await writeFile(referencePath, referenceBytes);
     const requests = [];
     const provider = {
@@ -290,11 +292,40 @@ test('createClip rechecks and passes the exact video reference binding', async (
         reference_path: referencePath,
         reference_sha256: referenceSha256,
         reference_pack_sha256: 'f'.repeat(64),
+        duration_seconds: 13.24,
+        provider_duration_seconds: 13,
+        width: 1080,
+        height: 1920,
+        fps: 25,
       },
+      appearanceReferences: [
+        {
+          role: 'identity_face',
+          bytes: identityBytes,
+          sha256: sha256(identityBytes),
+        },
+        {
+          role: 'garment_detail',
+          bytes: garmentBytes,
+          sha256: sha256(garmentBytes),
+        },
+      ],
     });
     assert.deepEqual(requests[0].videoPaths, [referencePath]);
+    assert.equal(requests[0].durationSeconds, 13);
+    assert.match(requests[0].prompt, /\[Video 1\].*exact temporal, editorial and scene master/);
+    assert.deepEqual(
+      requests[0].mediaPaths.map((mediaPath) => path.basename(mediaPath)),
+      ['source.png', 'identity-face.png', 'garment-detail.png'],
+    );
     assert.equal(requests[0].sourceBinding.motionReferenceSha256, referenceSha256);
     assert.equal(requests[0].sourceBinding.referencePackSha256, 'f'.repeat(64));
+    const saved = await store.load(requests[0].sourceBinding.clipId);
+    assert.equal(saved.motionReferenceBinding.durationSeconds, 13.24);
+    assert.deepEqual(
+      saved.appearanceReferences.map((reference) => reference.role),
+      ['identity_face', 'garment_detail'],
+    );
   });
 });
 
@@ -320,11 +351,159 @@ test('createClip refuses a changed video reference before provider spend', async
           reference_path: referencePath,
           reference_sha256: 'a'.repeat(64),
           reference_pack_sha256: 'b'.repeat(64),
+          duration_seconds: 13.24,
+          provider_duration_seconds: 13,
+          width: 1080,
+          height: 1920,
+          fps: 25,
         },
       }),
       (error) => error.code === 'VIDEO_REFERENCE_HASH_MISMATCH',
     );
     assert.equal(providerCalls, 0);
+  });
+});
+
+test('reference-bound clip stays NEEDS_QA until reference adherence is proven', async () => {
+  await withTempDir(async (dir, sourcePath) => {
+    const referencePath = path.join(dir, 'motion.mp4');
+    const referenceBytes = Buffer.from('motion-reference-bytes');
+    await writeFile(referencePath, referenceBytes);
+    const { provider } = makeStubProvider();
+    const store = new ClipStore(dir);
+    const service = new VideoService({ provider, clipStore: store });
+    const created = await service.createClip({
+      modeId: 'editorial_micro_moment',
+      surfaceId: 'mirror',
+      sourceImagePath: sourcePath,
+      videoReference: {
+        state: 'READY',
+        reference_path: referencePath,
+        reference_sha256: sha256(referenceBytes),
+        reference_pack_sha256: 'f'.repeat(64),
+        duration_seconds: 5,
+        provider_duration_seconds: 5,
+        width: 1080,
+        height: 1920,
+        fps: 25,
+      },
+    });
+    const finalized = await service.awaitAndFinalize(created.clipId, {
+      downloadFn: makeStubDownload(),
+      ...makeStubQa({ width: 720, height: 1280 }),
+    });
+    assert.equal(finalized.qa.pass, true);
+    assert.equal(finalized.status, 'NEEDS_QA');
+  });
+});
+
+test('reference adherence becomes PASS only with exact bindings and every semantic check', async () => {
+  await withTempDir(async (dir) => {
+    const { provider } = makeStubProvider();
+    const store = new ClipStore(dir);
+    const service = new VideoService({ provider, clipStore: store });
+    await store.save('reference-qa-clip', {
+      clipId: 'reference-qa-clip',
+      jobId: 'job_reference_qa',
+      status: 'NEEDS_QA',
+      sourceSha256: 'a'.repeat(64),
+      qa: { pass: true },
+      identityItemQa: { pass: true },
+      motionReferenceBinding: { sha256: 'b'.repeat(64) },
+    });
+    const result = await service.recordReferenceAdherenceQa('reference-qa-clip', {
+      clip_id: 'reference-qa-clip',
+      job_id: 'job_reference_qa',
+      source_sha256: 'a'.repeat(64),
+      motion_reference_sha256: 'b'.repeat(64),
+      evaluator: 'test/reference-evaluator',
+      checks: [
+        'motion_and_pose_timing',
+        'camera_and_framing',
+        'environment_and_lighting',
+        'grade_and_optical_effects',
+        'shot_sequence_and_transitions',
+      ].map((name) => ({ name, decision: 'PASS' })),
+    });
+    assert.equal(result.status, 'PASS');
+    assert.equal(result.referenceAdherenceQa.pass, true);
+    assert.match(result.referenceAdherenceQaSha256, /^[a-f0-9]{64}$/);
+  });
+});
+
+test('reference QA can arrive before identity QA without permanently failing a valid clip', async () => {
+  await withTempDir(async (dir) => {
+    const { provider } = makeStubProvider();
+    const store = new ClipStore(dir);
+    const service = new VideoService({ provider, clipStore: store });
+    await store.save('reference-first', {
+      clipId: 'reference-first',
+      jobId: 'job_reference_first',
+      status: 'NEEDS_QA',
+      sourceSha256: 'a'.repeat(64),
+      qa: { pass: true },
+      motionReferenceBinding: { sha256: 'b'.repeat(64) },
+    });
+    const referenceResult = await service.recordReferenceAdherenceQa('reference-first', {
+      clip_id: 'reference-first',
+      job_id: 'job_reference_first',
+      source_sha256: 'a'.repeat(64),
+      motion_reference_sha256: 'b'.repeat(64),
+      checks: [
+        'motion_and_pose_timing',
+        'camera_and_framing',
+        'environment_and_lighting',
+        'grade_and_optical_effects',
+        'shot_sequence_and_transitions',
+      ].map((name) => ({ name, decision: 'PASS' })),
+    });
+    assert.equal(referenceResult.status, 'NEEDS_QA');
+    const identityResult = await service.recordIdentityItemQa('reference-first', {
+      clip_id: 'reference-first',
+      job_id: 'job_reference_first',
+      source_sha256: 'a'.repeat(64),
+      results: {
+        first: { decision: 'PASS' },
+        last: { decision: 'PASS' },
+      },
+    });
+    assert.equal(identityResult.status, 'PASS');
+  });
+});
+
+test('one failed reference-adherence dimension blocks the clip', async () => {
+  await withTempDir(async (dir) => {
+    const { provider } = makeStubProvider();
+    const store = new ClipStore(dir);
+    const service = new VideoService({ provider, clipStore: store });
+    await store.save('reference-qa-fail', {
+      clipId: 'reference-qa-fail',
+      jobId: 'job_reference_fail',
+      status: 'NEEDS_QA',
+      sourceSha256: 'a'.repeat(64),
+      qa: { pass: true },
+      identityItemQa: { pass: true },
+      motionReferenceBinding: { sha256: 'b'.repeat(64) },
+    });
+    const checks = [
+      'motion_and_pose_timing',
+      'camera_and_framing',
+      'environment_and_lighting',
+      'grade_and_optical_effects',
+      'shot_sequence_and_transitions',
+    ].map((name) => ({
+      name,
+      decision: name === 'shot_sequence_and_transitions' ? 'FAIL' : 'PASS',
+    }));
+    const result = await service.recordReferenceAdherenceQa('reference-qa-fail', {
+      clip_id: 'reference-qa-fail',
+      job_id: 'job_reference_fail',
+      source_sha256: 'a'.repeat(64),
+      motion_reference_sha256: 'b'.repeat(64),
+      checks,
+    });
+    assert.equal(result.status, 'FAIL');
+    assert.equal(result.referenceAdherenceQa.pass, false);
   });
 });
 

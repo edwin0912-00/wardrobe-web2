@@ -32,6 +32,10 @@ async function fixture(run) {
         preview_bytes: previewBytes.length,
         sha256: sha256(referenceBytes),
         bytes: referenceBytes.length,
+        duration_seconds: 13.24,
+        width: 1080,
+        height: 1920,
+        fps: 25,
         default_motion_mode: 'walk_stride',
         motion_modes: ['walk_stride'],
       }],
@@ -54,6 +58,8 @@ test('resolver selects and verifies the hash-bound motion reference', async () =
     assert.equal(result.reference_sha256, sha256(referenceBytes));
     assert.equal(result.available_styles[0].title, 'Рух');
     assert.match(result.reference_pack_sha256, /^[a-f0-9]{64}$/);
+    assert.equal(result.duration_seconds, 13.24);
+    assert.equal(result.provider_duration_seconds, 13);
   });
 });
 

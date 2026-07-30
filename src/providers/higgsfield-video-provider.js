@@ -26,7 +26,7 @@ export const SEEDANCE_SPEC = Object.freeze({
   modes: Object.freeze(['std', 'fast']),
   bitrateModes: Object.freeze(['standard', 'high']),
   genres: Object.freeze(['auto', 'action', 'horror', 'comedy', 'noir', 'drama', 'epic']),
-  durationSeconds: Object.freeze({ minimum: 3, maximum: 12 }),
+  durationSeconds: Object.freeze({ minimum: 3, maximum: 15 }),
 });
 
 export const DEFAULT_VIDEO_REQUEST = Object.freeze({
@@ -156,8 +156,13 @@ export function buildVideoCreateArgs({
     // Never negotiable: invented audio does not ship.
     '--generate_audio', 'false',
   ];
-  for (const mediaPath of mediaPaths) args.push('--image', mediaPath);
+  // Video must be the first ordered medium. Fashion V2V prompts refer to it as
+  // Video 1 (temporal/scene authority) and the following images as Image 1–3
+  // (appearance authority). Reversing this order made the white-background
+  // approved look the dominant start frame and reduced Fashion Video to a
+  // passport-photo animation.
   for (const videoPath of videoPaths) args.push('--video', videoPath);
+  for (const mediaPath of mediaPaths) args.push('--image', mediaPath);
   args.push('--json', '--no-color');
   return args;
 }
@@ -253,8 +258,11 @@ export class HiggsfieldVideoProvider {
     const jobId = findJobId(payload);
     if (!jobId) {
       throw new VideoProviderError('Provider did not return a job id', {
-        code: 'MISSING_PROVIDER_JOB_ID',
-        retryable: true,
+        // The provider may already have accepted and billed the create. An
+        // unparseable acknowledgement is an unknown outcome that must be
+        // reconciled against provider history, never paid again automatically.
+        code: 'CREATE_OUTCOME_UNKNOWN',
+        retryable: false,
       });
     }
     return { jobId, request: { ...DEFAULT_VIDEO_REQUEST, ...request }, argv: args, raw: payload };

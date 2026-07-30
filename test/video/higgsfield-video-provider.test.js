@@ -52,6 +52,7 @@ test('a verified motion reference travels through the dedicated video flag', () 
   });
   assert.equal(flag(args, '--image'), BASE.mediaPaths[0]);
   assert.equal(flag(args, '--video'), '/runtime/references/walk.mp4');
+  assert.ok(args.indexOf('--video') < args.indexOf('--image'));
 });
 
 test('a prompt that names geometry is refused', () => {
@@ -93,7 +94,7 @@ test('a request without a locked source frame is refused', () => {
 });
 
 test('duration is bounded', () => {
-  for (const durationSeconds of [0, 2, 13, 5.5]) {
+  for (const durationSeconds of [0, 2, 16, 5.5]) {
     assert.throws(() => buildVideoCreateArgs({ ...BASE, durationSeconds }), VideoProviderError);
   }
 });
@@ -208,12 +209,13 @@ test('a finished job with no video is a retryable failure, not a success', async
   });
 });
 
-test('a create response without a job id is a retryable failure', async () => {
+test('a create response without a job id is an unknown paid outcome and is not retried', async () => {
   const provider = new HiggsfieldVideoProvider({
     commandRunner: async () => ({ stdout: JSON.stringify({ accepted: true }), stderr: '' }),
   });
   await assert.rejects(() => provider.createJob(BASE), (error) => {
-    assert.equal(error.code, 'MISSING_PROVIDER_JOB_ID');
+    assert.equal(error.code, 'CREATE_OUTCOME_UNKNOWN');
+    assert.equal(error.retryable, false);
     return true;
   });
 });

@@ -1115,6 +1115,79 @@ export class RunService {
   }
 
   /**
+   * Return the verified identity image used by downstream appearance-bound
+   * video. Bytes only: callers never receive a run-local filesystem path.
+   */
+  async approvedIdentityReferenceForRun(runId) {
+    if (typeof runId !== 'string' || !SAFE_RUN_ID.test(runId)) {
+      throw evidenceError('APPROVED_IDENTITY_REFERENCE_INVALID', 'Run id is invalid');
+    }
+    const directory = path.join(this.runDirectory(runId), 'conditioned', 'identity');
+    const packPath = path.join(directory, 'reference-pack.json');
+    const packBytes = await this.#readApprovedItemEvidenceFile(
+      packPath,
+      directory,
+      'Identity reference pack',
+      MAX_APPROVED_ITEM_PACK_BYTES,
+    );
+    let pack;
+    try {
+      pack = JSON.parse(packBytes.toString('utf8'));
+    } catch {
+      throw evidenceError(
+        'APPROVED_IDENTITY_REFERENCE_INVALID',
+        'Identity reference pack is not valid JSON',
+      );
+    }
+    const binding = pack?.generation_bindings?.find(
+      (candidate) => candidate?.order === 1 && candidate?.role === 'IDENTITY_PRIMARY',
+    );
+    if (pack?.schema_version !== '1.0.0'
+      || pack.kind !== 'HUMAN'
+      || pack.readiness?.decision !== 'READY'
+      || !binding
+      || !SHA256.test(binding.sha256 ?? '')
+      || typeof binding.path !== 'string') {
+      throw evidenceError(
+        'APPROVED_IDENTITY_REFERENCE_INVALID',
+        'Identity reference pack is incomplete',
+      );
+    }
+    const deterministicPath = path.join(directory, 'primary.png');
+    const relocationSuffix = path.join('conditioned', 'identity', 'primary.png');
+    const declaredPath = path.resolve(binding.path);
+    const referencePath = isInside(directory, declaredPath)
+      ? declaredPath
+      : (declaredPath.endsWith(`${path.sep}${relocationSuffix}`)
+        ? deterministicPath
+        : null);
+    if (!referencePath) {
+      throw evidenceError(
+        'APPROVED_IDENTITY_REFERENCE_PATH_ESCAPE',
+        'Identity reference escapes its run directory',
+      );
+    }
+    const data = await this.#readApprovedItemEvidenceFile(
+      referencePath,
+      directory,
+      'Identity reference',
+      MAX_APPROVED_ITEM_CUTOUT_BYTES,
+    );
+    if (sha256(data) !== binding.sha256) {
+      throw evidenceError(
+        'APPROVED_IDENTITY_REFERENCE_HASH_MISMATCH',
+        'Identity reference SHA-256 mismatch',
+      );
+    }
+    return {
+      role: 'identity_face',
+      data,
+      sha256: binding.sha256,
+      media_type: 'image/png',
+    };
+  }
+
+  /**
    * Resolves the immutable, per-item evidence used to generate a completed
    * garment-backed look. The returned object intentionally contains logical
    * facts and bytes only: filesystem paths and raw source-pack fields never

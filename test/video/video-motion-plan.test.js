@@ -1,7 +1,16 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { MOTION_MODES, VIDEO_SURFACES, SURFACES, MotionPlanError, buildMotionPlan, videoSurface, surface } from '../../src/web/video-motion-plan.js';
+import {
+  MOTION_MODES,
+  VIDEO_SURFACES,
+  SURFACES,
+  MotionPlanError,
+  buildFashionVideoReferencePrompt,
+  buildMotionPlan,
+  videoSurface,
+  surface,
+} from '../../src/web/video-motion-plan.js';
 import { buildVideoCreateArgs } from '../../src/providers/higgsfield-video-provider.js';
 
 test('the canon has exactly four motion modes', () => {
@@ -28,6 +37,21 @@ test('a plan states the locks that make it a fashion clip and not a lookalike', 
   assert.match(plan.prompt, /Identity, hair, silhouette and the approved look are locked/);
   assert.match(plan.prompt, /No garment is added, removed, restyled or rebranded/);
   assert.match(plan.prompt, /No new props, no text, no logos/);
+});
+
+test('the reference-transfer prompt makes Video 1 the full scene and edit authority', () => {
+  const prompt = buildFashionVideoReferencePrompt({
+    hasIdentityReference: true,
+    hasGarmentReference: true,
+  });
+  assert.match(prompt, /\[Video 1\].*exact temporal, editorial and scene master/);
+  assert.match(prompt, /complete shot sequence, cut timing, transitions/);
+  assert.match(prompt, /\[Image 1\].*exact approved person.*complete approved outfit/);
+  assert.match(prompt, /\[Image 2\] defines face identity and hair only/);
+  assert.match(prompt, /\[Image 3\] defines the approved garment and footwear/);
+  assert.match(prompt, /Never replace the reference environment/);
+  assert.match(prompt, /Do not simplify the reference into a static portrait/);
+  assert.doesNotMatch(prompt, /blink|breathe|camera is effectively still/i);
 });
 
 test('walk or stride is refused unless the source really shows the feet', () => {
