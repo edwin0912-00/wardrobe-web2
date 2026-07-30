@@ -8,7 +8,7 @@ import { EDITORIAL_SHOT_SLOTS } from '../../src/web/editorial-shoot-contract.js'
 import { renderAllSchemas, framingLockRows } from '../../tools/generate-framing-lock-schema.mjs';
 
 const root = path.resolve(import.meta.dirname, '../..');
-const DELIVERY = Object.freeze({ width: 1024, height: 1280 });
+const DELIVERY = Object.freeze({ width: 1536, height: 2048 });
 const READY_MODE_IDS = Object.freeze([
   'editorial.edwin_novak.organic_contrast',
   'editorial.edwin_novak.urban_monochrome',
@@ -112,7 +112,10 @@ test('every band in the three schemas is the one the framing lock resolver retur
         `${file} passing row ${key} must line up with declared_${key}`,
       );
       assert.equal(passing.subject_height_percent.minimum, lock.subject[0]);
-      assert.equal(passing.subject_height_percent.maximum, lock.subject[1]);
+      assert.equal(
+        passing.subject_height_percent.maximum,
+        lock.deliverySubjectMaximum ?? lock.subject[1],
+      );
       assert.equal(
         Object.hasOwn(passing, 'full_footwear_visible'),
         lock.footwear,
@@ -156,12 +159,15 @@ test('a standard receipt keeps the bands it had before the editorial rows existe
   const presetId = 'std.city.golden_hour_gloss';
   const { evidence, defects } = measured(presetId);
   assert.deepEqual(defects, []);
-  assert.deepEqual(evidence.expected_subject_height_percent, [74, 78]);
+  assert.deepEqual(evidence.expected_subject_height_percent, [70, 80]);
   assert.equal(validate(assetResult(presetId, evidence)), true, JSON.stringify(validate.errors));
 
   for (const [label, mutation] of [
-    ['subject under the band', { subject_height_percent: 73.99 }],
-    ['subject over the band', { subject_height_percent: 78.01 }],
+    ['subject under the band', { subject_height_percent: 69.99 }],
+    ['subject over the delivery tolerance', {
+      subject_height_percent: 88.01,
+      subject_height_delivery_tolerance_applied: true,
+    }],
     ['headroom under the minimum', { clear_space_above_hair_percent: 7.99 }],
     ['footwear space under the minimum', { clear_space_below_footwear_percent: 1.99 }],
     ['a cropped head', { full_head_visible: false }],
@@ -183,6 +189,19 @@ test('a standard receipt keeps the bands it had before the editorial rows existe
       `a standard PASS must refuse ${label}`,
     );
   }
+
+  const tolerated = assessSceneFraming({
+    subject_bbox_xywh_px: [344, 164, 848, 1762],
+    full_head_visible: true,
+    full_footwear_visible: true,
+  }, { preset: { preset_id: presetId }, ...DELIVERY });
+  assert.deepEqual(tolerated.defects, []);
+  assert.equal(tolerated.evidence.subject_height_delivery_tolerance_applied, true);
+  assert.equal(
+    validate(assetResult(presetId, tolerated.evidence)),
+    true,
+    JSON.stringify(validate.errors),
+  );
 });
 
 test('a wrong editorial receipt is refused band by band', async () => {
@@ -228,13 +247,12 @@ test('an editorial PASS under its headroom minimum has to state the waiver it re
   const validate = await schemaValidator('scene-qa-receipt.schema.json', '#/$defs/assetResult');
   const presetId = `${READY_MODE_IDS[0]}.clean_identity_hero`;
   const lock = editorialFramingLock(presetId.split('.').pop());
-  // The measured frame of scene_13313d49: 3.2813% of headroom against a 6% minimum, head
-  // observed whole. It is the one PASS in the delivered series that rests on the waiver, and
-  // it shipped without the flag — which is exactly what this refuses now.
-  const short = { subject_bbox_xywh_px: [383, 42, 337, 1200] };
+  // The same short-headroom geometry represented on the canonical 1536×2048
+  // delivery: 3.2715% against a 6% minimum, with the head observed whole.
+  const short = { subject_bbox_xywh_px: [575, 67, 506, 1920] };
   const { evidence, defects } = measured(presetId, short);
   assert.deepEqual(defects, [], 'the waiver must still carry this frame');
-  assert.equal(evidence.clear_space_above_hair_percent, 3.2813);
+  assert.equal(evidence.clear_space_above_hair_percent, 3.2715);
   assert.equal(evidence.minimum_clear_space_above_hair_percent, lock.above);
   assert.equal(evidence.clear_space_above_hair_waived_by_full_head, true);
   assert.equal(validate(assetResult(presetId, evidence)), true, JSON.stringify(validate.errors));

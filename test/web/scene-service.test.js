@@ -132,7 +132,7 @@ async function fixture(t, {
       aspect_ratio: '4:5',
       lens_mm: 65,
       height: 'eye_level',
-      subject_height_percent: [74, 78],
+      subject_height_percent: [70, 80],
       minimum_clear_space_percent: { above_hair: 8, below_footwear: 2 },
       max_vertical_error_deg: 1,
     },
@@ -339,7 +339,7 @@ async function rewriteLegacyFramingFailure(service, sceneId, attemptNumber, bbox
   }, {
     width: 1024,
     height: 1280,
-    expectedSubjectHeightPercent: [74, 78],
+    expectedSubjectHeightPercent: [70, 80],
   }).evidence;
   attempt.qa.framing_evidence = framing;
   if (state.attempts.at(-1).number === attemptNumber) {
@@ -2273,6 +2273,70 @@ test('three measured framing failures exhaust the image route with the last visu
     'FAIL',
   );
   assert.match(failed.qa.summary, /Deterministic framing lock failed/);
+});
+
+test('retry rechecks the preserved candidate when only the old standard scale ceiling rejected it', async (t) => {
+  let evaluations = 0;
+  const current = await fixture(t, {
+    maxManualRetries: 0,
+    evaluator: {
+      async evaluateScene() {
+        evaluations += 1;
+        const result = passEvaluation();
+        if (evaluations <= 3) {
+          result.framing_evidence = {
+            subject_bbox_xywh_px: [344, 164, 848, 1823],
+            full_head_visible: true,
+            full_footwear_visible: true,
+          };
+        }
+        return result;
+      },
+    },
+  });
+  const created = await current.service.createScene({
+    ...current.request,
+    idempotencyKey: 'legacy-standard-scale-tolerance',
+  });
+  const exhausted = await waitFor(current.service, created.scene_id);
+  assert.equal(exhausted.status, 'FAILED');
+  assert.equal(current.calls.generator.length, 3);
+
+  const state = JSON.parse(await readFile(current.service.statePath(created.scene_id), 'utf8'));
+  const attempt = state.attempts.at(-1);
+  const acceptedNow = assessSceneFraming({
+    subject_bbox_xywh_px: [344, 164, 848, 1762],
+    full_head_visible: true,
+    full_footwear_visible: true,
+  }, {
+    preset: { preset_id: PRESET_ID },
+    width: 1536,
+    height: 2048,
+  }).evidence;
+  attempt.qa.framing_evidence = acceptedNow;
+  state.qa.framing_evidence = acceptedNow;
+  await Promise.all([
+    writeFile(current.service.statePath(created.scene_id), `${JSON.stringify(state, null, 2)}\n`),
+    writeFile(
+      path.join(current.service.attemptDirectory(created.scene_id, attempt.number), 'attempt.json'),
+      `${JSON.stringify(attempt, null, 2)}\n`,
+    ),
+  ]);
+
+  const queued = await current.service.retryScene(created.scene_id, {
+    idempotencyKey: 'legacy-standard-scale-tolerance-recheck',
+  });
+  assert.equal(queued.status, 'QUEUED');
+  assert.equal(queued.execution.cycle, 1);
+  assert.equal(queued.execution.manual_retries, 0);
+
+  const completed = await waitFor(current.service, created.scene_id);
+  assert.equal(completed.status, 'COMPLETED', JSON.stringify(completed, null, 2));
+  assert.equal(current.calls.generator.length, 3, 'the preserved image must not be generated again');
+  assert.equal(evaluations, 4, 'only one fresh QA pass is allowed');
+  const persisted = JSON.parse(await readFile(current.service.statePath(created.scene_id), 'utf8'));
+  assert.equal(persisted.attempts.length, 3);
+  assert.equal(persisted.attempts.at(-1).status, 'QA_PASS');
 });
 
 test('malformed framing visibility retries only QA for the preserved candidate and fails as infrastructure', async (t) => {

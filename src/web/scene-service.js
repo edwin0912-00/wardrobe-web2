@@ -1656,6 +1656,31 @@ function selectDeterministicFramingRepair(state) {
     ))[0] ?? null;
 }
 
+function candidateEligibleForFramingPolicyRecheck(state) {
+  if (state.status !== SCENE_STATES.FAILED
+    || state.error?.code !== 'SCENE_QA_EXHAUSTED') return false;
+  const attempt = state.attempts.at(-1);
+  if (attempt?.status !== 'QA_FAILED' || !attempt.candidate || !Array.isArray(attempt.qa?.gates)) {
+    return false;
+  }
+  const failed = attempt.qa.gates.filter((gate) => gate.decision === 'FAIL');
+  if (failed.length !== 1 || failed[0].id !== 'FRAMING_AND_ANATOMY') return false;
+  const defects = failed[0].defects ?? [];
+  if (defects.length < 1
+    || defects.some((defect) => defect !== 'SUBJECT_HEIGHT_OUTSIDE_PRESET_RANGE')) {
+    return false;
+  }
+  try {
+    return assessSceneFraming(attempt.qa.framing_evidence, {
+      preset: { preset_id: state.bindings.preset.preset_id },
+      width: state.delivery.width,
+      height: state.delivery.height,
+    }).defects.length === 0;
+  } catch {
+    return false;
+  }
+}
+
 async function deterministicFramingCrop(bytes, cropPlan, delivery) {
   return sharp(bytes)
     .extract({
@@ -4645,14 +4670,19 @@ export class SceneService {
         !rejectionRepair
         && this.#isCandidatePreservingQaRecovery(current)
       );
+      const framingPolicyRecheck = !rejectionRepair
+        && !qaOnlyRetry
+        && candidateEligibleForFramingPolicyRecheck(current);
       const deterministicSource = !rejectionRepair
         && !qaOnlyRetry
+        && !framingPolicyRecheck
         && current.status === SCENE_STATES.FAILED
         && current.error?.code === 'SCENE_QA_EXHAUSTED'
         ? selectDeterministicFramingRepair(current)
         : null;
       if (!rejectionRepair
         && !rejectionQaOnlyRetry
+        && !framingPolicyRecheck
         && !deterministicSource
         && current.manual_retries >= this.maxManualRetries) {
         throw new SceneServiceError(
@@ -4683,6 +4713,7 @@ export class SceneService {
         }
         if (!rejectionRepair
           && !rejectionQaOnlyRetry
+          && !framingPolicyRecheck
           && !deterministicAttempt
           && current.manual_retries >= this.maxManualRetries) {
           throw new SceneServiceError(409, 'SCENE_RETRY_LIMIT', 'The scene manual retry limit has been reached');
@@ -4699,14 +4730,16 @@ export class SceneService {
             );
           }
         }
+        const preserveCandidateForQa = qaOnlyRetry || framingPolicyRecheck;
         const attempts = deterministicAttempt
           ? [...current.attempts, deterministicAttempt]
-          : qaOnlyRetry
+          : preserveCandidateForQa
           ? current.attempts.map((attempt, index) => index === current.attempts.length - 1
             ? {
               ...attempt,
               status: 'QA_PENDING',
               qa_infrastructure_attempts: 0,
+              qa: null,
               error: null,
             }
             : attempt)
@@ -4717,13 +4750,15 @@ export class SceneService {
           phase: 'QUEUED',
           message: rejectionQaOnlyRetry
             ? 'Post-release repair QA retry queued for the preserved candidate'
+            : framingPolicyRecheck
+            ? 'Framing-policy QA recheck queued for the preserved candidate'
             : rejectionRepair
             ? `Post-release repair queued from ${rejectionDisposition.record.receipt.rejection_id}`
             : deterministicAttempt
             ? `Deterministic framing repair queued from attempt ${deterministicSource.number}`
             : 'Scene-only retry queued from immutable inputs',
-          cycle: qaOnlyRetry ? current.cycle : current.cycle + 1,
-          manual_retries: rejectionRepair || rejectionQaOnlyRetry || deterministicAttempt
+          cycle: preserveCandidateForQa ? current.cycle : current.cycle + 1,
+          manual_retries: rejectionRepair || rejectionQaOnlyRetry || framingPolicyRecheck || deterministicAttempt
             ? current.manual_retries
             : current.manual_retries + 1,
           retry_requests: [...current.retry_requests, retryHash],
@@ -4743,7 +4778,7 @@ export class SceneService {
           cancellation: null,
         };
       });
-      if (!deterministicAttempt && qaOnlyRetry) {
+      if (!deterministicAttempt && (qaOnlyRetry || framingPolicyRecheck)) {
         await this.#checkpointAttempt(sceneId, state.attempts.at(-1));
       }
       if (state.status === SCENE_STATES.QUEUED) {

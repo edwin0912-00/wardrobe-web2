@@ -1129,6 +1129,14 @@ export function evaluatorPrompt(
     ] : [
       'IDENTITY requires comparison of stable facial geometry, apparent age, hairline, eyes, nose, mouth, jaw and distinctive marks; expression and scene lighting may change, identity may not.',
     ]),
+    ...(standardBackground ? [
+      `The standard scene declares this key light: ${preset.lighting?.key ?? 'not declared'}.`,
+      `The standard scene declares this fill: ${preset.lighting?.fill ?? 'not declared'}.`,
+      'For LIGHT_AND_CONTACT_SHADOW, independently judge (1) observed key direction on the subject, (2) observed fill direction and strength on face and torso, and (3) environment colour/bounce/rim integration on skin, clothing and footwear.',
+      'A mild extra frontal fill is advisory when the declared environment key, bounce/rim and grounding remain visibly coherent; state it in evidence but do not reject an otherwise integrated fashion frame.',
+      'Fail only when a camera-axis or frontal studio key visibly replaces the declared environment key, creates physically contradictory illumination, or makes the subject read as pasted into the scene. A plausible contact shadow alone cannot compensate for that severe contradiction.',
+      'A PASS must state the observed key, the observed fill, and the visible environment integration separately in this gate evidence; attractiveness or exposure alone is not proof.',
+    ] : []),
     // Ground contact cannot be evidence in a frame that ends above the feet, and this
     // gate refused 4 of 6 attempts in one editorial retry round for exactly that —
     // "the frame cuts off the subject before the feet/contact points, so a

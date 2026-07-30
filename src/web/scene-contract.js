@@ -290,6 +290,11 @@ export function editorialFramingLock(slot) {
 
 const STANDARD_FRAMING_LOCK = Object.freeze({
   subject: Object.freeze([70, 80]),
+  // 70–80 remains the preferred composition band. A standard full-body frame
+  // may still ship up to 88% when the direct visibility, clear-space and
+  // anatomy checks pass. This is a delivery tolerance, not a new generation
+  // target: providers are still instructed to compose at 70–80%.
+  deliverySubjectMaximum: 88,
   above: 8,
   below: 2,
   head: true,
@@ -1409,6 +1414,7 @@ export function assessFramingEvidence(evidence, {
   width,
   height,
   expectedSubjectHeightPercent,
+  deliverySubjectHeightMaximum = expectedSubjectHeightPercent?.[1],
   minimumAboveHairPercent = 8,
   minimumBelowFootwearPercent = 2,
   requireFullHead = true,
@@ -1451,11 +1457,18 @@ export function assessFramingEvidence(evidence, {
     || expectedSubjectHeightPercent[0] > expectedSubjectHeightPercent[1]) {
     throw new Error('Scene preset must declare an ordered subject_height_percent range from 0 to 100');
   }
+  if (!Number.isFinite(deliverySubjectHeightMaximum)
+    || deliverySubjectHeightMaximum < expectedSubjectHeightPercent[1]
+    || deliverySubjectHeightMaximum > 100) {
+    throw new Error('Scene delivery subject-height maximum must include the preferred range and not exceed 100');
+  }
   const subjectHeight = Number(((bboxHeight / height) * 100).toFixed(4));
   const aboveHair = Number(((y / height) * 100).toFixed(4));
   const belowFootwear = clearSpaceBelowSubjectPercent(bbox, height);
   const defects = [];
-  if (subjectHeight < expectedSubjectHeightPercent[0] || subjectHeight > expectedSubjectHeightPercent[1]) {
+  const deliveryToleranceApplied = subjectHeight > expectedSubjectHeightPercent[1]
+    && subjectHeight <= deliverySubjectHeightMaximum;
+  if (subjectHeight < expectedSubjectHeightPercent[0] || subjectHeight > deliverySubjectHeightMaximum) {
     defects.push('SUBJECT_HEIGHT_OUTSIDE_PRESET_RANGE');
   }
   const headroomShort = requireFullHead && aboveHair < minimumAboveHairPercent;
@@ -1479,6 +1492,7 @@ export function assessFramingEvidence(evidence, {
       subject_bbox_xywh_px: bbox,
       expected_subject_height_percent: [...expectedSubjectHeightPercent],
       subject_height_percent: subjectHeight,
+      subject_height_delivery_tolerance_applied: deliveryToleranceApplied,
       minimum_clear_space_above_hair_percent: minimumAboveHairPercent,
       minimum_clear_space_below_footwear_percent: minimumBelowFootwearPercent,
       clear_space_above_hair_percent: aboveHair,
@@ -1509,6 +1523,7 @@ export function assessSceneFraming(evidence, { preset, width, height }) {
     width,
     height,
     expectedSubjectHeightPercent: lock.subject,
+    deliverySubjectHeightMaximum: lock.deliverySubjectMaximum ?? lock.subject[1],
     minimumAboveHairPercent: lock.above,
     minimumBelowFootwearPercent: lock.below,
     requireFullHead: lock.head,
@@ -1681,9 +1696,15 @@ function validatePersistedFramingEvidence(evidence, {
   // its absence is the single difference tolerated here — everything else still has to
   // match byte for byte. Demanding it would instead have quarantined all nine persisted
   // scenes on the next read, three of them delivered editorial heroes.
-  const comparable = evidence?.clear_space_above_hair_waived_by_full_head === undefined
+  const derivedKeysAbsentFromLegacyEvidence = new Set([
+    ...(evidence?.clear_space_above_hair_waived_by_full_head === undefined
+      ? ['clear_space_above_hair_waived_by_full_head'] : []),
+    ...(evidence?.subject_height_delivery_tolerance_applied === undefined
+      ? ['subject_height_delivery_tolerance_applied'] : []),
+  ]);
+  const comparable = derivedKeysAbsentFromLegacyEvidence.size > 0
     ? Object.fromEntries(Object.entries(assessment.evidence)
-      .filter(([key]) => key !== 'clear_space_above_hair_waived_by_full_head'))
+      .filter(([key]) => !derivedKeysAbsentFromLegacyEvidence.has(key)))
     : assessment.evidence;
   if (sha256(canonicalJsonBytes(comparable)) !== sha256(canonicalJsonBytes(evidence))) {
     throw new Error(`${label} framing evidence does not match its measured bounding box`);
