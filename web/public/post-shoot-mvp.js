@@ -11,6 +11,7 @@ const $ = (selector) => document.querySelector(selector);
 const liveThinkingOrb = createThinkingOrb($('#live-thinking-orb'), 'searching');
 const prompt = 'Replace only the current clothing with the outfit from the reference image. Preserve the person face, identity, hair, skin, body shape, pose and hands. Preserve the existing room, background, camera angle and lighting. Do not modify anything except the clothing.';
 const query = new URLSearchParams(location.search);
+const LIVE_RETURN_FOCUS_KEY = 'zeely_live_return_focus';
 
 function renderStatus() {
   const remaining = state.running && state.deadline
@@ -175,6 +176,17 @@ function stopCamera() {
   $('#camera-stop').classList.add('hidden');
   ready();
 }
+function exitLiveSurface() {
+  stopCamera();
+  if (query.get('return') === 'profile') {
+    sessionStorage.setItem(LIVE_RETURN_FOCUS_KEY, 'return');
+    if (history.length > 1) {
+      history.back();
+      return;
+    }
+  }
+  location.assign('/');
+}
 async function signal(result) {
   const type = String(result?.type ?? '').toLowerCase().replaceAll('_', '');
   if (type === 'iceservers'
@@ -276,6 +288,17 @@ $('#reference-upload').addEventListener('change', (event) => loadReference(event
   event.target.value = '';
   $('#reference-status').textContent = error.message;
 }));
+$('#privacy-gate-consent').addEventListener('change', (event) => {
+  $('#privacy-continue').disabled = !event.target.checked;
+});
+$('#privacy-continue').addEventListener('click', () => {
+  if (!$('#privacy-gate-consent').checked) return;
+  $('#privacy-consent').checked = true;
+  $('#privacy-gate').classList.add('hidden');
+  ready();
+  status('Згоду підтверджено. Камера ще вимкнена.');
+  $('#camera-start').focus({ preventScroll: true });
+});
 $('#camera-start').addEventListener('click', () => startCamera().catch((error) => status(`Помилка камери: ${error.message}`)));
 $('#camera-stop').addEventListener('click', stopCamera);
 $('#privacy-consent').addEventListener('change', () => {
@@ -288,7 +311,16 @@ $('#cost-consent').addEventListener('change', () => {
 });
 $('#lucy-start').addEventListener('click', () => startLive().catch((error) => closeLive(`Помилка: ${error.message}`)));
 $('#lucy-stop').addEventListener('click', () => closeLive());
-window.addEventListener('pagehide', stopCamera);
+document.querySelectorAll('[data-live-close]').forEach((button) => button.addEventListener('click', exitLiveSurface));
+document.addEventListener('keydown', (event) => {
+  if (event.key !== 'Escape') return;
+  event.preventDefault();
+  exitLiveSurface();
+});
+window.addEventListener('pagehide', () => {
+  stopCamera();
+  if (query.get('return') === 'profile') sessionStorage.setItem(LIVE_RETURN_FOCUS_KEY, 'return');
+});
 ready();
 const selectedLookId = query.get('look');
 const demoOutfit = query.get('demo') === 'outfit';
@@ -326,3 +358,4 @@ if (selectedLookId) {
 }
 renderCameraPermission();
 observeCameraPermission();
+requestAnimationFrame(() => $('#privacy-gate-consent').focus({ preventScroll: true }));

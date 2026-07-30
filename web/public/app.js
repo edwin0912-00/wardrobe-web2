@@ -109,6 +109,7 @@ let videoGenerationBusy = false;
 const ACTIVE_RUN_KEY = 'zeely_active_run_id';
 const PENDING_FINALIZATION_KEY = 'zeely_pending_finalization_id';
 const DRAFT_RESET_PENDING_KEY = 'zeely_draft_reset_pending';
+const LIVE_RETURN_FOCUS_KEY = 'zeely_live_return_focus';
 const TERMINAL_STATUSES = new Set(['COMPLETED', 'FAILED', 'NEEDS_INPUT']);
 const PIPELINE_STATUS_LABELS = Object.freeze({
   done: 'SAVED', active: 'ACTIVE', pending: 'WAIT', skipped: 'SKIP', reused: 'REUSE', stopped: 'STOP',
@@ -1951,12 +1952,20 @@ document.querySelector('#profile-look-live').addEventListener('click', (event) =
   action.classList.add('is-loading');
   action.setAttribute('aria-busy', 'true');
   action.disabled = true;
-  window.location.assign(realtimeLookCapability.href);
+  sessionStorage.setItem(LIVE_RETURN_FOCUS_KEY, 'armed');
+  const launchUrl = new URL(realtimeLookCapability.href, window.location.origin);
+  launchUrl.searchParams.set('return', 'profile');
+  window.location.assign(`${launchUrl.pathname}${launchUrl.search}${launchUrl.hash}`);
 });
 document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape' && !document.querySelector('#video-overlay').classList.contains('hidden')) {
     closeVideoOverlay();
   }
+});
+window.addEventListener('pageshow', () => {
+  if (sessionStorage.getItem(LIVE_RETURN_FOCUS_KEY) !== 'return') return;
+  sessionStorage.removeItem(LIVE_RETURN_FOCUS_KEY);
+  requestAnimationFrame(() => document.querySelector('#profile-look-live')?.focus({ preventScroll: true }));
 });
 document.querySelector('#profile-look-delete').addEventListener('click', async (event) => {
   event.stopPropagation();

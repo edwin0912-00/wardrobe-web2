@@ -28,9 +28,11 @@ test('browser draft requires a local reference photo and states the fifteen-seco
 
   assert.match(html, /id="reference-upload"/);
   assert.match(html, /id="fit-guide"/);
+  assert.match(html, /id="privacy-gate-consent"/);
   assert.match(html, /id="privacy-consent"/);
   assert.match(html, /id="cost-consent"/);
   assert.match(html, /id="camera-permission-status"/);
+  assert.match(html, /id="camera-start"[^>]*disabled/);
   assert.match(html, /id="live-ai-thinking"[\s\S]*?id="live-thinking-orb"/);
   assert.match(client, /createThinkingOrb\(\$\('#live-thinking-orb'\), 'searching'\)/);
   assert.match(client, /setAiThinking\(true, 'working', 'AI підключає Live'/);

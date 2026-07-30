@@ -54,7 +54,8 @@ test('selected saved look consumes the fail-closed full-viewport Live capability
   assert.match(appSource, /payload\?\.launch\?\.target === '_self'/);
   assert.match(appSource, /payload\?\.launch\?\.nested === false/);
   assert.match(appSource, /payload\?\.launch\?\.internal_scroll === false/);
-  assert.match(appSource, /window\.location\.assign\(realtimeLookCapability\.href\)/);
+  assert.match(appSource, /launchUrl\.searchParams\.set\('return', 'profile'\)/);
+  assert.match(appSource, /window\.location\.assign\(`\$\{launchUrl\.pathname\}\$\{launchUrl\.search\}\$\{launchUrl\.hash\}`\)/);
   assert.doesNotMatch(appSource, /selectedLookLiveUrl/);
   assert.doesNotMatch(indexSource, /id="profile-live-frame"/);
   assert.doesNotMatch(indexSource, /id="profile-live-overlay"/);
