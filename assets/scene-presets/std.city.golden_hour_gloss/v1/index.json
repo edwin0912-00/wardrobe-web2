@@ -6,7 +6,7 @@
   "production_prompt_path": "prompts/scene-presets/std.city.golden_hour_gloss/v1/production-scene.txt",
   "prompt_sha256": "8f8a4890c4265f4dd6bcb5862b153de0f29265dd9c9cb534fd8d2d06153f8533",
   "reference_pack_path": "assets/scene-presets/std.city.golden_hour_gloss/v1/reference-pack.json",
-  "reference_pack_sha256": "a6ab1ff0fecf9030b090863d4f2ed9dbc32f58a3d358ad16ca105f9a6108f4e7",
+  "reference_pack_sha256": "2d733a251a0e0c1727297e03ba65b8f044e47c98e84fc8698690a845215a23db",
   "references": [
     {
       "media_type": "application/json",
@@ -51,5 +51,5 @@
   ],
   "schema_version": "1.0.0",
   "source_ledger_path": "assets/scene-presets/std.city.golden_hour_gloss/v1/source-ledger.json",
-  "source_ledger_sha256": "3337351b74ca8eea4dfda67c868957ac08930efcf5d7c5ab3b9902b05959c668"
+  "source_ledger_sha256": "f6ea4d1c6123af2e30123c68924107cb218787ad6bbe30242eb8229c7db99590"
 }
