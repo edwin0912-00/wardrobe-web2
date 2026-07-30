@@ -9,6 +9,7 @@ import { createHumanReferenceCrops } from '../../src/conditioning/human-crops.mj
 import { assessImageQuality, inspectImageMetadata } from '../../src/conditioning/metadata.mjs';
 import { normalizeReference, planConservativeResize } from '../../src/conditioning/normalize.mjs';
 import { extractQualityTarget, measureSampleBackground } from '../../src/conditioning/quality-target.mjs';
+import { removeBorderConnectedWhiteToAlpha } from '../../src/conditioning/transparent-cutout.mjs';
 
 async function solid(width, height, background, channels = 3) {
   return sharp({ create: { width, height, channels, background } }).png().toBuffer();
@@ -92,6 +93,46 @@ test('human crop refuses missing required bbox instead of guessing', async () =>
     createHumanReferenceCrops(input, { requiredCrops: ['face'] }),
     (error) => error instanceof ConditioningError && error.code === 'MISSING_REQUIRED_BBOX',
   );
+});
+
+test('cutout removes a detached low-contrast background ghost without deleting real detached details', async () => {
+  const input = await sharp({
+    create: {
+      width: 160,
+      height: 120,
+      channels: 3,
+      background: { r: 250, g: 251, b: 246 },
+    },
+  })
+    .composite([
+      {
+        input: await solid(42, 84, { r: 30, g: 42, b: 54 }),
+        left: 82,
+        top: 18,
+      },
+      {
+        input: await solid(12, 12, { r: 55, g: 65, b: 70 }),
+        left: 132,
+        top: 94,
+      },
+      {
+        input: await solid(20, 70, { r: 241, g: 242, b: 238 }),
+        left: 18,
+        top: 30,
+      },
+    ])
+    .png()
+    .toBuffer();
+  const result = await removeBorderConnectedWhiteToAlpha(input, {
+    removeDetachedLowContrastResidue: true,
+  });
+  const { data, info } = await sharp(result.image).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const alphaAt = (x, y) => data[(y * info.width + x) * info.channels + 3];
+  assert.equal(alphaAt(20, 40), 0, 'the detached near-white ghost must be transparent');
+  assert.equal(alphaAt(90, 40), 255, 'the primary subject must remain');
+  assert.equal(alphaAt(136, 98), 255, 'a detached detail with real contrast must remain');
+  assert.equal(result.stats.removed_residue_components, 1);
+  assert.equal(result.stats.removed_residue_pixels, 20 * 70);
 });
 
 test('garment source alpha creates an isolated cutout and exact-white review card', async () => {

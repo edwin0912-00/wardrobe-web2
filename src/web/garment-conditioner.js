@@ -382,7 +382,9 @@ export class GarmentConditioner {
       });
       const referenceCardPath = path.join(itemDirectory, 'reference-card.png');
       await atomicWrite(referenceCardPath, accepted.image);
-      const cutout = await removeBorderConnectedWhiteToAlpha(accepted.image);
+      const cutout = await removeBorderConnectedWhiteToAlpha(accepted.image, {
+        removeDetachedLowContrastResidue: true,
+      });
       const cutoutPath = path.join(itemDirectory, 'cutout.png');
       await atomicWrite(cutoutPath, cutout.image);
       await emitVisual({
@@ -412,6 +414,8 @@ export class GarmentConditioner {
           selected_pixels: cutout.stats.transparent_pixels,
           total_pixels: cutout.stats.width * cutout.stats.height,
           connectivity: cutout.stats.connectivity,
+          removed_residue_pixels: cutout.stats.removed_residue_pixels,
+          removed_residue_components: cutout.stats.removed_residue_components,
         },
       });
       conditioned.push({ ...item, source_path: sourcePath, source_paths: sourcePaths, reference_card: { path: referenceCardPath, sha256: sha256(accepted.image) },

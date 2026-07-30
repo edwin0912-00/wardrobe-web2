@@ -65,7 +65,9 @@ async function crop(bytes, region) {
  */
 export async function lockFirstAppearance({ approvedLookPath, outputDirectory, runId, vlm, clock = () => new Date() }) {
   const look = await readFile(approvedLookPath);
-  const isolated = await removeBorderConnectedWhiteToAlpha(look);
+  const isolated = await removeBorderConnectedWhiteToAlpha(look, {
+    removeDetachedLowContrastResidue: true,
+  });
   const { data, info } = await sharp(isolated.image).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   const bounds = visibleBounds(data, info);
   if (!bounds || bounds.height < info.height * 0.55) {
@@ -97,7 +99,9 @@ export async function lockFirstAppearance({ approvedLookPath, outputDirectory, r
       throw new FirstAppearanceNeedsInputError('First-appearance crop category is not reliably visible', { expected: expected.category, observed });
     }
     const source = await readFile(sourcePaths[index]);
-    const cutout = await removeBorderConnectedWhiteToAlpha(source);
+    const cutout = await removeBorderConnectedWhiteToAlpha(source, {
+      removeDetachedLowContrastResidue: true,
+    });
     const directory = path.join(outputDirectory, String(index + 1).padStart(2, '0'));
     const referenceCard = path.join(directory, 'reference-card.png');
     const cutoutPath = path.join(directory, 'cutout.png');
