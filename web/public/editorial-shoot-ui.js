@@ -97,6 +97,15 @@ function displayShotStatus(status) {
   })[status] ?? String(status ?? 'Очікує');
 }
 
+function displaySeriesProgress({ completed, visibleFrames }) {
+  if (completed >= 5) return 'Усі 5 кадрів готові';
+  if (visibleFrames === 0) return 'Створюємо перший кадр';
+  if (visibleFrames > completed) {
+    return `${visibleFrames} з 5 з’явилося · перевіряємо якість`;
+  }
+  return `${completed} з 5 готово · створюємо далі`;
+}
+
 function displayShootState(status) {
   return ({
     BIBLE_PENDING_APPROVAL: 'ПІДГОТОВКА',
@@ -248,8 +257,13 @@ export class EditorialShootUiController {
     this.#element('#editorial-message').hidden = true;
     this.#element('#editorial-connection').hidden = true;
     this.#element('#editorial-bible-stage').hidden = true;
-    this.#element('#editorial-gallery-stage').hidden = false;
+    const stage = this.#element('#editorial-gallery-stage');
+    stage.hidden = false;
+    stage.classList.add('is-awaiting-first-frame');
+    this.#element('#editorial-progress-meter').value = 0;
+    this.#element('#editorial-series-progress').textContent = 'Створюємо перший кадр';
     this.#element('#editorial-gallery').replaceChildren();
+    this.thinkingOrb.setState('composing');
     this.#renderActionButtons();
   }
 
@@ -484,12 +498,20 @@ export class EditorialShootUiController {
 
   #renderGallery() {
     const shots = fashionFrames(this.shoot);
+    const visibleFrames = shots.filter((shot) => outputImageUrl(shot.output)).length;
     const completed = shots.filter(
       (shot) => ['QA_PASSED', 'APPROVED'].includes(shot.status),
     ).length;
+    const stage = this.#element('#editorial-gallery-stage');
+    const awaitingFirstFrame = visibleFrames === 0
+      && !['COMPLETED', 'CANCELLED', 'NEEDS_RETRY'].includes(this.shoot?.status);
+    stage.classList.toggle('is-awaiting-first-frame', awaitingFirstFrame);
     const meter = this.#element('#editorial-progress-meter');
     meter.value = completed;
-    this.#element('#editorial-series-progress').textContent = `Готово: ${completed} з 5`;
+    this.#element('#editorial-series-progress').textContent = displaySeriesProgress({
+      completed,
+      visibleFrames,
+    });
     const orbState = this.shoot?.status === 'NEEDS_RETRY'
       ? 'solving'
       : this.shoot?.status === 'COMPLETED'
@@ -525,6 +547,14 @@ export class EditorialShootUiController {
         visual.append(inspect);
       }
       card.classList.toggle('is-pending', !imageUrl && shot.status !== 'FAILED');
+      if (!imageUrl && shot.status !== 'FAILED') {
+        const pending = document.createElement('span');
+        pending.className = 'editorial-shot-pending';
+        pending.setAttribute('aria-hidden', 'true');
+        pending.append(document.createElement('i'));
+        visual.append(pending);
+        card.setAttribute('aria-label', `${editorialShotLabel(shot.slot)} — створюється`);
+      }
       const downloadUrl = outputDownloadUrl(shot.output);
       if (downloadUrl) {
         const download = document.createElement('a');

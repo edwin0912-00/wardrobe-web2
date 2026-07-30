@@ -150,7 +150,7 @@ test('gallery exposes five Fashion Shoot frames, not its internal style check', 
   assert.match(editorialUiSource, /dialog\.showModal\(\)/);
   assert.match(editorialUiSource, /function fashionFrames\(shoot\)/);
   assert.match(editorialUiSource, /\.filter\(\(shot\) => shot\?\.slot !== INTERNAL_STYLE_CHECK_SLOT\)/);
-  assert.match(editorialUiSource, /Готово: \$\{completed\} з 5/);
+  assert.match(editorialUiSource, /\$\{completed\} з 5 готово · створюємо далі/);
   assert.match(editorialUiSource, /editorial-progress-meter/);
   assert.doesNotMatch(editorialUiSource, /Кадр \$\{String\(index \+ 1\)/);
   assert.doesNotMatch(editorialUiSource, /Кадр у черзі/);
@@ -207,7 +207,20 @@ test('normal editorial states render controlled Ukrainian copy instead of raw se
 
 test('Fashion Shoot loading keeps the branded orb and portrait photo geometry', () => {
   assert.match(indexHtml, /id="editorial-thinking-orb"/);
+  assert.match(indexHtml, /id="editorial-series-progress" aria-live="polite"/);
+  assert.match(editorialUiSource, /function displaySeriesProgress\(\{ completed, visibleFrames \}\)/);
+  assert.match(editorialUiSource, /stage\.classList\.add\('is-awaiting-first-frame'\)/);
+  assert.match(editorialUiSource, /stage\.classList\.toggle\('is-awaiting-first-frame', awaitingFirstFrame\)/);
+  assert.match(editorialUiSource, /className = 'editorial-shot-pending'/);
   assert.match(sceneCss, /\.editorial-active-state canvas\s*\{[\s\S]*?width:\s*72px;[\s\S]*?height:\s*72px;/);
+  assert.match(
+    sceneCss,
+    /\.editorial-gallery-stage\.is-awaiting-first-frame \.editorial-active-state canvas\s*\{[\s\S]*?width:\s*184px;[\s\S]*?height:\s*184px;/,
+  );
+  assert.match(
+    sceneCss,
+    /\.editorial-gallery-stage\.is-awaiting-first-frame \.editorial-gallery\s*\{[\s\S]*?display:\s*none;/,
+  );
   assert.match(sceneCss, /\.editorial-gallery\s*\{[\s\S]*?grid-template-columns:\s*repeat\(5,/);
   assert.match(sceneCss, /\.editorial-shot-card\s*\{[\s\S]*?aspect-ratio:\s*4\s*\/\s*5;/);
   assert.match(sceneCss, /\.editorial-master-strip img\s*\{[\s\S]*?width:\s*76px;[\s\S]*?height:\s*90px;/);

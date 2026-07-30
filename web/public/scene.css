@@ -1706,6 +1706,52 @@
   padding: 12px;
 }
 
+.editorial-gallery-stage.is-awaiting-first-frame {
+  grid-template-rows: minmax(0, 1fr) auto;
+}
+
+.editorial-gallery-stage.is-awaiting-first-frame > header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-auto-flow: row;
+  align-content: center;
+  justify-content: stretch;
+  justify-items: center;
+  gap: 18px;
+  text-align: center;
+}
+
+.editorial-gallery-stage.is-awaiting-first-frame .editorial-active-state {
+  flex-direction: column;
+  gap: 7px;
+}
+
+.editorial-gallery-stage.is-awaiting-first-frame .editorial-active-state canvas {
+  width: 184px;
+  height: 184px;
+  flex-basis: 184px;
+  filter: drop-shadow(0 20px 44px rgba(142, 198, 48, .42));
+}
+
+.editorial-gallery-stage.is-awaiting-first-frame .editorial-active-state strong {
+  font-size: 17px;
+}
+
+.editorial-gallery-stage.is-awaiting-first-frame .editorial-progress-wrap {
+  width: min(360px, 78vw);
+  min-width: 0;
+  justify-items: stretch;
+}
+
+.editorial-gallery-stage.is-awaiting-first-frame .editorial-progress-wrap progress {
+  width: 100%;
+  height: 9px;
+}
+
+.editorial-gallery-stage.is-awaiting-first-frame .editorial-gallery {
+  display: none;
+}
+
 .editorial-gallery-stage > header strong {
   display: block;
   margin-top: 2px;
@@ -1782,6 +1828,37 @@
   background:
     radial-gradient(circle at 50% 42%, rgba(184, 255, 61, .15), transparent 35%),
     #e9ede5;
+}
+
+.editorial-shot-pending {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border: 1px solid rgba(141, 187, 50, .3);
+  border-radius: 50%;
+  animation: editorial-pending-breathe 1.8s ease-in-out infinite;
+}
+
+.editorial-shot-pending i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #8dbb32;
+  box-shadow: 0 0 18px rgba(141, 187, 50, .75);
+}
+
+@keyframes editorial-pending-breathe {
+  50% {
+    opacity: .48;
+    transform: scale(.78);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .editorial-shot-pending {
+    animation: none;
+  }
 }
 
 .editorial-shot-inspect {
@@ -2083,6 +2160,16 @@
     width: 54px;
     height: 54px;
     flex-basis: 54px;
+  }
+
+  .editorial-gallery-stage.is-awaiting-first-frame .editorial-active-state canvas {
+    width: 136px;
+    height: 136px;
+    flex-basis: 136px;
+  }
+
+  .editorial-gallery-stage.is-awaiting-first-frame .editorial-active-state strong {
+    font-size: 14px;
   }
 
   .editorial-gallery {
