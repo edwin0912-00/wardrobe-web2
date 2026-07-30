@@ -1720,9 +1720,12 @@ async function refreshFashionVideoCapability(look) {
       && payload?.create_route === '/api/profile/video-clips'
       && payload?.requirements?.approved_master_look === true
       && payload?.requirements?.verified_style_reference === true
-      && payload?.requirements?.verified_motion_reference === true;
+      && payload?.requirements?.verified_motion_reference === true
+      && payload?.requirements?.three_video_styles === true
+      && Array.isArray(payload?.styles)
+      && payload.styles.length === 3;
     syncFashionVideoAction(ready
-      ? { state: 'ready', capability: { lookId } }
+      ? { state: 'ready', capability: { lookId, styles: payload.styles ?? [] } }
       : { state: 'unavailable' });
   } catch {
     if (requestVersion === fashionVideoCapabilityRequestVersion) {
@@ -1817,9 +1820,8 @@ document.querySelector('#profile-look-video').addEventListener('click', (event) 
   const lookId = idOfLook(selectedProfileLook);
   if (!lookId || fashionVideoCapability?.lookId !== lookId) return;
   const overlay = document.querySelector('#video-overlay');
-  const sourceImg = document.querySelector('#video-source-image');
-  setLookActionStatus('Fashion Video: обери формат кадру й подачу. Після запуску сервер створює кліп, перевіряє його та зберігає до цього образу.');
-  sourceImg.src = selectedProfileLook.image_url ?? `/api/profile/looks/${encodeURIComponent(lookId)}/image`;
+  setLookActionStatus('Fashion Video: обери одну з трьох перевірених відеостилістик і запусти генерацію.');
+  renderFashionVideoStyles(fashionVideoCapability.styles);
   document.querySelector('#video-progress').hidden = true;
   document.querySelector('#video-result').hidden = true;
   document.querySelector('#video-error').hidden = true;
@@ -1827,15 +1829,31 @@ document.querySelector('#profile-look-video').addEventListener('click', (event) 
   overlay.classList.remove('hidden');
   document.querySelector('#video-overlay-close').focus({ preventScroll: true });
 });
-// Video overlay: option selection
-document.querySelectorAll('#video-surface-options .video-option, #video-motion-options .video-option').forEach((btn) => {
-  btn.addEventListener('click', () => {
-    const group = btn.closest('.video-options');
-    group.querySelectorAll('.video-option').forEach((b) => { b.classList.remove('active'); b.setAttribute('aria-pressed', 'false'); });
-    btn.classList.add('active');
-    btn.setAttribute('aria-pressed', 'true');
+function renderFashionVideoStyles(styles = []) {
+  const root = document.querySelector('#video-style-options');
+  const cards = styles.slice(0, 3).map((style, index) => {
+    const card = document.createElement('button');
+    card.type = 'button';
+    card.className = 'video-style-card';
+    card.dataset.motionMode = style.motion_mode;
+    card.dataset.styleId = style.id;
+    card.setAttribute('role', 'radio');
+    card.setAttribute('aria-checked', String(index === 0));
+    const image = document.createElement('img');
+    image.src = style.preview_url;
+    image.alt = `Прев’ю відеостилю: ${style.title}`;
+    const label = document.createElement('span');
+    label.textContent = style.title;
+    card.append(image, label);
+    card.addEventListener('click', () => {
+      root.querySelectorAll('.video-style-card').forEach((candidate) => {
+        candidate.setAttribute('aria-checked', String(candidate === card));
+      });
+    });
+    return card;
   });
-});
+  root.replaceChildren(...cards);
+}
 // Video overlay: close
 function closeVideoOverlay() {
   document.querySelector('#video-overlay').classList.add('hidden');
@@ -1863,8 +1881,9 @@ document.querySelector('#video-overlay').addEventListener('click', (event) => {
 document.querySelector('#video-generate').addEventListener('click', async () => {
   if (!selectedProfileLook) return;
   const lookId = idOfLook(selectedProfileLook);
-  const surface = document.querySelector('#video-surface-options .video-option.active')?.dataset.value ?? 'mirror';
-  const motionMode = document.querySelector('#video-motion-options .video-option.active')?.dataset.value ?? 'gentle_sway';
+  const selectedStyle = document.querySelector('#video-style-options .video-style-card[aria-checked="true"]');
+  const surface = 'mirror';
+  const motionMode = selectedStyle?.dataset.motionMode;
   const progressEl = document.querySelector('#video-progress');
   const progressFill = document.querySelector('#video-progress-fill');
   const progressStatus = document.querySelector('#video-progress-status');
@@ -1875,8 +1894,9 @@ document.querySelector('#video-generate').addEventListener('click', async () => 
   resultEl.hidden = true;
   errorEl.hidden = true;
   progressFill.style.width = '10%';
-  progressStatus.textContent = 'Відправляємо на Seedance 2…';
+  progressStatus.textContent = 'Відправляємо вибраний стиль на Seedance 2…';
   try {
+    if (!motionMode) throw new Error('Обери один із трьох відеостилів.');
     const res = await fetch('/api/profile/video-clips', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

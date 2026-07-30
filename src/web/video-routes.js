@@ -105,6 +105,31 @@ export async function registerVideoRoutes(app, {
       .send(fashionVideoCapability({ lookId, approvedLook, motionReference }));
   });
 
+  app.get('/api/profile/looks/:lookId/video-styles/:styleId/preview', async (request, reply) => {
+    const session = await profileApi.resolveRequestProfile(request, reply);
+    const { lookId, styleId } = request.params;
+    if (!profiles.ownsLook(session.profileId, lookId)) {
+      return reply.code(404).send({ error: 'Look not found', code: 'LOOK_NOT_FOUND' });
+    }
+    const approvedLook = await profiles.approvedLookReference(session.profileId, lookId, runService);
+    const motionReference = typeof videoService.fashionVideoCapability === 'function'
+      ? await videoService.fashionVideoCapability({
+          profileId: session.profileId,
+          lookId,
+          approvedLook,
+          referenceId: styleId,
+        })
+      : null;
+    if (!motionReference?.preview_path || motionReference.selected_style_id !== styleId) {
+      return reply.code(404).send({ error: 'Video style not found', code: 'VIDEO_STYLE_NOT_FOUND' });
+    }
+    return reply
+      .type('image/jpeg')
+      .header('Cache-Control', 'private, no-store')
+      .header('X-Content-Type-Options', 'nosniff')
+      .send(createReadStream(motionReference.preview_path));
+  });
+
   // POST /api/profile/video-clips — create a new video clip
   app.post('/api/profile/video-clips', async (request, reply) => {
     sameOriginMutation(request);

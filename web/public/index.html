@@ -12,8 +12,8 @@
   <link rel="stylesheet" href="/progress.css?v=20260724-1">
   <link rel="stylesheet" href="/conflict.css?v=20260722-3">
   <link rel="stylesheet" href="/experience.css?v=20260723-6">
-  <link rel="stylesheet" href="/result.css?v=20260730-4">
-  <link rel="stylesheet" href="/scene.css?v=20260723-4">
+  <link rel="stylesheet" href="/result.css?v=20260730-6">
+  <link rel="stylesheet" href="/scene.css?v=20260730-5">
   <link rel="stylesheet" href="/scene-cta.css?v=20260727-1">
   <script type="module" src="/scene-cta.js?v=20260725-1"></script>
 </head>
@@ -245,27 +245,12 @@
               <h3 id="video-overlay-title">Створити відео</h3>
             </div>
             <div class="video-overlay-body">
-              <div class="video-overlay-preview">
-                <img id="video-source-image" alt="Образ для відео">
-                <span class="video-overlay-badge">SOURCE FRAME</span>
-              </div>
               <div class="video-overlay-controls">
                 <div class="video-control-group">
-                  <label class="video-label">Формат кадру</label>
-                  <div id="video-surface-options" class="video-options" role="radiogroup" aria-label="Формат кадру">
-                    <button type="button" class="video-option active" data-value="mirror" aria-pressed="true">Вертикальний</button>
-                    <button type="button" class="video-option" data-value="tv" aria-pressed="false">Широкий</button>
-                  </div>
+                  <label class="video-label">Обери стиль Fashion Video</label>
+                  <div id="video-style-options" class="video-style-options" role="radiogroup" aria-label="Стиль Fashion Video"></div>
                 </div>
-                <div class="video-control-group">
-                  <label class="video-label">Подача</label>
-                  <div id="video-motion-options" class="video-options" role="radiogroup" aria-label="Подача у відео">
-                    <button type="button" class="video-option active" data-value="gentle_sway" aria-pressed="true">М’який рух</button>
-                    <button type="button" class="video-option" data-value="confident_turn" aria-pressed="false">Поворот</button>
-                    <button type="button" class="video-option" data-value="editorial_pose" aria-pressed="false">Позування</button>
-                  </div>
-                </div>
-                <button id="video-generate" class="primary-result-action" type="button">Створити відео →</button>
+                <button id="video-generate" class="primary-result-action" type="button">Генерувати Fashion Video →</button>
                 <div id="video-progress" class="video-progress" hidden>
                   <div id="video-ai-thinking" class="video-ai-thinking" role="status" aria-live="polite">
                     <canvas id="video-thinking-orb"></canvas>
@@ -394,7 +379,10 @@
 
               <section id="editorial-gallery-stage" class="editorial-gallery-stage" hidden>
                 <header>
-                  <div><p>FASHION SHOOT · ПРОГРЕС</p><strong id="editorial-series-progress">0/5 fashion-кадрів готово</strong></div>
+                  <div class="editorial-active-state">
+                    <canvas id="editorial-thinking-orb" aria-hidden="true"></canvas>
+                    <span><p>FASHION SHOOT · ПРОГРЕС</p><strong id="editorial-series-progress">0/5 fashion-кадрів готово</strong></span>
+                  </div>
                   <label class="editorial-progress-wrap"><progress id="editorial-progress-meter" max="5" value="0">0 з 5</progress><span id="editorial-progress-detail">Очікуємо запуск</span></label>
                 </header>
                 <div id="editorial-gallery" class="editorial-gallery" aria-label="Кадри Fashion Shoot"></div>
@@ -427,6 +415,6 @@
   </aside>
   <script src="/boot-guard.js?v=20260722-3"></script>
   <script src="/vendor/heic2any.min.js?v=0.0.4"></script>
-  <script type="module" src="/app.js?v=20260730-5"></script>
+  <script type="module" src="/app.js?v=20260730-7"></script>
 </body>
 </html>

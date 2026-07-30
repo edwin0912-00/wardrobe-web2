@@ -15,16 +15,24 @@ async function fixture(run) {
   try {
     const referenceBytes = Buffer.from('verified-motion-reference');
     const referencePath = path.join(root, 'motion.mp4');
+    const previewBytes = Buffer.from('verified-preview');
+    const previewPath = path.join(root, 'preview.jpg');
     const manifestPath = path.join(root, 'manifest.json');
     await writeFile(referencePath, referenceBytes);
+    await writeFile(previewPath, previewBytes);
     await writeFile(manifestPath, JSON.stringify({
       schema_version: '1.0.0',
       pack_id: 'fashion.test.v1',
       references: [{
         id: 'walk',
+        ui_title_uk: 'Рух',
         filename: 'motion.mp4',
+        preview_filename: 'preview.jpg',
+        preview_sha256: sha256(previewBytes),
+        preview_bytes: previewBytes.length,
         sha256: sha256(referenceBytes),
         bytes: referenceBytes.length,
+        default_motion_mode: 'walk_stride',
         motion_modes: ['walk_stride'],
       }],
     }));
@@ -44,6 +52,7 @@ test('resolver selects and verifies the hash-bound motion reference', async () =
     assert.equal(result.state, 'READY');
     assert.equal(result.reference_path, await realpath(referencePath));
     assert.equal(result.reference_sha256, sha256(referenceBytes));
+    assert.equal(result.available_styles[0].title, 'Рух');
     assert.match(result.reference_pack_sha256, /^[a-f0-9]{64}$/);
   });
 });

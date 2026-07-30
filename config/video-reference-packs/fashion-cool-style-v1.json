@@ -6,7 +6,12 @@
   "references": [
     {
       "id": "editorial-detail",
+      "ui_title_uk": "Редакційний акцент",
       "filename": "reference-01.mp4",
+      "preview_filename": "contact-01.jpg",
+      "preview_sha256": "97ddf8257879260cc3595a9cdda0fa75aa7fe15ad95f4d618220f35039ee4f81",
+      "preview_bytes": 89630,
+      "default_motion_mode": "editorial_micro_moment",
       "source_file_id": "1hQ3JLP8v0bL9yyRXerPn473D5pb5I1_A",
       "sha256": "12ff78b162da5a66e1cb05ddae9c878e18468ebeeabce07ddf36821b196c2d72",
       "bytes": 163838342,
@@ -20,7 +25,12 @@
     },
     {
       "id": "walk-camera-energy",
+      "ui_title_uk": "Рух у кадрі",
       "filename": "reference-02.mp4",
+      "preview_filename": "contact-02.jpg",
+      "preview_sha256": "bfdcf7514b89880666910e8bfcb4b2b38537b13d32b05594ace7307932f61205",
+      "preview_bytes": 68263,
+      "default_motion_mode": "walk_stride",
       "source_file_id": "1Oq-_VJcMO9skBVjoTUCs0lG8SWQYfKw1",
       "sha256": "90cea68c0bf6191e987fcabf7a922386867620f06cad8eeeb51bc1da0e91455e",
       "bytes": 87672785,
@@ -35,7 +45,12 @@
     },
     {
       "id": "hard-sun-pose",
+      "ui_title_uk": "Жорстке сонце",
       "filename": "reference-03.mp4",
+      "preview_filename": "contact-03.jpg",
+      "preview_sha256": "c7de07c5d835bd46a66ed1707fba02f26365f8204543c1f44a8e3732976414e7",
+      "preview_bytes": 72760,
+      "default_motion_mode": "camera_drift",
       "source_file_id": "1JNumOqtXXRQYJ6BpHWOrV1W_KqPYC4sY",
       "sha256": "e78ecce55f6bb694c17246b3bd16c172348fde85d7f22afc438f839b9466ed02",
       "bytes": 61479953,

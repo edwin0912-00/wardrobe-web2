@@ -161,6 +161,7 @@ export class VideoService {
     lookId,
     approvedLook,
     motionMode = null,
+    referenceId = null,
   } = {}) {
     if (typeof this.#fashionVideoReferenceResolver !== 'function') return null;
     return this.#fashionVideoReferenceResolver({
@@ -168,6 +169,7 @@ export class VideoService {
       lookId,
       approvedLook,
       motionMode,
+      referenceId,
     });
   }
 

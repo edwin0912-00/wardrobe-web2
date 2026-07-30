@@ -326,6 +326,11 @@ function referenceAsset(referenceId, role, document) {
   };
 }
 
+function boundedReferenceFact(value, maximumLength = 240) {
+  const text = String(value ?? '');
+  return text.length <= maximumLength ? text : text.slice(0, maximumLength);
+}
+
 function compiledReferenceAssets({ presetId, modeId, shotSpec: shot, basePack }) {
   const mode = modeContent(basePack.create_universe_mode ?? { preset_id: modeId });
   const slot = SLOT_CONTENT[shot.slot];
@@ -361,7 +366,7 @@ function compiledReferenceAssets({ presetId, modeId, shotSpec: shot, basePack })
         schema_version: '1.0.0',
         role: 'environment_anchor',
         facts: {
-          description: shot.environment,
+          description: boundedReferenceFact(shot.environment),
           spatial_cues: [
             shot.camera.angle,
             `Focus: ${basePack.create_universe_mode.create_universe.runtime_style.shot_directions[shot.slot].focus}`,
@@ -382,7 +387,7 @@ function compiledReferenceAssets({ presetId, modeId, shotSpec: shot, basePack })
       schema_version: '1.0.0',
       role: 'environment_anchor',
       facts: {
-        description: shot.environment,
+        description: boundedReferenceFact(shot.environment),
         spatial_cues: [
           `Compose an original ${shot.camera.framing.replaceAll('_', ' ')} fashion frame.`,
           'Keep coherent depth, grounded perspective and controlled negative space around visible item evidence.',

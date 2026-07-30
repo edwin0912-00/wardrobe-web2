@@ -101,7 +101,12 @@ test('saved look exposes actionable branches and their honest pipeline explanati
   assert.match(appSource, /payload\?\.available === true/);
   assert.match(appSource, /payload\?\.requirements\?\.verified_style_reference === true/);
   assert.match(appSource, /payload\?\.requirements\?\.verified_motion_reference === true/);
-  assert.match(appSource, /Fashion Video: обери формат кадру й подачу/);
+  assert.match(appSource, /payload\?\.requirements\?\.three_video_styles === true/);
+  assert.match(appSource, /Fashion Video: обери одну з трьох перевірених відеостилістик/);
+  assert.match(indexSource, /id="video-style-options"/);
+  assert.doesNotMatch(indexSource, /gentle_sway|confident_turn|editorial_pose/);
+  assert.doesNotMatch(indexSource, /id="video-source-image"/);
+  assert.match(indexSource, /id="video-result" class="video-result" hidden/);
   assert.match(appSource, /Потрібні 2 референси/);
   assert.match(appSource, /action\.dataset\.state = state/);
   assert.match(appSource, /action\.classList\.toggle\('is-checking', state === 'checking'\)/);

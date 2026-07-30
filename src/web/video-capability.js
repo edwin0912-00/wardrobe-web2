@@ -22,17 +22,37 @@ export function fashionVideoCapability({
   const motionReferenceReady = motionReference?.state === 'READY'
     && referencePathReady
     && hasSha256(motionReference.reference_sha256);
-  const available = approvedLookReady && styleReferenceReady && motionReferenceReady;
+  const verifiedStyles = (motionReference?.available_styles ?? []).filter(
+    (style) => typeof style?.id === 'string'
+      && typeof style?.title === 'string'
+      && typeof style?.motion_mode === 'string'
+      && hasSha256(style?.preview_sha256),
+  );
+  const styleCatalogReady = verifiedStyles.length === 3;
+  const available = approvedLookReady
+    && styleReferenceReady
+    && motionReferenceReady
+    && styleCatalogReady;
+  const styles = available
+    ? verifiedStyles.map((style) => Object.freeze({
+        id: style.id,
+        title: style.title,
+        motion_mode: style.motion_mode,
+        preview_url: `/api/profile/looks/${encodeURIComponent(lookId)}/video-styles/${encodeURIComponent(style.id)}/preview`,
+      }))
+    : [];
 
   return Object.freeze({
     capability: 'fashion_video',
     look_id: lookId,
     available,
+    styles: Object.freeze(styles),
     create_route: '/api/profile/video-clips',
     requirements: Object.freeze({
       approved_master_look: approvedLookReady,
       verified_style_reference: styleReferenceReady,
       verified_motion_reference: motionReferenceReady,
+      three_video_styles: styleCatalogReady,
     }),
     reason_code: available
       ? 'FASHION_VIDEO_READY'

@@ -65,6 +65,13 @@ function fixture() {
   return { profiles, projected, createRequests, videoService };
 }
 
+const availableStyles = [1, 2, 3].map((index) => ({
+  id: `style-${index}`,
+  title: `Style ${index}`,
+  motion_mode: `motion_${index}`,
+  preview_sha256: String(index).repeat(64),
+}));
+
 test('create fails closed before provider spend while Fashion Video has no reference pack', async (t) => {
   const current = fixture();
   const app = Fastify();
@@ -117,11 +124,13 @@ test('saved-look capability fails closed when the runtime cannot prove both refe
     capability: 'fashion_video',
     look_id: '33333333-3333-4333-8333-333333333333',
     available: false,
+    styles: [],
     create_route: '/api/profile/video-clips',
     requirements: {
       approved_master_look: true,
       verified_style_reference: false,
       verified_motion_reference: false,
+      three_video_styles: false,
     },
     reason_code: 'FASHION_VIDEO_REFERENCE_PACK_REQUIRED',
     next_action: 'SELECT_VERIFIED_VIDEO_STYLE',
@@ -137,6 +146,7 @@ test('saved-look capability opens only from the server-verified two-reference co
     reference_path: '/runtime/references/motion.mp4',
     reference_sha256: 'd'.repeat(64),
     reference_pack_sha256: 'e'.repeat(64),
+    available_styles: availableStyles,
   });
   const app = Fastify();
   t.after(() => app.close());
@@ -158,11 +168,18 @@ test('saved-look capability opens only from the server-verified two-reference co
     capability: 'fashion_video',
     look_id: '33333333-3333-4333-8333-333333333333',
     available: true,
+    styles: availableStyles.map((style) => ({
+      id: style.id,
+      title: style.title,
+      motion_mode: style.motion_mode,
+      preview_url: `/api/profile/looks/33333333-3333-4333-8333-333333333333/video-styles/${style.id}/preview`,
+    })),
     create_route: '/api/profile/video-clips',
     requirements: {
       approved_master_look: true,
       verified_style_reference: true,
       verified_motion_reference: true,
+      three_video_styles: true,
     },
     reason_code: 'FASHION_VIDEO_READY',
     next_action: 'CREATE_FASHION_VIDEO',
@@ -177,6 +194,7 @@ test('create reaches VideoService only after the same two-reference contract is 
     reference_path: '/runtime/references/motion.mp4',
     reference_sha256: 'd'.repeat(64),
     reference_pack_sha256: 'e'.repeat(64),
+    available_styles: availableStyles,
   });
   const app = Fastify();
   t.after(() => app.close());

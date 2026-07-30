@@ -20,6 +20,7 @@ import {
   safeEditorialOutputUrl,
   writeEditorialResume,
 } from './editorial-state.js?v=20260724-1';
+import { createThinkingOrb } from './thinking-orb.js?v=20260722-10';
 
 function idOfLook(look) {
   return look?.look_id ?? look?.id ?? null;
@@ -86,7 +87,7 @@ function fashionFrames(shoot) {
 
 function displayShotStatus(status) {
   return ({
-    BLOCKED: 'Очікує первинну перевірку образу',
+    BLOCKED: 'Очікує генерацію',
     QUEUED: 'У черзі',
     RUNNING: 'Створюється',
     QA_PASSED: 'QA пройдено',
@@ -101,10 +102,10 @@ function displayShootMessage(shoot) {
   const status = shoot?.status;
   return ({
     BIBLE_REVIEW: 'Готуємо вибраний стиль.',
-    HERO_GENERATION: 'Перевіряємо образ перед зйомкою.',
-    HERO_RETRY: 'Автоматично допрацьовуємо перевірку образу.',
-    HERO_NEEDS_RETRY: 'Допрацьовуємо перевірку образу на сервері.',
-    HERO_APPROVAL: 'Образ пройшов перевірку. Створюємо п’ять кадрів.',
+    HERO_GENERATION: 'Створюємо перший кадр у вибраному стилі.',
+    HERO_RETRY: 'Автоматично уточнюємо перший кадр.',
+    HERO_NEEDS_RETRY: 'Уточнюємо перенесення образу в обраний стиль.',
+    HERO_APPROVAL: 'Перший кадр готовий. Створюємо ще п’ять кадрів.',
     SERIES_GENERATION: 'Створюємо п’ять унікальних fashion-кадрів паралельно по два.',
     SHOT_RETRY: 'Готові кадри збережено. Решту автоматично допрацьовуємо окремо.',
     RECOVERY_QUEUED: 'Після перезапуску продовжуємо незавершені кадри без повтору готових.',
@@ -112,8 +113,8 @@ function displayShootMessage(shoot) {
     CANCELLED: 'Фотосесію зупинено. Уже готові кадри збережено.',
   })[phase] ?? ({
     BIBLE_PENDING_APPROVAL: 'Готуємо вибраний стиль.',
-    HERO_RUNNING: 'Перевіряємо образ перед зйомкою.',
-    HERO_PENDING_APPROVAL: 'Образ пройшов перевірку. Створюємо п’ять кадрів.',
+    HERO_RUNNING: 'Створюємо перший кадр у вибраному стилі.',
+    HERO_PENDING_APPROVAL: 'Перший кадр готовий. Створюємо п’ять кадрів.',
     SERIES_RUNNING: 'Створюємо п’ять унікальних fashion-кадрів паралельно по два.',
     NEEDS_RETRY: 'Готові кадри збережено. Решту допрацьовуємо на сервері.',
     COMPLETED: 'Усі п’ять fashion-кадрів готові та пройшли QA.',
@@ -124,7 +125,7 @@ function displayShootMessage(shoot) {
 function displayShootState(status) {
   return ({
     BIBLE_PENDING_APPROVAL: 'ПІДГОТОВКА',
-    HERO_RUNNING: 'ПЕРЕВІРКА ОБРАЗУ',
+    HERO_RUNNING: 'ГЕНЕРАЦІЯ СТИЛЮ',
     HERO_PENDING_APPROVAL: 'ЗАПУСК КАДРІВ',
     SERIES_RUNNING: 'СТВОРЮЄМО',
     NEEDS_RETRY: 'ДОПРАЦЬОВУЄМО',
@@ -216,6 +217,10 @@ export class EditorialShootUiController {
     this.actionPending = false;
     this.connectionFailed = false;
     this.bibleRequest = null;
+    this.thinkingOrb = createThinkingOrb(
+      document.querySelector('#editorial-thinking-orb'),
+      'composing',
+    );
     this.#bind();
   }
 
@@ -509,6 +514,12 @@ export class EditorialShootUiController {
     this.#element('#editorial-progress-detail').textContent = completed === 5
       ? 'Усі кадри пройшли QA'
       : displayShootMessage(this.shoot);
+    const orbState = this.shoot?.status === 'NEEDS_RETRY'
+      ? 'solving'
+      : this.shoot?.status === 'COMPLETED'
+        ? 'ready'
+        : 'composing';
+    this.thinkingOrb.setState(orbState);
     const cards = shots.map((shot, index) => {
       const card = document.createElement('article');
       card.className = 'editorial-shot-card';

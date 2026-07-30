@@ -9,6 +9,12 @@ const approvedLook = {
   image_sha256: 'a'.repeat(64),
   receipt_sha256: 'b'.repeat(64),
 };
+const availableStyles = [1, 2, 3].map((index) => ({
+  id: `style-${index}`,
+  title: `Style ${index}`,
+  motion_mode: `motion_${index}`,
+  preview_sha256: String(index).repeat(64),
+}));
 
 test('Fashion Video remains blocked without a hash-bound reference pack', () => {
   const capability = fashionVideoCapability({ lookId, approvedLook });
@@ -17,6 +23,7 @@ test('Fashion Video remains blocked without a hash-bound reference pack', () => 
     approved_master_look: true,
     verified_style_reference: false,
     verified_motion_reference: false,
+    three_video_styles: false,
   });
   assert.equal(capability.reason_code, 'FASHION_VIDEO_REFERENCE_PACK_REQUIRED');
 });
@@ -30,6 +37,7 @@ test('Fashion Video becomes available only when look, style and motion are verif
       reference_path: '/runtime/references/motion.mp4',
       reference_sha256: 'c'.repeat(64),
       reference_pack_sha256: 'd'.repeat(64),
+      available_styles: availableStyles,
     },
   });
   assert.equal(capability.available, true);
@@ -37,6 +45,7 @@ test('Fashion Video becomes available only when look, style and motion are verif
     approved_master_look: true,
     verified_style_reference: true,
     verified_motion_reference: true,
+    three_video_styles: true,
   });
   assert.equal(capability.reason_code, 'FASHION_VIDEO_READY');
   assert.equal(capability.next_action, 'CREATE_FASHION_VIDEO');
@@ -51,6 +60,7 @@ test('Fashion Video rejects incomplete or malformed reference hashes', () => {
       reference_path: '/runtime/references/motion.mp4',
       reference_sha256: 'not-a-sha',
       reference_pack_sha256: 'd'.repeat(64),
+      available_styles: availableStyles,
     },
   });
   assert.equal(capability.available, false);

@@ -1712,6 +1712,20 @@
   font-size: 12px;
 }
 
+.editorial-active-state {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+
+.editorial-active-state canvas {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  filter: drop-shadow(0 8px 18px rgba(142, 198, 48, .28));
+}
+
 .editorial-progress-wrap {
   display: grid;
   justify-items: end;

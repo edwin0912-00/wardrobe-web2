@@ -24,12 +24,18 @@ function validateManifest(manifest) {
   }
   for (const reference of manifest.references) {
     if (typeof reference?.id !== 'string'
+      || typeof reference?.ui_title_uk !== 'string'
       || !SAFE_FILENAME.test(reference?.filename ?? '')
+      || !SAFE_FILENAME.test(reference?.preview_filename ?? '')
       || !SHA256.test(reference?.sha256 ?? '')
+      || !SHA256.test(reference?.preview_sha256 ?? '')
       || !Number.isInteger(reference?.bytes)
       || reference.bytes < 1
+      || !Number.isInteger(reference?.preview_bytes)
+      || reference.preview_bytes < 1
       || !Array.isArray(reference?.motion_modes)
-      || reference.motion_modes.length === 0) {
+      || reference.motion_modes.length === 0
+      || !reference.motion_modes.includes(reference?.default_motion_mode)) {
       throw new VideoReferenceRegistryError('Fashion Video reference entry is invalid');
     }
   }
@@ -40,7 +46,10 @@ export function createFashionVideoReferenceResolver({
   rootDirectory,
   manifestPath,
 } = {}) {
-  return async function resolveFashionVideoReference({ motionMode = null } = {}) {
+  return async function resolveFashionVideoReference({
+    motionMode = null,
+    referenceId = null,
+  } = {}) {
     if (typeof rootDirectory !== 'string' || rootDirectory.length === 0) return null;
     if (typeof manifestPath !== 'string' || manifestPath.length === 0) {
       throw new VideoReferenceRegistryError('Fashion Video reference manifest is not configured', {
@@ -64,6 +73,8 @@ export function createFashionVideoReferenceResolver({
     }
 
     const selected = manifest.references.find(
+      (reference) => referenceId && reference.id === referenceId,
+    ) ?? manifest.references.find(
       (reference) => motionMode && reference.motion_modes.includes(motionMode),
     ) ?? manifest.references[0];
     let root;
@@ -90,6 +101,29 @@ export function createFashionVideoReferenceResolver({
       throw new VideoReferenceRegistryError('Fashion Video reference hash changed');
     }
 
+    const availableStyles = [];
+    for (const reference of manifest.references) {
+      const previewPath = await realpath(path.join(root, reference.preview_filename));
+      if (path.dirname(previewPath) !== root) {
+        throw new VideoReferenceRegistryError('Fashion Video preview escaped its root');
+      }
+      const previewDetails = await stat(previewPath);
+      if (!previewDetails.isFile() || previewDetails.size !== reference.preview_bytes) {
+        throw new VideoReferenceRegistryError('Fashion Video preview size changed');
+      }
+      const previewBytes = await readFile(previewPath);
+      if (sha256(previewBytes) !== reference.preview_sha256) {
+        throw new VideoReferenceRegistryError('Fashion Video preview hash changed');
+      }
+      availableStyles.push(Object.freeze({
+        id: reference.id,
+        title: reference.ui_title_uk,
+        motion_mode: reference.default_motion_mode,
+        preview_path: previewPath,
+        preview_sha256: reference.preview_sha256,
+      }));
+    }
+
     return Object.freeze({
       state: 'READY',
       pack_id: manifest.pack_id,
@@ -98,6 +132,9 @@ export function createFashionVideoReferenceResolver({
       reference_sha256: selected.sha256,
       reference_pack_sha256: sha256(manifestBytes),
       motion_modes: Object.freeze([...selected.motion_modes]),
+      available_styles: Object.freeze(availableStyles),
+      selected_style_id: selected.id,
+      preview_path: availableStyles.find((style) => style.id === selected.id)?.preview_path,
     });
   };
 }
