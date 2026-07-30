@@ -138,10 +138,6 @@ test('saved look is one compact action hub without nested guides or forced scrol
     resultCss,
     /\.profile-action-copy strong \{[\s\S]*?overflow:\s*visible;[\s\S]*?text-overflow:\s*clip;[\s\S]*?white-space:\s*normal;/,
   );
-  assert.match(
-    resultCss,
-    /\.profile-library\.has-open-look \.profile-look-scenes \{[\s\S]*?display:\s*none;/,
-  );
 });
 
 test('saved-look actions expose complete keyboard, disabled and loading states', () => {

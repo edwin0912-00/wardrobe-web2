@@ -1885,12 +1885,6 @@ body.profile-live-open {
   min-height: 300px;
 }
 
-/* The open detail is an action hub, not a second library. Keeping histories
-   out of this fixed surface removes nested scroll areas at every viewport. */
-.profile-library.has-open-look .profile-look-scenes {
-  display: none;
-}
-
 /* The open panel is absolutely positioned inside the workspace, so its height
    was whatever the look-card grid happened to be — on a 800px-tall window that
    was 429px for ~515px of content, and the action row ended up drawn on top of
