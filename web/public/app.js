@@ -42,7 +42,6 @@ import {
   scenesForLook,
   scenePresetLabel,
   sceneStatusLabel,
-  selectedLookLiveUrl,
   storeAddItemsLineage,
   storeAddItemsSelection,
 } from './add-items-flow.js?v=20260727-2';
@@ -97,6 +96,10 @@ let selectedProfileLookId = null;
 let selectedProfileLookSelection = null;
 let selectedProfileLook = null;
 let profileEditorialRequestVersion = 0;
+let fashionVideoCapabilityRequestVersion = 0;
+let fashionVideoCapability = null;
+let realtimeLookCapabilityRequestVersion = 0;
+let realtimeLookCapability = null;
 
 const ACTIVE_RUN_KEY = 'zeely_active_run_id';
 const PENDING_FINALIZATION_KEY = 'zeely_pending_finalization_id';
@@ -1015,7 +1018,6 @@ async function openProfileLook(profile, look) {
   requestAnimationFrame(() => {
     const detail = document.querySelector('#profile-look-detail');
     detail?.focus({ preventScroll: true });
-    detail?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   });
 }
 
@@ -1370,12 +1372,16 @@ async function renderProfile(profileValueToRender = null) {
         );
       })
       .catch(() => undefined);
+    refreshFashionVideoCapability(selectedProfileLook);
+    refreshRealtimeLookCapability(selectedProfileLook);
   } else {
     detailImage.removeAttribute('src');
     detailTitle.textContent = 'Збережений образ';
     detailOwner.textContent = '';
     renderProfileSceneLibrary(null);
     renderProfileEditorialLibrary(null, profile);
+    refreshFashionVideoCapability(null);
+    refreshRealtimeLookCapability(null);
   }
 
   resultPanelTitle.textContent = 'Мій профіль';
@@ -1667,15 +1673,111 @@ function setLookActionStatus(message) {
   const target = document.querySelector('#profile-look-action-status');
   if (target) target.textContent = message;
 }
-function showLookBrief(id, message) {
-  document.querySelectorAll('.profile-branch-brief').forEach((element) => {
-    element.classList.toggle('hidden', element.id !== id);
-  });
-  setLookActionStatus(message);
-  document.querySelector(`#${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+function syncFashionVideoAction({ state = 'checking', capability = null } = {}) {
+  const action = document.querySelector('#profile-look-video');
+  const label = document.querySelector('#profile-look-video-state');
+  if (!action || !label) return;
+  fashionVideoCapability = capability;
+  action.disabled = !selectedProfileLook || state !== 'ready';
+  action.setAttribute(
+    'aria-label',
+    state === 'ready'
+      ? 'Відкрити Fashion Video'
+      : 'Fashion Video ще готується: потрібні два референси',
+  );
+  label.textContent = state === 'ready'
+    ? 'Style + motion перевірені'
+    : state === 'unavailable'
+      ? 'Потрібні 2 референси'
+      : 'Перевіряємо доступність';
 }
-function hideLookBriefs() {
-  document.querySelectorAll('.profile-branch-brief').forEach((element) => element.classList.add('hidden'));
+async function refreshFashionVideoCapability(look) {
+  const requestVersion = ++fashionVideoCapabilityRequestVersion;
+  const lookId = idOfLook(look);
+  syncFashionVideoAction({ state: lookId ? 'checking' : 'unavailable' });
+  if (!lookId) return;
+  try {
+    const response = await fetch(
+      `/api/profile/looks/${encodeURIComponent(lookId)}/video-capability`,
+      { credentials: 'same-origin', cache: 'no-store' },
+    );
+    const payload = response.ok ? await response.json() : null;
+    if (requestVersion !== fashionVideoCapabilityRequestVersion
+      || idOfLook(selectedProfileLook) !== lookId) return;
+    const ready = payload?.capability === 'fashion_video'
+      && payload?.look_id === lookId
+      && payload?.available === true
+      && payload?.create_route === '/api/profile/video-clips'
+      && payload?.requirements?.approved_master_look === true
+      && payload?.requirements?.verified_style_reference === true
+      && payload?.requirements?.verified_motion_reference === true;
+    syncFashionVideoAction(ready
+      ? { state: 'ready', capability: { lookId } }
+      : { state: 'unavailable' });
+  } catch {
+    if (requestVersion === fashionVideoCapabilityRequestVersion) {
+      syncFashionVideoAction({ state: 'unavailable' });
+    }
+  }
+}
+function syncRealtimeLookAction({ state = 'checking', capability = null } = {}) {
+  const action = document.querySelector('#profile-look-live');
+  const label = document.querySelector('#profile-look-live-state');
+  if (!action || !label) return;
+  realtimeLookCapability = capability;
+  action.disabled = !selectedProfileLook || state !== 'ready';
+  label.textContent = state === 'ready'
+    ? capability.paidLiveReady
+      ? 'Камера й AI доступні'
+      : 'Камера доступна · AI тимчасово ні'
+    : state === 'unavailable'
+      ? 'Тимчасово недоступно'
+      : 'Перевіряємо доступність';
+}
+async function refreshRealtimeLookCapability(look) {
+  const requestVersion = ++realtimeLookCapabilityRequestVersion;
+  const lookId = idOfLook(look);
+  syncRealtimeLookAction({ state: lookId ? 'checking' : 'unavailable' });
+  if (!lookId) return;
+  try {
+    const response = await fetch(
+      `/api/post-shoot/realtime-look-capability?look_id=${encodeURIComponent(lookId)}`,
+      { credentials: 'same-origin', cache: 'no-store' },
+    );
+    const payload = response.ok ? await response.json() : null;
+    if (requestVersion !== realtimeLookCapabilityRequestVersion
+      || idOfLook(selectedProfileLook) !== lookId) return;
+    const launchUrl = typeof payload?.launch?.href === 'string'
+      ? new URL(payload.launch.href, window.location.origin)
+      : null;
+    const ready = payload?.capability === 'REALTIME_LOOK'
+      && payload?.camera_preview_ready === true
+      && payload?.launch?.presentation === 'FULL_VIEWPORT'
+      && payload?.launch?.target === '_self'
+      && payload?.launch?.nested === false
+      && payload?.launch?.internal_scroll === false
+      && payload?.consent?.privacy_required === true
+      && payload?.consent?.cost_required === true
+      && payload?.camera?.permission_required === true
+      && payload?.camera?.audio === false
+      && payload?.capture?.automatic_recording === false
+      && payload?.capture?.automatic_upload === false
+      && launchUrl?.origin === window.location.origin;
+    syncRealtimeLookAction(ready
+      ? {
+          state: 'ready',
+          capability: {
+            lookId,
+            href: `${launchUrl.pathname}${launchUrl.search}${launchUrl.hash}`,
+            paidLiveReady: payload.paid_live_ready === true,
+          },
+        }
+      : { state: 'unavailable' });
+  } catch {
+    if (requestVersion === realtimeLookCapabilityRequestVersion) {
+      syncRealtimeLookAction({ state: 'unavailable' });
+    }
+  }
 }
 document.querySelector('#profile-look-background-primary').addEventListener('click', (event) => {
   event.stopPropagation();
@@ -1689,13 +1791,9 @@ document.querySelector('#profile-look-photoshoot').addEventListener('click', (ev
 });
 document.querySelector('#profile-look-video').addEventListener('click', (event) => {
   event.stopPropagation();
-  if (event.currentTarget.disabled) {
-    setLookActionStatus('Fashion Video ще готуємо: потрібні два перевірені референси. Запуск поки вимкнений.');
-    return;
-  }
   if (!selectedProfileLook) return;
   const lookId = idOfLook(selectedProfileLook);
-  if (!lookId) return;
+  if (!lookId || fashionVideoCapability?.lookId !== lookId) return;
   const overlay = document.querySelector('#video-overlay');
   const sourceImg = document.querySelector('#video-source-image');
   setLookActionStatus('Fashion Video: обери формат кадру й подачу. Після запуску сервер створює кліп, перевіряє його та зберігає до цього образу.');
@@ -1711,25 +1809,8 @@ document.querySelector('#profile-look-video').addEventListener('click', (event) 
 document.querySelector('#profile-look-refine').addEventListener('click', (event) => {
   event.stopPropagation();
   if (!selectedProfileLook) return;
-  showLookBrief('profile-refine-brief', 'Покращити: master і вибрані речі locked. Candidate буде окремим; поточний образ не змінюється.');
+  setLookActionStatus('Покращити: master і вибрані речі locked. Функція ще готується і нічого не змінює.');
 });
-document.querySelector('#profile-look-background-video').addEventListener('click', (event) => {
-  event.stopPropagation();
-  if (!selectedProfileLook) return;
-  showLookBrief('profile-background-video-brief', 'Відео зі сцени запускається лише після QA-approved scene-result. Наразі серверний запуск ще не підключений.');
-});
-document.querySelector('#profile-look-pipeline').addEventListener('click', (event) => {
-  event.stopPropagation();
-  if (!selectedProfileLook) return;
-  showLookBrief('profile-pipeline-explainer', 'Pipeline: locks → QA → збережений master → окрема наступна гілка.');
-});
-for (const id of ['profile-refine-brief-close', 'profile-background-video-brief-close', 'profile-pipeline-explainer-close']) {
-  document.querySelector(`#${id}`).addEventListener('click', (event) => {
-    event.stopPropagation();
-    hideLookBriefs();
-    setLookActionStatus('Обери формат — master-образ лишається незмінним.');
-  });
-}
 // Video overlay: option selection
 document.querySelectorAll('#video-surface-options .video-option, #video-motion-options .video-option').forEach((btn) => {
   btn.addEventListener('click', () => {
@@ -1822,32 +1903,14 @@ document.querySelector('#video-generate').addEventListener('click', async () => 
     generateBtn.disabled = false;
   }
 });
-function closeProfileLive() {
-  const overlay = document.querySelector('#profile-live-overlay');
-  const frame = document.querySelector('#profile-live-frame');
-  overlay.classList.add('hidden');
-  frame.removeAttribute('src');
-  document.body.classList.remove('profile-live-open');
-}
 document.querySelector('#profile-look-live').addEventListener('click', (event) => {
   event.stopPropagation();
-  if (!selectedProfileLook) return;
-  setLookActionStatus('Real-time Look: відкриваємо окрему camera-сесію з consent. Вона не змінює master-образ.');
-  const overlay = document.querySelector('#profile-live-overlay');
-  const frame = document.querySelector('#profile-live-frame');
-  frame.src = selectedLookLiveUrl(selectedProfileLook);
-  overlay.classList.remove('hidden');
-  document.body.classList.add('profile-live-open');
-  document.querySelector('#profile-live-close').focus({ preventScroll: true });
-});
-document.querySelector('#profile-live-close').addEventListener('click', closeProfileLive);
-document.querySelector('#profile-live-overlay').addEventListener('click', (event) => {
-  if (event.target === event.currentTarget) closeProfileLive();
+  const lookId = idOfLook(selectedProfileLook);
+  if (!lookId || realtimeLookCapability?.lookId !== lookId) return;
+  setLookActionStatus('Real-time Look: переходимо в окрему consented camera-сесію на весь екран.');
+  window.location.assign(realtimeLookCapability.href);
 });
 document.addEventListener('keydown', (event) => {
-  if (event.key === 'Escape' && !document.querySelector('#profile-live-overlay').classList.contains('hidden')) {
-    closeProfileLive();
-  }
   if (event.key === 'Escape' && !document.querySelector('#video-overlay').classList.contains('hidden')) {
     closeVideoOverlay();
   }

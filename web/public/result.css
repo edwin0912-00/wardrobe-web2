@@ -192,13 +192,20 @@
 
 .profile-look-next {
   display: grid;
-  gap: 11px;
-  padding: 15px;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 8px;
+  min-height: 0;
+  padding: 12px;
   border: 1px solid var(--result-line);
   border-radius: 18px;
   background:
     radial-gradient(circle at 96% 7%, rgba(255, 194, 70, .16), transparent 34%),
     linear-gradient(145deg, #fbfcf8, #eef2ea);
+}
+
+.profile-look-next-head {
+  display: grid;
+  gap: 3px;
 }
 
 .profile-look-next-head h5 {
@@ -210,7 +217,9 @@
 .profile-look-next-actions {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+  grid-template-rows: auto auto auto;
+  gap: 7px;
+  min-height: 0;
 }
 
 .profile-next-action {
@@ -220,8 +229,8 @@
   align-items: center;
   gap: 9px;
   min-width: 0;
-  min-height: 68px;
-  padding: 12px;
+  min-height: 58px;
+  padding: 9px 10px;
   border: 1px solid color-mix(in srgb, var(--action-accent) 36%, #dbe3d2);
   border-radius: 13px;
   background: linear-gradient(135deg, color-mix(in srgb, var(--action-accent) 8%, #fff), #fff);
@@ -242,105 +251,33 @@
 .profile-next-action:disabled { cursor: not-allowed; opacity: .62; }
 .profile-next-action:disabled:hover { border-color: color-mix(in srgb, var(--action-accent) 36%, #dbe3d2); box-shadow: none; transform: none; }
 
-.profile-action-guide {
-  display: grid;
-  gap: 9px;
-  padding: 12px;
-  border: 1px solid var(--result-line);
-  border-radius: 13px;
-  background: rgba(255, 255, 255, .68);
-}
-
 .profile-look-action-status {
   margin: 0;
-  color: var(--result-deep);
-  font-size: 12px;
-  font-weight: 720;
-  line-height: 1.35;
-}
-
-.profile-action-guide ul {
-  display: grid;
-  gap: 7px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.profile-action-guide li {
-  display: grid;
-  gap: 2px;
-  padding-top: 7px;
-  border-top: 1px solid rgba(23, 59, 40, .10);
-}
-
-.profile-action-guide b {
-  color: var(--result-ink);
-  font-size: 11px;
-}
-
-.profile-action-guide span {
   color: var(--result-muted);
-  font-size: 11px;
-  line-height: 1.38;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.25;
 }
 
-.profile-action-guide-controls {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 7px;
-}
-
-.profile-action-guide-controls button,
-.profile-branch-brief button {
-  min-height: 34px;
-  padding: 7px 10px;
-  border: 1px solid rgba(23, 59, 40, .22);
-  border-radius: 9px;
-  background: #fff;
-  color: var(--result-deep);
-  font: inherit;
-  font-size: 11px;
-  font-weight: 750;
-  cursor: pointer;
-}
-
-.profile-branch-brief {
-  display: grid;
-  gap: 9px;
-  padding: 13px;
-  border: 1px solid rgba(23, 59, 40, .20);
-  border-radius: 13px;
-  background: linear-gradient(135deg, rgba(242, 248, 235, .96), rgba(255, 255, 255, .94));
-}
-
-.profile-branch-brief.hidden { display: none; }
-.profile-branch-brief header { display: grid; gap: 3px; }
-.profile-branch-brief h5,
-.profile-branch-brief p,
-.profile-branch-brief ol { margin: 0; }
-.profile-branch-brief h5 { color: var(--result-ink); font-size: 15px; }
-.profile-branch-brief p,
-.profile-branch-brief li { color: var(--result-muted); font-size: 12px; line-height: 1.43; }
-.profile-branch-brief ol { display: grid; gap: 5px; padding-left: 19px; }
 .profile-action-icon { display: grid; width: 34px; height: 34px; place-items: center; border: 1px solid color-mix(in srgb, var(--action-accent) 65%, transparent); border-radius: 50%; color: var(--action-accent); font-size: 18px; box-shadow: 0 0 16px color-mix(in srgb, var(--action-accent) 18%, transparent); }
 .profile-action-copy { display: grid; gap: 2px; min-width: 0; }
-.profile-action-copy strong { overflow: hidden; color: currentColor; font-size: 13px; line-height: 1.1; text-overflow: ellipsis; white-space: nowrap; }
+.profile-action-copy strong { overflow: visible; color: currentColor; font-size: 13px; line-height: 1.1; overflow-wrap: anywhere; text-overflow: clip; white-space: normal; }
 .profile-action-copy small { color: color-mix(in srgb, currentColor 64%, transparent); font-size: 10px; line-height: 1.2; }
 .profile-next-action-refine { --action-accent: #91bd45; }
 .profile-next-action-background { --action-accent: #d29a24; }
 .profile-next-action-photoshoot { --action-accent: #357fd2; }
 .profile-next-action-video { --action-accent: #c95d58; }
-.profile-next-action-live { --action-accent: #9161ca; grid-column: 1 / -1; }
+.profile-next-action-live { --action-accent: #9161ca; }
 .profile-look-primary-action {
   --action-accent: #d29a24;
   display: grid;
+  grid-column: 1 / -1;
   grid-template-columns: 38px minmax(0, 1fr) auto;
   align-items: center;
   gap: 11px;
   width: 100%;
-  min-height: 78px;
-  padding: 12px 14px;
+  min-height: 62px;
+  padding: 9px 12px;
   overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--action-accent) 56%, #dfd1b2);
   border-radius: 15px;
@@ -363,8 +300,8 @@
 
 @media (max-width: 620px) {
   .profile-look-next-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .profile-next-action { min-height: 64px; padding: 10px; }
-  .profile-look-primary-action { min-height: 74px; }
+  .profile-next-action { min-height: 44px; padding: 8px; }
+  .profile-look-primary-action { min-height: 48px; }
 }
 
 .avatar-profile-card {
@@ -765,19 +702,9 @@ body.profile-live-open {
   z-index: 1000;
   inset: 0;
   display: grid;
-  place-items: center;
-  padding: clamp(8px, 2vw, 24px);
-  background: rgba(7, 8, 7, .88);
-  backdrop-filter: blur(18px);
-}
-
-.profile-live-overlay iframe {
-  width: min(1120px, 100%);
-  height: min(820px, 100%);
-  border: 1px solid rgba(255, 255, 255, .12);
-  border-radius: 22px;
-  background: #080808;
-  box-shadow: 0 32px 100px rgba(0, 0, 0, .55);
+  place-items: stretch;
+  padding: 0;
+  background: #080908;
 }
 
 .profile-live-close {
@@ -796,34 +723,24 @@ body.profile-live-open {
   backdrop-filter: blur(14px);
 }
 
-@media (max-width: 700px) {
-  .profile-live-overlay {
-    padding: 0;
-  }
-
-  .profile-live-overlay iframe {
-    width: 100%;
-    height: 100%;
-    border: 0;
-    border-radius: 0;
-  }
-}
-
 /* ── Video Overlay ── */
 .video-overlay-content {
-  width: min(900px, 100%);
-  max-height: min(720px, 90vh);
-  overflow-y: auto;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  width: 100%;
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
   background: #0f100f;
-  border: 1px solid rgba(255, 255, 255, .1);
-  border-radius: 22px;
-  box-shadow: 0 32px 100px rgba(0, 0, 0, .55);
-  padding: 2rem;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  padding: clamp(16px, 3vh, 32px) clamp(18px, 4vw, 56px);
 }
 
 .video-overlay-header {
   text-align: center;
-  margin-bottom: 1.5rem;
+  margin-bottom: clamp(.75rem, 2vh, 1.5rem);
 }
 
 .video-overlay-header .result-kicker {
@@ -843,8 +760,11 @@ body.profile-live-open {
 .video-overlay-body {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 2rem;
-  align-items: start;
+  gap: clamp(1rem, 3vw, 2.5rem);
+  width: min(1040px, 100%);
+  min-height: 0;
+  margin: 0 auto;
+  align-items: stretch;
 }
 
 .video-overlay-preview {
@@ -852,7 +772,7 @@ body.profile-live-open {
   border-radius: 14px;
   overflow: hidden;
   background: #080808;
-  aspect-ratio: 3/4;
+  min-height: 0;
 }
 
 .video-overlay-preview img {
@@ -971,13 +891,30 @@ body.profile-live-open {
 }
 
 @media (max-width: 700px) {
+  .video-overlay-content {
+    padding: max(10px, env(safe-area-inset-top)) 10px max(10px, env(safe-area-inset-bottom));
+  }
+
+  .video-overlay-header {
+    margin-bottom: 8px;
+  }
+
   .video-overlay-body {
     grid-template-columns: 1fr;
+    grid-template-rows: minmax(0, .78fr) auto;
+    gap: 8px;
   }
 
   .video-overlay-preview {
-    max-height: 260px;
-    aspect-ratio: auto;
+    max-height: none;
+  }
+
+  .video-overlay-controls {
+    gap: .55rem;
+  }
+
+  .video-control-group {
+    gap: .3rem;
   }
 }
 
@@ -1882,7 +1819,7 @@ body.profile-live-open {
 /* A saved look is also opened in short desktop/tablet windows. Keep the
    actual choices on screen; scene history and long method notes belong to the
    library, not between the user and the next action. */
-@media (min-width: 701px) and (max-height: 850px) {
+@media (min-width: 701px) and (max-height: 950px) {
   .profile-library.has-open-look .profile-look-workspace {
     min-height: 460px;
   }
@@ -1893,9 +1830,7 @@ body.profile-live-open {
   }
 
   .profile-library.has-open-look .profile-look-detail-copy > p:not(.result-kicker),
-  .profile-library.has-open-look .profile-look-scenes,
-  .profile-library.has-open-look .profile-action-guide,
-  .profile-library.has-open-look .profile-branch-brief {
+  .profile-library.has-open-look .profile-look-scenes {
     display: none;
   }
 
@@ -1907,7 +1842,7 @@ body.profile-live-open {
   .profile-library.has-open-look .profile-look-next {
     flex: 1 1 auto;
     min-height: 0;
-    grid-template-rows: auto 54px minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr) auto;
     gap: 7px;
     padding: 10px;
   }
@@ -1927,7 +1862,7 @@ body.profile-live-open {
   }
 
   .profile-library.has-open-look .profile-look-next-actions {
-    grid-template-rows: repeat(2, minmax(0, 1fr));
+    grid-template-rows: repeat(3, minmax(0, 1fr));
     gap: 6px;
     min-height: 0;
   }
@@ -1953,7 +1888,9 @@ body.profile-live-open {
   }
 
   .profile-library.has-open-look .profile-look-detail-actions {
-    display: none;
+    grid-template-columns: minmax(0, 1fr) 44px;
+    gap: 6px;
+    margin-top: 0;
   }
 }
 
@@ -2230,13 +2167,11 @@ body.profile-live-open {
 }
 
 .profile-look-detail-actions {
-  /* Header and actions never scroll; only the two lists above them do. The
-     actions are the point of the panel, so they stay pinned to its bottom. */
   flex: 0 0 auto;
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 8px;
-  margin-top: 18px;
+  margin-top: 0;
 }
 
 .profile-look-detail-actions :is(button, .primary-result-action, .secondary-result-action, .profile-delete-action) {
@@ -2622,9 +2557,7 @@ body.profile-live-open {
   /* The saved-look view is an action hub. Empty history and long explanatory
      copy must not compete with the five next actions inside a fixed phone
      viewport. Existing scenes remain available from the profile library. */
-  .profile-library.has-open-look .profile-look-scenes,
-  .profile-library.has-open-look .profile-action-guide,
-  .profile-library.has-open-look .profile-branch-brief {
+  .profile-library.has-open-look .profile-look-scenes {
     display: none;
   }
 
@@ -2666,6 +2599,7 @@ body.profile-live-open {
   }
 
   .profile-library.has-open-look .profile-look-next-actions {
+    grid-template-rows: repeat(3, minmax(0, 1fr));
     gap: 5px;
   }
 

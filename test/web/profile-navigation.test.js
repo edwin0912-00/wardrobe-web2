@@ -33,11 +33,11 @@ test('profile exposes an explicit Back control and clear next actions', () => {
   );
   assert.match(
     indexHtml,
-    /<button id="profile-look-photoshoot"[^>]*aria-label="Відкрити Art Fashion фотозйомку"/,
+    /<button id="profile-look-photoshoot"[^>]*aria-label="Відкрити Fashion Shoot"/,
   );
   assert.match(
     indexHtml,
-    /<button id="profile-look-delete"[^>]*>Видалити<\/button>/,
+    /<button id="profile-look-delete"[^>]*aria-label="Видалити збережений образ"[^>]*>×<\/button>/,
   );
   assert.match(
     indexHtml,
@@ -121,23 +121,49 @@ test('an open mobile look becomes the active full-height screen instead of clipp
   );
   assert.match(
     resultCss,
-    /\.profile-library\.has-open-look \.profile-look-detail-actions[\s\S]*?grid-template-columns:\s*repeat\(2, minmax\(0, 1fr\)\);/,
+    /\.profile-library\.has-open-look \.profile-look-detail-actions[\s\S]*?grid-template-columns:\s*minmax\(0, 1fr\) 44px;/,
   );
 });
 
-test('a short desktop look reserves its remaining height for the next actions', () => {
-  const shortDesktop = resultCss.slice(resultCss.indexOf('@media (min-width: 701px) and (max-height: 850px)'));
+test('saved look is one compact action hub without nested guides or forced scrolling', () => {
+  const openLookSource = functionSource('openProfileLook', 'renderProfileSceneLibrary');
+  assert.doesNotMatch(openLookSource, /scrollIntoView/);
+  assert.doesNotMatch(indexHtml, /class="profile-action-guide"/);
+  assert.doesNotMatch(indexHtml, /class="profile-branch-brief/);
+  assert.match(
+    resultCss,
+    /\.profile-action-copy strong \{[\s\S]*?overflow:\s*visible;[\s\S]*?text-overflow:\s*clip;[\s\S]*?white-space:\s*normal;/,
+  );
+});
+
+test('Video and Real-time Look use full-viewport single surfaces without nested scrolling', () => {
+  assert.doesNotMatch(resultCss, /\.profile-live-overlay iframe/);
+  assert.match(resultCss, /\.profile-live-overlay \{[\s\S]*?inset:\s*0;[\s\S]*?place-items:\s*stretch;[\s\S]*?padding:\s*0;/);
+  const videoSurface = resultCss.slice(
+    resultCss.indexOf('.video-overlay-content {'),
+    resultCss.indexOf('.video-overlay-header {'),
+  );
+  assert.match(videoSurface, /width:\s*100%/);
+  assert.match(videoSurface, /height:\s*100dvh/);
+  assert.match(videoSurface, /overflow:\s*hidden/);
+  assert.match(videoSurface, /border-radius:\s*0/);
+  assert.match(videoSurface, /box-shadow:\s*none/);
+  assert.doesNotMatch(videoSurface, /max-height|overflow-y/);
+});
+
+test('a short desktop look reserves its remaining height for the compact action grid', () => {
+  const shortDesktop = resultCss.slice(resultCss.indexOf('@media (min-width: 701px) and (max-height: 950px)'));
   assert.match(
     shortDesktop,
-    /\.profile-library\.has-open-look \.profile-look-next \{[\s\S]*?flex:\s*1 1 auto;[\s\S]*?grid-template-rows:\s*auto 54px minmax\(0, 1fr\);/,
+    /\.profile-library\.has-open-look \.profile-look-next \{[\s\S]*?flex:\s*1 1 auto;[\s\S]*?grid-template-rows:\s*auto minmax\(0, 1fr\) auto;/,
   );
   assert.match(
     shortDesktop,
-    /\.profile-library\.has-open-look \.profile-look-next-actions \{[\s\S]*?grid-template-rows:\s*repeat\(2, minmax\(0, 1fr\)\);/,
+    /\.profile-library\.has-open-look \.profile-look-next-actions \{[\s\S]*?grid-template-rows:\s*repeat\(3, minmax\(0, 1fr\)\);/,
   );
   assert.match(
     shortDesktop,
-    /\.profile-library\.has-open-look \.profile-look-detail-actions \{[\s\S]*?display:\s*none;/,
+    /\.profile-library\.has-open-look \.profile-look-detail-actions \{[\s\S]*?grid-template-columns:\s*minmax\(0, 1fr\) 44px;/,
   );
 });
 

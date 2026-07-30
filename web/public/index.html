@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="/progress.css?v=20260724-1">
   <link rel="stylesheet" href="/conflict.css?v=20260722-3">
   <link rel="stylesheet" href="/experience.css?v=20260723-6">
-  <link rel="stylesheet" href="/result.css?v=20260728-2">
+  <link rel="stylesheet" href="/result.css?v=20260730-1">
   <link rel="stylesheet" href="/scene.css?v=20260723-4">
   <link rel="stylesheet" href="/scene-cta.css?v=20260727-1">
   <script type="module" src="/scene-cta.js?v=20260725-1"></script>
@@ -196,13 +196,14 @@
                     <div class="profile-look-next-head">
                       <p class="result-kicker">ЩО РОБИМО З ЦИМ ОБРАЗОМ</p>
                       <h5 id="profile-look-next-title">Обери наступний формат</h5>
+                      <p id="profile-look-action-status" class="profile-look-action-status" aria-live="polite">Master-образ лишається незмінним.</p>
                     </div>
-                    <button id="profile-look-background-primary" class="profile-look-primary-action" type="button" aria-label="Додати стандартний фон">
-                      <span class="profile-action-signal" aria-hidden="true">✦</span>
-                      <span class="profile-action-copy"><strong>Додати фон</strong><small>16 стандартних сцен</small></span>
-                      <span class="profile-action-arrow" aria-hidden="true">→</span>
-                    </button>
-                    <div class="profile-look-next-actions" role="group" aria-label="Інші формати для цього образу">
+                    <div class="profile-look-next-actions" role="group" aria-label="Формати для цього образу">
+                      <button id="profile-look-background-primary" class="profile-look-primary-action" type="button" aria-label="Додати стандартний фон">
+                        <span class="profile-action-signal" aria-hidden="true">✦</span>
+                        <span class="profile-action-copy"><strong>Додати фон</strong><small>16 стандартних сцен</small></span>
+                        <span class="profile-action-arrow" aria-hidden="true">→</span>
+                      </button>
                       <button id="profile-look-refine" class="profile-next-action profile-next-action-refine" type="button" aria-label="Покращити образ (beta)" aria-describedby="profile-look-video-note">
                         <span class="profile-action-icon" aria-hidden="true">✦</span>
                         <span class="profile-action-copy"><strong>Покращити образ</strong><small>Скоро</small></span>
@@ -213,67 +214,24 @@
                       </button>
                       <button id="profile-look-video" class="profile-next-action profile-next-action-video" type="button" aria-label="Fashion Video ще готується: потрібні два референси" aria-describedby="profile-look-video-note" disabled>
                         <span class="profile-action-icon" aria-hidden="true">▷</span>
-                        <span class="profile-action-copy"><strong>Fashion Video</strong><small>Готуємо 2 референси</small></span>
+                        <span class="profile-action-copy"><strong>Fashion Video</strong><small id="profile-look-video-state">Перевіряємо доступність</small></span>
                       </button>
-                      <button id="profile-look-live" class="profile-next-action profile-next-action-live" type="button" aria-label="Відкрити Real-time Look">
+                      <button id="profile-look-live" class="profile-next-action profile-next-action-live" type="button" aria-label="Відкрити Real-time Look" disabled>
                         <span class="profile-action-icon" aria-hidden="true">◌</span>
-                        <span class="profile-action-copy"><strong>Real-time Look</strong><small>Камера з дозволом</small></span>
+                        <span class="profile-action-copy"><strong>Real-time Look</strong><small id="profile-look-live-state">Перевіряємо доступність</small></span>
                       </button>
                     </div>
-                    <section class="profile-action-guide" aria-label="Що робить кожна дія">
-                      <p id="profile-look-action-status" class="profile-look-action-status" aria-live="polite">Обери формат — master-образ лишається незмінним.</p>
-                      <ul>
-                        <li><b>Покращити</b><span>Окремий candidate: lock людини й вибраних речей; дозволені лише незадані деталі, волосся, легкий макіяж і невелика зміна пози. Поки що очікує generator route.</span></li>
-                        <li><b>Фон</b><span>Відкриває 16 стандартних сцен. Master-образ не перегенеровується.</span></li>
-                        <li><b>Fashion Shoot</b><span>Обери готовий стиль: Creative Universe вже зафіксував світло, локацію, камеру, пози та reference pack. Результат — п’ять унікальних fashion-кадрів.</span></li>
-                        <li><b>Fashion Video</b><span>Поки готуємо правильний запуск із двома референсами. Кнопка навмисно вимкнена: без другого референсу ролик не стартує.</span></li>
-                        <li><b>Real-time Look</b><span>Відкриває окрему consented camera-сесію. Вона не замінює згенероване відео.</span></li>
-                        <li><b>Відео зі сцени</b><span>Після готового фону з’явиться окрема гілка «Фокус на речі» / «Позування». Її server route ще не зібраний — запускати фальшивий ролик не будемо.</span></li>
-                      </ul>
-                      <div class="profile-action-guide-controls" role="group" aria-label="Пояснення наступних блоків">
-                        <button id="profile-look-background-video" type="button">Відео зі сцени</button>
-                        <button id="profile-look-pipeline" type="button">Як працює pipeline</button>
-                      </div>
-                    </section>
-                    <section id="profile-refine-brief" class="profile-branch-brief hidden" aria-labelledby="profile-refine-brief-title">
-                      <header><p class="result-kicker">ПОКРАЩИТИ ОБРАЗ · ПЕРЕД ФОНАМИ</p><h5 id="profile-refine-brief-title">Що буде змінено</h5></header>
-                      <p><b>Locked:</b> людина, зовнішність, усі вибрані речі та master-образ.</p>
-                      <p><b>Можна змінювати:</b> лише невибрані деталі, волосся, до 20% макіяжу та невелику корекцію пози.</p>
-                      <p>Результат має бути окремим candidate із діями «залишити master» / «прийняти candidate». Generator route ще не підключений, тому цей блок нічого не генерує і не змінює поточний образ.</p>
-                      <button id="profile-refine-brief-close" type="button">Зрозуміло</button>
-                    </section>
-                    <section id="profile-background-video-brief" class="profile-branch-brief hidden" aria-labelledby="profile-background-video-brief-title">
-                      <header><p class="result-kicker">ПІСЛЯ ГОТОВОГО ФОНУ</p><h5 id="profile-background-video-brief-title">Відео зі сцени</h5></header>
-                      <p><b>Фокус на речі</b> — короткий рух, який показує конкретний предмет для product-задачі.</p>
-                      <p><b>Позування</b> — короткий рух людини в готовому образі та вибраній сцені.</p>
-                      <p>Цей блок активується тільки від QA-approved scene-result. Окремий server route ще не підключений, тому жоден ролик не імітується.</p>
-                      <button id="profile-background-video-brief-close" type="button">Зрозуміло</button>
-                    </section>
-                    <section id="profile-pipeline-explainer" class="profile-branch-brief hidden" aria-labelledby="profile-pipeline-explainer-title">
-                      <header><p class="result-kicker">ENGINEERING BETA · ПОЯСНЕННЯ</p><h5 id="profile-pipeline-explainer-title">Що вже сталося з образом</h5></header>
-                      <ol>
-                        <li><b>Locks:</b> фото людини й вибрані речі зафіксовані для master-образу.</li>
-                        <li><b>QA:</b> результат проходить перевірку зовнішності, речей, кадру й технічної якості.</li>
-                        <li><b>Збереження:</b> approved master лишається незмінним; кожна наступна гілка створює окремий результат.</li>
-                        <li><b>Наступна дія:</b> фон, фотозйомка, Fashion Video, Real-time Look або майбутнє відео зі сцени.</li>
-                      </ol>
-                      <button id="profile-pipeline-explainer-close" type="button">Повернутися до образу</button>
-                    </section>
-                    <p id="profile-look-video-note" class="sr-only">Покращити образ збереже master і locked речі. Fashion video не підміняється mock-роликом: запуск з’явиться лише після Seedance route, QA і збереження кліпу.</p>
+                    <div class="profile-look-detail-actions">
+                      <button id="profile-look-add" class="primary-result-action" type="button">Новий окремий образ</button>
+                      <button id="profile-look-delete" class="profile-delete-action" type="button" aria-label="Видалити збережений образ">×</button>
+                    </div>
+                    <p id="profile-look-video-note" class="sr-only">Покращити образ збереже master і locked речі. Fashion video не підміняється mock-роликом: без другого референсу ролик не стартує; обидва мають бути перевірені.</p>
                   </section>
-                  <div class="profile-look-detail-actions">
-                    <button id="profile-look-add" class="primary-result-action" type="button">Новий окремий образ</button>
-                    <button id="profile-look-delete" class="profile-delete-action" type="button">Видалити</button>
-                  </div>
                 </div>
               </section>
             </div>
             <div class="profile-danger-zone"><p>Без акаунта цей профіль існує лише в цьому браузері.</p><button id="delete-profile" type="button">Видалити профіль і файли</button></div>
           </section>
-        </div>
-        <div id="profile-live-overlay" class="profile-live-overlay hidden" role="dialog" aria-modal="true" aria-label="Live примірка">
-          <button id="profile-live-close" class="profile-live-close" type="button" aria-label="Закрити Live">×</button>
-          <iframe id="profile-live-frame" title="Live примірка вибраного образу" allow="camera; fullscreen"></iframe>
         </div>
         <div id="video-overlay" class="profile-live-overlay hidden" role="dialog" aria-modal="true" aria-label="Fashion Video генерація">
           <button id="video-overlay-close" class="profile-live-close" type="button" aria-label="Закрити Video">×</button>
