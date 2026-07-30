@@ -72,6 +72,7 @@ test('Fashion Shoot records creative QA as review notes while preserving safety 
   const reviewed = applyFashionShootVisualReviewPolicy(
     creative,
     'shoot.terracotta_hardlight.environmental_hero',
+    'review',
   );
   assert.ok(reviewed.gates.every((gate) => gate.decision === 'PASS'));
   assert.match(reviewed.summary, /Non-blocking Fashion Shoot review/);
@@ -91,6 +92,7 @@ test('Fashion Shoot records creative QA as review notes while preserving safety 
   const blocked = applyFashionShootVisualReviewPolicy(
     unsafe,
     'shoot.terracotta_hardlight.environmental_hero',
+    'review',
   );
   assert.equal(
     blocked.gates.find((gate) => gate.id === 'NEAR_COPY_AND_LEAKAGE').decision,
@@ -105,11 +107,20 @@ test('Fashion Shoot records creative QA as review notes while preserving safety 
   const standard = applyFashionShootVisualReviewPolicy(
     creative,
     'std.studio.peach_soft_gloss',
+    'off',
   );
   assert.equal(
     standard.gates.find((gate) => gate.id === 'ITEM_FIDELITY').decision,
     'FAIL',
   );
+
+  const disabled = applyFashionShootVisualReviewPolicy(
+    unsafe,
+    'shoot.terracotta_hardlight.environmental_hero',
+    'off',
+  );
+  assert.ok(disabled.gates.every((gate) => gate.decision === 'PASS'));
+  assert.match(disabled.summary, /Non-blocking Fashion Shoot review/);
 });
 
 function providerMetadata(context, bytes, requestId, {

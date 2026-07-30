@@ -103,15 +103,27 @@ const FASHION_SHOOT_BLOCKING_ANATOMY_DEFECTS = new Set([
 // materially different repair contract.
 const SCENE_GENERATION_CONTRACT_VERSION = 'scene-generation-contract-v9-native-3-4';
 
-export function applyFashionShootVisualReviewPolicy(evaluation, presetId) {
-  if (typeof presetId !== 'string' || !presetId.startsWith('shoot.')) return evaluation;
+export function applyFashionShootVisualReviewPolicy(
+  evaluation,
+  presetId,
+  mode = 'review',
+) {
+  if (!['strict', 'review', 'off'].includes(mode)) {
+    throw new Error(`Unknown Fashion Shoot QA mode: ${mode}`);
+  }
+  if (mode === 'strict'
+    || typeof presetId !== 'string'
+    || !presetId.startsWith('shoot.')) return evaluation;
   const result = structuredClone(evaluation);
   const notes = [];
   for (const gate of result.gates) {
     if (gate.decision !== 'FAIL') continue;
     const framingIsOnlyArtDirection = gate.id === 'FRAMING_AND_ANATOMY'
       && !gate.defects.some((defect) => FASHION_SHOOT_BLOCKING_ANATOMY_DEFECTS.has(defect));
-    if (!FASHION_SHOOT_ADVISORY_GATES.has(gate.id) && !framingIsOnlyArtDirection) continue;
+    const nonBlocking = mode === 'off'
+      || FASHION_SHOOT_ADVISORY_GATES.has(gate.id)
+      || framingIsOnlyArtDirection;
+    if (!nonBlocking) continue;
     notes.push({
       id: gate.id,
       defects: [...gate.defects],
@@ -121,7 +133,7 @@ export function applyFashionShootVisualReviewPolicy(evaluation, presetId) {
     gate.decision = 'PASS';
     gate.defects = [];
     gate.evidence = sanitizeOutboundString(
-      `NON_BLOCKING_FASHION_REVIEW (${originalDefects}): ${gate.evidence}`,
+      `NON_BLOCKING_FASHION_REVIEW mode=${mode} (${originalDefects}): ${gate.evidence}`,
     ).slice(0, 2_000);
   }
   if (notes.length > 0) {
@@ -1825,6 +1837,7 @@ export class SceneService {
     delivery = DEFAULT_SCENE_DELIVERY,
     maxManualRetries = 2,
     qaMaxAttempts = 3,
+    fashionShootQaMode = 'review',
     observerTimeoutMs = 2_000,
     observer = null,
     autoRecoverQaInfrastructureFailures = false,
@@ -1848,6 +1861,9 @@ export class SceneService {
     if (!Number.isInteger(qaMaxAttempts) || qaMaxAttempts < 1 || qaMaxAttempts > 10) {
       throw new Error('SceneService qaMaxAttempts must be an integer between 1 and 10');
     }
+    if (!['strict', 'review', 'off'].includes(fashionShootQaMode)) {
+      throw new Error('SceneService fashionShootQaMode must be strict, review, or off');
+    }
     if (!Number.isFinite(observerTimeoutMs) || observerTimeoutMs < 10 || observerTimeoutMs > 30_000) {
       throw new Error('SceneService observerTimeoutMs must be between 10 and 30000 milliseconds');
     }
@@ -1864,6 +1880,7 @@ export class SceneService {
     this.delivery = normalizeDelivery(delivery);
     this.maxManualRetries = maxManualRetries;
     this.qaMaxAttempts = qaMaxAttempts;
+    this.fashionShootQaMode = fashionShootQaMode;
     this.observerTimeoutMs = observerTimeoutMs;
     this.observer = observer;
     this.autoRecoverQaInfrastructureFailures = autoRecoverQaInfrastructureFailures;
@@ -3853,6 +3870,7 @@ export class SceneService {
       normalized = applyFashionShootVisualReviewPolicy(
         normalized,
         state.bindings.preset.preset_id,
+        this.fashionShootQaMode,
       );
     } catch (error) {
       if (signal.aborted) return attempt;
