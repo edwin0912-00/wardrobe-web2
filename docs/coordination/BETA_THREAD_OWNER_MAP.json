@@ -1,0 +1,119 @@
+{
+  "schema_version": "1.0.0",
+  "threads": [
+    {
+      "chat_label": "00",
+      "thread_id": "019fb036-e055-7923-b5f4-27392115460b",
+      "title": "00 Master",
+      "agent_id": "chat-00-master",
+      "role": "BETA_RELEASE_MASTER",
+      "beta_blocks": []
+    },
+    {
+      "chat_label": "01",
+      "thread_id": "019f7c40-26c1-7252-acf6-396296d0a42d",
+      "title": "01 - Cloth to avatar in ENV Block",
+      "agent_id": "codex-main",
+      "role": "BETA_BLOCK_OWNER",
+      "beta_blocks": [1]
+    },
+    {
+      "chat_label": "02",
+      "thread_id": "019fadc7-2130-7af2-8e30-856036930a3c",
+      "title": "02 Pipeline LIFE Block",
+      "agent_id": "chat-2",
+      "role": "BETA_BLOCK_OWNER",
+      "beta_blocks": [2]
+    },
+    {
+      "chat_label": "03",
+      "thread_id": "019f8a76-36d5-71e2-a2fa-0c1a98d5fe5f",
+      "title": "03 - BetaSite Block",
+      "agent_id": "chat-3",
+      "role": "BETA_BLOCK_OWNER",
+      "beta_blocks": [3]
+    },
+    {
+      "chat_label": "04",
+      "thread_id": "019faf41-db3e-7d00-a591-5b0851017af9",
+      "title": "04 - Shoot-Back-Block",
+      "agent_id": "chat-4",
+      "role": "BETA_BLOCK_OWNER",
+      "beta_blocks": [4, 5]
+    },
+    {
+      "chat_label": "05",
+      "thread_id": "019faf52-0a8b-7de0-a123-7cea87d3124b",
+      "title": "05 - Video Block",
+      "agent_id": "chat-5",
+      "role": "BETA_BLOCK_OWNER",
+      "beta_blocks": [6]
+    },
+    {
+      "chat_label": "06",
+      "thread_id": "019f8eb8-9755-7e72-b844-2bbfd57ed283",
+      "title": "06 - Main Site Block",
+      "agent_id": "chat-6",
+      "role": "MAIN_SITE_ONLY",
+      "beta_blocks": []
+    },
+    {
+      "chat_label": "07",
+      "thread_id": "019fa3f3-63d1-76b0-9735-631f96c28ed2",
+      "title": "07 LiveCam Block",
+      "agent_id": "chat-7",
+      "role": "BETA_BLOCK_OWNER",
+      "beta_blocks": [7]
+    }
+  ],
+  "blocks": {
+    "1": {
+      "owner_agent_id": "codex-main",
+      "branch": "beta-block-1-core-look",
+      "handoff": "docs/coordination/blocks/01-core-look.md",
+      "report": "updates/codex-main.md"
+    },
+    "2": {
+      "owner_agent_id": "chat-2",
+      "branch": "beta-block-2-profile-ui",
+      "handoff": "docs/coordination/blocks/02-profile-ui.md",
+      "report": "updates/chat-2.md"
+    },
+    "3": {
+      "owner_agent_id": "chat-3",
+      "branch": "beta-block-3-backgrounds",
+      "handoff": "docs/coordination/blocks/03-backgrounds.md",
+      "report": "updates/chat-3.md"
+    },
+    "4": {
+      "owner_agent_id": "chat-4",
+      "branch": "beta-block-4-universe",
+      "handoff": "docs/coordination/blocks/04-universe.md",
+      "report": "updates/chat-4.md"
+    },
+    "5": {
+      "owner_agent_id": "chat-4",
+      "branch": "beta-block-5-fashion-shoot",
+      "handoff": "docs/coordination/blocks/05-fashion-shoot.md",
+      "report": "updates/chat-4.md"
+    },
+    "6": {
+      "owner_agent_id": "chat-5",
+      "branch": "beta-block-6-fashion-video",
+      "handoff": "docs/coordination/blocks/06-fashion-video.md",
+      "report": "updates/chat-5.md"
+    },
+    "7": {
+      "owner_agent_id": "chat-7",
+      "branch": "beta-block-7-realtime-look",
+      "handoff": "docs/coordination/blocks/07-realtime-look.md",
+      "report": "updates/chat-7.md"
+    }
+  },
+  "observer": {
+    "agent_id": "antigravity-qa",
+    "block": "0.8",
+    "branch": "beta-block-08-antigravity-qa",
+    "report": "updates/antigravity-qa.md"
+  }
+}

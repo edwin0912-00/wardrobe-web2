@@ -1,3 +1,8 @@
+> **HISTORICAL / MISASSIGNED:** this preserved report was written when Chat 06
+> was incorrectly mapped to technical Block 6. Chat 06 is MAIN_SITE-only.
+> Current Block 6 owner/report is `chat-5` / `updates/chat-5.md`. Do not append
+> new beta-video status here and do not delete this historical evidence.
+
 Agent ID: chat-6
 Block: 6
 Branch: beta-block-6-fashion-video

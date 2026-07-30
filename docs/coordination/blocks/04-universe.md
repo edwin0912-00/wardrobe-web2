@@ -1,8 +1,11 @@
-# Chat 4 — Beta Block 4: Creative Universe
+# Chat 04 — Beta Block 4: Creative Universe
 
 Owner: `chat-4`.
 Branch: `beta-block-4-universe`.
 Pipeline: `UNIVERSE.01–02`.
+
+Chat 04 also owns technical Block 5. Chat number and block number are separate;
+both branches publish `updates/chat-4.md`.
 
 Own observed source packs, seven sheets, manifests, palette, provenance,
 integrity, catalog and previews. Never invent missing source facts and never

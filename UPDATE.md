@@ -6,8 +6,10 @@ This is the only live coordination board for the current sprint.
 
 The detailed contract is
 [`docs/coordination/BETA_BLOCKS_2026-07-29.md`](docs/coordination/BETA_BLOCKS_2026-07-29.md).
-Every chat commits only to its block branch. Only `codex-main` integrates into
-`beta` and deploys the exact tested beta SHA.
+Every owner commits only to its block branch. Only `chat-00-master` integrates
+into `beta` and deploys the exact tested beta SHA. Chat labels and technical
+block numbers are separate identities; the canonical relation is
+[`docs/coordination/BETA_THREAD_OWNER_MAP.json`](docs/coordination/BETA_THREAD_OWNER_MAP.json).
 
 Independent QA is permanently assigned to `antigravity-qa` on
 `beta-block-08-antigravity-qa`. It watches all commits, executes real public
@@ -19,17 +21,18 @@ beta browser journeys and reports evidence; it never edits product code.
 | 2 | `beta-block-2-profile-ui` | `chat-2` | Profile, upload/draft, saved-look navigation, nodes, choice UI, explainer | Prove refresh recovery and saved avatar → Add clothing → result actions; fix only the first reproducible UI defect. |
 | 3 | `beta-block-3-backgrounds` | `chat-3` | Sixteen `std.*` packs, picker and result UX | Prove sixteen cards, then one saved look → selected preset → Block 1 QA → persisted scene. |
 | 4 | `beta-block-4-universe` | `chat-4` | Creative Universe source packs, sheets, manifests, catalog | Recover the checkpoint by ownership and make one legitimate style unit fully green. |
-| 5 | `beta-block-5-fashion-shoot` | `chat-5` | Shoot Bible, hero, five frames, shoot QA/retry/save | Run one complete style to an honest hero QA receipt before any series generation. |
-| 6 | `beta-block-6-fashion-video` | `chat-6` | Fashion Video and background-video execution/QA/save | Reconcile the two committed video services and prove one executable controlled clip route. |
+| 5 | `beta-block-5-fashion-shoot` | `chat-4` | Shoot Bible, hero, five frames, shoot QA/retry/save | Run one complete style to an honest hero QA receipt before any series generation. |
+| 6 | `beta-block-6-fashion-video` | `chat-5` | Fashion Video and background-video execution/QA/save | Reconcile the two committed video services and prove one executable controlled clip route. |
 | 7 | `beta-block-7-realtime-look` | `chat-7` | Camera, consent, live overlay, explicit capture/teardown | Prove denied/granted camera and no-save teardown; paid Lucy remains separately authorized. |
 
 Observer 0.8: `antigravity-qa` runs
 `tools/join-antigravity-qa.sh antigravity-qa --watch`; detailed contract:
 `docs/coordination/blocks/08-antigravity-qa.md`.
 
-All active agents run `tools/watch-beta-blocks.sh`. Each branch publishes
-`updates/chat-<N>.md` with separate Code/Beta/Journey fields and
-`weakened_checks`.
+Chat 06 / `chat-6` is MAIN_SITE-only and is outside this beta table. All active
+beta agents run `tools/watch-beta-blocks.sh`. Each branch publishes the
+agent-ID-bound report path declared in `BETA_THREAD_OWNER_MAP.json`, with
+separate Code/Beta/Journey fields and `weakened_checks`.
 
 The mixed source work captured from the shared worktree is preserved at commit
 `46d1650` on `part-job/2026-07-29-universe-checkpoint`. It is intentionally not

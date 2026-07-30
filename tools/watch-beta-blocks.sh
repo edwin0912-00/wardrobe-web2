@@ -11,6 +11,7 @@ mode="${2:-}"
 
 repo_root="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 2
 cd "$repo_root"
+owner_map_tool="tools/coordination/beta-thread-owner-map.mjs"
 
 branches=(
   beta-block-1-core-look
@@ -38,13 +39,14 @@ render_once() {
   for block_index in {1..7}; do
     branch="${branches[$((block_index - 1))]}"
     ref="origin/$branch"
-    printf 'Block %s · %s\n' "$block_index" "$(git log -1 --format='%h %s' "$ref")"
+    owner="$(node "$owner_map_tool" field "$block_index" owner_agent_id)"
+    report="$(node "$owner_map_tool" field "$block_index" report)"
+    printf 'Block %s · owner %s · %s\n' "$block_index" "$owner" "$(git log -1 --format='%h %s' "$ref")"
     if git merge-base --is-ancestor "$ref" origin/beta; then
       printf '  integration: already contained in beta\n'
     else
       printf '  integration: branch has commits not yet in beta\n'
     fi
-    report="updates/chat-$block_index.md"
     if git cat-file -e "$ref:$report" 2>/dev/null; then
       git show "$ref:$report" | tail -14 | sed 's/^/  /'
     else
