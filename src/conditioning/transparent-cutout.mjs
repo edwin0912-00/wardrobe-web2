@@ -46,6 +46,8 @@ export async function removeBorderConnectedWhiteToAlpha(input, {
   }
   let removedGradientPixels = 0;
   let relativeSubjectProtectionBbox = null;
+  let gradientCleanupApplied = false;
+  let gradientCleanupSkippedReason = null;
   if (removeBorderConnectedNeutralGradient) {
     const preGradientLabels = new Int32Array(width * height);
     const preGradientComponents = [];
@@ -100,7 +102,8 @@ export async function removeBorderConnectedWhiteToAlpha(input, {
       : 0;
     const totalPreGradientStrongPixels = preGradientComponents
       .reduce((total, component) => total + component.strongPixels, 0);
-    if (totalPreGradientStrongPixels / (width * height) < minimumStrongPixelRatio) {
+    const hasStrongSubjectEvidence = totalPreGradientStrongPixels / (width * height) >= minimumStrongPixelRatio;
+    if (!hasStrongSubjectEvidence) {
       const borderBand = Math.max(1, Math.round(width * 0.08));
       let relativePixels = 0;
       let relativeLeft = width;
@@ -149,6 +152,13 @@ export async function removeBorderConnectedWhiteToAlpha(input, {
         };
       }
     }
+    const gradientFloodSafe = hasStrongSubjectEvidence
+      || protectedLightPrimaryLabel !== 0
+      || relativeSubjectProtectionBbox !== null;
+    gradientCleanupApplied = gradientFloodSafe;
+    if (!gradientFloodSafe) {
+      gradientCleanupSkippedReason = 'AMBIGUOUS_LOW_CONTRAST_SUBJECT';
+    }
     const protectionDistance = new Uint8Array(width * height);
     protectionDistance.fill(0xff);
     const protect = (index) => {
@@ -195,12 +205,13 @@ export async function removeBorderConnectedWhiteToAlpha(input, {
     const gradientSeedQualifies = (index) => {
       const offset = index * channels;
       const values = [data[offset], data[offset + 1], data[offset + 2]];
-      return protectionDistance[index] === 0xff
+      return gradientFloodSafe
+        && protectionDistance[index] === 0xff
         && Math.min(...values) >= gradientSeedMinimumChannel
         && Math.max(...values) - Math.min(...values) <= gradientSeedMaximumChroma;
     };
     const gradientNeighborQualifies = (index, previous) => {
-      if (visited[index] || protectionDistance[index] !== 0xff) return false;
+      if (!gradientFloodSafe || visited[index] || protectionDistance[index] !== 0xff) return false;
       const offset = index * channels;
       const previousOffset = previous * channels;
       const values = [data[offset], data[offset + 1], data[offset + 2]];
@@ -370,6 +381,8 @@ export async function removeBorderConnectedWhiteToAlpha(input, {
       connectivity: 4,
       detached_residue_cleanup: removeDetachedLowContrastResidue,
       border_gradient_cleanup: removeBorderConnectedNeutralGradient,
+      border_gradient_cleanup_applied: gradientCleanupApplied,
+      gradient_cleanup_skipped_reason: gradientCleanupSkippedReason,
       removed_gradient_pixels: removedGradientPixels,
       relative_subject_protection_bbox: relativeSubjectProtectionBbox,
       removed_residue_pixels: removedResiduePixels,
