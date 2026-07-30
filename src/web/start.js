@@ -12,6 +12,7 @@ import { createSceneRuntimeDependencies } from './scene-runtime.js';
 import { createVlmEvaluator } from './vlm-provider.js';
 import { createFalRealtimeTokenIssuer } from './fal-realtime-token.js';
 import { createVideoRuntime } from './video-runtime.js';
+import { createFashionVideoReferenceResolver } from './video-reference-registry.js';
 import { createVideoAssetUrlResolver } from './video-source-bridge.js';
 
 const projectRoot = path.resolve(import.meta.dirname, '..', '..');
@@ -88,10 +89,20 @@ const videoSourceBridge = createVideoAssetUrlResolver({
   clipStoreRoot: path.join(runtimeRoot, 'video-clips'),
   httpsOrigin: process.env.ZEELY_PUBLIC_HTTPS_ORIGIN,
 });
+const fashionVideoReferenceResolver = createFashionVideoReferenceResolver({
+  rootDirectory: process.env.ZEELY_VIDEO_REFERENCE_ROOT,
+  manifestPath: path.join(
+    projectRoot,
+    'config',
+    'video-reference-packs',
+    'fashion-cool-style-v1.json',
+  ),
+});
 const videoService = createVideoRuntime({
   runtimeRoot,
   openRouterApiKey: process.env.OPENROUTER_API_KEY,
   assetUrlResolver: videoSourceBridge.videoAssetUrlResolver,
+  fashionVideoReferenceResolver,
 });
 const app = await createWebApp({
   service,

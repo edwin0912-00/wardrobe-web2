@@ -484,3 +484,13 @@ be weakened to hide it.
   strict product release verification PASS; 16 background presets, 19 Fashion
   Shoot modes and 17 generation-ready modes are public.
 - weakened_checks: none.
+
+## Fashion Video reference authority — 2026-07-30
+
+- Three operator-provided videos are stored outside Git and bound by the
+  versioned `fashion.cool_style.v1` manifest.
+- Every product motion mode selects exactly one reference. Seedance consumes
+  the actual selected MP4; the image-only fallback fails closed.
+- Runtime availability depends on the configured SSD reference root and a
+  successful real-path, size and SHA-256 verification.
+- Focused suite PASS `138/138`; paid generation was not run.

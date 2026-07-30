@@ -145,6 +145,7 @@ export async function registerVideoRoutes(app, {
           profileId: session.profileId,
           lookId: look_id,
           approvedLook,
+          motionMode: motion_mode,
         })
       : null;
     const capability = fashionVideoCapability({
@@ -168,6 +169,7 @@ export async function registerVideoRoutes(app, {
         durationSeconds: duration_seconds ?? undefined,
         styleNote: style_note ?? null,
         sourceImagePath,
+        videoReference: motionReference,
         lookBinding: {
           profileId: session.profileId,
           lookId: look_id,

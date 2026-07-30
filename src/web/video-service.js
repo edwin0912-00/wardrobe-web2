@@ -124,6 +124,8 @@ export class VideoService {
 
   #finalizer;
 
+  #fashionVideoReferenceResolver;
+
   /**
    * @param {object} options
    * @param {object} options.provider — HiggsfieldVideoProvider instance
@@ -135,6 +137,7 @@ export class VideoService {
     clipStore,
     clock = () => Date.now(),
     finalizer = {},
+    fashionVideoReferenceResolver = null,
   } = {}) {
     if (!provider) {
       throw new VideoServiceError('A video provider is required', {
@@ -150,6 +153,22 @@ export class VideoService {
     this.#store = clipStore;
     this.#clock = clock;
     this.#finalizer = finalizer;
+    this.#fashionVideoReferenceResolver = fashionVideoReferenceResolver;
+  }
+
+  async fashionVideoCapability({
+    profileId,
+    lookId,
+    approvedLook,
+    motionMode = null,
+  } = {}) {
+    if (typeof this.#fashionVideoReferenceResolver !== 'function') return null;
+    return this.#fashionVideoReferenceResolver({
+      profileId,
+      lookId,
+      approvedLook,
+      motionMode,
+    });
   }
 
   /**
@@ -167,6 +186,7 @@ export class VideoService {
     styleNote = null,
     sourceImagePath,
     lookBinding = null,
+    videoReference = null,
   }) {
     if (!sourceImagePath) {
       throw new VideoServiceError('A locked source image path is required', {
@@ -202,6 +222,40 @@ export class VideoService {
         status: 409,
       });
     }
+    let verifiedVideoReference = null;
+    if (videoReference !== null) {
+      if (videoReference?.state !== 'READY'
+        || typeof videoReference.reference_path !== 'string'
+        || !/^[a-f0-9]{64}$/.test(videoReference.reference_sha256 ?? '')
+        || !/^[a-f0-9]{64}$/.test(videoReference.reference_pack_sha256 ?? '')) {
+        throw new VideoServiceError('Fashion Video reference binding is incomplete', {
+          code: 'VIDEO_REFERENCE_INVALID',
+          status: 409,
+        });
+      }
+      let referenceBytes;
+      try {
+        referenceBytes = await readFile(videoReference.reference_path);
+      } catch (cause) {
+        throw new VideoServiceError('Fashion Video reference cannot be read', {
+          code: 'VIDEO_REFERENCE_UNREADABLE',
+          status: 409,
+          cause,
+        });
+      }
+      if (sha256(referenceBytes) !== videoReference.reference_sha256) {
+        throw new VideoServiceError('Fashion Video reference changed before submission', {
+          code: 'VIDEO_REFERENCE_HASH_MISMATCH',
+          status: 409,
+        });
+      }
+      verifiedVideoReference = {
+        path: videoReference.reference_path,
+        sha256: videoReference.reference_sha256,
+        packSha256: videoReference.reference_pack_sha256,
+        referenceId: videoReference.reference_id ?? null,
+      };
+    }
     const lockedSourcePath = await this.#store.saveSource(clipId, sourceBytes);
 
     // Resolve aspect from the surface, or fall back to the provider default.
@@ -211,12 +265,19 @@ export class VideoService {
     const request = {
       prompt: plan.prompt,
       mediaPaths: [lockedSourcePath],
+      videoPaths: verifiedVideoReference ? [verifiedVideoReference.path] : [],
       aspectRatio,
       durationSeconds: plan.durationSeconds,
       sourceBinding: {
         clipId,
         sourceSha256,
         approvedLookReceiptSha256: lookBinding?.approvedLookReceiptSha256 ?? null,
+        ...(verifiedVideoReference
+          ? {
+              motionReferenceSha256: verifiedVideoReference.sha256,
+              referencePackSha256: verifiedVideoReference.packSha256,
+            }
+          : {}),
       },
     };
 
@@ -253,6 +314,8 @@ export class VideoService {
       request: {
         source_sha256: sourceSha256,
         approved_look_receipt_sha256: lookBinding?.approvedLookReceiptSha256 ?? null,
+        motion_reference_sha256: verifiedVideoReference?.sha256 ?? null,
+        reference_pack_sha256: verifiedVideoReference?.packSha256 ?? null,
         prompt: plan.prompt,
         aspect_ratio: aspectRatio,
         duration_seconds: plan.durationSeconds,

@@ -14,9 +14,13 @@ export function fashionVideoCapability({
     && approvedLook?.look_id === lookId
     && hasSha256(approvedLook.image_sha256)
     && hasSha256(approvedLook.receipt_sha256);
+  const referencePathReady = typeof motionReference?.reference_path === 'string'
+    && motionReference.reference_path.length > 0;
   const styleReferenceReady = motionReference?.state === 'READY'
+    && referencePathReady
     && hasSha256(motionReference.reference_pack_sha256);
   const motionReferenceReady = motionReference?.state === 'READY'
+    && referencePathReady
     && hasSha256(motionReference.reference_sha256);
   const available = approvedLookReady && styleReferenceReady && motionReferenceReady;
 

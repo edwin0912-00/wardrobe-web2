@@ -55,6 +55,18 @@ Evidence: governance block-map tests and shell syntax checks are required
 before this control-plane commit is integrated.
 weakened_checks: none.
 
+2026-07-30 · Fashion Video motion-reference authority
+Change: registered three operator-provided motion videos as a content-addressed
+runtime pack and wired deterministic per-mode selection into Seedance's native
+video-reference input. The media remains outside Git; manifests and receipts
+contain hashes only. OpenRouter refuses the unsupported video-reference
+contract before a network request.
+Why: Fashion Video must copy real motion/style authority rather than animate a
+saved look from prompt text alone.
+Evidence: real-path/size/hash verification passed for all three SSD files; all
+four modes select exactly one reference; focused suites PASS 138/138.
+weakened_checks: none.
+
 2026-07-30 · Upload drag-and-drop + HEIC · `6f17367` → beta
 Change: every person/garment upload field accepts pointer drag-and-drop; HEIC
 and HEIF are decoded in-browser to a server-supported JPEG before upload.

@@ -27,6 +27,7 @@ test('Fashion Video becomes available only when look, style and motion are verif
     approvedLook,
     motionReference: {
       state: 'READY',
+      reference_path: '/runtime/references/motion.mp4',
       reference_sha256: 'c'.repeat(64),
       reference_pack_sha256: 'd'.repeat(64),
     },
@@ -47,6 +48,7 @@ test('Fashion Video rejects incomplete or malformed reference hashes', () => {
     approvedLook,
     motionReference: {
       state: 'READY',
+      reference_path: '/runtime/references/motion.mp4',
       reference_sha256: 'not-a-sha',
       reference_pack_sha256: 'd'.repeat(64),
     },

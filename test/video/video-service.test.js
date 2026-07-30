@@ -6,6 +6,7 @@ import test from 'node:test';
 
 import { VideoService, VideoServiceError, ClipStore } from '../../src/web/video-service.js';
 import { HiggsfieldVideoProvider } from '../../src/providers/higgsfield-video-provider.js';
+import { sha256 } from '../../src/web/scene-contract.js';
 
 // Stubbed provider that tracks calls and returns predictable results
 function makeStubProvider({ jobId = 'job_test_123', videoUrl = 'https://cdn.example/clip.mp4' } = {}) {
@@ -261,6 +262,69 @@ test('createClip passes exact clip/source/receipt binding to the provider', asyn
       await readFile(path.join(store.clipDir(created.clipId), 'create-receipt.json'), 'utf8'),
     );
     assert.equal(receipt.request.approved_look_receipt_sha256, receiptSha256);
+  });
+});
+
+test('createClip rechecks and passes the exact video reference binding', async () => {
+  await withTempDir(async (dir, sourcePath) => {
+    const referencePath = path.join(dir, 'motion.mp4');
+    const referenceBytes = Buffer.from('motion-reference-bytes');
+    await writeFile(referencePath, referenceBytes);
+    const requests = [];
+    const provider = {
+      async createJob(request) {
+        requests.push(request);
+        return { jobId: 'job_reference', raw: { job_id: 'job_reference' } };
+      },
+    };
+    const store = new ClipStore(dir);
+    const service = new VideoService({ provider, clipStore: store });
+    const referenceSha256 = sha256(referenceBytes);
+    await service.createClip({
+      modeId: 'editorial_micro_moment',
+      surfaceId: 'mirror',
+      sourceImagePath: sourcePath,
+      videoReference: {
+        state: 'READY',
+        reference_id: 'editorial-detail',
+        reference_path: referencePath,
+        reference_sha256: referenceSha256,
+        reference_pack_sha256: 'f'.repeat(64),
+      },
+    });
+    assert.deepEqual(requests[0].videoPaths, [referencePath]);
+    assert.equal(requests[0].sourceBinding.motionReferenceSha256, referenceSha256);
+    assert.equal(requests[0].sourceBinding.referencePackSha256, 'f'.repeat(64));
+  });
+});
+
+test('createClip refuses a changed video reference before provider spend', async () => {
+  await withTempDir(async (dir, sourcePath) => {
+    const referencePath = path.join(dir, 'motion.mp4');
+    await writeFile(referencePath, 'changed');
+    let providerCalls = 0;
+    const provider = {
+      async createJob() {
+        providerCalls += 1;
+        return { jobId: 'must-not-run' };
+      },
+    };
+    const service = new VideoService({ provider, clipStore: new ClipStore(dir) });
+    await assert.rejects(
+      () => service.createClip({
+        modeId: 'editorial_micro_moment',
+        surfaceId: 'mirror',
+        sourceImagePath: sourcePath,
+        videoReference: {
+          state: 'READY',
+          reference_path: referencePath,
+          reference_sha256: 'a'.repeat(64),
+          reference_pack_sha256: 'b'.repeat(64),
+        },
+      }),
+      (error) => error.code === 'VIDEO_REFERENCE_HASH_MISMATCH',
+    );
+    assert.equal(providerCalls, 0);
   });
 });
 

@@ -134,6 +134,7 @@ test('saved-look capability opens only from the server-verified two-reference co
   const current = fixture();
   current.videoService.fashionVideoCapability = async () => ({
     state: 'READY',
+    reference_path: '/runtime/references/motion.mp4',
     reference_sha256: 'd'.repeat(64),
     reference_pack_sha256: 'e'.repeat(64),
   });
@@ -173,6 +174,7 @@ test('create reaches VideoService only after the same two-reference contract is 
   const current = fixture();
   current.videoService.fashionVideoCapability = async () => ({
     state: 'READY',
+    reference_path: '/runtime/references/motion.mp4',
     reference_sha256: 'd'.repeat(64),
     reference_pack_sha256: 'e'.repeat(64),
   });
