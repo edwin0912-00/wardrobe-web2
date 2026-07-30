@@ -22,12 +22,11 @@ evidence is recorded in
 15/15 `shoot.*` styles have a QA-passed technical hero, exact reference-pack
 hash, output hash and receipt hash.
 
-The next campaign advances **all 15**, not a hand-picked subset. Each has five
-customer-facing frames after its technical hero: 75 total. The checked-in
-[`fashion-shoot-matrix.json`](../../../config/fashion-shoot-matrix.json) fixes
-the campaign ceiling at eight provider jobs: four independent shoots per wave
-times the existing two post-hero jobs owned by the service. The runner
+The next campaign advances **all 15**, not a hand-picked subset. A Fashion
+Shoot starts all five customer frames when it is created: 75 total for this
+matrix. The checked-in [`fashion-shoot-matrix.json`](../../../config/fashion-shoot-matrix.json)
+fixes one global ceiling of eight provider jobs. One shoot may use five slots;
+the remaining three can serve another queued shoot. The runner
 [`run-fashion-shoot-matrix.mjs`](../../../tools/run-fashion-shoot-matrix.mjs)
-only approves the exact recorded QA-passed hero hash, persists non-secret
-campaign state locally, and stops after a failed wave with the failed style
-named. It does not alter the per-shoot service concurrency.
+is only a migration for the already-created QA-passed hero records; it
+dispatches all of them and records non-secret terminal state locally.

@@ -25,6 +25,6 @@ Result: **15/15** hero frames reached `QA_PASSED`. Large media stays in the prot
 
 ## Full all-style execution
 
-All 15 styles advance; this is not a selection of six. Each style produces five customer frames after its technical hero: **75 frames total**. The matrix runner starts four shoots per wave. The existing Shoot Service produces at most two post-hero jobs per shoot, so the provider ceiling is exactly **8 simultaneous jobs**. Waves are `4 + 4 + 4 + 3`; each wave reaches a terminal state before the next begins. If a style ends in `NEEDS_RETRY` or `CANCELLED`, the runner records the exact style and stops after that wave.
+All 15 styles advance; this is not a selection of six. A Fashion Shoot produces **five customer frames immediately**: 75 total for the matrix. There is one global provider ceiling of **8 simultaneous jobs**. A single shoot can use five slots; the remaining three are available to any other queued shoot. The current 15 records are legacy smoke records with already-passed internal heroes, so their migration dispatches all 15 together and the service fills the eight slots as they become free. New Fashion Shoots do not wait for or expose a hero-approval step.
 
 `weakened_checks: none.` The smoke proves only the QA-passed hero. It does not claim that the 75 customer frames already exist.

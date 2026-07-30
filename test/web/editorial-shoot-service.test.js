@@ -210,6 +210,7 @@ async function fixture(t, {
   executor = new FakeSceneExecutor(),
   rootDirectory = null,
   clock = monotonicClock(),
+  bible = makeBible(),
 } = {}) {
   const root = rootDirectory ?? await mkdtemp(path.join(os.tmpdir(), 'zeely-editorial-'));
   if (!rootDirectory) t.after(() => rm(root, { recursive: true, force: true }));
@@ -219,7 +220,6 @@ async function fixture(t, {
     clock,
   });
   await service.initialize();
-  const bible = makeBible();
   const request = {
     idempotencyKey: 'create-editorial-shoot-fixture-0001',
     approvedLookReference: LOOK,
@@ -469,6 +469,95 @@ test('hero QA and exact-hash approval are hard barriers, then the other five run
       assert.equal(invocation.hero_output.receipt_sha256, completed.shots[0].output.receipt_sha256);
     }
   }
+});
+
+test('Fashion Shoot queues its five customer frames immediately and never waits on a hidden hero', async (t) => {
+  const customerFrames = deferred();
+  const executor = new FakeSceneExecutor({
+    plans: Object.fromEntries(EDITORIAL_SHOT_SLOTS.slice(1).map((slot) => [
+      slot,
+      async (context) => {
+        await customerFrames.promise;
+        return executionResult(context);
+      },
+    ])),
+  });
+  const fashionBible = makeBible({
+    mode_id: 'shoot.terracotta_hardlight',
+    bible_id: 'bible_fashion_parallel_fixture',
+    title: 'Fashion Shoot — five-frame program',
+  });
+  const current = await fixture(t, { executor, bible: fashionBible });
+  const created = await createAndApproveBible(current);
+  const running = await waitForState(
+    current.service,
+    created.shoot_id,
+    (state) => executor.inFlight === 5,
+  );
+  assert.equal(running.status, 'SERIES_RUNNING');
+  assert.equal(running.shots[0].status, 'CANCELLED');
+  assert.deepEqual(
+    executor.invocations.map((call) => call.slot).sort(),
+    [...EDITORIAL_SHOT_SLOTS.slice(1)].sort(),
+  );
+  assert.ok(executor.invocations.every((call) => call.hero_output === null));
+
+  customerFrames.resolve();
+  const completed = await waitForState(
+    current.service,
+    created.shoot_id,
+    (state) => state.status === 'COMPLETED',
+    5_000,
+  );
+  await current.service.waitForIdle(created.shoot_id);
+  assert.equal(executor.maxInFlight, 5);
+  assert.equal(completed.shots[0].status, 'CANCELLED');
+  assert.deepEqual(completed.shots.slice(1).map((shot) => shot.status), Array(5).fill('APPROVED'));
+});
+
+test('Fashion Shoot scheduler never exceeds eight running customer frames across shoots', async (t) => {
+  const allFrames = deferred();
+  const executor = new FakeSceneExecutor({
+    plans: Object.fromEntries(EDITORIAL_SHOT_SLOTS.slice(1).map((slot) => [
+      slot,
+      async (context) => {
+        await allFrames.promise;
+        return executionResult(context);
+      },
+    ])),
+  });
+  const fashionBible = makeBible({
+    mode_id: 'shoot.terracotta_hardlight',
+    bible_id: 'bible_fashion_global_limit_fixture',
+    title: 'Fashion Shoot — global limit fixture',
+  });
+  const current = await fixture(t, { executor, bible: fashionBible });
+  const first = await current.service.createShoot(current.request);
+  await current.service.approveBible(first.shoot_id, {
+    idempotencyKey: 'fashion-global-limit-first-0001',
+    expectedBibleSha256: first.bindings.shoot_bible.sha256,
+  });
+  await waitForState(current.service, first.shoot_id, () => executor.inFlight === 5);
+
+  const second = await current.service.createShoot({
+    ...current.request,
+    idempotencyKey: 'create-fashion-global-limit-second-0001',
+  });
+  await current.service.approveBible(second.shoot_id, {
+    idempotencyKey: 'fashion-global-limit-second-0001',
+    expectedBibleSha256: second.bindings.shoot_bible.sha256,
+  });
+  await waitForState(current.service, second.shoot_id, () => executor.inFlight === 8);
+  assert.equal(executor.maxInFlight, 8);
+
+  allFrames.resolve();
+  await waitForState(current.service, first.shoot_id, (state) => state.status === 'COMPLETED', 5_000);
+  await waitForState(current.service, second.shoot_id, (state) => state.status === 'COMPLETED', 5_000);
+  await Promise.all([
+    current.service.waitForIdle(first.shoot_id),
+    current.service.waitForIdle(second.shoot_id),
+  ]);
+  assert.equal(executor.maxInFlight, 8);
 });
 
 test('two live service instances enforce one persisted global concurrency limit of two', async (t) => {

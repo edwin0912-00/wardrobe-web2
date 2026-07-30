@@ -4,10 +4,10 @@
   "scope": "all_ready_shoot_styles",
   "expected_style_count": 15,
   "customer_frames_per_style": 5,
-  "hero_role": "technical_identity_and_look_check",
-  "per_shoot_post_hero_concurrency": 2,
+  "launch_policy": "start_all_five_frames_on_create",
+  "per_shoot_frame_concurrency": 5,
   "matrix_max_inflight_generation_requests": 8,
-  "matrix_max_parallel_shoots": 4,
-  "failure_policy": "stop_after_the_current_wave_and_report_the_exact_failed_style",
-  "approval_policy": "only_qa_passed_hero_with_exact_output_hash"
+  "matrix_dispatch_parallel_shoots": 15,
+  "failure_policy": "continue_other_queued_shoots_and_report_each_exact_failed_style",
+  "legacy_smoke_migration": "approve_only_existing_qa_passed_heroes_once"
 }

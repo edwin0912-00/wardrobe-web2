@@ -781,6 +781,7 @@ export function validatePersistedEditorialShoot(state, expectedShootId = null) {
   }
   const hero = state.shots[0];
   const heroApproved = hero.status === EDITORIAL_SHOT_STATES.APPROVED;
+  const parallelFashionShoot = state.bindings.shoot_bible.mode_id.startsWith('shoot.');
   if (state.hero_approval) {
     if (!heroApproved
       || state.hero_approval.output_sha256 !== hero.output?.sha256
@@ -788,13 +789,26 @@ export function validatePersistedEditorialShoot(state, expectedShootId = null) {
       throw new Error('Persisted hero approval is not bound to the approved hero output');
     }
   }
-  if (!heroApproved && state.shots.slice(1).some((shot) => shot.status !== EDITORIAL_SHOT_STATES.BLOCKED
+  if (parallelFashionShoot && state.bible_approval) {
+    const directFiveFrameStart = hero.status === EDITORIAL_SHOT_STATES.CANCELLED
+      && state.hero_approval === null;
+    // Pre-change smoke shoots already have an immutable passed hero. They may
+    // enter the new five-frame scheduler through its existing exact-hash
+    // approval record; new shoots use the direct path above.
+    const legacyHeroMigration = hero.status === EDITORIAL_SHOT_STATES.APPROVED
+      && state.hero_approval !== null;
+    if (!directFiveFrameStart && !legacyHeroMigration) {
+      throw new Error('Parallel Fashion Shoot must not retain a hidden hero barrier');
+    }
+  } else if (!heroApproved && state.shots.slice(1).some((shot) => shot.status !== EDITORIAL_SHOT_STATES.BLOCKED
     && shot.status !== EDITORIAL_SHOT_STATES.CANCELLED)) {
     throw new Error('Editorial hero barrier was bypassed in persisted state');
   }
   if (state.status === EDITORIAL_SHOOT_STATES.COMPLETED
-    && state.shots.some((shot) => shot.status !== EDITORIAL_SHOT_STATES.APPROVED)) {
-    throw new Error('A completed editorial shoot must have six approved exact-hash shots');
+    && (parallelFashionShoot
+      ? state.shots.slice(1).some((shot) => shot.status !== EDITORIAL_SHOT_STATES.APPROVED)
+      : state.shots.some((shot) => shot.status !== EDITORIAL_SHOT_STATES.APPROVED))) {
+    throw new Error('A completed shoot must have every required exact-hash frame approved');
   }
   if (state.cancellation !== null) {
     assertExactKeys(

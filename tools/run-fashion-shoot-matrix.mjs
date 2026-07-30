@@ -2,13 +2,13 @@
 /**
  * Fashion Shoot matrix runner.
  *
- * It treats the first hero as an internal identity/look check. A production
- * Fashion Shoot therefore delivers five customer frames per style, while this
- * runner can advance every ready `shoot.*` style — not a hand-picked subset.
+ * New Fashion Shoots launch their five customer frames immediately. This
+ * runner exists only to migrate the already-created smoke records which still
+ * have a QA-passed legacy hero awaiting release into that five-frame series.
  *
- * The service owns two post-hero provider jobs per shoot. This runner approves
- * four shoots at a time, so the matrix has an explicit maximum of eight active
- * provider jobs. It never reads, stores or prints a browser cookie. `--execute`
+ * The service owns the global cap of eight active provider jobs. This runner
+ * dispatches every eligible legacy shoot so the service can use freed slots for
+ * any queued unit. It never reads, stores or prints a browser cookie. `--execute`
  * requires the caller to provide a local cookie file and records only hashes,
  * IDs and terminal states in its local state file.
  */
@@ -23,9 +23,9 @@ const TERMINAL = new Set(['COMPLETED', 'CANCELLED', 'NEEDS_RETRY']);
 export const DEFAULT_MATRIX_CONFIG = Object.freeze({
   expected_style_count: 15,
   customer_frames_per_style: 5,
-  per_shoot_post_hero_concurrency: 2,
+  per_shoot_frame_concurrency: 5,
   matrix_max_inflight_generation_requests: 8,
-  matrix_max_parallel_shoots: 4,
+  matrix_dispatch_parallel_shoots: 15,
 });
 
 function sha256(value) {
@@ -110,18 +110,14 @@ export function assertReadySmokeMatrix(rows, config = DEFAULT_MATRIX_CONFIG) {
 
 export function buildMatrixWaves(rows, config = DEFAULT_MATRIX_CONFIG) {
   assertReadySmokeMatrix(rows, config);
-  const perShoot = config.per_shoot_post_hero_concurrency;
   const maximum = config.matrix_max_inflight_generation_requests;
-  if (!Number.isInteger(perShoot) || !Number.isInteger(maximum) || perShoot < 1 || maximum < perShoot) {
+  const dispatch = config.matrix_dispatch_parallel_shoots;
+  if (!Number.isInteger(maximum) || !Number.isInteger(dispatch) || maximum < 1 || dispatch < 1) {
     throw new Error('Invalid Fashion Shoot matrix concurrency configuration');
   }
-  const parallelShoots = Math.floor(maximum / perShoot);
-  if (parallelShoots !== config.matrix_max_parallel_shoots) {
-    throw new Error('matrix_max_parallel_shoots must equal floor(matrix_max_inflight_generation_requests / per_shoot_post_hero_concurrency)');
-  }
   const waves = [];
-  for (let offset = 0; offset < rows.length; offset += parallelShoots) {
-    waves.push(rows.slice(offset, offset + parallelShoots));
+  for (let offset = 0; offset < rows.length; offset += dispatch) {
+    waves.push(rows.slice(offset, offset + dispatch));
   }
   return waves;
 }
@@ -134,12 +130,12 @@ export function matrixApprovalPlan(rows, config = DEFAULT_MATRIX_CONFIG) {
     styles: rows.length,
     customer_frames_per_style: config.customer_frames_per_style,
     total_customer_frames: rows.length * config.customer_frames_per_style,
-    hero_role: 'technical_identity_and_look_check',
+    launch_policy: 'start_all_five_frames_on_create',
     maximum_inflight_generation_requests: config.matrix_max_inflight_generation_requests,
-    per_shoot_post_hero_concurrency: config.per_shoot_post_hero_concurrency,
+    per_shoot_frame_concurrency: config.per_shoot_frame_concurrency,
     waves: waves.map((wave, index) => ({
       wave: index + 1,
-      maximum_inflight_generation_requests: wave.length * config.per_shoot_post_hero_concurrency,
+      maximum_inflight_generation_requests: config.matrix_max_inflight_generation_requests,
       shoots: wave.map((row) => ({
         style: row.style,
         shoot_id: row.shoot_id,
@@ -167,8 +163,8 @@ export function renderSmokeReport(rows, config = DEFAULT_MATRIX_CONFIG) {
     `| Style | Reference-pack hash | Shoot ID | Hero output hash | Hero receipt | Result |\n` +
     `| --- | --- | --- | --- | --- | --- |\n${table}\n\n` +
     `## Next full-matrix execution\n\n` +
-    `All ${plan.styles} styles advance, not a selected subset. Each style has ${plan.customer_frames_per_style} customer frames after the internal hero, for ${plan.total_customer_frames} frames total. The runner opens ${config.matrix_max_parallel_shoots} shoots per wave; the service keeps at most ${config.per_shoot_post_hero_concurrency} jobs per shoot, so the matrix maximum is exactly ${config.matrix_max_inflight_generation_requests} provider jobs. A wave must finish or report its exact failed style before the next one begins.\n\n` +
-    `weakened_checks: none. The smoke records QA-passed heroes; it does not auto-claim that the five customer frames are already generated.\n`;
+    `All ${plan.styles} styles advance, not a selected subset. Each style has ${plan.customer_frames_per_style} customer frames, for ${plan.total_customer_frames} frames total. All eligible legacy smoke records are dispatched together; the service itself never permits more than ${config.matrix_max_inflight_generation_requests} provider jobs across Fashion Shoot. New Fashion Shoots start their five frames on create and do not use this legacy migration runner.\n\n` +
+    `weakened_checks: none. The smoke records QA-passed legacy heroes; it does not auto-claim that the five customer frames are already generated.\n`;
 }
 
 function parseArgs(argv) {

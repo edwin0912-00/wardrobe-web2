@@ -252,11 +252,22 @@ export async function registerEditorialShootRoutes(app, {
         modeId,
         version: modeVersion,
       });
-      const shoot = await editorialShootService.createShoot({
+      let shoot = await editorialShootService.createShoot({
         idempotencyKey: key,
         approvedLookReference,
         shootBible,
       });
+      // A Fashion Shoot is a direct five-frame product. The user has already
+      // approved its selected style by pressing this create action, so the
+      // server starts all five customer frames immediately rather than exposing
+      // a second hidden Bible/hero confirmation step. Legacy `editorial.*`
+      // modes retain their explicit review flow.
+      if (modeId.startsWith('shoot.') && shoot.status === 'BIBLE_PENDING_APPROVAL') {
+        shoot = await editorialShootService.approveBible(shoot.shoot_id, {
+          idempotencyKey: `fashion-series-${shoot.shoot_id.slice(-40)}`,
+          expectedBibleSha256: shoot.bindings.shoot_bible.sha256,
+        });
+      }
       profiles.projectEditorialShoot(
         session.profileId,
         request.params.lookId,

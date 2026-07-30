@@ -37,7 +37,7 @@ async function writeShoot(root, index) {
   }));
 }
 
-test('Fashion Shoot matrix records all 15 heroes and batches future customer frames at eight provider jobs', async (t) => {
+test('Fashion Shoot matrix dispatches all 15 legacy smoke records while service owns the eight-job ceiling', async (t) => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'zeely-fashion-matrix-'));
   t.after(() => rm(root, { recursive: true, force: true }));
   for (let index = 0; index < 15; index += 1) await writeShoot(root, index);
@@ -45,10 +45,11 @@ test('Fashion Shoot matrix records all 15 heroes and batches future customer fra
   assert.equal(rows.length, 15);
   assertReadySmokeMatrix(rows);
   const waves = buildMatrixWaves(rows);
-  assert.deepEqual(waves.map((wave) => wave.length), [4, 4, 4, 3]);
+  assert.deepEqual(waves.map((wave) => wave.length), [15]);
   const plan = matrixApprovalPlan(rows);
   assert.equal(plan.maximum_inflight_generation_requests, 8);
   assert.equal(plan.total_customer_frames, 75);
+  assert.equal(plan.launch_policy, 'start_all_five_frames_on_create');
   assert.match(renderSmokeReport(rows), /15\/15/);
   assert.match(renderSmokeReport(rows), /shoot\.style_07/);
 });
