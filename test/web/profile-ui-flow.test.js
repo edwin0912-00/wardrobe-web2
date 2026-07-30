@@ -134,6 +134,15 @@ test('Add items continuation receives the exact selected avatar and look once', 
   assert.deepEqual(received, [{ avatar, look: newerLook }]);
 });
 
+test('continuing a saved look can carry its text-only outfit brief into a new revision', () => {
+  assert.match(
+    appSource,
+    /beginDraft\(\{\s*avatar: selection\.avatar,\s*look: selection\.look,\s*outfitText: activeRun\?\.requested_outfit_text \?\? '',/s,
+  );
+  assert.match(appSource, /form\.elements\.outfit_text\.value = carriedOutfitText/);
+  assert.match(indexSource, /Без фото фіксуємо лише те, що ти написав/);
+});
+
 test('saved-avatar selection executes only the open-look effect, never a draft action', async () => {
   const { avatar, profile } = profileFixture();
   const counters = { start: 0, clear: 0, reset: 0 };

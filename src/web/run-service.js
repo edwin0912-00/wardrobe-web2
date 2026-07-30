@@ -333,6 +333,7 @@ function publicRun(state) {
     conflicts: sanitizeOutbound(state.conflicts ?? []),
     qa: sanitizeOutbound(state.qa ?? {}),
     outputs: sanitizeOutbound(state.outputs ?? {}),
+    requested_outfit_text: sanitizeOutboundString(state.inputs?.outfit_text ?? ''),
     execution_route: {
       ...(Array.isArray(state.image_model_route)
         && JSON.stringify(state.image_model_route) !== JSON.stringify(IMAGE_MODEL_ROUTE)

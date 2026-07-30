@@ -290,6 +290,7 @@ test('working core supports text-only outfit and rejects invalid uploads before 
   const service = new RunService({ rootDirectory: root, ...dependencies() });
   await service.initialize();
   const created = await service.createRun({ person: await upload(), outfitText: 'cobalt blazer and white top', generateScene: false });
+  assert.equal(created.requested_outfit_text, 'cobalt blazer and white top');
   assert.equal(created.execution_route.garment_images_supplied, false);
   assert.equal(created.execution_route.garment_source_image_count, 0);
   await service.running.get(created.run_id);

@@ -45,7 +45,7 @@ test('profile exposes an explicit Back control and clear next actions', () => {
   );
   assert.match(
     indexHtml,
-    /<button id="add-look"[^>]*>Новий образ з цим аватаром<\/button>/,
+    /<button id="add-look"[^>]*>Уточнити образ<\/button>/,
   );
   assert.doesNotMatch(indexHtml, />Додати речі<\/button>/);
   assert.match(indexHtml, /id="profile-look-add-explainer"[\s\S]*?окремий образ[\s\S]*?не зміниться/);

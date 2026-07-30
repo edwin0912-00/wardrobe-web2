@@ -51,3 +51,13 @@ Safety: export-only recovery remains ineligible when any evaluator gate failed, 
 Evidence: focused privacy regressions 2/2 PASS; the new regression proves two attempts remain two, generator calls remain two and evaluator calls remain two while the corrected manifest exports successfully. Full scene-service suite remains affected by the previously recorded fixture/policy drift outside this atom (26/49 PASS); no failing assertion was introduced or suppressed by this focused repair.
 weakened_checks: none — this changes observability and restart point, not the privacy rules.
 Follow-up diagnosis: the live report named `NO_ABSOLUTE_USER_PATHS`, but no persisted scene/attempt/prompt string contained an absolute path. The false positive was created by applying path regexes to the entire canonical one-line JSON serialization instead of to semantic string values. Final-manifest privacy now walks each JSON string independently and records an RFC 6901 pointer when a real value fails. A byte-for-byte copy of live `scene_99d60…` completed export under this scanner with attempts/candidate/QA unchanged; no locator or receipt field was rewritten.
+
+---
+
+Task ID: BLOCK-1-TEXT-ONLY-OUTFIT-INTERPRETATION
+Decision: a text-only outfit request is a creative brief, not a photo-exact product dossier. It locks only the facts the user explicitly wrote. Details left open — for example exact jacket type, colour, hardware, material finish, construction, fit or logo — are an allowed AI interpretation, not a reason to demand a photo.
+Implementation: outfit QA receives this authority in its prompt and has one narrow fallback for the evaluator's explicit `missing unspecified product facts` refusal. It cannot convert a positive contradiction of stated text, identity failure, anatomy/image defect, old-clothing residue or a photo-reference mismatch into PASS. Image-backed references remain strict. A successful result exposes `Уточнити образ`: it reopens a new draft with the same avatar and previous text, where the user can refine the text or add a reference photo. The prior saved look is never overwritten.
+Code: READY_FOR_REVIEW on `beta-block-1-text-outfit-interpretation-20260730`.
+Beta: NOT_DEPLOYED. No provider generation or existing look mutation was performed.
+Evidence: Codex VLM evaluator focused suite PASS; profile navigation/continuation tests cover text carry-forward; JavaScript syntax and diff checks pending final run.
+weakened_checks: none for image-backed outfits or explicit textual requirements; this is an evidence-source contract, not a global QA relaxation.

@@ -896,8 +896,9 @@ function appendProfilePager(container, { label, page, pageCount, onChange }) {
   container.append(pager);
 }
 
-async function beginDraft({ avatar = null, look = null } = {}) {
+async function beginDraft({ avatar = null, look = null, outfitText = '' } = {}) {
   const selection = avatar ? resolveAddItemsSelection({ avatar, look }) : null;
+  const carriedOutfitText = typeof outfitText === 'string' ? outfitText.trim() : '';
   form.inert = true;
   form.setAttribute('aria-busy', 'true');
   try {
@@ -910,6 +911,7 @@ async function beginDraft({ avatar = null, look = null } = {}) {
     currentResultLookId = null;
     renderedProgressFloor = 0;
     form.reset();
+    form.elements.outfit_text.value = carriedOutfitText;
     uploads.reset();
     renderUploads();
     localStorage.removeItem(ACTIVE_RUN_KEY);
@@ -935,10 +937,10 @@ async function beginDraft({ avatar = null, look = null } = {}) {
 
     if (selection) {
       renderUploads();
-      await saveDraft({ ...uploads, outfitText: '', generateScene: false });
+      await saveDraft({ ...uploads, outfitText: carriedOutfitText, generateScene: false });
       if (didClearServer) {
         await updateServerDraftMetadata({
-          outfitText: '',
+          outfitText: carriedOutfitText,
           generateScene: false,
           sourceAvatarId: selection.avatarId,
           sourceLookId: selection.lookId,
@@ -949,7 +951,9 @@ async function beginDraft({ avatar = null, look = null } = {}) {
         };
         serverDraftLoaded = true;
       }
-      draftStatus.textContent = 'Аватар зафіксовано · додай речі для окремого образу';
+      draftStatus.textContent = carriedOutfitText
+        ? 'Попередній опис перенесено · уточни його або додай фото речі'
+        : 'Аватар зафіксовано · додай речі для окремого образу';
       draftStatus.className = 'draft-status saved';
     } else {
       draftStatus.textContent = 'Нова порожня чернетка аватара';
@@ -1993,7 +1997,11 @@ document.querySelector('#add-look').addEventListener('click', async () => {
       currentAvatarId: currentResultAvatarId,
       currentLookId: currentResultLookId,
     });
-    await beginDraft({ avatar: selection.avatar, look: selection.look });
+    await beginDraft({
+      avatar: selection.avatar,
+      look: selection.look,
+      outfitText: activeRun?.requested_outfit_text ?? '',
+    });
   } catch (error) { showProfileError(error); }
 });
 document.querySelector('#create-scene').addEventListener('click', async () => {

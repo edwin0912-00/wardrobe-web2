@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="/upload.css?v=20260729-1">
   <link rel="stylesheet" href="/progress.css?v=20260724-1">
   <link rel="stylesheet" href="/conflict.css?v=20260722-3">
-  <link rel="stylesheet" href="/experience.css?v=20260723-6">
+  <link rel="stylesheet" href="/experience.css?v=20260730-7">
   <link rel="stylesheet" href="/result.css?v=20260730-6">
   <link rel="stylesheet" href="/scene.css?v=20260730-5">
   <link rel="stylesheet" href="/scene-cta.css?v=20260727-1">
@@ -61,7 +61,8 @@
 
         <div class="divider"><span id="look-divider-label">НОВИЙ ОБРАЗ</span></div>
         <label class="field-label" for="outfit-text">Опис образу</label>
-        <textarea id="outfit-text" name="outfit_text" rows="3" placeholder="Наприклад: мінімалістичний чорний образ із м’якою посадкою"></textarea>
+        <textarea id="outfit-text" name="outfit_text" rows="3" aria-describedby="outfit-text-help" placeholder="Наприклад: охуєнна шкіряна куртка з характером"></textarea>
+        <p id="outfit-text-help" class="field-help">Без фото фіксуємо лише те, що ти написав; інші деталі AI обирає сам. Пізніше можна уточнити текст або додати референс.</p>
         <label class="upload-card wardrobe-card">
           <input id="garment-images" name="garment_images" type="file" accept="image/png,image/jpeg,image/webp,image/avif,image/heic,image/heif,.heic,.heif" multiple>
           <span class="upload-icon">＋</span><strong>Фото речей</strong><small>До 5 довільних фото — система сама визначить категорії</small><span class="file-name" data-for="garment-images">Додати гардероб</span>
@@ -140,7 +141,7 @@
                 </article>
                 <nav id="result-tabs" class="result-tabs" aria-label="Варіанти результату"></nav>
                 <div class="result-actions">
-                  <button id="add-look" class="primary-result-action" type="button">Новий образ з цим аватаром</button>
+                  <button id="add-look" class="primary-result-action" type="button">Уточнити образ</button>
                   <button id="create-scene" class="secondary-result-action" type="button" disabled>Створити сцену</button>
                   <button id="new-avatar" class="secondary-result-action" type="button">Створити новий аватар</button>
                   <button id="open-profile" class="secondary-result-action" type="button">Усі мої образи</button>
@@ -416,6 +417,6 @@
   </aside>
   <script src="/boot-guard.js?v=20260722-3"></script>
   <script src="/vendor/heic2any.min.js?v=0.0.4"></script>
-  <script type="module" src="/app.js?v=20260730-8"></script>
+  <script type="module" src="/app.js?v=20260730-9"></script>
 </body>
 </html>
