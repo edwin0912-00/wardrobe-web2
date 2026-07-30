@@ -1060,6 +1060,30 @@ test('a framing rule reaches the persisted receipts and the live verdict or neit
     () => validatePersistedSceneState(historicHeadroomPolicy, historicHeadroomPolicy.scene_id),
   );
 
+  // Create Universe shipped under `shoot.*` after this owner still only
+  // recognised `editorial.*`. Those receipts therefore persisted the standard
+  // [70,80]/8/2 lock. A deploy that repairs namespace routing must preserve
+  // their immutable raw bbox/measurements instead of quarantining the scene.
+  const historicShootNamespacePolicy = structuredClone(baseState);
+  historicShootNamespacePolicy.bindings.preset.preset_id
+    = 'shoot.terracotta_hardlight.clean_identity_hero';
+  assert.doesNotThrow(
+    () => validatePersistedSceneState(
+      historicShootNamespacePolicy,
+      historicShootNamespacePolicy.scene_id,
+    ),
+  );
+
+  const forgedHistoricShootGeometry = structuredClone(historicShootNamespacePolicy);
+  forgedHistoricShootGeometry.attempts.at(-1).qa.framing_evidence.subject_bbox_xywh_px[1] += 1;
+  assert.throws(
+    () => validatePersistedSceneState(
+      forgedHistoricShootGeometry,
+      forgedHistoricShootGeometry.scene_id,
+    ),
+    /framing evidence does not match its measured bounding box/,
+  );
+
   // Raw geometry and hard visibility are still forensic evidence and remain
   // fail-closed even when a stale policy-derived flag is tolerated.
   const forgedRawGeometry = structuredClone(historicHeadroomPolicy);

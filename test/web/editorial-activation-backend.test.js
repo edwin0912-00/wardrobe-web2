@@ -247,20 +247,43 @@ test('editorial item QA scope follows the intentional crop without weakening ful
   ];
   assert.deepEqual(sceneQaItemScope(items, null), items);
   assert.deepEqual(
-    sceneQaItemScope(items, { editorial: { shot_slot: 'sculptural_three_quarter' } }),
+    sceneQaItemScope(items, {
+      editorial: { shot_slot: 'sculptural_three_quarter', item_scope: 'EXCLUDE_FOOTWEAR' },
+    }),
     items.slice(0, 2),
   );
   assert.deepEqual(
-    sceneQaItemScope(items, { editorial: { shot_slot: 'interference_frame' } }),
+    sceneQaItemScope(items, {
+      editorial: { shot_slot: 'interference_frame', item_scope: 'EXCLUDE_FOOTWEAR' },
+    }),
     items.slice(0, 2),
   );
   assert.deepEqual(
-    sceneQaItemScope(items, { editorial: { shot_slot: 'material_or_accessory_detail' } }),
+    sceneQaItemScope(items, {
+      editorial: { shot_slot: 'material_or_accessory_detail', item_scope: 'FIRST_ORDERED_ITEM' },
+    }),
     items.slice(0, 1),
   );
   assert.deepEqual(
-    sceneQaItemScope(items, { editorial: { shot_slot: 'wide_campaign_coda' } }),
+    sceneQaItemScope(items, {
+      editorial: { shot_slot: 'wide_campaign_coda', item_scope: 'ALL' },
+    }),
     items,
+  );
+  // Old clean-hero packs remain readable as ALL; newly compiled ones explicitly
+  // exclude footwear. The persisted contract, not a re-derived slot table,
+  // decides which evidence an immutable attempt was judged against.
+  assert.deepEqual(
+    sceneQaItemScope(items, {
+      editorial: { shot_slot: 'clean_identity_hero', item_scope: 'ALL' },
+    }),
+    items,
+  );
+  assert.deepEqual(
+    sceneQaItemScope(items, {
+      editorial: { shot_slot: 'clean_identity_hero', item_scope: 'EXCLUDE_FOOTWEAR' },
+    }),
+    items.slice(0, 2),
   );
 });
 

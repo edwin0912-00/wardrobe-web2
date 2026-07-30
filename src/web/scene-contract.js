@@ -454,10 +454,10 @@ export function normalizeDelivery(delivery = DEFAULT_SCENE_DELIVERY) {
 
 export function sceneQaItemScope(items, preset = null) {
   if (!Array.isArray(items)) throw new Error('Scene QA item scope requires an item array');
-  const slot = preset?.editorial?.shot_slot ?? null;
-  if (!slot) return items;
-  if (slot === 'material_or_accessory_detail') return items.slice(0, 1);
-  if (['clean_identity_hero', 'sculptural_three_quarter', 'interference_frame'].includes(slot)) {
+  const scope = preset?.editorial?.item_scope ?? null;
+  if (!scope) return items;
+  if (scope === 'FIRST_ORDERED_ITEM') return items.slice(0, 1);
+  if (scope === 'EXCLUDE_FOOTWEAR') {
     return items.filter((item) => String(item.category).toLowerCase() !== 'footwear');
   }
   return items;
@@ -867,7 +867,9 @@ function validateEditorialPresetSnapshot(preset, reference) {
       .includes(preset.editorial.shot_slot)
     ? 'EXCLUDE_FOOTWEAR'
     : 'ALL';
-  if (preset.editorial.item_scope !== expectedItemScope) {
+  const legacyCleanHeroScope = preset.editorial.shot_slot === 'clean_identity_hero'
+    && preset.editorial.item_scope === 'ALL';
+  if (preset.editorial.item_scope !== expectedItemScope && !legacyCleanHeroScope) {
     throw new Error('Resolved editorial SceneSpec item scope does not match its shot slot');
   }
   const styleContract = preset.editorial.style_contract;
@@ -1725,6 +1727,14 @@ function validatePersistedFramingEvidence(evidence, {
   // raw canvas, bbox, measured percentages and visibility byte-for-byte, then
   // derive these flags from the current policy on read.
   const policyDerivedKeys = new Set([
+    // These four values state which active framing policy judged the immutable
+    // raw geometry. Create Universe originally fell through to the standard
+    // background lock, so honest pre-fix `shoot.*` receipts carry [70,80]/8/2
+    // even though the same bbox must now resolve through its editorial slot.
+    // They are not observations and may drift across a policy repair.
+    'expected_subject_height_percent',
+    'minimum_clear_space_above_hair_percent',
+    'minimum_clear_space_below_footwear_percent',
     'subject_height_delivery_tolerance_applied',
     'clear_space_above_hair_delivery_tolerance_applied',
   ]);
