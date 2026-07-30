@@ -370,6 +370,80 @@ test('EditorialSceneExecutor delegates to one deterministic SceneService executi
   }
 });
 
+test('EditorialSceneExecutor reopens a completed child scene for a resumed parent attempt', async () => {
+  const idempotencyKey = 'editorial-executor-resumed-completed-child';
+  const sceneId = editorialSceneIdForIdempotencyKey(idempotencyKey);
+  let createCalls = 0;
+  let presetCalls = 0;
+  const sceneService = {
+    async createScene() {
+      createCalls += 1;
+      throw new Error('A completed child scene must not be submitted again');
+    },
+    async getScene() {
+      return { scene_id: sceneId, status: 'COMPLETED' };
+    },
+    async waitForIdle() {
+      return { scene_id: sceneId, status: 'COMPLETED' };
+    },
+    async verifiedExecutionResult() {
+      return {
+        decision: 'PASS',
+        candidate_sha256: '3'.repeat(64),
+        gates: gates('PASS'),
+        reviewer: { id: 'scene-judge', version: 'scene-judge-v1' },
+        completed_at: '2026-07-30T18:00:00.000Z',
+        output: {
+          resource_id: sceneId,
+          sha256: '3'.repeat(64),
+          receipt_sha256: '4'.repeat(64),
+          width: 1536,
+          height: 2048,
+          media_type: 'image/png',
+        },
+      };
+    },
+    async outputFile() {
+      return null;
+    },
+  };
+  const executor = new EditorialSceneExecutor({
+    sceneService,
+    presetResolver: {
+      async editorialShotPresetReference() {
+        presetCalls += 1;
+        throw new Error('Current preset must not replace persisted execution authority');
+      },
+    },
+  });
+  const result = await executor.executeShot({
+    idempotency_key: idempotencyKey,
+    reuse_existing_execution: true,
+    approved_look: {
+      look_id: 'look_fixture',
+      image_sha256: '8'.repeat(64),
+      receipt_sha256: '9'.repeat(64),
+    },
+    shoot_bible: {
+      mode_id: 'shoot.terracotta_hardlight',
+      mode_version: '1.0.0',
+      sha256: 'a'.repeat(64),
+    },
+    shot_spec: {
+      slot: 'clean_identity_hero',
+      camera: { lens_mm: 50, framing: 'three_quarter' },
+    },
+    shot_spec_sha256: 'b'.repeat(64),
+    signal: new AbortController().signal,
+  });
+  assert.equal(createCalls, 0);
+  assert.equal(presetCalls, 0);
+  assert.equal(result.execution_id, sceneId);
+  assert.equal(result.decision, 'PASS');
+  assert.equal(result.output.width, 1536);
+  assert.equal(result.output.height, 2048);
+});
+
 test('public editorial DTO exposes output URLs but never clones private orchestration fields', () => {
   const shoot = rawShoot({ status: 'HERO_PENDING_APPROVAL' });
   shoot.shots[0] = {

@@ -1125,6 +1125,7 @@ export class EditorialShootService {
   async #runShot(shootId, slot) {
     let operationId;
     let claimed = false;
+    let reusingExistingExecution = false;
     const runningState = await this.#mutate(shootId, (current) => {
       const index = EDITORIAL_SHOT_SLOTS.indexOf(slot);
       const shot = current.shots[index];
@@ -1137,6 +1138,7 @@ export class EditorialShootService {
       const resumedAttempt = shot.attempts.at(-1)?.status === 'RUNNING'
         ? shot.attempts.at(-1)
         : null;
+      reusingExistingExecution = resumedAttempt !== null;
       const number = resumedAttempt?.number ?? shot.attempts.length + 1;
       operationId = resumedAttempt?.operation_id
         ?? `editorial_${shootId.slice(-24)}_${slot}_${number}`;
@@ -1229,6 +1231,7 @@ export class EditorialShootService {
         attempt: attempt.number,
         operation_id: operationId,
         idempotency_key: attempt.execution_idempotency_key,
+        reuse_existing_execution: reusingExistingExecution,
         approved_look: clone(runningState.bindings.approved_look),
         shoot_bible: {
           bible_id: bible.bible_id,

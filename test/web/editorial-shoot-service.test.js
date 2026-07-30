@@ -813,6 +813,7 @@ test('manual retry reuses the exact child scene after a post-generation executor
   assert.equal(invocations[4].attempt, invocations[3].attempt);
   assert.equal(invocations[4].operation_id, invocations[3].operation_id);
   assert.equal(invocations[4].idempotency_key, invocations[3].idempotency_key);
+  assert.equal(invocations[4].reuse_existing_execution, true);
   assert.equal(recovered.shots[0].output.width, 1536);
   assert.equal(recovered.shots[0].output.height, 2048);
 });
