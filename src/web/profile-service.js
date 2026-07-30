@@ -691,13 +691,15 @@ export class ProfileService {
       `).get(runId);
       if (current) {
         const sameProfile = constantTimeTextEqual(current.profile_id, profileId);
-        const sameSource = (current.source_avatar_id ?? null) === sourceAvatarId
-          && (current.source_look_id ?? null) === sourceLookId;
-        if (!sameProfile || !sameSource) throw new ProfileError(409, 'RUN_UNAVAILABLE', 'Run is unavailable');
+        if (!sameProfile) throw new ProfileError(409, 'RUN_UNAVAILABLE', 'Run is unavailable');
+        // A run's lineage is fixed on its first claim. After a successful save
+        // the browser deliberately clears local draft lineage; a refresh must
+        // therefore replay the original claim, not misreport the already saved
+        // profile as unavailable. Never rewrite the stored lineage here.
         return {
           run_id: runId,
-          source_avatar_id: sourceAvatarId,
-          source_look_id: sourceLookId,
+          source_avatar_id: current.source_avatar_id ?? null,
+          source_look_id: current.source_look_id ?? null,
           replayed: true,
         };
       }

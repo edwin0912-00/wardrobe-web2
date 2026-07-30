@@ -847,7 +847,7 @@ async function ensureCompletedRunSaved(run) {
     return currentProfile;
   })().catch((error) => {
     profileSavePromises.delete(run.run_id);
-    saveState.textContent = 'Профіль не збережено · повторити';
+    saveState.textContent = 'Не вдалося підтвердити збереження · повторити';
     saveState.classList.remove('saving');
     saveState.classList.add('failed');
     saveState.onclick = () => ensureCompletedRunSaved(run).catch(() => {});
