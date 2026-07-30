@@ -153,6 +153,20 @@
   var IOS_MEDIA = /iP(ad|hone|od)/.test(navigator.userAgent) ||
     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
+  /* Start room one on iOS while the loader is still showing the textile/audio wave.
+     Previously its native src was mounted only after that wave completed, so a quick
+     first swipe could reach the handover before this 18.7 MB film had even started.
+     The engine then correctly held the textile safety frame, but to the viewer it looked
+     like a frozen site.  Giving only the first room an early Range-backed src overlaps
+     its download with the opening and leaves later rooms on the existing lazy path. */
+  if (IOS_MEDIA) {
+    var firstRoomVideo = document.querySelector('video[data-leg="0"]');
+    if (firstRoomVideo && !firstRoomVideo.src) {
+      firstRoomVideo.src = firstRoomVideo.getAttribute('data-src');
+      firstRoomVideo.load();
+    }
+  }
+
   /* Safari can expose metadata for a paused native MP4 yet keep its compositor plane
      dormant.  Priming only the textile intro fixed the opening frame but left the first
      room vulnerable at the handover: the scroll clock advanced while the room stayed on
