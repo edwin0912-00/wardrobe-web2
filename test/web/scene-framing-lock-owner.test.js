@@ -237,7 +237,7 @@ test('an editorial receipt states the headroom waiver instead of leaving it to b
 
   // A standard scene has no waiver to state: headroom there is the product.
   const standard = assessSceneFraming({
-    subject_bbox_xywh_px: [202, 64, 620, 973],
+    subject_bbox_xywh_px: [202, 38, 620, 973],
     full_head_visible: true,
     full_footwear_visible: true,
   }, { preset: { preset_id: 'std.city.golden_hour_gloss' }, ...DELIVERY });
@@ -310,7 +310,7 @@ test('standard delivery accepts a fully visible 86% subject as an explicit compo
   assert.ok(cropped.defects.includes('FULL_HEAD_NOT_VISIBLE'));
 });
 
-test('standard delivery accepts 7.5–8% headroom only with a fully visible head', () => {
+test('standard delivery accepts the four-point 4–8% headroom tolerance only with a fully visible head', () => {
   const accepted = assessSceneFraming({
     // Fresh re-QA of scene_99d60… attempt 003 measured 155/2048 = 7.5684%.
     subject_bbox_xywh_px: [420, 155, 696, 1570],
@@ -327,7 +327,8 @@ test('standard delivery accepts 7.5–8% headroom only with a fully visible head
   assert.deepEqual(accepted.defects, []);
 
   const tooShort = assessSceneFraming({
-    subject_bbox_xywh_px: [420, 153, 696, 1570],
+    // 81/2048 = 3.9551%, below the four-point delivery floor.
+    subject_bbox_xywh_px: [420, 81, 696, 1570],
     full_head_visible: true,
     full_footwear_visible: true,
   }, {

@@ -1656,7 +1656,7 @@ function selectDeterministicFramingRepair(state) {
     ))[0] ?? null;
 }
 
-function candidateEligibleForFramingPolicyRecheck(state) {
+function candidateEligibleForDeliveryPolicyRecheck(state) {
   if (state.status !== SCENE_STATES.FAILED
     || state.error?.code !== 'SCENE_QA_EXHAUSTED') return false;
   const attempt = state.attempts.at(-1);
@@ -1664,14 +1664,14 @@ function candidateEligibleForFramingPolicyRecheck(state) {
     return false;
   }
   const failed = attempt.qa.gates.filter((gate) => gate.decision === 'FAIL');
-  if (failed.length !== 1 || failed[0].id !== 'FRAMING_AND_ANATOMY') return false;
-  const defects = failed[0].defects ?? [];
-  // The persisted defect names describe the policy that rejected the old
-  // candidate. Do not hardcode one historic rule here: eligibility comes from
-  // the current framing owner below. We still require a real old framing defect,
-  // exactly one failed gate and a complete current re-assessment with zero
-  // defects; every non-framing failure remains fail-closed.
-  if (defects.length < 1) return false;
+  const policyRecheckGateIds = new Set(['ITEM_FIDELITY', 'FRAMING_AND_ANATOMY']);
+  if (failed.length < 1
+    || failed.some((gate) => !policyRecheckGateIds.has(gate.id))
+    || failed.some((gate) => !Array.isArray(gate.defects) || gate.defects.length < 1)) return false;
+  // The persisted names describe the policy that rejected the old candidate.
+  // Eligibility comes from the current deterministic framing owner plus a fresh
+  // item evaluator running the current presentation-scene policy. Identity,
+  // anatomy, scene, leakage and lighting failures remain fail-closed.
   try {
     return assessSceneFraming(attempt.qa.framing_evidence, {
       preset: { preset_id: state.bindings.preset.preset_id },
@@ -4674,7 +4674,7 @@ export class SceneService {
       );
       const framingPolicyRecheck = !rejectionRepair
         && !qaOnlyRetry
-        && candidateEligibleForFramingPolicyRecheck(current);
+        && candidateEligibleForDeliveryPolicyRecheck(current);
       const deterministicSource = !rejectionRepair
         && !qaOnlyRetry
         && !framingPolicyRecheck

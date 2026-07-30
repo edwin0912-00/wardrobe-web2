@@ -366,7 +366,7 @@
                     {
                       "properties": {
                         "clear_space_above_hair_percent": {
-                          "minimum": 7.5,
+                          "minimum": 4,
                           "exclusiveMaximum": 8
                         },
                         "full_head_visible": {

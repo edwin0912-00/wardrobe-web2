@@ -296,10 +296,11 @@ const STANDARD_FRAMING_LOCK = Object.freeze({
   // target: providers are still instructed to compose at 70–80%.
   deliverySubjectMaximum: 88,
   above: 8,
-  // Keep 8% as the provider target, but accept a fully visible standard
-  // delivery from 7.5%. On a 2048px image this is at most a ten-pixel
-  // measurement tolerance; it never permits a cropped head.
-  deliveryAboveMinimum: 7.5,
+  // Keep 8% as the provider target. Product policy permits three percentage
+  // points of normal visual variance plus one final warning point, so an
+  // otherwise valid standard delivery may ship from 4%. This never permits a
+  // cropped head: direct full-head visibility remains a separate hard lock.
+  deliveryAboveMinimum: 4,
   below: 2,
   head: true,
   footwear: true,

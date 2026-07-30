@@ -1105,6 +1105,7 @@ export function evaluatorPrompt(
     'Any substituted emblem, missing monogram, rewritten letter or number, altered stripe/print, changed bag hardware, changed shoe construction, missing item, or invented accessory is ITEM_FIDELITY FAIL.',
     ...(standardBackground ? [
       'This is a full-body standard-background photograph, not an ecommerce detail frame. Compare all visible approved item facts strictly, but do not fail for a detail that is naturally covered by another approved garment, outside the visible surface, or too small at the required full-body scale. The immutable approved master remains the authority for unobservable details.',
+      'Apply presentation-scene tolerance, not packshot tolerance: a minor omission or simplification of small hardware, stitching, fasteners or edge finishing is advisory when item count/type, color family, material family, silhouette, major construction topology, visible pattern and any legible logo/text still match. Record it in evidence but keep ITEM_FIDELITY PASS.',
       'A visible contradiction, visible substitution, missing approved item, or unauthorized added item is still ITEM_FIDELITY FAIL. Never call an unobservable detail a visible contradiction.',
     ] : [
       'Never infer that two marks match merely because they resemble the same luxury style. If a required small logo, pattern, text, or construction detail is not visibly verifiable in the candidate, return FAIL with ITEM_DETAIL_NOT_VERIFIABLE.',
@@ -1261,6 +1262,7 @@ export function itemFidelityPrompt(item, { standardBackground = false } = {}) {
     ...(standardBackground ? [
       'This is a full-body standard-background photograph, not a product-detail frame. Judge only the facts that are actually visible at this shot scale.',
       'When an approved detail is naturally covered by another approved garment, outside the visible surface, or too small at full-body scale, do not call it missing and do not return ITEM_DETAIL_NOT_VERIFIABLE. The immutable approved master remains the authority for that unobservable detail. Record only the visible category, silhouette, color, material, and any legible distinguishing feature.',
+      'Presentation-scene tolerance: minor simplification or omission of small hardware, stitching, fasteners, closures or edge finishing is advisory, not REVISE, when item count/type, color family, material family, silhouette, major construction topology, visible pattern and any legible logo/text match. Mention the minor deviation in evidence and return PASS with defects=[].',
       'Return REVISE only for a visible contradiction or substitution: a changed visible logo/text/pattern, different visible silhouette/color/material/construction, a missing approved item, or an unauthorized added item. A merely unobservable detail is not a contradiction.',
     ] : [
       'If the generated product is too small or blurred to verify a required exact detail, return REVISE with ITEM_DETAIL_NOT_VERIFIABLE.',

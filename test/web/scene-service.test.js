@@ -2355,18 +2355,18 @@ test('retry rechecks the preserved candidate when only the old standard scale ce
   assert.equal(persisted.attempts.at(-1).status, 'QA_PASS');
 });
 
-test('retry rechecks the preserved candidate when only the old standard headroom floor rejected it', async (t) => {
+test('retry rechecks a preserved candidate rejected only by the old standard delivery policy', async (t) => {
   let evaluations = 0;
   const current = await fixture(t, {
     maxManualRetries: 0,
     evaluator: {
       async evaluateScene() {
         evaluations += 1;
-        const result = passEvaluation();
+        const result = passEvaluation(evaluations <= 3 ? { ITEM_FIDELITY: 'FAIL' } : {});
         if (evaluations <= 3) {
           result.framing_evidence = {
-            // 153/2048 = 7.4707%, still below the current 7.5% delivery floor.
-            subject_bbox_xywh_px: [420, 153, 696, 1570],
+            // 81/2048 = 3.9551%, still below the current 4% delivery floor.
+            subject_bbox_xywh_px: [420, 81, 696, 1570],
             full_head_visible: true,
             full_footwear_visible: true,
           };
@@ -2400,11 +2400,15 @@ test('retry rechecks the preserved candidate when only the old standard headroom
   }).evidence;
   attempt.qa.framing_evidence = acceptedNow;
   state.qa.framing_evidence = acceptedNow;
-  // Keep the old persisted gate verdict/defect: the policy recheck must decide
-  // from the current lock, not by recognizing one hardcoded historic code.
+  // Keep both old policy failures: current delivery-policy eligibility must
+  // permit a fresh QA-only pass without recognizing hardcoded historic codes.
   assert.deepEqual(
     attempt.qa.gates.find((gate) => gate.id === 'FRAMING_AND_ANATOMY').defects,
     ['INSUFFICIENT_CLEAR_SPACE_ABOVE_HAIR'],
+  );
+  assert.deepEqual(
+    attempt.qa.gates.find((gate) => gate.id === 'ITEM_FIDELITY').defects,
+    ['ITEM_FIDELITY_DEFECT'],
   );
   await Promise.all([
     writeFile(filename, `${JSON.stringify(state, null, 2)}\n`),

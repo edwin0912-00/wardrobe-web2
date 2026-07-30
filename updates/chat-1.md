@@ -30,3 +30,13 @@ Repair evidence: legacy+tamper regression 1/1 PASS; framing/schema 18/18 PASS; s
 
 Second acceptance repair: the retry selector was still hardcoded to the historic `SUBJECT_HEIGHT_OUTSIDE_PRESET_RANGE` defect. It now permits QA-only reuse for any old framing-only refusal only when the current canonical framing assessment returns zero defects. Non-framing failures, multiple failed gates, malformed evidence and still-invalid framing remain fail-closed.
 Evidence: old scale + old headroom preserved-candidate retries 2/2 PASS; persisted compatibility/tamper 1/1 PASS. The headroom regression keeps exactly three attempts, cycle 1, manual retries 0 and three generator calls, then completes after exactly one new evaluator call.
+
+---
+
+Task ID: BLOCK-1-STANDARD-SCENE-PRESENTATION-TOLERANCE
+Operator decision: visual QA for standard fashion scenes was calibrated too close to ecommerce packshot QA. Keep strict targets, allow three percentage points of normal variance plus one final warning point.
+Implementation: 8% headroom remains the provider target; intact standard deliveries pass from 4% when full-head visibility is true. Standard-background item QA treats minor simplification of small hardware, stitching, fasteners, closures and edge finishing as advisory when count/type, color/material family, silhouette, major construction, visible pattern and legible logo/text remain correct.
+Hard blocks retained: wrong/missing item, category/count, identity, gross anatomy, major silhouette/material/color/construction, visible logo/text/pattern substitution, unauthorized additions, leakage and scene mismatch.
+Retry: candidates refused only by old ITEM_FIDELITY/FRAMING delivery policy can receive one QA-only policy recheck; every other failed gate remains ineligible and no generation is opened.
+Evidence: presentation policy + preserved retry focused 3/3 PASS; framing/schema 18/18 PASS; schema generator 3/3; syntax and diff checks PASS.
+weakened_checks: OPERATOR_APPROVED_STANDARD_PRESENTATION_TOLERANCE — numeric delivery warning band is 4 percentage points; minor full-body hardware/finishing deviations are advisory. Hard identity/product/category/logo/text/anatomy gates remain blocking.

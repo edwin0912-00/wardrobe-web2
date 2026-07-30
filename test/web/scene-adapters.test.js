@@ -1166,11 +1166,13 @@ test('standard-background item QA keeps unobservable master details locked witho
   });
   assert.match(mainCalls[0].args[1], /full-body standard-background photograph/);
   assert.match(mainCalls[0].args[1], /unobservable details/);
+  assert.match(mainCalls[0].args[1], /minor omission or simplification of small hardware/);
   assert.match(mainCalls[0].args[1], /independently judge \(1\) observed key direction/);
   assert.match(mainCalls[0].args[1], /mild extra frontal fill is advisory/);
   assert.match(mainCalls[0].args[1], /frontal studio key visibly replaces/);
   assert.match(mainCalls[0].args[1], /contact shadow alone cannot compensate/i);
   assert.ok(itemCalls.every((call) => /full-body standard-background photograph/.test(call.args[1])));
+  assert.ok(itemCalls.every((call) => /Presentation-scene tolerance/.test(call.args[1])));
   assert.ok(itemCalls.every((call) => /visible contradiction or substitution/.test(call.args[1])));
   assert.equal(result.gates.find((gate) => gate.id === 'ITEM_FIDELITY').decision, 'FAIL');
   assert.equal(result.item_fidelity_evidence.find((item) => item.item_id === 'set-2').verdict, 'REVISE');
