@@ -1713,19 +1713,25 @@ function validatePersistedFramingEvidence(evidence, {
   // its absence is the single difference tolerated here — everything else still has to
   // match byte for byte. Demanding it would instead have quarantined all nine persisted
   // scenes on the next read, three of them delivered editorial heroes.
+  // These two flags are conclusions of the active delivery policy, not raw
+  // observations. A policy release can legitimately turn a persisted false
+  // into true for the exact same immutable bbox (or the reverse). Compare the
+  // raw canvas, bbox, measured percentages and visibility byte-for-byte, then
+  // derive these flags from the current policy on read.
+  const policyDerivedKeys = new Set([
+    'subject_height_delivery_tolerance_applied',
+    'clear_space_above_hair_delivery_tolerance_applied',
+  ]);
   const derivedKeysAbsentFromLegacyEvidence = new Set([
     ...(evidence?.clear_space_above_hair_waived_by_full_head === undefined
       ? ['clear_space_above_hair_waived_by_full_head'] : []),
-    ...(evidence?.subject_height_delivery_tolerance_applied === undefined
-      ? ['subject_height_delivery_tolerance_applied'] : []),
-    ...(evidence?.clear_space_above_hair_delivery_tolerance_applied === undefined
-      ? ['clear_space_above_hair_delivery_tolerance_applied'] : []),
   ]);
-  const comparable = derivedKeysAbsentFromLegacyEvidence.size > 0
-    ? Object.fromEntries(Object.entries(assessment.evidence)
-      .filter(([key]) => !derivedKeysAbsentFromLegacyEvidence.has(key)))
-    : assessment.evidence;
-  if (sha256(canonicalJsonBytes(comparable)) !== sha256(canonicalJsonBytes(evidence))) {
+  const ignoredKeys = new Set([...policyDerivedKeys, ...derivedKeysAbsentFromLegacyEvidence]);
+  const withoutIgnored = (value) => Object.fromEntries(
+    Object.entries(value).filter(([key]) => !ignoredKeys.has(key)),
+  );
+  if (sha256(canonicalJsonBytes(withoutIgnored(assessment.evidence)))
+    !== sha256(canonicalJsonBytes(withoutIgnored(evidence)))) {
     throw new Error(`${label} framing evidence does not match its measured bounding box`);
   }
   if (requirePass && assessment.defects.length > 0) {

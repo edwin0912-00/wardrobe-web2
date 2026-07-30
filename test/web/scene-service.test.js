@@ -1045,18 +1045,35 @@ test('a framing rule reaches the persisted receipts and the live verdict or neit
     /framing evidence does not match its measured bounding box/,
   );
 
-  // Missing legacy fields are compatible; supplied false evidence is not. A
-  // receipt cannot forge the standard headroom tolerance and survive restart.
-  const forgedHeadroomTolerance = structuredClone(baseState);
+  // Delivery-tolerance flags are policy conclusions, not observations. A
+  // historic present value may differ after a policy release while the exact
+  // same raw bbox and visibility remain trustworthy.
+  const historicHeadroomPolicy = structuredClone(baseState);
   for (const receipt of [
-    forgedHeadroomTolerance.attempts.at(-1).qa.framing_evidence,
-    forgedHeadroomTolerance.qa.framing_evidence,
+    historicHeadroomPolicy.attempts.at(-1).qa.framing_evidence,
+    historicHeadroomPolicy.qa.framing_evidence,
   ]) {
-    receipt.clear_space_above_hair_delivery_tolerance_applied = true;
+    receipt.clear_space_above_hair_delivery_tolerance_applied
+      = !receipt.clear_space_above_hair_delivery_tolerance_applied;
   }
+  assert.doesNotThrow(
+    () => validatePersistedSceneState(historicHeadroomPolicy, historicHeadroomPolicy.scene_id),
+  );
+
+  // Raw geometry and hard visibility are still forensic evidence and remain
+  // fail-closed even when a stale policy-derived flag is tolerated.
+  const forgedRawGeometry = structuredClone(historicHeadroomPolicy);
+  forgedRawGeometry.attempts.at(-1).qa.framing_evidence.subject_bbox_xywh_px[1] += 1;
   assert.throws(
-    () => validatePersistedSceneState(forgedHeadroomTolerance, forgedHeadroomTolerance.scene_id),
+    () => validatePersistedSceneState(forgedRawGeometry, forgedRawGeometry.scene_id),
     /framing evidence does not match its measured bounding box/,
+  );
+  const forgedVisibility = structuredClone(historicHeadroomPolicy);
+  forgedVisibility.qa.framing_evidence.full_head_visible
+    = !forgedVisibility.qa.framing_evidence.full_head_visible;
+  assert.throws(
+    () => validatePersistedSceneState(forgedVisibility, forgedVisibility.scene_id),
+    /FULL_HEAD_NOT_VISIBLE|framing evidence does not match its measured bounding box/,
   );
 });
 
