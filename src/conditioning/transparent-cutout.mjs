@@ -12,6 +12,7 @@ export async function removeBorderConnectedWhiteToAlpha(input, {
   gradientProtectionMinimumChannel = 190,
   gradientProtectionMaximumChroma = 24,
   gradientProtectionRadius = 1,
+  protectedSubjectBbox = null,
   removeDetachedLowContrastResidue = false,
   residueMinimumChannel = 236,
   residueMaximumChroma = 16,
@@ -49,158 +50,23 @@ export async function removeBorderConnectedWhiteToAlpha(input, {
   let gradientCleanupApplied = false;
   let gradientCleanupSkippedReason = null;
   if (removeBorderConnectedNeutralGradient) {
-    const preGradientLabels = new Int32Array(width * height);
-    const preGradientComponents = [];
-    const isPreGradientStrong = (index) => {
-      const offset = index * channels;
-      const values = [data[offset], data[offset + 1], data[offset + 2]];
-      return Math.min(...values) < gradientProtectionMinimumChannel
-        || Math.max(...values) - Math.min(...values) > gradientProtectionMaximumChroma;
-    };
-    const enqueuePreGradient = (index, label) => {
-      if (visited[index] || preGradientLabels[index] !== 0) return;
-      preGradientLabels[index] = label;
-      queue[tail++] = index;
-    };
-    for (let start = 0; start < visited.length; start += 1) {
-      if (visited[start] || preGradientLabels[start] !== 0) continue;
-      const label = preGradientComponents.length + 1;
-      head = 0;
-      tail = 0;
-      enqueuePreGradient(start, label);
-      let pixels = 0;
-      let strongPixels = 0;
-      let touchesBorder = false;
-      while (head < tail) {
-        const index = queue[head++];
-        pixels += 1;
-        if (isPreGradientStrong(index)) strongPixels += 1;
-        const x = index % width;
-        const y = Math.floor(index / width);
-        if (x === 0 || x === width - 1 || y === 0 || y === height - 1) touchesBorder = true;
-        for (let yOffset = -1; yOffset <= 1; yOffset += 1) {
-          for (let xOffset = -1; xOffset <= 1; xOffset += 1) {
-            if (xOffset === 0 && yOffset === 0) continue;
-            const nextX = x + xOffset;
-            const nextY = y + yOffset;
-            if (nextX < 0 || nextX >= width || nextY < 0 || nextY >= height) continue;
-            enqueuePreGradient(nextY * width + nextX, label);
-          }
-        }
+    const bbox = Array.isArray(protectedSubjectBbox)
+      ? {
+        left: protectedSubjectBbox[0],
+        top: protectedSubjectBbox[1],
+        width: protectedSubjectBbox[2],
+        height: protectedSubjectBbox[3],
       }
-      preGradientComponents.push({ label, pixels, strongPixels, touchesBorder });
+      : protectedSubjectBbox;
+    if (bbox !== null && (
+      !bbox || ![bbox.left, bbox.top, bbox.width, bbox.height].every(Number.isInteger)
+      || bbox.left < 0 || bbox.top < 0 || bbox.width < 1 || bbox.height < 1
+      || bbox.left + bbox.width > width || bbox.top + bbox.height > height
+    )) {
+      throw new TypeError('protectedSubjectBbox must be a valid [x, y, width, height] region inside the image');
     }
-    const protectedLightPrimary = preGradientComponents
-      .filter(({ touchesBorder }) => !touchesBorder)
-      .reduce(
-        (largest, component) => (!largest || component.pixels > largest.pixels ? component : largest),
-        null,
-      );
-    const protectedLightPrimaryLabel = protectedLightPrimary
-      && protectedLightPrimary.strongPixels / protectedLightPrimary.pixels < minimumStrongPixelRatio
-      ? protectedLightPrimary.label
-      : 0;
-    const borderBand = Math.max(1, Math.round(width * 0.08));
-    const relativeMask = new Uint8Array(width * height);
-    for (let y = 0; y < height; y += 1) {
-      const background = [0, 0, 0];
-      for (let x = 0; x < borderBand; x += 1) {
-        const leftOffset = (y * width + x) * channels;
-        const rightOffset = (y * width + width - x - 1) * channels;
-        for (let channel = 0; channel < 3; channel += 1) {
-          background[channel] += data[leftOffset + channel] + data[rightOffset + channel];
-        }
-      }
-      for (let channel = 0; channel < 3; channel += 1) background[channel] /= borderBand * 2;
-      for (let x = borderBand; x < width - borderBand; x += 1) {
-        const index = y * width + x;
-        if (visited[index]) continue;
-        const offset = index * channels;
-        const difference = Math.max(
-          Math.abs(data[offset] - background[0]),
-          Math.abs(data[offset + 1] - background[1]),
-          Math.abs(data[offset + 2] - background[2]),
-        );
-        if (difference < 4) continue;
-        relativeMask[index] = 1;
-      }
-    }
-    const relativeLabels = new Int32Array(width * height);
-    const relativeComponents = [];
-    const enqueueRelative = (index, label) => {
-      if (!relativeMask[index] || relativeLabels[index] !== 0) return;
-      relativeLabels[index] = label;
-      queue[tail++] = index;
-    };
-    for (let start = 0; start < relativeMask.length; start += 1) {
-      if (!relativeMask[start] || relativeLabels[start] !== 0) continue;
-      const label = relativeComponents.length + 1;
-      head = 0;
-      tail = 0;
-      enqueueRelative(start, label);
-      let pixels = 0;
-      let left = width;
-      let top = height;
-      let right = -1;
-      let bottom = -1;
-      while (head < tail) {
-        const index = queue[head++];
-        pixels += 1;
-        const x = index % width;
-        const y = Math.floor(index / width);
-        left = Math.min(left, x);
-        top = Math.min(top, y);
-        right = Math.max(right, x);
-        bottom = Math.max(bottom, y);
-        for (let yOffset = -1; yOffset <= 1; yOffset += 1) {
-          for (let xOffset = -1; xOffset <= 1; xOffset += 1) {
-            if (xOffset === 0 && yOffset === 0) continue;
-            const nextX = x + xOffset;
-            const nextY = y + yOffset;
-            if (nextX < 0 || nextX >= width || nextY < 0 || nextY >= height) continue;
-            enqueueRelative(nextY * width + nextX, label);
-          }
-        }
-      }
-      relativeComponents.push({ label, pixels, left, top, right, bottom });
-    }
-    const centerX = width / 2;
-    const minimumRelativePixels = Math.max(16, Math.round(width * height * 0.0025));
-    const minimumAnchorPixels = Math.max(64, Math.round(width * height * 0.01));
-    const compactRelativeComponents = relativeComponents.filter((component) => (
-      component.pixels >= minimumRelativePixels
-      && component.right - component.left + 1 < width * 0.8
-      && component.bottom - component.top + 1 < height * 0.95
-    ));
-    const centralAnchors = compactRelativeComponents.filter((component) => (
-      component.pixels >= minimumAnchorPixels
-      && component.right - component.left + 1 >= width * 0.1
-      && component.bottom - component.top + 1 >= height * 0.2
-      && Math.max(0, component.left - centerX, centerX - component.right) <= width * 0.1
-    ));
-    if (centralAnchors.length > 0) {
-      const anchorLeft = Math.min(...centralAnchors.map(({ left }) => left));
-      const anchorTop = Math.min(...centralAnchors.map(({ top }) => top));
-      const anchorRight = Math.max(...centralAnchors.map(({ right }) => right));
-      const anchorBottom = Math.max(...centralAnchors.map(({ bottom }) => bottom));
-      const centralComponents = compactRelativeComponents.filter((component) => {
-        const overlapsHorizontally = component.right >= anchorLeft && component.left <= anchorRight;
-        const verticalGap = Math.max(0, anchorTop - component.bottom - 1, component.top - anchorBottom - 1);
-        return overlapsHorizontally && verticalGap <= height * 0.3;
-      });
-      const relativeLeft = Math.min(...centralComponents.map(({ left }) => left));
-      const relativeTop = Math.min(...centralComponents.map(({ top }) => top));
-      const relativeRight = Math.max(...centralComponents.map(({ right }) => right));
-      const relativeBottom = Math.max(...centralComponents.map(({ bottom }) => bottom));
-      relativeSubjectProtectionBbox = {
-        left: relativeLeft,
-        top: relativeTop,
-        width: relativeRight - relativeLeft + 1,
-        height: relativeBottom - relativeTop + 1,
-      };
-    }
-    const gradientFloodSafe = protectedLightPrimaryLabel !== 0
-      || relativeSubjectProtectionBbox !== null;
+    relativeSubjectProtectionBbox = bbox ? { ...bbox } : null;
+    const gradientFloodSafe = relativeSubjectProtectionBbox !== null;
     gradientCleanupApplied = gradientFloodSafe;
     if (!gradientFloodSafe) {
       gradientCleanupSkippedReason = 'AMBIGUOUS_LOW_CONTRAST_SUBJECT';
@@ -216,8 +82,6 @@ export async function removeBorderConnectedWhiteToAlpha(input, {
     head = 0;
     tail = 0;
     for (let index = 0; index < visited.length; index += 1) {
-      const isProtectedLightPrimary = protectedLightPrimaryLabel !== 0
-        && preGradientLabels[index] === protectedLightPrimaryLabel;
       const x = index % width;
       const y = Math.floor(index / width);
       const isRelativeSubject = relativeSubjectProtectionBbox
@@ -225,7 +89,7 @@ export async function removeBorderConnectedWhiteToAlpha(input, {
         && x < relativeSubjectProtectionBbox.left + relativeSubjectProtectionBbox.width
         && y >= relativeSubjectProtectionBbox.top
         && y < relativeSubjectProtectionBbox.top + relativeSubjectProtectionBbox.height;
-      if (!protect(index) && !isProtectedLightPrimary && !isRelativeSubject) continue;
+      if (!protect(index) && !isRelativeSubject) continue;
       protectionDistance[index] = 0;
       queue[tail++] = index;
     }
@@ -430,6 +294,8 @@ export async function removeBorderConnectedWhiteToAlpha(input, {
       border_gradient_cleanup_applied: gradientCleanupApplied,
       gradient_cleanup_skipped_reason: gradientCleanupSkippedReason,
       removed_gradient_pixels: removedGradientPixels,
+      protected_subject_bbox: relativeSubjectProtectionBbox,
+      subject_protection_source: relativeSubjectProtectionBbox ? 'EXPLICIT_BBOX' : null,
       relative_subject_protection_bbox: relativeSubjectProtectionBbox,
       removed_residue_pixels: removedResiduePixels,
       removed_residue_components: removedResidueComponents,

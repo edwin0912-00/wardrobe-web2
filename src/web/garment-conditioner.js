@@ -134,6 +134,35 @@ async function hasCleanWhiteBorder(sourcePath) {
   return borderPixels > 0 && cleanPixels / borderPixels >= 0.96;
 }
 
+async function canonicalBackgroundEvidence(bytes) {
+  const { data, info } = await sharp(bytes, { failOn: 'error', limitInputPixels: 100_000_000 })
+    .rotate()
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  let borderPixels = 0;
+  let cleanPixels = 0;
+  for (let y = 0; y < info.height; y += 1) {
+    for (let x = 0; x < info.width; x += 1) {
+      if (x !== 0 && y !== 0 && x !== info.width - 1 && y !== info.height - 1) continue;
+      const offset = (y * info.width + x) * info.channels;
+      const values = [data[offset], data[offset + 1], data[offset + 2]];
+      borderPixels += 1;
+      if (data[offset + 3] < 16
+        || (Math.min(...values) >= 242 && Math.max(...values) - Math.min(...values) <= 10)) {
+        cleanPixels += 1;
+      }
+    }
+  }
+  const cleanRatio = borderPixels > 0 ? cleanPixels / borderPixels : 0;
+  return {
+    pass: borderPixels > 0 && cleanRatio >= 0.96,
+    border_pixels: borderPixels,
+    clean_border_pixels: cleanPixels,
+    clean_border_ratio: Number(cleanRatio.toFixed(6)),
+  };
+}
+
 export class GarmentNeedsInputError extends Error {
   constructor(message, details = {}) { super(message); this.name = 'GarmentNeedsInputError'; this.details = details; }
 }
@@ -345,10 +374,31 @@ export class GarmentConditioner {
           }],
           metrics: { attempt },
         });
-        const qa = await this.vlm.evaluateQa({ phase: 'garment', evidence: {
+        let qa = await this.vlm.evaluateQa({ phase: 'garment', evidence: {
           identity: { artifact: { path: sourcePath } }, candidate: { artifact: { path: candidatePath } },
           reference_packs: { outfit: { bindings: sourcePaths.map((filename) => ({ artifact: { path: filename } })) } },
         } });
+        if (qa.decision === 'PASS') {
+          const background = await canonicalBackgroundEvidence(candidate);
+          if (!background.pass) {
+            const defect = `Canonical garment background is not uniform pure white (${background.clean_border_ratio} clean border ratio)`;
+            qa = {
+              ...qa,
+              decision: 'REJECT',
+              reason: defect,
+              checks: [
+                ...qa.checks,
+                {
+                  name: 'CANONICAL_BACKGROUND_UNIFORMITY',
+                  pass: false,
+                  score: background.clean_border_ratio,
+                  evidence: JSON.stringify(background),
+                },
+              ],
+              defects: [...qa.defects, defect],
+            };
+          }
+        }
         const receipt = await persistAttemptReceipt({
           itemDirectory,
           attempt,
@@ -418,7 +468,8 @@ export class GarmentConditioner {
           border_gradient_cleanup_applied: cutout.stats.border_gradient_cleanup_applied,
           gradient_cleanup_skipped_reason: cutout.stats.gradient_cleanup_skipped_reason,
           removed_gradient_pixels: cutout.stats.removed_gradient_pixels,
-          relative_subject_protection_bbox: cutout.stats.relative_subject_protection_bbox,
+          protected_subject_bbox: cutout.stats.protected_subject_bbox,
+          subject_protection_source: cutout.stats.subject_protection_source,
           removed_residue_pixels: cutout.stats.removed_residue_pixels,
           removed_residue_components: cutout.stats.removed_residue_components,
         },

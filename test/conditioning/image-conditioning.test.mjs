@@ -233,6 +233,7 @@ test('cutout follows a neutral floor gradient from the border without erasing fo
     .toBuffer();
   const result = await removeBorderConnectedWhiteToAlpha(input, {
     removeBorderConnectedNeutralGradient: true,
+    protectedSubjectBbox: [59, 12, 42, 88],
   });
   const { data, info } = await sharp(result.image).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   const alphaAt = (x, y) => data[(y * info.width + x) * info.channels + 3];
@@ -266,6 +267,7 @@ test('gradient cleanup preserves a light primary connected to a similar neutral 
     .toBuffer();
   const result = await removeBorderConnectedWhiteToAlpha(input, {
     removeBorderConnectedNeutralGradient: true,
+    protectedSubjectBbox: [59, 12, 42, 88],
     removeDetachedLowContrastResidue: true,
   });
   const { data, info } = await sharp(result.image).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
@@ -278,6 +280,7 @@ test('gradient cleanup preserves a light primary connected to a similar neutral 
     width: 42,
     height: 88,
   });
+  assert.equal(result.stats.subject_protection_source, 'EXPLICIT_BBOX');
   assert.equal(result.stats.border_gradient_cleanup_applied, true);
   assert.equal(result.stats.gradient_cleanup_skipped_reason, null);
 });
@@ -347,6 +350,7 @@ test('gradient cleanup protects a light primary surrounding a small dark panel',
     .toBuffer();
   const result = await removeBorderConnectedWhiteToAlpha(input, {
     removeBorderConnectedNeutralGradient: true,
+    protectedSubjectBbox: [59, 12, 42, 88],
     removeDetachedLowContrastResidue: true,
   });
   const { data, info } = await sharp(result.image).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
@@ -363,7 +367,7 @@ test('gradient cleanup protects a light primary surrounding a small dark panel',
   assert.equal(result.stats.border_gradient_cleanup_applied, true);
 });
 
-test('a tiny central artifact cannot authorize deletion of an off-center light primary', async () => {
+test('a threshold-sized central artifact cannot authorize deletion of an off-center light primary', async () => {
   const width = 160;
   const height = 120;
   const background = Buffer.alloc(width * height * 3);
@@ -384,9 +388,9 @@ test('a tiny central artifact cannot authorize deletion of an off-center light p
         top: 12,
       },
       {
-        input: await solid(7, 7, { r: 55, g: 65, b: 70 }),
-        left: 77,
-        top: 50,
+        input: await solid(16, 24, { r: 55, g: 65, b: 70 }),
+        left: 72,
+        top: 48,
       },
     ])
     .png()
@@ -399,7 +403,7 @@ test('a tiny central artifact cannot authorize deletion of an off-center light p
   const alphaAt = (x, y) => data[(y * info.width + x) * info.channels + 3];
   assert.equal(alphaAt(40, 20), 255, 'the off-center light primary top must remain');
   assert.equal(alphaAt(40, 95), 255, 'the off-center light primary bottom must remain');
-  assert.equal(alphaAt(80, 53), 255, 'the unrelated central artifact must remain');
+  assert.equal(alphaAt(80, 55), 255, 'the unrelated central artifact must remain');
   assert.equal(result.stats.relative_subject_protection_bbox, null);
   assert.equal(result.stats.border_gradient_cleanup_applied, false);
   assert.equal(result.stats.gradient_cleanup_skipped_reason, 'AMBIGUOUS_LOW_CONTRAST_SUBJECT');
