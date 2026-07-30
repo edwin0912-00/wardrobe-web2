@@ -148,8 +148,8 @@ function executionResult(context, {
         resource_id: `scene_${context.slot}_${context.attempt}`,
         sha256: candidateSha256,
         receipt_sha256: sha256(Buffer.from(`receipt:${candidateSha256}`)),
-        width: 1024,
-        height: 1280,
+        width: 1536,
+        height: 2048,
         media_type: 'image/png',
       }
       : null,

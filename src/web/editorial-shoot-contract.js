@@ -88,6 +88,15 @@ const SOURCE_ROLES = new Set([
 ]);
 const FRAMINGS = new Set(['full_body', 'three_quarter', 'detail', 'wide_full_body']);
 const IDENTITY_VISIBILITY = new Set(['full_face', 'partial_face', 'not_intended']);
+
+function isEditorialOutputCanvas(output) {
+  // 1536×2048 is the current native 3:4 SceneService delivery. The 1024×1280
+  // branch is read-only compatibility for already delivered 4:5 editorial
+  // assets; new provider execution cannot produce it because SceneService
+  // independently enforces its native delivery before this boundary.
+  return (output.width === 1536 && output.height === 2048)
+    || (output.width === 1024 && output.height === 1280);
+}
 const GATE_IDS = new Set(EDITORIAL_QA_GATES);
 const SHOT_STATES = new Set(Object.values(EDITORIAL_SHOT_STATES));
 const SHOOT_STATES = new Set(Object.values(EDITORIAL_SHOOT_STATES));
@@ -464,8 +473,8 @@ export function validateEditorialExecutionResult(result, {
     if (output.sha256 !== qa.candidate_sha256) {
       throw new Error('Editorial output and QA candidate hashes must match');
     }
-    if (output.width !== 1024 || output.height !== 1280 || output.media_type !== 'image/png') {
-      throw new Error('Editorial output must be exact 1024×1280 lossless PNG');
+    if (!isEditorialOutputCanvas(output) || output.media_type !== 'image/png') {
+      throw new Error('Editorial output must be current 1536×2048 PNG or a preserved legacy 1024×1280 PNG');
     }
   } else if (result.output !== null) {
     throw new Error('A failed editorial shot cannot publish an output');
@@ -621,8 +630,8 @@ export function validatePersistedEditorialShoot(state, expectedShootId = null) {
     assertEditorialId(output.resource_id, `${label}.resource_id`);
     assertEditorialSha256(output.sha256, `${label}.sha256`);
     assertEditorialSha256(output.receipt_sha256, `${label}.receipt_sha256`);
-    if (output.width !== 1024 || output.height !== 1280 || output.media_type !== 'image/png') {
-      throw new Error(`${label} must be exact 1024×1280 PNG`);
+    if (!isEditorialOutputCanvas(output) || output.media_type !== 'image/png') {
+      throw new Error(`${label} must be current 1536×2048 PNG or preserved legacy 1024×1280 PNG`);
     }
     return output;
   };

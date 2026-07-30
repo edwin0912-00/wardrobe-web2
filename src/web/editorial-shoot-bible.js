@@ -527,7 +527,7 @@ function compiledPrompt({ mode, shotSpec: shot }) {
     `BLOCKING NEGATIVES: ${shot.negative_constraints.join(' | ')}`,
     'The named editorial pages are style observations only. Do not copy their people, bodies, hair, clothing, brands, readable text or exact architecture.',
     'The attached approved look is the sole authority for identity, body, hair and every product detail.',
-    'Return one original 1024x1280 sRGB 4:5 PNG composition with no text overlay.',
+    'Return one original 1536x2048 sRGB 3:4 PNG composition with no text overlay.',
   ];
   return `${lines.join('\n')}\n`;
 }
