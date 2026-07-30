@@ -243,6 +243,43 @@ test('cutout follows a neutral floor gradient from the border without erasing fo
   assert.equal(result.stats.border_gradient_cleanup, true);
 });
 
+test('gradient cleanup preserves a light primary connected to a similar neutral floor', async () => {
+  const width = 160;
+  const height = 120;
+  const background = Buffer.alloc(width * height * 3);
+  for (let y = 0; y < height; y += 1) {
+    const value = Math.round(248 - (34 * y) / (height - 1));
+    for (let x = 0; x < width; x += 1) {
+      const offset = (y * width + x) * 3;
+      background[offset] = value;
+      background[offset + 1] = value;
+      background[offset + 2] = value - 3;
+    }
+  }
+  const input = await sharp(background, { raw: { width, height, channels: 3 } })
+    .composite([{
+      input: await solid(42, 88, { r: 225, g: 225, b: 222 }),
+      left: 59,
+      top: 12,
+    }])
+    .png()
+    .toBuffer();
+  const result = await removeBorderConnectedWhiteToAlpha(input, {
+    removeBorderConnectedNeutralGradient: true,
+    removeDetachedLowContrastResidue: true,
+  });
+  const { data, info } = await sharp(result.image).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const alphaAt = (x, y) => data[(y * info.width + x) * info.channels + 3];
+  assert.equal(alphaAt(80, 20), 255, 'the light primary top must remain');
+  assert.equal(alphaAt(80, 95), 255, 'the light primary bottom must remain');
+  assert.deepEqual(result.stats.relative_subject_protection_bbox, {
+    left: 59,
+    top: 12,
+    width: 42,
+    height: 88,
+  });
+});
+
 test('garment source alpha creates an isolated cutout and exact-white review card', async () => {
   const redPatch = await solid(20, 20, { r: 220, g: 20, b: 30, alpha: 1 }, 4);
   const input = await sharp({

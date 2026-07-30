@@ -415,6 +415,8 @@ export class GarmentConditioner {
           selected_pixels: cutout.stats.transparent_pixels,
           total_pixels: cutout.stats.width * cutout.stats.height,
           connectivity: cutout.stats.connectivity,
+          removed_gradient_pixels: cutout.stats.removed_gradient_pixels,
+          relative_subject_protection_bbox: cutout.stats.relative_subject_protection_bbox,
           removed_residue_pixels: cutout.stats.removed_residue_pixels,
           removed_residue_components: cutout.stats.removed_residue_components,
         },

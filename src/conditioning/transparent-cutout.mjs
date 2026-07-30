@@ -45,6 +45,7 @@ export async function removeBorderConnectedWhiteToAlpha(input, {
     if (y + 1 < height) enqueue(index + width);
   }
   let removedGradientPixels = 0;
+  let relativeSubjectProtectionBbox = null;
   if (removeBorderConnectedNeutralGradient) {
     const preGradientLabels = new Int32Array(width * height);
     const preGradientComponents = [];
@@ -97,6 +98,57 @@ export async function removeBorderConnectedWhiteToAlpha(input, {
       && protectedLightPrimary.strongPixels / protectedLightPrimary.pixels < minimumStrongPixelRatio
       ? protectedLightPrimary.label
       : 0;
+    const totalPreGradientStrongPixels = preGradientComponents
+      .reduce((total, component) => total + component.strongPixels, 0);
+    if (totalPreGradientStrongPixels / (width * height) < minimumStrongPixelRatio) {
+      const borderBand = Math.max(1, Math.round(width * 0.08));
+      let relativePixels = 0;
+      let relativeLeft = width;
+      let relativeTop = height;
+      let relativeRight = -1;
+      let relativeBottom = -1;
+      for (let y = 0; y < height; y += 1) {
+        const background = [0, 0, 0];
+        for (let x = 0; x < borderBand; x += 1) {
+          const leftOffset = (y * width + x) * channels;
+          const rightOffset = (y * width + width - x - 1) * channels;
+          for (let channel = 0; channel < 3; channel += 1) {
+            background[channel] += data[leftOffset + channel] + data[rightOffset + channel];
+          }
+        }
+        for (let channel = 0; channel < 3; channel += 1) background[channel] /= borderBand * 2;
+        for (let x = borderBand; x < width - borderBand; x += 1) {
+          const index = y * width + x;
+          if (visited[index]) continue;
+          const offset = index * channels;
+          const difference = Math.max(
+            Math.abs(data[offset] - background[0]),
+            Math.abs(data[offset + 1] - background[1]),
+            Math.abs(data[offset + 2] - background[2]),
+          );
+          if (difference < 4) continue;
+          relativePixels += 1;
+          relativeLeft = Math.min(relativeLeft, x);
+          relativeTop = Math.min(relativeTop, y);
+          relativeRight = Math.max(relativeRight, x);
+          relativeBottom = Math.max(relativeBottom, y);
+        }
+      }
+      const relativeWidth = relativeRight - relativeLeft + 1;
+      const relativeHeight = relativeBottom - relativeTop + 1;
+      const centerX = width / 2;
+      if (relativePixels >= Math.max(16, Math.round(width * height * 0.0025))
+        && relativeWidth > 0 && relativeWidth < width * 0.8
+        && relativeHeight > 0 && relativeHeight < height * 0.95
+        && relativeLeft <= centerX && relativeRight >= centerX) {
+        relativeSubjectProtectionBbox = {
+          left: relativeLeft,
+          top: relativeTop,
+          width: relativeWidth,
+          height: relativeHeight,
+        };
+      }
+    }
     const protectionDistance = new Uint8Array(width * height);
     protectionDistance.fill(0xff);
     const protect = (index) => {
@@ -110,7 +162,14 @@ export async function removeBorderConnectedWhiteToAlpha(input, {
     for (let index = 0; index < visited.length; index += 1) {
       const isProtectedLightPrimary = protectedLightPrimaryLabel !== 0
         && preGradientLabels[index] === protectedLightPrimaryLabel;
-      if (!protect(index) && !isProtectedLightPrimary) continue;
+      const x = index % width;
+      const y = Math.floor(index / width);
+      const isRelativeSubject = relativeSubjectProtectionBbox
+        && x >= relativeSubjectProtectionBbox.left
+        && x < relativeSubjectProtectionBbox.left + relativeSubjectProtectionBbox.width
+        && y >= relativeSubjectProtectionBbox.top
+        && y < relativeSubjectProtectionBbox.top + relativeSubjectProtectionBbox.height;
+      if (!protect(index) && !isProtectedLightPrimary && !isRelativeSubject) continue;
       protectionDistance[index] = 0;
       queue[tail++] = index;
     }
@@ -312,6 +371,7 @@ export async function removeBorderConnectedWhiteToAlpha(input, {
       detached_residue_cleanup: removeDetachedLowContrastResidue,
       border_gradient_cleanup: removeBorderConnectedNeutralGradient,
       removed_gradient_pixels: removedGradientPixels,
+      relative_subject_protection_bbox: relativeSubjectProtectionBbox,
       removed_residue_pixels: removedResiduePixels,
       removed_residue_components: removedResidueComponents,
     },
