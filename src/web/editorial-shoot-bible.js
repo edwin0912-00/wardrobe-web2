@@ -99,6 +99,39 @@ function createUniverseRuntimeStyle(mode) {
   return runtime;
 }
 
+// The first shot is an internal validation frame, not one of the five delivered
+// campaign frames. A unit's most expressive pose can turn the body away or put
+// cloth across the product; applying that direction here made the gate
+// contradictory: "show every approved item unobstructed" and "turn the garment
+// away / move it across the shoulder" at the same time. Keep the unit's actual
+// environment, light, palette, mood, materials, contrast and optics, but give
+// this one gate frame a neutral readable pose. The five delivered slots retain
+// the unit's full pose and garment-behaviour signatures unchanged.
+function runtimeStyleForShot(mode, slot) {
+  const runtime = createUniverseRuntimeStyle(mode);
+  if (!runtime || slot !== 'clean_identity_hero') return runtime;
+  const direction = runtime.shot_directions[slot];
+  return {
+    ...runtime,
+    visual_system: [
+      `A clean identity-and-look validation frame inside the ${modeContent(mode).environment}.`,
+      'Keep the unit lighting, palette, material system, tonal contrast and optical signature exact.',
+      'Use a front or near-front three-quarter stance with the visible approved items unobstructed;',
+      'the expressive unit pose and decisive cloth movement begin with the five delivered campaign frames.',
+    ].join(' '),
+    garment_behaviour: 'Let every visible approved garment hang naturally at rest with its silhouette, closures, pattern and construction unobstructed; keep cloth still and gravity-led in this validation frame.',
+    shot_directions: {
+      ...runtime.shot_directions,
+      [slot]: {
+        ...direction,
+        camera_consequence: 'Eye-level 50 mm clean fashion portrait with disciplined verticals, moderate perspective and enough scale to verify the face and visible approved items.',
+        pose_joint_chain: 'Front or near-front three-quarter stance; shoulders relaxed, face returned directly to lens, hands separated from the torso, and every visible approved item unobstructed.',
+        foreground: 'No lens-crossing object or garment occlusion; preserve a clean view of the face and visible approved items.',
+      },
+    },
+  };
+}
+
 // The vertical lock of a slot — subject-height band, clear space, and head and footwear
 // visibility — is owned by scene-contract.js, which is also the file that refuses a
 // resolved camera disagreeing with it ('Resolved editorial camera does not match its
@@ -245,7 +278,7 @@ function bibleSourceReferences(basePack) {
 function shotSpec(modeDefinition, slot) {
   const mode = modeContent(modeDefinition);
   const shot = SLOT_CONTENT[slot];
-  const runtime = createUniverseRuntimeStyle(modeDefinition);
+  const runtime = runtimeStyleForShot(modeDefinition, slot);
   const direction = runtime?.shot_directions?.[slot] ?? null;
   const cameraAngle = direction ? direction.camera_consequence : shot.angle;
   const pose = direction ? direction.pose_joint_chain : shot.pose;
@@ -341,6 +374,7 @@ function compiledReferenceAssets({ presetId, modeId, shotSpec: shot, basePack })
   );
   const createUniverseAssets = basePack.create_universe_assets;
   if (Array.isArray(createUniverseAssets)) {
+    const runtime = runtimeStyleForShot(basePack.create_universe_mode, shot.slot);
     const byRole = new Map(createUniverseAssets.map((asset) => [asset.role, asset]));
     const imageReferences = [
       ['composition_anchor', 'camera_lens'],
@@ -369,8 +403,8 @@ function compiledReferenceAssets({ presetId, modeId, shotSpec: shot, basePack })
           description: boundedReferenceFact(shot.environment),
           spatial_cues: [
             shot.camera.angle,
-            `Focus: ${basePack.create_universe_mode.create_universe.runtime_style.shot_directions[shot.slot].focus}`,
-            `Foreground: ${basePack.create_universe_mode.create_universe.runtime_style.shot_directions[shot.slot].foreground}`,
+            `Focus: ${runtime.shot_directions[shot.slot].focus}`,
+            `Foreground: ${runtime.shot_directions[shot.slot].foreground}`,
           ],
           materials: [...mode.materials],
           originality_rules: [
@@ -456,11 +490,11 @@ function compiledReferenceAssets({ presetId, modeId, shotSpec: shot, basePack })
 
 function compiledPrompt({ mode, shotSpec: shot }) {
   const slot = SLOT_CONTENT[shot.slot];
-  const runtime = createUniverseRuntimeStyle(mode);
+  const runtime = runtimeStyleForShot(mode, shot.slot);
   const lines = [
     'Create exactly one premium fashion editorial photograph from the immutable approved look.',
     `MODE: ${mode.ui_name_uk}`,
-    `VISUAL SYSTEM: ${mode.visual_system}`,
+    `VISUAL SYSTEM: ${runtime?.visual_system ?? mode.visual_system}`,
     `SHOT SLOT: ${shot.slot}`,
     `SHOT OBJECTIVE: ${shot.objective}`,
     // The upper end of that band is not a target, it is the point where the subject
@@ -514,7 +548,7 @@ export function compileEditorialShotPack({
   const presetId = `${modeId}.${shot.slot}`;
   const version = mode.version;
   const slot = SLOT_CONTENT[shot.slot];
-  const runtimeStyle = createUniverseRuntimeStyle(mode);
+  const runtimeStyle = runtimeStyleForShot(mode, shot.slot);
   const assets = compiledReferenceAssets({
     presetId,
     modeId,
@@ -575,7 +609,7 @@ export function compileEditorialShotPack({
       identity_visibility: shot.identity_visibility,
       item_scope: shot.slot === 'material_or_accessory_detail'
         ? 'FIRST_ORDERED_ITEM'
-        : ['sculptural_three_quarter', 'interference_frame'].includes(shot.slot)
+        : ['clean_identity_hero', 'sculptural_three_quarter', 'interference_frame'].includes(shot.slot)
         ? 'EXCLUDE_FOOTWEAR'
         : 'ALL',
       style_contract: runtimeStyle

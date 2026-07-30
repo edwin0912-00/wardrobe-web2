@@ -321,7 +321,13 @@ export function sceneFramingLock(preset) {
   if (typeof presetId !== 'string' || presetId.length === 0) {
     throw new Error('Scene framing lock requires a preset carrying its preset_id');
   }
-  if (presetId.startsWith('editorial.')) {
+  // Editorial originally used only the legacy `editorial.*` namespace. Create
+  // Universe deliberately moved the product to `shoot.*`, but leaving that
+  // namespace out here made the live QA path silently apply the standard
+  // background [70,80]/8/2/full-footwear lock to every Fashion Shoot frame.
+  // Both namespaces are editorial families and resolve by the same immutable
+  // shot-slot suffix.
+  if (presetId.startsWith('editorial.') || presetId.startsWith('shoot.')) {
     const slot = [...EDITORIAL_SHOT_SLOTS].find((candidate) => presetId.endsWith(`.${candidate}`));
     const lock = slot ? EDITORIAL_FRAMING_LOCKS[slot] : null;
     if (lock) return lock;
@@ -451,7 +457,7 @@ export function sceneQaItemScope(items, preset = null) {
   const slot = preset?.editorial?.shot_slot ?? null;
   if (!slot) return items;
   if (slot === 'material_or_accessory_detail') return items.slice(0, 1);
-  if (['sculptural_three_quarter', 'interference_frame'].includes(slot)) {
+  if (['clean_identity_hero', 'sculptural_three_quarter', 'interference_frame'].includes(slot)) {
     return items.filter((item) => String(item.category).toLowerCase() !== 'footwear');
   }
   return items;
@@ -857,7 +863,7 @@ function validateEditorialPresetSnapshot(preset, reference) {
   }
   const expectedItemScope = preset.editorial.shot_slot === 'material_or_accessory_detail'
     ? 'FIRST_ORDERED_ITEM'
-    : ['sculptural_three_quarter', 'interference_frame']
+    : ['clean_identity_hero', 'sculptural_three_quarter', 'interference_frame']
       .includes(preset.editorial.shot_slot)
     ? 'EXCLUDE_FOOTWEAR'
     : 'ALL';

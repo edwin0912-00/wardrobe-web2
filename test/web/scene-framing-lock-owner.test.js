@@ -15,6 +15,7 @@ const WEB_ROOT = path.join(root, 'src', 'web');
 const EDITORIAL_MODE_IDS = [
   'editorial.edwin_novak.organic_contrast',
   'editorial.edwin_novak.urban_monochrome',
+  'shoot.terracotta_hardlight',
 ];
 const EDITORIAL_SHOT_SLOTS = [
   'clean_identity_hero',
