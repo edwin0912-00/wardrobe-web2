@@ -165,6 +165,24 @@ test('the Higgsfield CLI job_set_id create envelope yields the resumable job id'
   assert.equal(created.jobId, 'job_set_from_cli');
 });
 
+test('a nested Higgsfield CLI create envelope yields the resumable job id', async () => {
+  const provider = new HiggsfieldVideoProvider({
+    commandRunner: async () => ({
+      stdout: JSON.stringify({
+        data: {
+          job_set: {
+            id: 'job_from_nested_cli_envelope',
+            status: 'queued',
+          },
+        },
+      }),
+      stderr: '',
+    }),
+  });
+  const created = await provider.createJob(BASE);
+  assert.equal(created.jobId, 'job_from_nested_cli_envelope');
+});
+
 test('a wait answering about another job is refused', async () => {
   const provider = new HiggsfieldVideoProvider({
     commandRunner: async (binary, args) => (args[1] === 'create'

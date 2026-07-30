@@ -210,7 +210,11 @@ function findJobId(payload) {
       (candidate) => typeof candidate === 'string' && SAFE_JOB_ID.test(candidate),
     );
     if (match) return match;
-    if (Array.isArray(value)) queue.push(...value);
+    // Higgsfield CLI envelopes have changed between releases (`data`,
+    // `job_set`, batched arrays). Traverse every nested value instead of
+    // treating an accepted create as failed and accidentally paying for a
+    // duplicate retry when the id is merely wrapped one level deeper.
+    queue.push(...Object.values(value));
   }
   return null;
 }
