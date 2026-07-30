@@ -97,31 +97,6 @@ function displayShotStatus(status) {
   })[status] ?? String(status ?? 'Очікує');
 }
 
-function displayShootMessage(shoot) {
-  const phase = shoot?.phase;
-  const status = shoot?.status;
-  return ({
-    BIBLE_REVIEW: 'Готуємо вибраний стиль.',
-    HERO_GENERATION: 'Створюємо перший кадр у вибраному стилі.',
-    HERO_RETRY: 'Автоматично уточнюємо перший кадр.',
-    HERO_NEEDS_RETRY: 'Уточнюємо перенесення образу в обраний стиль.',
-    HERO_APPROVAL: 'Перший кадр готовий. Створюємо ще п’ять кадрів.',
-    SERIES_GENERATION: 'Створюємо п’ять унікальних fashion-кадрів паралельно по два.',
-    SHOT_RETRY: 'Готові кадри збережено. Решту автоматично допрацьовуємо окремо.',
-    RECOVERY_QUEUED: 'Після перезапуску продовжуємо незавершені кадри без повтору готових.',
-    COMPLETED: 'Усі п’ять fashion-кадрів готові та пройшли QA.',
-    CANCELLED: 'Фотосесію зупинено. Уже готові кадри збережено.',
-  })[phase] ?? ({
-    BIBLE_PENDING_APPROVAL: 'Готуємо вибраний стиль.',
-    HERO_RUNNING: 'Створюємо перший кадр у вибраному стилі.',
-    HERO_PENDING_APPROVAL: 'Перший кадр готовий. Створюємо п’ять кадрів.',
-    SERIES_RUNNING: 'Створюємо п’ять унікальних fashion-кадрів паралельно по два.',
-    NEEDS_RETRY: 'Перший або один із наступних кадрів не завершився. Готові кадри збережено; повторюється лише невдалий.',
-    COMPLETED: 'Усі п’ять fashion-кадрів готові та пройшли QA.',
-    CANCELLED: 'Фотосесію зупинено. Уже готові кадри збережено.',
-  })[status] ?? 'Стан фотосесії оновлено.';
-}
-
 function displayShootState(status) {
   return ({
     BIBLE_PENDING_APPROVAL: 'ПІДГОТОВКА',
@@ -515,9 +490,6 @@ export class EditorialShootUiController {
     const meter = this.#element('#editorial-progress-meter');
     meter.value = completed;
     this.#element('#editorial-series-progress').textContent = `Готово: ${completed} з 5`;
-    this.#element('#editorial-progress-detail').textContent = completed === 5
-      ? 'Усі кадри пройшли QA'
-      : displayShootMessage(this.shoot);
     const orbState = this.shoot?.status === 'NEEDS_RETRY'
       ? 'solving'
       : this.shoot?.status === 'COMPLETED'

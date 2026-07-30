@@ -139,8 +139,9 @@ test('gallery exposes five Fashion Shoot frames, not its internal style check', 
   const portraitCss = sceneCss.slice(portraitStart);
   assert.match(
     portraitCss,
-    /\.editorial-gallery\s*\{[\s\S]*?grid-template-columns:\s*repeat\(2,[\s\S]*?grid-template-rows:\s*repeat\(3,/,
+    /\.editorial-gallery\s*\{[\s\S]*?grid-template-columns:\s*repeat\(3,[\s\S]*?grid-template-rows:\s*none;/,
   );
+  assert.match(portraitCss, /\.editorial-active-state canvas\s*\{[\s\S]*?width:\s*54px;[\s\S]*?height:\s*54px;/);
   assert.match(portraitCss, /\.editorial-controls \.scene-control\s*\{[\s\S]*?min-height:\s*44px;/);
   assert.match(sceneCss, /\.editorial-shot-download\s*\{[\s\S]*?width:\s*44px;[\s\S]*?height:\s*44px;/);
   assert.match(sceneCss, /\.editorial-shot-visual img\s*\{[\s\S]*?object-fit:\s*contain;/);
@@ -198,10 +199,18 @@ test('normal editorial states render controlled Ukrainian copy instead of raw se
     '  #renderShoot() {',
     '  #renderBible() {',
   );
-  assert.match(editorialUiSource, /function displayShootMessage\(shoot\)/);
-  assert.match(editorialUiSource, /Створюємо п’ять унікальних fashion-кадрів паралельно по два/);
-  assert.match(editorialUiSource, /displayShootMessage\(this\.shoot\)/);
+  assert.doesNotMatch(editorialUiSource, /function displayShootMessage\(shoot\)/);
+  assert.doesNotMatch(editorialUiSource, /паралельно по два/);
+  assert.doesNotMatch(indexHtml, /id="editorial-progress-detail"/);
   assert.doesNotMatch(renderSource, /shoot\.message/);
+});
+
+test('Fashion Shoot loading keeps the branded orb and portrait photo geometry', () => {
+  assert.match(indexHtml, /id="editorial-thinking-orb"/);
+  assert.match(sceneCss, /\.editorial-active-state canvas\s*\{[\s\S]*?width:\s*72px;[\s\S]*?height:\s*72px;/);
+  assert.match(sceneCss, /\.editorial-gallery\s*\{[\s\S]*?grid-template-columns:\s*repeat\(5,/);
+  assert.match(sceneCss, /\.editorial-shot-card\s*\{[\s\S]*?aspect-ratio:\s*4\s*\/\s*5;/);
+  assert.match(sceneCss, /\.editorial-master-strip img\s*\{[\s\S]*?width:\s*76px;[\s\S]*?height:\s*90px;/);
 });
 
 test('a stopped Fashion Shoot exposes a real retry instead of pretending to keep working', () => {
