@@ -79,8 +79,16 @@ function runChoices(run) {
 
 function runResult(run) {
   const imageUrl = run?.outputs?.avatar_outfit;
-  if (phaseFor(run) !== 'completed' || typeof imageUrl !== 'string' || !imageUrl.startsWith('/')) return null;
-  return { kind: 'look', aspect: '9:16', urls: [imageUrl], mediaUrl: imageUrl, pendingRealMedia: false };
+  const phase = phaseFor(run);
+  const review = (phase === 'needs_input' || phase === 'failed') &&
+    (run?.error?.code === 'FIRST_APPEARANCE_NEEDS_INPUT' ||
+      run?.error?.name === 'FirstAppearanceNeedsInputError');
+  if ((phase !== 'completed' && !review) || typeof imageUrl !== 'string' || !imageUrl.startsWith('/')) return null;
+  return {
+    kind: 'look', aspect: '9:16', urls: [imageUrl], mediaUrl: imageUrl,
+    pendingRealMedia: false,
+    reviewRequired: review,
+  };
 }
 
 function normalizeBackgrounds(payload, client) {
@@ -183,6 +191,18 @@ function runFailurePresentation(run) {
   return { code: 'RUN_FAILED', message: 'Не вдалося зібрати образ. Спробуйте ще раз.' };
 }
 
+function runReviewPresentation(run) {
+  if (run?.error?.code === 'FIRST_APPEARANCE_NEEDS_INPUT' ||
+      run?.error?.name === 'FirstAppearanceNeedsInputError') {
+    return {
+      code: 'FIRST_APPEARANCE_NEEDS_INPUT',
+      message: 'Образ уже зібраний. Спробуємо ще раз, щоб завершити його повністю?',
+      retryable: true,
+    };
+  }
+  return null;
+}
+
 export function createCinematicUiBridge({
   client = createZeelyClient({ apiBase: '/api' }),
   autoProbe = true,
@@ -255,11 +275,13 @@ export function createCinematicUiBridge({
   function syncRun(run, type = 'run:updated') {
     if (!run) return;
     const phase = phaseFor(run);
+    const result = runResult(run);
     emit(type, {
       activeKind: 'look', run, phase,
       choices: phase === 'needs_input' ? runChoices(run) : [],
-      result: runResult(run),
+      result,
       error: phase === 'failed' ? runFailurePresentation(run) : null,
+      review: result?.reviewRequired ? runReviewPresentation(run) : null,
     });
     if (phase === 'completed') void saveCompletedRun(run);
   }

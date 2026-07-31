@@ -20,7 +20,7 @@ function clientStub({ profileError = null } = {}) {
     createRunFromUploads: async (input) => { calls.push(['look', input]); return { run_id: 'run-1', status: 'QUEUED' }; },
     saveRun: async (runId) => ({ look: { look_id: 'look-1', run_id: runId } }),
     selectGarments: async () => ({}),
-    retryRun: async () => ({}),
+    retryRun: async (runId) => { calls.push(['retry-run', runId]); return {}; },
     listScenePresets: async () => ({ presets: [{ preset_id: 'std.one', preset_version: '1.0.0', ui_name_uk: 'Один' }] }),
     scenePresetPreviewUrl: (id, version) => `/api/scene-presets/${id}/${version}/preview`,
     listEditorialModes: async () => ({ modes: [{ preset_id: 'shoot.one', version: '1.0.0', ui_name_uk: 'Стиль' }] }),
@@ -97,6 +97,49 @@ test('failed outfit QA maps only the verified visible conflict into mirror copy'
     message: 'На образі лишився синій шар замість погодженого темного верху. Повторимо тільки образ.',
   });
   assert.equal(bridge.state().run.garments[0].preview_url, '/api/runs/run-1/garments/0?preview=1');
+});
+
+test('first-appearance review keeps the real core image visible and retryable', async () => {
+  const client = clientStub();
+  const bridge = createCinematicUiBridge({ client, autoProbe: false });
+  await bridge.probe();
+  client.emit({
+    type: 'run:event',
+    run: {
+      run_id: 'run-1',
+      status: 'NEEDS_INPUT',
+      phase: 'CORE_PIPELINE',
+      terminal_stage: 'FIRST_APPEARANCE',
+      outputs: { avatar_outfit: '/api/runs/run-1/files/avatar_outfit.png' },
+      error: { code: 'FIRST_APPEARANCE_NEEDS_INPUT', message: 'crop needs review' },
+    },
+  });
+  const state = bridge.state();
+  assert.equal(state.phase, 'needs_input');
+  assert.equal(state.result.mediaUrl, '/api/runs/run-1/files/avatar_outfit.png');
+  assert.equal(state.result.reviewRequired, true);
+  assert.equal(state.review.code, 'FIRST_APPEARANCE_NEEDS_INPUT');
+  await bridge.retryActive();
+  assert.equal(client.calls.at(-1)[0], 'retry-run');
+});
+
+test('legacy first-appearance failure with persisted output is still recoverable', async () => {
+  const client = clientStub();
+  const bridge = createCinematicUiBridge({ client, autoProbe: false });
+  await bridge.probe();
+  client.emit({
+    type: 'run:event',
+    run: {
+      run_id: 'run-legacy',
+      status: 'FAILED',
+      terminal_stage: 'COMPLETED',
+      outputs: { avatar_outfit: '/api/runs/run-legacy/files/avatar_outfit.png' },
+      error: { name: 'FirstAppearanceNeedsInputError', message: 'crop needs review' },
+    },
+  });
+  assert.equal(bridge.state().result.mediaUrl, '/api/runs/run-legacy/files/avatar_outfit.png');
+  assert.equal(bridge.state().result.reviewRequired, true);
+  assert.equal(bridge.state().review.retryable, true);
 });
 
 test('an unsupported garment format returns a precise replacement instruction', async () => {

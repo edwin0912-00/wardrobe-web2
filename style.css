@@ -1180,6 +1180,12 @@ body {
   display: flex; align-items: center; gap: clamp(10px, 3cqw, 18px);
   flex: 0 0 auto; margin-top: clamp(7px, 2cqh, 12px);
 }
+.review-actions {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: clamp(10px, 3cqw, 18px); flex: 0 0 auto;
+  margin-top: clamp(7px, 2cqh, 12px);
+}
+.review-actions .glass__lede { margin: 0; }
 .failure-state { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
 
 /* LIVE — the camera leaves the right mirror and becomes the viewport. */

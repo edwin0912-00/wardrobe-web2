@@ -155,6 +155,7 @@
     var awaitingAspect = null;   // null | 'shoot' | 'fash' | 'bg'
     var pendingAction = null;    // null | { kind, aspect }
     var actionError = null;      // adapter-owned failure: { kind, message }
+    var lookReview = null;       // core image exists, but a retryable follow-up is pending
     /* Upload preparation is intentionally presentation-neutral. The beta accepts the
      * same normalized JPEG/PNG/WebP payload after HEIC/HEIF conversion; while that work
      * is happening the station stays put and every upload affordance is disabled. */
@@ -215,7 +216,7 @@
     /* THE gate for every action: a look with things in it must be VISIBLE first — and
      * visible means its own generated image is on the glass, not that a stand-in timer
      * elapsed. Until then the right mirror is still waiting, so there is nothing to act on. */
-    function lookVisible() { return !!current() && !pending && hasResult(); }
+    function lookVisible() { return !!current() && !pending && !lookReview && hasResult(); }
 
     function esc(s) {
       return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -313,7 +314,9 @@
             garmentSelections = {};
           }
         }
-        if (bridgeState.phase === 'completed' && bridgeState.result && bridgeState.run) {
+        var resultReady = bridgeState.result && bridgeState.run &&
+          (bridgeState.phase === 'completed' || bridgeState.result.reviewRequired === true);
+        if (resultReady) {
           var runId = bridgeState.run.run_id;
           var at = looks.findIndex(function (look) { return look.runId === runId; });
           if (at < 0) {
@@ -335,6 +338,11 @@
           pending = false;
           step = 2;
           actionError = null;
+          lookReview = bridgeState.result.reviewRequired ? (bridgeState.review || {
+            code: 'FIRST_APPEARANCE_NEEDS_INPUT',
+            message: 'Образ уже зібраний. Спробуємо ще раз, щоб завершити його повністю?',
+            retryable: true,
+          }) : null;
           if (typeof opts.onLookReady === 'function') opts.onLookReady();
         }
       } else {
@@ -356,9 +364,10 @@
         }
       }
 
-      if (bridgeState.phase === 'failed') {
+      if (bridgeState.phase === 'failed' && !bridgeState.result?.reviewRequired) {
         pending = false;
         pendingAction = null;
+        lookReview = null;
         actionError = {
           kind: kind === 'background' ? 'bg' : kind === 'video' ? 'fash' : kind,
           code: bridgeState.error && bridgeState.error.code || null,
@@ -1121,6 +1130,20 @@
         return;
       }
 
+      /* A core image can be real and useful even when the optional
+       * first-appearance evidence needs another pass. Show the image and a
+       * retry affordance instead of replacing it with an endless orb. */
+      if (lookReview) {
+        showRoot.innerHTML = scene('look-review',
+          lookResultFrame() +
+          '<div class="review-actions" role="status">' +
+            '<span class="glass__lede">Образ уже зібраний</span>' +
+            '<button class="glass__cta" type="button" data-retry-action>Спробувати ще раз</button>' +
+          '</div>');
+        applyEnabled();
+        return;
+      }
+
       /* An action (shoot/fash/bg) is working — no result to show yet, and nothing to
        * click until it clears. Same pending treatment as the look itself, labelled for
        * which action it is. */
@@ -1319,7 +1342,7 @@
       if (t.closest('[data-look-reset]')) {
         if (bridge && bridge.resetLook) bridge.resetLook();
         garmentSelections = {}; garmentChoiceRunId = null;
-        pending = false; actionError = null; step = 0; view = 'look';
+        pending = false; actionError = null; lookReview = null; step = 0; view = 'look';
         render(); notifyGateChange(); return;
       }
       if (t.closest('[data-shoot-approve]')) {
@@ -1430,7 +1453,8 @@
       }
       if (t.closest('[data-retry-action]')) {
         var inputRejected = inputReplacementError(actionError);
-        if (bridge && bridgeReady() && actionError && !inputRejected) {
+        if (bridge && bridgeReady() && (actionError || lookReview) && !inputRejected) {
+          lookReview = null;
           bridge.retryActive().catch(function () {
             actionError = { kind: actionError && actionError.kind || 'look', message: 'Спробуємо ще раз' };
             render(); notifyGateChange();
@@ -1439,15 +1463,15 @@
           render(); notifyGateChange();
           return;
         }
-        var retryKind = actionError ? actionError.kind : null;
+        var retryKind = actionError ? actionError.kind : (lookReview ? 'look' : null);
         if (inputRejected && bridge && bridge.resetLook) bridge.resetLook();
         pickerKind = retryKind === 'shoot' || retryKind === 'fash' || retryKind === 'bg' ? retryKind : null;
         if (retryKind === 'look') step = 1;
-        awaitingAspect = null; actionError = null; view = 'look';
+        awaitingAspect = null; actionError = null; lookReview = null; view = 'look';
         render(); notifyGateChange(); return;
       }
       if (t.closest('[data-cancel-action]')) {
-        pickerKind = null; awaitingAspect = null; actionError = null; view = 'look';
+        pickerKind = null; awaitingAspect = null; actionError = null; lookReview = null; view = 'look';
         render(); notifyGateChange(); return;
       }
       if (t.closest('[data-cam-start]')) { startCamera(); return; }
