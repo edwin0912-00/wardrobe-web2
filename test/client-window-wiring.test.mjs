@@ -2,10 +2,11 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
-const [html, ui, css, bridge] = await Promise.all([
+const [html, ui, css, mobileCss, bridge] = await Promise.all([
   readFile(new URL('../b/index.html', import.meta.url), 'utf8'),
   readFile(new URL('../ui.js', import.meta.url), 'utf8'),
   readFile(new URL('../style.css', import.meta.url), 'utf8'),
+  readFile(new URL('../mobile.css', import.meta.url), 'utf8'),
   readFile(new URL('../adapters/cinematic-ui-bridge.mjs', import.meta.url), 'utf8')
 ]);
 
@@ -15,6 +16,20 @@ test('client UI stays on its physical owners', () => {
   assert.match(html, /data-tv-surface/);
   assert.match(html, /data-laptop-surface/);
   assert.doesNotMatch(html, /data-live-invite/, 'Live must not return as bottom chrome');
+});
+
+test('portrait mobile promotes one active mirror into a usable attention plane', () => {
+  assert.match(html, /href="\.\.\/mobile\.css"/);
+  assert.match(html, /data-mobile-attention/);
+  assert.match(ui, /matchMedia\('\(max-width: 767px\) and \(orientation: portrait\)'\)/);
+  assert.match(ui, /function syncMobileAttention/);
+  assert.match(ui, /data-ui-focus/);
+  assert.match(ui, /Додати своє фото/);
+  assert.match(ui, /role="button" tabindex="0"/);
+  assert.match(mobileCss, /@media \(max-width: 767px\) and \(orientation: portrait\)/);
+  assert.match(mobileCss, /\.mobile-attention > \.glass/);
+  assert.match(mobileCss, /grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/);
+  assert.match(mobileCss, /min-height: 48px/);
 });
 
 test('right mirror owns orb, result actions and the 40-second live expansion', () => {

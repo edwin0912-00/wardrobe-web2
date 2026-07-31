@@ -567,7 +567,7 @@ body {
 .tray__chip[aria-pressed="true"] { color: var(--milk); border-color: var(--milk); background: rgba(245,243,237,0.12); }
 .tray__chip:disabled { opacity: 0.35; cursor: default; }
 
-.acts { display: flex; gap: 10px; margin-top: clamp(8px, 2.6cqh, 14px); align-items: center; flex: 0 0 auto; }
+.step-actions { display: flex; gap: 10px; margin-top: clamp(8px, 2.6cqh, 14px); align-items: center; flex: 0 0 auto; }
 .glass__cta--ghost { border-color: rgba(245,243,237,0.28); color: rgba(245,243,237,0.7); }
 .glass__cta:disabled { opacity: 0.35; cursor: default; }
 

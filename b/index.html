@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>WARDROBE</title>
 <link rel="stylesheet" href="../style.css">
+<link rel="stylesheet" href="../mobile.css">
 </head>
 <body>
 
@@ -86,6 +87,11 @@
       <div class="laptop-surface__page" data-laptop-page></div>
     </section>
   </div>
+
+  <!-- Portrait phones cannot fit an input flow inside a 39%-wide filmed mirror. ui.js
+       moves only the currently active mirror panel into this presentation plane; the
+       other mirror stays spatially attached to the film (including its waiting orb). -->
+  <div class="mobile-attention" data-mobile-attention hidden></div>
 
   <div class="grade" aria-hidden="true"></div>
   <div class="grain" aria-hidden="true"></div>

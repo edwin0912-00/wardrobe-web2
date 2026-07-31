@@ -105,10 +105,23 @@
     var askRoot = document.querySelector('[data-ui-ask]') || document.querySelector('[data-ui-state]');
     var showRoot = document.querySelector('[data-ui-show]') || document.querySelector('[data-ui-step]');
     var stage = document.querySelector('[data-stage]');
+    var mobileRoot = document.querySelector('[data-mobile-attention]');
     var liveOverlay = document.querySelector('[data-live-overlay]');
     var liveFullscreen = liveOverlay && liveOverlay.querySelector('[data-live-fullscreen]');
     var liveClose = liveOverlay && liveOverlay.querySelector('[data-live-close]');
     if (!askRoot || !showRoot) return null;
+
+    /* The measured mirror rectangles are the right spatial owners on a wide screen, but
+     * only ~165px wide on an iPhone. Keep one DOM tree and move the active panel into a
+     * safe-area-aware portrait plane; comment anchors restore both panels to their exact
+     * film positions whenever the viewport stops being portrait-mobile. */
+    var askAnchor = document.createComment('ui-ask-home');
+    var showAnchor = document.createComment('ui-show-home');
+    askRoot.parentNode.insertBefore(askAnchor, askRoot);
+    showRoot.parentNode.insertBefore(showAnchor, showRoot);
+    var mobileQuery = global.matchMedia
+      ? global.matchMedia('(max-width: 767px) and (orientation: portrait)')
+      : { matches: false, addEventListener: function () {} };
 
     var step = 0;
 
@@ -333,7 +346,10 @@
      * itself is the evidence then, and "замінити" takes over as the one word that matters. */
     function photoSlot(kind, label, note, index) {
       var p = person[kind];
-      return '<label class="pslot pslot--' + kind + (p ? ' pslot--has' : '') + '" for="io-' + kind + '">' +
+      var action = p ? 'Замінити ' + label.toLowerCase()
+                     : kind === 'main' ? 'Додати своє фото' : 'Додати портрет';
+      return '<label class="pslot pslot--' + kind + (p ? ' pslot--has' : '') +
+        '" for="io-' + kind + '" role="button" tabindex="0" aria-label="' + action + '">' +
         '<span class="pslot__index" aria-hidden="true">0' + index + '</span>' +
         (p ? '<img class="pslot__img" src="' + p.url + '" alt="">'
            : '<span class="pslot__plus" aria-hidden="true">+</span>') +
@@ -350,7 +366,7 @@
        * tells the viewer how to stand or frame themselves. */
       return '<p class="glass__lede person-intro">Одного фото достатньо. Портрет допоможе точніше зберегти риси.</p>' +
         '<div class="pslots">' +
-          photoSlot('main', 'Основне фото', 'потрібне', 1) +
+          photoSlot('main', 'Додати своє фото', 'потрібне', 1) +
           photoSlot('face', 'Портрет', 'за бажанням', 2) +
         '</div>';
     }
@@ -619,7 +635,7 @@
         '<div class="glass__eyebrow">0' + (step + 1) + ' / 0' + STEPS.length + ' · ' + s.label + '</div>' +
         '<div class="glass__h">' + s.title + '</div>' +
         '<div class="askbody">' + body + '</div>' +
-        '<div class="acts">' +
+        '<div class="step-actions">' +
           (step > 0 ? '<button class="glass__cta glass__cta--ghost" type="button" data-back>Назад</button>' : '') +
           '<button class="glass__cta" type="button" data-next data-blocked="' + (blocked ? '1' : '0') + '">' +
             (pending ? 'Створюємо…' : s.cta) +
@@ -942,7 +958,51 @@
       }
     }
 
-    function render() { renderAsk(); renderShow(); }
+    function mobileFocus() {
+      if (pickerKind || awaitingAspect || step < 2) return 'ask';
+      if (bridgeState && (bridgeState.phase === 'needs_input' ||
+          bridgeState.phase === 'waiting_for_approval')) return 'ask';
+      return 'show';
+    }
+
+    function restorePanel(root, anchor) {
+      if (anchor.parentNode && root.parentNode !== anchor.parentNode) {
+        anchor.parentNode.insertBefore(root, anchor.nextSibling);
+      }
+    }
+
+    function syncMobileAttention() {
+      var focus = mobileFocus();
+      stage.setAttribute('data-ui-step', String(step));
+      stage.setAttribute('data-ui-has-look', hasResult() ? '1' : '0');
+      stage.setAttribute('data-ui-focus', focus);
+      stage.setAttribute('data-ui-picker', pickerKind || awaitingAspect || 'none');
+
+      if (!mobileRoot || !mobileQuery.matches) {
+        restorePanel(askRoot, askAnchor);
+        restorePanel(showRoot, showAnchor);
+        if (mobileRoot) mobileRoot.hidden = true;
+        return;
+      }
+
+      mobileRoot.hidden = false;
+      if (focus === 'ask') {
+        restorePanel(showRoot, showAnchor);
+        if (askRoot.parentNode !== mobileRoot) mobileRoot.appendChild(askRoot);
+      } else {
+        restorePanel(askRoot, askAnchor);
+        if (showRoot.parentNode !== mobileRoot) mobileRoot.appendChild(showRoot);
+      }
+    }
+
+    function render() {
+      renderAsk();
+      renderShow();
+      syncMobileAttention();
+    }
+
+    if (mobileQuery.addEventListener) mobileQuery.addEventListener('change', syncMobileAttention);
+    else if (mobileQuery.addListener) mobileQuery.addListener(syncMobileAttention);
 
     function addFiles(fileList) {
       var room = MAX_ITEMS - items.length;
@@ -1186,6 +1246,13 @@
     });
 
     document.addEventListener('keydown', function (ev) {
+      var upload = ev.target.closest && ev.target.closest('.pslot[role="button"]');
+      if (upload && (ev.key === 'Enter' || ev.key === ' ')) {
+        ev.preventDefault();
+        var input = upload.querySelector('input[type="file"]');
+        if (input && !input.disabled) input.click();
+        return;
+      }
       if (!liveOverlay || liveOverlay.hidden) return;
       if (ev.key === 'Escape') {
         ev.preventDefault();
