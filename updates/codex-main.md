@@ -873,9 +873,10 @@ Tests: `node --test test/web/editorial-shot-anchors.test.js` 6/6 PASS;
 Create Universe unit/runtime resolver checks PASS. The combined scene-service
 suite still has pre-existing framing/post-release fixture failures unrelated to
 this atom; they were not treated as evidence of this fix.
-Commit: pending after release verification.
-Beta: NOT_DEPLOYED — deploy only this tested atom through the beta release owner.
-Journey: NOT_RUN — no paid provider generation was started by the failed run or
-by this repair.
+Commit: `421b2a35d18cc4978b280e0ef5feaa2df83362bd`.
+Beta: LIVE — `release_sha=421b2a35d18cc4978b280e0ef5feaa2df83362bd`;
+public `/api/health` is ready and editorial generation is available.
+Journey: the failing run was not replayed because it had not reached a provider
+submission; no new paid provider generation was started by this repair.
 weakened_checks: none.
 Help request: NONE.
