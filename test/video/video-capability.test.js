@@ -13,6 +13,8 @@ const availableStyles = [1, 2, 3].map((index) => ({
   id: `style-${index}`,
   title: `Style ${index}`,
   motion_mode: `motion_${index}`,
+  playback_path: `/runtime/references/playback-${index}.mp4`,
+  playback_sha256: String(index + 3).repeat(64),
   preview_sha256: String(index).repeat(64),
 }));
 
@@ -49,6 +51,8 @@ test('Fashion Video becomes available only when look, style and motion are verif
   });
   assert.equal(capability.reason_code, 'FASHION_VIDEO_READY');
   assert.equal(capability.next_action, 'CREATE_FASHION_VIDEO');
+  assert.match(capability.styles[0].playback_url, /\/playback\?v=4444444444444444$/);
+  assert.match(capability.styles[0].reference_url, /\/reference$/);
 });
 
 test('Fashion Video rejects incomplete or malformed reference hashes', () => {

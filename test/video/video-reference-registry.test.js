@@ -17,9 +17,12 @@ async function fixture(run) {
     const referencePath = path.join(root, 'motion.mp4');
     const previewBytes = Buffer.from('verified-preview');
     const previewPath = path.join(root, 'preview.jpg');
+    const playbackBytes = Buffer.from('verified-ui-playback');
+    const playbackPath = path.join(root, 'playback.mp4');
     const manifestPath = path.join(root, 'manifest.json');
     await writeFile(referencePath, referenceBytes);
     await writeFile(previewPath, previewBytes);
+    await writeFile(playbackPath, playbackBytes);
     await writeFile(manifestPath, JSON.stringify({
       schema_version: '1.0.0',
       pack_id: 'fashion.test.v1',
@@ -27,6 +30,9 @@ async function fixture(run) {
         id: 'walk',
         ui_title_uk: 'Рух',
         filename: 'motion.mp4',
+        playback_filename: 'playback.mp4',
+        playback_sha256: sha256(playbackBytes),
+        playback_bytes: playbackBytes.length,
         preview_filename: 'preview.jpg',
         preview_sha256: sha256(previewBytes),
         preview_bytes: previewBytes.length,
@@ -40,14 +46,28 @@ async function fixture(run) {
         motion_modes: ['walk_stride'],
       }],
     }));
-    await run({ root, referencePath, manifestPath, referenceBytes });
+    await run({
+      root,
+      referencePath,
+      playbackPath,
+      manifestPath,
+      referenceBytes,
+      playbackBytes,
+    });
   } finally {
     await rm(root, { recursive: true, force: true });
   }
 }
 
-test('resolver selects and verifies the hash-bound motion reference', async () => {
-  await fixture(async ({ root, referencePath, manifestPath, referenceBytes }) => {
+test('resolver selects and verifies the hash-bound motion reference and UI playback', async () => {
+  await fixture(async ({
+    root,
+    referencePath,
+    playbackPath,
+    manifestPath,
+    referenceBytes,
+    playbackBytes,
+  }) => {
     const resolve = createFashionVideoReferenceResolver({
       rootDirectory: root,
       manifestPath,
@@ -57,9 +77,25 @@ test('resolver selects and verifies the hash-bound motion reference', async () =
     assert.equal(result.reference_path, await realpath(referencePath));
     assert.equal(result.reference_sha256, sha256(referenceBytes));
     assert.equal(result.available_styles[0].title, 'Рух');
+    assert.equal(result.playback_path, await realpath(playbackPath));
+    assert.equal(result.available_styles[0].playback_sha256, sha256(playbackBytes));
     assert.match(result.reference_pack_sha256, /^[a-f0-9]{64}$/);
     assert.equal(result.duration_seconds, 13.24);
     assert.equal(result.provider_duration_seconds, 13);
+  });
+});
+
+test('resolver refuses a playback derivative changed after approval', async () => {
+  await fixture(async ({ root, playbackPath, manifestPath }) => {
+    await writeFile(playbackPath, 'tampered-ui-playback');
+    const resolve = createFashionVideoReferenceResolver({
+      rootDirectory: root,
+      manifestPath,
+    });
+    await assert.rejects(
+      () => resolve({ motionMode: 'walk_stride' }),
+      (error) => error instanceof VideoReferenceRegistryError,
+    );
   });
 });
 

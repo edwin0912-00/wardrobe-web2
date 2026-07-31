@@ -1830,15 +1830,15 @@ function renderFashionVideoStyles(styles = []) {
     card.setAttribute('role', 'radio');
     card.setAttribute('aria-checked', String(index === 0));
     const video = document.createElement('video');
-    video.src = style.reference_url;
+    video.src = style.playback_url;
     video.poster = style.preview_url;
+    video.autoplay = true;
     video.muted = true;
     video.loop = true;
     video.playsInline = true;
-    video.preload = 'metadata';
+    video.preload = 'auto';
+    video.disablePictureInPicture = true;
     video.setAttribute('aria-label', `Відеореференс стилю: ${style.title}`);
-    // Autoplay can be refused by a browser; the native controls remain a
-    // deliberate escape hatch so the user still sees the actual reference.
     video.addEventListener('canplay', () => video.play().catch(() => {}), { once: true });
     const label = document.createElement('span');
     label.textContent = style.title;
@@ -1854,6 +1854,7 @@ function renderFashionVideoStyles(styles = []) {
 }
 // Video overlay: close
 function closeVideoOverlay() {
+  document.querySelectorAll('#video-style-options video').forEach((video) => video.pause());
   document.querySelector('#video-overlay').classList.add('hidden');
 }
 function setVideoGenerateBusy(busy) {

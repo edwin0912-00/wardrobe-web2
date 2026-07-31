@@ -26,6 +26,9 @@ export function fashionVideoCapability({
     (style) => typeof style?.id === 'string'
       && typeof style?.title === 'string'
       && typeof style?.motion_mode === 'string'
+      && typeof style?.playback_path === 'string'
+      && style.playback_path.length > 0
+      && hasSha256(style?.playback_sha256)
       && hasSha256(style?.preview_sha256),
   );
   const styleCatalogReady = verifiedStyles.length === 3;
@@ -39,6 +42,7 @@ export function fashionVideoCapability({
         title: style.title,
         motion_mode: style.motion_mode,
         preview_url: `/api/profile/looks/${encodeURIComponent(lookId)}/video-styles/${encodeURIComponent(style.id)}/preview`,
+        playback_url: `/api/profile/looks/${encodeURIComponent(lookId)}/video-styles/${encodeURIComponent(style.id)}/playback?v=${style.playback_sha256.slice(0, 16)}`,
         // A contact sheet is only the poster.  The style itself is a real
         // reference video and must be visible before a paid create is allowed.
         reference_url: `/api/profile/looks/${encodeURIComponent(lookId)}/video-styles/${encodeURIComponent(style.id)}/reference`,
