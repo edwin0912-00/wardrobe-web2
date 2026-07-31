@@ -5,13 +5,13 @@ REPO_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 RUNTIME_DIR='/Users/jarvis1/Library/Application Support/WardrobeRuntime'
 BACKUP_BASE='/Users/jarvis1/.local/share/madeforthisjob/app/runtime/backups'
 PUBLIC_ORIGIN='https://site.madeforthisjob.com'
-EXPECTED_BRANCH='main'
+EXPECTED_UPSTREAM='origin/canonical-site-main'
 
 cd "$REPO_DIR"
 
-branch=$(git branch --show-current)
-if [ "$branch" != "$EXPECTED_BRANCH" ]; then
-  echo "refusing deploy: branch is $branch, expected $EXPECTED_BRANCH" >&2
+upstream=$(git rev-parse --abbrev-ref --symbolic-full-name '@{upstream}' 2>/dev/null || true)
+if [ "$upstream" != "$EXPECTED_UPSTREAM" ]; then
+  echo "refusing deploy: upstream is ${upstream:-none}, expected $EXPECTED_UPSTREAM" >&2
   exit 1
 fi
 
@@ -20,11 +20,11 @@ if [ -n "$(git status --porcelain)" ]; then
   exit 1
 fi
 
-git fetch origin main
+git fetch origin canonical-site-main
 local_head=$(git rev-parse HEAD)
-remote_head=$(git rev-parse origin/main)
+remote_head=$(git rev-parse origin/canonical-site-main)
 if [ "$local_head" != "$remote_head" ]; then
-  echo "refusing deploy: local main is not origin/main" >&2
+  echo "refusing deploy: local HEAD is not origin/canonical-site-main" >&2
   exit 1
 fi
 

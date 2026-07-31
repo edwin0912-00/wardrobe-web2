@@ -9,19 +9,24 @@ all active claims.
 ## Branch topology
 
 ```text
-agent/claude-main-site-0.2  -- small Claude commits --\
-                                                       > preflight/0.2-canonical-d
-Codex feature atoms         -- small Codex commits ----/             |
-                                                                      | verified fast-forward
-                                                                      v
-                                                                    main
-                                                                      |
-                                                                      v
-                                                        site.madeforthisjob.com
+Codex local worktree  -- claim / commit / rebase --\
+                                                   > canonical-site-main
+Claude local worktree -- claim / commit / rebase --/          |
+                                                               v
+                                                   site.madeforthisjob.com
+
+owner-approved official release only:
+canonical-site-main -- explicit reviewed fast-forward --> main --> madeforthisjob.com
 ```
 
-`main` is the public release source. `preflight/0.2-canonical-d` is the only
-integration line. An agent branch is never deployed directly.
+GitHub intentionally has one working branch: `canonical-site-main`. Both agents
+publish to it. `main` is the frozen official release source and does not move
+during normal development. There are no persistent agent, feature, or
+preflight branches.
+
+Separate local branch names exist only because Git cannot safely check out one
+local branch in two worktrees. They are never pushed to GitHub. The live board
+serialises overlapping files; a fetch/rebase serialises the shared history.
 
 ## Local checkouts
 
@@ -73,17 +78,21 @@ the new claim. Narrow the atom or coordinate a release first.
 ## Commit and push from Claude
 
 ```bash
+git fetch origin canonical-site-main
+git rebase origin/canonical-site-main
 ./scripts/site-preflight.sh
 git status --short
 git add <only-the-files-owned-by-this-atom>
 git commit -m "feat: <one concrete main-site atom>"
-git push -u origin agent/claude-main-site-0.2
+git fetch origin canonical-site-main
+git rebase origin/canonical-site-main
+git push origin HEAD:canonical-site-main
 ./scripts/collab-board.sh release "$(git rev-parse HEAD)" "<short result>"
 ```
 
-Claude then gives Codex the SHA. Codex reviews/cherry-picks or fast-forwards
-that atom into preflight, resolves any overlap in the canonical architecture,
-runs the same preflight, and only then advances `main`.
+Claude then gives Codex the SHA. The board protects file ownership while Git's
+non-force push protects history. If the remote moved, Claude rebases the
+non-overlapping atom and reruns preflight before pushing.
 
 ## What actually serves the public domain
 
@@ -97,16 +106,18 @@ Cloudflare Tunnel
 The Next/vinext app, `npm run build`, Cloudflare Workers deploys, and the beta
 runtime are not on this request path.
 
-After a reviewed preflight is promoted to `main`, update the local `main`
-checkout and run:
+To update the test domain from a clean checkout whose HEAD exactly matches
+`origin/canonical-site-main`, run:
 
 ```bash
 ./scripts/deploy-site.sh
 ```
 
-The deploy script requires a clean `main` exactly equal to `origin/main`, runs
-the full test set, creates a timestamped runtime backup, copies the static
-site, and verifies loopback plus the public domain. It never deploys beta.
+The deploy script requires the shared-branch upstream and exact remote HEAD,
+runs the full test set, creates a timestamped runtime backup, copies the static
+site, and verifies loopback plus the test domain. It never deploys `main` or
+beta. The official apex release is a separate owner-approved operation and is
+not performed by this test deploy script.
 
 ## Parallel ownership
 

@@ -31,6 +31,10 @@ After a successful commit and push:
 One active claim per agent is allowed. A new claim supersedes that agent's old
 claim. Claims are coordination locks, not ownership of the product.
 
+Both agents publish completed atoms to the single remote working branch
+`canonical-site-main`. Local branch names are intentionally private to their
+separate worktrees and must not be pushed. `main` is outside day-to-day work.
+
 ## Worktree identities
 
 Install once in each worktree:
