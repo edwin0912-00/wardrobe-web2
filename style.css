@@ -735,6 +735,14 @@ body {
   display: grid; place-items: center; overflow: hidden;
 }
 .slot[data-filled="1"] { border-color: rgba(245, 243, 237, 0.5); }
+.slot--drop { cursor: pointer; transition: border-color 140ms ease-out, background-color 140ms ease-out, box-shadow 140ms ease-out; }
+.slot--drop:hover { border-color: rgba(245,243,237,0.68); background: rgba(245,243,237,0.07); }
+.slot--drop.is-dragover,
+.pslot.is-dragover {
+  border-color: var(--milk);
+  background: rgba(245,243,237,0.14);
+  box-shadow: inset 0 0 0 1px var(--milk), 0 0 0 2px rgba(245,243,237,0.16);
+}
 .slot__img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .slot__ph { display: grid; place-items: center; opacity: 0.55; }
 .slot__empty {
@@ -1375,6 +1383,16 @@ body {
   line-height: 1.42;
   color: rgba(245,243,237,0.72);
 }
+.upload-helper {
+  flex: 0 0 auto;
+  margin: clamp(5px, 1.4cqh, 8px) 0 0;
+  font-size: clamp(8px, 1.7cqh, 10px);
+  line-height: 1.35;
+  letter-spacing: 0.06em;
+  color: rgba(245,243,237,0.46);
+}
+.upload-helper--busy { color: rgba(245,243,237,0.82); }
+.upload-helper--error { color: #F0A59A; }
 /* Sized off the GLASS's own height (cqh), not a fixed aspect-ratio: a ratio scales with
  * WIDTH, and the wider of the two columns (1.35fr) then demands more height than a short
  * mirror's askbody has left to give — measured at 255px wanted against 110px actually

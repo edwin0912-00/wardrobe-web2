@@ -155,6 +155,18 @@
     var awaitingAspect = null;   // null | 'shoot' | 'fash' | 'bg'
     var pendingAction = null;    // null | { kind, aspect }
     var actionError = null;      // adapter-owned failure: { kind, message }
+    /* Upload preparation is intentionally presentation-neutral. The beta accepts the
+     * same normalized JPEG/PNG/WebP payload after HEIC/HEIF conversion; while that work
+     * is happening the station stays put and every upload affordance is disabled. */
+    var preparingFiles = false;
+    var uploadError = '';
+    var uploadTaskId = 0;
+    var uploadToolsPromise = Promise.all([
+      import('./image-upload.js'),
+      import('./drop-upload.js')
+    ]).then(function (modules) {
+      return { prepareImageFile: modules[0].prepareImageFile, acceptedDroppedImages: modules[1].acceptedDroppedImages };
+    }).catch(function () { return null; });
 
     /* Product state arrives through one presentation-neutral bridge. The UI keeps
      * ownership of words, surfaces and motion; it never knows API routes or a host. */
@@ -215,7 +227,7 @@
     }
 
     function makeLook() {
-      if (!hasMain() || !hasItems() || pending) return;
+      if (!hasMain() || !hasItems() || pending || preparingFiles) return;
       if (adapterLoading || adapterUnavailable) {
         actionError = { kind: 'look', message: 'Ця частина простору ще готується' };
         render(); notifyGateChange();
@@ -397,8 +409,14 @@
            : '<span class="pslot__plus" aria-hidden="true">+</span>') +
         '<span class="pslot__copy"><span class="pslot__t">' + label + '</span>' +
           '<span class="pslot__n">' + (p ? 'замінити' : note) + '</span></span>' +
-        '<input id="io-' + kind + '" type="file" accept="image/*" hidden>' +
+        '<input id="io-' + kind + '" type="file" accept="image/png,image/jpeg,image/webp,image/avif,image/heic,image/heif,.heic,.heif" hidden>' +
       '</label>';
+    }
+
+    function uploadNotice() {
+      if (preparingFiles) return '<p class="upload-helper upload-helper--busy" role="status">Готуємо фото…</p>';
+      if (uploadError) return '<p class="upload-helper upload-helper--error" role="alert">' + esc(uploadError) + '</p>';
+      return '<p class="upload-helper">PNG · JPEG · WebP · HEIC · можна перетягнути</p>';
     }
 
     function askPerson() {
@@ -410,7 +428,7 @@
         '<div class="pslots">' +
           photoSlot('main', 'Додати своє фото', 'потрібне', 1) +
           photoSlot('face', 'Портрет', 'за бажанням', 2) +
-        '</div>';
+        '</div>' + uploadNotice();
     }
 
     function askItems() {
@@ -431,7 +449,8 @@
               '<span class="slot__empty">' + (i + 1) + '</span></label>';
       }
       return '<div class="slots slots--big">' + cells + '</div>' +
-        '<input id="io-items" type="file" accept="image/*" multiple hidden' + (full ? ' disabled' : '') + '>' +
+        '<input id="io-items" type="file" accept="image/png,image/jpeg,image/webp,image/avif,image/heic,image/heif,.heic,.heif" multiple hidden' + (full ? ' disabled' : '') + '>' +
+        uploadNotice() +
         '<button class="secondary" type="button" data-presets aria-expanded="' + (presetsOpen ? 'true' : 'false') + '">' +
           'нічого під рукою — обрати з готових</button>' +
         (presetsOpen
@@ -656,7 +675,7 @@
       var s = STEPS[step];
       var blocked = (step === 0 && !hasMain()) ||
         (step === 1 && (!hasItems() || pending || adapterLoading || adapterUnavailable ||
-          (bridge && !bridgeReady())));
+          (bridge && !bridgeReady()) || preparingFiles));
 
       /* UNREACHED STEPS ARE NOT RENDERED AT ALL. A greyed-out label still advertises an
        * offer, and there is no offer before the thing it applies to exists. */
@@ -1131,7 +1150,7 @@
           if (el.hasAttribute('data-presets')) return;
           var blocked = el.getAttribute('data-blocked') === '1';
           var full = el.id === 'io-items' && items.length >= MAX_ITEMS;
-          el.disabled = lock || blocked || full;
+          el.disabled = lock || blocked || full || preparingFiles;
         });
       var hint = askRoot.querySelector('[data-hint]');
       if (hint) {
@@ -1139,6 +1158,7 @@
                          : (step === 1 && !hasItems()) ? 'додайте хоча б одну річ'
                          : (step === 1 && (adapterLoading || adapterUnavailable || (bridge && !bridgeReady())))
                            ? (bridgeCopy() || 'Ця частина простору ще готується')
+                         : preparingFiles ? 'готуємо фото…'
                          : lock ? 'камера рухається — рішення на зупинці' : '';
       }
     }
@@ -1189,21 +1209,51 @@
     if (mobileQuery.addEventListener) mobileQuery.addEventListener('change', syncMobileAttention);
     else if (mobileQuery.addListener) mobileQuery.addListener(syncMobileAttention);
 
-    function addFiles(fileList) {
-      var room = MAX_ITEMS - items.length;
-      Array.prototype.slice.call(fileList, 0, Math.max(0, room)).forEach(function (f) {
-        items.push({ name: f.name, url: URL.createObjectURL(f), file: f });
-      });
-      render();
-    }
-
-    function setPhoto(kind, file) {
+    function commitPreparedFiles(kind, prepared) {
+      if (kind === 'items') {
+        var room = MAX_ITEMS - items.length;
+        prepared.slice(0, Math.max(0, room)).forEach(function (entry) {
+          var file = entry.file;
+          items.push({ name: file.name, url: URL.createObjectURL(file), file: file });
+        });
+        return;
+      }
+      var file = prepared[0] && prepared[0].file;
       if (!file) return;
-      /* Release the old object URL: camera-sized photographs are real memory and nothing
-       * else references them. */
       if (person[kind] && person[kind].url) URL.revokeObjectURL(person[kind].url);
       person[kind] = { name: file.name, url: URL.createObjectURL(file), file: file };
+    }
+
+    async function prepareSelected(kind, fileList) {
+      if (locked() || preparingFiles) return;
+      var files = Array.prototype.slice.call(fileList || []);
+      if (!files.length) return;
+      var task = ++uploadTaskId;
+      preparingFiles = true;
+      uploadError = '';
       render();
+      notifyGateChange();
+      try {
+        var tools = await uploadToolsPromise;
+        if (!tools) throw new Error('Не вдалося підготувати це фото');
+        var accepted = tools.acceptedDroppedImages(files, { multiple: kind === 'items' });
+        if (kind === 'items') accepted = accepted.slice(0, Math.max(0, MAX_ITEMS - items.length));
+        var prepared = await Promise.all(accepted.map(function (file) { return tools.prepareImageFile(file); }));
+        if (task !== uploadTaskId) return;
+        commitPreparedFiles(kind, prepared);
+      } catch (error) {
+        if (task === uploadTaskId) {
+          uploadError = error && error.message
+            ? error.message
+            : 'Не вдалося підготувати це фото. Оберіть PNG, JPEG, WebP або HEIC.';
+        }
+      } finally {
+        if (task === uploadTaskId) {
+          preparingFiles = false;
+          render();
+          notifyGateChange();
+        }
+      }
     }
 
     function removeAt(i) {
@@ -1427,9 +1477,9 @@
     });
 
     document.addEventListener('change', function (ev) {
-      if (ev.target.matches('#io-items')) addFiles(ev.target.files);
-      else if (ev.target.matches('#io-main')) setPhoto('main', ev.target.files[0]);
-      else if (ev.target.matches('#io-face')) setPhoto('face', ev.target.files[0]);
+      if (ev.target.matches('#io-items')) prepareSelected('items', ev.target.files);
+      else if (ev.target.matches('#io-main')) prepareSelected('main', ev.target.files);
+      else if (ev.target.matches('#io-face')) prepareSelected('face', ev.target.files);
     });
 
     document.addEventListener('keydown', function (ev) {
@@ -1463,18 +1513,54 @@
       }
     });
 
-    ['dragover', 'drop'].forEach(function (type) {
-      document.addEventListener(type, function (ev) {
-        var zone = ev.target.closest && ev.target.closest('.pslot, .slot--drop');
-        if (!zone || locked()) return;
-        ev.preventDefault();
-        if (type !== 'drop' || !ev.dataTransfer || !ev.dataTransfer.files) return;
-        var inp = zone.querySelector('input');
-        if (inp && inp.id === 'io-main') setPhoto('main', ev.dataTransfer.files[0]);
-        else if (inp && inp.id === 'io-face') setPhoto('face', ev.dataTransfer.files[0]);
-        else addFiles(ev.dataTransfer.files);
-      });
+    /* Delegated drop handling survives the mirror's innerHTML renders. It mirrors beta's
+     * nested drag depth so a child thumbnail cannot make the highlight blink off. */
+    var dragZone = null;
+    var dragDepth = 0;
+    function clearDragState() {
+      if (dragZone) dragZone.classList.remove('is-dragover');
+      dragZone = null; dragDepth = 0;
+    }
+    function hasDraggedFiles(dataTransfer) {
+      return !!dataTransfer && (Array.prototype.indexOf.call(dataTransfer.types || [], 'Files') >= 0
+        || Number(dataTransfer.files && dataTransfer.files.length || 0) > 0);
+    }
+    document.addEventListener('dragenter', function (ev) {
+      var zone = ev.target.closest && ev.target.closest('.pslot, .slot--drop');
+      if (!zone || locked() || preparingFiles || !hasDraggedFiles(ev.dataTransfer)) return;
+      ev.preventDefault();
+      if (dragZone && dragZone !== zone) dragZone.classList.remove('is-dragover');
+      dragZone = zone; dragDepth += 1; zone.classList.add('is-dragover');
     });
+    document.addEventListener('dragover', function (ev) {
+      var zone = ev.target.closest && ev.target.closest('.pslot, .slot--drop');
+      if (!zone || locked() || preparingFiles || !hasDraggedFiles(ev.dataTransfer)) return;
+      ev.preventDefault();
+      if (ev.dataTransfer) ev.dataTransfer.dropEffect = 'copy';
+      if (dragZone !== zone) {
+        if (dragZone) dragZone.classList.remove('is-dragover');
+        dragZone = zone; dragDepth = 0;
+      }
+      zone.classList.add('is-dragover');
+    });
+    document.addEventListener('dragleave', function (ev) {
+      if (!hasDraggedFiles(ev.dataTransfer)) return;
+      dragDepth = Math.max(0, dragDepth - 1);
+      if (dragDepth === 0) clearDragState();
+    });
+    document.addEventListener('drop', function (ev) {
+      var zone = ev.target.closest && ev.target.closest('.pslot, .slot--drop');
+      if (!zone || locked() || preparingFiles || !hasDraggedFiles(ev.dataTransfer)) return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      clearDragState();
+      var input = zone.querySelector('input');
+      var kind = input && input.id === 'io-main' ? 'main'
+        : input && input.id === 'io-face' ? 'face' : 'items';
+      prepareSelected(kind, ev.dataTransfer.files);
+    });
+    window.addEventListener('drop', clearDragState);
+    window.addEventListener('dragend', clearDragState);
 
     new MutationObserver(applyEnabled)
       .observe(stage, { attributes: true, attributeFilter: ['data-station', 'data-leg'] });
