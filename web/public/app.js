@@ -2043,6 +2043,9 @@ document.querySelector('#video-generate').addEventListener('click', async () => 
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
+      if (err.code === 'MOTION_MODE_SOURCE_MISMATCH') {
+        throw new Error('Для цього руху потрібен збережений образ у повний зріст: мають бути видні ноги й взуття. Обери інший стиль або створи full-body образ.');
+      }
       throw new Error(err.error || `HTTP ${res.status}`);
     }
     const clip = await res.json();

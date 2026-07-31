@@ -352,7 +352,12 @@ export async function registerVideoRoutes(app, {
       ? await runService.approvedWhiteMasterReferenceForRun(lookDescriptor.runId)
       // Compatibility only for isolated route tests whose mock has no disk
       // inspector. Production RunService always provides the strict method.
-      : { path: sourceImagePath, sha256: approvedLook.image_sha256, white_background_verified: true };
+      : {
+          path: sourceImagePath,
+          sha256: approvedLook.image_sha256,
+          white_background_verified: true,
+          source_capabilities: { full_length: true },
+        };
     if (whiteMaster.sha256 !== approvedLook.image_sha256 || whiteMaster.white_background_verified !== true) {
       throw new ProfileError(409, 'VIDEO_WHITE_MASTER_MISMATCH', 'Fashion Video requires the exact approved white master');
     }
@@ -400,6 +405,7 @@ export async function registerVideoRoutes(app, {
         modeId: motion_mode,
         surfaceId: surface,
         durationSeconds: duration_seconds ?? undefined,
+        sourceCapabilities: whiteMaster.source_capabilities ?? { full_length: false },
         styleNote: style_note ?? null,
         sourceImagePath: whiteMaster.path,
         videoReference: motionReference,

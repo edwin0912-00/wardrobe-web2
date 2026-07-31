@@ -9,6 +9,7 @@ import {
   VideoReferenceRegistryError,
   createFashionVideoReferenceResolver,
 } from '../../src/web/video-reference-registry.js';
+import { buildMotionPlan } from '../../src/web/video-motion-plan.js';
 
 async function fixture(run) {
   const root = await mkdtemp(path.join(os.tmpdir(), 'zeely-video-ref-'));
@@ -146,5 +147,9 @@ test('product reference pack exposes every listed Fashion Video style by its imm
   for (const reference of manifest.references) {
     assert.ok(reference.motion_modes.includes(reference.default_motion_mode));
     assert.equal(reference.cut_sheet.cuts.at(-1).end_ms, Math.round(reference.duration_seconds * 1000));
+    assert.doesNotThrow(() => buildMotionPlan({
+      modeId: reference.default_motion_mode,
+      sourceCapabilities: { full_length: true },
+    }), `verified full-body master must support ${reference.id}`);
   }
 });

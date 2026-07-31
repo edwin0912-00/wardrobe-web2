@@ -21,6 +21,7 @@ import { assessImageQuality, normalizeReference } from '../conditioning/index.mj
 import { normalizeWhitePngBytes } from '../qa/white-normalizer.mjs';
 import { inspectImage } from '../qa/image-inspector.mjs';
 import { STATUS as QA_STATUS } from '../qa/constants.mjs';
+import { removeBorderConnectedWhiteToAlpha } from '../conditioning/transparent-cutout.mjs';
 import { GarmentNeedsInputError, GarmentConditioner } from './garment-conditioner.js';
 import { lockFirstAppearance } from './first-appearance-lock.js';
 import {
@@ -113,6 +114,40 @@ function needsInput(code, message, options) {
 
 function evidenceError(code, message) {
   return new ApprovedItemEvidenceError(code, message);
+}
+
+// Fashion Video must decide whether a stride is physically grounded before a
+// provider job exists. The approved white master is already the only legal
+// image input, so this is a deterministic measurement of those exact pixels —
+// never a generated extension and never a VLM guess. A half-body crop cannot
+// prove footwear; a visible figure that reaches from the upper to lower area of
+// the white canvas can.
+async function fullLengthSourceCapability(filename) {
+  try {
+    const isolated = await removeBorderConnectedWhiteToAlpha(filename, {
+      removeBorderConnectedNeutralGradient: true,
+      removeDetachedLowContrastResidue: true,
+    });
+    const { data, info } = await sharp(isolated.image).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+    let top = info.height;
+    let bottom = -1;
+    for (let pixel = 0; pixel < info.width * info.height; pixel += 1) {
+      if (data[pixel * info.channels + 3] === 0) continue;
+      const y = Math.floor(pixel / info.width);
+      top = Math.min(top, y);
+      bottom = Math.max(bottom, y);
+    }
+    const visibleHeight = bottom >= top ? bottom - top + 1 : 0;
+    return Object.freeze({
+      full_length: visibleHeight >= info.height * 0.52
+        && top <= info.height * 0.32
+        && bottom >= info.height * 0.72,
+    });
+  } catch {
+    // This is a capability check, not a license to infer unseen legs. If the
+    // exact source cannot be measured, stride remains unavailable.
+    return Object.freeze({ full_length: false });
+  }
 }
 
 function isInside(root, filename) {
@@ -1902,6 +1937,7 @@ export class RunService {
       data,
       sha256: inspected.sha256,
       white_background_verified: true,
+      source_capabilities: await fullLengthSourceCapability(filename),
       background_diagnostics: inspected.background_diagnostics,
     };
   }

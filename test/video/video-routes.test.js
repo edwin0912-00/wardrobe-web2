@@ -460,6 +460,7 @@ test('create reaches VideoService only after the same two-reference contract is 
   assert.equal(response.statusCode, 202, response.body);
   assert.equal(response.json().status, 'CREATED');
   assert.equal(current.createRequests.length, 1);
+  assert.deepEqual(current.createRequests[0].sourceCapabilities, { full_length: true });
   assert.equal(current.createRequests[0].lookBinding.sourceSha256, 'b'.repeat(64));
   assert.deepEqual(
     current.createRequests[0].appearanceReferences.map((reference) => reference.role),
