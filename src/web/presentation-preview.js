@@ -56,7 +56,10 @@ export async function sendPresentationImage(request, reply, {
   const payload = bytes ?? createReadStream(filename);
   return reply
     .type(type)
-    .header('Cache-Control', cacheControl)
+    // The lightweight derivative is disposable presentation data and may be
+    // cached privately for a bounded window. The original is immutable QA /
+    // generation evidence and must not be retained by the browser cache.
+    .header('Cache-Control', 'private, no-store')
     .header('Vary', 'Cookie')
     .header('X-Content-Type-Options', 'nosniff')
     .header('Content-Disposition', `${disposition}; filename="${downloadName}"`)

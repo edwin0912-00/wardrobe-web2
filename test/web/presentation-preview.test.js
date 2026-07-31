@@ -27,5 +27,6 @@ test('presentation preview is a bounded WebP while the original remains availabl
   const original = await app.inject('/image');
   assert.equal(original.statusCode, 200);
   assert.match(original.headers['content-type'], /^image\/png/);
+  assert.equal(original.headers['cache-control'], 'private, no-store');
   assert.deepEqual(original.rawPayload, source);
 });
