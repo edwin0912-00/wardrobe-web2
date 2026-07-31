@@ -1,10 +1,9 @@
 import { createThinkingOrb } from './thinking-orb.js?v=20260722-10';
-import { createWhiteBorderMatte } from './light-stage.js?v=20260730-1';
 
 const MODEL_ID = 'decart/lucy-2-5/realtime';
 const SESSION_SECONDS = 15;
 const state = {
-  stream: null, reference: null, connection: null, peer: null, timer: null,
+  stream: null, reference: null, previewUrl: null, connection: null, peer: null, timer: null,
   countdownTimer: null, deadline: null, guideTimer: null, running: false, phase: 'READY',
   cameraPermission: 'prompt',
 };
@@ -78,18 +77,6 @@ function dataUrl(file) {
     reader.readAsDataURL(file);
   });
 }
-function transparentPreview(image) {
-  const canvas = document.createElement('canvas');
-  canvas.width = image.naturalWidth;
-  canvas.height = image.naturalHeight;
-  const context = canvas.getContext('2d', { willReadFrequently: true });
-  if (!context) return image.src;
-  context.drawImage(image, 0, 0);
-  const pixels = context.getImageData(0, 0, canvas.width, canvas.height);
-  pixels.data.set(createWhiteBorderMatte(pixels.data, canvas.width, canvas.height));
-  context.putImageData(pixels, 0, 0);
-  return canvas.toDataURL('image/png');
-}
 async function loadReference(file) {
   if (!['image/jpeg', 'image/png', 'image/webp'].includes(file?.type)) throw new Error('Потрібен JPEG, PNG або WebP.');
   const url = URL.createObjectURL(file);
@@ -98,7 +85,9 @@ async function loadReference(file) {
   await image.decode();
   if (image.naturalWidth < 512 || image.naturalHeight < 512) throw new Error('Reference має бути мінімум 512×512.');
   state.reference = await dataUrl(file);
-  $('#reference-preview').src = transparentPreview(image);
+  if (state.previewUrl) URL.revokeObjectURL(state.previewUrl);
+  state.previewUrl = url;
+  $('#reference-preview').src = state.previewUrl;
   $('#reference-preview').classList.remove('hidden');
   $('#reference-placeholder').classList.add('hidden');
   $('#reference-status').textContent = `${file.name} · ${image.naturalWidth}×${image.naturalHeight} · READY`;
@@ -332,6 +321,10 @@ document.addEventListener('keydown', (event) => {
 });
 window.addEventListener('pagehide', () => {
   stopCamera();
+  if (state.previewUrl) {
+    URL.revokeObjectURL(state.previewUrl);
+    state.previewUrl = null;
+  }
   if (query.get('return') === 'profile') sessionStorage.setItem(LIVE_RETURN_FOCUS_KEY, 'return');
 });
 ready();
