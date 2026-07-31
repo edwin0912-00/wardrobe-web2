@@ -13,6 +13,20 @@ weakened_checks: none.
 ---
 
 Agent ID: codex-main
+Task ID: BETA-FASHION-VIDEO-STYLE-LABELS-001
+Pipeline: VIDEO.01 · Вибір відеостилю до запуску
+State: READY_FOR_BETA_DEPLOY
+Decision: the three contact-sheet-backed video style units remain unchanged.
+Only the second UI label changes from the internal action wording `Рух у кадрі`
+to `Графічне місто`; motion modes stay server-side contract data and are not
+presented as styles.
+Evidence: manifest hashes for all three source MP4/contact sheets match; video
+reference registry tests pass.
+weakened_checks: none.
+
+---
+
+Agent ID: codex-main
 Task ID: BETA-SCENE-E2E-ROUTE-ALIGNMENT-001
 Product line: beta-placeholder
 Pipeline: BACKGROUND.01 · real provider/QA control runner
