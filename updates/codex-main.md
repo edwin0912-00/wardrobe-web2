@@ -1,4 +1,21 @@
 Agent ID: codex-main
+Task ID: BETA-FASHION-VIDEO-SERVER-RESUME-001
+Product line: beta-placeholder
+Pipeline: VIDEO.02 → VIDEO.04 · provider job → MP4 → QA
+State: CODE_VERIFIED — deployment pending
+Decision: a Fashion Video POST persists one provider job, then server-owned
+finalization waits for that same job, downloads it and enters QA. Status reads
+after a daemon restart resume the same persisted job; startup also resumes
+every persisted CREATED/GENERATING job. The browser no longer calls six minutes
+of waiting a failure: it truthfully says processing continues on the server.
+Evidence: focused video + UI suite 149/149 PASS. Route regression proves
+multiple status reads attach to one finalizer and one provider create.
+weakened_checks: none. Resume never invokes provider create; it uses only the
+stored job id. Semantic Fashion-Video QA remains required for delivery.
+
+---
+
+Agent ID: codex-main
 Task ID: ANTIGRAVITY-QA-LOOP-001
 Product line: beta-placeholder
 Pipeline: Block 0.8 · independent verification of Blocks 1–7

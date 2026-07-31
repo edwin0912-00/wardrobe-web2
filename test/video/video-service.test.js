@@ -714,6 +714,26 @@ test('getClip returns persisted metadata', async () => {
   });
 });
 
+test('resumableClipIds returns only persisted jobs that can continue after restart', async () => {
+  await withTempDir(async (dir, sourcePath) => {
+    const { provider } = makeStubProvider();
+    const store = new ClipStore(dir);
+    const service = new VideoService({ provider, clipStore: store });
+    const created = await service.createClip({
+      modeId: 'camera_drift',
+      surfaceId: 'mirror',
+      sourceImagePath: sourcePath,
+    });
+    await store.save('22222222-2222-4222-8222-222222222222', {
+      clipId: '22222222-2222-4222-8222-222222222222', status: 'PASS', jobId: 'old-job',
+    });
+    assert.deepEqual(await service.resumableClipIds(), [created.clipId]);
+    const persisted = await store.load(created.clipId);
+    await store.save(created.clipId, { ...persisted, status: 'GENERATING' });
+    assert.deepEqual(await service.resumableClipIds(), [created.clipId]);
+  });
+});
+
 test('awaitAndFinalize polls only the provider persisted at create time', async () => {
   await withTempDir(async (dir, sourcePath) => {
     const calls = [];

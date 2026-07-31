@@ -13,7 +13,7 @@
 // All dependencies are injected so the entire module is testable at zero cost.
 
 import { randomUUID } from 'node:crypto';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import { sha256 } from './scene-contract.js';
@@ -71,6 +71,26 @@ export class ClipStore {
     } catch {
       return null;
     }
+  }
+
+  // Persisted clip IDs are the recovery source after a daemon restart.  This
+  // deliberately reads only direct child directories and treats malformed
+  // files as absent, so startup recovery cannot traverse or repair arbitrary
+  // runtime data.
+  async resumableClipIds() {
+    let entries;
+    try {
+      entries = await readdir(path.join(this.#root, 'clips'), { withFileTypes: true });
+    } catch (error) {
+      if (error?.code === 'ENOENT') return [];
+      throw error;
+    }
+    const clips = await Promise.all(entries
+      .filter((entry) => entry.isDirectory() && /^[0-9a-f-]{36}$/i.test(entry.name))
+      .map(async (entry) => this.load(entry.name)));
+    return clips
+      .filter((clip) => clip && ['CREATED', 'GENERATING'].includes(clip.status))
+      .map((clip) => clip.clipId);
   }
 
   async saveVideo(clipId, videoBytes) {
@@ -674,6 +694,14 @@ export class VideoService {
       probeFn,
       extractFrameFn,
     });
+  }
+
+  /**
+   * Return only persisted remote jobs whose wait phase can be resumed.  The
+   * caller still owns scheduling/concurrency; this method never creates jobs.
+   */
+  async resumableClipIds() {
+    return this.#store.resumableClipIds();
   }
 
   /**

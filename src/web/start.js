@@ -119,6 +119,21 @@ const videoService = createVideoRuntime({
   assetUrlResolver: videoSourceBridge.videoAssetUrlResolver,
   fashionVideoReferenceResolver,
 });
+// A video create receipt is durable before the provider wait starts.  Recover
+// only those exact recorded jobs after a daemon restart; this does not call
+// createJob and therefore cannot duplicate a paid video.  The route layer also
+// resumes on a later status request, covering a provider wait interrupted by a
+// further restart.
+for (const clipId of await videoService.resumableClipIds()) {
+  void videoService.finalizeClip(clipId)
+    .then(() => monitor.append({ source: 'server', type: 'video.resume_completed', data: { clip_id: clipId } }))
+    .catch((error) => monitor.append({
+      source: 'server',
+      type: 'video.resume_paused',
+      severity: 'warn',
+      data: { clip_id: clipId, code: error?.code ?? 'VIDEO_FINALIZE_ERROR' },
+    }).catch(() => {}));
+}
 const app = await createWebApp({
   service,
   health,

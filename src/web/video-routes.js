@@ -105,6 +105,40 @@ export async function registerVideoRoutes(app, {
     },
   );
 
+  // `createClip` deliberately returns after persisting the paid provider job.
+  // The second phase must nevertheless be owned by the server, not by a tab
+  // polling for a fixed number of minutes.  A restart can safely enter this
+  // path again: `finalizeClip` waits on the recorded provider job id and never
+  // issues another create request.  The in-process map only prevents duplicate
+  // waits/downloads while this server instance is alive.
+  const activeFinalizers = new Map();
+  const finalizePersistedClip = ({ profileId, lookId, clipId }) => {
+    const active = activeFinalizers.get(clipId);
+    if (active) return active;
+    const finalizer = (async () => {
+      try {
+        await videoService.finalizeClip(clipId);
+      } catch (error) {
+        // Finalization is resumable.  Keep the immutable provider job and let
+        // the next status request retry the wait; do not turn a transport blip
+        // into a fresh paid generation or a false terminal result.
+        app.log?.warn?.({ err: error, clip_id: clipId }, 'fashion video finalization paused');
+      } finally {
+        try {
+          const liveClip = await videoService.getClip(clipId);
+          projectClip(profileId, lookId, liveClip);
+        } catch (error) {
+          app.log?.warn?.({ err: error, clip_id: clipId }, 'fashion video projection refresh failed');
+        }
+        activeFinalizers.delete(clipId);
+      }
+    })();
+    activeFinalizers.set(clipId, finalizer);
+    return finalizer;
+  };
+
+  const isResumableVideoStatus = (status) => ['CREATED', 'GENERATING'].includes(status);
+
   // GET /api/profile/looks/:lookId/video-capability — the saved-look action
   // hub reads this before enabling Fashion Video. The optional service hook
   // must return two immutable hashes: the selected style/reference pack and
@@ -320,6 +354,15 @@ export async function registerVideoRoutes(app, {
       const liveClip = await videoService.getClip(result.clipId);
       projectClip(session.profileId, look_id, liveClip);
 
+      // Return the persisted job immediately, then let the server wait,
+      // download and technically verify it.  No browser tab is required for
+      // this job to progress and no second provider create is permitted.
+      void finalizePersistedClip({
+        profileId: session.profileId,
+        lookId: look_id,
+        clipId: result.clipId,
+      });
+
       return reply.code(202).send({
         clip_id: result.clipId,
         job_id: result.jobId,
@@ -347,7 +390,11 @@ export async function registerVideoRoutes(app, {
       return reply.code(404).send({ error: 'Video clip not found', code: 'CLIP_NOT_FOUND' });
     }
     try {
-      await videoService.finalizeClip(request.params.clipId);
+      await finalizePersistedClip({
+        profileId: session.profileId,
+        lookId: projection.look_id,
+        clipId: request.params.clipId,
+      });
       const liveClip = await videoService.getClip(request.params.clipId);
       const updated = projectClip(session.profileId, projection.look_id, liveClip);
       return reply.code(200).send({
@@ -374,6 +421,15 @@ export async function registerVideoRoutes(app, {
     }
     // Merge with live service state if available
     const liveClip = await videoService.getClip(request.params.clipId);
+    // A process restart loses only the in-memory waiter, never the persisted
+    // provider job.  Any later status read resumes the same job id.
+    if (isResumableVideoStatus(liveClip?.status)) {
+      void finalizePersistedClip({
+        profileId: session.profileId,
+        lookId: clip.look_id,
+        clipId: request.params.clipId,
+      });
+    }
     const verifiedStyle = hasVerifiedFashionStyle(liveClip);
     return reply.header('Cache-Control', 'private, no-store').send({
       ...clip,

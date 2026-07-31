@@ -12,6 +12,7 @@ import { ProfileError } from '../../src/web/profile-service.js';
 function fixture() {
   const projected = [];
   const createRequests = [];
+  let finalizeCalls = 0;
   let liveClip = {
     clipId: '11111111-1111-4111-8111-111111111111',
     jobId: 'higgs-job-1',
@@ -60,6 +61,7 @@ function fixture() {
       return liveClip;
     },
     async finalizeClip() {
+      finalizeCalls++;
       liveClip = {
         ...liveClip,
         status: 'PASS',
@@ -75,6 +77,7 @@ function fixture() {
     projected,
     createRequests,
     videoService,
+    finalizeCalls: () => finalizeCalls,
     setLiveClip(next) { liveClip = { ...liveClip, ...next }; },
   };
 }
@@ -308,7 +311,57 @@ test('create reaches VideoService only after the same two-reference contract is 
     current.createRequests[0].appearanceReferences.map((reference) => reference.role),
     ['identity_face', 'garment_detail'],
   );
-  assert.equal(current.projected.length, 1);
+  assert.equal(current.projected[0].clip.status, 'CREATED');
+  assert.equal(current.projected.at(-1).clip.status, 'PASS');
+});
+
+test('create starts server-owned finalization once, and status reads resume the same persisted job', async (t) => {
+  const current = fixture();
+  let releaseFinalizer;
+  let finalizerStarts = 0;
+  current.videoService.fashionVideoCapability = async () => ({
+    state: 'READY',
+    reference_path: '/runtime/references/motion.mp4',
+    reference_sha256: 'd'.repeat(64),
+    reference_pack_sha256: 'e'.repeat(64),
+    available_styles: availableStyles,
+  });
+  current.videoService.finalizeClip = async () => new Promise((resolve) => {
+    finalizerStarts++;
+    releaseFinalizer = () => {
+      current.setLiveClip({ status: 'PASS', videoSha256: 'a'.repeat(64), qa: { pass: true } });
+      resolve({ clipId: '11111111-1111-4111-8111-111111111111', status: 'PASS' });
+    };
+  });
+  const app = Fastify();
+  t.after(() => app.close());
+  await registerVideoRoutes(app, {
+    profileApi: { resolveRequestProfile: async () => ({ profileId: 'profile-1' }) },
+    profiles: current.profiles,
+    videoService: current.videoService,
+    runService: {
+      outputFile: async () => '/runtime/runs/source/avatar_outfit.png',
+      approvedIdentityReferenceForRun: async () => ({ role: 'identity_face', data: Buffer.from('identity'), sha256: 'a'.repeat(64) }),
+    },
+  });
+  const created = await app.inject({
+    method: 'POST',
+    url: '/api/profile/video-clips',
+    payload: { look_id: '33333333-3333-4333-8333-333333333333', surface: 'mirror', style_id: 'style-1', motion_mode: 'motion_1' },
+  });
+  assert.equal(created.statusCode, 202, created.body);
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(typeof releaseFinalizer, 'function');
+  await Promise.all([
+    app.inject({ method: 'GET', url: '/api/profile/video-clips/11111111-1111-4111-8111-111111111111' }),
+    app.inject({ method: 'GET', url: '/api/profile/video-clips/11111111-1111-4111-8111-111111111111' }),
+  ]);
+  // Both reads attach to the existing wait: there is still only one job finalizer.
+  assert.equal(typeof releaseFinalizer, 'function');
+  assert.equal(finalizerStarts, 1);
+  releaseFinalizer();
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(current.createRequests.length, 1);
 });
 
 test('Fashion Video uses the selected style id and does not inherit the Real-time Look taxonomy gate', async (t) => {

@@ -1916,7 +1916,6 @@ document.querySelector('#video-generate').addEventListener('click', async () => 
     progressStatus.textContent = `Clip ${clip.clip_id} створено — генерація…`;
     // Poll for completion
     let attempts = 0;
-    const maxAttempts = 120;
     const poll = setInterval(async () => {
       attempts++;
       progressFill.style.width = `${Math.min(30 + attempts * 0.5, 92)}%`;
@@ -1953,11 +1952,13 @@ document.querySelector('#video-generate').addEventListener('click', async () => 
         errorEl.hidden = false;
         setVideoGenerateBusy(false);
       }
-      if (attempts >= maxAttempts) {
-        clearInterval(poll);
-        errorEl.textContent = 'Timeout: відео не згенерувалося за 6 хвилин';
-        errorEl.hidden = false;
-        setVideoGenerateBusy(false);
+      if (attempts === 120) {
+        // Six minutes is not a provider failure.  The server owns the
+        // persisted job and continues after this surface is closed or the
+        // browser reloads, so keep polling instead of presenting a false
+        // timeout and inviting a duplicate paid submission.
+        progressFill.style.width = '92%';
+        progressStatus.textContent = 'Генерація ще триває на сервері. Можна закрити вікно — результат збережеться.';
       }
     }, 3000);
   } catch (err) {
