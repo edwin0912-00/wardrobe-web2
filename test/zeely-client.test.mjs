@@ -6,6 +6,10 @@ function jsonResponse(body, status = 200) {
   return { ok: status >= 200 && status < 300, status, json: async () => body };
 }
 
+function textResponse(body, status = 200) {
+  return { ok: status >= 200 && status < 300, status, text: async () => body };
+}
+
 class FakeEventSource {
   static instances = [];
   constructor(url, options) {
@@ -27,6 +31,8 @@ test('normalizes beta states without presentation knowledge', () => {
   assert.equal(phaseFor({ status: 'APPROVE_HERO' }), 'waiting_for_approval');
   assert.equal(phaseFor({ status: 'PASS' }), 'completed');
   assert.equal(phaseFor({ status: 'FAILED' }), 'failed');
+  assert.equal(phaseFor({ status: 'FAIL' }), 'failed');
+  assert.equal(phaseFor({ status: 'NEEDS_RETRY' }), 'recovering');
 });
 
 test('uses a relative api base and starts a run from a server draft', async () => {
@@ -116,4 +122,29 @@ test('video polling is opt-in, begins immediately, and can be stopped', async ()
   assert.equal(calls, 1);
   assert.equal(client.snapshot().video.clip_id, 'clip-1');
   stop();
+});
+
+test('Live Look carries explicit privacy and paid-session acknowledgements', async () => {
+  const calls = [];
+  const client = createZeelyClient({
+    fetchImpl: async (url, options) => {
+      calls.push({ url, options });
+      return textResponse('test-only-token');
+    },
+    EventSourceImpl: FakeEventSource,
+  });
+  const token = await client.startLiveLook({
+    lookId: 'look-1',
+    privacyConsent: true,
+    costAcknowledged: true,
+  });
+  assert.equal(calls[0].url, '/api/fal/realtime-token');
+  assert.equal(token, 'test-only-token');
+  assert.deepEqual(JSON.parse(calls[0].options.body), {
+    app: 'decart/lucy-2-5/realtime',
+    look_id: 'look-1',
+    privacy_consent: true,
+    cost_acknowledged: true,
+    max_session_seconds: 15,
+  });
 });
