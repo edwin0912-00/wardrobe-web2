@@ -896,6 +896,33 @@ test('reference leakage salvages PASSed hero cuts even when rejected cuts fail a
   });
 });
 
+test('fresh salvage reference failure persists an explicit terminal failure code', async () => {
+  await withTempDir(async (dir) => {
+    const { provider } = makeStubProvider();
+    const store = new ClipStore(dir);
+    const service = new VideoService({ provider, clipStore: store });
+    await store.save('failed-salvage-review', {
+      clipId: 'failed-salvage-review', jobId: 'job_failed_salvage', status: 'NEEDS_QA',
+      durationSeconds: 5, deliveryDurationSeconds: 3, sourceSha256: 'a'.repeat(64),
+      videoSha256: 'b'.repeat(64), qa: { pass: true },
+      salvage: { status: 'NEEDS_QA', segments: [{ start_ms: 0, end_ms: 3_000 }] },
+      salvageIdentityItemQa: { pass: true },
+      motionReferenceBinding: { sha256: 'c'.repeat(64) },
+    });
+    const result = await service.recordReferenceAdherenceQa('failed-salvage-review', {
+      clip_id: 'failed-salvage-review', job_id: 'job_failed_salvage',
+      source_sha256: 'a'.repeat(64), motion_reference_sha256: 'c'.repeat(64),
+      output_sha256: 'b'.repeat(64),
+      cut_coverage: microCutCoverage({ durationMs: 3_000 }),
+      checks: referenceTransferChecks('camera_and_framing'),
+    });
+    assert.equal(result.status, 'FAIL');
+    const persisted = await store.load('failed-salvage-review');
+    assert.equal(persisted.failureCode, 'VIDEO_SALVAGE_REFERENCE_QA_FAILED');
+    assert.equal(persisted.salvage.status, 'FAIL');
+  });
+});
+
 test('awaitAndFinalize downloads video, runs QA, and marks PASS', async () => {
   await withTempDir(async (dir, sourcePath) => {
     const { provider } = makeStubProvider();

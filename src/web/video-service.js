@@ -1565,7 +1565,9 @@ export class VideoService {
       }
     }
 
-    if (!updated.salvage && !pass) {
+    if (salvageReview && !pass) {
+      updated.failureCode = 'VIDEO_SALVAGE_REFERENCE_QA_FAILED';
+    } else if (!updated.salvage && !pass) {
       updated.failureCode = 'VIDEO_REFERENCE_QA_FAILED';
     } else if (pass && technicalPass !== false) {
       updated.failureCode = null;
