@@ -44,7 +44,7 @@
          .film so it is cropped and scaled exactly like the footage it hands over to. -->
     <video data-intro data-src="assets/intro.mp4" poster="assets/intro-poster.jpg" muted playsinline preload="auto" aria-hidden="true"></video>
 
-    <video data-leg="0" data-src="assets/seg1.mp4" muted playsinline preload="auto" aria-hidden="true"></video>
+    <video data-leg="0" data-src="assets/seg1.mp4?v=seg1-d-20260730" muted playsinline preload="auto" aria-hidden="true"></video>
     <video data-leg="1" data-src="assets/seg2.mp4" muted playsinline preload="auto" aria-hidden="true" hidden></video>
     <video data-leg="2" data-src="assets/seg3.mp4" muted playsinline preload="auto" aria-hidden="true" hidden></video>
     <video data-leg="3" data-src="assets/seg4.mp4" muted playsinline preload="auto" aria-hidden="true" hidden></video>
@@ -138,7 +138,7 @@
    * not deleted. `assets/seg1.mp4` IS variant D now — the file was replaced in place so
    * nothing else in this file (the data-src below, motion.json's leg-0 table) needed to
    * change. */
-  var VIDEOS = ['assets/seg1.mp4', 'assets/seg2.mp4', 'assets/seg3.mp4', 'assets/seg4.mp4'];
+  var VIDEOS = ['assets/seg1.mp4?v=seg1-d-20260730', 'assets/seg2.mp4', 'assets/seg3.mp4', 'assets/seg4.mp4'];
   var TRACKS = ['audio/t1.mp3', 'audio/t2.mp3', 'audio/t3.mp3'];
 
   var loaderEl = document.querySelector('[data-loader]');
@@ -172,12 +172,10 @@
      room vulnerable at the handover: the scroll clock advanced while the room stayed on
      its initial/black plane.  A real gesture is the reliable moment at which iOS permits
      play(), so use that same gesture to wake every film plane, then pause it again. */
-  function primeIOSFilmPlanes() {
-    if (!IOS_MEDIA) return;
-    var films = Array.prototype.slice.call(document.querySelectorAll('video[data-src]'));
-    films.forEach(function (v) {
-      if (v.dataset.iosPrime === 'done' || v.dataset.iosPrime === 'pending') return;
-      if (!v.src || !v.duration || !isFinite(v.duration)) return;
+  var iosWakeRequested = false;
+  function primeIOSFilm(v) {
+      if (v.dataset.iosPrime === 'done' || v.dataset.iosPrime === 'pending') return false;
+      if (!v.src || !v.duration || !isFinite(v.duration)) return false;
       v.dataset.iosPrime = 'pending';
       v.muted = true;
       try {
@@ -199,6 +197,22 @@
       } catch (err) {
         delete v.dataset.iosPrime;
       }
+      return true;
+  }
+  function primeIOSFilmPlanes() {
+    if (!IOS_MEDIA) return;
+    iosWakeRequested = true;
+    var films = Array.prototype.slice.call(document.querySelectorAll('video[data-src]'));
+    films.forEach(primeIOSFilm);
+  }
+  if (IOS_MEDIA) {
+    /* A fast first swipe can happen before a room has metadata. Remember that intent and
+       wake the plane the moment its native Range request becomes seekable instead of
+       silently dropping the only gesture that could have released the handover. */
+    document.querySelectorAll('video[data-src]').forEach(function (v) {
+      v.addEventListener('loadedmetadata', function () {
+        if (iosWakeRequested) primeIOSFilm(v);
+      }, { once: true });
     });
   }
   ['touchstart', 'pointerdown', 'wheel', 'keydown'].forEach(function (eventName) {
@@ -286,7 +300,10 @@
   /* Films only. The two later tracks are NOT listed here: the score's own <audio> elements
      are given those URLs directly and fetch them natively, so putting them in this list
      too would download 9.8 MB twice. */
-  var REST = VIDEOS;
+  /* Room one already has a native Range-backed source on iOS. Fetching the same 18.7 MB
+     master again into a Blob competes with the only request needed for the scarf handover.
+     Desktop retains the Blob path; iOS continues with rooms two through four underneath. */
+  var REST = IOS_MEDIA ? VIDEOS.slice(1) : VIDEOS;
 
   function paint(p) {
     barEl.style.transform = 'scaleX(' + p.ratio + ')';
