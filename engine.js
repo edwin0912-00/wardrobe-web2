@@ -1225,9 +1225,13 @@
        * arithmetic. `advanceTo(leg)` remains the backwards-compatible "last station in
        * that leg" primitive. */
       advanceToStation: function (leg, stationId, opts) {
+        var legIndex = Math.max(0, Math.min(legs.length - 1, Number(leg) || 0));
+        if (!stationAtId(legIndex, stationId)) {
+          throw new RangeError('Unknown station "' + stationId + '" for leg ' + legIndex);
+        }
         opts = opts || {};
         opts.stationId = stationId;
-        return advanceTo(leg, opts);
+        return advanceTo(legIndex, opts);
       },
       releaseAndAdvance: function (opts) { return advanceTo(resolve(current).idx + 1, opts); },
       /* The UI calls this when a step's media has arrived and generated, which is the

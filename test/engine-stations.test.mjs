@@ -193,3 +193,14 @@ test('accepts the earlier station-map shape and releases local resistance after 
   assert.equal(state.leg, 1);
   assert.equal(state.stationId, 'leg-1-end');
 });
+
+test('rejects an unknown explicit station instead of travelling to another surface', () => {
+  const { journey } = boot({
+    stations: [{ leg: 0, id: 'person', at: 0.30, enter: 0.28, exit: 0.20 }],
+  });
+
+  assert.throws(
+    () => journey.advanceToStation(0, 'not-a-station'),
+    /Unknown station "not-a-station" for leg 0/
+  );
+});
