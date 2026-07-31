@@ -163,10 +163,17 @@
       return '<div class="tv-contact" aria-label="Пʼять вертикальних кадрів">' + cells + '</div>';
     }
 
+    /* A television shows a moving picture, not a media player. `controls` put a play
+     * button, a timecode, a volume slider and a kebab menu on top of filmed furniture —
+     * browser chrome floating in front of the television, which the window map forbids
+     * outright. It also left the clip parked on its last frame, so the screen read as a
+     * dead still. Muted autoplay with loop is what a screen on a wall actually does, and
+     * muted playback is not subject to the autoplay policy that would block sound. */
     function videoFrame(item) {
       if (item.mediaUrl) {
         return '<video class="tv-result-video" src="' + esc(item.mediaUrl) +
-          '" controls playsinline preload="metadata" aria-label="Фешн-відео"></video>';
+          '" autoplay loop muted playsinline preload="auto" tabindex="-1"' +
+          ' aria-label="Фешн-відео"></video>';
       }
       return '<div class="tv-result-wait" role="status"><span class="orb orb--small" aria-hidden="true">' +
         '<i></i><i></i><i></i></span><b>Відео зʼявиться тут</b></div>';
@@ -339,7 +346,15 @@
     setHidden(tv, true);
     setHidden(laptop, true);
 
-    return Object.freeze({
+    /* The page keeps its instance in a module-scoped variable, so there is no way to put a
+     * result on the shelf from outside once the journey is running. That makes the surface
+     * impossible to inspect before the adapter exists: the owner cannot see whether the
+     * mask tracks the aperture through the push-in without first having a finished job.
+     *
+     * Publishing the instance is the smallest thing that fixes it. It is a handle, not a
+     * route and not a query switch — the journey still shows nothing on its own, and a
+     * runtime candidate switch stays as absent as canonical-d-identity requires. */
+    var instance = Object.freeze({
       update: update,
       addResult: addResult,
       wakeTelevision: wakeTelevision,
@@ -354,12 +369,19 @@
         };
       }
     });
+    current = instance;
+    return instance;
   }
+
+  /* The most recently created surface controller. One journey creates one, so this is the
+   * live one; it is null until the page builds it. */
+  var current = null;
 
   return Object.freeze({
     create: create,
     normaliseRectFrames: normaliseRectFrames,
     interpolateRect: interpolateRect,
-    resultModel: resultModel
+    resultModel: resultModel,
+    active: function () { return current; }
   });
 });
