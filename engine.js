@@ -460,52 +460,6 @@
       return { idx: idx, local: local, eased: easeSine(local) };
     }
 
-    /* ---- THE LAPTOP SCREEN, AS GEOMETRY -------------------------------------
-     *
-     * The last leg pushes in on a monitor and the pipeline page has to sit ON that screen.
-     * It does NOT need a homography. Measured on the shipped master: the screen's centre
-     * stays at x 0.5012 with a standard deviation of 0.0008 across the whole push, and the
-     * top edge is exactly horizontal in every sample — so the camera really is travelling
-     * along the lens axis and the screen stays an axis-aligned rectangle. No keystone, no
-     * rotation, nothing for matrix3d to correct.
-     *
-     * That collapses the whole thing to ONE number per frame, the half-width:
-     *   left = cx - hw      right = cx + hw
-     *   top  = cy - k*hw    bottom = cy + k*hw
-     * Fitted against ten measured frames, the top edge lands within 0.17% of frame height
-     * everywhere — under two pixels at 1080p. k implies a 1.476 screen aspect, which is the
-     * 3:2 of the laptop in shot.
-     *
-     * hw itself is not linear in time (a constant dolly does not scale linearly on screen),
-     * so it is sampled from the measurement rather than modelled. Below `from` the screen is
-     * too small to read anything on and the layer stays away. */
-    var SCREEN = {
-      cx: 0.5012, cy: 0.6124, k: 1.2046,
-      /* t -> half-width, measured. Interpolated between samples. */
-      t:  [9.0,    10.0,   11.0,   12.0,   12.5,   13.0,   13.5,   14.0,   14.5,   15.05],
-      hw: [0.1459, 0.1714, 0.2047, 0.2500, 0.2735, 0.3099, 0.3463, 0.3890, 0.4411, 0.4954],
-      from: 9.0
-    };
-
-    function screenRect(videoTime) {
-      if (videoTime < SCREEN.from) return null;
-      var hw = null;
-      for (var i = 0; i < SCREEN.t.length - 1; i++) {
-        if (videoTime <= SCREEN.t[i + 1]) {
-          var span = SCREEN.t[i + 1] - SCREEN.t[i];
-          var f = span > 0 ? (videoTime - SCREEN.t[i]) / span : 0;
-          hw = SCREEN.hw[i] + (SCREEN.hw[i + 1] - SCREEN.hw[i]) * clamp01(f);
-          break;
-        }
-      }
-      if (hw === null) hw = SCREEN.hw[SCREEN.hw.length - 1];
-      return {
-        l: SCREEN.cx - hw, r: SCREEN.cx + hw,
-        t: SCREEN.cy - SCREEN.k * hw, b: SCREEN.cy + SCREEN.k * hw,
-        hw: hw
-      };
-    }
-
     /* Where the intro is, and how visible. Linear in time on purpose: the silk flows
      * continuously and has no station to arrive at, so the measured sine correction the
      * rooms need would only fight it. */
@@ -649,31 +603,6 @@
       } else {
         stage.removeAttribute('data-station-id');
         stage.removeAttribute('data-station-index');
-      }
-
-      /* THE SCREEN RECTANGLE, published for the layer that sits on it.
-       * Only on the last leg, and only once the monitor is big enough to read. Written as
-       * fractions of frame space, the same coordinates the mirror panels use, so the layer
-       * is positioned by the same rule as everything else painted on the picture. */
-      if (r.idx === legs.length - 1 && d && isFinite(d)) {
-        var sr = screenRect(v.currentTime);
-        if (sr) {
-          root.style.setProperty('--scr-x', (sr.l * 100).toFixed(3) + '%');
-          root.style.setProperty('--scr-y', (sr.t * 100).toFixed(3) + '%');
-          root.style.setProperty('--scr-w', ((sr.r - sr.l) * 100).toFixed(3) + '%');
-          root.style.setProperty('--scr-h', ((sr.b - sr.t) * 100).toFixed(3) + '%');
-          /* Fade the page in over the first fifth of the push, so it arrives rather than
-           * appearing. 0 until `from`, 1 by the time the screen is half the frame. */
-          var lit = clamp01((sr.hw - SCREEN.hw[0]) / (0.28 - SCREEN.hw[0]));
-          root.style.setProperty('--scr-on', lit.toFixed(4));
-          stage.setAttribute('data-screen', '1');
-        } else {
-          root.style.setProperty('--scr-on', '0');
-          stage.removeAttribute('data-screen');
-        }
-      } else if (stage.hasAttribute('data-screen')) {
-        root.style.setProperty('--scr-on', '0');
-        stage.removeAttribute('data-screen');
       }
 
       /* Just the number. This is a dev readout, not shipped UI — the leg fraction, leg

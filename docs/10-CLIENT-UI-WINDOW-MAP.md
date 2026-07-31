@@ -136,5 +136,5 @@ provider vocabulary is shown to the client.
 
 The UI map can be wired only after: (1) beta publishes the 40-second Live
 contract, (2) the cinematic engine has the three independent first-leg
-stations, (3) final rail/TV/laptop surface rectangles are measured, and (4)
-the active domain proxies `/api/*` same-origin to beta.
+stations, (3) final rail geometry plus the calibrated TV/laptop surface layer
+are wired, and (4) the active domain proxies `/api/*` same-origin to beta.

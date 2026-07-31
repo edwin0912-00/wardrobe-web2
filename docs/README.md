@@ -10,6 +10,8 @@
 - [05 — Геометрія кадру, екран ноутбука, зерно](05-FRAME-GEOMETRY-SCREEN-OVERLAY.md)
 - [06 — UI-канон](06-UI-CANON.md)
 - [07 — Сцена 1 і відкриті рішення власника](07-SCENE1-AND-OPEN-DECISIONS.md)
+- [13 — Identity lock вибраного D-master](13-CANONICAL-D-IDENTITY-LOCK.md)
+- [14 — Калібровка площин TV і ноутбука](14-SCREEN-PLANE-CALIBRATION.md)
 
 Загальний контекст, посилання, стан репо — `../HANDOFF.md` у корені.
 Канон структури — `../LEVEL-DESIGN.md`. Мова інтерфейсу — `../DESIGN-NOTES.md`.

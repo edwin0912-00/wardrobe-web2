@@ -1333,7 +1333,7 @@ body:not([data-ready="1"]) .stage { visibility: hidden; }
 
 /* ---------------------------------------------- the pipeline page, on the screen --- */
 
-/* KEYED ON BLACK, NOT PASTED ON TOP.
+/* LEGACY PLACEHOLDER — HIDDEN PENDING A CALIBRATED QUAD.
  *
  * `screen` blending makes every black pixel in this layer transparent and every light pixel
  * add to what is underneath. That is exactly the owner's spec — the black of the presentation
@@ -1344,11 +1344,9 @@ body:not([data-ready="1"]) .stage { visibility: hidden; }
  * own highlights and the edge of the page would go hard. One value below full is invisible as
  * a colour and keeps the blend soft.
  *
- * The rectangle is NOT authored here. The engine measures the real screen in the master and
- * writes --scr-x/y/w/h per frame, in the same frame-space fractions the mirror panels use.
- * Measured fit: the top edge lands within 0.17% of frame height across the whole push, so this
- * needs no perspective transform — the camera travels along the lens axis and the screen stays
- * an axis-aligned rectangle. */
+ * It is deliberately hidden in markup. The old axis-aligned geometry extended into the laptop
+ * chin and keyboard in D. A future calibrated four-corner layer replaces this block once the
+ * supplied pipeline HTML and reversible scroll handoff exist. */
 .screen {
   position: absolute;
   left: var(--scr-x, 50%); top: var(--scr-y, 50%);

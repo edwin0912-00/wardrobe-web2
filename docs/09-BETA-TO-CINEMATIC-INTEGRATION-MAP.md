@@ -102,8 +102,9 @@ at the same physical place.
 5. Introduce a **station registry**. The canonical first leg has three stops
    (person → garments → mirrors), each with its own hysteresis and gate.
    A global `stationAt` cannot model this safely.
-6. Bind TV/laptop only after their rectangles have been measured on the final
-   media. Do not approximate UI placement from a different generation.
+6. Bind TV/laptop only through `b/screen-calibration.json` on the final D
+   media. TV is a measured aperture; laptop is a four-corner quad, so do not
+   approximate it with a rectangle from another generation.
 7. Run the contract smoke below against the same deployed beta revision, then
    run device QA on the canonical domain.
 
@@ -118,8 +119,9 @@ pieces are intentionally still outstanding:
    adapter.
 2. The current engine has one physical station in leg 0, while canon requires
    three separately latched stations.
-3. Only mirror geometry is final; TV and laptop target rectangles need final
-   media measurements.
+3. TV aperture and laptop display quads are now measured, but the calibrated
+   controller, supplied laptop HTML and reversible scroll handoff are not yet
+   wired.
 4. The production gateway that maps active-domain `/api/*` to the beta engine
    needs a release-owner configuration and end-to-end authentication check.
 
