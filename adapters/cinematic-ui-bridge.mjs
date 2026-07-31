@@ -103,13 +103,21 @@ function normalizeBackgrounds(payload, client) {
 }
 
 function normalizeShoots(payload, client) {
-  return (payload?.modes ?? []).filter((mode) => mode?.source_set_status !== 'BLOCKED_UNIT_MISSING').map((mode) => ({
-    id: mode.preset_id,
-    version: mode.version,
-    name: mode.ui_name_uk ?? mode.title ?? mode.preset_id,
+  return (payload?.modes ?? []).filter((mode) => mode?.source_set_status !== 'BLOCKED_UNIT_MISSING').map((mode) => {
+    // Beta's canonical editorial catalogue calls this field `mode_id`; older
+    // snapshots used `preset_id`. Accept both so the main site renders the
+    // server-owned catalogue instead of silently falling back to placeholders.
+    const id = mode.mode_id ?? mode.preset_id;
+    const version = mode.mode_version ?? mode.version;
+    return {
+    id,
+    version,
+    name: mode.ui_name_uk ?? mode.title ?? id,
     note: mode.visual_system ?? '',
-    previewUrl: mode.preview_url ?? client.editorialModePreviewUrl(mode.preset_id, mode.version),
-  })).filter((item) => item.id && item.version);
+    previewUrl: mode.preview_url ?? (id && version
+      ? client.editorialModePreviewUrl(id, version)
+      : ''),
+  }; }).filter((item) => item.id && item.version);
 }
 
 function normalizeVideos(capability) {

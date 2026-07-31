@@ -80,6 +80,29 @@ test('a completed real run becomes the saved look and loads all action catalogue
   assert.equal(state.liveCapability.app, 'server-owned-live');
 });
 
+test('normalizes beta mode_id catalogues so main renders real style previews', async () => {
+  const client = clientStub();
+  client.listEditorialModes = async () => ({ modes: [{
+    mode_id: 'shoot.real-style',
+    mode_version: '1.0.0',
+    ui_name_uk: 'Реальний стиль',
+    visual_system: 'власний preview',
+    source_set_status: 'READY',
+    preview_url: '/api/editorial-modes/shoot.real-style/1.0.0/preview?v=sha',
+  }] });
+  const bridge = createCinematicUiBridge({ client, autoProbe: false });
+  await bridge.probe();
+  client.emit({ type: 'run:event', run: {
+    run_id: 'run-1', status: 'COMPLETED',
+    outputs: { avatar_outfit: '/api/runs/run-1/files/avatar_outfit.png' },
+  } });
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  const style = bridge.state().catalogs.shoots[0];
+  assert.equal(style.id, 'shoot.real-style');
+  assert.equal(style.version, '1.0.0');
+  assert.equal(style.previewUrl, '/api/editorial-modes/shoot.real-style/1.0.0/preview?v=sha');
+});
+
 test('failed outfit QA maps only the verified visible conflict into mirror copy', async () => {
   const client = clientStub();
   const bridge = createCinematicUiBridge({ client, autoProbe: false });
