@@ -824,3 +824,24 @@ Evidence: video 111/111; Fashion Shoot/Create Universe 11/11; product release
 Catalog: 16 backgrounds, 19 previews, 17 generation modes, 15 complete units.
 Paid provider calls during release: 0.
 weakened_checks: none.
+
+---
+
+Agent ID: codex-main
+Task ID: BETA-HIGGSFIELD-IMAGE-ALIAS-001
+State: READY_FOR_INTEGRATION
+Decision: keep the pipeline's internal image route names stable while translating
+the Higgsfield CLI alias at the adapter boundary. `nano_banana_2` is sent to
+the CLI as `nano_banana_pro`; completed `job_set_type` and/or `job_type` values
+are canonicalized back to `nano_banana_2`. Unknown or contradictory model
+fields fail closed with `MODEL_RESPONSE_MISMATCH`; provider `params.model` is
+not used as the route check.
+Code: TESTED — pending commit; focused provider + preflight + scene-runtime
+suite 45/45 PASS. Full `node --test`: 800/892 PASS, 92 pre-existing failures
+in scene/editorial/release fixtures unrelated to this adapter change.
+Beta: NOT_DEPLOYED — release-owner integration required.
+Journey: NOT_RUN — no paid generation or provider job replay was performed.
+weakened_checks: none.
+Next action: chat-00-master integrates the exact commit into beta and runs the
+release checks; do not cherry-pick an unrelated merge commit.
+Help request: NONE.

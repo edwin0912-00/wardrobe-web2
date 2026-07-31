@@ -115,7 +115,7 @@ test('builds exact two-phase argv and only sends quality to GPT Image 2', () => 
       prompt: 'portrait',
       mediaPaths: ['/tmp/reference.png'],
     });
-    assert.equal(args[2], model);
+    assert.equal(args[2], model === 'nano_banana_2' ? 'nano_banana_pro' : model);
     assert.equal(args.includes('--quality'), model === 'gpt_image_2');
     assert.equal(args.includes('--wait'), false);
     assert.deepEqual(args.slice(-2), ['--json', '--no-color']);
@@ -134,6 +134,69 @@ test('builds exact two-phase argv and only sends quality to GPT Image 2', () => 
     legacy.slice(-7),
     ['--wait', '--wait-timeout', '20m', '--wait-interval', '3s', '--json', '--no-color'],
   );
+});
+
+test('normalizes the Nano Banana Pro CLI alias while keeping the internal route', async (t) => {
+  const paths = await mediaFixture();
+  const run = async (responseJob, expectedModel = 'nano_banana_2') => {
+    const calls = [];
+    const provider = oneShotProvider({
+      async commandRunner(binary, args, options) {
+        calls.push({ binary, args, options });
+        return { stdout: JSON.stringify(responseJob), exitCode: 0 };
+      },
+      async fetchImpl() {
+        return pngResponse();
+      },
+    });
+    const response = await provider.generate({
+      phase: 'outfit', model: expectedModel, prompt: 'portrait',
+      references: {
+        avatar: { artifact: { path: paths.avatar, digest: MOCK_SHA256 } },
+        identity: { artifact: { path: paths.identity, digest: MOCK_SHA256 } },
+      },
+    });
+    return { calls, response };
+  };
+
+  await t.test('current job_type nano_banana_pro passes for internal nano_banana_2', async () => {
+    const job = completedJob('nano_banana_2');
+    delete job.job_set_type;
+    job.job_type = 'nano_banana_pro';
+    const { calls, response } = await run(job);
+    assert.equal(calls[0].args[2], 'nano_banana_pro');
+    assert.equal(response.metadata.job_set_type, 'nano_banana_2');
+  });
+
+  await t.test('legacy job_set_type and current job_type agree after canonicalization', async () => {
+    const job = completedJob('nano_banana_2', { job_set_type: 'nano_banana_2', job_type: 'nano_banana_pro' });
+    const { response } = await run(job);
+    assert.equal(response.metadata.job_set_type, 'nano_banana_2');
+  });
+
+  await t.test('GPT Image 2 rejects a Nano Banana Pro response', async () => {
+    const job = completedJob('gpt_image_2', { job_set_type: 'nano_banana_pro', job_type: 'nano_banana_pro' });
+    await assert.rejects(
+      () => run(job, 'gpt_image_2'),
+      (error) => error.code === 'MODEL_RESPONSE_MISMATCH',
+    );
+  });
+
+  await t.test('contradictory model fields fail closed', async () => {
+    const job = completedJob('nano_banana_2', { job_set_type: 'nano_banana_2', job_type: 'gpt_image_2' });
+    await assert.rejects(
+      () => run(job),
+      (error) => error.code === 'MODEL_RESPONSE_MISMATCH',
+    );
+  });
+
+  await t.test('unknown model fields fail closed', async () => {
+    const job = completedJob('nano_banana_2', { job_set_type: 'nano_banana_quantum' });
+    await assert.rejects(
+      () => run(job),
+      (error) => error.code === 'MODEL_RESPONSE_MISMATCH',
+    );
+  });
 });
 
 test('fails closed before CLI execution when a provider prompt contains local metadata', async () => {

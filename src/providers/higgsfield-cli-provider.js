@@ -36,6 +36,30 @@ export const HIGGSFIELD_IMAGE_MODELS = Object.freeze({
   }),
 });
 
+// The provider CLI uses a different public alias for Nano Banana Pro than the
+// internal route name used by the pipeline. Keep this translation at the
+// adapter boundary: journals, idempotency keys and receipts remain bound to
+// the internal model (`nano_banana_2`), while argv and provider responses use
+// the CLI model (`nano_banana_pro`).
+const HIGGSFIELD_CLI_IMAGE_MODELS = Object.freeze({
+  gpt_image_2: 'gpt_image_2',
+  nano_banana_flash: 'nano_banana_flash',
+  nano_banana_2: 'nano_banana_pro',
+});
+
+const HIGGSFIELD_INTERNAL_BY_CLI_MODEL = Object.freeze({
+  gpt_image_2: 'gpt_image_2',
+  nano_banana_flash: 'nano_banana_flash',
+  nano_banana_pro: 'nano_banana_2',
+});
+
+function canonicalReportedModel(value) {
+  if (typeof value !== 'string' || value.trim() === '') return null;
+  const model = value.trim();
+  if (Object.hasOwn(HIGGSFIELD_IMAGE_MODELS, model)) return model;
+  return HIGGSFIELD_INTERNAL_BY_CLI_MODEL[model] ?? null;
+}
+
 export class HiggsfieldProviderError extends Error {
   constructor(message, { code = 'HIGGSFIELD_PROVIDER_ERROR', retryable = false, cause } = {}) {
     super(message, { cause });
@@ -454,7 +478,7 @@ function buildHiggsfieldCreateBaseArgs({
   assertChoice(aspectRatio, spec.aspectRatios, 'aspect_ratio');
   assertChoice(resolution, spec.resolutions, 'resolution');
   const args = [
-    'generate', 'create', model,
+    'generate', 'create', HIGGSFIELD_CLI_IMAGE_MODELS[model] ?? model,
     '--prompt', prompt,
     '--aspect_ratio', aspectRatio,
     '--resolution', resolution,
@@ -570,20 +594,16 @@ function parseCompletedJob(stdout, requestedModel, { allowArray = true, expected
       retryable: true,
     });
   }
-  // The current Higgsfield CLI calls this stable route identifier `job_type`.
-  // Older CLI builds called it `job_set_type`. Both describe the same immutable
-  // provider route, but when both are present they must agree — accepting a
-  // conflicting response here would misattribute a paid generation.
-  if (payload.job_type !== undefined
-    && payload.job_set_type !== undefined
-    && payload.job_type !== payload.job_set_type) {
-    throw new HiggsfieldProviderError('Higgsfield response model fields disagree', {
-      code: 'MODEL_RESPONSE_MISMATCH',
-      retryable: false,
-    });
-  }
-  const responseModel = payload.job_set_type ?? payload.job_type;
-  if (responseModel !== requestedModel) {
+  const reportedFields = ['job_set_type', 'job_type']
+    .filter((field) => Object.hasOwn(payload, field))
+    .map((field) => ({ field, model: canonicalReportedModel(payload[field]) }));
+  const reportedModels = reportedFields.map(({ model }) => model);
+  const canonicalRequestedModel = canonicalReportedModel(requestedModel);
+  if (!canonicalRequestedModel
+    || reportedFields.length === 0
+    || reportedModels.some((model) => model === null)
+    || new Set(reportedModels).size !== 1
+    || reportedModels[0] !== canonicalRequestedModel) {
     throw new HiggsfieldProviderError('Higgsfield response model does not match the requested model', {
       code: 'MODEL_RESPONSE_MISMATCH',
       retryable: false,
@@ -607,11 +627,7 @@ function parseCompletedJob(stdout, requestedModel, { allowArray = true, expected
       retryable: true,
     });
   }
-  // Persist the canonical internal field in journals, regardless of which CLI
-  // spelling was returned. A later resume must validate the same route without
-  // needing to call the provider again.
-  payload.job_set_type = responseModel;
-  return payload;
+  return { ...payload, job_set_type: canonicalRequestedModel };
 }
 
 function sha256Json(value) {
