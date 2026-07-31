@@ -30,6 +30,37 @@ test('TV result model keeps shoot strips and widescreen video honest', () => {
   assert.equal(waitingVideo.pendingRealMedia, true);
 });
 
+test('the television ladder ranks video over shoot over background over look', () => {
+  assert.deepEqual(
+    ['look', 'background', 'shoot', 'video'].map((kind) => surfaces.resultModel({ kind }).rank),
+    [1, 2, 3, 4]
+  );
+});
+
+test('a portrait look and a finished background are admitted to the shelf', () => {
+  /* Pre-change proof: addResult dropped anything that was neither 16:9 nor a shoot, so
+   * both of these returned without reaching the shelf and the television stayed empty. */
+  for (const kind of ['look', 'background']) {
+    const item = surfaces.resultModel({ kind, aspect: '9:16', urls: ['a.jpg'] });
+    assert.equal(item.kind, kind);
+    assert.equal(item.pendingRealMedia, false);
+    assert.ok(item.rank >= 1);
+  }
+});
+
+test('each rung carries its own client label and no aspect vocabulary', () => {
+  assert.deepEqual(
+    ['look', 'background', 'shoot', 'video'].map((kind) => surfaces.resultModel({ kind }).label),
+    ['Образ', 'Фон', 'Фотосесія', 'Фешн-відео']
+  );
+});
+
+test('an unknown kind still resolves to a ranked, labelled result', () => {
+  const fallback = surfaces.resultModel({ kind: 'nonsense' });
+  assert.equal(fallback.kind, 'video');
+  assert.equal(fallback.rank, 4);
+});
+
 test('invalid TV geometry is rejected instead of spilling across the filmed bezel', () => {
   assert.throws(
     () => surfaces.interpolateRect([{ time: 1, x: 0.8, y: 0.2, width: 0.4, height: 0.3 }], 1),
