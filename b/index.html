@@ -72,23 +72,28 @@
          look belongs in the right-hand mirror, which is the panel whose whole job is
          showing the result. -->
 
-    <!-- THE PIPELINE PAGE, ON THE LAPTOP SCREEN.
-         Last leg only. Its rectangle is written per frame by the engine into --scr-x/y/w/h
-         from a measurement of the real footage, so it tracks the push-in. Blended, not
-         pasted: black in this layer lets the filmed screen through and light adds to it,
-         which is what makes it read as emitted rather than stuck on.
-         Content is a placeholder until the interface layer hands over the real fragment. -->
-    <div class="screen" data-screen-layer aria-hidden="true">
-      <div class="screen__page" data-screen-page>
-        <div class="screen__row"><b>WARDROBE</b><span>пайплайн</span></div>
-        <div class="screen__bars">
-          <i style="--v:.92"></i><i style="--v:.64"></i><i style="--v:.78"></i>
-          <i style="--v:.41"></i><i style="--v:.86"></i><i style="--v:.55"></i>
-        </div>
-        <div class="screen__row"><span>LOOK</span><span>WORLD</span><span>MOTION</span></div>
-      </div>
-    </div>
+    <!-- TV SCREEN SURFACE.
+         It is a child of `.film`, so calibrated percentages refer to the same pixels as the
+         TV in the footage. It intentionally has no rectangle and no media on first load:
+         screen-surfaces.js shows it only after a final-media measurement plus a real 16:9
+         video or five real Fashion Shoot results arrive from the adapter. -->
+    <section class="screen-surface screen-surface--tv" data-tv-surface data-surface-state="empty"
+             aria-label="Галерея" aria-hidden="true" hidden>
+      <div class="screen-surface__mask" data-tv-mask></div>
+    </section>
   </div>
+
+  <!-- LAPTOP SCREEN SURFACE.
+       This one lives in stage space, not inside the transformed film. Its one supplied DOM
+       tree can therefore scale from the measured laptop rectangle to the whole viewport
+       without an iframe, clone or route change. It remains empty and invisible until a real
+       pipeline HTML node is mounted by the later integration. -->
+  <section class="laptop-viewport" data-laptop-viewport data-scroll-owner="journey"
+           aria-label="Пайплайн" aria-hidden="true" hidden>
+    <div class="laptop-viewport__transform" data-laptop-transform>
+      <article class="laptop-viewport__document" data-laptop-document></article>
+    </div>
+  </section>
 
   <div class="grade" aria-hidden="true"></div>
   <div class="grain" aria-hidden="true"></div>
@@ -125,6 +130,8 @@
 <div data-track></div>
 
 <script src="../loader.js"></script>
+<script src="../screen-surface-math.js"></script>
+<script src="../screen-surfaces.js"></script>
 <script src="../engine.js"></script>
 <script src="../ui.js"></script>
 <script src="../audio.js"></script>
@@ -377,6 +384,17 @@
        leave two mixers running the same tracks, which is exactly the doubling being
        removed. Only start it if the early path never fired. */
     startScoreEarly(res.blobs, 'after-load (early path did not fire)');
+
+    /* SCREEN SURFACES ARE DELIBERATELY EMPTY AT PREFLIGHT 0.1.
+     *
+     * Creating the controller is safe: it paints nothing until a later integration supplies
+     * (a) a measured TV calibration and real result URLs, or (b) the owner-provided laptop
+     * HTML DOM. `onSurfaceFrame` below merely hands it truthful camera geometry from the
+     * one scroll clock; it does not create a fake result or a second scroll system. */
+    window.wardrobeScreens = window.WardrobeScreenSurfaces
+      ? window.WardrobeScreenSurfaces.create()
+      : null;
+
     window.journey = WardrobeJourney.create({
       /* The page downloaded everything itself, so the engine must not run a second
          preload nor repaint the bar. One owner for loading. */
@@ -425,6 +443,12 @@
        * short to read as a dissolve. */
       seamWindow: 0.012,
       onSpeed: function (s) { if (window.score) window.score.setSpeed(s); },
+      /* Laptop frame geometry comes from the same engine write that seeks the video. The
+       * surface layer reads it as a callback rather than measuring the DOM per frame, so the
+       * eventual frame → viewport handoff cannot introduce a second animation clock. */
+      onSurfaceFrame: function (frame) {
+        if (window.wardrobeScreens) window.wardrobeScreens.updateJourney(frame);
+      },
       /* ATTENTION without a hard gate.
        * dampFrom / dampMax: where the swipe starts going insensitive and how far it goes.
        * Capped at 0.94 rather than 1 so the film always still creeps — the viewer can feel
