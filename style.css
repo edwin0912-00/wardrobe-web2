@@ -1331,52 +1331,91 @@ body:not([data-ready="1"]) .stage { visibility: hidden; }
 }
 .drop__clear:hover { color: var(--milk); border-color: rgba(245,243,237,0.7); }
 
-/* ---------------------------------------------- the pipeline page, on the screen --- */
+/* ------------------------------------------------ calibrated screen surfaces --- */
 
-/* KEYED ON BLACK, NOT PASTED ON TOP.
+/* A SCREEN IS A MEASURED APERTURE, NOT A CARD.
  *
- * `screen` blending makes every black pixel in this layer transparent and every light pixel
- * add to what is underneath. That is exactly the owner's spec — the black of the presentation
- * merges with the black of the filmed monitor, so the page reads as light coming OUT of the
- * screen instead of a rectangle glued over it.
- *
- * The white point is held at 254, not 255: a pure white would clip against the filmed screen's
- * own highlights and the edge of the page would go hard. One value below full is invisible as
- * a colour and keeps the blend soft.
- *
- * The rectangle is NOT authored here. The engine measures the real screen in the master and
- * writes --scr-x/y/w/h per frame, in the same frame-space fractions the mirror panels use.
- * Measured fit: the top edge lands within 0.17% of frame height across the whole push, so this
- * needs no perspective transform — the camera travels along the lens axis and the screen stays
- * an axis-aligned rectangle. */
-.screen {
-  position: absolute;
-  left: var(--scr-x, 50%); top: var(--scr-y, 50%);
-  width: var(--scr-w, 0%); height: var(--scr-h, 0%);
-  opacity: var(--scr-on, 0);
-  mix-blend-mode: screen;
-  pointer-events: none;
-  z-index: 5;
+ * TV lives inside `.film`, where its coordinates are percentages of the same image that was
+ * measured. Laptop lives in stage space because it must later become the viewport without
+ * duplicating or iframing the supplied document. Both are invisible unless the controller has
+ * actual result media/content and an approved calibration. There are no guessed fallback
+ * rectangles or decorative demo frames here. */
+.screen-surface--tv {
+  position: absolute; z-index: 5;
+  left: var(--surface-x, 50%); top: var(--surface-y, 50%);
+  width: var(--surface-w, 0%); height: var(--surface-h, 0%);
   overflow: hidden;
-  /* No transition on the geometry: the engine writes it every frame and a transition would
-     lag the footage, which is the one thing that would give the trick away. Only the fade
-     is eased, and it is driven by --scr-on, not by time. */
+  isolation: isolate;
+  background: #050505;
+  /* The footage owns the bezel. This only masks content to the measured inner aperture. */
+  clip-path: inset(0 round 2px);
+  opacity: 0.98;
 }
-.screen__page {
+.screen-surface--tv[hidden] { display: none; }
+.screen-surface__mask {
+  position: absolute; inset: 0; overflow: hidden;
+  background: #050505;
+  box-shadow: inset 0 0 0 1px rgba(254,254,254,0.045);
+}
+.screen-surface__video {
+  width: 100%; height: 100%; display: block;
+  object-fit: contain;
+  background: #050505;
+}
+/* Five full portrait frames belong in the TV at once. `contain` is deliberate: a face may
+ * never be cropped to make the strip fill a horizontal aperture. */
+.screen-surface__contact-strip {
   position: absolute; inset: 0;
-  display: flex; flex-direction: column; justify-content: space-between;
-  padding: 6% 7%;
-  background: #000;                    /* becomes transparent under `screen` */
-  color: #FEFEFE;                      /* the 254 white point */
-  font: 400 clamp(6px, 1.1vw, 14px)/1.4 ui-monospace, "SF Mono", Menlo, monospace;
-  letter-spacing: 0.14em; text-transform: uppercase;
+  display: grid; grid-template-columns: repeat(5, minmax(0, 1fr));
+  align-items: stretch; gap: clamp(1px, 0.65vw, 8px);
+  padding: clamp(2px, 1.5vw, 16px);
+  background: #050505;
 }
-.screen__row { display: flex; justify-content: space-between; align-items: baseline; gap: 8%; }
-.screen__row b { font-weight: 500; letter-spacing: 0.3em; }
-.screen__row span { color: #9A9A96; }
-.screen__bars { display: flex; align-items: flex-end; gap: 3%; height: 46%; }
-.screen__bars i {
-  flex: 1; display: block;
-  height: calc(var(--v) * 100%);
-  background: linear-gradient(to top, #2A2A28, #FEFEFE);
+.screen-surface__contact-cell {
+  min-width: 0; min-height: 0;
+  display: grid; place-items: center;
+  background: rgba(254,254,254,0.025);
+  overflow: hidden;
+}
+.screen-surface__contact-cell img {
+  width: 100%; height: 100%; display: block;
+  object-fit: contain;
+}
+
+/* ONE LAPTOP DOM TREE, IN STAGE SPACE.
+ *
+ * `engine.js` supplies its current filmed rectangle in pixels. The controller scales this
+ * full-stage document into that rectangle while handoff=frame, then resolves the same element
+ * to 1:1 viewport scale at handoff=viewport. No CSS transition belongs on transform: the frame
+ * follows scrubbed video and a transition would visibly lag it. */
+.laptop-viewport {
+  position: absolute; inset: 0; z-index: 5;
+  overflow: hidden; pointer-events: none;
+  opacity: var(--laptop-opacity, 0);
+  contain: layout paint;
+}
+.laptop-viewport[hidden] { display: none; }
+.laptop-viewport__transform {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  overflow: hidden;
+  transform-origin: 0 0;
+  transform: translate3d(var(--laptop-x, 0px), var(--laptop-y, 0px), 0)
+             scale(var(--laptop-scale-x, 0.0001), var(--laptop-scale-y, 0.0001));
+  background: #000;
+  mix-blend-mode: screen;
+  will-change: transform;
+}
+.laptop-viewport__document {
+  width: 100%; height: 100%;
+  overflow: hidden;
+  background: #000;
+  color: #FEFEFE;
+  /* The owner will supply the actual document and its visual system. These only prevent the
+     host from adding a second dashboard style around it. */
+}
+.laptop-viewport[data-handoff="viewport"] .laptop-viewport__document {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }

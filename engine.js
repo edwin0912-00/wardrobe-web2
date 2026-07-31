@@ -137,6 +137,9 @@
       return window.innerHeight || root.clientHeight || 800;
     }
     var film = document.querySelector('[data-film]');
+    /* Cached by `layout()` on resize only. Surface consumers need stage-pixel laptop
+     * coordinates, but may never call getBoundingClientRect in the scroll write path. */
+    var filmBox = { stageWidth: 0, stageHeight: 0, width: 0, height: 0 };
 
     /* ---- THE INTRO ------------------------------------------------------------
      *
@@ -251,6 +254,10 @@
       }
       film.style.width = Math.round(w) + 'px';
       film.style.height = Math.round(h) + 'px';
+      filmBox.stageWidth = sw;
+      filmBox.stageHeight = sh;
+      filmBox.width = w;
+      filmBox.height = h;
     }
 
     /* ---- preload --------------------------------------------------------------
@@ -306,6 +313,10 @@
     var raf = null;
     var lastWritten = -1;
     var onSpeed = typeof config.onSpeed === 'function' ? config.onSpeed : null;
+    /* A surface callback is intentionally data-only. It lets the TV/laptop layer consume
+     * the engine's single clock without querying scroll, sampling video a second time, or
+     * reading layout during a scrub. It is optional so older/static consumers stay inert. */
+    var onSurfaceFrame = typeof config.onSurfaceFrame === 'function' ? config.onSurfaceFrame : null;
 
     function readTarget() {
       var max = root.scrollHeight - viewport();
@@ -532,6 +543,45 @@
       } else if (stage.hasAttribute('data-screen')) {
         root.style.setProperty('--scr-on', '0');
         stage.removeAttribute('data-screen');
+      }
+
+      /* SURFACE FRAME — one clock, zero layout reads.
+       *
+       * The TV has no approved geometry yet, so the engine only publishes the leg/time it
+       * will need for a future measured calibration. The laptop does have a calibrated
+       * rectangle. Convert that frame-space rectangle to stage pixels here, using the box
+       * cached at resize, then hand it to the optional surface layer. The `-0.06` parallax
+       * term mirrors `.film` exactly (`--par-slow` is p * 100px), so a stage-owned laptop
+       * document stays glued to the filmed screen while it is still frame-bound.
+       *
+       * This callback is deliberately after the video seek/CSS writes and before no user
+       * code can force a re-read. A bad future surface cannot take down the journey. */
+      if (onSurfaceFrame) {
+        var surfaceFrame = {
+          leg: r.idx,
+          local: r.local,
+          videoTime: d && isFinite(d) ? v.currentTime : 0,
+          laptop: null
+        };
+        if (r.idx === legs.length - 1 && sr && filmBox.width && filmBox.height) {
+          var filmLeft = (filmBox.stageWidth - filmBox.width) / 2 + p * 100 * -0.06;
+          var filmTop = (filmBox.stageHeight - filmBox.height) / 2;
+          surfaceFrame.laptop = {
+            x: filmLeft + sr.l * filmBox.width,
+            y: filmTop + sr.t * filmBox.height,
+            width: (sr.r - sr.l) * filmBox.width,
+            height: (sr.b - sr.t) * filmBox.height,
+            opacity: typeof lit === 'number' ? lit : 0,
+            stageWidth: filmBox.stageWidth,
+            stageHeight: filmBox.stageHeight,
+            videoTime: v.currentTime
+          };
+        }
+        try { onSurfaceFrame(surfaceFrame); }
+        catch (surfaceError) {
+          /* Keep the film usable if an optional future presentation layer has a bug. */
+          if (global.console && global.console.warn) global.console.warn('WARDROBE surface frame skipped', surfaceError);
+        }
       }
 
       /* Just the number. This is a dev readout, not shipped UI — the leg fraction, leg
