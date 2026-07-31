@@ -30,6 +30,22 @@ Agent ID: `chat-00-master`
 Branch: `beta-release-master`
 Role: permanent beta integration, version, deploy and rollback owner.
 
+## 2026-07-31 · final activation
+
+The beta head is now `2334c9d30bb387396bdb74945c347a194d2d19d3` (also pushed to
+`origin/beta`). The official release is `beta-2334c9d`; its cache token is
+`product-2334c9d3-4cd6bc4e2687`. Public health, editorial catalog, feature
+markers, and the selected pipeline suite are green against this exact SHA.
+
+The only code change after `d426384` is the E-Live preview repair: a local or
+saved-look preview uses a revocable object URL instead of a canvas export. This
+keeps presentation separate from camera/WebRTC and makes the existing
+no-hidden-recording assertion truthful without weakening it.
+
+Evidence: `245/245` selected tests PASS; strict product-release verification
+PASS; public health 5/5 PASS; editorial catalog 19 total / 17 generation-ready
+/ 15 `shoot.*`; live incomplete-look copy smoke PASS. `weakened_checks: none`.
+
 ## 2026-07-30
 
 State: ACTIVE

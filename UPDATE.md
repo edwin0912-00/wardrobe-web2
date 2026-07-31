@@ -1004,3 +1004,25 @@ facts.
 - `weakened_checks`: pre-change failed clips lack a locally frozen reference
   source; they are not retroactively delivered. The known failed clip also
   equals its directing-reference bytes and remains blocked by visual QA.
+
+### 2026-07-31 · BETA CURRENT SYNC + LIVE PREVIEW REPAIR (ACTIVE ON BETA)
+
+- Release `2334c9d30bb387396bdb74945c347a194d2d19d3` is the current pushed and
+  deployed beta head. It was built and activated only through
+  `tools/deploy-beta-release.mjs --apply`.
+- The compatible Block 1 atom `d5b6d05` remains included: a headwear-only or
+  incomplete look now receives actionable `NEEDS_INPUT` copy and cannot submit
+  the same insufficient input through a futile retry.
+- The E-Live reference preview no longer encodes a canvas derivative in the
+  camera client. It uses a revocable object URL; the camera path contains no
+  recording API and the existing teardown assertion is green.
+- Release verification: 757 files, 16 standard backgrounds, 19 editorial
+  modes (17 generation-ready), 15 Create Universe/Fashion Shoot generation
+  modes; scene UI/API/runtime enabled.
+- Evidence: selected beta pipeline tests `245/245` PASS; strict release
+  verifier PASS; public `/api/health` returned `ready` five consecutive times
+  with the same release SHA; editorial catalog smoke returned 19/17/15; live
+  `NEEDS_INPUT` copy and root feature markers are present.
+- `weakened_checks: none`. The full repository suite is not claimed green;
+  the known unrelated `run-service` fixture drift remains outside this release
+  atom.
