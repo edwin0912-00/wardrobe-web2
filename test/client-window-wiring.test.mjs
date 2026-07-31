@@ -26,6 +26,22 @@ test('right mirror owns orb, result actions and the 40-second live expansion', (
   assert.doesNotMatch(ui, /модел|провайдер|ціна|вартіст/i);
 });
 
+test('nothing may be done with a look until its own image exists', () => {
+  /* Pre-change proof: the result frame rendered person.main.url — the uploaded portrait —
+   * and both the action gate and the forward gate keyed off an elapsed stand-in interval,
+   * so four actions were offered under a look that had never been generated. */
+  assert.match(ui, /function hasResult\s*\(/, 'a look must be able to say whether it has an image');
+  assert.match(ui, /l\.result/, 'the result frame must render the look’s own image');
+  assert.doesNotMatch(
+    ui,
+    /function lookResultFrame\([^)]*\)\s*\{\s*var src = person\.main/,
+    'the uploaded photograph must not stand in for a generated look'
+  );
+  assert.match(ui, /lookVisible\(\)\s*\{[^}]*hasResult\(\)/, 'the action gate must require a result');
+  assert.match(ui, /if \(!hasResult\(\)\) return false;/, 'forward travel must require a result');
+  assert.match(ui, /setLookResult/, 'only an explicit result may complete a look');
+});
+
 test('TV and laptop use the measured surface module', () => {
   assert.match(html, /screen-surface-math\.js/);
   assert.match(html, /screen-surfaces\.js/);

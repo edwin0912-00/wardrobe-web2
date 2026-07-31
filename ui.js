@@ -135,8 +135,15 @@
     function hasMain() { return !!person.main; }
     function hasItems() { return items.length >= MIN_ITEMS; }
     function current() { return selected >= 0 ? looks[selected] : null; }
-    /* THE gate for every action: a look with things in it must be VISIBLE first. */
-    function lookVisible() { return !!current() && !pending; }
+    /* A look owns the image a generation returned for it, or nothing. There is no route
+     * that can fill this yet, and that is the point: the frame stays empty rather than
+     * borrowing the uploaded photograph and calling it a result. */
+    function hasResult() { var l = current(); return !!(l && l.result); }
+
+    /* THE gate for every action: a look with things in it must be VISIBLE first — and
+     * visible means its own generated image is on the glass, not that a stand-in timer
+     * elapsed. Until then the right mirror is still waiting, so there is nothing to act on. */
+    function lookVisible() { return !!current() && !pending && hasResult(); }
 
     function esc(s) {
       return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -152,18 +159,22 @@
       render();
       clearTimeout(pendingTimer);
       pendingTimer = setTimeout(function () {
+        /* The look is now REQUESTED, not finished. `result` is null and only a real
+         * generation may fill it — see setLookResult. The elapsed stand-in interval says
+         * nothing about whether an image exists, so it no longer pretends to: the right
+         * mirror keeps its orb, and the four actions stay absent until there is something
+         * to act on. */
         looks.push({ id: 'look-' + (looks.length + 1), items: items.slice(),
-                     bg: null, shot: false, video: false });
+                     bg: null, shot: false, video: false, result: null });
         selected = looks.length - 1;
         items = [];                 // the next look starts empty
         pending = false;
         step = 2;
         render();
-        /* Forward travel was closed until a look existed; this is only the unlock. The
-         * viewer stays exactly where they are, at the mirrors, with the action row now
-         * reachable — moving them on automatically would carry them past the very row this
-         * step exists to reveal. */
-        if (typeof opts.onLookReady === 'function') opts.onLookReady();
+        /* Forward travel stays closed here on purpose. It used to open at this moment,
+         * which meant the next room became reachable while the look was still an empty
+         * frame — the next room exists to show a result. The unlock now happens in
+         * setLookResult, when a result actually arrives. */
       }, SIM_MS);
     }
 
@@ -484,10 +495,15 @@
      * picture as the thumbnail strip: the freshly-made look carries one faint centred
      * word, the way a proof print is stamped, instead of the bottom label the other
      * result states use. */
+    /* The look's OWN image, never the uploaded photograph. It used to render
+     * `person.main.url`: the source portrait, watermarked with the word for the thing it
+     * was standing in for. A viewer reading that frame as their assembled look, with four
+     * actions under it, was being shown their own input as a result. */
     function lookResultFrame() {
-      var src = person.main ? person.main.url : '';
+      var l = current();
+      var src = l && l.result ? l.result : '';
       return '<div class="lookframe" data-state="ready">' +
-        (src ? '<img class="lookframe__img" src="' + src + '" alt="">' : '') +
+        (src ? '<img class="lookframe__img" src="' + esc(src) + '" alt="">' : '') +
         '<span class="lookframe__word">образ</span>' +
       '</div>';
     }
@@ -548,6 +564,16 @@
       }
 
       if (pending) {
+        showRoot.innerHTML = scene('pending-look', orbWindow('look', 'Збираємо образ'));
+        applyEnabled();
+        return;
+      }
+
+      /* A look exists but its image does not. The orb stays — it IS the generation, and it
+       * is the only thing this mirror can honestly hold right now. No frame, and above all
+       * no action row: what a viewer may do with a look is a question about a finished
+       * look. This is where the journey rests until a real result arrives. */
+      if (!hasResult()) {
         showRoot.innerHTML = scene('pending-look', orbWindow('look', 'Збираємо образ'));
         applyEnabled();
         return;
@@ -825,8 +851,27 @@
       canAdvance: function (leg) {
         if (leg !== 0) return true;
         if (!looks.length) return false;
+        /* A requested look is not a finished one. Holding on `looks.length` alone opened
+         * the way to the next room the moment a look was asked for, while its mirror was
+         * still an orb — and that room is where finished work is put. */
+        if (!hasResult()) return false;
         if (pendingAction) return false;
         if (stream) return false;
+        return true;
+      },
+      /* THE ONLY WAY AN IMAGE BECOMES A RESULT.
+       *
+       * There is no generation route on this page yet, so nothing calls this in normal use
+       * and the journey rests on the orb — which is the honest state, not a defect. The
+       * adapter will call it when a real look returns; until then it is also how a result
+       * can be put on the glass deliberately for review. Opening the forward gate lives
+       * here because arrival of the image is the event that makes the next room meaningful. */
+      setLookResult: function (url) {
+        var l = current();
+        if (!l || typeof url !== 'string' || !url) return false;
+        l.result = url;
+        render();
+        if (typeof opts.onLookReady === 'function') opts.onLookReady();
         return true;
       },
       addPreset: function (name) { togglePreset(name); return items.length; },
