@@ -128,6 +128,21 @@
   }
   .mobile-attention .visualpick { min-height: 112px; }
   .mobile-attention .visualpick__media { height: 70px; }
+  /* Keep beta's portrait-first catalogue language on the phone too. Garment
+   * choice tiles remain compact; only the three action catalogues get the
+   * taller 3:4 wells. */
+  .mobile-attention .visualpicks[data-picker="shoot"] .visualpick__media,
+  .mobile-attention .visualpicks[data-picker="fash"] .visualpick__media {
+    height: clamp(132px, 42vw, 190px);
+    aspect-ratio: 3 / 4;
+  }
+  .mobile-attention .visualpicks[data-picker="bg"] .visualpick__media {
+    height: clamp(118px, 36vw, 172px);
+    aspect-ratio: 3 / 4;
+  }
+  .mobile-attention .visualpicks[data-picker="fash"] .visualpick__video {
+    object-fit: contain;
+  }
   .mobile-attention .visualpick__copy b { font-size: 12px; }
   .mobile-attention .formatpicks { min-height: 150px; gap: 10px; }
   .mobile-attention .formatpick { min-height: 138px; }

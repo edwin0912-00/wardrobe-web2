@@ -543,7 +543,10 @@
             id: option.id,
             name: option.name,
             note: option.note || '',
-            visual: kind === 'shoot' ? 'architecture' : kind === 'fash' ? 'air' : 'studio',
+            /* Keep the beta catalogue's visual hint when it provides one. The
+             * fallback is only for the local offline catalogue; it must not
+             * overwrite a live preview's identity. */
+            visual: option.visual || (kind === 'shoot' ? 'architecture' : kind === 'fash' ? 'air' : 'studio'),
             previewUrl: option.previewUrl || '',
             playbackUrl: option.playbackUrl || '',
             version: option.version || null,
@@ -581,11 +584,21 @@
       var choices = optionsFor(kind).map(function (option, index) {
         var selectedIndex = kind === 'shoot' ? look.shootStyle
                           : kind === 'fash' ? look.videoStyle : look.bg;
+        var preview = option.previewUrl
+          ? '<img class="visualpick__img" src="' + esc(option.previewUrl) +
+              '" alt="" loading="lazy" decoding="async">'
+          : '<i></i>';
+        /* Fashion styles have a real beta playback route. Keep the poster
+         * underneath so a protected/slow video never produces a blank card. */
+        if (kind === 'fash' && option.playbackUrl) {
+          preview += '<video class="visualpick__video" src="' + esc(option.playbackUrl) +
+            '"' + (option.previewUrl ? ' poster="' + esc(option.previewUrl) + '"' : '') +
+            ' muted playsinline autoplay loop preload="metadata" aria-hidden="true"></video>';
+        }
         return '<button class="visualpick" type="button" data-choice-kind="' + kind + '"' +
           ' data-choice-index="' + index + '" aria-pressed="' + (selectedIndex === index ? 'true' : 'false') + '">' +
           '<span class="visualpick__media" data-visual="' + esc(option.visual) + '" aria-hidden="true">' +
-            (option.previewUrl ? '<img src="' + esc(option.previewUrl) +
-              '" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block">' : '<i></i>') + '</span>' +
+            preview + '</span>' +
           '<span class="visualpick__copy"><b>' + esc(option.name) + '</b><small>' + esc(option.note) + '</small></span>' +
         '</button>';
       }).join('');

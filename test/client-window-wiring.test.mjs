@@ -140,6 +140,9 @@ test('all missing mirror choice screens exist as one visual component family', (
   assert.match(ui, /kind === 'background' \? 'bg'/);
   assert.match(css, /\.visualpicks/);
   assert.match(css, /\.visualpick/);
+  assert.match(ui, /visualpick__video/);
+  assert.match(css, /data-picker="fash"[\s\S]*aspect-ratio: 3 \/ 4/);
+  assert.match(css, /data-picker="bg"[\s\S]*aspect-ratio: 3 \/ 4/);
   assert.match(css, /\.formatpicks/);
   assert.match(css, /\.formatpick/);
 });

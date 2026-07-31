@@ -1128,6 +1128,32 @@ body {
   background: rgba(245,243,237,0.06);
   border-bottom: 1px solid rgba(245,243,237,0.18);
 }
+/* Beta exposes portrait-first media for the action catalogues. The mirror is
+ * wide, but the choices are not: keep each preview legible instead of
+ * flattening it into a landscape strip. */
+.visualpicks[data-picker="shoot"] .visualpick__media,
+.visualpicks[data-picker="fash"] .visualpick__media {
+  height: clamp(104px, 22cqh, 176px);
+  aspect-ratio: 3 / 4;
+}
+.visualpicks[data-picker="bg"] .visualpick__media {
+  height: clamp(96px, 19cqh, 154px);
+  aspect-ratio: 3 / 4;
+}
+.visualpick__img,
+.visualpick__video {
+  position: absolute; inset: 0; z-index: 0;
+  display: block; width: 100%; height: 100%;
+  object-fit: cover;
+}
+.visualpick__video {
+  background: rgba(22,23,21,0.72);
+}
+.visualpicks[data-picker="fash"] .visualpick__video {
+  /* Fashion playback is portrait; show the full movement inside the
+   * portrait well rather than cropping the head/feet out of it. */
+  object-fit: contain;
+}
 .visualpick__media::before,
 .visualpick__media::after,
 .visualpick__media i { content: ''; position: absolute; display: block; }
@@ -1211,6 +1237,21 @@ body {
   .visualpick__copy small { display: none; }
   .formatpicks { margin-top: 6px; }
   .formatpick { padding: 5px; gap: 4px; }
+}
+
+/* The compact container rule above keeps the catalogue usable in short
+ * desktop windows, but it must not turn the portrait wells back into thin
+ * landscape bars. */
+@container (max-height: 400px) {
+  .visualpicks[data-picker="shoot"] .visualpick__media,
+  .visualpicks[data-picker="fash"] .visualpick__media {
+    height: clamp(72px, 19cqh, 120px);
+    aspect-ratio: 3 / 4;
+  }
+  .visualpicks[data-picker="bg"] .visualpick__media {
+    height: clamp(68px, 16cqh, 104px);
+    aspect-ratio: 3 / 4;
+  }
 }
 
 /* The camera's own controls are not part of the approved row — they belong to the live
