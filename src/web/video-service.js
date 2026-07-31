@@ -41,12 +41,6 @@ const REQUIRED_REFERENCE_CHECKS = Object.freeze([
 
 const SHA256 = /^[a-f0-9]{64}$/;
 const CUT_PEOPLE = new Set(['APPROVED_AVATAR_ONLY', 'NO_PERSON', 'REFERENCE_PERFORMER', 'MIXED_OR_UNKNOWN']);
-const SALVAGEABLE_REFERENCE_FAILURES = new Set([
-  'subject_replacement_every_cut',
-  'no_reference_performer_pixels',
-  'identity_and_outfit_every_subject_cut',
-]);
-
 function validFashionCutSheet(sheet, durationSeconds) {
   if (sheet?.schema_version !== '1.0.0' || !Array.isArray(sheet.cuts)
     || sheet.cuts.length < 1 || sheet.cuts.length > 24) return false;
@@ -1132,10 +1126,15 @@ export class VideoService {
     const identityFileField = salvageReview
       ? 'salvageIdentityItemQaFile'
       : 'identityItemQaFile';
+    const originalReferenceReviewPending = !salvageReview
+      && Boolean(clip.motionReferenceBinding)
+      && !clip.referenceAdherenceQa;
     const updated = {
       ...clip,
-      status: !pass || technicalPass === false
+      status: technicalPass === false
         ? 'FAIL'
+        : !pass
+          ? (originalReferenceReviewPending ? 'NEEDS_QA' : 'FAIL')
         : technicalPass !== true
           ? 'NEEDS_QA'
           : clip.motionReferenceBinding
@@ -1151,6 +1150,13 @@ export class VideoService {
       [identityFileField]: salvageReview
         ? 'salvage-identity-item-qa.json'
         : 'identity-item-qa.json',
+      failureCode: !pass && !originalReferenceReviewPending
+        ? (salvageReview
+            ? 'VIDEO_SALVAGE_IDENTITY_ITEM_QA_FAILED'
+            : 'VIDEO_IDENTITY_ITEM_QA_FAILED')
+        : technicalPass === false
+          ? (clip.failureCode ?? 'VIDEO_TECHNICAL_QA_FAILED')
+          : null,
       updatedAt: new Date(this.#clock()).toISOString(),
     };
     if (salvageReview) {
@@ -1222,6 +1228,9 @@ export class VideoService {
     const identityPass = salvageReview
       ? clip.salvageIdentityItemQa?.pass === true
       : clip.identityItemQa?.pass === true;
+    const identityRecorded = salvageReview
+      ? Boolean(clip.salvageIdentityItemQa)
+      : Boolean(clip.identityItemQa);
     const technicalPass = clip.qa?.pass;
     const qaField = salvageReview
       ? 'salvageReferenceAdherenceQa'
@@ -1236,9 +1245,9 @@ export class VideoService {
       ...clip,
       status: !pass || technicalPass === false
         ? 'FAIL'
-        : technicalPass !== true || !identityPass
+        : technicalPass !== true || !identityRecorded
           ? 'NEEDS_QA'
-          : 'PASS',
+          : identityPass ? 'PASS' : 'FAIL',
       [qaField]: {
         pass,
         decisions: Object.fromEntries(requiredChecks.map((name) => [name, decisions.get(name)])),
@@ -1251,7 +1260,9 @@ export class VideoService {
         ? {
             salvage: {
               ...clip.salvage,
-              status: pass && technicalPass === true && identityPass ? 'PASS' : (pass ? 'NEEDS_QA' : 'FAIL'),
+              status: pass && technicalPass === true && identityPass
+                ? 'PASS'
+                : (pass && !identityRecorded ? 'NEEDS_QA' : 'FAIL'),
               reviewedAt: new Date(this.#clock()).toISOString(),
             },
           }
@@ -1260,47 +1271,99 @@ export class VideoService {
     };
 
     if (!salvageReview && !pass) {
-      const failedChecks = requiredChecks.filter((name) => decisions.get(name) === 'FAIL');
       const approvedDurationMs = cutCoverage.approvedHeroSegments.reduce(
         (total, segment) => total + segment.end_ms - segment.start_ms,
         0,
       );
+      // A bad provider result is still locally repairable whenever the cut
+      // audit found at least one second of independently PASSed avatar-only
+      // footage. Global creative failures often describe the rejected cuts;
+      // they must not prevent us from discarding those cuts. The derivative
+      // inherits no semantic PASS and is audited again against its own SHA.
       const salvageEligible = cutCoverage.referenceLeakDetected
-        && !cutCoverage.unsafeNonReferenceFailure
-        && approvedDurationMs >= 1_000
-        && failedChecks.length > 0
-        && failedChecks.every((name) => SALVAGEABLE_REFERENCE_FAILURES.has(name));
+        && approvedDurationMs >= 1_000;
       if (salvageEligible) {
         const { salvageFn, probeFn, extractFrameFn } = this.#finalizer;
         if (typeof salvageFn !== 'function'
           || typeof probeFn !== 'function'
-          || typeof extractFrameFn !== 'function'
-          || typeof this.#fashionVideoReferenceResolver !== 'function') {
+          || typeof extractFrameFn !== 'function') {
           updated.salvage = {
             eligible: true,
             status: 'BLOCKED',
             failureCode: 'VIDEO_QA_SALVAGE_MISCONFIGURED',
           };
+          updated.failureCode = updated.salvage.failureCode;
         } else {
-          const reference = await this.#fashionVideoReferenceResolver({
-            motionMode: clip.mode,
-            referenceId: clip.motionReferenceBinding?.referenceId,
-          });
-          if (reference?.state !== 'READY'
-            || reference.reference_sha256 !== expectedReferenceSha256
-            || typeof reference.reference_path !== 'string') {
-            throw new VideoServiceError('Salvage motion reference no longer matches the clip', {
-              code: 'VIDEO_QA_SALVAGE_REFERENCE_MISMATCH',
-              status: 409,
+          let referencePath = null;
+          const lockedReferenceFile = clip.motionReferenceBinding?.audioSourceFile;
+          if (typeof lockedReferenceFile === 'string') {
+            const candidate = path.join(this.#store.clipDir(clipId), lockedReferenceFile);
+            try {
+              const bytes = await readFile(candidate);
+              if (sha256(bytes) === expectedReferenceSha256) referencePath = candidate;
+            } catch {
+              referencePath = null;
+            }
+          }
+          if (!referencePath && typeof this.#fashionVideoReferenceResolver === 'function') {
+            const reference = await this.#fashionVideoReferenceResolver({
+              motionMode: clip.mode,
+              referenceId: clip.motionReferenceBinding?.referenceId,
             });
+            if (reference?.state === 'READY'
+              && reference.reference_sha256 === expectedReferenceSha256
+              && typeof reference.reference_path === 'string') {
+              try {
+                const bytes = await readFile(reference.reference_path);
+                if (sha256(bytes) === expectedReferenceSha256) {
+                  referencePath = reference.reference_path;
+                }
+              } catch {
+                referencePath = null;
+              }
+            }
+          }
+          if (!referencePath) {
+            updated.salvage = {
+              eligible: true,
+              status: 'BLOCKED',
+              failureCode: 'VIDEO_QA_SALVAGE_REFERENCE_MISMATCH',
+            };
+            updated.failureCode = updated.salvage.failureCode;
+            await this.#store.save(clipId, updated);
+            return {
+              clipId,
+              status: updated.status,
+              referenceAdherenceQa: updated[qaField],
+              referenceAdherenceQaSha256,
+              salvage: updated.salvage,
+            };
           }
           const salvagedVideoPath = this.#store.salvagedVideoPath(clipId);
-          const salvageResult = await salvageFn({
-            sourceVideoPath: clip.videoPath,
-            referenceVideoPath: reference.reference_path,
-            outputVideoPath: salvagedVideoPath,
-            segments: cutCoverage.approvedHeroSegments,
-          });
+          let salvageResult;
+          try {
+            salvageResult = await salvageFn({
+              sourceVideoPath: clip.videoPath,
+              referenceVideoPath: referencePath,
+              outputVideoPath: salvagedVideoPath,
+              segments: cutCoverage.approvedHeroSegments,
+            });
+          } catch (cause) {
+            updated.salvage = {
+              eligible: true,
+              status: 'BLOCKED',
+              failureCode: cause?.code ?? 'VIDEO_QA_SALVAGE_FAILED',
+            };
+            updated.failureCode = updated.salvage.failureCode;
+            await this.#store.save(clipId, updated);
+            return {
+              clipId,
+              status: updated.status,
+              referenceAdherenceQa: updated[qaField],
+              referenceAdherenceQaSha256,
+              salvage: updated.salvage,
+            };
+          }
           const salvagedBytes = await readFile(salvagedVideoPath);
           const salvagedVideoSha256 = sha256(salvagedBytes);
           const probe = await probeFn(salvagedVideoPath);
@@ -1312,7 +1375,7 @@ export class VideoService {
             durationMin: salvageResult.durationSeconds,
             durationMax: salvageResult.durationSeconds,
             aspectRatio: clip.aspectRatio,
-            allowAudio: true,
+            audioPolicy: salvageResult.audioPolicy ?? clip.audioBinding?.policy ?? 'REFERENCE_REQUIRED',
           }, { ...probe, firstFrameRgb, lastFrameRgb });
           const salvagedAt = new Date(this.#clock()).toISOString();
           const salvageReceipt = {
@@ -1325,7 +1388,8 @@ export class VideoService {
             output_video_sha256: salvagedVideoSha256,
             duration_seconds: salvageResult.durationSeconds,
             segments: salvageResult.segments,
-            audio_source: 'MOTION_REFERENCE',
+            audio_source: salvageResult.audioSource,
+            audio_policy: salvageResult.audioPolicy ?? clip.audioBinding?.policy ?? 'REFERENCE_REQUIRED',
             technical_qa: salvageTechnicalQa,
           };
           const salvageReceiptBytes = Buffer.from(`${JSON.stringify(salvageReceipt, null, 2)}\n`);
@@ -1347,12 +1411,17 @@ export class VideoService {
             videoSha256: salvagedVideoSha256,
             deliveryDurationSeconds: salvageResult.durationSeconds,
             qa: salvageTechnicalQa,
+            audioBinding: {
+              ...(clip.audioBinding ?? {}),
+              policy: salvageResult.audioPolicy ?? clip.audioBinding?.policy ?? 'REFERENCE_REQUIRED',
+              source: salvageResult.audioSource,
+            },
             salvage: {
               eligible: true,
               status: salvageTechnicalQa.pass ? 'NEEDS_QA' : 'FAIL',
               segmentCount: salvageResult.segmentCount,
               segments: salvageResult.segments,
-              audioSource: 'MOTION_REFERENCE',
+              audioSource: salvageResult.audioSource,
               receiptFile: 'salvage-receipt.json',
               receiptSha256: salvageReceiptSha256,
               salvagedAt,
@@ -1360,6 +1429,12 @@ export class VideoService {
           });
         }
       }
+    }
+
+    if (!updated.salvage && !pass) {
+      updated.failureCode = 'VIDEO_REFERENCE_QA_FAILED';
+    } else if (pass && technicalPass !== false) {
+      updated.failureCode = null;
     }
     await this.#store.save(clipId, updated);
     return {

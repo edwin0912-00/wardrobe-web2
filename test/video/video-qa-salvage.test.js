@@ -33,23 +33,20 @@ test('salvage emits only approved spans and restores continuous reference audio'
   assert.match(filter, /\[1:a:0\]atrim=duration=3\.000/);
   assert.ok(calls[0].args.includes('+faststart'));
 });
-test('salvage fails closed without original reference audio or enough hero footage', async () => {
-  await assert.rejects(
-    () => salvageVideoFromQa({
-      sourceVideoPath: '/runtime/clip.mp4',
-      referenceVideoPath: '/runtime/reference.mp4',
-      outputVideoPath: '/runtime/out.mp4',
-      segments: [{ start_ms: 0, end_ms: 1_000 }],
-    }, {
-      probeFn: async (videoPath) => ({
-        durationSeconds: 5,
-        hasAudio: !videoPath.includes('reference'),
-      }),
-      commandRunner: async () => {},
-    }),
-    (error) => error instanceof VideoQaSalvageError
-      && error.code === 'VIDEO_QA_SALVAGE_REFERENCE_AUDIO_MISSING',
-  );
+test('salvage stays executable for a silent reference and still rejects too little hero footage', async () => {
+  const calls = [];
+  const silent = await salvageVideoFromQa({
+    sourceVideoPath: '/runtime/clip.mp4',
+    referenceVideoPath: '/runtime/reference.mp4',
+    outputVideoPath: '/runtime/out.mp4',
+    segments: [{ start_ms: 0, end_ms: 1_000 }],
+  }, {
+    probeFn: async () => ({ durationSeconds: 5, hasAudio: false }),
+    commandRunner: async (binary, args) => calls.push({ binary, args }),
+  });
+  assert.equal(silent.audioSource, 'SILENT_REFERENCE');
+  assert.equal(silent.audioPolicy, 'SILENT_REQUIRED');
+  assert.ok(calls[0].args.includes('-an'));
   await assert.rejects(
     () => salvageVideoFromQa({
       sourceVideoPath: '/runtime/clip.mp4',

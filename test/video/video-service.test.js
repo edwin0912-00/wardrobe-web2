@@ -834,30 +834,50 @@ test('reference-performer leakage is cut into a hero-only delivery and must pass
   });
 });
 
-test('reference leakage is not salvaged when another creative QA dimension also fails', async () => {
+test('reference leakage salvages PASSed hero cuts even when rejected cuts fail another creative dimension', async () => {
   await withTempDir(async (dir) => {
     const { provider } = makeStubProvider();
     const store = new ClipStore(dir);
+    const originalPath = await store.saveVideo('repairable-creative-fail', Buffer.from('provider-result'));
+    const referencePath = path.join(dir, 'reference.mp4');
+    await writeFile(referencePath, Buffer.from('reference'));
+    const referenceSha = sha256(Buffer.from('reference'));
     let salvageCalls = 0;
     const service = new VideoService({
       provider,
       clipStore: store,
-      fashionVideoReferenceResolver: async () => { throw new Error('must not resolve'); },
-      finalizer: { salvageFn: async () => { salvageCalls += 1; } },
+      fashionVideoReferenceResolver: async () => ({
+        state: 'READY', reference_path: referencePath, reference_sha256: referenceSha,
+      }),
+      finalizer: {
+        salvageFn: async ({ outputVideoPath, segments }) => {
+          salvageCalls += 1;
+          await writeFile(outputVideoPath, Buffer.from('hero-only'));
+          return {
+            durationSeconds: 2, segmentCount: segments.length, segments,
+            audioSource: 'MOTION_REFERENCE', audioPolicy: 'REFERENCE_REQUIRED',
+          };
+        },
+        probeFn: async () => ({ durationSeconds: 2, width: 720, height: 1280, hasAudio: true }),
+        extractFrameFn: async () => new Uint8Array(20).fill(128),
+      },
     });
-    await store.save('not-salvageable', {
-      clipId: 'not-salvageable', jobId: 'job_not_salvageable', status: 'NEEDS_QA',
-      durationSeconds: 5, sourceSha256: 'a'.repeat(64), qa: { pass: true },
-      identityItemQa: { pass: true }, motionReferenceBinding: { sha256: 'b'.repeat(64) },
+    await store.save('repairable-creative-fail', {
+      clipId: 'repairable-creative-fail', jobId: 'job_repairable', status: 'NEEDS_QA',
+      durationSeconds: 5, aspectRatio: '9:16', sourceSha256: 'a'.repeat(64),
+      videoPath: originalPath, videoSha256: sha256(Buffer.from('provider-result')),
+      qa: { pass: true }, identityItemQa: { pass: true },
+      audioBinding: { policy: 'REFERENCE_REQUIRED' },
+      motionReferenceBinding: { referenceId: 'style', sha256: referenceSha },
     });
     const checks = referenceTransferCheckNames.map((name) => ({
       name,
       decision: ['no_reference_performer_pixels', 'camera_and_framing'].includes(name)
         ? 'FAIL' : 'PASS',
     }));
-    const result = await service.recordReferenceAdherenceQa('not-salvageable', {
-      clip_id: 'not-salvageable', job_id: 'job_not_salvageable',
-      source_sha256: 'a'.repeat(64), motion_reference_sha256: 'b'.repeat(64), checks,
+    const result = await service.recordReferenceAdherenceQa('repairable-creative-fail', {
+      clip_id: 'repairable-creative-fail', job_id: 'job_repairable',
+      source_sha256: 'a'.repeat(64), motion_reference_sha256: referenceSha, checks,
       cut_coverage: {
         sample_rate_fps: 2,
         cuts: [
@@ -870,9 +890,9 @@ test('reference leakage is not salvaged when another creative QA dimension also 
         ],
       },
     });
-    assert.equal(result.status, 'FAIL');
-    assert.equal(result.salvage, null);
-    assert.equal(salvageCalls, 0);
+    assert.equal(result.status, 'NEEDS_QA');
+    assert.equal(result.salvage.status, 'NEEDS_QA');
+    assert.equal(salvageCalls, 1);
   });
 });
 
@@ -981,6 +1001,37 @@ test('recordIdentityItemQa makes a semantic RETRY fail a technically valid clip'
     const saved = await store.load('semantic-clip');
     assert.equal(saved.status, 'FAIL');
     assert.equal(saved.identityItemQaFile, 'identity-item-qa.json');
+  });
+});
+
+test('reference-bound identity failure waits for per-cut salvage analysis instead of becoming a dead end', async () => {
+  await withTempDir(async (dir) => {
+    const { provider } = makeStubProvider();
+    const store = new ClipStore(dir);
+    const service = new VideoService({ provider, clipStore: store });
+    await store.save('semantic-reference-clip', {
+      clipId: 'semantic-reference-clip', jobId: 'job_semantic_reference',
+      status: 'NEEDS_QA', durationSeconds: 5,
+      sourceSha256: 'c'.repeat(64), qa: { pass: true },
+      motionReferenceBinding: { sha256: 'd'.repeat(64) },
+    });
+    const result = await service.recordIdentityItemQa('semantic-reference-clip', {
+      clip_id: 'semantic-reference-clip', job_id: 'job_semantic_reference',
+      source_sha256: 'c'.repeat(64),
+      results: { first: { decision: 'RETRY' }, last: { decision: 'PASS' } },
+    });
+    assert.equal(result.status, 'NEEDS_QA');
+    const persisted = await store.load('semantic-reference-clip');
+    assert.equal(persisted.identityItemQa.pass, false);
+    assert.equal(persisted.failureCode, null);
+
+    const referenceResult = await service.recordReferenceAdherenceQa('semantic-reference-clip', {
+      clip_id: 'semantic-reference-clip', job_id: 'job_semantic_reference',
+      source_sha256: 'c'.repeat(64), motion_reference_sha256: 'd'.repeat(64),
+      cut_coverage: microCutCoverage({ durationMs: 5_000 }),
+      checks: referenceTransferChecks(),
+    });
+    assert.equal(referenceResult.status, 'FAIL');
   });
 });
 

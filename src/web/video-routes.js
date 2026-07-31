@@ -14,6 +14,7 @@ import { createReadStream } from 'node:fs';
 import { stat } from 'node:fs/promises';
 import { ProfileError } from './profile-service.js';
 import { fashionVideoCapability } from './video-capability.js';
+import { resolveVideoQaAction } from './video-qa-action.js';
 import { VideoServiceError } from './video-service.js';
 
 function sameOriginMutation(request) {
@@ -59,12 +60,17 @@ function byteRange(rangeHeader, size) {
 
 function hasVerifiedFashionStyle(liveClip) {
   const binding = liveClip?.motionReferenceBinding;
+  const identityQa = liveClip?.salvage
+    ? liveClip.salvageIdentityItemQa
+    : liveClip?.identityItemQa;
   const referenceQa = liveClip?.salvage
     ? liveClip.salvageReferenceAdherenceQa
     : liveClip?.referenceAdherenceQa;
   return liveClip?.status === 'PASS'
+    && liveClip?.qa?.pass === true
     && /^[a-f0-9]{64}$/.test(binding?.sha256 ?? '')
     && /^[a-f0-9]{64}$/.test(binding?.packSha256 ?? '')
+    && identityQa?.pass === true
     && referenceQa?.pass === true
     && referenceQa?.cutCoverage?.pass === true;
 }
@@ -609,17 +615,22 @@ export async function registerVideoRoutes(app, {
       });
       const liveClip = await videoService.getClip(request.params.clipId);
       const updated = projectClip(session.profileId, projection.look_id, liveClip);
+      const verifiedStyle = hasVerifiedFashionStyle(liveClip);
+      const next = resolveVideoQaAction(liveClip, { deliverable: verifiedStyle });
       return reply.code(200).send({
         ...updated,
         qa: liveClip.qa,
         // A technically valid MP4 is not deliverable Fashion Video until the
         // hash-bound cut audit proves it contains no source performer.
-        video_url: hasVerifiedFashionStyle(liveClip)
+        video_url: verifiedStyle
           ? `/api/profile/video-clips/${liveClip.clipId}/video`
           : null,
-        delivery_code: hasVerifiedFashionStyle(liveClip)
+        delivery_code: verifiedStyle
           ? null
           : 'VIDEO_STYLE_PROVENANCE_MISSING',
+        next_action: next.action,
+        next_action_reason_code: next.reason_code,
+        retry_available: next.retry_available,
       });
     } catch (err) {
       if (err instanceof VideoServiceError) {
@@ -653,6 +664,7 @@ export async function registerVideoRoutes(app, {
       ? projectClip(session.profileId, clip.look_id, liveClip)
       : clip;
     const verifiedStyle = hasVerifiedFashionStyle(liveClip);
+    const next = resolveVideoQaAction(liveClip, { deliverable: verifiedStyle });
     return reply.header('Cache-Control', 'private, no-store').send({
       ...liveProjection,
       status: liveClip?.status ?? liveProjection.status,
@@ -663,6 +675,9 @@ export async function registerVideoRoutes(app, {
         ?? null,
       video_url: verifiedStyle ? clip.video_url ?? null : null,
       delivery_code: verifiedStyle ? null : 'VIDEO_STYLE_PROVENANCE_MISSING',
+      next_action: next.action,
+      next_action_reason_code: next.reason_code,
+      retry_available: next.retry_available,
     });
   });
 

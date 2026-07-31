@@ -50,6 +50,37 @@ outputs are rejected evidence and must not be reused.
 
 weakened_checks: none.
 
+## Executable QA action audit — 2026-07-31
+
+Code: TESTED_BRANCH. Repairable Seedance output no longer becomes a semantic
+dead end: a failed first/last identity receipt on a reference-bound clip stays
+`NEEDS_QA` until per-cut analysis can identify clean avatar-only spans. Any
+reference leak with at least one second of independently `PASS`ed
+`APPROVED_AVATAR_ONLY` footage now runs the local hero-only edit even when the
+discarded cuts also caused a global creative failure. The derivative receives
+new technical, identity/item and full reference QA bound to its own SHA before
+delivery; the final PASS/provenance gate was not widened.
+
+The edit concatenates only approved spans in chronological order, replaces
+provider sound with the exact hash-checked reference audio, and ends audio at
+the shortened picture duration. A genuinely silent reference yields a silent
+delivery instead of blocking local repair. The status/finalize API now returns
+one executable `next_action` plus `retry_available`; terminal `FAIL`/`FAILED`
+always exposes an explicit idempotent retry, while in-flight jobs only expose
+`WAIT` and never create a second paid request.
+
+Evidence: `node --test test/video/video-clip-qa.test.js
+test/video/video-qa-salvage.test.js test/video/video-qa-action.test.js
+test/video/video-service.test.js test/video/video-routes.test.js
+test/video/video-runtime.test.js` — PASS 80/80. `git diff --check` — PASS.
+Pre-change proof against `9e1732f`: the focused identity-to-cut-analysis
+regression fails `FAIL !== NEEDS_QA`, proving the former terminal dead end.
+
+Beta: NOT_DEPLOYED. Journey: NOT_RUN. No provider create, paid generation,
+beta edit or deployment occurred. `weakened_checks: none`; only remediation
+eligibility widened, and every salvaged byte must pass the unchanged final
+delivery gates again.
+
 ## Narrow capability integration — 2026-07-30
 
 Code: READY_FOR_BETA_DEPLOY. The useful backend portion of the later Block 6

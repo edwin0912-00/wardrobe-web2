@@ -111,7 +111,7 @@ test('approved reference audio passes when the delivery requires it', () => {
   assert.equal(result.pass, true);
 });
 
-test('bound reference audio is accepted only for an explicit salvage delivery contract', () => {
+test('bound reference audio is accepted by the same provenance policy after salvage', () => {
   const probe = {
     durationSeconds: 3,
     width: 720, height: 1280,
@@ -123,7 +123,7 @@ test('bound reference audio is accepted only for an explicit salvage delivery co
     durationMin: 3,
     durationMax: 3,
     aspectRatio: '9:16',
-    allowAudio: true,
+    audioPolicy: 'REFERENCE_REQUIRED',
   }, probe);
   assert.equal(result.pass, true);
 });

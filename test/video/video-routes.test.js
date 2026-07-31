@@ -323,6 +323,8 @@ test('status gives the real terminal provider reason instead of a connection or 
   assert.equal(response.statusCode, 200, response.body);
   assert.equal(response.json().failure_code, 'VIDEO_PROVIDER_JOB_NOT_FOUND');
   assert.match(response.json().error, /не має цей job/);
+  assert.equal(response.json().next_action, 'RETRY_AVAILABLE');
+  assert.equal(response.json().retry_available, true);
 });
 
 test('status repairs a stale CREATED profile projection from the terminal runtime QA result', async (t) => {
@@ -347,6 +349,8 @@ test('status repairs a stale CREATED profile projection from the terminal runtim
   assert.equal(response.json().status, 'FAIL');
   assert.equal(response.json().failure_code, 'CLIP_UNAUTHORIZED_AUDIO');
   assert.match(response.json().error, /неавторизоване аудіо/);
+  assert.equal(response.json().next_action, 'RETRY_AVAILABLE');
+  assert.equal(response.json().retry_available, true);
   assert.equal(current.projected.at(-1).clip.status, 'FAIL');
 });
 

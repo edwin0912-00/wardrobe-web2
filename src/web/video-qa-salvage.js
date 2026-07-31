@@ -76,11 +76,7 @@ export async function salvageVideoFromQa({
       code: 'VIDEO_QA_SALVAGE_SEGMENTS_INVALID',
     });
   }
-  if (referenceProbe?.hasAudio !== true) {
-    throw new VideoQaSalvageError('The bound motion reference has no original audio to restore', {
-      code: 'VIDEO_QA_SALVAGE_REFERENCE_AUDIO_MISSING',
-    });
-  }
+  const hasReferenceAudio = referenceProbe?.hasAudio === true;
 
   const videoFilters = safeSegments.map((segment, index) => {
     const start = (segment.start_ms / 1000).toFixed(3);
@@ -90,21 +86,25 @@ export async function salvageVideoFromQa({
   const totalSeconds = totalMs / 1000;
   const fadeSeconds = Math.min(0.2, totalSeconds / 4);
   const fadeStart = Math.max(0, totalSeconds - fadeSeconds);
-  const filter = [
+  const videoFilter = [
     ...videoFilters,
     `${safeSegments.map((_, index) => `[v${index}]`).join('')}concat=n=${safeSegments.length}:v=1:a=0,format=yuv420p[v]`,
-    `[1:a:0]atrim=duration=${totalSeconds.toFixed(3)},asetpts=PTS-STARTPTS,afade=t=out:st=${fadeStart.toFixed(3)}:d=${fadeSeconds.toFixed(3)}[a]`,
   ].join(';');
+  const filter = hasReferenceAudio
+    ? `${videoFilter};[1:a:0]atrim=duration=${totalSeconds.toFixed(3)},asetpts=PTS-STARTPTS,afade=t=out:st=${fadeStart.toFixed(3)}:d=${fadeSeconds.toFixed(3)}[a]`
+    : videoFilter;
+  const audioArgs = hasReferenceAudio
+    ? ['-map', '[a]', '-c:a', 'aac', '-b:a', '192k']
+    : ['-an'];
   try {
     await commandRunner('ffmpeg', [
       '-hide_banner', '-loglevel', 'error', '-y',
       '-i', sourceVideoPath,
       '-i', referenceVideoPath,
       '-filter_complex', filter,
-      '-map', '[v]', '-map', '[a]',
+      '-map', '[v]', ...audioArgs,
       '-c:v', 'libx264', '-preset', 'slow', '-crf', '17',
       '-profile:v', 'high', '-pix_fmt', 'yuv420p',
-      '-c:a', 'aac', '-b:a', '192k',
       '-movflags', '+faststart',
       '-t', totalSeconds.toFixed(3),
       outputVideoPath,
@@ -117,6 +117,7 @@ export async function salvageVideoFromQa({
     durationSeconds: totalSeconds,
     segmentCount: safeSegments.length,
     segments: safeSegments,
-    audioSource: 'MOTION_REFERENCE',
+    audioSource: hasReferenceAudio ? 'MOTION_REFERENCE' : 'SILENT_REFERENCE',
+    audioPolicy: hasReferenceAudio ? 'REFERENCE_REQUIRED' : 'SILENT_REQUIRED',
   };
 }
