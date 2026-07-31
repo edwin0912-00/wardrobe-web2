@@ -82,6 +82,12 @@ test('a first failed look exposes recovery before the empty-look waiting orb', (
   );
   assert.match(renderShow, /failureWindow\(actionError\)/);
   assert.match(ui, /data-retry-action>Спробувати ще</);
+  assert.match(ui, /bridgeState\.error && bridgeState\.error\.message/,
+    'terminal bridge failure copy must reach the recovery mirror');
+  assert.match(ui, /function hydrateUploadedItemPreviews/,
+    'accepted run garment previews must replace volatile object-URL thumbnails');
+  assert.match(ui, /serverPreview: Boolean/,
+    'the UI must identify server previews rather than inventing a recovered source file');
 });
 
 test('TV and laptop use the measured surface module', () => {

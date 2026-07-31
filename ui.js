@@ -165,6 +165,12 @@
     var adapterUnavailable = false;
     var garmentSelections = {};
     var garmentChoiceRunId = null;
+    /* Object URLs belong only to the current tab.  Once beta accepts a run, its
+     * server-generated garment previews become the durable visual source for
+     * this mirror.  We retain File objects while they exist, but never pretend
+     * a lost local source can be recreated after a reload. */
+    var pendingLookItems = null;
+    var pendingRunId = null;
 
     function bridgeReady() { return !!bridge && bridgeState && bridgeState.availability === 'ready'; }
     function bridgeWorking() {
@@ -229,6 +235,8 @@
           render(); notifyGateChange();
           return;
         }
+        pendingLookItems = items.slice();
+        pendingRunId = null;
         pending = true; view = 'look'; actionError = null;
         render(); notifyGateChange();
         bridge.createLook({
@@ -237,6 +245,8 @@
           garments: garmentFiles,
           outfitText: items.filter(function (item) { return !item.file; })
             .map(function (item) { return item.name; }).join(', ')
+        }).then(function (run) {
+          pendingRunId = run && run.run_id || pendingRunId;
         }).catch(function () { /* bridge event owns the visible recovery state */ });
         return;
       }
@@ -247,6 +257,33 @@
 
     var lastBridgeResultKey = '';
 
+    function hydrateUploadedItemPreviews(run) {
+      if (!run || !Array.isArray(run.garments) || !run.garments.length ||
+          (!pendingLookItems && !pendingRunId)) return;
+      if (pendingRunId && run.run_id !== pendingRunId) return;
+      pendingRunId = run.run_id;
+      var source = pendingLookItems || items;
+      var hydrated = run.garments.map(function (garment, index) {
+        var sourceIndex = Number.isInteger(garment.source_index) ? garment.source_index : index;
+        var local = source[sourceIndex] || {};
+        var preview = typeof garment.preview_url === 'string' && garment.preview_url.charAt(0) === '/'
+          ? garment.preview_url : local.url || null;
+        return {
+          name: local.name || garment.observed && garment.observed.garment_type || 'Річ',
+          url: preview,
+          file: local.file || null,
+          serverPreview: Boolean(preview && preview === garment.preview_url)
+        };
+      });
+      /* Text-only choices were not uploaded and do not receive a preview URL;
+       * preserve them as honest placeholders rather than inventing images. */
+      source.forEach(function (item) {
+        if (!item.file) hydrated.push(item);
+      });
+      items = hydrated.slice(0, MAX_ITEMS);
+      pendingLookItems = items.slice();
+    }
+
     function receiveBridge(event) {
       bridgeState = event || (bridge && bridge.state ? bridge.state() : bridgeState);
       if (!bridgeState) return;
@@ -254,6 +291,7 @@
       var working = bridgeWorking();
       var kind = bridgeState.activeKind || 'look';
       if (kind === 'look') {
+        hydrateUploadedItemPreviews(bridgeState.run);
         pending = working && bridgeState.phase !== 'needs_input';
         if (bridgeState.phase === 'needs_input') {
           step = 1;
@@ -311,7 +349,7 @@
         pendingAction = null;
         actionError = {
           kind: kind === 'background' ? 'bg' : kind === 'video' ? 'fash' : kind,
-          message: 'Спробуємо ще раз'
+          message: bridgeState.error && bridgeState.error.message || 'Спробуємо ще раз'
         };
       }
 

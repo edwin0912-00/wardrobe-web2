@@ -136,6 +136,34 @@ function statusError(error) {
   return { availability: null, code: error?.code ?? 'REQUEST_FAILED' };
 }
 
+/* Beta's terminal `message` is useful evidence for a repair prompt, but it is
+ * not presentation copy.  The mirror only receives a small allowlist of
+ * verified, actionable facts; raw evaluator prose and any unexpected text stay
+ * on the server. */
+function runFailurePresentation(run) {
+  const message = String(run?.message ?? '').toLowerCase();
+  const stage = String(run?.terminal_stage ?? run?.phase ?? '').toUpperCase();
+  if (stage === 'OUTFIT_QA' && /blue\s+(?:t-?shirt|shirt)|син(?:я|ій).*футбол/.test(message)) {
+    return {
+      code: 'OUTFIT_QA_VISIBLE_BLUE_LAYER',
+      message: 'На образі лишився синій шар замість погодженого темного верху. Повторимо тільки образ.',
+    };
+  }
+  if (stage === 'OUTFIT_QA') {
+    return {
+      code: 'OUTFIT_QA_MISMATCH',
+      message: 'Образ не пройшов перевірку точності речей. Повторимо тільки образ.',
+    };
+  }
+  if (stage === 'AVATAR_QA') {
+    return {
+      code: 'AVATAR_QA_MISMATCH',
+      message: 'Не вдалося точно зберегти зовнішність. Повторимо тільки образ.',
+    };
+  }
+  return { code: 'RUN_FAILED', message: 'Не вдалося зібрати образ. Спробуйте ще раз.' };
+}
+
 export function createCinematicUiBridge({
   client = createZeelyClient({ apiBase: '/api' }),
   autoProbe = true,
@@ -212,7 +240,7 @@ export function createCinematicUiBridge({
       activeKind: 'look', run, phase,
       choices: phase === 'needs_input' ? runChoices(run) : [],
       result: runResult(run),
-      error: phase === 'failed' ? { code: 'RUN_FAILED' } : null,
+      error: phase === 'failed' ? runFailurePresentation(run) : null,
     });
     if (phase === 'completed') void saveCompletedRun(run);
   }

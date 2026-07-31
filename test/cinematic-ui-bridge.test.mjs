@@ -80,6 +80,25 @@ test('a completed real run becomes the saved look and loads all action catalogue
   assert.equal(state.liveCapability.app, 'server-owned-live');
 });
 
+test('failed outfit QA maps only the verified visible conflict into mirror copy', async () => {
+  const client = clientStub();
+  const bridge = createCinematicUiBridge({ client, autoProbe: false });
+  await bridge.probe();
+  client.emit({
+    type: 'run:event',
+    run: {
+      run_id: 'run-1', status: 'FAILED', terminal_stage: 'OUTFIT_QA',
+      message: 'Candidate identity is supported, but the generated outfit retains the prior blue T-shirt visibly at the neckline.',
+      garments: [{ source_index: 0, preview_url: '/api/runs/run-1/garments/0?preview=1' }],
+    },
+  });
+  assert.deepEqual(bridge.state().error, {
+    code: 'OUTFIT_QA_VISIBLE_BLUE_LAYER',
+    message: 'На образі лишився синій шар замість погодженого темного верху. Повторимо тільки образ.',
+  });
+  assert.equal(bridge.state().run.garments[0].preview_url, '/api/runs/run-1/garments/0?preview=1');
+});
+
 test('Live reference and token stay bound to the saved look and beta capability', async () => {
   const client = clientStub();
   const bridge = createCinematicUiBridge({ client, autoProbe: false });
