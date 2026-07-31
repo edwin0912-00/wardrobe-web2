@@ -244,7 +244,9 @@ await store.save(options.clip_id, {
 const liveMetadataBytes = await readFile(path.join(liveStore.clipDir(options.clip_id), 'clip.json'));
 assertEqual(sha256(liveMetadataBytes), sha256(preMetadataBytes), 'live clip changed during recovery');
 const incidentName = `incident-pre-artifact-recovery-${options.clip_id}-${Date.now()}`;
-const incidentPath = path.join(path.dirname(liveStore.clipDir(options.clip_id)), incidentName);
+const incidentRoot = path.join(runtimeRoot, 'video-clips', 'incidents');
+await mkdir(incidentRoot, { recursive: true });
+const incidentPath = path.join(incidentRoot, incidentName);
 await rename(liveStore.clipDir(options.clip_id), incidentPath);
 await rename(store.clipDir(options.clip_id), liveStore.clipDir(options.clip_id));
 
