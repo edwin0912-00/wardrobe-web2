@@ -1013,6 +1013,16 @@
       showRoot.setAttribute('data-live', '1');
       showRoot.setAttribute('aria-hidden', 'false');
 
+      /* A first look can fail before there is anything in `looks`. Error recovery must
+       * therefore win over both empty-look waiting paths below: otherwise the terminal
+       * SSE failure is received but immediately painted back into the indefinite
+       * “Збираємо образ” orb with no retry control. */
+      if (actionError) {
+        showRoot.innerHTML = scene('failed-' + actionError.kind, failureWindow(actionError));
+        applyEnabled();
+        return;
+      }
+
       if (!pending && !looks.length) {
         showRoot.innerHTML = scene('waiting-' + step, waitingWindow());
         applyEnabled();
@@ -1041,12 +1051,6 @@
       if (pendingAction) {
         showRoot.innerHTML = scene('pending-' + pendingAction.kind,
           orbWindow(pendingAction.kind, actionWaitingCopy(pendingAction.kind)));
-        applyEnabled();
-        return;
-      }
-
-      if (actionError) {
-        showRoot.innerHTML = scene('failed-' + actionError.kind, failureWindow(actionError));
         applyEnabled();
         return;
       }

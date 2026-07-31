@@ -68,6 +68,22 @@ test('nothing may be done with a look until its own image exists', () => {
   assert.match(ui, /setLookResult/, 'only an explicit result may complete a look');
 });
 
+test('a first failed look exposes recovery before the empty-look waiting orb', () => {
+  const renderShow = ui.slice(ui.indexOf('function renderShow()'), ui.indexOf('function applyEnabled()'));
+  const failure = renderShow.indexOf("if (actionError)");
+  const emptyLookWaiting = renderShow.indexOf('if (!pending && !looks.length)');
+  const noResultWaiting = renderShow.indexOf('if (!hasResult())');
+
+  assert.ok(failure >= 0, 'the answer mirror needs an explicit failure path');
+  assert.ok(emptyLookWaiting >= 0 && noResultWaiting >= 0, 'both normal waiting paths remain');
+  assert.ok(
+    failure < emptyLookWaiting && failure < noResultWaiting,
+    'a terminal failure must render its retry controls before an empty first look can redraw the waiting orb',
+  );
+  assert.match(renderShow, /failureWindow\(actionError\)/);
+  assert.match(ui, /data-retry-action>Спробувати ще</);
+});
+
 test('TV and laptop use the measured surface module', () => {
   assert.match(html, /screen-surface-math\.js/);
   assert.match(html, /screen-surfaces\.js/);
