@@ -252,12 +252,24 @@
     }
 
     function unlock() {
-      if (unlocked) return;
       if (ctx.state === 'suspended') ctx.resume();
-      unlocked = true;
-      var i = activeIndex >= 0 ? activeIndex : 0;
-      activeIndex = -1;
-      to(i);
+      if (!unlocked) {
+        unlocked = true;
+        var i = activeIndex >= 0 ? activeIndex : 0;
+        activeIndex = -1;
+        to(i);
+        return;
+      }
+
+      /* `start()` can already have tried and been policy-blocked before the first real
+       * gesture. The old early-return made that gesture a no-op because the mixer had
+       * already marked itself unlocked. Retry the active element *inside this gesture*;
+       * otherwise the page says it has sound while every media element remains paused. */
+      var active = activeIndex >= 0 ? activeIndex : 0;
+      if (!els[active]) return;
+      var retry = els[active].play();
+      if (retry && retry.catch) retry.catch(function () {});
+      rampGain(gains[active].gain, muted ? 0 : 1, 220);
     }
 
     /* START IMMEDIATELY IF THE BROWSER ALLOWS IT.

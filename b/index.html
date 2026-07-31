@@ -565,6 +565,18 @@
       /* This click is a real gesture, so it is also the moment a browser that refused
          autoplay will accept a resume. Unlocking here means the first press works even
          when the score was started under a suspended context. */
+      var state = window.score.state();
+      var waitingForPlayback = state.activeIndex >= 0 && state.paused[state.activeIndex];
+      if (waitingForPlayback) {
+        /* A blocked autoplay attempt is already silent even when the intended mute state
+           is “on”. The first press must start sound, not toggle that intended state back
+           to muted and leave the visitor in the same silent room. */
+        window.score.setMuted(false);
+        window.score.unlock();
+        soundBtn.setAttribute('aria-pressed', 'true');
+        soundBtn.textContent = 'звук';
+        return;
+      }
       window.score.unlock();
       var m = window.score.toggleMute();
       soundBtn.setAttribute('aria-pressed', String(!m));
