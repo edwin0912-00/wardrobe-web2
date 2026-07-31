@@ -22,8 +22,12 @@ they are based on older shared UI/runtime contracts; equivalent patches are
 already in the beta chain. The remaining stale branch deltas stay explicitly
 held until a current-beta port has its own focused proof.
 
-Candidate release: `integration/beta-current-sync-20260731`.
-State: CODE READY_FOR_BETA_VERIFY; BETA NOT_DEPLOYED; Journey NOT_RUN.
+Activated release: `release-6ee2aeb-1785525203702`, built from
+`6ee2aebc53a5865b96c557bd2ac3d40d64f0c70d`. Public health returned `ready`,
+the cache token is `product-6ee2aebc-efebbd7c38c9`, and the public shell still
+exposes God View, Fashion Video and HEIC markers. The deploy preflight found
+no active run, scene, shoot or video work. Focused integration tests: 124/124.
+State: CODE LIVE; BETA LIVE; Journey: health + public-shell smoke PASS.
 weakened_checks: none.
 
 ## Isolated beta preflight cut · 2026-07-31

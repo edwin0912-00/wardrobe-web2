@@ -16,7 +16,10 @@ The current compatible missing atom is now ported as `d5b6d05` from
 `NEEDS_INPUT` is actionable in the UI and hides the retry that would resubmit
 the same insufficient input. Focused `visible-copy` and profile-flow tests
 pass; no QA gate was weakened. Candidate branch:
-`integration/beta-current-sync-20260731`.
+`integration/beta-current-sync-20260731`. The candidate was activated as
+`release-6ee2aeb-1785525203702`; public health and shell smoke returned PASS.
+The next board commit will carry the final post-deploy SHA so Git and runtime
+remain aligned.
 
 Explicitly held for separate current-beta ports: stale video-preview-resume
 tree, legacy Live 40-second contract, and late video-salvage commits whose
