@@ -39,14 +39,18 @@ test('a plan states the locks that make it a fashion clip and not a lookalike', 
   assert.match(plan.prompt, /No new props, no text, no logos/);
 });
 
-test('the reference-transfer prompt makes Video 1 the full scene and edit authority', () => {
+test('the reference-transfer prompt makes Video 1 style authority only and bans source-performer leakage', () => {
   const prompt = buildFashionVideoReferencePrompt({
     hasIdentityReference: true,
     hasGarmentReference: true,
   });
-  assert.match(prompt, /\[Video 1\].*exact temporal, editorial and scene master/);
+  assert.match(prompt, /\[Video 1\].*private reference-only directing material/);
   assert.match(prompt, /complete shot sequence, cut timing, transitions/);
+  assert.match(prompt, /Every final frame must be newly generated/);
+  assert.match(prompt, /Never splice, reuse, reveal, freeze, picture-in-picture, reflection, monitor image/);
   assert.match(prompt, /\[Image 1\].*exact approved person.*complete approved outfit/);
+  assert.match(prompt, /For every cut/);
+  assert.match(prompt, /No source performer face, body, skin, hair, clothing/);
   assert.match(prompt, /\[Image 2\] defines face identity and hair only/);
   assert.match(prompt, /\[Image 3\] defines the approved garment and footwear/);
   assert.match(prompt, /Never replace the reference environment/);

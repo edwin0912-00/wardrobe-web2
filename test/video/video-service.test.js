@@ -44,6 +44,47 @@ function makeStubQa({
   return { probeFn, extractFrameFn };
 }
 
+function microCutCoverage({
+  durationMs = 5_000,
+  decision = 'PASS',
+  referencePerformerVisible = false,
+  visiblePeople = 'APPROVED_AVATAR_ONLY',
+} = {}) {
+  return {
+    sample_rate_fps: 2,
+    cuts: [{
+      cut_index: 0,
+      start_ms: 0,
+      end_ms: durationMs,
+      sample_count: 10,
+      output_frame_sha256s: ['c'.repeat(64)],
+      reference_frame_sha256s: ['d'.repeat(64)],
+      reference_performer_visible: referencePerformerVisible,
+      visible_people: visiblePeople,
+      decision,
+    }],
+  };
+}
+
+const referenceTransferCheckNames = [
+  'cut_coverage_complete',
+  'subject_replacement_every_cut',
+  'no_reference_performer_pixels',
+  'identity_and_outfit_every_subject_cut',
+  'motion_and_pose_timing',
+  'camera_and_framing',
+  'environment_and_lighting',
+  'grade_and_optical_effects',
+  'shot_sequence_and_transitions',
+];
+
+function referenceTransferChecks(failedName = null) {
+  return referenceTransferCheckNames.map((name) => ({
+    name,
+    decision: name === failedName ? 'FAIL' : 'PASS',
+  }));
+}
+
 async function withTempDir(fn) {
   const dir = await mkdtemp(path.join(tmpdir(), 'video-test-'));
   const sourcePath = path.join(dir, 'locked-frame.png');
@@ -346,7 +387,9 @@ test('createClip rechecks and passes the exact video reference binding', async (
     });
     assert.deepEqual(requests[0].videoPaths, [referencePath]);
     assert.equal(requests[0].durationSeconds, 13);
-    assert.match(requests[0].prompt, /\[Video 1\].*exact temporal, editorial and scene master/);
+    assert.match(requests[0].prompt, /\[Video 1\].*private reference-only directing material, never delivery media/);
+    assert.match(requests[0].prompt, /Every final frame must be newly generated/);
+    assert.match(requests[0].prompt, /No source performer face, body, skin, hair, clothing, silhouette or motion-blurred fragment may survive/);
     assert.deepEqual(
       requests[0].mediaPaths.map((mediaPath) => path.basename(mediaPath)),
       ['source.png', 'identity-face.png', 'garment-detail.png'],
@@ -439,6 +482,7 @@ test('reference adherence becomes PASS only with exact bindings and every semant
       clipId: 'reference-qa-clip',
       jobId: 'job_reference_qa',
       status: 'NEEDS_QA',
+      durationSeconds: 5,
       sourceSha256: 'a'.repeat(64),
       qa: { pass: true },
       identityItemQa: { pass: true },
@@ -449,14 +493,9 @@ test('reference adherence becomes PASS only with exact bindings and every semant
       job_id: 'job_reference_qa',
       source_sha256: 'a'.repeat(64),
       motion_reference_sha256: 'b'.repeat(64),
+      cut_coverage: microCutCoverage(),
       evaluator: 'test/reference-evaluator',
-      checks: [
-        'motion_and_pose_timing',
-        'camera_and_framing',
-        'environment_and_lighting',
-        'grade_and_optical_effects',
-        'shot_sequence_and_transitions',
-      ].map((name) => ({ name, decision: 'PASS' })),
+      checks: referenceTransferChecks(),
     });
     assert.equal(result.status, 'PASS');
     assert.equal(result.referenceAdherenceQa.pass, true);
@@ -473,6 +512,7 @@ test('reference QA can arrive before identity QA without permanently failing a v
       clipId: 'reference-first',
       jobId: 'job_reference_first',
       status: 'NEEDS_QA',
+      durationSeconds: 5,
       sourceSha256: 'a'.repeat(64),
       qa: { pass: true },
       motionReferenceBinding: { sha256: 'b'.repeat(64) },
@@ -482,13 +522,8 @@ test('reference QA can arrive before identity QA without permanently failing a v
       job_id: 'job_reference_first',
       source_sha256: 'a'.repeat(64),
       motion_reference_sha256: 'b'.repeat(64),
-      checks: [
-        'motion_and_pose_timing',
-        'camera_and_framing',
-        'environment_and_lighting',
-        'grade_and_optical_effects',
-        'shot_sequence_and_transitions',
-      ].map((name) => ({ name, decision: 'PASS' })),
+      cut_coverage: microCutCoverage(),
+      checks: referenceTransferChecks(),
     });
     assert.equal(referenceResult.status, 'NEEDS_QA');
     const identityResult = await service.recordIdentityItemQa('reference-first', {
@@ -513,30 +548,44 @@ test('one failed reference-adherence dimension blocks the clip', async () => {
       clipId: 'reference-qa-fail',
       jobId: 'job_reference_fail',
       status: 'NEEDS_QA',
+      durationSeconds: 5,
       sourceSha256: 'a'.repeat(64),
       qa: { pass: true },
       identityItemQa: { pass: true },
       motionReferenceBinding: { sha256: 'b'.repeat(64) },
     });
-    const checks = [
-      'motion_and_pose_timing',
-      'camera_and_framing',
-      'environment_and_lighting',
-      'grade_and_optical_effects',
-      'shot_sequence_and_transitions',
-    ].map((name) => ({
-      name,
-      decision: name === 'shot_sequence_and_transitions' ? 'FAIL' : 'PASS',
-    }));
+    const checks = referenceTransferChecks('shot_sequence_and_transitions');
     const result = await service.recordReferenceAdherenceQa('reference-qa-fail', {
       clip_id: 'reference-qa-fail',
       job_id: 'job_reference_fail',
       source_sha256: 'a'.repeat(64),
       motion_reference_sha256: 'b'.repeat(64),
+      cut_coverage: microCutCoverage({ decision: 'FAIL', referencePerformerVisible: true, visiblePeople: 'REFERENCE_PERFORMER' }),
       checks,
     });
     assert.equal(result.status, 'FAIL');
     assert.equal(result.referenceAdherenceQa.pass, false);
+  });
+});
+
+test('reference transfer QA refuses delivery when any covered cut exposes the reference performer', async () => {
+  await withTempDir(async (dir) => {
+    const { provider } = makeStubProvider();
+    const store = new ClipStore(dir);
+    const service = new VideoService({ provider, clipStore: store });
+    await store.save('reference-performer-leak', {
+      clipId: 'reference-performer-leak', jobId: 'job_reference_leak', status: 'NEEDS_QA',
+      durationSeconds: 5, sourceSha256: 'a'.repeat(64), qa: { pass: true },
+      identityItemQa: { pass: true }, motionReferenceBinding: { sha256: 'b'.repeat(64) },
+    });
+    const checks = referenceTransferChecks('no_reference_performer_pixels');
+    const result = await service.recordReferenceAdherenceQa('reference-performer-leak', {
+      clip_id: 'reference-performer-leak', job_id: 'job_reference_leak',
+      source_sha256: 'a'.repeat(64), motion_reference_sha256: 'b'.repeat(64), checks,
+      cut_coverage: microCutCoverage({ decision: 'FAIL', referencePerformerVisible: true, visiblePeople: 'REFERENCE_PERFORMER' }),
+    });
+    assert.equal(result.status, 'FAIL');
+    assert.equal(result.referenceAdherenceQa.cutCoverage.pass, false);
   });
 });
 

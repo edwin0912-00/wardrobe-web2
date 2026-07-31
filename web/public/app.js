@@ -1815,6 +1815,7 @@ document.querySelector('#profile-look-video').addEventListener('click', (event) 
   document.querySelector('#video-progress').hidden = true;
   document.querySelector('#video-result').hidden = true;
   document.querySelector('#video-error').hidden = true;
+  document.querySelector('#video-retry').hidden = true;
   setVideoGenerateBusy(videoGenerationBusy);
   overlay.classList.remove('hidden');
   document.querySelector('#video-overlay-close').focus({ preventScroll: true });
@@ -1867,6 +1868,14 @@ function setVideoGenerateBusy(busy) {
   thinking.hidden = !busy;
   if (busy) setVideoThinkingState('searching', 'AI готує запуск', 'Перевіряємо reference pack');
 }
+function showVideoRetry(message) {
+  const error = document.querySelector('#video-error');
+  error.textContent = message;
+  error.hidden = false;
+  // This is an explicit user action. It may submit one new paid job; the
+  // server never retries a failed QA/provider result on its own.
+  document.querySelector('#video-retry').hidden = false;
+}
 function setVideoThinkingState(state, title, detail) {
   videoThinkingOrb.setState(state);
   document.querySelector('#video-ai-title').textContent = title;
@@ -1875,6 +1884,10 @@ function setVideoThinkingState(state, title, detail) {
 document.querySelector('#video-overlay-close').addEventListener('click', closeVideoOverlay);
 document.querySelector('#video-overlay').addEventListener('click', (event) => {
   if (event.target === event.currentTarget) closeVideoOverlay();
+});
+document.querySelector('#video-retry').addEventListener('click', () => {
+  document.querySelector('#video-retry').hidden = true;
+  document.querySelector('#video-generate').click();
 });
 // Video overlay: generate
 document.querySelector('#video-generate').addEventListener('click', async () => {
@@ -1893,6 +1906,7 @@ document.querySelector('#video-generate').addEventListener('click', async () => 
   progressEl.hidden = false;
   resultEl.hidden = true;
   errorEl.hidden = true;
+  document.querySelector('#video-retry').hidden = true;
   progressFill.style.width = '10%';
   progressStatus.textContent = 'Відправляємо вибраний стиль на Seedance 2…';
   try {
@@ -1935,22 +1949,28 @@ document.querySelector('#video-generate').addEventListener('click', async () => 
         }
         if (status.status === 'COMPLETED' || status.status === 'PASS') {
           clearInterval(poll);
+          if (!status.video_url) {
+            showVideoRetry(status.error ?? 'Відео не пройшло strict QA по кожному cut. Автоматичний повтор не запускався.');
+            setVideoGenerateBusy(false);
+            return;
+          }
           progressFill.style.width = '100%';
           progressStatus.textContent = 'Відео готове!';
           const player = document.querySelector('#video-result-player');
           const downloadLink = document.querySelector('#video-result-download');
-          player.src = `/api/profile/video-clips/${clip.clip_id}/video`;
-          downloadLink.href = `/api/profile/video-clips/${clip.clip_id}/video`;
+          player.src = status.video_url;
+          downloadLink.href = status.video_url;
           resultEl.hidden = false;
           setVideoGenerateBusy(false);
         } else if (status.status === 'FAILED' || status.status === 'FAIL') {
           clearInterval(poll);
-          throw new Error(status.error ?? 'Генерація не вдалася');
+          showVideoRetry(status.error ?? 'Відео не пройшло QA. Автоматичний повтор не запускався.');
+          setVideoGenerateBusy(false);
+          return;
         }
       } catch (pollErr) {
         clearInterval(poll);
-        errorEl.textContent = pollErr.message;
-        errorEl.hidden = false;
+        showVideoRetry(pollErr.message);
         setVideoGenerateBusy(false);
       }
       if (attempts === 120) {
@@ -1963,8 +1983,7 @@ document.querySelector('#video-generate').addEventListener('click', async () => 
       }
     }, 3000);
   } catch (err) {
-    errorEl.textContent = err.message;
-    errorEl.hidden = false;
+    showVideoRetry(err.message);
     setVideoGenerateBusy(false);
   }
 });

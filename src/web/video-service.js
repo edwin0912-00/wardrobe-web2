@@ -24,6 +24,64 @@ import {
 } from './video-motion-plan.js';
 import { evaluateClipQa } from './video-clip-qa.js';
 
+// A Fashion Video reference is a directing authority, never footage licensed
+// for output. Every detected cut must therefore carry independently hashed
+// reference/output samples and an explicit person-replacement verdict.
+const REQUIRED_REFERENCE_CHECKS = Object.freeze([
+  'cut_coverage_complete',
+  'subject_replacement_every_cut',
+  'no_reference_performer_pixels',
+  'identity_and_outfit_every_subject_cut',
+  'motion_and_pose_timing',
+  'camera_and_framing',
+  'environment_and_lighting',
+  'grade_and_optical_effects',
+  'shot_sequence_and_transitions',
+]);
+
+const SHA256 = /^[a-f0-9]{64}$/;
+const CUT_PEOPLE = new Set(['APPROVED_AVATAR_ONLY', 'NO_PERSON', 'REFERENCE_PERFORMER', 'MIXED_OR_UNKNOWN']);
+
+function validatedMicroCutCoverage(coverage, durationSeconds) {
+  if (!coverage || typeof coverage !== 'object'
+    || !Number.isFinite(durationSeconds) || durationSeconds <= 0
+    || !Number.isInteger(coverage.sample_rate_fps) || coverage.sample_rate_fps < 2
+    || !Array.isArray(coverage.cuts) || coverage.cuts.length < 1) {
+    return null;
+  }
+  const expectedEndMs = Math.round(Number(durationSeconds) * 1000);
+  let previousEnd = 0;
+  const cuts = [];
+  for (const [index, cut] of coverage.cuts.entries()) {
+    if (!cut || cut.cut_index !== index
+      || !Number.isInteger(cut.start_ms) || !Number.isInteger(cut.end_ms)
+      || cut.start_ms < 0 || cut.end_ms <= cut.start_ms
+      || cut.start_ms > previousEnd + 125
+      || !Number.isInteger(cut.sample_count) || cut.sample_count < 1
+      || !Array.isArray(cut.output_frame_sha256s) || cut.output_frame_sha256s.length < 1
+      || !Array.isArray(cut.reference_frame_sha256s) || cut.reference_frame_sha256s.length < 1
+      || cut.output_frame_sha256s.some((hash) => !SHA256.test(hash))
+      || cut.reference_frame_sha256s.some((hash) => !SHA256.test(hash))
+      || typeof cut.reference_performer_visible !== 'boolean'
+      || !CUT_PEOPLE.has(cut.visible_people)
+      || !['PASS', 'FAIL'].includes(cut.decision)) {
+      return null;
+    }
+    previousEnd = cut.end_ms;
+    cuts.push(cut);
+  }
+  if (previousEnd < expectedEndMs - 125) return null;
+  const pass = cuts.every((cut) => cut.decision === 'PASS'
+    && cut.reference_performer_visible === false
+    && ['APPROVED_AVATAR_ONLY', 'NO_PERSON'].includes(cut.visible_people));
+  return {
+    pass,
+    cutCount: cuts.length,
+    sampleRateFps: coverage.sample_rate_fps,
+    inspectedDurationMs: previousEnd,
+  };
+}
+
 export class VideoServiceError extends Error {
   constructor(message, { code = 'VIDEO_SERVICE_ERROR', status = 500 } = {}) {
     super(message);
@@ -790,26 +848,21 @@ export class VideoService {
       && receipt?.job_id === clip.jobId
       && receipt?.source_sha256 === clip.sourceSha256
       && receipt?.motion_reference_sha256 === expectedReferenceSha256;
-    const requiredChecks = [
-      'motion_and_pose_timing',
-      'camera_and_framing',
-      'environment_and_lighting',
-      'grade_and_optical_effects',
-      'shot_sequence_and_transitions',
-    ];
+    const requiredChecks = REQUIRED_REFERENCE_CHECKS;
     const decisions = new Map(
       Array.isArray(checks)
         ? checks.map((check) => [check?.name, check?.decision])
         : [],
     );
-    if (!exactBinding
+    const cutCoverage = validatedMicroCutCoverage(receipt?.cut_coverage, clip.durationSeconds);
+    if (!exactBinding || !cutCoverage
       || requiredChecks.some((name) => !['PASS', 'FAIL'].includes(decisions.get(name)))) {
       throw new VideoServiceError('Reference-adherence QA does not match the persisted clip', {
         code: 'REFERENCE_QA_RECEIPT_MISMATCH',
         status: 409,
       });
     }
-    const pass = requiredChecks.every((name) => decisions.get(name) === 'PASS');
+    const pass = cutCoverage.pass && requiredChecks.every((name) => decisions.get(name) === 'PASS');
     const receiptBytes = Buffer.from(`${JSON.stringify(receipt, null, 2)}\n`);
     const referenceAdherenceQaSha256 = sha256(receiptBytes);
     const dir = this.#store.clipDir(clipId);
@@ -838,6 +891,7 @@ export class VideoService {
       referenceAdherenceQa: {
         pass,
         decisions: Object.fromEntries(requiredChecks.map((name) => [name, decisions.get(name)])),
+        cutCoverage,
         evaluator: receipt.evaluator ?? null,
       },
       referenceAdherenceQaSha256,

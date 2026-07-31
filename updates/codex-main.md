@@ -1,4 +1,26 @@
 Agent ID: codex-main
+Task ID: BETA-FASHION-VIDEO-REFERENCE-PERFORMER-STOP-001
+Product line: beta-placeholder
+Pipeline: VIDEO.01 → VIDEO.04 · reference style → generated clip → cut QA → delivery
+State: CODE_VERIFIED — beta deployment pending
+Decision: Video 1 is now explicitly private directing material, never source
+footage for delivery. The provider prompt requires a newly generated frame for
+every cut: only the approved avatar or an empty scene may be visible. It
+forbids source-performer pixels in cuts, transitions, reflections, monitors,
+picture-in-picture and frozen frames. A technically valid MP4 cannot be
+delivered until a hash-bound cut-coverage receipt spans its duration and each
+cut records output/reference samples, person presence and PASS verdict.
+Evidence: focused motion-plan/service/routes/profile-UI suite 68/68 PASS.
+Route regression proves even a PASS MP4 returns no delivery URL without the
+complete Fashion-Video cut QA binding.
+weakened_checks: automatic extraction + VLM evaluation of the cut receipt is
+the next execution atom. Until it exists, reference-bound clips remain
+undeliverable rather than being falsely approved. The retry control is an
+explicit user action only; it never creates a duplicate provider job itself.
+
+---
+
+Agent ID: codex-main
 Task ID: BETA-FASHION-VIDEO-PROVIDER-TRUTH-001
 Product line: beta-placeholder
 Pipeline: VIDEO.02 · persisted provider job → provider wait

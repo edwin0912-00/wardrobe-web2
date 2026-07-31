@@ -103,11 +103,12 @@ export function buildFashionVideoReferencePrompt({
   hasGarmentReference = false,
 } = {}) {
   const lines = [
-    '[Video 1] is the exact temporal, editorial and scene master.',
-    'Preserve its complete shot sequence, cut timing, transitions, action timing, pose choreography, camera movement, framing, environment, lighting, colour grade, optical effects, props and environmental text.',
-    'Do not copy the original performer identity, body identity, hair or clothing from [Video 1].',
-    '[Image 1] is the exact approved person wearing the exact complete approved outfit.',
-    'Replace only the primary performer and that performer’s clothing with [Image 1]. Keep every other property of [Video 1].',
+    '[Video 1] is private reference-only directing material, never delivery media.',
+    'Use it only to reconstruct its complete shot sequence, cut timing, transitions, action timing, pose choreography, camera movement, framing, environment, lighting, colour grade, optical effects, props and environmental text.',
+    'Every final frame must be newly generated. Never splice, reuse, reveal, freeze, picture-in-picture, reflection, monitor image, transition frame or background person from [Video 1].',
+    '[Image 1] is the only permitted visible human: the exact approved person wearing the exact complete approved outfit.',
+    'For every cut: if a person is visible, render [Image 1] as that person with the same identity, body, hair and complete approved outfit. If the reference cut has no person, render no person. Remove any secondary person rather than retaining a reference performer.',
+    'No source performer face, body, skin, hair, clothing, silhouette or motion-blurred fragment may survive in any cut. Never mix [Image 1] with the reference performer.',
   ];
   if (hasIdentityReference) {
     lines.push(
@@ -121,7 +122,7 @@ export function buildFashionVideoReferencePrompt({
   }
   lines.push(
     'Never replace the reference environment with the background of an appearance image.',
-    'Do not simplify the reference into a static portrait or a single continuous camera setup.',
+    'Do not simplify the reference into a static portrait or a single continuous camera setup, but reconstruct every cut with the approved person or an empty environment only.',
     'Do not add people, props, scene text, wardrobe changes, music, dialogue, voice or sound effects.',
   );
   return lines.join(' ');

@@ -118,6 +118,9 @@ test('saved look exposes actionable branches and their honest pipeline explanati
   assert.doesNotMatch(indexSource, /gentle_sway|confident_turn|editorial_pose/);
   assert.doesNotMatch(indexSource, /id="video-source-image"/);
   assert.match(indexSource, /id="video-result" class="video-result" hidden/);
+  assert.match(indexSource, /id="video-retry"[^>]*>Повторити спробу/);
+  assert.match(appSource, /function showVideoRetry/);
+  assert.match(appSource, /Автоматичний повтор не запускався/);
   assert.match(appSource, /Потрібні 2 референси/);
   assert.match(appSource, /action\.dataset\.state = state/);
   assert.match(appSource, /action\.classList\.toggle\('is-checking', state === 'checking'\)/);

@@ -504,9 +504,7 @@ test('finalize resumes the existing job and projects the real MP4 result', async
   assert.equal(response.statusCode, 200, response.body);
   const body = response.json();
   assert.equal(body.status, 'PASS');
-  assert.equal(
-    body.video_url,
-    '/api/profile/video-clips/11111111-1111-4111-8111-111111111111/video',
-  );
+  assert.equal(body.video_url, null);
+  assert.equal(body.delivery_code, 'VIDEO_STYLE_PROVENANCE_MISSING');
   assert.equal(current.projected.at(-1).clip.output.sha256, 'a'.repeat(64));
 });

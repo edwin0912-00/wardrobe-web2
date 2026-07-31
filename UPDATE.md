@@ -62,6 +62,20 @@ The earlier detailed noticeboard is preserved at
 - Live test: `https://beta.madeforthisjob.com` — deploy the exact tested beta
   commit, then record its result below.
 
+## Fashion Video reference ownership — 2026-07-31
+
+- **Reference is not delivery footage.** A selected style video supplies timing,
+  camera, lighting, grade and choreography only. Every final cut is newly
+  generated with the approved avatar/look, or contains no person.
+- **Delivery gate:** technical MP4 QA and first/last-frame QA are insufficient.
+  Fashion Video delivery additionally requires an immutable, hash-bound
+  cut-coverage receipt across the whole clip. It records every cut's sampled
+  output/reference hashes and rejects any source performer, mixed/unknown
+  person or unreviewed gap.
+- **Failure behavior:** a failed reference-performer QA does not time out after
+  six minutes and does not retry automatically. The UI explains the QA failure
+  and offers **«Повторити спробу»** as one explicit new generation request.
+
 ## Look-reference fast route — 2026-07-29
 
 - **Scope:** only avatar and garment-reference preparation for a new look.

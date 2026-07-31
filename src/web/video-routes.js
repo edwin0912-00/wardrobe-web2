@@ -61,12 +61,16 @@ function hasVerifiedFashionStyle(liveClip) {
   return liveClip?.status === 'PASS'
     && /^[a-f0-9]{64}$/.test(binding?.sha256 ?? '')
     && /^[a-f0-9]{64}$/.test(binding?.packSha256 ?? '')
-    && liveClip?.referenceAdherenceQa?.pass === true;
+    && liveClip?.referenceAdherenceQa?.pass === true
+    && liveClip?.referenceAdherenceQa?.cutCoverage?.pass === true;
 }
 
 function publicVideoFailure(liveClip) {
   if (liveClip?.failureCode === 'VIDEO_PROVIDER_JOB_NOT_FOUND') {
     return 'Higgsfield більше не має цей job. Нове відео не створювалося автоматично.';
+  }
+  if (liveClip?.referenceAdherenceQa?.pass === false) {
+    return 'Відео не пройшло QA: у кожному cut має бути лише затверджений аватар або порожня сцена. Reference-людина у фіналі заборонена.';
   }
   return null;
 }
@@ -452,9 +456,14 @@ export async function registerVideoRoutes(app, {
       return reply.code(200).send({
         ...updated,
         qa: liveClip.qa,
-        video_url: liveClip.status === 'PASS'
+        // A technically valid MP4 is not deliverable Fashion Video until the
+        // hash-bound cut audit proves it contains no source performer.
+        video_url: hasVerifiedFashionStyle(liveClip)
           ? `/api/profile/video-clips/${liveClip.clipId}/video`
           : null,
+        delivery_code: hasVerifiedFashionStyle(liveClip)
+          ? null
+          : 'VIDEO_STYLE_PROVENANCE_MISSING',
       });
     } catch (err) {
       if (err instanceof VideoServiceError) {
