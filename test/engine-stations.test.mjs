@@ -56,12 +56,18 @@ function boot(overrides = {}) {
       return null;
     },
   };
+  const listeners = new Map();
+  let pendingFrame = null;
+  let frameId = 0;
   const window = {
     innerHeight: 1_000,
     innerWidth: 1_000,
     scrollY: 0,
-    addEventListener() {},
-    removeEventListener() {},
+    addEventListener(type, fn) {
+      if (!listeners.has(type)) listeners.set(type, new Set());
+      listeners.get(type).add(fn);
+    },
+    removeEventListener(type, fn) { listeners.get(type)?.delete(fn); },
     scrollTo(_x, y) { this.scrollY = y; },
   };
   const context = {
@@ -72,7 +78,7 @@ function boot(overrides = {}) {
     Promise,
     setTimeout() { return 0; },
     clearTimeout() {},
-    requestAnimationFrame() { return 1; },
+    requestAnimationFrame(fn) { pendingFrame = fn; frameId += 1; return frameId; },
     fetch: async () => ({ ok: false }),
   };
   vm.runInNewContext(engineSource, context, { filename: 'engine.js' });
@@ -86,7 +92,18 @@ function boot(overrides = {}) {
     ...overrides,
   });
   journey.forceOpen();
-  return { journey, stage, root, window };
+  return {
+    journey, stage, root, window,
+    scrollToProgress(progress) {
+      window.scrollY = progress * (root.scrollHeight - root.clientHeight);
+      for (const fn of listeners.get('scroll') ?? []) fn({ type: 'scroll' });
+    },
+    flushFrame() {
+      const fn = pendingFrame;
+      pendingFrame = null;
+      if (fn) fn(16.7);
+    },
+  };
 }
 
 /* The engine resolves a page scalar across all configured legs. These focused tests talk
@@ -174,6 +191,56 @@ test('keeps the one-station legacy contract when config.stations is absent', () 
   assert.equal(state.stationId, 'leg-1-end');
   state = seekLeg(journey, 0, 0.60);
   assert.equal(state.station, false);
+});
+
+test('a single fast flick cannot jump over a closed attention station', () => {
+  const { journey, stage, root, window, scrollToProgress, flushFrame } = boot({
+    inertia: 1,
+    stationAt: 0.80,
+    stationEnter: 0.70,
+    stationExit: 0.50,
+    canAdvance: (leg) => leg !== 0,
+  });
+
+  scrollToProgress(1);
+  flushFrame();
+
+  const state = journey.state();
+  assert.equal(state.leg, 0);
+  assert.equal(state.stationId, 'leg-0-end');
+  assert.equal(state.lockedLeg, 0);
+  assert.equal(stage.getAttribute('data-gate'), 'held');
+  assert.equal(window.scrollY, Math.round(0.40 * (root.scrollHeight - root.clientHeight)));
+});
+
+test('the same fast flick passes a station whose gate is open', () => {
+  const { journey, scrollToProgress, flushFrame } = boot({
+    inertia: 1,
+    stationAt: 0.80,
+    canAdvance: () => true,
+  });
+
+  scrollToProgress(1);
+  flushFrame();
+
+  assert.equal(journey.state().leg, 1);
+});
+
+test('a station authored at local 1 pins to the final frame of its own leg', () => {
+  const { journey, scrollToProgress, flushFrame } = boot({
+    inertia: 1,
+    stationAt: 1,
+    stationEnter: 0.99,
+    canAdvance: (leg) => leg !== 0,
+  });
+
+  scrollToProgress(1);
+  flushFrame();
+
+  const state = journey.state();
+  assert.equal(state.leg, 0);
+  assert.equal(state.stationId, 'leg-0-end');
+  assert.ok(state.local > 0.998 && state.local < 1);
 });
 
 test('accepts the earlier station-map shape and releases local resistance after a mid-leg stop', () => {

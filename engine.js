@@ -400,6 +400,13 @@
       }
       film.style.width = Math.round(w) + 'px';
       film.style.height = Math.round(h) + 'px';
+      /* Published so stage-space layers can place themselves against the PICTURE instead of
+       * against the viewport. The film is centred and letterboxed, so a sibling that anchors
+       * to the bottom of the stage lands in the black band below the footage rather than low
+       * in the frame — which is what happened to the film copy. Only these two numbers are
+       * needed to fix that, and they are already computed here. */
+      root.style.setProperty('--film-w', Math.round(w) + 'px');
+      root.style.setProperty('--film-h', Math.round(h) + 'px');
     }
 
     /* ---- preload --------------------------------------------------------------
@@ -679,6 +686,7 @@
       }
 
       /* Exponential chase. `ease` is per-frame catch-up; lower is heavier. */
+      var before = current;
       var delta = target - current;
       var moved = 0;
       if (Math.abs(delta) < 0.00004) {
@@ -687,6 +695,19 @@
         moved = delta * config.inertia;
         current += moved;
         schedule();
+      }
+
+      /* A large mobile flick can carry one animation frame from before a closed station
+       * to the following leg. applyLock() used to inspect only the landing point, so the
+       * station was never latched and its required input disappeared behind the viewer.
+       * Treat a closed station like a physical rail stop: if the frame segment crosses
+       * it, land exactly on its pin before publishing any later frame. */
+      var crossed = firstBlockingStationBetween(before, current);
+      if (crossed) {
+        current = target = crossed.progress;
+        moved = current - before;
+        var maxScroll = root.scrollHeight - viewport();
+        window.scrollTo(0, Math.round(current * maxScroll));
       }
 
       /* SPEED, published for anything that wants to react to how hard the viewer is
@@ -878,15 +899,41 @@
      * Must invert resolve(), including the intro offset — pinning to a raw legs-only
      * fraction would park the page in the wrong place by the whole width of the intro,
      * which reads as the gate yanking you backwards. */
-    function stationScrollFor(idx, station) {
-      var max = root.scrollHeight - viewport();
+    function stationProgressFor(idx, station) {
       var s = legsStart();
       var list = stationsByLeg[idx] || [];
       station = station || list[list.length - 1];
       var at = station ? station.at : legacyStationAt();
-      var q = (idx + at) / legs.length;                  // position within the legs' domain
-      var pStation = s + q * (1 - s);                    // back out to page coordinates
-      return Math.round(clamp01(pStation) * max);
+      /* resolve() assigns an exact local 1.0 to the following leg. A station authored at
+       * the final frame therefore needs a tiny in-leg pin; otherwise its own destination
+       * resolves as local 0 of the next room and the mirror UI never opens. 0.1% is about
+       * three CSS pixels of this scroll track and under one film frame. */
+      var pinAt = at >= 1 && idx < legs.length - 1 ? 0.999 : at;
+      var q = (idx + pinAt) / legs.length;               // position within the legs' domain
+      return clamp01(s + q * (1 - s));                   // back out to page coordinates
+    }
+
+    function stationScrollFor(idx, station) {
+      return Math.round(stationProgressFor(idx, station) * (root.scrollHeight - viewport()));
+    }
+
+    function firstBlockingStationBetween(from, to) {
+      if (autoDrive || to <= from) return null;
+      var hit = null;
+      for (var idx = 0; idx < stationsByLeg.length; idx++) {
+        var list = stationsByLeg[idx] || [];
+        for (var i = 0; i < list.length; i++) {
+          var station = list[i];
+          var progress = stationProgressFor(idx, station);
+          if (progress <= from + 0.0000001 || progress > to + 0.0000001) continue;
+          var nextMissing = station.seam && idx < legs.length - 1 && !filmReady(idx + 1);
+          if (!nextMissing && gateOpen(idx, station)) continue;
+          if (!hit || progress < hit.progress) {
+            hit = { leg: idx, station: station, progress: progress };
+          }
+        }
+      }
+      return hit;
     }
 
     var lockedLeg = -1;
@@ -1016,8 +1063,16 @@
             autoY = autoDrive.dest;
             window.scrollTo(0, autoDrive.dest);
             target = readTarget();
-            schedule();
+            /* The scroll animation already supplied the inertia. Leaving `current` a few
+             * percent behind here lets the ordinary resistance curve pull `target` back
+             * below the station on the final asynchronous scroll event; the auto move
+             * resolves while the UI never actually arrives. Certify the exact final
+             * frame, then let the destination station install its own gate. */
+            current = target;
+            write(current, false);
             cancelAuto('arrived');
+            applyLock();
+            schedule();
             return;
           }
           /* Advance at least one whole pixel. Rounding a sub-pixel step to the same integer

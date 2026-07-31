@@ -37,3 +37,21 @@ test('the textile remains above D until the measured rail-assembly moment', () =
   assert.match(css, /\.film video\[data-intro\]\s*\{\s*z-index:\s*4;\s*\}/);
   assert.match(css, /\.film video\[data-leg\]\s*\{\s*z-index:\s*1;\s*\}/);
 });
+
+test('no room paints before the textile has a frame', () => {
+  /* Pre-change proof: only video[data-intro] was held back while data-intro-pending was
+   * set, so a first load painted the couch at z-index 1 and the scarf landed on top of it
+   * afterwards. The film background is the scarf poster, so holding the rooms shows the
+   * right first image rather than a black plane. */
+  assert.match(
+    css,
+    /\.film\[data-intro-pending="1"\]\s*video\[data-leg\]:not\(\[data-ios-prewarm="1"\]\)\s*\{[^}]*visibility:\s*hidden/,
+    'every leg plane must be held back while the intro has not painted'
+  );
+  /* The exemption is load-bearing: WebKit certifies a real native frame through that plane,
+   * and it is already imperceptible at 0.001 opacity. */
+  assert.match(css, /\.film video\[hidden\]\[data-ios-prewarm="1"\]/);
+  /* The guard may only be lifted by the confirmed-frame path, never by a timer. */
+  assert.match(html, /removeAttribute\('data-intro-pending'\)/);
+  assert.match(html, /requestVideoFrameCallback\(revealIntroFrame\)/);
+});

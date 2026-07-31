@@ -1,0 +1,159 @@
+/* WARDROBE portrait interaction plane.
+ *
+ * The desktop UI remains measured against the physical mirror rectangles in style.css.
+ * On portrait phones those rectangles are too narrow for a real input flow, so ui.js
+ * moves exactly one active mirror into this larger translucent plane. The inactive mirror
+ * stays in the film: while the left side asks, the right side can still hold the orb. */
+@media (max-width: 767px) and (orientation: portrait) {
+  .mobile-attention {
+    position: absolute;
+    z-index: 24;
+    inset: max(68px, env(safe-area-inset-top)) 12px max(66px, env(safe-area-inset-bottom)) 12px;
+    display: block;
+    overflow: hidden;
+    color: var(--milk);
+    background:
+      radial-gradient(120% 82% at 45% 34%, rgba(26, 27, 25, 0.82), rgba(12, 13, 12, 0.68) 58%, rgba(8, 9, 8, 0.52)),
+      linear-gradient(180deg, rgba(245, 243, 237, 0.055), rgba(245, 243, 237, 0.015));
+    border: 1px solid rgba(245, 243, 237, 0.16);
+    box-shadow: 0 22px 70px rgba(0, 0, 0, 0.36), inset 0 1px rgba(245, 243, 237, 0.07);
+    -webkit-backdrop-filter: blur(20px) saturate(0.72);
+            backdrop-filter: blur(20px) saturate(0.72);
+    opacity: 0;
+    transform: translateY(16px) scale(0.985);
+    pointer-events: none;
+    transition: opacity 420ms cubic-bezier(0.22, 1, 0.36, 1),
+                transform 520ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .mobile-attention[hidden] { display: none; }
+  .stage[data-leg="0"][data-station="1"] .mobile-attention:not([hidden]) {
+    opacity: 1;
+    transform: none;
+    pointer-events: auto;
+  }
+
+  /* One active panel, one scroll owner. This selector deliberately outranks every
+     film-bound `.glass` rule and removes the mirror coordinate variables from layout. */
+  .mobile-attention > .glass,
+  .stage[data-leg="0"][data-station="1"] .mobile-attention > .glass {
+    position: relative;
+    z-index: 1;
+    inset: auto;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    padding: 22px 20px 20px;
+    gap: 10px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    container-type: inline-size;
+    font-size: 14px;
+    opacity: 1 !important;
+    transform: none !important;
+    pointer-events: auto !important;
+    -webkit-mask-image: none;
+            mask-image: none;
+    transition: none;
+    scrollbar-width: none;
+  }
+  .mobile-attention > .glass::-webkit-scrollbar { display: none; }
+  .mobile-attention > .glass::before {
+    inset: 0;
+    filter: none;
+    background: radial-gradient(115% 82% at 48% 36%, rgba(245, 243, 237, 0.035), transparent 70%);
+  }
+
+  .mobile-attention .mirror-scene { min-height: max-content; }
+  .mobile-attention .askbody {
+    flex: 0 0 auto;
+    min-height: auto;
+    overflow: visible;
+  }
+  .mobile-attention .glass__eyebrow { font-size: 10px; }
+  .mobile-attention .glass__h { font-size: clamp(22px, 7vw, 30px); line-height: 1.08; }
+  .mobile-attention .glass__lede,
+  .mobile-attention .person-intro { font-size: 12px; line-height: 1.45; }
+  .mobile-attention .glass__hint { min-height: 16px; font-size: 10px; }
+
+  /* The required portrait is the clearest and largest control on the first screen. */
+  .mobile-attention .pslots {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    margin-top: 14px;
+  }
+  .mobile-attention .pslot { min-height: 108px; }
+  .mobile-attention .pslot--main { min-height: 154px; }
+  .mobile-attention .pslot__plus { font-size: 34px; }
+  .mobile-attention .pslot__copy { left: 12px; right: 12px; bottom: 10px; }
+  .mobile-attention .pslot__t { font-size: 14px; }
+  .mobile-attention .pslot__n { font-size: 10px; }
+
+  /* Five garments become honest touch targets instead of five 22px slivers. */
+  .mobile-attention .slots {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    padding-block: 4px;
+    margin-top: 14px;
+  }
+  .mobile-attention .slots > .slot { transform: none; min-width: 0; }
+  .mobile-attention .slot__empty { font-size: 11px; }
+  .mobile-attention .secondary { min-height: 44px; padding: 10px 0 7px; }
+
+  .mobile-attention .glass__cta,
+  .mobile-attention .camctl {
+    width: 100%;
+    min-height: 48px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    margin-top: 12px;
+  }
+  .mobile-attention .step-actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 10px;
+  }
+  .mobile-attention .step-actions .glass__cta { margin-top: 0; }
+
+  .mobile-attention .visualpicks,
+  .mobile-attention .visualpicks[data-picker="shoot"],
+  .mobile-attention .visualpicks[data-picker="fash"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .mobile-attention .visualpick { min-height: 112px; }
+  .mobile-attention .visualpick__media { height: 70px; }
+  .mobile-attention .visualpick__copy b { font-size: 12px; }
+  .mobile-attention .formatpicks { min-height: 150px; gap: 10px; }
+  .mobile-attention .formatpick { min-height: 138px; }
+
+  /* Four result actions stay inside the viewport as a 2×2 control family. */
+  .mobile-attention .actwrap > .acts {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px 16px;
+  }
+  .mobile-attention .act {
+    min-width: 0;
+    min-height: 44px;
+    white-space: normal;
+    display: flex;
+    align-items: flex-end;
+    font-size: 13px;
+  }
+  .mobile-attention .actsay { min-height: 38px; font-size: 10px; }
+  .mobile-attention .lookframe { min-height: 260px; }
+  .mobile-attention .orbfield { min-height: 280px; }
+
+  /* The expanded input plane is the current instruction; duplicate cinematic copy and
+     bottom chrome would sit on top of it without adding a second action. */
+  .stage[data-leg="0"][data-station="1"] .mobile-attention:not([hidden]) ~ .copy,
+  .stage[data-leg="0"][data-station="1"] .mobile-attention:not([hidden]) ~ .grade {
+    opacity: 0.18;
+  }
+}

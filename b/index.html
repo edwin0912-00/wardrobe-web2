@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>WARDROBE</title>
 <link rel="stylesheet" href="../style.css">
+<link rel="stylesheet" href="../mobile.css">
 </head>
 <body>
 
@@ -87,14 +88,24 @@
     </section>
   </div>
 
+  <!-- Portrait phones cannot fit an input flow inside a 39%-wide filmed mirror. ui.js
+       moves only the currently active mirror panel into this presentation plane; the
+       other mirror stays spatially attached to the film (including its waiting orb). -->
+  <div class="mobile-attention" data-mobile-attention hidden></div>
+
   <div class="grade" aria-hidden="true"></div>
   <div class="grain" aria-hidden="true"></div>
 
   <div class="copy">
-    <h1 class="copy__line" data-on="0">YOUR DAY STARTS IN THE MIRROR</h1>
-    <p class="copy__line" data-on="1">FROM PIECES, A PRESENCE.</p>
-    <p class="copy__line" data-on="2">THE SAME LOOK, EVERY SCREEN.</p>
-    <p class="copy__line" data-on="3">AND IT LEAVES THE ROOM WITH YOU.</p>
+    <!-- Owner-selected set, 2026-07-31. English lines in a Ukrainian interface were an open
+         question in FUNCTION-MAP; this closes it. The register is deliberate: no address to
+         the viewer, no promise, nothing about the product. Each line describes what is
+         physically on screen during its own leg — the rail of clothes, the materials of the
+         room, the mirrors, the way out — which is what keeps it film rather than marketing. -->
+    <h1 class="copy__line" data-on="0">Речі чекають довше за людей</h1>
+    <p class="copy__line" data-on="1">Бетон, дуб, шовк — і більше нікого</p>
+    <p class="copy__line" data-on="2">Дзеркало не поспішає</p>
+    <p class="copy__line" data-on="3">Усе, що зібралось, іде з тобою</p>
   </div>
 
 </main>
@@ -108,12 +119,14 @@
   <h2 class="sr-only" id="live-title">Лайв-примірка</h2>
   <video class="live-overlay__video" data-live-fullscreen autoplay playsinline muted></video>
   <div class="live-overlay__time" aria-hidden="true"><i></i></div>
+  <p class="live-overlay__status" data-live-status aria-live="polite">Дзеркало відкрите</p>
+  <button class="live-overlay__start" type="button" data-live-start hidden>Почати live</button>
   <button class="live-overlay__close" type="button" data-live-close>Закрити</button>
 </div>
 
 <div class="legs" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
 <div class="hud" data-readout>—</div>
-<button class="sound" type="button" data-sound aria-pressed="false">без звуку</button>
+<button class="sound" type="button" data-sound aria-pressed="true">звук</button>
 <div class="gate" role="status" aria-live="polite">
   <i></i><b data-gate-text>Завантажте медіа цього кроку, щоб іти далі</b>
 </div>
@@ -127,7 +140,22 @@
 <script src="../screen-surface-math.js"></script>
 <script src="../screen-surfaces.js"></script>
 <script src="../engine.js"></script>
+<script src="../client-observer.js"></script>
 <script src="../ui.js"></script>
+<script>
+  /* The canonical orb renderer is an ES module and the rest of this page is classic
+     scripts, so it is published on the global the same way every other controller here is
+     reached. A dynamic import rather than a module script on purpose: the release preflight
+     parses every inline script in this file as a classic one, and a static import statement
+     is a syntax error there — an accurate complaint, not something to work around.
+
+     ui.js checks for the global and leaves the canvas blank if it never arrives; a missing
+     renderer must not take the waiting state down with it. */
+  import('../thinking-orb.js').then(function (mod) {
+    window.WardrobeThinkingOrb = { create: mod.createThinkingOrb };
+    if (window.ui && window.ui.refreshOrbs) window.ui.refreshOrbs();
+  }).catch(function () { /* no orb renderer; the label still says what is happening */ });
+</script>
 <script src="../audio.js"></script>
 <script>
 (function () {
@@ -326,12 +354,11 @@
   /* Every byte of the experience, counted. Audio is in the list because it is part of
      the load — reporting only the video would be the same kind of half-truth the old
      bar told. */
-  /* MUSIC STARTS DURING THE LOAD, AND STARTS MUTED.
+  /* MUSIC STARTS DURING THE LOAD, AUDIBLE BY DEFAULT.
    *
-   * Two requirements that fit together: the score must be off when the page opens, and it
-   * must begin earlier than the reveal. A muted element needs no gesture to play, so the
-   * score can be rolling under the loader from the moment its own file has arrived; the
-   * sound button then unmutes, and the click is itself the gesture the browser wants.
+   * The intended default is sound on, and we begin it before the reveal. Browsers that
+   * forbid audible autoplay honestly change the control to "звук: торкніться"; the first
+   * real interaction unlocks the same score without changing the visitor's preference.
    * Starting it at the reveal instead meant the first track began from nothing exactly
    * when the picture appeared, which is the busiest moment on screen. */
   var scoreStarted = false;
@@ -571,15 +598,39 @@
        * Capped at 0.94 rather than 1 so the film always still creeps — the viewer can feel
        * it resisting rather than think the page has broken.
        * stationAt: where the interface appears. */
-      dampFrom: 0.70,
+      /* THE STOP SITS ON THE FRAME THE MIRRORS WERE MEASURED ON — owner decision.
+       *
+       * The rectangles above are measured off this version's FINAL frame. The stop was at
+       * 0.92, and with forward travel closed the film settled around 0.84, which is about
+       * 1.7 seconds of footage short of that frame: the camera is still translating, the
+       * mirrors are still larger and further right, and the panel — correctly placed at
+       * 5.0-44.0% of the film — therefore sat on the concrete to the left of the glass.
+       * Measured on the running page: panel left edge 5.01% of the film, --ui-lag 0, no
+       * transform. Nothing was misplaced; the stop was simply before the arrival.
+       *
+       * Exactly 1.0, not just near it. The lock is a CEILING — it refuses to let the page
+       * past the pin but never pulls the viewer up to it, and pulling would break the rule
+       * that nothing moves on the viewer's behalf. So the pin itself has to BE the measured
+       * frame: a viewer travelling forward then stops on it, every time, with no assistance.
+       * An earlier pin left the stop wherever the crawl happened to die (measured: 13.33s,
+       * then 14.72-14.98s) and the single static rectangle cannot match a moving target.
+       *
+       * seamWindow (0.012) is not a reason to back off the boundary here: the blend into
+       * room two only begins once travel crosses into it, and a held gate is exactly what
+       * prevents that crossing. While the step is unfinished there is no seam to land in.
+       * The ramp keeps its old length (1.0 - 0.78 = 0.22, as 0.92 - 0.70 was) so the
+       * approach feels unchanged, and dampMax stays 0.94 because it is a ceiling, not a
+       * position. */
+      dampFrom: 0.78,
       dampMax: 0.94,
-      stationAt: 0.92,
-      /* TWO THRESHOLDS so the interface stops blinking. Enter at 0.90, and do not let go
-         until progress falls back to 0.72 — a wide dead band, so a hand resting near the
-         station cannot toggle it. Asked for by the interface layer, which was rebuilding
-         itself on every flip; it now only enables and disables. */
-      stationEnter: 0.90,
-      stationExit: 0.72,
+      stationAt: 1.0,
+      /* TWO THRESHOLDS so the interface stops blinking. Enter just under the pin, and do
+         not let go until progress falls back by the same wide dead band as before (0.18),
+         so a hand resting near the station cannot toggle it. Asked for by the interface
+         layer, which was rebuilding itself on every flip; it now only enables and
+         disables. */
+      stationEnter: 0.99,
+      stationExit: 0.81,
       /* FORWARD TRAVEL IS CLOSED UNTIL THE STEP HAS PRODUCED SOMETHING.
        *
        * There is nothing to travel to before a look exists — the next room shows a result,

@@ -153,6 +153,21 @@ body {
 /* Never reveal a black native video plane before its first decoded frame. */
 .film[data-intro-pending="1"] video[data-intro] { visibility: hidden; }
 
+/* AND NO ROOM MAY PAINT BEFORE THE TEXTILE DOES.
+ *
+ * Hiding only the intro left the leg planes paintable at z-index 1, so a first load showed
+ * the couch, and the scarf then arrived on top of it — the opening read as a mistake being
+ * corrected. The film's own background is already that scarf (intro-poster.jpg), so with
+ * the rooms held back there is nothing to see but the correct first image.
+ *
+ * The prewarm plane is deliberately exempt. It is how WebKit is given one real native frame
+ * to certify, and `visibility: hidden` would defeat exactly that; it already sits at 0.001
+ * opacity under everything, so it cannot be what a viewer sees. The guard lifts only when
+ * revealIntroFrame drops data-intro-pending, which happens on a confirmed painted frame. */
+.film[data-intro-pending="1"] video[data-leg]:not([data-ios-prewarm="1"]) {
+  visibility: hidden;
+}
+
 /* Grade and vignette, so the footage sits in one world rather than reading as raw clips. */
 .grade {
   position: absolute; inset: -2%;
@@ -211,11 +226,27 @@ body {
  * both mirror panels every time (mirrors sit at 5-44% and 55.7-94.7%; the gap between
  * them is only ~11.7% of frame width, nowhere near enough to hold a sentence). Top-anchored
  * clears the featured object in all four legs without needing per-leg positions. */
+/* MOVED LOW, NOT DEAD-CENTRE — owner direction, 2026-07-31.
+ *
+ * The note above is still right about why centre fails: the gap between the mirrors is only
+ * ~11.7% of frame width, so a centred sentence crosses both panels. Top-anchored solved
+ * that but put the words above everything, which is where they were noticed as sitting over
+ * the room rather than in it. Low is the third option and the mirrors themselves make it
+ * safe: they end at 83.2% of frame height, so the band under them is empty in all four
+ * legs. The selected lines are also short enough to hold at a smaller size, which the long
+ * English headline was not. */
 .copy {
   position: absolute; inset: 0; z-index: 6;
-  display: grid; justify-content: center; align-content: start;
+  display: grid; justify-content: center; align-content: center;
   pointer-events: none;
-  padding: 6vh 6vw 0;
+  padding: 0 6vw;
+  /* Anchoring to the bottom of the STAGE put the words in the letterbox below the picture —
+   * measured at 120.6% of film height. The film is centred, so centring here lands on the
+   * film's own centre, and the offset below is a share of the film's height rather than of
+   * the viewport: 0.24 puts the band at roughly 74% of the frame, under the mirrors (which
+   * end at 83.2%) and clear of the floor edge. --film-h comes from engine.js, and the
+   * fallback keeps this sane for one frame before the first resize. */
+  transform: translate3d(0, calc(var(--film-h, 60vh) * 0.24), 0);
 }
 .copy__line {
   grid-area: 1 / 1;
@@ -230,7 +261,7 @@ body {
   visibility: hidden;
   font-family: ui-sans-serif, -apple-system, "Helvetica Neue", sans-serif;
   font-weight: 300;
-  font-size: clamp(22px, 4.6vw, 58px);
+  font-size: clamp(18px, 3.2vw, 40px);
   line-height: 1.1;
   letter-spacing: 0.02em;
   text-align: center;
@@ -255,6 +286,21 @@ body {
     min(1, max(0, (0.82 - var(--leg-p, 0)) * 6))
   );
   transform: translate3d(0, calc(var(--par-mid, 0px) * -0.10), 0);
+}
+
+/* THE INTERFACE AND THE WORDS ARE NEVER ON SCREEN TOGETHER.
+ *
+ * The per-leg curve above already clears a line by 82% of its leg, and with the stop now
+ * pinned at the end of leg zero that lands well before the panel. But "already should" is
+ * not the same as "cannot": the film copy and the mirror interface competing for the same
+ * frame is exactly what the owner saw, and it should be impossible rather than merely
+ * unlikely. Matching the per-leg selector's specificity and coming later in the file is
+ * what makes this win without reaching for !important. `visibility` is the guarantee —
+ * it flips at the boundary instead of interpolating, so no interrupted transition can
+ * leave a word readable under the panel. */
+.stage[data-station="1"] .copy__line[data-on] {
+  opacity: 0;
+  visibility: hidden;
 }
 
 /* -------------------------------------------------------------- mirror UI --- */
@@ -319,6 +365,58 @@ body {
   opacity: var(--rest, 1);
   transform: translate3d(0, 0, 0) scale(1);
   pointer-events: auto;
+}
+
+/* THE INTERFACE GETS OUT OF THE WAY OF THE FILM — owner direction.
+ *
+ * `--rest` alone couples the panel to POSITION: it is the resistance ramp normalised to
+ * its ceiling, so it only falls near a station boundary. Scrolling back to watch the room
+ * assemble is motion that the ramp barely registers, and the panel stayed on top of the
+ * footage for the whole ride.
+ *
+ * `--speed` (engine.js) is the motion signal: 0..1, fast attack and a deliberately slow
+ * release, and the engine keeps ticking while that tail decays — so a swipe hides the
+ * panel immediately and it returns on its own once travel actually stops, without any
+ * timer here. `--ui-quiet` is the strength, so how far it hides stays one number.
+ *
+ * Reduced motion deliberately opts out: hiding the interface as a function of scroll
+ * VELOCITY is exactly the inertia-dependent behaviour the window map says must not be
+ * required to use the product. There the panel keeps following `--rest` only. */
+@media (prefers-reduced-motion: no-preference) {
+  /* SCOPED TO THE MIRROR STATION, AND ONLY THERE.
+   *
+   * This block first also carried a bare `.stage .glass`, which was a regression: that
+   * selector outranks the base rule that keeps the panel hidden away from leg zero, so the
+   * mirror interface appeared over the desk-and-laptop room, where there is no mirror to
+   * put it on. The motion coupling belongs to the one place the panel legitimately shows. */
+  .stage[data-leg="0"][data-station="1"] .glass {
+    /* `--ui-quiet` is a GAIN, not a mix. Coupling opacity to `--speed` one-to-one looked
+     * right on the way out and wrong on the way back: that signal's release is 0.06 per
+     * frame because it drives the score's echo tail, so the panel stayed invisible for
+     * seconds after travel had visibly stopped. A gain of 4 means any committed swipe
+     * still takes it straight to zero, while the return begins as soon as speed falls
+     * under a quarter — four times sooner, from the same signal.
+     *
+     * `max()` clamps the low end so the product can never go negative, and the transition
+     * carries the last stretch so the reappearance is a fade rather than a step. This is
+     * still a curve fitted to someone else's signal: the honest fix is a thresholded
+     * moving/at-rest flag published by the engine, which is Codex-side. */
+    /* BOUND TO THE SWIPE, NOT TO THE POSITION — owner correction.
+     *
+     * The first version multiplied by `--rest`, and that was the visible bug: `--rest` is
+     * the resistance ramp, so it starts lifting the panel from dampFrom (0.765) onwards,
+     * which is most of a second of footage before the camera reaches the static mirror
+     * frame the rectangles were measured on. The panel was therefore faintly present all
+     * through the approach, drawn at final-frame coordinates over a frame that had not
+     * arrived — text on the concrete beside the glass.
+     *
+     * Motion alone decides it now: still means present, travelling means gone. The station
+     * latch is what scopes it to the mirrors; the ramp is left to do its own job, which is
+     * resisting the swipe, not fading an interface. */
+    --ui-quiet: 4;
+    opacity: calc(max(0, 1 - var(--speed, 0) * var(--ui-quiet)));
+    transition: opacity 220ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  }
 }
 /* ONE MIRROR FIRST, THEN THE OTHER.
  * The right-hand pane shows the look, so before a look exists it has nothing to show and
@@ -515,7 +613,7 @@ body {
 .tray__chip[aria-pressed="true"] { color: var(--milk); border-color: var(--milk); background: rgba(245,243,237,0.12); }
 .tray__chip:disabled { opacity: 0.35; cursor: default; }
 
-.acts { display: flex; gap: 10px; margin-top: clamp(8px, 2.6cqh, 14px); align-items: center; flex: 0 0 auto; }
+.step-actions { display: flex; gap: 10px; margin-top: clamp(8px, 2.6cqh, 14px); align-items: center; flex: 0 0 auto; }
 .glass__cta--ghost { border-color: rgba(245,243,237,0.28); color: rgba(245,243,237,0.7); }
 .glass__cta:disabled { opacity: 0.35; cursor: default; }
 
@@ -614,8 +712,22 @@ body {
   color: rgba(245, 243, 237, 0.6); flex: 0 0 auto;
 }
 
-/* The assembled look in the left pane: five slots, filled left to right. */
-.slots { display: flex; gap: 6px; margin-top: 12px; }
+/* The assembled look in the left pane: five slots, filled left to right.
+ *
+ * STAGGERED, NOT A STRIP — owner direction: up, down, up, down, up. A flat row of five
+ * equal rectangles reads as a form field; alternating the vertical offset makes it read as
+ * garments hanging at different heights, which is what the rail behind it actually shows.
+ * The offset is one variable so it can be tuned without touching the nth-child rules, and
+ * the container reserves that offset as padding so the raised and dropped slots are never
+ * clipped by the panel edge. */
+.slots {
+  display: flex; gap: 6px; margin-top: 12px;
+  --slot-stagger: 10px;
+  padding-block: var(--slot-stagger);
+}
+.slots > .slot { transition: transform 240ms cubic-bezier(0.22, 0.61, 0.36, 1); }
+.slots > .slot:nth-child(odd) { transform: translateY(calc(var(--slot-stagger) * -1)); }
+.slots > .slot:nth-child(even) { transform: translateY(var(--slot-stagger)); }
 .slot {
   position: relative; flex: 1 1 0; aspect-ratio: 3 / 4;
   border: 1px solid rgba(245, 243, 237, 0.18);
@@ -623,6 +735,14 @@ body {
   display: grid; place-items: center; overflow: hidden;
 }
 .slot[data-filled="1"] { border-color: rgba(245, 243, 237, 0.5); }
+.slot--drop { cursor: pointer; transition: border-color 140ms ease-out, background-color 140ms ease-out, box-shadow 140ms ease-out; }
+.slot--drop:hover { border-color: rgba(245,243,237,0.68); background: rgba(245,243,237,0.07); }
+.slot--drop.is-dragover,
+.pslot.is-dragover {
+  border-color: var(--milk);
+  background: rgba(245,243,237,0.14);
+  box-shadow: inset 0 0 0 1px var(--milk), 0 0 0 2px rgba(245,243,237,0.16);
+}
 .slot__img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .slot__ph { display: grid; place-items: center; opacity: 0.55; }
 .slot__empty {
@@ -798,6 +918,24 @@ body {
   display: grid; place-items: center;
   isolation: isolate;
 }
+/* THE ORB IS A MIRROR EVENT, NOT A STATUS ICON.
+ *
+ * It has its own aperture in the answer mirror. 56px was a diagnostic renderer size that
+ * leaked into the product and read as a tiny coloured spinner. The final field is large
+ * enough to carry the waiting moment, but has no box, fill or coloured accent; its canvas
+ * remains transparent over the physical mirror. */
+.orbfield__canvas {
+  display: block;
+}
+.orbfield--mirror .orbfield__canvas {
+  /* A full mirror atmosphere, never a small diagnostic glyph. The renderer owns
+   * the backing store at this size, so this is not a blurred CSS enlargement. */
+  width: clamp(256px, 64cqh, 384px);
+  height: clamp(256px, 64cqh, 384px);
+  opacity: 0.98;
+  filter: grayscale(1) contrast(1.3) brightness(0.72);
+}
+
 .orb {
   position: relative; display: block;
   width: min(42cqh, 72%); aspect-ratio: 1;
@@ -840,6 +978,8 @@ body {
 .orbfield[data-orb-state="materials"] .orb i { animation-duration: 5.9s; }
 .orbfield[data-orb-state="bg"] .orb,
 .orbfield[data-orb-state="shoot"] .orb { box-shadow: 0 0 56px rgba(245,243,237,0.14); }
+.orbfield[data-orb-state="failed"] .orb { opacity: 0.46; filter: grayscale(1); }
+.orbfield[data-orb-state="failed"] .orb i { animation: none; transform: rotate(7deg); }
 .orbfield__label {
   position: absolute; left: 0; right: 0; bottom: 6%;
   text-align: center;
@@ -933,6 +1073,123 @@ body {
   color: #C4C5BF;
 }
 
+/* VISUAL CATALOGUES — background, Fashion Shoot and Fashion Video share one component.
+ * The left mirror always asks; the right mirror always answers. These are deliberately
+ * image-first tiles rather than technical select menus, and their media wells can accept
+ * beta preview URLs later without changing the layout or interaction contract. */
+.pickerlede { margin-top: clamp(4px, 1.5cqh, 8px); max-width: 34em; }
+.visualpicks {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(6px, 1.7cqh, 10px);
+  flex: 0 0 auto;
+  margin-top: clamp(7px, 2cqh, 12px);
+}
+.visualpicks[data-picker="shoot"],
+.visualpicks[data-picker="fash"] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.visualpick {
+  min-width: 0; overflow: hidden; cursor: pointer;
+  display: flex; flex-direction: column; text-align: left;
+  color: var(--milk); background: rgba(245,243,237,0.025);
+  border: 1px solid rgba(245,243,237,0.24);
+  transition: background-color 140ms ease-out, border-color 140ms ease-out;
+}
+.visualpick:hover { background: rgba(245,243,237,0.08); border-color: rgba(245,243,237,0.62); }
+.visualpick:active { background: rgba(245,243,237,0.12); }
+.visualpick:focus-visible { outline: 2px solid var(--milk); outline-offset: 3px; }
+.visualpick[aria-pressed="true"] {
+  background: rgba(245,243,237,0.11); border-color: rgba(245,243,237,0.86);
+}
+.visualpick__media {
+  position: relative; display: block; overflow: hidden;
+  width: 100%; height: clamp(50px, 12cqh, 80px);
+  background: rgba(245,243,237,0.06);
+  border-bottom: 1px solid rgba(245,243,237,0.18);
+}
+.visualpick__media::before,
+.visualpick__media::after,
+.visualpick__media i { content: ''; position: absolute; display: block; }
+.visualpick__media::before { inset: 0; opacity: 0.92; }
+.visualpick__media::after { inset: 12%; border: 1px solid rgba(245,243,237,0.18); }
+.visualpick__media i { left: 9%; right: 9%; bottom: 12%; height: 1px; background: rgba(245,243,237,0.42); }
+.visualpick__media[data-visual="apartment"]::before {
+  background: linear-gradient(155deg, rgba(34,35,32,.14) 0 50%, rgba(143,111,76,.44) 51% 66%, rgba(29,30,28,.2) 67%);
+}
+.visualpick__media[data-visual="concrete"]::before {
+  background: linear-gradient(90deg, rgba(223,223,215,.28), rgba(70,72,69,.2) 49%, rgba(199,200,194,.3) 50%);
+}
+.visualpick__media[data-visual="city"]::before {
+  background: linear-gradient(180deg, rgba(179,196,199,.38), rgba(55,61,61,.22)),
+              repeating-linear-gradient(90deg, transparent 0 18%, rgba(245,243,237,.18) 18.5% 19%);
+}
+.visualpick__media[data-visual="studio"]::before {
+  background: radial-gradient(circle at 56% 38%, rgba(245,243,237,.58), rgba(181,181,174,.16) 58%, rgba(29,30,28,.12));
+}
+.visualpick__media[data-visual="soft"]::before {
+  background: radial-gradient(ellipse at 34% 42%, rgba(245,243,237,.52), rgba(167,163,153,.15) 48%, rgba(29,30,28,.38));
+}
+.visualpick__media[data-visual="architecture"]::before {
+  background: linear-gradient(132deg, rgba(245,243,237,.34) 0 23%, transparent 23% 52%, rgba(245,243,237,.18) 52% 58%, transparent 58%), #454743;
+}
+.visualpick__media[data-visual="signature"]::before {
+  background: linear-gradient(110deg, #1d1e1c 0 30%, rgba(245,243,237,.42) 31% 36%, #77766f 37% 62%, #282926 63%);
+}
+.visualpick__media[data-visual="air"]::before {
+  background: radial-gradient(ellipse at 32% 64%, rgba(245,243,237,.42) 0 14%, transparent 15%),
+              radial-gradient(ellipse at 63% 38%, rgba(245,243,237,.24) 0 19%, transparent 20%), #41433f;
+}
+.visualpick__media[data-visual="walk"]::before {
+  background: repeating-linear-gradient(112deg, transparent 0 14%, rgba(245,243,237,.18) 14.5% 15%), linear-gradient(180deg, #676963, #262724);
+}
+.visualpick__media[data-visual="light"]::before {
+  background: linear-gradient(118deg, #222320 0 37%, rgba(245,243,237,.7) 38% 45%, rgba(245,243,237,.12) 46% 66%, #292a27 67%);
+}
+.visualpick__copy {
+  display: flex; flex-direction: column; gap: clamp(2px, .7cqh, 4px);
+  padding: clamp(6px, 1.8cqh, 10px);
+}
+.visualpick__copy b {
+  font: 400 clamp(10px, 2.25cqh, 13px)/1.2 ui-sans-serif, -apple-system, sans-serif;
+}
+.visualpick__copy small {
+  font: 400 clamp(8px, 1.65cqh, 9px)/1.35 ui-monospace, Menlo, monospace;
+  color: rgba(245,243,237,0.58);
+}
+.pickerback { margin-top: clamp(7px, 1.8cqh, 11px); flex: 0 0 auto; }
+
+.formatpicks {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(7px, 2cqh, 12px); flex: 0 0 auto;
+  min-height: clamp(90px, 22cqh, 138px);
+  margin-top: clamp(9px, 3cqh, 18px);
+}
+.formatpick {
+  min-width: 0; cursor: pointer; color: var(--milk);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: clamp(7px, 2cqh, 12px); padding: clamp(8px, 2.4cqh, 14px);
+  background: rgba(245,243,237,0.025); border: 1px solid rgba(245,243,237,0.26);
+  transition: background-color 140ms ease-out, border-color 140ms ease-out;
+}
+.formatpick:hover { background: rgba(245,243,237,0.08); border-color: rgba(245,243,237,0.68); }
+.formatpick:active { background: rgba(245,243,237,0.12); }
+.formatpick:focus-visible { outline: 2px solid var(--milk); outline-offset: 3px; }
+.formatpick > span:last-child { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.formatpick b { font: 400 clamp(13px, 3cqh, 17px)/1 ui-sans-serif, -apple-system, sans-serif; }
+.formatpick small { font-size: clamp(8px, 1.75cqh, 10px); color: rgba(245,243,237,0.58); }
+.formatpick__shape { display: block; border: 1px solid rgba(245,243,237,0.74); background: rgba(245,243,237,0.05); }
+.formatpick__shape[data-format="wide"] { width: min(86px, 70%); aspect-ratio: 16 / 9; }
+.formatpick__shape[data-format="portrait"] { height: min(74px, 45%); aspect-ratio: 9 / 16; }
+
+@container (max-height: 400px) {
+  .pickerlede { display: none; }
+  .visualpicks { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .visualpicks[data-picker="shoot"], .visualpicks[data-picker="fash"] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .visualpick__media { min-height: 34px; }
+  .visualpick__copy { padding: 4px; }
+  .visualpick__copy small { display: none; }
+  .formatpicks { margin-top: 6px; }
+  .formatpick { padding: 5px; gap: 4px; }
+}
+
 /* The camera's own controls are not part of the approved row — they belong to the live
  * window, so they stay a plain control rather than a fifth action word. */
 .camctl {
@@ -945,6 +1202,17 @@ body {
 }
 .camctl:hover { background: rgba(245,243,237,0.14); border-color: rgba(245,243,237,0.7); }
 .camctl:disabled { opacity: 0.35; cursor: default; }
+.recovery-actions {
+  display: flex; align-items: center; gap: clamp(10px, 3cqw, 18px);
+  flex: 0 0 auto; margin-top: clamp(7px, 2cqh, 12px);
+}
+.review-actions {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: clamp(10px, 3cqw, 18px); flex: 0 0 auto;
+  margin-top: clamp(7px, 2cqh, 12px);
+}
+.review-actions .glass__lede { margin: 0; }
+.failure-state { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
 
 /* LIVE — the camera leaves the right mirror and becomes the viewport. */
 .live-overlay {
@@ -968,13 +1236,30 @@ body {
   border: 1px solid rgba(245,243,237,0.46);
   backdrop-filter: blur(10px); cursor: pointer;
 }
+.live-overlay__start {
+  position: absolute; left: 50%; bottom: max(24px, env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  min-width: 148px; min-height: 46px; padding: 12px 18px;
+  font: 500 12px/1.2 ui-monospace, "SF Mono", Menlo, monospace;
+  letter-spacing: 0.08em; color: #0c0d0c; background: var(--milk);
+  border: 1px solid rgba(245,243,237,0.78); cursor: pointer;
+}
+.live-overlay__start[hidden] { display: none; }
+.live-overlay__start:disabled { opacity: 0.52; cursor: default; }
+.live-overlay__status {
+  position: absolute; left: 50%; bottom: max(84px, calc(env(safe-area-inset-bottom) + 60px));
+  transform: translateX(-50%); width: min(80vw, 320px); margin: 0;
+  text-align: center; font: 400 10px/1.4 ui-monospace, "SF Mono", Menlo, monospace;
+  letter-spacing: 0.1em; color: rgba(245,243,237,0.72); text-transform: uppercase;
+  pointer-events: none;
+}
 .live-overlay__time {
   position: absolute; left: max(20px, env(safe-area-inset-left));
   top: max(20px, env(safe-area-inset-top));
   width: 42px; aspect-ratio: 1; border-radius: 50%;
   background: conic-gradient(rgba(245,243,237,0.78) var(--live-angle, 360deg),
                              rgba(245,243,237,0.14) 0);
-  animation: live-countdown 40s linear forwards;
+  animation: live-countdown var(--live-duration, 40s) linear forwards;
 }
 @property --live-angle {
   syntax: '<angle>';
@@ -1119,10 +1404,27 @@ body {
  * the panel is short on — a short mirror crops at the glass's own edge-fade mask instead
  * of crushing the one thing the viewer has to click. */
 .pslots {
-  display: grid; grid-template-columns: 1.35fr 1fr; gap: clamp(6px, 2cqh, 12px);
+  display: grid; grid-template-columns: 1.42fr 1fr; gap: clamp(7px, 2.2cqh, 13px);
   flex: 0 0 auto;
-  margin-top: clamp(6px, 2.2cqh, 14px);
+  margin-top: clamp(8px, 2.6cqh, 16px);
 }
+.person-intro {
+  max-width: 30em;
+  margin-top: clamp(5px, 1.8cqh, 10px);
+  font-size: clamp(10px, 2.15cqh, 12px);
+  line-height: 1.42;
+  color: rgba(245,243,237,0.72);
+}
+.upload-helper {
+  flex: 0 0 auto;
+  margin: clamp(5px, 1.4cqh, 8px) 0 0;
+  font-size: clamp(8px, 1.7cqh, 10px);
+  line-height: 1.35;
+  letter-spacing: 0.06em;
+  color: rgba(245,243,237,0.46);
+}
+.upload-helper--busy { color: rgba(245,243,237,0.82); }
+.upload-helper--error { color: #F0A59A; }
 /* Sized off the GLASS's own height (cqh), not a fixed aspect-ratio: a ratio scales with
  * WIDTH, and the wider of the two columns (1.35fr) then demands more height than a short
  * mirror's askbody has left to give — measured at 255px wanted against 110px actually
@@ -1139,22 +1441,40 @@ body {
 .pslot {
   position: relative; cursor: pointer;
   min-height: clamp(48px, 21cqh, 130px);
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: clamp(3px, 1cqh, 6px);
-  text-align: center;
-  border: 1px dashed rgba(245,243,237,0.32);
-  background: rgba(245,243,237,0.03);
+  display: grid; place-items: center;
+  text-align: left;
+  border: 1px solid rgba(245,243,237,0.28);
+  background: rgba(245,243,237,0.025);
+  overflow: hidden;
+  transition: border-color 140ms ease-out, background-color 140ms ease-out;
 }
-.pslot:hover { border-color: rgba(245,243,237,0.66); background: rgba(245,243,237,0.07); }
+.pslot:hover { border-color: rgba(245,243,237,0.72); background: rgba(245,243,237,0.075); }
+.pslot:active { background: rgba(245,243,237,0.11); }
+.pslot:focus-within { outline: 2px solid var(--milk); outline-offset: 3px; }
+.pslot--face { background: rgba(245,243,237,0.012); }
 .pslot--has { border-style: solid; border-color: rgba(245,243,237,0.55); }
 .pslot__img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.pslot__index {
+  position: absolute; z-index: 3; left: clamp(7px, 2.2cqw, 12px); top: clamp(7px, 2cqh, 11px);
+  font-size: clamp(8px, 1.7cqh, 9px); letter-spacing: 0.18em;
+  color: rgba(245,243,237,0.54);
+  font-variant-numeric: tabular-nums;
+}
 /* THE PLUS is the whole affordance: an empty dashed square with two small words in it did
  * not read as "click here to add a photograph" — the owner asked directly for something
  * that says so. It disappears once the slot is filled; the photograph itself is the
  * evidence then. */
 .pslot__plus {
-  font: 300 clamp(20px, 6cqh, 30px)/1 ui-sans-serif, -apple-system, sans-serif;
-  color: rgba(245,243,237,0.5);
+  font: 200 clamp(24px, 7cqh, 38px)/1 ui-sans-serif, -apple-system, sans-serif;
+  color: rgba(245,243,237,0.68);
+  transform: translateY(-0.18em);
+  transition: color 140ms ease-out;
+}
+.pslot:hover .pslot__plus { color: var(--milk); }
+.pslot__copy {
+  position: absolute; z-index: 3; left: clamp(7px, 2.2cqw, 12px); right: clamp(7px, 2.2cqw, 12px);
+  bottom: clamp(7px, 2cqh, 11px);
+  display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
 }
 /* WHAT THE SLOT IS comes first and reads as a word, not a shouted instruction — this used
  * to be the small, low-contrast line while the requirement note below it sat on an opaque
@@ -1164,7 +1484,7 @@ body {
 .pslot__t {
   font-size: clamp(11px, 2.6cqh, 14px); letter-spacing: 0.02em;
   font-family: ui-sans-serif, -apple-system, "Helvetica Neue", sans-serif;
-  color: var(--milk); padding: 0 6px;
+  color: var(--milk);
 }
 /* WHETHER IT IS REQUIRED comes second, as a plain caption — no plate, no caps, no tracking,
  * same voice as every other note in the glass. A real flow element now, not an absolutely
@@ -1172,14 +1492,18 @@ body {
 .pslot__n {
   font-size: clamp(9px, 1.9cqh, 10px); letter-spacing: 0.02em;
   color: rgba(245,243,237,0.58);
+  white-space: nowrap;
 }
 /* Once filled there is no plus and no label — the photograph is the content — and
  * "замінити" becomes a caption ON that photograph, which is the one case that still
  * needs the bottom-bar treatment: it is labelling a real image, not standing in for one. */
-.pslot--has .pslot__n {
-  position: absolute; left: 0; right: 0; bottom: 0; z-index: 2;
-  padding: clamp(3px, 1.2cqh, 6px) 4px;
-  background: rgba(16,17,15,0.6);
+.pslot--has .pslot__copy {
+  left: 0; right: 0; bottom: 0;
+  padding: clamp(5px, 1.6cqh, 8px) clamp(7px, 2.2cqw, 12px);
+  background: linear-gradient(to top, rgba(16,17,15,0.82), rgba(16,17,15,0));
+}
+.pslot--has .pslot__index {
+  text-shadow: 0 1px 7px rgba(0,0,0,0.9);
 }
 
 /* SHORT MIRRORS DROP THE SUBTITLES, NOT THE OFFERS.
@@ -1210,6 +1534,8 @@ body {
   .pslot__plus { font-size: 13px; }
   .pslot__t { font-size: 10px; }
   .pslot__n { font-size: 8px; }
+  .pslot__index { font-size: 7px; top: 4px; left: 5px; }
+  .pslot__copy { left: 5px; right: 5px; bottom: 4px; }
 }
 @container (max-height: 320px) {
   .glass__rows--show { display: none; }

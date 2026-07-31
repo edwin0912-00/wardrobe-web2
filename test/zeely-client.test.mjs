@@ -94,6 +94,51 @@ test('SSE updates state and a stale watcher cannot close its replacement', () =>
   assert.equal(current.closed, true);
 });
 
+test('reconciles the current run once after an SSE drop so terminal failure reaches retry UI', async () => {
+  const calls = [];
+  const client = createZeelyClient({
+    fetchImpl: async (url, options) => {
+      calls.push({ url, options });
+      if (url === '/api/draft/run') return jsonResponse({ run_id: 'run-drop', status: 'RUNNING' }, 202);
+      if (url === '/api/runs/run-drop') return jsonResponse({
+        run_id: 'run-drop', status: 'FAILED', code: 'ITEM_FIDELITY_RETRY_EXHAUSTED',
+      });
+      throw new Error(`unexpected request ${url}`);
+    },
+    EventSourceImpl: FakeEventSource,
+    createFinalizationKey: () => '1fce992c-2139-4d12-b8b4-0c361f8a72e9',
+    sseRecoveryInitialDelayMs: 0,
+    sseRecoveryMaxAttempts: 3,
+  });
+
+  await client.createRunFromDraft({ fileManifest: { person: { id: 'p1' } } });
+  const stream = FakeEventSource.instances.at(-1);
+  stream.onerror();
+  stream.onerror();
+  await new Promise((resolve) => setTimeout(resolve, 10));
+
+  assert.equal(calls.filter(({ url }) => url === '/api/runs/run-drop').length, 1);
+  assert.equal(client.snapshot().run.status, 'FAILED');
+  assert.equal(client.snapshot().phase, 'failed');
+  assert.equal(stream.closed, true);
+});
+
+test('terminal watchdog reconciles a mobile run when SSE stays open but misses completion', async () => {
+  const client = createZeelyClient({
+    fetchImpl: async (url) => url === '/api/draft/run'
+      ? jsonResponse({ run_id: 'run-watchdog', status: 'RUNNING' }, 202)
+      : url === '/api/runs/run-watchdog'
+      ? jsonResponse({ run_id: 'run-watchdog', status: 'COMPLETED', outputs: { avatar_outfit: '/api/result.png' } })
+      : jsonResponse({}),
+    EventSourceImpl: FakeEventSource,
+    terminalPollIntervalMs: 0,
+  });
+  await client.createRunFromDraft({ fileManifest: { person: { id: 'p1' } } });
+  await new Promise((resolve) => setTimeout(resolve, 10));
+  assert.equal(client.snapshot().phase, 'completed');
+  assert.equal(client.snapshot().run.outputs.avatar_outfit, '/api/result.png');
+});
+
 test('preserves a structured API error for cinematic UI recovery states', async () => {
   const client = createZeelyClient({
     fetchImpl: async () => jsonResponse({ error: 'Look not found', code: 'LOOK_NOT_FOUND' }, 404),
@@ -122,6 +167,57 @@ test('video polling is opt-in, begins immediately, and can be stopped', async ()
   assert.equal(calls, 1);
   assert.equal(client.snapshot().video.clip_id, 'clip-1');
   stop();
+});
+
+test('matches the deployed Fashion Video style and explicit retry contract', async () => {
+  const calls = [];
+  const client = createZeelyClient({
+    fetchImpl: async (url, options) => {
+      calls.push({ url, options });
+      return jsonResponse(url.endsWith('/retry')
+        ? { clip_id: 'clip-2', status: 'GENERATING' }
+        : { clip_id: 'clip-1', status: 'CREATED' }, 202);
+    },
+    EventSourceImpl: FakeEventSource,
+  });
+
+  await client.createVideo({
+    lookId: 'look-1',
+    surface: 'tv',
+    styleId: 'fabric-air',
+    motionMode: 'editorial-forward',
+    durationSeconds: 8,
+  });
+  assert.deepEqual(JSON.parse(calls[0].options.body), {
+    look_id: 'look-1',
+    surface: 'tv',
+    style_id: 'fabric-air',
+    motion_mode: 'editorial-forward',
+    duration_seconds: 8,
+  });
+  assert.equal(client.videoStylePlaybackUrl('look-1', 'fabric-air'), '/api/profile/looks/look-1/video-styles/fabric-air/playback');
+  assert.equal(client.videoStyleReferenceUrl('look-1', 'fabric-air'), '/api/profile/looks/look-1/video-styles/fabric-air/reference');
+
+  await client.retryVideo('clip-1', 'retry-key');
+  assert.equal(calls[1].url, '/api/profile/video-clips/clip-1/retry');
+  assert.equal(calls[1].options.headers['Idempotency-Key'], 'retry-key');
+  client.dispose();
+});
+
+test('authentication stays a transport concern and remains same-origin', async () => {
+  const calls = [];
+  const client = createZeelyClient({
+    fetchImpl: async (url, options) => {
+      calls.push({ url, options });
+      return jsonResponse({ authenticated: true });
+    },
+    EventSourceImpl: FakeEventSource,
+  });
+
+  await client.authenticate('1234');
+  assert.equal(calls[0].url, '/api/auth/pin');
+  assert.equal(calls[0].options.credentials, 'same-origin');
+  assert.deepEqual(JSON.parse(calls[0].options.body), { pin: '1234' });
 });
 
 test('Live Look forwards explicit acknowledgements and only the server capability', async () => {
@@ -167,4 +263,20 @@ test('Live Look does not invent a provider or duration without a capability', as
     privacy_consent: true,
     cost_acknowledged: true,
   });
+});
+
+test('Live reference stays same-origin private media and becomes an in-memory data URL', async () => {
+  const calls = [];
+  const client = createZeelyClient({
+    fetchImpl: async (url, options) => {
+      calls.push({ url, options });
+      return new Response(new Blob(['ok'], { type: 'image/png' }), { status: 200 });
+    },
+    EventSourceImpl: FakeEventSource,
+  });
+
+  const reference = await client.liveReferenceDataUrl('look-1');
+  assert.equal(calls[0].url, '/api/profile/looks/look-1/live-reference.png');
+  assert.equal(calls[0].options.credentials, 'same-origin');
+  assert.equal(reference, 'data:image/png;base64,b2s=');
 });

@@ -14,6 +14,9 @@ truth. Preserve it and the documented mobile/video guarantees. Do not restore
 rejected A/B candidates, a version-choice landing page, temporary preview
 URLs, or a black mobile video fallback.
 
-`main` is the public release source, `preflight/0.2-canonical-d` is the
-integration branch, and agent branches are never deployed directly. This is
-the cinematic main-site repository; do not modify or deploy beta from here.
+GitHub has two durable branches only: `main` is the owner-approved official
+release line, while `canonical-site-main` is the shared working and test-deploy
+line for Codex and Claude Code. `site.madeforthisjob.com` is deployed only from
+the latter. Do not advance or deploy `main` without explicit owner approval.
+This is the cinematic main-site repository; do not modify or deploy beta from
+here.

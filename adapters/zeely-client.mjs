@@ -57,6 +57,9 @@ export function phaseFor(entity) {
  * @param {typeof EventSource} [options.EventSourceImpl=EventSource]
  * @param {() => string} [options.createIdempotencyKey]
  * @param {() => string} [options.createFinalizationKey] returns a UUID v4 for draft finalization.
+ * @param {number} [options.sseRecoveryInitialDelayMs=300] delay before the first durable status refresh after an SSE error.
+ * @param {number} [options.sseRecoveryMaxAttempts=3] bounded number of durable refreshes while EventSource reconnects.
+ * @param {number} [options.terminalPollIntervalMs=5000] bounded watchdog interval for mobile/Safari clients that keep an SSE connection open but miss a terminal event.
  */
 export function createZeelyClient({
   apiBase = '/api',
@@ -64,8 +67,20 @@ export function createZeelyClient({
   EventSourceImpl = globalThis.EventSource,
   createIdempotencyKey = idempotencyKey,
   createFinalizationKey = finalizationKey,
+  sseRecoveryInitialDelayMs = 300,
+  sseRecoveryMaxAttempts = 3,
+  terminalPollIntervalMs = 5_000,
 } = {}) {
   if (typeof fetchImpl !== 'function') throw new TypeError('createZeelyClient requires fetch');
+  if (!Number.isFinite(sseRecoveryInitialDelayMs) || sseRecoveryInitialDelayMs < 0) {
+    throw new RangeError('sseRecoveryInitialDelayMs must be a non-negative number');
+  }
+  if (!Number.isInteger(sseRecoveryMaxAttempts) || sseRecoveryMaxAttempts < 1) {
+    throw new RangeError('sseRecoveryMaxAttempts must be a positive integer');
+  }
+  if (!Number.isFinite(terminalPollIntervalMs) || terminalPollIntervalMs < 0) {
+    throw new RangeError('terminalPollIntervalMs must be a non-negative number');
+  }
 
   const base = trimTrailingSlash(apiBase);
   const subscribers = new Set();
@@ -125,6 +140,28 @@ export function createZeelyClient({
     return payload;
   }
 
+  /* A Live reference is private profile media, so it is deliberately loaded through the
+   * same-origin client and converted to an in-memory data URL.  The realtime peer gets the
+   * pixels for this one explicit session, not a durable or public profile URL. */
+  async function liveReferenceDataUrl(lookId) {
+    const response = await fetchImpl(url(`/profile/looks/${encode(lookId)}/live-reference.png`), {
+      method: 'GET',
+      credentials: 'same-origin',
+    });
+    if (!response.ok) {
+      throw new ZeelyApiError(`Zeely API returned ${response.status}`, { status: response.status });
+    }
+    const blob = await response.blob();
+    const bytes = new Uint8Array(await blob.arrayBuffer());
+    let binary = '';
+    const chunk = 0x8000;
+    for (let index = 0; index < bytes.length; index += chunk) {
+      binary += String.fromCharCode(...bytes.subarray(index, index + chunk));
+    }
+    if (typeof globalThis.btoa !== 'function') throw new TypeError('Live reference requires base64 support');
+    return `data:${blob.type || 'image/png'};base64,${globalThis.btoa(binary)}`;
+  }
+
   function update(kind, value, type = `${kind}:updated`) {
     const patch = { [kind]: value, phase: phaseFor(value), error: null };
     return emit(type, patch);
@@ -135,25 +172,109 @@ export function createZeelyClient({
     streams.delete(key);
   }
 
-  function watch(kind, id, eventName, path) {
+  function watch(kind, id, eventName, path, { statusPath = null } = {}) {
     if (typeof EventSourceImpl !== 'function') {
       throw new TypeError('This environment does not provide EventSource');
     }
     const key = `${kind}:${id}`;
     closeStream(key);
     const stream = new EventSourceImpl(url(path), { withCredentials: true });
+    let closed = false;
+    let recoveryTimer = null;
+    let recoveryAttempt = 0;
+    let recoveryInFlight = false;
+    let terminalPollTimer = null;
+    let terminalPollInFlight = false;
+    const isCurrent = () => streams.get(key) === subscription
+      && snapshot[kind]?.run_id === id;
+    const cancelRecovery = () => {
+      if (recoveryTimer) clearTimeout(recoveryTimer);
+      recoveryTimer = null;
+      recoveryInFlight = false;
+    };
+    const cancelTerminalPoll = () => {
+      if (terminalPollTimer) clearTimeout(terminalPollTimer);
+      terminalPollTimer = null;
+      terminalPollInFlight = false;
+    };
+    const scheduleTerminalPoll = () => {
+      if (!statusPath || closed || terminalPollTimer || terminalPollInFlight) return;
+      terminalPollTimer = setTimeout(async () => {
+        terminalPollTimer = null;
+        if (closed || terminalPollInFlight || !isCurrent()) return;
+        terminalPollInFlight = true;
+        try {
+          const refreshed = await request(statusPath);
+          if (closed || !isCurrent()) return;
+          update(kind, refreshed, `${kind}:terminal_watchdog`);
+          if (terminal.has(String(refreshed?.status ?? '').toUpperCase())) {
+            closeStream(key);
+            return;
+          }
+        } catch {
+          // SSE remains the primary transport; the watchdog is best-effort.
+        } finally {
+          terminalPollInFlight = false;
+          scheduleTerminalPoll();
+        }
+      }, terminalPollIntervalMs);
+      // Node test runners must not stay alive for a browser-only watchdog.
+      terminalPollTimer.unref?.();
+    };
+    const scheduleRecovery = () => {
+      if (!statusPath || closed || !isCurrent() || recoveryTimer || recoveryInFlight
+        || recoveryAttempt >= sseRecoveryMaxAttempts) return;
+      const delay = sseRecoveryInitialDelayMs * (2 ** recoveryAttempt);
+      recoveryTimer = setTimeout(async () => {
+        recoveryTimer = null;
+        if (closed || !isCurrent()) return;
+        recoveryInFlight = true;
+        recoveryAttempt += 1;
+        try {
+          const refreshed = await request(statusPath);
+          if (closed || !isCurrent()) return;
+          update(kind, refreshed, `${kind}:reconciled`);
+          if (terminal.has(String(refreshed?.status ?? '').toUpperCase())) {
+            closeStream(key);
+            return;
+          }
+        } catch {
+          // request() emitted the structured API error. The bounded retry below
+          // is only a temporary bridge while EventSource reconnects.
+        } finally {
+          recoveryInFlight = false;
+          scheduleRecovery();
+        }
+      }, delay);
+    };
+    const subscription = {
+      close() {
+        closed = true;
+        cancelRecovery();
+        cancelTerminalPoll();
+        stream.close();
+      },
+    };
     stream.addEventListener(eventName, (event) => {
       try {
-        update(kind, JSON.parse(event.data), `${kind}:event`);
+        cancelRecovery();
+        recoveryAttempt = 0;
+        const refreshed = JSON.parse(event.data);
+        update(kind, refreshed, `${kind}:event`);
+        if (terminal.has(String(refreshed?.status ?? '').toUpperCase())) cancelTerminalPoll();
       } catch {
         emit('connection:error', { error: { message: `Malformed ${kind} event`, code: 'MALFORMED_EVENT' } });
       }
     });
-    stream.onerror = () => emit('connection:reconnecting', { connection: { kind, id } });
-    streams.set(key, stream);
+    stream.onerror = () => {
+      emit('connection:reconnecting', { connection: { kind, id } });
+      scheduleRecovery();
+    };
+    streams.set(key, subscription);
+    scheduleTerminalPoll();
     // A stale cleanup must not silence a newer replacement subscription.
     return () => {
-      if (streams.get(key) === stream) closeStream(key);
+      if (streams.get(key) === subscription) closeStream(key);
     };
   }
 
@@ -172,6 +293,9 @@ export function createZeelyClient({
     assetUrl(path) { return url(path); },
 
     health: () => request('/health'),
+    authenticate(pin) {
+      return request('/auth/pin', { method: 'POST', body: { pin: String(pin ?? '') } });
+    },
 
     // Profile ---------------------------------------------------------------
     async loadProfile() {
@@ -197,6 +321,7 @@ export function createZeelyClient({
     deleteProfile() { return request('/profile', { method: 'DELETE' }); },
     avatarImageUrl: (avatarId) => url(`/profile/avatars/${encode(avatarId)}/image`),
     lookImageUrl: (lookId) => url(`/profile/looks/${encode(lookId)}/image`),
+    liveReferenceDataUrl,
 
     // Draft / core run ------------------------------------------------------
     loadDraft: () => request('/draft'),
@@ -253,7 +378,14 @@ export function createZeelyClient({
       update('run', run, 'run:updated');
       return run;
     },
-    watchRun(runId) { return watch('run', runId, 'run', `/runs/${encode(runId)}/events`); },
+    watchRun(runId) {
+      return watch('run', runId, 'run', `/runs/${encode(runId)}/events`, {
+        // EventSource can miss the terminal message while the beta daemon
+        // completes the run. Reconcile only this exact active run, with a
+        // bounded backoff; do not turn a transport error into broad polling.
+        statusPath: `/runs/${encode(runId)}`,
+      });
+    },
     async retryRun(runId) {
       const run = await request(`/runs/${encode(runId)}/retry`, { method: 'POST' });
       update('run', run, 'run:retried');
@@ -369,19 +501,31 @@ export function createZeelyClient({
     // Fashion Video ---------------------------------------------------------
     videoCapability: (lookId) => request(`/profile/looks/${encode(lookId)}/video-capability`),
     videoStylePreviewUrl: (lookId, styleId) => url(`/profile/looks/${encode(lookId)}/video-styles/${encode(styleId)}/preview`),
+    videoStylePlaybackUrl: (lookId, styleId) => url(`/profile/looks/${encode(lookId)}/video-styles/${encode(styleId)}/playback`),
+    videoStyleReferenceUrl: (lookId, styleId) => url(`/profile/looks/${encode(lookId)}/video-styles/${encode(styleId)}/reference`),
     listVideos: (lookId) => request(`/profile/looks/${encode(lookId)}/video-clips`),
-    async createVideo({ lookId, surface, motionMode, durationSeconds, styleNote }) {
+    async createVideo({ lookId, surface, styleId, motionMode, durationSeconds, styleNote }) {
       const video = await request('/profile/video-clips', {
         method: 'POST',
         body: {
           look_id: lookId,
           surface,
+          style_id: styleId,
           motion_mode: motionMode,
           ...(durationSeconds ? { duration_seconds: durationSeconds } : {}),
           ...(styleNote ? { style_note: styleNote } : {}),
         },
       });
       update('video', video, 'video:created');
+      return video;
+    },
+    async retryVideo(clipId, key = null) {
+      const video = await request(`/profile/video-clips/${encode(clipId)}/retry`, {
+        method: 'POST',
+        headers: { 'Idempotency-Key': key || createIdempotencyKey('video-retry') },
+      });
+      update('video', video, 'video:retried');
+      client.watchVideo(video.clip_id);
       return video;
     },
     async loadVideo(clipId) {

@@ -11,9 +11,10 @@ on its live board before editing anything.
 - Repository: `https://github.com/edwin0912-00/wardrobe-web2.git`
 - Product: cinematic customer-facing main site, not engineering beta.
 - Canon: the D fabric-world journey in `b/`.
-- Public release branch: `main`.
-- Integration branch: `preflight/0.2-canonical-d`.
-- Your working branch: `agent/claude-main-site-0.2`.
+- Official release branch: `main` — frozen until the owner approves release.
+- Shared working branch on GitHub: `canonical-site-main`.
+- Your worktree uses a private local branch but pushes only to
+  `origin/canonical-site-main`; never publish another agent branch.
 - Public review target: `https://site.madeforthisjob.com/` only.
 - Never edit or deploy the beta repository, beta branch, beta UI, or
   `beta.madeforthisjob.com` from this worktree.
@@ -41,19 +42,21 @@ on its live board before editing anything.
 
 ## Side-by-side Git protocol
 
-1. Work only in your Claude worktree and `agent/claude-main-site-0.2` branch.
+1. Work only in your Claude worktree. Both agents share the one remote working
+   line `origin/canonical-site-main`, but never share a checkout.
 2. Before starting an atom: read the live board, claim the direction, files,
-   and expected intersection, then `git fetch origin` and inspect both
-   `origin/main` and `origin/preflight/0.2-canonical-d`.
+   and expected intersection, then fetch and rebase onto
+   `origin/canonical-site-main` before editing.
 3. Keep each commit to one reviewable visual or interaction atom.
 4. Run `./scripts/site-preflight.sh` before every commit and push.
-5. Push only your own branch. Report the exact SHA and changed files.
+5. Immediately before push, fetch and rebase onto the current shared branch,
+   then push explicitly with `git push origin HEAD:canonical-site-main`.
+   Report the exact SHA and changed files.
    After push, release the board claim with that SHA and result.
-6. Do not merge or force-push `main` or preflight. Codex/the release
-   coordinator integrates your SHA into preflight, verifies it, then promotes
-   preflight to `main` by fast-forward.
-7. Deploy only from a clean, current `main` checkout with
-   `./scripts/deploy-site.sh`. The script refuses every other branch.
+6. Never force-push. Never push `main`. `main` advances from the tested shared
+   branch only after explicit owner approval for the official release.
+7. Test-deploy only when the local HEAD exactly equals
+   `origin/canonical-site-main`, using `./scripts/deploy-site.sh`.
 8. Never run two agents in the same checkout. Git worktrees are the isolation
    boundary; Git commits are the handoff mechanism.
 
