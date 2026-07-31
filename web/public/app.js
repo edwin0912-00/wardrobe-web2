@@ -2,7 +2,7 @@ import { createThinkingOrb } from './thinking-orb.js?v=20260722-10';
 import { UploadSelectionStore } from './upload-state.js?v=20260722-8';
 import { clearDraft, loadDraft, requestPersistentStorage, saveDraft } from './draft-store.js?v=20260722-10';
 import { fileSummary, telemetry } from './telemetry.js?v=20260722-8';
-import { prepareImageFile } from './image-upload.js?v=20260729-1';
+import { createImagePreviewBlob, prepareImageFile } from './image-upload.js?v=20260731-1';
 import { bindImageDropZone } from './drop-upload.js?v=20260729-1';
 import { clearDefinitivelyRejectedRunState, clearServerDraft, createRunFromServerDraft, loadServerDraft, removeServerDraftFile, updateServerDraftMetadata, uploadDraftFile } from './server-draft.js?v=20260723-13';
 import {
@@ -67,6 +67,7 @@ const videoThinkingOrb = createThinkingOrb(document.querySelector('#video-thinki
 const liveVisualizer = createLiveVisualizer(document.querySelector('#pipeline-live-visualizer'));
 const uploads = new UploadSelectionStore({ maxGarments: 5 });
 let previewUrls = [];
+let previewRenderEpoch = 0;
 let activeRun = null;
 let eventSource = null;
 let saveTimer = null;
@@ -346,14 +347,35 @@ function fileLabel(input, count, filename = '') {
   else label.textContent = filename || 'Обрати файл';
 }
 
-function previewItem(file, onRemove) {
+function previewItem(file, onRemove, renderEpoch) {
   const item = document.createElement('article');
   item.className = 'selected-file';
   const image = document.createElement('img');
-  const url = URL.createObjectURL(file);
-  previewUrls.push(url);
-  image.src = url;
   image.alt = file.name;
+  image.setAttribute('aria-busy', 'true');
+  // A preview is an asynchronous, local WebP derivative. The selected File
+  // remains the source that is uploaded and hashed; the UI never swaps it.
+  void createImagePreviewBlob(file).then((preview) => {
+    const url = URL.createObjectURL(preview);
+    if (renderEpoch !== previewRenderEpoch || !item.isConnected) {
+      URL.revokeObjectURL(url);
+      return;
+    }
+    previewUrls.push(url);
+    image.src = url;
+    image.removeAttribute('aria-busy');
+  }).catch(() => {
+    // Fallback only for a browser without an image bitmap/canvas decoder.
+    // It preserves usability; normal browsers always receive the light copy.
+    const url = URL.createObjectURL(file);
+    if (renderEpoch !== previewRenderEpoch || !item.isConnected) {
+      URL.revokeObjectURL(url);
+      return;
+    }
+    previewUrls.push(url);
+    image.src = url;
+    image.removeAttribute('aria-busy');
+  });
   const name = document.createElement('span');
   name.textContent = file.name;
   const remove = document.createElement('button');
@@ -367,6 +389,7 @@ function previewItem(file, onRemove) {
 }
 
 function renderUploads() {
+  const renderEpoch = ++previewRenderEpoch;
   previewUrls.forEach((url) => URL.revokeObjectURL(url));
   previewUrls = [];
   const personPreview = document.querySelector('#person-preview');
@@ -378,13 +401,13 @@ function renderUploads() {
 
   if (uploads.person) personPreview.append(previewItem(uploads.person, () => {
     queueDraftMutation(() => removeFile('person'), 'remove_person');
-  }));
+  }, renderEpoch));
   if (uploads.identityDetail) identityPreview.append(previewItem(uploads.identityDetail, () => {
     queueDraftMutation(() => removeFile('identity'), 'remove_identity');
-  }));
+  }, renderEpoch));
   uploads.garments.forEach((file, index) => garmentPreview.append(previewItem(file, () => {
     queueDraftMutation(() => removeFile('garment', index), 'remove_item');
-  })));
+  }, renderEpoch)));
 
   fileLabel(document.querySelector('#person-photo'), uploads.person ? 1 : 0, uploads.person?.name);
   fileLabel(document.querySelector('#identity-detail'), uploads.identityDetail ? 1 : 0, uploads.identityDetail?.name);

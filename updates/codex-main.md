@@ -1,4 +1,25 @@
 Agent ID: codex-main
+Task ID: BETA-PRESENTATION-DERIVATIVES-001
+Product line: beta-placeholder
+Pipeline: UI transport only · local inputs/style preview → lightweight display copy
+State: CODE_VERIFIED — beta deployment pending
+Decision: immutable source images and master Fashion-Video references are never
+sent to ordinary preview UI. A browser makes a local 480px WebP only for an
+upload card; raw bytes remain the exact upload/draft/QA input. The server's
+garment conflict picker returns a 480px WebP thumbnail only. Fashion Video
+cards now stream separately hash-bound 288×512/12fps UI loops (217–326 KB)
+instead of the prior 1.4–1.6 MB derivatives; original MP4s remain the sole
+generation references.
+Evidence: registry/capability/routes/UI/run API suite 35/35 PASS. The API test
+proves the picker response is WebP, bounded to 480px and smaller than its PNG
+source.
+weakened_checks: browser fallback on an engine without bitmap/canvas decoding
+uses the original local object URL so file selection remains usable; it never
+changes uploaded bytes or server evidence.
+
+---
+
+Agent ID: codex-main
 Task ID: BETA-FASHION-VIDEO-REFERENCE-PERFORMER-STOP-001
 Product line: beta-placeholder
 Pipeline: VIDEO.01 → VIDEO.04 · reference style → generated clip → cut QA → delivery

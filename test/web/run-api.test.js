@@ -1,4 +1,7 @@
 import assert from 'node:assert/strict';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import test from 'node:test';
 import FormData from 'form-data';
 import sharp from 'sharp';
@@ -112,4 +115,36 @@ test('web API keeps the optional editorial still disabled unless explicitly requ
   assert.equal(response.statusCode, 202);
   assert.equal(received.generateScene, false);
   await app.close();
+});
+
+test('garment picker receives a bounded WebP preview, never the original source PNG', async () => {
+  const directory = await mkdtemp(path.join(tmpdir(), 'wardrobe-preview-'));
+  const sourcePath = path.join(directory, 'garment.png');
+  try {
+    const source = await sharp({
+      create: { width: 1200, height: 1800, channels: 3, background: '#dde6ef' },
+    }).png({ compressionLevel: 0 }).toBuffer();
+    await writeFile(sourcePath, source);
+    const service = {
+      createRun: async () => null,
+      getRun: async () => null,
+      subscribe: () => () => {},
+      outputFile: async () => null,
+      retry: async () => null,
+      selectGarments: async () => null,
+      garmentSourceFile: async () => sourcePath,
+      deleteRun: async () => {},
+    };
+    const app = await createWebApp({ service });
+    const response = await app.inject({ method: 'GET', url: '/api/runs/test-run/garments/0?preview=1' });
+    assert.equal(response.statusCode, 200, response.body);
+    assert.equal(response.headers['content-type'], 'image/webp');
+    assert.ok(response.rawPayload.length < source.length);
+    const metadata = await sharp(response.rawPayload).metadata();
+    assert.ok(metadata.width <= 480);
+    assert.ok(metadata.height <= 480);
+    await app.close();
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
 });

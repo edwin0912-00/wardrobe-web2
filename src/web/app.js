@@ -4,6 +4,7 @@ import path from 'node:path';
 import Fastify from 'fastify';
 import multipart from '@fastify/multipart';
 import fastifyStatic from '@fastify/static';
+import sharp from 'sharp';
 import { registerMonitorRoutes } from '../monitor/routes.js';
 import { publicManifestView } from '../runner/public-manifest.js';
 import { installDemoAuth } from './demo-auth.js';
@@ -420,6 +421,25 @@ export async function createWebApp({
     if (!await ownsRun(request, reply)) return reply;
     const filename = await service.garmentSourceFile(request.params.id, request.params.index);
     if (!filename) return reply.code(404).send({ error: 'Фото речі не знайдено' });
+    if (request.query?.preview === '1') {
+      // This response is only a UI thumbnail. The original input remains the
+      // immutable source file used by conditioning, QA and generation.
+      try {
+        const preview = await sharp(filename, { failOn: 'error', limitInputPixels: 100_000_000 })
+          .rotate()
+          .resize({ width: 480, height: 480, fit: 'inside', withoutEnlargement: true })
+          .webp({ quality: 72, effort: 4 })
+          .toBuffer();
+        return reply
+          .type('image/webp')
+          .header('Cache-Control', 'private, max-age=900')
+          .header('Vary', 'Cookie')
+          .header('X-Content-Type-Options', 'nosniff')
+          .send(preview);
+      } catch {
+        return reply.code(422).send({ error: 'Не вдалося підготувати preview фото речі' });
+      }
+    }
     const type = new Map([['.png', 'image/png'], ['.jpg', 'image/jpeg'], ['.jpeg', 'image/jpeg'], ['.webp', 'image/webp']]).get(path.extname(filename).toLowerCase()) ?? 'application/octet-stream';
     return reply.type(type).header('Cache-Control', 'private, max-age=900').send(createReadStream(filename));
   });

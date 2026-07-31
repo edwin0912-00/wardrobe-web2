@@ -76,6 +76,13 @@ The earlier detailed noticeboard is preserved at
   six minutes and does not retry automatically. The UI explains the QA failure
   and offers **«Повторити спробу»** as one explicit new generation request.
 
+## Lightweight preview transport — 2026-07-31
+
+- User-uploaded originals remain immutable source evidence. UI thumbnails are
+  independent WebP presentation derivatives, never replacement inputs.
+- Fashion Video style cards use hash-bound 288×512 / 12fps loops below 326 KB;
+  their master MP4s remain private generation reference material.
+
 ## Look-reference fast route — 2026-07-29
 
 - **Scope:** only avatar and garment-reference preparation for a new look.

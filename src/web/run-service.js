@@ -328,7 +328,9 @@ function publicRun(state) {
       category: item.category,
       confidence: item.confidence,
       observed: sanitizeOutbound(item.observed ?? {}),
-      preview_url: `/api/runs/${state.run_id}/garments/${item.source_index}`,
+      // Presentation derivative; raw evidence never leaves this endpoint by
+      // default in a conflict/picker UI.
+      preview_url: `/api/runs/${state.run_id}/garments/${item.source_index}?preview=1`,
     })),
     conflicts: sanitizeOutbound(state.conflicts ?? []),
     qa: sanitizeOutbound(state.qa ?? {}),

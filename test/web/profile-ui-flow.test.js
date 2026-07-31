@@ -226,3 +226,9 @@ test('the public profile UI delegates clicks to the executable transition helper
   assert.match(appSource, /continueAddItemsFromSelection\(selectedProfileLookSelection, beginDraft\)/);
   assert.match(appSource, /restoreProfileReturnState\(profileReturnState, \{/);
 });
+
+test('local upload previews use a presentation derivative while raw files remain upload inputs', () => {
+  assert.match(appSource, /createImagePreviewBlob/);
+  assert.match(appSource, /createObjectURL\(preview\)/);
+  assert.match(appSource, /The selected File\n?\s*\/\/ remains the source/);
+});
