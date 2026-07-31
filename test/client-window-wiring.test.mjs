@@ -32,3 +32,20 @@ test('TV and laptop use the measured surface module', () => {
   assert.match(html, /calibrationUrl:\s*'screen-calibration\.json'/);
   assert.match(ui, /opts\.onResult/);
 });
+
+test('all missing mirror choice screens exist as one visual component family', () => {
+  assert.match(ui, /BACKGROUND_OPTIONS/);
+  assert.match(ui, /SHOOT_STYLES/);
+  assert.match(ui, /VIDEO_STYLES/);
+  assert.match(ui, /data-choice-kind/);
+  assert.match(ui, /data-picker-back/);
+  assert.match(ui, /data-format-back/);
+  assert.match(ui, /data-retry-action/);
+  assert.match(ui, /showFailure/);
+  assert.match(ui, /kind:\s*'look'/);
+  assert.match(ui, /kind === 'bg' \? 'background'/);
+  assert.match(css, /\.visualpicks/);
+  assert.match(css, /\.visualpick/);
+  assert.match(css, /\.formatpicks/);
+  assert.match(css, /\.formatpick/);
+});

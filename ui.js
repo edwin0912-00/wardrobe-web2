@@ -51,7 +51,7 @@
   /* The three places where the viewer is asked something, in travel order. Named for the
    * place, because that is what the canon fixes — the surface follows the room. */
   var STEPS = [
-    { id: 'person', label: 'ВИ',     title: 'Завантажте себе',  cta: 'Далі — речі' },
+    { id: 'person', label: 'ВИ',     title: 'Ваше відображення', cta: 'До речей' },
     { id: 'items',  label: 'РЕЧІ',   title: 'Ваші пʼять речей', cta: 'Створити образ' },
     { id: 'looks',  label: 'ОБРАЗИ', title: 'Ваш образ',        cta: 'Ще один образ' }
   ];
@@ -61,7 +61,26 @@
     'вовняний джемпер', 'бавовняна сорочка', 'лляні штани', 'вовняні брюки',
     'широкі джинси', 'довге пальто', 'вʼязаний кардиган', 'шкіряні лофери', 'білі кеди'
   ];
-  var BACKGROUNDS = ['ця квартира', 'бетонна галерея', 'ранкове місто', 'студія, нейтральний фон'];
+  /* Draft presentation data. The beta adapter will replace these arrays with the
+   * server-owned preset catalogues without changing the mirror components. No provider,
+   * model or price language belongs in this layer. */
+  var BACKGROUND_OPTIONS = [
+    { id: 'apartment', name: 'Ця квартира', note: 'тепле дерево · спокійне світло', visual: 'apartment' },
+    { id: 'concrete', name: 'Бетонна галерея', note: 'графічний простір · мʼяка тінь', visual: 'concrete' },
+    { id: 'morning-city', name: 'Ранкове місто', note: 'повітря · холодне скло', visual: 'city' },
+    { id: 'neutral-studio', name: 'Нейтральна студія', note: 'чистий фон · точний колір', visual: 'studio' }
+  ];
+  var SHOOT_STYLES = [
+    { id: 'soft-light', name: 'Мʼяке світло', note: 'тихий портрет · природна шкіра', visual: 'soft' },
+    { id: 'architecture', name: 'Архітектура', note: 'лінії · масштаб · чітка форма', visual: 'architecture' },
+    { id: 'signature', name: 'Авторський', note: 'референси з вашої фотосесії', visual: 'signature' }
+  ];
+  var VIDEO_STYLES = [
+    { id: 'air', name: 'Повітря', note: 'тканина · повільний рух', visual: 'air' },
+    { id: 'walk', name: 'Крок', note: 'рух уперед · жива камера', visual: 'walk' },
+    { id: 'light', name: 'Світло', note: 'відблиск · тінь · зміна часу', visual: 'light' }
+  ];
+  var BACKGROUNDS = BACKGROUND_OPTIONS.map(function (option) { return option.name; });
 
   /* THE APPROVED ACTION ROW — layout 3, variant 2, copied verbatim from
    * ui-concepts/index.html. Not paraphrased and not re-worded: the owner approved these four
@@ -83,11 +102,6 @@
     live:  ['Примірка',   'приміряти зараз живою камерою']
   };
   var ACT_ORDER = ['shoot', 'fash', 'bg', 'live'];
-
-  /* THE ASPECT CHOICE. No real backend means no real result to read an aspect off of, so
-   * the viewer states it up front instead — and the choice decides where the result gets
-   * watched: 16:9 belongs on the television, 9:16 belongs right here in the mirror. */
-  var ASPECTS = ['16:9', '9:16'];
 
   function create(opts) {
     opts = opts || {};
@@ -118,8 +132,10 @@
     var pendingTimer = 0;
 
     /* Which face of the selected look the right mirror is showing. */
-    var view = 'look';          // 'look' | 'shoot' | 'video' | 'live'
-    var bgOpen = false;         // the background list is open in the left mirror
+    var view = 'look';          // 'look' | 'shoot' | 'video' | 'bg' | 'live'
+    /* Every product decision opens on the left mirror. The right mirror remains the
+     * answer surface: current look while choosing, orb while working, result on arrival. */
+    var pickerKind = null;      // null | 'shoot' | 'fash' | 'bg'
 
     /* An action (shoot/fash/bg — not live) waits for its aspect pick, then runs a
      * generating phase before it resolves. Both states gate the scroll: a light swipe
@@ -127,6 +143,7 @@
     var awaitingAspect = null;   // null | 'shoot' | 'fash' | 'bg'
     var pendingAction = null;    // null | { kind, aspect }
     var pendingActionTimer = 0;
+    var actionError = null;      // adapter-owned failure: { kind, message }
 
     function notifyGateChange() { if (typeof opts.onGateChange === 'function') opts.onGateChange(); }
 
@@ -153,7 +170,8 @@
       clearTimeout(pendingTimer);
       pendingTimer = setTimeout(function () {
         looks.push({ id: 'look-' + (looks.length + 1), items: items.slice(),
-                     bg: null, shot: false, video: false });
+                     bg: null, shootStyle: null, videoStyle: null,
+                     shot: false, video: false });
         selected = looks.length - 1;
         items = [];                 // the next look starts empty
         pending = false;
@@ -164,6 +182,16 @@
          * reachable — moving them on automatically would carry them past the very row this
          * step exists to reveal. */
         if (typeof opts.onLookReady === 'function') opts.onLookReady();
+        /* The TV result ladder consumes the same honest result envelope as later
+         * background/shoot/video actions. In the standalone draft this is still only
+         * the source photograph; the adapter replaces it with the generated look URL. */
+        if (typeof opts.onResult === 'function') {
+          opts.onResult({
+            kind: 'look', aspect: '9:16',
+            urls: person.main && person.main.url ? [person.main.url] : [],
+            mediaUrl: '', pendingRealMedia: true
+          });
+        }
       }, SIM_MS);
     }
 
@@ -173,12 +201,14 @@
      * as an upload target on its own, so an empty slot now says so with a glyph before it
      * says anything else. Gone the moment a photograph fills the slot — the photograph
      * itself is the evidence then, and "замінити" takes over as the one word that matters. */
-    function photoSlot(kind, label, note) {
+    function photoSlot(kind, label, note, index) {
       var p = person[kind];
-      return '<label class="pslot' + (p ? ' pslot--has' : '') + '" for="io-' + kind + '">' +
+      return '<label class="pslot pslot--' + kind + (p ? ' pslot--has' : '') + '" for="io-' + kind + '">' +
+        '<span class="pslot__index" aria-hidden="true">0' + index + '</span>' +
         (p ? '<img class="pslot__img" src="' + p.url + '" alt="">'
-           : '<span class="pslot__plus" aria-hidden="true">+</span><span class="pslot__t">' + label + '</span>') +
-        '<span class="pslot__n">' + (p ? 'замінити' : note) + '</span>' +
+           : '<span class="pslot__plus" aria-hidden="true">+</span>') +
+        '<span class="pslot__copy"><span class="pslot__t">' + label + '</span>' +
+          '<span class="pslot__n">' + (p ? 'замінити' : note) + '</span></span>' +
         '<input id="io-' + kind + '" type="file" accept="image/*" hidden>' +
       '</label>';
     }
@@ -188,11 +218,11 @@
        * rejected it outright — so this slot now asks for a photo, not a stance. `full` stays
        * the internal name only because hasMain()/gates elsewhere key on it; nothing here
        * tells the viewer how to stand or frame themselves. */
-      return '<div class="pslots">' +
-          photoSlot('main', 'ваше фото', 'потрібне') +
-          photoSlot('face', 'обличчя', 'за бажанням') +
-        '</div>' +
-        '<p class="glass__lede">Обличчя окремо — за бажанням, якщо хочете точніше.</p>';
+      return '<p class="glass__lede person-intro">Одного фото достатньо. Портрет допоможе точніше зберегти риси.</p>' +
+        '<div class="pslots">' +
+          photoSlot('main', 'Основне фото', 'потрібне', 1) +
+          photoSlot('face', 'Портрет', 'за бажанням', 2) +
+        '</div>';
     }
 
     function askItems() {
@@ -259,29 +289,86 @@
       return cells;
     }
 
-    /* The background picker survives from the earlier build: it opens from the 'bg'
-     * action in the right mirror regardless of which screen this is, so it is appended
-     * here rather than folded into the approved layout above, which has no such state
-     * in the picture it was copied from. */
-    function bgPicker() {
-      var l = current();
-      if (!bgOpen || !l) return '';
-      return '<div class="rowpick">' + BACKGROUNDS.map(function (o, i) {
-        return '<button class="rowpick__item" type="button" data-bg="' + i + '"' +
-          ' aria-pressed="' + (l.bg === i ? 'true' : 'false') + '">' +
-          '<span class="rowpick__name">' + esc(o) + '</span></button>';
-      }).join('') + '</div>';
+    function optionsFor(kind) {
+      return kind === 'shoot' ? SHOOT_STYLES
+           : kind === 'fash' ? VIDEO_STYLES
+           : BACKGROUND_OPTIONS;
+    }
+
+    function selectedOption(kind, look) {
+      if (!look) return null;
+      var index = kind === 'shoot' ? look.shootStyle
+                : kind === 'fash' ? look.videoStyle : look.bg;
+      return index == null ? null : optionsFor(kind)[index];
+    }
+
+    function pickerCopy(kind) {
+      return kind === 'shoot'
+        ? { eyebrow: 'ФОТОСЕСІЯ', title: 'Оберіть стиль', note: 'Пʼять кадрів з одного світла й настрою.' }
+        : kind === 'fash'
+        ? { eyebrow: 'ФЕШН-ВІДЕО', title: 'Оберіть рух', note: 'Один характер руху для готового образу.' }
+        : { eyebrow: 'НОВИЙ ФОН', title: 'Оберіть простір', note: 'Образ залишиться тим самим — зміниться світло навколо.' };
+    }
+
+    /* One family for all visual choices: the whole tile is the hit area, the selected
+     * state is a restrained light shift, and every tile carries image-space first and
+     * copy second. Real preview URLs later replace only `.visualpick__media`. */
+    function visualPicker(kind) {
+      var copy = pickerCopy(kind);
+      var look = current();
+      var choices = optionsFor(kind).map(function (option, index) {
+        var selectedIndex = kind === 'shoot' ? look.shootStyle
+                          : kind === 'fash' ? look.videoStyle : look.bg;
+        return '<button class="visualpick" type="button" data-choice-kind="' + kind + '"' +
+          ' data-choice-index="' + index + '" aria-pressed="' + (selectedIndex === index ? 'true' : 'false') + '">' +
+          '<span class="visualpick__media" data-visual="' + esc(option.visual) + '" aria-hidden="true"><i></i></span>' +
+          '<span class="visualpick__copy"><b>' + esc(option.name) + '</b><small>' + esc(option.note) + '</small></span>' +
+        '</button>';
+      }).join('');
+      return scene('picker-' + kind,
+        '<div class="glass__eyebrow">' + copy.eyebrow + '</div>' +
+        '<div class="glass__h">' + copy.title + '</div>' +
+        '<p class="glass__lede pickerlede">' + copy.note + '</p>' +
+        '<div class="visualpicks" data-picker="' + kind + '">' + choices + '</div>' +
+        '<button class="secondary pickerback" type="button" data-picker-back>Назад до образу</button>');
+    }
+
+    function formatPicker(kind) {
+      var option = selectedOption(kind, current());
+      return scene('format-' + kind,
+        '<div class="glass__eyebrow">' + pickerCopy(kind).eyebrow + ' · ФОРМАТ</div>' +
+        '<div class="glass__h">Де дивимось?</div>' +
+        '<p class="glass__lede pickerlede">' + (option ? esc(option.name) + '. ' : '') +
+          'Формат визначає поверхню готового результату.</p>' +
+        '<div class="formatpicks">' +
+          '<button class="formatpick" type="button" data-aspect="16:9">' +
+            '<span class="formatpick__shape" data-format="wide" aria-hidden="true"></span>' +
+            '<span><b>16:9</b><small>на телевізорі</small></span></button>' +
+          '<button class="formatpick" type="button" data-aspect="9:16">' +
+            '<span class="formatpick__shape" data-format="portrait" aria-hidden="true"></span>' +
+            '<span><b>9:16</b><small>у дзеркалі</small></span></button>' +
+        '</div>' +
+        '<button class="secondary pickerback" type="button" data-format-back>Назад до стилів</button>');
     }
 
     function renderAskLook() {
       var l = current();
+      if (pickerKind) {
+        askRoot.innerHTML = visualPicker(pickerKind);
+        applyEnabled();
+        return;
+      }
+      if (awaitingAspect) {
+        askRoot.innerHTML = formatPicker(awaitingAspect);
+        applyEnabled();
+        return;
+      }
       askRoot.innerHTML = scene('looks',
         '<div class="glass__h">Образ ' + (selected + 1) + '</div>' +
         '<p class="glass__lede">' + esc(lookLede(l)) + '</p>' +
         '<div class="looklabel">ваші образи</div>' +
         '<div class="lookthumbs">' + askLookThumbs() + '</div>' +
-        '<button class="secondary" type="button" data-edit-items>Змінити речі</button>' +
-        bgPicker());
+        '<button class="secondary" type="button" data-edit-items>Змінити речі</button>');
       applyEnabled();
     }
 
@@ -468,6 +555,15 @@
            : 'Готуємо результат';
     }
 
+    function failureWindow(error) {
+      return '<div class="failure-state" role="alert"><div class="glass__eyebrow">Не вдалося завершити</div>' +
+        orbWindow('failed', error.message || 'Спробуємо ще раз') +
+        '<div class="recovery-actions">' +
+          '<button class="glass__cta" type="button" data-retry-action>Спробувати ще</button>' +
+          '<button class="secondary" type="button" data-cancel-action>До образу</button>' +
+        '</div></div>';
+    }
+
     /* Every result frame carries the same admission: no render is attached. The viewer's own
      * photograph is all we have, so it is shown desaturated under the placeholder hatching.
      * An undressed input photo presented as a finished look would be input passed off as
@@ -494,9 +590,11 @@
 
     /* view uses 'video'; the approved table calls the same thing 'fash'. One mapping, here. */
     function activeAct() {
+      if (pickerKind) return pickerKind;
+      if (awaitingAspect) return awaitingAspect;
       return view === 'video' ? 'fash'
            : view === 'shoot' || view === 'live' || view === 'bg' ? view
-           : bgOpen ? 'bg' : null;
+           : null;
     }
 
     function actionBlocks() {
@@ -518,18 +616,11 @@
         '</div>';
     }
 
-    /* THE ASPECT PICK. No real backend to read a result's aspect off of, so the viewer
-     * states it before generating — and it decides where the result gets watched (see
-     * onWideResult below). Same list-of-choices shape as the background picker
-     * (`.rowpick`), not a new pattern. */
-    function aspectPicker(kind) {
-      return '<div class="actwrap">' +
-          '<div class="actsay">' + esc(ACTS[kind][1]) + ' — який формат?</div>' +
-          '<div class="rowpick">' + ASPECTS.map(function (a) {
-            return '<button class="rowpick__item" type="button" data-aspect="' + a + '">' +
-              '<span class="rowpick__name">' + a + '</span></button>';
-          }).join('') + '</div>' +
-        '</div>';
+    function resultCaption(look) {
+      var option = view === 'shoot' ? selectedOption('shoot', look)
+                 : view === 'video' ? selectedOption('fash', look)
+                 : view === 'bg' ? selectedOption('bg', look) : null;
+      return option ? option.name : 'Готовий результат';
     }
 
     function renderShow() {
@@ -563,6 +654,12 @@
         return;
       }
 
+      if (actionError) {
+        showRoot.innerHTML = scene('failed-' + actionError.kind, failureWindow(actionError));
+        applyEnabled();
+        return;
+      }
+
       var l = current();
       /* view 'look' is the approved picture exactly: no eyebrow, no details rows —
        * just the watermarked frame and the action row beneath it. The other views
@@ -571,7 +668,7 @@
                : view === 'video' ? 'Фешн-відео'
                : view === 'bg'    ? 'Новий фон'
                : view === 'live'  ? 'Лайв-примірка' : null;
-      var cap = view === 'live' ? 'Відкрийте дзеркало' : 'Попередній перегляд';
+      var cap = view === 'live' ? 'Відкрийте дзеркало' : resultCaption(l);
 
       showRoot.innerHTML = scene(view,
         (head ? '<div class="glass__eyebrow">' + head + '</div>' : '') +
@@ -582,7 +679,7 @@
               plural(l.items.length, 'річ', 'речі', 'речей') + '</div>' +
             (l.bg != null ? '<div class="glass__row"><span>Фон</span> ' + esc(BACKGROUNDS[l.bg]) + '</div>' : '') +
           '</div>') +
-        (awaitingAspect ? aspectPicker(awaitingAspect) : actionBlocks()));
+        actionBlocks());
       applyEnabled();
     }
 
@@ -648,32 +745,59 @@
 
       if ((b = t.closest('[data-remove]'))) { removeAt(Number(b.getAttribute('data-remove'))); return; }
       if ((b = t.closest('[data-preset]'))) { togglePreset(PRESET_ITEMS[Number(b.getAttribute('data-preset'))]); return; }
-      if ((b = t.closest('[data-select]'))) { stopCamera(); selected = Number(b.getAttribute('data-select')); view = 'look'; render(); return; }
-      if ((b = t.closest('[data-bg]'))) {
-        var lb = current(); if (lb) lb.bg = Number(b.getAttribute('data-bg'));
-        bgOpen = false;
-        /* Choosing a background is what actually starts "Новий фон" — the video on it.
-         * Same aspect-then-generate flow as shoot/fash below. */
-        awaitingAspect = 'bg';
-        render(); return;
+      if ((b = t.closest('[data-select]'))) {
+        stopCamera(); selected = Number(b.getAttribute('data-select'));
+        pickerKind = null; awaitingAspect = null; view = 'look'; render(); notifyGateChange(); return;
       }
-      if (t.closest('[data-bgopen]')) { bgOpen = !bgOpen; render(); return; }
-      if (t.closest('[data-edit-items]')) { stopCamera(); step = 1; view = 'look'; render(); return; }
+      if ((b = t.closest('[data-choice-kind]'))) {
+        var choiceKind = b.getAttribute('data-choice-kind');
+        var choiceIndex = Number(b.getAttribute('data-choice-index'));
+        var choiceLook = current();
+        if (!choiceLook || !optionsFor(choiceKind)[choiceIndex]) return;
+        if (choiceKind === 'shoot') choiceLook.shootStyle = choiceIndex;
+        else if (choiceKind === 'fash') choiceLook.videoStyle = choiceIndex;
+        else if (choiceKind === 'bg') choiceLook.bg = choiceIndex;
+        else return;
+        pickerKind = null;
+        awaitingAspect = choiceKind;
+        render(); notifyGateChange(); return;
+      }
+      if (t.closest('[data-picker-back]')) {
+        pickerKind = null; awaitingAspect = null; render(); notifyGateChange(); return;
+      }
+      if (t.closest('[data-format-back]')) {
+        pickerKind = awaitingAspect; awaitingAspect = null; render(); notifyGateChange(); return;
+      }
+      if (t.closest('[data-edit-items]')) {
+        stopCamera(); pickerKind = null; awaitingAspect = null;
+        step = 1; view = 'look'; render(); return;
+      }
       if ((b = t.closest('[data-act]'))) {
         var k = b.getAttribute('data-act');
-        if (k === 'bg') { bgOpen = !bgOpen; render(); return; }
-        /* Live is not a generation — there is nothing to await an aspect for, it just
-         * opens the camera. shoot/fash do generate, so they ask which aspect first. */
-        if (k === 'live') { view = 'live'; render(); return; }
-        awaitingAspect = k;
-        render(); return;
+        actionError = null;
+        /* Live is not a generated branch. Every generated action opens its visual
+         * catalogue on the left mirror first, then the destination format. */
+        if (k === 'live') {
+          pickerKind = null; awaitingAspect = null; view = 'live'; render(); return;
+        }
+        if (view === 'live') { stopCamera(); camError = ''; }
+        pickerKind = k;
+        awaitingAspect = null;
+        render(); notifyGateChange(); return;
       }
       if ((b = t.closest('[data-aspect]'))) {
         var kind = awaitingAspect;
         if (!kind) return;
         var aspect = b.getAttribute('data-aspect');
+        if (aspect !== '16:9' && aspect !== '9:16') return;
+        var chosen = selectedOption(kind, current());
         awaitingAspect = null;
-        pendingAction = { kind: kind, aspect: aspect };
+        pendingAction = {
+          kind: kind, aspect: aspect,
+          optionId: chosen ? chosen.id : null,
+          optionLabel: chosen ? chosen.name : null
+        };
+        actionError = null;
         render(); notifyGateChange();
         clearTimeout(pendingActionTimer);
         pendingActionTimer = setTimeout(function () {
@@ -690,8 +814,10 @@
           render(); notifyGateChange();
           if (typeof opts.onResult === 'function') {
             opts.onResult({
-              kind: kind === 'shoot' ? 'shoot' : 'video',
+              kind: kind === 'shoot' ? 'shoot' : kind === 'bg' ? 'background' : 'video',
               aspect: aspect,
+              optionId: chosen ? chosen.id : null,
+              optionLabel: chosen ? chosen.name : null,
               urls: [],
               mediaUrl: '',
               pendingRealMedia: true
@@ -702,6 +828,17 @@
           if (aspect === '16:9' && typeof opts.onWideResult === 'function') opts.onWideResult();
         }, SIM_MS);
         return;
+      }
+      if (t.closest('[data-retry-action]')) {
+        var retryKind = actionError ? actionError.kind : null;
+        pickerKind = retryKind === 'shoot' || retryKind === 'fash' || retryKind === 'bg' ? retryKind : null;
+        if (retryKind === 'look') step = 1;
+        awaitingAspect = null; actionError = null; view = 'look';
+        render(); notifyGateChange(); return;
+      }
+      if (t.closest('[data-cancel-action]')) {
+        pickerKind = null; awaitingAspect = null; actionError = null; view = 'look';
+        render(); notifyGateChange(); return;
       }
       if (t.closest('[data-cam-start]')) { startCamera(); return; }
       if (t.closest('[data-cam-stop]')) { stopCamera(); camError = ''; render(); return; }
@@ -716,14 +853,20 @@
         if (cur) { if (view === 'shoot') cur.shot = true; if (view === 'video') cur.video = true; }
         render(); return;
       }
-      if ((b = t.closest('[data-step]'))) { step = Number(b.getAttribute('data-step')); render(); return; }
+      if ((b = t.closest('[data-step]'))) {
+        pickerKind = null; awaitingAspect = null;
+        step = Number(b.getAttribute('data-step')); render(); return;
+      }
       if ((b = t.closest('[data-next]')) && !b.disabled) {
         if (step === 0) { if (hasMain()) { step = 1; render(); } }
         else if (step === 1) { makeLook(); }
         else { stopCamera(); step = 1; view = 'look'; render(); }   // another look starts at the things
         return;
       }
-      if ((b = t.closest('[data-back]')) && !b.disabled) { step = Math.max(0, step - 1); render(); return; }
+      if ((b = t.closest('[data-back]')) && !b.disabled) {
+        pickerKind = null; awaitingAspect = null;
+        step = Math.max(0, step - 1); render(); return;
+      }
     });
 
     /* HOVERING A WORD SWAPS THE SENTENCE, and nothing else moves.
@@ -805,11 +948,15 @@
           looks: looks.map(function (l) {
             return { id: l.id, items: l.items.length,
                      background: l.bg != null ? BACKGROUNDS[l.bg] : null,
+                     shootStyle: l.shootStyle != null ? SHOOT_STYLES[l.shootStyle].name : null,
+                     videoStyle: l.videoStyle != null ? VIDEO_STYLES[l.videoStyle].name : null,
                      shot: l.shot, video: l.video };
           }),
           selected: selected, lookVisible: lookVisible(), pending: pending,
           awaitingAspect: awaitingAspect, pendingAction: pendingAction,
-          view: view, bgOpen: bgOpen, cameraOn: !!stream, cameraError: camError || null,
+          actionError: actionError,
+          pickerKind: pickerKind, bgOpen: pickerKind === 'bg',
+          view: view, cameraOn: !!stream, cameraError: camError || null,
           actionsOffered: lookVisible(),
           simulated: true,               // no render backend is attached to this page
           sells: false,                  // no prices, no basket, by canon
@@ -825,13 +972,22 @@
       canAdvance: function (leg) {
         if (leg !== 0) return true;
         if (!looks.length) return false;
+        if (pickerKind || awaitingAspect) return false;
         if (pendingAction) return false;
         if (stream) return false;
         return true;
       },
       addPreset: function (name) { togglePreset(name); return items.length; },
       makeLook: makeLook,
-      steps: STEPS, presets: PRESET_ITEMS, backgrounds: BACKGROUNDS
+      showFailure: function (kind, message) {
+        if (kind !== 'shoot' && kind !== 'fash' && kind !== 'bg') kind = 'look';
+        clearTimeout(pendingActionTimer);
+        pendingAction = null;
+        actionError = { kind: kind, message: message || 'Спробуємо ще раз' };
+        render(); notifyGateChange();
+      },
+      steps: STEPS, presets: PRESET_ITEMS, backgrounds: BACKGROUNDS,
+      backgroundOptions: BACKGROUND_OPTIONS, shootStyles: SHOOT_STYLES, videoStyles: VIDEO_STYLES
     };
   }
 

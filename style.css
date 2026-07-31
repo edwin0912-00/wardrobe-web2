@@ -840,6 +840,8 @@ body {
 .orbfield[data-orb-state="materials"] .orb i { animation-duration: 5.9s; }
 .orbfield[data-orb-state="bg"] .orb,
 .orbfield[data-orb-state="shoot"] .orb { box-shadow: 0 0 56px rgba(245,243,237,0.14); }
+.orbfield[data-orb-state="failed"] .orb { opacity: 0.46; filter: grayscale(1); }
+.orbfield[data-orb-state="failed"] .orb i { animation: none; transform: rotate(7deg); }
 .orbfield__label {
   position: absolute; left: 0; right: 0; bottom: 6%;
   text-align: center;
@@ -907,6 +909,123 @@ body {
   color: #C4C5BF;
 }
 
+/* VISUAL CATALOGUES — background, Fashion Shoot and Fashion Video share one component.
+ * The left mirror always asks; the right mirror always answers. These are deliberately
+ * image-first tiles rather than technical select menus, and their media wells can accept
+ * beta preview URLs later without changing the layout or interaction contract. */
+.pickerlede { margin-top: clamp(4px, 1.5cqh, 8px); max-width: 34em; }
+.visualpicks {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(6px, 1.7cqh, 10px);
+  flex: 0 0 auto;
+  margin-top: clamp(7px, 2cqh, 12px);
+}
+.visualpicks[data-picker="shoot"],
+.visualpicks[data-picker="fash"] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.visualpick {
+  min-width: 0; overflow: hidden; cursor: pointer;
+  display: flex; flex-direction: column; text-align: left;
+  color: var(--milk); background: rgba(245,243,237,0.025);
+  border: 1px solid rgba(245,243,237,0.24);
+  transition: background-color 140ms ease-out, border-color 140ms ease-out;
+}
+.visualpick:hover { background: rgba(245,243,237,0.08); border-color: rgba(245,243,237,0.62); }
+.visualpick:active { background: rgba(245,243,237,0.12); }
+.visualpick:focus-visible { outline: 2px solid var(--milk); outline-offset: 3px; }
+.visualpick[aria-pressed="true"] {
+  background: rgba(245,243,237,0.11); border-color: rgba(245,243,237,0.86);
+}
+.visualpick__media {
+  position: relative; display: block; overflow: hidden;
+  width: 100%; height: clamp(50px, 12cqh, 80px);
+  background: rgba(245,243,237,0.06);
+  border-bottom: 1px solid rgba(245,243,237,0.18);
+}
+.visualpick__media::before,
+.visualpick__media::after,
+.visualpick__media i { content: ''; position: absolute; display: block; }
+.visualpick__media::before { inset: 0; opacity: 0.92; }
+.visualpick__media::after { inset: 12%; border: 1px solid rgba(245,243,237,0.18); }
+.visualpick__media i { left: 9%; right: 9%; bottom: 12%; height: 1px; background: rgba(245,243,237,0.42); }
+.visualpick__media[data-visual="apartment"]::before {
+  background: linear-gradient(155deg, rgba(34,35,32,.14) 0 50%, rgba(143,111,76,.44) 51% 66%, rgba(29,30,28,.2) 67%);
+}
+.visualpick__media[data-visual="concrete"]::before {
+  background: linear-gradient(90deg, rgba(223,223,215,.28), rgba(70,72,69,.2) 49%, rgba(199,200,194,.3) 50%);
+}
+.visualpick__media[data-visual="city"]::before {
+  background: linear-gradient(180deg, rgba(179,196,199,.38), rgba(55,61,61,.22)),
+              repeating-linear-gradient(90deg, transparent 0 18%, rgba(245,243,237,.18) 18.5% 19%);
+}
+.visualpick__media[data-visual="studio"]::before {
+  background: radial-gradient(circle at 56% 38%, rgba(245,243,237,.58), rgba(181,181,174,.16) 58%, rgba(29,30,28,.12));
+}
+.visualpick__media[data-visual="soft"]::before {
+  background: radial-gradient(ellipse at 34% 42%, rgba(245,243,237,.52), rgba(167,163,153,.15) 48%, rgba(29,30,28,.38));
+}
+.visualpick__media[data-visual="architecture"]::before {
+  background: linear-gradient(132deg, rgba(245,243,237,.34) 0 23%, transparent 23% 52%, rgba(245,243,237,.18) 52% 58%, transparent 58%), #454743;
+}
+.visualpick__media[data-visual="signature"]::before {
+  background: linear-gradient(110deg, #1d1e1c 0 30%, rgba(245,243,237,.42) 31% 36%, #77766f 37% 62%, #282926 63%);
+}
+.visualpick__media[data-visual="air"]::before {
+  background: radial-gradient(ellipse at 32% 64%, rgba(245,243,237,.42) 0 14%, transparent 15%),
+              radial-gradient(ellipse at 63% 38%, rgba(245,243,237,.24) 0 19%, transparent 20%), #41433f;
+}
+.visualpick__media[data-visual="walk"]::before {
+  background: repeating-linear-gradient(112deg, transparent 0 14%, rgba(245,243,237,.18) 14.5% 15%), linear-gradient(180deg, #676963, #262724);
+}
+.visualpick__media[data-visual="light"]::before {
+  background: linear-gradient(118deg, #222320 0 37%, rgba(245,243,237,.7) 38% 45%, rgba(245,243,237,.12) 46% 66%, #292a27 67%);
+}
+.visualpick__copy {
+  display: flex; flex-direction: column; gap: clamp(2px, .7cqh, 4px);
+  padding: clamp(6px, 1.8cqh, 10px);
+}
+.visualpick__copy b {
+  font: 400 clamp(10px, 2.25cqh, 13px)/1.2 ui-sans-serif, -apple-system, sans-serif;
+}
+.visualpick__copy small {
+  font: 400 clamp(8px, 1.65cqh, 9px)/1.35 ui-monospace, Menlo, monospace;
+  color: rgba(245,243,237,0.58);
+}
+.pickerback { margin-top: clamp(7px, 1.8cqh, 11px); flex: 0 0 auto; }
+
+.formatpicks {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(7px, 2cqh, 12px); flex: 0 0 auto;
+  min-height: clamp(90px, 22cqh, 138px);
+  margin-top: clamp(9px, 3cqh, 18px);
+}
+.formatpick {
+  min-width: 0; cursor: pointer; color: var(--milk);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: clamp(7px, 2cqh, 12px); padding: clamp(8px, 2.4cqh, 14px);
+  background: rgba(245,243,237,0.025); border: 1px solid rgba(245,243,237,0.26);
+  transition: background-color 140ms ease-out, border-color 140ms ease-out;
+}
+.formatpick:hover { background: rgba(245,243,237,0.08); border-color: rgba(245,243,237,0.68); }
+.formatpick:active { background: rgba(245,243,237,0.12); }
+.formatpick:focus-visible { outline: 2px solid var(--milk); outline-offset: 3px; }
+.formatpick > span:last-child { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.formatpick b { font: 400 clamp(13px, 3cqh, 17px)/1 ui-sans-serif, -apple-system, sans-serif; }
+.formatpick small { font-size: clamp(8px, 1.75cqh, 10px); color: rgba(245,243,237,0.58); }
+.formatpick__shape { display: block; border: 1px solid rgba(245,243,237,0.74); background: rgba(245,243,237,0.05); }
+.formatpick__shape[data-format="wide"] { width: min(86px, 70%); aspect-ratio: 16 / 9; }
+.formatpick__shape[data-format="portrait"] { height: min(74px, 45%); aspect-ratio: 9 / 16; }
+
+@container (max-height: 400px) {
+  .pickerlede { display: none; }
+  .visualpicks { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .visualpicks[data-picker="shoot"], .visualpicks[data-picker="fash"] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .visualpick__media { min-height: 34px; }
+  .visualpick__copy { padding: 4px; }
+  .visualpick__copy small { display: none; }
+  .formatpicks { margin-top: 6px; }
+  .formatpick { padding: 5px; gap: 4px; }
+}
+
 /* The camera's own controls are not part of the approved row — they belong to the live
  * window, so they stay a plain control rather than a fifth action word. */
 .camctl {
@@ -919,6 +1038,11 @@ body {
 }
 .camctl:hover { background: rgba(245,243,237,0.14); border-color: rgba(245,243,237,0.7); }
 .camctl:disabled { opacity: 0.35; cursor: default; }
+.recovery-actions {
+  display: flex; align-items: center; gap: clamp(10px, 3cqw, 18px);
+  flex: 0 0 auto; margin-top: clamp(7px, 2cqh, 12px);
+}
+.failure-state { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
 
 /* LIVE — the camera leaves the right mirror and becomes the viewport. */
 .live-overlay {
@@ -1093,9 +1217,16 @@ body {
  * the panel is short on — a short mirror crops at the glass's own edge-fade mask instead
  * of crushing the one thing the viewer has to click. */
 .pslots {
-  display: grid; grid-template-columns: 1.35fr 1fr; gap: clamp(6px, 2cqh, 12px);
+  display: grid; grid-template-columns: 1.42fr 1fr; gap: clamp(7px, 2.2cqh, 13px);
   flex: 0 0 auto;
-  margin-top: clamp(6px, 2.2cqh, 14px);
+  margin-top: clamp(8px, 2.6cqh, 16px);
+}
+.person-intro {
+  max-width: 30em;
+  margin-top: clamp(5px, 1.8cqh, 10px);
+  font-size: clamp(10px, 2.15cqh, 12px);
+  line-height: 1.42;
+  color: rgba(245,243,237,0.72);
 }
 /* Sized off the GLASS's own height (cqh), not a fixed aspect-ratio: a ratio scales with
  * WIDTH, and the wider of the two columns (1.35fr) then demands more height than a short
@@ -1113,22 +1244,40 @@ body {
 .pslot {
   position: relative; cursor: pointer;
   min-height: clamp(48px, 21cqh, 130px);
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: clamp(3px, 1cqh, 6px);
-  text-align: center;
-  border: 1px dashed rgba(245,243,237,0.32);
-  background: rgba(245,243,237,0.03);
+  display: grid; place-items: center;
+  text-align: left;
+  border: 1px solid rgba(245,243,237,0.28);
+  background: rgba(245,243,237,0.025);
+  overflow: hidden;
+  transition: border-color 140ms ease-out, background-color 140ms ease-out;
 }
-.pslot:hover { border-color: rgba(245,243,237,0.66); background: rgba(245,243,237,0.07); }
+.pslot:hover { border-color: rgba(245,243,237,0.72); background: rgba(245,243,237,0.075); }
+.pslot:active { background: rgba(245,243,237,0.11); }
+.pslot:focus-within { outline: 2px solid var(--milk); outline-offset: 3px; }
+.pslot--face { background: rgba(245,243,237,0.012); }
 .pslot--has { border-style: solid; border-color: rgba(245,243,237,0.55); }
 .pslot__img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.pslot__index {
+  position: absolute; z-index: 3; left: clamp(7px, 2.2cqw, 12px); top: clamp(7px, 2cqh, 11px);
+  font-size: clamp(8px, 1.7cqh, 9px); letter-spacing: 0.18em;
+  color: rgba(245,243,237,0.54);
+  font-variant-numeric: tabular-nums;
+}
 /* THE PLUS is the whole affordance: an empty dashed square with two small words in it did
  * not read as "click here to add a photograph" — the owner asked directly for something
  * that says so. It disappears once the slot is filled; the photograph itself is the
  * evidence then. */
 .pslot__plus {
-  font: 300 clamp(20px, 6cqh, 30px)/1 ui-sans-serif, -apple-system, sans-serif;
-  color: rgba(245,243,237,0.5);
+  font: 200 clamp(24px, 7cqh, 38px)/1 ui-sans-serif, -apple-system, sans-serif;
+  color: rgba(245,243,237,0.68);
+  transform: translateY(-0.18em);
+  transition: color 140ms ease-out;
+}
+.pslot:hover .pslot__plus { color: var(--milk); }
+.pslot__copy {
+  position: absolute; z-index: 3; left: clamp(7px, 2.2cqw, 12px); right: clamp(7px, 2.2cqw, 12px);
+  bottom: clamp(7px, 2cqh, 11px);
+  display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
 }
 /* WHAT THE SLOT IS comes first and reads as a word, not a shouted instruction — this used
  * to be the small, low-contrast line while the requirement note below it sat on an opaque
@@ -1138,7 +1287,7 @@ body {
 .pslot__t {
   font-size: clamp(11px, 2.6cqh, 14px); letter-spacing: 0.02em;
   font-family: ui-sans-serif, -apple-system, "Helvetica Neue", sans-serif;
-  color: var(--milk); padding: 0 6px;
+  color: var(--milk);
 }
 /* WHETHER IT IS REQUIRED comes second, as a plain caption — no plate, no caps, no tracking,
  * same voice as every other note in the glass. A real flow element now, not an absolutely
@@ -1146,14 +1295,18 @@ body {
 .pslot__n {
   font-size: clamp(9px, 1.9cqh, 10px); letter-spacing: 0.02em;
   color: rgba(245,243,237,0.58);
+  white-space: nowrap;
 }
 /* Once filled there is no plus and no label — the photograph is the content — and
  * "замінити" becomes a caption ON that photograph, which is the one case that still
  * needs the bottom-bar treatment: it is labelling a real image, not standing in for one. */
-.pslot--has .pslot__n {
-  position: absolute; left: 0; right: 0; bottom: 0; z-index: 2;
-  padding: clamp(3px, 1.2cqh, 6px) 4px;
-  background: rgba(16,17,15,0.6);
+.pslot--has .pslot__copy {
+  left: 0; right: 0; bottom: 0;
+  padding: clamp(5px, 1.6cqh, 8px) clamp(7px, 2.2cqw, 12px);
+  background: linear-gradient(to top, rgba(16,17,15,0.82), rgba(16,17,15,0));
+}
+.pslot--has .pslot__index {
+  text-shadow: 0 1px 7px rgba(0,0,0,0.9);
 }
 
 /* SHORT MIRRORS DROP THE SUBTITLES, NOT THE OFFERS.
@@ -1184,6 +1337,8 @@ body {
   .pslot__plus { font-size: 13px; }
   .pslot__t { font-size: 10px; }
   .pslot__n { font-size: 8px; }
+  .pslot__index { font-size: 7px; top: 4px; left: 5px; }
+  .pslot__copy { left: 5px; right: 5px; bottom: 4px; }
 }
 @container (max-height: 320px) {
   .glass__rows--show { display: none; }
