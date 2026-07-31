@@ -1115,6 +1115,27 @@ test('automatic QA consumes NEEDS_QA and returns a terminal retryable failure', 
   });
 });
 
+test('automatic QA never persists a numeric process exit code as a public failure code', async () => {
+  await withTempDir(async (dir) => {
+    const { provider } = makeStubProvider();
+    const store = new ClipStore(dir);
+    const processError = new Error('ffmpeg failed');
+    processError.code = 234;
+    const service = new VideoService({
+      provider,
+      clipStore: store,
+      automaticQaFn: async () => { throw processError; },
+    });
+    await store.save('numeric-error-clip', {
+      clipId: 'numeric-error-clip', status: 'NEEDS_QA', videoSha256: 'a'.repeat(64),
+    });
+    const result = await service.runAutomaticQa('numeric-error-clip');
+    assert.equal(result.failureCode, 'VIDEO_AUTOMATIC_QA_FAILED');
+    const persisted = await store.load('numeric-error-clip');
+    assert.equal(persisted.failureCode, 'VIDEO_AUTOMATIC_QA_FAILED');
+  });
+});
+
 test('awaitAndFinalize marks NEEDS_QA when no probeFn provided', async () => {
   await withTempDir(async (dir, sourcePath) => {
     const { provider } = makeStubProvider();

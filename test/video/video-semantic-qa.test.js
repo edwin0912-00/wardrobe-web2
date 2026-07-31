@@ -112,3 +112,54 @@ test('non-identical output runs the model contract and emits complete PASS recei
     await rm(root, { recursive: true, force: true });
   }
 });
+
+test('output sampling scales the reference cut sheet to the measured delivery duration', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'video-semantic-duration-'));
+  try {
+    const clipDir = path.join(root, 'clip');
+    await import('node:fs/promises').then(({ mkdir }) => mkdir(clipDir, { recursive: true }));
+    const sourceBytes = Buffer.from('approved-look');
+    const referenceBytes = Buffer.from('reference-video');
+    const sourcePath = path.join(clipDir, 'source.png');
+    const referencePath = path.join(clipDir, 'style-reference.mp4');
+    const videoPath = path.join(clipDir, 'clip.mp4');
+    await Promise.all([
+      writeFile(sourcePath, sourceBytes),
+      writeFile(referencePath, referenceBytes),
+      writeFile(videoPath, Buffer.from('provider-output')),
+    ]);
+    const samples = [];
+    const evaluate = createVideoSemanticQaEvaluator({
+      evaluator: { async evaluateQa() { throw new Error('identical fixture must be deterministic'); } },
+      fashionVideoReferenceResolver: async () => ({
+        state: 'READY', reference_sha256: sha256(referenceBytes),
+        cut_sheet: { cuts: [
+          { cut_index: 0, start_ms: 0, end_ms: 13_040 },
+          { cut_index: 1, start_ms: 13_040, end_ms: 13_240 },
+        ] },
+      }),
+      commandRunner: async (binary, args) => {
+        samples.push({
+          input: path.basename(args[args.indexOf('-i') + 1]),
+          seconds: Number(args[args.indexOf('-ss') + 1]),
+        });
+        await writeFile(args.at(-1), Buffer.from('same-frame'));
+      },
+    });
+    await evaluate({
+      clipId: 'clip-id', jobId: 'job-id', mode: 'mode', status: 'NEEDS_QA',
+      sourceSha256: sha256(sourceBytes), videoPath, videoSha256: 'a'.repeat(64),
+      durationSeconds: 13,
+      deliveryDurationSeconds: 13.041667,
+      motionReferenceBinding: {
+        referenceId: 'style', sha256: sha256(referenceBytes), audioSourceFile: 'style-reference.mp4',
+      },
+    });
+    const lastOutput = samples.filter((sample) => sample.input === 'clip.mp4').at(-1).seconds;
+    const lastReference = samples.filter((sample) => sample.input === 'style-reference.mp4').at(-1).seconds;
+    assert.ok(lastOutput < 13.041667, `output sample escaped delivery: ${lastOutput}`);
+    assert.ok(lastReference > 13.04, `reference sample did not retain cut timing: ${lastReference}`);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});

@@ -1076,6 +1076,7 @@ export class VideoService {
         extractFrameFn(videoPath, 'last'),
       ]);
       qa = evaluateClipQa(expected, { ...probe, firstFrameRgb, lastFrameRgb });
+      clip.deliveryDurationSeconds = probe.durationSeconds;
     }
 
     clip.status = qa
@@ -1184,7 +1185,9 @@ export class VideoService {
         const failed = {
           ...clip,
           status: 'FAIL',
-          failureCode: cause?.code ?? 'VIDEO_AUTOMATIC_QA_FAILED',
+          failureCode: typeof cause?.code === 'string'
+            ? cause.code
+            : 'VIDEO_AUTOMATIC_QA_FAILED',
           updatedAt: new Date(this.#clock()).toISOString(),
         };
         await this.#store.save(clipId, failed);

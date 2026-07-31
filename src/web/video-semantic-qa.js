@@ -58,10 +58,19 @@ function reviewCuts(clip, videoReference) {
       return cut;
     });
   }
-  return (videoReference?.cut_sheet?.cuts ?? []).map((cut) => ({
+  const referenceCuts = videoReference?.cut_sheet?.cuts ?? [];
+  const referenceDurationMs = referenceCuts.at(-1)?.end_ms;
+  const outputDurationMs = Math.round(
+    (clip.deliveryDurationSeconds ?? clip.durationSeconds) * 1000,
+  );
+  const scale = Number.isInteger(referenceDurationMs) && referenceDurationMs > 0
+    && Number.isFinite(outputDurationMs) && outputDurationMs > 0
+    ? outputDurationMs / referenceDurationMs
+    : 1;
+  return referenceCuts.map((cut) => ({
     cut_index: cut.cut_index,
-    start_ms: cut.start_ms,
-    end_ms: cut.end_ms,
+    start_ms: Math.round(cut.start_ms * scale),
+    end_ms: Math.round(cut.end_ms * scale),
     reference_start_ms: cut.start_ms,
     reference_end_ms: cut.end_ms,
   }));

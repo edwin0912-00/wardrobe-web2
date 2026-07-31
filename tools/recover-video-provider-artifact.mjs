@@ -202,14 +202,26 @@ let result = await service.awaitAndFinalize(options.clip_id, {
 });
 if (result.status === 'NEEDS_QA') result = await service.runAutomaticQa(options.clip_id);
 const recovered = await store.load(options.clip_id);
+const stagedPrefix = `${stageRoot}${path.sep}`;
+const liveClipDir = liveStore.clipDir(options.clip_id);
+const rebased = {
+  ...recovered,
+  videoPath: typeof recovered.videoPath === 'string' && recovered.videoPath.startsWith(stagedPrefix)
+    ? path.join(liveClipDir, path.basename(recovered.videoPath))
+    : recovered.videoPath,
+  originalProviderVideoPath: typeof recovered.originalProviderVideoPath === 'string'
+      && recovered.originalProviderVideoPath.startsWith(stagedPrefix)
+    ? path.join(liveClipDir, path.basename(recovered.originalProviderVideoPath))
+    : recovered.originalProviderVideoPath,
+};
 const recoveryReceipt = {
   ...intent,
   intent_sha256: intentSha256,
-  final_status: recovered.status,
-  failure_code: recovered.failureCode ?? null,
-  provider_video_sha256: recovered.providerVideoSha256 ?? null,
-  delivery_video_sha256: recovered.videoSha256 ?? null,
-  salvage: recovered.salvage ?? null,
+  final_status: rebased.status,
+  failure_code: rebased.failureCode ?? null,
+  provider_video_sha256: rebased.providerVideoSha256 ?? null,
+  delivery_video_sha256: rebased.videoSha256 ?? null,
+  salvage: rebased.salvage ?? null,
   completed_at: new Date().toISOString(),
 };
 const recoveryReceiptBytes = Buffer.from(`${JSON.stringify(recoveryReceipt, null, 2)}\n`);
@@ -218,9 +230,9 @@ const recoveryReceiptSha256 = await writeImmutable(
   recoveryReceiptBytes,
 );
 await store.save(options.clip_id, {
-  ...recovered,
+  ...rebased,
   artifactRecovery: {
-    ...recovered.artifactRecovery,
+    ...rebased.artifactRecovery,
     status: 'COMPLETED',
     receiptFile: 'artifact-recovery-receipt.json',
     receiptSha256: recoveryReceiptSha256,
@@ -238,11 +250,11 @@ await rename(store.clipDir(options.clip_id), liveStore.clipDir(options.clip_id))
 
 process.stdout.write(`${JSON.stringify({
   ...plan,
-  final_status: recovered.status,
-  failure_code: recovered.failureCode ?? null,
-  provider_video_sha256: recovered.providerVideoSha256 ?? null,
-  delivery_video_sha256: recovered.videoSha256 ?? null,
-  salvage: recovered.salvage ?? null,
+  final_status: rebased.status,
+  failure_code: rebased.failureCode ?? null,
+  provider_video_sha256: rebased.providerVideoSha256 ?? null,
+  delivery_video_sha256: rebased.videoSha256 ?? null,
+  salvage: rebased.salvage ?? null,
   intent_sha256: intentSha256,
   recovery_receipt_sha256: recoveryReceiptSha256,
   preserved_incident_directory: incidentName,
