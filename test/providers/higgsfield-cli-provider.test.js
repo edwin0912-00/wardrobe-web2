@@ -384,6 +384,7 @@ test('fails closed on malformed, incomplete, or model-mismatched CLI output', as
     [JSON.stringify([completedJob('gpt_image_2'), completedJob('gpt_image_2')]), 'INVALID_CLI_RESPONSE'],
     [JSON.stringify(completedJob('gpt_image_2', { status: 'failed' })), 'JOB_NOT_COMPLETED'],
     [JSON.stringify(completedJob('nano_banana_flash')), 'MODEL_RESPONSE_MISMATCH'],
+    [JSON.stringify(completedJob('gpt_image_2', { job_type: 'nano_banana_flash' })), 'MODEL_RESPONSE_MISMATCH'],
     [JSON.stringify(completedJob('gpt_image_2', { result_url: null })), 'MISSING_RESULT_URL'],
   ];
   for (const [stdout, code] of cases) {
@@ -403,6 +404,26 @@ test('fails closed on malformed, incomplete, or model-mismatched CLI output', as
       );
     });
   }
+});
+
+test('accepts the current CLI job_type field as the exact requested model route', async () => {
+  const paths = await mediaFixture();
+  const provider = oneShotProvider({
+    async commandRunner() {
+      const job = completedJob('gpt_image_2');
+      delete job.job_set_type;
+      job.job_type = 'gpt_image_2';
+      return { stdout: JSON.stringify(job), exitCode: 0 };
+    },
+    async fetchImpl() { return pngResponse(); },
+  });
+  const response = await provider.generate({
+    phase: 'avatar',
+    model: 'gpt_image_2',
+    prompt: 'portrait',
+    references: { identity: { artifact: { path: paths.identity } } },
+  });
+  assert.equal(response.metadata.job_set_type, 'gpt_image_2');
 });
 
 test('accepts the live CLI one-element JSON array response shape', async () => {

@@ -570,7 +570,20 @@ function parseCompletedJob(stdout, requestedModel, { allowArray = true, expected
       retryable: true,
     });
   }
-  if (payload.job_set_type !== requestedModel) {
+  // The current Higgsfield CLI calls this stable route identifier `job_type`.
+  // Older CLI builds called it `job_set_type`. Both describe the same immutable
+  // provider route, but when both are present they must agree — accepting a
+  // conflicting response here would misattribute a paid generation.
+  if (payload.job_type !== undefined
+    && payload.job_set_type !== undefined
+    && payload.job_type !== payload.job_set_type) {
+    throw new HiggsfieldProviderError('Higgsfield response model fields disagree', {
+      code: 'MODEL_RESPONSE_MISMATCH',
+      retryable: false,
+    });
+  }
+  const responseModel = payload.job_set_type ?? payload.job_type;
+  if (responseModel !== requestedModel) {
     throw new HiggsfieldProviderError('Higgsfield response model does not match the requested model', {
       code: 'MODEL_RESPONSE_MISMATCH',
       retryable: false,
@@ -594,6 +607,10 @@ function parseCompletedJob(stdout, requestedModel, { allowArray = true, expected
       retryable: true,
     });
   }
+  // Persist the canonical internal field in journals, regardless of which CLI
+  // spelling was returned. A later resume must validate the same route without
+  // needing to call the provider again.
+  payload.job_set_type = responseModel;
   return payload;
 }
 
