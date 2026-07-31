@@ -2,10 +2,47 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  assembleFashionVideoDelivery,
   VideoRuntimeError,
   createVideoRuntime,
   downloadVideoBytes,
 } from '../../src/web/video-runtime.js';
+
+test('delivery assembly explicitly replaces provider audio with locked reference audio', async () => {
+  const calls = [];
+  const result = await assembleFashionVideoDelivery({
+    providerVideoPath: '/tmp/provider.mp4',
+    referenceVideoPath: '/tmp/reference.mp4',
+    outputPath: '/tmp/delivery.mp4',
+    probeFn: async () => ({ hasAudio: true }),
+    commandRunner: async (binary, args) => { calls.push({ binary, args }); },
+  });
+  assert.equal(result.policy, 'REFERENCE_REQUIRED');
+  assert.equal(result.referenceAudioAttached, true);
+  assert.deepEqual(calls, [{
+    binary: 'ffmpeg',
+    args: [
+      '-y', '-i', '/tmp/provider.mp4', '-i', '/tmp/reference.mp4',
+      '-map', '0:v:0', '-map', '1:a:0',
+      '-c:v', 'copy', '-c:a', 'aac', '-shortest', '-movflags', '+faststart', '/tmp/delivery.mp4',
+    ],
+  }]);
+});
+
+test('delivery assembly explicitly strips audio when the locked reference is silent', async () => {
+  const calls = [];
+  const result = await assembleFashionVideoDelivery({
+    providerVideoPath: '/tmp/provider.mp4',
+    referenceVideoPath: '/tmp/reference.mp4',
+    outputPath: '/tmp/delivery.mp4',
+    probeFn: async () => ({ hasAudio: false }),
+    commandRunner: async (binary, args) => { calls.push({ binary, args }); },
+  });
+  assert.equal(result.policy, 'SILENT_REQUIRED');
+  assert.equal(result.referenceAudioAttached, false);
+  assert.ok(calls[0].args.includes('-an'));
+  assert.deepEqual(calls[0].args.filter((value) => value === '-map'), ['-map']);
+});
 
 test('download accepts real HTTPS bytes and authenticates OpenRouter content', async () => {
   const calls = [];

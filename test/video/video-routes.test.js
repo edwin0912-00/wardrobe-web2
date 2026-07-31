@@ -330,7 +330,7 @@ test('status repairs a stale CREATED profile projection from the terminal runtim
   current.setProjectionStatus('CREATED');
   current.setLiveClip({
     status: 'FAIL',
-    qa: { pass: false, defects: [{ code: 'CLIP_HAS_AUDIO' }] },
+    qa: { pass: false, defects: [{ code: 'CLIP_UNAUTHORIZED_AUDIO' }] },
   });
   const app = Fastify();
   t.after(() => app.close());
@@ -345,8 +345,8 @@ test('status repairs a stale CREATED profile projection from the terminal runtim
   });
   assert.equal(response.statusCode, 200, response.body);
   assert.equal(response.json().status, 'FAIL');
-  assert.equal(response.json().failure_code, 'CLIP_HAS_AUDIO');
-  assert.match(response.json().error, /аудіодоріжку/);
+  assert.equal(response.json().failure_code, 'CLIP_UNAUTHORIZED_AUDIO');
+  assert.match(response.json().error, /неавторизоване аудіо/);
   assert.equal(current.projected.at(-1).clip.status, 'FAIL');
 });
 

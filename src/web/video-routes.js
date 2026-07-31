@@ -73,9 +73,21 @@ function publicVideoFailure(liveClip) {
   if (liveClip?.referenceAdherenceQa?.pass === false) {
     return 'Відео не пройшло QA: у кожному cut має бути лише затверджений аватар або порожня сцена. Reference-людина у фіналі заборонена.';
   }
+  if (liveClip?.failureCode === 'DELIVERY_AUDIO_ASSEMBLY_FAILED') {
+    return 'Не вдалося зібрати фінальне аудіо з затвердженого video-reference. Нова генерація не запускалася.';
+  }
+  if (liveClip?.failureCode === 'DELIVERY_AUDIO_REFERENCE_INVALID') {
+    return 'Зафіксований audio-reference недоступний або змінився. Нова генерація не запускалася.';
+  }
   if (liveClip?.failureCode === 'CLIP_HAS_AUDIO'
     || liveClip?.qa?.defects?.some((defect) => defect?.code === 'CLIP_HAS_AUDIO')) {
-    return 'Відео не пройшло технічну QA: провайдер додав аудіодоріжку. Такий файл не видається.';
+    return 'Це старий запуск до delivery-audio assembly. Він не видається; повтор створить новий ролик із заміною audio провайдера на audio з video-reference.';
+  }
+  if (liveClip?.qa?.defects?.some((defect) => defect?.code === 'CLIP_REFERENCE_AUDIO_MISSING')) {
+    return 'У фінальному файлі немає аудіодоріжки з затвердженого video-reference.';
+  }
+  if (liveClip?.qa?.defects?.some((defect) => defect?.code === 'CLIP_UNAUTHORIZED_AUDIO')) {
+    return 'У фінальному файлі лишилося неавторизоване аудіо; файл не видається.';
   }
   if (liveClip?.qa?.pass === false) {
     const code = liveClip.failureCode ?? liveClip.qa?.defects?.[0]?.code ?? 'VIDEO_TECHNICAL_QA_FAILED';

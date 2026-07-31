@@ -64,6 +64,51 @@ export async function downloadVideoBytes(url, {
 }
 
 /**
+ * Assemble the only file that may be delivered. Provider picture is retained,
+ * provider sound is always discarded. If the locked Video 1 reference has an
+ * audio stream, exactly that stream is muxed into the delivery; otherwise the
+ * result is intentionally silent. All stream selection is explicit, so no
+ * provider audio can leak through a default ffmpeg mapping.
+ */
+export async function assembleFashionVideoDelivery({
+  providerVideoPath,
+  referenceVideoPath,
+  outputPath,
+  commandRunner = execFileAsync,
+  probeFn = probeVideo,
+} = {}) {
+  if (![providerVideoPath, referenceVideoPath, outputPath].every((value) => typeof value === 'string' && value.length > 0)) {
+    throw new VideoRuntimeError('Provider, reference and output paths are required for delivery assembly', {
+      code: 'VIDEO_DELIVERY_ASSEMBLY_INVALID',
+    });
+  }
+  const referenceProbe = await probeFn(referenceVideoPath);
+  const hasReferenceAudio = referenceProbe?.hasAudio === true;
+  const args = hasReferenceAudio
+    ? [
+        '-y', '-i', providerVideoPath, '-i', referenceVideoPath,
+        '-map', '0:v:0', '-map', '1:a:0',
+        '-c:v', 'copy', '-c:a', 'aac', '-shortest', '-movflags', '+faststart', outputPath,
+      ]
+    : [
+        '-y', '-i', providerVideoPath,
+        '-map', '0:v:0', '-c:v', 'copy', '-an', '-movflags', '+faststart', outputPath,
+      ];
+  try {
+    await commandRunner('ffmpeg', args, { maxBuffer: 4 * 1024 * 1024 });
+  } catch (cause) {
+    throw new VideoRuntimeError('ffmpeg could not assemble the delivery audio', {
+      code: 'VIDEO_DELIVERY_ASSEMBLY_FAILED', cause,
+    });
+  }
+  return {
+    policy: hasReferenceAudio ? 'REFERENCE_REQUIRED' : 'SILENT_REQUIRED',
+    referenceAudioAttached: hasReferenceAudio,
+    source: hasReferenceAudio ? 'LOCKED_VIDEO_REFERENCE' : 'SILENT_REFERENCE',
+  };
+}
+
+/**
  * Construct the complete executable video service without importing the
  * image-generation provider. `assetUrlResolver` must return a short-lived
  * private HTTPS URL for OpenRouter's first_frame input.
@@ -99,6 +144,7 @@ export function createVideoRuntime({
       downloadFn: (url) => downloadVideoBytes(url, { fetchFn, openRouterApiKey }),
       probeFn: probeVideo,
       extractFrameFn: extractFrame,
+      composeFn: (args) => assembleFashionVideoDelivery({ ...args, commandRunner }),
     },
   });
 }

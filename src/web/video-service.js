@@ -13,7 +13,7 @@
 // All dependencies are injected so the entire module is testable at zero cost.
 
 import { randomUUID } from 'node:crypto';
-import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import { sha256 } from './scene-contract.js';
@@ -111,7 +111,9 @@ export class VideoServiceError extends Error {
  * Each clip lives in `{rootDirectory}/clips/{clipId}/` with:
  *   clip.json  — metadata
  *   source.png — the locked source frame (when saved)
- *   clip.mp4   — the downloaded video (when available)
+ *   provider.mp4 — raw provider output (never served as delivery)
+ *   style-reference.mp4 — exact locked Fashion Video reference/audio authority
+ *   clip.mp4   — assembled delivery (provider picture + approved reference audio)
  */
 export class ClipStore {
   #root;
@@ -171,6 +173,33 @@ export class ClipStore {
     const filePath = path.join(dir, 'clip.mp4');
     await writeFile(filePath, videoBytes);
     return filePath;
+  }
+
+  async #saveImmutableMedia(clipId, filename, mediaBytes, conflictCode) {
+    const dir = this.clipDir(clipId);
+    await mkdir(dir, { recursive: true });
+    const filePath = path.join(dir, filename);
+    try {
+      await writeFile(filePath, mediaBytes, { flag: 'wx' });
+    } catch (error) {
+      if (error?.code !== 'EEXIST') throw error;
+      const existing = await readFile(filePath);
+      if (!existing.equals(mediaBytes)) {
+        throw new VideoServiceError('Immutable video media conflicts with its original bytes', {
+          code: conflictCode,
+          status: 409,
+        });
+      }
+    }
+    return filePath;
+  }
+
+  async saveProviderVideo(clipId, videoBytes) {
+    return this.#saveImmutableMedia(clipId, 'provider.mp4', videoBytes, 'PROVIDER_VIDEO_CONFLICT');
+  }
+
+  async saveFashionReference(clipId, videoBytes) {
+    return this.#saveImmutableMedia(clipId, 'style-reference.mp4', videoBytes, 'VIDEO_REFERENCE_CONFLICT');
   }
 
   async saveSource(clipId, sourceBytes) {
@@ -387,6 +416,7 @@ export class VideoService {
       });
     }
     let verifiedVideoReference = null;
+    let verifiedReferenceBytes = null;
     if (videoReference !== null) {
       if (lookBinding?.whiteBackgroundVerified !== true) {
         throw new VideoServiceError(
@@ -410,9 +440,8 @@ export class VideoService {
           status: 409,
         });
       }
-      let referenceBytes;
       try {
-        referenceBytes = await readFile(videoReference.reference_path);
+        verifiedReferenceBytes = await readFile(videoReference.reference_path);
       } catch (cause) {
         throw new VideoServiceError('Fashion Video reference cannot be read', {
           code: 'VIDEO_REFERENCE_UNREADABLE',
@@ -420,7 +449,7 @@ export class VideoService {
           cause,
         });
       }
-      if (sha256(referenceBytes) !== videoReference.reference_sha256) {
+      if (sha256(verifiedReferenceBytes) !== videoReference.reference_sha256) {
         throw new VideoServiceError('Fashion Video reference changed before submission', {
           code: 'VIDEO_REFERENCE_HASH_MISMATCH',
           status: 409,
@@ -464,6 +493,20 @@ export class VideoService {
       );
     }
     const lockedSourcePath = await this.#store.saveSource(clipId, sourceBytes);
+    if (verifiedVideoReference) {
+      // The directing reference is allowed as provider input, but it is also
+      // the only permitted delivery-audio source. Freeze exact bytes now so a
+      // later source-file edit cannot change either the request or final mux.
+      const lockedReferencePath = await this.#store.saveFashionReference(
+        clipId,
+        verifiedReferenceBytes,
+      );
+      verifiedVideoReference = {
+        ...verifiedVideoReference,
+        path: lockedReferencePath,
+        audioSourceSha256: sha256(verifiedReferenceBytes),
+      };
+    }
     const lockedAppearanceReferences = [];
     for (const reference of appearanceReferences) {
       const referencePath = await this.#store.saveAppearanceReference(
@@ -548,6 +591,8 @@ export class VideoService {
             cutCount: Array.isArray(verifiedVideoReference.cutSheet?.cuts)
               ? verifiedVideoReference.cutSheet.cuts.length
               : 0,
+            audioSourceFile: 'style-reference.mp4',
+            audioSourceSha256: verifiedVideoReference.audioSourceSha256,
           }
         : null,
       lookBinding,
@@ -774,7 +819,9 @@ export class VideoService {
    * `downloadFn(url)` must return the video bytes as a Buffer/Uint8Array.
    * `probeFn`/`extractFrameFn` are passed to clip QA.
    */
-  async awaitAndFinalize(clipId, { downloadFn, probeFn, extractFrameFn }) {
+  async awaitAndFinalize(clipId, {
+    downloadFn, probeFn, extractFrameFn, composeFn,
+  }) {
     const clip = await this.#store.load(clipId);
     if (!clip) {
       throw new VideoServiceError('Clip not found', { code: 'CLIP_NOT_FOUND', status: 404 });
@@ -830,9 +877,70 @@ export class VideoService {
         code: 'SERVICE_MISCONFIGURED',
       });
     }
-    const videoBytes = await downloadFn(finished.url);
-    const videoPath = await this.#store.saveVideo(clipId, videoBytes);
-    const videoSha256 = sha256(videoBytes);
+    const providerVideoBytes = await downloadFn(finished.url);
+    const providerVideoPath = await this.#store.saveProviderVideo(clipId, providerVideoBytes);
+    let videoPath = providerVideoPath;
+    let audioBinding = { policy: 'SILENT_REQUIRED', referenceAudioAttached: false };
+
+    // A Fashion Video uses a private directing reference as input. Provider
+    // sound is not evidence and must never be delivered. Assemble the final
+    // file before QA: retain newly generated picture, remove provider audio,
+    // and use the exact locked reference audio when it exists. A silent
+    // reference intentionally yields a silent delivery, never a false fail.
+    if (clip.motionReferenceBinding) {
+      if (typeof composeFn !== 'function') {
+        throw new VideoServiceError('Fashion Video delivery audio assembler is not configured', {
+          code: 'DELIVERY_AUDIO_ASSEMBLER_MISCONFIGURED', status: 503,
+        });
+      }
+      const referenceFile = clip.motionReferenceBinding.audioSourceFile;
+      const referenceSha256 = clip.motionReferenceBinding.audioSourceSha256;
+      const referencePath = typeof referenceFile === 'string'
+        ? path.join(this.#store.clipDir(clipId), referenceFile)
+        : null;
+      let referenceBytes;
+      try {
+        referenceBytes = referencePath ? await readFile(referencePath) : null;
+      } catch {
+        referenceBytes = null;
+      }
+      if (!referenceBytes || !SHA256.test(referenceSha256 ?? '')
+        || sha256(referenceBytes) !== referenceSha256) {
+        clip.status = 'FAILED';
+        clip.failureCode = 'DELIVERY_AUDIO_REFERENCE_INVALID';
+        clip.updatedAt = new Date(this.#clock()).toISOString();
+        await this.#store.save(clipId, clip);
+        throw new VideoServiceError('Locked Fashion Video audio reference is missing or changed', {
+          code: 'DELIVERY_AUDIO_REFERENCE_INVALID', status: 409,
+        });
+      }
+      const assemblyPath = path.join(this.#store.clipDir(clipId), 'clip.assembling.mp4');
+      try {
+        audioBinding = await composeFn({
+          providerVideoPath,
+          referenceVideoPath: referencePath,
+          outputPath: assemblyPath,
+        });
+        const deliveryBytes = await readFile(assemblyPath);
+        videoPath = await this.#store.saveVideo(clipId, deliveryBytes);
+      } catch (cause) {
+        clip.status = 'FAILED';
+        clip.failureCode = 'DELIVERY_AUDIO_ASSEMBLY_FAILED';
+        clip.updatedAt = new Date(this.#clock()).toISOString();
+        await this.#store.save(clipId, clip);
+        throw new VideoServiceError('Could not assemble approved delivery audio', {
+          code: 'DELIVERY_AUDIO_ASSEMBLY_FAILED', status: 502, cause,
+        });
+      } finally {
+        await rm(assemblyPath, { force: true });
+      }
+    } else {
+      // Non-reference legacy motion has no approved audio source. Strip
+      // provider sound in its own transport before delivery once migrated.
+      videoPath = await this.#store.saveVideo(clipId, providerVideoBytes);
+    }
+    const deliveryBytes = await readFile(videoPath);
+    const videoSha256 = sha256(deliveryBytes);
 
     // QA
     const mode = clip;
@@ -840,6 +948,7 @@ export class VideoService {
       durationMin: clip.durationSeconds,
       durationMax: clip.durationSeconds,
       aspectRatio: clip.aspectRatio,
+      audioPolicy: audioBinding.policy,
     };
 
     // If probeFn is provided, run full QA; otherwise mark as NEEDS_QA
@@ -859,8 +968,11 @@ export class VideoService {
           : 'FAIL')
       : 'NEEDS_QA';
     clip.videoUrl = finished.url;
+    clip.providerVideoSha256 = sha256(providerVideoBytes);
+    clip.providerVideoFile = 'provider.mp4';
     clip.videoSha256 = videoSha256;
     clip.videoPath = videoPath;
+    clip.audioBinding = audioBinding;
     clip.qa = qa;
     clip.failureCode = qa?.pass === false
       ? (qa.defects?.[0]?.code ?? 'VIDEO_TECHNICAL_QA_FAILED')
@@ -880,12 +992,15 @@ export class VideoService {
    * Full flow: create → wait → finalize in one call.
    * The job id is persisted between create and wait, so a restart can resume.
    */
-  async generateClip(request, { downloadFn, probeFn, extractFrameFn } = {}) {
+  async generateClip(request, {
+    downloadFn, probeFn, extractFrameFn, composeFn,
+  } = {}) {
     const created = await this.createClip(request);
     const result = await this.awaitAndFinalize(created.clipId, {
       downloadFn,
       probeFn,
       extractFrameFn,
+      composeFn,
     });
     return { ...created, ...result };
   }
@@ -896,7 +1011,9 @@ export class VideoService {
    * issuing another paid create.
    */
   async finalizeClip(clipId) {
-    const { downloadFn, probeFn, extractFrameFn } = this.#finalizer;
+    const {
+      downloadFn, probeFn, extractFrameFn, composeFn,
+    } = this.#finalizer;
     if (typeof downloadFn !== 'function'
       || typeof probeFn !== 'function'
       || typeof extractFrameFn !== 'function') {
@@ -909,6 +1026,7 @@ export class VideoService {
       downloadFn,
       probeFn,
       extractFrameFn,
+      composeFn,
     });
   }
 

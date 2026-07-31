@@ -44,6 +44,17 @@ function makeStubQa({
   return { probeFn, extractFrameFn };
 }
 
+function makeStubCompose({ policy = 'REFERENCE_REQUIRED' } = {}) {
+  return async ({ providerVideoPath, outputPath }) => {
+    await writeFile(outputPath, await readFile(providerVideoPath));
+    return {
+      policy,
+      referenceAudioAttached: policy === 'REFERENCE_REQUIRED',
+      source: policy === 'REFERENCE_REQUIRED' ? 'LOCKED_VIDEO_REFERENCE' : 'SILENT_REFERENCE',
+    };
+  };
+}
+
 function verifiedCutSheet(durationSeconds) {
   const cut_sheet = {
     schema_version: '1.0.0',
@@ -471,7 +482,7 @@ test('createClip rechecks and passes the exact video reference binding', async (
         },
       ],
     });
-    assert.deepEqual(requests[0].videoPaths, [referencePath]);
+    assert.deepEqual(requests[0].videoPaths.map((file) => path.basename(file)), ['style-reference.mp4']);
     assert.equal(requests[0].durationSeconds, 13);
     assert.match(requests[0].prompt, /\[Video 1\].*private reference-only directing material, never delivery media/);
     assert.match(requests[0].prompt, /Every final frame must be newly generated/);
@@ -484,6 +495,8 @@ test('createClip rechecks and passes the exact video reference binding', async (
     assert.equal(requests[0].sourceBinding.referencePackSha256, 'f'.repeat(64));
     const saved = await store.load(requests[0].sourceBinding.clipId);
     assert.equal(saved.motionReferenceBinding.durationSeconds, 13.24);
+    assert.equal(saved.motionReferenceBinding.audioSourceFile, 'style-reference.mp4');
+    assert.equal(saved.motionReferenceBinding.audioSourceSha256, referenceSha256);
     assert.deepEqual(
       saved.appearanceReferences.map((reference) => reference.role),
       ['garment_detail'],
@@ -585,7 +598,8 @@ test('reference-bound clip stays NEEDS_QA until reference adherence is proven', 
     });
     const finalized = await service.awaitAndFinalize(created.clipId, {
       downloadFn: makeStubDownload(),
-      ...makeStubQa({ width: 720, height: 1280 }),
+      ...makeStubQa({ width: 720, height: 1280, hasAudio: true }),
+      composeFn: makeStubCompose(),
     });
     assert.equal(finalized.qa.pass, true);
     assert.equal(finalized.status, 'NEEDS_QA');
@@ -732,7 +746,7 @@ test('awaitAndFinalize downloads video, runs QA, and marks PASS', async () => {
   });
 });
 
-test('awaitAndFinalize marks FAIL when QA detects audio', async () => {
+test('awaitAndFinalize rejects unapproved audio only when a silent delivery is required', async () => {
   await withTempDir(async (dir, sourcePath) => {
     const { provider } = makeStubProvider();
     const store = new ClipStore(dir);
@@ -751,7 +765,7 @@ test('awaitAndFinalize marks FAIL when QA detects audio', async () => {
 
     assert.equal(result.status, 'FAIL');
     assert.equal(result.qa.pass, false);
-    assert.ok(result.qa.defects.some((d) => d.code === 'CLIP_HAS_AUDIO'));
+    assert.ok(result.qa.defects.some((d) => d.code === 'CLIP_UNAUTHORIZED_AUDIO'));
   });
 });
 
