@@ -39,8 +39,11 @@ runtime has no same-origin beta gateway. Therefore attaching `ZeelyClient` to
 the public UI today would create controls that fail on first use.
 
 The current video code has a measured laptop rectangle, but no TV rectangle.
-It also has one station latch per leg, while Preflight 0.1 requires three
-independently latched attention stops in leg 0.
+Preflight 0.1 now contains a multi-station registry and a station-ID-to-left-
+mirror-sheet map, so it can represent independent `person`, `garments`, and
+`mirrors` stops without rewriting the UI. It intentionally does **not** activate
+guessed timings in `b/index.html`: the final first-leg master still needs a
+measured position/entry/exit/resistance set for each stop.
 
 The current beta Live route is server-capped at 15 seconds. The approved
 40-second direction requires its own beta lane: server validation, capability

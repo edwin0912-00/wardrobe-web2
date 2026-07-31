@@ -74,8 +74,15 @@
         video.muted = true;
         video.loop = true;
         video.playsInline = true;
+        video.autoplay = true;
         video.preload = 'metadata';
         video.setAttribute('aria-label', content.label || 'Відео');
+        /* A TV result is a real moving image, not a poster disguised as one.  Muted
+         * inline playback is allowed without a new gesture; retry after decode because
+         * an immediate play() can race source attachment on Safari. */
+        var start = function () { video.play().catch(function () {}); };
+        video.addEventListener('canplay', start, { once: true });
+        start();
         mask.appendChild(video);
       } else if (content.kind === 'shoot') {
         var strip = document.createElement('div');

@@ -144,6 +144,7 @@
   window.WardrobeCinematicBridge = bridge;
   window.WardrobeCinematicBridgeReady = Promise.resolve(bridge);
   if (window.ui && typeof window.ui.setBridge === 'function') window.ui.setBridge(bridge);
+  window.dispatchEvent(new CustomEvent('wardrobe:cinematic-bridge-ready', { detail: bridge }));
 </script>
 <script src="../audio.js"></script>
 <script>

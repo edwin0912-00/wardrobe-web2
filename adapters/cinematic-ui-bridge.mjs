@@ -91,6 +91,7 @@ export function createCinematicUiBridge({
   const listeners = new Set();
   let state = initialState();
   let savingRunId = null;
+  let savedRunId = null;
   let disposed = false;
 
   const emit = (type, patch = {}) => {
@@ -116,11 +117,12 @@ export function createCinematicUiBridge({
   }
 
   async function persistCompletedRun(run) {
-    if (!run?.run_id || run.status !== 'COMPLETED' || state.savedLook || savingRunId === run.run_id) return;
+    if (!run?.run_id || run.status !== 'COMPLETED' || savedRunId === run.run_id || savingRunId === run.run_id) return;
     savingRunId = run.run_id;
     try {
       const saved = await client.saveRun(run.run_id);
       if (state.run?.run_id === run.run_id) {
+        savedRunId = run.run_id;
         emit('look:saved', { savedLook: saved?.look ?? null });
       }
     } catch (error) {
@@ -136,6 +138,12 @@ export function createCinematicUiBridge({
 
   function syncRun(run, type = 'run:updated') {
     if (!run) return;
+    const changedRun = state.run?.run_id !== run.run_id;
+    if (changedRun) {
+      /* A profile projection belongs to one run only.  Keeping the previous look here
+       * made a second completed look skip persistence and inherit the first look ID. */
+      savedRunId = null;
+    }
     const phase = phaseFor(run);
     const result = phase === 'completed'
       ? { runId: run.run_id, imageUrl: outputFor(run) }
@@ -146,6 +154,7 @@ export function createCinematicUiBridge({
       phase,
       choices,
       result,
+      savedLook: changedRun ? null : state.savedLook,
       error: phase === 'failed' ? { code: 'RUN_FAILED' } : null,
     });
     if (phase === 'completed') void persistCompletedRun(run);

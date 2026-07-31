@@ -48,6 +48,31 @@
     { id: 'looks',  label: 'ОБРАЗИ', title: 'Ваш образ',        cta: 'Ще один образ' }
   ];
 
+  /* The engine publishes a physical station identity as well as the old boolean flag.
+   * These aliases are deliberately names, never timing values: the final camera master
+   * supplies the measured positions.  Until it does, the legacy one-station journey keeps
+   * exactly its prior manual three-sheet behaviour. */
+  var STEP_FOR_STATION = {
+    person: 0,
+    you: 0,
+    'empty-rails': 0,
+    garments: 1,
+    things: 1,
+    items: 1,
+    'garment-rail': 1,
+    mirror: 2,
+    mirrors: 2,
+    looks: 2
+  };
+
+  function stepForStation(id) {
+    if (id == null) return null;
+    var key = String(id).toLowerCase();
+    return Object.prototype.hasOwnProperty.call(STEP_FOR_STATION, key)
+      ? STEP_FOR_STATION[key]
+      : null;
+  }
+
   /* Secondary path only — for someone with nothing to photograph. */
   var PRESET_ITEMS = [
     'вовняний джемпер', 'бавовняна сорочка', 'лляні штани', 'вовняні брюки',
@@ -124,6 +149,7 @@
     function notifyGateChange() { if (typeof opts.onGateChange === 'function') opts.onGateChange(); }
 
     function station() { return stage.getAttribute('data-station') === '1'; }
+    function stationId() { return stage.getAttribute('data-station-id'); }
     function locked() { return !station(); }
     function hasMain() { return !!person.main; }
     /* The real engine requires a source image for each garment. Preset words belonged to
@@ -206,6 +232,25 @@
         : null;
       render();
       notifyGateChange();
+    }
+
+    /* Explicit physical stations own which left-mirror sheet is visible.  This is not
+     * driven by scroll position or a CSS class: the engine has already settled the
+     * hysteresis and publishes a stable identity.  The old implicit `leg-0-end` station
+     * intentionally does not appear in STEP_FOR_STATION, preserving the current release
+     * until real video timings are measured and configured. */
+    function syncStepToStation() {
+      if (!station()) return false;
+      var next = stepForStation(stationId());
+      if (next === null) return false;
+      /* A mirror stop cannot invent a result if a user reaches it through a direct
+       * navigation or reverse travel.  Keep the real unresolved work in the things
+       * sheet; the right mirror remains empty until the adapter returns a real run. */
+      if (next === 2 && !looks.length) next = hasMain() ? 1 : 0;
+      if (step === next) return false;
+      step = next;
+      view = 'look';
+      return true;
     }
 
     function makeLook() {
@@ -573,7 +618,11 @@
       if (invite) invite.disabled = true;
     }
 
-    function render() { renderAsk(); renderShow(); }
+    function render() {
+      syncStepToStation();
+      renderAsk();
+      renderShow();
+    }
 
     function addFiles(fileList) {
       var room = MAX_ITEMS - items.length;
@@ -669,11 +718,24 @@
       });
     });
 
-    new MutationObserver(applyEnabled)
-      .observe(stage, { attributes: true, attributeFilter: ['data-station', 'data-leg'] });
+    new MutationObserver(function () {
+      if (syncStepToStation()) render();
+      else applyEnabled();
+    }).observe(stage, {
+      attributes: true,
+      attributeFilter: ['data-station', 'data-station-id', 'data-leg']
+    });
 
     if (bridge) bindBridge(bridge);
-    else render();
+    else {
+      /* Module scripts are deferred while this UI is created after media preparation.
+       * Listen for the late bridge rather than leaving the mirrors forever in
+       * "checking" when the module evaluates one event-loop turn later. */
+      global.addEventListener('wardrobe:cinematic-bridge-ready', function (event) {
+        if (event && event.detail) bindBridge(event.detail);
+      }, { once: true });
+      render();
+    }
 
     return {
       state: function () {
@@ -699,7 +761,7 @@
           actionsOffered: false,
           simulated: false,
           sells: false,                  // no prices, no basket, by canon
-          station: station(), controlsEnabled: !locked()
+          station: station(), stationId: stationId(), controlsEnabled: !locked()
         };
       },
       /* Asked by the engine at every station through config.canAdvance.
@@ -707,9 +769,18 @@
        * arriving with nothing made would be arriving at an empty shelf. It also holds
        * while a real engine job is working. An unavailable gateway does not trap a person
        * inside the room: it disables the submission affordance but leaves the film free. */
-      canAdvance: function (leg) {
+      canAdvance: function (leg, currentStation) {
         if (leg !== 0) return true;
         if (!bridgeReady()) return true;
+        /* The explicit three-stop plan gates each physical decision locally.  The person
+         * sheet opens the first departure once a source photo exists; the garment rail
+         * holds until its real run has resolved; the mirrors are a destination/gallery,
+         * not another invisible mandatory form.  An unknown station is the legacy site
+         * and preserves its old "look before leaving leg 0" rule. */
+        var expectedStep = stepForStation(currentStation && currentStation.id);
+        if (expectedStep === 0) return hasMain();
+        if (expectedStep === 1) return looks.length > 0 && (bridge ? bridge.canLeaveAttentionStation() : true);
+        if (expectedStep === 2) return looks.length > 0 && (bridge ? bridge.canLeaveAttentionStation() : true);
         if (!looks.length) return false;
         return bridge ? bridge.canLeaveAttentionStation() : true;
       },
@@ -719,5 +790,10 @@
     };
   }
 
-  global.WardrobeUI = { create: create, STEPS: STEPS, MAX_ITEMS: MAX_ITEMS };
+  global.WardrobeUI = {
+    create: create,
+    STEPS: STEPS,
+    MAX_ITEMS: MAX_ITEMS,
+    stepForStation: stepForStation
+  };
 })(window);

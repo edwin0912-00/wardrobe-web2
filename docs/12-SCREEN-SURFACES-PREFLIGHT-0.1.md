@@ -54,19 +54,26 @@ layer can select one mode at a time:
 ```js
 // A completed wide Fashion Video only:
 window.wardrobeScreens.showTvVideo({
-  src: client.videoPlaybackUrl(video),
-  poster: client.videoPosterUrl && client.videoPosterUrl(video),
+  src: client.videoUrl(video.clip_id),
   label: 'Фешн-відео'
 });
 
 // A completed Fashion Shoot only — exactly five actual result images:
 window.wardrobeScreens.showTvShoot({
   label: 'Фотосесія',
-  images: shots.slice(0, 5).map(function (shot) {
-    return { src: client.editorialShotUrl(shot), alt: '' };
+  images: completedShoot.shots.slice(0, 5).map(function (shot) {
+    return {
+      src: client.shootShotImageUrl(completedShoot.shoot_id, shot.slot),
+      alt: ''
+    };
   })
 });
 ```
+
+`clip_id`, `shoot_id`, and each completed-shot `slot` above are values from the
+versioned API response; they are not UI-created identifiers. The adapter's real
+method names are `videoUrl()` and `shootShotImageUrl()`—there is no separate
+playback or editorial URL helper to maintain in the cinematic layer.
 
 The visual module uses `object-fit: contain` in both cases. Video stays 16:9
 inside the clipped TV display; the five portraits become a single horizontal

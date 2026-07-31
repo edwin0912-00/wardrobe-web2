@@ -105,3 +105,32 @@ test('garment resolution stays on the left-choice path while the right mirror re
   await bridge.selectGarments({ top: 'shirt-b' });
   assert.deepEqual(client.calls.at(-1), ['selectGarments', 'run-choice', { top: 'shirt-b' }]);
 });
+
+test('each completed run persists its own look rather than reusing the prior look ID', async () => {
+  const client = clientStub();
+  client.saveRun = async (runId) => {
+    client.calls.push(['saveRun', runId]);
+    return { look: { look_id: `look-${runId}` } };
+  };
+  const bridge = createCinematicUiBridge({ client, autoProbe: false });
+  await bridge.probe();
+
+  client.emit({
+    type: 'run:event',
+    run: { run_id: 'r1', status: 'COMPLETED', outputs: { avatar_outfit: '/api/runs/r1/look.png' } },
+  });
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(bridge.state().savedLook.look_id, 'look-r1');
+
+  client.emit({
+    type: 'run:event',
+    run: { run_id: 'r2', status: 'COMPLETED', outputs: { avatar_outfit: '/api/runs/r2/look.png' } },
+  });
+  await new Promise((resolve) => setImmediate(resolve));
+
+  assert.deepEqual(client.calls.filter(([name]) => name === 'saveRun'), [
+    ['saveRun', 'r1'],
+    ['saveRun', 'r2'],
+  ]);
+  assert.equal(bridge.state().savedLook.look_id, 'look-r2');
+});
