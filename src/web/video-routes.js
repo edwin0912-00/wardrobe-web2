@@ -648,7 +648,7 @@ export async function registerVideoRoutes(app, {
       return reply.code(404).send({ error: 'Video clip not found', code: 'CLIP_NOT_FOUND' });
     }
     // Merge with live service state if available
-    const liveClip = await videoService.getClip(request.params.clipId);
+    let liveClip = await videoService.getClip(request.params.clipId);
     // A process restart loses only the in-memory waiter, never the persisted
     // provider job.  Any later status read resumes the same job id.
     if (isResumableVideoStatus(liveClip?.status)) {
@@ -657,6 +657,14 @@ export async function registerVideoRoutes(app, {
         lookId: clip.look_id,
         clipId: request.params.clipId,
       });
+    }
+    if (liveClip?.status === 'NEEDS_QA') {
+      await finalizePersistedClip({
+        profileId: session.profileId,
+        lookId: clip.look_id,
+        clipId: request.params.clipId,
+      });
+      liveClip = await videoService.getClip(request.params.clipId);
     }
     // The runtime file is authoritative. Persist it before replying so a
     // terminal FAIL can never be hidden behind a stale `CREATED` projection.

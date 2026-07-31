@@ -8,6 +8,8 @@ import { VideoProviderRouter } from '../providers/video-provider-router.js';
 import { extractFrame, probeVideo } from './ffprobe-video-probe.js';
 import { ClipStore, VideoService } from './video-service.js';
 import { salvageVideoFromQa } from './video-qa-salvage.js';
+import { createVideoSemanticQaEvaluator } from './video-semantic-qa.js';
+import { createVlmEvaluator } from './vlm-provider.js';
 
 const execFileAsync = promisify(execFile);
 
@@ -119,6 +121,7 @@ export function createVideoRuntime({
   openRouterApiKey,
   assetUrlResolver,
   fashionVideoReferenceResolver = null,
+  qaEvaluator = null,
   commandRunner = execFileAsync,
   ffmpegRunner = execFileAsync,
   fetchFn = globalThis.fetch,
@@ -138,10 +141,18 @@ export function createVideoRuntime({
     primary: higgsfield,
     fallback: openRouter,
   });
+  const semanticEvaluator = qaEvaluator ?? createVlmEvaluator();
   return new VideoService({
     provider,
     clipStore: new ClipStore(path.join(runtimeRoot, 'video-clips')),
     fashionVideoReferenceResolver,
+    automaticQaFn: fashionVideoReferenceResolver
+      ? createVideoSemanticQaEvaluator({
+          evaluator: semanticEvaluator,
+          fashionVideoReferenceResolver,
+          commandRunner: ffmpegRunner,
+        })
+      : null,
     finalizer: {
       downloadFn: (url) => downloadVideoBytes(url, { fetchFn, openRouterApiKey }),
       probeFn: probeVideo,

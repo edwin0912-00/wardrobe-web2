@@ -1035,6 +1035,46 @@ test('reference-bound identity failure waits for per-cut salvage analysis instea
   });
 });
 
+test('automatic QA consumes NEEDS_QA and returns a terminal retryable failure', async () => {
+  await withTempDir(async (dir) => {
+    const { provider } = makeStubProvider();
+    const store = new ClipStore(dir);
+    const service = new VideoService({
+      provider,
+      clipStore: store,
+      automaticQaFn: async (clip) => ({
+        identityReceipt: {
+          clip_id: clip.clipId, job_id: clip.jobId, source_sha256: clip.sourceSha256,
+          results: { first: { decision: 'RETRY' }, last: { decision: 'RETRY' } },
+        },
+        referenceReceipt: {
+          clip_id: clip.clipId, job_id: clip.jobId, source_sha256: clip.sourceSha256,
+          motion_reference_sha256: clip.motionReferenceBinding.sha256,
+          cut_coverage: microCutCoverage({
+            durationMs: 5_000, decision: 'FAIL',
+            referencePerformerVisible: true, visiblePeople: 'REFERENCE_PERFORMER',
+          }),
+          checks: referenceTransferCheckNames.map((name) => ({
+            name, decision: name === 'cut_coverage_complete' ? 'PASS' : 'FAIL',
+          })),
+        },
+      }),
+      finalizer: makeStubQa(),
+    });
+    await store.save('automatic-qa-clip', {
+      clipId: 'automatic-qa-clip', jobId: 'automatic-job', status: 'NEEDS_QA',
+      durationSeconds: 5, sourceSha256: 'a'.repeat(64), qa: { pass: true },
+      motionReferenceBinding: { sha256: 'b'.repeat(64) },
+    });
+    const result = await service.finalizeClip('automatic-qa-clip');
+    assert.equal(result.status, 'FAIL');
+    const persisted = await store.load('automatic-qa-clip');
+    assert.equal(persisted.identityItemQa.pass, false);
+    assert.equal(persisted.referenceAdherenceQa.pass, false);
+    assert.equal(persisted.failureCode, 'VIDEO_REFERENCE_QA_FAILED');
+  });
+});
+
 test('awaitAndFinalize marks NEEDS_QA when no probeFn provided', async () => {
   await withTempDir(async (dir, sourcePath) => {
     const { provider } = makeStubProvider();
@@ -1195,12 +1235,14 @@ test('VideoService refuses to construct without provider', () => {
 test('finalizeClip refuses a runtime without real download and ffprobe dependencies', async () => {
   await withTempDir(async (dir, sourcePath) => {
     const { provider } = makeStubProvider();
+    const store = new ClipStore(dir);
     const service = new VideoService({
       provider,
-      clipStore: new ClipStore(dir),
+      clipStore: store,
     });
+    await store.save('missing-runtime', { clipId: 'missing-runtime', status: 'CREATED' });
     await assert.rejects(
-      () => service.finalizeClip('missing'),
+      () => service.finalizeClip('missing-runtime'),
       (error) => error.code === 'FINALIZER_MISCONFIGURED' && error.status === 503,
     );
   });
