@@ -1841,7 +1841,6 @@ document.querySelector('#profile-look-video').addEventListener('click', (event) 
   const lookId = idOfLook(selectedProfileLook);
   if (!lookId || fashionVideoCapability?.lookId !== lookId) return;
   const overlay = fashionVideoOverlay;
-  setLookActionStatus('Fashion Video: обери перевірену відеостилістику й запусти генерацію.');
   renderFashionVideoStyles(fashionVideoCapability.styles);
   document.querySelector('#video-progress').hidden = true;
   document.querySelector('#video-result').hidden = true;
