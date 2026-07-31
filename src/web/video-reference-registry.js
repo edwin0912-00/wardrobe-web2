@@ -26,11 +26,15 @@ function validateManifest(manifest) {
     if (typeof reference?.id !== 'string'
       || typeof reference?.ui_title_uk !== 'string'
       || !SAFE_FILENAME.test(reference?.filename ?? '')
+      || !SAFE_FILENAME.test(reference?.playback_filename ?? '')
       || !SAFE_FILENAME.test(reference?.preview_filename ?? '')
       || !SHA256.test(reference?.sha256 ?? '')
+      || !SHA256.test(reference?.playback_sha256 ?? '')
       || !SHA256.test(reference?.preview_sha256 ?? '')
       || !Number.isInteger(reference?.bytes)
       || reference.bytes < 1
+      || !Number.isInteger(reference?.playback_bytes)
+      || reference.playback_bytes < 1
       || !Number.isInteger(reference?.preview_bytes)
       || reference.preview_bytes < 1
       || !Number.isFinite(reference?.duration_seconds)
@@ -112,6 +116,18 @@ export function createFashionVideoReferenceResolver({
 
     const availableStyles = [];
     for (const reference of manifest.references) {
+      const playbackPath = await realpath(path.join(root, reference.playback_filename));
+      if (path.dirname(playbackPath) !== root) {
+        throw new VideoReferenceRegistryError('Fashion Video playback escaped its root');
+      }
+      const playbackDetails = await stat(playbackPath);
+      if (!playbackDetails.isFile() || playbackDetails.size !== reference.playback_bytes) {
+        throw new VideoReferenceRegistryError('Fashion Video playback size changed');
+      }
+      const playbackBytes = await readFile(playbackPath);
+      if (sha256(playbackBytes) !== reference.playback_sha256) {
+        throw new VideoReferenceRegistryError('Fashion Video playback hash changed');
+      }
       const previewPath = await realpath(path.join(root, reference.preview_filename));
       if (path.dirname(previewPath) !== root) {
         throw new VideoReferenceRegistryError('Fashion Video preview escaped its root');
@@ -128,6 +144,8 @@ export function createFashionVideoReferenceResolver({
         id: reference.id,
         title: reference.ui_title_uk,
         motion_mode: reference.default_motion_mode,
+        playback_path: playbackPath,
+        playback_sha256: reference.playback_sha256,
         preview_path: previewPath,
         preview_sha256: reference.preview_sha256,
       }));
@@ -148,6 +166,7 @@ export function createFashionVideoReferenceResolver({
       motion_modes: Object.freeze([...selected.motion_modes]),
       available_styles: Object.freeze(availableStyles),
       selected_style_id: selected.id,
+      playback_path: availableStyles.find((style) => style.id === selected.id)?.playback_path,
       preview_path: availableStyles.find((style) => style.id === selected.id)?.preview_path,
     });
   };

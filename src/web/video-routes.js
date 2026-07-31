@@ -159,6 +159,51 @@ export async function registerVideoRoutes(app, {
       .send(createReadStream(motionReference.preview_path));
   });
 
+  // The UI plays a hash-bound, right-sized H.264 derivative. The original
+  // master remains unchanged and is still the only provider reference.
+  app.get('/api/profile/looks/:lookId/video-styles/:styleId/playback', async (request, reply) => {
+    const session = await profileApi.resolveRequestProfile(request, reply);
+    const { lookId, styleId } = request.params;
+    if (!profiles.ownsLook(session.profileId, lookId)) {
+      return reply.code(404).send({ error: 'Look not found', code: 'LOOK_NOT_FOUND' });
+    }
+    const approvedLook = await profiles.approvedLookReference(session.profileId, lookId, runService);
+    const motionReference = typeof videoService.fashionVideoCapability === 'function'
+      ? await videoService.fashionVideoCapability({
+          profileId: session.profileId,
+          lookId,
+          approvedLook,
+          referenceId: styleId,
+        })
+      : null;
+    if (!motionReference?.playback_path || motionReference.selected_style_id !== styleId) {
+      return reply.code(404).send({ error: 'Video style playback not found', code: 'VIDEO_STYLE_NOT_FOUND' });
+    }
+    const details = await stat(motionReference.playback_path);
+    if (!details.isFile() || details.size < 1) {
+      return reply.code(404).send({ error: 'Video style playback not found', code: 'VIDEO_STYLE_NOT_FOUND' });
+    }
+    const range = byteRange(request.headers.range, details.size);
+    if (range === undefined) {
+      return reply
+        .code(416)
+        .header('Content-Range', `bytes */${details.size}`)
+        .send();
+    }
+    const start = range?.start ?? 0;
+    const end = range?.end ?? details.size - 1;
+    const response = reply
+      .code(range ? 206 : 200)
+      .type('video/mp4')
+      .header('Cache-Control', 'private, max-age=31536000, immutable')
+      .header('Vary', 'Cookie')
+      .header('X-Content-Type-Options', 'nosniff')
+      .header('Accept-Ranges', 'bytes')
+      .header('Content-Length', String(end - start + 1));
+    if (range) response.header('Content-Range', `bytes ${start}-${end}/${details.size}`);
+    return response.send(createReadStream(motionReference.playback_path, { start, end }));
+  });
+
   // The three Fashion Video cards are video-derived style units, not generic
   // motion presets. Stream the hash-verified source MP4, privately, so the
   // user can inspect the actual temporal/style authority before submission.
