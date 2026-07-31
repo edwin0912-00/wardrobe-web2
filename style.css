@@ -846,6 +846,32 @@ body {
   font-size: clamp(10px, 2.2cqh, 12px);
   letter-spacing: 0.08em; color: rgba(245,243,237,0.74);
 }
+.orbfield--error {
+  align-content: center;
+  justify-items: center;
+  gap: 0.8em;
+  padding: 1.2em;
+  text-align: center;
+  border: 1px solid rgba(245,243,237,0.16);
+  background: rgba(245,243,237,0.035);
+}
+.orbfield--error .orbfield__label--error {
+  position: static;
+  color: var(--milk);
+  font-size: clamp(11px, 2.6cqh, 15px);
+  letter-spacing: 0.04em;
+}
+.orbfield__detail {
+  display: block;
+  max-width: 34em;
+  color: rgba(245,243,237,0.68);
+  font: 400 clamp(9px, 1.9cqh, 11px)/1.5 ui-monospace, Menlo, monospace;
+  letter-spacing: 0.01em;
+}
+.orbfield--error + .camctl {
+  align-self: center;
+  margin-inline: auto;
+}
 .orb--small { width: min(72px, 22%); }
 @keyframes orb-breathe {
   from { transform: rotate(-6deg) scale(0.94); opacity: 0.44; }

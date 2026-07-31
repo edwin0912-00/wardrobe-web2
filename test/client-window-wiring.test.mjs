@@ -26,6 +26,15 @@ test('right mirror owns orb, result actions and the 40-second live expansion', (
   assert.doesNotMatch(ui, /модел|провайдер|ціна|вартіст/i);
 });
 
+test('Real-time Look has one actionable incomplete-look explanation for API handoff', () => {
+  assert.match(ui, /LIVE_LOOK_INCOMPLETE_COPY/);
+  assert.match(ui, /Збережений аватар \+ одна нова річ/);
+  assert.match(ui, /крупне фото обличчя \+ лише капелюх/);
+  assert.match(ui, /setLiveError/);
+  assert.match(ui, /data-live-return/);
+  assert.match(css, /\.orbfield--error/);
+});
+
 test('TV and laptop use the measured surface module', () => {
   assert.match(html, /screen-surface-math\.js/);
   assert.match(html, /screen-surfaces\.js/);

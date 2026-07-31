@@ -48,6 +48,30 @@
    * no provider/model/price wording is rendered anywhere in the client UI. */
   var LIVE_MAX_MS = 40000;
 
+  /* One authored explanation for the only structural Live refusal. The cinematic page
+   * is still a simulated client, but the incoming API adapter can hand this error to
+   * `setLiveError()` and the viewer will see the same answer as in beta. */
+  var LIVE_LOOK_INCOMPLETE_COPY = Object.freeze({
+    title: 'Потрібен повний зафіксований образ',
+    body: 'Для нової людини потрібні верх або цільний одяг, низ або цільний одяг і взуття.',
+    detail: 'Збережений аватар + одна нова річ — можна: решта locked речей береться з цього образу. Нове крупне фото обличчя + лише капелюх — недостатньо.',
+    action: 'Обери повний збережений образ або додай відсутні частини.'
+  });
+
+  function liveLookErrorCopy(error) {
+    var code = String(error && error.code || '');
+    var message = String(error && error.message || error || '');
+    if (code === 'LIVE_REFERENCE_INCOMPLETE_LOOK' || /complete locked look|LIVE_REFERENCE_INCOMPLETE_LOOK/i.test(message)) {
+      return LIVE_LOOK_INCOMPLETE_COPY;
+    }
+    return {
+      title: 'Real-time Look недоступний',
+      body: message || 'Не вдалося відкрити зафіксований образ.',
+      detail: '',
+      action: 'Повернутися до образу і спробувати ще раз.'
+    };
+  }
+
   /* The three places where the viewer is asked something, in travel order. Named for the
    * place, because that is what the canon fixes — the surface follows the room. */
   var STEPS = [
@@ -120,6 +144,7 @@
     /* Which face of the selected look the right mirror is showing. */
     var view = 'look';          // 'look' | 'shoot' | 'video' | 'live'
     var bgOpen = false;         // the background list is open in the left mirror
+    var liveRequirementError = opts.liveError ? liveLookErrorCopy(opts.liveError) : null;
 
     /* An action (shoot/fash/bg — not live) waits for its aspect pick, then runs a
      * generating phase before it resolves. Both states gate the scroll: a light swipe
@@ -436,6 +461,14 @@
     }
 
     function liveWindow() {
+      if (liveRequirementError) {
+        return '<div class="orbfield orbfield--error" data-orb-state="live-error" role="alert">' +
+            '<span class="orbfield__label orbfield__label--error">' + esc(liveRequirementError.title) + '</span>' +
+            '<span class="orbfield__detail">' + esc(liveRequirementError.body) + '</span>' +
+            '<span class="orbfield__detail">' + esc(liveRequirementError.detail) + '</span>' +
+          '</div>' +
+          '<button class="camctl" type="button" data-live-return>' + esc(liveRequirementError.action) + '</button>';
+      }
       if (stream) {
         return '<div class="lookframe" data-state="live">' +
             '<video class="lookframe__cam" data-cam autoplay playsinline muted></video>' +
@@ -703,6 +736,12 @@
         }, SIM_MS);
         return;
       }
+      if (t.closest('[data-live-return]')) {
+        liveRequirementError = null;
+        view = 'look';
+        render();
+        return;
+      }
       if (t.closest('[data-cam-start]')) { startCamera(); return; }
       if (t.closest('[data-cam-stop]')) { stopCamera(); camError = ''; render(); return; }
       if (t.closest('[data-live-close]')) { stopCamera(); camError = ''; render(); return; }
@@ -810,6 +849,7 @@
           selected: selected, lookVisible: lookVisible(), pending: pending,
           awaitingAspect: awaitingAspect, pendingAction: pendingAction,
           view: view, bgOpen: bgOpen, cameraOn: !!stream, cameraError: camError || null,
+          liveError: liveRequirementError ? { ...liveRequirementError } : null,
           actionsOffered: lookVisible(),
           simulated: true,               // no render backend is attached to this page
           sells: false,                  // no prices, no basket, by canon
@@ -831,9 +871,25 @@
       },
       addPreset: function (name) { togglePreset(name); return items.length; },
       makeLook: makeLook,
+      setLiveError: function (error) {
+        liveRequirementError = liveLookErrorCopy(error);
+        stopCamera();
+        view = 'live';
+        render();
+        return { ...liveRequirementError };
+      },
+      clearLiveError: function () {
+        liveRequirementError = null;
+        render();
+      },
       steps: STEPS, presets: PRESET_ITEMS, backgrounds: BACKGROUNDS
     };
   }
 
-  global.WardrobeUI = { create: create, STEPS: STEPS, MAX_ITEMS: MAX_ITEMS };
+  global.WardrobeUI = {
+    create: create,
+    STEPS: STEPS,
+    MAX_ITEMS: MAX_ITEMS,
+    LIVE_LOOK_INCOMPLETE_COPY: LIVE_LOOK_INCOMPLETE_COPY
+  };
 })(window);
