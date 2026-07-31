@@ -31,7 +31,10 @@ export function fashionVideoCapability({
       && hasSha256(style?.playback_sha256)
       && hasSha256(style?.preview_sha256),
   );
-  const styleCatalogReady = verifiedStyles.length === 3;
+  // Fashion Video has a minimum of three independently verified video styles.
+  // It must not become unavailable merely because a fourth approved style is
+  // added to the catalogue.
+  const styleCatalogReady = verifiedStyles.length >= 3;
   const available = approvedLookReady
     && styleReferenceReady
     && motionReferenceReady
@@ -59,7 +62,7 @@ export function fashionVideoCapability({
       approved_master_look: approvedLookReady,
       verified_style_reference: styleReferenceReady,
       verified_motion_reference: motionReferenceReady,
-      three_video_styles: styleCatalogReady,
+      verified_video_style_catalog: styleCatalogReady,
     }),
     reason_code: available
       ? 'FASHION_VIDEO_READY'

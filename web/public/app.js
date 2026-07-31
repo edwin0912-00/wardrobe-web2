@@ -1737,9 +1737,9 @@ async function refreshFashionVideoCapability(look) {
       && payload?.requirements?.approved_master_look === true
       && payload?.requirements?.verified_style_reference === true
       && payload?.requirements?.verified_motion_reference === true
-      && payload?.requirements?.three_video_styles === true
+      && payload?.requirements?.verified_video_style_catalog === true
       && Array.isArray(payload?.styles)
-      && payload.styles.length === 3;
+      && payload.styles.length >= 3;
     syncFashionVideoAction(ready
       ? { state: 'ready', capability: { lookId, styles: payload.styles ?? [] } }
       : { state: 'unavailable' });
@@ -1836,7 +1836,7 @@ document.querySelector('#profile-look-video').addEventListener('click', (event) 
   const lookId = idOfLook(selectedProfileLook);
   if (!lookId || fashionVideoCapability?.lookId !== lookId) return;
   const overlay = document.querySelector('#video-overlay');
-  setLookActionStatus('Fashion Video: обери одну з трьох перевірених відеостилістик і запусти генерацію.');
+  setLookActionStatus('Fashion Video: обери перевірену відеостилістику й запусти генерацію.');
   renderFashionVideoStyles(fashionVideoCapability.styles);
   document.querySelector('#video-progress').hidden = true;
   document.querySelector('#video-result').hidden = true;
@@ -1848,7 +1848,7 @@ document.querySelector('#profile-look-video').addEventListener('click', (event) 
 });
 function renderFashionVideoStyles(styles = []) {
   const root = document.querySelector('#video-style-options');
-  const cards = styles.slice(0, 3).map((style, index) => {
+  const cards = styles.map((style, index) => {
     const card = document.createElement('button');
     card.type = 'button';
     card.className = 'video-style-card';

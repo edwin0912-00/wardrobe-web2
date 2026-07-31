@@ -131,19 +131,20 @@ test('resolver stays unavailable when no runtime reference root is configured', 
   assert.equal(await resolve({ motionMode: 'walk_stride' }), null);
 });
 
-test('product reference pack gives every motion mode one deterministic authority', async () => {
+test('product reference pack exposes every listed Fashion Video style by its immutable id', async () => {
   const manifest = JSON.parse(await readFile(
     new URL('../../config/video-reference-packs/fashion-cool-style-v1.json', import.meta.url),
     'utf8',
   ));
-  const expected = {
-    editorial_micro_moment: 'editorial-detail',
-    walk_stride: 'walk-camera-energy',
-    garment_gesture: 'walk-camera-energy',
-    camera_drift: 'hard-sun-pose',
-  };
-  for (const [motionMode, referenceId] of Object.entries(expected)) {
-    const matches = manifest.references.filter((reference) => reference.motion_modes.includes(motionMode));
-    assert.deepEqual(matches.map((reference) => reference.id), [referenceId]);
+  const expected = [
+    'editorial-detail',
+    'walk-camera-energy',
+    'hard-sun-pose',
+    'architectural-stair-glitch',
+  ];
+  assert.deepEqual(manifest.references.map((reference) => reference.id), expected);
+  for (const reference of manifest.references) {
+    assert.ok(reference.motion_modes.includes(reference.default_motion_mode));
+    assert.equal(reference.cut_sheet.cuts.at(-1).end_ms, Math.round(reference.duration_seconds * 1000));
   }
 });

@@ -258,7 +258,7 @@ export async function registerVideoRoutes(app, {
     return response.send(createReadStream(motionReference.playback_path, { start, end }));
   });
 
-  // The three Fashion Video cards are video-derived style units, not generic
+  // Fashion Video cards are video-derived style units, not generic
   // motion presets. Stream the hash-verified source MP4, privately, so the
   // user can inspect the actual temporal/style authority before submission.
   app.get('/api/profile/looks/:lookId/video-styles/:styleId/reference', async (request, reply) => {

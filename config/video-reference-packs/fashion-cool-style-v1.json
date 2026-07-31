@@ -108,6 +108,49 @@
           { "cut_index": 6, "start_ms": 13240, "end_ms": 15120, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Final intimate close-up; preserve the slow camera drift, warm wall, deep contrast and final gaze without any source-person pixels." }
         ]
       }
+    },
+    {
+      "id": "architectural-stair-glitch",
+      "ui_title_uk": "Архітектурні сходи",
+      "filename": "reference-04.mp4",
+      "playback_filename": "ui-loop-04.mp4",
+      "playback_sha256": "d26955c927ce488ec0926e6ac9c639f75c61892c572f7d3aefca57173a69ca0d",
+      "playback_bytes": 638584,
+      "preview_filename": "contact-04.jpg",
+      "preview_sha256": "38a9bc461a5fa6a748a2edeff9c48d2f6b8455dd889ffaa1af9eb078048b1357",
+      "preview_bytes": 76759,
+      "default_motion_mode": "walk_stride",
+      "source_file_id": null,
+      "sha256": "a76035555805d93d6c18c39c3d544e8cb38c24c635280a9b88ec6afc74c99058",
+      "bytes": 23450878,
+      "width": 1080,
+      "height": 1920,
+      "fps": 25,
+      "duration_seconds": 15,
+      "motion_modes": [
+        "walk_stride"
+      ],
+      "cut_sheet": {
+        "schema_version": "1.0.0",
+        "cuts": [
+          { "cut_index": 0, "start_ms": 0, "end_ms": 1470, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Wide lateral bridge walk: render the approved full look as a small complete figure between pale concrete and dark rails under hard daylight." },
+          { "cut_index": 1, "start_ms": 1470, "end_ms": 2120, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Closer profile bridge coverage: retain travel direction, crisp hard-light garment edges and the approved face; never retain the source performer." },
+          { "cut_index": 2, "start_ms": 2120, "end_ms": 2320, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Brief monochrome collage punctuation: reconstruct a new graphic transition using the approved look or an empty architectural fragment only." },
+          { "cut_index": 3, "start_ms": 2320, "end_ms": 2640, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Frontal full-body arrival at the stairs: preserve blue-sky negative space, exact approved outfit and a readable planted stance." },
+          { "cut_index": 4, "start_ms": 2640, "end_ms": 2920, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Reflective silhouette interlude: rebuild cool lavender reflection without source body fragments, source clothing, logos or source product." },
+          { "cut_index": 5, "start_ms": 2920, "end_ms": 3920, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Tread-level stair descent: show one believable weight transfer with approved footwear visible against concrete edges and hard daylight." },
+          { "cut_index": 6, "start_ms": 3920, "end_ms": 4640, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Rail-and-stair interference frame: architecture may occlude, but keep the approved face or exact item readable in a clear zone." },
+          { "cut_index": 7, "start_ms": 4640, "end_ms": 5760, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Connected waist-and-hand detail: show only approved item construction in torso and hand context; never recreate the source green product." },
+          { "cut_index": 8, "start_ms": 5760, "end_ms": 6240, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Full-body stair hold: reset the architecture with the same approved person, complete outfit and footwear, with no secondary person." },
+          { "cut_index": 9, "start_ms": 6240, "end_ms": 6640, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Closer side stair beat: preserve the same hard light and structural perspective while the approved body remains connected and natural." },
+          { "cut_index": 10, "start_ms": 6640, "end_ms": 7080, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Controlled blur-and-glitch transition: new imagery only, no frozen source frame, no source face, wardrobe or motion-blurred fragment." },
+          { "cut_index": 11, "start_ms": 7080, "end_ms": 9520, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Reflective product-only insert: use only the approved item in a lavender editorial layer; if no approved item is visible, render no person." },
+          { "cut_index": 12, "start_ms": 9520, "end_ms": 10280, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Rapid glitch item montage: preserve the editorial cadence while every garment, logo, material and text comes from the approved item evidence." },
+          { "cut_index": 13, "start_ms": 10280, "end_ms": 12960, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Low stair push and held pose: retain converging rails, grounded anatomy, hard concrete boundaries and the exact approved look." },
+          { "cut_index": 14, "start_ms": 12960, "end_ms": 14440, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Extreme low sky angle: build a new sculptural full or upper-body geometry with the approved person only and no source silhouette." },
+          { "cut_index": 15, "start_ms": 14440, "end_ms": 15000, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Connected hand-and-accessory close: keep the approved item, hand, forearm and garment context exact; stop before the excluded source end-card." }
+        ]
+      }
     }
   ]
 }

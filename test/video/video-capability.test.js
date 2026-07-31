@@ -25,7 +25,7 @@ test('Fashion Video remains blocked without a hash-bound reference pack', () => 
     approved_master_look: true,
     verified_style_reference: false,
     verified_motion_reference: false,
-    three_video_styles: false,
+    verified_video_style_catalog: false,
   });
   assert.equal(capability.reason_code, 'FASHION_VIDEO_REFERENCE_PACK_REQUIRED');
 });
@@ -47,7 +47,7 @@ test('Fashion Video becomes available only when look, style and motion are verif
     approved_master_look: true,
     verified_style_reference: true,
     verified_motion_reference: true,
-    three_video_styles: true,
+    verified_video_style_catalog: true,
   });
   assert.equal(capability.reason_code, 'FASHION_VIDEO_READY');
   assert.equal(capability.next_action, 'CREATE_FASHION_VIDEO');
@@ -70,4 +70,31 @@ test('Fashion Video rejects incomplete or malformed reference hashes', () => {
   assert.equal(capability.available, false);
   assert.equal(capability.requirements.verified_style_reference, true);
   assert.equal(capability.requirements.verified_motion_reference, false);
+});
+
+test('Fashion Video remains ready when an approved fourth video style is added', () => {
+  const capability = fashionVideoCapability({
+    lookId,
+    approvedLook,
+    motionReference: {
+      state: 'READY',
+      reference_path: '/runtime/references/motion.mp4',
+      reference_sha256: 'c'.repeat(64),
+      reference_pack_sha256: 'd'.repeat(64),
+      available_styles: [
+        ...availableStyles,
+        {
+          id: 'style-4',
+          title: 'Style 4',
+          motion_mode: 'walk_stride',
+          playback_path: '/runtime/references/playback-4.mp4',
+          playback_sha256: '7'.repeat(64),
+          preview_sha256: '8'.repeat(64),
+        },
+      ],
+    },
+  });
+  assert.equal(capability.available, true);
+  assert.equal(capability.styles.length, 4);
+  assert.equal(capability.requirements.verified_video_style_catalog, true);
 });
