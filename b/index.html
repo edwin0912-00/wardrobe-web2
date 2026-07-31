@@ -571,15 +571,39 @@
        * Capped at 0.94 rather than 1 so the film always still creeps — the viewer can feel
        * it resisting rather than think the page has broken.
        * stationAt: where the interface appears. */
-      dampFrom: 0.70,
+      /* THE STOP SITS ON THE FRAME THE MIRRORS WERE MEASURED ON — owner decision.
+       *
+       * The rectangles above are measured off this version's FINAL frame. The stop was at
+       * 0.92, and with forward travel closed the film settled around 0.84, which is about
+       * 1.7 seconds of footage short of that frame: the camera is still translating, the
+       * mirrors are still larger and further right, and the panel — correctly placed at
+       * 5.0-44.0% of the film — therefore sat on the concrete to the left of the glass.
+       * Measured on the running page: panel left edge 5.01% of the film, --ui-lag 0, no
+       * transform. Nothing was misplaced; the stop was simply before the arrival.
+       *
+       * Exactly 1.0, not just near it. The lock is a CEILING — it refuses to let the page
+       * past the pin but never pulls the viewer up to it, and pulling would break the rule
+       * that nothing moves on the viewer's behalf. So the pin itself has to BE the measured
+       * frame: a viewer travelling forward then stops on it, every time, with no assistance.
+       * An earlier pin left the stop wherever the crawl happened to die (measured: 13.33s,
+       * then 14.72-14.98s) and the single static rectangle cannot match a moving target.
+       *
+       * seamWindow (0.012) is not a reason to back off the boundary here: the blend into
+       * room two only begins once travel crosses into it, and a held gate is exactly what
+       * prevents that crossing. While the step is unfinished there is no seam to land in.
+       * The ramp keeps its old length (1.0 - 0.78 = 0.22, as 0.92 - 0.70 was) so the
+       * approach feels unchanged, and dampMax stays 0.94 because it is a ceiling, not a
+       * position. */
+      dampFrom: 0.78,
       dampMax: 0.94,
-      stationAt: 0.92,
-      /* TWO THRESHOLDS so the interface stops blinking. Enter at 0.90, and do not let go
-         until progress falls back to 0.72 — a wide dead band, so a hand resting near the
-         station cannot toggle it. Asked for by the interface layer, which was rebuilding
-         itself on every flip; it now only enables and disables. */
-      stationEnter: 0.90,
-      stationExit: 0.72,
+      stationAt: 1.0,
+      /* TWO THRESHOLDS so the interface stops blinking. Enter just under the pin, and do
+         not let go until progress falls back by the same wide dead band as before (0.18),
+         so a hand resting near the station cannot toggle it. Asked for by the interface
+         layer, which was rebuilding itself on every flip; it now only enables and
+         disables. */
+      stationEnter: 0.99,
+      stationExit: 0.81,
       /* FORWARD TRAVEL IS CLOSED UNTIL THE STEP HAS PRODUCED SOMETHING.
        *
        * There is nothing to travel to before a look exists — the next room shows a result,

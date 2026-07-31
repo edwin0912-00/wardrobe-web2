@@ -320,6 +320,58 @@ body {
   transform: translate3d(0, 0, 0) scale(1);
   pointer-events: auto;
 }
+
+/* THE INTERFACE GETS OUT OF THE WAY OF THE FILM — owner direction.
+ *
+ * `--rest` alone couples the panel to POSITION: it is the resistance ramp normalised to
+ * its ceiling, so it only falls near a station boundary. Scrolling back to watch the room
+ * assemble is motion that the ramp barely registers, and the panel stayed on top of the
+ * footage for the whole ride.
+ *
+ * `--speed` (engine.js) is the motion signal: 0..1, fast attack and a deliberately slow
+ * release, and the engine keeps ticking while that tail decays — so a swipe hides the
+ * panel immediately and it returns on its own once travel actually stops, without any
+ * timer here. `--ui-quiet` is the strength, so how far it hides stays one number.
+ *
+ * Reduced motion deliberately opts out: hiding the interface as a function of scroll
+ * VELOCITY is exactly the inertia-dependent behaviour the window map says must not be
+ * required to use the product. There the panel keeps following `--rest` only. */
+@media (prefers-reduced-motion: no-preference) {
+  /* SCOPED TO THE MIRROR STATION, AND ONLY THERE.
+   *
+   * This block first also carried a bare `.stage .glass`, which was a regression: that
+   * selector outranks the base rule that keeps the panel hidden away from leg zero, so the
+   * mirror interface appeared over the desk-and-laptop room, where there is no mirror to
+   * put it on. The motion coupling belongs to the one place the panel legitimately shows. */
+  .stage[data-leg="0"][data-station="1"] .glass {
+    /* `--ui-quiet` is a GAIN, not a mix. Coupling opacity to `--speed` one-to-one looked
+     * right on the way out and wrong on the way back: that signal's release is 0.06 per
+     * frame because it drives the score's echo tail, so the panel stayed invisible for
+     * seconds after travel had visibly stopped. A gain of 4 means any committed swipe
+     * still takes it straight to zero, while the return begins as soon as speed falls
+     * under a quarter — four times sooner, from the same signal.
+     *
+     * `max()` clamps the low end so the product can never go negative, and the transition
+     * carries the last stretch so the reappearance is a fade rather than a step. This is
+     * still a curve fitted to someone else's signal: the honest fix is a thresholded
+     * moving/at-rest flag published by the engine, which is Codex-side. */
+    /* BOUND TO THE SWIPE, NOT TO THE POSITION — owner correction.
+     *
+     * The first version multiplied by `--rest`, and that was the visible bug: `--rest` is
+     * the resistance ramp, so it starts lifting the panel from dampFrom (0.765) onwards,
+     * which is most of a second of footage before the camera reaches the static mirror
+     * frame the rectangles were measured on. The panel was therefore faintly present all
+     * through the approach, drawn at final-frame coordinates over a frame that had not
+     * arrived — text on the concrete beside the glass.
+     *
+     * Motion alone decides it now: still means present, travelling means gone. The station
+     * latch is what scopes it to the mirrors; the ramp is left to do its own job, which is
+     * resisting the swipe, not fading an interface. */
+    --ui-quiet: 4;
+    opacity: calc(max(0, 1 - var(--speed, 0) * var(--ui-quiet)));
+    transition: opacity 220ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  }
+}
 /* ONE MIRROR FIRST, THEN THE OTHER.
  * The right-hand pane shows the look, so before a look exists it has nothing to show and
  * is not there at all — not a stub, not an empty plate. ui.js flips data-live the moment
@@ -614,8 +666,22 @@ body {
   color: rgba(245, 243, 237, 0.6); flex: 0 0 auto;
 }
 
-/* The assembled look in the left pane: five slots, filled left to right. */
-.slots { display: flex; gap: 6px; margin-top: 12px; }
+/* The assembled look in the left pane: five slots, filled left to right.
+ *
+ * STAGGERED, NOT A STRIP — owner direction: up, down, up, down, up. A flat row of five
+ * equal rectangles reads as a form field; alternating the vertical offset makes it read as
+ * garments hanging at different heights, which is what the rail behind it actually shows.
+ * The offset is one variable so it can be tuned without touching the nth-child rules, and
+ * the container reserves that offset as padding so the raised and dropped slots are never
+ * clipped by the panel edge. */
+.slots {
+  display: flex; gap: 6px; margin-top: 12px;
+  --slot-stagger: 10px;
+  padding-block: var(--slot-stagger);
+}
+.slots > .slot { transition: transform 240ms cubic-bezier(0.22, 0.61, 0.36, 1); }
+.slots > .slot:nth-child(odd) { transform: translateY(calc(var(--slot-stagger) * -1)); }
+.slots > .slot:nth-child(even) { transform: translateY(var(--slot-stagger)); }
 .slot {
   position: relative; flex: 1 1 0; aspect-ratio: 3 / 4;
   border: 1px solid rgba(245, 243, 237, 0.18);
