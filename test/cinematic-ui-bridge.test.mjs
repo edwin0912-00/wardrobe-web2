@@ -87,6 +87,18 @@ test('restores beta saved looks and action context after a browser reload', asyn
   ));
 });
 
+test('restores nested avatar looks from older beta profile payloads', async () => {
+  const client = clientStub({ profile: {
+    looks: [],
+    avatars: [{ avatar_id: 'avatar-legacy', looks: [{
+      look_id: 'look-legacy', image_url: '/api/profile/looks/look-legacy/image',
+    }] }],
+  } });
+  const bridge = createCinematicUiBridge({ client, autoProbe: false });
+  await bridge.probe();
+  assert.equal(bridge.state().savedLook.look_id, 'look-legacy');
+});
+
 test('a completed real run becomes the saved look and loads all action catalogues', async () => {
   const client = clientStub();
   const bridge = createCinematicUiBridge({ client, autoProbe: false });

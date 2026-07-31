@@ -64,7 +64,9 @@ function initialState() {
  * a reload without inventing a browser-local session.
  */
 export function profileLooks(profile) {
-  if (Array.isArray(profile?.looks)) return profile.looks;
+  if (Array.isArray(profile?.looks) && (profile.looks.length || !Array.isArray(profile?.avatars))) {
+    return profile.looks;
+  }
   return (profile?.avatars ?? []).flatMap((avatar) => (
     (avatar?.looks ?? []).map((look) => ({ ...look, avatar_id: avatar.avatar_id ?? avatar.id }))
   ));
