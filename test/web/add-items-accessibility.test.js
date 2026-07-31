@@ -2,10 +2,11 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
-const [experienceCss, conflictCss, indexHtml] = await Promise.all([
+const [experienceCss, conflictCss, indexHtml, appSource] = await Promise.all([
   readFile(new URL('../../web/public/experience.css', import.meta.url), 'utf8'),
   readFile(new URL('../../web/public/conflict.css', import.meta.url), 'utf8'),
   readFile(new URL('../../web/public/index.html', import.meta.url), 'utf8'),
+  readFile(new URL('../../web/public/app.js', import.meta.url), 'utf8'),
 ]);
 
 function declarations(selector) {
@@ -57,4 +58,11 @@ test('duplicate-item resolution keeps every mobile action at touch size', () => 
     experienceCss,
     /@media \(max-width: 700px\) and \(orientation: portrait\)[\s\S]*?\.failure-actions \.secondary-button\s*\{[\s\S]*?min-height:\s*44px;/,
   );
+});
+
+test('duplicate-item resolution tells the user to choose one thing before continuing', () => {
+  assert.match(appSource, /Виберіть одну річ для образу/);
+  assert.match(appSource, /Натисніть одну картку нижче — генерація продовжиться з нею/);
+  assert.match(appSource, /Продовжити з обраною річчю →/);
+  assert.match(conflictCss, /\.conflict-instruction\s*\{/);
 });

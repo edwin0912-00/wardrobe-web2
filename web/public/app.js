@@ -130,6 +130,38 @@ function humanizeVisibleText(value) {
     .replace(/garment mismatch/gi, 'невідповідність речі'));
 }
 
+async function loadBuildIdentity() {
+  const marker = document.querySelector('#build-identity');
+  if (!marker) return;
+  try {
+    const response = await fetch('/api/health', {
+      cache: 'no-store',
+      headers: { Accept: 'application/json' },
+    });
+    if (!response.ok) throw new Error(`health ${response.status}`);
+    const health = await response.json();
+    const releaseSha = typeof health.release_sha === 'string' && /^[a-f0-9]{40}$/.test(health.release_sha)
+      ? health.release_sha
+      : null;
+    const cacheToken = typeof health.cache_token === 'string' && /^product-[a-f0-9]{8}-[a-f0-9]{12}$/.test(health.cache_token)
+      ? health.cache_token
+      : null;
+    if (!releaseSha) {
+      marker.textContent = 'REL DEV';
+      marker.dataset.state = 'dev';
+      marker.title = 'Release manifest is not available';
+      return;
+    }
+    marker.textContent = `REL ${releaseSha.slice(0, 8)}`;
+    marker.dataset.state = 'ready';
+    marker.title = `Release ${releaseSha}${cacheToken ? ` · ${cacheToken}` : ''}`;
+  } catch {
+    marker.textContent = 'REL ?';
+    marker.dataset.state = 'unknown';
+    marker.title = 'Release identity unavailable';
+  }
+}
+
 function initializePipelineGraph() {
   const graph = document.querySelector('#pipeline-nodes');
   const fragment = document.createDocumentFragment();
@@ -184,6 +216,7 @@ function initializePipelineGraph() {
 }
 
 initializePipelineGraph();
+void loadBuildIdentity();
 
 function movePipelineBoard(destination = 'progress') {
   const board = document.querySelector('.pipeline-board');
@@ -653,7 +686,6 @@ function renderRun(run) {
   if (run.status === 'COMPLETED') {
     renderProgress(resolveProgressState('COMPLETED'), run.message);
     movePipelineBoard('completed');
-    document.querySelector('#completed-pipeline-trace').open = true;
     resultPanelTitle.textContent = 'Результат';
     setView('result');
     renderResults(run);
@@ -671,8 +703,8 @@ function renderRun(run) {
     setView('failure');
     failure.classList.toggle('choice', hasSelectableConflict);
     document.querySelector('.failure-mark').textContent = hasSelectableConflict ? '?' : '!';
-    document.querySelector('#failure-title').textContent = hasSelectableConflict ? 'Обери річ для образу' : needsInput?.title ?? 'Генерацію зупинено';
-    document.querySelector('#failure-message').textContent = hasSelectableConflict ? 'Знайдено кілька різних речей одного типу. Обери одну — генерація продовжиться з цього етапу.' : needsInput?.message ?? humanizeVisibleText(run.message || run.error?.message || 'Невідома помилка');
+    document.querySelector('#failure-title').textContent = hasSelectableConflict ? 'Виберіть одну річ для образу' : needsInput?.title ?? 'Генерацію зупинено';
+    document.querySelector('#failure-message').textContent = hasSelectableConflict ? 'Знайдено кілька речей одного типу. Натисніть одну картку нижче — генерація продовжиться з нею.' : needsInput?.message ?? humanizeVisibleText(run.message || run.error?.message || 'Невідома помилка');
     renderConflictPicker(run);
     document.querySelector('#retry-run').classList.toggle('hidden', hasSelectableConflict || needsReplacementMaterials);
     submit.disabled = false;
@@ -690,10 +722,14 @@ function renderConflictPicker(run) {
   const conflicts = (run.conflicts || []).filter((item) => item.type === 'DUPLICATE_SLOT');
   if (!conflicts.length) return;
   const selections = {};
+  const instruction = document.createElement('p');
+  instruction.className = 'conflict-instruction';
+  instruction.textContent = 'Виберіть одну річ для образу';
+  picker.append(instruction);
   const continueButton = document.createElement('button');
   continueButton.type = 'button';
   continueButton.className = 'primary-button conflict-continue';
-  continueButton.textContent = 'Продовжити з обраними речами →';
+  continueButton.textContent = 'Продовжити з обраною річчю →';
   continueButton.disabled = true;
 
   const categoryNames = { outerwear: 'верхній одяг', top: 'верх', bottom: 'низ', one_piece: 'цільний образ', footwear: 'взуття', headwear: 'головний убір', bag: 'сумка', accessory: 'аксесуар' };

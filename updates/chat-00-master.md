@@ -30,6 +30,25 @@ Agent ID: `chat-00-master`
 Branch: `beta-release-master`
 Role: permanent beta integration, version, deploy and rollback owner.
 
+## 2026-08-01 · current-beta safe UI integration
+
+The deployed source before this candidate is beta `7f7c271` (public health
+confirmed). From `chat03/fashion-video-preview-delivery-20260731` I ported only
+three current-beta-compatible UI atoms: completed results no longer auto-open
+the technical execution graph, duplicate-item `NEEDS_INPUT` explains that one
+item must be selected, and the UI displays the authoritative `/api/health`
+release marker. The older branch was **not** merged wholesale: its video-route
+rewrite removes current white-master, cut-sheet and persisted-finalization
+guards, so that part remains held for a separate review.
+
+Code: TESTED — focused web/video suites `201/201 PASS`,
+`npm run verify:contracts PASS`, `npm run verify:canon PASS`, `git diff --check PASS`.
+Beta: READY_FOR_BETA_DEPLOY — candidate based on `7f7c271`; public activation
+must use the final pushed SHA.
+Journey: NOT_RUN — no paid generation or browser journey was started by this
+source integration.
+weakened_checks: none.
+
 ## 2026-07-31 · final activation
 
 The beta head is now `2334c9d30bb387396bdb74945c347a194d2d19d3` (also pushed to
