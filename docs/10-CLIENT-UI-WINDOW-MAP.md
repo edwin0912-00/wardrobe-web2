@@ -27,15 +27,15 @@ This extends the selected fabric-world canon; it does not replace it.
 | # | Camera place / swipe state | Window that can open | Content and primary action | Exit / lock rule |
 | --- | --- | --- | --- | --- |
 | 0 | **Textile intro** | None, except minimal sound control | Fabric breathing in the room, wordmark, small “scroll to move” cue. | First real gesture starts allowed sound and enters the rails. No product controls. |
-| 1 | **Empty rails — first attention stop** | `Person sheet`, attached to the rail plane | One main portrait input, optional face-detail input, quiet preview/removal state; primary action: **«Далі»**. | Holds forward travel while the draft is incomplete/uploading. An input error stays here with a clear replace/remove choice. |
-| 2 | **Garment rail — second attention stop** | `Things sheet`, attached beside physical garments | Add garments, compact thumbnail tray, optional short outfit note; primary action: **«Зібрати образ»**. | Generation opens the right mirror in a waiting state and holds travel. If a selection is needed, this sheet remains the choice surface. |
+| 1 | **Empty rails — first attention stop** | `Person sheet`, appearing on the **left mirror** after the camera settles | One main portrait input, optional face-detail input, quiet preview/removal state; primary action: **«Далі»**. The right mirror is the waiting surface. | Holds forward travel while the draft is incomplete/uploading. An input error stays here with a clear replace/remove choice. |
+| 2 | **Garment rail — second attention stop** | `Things sheet`, appearing on the **left mirror** after the camera settles | Add garments, compact thumbnail tray, optional short outfit note; primary action: **«Зібрати образ»**. The right mirror shows the orb while the look is prepared. | Generation opens the right mirror in a waiting state and holds travel. If a selection is needed, this left-mirror sheet remains the choice surface. |
 | 3 | **Approach to two mirrors** | No new sheet | The left mirror becomes legible first; the right mirror wakes only once an actual look job exists. | Camera settles at the mirrors; no auto-advance when the look completes. |
 | 4A | **Left mirror — choose** | `Looks`, `Backgrounds`, `Shoot styles`, `Video styles` sheets | This mirror asks and selects. Only one sheet is open at once; all options are visual tiles with a single clear action. | Back returns to the selected look, never to a blank dashboard. A choice that starts work retains the mirror station. |
-| 4B | **Right mirror — show** | `Look`, `result`, `waiting orb`, `Live mirror` | This mirror shows the selected look, a scene, portrait video, shoot result, or live camera. It never asks the user to choose a style. | Closing detail returns to current look. Leaving Live immediately stops camera/session. |
+| 4B | **Right mirror — show** | `Look`, `result`, `waiting orb`, `Live mirror` | This mirror shows the selected look, a scene, portrait video, shoot result, or live camera. A finished result replaces the orb in exactly the same aperture; its actions appear there too. It never asks the user to choose a style. | Closing detail returns to current look. Leaving Live immediately stops camera/session. |
 | 4C | **Right mirror — wait** | `Orb state` (not a dialog) | Transparent black/white orb, its light and density changing with progress; one line such as “Збираємо образ”, “Шукаємо світло”, “Знімаємо рух”. | The station holds while a user decision or job is active. Failure becomes a calm “Спробувати ще раз” / “Повернутися” choice at the same surface. |
-| 4D | **Right mirror — Live** | `Live threshold`, then `camera frame` | Before camera permission: a minimal threshold: **«Відкрити дзеркало»**, with “до 40 секунд” and a close control. During live: only the image, subtle countdown ring and **«Закрити»**. | Camera/session begins only after explicit tap. Close, timeout, or loss of focus ends it immediately and returns to the look. |
-| 5 | **Television — gallery, not a step** | `Gallery` on the TV screen | Finished 16:9 Fashion Video and Fashion Shoot images; a tile opens playback/detail on the television. | Never blocks the journey. Selecting an item may return its 9:16 counterpart to the right mirror. |
-| 6 | **Laptop — final record** | `Pipeline record` on the laptop screen | Read-only, browser-like timeline: chosen inputs → look → scene/shoot/video → final result and a quiet ending. | No duplicate generate buttons; this is explanation and memory, not a second control centre. |
+| 4D | **Right mirror — Live** | `Live threshold`, then `camera frame` | Before camera permission: a minimal threshold: **«Відкрити дзеркало»**, with “до 40 секунд” and a close control. On explicit tap the camera image grows continuously from the right-mirror rectangle to the full viewport; return reverses the same path. During live: only the image, subtle countdown ring and **«Закрити»**. | Camera/session begins only after explicit tap. Close, timeout, or loss of focus ends it immediately and restores the right-mirror look/action state. |
+| 5 | **Television — gallery, not a step** | `Screen gallery`, clipped inside the measured TV rectangle | Finished 16:9 Fashion Video plays as a TV image. A Fashion Shoot is a five-image vertical contact strip, all five portraits visible side-by-side inside the horizontal television. | Never blocks the journey. Selecting an item opens it inside the same TV screen; it never becomes a floating card. |
+| 6 | **Laptop — final record** | `Pipeline HTML`, first clipped inside the measured laptop rectangle | The supplied HTML page is laptop content, rendered by the same site bundle. As the camera nears fullscreen, camera scroll hands off continuously to page scroll; at full screen, the page owns scroll completely. | Reverse scroll performs the exact inverse handoff back into the camera journey. No iframe, duplicate route, or disconnected second page. |
 
 ## Mirror action map
 
@@ -65,6 +65,26 @@ uses black, white and the existing milk/graphite light only.
 
 Do not fake numerical progress. The orb may advance only between known state
 transitions. On slow work it breathes rather than pretending to be 83% done.
+
+## Screen-surface modules
+
+The TV and laptop are not containers placed over the movie. Each is a measured
+rectangle in the source video and gets a dedicated surface module:
+
+- `TvScreenSurface`: clips all contents to the measured bezel/screen mask.
+  Fashion Video uses `object-fit: contain` inside that mask. Fashion Shoot uses
+  a five-column portrait contact strip with fixed gutters and no cropped faces.
+  Selecting media changes the content inside the same mask, never the camera
+  layer around it.
+- `LaptopScreenSurface`: mounts the supplied HTML as the screen itself—one DOM
+  tree, no iframe. It begins transform/mask-bound to laptop geometry. Across a
+  short approach range, its transform resolves to viewport coordinates and the
+  scroll owner changes from film time to document progress. The mapping must be
+  reversible so an upward swipe re-enters the exact camera frame.
+
+Both modules wait for final frame measurement before code is wired. They use
+one geometry source each; no duplicated CSS guesses or independently animated
+overlays.
 
 ## 40-second Live direction — implementation boundary
 
