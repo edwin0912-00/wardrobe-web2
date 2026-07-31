@@ -910,17 +910,20 @@ body {
   display: grid; place-items: center;
   isolation: isolate;
 }
-/* THE ORB IS A PRESENCE, NOT A BACKDROP — visual canon, owner-confirmed size.
+/* THE ORB IS A MIRROR EVENT, NOT A STATUS ICON.
  *
- * The ring stack below filled 72% of the glass, which made waiting the loudest thing in
- * the frame; the canon says the orb is restrained system-presence in the mirror and not
- * the protagonist of the shot, with a floor of 56px and a compact form at 20px. The canvas
- * renderer draws itself, so it needs a footprint and nothing else — no gradient, no inset
- * shadow, no ring children. Those rules stay below only for the reduced-motion fallback
- * and the small variant that other surfaces still use. */
+ * It has its own aperture in the answer mirror. 56px was a diagnostic renderer size that
+ * leaked into the product and read as a tiny coloured spinner. The final field is large
+ * enough to carry the waiting moment, but has no box, fill or coloured accent; its canvas
+ * remains transparent over the physical mirror. */
 .orbfield__canvas {
-  width: 56px; height: 56px;
   display: block;
+}
+.orbfield--mirror .orbfield__canvas {
+  width: clamp(128px, 32cqh, 192px);
+  height: clamp(128px, 32cqh, 192px);
+  opacity: 0.82;
+  filter: grayscale(1) contrast(1.06);
 }
 
 .orb {

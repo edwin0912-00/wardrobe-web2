@@ -880,13 +880,12 @@
 
     function orbWindow(state, label) {
       var canon = ORB_CANON[state] || 'listening';
-      /* A canvas, not a stack of rings: the canon asks for a living system of points with
-       * a stable centre, driven on requestAnimationFrame, and it forbids the orb becoming a
-       * decorative background that competes with the picture. The element carries its own
-       * size so it stays a restrained presence in the glass rather than filling it. */
-      return '<div class="orbfield" data-orb-state="' + esc(state) + '" role="status" aria-live="polite">' +
+      /* A canvas, not a stack of rings. In the answer mirror it occupies a deliberate
+       * central field: large enough to read as the room thinking, still transparent enough
+       * for the architecture to remain the image. */
+      return '<div class="orbfield orbfield--mirror" data-orb-state="' + esc(state) + '" role="status" aria-live="polite">' +
           '<canvas class="orbfield__canvas" data-orb-canvas data-orb-canon="' + esc(canon) + '"' +
-            ' width="56" height="56"></canvas>' +
+            ' width="192" height="192"></canvas>' +
           '<span class="orbfield__label">' + esc(label) + '</span>' +
         '</div>';
     }
