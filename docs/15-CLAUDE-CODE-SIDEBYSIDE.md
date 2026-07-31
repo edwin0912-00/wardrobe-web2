@@ -31,18 +31,18 @@ serialises overlapping files; a fetch/rebase serialises the shared history.
 ## Local checkouts
 
 - Codex integration worktree:
-  `/Volumes/diskSSD/Codex-offload/wardrobe-canonical-preflight-0.2`
+  `/Volumes/diskSSD/Codex-offload/wardrobe-main-site-codex`
 - Claude worktree:
-  `/Volumes/diskSSD/Codex-offload/wardrobe-claude-main-site-0.2`
-- Existing local `main` release checkout:
-  `/Volumes/diskSSD/urgent-offload/user/Documents/Codex/2026-07-23/zeely-3-web-2-0/wardrobe-web2-runtime`
+  `/Volumes/diskSSD/Codex-offload/wardrobe-main-site-claude`
+- Local frozen `main` release checkout:
+  `/Volumes/diskSSD/Codex-offload/wardrobe-main-site-release`
 
 Never point both agents at one of these directories.
 
 ## Starting Claude Code
 
 ```bash
-cd /Volumes/diskSSD/Codex-offload/wardrobe-claude-main-site-0.2
+cd /Volumes/diskSSD/Codex-offload/wardrobe-main-site-claude
 claude --name wardrobe-main-site-claude --permission-mode acceptEdits
 ```
 
