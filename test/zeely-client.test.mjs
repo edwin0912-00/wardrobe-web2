@@ -123,6 +123,22 @@ test('reconciles the current run once after an SSE drop so terminal failure reac
   assert.equal(stream.closed, true);
 });
 
+test('terminal watchdog reconciles a mobile run when SSE stays open but misses completion', async () => {
+  const client = createZeelyClient({
+    fetchImpl: async (url) => url === '/api/draft/run'
+      ? jsonResponse({ run_id: 'run-watchdog', status: 'RUNNING' }, 202)
+      : url === '/api/runs/run-watchdog'
+      ? jsonResponse({ run_id: 'run-watchdog', status: 'COMPLETED', outputs: { avatar_outfit: '/api/result.png' } })
+      : jsonResponse({}),
+    EventSourceImpl: FakeEventSource,
+    terminalPollIntervalMs: 0,
+  });
+  await client.createRunFromDraft({ fileManifest: { person: { id: 'p1' } } });
+  await new Promise((resolve) => setTimeout(resolve, 10));
+  assert.equal(client.snapshot().phase, 'completed');
+  assert.equal(client.snapshot().run.outputs.avatar_outfit, '/api/result.png');
+});
+
 test('preserves a structured API error for cinematic UI recovery states', async () => {
   const client = createZeelyClient({
     fetchImpl: async () => jsonResponse({ error: 'Look not found', code: 'LOOK_NOT_FOUND' }, 404),

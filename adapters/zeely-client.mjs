@@ -59,6 +59,7 @@ export function phaseFor(entity) {
  * @param {() => string} [options.createFinalizationKey] returns a UUID v4 for draft finalization.
  * @param {number} [options.sseRecoveryInitialDelayMs=300] delay before the first durable status refresh after an SSE error.
  * @param {number} [options.sseRecoveryMaxAttempts=3] bounded number of durable refreshes while EventSource reconnects.
+ * @param {number} [options.terminalPollIntervalMs=5000] bounded watchdog interval for mobile/Safari clients that keep an SSE connection open but miss a terminal event.
  */
 export function createZeelyClient({
   apiBase = '/api',
@@ -68,6 +69,7 @@ export function createZeelyClient({
   createFinalizationKey = finalizationKey,
   sseRecoveryInitialDelayMs = 300,
   sseRecoveryMaxAttempts = 3,
+  terminalPollIntervalMs = 5_000,
 } = {}) {
   if (typeof fetchImpl !== 'function') throw new TypeError('createZeelyClient requires fetch');
   if (!Number.isFinite(sseRecoveryInitialDelayMs) || sseRecoveryInitialDelayMs < 0) {
@@ -75,6 +77,9 @@ export function createZeelyClient({
   }
   if (!Number.isInteger(sseRecoveryMaxAttempts) || sseRecoveryMaxAttempts < 1) {
     throw new RangeError('sseRecoveryMaxAttempts must be a positive integer');
+  }
+  if (!Number.isFinite(terminalPollIntervalMs) || terminalPollIntervalMs < 0) {
+    throw new RangeError('terminalPollIntervalMs must be a non-negative number');
   }
 
   const base = trimTrailingSlash(apiBase);
@@ -178,12 +183,43 @@ export function createZeelyClient({
     let recoveryTimer = null;
     let recoveryAttempt = 0;
     let recoveryInFlight = false;
+    let terminalPollTimer = null;
+    let terminalPollInFlight = false;
     const isCurrent = () => streams.get(key) === subscription
       && snapshot[kind]?.run_id === id;
     const cancelRecovery = () => {
       if (recoveryTimer) clearTimeout(recoveryTimer);
       recoveryTimer = null;
       recoveryInFlight = false;
+    };
+    const cancelTerminalPoll = () => {
+      if (terminalPollTimer) clearTimeout(terminalPollTimer);
+      terminalPollTimer = null;
+      terminalPollInFlight = false;
+    };
+    const scheduleTerminalPoll = () => {
+      if (!statusPath || closed || terminalPollTimer || terminalPollInFlight) return;
+      terminalPollTimer = setTimeout(async () => {
+        terminalPollTimer = null;
+        if (closed || terminalPollInFlight || !isCurrent()) return;
+        terminalPollInFlight = true;
+        try {
+          const refreshed = await request(statusPath);
+          if (closed || !isCurrent()) return;
+          update(kind, refreshed, `${kind}:terminal_watchdog`);
+          if (terminal.has(String(refreshed?.status ?? '').toUpperCase())) {
+            closeStream(key);
+            return;
+          }
+        } catch {
+          // SSE remains the primary transport; the watchdog is best-effort.
+        } finally {
+          terminalPollInFlight = false;
+          scheduleTerminalPoll();
+        }
+      }, terminalPollIntervalMs);
+      // Node test runners must not stay alive for a browser-only watchdog.
+      terminalPollTimer.unref?.();
     };
     const scheduleRecovery = () => {
       if (!statusPath || closed || !isCurrent() || recoveryTimer || recoveryInFlight
@@ -215,6 +251,7 @@ export function createZeelyClient({
       close() {
         closed = true;
         cancelRecovery();
+        cancelTerminalPoll();
         stream.close();
       },
     };
@@ -222,7 +259,9 @@ export function createZeelyClient({
       try {
         cancelRecovery();
         recoveryAttempt = 0;
-        update(kind, JSON.parse(event.data), `${kind}:event`);
+        const refreshed = JSON.parse(event.data);
+        update(kind, refreshed, `${kind}:event`);
+        if (terminal.has(String(refreshed?.status ?? '').toUpperCase())) cancelTerminalPoll();
       } catch {
         emit('connection:error', { error: { message: `Malformed ${kind} event`, code: 'MALFORMED_EVENT' } });
       }
@@ -232,6 +271,7 @@ export function createZeelyClient({
       scheduleRecovery();
     };
     streams.set(key, subscription);
+    scheduleTerminalPoll();
     // A stale cleanup must not silence a newer replacement subscription.
     return () => {
       if (streams.get(key) === subscription) closeStream(key);
