@@ -2,8 +2,8 @@
 
 ## 2026-07-31 · beta current-sync audit
 
-The safe release cut at `e7d175c77a1efd2b5552f83d027b259fe19c975b` is not an
-empty/old beta: it already contains the reconciled image aliases, HEIC/drop
+The safe release cut at `e7d175c77a1efd2b5552f83d027b259fe19c975b` was the
+starting point for this sync, not an empty/old beta: it already contains the reconciled image aliases, HEIC/drop
 upload path, 16 backgrounds, current Create Universe/Fashion Shoot catalog and
 progress, God View, saved-look actions, and the current Fashion Video runtime
 with hash-bound reference/audio/semantic QA. Several agent branches still say
@@ -16,10 +16,10 @@ The current compatible missing atom is now ported as `d5b6d05` from
 `NEEDS_INPUT` is actionable in the UI and hides the retry that would resubmit
 the same insufficient input. Focused `visible-copy` and profile-flow tests
 pass; no QA gate was weakened. Candidate branch:
-`integration/beta-current-sync-20260731`. The candidate was activated as
-`release-6ee2aeb-1785525203702`; public health and shell smoke returned PASS.
-The next board commit will carry the final post-deploy SHA so Git and runtime
-remain aligned.
+`integration/beta-current-sync-20260731`. The candidate was activated through
+the official beta deploy script; public health and shell smoke returned PASS.
+The exact active SHA is always taken from `/api/health.release_sha`, and the
+release owner must keep it equal to the pushed beta head.
 
 Explicitly held for separate current-beta ports: stale video-preview-resume
 tree, legacy Live 40-second contract, and late video-salvage commits whose

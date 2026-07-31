@@ -2,9 +2,8 @@
 
 ## Beta sync · 2026-07-31 · integration candidate
 
-The current beta source of truth is `origin/beta` at `e7d175c` and the public
-beta health endpoint reports the same release SHA. This candidate adds the
-latest compatible Block 1 user-facing repair as `d5b6d05`:
+This sync started from the safe beta source cut `e7d175c`. The synced release
+now contains the latest compatible Block 1 user-facing repair as `d5b6d05`:
 
 - a terminal `NEEDS_INPUT` caused by a headwear-only/incomplete outfit now tells
   the user exactly what material is missing and does not offer a futile retry;
@@ -22,11 +21,10 @@ they are based on older shared UI/runtime contracts; equivalent patches are
 already in the beta chain. The remaining stale branch deltas stay explicitly
 held until a current-beta port has its own focused proof.
 
-Activated release: `release-6ee2aeb-1785525203702`, built from
-`6ee2aebc53a5865b96c557bd2ac3d40d64f0c70d`. Public health returned `ready`,
-the cache token is `product-6ee2aebc-efebbd7c38c9`, and the public shell still
-exposes God View, Fashion Video and HEIC markers. The deploy preflight found
-no active run, scene, shoot or video work. Focused integration tests: 124/124.
+The deployment record is the `/api/health` `release_sha` and `cache_token`
+returned after activation; the public shell exposes God View, Fashion Video
+and HEIC markers. The deploy preflight found no active run, scene, shoot or
+video work. Focused integration tests: 124/124.
 State: CODE LIVE; BETA LIVE; Journey: health + public-shell smoke PASS.
 weakened_checks: none.
 
