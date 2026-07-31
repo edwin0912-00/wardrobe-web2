@@ -266,6 +266,25 @@ test('a legacy generic animation is never delivered as Fashion Video', async (t)
   assert.equal(response.json().code, 'VIDEO_STYLE_PROVENANCE_MISSING');
 });
 
+test('status gives the real terminal provider reason instead of a connection or timeout fiction', async (t) => {
+  const current = fixture();
+  current.setLiveClip({ status: 'FAILED', failureCode: 'VIDEO_PROVIDER_JOB_NOT_FOUND' });
+  const app = Fastify();
+  t.after(() => app.close());
+  await registerVideoRoutes(app, {
+    profileApi: { resolveRequestProfile: async () => ({ profileId: 'profile-1' }) },
+    profiles: current.profiles,
+    videoService: current.videoService,
+    runService: { outputFile: async () => null },
+  });
+  const response = await app.inject({
+    method: 'GET', url: '/api/profile/video-clips/11111111-1111-4111-8111-111111111111',
+  });
+  assert.equal(response.statusCode, 200, response.body);
+  assert.equal(response.json().failure_code, 'VIDEO_PROVIDER_JOB_NOT_FOUND');
+  assert.match(response.json().error, /не має цей job/);
+});
+
 test('create reaches VideoService only after the same two-reference contract is ready', async (t) => {
   const current = fixture();
   current.videoService.fashionVideoCapability = async () => ({

@@ -196,6 +196,24 @@ function parseJson(stdout, what) {
   }
 }
 
+function providerCommandFailure(cause, phase) {
+  const detail = [cause?.message, cause?.stderr, cause?.stdout]
+    .filter((value) => typeof value === 'string')
+    .join('\n');
+  if (/\bjob not found\b/i.test(detail)) {
+    return new VideoProviderError('The persisted Higgsfield job no longer exists', {
+      code: 'PROVIDER_JOB_NOT_FOUND',
+      retryable: false,
+      cause,
+    });
+  }
+  return new VideoProviderError(`Higgsfield ${phase} command failed`, {
+    code: 'PROVIDER_COMMAND_FAILED',
+    retryable: true,
+    cause,
+  });
+}
+
 function findJobId(payload) {
   const queue = [payload];
   const seen = new Set();
@@ -274,7 +292,12 @@ export class HiggsfieldVideoProvider {
 
   async waitForJob({ jobId, waitTimeout, waitInterval }) {
     const args = buildVideoWaitArgs({ jobId, waitTimeout, waitInterval });
-    const { stdout } = await this.#run(this.#binary, args);
+    let stdout;
+    try {
+      ({ stdout } = await this.#run(this.#binary, args));
+    } catch (cause) {
+      throw providerCommandFailure(cause, 'wait');
+    }
     const payload = parseJson(stdout, 'wait');
     const returnedId = findJobId(payload);
     if (returnedId && returnedId !== jobId) {

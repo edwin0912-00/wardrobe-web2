@@ -1,4 +1,20 @@
 Agent ID: codex-main
+Task ID: BETA-FASHION-VIDEO-PROVIDER-TRUTH-001
+Product line: beta-placeholder
+Pipeline: VIDEO.02 · persisted provider job → provider wait
+State: CODE_VERIFIED — deployment pending
+Decision: provider `Job not found` is a terminal, visible failure, not a six-
+minute timeout or a connection error. The service records
+`VIDEO_PROVIDER_JOB_NOT_FOUND`; it never creates a replacement automatically.
+Evidence: exact live job `7ed8551f-8227-4a94-99bf-8510a6e096fc` returned
+`Error: Job not found` from the authenticated Higgsfield CLI on 2026-07-31.
+Focused provider/service/route/UI suite 152/152 PASS.
+weakened_checks: none. The missing remote job cannot yield a real MP4 or QA
+receipt; a human must explicitly request a new paid generation.
+
+---
+
+Agent ID: codex-main
 Task ID: BETA-FASHION-VIDEO-SERVER-RESUME-001
 Product line: beta-placeholder
 Pipeline: VIDEO.02 → VIDEO.04 · provider job → MP4 → QA

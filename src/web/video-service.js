@@ -596,10 +596,27 @@ export class VideoService {
     await this.#store.save(clipId, clip);
 
     // Phase 2: wait for the job to finish
-    const finished = await this.#provider.waitForJob({
-      jobId: clip.jobId,
-      providerKey: clip.providerKey,
-    });
+    let finished;
+    try {
+      finished = await this.#provider.waitForJob({
+        jobId: clip.jobId,
+        providerKey: clip.providerKey,
+      });
+    } catch (cause) {
+      // A missing remote job is terminal: there is nothing left to resume.
+      // Other transport failures retain GENERATING for a later exact-job poll.
+      if (cause?.code === 'PROVIDER_JOB_NOT_FOUND') {
+        clip.status = 'FAILED';
+        clip.failureCode = 'VIDEO_PROVIDER_JOB_NOT_FOUND';
+        clip.updatedAt = new Date(this.#clock()).toISOString();
+        await this.#store.save(clipId, clip);
+        throw new VideoServiceError('The video provider no longer has this job; it was not generated.', {
+          code: 'VIDEO_PROVIDER_JOB_NOT_FOUND',
+          status: 502,
+        });
+      }
+      throw cause;
+    }
 
     if (!finished.url) {
       clip.status = 'FAILED';

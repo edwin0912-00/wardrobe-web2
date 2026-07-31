@@ -64,6 +64,13 @@ function hasVerifiedFashionStyle(liveClip) {
     && liveClip?.referenceAdherenceQa?.pass === true;
 }
 
+function publicVideoFailure(liveClip) {
+  if (liveClip?.failureCode === 'VIDEO_PROVIDER_JOB_NOT_FOUND') {
+    return 'Higgsfield більше не має цей job. Нове відео не створювалося автоматично.';
+  }
+  return null;
+}
+
 /**
  * @param {import('fastify').FastifyInstance} app
  * @param {object} options
@@ -434,6 +441,8 @@ export async function registerVideoRoutes(app, {
     return reply.header('Cache-Control', 'private, no-store').send({
       ...clip,
       qa: liveClip?.qa ?? null,
+      error: publicVideoFailure(liveClip),
+      failure_code: liveClip?.failureCode ?? null,
       video_url: verifiedStyle ? clip.video_url ?? null : null,
       delivery_code: verifiedStyle ? null : 'VIDEO_STYLE_PROVENANCE_MISSING',
     });

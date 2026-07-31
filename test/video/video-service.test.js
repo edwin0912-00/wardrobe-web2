@@ -587,6 +587,31 @@ test('awaitAndFinalize marks FAIL when QA detects audio', async () => {
   });
 });
 
+test('awaitAndFinalize marks a missing provider job FAILED without a second create', async () => {
+  await withTempDir(async (dir, sourcePath) => {
+    const provider = {
+      async createJob() { return { jobId: 'missing-job', providerKey: 'higgsfield' }; },
+      async waitForJob() {
+        const error = new Error('job vanished');
+        error.code = 'PROVIDER_JOB_NOT_FOUND';
+        throw error;
+      },
+    };
+    const store = new ClipStore(dir);
+    const service = new VideoService({ provider, clipStore: store });
+    const created = await service.createClip({
+      modeId: 'editorial_micro_moment', surfaceId: 'tv', sourceImagePath: sourcePath,
+    });
+    await assert.rejects(
+      () => service.awaitAndFinalize(created.clipId, { downloadFn: makeStubDownload(), ...makeStubQa() }),
+      (error) => error.code === 'VIDEO_PROVIDER_JOB_NOT_FOUND',
+    );
+    const persisted = await store.load(created.clipId);
+    assert.equal(persisted.status, 'FAILED');
+    assert.equal(persisted.failureCode, 'VIDEO_PROVIDER_JOB_NOT_FOUND');
+  });
+});
+
 test('recordIdentityItemQa makes a semantic RETRY fail a technically valid clip', async () => {
   await withTempDir(async (dir) => {
     const { provider } = makeStubProvider();

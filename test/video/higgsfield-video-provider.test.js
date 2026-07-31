@@ -220,6 +220,22 @@ test('a finished job with no video is a retryable failure, not a success', async
   });
 });
 
+test('a missing persisted job is terminal and is not misreported as a timeout', async () => {
+  const provider = new HiggsfieldVideoProvider({
+    commandRunner: async (binary, args) => {
+      if (args[1] === 'create') return { stdout: JSON.stringify({ job_id: 'job_missing' }), stderr: '' };
+      const error = new Error('command failed');
+      error.stderr = 'Error: Job not found';
+      throw error;
+    },
+  });
+  await assert.rejects(() => provider.generate(BASE), (error) => {
+    assert.equal(error.code, 'PROVIDER_JOB_NOT_FOUND');
+    assert.equal(error.retryable, false);
+    return true;
+  });
+});
+
 test('a create response without a job id is an unknown paid outcome and is not retried', async () => {
   const provider = new HiggsfieldVideoProvider({
     commandRunner: async () => ({ stdout: JSON.stringify({ accepted: true }), stderr: '' }),
