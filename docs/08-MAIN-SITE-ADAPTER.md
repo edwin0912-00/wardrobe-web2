@@ -41,7 +41,7 @@ The adapter maps the currently public beta routes for:
 - `std.*` scenes/backgrounds;
 - editorial Fashion Shoot, Bible and hero approvals;
 - Fashion Video capability, creation, finalization and playback URL;
-- Live Look capability and scoped realtime token;
+- Live Look capability, public pipeline description and scoped realtime token;
 - SSE for core runs, scenes and editorial shoots; polling only for Fashion
   Video, because the current video contract deliberately exposes no SSE route.
 
@@ -70,6 +70,11 @@ zeely.subscribe((state) => mirrorUi.render(state));
 The scroll engine remains responsible only for camera time and station locks.
 It never creates jobs directly. The adapter is responsible only for product
 commands, server state and events.
+
+`startLiveLook()` requires explicit `privacyConsent` and `costAcknowledged`
+arguments. It obtains a short-lived realtime token; it does not request camera
+permission, initiate WebRTC or record media. Those remain visible UI actions in
+the selected mirror surface.
 
 ## Check
 

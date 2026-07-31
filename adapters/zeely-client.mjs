@@ -16,7 +16,7 @@ export class ZeelyApiError extends Error {
   }
 }
 
-const terminal = new Set(['COMPLETED', 'PASS', 'READY', 'APPROVED', 'FAILED', 'CANCELLED']);
+const terminal = new Set(['COMPLETED', 'PASS', 'READY', 'APPROVED', 'FAILED', 'FAIL', 'CANCELLED']);
 
 function trimTrailingSlash(value) {
   return String(value || '/api').replace(/\/+$/, '') || '/api';
@@ -43,10 +43,10 @@ export function phaseFor(entity) {
   const status = String(entity?.status ?? '').toUpperCase();
   if (!entity) return 'idle';
   if (['COMPLETED', 'PASS', 'READY', 'APPROVED'].includes(status)) return 'completed';
-  if (['FAILED', 'CANCELLED', 'REJECTED'].includes(status)) return 'failed';
+  if (['FAILED', 'FAIL', 'CANCELLED', 'REJECTED'].includes(status)) return 'failed';
   if (status === 'NEEDS_INPUT') return 'needs_input';
   if (/(APPROVAL|APPROVE_BIBLE|APPROVE_HERO)/.test(status)) return 'waiting_for_approval';
-  if (/(RECOVER|RESUM)/.test(status)) return 'recovering';
+  if (/(RECOVER|RESUM|NEEDS_RETRY)/.test(status)) return 'recovering';
   return 'running';
 }
 
@@ -94,6 +94,7 @@ export function createZeelyClient({
     body,
     headers = {},
     signal,
+    responseType = 'json',
   } = {}) {
     const isForm = typeof FormData !== 'undefined' && body instanceof FormData;
     const response = await fetchImpl(url(path), {
@@ -108,12 +109,15 @@ export function createZeelyClient({
     });
 
     if (response.status === 204) return null;
-    const payload = await response.json().catch(() => ({}));
+    const payload = responseType === 'text'
+      ? await response.text()
+      : await response.json().catch(() => ({}));
     if (!response.ok) {
-      const error = new ZeelyApiError(payload.error || `Zeely API returned ${response.status}`, {
+      const errorBody = typeof payload === 'object' && payload !== null ? payload : {};
+      const error = new ZeelyApiError(errorBody.error || `Zeely API returned ${response.status}`, {
         status: response.status,
-        code: payload.code || null,
-        body: payload,
+        code: errorBody.code || null,
+        body: errorBody,
       });
       emit('error', { error: { message: error.message, status: error.status, code: error.code } });
       throw error;
@@ -191,6 +195,8 @@ export function createZeelyClient({
       return request(`/profile/looks/${encode(lookId)}`, { method: 'DELETE' });
     },
     deleteProfile() { return request('/profile', { method: 'DELETE' }); },
+    avatarImageUrl: (avatarId) => url(`/profile/avatars/${encode(avatarId)}/image`),
+    lookImageUrl: (lookId) => url(`/profile/looks/${encode(lookId)}/image`),
 
     // Draft / core run ------------------------------------------------------
     loadDraft: () => request('/draft'),
@@ -263,6 +269,9 @@ export function createZeelyClient({
       return run;
     },
     deleteRun(runId) { return request(`/runs/${encode(runId)}`, { method: 'DELETE' }); },
+    runFileUrl: (runId, name) => url(`/runs/${encode(runId)}/files/${encode(name)}`),
+    garmentPreviewUrl: (runId, index) => url(`/runs/${encode(runId)}/garments/${encode(index)}`),
+    visualAssetUrl: (runId, assetId) => url(`/runs/${encode(runId)}/visual-assets/${encode(assetId)}`),
 
     // Environment scenes ----------------------------------------------------
     listScenePresets: () => request('/scene-presets'),
@@ -424,9 +433,32 @@ export function createZeelyClient({
     videoUrl: (clipId) => url(`/profile/video-clips/${encode(clipId)}/video`),
 
     // Live mirror -----------------------------------------------------------
+    postShootPipeline: () => request('/post-shoot/pipeline'),
     realtimeCapability: (lookId) => request(`/post-shoot/realtime-look-capability?look_id=${encode(lookId)}`),
-    startLiveLook(lookId) {
-      return request('/fal/realtime-token', { method: 'POST', body: { look_id: lookId } });
+    /**
+     * This requests a short-lived provider token only. Camera access and the
+     * realtime connection remain the caller's job. Consent arguments are
+     * deliberately explicit: a cinematic UI must never turn an arrival at a
+     * mirror into an implicit paid or privacy-sensitive session.
+     */
+    startLiveLook({
+      lookId,
+      app = 'decart/lucy-2-5/realtime',
+      privacyConsent = false,
+      costAcknowledged = false,
+      maxSessionSeconds = 15,
+    } = {}) {
+      return request('/fal/realtime-token', {
+        method: 'POST',
+        responseType: 'text',
+        body: {
+          app,
+          look_id: lookId,
+          privacy_consent: privacyConsent,
+          cost_acknowledged: costAcknowledged,
+          max_session_seconds: maxSessionSeconds,
+        },
+      });
     },
 
     isTerminal(entity) { return terminal.has(String(entity?.status ?? '').toUpperCase()); },
