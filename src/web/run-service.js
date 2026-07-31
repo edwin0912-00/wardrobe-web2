@@ -20,7 +20,7 @@ import { PipelineRunner } from '../runner/pipeline-runner.js';
 import { assessImageQuality, normalizeReference } from '../conditioning/index.mjs';
 import { normalizeWhitePngBytes } from '../qa/white-normalizer.mjs';
 import { GarmentNeedsInputError, GarmentConditioner } from './garment-conditioner.js';
-import { lockFirstAppearance } from './first-appearance-lock.js';
+import { FirstAppearanceNeedsInputError, lockFirstAppearance } from './first-appearance-lock.js';
 import {
   GARMENT_CATEGORIES,
   compileFullLookText,
@@ -45,6 +45,7 @@ const MAX_APPROVED_ITEM_CHECKPOINT_BYTES = 16 * 1024 * 1024;
 const MAX_APPROVED_ITEM_JOB_BYTES = 2 * 1024 * 1024;
 const MAX_APPROVED_ITEM_MANIFEST_BYTES = 16 * 1024 * 1024;
 const PNG_SIGNATURE = Buffer.from('89504e470d0a1a0a', 'hex');
+const FIRST_APPEARANCE_REVIEW_CODE = 'FIRST_APPEARANCE_NEEDS_INPUT';
 // A valid .webp was rejected as UNSUPPORTED_MEDIA_TYPE because curl declared
 // application/octet-stream, and the identical bytes were accepted once the client
 // relabelled them image/webp. Browsers fill the header in, so only a mobile app, a
@@ -673,6 +674,26 @@ export class RunService {
       });
       return this.#write(state, { status: 'COMPLETED', phase: 'COMPLETED', inner_state: null, terminal_stage: null, message: 'Аватар і образ готові', outputs: state.outputs });
     } catch (error) {
+      /* Core avatar/outfit generation has already passed and materialized its
+       * outputs at this point. First-appearance evidence is a follow-up
+       * contract, not a reason to erase or hide that result. Keep the durable
+       * outputs, expose a retryable NEEDS_INPUT state, and let the client show
+       * the image while the follow-up evidence is repaired. */
+      if (error instanceof FirstAppearanceNeedsInputError && state.outputs?.avatar_outfit) {
+        const reviewError = {
+          name: error.name,
+          code: FIRST_APPEARANCE_REVIEW_CODE,
+          message: error.message,
+          details: error.details ?? null,
+        };
+        return this.#write(state, {
+          status: 'NEEDS_INPUT',
+          phase: 'CORE_PIPELINE',
+          terminal_stage: 'FIRST_APPEARANCE',
+          message: 'Образ готовий; потрібно уточнити додаткову річ',
+          error: reviewError,
+        });
+      }
       if (error instanceof GarmentNeedsInputError) {
         const passport = error.details.passport;
         const garments = passport?.items ? groupGarmentViews(passport.items, passport.reference_sets) : state.garments;
@@ -1596,12 +1617,16 @@ export class RunService {
     };
   }
 
-  async #verifyCompletedOutputSet(runId) {
+  async #verifyCompletedOutputSet(runId, { allowFirstAppearanceReview = false } = {}) {
     if (typeof runId !== 'string' || !SAFE_RUN_ID.test(runId)) {
       throw new Error('Completed output run id is invalid');
     }
     const state = await this.#read(runId);
-    if (!state || state.status !== 'COMPLETED') {
+    const reviewState = allowFirstAppearanceReview
+      && ['NEEDS_INPUT', 'FAILED'].includes(state?.status)
+      && (state?.error?.code === FIRST_APPEARANCE_REVIEW_CODE
+        || state?.error?.name === 'FirstAppearanceNeedsInputError');
+    if (!state || (state.status !== 'COMPLETED' && !reviewState)) {
       throw new Error('Completed output source run must exist and be completed');
     }
     const outputDirectory = path.join(this.runDirectory(runId), 'outputs');
@@ -1777,7 +1802,7 @@ export class RunService {
     if (!allowed.has(name)) return null;
     if (name !== 'art_director_scene.png') {
       try {
-        const verified = await this.#verifyCompletedOutputSet(runId);
+        const verified = await this.#verifyCompletedOutputSet(runId, { allowFirstAppearanceReview: true });
         return ({
           'avatar.png': verified.avatar,
           'avatar_outfit.png': verified.outfit,
