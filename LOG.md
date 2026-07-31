@@ -1396,3 +1396,14 @@ Beta health reports release SHA `21fd0c8` ready.
 weakened_checks: legacy clips created before this change have no frozen
 reference copy and remain rejected; the observed legacy clip also has a video
 SHA equal to its directing reference and is blocked for reference leakage.
+
+2026-08-01 · Fashion Shoot structured-reference bounds · `dc67de6` → candidate
+Change: bound every compiled structured-reference fact at the single
+`referenceAsset()` producer boundary, with a word-boundary truncation rule and
+a catalogue-wide schema regression.
+Why: the live shoot path compiled 90 facts over the strict 240-character
+contract; no provider call or QA candidate was possible, so the UI surfaced a
+generic executor failure after retries.
+Evidence: structured-reference plus editorial/Create Universe suite `67/67`
+PASS; `verify:contracts` and `verify:canon` PASS; no weakened checks and no
+paid generation.

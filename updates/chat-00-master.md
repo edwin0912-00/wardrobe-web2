@@ -49,6 +49,28 @@ Journey: NOT_RUN — no paid generation or browser journey was started by this
 source integration.
 weakened_checks: none.
 
+## 2026-08-01 · Fashion Shoot structured-reference bound integration
+
+Integrated the verified Claude handoff `dc67de6c860e7eb4da3cdf8a95b21a5835f3b49c`
+on top of the current beta `7f7c271`. The live Fashion Shoot failure was before
+provider submission: compiled `spatial_cues`, materials, palette, protected
+regions and other facts exceeded the strict 240-character structured-reference
+schema, so every slot exhausted retries with only a generic executor error.
+`referenceAsset()` now bounds every fact at the single construction point and
+truncates near the limit on a word boundary. A catalogue-wide regression walks
+every runnable style, every slot and every JSON reference against the exact
+production schema.
+
+Code: TESTED — structured-reference + editorial/Create Universe suite `67/67`
+PASS; `npm run verify:contracts` PASS; `npm run verify:canon` PASS; source
+branch itself reported the pre-change bound test listing 90 oversized facts.
+Beta: READY_FOR_BETA_DEPLOY — candidate SHA must be activated exactly after
+push; no provider generation was spent.
+Journey: NOT_RUN — release activation and public browser Fashion Shoot smoke
+remain the next step.
+weakened_checks: none; the strict schema remains enforced and only the
+producer-side representation is bounded.
+
 ## 2026-07-31 · final activation
 
 The beta head is now `2334c9d30bb387396bdb74945c347a194d2d19d3` (also pushed to

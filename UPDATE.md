@@ -1,5 +1,17 @@
 # Wardrobe update board
 
+## 2026-08-01 · release candidate pending beta activation
+
+Current source before this candidate: `origin/beta` `7f7c271`.
+
+- Integrated safe current-beta UI atoms from `chat03/fashion-video-preview-delivery-20260731` without importing its stale video-route rewrite.
+- Integrated Claude handoff `dc67de6` (`fix/shoot-structured-reference-bound-20260801`): every compiled Fashion Shoot structured-reference fact is bounded at `referenceAsset()`; the strict 240-character contract remains enforced. This addresses the live pre-provider failure that exhausted every slot before Higgsfield.
+- Candidate branch: `release/candidate-20260801`; exact tested SHA is recorded in the release-owner update after push.
+- Code proof: editorial/Create Universe + structured-reference suite `67/67 PASS`; strict contracts and canon PASS.
+- Beta: `READY_FOR_BETA_DEPLOY` until the exact candidate SHA is pushed and activated through `tools/deploy-beta-release.mjs`.
+- Journey: `NOT_RUN` until the public beta Fashion Shoot smoke is observed.
+- `weakened_checks: none`.
+
 ## Beta sync · 2026-07-31 · integration candidate
 
 This sync started from the safe beta source cut `e7d175c`. The synced release

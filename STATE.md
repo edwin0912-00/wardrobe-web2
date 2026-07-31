@@ -519,3 +519,15 @@ be weakened to hide it.
   leakage. Audio assembly does not turn that into a PASS.
 - Evidence: 155/155 video tests; actual ffmpeg stream verification; beta
   health ready. weakened_checks: no new paid generation was spent.
+
+## Fashion Shoot structured-reference bounds — 2026-08-01
+
+- Candidate integrates Claude handoff `dc67de6c860e7eb4da3cdf8a95b21a5835f3b49c`
+  on current beta `7f7c271`.
+- `referenceAsset()` now bounds every structured fact before hashing/packing;
+  this fixes the live pre-provider failure where 90 compiled facts exceeded the
+  240-character schema and every slot ended as a generic executor failure.
+- Evidence on the candidate: structured-reference plus editorial/Create
+  Universe tests `67/67` PASS; strict contracts and canon verification PASS.
+- Beta: READY_FOR_BETA_DEPLOY until exact candidate SHA is activated. Journey:
+  NOT_RUN. weakened_checks: none.

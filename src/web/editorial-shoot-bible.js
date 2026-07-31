@@ -354,7 +354,7 @@ export function compileEditorialShootBible({ mode, basePack }) {
 }
 
 function referenceAsset(referenceId, role, document) {
-  const data = sceneCanonicalJsonBytes(document);
+  const data = sceneCanonicalJsonBytes(boundedReferenceDocument(document));
   return {
     reference_id: referenceId,
     role,
@@ -365,9 +365,48 @@ function referenceAsset(referenceId, role, document) {
   };
 }
 
+/* EVERY FACT IS BOUNDED HERE, NOT AT EACH CALL SITE.
+ *
+ * `scene-structured-reference.schema.json` caps every fact string at 240 characters, and
+ * `verifiedSceneReference` rejects the whole document when one exceeds it. Two fields were
+ * bounded by hand — `description` through the helper below, one `key` through an inline
+ * slice — and everything else was passed through raw: spatial cues, materials, palette,
+ * protected regions, the second `key`. Composed cues are the ones that grow, because they
+ * interpolate slot direction into a sentence.
+ *
+ * Observed on the live beta runtime: for `shoot.skylight_haze.sculptural_three_quarter` the
+ * fourth spatial cue compiled to 303 characters. Every attempt on every slot then failed
+ * with `GENERATION_FAILED: references[0] does not match the strict structured-reference
+ * schema`, before any provider call. With no attempt carrying a candidate, the child scene
+ * could return no hash-bound QA evidence, so the parent reported `EXECUTOR_FAILED` and the
+ * shoot ended `NEEDS_RETRY` with five FAILED slots after six attempts each. The visible
+ * symptom was "Fashion Shoot does not work anywhere"; the cause was one overlong sentence.
+ *
+ * Bounding at the single choke point means a future field cannot reintroduce this: any fact
+ * that reaches a structured reference is already within the contract. */
+function boundedReferenceDocument(document) {
+  if (!document || typeof document !== 'object' || !document.facts) return document;
+  const facts = {};
+  for (const [key, value] of Object.entries(document.facts)) {
+    if (typeof value === 'string') facts[key] = boundedReferenceFact(value);
+    else if (Array.isArray(value)) {
+      facts[key] = value.map((item) => (typeof item === 'string' ? boundedReferenceFact(item) : item));
+    } else facts[key] = value;
+  }
+  return { ...document, facts };
+}
+
+/* Truncation lands on a word boundary when one is close enough to the limit. A hard slice
+ * cut sentences mid-word, and these strings are read by an image model: "no unmotivated
+ * camera-axis beauty fill" becoming "no unmotivated camera-axis beauty fi" is a direction
+ * that no longer parses. Losing the tail of a sentence is unavoidable at the bound; losing
+ * the middle of a word is not. */
 function boundedReferenceFact(value, maximumLength = 240) {
   const text = String(value ?? '');
-  return text.length <= maximumLength ? text : text.slice(0, maximumLength);
+  if (text.length <= maximumLength) return text;
+  const cut = text.slice(0, maximumLength);
+  const lastSpace = cut.lastIndexOf(' ');
+  return lastSpace >= maximumLength - 40 ? cut.slice(0, lastSpace) : cut;
 }
 
 function compiledReferenceAssets({ presetId, modeId, shotSpec: shot, basePack }) {
