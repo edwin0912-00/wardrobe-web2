@@ -208,13 +208,23 @@ export async function registerVideoRoutes(app, {
   app.post('/api/profile/video-clips', async (request, reply) => {
     sameOriginMutation(request);
     const session = await profileApi.resolveRequestProfile(request, reply);
-    const { look_id, surface, motion_mode, duration_seconds, style_note } = request.body ?? {};
+    const {
+      look_id,
+      surface,
+      style_id,
+      motion_mode,
+      duration_seconds,
+      style_note,
+    } = request.body ?? {};
 
     if (typeof look_id !== 'string' || look_id.length === 0) {
       throw new ProfileError(400, 'MISSING_LOOK_ID', 'look_id is required');
     }
     if (typeof surface !== 'string') {
       throw new ProfileError(400, 'MISSING_SURFACE', 'surface is required (tv or mirror)');
+    }
+    if (typeof style_id !== 'string' || style_id.length === 0) {
+      throw new ProfileError(400, 'MISSING_VIDEO_STYLE_ID', 'style_id is required');
     }
     if (typeof motion_mode !== 'string') {
       throw new ProfileError(400, 'MISSING_MOTION_MODE', 'motion_mode is required');
@@ -244,6 +254,7 @@ export async function registerVideoRoutes(app, {
           profileId: session.profileId,
           lookId: look_id,
           approvedLook,
+          referenceId: style_id,
           motionMode: motion_mode,
         })
       : null;
@@ -260,10 +271,22 @@ export async function registerVideoRoutes(app, {
         requirements: capability.requirements,
       });
     }
-    const [identityReference, garmentReference] = await Promise.all([
-      runService.approvedIdentityReferenceForRun(lookDescriptor.runId),
-      profiles.approvedLookLiveReference(session.profileId, look_id, runService),
-    ]);
+    // Video 1 is the selected style MP4 and Image 1 is the approved master
+    // look.  A full garment composite helps fidelity, but its Real-time Look
+    // taxonomy requirement must never block this independent V2V product.
+    const identityReference = await runService.approvedIdentityReferenceForRun(lookDescriptor.runId);
+    let garmentReference = null;
+    try {
+      garmentReference = await profiles.approvedLookLiveReference(
+        session.profileId,
+        look_id,
+        runService,
+      );
+    } catch (error) {
+      if (!(error instanceof ProfileError) || error.code !== 'LIVE_REFERENCE_INCOMPLETE_LOOK') {
+        throw error;
+      }
+    }
 
     try {
       const result = await videoService.createClip({
@@ -279,11 +302,11 @@ export async function registerVideoRoutes(app, {
             bytes: Buffer.from(identityReference.data),
             sha256: identityReference.sha256,
           },
-          {
+          ...(garmentReference ? [{
             role: 'garment_detail',
             bytes: Buffer.from(garmentReference.image),
             sha256: garmentReference.reference_sha256,
-          },
+          }] : []),
         ],
         lookBinding: {
           profileId: session.profileId,
@@ -302,6 +325,7 @@ export async function registerVideoRoutes(app, {
         job_id: result.jobId,
         status: result.status,
         surface,
+        style_id,
         motion_mode,
         look_id,
       });

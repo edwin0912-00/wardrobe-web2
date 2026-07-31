@@ -107,6 +107,7 @@ test('saved look exposes actionable branches and their honest pipeline explanati
   assert.match(appSource, /document\.createElement\('video'\)/);
   assert.match(appSource, /video\.src = style\.reference_url/);
   assert.match(appSource, /video\.poster = style\.preview_url/);
+  assert.match(appSource, /style_id: styleId/);
   assert.doesNotMatch(indexSource, /gentle_sway|confident_turn|editorial_pose/);
   assert.doesNotMatch(indexSource, /id="video-source-image"/);
   assert.match(indexSource, /id="video-result" class="video-result" hidden/);

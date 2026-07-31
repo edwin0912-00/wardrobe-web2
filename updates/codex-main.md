@@ -13,6 +13,20 @@ weakened_checks: none.
 ---
 
 Agent ID: codex-main
+Task ID: BETA-FASHION-VIDEO-DIRECT-STYLE-BINDING-001
+Pipeline: VIDEO.01 → VIDEO.03 · selected style → immutable provider request → QA
+State: CODE_VERIFIED — awaiting beta deployment
+Decision: Fashion Video POST now carries the selected `style_id` as well as its
+internal motion mode. The exact style MP4 becomes Video 1; the approved white
+master becomes Image 1. The optional garment composite is no longer allowed to
+import Real-time Look's top/bottom/footwear taxonomy gate into V2V.
+Evidence: route regression creates from a selected style with an incomplete
+Real-time garment taxonomy and sends only the valid identity companion.
+weakened_checks: none.
+
+---
+
+Agent ID: codex-main
 Task ID: BETA-FASHION-VIDEO-LEGACY-DELIVERY-001
 Pipeline: VIDEO.03 · Delivery only after video-style QA
 State: CODE_VERIFIED — awaiting beta deployment

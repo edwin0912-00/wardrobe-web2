@@ -1881,6 +1881,7 @@ document.querySelector('#video-generate').addEventListener('click', async () => 
   const lookId = idOfLook(selectedProfileLook);
   const selectedStyle = document.querySelector('#video-style-options .video-style-card[aria-checked="true"]');
   const surface = 'mirror';
+  const styleId = selectedStyle?.dataset.styleId;
   const motionMode = selectedStyle?.dataset.motionMode;
   const progressEl = document.querySelector('#video-progress');
   const progressFill = document.querySelector('#video-progress-fill');
@@ -1894,11 +1895,16 @@ document.querySelector('#video-generate').addEventListener('click', async () => 
   progressFill.style.width = '10%';
   progressStatus.textContent = 'Відправляємо вибраний стиль на Seedance 2…';
   try {
-    if (!motionMode) throw new Error('Обери один із трьох відеостилів.');
+    if (!styleId || !motionMode) throw new Error('Обери один із трьох відеостилів.');
     const res = await fetch('/api/profile/video-clips', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ look_id: lookId, surface, motion_mode: motionMode }),
+      body: JSON.stringify({
+        look_id: lookId,
+        surface,
+        style_id: styleId,
+        motion_mode: motionMode,
+      }),
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));

@@ -7,6 +7,7 @@ import test from 'node:test';
 import Fastify from 'fastify';
 
 import { registerVideoRoutes } from '../../src/web/video-routes.js';
+import { ProfileError } from '../../src/web/profile-service.js';
 
 function fixture() {
   const projected = [];
@@ -111,6 +112,7 @@ test('create fails closed before provider spend while Fashion Video has no refer
     payload: {
       look_id: '33333333-3333-4333-8333-333333333333',
       surface: 'mirror',
+      style_id: 'style-1',
       motion_mode: 'editorial_micro_moment',
     },
   });
@@ -294,6 +296,7 @@ test('create reaches VideoService only after the same two-reference contract is 
     payload: {
       look_id: '33333333-3333-4333-8333-333333333333',
       surface: 'mirror',
+      style_id: 'style-1',
       motion_mode: 'editorial_micro_moment',
     },
   });
@@ -306,6 +309,49 @@ test('create reaches VideoService only after the same two-reference contract is 
     ['identity_face', 'garment_detail'],
   );
   assert.equal(current.projected.length, 1);
+});
+
+test('Fashion Video uses the selected style id and does not inherit the Real-time Look taxonomy gate', async (t) => {
+  const current = fixture();
+  current.profiles.approvedLookLiveReference = async () => {
+    throw new ProfileError(422, 'LIVE_REFERENCE_INCOMPLETE_LOOK', 'Live needs a complete locked look; missing: top or one_piece');
+  };
+  current.videoService.fashionVideoCapability = async ({ referenceId, motionMode }) => ({
+    state: 'READY',
+    selected_style_id: referenceId,
+    reference_id: referenceId,
+    reference_path: '/runtime/references/style.mp4',
+    reference_sha256: 'd'.repeat(64),
+    reference_pack_sha256: 'e'.repeat(64),
+    motion_modes: [motionMode],
+    available_styles: availableStyles,
+  });
+  const app = Fastify();
+  t.after(() => app.close());
+  await registerVideoRoutes(app, {
+    profileApi: { resolveRequestProfile: async () => ({ profileId: 'profile-1' }) },
+    profiles: current.profiles,
+    videoService: current.videoService,
+    runService: {
+      outputFile: async () => '/runtime/runs/source/avatar_outfit.png',
+      approvedIdentityReferenceForRun: async () => ({
+        role: 'identity_face', data: Buffer.from('identity-reference'), sha256: 'a'.repeat(64),
+      }),
+    },
+  });
+  const response = await app.inject({
+    method: 'POST',
+    url: '/api/profile/video-clips',
+    payload: {
+      look_id: '33333333-3333-4333-8333-333333333333',
+      surface: 'mirror',
+      style_id: 'style-2',
+      motion_mode: 'motion_2',
+    },
+  });
+  assert.equal(response.statusCode, 202, response.body);
+  assert.equal(current.createRequests.at(-1).videoReference.reference_id, 'style-2');
+  assert.deepEqual(current.createRequests.at(-1).appearanceReferences.map((reference) => reference.role), ['identity_face']);
 });
 
 test('saved-look capability refuses a look outside the browser profile', async (t) => {
