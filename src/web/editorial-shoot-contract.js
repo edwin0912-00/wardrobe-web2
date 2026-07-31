@@ -12,6 +12,7 @@ export const EDITORIAL_SHOT_SLOTS = Object.freeze([
 ]);
 
 export const EDITORIAL_HERO_SLOT = EDITORIAL_SHOT_SLOTS[0];
+export const EDITORIAL_AUTO_REPAIR_MAX_RETRIES = 5;
 
 export const EDITORIAL_MODE_IDS = Object.freeze([
   'editorial.edwin_novak.organic_contrast',

@@ -203,7 +203,7 @@ test('Fashion Shoot makes the internal hero gate and every customer-frame state 
   assert.doesNotMatch(renderSource, /#editorial-connection'\)\.hidden = true/);
 });
 
-test('Fashion Shoot progress never reports a stopped or exhausted job as live work', () => {
+test('Fashion Shoot progress never reports a stopped or legacy failed job as live work', () => {
   const cancelled = editorialGalleryProgress({
     status: 'CANCELLED',
     phase: 'CANCELLED',
@@ -228,20 +228,40 @@ test('Fashion Shoot progress never reports a stopped or exhausted job as live wo
     shots: [
       { slot: 'clean_identity_hero', status: 'APPROVED', retry_count: 0 },
       { slot: 'environmental_hero', status: 'APPROVED', retry_count: 0 },
-      { slot: 'sculptural_three_quarter', status: 'FAILED', retry_count: 3 },
-      { slot: 'interference_frame', status: 'FAILED', retry_count: 3 },
-      { slot: 'material_or_accessory_detail', status: 'FAILED', retry_count: 3 },
-      { slot: 'wide_campaign_coda', status: 'FAILED', retry_count: 3 },
+      { slot: 'sculptural_three_quarter', status: 'FAILED', retry_count: 5, auto_repair_exhausted: true },
+      { slot: 'interference_frame', status: 'FAILED', retry_count: 5, auto_repair_exhausted: true },
+      { slot: 'material_or_accessory_detail', status: 'FAILED', retry_count: 5, auto_repair_exhausted: true },
+      { slot: 'wide_campaign_coda', status: 'FAILED', retry_count: 5, auto_repair_exhausted: true },
     ],
   });
   assert.equal(exhausted.active, false);
   assert.equal(exhausted.indeterminate, false);
-  assert.match(exhausted.stage, /відновлення на сервері/);
-  assert.doesNotMatch(exhausted.detail, /автоматично допрацьовуємо/);
+  assert.match(exhausted.stage, /Потрібна серверна діагностика/);
+  assert.doesNotMatch(exhausted.detail, /запускаються окремо автоматично/);
   assert.equal(
-    editorialShotProgress({ status: 'FAILED', retry_count: 3 }, { preflight: false }),
-    'Потрібне відновлення на сервері',
+    editorialShotProgress({
+      status: 'FAILED',
+      retry_count: 5,
+      auto_repair_exhausted: true,
+    }, { preflight: false }),
+    'Потрібна серверна діагностика',
   );
+
+  const exhaustedHero = editorialGalleryProgress({
+    status: 'NEEDS_RETRY',
+    phase: 'HERO_NEEDS_RETRY',
+    shots: [
+      { slot: 'clean_identity_hero', status: 'FAILED', retry_count: 5, auto_repair_exhausted: true },
+      { slot: 'environmental_hero', status: 'BLOCKED', retry_count: 0 },
+      { slot: 'sculptural_three_quarter', status: 'BLOCKED', retry_count: 0 },
+      { slot: 'interference_frame', status: 'BLOCKED', retry_count: 0 },
+      { slot: 'material_or_accessory_detail', status: 'BLOCKED', retry_count: 0 },
+      { slot: 'wide_campaign_coda', status: 'BLOCKED', retry_count: 0 },
+    ],
+  });
+  assert.equal(exhaustedHero.active, false);
+  assert.match(exhaustedHero.stage, /Потрібна серверна діагностика контрольного hero/);
+  assert.doesNotMatch(exhaustedHero.detail, /почнуться одразу/);
 
   const failureSource = sourceBetween(
     editorialUiSource,
@@ -262,10 +282,10 @@ test('Fashion Shoot progress never reports a stopped or exhausted job as live wo
 });
 
 test('Fashion Shoot progress assets advance one cache-busted module chain', () => {
-  assert.match(indexHtml, /scene\.css\?v=20260731-1/);
-  assert.match(indexHtml, /app\.js\?v=20260731-1/);
-  assert.match(appSource, /scene-ui\.js\?v=20260731-1/);
-  assert.match(sceneUiSource, /editorial-shoot-ui\.js\?v=20260731-1/);
+  assert.match(indexHtml, /scene\.css\?v=20260731-2/);
+  assert.match(indexHtml, /app\.js\?v=20260731-2/);
+  assert.match(appSource, /scene-ui\.js\?v=20260731-2/);
+  assert.match(sceneUiSource, /editorial-shoot-ui\.js\?v=20260731-2/);
 });
 
 test('gallery exposes five Fashion Shoot frames, not its internal style check', () => {
@@ -316,7 +336,7 @@ test('normal editorial states render controlled Ukrainian copy instead of raw se
     '  #renderBible() {',
   );
   assert.match(editorialUiSource, /function displayShootMessage\(shoot\)/);
-  assert.match(editorialUiSource, /Створюємо п’ять унікальних fashion-кадрів паралельно по два/);
+  assert.match(editorialUiSource, /Створюємо всі п’ять унікальних fashion-кадрів паралельно/);
   assert.match(editorialUiSource, /editorialGalleryProgress\(this\.shoot\)/);
   assert.doesNotMatch(renderSource, /shoot\.message/);
 });

@@ -153,12 +153,14 @@ const PUBLIC_EDITORIAL_EVENT_TYPES = new Set([
   'shoot.bible_approved',
   'shoot.hero_approved',
   'shoot.recovery_queued',
+  'shoot.auto_repair_recovered',
   'shoot.cancelled',
   'shot.started',
   'shot.resumed',
   'shot.qa_passed',
   'shot.qa_failed',
   'shot.executor_failed',
+  'shot.auto_repair_queued',
   'shot.retry_queued',
 ]);
 const PUBLIC_CODEX_WORKER_CODES = new Set([

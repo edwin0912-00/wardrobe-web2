@@ -361,6 +361,11 @@ test('public editorial DTO exposes output URLs but never clones private orchestr
       media_type: 'image/png',
     },
   };
+  shoot.shots[1] = {
+    ...shoot.shots[1],
+    status: 'FAILED',
+    retry_count: 5,
+  };
   const view = editorialShootView(shoot);
   const serialized = JSON.stringify(view);
   assert.equal(view.hero_output_sha256, 'c'.repeat(64));
@@ -374,6 +379,8 @@ test('public editorial DTO exposes output URLs but never clones private orchestr
   assert.match(view.hero_download_url, /\/shots\/clean_identity_hero\/download$/);
   assert.match(view.shots[0].output.image_url, /\/shots\/clean_identity_hero\/image$/);
   assert.match(view.shots[0].output.download_url, /\/shots\/clean_identity_hero\/download$/);
+  assert.equal(view.shots[0].auto_repair_exhausted, false);
+  assert.equal(view.shots[1].auto_repair_exhausted, true);
   assert.doesNotMatch(
     serialized,
     /request_fingerprint|idempotency_hash|state_integrity_sha256|resource_id|private-/,

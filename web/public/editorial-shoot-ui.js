@@ -92,6 +92,10 @@ function retryCount(shot) {
   return Number.isInteger(value) && value > 0 ? value : 0;
 }
 
+function autoRepairExhausted(shot) {
+  return shot?.auto_repair_exhausted === true;
+}
+
 function countStatus(shots, status) {
   return shots.filter((shot) => shot?.status === status).length;
 }
@@ -117,7 +121,9 @@ export function editorialShotProgress(shot, { preflight = false, connecting = fa
       : 'Створюємо кадр',
     QA_PASSED: 'QA пройдено',
     APPROVED: 'Готово та збережено',
-    FAILED: 'Потрібне відновлення на сервері',
+    FAILED: autoRepairExhausted(shot)
+      ? 'Потрібна серверна діагностика'
+      : 'Сервер автоматично відновлює кадр',
     CANCELLED: 'Зупинено',
   })[shot?.status] ?? 'Очікуємо оновлення стану';
 }
@@ -132,6 +138,9 @@ export function editorialGalleryProgress(shoot) {
     ['QUEUED', 'RUNNING'].includes(shot?.status) && retryCount(shot) > 0
   )).length;
   const failed = countStatus(shots, 'FAILED');
+  const exhaustedFailed = shots.filter((shot) => (
+    shot?.status === 'FAILED' && autoRepairExhausted(shot)
+  )).length;
   const heroAwaitingApproval = hero?.status && hero.status !== 'APPROVED';
   const preflight = Boolean(heroAwaitingApproval && [
     'HERO_RUNNING',
@@ -162,17 +171,22 @@ export function editorialGalleryProgress(shoot) {
     const heroRetry = retryCount(hero);
     const heroPassedQa = hero?.status === 'QA_PASSED';
     const heroActive = ['QUEUED', 'RUNNING'].includes(hero?.status);
+    const heroExhausted = autoRepairExhausted(hero);
     const heroSuffix = heroRetry > 0 ? ` · автоповтор №${heroRetry}` : '';
     const stage = heroPassedQa
       ? 'Контрольний hero пройшов QA'
       : (heroActive
         ? `Створюємо контрольний hero${heroSuffix}`
-        : 'Потрібне відновлення контрольного hero на сервері');
+        : (heroExhausted
+          ? 'Потрібна серверна діагностика контрольного hero'
+          : 'Сервер відновлює контрольний hero'));
     const detail = heroPassedQa
       ? 'Запускаємо п’ять фінальних кадрів одразу після фіксації QA.'
       : (heroActive
         ? `П’ять фінальних кадрів почнуться одразу після QA${heroSuffix}.`
-        : 'Готові клієнтські кадри не перезапускаємо.');
+        : (heroExhausted
+          ? 'Автоматичний бюджет вичерпано; повтор не потрібен від вас.'
+          : 'Готові клієнтські кадри не перезапускаємо.'));
     return {
       completed,
       running,
@@ -190,8 +204,12 @@ export function editorialGalleryProgress(shoot) {
   }
 
   if (failed > 0 && running === 0 && queued === 0) {
-    const stage = `Потрібне відновлення на сервері · ${failed} ${failed === 1 ? 'кадр' : 'кадри'}`;
-    const detail = 'Готові кадри збережено. Перевірте стан фотосесії ще раз.';
+    const stage = exhaustedFailed > 0
+      ? `Потрібна серверна діагностика · ${exhaustedFailed} ${exhaustedFailed === 1 ? 'кадр' : 'кадри'}`
+      : `Сервер автоматично відновлює · ${failed} ${failed === 1 ? 'кадр' : 'кадри'}`;
+    const detail = exhaustedFailed > 0
+      ? 'Готові кадри збережено. Автоматичний бюджет вичерпано; повтор не потрібен від вас.'
+      : 'Готові кадри збережено. Невдалі кадри запускаються окремо автоматично.';
     return {
       completed,
       running,
@@ -256,9 +274,9 @@ function displayShootMessage(shoot) {
     BIBLE_REVIEW: 'Готуємо вибраний стиль.',
     HERO_GENERATION: 'Перевіряємо образ перед зйомкою.',
     HERO_RETRY: 'Автоматично допрацьовуємо перевірку образу.',
-    HERO_NEEDS_RETRY: 'Допрацьовуємо перевірку образу на сервері.',
+    HERO_NEEDS_RETRY: 'Перевірка образу очікує серверного відновлення.',
     HERO_APPROVAL: 'Образ пройшов перевірку. Створюємо п’ять кадрів.',
-    SERIES_GENERATION: 'Створюємо п’ять унікальних fashion-кадрів паралельно по два.',
+    SERIES_GENERATION: 'Створюємо всі п’ять унікальних fashion-кадрів паралельно.',
     SHOT_RETRY: 'Готові кадри збережено. Решту автоматично допрацьовуємо окремо.',
     RECOVERY_QUEUED: 'Після перезапуску продовжуємо незавершені кадри без повтору готових.',
     COMPLETED: 'Усі п’ять fashion-кадрів готові та пройшли QA.',
@@ -267,8 +285,8 @@ function displayShootMessage(shoot) {
     BIBLE_PENDING_APPROVAL: 'Готуємо вибраний стиль.',
     HERO_RUNNING: 'Перевіряємо образ перед зйомкою.',
     HERO_PENDING_APPROVAL: 'Образ пройшов перевірку. Створюємо п’ять кадрів.',
-    SERIES_RUNNING: 'Створюємо п’ять унікальних fashion-кадрів паралельно по два.',
-    NEEDS_RETRY: 'Готові кадри збережено. Решту допрацьовуємо на сервері.',
+    SERIES_RUNNING: 'Створюємо всі п’ять унікальних fashion-кадрів паралельно.',
+    NEEDS_RETRY: 'Готові кадри збережено. Решта очікує серверного відновлення.',
     COMPLETED: 'Усі п’ять fashion-кадрів готові та пройшли QA.',
     CANCELLED: 'Фотосесію зупинено. Уже готові кадри збережено.',
   })[status] ?? 'Стан фотосесії оновлено.';

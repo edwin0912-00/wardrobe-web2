@@ -210,6 +210,7 @@ async function fixture(t, {
   executor = new FakeSceneExecutor(),
   rootDirectory = null,
   clock = monotonicClock(),
+  autoRepairBaseDelayMs = 0,
 } = {}) {
   const root = rootDirectory ?? await mkdtemp(path.join(os.tmpdir(), 'zeely-editorial-'));
   if (!rootDirectory) t.after(() => rm(root, { recursive: true, force: true }));
@@ -217,6 +218,7 @@ async function fixture(t, {
     rootDirectory: root,
     sceneExecutor: executor,
     clock,
+    autoRepairBaseDelayMs,
   });
   await service.initialize();
   const bible = makeBible();
@@ -384,7 +386,7 @@ test('Bible and hero approval replays bind both key and expected exact hash', as
   await current.service.waitForIdle(created.shoot_id);
 });
 
-test('hero QA and exact-hash approval are hard barriers, then the other five run at max concurrency two', async (t) => {
+test('hero QA and exact-hash approval are hard barriers, then all five customer frames start together', async (t) => {
   const heroDeferred = deferred();
   const postHeroGate = deferred();
   const executor = new FakeSceneExecutor({
@@ -437,16 +439,16 @@ test('hero QA and exact-hash approval are hard barriers, then the other five run
     idempotencyKey: 'approve-editorial-hero-correct-hash',
     expectedOutputSha256: heroPassed.shots[0].output.sha256,
   });
-  const twoPostHeroShotsRunning = await waitForState(
+  const fivePostHeroShotsRunning = await waitForState(
     current.service,
     created.shoot_id,
-    (state) => executor.inFlight === 2
-      && state.shots.slice(1).filter((shot) => shot.status === 'RUNNING').length === 2,
+    (state) => executor.inFlight === 5
+      && state.shots.slice(1).filter((shot) => shot.status === 'RUNNING').length === 5,
   );
-  assert.equal(executor.maxInFlight, 2);
+  assert.equal(executor.maxInFlight, 5);
   assert.equal(
-    twoPostHeroShotsRunning.shots.slice(1).filter((shot) => shot.status === 'RUNNING').length,
-    2,
+    fivePostHeroShotsRunning.shots.slice(1).filter((shot) => shot.status === 'RUNNING').length,
+    5,
   );
   postHeroGate.resolve();
   const completed = await waitForState(
@@ -457,7 +459,7 @@ test('hero QA and exact-hash approval are hard barriers, then the other five run
   );
   await current.service.waitForIdle(created.shoot_id);
 
-  assert.equal(executor.maxInFlight, 2);
+  assert.equal(executor.maxInFlight, 5);
   assert.equal(executor.providerOperations.size, 6);
   assert.deepEqual(completed.shots.map((shot) => shot.status), Array(6).fill('APPROVED'));
   assert.equal(new Set(completed.shots.map((shot) => shot.output.sha256)).size, 6);
@@ -471,7 +473,7 @@ test('hero QA and exact-hash approval are hard barriers, then the other five run
   }
 });
 
-test('two live service instances enforce one persisted global concurrency limit of two', async (t) => {
+test('two live service instances enforce one persisted global concurrency limit of five', async (t) => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'zeely-editorial-multi-instance-'));
   t.after(() => rm(root, { recursive: true, force: true }));
   const pending = new Map();
@@ -508,7 +510,7 @@ test('two live service instances enforce one persisted global concurrency limit 
   await waitForState(
     first.service,
     created.shoot_id,
-    (state) => state.shots.filter((shot) => shot.status === 'RUNNING').length === 2,
+    (state) => state.shots.filter((shot) => shot.status === 'RUNNING').length === 5,
   );
 
   const second = new EditorialShootService({
@@ -518,14 +520,14 @@ test('two live service instances enforce one persisted global concurrency limit 
   });
   await second.initialize();
   await wait(20);
-  assert.equal(executor.providerOperations.size, 3, 'hero plus only two post-hero operations');
-  assert.equal(executor.maxInFlight, 2);
+  assert.equal(executor.providerOperations.size, 6, 'hero plus all five post-hero operations');
+  assert.equal(executor.maxInFlight, 5);
   const activeKeys = [...pending.values()].filter((entry) => !entry.resolved);
-  assert.equal(activeKeys.length, 2);
+  assert.equal(activeKeys.length, 5);
 
   while ((await first.service.getShoot(created.shoot_id)).status !== 'COMPLETED') {
     const unresolved = [...pending.values()].filter((entry) => !entry.resolved);
-    assert.ok(unresolved.length <= 2, 'no more than two persisted post-hero operations may be active');
+    assert.ok(unresolved.length <= 5, 'no more than five persisted post-hero operations may be active');
     for (const entry of unresolved) {
       entry.resolved = true;
       entry.operation.resolve(executionResult(entry.context));
@@ -536,7 +538,7 @@ test('two live service instances enforce one persisted global concurrency limit 
     first.service.waitForIdle(created.shoot_id),
     second.waitForIdle(created.shoot_id),
   ]);
-  assert.equal(executor.maxInFlight, 2);
+  assert.equal(executor.maxInFlight, 5);
   assert.equal(
     new Set(executor.invocations.map((call) => call.idempotency_key)).size,
     6,
@@ -612,14 +614,18 @@ test('one failed shot automatically repairs without regenerating the look, hero,
   ]);
 });
 
-test('automatic repair is bounded and escalates only the exhausted frame', async (t) => {
+test('automatic repair continues past three failures and preserves all passed siblings', async (t) => {
   const failedSlot = 'interference_frame';
+  let attempts = 0;
   const executor = new FakeSceneExecutor({
     plans: {
-      [failedSlot]: (context) => executionResult(context, {
-        decision: 'FAIL',
-        failGate: 'NEAR_COPY_AND_LEAKAGE',
-      }),
+      [failedSlot]: (context) => {
+        attempts += 1;
+        return executionResult(context, attempts <= 4 ? {
+          decision: 'FAIL',
+          failGate: 'NEAR_COPY_AND_LEAKAGE',
+        } : {});
+      },
     },
     defaultDelayMs: 10,
   });
@@ -631,7 +637,59 @@ test('automatic repair is bounded and escalates only the exhausted frame', async
     (state) => state.status === 'HERO_PENDING_APPROVAL',
   );
   await current.service.approveHero(created.shoot_id, {
-    idempotencyKey: 'approve-hero-before-bounded-auto-repair',
+    idempotencyKey: 'approve-hero-before-continued-auto-repair',
+    expectedOutputSha256: heroPassed.shots[0].output.sha256,
+  });
+  const completed = await waitForState(
+    current.service,
+    created.shoot_id,
+    (state) => state.status === 'COMPLETED',
+    5_000,
+  );
+  await current.service.waitForIdle(created.shoot_id);
+
+  const repaired = completed.shots.find((shot) => shot.slot === failedSlot);
+  assert.equal(repaired.status, 'APPROVED');
+  assert.equal(repaired.retry_count, 4);
+  assert.equal(repaired.attempts.length, 5);
+  assert.equal(repaired.error, null);
+  for (const shot of completed.shots.filter((item) => item.slot !== failedSlot)) {
+    assert.equal(shot.status, 'APPROVED');
+    assert.equal(shot.retry_count, 0);
+    assert.equal(shot.attempts.length, 1);
+  }
+  assert.equal(
+    executor.invocations.filter((call) => call.slot === failedSlot).length,
+    5,
+  );
+  assert.equal(executor.providerOperations.size, 10);
+  const schemas = await compileSchemas();
+  const repairEvents = (await current.service.listEvents(created.shoot_id))
+    .filter((event) => event.event_type === 'shot.auto_repair_queued');
+  assert.equal(repairEvents.length, 4);
+  assert.ok(repairEvents.every((event) => schemas.validateEvent(event) === true));
+});
+
+test('automatic repair has a persisted server budget and never asks the user to retry', async (t) => {
+  const failedSlot = 'interference_frame';
+  const executor = new FakeSceneExecutor({
+    plans: {
+      [failedSlot]: (context) => executionResult(context, {
+        decision: 'FAIL',
+        failGate: 'NEAR_COPY_AND_LEAKAGE',
+      }),
+    },
+    defaultDelayMs: 5,
+  });
+  const current = await fixture(t, { executor });
+  const created = await createAndApproveBible(current);
+  const heroPassed = await waitForState(
+    current.service,
+    created.shoot_id,
+    (state) => state.status === 'HERO_PENDING_APPROVAL',
+  );
+  await current.service.approveHero(created.shoot_id, {
+    idempotencyKey: 'approve-hero-before-server-retry-budget',
     expectedOutputSha256: heroPassed.shots[0].output.sha256,
   });
   const escalated = await waitForState(
@@ -641,22 +699,20 @@ test('automatic repair is bounded and escalates only the exhausted frame', async
     5_000,
   );
   await current.service.waitForIdle(created.shoot_id);
-
   const exhausted = escalated.shots.find((shot) => shot.slot === failedSlot);
   assert.equal(exhausted.status, 'FAILED');
-  assert.equal(exhausted.retry_count, 3);
-  assert.equal(exhausted.attempts.length, 4);
+  assert.equal(exhausted.retry_count, 5);
+  assert.equal(exhausted.attempts.length, 6);
   assert.equal(exhausted.error.code, 'BLOCKING_QA_FAILED');
-  for (const shot of escalated.shots.filter((item) => item.slot !== failedSlot)) {
-    assert.equal(shot.status, 'APPROVED');
-    assert.equal(shot.retry_count, 0);
-    assert.equal(shot.attempts.length, 1);
-  }
   assert.equal(
     executor.invocations.filter((call) => call.slot === failedSlot).length,
-    4,
+    6,
   );
-  assert.equal(executor.providerOperations.size, 9);
+  assert.ok(
+    !(await current.service.listEvents(created.shoot_id))
+      .some((event) => event.event_type === 'shot.retry_queued'),
+    'automatic recovery never requires a user retry request',
+  );
 });
 
 test('write-ahead journal restores both state and event after an interrupted commit', async (t) => {
@@ -749,27 +805,31 @@ test('restart requeues an interrupted shot with the same operation and provider 
   assert.ok(events.some((event) => event.event_type === 'shot.resumed'));
 });
 
-test('a PASS result that still names a defect is rejected at the executor contract boundary', async (t) => {
+test('a PASS result that still names a defect is rejected, then the hero retries automatically', async (t) => {
   const executor = new FakeSceneExecutor({
     plans: {
       clean_identity_hero: (context) => {
         const result = executionResult(context);
-        result.qa.gates[0].defects = ['A_PASS_CANNOT_HIDE_THIS_DEFECT'];
+        if (context.attempt === 1) {
+          result.qa.gates[0].defects = ['A_PASS_CANNOT_HIDE_THIS_DEFECT'];
+        }
         return result;
       },
     },
   });
   const current = await fixture(t, { executor });
   const created = await createAndApproveBible(current);
-  const failed = await waitForState(
+  const repaired = await waitForState(
     current.service,
     created.shoot_id,
-    (state) => state.status === 'NEEDS_RETRY',
+    (state) => state.status === 'HERO_PENDING_APPROVAL',
   );
-  assert.equal(failed.shots[0].status, 'FAILED');
-  assert.equal(failed.shots[0].error.code, 'EXECUTOR_FAILED');
-  assert.equal(failed.shots[0].output, null);
-  assert.deepEqual(failed.shots.slice(1).map((shot) => shot.status), Array(5).fill('BLOCKED'));
+  assert.equal(repaired.shots[0].status, 'QA_PASSED');
+  assert.equal(repaired.shots[0].retry_count, 1);
+  assert.equal(repaired.shots[0].attempts.length, 2);
+  assert.equal(repaired.shots[0].attempts[0].error.code, 'EXECUTOR_FAILED');
+  assert.equal(repaired.shots[0].attempts[1].status, 'PASS');
+  assert.deepEqual(repaired.shots.slice(1).map((shot) => shot.status), Array(5).fill('BLOCKED'));
 });
 
 test('current state must still match the event head even when polling after the latest cursor', async (t) => {
@@ -792,7 +852,7 @@ test('current state must still match the event head even when polling after the 
 
 test('cancellation aborts active work, preserves passed hero bytes, and is idempotent', async (t) => {
   const postHeroDeferrals = Object.fromEntries(
-    EDITORIAL_SHOT_SLOTS.slice(1, 3).map((slot) => [slot, deferred()]),
+    EDITORIAL_SHOT_SLOTS.slice(1).map((slot) => [slot, deferred()]),
   );
   const plans = Object.fromEntries(
     Object.entries(postHeroDeferrals).map(([slot, pending]) => [
@@ -819,12 +879,12 @@ test('cancellation aborts active work, preserves passed hero bytes, and is idemp
     idempotencyKey: 'approve-hero-before-cancel-0001',
     expectedOutputSha256: heroPassed.shots[0].output.sha256,
   });
-  const twoRunning = await waitForState(
+  const fiveRunning = await waitForState(
     current.service,
     created.shoot_id,
-    (state) => state.shots.filter((shot) => shot.status === 'RUNNING').length === 2,
+    (state) => state.shots.filter((shot) => shot.status === 'RUNNING').length === 5,
   );
-  const heroBefore = cloneForAssertion(twoRunning.shots[0].output);
+  const heroBefore = cloneForAssertion(fiveRunning.shots[0].output);
   const cancelled = await current.service.cancelShoot(
     created.shoot_id,
     'User stopped the editorial series',
@@ -847,7 +907,7 @@ test('cancellation aborts active work, preserves passed hero bytes, and is idemp
   const final = await current.service.getShoot(created.shoot_id);
   assert.equal(final.status, 'CANCELLED');
   assert.deepEqual(final.shots[0].output, heroBefore);
-  assert.equal(executor.providerOperations.size, 3, 'hero plus only two launched post-hero shots');
+  assert.equal(executor.providerOperations.size, 6, 'hero plus all five launched post-hero shots');
 });
 
 test('tampering with the immutable ShootBible or event chain fails closed', async (t) => {

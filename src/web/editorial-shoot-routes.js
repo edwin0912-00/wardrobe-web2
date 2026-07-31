@@ -1,5 +1,8 @@
 import { createReadStream } from 'node:fs';
-import { isEditorialSha256 } from './editorial-shoot-contract.js';
+import {
+  EDITORIAL_AUTO_REPAIR_MAX_RETRIES,
+  isEditorialSha256,
+} from './editorial-shoot-contract.js';
 import {
   EditorialContactSheetError,
   createEditorialContactSheetManifest,
@@ -84,6 +87,8 @@ function publicShot(shootId, shot) {
     slot: shot.slot,
     status: shot.status,
     retry_count: shot.retry_count,
+    auto_repair_exhausted: shot.status === 'FAILED'
+      && shot.retry_count >= EDITORIAL_AUTO_REPAIR_MAX_RETRIES,
     output: shot.output ? {
       sha256: shot.output.sha256,
       receipt_sha256: shot.output.receipt_sha256,

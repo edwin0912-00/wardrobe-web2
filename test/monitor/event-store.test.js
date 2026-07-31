@@ -197,6 +197,20 @@ test('monitor projection uses finite enums for public stage, editorial event typ
   }).data, { status: 'HERO_RUNNING', stage: 'HERO_GENERATION' });
   assert.deepEqual(projectMonitorEvent({
     ...base,
+    source: 'runner',
+    type: 'editorial.phase',
+    data: {
+      status: 'SERIES_RUNNING',
+      stage: 'RECOVERY_QUEUED',
+      event_type: 'shot.auto_repair_queued',
+    },
+  }).data, {
+    status: 'SERIES_RUNNING',
+    stage: 'RECOVERY_QUEUED',
+    event_type: 'shot.auto_repair_queued',
+  });
+  assert.deepEqual(projectMonitorEvent({
+    ...base,
     source: 'server',
     type: 'service.codex_worker_fatal',
     data: { code: 'UNTRUSTED_CODE_TOKEN' },
