@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="/conflict.css?v=20260722-3">
   <link rel="stylesheet" href="/experience.css?v=20260723-6">
   <link rel="stylesheet" href="/result.css?v=20260728-2">
-  <link rel="stylesheet" href="/scene.css?v=20260723-4">
+  <link rel="stylesheet" href="/scene.css?v=20260731-1">
   <link rel="stylesheet" href="/scene-cta.css?v=20260727-1">
   <script type="module" src="/scene-cta.js?v=20260725-1"></script>
 </head>
@@ -429,7 +429,11 @@
               <section id="editorial-gallery-stage" class="editorial-gallery-stage" hidden>
                 <header>
                   <div><p>FASHION SHOOT · ПРОГРЕС</p><strong id="editorial-series-progress">0/5 fashion-кадрів готово</strong></div>
-                  <label class="editorial-progress-wrap"><progress id="editorial-progress-meter" max="5" value="0">0 з 5</progress><span id="editorial-progress-detail">Очікуємо запуск</span></label>
+                  <div id="editorial-progress-wrap" class="editorial-progress-wrap">
+                    <progress id="editorial-progress-meter" max="5" value="0" aria-describedby="editorial-progress-detail">0 з 5</progress>
+                    <strong id="editorial-progress-announce" class="editorial-progress-announce" role="status" aria-live="polite" aria-atomic="true">Очікуємо запуск</strong>
+                    <span id="editorial-progress-detail">Очікуємо запуск</span>
+                  </div>
                 </header>
                 <div id="editorial-gallery" class="editorial-gallery" aria-label="Кадри Fashion Shoot"></div>
                 <footer class="editorial-controls">
@@ -461,6 +465,6 @@
   </aside>
   <script src="/boot-guard.js?v=20260722-3"></script>
   <script src="/vendor/heic2any.min.js?v=0.0.4"></script>
-  <script type="module" src="/app.js?v=20260729-2"></script>
+  <script type="module" src="/app.js?v=20260731-1"></script>
 </body>
 </html>

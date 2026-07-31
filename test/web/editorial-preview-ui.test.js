@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
+import {
+  editorialGalleryProgress,
+  editorialShotProgress,
+} from '../../web/public/editorial-shoot-ui.js';
 
 const [
   clientSource,
@@ -130,6 +134,140 @@ test('generation uses SSE with polling fallback and keeps repair automatic and p
   assert.doesNotMatch(editorialStateSource, /status === 'NEEDS_RETRY'\) return 'failed'/);
 });
 
+test('Fashion Shoot makes the internal hero gate and every customer-frame state visible', () => {
+  const preflight = editorialGalleryProgress({
+    status: 'HERO_RUNNING',
+    phase: 'HERO_GENERATION',
+    shots: [
+      { slot: 'clean_identity_hero', status: 'RUNNING', retry_count: 1 },
+      { slot: 'environmental_hero', status: 'BLOCKED', retry_count: 0 },
+      { slot: 'sculptural_three_quarter', status: 'BLOCKED', retry_count: 0 },
+      { slot: 'interference_frame', status: 'BLOCKED', retry_count: 0 },
+      { slot: 'material_or_accessory_detail', status: 'BLOCKED', retry_count: 0 },
+      { slot: 'wide_campaign_coda', status: 'BLOCKED', retry_count: 0 },
+    ],
+  });
+  assert.equal(preflight.preflight, true);
+  assert.equal(preflight.completed, 0);
+  assert.equal(preflight.running, 0);
+  assert.equal(preflight.queued, 5);
+  assert.match(preflight.headline, /Внутрішня перевірка образу/);
+  assert.match(preflight.stage, /контрольний hero/);
+  assert.match(preflight.detail, /автоповтор №1/);
+
+  const series = editorialGalleryProgress({
+    status: 'SERIES_RUNNING',
+    phase: 'SERIES_GENERATION',
+    shots: [
+      { slot: 'clean_identity_hero', status: 'APPROVED', retry_count: 0 },
+      { slot: 'environmental_hero', status: 'APPROVED', retry_count: 0 },
+      { slot: 'sculptural_three_quarter', status: 'RUNNING', retry_count: 0 },
+      { slot: 'interference_frame', status: 'RUNNING', retry_count: 1 },
+      { slot: 'material_or_accessory_detail', status: 'QUEUED', retry_count: 0 },
+      { slot: 'wide_campaign_coda', status: 'QUEUED', retry_count: 1 },
+    ],
+  });
+  assert.equal(series.preflight, false);
+  assert.equal(series.completed, 1);
+  assert.equal(series.running, 2);
+  assert.equal(series.queued, 2);
+  assert.match(series.headline, /Готово: 1 з 5/);
+  assert.match(series.detail, /2 створюються/);
+  assert.match(series.detail, /2 у черзі/);
+  assert.equal(
+    editorialShotProgress({ status: 'QUEUED', retry_count: 1 }, { preflight: false }),
+    'Автоматично допрацьовуємо окремо · повтор №1',
+  );
+  assert.equal(
+    editorialShotProgress({ status: 'BLOCKED', retry_count: 0 }, { preflight: true }),
+    'Очікує внутрішню перевірку образу',
+  );
+
+  assert.match(indexHtml, /id="editorial-progress-announce"[^>]*role="status"/);
+  assert.match(editorialUiSource, /className = 'editorial-shot-meta'/);
+  assert.match(editorialUiSource, /gallery\.setAttribute\('aria-busy'/);
+  assert.match(sceneCss, /\.editorial-shot-meta\s*\{/);
+  const connectingSource = sourceBetween(
+    editorialUiSource,
+    '  #showConnecting(phase, message) {',
+    '  #showConnectionFailure(error, stage) {',
+  );
+  assert.match(connectingSource, /#renderGalleryCards\(/);
+  assert.doesNotMatch(connectingSource, /editorial-gallery'\)\.replaceChildren\(\)/);
+  const renderSource = sourceBetween(
+    editorialUiSource,
+    '  #renderShoot() {',
+    '  #renderBible() {',
+  );
+  assert.doesNotMatch(renderSource, /#editorial-phase'\)\.hidden = true/);
+  assert.doesNotMatch(renderSource, /#editorial-connection'\)\.hidden = true/);
+});
+
+test('Fashion Shoot progress never reports a stopped or exhausted job as live work', () => {
+  const cancelled = editorialGalleryProgress({
+    status: 'CANCELLED',
+    phase: 'CANCELLED',
+    shots: [
+      { slot: 'clean_identity_hero', status: 'APPROVED', retry_count: 0 },
+      { slot: 'environmental_hero', status: 'APPROVED', retry_count: 0 },
+      { slot: 'sculptural_three_quarter', status: 'CANCELLED', retry_count: 0 },
+      { slot: 'interference_frame', status: 'CANCELLED', retry_count: 0 },
+      { slot: 'material_or_accessory_detail', status: 'CANCELLED', retry_count: 0 },
+      { slot: 'wide_campaign_coda', status: 'CANCELLED', retry_count: 0 },
+    ],
+  });
+  assert.equal(cancelled.active, false);
+  assert.equal(cancelled.indeterminate, false);
+  assert.match(cancelled.headline, /Фотосесію зупинено/);
+  assert.match(cancelled.stage, /Збережено 1 з 5/);
+  assert.doesNotMatch(cancelled.detail, /наступн/);
+
+  const exhausted = editorialGalleryProgress({
+    status: 'NEEDS_RETRY',
+    phase: 'SHOT_RETRY',
+    shots: [
+      { slot: 'clean_identity_hero', status: 'APPROVED', retry_count: 0 },
+      { slot: 'environmental_hero', status: 'APPROVED', retry_count: 0 },
+      { slot: 'sculptural_three_quarter', status: 'FAILED', retry_count: 3 },
+      { slot: 'interference_frame', status: 'FAILED', retry_count: 3 },
+      { slot: 'material_or_accessory_detail', status: 'FAILED', retry_count: 3 },
+      { slot: 'wide_campaign_coda', status: 'FAILED', retry_count: 3 },
+    ],
+  });
+  assert.equal(exhausted.active, false);
+  assert.equal(exhausted.indeterminate, false);
+  assert.match(exhausted.stage, /відновлення на сервері/);
+  assert.doesNotMatch(exhausted.detail, /автоматично допрацьовуємо/);
+  assert.equal(
+    editorialShotProgress({ status: 'FAILED', retry_count: 3 }, { preflight: false }),
+    'Потрібне відновлення на сервері',
+  );
+
+  const failureSource = sourceBetween(
+    editorialUiSource,
+    '  #showConnectionFailure(error, stage) {',
+    '  hasResumeForLook(lookId) {',
+  );
+  assert.match(failureSource, /progressWrap\.classList\.remove\('is-active', 'is-indeterminate'\)/);
+  assert.match(failureSource, /gallery\.setAttribute\('aria-busy', 'false'\)/);
+  assert.match(editorialUiSource, /\['QUEUED', 'RUNNING'\]\.includes\(shot\.status\)/);
+  assert.doesNotMatch(editorialUiSource, /\['BLOCKED', 'QUEUED', 'RUNNING'\]\.includes\(shot\.status\)/);
+  const autoHeroSource = sourceBetween(
+    editorialUiSource,
+    '  async #autoApproveHero() {',
+    '  async retryShot(slot) {',
+  );
+  assert.match(autoHeroSource, /const approved = await this\.approveHero\(\)/);
+  assert.match(autoHeroSource, /if \(!approved\) this\.autoHeroApproved = false/);
+});
+
+test('Fashion Shoot progress assets advance one cache-busted module chain', () => {
+  assert.match(indexHtml, /scene\.css\?v=20260731-1/);
+  assert.match(indexHtml, /app\.js\?v=20260731-1/);
+  assert.match(appSource, /scene-ui\.js\?v=20260731-1/);
+  assert.match(sceneUiSource, /editorial-shoot-ui\.js\?v=20260731-1/);
+});
+
 test('gallery exposes five Fashion Shoot frames, not its internal style check', () => {
   assert.match(indexHtml, /id="editorial-gallery"[^>]*aria-label="Кадри Fashion Shoot"/);
   const portraitStart = sceneCss.lastIndexOf('@media (max-width: 700px) and (orientation: portrait)');
@@ -148,8 +286,8 @@ test('gallery exposes five Fashion Shoot frames, not its internal style check', 
   assert.match(editorialUiSource, /\.filter\(\(shot\) => shot\?\.slot !== INTERNAL_STYLE_CHECK_SLOT\)/);
   assert.match(editorialUiSource, /Готово: \$\{completed\} з 5/);
   assert.match(editorialUiSource, /editorial-progress-meter/);
-  assert.doesNotMatch(editorialUiSource, /Кадр \$\{String\(index \+ 1\)/);
-  assert.doesNotMatch(editorialUiSource, /Кадр у черзі/);
+  assert.match(editorialUiSource, /editorialShotLabel\(shot\.slot\)/);
+  assert.match(editorialUiSource, /editorialShotProgress\(shot, progress\)/);
   assert.match(
     portraitCss,
     /body\.workflow-active\.scene-active\s*\{[\s\S]*?height:\s*100svh;[\s\S]*?overflow:\s*hidden;/,
@@ -179,7 +317,7 @@ test('normal editorial states render controlled Ukrainian copy instead of raw se
   );
   assert.match(editorialUiSource, /function displayShootMessage\(shoot\)/);
   assert.match(editorialUiSource, /Створюємо п’ять унікальних fashion-кадрів паралельно по два/);
-  assert.match(editorialUiSource, /displayShootMessage\(this\.shoot\)/);
+  assert.match(editorialUiSource, /editorialGalleryProgress\(this\.shoot\)/);
   assert.doesNotMatch(renderSource, /shoot\.message/);
 });
 

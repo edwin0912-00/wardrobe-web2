@@ -10,6 +10,7 @@ import {
 } from './profile-client.js?v=20260724-5';
 import {
   clearEditorialResume,
+  EDITORIAL_SHOT_SLOTS,
   editorialCanCancel,
   editorialCanDelete,
   editorialIsTerminal,
@@ -78,10 +79,162 @@ function modePreviewUrl(mode) {
 // hold under the selected style. It is a QA prerequisite, never one of the
 // five Fashion Shoot photographs the user receives.
 const INTERNAL_STYLE_CHECK_SLOT = 'clean_identity_hero';
+const CUSTOMER_SHOT_SLOTS = EDITORIAL_SHOT_SLOTS
+  .filter((slot) => slot !== INTERNAL_STYLE_CHECK_SLOT);
 
 function fashionFrames(shoot) {
   return (Array.isArray(shoot?.shots) ? shoot.shots : [])
     .filter((shot) => shot?.slot !== INTERNAL_STYLE_CHECK_SLOT);
+}
+
+function retryCount(shot) {
+  const value = Number(shot?.retry_count);
+  return Number.isInteger(value) && value > 0 ? value : 0;
+}
+
+function countStatus(shots, status) {
+  return shots.filter((shot) => shot?.status === status).length;
+}
+
+function heroForShoot(shoot) {
+  return (Array.isArray(shoot?.shots) ? shoot.shots : [])
+    .find((shot) => shot?.slot === INTERNAL_STYLE_CHECK_SLOT) ?? null;
+}
+
+export function editorialShotProgress(shot, { preflight = false, connecting = false } = {}) {
+  if (connecting) return 'Отримуємо стан сервера';
+  const retries = retryCount(shot);
+  const retrySuffix = retries > 0 ? ` · повтор №${retries}` : '';
+  return ({
+    BLOCKED: preflight
+      ? 'Очікує внутрішню перевірку образу'
+      : 'Очікує запуск серії',
+    QUEUED: retries > 0
+      ? `Автоматично допрацьовуємо окремо${retrySuffix}`
+      : 'У черзі на створення',
+    RUNNING: retries > 0
+      ? `Створюємо повторно${retrySuffix}`
+      : 'Створюємо кадр',
+    QA_PASSED: 'QA пройдено',
+    APPROVED: 'Готово та збережено',
+    FAILED: 'Потрібне відновлення на сервері',
+    CANCELLED: 'Зупинено',
+  })[shot?.status] ?? 'Очікуємо оновлення стану';
+}
+
+export function editorialGalleryProgress(shoot) {
+  const shots = fashionFrames(shoot);
+  const hero = heroForShoot(shoot);
+  const completed = shots.filter((shot) => ['QA_PASSED', 'APPROVED'].includes(shot?.status)).length;
+  const running = countStatus(shots, 'RUNNING');
+  const queued = countStatus(shots, 'QUEUED');
+  const automaticRepairs = shots.filter((shot) => (
+    ['QUEUED', 'RUNNING'].includes(shot?.status) && retryCount(shot) > 0
+  )).length;
+  const failed = countStatus(shots, 'FAILED');
+  const heroAwaitingApproval = hero?.status && hero.status !== 'APPROVED';
+  const preflight = Boolean(heroAwaitingApproval && [
+    'HERO_RUNNING',
+    'HERO_PENDING_APPROVAL',
+    'NEEDS_RETRY',
+  ].includes(shoot?.status));
+
+  if (shoot?.status === 'CANCELLED') {
+    const stage = `Збережено ${completed} з 5 кадрів`;
+    const detail = 'Фотосесію зупинено. Уже готові кадри збережено.';
+    return {
+      completed,
+      running,
+      queued,
+      automaticRepairs,
+      failed,
+      preflight: false,
+      active: false,
+      indeterminate: false,
+      headline: `Фотосесію зупинено · збережено ${completed} з 5`,
+      stage,
+      detail,
+      ariaValueText: `${stage}. ${detail}`,
+    };
+  }
+
+  if (preflight) {
+    const heroRetry = retryCount(hero);
+    const heroPassedQa = hero?.status === 'QA_PASSED';
+    const heroActive = ['QUEUED', 'RUNNING'].includes(hero?.status);
+    const heroSuffix = heroRetry > 0 ? ` · автоповтор №${heroRetry}` : '';
+    const stage = heroPassedQa
+      ? 'Контрольний hero пройшов QA'
+      : (heroActive
+        ? `Створюємо контрольний hero${heroSuffix}`
+        : 'Потрібне відновлення контрольного hero на сервері');
+    const detail = heroPassedQa
+      ? 'Запускаємо п’ять фінальних кадрів одразу після фіксації QA.'
+      : (heroActive
+        ? `П’ять фінальних кадрів почнуться одразу після QA${heroSuffix}.`
+        : 'Готові клієнтські кадри не перезапускаємо.');
+    return {
+      completed,
+      running,
+      queued: shots.length,
+      automaticRepairs,
+      failed,
+      preflight: true,
+      active: heroActive || heroPassedQa,
+      indeterminate: heroActive,
+      headline: 'Внутрішня перевірка образу · кадр 0 з 5',
+      stage,
+      detail,
+      ariaValueText: `${stage}. ${detail}`,
+    };
+  }
+
+  if (failed > 0 && running === 0 && queued === 0) {
+    const stage = `Потрібне відновлення на сервері · ${failed} ${failed === 1 ? 'кадр' : 'кадри'}`;
+    const detail = 'Готові кадри збережено. Перевірте стан фотосесії ще раз.';
+    return {
+      completed,
+      running,
+      queued,
+      automaticRepairs,
+      failed,
+      preflight: false,
+      active: false,
+      indeterminate: false,
+      headline: `Готово: ${completed} з 5`,
+      stage,
+      detail,
+      ariaValueText: `Готово ${completed} з 5. ${stage}.`,
+    };
+  }
+
+  const activeParts = [];
+  if (running > 0) activeParts.push(`${running} ${running === 1 ? 'створюється' : 'створюються'}`);
+  if (queued > 0) activeParts.push(`${queued} у черзі`);
+  if (automaticRepairs > 0) {
+    activeParts.push(`${automaticRepairs} автоматично допрацьовуємо окремо`);
+  }
+  if (failed > 0) activeParts.push(`${failed} очікує серверну допрацювання`);
+  const stage = completed === shots.length
+    ? 'Усі п’ять кадрів пройшли QA'
+    : (activeParts.join(' · ') || 'Готуємо наступний кадр');
+  const detail = completed === shots.length
+    ? 'Усі кадри збережено в цій фотосесії.'
+    : `${displayShootMessage(shoot)} ${stage}.`;
+  return {
+    completed,
+    running,
+    queued,
+    automaticRepairs,
+    failed,
+    preflight: false,
+    active: running > 0 || queued > 0 || automaticRepairs > 0,
+    indeterminate: false,
+    headline: `Готово: ${completed} з 5`,
+    stage,
+    detail,
+    ariaValueText: `Готово ${completed} з 5. ${stage}.`,
+  };
 }
 
 function displayShotStatus(status) {
@@ -229,19 +382,57 @@ export class EditorialShootUiController {
   #showConnecting(phase, message) {
     this.#show();
     this.#setHeader('Fashion Shoot', 'ПІДГОТОВКА');
-    this.#element('#editorial-phase').hidden = true;
+    this.#element('#editorial-phase').textContent = 'ПІДКЛЮЧАЄМО ФОТОСЕСІЮ';
+    this.#element('#editorial-phase').hidden = false;
     this.#element('#editorial-message').hidden = true;
-    this.#element('#editorial-connection').hidden = true;
+    this.#element('#editorial-connection').textContent = 'ОНОВЛЮЄМО СТАН';
+    this.#element('#editorial-connection').hidden = false;
     this.#element('#editorial-bible-stage').hidden = true;
     this.#element('#editorial-gallery-stage').hidden = false;
-    this.#element('#editorial-gallery').replaceChildren();
+    this.#renderGalleryCards(
+      CUSTOMER_SHOT_SLOTS.map((slot) => ({
+        slot,
+        status: 'BLOCKED',
+        retry_count: 0,
+        output: null,
+      })),
+      {
+        completed: 0,
+        running: 0,
+        queued: CUSTOMER_SHOT_SLOTS.length,
+        automaticRepairs: 0,
+        failed: 0,
+        preflight: false,
+        connecting: true,
+        active: true,
+        indeterminate: true,
+        headline: 'Підключаємо фотосесію · кадр 0 з 5',
+        stage: 'Отримуємо актуальний стан сервера',
+        detail: message || 'Готуємо живий прогрес кадрів.',
+        ariaValueText: message || 'Отримуємо актуальний стан Fashion Shoot.',
+      },
+    );
     this.#renderActionButtons();
   }
 
   #showConnectionFailure(error, stage) {
     this.#show();
     this.#setError(error?.message || 'Не вдалося з’єднатися із сервером');
-    this.#element('#editorial-connection').hidden = true;
+    const progressWrap = this.#element('#editorial-progress-wrap');
+    progressWrap.classList.remove('is-active', 'is-indeterminate');
+    const completed = this.shoot ? editorialGalleryProgress(this.shoot).completed : 0;
+    const meter = this.#element('#editorial-progress-meter');
+    meter.value = completed;
+    meter.setAttribute('aria-valuetext', 'Не вдалося оновити стан фотосесії.');
+    this.#element('#editorial-progress-announce').textContent = 'Не вдалося оновити стан';
+    this.#element('#editorial-progress-detail').textContent = 'Перевірте стан ще раз — готові кадри збережено.';
+    const gallery = this.#element('#editorial-gallery');
+    gallery.setAttribute('aria-busy', 'false');
+    for (const card of gallery.querySelectorAll('[aria-busy="true"]')) {
+      card.setAttribute('aria-busy', 'false');
+    }
+    this.#element('#editorial-connection').textContent = 'ПОТРІБНЕ ПІДКЛЮЧЕННЯ';
+    this.#element('#editorial-connection').hidden = false;
     this.connectionFailed = true;
     this.#element('#editorial-reconnect').hidden = false;
     this.telemetry('client.editorial_error', {
@@ -429,9 +620,12 @@ export class EditorialShootUiController {
     this.#element('#editorial-bible-stage').hidden = !bibleReview;
     this.#element('#editorial-gallery-stage').hidden = bibleReview;
     this.#element('#editorial-phase').textContent = displayShootState(shoot.status);
+    this.#element('#editorial-phase').hidden = false;
     this.#element('#editorial-message').hidden = true;
-    this.#element('#editorial-connection').hidden = true;
-    this.#element('#editorial-phase').hidden = true;
+    this.#element('#editorial-connection').textContent = this.polling
+      ? 'ОНОВЛЮЄМО СТАН'
+      : 'LIVE';
+    this.#element('#editorial-connection').hidden = false;
     this.#element('#editorial-mode-name').textContent = modeName(this.mode);
     this.#setHeader('Fashion Shoot', displayShootState(shoot.status), editorialTone(shoot));
     this.#renderGallery();
@@ -455,21 +649,32 @@ export class EditorialShootUiController {
   }
 
   #renderGallery() {
-    const shots = fashionFrames(this.shoot);
-    const completed = shots.filter(
-      (shot) => ['QA_PASSED', 'APPROVED'].includes(shot.status),
-    ).length;
+    this.#renderGalleryCards(fashionFrames(this.shoot), editorialGalleryProgress(this.shoot));
+  }
+
+  #renderGalleryCards(shots, progress) {
     const meter = this.#element('#editorial-progress-meter');
-    meter.value = completed;
-    this.#element('#editorial-series-progress').textContent = `Готово: ${completed} з 5`;
-    this.#element('#editorial-progress-detail').textContent = completed === 5
-      ? 'Усі кадри пройшли QA'
-      : displayShootMessage(this.shoot);
+    const progressWrap = this.#element('#editorial-progress-wrap');
+    if (progress.indeterminate) meter.removeAttribute('value');
+    else meter.value = progress.completed;
+    meter.setAttribute('aria-valuetext', progress.ariaValueText);
+    progressWrap.classList.toggle('is-active', progress.active);
+    progressWrap.classList.toggle('is-indeterminate', progress.indeterminate);
+    this.#element('#editorial-series-progress').textContent = progress.headline;
+    this.#element('#editorial-progress-announce').textContent = progress.stage;
+    this.#element('#editorial-progress-detail').textContent = progress.detail;
+    const gallery = this.#element('#editorial-gallery');
+    gallery.setAttribute('aria-busy', progress.active ? 'true' : 'false');
     const cards = shots.map((shot, index) => {
       const card = document.createElement('article');
       card.className = 'editorial-shot-card';
       card.dataset.status = shot.status ?? 'BLOCKED';
       card.dataset.slot = shot.slot;
+      const state = editorialShotProgress(shot, progress);
+      card.setAttribute('aria-label', `${editorialShotLabel(shot.slot)}: ${state}`);
+      card.setAttribute('aria-busy', ['QUEUED', 'RUNNING'].includes(shot.status)
+        ? 'true'
+        : 'false');
       const visual = document.createElement('div');
       visual.className = 'editorial-shot-visual';
       const imageUrl = outputImageUrl(shot.output);
@@ -492,8 +697,22 @@ export class EditorialShootUiController {
           label: editorialShotLabel(shot.slot),
         }));
         visual.append(inspect);
+      } else {
+        const placeholder = document.createElement('b');
+        placeholder.className = 'editorial-shot-placeholder';
+        placeholder.setAttribute('aria-hidden', 'true');
+        placeholder.textContent = String(index + 1).padStart(2, '0');
+        visual.append(placeholder);
       }
       card.classList.toggle('is-pending', !imageUrl && shot.status !== 'FAILED');
+      const metadata = document.createElement('div');
+      metadata.className = 'editorial-shot-meta';
+      const title = document.createElement('strong');
+      title.textContent = editorialShotLabel(shot.slot);
+      const status = document.createElement('small');
+      status.textContent = state;
+      metadata.append(title, status);
+      visual.append(metadata);
       const downloadUrl = outputDownloadUrl(shot.output);
       if (downloadUrl) {
         const download = document.createElement('a');
@@ -507,7 +726,7 @@ export class EditorialShootUiController {
       card.append(visual);
       return card;
     });
-    this.#element('#editorial-gallery').replaceChildren(...cards);
+    gallery.replaceChildren(...cards);
   }
 
   #openShotInspector({ imageUrl, downloadUrl, label }) {
@@ -595,7 +814,7 @@ export class EditorialShootUiController {
     const expectedSha256 = this.shoot?.shots?.[0]?.output?.sha256;
     if (this.actionPending || this.shoot?.status !== 'HERO_PENDING_APPROVAL' || !expectedSha256) return;
     const action = this.#pendingAction('approve_hero', { expectedSha256 });
-    await this.#executeAction(async () => approveProfileEditorialHero(this.shoot.shoot_id, {
+    return this.#executeAction(async () => approveProfileEditorialHero(this.shoot.shoot_id, {
       expectedOutputSha256: expectedSha256,
       idempotencyKey: action.idempotency_key,
     }), 'approve_hero');
@@ -607,11 +826,11 @@ export class EditorialShootUiController {
     if (!this.shoot?.shots?.[0]?.output?.sha256) return;
     this.autoHeroApproved = true;
     try {
-      await this.approveHero();
-    } catch {
-      // Preserve the immutable server state and retry through normal reconnect
-      // handling; do not replace the approved look or create a second job.
+      const approved = await this.approveHero();
+      if (!approved) this.autoHeroApproved = false;
+    } catch (error) {
       this.autoHeroApproved = false;
+      this.#showConnectionFailure(error, 'approve_hero');
     }
   }
 
@@ -636,8 +855,10 @@ export class EditorialShootUiController {
         action: stage,
         stage: shoot.phase,
       });
+      return true;
     } catch (error) {
       this.#showConnectionFailure(error, stage);
+      return false;
     } finally {
       this.actionPending = false;
       this.#renderActionButtons();
