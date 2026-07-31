@@ -15,6 +15,7 @@ import { createVideoRuntime } from './video-runtime.js';
 import { createFashionVideoReferenceResolver } from './video-reference-registry.js';
 import { createVideoAssetUrlResolver } from './video-source-bridge.js';
 import { loadReleaseIdentity } from './release-identity.js';
+import { GodViewAuth, OpenTesterGodViewAuth } from './god-view-auth.js';
 
 const projectRoot = path.resolve(import.meta.dirname, '..', '..');
 const releaseIdentity = await loadReleaseIdentity(projectRoot);
@@ -64,6 +65,17 @@ const auth = process.env.ZEELY_DEMO_PIN ? {
   secret: process.env.ZEELY_SESSION_SECRET,
   secure: process.env.ZEELY_COOKIE_SECURE !== 'false',
 } : null;
+const godViewAuth = process.env.ZEELY_GOD_VIEW_OPEN_TESTERS === 'true'
+  ? new OpenTesterGodViewAuth()
+  : process.env.ZEELY_GOD_VIEW_KEY
+    ? new GodViewAuth({
+      key: process.env.ZEELY_GOD_VIEW_KEY,
+      sessionSecret: process.env.ZEELY_GOD_VIEW_SESSION_SECRET
+        ?? process.env.ZEELY_SESSION_SECRET
+        ?? process.env.ZEELY_GOD_VIEW_KEY,
+      secure: process.env.ZEELY_COOKIE_SECURE !== 'false',
+    })
+    : null;
 const sceneDependencies = createSceneRuntimeDependencies({
   projectRoot,
   qaEvaluator: vlm.evaluateQa.bind(vlm),
@@ -121,6 +133,7 @@ const app = await createWebApp({
   videoService,
   videoSourceBridge,
   releaseIdentity,
+  godViewAuth,
 });
 const draftCleanupTimer = setInterval(() => drafts.cleanupExpired().catch(() => {}), 60_000);
 const profileCleanup = async () => {

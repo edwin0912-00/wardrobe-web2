@@ -891,6 +891,21 @@ body.profile-live-open {
   box-shadow: 0 0 0 2px rgba(184, 255, 61, .22), 0 18px 45px rgba(0, 0, 0, .34);
 }
 
+.god-view-trigger {
+  width: 1.35rem;
+  height: 1.35rem;
+  margin-left: auto;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  padding: 0;
+  color: inherit;
+  background: transparent;
+  font-size: .9rem;
+  line-height: 1;
+  opacity: .52;
+}
+.god-view-trigger:hover, .god-view-trigger:focus-visible { opacity: 1; }
+
 .video-control-group {
   display: flex;
   flex-direction: column;

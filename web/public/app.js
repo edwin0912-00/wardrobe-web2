@@ -2028,6 +2028,15 @@ document.querySelector('#create-scene').addEventListener('click', async () => {
   } catch (error) { showProfileError(error); }
 });
 document.querySelector('#open-profile').addEventListener('click', () => renderProfile().catch(showProfileError));
+document.querySelector('#god-view-trigger')?.addEventListener('click', () => {
+  window.location.assign('/god-view.html');
+});
+document.addEventListener('keydown', (event) => {
+  if (event.shiftKey && event.key.toLowerCase() === 'g') {
+    event.preventDefault();
+    window.location.assign('/god-view.html');
+  }
+});
 document.querySelector('#delete-profile').addEventListener('click', async () => {
   if (!confirm('Видалити всі аватари, образи та профіль цього браузера?')) return;
   try {

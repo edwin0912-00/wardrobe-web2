@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <meta name="referrer" content="same-origin">
+  <title>Wardrobe Control Room</title>
+  <link rel="stylesheet" href="/god-view.css?v=20260730-1">
+</head>
+<body>
+  <main class="god-shell">
+    <header class="god-header">
+      <div><p>INTERNAL · READ ONLY</p><h1>Control Room</h1></div>
+      <div class="god-header-actions"><span id="god-session" class="god-status">перевіряємо доступ</span><button id="god-logout" type="button" hidden>Вийти</button></div>
+    </header>
+
+    <section id="god-login" class="god-login" hidden>
+      <p class="god-eyebrow">UNIVERSAL ACCOUNT</p>
+      <h2>Внутрішній доступ</h2>
+      <p>Цей екран показує лише дані, які вже збережені в beta runtime. Він нічого не генерує, не змінює й не видаляє.</p>
+      <form id="god-login-form">
+        <label>God View key <input id="god-key" name="key" type="password" autocomplete="current-password" required></label>
+        <button type="submit">Відкрити Control Room</button>
+        <p id="god-login-error" role="alert"></p>
+      </form>
+    </section>
+
+    <section id="god-dashboard" hidden>
+      <section id="god-summary" class="god-summary" aria-label="Підсумок runtime"></section>
+      <p class="god-note">Згенеровані аватари, образи, сцени, Fashion Shoot і video receipts видно одразу. Вихідні фото речей розкриваються лише вручну. Жодна дія нижче не змінює pipeline.</p>
+      <div id="god-profiles" class="god-profiles" aria-live="polite"></div>
+    </section>
+  </main>
+  <script type="module" src="/god-view.js?v=20260730-1"></script>
+</body>
+</html>

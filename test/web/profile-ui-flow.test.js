@@ -104,6 +104,8 @@ test('saved look exposes actionable branches and their honest pipeline explanati
   assert.match(appSource, /payload\?\.requirements\?\.three_video_styles === true/);
   assert.match(appSource, /Fashion Video: обери одну з трьох перевірених відеостилістик/);
   assert.match(indexSource, /id="video-style-options"/);
+  assert.match(indexSource, /id="god-view-trigger"/);
+  assert.match(appSource, /window\.location\.assign\('\/god-view\.html'\)/);
   assert.match(appSource, /document\.createElement\('video'\)/);
   assert.match(appSource, /video\.src = style\.reference_url/);
   assert.match(appSource, /video\.poster = style\.preview_url/);

@@ -1,0 +1,48 @@
+:root { color-scheme: dark; font-family: Inter, ui-sans-serif, system-ui, sans-serif; background: #0b0d0c; color: #f2f5ed; }
+* { box-sizing: border-box; }
+body { margin: 0; background: radial-gradient(circle at 15% 0%, #24351a 0, transparent 28rem), #0b0d0c; }
+button, input { font: inherit; }
+button { border: 1px solid #66715d; border-radius: 999px; padding: .72rem 1rem; color: inherit; background: #192017; cursor: pointer; }
+button:hover { background: #2a3525; }
+.god-shell { max-width: 1480px; margin: 0 auto; min-height: 100vh; padding: 1.5rem; }
+.god-header { display: flex; justify-content: space-between; align-items: center; gap: 1rem; border-bottom: 1px solid #30372d; padding-bottom: 1rem; }
+.god-header p, .god-eyebrow, .god-label { margin: 0 0 .25rem; letter-spacing: .12em; font-size: .68rem; font-weight: 800; color: #a8b39e; }
+h1, h2, h3, p { margin-top: 0; }
+h1 { margin-bottom: 0; font-size: clamp(1.7rem, 4vw, 3.1rem); }
+.god-header-actions { display: flex; gap: .75rem; align-items: center; }
+.god-status { color: #c8ff70; font-size: .82rem; }
+.god-login { max-width: 500px; margin: 10vh auto; padding: 1.5rem; border: 1px solid #3d4838; border-radius: 1rem; background: #111610e8; }
+.god-login label { display: grid; gap: .5rem; margin-top: 1rem; font-weight: 700; }
+.god-login input { width: 100%; border: 1px solid #5d6857; border-radius: .6rem; padding: .7rem; background: #080a08; color: #fff; }
+.god-login button { margin-top: 1rem; background: #c8ff70; color: #0b1106; border-color: #c8ff70; font-weight: 800; }
+#god-login-error { min-height: 1.25rem; margin: .75rem 0 0; color: #ff9d9d; }
+.god-summary { display: grid; grid-template-columns: repeat(7, minmax(100px, 1fr)); gap: .75rem; margin: 1.5rem 0; }
+.god-summary article, .god-profile, .god-avatar, .god-look, .god-run, .god-output { border: 1px solid #374132; border-radius: .85rem; background: #121711db; }
+.god-summary article { padding: .85rem; }
+.god-summary strong { display: block; font-size: 1.5rem; color: #d9ff96; }
+.god-summary span { color: #aab1a6; font-size: .76rem; }
+.god-note { color: #adb6a4; max-width: 840px; font-size: .88rem; }
+.god-profiles { display: grid; gap: 1rem; }
+.god-profile { padding: 1rem; }
+.god-profile > header, .god-look > header, .god-output > header { display: flex; justify-content: space-between; gap: 1rem; align-items: baseline; }
+.god-id { color: #bcd6a2; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .76rem; overflow-wrap: anywhere; }
+.god-muted { color: #9aa295; font-size: .78rem; }
+.god-avatar-list, .god-look-list, .god-output-list, .god-run-list, .god-gallery { display: grid; gap: .75rem; margin-top: .75rem; }
+.god-avatar-list { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+.god-avatar, .god-look, .god-run, .god-output { padding: .75rem; }
+.god-image-row { display: grid; grid-template-columns: 104px 1fr; gap: .75rem; align-items: start; }
+.god-image-row > img, .god-shot img, .god-source-grid img { width: 100%; aspect-ratio: 3 / 4; object-fit: contain; border-radius: .5rem; background: #080a08; }
+.god-run { border-color: #293326; }
+.god-output-list { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+.god-output header h3 { margin-bottom: 0; font-size: .95rem; }
+.god-gallery { grid-template-columns: repeat(5, minmax(96px, 1fr)); }
+.god-shot { min-width: 0; }
+.god-shot img { display: block; }
+.god-shot span { display: block; margin-top: .25rem; font-size: .68rem; color: #aeb6a8; overflow-wrap: anywhere; }
+.god-source { margin-top: .7rem; }
+.god-source summary { cursor: pointer; color: #d8ff91; font-size: .82rem; }
+.god-source-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: .5rem; margin-top: .65rem; }
+.god-source-grid figcaption { font-size: .7rem; color: #aeb6a8; overflow-wrap: anywhere; }
+.god-video { width: 100%; max-height: 420px; background: #000; border-radius: .5rem; }
+@media (max-width: 900px) { .god-summary { grid-template-columns: repeat(3, minmax(100px, 1fr)); } .god-gallery { grid-template-columns: repeat(3, minmax(96px, 1fr)); } }
+@media (max-width: 560px) { .god-shell { padding: 1rem; } .god-header { align-items: flex-start; flex-direction: column; } .god-summary { grid-template-columns: repeat(2, minmax(100px, 1fr)); } .god-image-row { grid-template-columns: 80px 1fr; } .god-gallery { grid-template-columns: repeat(2, minmax(96px, 1fr)); } }

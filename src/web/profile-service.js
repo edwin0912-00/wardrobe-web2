@@ -1458,6 +1458,161 @@ export class ProfileService {
     `).all(profileId, lookId).map(rowVideoClip);
   }
 
+  /**
+   * Read-only, server-internal inventory for the separately authenticated God
+   * View. It intentionally excludes browser verifier hashes, cookies and any
+   * filesystem path. Asset bytes stay behind the God View route authorization.
+   */
+  godViewSnapshot() {
+    const now = nowFrom(this.clock);
+    const activeProfiles = this.#db().prepare(`
+      SELECT profile_id, created_at, expires_at
+      FROM profiles
+      WHERE revoked_at IS NULL AND expires_at > ?
+      ORDER BY created_at DESC, profile_id
+    `).all(now);
+    const profiles = activeProfiles.map((row) => ({
+      profile_id: row.profile_id,
+      created_at: iso(row.created_at),
+      expires_at: iso(row.expires_at),
+      avatars: [],
+      runs: [],
+    }));
+    const byProfile = new Map(profiles.map((profile) => [profile.profile_id, profile]));
+    const avatars = new Map();
+    const looks = new Map();
+
+    for (const row of this.#db().prepare(`
+      SELECT a.avatar_id, a.profile_id, a.source_run_id, a.created_at, a.expires_at
+      FROM avatars a JOIN profiles p ON p.profile_id = a.profile_id
+      WHERE p.revoked_at IS NULL AND p.expires_at > ?
+      ORDER BY a.created_at DESC, a.avatar_id
+    `).all(now)) {
+      const avatar = {
+        avatar_id: row.avatar_id,
+        source_run_id: row.source_run_id,
+        created_at: iso(row.created_at),
+        expires_at: iso(row.expires_at),
+        looks: [],
+      };
+      avatars.set(row.avatar_id, avatar);
+      byProfile.get(row.profile_id)?.avatars.push(avatar);
+    }
+
+    for (const row of this.#db().prepare(`
+      SELECT l.look_id, l.profile_id, l.avatar_id, l.source_run_id, l.parent_look_id,
+             l.created_at, l.expires_at
+      FROM looks l JOIN profiles p ON p.profile_id = l.profile_id
+      WHERE p.revoked_at IS NULL AND p.expires_at > ?
+      ORDER BY l.created_at DESC, l.look_id
+    `).all(now)) {
+      const look = {
+        look_id: row.look_id,
+        source_run_id: row.source_run_id,
+        parent_look_id: row.parent_look_id ?? null,
+        created_at: iso(row.created_at),
+        expires_at: iso(row.expires_at),
+        scenes: [],
+        shoots: [],
+        videos: [],
+      };
+      looks.set(row.look_id, look);
+      avatars.get(row.avatar_id)?.looks.push(look);
+    }
+
+    for (const row of this.#db().prepare(`
+      SELECT rc.run_id, rc.profile_id, rc.source_avatar_id, rc.source_look_id,
+             rc.saved_avatar_id, rc.saved_look_id, rc.claimed_at
+      FROM run_claims rc JOIN profiles p ON p.profile_id = rc.profile_id
+      WHERE p.revoked_at IS NULL AND p.expires_at > ?
+      ORDER BY rc.claimed_at DESC, rc.run_id
+    `).all(now)) {
+      byProfile.get(row.profile_id)?.runs.push({
+        run_id: row.run_id,
+        source_avatar_id: row.source_avatar_id ?? null,
+        source_look_id: row.source_look_id ?? null,
+        saved_avatar_id: row.saved_avatar_id ?? null,
+        saved_look_id: row.saved_look_id ?? null,
+        claimed_at: iso(row.claimed_at),
+      });
+    }
+
+    for (const row of this.#db().prepare(`
+      SELECT s.scene_id, s.look_id, s.preset_id, s.preset_version, s.status,
+             s.output_sha256, s.created_at, s.updated_at
+      FROM scenes s JOIN profiles p ON p.profile_id = s.profile_id
+      WHERE p.revoked_at IS NULL AND p.expires_at > ?
+      ORDER BY s.updated_at DESC, s.scene_id
+    `).all(now)) {
+      looks.get(row.look_id)?.scenes.push({
+        scene_id: row.scene_id,
+        preset_id: row.preset_id,
+        preset_version: row.preset_version,
+        status: row.status,
+        output_sha256: row.output_sha256 ?? null,
+        created_at: iso(row.created_at),
+        updated_at: iso(row.updated_at),
+      });
+    }
+
+    for (const row of this.#db().prepare(`
+      SELECT e.shoot_id, e.look_id, e.mode_id, e.mode_version, e.status,
+             e.approved_shot_count, e.hero_output_sha256, e.created_at, e.updated_at
+      FROM editorial_shoots e JOIN profiles p ON p.profile_id = e.profile_id
+      WHERE p.revoked_at IS NULL AND p.expires_at > ?
+      ORDER BY e.updated_at DESC, e.shoot_id
+    `).all(now)) {
+      looks.get(row.look_id)?.shoots.push({
+        shoot_id: row.shoot_id,
+        mode_id: row.mode_id,
+        mode_version: row.mode_version,
+        status: row.status,
+        approved_shot_count: row.approved_shot_count,
+        hero_output_sha256: row.hero_output_sha256 ?? null,
+        created_at: iso(row.created_at),
+        updated_at: iso(row.updated_at),
+      });
+    }
+
+    for (const row of this.#db().prepare(`
+      SELECT v.clip_id, v.look_id, v.motion_mode, v.surface, v.job_id, v.status,
+             v.output_sha256, v.duration_seconds, v.created_at, v.updated_at
+      FROM video_clips v JOIN profiles p ON p.profile_id = v.profile_id
+      WHERE p.revoked_at IS NULL AND p.expires_at > ?
+      ORDER BY v.updated_at DESC, v.clip_id
+    `).all(now)) {
+      looks.get(row.look_id)?.videos.push({
+        clip_id: row.clip_id,
+        motion_mode: row.motion_mode,
+        surface: row.surface,
+        job_id: row.job_id ?? null,
+        status: row.status,
+        output_sha256: row.output_sha256 ?? null,
+        duration_seconds: row.duration_seconds ?? null,
+        created_at: iso(row.created_at),
+        updated_at: iso(row.updated_at),
+      });
+    }
+    return { profiles };
+  }
+
+  godViewOwns(kind, resourceId) {
+    assertRunId(resourceId);
+    const now = nowFrom(this.clock);
+    const queries = {
+      RUN: `SELECT 1 FROM run_claims r JOIN profiles p ON p.profile_id = r.profile_id
+            WHERE r.run_id = ? AND p.revoked_at IS NULL AND p.expires_at > ?`,
+      SCENE: `SELECT 1 FROM scenes s JOIN profiles p ON p.profile_id = s.profile_id
+              WHERE s.scene_id = ? AND p.revoked_at IS NULL AND p.expires_at > ?`,
+      SHOOT: `SELECT 1 FROM editorial_shoots e JOIN profiles p ON p.profile_id = e.profile_id
+              WHERE e.shoot_id = ? AND p.revoked_at IS NULL AND p.expires_at > ?`,
+      VIDEO: `SELECT 1 FROM video_clips v JOIN profiles p ON p.profile_id = v.profile_id
+              WHERE v.clip_id = ? AND p.revoked_at IS NULL AND p.expires_at > ?`,
+    };
+    if (!queries[kind]) throw new Error('God View resource kind is invalid');
+    return Boolean(this.#db().prepare(queries[kind]).get(resourceId, now));
+  }
+
   deleteVideoClip(profileId, clipId) {
     assertRunId(clipId);
     return this.#transaction((database) => {

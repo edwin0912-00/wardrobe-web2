@@ -13,6 +13,22 @@ weakened_checks: none.
 ---
 
 Agent ID: codex-main
+Task ID: BETA-GOD-VIEW-GLOBAL-CATALOG-001
+Pipeline: TESTER CONTROL · global read-only catalogue
+State: CODE_VERIFIED — awaiting beta deployment
+Decision: restored the lost global God View branch, not the obsolete local
+pipeline-status modal. Its data model is every active beta profile → avatar →
+saved look → run, background, Fashion Shoot and video. In the explicit beta
+tester flag it needs no second password; it remains read-only and is reached
+from the small footer control or Shift+G.
+Evidence: God View API tests cover cross-profile aggregation and the explicit
+open-tester flag; normal profile ownership remains unchanged.
+weakened_checks: global catalogue visibility is intentionally enabled only by
+ZEELY_GOD_VIEW_OPEN_TESTERS=true on beta, under the operator's tester-link scope.
+
+---
+
+Agent ID: codex-main
 Task ID: BETA-FASHION-VIDEO-DIRECT-STYLE-BINDING-001
 Pipeline: VIDEO.01 → VIDEO.03 · selected style → immutable provider request → QA
 State: CODE_VERIFIED — awaiting beta deployment

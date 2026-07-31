@@ -1873,6 +1873,22 @@ export class RunService {
     try { await access(filename); return filename; } catch { return null; }
   }
 
+  // Raw person inputs are never part of the ordinary profile API. The only
+  // caller is the separately authenticated, read-only God View route.
+  async personSourceFile(runId) {
+    const state = await this.#read(runId);
+    const filename = state?.inputs?.person;
+    if (typeof filename !== 'string') return null;
+    try { await access(filename); return filename; } catch { return null; }
+  }
+
+  async identityDetailSourceFile(runId) {
+    const state = await this.#read(runId);
+    const filename = state?.inputs?.identity_detail;
+    if (typeof filename !== 'string') return null;
+    try { await access(filename); return filename; } catch { return null; }
+  }
+
   async selectGarments(runId, selections) {
     const state = await this.#read(runId);
     if (!state) return null;
