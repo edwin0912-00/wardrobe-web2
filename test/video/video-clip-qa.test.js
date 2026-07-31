@@ -111,6 +111,23 @@ test('approved reference audio passes when the delivery requires it', () => {
   assert.equal(result.pass, true);
 });
 
+test('bound reference audio is accepted only for an explicit salvage delivery contract', () => {
+  const probe = {
+    durationSeconds: 3,
+    width: 720, height: 1280,
+    hasAudio: true,
+    firstFrameRgb: new Uint8Array(10).fill(128),
+    lastFrameRgb: new Uint8Array(10).fill(128),
+  };
+  const result = evaluateClipQa({
+    durationMin: 3,
+    durationMax: 3,
+    aspectRatio: '9:16',
+    allowAudio: true,
+  }, probe);
+  assert.equal(result.pass, true);
+});
+
 test('black first frame is a defect', () => {
   const expected = { durationMin: 4, durationMax: 6, aspectRatio: '16:9' };
   const probe = {

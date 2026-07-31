@@ -7,6 +7,7 @@ import { OpenRouterVideoProvider } from '../providers/openrouter-video-provider.
 import { VideoProviderRouter } from '../providers/video-provider-router.js';
 import { extractFrame, probeVideo } from './ffprobe-video-probe.js';
 import { ClipStore, VideoService } from './video-service.js';
+import { salvageVideoFromQa } from './video-qa-salvage.js';
 
 const execFileAsync = promisify(execFile);
 
@@ -119,6 +120,7 @@ export function createVideoRuntime({
   assetUrlResolver,
   fashionVideoReferenceResolver = null,
   commandRunner = execFileAsync,
+  ffmpegRunner = execFileAsync,
   fetchFn = globalThis.fetch,
 } = {}) {
   if (typeof runtimeRoot !== 'string' || runtimeRoot.length === 0) {
@@ -145,6 +147,10 @@ export function createVideoRuntime({
       probeFn: probeVideo,
       extractFrameFn: extractFrame,
       composeFn: (args) => assembleFashionVideoDelivery({ ...args, commandRunner }),
+      salvageFn: (request) => salvageVideoFromQa(request, {
+        commandRunner: ffmpegRunner,
+        probeFn: probeVideo,
+      }),
     },
   });
 }

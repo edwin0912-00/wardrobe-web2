@@ -59,14 +59,23 @@ function byteRange(rangeHeader, size) {
 
 function hasVerifiedFashionStyle(liveClip) {
   const binding = liveClip?.motionReferenceBinding;
+  const referenceQa = liveClip?.salvage
+    ? liveClip.salvageReferenceAdherenceQa
+    : liveClip?.referenceAdherenceQa;
   return liveClip?.status === 'PASS'
     && /^[a-f0-9]{64}$/.test(binding?.sha256 ?? '')
     && /^[a-f0-9]{64}$/.test(binding?.packSha256 ?? '')
-    && liveClip?.referenceAdherenceQa?.pass === true
-    && liveClip?.referenceAdherenceQa?.cutCoverage?.pass === true;
+    && referenceQa?.pass === true
+    && referenceQa?.cutCoverage?.pass === true;
 }
 
 function publicVideoFailure(liveClip) {
+  if (liveClip?.salvage?.status === 'NEEDS_QA') {
+    return 'QA вирізала фрагменти з reference-людиною. Hero-only версія проходить повторну перевірку.';
+  }
+  if (liveClip?.salvage?.status === 'BLOCKED') {
+    return 'QA знайшла reference-людину, але hero-only монтаж недоступний у цьому runtime.';
+  }
   if (liveClip?.failureCode === 'VIDEO_PROVIDER_JOB_NOT_FOUND') {
     return 'Higgsfield більше не має цей job. Нове відео не створювалося автоматично.';
   }
@@ -129,7 +138,7 @@ export async function registerVideoRoutes(app, {
       output: liveClip.videoSha256
         ? {
             sha256: liveClip.videoSha256,
-            duration_seconds: liveClip.durationSeconds,
+            duration_seconds: liveClip.deliveryDurationSeconds ?? liveClip.durationSeconds,
           }
         : null,
       created_at: liveClip.createdAt,

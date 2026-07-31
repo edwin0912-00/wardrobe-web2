@@ -140,6 +140,20 @@ Minimal integration-only `start.js` handoff (not applied):
 
 weakened_checks: none for the controlled clip. Integration remains blocked only on the missing deployment-owned private HTTPS `videoAssetUrlResolver`; beta was deliberately not exercised.
 
+## Reference-person QA salvage — 2026-07-31
+
+Pipeline step: `VIDEO.03 QA → VIDEO.04 persisted delivery`.
+
+Decision: a hash-bound per-cut QA failure caused only by leaked reference-performer pixels may produce one deterministic hero-only derivative instead of spending on another provider generation. QA keeps only ordered cuts marked `PASS + APPROVED_AVATAR_ONLY`, rejects `NO_PERSON` and ambiguous/reference-person cuts, and refuses salvage when camera, motion, environment, grade, sequence or another creative dimension also fails. At least one second of approved hero footage must remain.
+
+The derivative is a new immutable `clip-salvaged.mp4`; the original provider MP4 and SHA remain preserved. `ffmpeg` concatenates only approved millisecond spans, restores continuous audio exclusively from the exact hash-bound motion reference and fast-starts H.264/yuv420p + AAC output. Provider audio remains forbidden. The derivative stays `NEEDS_QA` until fresh receipts bound to its output SHA independently pass first/last identity-item QA and complete per-cut reference-adherence QA. No salvage result can inherit PASS from the failed parent.
+
+Code: TESTED_BRANCH — `node --test test/video/video-qa-salvage.test.js test/video/video-clip-qa.test.js test/video/video-service.test.js test/video/video-runtime.test.js test/video/ffprobe-video-probe.test.js` PASS 62/62; syntax and `git diff --check` PASS. The Fastify route suite could not load in this isolated worktree because dependencies are not installed; no route behavior is claimed from that suite.
+
+Real no-provider proof: the new runtime salvaged the user-supplied 13.041667s result using three approved spans (`0–1.042`, `3.667–7.375`, `11.083–13.042`) and the exact `Dear.My.Final.mov` audio. Result: 6.709002s, 720×1280, 24fps, 161 H.264 High/yuv420p frames, AAC-LC stereo 44.1kHz; SHA-256 `3e61140383838c02cfbb95492c9a42381d4326d8c60d54a3c3acd5e5b0245407`.
+
+Beta: NOT_DEPLOYED. Journey: LOCAL_SALVAGE_PASS / PUBLIC_BETA_NOT_RUN. No provider create, paid generation, beta edit or deployment occurred. `weakened_checks: none`; the salvage path adds mandatory output-bound re-QA and does not widen PASS criteria.
+
 ## No-paid private video-source bridge — 2026-07-29
 
 Implemented `src/web/video-source-bridge.js`, owned by the video module. `createVideoAssetUrlResolver` issues a random opaque capability URL under the deployment-supplied bare HTTPS origin. Clip id, source SHA, approved-look receipt SHA and filesystem path remain server-side. Each capability is bound to the exact clip-owned `source.png`, source SHA-256, approved-look receipt SHA-256, detected media type and byte size.

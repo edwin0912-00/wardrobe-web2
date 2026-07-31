@@ -722,6 +722,160 @@ test('reference transfer QA refuses delivery when any covered cut exposes the re
   });
 });
 
+test('reference-performer leakage is cut into a hero-only delivery and must pass semantic QA again', async () => {
+  await withTempDir(async (dir) => {
+    const { provider } = makeStubProvider();
+    const store = new ClipStore(dir);
+    const originalPath = await store.saveVideo(
+      'salvage-clip',
+      Buffer.from('provider-video-with-reference-person'),
+    );
+    const referencePath = path.join(dir, 'reference.mp4');
+    await writeFile(referencePath, Buffer.from('motion-reference-with-original-music'));
+    const referenceSha = sha256(Buffer.from('motion-reference-with-original-music'));
+    const salvageCalls = [];
+    const service = new VideoService({
+      provider,
+      clipStore: store,
+      fashionVideoReferenceResolver: async () => ({
+        state: 'READY',
+        reference_path: referencePath,
+        reference_sha256: referenceSha,
+      }),
+      finalizer: {
+        salvageFn: async (request) => {
+          salvageCalls.push(request);
+          await writeFile(request.outputVideoPath, Buffer.from('hero-only-with-reference-music'));
+          return {
+            outputVideoPath: request.outputVideoPath,
+            durationSeconds: 3,
+            segmentCount: request.segments.length,
+            segments: request.segments,
+            audioSource: 'MOTION_REFERENCE',
+          };
+        },
+        probeFn: async () => ({
+          durationSeconds: 3, width: 720, height: 1280, fps: 24, hasAudio: true,
+        }),
+        extractFrameFn: async () => new Uint8Array(20).fill(128),
+      },
+    });
+    await store.save('salvage-clip', {
+      clipId: 'salvage-clip', jobId: 'job_salvage', status: 'NEEDS_QA',
+      mode: 'walk_stride', aspectRatio: '9:16', durationSeconds: 5,
+      sourceSha256: 'a'.repeat(64), videoPath: originalPath,
+      videoSha256: sha256(Buffer.from('provider-video-with-reference-person')),
+      qa: { pass: true }, identityItemQa: { pass: true },
+      motionReferenceBinding: { referenceId: 'style-salvage', sha256: referenceSha },
+    });
+    const leakCoverage = {
+      sample_rate_fps: 4,
+      cuts: [
+        {
+          cut_index: 0, start_ms: 0, end_ms: 1_000, sample_count: 4,
+          output_frame_sha256s: ['1'.repeat(64)], reference_frame_sha256s: ['2'.repeat(64)],
+          reference_performer_visible: false, visible_people: 'APPROVED_AVATAR_ONLY', decision: 'PASS',
+        },
+        {
+          cut_index: 1, start_ms: 1_000, end_ms: 3_000, sample_count: 8,
+          output_frame_sha256s: ['3'.repeat(64)], reference_frame_sha256s: ['4'.repeat(64)],
+          reference_performer_visible: true, visible_people: 'REFERENCE_PERFORMER', decision: 'FAIL',
+        },
+        {
+          cut_index: 2, start_ms: 3_000, end_ms: 5_000, sample_count: 8,
+          output_frame_sha256s: ['5'.repeat(64)], reference_frame_sha256s: ['6'.repeat(64)],
+          reference_performer_visible: false, visible_people: 'APPROVED_AVATAR_ONLY', decision: 'PASS',
+        },
+      ],
+    };
+    const leakChecks = referenceTransferCheckNames.map((name) => ({
+      name,
+      decision: [
+        'subject_replacement_every_cut',
+        'no_reference_performer_pixels',
+        'identity_and_outfit_every_subject_cut',
+      ].includes(name) ? 'FAIL' : 'PASS',
+    }));
+    const firstQa = await service.recordReferenceAdherenceQa('salvage-clip', {
+      clip_id: 'salvage-clip', job_id: 'job_salvage', source_sha256: 'a'.repeat(64),
+      motion_reference_sha256: referenceSha, evaluator: 'qa/coverage-v1',
+      cut_coverage: leakCoverage, checks: leakChecks,
+    });
+    assert.equal(firstQa.status, 'NEEDS_QA');
+    assert.equal(firstQa.salvage.status, 'NEEDS_QA');
+    assert.deepEqual(salvageCalls[0].segments, [
+      { start_ms: 0, end_ms: 1_000 },
+      { start_ms: 3_000, end_ms: 5_000 },
+    ]);
+    let saved = await store.load('salvage-clip');
+    assert.equal(saved.originalProviderVideoPath, originalPath);
+    assert.equal(saved.deliveryDurationSeconds, 3);
+    assert.equal(saved.qa.pass, true, 'bound reference audio is allowed only on the salvage derivative');
+
+    const salvageSha = saved.videoSha256;
+    const identityQa = await service.recordIdentityItemQa('salvage-clip', {
+      clip_id: 'salvage-clip', job_id: 'job_salvage', source_sha256: 'a'.repeat(64),
+      output_sha256: salvageSha,
+      results: { first: { decision: 'PASS' }, last: { decision: 'PASS' } },
+    });
+    assert.equal(identityQa.status, 'NEEDS_QA');
+    const finalQa = await service.recordReferenceAdherenceQa('salvage-clip', {
+      clip_id: 'salvage-clip', job_id: 'job_salvage', source_sha256: 'a'.repeat(64),
+      output_sha256: salvageSha, motion_reference_sha256: referenceSha,
+      cut_coverage: microCutCoverage({ durationMs: 3_000 }),
+      checks: referenceTransferChecks(),
+    });
+    assert.equal(finalQa.status, 'PASS');
+    assert.equal(finalQa.salvage.status, 'PASS');
+    saved = await store.load('salvage-clip');
+    assert.equal(saved.salvageIdentityItemQa.pass, true);
+    assert.equal(saved.salvageReferenceAdherenceQa.pass, true);
+    assert.equal(saved.status, 'PASS');
+  });
+});
+
+test('reference leakage is not salvaged when another creative QA dimension also fails', async () => {
+  await withTempDir(async (dir) => {
+    const { provider } = makeStubProvider();
+    const store = new ClipStore(dir);
+    let salvageCalls = 0;
+    const service = new VideoService({
+      provider,
+      clipStore: store,
+      fashionVideoReferenceResolver: async () => { throw new Error('must not resolve'); },
+      finalizer: { salvageFn: async () => { salvageCalls += 1; } },
+    });
+    await store.save('not-salvageable', {
+      clipId: 'not-salvageable', jobId: 'job_not_salvageable', status: 'NEEDS_QA',
+      durationSeconds: 5, sourceSha256: 'a'.repeat(64), qa: { pass: true },
+      identityItemQa: { pass: true }, motionReferenceBinding: { sha256: 'b'.repeat(64) },
+    });
+    const checks = referenceTransferCheckNames.map((name) => ({
+      name,
+      decision: ['no_reference_performer_pixels', 'camera_and_framing'].includes(name)
+        ? 'FAIL' : 'PASS',
+    }));
+    const result = await service.recordReferenceAdherenceQa('not-salvageable', {
+      clip_id: 'not-salvageable', job_id: 'job_not_salvageable',
+      source_sha256: 'a'.repeat(64), motion_reference_sha256: 'b'.repeat(64), checks,
+      cut_coverage: {
+        sample_rate_fps: 2,
+        cuts: [
+          { cut_index: 0, start_ms: 0, end_ms: 2_000, sample_count: 4,
+            output_frame_sha256s: ['1'.repeat(64)], reference_frame_sha256s: ['2'.repeat(64)],
+            reference_performer_visible: false, visible_people: 'APPROVED_AVATAR_ONLY', decision: 'PASS' },
+          { cut_index: 1, start_ms: 2_000, end_ms: 5_000, sample_count: 6,
+            output_frame_sha256s: ['3'.repeat(64)], reference_frame_sha256s: ['4'.repeat(64)],
+            reference_performer_visible: true, visible_people: 'REFERENCE_PERFORMER', decision: 'FAIL' },
+        ],
+      },
+    });
+    assert.equal(result.status, 'FAIL');
+    assert.equal(result.salvage, null);
+    assert.equal(salvageCalls, 0);
+  });
+});
+
 test('awaitAndFinalize downloads video, runs QA, and marks PASS', async () => {
   await withTempDir(async (dir, sourcePath) => {
     const { provider } = makeStubProvider();

@@ -41,6 +41,11 @@ const REQUIRED_REFERENCE_CHECKS = Object.freeze([
 
 const SHA256 = /^[a-f0-9]{64}$/;
 const CUT_PEOPLE = new Set(['APPROVED_AVATAR_ONLY', 'NO_PERSON', 'REFERENCE_PERFORMER', 'MIXED_OR_UNKNOWN']);
+const SALVAGEABLE_REFERENCE_FAILURES = new Set([
+  'subject_replacement_every_cut',
+  'no_reference_performer_pixels',
+  'identity_and_outfit_every_subject_cut',
+]);
 
 function validFashionCutSheet(sheet, durationSeconds) {
   if (sheet?.schema_version !== '1.0.0' || !Array.isArray(sheet.cuts)
@@ -88,11 +93,32 @@ function validatedMicroCutCoverage(coverage, durationSeconds) {
   const pass = cuts.every((cut) => cut.decision === 'PASS'
     && cut.reference_performer_visible === false
     && ['APPROVED_AVATAR_ONLY', 'NO_PERSON'].includes(cut.visible_people));
+  const referenceLeakDetected = cuts.some((cut) => cut.reference_performer_visible === true
+    || ['REFERENCE_PERFORMER', 'MIXED_OR_UNKNOWN'].includes(cut.visible_people));
+  const approvedHeroSegments = [];
+  for (const cut of cuts) {
+    const approvedHero = cut.decision === 'PASS'
+      && cut.reference_performer_visible === false
+      && cut.visible_people === 'APPROVED_AVATAR_ONLY';
+    if (!approvedHero) continue;
+    const previous = approvedHeroSegments.at(-1);
+    if (previous && cut.start_ms <= previous.end_ms + 40) {
+      previous.end_ms = cut.end_ms;
+    } else {
+      approvedHeroSegments.push({ start_ms: cut.start_ms, end_ms: cut.end_ms });
+    }
+  }
+  const unsafeNonReferenceFailure = cuts.some((cut) => cut.decision === 'FAIL'
+    && cut.reference_performer_visible !== true
+    && !['REFERENCE_PERFORMER', 'MIXED_OR_UNKNOWN'].includes(cut.visible_people));
   return {
     pass,
     cutCount: cuts.length,
     sampleRateFps: coverage.sample_rate_fps,
     inspectedDurationMs: previousEnd,
+    referenceLeakDetected,
+    approvedHeroSegments,
+    unsafeNonReferenceFailure,
   };
 }
 
@@ -175,6 +201,29 @@ export class ClipStore {
     return filePath;
   }
 
+  salvagedVideoPath(clipId) {
+    return path.join(this.clipDir(clipId), 'clip-salvaged.mp4');
+  }
+
+  async saveQaReceipt(clipId, filename, receiptBytes, conflictCode) {
+    const dir = this.clipDir(clipId);
+    await mkdir(dir, { recursive: true });
+    const filePath = path.join(dir, filename);
+    try {
+      await writeFile(filePath, receiptBytes, { flag: 'wx' });
+    } catch (error) {
+      if (error?.code !== 'EEXIST') throw error;
+      const existing = await readFile(filePath);
+      if (!existing.equals(receiptBytes)) {
+        throw new VideoServiceError('Video QA receipt is immutable', {
+          code: conflictCode,
+          status: 409,
+        });
+      }
+    }
+    return filePath;
+  }
+
   async #saveImmutableMedia(clipId, filename, mediaBytes, conflictCode) {
     const dir = this.clipDir(clipId);
     await mkdir(dir, { recursive: true });
@@ -201,7 +250,6 @@ export class ClipStore {
   async saveFashionReference(clipId, videoBytes) {
     return this.#saveImmutableMedia(clipId, 'style-reference.mp4', videoBytes, 'VIDEO_REFERENCE_CONFLICT');
   }
-
   async saveSource(clipId, sourceBytes) {
     const dir = this.clipDir(clipId);
     await mkdir(dir, { recursive: true });
@@ -1047,9 +1095,11 @@ export class VideoService {
     if (!clip) {
       throw new VideoServiceError('Clip not found', { code: 'CLIP_NOT_FOUND', status: 404 });
     }
+    const salvageReview = clip.salvage?.status === 'NEEDS_QA';
     const exactBinding = receipt?.clip_id === clip.clipId
       && receipt?.job_id === clip.jobId
-      && receipt?.source_sha256 === clip.sourceSha256;
+      && receipt?.source_sha256 === clip.sourceSha256
+      && (!salvageReview || receipt?.output_sha256 === clip.videoSha256);
     const firstDecision = receipt?.results?.first?.decision;
     const lastDecision = receipt?.results?.last?.decision;
     if (!exactBinding || typeof firstDecision !== 'string' || typeof lastDecision !== 'string') {
@@ -1060,10 +1110,28 @@ export class VideoService {
     }
     const receiptBytes = Buffer.from(`${JSON.stringify(receipt, null, 2)}\n`);
     const identityItemQaSha256 = sha256(receiptBytes);
-    await this.#store.saveIdentityItemQa(clipId, receiptBytes);
+    if (salvageReview) {
+      await this.#store.saveQaReceipt(
+        clipId,
+        'salvage-identity-item-qa.json',
+        receiptBytes,
+        'SALVAGE_IDENTITY_QA_RECEIPT_CONFLICT',
+      );
+    } else {
+      await this.#store.saveIdentityItemQa(clipId, receiptBytes);
+    }
     const pass = firstDecision === 'PASS' && lastDecision === 'PASS';
-    const referencePass = clip.referenceAdherenceQa?.pass === true;
+    const referencePass = salvageReview
+      ? clip.salvageReferenceAdherenceQa?.pass === true
+      : clip.referenceAdherenceQa?.pass === true;
     const technicalPass = clip.qa?.pass;
+    const identityField = salvageReview ? 'salvageIdentityItemQa' : 'identityItemQa';
+    const identityShaField = salvageReview
+      ? 'salvageIdentityItemQaSha256'
+      : 'identityItemQaSha256';
+    const identityFileField = salvageReview
+      ? 'salvageIdentityItemQaFile'
+      : 'identityItemQaFile';
     const updated = {
       ...clip,
       status: !pass || technicalPass === false
@@ -1073,21 +1141,32 @@ export class VideoService {
           : clip.motionReferenceBinding
             ? (referencePass ? 'PASS' : 'NEEDS_QA')
             : 'PASS',
-      identityItemQa: {
+      [identityField]: {
         pass,
         firstDecision,
         lastDecision,
         evaluator: receipt.evaluator ?? null,
       },
-      identityItemQaSha256,
-      identityItemQaFile: 'identity-item-qa.json',
+      [identityShaField]: identityItemQaSha256,
+      [identityFileField]: salvageReview
+        ? 'salvage-identity-item-qa.json'
+        : 'identity-item-qa.json',
       updatedAt: new Date(this.#clock()).toISOString(),
     };
+    if (salvageReview) {
+      updated.salvage = {
+        ...clip.salvage,
+        status: updated.status === 'PASS'
+          ? 'PASS'
+          : updated.status === 'FAIL' ? 'FAIL' : 'NEEDS_QA',
+        reviewedAt: new Date(this.#clock()).toISOString(),
+      };
+    }
     await this.#store.save(clipId, updated);
     return {
       clipId,
       status: updated.status,
-      identityItemQa: updated.identityItemQa,
+      identityItemQa: updated[identityField],
       identityItemQaSha256,
     };
   }
@@ -1102,18 +1181,23 @@ export class VideoService {
       throw new VideoServiceError('Clip not found', { code: 'CLIP_NOT_FOUND', status: 404 });
     }
     const expectedReferenceSha256 = clip.motionReferenceBinding?.sha256;
+    const salvageReview = clip.salvage?.status === 'NEEDS_QA';
     const checks = receipt?.checks;
     const exactBinding = receipt?.clip_id === clip.clipId
       && receipt?.job_id === clip.jobId
       && receipt?.source_sha256 === clip.sourceSha256
-      && receipt?.motion_reference_sha256 === expectedReferenceSha256;
+      && receipt?.motion_reference_sha256 === expectedReferenceSha256
+      && (!salvageReview || receipt?.output_sha256 === clip.videoSha256);
     const requiredChecks = REQUIRED_REFERENCE_CHECKS;
     const decisions = new Map(
       Array.isArray(checks)
         ? checks.map((check) => [check?.name, check?.decision])
         : [],
     );
-    const cutCoverage = validatedMicroCutCoverage(receipt?.cut_coverage, clip.durationSeconds);
+    const coverageDuration = salvageReview
+      ? clip.deliveryDurationSeconds
+      : clip.durationSeconds;
+    const cutCoverage = validatedMicroCutCoverage(receipt?.cut_coverage, coverageDuration);
     if (!exactBinding || !cutCoverage
       || requiredChecks.some((name) => !['PASS', 'FAIL'].includes(decisions.get(name)))) {
       throw new VideoServiceError('Reference-adherence QA does not match the persisted clip', {
@@ -1124,22 +1208,30 @@ export class VideoService {
     const pass = cutCoverage.pass && requiredChecks.every((name) => decisions.get(name) === 'PASS');
     const receiptBytes = Buffer.from(`${JSON.stringify(receipt, null, 2)}\n`);
     const referenceAdherenceQaSha256 = sha256(receiptBytes);
-    const dir = this.#store.clipDir(clipId);
-    const receiptPath = path.join(dir, 'reference-adherence-qa.json');
-    try {
-      await writeFile(receiptPath, receiptBytes, { flag: 'wx' });
-    } catch (error) {
-      if (error?.code !== 'EEXIST') throw error;
-      const existing = await readFile(receiptPath);
-      if (!existing.equals(receiptBytes)) {
-        throw new VideoServiceError('Reference-adherence QA receipt is immutable', {
-          code: 'REFERENCE_QA_RECEIPT_CONFLICT',
-          status: 409,
-        });
-      }
-    }
-    const identityPass = clip.identityItemQa?.pass === true;
+    const receiptFilename = salvageReview
+      ? 'salvage-reference-adherence-qa.json'
+      : 'reference-adherence-qa.json';
+    await this.#store.saveQaReceipt(
+      clipId,
+      receiptFilename,
+      receiptBytes,
+      salvageReview
+        ? 'SALVAGE_REFERENCE_QA_RECEIPT_CONFLICT'
+        : 'REFERENCE_QA_RECEIPT_CONFLICT',
+    );
+    const identityPass = salvageReview
+      ? clip.salvageIdentityItemQa?.pass === true
+      : clip.identityItemQa?.pass === true;
     const technicalPass = clip.qa?.pass;
+    const qaField = salvageReview
+      ? 'salvageReferenceAdherenceQa'
+      : 'referenceAdherenceQa';
+    const qaShaField = salvageReview
+      ? 'salvageReferenceAdherenceQaSha256'
+      : 'referenceAdherenceQaSha256';
+    const qaFileField = salvageReview
+      ? 'salvageReferenceAdherenceQaFile'
+      : 'referenceAdherenceQaFile';
     const updated = {
       ...clip,
       status: !pass || technicalPass === false
@@ -1147,22 +1239,135 @@ export class VideoService {
         : technicalPass !== true || !identityPass
           ? 'NEEDS_QA'
           : 'PASS',
-      referenceAdherenceQa: {
+      [qaField]: {
         pass,
         decisions: Object.fromEntries(requiredChecks.map((name) => [name, decisions.get(name)])),
         cutCoverage,
         evaluator: receipt.evaluator ?? null,
       },
-      referenceAdherenceQaSha256,
-      referenceAdherenceQaFile: 'reference-adherence-qa.json',
+      [qaShaField]: referenceAdherenceQaSha256,
+      [qaFileField]: receiptFilename,
+      ...(salvageReview
+        ? {
+            salvage: {
+              ...clip.salvage,
+              status: pass && technicalPass === true && identityPass ? 'PASS' : (pass ? 'NEEDS_QA' : 'FAIL'),
+              reviewedAt: new Date(this.#clock()).toISOString(),
+            },
+          }
+        : {}),
       updatedAt: new Date(this.#clock()).toISOString(),
     };
+
+    if (!salvageReview && !pass) {
+      const failedChecks = requiredChecks.filter((name) => decisions.get(name) === 'FAIL');
+      const approvedDurationMs = cutCoverage.approvedHeroSegments.reduce(
+        (total, segment) => total + segment.end_ms - segment.start_ms,
+        0,
+      );
+      const salvageEligible = cutCoverage.referenceLeakDetected
+        && !cutCoverage.unsafeNonReferenceFailure
+        && approvedDurationMs >= 1_000
+        && failedChecks.length > 0
+        && failedChecks.every((name) => SALVAGEABLE_REFERENCE_FAILURES.has(name));
+      if (salvageEligible) {
+        const { salvageFn, probeFn, extractFrameFn } = this.#finalizer;
+        if (typeof salvageFn !== 'function'
+          || typeof probeFn !== 'function'
+          || typeof extractFrameFn !== 'function'
+          || typeof this.#fashionVideoReferenceResolver !== 'function') {
+          updated.salvage = {
+            eligible: true,
+            status: 'BLOCKED',
+            failureCode: 'VIDEO_QA_SALVAGE_MISCONFIGURED',
+          };
+        } else {
+          const reference = await this.#fashionVideoReferenceResolver({
+            motionMode: clip.mode,
+            referenceId: clip.motionReferenceBinding?.referenceId,
+          });
+          if (reference?.state !== 'READY'
+            || reference.reference_sha256 !== expectedReferenceSha256
+            || typeof reference.reference_path !== 'string') {
+            throw new VideoServiceError('Salvage motion reference no longer matches the clip', {
+              code: 'VIDEO_QA_SALVAGE_REFERENCE_MISMATCH',
+              status: 409,
+            });
+          }
+          const salvagedVideoPath = this.#store.salvagedVideoPath(clipId);
+          const salvageResult = await salvageFn({
+            sourceVideoPath: clip.videoPath,
+            referenceVideoPath: reference.reference_path,
+            outputVideoPath: salvagedVideoPath,
+            segments: cutCoverage.approvedHeroSegments,
+          });
+          const salvagedBytes = await readFile(salvagedVideoPath);
+          const salvagedVideoSha256 = sha256(salvagedBytes);
+          const probe = await probeFn(salvagedVideoPath);
+          const [firstFrameRgb, lastFrameRgb] = await Promise.all([
+            extractFrameFn(salvagedVideoPath, 'first'),
+            extractFrameFn(salvagedVideoPath, 'last'),
+          ]);
+          const salvageTechnicalQa = evaluateClipQa({
+            durationMin: salvageResult.durationSeconds,
+            durationMax: salvageResult.durationSeconds,
+            aspectRatio: clip.aspectRatio,
+            allowAudio: true,
+          }, { ...probe, firstFrameRgb, lastFrameRgb });
+          const salvagedAt = new Date(this.#clock()).toISOString();
+          const salvageReceipt = {
+            schema_version: '1.0.0',
+            clip_id: clipId,
+            created_at: salvagedAt,
+            source_video_sha256: clip.videoSha256,
+            motion_reference_sha256: expectedReferenceSha256,
+            triggering_reference_qa_sha256: referenceAdherenceQaSha256,
+            output_video_sha256: salvagedVideoSha256,
+            duration_seconds: salvageResult.durationSeconds,
+            segments: salvageResult.segments,
+            audio_source: 'MOTION_REFERENCE',
+            technical_qa: salvageTechnicalQa,
+          };
+          const salvageReceiptBytes = Buffer.from(`${JSON.stringify(salvageReceipt, null, 2)}\n`);
+          const salvageReceiptSha256 = sha256(salvageReceiptBytes);
+          await this.#store.saveQaReceipt(
+            clipId,
+            'salvage-receipt.json',
+            salvageReceiptBytes,
+            'VIDEO_QA_SALVAGE_RECEIPT_CONFLICT',
+          );
+          Object.assign(updated, {
+            status: salvageTechnicalQa.pass ? 'NEEDS_QA' : 'FAIL',
+            failureCode: salvageTechnicalQa.pass
+              ? null
+              : (salvageTechnicalQa.defects?.[0]?.code ?? 'VIDEO_QA_SALVAGE_TECHNICAL_FAIL'),
+            originalProviderVideoPath: clip.videoPath,
+            originalProviderVideoSha256: clip.videoSha256,
+            videoPath: salvagedVideoPath,
+            videoSha256: salvagedVideoSha256,
+            deliveryDurationSeconds: salvageResult.durationSeconds,
+            qa: salvageTechnicalQa,
+            salvage: {
+              eligible: true,
+              status: salvageTechnicalQa.pass ? 'NEEDS_QA' : 'FAIL',
+              segmentCount: salvageResult.segmentCount,
+              segments: salvageResult.segments,
+              audioSource: 'MOTION_REFERENCE',
+              receiptFile: 'salvage-receipt.json',
+              receiptSha256: salvageReceiptSha256,
+              salvagedAt,
+            },
+          });
+        }
+      }
+    }
     await this.#store.save(clipId, updated);
     return {
       clipId,
       status: updated.status,
-      referenceAdherenceQa: updated.referenceAdherenceQa,
+      referenceAdherenceQa: updated[qaField],
       referenceAdherenceQaSha256,
+      salvage: updated.salvage ?? null,
     };
   }
 
