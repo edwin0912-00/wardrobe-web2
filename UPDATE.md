@@ -1,5 +1,35 @@
 # Wardrobe update board
 
+## Оголошення · Higgsfield image model aliases · 2026-07-31
+
+У контрактах не змішуємо внутрішні назви маршруту з назвами, які повертає CLI
+Higgsfield. Канонічні внутрішні моделі пайплайна:
+
+```text
+gpt_image_2       → CLI gpt_image_2
+nano_banana_flash → CLI nano_banana_flash
+nano_banana_2     → CLI nano_banana_pro
+```
+
+Останній рядок — adapter alias, а не перейменування моделі в продукті: всередині
+залишається `nano_banana_2`, до CLI передається `nano_banana_pro`, а відповідь з
+`job_type` або legacy `job_set_type` нормалізується назад до `nano_banana_2`.
+
+Правила для всіх агентів:
+
+- не змінювати внутрішні `job_set_type` / model IDs на `nano_banana_pro`;
+- не порівнювати відповідь CLI напряму з внутрішнім `nano_banana_2`;
+- невідома або суперечлива пара model-полів завершується
+  `MODEL_RESPONSE_MISMATCH`;
+- `params.model` не є джерелом істини для перевірки маршруту — у GPT Image 2
+  там може бути службове значення `videotape-alpha`.
+
+Доказ: `b6223e3d96d28a17f69065ca7f185537bdb13a20` на
+`beta-block-1-core-look`; фокусні тести `45/45 PASS`; журнал — `5912621`.
+CLI `model get` для трьох маршрутів і `account status --json` успішні, paid
+generation не запускався. Стан: **READY_FOR_INTEGRATION / Beta NOT_DEPLOYED**;
+release-owner інтегрує exact SHA і повторює release checks.
+
 This is the only live coordination board for the current sprint.
 
 ## Seven beta block branches — active 2026-07-29
