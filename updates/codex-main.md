@@ -627,6 +627,26 @@ seven block branches from that exact beta SHA, then run the all-branch monitor.
 ---
 
 Agent ID: codex-main
+Task ID: BETA-FASHION-VIDEO-STYLE-RECOVERY-001
+Pipeline: VIDEO.01–04 · Fashion Video from approved master-look
+State: READY_FOR_BETA_DEPLOY
+Decision: deploy the already-built three style cards from beta together with
+the missing current Higgsfield create-response parser. The old public UI
+displayed `М’який рух / Поворот / Позування` but sent obsolete mode IDs that
+the current motion contract does not accept. The product UI now takes the
+three hash-bound style choices from the capability endpoint; no free-text
+motion label is used as a provider instruction.
+Code: beta base `207194d` + parser fix `fe80485`.
+Evidence: `node --test test/video/video-capability.test.js test/video/video-routes.test.js test/video/video-motion-plan.test.js test/video/higgsfield-video-provider.test.js`.
+Beta: PENDING_ACTIVATION — legacy unbound SUBMITTING clip must be reconciled
+before the restart-safe deploy tool can stop beta.
+Journey: PENDING — after activation, verify three cards appear and no legacy
+motion ID is sent.
+weakened_checks: none.
+
+---
+
+Agent ID: codex-main
 Task ID: BETA-CONSOLIDATED-RELEASE-20260730
 State: LIVE
 Decision: integrate only completed deployable product atoms into beta; preserve

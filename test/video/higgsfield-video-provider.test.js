@@ -155,6 +155,17 @@ test('a batched CLI create response still yields the created job id', async () =
   assert.equal(created.jobId, 'job_from_batch');
 });
 
+test('the current CLI bare UUID array yields the created job id', async () => {
+  const provider = new HiggsfieldVideoProvider({
+    commandRunner: async () => ({
+      stdout: JSON.stringify(['3700eebf-da53-4c60-a58f-7593643a3cd2']),
+      stderr: '',
+    }),
+  });
+  const created = await provider.createJob(BASE);
+  assert.equal(created.jobId, '3700eebf-da53-4c60-a58f-7593643a3cd2');
+});
+
 test('the Higgsfield CLI job_set_id create envelope yields the resumable job id', async () => {
   const provider = new HiggsfieldVideoProvider({
     commandRunner: async () => ({

@@ -201,6 +201,10 @@ function findJobId(payload) {
   const seen = new Set();
   while (queue.length > 0) {
     const value = queue.shift();
+    // Higgsfield CLI 1.1.20 returns a successful create as a bare JSON array
+    // of UUID strings (`["job-id"]`), not an object envelope.  Treat a safe
+    // string as a job id before looking for object fields.
+    if (typeof value === 'string' && SAFE_JOB_ID.test(value)) return value;
     if (!value || typeof value !== 'object' || seen.has(value)) continue;
     seen.add(value);
     const candidates = [
