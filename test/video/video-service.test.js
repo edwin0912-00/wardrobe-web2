@@ -1111,6 +1111,34 @@ test('awaitAndFinalize marks a missing provider job FAILED without a second crea
   });
 });
 
+test('awaitAndFinalize persists terminal missing video output instead of leaving GENERATING', async () => {
+  await withTempDir(async (dir, sourcePath) => {
+    const provider = {
+      async createJob() { return { jobId: 'no-output-job', providerKey: 'higgsfield' }; },
+      async waitForJob() {
+        const error = new Error('completed without video output');
+        error.code = 'MISSING_VIDEO_OUTPUT';
+        throw error;
+      },
+    };
+    const store = new ClipStore(dir);
+    const service = new VideoService({ provider, clipStore: store });
+    const created = await service.createClip({
+      modeId: 'editorial_micro_moment', surfaceId: 'tv', sourceImagePath: sourcePath,
+    });
+    await assert.rejects(
+      () => service.awaitAndFinalize(created.clipId, { downloadFn: makeStubDownload(), ...makeStubQa() }),
+      (error) => error.code === 'MISSING_VIDEO_OUTPUT',
+    );
+    const persisted = await store.load(created.clipId);
+    assert.equal(persisted.status, 'FAILED');
+    assert.equal(persisted.failureCode, 'MISSING_VIDEO_OUTPUT');
+    assert.equal(persisted.providerTerminal.jobId, 'no-output-job');
+    assert.equal(persisted.providerTerminal.retryable, true);
+    assert.equal(persisted.providerWaitLease, undefined);
+  });
+});
+
 test('awaitAndFinalize rejects provider bytes equal to the locked motion reference before QA', async () => {
   await withTempDir(async (dir) => {
     const referenceBytes = Buffer.from('exact-private-motion-reference');

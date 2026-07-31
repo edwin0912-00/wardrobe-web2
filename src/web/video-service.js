@@ -923,9 +923,17 @@ export class VideoService {
       );
     }
 
-    // Update status to GENERATING
+    // Persist a short-lived lease before entering the provider wait.  This is
+    // the only durable evidence that a deployment must not restart an *active*
+    // waiter.  A bare GENERATING status can be left behind by a crashed daemon
+    // and is deliberately not enough to block a later release.
     clip.status = 'GENERATING';
     clip.updatedAt = new Date(this.#clock()).toISOString();
+    clip.providerWaitLease = {
+      jobId: clip.jobId,
+      startedAt: clip.updatedAt,
+      heartbeatAt: clip.updatedAt,
+    };
     await this.#store.save(clipId, clip);
 
     // Phase 2: wait for the job to finish
@@ -936,30 +944,57 @@ export class VideoService {
         providerKey: clip.providerKey,
       });
     } catch (cause) {
-      // A missing remote job is terminal: there is nothing left to resume.
-      // Other transport failures retain GENERATING for a later exact-job poll.
-      if (cause?.code === 'PROVIDER_JOB_NOT_FOUND') {
+      // Provider-terminal outcomes cannot be recovered by polling the same
+      // immutable job again. Persist them as retryable failure evidence; do
+      // not invent a video, issue another paid create, or leave a stale
+      // GENERATING state that blocks deployment forever.
+      if (['PROVIDER_JOB_NOT_FOUND', 'MISSING_VIDEO_OUTPUT'].includes(cause?.code)) {
         clip.status = 'FAILED';
-        clip.failureCode = 'VIDEO_PROVIDER_JOB_NOT_FOUND';
+        clip.failureCode = cause.code === 'MISSING_VIDEO_OUTPUT'
+          ? 'MISSING_VIDEO_OUTPUT'
+          : 'VIDEO_PROVIDER_JOB_NOT_FOUND';
+        clip.providerTerminal = {
+          code: clip.failureCode,
+          jobId: clip.jobId,
+          recordedAt: new Date(this.#clock()).toISOString(),
+          retryable: cause.code === 'MISSING_VIDEO_OUTPUT',
+        };
+        delete clip.providerWaitLease;
         clip.updatedAt = new Date(this.#clock()).toISOString();
         await this.#store.save(clipId, clip);
-        throw new VideoServiceError('The video provider no longer has this job; it was not generated.', {
-          code: 'VIDEO_PROVIDER_JOB_NOT_FOUND',
+        throw new VideoServiceError(cause.code === 'MISSING_VIDEO_OUTPUT'
+          ? 'Provider finished without a video URL; no video was generated.'
+          : 'The video provider no longer has this job; it was not generated.', {
+          code: clip.failureCode,
           status: 502,
         });
       }
+      // A transport blip is retryable against the same job. The current wait
+      // is over, so remove its lease; a future request will acquire a fresh one.
+      delete clip.providerWaitLease;
+      clip.updatedAt = new Date(this.#clock()).toISOString();
+      await this.#store.save(clipId, clip);
       throw cause;
     }
 
     if (!finished.url) {
       clip.status = 'FAILED';
-      clip.failureCode = 'NO_VIDEO_URL';
+      clip.failureCode = 'MISSING_VIDEO_OUTPUT';
+      clip.providerTerminal = {
+        code: 'MISSING_VIDEO_OUTPUT', jobId: clip.jobId,
+        recordedAt: new Date(this.#clock()).toISOString(), retryable: true,
+      };
+      delete clip.providerWaitLease;
       clip.updatedAt = new Date(this.#clock()).toISOString();
       await this.#store.save(clipId, clip);
       throw new VideoServiceError('Provider finished without a video URL', {
         code: 'MISSING_VIDEO_OUTPUT', status: 502,
       });
     }
+
+    // The remote wait has settled. It is no longer deployment-blocking even
+    // while the local download and QA stages continue.
+    delete clip.providerWaitLease;
 
     const rawPayloadSha256 = sha256(Buffer.from(JSON.stringify(finished.raw ?? null)));
     const waitReceipt = {

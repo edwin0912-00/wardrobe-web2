@@ -11,6 +11,7 @@ import { assertCanonicalExternalHealthUrl } from './lib/deployment-target.mjs';
 const execute = promisify(execFile);
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const BETA_LABEL = 'com.madeforthisjob.beta';
+const MAX_LIVE_PROVIDER_WAIT_MS = 15 * 60 * 1_000;
 
 function invariant(value, message) {
   if (!value) throw new Error(message);
@@ -39,6 +40,19 @@ export function replaceRunnerAppRoot(source, nextRoot) {
   const matches = source.match(/^app_root="[^"]+"$/m);
   invariant(matches?.length === 1, 'Beta runner must contain exactly one app_root declaration');
   return source.replace(/^app_root="[^"]+"$/m, `app_root="${nextRoot}"`);
+}
+
+// A status is a recovery hint, not proof that a provider call is currently in
+// flight. Only a fresh lease bound to the persisted remote job may block a
+// beta restart. This lets a daemon recover stale CREATED/GENERATING/NEEDS_QA
+// records without pretending they are active paid work.
+export function hasLiveProviderWaitLease(state, now = Date.now()) {
+  if (!state || !['SUBMITTING', 'GENERATING'].includes(state.status)
+    || typeof state.jobId !== 'string' || state.jobId.length === 0) return false;
+  const lease = state.providerWaitLease;
+  if (!lease || lease.jobId !== state.jobId) return false;
+  const heartbeat = Date.parse(lease.heartbeatAt ?? lease.startedAt ?? '');
+  return Number.isFinite(heartbeat) && heartbeat <= now && now - heartbeat <= MAX_LIVE_PROVIDER_WAIT_MS;
 }
 
 export async function activeBetaRunIds(runnerSource) {
@@ -129,16 +143,7 @@ export async function activeBetaWorkIds(runnerSource) {
       entryNameIsValid: (name) => (
         /^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(name)
       ),
-      // CREATED is restart-safe because the paid provider job id is durable.
-      // PASS / FAIL / FAILED / NEEDS_QA are settled. Every other state is
-      // active or unknown and must finish before launchd can kill beta.
-      isActive: (status) => ![
-        'CREATED',
-        'PASS',
-        'FAIL',
-        'FAILED',
-        'NEEDS_QA',
-      ].includes(status),
+      isActive: (_status, state) => hasLiveProviderWaitLease(state),
     }),
   ]);
   return [...runs, ...scenes, ...shoots, ...clips].sort();
