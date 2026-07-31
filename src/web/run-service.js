@@ -48,6 +48,8 @@ const MAX_APPROVED_ITEM_CHECKPOINT_BYTES = 16 * 1024 * 1024;
 const MAX_APPROVED_ITEM_JOB_BYTES = 2 * 1024 * 1024;
 const MAX_APPROVED_ITEM_MANIFEST_BYTES = 16 * 1024 * 1024;
 const PNG_SIGNATURE = Buffer.from('89504e470d0a1a0a', 'hex');
+const PROVIDER_WAIT_HEARTBEAT_MS = 60_000;
+const SAFE_PROVIDER_JOB_ID = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/;
 // A valid .webp was rejected as UNSUPPORTED_MEDIA_TYPE because curl declared
 // application/octet-stream, and the identical bytes were accepted once the client
 // relabelled them image/webp. Browsers fill the header in, so only a mobile app, a
@@ -343,6 +345,80 @@ async function validateUpload(upload, field) {
   return { extension, metadata };
 }
 
+function publicProviderWait(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  if (value.state !== 'WAITING'
+    || !Number.isSafeInteger(value.attempt) || value.attempt < 1 || value.attempt > 5
+    || !Number.isSafeInteger(value.elapsed_seconds) || value.elapsed_seconds < 60
+    || typeof value.started_at !== 'string' || !Number.isFinite(Date.parse(value.started_at))) {
+    return null;
+  }
+  // The exact provider job id stays in the private persisted run state. The
+  // browser only needs proof that a real remote job is still in progress.
+  return {
+    state: 'WAITING',
+    attempt: value.attempt,
+    started_at: value.started_at,
+    elapsed_seconds: value.elapsed_seconds,
+  };
+}
+
+export function providerWaitHeartbeatFromJournal(journal, {
+  now = new Date(),
+  heartbeatMs = PROVIDER_WAIT_HEARTBEAT_MS,
+} = {}) {
+  if (!journal || typeof journal !== 'object' || Array.isArray(journal)
+    || journal.state !== 'WAITING'
+    || !SAFE_PROVIDER_JOB_ID.test(journal.provider_job_id ?? '')
+    || !Array.isArray(journal.events)
+    || !(now instanceof Date) || !Number.isFinite(now.getTime())
+    || !Number.isInteger(heartbeatMs) || heartbeatMs < 1_000) return null;
+  const started = [...journal.events].reverse().find((event) => (
+    event?.type === 'WAIT_STARTED'
+    && event.provider_job_id === journal.provider_job_id
+    && Number.isSafeInteger(event.wait_attempt)
+    && event.wait_attempt >= 1
+    && event.wait_attempt <= 5
+    && typeof event.at === 'string'
+    && Number.isFinite(Date.parse(event.at))
+  ));
+  if (!started) return null;
+  const startedAt = Date.parse(started.at);
+  const elapsedMs = now.getTime() - startedAt;
+  if (!Number.isFinite(elapsedMs) || elapsedMs < heartbeatMs) return null;
+  return {
+    state: 'WAITING',
+    provider: typeof journal.provider === 'string' ? journal.provider.slice(0, 32) : 'provider',
+    provider_job_id: journal.provider_job_id,
+    attempt: started.wait_attempt,
+    started_at: new Date(startedAt).toISOString(),
+    // The persisted heartbeat deliberately advances once per minute. It proves
+    // that this is a live provider wait without rewriting run.json every second.
+    elapsed_seconds: Math.floor(elapsedMs / heartbeatMs) * Math.floor(heartbeatMs / 1000),
+  };
+}
+
+async function providerWaitHeartbeatFromDirectory(directory, options) {
+  let entries;
+  try { entries = await readdir(directory, { withFileTypes: true }); } catch (error) {
+    if (error.code === 'ENOENT') return null;
+    throw error;
+  }
+  const candidates = [];
+  for (const entry of entries) {
+    if (!entry.isFile() || !/^[a-f0-9]{64}\.json$/.test(entry.name)) continue;
+    try {
+      const journal = JSON.parse(await readFile(path.join(directory, entry.name), 'utf8'));
+      const heartbeat = providerWaitHeartbeatFromJournal(journal, options);
+      if (heartbeat) candidates.push(heartbeat);
+    } catch {
+      // A partial or unrelated provider receipt is never a reason to stop the
+      // core run or to claim a connection failure to the browser.
+    }
+  }
+  return candidates.sort((left, right) => right.elapsed_seconds - left.elapsed_seconds)[0] ?? null;
+}
+
 function publicRun(state) {
   const visualCheckpoint = publicVisualCheckpoint(
     state.run_id,
@@ -388,6 +464,7 @@ function publicRun(state) {
       purpose: 'NEW_LOOK',
       source_run_id: state.inputs.approved_avatar.source_run_id,
     } } : {}),
+    ...(publicProviderWait(state.provider_wait) ? { provider_wait: publicProviderWait(state.provider_wait) } : {}),
     ...(visualCheckpoint ? { visual_checkpoint: visualCheckpoint } : {}),
     error: sanitizeOutbound(state.error ?? null),
   };
@@ -730,6 +807,12 @@ export class RunService {
     } catch {
       return;
     }
+    const providerWait = await providerWaitHeartbeatFromDirectory(
+      path.join(this.runDirectory(state.run_id), 'outputs', '.zeely-run', 'provider-jobs'),
+      { now: this.clock() },
+    );
+    const priorWait = publicProviderWait(state.provider_wait);
+    const waitChanged = JSON.stringify(priorWait) !== JSON.stringify(publicProviderWait(providerWait));
     let visualChanged = false;
     const retryStates = new Set(['CONDITIONING_RETRY', 'AVATAR_RETRY', 'OUTFIT_RETRY']);
     if (retryStates.has(checkpoint.state)) {
@@ -750,10 +833,14 @@ export class RunService {
         });
       }
     }
-    if (checkpoint.state !== state.inner_state || visualChanged) {
+    if (checkpoint.state !== state.inner_state || visualChanged || waitChanged) {
+      const waitMessage = providerWait
+        ? `Модель обробляє запит у провайдера · спроба ${providerWait.attempt} · очікуємо ${Math.floor(providerWait.elapsed_seconds / 60)} хв`
+        : null;
       await this.#write(state, {
         inner_state: checkpoint.state,
-        message: CHECKPOINT_MESSAGES[checkpoint.state] ?? checkpoint.state.replaceAll('_', ' ').toLowerCase(),
+        ...(providerWait ? { provider_wait: providerWait, message: waitMessage } : { provider_wait: null }),
+        message: waitMessage ?? CHECKPOINT_MESSAGES[checkpoint.state] ?? checkpoint.state.replaceAll('_', ' ').toLowerCase(),
       });
     }
   }
