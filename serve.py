@@ -32,6 +32,26 @@ OBSERVABILITY_EVENTS = {
 }
 SAFE_OBSERVABILITY_TOKEN = re.compile(r"[^a-z0-9_.-]+")
 
+# Paths the cinematic client must never be able to reach through this origin.
+#
+# God View is the internal control room: one anonymous request to its overview returns a
+# cross-profile inventory, and its asset routes address the uploaded person and identity
+# photographs of other people. Verified on the live beta host: /api/god-view/session answers
+# `authenticated: true` and /api/god-view/overview answers 200 to a caller with no cookie,
+# because the runtime is started with the open-tester auth whose require() always returns a
+# session. This gateway forwarded every /api/ path indiscriminately, so the customer-facing
+# domain published it too.
+#
+# Fixing the runtime flag is a beta-side, release-owner decision and is not this file's to
+# make. What this origin can decide is what it is willing to relay, and it has no reason to
+# relay an internal control room to the public: nothing in the cinematic client calls it.
+#
+# A denylist rather than an allowlist on purpose: the adapter surface is still being extended
+# on the other side of this seam, and an allowlist here would silently break a client route
+# the moment one is added. This blocks a known-public internal surface without pretending to
+# know the full shape of the legitimate one.
+BLOCKED_API_PREFIXES = ("/api/god-view",)
+
 
 class RangeHandler(SimpleHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
@@ -39,6 +59,11 @@ class RangeHandler(SimpleHTTPRequestHandler):
     def _is_api_request(self):
         path = urlsplit(self.path).path
         return path == "/api" or path.startswith("/api/")
+
+    def _is_blocked_api_request(self):
+        path = urlsplit(self.path).path.rstrip("/")
+        return any(path == prefix or path.startswith(prefix + "/")
+                   for prefix in BLOCKED_API_PREFIXES)
 
     def _is_observability_request(self):
         return urlsplit(self.path).path == OBSERVABILITY_PATH
@@ -128,6 +153,14 @@ class RangeHandler(SimpleHTTPRequestHandler):
         keep working even when the visual bundle is replaced.  The upstream is a
         fixed loopback service, never a request-controlled URL.
         """
+        # Refused before the upstream is even resolved, so a blocked path cannot reach the
+        # engine by any method, framing or header trick. 404 rather than 403: this origin does
+        # not host that surface, which is the truthful answer and reveals nothing about what
+        # exists behind the seam.
+        if self._is_blocked_api_request():
+            self.send_error(404, "Not found")
+            return
+
         upstream = urlsplit(API_UPSTREAM)
         if upstream.scheme != "http" or upstream.hostname not in {"127.0.0.1", "localhost"}:
             self.send_error(500, "WARDROBE_API_UPSTREAM must be a loopback http URL")

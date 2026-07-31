@@ -162,3 +162,48 @@ test('static Range delivery and same-origin API streaming share one server', asy
   });
   assert.equal(crossSite.status, 403);
 });
+
+test('the internal control room is never relayed to the client origin', async (t) => {
+  /* Verified on the live host before writing this: /api/god-view/session answered
+   * `authenticated: true` and /api/god-view/overview answered 200 with a cross-profile
+   * inventory to a caller carrying no cookie, because the engine runs the open-tester auth
+   * whose require() always returns a session. That is a beta-side runtime decision. What this
+   * origin controls is what it agrees to relay, and it has no reason to relay an internal
+   * control room whose asset routes address other people's uploaded photographs. */
+  const reached = [];
+  const upstream = createServer((request, response) => {
+    reached.push(request.url);
+    response.writeHead(200, { 'content-type': 'application/json' });
+    response.end('{"leaked":true}');
+  });
+  const upstreamPort = await listen(upstream);
+  const root = await mkdtemp(path.join(tmpdir(), 'wardrobe-gateway-'));
+  await writeFile(path.join(root, 'index.html'), '<!doctype html>');
+  const { child, port } = await startGateway(root, upstreamPort);
+  t.after(async () => { child.kill(); upstream.close(); await once(child, 'exit'); });
+
+  for (const blocked of [
+    '/api/god-view/overview',
+    '/api/god-view/session',
+    '/api/god-view/',
+    '/api/god-view',
+    '/api/god-view/assets/runs/any/inputs/person',
+    '/api/god-view/overview?x=1',
+  ]) {
+    const response = await requestGateway(port, { path: blocked });
+    assert.equal(response.status, 404, `${blocked} must not be relayed`);
+  }
+  /* A POST must not find a way through either — the refusal happens before framing,
+   * headers or the upstream are considered. */
+  const posted = await requestGateway(port, {
+    path: '/api/god-view/session', method: 'POST',
+    headers: { 'content-type': 'application/json' }, body: '{"key":"x"}',
+  });
+  assert.equal(posted.status, 404);
+  assert.deepEqual(reached, [], 'no blocked request may reach the engine');
+
+  /* The legitimate client surface is untouched: this is a denylist, not an allowlist. */
+  const allowed = await requestGateway(port, { path: '/api/health' });
+  assert.equal(allowed.status, 200);
+  assert.deepEqual(reached, ['/api/health']);
+});
