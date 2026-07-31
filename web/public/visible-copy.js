@@ -23,3 +23,27 @@ export function neutralizeItemTerms(value) {
     .replaceAll('garments', 'items')
     .replaceAll('garment', 'item');
 }
+
+/**
+ * NEEDS_INPUT is a request to change the submitted material, not a transient
+ * provider failure. Keep that distinction in one place so the terminal UI
+ * never offers a retry that can only submit the identical incomplete set.
+ */
+export function needsInputPresentation(value) {
+  const raw = String(value ?? '');
+  const normalized = raw.toLowerCase();
+  const onlyHeadwear = /(?:outfit|item) references? show only/.test(normalized)
+    && /\b(?:hat|headwear|cap|beanie)\b/.test(normalized);
+
+  if (onlyHeadwear) {
+    return {
+      title: 'Додай речі для повного образу',
+      message: 'Зараз є лише головний убір. Додай фото верху, низу або цільного образу — тоді продовжимо.',
+    };
+  }
+
+  return {
+    title: 'Потрібні інші матеріали',
+    message: neutralizeItemTerms(raw) || 'Додай або заміни матеріали — тоді продовжимо.',
+  };
+}

@@ -134,6 +134,13 @@ test('saved look exposes actionable branches and their honest pipeline explanati
   assert.doesNotMatch(appSource, /function hideLookBriefs/);
   assert.doesNotMatch(appSource, /#profile-look-refine/);
 });
+
+test('terminal NEEDS_INPUT asks for replacement material and never exposes a futile retry', () => {
+  assert.match(appSource, /const needsReplacementMaterials = run\.status === 'NEEDS_INPUT' && !hasSelectableConflict;/);
+  assert.match(appSource, /needsInputPresentation\(run\.message \|\| run\.error\?\.message\)/);
+  assert.match(appSource, /hasSelectableConflict \|\| needsReplacementMaterials/);
+  assert.match(appSource, /import \{ needsInputPresentation, neutralizeItemTerms \}/);
+});
 test('Add items continuation receives the exact selected avatar and look once', async () => {
   const { avatar, newerLook, profile } = profileFixture();
   const transition = flow.resolveSavedAvatarTransition(profile, avatar);

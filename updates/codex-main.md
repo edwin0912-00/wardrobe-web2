@@ -1,4 +1,32 @@
 Agent ID: codex-main
+Block: 1
+Branch: beta-block-1-needs-input-recovery-20260731
+
+---
+
+Task: make the core-look `NEEDS_INPUT` recovery actionable after the live run
+`aa7bc644-3542-4333-936d-51d8c04472ab`.
+
+Finding: this run did not lose two uploaded items. Its browser monitor records
+one garment upload and `garment_count: 1` at submit; the immutable run input
+is one cowboy-hat image. Conditioning correctly stopped before full-look
+generation because that evidence cannot establish a complete outfit.
+
+Decision: `NEEDS_INPUT` without a duplicate-slot choice is a material-change
+state, not a provider retry state. The terminal UI now hides the futile retry,
+keeps **«Змінити матеріали»**, and translates the specific headwear-only case
+into the required top/bottom/one-piece input. Duplicate-slot selection still
+uses its existing continuation flow; `FAILED` keeps retry.
+
+Code: READY_FOR_REVIEW — focused public-copy/UI contracts PASS 14/14; app
+syntax and whitespace checks PASS.
+Beta: NOT_DEPLOYED.
+Journey: live run evidence inspected; no new provider request was created.
+weakened_checks: none — conditioning and product QA remain unchanged.
+
+---
+
+Agent ID: codex-main
 Task ID: BETA-PRESENTATION-DERIVATIVES-001
 Product line: beta-placeholder
 Pipeline: UI transport only · local inputs/style preview → lightweight display copy

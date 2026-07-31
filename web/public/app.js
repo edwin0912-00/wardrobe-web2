@@ -17,7 +17,7 @@ import { PIPELINE_NODE_COUNT, PIPELINE_NODES, checkpointDisplayCode, nodeState, 
 import { createLiveVisualizer, isProviderWaitStage } from './live-visualizer.js?v=20260724-1';
 import { fetchRunWithRetry, RunNotFoundError } from './run-resume.js?v=20260722-3';
 import { claimProfileRun, deleteAnonymousProfile, deleteProfileLook, listProfileLookEditorialShoots, loadProfile, saveProfileRun } from './profile-client.js?v=20260724-5';
-import { neutralizeItemTerms } from './visible-copy.js?v=20260722-1';
+import { needsInputPresentation, neutralizeItemTerms } from './visible-copy.js?v=20260731-2';
 import { createSceneUi } from './scene-ui.js?v=20260731-3';
 import {
   addItemsScreenState,
@@ -644,6 +644,10 @@ function renderRun(run) {
   setWorkflowActive(true);
   localStorage.setItem(ACTIVE_RUN_KEY, run.run_id);
   const hasSelectableConflict = run.status === 'NEEDS_INPUT' && (run.conflicts || []).some((item) => item.type === 'DUPLICATE_SLOT');
+  const needsReplacementMaterials = run.status === 'NEEDS_INPUT' && !hasSelectableConflict;
+  const needsInput = needsReplacementMaterials
+    ? needsInputPresentation(run.message || run.error?.message)
+    : null;
   statusChip.textContent = hasSelectableConflict ? 'ПОТРІБЕН ВИБІР' : run.status.replaceAll('_', ' ');
   statusChip.className = `status-chip ${hasSelectableConflict ? 'choice' : run.status === 'COMPLETED' ? 'completed' : run.status === 'FAILED' || run.status === 'NEEDS_INPUT' ? 'failed' : 'running'}`;
   if (run.status === 'COMPLETED') {
@@ -667,10 +671,10 @@ function renderRun(run) {
     setView('failure');
     failure.classList.toggle('choice', hasSelectableConflict);
     document.querySelector('.failure-mark').textContent = hasSelectableConflict ? '?' : '!';
-    document.querySelector('#failure-title').textContent = hasSelectableConflict ? 'Обери річ для образу' : run.status === 'NEEDS_INPUT' ? 'Потрібне інше фото' : 'Генерацію зупинено';
-    document.querySelector('#failure-message').textContent = hasSelectableConflict ? 'Знайдено кілька різних речей одного типу. Обери одну — генерація продовжиться з цього етапу.' : humanizeVisibleText(run.message || run.error?.message || 'Невідома помилка');
+    document.querySelector('#failure-title').textContent = hasSelectableConflict ? 'Обери річ для образу' : needsInput?.title ?? 'Генерацію зупинено';
+    document.querySelector('#failure-message').textContent = hasSelectableConflict ? 'Знайдено кілька різних речей одного типу. Обери одну — генерація продовжиться з цього етапу.' : needsInput?.message ?? humanizeVisibleText(run.message || run.error?.message || 'Невідома помилка');
     renderConflictPicker(run);
-    document.querySelector('#retry-run').classList.toggle('hidden', hasSelectableConflict);
+    document.querySelector('#retry-run').classList.toggle('hidden', hasSelectableConflict || needsReplacementMaterials);
     submit.disabled = false;
     eventSource?.close();
     return;
