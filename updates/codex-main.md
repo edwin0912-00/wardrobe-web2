@@ -13,6 +13,19 @@ weakened_checks: none.
 ---
 
 Agent ID: codex-main
+Task ID: BETA-FASHION-VIDEO-LEGACY-DELIVERY-001
+Pipeline: VIDEO.03 · Delivery only after video-style QA
+State: CODE_VERIFIED — awaiting beta deployment
+Decision: old generic clips without a video-reference hash binding and a PASS
+reference-style QA verdict are retained on disk but excluded from Fashion Video
+delivery and listings. They cannot be presented as a valid Fashion Video.
+Evidence: runtime audit found one technical PASS with neither binding nor style
+QA; route regression denies it with VIDEO_STYLE_PROVENANCE_MISSING.
+weakened_checks: none.
+
+---
+
+Agent ID: codex-main
 Task ID: BETA-FASHION-VIDEO-REFERENCE-PREVIEW-001
 Pipeline: VIDEO.01 · Вибір video-derived стилю
 State: CODE_VERIFIED — awaiting beta deployment

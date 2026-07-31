@@ -69,7 +69,13 @@ function fixture() {
       return { clipId: liveClip.clipId, status: liveClip.status };
     },
   };
-  return { profiles, projected, createRequests, videoService };
+  return {
+    profiles,
+    projected,
+    createRequests,
+    videoService,
+    setLiveClip(next) { liveClip = { ...liveClip, ...next }; },
+  };
 }
 
 const availableStyles = [1, 2, 3].map((index) => ({
@@ -230,6 +236,29 @@ test('the visible style card streams the exact verified source video with byte r
   assert.equal(response.headers['content-type'], 'video/mp4');
   assert.equal(response.headers['content-range'], 'bytes 2-5/10');
   assert.equal(response.rawPayload.toString(), '2345');
+});
+
+test('a legacy generic animation is never delivered as Fashion Video', async (t) => {
+  const current = fixture();
+  const root = await mkdtemp(path.join(os.tmpdir(), 'zeely-video-style-delivery-'));
+  const videoPath = path.join(root, 'legacy.mp4');
+  await writeFile(videoPath, 'legacy-video');
+  current.setLiveClip({ status: 'PASS', videoPath, videoSha256: 'a'.repeat(64) });
+  t.after(async () => { await rm(root, { recursive: true, force: true }); });
+  const app = Fastify();
+  t.after(() => app.close());
+  await registerVideoRoutes(app, {
+    profileApi: { resolveRequestProfile: async () => ({ profileId: 'profile-1' }) },
+    profiles: current.profiles,
+    videoService: current.videoService,
+    runService: { outputFile: async () => null },
+  });
+  const response = await app.inject({
+    method: 'GET',
+    url: '/api/profile/video-clips/11111111-1111-4111-8111-111111111111/video',
+  });
+  assert.equal(response.statusCode, 409, response.body);
+  assert.equal(response.json().code, 'VIDEO_STYLE_PROVENANCE_MISSING');
 });
 
 test('create reaches VideoService only after the same two-reference contract is ready', async (t) => {

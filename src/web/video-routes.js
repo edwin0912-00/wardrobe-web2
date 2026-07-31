@@ -56,6 +56,14 @@ function byteRange(rangeHeader, size) {
   return { start, end };
 }
 
+function hasVerifiedFashionStyle(liveClip) {
+  const binding = liveClip?.motionReferenceBinding;
+  return liveClip?.status === 'PASS'
+    && /^[a-f0-9]{64}$/.test(binding?.sha256 ?? '')
+    && /^[a-f0-9]{64}$/.test(binding?.packSha256 ?? '')
+    && liveClip?.referenceAdherenceQa?.pass === true;
+}
+
 /**
  * @param {import('fastify').FastifyInstance} app
  * @param {object} options
@@ -342,10 +350,12 @@ export async function registerVideoRoutes(app, {
     }
     // Merge with live service state if available
     const liveClip = await videoService.getClip(request.params.clipId);
+    const verifiedStyle = hasVerifiedFashionStyle(liveClip);
     return reply.header('Cache-Control', 'private, no-store').send({
       ...clip,
       qa: liveClip?.qa ?? null,
-      video_url: clip.video_url ?? null,
+      video_url: verifiedStyle ? clip.video_url ?? null : null,
+      delivery_code: verifiedStyle ? null : 'VIDEO_STYLE_PROVENANCE_MISSING',
     });
   });
 
@@ -359,6 +369,12 @@ export async function registerVideoRoutes(app, {
     const liveClip = await videoService.getClip(request.params.clipId);
     if (!liveClip?.videoPath) {
       return reply.code(404).send({ error: 'Video file not available', code: 'VIDEO_NOT_READY' });
+    }
+    if (!hasVerifiedFashionStyle(liveClip)) {
+      return reply.code(409).send({
+        error: 'This legacy clip has no verified video-style binding and is not a Fashion Video delivery.',
+        code: 'VIDEO_STYLE_PROVENANCE_MISSING',
+      });
     }
     try {
       const fileStat = await stat(liveClip.videoPath);
@@ -391,7 +407,12 @@ export async function registerVideoRoutes(app, {
     if (clips === null) {
       return reply.code(404).send({ error: 'Look not found', code: 'LOOK_NOT_FOUND' });
     }
-    return reply.header('Cache-Control', 'private, no-store').send({ clips });
+    const verified = [];
+    for (const clip of clips) {
+      const liveClip = await videoService.getClip(clip.clip_id);
+      if (hasVerifiedFashionStyle(liveClip)) verified.push(clip);
+    }
+    return reply.header('Cache-Control', 'private, no-store').send({ clips: verified });
   });
 
   return { videoService };
