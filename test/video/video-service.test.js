@@ -44,6 +44,20 @@ function makeStubQa({
   return { probeFn, extractFrameFn };
 }
 
+function verifiedCutSheet(durationSeconds) {
+  const cut_sheet = {
+    schema_version: '1.0.0',
+    cuts: [{
+      cut_index: 0,
+      start_ms: 0,
+      end_ms: Math.round(durationSeconds * 1000),
+      subject_rule: 'APPROVED_AVATAR_OR_EMPTY',
+      direction: 'Reconstruct this entire reference interval with the approved avatar only or an empty environment.',
+    }],
+  };
+  return { cut_sheet, cut_sheet_sha256: sha256(Buffer.from(JSON.stringify(cut_sheet))) };
+}
+
 function microCutCoverage({
   durationMs = 5_000,
   decision = 'PASS',
@@ -153,6 +167,7 @@ test('explicit retry creates a child only from the failed clip’s locked source
       width: 720,
       height: 1280,
       fps: 24,
+      ...verifiedCutSheet(5),
     };
     const parent = await service.createClip({
       modeId: 'walk_stride',
@@ -160,10 +175,12 @@ test('explicit retry creates a child only from the failed clip’s locked source
       sourceCapabilities: { full_length: true },
       sourceImagePath: sourcePath,
       videoReference,
-      appearanceReferences: [{
-        role: 'identity_face', bytes: Buffer.from('face'), sha256: sha256(Buffer.from('face')),
-      }],
-      lookBinding: { sourceSha256: sha256(Buffer.from('locked-source-image')), approvedLookReceiptSha256: 'c'.repeat(64) },
+      appearanceReferences: [],
+      lookBinding: {
+        sourceSha256: sha256(Buffer.from('locked-source-image')),
+        approvedLookReceiptSha256: 'c'.repeat(64),
+        whiteBackgroundVerified: true,
+      },
     });
     const failedParent = await store.load(parent.clipId);
     await store.save(parent.clipId, { ...failedParent, status: 'FAIL', failureCode: 'CLIP_HAS_AUDIO' });
@@ -189,10 +206,12 @@ test('retry refuses a changed video-style hash before a second provider create',
       state: 'READY', reference_id: 'style-1', reference_path: referencePath,
       reference_sha256: sha256(Buffer.from('verified-style-video')), reference_pack_sha256: 'e'.repeat(64),
       duration_seconds: 5, provider_duration_seconds: 5, width: 720, height: 1280, fps: 24,
+      ...verifiedCutSheet(5),
     };
     const parent = await service.createClip({
       modeId: 'walk_stride', surfaceId: 'mirror', sourceCapabilities: { full_length: true },
       sourceImagePath: sourcePath, videoReference,
+      lookBinding: { whiteBackgroundVerified: true },
     });
     const failedParent = await store.load(parent.clipId);
     await store.save(parent.clipId, { ...failedParent, status: 'FAIL' });
@@ -414,7 +433,6 @@ test('createClip rechecks and passes the exact video reference binding', async (
   await withTempDir(async (dir, sourcePath) => {
     const referencePath = path.join(dir, 'motion.mp4');
     const referenceBytes = Buffer.from('motion-reference-bytes');
-    const identityBytes = Buffer.from('identity-reference-bytes');
     const garmentBytes = Buffer.from('garment-reference-bytes');
     await writeFile(referencePath, referenceBytes);
     const requests = [];
@@ -431,6 +449,7 @@ test('createClip rechecks and passes the exact video reference binding', async (
       modeId: 'editorial_micro_moment',
       surfaceId: 'mirror',
       sourceImagePath: sourcePath,
+      lookBinding: { whiteBackgroundVerified: true },
       videoReference: {
         state: 'READY',
         reference_id: 'editorial-detail',
@@ -442,13 +461,9 @@ test('createClip rechecks and passes the exact video reference binding', async (
         width: 1080,
         height: 1920,
         fps: 25,
+        ...verifiedCutSheet(13.24),
       },
       appearanceReferences: [
-        {
-          role: 'identity_face',
-          bytes: identityBytes,
-          sha256: sha256(identityBytes),
-        },
         {
           role: 'garment_detail',
           bytes: garmentBytes,
@@ -463,7 +478,7 @@ test('createClip rechecks and passes the exact video reference binding', async (
     assert.match(requests[0].prompt, /No source performer face, body, skin, hair, clothing, silhouette or motion-blurred fragment may survive/);
     assert.deepEqual(
       requests[0].mediaPaths.map((mediaPath) => path.basename(mediaPath)),
-      ['source.png', 'identity-face.png', 'garment-detail.png'],
+      ['source.png', 'garment-detail.png'],
     );
     assert.equal(requests[0].sourceBinding.motionReferenceSha256, referenceSha256);
     assert.equal(requests[0].sourceBinding.referencePackSha256, 'f'.repeat(64));
@@ -471,8 +486,37 @@ test('createClip rechecks and passes the exact video reference binding', async (
     assert.equal(saved.motionReferenceBinding.durationSeconds, 13.24);
     assert.deepEqual(
       saved.appearanceReferences.map((reference) => reference.role),
-      ['identity_face', 'garment_detail'],
+      ['garment_detail'],
     );
+  });
+});
+
+test('reference-bound Fashion Video refuses a raw identity-photo side input before provider spend', async () => {
+  await withTempDir(async (dir, sourcePath) => {
+    const referencePath = path.join(dir, 'motion.mp4');
+    const referenceBytes = Buffer.from('motion-reference-bytes');
+    await writeFile(referencePath, referenceBytes);
+    let calls = 0;
+    const service = new VideoService({
+      provider: { async createJob() { calls += 1; return { jobId: 'must-not-run' }; } },
+      clipStore: new ClipStore(dir),
+    });
+    const identity = Buffer.from('original-user-photo-with-a-background');
+    await assert.rejects(
+      () => service.createClip({
+        modeId: 'editorial_micro_moment', surfaceId: 'mirror', sourceImagePath: sourcePath,
+        lookBinding: { whiteBackgroundVerified: true },
+        videoReference: {
+          state: 'READY', reference_id: 'style-1', reference_path: referencePath,
+          reference_sha256: sha256(referenceBytes), reference_pack_sha256: 'f'.repeat(64),
+          duration_seconds: 5, provider_duration_seconds: 5, width: 1080, height: 1920, fps: 25,
+          ...verifiedCutSheet(5),
+        },
+        appearanceReferences: [{ role: 'identity_face', bytes: identity, sha256: sha256(identity) }],
+      }),
+      (error) => error instanceof VideoServiceError && error.code === 'VIDEO_IDENTITY_PHOTO_FORBIDDEN',
+    );
+    assert.equal(calls, 0);
   });
 });
 
@@ -493,6 +537,7 @@ test('createClip refuses a changed video reference before provider spend', async
         modeId: 'editorial_micro_moment',
         surfaceId: 'mirror',
         sourceImagePath: sourcePath,
+        lookBinding: { whiteBackgroundVerified: true },
         videoReference: {
           state: 'READY',
           reference_path: referencePath,
@@ -503,6 +548,7 @@ test('createClip refuses a changed video reference before provider spend', async
           width: 1080,
           height: 1920,
           fps: 25,
+          ...verifiedCutSheet(13.24),
         },
       }),
       (error) => error.code === 'VIDEO_REFERENCE_HASH_MISMATCH',
@@ -523,6 +569,7 @@ test('reference-bound clip stays NEEDS_QA until reference adherence is proven', 
       modeId: 'editorial_micro_moment',
       surfaceId: 'mirror',
       sourceImagePath: sourcePath,
+      lookBinding: { whiteBackgroundVerified: true },
       videoReference: {
         state: 'READY',
         reference_path: referencePath,
@@ -533,6 +580,7 @@ test('reference-bound clip stays NEEDS_QA until reference adherence is proven', 
         width: 1080,
         height: 1920,
         fps: 25,
+        ...verifiedCutSheet(5),
       },
     });
     const finalized = await service.awaitAndFinalize(created.clipId, {

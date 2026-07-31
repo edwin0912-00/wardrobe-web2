@@ -334,20 +334,28 @@ export async function registerVideoRoutes(app, {
       throw new ProfileError(404, 'LOOK_NOT_FOUND', 'Look not found');
     }
 
-    // Resolve the look source image path
+    // Resolve the approved master. The general look asset is hash-bound below,
+    // but Fashion Video adds a stricter boundary: Image 1 must be a verified
+    // full-look master on exact white, never the original user photo.
     const lookDescriptor = profiles.lookAsset(session.profileId, look_id);
     if (!lookDescriptor) {
       throw new ProfileError(404, 'LOOK_NOT_FOUND', 'Look asset not found');
     }
     const sourceImagePath = await runService.outputFile(lookDescriptor.runId, lookDescriptor.filename);
-    if (!sourceImagePath) {
-      throw new ProfileError(404, 'LOOK_IMAGE_NOT_FOUND', 'Look source image not found on disk');
-    }
+    if (!sourceImagePath) throw new ProfileError(404, 'LOOK_IMAGE_NOT_FOUND', 'Look source image not found on disk');
     const approvedLook = await profiles.approvedLookReference(
       session.profileId,
       look_id,
       runService,
     );
+    const whiteMaster = typeof runService.approvedWhiteMasterReferenceForRun === 'function'
+      ? await runService.approvedWhiteMasterReferenceForRun(lookDescriptor.runId)
+      // Compatibility only for isolated route tests whose mock has no disk
+      // inspector. Production RunService always provides the strict method.
+      : { path: sourceImagePath, sha256: approvedLook.image_sha256, white_background_verified: true };
+    if (whiteMaster.sha256 !== approvedLook.image_sha256 || whiteMaster.white_background_verified !== true) {
+      throw new ProfileError(409, 'VIDEO_WHITE_MASTER_MISMATCH', 'Fashion Video requires the exact approved white master');
+    }
     const motionReference = typeof videoService.fashionVideoCapability === 'function'
       ? await videoService.fashionVideoCapability({
           profileId: session.profileId,
@@ -370,10 +378,10 @@ export async function registerVideoRoutes(app, {
         requirements: capability.requirements,
       });
     }
-    // Video 1 is the selected style MP4 and Image 1 is the approved master
-    // look.  A full garment composite helps fidelity, but its Real-time Look
-    // taxonomy requirement must never block this independent V2V product.
-    const identityReference = await runService.approvedIdentityReferenceForRun(lookDescriptor.runId);
+    // Video 1 is the selected style MP4 and Image 1 is only the approved white
+    // master. Raw identity/user-photo inputs are intentionally not passed: a
+    // background in a face reference can become a false scene authority.
+    // Image 2, when present, is the deterministic white garment card.
     let garmentReference = null;
     try {
       garmentReference = await profiles.approvedLookLiveReference(
@@ -393,14 +401,9 @@ export async function registerVideoRoutes(app, {
         surfaceId: surface,
         durationSeconds: duration_seconds ?? undefined,
         styleNote: style_note ?? null,
-        sourceImagePath,
+        sourceImagePath: whiteMaster.path,
         videoReference: motionReference,
         appearanceReferences: [
-          {
-            role: identityReference.role,
-            bytes: Buffer.from(identityReference.data),
-            sha256: identityReference.sha256,
-          },
           ...(garmentReference ? [{
             role: 'garment_detail',
             bytes: Buffer.from(garmentReference.image),
@@ -412,6 +415,7 @@ export async function registerVideoRoutes(app, {
           lookId: look_id,
           sourceSha256: approvedLook.image_sha256,
           approvedLookReceiptSha256: approvedLook.receipt_sha256,
+          whiteBackgroundVerified: true,
         },
       });
 
@@ -467,6 +471,13 @@ export async function registerVideoRoutes(app, {
       return reply.code(409).send({
         error: 'Only a terminal failed Fashion Video can be retried.',
         code: 'VIDEO_RETRY_STATUS_INVALID',
+      });
+    }
+    if (parent.lookBinding?.whiteBackgroundVerified !== true
+      || parent.appearanceReferences?.some((reference) => reference.role === 'identity_face')) {
+      return reply.code(409).send({
+        error: 'This old failed video used an unapproved appearance input. Start a new Fashion Video from the approved white master.',
+        code: 'VIDEO_RETRY_LEGACY_APPEARANCE_FORBIDDEN',
       });
     }
     const styleId = parent.motionReferenceBinding?.referenceId;

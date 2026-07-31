@@ -65,6 +65,16 @@ paid provider job and must not be automatic or duplicable.
 Evidence: focused service + route tests 48/48 PASS; no provider generation.
 weakened_checks: none.
 
+2026-07-31 · Fashion Video white-master and cut-sheet repair · pending commit
+Change: removed raw identity-photo media from the V2V request; Image 1 is a
+verified exact-white approved master and Image 2 is only a white garment card.
+Added immutable per-style timed cut sheets to the reference pack and prompt.
+Why: any photo background can compete with Video 1’s environment, while a
+single generic instruction can miss source-performer leakage in a later cut.
+Evidence: current runtime master passes the white-surface diagnostic; focused
+Fashion Video tests 69/69 PASS; no provider creation.
+weakened_checks: none.
+
 2026-07-30 · Fashion Video motion-reference authority
 Change: registered three operator-provided motion videos as a content-addressed
 runtime pack and wired deterministic per-mode selection into Seedance's native

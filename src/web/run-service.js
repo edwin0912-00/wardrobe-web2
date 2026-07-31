@@ -19,6 +19,8 @@ import { IMAGE_MODEL_ROUTE } from '../runner/model-policy.js';
 import { PipelineRunner } from '../runner/pipeline-runner.js';
 import { assessImageQuality, normalizeReference } from '../conditioning/index.mjs';
 import { normalizeWhitePngBytes } from '../qa/white-normalizer.mjs';
+import { inspectImage } from '../qa/image-inspector.mjs';
+import { STATUS as QA_STATUS } from '../qa/constants.mjs';
 import { GarmentNeedsInputError, GarmentConditioner } from './garment-conditioner.js';
 import { lockFirstAppearance } from './first-appearance-lock.js';
 import {
@@ -1865,6 +1867,43 @@ export class RunService {
     }
     const filename = path.join(this.runDirectory(runId), 'outputs', name);
     try { await access(filename); return filename; } catch { return null; }
+  }
+
+  /**
+   * Fashion Video may receive only the approved full-look master, never the
+   * original user upload or an identity-pack photo. Verify the same keyable
+   * white surface again at this downstream boundary so an arbitrary image path
+   * cannot become `[Image 1]` by accident.
+   */
+  async approvedWhiteMasterReferenceForRun(runId) {
+    const filename = await this.outputFile(runId, 'avatar_outfit.png');
+    if (!filename) {
+      throw evidenceError('APPROVED_WHITE_MASTER_MISSING', 'Approved white master is missing');
+    }
+    // Footwear legitimately reaches the lower edge of a full-length master.
+    // The inspector therefore gates both upper corners and a full-height side,
+    // rather than mistaking a sole at the bottom for a non-white background.
+    const inspected = await inspectImage(filename);
+    const technicalPass = Object.values(inspected.technical_gates ?? {})
+      .every((gate) => gate?.status === QA_STATUS.PASS);
+    if (!technicalPass || inspected.background_diagnostics?.status !== QA_STATUS.PASS) {
+      throw evidenceError(
+        'APPROVED_WHITE_MASTER_INVALID',
+        'Fashion Video requires the approved full-look master on exact white; original input photos are not allowed',
+      );
+    }
+    const data = await readFile(filename);
+    if (sha256(data) !== inspected.sha256) {
+      throw evidenceError('APPROVED_WHITE_MASTER_HASH_MISMATCH', 'Approved white master changed during verification');
+    }
+    return {
+      role: 'approved_white_master',
+      path: filename,
+      data,
+      sha256: inspected.sha256,
+      white_background_verified: true,
+      background_diagnostics: inspected.background_diagnostics,
+    };
   }
 
   async garmentSourceFile(runId, sourceIndex) {

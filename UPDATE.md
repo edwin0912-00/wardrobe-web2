@@ -889,3 +889,20 @@ facts.
   duplicate retry key, and changed style hash → no second create.
 - `weakened_checks: none`. This is code evidence only until the exact commit
   is deployed to beta and a real explicit retry is observed.
+
+### 2026-07-31 · FASHION VIDEO APPEARANCE + CUT-SHEET BINDING (READY FOR BETA DEPLOY)
+
+- `[Image 1]` is now enforced as the exact approved full-look master on a
+  verified pure-white ground. Fashion Video never receives the raw uploaded
+  person image or an identity-pack photo as a media input.
+- `[Image 2]`, when present, is only the deterministic garment card composed
+  from approved cutouts on white; it cannot define a person or an environment.
+- All three private video styles now carry immutable, time-bounded cut sheets.
+  The create prompt enumerates every interval with the absolute rule:
+  `APPROVED_AVATAR_OR_EMPTY`. A changed cut sheet changes the style-pack hash
+  and blocks retry before provider spend.
+- Legacy failed clips which used an identity-photo side input are not retried;
+  they must be recreated from the approved white master instead.
+- Evidence: real approved master inspected PASS under the product white-master
+  diagnostic; Fashion Video prompt/registry/service/route tests `69/69` PASS.
+- `weakened_checks: none`. No paid video generation was started.

@@ -6,6 +6,23 @@ import { sha256 } from './scene-contract.js';
 const SHA256 = /^[a-f0-9]{64}$/;
 const SAFE_FILENAME = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 
+function validCutSheet(sheet, durationSeconds) {
+  if (sheet?.schema_version !== '1.0.0' || !Array.isArray(sheet.cuts)
+    || sheet.cuts.length < 1 || sheet.cuts.length > 24) return false;
+  let end = 0;
+  for (const [index, cut] of sheet.cuts.entries()) {
+    if (cut?.cut_index !== index
+      || !Number.isInteger(cut.start_ms) || !Number.isInteger(cut.end_ms)
+      || cut.start_ms !== end || cut.end_ms <= cut.start_ms
+      || cut.subject_rule !== 'APPROVED_AVATAR_OR_EMPTY'
+      || typeof cut.direction !== 'string' || cut.direction.length < 24 || cut.direction.length > 500) {
+      return false;
+    }
+    end = cut.end_ms;
+  }
+  return Math.abs(end - Math.round(durationSeconds * 1000)) <= 40;
+}
+
 export class VideoReferenceRegistryError extends Error {
   constructor(message, { code = 'VIDEO_REFERENCE_INVALID', status = 409, cause } = {}) {
     super(message, { cause });
@@ -50,6 +67,9 @@ function validateManifest(manifest) {
       || reference.motion_modes.length === 0
       || !reference.motion_modes.includes(reference?.default_motion_mode)) {
       throw new VideoReferenceRegistryError('Fashion Video reference entry is invalid');
+    }
+    if (!validCutSheet(reference.cut_sheet, reference.duration_seconds)) {
+      throw new VideoReferenceRegistryError('Fashion Video reference has no valid cut sheet');
     }
   }
   return manifest;
@@ -163,6 +183,8 @@ export function createFashionVideoReferenceResolver({
       width: selected.width,
       height: selected.height,
       fps: selected.fps,
+      cut_sheet: selected.cut_sheet,
+      cut_sheet_sha256: sha256(Buffer.from(JSON.stringify(selected.cut_sheet))),
       motion_modes: Object.freeze([...selected.motion_modes]),
       available_styles: Object.freeze(availableStyles),
       selected_style_id: selected.id,

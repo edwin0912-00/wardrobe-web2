@@ -42,6 +42,20 @@ const REQUIRED_REFERENCE_CHECKS = Object.freeze([
 const SHA256 = /^[a-f0-9]{64}$/;
 const CUT_PEOPLE = new Set(['APPROVED_AVATAR_ONLY', 'NO_PERSON', 'REFERENCE_PERFORMER', 'MIXED_OR_UNKNOWN']);
 
+function validFashionCutSheet(sheet, durationSeconds) {
+  if (sheet?.schema_version !== '1.0.0' || !Array.isArray(sheet.cuts)
+    || sheet.cuts.length < 1 || sheet.cuts.length > 24) return false;
+  let end = 0;
+  for (const [index, cut] of sheet.cuts.entries()) {
+    if (cut?.cut_index !== index || !Number.isInteger(cut.start_ms)
+      || !Number.isInteger(cut.end_ms) || cut.start_ms !== end
+      || cut.end_ms <= cut.start_ms || cut.subject_rule !== 'APPROVED_AVATAR_OR_EMPTY'
+      || typeof cut.direction !== 'string' || cut.direction.length < 24 || cut.direction.length > 500) return false;
+    end = cut.end_ms;
+  }
+  return Math.abs(end - Math.round(durationSeconds * 1000)) <= 40;
+}
+
 function validatedMicroCutCoverage(coverage, durationSeconds) {
   if (!coverage || typeof coverage !== 'object'
     || !Number.isFinite(durationSeconds) || durationSeconds <= 0
@@ -374,6 +388,12 @@ export class VideoService {
     }
     let verifiedVideoReference = null;
     if (videoReference !== null) {
+      if (lookBinding?.whiteBackgroundVerified !== true) {
+        throw new VideoServiceError(
+          'Fashion Video requires a verified approved white master; raw person photos are forbidden',
+          { code: 'VIDEO_WHITE_MASTER_REQUIRED', status: 409 },
+        );
+      }
       if (videoReference?.state !== 'READY'
         || typeof videoReference.reference_path !== 'string'
         || !/^[a-f0-9]{64}$/.test(videoReference.reference_sha256 ?? '')
@@ -381,7 +401,10 @@ export class VideoService {
         || !Number.isFinite(videoReference.duration_seconds)
         || !Number.isInteger(videoReference.provider_duration_seconds)
         || videoReference.provider_duration_seconds < 3
-        || videoReference.provider_duration_seconds > 15) {
+        || videoReference.provider_duration_seconds > 15
+        || !validFashionCutSheet(videoReference.cut_sheet, videoReference.duration_seconds)
+        || !SHA256.test(videoReference.cut_sheet_sha256 ?? '')
+        || sha256(Buffer.from(JSON.stringify(videoReference.cut_sheet))) !== videoReference.cut_sheet_sha256) {
         throw new VideoServiceError('Fashion Video reference binding is incomplete', {
           code: 'VIDEO_REFERENCE_INVALID',
           status: 409,
@@ -413,6 +436,8 @@ export class VideoService {
         width: videoReference.width ?? null,
         height: videoReference.height ?? null,
         fps: videoReference.fps ?? null,
+        cutSheet: videoReference.cut_sheet ?? null,
+        cutSheetSha256: videoReference.cut_sheet_sha256 ?? null,
       };
     }
     if (!Array.isArray(appearanceReferences)
@@ -430,6 +455,13 @@ export class VideoService {
         code: 'VIDEO_APPEARANCE_REFERENCE_INVALID',
         status: 409,
       });
+    }
+    if (verifiedVideoReference
+      && appearanceReferences.some((reference) => reference.role === 'identity_face')) {
+      throw new VideoServiceError(
+        'Fashion Video accepts identity only through Image 1, the approved white master',
+        { code: 'VIDEO_IDENTITY_PHOTO_FORBIDDEN', status: 409 },
+      );
     }
     const lockedSourcePath = await this.#store.saveSource(clipId, sourceBytes);
     const lockedAppearanceReferences = [];
@@ -453,12 +485,10 @@ export class VideoService {
     const referenceBound = verifiedVideoReference !== null;
     const prompt = referenceBound
       ? buildFashionVideoReferencePrompt({
-          hasIdentityReference: lockedAppearanceReferences.some(
-            (reference) => reference.role === 'identity_face',
-          ),
           hasGarmentReference: lockedAppearanceReferences.some(
             (reference) => reference.role === 'garment_detail',
           ),
+          cutSheet: verifiedVideoReference.cutSheet,
         })
       : plan.prompt;
     const duration = referenceBound
@@ -514,6 +544,10 @@ export class VideoService {
             width: verifiedVideoReference.width,
             height: verifiedVideoReference.height,
             fps: verifiedVideoReference.fps,
+            cutSheetSha256: verifiedVideoReference.cutSheetSha256,
+            cutCount: Array.isArray(verifiedVideoReference.cutSheet?.cuts)
+              ? verifiedVideoReference.cutSheet.cuts.length
+              : 0,
           }
         : null,
       lookBinding,
@@ -617,6 +651,13 @@ export class VideoService {
       throw new VideoServiceError('Only a terminal failed video can be retried', {
         code: 'VIDEO_RETRY_STATUS_INVALID', status: 409,
       });
+    }
+    if (parent.lookBinding?.whiteBackgroundVerified !== true
+      || parent.appearanceReferences?.some((reference) => reference.role === 'identity_face')) {
+      throw new VideoServiceError(
+        'This failed clip used a legacy appearance input and cannot be retried. Start a new Fashion Video from the approved white master.',
+        { code: 'VIDEO_RETRY_LEGACY_APPEARANCE_FORBIDDEN', status: 409 },
+      );
     }
     const binding = parent.motionReferenceBinding;
     if (!binding || !videoReference

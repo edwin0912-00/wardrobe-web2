@@ -24,7 +24,20 @@
       "duration_seconds": 13.24,
       "motion_modes": [
         "editorial_micro_moment"
-      ]
+      ],
+      "cut_sheet": {
+        "schema_version": "1.0.0",
+        "cuts": [
+          { "cut_index": 0, "start_ms": 0, "end_ms": 800, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Full-length editorial street frame at the ochre doorway; preserve the vertical architecture, frontal camera distance and still opening pose." },
+          { "cut_index": 1, "start_ms": 800, "end_ms": 2800, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Side-profile street portrait through foliage; preserve shallow depth, the ochre-and-green palette and the deliberate head turn." },
+          { "cut_index": 2, "start_ms": 2800, "end_ms": 7320, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Alternating soft-focus and front-facing editorial portrait coverage in the same street world; retain the rapid editorial reframing rather than collapsing it to one shot." },
+          { "cut_index": 3, "start_ms": 7320, "end_ms": 8400, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Full-figure graphic alley composition; preserve scale, hard architectural colour blocks and the centered fashion stance. Remove any secondary person." },
+          { "cut_index": 4, "start_ms": 8400, "end_ms": 8800, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Tight waist-to-knee garment detail; preserve the downward camera angle and body rhythm while keeping the approved outfit exact." },
+          { "cut_index": 5, "start_ms": 8800, "end_ms": 12400, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Three-quarter and full-body foliage portraits; retain the alternating soft focus, pose changes and warm street light." },
+          { "cut_index": 6, "start_ms": 12400, "end_ms": 13040, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Wide behind-the-camera street view; render only the approved avatar where the reference has a person and remove crew or passers-by." },
+          { "cut_index": 7, "start_ms": 13040, "end_ms": 13240, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Tight finishing face-and-collar portrait; preserve the close lens, ochre background and final stillness." }
+        ]
+      }
     },
     {
       "id": "walk-camera-energy",
@@ -47,7 +60,20 @@
       "motion_modes": [
         "walk_stride",
         "garment_gesture"
-      ]
+      ],
+      "cut_sheet": {
+        "schema_version": "1.0.0",
+        "cuts": [
+          { "cut_index": 0, "start_ms": 0, "end_ms": 1040, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Fast shallow-focus opening portrait under hard midday sun; preserve the energetic lens proximity and hat-adjustment choreography without retaining the source performer." },
+          { "cut_index": 1, "start_ms": 1040, "end_ms": 3280, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Full-body alley stance and hat gesture; retain direct sun, blue sky, ochre facades and the fashion silhouette." },
+          { "cut_index": 2, "start_ms": 3280, "end_ms": 6280, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Three-quarter wall and mural coverage; preserve the lateral camera energy, changing stance and graphic street geometry." },
+          { "cut_index": 3, "start_ms": 6280, "end_ms": 8840, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Low-angle close portraits beneath the hat brim; retain hard shadow direction, sky colour and face framing." },
+          { "cut_index": 4, "start_ms": 8840, "end_ms": 10240, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Street-width portrait with architectural perspective; preserve the low camera and travel through the alley." },
+          { "cut_index": 5, "start_ms": 10240, "end_ms": 12440, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Hard-sun wall portraits with dappled shadow; keep the approved avatar only and exact outfit readability." },
+          { "cut_index": 6, "start_ms": 12440, "end_ms": 14960, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Medium-to-full-body return to the alley; preserve the pose sequence, angular composition and editorial pace." },
+          { "cut_index": 7, "start_ms": 14960, "end_ms": 15160, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Close final portrait; preserve the hat gesture and abrupt editorial finish." }
+        ]
+      }
     },
     {
       "id": "hard-sun-pose",
@@ -69,7 +95,19 @@
       "duration_seconds": 15.12,
       "motion_modes": [
         "camera_drift"
-      ]
+      ],
+      "cut_sheet": {
+        "schema_version": "1.0.0",
+        "cuts": [
+          { "cut_index": 0, "start_ms": 0, "end_ms": 1280, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Wide corner-building opening with an upright figure; preserve the mustard facade, deep shadow and small full-body scale." },
+          { "cut_index": 1, "start_ms": 1280, "end_ms": 2560, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Extreme fisheye close portrait; preserve the optical distortion, upward camera and formal face framing with the approved avatar." },
+          { "cut_index": 2, "start_ms": 2560, "end_ms": 3880, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Wide moving street-crossing composition; retain broad architectural space and remove every non-approved pedestrian." },
+          { "cut_index": 3, "start_ms": 3880, "end_ms": 4680, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Vertical side full-body pose against the warm facade; preserve hard sun, raised-arm choreography and deep shade." },
+          { "cut_index": 4, "start_ms": 4680, "end_ms": 8360, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Architecture-to-portrait sequence at the yellow wall; preserve the shift from wide building scale to medium fashion portrait." },
+          { "cut_index": 5, "start_ms": 8360, "end_ms": 13240, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Compressed close portrait in hard directional light; preserve the shadow pattern, hand-to-neck choreography and changing crop." },
+          { "cut_index": 6, "start_ms": 13240, "end_ms": 15120, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Final intimate close-up; preserve the slow camera drift, warm wall, deep contrast and final gaze without any source-person pixels." }
+        ]
+      }
     }
   ]
 }

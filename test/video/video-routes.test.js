@@ -356,7 +356,11 @@ test('one explicit QA retry creates one child job and same idempotency key reuse
     ...await current.videoService.getClip(),
     status: 'FAIL',
     mode: 'motion_1',
-    lookBinding: { sourceSha256: 'b'.repeat(64), approvedLookReceiptSha256: 'c'.repeat(64) },
+    lookBinding: {
+      sourceSha256: 'b'.repeat(64),
+      approvedLookReceiptSha256: 'c'.repeat(64),
+      whiteBackgroundVerified: true,
+    },
     motionReferenceBinding: { referenceId: 'style-1', sha256: 'd'.repeat(64), packSha256: 'e'.repeat(64) },
   };
   const child = {
@@ -459,7 +463,7 @@ test('create reaches VideoService only after the same two-reference contract is 
   assert.equal(current.createRequests[0].lookBinding.sourceSha256, 'b'.repeat(64));
   assert.deepEqual(
     current.createRequests[0].appearanceReferences.map((reference) => reference.role),
-    ['identity_face', 'garment_detail'],
+    ['garment_detail'],
   );
   assert.equal(current.projected[0].clip.status, 'CREATED');
   assert.equal(current.projected.at(-1).clip.status, 'PASS');
@@ -554,7 +558,7 @@ test('Fashion Video uses the selected style id and does not inherit the Real-tim
   });
   assert.equal(response.statusCode, 202, response.body);
   assert.equal(current.createRequests.at(-1).videoReference.reference_id, 'style-2');
-  assert.deepEqual(current.createRequests.at(-1).appearanceReferences.map((reference) => reference.role), ['identity_face']);
+  assert.deepEqual(current.createRequests.at(-1).appearanceReferences.map((reference) => reference.role), []);
 });
 
 test('saved-look capability refuses a look outside the browser profile', async (t) => {

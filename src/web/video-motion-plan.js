@@ -99,31 +99,36 @@ const LOCKS = [
 ].join(' ');
 
 export function buildFashionVideoReferencePrompt({
-  hasIdentityReference = false,
   hasGarmentReference = false,
+  cutSheet = null,
 } = {}) {
+  const cuts = Array.isArray(cutSheet?.cuts) ? cutSheet.cuts : [];
   const lines = [
     '[Video 1] is private reference-only directing material, never delivery media.',
     'Use it only to reconstruct its complete shot sequence, cut timing, transitions, action timing, pose choreography, camera movement, framing, environment, lighting, colour grade, optical effects, props and environmental text.',
     'Every final frame must be newly generated. Never splice, reuse, reveal, freeze, picture-in-picture, reflection, monitor image, transition frame or background person from [Video 1].',
-    '[Image 1] is the only permitted visible human: the exact approved person wearing the exact complete approved outfit.',
+    '[Image 1] is the only permitted visible human: the exact approved person wearing the exact complete approved outfit, isolated on an exact pure-white background.',
+    '[Image 1] contains no scene authority. Use only its person, identity, hair, body and complete approved outfit; its white background is intentionally empty and must never become the environment.',
     'For every cut: if a person is visible, render [Image 1] as that person with the same identity, body, hair and complete approved outfit. If the reference cut has no person, render no person. Remove any secondary person rather than retaining a reference performer.',
     'No source performer face, body, skin, hair, clothing, silhouette or motion-blurred fragment may survive in any cut. Never mix [Image 1] with the reference performer.',
   ];
-  if (hasIdentityReference) {
-    lines.push(
-      '[Image 2] defines face identity and hair only. Ignore its clothing and background.',
-    );
-  }
   if (hasGarmentReference) {
     lines.push(
-      `[Image ${hasIdentityReference ? 3 : 2}] defines the approved garment and footwear construction, colour, material, pattern, hardware, logo and text only. Do not redesign any item.`,
+      '[Image 2] is a white-background garment-only evidence card. It defines approved garment and footwear construction, colour, material, pattern, hardware, logo and text only. It contains no person or environment. Do not redesign any item.',
     );
+  }
+  if (cuts.length > 0) {
+    lines.push('CUT SHEET — reconstruct each listed interval as a newly generated cut. The subject rule is absolute: APPROVED_AVATAR_OR_EMPTY means render [Image 1] for any visible person, otherwise render no person; never retain a reference person in a transition, reflection, monitor, blur or background.');
+    for (const cut of cuts) {
+      lines.push(
+        `CUT ${String(cut.cut_index + 1).padStart(2, '0')} ${cut.start_ms}ms–${cut.end_ms}ms | ${cut.subject_rule} | ${cut.direction}.`,
+      );
+    }
   }
   lines.push(
     'Never replace the reference environment with the background of an appearance image.',
     'Do not simplify the reference into a static portrait or a single continuous camera setup, but reconstruct every cut with the approved person or an empty environment only.',
-    'Do not add people, props, scene text, wardrobe changes, music, dialogue, voice or sound effects.',
+    'Do not add people, props, scene text, wardrobe changes, music, dialogue, voice or sound effects. The original uploaded person photo is not an allowed image input and must never be inferred as a background or scene source.',
   );
   return lines.join(' ');
 }

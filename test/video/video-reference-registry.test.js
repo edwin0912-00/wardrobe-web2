@@ -44,6 +44,14 @@ async function fixture(run) {
         fps: 25,
         default_motion_mode: 'walk_stride',
         motion_modes: ['walk_stride'],
+        cut_sheet: {
+          schema_version: '1.0.0',
+          cuts: [{
+            cut_index: 0, start_ms: 0, end_ms: 13240,
+            subject_rule: 'APPROVED_AVATAR_OR_EMPTY',
+            direction: 'Reconstruct the verified motion interval with the approved avatar only or an empty environment.',
+          }],
+        },
       }],
     }));
     await run({
@@ -82,6 +90,8 @@ test('resolver selects and verifies the hash-bound motion reference and UI playb
     assert.match(result.reference_pack_sha256, /^[a-f0-9]{64}$/);
     assert.equal(result.duration_seconds, 13.24);
     assert.equal(result.provider_duration_seconds, 13);
+    assert.equal(result.cut_sheet.cuts.length, 1);
+    assert.match(result.cut_sheet_sha256, /^[a-f0-9]{64}$/);
   });
 });
 
