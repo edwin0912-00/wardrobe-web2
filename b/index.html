@@ -8,6 +8,8 @@
 </head>
 <body>
 
+<a class="skip" href="#journey">До взаємодії</a>
+
 <div class="progress" aria-hidden="true"></div>
 
 <div class="loader" data-loader>
@@ -22,7 +24,7 @@
 
 <div class="mark">WARDROBE</div>
 
-<main class="stage" data-stage data-leg="0" data-station="0">
+<main class="stage" id="journey" data-stage data-leg="0" data-station="0">
   <!-- No src attributes on purpose. loader.js downloads each master itself so the bar can
        count real bytes, then hands the elements blob URLs. Leaving a src here would start
        a second, unmeasured download in parallel. -->
@@ -72,23 +74,17 @@
          look belongs in the right-hand mirror, which is the panel whose whole job is
          showing the result. -->
 
-    <!-- THE PIPELINE PAGE, ON THE LAPTOP SCREEN.
-         This legacy placeholder stays deliberately hidden until the supplied pipeline
-         document is real and the final D master has a four-corner display calibration.
-         The older axis-aligned fit reaches onto the laptop chin/keyboard in this camera
-         move, so showing a generic page there would be a visibly false surface. The
-         future calibrated laptop layer will own the one real DOM tree and its reversible
-         scroll handoff; it must not revive this stand-in by accident. -->
-    <div class="screen" data-screen-layer aria-hidden="true" hidden>
-      <div class="screen__page" data-screen-page>
-        <div class="screen__row"><b>WARDROBE</b><span>пайплайн</span></div>
-        <div class="screen__bars">
-          <i style="--v:.92"></i><i style="--v:.64"></i><i style="--v:.78"></i>
-          <i style="--v:.41"></i><i style="--v:.86"></i><i style="--v:.55"></i>
-        </div>
-        <div class="screen__row"><span>LOOK</span><span>WORLD</span><span>MOTION</span></div>
-      </div>
-    </div>
+    <!-- SCREEN SURFACES.
+         These are not floating cards. TvScreenSurface clips media to the measured inner
+         aperture in seg2. LaptopScreenSurface stays empty and hidden until the owner
+         supplies the real pipeline HTML; one DOM tree will then be projectively bound to
+         the measured display quad and later inherit scroll. -->
+    <aside class="tv-surface" data-tv-surface aria-label="Галерея результатів" aria-hidden="true" hidden>
+      <div class="tv-surface__content" data-tv-gallery></div>
+    </aside>
+    <section class="laptop-surface" data-laptop-surface aria-label="Історія створення" aria-hidden="true" hidden>
+      <div class="laptop-surface__page" data-laptop-page></div>
+    </section>
   </div>
 
   <div class="grade" aria-hidden="true"></div>
@@ -101,18 +97,19 @@
     <p class="copy__line" data-on="3">AND IT LEAVES THE ROOM WITH YOU.</p>
   </div>
 
-  <!-- LIVE — an invitation that ARRIVES, rather than chrome that was always there.
-       The side-mounted button is gone: the owner cut it, and it was on the frame from the
-       moment the camera settled, competing with the one thing the viewer is meant to do
-       first. This rises from the bottom edge once a look is visible, offers itself, and the
-       trying-on itself happens in the right mirror — a camera pointed at a look belongs on
-       the surface that shows the look.
-       Stage space on purpose: it is chrome on the frame, not something painted on glass. -->
-  <button class="live" type="button" data-live-invite data-live="0" aria-hidden="true" disabled>
-    <span class="live__t">Приміряти лайв</span>
-    <span class="live__d">камера · у правому дзеркалі</span>
-  </button>
 </main>
+
+<!-- LIVE grows from the right mirror into this one full-screen plane. It is an explicit
+     immersive action, never a global bottom button. ui.js opens it only after a tap,
+     traps focus, stops the camera on close/timeout/backgrounding, and reverses the same
+     spatial transition back to the mirror. -->
+<div class="live-overlay" data-live-overlay role="dialog" aria-modal="true"
+     aria-labelledby="live-title" aria-hidden="true" hidden>
+  <h2 class="sr-only" id="live-title">Лайв-примірка</h2>
+  <video class="live-overlay__video" data-live-fullscreen autoplay playsinline muted></video>
+  <div class="live-overlay__time" aria-hidden="true"><i></i></div>
+  <button class="live-overlay__close" type="button" data-live-close>Закрити</button>
+</div>
 
 <div class="legs" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
 <div class="hud" data-readout>—</div>
@@ -127,6 +124,8 @@
 
 <script src="../loader.js"></script>
 <script src="../media-strategy.js"></script>
+<script src="../screen-surface-math.js"></script>
+<script src="../screen-surfaces.js"></script>
 <script src="../engine.js"></script>
 <script src="../ui.js"></script>
 <script src="../audio.js"></script>
@@ -166,6 +165,7 @@
     critical: IOS_MEDIA ? [TRACKS[0], INTRO] : [TRACKS[0], INTRO, VIDEOS[0]],
     background: IOS_MEDIA ? [] : VIDEOS.slice(1)
   };
+  var screenSurfaces = null;
   function hasLoadedBlob(blobs, key) {
     return MEDIA_STRATEGY ? MEDIA_STRATEGY.hasBlob(blobs, key)
       : !!(blobs && Object.prototype.hasOwnProperty.call(blobs, key) && blobs[key]);
@@ -525,18 +525,16 @@
        *                station to arrive at and nothing to read on it.
        * handoverAt .72 from 72% of the intro's span the scroll drives ROOM ONE as well.
        *                Both advance from here, so nothing freezes.
-       * fadeFrom  .765 the dissolve starts here. This gap (handoverAt -> fadeFrom) is how
+       * fadeFrom  .932 the dissolve starts here. This gap (handoverAt -> fadeFrom) is how
        *                much of room one's own footage plays HIDDEN behind the still-opaque
-       *                intro before reveal — it used to be .84 (a gap of .12), which for
-       *                seg1-D.mp4 (front-loaded motion, unevenness 1.02) meant room one was
-       *                already 2.57s into its own timeline — well past an empty couch — by
-       *                the moment it became visible. Measured with the same method as
-       *                LOG-2026-07-29.md §5: reveal's videoTime needed to drop from 2.57s to
-       *                near the original master's own 0.32s, which meant shrinking the gap
-       *                from .12 to ~.045 (fadeFrom .765). Re-check this number if the
-       *                master swaps again — it is fitted to THIS file's motion table, not a
-       *                universal constant. */
-      intro: { screens: 1.8, handoverAt: 0.72, fadeFrom: 0.765 },
+       *                intro before reveal. The selected D master spends its opening on
+       *                the sofa/empty room, while the visible assembly begins around 4.4s.
+       *                Inverting this master's committed motion table puts that frame at
+       *                intro u=.932. The room therefore moves underneath the textile but
+       *                cannot leak through before the furniture and rails are readable.
+       *                Re-check this number if the master swaps again — it is fitted to
+       *                THIS file's motion table, not a universal constant. */
+      intro: { screens: 1.8, handoverAt: 0.72, fadeFrom: 0.932 },
       /* CUT AT THE SEAM, DO NOT DISSOLVE.
        *
        * The default is 0.10 — a tenth of a leg spent with both films painted and
@@ -563,6 +561,9 @@
          otherwise a hidden video can report duration while its compositor is still black. */
       isFilmReady: function (_video, index) {
         return !IOS_MEDIA || iosRoomReady[index] === true;
+      },
+      onFrame: function (frame) {
+        if (screenSurfaces) screenSurfaces.update(frame);
       },
       onSpeed: function (s) { if (window.score) window.score.setSpeed(s); },
       /* ATTENTION without a hard gate.
@@ -601,6 +602,11 @@
       ]
     });
 
+    screenSurfaces = window.WardrobeScreenSurfaces ? WardrobeScreenSurfaces.create({
+      film: document.querySelector('[data-film]'),
+      calibrationUrl: 'screen-calibration.json'
+    }) : null;
+
     window.ui = WardrobeUI.create({
       /* The look landed, so the HOLD is over — the gate unlocks — but the page does not
          carry the viewer anywhere. This used to call releaseAndAdvance(), which drives the
@@ -620,6 +626,9 @@
       onGateChange: function () {
         if (window.journey && window.journey.refreshGate) window.journey.refreshGate();
       },
+      onResult: function (result) {
+        if (screenSurfaces) screenSurfaces.addResult(result);
+      },
       /* A 16:9 result belongs on the television — carry the viewer there to see it
        * widescreen. A 9:16 result stays right here in the mirror, so this is never
        * called for it; nothing moves on its own. Reuses releaseAndAdvance() exactly as
@@ -628,7 +637,7 @@
        * itself was wrong. Here it fires only after the viewer has already used the
        * action row and chosen a widescreen result, so it does not reopen that problem. */
       onWideResult: function () {
-        if (window.journey && window.journey.releaseAndAdvance) window.journey.releaseAndAdvance();
+        if (screenSurfaces) screenSurfaces.wakeTelevision();
       }
     });
 
@@ -638,8 +647,8 @@
        being confidently wrong. */
     var gateText = document.querySelector('[data-gate-text]');
     var GATE_COPY = {
-      loading: 'Наступна кімната ще завантажується',
-      closed:  'Завантажте медіа цього кроку, щоб іти далі'
+      loading: 'Готуємо наступну кімнату',
+      closed:  'Завершіть цей крок, щоб іти далі'
     };
     function reflectGate() {
       var s = document.documentElement.getAttribute('data-gate');

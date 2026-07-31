@@ -460,6 +460,10 @@
     var raf = null;
     var lastWritten = -1;
     var onSpeed = typeof config.onSpeed === 'function' ? config.onSpeed : null;
+    /* Surface projection is a visual consumer of the journey's existing frame clock.
+     * Calling it from write() keeps TV/laptop geometry on the same rAF as video seeking;
+     * a second observer loop would inevitably trail the film by a frame under load. */
+    var onFrame = typeof config.onFrame === 'function' ? config.onFrame : null;
 
     function readTarget() {
       var max = root.scrollHeight - viewport();
@@ -632,6 +636,22 @@
        * current frame time while testing. */
       if (readout) {
         readout.textContent = (d && isFinite(d) ? v.currentTime.toFixed(2) : '—') + 's';
+      }
+      if (onFrame) {
+        try {
+          onFrame({
+            progress: p,
+            leg: r.idx,
+            local: r.local,
+            eased: r.eased,
+            videoTime: d && isFinite(d) ? v.currentTime : null,
+            duration: d && isFinite(d) ? d : null,
+            stationId: active ? active.id : null,
+            atStation: !!active
+          });
+        } catch (surfaceError) {
+          /* A presentation surface may fail closed without breaking the camera journey. */
+        }
       }
       lastWritten = p;
     }

@@ -5,6 +5,46 @@ When the incoming Claude Code commit arrives, **that commit is the visual and
 structural source of truth**. Preserve its design decisions. Apply only the
 mobile/runtime guarantees below where they still map to its architecture.
 
+## 0. Current client-surface milestone — 2026-07-31
+
+The owner has now selected this D journey itself as the main-site baseline.
+The following decisions override older descriptions of three physical stops
+along the first room:
+
+- The textile intro remains fully opaque while the D room begins moving behind
+  it. The dissolve starts at intro progress `0.932`, which maps through the
+  committed D motion table to approximately **4.4 seconds into `seg1.mp4`**.
+  The first room is therefore revealed only after its rails/wardrobe assembly
+  is visible, never as a premature empty-room flash.
+- Person, things, and look are three **logical UI stages at the one measured
+  mirror station**. Stage two and stage three both fade into the left mirror
+  after the camera has settled.
+- The right mirror is the answer surface. While a job is pending it shows one
+  monochrome translucent orb and one human sentence. The finished result
+  replaces that orb in the same aperture; its next actions remain on the same
+  mirror.
+- Live is launched only by an explicit action on the right mirror. Its local
+  camera plane expands from that mirror to the viewport and reverses back to
+  the mirror. The current standalone preview caps the local session at 40
+  seconds. Production must read the permitted duration from the server
+  capability rather than hard-code a provider limit.
+- The TV owns finished media. A measured, frame-synchronised surface now accepts
+  either a 16:9 fashion video or five vertical Fashion Shoot images fitted side
+  by side within the television. Until the adapter provides real URLs, the
+  surface remains an honest waiting state and never fabricates output.
+- The laptop has an empty measured projective plane driven by the same journey
+  clock. It remains hidden until the owner supplies the real HTML. The final
+  reversible camera-scroll → page-scroll handoff must be calibrated from the
+  terminal laptop frames; no fake rectangular overlay or iframe is acceptable.
+- `screen-surfaces.js` is the physical-surface controller. It consumes
+  `engine.js`'s existing `onFrame` callback, so TV and laptop do not add a
+  second animation loop. Runtime scripts remain same-origin.
+
+This milestone deliberately changes only the cinematic client. It does not
+modify or deploy beta. Real jobs and media later enter through the headless
+adapter documented in `docs/08-MAIN-SITE-ADAPTER.md` and
+`docs/09-BETA-TO-CINEMATIC-INTEGRATION-MAP.md`.
+
 ## 1. Selected visual direction — do not lose it
 
 The selected site is the fabric-world implementation currently served from

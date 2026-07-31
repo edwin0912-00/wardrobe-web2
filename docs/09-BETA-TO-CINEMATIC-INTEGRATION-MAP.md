@@ -27,8 +27,8 @@ the beta API. Operational beta-only screens are intentionally excluded:
 | Beta capability | Adapter operation(s) | Cinematic location / rule |
 | --- | --- | --- |
 | Profile and saved avatars/looks | `loadProfile`, `claimRun`, `saveRun`, delete methods, `avatarImageUrl`, `lookImageUrl` | Existing looks are selected in the left mirror; the active look renders only in the right mirror. |
-| Upload a person and optional face detail | `loadDraft`, `updateDraft`, `uploadDraftFile`, `removeDraftFile`, `clearDraft` | First attention stop: panel beside empty rails. Do not request a full-body requirement; it is rejected canon. |
-| Add garments and create a look | draft methods, `createRunFromDraft`, `createRunFromUploads`, `watchRun`, `selectGarments`, `retryRun` | Second attention stop: panel by the clothing rail. A run that needs garment selection stays there. |
+| Upload a person and optional face detail | `loadDraft`, `updateDraft`, `uploadDraftFile`, `removeDraftFile`, `clearDraft` | Second logical stage: left mirror after the D camera settles. Do not request a full-body requirement; it is rejected canon. |
+| Add garments and create a look | draft methods, `createRunFromDraft`, `createRunFromUploads`, `watchRun`, `selectGarments`, `retryRun` | Third logical stage: the same left mirror. A run that needs garment selection stays there; the right mirror carries the waiting orb. |
 | Saved visual output | `runFileUrl`, `garmentPreviewUrl`, `visualAssetUrl` | Result becomes an eligible look only after the backend says it is ready; never use an input photo as a fake result. |
 | Standard environment / background | presets, scene CRUD, `watchScene`, `sceneImageUrl` | Mirror action **«Змінити фон»**. Render its finished image in the right mirror. |
 | Editorial Fashion Shoot | modes, shoot CRUD, Bible/contact-sheet, approvals, shot retry, `watchShoot`, shot URL | Mirror action **«Фотосесія»**. Approval is an attention state: camera travel remains locked until user decides. Finished images go to TV gallery. |
@@ -62,9 +62,8 @@ implementation, not beta's dashboard.
 | Place | Opens | Closes / next state |
 | --- | --- | --- |
 | Intro textile | No form | Scroll enters rails. Desktop loader includes the immediate selected-D handoff; iOS mounts D natively before reveal. TV/laptop media remains background work. |
-| Empty rails | Person upload drawer on the measured rail panel | Valid server draft → scroll can reach garments. Draft errors remain here with retry/remove. |
-| Clothing rail | Garment grid and optional text outfit | `createRun…` opens right mirror in `running`; `NEEDS_INPUT` opens selection here; completed run creates/selects a look. |
-| Left mirror | Look chooser, background preset chooser, Fashion Shoot mode chooser, Fashion Video style chooser | Selection opens a confirmation/action sheet in the same mirror—never a generic dashboard modal. |
+| Empty/clothing rails | No form; the selected D assembly remains unobstructed | Scroll continues to the measured mirrors. |
+| Left mirror | Person sheet → garment sheet → look chooser, background preset chooser, Fashion Shoot mode chooser, Fashion Video style chooser | Each logical stage fades in after the mirror stop. Selection stays in the same mirror—never a generic dashboard modal. |
 | Right mirror | Pending state, finished look, scene image, shoot image/contact sheet, portrait video, or Live camera | Results can be dismissed back to the active look without losing selection. Live always stops the camera/WebRTC on exit. |
 | TV | 16:9 finished shoot/video gallery | Selecting an item can return focus to its right-mirror detail; TV is not a pipeline gate. |
 | Laptop | Live read-only timeline: selected look, source/selection, generated scene/shoot/video receipts and final explanation | End of journey; no duplicate mutating controls. |
@@ -96,12 +95,12 @@ at the same physical place.
 3. Replace only the simulated methods in `ui.js` with adapter commands. Keep
    CSS, typography, surfaces and scroll choreography owned by the cinematic
    site.
-4. Introduce a **surface registry** in the scroll director: `personRails`,
-   `garmentRail`, `leftMirror`, `rightMirror`, `tv`, `laptop`. Each entry owns
+4. Use the **surface registry** in the scroll director: `leftMirror`,
+   `rightMirror`, `tv`, `laptop`. Each entry owns
    video-frame coordinates, permitted capability, and attention-lock policy.
-5. Introduce a **station registry**. The canonical first leg has three stops
-   (person → garments → mirrors), each with its own hysteresis and gate.
-   A global `stationAt` cannot model this safely.
+5. Keep one physical mirror station for the active D site. Person → garments
+   → look are logical UI states inside that station; the engineʼs multi-station
+   API remains available if a future master adds separately measured surfaces.
 6. Bind TV/laptop only through `b/screen-calibration.json` on the final D
    media. TV is a measured aperture; laptop is a four-corner quad, so do not
    approximate it with a rectangle from another generation.
@@ -117,12 +116,10 @@ pieces are intentionally still outstanding:
 
 1. `ui.js` currently contains demo/local state and does not import the
    adapter.
-2. The current engine has one physical station in leg 0, while canon requires
-   three separately latched stations.
-3. TV aperture and laptop display quads are now measured, but the calibrated
-   controller, supplied laptop HTML and reversible scroll handoff are not yet
-   wired.
-4. The production gateway that maps active-domain `/api/*` to the beta engine
+2. The calibrated TV/laptop controller is wired; real TV media still comes
+   from beta results, and the supplied laptop HTML plus reversible terminal
+   scroll handoff remain outstanding.
+3. The production gateway that maps active-domain `/api/*` to the beta engine
    needs a release-owner configuration and end-to-end authentication check.
 
 These are bounded integration tasks, not a reason to change beta UI or to

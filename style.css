@@ -33,6 +33,21 @@ body {
   overflow-x: hidden;
 }
 
+.skip {
+  position: fixed; left: 16px; top: 12px; z-index: 300;
+  padding: 10px 14px;
+  color: var(--ink); background: var(--milk);
+  transform: translateY(-160%);
+  transition: transform 180ms ease-out;
+}
+.skip:focus { transform: translateY(0); }
+.sr-only {
+  position: absolute !important; width: 1px !important; height: 1px !important;
+  padding: 0 !important; margin: -1px !important; overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important; white-space: nowrap !important; border: 0 !important;
+}
+:focus-visible { outline: 2px solid var(--milk); outline-offset: 3px; }
+
 /* ---------------------------------------------------------------- loader ---- */
 
 /* LIGHT, WITH A GREY SLIDER.
@@ -118,6 +133,8 @@ body {
    * here on purpose: the engine owns the ramp, and a CSS transition would fight it. */
   will-change: opacity;
 }
+.film video[data-leg] { z-index: 1; }
+.film video[data-intro] { z-index: 4; }
 .film video[hidden] { display: none; }
 /* Safari can leave a native `display:none` video at metadata forever. iOS mounts only
  * one future room at a time with this attribute; keeping that one plane transparent but
@@ -317,6 +334,15 @@ body {
   transition: opacity 900ms cubic-bezier(0.22, 1, 0.36, 1) 90ms,
               transform 1100ms cubic-bezier(0.22, 1, 0.36, 1) 90ms;
 }
+.mirror-scene {
+  display: flex; flex-direction: column; flex: 1 1 auto;
+  min-height: 0; width: 100%;
+  animation: mirror-scene-in 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes mirror-scene-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 
 /* Every size below is a share of the panel's own height (cqh), so the interface scales
  * with the mirror it is painted on and can never outgrow it. */
@@ -428,49 +454,6 @@ body {
   letter-spacing: 0.1em; color: rgba(245,243,237,0.42);
 }
 
-/* LIVE — AN INVITATION THAT ARRIVES.
- *
- * The side-mounted button this replaces was on the frame from the moment the camera settled,
- * which put an optional feature in competition with the required first step. The owner cut
- * it. This rises from the bottom edge instead, and only once there is a look to try things
- * on — so it reads as something offered at the right moment rather than chrome that was
- * always there.
- *
- * It leaves again while the live view is open: an invitation to a room you are standing in
- * is noise. Stage space, not frame space — it is chrome on the picture, not painted on it. */
-.live {
-  position: absolute; z-index: 12;
-  left: 50%; bottom: 0;
-  display: flex; flex-direction: column; align-items: center; gap: 2px;
-  font: inherit; cursor: pointer; text-align: center;
-  padding: 13px 30px 15px;
-  color: var(--milk);
-  background: rgba(20,21,19,0.72);
-  border: 1px solid rgba(245,243,237,0.26);
-  border-bottom: 0;
-  backdrop-filter: blur(10px);
-  /* Comes up from below, and the translate carries the centring with it. */
-  transform: translate(-50%, 110%);
-  opacity: 0;
-  transition: transform 900ms cubic-bezier(0.22, 1, 0.36, 1) 160ms,
-              opacity 700ms ease 160ms;
-  pointer-events: none;
-}
-.stage[data-leg="0"][data-station="1"] .live[data-live="1"] {
-  transform: translate(-50%, 0);
-  opacity: 1;
-  pointer-events: auto;
-}
-.live:hover { background: rgba(28,29,26,0.86); border-color: rgba(245,243,237,0.5); }
-.live:focus-visible { outline: 2px solid var(--milk); outline-offset: 3px; }
-.live__t {
-  font-size: clamp(11px, 1.2vw, 14px); letter-spacing: 0.16em; text-transform: uppercase;
-}
-.live__d {
-  font-size: clamp(9px, 1vw, 10px); letter-spacing: 0.14em;
-  color: rgba(245,243,237,0.6);
-}
-
 /* --- three interaction models, identical style so the comparison is behaviour only --- */
 
 /* carousel: one option at a time, arrows to cycle */
@@ -552,12 +535,10 @@ body {
 /* Grey on the pale field. These were milk-on-ink and became invisible the moment the
  * loading screen turned light — the numbers were still correct and nobody could read them. */
 .loader__bytes {
-  text-align: center; font-size: 10px; letter-spacing: 0.16em;
-  color: #8A8B84; font-variant-numeric: tabular-nums;
+  display: none;
 }
 .loader__files {
-  text-align: center; font-size: 9px; letter-spacing: 0.18em;
-  text-transform: uppercase; color: rgba(29, 30, 28, 0.36);
+  display: none;
 }
 /* The bar is driven per chunk, so it must not carry a transition — a 260ms ease would
  * lag behind the real figure and turn an honest bar back into a decorative one. */
@@ -807,6 +788,74 @@ body {
   position: static; background: none; padding: 0;
 }
 
+/* WAITING IS A MIRROR STATE, NOT A GLOBAL SPINNER.
+ *
+ * Four translucent monochrome filaments share one centre and move at different calm
+ * rates. They never pretend to be a percentage: only data-orb-state changes when the
+ * actual product state changes. The result occupies this exact same flex area. */
+.orbfield {
+  position: relative; flex: 1 1 auto; min-height: 0; width: 100%;
+  display: grid; place-items: center;
+  isolation: isolate;
+}
+.orb {
+  position: relative; display: block;
+  width: min(42cqh, 72%); aspect-ratio: 1;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 42% 36%, rgba(245,243,237,0.26), transparent 25%),
+    radial-gradient(circle at 54% 62%, rgba(245,243,237,0.10), rgba(12,13,12,0.16) 58%, transparent 72%);
+  box-shadow: inset 0 0 0 1px rgba(245,243,237,0.12),
+              inset 0 0 28px rgba(245,243,237,0.09),
+              0 0 42px rgba(245,243,237,0.08);
+}
+.orb i {
+  position: absolute; inset: 9%;
+  border: 1px solid rgba(245,243,237,0.28);
+  border-radius: 46% 54% 49% 51% / 55% 45% 55% 45%;
+  animation: orb-breathe 4.8s ease-in-out infinite alternate;
+}
+.orb i:nth-child(2) {
+  inset: 18%; opacity: 0.72;
+  border-radius: 58% 42% 52% 48% / 43% 57% 45% 55%;
+  animation-duration: 5.7s; animation-delay: -1.2s;
+}
+.orb i:nth-child(3) {
+  inset: 29%; opacity: 0.5;
+  border-radius: 50% 50% 39% 61% / 60% 43% 57% 40%;
+  animation-duration: 4.1s; animation-delay: -2.4s;
+}
+.orb i:nth-child(4) {
+  inset: 42%; opacity: 0.85;
+  background: rgba(245,243,237,0.12);
+  animation-duration: 3.6s; animation-delay: -0.8s;
+}
+.orbfield[data-orb-state="fash"] .orb::after,
+.orbfield[data-orb-state="video"] .orb::after {
+  content: ''; position: absolute; left: 12%; right: 12%; top: 50%; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(245,243,237,0.75), transparent);
+  box-shadow: 0 0 10px rgba(245,243,237,0.35);
+  animation: orb-scan 2.8s ease-in-out infinite alternate;
+}
+.orbfield[data-orb-state="materials"] .orb i { animation-duration: 5.9s; }
+.orbfield[data-orb-state="bg"] .orb,
+.orbfield[data-orb-state="shoot"] .orb { box-shadow: 0 0 56px rgba(245,243,237,0.14); }
+.orbfield__label {
+  position: absolute; left: 0; right: 0; bottom: 6%;
+  text-align: center;
+  font-size: clamp(10px, 2.2cqh, 12px);
+  letter-spacing: 0.08em; color: rgba(245,243,237,0.74);
+}
+.orb--small { width: min(72px, 22%); }
+@keyframes orb-breathe {
+  from { transform: rotate(-6deg) scale(0.94); opacity: 0.44; }
+  to { transform: rotate(8deg) scale(1.04); opacity: 0.9; }
+}
+@keyframes orb-scan {
+  from { transform: translateY(-34px); opacity: 0.2; }
+  to { transform: translateY(34px); opacity: 0.95; }
+}
+
 /* ===================== THE APPROVED ACTION ROW — layout 3, variant 2 ================
  *
  * Copied from ui-concepts/index.html, which is what the owner approved on a picture. The
@@ -870,6 +919,120 @@ body {
 }
 .camctl:hover { background: rgba(245,243,237,0.14); border-color: rgba(245,243,237,0.7); }
 .camctl:disabled { opacity: 0.35; cursor: default; }
+
+/* LIVE — the camera leaves the right mirror and becomes the viewport. */
+.live-overlay {
+  position: fixed; inset: 0; z-index: 220;
+  display: grid; place-items: stretch;
+  overflow: hidden; background: #080908;
+  transform-origin: 0 0;
+}
+.live-overlay[hidden] { display: none; }
+.live-overlay__video {
+  width: 100%; height: 100%; object-fit: cover;
+  transform: scaleX(-1);
+}
+.live-overlay__close {
+  position: absolute; right: max(18px, env(safe-area-inset-right));
+  top: max(18px, env(safe-area-inset-top));
+  min-width: 88px; min-height: 44px; padding: 10px 16px;
+  font: 400 12px/1.2 ui-monospace, "SF Mono", Menlo, monospace;
+  letter-spacing: 0.08em;
+  color: var(--milk); background: rgba(12,13,12,0.52);
+  border: 1px solid rgba(245,243,237,0.46);
+  backdrop-filter: blur(10px); cursor: pointer;
+}
+.live-overlay__time {
+  position: absolute; left: max(20px, env(safe-area-inset-left));
+  top: max(20px, env(safe-area-inset-top));
+  width: 42px; aspect-ratio: 1; border-radius: 50%;
+  background: conic-gradient(rgba(245,243,237,0.78) var(--live-angle, 360deg),
+                             rgba(245,243,237,0.14) 0);
+  animation: live-countdown 40s linear forwards;
+}
+@property --live-angle {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 360deg;
+}
+.live-overlay__time::after {
+  content: ''; position: absolute; inset: 3px; border-radius: 50%;
+  background: rgba(12,13,12,0.62);
+}
+@keyframes live-countdown {
+  from { --live-angle: 360deg; transform: rotate(0deg); }
+  to { --live-angle: 0deg; transform: rotate(360deg); }
+}
+
+/* TV — one calibrated aperture, changing only what the filmed screen contains. */
+.tv-surface {
+  position: absolute; z-index: 5;
+  overflow: hidden; background: #090a09; color: var(--milk);
+  pointer-events: auto;
+}
+.tv-surface[hidden] { display: none; }
+.tv-surface__content { position: absolute; inset: 0; }
+.tv-gallery__head {
+  position: absolute; z-index: 2; left: 3%; right: 3%; top: 3%;
+  display: flex; justify-content: space-between;
+  font-size: clamp(5px, 0.55vw, 10px); letter-spacing: 0.12em;
+  color: rgba(245,243,237,0.7);
+}
+.tv-contact {
+  position: absolute; inset: 12% 3% 4%;
+  display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 1.5%;
+}
+.tv-shot {
+  min-width: 0; overflow: hidden; display: grid; place-items: center;
+  background: rgba(245,243,237,0.05);
+  border: 1px solid rgba(245,243,237,0.16);
+}
+.tv-shot img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.tv-shot span {
+  font-size: clamp(6px, 0.7vw, 12px); color: rgba(245,243,237,0.34);
+  font-variant-numeric: tabular-nums;
+}
+.tv-result-video { width: 100%; height: 100%; object-fit: contain; background: #000; display: block; }
+.tv-result-wait {
+  position: absolute; inset: 0; display: grid; place-items: center;
+  color: rgba(245,243,237,0.7);
+}
+.tv-result-wait b {
+  position: absolute; bottom: 8%;
+  font: 400 clamp(6px, 0.7vw, 11px)/1.2 ui-monospace, Menlo, monospace;
+  letter-spacing: 0.08em;
+}
+.tv-surface[data-wake="1"]::after {
+  content: ''; position: absolute; inset: -30%;
+  background: linear-gradient(110deg, transparent 35%, rgba(245,243,237,0.22) 50%, transparent 65%);
+  transform: translateX(-55%);
+  animation: tv-wake 780ms ease-out both;
+  pointer-events: none;
+}
+@keyframes tv-wake { to { transform: translateX(55%); opacity: 0; } }
+
+/* Laptop — a projective plane. It remains hidden until real HTML is mounted. */
+.laptop-surface {
+  position: absolute; left: 0; top: 0; z-index: 5;
+  overflow: hidden; transform-origin: 0 0;
+  background: #060706; color: #fefefe;
+  pointer-events: auto;
+}
+.laptop-surface[hidden] { display: none; }
+.laptop-surface__page { position: absolute; inset: 0; overflow: auto; overscroll-behavior: contain; }
+
+@media (pointer: coarse) {
+  .glass button, .glass label, .sound { min-height: 44px; }
+  .slot__x { min-width: 44px; min-height: 44px; right: 0; top: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .orb i, .orbfield .orb::after, .tv-surface::after, .live-overlay__time {
+    animation: none !important;
+  }
+  .mirror-scene { animation: none !important; }
+  .loader, .glass, .copy__line { transition-duration: 0.01ms !important; }
+}
 
 /* --- APPROVED: looks as a thumbnail strip, not a list ------------------------------
  * Copied from the picture the owner approved. "Образ N" is the heading (not a step
@@ -1249,7 +1412,9 @@ body:not([data-ready="1"]) .stage { visibility: hidden; }
   font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
   color: var(--milk);
 }
-:root[data-gate="closed"] .gate { display: flex; }
+/* A closed product step explains itself inside the mirrors; duplicating that state in a
+ * fixed bottom plate turns spatial UI back into generic website chrome. */
+:root[data-gate="closed"] .gate { display: none; }
 .gate b { font-weight: 500; }
 .gate i {
   display: block; width: 6px; height: 6px; border-radius: 50%;

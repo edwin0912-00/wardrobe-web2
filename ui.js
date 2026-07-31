@@ -43,6 +43,10 @@
   /* How long a result frame sits pending. A stated stand-in for a request that does not
    * exist yet, not an estimate of anything. */
   var SIM_MS = 1100;
+  /* The client-side camera prototype never remains open beyond the approved experience
+   * window. The production adapter will replace this with the server capability value;
+   * no provider/model/price wording is rendered anywhere in the client UI. */
+  var LIVE_MAX_MS = 40000;
 
   /* The three places where the viewer is asked something, in travel order. Named for the
    * place, because that is what the canon fixes — the surface follows the room. */
@@ -90,14 +94,16 @@
     var askRoot = document.querySelector('[data-ui-ask]') || document.querySelector('[data-ui-state]');
     var showRoot = document.querySelector('[data-ui-show]') || document.querySelector('[data-ui-step]');
     var stage = document.querySelector('[data-stage]');
+    var liveOverlay = document.querySelector('[data-live-overlay]');
+    var liveFullscreen = liveOverlay && liveOverlay.querySelector('[data-live-fullscreen]');
+    var liveClose = liveOverlay && liveOverlay.querySelector('[data-live-close]');
     if (!askRoot || !showRoot) return null;
 
     var step = 0;
 
-    /* TWO PHOTOGRAPHS OF THE VIEWER, doing different jobs. Full length with feet is
-     * required — a look cropped at the shins cannot be dressed below the crop. The face
-     * close-up is optional and exists because a reference only carries what DISTINGUISHES:
-     * at full-length scale there is no face to read. */
+    /* TWO PHOTOGRAPHS OF THE VIEWER, doing different jobs. The main image has no imposed
+     * pose/crop requirement — the owner explicitly removed the old full-length mandate.
+     * The face close-up is optional and carries extra identity detail when useful. */
     var person = { main: null, face: null };
 
     /* The things currently being gathered for the NEXT look. */
@@ -136,6 +142,9 @@
       return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     }
     function plural(n, one, few, many) { return n === 1 ? one : n < 5 ? few : many; }
+    function scene(key, content) {
+      return '<div class="mirror-scene" data-scene="' + esc(key) + '">' + content + '</div>';
+    }
 
     function makeLook() {
       if (!hasMain() || !hasItems() || pending) return;
@@ -266,13 +275,13 @@
 
     function renderAskLook() {
       var l = current();
-      askRoot.innerHTML =
+      askRoot.innerHTML = scene('looks',
         '<div class="glass__h">Образ ' + (selected + 1) + '</div>' +
         '<p class="glass__lede">' + esc(lookLede(l)) + '</p>' +
         '<div class="looklabel">ваші образи</div>' +
         '<div class="lookthumbs">' + askLookThumbs() + '</div>' +
         '<button class="secondary" type="button" data-edit-items>Змінити речі</button>' +
-        bgPicker();
+        bgPicker());
       applyEnabled();
     }
 
@@ -298,7 +307,7 @@
 
       var body = step === 0 ? askPerson() : askItems();
 
-      askRoot.innerHTML =
+      askRoot.innerHTML = scene(STEPS[step].id,
         /* Digits and a slash, never "КРОК 1 З 3": at this tracking the Cyrillic З between
          * two digits reads as a third digit — on screen it said "КРОК 1 3 3". */
         '<div class="glass__eyebrow">0' + (step + 1) + ' / 0' + STEPS.length + ' · ' + s.label + '</div>' +
@@ -311,7 +320,7 @@
           '</button>' +
         '</div>' +
         '<p class="glass__hint" data-hint></p>' +
-        '<div class="trail">' + trail + '</div>';
+        '<div class="trail">' + trail + '</div>');
       applyEnabled();
     }
 
@@ -323,8 +332,78 @@
      * by itself turn a camera on. */
     var stream = null;
     var camError = '';
+    var liveTimer = 0;
+    var liveTrigger = null;
+
+    function reducedMotion() {
+      return typeof window.matchMedia === 'function' &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    }
+
+    function closeLiveOverlay() {
+      clearTimeout(liveTimer);
+      liveTimer = 0;
+      if (!liveOverlay) return;
+      if (liveOverlay.hidden) {
+        if (liveFullscreen) liveFullscreen.srcObject = null;
+        return;
+      }
+      liveOverlay.dataset.open = '0';
+      liveOverlay.setAttribute('aria-hidden', 'true');
+      if (liveFullscreen) {
+        try { liveFullscreen.pause(); } catch (pauseError) {}
+        liveFullscreen.srcObject = null;
+      }
+      var finish = function () {
+        liveOverlay.hidden = true;
+        var fallback = showRoot.querySelector('[data-cam-start]') ||
+          showRoot.querySelector('[data-act="live"]');
+        if (liveTrigger && liveTrigger.isConnected) liveTrigger.focus();
+        else if (fallback) fallback.focus();
+        liveTrigger = null;
+      };
+      if (liveOverlay.animate && !reducedMotion()) {
+        var rect = showRoot.getBoundingClientRect();
+        var sx = Math.max(0.01, rect.width / Math.max(1, window.innerWidth));
+        var sy = Math.max(0.01, rect.height / Math.max(1, window.innerHeight));
+        liveOverlay.animate([
+          { transform: 'none', opacity: 1, borderRadius: '0px' },
+          { transform: 'translate(' + rect.left + 'px,' + rect.top + 'px) scale(' + sx + ',' + sy + ')',
+            opacity: 0.35, borderRadius: '2px' }
+        ], { duration: 360, easing: 'cubic-bezier(0.4,0,1,1)', fill: 'forwards' })
+          .finished.then(finish).catch(finish);
+      } else {
+        finish();
+      }
+    }
+
+    function openLiveOverlay() {
+      if (!liveOverlay || !stream) return;
+      if (!liveTrigger || !liveTrigger.isConnected) liveTrigger = document.activeElement;
+      var rect = showRoot.getBoundingClientRect();
+      var sx = Math.max(0.01, rect.width / Math.max(1, window.innerWidth));
+      var sy = Math.max(0.01, rect.height / Math.max(1, window.innerHeight));
+      liveOverlay.hidden = false;
+      liveOverlay.dataset.open = '1';
+      liveOverlay.setAttribute('aria-hidden', 'false');
+      if (liveFullscreen) {
+        liveFullscreen.srcObject = stream;
+        liveFullscreen.play().catch(function () {});
+      }
+      if (liveOverlay.animate && !reducedMotion()) {
+        liveOverlay.animate([
+          { transform: 'translate(' + rect.left + 'px,' + rect.top + 'px) scale(' + sx + ',' + sy + ')',
+            opacity: 0.35, borderRadius: '2px' },
+          { transform: 'none', opacity: 1, borderRadius: '0px' }
+        ], { duration: 440, easing: 'cubic-bezier(0.22,1,0.36,1)', fill: 'both' });
+      }
+      if (liveClose) liveClose.focus();
+      clearTimeout(liveTimer);
+      liveTimer = setTimeout(function () { stopCamera(); render(); }, LIVE_MAX_MS);
+    }
 
     function stopCamera() {
+      closeLiveOverlay();
       if (!stream) return;
       stream.getTracks().forEach(function (t) { t.stop(); });
       stream = null;
@@ -336,6 +415,7 @@
         if (!navigator.mediaDevices) { camError = 'браузер не дає доступу до камери'; render(); }
         return;
       }
+      liveTrigger = document.activeElement;
       navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false })
         .then(function (st) {
           stream = st; camError = '';
@@ -343,6 +423,7 @@
           notifyGateChange();
           var v = showRoot.querySelector('[data-cam]');
           if (v) { v.srcObject = st; v.play().catch(function () {}); }
+          openLiveOverlay();
         })
         .catch(function (err) {
           /* Say WHICH refusal it was. "Не вдалося" for a denied permission and for an absent
@@ -358,15 +439,33 @@
       if (stream) {
         return '<div class="lookframe" data-state="live">' +
             '<video class="lookframe__cam" data-cam autoplay playsinline muted></video>' +
-            '<span class="lookframe__cap">камера · ' + esc(BACKGROUNDS[current().bg != null ? current().bg : 0]) + '</span>' +
+            '<span class="lookframe__cap">' + esc(BACKGROUNDS[current().bg != null ? current().bg : 0]) + '</span>' +
           '</div>' +
-          '<button class="camctl" type="button" data-cam-stop>Вимкнути камеру</button>';
+          '<button class="camctl" type="button" data-cam-stop>Закрити</button>';
       }
-      return '<div class="lookframe" data-state="camoff">' +
-          '<span class="lookframe__cap">' + (camError ? esc(camError) : 'камера вимкнена') + '</span>' +
-        '</div>' +
+      return orbWindow('live', camError || 'Відкрийте дзеркало') +
         '<button class="camctl" type="button" data-cam-start>' +
-          (camError ? 'Спробувати ще' : 'Увімкнути камеру') + '</button>';
+          (camError ? 'Спробувати ще' : 'Відкрити дзеркало') + '</button>';
+    }
+
+    function orbWindow(state, label) {
+      return '<div class="orbfield" data-orb-state="' + esc(state) + '" role="status" aria-live="polite">' +
+          '<span class="orb" aria-hidden="true"><i></i><i></i><i></i><i></i></span>' +
+          '<span class="orbfield__label">' + esc(label) + '</span>' +
+        '</div>';
+    }
+
+    function waitingWindow() {
+      if (step === 0) return orbWindow('materials', 'Чекаємо на ваше фото');
+      if (step === 1) return orbWindow('garments', hasItems() ? 'Речі готові' : 'Чекаємо на речі');
+      return orbWindow('look', 'Збираємо образ');
+    }
+
+    function actionWaitingCopy(kind) {
+      return kind === 'shoot' ? 'Створюємо кадр'
+           : kind === 'fash'  ? 'Знімаємо рух'
+           : kind === 'bg'    ? 'Шукаємо світло'
+           : 'Готуємо результат';
     }
 
     /* Every result frame carries the same admission: no render is attached. The viewer's own
@@ -436,23 +535,20 @@
     function renderShow() {
       /* The right mirror opens when a look is asked for, so the pending state is itself the
        * reveal. Before that there is no second mirror at all — not a stub, not a plate. */
-      var open = pending || looks.length > 0;
-      showRoot.setAttribute('data-live', open ? '1' : '0');
-      showRoot.setAttribute('aria-hidden', open ? 'false' : 'true');
+      /* The right mirror is always the answer surface once the camera has settled.
+       * Before a result exists it holds the calm orb; the result replaces that exact
+       * aperture, so waiting and arrival are one continuous spatial event. */
+      showRoot.setAttribute('data-live', '1');
+      showRoot.setAttribute('aria-hidden', 'false');
 
-      /* The invitation only exists once there is a look to try things on. */
-      var invite = document.querySelector('[data-live-invite]');
-      if (invite) {
-        invite.setAttribute('data-live', lookVisible() && view !== 'live' ? '1' : '0');
-        invite.setAttribute('aria-hidden', lookVisible() && view !== 'live' ? 'false' : 'true');
-        invite.disabled = !lookVisible() || locked() || view === 'live';
+      if (!pending && !looks.length) {
+        showRoot.innerHTML = scene('waiting-' + step, waitingWindow());
+        applyEnabled();
+        return;
       }
 
-      if (!open) { showRoot.innerHTML = ''; return; }
-
       if (pending) {
-        showRoot.innerHTML = '<div class="glass__eyebrow">Образ створюється</div>' +
-          resultFrame('створюємо образ…', 'pending');
+        showRoot.innerHTML = scene('pending-look', orbWindow('look', 'Збираємо образ'));
         applyEnabled();
         return;
       }
@@ -461,8 +557,8 @@
        * click until it clears. Same pending treatment as the look itself, labelled for
        * which action it is. */
       if (pendingAction) {
-        showRoot.innerHTML = '<div class="glass__eyebrow">' + esc(ACTS[pendingAction.kind][0]) + '</div>' +
-          resultFrame('генерується…', 'pending');
+        showRoot.innerHTML = scene('pending-' + pendingAction.kind,
+          orbWindow(pendingAction.kind, actionWaitingCopy(pendingAction.kind)));
         applyEnabled();
         return;
       }
@@ -475,9 +571,9 @@
                : view === 'video' ? 'Фешн-відео'
                : view === 'bg'    ? 'Новий фон'
                : view === 'live'  ? 'Лайв-примірка' : null;
-      var cap = view === 'live' ? 'камера не підключена' : 'рендер не підключений';
+      var cap = view === 'live' ? 'Відкрийте дзеркало' : 'Попередній перегляд';
 
-      showRoot.innerHTML =
+      showRoot.innerHTML = scene(view,
         (head ? '<div class="glass__eyebrow">' + head + '</div>' : '') +
         (view === 'live' ? liveWindow() : view === 'look' ? lookResultFrame() : resultFrame(cap, 'ready')) +
         (view === 'look' ? '' :
@@ -486,7 +582,7 @@
               plural(l.items.length, 'річ', 'речі', 'речей') + '</div>' +
             (l.bg != null ? '<div class="glass__row"><span>Фон</span> ' + esc(BACKGROUNDS[l.bg]) + '</div>' : '') +
           '</div>') +
-        (awaitingAspect ? aspectPicker(awaitingAspect) : actionBlocks());
+        (awaitingAspect ? aspectPicker(awaitingAspect) : actionBlocks()));
       applyEnabled();
     }
 
@@ -508,8 +604,6 @@
                          : (step === 1 && !hasItems()) ? 'додайте хоча б одну річ'
                          : lock ? 'камера рухається — рішення на зупинці' : '';
       }
-      var invite = document.querySelector('[data-live-invite]');
-      if (invite) invite.disabled = !lookVisible() || lock || view === 'live';
     }
 
     function render() { renderAsk(); renderShow(); }
@@ -594,6 +688,15 @@
           }
           pendingAction = null;
           render(); notifyGateChange();
+          if (typeof opts.onResult === 'function') {
+            opts.onResult({
+              kind: kind === 'shoot' ? 'shoot' : 'video',
+              aspect: aspect,
+              urls: [],
+              mediaUrl: '',
+              pendingRealMedia: true
+            });
+          }
           /* 16:9 belongs on the television — go look at it there. 9:16 belongs right
            * here in the mirror; nothing carries the viewer anywhere for it. */
           if (aspect === '16:9' && typeof opts.onWideResult === 'function') opts.onWideResult();
@@ -602,7 +705,7 @@
       }
       if (t.closest('[data-cam-start]')) { startCamera(); return; }
       if (t.closest('[data-cam-stop]')) { stopCamera(); camError = ''; render(); return; }
-      if (t.closest('[data-live-invite]')) { view = 'live'; render(); return; }
+      if (t.closest('[data-live-close]')) { stopCamera(); camError = ''; render(); return; }
       if ((b = t.closest('[data-view]'))) {
         var next = b.getAttribute('data-view');
         /* Leaving the live view switches the device off. Nothing keeps streaming behind a
@@ -648,6 +751,29 @@
       if (ev.target.matches('#io-items')) addFiles(ev.target.files);
       else if (ev.target.matches('#io-main')) setPhoto('main', ev.target.files[0]);
       else if (ev.target.matches('#io-face')) setPhoto('face', ev.target.files[0]);
+    });
+
+    document.addEventListener('keydown', function (ev) {
+      if (!liveOverlay || liveOverlay.hidden) return;
+      if (ev.key === 'Escape') {
+        ev.preventDefault();
+        stopCamera(); camError = ''; render();
+        return;
+      }
+      /* The immersive plane exposes a single action. Keep keyboard focus on it until
+       * that explicit close returns focus to the mirror trigger. */
+      if (ev.key === 'Tab' && liveClose) {
+        ev.preventDefault();
+        liveClose.focus();
+      }
+    });
+
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden && stream) {
+        stopCamera();
+        camError = '';
+        render();
+      }
     });
 
     ['dragover', 'drop'].forEach(function (type) {

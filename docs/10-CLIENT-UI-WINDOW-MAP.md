@@ -27,9 +27,9 @@ This extends the selected fabric-world canon; it does not replace it.
 | # | Camera place / swipe state | Window that can open | Content and primary action | Exit / lock rule |
 | --- | --- | --- | --- | --- |
 | 0 | **Textile intro** | None, except minimal sound control | Fabric breathing in the room, wordmark, small “scroll to move” cue. | First real gesture starts allowed sound and enters the rails. No product controls. |
-| 1 | **Empty rails — first attention stop** | `Person sheet`, appearing on the **left mirror** after the camera settles | One main portrait input, optional face-detail input, quiet preview/removal state; primary action: **«Далі»**. The right mirror is the waiting surface. | Holds forward travel while the draft is incomplete/uploading. An input error stays here with a clear replace/remove choice. |
-| 2 | **Garment rail — second attention stop** | `Things sheet`, appearing on the **left mirror** after the camera settles | Add garments, compact thumbnail tray, optional short outfit note; primary action: **«Зібрати образ»**. The right mirror shows the orb while the look is prepared. | Generation opens the right mirror in a waiting state and holds travel. If a selection is needed, this left-mirror sheet remains the choice surface. |
-| 3 | **Approach to two mirrors** | No new sheet | The left mirror becomes legible first; the right mirror wakes only once an actual look job exists. | Camera settles at the mirrors; no auto-advance when the look completes. |
+| 1 | **Room / rails assemble** | No form | D remains visible as cinema: furniture and garments appear while the camera moves. | The textile does not reveal D before the measured rail-assembly moment around 4.4s. |
+| 2 | **Two mirrors — person** | `Person sheet`, fading into the **left mirror** after the camera settles | One main portrait input, optional face-detail input, quiet preview/removal state; primary action: **«Далі»**. | The right mirror carries a calm waiting orb; forward travel remains held. |
+| 3 | **Two mirrors — garments** | `Things sheet`, replacing person in the **left mirror** | Add garments, compact thumbnail tray, optional short outfit note; primary action: **«Зібрати образ»**. | The right mirror keeps the orb while the look is prepared. Needs-input remains in this left-mirror sheet. |
 | 4A | **Left mirror — choose** | `Looks`, `Backgrounds`, `Shoot styles`, `Video styles` sheets | This mirror asks and selects. Only one sheet is open at once; all options are visual tiles with a single clear action. | Back returns to the selected look, never to a blank dashboard. A choice that starts work retains the mirror station. |
 | 4B | **Right mirror — show** | `Look`, `result`, `waiting orb`, `Live mirror` | This mirror shows the selected look, a scene, portrait video, shoot result, or live camera. A finished result replaces the orb in exactly the same aperture; its actions appear there too. It never asks the user to choose a style. | Closing detail returns to current look. Leaving Live immediately stops camera/session. |
 | 4C | **Right mirror — wait** | `Orb state` (not a dialog) | Transparent black/white orb, its light and density changing with progress; one line such as “Збираємо образ”, “Шукаємо світло”, “Знімаємо рух”. | The station holds while a user decision or job is active. Failure becomes a calm “Спробувати ще раз” / “Повернутися” choice at the same surface. |
@@ -82,20 +82,23 @@ rectangle in the source video and gets a dedicated surface module:
   scroll owner changes from film time to document progress. The mapping must be
   reversible so an upward swipe re-enters the exact camera frame.
 
-Both modules wait for final frame measurement before code is wired. They use
-one geometry source each; no duplicated CSS guesses or independently animated
-overlays.
+Both modules now use `b/screen-calibration.json` through
+`screen-surfaces.js`, driven from the journeyʼs existing frame callback.
+TV stays hidden until a result exists. Laptop stays hidden until the supplied
+HTML is mounted; there is no rectangular fallback.
 
 ## 40-second Live direction — implementation boundary
 
 The desired client experience is **up to 40 seconds**, with no model, price or
-technical copy. This is a product requirement, not yet a shipped fact.
+technical copy. The standalone cinematic camera prototype now enforces that
+40-second local ceiling and closes on timeout/backgrounding, but does not print
+a duration claim in the client UI.
 
-The audited beta revision currently enforces a 15-second session and verifies
-that limit server-side. The cinematic site must not claim 40 seconds or send a
-hard-coded 40 until a beta-owned task changes the server contract, its tests,
-and the capability response together. Once beta reports the allowed duration,
-the cinematic UI reads that capability and renders only neutral copy:
+The audited beta revision still enforces a 15-second server session. The
+production adapter must therefore replace the local ceiling with the duration
+reported by beta capability; it must not send a contradictory hard-coded
+duration. Once beta reports the allowed duration, the cinematic UI may render
+only neutral copy:
 
 ```text
 «до 40 секунд»
@@ -134,7 +137,8 @@ provider vocabulary is shown to the client.
 
 ## Integration prerequisites
 
-The UI map can be wired only after: (1) beta publishes the 40-second Live
-contract, (2) the cinematic engine has the three independent first-leg
-stations, (3) final rail geometry plus the calibrated TV/laptop surface layer
-are wired, and (4) the active domain proxies `/api/*` same-origin to beta.
+Remaining production prerequisites: (1) beta publishes the Live capability
+duration expected by the client, (2) the owner supplies the real laptop HTML,
+and (3) the active domain proxies `/api/*` same-origin to beta. The active D
+site deliberately uses one physical mirror station; person/garments/look are
+logical states inside it.
