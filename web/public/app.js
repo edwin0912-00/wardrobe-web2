@@ -1829,12 +1829,20 @@ function renderFashionVideoStyles(styles = []) {
     card.dataset.styleId = style.id;
     card.setAttribute('role', 'radio');
     card.setAttribute('aria-checked', String(index === 0));
-    const image = document.createElement('img');
-    image.src = style.preview_url;
-    image.alt = `Прев’ю відеостилю: ${style.title}`;
+    const video = document.createElement('video');
+    video.src = style.reference_url;
+    video.poster = style.preview_url;
+    video.muted = true;
+    video.loop = true;
+    video.playsInline = true;
+    video.preload = 'metadata';
+    video.setAttribute('aria-label', `Відеореференс стилю: ${style.title}`);
+    // Autoplay can be refused by a browser; the native controls remain a
+    // deliberate escape hatch so the user still sees the actual reference.
+    video.addEventListener('canplay', () => video.play().catch(() => {}), { once: true });
     const label = document.createElement('span');
     label.textContent = style.title;
-    card.append(image, label);
+    card.append(video, label);
     card.addEventListener('click', () => {
       root.querySelectorAll('.video-style-card').forEach((candidate) => {
         candidate.setAttribute('aria-checked', String(candidate === card));

@@ -1,4 +1,7 @@
 import assert from 'node:assert/strict';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
 import test from 'node:test';
 
 import Fastify from 'fastify';
@@ -182,6 +185,7 @@ test('saved-look capability opens only from the server-verified two-reference co
       title: style.title,
       motion_mode: style.motion_mode,
       preview_url: `/api/profile/looks/33333333-3333-4333-8333-333333333333/video-styles/${style.id}/preview`,
+      reference_url: `/api/profile/looks/33333333-3333-4333-8333-333333333333/video-styles/${style.id}/reference`,
     })),
     create_route: '/api/profile/video-clips',
     requirements: {
@@ -194,6 +198,38 @@ test('saved-look capability opens only from the server-verified two-reference co
     next_action: 'CREATE_FASHION_VIDEO',
   });
   assert.equal(current.createRequests.length, 0);
+});
+
+test('the visible style card streams the exact verified source video with byte ranges', async (t) => {
+  const current = fixture();
+  const root = await mkdtemp(path.join(os.tmpdir(), 'zeely-video-style-route-'));
+  const referencePath = path.join(root, 'style.mp4');
+  const bytes = Buffer.from('0123456789');
+  await writeFile(referencePath, bytes);
+  t.after(async () => { await rm(root, { recursive: true, force: true }); });
+  current.videoService.fashionVideoCapability = async ({ referenceId }) => ({
+    state: 'READY',
+    selected_style_id: referenceId,
+    reference_path: referencePath,
+    preview_path: referencePath,
+  });
+  const app = Fastify();
+  t.after(() => app.close());
+  await registerVideoRoutes(app, {
+    profileApi: { resolveRequestProfile: async () => ({ profileId: 'profile-1' }) },
+    profiles: current.profiles,
+    videoService: current.videoService,
+    runService: { outputFile: async () => null },
+  });
+  const response = await app.inject({
+    method: 'GET',
+    url: '/api/profile/looks/33333333-3333-4333-8333-333333333333/video-styles/style-1/reference',
+    headers: { range: 'bytes=2-5' },
+  });
+  assert.equal(response.statusCode, 206, response.body);
+  assert.equal(response.headers['content-type'], 'video/mp4');
+  assert.equal(response.headers['content-range'], 'bytes 2-5/10');
+  assert.equal(response.rawPayload.toString(), '2345');
 });
 
 test('create reaches VideoService only after the same two-reference contract is ready', async (t) => {

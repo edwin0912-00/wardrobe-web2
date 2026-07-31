@@ -13,6 +13,20 @@ weakened_checks: none.
 ---
 
 Agent ID: codex-main
+Task ID: BETA-FASHION-VIDEO-REFERENCE-PREVIEW-001
+Pipeline: VIDEO.01 · Вибір video-derived стилю
+State: CODE_VERIFIED — awaiting beta deployment
+Decision: a Fashion Video style card now plays the private, hash-verified
+source MP4; the contact sheet is only its poster. The new range-enabled route
+is bound to the current tester profile and approved look. Generic motion labels
+are not user-facing style options.
+Evidence: route test proves a byte-range response from the exact selected
+reference; video/provider/reference tests pass 49/49.
+weakened_checks: none.
+
+---
+
+Agent ID: codex-main
 Task ID: BETA-FASHION-VIDEO-STYLE-LABELS-001
 Pipeline: VIDEO.01 · Вибір відеостилю до запуску
 State: READY_FOR_BETA_DEPLOY

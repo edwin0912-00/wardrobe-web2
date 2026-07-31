@@ -35,6 +35,27 @@ function sameOriginMutation(request) {
   }
 }
 
+function byteRange(rangeHeader, size) {
+  if (typeof rangeHeader !== 'string') return null;
+  const match = /^bytes=(\d*)-(\d*)$/i.exec(rangeHeader.trim());
+  if (!match) return undefined;
+  const start = match[1] === '' ? null : Number(match[1]);
+  const requestedEnd = match[2] === '' ? null : Number(match[2]);
+  if ((!Number.isInteger(start) && start !== null)
+    || (!Number.isInteger(requestedEnd) && requestedEnd !== null)
+    || (start !== null && start < 0)
+    || (requestedEnd !== null && requestedEnd < 0)) return undefined;
+  if (start === null && requestedEnd === null) return undefined;
+  if (start === null) {
+    const length = Math.min(requestedEnd, size);
+    return { start: Math.max(0, size - length), end: size - 1 };
+  }
+  if (start >= size) return undefined;
+  const end = Math.min(requestedEnd ?? size - 1, size - 1);
+  if (end < start) return undefined;
+  return { start, end };
+}
+
 /**
  * @param {import('fastify').FastifyInstance} app
  * @param {object} options
@@ -120,14 +141,59 @@ export async function registerVideoRoutes(app, {
           referenceId: styleId,
         })
       : null;
-    if (!motionReference?.preview_path || motionReference.selected_style_id !== styleId) {
-      return reply.code(404).send({ error: 'Video style not found', code: 'VIDEO_STYLE_NOT_FOUND' });
+    if (!motionReference?.preview_path) {
+      return reply.code(404).send({ error: 'Video style preview not found', code: 'VIDEO_STYLE_NOT_FOUND' });
     }
     return reply
       .type('image/jpeg')
       .header('Cache-Control', 'private, no-store')
       .header('X-Content-Type-Options', 'nosniff')
       .send(createReadStream(motionReference.preview_path));
+  });
+
+  // The three Fashion Video cards are video-derived style units, not generic
+  // motion presets. Stream the hash-verified source MP4, privately, so the
+  // user can inspect the actual temporal/style authority before submission.
+  app.get('/api/profile/looks/:lookId/video-styles/:styleId/reference', async (request, reply) => {
+    const session = await profileApi.resolveRequestProfile(request, reply);
+    const { lookId, styleId } = request.params;
+    if (!profiles.ownsLook(session.profileId, lookId)) {
+      return reply.code(404).send({ error: 'Look not found', code: 'LOOK_NOT_FOUND' });
+    }
+    const approvedLook = await profiles.approvedLookReference(session.profileId, lookId, runService);
+    const motionReference = typeof videoService.fashionVideoCapability === 'function'
+      ? await videoService.fashionVideoCapability({
+          profileId: session.profileId,
+          lookId,
+          approvedLook,
+        referenceId: styleId,
+      })
+      : null;
+    if (!motionReference?.reference_path || motionReference.selected_style_id !== styleId) {
+      return reply.code(404).send({ error: 'Video style not found', code: 'VIDEO_STYLE_NOT_FOUND' });
+    }
+    const details = await stat(motionReference.reference_path);
+    if (!details.isFile() || details.size < 1) {
+      return reply.code(404).send({ error: 'Video style reference not found', code: 'VIDEO_STYLE_NOT_FOUND' });
+    }
+    const range = byteRange(request.headers.range, details.size);
+    if (range === undefined) {
+      return reply
+        .code(416)
+        .header('Content-Range', `bytes */${details.size}`)
+        .send();
+    }
+    const start = range?.start ?? 0;
+    const end = range?.end ?? details.size - 1;
+    const response = reply
+      .code(range ? 206 : 200)
+      .type('video/mp4')
+      .header('Cache-Control', 'private, no-store')
+      .header('X-Content-Type-Options', 'nosniff')
+      .header('Accept-Ranges', 'bytes')
+      .header('Content-Length', String(end - start + 1));
+    if (range) response.header('Content-Range', `bytes ${start}-${end}/${details.size}`);
+    return response.send(createReadStream(motionReference.reference_path, { start, end }));
   });
 
   // POST /api/profile/video-clips — create a new video clip

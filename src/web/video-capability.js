@@ -39,6 +39,9 @@ export function fashionVideoCapability({
         title: style.title,
         motion_mode: style.motion_mode,
         preview_url: `/api/profile/looks/${encodeURIComponent(lookId)}/video-styles/${encodeURIComponent(style.id)}/preview`,
+        // A contact sheet is only the poster.  The style itself is a real
+        // reference video and must be visible before a paid create is allowed.
+        reference_url: `/api/profile/looks/${encodeURIComponent(lookId)}/video-styles/${encodeURIComponent(style.id)}/reference`,
       }))
     : [];
 
