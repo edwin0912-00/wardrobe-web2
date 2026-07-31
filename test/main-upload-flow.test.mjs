@@ -14,6 +14,9 @@ test('main site accepts beta image formats and prepares HEIC through same-origin
   assert.match(ui, /import\('\.\/image-upload\.js'\)/);
   assert.match(upload, /\/api\/uploads\/heic-to-jpeg/);
   assert.match(upload, /MAX_UPLOAD_FILE_BYTES = 18 \* 1024 \* 1024/);
+  assert.match(upload, /MIN_UPLOAD_EDGE = 256/);
+  assert.match(upload, /shortest >= MIN_UPLOAD_EDGE/);
+  assert.match(upload, /MIN_UPLOAD_EDGE \/ shortest/);
   assert.match(upload, /export async function prepareImageFile/);
   assert.match(upload, /image\/jpeg/);
 });

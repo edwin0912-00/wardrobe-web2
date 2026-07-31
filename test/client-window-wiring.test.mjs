@@ -100,6 +100,10 @@ test('a first failed look exposes recovery before the empty-look waiting orb', (
     'terminal bridge failure copy must reach the recovery mirror');
   assert.match(ui, /UNSUPPORTED_GARMENT_MEDIA/,
     'a rejected source file must return to the garment picker, not fake a generator retry');
+  assert.match(ui, /IMAGE_TOO_SMALL/,
+    'a thumbnail rejected by the input contract must return to the picker, not retry generation');
+  assert.match(ui, /ПОТРІБНЕ УТОЧНЕННЯ/,
+    'input contract failures need a correction state rather than the generic orb');
   assert.match(ui, /Замінити фото/);
   assert.match(ui, /function hydrateUploadedItemPreviews/,
     'accepted run garment previews must replace volatile object-URL thumbnails');

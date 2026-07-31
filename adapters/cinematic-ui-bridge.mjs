@@ -142,6 +142,16 @@ function statusError(error) {
       message: `${field}: оберіть JPEG, PNG або WebP.`,
     };
   }
+  if (error?.code === 'IMAGE_TOO_SMALL' ||
+      (error?.status === 422 && error?.body?.nextAction === 'REPLACE_INPUT')) {
+    const rawField = String(error?.body?.field ?? '');
+    const field = /^(Ваше фото|Фото речі [1-5])$/.test(rawField) ? rawField : 'Це фото';
+    return {
+      availability: null,
+      code: 'IMAGE_TOO_SMALL',
+      message: `${field}: потрібне зображення щонайменше 256×256 px.`,
+    };
+  }
   return { availability: null, code: error?.code ?? 'REQUEST_FAILED' };
 }
 

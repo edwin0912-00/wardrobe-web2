@@ -116,6 +116,23 @@ test('an unsupported garment format returns a precise replacement instruction', 
   });
 });
 
+test('a too-small garment returns a replacement instruction instead of a paid retry', async () => {
+  const rejected = Object.assign(new Error('Фото речі 3 must be at least 256×256'), {
+    status: 422,
+    code: 'IMAGE_TOO_SMALL',
+    body: { field: 'Фото речі 3', nextAction: 'REPLACE_INPUT' },
+  });
+  const client = clientStub();
+  client.createRunFromUploads = async () => { throw rejected; };
+  const bridge = createCinematicUiBridge({ client, autoProbe: false });
+  await bridge.probe();
+  await assert.rejects(bridge.createLook({ person: new Blob(['a']), garments: [new Blob(['b'])] }));
+  assert.deepEqual(bridge.state().error, {
+    code: 'IMAGE_TOO_SMALL', status: 422,
+    message: 'Фото речі 3: потрібне зображення щонайменше 256×256 px.',
+  });
+});
+
 test('Live reference and token stay bound to the saved look and beta capability', async () => {
   const client = clientStub();
   const bridge = createCinematicUiBridge({ client, autoProbe: false });

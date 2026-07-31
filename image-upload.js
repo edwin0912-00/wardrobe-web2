@@ -7,6 +7,7 @@
  * mutated; the returned File is safe to submit to the shared Zeely adapter.
  */
 export const MAX_UPLOAD_FILE_BYTES = 18 * 1024 * 1024;
+export const MIN_UPLOAD_EDGE = 256;
 const MAX_EDGE = 4096;
 const JPEG_QUALITIES = [0.9, 0.82, 0.72, 0.62];
 const ALLOWED_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
@@ -76,22 +77,41 @@ export async function decodeBitmapForUpload(file, {
 
 export async function prepareImageFile(file) {
   if (!file) throw new Error('No image selected');
-  if (file.size <= MAX_UPLOAD_FILE_BYTES && ALLOWED_MIME_TYPES.has(String(file.type || '').toLowerCase())) {
-    return { file, changed: false };
-  }
   const inferredMime = mimeFromFilename(file.name);
-  if (file.size <= MAX_UPLOAD_FILE_BYTES && inferredMime) {
-    return {
-      file: new File([file], file.name, { type: inferredMime, lastModified: file.lastModified }),
-      changed: true, originalBytes: file.size, preparedBytes: file.size,
-    };
-  }
+  const normalized = file.size <= MAX_UPLOAD_FILE_BYTES && inferredMime && !file.type
+    ? new File([file], file.name, { type: inferredMime, lastModified: file.lastModified })
+    : file;
+  const declaredMime = String(normalized.type || '').toLowerCase();
+  const declaredAllowed = ALLOWED_MIME_TYPES.has(declaredMime);
 
   let bitmap;
-  try { bitmap = await decodeBitmapForUpload(file); }
-  catch { throw new Error('Не вдалося прочитати або конвертувати це фото'); }
+  try { bitmap = await decodeBitmapForUpload(normalized); }
+  catch {
+    /* Keep the old pass-through for already-supported files when a browser has no
+     * bitmap decoder at all. The API still returns a structured replacement error;
+     * this avoids turning every valid JPEG into a client-side dead end on Safari. */
+    if (file.size <= MAX_UPLOAD_FILE_BYTES && declaredAllowed) return { file: normalized, changed: normalized !== file };
+    throw new Error('Не вдалося прочитати або конвертувати це фото');
+  }
+  const shortest = Math.min(bitmap.width, bitmap.height);
   const longest = Math.max(bitmap.width, bitmap.height);
-  const initialScale = Math.min(1, MAX_EDGE / longest);
+  if (file.size <= MAX_UPLOAD_FILE_BYTES && declaredAllowed &&
+      shortest >= MIN_UPLOAD_EDGE && longest <= MAX_EDGE) {
+    bitmap.close?.();
+    return { file: normalized, changed: normalized !== file };
+  }
+
+  let initialScale = 1;
+  if (shortest < MIN_UPLOAD_EDGE) {
+    initialScale = MIN_UPLOAD_EDGE / shortest;
+    /* A very wide thumbnail cannot satisfy both the minimum short edge and the
+     * maximum long edge without distortion. Ask for a better source instead. */
+    if (longest * initialScale > MAX_EDGE) {
+      bitmap.close?.();
+      throw new Error(`Фото має бути не менше ${MIN_UPLOAD_EDGE}×${MIN_UPLOAD_EDGE} px`);
+    }
+  }
+  if (longest * initialScale > MAX_EDGE) initialScale = MAX_EDGE / longest;
   let width = Math.max(1, Math.round(bitmap.width * initialScale));
   let height = Math.max(1, Math.round(bitmap.height * initialScale));
   let blob = null;
@@ -112,9 +132,9 @@ export async function prepareImageFile(file) {
     }
   } finally { bitmap.close?.(); }
   if (!blob || blob.size > MAX_UPLOAD_FILE_BYTES) throw new Error('Не вдалося підготувати це фото');
-  const stem = String(file.name || 'image').replace(/\.[^.]+$/, '') || 'image';
+  const stem = String(normalized.name || 'image').replace(/\.[^.]+$/, '') || 'image';
   return {
-    file: new File([blob], `${stem}-upload.jpg`, { type: 'image/jpeg', lastModified: file.lastModified }),
+    file: new File([blob], `${stem}-upload.jpg`, { type: 'image/jpeg', lastModified: normalized.lastModified }),
     changed: true, originalBytes: file.size, preparedBytes: blob.size,
   };
 }

@@ -985,13 +985,28 @@
            : 'Готуємо результат';
     }
 
+    function inputReplacementError(error) {
+      return !!(error && (error.code === 'UNSUPPORTED_GARMENT_MEDIA' ||
+        error.code === 'IMAGE_TOO_SMALL' || error.code === 'INPUT_REPLACEMENT_REQUIRED'));
+    }
+
+    function inputFailureWindow(error) {
+      return '<div class="failure-state failure-state--input" role="alert">' +
+        '<div class="glass__eyebrow">ПОТРІБНЕ УТОЧНЕННЯ</div>' +
+        '<div class="glass__h">Оберіть інше фото</div>' +
+        '<p class="glass__lede">' + esc(error && error.message || 'Це фото не можна використати для образу.') + '</p>' +
+        '<div class="recovery-actions">' +
+          '<button class="glass__cta" type="button" data-retry-action>Замінити фото</button>' +
+          '<button class="secondary" type="button" data-cancel-action>До фото</button>' +
+        '</div></div>';
+    }
+
     function failureWindow(error) {
-      var replaceInput = error && error.code === 'UNSUPPORTED_GARMENT_MEDIA';
       return '<div class="failure-state" role="alert"><div class="glass__eyebrow">Не вдалося завершити</div>' +
         orbWindow('failed', error.message || 'Спробуємо ще раз') +
         '<div class="recovery-actions">' +
           '<button class="glass__cta" type="button" data-retry-action>' +
-            (replaceInput ? 'Замінити фото' : 'Спробувати ще') + '</button>' +
+            'Спробувати ще' + '</button>' +
           '<button class="secondary" type="button" data-cancel-action>До образу</button>' +
         '</div></div>';
     }
@@ -1077,7 +1092,9 @@
        * SSE failure is received but immediately painted back into the indefinite
        * “Збираємо образ” orb with no retry control. */
       if (actionError) {
-        showRoot.innerHTML = scene('failed-' + actionError.kind, failureWindow(actionError));
+        var inputFailure = actionError.kind === 'look' && inputReplacementError(actionError);
+        showRoot.innerHTML = scene(inputFailure ? 'look-needs-input' : 'failed-' + actionError.kind,
+          inputFailure ? inputFailureWindow(actionError) : failureWindow(actionError));
         applyEnabled();
         return;
       }
@@ -1412,7 +1429,7 @@
         return;
       }
       if (t.closest('[data-retry-action]')) {
-        var inputRejected = actionError && actionError.code === 'UNSUPPORTED_GARMENT_MEDIA';
+        var inputRejected = inputReplacementError(actionError);
         if (bridge && bridgeReady() && actionError && !inputRejected) {
           bridge.retryActive().catch(function () {
             actionError = { kind: actionError && actionError.kind || 'look', message: 'Спробуємо ще раз' };
@@ -1423,6 +1440,7 @@
           return;
         }
         var retryKind = actionError ? actionError.kind : null;
+        if (inputRejected && bridge && bridge.resetLook) bridge.resetLook();
         pickerKind = retryKind === 'shoot' || retryKind === 'fash' || retryKind === 'bg' ? retryKind : null;
         if (retryKind === 'look') step = 1;
         awaitingAspect = null; actionError = null; view = 'look';
