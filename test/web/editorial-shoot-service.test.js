@@ -930,7 +930,7 @@ test('manual retry reuses the exact child scene after a post-generation executor
   const executor = {
     async executeShot(context) {
       invocations.push(context);
-      if (invocations.length <= 4) {
+      if (invocations.length <= 6) {
         throw new Error('Editorial output used the previous parent canvas contract');
       }
       return executionResult(context);
@@ -961,12 +961,12 @@ test('manual retry reuses the exact child scene after a post-generation executor
     assert.fail(`${error.message}: ${JSON.stringify(stuck.shots[0])}`);
   }
   assert.equal(recovered.status, 'HERO_PENDING_APPROVAL', JSON.stringify(recovered.shots[0]));
-  assert.equal(recovered.shots[0].attempts.length, 4);
-  assert.equal(invocations.length, 5);
-  assert.equal(invocations[4].attempt, invocations[3].attempt);
-  assert.equal(invocations[4].operation_id, invocations[3].operation_id);
-  assert.equal(invocations[4].idempotency_key, invocations[3].idempotency_key);
-  assert.equal(invocations[4].reuse_existing_execution, true);
+  assert.equal(recovered.shots[0].attempts.length, 6);
+  assert.equal(invocations.length, 7);
+  assert.equal(invocations[6].attempt, invocations[5].attempt);
+  assert.equal(invocations[6].operation_id, invocations[5].operation_id);
+  assert.equal(invocations[6].idempotency_key, invocations[5].idempotency_key);
+  assert.equal(invocations[6].reuse_existing_execution, true);
   assert.equal(recovered.shots[0].output.width, 1536);
   assert.equal(recovered.shots[0].output.height, 2048);
 });

@@ -17,8 +17,13 @@ Integration resolution: rebased the progress and repair atom on current beta
 `fc3c8b2`; retained the current direct five-frame Fashion Shoot engine, its
 global concurrency lock and Fashion Video UI changes.
 
-Code: focused Fashion Shoot tests and contract verification are pending again
-after the beta merge resolution.
+Code: TESTED — `node --test test/web/editorial-shoot-service.test.js
+test/web/editorial-preview-ui.test.js test/web/editorial-state.test.js
+test/web/scene-mobile-contract.test.js` (40/40 PASS), `npm run
+verify:contracts` (41 schemas / 9 fixtures / 3 jobs PASS), and
+`git diff --check origin/beta...HEAD` PASS. The full cached merge includes
+pre-existing trailing whitespace in beta QA HTML assets; the owned delta is
+clean.
 
 Beta: NOT_DEPLOYED — PR #47 still needs a green merge and release-owner deploy.
 

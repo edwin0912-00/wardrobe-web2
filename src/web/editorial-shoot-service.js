@@ -203,7 +203,9 @@ function isParallelFashionShoot(state) {
 
 function shotConcurrencyLimit(state) {
   if (isParallelFashionShoot(state)) return FASHION_SHOOT_FRAME_CONCURRENCY;
-  return state.shots[0].status === EDITORIAL_SHOT_STATES.APPROVED ? 2 : 1;
+  return state.shots[0].status === EDITORIAL_SHOT_STATES.APPROVED
+    ? FASHION_SHOOT_FRAME_CONCURRENCY
+    : 1;
 }
 
 function repairInstructions(attempt) {
@@ -949,7 +951,7 @@ export class EditorialShootService {
       approved_look: approvedLook,
       bible_sha256: bibleSha256,
       shot_spec_hashes: shotSpecHashes,
-      scheduler_max_concurrency: CUSTOMER_FRAME_CONCURRENCY,
+      scheduler_max_concurrency: FASHION_SHOOT_FRAME_CONCURRENCY,
     }));
     const legacyRequestFingerprint = sha256(canonicalJsonBytes({
       approved_look: approvedLook,
@@ -1031,7 +1033,7 @@ export class EditorialShootService {
         data: {
           mode_id: bible.mode_id,
           shot_count: EDITORIAL_SHOT_SLOTS.length,
-          scheduler_max_concurrency: CUSTOMER_FRAME_CONCURRENCY,
+          scheduler_max_concurrency: FASHION_SHOOT_FRAME_CONCURRENCY,
         },
       });
       return publicShoot(state);
@@ -1207,7 +1209,7 @@ export class EditorialShootService {
         shot_output_sha256: expectedOutputSha256,
         data: {
           queued_slots: EDITORIAL_SHOT_SLOTS.slice(1),
-          scheduler_max_concurrency: CUSTOMER_FRAME_CONCURRENCY,
+          scheduler_max_concurrency: FASHION_SHOOT_FRAME_CONCURRENCY,
         },
       };
     });

@@ -486,6 +486,13 @@ export class EditorialShootUiController {
 
   #showConnectionFailure(error, stage) {
     this.#show();
+    const progressWrap = this.#element('#editorial-progress-wrap');
+    progressWrap.classList.remove('is-active', 'is-indeterminate');
+    const gallery = this.#element('#editorial-gallery');
+    gallery.setAttribute('aria-busy', 'false');
+    for (const card of gallery.querySelectorAll('[aria-busy="true"]')) {
+      card.setAttribute('aria-busy', 'false');
+    }
     const presentation = editorialRequestFailurePresentation(error);
     this.#setHeader('Fashion Shoot', presentation.status, presentation.retryable ? 'running' : 'failed');
     this.#setError(presentation.message);
