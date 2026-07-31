@@ -906,3 +906,21 @@ facts.
 - Evidence: real approved master inspected PASS under the product white-master
   diagnostic; Fashion Video prompt/registry/service/route tests `69/69` PASS.
 - `weakened_checks: none`. No paid video generation was started.
+
+### 2026-07-31 · FASHION VIDEO DELIVERY AUDIO (ACTIVE ON BETA)
+
+- Provider audio is no longer a terminal QA failure. For each new Fashion
+  Video request, beta stores the hash-locked Video 1 as `style-reference.mp4`,
+  keeps raw provider output as audit-only `provider.mp4`, and builds the only
+  deliverable `clip.mp4` before QA.
+- Assembly is exact: `0:v:0` comes only from the provider; `1:a:0` comes only
+  from the approved Video 1 reference. If Video 1 is silent, delivery is
+  explicitly silent. There is no default ffmpeg stream mapping.
+- This does not relax visual QA. Identity/item QA and per-cut reference
+  leakage QA still gate delivery after technical assembly.
+- Evidence: `node --test test/video/*.test.js` PASS 155/155; actual ffmpeg
+  probe confirms a delivery with HEVC picture plus AAC reference audio; beta
+  health `ready`, release `21fd0c8`.
+- `weakened_checks`: pre-change failed clips lack a locally frozen reference
+  source; they are not retroactively delivered. The known failed clip also
+  equals its directing-reference bytes and remains blocked by visual QA.

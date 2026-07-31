@@ -506,3 +506,16 @@ be weakened to hide it.
   transitions from the append-only beta event log.
 - Public `/api/health` exposes the immutable release SHA and cache token so
   both observers can fail closed on a release mismatch.
+
+## Fashion Video delivery audio — 2026-07-31
+
+- Active source: `21fd0c81e91348db47bf5d9c259f1383a6577498`.
+- New Fashion Video jobs snapshot the approved directing reference into the
+  clip directory. `provider.mp4` is audit-only; `clip.mp4` is assembled before
+  QA with generated picture and reference audio, or silence for a silent
+  reference. Provider audio is never a terminal reason by itself.
+- The old `bf68b3c8…` job remains ineligible: its provider-video SHA is equal
+  to the `hard-sun-pose` reference SHA, which is evidence of reference-footage
+  leakage. Audio assembly does not turn that into a PASS.
+- Evidence: 155/155 video tests; actual ffmpeg stream verification; beta
+  health ready. weakened_checks: no new paid generation was spent.

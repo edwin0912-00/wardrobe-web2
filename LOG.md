@@ -1381,3 +1381,18 @@ and `bottom` and owns a durable snapshot; focused tests PASS `40/40`; strict
 release verification PASS; local/public health ready; public catalogs report
 16 backgrounds and 19 Fashion Shoot modes.
 weakened_checks: none.
+
+2026-07-31 · Fashion Video delivery-audio assembly · `21fd0c8` → beta
+Change: provider output is retained only as `provider.mp4` for audit. Before
+technical QA, Fashion Video freezes the exact approved Video 1 locally,
+rebuilds `clip.mp4` with provider video stream plus that reference's audio
+stream; when Video 1 is silent it emits a silent delivery. Explicit stream maps
+make provider audio ineligible for delivery.
+Why: `CLIP_HAS_AUDIO` incorrectly rejected otherwise reviewable provider output
+before the final delivery file existed.
+Evidence: video suite 155/155 PASS; actual ffmpeg verification on the existing
+provider MP4 produced one HEVC video stream plus AAC from `reference-03.mp4`.
+Beta health reports release SHA `21fd0c8` ready.
+weakened_checks: legacy clips created before this change have no frozen
+reference copy and remain rejected; the observed legacy clip also has a video
+SHA equal to its directing reference and is blocked for reference leakage.
