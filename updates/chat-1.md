@@ -1,6 +1,16 @@
 Agent ID: codex-main
 Block: 1
 Branch: chat01/scene-delivery-light-integration-20260730
+
+---
+
+Task: provider-wait heartbeat for the core image route (`LOOK.04–06`).
+Decision: a provider wait is not a lost client connection and does not authorize cancellation or a duplicate remote create. After 60 seconds, `RunService` now derives the active journaled Higgsfield wait into durable `run.json` evidence: private provider job id, attempt, start and minute-throttled elapsed time. The public run state exposes only WAITING/attempt/start/elapsed, never the remote job id. The existing progress surface receives an ordinary RUNNING SSE state and says that the provider is still processing; terminal content-QA rejection remains the existing explicit FAILED + retry path.
+Code: READY_FOR_REVIEW — focused fake-clock journal/projection test PASS; Higgsfield provider suite PASS 32/32.
+Beta: NOT_DEPLOYED.
+Journey: NOT_RUN — no provider request was created for this repair.
+weakened_checks: none. Existing journaled idempotency/resume checks remain strict; the repair neither cancels a pending job nor relaxes identity/item QA.
+Integration prerequisite: integrate this branch atop current `origin/beta`; no shared-bootstrap wiring is required. Then activate that exact SHA and verify a controlled wait emits one persisted `provider_wait` heartbeat after 60 seconds and a terminal QA rejection remains retryable.
 Task ID: BLOCK-1-STANDARD-SCENE-DELIVERY-QA
 Base: eeff548723af3e66ccbcf0ffc189784534a70b4d
 Rationale/decision: standard-scene 70–80% remains the generation target, while an intact full-body frame may deliver through an explicit <=88% composition tolerance instead of spending three provider attempts on scale alone.

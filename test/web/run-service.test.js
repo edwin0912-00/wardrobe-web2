@@ -6,7 +6,7 @@ import path from 'node:path';
 import test from 'node:test';
 import sharp from 'sharp';
 import { MockProvider } from '../../src/providers/mock-provider.js';
-import { InputNeedsInputError, RunService } from '../../src/web/run-service.js';
+import { InputNeedsInputError, providerWaitHeartbeatFromJournal, RunService } from '../../src/web/run-service.js';
 import { hasPrivateInfrastructure } from '../../src/security/outbound-redaction.js';
 
 async function upload(color = '#7b4d2e') {
@@ -81,6 +81,57 @@ test('public run state never exposes transport paths, private prompts, or projec
   );
   assert.equal(publicState.garments.length, 1);
   assert.match(publicState.garments[0].preview_url, /^\/api\/runs\//);
+});
+
+test('provider wait heartbeat is minute-throttled, preserves the remote job privately, and omits it from browser state', async () => {
+  const startedAt = '2026-07-31T14:42:36.113Z';
+  const journal = {
+    provider: 'higgsfield',
+    provider_job_id: '5f9167d0-6337-4006-bbc2-19cbde201c11',
+    state: 'WAITING',
+    events: [{
+      type: 'WAIT_STARTED',
+      at: startedAt,
+      provider_job_id: '5f9167d0-6337-4006-bbc2-19cbde201c11',
+      wait_attempt: 2,
+    }],
+  };
+  assert.equal(providerWaitHeartbeatFromJournal(journal, {
+    now: new Date('2026-07-31T14:43:35.999Z'),
+  }), null, 'no heartbeat before one full minute');
+  const heartbeat = providerWaitHeartbeatFromJournal(journal, {
+    now: new Date('2026-07-31T14:44:37.113Z'),
+  });
+  assert.deepEqual(heartbeat, {
+    state: 'WAITING',
+    provider: 'higgsfield',
+    provider_job_id: '5f9167d0-6337-4006-bbc2-19cbde201c11',
+    attempt: 2,
+    started_at: startedAt,
+    elapsed_seconds: 120,
+  });
+
+  const root = await mkdtemp(path.join(os.tmpdir(), 'zeely-public-provider-wait-'));
+  const runId = 'provider-wait-heartbeat';
+  await mkdir(path.join(root, runId), { recursive: true });
+  await writeFile(path.join(root, runId, 'run.json'), `${JSON.stringify({
+    run_id: runId,
+    status: 'RUNNING',
+    phase: 'CORE_PIPELINE',
+    inner_state: 'GENERATING_OUTFIT',
+    message: 'Модель обробляє запит у провайдера · спроба 2 · очікуємо 2 хв',
+    created_at: startedAt,
+    updated_at: '2026-07-31T14:44:37.113Z',
+    inputs: { garments: [] },
+    garments: [], conflicts: [], qa: {}, outputs: {}, error: null,
+    provider_wait: heartbeat,
+  }, null, 2)}\n`);
+  const service = new RunService({ rootDirectory: root, ...dependencies() });
+  const publicState = await service.getRun(runId);
+  assert.equal(publicState.provider_wait.elapsed_seconds, 120);
+  assert.equal(publicState.provider_wait.attempt, 2);
+  assert.equal('provider_job_id' in publicState.provider_wait, false);
+  assert.doesNotMatch(JSON.stringify(publicState), /5f9167d0-6337-4006-bbc2-19cbde201c11/);
 });
 
 test('initialize resumes persisted QUEUED and RUNNING runs from their existing checkpoints', async () => {
