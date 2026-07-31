@@ -1,5 +1,31 @@
 # Wardrobe update board
 
+## Beta sync · 2026-07-31 · integration candidate
+
+The current beta source of truth is `origin/beta` at `e7d175c` and the public
+beta health endpoint reports the same release SHA. This candidate adds the
+latest compatible Block 1 user-facing repair as `d5b6d05`:
+
+- a terminal `NEEDS_INPUT` caused by a headwear-only/incomplete outfit now tells
+  the user exactly what material is missing and does not offer a futile retry;
+- the repair does not weaken identity, item, framing or QA gates;
+- focused copy/profile checks pass; the known run-service fixture drift remains
+  unchanged and is not counted as evidence for this repair.
+
+Already present in the current beta source (verified by commit history and
+targeted source comparison): HEIC and drag-and-drop uploads, 16 standard
+backgrounds, the 15-style Fashion Shoot catalog and concurrent slot scheduler,
+Create Universe anchors, God View catalog, saved-look action hub, Fashion Video
+reference binding/resume/audio replacement/semantic QA, and Real-time Look
+privacy teardown. Their old block branches are not merged wholesale because
+they are based on older shared UI/runtime contracts; equivalent patches are
+already in the beta chain. The remaining stale branch deltas stay explicitly
+held until a current-beta port has its own focused proof.
+
+Candidate release: `integration/beta-current-sync-20260731`.
+State: CODE READY_FOR_BETA_VERIFY; BETA NOT_DEPLOYED; Journey NOT_RUN.
+weakened_checks: none.
+
 ## Isolated beta preflight cut · 2026-07-31
 
 `release/beta-preflight-20260731` was integrated and activated as beta release

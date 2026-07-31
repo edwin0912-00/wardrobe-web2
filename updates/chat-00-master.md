@@ -1,5 +1,28 @@
 # Chat 00 Master
 
+## 2026-07-31 · beta current-sync audit
+
+The safe release cut at `e7d175c77a1efd2b5552f83d027b259fe19c975b` is not an
+empty/old beta: it already contains the reconciled image aliases, HEIC/drop
+upload path, 16 backgrounds, current Create Universe/Fashion Shoot catalog and
+progress, God View, saved-look actions, and the current Fashion Video runtime
+with hash-bound reference/audio/semantic QA. Several agent branches still say
+`NOT_DEPLOYED` because they were written against an older baseline; merging
+those trees wholesale would remove newer beta code. This was checked with
+direct file diffs and patch-equivalence before integration.
+
+The current compatible missing atom is now ported as `d5b6d05` from
+`beta-block-1-needs-input-recovery-20260731`: headwear-only/incomplete outfit
+`NEEDS_INPUT` is actionable in the UI and hides the retry that would resubmit
+the same insufficient input. Focused `visible-copy` and profile-flow tests
+pass; no QA gate was weakened. Candidate branch:
+`integration/beta-current-sync-20260731`.
+
+Explicitly held for separate current-beta ports: stale video-preview-resume
+tree, legacy Live 40-second contract, and late video-salvage commits whose
+patches overlap the already newer e7 video QA implementation. They are not
+discarded; each needs a focused compatibility test before activation.
+
 Agent ID: `chat-00-master`
 Branch: `beta-release-master`
 Role: permanent beta integration, version, deploy and rollback owner.
