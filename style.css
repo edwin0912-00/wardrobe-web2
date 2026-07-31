@@ -1191,13 +1191,30 @@ body {
   border: 1px solid rgba(245,243,237,0.46);
   backdrop-filter: blur(10px); cursor: pointer;
 }
+.live-overlay__start {
+  position: absolute; left: 50%; bottom: max(24px, env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  min-width: 148px; min-height: 46px; padding: 12px 18px;
+  font: 500 12px/1.2 ui-monospace, "SF Mono", Menlo, monospace;
+  letter-spacing: 0.08em; color: #0c0d0c; background: var(--milk);
+  border: 1px solid rgba(245,243,237,0.78); cursor: pointer;
+}
+.live-overlay__start[hidden] { display: none; }
+.live-overlay__start:disabled { opacity: 0.52; cursor: default; }
+.live-overlay__status {
+  position: absolute; left: 50%; bottom: max(84px, calc(env(safe-area-inset-bottom) + 60px));
+  transform: translateX(-50%); width: min(80vw, 320px); margin: 0;
+  text-align: center; font: 400 10px/1.4 ui-monospace, "SF Mono", Menlo, monospace;
+  letter-spacing: 0.1em; color: rgba(245,243,237,0.72); text-transform: uppercase;
+  pointer-events: none;
+}
 .live-overlay__time {
   position: absolute; left: max(20px, env(safe-area-inset-left));
   top: max(20px, env(safe-area-inset-top));
   width: 42px; aspect-ratio: 1; border-radius: 50%;
   background: conic-gradient(rgba(245,243,237,0.78) var(--live-angle, 360deg),
                              rgba(245,243,237,0.14) 0);
-  animation: live-countdown 40s linear forwards;
+  animation: live-countdown var(--live-duration, 40s) linear forwards;
 }
 @property --live-angle {
   syntax: '<angle>';

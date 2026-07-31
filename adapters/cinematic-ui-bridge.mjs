@@ -116,6 +116,18 @@ function normalizeVideos(capability) {
   })).filter((item) => item.id && item.motionMode);
 }
 
+/* The public pipeline is beta's server-owned declaration of which realtime app exists.
+ * The cinematic client must never reproduce a provider identifier or a duration locally;
+ * enriching the per-look capability here keeps both values tied to beta's current contract. */
+function enrichLiveCapability(capability, pipeline) {
+  if (!capability) return null;
+  const liveMode = (pipeline?.modes ?? []).find((mode) => mode?.id === 'live_webcam');
+  return {
+    ...capability,
+    app: capability.app ?? capability.default_app ?? liveMode?.provider?.model_id ?? null,
+  };
+}
+
 function statusError(error) {
   if (error?.status === 401) return { availability: 'auth_required', code: 'AUTH_REQUIRED' };
   if (error?.code === 'ENGINE_UNAVAILABLE' || error?.status === 404 || error?.status === 0) {
@@ -155,11 +167,12 @@ export function createCinematicUiBridge({
 
   async function loadCatalogs(lookId) {
     if (!lookId) return state.catalogs;
-    const [backgrounds, shoots, videos, live] = await Promise.allSettled([
+    const [backgrounds, shoots, videos, live, pipeline] = await Promise.allSettled([
       client.listScenePresets(),
       client.listEditorialModes(),
       client.videoCapability(lookId),
       client.realtimeCapability(lookId),
+      client.postShootPipeline(),
     ]);
     const catalogs = {
       backgrounds: backgrounds.status === 'fulfilled' ? normalizeBackgrounds(backgrounds.value, client) : [],
@@ -168,7 +181,9 @@ export function createCinematicUiBridge({
     };
     emit('catalogs:ready', {
       catalogs,
-      liveCapability: live.status === 'fulfilled' ? live.value : null,
+      liveCapability: live.status === 'fulfilled'
+        ? enrichLiveCapability(live.value, pipeline.status === 'fulfilled' ? pipeline.value : null)
+        : null,
     });
     return catalogs;
   }
@@ -389,6 +404,11 @@ export function createCinematicUiBridge({
         privacyConsent,
         costAcknowledged,
       });
+    },
+    async loadLiveReference() {
+      requireReady();
+      if (!state.savedLook?.look_id) throw new CinematicUiBridgeError('LIVE_UNAVAILABLE');
+      return client.liveReferenceDataUrl(state.savedLook.look_id);
     },
     dispose() {
       disposed = true;

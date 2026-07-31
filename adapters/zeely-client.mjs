@@ -125,6 +125,28 @@ export function createZeelyClient({
     return payload;
   }
 
+  /* A Live reference is private profile media, so it is deliberately loaded through the
+   * same-origin client and converted to an in-memory data URL.  The realtime peer gets the
+   * pixels for this one explicit session, not a durable or public profile URL. */
+  async function liveReferenceDataUrl(lookId) {
+    const response = await fetchImpl(url(`/profile/looks/${encode(lookId)}/live-reference.png`), {
+      method: 'GET',
+      credentials: 'same-origin',
+    });
+    if (!response.ok) {
+      throw new ZeelyApiError(`Zeely API returned ${response.status}`, { status: response.status });
+    }
+    const blob = await response.blob();
+    const bytes = new Uint8Array(await blob.arrayBuffer());
+    let binary = '';
+    const chunk = 0x8000;
+    for (let index = 0; index < bytes.length; index += chunk) {
+      binary += String.fromCharCode(...bytes.subarray(index, index + chunk));
+    }
+    if (typeof globalThis.btoa !== 'function') throw new TypeError('Live reference requires base64 support');
+    return `data:${blob.type || 'image/png'};base64,${globalThis.btoa(binary)}`;
+  }
+
   function update(kind, value, type = `${kind}:updated`) {
     const patch = { [kind]: value, phase: phaseFor(value), error: null };
     return emit(type, patch);
@@ -200,6 +222,7 @@ export function createZeelyClient({
     deleteProfile() { return request('/profile', { method: 'DELETE' }); },
     avatarImageUrl: (avatarId) => url(`/profile/avatars/${encode(avatarId)}/image`),
     lookImageUrl: (lookId) => url(`/profile/looks/${encode(lookId)}/image`),
+    liveReferenceDataUrl,
 
     // Draft / core run ------------------------------------------------------
     loadDraft: () => request('/draft'),

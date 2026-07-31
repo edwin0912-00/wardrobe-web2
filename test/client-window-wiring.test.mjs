@@ -36,10 +36,20 @@ test('right mirror owns orb, result actions and the 40-second live expansion', (
   assert.match(ui, /function orbWindow/);
   assert.match(ui, /LIVE_MAX_MS\s*=\s*40000/);
   assert.match(html, /data-live-overlay/);
+  assert.match(html, /data-live-start/);
   assert.match(css, /\.live-overlay/);
   assert.match(css, /\.orbfield/);
   assert.doesNotMatch(ui, /рендер не підключений/i);
   assert.doesNotMatch(ui, /модел|провайдер|ціна|вартіст/i);
+});
+
+test('explicit mirror Live may use beta transport while its local camera remains a fallback', () => {
+  assert.match(ui, /function startServerLive/);
+  assert.match(ui, /import\('\.\/adapters\/live-realtime\.mjs'\)/);
+  assert.match(ui, /data-live-start/);
+  assert.match(ui, /function canStartServerLive/);
+  assert.match(bridge, /function enrichLiveCapability/);
+  assert.match(bridge, /loadLiveReference/);
 });
 
 test('nothing may be done with a look until its own image exists', () => {

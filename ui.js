@@ -109,6 +109,9 @@
     var liveOverlay = document.querySelector('[data-live-overlay]');
     var liveFullscreen = liveOverlay && liveOverlay.querySelector('[data-live-fullscreen]');
     var liveClose = liveOverlay && liveOverlay.querySelector('[data-live-close]');
+    var liveStart = liveOverlay && liveOverlay.querySelector('[data-live-start]');
+    var liveStatus = liveOverlay && liveOverlay.querySelector('[data-live-status]');
+    var liveTime = liveOverlay && liveOverlay.querySelector('.live-overlay__time');
     if (!askRoot || !showRoot) return null;
 
     /* The measured mirror rectangles are the right spatial owners on a wide screen, but
@@ -656,6 +659,48 @@
     var camError = '';
     var liveTimer = 0;
     var liveTrigger = null;
+    var liveTransport = null;
+
+    function canStartServerLive() {
+      return !!(bridgeReady() && bridgeState && bridgeState.savedLook &&
+        bridgeState.liveCapability && bridgeState.liveCapability.paid_live_ready === true &&
+        bridgeState.liveCapability.app && typeof bridge.startLive === 'function' &&
+        typeof bridge.loadLiveReference === 'function');
+    }
+
+    function setLiveStatus(message) {
+      if (liveStatus) liveStatus.textContent = message || '';
+    }
+
+    function setLiveVideo(nextStream) {
+      if (liveFullscreen) {
+        liveFullscreen.srcObject = nextStream || null;
+        if (nextStream) liveFullscreen.play().catch(function () {});
+      }
+      var mirrorVideo = showRoot.querySelector('[data-cam]');
+      if (mirrorVideo) {
+        mirrorVideo.srcObject = nextStream || null;
+        if (nextStream) mirrorVideo.play().catch(function () {});
+      }
+    }
+
+    function setLiveTimer(milliseconds) {
+      clearTimeout(liveTimer);
+      liveTimer = 0;
+      if (liveTime) {
+        liveTime.style.setProperty('--live-duration', Math.max(1, milliseconds) + 'ms');
+        liveTime.style.animation = 'none';
+        void liveTime.offsetWidth;
+        liveTime.style.animation = '';
+      }
+      liveTimer = setTimeout(function () { stopCamera(); render(); }, milliseconds);
+    }
+
+    function stopLiveTransport() {
+      if (!liveTransport) return;
+      try { liveTransport.stop(); } catch (ignore) {}
+      liveTransport = null;
+    }
 
     function reducedMotion() {
       return typeof window.matchMedia === 'function' &&
@@ -668,6 +713,7 @@
       if (!liveOverlay) return;
       if (liveOverlay.hidden) {
         if (liveFullscreen) liveFullscreen.srcObject = null;
+        if (liveStart) liveStart.hidden = true;
         return;
       }
       liveOverlay.dataset.open = '0';
@@ -676,6 +722,7 @@
         try { liveFullscreen.pause(); } catch (pauseError) {}
         liveFullscreen.srcObject = null;
       }
+      if (liveStart) liveStart.hidden = true;
       var finish = function () {
         liveOverlay.hidden = true;
         var fallback = showRoot.querySelector('[data-cam-start]') ||
@@ -709,8 +756,7 @@
       liveOverlay.dataset.open = '1';
       liveOverlay.setAttribute('aria-hidden', 'false');
       if (liveFullscreen) {
-        liveFullscreen.srcObject = stream;
-        liveFullscreen.play().catch(function () {});
+        setLiveVideo(stream);
       }
       if (liveOverlay.animate && !reducedMotion()) {
         liveOverlay.animate([
@@ -719,17 +765,61 @@
           { transform: 'none', opacity: 1, borderRadius: '0px' }
         ], { duration: 440, easing: 'cubic-bezier(0.22,1,0.36,1)', fill: 'both' });
       }
+      setLiveStatus('Дзеркало відкрите');
+      if (liveStart) liveStart.hidden = !canStartServerLive();
       if (liveClose) liveClose.focus();
-      clearTimeout(liveTimer);
-      liveTimer = setTimeout(function () { stopCamera(); render(); }, LIVE_MAX_MS);
+      setLiveTimer(LIVE_MAX_MS);
     }
 
     function stopCamera() {
+      stopLiveTransport();
       closeLiveOverlay();
       if (!stream) return;
       stream.getTracks().forEach(function (t) { t.stop(); });
       stream = null;
       notifyGateChange();
+    }
+
+    function startServerLive() {
+      if (!stream || liveTransport || !canStartServerLive()) return;
+      if (liveStart) { liveStart.disabled = true; liveStart.hidden = false; }
+      setLiveStatus('Налаштовуємо відображення');
+      import('./adapters/live-realtime.mjs').then(function (mod) {
+        if (!stream || liveTransport) return null;
+        return mod.startRealtimeLook({
+          bridge: bridge,
+          stream: stream,
+          onRemoteStream: function (remoteStream) {
+            if (!stream || !liveOverlay || liveOverlay.hidden) return;
+            setLiveVideo(remoteStream);
+          },
+          onState: function (event) {
+            if (!stream) return;
+            if (event && event.phase === 'active') {
+              setLiveStatus('Відображення готове');
+              setLiveTimer(Number(event.seconds) * 1000);
+            }
+          },
+          onError: function () {
+            liveTransport = null;
+            if (!stream) return;
+            setLiveVideo(stream);
+            setLiveStatus('Лишаємось у дзеркалі');
+            if (liveStart) { liveStart.disabled = false; liveStart.hidden = !canStartServerLive(); }
+            setLiveTimer(LIVE_MAX_MS);
+          }
+        });
+      }).then(function (transport) {
+        if (!transport) return;
+        if (!stream) { transport.stop(); return; }
+        liveTransport = transport;
+      }).catch(function () {
+        if (!stream) return;
+        setLiveVideo(stream);
+        setLiveStatus('Лишаємось у дзеркалі');
+        if (liveStart) { liveStart.disabled = false; liveStart.hidden = !canStartServerLive(); }
+        setLiveTimer(LIVE_MAX_MS);
+      });
     }
 
     function startCamera() {
@@ -1242,6 +1332,7 @@
       }
       if (t.closest('[data-cam-start]')) { startCamera(); return; }
       if (t.closest('[data-cam-stop]')) { stopCamera(); camError = ''; render(); return; }
+      if (t.closest('[data-live-start]')) { startServerLive(); return; }
       if (t.closest('[data-live-close]')) { stopCamera(); camError = ''; render(); return; }
       if ((b = t.closest('[data-view]'))) {
         var next = b.getAttribute('data-view');
@@ -1310,11 +1401,12 @@
         stopCamera(); camError = ''; render();
         return;
       }
-      /* The immersive plane exposes a single action. Keep keyboard focus on it until
-       * that explicit close returns focus to the mirror trigger. */
+      /* The immersive plane exposes only its explicit Live action and close. Keep focus
+       * inside it until the spatial return has finished. */
       if (ev.key === 'Tab' && liveClose) {
         ev.preventDefault();
-        liveClose.focus();
+        if (liveStart && !liveStart.hidden && document.activeElement === liveClose) liveStart.focus();
+        else liveClose.focus();
       }
     });
 

@@ -219,3 +219,19 @@ test('Live Look does not invent a provider or duration without a capability', as
     cost_acknowledged: true,
   });
 });
+
+test('Live reference stays same-origin private media and becomes an in-memory data URL', async () => {
+  const calls = [];
+  const client = createZeelyClient({
+    fetchImpl: async (url, options) => {
+      calls.push({ url, options });
+      return new Response(new Blob(['ok'], { type: 'image/png' }), { status: 200 });
+    },
+    EventSourceImpl: FakeEventSource,
+  });
+
+  const reference = await client.liveReferenceDataUrl('look-1');
+  assert.equal(calls[0].url, '/api/profile/looks/look-1/live-reference.png');
+  assert.equal(calls[0].options.credentials, 'same-origin');
+  assert.equal(reference, 'data:image/png;base64,b2s=');
+});

@@ -26,7 +26,12 @@ function clientStub({ profileError = null } = {}) {
     listEditorialModes: async () => ({ modes: [{ preset_id: 'shoot.one', version: '1.0.0', ui_name_uk: 'Стиль' }] }),
     editorialModePreviewUrl: (id, version) => `/api/editorial-modes/${id}/${version}/preview`,
     videoCapability: async () => ({ available: true, styles: [{ id: 'air', title: 'Повітря', motion_mode: 'air', preview_url: '/p', playback_url: '/v', reference_url: '/r' }] }),
-    realtimeCapability: async () => ({ consent: { maximum_session_seconds: 15 } }),
+    realtimeCapability: async () => ({ paid_live_ready: true, consent: { maximum_session_seconds: 15 } }),
+    postShootPipeline: async () => ({ modes: [{ id: 'live_webcam', provider: { model_id: 'server-owned-live' } }] }),
+    liveReferenceDataUrl: async (lookId) => {
+      calls.push(['live-reference', lookId]);
+      return 'data:image/png;base64,AA==';
+    },
     createScene: async (lookId, input) => { calls.push(['background', lookId, input]); return { scene_id: 'scene-1', status: 'QUEUED' }; },
     createShoot: async (lookId, input) => { calls.push(['shoot', lookId, input]); return { shoot_id: 'shoot-1', status: 'QUEUED' }; },
     createVideo: async (input) => { calls.push(['video', input]); return { clip_id: 'clip-1', status: 'CREATED' }; },
@@ -72,6 +77,26 @@ test('a completed real run becomes the saved look and loads all action catalogue
   assert.equal(state.catalogs.backgrounds[0].id, 'std.one');
   assert.equal(state.catalogs.shoots[0].id, 'shoot.one');
   assert.equal(state.catalogs.videos[0].id, 'air');
+  assert.equal(state.liveCapability.app, 'server-owned-live');
+});
+
+test('Live reference and token stay bound to the saved look and beta capability', async () => {
+  const client = clientStub();
+  const bridge = createCinematicUiBridge({ client, autoProbe: false });
+  await bridge.probe();
+  await bridge.createLook({ person: new Blob(['a']), garments: [new Blob(['b'])] });
+  client.emit({ type: 'run:event', run: { run_id: 'run-1', status: 'COMPLETED', outputs: { avatar_outfit: '/api/look.png' } } });
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  assert.equal(await bridge.loadLiveReference(), 'data:image/png;base64,AA==');
+  await bridge.startLive({ privacyConsent: true, costAcknowledged: true });
+  assert.deepEqual(client.calls.find(([kind]) => kind === 'live-reference'), ['live-reference', 'look-1']);
+  assert.deepEqual(client.calls.find(([kind]) => kind === 'live')[1], {
+    lookId: 'look-1',
+    capability: { app: 'server-owned-live', default_app: undefined, max_session_seconds: 15 },
+    privacyConsent: true,
+    costAcknowledged: true,
+  });
 });
 
 test('background, shoot and video actions carry the selected saved look', async () => {
