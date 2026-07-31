@@ -61,7 +61,7 @@ implementation, not beta's dashboard.
 
 | Place | Opens | Closes / next state |
 | --- | --- | --- |
-| Intro textile | No form | Scroll enters rails. Loader blocks only the first visible video; later media loads in background. |
+| Intro textile | No form | Scroll enters rails. Desktop loader includes the immediate selected-D handoff; iOS mounts D natively before reveal. TV/laptop media remains background work. |
 | Empty rails | Person upload drawer on the measured rail panel | Valid server draft → scroll can reach garments. Draft errors remain here with retry/remove. |
 | Clothing rail | Garment grid and optional text outfit | `createRun…` opens right mirror in `running`; `NEEDS_INPUT` opens selection here; completed run creates/selects a look. |
 | Left mirror | Look chooser, background preset chooser, Fashion Shoot mode chooser, Fashion Video style chooser | Selection opens a confirmation/action sheet in the same mirror—never a generic dashboard modal. |

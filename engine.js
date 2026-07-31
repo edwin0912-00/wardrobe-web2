@@ -305,6 +305,23 @@
       };
       videos[0].addEventListener('seeked', confirmFirstLegFrame);
       videos[0].addEventListener('timeupdate', confirmFirstLegFrame);
+      /* Safari can report both metadata and buffered time before it has composited a
+       * picture. When supported, a decoded-frame callback is the stronger certificate
+       * for retiring the textile safety surface. This one-shot loop stops as soon as the
+       * first meaningful room-one frame is known; it never becomes a second render clock. */
+      if (typeof videos[0].requestVideoFrameCallback === 'function') {
+        var confirmFirstLegVideoFrame = function (_now, metadata) {
+          var time = metadata && typeof metadata.mediaTime === 'number'
+            ? metadata.mediaTime : videos[0].currentTime;
+          if (time > 0.02) {
+            firstLegPainted = true;
+            schedule();
+          } else if (!firstLegPainted) {
+            videos[0].requestVideoFrameCallback(confirmFirstLegVideoFrame);
+          }
+        };
+        videos[0].requestVideoFrameCallback(confirmFirstLegVideoFrame);
+      }
     }
 
     function introScreens() { return intro ? (intro.screens || 1.6) : 0; }
@@ -391,6 +408,11 @@
      * Progress is the mean of each element's own buffered fraction, which moves
      * smoothly instead of stepping once per file. */
     var ready = false;
+    /* Blob-backed film needs metadata because all bytes are already local. Native iOS
+     * film is different: duration can exist while its video plane remains unpainted.
+     * A caller may supply this narrow additional readiness rule without teaching the
+     * engine which browser it is running in. */
+    var isFilmReady = typeof config.isFilmReady === 'function' ? config.isFilmReady : null;
     function preloadProgress() {
       var total = 0;
       for (var i = 0; i < videos.length; i++) {
@@ -825,7 +847,10 @@
      * network left to stall on. */
     function filmReady(idx) {
       var v = videos[idx];
-      return !!(v && v.src && v.duration && isFinite(v.duration));
+      if (!(v && v.src && v.duration && isFinite(v.duration))) return false;
+      if (!isFilmReady) return true;
+      try { return isFilmReady(v, idx) !== false; }
+      catch (readinessError) { return false; }
     }
 
     /* The scroll position that corresponds to the current leg's station.

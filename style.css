@@ -119,6 +119,20 @@ body {
   will-change: opacity;
 }
 .film video[hidden] { display: none; }
+/* Safari can leave a native `display:none` video at metadata forever. iOS mounts only
+ * one future room at a time with this attribute; keeping that one plane transparent but
+ * paintable lets it establish playback coverage and a composited first frame. The
+ * attribute is removed only after that certificate, before the next room starts, so
+ * hidden video decoders never accumulate. */
+.film video[hidden][data-ios-prewarm="1"] {
+  display: block;
+  /* A literal zero opacity may be culled before WebKit sends a frame to its compositor,
+     which defeats requestVideoFrameCallback. This is visually imperceptible and remains
+     under the active plane, but it keeps one real native frame eligible for certification. */
+  opacity: 0.001 !important;
+  z-index: 0 !important;
+  pointer-events: none;
+}
 /* Never reveal a black native video plane before its first decoded frame. */
 .film[data-intro-pending="1"] video[data-intro] { visibility: hidden; }
 

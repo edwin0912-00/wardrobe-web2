@@ -51,21 +51,31 @@ The implementation points in the current source are:
 
 ## 3. Why each patch exists
 
-### A. Do not block the first video behind later media
+### A. Keep the fabric → D handoff prepared, not guessed
 
-The old critical set fetched score + intro + first room before opening. On a
-phone it was about 21.9 MB and made the first interaction read as a hung black
-screen. The selected behaviour is:
+The first visible clip is fabric, but it dissolves directly into the selected D
+room. These two clips have different delivery constraints:
 
 ```text
-critical: score track 1 + fabric intro
-background: room one and every later room
-seam: resist / hold honestly if the next clip is not ready
+desktop: critical = score track 1 + fabric intro + selected D room
+         background = TV, laptop and later rooms
+iOS/iPadOS: critical = score track 1 + fabric intro
+             selected D room = native same-origin source mounted immediately
+             later rooms = native sources mounted one at a time after the prior room has
+                           both playback coverage and a compositor-confirmed frame
 ```
 
+This is a deliberate correction to the earlier universal “intro only” rule.
+That rule shortened a cold phone load, but on cold desktop it allowed fabric to
+dissolve over an unset D plane; on iOS it could issue competing native and Blob
+requests for later rooms. The current split preserves a quick native iPhone
+entry while making the desktop first handoff fully loaded and truthful. TV and
+laptop must never delay the opening.
+
 If the incoming design has a different loader, preserve the policy rather than
-the array names: **the first visual clip must be the only visual media allowed
-to block entry.**
+the array names: **never show an unprepared clip at the fabric → D handoff, and
+never give iOS both a Blob fetch and native `<video>` ownership of the same
+room.**
 
 ### B. iOS must not use the desktop Blob-video path by default
 
@@ -171,4 +181,3 @@ Desktop is not enough. Run these on the canonical domain:
 - black stage as a video fallback;
 - audio that is technically unlocked but still muted;
 - merging an incoming design commit by overwriting it with this older runtime.
-

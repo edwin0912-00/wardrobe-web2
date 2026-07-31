@@ -126,6 +126,7 @@
 <div data-track></div>
 
 <script src="../loader.js"></script>
+<script src="../media-strategy.js"></script>
 <script src="../engine.js"></script>
 <script src="../ui.js"></script>
 <script src="../audio.js"></script>
@@ -153,6 +154,22 @@
      path for instant desktop scrubbing. */
   var IOS_MEDIA = /iP(ad|hone|od)/.test(navigator.userAgent) ||
     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  var INTRO = 'assets/intro.mp4';
+  var MEDIA_STRATEGY = window.WardrobeMediaStrategy || null;
+  /* The module makes this policy testable, but a partial static-file copy must never
+     turn into a blank stage. The tiny in-page fallback has the same fixed policy and
+     lets the existing runtime continue safely until its companion asset arrives. */
+  var MEDIA_PLAN = MEDIA_STRATEGY ? MEDIA_STRATEGY.create({
+    ios: IOS_MEDIA, intro: INTRO, tracks: TRACKS, videos: VIDEOS
+  }) : {
+    ios: IOS_MEDIA,
+    critical: IOS_MEDIA ? [TRACKS[0], INTRO] : [TRACKS[0], INTRO, VIDEOS[0]],
+    background: IOS_MEDIA ? [] : VIDEOS.slice(1)
+  };
+  function hasLoadedBlob(blobs, key) {
+    return MEDIA_STRATEGY ? MEDIA_STRATEGY.hasBlob(blobs, key)
+      : !!(blobs && Object.prototype.hasOwnProperty.call(blobs, key) && blobs[key]);
+  }
 
   /* Start room one on iOS while the loader is still showing the textile/audio wave.
      Previously its native src was mounted only after that wave completed, so a quick
@@ -160,8 +177,8 @@
      The engine then correctly held the textile safety frame, but to the viewer it looked
      like a frozen site.  Giving only the first room an early Range-backed src overlaps
      its download with the opening and leaves later rooms on the existing lazy path. */
+  var firstRoomVideo = document.querySelector('video[data-leg="0"]');
   if (IOS_MEDIA) {
-    var firstRoomVideo = document.querySelector('video[data-leg="0"]');
     if (firstRoomVideo && !firstRoomVideo.src) {
       firstRoomVideo.src = firstRoomVideo.getAttribute('data-src');
       firstRoomVideo.load();
@@ -219,6 +236,90 @@
   ['touchstart', 'pointerdown', 'wheel', 'keydown'].forEach(function (eventName) {
     window.addEventListener(eventName, primeIOSFilmPlanes, { passive: true });
   });
+
+  /* iOS has ONE native owner for each room. The previous version assigned native URLs
+     for seg2–seg4 as soon as the intro loader finished while loader.js was also fetching
+     those very files into Blobs. With no-store media this doubled transfer pressure and
+     could starve the D room at the only seam that must never stutter. Start the next
+     room only after the previous one has native playback coverage and a painted frame;
+     the engine holds honestly at any later seam until that certificate exists. */
+  var nextIOSNativeLeg = 1;
+  var iosRoomReady = Object.create(null);
+  function queueNextIOSRoom() {
+    if (!IOS_MEDIA) return;
+    while (nextIOSNativeLeg < VIDEOS.length) {
+      var index = nextIOSNativeLeg++;
+      if (mountIOSRoom(index)) return;
+    }
+  }
+  /* Certificate = enough native bytes to play through + a compositor-confirmed frame.
+     `loadeddata` alone is intentionally not a certificate: WebKit can fire it before it
+     has painted the native plane. The prewarm remains paintable until both facts arrive;
+     only then is it removed and only then may the preceding seam release. */
+  function certifyIOSRoom(index, room, onReady) {
+    var enoughData = room.readyState >= 4;
+    var painted = false;
+    var finished = false;
+    function finish() {
+      if (finished || !enoughData || !painted) return;
+      finished = true;
+      iosRoomReady[index] = true;
+      delete room.dataset.iosPrewarm;
+      onReady();
+    }
+    function markPainted() {
+      if (finished) return;
+      painted = true;
+      finish();
+    }
+    function requestPaintProof() {
+      if (typeof room.requestVideoFrameCallback !== 'function') {
+        /* Older WebKit has no compositor callback. `canplaythrough` is the strongest
+           native proof it exposes; preserve the prewarm until that event instead of
+           falsely treating metadata as a rendered frame. */
+        markPainted();
+        return;
+      }
+      room.requestVideoFrameCallback(function () { markPainted(); });
+    }
+    room.addEventListener('loadeddata', function () {
+      /* Muted playsinline priming is permitted before first scroll on devices that
+         allow it. If Safari declines, the real-gesture path above retries while this
+         pending callback remains registered. */
+      primeIOSFilm(room);
+      requestPaintProof();
+    }, { once: true });
+    room.addEventListener('canplaythrough', function () {
+      enoughData = true;
+      finish();
+    }, { once: true });
+    room.addEventListener('error', function () {
+      delete room.dataset.iosPrewarm;
+      onReady();
+    }, { once: true });
+    if (room.readyState >= 2) {
+      primeIOSFilm(room);
+      requestPaintProof();
+    }
+    if (room.readyState >= 4) finish();
+  }
+  function mountIOSRoom(index) {
+    var room = document.querySelector('video[data-leg="' + index + '"]');
+    if (!room || room.src) return false;
+    var source = room.getAttribute('data-src');
+    if (!source) return false;
+    /* A single invisible native prewarm plane is allowed until it has a full playback
+       certificate. Safari may otherwise leave a display:none video at metadata forever;
+       this attribute is removed before the next room starts, so decoder load is bounded. */
+    room.dataset.iosPrewarm = '1';
+    certifyIOSRoom(index, room, queueNextIOSRoom);
+    room.src = source;
+    room.load();
+    return true;
+  }
+  if (IOS_MEDIA && firstRoomVideo) {
+    certifyIOSRoom(0, firstRoomVideo, queueNextIOSRoom);
+  }
 
   function mb(n) { return (n / 1048576).toFixed(1); }
 
@@ -293,18 +394,18 @@
    *
    * The engine will not enter a room whose film has not landed, so starting early cannot
    * show an empty frame; it holds at the seam with data-gate="loading" instead. */
-  /* The first visible movement is the fabric intro.  Do not hold that movement behind
-     the first room: room one is warmed in the background and the engine already owns a
-     truthful seam hold if it has not landed by the handover. */
-  var INTRO = 'assets/intro.mp4';
-  var REQUIRED = [TRACKS[0], INTRO];
+  /* The textile is still the first visible movement. Desktop keeps only its immediate
+     D handoff in the initial byte-truthful load; it does not wait for TV or laptop.
+     iOS starts the same D master native before this load and retains its Range delivery. */
+  var REQUIRED = MEDIA_PLAN.critical;
   /* Films only. The two later tracks are NOT listed here: the score's own <audio> elements
      are given those URLs directly and fetch them natively, so putting them in this list
      too would download 9.8 MB twice. */
-  /* Room one already has a native Range-backed source on iOS. Fetching the same 18.7 MB
-     master again into a Blob competes with the only request needed for the scarf handover.
-     Desktop retains the Blob path; iOS continues with rooms two through four underneath. */
-  var REST = IOS_MEDIA ? VIDEOS.slice(1) : VIDEOS;
+  /* On desktop D is part of the truthful initial load, so the fabric can never dissolve
+     over an unset first-room plane. On iOS the first room is already native and later
+     rooms are mounted sequentially above; fetching those files into Blob URLs too would
+     create a second competing owner. */
+  var REST = MEDIA_PLAN.background;
 
   function paint(p) {
     barEl.style.transform = 'scaleX(' + p.ratio + ')';
@@ -338,8 +439,16 @@
     function handOver(blobs) {
       document.querySelectorAll('video[data-src]').forEach(function (v) {
         var key = v.getAttribute('data-src');
-        var source = IOS_MEDIA ? key : blobs[key];
-        if (!v.src && source) v.src = source;
+        if (v.src) return;
+        if (IOS_MEDIA) {
+          /* Native iOS video must still wait for the loader to own THIS file. This is
+             true for the textile intro; the room films are mounted by queueNextIOSRoom. */
+          if (!hasLoadedBlob(blobs, key)) return;
+          v.src = key;
+          v.load();
+          return;
+        }
+        if (blobs && blobs[key]) v.src = blobs[key];
       });
     }
     var introVideo = document.querySelector('[data-intro]');
@@ -367,6 +476,13 @@
       }
     }
     handOver(res.blobs);
+    /* `loadeddata` is not accepted as visual proof on iOS: Safari can dispatch it
+       before it paints. Request only after the source exists — otherwise WebKit may
+       reject the callback registration before there is a media timeline. The two event
+       fallbacks above retain support for older engines. */
+    if (introVideo && typeof introVideo.requestVideoFrameCallback === 'function') {
+      try { introVideo.requestVideoFrameCallback(revealIntroFrame); } catch (frameCallbackError) {}
+    }
 
     /* THE REST OF THE FILM, UNDERNEATH A RUNNING JOURNEY.
      * Rooms two to four and the later tracks are fetched after the reveal, and each element
@@ -376,7 +492,7 @@
      * seam hold: the engine will not enter a room whose film has not arrived, and says so
      * with data-gate="loading" instead of showing a blank frame.
      * Failures here are non-fatal by design: the first room already works. */
-    window.rest = WardrobeLoader.load(REST, function (p) {
+    window.rest = REST.length ? WardrobeLoader.load(REST, function (p) {
       var done = p.files.filter(function (f) { return f.done; }).length;
       bytesEl.textContent = 'решта фільму ' + mb(p.loaded) + ' / ' + mb(p.total) + ' МБ · ' +
                             done + '/' + p.files.length;
@@ -389,7 +505,7 @@
       return r2;
     }).catch(function (err) {
       bytesEl.textContent = 'решта фільму не дозавантажилась: ' + err.message;
-    });
+    }) : Promise.resolve({ blobs: {}, bytes: 0, unmeasurable: [], files: [] });
 
     /* The score already exists — it started under the loader. Creating another here would
        leave two mixers running the same tracks, which is exactly the doubling being
@@ -442,6 +558,12 @@
        * handover from popping. So the window stays just wide enough to pre-warm and far too
        * short to read as a dissolve. */
       seamWindow: 0.012,
+      /* Blob-backed desktop rooms need only metadata: their bytes are already local.
+         Native iOS rooms need an actual decoded frame before a preceding seam releases;
+         otherwise a hidden video can report duration while its compositor is still black. */
+      isFilmReady: function (_video, index) {
+        return !IOS_MEDIA || iosRoomReady[index] === true;
+      },
       onSpeed: function (s) { if (window.score) window.score.setSpeed(s); },
       /* ATTENTION without a hard gate.
        * dampFrom / dampMax: where the swipe starts going insensitive and how far it goes.

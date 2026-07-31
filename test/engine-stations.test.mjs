@@ -194,6 +194,26 @@ test('accepts the earlier station-map shape and releases local resistance after 
   assert.equal(state.stationId, 'leg-1-end');
 });
 
+test('a caller can require a decoded native next-room frame before releasing its seam', () => {
+  let nextRoomPainted = false;
+  const { journey, stage } = boot({
+    stationAt: 0.90,
+    stationEnter: 0.90,
+    stationExit: 0.72,
+    isFilmReady: (_video, index) => index !== 1 || nextRoomPainted,
+  });
+
+  let state = seekLeg(journey, 0, 0.92);
+  assert.equal(state.lockedLeg, 0);
+  assert.equal(stage.getAttribute('data-gate'), 'loading');
+
+  nextRoomPainted = true;
+  journey.refreshGate();
+  state = journey.state();
+  assert.equal(state.lockedLeg, -1);
+  assert.equal(stage.getAttribute('data-gate'), null);
+});
+
 test('rejects an unknown explicit station instead of travelling to another surface', () => {
   const { journey } = boot({
     stations: [{ leg: 0, id: 'person', at: 0.30, enter: 0.28, exit: 0.20 }],
