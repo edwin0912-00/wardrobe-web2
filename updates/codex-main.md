@@ -836,7 +836,7 @@ the CLI as `nano_banana_pro`; completed `job_set_type` and/or `job_type` values
 are canonicalized back to `nano_banana_2`. Unknown or contradictory model
 fields fail closed with `MODEL_RESPONSE_MISMATCH`; provider `params.model` is
 not used as the route check.
-Code: TESTED — pending commit; focused provider + preflight + scene-runtime
+Code: TESTED — code commit `b6223e3d96d28a17f69065ca7f185537bdb13a20`; focused provider + preflight + scene-runtime
 suite 45/45 PASS. Full `node --test`: 800/892 PASS, 92 pre-existing failures
 in scene/editorial/release fixtures unrelated to this adapter change.
 Beta: NOT_DEPLOYED — release-owner integration required.
