@@ -126,7 +126,7 @@
 
 <div class="legs" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
 <div class="hud" data-readout>—</div>
-<button class="sound" type="button" data-sound aria-pressed="false">без звуку</button>
+<button class="sound" type="button" data-sound aria-pressed="true">звук</button>
 <div class="gate" role="status" aria-live="polite">
   <i></i><b data-gate-text>Завантажте медіа цього кроку, щоб іти далі</b>
 </div>
@@ -354,12 +354,11 @@
   /* Every byte of the experience, counted. Audio is in the list because it is part of
      the load — reporting only the video would be the same kind of half-truth the old
      bar told. */
-  /* MUSIC STARTS DURING THE LOAD, AND STARTS MUTED.
+  /* MUSIC STARTS DURING THE LOAD, AUDIBLE BY DEFAULT.
    *
-   * Two requirements that fit together: the score must be off when the page opens, and it
-   * must begin earlier than the reveal. A muted element needs no gesture to play, so the
-   * score can be rolling under the loader from the moment its own file has arrived; the
-   * sound button then unmutes, and the click is itself the gesture the browser wants.
+   * The intended default is sound on, and we begin it before the reveal. Browsers that
+   * forbid audible autoplay honestly change the control to "звук: торкніться"; the first
+   * real interaction unlocks the same score without changing the visitor's preference.
    * Starting it at the reveal instead meant the first track began from nothing exactly
    * when the picture appeared, which is the busiest moment on screen. */
   var scoreStarted = false;
