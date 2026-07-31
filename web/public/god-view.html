@@ -5,13 +5,13 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="robots" content="noindex,nofollow,noarchive">
   <meta name="referrer" content="same-origin">
-  <title>Wardrobe Control Room</title>
-  <link rel="stylesheet" href="/god-view.css?v=20260730-1">
+  <title>Wardrobe · усі тестові образи</title>
+  <link rel="stylesheet" href="/god-view.css?v=20260730-2">
 </head>
 <body>
   <main class="god-shell">
     <header class="god-header">
-      <div><p>INTERNAL · READ ONLY</p><h1>Control Room</h1></div>
+      <div><p>INTERNAL · READ ONLY</p><h1>Усі тестові образи</h1></div>
       <div class="god-header-actions"><span id="god-session" class="god-status">перевіряємо доступ</span><button id="god-logout" type="button" hidden>Вийти</button></div>
     </header>
 
@@ -21,17 +21,21 @@
       <p>Цей екран показує лише дані, які вже збережені в beta runtime. Він нічого не генерує, не змінює й не видаляє.</p>
       <form id="god-login-form">
         <label>God View key <input id="god-key" name="key" type="password" autocomplete="current-password" required></label>
-        <button type="submit">Відкрити Control Room</button>
+        <button type="submit">Відкрити образи</button>
         <p id="god-login-error" role="alert"></p>
       </form>
     </section>
 
     <section id="god-dashboard" hidden>
       <section id="god-summary" class="god-summary" aria-label="Підсумок runtime"></section>
-      <p class="god-note">Згенеровані аватари, образи, сцени, Fashion Shoot і video receipts видно одразу. Вихідні фото речей розкриваються лише вручну. Жодна дія нижче не змінює pipeline.</p>
+      <section class="god-look-picker" aria-labelledby="god-look-picker-title">
+        <div class="god-picker-head"><div><p class="god-eyebrow">GOD VIEW · УСІ АКТИВНІ СЕСІЇ</p><h2 id="god-look-picker-title">Обери збережений образ</h2></div><span id="god-live-status" class="god-muted" aria-live="polite"></span></div>
+        <div id="god-look-picker-grid" class="god-look-picker-grid" aria-live="polite"></div>
+      </section>
+      <p class="god-note">Це єдина тестова добірка всіх активних браузерних профілів. Натисни образ, щоб переглянути його речі, фони, Fashion Shoot і відео. Вихідні фото розкриваються лише вручну. Жодна дія нижче не змінює pipeline.</p>
       <div id="god-profiles" class="god-profiles" aria-live="polite"></div>
     </section>
   </main>
-  <script type="module" src="/god-view.js?v=20260730-1"></script>
+  <script type="module" src="/god-view.js?v=20260730-2"></script>
 </body>
 </html>

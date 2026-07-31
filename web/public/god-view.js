@@ -6,6 +6,9 @@ const status = document.querySelector('#god-session');
 const logout = document.querySelector('#god-logout');
 const summary = document.querySelector('#god-summary');
 const profilesRoot = document.querySelector('#god-profiles');
+const lookPicker = document.querySelector('#god-look-picker-grid');
+const liveStatus = document.querySelector('#god-live-status');
+let refreshTimer = null;
 
 async function request(url, options = {}) {
   const response = await fetch(url, {
@@ -133,6 +136,7 @@ function videoCard(video) {
 
 function lookCard(look) {
   const card = element('article', null, 'god-look');
+  card.id = `god-look-${look.look_id}`;
   const head = element('header');
   head.append(element('h3', 'Збережений образ'));
   head.append(element('span', stamp(look.created_at), 'god-muted'));
@@ -147,6 +151,40 @@ function lookCard(look) {
   for (const video of look.videos ?? []) outputs.append(videoCard(video));
   if (outputs.childElementCount) card.append(outputs);
   return card;
+}
+
+function lookSelectionLabel(look, avatar, index) {
+  return look.name || avatar.name || `Образ ${String(index + 1).padStart(2, '0')}`;
+}
+
+function renderLookPicker(data) {
+  lookPicker.replaceChildren();
+  const entries = (data.profiles ?? []).flatMap((profile) => (
+    (profile.avatars ?? []).flatMap((avatar) => (
+      (avatar.looks ?? []).map((look) => ({ profile, avatar, look }))
+    ))
+  ));
+  if (!entries.length) {
+    lookPicker.append(element('p', 'Ще немає збережених тестових образів.', 'god-muted'));
+    return;
+  }
+  entries.forEach(({ profile, avatar, look }, index) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'god-look-choice';
+    button.setAttribute('aria-label', `Відкрити ${lookSelectionLabel(look, avatar, index)} з тестової сесії`);
+    button.append(generatedImage(look.image_url, lookSelectionLabel(look, avatar, index)));
+    const copy = element('span', null, 'god-look-choice-copy');
+    copy.append(
+      element('strong', lookSelectionLabel(look, avatar, index)),
+      element('small', `Сесія ${String(index + 1)} · ${new Date(profile.created_at).toLocaleDateString('uk-UA')}`),
+    );
+    button.append(copy);
+    button.addEventListener('click', () => {
+      document.getElementById(`god-look-${look.look_id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    lookPicker.append(button);
+  });
 }
 
 function profileCard(profile) {
@@ -185,6 +223,7 @@ function render(data) {
     summary.append(unit);
   }
   profilesRoot.replaceChildren();
+  renderLookPicker(data);
   if (!data.profiles?.length) {
     profilesRoot.append(element('p', 'У активному runtime ще немає збережених профілів.', 'god-muted'));
     return;
@@ -199,6 +238,14 @@ async function loadOverview() {
   dashboard.hidden = false;
   logout.hidden = false;
   status.textContent = 'read-only session active';
+  liveStatus.textContent = `Оновлено ${new Date(data.generated_at).toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' })} · автооновлення 15 с`;
+  if (!refreshTimer) {
+    refreshTimer = window.setInterval(() => {
+      loadOverview().catch(() => {
+        liveStatus.textContent = 'Очікуємо відновлення з’єднання';
+      });
+    }, 15_000);
+  }
 }
 
 async function boot() {
@@ -228,6 +275,8 @@ loginForm.addEventListener('submit', async (event) => {
 
 logout.addEventListener('click', async () => {
   await request('/api/god-view/session', { method: 'DELETE' });
+  window.clearInterval(refreshTimer);
+  refreshTimer = null;
   dashboard.hidden = true;
   logout.hidden = true;
   login.hidden = false;

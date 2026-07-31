@@ -22,6 +22,17 @@ h1 { margin-bottom: 0; font-size: clamp(1.7rem, 4vw, 3.1rem); }
 .god-summary strong { display: block; font-size: 1.5rem; color: #d9ff96; }
 .god-summary span { color: #aab1a6; font-size: .76rem; }
 .god-note { color: #adb6a4; max-width: 840px; font-size: .88rem; }
+.god-look-picker { margin: 1.5rem 0; padding: 1rem; border: 1px solid #526048; border-radius: 1rem; background: linear-gradient(145deg, #1a2118, #10150f); }
+.god-picker-head { display: flex; align-items: end; justify-content: space-between; gap: 1rem; margin-bottom: .85rem; }
+.god-picker-head h2 { margin: 0; font-size: clamp(1.1rem, 2vw, 1.55rem); }
+.god-look-picker-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: .7rem; }
+.god-look-choice { min-width: 0; overflow: hidden; padding: 0; border-radius: .75rem; border-color: #53624a; background: #0e130d; text-align: left; }
+.god-look-choice:hover { transform: translateY(-2px); border-color: #c8ff70; background: #151d12; }
+.god-look-choice:focus-visible { outline: 3px solid #c8ff70; outline-offset: 3px; }
+.god-look-choice img { display: block; width: 100%; aspect-ratio: 3 / 4; object-fit: contain; background: #060806; }
+.god-look-choice-copy { display: grid; gap: .15rem; padding: .6rem .65rem .65rem; }
+.god-look-choice-copy strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .85rem; }
+.god-look-choice-copy small { color: #aab1a6; font-size: .67rem; }
 .god-profiles { display: grid; gap: 1rem; }
 .god-profile { padding: 1rem; }
 .god-profile > header, .god-look > header, .god-output > header { display: flex; justify-content: space-between; gap: 1rem; align-items: baseline; }
@@ -45,4 +56,4 @@ h1 { margin-bottom: 0; font-size: clamp(1.7rem, 4vw, 3.1rem); }
 .god-source-grid figcaption { font-size: .7rem; color: #aeb6a8; overflow-wrap: anywhere; }
 .god-video { width: 100%; max-height: 420px; background: #000; border-radius: .5rem; }
 @media (max-width: 900px) { .god-summary { grid-template-columns: repeat(3, minmax(100px, 1fr)); } .god-gallery { grid-template-columns: repeat(3, minmax(96px, 1fr)); } }
-@media (max-width: 560px) { .god-shell { padding: 1rem; } .god-header { align-items: flex-start; flex-direction: column; } .god-summary { grid-template-columns: repeat(2, minmax(100px, 1fr)); } .god-image-row { grid-template-columns: 80px 1fr; } .god-gallery { grid-template-columns: repeat(2, minmax(96px, 1fr)); } }
+@media (max-width: 560px) { .god-shell { padding: 1rem; } .god-header { align-items: flex-start; flex-direction: column; } .god-summary { grid-template-columns: repeat(2, minmax(100px, 1fr)); } .god-picker-head { align-items: flex-start; flex-direction: column; } .god-look-picker-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .god-image-row { grid-template-columns: 80px 1fr; } .god-gallery { grid-template-columns: repeat(2, minmax(96px, 1fr)); } }
