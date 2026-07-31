@@ -845,3 +845,37 @@ weakened_checks: none.
 Next action: chat-00-master integrates the exact commit into beta and runs the
 release checks; do not cherry-pick an unrelated merge commit.
 Help request: NONE.
+
+---
+
+Agent ID: codex-main
+Task ID: BETA-FASHION-SHOOT-EMPTY-ANCHORS-001
+Pipeline: UNIVERSE.03–04 · Fashion Shoot / Create Universe shot execution
+State: READY_FOR_BETA_DEPLOY
+Decision: the 2026-07-31 18:18:53–18:19:29 run never reached Higgsfield. All five
+customer slots failed before `SceneService.createScene()` with the private error
+`shotAnchorReferences must contain 1–2 anchors`; each of the five retry counts
+was a local executor retry and had no provider `execution_id`. The cause was an
+explicit empty `[]` for a Create Universe shot that intentionally has no approved
+hero continuity frame. `SceneService` correctly accepts omitted optional anchors
+(`null`) and correctly rejects an explicit empty list.
+Code: TESTED — `src/web/editorial-scene-executor.js` now returns `null` when a
+Create Universe shot has no hero; it still binds exactly one verified
+`hero_continuity_anchor` after an approved hero, and standard editorial shots
+still bind their verified per-slot blocking diagram. No QA gate was weakened and
+no style sheet was replaced by a generic diagram.
+Resolver evidence: `editorialShotPresetReference()` and `resolveScenePreset()`
+were probed on `shoot.grey_studio_stride` / `environmental_hero`; the immutable
+reference pack resolved with the expected environment JSON plus four
+hash-verified Create Universe sheets (`camera_lens`, `blocking`,
+`expression_gaze`, `garment_behaviour`).
+Tests: `node --test test/web/editorial-shot-anchors.test.js` 6/6 PASS;
+Create Universe unit/runtime resolver checks PASS. The combined scene-service
+suite still has pre-existing framing/post-release fixture failures unrelated to
+this atom; they were not treated as evidence of this fix.
+Commit: pending after release verification.
+Beta: NOT_DEPLOYED — deploy only this tested atom through the beta release owner.
+Journey: NOT_RUN — no paid provider generation was started by the failed run or
+by this repair.
+weakened_checks: none.
+Help request: NONE.

@@ -122,12 +122,36 @@ test('the hero shot binds only its own blocking diagram and no continuity anchor
   assert.equal(calls[0].shotAnchorReferences[0].reference_id, 'blocking.v1.clean_identity_hero');
 });
 
-test('a Create Universe shot never receives a generic slot diagram as a pose reference', async () => {
+test('a Create Universe shot omits generic slot anchors until a hero exists', async () => {
   const { calls, executor } = executorFixture();
   await executor.executeShot(shotContext('sculptural_three_quarter', {
     modeId: 'shoot.terracotta_hardlight',
   }));
-  assert.deepEqual(calls[0].shotAnchorReferences, []);
+  assert.equal(calls[0].shotAnchorReferences, null);
+});
+
+test('a Create Universe post-hero shot binds only its approved hero continuity frame', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'zeely-cu-hero-anchor-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const heroBytes = await readFile(path.join(EDITORIAL_BLOCKING_DIRECTORY, 'clean_identity_hero.png'));
+  const heroFrame = path.join(root, 'hero.png');
+  await writeFile(heroFrame, heroBytes);
+  const heroOutput = {
+    resource_id: 'scene_create_universe_hero_fixture',
+    sha256: sha256(heroBytes),
+    receipt_sha256: 'd'.repeat(64),
+    width: 1024,
+    height: 1280,
+    media_type: 'image/png',
+  };
+  const { calls, executor } = executorFixture({ heroFrame, heroOutput });
+  await executor.executeShot(shotContext('environmental_hero', {
+    modeId: 'shoot.terracotta_hardlight',
+    heroOutput,
+  }));
+  assert.deepEqual(calls[0].shotAnchorReferences.map((anchor) => anchor.role), [
+    'hero_continuity_anchor',
+  ]);
 });
 
 test('each of the five post-hero shots binds its own blocking diagram plus the approved hero frame', async (t) => {

@@ -101,7 +101,12 @@ export class EditorialSceneExecutor {
         data: await readFile(filename),
       });
     }
-    return anchors;
+    // SceneService distinguishes an omitted optional anchor set (null) from an
+    // explicitly malformed set ([]). Create Universe shots intentionally rely on
+    // their immutable style sheets and shot direction, so a shot without a hero
+    // continuity frame must omit this optional field rather than submit an empty
+    // array that the contract correctly rejects.
+    return anchors.length > 0 ? anchors : null;
   }
 
   async executeShot(context) {
