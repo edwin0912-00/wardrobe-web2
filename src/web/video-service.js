@@ -27,7 +27,7 @@ import { evaluateClipQa } from './video-clip-qa.js';
 // A Fashion Video reference is a directing authority, never footage licensed
 // for output. Every detected cut must therefore carry independently hashed
 // reference/output samples and an explicit person-replacement verdict.
-const REQUIRED_REFERENCE_CHECKS = Object.freeze([
+export const REQUIRED_REFERENCE_CHECKS = Object.freeze([
   'cut_coverage_complete',
   'subject_replacement_every_cut',
   'no_reference_performer_pixels',
@@ -357,6 +357,8 @@ export class VideoService {
 
   #fashionVideoReferenceResolver;
 
+  #automaticQaFn;
+
   /**
    * @param {object} options
    * @param {object} options.provider — HiggsfieldVideoProvider instance
@@ -369,6 +371,7 @@ export class VideoService {
     clock = () => Date.now(),
     finalizer = {},
     fashionVideoReferenceResolver = null,
+    automaticQaFn = null,
   } = {}) {
     if (!provider) {
       throw new VideoServiceError('A video provider is required', {
@@ -385,6 +388,7 @@ export class VideoService {
     this.#clock = clock;
     this.#finalizer = finalizer;
     this.#fashionVideoReferenceResolver = fashionVideoReferenceResolver;
+    this.#automaticQaFn = automaticQaFn;
   }
 
   async fashionVideoCapability({
@@ -1056,20 +1060,77 @@ export class VideoService {
     const {
       downloadFn, probeFn, extractFrameFn, composeFn,
     } = this.#finalizer;
-    if (typeof downloadFn !== 'function'
-      || typeof probeFn !== 'function'
-      || typeof extractFrameFn !== 'function') {
-      throw new VideoServiceError('Video finalization runtime is not configured', {
-        code: 'FINALIZER_MISCONFIGURED',
-        status: 503,
-      });
+    let clip = await this.#store.load(clipId);
+    if (!clip) {
+      throw new VideoServiceError('Clip not found', { code: 'CLIP_NOT_FOUND', status: 404 });
     }
-    return this.awaitAndFinalize(clipId, {
-      downloadFn,
-      probeFn,
-      extractFrameFn,
-      composeFn,
-    });
+    let result = { clipId, status: clip.status, videoSha256: clip.videoSha256, qa: clip.qa };
+    if (['CREATED', 'GENERATING'].includes(clip.status)) {
+      if (typeof downloadFn !== 'function'
+        || typeof probeFn !== 'function'
+        || typeof extractFrameFn !== 'function') {
+        throw new VideoServiceError('Video finalization runtime is not configured', {
+          code: 'FINALIZER_MISCONFIGURED',
+          status: 503,
+        });
+      }
+      result = await this.awaitAndFinalize(clipId, {
+        downloadFn,
+        probeFn,
+        extractFrameFn,
+        composeFn,
+      });
+      clip = await this.#store.load(clipId);
+    }
+    if (clip.status === 'NEEDS_QA') {
+      return this.runAutomaticQa(clipId);
+    }
+    return result;
+  }
+
+  async runAutomaticQa(clipId) {
+    if (typeof this.#automaticQaFn !== 'function') {
+      const clip = await this.#store.load(clipId);
+      if (!clip) throw new VideoServiceError('Clip not found', { code: 'CLIP_NOT_FOUND', status: 404 });
+      const failed = {
+        ...clip,
+        status: 'FAIL',
+        failureCode: 'VIDEO_AUTOMATIC_QA_MISCONFIGURED',
+        updatedAt: new Date(this.#clock()).toISOString(),
+      };
+      await this.#store.save(clipId, failed);
+      return { clipId, status: failed.status, failureCode: failed.failureCode };
+    }
+    for (let pass = 0; pass < 2; pass += 1) {
+      const clip = await this.#store.load(clipId);
+      if (!clip) throw new VideoServiceError('Clip not found', { code: 'CLIP_NOT_FOUND', status: 404 });
+      if (clip.status !== 'NEEDS_QA') {
+        return { clipId, status: clip.status, videoSha256: clip.videoSha256, qa: clip.qa };
+      }
+      let receipts;
+      try {
+        receipts = await this.#automaticQaFn(clip);
+      } catch (cause) {
+        const failed = {
+          ...clip,
+          status: 'FAIL',
+          failureCode: cause?.code ?? 'VIDEO_AUTOMATIC_QA_FAILED',
+          updatedAt: new Date(this.#clock()).toISOString(),
+        };
+        await this.#store.save(clipId, failed);
+        return { clipId, status: failed.status, failureCode: failed.failureCode };
+      }
+      await this.recordIdentityItemQa(clipId, receipts.identityReceipt);
+      await this.recordReferenceAdherenceQa(clipId, receipts.referenceReceipt);
+    }
+    const clip = await this.#store.load(clipId);
+    if (clip?.status === 'NEEDS_QA') {
+      clip.status = 'FAIL';
+      clip.failureCode = 'VIDEO_AUTOMATIC_QA_INCOMPLETE';
+      clip.updatedAt = new Date(this.#clock()).toISOString();
+      await this.#store.save(clipId, clip);
+    }
+    return { clipId, status: clip?.status, videoSha256: clip?.videoSha256, qa: clip?.qa };
   }
 
   /**

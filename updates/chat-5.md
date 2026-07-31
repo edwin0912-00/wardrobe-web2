@@ -81,6 +81,28 @@ beta edit or deployment occurred. `weakened_checks: none`; only remediation
 eligibility widened, and every salvaged byte must pass the unchanged final
 delivery gates again.
 
+## Automatic semantic QA completion — 2026-07-31
+
+Code: TESTED_BRANCH. Server finalization now owns the entire transition from a
+technical MP4 to a terminal customer action. `NEEDS_QA` invokes a real
+frame-sampling evaluator before the status response returns: two immutable
+output/reference samples per cut, exact approved-look and reference hashes,
+the nine reference-transfer checks, per-cut approved-avatar/reference-person
+checks, then identity and reference receipts. Reference leakage with clean
+avatar spans enters the existing local salvage and the derivative is evaluated
+again; evaluator/config failure becomes explicit `FAIL + RETRY_AVAILABLE`
+instead of an indefinitely visible internal status.
+
+An exact source-video copy is rejected deterministically without a VLM call.
+The current stuck clip `7d9cec53…` was independently measured across all 331
+frames: SSIM `1.000000`, PSNR `inf`. Runtime QA receipts now record
+identity FAIL, reference FAIL, reference-person leakage, zero approved hero
+segments, terminal `VIDEO_REFERENCE_QA_FAILED`; no paid request was made.
+
+Evidence: focused video suite PASS 84/84; syntax and `git diff --check` PASS.
+Beta: NOT_DEPLOYED. Journey: RUNTIME_QA_FAIL_CORRECTLY / PUBLIC_RELEASE_PENDING.
+`weakened_checks: none`.
+
 ## Narrow capability integration — 2026-07-30
 
 Code: READY_FOR_BETA_DEPLOY. The useful backend portion of the later Block 6
