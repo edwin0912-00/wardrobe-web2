@@ -82,6 +82,12 @@ The earlier detailed noticeboard is preserved at
   independent WebP presentation derivatives, never replacement inputs.
 - Fashion Video style cards use hash-bound 288×512 / 12fps loops below 326 KB;
   their master MP4s remain private generation reference material.
+- **Activated on beta `3784511`:** every image surface that represents a
+  preview — saved avatars and looks, standard scenes, Fashion Shoot frames,
+  God View and live visualizer layers — requests a bounded 640px WebP
+  derivative. The full PNG/JPEG remains available only as the explicit
+  download/evidence artifact. This is presentation-only and cannot modify a
+  content hash, source input or QA receipt.
 
 ## Look-reference fast route — 2026-07-29
 

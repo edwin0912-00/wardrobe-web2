@@ -757,6 +757,25 @@ weakened_checks: none.
 ---
 
 Agent ID: codex-main
+Task ID: BETA-PRESENTATION-PREVIEW-001
+Pipeline: PROFILE.01–03 · LOOK.01–06 · BACKGROUND.01–02 · UNIVERSE.01–04
+State: LIVE
+Decision: stop serving original evidence PNG/JPEG files into every browser
+preview surface. All UI image URLs now add `preview=1`; the server derives a
+bounded 640px WebP in memory. Explicit download routes and immutable QA source
+bytes stay original.
+Code: `3784511e020645c7b8cd6441944f9f6dca2c6369` on `beta`.
+Evidence: presentation-preview + run API + scene API + editorial preview +
+profile UI focused suite 24/24 PASS; strict product release verifier PASS;
+local and public beta health both report `release_sha=3784511`.
+Beta: LIVE — `https://beta.madeforthisjob.com`.
+Journey: preview payload now has `Content-Type: image/webp` and
+`X-Zeely-Presentation: webp-640`; raw master output is still download-only.
+weakened_checks: none.
+
+---
+
+Agent ID: codex-main
 Task ID: SEVEN-BLOCK-BETA-001
 State: READY_FOR_INTEGRATION
 Decision: preserve the mixed 2026-07-29 Universe work on a non-release
