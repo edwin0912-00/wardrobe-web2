@@ -3,7 +3,8 @@
 Read `AGENTS.md` and `INTEGRATION-HANDOFF.md` in full before doing any work.
 Then read `LEVEL-DESIGN.md`, `FUNCTION-MAP.md`,
 `docs/10-CLIENT-UI-WINDOW-MAP.md`, and
-`docs/15-CLAUDE-CODE-SIDEBYSIDE.md`.
+`docs/15-CLAUDE-CODE-SIDEBYSIDE.md`. Read `COLLAB-BOARD.md` and claim a lane
+on its live board before editing anything.
 
 ## Identity and boundaries
 
@@ -41,11 +42,13 @@ Then read `LEVEL-DESIGN.md`, `FUNCTION-MAP.md`,
 ## Side-by-side Git protocol
 
 1. Work only in your Claude worktree and `agent/claude-main-site-0.2` branch.
-2. Before starting an atom: `git fetch origin` and inspect both
+2. Before starting an atom: read the live board, claim the direction, files,
+   and expected intersection, then `git fetch origin` and inspect both
    `origin/main` and `origin/preflight/0.2-canonical-d`.
 3. Keep each commit to one reviewable visual or interaction atom.
 4. Run `./scripts/site-preflight.sh` before every commit and push.
 5. Push only your own branch. Report the exact SHA and changed files.
+   After push, release the board claim with that SHA and result.
 6. Do not merge or force-push `main` or preflight. Codex/the release
    coordinator integrates your SHA into preflight, verifies it, then promotes
    preflight to `main` by fast-forward.

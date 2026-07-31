@@ -2,6 +2,10 @@
 
 This is the operational source of truth for parallel main-site work.
 
+Live direction/file claims are coordinated through `COLLAB-BOARD.md` and its
+GitHub issue. Every atom begins with a claim and every commit is checked against
+all active claims.
+
 ## Branch topology
 
 ```text
@@ -53,6 +57,19 @@ open http://127.0.0.1:4313/b/
 This server supports MP4 Range requests. It is a local preview only. Do not
 create Quick Tunnel, `chatgpt.site`, or random preview URLs.
 
+## Claiming work before editing
+
+```bash
+./scripts/collab-board.sh read
+./scripts/collab-board.sh claim \
+  "mirror-result-motion" \
+  "ui.js, style.css" \
+  "may intersect Codex adapter state names; no engine changes"
+```
+
+If the live board has an overlapping active claim, the command refuses to post
+the new claim. Narrow the atom or coordinate a release first.
+
 ## Commit and push from Claude
 
 ```bash
@@ -61,6 +78,7 @@ git status --short
 git add <only-the-files-owned-by-this-atom>
 git commit -m "feat: <one concrete main-site atom>"
 git push -u origin agent/claude-main-site-0.2
+./scripts/collab-board.sh release "$(git rev-parse HEAD)" "<short result>"
 ```
 
 Claude then gives Codex the SHA. Codex reviews/cherry-picks or fast-forwards

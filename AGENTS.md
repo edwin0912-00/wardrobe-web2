@@ -4,6 +4,11 @@ Before changing, merging, or deploying this repository, read
 `INTEGRATION-HANDOFF.md` in full. Claude Code must also read `CLAUDE.md` and
 `docs/15-CLAUDE-CODE-SIDEBYSIDE.md`.
 
+Before every work atom and every commit, read `COLLAB-BOARD.md` and the live
+board it points to. Claim the lane, intended files, and possible intersections
+before editing. The installed pre-commit hook enforces an active non-overlapping
+claim.
+
 The current D fabric-world journey is the visual and structural source of
 truth. Preserve it and the documented mobile/video guarantees. Do not restore
 rejected A/B candidates, a version-choice landing page, temporary preview
