@@ -920,10 +920,12 @@ body {
   display: block;
 }
 .orbfield--mirror .orbfield__canvas {
-  width: clamp(128px, 32cqh, 192px);
-  height: clamp(128px, 32cqh, 192px);
-  opacity: 0.82;
-  filter: grayscale(1) contrast(1.06);
+  /* A full mirror atmosphere, never a small diagnostic glyph. The renderer owns
+   * the backing store at this size, so this is not a blurred CSS enlargement. */
+  width: clamp(256px, 64cqh, 384px);
+  height: clamp(256px, 64cqh, 384px);
+  opacity: 0.98;
+  filter: grayscale(1) contrast(1.3) brightness(0.72);
 }
 
 .orb {

@@ -133,6 +133,15 @@ function statusError(error) {
   if (error?.code === 'ENGINE_UNAVAILABLE' || error?.status === 404 || error?.status === 0) {
     return { availability: 'unavailable', code: 'ENGINE_UNAVAILABLE' };
   }
+  if (error?.code === 'UNSUPPORTED_MEDIA_TYPE') {
+    const rawField = String(error?.body?.field ?? '');
+    const field = /^(Ваше фото|Фото речі [1-5])$/.test(rawField) ? rawField : 'Це фото';
+    return {
+      availability: null,
+      code: 'UNSUPPORTED_GARMENT_MEDIA',
+      message: `${field}: оберіть JPEG, PNG або WebP.`,
+    };
+  }
   return { availability: null, code: error?.code ?? 'REQUEST_FAILED' };
 }
 
@@ -189,7 +198,7 @@ export function createCinematicUiBridge({
     emit(type, {
       ...(mapped.availability ? { availability: mapped.availability } : {}),
       phase: mapped.availability ? 'idle' : 'failed',
-      error: { code: mapped.code, status: error?.status ?? 0 },
+      error: { code: mapped.code, status: error?.status ?? 0, message: mapped.message ?? null },
     });
   }
 

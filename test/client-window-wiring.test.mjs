@@ -81,9 +81,13 @@ test('a first failed look exposes recovery before the empty-look waiting orb', (
     'a terminal failure must render its retry controls before an empty first look can redraw the waiting orb',
   );
   assert.match(renderShow, /failureWindow\(actionError\)/);
-  assert.match(ui, /data-retry-action>Спробувати ще</);
+  assert.match(ui, /data-retry-action/);
+  assert.match(ui, /Спробувати ще/);
   assert.match(ui, /bridgeState\.error && bridgeState\.error\.message/,
     'terminal bridge failure copy must reach the recovery mirror');
+  assert.match(ui, /UNSUPPORTED_GARMENT_MEDIA/,
+    'a rejected source file must return to the garment picker, not fake a generator retry');
+  assert.match(ui, /Замінити фото/);
   assert.match(ui, /function hydrateUploadedItemPreviews/,
     'accepted run garment previews must replace volatile object-URL thumbnails');
   assert.match(ui, /serverPreview: Boolean/,

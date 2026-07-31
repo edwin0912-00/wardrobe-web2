@@ -349,6 +349,7 @@
         pendingAction = null;
         actionError = {
           kind: kind === 'background' ? 'bg' : kind === 'video' ? 'fash' : kind,
+          code: bridgeState.error && bridgeState.error.code || null,
           message: bridgeState.error && bridgeState.error.message || 'Спробуємо ще раз'
         };
       }
@@ -923,7 +924,7 @@
        * for the architecture to remain the image. */
       return '<div class="orbfield orbfield--mirror" data-orb-state="' + esc(state) + '" role="status" aria-live="polite">' +
           '<canvas class="orbfield__canvas" data-orb-canvas data-orb-canon="' + esc(canon) + '"' +
-            ' width="192" height="192"></canvas>' +
+            ' width="384" height="384"></canvas>' +
           '<span class="orbfield__label">' + esc(label) + '</span>' +
         '</div>';
     }
@@ -966,10 +967,12 @@
     }
 
     function failureWindow(error) {
+      var replaceInput = error && error.code === 'UNSUPPORTED_GARMENT_MEDIA';
       return '<div class="failure-state" role="alert"><div class="glass__eyebrow">Не вдалося завершити</div>' +
         orbWindow('failed', error.message || 'Спробуємо ще раз') +
         '<div class="recovery-actions">' +
-          '<button class="glass__cta" type="button" data-retry-action>Спробувати ще</button>' +
+          '<button class="glass__cta" type="button" data-retry-action>' +
+            (replaceInput ? 'Замінити фото' : 'Спробувати ще') + '</button>' +
           '<button class="secondary" type="button" data-cancel-action>До образу</button>' +
         '</div></div>';
     }
@@ -1352,7 +1355,8 @@
         return;
       }
       if (t.closest('[data-retry-action]')) {
-        if (bridge && bridgeReady() && actionError) {
+        var inputRejected = actionError && actionError.code === 'UNSUPPORTED_GARMENT_MEDIA';
+        if (bridge && bridgeReady() && actionError && !inputRejected) {
           bridge.retryActive().catch(function () {
             actionError = { kind: actionError && actionError.kind || 'look', message: 'Спробуємо ще раз' };
             render(); notifyGateChange();

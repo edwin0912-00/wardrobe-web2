@@ -136,8 +136,8 @@ export function createThinkingOrb(canvas, initialState = 'listening') {
       const dot = Math.max(0.55, size * (0.008 + depth * 0.012));
       /* The orb belongs to the mirror's graphite/milk material palette. Depth controls
        * luminance only: no hue is allowed to leak in as a product-status colour. */
-      const tone = Math.round(62 + depth * 188);
-      const alpha = clamp(point.alpha * (0.42 + depth * 0.42), 0.035, 0.86);
+      const tone = Math.round(34 + depth * 154);
+      const alpha = clamp(point.alpha * (0.62 + depth * 0.32), 0.06, 0.94);
       context.fillStyle = `rgba(${tone},${tone},${tone},${alpha})`;
       context.beginPath();
       context.arc(size / 2 + point.x * radius, size / 2 + point.y * radius, dot, 0, Math.PI * 2);
