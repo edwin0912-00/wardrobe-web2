@@ -33,7 +33,7 @@ the beta API. Operational beta-only screens are intentionally excluded:
 | Standard environment / background | presets, scene CRUD, `watchScene`, `sceneImageUrl` | Mirror action **«Змінити фон»**. Render its finished image in the right mirror. |
 | Editorial Fashion Shoot | modes, shoot CRUD, Bible/contact-sheet, approvals, shot retry, `watchShoot`, shot URL | Mirror action **«Фотосесія»**. Approval is an attention state: camera travel remains locked until user decides. Finished images go to TV gallery. |
 | Fashion Video | capability, style preview, create/load/finalize/delete, `watchVideo`, playback URL | Mirror action **«Фешн-відео»**. 9:16 stays in right mirror; 16:9 is shown in the TV gallery. Video uses polling because beta intentionally has no video SSE route. |
-| Live Look | public pipeline, capability, `startLiveLook` | Mirror action **«Примірка»**. First show a clearly separate consent/cost sheet; then request camera; only then request the short-lived token and open WebRTC in the right mirror. |
+| Live Look | public pipeline, capability, `startLiveLook` | Mirror action **«Примірка»**. A calm explicit launch threshold opens camera only on tap; the server capability supplies any allowed duration internally. No provider, price, security or transport wording appears in the mirror. |
 
 Not carried into the cinematic experience: beta PIN login, monitor/telemetry,
 test pages, and engineering progress widgets. They are operational tooling,
@@ -109,7 +109,7 @@ at the same physical place.
 
 ## Readiness result and remaining hard blockers
 
-The API mapping is ready after this audit; Live Look's explicit consent/cost
+The API mapping is ready after this audit; Live Look's explicit acknowledgement
 payload was added to the adapter as a result. It is **not truthful** to say
 the whole cinematic site can be auto-wired today, because these presentation
 pieces are intentionally still outstanding:

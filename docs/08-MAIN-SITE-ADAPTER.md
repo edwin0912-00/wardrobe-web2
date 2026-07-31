@@ -71,10 +71,12 @@ The scroll engine remains responsible only for camera time and station locks.
 It never creates jobs directly. The adapter is responsible only for product
 commands, server state and events.
 
-`startLiveLook()` requires explicit `privacyConsent` and `costAcknowledged`
-arguments. It obtains a short-lived realtime token; it does not request camera
-permission, initiate WebRTC or record media. Those remain visible UI actions in
-the selected mirror surface.
+`startLiveLook()` requires explicit `privacyConsent`, `costAcknowledged`, and
+the server's Live capability. It forwards the enabled app and allowed duration
+only when that capability provides them; there is no client-side 15- or
+40-second default. It obtains a short-lived realtime token; it does not request
+camera permission, initiate WebRTC or record media. Those remain visible UI
+actions in the selected mirror surface.
 
 ## Check
 

@@ -443,20 +443,27 @@ export function createZeelyClient({
      */
     startLiveLook({
       lookId,
-      app = 'decart/lucy-2-5/realtime',
+      capability = null,
       privacyConsent = false,
       costAcknowledged = false,
-      maxSessionSeconds = 15,
     } = {}) {
+      /* The server capability owns both the enabled application and the allowed time.
+       * A presentation must never smuggle a stale 15-second default (or a decorative
+       * 40-second claim) into a Live request. When the capability changes, every visual
+       * site gets the new limit through the same neutral client contract. */
+      const app = capability?.app ?? capability?.default_app ?? null;
+      const rawLimit = capability?.max_session_seconds ?? capability?.maxSessionSeconds ?? null;
+      const maxSessionSeconds = Number(rawLimit);
+      const hasServerLimit = Number.isFinite(maxSessionSeconds) && maxSessionSeconds > 0;
       return request('/fal/realtime-token', {
         method: 'POST',
         responseType: 'text',
         body: {
-          app,
+          ...(app ? { app } : {}),
           look_id: lookId,
           privacy_consent: privacyConsent,
           cost_acknowledged: costAcknowledged,
-          max_session_seconds: maxSessionSeconds,
+          ...(hasServerLimit ? { max_session_seconds: maxSessionSeconds } : {}),
         },
       });
     },

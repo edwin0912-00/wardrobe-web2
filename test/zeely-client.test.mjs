@@ -124,7 +124,7 @@ test('video polling is opt-in, begins immediately, and can be stopped', async ()
   stop();
 });
 
-test('Live Look carries explicit privacy and paid-session acknowledgements', async () => {
+test('Live Look forwards explicit acknowledgements and only the server capability', async () => {
   const calls = [];
   const client = createZeelyClient({
     fetchImpl: async (url, options) => {
@@ -135,16 +135,36 @@ test('Live Look carries explicit privacy and paid-session acknowledgements', asy
   });
   const token = await client.startLiveLook({
     lookId: 'look-1',
+    capability: { default_app: 'server-owned-live', max_session_seconds: 40 },
     privacyConsent: true,
     costAcknowledged: true,
   });
   assert.equal(calls[0].url, '/api/fal/realtime-token');
   assert.equal(token, 'test-only-token');
   assert.deepEqual(JSON.parse(calls[0].options.body), {
-    app: 'decart/lucy-2-5/realtime',
+    app: 'server-owned-live',
     look_id: 'look-1',
     privacy_consent: true,
     cost_acknowledged: true,
-    max_session_seconds: 15,
+    max_session_seconds: 40,
+  });
+});
+
+test('Live Look does not invent a provider or duration without a capability', async () => {
+  const calls = [];
+  const client = createZeelyClient({
+    fetchImpl: async (url, options) => {
+      calls.push({ url, options });
+      return textResponse('test-only-token');
+    },
+    EventSourceImpl: FakeEventSource,
+  });
+
+  await client.startLiveLook({ lookId: 'look-1', privacyConsent: true, costAcknowledged: true });
+
+  assert.deepEqual(JSON.parse(calls[0].options.body), {
+    look_id: 'look-1',
+    privacy_consent: true,
+    cost_acknowledged: true,
   });
 });
