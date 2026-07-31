@@ -25,9 +25,9 @@
  * The concrete pier between them is the divider, so the split is real architecture rather
  * than a layout decision.
  *
- * WHAT IS SIMULATED, STATED PLAINLY: no generation backend is attached to this page. Every
- * result frame is a declared stand-in that says so on its face, and state() reports
- * `simulated: true`. No stock photograph is ever shown as output.
+ * REAL RESULTS ONLY. The neutral bridge loads from the active origin and supplies every
+ * generated result. If that bridge or its engine is unavailable, the mirror stays closed
+ * and offers recovery; it never turns an input photo or a timer into a fake output.
  *
  * One behavioural rule from the handoff: "Product decisions мають відбуватися на стабільних
  * зупинках, а не під час руху камери" — controls are inert unless the engine reports a
@@ -40,9 +40,6 @@
   var MAX_ITEMS = 5;
   var MIN_ITEMS = 1;
 
-  /* How long a result frame sits pending. A stated stand-in for a request that does not
-   * exist yet, not an estimate of anything. */
-  var SIM_MS = 1100;
   /* The client-side camera prototype never remains open beyond the approved experience
    * window. The production adapter will replace this with the server capability value;
    * no provider/model/price wording is rendered anywhere in the client UI. */
@@ -129,7 +126,6 @@
     var looks = [];
     var selected = -1;
     var pending = false;
-    var pendingTimer = 0;
 
     /* Which face of the selected look the right mirror is showing. */
     var view = 'look';          // 'look' | 'shoot' | 'video' | 'bg' | 'live'
@@ -142,8 +138,33 @@
      * must not carry the viewer off a room that is still working. */
     var awaitingAspect = null;   // null | 'shoot' | 'fash' | 'bg'
     var pendingAction = null;    // null | { kind, aspect }
-    var pendingActionTimer = 0;
     var actionError = null;      // adapter-owned failure: { kind, message }
+
+    /* Product state arrives through one presentation-neutral bridge. The UI keeps
+     * ownership of words, surfaces and motion; it never knows API routes or a host. */
+    var bridge = opts.bridge || global.WardrobeCinematicBridge || null;
+    var bridgeUnsubscribe = null;
+    var bridgeState = bridge && typeof bridge.state === 'function' ? bridge.state() : null;
+    var adapterLoading = !bridge;
+    var adapterUnavailable = false;
+    var garmentSelections = {};
+    var garmentChoiceRunId = null;
+
+    function bridgeReady() { return !!bridge && bridgeState && bridgeState.availability === 'ready'; }
+    function bridgeWorking() {
+      return !!bridgeState && ['uploading', 'running', 'needs_input', 'waiting_for_approval', 'recovering']
+        .indexOf(bridgeState.phase) >= 0;
+    }
+    function bridgeCopy() {
+      if (!bridgeState) return '';
+      if (bridgeState.availability === 'auth_required') return 'Ця частина простору ще закрита';
+      if (bridgeState.availability !== 'ready') return 'Ця частина простору ще готується';
+      return bridgeState.phase === 'needs_input' ? 'Оберіть речі'
+           : bridgeState.phase === 'waiting_for_approval' ? 'Останній погляд перед продовженням'
+           : bridgeState.phase === 'recovering' ? 'Повертаємося до результату'
+           : bridgeState.phase === 'uploading' ? 'Приймаємо матеріали'
+           : 'Створюємо результат';
+    }
 
     function notifyGateChange() { if (typeof opts.onGateChange === 'function') opts.onGateChange(); }
 
@@ -156,7 +177,8 @@
     function lookVisible() { return !!current() && !pending; }
 
     function esc(s) {
-      return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     }
     function plural(n, one, few, many) { return n === 1 ? one : n < 5 ? few : many; }
     function scene(key, content) {
@@ -165,34 +187,136 @@
 
     function makeLook() {
       if (!hasMain() || !hasItems() || pending) return;
-      pending = true; view = 'look';
-      render();
-      clearTimeout(pendingTimer);
-      pendingTimer = setTimeout(function () {
-        looks.push({ id: 'look-' + (looks.length + 1), items: items.slice(),
-                     bg: null, shootStyle: null, videoStyle: null,
-                     shot: false, video: false });
-        selected = looks.length - 1;
-        items = [];                 // the next look starts empty
-        pending = false;
-        step = 2;
-        render();
-        /* Forward travel was closed until a look existed; this is only the unlock. The
-         * viewer stays exactly where they are, at the mirrors, with the action row now
-         * reachable — moving them on automatically would carry them past the very row this
-         * step exists to reveal. */
-        if (typeof opts.onLookReady === 'function') opts.onLookReady();
-        /* The TV result ladder consumes the same honest result envelope as later
-         * background/shoot/video actions. In the standalone draft this is still only
-         * the source photograph; the adapter replaces it with the generated look URL. */
-        if (typeof opts.onResult === 'function') {
-          opts.onResult({
-            kind: 'look', aspect: '9:16',
-            urls: person.main && person.main.url ? [person.main.url] : [],
-            mediaUrl: '', pendingRealMedia: true
-          });
+
+      if (adapterLoading || adapterUnavailable) {
+        actionError = { kind: 'look', message: 'Ця частина простору ще готується' };
+        render(); notifyGateChange();
+        return;
+      }
+
+      if (bridge) {
+        if (!bridgeReady() || !bridge.canStartLook || !bridge.canStartLook()) {
+          actionError = { kind: 'look', message: bridgeCopy() || 'Ця частина простору ще готується' };
+          render(); notifyGateChange();
+          return;
         }
-      }, SIM_MS);
+        var garmentFiles = items.filter(function (item) { return !!item.file; })
+          .map(function (item) { return item.file; });
+        if (!garmentFiles.length) {
+          actionError = { kind: 'look', message: 'Додайте фото хоча б однієї речі' };
+          render(); notifyGateChange();
+          return;
+        }
+        pending = true; view = 'look'; actionError = null;
+        render(); notifyGateChange();
+        bridge.createLook({
+          person: person.main.file,
+          identityDetail: person.face ? person.face.file : null,
+          garments: garmentFiles,
+          outfitText: items.filter(function (item) { return !item.file; })
+            .map(function (item) { return item.name; }).join(', ')
+        }).catch(function () { /* bridge event owns the visible recovery state */ });
+        return;
+      }
+
+      actionError = { kind: 'look', message: 'Ця частина простору ще готується' };
+      render(); notifyGateChange();
+    }
+
+    var lastBridgeResultKey = '';
+
+    function receiveBridge(event) {
+      bridgeState = event || (bridge && bridge.state ? bridge.state() : bridgeState);
+      if (!bridgeState) return;
+
+      var working = bridgeWorking();
+      var kind = bridgeState.activeKind || 'look';
+      if (kind === 'look') {
+        pending = working && bridgeState.phase !== 'needs_input';
+        if (bridgeState.phase === 'needs_input') {
+          step = 1;
+          var choiceRunId = bridgeState.run && bridgeState.run.run_id;
+          if (choiceRunId !== garmentChoiceRunId) {
+            garmentChoiceRunId = choiceRunId;
+            garmentSelections = {};
+          }
+        }
+        if (bridgeState.phase === 'completed' && bridgeState.result && bridgeState.run) {
+          var runId = bridgeState.run.run_id;
+          var at = looks.findIndex(function (look) { return look.runId === runId; });
+          if (at < 0) {
+            looks.push({
+              id: bridgeState.savedLook && bridgeState.savedLook.look_id || runId,
+              runId: runId,
+              lookId: bridgeState.savedLook && bridgeState.savedLook.look_id || null,
+              resultUrl: bridgeState.result.mediaUrl || bridgeState.result.urls[0] || '',
+              items: items.slice(), bg: null, shootStyle: null, videoStyle: null,
+              shot: false, video: false, actionResults: {}
+            });
+            at = looks.length - 1;
+            items = [];
+          } else {
+            looks[at].resultUrl = bridgeState.result.mediaUrl || bridgeState.result.urls[0] || looks[at].resultUrl;
+            if (bridgeState.savedLook) looks[at].lookId = bridgeState.savedLook.look_id;
+          }
+          selected = at;
+          pending = false;
+          step = 2;
+          actionError = null;
+          if (typeof opts.onLookReady === 'function') opts.onLookReady();
+        }
+      } else {
+        var uiKind = kind === 'background' ? 'bg' : kind === 'video' ? 'fash' : kind;
+        pendingAction = working ? {
+          kind: uiKind,
+          aspect: bridgeState.result && bridgeState.result.aspect || null
+        } : null;
+        if (bridgeState.phase === 'completed' && bridgeState.result) {
+          var activeLook = current();
+          view = kind === 'background' ? 'bg' : kind;
+          if (activeLook) {
+            activeLook.actionResults = activeLook.actionResults || {};
+            activeLook.actionResults[kind] = bridgeState.result;
+            if (kind === 'shoot') activeLook.shot = true;
+            if (kind === 'video') activeLook.video = true;
+          }
+          actionError = null;
+        }
+      }
+
+      if (bridgeState.phase === 'failed') {
+        pending = false;
+        pendingAction = null;
+        actionError = {
+          kind: kind === 'background' ? 'bg' : kind === 'video' ? 'fash' : kind,
+          message: 'Спробуємо ще раз'
+        };
+      }
+
+      if (bridgeState.result) {
+        var resultKey = [bridgeState.result.kind, bridgeState.result.mediaUrl,
+          (bridgeState.result.urls || []).join('|')].join(':');
+        if (resultKey !== lastBridgeResultKey) {
+          lastBridgeResultKey = resultKey;
+          if (typeof opts.onResult === 'function') opts.onResult(bridgeState.result);
+          if (bridgeState.result.aspect === '16:9' && typeof opts.onWideResult === 'function') {
+            opts.onWideResult();
+          }
+        }
+      }
+
+      render();
+      notifyGateChange();
+    }
+
+    function bindBridge(next) {
+      if (bridgeUnsubscribe) bridgeUnsubscribe();
+      bridge = next || null;
+      bridgeState = bridge && typeof bridge.state === 'function' ? bridge.state() : null;
+      bridgeUnsubscribe = bridge && typeof bridge.subscribe === 'function'
+        ? bridge.subscribe(receiveBridge) : null;
+      render();
+      notifyGateChange();
     }
 
     /* ============================================================== ASK — left mirror */
@@ -290,6 +414,25 @@
     }
 
     function optionsFor(kind) {
+      var catalogs = bridgeState && bridgeState.catalogs;
+      var live = kind === 'shoot' ? catalogs && catalogs.shoots
+               : kind === 'fash' ? catalogs && catalogs.videos
+               : catalogs && catalogs.backgrounds;
+      if (live && live.length) {
+        return live.map(function (option) {
+          return {
+            id: option.id,
+            name: option.name,
+            note: option.note || '',
+            visual: kind === 'shoot' ? 'architecture' : kind === 'fash' ? 'air' : 'studio',
+            previewUrl: option.previewUrl || '',
+            playbackUrl: option.playbackUrl || '',
+            version: option.version || null,
+            motionMode: option.motionMode || null,
+            referencePackSha256: option.referencePackSha256 || null
+          };
+        });
+      }
       return kind === 'shoot' ? SHOOT_STYLES
            : kind === 'fash' ? VIDEO_STYLES
            : BACKGROUND_OPTIONS;
@@ -321,7 +464,9 @@
                           : kind === 'fash' ? look.videoStyle : look.bg;
         return '<button class="visualpick" type="button" data-choice-kind="' + kind + '"' +
           ' data-choice-index="' + index + '" aria-pressed="' + (selectedIndex === index ? 'true' : 'false') + '">' +
-          '<span class="visualpick__media" data-visual="' + esc(option.visual) + '" aria-hidden="true"><i></i></span>' +
+          '<span class="visualpick__media" data-visual="' + esc(option.visual) + '" aria-hidden="true">' +
+            (option.previewUrl ? '<img src="' + esc(option.previewUrl) +
+              '" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block">' : '<i></i>') + '</span>' +
           '<span class="visualpick__copy"><b>' + esc(option.name) + '</b><small>' + esc(option.note) + '</small></span>' +
         '</button>';
       }).join('');
@@ -348,10 +493,70 @@
             '<span class="formatpick__shape" data-format="portrait" aria-hidden="true"></span>' +
             '<span><b>9:16</b><small>у дзеркалі</small></span></button>' +
         '</div>' +
-        '<button class="secondary pickerback" type="button" data-format-back>Назад до стилів</button>');
+          '<button class="secondary pickerback" type="button" data-format-back>Назад до стилів</button>');
+    }
+
+    var CATEGORY_NAMES = {
+      outerwear: 'верхній одяг', top: 'верх', bottom: 'низ', one_piece: 'цільний образ',
+      footwear: 'взуття', headwear: 'головний убір', bag: 'сумка', accessory: 'аксесуар'
+    };
+
+    function garmentChoicePanel() {
+      var choices = bridgeState && bridgeState.choices || [];
+      var complete = choices.length > 0 && choices.every(function (choice) {
+        return !!garmentSelections[choice.category];
+      });
+      var groups = choices.map(function (choice) {
+        var options = choice.options.map(function (option) {
+          var on = garmentSelections[choice.category] === option.id;
+          return '<button class="visualpick" type="button" data-garment-category="' + esc(choice.category) +
+            '" data-garment-id="' + esc(option.id) + '" aria-pressed="' + (on ? 'true' : 'false') + '">' +
+            '<span class="visualpick__media" aria-hidden="true">' +
+              (option.previewUrl ? '<img src="' + esc(option.previewUrl) +
+                '" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block">' : '<i></i>') +
+            '</span><span class="visualpick__copy"><b>' + esc(option.label) + '</b></span></button>';
+        }).join('');
+        var noun = CATEGORY_NAMES[choice.category] || choice.category;
+        return '<div class="glass__eyebrow">ОБЕРІТЬ · ' + esc(noun) + '</div>' +
+          '<div class="visualpicks">' + options + '</div>';
+      }).join('');
+      return scene('garment-choice',
+        '<div class="glass__h">Яку річ залишаємо?</div>' +
+        '<p class="glass__lede pickerlede">Знайшли кілька речей одного типу. Оберіть одну — образ продовжиться з цього місця.</p>' +
+        groups +
+        '<button class="glass__cta" type="button" data-garment-continue data-blocked="' + (complete ? '0' : '1') +
+          '">Продовжити</button>');
+    }
+
+    function inputRecoveryPanel() {
+      var message = bridgeState && bridgeState.run && bridgeState.run.message ||
+        'Для цього образу потрібне інше фото.';
+      return scene('look-needs-input',
+        '<div class="glass__eyebrow">ПОТРІБНЕ УТОЧНЕННЯ</div>' +
+        '<div class="glass__h">Спробуємо інше фото</div>' +
+        '<p class="glass__lede">' + esc(message) + '</p>' +
+        '<button class="glass__cta" type="button" data-look-reset>Повернутися до фото</button>');
+    }
+
+    function shootApprovalPanel() {
+      var shoot = bridgeState && bridgeState.shoot;
+      var hero = shoot && shoot.status === 'HERO_PENDING_APPROVAL';
+      return scene('shoot-approval',
+        '<div class="glass__eyebrow">ФОТОСЕСІЯ</div>' +
+        '<div class="glass__h">' + (hero ? 'Перший кадр готовий' : 'Стиль готовий') + '</div>' +
+        '<p class="glass__lede">' + (hero
+          ? 'Подивіться на напрям і продовжте серію.'
+          : 'Світло, ритм і композиція зібрані. Запускаємо зйомку.') + '</p>' +
+        '<button class="glass__cta" type="button" data-shoot-approve>' +
+          (hero ? 'Продовжити' : 'Розпочати фотозйомку') + '</button>');
     }
 
     function renderAskLook() {
+      if (bridgeState && bridgeState.activeKind === 'shoot' && bridgeState.phase === 'waiting_for_approval') {
+        askRoot.innerHTML = shootApprovalPanel();
+        applyEnabled();
+        return;
+      }
       var l = current();
       if (pickerKind) {
         askRoot.innerHTML = visualPicker(pickerKind);
@@ -373,13 +578,21 @@
     }
 
     function renderAsk() {
+      if (bridgeState && bridgeState.activeKind === 'look' && bridgeState.phase === 'needs_input') {
+        askRoot.innerHTML = bridgeState.choices && bridgeState.choices.length
+          ? garmentChoicePanel() : inputRecoveryPanel();
+        applyEnabled();
+        return;
+      }
       /* THE APPROVED LOOKS SCREEN has its own shape entirely — no eyebrow, no generic
        * CTA, no trail — so it bypasses the shared template below rather than bending it
        * to fit. */
       if (step === 2) { renderAskLook(); return; }
 
       var s = STEPS[step];
-      var blocked = (step === 0 && !hasMain()) || (step === 1 && (!hasItems() || pending));
+      var blocked = (step === 0 && !hasMain()) ||
+        (step === 1 && (!hasItems() || pending || adapterLoading || adapterUnavailable ||
+          (bridge && !bridgeReady())));
 
       /* UNREACHED STEPS ARE NOT RENDERED AT ALL. A greyed-out label still advertises an
        * offer, and there is no offer before the thing it applies to exists. */
@@ -569,7 +782,10 @@
      * An undressed input photo presented as a finished look would be input passed off as
      * output. */
     function resultFrame(caption, state) {
-      var src = person.main ? person.main.url : '';
+      var l = current();
+      var activeResult = l && l.actionResults && l.actionResults[view === 'bg' ? 'background' : view];
+      var src = activeResult && (activeResult.mediaUrl || activeResult.urls && activeResult.urls[0]) ||
+        (l && l.resultUrl) || (!bridge && person.main ? person.main.url : '');
       return '<div class="lookframe" data-state="' + state + '">' +
         (src ? '<img class="lookframe__img" src="' + src + '" alt="">' : '') +
         '<span class="lookframe__cap">' + caption + '</span>' +
@@ -581,7 +797,8 @@
      * word, the way a proof print is stamped, instead of the bottom label the other
      * result states use. */
     function lookResultFrame() {
-      var src = person.main ? person.main.url : '';
+      var l = current();
+      var src = l && l.resultUrl || (!bridge && person.main ? person.main.url : '');
       return '<div class="lookframe" data-state="ready">' +
         (src ? '<img class="lookframe__img" src="' + src + '" alt="">' : '') +
         '<span class="lookframe__word">образ</span>' +
@@ -699,6 +916,8 @@
       if (hint) {
         hint.textContent = (step === 0 && !hasMain()) ? 'потрібне одне фото'
                          : (step === 1 && !hasItems()) ? 'додайте хоча б одну річ'
+                         : (step === 1 && (adapterLoading || adapterUnavailable || (bridge && !bridgeReady())))
+                           ? (bridgeCopy() || 'Ця частина простору ще готується')
                          : lock ? 'камера рухається — рішення на зупинці' : '';
       }
     }
@@ -708,7 +927,7 @@
     function addFiles(fileList) {
       var room = MAX_ITEMS - items.length;
       Array.prototype.slice.call(fileList, 0, Math.max(0, room)).forEach(function (f) {
-        items.push({ name: f.name, url: URL.createObjectURL(f) });
+        items.push({ name: f.name, url: URL.createObjectURL(f), file: f });
       });
       render();
     }
@@ -718,7 +937,7 @@
       /* Release the old object URL: camera-sized photographs are real memory and nothing
        * else references them. */
       if (person[kind] && person[kind].url) URL.revokeObjectURL(person[kind].url);
-      person[kind] = { name: file.name, url: URL.createObjectURL(file) };
+      person[kind] = { name: file.name, url: URL.createObjectURL(file), file: file };
       render();
     }
 
@@ -743,6 +962,36 @@
       if (t.closest('[data-presets]')) { presetsOpen = !presetsOpen; renderAsk(); return; }
       if (locked()) return;
 
+      if ((b = t.closest('[data-garment-category]'))) {
+        garmentSelections[b.getAttribute('data-garment-category')] = b.getAttribute('data-garment-id');
+        render(); return;
+      }
+      if (t.closest('[data-garment-continue]')) {
+        if (!bridge || !bridgeReady()) return;
+        pending = true;
+        render(); notifyGateChange();
+        bridge.selectGarments(Object.assign({}, garmentSelections)).catch(function () {
+          pending = false;
+          actionError = { kind: 'look', message: 'Не вдалося зберегти вибір' };
+          render(); notifyGateChange();
+        });
+        return;
+      }
+      if (t.closest('[data-look-reset]')) {
+        if (bridge && bridge.resetLook) bridge.resetLook();
+        garmentSelections = {}; garmentChoiceRunId = null;
+        pending = false; actionError = null; step = 0; view = 'look';
+        render(); notifyGateChange(); return;
+      }
+      if (t.closest('[data-shoot-approve]')) {
+        if (!bridge || !bridgeReady() || !bridge.approveShoot) return;
+        bridge.approveShoot().catch(function () {
+          pendingAction = null;
+          actionError = { kind: 'shoot', message: 'Не вдалося продовжити фотозйомку' };
+          render(); notifyGateChange();
+        });
+        return;
+      }
       if ((b = t.closest('[data-remove]'))) { removeAt(Number(b.getAttribute('data-remove'))); return; }
       if ((b = t.closest('[data-preset]'))) { togglePreset(PRESET_ITEMS[Number(b.getAttribute('data-preset'))]); return; }
       if ((b = t.closest('[data-select]'))) {
@@ -799,37 +1048,57 @@
         };
         actionError = null;
         render(); notifyGateChange();
-        clearTimeout(pendingActionTimer);
-        pendingActionTimer = setTimeout(function () {
-          var want = kind === 'fash' ? 'video' : kind;
-          if (view === 'live' && want !== 'live') { stopCamera(); camError = ''; }
-          view = want;
-          var cur3 = current();
-          if (cur3) {
-            if (kind === 'shoot') { cur3.shot = true; cur3.shotAspect = aspect; }
-            if (kind === 'fash')  { cur3.video = true; cur3.videoAspect = aspect; }
-            if (kind === 'bg')    { cur3.bgVideo = true; cur3.bgAspect = aspect; }
+
+        if (bridge) {
+          if (!bridgeReady()) {
+            pendingAction = null;
+            actionError = { kind: kind, message: bridgeCopy() || 'Ця частина простору ще готується' };
+            render(); notifyGateChange();
+            return;
           }
-          pendingAction = null;
-          render(); notifyGateChange();
-          if (typeof opts.onResult === 'function') {
-            opts.onResult({
-              kind: kind === 'shoot' ? 'shoot' : kind === 'bg' ? 'background' : 'video',
+          var command;
+          if (kind === 'bg') {
+            command = bridge.createBackground({
+              presetId: chosen && chosen.id,
+              presetVersion: chosen && chosen.version,
               aspect: aspect,
-              optionId: chosen ? chosen.id : null,
-              optionLabel: chosen ? chosen.name : null,
-              urls: [],
-              mediaUrl: '',
-              pendingRealMedia: true
+              expectedReferencePackSha256: chosen && chosen.referencePackSha256
+            });
+          } else if (kind === 'shoot') {
+            command = bridge.createShoot({
+              modeId: chosen && chosen.id,
+              modeVersion: chosen && chosen.version
+            });
+          } else {
+            command = bridge.createVideo({
+              styleId: chosen && chosen.id,
+              motionMode: chosen && chosen.motionMode,
+              aspect: aspect
             });
           }
-          /* 16:9 belongs on the television — go look at it there. 9:16 belongs right
-           * here in the mirror; nothing carries the viewer anywhere for it. */
-          if (aspect === '16:9' && typeof opts.onWideResult === 'function') opts.onWideResult();
-        }, SIM_MS);
+          Promise.resolve(command).catch(function () {
+            pendingAction = null;
+            actionError = { kind: kind, message: 'Спробуємо ще раз' };
+            render(); notifyGateChange();
+          });
+          return;
+        }
+
+        pendingAction = null;
+        actionError = { kind: kind, message: 'Ця частина простору ще готується' };
+        render(); notifyGateChange();
         return;
       }
       if (t.closest('[data-retry-action]')) {
+        if (bridge && bridgeReady() && actionError) {
+          bridge.retryActive().catch(function () {
+            actionError = { kind: actionError && actionError.kind || 'look', message: 'Спробуємо ще раз' };
+            render(); notifyGateChange();
+          });
+          actionError = null;
+          render(); notifyGateChange();
+          return;
+        }
         var retryKind = actionError ? actionError.kind : null;
         pickerKind = retryKind === 'shoot' || retryKind === 'fash' || retryKind === 'bg' ? retryKind : null;
         if (retryKind === 'look') step = 1;
@@ -935,7 +1204,26 @@
     new MutationObserver(applyEnabled)
       .observe(stage, { attributes: true, attributeFilter: ['data-station', 'data-leg'] });
 
-    render();
+    if (bridge) {
+      adapterLoading = false;
+      bindBridge(bridge);
+    } else {
+      render();
+      /* Dynamic import keeps b/index.html free of API knowledge and lets any future
+       * presentation bundle reuse this exact UI file. Failure is fail-closed: the
+       * mirror never falls back to a timer-generated fake result. */
+      import('./adapters/cinematic-ui-bridge.mjs').then(function (module) {
+        var loaded = module.createCinematicUiBridge();
+        global.WardrobeCinematicBridge = loaded;
+        adapterLoading = false;
+        bindBridge(loaded);
+      }).catch(function () {
+        adapterLoading = false;
+        adapterUnavailable = true;
+        bridgeState = { availability: 'unavailable', phase: 'idle', activeKind: null };
+        render(); notifyGateChange();
+      });
+    }
 
     return {
       state: function () {
@@ -958,7 +1246,13 @@
           pickerKind: pickerKind, bgOpen: pickerKind === 'bg',
           view: view, cameraOn: !!stream, cameraError: camError || null,
           actionsOffered: lookVisible(),
-          simulated: true,               // no render backend is attached to this page
+          simulated: false,
+          bridge: bridgeState ? {
+            availability: bridgeState.availability,
+            releaseSha: bridgeState.releaseSha || null,
+            phase: bridgeState.phase,
+            activeKind: bridgeState.activeKind || null
+          } : null,
           sells: false,                  // no prices, no basket, by canon
           station: station(), controlsEnabled: !locked()
         };
@@ -975,13 +1269,14 @@
         if (pickerKind || awaitingAspect) return false;
         if (pendingAction) return false;
         if (stream) return false;
+        if (bridge && bridge.canLeaveAttentionStation && !bridge.canLeaveAttentionStation()) return false;
         return true;
       },
       addPreset: function (name) { togglePreset(name); return items.length; },
       makeLook: makeLook,
+      setBridge: bindBridge,
       showFailure: function (kind, message) {
         if (kind !== 'shoot' && kind !== 'fash' && kind !== 'bg') kind = 'look';
-        clearTimeout(pendingActionTimer);
         pendingAction = null;
         actionError = { kind: kind, message: message || 'Спробуємо ще раз' };
         render(); notifyGateChange();

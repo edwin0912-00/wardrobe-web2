@@ -172,6 +172,9 @@ export function createZeelyClient({
     assetUrl(path) { return url(path); },
 
     health: () => request('/health'),
+    authenticate(pin) {
+      return request('/auth/pin', { method: 'POST', body: { pin: String(pin ?? '') } });
+    },
 
     // Profile ---------------------------------------------------------------
     async loadProfile() {
@@ -369,19 +372,31 @@ export function createZeelyClient({
     // Fashion Video ---------------------------------------------------------
     videoCapability: (lookId) => request(`/profile/looks/${encode(lookId)}/video-capability`),
     videoStylePreviewUrl: (lookId, styleId) => url(`/profile/looks/${encode(lookId)}/video-styles/${encode(styleId)}/preview`),
+    videoStylePlaybackUrl: (lookId, styleId) => url(`/profile/looks/${encode(lookId)}/video-styles/${encode(styleId)}/playback`),
+    videoStyleReferenceUrl: (lookId, styleId) => url(`/profile/looks/${encode(lookId)}/video-styles/${encode(styleId)}/reference`),
     listVideos: (lookId) => request(`/profile/looks/${encode(lookId)}/video-clips`),
-    async createVideo({ lookId, surface, motionMode, durationSeconds, styleNote }) {
+    async createVideo({ lookId, surface, styleId, motionMode, durationSeconds, styleNote }) {
       const video = await request('/profile/video-clips', {
         method: 'POST',
         body: {
           look_id: lookId,
           surface,
+          style_id: styleId,
           motion_mode: motionMode,
           ...(durationSeconds ? { duration_seconds: durationSeconds } : {}),
           ...(styleNote ? { style_note: styleNote } : {}),
         },
       });
       update('video', video, 'video:created');
+      return video;
+    },
+    async retryVideo(clipId, key = null) {
+      const video = await request(`/profile/video-clips/${encode(clipId)}/retry`, {
+        method: 'POST',
+        headers: { 'Idempotency-Key': key || createIdempotencyKey('video-retry') },
+      });
+      update('video', video, 'video:retried');
+      client.watchVideo(video.clip_id);
       return video;
     },
     async loadVideo(clipId) {

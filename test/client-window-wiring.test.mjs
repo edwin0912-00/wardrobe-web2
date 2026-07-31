@@ -2,10 +2,11 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
-const [html, ui, css] = await Promise.all([
+const [html, ui, css, bridge] = await Promise.all([
   readFile(new URL('../b/index.html', import.meta.url), 'utf8'),
   readFile(new URL('../ui.js', import.meta.url), 'utf8'),
-  readFile(new URL('../style.css', import.meta.url), 'utf8')
+  readFile(new URL('../style.css', import.meta.url), 'utf8'),
+  readFile(new URL('../adapters/cinematic-ui-bridge.mjs', import.meta.url), 'utf8')
 ]);
 
 test('client UI stays on its physical owners', () => {
@@ -42,10 +43,23 @@ test('all missing mirror choice screens exist as one visual component family', (
   assert.match(ui, /data-format-back/);
   assert.match(ui, /data-retry-action/);
   assert.match(ui, /showFailure/);
-  assert.match(ui, /kind:\s*'look'/);
-  assert.match(ui, /kind === 'bg' \? 'background'/);
+  assert.match(bridge, /kind:\s*'look'/);
+  assert.match(ui, /kind === 'background' \? 'bg'/);
   assert.match(css, /\.visualpicks/);
   assert.match(css, /\.visualpick/);
   assert.match(css, /\.formatpicks/);
   assert.match(css, /\.formatpick/);
+});
+
+test('the cinematic UI consumes one neutral bridge without learning API routes or hosts', () => {
+  assert.match(ui, /opts\.bridge \|\| global\.WardrobeCinematicBridge/);
+  assert.match(ui, /setBridge:\s*bindBridge/);
+  assert.match(ui, /import\('\.\/adapters\/cinematic-ui-bridge\.mjs'\)/);
+  assert.match(ui, /bridge\.createLook/);
+  assert.match(ui, /bridge\.createBackground/);
+  assert.match(ui, /bridge\.createShoot/);
+  assert.match(ui, /bridge\.createVideo/);
+  assert.match(ui, /simulated:\s*false/);
+  assert.doesNotMatch(ui, /SIM_MS/);
+  assert.doesNotMatch(ui, /beta\.madeforthisjob\.com|site\.madeforthisjob\.com|fetch\(['"`]\/api/);
 });

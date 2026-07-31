@@ -46,20 +46,34 @@ mkdir -p "$backup_dir"
   --exclude '.DS_Store' \
   "$REPO_DIR/" "$RUNTIME_DIR/"
 
-if ! /usr/sbin/lsof -nP -iTCP:4180 -sTCP:LISTEN >/dev/null 2>&1; then
-  /bin/launchctl kickstart -k "gui/$(id -u)/com.madeforthisjob.web2"
-fi
+# `serve.py` is also the same-origin /api gateway. Static bytes update on the
+# next request, but Python code does not; restart only this launchd job so the
+# exact committed gateway and Range implementation become active together.
+/bin/launchctl kickstart -k "gui/$(id -u)/com.madeforthisjob.web2"
 
 /usr/bin/cmp "$REPO_DIR/b/index.html" "$RUNTIME_DIR/b/index.html"
 /usr/bin/cmp "$REPO_DIR/engine.js" "$RUNTIME_DIR/engine.js"
 /usr/bin/cmp "$REPO_DIR/ui.js" "$RUNTIME_DIR/ui.js"
 /usr/bin/cmp "$REPO_DIR/style.css" "$RUNTIME_DIR/style.css"
 /usr/bin/cmp "$REPO_DIR/screen-surfaces.js" "$RUNTIME_DIR/screen-surfaces.js"
+/usr/bin/cmp "$REPO_DIR/serve.py" "$RUNTIME_DIR/serve.py"
+/usr/bin/cmp "$REPO_DIR/adapters/zeely-client.mjs" "$RUNTIME_DIR/adapters/zeely-client.mjs"
+/usr/bin/cmp "$REPO_DIR/adapters/cinematic-ui-bridge.mjs" "$RUNTIME_DIR/adapters/cinematic-ui-bridge.mjs"
 
-/usr/bin/curl -fsS -o /dev/null "http://127.0.0.1:4180/b/"
+attempt=0
+until /usr/bin/curl -fsS -o /dev/null "http://127.0.0.1:4180/b/"; do
+  attempt=$((attempt + 1))
+  if [ "$attempt" -ge 20 ]; then
+    echo "deploy failed: site service did not become ready" >&2
+    exit 1
+  fi
+  /bin/sleep 1
+done
 /usr/bin/curl -fsS -r 0-1023 -o /dev/null "http://127.0.0.1:4180/b/assets/seg1.mp4"
 /usr/bin/curl -fsS -o /dev/null "$PUBLIC_ORIGIN/b/"
 /usr/bin/curl -fsS -r 0-1023 -o /dev/null "$PUBLIC_ORIGIN/b/assets/seg1.mp4"
+/usr/bin/curl -fsS -o /dev/null "http://127.0.0.1:4180/api/health"
+/usr/bin/curl -fsS -o /dev/null "$PUBLIC_ORIGIN/api/health"
 
 echo "deployed $local_head"
 echo "backup: $backup_dir"

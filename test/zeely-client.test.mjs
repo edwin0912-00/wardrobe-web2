@@ -124,6 +124,57 @@ test('video polling is opt-in, begins immediately, and can be stopped', async ()
   stop();
 });
 
+test('matches the deployed Fashion Video style and explicit retry contract', async () => {
+  const calls = [];
+  const client = createZeelyClient({
+    fetchImpl: async (url, options) => {
+      calls.push({ url, options });
+      return jsonResponse(url.endsWith('/retry')
+        ? { clip_id: 'clip-2', status: 'GENERATING' }
+        : { clip_id: 'clip-1', status: 'CREATED' }, 202);
+    },
+    EventSourceImpl: FakeEventSource,
+  });
+
+  await client.createVideo({
+    lookId: 'look-1',
+    surface: 'tv',
+    styleId: 'fabric-air',
+    motionMode: 'editorial-forward',
+    durationSeconds: 8,
+  });
+  assert.deepEqual(JSON.parse(calls[0].options.body), {
+    look_id: 'look-1',
+    surface: 'tv',
+    style_id: 'fabric-air',
+    motion_mode: 'editorial-forward',
+    duration_seconds: 8,
+  });
+  assert.equal(client.videoStylePlaybackUrl('look-1', 'fabric-air'), '/api/profile/looks/look-1/video-styles/fabric-air/playback');
+  assert.equal(client.videoStyleReferenceUrl('look-1', 'fabric-air'), '/api/profile/looks/look-1/video-styles/fabric-air/reference');
+
+  await client.retryVideo('clip-1', 'retry-key');
+  assert.equal(calls[1].url, '/api/profile/video-clips/clip-1/retry');
+  assert.equal(calls[1].options.headers['Idempotency-Key'], 'retry-key');
+  client.dispose();
+});
+
+test('authentication stays a transport concern and remains same-origin', async () => {
+  const calls = [];
+  const client = createZeelyClient({
+    fetchImpl: async (url, options) => {
+      calls.push({ url, options });
+      return jsonResponse({ authenticated: true });
+    },
+    EventSourceImpl: FakeEventSource,
+  });
+
+  await client.authenticate('1234');
+  assert.equal(calls[0].url, '/api/auth/pin');
+  assert.equal(calls[0].options.credentials, 'same-origin');
+  assert.deepEqual(JSON.parse(calls[0].options.body), { pin: '1234' });
+});
+
 test('Live Look forwards explicit acknowledgements and only the server capability', async () => {
   const calls = [];
   const client = createZeelyClient({
