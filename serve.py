@@ -8,9 +8,11 @@ and never completes, so a scroll-scrubbed film sits frozen on frame one with not
 the console to explain it. Any host serving this site must support Range for the same
 reason.
 """
+import json
 import os
 import re
 import sys
+import time
 from functools import partial
 from http.client import HTTPConnection
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
@@ -22,6 +24,13 @@ HOP_BY_HOP = {
     "connection", "keep-alive", "proxy-authenticate", "proxy-authorization",
     "proxy-connection", "te", "trailer", "transfer-encoding", "upgrade",
 }
+OBSERVABILITY_PATH = "/__site-observability"
+MAX_OBSERVABILITY_BODY = 4096
+OBSERVABILITY_EVENTS = {
+    "client_error", "unhandled_rejection", "media_error", "media_stall",
+    "gate_stalled", "bridge_failed", "bridge_needs_input",
+}
+SAFE_OBSERVABILITY_TOKEN = re.compile(r"[^a-z0-9_.-]+")
 
 
 class RangeHandler(SimpleHTTPRequestHandler):
@@ -30,6 +39,86 @@ class RangeHandler(SimpleHTTPRequestHandler):
     def _is_api_request(self):
         path = urlsplit(self.path).path
         return path == "/api" or path.startswith("/api/")
+
+    def _is_observability_request(self):
+        return urlsplit(self.path).path == OBSERVABILITY_PATH
+
+    @staticmethod
+    def _safe_observability_token(value, limit=48):
+        """Keep observability useful without ever turning it into user telemetry.
+
+        Event payloads intentionally carry no file names, request URLs, form values,
+        generated media URLs, error messages or stacks.  The token form also means an
+        accidental future caller cannot put arbitrary text into the server log.
+        """
+        if not isinstance(value, str):
+            return "unknown"
+        value = SAFE_OBSERVABILITY_TOKEN.sub("-", value.lower()).strip("-._")
+        return (value or "unknown")[:limit]
+
+    def _observability_origin_is_same_site(self):
+        origin = self.headers.get("Origin")
+        host = self.headers.get("Host")
+        if not origin or not host:
+            return False
+        parsed = urlsplit(origin)
+        return parsed.scheme in {"http", "https"} and parsed.netloc == host
+
+    def _handle_observability(self):
+        """Accept a tiny, same-origin, privacy-safe browser health signal.
+
+        This endpoint exists solely so the on-call monitor can distinguish an actual
+        browser failure from a quiet static server. It is neither analytics nor product
+        state and deliberately does not persist anything.
+        """
+        if not self._observability_origin_is_same_site():
+            self.send_error(403, "Same-origin observability only")
+            return
+        content_type = self.headers.get("Content-Type", "").split(";", 1)[0].strip().lower()
+        if content_type != "application/json":
+            self.send_error(415, "Expected application/json")
+            return
+        if "chunked" in self.headers.get("Transfer-Encoding", "").lower():
+            self.send_error(400, "Chunked observability is not accepted")
+            return
+        try:
+            content_length = int(self.headers.get("Content-Length", ""))
+        except ValueError:
+            self.send_error(400, "Malformed Content-Length")
+            return
+        if content_length < 1:
+            self.send_error(400, "Empty observability payload")
+            return
+        if content_length > MAX_OBSERVABILITY_BODY:
+            self.send_error(413, "Observability payload too large")
+            return
+        try:
+            payload = json.loads(self.rfile.read(content_length).decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            self.send_error(400, "Malformed observability JSON")
+            return
+        if not isinstance(payload, dict) or payload.get("event") not in OBSERVABILITY_EVENTS:
+            self.send_error(400, "Unknown observability event")
+            return
+
+        record = {
+            "ts": round(time.time(), 3),
+            "event": payload["event"],
+            "code": self._safe_observability_token(payload.get("code")),
+        }
+        gate = self._safe_observability_token(payload.get("gate"))
+        if gate != "unknown":
+            record["gate"] = gate
+        try:
+            leg = int(payload.get("leg"))
+            if 0 <= leg <= 3:
+                record["leg"] = leg
+        except (TypeError, ValueError):
+            pass
+        print("WARDROBE_OBSERVABILITY " + json.dumps(record, separators=(",", ":")), flush=True)
+        self.send_response(204)
+        self.send_header("Content-Length", "0")
+        self.end_headers()
 
     def _proxy_api(self):
         """Stream same-origin API requests to the local beta engine.
@@ -161,6 +250,8 @@ class RangeHandler(SimpleHTTPRequestHandler):
     def do_POST(self):
         if self._is_api_request():
             return self._proxy_api()
+        if self._is_observability_request():
+            return self._handle_observability()
         self.send_error(405, "Method not allowed")
 
     def do_PUT(self):

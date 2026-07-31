@@ -130,4 +130,35 @@ test('static Range delivery and same-origin API streaming share one server', asy
   assert.equal(range.status, 206);
   assert.equal(await range.text(), '2345');
   assert.equal(range.headers.get('content-range'), 'bytes 2-5/10');
+
+  // This is not an analytics endpoint. It exists solely for a same-origin browser
+  // health signal, and must reject an accidental third-party POST.
+  const observationBody = JSON.stringify({
+    event: 'bridge_needs_input', code: 'look', gate: 'none', leg: 0,
+  });
+  const observation = await requestGateway(gateway.port, {
+    path: '/__site-observability',
+    method: 'POST',
+    headers: {
+      host: `127.0.0.1:${gateway.port}`,
+      origin,
+      'content-type': 'application/json',
+      'content-length': Buffer.byteLength(observationBody),
+    },
+    body: observationBody,
+  });
+  assert.equal(observation.status, 204);
+
+  const crossSite = await requestGateway(gateway.port, {
+    path: '/__site-observability',
+    method: 'POST',
+    headers: {
+      host: `127.0.0.1:${gateway.port}`,
+      origin: 'https://not-the-site.example',
+      'content-type': 'application/json',
+      'content-length': Buffer.byteLength(observationBody),
+    },
+    body: observationBody,
+  });
+  assert.equal(crossSite.status, 403);
 });
