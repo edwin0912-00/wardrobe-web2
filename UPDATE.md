@@ -870,3 +870,22 @@ facts.
   external-volume symlinks. Bulk release archives may remain external.
 - Verification: `40/40` focused tests, strict release PASS, local/public health
   ready. weakened_checks: none.
+
+### 2026-07-31 · FASHION VIDEO QA FAIL → EXPLICIT RETRY (READY FOR BETA DEPLOY)
+
+- Fixed the real stale-state failure: `GET /api/profile/video-clips/:clipId`
+  now projects the persisted runtime terminal state before replying. A runtime
+  `FAIL`/`FAILED` can no longer remain a browser-visible `CREATED` spinner.
+- `CLIP_HAS_AUDIO` now returns the actual technical reason: the provider added
+  an audio track and that file is not deliverable.
+- Added `POST /api/profile/video-clips/:clipId/retry`. It is only invoked by
+  the user’s retry button, uses a durable `Idempotency-Key`, and a repeat tap
+  returns the same child attempt rather than creating another paid provider
+  job. The child reuses only the failed clip’s locked source, appearance refs,
+  approved-look receipt, style-video hash and style-pack hash.
+- Retry rejects a changed look or changed style binding before provider spend.
+- Evidence: focused Fashion Video tests `48/48` PASS. New regressions cover
+  stale projection → terminal QA, audio reason, one retry → one child attempt,
+  duplicate retry key, and changed style hash → no second create.
+- `weakened_checks: none`. This is code evidence only until the exact commit
+  is deployed to beta and a real explicit retry is observed.

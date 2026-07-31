@@ -216,6 +216,51 @@ export class ClipStore {
   videoPath(clipId) {
     return path.join(this.clipDir(clipId), 'clip.mp4');
   }
+
+  // A retry is an explicit, paid user action.  Persist the idempotency record
+  // outside the browser so a double tap, reload, or daemon restart can never
+  // create two provider jobs for the same retry click.
+  #retryClaimPath(parentClipId, keyHash) {
+    return path.join(this.#root, 'video-retries', parentClipId, `${keyHash}.json`);
+  }
+
+  async claimRetry(parentClipId, idempotencyKey) {
+    if (typeof idempotencyKey !== 'string' || idempotencyKey.length < 16 || idempotencyKey.length > 200) {
+      throw new VideoServiceError('A retry idempotency key is required', {
+        code: 'VIDEO_RETRY_IDEMPOTENCY_REQUIRED', status: 400,
+      });
+    }
+    const keyHash = sha256(Buffer.from(idempotencyKey));
+    const claimPath = this.#retryClaimPath(parentClipId, keyHash);
+    await mkdir(path.dirname(claimPath), { recursive: true });
+    const pending = {
+      parent_clip_id: parentClipId,
+      key_sha256: keyHash,
+      state: 'SUBMITTING',
+      created_at: new Date().toISOString(),
+    };
+    try {
+      await writeFile(claimPath, `${JSON.stringify(pending, null, 2)}\n`, { flag: 'wx' });
+      return { created: true, claim: pending, claimPath };
+    } catch (error) {
+      if (error?.code !== 'EEXIST') throw error;
+      const raw = await readFile(claimPath, 'utf8');
+      return { created: false, claim: JSON.parse(raw), claimPath };
+    }
+  }
+
+  async completeRetryClaim(claimPath, childClipId) {
+    const raw = await readFile(claimPath, 'utf8');
+    const claim = JSON.parse(raw);
+    const completed = {
+      ...claim,
+      state: 'CREATED',
+      child_clip_id: childClipId,
+      completed_at: new Date().toISOString(),
+    };
+    await writeFile(claimPath, `${JSON.stringify(completed, null, 2)}\n`);
+    return completed;
+  }
 }
 
 export class VideoService {
@@ -291,6 +336,7 @@ export class VideoService {
     lookBinding = null,
     videoReference = null,
     appearanceReferences = [],
+    retryOf = null,
   }) {
     if (!sourceImagePath) {
       throw new VideoServiceError('A locked source image path is required', {
@@ -531,6 +577,7 @@ export class VideoService {
 
     const metadata = {
       ...submitting,
+      retryOf,
       jobId: created.jobId,
       providerKey: created.providerKey ?? 'higgsfield',
       providerCreateAttempt: created.createAttempt ?? 1,
@@ -554,6 +601,56 @@ export class VideoService {
         referenceBound,
       },
     };
+  }
+
+  /**
+   * Create one deliberate child attempt from a failed clip. The child uses
+   * only the parent’s persisted, hash-locked source and appearance references;
+   * it never silently substitutes today’s avatar, outfit, or style media.
+   */
+  async retryFailedClip(parentClipId, { videoReference } = {}) {
+    const parent = await this.#store.load(parentClipId);
+    if (!parent) {
+      throw new VideoServiceError('Video clip not found', { code: 'CLIP_NOT_FOUND', status: 404 });
+    }
+    if (!['FAIL', 'FAILED'].includes(parent.status)) {
+      throw new VideoServiceError('Only a terminal failed video can be retried', {
+        code: 'VIDEO_RETRY_STATUS_INVALID', status: 409,
+      });
+    }
+    const binding = parent.motionReferenceBinding;
+    if (!binding || !videoReference
+      || binding.referenceId !== (videoReference.reference_id ?? null)
+      || binding.sha256 !== videoReference.reference_sha256
+      || binding.packSha256 !== videoReference.reference_pack_sha256) {
+      throw new VideoServiceError('The selected Fashion Video style changed; retry is blocked', {
+        code: 'VIDEO_RETRY_REFERENCE_MISMATCH', status: 409,
+      });
+    }
+    const sourceImagePath = path.join(this.#store.clipDir(parentClipId), parent.sourceFile ?? 'source.png');
+    const appearanceReferences = await Promise.all((parent.appearanceReferences ?? []).map(async (reference) => {
+      const bytes = await readFile(path.join(this.#store.clipDir(parentClipId), reference.file));
+      if (sha256(bytes) !== reference.sha256) {
+        throw new VideoServiceError('A locked appearance reference changed; retry is blocked', {
+          code: 'VIDEO_RETRY_APPEARANCE_MISMATCH', status: 409,
+        });
+      }
+      return { role: reference.role, bytes, sha256: reference.sha256 };
+    }));
+    return this.createClip({
+      modeId: parent.mode,
+      surfaceId: parent.surface,
+      durationSeconds: parent.durationSeconds,
+      // This is not a new visual claim: the parent was already admitted with
+      // this full-length prerequisite. Retrying it must not silently downgrade
+      // a valid stride into another motion plan.
+      sourceCapabilities: parent.mode === 'walk_stride' ? { full_length: true } : {},
+      sourceImagePath,
+      lookBinding: parent.lookBinding,
+      videoReference,
+      appearanceReferences,
+      retryOf: parentClipId,
+    });
   }
 
   /**
@@ -724,6 +821,9 @@ export class VideoService {
     clip.videoSha256 = videoSha256;
     clip.videoPath = videoPath;
     clip.qa = qa;
+    clip.failureCode = qa?.pass === false
+      ? (qa.defects?.[0]?.code ?? 'VIDEO_TECHNICAL_QA_FAILED')
+      : null;
     clip.updatedAt = new Date(this.#clock()).toISOString();
     await this.#store.save(clipId, clip);
 

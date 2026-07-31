@@ -135,6 +135,77 @@ test('createClip builds a motion plan and persists the job id', async () => {
   });
 });
 
+test('explicit retry creates a child only from the failed clip’s locked source and style binding', async () => {
+  await withTempDir(async (dir, sourcePath) => {
+    const referencePath = path.join(dir, 'style.mp4');
+    await writeFile(referencePath, Buffer.from('verified-style-video'));
+    const { provider, calls } = makeStubProvider();
+    const store = new ClipStore(dir);
+    const service = new VideoService({ provider, clipStore: store });
+    const videoReference = {
+      state: 'READY',
+      reference_id: 'style-1',
+      reference_path: referencePath,
+      reference_sha256: sha256(Buffer.from('verified-style-video')),
+      reference_pack_sha256: 'e'.repeat(64),
+      duration_seconds: 5,
+      provider_duration_seconds: 5,
+      width: 720,
+      height: 1280,
+      fps: 24,
+    };
+    const parent = await service.createClip({
+      modeId: 'walk_stride',
+      surfaceId: 'mirror',
+      sourceCapabilities: { full_length: true },
+      sourceImagePath: sourcePath,
+      videoReference,
+      appearanceReferences: [{
+        role: 'identity_face', bytes: Buffer.from('face'), sha256: sha256(Buffer.from('face')),
+      }],
+      lookBinding: { sourceSha256: sha256(Buffer.from('locked-source-image')), approvedLookReceiptSha256: 'c'.repeat(64) },
+    });
+    const failedParent = await store.load(parent.clipId);
+    await store.save(parent.clipId, { ...failedParent, status: 'FAIL', failureCode: 'CLIP_HAS_AUDIO' });
+    const child = await service.retryFailedClip(parent.clipId, { videoReference });
+    const childMetadata = await store.load(child.clipId);
+    assert.equal(childMetadata.retryOf, parent.clipId);
+    assert.equal(childMetadata.sourceSha256, failedParent.sourceSha256);
+    assert.deepEqual(childMetadata.appearanceReferences.map((reference) => reference.sha256),
+      failedParent.appearanceReferences.map((reference) => reference.sha256));
+    assert.equal(childMetadata.motionReferenceBinding.sha256, failedParent.motionReferenceBinding.sha256);
+    assert.equal(calls.filter((call) => call.phase === 'create').length, 2);
+  });
+});
+
+test('retry refuses a changed video-style hash before a second provider create', async () => {
+  await withTempDir(async (dir, sourcePath) => {
+    const referencePath = path.join(dir, 'style.mp4');
+    await writeFile(referencePath, Buffer.from('verified-style-video'));
+    const { provider, calls } = makeStubProvider();
+    const store = new ClipStore(dir);
+    const service = new VideoService({ provider, clipStore: store });
+    const videoReference = {
+      state: 'READY', reference_id: 'style-1', reference_path: referencePath,
+      reference_sha256: sha256(Buffer.from('verified-style-video')), reference_pack_sha256: 'e'.repeat(64),
+      duration_seconds: 5, provider_duration_seconds: 5, width: 720, height: 1280, fps: 24,
+    };
+    const parent = await service.createClip({
+      modeId: 'walk_stride', surfaceId: 'mirror', sourceCapabilities: { full_length: true },
+      sourceImagePath: sourcePath, videoReference,
+    });
+    const failedParent = await store.load(parent.clipId);
+    await store.save(parent.clipId, { ...failedParent, status: 'FAIL' });
+    await assert.rejects(
+      () => service.retryFailedClip(parent.clipId, {
+        ...videoReference, reference_sha256: 'f'.repeat(64),
+      }),
+      (error) => error instanceof VideoServiceError && error.code === 'VIDEO_RETRY_REFERENCE_MISMATCH',
+    );
+    assert.equal(calls.filter((call) => call.phase === 'create').length, 1);
+  });
+});
+
 test('createClip settles a definite provider rejection instead of leaving a phantom submitting clip', async () => {
   await withTempDir(async (dir, sourcePath) => {
     const provider = {

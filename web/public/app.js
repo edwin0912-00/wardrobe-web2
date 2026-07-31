@@ -107,6 +107,8 @@ let fashionVideoCapability = null;
 let realtimeLookCapabilityRequestVersion = 0;
 let realtimeLookCapability = null;
 let videoGenerationBusy = false;
+let failedFashionVideoClipId = null;
+let failedFashionVideoRetryKey = null;
 
 const ACTIVE_RUN_KEY = 'zeely_active_run_id';
 const PENDING_FINALIZATION_KEY = 'zeely_pending_finalization_id';
@@ -1892,10 +1894,12 @@ function setVideoGenerateBusy(busy) {
   thinking.hidden = !busy;
   if (busy) setVideoThinkingState('searching', 'AI готує запуск', 'Перевіряємо reference pack');
 }
-function showVideoRetry(message) {
+function showVideoRetry(message, clipId = null) {
   const error = document.querySelector('#video-error');
   error.textContent = message;
   error.hidden = false;
+  failedFashionVideoClipId = clipId;
+  failedFashionVideoRetryKey = clipId ? crypto.randomUUID() : null;
   // This is an explicit user action. It may submit one new paid job; the
   // server never retries a failed QA/provider result on its own.
   document.querySelector('#video-retry').hidden = false;
@@ -1909,9 +1913,94 @@ document.querySelector('#video-overlay-close').addEventListener('click', closeVi
 document.querySelector('#video-overlay').addEventListener('click', (event) => {
   if (event.target === event.currentTarget) closeVideoOverlay();
 });
-document.querySelector('#video-retry').addEventListener('click', () => {
+async function pollFashionVideo(clipId) {
+  const progressFill = document.querySelector('#video-progress-fill');
+  const progressStatus = document.querySelector('#video-progress-status');
+  const resultEl = document.querySelector('#video-result');
+  let attempts = 0;
+  const poll = setInterval(async () => {
+    attempts++;
+    progressFill.style.width = `${Math.min(30 + attempts * 0.5, 92)}%`;
+    try {
+      const statusRes = await fetch(`/api/profile/video-clips/${clipId}`);
+      if (!statusRes.ok) return;
+      const status = await statusRes.json();
+      progressStatus.textContent = `Статус: ${status.status}`;
+      const normalizedStatus = String(status.status ?? '').toUpperCase();
+      if (/QA|CHECK|VERIFY|REVIEW/.test(normalizedStatus)) {
+        setVideoThinkingState('solving', 'AI перевіряє відео', 'Звіряємо образ, речі та рух');
+      } else if (/GENERAT|PROCESS|RUNNING|QUEUED/.test(normalizedStatus)) {
+        setVideoThinkingState('composing', 'AI збирає рух', 'Генеруємо та монтуємо fashion clip');
+      } else {
+        setVideoThinkingState('working', 'AI працює', 'Очікуємо наступний server checkpoint');
+      }
+      if (status.status === 'COMPLETED' || status.status === 'PASS') {
+        clearInterval(poll);
+        if (!status.video_url) {
+          showVideoRetry(status.error ?? 'Відео не пройшло strict QA по кожному cut. Автоматичний повтор не запускався.', clipId);
+          setVideoGenerateBusy(false);
+          return;
+        }
+        progressFill.style.width = '100%';
+        progressStatus.textContent = 'Відео готове!';
+        const player = document.querySelector('#video-result-player');
+        const downloadLink = document.querySelector('#video-result-download');
+        player.src = status.video_url;
+        downloadLink.href = status.video_url;
+        resultEl.hidden = false;
+        setVideoGenerateBusy(false);
+      } else if (status.status === 'FAILED' || status.status === 'FAIL') {
+        clearInterval(poll);
+        showVideoRetry(status.error ?? 'Відео не пройшло QA. Автоматичний повтор не запускався.', clipId);
+        setVideoGenerateBusy(false);
+        return;
+      }
+    } catch (pollErr) {
+      clearInterval(poll);
+      showVideoRetry(pollErr.message, clipId);
+      setVideoGenerateBusy(false);
+    }
+    if (attempts === 120) {
+      // Six minutes is not a provider failure. The server owns this persisted
+      // job and continues even if the tab closes, so do not issue a duplicate.
+      progressFill.style.width = '92%';
+      progressStatus.textContent = 'Генерація ще триває на сервері. Можна закрити вікно — результат збережеться.';
+    }
+  }, 3000);
+}
+document.querySelector('#video-retry').addEventListener('click', async () => {
+  const clipId = failedFashionVideoClipId;
+  const retryKey = failedFashionVideoRetryKey;
+  if (!clipId || !retryKey) {
+    showVideoRetry('Немає зафіксованої failed-спроби. Запусти нове відео зі стилю.');
+    return;
+  }
+  const progressEl = document.querySelector('#video-progress');
+  const progressFill = document.querySelector('#video-progress-fill');
+  const progressStatus = document.querySelector('#video-progress-status');
   document.querySelector('#video-retry').hidden = true;
-  document.querySelector('#video-generate').click();
+  setVideoGenerateBusy(true);
+  progressEl.hidden = false;
+  progressFill.style.width = '15%';
+  progressStatus.textContent = 'Створюємо одну нову спробу з тим самим locked look і video style…';
+  try {
+    const response = await fetch(`/api/profile/video-clips/${clipId}/retry`, {
+      method: 'POST',
+      headers: { 'Idempotency-Key': retryKey },
+    });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(body.error || `HTTP ${response.status}`);
+    failedFashionVideoClipId = null;
+    failedFashionVideoRetryKey = null;
+    progressFill.style.width = '30%';
+    progressStatus.textContent = body.reused
+      ? `Відкрито вже створену спробу ${body.clip_id}…`
+      : `Створено нову спробу ${body.clip_id}…`;
+    pollFashionVideo(body.clip_id);
+  } catch (error) {
+    showVideoRetry(error.message, clipId);
+    setVideoGenerateBusy(false);
+  }
 });
 // Video overlay: generate
 document.querySelector('#video-generate').addEventListener('click', async () => {
@@ -1953,59 +2042,7 @@ document.querySelector('#video-generate').addEventListener('click', async () => 
     setVideoThinkingState('composing', 'AI збирає рух', 'Створюємо fashion motion із перевірених референсів');
     progressFill.style.width = '30%';
     progressStatus.textContent = `Clip ${clip.clip_id} створено — генерація…`;
-    // Poll for completion
-    let attempts = 0;
-    const poll = setInterval(async () => {
-      attempts++;
-      progressFill.style.width = `${Math.min(30 + attempts * 0.5, 92)}%`;
-      try {
-        const statusRes = await fetch(`/api/profile/video-clips/${clip.clip_id}`);
-        if (!statusRes.ok) return;
-        const status = await statusRes.json();
-        progressStatus.textContent = `Статус: ${status.status}`;
-        const normalizedStatus = String(status.status ?? '').toUpperCase();
-        if (/QA|CHECK|VERIFY|REVIEW/.test(normalizedStatus)) {
-          setVideoThinkingState('solving', 'AI перевіряє відео', 'Звіряємо образ, речі та рух');
-        } else if (/GENERAT|PROCESS|RUNNING|QUEUED/.test(normalizedStatus)) {
-          setVideoThinkingState('composing', 'AI збирає рух', 'Генеруємо та монтуємо fashion clip');
-        } else {
-          setVideoThinkingState('working', 'AI працює', 'Очікуємо наступний server checkpoint');
-        }
-        if (status.status === 'COMPLETED' || status.status === 'PASS') {
-          clearInterval(poll);
-          if (!status.video_url) {
-            showVideoRetry(status.error ?? 'Відео не пройшло strict QA по кожному cut. Автоматичний повтор не запускався.');
-            setVideoGenerateBusy(false);
-            return;
-          }
-          progressFill.style.width = '100%';
-          progressStatus.textContent = 'Відео готове!';
-          const player = document.querySelector('#video-result-player');
-          const downloadLink = document.querySelector('#video-result-download');
-          player.src = status.video_url;
-          downloadLink.href = status.video_url;
-          resultEl.hidden = false;
-          setVideoGenerateBusy(false);
-        } else if (status.status === 'FAILED' || status.status === 'FAIL') {
-          clearInterval(poll);
-          showVideoRetry(status.error ?? 'Відео не пройшло QA. Автоматичний повтор не запускався.');
-          setVideoGenerateBusy(false);
-          return;
-        }
-      } catch (pollErr) {
-        clearInterval(poll);
-        showVideoRetry(pollErr.message);
-        setVideoGenerateBusy(false);
-      }
-      if (attempts === 120) {
-        // Six minutes is not a provider failure.  The server owns the
-        // persisted job and continues after this surface is closed or the
-        // browser reloads, so keep polling instead of presenting a false
-        // timeout and inviting a duplicate paid submission.
-        progressFill.style.width = '92%';
-        progressStatus.textContent = 'Генерація ще триває на сервері. Можна закрити вікно — результат збережеться.';
-      }
-    }, 3000);
+    pollFashionVideo(clip.clip_id);
   } catch (err) {
     showVideoRetry(err.message);
     setVideoGenerateBusy(false);

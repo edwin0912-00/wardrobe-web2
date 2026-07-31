@@ -55,6 +55,16 @@ Evidence: governance block-map tests and shell syntax checks are required
 before this control-plane commit is integrated.
 weakened_checks: none.
 
+2026-07-31 · Fashion Video terminal QA/retry repair · pending commit
+Change: fixed runtime/profile status split, surfaced `CLIP_HAS_AUDIO`, and
+replaced the UI’s synthetic “Generate” click with an explicit child retry
+route protected by durable idempotency.
+Why: a failed provider result could leave a stale `CREATED` projection, so the
+browser polled forever and never reached a real retry action. A retry is a new
+paid provider job and must not be automatic or duplicable.
+Evidence: focused service + route tests 48/48 PASS; no provider generation.
+weakened_checks: none.
+
 2026-07-30 · Fashion Video motion-reference authority
 Change: registered three operator-provided motion videos as a content-addressed
 runtime pack and wired deterministic per-mode selection into Seedance's native

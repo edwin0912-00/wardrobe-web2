@@ -5,6 +5,7 @@
 //   GET    /api/profile/looks/:lookId/video-capability — truthful create readiness
 //   POST   /api/profile/video-clips              — create a clip from a look
 //   GET    /api/profile/video-clips/:clipId       — get clip status
+//   POST   /api/profile/video-clips/:clipId/retry — one explicit child attempt
 //   GET    /api/profile/video-clips/:clipId/video — stream the clip mp4
 //   DELETE /api/profile/video-clips/:clipId       — delete a clip
 //   GET    /api/profile/looks/:lookId/video-clips — list clips for a look
@@ -71,6 +72,14 @@ function publicVideoFailure(liveClip) {
   }
   if (liveClip?.referenceAdherenceQa?.pass === false) {
     return 'Відео не пройшло QA: у кожному cut має бути лише затверджений аватар або порожня сцена. Reference-людина у фіналі заборонена.';
+  }
+  if (liveClip?.failureCode === 'CLIP_HAS_AUDIO'
+    || liveClip?.qa?.defects?.some((defect) => defect?.code === 'CLIP_HAS_AUDIO')) {
+    return 'Відео не пройшло технічну QA: провайдер додав аудіодоріжку. Такий файл не видається.';
+  }
+  if (liveClip?.qa?.pass === false) {
+    const code = liveClip.failureCode ?? liveClip.qa?.defects?.[0]?.code ?? 'VIDEO_TECHNICAL_QA_FAILED';
+    return `Відео не пройшло технічну QA (${code}). Файл не видається; можна запустити одну нову спробу.`;
   }
   return null;
 }
@@ -436,6 +445,115 @@ export async function registerVideoRoutes(app, {
     }
   });
 
+  // POST /api/profile/video-clips/:clipId/retry — creates exactly one explicit
+  // child attempt. A retry never happens automatically after QA FAIL: it is a
+  // new paid provider request and therefore requires an Idempotency-Key.
+  app.post('/api/profile/video-clips/:clipId/retry', async (request, reply) => {
+    sameOriginMutation(request);
+    const session = await profileApi.resolveRequestProfile(request, reply);
+    const parentProjection = profiles.videoClipProjection(session.profileId, request.params.clipId);
+    if (!parentProjection) {
+      return reply.code(404).send({ error: 'Video clip not found', code: 'CLIP_NOT_FOUND' });
+    }
+    const idempotencyKey = request.headers['idempotency-key'];
+    if (typeof idempotencyKey !== 'string') {
+      return reply.code(400).send({
+        error: 'Explicit Fashion Video retry requires an Idempotency-Key',
+        code: 'VIDEO_RETRY_IDEMPOTENCY_REQUIRED',
+      });
+    }
+    const parent = await videoService.getClip(request.params.clipId);
+    if (!parent || !['FAIL', 'FAILED'].includes(parent.status)) {
+      return reply.code(409).send({
+        error: 'Only a terminal failed Fashion Video can be retried.',
+        code: 'VIDEO_RETRY_STATUS_INVALID',
+      });
+    }
+    const styleId = parent.motionReferenceBinding?.referenceId;
+    if (typeof styleId !== 'string' || styleId.length === 0) {
+      return reply.code(409).send({
+        error: 'The failed clip has no verified Fashion Video style binding.',
+        code: 'VIDEO_RETRY_REFERENCE_MISSING',
+      });
+    }
+    const approvedLook = await profiles.approvedLookReference(
+      session.profileId,
+      parentProjection.look_id,
+      runService,
+    );
+    if (approvedLook.image_sha256 !== parent.lookBinding?.sourceSha256
+      || approvedLook.receipt_sha256 !== parent.lookBinding?.approvedLookReceiptSha256) {
+      return reply.code(409).send({
+        error: 'The approved look changed since this failed video. Start a new video from the current look.',
+        code: 'VIDEO_RETRY_LOOK_MISMATCH',
+      });
+    }
+    const motionReference = typeof videoService.fashionVideoCapability === 'function'
+      ? await videoService.fashionVideoCapability({
+          profileId: session.profileId,
+          lookId: parentProjection.look_id,
+          approvedLook,
+          referenceId: styleId,
+          motionMode: parent.mode,
+        })
+      : null;
+    const capability = fashionVideoCapability({
+      lookId: parentProjection.look_id,
+      approvedLook,
+      motionReference,
+    });
+    if (!capability.available) {
+      return reply.code(409).send({
+        error: 'Fashion Video style pack is no longer ready; retry is blocked before provider submission.',
+        code: capability.reason_code,
+      });
+    }
+    const claim = await videoService.claimRetry(request.params.clipId, idempotencyKey);
+    if (!claim.created) {
+      if (typeof claim.claim.child_clip_id === 'string') {
+        const child = await videoService.getClip(claim.claim.child_clip_id);
+        if (!child) {
+          return reply.code(409).send({ error: 'Retry recovery is required.', code: 'VIDEO_RETRY_RECOVERY_REQUIRED' });
+        }
+        const projected = projectClip(session.profileId, parentProjection.look_id, child);
+        return reply.code(200).send({
+          ...projected,
+          clip_id: child.clipId,
+          job_id: child.jobId ?? null,
+          retry_of: request.params.clipId,
+          reused: true,
+        });
+      }
+      return reply.code(409).send({
+        error: 'This explicit retry is already being submitted; no second provider job was created.',
+        code: 'VIDEO_RETRY_SUBMITTING',
+      });
+    }
+    try {
+      const childResult = await videoService.retryFailedClip(request.params.clipId, { videoReference: motionReference });
+      await videoService.completeRetryClaim(claim.claimPath, childResult.clipId);
+      const child = await videoService.getClip(childResult.clipId);
+      const projected = projectClip(session.profileId, parentProjection.look_id, child);
+      void finalizePersistedClip({
+        profileId: session.profileId,
+        lookId: parentProjection.look_id,
+        clipId: childResult.clipId,
+      });
+      return reply.code(202).send({
+        ...projected,
+        clip_id: childResult.clipId,
+        job_id: childResult.jobId,
+        retry_of: request.params.clipId,
+        reused: false,
+      });
+    } catch (err) {
+      if (err instanceof VideoServiceError) {
+        return reply.code(err.status).send({ error: err.message, code: err.code });
+      }
+      throw err;
+    }
+  });
+
   // POST /api/profile/video-clips/:clipId/finalize — resume the persisted job,
   // download its real MP4 and run ffprobe/frame QA. It never creates a new job.
   app.post('/api/profile/video-clips/:clipId/finalize', async (request, reply) => {
@@ -491,12 +609,20 @@ export async function registerVideoRoutes(app, {
         clipId: request.params.clipId,
       });
     }
+    // The runtime file is authoritative. Persist it before replying so a
+    // terminal FAIL can never be hidden behind a stale `CREATED` projection.
+    const liveProjection = liveClip
+      ? projectClip(session.profileId, clip.look_id, liveClip)
+      : clip;
     const verifiedStyle = hasVerifiedFashionStyle(liveClip);
     return reply.header('Cache-Control', 'private, no-store').send({
-      ...clip,
+      ...liveProjection,
+      status: liveClip?.status ?? liveProjection.status,
       qa: liveClip?.qa ?? null,
       error: publicVideoFailure(liveClip),
-      failure_code: liveClip?.failureCode ?? null,
+      failure_code: liveClip?.failureCode
+        ?? liveClip?.qa?.defects?.[0]?.code
+        ?? null,
       video_url: verifiedStyle ? clip.video_url ?? null : null,
       delivery_code: verifiedStyle ? null : 'VIDEO_STYLE_PROVENANCE_MISSING',
     });

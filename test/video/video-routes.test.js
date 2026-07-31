@@ -13,6 +13,7 @@ function fixture() {
   const projected = [];
   const createRequests = [];
   let finalizeCalls = 0;
+  let projectionStatus;
   let liveClip = {
     clipId: '11111111-1111-4111-8111-111111111111',
     jobId: 'higgs-job-1',
@@ -23,6 +24,7 @@ function fixture() {
     createdAt: '2026-07-29T20:00:00.000Z',
     updatedAt: '2026-07-29T20:00:00.000Z',
   };
+  projectionStatus = liveClip.status;
   const profiles = {
     ownsLook: () => true,
     lookAsset: () => ({ runId: '22222222-2222-4222-8222-222222222222', filename: 'avatar_outfit.png' }),
@@ -37,6 +39,7 @@ function fixture() {
     }),
     projectVideoClip(profileId, lookId, clip) {
       projected.push({ profileId, lookId, clip });
+      projectionStatus = clip.status;
       return {
         clip_id: clip.clip_id,
         look_id: lookId,
@@ -47,7 +50,7 @@ function fixture() {
     videoClipProjection: () => ({
       clip_id: liveClip.clipId,
       look_id: '33333333-3333-4333-8333-333333333333',
-      status: liveClip.status,
+      status: projectionStatus,
     }),
     deleteVideoClip: () => true,
     listVideoClips: () => [],
@@ -79,6 +82,7 @@ function fixture() {
     videoService,
     finalizeCalls: () => finalizeCalls,
     setLiveClip(next) { liveClip = { ...liveClip, ...next }; },
+    setProjectionStatus(next) { projectionStatus = next; },
   };
 }
 
@@ -319,6 +323,97 @@ test('status gives the real terminal provider reason instead of a connection or 
   assert.equal(response.statusCode, 200, response.body);
   assert.equal(response.json().failure_code, 'VIDEO_PROVIDER_JOB_NOT_FOUND');
   assert.match(response.json().error, /не має цей job/);
+});
+
+test('status repairs a stale CREATED profile projection from the terminal runtime QA result', async (t) => {
+  const current = fixture();
+  current.setProjectionStatus('CREATED');
+  current.setLiveClip({
+    status: 'FAIL',
+    qa: { pass: false, defects: [{ code: 'CLIP_HAS_AUDIO' }] },
+  });
+  const app = Fastify();
+  t.after(() => app.close());
+  await registerVideoRoutes(app, {
+    profileApi: { resolveRequestProfile: async () => ({ profileId: 'profile-1' }) },
+    profiles: current.profiles,
+    videoService: current.videoService,
+    runService: { outputFile: async () => null },
+  });
+  const response = await app.inject({
+    method: 'GET', url: '/api/profile/video-clips/11111111-1111-4111-8111-111111111111',
+  });
+  assert.equal(response.statusCode, 200, response.body);
+  assert.equal(response.json().status, 'FAIL');
+  assert.equal(response.json().failure_code, 'CLIP_HAS_AUDIO');
+  assert.match(response.json().error, /аудіодоріжку/);
+  assert.equal(current.projected.at(-1).clip.status, 'FAIL');
+});
+
+test('one explicit QA retry creates one child job and same idempotency key reuses it', async (t) => {
+  const current = fixture();
+  const parent = {
+    ...await current.videoService.getClip(),
+    status: 'FAIL',
+    mode: 'motion_1',
+    lookBinding: { sourceSha256: 'b'.repeat(64), approvedLookReceiptSha256: 'c'.repeat(64) },
+    motionReferenceBinding: { referenceId: 'style-1', sha256: 'd'.repeat(64), packSha256: 'e'.repeat(64) },
+  };
+  const child = {
+    ...parent,
+    clipId: '44444444-4444-4444-8444-444444444444',
+    jobId: 'higgs-job-retry',
+    status: 'CREATED',
+  };
+  let childCreated = false;
+  let retryCalls = 0;
+  const claims = new Map();
+  current.videoService.getClip = async (clipId) => (clipId === child.clipId && childCreated ? child : parent);
+  current.videoService.fashionVideoCapability = async ({ referenceId }) => ({
+    state: 'READY',
+    selected_style_id: referenceId,
+    reference_id: referenceId,
+    reference_path: '/runtime/references/style.mp4',
+    reference_sha256: 'd'.repeat(64),
+    reference_pack_sha256: 'e'.repeat(64),
+    duration_seconds: 5,
+    provider_duration_seconds: 5,
+    available_styles: availableStyles,
+  });
+  current.videoService.claimRetry = async (_parentId, key) => {
+    const existing = claims.get(key);
+    return existing
+      ? { created: false, claim: existing, claimPath: key }
+      : { created: true, claim: { state: 'SUBMITTING' }, claimPath: key };
+  };
+  current.videoService.completeRetryClaim = async (key, childId) => {
+    claims.set(key, { state: 'CREATED', child_clip_id: childId });
+  };
+  current.videoService.retryFailedClip = async () => {
+    retryCalls++;
+    childCreated = true;
+    return { clipId: child.clipId, jobId: child.jobId, status: child.status };
+  };
+  const app = Fastify();
+  t.after(() => app.close());
+  await registerVideoRoutes(app, {
+    profileApi: { resolveRequestProfile: async () => ({ profileId: 'profile-1' }) },
+    profiles: current.profiles,
+    videoService: current.videoService,
+    runService: { outputFile: async () => null },
+  });
+  const headers = { 'idempotency-key': 'retry-key-that-is-long-enough-12345' };
+  const first = await app.inject({
+    method: 'POST', url: '/api/profile/video-clips/11111111-1111-4111-8111-111111111111/retry', headers,
+  });
+  assert.equal(first.statusCode, 202, first.body);
+  assert.equal(first.json().clip_id, child.clipId);
+  const duplicate = await app.inject({
+    method: 'POST', url: '/api/profile/video-clips/11111111-1111-4111-8111-111111111111/retry', headers,
+  });
+  assert.equal(duplicate.statusCode, 200, duplicate.body);
+  assert.equal(duplicate.json().reused, true);
+  assert.equal(retryCalls, 1);
 });
 
 test('create reaches VideoService only after the same two-reference contract is ready', async (t) => {
