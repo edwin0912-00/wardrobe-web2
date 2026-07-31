@@ -87,7 +87,11 @@ function makeBible(overrides = {}) {
       pose: index === 0
         ? 'Neutral grounded stance with separated hands and unobstructed outfit.'
         : `Slot-specific ${slot} pose with readable anatomy and no accidental occlusion.`,
+      expression_signature: index === 0
+        ? 'Calm direct gaze; facial features fully readable without theatrical expression.'
+        : `Controlled ${slot} expression consistent with the approved identity and the scene mood.`,
       lighting: 'Warm early-morning key, soft open-sky fill, coherent contact shadow, and protected face/item detail.',
+      subject_lighting: 'Key remains on the approved person; face and all visible item evidence stay readable.',
       environment: 'Original non-identifiable deep-green landscape and restrained pale architectural surface.',
       palette: 'Deep green, warm off-white, restrained mustard, natural skin, exact approved item colors.',
       identity_visibility: slot === 'material_or_accessory_detail' ? 'partial_face' : 'full_face',
