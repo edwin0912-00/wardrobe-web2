@@ -73,12 +73,13 @@
          showing the result. -->
 
     <!-- THE PIPELINE PAGE, ON THE LAPTOP SCREEN.
-         Last leg only. Its rectangle is written per frame by the engine into --scr-x/y/w/h
-         from a measurement of the real footage, so it tracks the push-in. Blended, not
-         pasted: black in this layer lets the filmed screen through and light adds to it,
-         which is what makes it read as emitted rather than stuck on.
-         Content is a placeholder until the interface layer hands over the real fragment. -->
-    <div class="screen" data-screen-layer aria-hidden="true">
+         This legacy placeholder stays deliberately hidden until the supplied pipeline
+         document is real and the final D master has a four-corner display calibration.
+         The older axis-aligned fit reaches onto the laptop chin/keyboard in this camera
+         move, so showing a generic page there would be a visibly false surface. The
+         future calibrated laptop layer will own the one real DOM tree and its reversible
+         scroll handoff; it must not revive this stand-in by accident. -->
+    <div class="screen" data-screen-layer aria-hidden="true" hidden>
       <div class="screen__page" data-screen-page>
         <div class="screen__row"><b>WARDROBE</b><span>пайплайн</span></div>
         <div class="screen__bars">
