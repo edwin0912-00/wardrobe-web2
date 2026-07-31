@@ -153,6 +153,21 @@ body {
 /* Never reveal a black native video plane before its first decoded frame. */
 .film[data-intro-pending="1"] video[data-intro] { visibility: hidden; }
 
+/* AND NO ROOM MAY PAINT BEFORE THE TEXTILE DOES.
+ *
+ * Hiding only the intro left the leg planes paintable at z-index 1, so a first load showed
+ * the couch, and the scarf then arrived on top of it — the opening read as a mistake being
+ * corrected. The film's own background is already that scarf (intro-poster.jpg), so with
+ * the rooms held back there is nothing to see but the correct first image.
+ *
+ * The prewarm plane is deliberately exempt. It is how WebKit is given one real native frame
+ * to certify, and `visibility: hidden` would defeat exactly that; it already sits at 0.001
+ * opacity under everything, so it cannot be what a viewer sees. The guard lifts only when
+ * revealIntroFrame drops data-intro-pending, which happens on a confirmed painted frame. */
+.film[data-intro-pending="1"] video[data-leg]:not([data-ios-prewarm="1"]) {
+  visibility: hidden;
+}
+
 /* Grade and vignette, so the footage sits in one world rather than reading as raw clips. */
 .grade {
   position: absolute; inset: -2%;
