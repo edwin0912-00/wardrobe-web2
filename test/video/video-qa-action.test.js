@@ -33,4 +33,9 @@ test('terminal failures always expose an explicit retry while PASS still needs p
   });
   assert.equal(resolveVideoQaAction({ status: 'PASS' }, { deliverable: false }).action, 'BLOCK');
   assert.equal(resolveVideoQaAction({ status: 'PASS' }, { deliverable: true }).action, 'DELIVER');
+  assert.deepEqual(resolveVideoQaAction({
+    status: 'OUTPUT_DOWNLOAD_FAILED', failureCode: 'VIDEO_OUTPUT_DOWNLOAD_FAILED',
+  }), {
+    action: 'RETRY_AVAILABLE', reason_code: 'VIDEO_OUTPUT_DOWNLOAD_FAILED', retry_available: true,
+  });
 });

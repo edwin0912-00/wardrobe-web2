@@ -161,6 +161,22 @@ test('wait selects an explicit result URL and never an earlier input reference U
   assert.equal(finished.selectedFieldPath, '/result/output_url');
 });
 
+test('wait accepts the CLI result_url envelope at the root', async () => {
+  const provider = new HiggsfieldVideoProvider({
+    commandRunner: async () => ({
+      stdout: JSON.stringify({
+        job_id: 'job_root_result_url',
+        request: { video_url: 'https://cdn.example/private-reference.mp4' },
+        result_url: 'https://cdn.example/generated-output.mp4',
+      }),
+      stderr: '',
+    }),
+  });
+  const finished = await provider.waitForJob({ jobId: 'job_root_result_url' });
+  assert.equal(finished.url, 'https://cdn.example/generated-output.mp4');
+  assert.equal(finished.selectedFieldPath, '/result_url');
+});
+
 test('wait fails closed when explicit result fields name different video outputs', async () => {
   const provider = new HiggsfieldVideoProvider({
     commandRunner: async () => ({

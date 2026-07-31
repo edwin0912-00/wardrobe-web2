@@ -247,7 +247,15 @@ function findJobId(payload) {
 }
 
 const OUTPUT_CONTAINER_FIELDS = new Set(['output', 'outputs', 'result', 'results', 'artifacts']);
-const OUTPUT_URL_FIELDS = new Set(['url', 'video_url', 'output_url', 'download_url', 'file_url']);
+// Higgsfield has emitted both `result_url` (the image-style CLI envelope) and
+// the more explicit video keys over time. Keep the generic `url` key scoped to
+// an output container below so an input/reference URL can never be selected.
+const OUTPUT_URL_FIELDS = new Set([
+  'url', 'video_url', 'output_url', 'result_url', 'download_url', 'file_url',
+]);
+const ROOT_OUTPUT_URL_FIELDS = new Set([
+  'video_url', 'output_url', 'result_url', 'download_url', 'file_url',
+]);
 const NON_OUTPUT_FIELDS = new Set(['input', 'inputs', 'request', 'source', 'sources', 'reference', 'references']);
 
 function pointerPart(value) {
@@ -281,7 +289,8 @@ function findExplicitVideoOutput(payload) {
       if (NON_OUTPUT_FIELDS.has(key)) continue;
       const nextParts = [...parts, key];
       const nextInside = insideOutputContainer || OUTPUT_CONTAINER_FIELDS.has(key);
-      if (nextInside
+      const explicitRootOutput = parts.length === 0 && ROOT_OUTPUT_URL_FIELDS.has(key);
+      if ((nextInside || explicitRootOutput)
         && (OUTPUT_URL_FIELDS.has(key) || OUTPUT_CONTAINER_FIELDS.has(key))
         && isVideoUrl(child)) {
         candidates.push({

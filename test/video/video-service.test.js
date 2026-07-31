@@ -1139,6 +1139,51 @@ test('awaitAndFinalize persists terminal missing video output instead of leaving
   });
 });
 
+test('a download failure is distinct and resumes from the captured provider URL without polling again', async () => {
+  await withTempDir(async (dir, sourcePath) => {
+    let waitCalls = 0;
+    const provider = {
+      async createJob() { return { jobId: 'download-job', providerKey: 'higgsfield' }; },
+      async waitForJob() {
+        waitCalls += 1;
+        return {
+          jobId: 'download-job',
+          url: 'https://cdn.example/generated-output.mp4',
+          selectedFieldPath: '/result_url',
+          raw: { job_id: 'download-job', result_url: 'https://cdn.example/generated-output.mp4' },
+        };
+      },
+    };
+    const store = new ClipStore(dir);
+    const service = new VideoService({ provider, clipStore: store });
+    const created = await service.createClip({
+      modeId: 'editorial_micro_moment', surfaceId: 'tv', sourceImagePath: sourcePath,
+    });
+
+    await assert.rejects(
+      () => service.awaitAndFinalize(created.clipId, {
+        downloadFn: async () => { throw Object.assign(new Error('upstream timeout'), { code: 'VIDEO_DOWNLOAD_FAILED' }); },
+        ...makeStubQa(),
+      }),
+      (error) => error.code === 'VIDEO_OUTPUT_DOWNLOAD_FAILED',
+    );
+    let persisted = await store.load(created.clipId);
+    assert.equal(persisted.status, 'OUTPUT_DOWNLOAD_FAILED');
+    assert.equal(persisted.failureCode, 'VIDEO_OUTPUT_DOWNLOAD_FAILED');
+    assert.equal(persisted.providerOutputUrl, 'https://cdn.example/generated-output.mp4');
+    assert.equal(waitCalls, 1);
+
+    const resumed = await service.awaitAndFinalize(created.clipId, {
+      downloadFn: makeStubDownload(),
+      ...makeStubQa(),
+    });
+    assert.equal(resumed.status, 'PASS');
+    assert.equal(waitCalls, 1);
+    persisted = await store.load(created.clipId);
+    assert.equal(persisted.status, 'PASS');
+  });
+});
+
 test('awaitAndFinalize rejects provider bytes equal to the locked motion reference before QA', async () => {
   await withTempDir(async (dir) => {
     const referenceBytes = Buffer.from('exact-private-motion-reference');

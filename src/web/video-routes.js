@@ -85,6 +85,13 @@ function publicVideoFailure(liveClip) {
   if (liveClip?.failureCode === 'VIDEO_PROVIDER_JOB_NOT_FOUND') {
     return 'Higgsfield більше не має цей job. Нове відео не створювалося автоматично.';
   }
+  if (liveClip?.failureCode === 'MISSING_VIDEO_OUTPUT') {
+    return 'Провайдер завершив job, але beta не отримала адресу готового відео. QA не запускався; можна повторити отримання або створити нову спробу.';
+  }
+  if (liveClip?.failureCode === 'VIDEO_OUTPUT_DOWNLOAD_FAILED'
+    || liveClip?.status === 'OUTPUT_DOWNLOAD_FAILED') {
+    return 'Відео вже створене провайдером, але його передача на сервер не завершилась. Можна повторити лише завантаження без нової генерації.';
+  }
   if (liveClip?.referenceAdherenceQa?.pass === false) {
     return 'Відео не пройшло QA: у кожному cut має бути лише затверджений аватар або порожня сцена. Reference-людина у фіналі заборонена.';
   }
@@ -184,7 +191,9 @@ export async function registerVideoRoutes(app, {
     return finalizer;
   };
 
-  const isResumableVideoStatus = (status) => ['CREATED', 'GENERATING'].includes(status);
+  const isResumableVideoStatus = (status) => [
+    'CREATED', 'GENERATING', 'OUTPUT_DOWNLOAD_FAILED',
+  ].includes(status);
 
   // GET /api/profile/looks/:lookId/video-capability — the saved-look action
   // hub reads this before enabling Fashion Video. The optional service hook

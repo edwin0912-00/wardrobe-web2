@@ -227,7 +227,9 @@ export class ClipStore {
       .filter((entry) => entry.isDirectory() && /^[0-9a-f-]{36}$/i.test(entry.name))
       .map(async (entry) => this.load(entry.name)));
     return clips
-      .filter((clip) => clip && ['CREATED', 'GENERATING'].includes(clip.status))
+      .filter((clip) => clip && [
+        'CREATED', 'GENERATING', 'OUTPUT_DOWNLOAD_FAILED',
+      ].includes(clip.status))
       .map((clip) => clip.clipId);
   }
 
@@ -916,65 +918,81 @@ export class VideoService {
     if (!clip) {
       throw new VideoServiceError('Clip not found', { code: 'CLIP_NOT_FOUND', status: 404 });
     }
-    if (clip.status !== 'CREATED' && clip.status !== 'GENERATING') {
+    const resumeOutputDownload = clip.status === 'OUTPUT_DOWNLOAD_FAILED'
+      && typeof clip.providerOutputUrl === 'string'
+      && clip.providerOutputUrl.length > 0;
+    if (clip.status !== 'CREATED' && clip.status !== 'GENERATING' && !resumeOutputDownload) {
       throw new VideoServiceError(
         `Clip is in status ${clip.status}, cannot await`,
         { code: 'CLIP_STATUS_INVALID', status: 409 },
       );
     }
 
-    // Persist a short-lived lease before entering the provider wait.  This is
-    // the only durable evidence that a deployment must not restart an *active*
-    // waiter.  A bare GENERATING status can be left behind by a crashed daemon
-    // and is deliberately not enough to block a later release.
-    clip.status = 'GENERATING';
-    clip.updatedAt = new Date(this.#clock()).toISOString();
-    clip.providerWaitLease = {
-      jobId: clip.jobId,
-      startedAt: clip.updatedAt,
-      heartbeatAt: clip.updatedAt,
-    };
-    await this.#store.save(clipId, clip);
+    // A download failure is a separate, resumable stage. If the provider URL
+    // was already captured, retry only the download; never poll a missing job
+    // again and never create a second paid job implicitly.
+    let finished = resumeOutputDownload
+      ? {
+          jobId: clip.jobId,
+          url: clip.providerOutputUrl,
+          selectedFieldPath: clip.providerOutputFieldPath ?? null,
+          raw: null,
+        }
+      : null;
 
-    // Phase 2: wait for the job to finish
-    let finished;
-    try {
-      finished = await this.#provider.waitForJob({
+    if (!resumeOutputDownload) {
+      // Persist a short-lived lease before entering the provider wait. This is
+      // the only durable evidence that a deployment must not restart an active
+      // waiter. A bare GENERATING status can be left behind by a crashed daemon
+      // and is deliberately not enough to block a later release.
+      clip.status = 'GENERATING';
+      clip.updatedAt = new Date(this.#clock()).toISOString();
+      clip.providerWaitLease = {
         jobId: clip.jobId,
-        providerKey: clip.providerKey,
-      });
-    } catch (cause) {
+        startedAt: clip.updatedAt,
+        heartbeatAt: clip.updatedAt,
+      };
+      await this.#store.save(clipId, clip);
+
+      // Phase 2: wait for the job to finish
+      try {
+        finished = await this.#provider.waitForJob({
+          jobId: clip.jobId,
+          providerKey: clip.providerKey,
+        });
+      } catch (cause) {
       // Provider-terminal outcomes cannot be recovered by polling the same
       // immutable job again. Persist them as retryable failure evidence; do
       // not invent a video, issue another paid create, or leave a stale
       // GENERATING state that blocks deployment forever.
-      if (['PROVIDER_JOB_NOT_FOUND', 'MISSING_VIDEO_OUTPUT'].includes(cause?.code)) {
-        clip.status = 'FAILED';
-        clip.failureCode = cause.code === 'MISSING_VIDEO_OUTPUT'
-          ? 'MISSING_VIDEO_OUTPUT'
-          : 'VIDEO_PROVIDER_JOB_NOT_FOUND';
-        clip.providerTerminal = {
-          code: clip.failureCode,
-          jobId: clip.jobId,
-          recordedAt: new Date(this.#clock()).toISOString(),
-          retryable: cause.code === 'MISSING_VIDEO_OUTPUT',
-        };
+        if (['PROVIDER_JOB_NOT_FOUND', 'MISSING_VIDEO_OUTPUT'].includes(cause?.code)) {
+          clip.status = 'FAILED';
+          clip.failureCode = cause.code === 'MISSING_VIDEO_OUTPUT'
+            ? 'MISSING_VIDEO_OUTPUT'
+            : 'VIDEO_PROVIDER_JOB_NOT_FOUND';
+          clip.providerTerminal = {
+            code: clip.failureCode,
+            jobId: clip.jobId,
+            recordedAt: new Date(this.#clock()).toISOString(),
+            retryable: cause.code === 'MISSING_VIDEO_OUTPUT',
+          };
+          delete clip.providerWaitLease;
+          clip.updatedAt = new Date(this.#clock()).toISOString();
+          await this.#store.save(clipId, clip);
+          throw new VideoServiceError(cause.code === 'MISSING_VIDEO_OUTPUT'
+            ? 'Provider finished without a video URL; no video was generated.'
+            : 'The video provider no longer has this job; it was not generated.', {
+            code: clip.failureCode,
+            status: 502,
+          });
+        }
+        // A transport blip is retryable against the same job. The current wait
+        // is over, so remove its lease; a future request will acquire a fresh one.
         delete clip.providerWaitLease;
         clip.updatedAt = new Date(this.#clock()).toISOString();
         await this.#store.save(clipId, clip);
-        throw new VideoServiceError(cause.code === 'MISSING_VIDEO_OUTPUT'
-          ? 'Provider finished without a video URL; no video was generated.'
-          : 'The video provider no longer has this job; it was not generated.', {
-          code: clip.failureCode,
-          status: 502,
-        });
+        throw cause;
       }
-      // A transport blip is retryable against the same job. The current wait
-      // is over, so remove its lease; a future request will acquire a fresh one.
-      delete clip.providerWaitLease;
-      clip.updatedAt = new Date(this.#clock()).toISOString();
-      await this.#store.save(clipId, clip);
-      throw cause;
     }
 
     if (!finished.url) {
@@ -996,29 +1014,34 @@ export class VideoService {
     // while the local download and QA stages continue.
     delete clip.providerWaitLease;
 
-    const rawPayloadSha256 = sha256(Buffer.from(JSON.stringify(finished.raw ?? null)));
-    const waitReceipt = {
-      schema_version: '1.0.0',
-      clip_id: clipId,
-      job_id: clip.jobId,
-      provider: clip.providerKey,
-      selected_field_path: finished.selectedFieldPath ?? null,
-      selected_url_sanitized: sanitizedUrl(finished.url),
-      raw_payload_sha256: rawPayloadSha256,
-      raw_payload_sanitized: sanitizeProviderWaitValue(finished.raw ?? null),
-    };
-    const waitReceiptBytes = Buffer.from(`${JSON.stringify(waitReceipt, null, 2)}\n`);
-    const waitReceiptSha256 = sha256(waitReceiptBytes);
-    const waitReceiptFile = `provider-wait-receipt-${rawPayloadSha256.slice(0, 16)}.json`;
-    await this.#store.saveQaReceipt(
-      clipId,
-      waitReceiptFile,
-      waitReceiptBytes,
-      'PROVIDER_WAIT_RECEIPT_CONFLICT',
-    );
-    clip.providerWaitReceiptFile = waitReceiptFile;
-    clip.providerWaitReceiptSha256 = waitReceiptSha256;
+    if (finished.raw !== null && finished.raw !== undefined) {
+      const rawPayloadSha256 = sha256(Buffer.from(JSON.stringify(finished.raw)));
+      const waitReceipt = {
+        schema_version: '1.0.0',
+        clip_id: clipId,
+        job_id: clip.jobId,
+        provider: clip.providerKey,
+        selected_field_path: finished.selectedFieldPath ?? null,
+        selected_url_sanitized: sanitizedUrl(finished.url),
+        raw_payload_sha256: rawPayloadSha256,
+        raw_payload_sanitized: sanitizeProviderWaitValue(finished.raw),
+      };
+      const waitReceiptBytes = Buffer.from(`${JSON.stringify(waitReceipt, null, 2)}\n`);
+      const waitReceiptSha256 = sha256(waitReceiptBytes);
+      const waitReceiptFile = `provider-wait-receipt-${rawPayloadSha256.slice(0, 16)}.json`;
+      await this.#store.saveQaReceipt(
+        clipId,
+        waitReceiptFile,
+        waitReceiptBytes,
+        'PROVIDER_WAIT_RECEIPT_CONFLICT',
+      );
+      clip.providerWaitReceiptFile = waitReceiptFile;
+      clip.providerWaitReceiptSha256 = waitReceiptSha256;
+    }
     clip.providerOutputFieldPath = finished.selectedFieldPath ?? null;
+    // Keep the provider URL private and durable so a failed transfer can be
+    // resumed without polling or paying for another provider job.
+    clip.providerOutputUrl = finished.url;
 
     // Download
     if (typeof downloadFn !== 'function') {
@@ -1026,7 +1049,25 @@ export class VideoService {
         code: 'SERVICE_MISCONFIGURED',
       });
     }
-    const providerVideoBytes = await downloadFn(finished.url);
+    let providerVideoBytes;
+    try {
+      providerVideoBytes = await downloadFn(finished.url);
+    } catch (cause) {
+      clip.status = 'OUTPUT_DOWNLOAD_FAILED';
+      clip.failureCode = 'VIDEO_OUTPUT_DOWNLOAD_FAILED';
+      clip.providerDownloadError = {
+        code: cause?.code ?? 'VIDEO_DOWNLOAD_FAILED',
+        recordedAt: new Date(this.#clock()).toISOString(),
+        retryable: true,
+      };
+      clip.updatedAt = new Date(this.#clock()).toISOString();
+      await this.#store.save(clipId, clip);
+      throw new VideoServiceError('Відео створене, але його завантаження на сервер не завершилось.', {
+        code: 'VIDEO_OUTPUT_DOWNLOAD_FAILED',
+        status: 502,
+        cause,
+      });
+    }
     const providerVideoSha256 = sha256(providerVideoBytes);
     if (clip.motionReferenceBinding?.sha256 === providerVideoSha256) {
       clip.status = 'FAIL';
@@ -1181,7 +1222,7 @@ export class VideoService {
       throw new VideoServiceError('Clip not found', { code: 'CLIP_NOT_FOUND', status: 404 });
     }
     let result = { clipId, status: clip.status, videoSha256: clip.videoSha256, qa: clip.qa };
-    if (['CREATED', 'GENERATING'].includes(clip.status)) {
+    if (['CREATED', 'GENERATING', 'OUTPUT_DOWNLOAD_FAILED'].includes(clip.status)) {
       if (typeof downloadFn !== 'function'
         || typeof probeFn !== 'function'
         || typeof extractFrameFn !== 'function') {

@@ -1,5 +1,5 @@
 const WAITING_STATUSES = new Set(['SUBMITTING', 'CREATED', 'GENERATING']);
-const TERMINAL_FAILURE_STATUSES = new Set(['FAIL', 'FAILED']);
+const TERMINAL_FAILURE_STATUSES = new Set(['FAIL', 'FAILED', 'OUTPUT_DOWNLOAD_FAILED']);
 
 /**
  * Resolve one executable next step from persisted Fashion Video evidence.
