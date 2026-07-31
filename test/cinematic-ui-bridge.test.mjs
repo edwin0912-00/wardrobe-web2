@@ -6,7 +6,7 @@ import {
   createCinematicUiBridge,
 } from '../adapters/cinematic-ui-bridge.mjs';
 
-function clientStub({ profileError = null } = {}) {
+function clientStub({ profileError = null, profile = { looks: [] } } = {}) {
   let listener = null;
   const calls = [];
   return {
@@ -15,7 +15,7 @@ function clientStub({ profileError = null } = {}) {
     emit(event) { listener?.(event); },
     dispose() {},
     health: async () => ({ status: 'ready', release_sha: 'beta-sha' }),
-    loadProfile: async () => { if (profileError) throw profileError; return { looks: [] }; },
+    loadProfile: async () => { if (profileError) throw profileError; return profile; },
     authenticate: async (pin) => { calls.push(['authenticate', pin]); return { authenticated: true }; },
     createRunFromUploads: async (input) => { calls.push(['look', input]); return { run_id: 'run-1', status: 'QUEUED' }; },
     saveRun: async (runId) => ({ look: { look_id: 'look-1', run_id: runId } }),
@@ -61,6 +61,30 @@ test('reports the deployed beta release and keeps authentication explicit', asyn
     bridge.createLook({ person: new Blob(['a']), garments: [new Blob(['b'])] }),
     (error) => error instanceof CinematicUiBridgeError && error.code === 'AUTH_REQUIRED',
   );
+});
+
+test('restores beta saved looks and action context after a browser reload', async () => {
+  const profile = {
+    looks: [{
+      look_id: 'look-saved',
+      avatar_id: 'avatar-1',
+      created_at: '2026-07-31T20:00:00.000Z',
+      image_url: '/api/profile/looks/look-saved/image',
+    }],
+  };
+  const client = clientStub({ profile });
+  const bridge = createCinematicUiBridge({ client, autoProbe: false });
+  await bridge.probe();
+
+  assert.equal(bridge.state().profile.looks[0].look_id, 'look-saved');
+  assert.equal(bridge.state().savedLook.look_id, 'look-saved');
+  assert.equal(bridge.state().catalogs.shoots[0].id, 'shoot.one');
+
+  await bridge.useSavedLook('look-saved');
+  assert.equal(bridge.state().savedLook.look_id, 'look-saved');
+  await assert.rejects(bridge.useSavedLook('missing-look'), (error) => (
+    error instanceof CinematicUiBridgeError && error.code === 'SAVED_LOOK_NOT_FOUND'
+  ));
 });
 
 test('a completed real run becomes the saved look and loads all action catalogues', async () => {

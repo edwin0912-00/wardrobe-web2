@@ -202,6 +202,7 @@
     var bridgeState = bridge && typeof bridge.state === 'function' ? bridge.state() : null;
     var adapterLoading = !bridge;
     var adapterUnavailable = false;
+    var hydratedProfileKey = '';
     var garmentSelections = {};
     var garmentChoiceRunId = null;
     /* Object URLs belong only to the current tab.  Once beta accepts a run, its
@@ -238,6 +239,59 @@
      * that can fill this yet, and that is the point: the frame stays empty rather than
      * borrowing the uploaded photograph and calling it a result. */
     function hasResult() { var l = current(); return !!(l && (l.resultUrl || l.result)); }
+
+    /* Beta's profile is the durable source for “Мої образи”. The cinematic page
+     * keeps only transient File/object-URL state locally; after a reload these
+     * records are rebuilt from the same-origin profile cookie. */
+    function hydrateSavedLooks(profile) {
+      var records = Array.isArray(profile && profile.looks) ? profile.looks.slice() : [];
+      if (!records.length && profile && Array.isArray(profile.avatars)) {
+        records = profile.avatars.reduce(function (all, avatar) {
+          return all.concat((avatar.looks || []).map(function (look) {
+            return Object.assign({}, look, { avatar_id: look.avatar_id || avatar.avatar_id || avatar.id });
+          }));
+        }, []);
+      }
+      var ids = records.map(function (look) { return String(look.look_id || look.id || ''); }).filter(Boolean);
+      var key = ids.join('|');
+      if (!records.length && hydratedProfileKey === '') return false;
+      var changed = key !== hydratedProfileKey;
+      hydratedProfileKey = key;
+      records.forEach(function (record) {
+        var lookId = record.look_id || record.id;
+        if (!lookId) return;
+        var resultUrl = record.image_url || (bridge && bridge.client && bridge.client.lookImageUrl
+          ? bridge.client.lookImageUrl(lookId) : '');
+        var at = looks.findIndex(function (look) {
+          return look.lookId === lookId || look.id === lookId;
+        });
+        var saved = {
+          id: lookId,
+          lookId: lookId,
+          runId: record.source_run_id || null,
+          resultUrl: resultUrl,
+          result: resultUrl,
+          items: Array.isArray(record.items) ? record.items.slice() : [],
+          bg: null, shootStyle: null, videoStyle: null,
+          shot: false, video: false, actionResults: {},
+          saved: true,
+          name: record.name || '',
+          createdAt: record.created_at || null,
+          avatarId: record.avatar_id || null
+        };
+        if (at < 0) looks.push(saved);
+        else {
+          looks[at] = Object.assign({}, looks[at], saved,
+            { items: looks[at].items && looks[at].items.length ? looks[at].items : saved.items });
+        }
+      });
+      if (looks.length && selected < 0 && !pending && !pendingAction) {
+        selected = 0;
+        step = 2;
+        view = 'look';
+      }
+      return changed;
+    }
 
     /* THE gate for every action: a look with things in it must be VISIBLE first — and
      * visible means its own generated image is on the glass, not that a stand-in timer
@@ -326,6 +380,8 @@
     function receiveBridge(event) {
       bridgeState = event || (bridge && bridge.state ? bridge.state() : bridgeState);
       if (!bridgeState) return;
+
+      hydrateSavedLooks(bridgeState.profile);
 
       var working = bridgeWorking();
       var kind = bridgeState.activeKind || 'look';
@@ -505,6 +561,7 @@
     function numWord(n) { return NUM_WORDS[n] || String(n); }
 
     function lookLede(l) {
+      if (l && l.saved && (!l.items || !l.items.length)) return 'Збережений образ із вашого профілю.';
       var parts = [numWord(l.items.length) + ' ' + plural(l.items.length, 'річ', 'речі', 'речей')];
       if (person.face) parts.push('ваше обличчя');
       var s = parts.join(', ') + '.';
@@ -518,7 +575,7 @@
      * the picture has none of those once a look already exists. */
     function askLookThumbs() {
       var cells = looks.map(function (l, i) {
-        var thumb = l.items[0] && l.items[0].url;
+        var thumb = l.resultUrl || (l.items[0] && l.items[0].url);
         return '<button class="lookthumb" type="button" data-select="' + i + '"' +
           ' aria-pressed="' + (i === selected ? 'true' : 'false') + '">' +
           (thumb ? '<img class="lookthumb__img" src="' + thumb + '" alt="">' : '') +
@@ -1407,7 +1464,15 @@
       if ((b = t.closest('[data-preset]'))) { togglePreset(PRESET_ITEMS[Number(b.getAttribute('data-preset'))]); return; }
       if ((b = t.closest('[data-select]'))) {
         stopCamera(); selected = Number(b.getAttribute('data-select'));
-        pickerKind = null; awaitingAspect = null; view = 'look'; render(); notifyGateChange(); return;
+        pickerKind = null; awaitingAspect = null; view = 'look';
+        var selectedLook = current();
+        if (selectedLook && selectedLook.saved && bridge && bridge.useSavedLook && selectedLook.lookId) {
+          bridge.useSavedLook(selectedLook.lookId).catch(function () {
+            actionError = { kind: 'look', message: 'Збережений образ більше недоступний' };
+            render(); notifyGateChange();
+          });
+        }
+        render(); notifyGateChange(); return;
       }
       if ((b = t.closest('[data-choice-kind]'))) {
         var choiceKind = b.getAttribute('data-choice-kind');

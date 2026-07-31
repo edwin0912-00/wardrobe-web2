@@ -57,6 +57,23 @@ function initialState() {
   };
 }
 
+/**
+ * Beta keeps the durable profile as a flat `looks` collection and also nests the
+ * same records under each avatar for older clients.  Keep that compatibility at
+ * the adapter boundary so every presentation can restore the same library after
+ * a reload without inventing a browser-local session.
+ */
+export function profileLooks(profile) {
+  if (Array.isArray(profile?.looks)) return profile.looks;
+  return (profile?.avatars ?? []).flatMap((avatar) => (
+    (avatar?.looks ?? []).map((look) => ({ ...look, avatar_id: avatar.avatar_id ?? avatar.id }))
+  ));
+}
+
+function profileLookId(look) {
+  return look?.look_id ?? look?.id ?? null;
+}
+
 function runChoices(run) {
   return (run?.conflicts ?? [])
     .filter((conflict) => conflict?.type === 'DUPLICATE_SLOT')
@@ -270,7 +287,10 @@ export function createCinematicUiBridge({
       const saved = await client.saveRun(run.run_id);
       const look = saved?.look ?? null;
       if (state.run?.run_id === run.run_id && look) {
-        emit('look:saved', { savedLook: look });
+        emit('look:saved', {
+          savedLook: look,
+          ...(saved?.profile ? { profile: saved.profile } : {}),
+        });
         await loadCatalogs(look.look_id);
       }
     } catch (error) {
@@ -353,7 +373,9 @@ export function createCinematicUiBridge({
       emit('connection:healthy', { availability: 'checking', releaseSha: health.release_sha ?? null });
       try {
         const profile = await client.loadProfile();
-        emit('connection:ready', { availability: 'ready', profile, error: null });
+        const savedLook = profileLooks(profile)[0] ?? null;
+        emit('connection:ready', { availability: 'ready', profile, savedLook, error: null });
+        if (savedLook) await loadCatalogs(profileLookId(savedLook));
       } catch (error) {
         if (error?.status === 401) fail(error, 'connection:auth_required');
         else throw error;
@@ -385,6 +407,15 @@ export function createCinematicUiBridge({
     async authenticate(pin) {
       await client.authenticate(pin);
       return probe();
+    },
+    /** Select a durable beta look as the command context for this presentation. */
+    async useSavedLook(lookId) {
+      requireReady();
+      const look = profileLooks(state.profile).find((candidate) => profileLookId(candidate) === String(lookId));
+      if (!look) throw new CinematicUiBridgeError('SAVED_LOOK_NOT_FOUND', 'Збережений образ більше недоступний');
+      emit('look:selected', { savedLook: look, error: null });
+      await loadCatalogs(profileLookId(look));
+      return look;
     },
     isReady: () => state.availability === 'ready',
     canStartLook: () => state.availability === 'ready' && !ACTIVE_PHASES.has(state.phase),

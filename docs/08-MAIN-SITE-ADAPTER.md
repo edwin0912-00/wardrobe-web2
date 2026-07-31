@@ -56,6 +56,14 @@ It emits a normalized phase (`idle`, `uploading`, `running`, `needs_input`,
 station may decide whether scrolling is released without re-implementing
 backend status vocabulary.
 
+On startup the bridge reads `/api/profile` and restores the newest saved look as
+the command context. `useSavedLook(lookId)` switches that context when the
+presentation selects another card. This is server-backed: the cinematic UI does
+not persist generated images or profile state in `localStorage`, so a browser
+reload keeps the same “Мої образи” library through beta's `__Host-zeely_profile`
+cookie. Profile records retain beta's private same-origin image URLs and are
+never replaced with uploaded local photos.
+
 ## Wiring later
 
 The cinematic entrypoint will do only this:
