@@ -12,6 +12,14 @@ refused it because swap was `9.38 GiB` while the configured ceiling is
 made. Do not merge/deploy this cut until a clean full-suite preflight and the
 release-owner review both pass.
 
+Baseline comparison: the four affected suites return the identical result on
+`origin/beta` `71617a536d1eefc39c525a357bd34305ef3da8a3` and the alias release
+cut: **23/31 PASS, 8 FAIL**. The seven contract failures are stale framing
+fixtures using a 7680×10240 canvas while current strict schemas require
+1536×2048; the eighth is the expired legacy active-lease governance fixture.
+They predate the alias adapter reconciliation. No framing, receipt or lease
+gate was changed or weakened in this cut.
+
 ## Оголошення · Higgsfield image model aliases · 2026-07-31
 
 У контрактах не змішуємо внутрішні назви маршруту з назвами, які повертає CLI
