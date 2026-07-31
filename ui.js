@@ -936,7 +936,7 @@
     var ORB_CANON = {
       materials: 'listening',   // приймаємо матеріали
       garments:  'listening',   // чекаємо на речі / оберіть речі
-      look:      'composing',   // збираємо образ
+      look:      'composing',   // створюємо образ
       shoot:     'working',     // створюємо кадр
       bg:        'working',     // шукаємо світло
       fash:      'working',     // знімаємо рух
@@ -984,7 +984,7 @@
     function waitingWindow() {
       if (step === 0) return orbWindow('materials', 'Чекаємо на ваше фото');
       if (step === 1) return orbWindow('garments', hasItems() ? 'Речі готові' : 'Чекаємо на речі');
-      return orbWindow('look', 'Збираємо образ');
+      return orbWindow('look', 'Створення займає 5–10 хвилин');
     }
 
     function actionWaitingCopy(kind) {
@@ -1099,7 +1099,7 @@
       /* A first look can fail before there is anything in `looks`. Error recovery must
        * therefore win over both empty-look waiting paths below: otherwise the terminal
        * SSE failure is received but immediately painted back into the indefinite
-       * “Збираємо образ” orb with no retry control. */
+       * time estimate orb with no retry control. */
       if (actionError) {
         var inputFailure = actionError.kind === 'look' && inputReplacementError(actionError);
         showRoot.innerHTML = scene(inputFailure ? 'look-needs-input' : 'failed-' + actionError.kind,
@@ -1115,7 +1115,7 @@
       }
 
       if (pending) {
-        showRoot.innerHTML = scene('pending-look', orbWindow('look', 'Збираємо образ'));
+        showRoot.innerHTML = scene('pending-look', orbWindow('look', 'Створення займає 5–10 хвилин'));
         applyEnabled();
         return;
       }
@@ -1125,7 +1125,7 @@
        * no action row: what a viewer may do with a look is a question about a finished
        * look. This is where the journey rests until a real result arrives. */
       if (!hasResult()) {
-        showRoot.innerHTML = scene('pending-look', orbWindow('look', 'Збираємо образ'));
+        showRoot.innerHTML = scene('pending-look', orbWindow('look', 'Створення займає 5–10 хвилин'));
         applyEnabled();
         return;
       }
