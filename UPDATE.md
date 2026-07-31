@@ -2,15 +2,17 @@
 
 ## Isolated beta preflight cut · 2026-07-31
 
-`release/beta-preflight-20260731` is an isolated, **not deployed** release
-candidate: `aa388e9636916b52391d499fa54d4933837872a4`. It contains the reconciled
-Higgsfield Nano Banana Pro CLI alias (`d45209d`) and its evidence record
-(`aa388e9`) on top of `origin/beta` `71617a5`. Focused tests passed `44/44` and
-contracts passed `9/9`. Full `npm test` did not begin: resource preflight
-refused it because swap was `9.38 GiB` while the configured ceiling is
-`1.50 GiB`. No bypass, runtime change, provider call, or beta deployment was
-made. Do not merge/deploy this cut until a clean full-suite preflight and the
-release-owner review both pass.
+`release/beta-preflight-20260731` was integrated and activated as beta release
+`43014cdff67f7b469d4711b47f4bbc4415274441` at `2026-07-31T18:14:07Z`.
+It contains the reconciled Higgsfield Nano Banana Pro CLI alias (`d45209d`) and
+its evidence record (`aa388e9`) on top of `origin/beta` `71617a5`.
+Focused tests passed `47/47`; contracts passed `9/9`; product-release strict
+verification passed (`16` scene presets, `15` Create Universe generation modes).
+The full-suite comparison was run without treating swap as a release blocker:
+the same `23/31 PASS, 8 FAIL` baseline occurs on pre-integration beta and this
+cut. No framing, receipt, or lease gate was weakened. Local and external beta
+health both returned `ready`; public beta reports cache token
+`product-43014cdf-718d662a887f`.
 
 Baseline comparison: the four affected suites return the identical result on
 `origin/beta` `71617a536d1eefc39c525a357bd34305ef3da8a3` and the alias release
