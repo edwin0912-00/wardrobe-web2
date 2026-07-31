@@ -32,6 +32,19 @@ test('portrait mobile promotes one active mirror into a usable attention plane',
   assert.match(mobileCss, /min-height: 48px/);
 });
 
+test('portrait mobile promotes a pending first look into the answer mirror', () => {
+  const mobileFocus = ui.slice(ui.indexOf('function mobileFocus()'), ui.indexOf('function restorePanel()'));
+  const pending = mobileFocus.indexOf('if (pending || pendingAction || actionError) return \'show\';');
+  const firstStep = mobileFocus.indexOf("if (step < 2) return 'ask';");
+
+  assert.ok(pending >= 0, 'a submitted first look must have an explicit answer-mirror state');
+  assert.ok(firstStep >= 0, 'ordinary first and second steps still use the input mirror');
+  assert.ok(
+    pending < firstStep,
+    'pending must win before the first-look step guard, otherwise the orb is rendered outside the mobile attention plane',
+  );
+});
+
 test('right mirror owns orb, result actions and the 40-second live expansion', () => {
   assert.match(ui, /function orbWindow/);
   assert.match(ui, /LIVE_MAX_MS\s*=\s*40000/);

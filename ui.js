@@ -1164,9 +1164,16 @@
     }
 
     function mobileFocus() {
-      if (pickerKind || awaitingAspect || step < 2) return 'ask';
+      /* On a phone there is one attention plane. As soon as a valid look request
+       * leaves the garment form, that plane must become the answer mirror: the chosen
+       * cards are no longer an action surface while the server is working. Previously
+       * `step < 2` won here, so a real pending first look rendered its orb off-plane and
+       * the visitor was immediately shown the same “Створити образ” form again. */
+      if (pickerKind || awaitingAspect) return 'ask';
       if (bridgeState && (bridgeState.phase === 'needs_input' ||
           bridgeState.phase === 'waiting_for_approval')) return 'ask';
+      if (pending || pendingAction || actionError) return 'show';
+      if (step < 2) return 'ask';
       return 'show';
     }
 
