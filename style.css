@@ -864,6 +864,19 @@ body {
   display: grid; place-items: center;
   isolation: isolate;
 }
+/* THE ORB IS A PRESENCE, NOT A BACKDROP — visual canon, owner-confirmed size.
+ *
+ * The ring stack below filled 72% of the glass, which made waiting the loudest thing in
+ * the frame; the canon says the orb is restrained system-presence in the mirror and not
+ * the protagonist of the shot, with a floor of 56px and a compact form at 20px. The canvas
+ * renderer draws itself, so it needs a footprint and nothing else — no gradient, no inset
+ * shadow, no ring children. Those rules stay below only for the reduced-motion fallback
+ * and the small variant that other surfaces still use. */
+.orbfield__canvas {
+  width: 56px; height: 56px;
+  display: block;
+}
+
 .orb {
   position: relative; display: block;
   width: min(42cqh, 72%); aspect-ratio: 1;

@@ -134,6 +134,20 @@
 <script src="../screen-surfaces.js"></script>
 <script src="../engine.js"></script>
 <script src="../ui.js"></script>
+<script>
+  /* The canonical orb renderer is an ES module and the rest of this page is classic
+     scripts, so it is published on the global the same way every other controller here is
+     reached. A dynamic import rather than a module script on purpose: the release preflight
+     parses every inline script in this file as a classic one, and a static import statement
+     is a syntax error there — an accurate complaint, not something to work around.
+
+     ui.js checks for the global and leaves the canvas blank if it never arrives; a missing
+     renderer must not take the waiting state down with it. */
+  import('../thinking-orb.js').then(function (mod) {
+    window.WardrobeThinkingOrb = { create: mod.createThinkingOrb };
+    if (window.ui && window.ui.refreshOrbs) window.ui.refreshOrbs();
+  }).catch(function () { /* no orb renderer; the label still says what is happening */ });
+</script>
 <script src="../audio.js"></script>
 <script>
 (function () {

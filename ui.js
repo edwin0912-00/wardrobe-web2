@@ -770,11 +770,59 @@
           (camError ? 'Спробувати ще' : 'Відкрити дзеркало') + '</button>';
     }
 
+    /* PRODUCT STATE IN, CANONICAL ORB STATE OUT.
+     *
+     * The visual canon names six states and the product names its own; keeping both was
+     * the whole problem, because two vocabularies for one idea drift. Owner decision: the
+     * sentence a viewer reads stays the product's, and the motion underneath is the
+     * canon's. This table is the single place the two meet. */
+    var ORB_CANON = {
+      materials: 'listening',   // приймаємо матеріали
+      garments:  'listening',   // чекаємо на речі / оберіть речі
+      look:      'composing',   // збираємо образ
+      shoot:     'working',     // створюємо кадр
+      bg:        'working',     // шукаємо світло
+      fash:      'working',     // знімаємо рух
+      video:     'working',
+      live:      'searching',   // відкриваємо дзеркало
+      failed:    'solving'      // QA / повтор
+    };
+
     function orbWindow(state, label) {
+      var canon = ORB_CANON[state] || 'listening';
+      /* A canvas, not a stack of rings: the canon asks for a living system of points with
+       * a stable centre, driven on requestAnimationFrame, and it forbids the orb becoming a
+       * decorative background that competes with the picture. The element carries its own
+       * size so it stays a restrained presence in the glass rather than filling it. */
       return '<div class="orbfield" data-orb-state="' + esc(state) + '" role="status" aria-live="polite">' +
-          '<span class="orb" aria-hidden="true"><i></i><i></i><i></i><i></i></span>' +
+          '<canvas class="orbfield__canvas" data-orb-canvas data-orb-canon="' + esc(canon) + '"' +
+            ' width="56" height="56"></canvas>' +
           '<span class="orbfield__label">' + esc(label) + '</span>' +
         '</div>';
+    }
+
+    /* Renders replace innerHTML, so a canvas that was drawing a moment ago is gone and a
+     * fresh one needs its renderer. Idempotent and cheap: a canvas that already owns an
+     * instance is skipped, and one that changed state is retargeted rather than rebuilt. */
+    function mountOrbs() {
+      var factory = global.WardrobeThinkingOrb;
+      if (!factory || typeof factory.create !== 'function') return;
+      document.querySelectorAll('[data-orb-canvas]').forEach(function (canvas) {
+        var want = canvas.getAttribute('data-orb-canon') || 'listening';
+        if (canvas.__orb) {
+          if (canvas.__orbState !== want) { canvas.__orb.setState(want); canvas.__orbState = want; }
+          return;
+        }
+        canvas.__orb = factory.create(canvas, want);
+        /* Constructing it is not enough. The renderer applies a state — its aria-label, its
+         * data-state and its first painted frame — only inside setState, and its own
+         * intersection observer never reported this canvas as visible, because it sits
+         * inside the transformed film box. Measured before this call: nothing drawn, no
+         * label, backing store left at the markup's 56 instead of 112 at DPR 2. Asking for
+         * the state we already want is the renderer's own way of starting. */
+        canvas.__orb.setState(want);
+        canvas.__orbState = want;
+      });
     }
 
     function waitingWindow() {
@@ -940,6 +988,9 @@
      * every flip tore the panels down and rebuilt them — that was the flicker, and it also
      * dropped focus and restarted every image decode mid-swipe. */
     function applyEnabled() {
+      /* Every render path already ends here, so this is the one place a freshly written
+       * orb canvas can be given its renderer without adding a hook to each call site. */
+      mountOrbs();
       var lock = locked();
       document.querySelectorAll('[data-ui-ask] button, [data-ui-show] button, [data-ui-ask] input')
         .forEach(function (el) {
@@ -1376,6 +1427,10 @@
         if (typeof opts.onLookReady === 'function') opts.onLookReady();
         return true;
       },
+      /* The orb renderer is a deferred module, so it can arrive after the first render has
+       * already written its canvas. This lets it announce itself instead of the waiting
+       * state having to poll for it. */
+      refreshOrbs: mountOrbs,
       addPreset: function (name) { togglePreset(name); return items.length; },
       makeLook: makeLook,
       setBridge: bindBridge,
