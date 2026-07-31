@@ -56,48 +56,180 @@
   function create(config) {
     var legs = config.legs;                    // [{ video, name, copy }]
 
-    /* ONE OWNER for the station threshold.
+    /* ---- attention stations --------------------------------------------------
      *
-     * It was written twice: the UI flag used a hard-coded 0.86 while the gate lock and
-     * the resistance ramp read config.stationAt (0.92). Two numbers for one idea meant
-     * the interface appeared six percent of a leg before the thing that blocks passage
-     * engaged, and a change to one would silently not reach the other. An independent
-     * review flagged it as a drift surface; it is now a single function every call site
-     * reads. */
-    function stationAt() {
+     * A station is a physical place inside one camera leg, not a generic overlay that
+     * happens to appear near its end. Leg 0 needs three of them (person → garments →
+     * mirrors), each with an independent hysteresis latch and its own gate. The original
+     * journey predates that geography and had one implicit station near every leg seam.
+     *
+     * `config.stations` therefore accepts the new explicit form while retaining the old
+     * one as an exact fallback for every leg that does not declare stations:
+     *
+     *   stations: [
+     *     { leg: 0, id: 'person',   at: .24, enter: .22, exit: .14,
+     *       dampFrom: .12, dampMax: .94, canAdvance: function (station, leg) { ... } },
+     *     { leg: 0, id: 'garments', at: .54, enter: .52, exit: .43, gate: true },
+     *     { leg: 0, id: 'mirrors',  at: .90, enter: .88, exit: .78, seam: true }
+     *   ]
+     *
+     * An array-of-arrays (`stations[legIndex]`) and the early documented map
+     * (`stations: { 0: [...] }`) are also accepted. That makes the migration small for
+     * the existing level-design note, but the flat array above is the canonical API.
+     *
+     * `at` is the exact scroll pin. `enter` / `exit` make the visual latch hysteretic.
+     * An explicit station gets no post-station damping unless `dampTo` says otherwise:
+     * once its gate opens, travelling on to the next physical place should be free. The
+     * implicit legacy station deliberately keeps its old flat resistance after `at` all
+     * the way to the seam. */
+    function legacyStationAt() {
       return config.stationAt !== undefined ? config.stationAt : 0.92;
     }
-
-    /* TWO THRESHOLDS, BECAUSE ONE FLICKERS.
-     *
-     * A single threshold means the smallest movement across it toggles the station flag, and
-     * the interface it drives blinks on and off while the viewer's hand is still resting. So
-     * the station LATCHES: it engages at `stationEnter` and does not let go until progress
-     * falls all the way back to `stationExit`. The band between them is dead — nothing
-     * happens inside it in either direction.
-     *
-     * Defaults keep the old single-threshold behaviour exactly, so a page that configures
-     * neither is unchanged. The latch is per leg and resets on a leg change: carrying a
-     * latched station across a seam would show the next room's interface before it arrived. */
-    function stationEnter() {
-      return config.stationEnter !== undefined ? config.stationEnter : stationAt();
+    function legacyStationEnter() {
+      return config.stationEnter !== undefined ? config.stationEnter : legacyStationAt();
     }
-    function stationExit() {
-      var e = config.stationExit !== undefined ? config.stationExit : stationEnter();
-      return Math.min(e, stationEnter());          // an exit above the entry could never fire
+    function legacyStationExit() {
+      var e = config.stationExit !== undefined ? config.stationExit : legacyStationEnter();
+      return Math.min(e, legacyStationEnter());
     }
 
-    var stationLatched = false;
-    var stationLatchLeg = -1;
+    function own(object, key) {
+      return Object.prototype.hasOwnProperty.call(object, key);
+    }
+    function finiteNumber(value, fallback) {
+      return typeof value === 'number' && isFinite(value) ? value : fallback;
+    }
+    function localNumber(value, fallback) {
+      return clamp01(finiteNumber(value, fallback));
+    }
 
-    function stationOn(r) {
-      if (r.idx !== stationLatchLeg) { stationLatchLeg = r.idx; stationLatched = false; }
-      if (stationLatched) {
-        if (r.local < stationExit()) stationLatched = false;
-      } else if (r.local >= stationEnter()) {
-        stationLatched = true;
+    function configuredStationsForLeg(idx) {
+      var all = config.stations;
+      if (!all) return null;
+
+      if (Array.isArray(all)) {
+        if (Array.isArray(all[idx])) return all[idx];
+        /* A flat list is canonical. Entries without `leg` are a convenient shorthand
+         * for leg 0, where the first three stations currently live. */
+        return all.filter(function (entry) {
+          if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return false;
+          var legRef = own(entry, 'leg') ? entry.leg
+                     : (own(entry, 'legIndex') ? entry.legIndex : entry.legId);
+          if (legRef === undefined || legRef === null) return idx === 0;
+          return String(legRef) === String(idx) || String(legRef) === String(legs[idx].id);
+        });
       }
-      return stationLatched;
+
+      if (typeof all === 'object') {
+        var byIndex = all[idx];
+        var byId = all[legs[idx].id];
+        return Array.isArray(byIndex) ? byIndex : (Array.isArray(byId) ? byId : null);
+      }
+      return null;
+    }
+
+    function makeStation(spec, idx, order, legacy) {
+      spec = spec || {};
+      var at = localNumber(own(spec, 'at') ? spec.at : spec.stationAt,
+                           legacy ? legacyStationAt() : 0.92);
+      var enter = localNumber(spec.enter, legacy ? legacyStationEnter() : at);
+      /* A pin before the latch would pull a person backwards as soon as the interface
+       * appears. Treat that malformed ordering as a pin at entry instead. */
+      at = Math.max(at, enter);
+      var exit = Math.min(localNumber(spec.exit, legacy ? legacyStationExit() : enter), enter);
+      var dampFrom = localNumber(spec.dampFrom,
+                                 legacy ? (config.dampFrom !== undefined ? config.dampFrom : 0.72)
+                                        : enter);
+      dampFrom = Math.min(dampFrom, at);
+      var dampMax = finiteNumber(spec.dampMax,
+                                 config.dampMax !== undefined ? config.dampMax : 0.94);
+      var dampTo = legacy ? 1 : localNumber(spec.dampTo, at);
+      dampTo = Math.max(at, dampTo);
+
+      return {
+        id: spec.id != null ? String(spec.id)
+          : (legacy ? 'leg-' + idx + '-end' : 'leg-' + idx + '-station-' + order),
+        leg: idx,
+        index: order,
+        at: at,
+        enter: enter,
+        exit: exit,
+        dampFrom: dampFrom,
+        dampTo: dampTo,
+        dampMax: Math.max(0, dampMax),
+        deadSpan: own(spec, 'deadSpan') ? Math.max(0, finiteNumber(spec.deadSpan, 0)) : null,
+        seam: legacy || spec.seam === true,
+        legacyDamping: legacy,
+        hasOwnGate: own(spec, 'canAdvance') || own(spec, 'gate'),
+        canAdvance: spec.canAdvance,
+        gate: spec.gate,
+        latched: false
+      };
+    }
+
+    var stationsByLeg = legs.map(function (leg, idx) {
+      var source = configuredStationsForLeg(idx);
+      var list;
+      if (source && source.length) {
+        list = source.map(function (spec, order) { return makeStation(spec, idx, order, false); });
+      } else {
+        /* No explicit entry means exactly the legacy station, including end-of-leg
+         * damping, global gate callback and the leg-0 departure deadzone. */
+        list = [makeStation({}, idx, 0, true)];
+      }
+      list.sort(function (a, b) { return a.at === b.at ? a.index - b.index : a.at - b.at; });
+      return list;
+    });
+
+    function stationPublic(station) {
+      if (!station) return null;
+      return {
+        id: station.id,
+        leg: station.leg,
+        index: station.index,
+        at: station.at,
+        enter: station.enter,
+        exit: station.exit,
+        dampFrom: station.dampFrom,
+        dampTo: station.dampTo,
+        dampMax: station.dampMax,
+        seam: station.seam,
+        latched: station.latched
+      };
+    }
+
+    /* Every station owns its latch. Several can be latched while travelling forward;
+     * the most recently reached one is the active surface. On a reverse travel its own
+     * exit threshold releases it and the previous station becomes active again. A leg
+     * change clears that leg's latches first — this preserves the old engine's rule that
+     * a station never leaks across a video seam or reappears merely because we jumped
+     * back into the middle of a room. */
+    var stationLatchLeg = -1;
+    function activeStation(r) {
+      var list = stationsByLeg[r.idx] || [];
+      if (r.idx !== stationLatchLeg) {
+        stationLatchLeg = r.idx;
+        for (var reset = 0; reset < list.length; reset++) list[reset].latched = false;
+      }
+      var active = null;
+      for (var i = 0; i < list.length; i++) {
+        var station = list[i];
+        if (station.latched) {
+          if (r.local < station.exit) station.latched = false;
+        } else if (r.local >= station.enter) {
+          station.latched = true;
+        }
+        if (station.latched) active = station;
+      }
+      return active;
+    }
+
+    function stationAtId(idx, id) {
+      var list = stationsByLeg[idx] || [];
+      for (var i = 0; i < list.length; i++) {
+        if (list[i].id === String(id)) return list[i];
+      }
+      return null;
     }
     var stage = document.querySelector('[data-stage]');
     var loader = document.querySelector('[data-loader]');
@@ -502,12 +634,22 @@
       root.style.setProperty('--par-mid', (p * 260).toFixed(2) + 'px');
       root.style.setProperty('--par-fast', (p * 520).toFixed(2) + 'px');
 
-      /* A station is a leg's settled end — where the camera has stopped and the
-       * interface belongs. Held slightly before 1 so it is reached before the seam. */
-      var station = stationOn(r) ? 1 : 0;
+      /* The active station is the most recently reached independently-latched place in
+       * this leg. Keep the old numeric attribute for existing CSS, then publish the real
+       * identity beside it so new surfaces never have to infer geography from a progress
+       * percentage. */
+      var active = activeStation(r);
+      var station = active ? 1 : 0;
       root.style.setProperty('--station', String(station));
       stage.setAttribute('data-leg', String(r.idx));
       stage.setAttribute('data-station', String(station));
+      if (active) {
+        stage.setAttribute('data-station-id', active.id);
+        stage.setAttribute('data-station-index', String(active.index));
+      } else {
+        stage.removeAttribute('data-station-id');
+        stage.removeAttribute('data-station-index');
+      }
 
       /* THE SCREEN RECTANGLE, published for the layer that sits on it.
        * Only on the last leg, and only once the monitor is big enough to read. Written as
@@ -601,14 +743,15 @@
       uiLag += (wanted - uiLag) * (config.blockLagEase || 0.12);
       if (Math.abs(uiLag) < 0.05) uiLag = 0;
       root.style.setProperty('--ui-lag', uiLag.toFixed(2) + 'px');
-      root.style.setProperty('--resist', resistance(current).toFixed(4));
+      var resistanceNow = resistanceInfo(current);
+      root.style.setProperty('--resist', resistanceNow.value.toFixed(4));
       /* --resist normalised to its OWN ceiling (dampMax), so CSS can ask "how settled is
        * this, 0..1" without hardcoding dampMax and drifting from it — the exact two-numbers-
        * for-one-idea trap `stationAt`/`stationEnter` already got fixed for once. Used by
        * `.glass` to appear only once truly at rest and start hiding the instant real
        * departure motion begins, rather than snapping on the discrete station latch alone. */
-      var dampMax = config.dampMax !== undefined ? config.dampMax : 0.94;
-      root.style.setProperty('--rest', (dampMax > 0 ? clamp01(resistance(current) / dampMax) : 0).toFixed(4));
+      var dampMax = resistanceNow.ceiling || (config.dampMax !== undefined ? config.dampMax : 0.94);
+      root.style.setProperty('--rest', (dampMax > 0 ? clamp01(resistanceNow.value / dampMax) : 0).toFixed(4));
       if (uiLag !== 0) schedule();
     }
 
@@ -637,31 +780,72 @@
      * it pins it honestly by holding the scroll position rather than by swallowing
      * events.
      */
-    function stationLocalOf(p) {
-      return resolve(p).local;
+    /* State for the true deadzone below — where the departure is measured from, and
+     * which exact station armed it. A person station and garment station may share a leg,
+     * so leg index alone is no longer enough identity. */
+    var deadAnchor = null;
+    var deadArmedStation = null;
+
+    function stationDeadSpan(station) {
+      if (!station) return 0;
+      if (station.deadSpan !== null) return station.deadSpan;
+      /* This is the shipped one-station behaviour: only leg 0 had the deliberate
+       * backwards departure deadzone. Explicit stations opt in individually instead of
+       * inheriting a deadzone intended for the old mirror-only surface. */
+      if (station.legacyDamping && station.leg === 0) {
+        return config.deadSpan !== undefined ? config.deadSpan : 0.014;
+      }
+      return 0;
     }
 
-    /* State for the true deadzone below — where the departure is measured from, and
-     * which leg it was armed on (reset on any leg change, same pattern as the station
-     * latch itself). */
-    var deadAnchor = null;
-    var deadArmedLeg = -1;
-    function deadSpan() { return config.deadSpan !== undefined ? config.deadSpan : 0.014; }
+    /* How much one station resists, 0 free .. 1 immovable.
+     *
+     * Explicit stations have a local resistance envelope. This is essential for three
+     * stops in one leg: a garment station that stayed at 94% resistance until the end of
+     * the room would make the later mirror station feel broken. The legacy implicit stop
+     * preserves the old plateau from `at` all the way to the seam. */
+    function stationResistance(station, local) {
+      var from = station.dampFrom;
+      var at = station.at;
+      var x;
 
-    /* How much a station resists, 0 free .. 1 immovable. */
-    function resistance(p) {
+      if (station.legacyDamping) {
+        if (local <= from) return 0;
+        x = (local - from) / Math.max(0.0001, at - from);
+        return clamp01(x * x * x) * station.dampMax;
+      }
+
+      if (local < from || local > station.dampTo) return 0;
+      if (local <= at) {
+        x = (local - from) / Math.max(0.0001, at - from);
+      } else {
+        /* `dampTo === at` means "release immediately after the pin" — the normal
+         * default for an intermediate station once its gate has opened. */
+        if (station.dampTo <= at) return 0;
+        x = (station.dampTo - local) / (station.dampTo - at);
+      }
+      return clamp01(x * x * x) * station.dampMax;
+    }
+
+    /* The maximum wins if two intentionally nearby envelopes overlap. That keeps a
+     * hand from finding an accidental low-resistance gap between physical stations. */
+    function resistanceInfo(p) {
       var r = resolve(p);
-      var enter = config.dampFrom !== undefined ? config.dampFrom : 0.72;
-      var at = stationAt();
-      if (r.local <= enter) return 0;
-      /* Normalised over enter -> STATION, not enter -> 1. Ramping to the end of the leg
-       * meant the resistance was still only a third of maximum when the hard gate took
-       * over, so the "insensitive" stretch never actually arrived. */
-      var span = Math.max(0.0001, at - enter);
-      var x = (r.local - enter) / span;
-      /* Cubic so the first part of the approach is barely affected and the last part is
-       * heavy. A linear ramp makes the whole approach feel sticky instead of arriving. */
-      return clamp01(x * x * x) * (config.dampMax !== undefined ? config.dampMax : 0.94);
+      var list = stationsByLeg[r.idx] || [];
+      var strongest = 0;
+      var ceiling = 0;
+      for (var i = 0; i < list.length; i++) {
+        var value = stationResistance(list[i], r.local);
+        if (value > strongest) {
+          strongest = value;
+          ceiling = list[i].dampMax;
+        }
+      }
+      return { value: strongest, ceiling: ceiling };
+    }
+
+    function resistance(p) {
+      return resistanceInfo(p).value;
     }
 
     /* MAY THE JOURNEY LEAVE THIS LEG'S STATION?
@@ -670,11 +854,27 @@
      * finished — whether a look exists yet — so it hands in a predicate and the clock obeys.
      * `canAdvance` is the current name; `gateFor` is still honoured because it is what the
      * page used to pass and silently ignoring it would turn a closed gate into an open one. */
-    function gateOpen(idx) {
+    function globalGateOpen(idx, station) {
       var fn = typeof config.canAdvance === 'function' ? config.canAdvance
              : (typeof config.gateFor === 'function' ? config.gateFor : null);
       if (!fn) return true;
-      return fn(idx) !== false;
+      /* Existing pages receive precisely the old first argument. The second is additive
+       * context for a multi-station UI and can be ignored by legacy callbacks. */
+      return fn(idx, stationPublic(station)) !== false;
+    }
+
+    function gateOpen(idx, station) {
+      if (!station) return true;
+      var ownGate = typeof station.canAdvance === 'function' ? station.canAdvance
+        : (typeof station.gate === 'function' ? station.gate : null);
+      if (ownGate) return ownGate(stationPublic(station), idx) !== false;
+      if (station.hasOwnGate) {
+        /* `gate: true` is an explicit open station; `gate: false` is an explicit hold.
+         * The same works for a boolean `canAdvance` to keep configuration declarative. */
+        var value = station.canAdvance !== undefined ? station.canAdvance : station.gate;
+        return value !== false;
+      }
+      return globalGateOpen(idx, station);
     }
 
     /* Is a leg's film actually usable — arrived, decoded far enough to seek into?
@@ -704,15 +904,19 @@
      * Must invert resolve(), including the intro offset — pinning to a raw legs-only
      * fraction would park the page in the wrong place by the whole width of the intro,
      * which reads as the gate yanking you backwards. */
-    function stationScrollFor(idx) {
+    function stationScrollFor(idx, station) {
       var max = root.scrollHeight - viewport();
       var s = legsStart();
-      var q = (idx + stationAt()) / legs.length;         // position within the legs' domain
+      var list = stationsByLeg[idx] || [];
+      station = station || list[list.length - 1];
+      var at = station ? station.at : legacyStationAt();
+      var q = (idx + at) / legs.length;                  // position within the legs' domain
       var pStation = s + q * (1 - s);                    // back out to page coordinates
       return Math.round(clamp01(pStation) * max);
     }
 
     var lockedLeg = -1;
+    var lockedStation = null;
 
     function applyLock() {
       /* An auto-advance is a deliberate move past a station that has just opened. Locking
@@ -720,7 +924,12 @@
       if (autoDrive) return false;
 
       var r = resolve(current);
-      var atSeam = r.local >= stationEnter() && r.idx < legs.length - 1;
+      var station = activeStation(r);
+      var atStation = !!(station && r.local >= station.enter);
+      /* A mid-leg station owns its own gate but must not pretend the next video is a
+       * problem. Only an explicit `seam: true` station controls preloading the next leg.
+       * The implicit legacy station is always a seam station, preserving old behaviour. */
+      var atSeam = atStation && station.seam && r.idx < legs.length - 1;
       /* THREE STATES, NOT ONE FLAG.
        *   loading — the next room's film has not arrived. Says so on the banner, because the
        *             viewer did nothing wrong and silence would read as a broken page.
@@ -731,15 +940,18 @@
        *             can feel rather than an unexplained wall.
        * `closed` is gone. Any CSS still keyed to it can no longer fire — that is the point. */
       var nextMissing = atSeam && !filmReady(r.idx + 1);
-      var shouldLock = atSeam && (nextMissing || !gateOpen(r.idx));
+      var shouldLock = atStation && (nextMissing || !gateOpen(r.idx, station));
       var why = nextMissing ? 'loading' : 'held';
 
-      if (shouldLock && (lockedLeg !== r.idx || root.getAttribute('data-gate') !== why)) {
+      if (shouldLock && (lockedLeg !== r.idx || lockedStation !== station ||
+                         root.getAttribute('data-gate') !== why)) {
         lockedLeg = r.idx;
+        lockedStation = station;
         root.setAttribute('data-gate', why);
         stage.setAttribute('data-gate', why);
       } else if (!shouldLock && lockedLeg !== -1) {
         lockedLeg = -1;
+        lockedStation = null;
         root.removeAttribute('data-gate');
         stage.removeAttribute('data-gate');
       }
@@ -797,15 +1009,17 @@
       opts = opts || {};
       var n = legs.length;
       var leg = Math.max(0, Math.min(n - 1, idx));
+      var requestedStation = opts.stationId !== undefined ? stationAtId(leg, opts.stationId) : null;
       var dest = opts.toStation === false
         ? Math.round(clamp01(legsStart() + (leg / n) * (1 - legsStart())) * (root.scrollHeight - viewport()))
-        : stationScrollFor(leg);
+        : stationScrollFor(leg, requestedStation);
 
       cancelAuto('superseded');
       /* Release the hold for the duration. The gate that was closed a moment ago is the
        * reason this call exists, and applyLock re-locking mid-flight would pin the page
        * back to the station it is trying to leave. */
       lockedLeg = -1;
+      lockedStation = null;
       root.removeAttribute('data-gate');
       stage.removeAttribute('data-gate');
       root.setAttribute('data-auto', '1');
@@ -869,7 +1083,7 @@
       /* A closed gate holds the page at the station. Scrolling further does nothing and
        * says so — the page simply does not move forward. Scrolling back is untouched. */
       if (lockedLeg >= 0) {
-        var pin = stationScrollFor(lockedLeg);
+        var pin = stationScrollFor(lockedLeg, lockedStation);
         if (window.scrollY > pin) {
           window.scrollTo(0, pin);
           target = readTarget();
@@ -878,8 +1092,8 @@
         }
       }
 
-      /* A TRUE DEADZONE while the mirror UI is showing (leg 0's station — the only leg
-       * with an interactive panel right now). The resistance ramp below is still a ramp:
+      /* A TRUE DEADZONE while an opted-in attention surface is showing. The resistance ramp
+       * below is still a ramp:
        * even at dampMax it lets 6% of every tick through, which reads as "sticky", not
        * "stopped" — the owner asked for genuinely zero movement until a swipe back is
        * committed to, so leaving is a deliberate gesture rather than a slow leak.
@@ -893,16 +1107,19 @@
        * so the handoff is smooth rather than a jump: at dampMax the first tick past the
        * threshold only moves 6% of the way to `raw`, same as any other departure. */
       var r = resolve(current);
-      if (r.idx === 0 && stationOn(r)) {
-        if (deadArmedLeg !== r.idx) { deadArmedLeg = r.idx; deadAnchor = current; }
+      var active = activeStation(r);
+      var span = stationDeadSpan(active);
+      var deadKey = active ? (active.leg + ':' + active.id) : null;
+      if (active && span > 0) {
+        if (deadArmedStation !== deadKey) { deadArmedStation = deadKey; deadAnchor = current; }
         var shortfall = deadAnchor - raw;
         if (shortfall > 0) {
-          if (shortfall < deadSpan()) { target = deadAnchor; schedule(); return; }
+          if (shortfall < span) { target = deadAnchor; schedule(); return; }
         } else {
           deadAnchor = current;   // not pulling back right now — keep the anchor at "here"
         }
       } else {
-        deadAnchor = null; deadArmedLeg = -1;
+        deadAnchor = null; deadArmedStation = null;
       }
 
       /* Resistance: the target only follows part of the way, so the film crawls as the
@@ -968,6 +1185,7 @@
     return {
       state: function () {
         var r = resolve(current);
+        var active = activeStation(r);
         return {
           ready: ready,
           target: target,
@@ -976,7 +1194,14 @@
           legName: legs[r.idx].name,
           local: r.local,
           eased: r.eased,
-          station: stationLatched,
+          /* `station` stays boolean for existing consumers. The identity and the full
+           * current-leg registry make a new UI deterministic without reverse-engineering
+           * thresholds from a global scroll value. */
+          station: !!active,
+          stationId: active ? active.id : null,
+          stationIndex: active ? active.index : -1,
+          stationInfo: stationPublic(active),
+          stations: (stationsByLeg[r.idx] || []).map(stationPublic),
           videoTime: videos[r.idx].currentTime,
           videoDuration: videos[r.idx].duration,
           durations: videos.map(function (v) { return v.duration; }),
@@ -984,8 +1209,9 @@
           motionTableLoaded: !!(motion && motion.legs),
           usingTableForLeg: !!(motion && motion.legs && motion.legs[r.idx] && motion.legs[r.idx].table),
           resistance: resistance(current),
-          gateOpen: gateOpen(r.idx),
+          gateOpen: gateOpen(r.idx, active),
           lockedLeg: lockedLeg,
+          lockedStationId: lockedStation ? lockedStation.id : null,
           uiLag: uiLag
         };
       },
@@ -995,6 +1221,14 @@
        * easing as a hand, and a hand cancels it. Returns a promise resolving to why it ended:
        * 'arrived' | 'user took over' | 'superseded'. */
       advanceTo: advanceTo,
+      /* Explicitly target a physical station without teaching UI code the scroll
+       * arithmetic. `advanceTo(leg)` remains the backwards-compatible "last station in
+       * that leg" primitive. */
+      advanceToStation: function (leg, stationId, opts) {
+        opts = opts || {};
+        opts.stationId = stationId;
+        return advanceTo(leg, opts);
+      },
       releaseAndAdvance: function (opts) { return advanceTo(resolve(current).idx + 1, opts); },
       /* The UI calls this when a step's media has arrived and generated, which is the
        * only thing that opens a gate. */
