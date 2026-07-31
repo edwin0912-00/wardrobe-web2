@@ -107,6 +107,7 @@ test('saved look exposes actionable branches and their honest pipeline explanati
   assert.match(indexSource, /id="god-view-trigger"/);
   assert.match(appSource, /window\.location\.assign\('\/god-view\.html'\)/);
   assert.match(appSource, /document\.createElement\('video'\)/);
+  assert.match(appSource, /document\.body\.append\(fashionVideoOverlay\)/);
   assert.match(appSource, /video\.src = style\.playback_url/);
   assert.match(appSource, /video\.poster = style\.preview_url/);
   assert.doesNotMatch(appSource, /Timeout: відео не згенерувалося за 6 хвилин/);

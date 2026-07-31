@@ -745,17 +745,17 @@ body.profile-live-open {
   position: fixed;
   z-index: 1000;
   inset: 0;
-  display: grid;
-  place-items: stretch;
+  display: block;
   padding: 0;
   background: #080908;
 }
 
 .profile-live-close {
-  position: fixed;
+  position: absolute;
   z-index: 2;
-  top: max(14px, env(safe-area-inset-top));
-  right: max(14px, env(safe-area-inset-right));
+  top: 50%;
+  right: 0;
+  transform: translateY(-50%);
   width: 44px;
   height: 44px;
   border: 1px solid rgba(255, 255, 255, .16);
@@ -770,7 +770,7 @@ body.profile-live-open {
 /* ── Video Overlay ── */
 .video-overlay-content {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
   width: 100%;
   height: 100dvh;
   min-height: 0;
@@ -779,12 +779,15 @@ body.profile-live-open {
   border: 0;
   border-radius: 0;
   box-shadow: none;
-  padding: clamp(16px, 3vh, 32px) clamp(18px, 4vw, 56px);
+  padding: max(16px, env(safe-area-inset-top)) clamp(18px, 4vw, 56px) max(16px, env(safe-area-inset-bottom));
 }
 
 .video-overlay-header {
+  position: relative;
+  min-height: 46px;
   text-align: center;
   margin-bottom: clamp(.75rem, 2vh, 1.5rem);
+  padding: 0 54px;
 }
 
 .video-overlay-header .result-kicker {
@@ -802,14 +805,13 @@ body.profile-live-open {
 }
 
 .video-overlay-body {
-  display: grid;
-  grid-template-columns: minmax(0, 820px);
-  justify-content: center;
-  gap: clamp(1rem, 3vw, 2.5rem);
+  display: block;
   width: min(1040px, 100%);
   min-height: 0;
   margin: 0 auto;
-  align-items: stretch;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
 }
 
 .video-overlay-preview {
@@ -843,18 +845,37 @@ body.profile-live-open {
 .video-overlay-controls {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: .75rem;
+}
+
+.video-overlay-footer {
+  width: min(1040px, 100%);
+  margin: clamp(10px, 2vh, 20px) auto 0;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, .12);
+  background: #0f100f;
+}
+
+.video-overlay-footer .primary-result-action {
+  min-height: 52px;
+}
+
+.video-overlay-feedback {
+  display: grid;
+  gap: 12px;
+  margin: 14px 0 4px;
 }
 
 .video-style-options {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
 }
 
 .video-style-card {
   position: relative;
-  min-height: 260px;
+  min-height: 0;
+  aspect-ratio: 9 / 16;
   padding: 0;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, .14);
@@ -867,7 +888,7 @@ body.profile-live-open {
 .video-style-card video {
   width: 100%;
   height: 100%;
-  min-height: 260px;
+  min-height: 0;
   object-fit: cover;
   background: #111;
 }
@@ -1070,8 +1091,6 @@ body.profile-live-open {
   }
 
   .video-overlay-body {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto;
     gap: 8px;
   }
 
@@ -1083,9 +1102,9 @@ body.profile-live-open {
     gap: .55rem;
   }
 
-  .video-style-options { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .video-style-options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .video-style-card,
-  .video-style-card img { min-height: 160px; }
+  .video-style-card video { min-height: 0; }
 
   .video-control-group {
     gap: .3rem;

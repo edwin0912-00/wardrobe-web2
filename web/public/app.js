@@ -66,6 +66,11 @@ const fashionVideoCapabilityOrb = createThinkingOrb(document.querySelector('#pro
 const realtimeLookCapabilityOrb = createThinkingOrb(document.querySelector('#profile-live-orb'), 'searching');
 const videoThinkingOrb = createThinkingOrb(document.querySelector('#video-thinking-orb'), 'searching');
 const liveVisualizer = createLiveVisualizer(document.querySelector('#pipeline-live-visualizer'));
+// This screen must not live below a transformed workflow panel: `position:
+// fixed` would then be clipped as a window inside a window. Keep the Fashion
+// Video task as a single direct-body, full-viewport screen.
+const fashionVideoOverlay = document.querySelector('#video-overlay');
+document.body.append(fashionVideoOverlay);
 const uploads = new UploadSelectionStore({ maxGarments: 5 });
 let previewUrls = [];
 let previewRenderEpoch = 0;
@@ -1835,7 +1840,7 @@ document.querySelector('#profile-look-video').addEventListener('click', (event) 
   if (!selectedProfileLook) return;
   const lookId = idOfLook(selectedProfileLook);
   if (!lookId || fashionVideoCapability?.lookId !== lookId) return;
-  const overlay = document.querySelector('#video-overlay');
+  const overlay = fashionVideoOverlay;
   setLookActionStatus('Fashion Video: обери перевірену відеостилістику й запусти генерацію.');
   renderFashionVideoStyles(fashionVideoCapability.styles);
   document.querySelector('#video-progress').hidden = true;
@@ -1843,6 +1848,7 @@ document.querySelector('#profile-look-video').addEventListener('click', (event) 
   document.querySelector('#video-error').hidden = true;
   document.querySelector('#video-retry').hidden = true;
   setVideoGenerateBusy(videoGenerationBusy);
+  document.body.classList.add('profile-live-open');
   overlay.classList.remove('hidden');
   document.querySelector('#video-overlay-close').focus({ preventScroll: true });
 });
@@ -1882,7 +1888,8 @@ function renderFashionVideoStyles(styles = []) {
 // Video overlay: close
 function closeVideoOverlay() {
   document.querySelectorAll('#video-style-options video').forEach((video) => video.pause());
-  document.querySelector('#video-overlay').classList.add('hidden');
+  fashionVideoOverlay.classList.add('hidden');
+  document.body.classList.remove('profile-live-open');
 }
 function setVideoGenerateBusy(busy) {
   const action = document.querySelector('#video-generate');

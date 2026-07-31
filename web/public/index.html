@@ -239,19 +239,18 @@
           </section>
         </div>
         <div id="video-overlay" class="profile-live-overlay hidden" role="dialog" aria-modal="true" aria-label="Fashion Video генерація">
-          <button id="video-overlay-close" class="profile-live-close" type="button" aria-label="Закрити Video">×</button>
           <div class="video-overlay-content">
-            <div class="video-overlay-header">
+            <header class="video-overlay-header">
               <p class="result-kicker">FASHION VIDEO</p>
               <h3 id="video-overlay-title">Створити відео</h3>
-            </div>
+              <button id="video-overlay-close" class="profile-live-close" type="button" aria-label="Закрити Fashion Video">×</button>
+            </header>
             <div class="video-overlay-body">
-              <div class="video-overlay-controls">
-                <div class="video-control-group">
-                  <label class="video-label">Обери стиль Fashion Video</label>
-                  <div id="video-style-options" class="video-style-options" role="radiogroup" aria-label="Стиль Fashion Video"></div>
-                </div>
-                <button id="video-generate" class="primary-result-action" type="button">Генерувати Fashion Video →</button>
+              <div class="video-control-group">
+                <label class="video-label">Обери стиль Fashion Video</label>
+                <div id="video-style-options" class="video-style-options" role="radiogroup" aria-label="Стиль Fashion Video"></div>
+              </div>
+              <div class="video-overlay-feedback">
                 <div id="video-progress" class="video-progress" hidden>
                   <div id="video-ai-thinking" class="video-ai-thinking" role="status" aria-live="polite">
                     <canvas id="video-thinking-orb"></canvas>
@@ -265,9 +264,14 @@
                   <a id="video-result-download" download="fashion-video.mp4">Завантажити MP4 ↓</a>
                 </div>
                 <p id="video-error" class="scene-error" role="alert" hidden></p>
-                <button id="video-retry" class="primary-result-action" type="button" hidden>Повторити спробу →</button>
               </div>
             </div>
+            <footer class="video-overlay-footer">
+              <div class="video-overlay-controls">
+                <button id="video-generate" class="primary-result-action" type="button">Генерувати Fashion Video →</button>
+                <button id="video-retry" class="primary-result-action" type="button" hidden>Повторити спробу →</button>
+              </div>
+            </footer>
           </div>
         </div>
         <div id="scene-view" class="scene-view hidden">

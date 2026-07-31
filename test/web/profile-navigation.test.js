@@ -167,7 +167,7 @@ test('canonical AI orbs lead capability checks and Fashion Video progress', () =
 
 test('Fashion Video and Live Look use full-viewport single surfaces without nested scrolling', () => {
   assert.doesNotMatch(resultCss, /\.profile-live-overlay iframe/);
-  assert.match(resultCss, /\.profile-live-overlay \{[\s\S]*?inset:\s*0;[\s\S]*?place-items:\s*stretch;[\s\S]*?padding:\s*0;/);
+  assert.match(resultCss, /\.profile-live-overlay \{[\s\S]*?inset:\s*0;[\s\S]*?display:\s*block;[\s\S]*?padding:\s*0;/);
   const videoSurface = resultCss.slice(
     resultCss.indexOf('.video-overlay-content {'),
     resultCss.indexOf('.video-overlay-header {'),
@@ -178,6 +178,12 @@ test('Fashion Video and Live Look use full-viewport single surfaces without nest
   assert.match(videoSurface, /border-radius:\s*0/);
   assert.match(videoSurface, /box-shadow:\s*none/);
   assert.doesNotMatch(videoSurface, /max-height|overflow-y/);
+  assert.match(resultCss, /\.video-overlay-content \{[\s\S]*?grid-template-rows:\s*auto minmax\(0, 1fr\) auto;/);
+  assert.match(resultCss, /\.video-overlay-body \{[\s\S]*?overflow-y:\s*auto;/);
+  assert.match(resultCss, /\.video-overlay-footer \{[\s\S]*?border-top:/);
+  assert.match(resultCss, /\.video-style-options \{[\s\S]*?grid-template-columns:\s*repeat\(4, minmax\(0, 1fr\)\);/);
+  assert.match(resultCss, /@media \(max-width: 700px\) \{[\s\S]*?\.video-style-options \{ grid-template-columns: repeat\(2, minmax\(0, 1fr\)\); \}/);
+  assert.match(appSource, /document\.body\.append\(fashionVideoOverlay\)/);
 });
 
 test('a short desktop look reserves its remaining height for the compact action grid', () => {
