@@ -87,7 +87,11 @@ function makeBible(overrides = {}) {
       pose: index === 0
         ? 'Neutral grounded stance with separated hands and unobstructed outfit.'
         : `Slot-specific ${slot} pose with readable anatomy and no accidental occlusion.`,
+      expression_signature: index === 0
+        ? 'Calm direct gaze; facial features fully readable without theatrical expression.'
+        : `Controlled ${slot} expression consistent with the approved identity and the scene mood.`,
       lighting: 'Warm early-morning key, soft open-sky fill, coherent contact shadow, and protected face/item detail.',
+      subject_lighting: 'Key remains on the approved person; face and all visible item evidence stay readable.',
       environment: 'Original non-identifiable deep-green landscape and restrained pale architectural surface.',
       palette: 'Deep green, warm off-white, restrained mustard, natural skin, exact approved item colors.',
       identity_visibility: slot === 'material_or_accessory_detail' ? 'partial_face' : 'full_face',
@@ -148,8 +152,8 @@ function executionResult(context, {
         resource_id: `scene_${context.slot}_${context.attempt}`,
         sha256: candidateSha256,
         receipt_sha256: sha256(Buffer.from(`receipt:${candidateSha256}`)),
-        width: 1024,
-        height: 1280,
+        width: 1536,
+        height: 2048,
         media_type: 'image/png',
       }
       : null,
@@ -211,6 +215,7 @@ async function fixture(t, {
   rootDirectory = null,
   clock = monotonicClock(),
   autoRepairBaseDelayMs = 0,
+  bible = makeBible(),
 } = {}) {
   const root = rootDirectory ?? await mkdtemp(path.join(os.tmpdir(), 'zeely-editorial-'));
   if (!rootDirectory) t.after(() => rm(root, { recursive: true, force: true }));
@@ -221,7 +226,6 @@ async function fixture(t, {
     autoRepairBaseDelayMs,
   });
   await service.initialize();
-  const bible = makeBible();
   const request = {
     idempotencyKey: 'create-editorial-shoot-fixture-0001',
     approvedLookReference: LOOK,
@@ -473,7 +477,96 @@ test('hero QA and exact-hash approval are hard barriers, then all five customer 
   }
 });
 
-test('two live service instances enforce one persisted global concurrency limit of five', async (t) => {
+test('Fashion Shoot queues its five customer frames immediately and never waits on a hidden hero', async (t) => {
+  const customerFrames = deferred();
+  const executor = new FakeSceneExecutor({
+    plans: Object.fromEntries(EDITORIAL_SHOT_SLOTS.slice(1).map((slot) => [
+      slot,
+      async (context) => {
+        await customerFrames.promise;
+        return executionResult(context);
+      },
+    ])),
+  });
+  const fashionBible = makeBible({
+    mode_id: 'shoot.terracotta_hardlight',
+    bible_id: 'bible_fashion_parallel_fixture',
+    title: 'Fashion Shoot — five-frame program',
+  });
+  const current = await fixture(t, { executor, bible: fashionBible });
+  const created = await createAndApproveBible(current);
+  const running = await waitForState(
+    current.service,
+    created.shoot_id,
+    (state) => executor.inFlight === 5,
+  );
+  assert.equal(running.status, 'SERIES_RUNNING');
+  assert.equal(running.shots[0].status, 'CANCELLED');
+  assert.deepEqual(
+    executor.invocations.map((call) => call.slot).sort(),
+    [...EDITORIAL_SHOT_SLOTS.slice(1)].sort(),
+  );
+  assert.ok(executor.invocations.every((call) => call.hero_output === null));
+
+  customerFrames.resolve();
+  const completed = await waitForState(
+    current.service,
+    created.shoot_id,
+    (state) => state.status === 'COMPLETED',
+    5_000,
+  );
+  await current.service.waitForIdle(created.shoot_id);
+  assert.equal(executor.maxInFlight, 5);
+  assert.equal(completed.shots[0].status, 'CANCELLED');
+  assert.deepEqual(completed.shots.slice(1).map((shot) => shot.status), Array(5).fill('APPROVED'));
+});
+
+test('Fashion Shoot scheduler never exceeds eight running customer frames across shoots', async (t) => {
+  const allFrames = deferred();
+  const executor = new FakeSceneExecutor({
+    plans: Object.fromEntries(EDITORIAL_SHOT_SLOTS.slice(1).map((slot) => [
+      slot,
+      async (context) => {
+        await allFrames.promise;
+        return executionResult(context);
+      },
+    ])),
+  });
+  const fashionBible = makeBible({
+    mode_id: 'shoot.terracotta_hardlight',
+    bible_id: 'bible_fashion_global_limit_fixture',
+    title: 'Fashion Shoot — global limit fixture',
+  });
+  const current = await fixture(t, { executor, bible: fashionBible });
+  const first = await current.service.createShoot(current.request);
+  await current.service.approveBible(first.shoot_id, {
+    idempotencyKey: 'fashion-global-limit-first-0001',
+    expectedBibleSha256: first.bindings.shoot_bible.sha256,
+  });
+  await waitForState(current.service, first.shoot_id, () => executor.inFlight === 5);
+
+  const second = await current.service.createShoot({
+    ...current.request,
+    idempotencyKey: 'create-fashion-global-limit-second-0001',
+  });
+  await current.service.approveBible(second.shoot_id, {
+    idempotencyKey: 'fashion-global-limit-second-0001',
+    expectedBibleSha256: second.bindings.shoot_bible.sha256,
+  });
+  await waitForState(current.service, second.shoot_id, () => executor.inFlight === 8);
+  assert.equal(executor.maxInFlight, 8);
+
+  allFrames.resolve();
+  await waitForState(current.service, first.shoot_id, (state) => state.status === 'COMPLETED', 5_000);
+  await waitForState(current.service, second.shoot_id, (state) => state.status === 'COMPLETED', 5_000);
+  await Promise.all([
+    current.service.waitForIdle(first.shoot_id),
+    current.service.waitForIdle(second.shoot_id),
+  ]);
+  assert.equal(executor.maxInFlight, 8);
+});
+
+test('two live service instances enforce one persisted global concurrency limit of two', async (t) => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'zeely-editorial-multi-instance-'));
   t.after(() => rm(root, { recursive: true, force: true }));
   const pending = new Map();
@@ -830,6 +923,52 @@ test('a PASS result that still names a defect is rejected, then the hero retries
   assert.equal(repaired.shots[0].attempts[0].error.code, 'EXECUTOR_FAILED');
   assert.equal(repaired.shots[0].attempts[1].status, 'PASS');
   assert.deepEqual(repaired.shots.slice(1).map((shot) => shot.status), Array(5).fill('BLOCKED'));
+});
+
+test('manual retry reuses the exact child scene after a post-generation executor failure', async (t) => {
+  const invocations = [];
+  const executor = {
+    async executeShot(context) {
+      invocations.push(context);
+      if (invocations.length <= 4) {
+        throw new Error('Editorial output used the previous parent canvas contract');
+      }
+      return executionResult(context);
+    },
+  };
+  const current = await fixture(t, { executor });
+  const created = await createAndApproveBible(current);
+  const failed = await waitForState(
+    current.service,
+    created.shoot_id,
+    (state) => state.status === 'NEEDS_RETRY',
+  );
+  const originalAttempt = failed.shots[0].attempts[0];
+  assert.equal(originalAttempt.error.code, 'EXECUTOR_FAILED');
+
+  await current.service.retryShot(created.shoot_id, 'clean_identity_hero', {
+    idempotencyKey: 'resume-post-generation-executor-failure',
+  });
+  let recovered;
+  try {
+    recovered = await waitForState(
+      current.service,
+      created.shoot_id,
+      (state) => state.status !== 'HERO_RUNNING',
+    );
+  } catch (error) {
+    const stuck = await current.service.getShoot(created.shoot_id);
+    assert.fail(`${error.message}: ${JSON.stringify(stuck.shots[0])}`);
+  }
+  assert.equal(recovered.status, 'HERO_PENDING_APPROVAL', JSON.stringify(recovered.shots[0]));
+  assert.equal(recovered.shots[0].attempts.length, 4);
+  assert.equal(invocations.length, 5);
+  assert.equal(invocations[4].attempt, invocations[3].attempt);
+  assert.equal(invocations[4].operation_id, invocations[3].operation_id);
+  assert.equal(invocations[4].idempotency_key, invocations[3].idempotency_key);
+  assert.equal(invocations[4].reuse_existing_execution, true);
+  assert.equal(recovered.shots[0].output.width, 1536);
+  assert.equal(recovered.shots[0].output.height, 2048);
 });
 
 test('current state must still match the event head even when polling after the latest cursor', async (t) => {

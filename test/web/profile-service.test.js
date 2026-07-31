@@ -158,6 +158,34 @@ test('claim is required, ownership is isolated, and claim/save replay is idempot
   assert.equal(replayedSave.json().profile.avatars.length, 1);
   assert.equal(replayedSave.json().profile.looks.length, 1);
 
+  // Saving clears local draft lineage. A later browser refresh is still the
+  // same owner, so it must replay the fixed original claim rather than showing
+  // a false “profile was not saved” failure.
+  await addRun('derived-replay-run');
+  const derivedClaim = await app.inject({
+    method: 'POST', url: '/api/profile/runs/derived-replay-run/claim',
+    headers: { cookie: cookieA, 'content-type': 'application/json' },
+    payload: {
+      source_avatar_id: saved.json().avatar.avatar_id,
+      source_look_id: saved.json().look.look_id,
+    },
+  });
+  assert.equal(derivedClaim.statusCode, 201, derivedClaim.body);
+  const derivedSave = await app.inject({ method: 'POST', url: '/api/profile/runs/derived-replay-run/save', headers: { cookie: cookieA } });
+  assert.equal(derivedSave.statusCode, 201, derivedSave.body);
+  const replayAfterLocalCleanup = await app.inject({
+    method: 'POST', url: '/api/profile/runs/derived-replay-run/claim',
+    headers: { cookie: cookieA, 'content-type': 'application/json' },
+    payload: { source_avatar_id: null, source_look_id: null },
+  });
+  assert.equal(replayAfterLocalCleanup.statusCode, 200, replayAfterLocalCleanup.body);
+  assert.equal(replayAfterLocalCleanup.json().replayed, true);
+  assert.equal(replayAfterLocalCleanup.json().source_avatar_id, saved.json().avatar.avatar_id);
+  assert.equal(replayAfterLocalCleanup.json().source_look_id, saved.json().look.look_id);
+  const replayedDerivedSave = await app.inject({ method: 'POST', url: '/api/profile/runs/derived-replay-run/save', headers: { cookie: cookieA } });
+  assert.equal(replayedDerivedSave.statusCode, 200, replayedDerivedSave.body);
+  assert.equal(replayedDerivedSave.json().look.look_id, derivedSave.json().look.look_id);
+
   const avatarImage = await app.inject({ method: 'GET', url: saved.json().avatar.image_url, headers: { cookie: cookieA } });
   assert.equal(avatarImage.statusCode, 200);
   assert.equal(avatarImage.body, 'avatar:completed-profile-run');

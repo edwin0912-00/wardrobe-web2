@@ -65,14 +65,17 @@ test('catalog is production ACTIVE and only READY modes become controls', () => 
   assert.match(ensureSource, /mode\?\.generation_available === true[\s\S]*?mode\?\.source_set_status !== 'READY'/);
   const cardSource = sourceBetween(
     sceneUiSource,
-    'function createEditorialModeCard(mode, onSelect)',
+    'function createEditorialModeCard(mode, onSelect, { eager = false } = {})',
     'function lookDescriptor(profile, lookId)',
   );
   assert.match(cardSource, /document\.createElement\('button'\)/);
   assert.match(cardSource, /card\.disabled = !ready/);
   assert.match(cardSource, /mode\.source_set_status === 'READY'/);
   assert.match(cardSource, /mode\.generation_available === true/);
+  assert.match(cardSource, /image\.loading = eager \? 'eager' : 'lazy'/);
+  assert.match(cardSource, /if \(eager\) image\.fetchPriority = 'high'/);
   assert.match(cardSource, /addEventListener\('click'/);
+  assert.match(sceneUiSource, /createEditorialModeCard\(mode, onSelect, \{ eager: index < 4 \}\)/);
   assert.match(sceneUiSource, /mode_id\.startsWith\('shoot\.'\)/);
   assert.doesNotMatch(indexHtml, /Legacy Editorial/);
   assert.doesNotMatch(indexHtml, /editorial-mode-grid-legacy/);
@@ -116,7 +119,7 @@ test('shoot survives reload and replays only persisted idempotent actions', () =
   assert.match(editorialUiSource, /pending_action:\s*action/);
   const preboot = indexHtml.match(/<script>try\{[\s\S]*?<\/script>/)?.[0] ?? '';
   assert.match(preboot, /q\.has\('shoot'\)/);
-  assert.match(preboot, /zeely_active_editorial_shoot_v1/);
+  assert.doesNotMatch(preboot, /zeely_active_editorial_shoot_v1/);
   assert.match(appSource, /queryShootId/);
 });
 
@@ -128,9 +131,9 @@ test('generation uses SSE with polling fallback and keeps repair automatic and p
   assert.match(editorialUiSource, /source\.addEventListener\('shoot'/);
   assert.match(editorialUiSource, /source\.addEventListener\('editorial-shoot'/);
   assert.match(editorialUiSource, /#beginPolling\(shootId\)/);
-  assert.match(editorialUiSource, /NEEDS_RETRY:\s*'ДОПРАЦЬОВУЄМО'/);
+  assert.match(editorialUiSource, /NEEDS_RETRY:\s*'ПОТРІБЕН ПОВТОР'/);
   assert.doesNotMatch(editorialUiSource, /retry\.textContent = 'Повторити кадр'/);
-  assert.doesNotMatch(editorialUiSource, /retry\.addEventListener\('click'/);
+  assert.match(editorialUiSource, /this\.retryShot\(failed\.slot\)/);
   assert.doesNotMatch(editorialStateSource, /status === 'NEEDS_RETRY'\) return 'failed'/);
 });
 
@@ -282,10 +285,10 @@ test('Fashion Shoot progress never reports a stopped or legacy failed job as liv
 });
 
 test('Fashion Shoot progress assets advance one cache-busted module chain', () => {
-  assert.match(indexHtml, /scene\.css\?v=20260731-2/);
-  assert.match(indexHtml, /app\.js\?v=20260731-2/);
-  assert.match(appSource, /scene-ui\.js\?v=20260731-2/);
-  assert.match(sceneUiSource, /editorial-shoot-ui\.js\?v=20260731-2/);
+  assert.match(indexHtml, /scene\.css\?v=20260731-3/);
+  assert.match(indexHtml, /app\.js\?v=20260731-3/);
+  assert.match(appSource, /scene-ui\.js\?v=20260731-3/);
+  assert.match(sceneUiSource, /editorial-shoot-ui\.js\?v=20260731-3/);
 });
 
 test('gallery exposes five Fashion Shoot frames, not its internal style check', () => {
@@ -294,7 +297,12 @@ test('gallery exposes five Fashion Shoot frames, not its internal style check', 
   const portraitCss = sceneCss.slice(portraitStart);
   assert.match(
     portraitCss,
-    /\.editorial-gallery\s*\{[\s\S]*?grid-template-columns:\s*repeat\(2,[\s\S]*?grid-template-rows:\s*repeat\(3,/,
+    /\.editorial-gallery\s*\{[\s\S]*?grid-template-columns:\s*repeat\(3,[\s\S]*?grid-template-rows:\s*none;/,
+  );
+  assert.match(portraitCss, /\.editorial-active-state canvas\s*\{[\s\S]*?width:\s*54px;[\s\S]*?height:\s*54px;/);
+  assert.match(
+    sceneCss,
+    /\.editorial-gallery-stage > \.editorial-controls\s*\{[\s\S]*?max-width:\s*none;[\s\S]*?margin:\s*0;[\s\S]*?padding:\s*0;[\s\S]*?border:\s*0;/,
   );
   assert.match(portraitCss, /\.editorial-controls \.scene-control\s*\{[\s\S]*?min-height:\s*44px;/);
   assert.match(sceneCss, /\.editorial-shot-download\s*\{[\s\S]*?width:\s*44px;[\s\S]*?height:\s*44px;/);
@@ -304,7 +312,7 @@ test('gallery exposes five Fashion Shoot frames, not its internal style check', 
   assert.match(editorialUiSource, /dialog\.showModal\(\)/);
   assert.match(editorialUiSource, /function fashionFrames\(shoot\)/);
   assert.match(editorialUiSource, /\.filter\(\(shot\) => shot\?\.slot !== INTERNAL_STYLE_CHECK_SLOT\)/);
-  assert.match(editorialUiSource, /Готово: \$\{completed\} з 5/);
+  assert.match(editorialUiSource, /\$\{completed\} з 5 готово · створюємо далі/);
   assert.match(editorialUiSource, /editorial-progress-meter/);
   assert.match(editorialUiSource, /editorialShotLabel\(shot\.slot\)/);
   assert.match(editorialUiSource, /editorialShotProgress\(shot, progress\)/);
@@ -329,6 +337,24 @@ test('saved-look library can reopen server-backed editorial shoots', () => {
   assert.match(sceneUiSource, /openExistingEditorial\(projection, look\)/);
 });
 
+test('plain homepage never auto-opens a stored scene or Fashion Shoot', () => {
+  assert.match(
+    appSource,
+    /if \(\(queryShootId \|\| querySceneId\) && await sceneUi\.resume\(\{ allowStored: false \}\)\)/,
+  );
+  assert.doesNotMatch(appSource, /queryShootId \|\| querySceneId \|\| !queryRunId/);
+  assert.match(sceneUiSource, /async resume\(\{ allowStored = true \} = \{\}\)/);
+  assert.match(sceneUiSource, /queryShootId && await this\.editorialUi\.resume\(\{ allowStored: false \}\)/);
+  assert.doesNotMatch(
+    indexHtml,
+    /localStorage\.getItem\('zeely_active_editorial_shoot_v1'\)/,
+  );
+  assert.doesNotMatch(
+    indexHtml,
+    /localStorage\.getItem\('zeely_active_scene_v1'\)/,
+  );
+});
+
 test('normal editorial states render controlled Ukrainian copy instead of raw service messages', () => {
   const renderSource = sourceBetween(
     editorialUiSource,
@@ -338,7 +364,37 @@ test('normal editorial states render controlled Ukrainian copy instead of raw se
   assert.match(editorialUiSource, /function displayShootMessage\(shoot\)/);
   assert.match(editorialUiSource, /Створюємо всі п’ять унікальних fashion-кадрів паралельно/);
   assert.match(editorialUiSource, /editorialGalleryProgress\(this\.shoot\)/);
+  assert.doesNotMatch(editorialUiSource, /паралельно по два/);
+  assert.match(indexHtml, /id="editorial-progress-detail"/);
   assert.doesNotMatch(renderSource, /shoot\.message/);
+});
+
+test('Fashion Shoot loading keeps the branded orb and portrait photo geometry', () => {
+  assert.match(indexHtml, /id="editorial-thinking-orb"/);
+  assert.match(indexHtml, /id="editorial-series-progress" aria-live="polite"/);
+  assert.match(editorialUiSource, /function displaySeriesProgress\(\{ completed, visibleFrames \}\)/);
+  assert.match(editorialUiSource, /#renderGalleryCards\(shots, progress\)/);
+  assert.match(editorialUiSource, /classList\.remove\('is-awaiting-first-frame'\)/);
+  assert.match(editorialUiSource, /className = 'editorial-shot-pending'/);
+  assert.match(sceneCss, /\.editorial-active-state canvas\s*\{[\s\S]*?width:\s*72px;[\s\S]*?height:\s*72px;/);
+  assert.match(
+    sceneCss,
+    /\.editorial-gallery-stage\.is-awaiting-first-frame \.editorial-active-state canvas\s*\{[\s\S]*?width:\s*184px;[\s\S]*?height:\s*184px;/,
+  );
+  assert.match(
+    sceneCss,
+    /\.editorial-gallery-stage\.is-awaiting-first-frame \.editorial-gallery\s*\{[\s\S]*?display:\s*none;/,
+  );
+  assert.match(sceneCss, /\.editorial-gallery\s*\{[\s\S]*?grid-template-columns:\s*repeat\(5,/);
+  assert.match(sceneCss, /\.editorial-shot-card\s*\{[\s\S]*?aspect-ratio:\s*4\s*\/\s*5;/);
+  assert.match(sceneCss, /\.editorial-master-strip img\s*\{[\s\S]*?width:\s*76px;[\s\S]*?height:\s*90px;/);
+});
+
+test('a stopped Fashion Shoot exposes a real retry instead of pretending to keep working', () => {
+  assert.match(indexHtml, /id="editorial-retry-failed"/);
+  assert.match(editorialUiSource, /NEEDS_RETRY: 'ПОТРІБЕН ПОВТОР'/);
+  assert.match(editorialUiSource, /'Повторити перший кадр'/);
+  assert.match(editorialUiSource, /this\.retryShot\(failed\.slot\)/);
 });
 
 test('standard scene workflow remains present beside Fashion Shoot', () => {

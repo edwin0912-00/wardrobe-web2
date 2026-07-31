@@ -17,6 +17,17 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-07-30 · BETA-BLOCK-6-CAPABILITY-PORT · beta integration · codex-main
+Change: port only the server-owned Fashion Video capability contract from the
+latest Block 6 branch. GET readiness and POST creation now share immutable
+approved-look, style-pack and motion-reference SHA gates. The older Block 6 UI
+was not integrated, so the consolidated Action Hub remains unchanged.
+Why: the raw branch could report READY while its conflicting UI and a separate
+unconditional POST guard disagreed. One server contract now owns both answers.
+Evidence: focused video/profile/Live suite 130/130 PASS; syntax and diff checks
+PASS; no provider call or paid generation.
+weakened_checks: none. Missing resolver or reference hash remains fail-closed.
+
 2026-07-29 · ANTIGRAVITY-QA-LOOP-001 · beta QA observer · codex-main
 Change: add Block 0.8 as an independent Gemini/Antigravity observer. Its
 bounded loop watches GitHub, tests the exact deployed beta through visible
@@ -42,6 +53,58 @@ because focused proof is 14/16 and the draft makes all ten `shoot.*`
 generation routes unavailable.
 Evidence: governance block-map tests and shell syntax checks are required
 before this control-plane commit is integrated.
+weakened_checks: none.
+
+2026-07-31 · Fashion Video terminal QA/retry repair · pending commit
+Change: fixed runtime/profile status split, surfaced `CLIP_HAS_AUDIO`, and
+replaced the UI’s synthetic “Generate” click with an explicit child retry
+route protected by durable idempotency.
+Why: a failed provider result could leave a stale `CREATED` projection, so the
+browser polled forever and never reached a real retry action. A retry is a new
+paid provider job and must not be automatic or duplicable.
+Evidence: focused service + route tests 48/48 PASS; no provider generation.
+weakened_checks: none.
+
+2026-07-31 · Fashion Video white-master and cut-sheet repair · pending commit
+Change: removed raw identity-photo media from the V2V request; Image 1 is a
+verified exact-white approved master and Image 2 is only a white garment card.
+Added immutable per-style timed cut sheets to the reference pack and prompt.
+Why: any photo background can compete with Video 1’s environment, while a
+single generic instruction can miss source-performer leakage in a later cut.
+Evidence: current runtime master passes the white-surface diagnostic; focused
+Fashion Video tests 69/69 PASS; no provider creation.
+weakened_checks: none.
+
+2026-07-30 · Fashion Video motion-reference authority
+Change: registered three operator-provided motion videos as a content-addressed
+runtime pack and wired deterministic per-mode selection into Seedance's native
+video-reference input. The media remains outside Git; manifests and receipts
+contain hashes only. OpenRouter refuses the unsupported video-reference
+contract before a network request.
+Why: Fashion Video must copy real motion/style authority rather than animate a
+saved look from prompt text alone.
+Evidence: real-path/size/hash verification passed for all three SSD files; all
+four modes select exactly one reference; focused suites PASS 138/138.
+weakened_checks: none.
+
+2026-07-30 · Two independent browser-QA observers and beta node monitor
+Change: preserved Antigravity as Observer 0.8 and added a separate external
+Handoff Cloud Code Observer 0.9 with unique identity, branch, report and
+evidence paths. Monitor runtime configuration now binds the current beta
+runtime and loopback health endpoint; a sanitized terminal watcher maps
+persisted events to Blocks 1–7.
+Why: two QA writers must never share a branch or evidence file, and the live
+monitor was still tied to a retired source path and port.
+Evidence: focused governance/monitor tests, shell syntax, strict release and
+local/public monitor health are required before activation.
+weakened_checks: none.
+
+2026-07-30 · Public health release binding
+Change: release runtime loads the immutable product manifest and publishes only
+its exact Git SHA and cache token in `/api/health`.
+Why: independent browser QA must prove it tested the deployed release, not
+merely a healthy endpoint or stale browser cache.
+Evidence: manifest validation and public health regression tests.
 weakened_checks: none.
 
 2026-07-30 · Upload drag-and-drop + HEIC · `6f17367` → beta
@@ -1303,3 +1366,33 @@ product development. Chat 00 writes no feature code and accepts only exact,
 tested handoffs.
 Why: deployment is a persistent control-plane responsibility; combining it
 with Block 1 implementation creates avoidable queueing and context overload.
+
+2026-07-30 · Durable saved-look boundary and runtime recovery · `afa34d8`
+Change: deployed the hash-bound approved-look snapshot from `3a387c2`, including
+the look bytes, PASS receipt and immutable item evidence. Restored the beta web
+and Cloudflare LaunchAgents after offload by keeping their log/runtime control
+paths on the internal SSD while retaining bulk releases and backups externally.
+Why: a completed saved look could return `LOOK_ITEM_EVIDENCE_INVALID` before a
+background generation, while the UI falsely called HTTP 409 a connection loss;
+LaunchAgents also returned `EX_CONFIG` because stdout/stderr resolved through an
+external-volume symlink.
+Evidence: the exact previously failing saved look resolves `top`, `footwear`
+and `bottom` and owns a durable snapshot; focused tests PASS `40/40`; strict
+release verification PASS; local/public health ready; public catalogs report
+16 backgrounds and 19 Fashion Shoot modes.
+weakened_checks: none.
+
+2026-07-31 · Fashion Video delivery-audio assembly · `21fd0c8` → beta
+Change: provider output is retained only as `provider.mp4` for audit. Before
+technical QA, Fashion Video freezes the exact approved Video 1 locally,
+rebuilds `clip.mp4` with provider video stream plus that reference's audio
+stream; when Video 1 is silent it emits a silent delivery. Explicit stream maps
+make provider audio ineligible for delivery.
+Why: `CLIP_HAS_AUDIO` incorrectly rejected otherwise reviewable provider output
+before the final delivery file existed.
+Evidence: video suite 155/155 PASS; actual ffmpeg verification on the existing
+provider MP4 produced one HEVC video stream plus AAC from `reference-03.mp4`.
+Beta health reports release SHA `21fd0c8` ready.
+weakened_checks: legacy clips created before this change have no frozen
+reference copy and remain rejected; the observed legacy clip also has a video
+SHA equal to its directing reference and is blocked for reference leakage.

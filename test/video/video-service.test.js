@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict';
 import { tmpdir } from 'node:os';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
 
 import { VideoService, VideoServiceError, ClipStore } from '../../src/web/video-service.js';
 import { HiggsfieldVideoProvider } from '../../src/providers/higgsfield-video-provider.js';
+import { sha256 } from '../../src/web/scene-contract.js';
 
 // Stubbed provider that tracks calls and returns predictable results
 function makeStubProvider({ jobId = 'job_test_123', videoUrl = 'https://cdn.example/clip.mp4' } = {}) {
@@ -41,6 +42,72 @@ function makeStubQa({
   const probeFn = async () => ({ durationSeconds, width, height, hasAudio });
   const extractFrameFn = async () => new Uint8Array(10).fill(frameLuminance);
   return { probeFn, extractFrameFn };
+}
+
+function makeStubCompose({ policy = 'REFERENCE_REQUIRED' } = {}) {
+  return async ({ providerVideoPath, outputPath }) => {
+    await writeFile(outputPath, await readFile(providerVideoPath));
+    return {
+      policy,
+      referenceAudioAttached: policy === 'REFERENCE_REQUIRED',
+      source: policy === 'REFERENCE_REQUIRED' ? 'LOCKED_VIDEO_REFERENCE' : 'SILENT_REFERENCE',
+    };
+  };
+}
+
+function verifiedCutSheet(durationSeconds) {
+  const cut_sheet = {
+    schema_version: '1.0.0',
+    cuts: [{
+      cut_index: 0,
+      start_ms: 0,
+      end_ms: Math.round(durationSeconds * 1000),
+      subject_rule: 'APPROVED_AVATAR_OR_EMPTY',
+      direction: 'Reconstruct this entire reference interval with the approved avatar only or an empty environment.',
+    }],
+  };
+  return { cut_sheet, cut_sheet_sha256: sha256(Buffer.from(JSON.stringify(cut_sheet))) };
+}
+
+function microCutCoverage({
+  durationMs = 5_000,
+  decision = 'PASS',
+  referencePerformerVisible = false,
+  visiblePeople = 'APPROVED_AVATAR_ONLY',
+} = {}) {
+  return {
+    sample_rate_fps: 2,
+    cuts: [{
+      cut_index: 0,
+      start_ms: 0,
+      end_ms: durationMs,
+      sample_count: 10,
+      output_frame_sha256s: ['c'.repeat(64)],
+      reference_frame_sha256s: ['d'.repeat(64)],
+      reference_performer_visible: referencePerformerVisible,
+      visible_people: visiblePeople,
+      decision,
+    }],
+  };
+}
+
+const referenceTransferCheckNames = [
+  'cut_coverage_complete',
+  'subject_replacement_every_cut',
+  'no_reference_performer_pixels',
+  'identity_and_outfit_every_subject_cut',
+  'motion_and_pose_timing',
+  'camera_and_framing',
+  'environment_and_lighting',
+  'grade_and_optical_effects',
+  'shot_sequence_and_transitions',
+];
+
+function referenceTransferChecks(failedName = null) {
+  return referenceTransferCheckNames.map((name) => ({
+    name,
+    decision: name === failedName ? 'FAIL' : 'PASS',
+  }));
 }
 
 async function withTempDir(fn) {
@@ -90,6 +157,115 @@ test('createClip builds a motion plan and persists the job id', async () => {
     // Only the create phase should have been called
     assert.equal(calls.length, 1);
     assert.equal(calls[0].phase, 'create');
+  });
+});
+
+test('explicit retry creates a child only from the failed clip’s locked source and style binding', async () => {
+  await withTempDir(async (dir, sourcePath) => {
+    const referencePath = path.join(dir, 'style.mp4');
+    await writeFile(referencePath, Buffer.from('verified-style-video'));
+    const { provider, calls } = makeStubProvider();
+    const store = new ClipStore(dir);
+    const service = new VideoService({ provider, clipStore: store });
+    const videoReference = {
+      state: 'READY',
+      reference_id: 'style-1',
+      reference_path: referencePath,
+      reference_sha256: sha256(Buffer.from('verified-style-video')),
+      reference_pack_sha256: 'e'.repeat(64),
+      duration_seconds: 5,
+      provider_duration_seconds: 5,
+      width: 720,
+      height: 1280,
+      fps: 24,
+      ...verifiedCutSheet(5),
+    };
+    const parent = await service.createClip({
+      modeId: 'walk_stride',
+      surfaceId: 'mirror',
+      sourceCapabilities: { full_length: true },
+      sourceImagePath: sourcePath,
+      videoReference,
+      appearanceReferences: [],
+      lookBinding: {
+        sourceSha256: sha256(Buffer.from('locked-source-image')),
+        approvedLookReceiptSha256: 'c'.repeat(64),
+        whiteBackgroundVerified: true,
+      },
+    });
+    const failedParent = await store.load(parent.clipId);
+    await store.save(parent.clipId, { ...failedParent, status: 'FAIL', failureCode: 'CLIP_HAS_AUDIO' });
+    const child = await service.retryFailedClip(parent.clipId, { videoReference });
+    const childMetadata = await store.load(child.clipId);
+    assert.equal(childMetadata.retryOf, parent.clipId);
+    assert.equal(childMetadata.sourceSha256, failedParent.sourceSha256);
+    assert.deepEqual(childMetadata.appearanceReferences.map((reference) => reference.sha256),
+      failedParent.appearanceReferences.map((reference) => reference.sha256));
+    assert.equal(childMetadata.motionReferenceBinding.sha256, failedParent.motionReferenceBinding.sha256);
+    assert.equal(calls.filter((call) => call.phase === 'create').length, 2);
+  });
+});
+
+test('retry refuses a changed video-style hash before a second provider create', async () => {
+  await withTempDir(async (dir, sourcePath) => {
+    const referencePath = path.join(dir, 'style.mp4');
+    await writeFile(referencePath, Buffer.from('verified-style-video'));
+    const { provider, calls } = makeStubProvider();
+    const store = new ClipStore(dir);
+    const service = new VideoService({ provider, clipStore: store });
+    const videoReference = {
+      state: 'READY', reference_id: 'style-1', reference_path: referencePath,
+      reference_sha256: sha256(Buffer.from('verified-style-video')), reference_pack_sha256: 'e'.repeat(64),
+      duration_seconds: 5, provider_duration_seconds: 5, width: 720, height: 1280, fps: 24,
+      ...verifiedCutSheet(5),
+    };
+    const parent = await service.createClip({
+      modeId: 'walk_stride', surfaceId: 'mirror', sourceCapabilities: { full_length: true },
+      sourceImagePath: sourcePath, videoReference,
+      lookBinding: { whiteBackgroundVerified: true },
+    });
+    const failedParent = await store.load(parent.clipId);
+    await store.save(parent.clipId, { ...failedParent, status: 'FAIL' });
+    await assert.rejects(
+      () => service.retryFailedClip(parent.clipId, {
+        ...videoReference, reference_sha256: 'f'.repeat(64),
+      }),
+      (error) => error instanceof VideoServiceError && error.code === 'VIDEO_RETRY_REFERENCE_MISMATCH',
+    );
+    assert.equal(calls.filter((call) => call.phase === 'create').length, 1);
+  });
+});
+
+test('createClip settles a definite provider rejection instead of leaving a phantom submitting clip', async () => {
+  await withTempDir(async (dir, sourcePath) => {
+    const provider = {
+      async createJob() {
+        const error = new Error('CLI rejected the media shape before submission');
+        error.code = 'INVALID_MEDIA_SET';
+        throw error;
+      },
+    };
+    const store = new ClipStore(dir);
+    const service = new VideoService({
+      provider,
+      clipStore: store,
+      clock: () => Date.parse('2026-07-30T22:00:00.000Z'),
+    });
+
+    await assert.rejects(
+      () => service.createClip({
+        modeId: 'editorial_micro_moment',
+        surfaceId: 'tv',
+        sourceImagePath: sourcePath,
+      }),
+      (error) => error.code === 'VIDEO_CREATE_REJECTED',
+    );
+
+    const [clipId] = await readdir(path.join(dir, 'clips'));
+    const saved = await store.load(clipId);
+    assert.equal(saved.status, 'FAILED');
+    assert.equal(saved.failureCode, 'VIDEO_CREATE_REJECTED');
+    assert.equal(saved.jobId, null);
   });
 });
 
@@ -264,6 +440,462 @@ test('createClip passes exact clip/source/receipt binding to the provider', asyn
   });
 });
 
+test('createClip rechecks and passes the exact video reference binding', async () => {
+  await withTempDir(async (dir, sourcePath) => {
+    const referencePath = path.join(dir, 'motion.mp4');
+    const referenceBytes = Buffer.from('motion-reference-bytes');
+    const garmentBytes = Buffer.from('garment-reference-bytes');
+    await writeFile(referencePath, referenceBytes);
+    const requests = [];
+    const provider = {
+      async createJob(request) {
+        requests.push(request);
+        return { jobId: 'job_reference', raw: { job_id: 'job_reference' } };
+      },
+    };
+    const store = new ClipStore(dir);
+    const service = new VideoService({ provider, clipStore: store });
+    const referenceSha256 = sha256(referenceBytes);
+    await service.createClip({
+      modeId: 'editorial_micro_moment',
+      surfaceId: 'mirror',
+      sourceImagePath: sourcePath,
+      lookBinding: { whiteBackgroundVerified: true },
+      videoReference: {
+        state: 'READY',
+        reference_id: 'editorial-detail',
+        reference_path: referencePath,
+        reference_sha256: referenceSha256,
+        reference_pack_sha256: 'f'.repeat(64),
+        duration_seconds: 13.24,
+        provider_duration_seconds: 13,
+        width: 1080,
+        height: 1920,
+        fps: 25,
+        ...verifiedCutSheet(13.24),
+      },
+      appearanceReferences: [
+        {
+          role: 'garment_detail',
+          bytes: garmentBytes,
+          sha256: sha256(garmentBytes),
+        },
+      ],
+    });
+    assert.deepEqual(requests[0].videoPaths.map((file) => path.basename(file)), ['style-reference.mp4']);
+    assert.equal(requests[0].durationSeconds, 13);
+    assert.match(requests[0].prompt, /\[Video 1\].*private reference-only directing material, never delivery media/);
+    assert.match(requests[0].prompt, /Every final frame must be newly generated/);
+    assert.match(requests[0].prompt, /No source performer face, body, skin, hair, clothing, silhouette or motion-blurred fragment may survive/);
+    assert.deepEqual(
+      requests[0].mediaPaths.map((mediaPath) => path.basename(mediaPath)),
+      ['source.png', 'garment-detail.png'],
+    );
+    assert.equal(requests[0].sourceBinding.motionReferenceSha256, referenceSha256);
+    assert.equal(requests[0].sourceBinding.referencePackSha256, 'f'.repeat(64));
+    const saved = await store.load(requests[0].sourceBinding.clipId);
+    assert.equal(saved.motionReferenceBinding.durationSeconds, 13.24);
+    assert.equal(saved.motionReferenceBinding.audioSourceFile, 'style-reference.mp4');
+    assert.equal(saved.motionReferenceBinding.audioSourceSha256, referenceSha256);
+    assert.deepEqual(
+      saved.appearanceReferences.map((reference) => reference.role),
+      ['garment_detail'],
+    );
+  });
+});
+
+test('reference-bound Fashion Video refuses a raw identity-photo side input before provider spend', async () => {
+  await withTempDir(async (dir, sourcePath) => {
+    const referencePath = path.join(dir, 'motion.mp4');
+    const referenceBytes = Buffer.from('motion-reference-bytes');
+    await writeFile(referencePath, referenceBytes);
+    let calls = 0;
+    const service = new VideoService({
+      provider: { async createJob() { calls += 1; return { jobId: 'must-not-run' }; } },
+      clipStore: new ClipStore(dir),
+    });
+    const identity = Buffer.from('original-user-photo-with-a-background');
+    await assert.rejects(
+      () => service.createClip({
+        modeId: 'editorial_micro_moment', surfaceId: 'mirror', sourceImagePath: sourcePath,
+        lookBinding: { whiteBackgroundVerified: true },
+        videoReference: {
+          state: 'READY', reference_id: 'style-1', reference_path: referencePath,
+          reference_sha256: sha256(referenceBytes), reference_pack_sha256: 'f'.repeat(64),
+          duration_seconds: 5, provider_duration_seconds: 5, width: 1080, height: 1920, fps: 25,
+          ...verifiedCutSheet(5),
+        },
+        appearanceReferences: [{ role: 'identity_face', bytes: identity, sha256: sha256(identity) }],
+      }),
+      (error) => error instanceof VideoServiceError && error.code === 'VIDEO_IDENTITY_PHOTO_FORBIDDEN',
+    );
+    assert.equal(calls, 0);
+  });
+});
+
+test('createClip refuses a changed video reference before provider spend', async () => {
+  await withTempDir(async (dir, sourcePath) => {
+    const referencePath = path.join(dir, 'motion.mp4');
+    await writeFile(referencePath, 'changed');
+    let providerCalls = 0;
+    const provider = {
+      async createJob() {
+        providerCalls += 1;
+        return { jobId: 'must-not-run' };
+      },
+    };
+    const service = new VideoService({ provider, clipStore: new ClipStore(dir) });
+    await assert.rejects(
+      () => service.createClip({
+        modeId: 'editorial_micro_moment',
+        surfaceId: 'mirror',
+        sourceImagePath: sourcePath,
+        lookBinding: { whiteBackgroundVerified: true },
+        videoReference: {
+          state: 'READY',
+          reference_path: referencePath,
+          reference_sha256: 'a'.repeat(64),
+          reference_pack_sha256: 'b'.repeat(64),
+          duration_seconds: 13.24,
+          provider_duration_seconds: 13,
+          width: 1080,
+          height: 1920,
+          fps: 25,
+          ...verifiedCutSheet(13.24),
+        },
+      }),
+      (error) => error.code === 'VIDEO_REFERENCE_HASH_MISMATCH',
+    );
+    assert.equal(providerCalls, 0);
+  });
+});
+
+test('reference-bound clip stays NEEDS_QA until reference adherence is proven', async () => {
+  await withTempDir(async (dir, sourcePath) => {
+    const referencePath = path.join(dir, 'motion.mp4');
+    const referenceBytes = Buffer.from('motion-reference-bytes');
+    await writeFile(referencePath, referenceBytes);
+    const { provider } = makeStubProvider();
+    const store = new ClipStore(dir);
+    const service = new VideoService({ provider, clipStore: store });
+    const created = await service.createClip({
+      modeId: 'editorial_micro_moment',
+      surfaceId: 'mirror',
+      sourceImagePath: sourcePath,
+      lookBinding: { whiteBackgroundVerified: true },
+      videoReference: {
+        state: 'READY',
+        reference_path: referencePath,
+        reference_sha256: sha256(referenceBytes),
+        reference_pack_sha256: 'f'.repeat(64),
+        duration_seconds: 5,
+        provider_duration_seconds: 5,
+        width: 1080,
+        height: 1920,
+        fps: 25,
+        ...verifiedCutSheet(5),
+      },
+    });
+    const finalized = await service.awaitAndFinalize(created.clipId, {
+      downloadFn: makeStubDownload(),
+      ...makeStubQa({ width: 720, height: 1280, hasAudio: true }),
+      composeFn: makeStubCompose(),
+    });
+    assert.equal(finalized.qa.pass, true);
+    assert.equal(finalized.status, 'NEEDS_QA');
+  });
+});
+
+test('reference adherence becomes PASS only with exact bindings and every semantic check', async () => {
+  await withTempDir(async (dir) => {
+    const { provider } = makeStubProvider();
+    const store = new ClipStore(dir);
+    const service = new VideoService({ provider, clipStore: store });
+    await store.save('reference-qa-clip', {
+      clipId: 'reference-qa-clip',
+      jobId: 'job_reference_qa',
+      status: 'NEEDS_QA',
+      durationSeconds: 5,
+      sourceSha256: 'a'.repeat(64),
+      qa: { pass: true },
+      identityItemQa: { pass: true },
+      motionReferenceBinding: { sha256: 'b'.repeat(64) },
+    });
+    const result = await service.recordReferenceAdherenceQa('reference-qa-clip', {
+      clip_id: 'reference-qa-clip',
+      job_id: 'job_reference_qa',
+      source_sha256: 'a'.repeat(64),
+      motion_reference_sha256: 'b'.repeat(64),
+      cut_coverage: microCutCoverage(),
+      evaluator: 'test/reference-evaluator',
+      checks: referenceTransferChecks(),
+    });
+    assert.equal(result.status, 'PASS');
+    assert.equal(result.referenceAdherenceQa.pass, true);
+    assert.match(result.referenceAdherenceQaSha256, /^[a-f0-9]{64}$/);
+  });
+});
+
+test('reference QA can arrive before identity QA without permanently failing a valid clip', async () => {
+  await withTempDir(async (dir) => {
+    const { provider } = makeStubProvider();
+    const store = new ClipStore(dir);
+    const service = new VideoService({ provider, clipStore: store });
+    await store.save('reference-first', {
+      clipId: 'reference-first',
+      jobId: 'job_reference_first',
+      status: 'NEEDS_QA',
+      durationSeconds: 5,
+      sourceSha256: 'a'.repeat(64),
+      qa: { pass: true },
+      motionReferenceBinding: { sha256: 'b'.repeat(64) },
+    });
+    const referenceResult = await service.recordReferenceAdherenceQa('reference-first', {
+      clip_id: 'reference-first',
+      job_id: 'job_reference_first',
+      source_sha256: 'a'.repeat(64),
+      motion_reference_sha256: 'b'.repeat(64),
+      cut_coverage: microCutCoverage(),
+      checks: referenceTransferChecks(),
+    });
+    assert.equal(referenceResult.status, 'NEEDS_QA');
+    const identityResult = await service.recordIdentityItemQa('reference-first', {
+      clip_id: 'reference-first',
+      job_id: 'job_reference_first',
+      source_sha256: 'a'.repeat(64),
+      results: {
+        first: { decision: 'PASS' },
+        last: { decision: 'PASS' },
+      },
+    });
+    assert.equal(identityResult.status, 'PASS');
+  });
+});
+
+test('one failed reference-adherence dimension blocks the clip', async () => {
+  await withTempDir(async (dir) => {
+    const { provider } = makeStubProvider();
+    const store = new ClipStore(dir);
+    const service = new VideoService({ provider, clipStore: store });
+    await store.save('reference-qa-fail', {
+      clipId: 'reference-qa-fail',
+      jobId: 'job_reference_fail',
+      status: 'NEEDS_QA',
+      durationSeconds: 5,
+      sourceSha256: 'a'.repeat(64),
+      qa: { pass: true },
+      identityItemQa: { pass: true },
+      motionReferenceBinding: { sha256: 'b'.repeat(64) },
+    });
+    const checks = referenceTransferChecks('shot_sequence_and_transitions');
+    const result = await service.recordReferenceAdherenceQa('reference-qa-fail', {
+      clip_id: 'reference-qa-fail',
+      job_id: 'job_reference_fail',
+      source_sha256: 'a'.repeat(64),
+      motion_reference_sha256: 'b'.repeat(64),
+      cut_coverage: microCutCoverage({ decision: 'FAIL', referencePerformerVisible: true, visiblePeople: 'REFERENCE_PERFORMER' }),
+      checks,
+    });
+    assert.equal(result.status, 'FAIL');
+    assert.equal(result.referenceAdherenceQa.pass, false);
+  });
+});
+
+test('reference transfer QA refuses delivery when any covered cut exposes the reference performer', async () => {
+  await withTempDir(async (dir) => {
+    const { provider } = makeStubProvider();
+    const store = new ClipStore(dir);
+    const service = new VideoService({ provider, clipStore: store });
+    await store.save('reference-performer-leak', {
+      clipId: 'reference-performer-leak', jobId: 'job_reference_leak', status: 'NEEDS_QA',
+      durationSeconds: 5, sourceSha256: 'a'.repeat(64), qa: { pass: true },
+      identityItemQa: { pass: true }, motionReferenceBinding: { sha256: 'b'.repeat(64) },
+    });
+    const checks = referenceTransferChecks('no_reference_performer_pixels');
+    const result = await service.recordReferenceAdherenceQa('reference-performer-leak', {
+      clip_id: 'reference-performer-leak', job_id: 'job_reference_leak',
+      source_sha256: 'a'.repeat(64), motion_reference_sha256: 'b'.repeat(64), checks,
+      cut_coverage: microCutCoverage({ decision: 'FAIL', referencePerformerVisible: true, visiblePeople: 'REFERENCE_PERFORMER' }),
+    });
+    assert.equal(result.status, 'FAIL');
+    assert.equal(result.referenceAdherenceQa.cutCoverage.pass, false);
+  });
+});
+
+test('reference-performer leakage is cut into a hero-only delivery and must pass semantic QA again', async () => {
+  await withTempDir(async (dir) => {
+    const { provider } = makeStubProvider();
+    const store = new ClipStore(dir);
+    const originalPath = await store.saveVideo(
+      'salvage-clip',
+      Buffer.from('provider-video-with-reference-person'),
+    );
+    const referencePath = path.join(dir, 'reference.mp4');
+    await writeFile(referencePath, Buffer.from('motion-reference-with-original-music'));
+    const referenceSha = sha256(Buffer.from('motion-reference-with-original-music'));
+    const salvageCalls = [];
+    const service = new VideoService({
+      provider,
+      clipStore: store,
+      fashionVideoReferenceResolver: async () => ({
+        state: 'READY',
+        reference_path: referencePath,
+        reference_sha256: referenceSha,
+      }),
+      finalizer: {
+        salvageFn: async (request) => {
+          salvageCalls.push(request);
+          await writeFile(request.outputVideoPath, Buffer.from('hero-only-with-reference-music'));
+          return {
+            outputVideoPath: request.outputVideoPath,
+            durationSeconds: 3,
+            segmentCount: request.segments.length,
+            segments: request.segments,
+            audioSource: 'MOTION_REFERENCE',
+          };
+        },
+        probeFn: async () => ({
+          durationSeconds: 3, width: 720, height: 1280, fps: 24, hasAudio: true,
+        }),
+        extractFrameFn: async () => new Uint8Array(20).fill(128),
+      },
+    });
+    await store.save('salvage-clip', {
+      clipId: 'salvage-clip', jobId: 'job_salvage', status: 'NEEDS_QA',
+      mode: 'walk_stride', aspectRatio: '9:16', durationSeconds: 5,
+      sourceSha256: 'a'.repeat(64), videoPath: originalPath,
+      videoSha256: sha256(Buffer.from('provider-video-with-reference-person')),
+      qa: { pass: true }, identityItemQa: { pass: true },
+      motionReferenceBinding: { referenceId: 'style-salvage', sha256: referenceSha },
+    });
+    const leakCoverage = {
+      sample_rate_fps: 4,
+      cuts: [
+        {
+          cut_index: 0, start_ms: 0, end_ms: 1_000, sample_count: 4,
+          output_frame_sha256s: ['1'.repeat(64)], reference_frame_sha256s: ['2'.repeat(64)],
+          reference_performer_visible: false, visible_people: 'APPROVED_AVATAR_ONLY', decision: 'PASS',
+        },
+        {
+          cut_index: 1, start_ms: 1_000, end_ms: 3_000, sample_count: 8,
+          output_frame_sha256s: ['3'.repeat(64)], reference_frame_sha256s: ['4'.repeat(64)],
+          reference_performer_visible: true, visible_people: 'REFERENCE_PERFORMER', decision: 'FAIL',
+        },
+        {
+          cut_index: 2, start_ms: 3_000, end_ms: 5_000, sample_count: 8,
+          output_frame_sha256s: ['5'.repeat(64)], reference_frame_sha256s: ['6'.repeat(64)],
+          reference_performer_visible: false, visible_people: 'APPROVED_AVATAR_ONLY', decision: 'PASS',
+        },
+      ],
+    };
+    const leakChecks = referenceTransferCheckNames.map((name) => ({
+      name,
+      decision: [
+        'subject_replacement_every_cut',
+        'no_reference_performer_pixels',
+        'identity_and_outfit_every_subject_cut',
+      ].includes(name) ? 'FAIL' : 'PASS',
+    }));
+    const firstQa = await service.recordReferenceAdherenceQa('salvage-clip', {
+      clip_id: 'salvage-clip', job_id: 'job_salvage', source_sha256: 'a'.repeat(64),
+      motion_reference_sha256: referenceSha, evaluator: 'qa/coverage-v1',
+      cut_coverage: leakCoverage, checks: leakChecks,
+    });
+    assert.equal(firstQa.status, 'NEEDS_QA');
+    assert.equal(firstQa.salvage.status, 'NEEDS_QA');
+    assert.deepEqual(salvageCalls[0].segments, [
+      { start_ms: 0, end_ms: 1_000 },
+      { start_ms: 3_000, end_ms: 5_000 },
+    ]);
+    let saved = await store.load('salvage-clip');
+    assert.equal(saved.originalProviderVideoPath, originalPath);
+    assert.equal(saved.deliveryDurationSeconds, 3);
+    assert.equal(saved.qa.pass, true, 'bound reference audio is allowed only on the salvage derivative');
+
+    const salvageSha = saved.videoSha256;
+    const identityQa = await service.recordIdentityItemQa('salvage-clip', {
+      clip_id: 'salvage-clip', job_id: 'job_salvage', source_sha256: 'a'.repeat(64),
+      output_sha256: salvageSha,
+      results: { first: { decision: 'PASS' }, last: { decision: 'PASS' } },
+    });
+    assert.equal(identityQa.status, 'NEEDS_QA');
+    const finalQa = await service.recordReferenceAdherenceQa('salvage-clip', {
+      clip_id: 'salvage-clip', job_id: 'job_salvage', source_sha256: 'a'.repeat(64),
+      output_sha256: salvageSha, motion_reference_sha256: referenceSha,
+      cut_coverage: microCutCoverage({ durationMs: 3_000 }),
+      checks: referenceTransferChecks(),
+    });
+    assert.equal(finalQa.status, 'PASS');
+    assert.equal(finalQa.salvage.status, 'PASS');
+    saved = await store.load('salvage-clip');
+    assert.equal(saved.salvageIdentityItemQa.pass, true);
+    assert.equal(saved.salvageReferenceAdherenceQa.pass, true);
+    assert.equal(saved.status, 'PASS');
+  });
+});
+
+test('reference leakage salvages PASSed hero cuts even when rejected cuts fail another creative dimension', async () => {
+  await withTempDir(async (dir) => {
+    const { provider } = makeStubProvider();
+    const store = new ClipStore(dir);
+    const originalPath = await store.saveVideo('repairable-creative-fail', Buffer.from('provider-result'));
+    const referencePath = path.join(dir, 'reference.mp4');
+    await writeFile(referencePath, Buffer.from('reference'));
+    const referenceSha = sha256(Buffer.from('reference'));
+    let salvageCalls = 0;
+    const service = new VideoService({
+      provider,
+      clipStore: store,
+      fashionVideoReferenceResolver: async () => ({
+        state: 'READY', reference_path: referencePath, reference_sha256: referenceSha,
+      }),
+      finalizer: {
+        salvageFn: async ({ outputVideoPath, segments }) => {
+          salvageCalls += 1;
+          await writeFile(outputVideoPath, Buffer.from('hero-only'));
+          return {
+            durationSeconds: 2, segmentCount: segments.length, segments,
+            audioSource: 'MOTION_REFERENCE', audioPolicy: 'REFERENCE_REQUIRED',
+          };
+        },
+        probeFn: async () => ({ durationSeconds: 2, width: 720, height: 1280, hasAudio: true }),
+        extractFrameFn: async () => new Uint8Array(20).fill(128),
+      },
+    });
+    await store.save('repairable-creative-fail', {
+      clipId: 'repairable-creative-fail', jobId: 'job_repairable', status: 'NEEDS_QA',
+      durationSeconds: 5, aspectRatio: '9:16', sourceSha256: 'a'.repeat(64),
+      videoPath: originalPath, videoSha256: sha256(Buffer.from('provider-result')),
+      qa: { pass: true }, identityItemQa: { pass: true },
+      audioBinding: { policy: 'REFERENCE_REQUIRED' },
+      motionReferenceBinding: { referenceId: 'style', sha256: referenceSha },
+    });
+    const checks = referenceTransferCheckNames.map((name) => ({
+      name,
+      decision: ['no_reference_performer_pixels', 'camera_and_framing'].includes(name)
+        ? 'FAIL' : 'PASS',
+    }));
+    const result = await service.recordReferenceAdherenceQa('repairable-creative-fail', {
+      clip_id: 'repairable-creative-fail', job_id: 'job_repairable',
+      source_sha256: 'a'.repeat(64), motion_reference_sha256: referenceSha, checks,
+      cut_coverage: {
+        sample_rate_fps: 2,
+        cuts: [
+          { cut_index: 0, start_ms: 0, end_ms: 2_000, sample_count: 4,
+            output_frame_sha256s: ['1'.repeat(64)], reference_frame_sha256s: ['2'.repeat(64)],
+            reference_performer_visible: false, visible_people: 'APPROVED_AVATAR_ONLY', decision: 'PASS' },
+          { cut_index: 1, start_ms: 2_000, end_ms: 5_000, sample_count: 6,
+            output_frame_sha256s: ['3'.repeat(64)], reference_frame_sha256s: ['4'.repeat(64)],
+            reference_performer_visible: true, visible_people: 'REFERENCE_PERFORMER', decision: 'FAIL' },
+        ],
+      },
+    });
+    assert.equal(result.status, 'NEEDS_QA');
+    assert.equal(result.salvage.status, 'NEEDS_QA');
+    assert.equal(salvageCalls, 1);
+  });
+});
+
 test('awaitAndFinalize downloads video, runs QA, and marks PASS', async () => {
   await withTempDir(async (dir, sourcePath) => {
     const { provider } = makeStubProvider();
@@ -288,7 +920,7 @@ test('awaitAndFinalize downloads video, runs QA, and marks PASS', async () => {
   });
 });
 
-test('awaitAndFinalize marks FAIL when QA detects audio', async () => {
+test('awaitAndFinalize rejects unapproved audio only when a silent delivery is required', async () => {
   await withTempDir(async (dir, sourcePath) => {
     const { provider } = makeStubProvider();
     const store = new ClipStore(dir);
@@ -307,7 +939,32 @@ test('awaitAndFinalize marks FAIL when QA detects audio', async () => {
 
     assert.equal(result.status, 'FAIL');
     assert.equal(result.qa.pass, false);
-    assert.ok(result.qa.defects.some((d) => d.code === 'CLIP_HAS_AUDIO'));
+    assert.ok(result.qa.defects.some((d) => d.code === 'CLIP_UNAUTHORIZED_AUDIO'));
+  });
+});
+
+test('awaitAndFinalize marks a missing provider job FAILED without a second create', async () => {
+  await withTempDir(async (dir, sourcePath) => {
+    const provider = {
+      async createJob() { return { jobId: 'missing-job', providerKey: 'higgsfield' }; },
+      async waitForJob() {
+        const error = new Error('job vanished');
+        error.code = 'PROVIDER_JOB_NOT_FOUND';
+        throw error;
+      },
+    };
+    const store = new ClipStore(dir);
+    const service = new VideoService({ provider, clipStore: store });
+    const created = await service.createClip({
+      modeId: 'editorial_micro_moment', surfaceId: 'tv', sourceImagePath: sourcePath,
+    });
+    await assert.rejects(
+      () => service.awaitAndFinalize(created.clipId, { downloadFn: makeStubDownload(), ...makeStubQa() }),
+      (error) => error.code === 'VIDEO_PROVIDER_JOB_NOT_FOUND',
+    );
+    const persisted = await store.load(created.clipId);
+    assert.equal(persisted.status, 'FAILED');
+    assert.equal(persisted.failureCode, 'VIDEO_PROVIDER_JOB_NOT_FOUND');
   });
 });
 
@@ -344,6 +1001,77 @@ test('recordIdentityItemQa makes a semantic RETRY fail a technically valid clip'
     const saved = await store.load('semantic-clip');
     assert.equal(saved.status, 'FAIL');
     assert.equal(saved.identityItemQaFile, 'identity-item-qa.json');
+  });
+});
+
+test('reference-bound identity failure waits for per-cut salvage analysis instead of becoming a dead end', async () => {
+  await withTempDir(async (dir) => {
+    const { provider } = makeStubProvider();
+    const store = new ClipStore(dir);
+    const service = new VideoService({ provider, clipStore: store });
+    await store.save('semantic-reference-clip', {
+      clipId: 'semantic-reference-clip', jobId: 'job_semantic_reference',
+      status: 'NEEDS_QA', durationSeconds: 5,
+      sourceSha256: 'c'.repeat(64), qa: { pass: true },
+      motionReferenceBinding: { sha256: 'd'.repeat(64) },
+    });
+    const result = await service.recordIdentityItemQa('semantic-reference-clip', {
+      clip_id: 'semantic-reference-clip', job_id: 'job_semantic_reference',
+      source_sha256: 'c'.repeat(64),
+      results: { first: { decision: 'RETRY' }, last: { decision: 'PASS' } },
+    });
+    assert.equal(result.status, 'NEEDS_QA');
+    const persisted = await store.load('semantic-reference-clip');
+    assert.equal(persisted.identityItemQa.pass, false);
+    assert.equal(persisted.failureCode, null);
+
+    const referenceResult = await service.recordReferenceAdherenceQa('semantic-reference-clip', {
+      clip_id: 'semantic-reference-clip', job_id: 'job_semantic_reference',
+      source_sha256: 'c'.repeat(64), motion_reference_sha256: 'd'.repeat(64),
+      cut_coverage: microCutCoverage({ durationMs: 5_000 }),
+      checks: referenceTransferChecks(),
+    });
+    assert.equal(referenceResult.status, 'FAIL');
+  });
+});
+
+test('automatic QA consumes NEEDS_QA and returns a terminal retryable failure', async () => {
+  await withTempDir(async (dir) => {
+    const { provider } = makeStubProvider();
+    const store = new ClipStore(dir);
+    const service = new VideoService({
+      provider,
+      clipStore: store,
+      automaticQaFn: async (clip) => ({
+        identityReceipt: {
+          clip_id: clip.clipId, job_id: clip.jobId, source_sha256: clip.sourceSha256,
+          results: { first: { decision: 'RETRY' }, last: { decision: 'RETRY' } },
+        },
+        referenceReceipt: {
+          clip_id: clip.clipId, job_id: clip.jobId, source_sha256: clip.sourceSha256,
+          motion_reference_sha256: clip.motionReferenceBinding.sha256,
+          cut_coverage: microCutCoverage({
+            durationMs: 5_000, decision: 'FAIL',
+            referencePerformerVisible: true, visiblePeople: 'REFERENCE_PERFORMER',
+          }),
+          checks: referenceTransferCheckNames.map((name) => ({
+            name, decision: name === 'cut_coverage_complete' ? 'PASS' : 'FAIL',
+          })),
+        },
+      }),
+      finalizer: makeStubQa(),
+    });
+    await store.save('automatic-qa-clip', {
+      clipId: 'automatic-qa-clip', jobId: 'automatic-job', status: 'NEEDS_QA',
+      durationSeconds: 5, sourceSha256: 'a'.repeat(64), qa: { pass: true },
+      motionReferenceBinding: { sha256: 'b'.repeat(64) },
+    });
+    const result = await service.finalizeClip('automatic-qa-clip');
+    assert.equal(result.status, 'FAIL');
+    const persisted = await store.load('automatic-qa-clip');
+    assert.equal(persisted.identityItemQa.pass, false);
+    assert.equal(persisted.referenceAdherenceQa.pass, false);
+    assert.equal(persisted.failureCode, 'VIDEO_REFERENCE_QA_FAILED');
   });
 });
 
@@ -438,6 +1166,26 @@ test('getClip returns persisted metadata', async () => {
   });
 });
 
+test('resumableClipIds returns only persisted jobs that can continue after restart', async () => {
+  await withTempDir(async (dir, sourcePath) => {
+    const { provider } = makeStubProvider();
+    const store = new ClipStore(dir);
+    const service = new VideoService({ provider, clipStore: store });
+    const created = await service.createClip({
+      modeId: 'camera_drift',
+      surfaceId: 'mirror',
+      sourceImagePath: sourcePath,
+    });
+    await store.save('22222222-2222-4222-8222-222222222222', {
+      clipId: '22222222-2222-4222-8222-222222222222', status: 'PASS', jobId: 'old-job',
+    });
+    assert.deepEqual(await service.resumableClipIds(), [created.clipId]);
+    const persisted = await store.load(created.clipId);
+    await store.save(created.clipId, { ...persisted, status: 'GENERATING' });
+    assert.deepEqual(await service.resumableClipIds(), [created.clipId]);
+  });
+});
+
 test('awaitAndFinalize polls only the provider persisted at create time', async () => {
   await withTempDir(async (dir, sourcePath) => {
     const calls = [];
@@ -487,12 +1235,14 @@ test('VideoService refuses to construct without provider', () => {
 test('finalizeClip refuses a runtime without real download and ffprobe dependencies', async () => {
   await withTempDir(async (dir, sourcePath) => {
     const { provider } = makeStubProvider();
+    const store = new ClipStore(dir);
     const service = new VideoService({
       provider,
-      clipStore: new ClipStore(dir),
+      clipStore: store,
     });
+    await store.save('missing-runtime', { clipId: 'missing-runtime', status: 'CREATED' });
     await assert.rejects(
-      () => service.finalizeClip('missing'),
+      () => service.finalizeClip('missing-runtime'),
       (error) => error.code === 'FINALIZER_MISCONFIGURED' && error.status === 503,
     );
   });

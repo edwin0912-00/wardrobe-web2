@@ -1,5 +1,18 @@
 # Wardrobe verified state
 
+## Block 6 capability integration — 2026-07-30
+
+- The consolidated beta source now has one backend capability contract for
+  Fashion Video. It verifies the approved master-look receipt/image, selected
+  style pack and motion reference by SHA before the existing VideoService may
+  create a provider job.
+- The GET readiness route and POST create route use the same contract. Missing
+  resolver or incomplete evidence fails before provider spend.
+- The saved-look Action Hub was deliberately not replaced by Block 6's older
+  UI implementation. Focused video/profile/Live regression is 130/130 PASS.
+- Code proof is ready for deployment. A real beta journey remains unavailable
+  until the runtime supplies a verified motion-reference resolver.
+
 ## Seven-block coordination state — 2026-07-29
 
 - `beta` remains the tested integration/deploy line.
@@ -451,3 +464,58 @@ be weakened to hide it.
 - HEIC decode order is browser native → bundled decoder → same-origin macOS
   converter. Only the resulting validated JPEG enters draft/run storage.
 - Public endpoint and browser draft persistence are verified; beta is ready.
+
+## Durable saved look and beta runtime recovery — 2026-07-30
+
+- Active source: `afa34d8fcc92026824e20fb98c7e5e9532a772a4`; it contains the
+  saved-look lifecycle repair `3a387c2674832958e682b135bdf5d9809e928674`.
+- Active cache: `product-afa34d8f-8b3076d910e9`.
+- Approved look image, PASS receipt and item evidence are stored as one
+  hash-bound SQLite snapshot. They survive process restart and run-local
+  evidence relocation/cleanup.
+- The previously failing saved look now resolves three immutable item records:
+  `top`, `footwear`, `bottom`; its durable snapshot exists.
+- Structured HTTP 409 responses are no longer shown as a lost connection.
+- Beta application and Cloudflare Tunnel are `running`; local and public health
+  are `ready`.
+- LaunchAgent logs and the minimal active runtime/credential set live on the
+  internal SSD. Large release archives and backups remain on the external SSD.
+- Evidence: focused lifecycle, scene, UI and Fashion Shoot suites PASS `40/40`;
+  strict product release verification PASS; 16 background presets, 19 Fashion
+  Shoot modes and 17 generation-ready modes are public.
+- weakened_checks: none.
+
+## Fashion Video reference authority — 2026-07-30
+
+- Three operator-provided videos are stored outside Git and bound by the
+  versioned `fashion.cool_style.v1` manifest.
+- Every product motion mode selects exactly one reference. Seedance consumes
+  the actual selected MP4; the image-only fallback fails closed.
+- Runtime availability depends on the configured SSD reference root and a
+  successful real-path, size and SHA-256 verification.
+- Focused suite PASS `138/138`; paid generation was not run.
+
+## Independent browser QA and runtime monitor repair — 2026-07-30
+
+- `antigravity-qa` remains Observer 0.8 on its own branch and report paths.
+- `handoff-cloud-code-qa` is a distinct Observer 0.9 with a separate branch,
+  report, evidence directory, Git identity and commit hook.
+- The monitor accepts an explicit beta runtime root and loopback application
+  health URL instead of assuming the retired port `4173`.
+- `tools/watch-beta-runtime.mjs` renders sanitized live Block 1–7 node
+  transitions from the append-only beta event log.
+- Public `/api/health` exposes the immutable release SHA and cache token so
+  both observers can fail closed on a release mismatch.
+
+## Fashion Video delivery audio — 2026-07-31
+
+- Active source: `21fd0c81e91348db47bf5d9c259f1383a6577498`.
+- New Fashion Video jobs snapshot the approved directing reference into the
+  clip directory. `provider.mp4` is audit-only; `clip.mp4` is assembled before
+  QA with generated picture and reference audio, or silence for a silent
+  reference. Provider audio is never a terminal reason by itself.
+- The old `bf68b3c8…` job remains ineligible: its provider-video SHA is equal
+  to the `hard-sun-pose` reference SHA, which is evidence of reference-footage
+  leakage. Audio assembly does not turn that into a PASS.
+- Evidence: 155/155 video tests; actual ffmpeg stream verification; beta
+  health ready. weakened_checks: no new paid generation was spent.

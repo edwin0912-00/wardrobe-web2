@@ -4,7 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import sharp from 'sharp';
-import { applyGarmentSurfaceFidelityPolicy, CodexVlmEvaluator } from '../../src/providers/codex-vlm-evaluator.js';
+import { applyGarmentSurfaceFidelityPolicy, applyTextOnlyOutfitInterpretationPolicy, CodexVlmEvaluator } from '../../src/providers/codex-vlm-evaluator.js';
 
 async function imageFixture(background = '#ffffff', basename = 'image.png') {
   const root = await mkdtemp(path.join(os.tmpdir(), 'zeely-codex-test-'));
@@ -191,6 +191,37 @@ test('outfit QA receives authoritative text and separates it from identity cloth
   assert.match(calls[0].args[1], /AUTHORITATIVE TARGET OUTFIT TEXT/);
   assert.match(calls[0].args[1], /cobalt-blue blazer/);
   assert.match(calls[0].args[1], /identity photos is identity context only/);
+});
+
+test('text-only outfit QA treats omitted garment details as creative freedom, not missing evidence', async () => {
+  const filename = await imageFixture();
+  const calls = [];
+  const evaluator = new CodexVlmEvaluator({ commandRunner: runnerFor({
+    decision: 'PASS', reason: 'same person in a well-formed black leather biker jacket',
+    checks: [{ name: 'OUTFIT', pass: true, score: 0.96, evidence: 'plausible leather-jacket interpretation' }], defects: [],
+  }, calls) });
+  const brief = 'Хочу охуєнну кожану куртку на цей аватар';
+  const result = await evaluator.evaluateQa({ phase: 'outfit', evidence: {
+    identity: { artifact: { path: filename } },
+    avatar: { artifact: { path: filename } },
+    candidate: { artifact: { path: filename } },
+    source_outfit: brief,
+  } });
+  assert.equal(result.decision, 'PASS');
+  assert.match(calls[0].args[1], /TEXT-ONLY CREATIVE BRIEF/);
+  assert.match(calls[0].args[1], /does not state is intentionally open/);
+
+  const recovered = applyTextOnlyOutfitInterpretationPolicy({
+    decision: 'NEEDS_INPUT',
+    reason: 'The authoritative outfit text does not specify an exact jacket type, color, material, construction, fit, or required logo/text.',
+    checks: [{ name: 'OUTFIT', pass: false, score: 0.6, evidence: 'candidate is otherwise well formed' }],
+    defects: ['missing exact jacket type'],
+  }, brief);
+  assert.equal(recovered.decision, 'PASS');
+  assert.match(recovered.reason, /^PASS_WITH_TEXT_INTERPRETATION:/);
+  assert.equal(recovered.defects.length, 0);
+  assert.ok(recovered.checks.every((check) => check.pass));
+  assert.match(recovered.checks[0].name, /ADVISORY_TEXT_BRIEF$/);
 });
 
 test('outfit QA redacts incidental local metadata from authoritative user text', async () => {

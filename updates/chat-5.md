@@ -3,6 +3,149 @@ Thread: 019faf52-0a8b-7de0-a123-7cea87d3124b
 Compatibility branch: beta-block-6-fashion-video
 Task: executable Fashion Video runtime and one controlled real clip
 Base: 0b788bd13c569e850482bb664ba1ca28f4a25b9d
+
+## Full-reference Fashion Video correction — 2026-07-30
+
+Code: TESTED_BRANCH on `fix/video-deploy-inflight-20260730`. The reference
+video is now ordered before appearance images and is the explicit authority for
+the full shot sequence, cuts, transitions, motion, camera, environment,
+lighting, grade and optical effects. The approved full look, immutable identity
+reference and deterministic person-free garment card remain appearance-only
+authorities. A reference-bound job uses the reference duration (bounded to the
+provider's 15-second integer limit), and OpenRouter is not allowed to discard
+Video 1. An unparseable create acknowledgement is an unknown paid outcome and
+cannot trigger another automatic spend.
+
+Reference-bound clips remain `NEEDS_QA` after MP4/ffprobe checks. `PASS` now
+requires both first/last identity-item QA and an immutable reference-adherence
+receipt covering motion/pose timing, camera/framing, environment/lighting,
+grade/optical effects and shot sequence/transitions. Either semantic failure
+blocks the clip; the two receipts may arrive in either order.
+
+Evidence:
+
+- `node --test test/video/*.test.js` — PASS 133/133.
+- `node --test --test-name-pattern='approved identity reference returns'
+  test/web/run-service.test.js` — PASS 1/1.
+- Exact zero-create packet: Higgsfield `seedance_2_0`, vertical, 13 seconds,
+  silent, 720p, Video 1 SHA
+  `12ff78b162da5a66e1cb05ddae9c878e18468ebeeabce07ddf36821b196c2d72`,
+  Image 1 approved look SHA
+  `0f154d1d46df84858a8c56bf2cad612a56858b9363fb603031dc245cefe6c6af`,
+  Image 2 identity SHA
+  `6d0d53680ba7cca9c99d92264d9f61efa088c601ff99cc1ed5472b3a2fb59ff1`,
+  Image 3 garment card SHA
+  `9a3e0618adf88dfa6c928d8cfcddce7c67902bb71ea78d2484a38a9cb1cd5d0a`.
+  Packet fingerprint:
+  `6df2c9617f75cfbbce34ef79365559489223d4cf9ec01bbca8f5e0440d8d26fd`.
+- Higgsfield zero-create model estimate for the same geometry: 58.5 credits.
+- No generation job was created.
+
+Beta: NOT_DEPLOYED. Release ownership remains with Chat 00; this correction
+must replace the current image-animation request before another customer or
+controlled generation.
+
+Journey: NOT_RUN after correction. The three earlier static-white-background
+outputs are rejected evidence and must not be reused.
+
+weakened_checks: none.
+
+## Executable QA action audit — 2026-07-31
+
+Code: TESTED_BRANCH. Repairable Seedance output no longer becomes a semantic
+dead end: a failed first/last identity receipt on a reference-bound clip stays
+`NEEDS_QA` until per-cut analysis can identify clean avatar-only spans. Any
+reference leak with at least one second of independently `PASS`ed
+`APPROVED_AVATAR_ONLY` footage now runs the local hero-only edit even when the
+discarded cuts also caused a global creative failure. The derivative receives
+new technical, identity/item and full reference QA bound to its own SHA before
+delivery; the final PASS/provenance gate was not widened.
+
+The edit concatenates only approved spans in chronological order, replaces
+provider sound with the exact hash-checked reference audio, and ends audio at
+the shortened picture duration. A genuinely silent reference yields a silent
+delivery instead of blocking local repair. The status/finalize API now returns
+one executable `next_action` plus `retry_available`; terminal `FAIL`/`FAILED`
+always exposes an explicit idempotent retry, while in-flight jobs only expose
+`WAIT` and never create a second paid request.
+
+Evidence: `node --test test/video/video-clip-qa.test.js
+test/video/video-qa-salvage.test.js test/video/video-qa-action.test.js
+test/video/video-service.test.js test/video/video-routes.test.js
+test/video/video-runtime.test.js` — PASS 80/80. `git diff --check` — PASS.
+Pre-change proof against `9e1732f`: the focused identity-to-cut-analysis
+regression fails `FAIL !== NEEDS_QA`, proving the former terminal dead end.
+
+Beta: NOT_DEPLOYED. Journey: NOT_RUN. No provider create, paid generation,
+beta edit or deployment occurred. `weakened_checks: none`; only remediation
+eligibility widened, and every salvaged byte must pass the unchanged final
+delivery gates again.
+
+## Automatic semantic QA completion — 2026-07-31
+
+Code: TESTED_BRANCH. Server finalization now owns the entire transition from a
+technical MP4 to a terminal customer action. `NEEDS_QA` invokes a real
+frame-sampling evaluator before the status response returns: two immutable
+output/reference samples per cut, exact approved-look and reference hashes,
+the nine reference-transfer checks, per-cut approved-avatar/reference-person
+checks, then identity and reference receipts. Reference leakage with clean
+avatar spans enters the existing local salvage and the derivative is evaluated
+again; evaluator/config failure becomes explicit `FAIL + RETRY_AVAILABLE`
+instead of an indefinitely visible internal status.
+
+An exact source-video copy is rejected deterministically without a VLM call.
+The current stuck clip `7d9cec53…` was independently measured across all 331
+frames: SSIM `1.000000`, PSNR `inf`. Runtime QA receipts now record
+identity FAIL, reference FAIL, reference-person leakage, zero approved hero
+segments, terminal `VIDEO_REFERENCE_QA_FAILED`; no paid request was made.
+
+Evidence: focused video suite PASS 84/84; syntax and `git diff --check` PASS.
+Beta: NOT_DEPLOYED. Journey: RUNTIME_QA_FAIL_CORRECTLY / PUBLIC_RELEASE_PENDING.
+`weakened_checks: none`.
+
+## Narrow capability integration — 2026-07-30
+
+Code: READY_FOR_BETA_DEPLOY. The useful backend portion of the later Block 6
+capability atom is ported onto the consolidated beta without its older profile
+UI, overlays, CSS, labels or action-card layout. One shared server contract
+requires an immutable approved-look image/receipt SHA, a style-pack SHA and a
+motion-reference SHA. The capability GET and create POST consume that same
+contract. Missing resolver or malformed/missing hashes remain fail-closed with
+`FASHION_VIDEO_REFERENCE_PACK_REQUIRED` before `VideoService.createClip`.
+
+Action Hub: unchanged. Its existing capability fetch, AI orb, full-viewport
+overlay, duplicate-submit lock and Live action remain the UI authority.
+
+Evidence: `node --test test/video/*.test.js test/web/profile-ui-flow.test.js
+test/web/video-capability-ui.test.js test/web/e-live-ui.test.js` — PASS
+130/130; syntax and `git diff --check` PASS.
+
+Beta: pending activation of this exact integration commit.
+Journey: not claimed; the deployed runtime does not yet expose a verified
+motion-reference resolver, so the truthful public state remains unavailable.
+No provider call or paid generation was made.
+weakened_checks: none.
+
+## Fashion Video HTTP 502 incident — 2026-07-30
+
+The public `POST /api/profile/video-clips` began at 19:05:15Z and persisted clip
+`0b5e30f3-0c3e-436f-aea0-877074c2bd65` as `SUBMITTING` without a provider job
+id. Beta release `f352a9b` activated at 19:05:25Z and killed that in-flight
+request, so Cloudflare returned HTTP 502. A read-only Higgsfield video-job audit
+found no Seedance job at or after the submission time; no paid duplicate exists.
+
+`activeBetaWorkIds` now scans `video-clips/clips/*/clip.json`, blocks deployment
+for active, unknown, malformed, or mismatched clip state, and permits restart
+only for durable `CREATED` or settled terminal states.
+
+Evidence:
+
+- `node --test test/release/beta-deployment.test.js` — PASS 4/4.
+- The fixed scanner detects the interrupted clip plus the currently active
+  scenes and shoots in the real beta runtime.
+- No paid generation or retry was run.
+- `weakened_checks: none`.
+
 Rationale/decision: VideoService remains the single profile HTTP execution path. The runtime constructs Higgsfield plus the three-attempt OpenRouter fallback router, supplies authenticated/size-bounded MP4 download and real ffprobe/frame extraction, and exposes resume/finalize without creating a second paid job. Higgsfield CLI 0.2.3 returned a batched create response, so the adapter now resolves job IDs from both object and array envelopes. A strict recovery path binds an orphaned SUBMITTING clip only when provider prompt/aspect/duration/model exactly match. Semantic first/last-frame QA is persisted as an immutable receipt and overrides technical MP4 PASS.
 Code: ACTIVE — commits da407ac707f8001d9a7f3165dd73847d012e394f and 78bf5b77f1425e845f57d0600378bb621c195be6 plus current recovery/FPS/semantic-QA atom.
 Beta: NOT_DEPLOYED
@@ -49,6 +192,20 @@ Minimal integration-only `start.js` handoff (not applied):
 `videoAssetUrlResolver` is an explicit deployment-owned prerequisite: it must map the exact clip-owned source path to a short-lived private HTTPS URL. No such resolver exists in this branch, so the handoff intentionally does not invent one or weaken source privacy.
 
 weakened_checks: none for the controlled clip. Integration remains blocked only on the missing deployment-owned private HTTPS `videoAssetUrlResolver`; beta was deliberately not exercised.
+
+## Reference-person QA salvage — 2026-07-31
+
+Pipeline step: `VIDEO.03 QA → VIDEO.04 persisted delivery`.
+
+Decision: a hash-bound per-cut QA failure caused only by leaked reference-performer pixels may produce one deterministic hero-only derivative instead of spending on another provider generation. QA keeps only ordered cuts marked `PASS + APPROVED_AVATAR_ONLY`, rejects `NO_PERSON` and ambiguous/reference-person cuts, and refuses salvage when camera, motion, environment, grade, sequence or another creative dimension also fails. At least one second of approved hero footage must remain.
+
+The derivative is a new immutable `clip-salvaged.mp4`; the original provider MP4 and SHA remain preserved. `ffmpeg` concatenates only approved millisecond spans, restores continuous audio exclusively from the exact hash-bound motion reference and fast-starts H.264/yuv420p + AAC output. Provider audio remains forbidden. The derivative stays `NEEDS_QA` until fresh receipts bound to its output SHA independently pass first/last identity-item QA and complete per-cut reference-adherence QA. No salvage result can inherit PASS from the failed parent.
+
+Code: TESTED_BRANCH — `node --test test/video/video-qa-salvage.test.js test/video/video-clip-qa.test.js test/video/video-service.test.js test/video/video-runtime.test.js test/video/ffprobe-video-probe.test.js` PASS 62/62; syntax and `git diff --check` PASS. The Fastify route suite could not load in this isolated worktree because dependencies are not installed; no route behavior is claimed from that suite.
+
+Real no-provider proof: the new runtime salvaged the user-supplied 13.041667s result using three approved spans (`0–1.042`, `3.667–7.375`, `11.083–13.042`) and the exact `Dear.My.Final.mov` audio. Result: 6.709002s, 720×1280, 24fps, 161 H.264 High/yuv420p frames, AAC-LC stereo 44.1kHz; SHA-256 `3e61140383838c02cfbb95492c9a42381d4326d8c60d54a3c3acd5e5b0245407`.
+
+Beta: NOT_DEPLOYED. Journey: LOCAL_SALVAGE_PASS / PUBLIC_BETA_NOT_RUN. No provider create, paid generation, beta edit or deployment occurred. `weakened_checks: none`; the salvage path adds mandatory output-bound re-QA and does not widen PASS criteria.
 
 ## No-paid private video-source bridge — 2026-07-29
 
@@ -104,3 +261,27 @@ Minimal integration-only `start.js` handoff (not applied):
 ```
 
 Deployment must supply a bare HTTPS `ZEELY_PUBLIC_HTTPS_ORIGIN` and `OPENROUTER_API_KEY`. `weakened_checks: full npm test blocked before execution by RESOURCE_PREFLIGHT_FAILED; focused code/security suites pass`.
+
+## Fashion Video motion-reference pack — 2026-07-30
+
+Three operator-provided vertical MP4 references are registered as one
+content-addressed pack. The large media stays in the runtime SSD reference
+root; Git stores only source identifiers, media facts, allowed motion modes and
+SHA-256 bindings.
+
+- `editorial-detail` → `editorial_micro_moment`
+- `walk-camera-energy` → `walk_stride`, `garment_gesture`
+- `hard-sun-pose` → `camera_drift`
+
+The resolver rechecks the real path, byte size and SHA-256 immediately before
+use. Higgsfield Seedance receives the selected video through its native
+`--video` input in addition to the approved look image. The current OpenRouter
+image-only route refuses this contract before any network call instead of
+silently discarding the motion reference. Capability remains unavailable when
+the runtime pack is absent or invalid.
+
+Evidence: all four product motion modes resolve one deterministic authority
+against the three real SSD files; focused video/profile/Live suite PASS
+`138/138`; no provider call or paid generation was run.
+
+weakened_checks: none.

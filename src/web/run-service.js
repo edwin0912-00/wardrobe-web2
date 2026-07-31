@@ -19,6 +19,9 @@ import { IMAGE_MODEL_ROUTE } from '../runner/model-policy.js';
 import { PipelineRunner } from '../runner/pipeline-runner.js';
 import { assessImageQuality, normalizeReference } from '../conditioning/index.mjs';
 import { normalizeWhitePngBytes } from '../qa/white-normalizer.mjs';
+import { inspectImage } from '../qa/image-inspector.mjs';
+import { STATUS as QA_STATUS } from '../qa/constants.mjs';
+import { removeBorderConnectedWhiteToAlpha } from '../conditioning/transparent-cutout.mjs';
 import { GarmentNeedsInputError, GarmentConditioner } from './garment-conditioner.js';
 import { lockFirstAppearance } from './first-appearance-lock.js';
 import {
@@ -111,6 +114,40 @@ function needsInput(code, message, options) {
 
 function evidenceError(code, message) {
   return new ApprovedItemEvidenceError(code, message);
+}
+
+// Fashion Video must decide whether a stride is physically grounded before a
+// provider job exists. The approved white master is already the only legal
+// image input, so this is a deterministic measurement of those exact pixels —
+// never a generated extension and never a VLM guess. A half-body crop cannot
+// prove footwear; a visible figure that reaches from the upper to lower area of
+// the white canvas can.
+async function fullLengthSourceCapability(filename) {
+  try {
+    const isolated = await removeBorderConnectedWhiteToAlpha(filename, {
+      removeBorderConnectedNeutralGradient: true,
+      removeDetachedLowContrastResidue: true,
+    });
+    const { data, info } = await sharp(isolated.image).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+    let top = info.height;
+    let bottom = -1;
+    for (let pixel = 0; pixel < info.width * info.height; pixel += 1) {
+      if (data[pixel * info.channels + 3] === 0) continue;
+      const y = Math.floor(pixel / info.width);
+      top = Math.min(top, y);
+      bottom = Math.max(bottom, y);
+    }
+    const visibleHeight = bottom >= top ? bottom - top + 1 : 0;
+    return Object.freeze({
+      full_length: visibleHeight >= info.height * 0.52
+        && top <= info.height * 0.32
+        && bottom >= info.height * 0.72,
+    });
+  } catch {
+    // This is a capability check, not a license to infer unseen legs. If the
+    // exact source cannot be measured, stride remains unavailable.
+    return Object.freeze({ full_length: false });
+  }
 }
 
 function isInside(root, filename) {
@@ -328,11 +365,14 @@ function publicRun(state) {
       category: item.category,
       confidence: item.confidence,
       observed: sanitizeOutbound(item.observed ?? {}),
-      preview_url: `/api/runs/${state.run_id}/garments/${item.source_index}`,
+      // Presentation derivative; raw evidence never leaves this endpoint by
+      // default in a conflict/picker UI.
+      preview_url: `/api/runs/${state.run_id}/garments/${item.source_index}?preview=1`,
     })),
     conflicts: sanitizeOutbound(state.conflicts ?? []),
     qa: sanitizeOutbound(state.qa ?? {}),
     outputs: sanitizeOutbound(state.outputs ?? {}),
+    requested_outfit_text: sanitizeOutboundString(state.inputs?.outfit_text ?? ''),
     execution_route: {
       ...(Array.isArray(state.image_model_route)
         && JSON.stringify(state.image_model_route) !== JSON.stringify(IMAGE_MODEL_ROUTE)
@@ -1114,6 +1154,79 @@ export class RunService {
   }
 
   /**
+   * Return the verified identity image used by downstream appearance-bound
+   * video. Bytes only: callers never receive a run-local filesystem path.
+   */
+  async approvedIdentityReferenceForRun(runId) {
+    if (typeof runId !== 'string' || !SAFE_RUN_ID.test(runId)) {
+      throw evidenceError('APPROVED_IDENTITY_REFERENCE_INVALID', 'Run id is invalid');
+    }
+    const directory = path.join(this.runDirectory(runId), 'conditioned', 'identity');
+    const packPath = path.join(directory, 'reference-pack.json');
+    const packBytes = await this.#readApprovedItemEvidenceFile(
+      packPath,
+      directory,
+      'Identity reference pack',
+      MAX_APPROVED_ITEM_PACK_BYTES,
+    );
+    let pack;
+    try {
+      pack = JSON.parse(packBytes.toString('utf8'));
+    } catch {
+      throw evidenceError(
+        'APPROVED_IDENTITY_REFERENCE_INVALID',
+        'Identity reference pack is not valid JSON',
+      );
+    }
+    const binding = pack?.generation_bindings?.find(
+      (candidate) => candidate?.order === 1 && candidate?.role === 'IDENTITY_PRIMARY',
+    );
+    if (pack?.schema_version !== '1.0.0'
+      || pack.kind !== 'HUMAN'
+      || pack.readiness?.decision !== 'READY'
+      || !binding
+      || !SHA256.test(binding.sha256 ?? '')
+      || typeof binding.path !== 'string') {
+      throw evidenceError(
+        'APPROVED_IDENTITY_REFERENCE_INVALID',
+        'Identity reference pack is incomplete',
+      );
+    }
+    const deterministicPath = path.join(directory, 'primary.png');
+    const relocationSuffix = path.join('conditioned', 'identity', 'primary.png');
+    const declaredPath = path.resolve(binding.path);
+    const referencePath = isInside(directory, declaredPath)
+      ? declaredPath
+      : (declaredPath.endsWith(`${path.sep}${relocationSuffix}`)
+        ? deterministicPath
+        : null);
+    if (!referencePath) {
+      throw evidenceError(
+        'APPROVED_IDENTITY_REFERENCE_PATH_ESCAPE',
+        'Identity reference escapes its run directory',
+      );
+    }
+    const data = await this.#readApprovedItemEvidenceFile(
+      referencePath,
+      directory,
+      'Identity reference',
+      MAX_APPROVED_ITEM_CUTOUT_BYTES,
+    );
+    if (sha256(data) !== binding.sha256) {
+      throw evidenceError(
+        'APPROVED_IDENTITY_REFERENCE_HASH_MISMATCH',
+        'Identity reference SHA-256 mismatch',
+      );
+    }
+    return {
+      role: 'identity_face',
+      data,
+      sha256: binding.sha256,
+      media_type: 'image/png',
+    };
+  }
+
+  /**
    * Resolves the immutable, per-item evidence used to generate a completed
    * garment-backed look. The returned object intentionally contains logical
    * facts and bytes only: filesystem paths and raw source-pack fields never
@@ -1791,11 +1904,65 @@ export class RunService {
     try { await access(filename); return filename; } catch { return null; }
   }
 
+  /**
+   * Fashion Video may receive only the approved full-look master, never the
+   * original user upload or an identity-pack photo. Verify the same keyable
+   * white surface again at this downstream boundary so an arbitrary image path
+   * cannot become `[Image 1]` by accident.
+   */
+  async approvedWhiteMasterReferenceForRun(runId) {
+    const filename = await this.outputFile(runId, 'avatar_outfit.png');
+    if (!filename) {
+      throw evidenceError('APPROVED_WHITE_MASTER_MISSING', 'Approved white master is missing');
+    }
+    // Footwear legitimately reaches the lower edge of a full-length master.
+    // The inspector therefore gates both upper corners and a full-height side,
+    // rather than mistaking a sole at the bottom for a non-white background.
+    const inspected = await inspectImage(filename);
+    const technicalPass = Object.values(inspected.technical_gates ?? {})
+      .every((gate) => gate?.status === QA_STATUS.PASS);
+    if (!technicalPass || inspected.background_diagnostics?.status !== QA_STATUS.PASS) {
+      throw evidenceError(
+        'APPROVED_WHITE_MASTER_INVALID',
+        'Fashion Video requires the approved full-look master on exact white; original input photos are not allowed',
+      );
+    }
+    const data = await readFile(filename);
+    if (sha256(data) !== inspected.sha256) {
+      throw evidenceError('APPROVED_WHITE_MASTER_HASH_MISMATCH', 'Approved white master changed during verification');
+    }
+    return {
+      role: 'approved_white_master',
+      path: filename,
+      data,
+      sha256: inspected.sha256,
+      white_background_verified: true,
+      source_capabilities: await fullLengthSourceCapability(filename),
+      background_diagnostics: inspected.background_diagnostics,
+    };
+  }
+
   async garmentSourceFile(runId, sourceIndex) {
     const state = await this.#read(runId);
     const index = Number(sourceIndex);
     if (!state || !Number.isInteger(index) || index < 0 || index >= state.inputs.garments.length) return null;
     const filename = state.inputs.garments[index];
+    try { await access(filename); return filename; } catch { return null; }
+  }
+
+  // Raw person inputs are never part of the ordinary profile API. The only
+  // caller is the separately authenticated, read-only God View route.
+  async personSourceFile(runId) {
+    const state = await this.#read(runId);
+    const filename = state?.inputs?.person;
+    if (typeof filename !== 'string') return null;
+    try { await access(filename); return filename; } catch { return null; }
+  }
+
+  async identityDetailSourceFile(runId) {
+    const state = await this.#read(runId);
+    const filename = state?.inputs?.identity_detail;
+    if (typeof filename !== 'string') return null;
     try { await access(filename); return filename; } catch { return null; }
   }
 

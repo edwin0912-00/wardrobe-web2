@@ -88,7 +88,7 @@ test('correct 9:16 aspect passes', () => {
   assert.equal(result.pass, true);
 });
 
-test('audio track present is a defect', () => {
+test('audio track is a defect only when a silent delivery is required', () => {
   const expected = { durationMin: 4, durationMax: 6, aspectRatio: '16:9' };
   const probe = {
     durationSeconds: 5.0,
@@ -99,7 +99,33 @@ test('audio track present is a defect', () => {
   };
   const result = evaluateClipQa(expected, probe);
   assert.equal(result.pass, false);
-  assert.ok(result.defects.some((d) => d.code === 'CLIP_HAS_AUDIO'));
+  assert.ok(result.defects.some((d) => d.code === 'CLIP_UNAUTHORIZED_AUDIO'));
+});
+
+test('approved reference audio passes when the delivery requires it', () => {
+  const result = evaluateClipQa(
+    { durationMin: 4, durationMax: 6, aspectRatio: '16:9', audioPolicy: 'REFERENCE_REQUIRED' },
+    { durationSeconds: 5, width: 1280, height: 720, hasAudio: true,
+      firstFrameRgb: new Uint8Array(10).fill(128), lastFrameRgb: new Uint8Array(10).fill(128) },
+  );
+  assert.equal(result.pass, true);
+});
+
+test('bound reference audio is accepted by the same provenance policy after salvage', () => {
+  const probe = {
+    durationSeconds: 3,
+    width: 720, height: 1280,
+    hasAudio: true,
+    firstFrameRgb: new Uint8Array(10).fill(128),
+    lastFrameRgb: new Uint8Array(10).fill(128),
+  };
+  const result = evaluateClipQa({
+    durationMin: 3,
+    durationMax: 3,
+    aspectRatio: '9:16',
+    audioPolicy: 'REFERENCE_REQUIRED',
+  }, probe);
+  assert.equal(result.pass, true);
 });
 
 test('black first frame is a defect', () => {
@@ -145,7 +171,7 @@ test('multiple defects are collected, not short-circuited', () => {
   const codes = new Set(result.defects.map((d) => d.code));
   assert.ok(codes.has('CLIP_DURATION_OUT_OF_RANGE'));
   assert.ok(codes.has('CLIP_ASPECT_MISMATCH'));
-  assert.ok(codes.has('CLIP_HAS_AUDIO'));
+  assert.ok(codes.has('CLIP_UNAUTHORIZED_AUDIO'));
   assert.ok(codes.has('CLIP_FIRST_FRAME_BLACK'));
   assert.ok(codes.has('CLIP_LAST_FRAME_BLACK'));
 });

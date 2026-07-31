@@ -1,12 +1,18 @@
+import { createThinkingOrb } from './thinking-orb.js?v=20260722-10';
+import { createWhiteBorderMatte } from './light-stage.js?v=20260730-1';
+
 const MODEL_ID = 'decart/lucy-2-5/realtime';
 const SESSION_SECONDS = 15;
 const state = {
   stream: null, reference: null, connection: null, peer: null, timer: null,
   countdownTimer: null, deadline: null, guideTimer: null, running: false, phase: 'READY',
+  cameraPermission: 'prompt',
 };
 const $ = (selector) => document.querySelector(selector);
+const liveThinkingOrb = createThinkingOrb($('#live-thinking-orb'), 'searching');
 const prompt = 'Replace only the current clothing with the outfit from the reference image. Preserve the person face, identity, hair, skin, body shape, pose and hands. Preserve the existing room, background, camera angle and lighting. Do not modify anything except the clothing.';
 const query = new URLSearchParams(location.search);
+const LIVE_RETURN_FOCUS_KEY = 'zeely_live_return_focus';
 
 function renderStatus() {
   const remaining = state.running && state.deadline
@@ -18,8 +24,51 @@ function status(text) {
   state.phase = text;
   renderStatus();
 }
+function setAiThinking(active, orbState = 'working', title = 'AI працює', detail = 'Очікуємо наступний checkpoint') {
+  const surface = $('#live-ai-thinking');
+  surface.classList.toggle('hidden', !active);
+  if (!active) return;
+  liveThinkingOrb.setState(orbState);
+  $('#live-ai-title').textContent = title;
+  $('#live-ai-detail').textContent = detail;
+}
 function ready() {
-  $('#lucy-start').disabled = state.running || !state.stream || !state.reference;
+  const privacyApproved = $('#privacy-consent').checked;
+  const costApproved = $('#cost-consent').checked;
+  $('#camera-start').disabled = state.running || !privacyApproved || Boolean(state.stream);
+  $('#lucy-start').disabled = state.running
+    || !state.stream
+    || !state.reference
+    || !privacyApproved
+    || !costApproved;
+}
+function renderCameraPermission() {
+  const labels = {
+    granted: 'КАМЕРА · ДОЗВОЛЕНО',
+    denied: 'КАМЕРА · ЗАБОРОНЕНО',
+    prompt: 'КАМЕРА · НЕ ЗАПИТАНО',
+    unavailable: 'КАМЕРА · НЕДОСТУПНА',
+  };
+  $('#camera-permission-status').textContent = labels[state.cameraPermission] || labels.prompt;
+}
+async function observeCameraPermission() {
+  if (!navigator.mediaDevices?.getUserMedia) {
+    state.cameraPermission = 'unavailable';
+    renderCameraPermission();
+    return;
+  }
+  if (!navigator.permissions?.query) return;
+  try {
+    const permission = await navigator.permissions.query({ name: 'camera' });
+    const sync = () => {
+      state.cameraPermission = permission.state;
+      renderCameraPermission();
+    };
+    permission.addEventListener?.('change', sync);
+    sync();
+  } catch {
+    // Safari does not expose camera through Permissions API; getUserMedia is authoritative.
+  }
 }
 function dataUrl(file) {
   return new Promise((resolve, reject) => {
@@ -29,6 +78,18 @@ function dataUrl(file) {
     reader.readAsDataURL(file);
   });
 }
+function transparentPreview(image) {
+  const canvas = document.createElement('canvas');
+  canvas.width = image.naturalWidth;
+  canvas.height = image.naturalHeight;
+  const context = canvas.getContext('2d', { willReadFrequently: true });
+  if (!context) return image.src;
+  context.drawImage(image, 0, 0);
+  const pixels = context.getImageData(0, 0, canvas.width, canvas.height);
+  pixels.data.set(createWhiteBorderMatte(pixels.data, canvas.width, canvas.height));
+  context.putImageData(pixels, 0, 0);
+  return canvas.toDataURL('image/png');
+}
 async function loadReference(file) {
   if (!['image/jpeg', 'image/png', 'image/webp'].includes(file?.type)) throw new Error('Потрібен JPEG, PNG або WebP.');
   const url = URL.createObjectURL(file);
@@ -37,7 +98,7 @@ async function loadReference(file) {
   await image.decode();
   if (image.naturalWidth < 512 || image.naturalHeight < 512) throw new Error('Reference має бути мінімум 512×512.');
   state.reference = await dataUrl(file);
-  $('#reference-preview').src = url;
+  $('#reference-preview').src = transparentPreview(image);
   $('#reference-preview').classList.remove('hidden');
   $('#reference-placeholder').classList.add('hidden');
   $('#reference-status').textContent = `${file.name} · ${image.naturalWidth}×${image.naturalHeight} · READY`;
@@ -45,8 +106,8 @@ async function loadReference(file) {
 }
 async function loadSavedLookReference(lookId) {
   await loadReferenceUrl(
-    `/api/profile/looks/${encodeURIComponent(lookId)}/image`,
-    `look-${lookId}.png`,
+    `/api/profile/looks/${encodeURIComponent(lookId)}/live-reference.png`,
+    `live-reference-${lookId}.png`,
     'Вибраний образ · READY',
   );
 }
@@ -68,15 +129,24 @@ async function loadReferenceUrl(url, fileName, readyLabel, { publicProviderUrl =
   $('#reference-status').textContent = readyLabel;
 }
 async function startCamera() {
+  if (!$('#privacy-consent').checked) throw new Error('Спочатку підтвердь використання камери для цієї сесії.');
   if (!window.isSecureContext) throw new Error('Камера потребує HTTPS.');
   if (!navigator.mediaDevices?.getUserMedia) {
     throw new Error('Цей вбудований браузер не дає доступу до камери. Відкрий сторінку в Safari або Chrome.');
   }
   status('Запит дозволу на камеру…');
-  state.stream = await navigator.mediaDevices.getUserMedia({
-    video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } },
-    audio: false,
-  });
+  try {
+    state.stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } },
+      audio: false,
+    });
+    state.cameraPermission = 'granted';
+  } catch (error) {
+    state.cameraPermission = error?.name === 'NotAllowedError' ? 'denied' : state.cameraPermission;
+    renderCameraPermission();
+    throw error;
+  }
+  renderCameraPermission();
   $('#camera').srcObject = state.stream;
   $('#camera-placeholder').classList.add('hidden');
   $('#camera-start').classList.add('hidden');
@@ -102,6 +172,7 @@ function closeLive(message = 'Live зупинено.') {
   state.peer = null;
   state.connection = null;
   state.running = false;
+  setAiThinking(false);
   if (state.stream) $('#camera').srcObject = state.stream;
   status(message);
   ready();
@@ -118,6 +189,17 @@ function stopCamera() {
   $('#camera-stop').classList.add('hidden');
   ready();
 }
+function exitLiveSurface() {
+  stopCamera();
+  if (query.get('return') === 'profile') {
+    sessionStorage.setItem(LIVE_RETURN_FOCUS_KEY, 'return');
+    if (history.length > 1) {
+      history.back();
+      return;
+    }
+  }
+  location.assign('/');
+}
 async function signal(result) {
   const type = String(result?.type ?? '').toLowerCase().replaceAll('_', '');
   if (type === 'iceservers'
@@ -126,17 +208,22 @@ async function signal(result) {
     || Array.isArray(result?.ice_servers)) {
     if (state.peer) return;
     const servers = result.iceservers || result.iceServers || result.ice_servers || [];
+    setAiThinking(true, 'solving', 'AI налаштовує потік', 'Узгоджуємо WebRTC та camera stream');
     status('Lucy · налаштовуємо WebRTC…');
     state.peer = new RTCPeerConnection({ iceServers: servers });
     state.stream.getTracks().forEach((track) => state.peer.addTrack(track, state.stream));
     state.peer.ontrack = (event) => {
       $('#camera').srcObject = event.streams[0] || new MediaStream([event.track]);
+      setAiThinking(false);
       status('Real-time Look активний. Показуємо live-потік.');
     };
     state.peer.onconnectionstatechange = () => {
       const connectionState = state.peer?.connectionState;
       if (connectionState === 'failed') closeLive('Помилка WebRTC: connection failed.');
-      else if (connectionState === 'connected') status('Lucy · WebRTC connected, очікуємо відео…');
+      else if (connectionState === 'connected') {
+        setAiThinking(true, 'composing', 'AI формує Live-потік', 'WebRTC підключено, очікуємо перший кадр');
+        status('Lucy · WebRTC connected, очікуємо відео…');
+      }
     };
     state.peer.onicecandidate = (event) => {
       if (event.candidate) state.connection.send({ type: 'icecandidate', candidate: event.candidate.toJSON() });
@@ -146,6 +233,7 @@ async function signal(result) {
     status('Lucy · надсилаємо camera offer…');
     state.connection.send({ type: 'offer', sdp: offer.sdp });
   } else if (type === 'answer' || (result?.sdp && state.peer?.localDescription)) {
+    setAiThinking(true, 'composing', 'AI формує Live-потік', 'Отримано video answer');
     status('Lucy · отримано video answer…');
     await state.peer?.setRemoteDescription({ type: 'answer', sdp: result.sdp });
   } else if ((type === 'icecandidate' || (result?.candidate && !result?.sdp)) && state.peer) {
@@ -155,7 +243,10 @@ async function signal(result) {
   }
 }
 async function startLive() {
-  if (!window.confirm('Запустити 15 секунд Lucy Live? Максимальна вартість — $0.60.')) return;
+  if (!$('#privacy-consent').checked) throw new Error('Не підтверджено використання camera-потоку.');
+  if (!$('#cost-consent').checked) throw new Error('Не підтверджено ліміт платної 15-секундної сесії.');
+  if (!selectedLookId) throw new Error('Live запускається лише зі збереженого образу.');
+  setAiThinking(true, 'working', 'AI підключає Live', 'Готуємо захищену realtime-сесію');
   const falModule = await import('./vendor/fal-client.js?v=20260727-7');
   const fal = falModule.fal ?? falModule.default?.fal;
   if (typeof fal?.realtime?.connect !== 'function') {
@@ -176,6 +267,9 @@ async function startLive() {
     throttleInterval: 0,
     tokenExpirationSeconds: 10,
     tokenProvider: async (app) => {
+      if (!state.running || !$('#privacy-consent').checked || !$('#cost-consent').checked) {
+        throw new Error('Згоду відкликано до створення Live-сесії.');
+      }
       // Keep the SDK-provided app value intact here. The server validates the
       // full endpoint, then scopes fal's temporary JWT to the endpoint alias.
       // Sending the full endpoint in JWT allowed_apps makes Lucy close the
@@ -183,7 +277,13 @@ async function startLive() {
       const response = await fetch('/api/fal/realtime-token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ app, cost_acknowledged: true, max_session_seconds: SESSION_SECONDS }),
+        body: JSON.stringify({
+          app,
+          look_id: selectedLookId,
+          privacy_consent: true,
+          cost_acknowledged: true,
+          max_session_seconds: SESSION_SECONDS,
+        }),
       });
       if (!response.ok) {
         const error = await response.json().catch(() => ({}));
@@ -201,21 +301,58 @@ $('#reference-upload').addEventListener('change', (event) => loadReference(event
   event.target.value = '';
   $('#reference-status').textContent = error.message;
 }));
+$('#privacy-gate-consent').addEventListener('change', (event) => {
+  $('#privacy-continue').disabled = !event.target.checked;
+});
+$('#privacy-continue').addEventListener('click', () => {
+  if (!$('#privacy-gate-consent').checked) return;
+  $('#privacy-consent').checked = true;
+  $('#privacy-gate').classList.add('hidden');
+  ready();
+  status('Згоду підтверджено. Камера ще вимкнена.');
+  $('#camera-start').focus({ preventScroll: true });
+});
 $('#camera-start').addEventListener('click', () => startCamera().catch((error) => status(`Помилка камери: ${error.message}`)));
 $('#camera-stop').addEventListener('click', stopCamera);
+$('#privacy-consent').addEventListener('change', () => {
+  if (!$('#privacy-consent').checked && state.stream) stopCamera();
+  ready();
+});
+$('#cost-consent').addEventListener('change', () => {
+  if (!$('#cost-consent').checked && state.running) closeLive('Платну Live-сесію зупинено.');
+  ready();
+});
 $('#lucy-start').addEventListener('click', () => startLive().catch((error) => closeLive(`Помилка: ${error.message}`)));
 $('#lucy-stop').addEventListener('click', () => closeLive());
-window.addEventListener('pagehide', stopCamera);
+document.querySelectorAll('[data-live-close]').forEach((button) => button.addEventListener('click', exitLiveSurface));
+document.addEventListener('keydown', (event) => {
+  if (event.key !== 'Escape') return;
+  event.preventDefault();
+  exitLiveSurface();
+});
+window.addEventListener('pagehide', () => {
+  stopCamera();
+  if (query.get('return') === 'profile') sessionStorage.setItem(LIVE_RETURN_FOCUS_KEY, 'return');
+});
 ready();
 const selectedLookId = query.get('look');
 const demoOutfit = query.get('demo') === 'outfit';
 if (query.get('embed') === '1') document.body.classList.add('is-embedded');
+if (query.get('surface') === 'full') document.body.classList.add('is-full-surface');
 if (selectedLookId) {
+  setAiThinking(true, 'searching', 'AI відкриває образ', 'Завантажуємо перевірений reference');
   status('Завантажуємо вибраний образ…');
   loadSavedLookReference(selectedLookId)
-    .then(() => status('Образ готовий. Увімкни камеру.'))
-    .catch((error) => status(`Помилка образу: ${error.message}`));
+    .then(() => {
+      setAiThinking(false);
+      status('Образ готовий. Увімкни камеру.');
+    })
+    .catch((error) => {
+      setAiThinking(false);
+      status(`Помилка образу: ${error.message}`);
+    });
 } else if (demoOutfit) {
+  setAiThinking(true, 'searching', 'AI відкриває образ', 'Завантажуємо тестовий reference');
   status('Завантажуємо тестовий outfit…');
   loadReferenceUrl(
     '/live-test-outfit.png?v=20260729-1',
@@ -223,6 +360,15 @@ if (selectedLookId) {
     'Hoodie + sneakers · READY',
     { publicProviderUrl: true },
   )
-    .then(() => status('Образ готовий. Увімкни камеру.'))
-    .catch((error) => status(`Помилка образу: ${error.message}`));
+    .then(() => {
+      setAiThinking(false);
+      status('Образ готовий. Увімкни камеру.');
+    })
+    .catch((error) => {
+      setAiThinking(false);
+      status(`Помилка образу: ${error.message}`);
+    });
 }
+renderCameraPermission();
+observeCameraPermission();
+requestAnimationFrame(() => $('#privacy-gate-consent').focus({ preventScroll: true }));

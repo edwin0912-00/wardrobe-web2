@@ -42,7 +42,6 @@ const GENERATION_REFERENCE_ORDER = Object.freeze([
 ]);
 const CREATE_UNIVERSE_IMAGE_REFERENCE_ORDER = Object.freeze([
   'composition_anchor',
-  'negative_reference',
   'lighting_anchor',
   'palette_anchor',
 ]);
@@ -255,7 +254,7 @@ function prioritizedImageReferences(references, presetId) {
   const images = references.filter((item) => item.transport === 'image');
   if (!isCreateUniversePresetId(presetId)) return images;
   const byRole = new Map(images.map((item) => [item.role, item]));
-  if (byRole.size !== CREATE_UNIVERSE_IMAGE_REFERENCE_ORDER.length) {
+  if (byRole.size !== Object.keys(CREATE_UNIVERSE_STYLE_SHEET_BY_ROLE).length) {
     throw new Error('Create Universe generation requires exactly four canonical image sheets');
   }
   return CREATE_UNIVERSE_IMAGE_REFERENCE_ORDER.map((role) => {
@@ -267,20 +266,89 @@ function prioritizedImageReferences(references, presetId) {
 
 function createUniverseStyleAttachmentInstructions(attachments, presetId) {
   if (!isCreateUniversePresetId(presetId)) return '';
-  const lines = attachments
-    .filter((item) => item.styleSheetRole)
-    .map((item) => (
-      `- ATTACHMENT_${item.order} [CREATE_UNIVERSE_${item.styleSheetRole.toUpperCase()}]`
-    ));
+  const lines = attachments.flatMap((item) => {
+    if (Array.isArray(item.styleSheetRoles)) {
+      return [
+        `- ATTACHMENT_${item.order} [CREATE_UNIVERSE_AUTHORITY_SHEET] is one mechanical 2×2 transport sheet:`,
+        '  TOP_LEFT=CAMERA_LENS; TOP_RIGHT=BLOCKING; BOTTOM_LEFT=EXPRESSION_GAZE; BOTTOM_RIGHT=GARMENT_BEHAVIOUR.',
+      ];
+    }
+    return item.styleSheetRole
+      ? [`- ATTACHMENT_${item.order} [CREATE_UNIVERSE_${item.styleSheetRole.toUpperCase()}]`]
+      : [];
+  });
   if (lines.length === 0) return '';
   return [
     '',
     'CREATE UNIVERSE STYLE-SHEET AUTHORITY — FIXED PRIORITY',
     ...lines,
-    'Their canonical priority is CAMERA_LENS → BLOCKING → EXPRESSION_GAZE → GARMENT_BEHAVIOUR. Never reinterpret their generic scene-role transport labels as a different authority.',
-    'CAMERA_LENS controls camera consequence, perspective, focus falloff and unit-wide optics. BLOCKING controls only body-to-camera and joint-chain geometry. EXPRESSION_GAZE controls only muscular state and gaze, never facial identity or geometry. GARMENT_BEHAVIOUR controls only what the approved item cloth does under this shoot, never its design, colour, logo or construction.',
+    'Their canonical priority is CAMERA_LENS → EXPRESSION_GAZE → GARMENT_BEHAVIOUR. Never reinterpret their generic scene-role transport labels as a different authority.',
+    'CAMERA_LENS controls camera consequence, perspective, focus falloff and unit-wide optics. EXPRESSION_GAZE controls only muscular state and gaze, never facial identity or geometry. GARMENT_BEHAVIOUR controls only what the approved item cloth does under this shoot, never its design, colour, logo or construction.',
+    'POSE is the sole physical-pose authority for this frame. A generic unit blocking board is deliberately not attached: it is not evidence that it illustrates this slot\'s exact joint chain.',
     'Environment, palette, lighting, contrast and optical rules also remain mandatory as exact structured prompt facts. Source people, source garments and exact source places never transfer.',
   ].join('\n');
+}
+
+async function createUniverseAuthoritySheet(references, workDirectory) {
+  if (references.length !== CREATE_UNIVERSE_IMAGE_REFERENCE_ORDER.length) {
+    throw new Error('Create Universe authority sheet requires exactly four canonical image sheets');
+  }
+  const sourceBytes = await Promise.all(references.map((item) => readFile(item.path)));
+  const metadata = await Promise.all(sourceBytes.map((bytes) => sharp(bytes).metadata()));
+  if (metadata.some((item) => !Number.isInteger(item.width) || !Number.isInteger(item.height))) {
+    throw new Error('Create Universe style sheets must expose exact source geometry');
+  }
+  // The source boards deliberately use different landscape canvases. Normalise
+  // transport, never content: every complete board is contained in one fixed
+  // transparent cell with no crop, stretch or generated pixels.
+  const width = 1536;
+  const height = 1024;
+  const cells = await Promise.all(sourceBytes.map((bytes) => sharp(bytes)
+    .resize({
+      width,
+      height,
+      fit: 'contain',
+      position: 'centre',
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    })
+    .png({ compressionLevel: 9, adaptiveFiltering: false })
+    .toBuffer()));
+  const sourceSha256 = references.map((item) => item.sha256);
+  const authorityBytes = await sharp({
+    create: {
+      width: width * 2,
+      height: height * 2,
+      channels: 4,
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    },
+  }).composite([
+    { input: cells[0], left: 0, top: 0 },
+    { input: cells[1], left: width, top: 0 },
+    { input: cells[2], left: 0, top: height },
+    { input: cells[3], left: width, top: height },
+  ]).png({ compressionLevel: 9, adaptiveFiltering: false }).toBuffer();
+  const authoritySha256 = sha256(authorityBytes);
+  const filename = path.join(
+    path.resolve(workDirectory),
+    `create-universe-authority-${authoritySha256.slice(0, 16)}.png`,
+  );
+  await writeFile(filename, authorityBytes);
+  return {
+    scope: 'outfit',
+    role: 'CREATE_UNIVERSE_AUTHORITY_SHEET',
+    styleSheetRoles: [
+      'camera_lens',
+      'blocking',
+      'expression_gaze',
+      'garment_behaviour',
+    ],
+    styleSheetSourceSha256: sourceSha256,
+    styleSheetSourceGeometry: metadata.map((item) => `${item.width}x${item.height}`),
+    path: filename,
+    sha256: authoritySha256,
+    mediaType: 'image/png',
+    source: 'CONDITIONED',
+  };
 }
 
 export function referenceEvidence(references) {
@@ -610,12 +678,6 @@ export class SceneGeneratorAdapter {
     if (required.length > maxAttachments) {
       throw new Error('Approved item evidence exceeds the provider attachment limit');
     }
-    if (
-      createUniverse
-      && required.length + CREATE_UNIVERSE_IMAGE_REFERENCE_ORDER.length > maxAttachments
-    ) {
-      throw new Error('Provider attachment limit cannot carry all four Create Universe style sheets');
-    }
     // The discretionary tail, most valuable first. Standard scenes keep continuity
     // anchors ahead of optional scene images. Create Universe reverses that order:
     // all four canonical style sheets are indivisible shoot authority, while an
@@ -632,7 +694,7 @@ export class SceneGeneratorAdapter {
         mediaType: anchor.media_type,
         source: 'CONDITIONED',
       }));
-    const sceneImageAttachments = prioritizedSceneImages.map((item) => {
+    let sceneImageAttachments = prioritizedSceneImages.map((item) => {
       const styleSheetRole = createUniverseStyleSheetRole(item, context.preset?.preset_id);
       return {
           scope: 'outfit',
@@ -646,6 +708,20 @@ export class SceneGeneratorAdapter {
           source: 'CONDITIONED',
         };
     });
+    let createUniverseAuthority = null;
+    if (
+      createUniverse
+      && required.length + sceneImageAttachments.length > maxAttachments
+    ) {
+      if (required.length >= maxAttachments) {
+        throw new Error('Provider attachment limit has no slot for the Create Universe authority sheet');
+      }
+      createUniverseAuthority = await createUniverseAuthoritySheet(
+        prioritizedSceneImages,
+        context.work_directory,
+      );
+      sceneImageAttachments = [createUniverseAuthority];
+    }
     const discretionary = createUniverse
       ? [...sceneImageAttachments, ...anchorAttachments]
       : [...anchorAttachments, ...sceneImageAttachments];
@@ -766,6 +842,15 @@ export class SceneGeneratorAdapter {
         ...(droppedAttachmentRoles.length > 0 ? {
           dropped_attachment_roles: droppedAttachmentRoles.join(':'),
           dropped_attachment_count: droppedAttachmentRoles.length,
+        } : {}),
+        ...(createUniverseAuthority ? {
+          create_universe_authority_sheet_sha256: createUniverseAuthority.sha256,
+          create_universe_authority_source_sha256:
+            createUniverseAuthority.styleSheetSourceSha256.join(':'),
+          create_universe_authority_source_geometry:
+            createUniverseAuthority.styleSheetSourceGeometry.join(':'),
+          create_universe_authority_layout:
+            'TOP_LEFT_CAMERA_LENS:TOP_RIGHT_BLOCKING:BOTTOM_LEFT_EXPRESSION_GAZE:BOTTOM_RIGHT_GARMENT_BEHAVIOUR',
         } : {}),
         outbound_prompt_sha256: sha256(Buffer.from(prompt)),
         ...(repairCandidate ? {
@@ -1077,7 +1162,7 @@ export function evaluatorPrompt(
     'Return exactly six gates in this exact order: NEAR_COPY_AND_LEAKAGE, IDENTITY, ITEM_FIDELITY, SCENE_MATCH, LIGHT_AND_CONTACT_SHADOW, FRAMING_AND_ANATOMY.',
     ...(styleContract ? [
       'For this Create Universe frame, SCENE_MATCH is also the explicit style-fidelity gate. It must judge the whole photographic system, not merely whether a plausible location exists.',
-      'The four Create Universe style attachments have fixed authority and priority: CAMERA_LENS controls optics and camera consequence; BLOCKING controls pose geometry; EXPRESSION_GAZE controls muscular state and gaze but never face geometry; GARMENT_BEHAVIOUR controls cloth response but never approved item design.',
+      'The three attached Create Universe style sheets have fixed authority and priority: CAMERA_LENS controls optics and camera consequence; EXPRESSION_GAZE controls muscular state and gaze but never face geometry; GARMENT_BEHAVIOUR controls cloth response but never approved item design. This frame has no illustrated pose attachment unless its immutable pack explicitly binds one; evaluate its pose from its compiled shot direction, never from a generic unit diagram.',
       `SCENE_MATCH requires visible compliance with this visual system: ${styleContract.visual_system}`,
       `SCENE_MATCH requires this mood and tension: ${styleContract.mood_line}`,
       `SCENE_MATCH requires this environment material system: ${styleContract.materials.join(' | ')}`,
@@ -1086,12 +1171,13 @@ export function evaluatorPrompt(
       `SCENE_MATCH requires this focus plane and falloff: ${styleContract.focus}`,
       `SCENE_MATCH requires this foreground/occlusion treatment: ${styleContract.foreground}`,
       `SCENE_MATCH requires this expression and gaze signature without borrowing face geometry: ${styleContract.expression_signature}`,
+      `LIGHT_AND_CONTACT_SHADOW requires this exact subject-light interaction: ${styleContract.subject_lighting}`,
       `SCENE_MATCH requires this garment behaviour without changing approved item design: ${styleContract.garment_behaviour}`,
       `LIGHT_AND_CONTACT_SHADOW must also preserve this fixed unit-wide optical signature on the frame: ${styleContract.optical_signature.join(' | ')}`,
       `The declared environment is: ${preset.environment}`,
       `The declared lighting is: ${preset.lighting?.key ?? ''}`,
       `The declared colour palette is: ${(preset.palette ?? []).join(' | ')}`,
-      'Fail SCENE_MATCH when the mood, environment, materials, palette, contrast, composition, focus, foreground, expression or garment behaviour becomes generic or contradicts the declared shoot. Fail LIGHT_AND_CONTACT_SHADOW when the lighting or fixed optical signature is absent or replaced, even if exposure is otherwise attractive.',
+      'Fail SCENE_MATCH when the mood, environment, materials, palette, contrast, composition, focus, foreground, expression or garment behaviour becomes generic or contradicts the declared shoot. Fail LIGHT_AND_CONTACT_SHADOW when the declared environmental source fails to visibly strike, shadow or otherwise motivate the approved subject and cloth as required by the subject-light interaction, or when an unmotivated frontal beauty fill, neutral softbox or artificial rim replaces it — even if exposure is otherwise attractive.',
     ] : []),
     'ITEM_FIDELITY is a forensic comparison, not a general style judgment. Compare every visible approved item separately across the full images and paired upper/lower detail attachments.',
     ...(editorial?.item_scope === 'FIRST_ORDERED_ITEM' ? [
@@ -1105,6 +1191,7 @@ export function evaluatorPrompt(
     'Any substituted emblem, missing monogram, rewritten letter or number, altered stripe/print, changed bag hardware, changed shoe construction, missing item, or invented accessory is ITEM_FIDELITY FAIL.',
     ...(standardBackground ? [
       'This is a full-body standard-background photograph, not an ecommerce detail frame. Compare all visible approved item facts strictly, but do not fail for a detail that is naturally covered by another approved garment, outside the visible surface, or too small at the required full-body scale. The immutable approved master remains the authority for unobservable details.',
+      'Apply presentation-scene tolerance, not packshot tolerance: a minor omission or simplification of small hardware, stitching, fasteners or edge finishing is advisory when item count/type, color family, material family, silhouette, major construction topology, visible pattern and any legible logo/text still match. Record it in evidence but keep ITEM_FIDELITY PASS.',
       'A visible contradiction, visible substitution, missing approved item, or unauthorized added item is still ITEM_FIDELITY FAIL. Never call an unobservable detail a visible contradiction.',
     ] : [
       'Never infer that two marks match merely because they resemble the same luxury style. If a required small logo, pattern, text, or construction detail is not visibly verifiable in the candidate, return FAIL with ITEM_DETAIL_NOT_VERIFIABLE.',
@@ -1129,6 +1216,14 @@ export function evaluatorPrompt(
     ] : [
       'IDENTITY requires comparison of stable facial geometry, apparent age, hairline, eyes, nose, mouth, jaw and distinctive marks; expression and scene lighting may change, identity may not.',
     ]),
+    ...(standardBackground ? [
+      `The standard scene declares this key light: ${preset.lighting?.key ?? 'not declared'}.`,
+      `The standard scene declares this fill: ${preset.lighting?.fill ?? 'not declared'}.`,
+      'For LIGHT_AND_CONTACT_SHADOW, independently judge (1) observed key direction on the subject, (2) observed fill direction and strength on face and torso, and (3) environment colour/bounce/rim integration on skin, clothing and footwear.',
+      'A mild extra frontal fill is advisory when the declared environment key, bounce/rim and grounding remain visibly coherent; state it in evidence but do not reject an otherwise integrated fashion frame.',
+      'Fail only when a camera-axis or frontal studio key visibly replaces the declared environment key, creates physically contradictory illumination, or makes the subject read as pasted into the scene. A plausible contact shadow alone cannot compensate for that severe contradiction.',
+      'A PASS must state the observed key, the observed fill, and the visible environment integration separately in this gate evidence; attractiveness or exposure alone is not proof.',
+    ] : []),
     // Ground contact cannot be evidence in a frame that ends above the feet, and this
     // gate refused 4 of 6 attempts in one editorial retry round for exactly that —
     // "the frame cuts off the subject before the feet/contact points, so a
@@ -1253,6 +1348,7 @@ export function itemFidelityPrompt(item, { standardBackground = false } = {}) {
     ...(standardBackground ? [
       'This is a full-body standard-background photograph, not a product-detail frame. Judge only the facts that are actually visible at this shot scale.',
       'When an approved detail is naturally covered by another approved garment, outside the visible surface, or too small at full-body scale, do not call it missing and do not return ITEM_DETAIL_NOT_VERIFIABLE. The immutable approved master remains the authority for that unobservable detail. Record only the visible category, silhouette, color, material, and any legible distinguishing feature.',
+      'Presentation-scene tolerance: minor simplification or omission of small hardware, stitching, fasteners, closures or edge finishing is advisory, not REVISE, when item count/type, color family, material family, silhouette, major construction topology, visible pattern and any legible logo/text match. Mention the minor deviation in evidence and return PASS with defects=[].',
       'Return REVISE only for a visible contradiction or substitution: a changed visible logo/text/pattern, different visible silhouette/color/material/construction, a missing approved item, or an unauthorized added item. A merely unobservable detail is not a contradiction.',
     ] : [
       'If the generated product is too small or blurred to verify a required exact detail, return REVISE with ITEM_DETAIL_NOT_VERIFIABLE.',

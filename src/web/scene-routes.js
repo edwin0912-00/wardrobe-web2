@@ -1,5 +1,6 @@
 import { createReadStream } from 'node:fs';
 import { ProfileError } from './profile-service.js';
+import { sendPresentationImage } from './presentation-preview.js';
 
 const TERMINAL_SCENE_STATES = new Set(['COMPLETED', 'FAILED', 'CANCELLED']);
 
@@ -98,6 +99,10 @@ export async function registerSceneRoutes(app, {
   if (!sceneService || !profiles || !profileApi || !runService || !presetResolver) {
     throw new Error('registerSceneRoutes requires sceneService, profiles, profileApi, runService and presetResolver');
   }
+  // A user opening Fashion Shoot must only read already-verified presentation
+  // data. Fail the server startup if the immutable catalog or previews do not
+  // pass integrity checks; never move that audit into a browser request.
+  await presetResolver.prepareEditorialPresentation?.();
 
   // Bring pre-existing SQLite projections up to date after a service restart.
   // A projection without a durable execution is removed from the visible
@@ -352,12 +357,12 @@ export async function registerSceneRoutes(app, {
     if (!scene) return reply.code(404).send({ error: 'Scene not found' });
     const filename = await sceneService.outputFile(request.params.sceneId, 'scene.png');
     if (!filename) return reply.code(404).send({ error: 'Scene image not found' });
-    return reply
-      .type('image/png')
-      .header('Cache-Control', 'private, no-store')
-      .header('Vary', 'Cookie')
-      .header('Content-Disposition', `${disposition}; filename="scene.png"`)
-      .send(createReadStream(filename));
+    return sendPresentationImage(request, reply, {
+      filename,
+      disposition,
+      downloadName: 'scene.png',
+      cacheControl: 'private, max-age=900',
+    });
   }
 
   app.get('/api/profile/scenes/:sceneId/image', async (request, reply) => (

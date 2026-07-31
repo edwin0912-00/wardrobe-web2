@@ -26,7 +26,7 @@ export const SEEDANCE_SPEC = Object.freeze({
   modes: Object.freeze(['std', 'fast']),
   bitrateModes: Object.freeze(['standard', 'high']),
   genres: Object.freeze(['auto', 'action', 'horror', 'comedy', 'noir', 'drama', 'epic']),
-  durationSeconds: Object.freeze({ minimum: 3, maximum: 12 }),
+  durationSeconds: Object.freeze({ minimum: 3, maximum: 15 }),
 });
 
 export const DEFAULT_VIDEO_REQUEST = Object.freeze({
@@ -116,6 +116,7 @@ export function buildVideoCreateArgs({
   model = DEFAULT_VIDEO_REQUEST.model,
   prompt,
   mediaPaths = [],
+  videoPaths = [],
   aspectRatio = DEFAULT_VIDEO_REQUEST.aspectRatio,
   resolution = DEFAULT_VIDEO_REQUEST.resolution,
   durationSeconds = DEFAULT_VIDEO_REQUEST.durationSeconds,
@@ -136,6 +137,12 @@ export function buildVideoCreateArgs({
       code: 'MISSING_VIDEO_SOURCE',
     });
   }
+  if (!Array.isArray(videoPaths)
+    || videoPaths.some((videoPath) => typeof videoPath !== 'string' || videoPath.length === 0)) {
+    throw new VideoProviderError('Video references must be local file paths', {
+      code: 'INVALID_VIDEO_REFERENCE',
+    });
+  }
 
   const args = [
     'generate', 'create', model,
@@ -149,6 +156,12 @@ export function buildVideoCreateArgs({
     // Never negotiable: invented audio does not ship.
     '--generate_audio', 'false',
   ];
+  // Video must be the first ordered medium. Fashion V2V prompts refer to it as
+  // Video 1 (temporal/scene authority) and the following images as Image 1–3
+  // (appearance authority). Reversing this order made the white-background
+  // approved look the dominant start frame and reduced Fashion Video to a
+  // passport-photo animation.
+  for (const videoPath of videoPaths) args.push('--video', videoPath);
   for (const mediaPath of mediaPaths) args.push('--image', mediaPath);
   args.push('--json', '--no-color');
   return args;
@@ -183,11 +196,33 @@ function parseJson(stdout, what) {
   }
 }
 
+function providerCommandFailure(cause, phase) {
+  const detail = [cause?.message, cause?.stderr, cause?.stdout]
+    .filter((value) => typeof value === 'string')
+    .join('\n');
+  if (/\bjob not found\b/i.test(detail)) {
+    return new VideoProviderError('The persisted Higgsfield job no longer exists', {
+      code: 'PROVIDER_JOB_NOT_FOUND',
+      retryable: false,
+      cause,
+    });
+  }
+  return new VideoProviderError(`Higgsfield ${phase} command failed`, {
+    code: 'PROVIDER_COMMAND_FAILED',
+    retryable: true,
+    cause,
+  });
+}
+
 function findJobId(payload) {
   const queue = [payload];
   const seen = new Set();
   while (queue.length > 0) {
     const value = queue.shift();
+    // Higgsfield CLI 1.1.20 returns a successful create as a bare JSON array
+    // of UUID strings (`["job-id"]`), not an object envelope.  Treat a safe
+    // string as a job id before looking for object fields.
+    if (typeof value === 'string' && SAFE_JOB_ID.test(value)) return value;
     if (!value || typeof value !== 'object' || seen.has(value)) continue;
     seen.add(value);
     const candidates = [
@@ -202,7 +237,11 @@ function findJobId(payload) {
       (candidate) => typeof candidate === 'string' && SAFE_JOB_ID.test(candidate),
     );
     if (match) return match;
-    if (Array.isArray(value)) queue.push(...value);
+    // Higgsfield CLI envelopes have changed between releases (`data`,
+    // `job_set`, batched arrays). Traverse every nested value instead of
+    // treating an accepted create as failed and accidentally paying for a
+    // duplicate retry when the id is merely wrapped one level deeper.
+    queue.push(...Object.values(value));
   }
   return null;
 }
@@ -241,8 +280,11 @@ export class HiggsfieldVideoProvider {
     const jobId = findJobId(payload);
     if (!jobId) {
       throw new VideoProviderError('Provider did not return a job id', {
-        code: 'MISSING_PROVIDER_JOB_ID',
-        retryable: true,
+        // The provider may already have accepted and billed the create. An
+        // unparseable acknowledgement is an unknown outcome that must be
+        // reconciled against provider history, never paid again automatically.
+        code: 'CREATE_OUTCOME_UNKNOWN',
+        retryable: false,
       });
     }
     return { jobId, request: { ...DEFAULT_VIDEO_REQUEST, ...request }, argv: args, raw: payload };
@@ -250,7 +292,12 @@ export class HiggsfieldVideoProvider {
 
   async waitForJob({ jobId, waitTimeout, waitInterval }) {
     const args = buildVideoWaitArgs({ jobId, waitTimeout, waitInterval });
-    const { stdout } = await this.#run(this.#binary, args);
+    let stdout;
+    try {
+      ({ stdout } = await this.#run(this.#binary, args));
+    } catch (cause) {
+      throw providerCommandFailure(cause, 'wait');
+    }
     const payload = parseJson(stdout, 'wait');
     const returnedId = findJobId(payload);
     if (returnedId && returnedId !== jobId) {

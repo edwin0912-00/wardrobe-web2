@@ -1,3 +1,8 @@
+> **HISTORICAL / MISASSIGNED:** this preserved report was written when Chat 06
+> was incorrectly mapped to technical Block 6. Chat 06 is MAIN_SITE-only.
+> Current Block 6 owner/report is `chat-5` / `updates/chat-5.md`. Do not append
+> new beta-video status here and do not delete this historical evidence.
+
 Agent ID: chat-6
 Block: 6
 Branch: beta-block-6-fashion-video
@@ -17,3 +22,30 @@ Help request: codex-main must apply the eventual minimal integration wiring in s
 Wiring handoff: instantiate HiggsfieldVideoProvider with an execFile-based command runner, instantiate OpenRouterVideoProvider with OPENROUTER_API_KEY plus a private expiring HTTPS look-asset resolver, wrap both in VideoProviderRouter, and pass that router to VideoService instead of generation.provider.
 External contract checked: OpenRouter POST /api/v1/videos with frame_images, generate_audio=false, then GET /api/v1/videos/{jobId}; the adapter never embeds a local runtime path.
 Next action: add the resumable finalization route and exact ffprobe/frame QA, then reconcile Video Reference Pipeline inputs without mannequin/EDL artifacts.
+
+---
+
+Task: saved-look action hub — truthful Fashion Video capability
+Base: 5fab5b4095711821a5a256d4063a80d659d5478a
+Branch: atom/saved-look-hub-block6-20260730
+Decision: Route presence is not product readiness. The saved-look UI now has a
+profile-owned, no-store capability endpoint that reports Fashion Video
+unavailable until both the verified style reference and verified motion
+reference exist. The existing create route continues to fail closed before
+provider spend; this atom does not invent a resolver or bypass the two-reference
+contract.
+API: GET /api/profile/looks/:lookId/video-capability
+Code: PASS — endpoint returns `available:false`,
+`FASHION_VIDEO_REFERENCE_PACK_REQUIRED`, both unmet reference requirements and
+the existing create route. A look outside the browser profile returns
+`LOOK_NOT_FOUND`.
+Beta: NOT_DEPLOYED
+Journey: NOT_RUN — no provider call or paid generation was made.
+Pre-change proof: applying the new route tests to base 5fab5b4 failed 3/5
+because the endpoint returned Fastify 404.
+Focused proof: `node --test test/video/video-routes.test.js` PASS 4/4.
+Block proof: `node --test test/video/*.test.js` PASS 113/113.
+Blocker: no executable, immutable Fashion Video resolver currently binds both
+verified references to `/api/profile/video-clips`; therefore capability must
+remain false and the POST route must remain blocked.
+weakened_checks: none

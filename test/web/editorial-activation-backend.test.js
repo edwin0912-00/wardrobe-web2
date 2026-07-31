@@ -165,6 +165,8 @@ test('READY editorial and Create Universe modes compile six strict per-shot pack
         assert.ok(styleContract.expression_signature.length >= 8, `${modeId}/${shotSpec.slot}`);
         assert.ok(styleContract.garment_behaviour.length >= 8, `${modeId}/${shotSpec.slot}`);
         assert.ok(styleContract.optical_signature.length >= 1, `${modeId}/${shotSpec.slot}`);
+        assert.ok(styleContract.subject_lighting.length >= 8, `${modeId}/${shotSpec.slot}`);
+        assert.match(pack.prompt, /SUBJECT LIGHT INTERACTION:/, `${modeId}/${shotSpec.slot}`);
       }
       // Assert the derivation, not a number: an editorial ceiling is whatever the
       // slot's head guard does not reserve. Two frames were rejected at 84.7656% and
@@ -247,20 +249,43 @@ test('editorial item QA scope follows the intentional crop without weakening ful
   ];
   assert.deepEqual(sceneQaItemScope(items, null), items);
   assert.deepEqual(
-    sceneQaItemScope(items, { editorial: { shot_slot: 'sculptural_three_quarter' } }),
+    sceneQaItemScope(items, {
+      editorial: { shot_slot: 'sculptural_three_quarter', item_scope: 'EXCLUDE_FOOTWEAR' },
+    }),
     items.slice(0, 2),
   );
   assert.deepEqual(
-    sceneQaItemScope(items, { editorial: { shot_slot: 'interference_frame' } }),
+    sceneQaItemScope(items, {
+      editorial: { shot_slot: 'interference_frame', item_scope: 'EXCLUDE_FOOTWEAR' },
+    }),
     items.slice(0, 2),
   );
   assert.deepEqual(
-    sceneQaItemScope(items, { editorial: { shot_slot: 'material_or_accessory_detail' } }),
+    sceneQaItemScope(items, {
+      editorial: { shot_slot: 'material_or_accessory_detail', item_scope: 'FIRST_ORDERED_ITEM' },
+    }),
     items.slice(0, 1),
   );
   assert.deepEqual(
-    sceneQaItemScope(items, { editorial: { shot_slot: 'wide_campaign_coda' } }),
+    sceneQaItemScope(items, {
+      editorial: { shot_slot: 'wide_campaign_coda', item_scope: 'ALL' },
+    }),
     items,
+  );
+  // Old clean-hero packs remain readable as ALL; newly compiled ones explicitly
+  // exclude footwear. The persisted contract, not a re-derived slot table,
+  // decides which evidence an immutable attempt was judged against.
+  assert.deepEqual(
+    sceneQaItemScope(items, {
+      editorial: { shot_slot: 'clean_identity_hero', item_scope: 'ALL' },
+    }),
+    items,
+  );
+  assert.deepEqual(
+    sceneQaItemScope(items, {
+      editorial: { shot_slot: 'clean_identity_hero', item_scope: 'EXCLUDE_FOOTWEAR' },
+    }),
+    items.slice(0, 2),
   );
 });
 
@@ -345,6 +370,80 @@ test('EditorialSceneExecutor delegates to one deterministic SceneService executi
     assert.deepEqual(result.qa.gates.map((gate) => gate.id), EDITORIAL_QA_GATES);
     assert.equal(result.output === null, decision === 'FAIL');
   }
+});
+
+test('EditorialSceneExecutor reopens a completed child scene for a resumed parent attempt', async () => {
+  const idempotencyKey = 'editorial-executor-resumed-completed-child';
+  const sceneId = editorialSceneIdForIdempotencyKey(idempotencyKey);
+  let createCalls = 0;
+  let presetCalls = 0;
+  const sceneService = {
+    async createScene() {
+      createCalls += 1;
+      throw new Error('A completed child scene must not be submitted again');
+    },
+    async getScene() {
+      return { scene_id: sceneId, status: 'COMPLETED' };
+    },
+    async waitForIdle() {
+      return { scene_id: sceneId, status: 'COMPLETED' };
+    },
+    async verifiedExecutionResult() {
+      return {
+        decision: 'PASS',
+        candidate_sha256: '3'.repeat(64),
+        gates: gates('PASS'),
+        reviewer: { id: 'scene-judge', version: 'scene-judge-v1' },
+        completed_at: '2026-07-30T18:00:00.000Z',
+        output: {
+          resource_id: sceneId,
+          sha256: '3'.repeat(64),
+          receipt_sha256: '4'.repeat(64),
+          width: 1536,
+          height: 2048,
+          media_type: 'image/png',
+        },
+      };
+    },
+    async outputFile() {
+      return null;
+    },
+  };
+  const executor = new EditorialSceneExecutor({
+    sceneService,
+    presetResolver: {
+      async editorialShotPresetReference() {
+        presetCalls += 1;
+        throw new Error('Current preset must not replace persisted execution authority');
+      },
+    },
+  });
+  const result = await executor.executeShot({
+    idempotency_key: idempotencyKey,
+    reuse_existing_execution: true,
+    approved_look: {
+      look_id: 'look_fixture',
+      image_sha256: '8'.repeat(64),
+      receipt_sha256: '9'.repeat(64),
+    },
+    shoot_bible: {
+      mode_id: 'shoot.terracotta_hardlight',
+      mode_version: '1.0.0',
+      sha256: 'a'.repeat(64),
+    },
+    shot_spec: {
+      slot: 'clean_identity_hero',
+      camera: { lens_mm: 50, framing: 'three_quarter' },
+    },
+    shot_spec_sha256: 'b'.repeat(64),
+    signal: new AbortController().signal,
+  });
+  assert.equal(createCalls, 0);
+  assert.equal(presetCalls, 0);
+  assert.equal(result.execution_id, sceneId);
+  assert.equal(result.decision, 'PASS');
+  assert.equal(result.output.width, 1536);
+  assert.equal(result.output.height, 2048);
 });
 
 test('public editorial DTO exposes output URLs but never clones private orchestration fields', () => {

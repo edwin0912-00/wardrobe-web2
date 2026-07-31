@@ -6,14 +6,14 @@
   <meta name="description" content="WARDROBE reference-conditioned AI avatar generator">
   <title>WARDROBE — AI Avatar Studio</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-  <script>try{const q=new URLSearchParams(location.search);if(q.has('run')||q.has('scene')||q.has('shoot')||localStorage.getItem('zeely_active_run_id')||localStorage.getItem('zeely_pending_finalization_id')||localStorage.getItem('zeely_source_avatar_id')||localStorage.getItem('zeely_active_scene_v1')||localStorage.getItem('zeely_active_editorial_shoot_v1'))document.documentElement.classList.add('workflow-pending')}catch{}</script>
+  <script>try{const q=new URLSearchParams(location.search);if(q.has('run')||q.has('scene')||q.has('shoot')||localStorage.getItem('zeely_active_run_id')||localStorage.getItem('zeely_pending_finalization_id')||localStorage.getItem('zeely_source_avatar_id'))document.documentElement.classList.add('workflow-pending')}catch{}</script>
   <link rel="stylesheet" href="/styles.css">
   <link rel="stylesheet" href="/upload.css?v=20260729-1">
   <link rel="stylesheet" href="/progress.css?v=20260724-1">
   <link rel="stylesheet" href="/conflict.css?v=20260722-3">
-  <link rel="stylesheet" href="/experience.css?v=20260723-6">
-  <link rel="stylesheet" href="/result.css?v=20260728-2">
-  <link rel="stylesheet" href="/scene.css?v=20260731-2">
+  <link rel="stylesheet" href="/experience.css?v=20260730-7">
+  <link rel="stylesheet" href="/result.css?v=20260730-6">
+  <link rel="stylesheet" href="/scene.css?v=20260731-3">
   <link rel="stylesheet" href="/scene-cta.css?v=20260727-1">
   <script type="module" src="/scene-cta.js?v=20260725-1"></script>
 </head>
@@ -61,7 +61,8 @@
 
         <div class="divider"><span id="look-divider-label">НОВИЙ ОБРАЗ</span></div>
         <label class="field-label" for="outfit-text">Опис образу</label>
-        <textarea id="outfit-text" name="outfit_text" rows="3" placeholder="Наприклад: мінімалістичний чорний образ із м’якою посадкою"></textarea>
+        <textarea id="outfit-text" name="outfit_text" rows="3" aria-describedby="outfit-text-help" placeholder="Наприклад: охуєнна шкіряна куртка з характером"></textarea>
+        <p id="outfit-text-help" class="field-help">Без фото фіксуємо лише те, що ти написав; інші деталі AI обирає сам. Пізніше можна уточнити текст або додати референс.</p>
         <label class="upload-card wardrobe-card">
           <input id="garment-images" name="garment_images" type="file" accept="image/png,image/jpeg,image/webp,image/avif,image/heic,image/heif,.heic,.heif" multiple>
           <span class="upload-icon">＋</span><strong>Фото речей</strong><small>До 5 довільних фото — система сама визначить категорії</small><span class="file-name" data-for="garment-images">Додати гардероб</span>
@@ -140,7 +141,7 @@
                 </article>
                 <nav id="result-tabs" class="result-tabs" aria-label="Варіанти результату"></nav>
                 <div class="result-actions">
-                  <button id="add-look" class="primary-result-action" type="button">Новий образ з цим аватаром</button>
+                  <button id="add-look" class="primary-result-action" type="button">Уточнити образ</button>
                   <button id="create-scene" class="secondary-result-action" type="button" disabled>Створити сцену</button>
                   <button id="new-avatar" class="secondary-result-action" type="button">Створити новий аватар</button>
                   <button id="open-profile" class="secondary-result-action" type="button">Усі мої образи</button>
@@ -170,7 +171,14 @@
               <div id="profile-look-grid" class="profile-look-grid"></div>
               <section id="profile-look-detail" class="profile-look-detail hidden" tabindex="-1" aria-labelledby="profile-look-detail-title">
                 <button id="profile-look-detail-close" class="profile-look-detail-close" type="button" aria-label="Закрити збережений образ">×</button>
-                <img id="profile-look-detail-image" alt="Вибраний збережений образ">
+                <div class="profile-look-visual">
+                  <img id="profile-look-detail-image" alt="Вибраний збережений образ">
+                  <button id="profile-look-background-primary" class="profile-look-background-action" type="button" aria-label="Додати стандартний фон">
+                    <span class="profile-action-signal" aria-hidden="true">✦</span>
+                    <span class="profile-action-copy"><strong>Додати фон</strong><small>16 стандартних сцен</small></span>
+                    <span class="profile-action-arrow" aria-hidden="true">→</span>
+                  </button>
+                </div>
                 <div class="profile-look-detail-copy">
                   <p class="result-kicker">ЗБЕРЕЖЕНИЙ ОБРАЗ</p>
                   <h4 id="profile-look-detail-title">Образ</h4>
@@ -194,117 +202,60 @@
                   </section>
                   <section class="profile-look-next" aria-labelledby="profile-look-next-title">
                     <div class="profile-look-next-head">
-                      <p class="result-kicker">ЩО РОБИМО З ЦИМ ОБРАЗОМ</p>
-                      <h5 id="profile-look-next-title">Обери наступний формат</h5>
+                      <p class="result-kicker">СТВОРИТИ З ЦЬОГО ОБРАЗУ</p>
+                      <h5 id="profile-look-next-title">Обери формат</h5>
+                      <p id="profile-look-action-status" class="profile-look-action-status" aria-live="polite">Master-образ лишається незмінним.</p>
                     </div>
-                    <button id="profile-look-background-primary" class="profile-look-primary-action" type="button" aria-label="Додати стандартний фон">
-                      <span class="profile-action-signal" aria-hidden="true">✦</span>
-                      <span class="profile-action-copy"><strong>Додати фон</strong><small>16 стандартних сцен</small></span>
-                      <span class="profile-action-arrow" aria-hidden="true">→</span>
-                    </button>
-                    <div class="profile-look-next-actions" role="group" aria-label="Інші формати для цього образу">
-                      <button id="profile-look-refine" class="profile-next-action profile-next-action-refine" type="button" aria-label="Покращити образ (beta)" aria-describedby="profile-look-video-note">
-                        <span class="profile-action-icon" aria-hidden="true">✦</span>
-                        <span class="profile-action-copy"><strong>Покращити образ</strong><small>Скоро</small></span>
-                      </button>
+                    <div class="profile-look-next-actions" role="group" aria-label="Формати для цього образу">
                       <button id="profile-look-photoshoot" class="profile-next-action profile-next-action-photoshoot" type="button" aria-label="Відкрити Fashion Shoot">
                         <span class="profile-action-icon" aria-hidden="true">◉</span>
-                        <span class="profile-action-copy"><strong>Fashion Shoot</strong><small>5 fashion-кадрів</small></span>
+                        <span class="profile-action-copy"><strong>Fashion Shoot</strong><small>5 арткадрів</small></span>
                       </button>
                       <button id="profile-look-video" class="profile-next-action profile-next-action-video" type="button" aria-label="Fashion Video ще готується: потрібні два референси" aria-describedby="profile-look-video-note" disabled>
-                        <span class="profile-action-icon" aria-hidden="true">▷</span>
-                        <span class="profile-action-copy"><strong>Fashion Video</strong><small>Готуємо 2 референси</small></span>
+                        <span class="profile-action-icon" aria-hidden="true">
+                          <span class="profile-action-static-icon">▷</span>
+                          <canvas id="profile-video-orb" class="profile-action-orb"></canvas>
+                        </span>
+                        <span class="profile-action-copy"><strong>Fashion Video</strong><small id="profile-look-video-state">Перевіряємо доступність</small></span>
                       </button>
-                      <button id="profile-look-live" class="profile-next-action profile-next-action-live" type="button" aria-label="Відкрити Real-time Look">
-                        <span class="profile-action-icon" aria-hidden="true">◌</span>
-                        <span class="profile-action-copy"><strong>Real-time Look</strong><small>Камера з дозволом</small></span>
+                      <button id="profile-look-live" class="profile-next-action profile-next-action-live" type="button" aria-label="Відкрити Live Look" disabled>
+                        <span class="profile-action-icon profile-live-signal" aria-hidden="true">
+                          <i class="profile-action-static-icon"></i>
+                          <canvas id="profile-live-orb" class="profile-action-orb"></canvas>
+                        </span>
+                        <span class="profile-action-copy"><strong>Live Look</strong><small id="profile-look-live-state">Перевіряємо доступність</small></span>
                       </button>
                     </div>
-                    <section class="profile-action-guide" aria-label="Що робить кожна дія">
-                      <p id="profile-look-action-status" class="profile-look-action-status" aria-live="polite">Обери формат — master-образ лишається незмінним.</p>
-                      <ul>
-                        <li><b>Покращити</b><span>Окремий candidate: lock людини й вибраних речей; дозволені лише незадані деталі, волосся, легкий макіяж і невелика зміна пози. Поки що очікує generator route.</span></li>
-                        <li><b>Фон</b><span>Відкриває 16 стандартних сцен. Master-образ не перегенеровується.</span></li>
-                        <li><b>Fashion Shoot</b><span>Обери готовий стиль: Creative Universe вже зафіксував світло, локацію, камеру, пози та reference pack. Результат — п’ять унікальних fashion-кадрів.</span></li>
-                        <li><b>Fashion Video</b><span>Поки готуємо правильний запуск із двома референсами. Кнопка навмисно вимкнена: без другого референсу ролик не стартує.</span></li>
-                        <li><b>Real-time Look</b><span>Відкриває окрему consented camera-сесію. Вона не замінює згенероване відео.</span></li>
-                        <li><b>Відео зі сцени</b><span>Після готового фону з’явиться окрема гілка «Фокус на речі» / «Позування». Її server route ще не зібраний — запускати фальшивий ролик не будемо.</span></li>
-                      </ul>
-                      <div class="profile-action-guide-controls" role="group" aria-label="Пояснення наступних блоків">
-                        <button id="profile-look-background-video" type="button">Відео зі сцени</button>
-                        <button id="profile-look-pipeline" type="button">Як працює pipeline</button>
-                      </div>
-                    </section>
-                    <section id="profile-refine-brief" class="profile-branch-brief hidden" aria-labelledby="profile-refine-brief-title">
-                      <header><p class="result-kicker">ПОКРАЩИТИ ОБРАЗ · ПЕРЕД ФОНАМИ</p><h5 id="profile-refine-brief-title">Що буде змінено</h5></header>
-                      <p><b>Locked:</b> людина, зовнішність, усі вибрані речі та master-образ.</p>
-                      <p><b>Можна змінювати:</b> лише невибрані деталі, волосся, до 20% макіяжу та невелику корекцію пози.</p>
-                      <p>Результат має бути окремим candidate із діями «залишити master» / «прийняти candidate». Generator route ще не підключений, тому цей блок нічого не генерує і не змінює поточний образ.</p>
-                      <button id="profile-refine-brief-close" type="button">Зрозуміло</button>
-                    </section>
-                    <section id="profile-background-video-brief" class="profile-branch-brief hidden" aria-labelledby="profile-background-video-brief-title">
-                      <header><p class="result-kicker">ПІСЛЯ ГОТОВОГО ФОНУ</p><h5 id="profile-background-video-brief-title">Відео зі сцени</h5></header>
-                      <p><b>Фокус на речі</b> — короткий рух, який показує конкретний предмет для product-задачі.</p>
-                      <p><b>Позування</b> — короткий рух людини в готовому образі та вибраній сцені.</p>
-                      <p>Цей блок активується тільки від QA-approved scene-result. Окремий server route ще не підключений, тому жоден ролик не імітується.</p>
-                      <button id="profile-background-video-brief-close" type="button">Зрозуміло</button>
-                    </section>
-                    <section id="profile-pipeline-explainer" class="profile-branch-brief hidden" aria-labelledby="profile-pipeline-explainer-title">
-                      <header><p class="result-kicker">ENGINEERING BETA · ПОЯСНЕННЯ</p><h5 id="profile-pipeline-explainer-title">Що вже сталося з образом</h5></header>
-                      <ol>
-                        <li><b>Locks:</b> фото людини й вибрані речі зафіксовані для master-образу.</li>
-                        <li><b>QA:</b> результат проходить перевірку зовнішності, речей, кадру й технічної якості.</li>
-                        <li><b>Збереження:</b> approved master лишається незмінним; кожна наступна гілка створює окремий результат.</li>
-                        <li><b>Наступна дія:</b> фон, фотозйомка, Fashion Video, Real-time Look або майбутнє відео зі сцени.</li>
-                      </ol>
-                      <button id="profile-pipeline-explainer-close" type="button">Повернутися до образу</button>
-                    </section>
-                    <p id="profile-look-video-note" class="sr-only">Покращити образ збереже master і locked речі. Fashion video не підміняється mock-роликом: запуск з’явиться лише після Seedance route, QA і збереження кліпу.</p>
+                    <div class="profile-look-detail-actions">
+                      <button id="profile-look-add" class="primary-result-action" type="button">Новий окремий образ</button>
+                      <button id="profile-look-delete" class="profile-delete-action" type="button" aria-label="Видалити збережений образ">×</button>
+                    </div>
+                    <p id="profile-look-video-note" class="sr-only">Fashion video не підміняється mock-роликом: без другого референсу ролик не стартує; обидва мають бути перевірені.</p>
                   </section>
-                  <div class="profile-look-detail-actions">
-                    <button id="profile-look-add" class="primary-result-action" type="button">Новий окремий образ</button>
-                    <button id="profile-look-delete" class="profile-delete-action" type="button">Видалити</button>
-                  </div>
                 </div>
               </section>
             </div>
             <div class="profile-danger-zone"><p>Без акаунта цей профіль існує лише в цьому браузері.</p><button id="delete-profile" type="button">Видалити профіль і файли</button></div>
           </section>
         </div>
-        <div id="profile-live-overlay" class="profile-live-overlay hidden" role="dialog" aria-modal="true" aria-label="Live примірка">
-          <button id="profile-live-close" class="profile-live-close" type="button" aria-label="Закрити Live">×</button>
-          <iframe id="profile-live-frame" title="Live примірка вибраного образу" allow="camera; fullscreen"></iframe>
-        </div>
         <div id="video-overlay" class="profile-live-overlay hidden" role="dialog" aria-modal="true" aria-label="Fashion Video генерація">
-          <button id="video-overlay-close" class="profile-live-close" type="button" aria-label="Закрити Video">×</button>
           <div class="video-overlay-content">
-            <div class="video-overlay-header">
+            <header class="video-overlay-header">
               <p class="result-kicker">FASHION VIDEO</p>
               <h3 id="video-overlay-title">Створити відео</h3>
-            </div>
+              <button id="video-overlay-close" class="profile-live-close" type="button" aria-label="Закрити Fashion Video">×</button>
+            </header>
             <div class="video-overlay-body">
-              <div class="video-overlay-preview">
-                <img id="video-source-image" alt="Образ для відео">
-                <span class="video-overlay-badge">SOURCE FRAME</span>
+              <div class="video-control-group">
+                <label class="video-label">Обери стиль Fashion Video</label>
+                <div id="video-style-options" class="video-style-options" role="radiogroup" aria-label="Стиль Fashion Video"></div>
               </div>
-              <div class="video-overlay-controls">
-                <div class="video-control-group">
-                  <label class="video-label">Формат кадру</label>
-                  <div id="video-surface-options" class="video-options" role="radiogroup" aria-label="Формат кадру">
-                    <button type="button" class="video-option active" data-value="mirror" aria-pressed="true">Вертикальний</button>
-                    <button type="button" class="video-option" data-value="tv" aria-pressed="false">Широкий</button>
-                  </div>
-                </div>
-                <div class="video-control-group">
-                  <label class="video-label">Подача</label>
-                  <div id="video-motion-options" class="video-options" role="radiogroup" aria-label="Подача у відео">
-                    <button type="button" class="video-option active" data-value="gentle_sway" aria-pressed="true">М’який рух</button>
-                    <button type="button" class="video-option" data-value="confident_turn" aria-pressed="false">Поворот</button>
-                    <button type="button" class="video-option" data-value="editorial_pose" aria-pressed="false">Позування</button>
-                  </div>
-                </div>
-                <button id="video-generate" class="primary-result-action" type="button">Створити відео →</button>
+              <div class="video-overlay-feedback">
                 <div id="video-progress" class="video-progress" hidden>
+                  <div id="video-ai-thinking" class="video-ai-thinking" role="status" aria-live="polite">
+                    <canvas id="video-thinking-orb"></canvas>
+                    <span><strong id="video-ai-title">AI готує запуск</strong><small id="video-ai-detail">Перевіряємо reference pack</small></span>
+                  </div>
                   <div class="video-progress-bar"><div id="video-progress-fill" class="video-progress-fill"></div></div>
                   <p id="video-progress-status">Очікуємо…</p>
                 </div>
@@ -315,6 +266,12 @@
                 <p id="video-error" class="scene-error" role="alert" hidden></p>
               </div>
             </div>
+            <footer class="video-overlay-footer">
+              <div class="video-overlay-controls">
+                <button id="video-generate" class="primary-result-action" type="button">Генерувати Fashion Video →</button>
+                <button id="video-retry" class="primary-result-action" type="button" hidden>Повторити спробу →</button>
+              </div>
+            </footer>
           </div>
         </div>
         <div id="scene-view" class="scene-view hidden">
@@ -428,7 +385,10 @@
 
               <section id="editorial-gallery-stage" class="editorial-gallery-stage" hidden>
                 <header>
-                  <div><p>FASHION SHOOT · ПРОГРЕС</p><strong id="editorial-series-progress">0/5 fashion-кадрів готово</strong></div>
+                  <div class="editorial-active-state">
+                    <canvas id="editorial-thinking-orb" aria-hidden="true"></canvas>
+                    <span><p>FASHION SHOOT · ПРОГРЕС</p><strong id="editorial-series-progress" aria-live="polite">0/5 fashion-кадрів готово</strong></span>
+                  </div>
                   <div id="editorial-progress-wrap" class="editorial-progress-wrap">
                     <progress id="editorial-progress-meter" max="5" value="0" aria-describedby="editorial-progress-detail">0 з 5</progress>
                     <strong id="editorial-progress-announce" class="editorial-progress-announce" role="status" aria-live="polite" aria-atomic="true">Очікуємо запуск</strong>
@@ -437,6 +397,7 @@
                 </header>
                 <div id="editorial-gallery" class="editorial-gallery" aria-label="Кадри Fashion Shoot"></div>
                 <footer class="editorial-controls">
+                  <button id="editorial-retry-failed" class="scene-control primary" type="button" hidden>Повторити невдалий кадр</button>
                   <button id="editorial-reconnect" class="scene-control" type="button" hidden>Перевірити стан</button>
                   <button id="editorial-approve-hero" class="scene-control primary" type="button" hidden>Продовжити</button>
                   <button id="editorial-cancel" class="scene-control" type="button" hidden>Зупинити</button>
@@ -458,13 +419,13 @@
       </section>
     </section>
   </main>
-  <footer><span>WARDROBE AI ENGINEERING TEST</span><a href="https://monitor.madeforthisjob.com">Live monitor →</a><span>Immutable jobs · Hash-bound QA · Cloud models</span></footer>
+  <footer><span>WARDROBE AI ENGINEERING TEST</span><a href="https://monitor.madeforthisjob.com">Live monitor →</a><span>Immutable jobs · Hash-bound QA · Cloud models</span><button id="god-view-trigger" class="god-view-trigger" type="button" aria-label="Відкрити God View" title="God View">◌</button></footer>
   <aside id="boot-error" class="boot-error" role="alert" hidden>
     <strong>Інтерфейс не відповідає</strong><span data-error-message>Сталася помилка запуску.</span>
     <button type="button" onclick="location.reload()">Перезавантажити</button>
   </aside>
   <script src="/boot-guard.js?v=20260722-3"></script>
   <script src="/vendor/heic2any.min.js?v=0.0.4"></script>
-  <script type="module" src="/app.js?v=20260731-2"></script>
+  <script type="module" src="/app.js?v=20260731-3"></script>
 </body>
 </html>

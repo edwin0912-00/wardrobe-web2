@@ -100,6 +100,53 @@ test('a REJECT candidate advances to the next fixed image-model route', async ()
   assert.doesNotMatch(generatorCalls[0].prompt, /\/Users\/|\/tmp\/|\bzeely\b/i);
 });
 
+test('a semantic PASS with a floor gradient is rejected before destructive cutout cleanup', async () => {
+  const { root, sourcePath } = await fixture();
+  const width = 120;
+  const height = 160;
+  const background = Buffer.alloc(width * height * 3);
+  for (let y = 0; y < height; y += 1) {
+    const value = Math.round(250 - (36 * y) / (height - 1));
+    for (let x = 0; x < width; x += 1) {
+      const offset = (y * width + x) * 3;
+      background[offset] = value;
+      background[offset + 1] = value;
+      background[offset + 2] = value - 3;
+    }
+  }
+  const candidate = await sharp(background, { raw: { width, height, channels: 3 } })
+    .composite([{
+      input: await sharp({ create: { width: 70, height: 110, channels: 3, background: '#294b80' } }).png().toBuffer(),
+      left: 25,
+      top: 25,
+    }])
+    .png()
+    .toBuffer();
+  const generatorCalls = [];
+  const conditioner = conditionerFor({
+    candidate,
+    generatorCalls,
+    decisions: IMAGE_MODEL_ROUTE.map(() => qa('PASS', 'semantic garment fidelity passes')),
+  });
+  await assert.rejects(
+    () => conditioner.condition({
+      imagePaths: [sourcePath],
+      outputDirectory: path.join(root, 'conditioned-gradient'),
+      runId: 'gradient-rejected',
+    }),
+    (error) => {
+      assert.ok(error instanceof GarmentRouteExhaustedError);
+      assert.equal(error.details.attempts.length, IMAGE_MODEL_ROUTE.length);
+      assert.ok(error.details.attempts.every((attempt) => (
+        attempt.qa.decision === 'REJECT'
+        && attempt.qa.checks.some(({ name, pass }) => name === 'CANONICAL_BACKGROUND_UNIFORMITY' && pass === false)
+      )));
+      return true;
+    },
+  );
+  assert.equal(generatorCalls.length, IMAGE_MODEL_ROUTE.length);
+});
+
 test('canonical item prompt removes private product metadata from extracted locks', async () => {
   const { root, sourcePath, candidate } = await fixture();
   const passport = readyPassport();

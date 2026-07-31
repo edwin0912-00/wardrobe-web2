@@ -2,8 +2,10 @@
 // post-shoot-routes.js) so that app.js stays minimal: one import + one call.
 //
 // Endpoints:
+//   GET    /api/profile/looks/:lookId/video-capability — truthful create readiness
 //   POST   /api/profile/video-clips              — create a clip from a look
 //   GET    /api/profile/video-clips/:clipId       — get clip status
+//   POST   /api/profile/video-clips/:clipId/retry — one explicit child attempt
 //   GET    /api/profile/video-clips/:clipId/video — stream the clip mp4
 //   DELETE /api/profile/video-clips/:clipId       — delete a clip
 //   GET    /api/profile/looks/:lookId/video-clips — list clips for a look
@@ -11,6 +13,8 @@
 import { createReadStream } from 'node:fs';
 import { stat } from 'node:fs/promises';
 import { ProfileError } from './profile-service.js';
+import { fashionVideoCapability } from './video-capability.js';
+import { resolveVideoQaAction } from './video-qa-action.js';
 import { VideoServiceError } from './video-service.js';
 
 function sameOriginMutation(request) {
@@ -31,6 +35,80 @@ function sameOriginMutation(request) {
   if (!requestHost || originHost !== requestHost) {
     throw new ProfileError(403, 'CROSS_SITE_REQUEST', 'Cross-site profile mutation is not allowed');
   }
+}
+
+function byteRange(rangeHeader, size) {
+  if (typeof rangeHeader !== 'string') return null;
+  const match = /^bytes=(\d*)-(\d*)$/i.exec(rangeHeader.trim());
+  if (!match) return undefined;
+  const start = match[1] === '' ? null : Number(match[1]);
+  const requestedEnd = match[2] === '' ? null : Number(match[2]);
+  if ((!Number.isInteger(start) && start !== null)
+    || (!Number.isInteger(requestedEnd) && requestedEnd !== null)
+    || (start !== null && start < 0)
+    || (requestedEnd !== null && requestedEnd < 0)) return undefined;
+  if (start === null && requestedEnd === null) return undefined;
+  if (start === null) {
+    const length = Math.min(requestedEnd, size);
+    return { start: Math.max(0, size - length), end: size - 1 };
+  }
+  if (start >= size) return undefined;
+  const end = Math.min(requestedEnd ?? size - 1, size - 1);
+  if (end < start) return undefined;
+  return { start, end };
+}
+
+function hasVerifiedFashionStyle(liveClip) {
+  const binding = liveClip?.motionReferenceBinding;
+  const identityQa = liveClip?.salvage
+    ? liveClip.salvageIdentityItemQa
+    : liveClip?.identityItemQa;
+  const referenceQa = liveClip?.salvage
+    ? liveClip.salvageReferenceAdherenceQa
+    : liveClip?.referenceAdherenceQa;
+  return liveClip?.status === 'PASS'
+    && liveClip?.qa?.pass === true
+    && /^[a-f0-9]{64}$/.test(binding?.sha256 ?? '')
+    && /^[a-f0-9]{64}$/.test(binding?.packSha256 ?? '')
+    && identityQa?.pass === true
+    && referenceQa?.pass === true
+    && referenceQa?.cutCoverage?.pass === true;
+}
+
+function publicVideoFailure(liveClip) {
+  if (liveClip?.salvage?.status === 'NEEDS_QA') {
+    return 'QA вирізала фрагменти з reference-людиною. Hero-only версія проходить повторну перевірку.';
+  }
+  if (liveClip?.salvage?.status === 'BLOCKED') {
+    return 'QA знайшла reference-людину, але hero-only монтаж недоступний у цьому runtime.';
+  }
+  if (liveClip?.failureCode === 'VIDEO_PROVIDER_JOB_NOT_FOUND') {
+    return 'Higgsfield більше не має цей job. Нове відео не створювалося автоматично.';
+  }
+  if (liveClip?.referenceAdherenceQa?.pass === false) {
+    return 'Відео не пройшло QA: у кожному cut має бути лише затверджений аватар або порожня сцена. Reference-людина у фіналі заборонена.';
+  }
+  if (liveClip?.failureCode === 'DELIVERY_AUDIO_ASSEMBLY_FAILED') {
+    return 'Не вдалося зібрати фінальне аудіо з затвердженого video-reference. Нова генерація не запускалася.';
+  }
+  if (liveClip?.failureCode === 'DELIVERY_AUDIO_REFERENCE_INVALID') {
+    return 'Зафіксований audio-reference недоступний або змінився. Нова генерація не запускалася.';
+  }
+  if (liveClip?.failureCode === 'CLIP_HAS_AUDIO'
+    || liveClip?.qa?.defects?.some((defect) => defect?.code === 'CLIP_HAS_AUDIO')) {
+    return 'Це старий запуск до delivery-audio assembly. Він не видається; повтор створить новий ролик із заміною audio провайдера на audio з video-reference.';
+  }
+  if (liveClip?.qa?.defects?.some((defect) => defect?.code === 'CLIP_REFERENCE_AUDIO_MISSING')) {
+    return 'У фінальному файлі немає аудіодоріжки з затвердженого video-reference.';
+  }
+  if (liveClip?.qa?.defects?.some((defect) => defect?.code === 'CLIP_UNAUTHORIZED_AUDIO')) {
+    return 'У фінальному файлі лишилося неавторизоване аудіо; файл не видається.';
+  }
+  if (liveClip?.qa?.pass === false) {
+    const code = liveClip.failureCode ?? liveClip.qa?.defects?.[0]?.code ?? 'VIDEO_TECHNICAL_QA_FAILED';
+    return `Відео не пройшло технічну QA (${code}). Файл не видається; можна запустити одну нову спробу.`;
+  }
+  return null;
 }
 
 /**
@@ -66,7 +144,7 @@ export async function registerVideoRoutes(app, {
       output: liveClip.videoSha256
         ? {
             sha256: liveClip.videoSha256,
-            duration_seconds: liveClip.durationSeconds,
+            duration_seconds: liveClip.deliveryDurationSeconds ?? liveClip.durationSeconds,
           }
         : null,
       created_at: liveClip.createdAt,
@@ -74,28 +152,205 @@ export async function registerVideoRoutes(app, {
     },
   );
 
+  // `createClip` deliberately returns after persisting the paid provider job.
+  // The second phase must nevertheless be owned by the server, not by a tab
+  // polling for a fixed number of minutes.  A restart can safely enter this
+  // path again: `finalizeClip` waits on the recorded provider job id and never
+  // issues another create request.  The in-process map only prevents duplicate
+  // waits/downloads while this server instance is alive.
+  const activeFinalizers = new Map();
+  const finalizePersistedClip = ({ profileId, lookId, clipId }) => {
+    const active = activeFinalizers.get(clipId);
+    if (active) return active;
+    const finalizer = (async () => {
+      try {
+        await videoService.finalizeClip(clipId);
+      } catch (error) {
+        // Finalization is resumable.  Keep the immutable provider job and let
+        // the next status request retry the wait; do not turn a transport blip
+        // into a fresh paid generation or a false terminal result.
+        app.log?.warn?.({ err: error, clip_id: clipId }, 'fashion video finalization paused');
+      } finally {
+        try {
+          const liveClip = await videoService.getClip(clipId);
+          projectClip(profileId, lookId, liveClip);
+        } catch (error) {
+          app.log?.warn?.({ err: error, clip_id: clipId }, 'fashion video projection refresh failed');
+        }
+        activeFinalizers.delete(clipId);
+      }
+    })();
+    activeFinalizers.set(clipId, finalizer);
+    return finalizer;
+  };
+
+  const isResumableVideoStatus = (status) => ['CREATED', 'GENERATING'].includes(status);
+
+  // GET /api/profile/looks/:lookId/video-capability — the saved-look action
+  // hub reads this before enabling Fashion Video. The optional service hook
+  // must return two immutable hashes: the selected style/reference pack and
+  // the motion authority. Missing hook or hashes remains fail-closed.
+  app.get('/api/profile/looks/:lookId/video-capability', async (request, reply) => {
+    const session = await profileApi.resolveRequestProfile(request, reply);
+    const lookId = request.params.lookId;
+    if (!profiles.ownsLook(session.profileId, lookId)) {
+      return reply.code(404).send({ error: 'Look not found', code: 'LOOK_NOT_FOUND' });
+    }
+    const approvedLook = await profiles.approvedLookReference(
+      session.profileId,
+      lookId,
+      runService,
+    );
+    const motionReference = typeof videoService.fashionVideoCapability === 'function'
+      ? await videoService.fashionVideoCapability({
+          profileId: session.profileId,
+          lookId,
+          approvedLook,
+        })
+      : null;
+
+    return reply
+      .header('Cache-Control', 'private, no-store')
+      .header('Vary', 'Cookie')
+      .send(fashionVideoCapability({ lookId, approvedLook, motionReference }));
+  });
+
+  app.get('/api/profile/looks/:lookId/video-styles/:styleId/preview', async (request, reply) => {
+    const session = await profileApi.resolveRequestProfile(request, reply);
+    const { lookId, styleId } = request.params;
+    if (!profiles.ownsLook(session.profileId, lookId)) {
+      return reply.code(404).send({ error: 'Look not found', code: 'LOOK_NOT_FOUND' });
+    }
+    const approvedLook = await profiles.approvedLookReference(session.profileId, lookId, runService);
+    const motionReference = typeof videoService.fashionVideoCapability === 'function'
+      ? await videoService.fashionVideoCapability({
+          profileId: session.profileId,
+          lookId,
+          approvedLook,
+          referenceId: styleId,
+        })
+      : null;
+    if (!motionReference?.preview_path) {
+      return reply.code(404).send({ error: 'Video style preview not found', code: 'VIDEO_STYLE_NOT_FOUND' });
+    }
+    return reply
+      .type('image/jpeg')
+      .header('Cache-Control', 'private, no-store')
+      .header('X-Content-Type-Options', 'nosniff')
+      .send(createReadStream(motionReference.preview_path));
+  });
+
+  // The UI plays a hash-bound, right-sized H.264 derivative. The original
+  // master remains unchanged and is still the only provider reference.
+  app.get('/api/profile/looks/:lookId/video-styles/:styleId/playback', async (request, reply) => {
+    const session = await profileApi.resolveRequestProfile(request, reply);
+    const { lookId, styleId } = request.params;
+    if (!profiles.ownsLook(session.profileId, lookId)) {
+      return reply.code(404).send({ error: 'Look not found', code: 'LOOK_NOT_FOUND' });
+    }
+    const approvedLook = await profiles.approvedLookReference(session.profileId, lookId, runService);
+    const motionReference = typeof videoService.fashionVideoCapability === 'function'
+      ? await videoService.fashionVideoCapability({
+          profileId: session.profileId,
+          lookId,
+          approvedLook,
+          referenceId: styleId,
+        })
+      : null;
+    if (!motionReference?.playback_path || motionReference.selected_style_id !== styleId) {
+      return reply.code(404).send({ error: 'Video style playback not found', code: 'VIDEO_STYLE_NOT_FOUND' });
+    }
+    const details = await stat(motionReference.playback_path);
+    if (!details.isFile() || details.size < 1) {
+      return reply.code(404).send({ error: 'Video style playback not found', code: 'VIDEO_STYLE_NOT_FOUND' });
+    }
+    const range = byteRange(request.headers.range, details.size);
+    if (range === undefined) {
+      return reply
+        .code(416)
+        .header('Content-Range', `bytes */${details.size}`)
+        .send();
+    }
+    const start = range?.start ?? 0;
+    const end = range?.end ?? details.size - 1;
+    const response = reply
+      .code(range ? 206 : 200)
+      .type('video/mp4')
+      .header('Cache-Control', 'private, max-age=31536000, immutable')
+      .header('Vary', 'Cookie')
+      .header('X-Content-Type-Options', 'nosniff')
+      .header('Accept-Ranges', 'bytes')
+      .header('Content-Length', String(end - start + 1));
+    if (range) response.header('Content-Range', `bytes ${start}-${end}/${details.size}`);
+    return response.send(createReadStream(motionReference.playback_path, { start, end }));
+  });
+
+  // Fashion Video cards are video-derived style units, not generic
+  // motion presets. Stream the hash-verified source MP4, privately, so the
+  // user can inspect the actual temporal/style authority before submission.
+  app.get('/api/profile/looks/:lookId/video-styles/:styleId/reference', async (request, reply) => {
+    const session = await profileApi.resolveRequestProfile(request, reply);
+    const { lookId, styleId } = request.params;
+    if (!profiles.ownsLook(session.profileId, lookId)) {
+      return reply.code(404).send({ error: 'Look not found', code: 'LOOK_NOT_FOUND' });
+    }
+    const approvedLook = await profiles.approvedLookReference(session.profileId, lookId, runService);
+    const motionReference = typeof videoService.fashionVideoCapability === 'function'
+      ? await videoService.fashionVideoCapability({
+          profileId: session.profileId,
+          lookId,
+          approvedLook,
+        referenceId: styleId,
+      })
+      : null;
+    if (!motionReference?.reference_path || motionReference.selected_style_id !== styleId) {
+      return reply.code(404).send({ error: 'Video style not found', code: 'VIDEO_STYLE_NOT_FOUND' });
+    }
+    const details = await stat(motionReference.reference_path);
+    if (!details.isFile() || details.size < 1) {
+      return reply.code(404).send({ error: 'Video style reference not found', code: 'VIDEO_STYLE_NOT_FOUND' });
+    }
+    const range = byteRange(request.headers.range, details.size);
+    if (range === undefined) {
+      return reply
+        .code(416)
+        .header('Content-Range', `bytes */${details.size}`)
+        .send();
+    }
+    const start = range?.start ?? 0;
+    const end = range?.end ?? details.size - 1;
+    const response = reply
+      .code(range ? 206 : 200)
+      .type('video/mp4')
+      .header('Cache-Control', 'private, no-store')
+      .header('X-Content-Type-Options', 'nosniff')
+      .header('Accept-Ranges', 'bytes')
+      .header('Content-Length', String(end - start + 1));
+    if (range) response.header('Content-Range', `bytes ${start}-${end}/${details.size}`);
+    return response.send(createReadStream(motionReference.reference_path, { start, end }));
+  });
+
   // POST /api/profile/video-clips — create a new video clip
   app.post('/api/profile/video-clips', async (request, reply) => {
     sameOriginMutation(request);
-    // The current provider adapter can bind only the approved master-look.
-    // A generic motion prompt is not a Fashion Video style authority: without
-    // an immutable visual/motion reference pack it produces a plain animation
-    // of the white-background source. Keep reads/finalization for existing
-    // evidence, but never spend a new job through this incomplete product route.
-    return reply.code(409).send({
-      error: 'Fashion Video потребує перевірений style pack і motion reference. Запуск без них вимкнено.',
-      code: 'FASHION_VIDEO_REFERENCE_PACK_REQUIRED',
-      next_action: 'SELECT_VERIFIED_VIDEO_STYLE',
-    });
-    /* c8 ignore start -- unreachable until the reference-pack contract replaces this guard */
     const session = await profileApi.resolveRequestProfile(request, reply);
-    const { look_id, surface, motion_mode, duration_seconds, style_note } = request.body ?? {};
+    const {
+      look_id,
+      surface,
+      style_id,
+      motion_mode,
+      duration_seconds,
+      style_note,
+    } = request.body ?? {};
 
     if (typeof look_id !== 'string' || look_id.length === 0) {
       throw new ProfileError(400, 'MISSING_LOOK_ID', 'look_id is required');
     }
     if (typeof surface !== 'string') {
       throw new ProfileError(400, 'MISSING_SURFACE', 'surface is required (tv or mirror)');
+    }
+    if (typeof style_id !== 'string' || style_id.length === 0) {
+      throw new ProfileError(400, 'MISSING_VIDEO_STYLE_ID', 'style_id is required');
     }
     if (typeof motion_mode !== 'string') {
       throw new ProfileError(400, 'MISSING_MOTION_MODE', 'motion_mode is required');
@@ -106,33 +361,94 @@ export async function registerVideoRoutes(app, {
       throw new ProfileError(404, 'LOOK_NOT_FOUND', 'Look not found');
     }
 
-    // Resolve the look source image path
+    // Resolve the approved master. The general look asset is hash-bound below,
+    // but Fashion Video adds a stricter boundary: Image 1 must be a verified
+    // full-look master on exact white, never the original user photo.
     const lookDescriptor = profiles.lookAsset(session.profileId, look_id);
     if (!lookDescriptor) {
       throw new ProfileError(404, 'LOOK_NOT_FOUND', 'Look asset not found');
     }
     const sourceImagePath = await runService.outputFile(lookDescriptor.runId, lookDescriptor.filename);
-    if (!sourceImagePath) {
-      throw new ProfileError(404, 'LOOK_IMAGE_NOT_FOUND', 'Look source image not found on disk');
-    }
+    if (!sourceImagePath) throw new ProfileError(404, 'LOOK_IMAGE_NOT_FOUND', 'Look source image not found on disk');
     const approvedLook = await profiles.approvedLookReference(
       session.profileId,
       look_id,
       runService,
     );
+    const whiteMaster = typeof runService.approvedWhiteMasterReferenceForRun === 'function'
+      ? await runService.approvedWhiteMasterReferenceForRun(lookDescriptor.runId)
+      // Compatibility only for isolated route tests whose mock has no disk
+      // inspector. Production RunService always provides the strict method.
+      : {
+          path: sourceImagePath,
+          sha256: approvedLook.image_sha256,
+          white_background_verified: true,
+          source_capabilities: { full_length: true },
+        };
+    if (whiteMaster.sha256 !== approvedLook.image_sha256 || whiteMaster.white_background_verified !== true) {
+      throw new ProfileError(409, 'VIDEO_WHITE_MASTER_MISMATCH', 'Fashion Video requires the exact approved white master');
+    }
+    const motionReference = typeof videoService.fashionVideoCapability === 'function'
+      ? await videoService.fashionVideoCapability({
+          profileId: session.profileId,
+          lookId: look_id,
+          approvedLook,
+          referenceId: style_id,
+          motionMode: motion_mode,
+        })
+      : null;
+    const capability = fashionVideoCapability({
+      lookId: look_id,
+      approvedLook,
+      motionReference,
+    });
+    if (!capability.available) {
+      return reply.code(409).send({
+        error: 'Fashion Video потребує перевірений style pack і motion reference. Запуск без них вимкнено.',
+        code: capability.reason_code,
+        next_action: capability.next_action,
+        requirements: capability.requirements,
+      });
+    }
+    // Video 1 is the selected style MP4 and Image 1 is only the approved white
+    // master. Raw identity/user-photo inputs are intentionally not passed: a
+    // background in a face reference can become a false scene authority.
+    // Image 2, when present, is the deterministic white garment card.
+    let garmentReference = null;
+    try {
+      garmentReference = await profiles.approvedLookLiveReference(
+        session.profileId,
+        look_id,
+        runService,
+      );
+    } catch (error) {
+      if (!(error instanceof ProfileError) || error.code !== 'LIVE_REFERENCE_INCOMPLETE_LOOK') {
+        throw error;
+      }
+    }
 
     try {
       const result = await videoService.createClip({
         modeId: motion_mode,
         surfaceId: surface,
         durationSeconds: duration_seconds ?? undefined,
+        sourceCapabilities: whiteMaster.source_capabilities ?? { full_length: false },
         styleNote: style_note ?? null,
-        sourceImagePath,
+        sourceImagePath: whiteMaster.path,
+        videoReference: motionReference,
+        appearanceReferences: [
+          ...(garmentReference ? [{
+            role: 'garment_detail',
+            bytes: Buffer.from(garmentReference.image),
+            sha256: garmentReference.reference_sha256,
+          }] : []),
+        ],
         lookBinding: {
           profileId: session.profileId,
           lookId: look_id,
           sourceSha256: approvedLook.image_sha256,
           approvedLookReceiptSha256: approvedLook.receipt_sha256,
+          whiteBackgroundVerified: true,
         },
       });
 
@@ -140,11 +456,21 @@ export async function registerVideoRoutes(app, {
       const liveClip = await videoService.getClip(result.clipId);
       projectClip(session.profileId, look_id, liveClip);
 
+      // Return the persisted job immediately, then let the server wait,
+      // download and technically verify it.  No browser tab is required for
+      // this job to progress and no second provider create is permitted.
+      void finalizePersistedClip({
+        profileId: session.profileId,
+        lookId: look_id,
+        clipId: result.clipId,
+      });
+
       return reply.code(202).send({
         clip_id: result.clipId,
         job_id: result.jobId,
         status: result.status,
         surface,
+        style_id,
         motion_mode,
         look_id,
       });
@@ -154,7 +480,122 @@ export async function registerVideoRoutes(app, {
       }
       throw err;
     }
-    /* c8 ignore stop */
+  });
+
+  // POST /api/profile/video-clips/:clipId/retry — creates exactly one explicit
+  // child attempt. A retry never happens automatically after QA FAIL: it is a
+  // new paid provider request and therefore requires an Idempotency-Key.
+  app.post('/api/profile/video-clips/:clipId/retry', async (request, reply) => {
+    sameOriginMutation(request);
+    const session = await profileApi.resolveRequestProfile(request, reply);
+    const parentProjection = profiles.videoClipProjection(session.profileId, request.params.clipId);
+    if (!parentProjection) {
+      return reply.code(404).send({ error: 'Video clip not found', code: 'CLIP_NOT_FOUND' });
+    }
+    const idempotencyKey = request.headers['idempotency-key'];
+    if (typeof idempotencyKey !== 'string') {
+      return reply.code(400).send({
+        error: 'Explicit Fashion Video retry requires an Idempotency-Key',
+        code: 'VIDEO_RETRY_IDEMPOTENCY_REQUIRED',
+      });
+    }
+    const parent = await videoService.getClip(request.params.clipId);
+    if (!parent || !['FAIL', 'FAILED'].includes(parent.status)) {
+      return reply.code(409).send({
+        error: 'Only a terminal failed Fashion Video can be retried.',
+        code: 'VIDEO_RETRY_STATUS_INVALID',
+      });
+    }
+    if (parent.lookBinding?.whiteBackgroundVerified !== true
+      || parent.appearanceReferences?.some((reference) => reference.role === 'identity_face')) {
+      return reply.code(409).send({
+        error: 'This old failed video used an unapproved appearance input. Start a new Fashion Video from the approved white master.',
+        code: 'VIDEO_RETRY_LEGACY_APPEARANCE_FORBIDDEN',
+      });
+    }
+    const styleId = parent.motionReferenceBinding?.referenceId;
+    if (typeof styleId !== 'string' || styleId.length === 0) {
+      return reply.code(409).send({
+        error: 'The failed clip has no verified Fashion Video style binding.',
+        code: 'VIDEO_RETRY_REFERENCE_MISSING',
+      });
+    }
+    const approvedLook = await profiles.approvedLookReference(
+      session.profileId,
+      parentProjection.look_id,
+      runService,
+    );
+    if (approvedLook.image_sha256 !== parent.lookBinding?.sourceSha256
+      || approvedLook.receipt_sha256 !== parent.lookBinding?.approvedLookReceiptSha256) {
+      return reply.code(409).send({
+        error: 'The approved look changed since this failed video. Start a new video from the current look.',
+        code: 'VIDEO_RETRY_LOOK_MISMATCH',
+      });
+    }
+    const motionReference = typeof videoService.fashionVideoCapability === 'function'
+      ? await videoService.fashionVideoCapability({
+          profileId: session.profileId,
+          lookId: parentProjection.look_id,
+          approvedLook,
+          referenceId: styleId,
+          motionMode: parent.mode,
+        })
+      : null;
+    const capability = fashionVideoCapability({
+      lookId: parentProjection.look_id,
+      approvedLook,
+      motionReference,
+    });
+    if (!capability.available) {
+      return reply.code(409).send({
+        error: 'Fashion Video style pack is no longer ready; retry is blocked before provider submission.',
+        code: capability.reason_code,
+      });
+    }
+    const claim = await videoService.claimRetry(request.params.clipId, idempotencyKey);
+    if (!claim.created) {
+      if (typeof claim.claim.child_clip_id === 'string') {
+        const child = await videoService.getClip(claim.claim.child_clip_id);
+        if (!child) {
+          return reply.code(409).send({ error: 'Retry recovery is required.', code: 'VIDEO_RETRY_RECOVERY_REQUIRED' });
+        }
+        const projected = projectClip(session.profileId, parentProjection.look_id, child);
+        return reply.code(200).send({
+          ...projected,
+          clip_id: child.clipId,
+          job_id: child.jobId ?? null,
+          retry_of: request.params.clipId,
+          reused: true,
+        });
+      }
+      return reply.code(409).send({
+        error: 'This explicit retry is already being submitted; no second provider job was created.',
+        code: 'VIDEO_RETRY_SUBMITTING',
+      });
+    }
+    try {
+      const childResult = await videoService.retryFailedClip(request.params.clipId, { videoReference: motionReference });
+      await videoService.completeRetryClaim(claim.claimPath, childResult.clipId);
+      const child = await videoService.getClip(childResult.clipId);
+      const projected = projectClip(session.profileId, parentProjection.look_id, child);
+      void finalizePersistedClip({
+        profileId: session.profileId,
+        lookId: parentProjection.look_id,
+        clipId: childResult.clipId,
+      });
+      return reply.code(202).send({
+        ...projected,
+        clip_id: childResult.clipId,
+        job_id: childResult.jobId,
+        retry_of: request.params.clipId,
+        reused: false,
+      });
+    } catch (err) {
+      if (err instanceof VideoServiceError) {
+        return reply.code(err.status).send({ error: err.message, code: err.code });
+      }
+      throw err;
+    }
   });
 
   // POST /api/profile/video-clips/:clipId/finalize — resume the persisted job,
@@ -167,15 +608,29 @@ export async function registerVideoRoutes(app, {
       return reply.code(404).send({ error: 'Video clip not found', code: 'CLIP_NOT_FOUND' });
     }
     try {
-      await videoService.finalizeClip(request.params.clipId);
+      await finalizePersistedClip({
+        profileId: session.profileId,
+        lookId: projection.look_id,
+        clipId: request.params.clipId,
+      });
       const liveClip = await videoService.getClip(request.params.clipId);
       const updated = projectClip(session.profileId, projection.look_id, liveClip);
+      const verifiedStyle = hasVerifiedFashionStyle(liveClip);
+      const next = resolveVideoQaAction(liveClip, { deliverable: verifiedStyle });
       return reply.code(200).send({
         ...updated,
         qa: liveClip.qa,
-        video_url: liveClip.status === 'PASS'
+        // A technically valid MP4 is not deliverable Fashion Video until the
+        // hash-bound cut audit proves it contains no source performer.
+        video_url: verifiedStyle
           ? `/api/profile/video-clips/${liveClip.clipId}/video`
           : null,
+        delivery_code: verifiedStyle
+          ? null
+          : 'VIDEO_STYLE_PROVENANCE_MISSING',
+        next_action: next.action,
+        next_action_reason_code: next.reason_code,
+        retry_available: next.retry_available,
       });
     } catch (err) {
       if (err instanceof VideoServiceError) {
@@ -193,11 +648,44 @@ export async function registerVideoRoutes(app, {
       return reply.code(404).send({ error: 'Video clip not found', code: 'CLIP_NOT_FOUND' });
     }
     // Merge with live service state if available
-    const liveClip = await videoService.getClip(request.params.clipId);
+    let liveClip = await videoService.getClip(request.params.clipId);
+    // A process restart loses only the in-memory waiter, never the persisted
+    // provider job.  Any later status read resumes the same job id.
+    if (isResumableVideoStatus(liveClip?.status)) {
+      void finalizePersistedClip({
+        profileId: session.profileId,
+        lookId: clip.look_id,
+        clipId: request.params.clipId,
+      });
+    }
+    if (liveClip?.status === 'NEEDS_QA') {
+      await finalizePersistedClip({
+        profileId: session.profileId,
+        lookId: clip.look_id,
+        clipId: request.params.clipId,
+      });
+      liveClip = await videoService.getClip(request.params.clipId);
+    }
+    // The runtime file is authoritative. Persist it before replying so a
+    // terminal FAIL can never be hidden behind a stale `CREATED` projection.
+    const liveProjection = liveClip
+      ? projectClip(session.profileId, clip.look_id, liveClip)
+      : clip;
+    const verifiedStyle = hasVerifiedFashionStyle(liveClip);
+    const next = resolveVideoQaAction(liveClip, { deliverable: verifiedStyle });
     return reply.header('Cache-Control', 'private, no-store').send({
-      ...clip,
+      ...liveProjection,
+      status: liveClip?.status ?? liveProjection.status,
       qa: liveClip?.qa ?? null,
-      video_url: clip.video_url ?? null,
+      error: publicVideoFailure(liveClip),
+      failure_code: liveClip?.failureCode
+        ?? liveClip?.qa?.defects?.[0]?.code
+        ?? null,
+      video_url: verifiedStyle ? clip.video_url ?? null : null,
+      delivery_code: verifiedStyle ? null : 'VIDEO_STYLE_PROVENANCE_MISSING',
+      next_action: next.action,
+      next_action_reason_code: next.reason_code,
+      retry_available: next.retry_available,
     });
   });
 
@@ -211,6 +699,12 @@ export async function registerVideoRoutes(app, {
     const liveClip = await videoService.getClip(request.params.clipId);
     if (!liveClip?.videoPath) {
       return reply.code(404).send({ error: 'Video file not available', code: 'VIDEO_NOT_READY' });
+    }
+    if (!hasVerifiedFashionStyle(liveClip)) {
+      return reply.code(409).send({
+        error: 'This legacy clip has no verified video-style binding and is not a Fashion Video delivery.',
+        code: 'VIDEO_STYLE_PROVENANCE_MISSING',
+      });
     }
     try {
       const fileStat = await stat(liveClip.videoPath);
@@ -243,7 +737,12 @@ export async function registerVideoRoutes(app, {
     if (clips === null) {
       return reply.code(404).send({ error: 'Look not found', code: 'LOOK_NOT_FOUND' });
     }
-    return reply.header('Cache-Control', 'private, no-store').send({ clips });
+    const verified = [];
+    for (const clip of clips) {
+      const liveClip = await videoService.getClip(clip.clip_id);
+      if (hasVerifiedFashionStyle(liveClip)) verified.push(clip);
+    }
+    return reply.header('Cache-Control', 'private, no-store').send({ clips: verified });
   });
 
   return { videoService };

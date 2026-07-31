@@ -290,7 +290,17 @@ export function editorialFramingLock(slot) {
 
 const STANDARD_FRAMING_LOCK = Object.freeze({
   subject: Object.freeze([70, 80]),
+  // 70–80 remains the preferred composition band. A standard full-body frame
+  // may still ship up to 88% when the direct visibility, clear-space and
+  // anatomy checks pass. This is a delivery tolerance, not a new generation
+  // target: providers are still instructed to compose at 70–80%.
+  deliverySubjectMaximum: 88,
   above: 8,
+  // Keep 8% as the provider target. Product policy permits three percentage
+  // points of normal visual variance plus one final warning point, so an
+  // otherwise valid standard delivery may ship from 4%. This never permits a
+  // cropped head: direct full-head visibility remains a separate hard lock.
+  deliveryAboveMinimum: 4,
   below: 2,
   head: true,
   footwear: true,
@@ -311,7 +321,13 @@ export function sceneFramingLock(preset) {
   if (typeof presetId !== 'string' || presetId.length === 0) {
     throw new Error('Scene framing lock requires a preset carrying its preset_id');
   }
-  if (presetId.startsWith('editorial.')) {
+  // Editorial originally used only the legacy `editorial.*` namespace. Create
+  // Universe deliberately moved the product to `shoot.*`, but leaving that
+  // namespace out here made the live QA path silently apply the standard
+  // background [70,80]/8/2/full-footwear lock to every Fashion Shoot frame.
+  // Both namespaces are editorial families and resolve by the same immutable
+  // shot-slot suffix.
+  if (presetId.startsWith('editorial.') || presetId.startsWith('shoot.')) {
     const slot = [...EDITORIAL_SHOT_SLOTS].find((candidate) => presetId.endsWith(`.${candidate}`));
     const lock = slot ? EDITORIAL_FRAMING_LOCKS[slot] : null;
     if (lock) return lock;
@@ -438,10 +454,10 @@ export function normalizeDelivery(delivery = DEFAULT_SCENE_DELIVERY) {
 
 export function sceneQaItemScope(items, preset = null) {
   if (!Array.isArray(items)) throw new Error('Scene QA item scope requires an item array');
-  const slot = preset?.editorial?.shot_slot ?? null;
-  if (!slot) return items;
-  if (slot === 'material_or_accessory_detail') return items.slice(0, 1);
-  if (['sculptural_three_quarter', 'interference_frame'].includes(slot)) {
+  const scope = preset?.editorial?.item_scope ?? null;
+  if (!scope) return items;
+  if (scope === 'FIRST_ORDERED_ITEM') return items.slice(0, 1);
+  if (scope === 'EXCLUDE_FOOTWEAR') {
     return items.filter((item) => String(item.category).toLowerCase() !== 'footwear');
   }
   return items;
@@ -847,11 +863,13 @@ function validateEditorialPresetSnapshot(preset, reference) {
   }
   const expectedItemScope = preset.editorial.shot_slot === 'material_or_accessory_detail'
     ? 'FIRST_ORDERED_ITEM'
-    : ['sculptural_three_quarter', 'interference_frame']
+    : ['clean_identity_hero', 'sculptural_three_quarter', 'interference_frame']
       .includes(preset.editorial.shot_slot)
     ? 'EXCLUDE_FOOTWEAR'
     : 'ALL';
-  if (preset.editorial.item_scope !== expectedItemScope) {
+  const legacyCleanHeroScope = preset.editorial.shot_slot === 'clean_identity_hero'
+    && preset.editorial.item_scope === 'ALL';
+  if (preset.editorial.item_scope !== expectedItemScope && !legacyCleanHeroScope) {
     throw new Error('Resolved editorial SceneSpec item scope does not match its shot slot');
   }
   const styleContract = preset.editorial.style_contract;
@@ -870,6 +888,7 @@ function validateEditorialPresetSnapshot(preset, reference) {
         'focus',
         'foreground',
         'expression_signature',
+        'subject_lighting',
         'garment_behaviour',
         'optical_signature',
       ],
@@ -883,6 +902,7 @@ function validateEditorialPresetSnapshot(preset, reference) {
       'focus',
       'foreground',
       'expression_signature',
+      'subject_lighting',
       'garment_behaviour',
     ]) {
       if (typeof styleContract[field] !== 'string'
@@ -1409,7 +1429,9 @@ export function assessFramingEvidence(evidence, {
   width,
   height,
   expectedSubjectHeightPercent,
+  deliverySubjectHeightMaximum = expectedSubjectHeightPercent?.[1],
   minimumAboveHairPercent = 8,
+  deliveryMinimumAboveHairPercent = minimumAboveHairPercent,
   minimumBelowFootwearPercent = 2,
   requireFullHead = true,
   requireFullFootwear = true,
@@ -1425,6 +1447,11 @@ export function assessFramingEvidence(evidence, {
     || minimumBelowFootwearPercent < 0
     || minimumBelowFootwearPercent > 100) {
     throw new Error('Scene framing clear-space locks must be finite percentages from 0 to 100');
+  }
+  if (!Number.isFinite(deliveryMinimumAboveHairPercent)
+    || deliveryMinimumAboveHairPercent < 0
+    || deliveryMinimumAboveHairPercent > minimumAboveHairPercent) {
+    throw new Error('Scene delivery headroom minimum must be finite and not exceed the preferred minimum');
   }
   if (typeof requireFullHead !== 'boolean' || typeof requireFullFootwear !== 'boolean') {
     throw new Error('Scene framing visibility locks must be booleans');
@@ -1451,14 +1478,25 @@ export function assessFramingEvidence(evidence, {
     || expectedSubjectHeightPercent[0] > expectedSubjectHeightPercent[1]) {
     throw new Error('Scene preset must declare an ordered subject_height_percent range from 0 to 100');
   }
+  if (!Number.isFinite(deliverySubjectHeightMaximum)
+    || deliverySubjectHeightMaximum < expectedSubjectHeightPercent[1]
+    || deliverySubjectHeightMaximum > 100) {
+    throw new Error('Scene delivery subject-height maximum must include the preferred range and not exceed 100');
+  }
   const subjectHeight = Number(((bboxHeight / height) * 100).toFixed(4));
   const aboveHair = Number(((y / height) * 100).toFixed(4));
   const belowFootwear = clearSpaceBelowSubjectPercent(bbox, height);
   const defects = [];
-  if (subjectHeight < expectedSubjectHeightPercent[0] || subjectHeight > expectedSubjectHeightPercent[1]) {
+  const deliveryToleranceApplied = subjectHeight > expectedSubjectHeightPercent[1]
+    && subjectHeight <= deliverySubjectHeightMaximum;
+  if (subjectHeight < expectedSubjectHeightPercent[0] || subjectHeight > deliverySubjectHeightMaximum) {
     defects.push('SUBJECT_HEIGHT_OUTSIDE_PRESET_RANGE');
   }
-  const headroomShort = requireFullHead && aboveHair < minimumAboveHairPercent;
+  const headroomDeliveryToleranceApplied = requireFullHead
+    && aboveHair < minimumAboveHairPercent
+    && aboveHair >= deliveryMinimumAboveHairPercent
+    && evidence.full_head_visible === true;
+  const headroomShort = requireFullHead && aboveHair < deliveryMinimumAboveHairPercent;
   const headroomWaived = headroomShort
     && aboveIsAdvisoryWhenHeadVisible
     && evidence.full_head_visible === true;
@@ -1479,9 +1517,11 @@ export function assessFramingEvidence(evidence, {
       subject_bbox_xywh_px: bbox,
       expected_subject_height_percent: [...expectedSubjectHeightPercent],
       subject_height_percent: subjectHeight,
+      subject_height_delivery_tolerance_applied: deliveryToleranceApplied,
       minimum_clear_space_above_hair_percent: minimumAboveHairPercent,
       minimum_clear_space_below_footwear_percent: minimumBelowFootwearPercent,
       clear_space_above_hair_percent: aboveHair,
+      clear_space_above_hair_delivery_tolerance_applied: headroomDeliveryToleranceApplied,
       // Without this the allowance was only inferable — headroom under its own minimum
       // and no INSUFFICIENT_CLEAR_SPACE_ABOVE_HAIR beside it — and a reader who did not
       // know the editorial lock existed read the receipt as a passing frame that simply
@@ -1509,7 +1549,9 @@ export function assessSceneFraming(evidence, { preset, width, height }) {
     width,
     height,
     expectedSubjectHeightPercent: lock.subject,
+    deliverySubjectHeightMaximum: lock.deliverySubjectMaximum ?? lock.subject[1],
     minimumAboveHairPercent: lock.above,
+    deliveryMinimumAboveHairPercent: lock.deliveryAboveMinimum ?? lock.above,
     minimumBelowFootwearPercent: lock.below,
     requireFullHead: lock.head,
     requireFullFootwear: lock.footwear,
@@ -1681,11 +1723,33 @@ function validatePersistedFramingEvidence(evidence, {
   // its absence is the single difference tolerated here — everything else still has to
   // match byte for byte. Demanding it would instead have quarantined all nine persisted
   // scenes on the next read, three of them delivered editorial heroes.
-  const comparable = evidence?.clear_space_above_hair_waived_by_full_head === undefined
-    ? Object.fromEntries(Object.entries(assessment.evidence)
-      .filter(([key]) => key !== 'clear_space_above_hair_waived_by_full_head'))
-    : assessment.evidence;
-  if (sha256(canonicalJsonBytes(comparable)) !== sha256(canonicalJsonBytes(evidence))) {
+  // These two flags are conclusions of the active delivery policy, not raw
+  // observations. A policy release can legitimately turn a persisted false
+  // into true for the exact same immutable bbox (or the reverse). Compare the
+  // raw canvas, bbox, measured percentages and visibility byte-for-byte, then
+  // derive these flags from the current policy on read.
+  const policyDerivedKeys = new Set([
+    // These four values state which active framing policy judged the immutable
+    // raw geometry. Create Universe originally fell through to the standard
+    // background lock, so honest pre-fix `shoot.*` receipts carry [70,80]/8/2
+    // even though the same bbox must now resolve through its editorial slot.
+    // They are not observations and may drift across a policy repair.
+    'expected_subject_height_percent',
+    'minimum_clear_space_above_hair_percent',
+    'minimum_clear_space_below_footwear_percent',
+    'subject_height_delivery_tolerance_applied',
+    'clear_space_above_hair_delivery_tolerance_applied',
+  ]);
+  const derivedKeysAbsentFromLegacyEvidence = new Set([
+    ...(evidence?.clear_space_above_hair_waived_by_full_head === undefined
+      ? ['clear_space_above_hair_waived_by_full_head'] : []),
+  ]);
+  const ignoredKeys = new Set([...policyDerivedKeys, ...derivedKeysAbsentFromLegacyEvidence]);
+  const withoutIgnored = (value) => Object.fromEntries(
+    Object.entries(value).filter(([key]) => !ignoredKeys.has(key)),
+  );
+  if (sha256(canonicalJsonBytes(withoutIgnored(assessment.evidence)))
+    !== sha256(canonicalJsonBytes(withoutIgnored(evidence)))) {
     throw new Error(`${label} framing evidence does not match its measured bounding box`);
   }
   if (requirePass && assessment.defects.length > 0) {

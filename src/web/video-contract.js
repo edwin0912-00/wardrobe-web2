@@ -33,7 +33,7 @@ export function videoWireContract() {
     qa_checks: [
       { id: 'duration',     title: 'Duration within mode window' },
       { id: 'aspect',       title: 'Aspect matches selected surface' },
-      { id: 'no_audio',     title: 'No audio track in delivered clip' },
+      { id: 'audio_provenance', title: 'Only approved reference audio, or silence' },
       { id: 'first_frame',  title: 'First frame is not black' },
       { id: 'last_frame',   title: 'Last frame is not black' },
     ],

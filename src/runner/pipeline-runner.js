@@ -4,6 +4,7 @@ import path from 'node:path';
 import { sha256Object } from '../conditioning/hash-lineage.mjs';
 import { assertProvider, assertQaDecision } from '../providers/provider.js';
 import { normalizeWhitePngBytes } from '../qa/white-normalizer.mjs';
+import { inspectImage } from '../qa/image-inspector.mjs';
 import { FilesystemArtifactStore, sha256 } from './artifact-store.js';
 import {
   createCoreQaReceipt,
@@ -1127,6 +1128,65 @@ export class PipelineRunner {
         receipt_id: verified.receipt_id,
         subject_sha256: verified.subject.sha256,
         evidence_manifest_sha256: verified.evidence.manifest_sha256,
+      });
+      return result;
+    }
+    const candidateArtifact = context.checkpoint.artifacts[phase]?.artifact;
+    const background = candidateArtifact
+      ? await inspectImage(candidateArtifact.path, { requireBottomCorners: true })
+      : null;
+    if (background && background.background_diagnostics?.status !== 'PASS') {
+      const diagnostics = background.background_diagnostics;
+      const response = {
+        decision: 'RETRY',
+        reason: 'master_background_not_exact_white',
+        checks: [{
+          name: 'EXACT_WHITE_KEY_SURFACE',
+          pass: false,
+          score: 0,
+          evidence: `Exact #FFFFFF key-surface failed: top=${diagnostics.coverage.minimum_top_corner}, bottom=${diagnostics.coverage.minimum_bottom_corner}, classified exact-white=${diagnostics.exact_white_ratio}.`,
+        }],
+        defects: ['MASTER_BACKGROUND_NOT_EXACT_WHITE'],
+        evaluator: {
+          type: 'ADAPTER',
+          provider: 'pipeline-runner',
+          model: 'exact-white-key-surface',
+          version: '1.0.0',
+          evaluation_id: sha256Object({
+            gate: 'EXACT_WHITE_KEY_SURFACE',
+            phase,
+            attempt,
+            subject_sha256: baseEvidence.subject.sha256,
+            diagnostics,
+          }),
+        },
+      };
+      const receipt = createCoreQaReceipt({
+        phase,
+        attempt,
+        jobId: context.job.job_id,
+        runId: context.runId,
+        evidence: baseEvidence,
+        response,
+      });
+      const receiptArtifact = await context.store.putJson(receipt);
+      const result = qaResultFromReceipt(receipt, receiptArtifact);
+      await context.store.writeReceipt(key, {
+        operation: 'qa',
+        phase,
+        attempt,
+        base_evidence_manifest_sha256: baseEvidence.manifest_sha256,
+        receipt_id: receipt.receipt_id,
+        receipt_artifact: receiptArtifact,
+      });
+      await this.#record(context, 'DETERMINISTIC_QA_FAILED', {
+        operation: 'qa',
+        phase,
+        attempt,
+        gate: 'EXACT_WHITE_KEY_SURFACE',
+        idempotency_key: key,
+        subject_sha256: baseEvidence.subject.sha256,
+        evidence_manifest_sha256: baseEvidence.manifest_sha256,
       });
       return result;
     }

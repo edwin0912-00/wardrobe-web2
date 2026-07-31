@@ -24,7 +24,11 @@ test('HTTP error responses redact local infrastructure metadata', async () => {
 
 test('health response exposes capability status without provider or project fingerprints', async () => {
   const app = await createWebApp({ service: serviceThatLeaksInternally(), health: {
-    status: 'ok', generation: 'Higgsfield CLI', semantic_qa: 'Codex CLI', internal_path: '/Users/jarvis1/app',
+    status: 'ok',
+    generation: 'Higgsfield CLI',
+    semantic_qa: 'Codex CLI',
+    fashion_shoot_qa_mode: 'off',
+    internal_path: '/Users/jarvis1/app',
   } });
   const response = await app.inject({ method: 'GET', url: '/api/health' });
   assert.equal(response.statusCode, 200);
@@ -33,6 +37,7 @@ test('health response exposes capability status without provider or project fing
     service: 'web',
     generation: 'available',
     semantic_qa: 'available',
+    fashion_shoot_qa_mode: 'off',
     editorial_generation: 'disabled',
   });
   await app.close();

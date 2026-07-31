@@ -2,11 +2,30 @@
 
 Effective: 2026-07-29.
 
-This document is the shared work contract for Chat 00 and chats 1–7. `beta` is the tested
-integration line and the only source that may be deployed to
+This document is the shared work contract for Chat 00 and the beta-owning
+threads. `beta` is the tested integration line and the only source that may be deployed to
 `beta.madeforthisjob.com`. Product agents work only in their assigned block
 branch. `main` remains the future customer-site line and is not changed by this
 workflow.
+
+## Canonical thread identity and technical ownership
+
+Titles are user-visible labels only. Thread ID is chat identity; beta block is a
+separate technical field. The machine-readable authority, including report
+paths, is
+[`BETA_THREAD_OWNER_MAP.json`](BETA_THREAD_OWNER_MAP.json).
+
+| Chat | Exact thread ID | Current title | Agent ID | Technical role |
+| --- | --- | --- | --- | --- |
+| 00 | `019fb036-e055-7923-b5f4-27392115460b` | `00 Master` | `chat-00-master` | beta integration/release only |
+| 01 | `019f7c40-26c1-7252-acf6-396296d0a42d` | `01 - Cloth to avatar in ENV Block` | `codex-main` | Block 1 core |
+| 02 | `019fadc7-2130-7af2-8e30-856036930a3c` | `02 Pipeline LIFE Block` | `chat-2` | Block 2 pipeline/profile UI |
+| 03 | `019f8a76-36d5-71e2-a2fa-0c1a98d5fe5f` | `03 - BetaSite Block` | `chat-3` | Block 3 beta backgrounds/UI |
+| 04 | `019faf41-db3e-7d00-a591-5b0851017af9` | `04 - Shoot-Back-Block` | `chat-4` | Blocks 4 and 5 |
+| 05 | `019faf52-0a8b-7de0-a123-7cea87d3124b` | `05 - Video Block` | `chat-5` | Block 6 Fashion Video |
+| 06 | `019f8eb8-9755-7e72-b844-2bbfd57ed283` | `06 - Main Site Block` | `chat-6` | MAIN_SITE only; no beta join |
+| 07 | `019fa3f3-63d1-76b0-9735-631f96c28ed2` | `07 LiveCam Block` | `chat-7` | Block 7 Real-time Look |
+| 0.8 observer | n/a | Antigravity | `antigravity-qa` | read-only public-beta QA |
 
 ## Branch topology
 
@@ -175,7 +194,7 @@ integrity; selection persists the exact style version and hashes.
 ## Block 5 — Fashion Shoot execution
 
 - Branch: `beta-block-5-fashion-shoot`
-- Owner: chat 5.
+- Owner: `chat-4` / Chat 04.
 - Pipeline: `UNIVERSE.03–04` and `ART_SHOOT.01–05`.
 
 This block owns Shoot Bible compilation, hero generation, identity/item/style
@@ -193,7 +212,7 @@ regenerating passed siblings.
 ## Block 6 — generated Fashion Video
 
 - Branch: `beta-block-6-fashion-video`
-- Owner: chat 6.
+- Owner: `chat-5` / Chat 05.
 - Pipeline: `VIDEO.01–04` and backend execution for
   `BACKGROUND_VIDEO.01–04`.
 
@@ -251,12 +270,25 @@ Its bounded goal-loop is compiled under
 each browser campaign stops on PASS, the first confirmed defect, two stalled
 iterations, or 45 minutes.
 
+## Observer 0.9 — Handoff Cloud Code external QA
+
+- Branch: `beta-block-09-handoff-cloud-code-qa`
+- Agent ID: `handoff-cloud-code-qa`
+- Contract: `docs/coordination/blocks/09-handoff-cloud-code-qa.md`
+
+This is a second read-only product observer, not another product owner. It
+must reproduce the public journey independently of Antigravity and challenge
+the claimed verdict. Its only committed outputs are
+`updates/handoff-cloud-code-qa.md` and
+`docs/qa-reports/handoff-cloud-code/**`.
+
 ## Agent cycle
 
 1. Fetch `origin/beta`, all seven product refs and the Block 0.8 QA ref.
 2. Read this document plus the assigned block handoff.
 3. Work only in the assigned branch and paths.
-4. Commit code + focused test + `updates/chat-<N>.md`.
+4. Commit code + focused test + the agent-ID-bound report from
+   `BETA_THREAD_OWNER_MAP.json`.
 5. Push only the assigned block branch.
 6. Report commit, changed paths, Code/Beta/Journey, blocker and next atom.
 7. `chat-00-master` reviews, integrates one atomic change into `beta`, deploys the

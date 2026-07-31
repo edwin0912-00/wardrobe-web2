@@ -6,12 +6,21 @@ This is the only live coordination board for the current sprint.
 
 The detailed contract is
 [`docs/coordination/BETA_BLOCKS_2026-07-29.md`](docs/coordination/BETA_BLOCKS_2026-07-29.md).
-Every chat commits only to its block branch. Only `codex-main` integrates into
-`beta` and deploys the exact tested beta SHA.
+Every owner commits only to its block branch. Only `chat-00-master` integrates
+into `beta` and deploys the exact tested beta SHA. Chat labels and technical
+block numbers are separate identities; the canonical relation is
+[`docs/coordination/BETA_THREAD_OWNER_MAP.json`](docs/coordination/BETA_THREAD_OWNER_MAP.json).
 
 Independent QA is permanently assigned to `antigravity-qa` on
 `beta-block-08-antigravity-qa`. It watches all commits, executes real public
 beta browser journeys and reports evidence; it never edits product code.
+
+A second independent observer is permanently assigned to the distinct agent
+ID `handoff-cloud-code-qa` on `beta-block-09-handoff-cloud-code-qa`. It runs
+the same exact-SHA browser journeys as an external adversarial verifier and
+writes only `updates/handoff-cloud-code-qa.md` plus
+`docs/qa-reports/handoff-cloud-code/**`. The two observers never share a
+branch, worktree, report or browser evidence directory.
 
 | Block | Branch | Owner | Product scope | First atom |
 | --- | --- | --- | --- | --- |
@@ -19,17 +28,22 @@ beta browser journeys and reports evidence; it never edits product code.
 | 2 | `beta-block-2-profile-ui` | `chat-2` | Profile, upload/draft, saved-look navigation, nodes, choice UI, explainer | Prove refresh recovery and saved avatar → Add clothing → result actions; fix only the first reproducible UI defect. |
 | 3 | `beta-block-3-backgrounds` | `chat-3` | Sixteen `std.*` packs, picker and result UX | Prove sixteen cards, then one saved look → selected preset → Block 1 QA → persisted scene. |
 | 4 | `beta-block-4-universe` | `chat-4` | Creative Universe source packs, sheets, manifests, catalog | Recover the checkpoint by ownership and make one legitimate style unit fully green. |
-| 5 | `beta-block-5-fashion-shoot` | `chat-5` | Shoot Bible, hero, five frames, shoot QA/retry/save | Run one complete style to an honest hero QA receipt before any series generation. |
-| 6 | `beta-block-6-fashion-video` | `chat-6` | Fashion Video and background-video execution/QA/save | Reconcile the two committed video services and prove one executable controlled clip route. |
+| 5 | `beta-block-5-fashion-shoot` | `chat-4` | Shoot Bible, hero, five frames, shoot QA/retry/save | Run one complete style to an honest hero QA receipt before any series generation. |
+| 6 | `beta-block-6-fashion-video` | `chat-5` | Fashion Video and background-video execution/QA/save | Reconcile the two committed video services and prove one executable controlled clip route. |
 | 7 | `beta-block-7-realtime-look` | `chat-7` | Camera, consent, live overlay, explicit capture/teardown | Prove denied/granted camera and no-save teardown; paid Lucy remains separately authorized. |
 
 Observer 0.8: `antigravity-qa` runs
 `tools/join-antigravity-qa.sh antigravity-qa --watch`; detailed contract:
 `docs/coordination/blocks/08-antigravity-qa.md`.
 
-All active agents run `tools/watch-beta-blocks.sh`. Each branch publishes
-`updates/chat-<N>.md` with separate Code/Beta/Journey fields and
-`weakened_checks`.
+Observer 0.9: `handoff-cloud-code-qa` runs
+`tools/join-handoff-cloud-code-qa.sh handoff-cloud-code-qa --watch`; contract:
+`docs/coordination/blocks/09-handoff-cloud-code-qa.md`.
+
+Chat 06 / `chat-6` is MAIN_SITE-only and is outside this beta table. All active
+beta agents run `tools/watch-beta-blocks.sh`. Each branch publishes the
+agent-ID-bound report path declared in `BETA_THREAD_OWNER_MAP.json`, with
+separate Code/Beta/Journey fields and `weakened_checks`.
 
 The mixed source work captured from the shared worktree is preserved at commit
 `46d1650` on `part-job/2026-07-29-universe-checkpoint`. It is intentionally not
@@ -47,6 +61,33 @@ The earlier detailed noticeboard is preserved at
   here.
 - Live test: `https://beta.madeforthisjob.com` — deploy the exact tested beta
   commit, then record its result below.
+
+## Fashion Video reference ownership — 2026-07-31
+
+- **Reference is not delivery footage.** A selected style video supplies timing,
+  camera, lighting, grade and choreography only. Every final cut is newly
+  generated with the approved avatar/look, or contains no person.
+- **Delivery gate:** technical MP4 QA and first/last-frame QA are insufficient.
+  Fashion Video delivery additionally requires an immutable, hash-bound
+  cut-coverage receipt across the whole clip. It records every cut's sampled
+  output/reference hashes and rejects any source performer, mixed/unknown
+  person or unreviewed gap.
+- **Failure behavior:** a failed reference-performer QA does not time out after
+  six minutes and does not retry automatically. The UI explains the QA failure
+  and offers **«Повторити спробу»** as one explicit new generation request.
+
+## Lightweight preview transport — 2026-07-31
+
+- User-uploaded originals remain immutable source evidence. UI thumbnails are
+  independent WebP presentation derivatives, never replacement inputs.
+- Fashion Video style cards use hash-bound 288×512 / 12fps loops below 326 KB;
+  their master MP4s remain private generation reference material.
+- **Activated on beta `3784511`:** every image surface that represents a
+  preview — saved avatars and looks, standard scenes, Fashion Shoot frames,
+  God View and live visualizer layers — requests a bounded 640px WebP
+  derivative. The full PNG/JPEG remains available only as the explicit
+  download/evidence artifact. This is presentation-only and cannot modify a
+  content hash, source input or QA receipt.
 
 ## Look-reference fast route — 2026-07-29
 
@@ -817,3 +858,69 @@ facts.
 ### PROPOSALS
 
 - **BETA-PRESENTATION-001 (Gender Split)**: Розділення на чоловіка і жінку повинно відбуватися на етапі візуальної QA моделі, яка зчитує правильність образу. Якщо QA проходить успішно, модель повинна додатково класифікувати презентацію і повертати значення (наприклад, `man` або `woman`). Це значення буде зберігатися для образу/аватара і використовуватися для фільтрації сумісних стилів (field `compatibility`), без додавання нових полів вводу для користувача.
+
+### 2026-07-30 · LIVE BETA
+
+- `afa34d8` deployed and healthy; includes durable saved-look repair `3a387c2`.
+- Chat 03 blocker `LOOK_ITEM_EVIDENCE_INVALID` is resolved on the exact saved
+  look: approved binding PASS, three item records recovered, durable snapshot
+  persisted.
+- HTTP 409 is presented as a server-side launch rejection, not a network loss.
+- LaunchAgent control paths must remain internal; do not point stdout/stderr at
+  external-volume symlinks. Bulk release archives may remain external.
+- Verification: `40/40` focused tests, strict release PASS, local/public health
+  ready. weakened_checks: none.
+
+### 2026-07-31 · FASHION VIDEO QA FAIL → EXPLICIT RETRY (READY FOR BETA DEPLOY)
+
+- Fixed the real stale-state failure: `GET /api/profile/video-clips/:clipId`
+  now projects the persisted runtime terminal state before replying. A runtime
+  `FAIL`/`FAILED` can no longer remain a browser-visible `CREATED` spinner.
+- `CLIP_HAS_AUDIO` now returns the actual technical reason: the provider added
+  an audio track and that file is not deliverable.
+- Added `POST /api/profile/video-clips/:clipId/retry`. It is only invoked by
+  the user’s retry button, uses a durable `Idempotency-Key`, and a repeat tap
+  returns the same child attempt rather than creating another paid provider
+  job. The child reuses only the failed clip’s locked source, appearance refs,
+  approved-look receipt, style-video hash and style-pack hash.
+- Retry rejects a changed look or changed style binding before provider spend.
+- Evidence: focused Fashion Video tests `48/48` PASS. New regressions cover
+  stale projection → terminal QA, audio reason, one retry → one child attempt,
+  duplicate retry key, and changed style hash → no second create.
+- `weakened_checks: none`. This is code evidence only until the exact commit
+  is deployed to beta and a real explicit retry is observed.
+
+### 2026-07-31 · FASHION VIDEO APPEARANCE + CUT-SHEET BINDING (READY FOR BETA DEPLOY)
+
+- `[Image 1]` is now enforced as the exact approved full-look master on a
+  verified pure-white ground. Fashion Video never receives the raw uploaded
+  person image or an identity-pack photo as a media input.
+- `[Image 2]`, when present, is only the deterministic garment card composed
+  from approved cutouts on white; it cannot define a person or an environment.
+- All three private video styles now carry immutable, time-bounded cut sheets.
+  The create prompt enumerates every interval with the absolute rule:
+  `APPROVED_AVATAR_OR_EMPTY`. A changed cut sheet changes the style-pack hash
+  and blocks retry before provider spend.
+- Legacy failed clips which used an identity-photo side input are not retried;
+  they must be recreated from the approved white master instead.
+- Evidence: real approved master inspected PASS under the product white-master
+  diagnostic; Fashion Video prompt/registry/service/route tests `69/69` PASS.
+- `weakened_checks: none`. No paid video generation was started.
+
+### 2026-07-31 · FASHION VIDEO DELIVERY AUDIO (ACTIVE ON BETA)
+
+- Provider audio is no longer a terminal QA failure. For each new Fashion
+  Video request, beta stores the hash-locked Video 1 as `style-reference.mp4`,
+  keeps raw provider output as audit-only `provider.mp4`, and builds the only
+  deliverable `clip.mp4` before QA.
+- Assembly is exact: `0:v:0` comes only from the provider; `1:a:0` comes only
+  from the approved Video 1 reference. If Video 1 is silent, delivery is
+  explicitly silent. There is no default ffmpeg stream mapping.
+- This does not relax visual QA. Identity/item QA and per-cut reference
+  leakage QA still gate delivery after technical assembly.
+- Evidence: `node --test test/video/*.test.js` PASS 155/155; actual ffmpeg
+  probe confirms a delivery with HEVC picture plus AAC reference audio; beta
+  health `ready`, release `21fd0c8`.
+- `weakened_checks`: pre-change failed clips lack a locally frozen reference
+  source; they are not retroactively delivered. The known failed clip also
+  equals its directing-reference bytes and remains blocked by visual QA.

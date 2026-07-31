@@ -1,7 +1,16 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { MOTION_MODES, VIDEO_SURFACES, SURFACES, MotionPlanError, buildMotionPlan, videoSurface, surface } from '../../src/web/video-motion-plan.js';
+import {
+  MOTION_MODES,
+  VIDEO_SURFACES,
+  SURFACES,
+  MotionPlanError,
+  buildFashionVideoReferencePrompt,
+  buildMotionPlan,
+  videoSurface,
+  surface,
+} from '../../src/web/video-motion-plan.js';
 import { buildVideoCreateArgs } from '../../src/providers/higgsfield-video-provider.js';
 
 test('the canon has exactly four motion modes', () => {
@@ -28,6 +37,36 @@ test('a plan states the locks that make it a fashion clip and not a lookalike', 
   assert.match(plan.prompt, /Identity, hair, silhouette and the approved look are locked/);
   assert.match(plan.prompt, /No garment is added, removed, restyled or rebranded/);
   assert.match(plan.prompt, /No new props, no text, no logos/);
+});
+
+test('the reference-transfer prompt makes Video 1 style authority only and bans source-performer leakage', () => {
+  const cutSheet = {
+    schema_version: '1.0.0',
+    cuts: [{
+      cut_index: 0, start_ms: 0, end_ms: 5000,
+      subject_rule: 'APPROVED_AVATAR_OR_EMPTY',
+      direction: 'Full-body doorway pose with a controlled cut-specific camera move and no secondary people.',
+    }],
+  };
+  const prompt = buildFashionVideoReferencePrompt({
+    hasGarmentReference: true,
+    cutSheet,
+  });
+  assert.match(prompt, /\[Video 1\].*private reference-only directing material/);
+  assert.match(prompt, /complete shot sequence, cut timing, transitions/);
+  assert.match(prompt, /Every final frame must be newly generated/);
+  assert.match(prompt, /Never splice, reuse, reveal, freeze, picture-in-picture, reflection, monitor image/);
+  assert.match(prompt, /\[Image 1\].*exact approved person.*complete approved outfit/);
+  assert.match(prompt, /For every cut/);
+  assert.match(prompt, /No source performer face, body, skin, hair, clothing/);
+  assert.match(prompt, /\[Image 1\].*exact pure-white background/);
+  assert.match(prompt, /\[Image 2\] is a white-background garment-only evidence card/);
+  assert.doesNotMatch(prompt, /\[Image 2\] defines face identity and hair only/);
+  assert.match(prompt, /CUT SHEET/);
+  assert.match(prompt, /CUT 01 0ms–5000ms \| APPROVED_AVATAR_OR_EMPTY/);
+  assert.match(prompt, /Never replace the reference environment/);
+  assert.match(prompt, /Do not simplify the reference into a static portrait/);
+  assert.doesNotMatch(prompt, /blink|breathe|camera is effectively still/i);
 });
 
 test('walk or stride is refused unless the source really shows the feet', () => {

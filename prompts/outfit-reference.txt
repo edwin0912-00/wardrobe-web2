@@ -1,6 +1,9 @@
 TASK
 Edit the approved avatar so the same person wears the outfit or accessory defined by the attached outfit evidence and the authoritative supporting text.
 
+NON-NEGOTIABLE WHITE KEY SURFACE
+Every pixel that is not the person must be exact RGB #FFFFFF. This includes the entire lower frame, both bottom corners and the area surrounding the soles. Do not render a studio floor, floor plane, horizon, grey or cream gradient, vignette, reflection, ambient occlusion, contact shadow, cast shadow or drop shadow. Leave a visible #FFFFFF gap below and around both soles. If a shadow would make the pose feel more grounded, omit it: the product UI adds any presentation shadow separately and the master image must remain one-click keyable.
+
 REFERENCE BINDINGS
 {{REFERENCE_BINDINGS}}
 - {{ORIGINAL_IDENTITY_REFERENCE}} is the authority for identity.
@@ -21,7 +24,7 @@ CLEAN REPLACEMENT
 Remove the replaced clothing completely. No remnants, double collars, overlapping sleeves, fused fabric, duplicated accessories or skin/background leakage. Garments must contact and drape on the body naturally.
 
 QUALITY
-Photorealistic studio photograph. Sharp face, hair and fabric. Natural anatomy. Uniform pure #FFFFFF background without gradient or shadow.
+Photorealistic studio photograph. Sharp face, hair and fabric. Natural anatomy. Uniform pure #FFFFFF background from every edge through the area below the feet, with no floor, gradient or shadow.
 
 OUTPUT
 One portrait-oriented sRGB image matching the approved avatar's framing and dimensions.

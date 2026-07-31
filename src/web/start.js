@@ -12,9 +12,13 @@ import { createSceneRuntimeDependencies } from './scene-runtime.js';
 import { createVlmEvaluator } from './vlm-provider.js';
 import { createFalRealtimeTokenIssuer } from './fal-realtime-token.js';
 import { createVideoRuntime } from './video-runtime.js';
+import { createFashionVideoReferenceResolver } from './video-reference-registry.js';
 import { createVideoAssetUrlResolver } from './video-source-bridge.js';
+import { loadReleaseIdentity } from './release-identity.js';
+import { GodViewAuth, OpenTesterGodViewAuth } from './god-view-auth.js';
 
 const projectRoot = path.resolve(import.meta.dirname, '..', '..');
+const releaseIdentity = await loadReleaseIdentity(projectRoot);
 const generationMode = process.env.ZEELY_GENERATION_PROVIDER ?? 'higgsfield';
 const runtimeRoot = process.env.ZEELY_RUNTIME_ROOT
   ? path.resolve(process.env.ZEELY_RUNTIME_ROOT)
@@ -55,11 +59,23 @@ const service = new RunService({
 });
 await service.initialize();
 const health = await runLocalPreflight({ generationMode, codexStatus: generation.status });
+health.fashion_shoot_qa_mode = process.env.ZEELY_FASHION_SHOOT_QA_MODE ?? 'review';
 const auth = process.env.ZEELY_DEMO_PIN ? {
   pin: process.env.ZEELY_DEMO_PIN,
   secret: process.env.ZEELY_SESSION_SECRET,
   secure: process.env.ZEELY_COOKIE_SECURE !== 'false',
 } : null;
+const godViewAuth = process.env.ZEELY_GOD_VIEW_OPEN_TESTERS === 'true'
+  ? new OpenTesterGodViewAuth()
+  : process.env.ZEELY_GOD_VIEW_KEY
+    ? new GodViewAuth({
+      key: process.env.ZEELY_GOD_VIEW_KEY,
+      sessionSecret: process.env.ZEELY_GOD_VIEW_SESSION_SECRET
+        ?? process.env.ZEELY_SESSION_SECRET
+        ?? process.env.ZEELY_GOD_VIEW_KEY,
+      secure: process.env.ZEELY_COOKIE_SECURE !== 'false',
+    })
+    : null;
 const sceneDependencies = createSceneRuntimeDependencies({
   projectRoot,
   qaEvaluator: vlm.evaluateQa.bind(vlm),
@@ -88,11 +104,36 @@ const videoSourceBridge = createVideoAssetUrlResolver({
   clipStoreRoot: path.join(runtimeRoot, 'video-clips'),
   httpsOrigin: process.env.ZEELY_PUBLIC_HTTPS_ORIGIN,
 });
+const fashionVideoReferenceResolver = createFashionVideoReferenceResolver({
+  rootDirectory: process.env.ZEELY_VIDEO_REFERENCE_ROOT,
+  manifestPath: path.join(
+    projectRoot,
+    'config',
+    'video-reference-packs',
+    'fashion-cool-style-v1.json',
+  ),
+});
 const videoService = createVideoRuntime({
   runtimeRoot,
   openRouterApiKey: process.env.OPENROUTER_API_KEY,
   assetUrlResolver: videoSourceBridge.videoAssetUrlResolver,
+  fashionVideoReferenceResolver,
 });
+// A video create receipt is durable before the provider wait starts.  Recover
+// only those exact recorded jobs after a daemon restart; this does not call
+// createJob and therefore cannot duplicate a paid video.  The route layer also
+// resumes on a later status request, covering a provider wait interrupted by a
+// further restart.
+for (const clipId of await videoService.resumableClipIds()) {
+  void videoService.finalizeClip(clipId)
+    .then(() => monitor.append({ source: 'server', type: 'video.resume_completed', data: { clip_id: clipId } }))
+    .catch((error) => monitor.append({
+      source: 'server',
+      type: 'video.resume_paused',
+      severity: 'warn',
+      data: { clip_id: clipId, code: error?.code ?? 'VIDEO_FINALIZE_ERROR' },
+    }).catch(() => {}));
+}
 const app = await createWebApp({
   service,
   health,
@@ -106,6 +147,8 @@ const app = await createWebApp({
   lucyTokenIssuer: createFalRealtimeTokenIssuer(),
   videoService,
   videoSourceBridge,
+  releaseIdentity,
+  godViewAuth,
 });
 const draftCleanupTimer = setInterval(() => drafts.cleanupExpired().catch(() => {}), 60_000);
 const profileCleanup = async () => {

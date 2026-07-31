@@ -101,6 +101,52 @@ export function collectQaImages(evidence = {}, phase = 'outfit') {
   return ordered.filter(Boolean);
 }
 
+function textOnlyOutfitText(evidence = {}) {
+  const sourceOutfitIsImage = typeof evidence.source_outfit === 'string'
+    && /\.(?:png|jpe?g|webp)$/i.test(evidence.source_outfit);
+  if (typeof evidence.source_outfit === 'string' && !sourceOutfitIsImage) {
+    return evidence.source_outfit.trim();
+  }
+  if (!imagePath(evidence.outfit) && typeof evidence.outfit?.facts?.text === 'string') {
+    return evidence.outfit.facts.text.trim();
+  }
+  return '';
+}
+
+// A text-only request is a creative brief, not a product dossier.  The user may
+// deliberately leave colour, cut, hardware or branding open.  Only turn the
+// narrow "you did not specify enough product facts" refusal into an approval;
+// a real contradiction of stated text, identity failure or anatomy defect stays
+// with the evaluator's original decision.
+const TEXT_ONLY_UNSPECIFIED_DETAIL = /(?:authoritative\s+(?:target\s+)?outfit\s+text.*(?:does not|is not).*(?:specify|define)|(?:does not|did not|not)\s+specif(?:y|ied)|\bunspecified\b|\bno\s+exact\s+(?:jacket|garment|outfit|type|colou?r|material|construction|fit|logo|text)|\b(?:lack|lacks)\s+(?:an\s+)?exact)/i;
+
+export function applyTextOnlyOutfitInterpretationPolicy(value, outfitText) {
+  if (!outfitText || value?.decision !== 'NEEDS_INPUT') return value;
+  const rationale = [value.reason, ...(value.defects ?? [])].filter(Boolean).join('\n');
+  if (!TEXT_ONLY_UNSPECIFIED_DETAIL.test(rationale)) return value;
+  return {
+    ...value,
+    decision: 'PASS',
+    reason: `PASS_WITH_TEXT_INTERPRETATION: ${value.reason}`,
+    defects: [],
+    checks: [
+      ...(value.checks ?? []).map((check) => check.pass ? check : {
+        ...check,
+        name: `${check.name}_ADVISORY_TEXT_BRIEF`,
+        pass: true,
+        score: Math.max(Number(check.score) || 0, 0.8),
+        evidence: `Advisory only: the text brief intentionally leaves this detail open. ${check.evidence ?? ''}`.trim(),
+      }),
+      {
+        name: 'TEXT_ONLY_INTERPRETATION',
+        pass: true,
+        score: 1,
+        evidence: 'The candidate fills only details the user intentionally left open in the text brief; no photo reference was required.',
+      },
+    ],
+  };
+}
+
 export function qaPrompt(phase, images, evidence = {}) {
   const labels = images.map((entry, index) => {
     const role = typeof entry === 'object' ? entry.role : 'VISUAL_EVIDENCE';
@@ -109,13 +155,14 @@ export function qaPrompt(phase, images, evidence = {}) {
       : [];
     return `ATTACHMENT_${index + 1} [${role}]${aliases.length ? ` aliases: ${aliases.map((alias) => `[${alias}]`).join(' ')}` : ''}`;
   }).join('\n');
-  const sourceOutfitIsImage = typeof evidence.source_outfit === 'string'
-    && /\.(?:png|jpe?g|webp)$/i.test(evidence.source_outfit);
-  const outfitText = typeof evidence.source_outfit === 'string' && !sourceOutfitIsImage
-    ? evidence.source_outfit
-    : typeof evidence.outfit?.facts?.text === 'string' ? evidence.outfit.facts.text : '';
+  const outfitText = textOnlyOutfitText(evidence)
+    || (typeof evidence.outfit?.facts?.text === 'string' ? evidence.outfit.facts.text : '');
+  const isTextOnlyOutfit = phase === 'outfit' && Boolean(textOnlyOutfitText(evidence));
   const targetContext = outfitText
     ? `\nAUTHORITATIVE TARGET OUTFIT TEXT\n${outfitText}\nThe clothing visible in identity photos is identity context only. Do not treat it as the target outfit or reject its intentional replacement.`
+    : '';
+  const textOnlyAuthority = isTextOnlyOutfit
+    ? '\nTEXT-ONLY CREATIVE BRIEF: This text is the complete authority. It fixes only facts it explicitly says. Any colour, jacket subtype, material detail, hardware, construction, fit, logo/text or styling detail it does not state is intentionally open for a plausible premium interpretation. Never use NEEDS_INPUT, RETRY or REJECT merely because those omitted details cannot be exact-matched to a photo. A well-formed candidate that does not contradict the stated text must PASS. Use RETRY only for a positive contradiction of explicit text, old-clothing residue, identity mismatch or visible anatomy/image defect. The user can refine the text or add a reference photo in a later separate revision.'
     : '';
   const phaseRules = {
     // A mirror selfie with a phone covering roughly 2% of the face and an ordinary
@@ -135,7 +182,7 @@ export function qaPrompt(phase, images, evidence = {}) {
     garment: 'RAW_GARMENT_PRIMARY and RAW_GARMENT_VIEW_* are authoritative source photos; GENERATED_CANONICAL_CANDIDATE is the generated image under review. Compare the candidate against every raw view, never the reverse. Require unchanged type, shape, color, pattern, logo/text and construction only where that fact is clearly visible in at least one raw view. A hidden, absent or unreadable logo/text, rear detail, sole or other unobserved property is UNKNOWN: it is not a mismatch and the candidate must not be required to prove it. Surface weave, grain, gloss, microtexture, or a close material-rendering difference is advisory only: it must never cause RETRY by itself. In particular, do not call a close upper-surface difference (such as mesh versus a pebbled texture) a construction mismatch when the silhouette, panel layout, logo, closures and distinctive geometry agree. Material becomes blocking only when it visibly changes the product category or design, for example a leather boot becoming a knit runner. Reject a candidate only for a positive contradiction, or an omission of a clearly visible source feature. The canonical image must show only the complete garment on clean white. Use NEEDS_INPUT only when the raw garment photos themselves are insufficient to identify the target, regardless of candidate quality. When raw evidence is usable, a blocking mismatch, omission, invention, crop, background issue or other candidate defect is a generated-route failure: use RETRY when another generation can fix it, or REJECT when this candidate is unusable. Never use NEEDS_INPUT merely because the generated candidate differs from usable raw evidence.',
     scene: 'Compare the editorial scene with the approved outfit still. Require the same person and unchanged approved outfit; judge scene intent separately.',
   };
-  return sanitizeExternalPrompt(`Visually judge the attached images for ${phase} QA. ${phaseRules[phase] ?? phaseRules.outfit}${targetContext}\nOrdered attachment bindings:\n${labels}\nFill every schema field with concise visible evidence. PASS only if all blocking criteria are visibly supported; RETRY for a fixable generated defect; NEEDS_INPUT for insufficient source evidence; REJECT for an irrecoverable mismatch. Return only JSON.`);
+  return sanitizeExternalPrompt(`Visually judge the attached images for ${phase} QA. ${phaseRules[phase] ?? phaseRules.outfit}${targetContext}${textOnlyAuthority}\nOrdered attachment bindings:\n${labels}\nFill every schema field with concise visible evidence. PASS only if all blocking criteria are visibly supported; RETRY for a fixable generated defect; NEEDS_INPUT for insufficient source evidence; REJECT for an irrecoverable mismatch. Return only JSON.`);
 }
 
 export function garmentPrompt(images) {
@@ -313,7 +360,9 @@ export class CodexVlmEvaluator {
       const validated = validateQa(result.value);
       const decision = context?.phase === 'garment'
         ? applyGarmentSurfaceFidelityPolicy(validated)
-        : validated;
+        : context?.phase === 'outfit'
+          ? applyTextOnlyOutfitInterpretationPolicy(validated, textOnlyOutfitText(context?.evidence))
+          : validated;
       return evaluatorResult(decision, {
         model: this.model,
         context,

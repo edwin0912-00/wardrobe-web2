@@ -15,8 +15,10 @@ in `docs/coordination/blocks/00-release-master.md`.
 
 Latest beta:
 
-- code: `c094a0ac723677b2060ce847e3ed3c68ce186067`
-- cache: `product-c094a0ac-91c86ff9cf9d`
+- code: `afa34d8fcc92026824e20fb98c7e5e9532a772a4`
+- cache: `product-afa34d8f-8b3076d910e9`
 - health: ready
-- HEIC public server fallback: PASS with real HEIC → JPEG
+- durable saved-look lifecycle: PASS on the previously failing look
+- background catalog: 16; Fashion Shoot catalog: 19, generation-ready: 17
+- LaunchAgent web and tunnel: running after internal control-path recovery
 - weakened_checks: none

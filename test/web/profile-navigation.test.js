@@ -33,15 +33,19 @@ test('profile exposes an explicit Back control and clear next actions', () => {
   );
   assert.match(
     indexHtml,
-    /<button id="profile-look-photoshoot"[^>]*aria-label="Відкрити Art Fashion фотозйомку"/,
+    /class="profile-look-visual"[\s\S]*?id="profile-look-detail-image"[\s\S]*?id="profile-look-background-primary"/,
   );
   assert.match(
     indexHtml,
-    /<button id="profile-look-delete"[^>]*>Видалити<\/button>/,
+    /<button id="profile-look-photoshoot"[^>]*aria-label="Відкрити Fashion Shoot"/,
   );
   assert.match(
     indexHtml,
-    /<button id="add-look"[^>]*>Новий образ з цим аватаром<\/button>/,
+    /<button id="profile-look-delete"[^>]*aria-label="Видалити збережений образ"[^>]*>×<\/button>/,
+  );
+  assert.match(
+    indexHtml,
+    /<button id="add-look"[^>]*>Уточнити образ<\/button>/,
   );
   assert.doesNotMatch(indexHtml, />Додати речі<\/button>/);
   assert.match(indexHtml, /id="profile-look-add-explainer"[\s\S]*?окремий образ[\s\S]*?не зміниться/);
@@ -55,10 +59,13 @@ test('Back restores the previous in-app view without resetting draft files', () 
 });
 
 test('avatar and look cards are native, stateful selection controls', () => {
+  const renderProfileSource = functionSource('renderProfile', 'showProfileError');
   assert.match(appSource, /selector\.type = 'button'/);
   assert.match(appSource, /selector\.className = 'profile-avatar-select'/);
   assert.match(appSource, /selector\.setAttribute\('aria-pressed', String\(active\)\)/);
   assert.match(appSource, /selector\.setAttribute\('aria-controls', 'profile-look-grid'\)/);
+  assert.match(renderProfileSource, /createProfileButton\('Новий образ з цим аватаром'/);
+  assert.doesNotMatch(renderProfileSource, /createProfileButton\('Видалити'/);
   assert.match(appSource, /open\.type = 'button'/);
   assert.match(appSource, /open\.className = 'profile-look-open'/);
   assert.match(appSource, /open\.setAttribute\('aria-expanded', String\(active\)\)/);
@@ -121,23 +128,77 @@ test('an open mobile look becomes the active full-height screen instead of clipp
   );
   assert.match(
     resultCss,
-    /\.profile-library\.has-open-look \.profile-look-detail-actions[\s\S]*?grid-template-columns:\s*repeat\(2, minmax\(0, 1fr\)\);/,
+    /\.profile-library\.has-open-look \.profile-look-detail-actions[\s\S]*?grid-template-columns:\s*minmax\(0, 1fr\) 44px;/,
   );
 });
 
-test('a short desktop look reserves its remaining height for the next actions', () => {
-  const shortDesktop = resultCss.slice(resultCss.indexOf('@media (min-width: 701px) and (max-height: 850px)'));
+test('saved look is one compact action hub without nested guides or forced scrolling', () => {
+  const openLookSource = functionSource('openProfileLook', 'renderProfileSceneLibrary');
+  assert.doesNotMatch(openLookSource, /scrollIntoView/);
+  assert.doesNotMatch(indexHtml, /class="profile-action-guide"/);
+  assert.doesNotMatch(indexHtml, /class="profile-branch-brief/);
+  assert.match(
+    resultCss,
+    /\.profile-action-copy strong \{[\s\S]*?overflow:\s*visible;[\s\S]*?text-overflow:\s*clip;[\s\S]*?white-space:\s*normal;/,
+  );
+});
+
+test('saved-look actions expose complete keyboard, disabled and loading states', () => {
+  assert.match(resultCss, /\.profile-next-action:active \{[\s\S]*?transform:\s*none;[\s\S]*?box-shadow:\s*inset/);
+  assert.match(resultCss, /\.profile-next-action:focus-visible \{[\s\S]*?outline:\s*3px solid/);
+  assert.match(resultCss, /\.profile-next-action:disabled \{[\s\S]*?pointer-events:\s*none;[\s\S]*?cursor:\s*not-allowed;/);
+  assert.match(resultCss, /\.profile-next-action:is\(\.is-checking, \.is-loading\) \.profile-action-static-icon \{[\s\S]*?visibility:\s*hidden;/);
+  assert.match(resultCss, /\.profile-next-action:is\(\.is-checking, \.is-loading\) \.profile-action-orb \{[\s\S]*?display:\s*block;/);
+  assert.doesNotMatch(resultCss, /profile-action-spin/);
+  assert.doesNotMatch(resultCss, /#video-generate\.is-loading::after/);
+});
+
+test('canonical AI orbs lead capability checks and Fashion Video progress', () => {
+  assert.match(indexHtml, /id="profile-video-orb" class="profile-action-orb"/);
+  assert.match(indexHtml, /id="profile-live-orb" class="profile-action-orb"/);
+  assert.match(indexHtml, /id="video-thinking-orb"/);
+  assert.match(indexHtml, /id="video-ai-title">AI готує запуск/);
+  assert.match(appSource, /createThinkingOrb\(document\.querySelector\('#profile-video-orb'\), 'searching'\)/);
+  assert.match(appSource, /createThinkingOrb\(document\.querySelector\('#profile-live-orb'\), 'searching'\)/);
+  assert.match(appSource, /createThinkingOrb\(document\.querySelector\('#video-thinking-orb'\), 'searching'\)/);
+  assert.match(appSource, /setVideoThinkingState\('composing', 'AI збирає рух'/);
+  assert.match(appSource, /setVideoThinkingState\('solving', 'AI перевіряє відео'/);
+});
+
+test('Fashion Video and Live Look use full-viewport single surfaces without nested scrolling', () => {
+  assert.doesNotMatch(resultCss, /\.profile-live-overlay iframe/);
+  assert.match(resultCss, /\.profile-live-overlay \{[\s\S]*?inset:\s*0;[\s\S]*?display:\s*block;[\s\S]*?padding:\s*0;/);
+  const videoSurface = resultCss.slice(
+    resultCss.indexOf('.video-overlay-content {'),
+    resultCss.indexOf('.video-overlay-header {'),
+  );
+  assert.match(videoSurface, /width:\s*100%/);
+  assert.match(videoSurface, /height:\s*100dvh/);
+  assert.match(videoSurface, /overflow:\s*hidden/);
+  assert.match(videoSurface, /border-radius:\s*0/);
+  assert.match(videoSurface, /box-shadow:\s*none/);
+  assert.doesNotMatch(videoSurface, /max-height|overflow-y/);
+  assert.match(resultCss, /\.video-overlay-content \{[\s\S]*?grid-template-rows:\s*auto minmax\(0, 1fr\) auto;/);
+  assert.match(resultCss, /\.video-overlay-body \{[\s\S]*?overflow-y:\s*auto;/);
+  assert.match(resultCss, /\.video-overlay-footer \{[\s\S]*?border-top:/);
+  assert.match(resultCss, /\.video-style-options \{[\s\S]*?grid-template-columns:\s*repeat\(4, minmax\(0, 1fr\)\);/);
+  assert.match(resultCss, /@media \(max-width: 700px\) \{[\s\S]*?\.video-style-options \{ grid-template-columns: repeat\(2, minmax\(0, 1fr\)\); \}/);
+  assert.match(appSource, /document\.body\.append\(fashionVideoOverlay\)/);
+});
+
+test('a short desktop look reserves its remaining height for the compact action grid', () => {
+  const shortDesktop = resultCss.slice(resultCss.indexOf('@media (min-width: 701px) and (max-height: 950px)'));
   assert.match(
     shortDesktop,
-    /\.profile-library\.has-open-look \.profile-look-next \{[\s\S]*?flex:\s*1 1 auto;[\s\S]*?grid-template-rows:\s*auto 54px minmax\(0, 1fr\);/,
+    /\.profile-library\.has-open-look \.profile-look-next \{[\s\S]*?flex:\s*1 1 auto;[\s\S]*?grid-template-rows:\s*auto minmax\(0, 1fr\) auto;/,
   );
   assert.match(
     shortDesktop,
-    /\.profile-library\.has-open-look \.profile-look-next-actions \{[\s\S]*?grid-template-rows:\s*repeat\(2, minmax\(0, 1fr\)\);/,
+    /\.profile-library\.has-open-look \.profile-look-next-actions \{[\s\S]*?grid-template-rows:\s*minmax\(0, 1fr\);/,
   );
   assert.match(
     shortDesktop,
-    /\.profile-library\.has-open-look \.profile-look-detail-actions \{[\s\S]*?display:\s*none;/,
+    /\.profile-library\.has-open-look \.profile-look-detail-actions \{[\s\S]*?grid-template-columns:\s*minmax\(0, 1fr\) 44px;/,
   );
 });
 
@@ -155,12 +216,13 @@ test('profile mobile copy and controls retain readable type and touch targets', 
     resultCss,
     /\.profile-page-button \{[\s\S]*?width:\s*44px;[\s\S]*?height:\s*44px;[\s\S]*?font-size:\s*14px;/,
   );
-  assert.match(
-    resultCss,
-    /\.profile-item-actions \.profile-delete-action,[\s\S]*?flex:\s*0 0 70px;[\s\S]*?min-width:\s*70px;/,
-  );
+  assert.doesNotMatch(resultCss, /\.profile-item-actions \.profile-delete-action/);
   assert.match(
     resultCss,
     /\.profile-look-scene-open \{[\s\S]*?min-height:\s*68px;[\s\S]*?cursor:\s*pointer;/,
+  );
+  assert.match(
+    resultCss,
+    /\.profile-library\.has-open-look \.profile-next-action \{[\s\S]*?min-height:\s*44px;/,
   );
 });

@@ -199,7 +199,7 @@ test('SceneGeneratorAdapter maps the exact three-model route and sends approved 
   }
 });
 
-test('Create Universe generation carries four canonical sheets in fixed priority and environment as facts', async () => {
+test('Create Universe generation omits an unbound blocking board and keeps the three non-pose sheets in fixed priority', async () => {
   const fixture = await contextFixture();
   const presetId = 'shoot.fixture_environmental.environmental_hero';
   const environment = {
@@ -275,19 +275,110 @@ test('Create Universe generation carries four canonical sheets in fixed priority
     [
       'APPROVED_LOOK_MASTER',
       'CREATE_UNIVERSE_CAMERA_LENS',
-      'CREATE_UNIVERSE_BLOCKING',
       'CREATE_UNIVERSE_EXPRESSION_GAZE',
       'CREATE_UNIVERSE_GARMENT_BEHAVIOUR',
+      'SHOT_HERO_CONTINUITY_ANCHOR',
     ],
   );
   assert.match(calls[0].prompt, /SCENE_ENVIRONMENT_ANCHOR .*raw-concrete hall/);
   assert.match(calls[0].prompt, /ATTACHMENT_2 \[CREATE_UNIVERSE_CAMERA_LENS\]/);
-  assert.match(calls[0].prompt, /ATTACHMENT_3 \[CREATE_UNIVERSE_BLOCKING\]/);
-  assert.match(calls[0].prompt, /ATTACHMENT_4 \[CREATE_UNIVERSE_EXPRESSION_GAZE\]/);
-  assert.match(calls[0].prompt, /ATTACHMENT_5 \[CREATE_UNIVERSE_GARMENT_BEHAVIOUR\]/);
+  assert.doesNotMatch(calls[0].prompt, /CREATE_UNIVERSE_BLOCKING/);
+  assert.match(calls[0].prompt, /ATTACHMENT_3 \[CREATE_UNIVERSE_EXPRESSION_GAZE\]/);
+  assert.match(calls[0].prompt, /ATTACHMENT_4 \[CREATE_UNIVERSE_GARMENT_BEHAVIOUR\]/);
+  assert.match(calls[0].prompt, /POSE is the sole physical-pose authority/);
   assert.equal(generated.metadata.structured_reference_count, 1);
   assert.equal(generated.metadata.attached_reference_count, 5);
-  assert.equal(generated.metadata.dropped_attachment_roles, 'SHOT_HERO_CONTINUITY_ANCHOR');
+  assert.equal(generated.metadata.dropped_attachment_roles, undefined);
+});
+
+test('Create Universe keeps the three slot-safe canonical sheets when item locks fill the provider budget', async () => {
+  const fixture = await contextFixture();
+  const presetId = 'shoot.fixture_environmental.environmental_hero';
+  const environment = {
+    ...await structuredReferenceFile(
+      fixture.root,
+      'packed-create-universe-environment.json',
+      {
+        schema_version: '1.0.0',
+        role: 'environment_anchor',
+        facts: {
+          description: 'Invented mineral studio.',
+          spatial_cues: ['Disciplined full-length fashion frame.'],
+          materials: ['plaster'],
+          originality_rules: ['Invent new geometry.'],
+        },
+      },
+    ),
+    role: 'environment_anchor',
+    reference_id: `${presetId}.environment`,
+  };
+  const definitions = [
+    ['composition_anchor', 'camera_lens', '#665544', 2688, 1520],
+    ['negative_reference', 'blocking', '#554433', 1344, 752],
+    ['lighting_anchor', 'expression_gaze', '#887766', 3072, 2048],
+    ['palette_anchor', 'garment_behaviour', '#776655', 3072, 2048],
+  ];
+  const imageReferences = await Promise.all(definitions.map(
+    async ([role, sheet, color, width, height]) => ({
+      ...await imageFile(fixture.root, `packed-${sheet}.png`, { color, width, height }),
+      role,
+      reference_id: `${presetId}.style_${sheet}`,
+    }),
+  ));
+  const itemEvidence = await Promise.all(
+    ['top', 'bottom', 'footwear', 'bag'].map(async (category, index) => ({
+      order: index + 1,
+      role: `ITEM_${category.toUpperCase()}`,
+      category,
+      item_id: `set-${category}`,
+      reference_set_id: `set-${category}`,
+      observed: { garment_type: category, colors: ['black'] },
+      ...(await imageFile(fixture.root, `packed-item-${category}.png`, { color: '#222222' })),
+    })),
+  );
+  const calls = [];
+  const adapter = new SceneGeneratorAdapter({
+    provider: {
+      aspectRatio: '3:4',
+      maxOrderedReferences: 8,
+      async generate(context) {
+        calls.push(context);
+        return {
+          image: await providerFrame(),
+          mediaType: 'image/png',
+          metadata: { provider: 'fixture', job_id: 'packed-create-universe' },
+        };
+      },
+    },
+  });
+  const generated = await adapter.generateScene({
+    ...fixture.base,
+    references: [environment, ...imageReferences],
+    preset: { preset_id: presetId },
+    item_evidence: itemEvidence,
+    attempt: 1,
+    ...DEFAULT_SCENE_MODEL_ROUTE[0],
+  });
+  assert.deepEqual(
+    calls[0].references.ordered.map((item) => item.role),
+    [
+      'APPROVED_LOOK_MASTER',
+      'ITEM_TOP',
+      'ITEM_BOTTOM',
+      'ITEM_FOOTWEAR',
+      'ITEM_BAG',
+      'CREATE_UNIVERSE_CAMERA_LENS',
+      'CREATE_UNIVERSE_EXPRESSION_GAZE',
+      'CREATE_UNIVERSE_GARMENT_BEHAVIOUR',
+    ],
+  );
+  assert.equal(generated.metadata.create_universe_authority_sheet_sha256, undefined);
+  assert.doesNotMatch(calls[0].prompt, /CREATE_UNIVERSE_AUTHORITY_SHEET/);
+  assert.doesNotMatch(calls[0].prompt, /CREATE_UNIVERSE_BLOCKING/);
+  assert.match(calls[0].prompt, /ATTACHMENT_6 \[CREATE_UNIVERSE_CAMERA_LENS\]/);
+  assert.match(calls[0].prompt, /ATTACHMENT_7 \[CREATE_UNIVERSE_EXPRESSION_GAZE\]/);
+  assert.match(calls[0].prompt, /ATTACHMENT_8 \[CREATE_UNIVERSE_GARMENT_BEHAVIOUR\]/);
+  assert.equal(generated.metadata.dropped_attachment_count, undefined);
 });
 
 test('SceneGeneratorAdapter attaches hash-bound item cutouts before optional scene images and compiles exact facts', async () => {
@@ -1042,6 +1133,7 @@ test('Create Universe QA makes whole-shoot style fidelity and fixed optics block
           focus: 'Face and approved look sharp; architecture falls away without swirl.',
           foreground: 'One restrained near-device interruption below the face.',
           expression_signature: 'Reserved mouth and direct steady gaze without transferred facial geometry.',
+          subject_lighting: 'One declared environmental key visibly shapes the face and approved cloth without camera-axis fill.',
           garment_behaviour: 'Approved cloth falls in heavy controlled planes with one restrained wind response.',
           optical_signature: ['clean rectilinear rendering', 'fine restrained grain'],
         },
@@ -1166,7 +1258,13 @@ test('standard-background item QA keeps unobservable master details locked witho
   });
   assert.match(mainCalls[0].args[1], /full-body standard-background photograph/);
   assert.match(mainCalls[0].args[1], /unobservable details/);
+  assert.match(mainCalls[0].args[1], /minor omission or simplification of small hardware/);
+  assert.match(mainCalls[0].args[1], /independently judge \(1\) observed key direction/);
+  assert.match(mainCalls[0].args[1], /mild extra frontal fill is advisory/);
+  assert.match(mainCalls[0].args[1], /frontal studio key visibly replaces/);
+  assert.match(mainCalls[0].args[1], /contact shadow alone cannot compensate/i);
   assert.ok(itemCalls.every((call) => /full-body standard-background photograph/.test(call.args[1])));
+  assert.ok(itemCalls.every((call) => /Presentation-scene tolerance/.test(call.args[1])));
   assert.ok(itemCalls.every((call) => /visible contradiction or substitution/.test(call.args[1])));
   assert.equal(result.gates.find((gate) => gate.id === 'ITEM_FIDELITY').decision, 'FAIL');
   assert.equal(result.item_fidelity_evidence.find((item) => item.item_id === 'set-2').verdict, 'REVISE');

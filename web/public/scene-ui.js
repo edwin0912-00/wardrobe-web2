@@ -7,7 +7,7 @@ import {
   loadScenePresets,
   retryProfileScene,
 } from './profile-client.js?v=20260724-5';
-import { createEditorialShootUi } from './editorial-shoot-ui.js?v=20260731-2';
+import { createEditorialShootUi } from './editorial-shoot-ui.js?v=20260731-3';
 import {
   clearSceneResume,
   presetCameraLabel,
@@ -22,6 +22,7 @@ import {
   sceneTone,
   writeSceneResume,
 } from './scene-state.js?v=20260724-2';
+import { presentationImageUrl } from './presentation-media.js?v=20260731-1';
 
 const UK_PLURAL_SCENE = Object.freeze(['стандартна сцена', 'стандартні сцени', 'стандартних сцен']);
 const UK_PLURAL_MODE = Object.freeze(['напрям', 'напрями', 'напрямів']);
@@ -82,7 +83,7 @@ function createPresetVisual(preset, { large = false } = {}) {
   const previewUrl = safePresetPreviewUrl(preset);
   if (previewUrl) {
     const image = document.createElement('img');
-    image.src = previewUrl;
+    image.src = presentationImageUrl(previewUrl);
     image.alt = '';
     image.loading = 'eager';
     wrapper.dataset.preview = 'api';
@@ -97,7 +98,7 @@ function createPresetVisual(preset, { large = false } = {}) {
   return wrapper;
 }
 
-function createEditorialModeCard(mode, onSelect) {
+function createEditorialModeCard(mode, onSelect, { eager = false } = {}) {
   const ready = mode.source_set_status === 'READY' && mode.generation_available === true;
   const card = document.createElement('button');
   card.type = 'button';
@@ -114,9 +115,10 @@ function createEditorialModeCard(mode, onSelect) {
   const previewUrl = safePresetPreviewUrl(mode);
   if (previewUrl) {
     const image = document.createElement('img');
-    image.src = previewUrl;
+    image.src = presentationImageUrl(previewUrl);
     image.alt = `Приклад стилю: ${nameText}`;
-    image.loading = 'eager';
+    image.loading = eager ? 'eager' : 'lazy';
+    if (eager) image.fetchPriority = 'high';
     preview.append(image);
   } else {
     preview.classList.add('is-missing');
@@ -283,7 +285,7 @@ export class SceneUiController {
     this.look = look;
     const imageUrl = imageOfLook(look);
     for (const image of document.querySelectorAll('[data-scene-look-image]')) {
-      image.src = imageUrl;
+      image.src = presentationImageUrl(imageUrl);
       image.alt = 'Збережений образ для сцени';
     }
     for (const label of document.querySelectorAll('[data-scene-look-name]')) {
@@ -479,7 +481,9 @@ export class SceneUiController {
       (error) => this.#setError(error.message),
     );
     
-    gridNew.replaceChildren(...newModes.map((mode) => createEditorialModeCard(mode, onSelect)));
+    gridNew.replaceChildren(...newModes.map(
+      (mode, index) => createEditorialModeCard(mode, onSelect, { eager: index < 4 }),
+    ));
   }
 
   showPicker() {
@@ -637,7 +641,7 @@ export class SceneUiController {
     this.#element('#scene-output').hidden = !completed;
     if (completed) {
       const image = this.#element('#scene-output-image');
-      image.src = scene.output.image_url;
+      image.src = presentationImageUrl(scene.output.image_url);
       image.alt = `Готова сцена: ${preset.ui_name_uk || preset.preset_id}`;
       this.#element('#scene-output-download').href = scene.output.download_url || scene.output.image_url;
       this.#element('#scene-execution-title').textContent = 'Сцена готова';
@@ -850,10 +854,13 @@ export class SceneUiController {
     }
   }
 
-  async resume() {
-    if (await this.editorialUi.resume()) return true;
-    let resume = readSceneResume();
-    const querySceneId = new URLSearchParams(location.search).get('scene');
+  async resume({ allowStored = true } = {}) {
+    const query = new URLSearchParams(location.search);
+    const queryShootId = query.get('shoot');
+    const querySceneId = query.get('scene');
+    if (queryShootId && await this.editorialUi.resume({ allowStored: false })) return true;
+    if (!querySceneId && allowStored && await this.editorialUi.resume()) return true;
+    let resume = allowStored ? readSceneResume() : null;
     if (!resume && !querySceneId) return false;
     this.resumeRecord = resume;
     this.#showConnecting(

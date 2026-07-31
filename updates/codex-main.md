@@ -1,4 +1,80 @@
 Agent ID: codex-main
+Task ID: BETA-PRESENTATION-DERIVATIVES-001
+Product line: beta-placeholder
+Pipeline: UI transport only · local inputs/style preview → lightweight display copy
+State: CODE_VERIFIED — beta deployment pending
+Decision: immutable source images and master Fashion-Video references are never
+sent to ordinary preview UI. A browser makes a local 480px WebP only for an
+upload card; raw bytes remain the exact upload/draft/QA input. The server's
+garment conflict picker returns a 480px WebP thumbnail only. Fashion Video
+cards now stream separately hash-bound 288×512/12fps UI loops (217–326 KB)
+instead of the prior 1.4–1.6 MB derivatives; original MP4s remain the sole
+generation references.
+Evidence: registry/capability/routes/UI/run API suite 35/35 PASS. The API test
+proves the picker response is WebP, bounded to 480px and smaller than its PNG
+source.
+weakened_checks: browser fallback on an engine without bitmap/canvas decoding
+uses the original local object URL so file selection remains usable; it never
+changes uploaded bytes or server evidence.
+
+---
+
+Agent ID: codex-main
+Task ID: BETA-FASHION-VIDEO-REFERENCE-PERFORMER-STOP-001
+Product line: beta-placeholder
+Pipeline: VIDEO.01 → VIDEO.04 · reference style → generated clip → cut QA → delivery
+State: CODE_VERIFIED — beta deployment pending
+Decision: Video 1 is now explicitly private directing material, never source
+footage for delivery. The provider prompt requires a newly generated frame for
+every cut: only the approved avatar or an empty scene may be visible. It
+forbids source-performer pixels in cuts, transitions, reflections, monitors,
+picture-in-picture and frozen frames. A technically valid MP4 cannot be
+delivered until a hash-bound cut-coverage receipt spans its duration and each
+cut records output/reference samples, person presence and PASS verdict.
+Evidence: focused motion-plan/service/routes/profile-UI suite 68/68 PASS.
+Route regression proves even a PASS MP4 returns no delivery URL without the
+complete Fashion-Video cut QA binding.
+weakened_checks: automatic extraction + VLM evaluation of the cut receipt is
+the next execution atom. Until it exists, reference-bound clips remain
+undeliverable rather than being falsely approved. The retry control is an
+explicit user action only; it never creates a duplicate provider job itself.
+
+---
+
+Agent ID: codex-main
+Task ID: BETA-FASHION-VIDEO-PROVIDER-TRUTH-001
+Product line: beta-placeholder
+Pipeline: VIDEO.02 · persisted provider job → provider wait
+State: CODE_VERIFIED — deployment pending
+Decision: provider `Job not found` is a terminal, visible failure, not a six-
+minute timeout or a connection error. The service records
+`VIDEO_PROVIDER_JOB_NOT_FOUND`; it never creates a replacement automatically.
+Evidence: exact live job `7ed8551f-8227-4a94-99bf-8510a6e096fc` returned
+`Error: Job not found` from the authenticated Higgsfield CLI on 2026-07-31.
+Focused provider/service/route/UI suite 152/152 PASS.
+weakened_checks: none. The missing remote job cannot yield a real MP4 or QA
+receipt; a human must explicitly request a new paid generation.
+
+---
+
+Agent ID: codex-main
+Task ID: BETA-FASHION-VIDEO-SERVER-RESUME-001
+Product line: beta-placeholder
+Pipeline: VIDEO.02 → VIDEO.04 · provider job → MP4 → QA
+State: CODE_VERIFIED — deployment pending
+Decision: a Fashion Video POST persists one provider job, then server-owned
+finalization waits for that same job, downloads it and enters QA. Status reads
+after a daemon restart resume the same persisted job; startup also resumes
+every persisted CREATED/GENERATING job. The browser no longer calls six minutes
+of waiting a failure: it truthfully says processing continues on the server.
+Evidence: focused video + UI suite 149/149 PASS. Route regression proves
+multiple status reads attach to one finalizer and one provider create.
+weakened_checks: none. Resume never invokes provider create; it uses only the
+stored job id. Semantic Fashion-Video QA remains required for delivery.
+
+---
+
+Agent ID: codex-main
 Task ID: ANTIGRAVITY-QA-LOOP-001
 Product line: beta-placeholder
 Pipeline: Block 0.8 · independent verification of Blocks 1–7
@@ -8,6 +84,77 @@ exact deployed beta SHA through visible browser UI. It writes reports and
 evidence manifests, never product code or deployments.
 Evidence: compiled Looper contract, governance checks, QA report schema and
 one-shot watcher.
+weakened_checks: none.
+
+---
+
+Agent ID: codex-main
+Task ID: BETA-GOD-VIEW-GLOBAL-CATALOG-001
+Pipeline: TESTER CONTROL · global read-only catalogue
+State: CODE_VERIFIED — awaiting beta deployment
+Decision: restored the lost global God View branch, not the obsolete local
+pipeline-status modal. Its data model is every active beta profile → avatar →
+saved look → run, background, Fashion Shoot and video. In the explicit beta
+tester flag it needs no second password; it remains read-only and is reached
+from the small footer control or Shift+G.
+Evidence: God View API tests cover cross-profile aggregation and the explicit
+open-tester flag; normal profile ownership remains unchanged.
+weakened_checks: global catalogue visibility is intentionally enabled only by
+ZEELY_GOD_VIEW_OPEN_TESTERS=true on beta, under the operator's tester-link scope.
+
+---
+
+Agent ID: codex-main
+Task ID: BETA-FASHION-VIDEO-DIRECT-STYLE-BINDING-001
+Pipeline: VIDEO.01 → VIDEO.03 · selected style → immutable provider request → QA
+State: CODE_VERIFIED — awaiting beta deployment
+Decision: Fashion Video POST now carries the selected `style_id` as well as its
+internal motion mode. The exact style MP4 becomes Video 1; the approved white
+master becomes Image 1. The optional garment composite is no longer allowed to
+import Real-time Look's top/bottom/footwear taxonomy gate into V2V.
+Evidence: route regression creates from a selected style with an incomplete
+Real-time garment taxonomy and sends only the valid identity companion.
+weakened_checks: none.
+
+---
+
+Agent ID: codex-main
+Task ID: BETA-FASHION-VIDEO-LEGACY-DELIVERY-001
+Pipeline: VIDEO.03 · Delivery only after video-style QA
+State: CODE_VERIFIED — awaiting beta deployment
+Decision: old generic clips without a video-reference hash binding and a PASS
+reference-style QA verdict are retained on disk but excluded from Fashion Video
+delivery and listings. They cannot be presented as a valid Fashion Video.
+Evidence: runtime audit found one technical PASS with neither binding nor style
+QA; route regression denies it with VIDEO_STYLE_PROVENANCE_MISSING.
+weakened_checks: none.
+
+---
+
+Agent ID: codex-main
+Task ID: BETA-FASHION-VIDEO-REFERENCE-PREVIEW-001
+Pipeline: VIDEO.01 · Вибір video-derived стилю
+State: CODE_VERIFIED — awaiting beta deployment
+Decision: a Fashion Video style card now plays the private, hash-verified
+source MP4; the contact sheet is only its poster. The new range-enabled route
+is bound to the current tester profile and approved look. Generic motion labels
+are not user-facing style options.
+Evidence: route test proves a byte-range response from the exact selected
+reference; video/provider/reference tests pass 49/49.
+weakened_checks: none.
+
+---
+
+Agent ID: codex-main
+Task ID: BETA-FASHION-VIDEO-STYLE-LABELS-001
+Pipeline: VIDEO.01 · Вибір відеостилю до запуску
+State: READY_FOR_BETA_DEPLOY
+Decision: the three contact-sheet-backed video style units remain unchanged.
+Only the second UI label changes from the internal action wording `Рух у кадрі`
+to `Графічне місто`; motion modes stay server-side contract data and are not
+presented as styles.
+Evidence: manifest hashes for all three source MP4/contact sheets match; video
+reference registry tests pass.
 weakened_checks: none.
 
 ---
@@ -610,6 +757,25 @@ weakened_checks: none.
 ---
 
 Agent ID: codex-main
+Task ID: BETA-PRESENTATION-PREVIEW-001
+Pipeline: PROFILE.01–03 · LOOK.01–06 · BACKGROUND.01–02 · UNIVERSE.01–04
+State: LIVE
+Decision: stop serving original evidence PNG/JPEG files into every browser
+preview surface. All UI image URLs now add `preview=1`; the server derives a
+bounded 640px WebP in memory. Explicit download routes and immutable QA source
+bytes stay original.
+Code: `3784511e020645c7b8cd6441944f9f6dca2c6369` on `beta`.
+Evidence: presentation-preview + run API + scene API + editorial preview +
+profile UI focused suite 24/24 PASS; strict product release verifier PASS;
+local and public beta health both report `release_sha=3784511`.
+Beta: LIVE — `https://beta.madeforthisjob.com`.
+Journey: preview payload now has `Content-Type: image/webp` and
+`X-Zeely-Presentation: webp-640`; raw master output is still download-only.
+weakened_checks: none.
+
+---
+
+Agent ID: codex-main
 Task ID: SEVEN-BLOCK-BETA-001
 State: READY_FOR_INTEGRATION
 Decision: preserve the mixed 2026-07-29 Universe work on a non-release
@@ -623,6 +789,26 @@ weakened_checks: none.
 Help request: NONE
 Next action: integrate the orchestration commit into beta, create and push all
 seven block branches from that exact beta SHA, then run the all-branch monitor.
+
+---
+
+Agent ID: codex-main
+Task ID: BETA-FASHION-VIDEO-STYLE-RECOVERY-001
+Pipeline: VIDEO.01–04 · Fashion Video from approved master-look
+State: READY_FOR_BETA_DEPLOY
+Decision: deploy the already-built three style cards from beta together with
+the missing current Higgsfield create-response parser. The old public UI
+displayed `М’який рух / Поворот / Позування` but sent obsolete mode IDs that
+the current motion contract does not accept. The product UI now takes the
+three hash-bound style choices from the capability endpoint; no free-text
+motion label is used as a provider instruction.
+Code: beta base `207194d` + parser fix `fe80485`.
+Evidence: `node --test test/video/video-capability.test.js test/video/video-routes.test.js test/video/video-motion-plan.test.js test/video/higgsfield-video-provider.test.js`.
+Beta: PENDING_ACTIVATION — legacy unbound SUBMITTING clip must be reconciled
+before the restart-safe deploy tool can stop beta.
+Journey: PENDING — after activation, verify three cards appear and no legacy
+motion ID is sent.
+weakened_checks: none.
 
 ---
 

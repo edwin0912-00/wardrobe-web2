@@ -47,7 +47,7 @@
   ],
   "unit_contract": {
     "path": "unit.json",
-    "sha256": "ea3ddf1d3d031fe814f485f4ebe9f1649cac1e78cdbe49b42536cd4207362c90"
+    "sha256": "82224de0039d091101a7dca0640653336700105cfd6d09816d6536e47c207f75"
   },
   "observation_log": {
     "path": "OBSERVATION.md",
@@ -58,7 +58,7 @@
     "sha256": "d83fa3815d6ceacb07fa470ed0532e1f39d976fa10de71a8eaf37edd457a00ae",
     "status": "APPROVED"
   },
-  "runtime_style_sha256": "459575aa5ab46d0d17e7b71fa30456dee45cb1559a55201b886283f7ea0a9763",
+  "runtime_style_sha256": "50ad3bf7ac3b73c869dc7c7d1d840f0bae95ae62485fc445e3bc84e4af40b65d",
   "sheets": [
     {
       "sheet_id": "camera_lens",
@@ -214,7 +214,7 @@
       "colour_authoritative": false
     }
   ],
-  "unit_sha256": "c74697d7527558fea90b0fe00a11c9b28b328a5d38892b79ef9a3a2466748d96",
+  "unit_sha256": "ded19badcdd6a1ff9e89446645a5419d317c6d81fac8b34b1302d290a721afd1",
   "generated_with": {
     "model": "gpt-2",
     "transport": "magnific",

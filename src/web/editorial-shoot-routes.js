@@ -8,6 +8,7 @@ import {
   createEditorialContactSheetManifest,
 } from './editorial-contact-sheet.js';
 import { ProfileError } from './profile-service.js';
+import { sendPresentationImage } from './presentation-preview.js';
 
 const TERMINAL_SHOOT_STATES = new Set(['COMPLETED', 'CANCELLED']);
 
@@ -257,11 +258,22 @@ export async function registerEditorialShootRoutes(app, {
         modeId,
         version: modeVersion,
       });
-      const shoot = await editorialShootService.createShoot({
+      let shoot = await editorialShootService.createShoot({
         idempotencyKey: key,
         approvedLookReference,
         shootBible,
       });
+      // A Fashion Shoot is a direct five-frame product. The user has already
+      // approved its selected style by pressing this create action, so the
+      // server starts all five customer frames immediately rather than exposing
+      // a second hidden Bible/hero confirmation step. Legacy `editorial.*`
+      // modes retain their explicit review flow.
+      if (modeId.startsWith('shoot.') && shoot.status === 'BIBLE_PENDING_APPROVAL') {
+        shoot = await editorialShootService.approveBible(shoot.shoot_id, {
+          idempotencyKey: `fashion-series-${shoot.shoot_id.slice(-40)}`,
+          expectedBibleSha256: shoot.bindings.shoot_bible.sha256,
+        });
+      }
       profiles.projectEditorialShoot(
         session.profileId,
         request.params.lookId,
@@ -521,12 +533,12 @@ export async function registerEditorialShootRoutes(app, {
         request.params.slot,
       );
       if (!filename) return reply.code(404).send({ error: 'Editorial shot image not found' });
-      return reply
-        .type('image/png')
-        .header('Cache-Control', 'private, no-store')
-        .header('Vary', 'Cookie')
-        .header('Content-Disposition', `${disposition}; filename="${request.params.slot}.png"`)
-        .send(createReadStream(filename));
+      return sendPresentationImage(request, reply, {
+        filename,
+        disposition,
+        downloadName: `${request.params.slot}.png`,
+        cacheControl: 'private, max-age=900',
+      });
     }
 
     app.get('/api/profile/editorial-shoots/:shootId/shots/:slot/image', async (

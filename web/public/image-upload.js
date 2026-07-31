@@ -142,6 +142,32 @@ export async function prepareImageFile(file) {
   };
 }
 
+// Presentation-only derivative. The original File stays untouched in the
+// upload/draft pipeline; this small WebP is never submitted to a model or used
+// as evidence. It prevents a 5 MB camera PNG from being decoded and retained
+// by several tiny UI cards at once.
+export async function createImagePreviewBlob(file, { maximumEdge = 480 } = {}) {
+  const bitmap = await decodeBitmapForUpload(file);
+  try {
+    const longest = Math.max(bitmap.width, bitmap.height);
+    const scale = Math.min(1, maximumEdge / longest);
+    const width = Math.max(1, Math.round(bitmap.width * scale));
+    const height = Math.max(1, Math.round(bitmap.height * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext('2d', { alpha: true });
+    if (!context) throw new Error('Canvas unavailable');
+    context.drawImage(bitmap, 0, 0, width, height);
+    const preview = await canvasBlob(canvas, 'image/webp', 0.72);
+    canvas.width = 1;
+    canvas.height = 1;
+    return preview;
+  } finally {
+    bitmap.close?.();
+  }
+}
+
 export function uploadFormData(url, data, { timeoutMs = 180_000, onProgress = () => {} } = {}) {
   return new Promise((resolve, reject) => {
     const request = new XMLHttpRequest();

@@ -85,6 +85,7 @@ export class OpenRouterVideoProvider {
     const {
       prompt,
       mediaPaths,
+      videoPaths = [],
       aspectRatio,
       durationSeconds,
       resolution = '720p',
@@ -99,6 +100,12 @@ export class OpenRouterVideoProvider {
     if (!Array.isArray(mediaPaths) || mediaPaths.length !== 1) {
       throw new OpenRouterVideoError('Exactly one locked source frame is required', {
         code: 'MISSING_VIDEO_SOURCE',
+      });
+    }
+    if (Array.isArray(videoPaths) && videoPaths.length > 0) {
+      throw new OpenRouterVideoError('OpenRouter route cannot preserve a video motion reference', {
+        code: 'VIDEO_REFERENCE_UNSUPPORTED',
+        retryable: false,
       });
     }
     const sourceUrl = await this.assetUrlResolver(mediaPaths[0], request.sourceBinding);

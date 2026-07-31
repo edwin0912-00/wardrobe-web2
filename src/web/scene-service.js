@@ -84,10 +84,70 @@ const POST_RELEASE_REJECTION_LEDGER_TYPE = 'POST_RELEASE_SCENE_REJECTION_LEDGER_
 const POST_RELEASE_REJECTION_GATES = new Set(SCENE_EVALUATOR_GATES);
 const MOVING_REVIEWER_VERSION = /^(?:builtin-current|current|latest|unknown)$/i;
 const SHA256_PATTERN = /^[a-f0-9]{64}$/;
+const FASHION_SHOOT_ADVISORY_GATES = new Set([
+  'ITEM_FIDELITY',
+  'SCENE_MATCH',
+  'LIGHT_AND_CONTACT_SHADOW',
+]);
+const FASHION_SHOOT_BLOCKING_ANATOMY_DEFECTS = new Set([
+  'MALFORMED_HAND_OR_FINGERS',
+  'MALFORMED_FOOT_OR_TOES',
+  'MALFORMED_FACE_OR_EARS',
+  'DUPLICATED_OR_MISSING_BODY_PART',
+  'IMPOSSIBLE_JOINT_OR_LIMB_GEOMETRY',
+  'IMPLAUSIBLE_BODY_PROPORTION',
+  'SUBJECT_FUSED_WITH_ENVIRONMENT',
+]);
 // Change this only when the bytes sent to the image provider change. It is part
 // of provider idempotency, so an old journal can never be replayed against a
 // materially different repair contract.
 const SCENE_GENERATION_CONTRACT_VERSION = 'scene-generation-contract-v9-native-3-4';
+
+export function applyFashionShootVisualReviewPolicy(
+  evaluation,
+  presetId,
+  mode = 'review',
+) {
+  if (!['strict', 'review', 'off'].includes(mode)) {
+    throw new Error(`Unknown Fashion Shoot QA mode: ${mode}`);
+  }
+  if (mode === 'strict'
+    || typeof presetId !== 'string'
+    || !presetId.startsWith('shoot.')) return evaluation;
+  const result = structuredClone(evaluation);
+  const notes = [];
+  for (const gate of result.gates) {
+    if (gate.decision !== 'FAIL') continue;
+    const framingIsOnlyArtDirection = gate.id === 'FRAMING_AND_ANATOMY'
+      && !gate.defects.some((defect) => FASHION_SHOOT_BLOCKING_ANATOMY_DEFECTS.has(defect));
+    const nonBlocking = mode === 'off'
+      || FASHION_SHOOT_ADVISORY_GATES.has(gate.id)
+      || framingIsOnlyArtDirection;
+    if (!nonBlocking) continue;
+    notes.push({
+      id: gate.id,
+      defects: [...gate.defects],
+      evidence: gate.evidence,
+    });
+    const originalDefects = gate.defects.length > 0 ? gate.defects.join(', ') : 'visual review note';
+    gate.decision = 'PASS';
+    gate.defects = [];
+    gate.evidence = sanitizeOutboundString(
+      `NON_BLOCKING_FASHION_REVIEW mode=${mode} (${originalDefects}): ${gate.evidence}`,
+    ).slice(0, 2_000);
+  }
+  if (notes.length > 0) {
+    const review = notes
+      .map((note) => `${note.id}[${note.defects.join(', ') || 'review'}]`)
+      .join('; ');
+    result.summary = sanitizeOutboundString(
+      [result.summary, `Non-blocking Fashion Shoot review: ${review}`]
+        .filter(Boolean)
+        .join('; '),
+    ).slice(0, 2_000);
+  }
+  return result;
+}
 
 function nowIso(clock) {
   const value = clock();
@@ -833,6 +893,30 @@ function privacyFindingsForText(value, artifactPath) {
       }
     }
   }
+  return findings;
+}
+
+function privacyFindingsForStructuredText(value, artifactPath) {
+  const findings = [];
+  const visit = (current, tokens) => {
+    if (typeof current === 'string') {
+      const pointer = tokens.length === 0
+        ? ''
+        : `#/${tokens
+          .map((token) => String(token).replaceAll('~', '~0').replaceAll('/', '~1'))
+          .join('/')}`;
+      findings.push(...privacyFindingsForText(current, `${artifactPath}${pointer}`));
+      return;
+    }
+    if (Array.isArray(current)) {
+      current.forEach((item, index) => visit(item, [...tokens, index]));
+      return;
+    }
+    if (current && typeof current === 'object') {
+      Object.entries(current).forEach(([key, item]) => visit(item, [...tokens, key]));
+    }
+  };
+  visit(value, []);
   return findings;
 }
 
@@ -1656,6 +1740,44 @@ function selectDeterministicFramingRepair(state) {
     ))[0] ?? null;
 }
 
+function candidateEligibleForDeliveryPolicyRecheck(state) {
+  if (state.status !== SCENE_STATES.FAILED
+    || state.error?.code !== 'SCENE_QA_EXHAUSTED') return false;
+  const attempt = state.attempts.at(-1);
+  if (attempt?.status !== 'QA_FAILED' || !attempt.candidate || !Array.isArray(attempt.qa?.gates)) {
+    return false;
+  }
+  const failed = attempt.qa.gates.filter((gate) => gate.decision === 'FAIL');
+  const policyRecheckGateIds = new Set(['ITEM_FIDELITY', 'FRAMING_AND_ANATOMY']);
+  if (failed.length < 1
+    || failed.some((gate) => !policyRecheckGateIds.has(gate.id))
+    || failed.some((gate) => !Array.isArray(gate.defects) || gate.defects.length < 1)) return false;
+  // The persisted names describe the policy that rejected the old candidate.
+  // Eligibility comes from the current deterministic framing owner plus a fresh
+  // item evaluator running the current presentation-scene policy. Identity,
+  // anatomy, scene, leakage and lighting failures remain fail-closed.
+  try {
+    return assessSceneFraming(attempt.qa.framing_evidence, {
+      preset: { preset_id: state.bindings.preset.preset_id },
+      width: state.delivery.width,
+      height: state.delivery.height,
+    }).defects.length === 0;
+  } catch {
+    return false;
+  }
+}
+
+function candidateEligibleForExportRetry(state) {
+  const attempt = state.attempts.at(-1);
+  return state.status === SCENE_STATES.FAILED
+    && state.error?.code === 'PRIVACY_GATE_FAILED'
+    && attempt?.status === 'QA_PASS'
+    && Boolean(attempt.candidate)
+    && attempt.qa?.decision === 'PASS'
+    && Array.isArray(attempt.qa?.gates)
+    && attempt.qa.gates.every((gate) => gate.decision === 'PASS');
+}
+
 async function deterministicFramingCrop(bytes, cropPlan, delivery) {
   return sharp(bytes)
     .extract({
@@ -1715,6 +1837,7 @@ export class SceneService {
     delivery = DEFAULT_SCENE_DELIVERY,
     maxManualRetries = 2,
     qaMaxAttempts = 3,
+    fashionShootQaMode = 'review',
     observerTimeoutMs = 2_000,
     observer = null,
     autoRecoverQaInfrastructureFailures = false,
@@ -1738,6 +1861,9 @@ export class SceneService {
     if (!Number.isInteger(qaMaxAttempts) || qaMaxAttempts < 1 || qaMaxAttempts > 10) {
       throw new Error('SceneService qaMaxAttempts must be an integer between 1 and 10');
     }
+    if (!['strict', 'review', 'off'].includes(fashionShootQaMode)) {
+      throw new Error('SceneService fashionShootQaMode must be strict, review, or off');
+    }
     if (!Number.isFinite(observerTimeoutMs) || observerTimeoutMs < 10 || observerTimeoutMs > 30_000) {
       throw new Error('SceneService observerTimeoutMs must be between 10 and 30000 milliseconds');
     }
@@ -1754,6 +1880,7 @@ export class SceneService {
     this.delivery = normalizeDelivery(delivery);
     this.maxManualRetries = maxManualRetries;
     this.qaMaxAttempts = qaMaxAttempts;
+    this.fashionShootQaMode = fashionShootQaMode;
     this.observerTimeoutMs = observerTimeoutMs;
     this.observer = observer;
     this.autoRecoverQaInfrastructureFailures = autoRecoverQaInfrastructureFailures;
@@ -3740,6 +3867,11 @@ export class SceneService {
           `Deterministic framing lock failed: ${framingAssessment.defects.join(', ')}`,
         ].filter(Boolean).join('; '));
       }
+      normalized = applyFashionShootVisualReviewPolicy(
+        normalized,
+        state.bindings.preset.preset_id,
+        this.fashionShootQaMode,
+      );
     } catch (error) {
       if (signal.aborted) return attempt;
       if (error?.code === 'BOUND_INPUT_INTEGRITY_FAILED') throw error;
@@ -4252,11 +4384,33 @@ export class SceneService {
       },
     };
     const manifestBytes = canonicalJsonBytes(manifest);
-    const finalManifestFindings = privacyFindingsForText(
-      manifestBytes.toString('utf8'),
+    const finalManifestFindings = privacyFindingsForStructuredText(
+      manifest,
       'outputs/scene-manifest.json',
     );
     if (finalManifestFindings.length > 0) {
+      const finalPrivacyReport = {
+        schema_version: SCENE_SCHEMA_VERSION,
+        status: 'FAIL',
+        scope: ['outputs/scene-manifest.json'],
+        excluded_paths: ['attempts/**', 'inputs/**'],
+        checked_rules: [...SCENE_PRIVACY_RULES],
+        checked_files: [{
+          path: 'outputs/scene-manifest.json',
+          sha256: sha256(manifestBytes),
+          inspection: 'TEXT',
+        }],
+        findings: finalManifestFindings,
+        completed_at: approvedAt,
+      };
+      await writeImmutable(
+        path.join(
+          directory,
+          'quarantine',
+          `privacy-final-manifest-report-${attempt.number}-${randomUUID()}.json`,
+        ),
+        canonicalJsonBytes(finalPrivacyReport),
+      );
       throw new SceneServiceError(
         409,
         'PRIVACY_GATE_FAILED',
@@ -4645,14 +4799,25 @@ export class SceneService {
         !rejectionRepair
         && this.#isCandidatePreservingQaRecovery(current)
       );
+      const framingPolicyRecheck = !rejectionRepair
+        && !qaOnlyRetry
+        && candidateEligibleForDeliveryPolicyRecheck(current);
+      const exportOnlyRetry = !rejectionRepair
+        && !qaOnlyRetry
+        && !framingPolicyRecheck
+        && candidateEligibleForExportRetry(current);
       const deterministicSource = !rejectionRepair
         && !qaOnlyRetry
+        && !framingPolicyRecheck
+        && !exportOnlyRetry
         && current.status === SCENE_STATES.FAILED
         && current.error?.code === 'SCENE_QA_EXHAUSTED'
         ? selectDeterministicFramingRepair(current)
         : null;
       if (!rejectionRepair
         && !rejectionQaOnlyRetry
+        && !framingPolicyRecheck
+        && !exportOnlyRetry
         && !deterministicSource
         && current.manual_retries >= this.maxManualRetries) {
         throw new SceneServiceError(
@@ -4683,6 +4848,8 @@ export class SceneService {
         }
         if (!rejectionRepair
           && !rejectionQaOnlyRetry
+          && !framingPolicyRecheck
+          && !exportOnlyRetry
           && !deterministicAttempt
           && current.manual_retries >= this.maxManualRetries) {
           throw new SceneServiceError(409, 'SCENE_RETRY_LIMIT', 'The scene manual retry limit has been reached');
@@ -4699,14 +4866,18 @@ export class SceneService {
             );
           }
         }
+        const preserveCandidateForQa = qaOnlyRetry || framingPolicyRecheck;
         const attempts = deterministicAttempt
           ? [...current.attempts, deterministicAttempt]
-          : qaOnlyRetry
+          : exportOnlyRetry
+          ? current.attempts
+          : preserveCandidateForQa
           ? current.attempts.map((attempt, index) => index === current.attempts.length - 1
             ? {
               ...attempt,
               status: 'QA_PENDING',
               qa_infrastructure_attempts: 0,
+              qa: null,
               error: null,
             }
             : attempt)
@@ -4717,33 +4888,40 @@ export class SceneService {
           phase: 'QUEUED',
           message: rejectionQaOnlyRetry
             ? 'Post-release repair QA retry queued for the preserved candidate'
+            : exportOnlyRetry
+            ? 'Privacy-safe export retry queued for the preserved approved candidate'
+            : framingPolicyRecheck
+            ? 'Framing-policy QA recheck queued for the preserved candidate'
             : rejectionRepair
             ? `Post-release repair queued from ${rejectionDisposition.record.receipt.rejection_id}`
             : deterministicAttempt
             ? `Deterministic framing repair queued from attempt ${deterministicSource.number}`
             : 'Scene-only retry queued from immutable inputs',
-          cycle: qaOnlyRetry ? current.cycle : current.cycle + 1,
-          manual_retries: rejectionRepair || rejectionQaOnlyRetry || deterministicAttempt
+          cycle: preserveCandidateForQa || exportOnlyRetry ? current.cycle : current.cycle + 1,
+          manual_retries: rejectionRepair || rejectionQaOnlyRetry || framingPolicyRecheck
+            || exportOnlyRetry || deterministicAttempt
             ? current.manual_retries
             : current.manual_retries + 1,
           retry_requests: [...current.retry_requests, retryHash],
           attempts,
-          qa: {
-            decision: 'PENDING',
-            gates: createPreflightGates(
-              current.bindings.approved_look.image_sha256,
-              current.bindings.reference_pack.sha256,
-              current.bindings.approved_items?.evidence_sha256 ?? null,
-            ),
-            score: null,
-            summary: '',
-          },
+          qa: exportOnlyRetry
+            ? current.qa
+            : {
+              decision: 'PENDING',
+              gates: createPreflightGates(
+                current.bindings.approved_look.image_sha256,
+                current.bindings.reference_pack.sha256,
+                current.bindings.approved_items?.evidence_sha256 ?? null,
+              ),
+              score: null,
+              summary: '',
+            },
           output: null,
           error: null,
           cancellation: null,
         };
       });
-      if (!deterministicAttempt && qaOnlyRetry) {
+      if (!deterministicAttempt && (qaOnlyRetry || framingPolicyRecheck)) {
         await this.#checkpointAttempt(sceneId, state.attempts.at(-1));
       }
       if (state.status === SCENE_STATES.QUEUED) {

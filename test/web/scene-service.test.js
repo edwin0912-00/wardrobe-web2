@@ -14,7 +14,10 @@ import {
   sha256,
   validatePersistedSceneState,
 } from '../../src/web/scene-contract.js';
-import { SceneService } from '../../src/web/scene-service.js';
+import {
+  SceneService,
+  applyFashionShootVisualReviewPolicy,
+} from '../../src/web/scene-service.js';
 
 const PRESET_ID = 'std.studio.peach_soft_gloss';
 const PRESET_VERSION = '1.0.0';
@@ -55,6 +58,70 @@ function passEvaluation(overrides = {}) {
     },
   };
 }
+
+test('Fashion Shoot records creative QA as review notes while preserving safety blockers', () => {
+  const creative = passEvaluation({
+    ITEM_FIDELITY: 'FAIL',
+    SCENE_MATCH: 'FAIL',
+    LIGHT_AND_CONTACT_SHADOW: 'FAIL',
+    FRAMING_AND_ANATOMY: 'FAIL',
+  });
+  creative.gates.find((gate) => gate.id === 'FRAMING_AND_ANATOMY').defects = [
+    'FULL_FOOTWEAR_NOT_VISIBLE',
+  ];
+  const reviewed = applyFashionShootVisualReviewPolicy(
+    creative,
+    'shoot.terracotta_hardlight.environmental_hero',
+    'review',
+  );
+  assert.ok(reviewed.gates.every((gate) => gate.decision === 'PASS'));
+  assert.match(reviewed.summary, /Non-blocking Fashion Shoot review/);
+  assert.match(
+    reviewed.gates.find((gate) => gate.id === 'ITEM_FIDELITY').evidence,
+    /NON_BLOCKING_FASHION_REVIEW/,
+  );
+
+  const unsafe = passEvaluation({
+    NEAR_COPY_AND_LEAKAGE: 'FAIL',
+    IDENTITY: 'FAIL',
+    FRAMING_AND_ANATOMY: 'FAIL',
+  });
+  unsafe.gates.find((gate) => gate.id === 'FRAMING_AND_ANATOMY').defects = [
+    'DUPLICATED_OR_MISSING_BODY_PART',
+  ];
+  const blocked = applyFashionShootVisualReviewPolicy(
+    unsafe,
+    'shoot.terracotta_hardlight.environmental_hero',
+    'review',
+  );
+  assert.equal(
+    blocked.gates.find((gate) => gate.id === 'NEAR_COPY_AND_LEAKAGE').decision,
+    'FAIL',
+  );
+  assert.equal(blocked.gates.find((gate) => gate.id === 'IDENTITY').decision, 'FAIL');
+  assert.equal(
+    blocked.gates.find((gate) => gate.id === 'FRAMING_AND_ANATOMY').decision,
+    'FAIL',
+  );
+
+  const standard = applyFashionShootVisualReviewPolicy(
+    creative,
+    'std.studio.peach_soft_gloss',
+    'off',
+  );
+  assert.equal(
+    standard.gates.find((gate) => gate.id === 'ITEM_FIDELITY').decision,
+    'FAIL',
+  );
+
+  const disabled = applyFashionShootVisualReviewPolicy(
+    unsafe,
+    'shoot.terracotta_hardlight.environmental_hero',
+    'off',
+  );
+  assert.ok(disabled.gates.every((gate) => gate.decision === 'PASS'));
+  assert.match(disabled.summary, /Non-blocking Fashion Shoot review/);
+});
 
 function providerMetadata(context, bytes, requestId, {
   sourceWidth = 900,
@@ -132,7 +199,7 @@ async function fixture(t, {
       aspect_ratio: '4:5',
       lens_mm: 65,
       height: 'eye_level',
-      subject_height_percent: [74, 78],
+      subject_height_percent: [70, 80],
       minimum_clear_space_percent: { above_hair: 8, below_footwear: 2 },
       max_vertical_error_deg: 1,
     },
@@ -339,7 +406,7 @@ async function rewriteLegacyFramingFailure(service, sceneId, attemptNumber, bbox
   }, {
     width: 1024,
     height: 1280,
-    expectedSubjectHeightPercent: [74, 78],
+    expectedSubjectHeightPercent: [70, 80],
   }).evidence;
   attempt.qa.framing_evidence = framing;
   if (state.attempts.at(-1).number === attemptNumber) {
@@ -1025,11 +1092,13 @@ test('a framing rule reaches the persisted receipts and the live verdict or neit
     /PASS framing evidence violates INSUFFICIENT_CLEAR_SPACE_ABOVE_HAIR/,
   );
 
-  // A receipt written before the waiver was stated omits the flag; recomputing it from
-  // the same measurements is exact, so those scenes must still read back.
+  // A receipt written before either derived framing flag was stated omits them;
+  // recomputing them from the same measurements is exact, so those scenes must
+  // still read back after a deploy/restart.
   const legacy = structuredClone(editorial);
   for (const receipt of [legacy.attempts.at(-1).qa.framing_evidence, legacy.qa.framing_evidence]) {
     delete receipt.clear_space_above_hair_waived_by_full_head;
+    delete receipt.clear_space_above_hair_delivery_tolerance_applied;
   }
   assert.doesNotThrow(() => validatePersistedSceneState(legacy, legacy.scene_id));
 
@@ -1041,6 +1110,61 @@ test('a framing rule reaches the persisted receipts and the live verdict or neit
   assert.throws(
     () => validatePersistedSceneState(forged, forged.scene_id),
     /framing evidence does not match its measured bounding box/,
+  );
+
+  // Delivery-tolerance flags are policy conclusions, not observations. A
+  // historic present value may differ after a policy release while the exact
+  // same raw bbox and visibility remain trustworthy.
+  const historicHeadroomPolicy = structuredClone(baseState);
+  for (const receipt of [
+    historicHeadroomPolicy.attempts.at(-1).qa.framing_evidence,
+    historicHeadroomPolicy.qa.framing_evidence,
+  ]) {
+    receipt.clear_space_above_hair_delivery_tolerance_applied
+      = !receipt.clear_space_above_hair_delivery_tolerance_applied;
+  }
+  assert.doesNotThrow(
+    () => validatePersistedSceneState(historicHeadroomPolicy, historicHeadroomPolicy.scene_id),
+  );
+
+  // Create Universe shipped under `shoot.*` after this owner still only
+  // recognised `editorial.*`. Those receipts therefore persisted the standard
+  // [70,80]/8/2 lock. A deploy that repairs namespace routing must preserve
+  // their immutable raw bbox/measurements instead of quarantining the scene.
+  const historicShootNamespacePolicy = structuredClone(baseState);
+  historicShootNamespacePolicy.bindings.preset.preset_id
+    = 'shoot.terracotta_hardlight.clean_identity_hero';
+  assert.doesNotThrow(
+    () => validatePersistedSceneState(
+      historicShootNamespacePolicy,
+      historicShootNamespacePolicy.scene_id,
+    ),
+  );
+
+  const forgedHistoricShootGeometry = structuredClone(historicShootNamespacePolicy);
+  forgedHistoricShootGeometry.attempts.at(-1).qa.framing_evidence.subject_bbox_xywh_px[1] += 1;
+  assert.throws(
+    () => validatePersistedSceneState(
+      forgedHistoricShootGeometry,
+      forgedHistoricShootGeometry.scene_id,
+    ),
+    /framing evidence does not match its measured bounding box/,
+  );
+
+  // Raw geometry and hard visibility are still forensic evidence and remain
+  // fail-closed even when a stale policy-derived flag is tolerated.
+  const forgedRawGeometry = structuredClone(historicHeadroomPolicy);
+  forgedRawGeometry.attempts.at(-1).qa.framing_evidence.subject_bbox_xywh_px[1] += 1;
+  assert.throws(
+    () => validatePersistedSceneState(forgedRawGeometry, forgedRawGeometry.scene_id),
+    /framing evidence does not match its measured bounding box/,
+  );
+  const forgedVisibility = structuredClone(historicHeadroomPolicy);
+  forgedVisibility.qa.framing_evidence.full_head_visible
+    = !forgedVisibility.qa.framing_evidence.full_head_visible;
+  assert.throws(
+    () => validatePersistedSceneState(forgedVisibility, forgedVisibility.scene_id),
+    /FULL_HEAD_NOT_VISIBLE|framing evidence does not match its measured bounding box/,
   );
 });
 
@@ -2275,6 +2399,151 @@ test('three measured framing failures exhaust the image route with the last visu
   assert.match(failed.qa.summary, /Deterministic framing lock failed/);
 });
 
+test('retry rechecks the preserved candidate when only the old standard scale ceiling rejected it', async (t) => {
+  let evaluations = 0;
+  const current = await fixture(t, {
+    maxManualRetries: 0,
+    evaluator: {
+      async evaluateScene() {
+        evaluations += 1;
+        const result = passEvaluation();
+        if (evaluations <= 3) {
+          result.framing_evidence = {
+            subject_bbox_xywh_px: [344, 164, 848, 1823],
+            full_head_visible: true,
+            full_footwear_visible: true,
+          };
+        }
+        return result;
+      },
+    },
+  });
+  const created = await current.service.createScene({
+    ...current.request,
+    idempotencyKey: 'legacy-standard-scale-tolerance',
+  });
+  const exhausted = await waitFor(current.service, created.scene_id);
+  assert.equal(exhausted.status, 'FAILED');
+  assert.equal(current.calls.generator.length, 3);
+
+  const state = JSON.parse(await readFile(current.service.statePath(created.scene_id), 'utf8'));
+  const attempt = state.attempts.at(-1);
+  const acceptedNow = assessSceneFraming({
+    subject_bbox_xywh_px: [344, 164, 848, 1762],
+    full_head_visible: true,
+    full_footwear_visible: true,
+  }, {
+    preset: { preset_id: PRESET_ID },
+    width: 1536,
+    height: 2048,
+  }).evidence;
+  attempt.qa.framing_evidence = acceptedNow;
+  state.qa.framing_evidence = acceptedNow;
+  await Promise.all([
+    writeFile(current.service.statePath(created.scene_id), `${JSON.stringify(state, null, 2)}\n`),
+    writeFile(
+      path.join(current.service.attemptDirectory(created.scene_id, attempt.number), 'attempt.json'),
+      `${JSON.stringify(attempt, null, 2)}\n`,
+    ),
+  ]);
+
+  const queued = await current.service.retryScene(created.scene_id, {
+    idempotencyKey: 'legacy-standard-scale-tolerance-recheck',
+  });
+  assert.equal(queued.status, 'QUEUED');
+  assert.equal(queued.execution.cycle, 1);
+  assert.equal(queued.execution.manual_retries, 0);
+
+  const completed = await waitFor(current.service, created.scene_id);
+  assert.equal(completed.status, 'COMPLETED', JSON.stringify(completed, null, 2));
+  assert.equal(current.calls.generator.length, 3, 'the preserved image must not be generated again');
+  assert.equal(evaluations, 4, 'only one fresh QA pass is allowed');
+  const persisted = JSON.parse(await readFile(current.service.statePath(created.scene_id), 'utf8'));
+  assert.equal(persisted.attempts.length, 3);
+  assert.equal(persisted.attempts.at(-1).status, 'QA_PASS');
+});
+
+test('retry rechecks a preserved candidate rejected only by the old standard delivery policy', async (t) => {
+  let evaluations = 0;
+  const current = await fixture(t, {
+    maxManualRetries: 0,
+    evaluator: {
+      async evaluateScene() {
+        evaluations += 1;
+        const result = passEvaluation(evaluations <= 3 ? { ITEM_FIDELITY: 'FAIL' } : {});
+        if (evaluations <= 3) {
+          result.framing_evidence = {
+            // 81/2048 = 3.9551%, still below the current 4% delivery floor.
+            subject_bbox_xywh_px: [420, 81, 696, 1570],
+            full_head_visible: true,
+            full_footwear_visible: true,
+          };
+        }
+        return result;
+      },
+    },
+  });
+  const created = await current.service.createScene({
+    ...current.request,
+    idempotencyKey: 'legacy-standard-headroom-tolerance',
+  });
+  const exhausted = await waitFor(current.service, created.scene_id);
+  assert.equal(exhausted.status, 'FAILED');
+  assert.equal(exhausted.phase, 'QA_EXHAUSTED');
+  assert.equal(current.calls.generator.length, 3);
+  assert.equal(evaluations, 3);
+
+  const filename = current.service.statePath(created.scene_id);
+  const state = JSON.parse(await readFile(filename, 'utf8'));
+  const attempt = state.attempts.at(-1);
+  const acceptedNow = assessSceneFraming({
+    // Exact live retry measurement: 155/2048 = 7.5684%, whole head visible.
+    subject_bbox_xywh_px: [420, 155, 696, 1570],
+    full_head_visible: true,
+    full_footwear_visible: true,
+  }, {
+    preset: { preset_id: PRESET_ID },
+    width: 1536,
+    height: 2048,
+  }).evidence;
+  attempt.qa.framing_evidence = acceptedNow;
+  state.qa.framing_evidence = acceptedNow;
+  // Keep both old policy failures: current delivery-policy eligibility must
+  // permit a fresh QA-only pass without recognizing hardcoded historic codes.
+  assert.deepEqual(
+    attempt.qa.gates.find((gate) => gate.id === 'FRAMING_AND_ANATOMY').defects,
+    ['INSUFFICIENT_CLEAR_SPACE_ABOVE_HAIR'],
+  );
+  assert.deepEqual(
+    attempt.qa.gates.find((gate) => gate.id === 'ITEM_FIDELITY').defects,
+    ['ITEM_FIDELITY_DEFECT'],
+  );
+  await Promise.all([
+    writeFile(filename, `${JSON.stringify(state, null, 2)}\n`),
+    writeFile(
+      path.join(current.service.attemptDirectory(created.scene_id, attempt.number), 'attempt.json'),
+      `${JSON.stringify(attempt, null, 2)}\n`,
+    ),
+  ]);
+
+  const queued = await current.service.retryScene(created.scene_id, {
+    idempotencyKey: 'legacy-standard-headroom-tolerance-recheck',
+  });
+  assert.equal(queued.status, 'QUEUED');
+  assert.equal(queued.execution.cycle, 1);
+  assert.equal(queued.execution.manual_retries, 0);
+
+  const completed = await waitFor(current.service, created.scene_id);
+  assert.equal(completed.status, 'COMPLETED', JSON.stringify(completed, null, 2));
+  assert.equal(current.calls.generator.length, 3, 'the preserved image must not be generated again');
+  assert.equal(evaluations, 4, 'only one fresh QA pass is allowed');
+  const persisted = JSON.parse(await readFile(filename, 'utf8'));
+  assert.equal(persisted.attempts.length, 3);
+  assert.equal(persisted.cycle, 1);
+  assert.equal(persisted.manual_retries, 0);
+  assert.equal(persisted.attempts.at(-1).status, 'QA_PASS');
+});
+
 test('malformed framing visibility retries only QA for the preserved candidate and fails as infrastructure', async (t) => {
   let evaluations = 0;
   const current = await fixture(t, {
@@ -2413,6 +2682,99 @@ test('release privacy gate blocks credential-shaped evaluator evidence and keeps
   assert.equal(await current.service.outputFile(created.scene_id), null);
   assert.ok((await readdir(path.join(current.service.sceneDirectory(created.scene_id), 'quarantine')))
     .some((name) => name.startsWith('privacy-report-')));
+});
+
+test('final manifest privacy failure is observable and retries export without generation or QA', async (t) => {
+  let evaluations = 0;
+  let enterSecondEvaluation;
+  let releaseSecondEvaluation;
+  const secondEvaluationEntered = new Promise((resolve) => { enterSecondEvaluation = resolve; });
+  const secondEvaluationRelease = new Promise((resolve) => { releaseSecondEvaluation = resolve; });
+  const current = await fixture(t, {
+    evaluator: {
+      async evaluateScene() {
+        evaluations += 1;
+        const result = evaluations === 1
+          ? passEvaluation({ SCENE_MATCH: 'FAIL' })
+          : passEvaluation();
+        if (evaluations === 2) {
+          enterSecondEvaluation();
+          await secondEvaluationRelease;
+        }
+        return result;
+      },
+    },
+  });
+  const created = await current.service.createScene({
+    ...current.request,
+    idempotencyKey: 'final-manifest-privacy-scene',
+  });
+  await secondEvaluationEntered;
+  const scenePath = current.service.statePath(created.scene_id);
+  const inFlight = JSON.parse(await readFile(scenePath, 'utf8'));
+  inFlight.attempts[0].qa.gates.find((gate) => gate.id === 'SCENE_MATCH').evidence =
+    'Rejected source file:///Users/fixture/private-look.png';
+  await Promise.all([
+    writeFile(scenePath, `${JSON.stringify(inFlight, null, 2)}\n`),
+    writeFile(
+      path.join(current.service.attemptDirectory(created.scene_id, 1), 'attempt.json'),
+      `${JSON.stringify(inFlight.attempts[0], null, 2)}\n`,
+    ),
+  ]);
+  releaseSecondEvaluation();
+  const failed = await waitFor(current.service, created.scene_id);
+  assert.equal(failed.status, 'FAILED', JSON.stringify(failed, null, 2));
+  assert.equal(failed.phase, 'PRIVACY_GATE_FAILED');
+  assert.equal(failed.error.code, 'PRIVACY_GATE_FAILED');
+  const failedState = JSON.parse(await readFile(scenePath, 'utf8'));
+  assert.equal(failedState.attempts.length, 2);
+  assert.equal(failedState.attempts.at(-1).status, 'QA_PASS');
+  assert.equal(current.calls.generator.length, 2);
+  assert.equal(evaluations, 2);
+
+  const quarantineDirectory = path.join(
+    current.service.sceneDirectory(created.scene_id),
+    'quarantine',
+  );
+  const reportName = (await readdir(quarantineDirectory))
+    .find((name) => name.startsWith('privacy-final-manifest-report-'));
+  assert.ok(reportName);
+  const report = JSON.parse(await readFile(path.join(quarantineDirectory, reportName), 'utf8'));
+  assert.equal(report.status, 'FAIL');
+  assert.equal(report.checked_files[0].path, 'outputs/scene-manifest.json');
+  assert.ok(report.findings.some((finding) => (
+    finding.rule === 'NO_ABSOLUTE_USER_PATHS'
+      && finding.path === 'outputs/scene-manifest.json#/attempt_history/0/qa/gates/5/evidence'
+  )));
+  assert.doesNotMatch(JSON.stringify(report), /private-look|\/Users\/fixture/);
+
+  const persisted = JSON.parse(await readFile(scenePath, 'utf8'));
+  persisted.attempts[0].qa.gates.find((gate) => gate.id === 'SCENE_MATCH').evidence =
+    'Rejected scene mismatch';
+  await Promise.all([
+    writeFile(scenePath, `${JSON.stringify(persisted, null, 2)}\n`),
+    writeFile(
+      path.join(current.service.attemptDirectory(created.scene_id, 1), 'attempt.json'),
+      `${JSON.stringify(persisted.attempts[0], null, 2)}\n`,
+    ),
+  ]);
+
+  const queued = await current.service.retryScene(created.scene_id, {
+    idempotencyKey: 'final-manifest-export-only-retry',
+  });
+  assert.equal(queued.status, 'QUEUED');
+  const queuedState = JSON.parse(await readFile(scenePath, 'utf8'));
+  assert.equal(queuedState.attempts.length, 2);
+  assert.equal(queuedState.attempts.at(-1).status, 'QA_PASS');
+  assert.equal(queued.execution.cycle, failed.execution.cycle);
+  assert.equal(queued.execution.manual_retries, failed.execution.manual_retries);
+  const completed = await waitFor(current.service, created.scene_id);
+  assert.equal(completed.status, 'COMPLETED', JSON.stringify(completed, null, 2));
+  const completedState = JSON.parse(await readFile(scenePath, 'utf8'));
+  assert.equal(completedState.attempts.length, 2);
+  assert.equal(current.calls.generator.length, 2);
+  assert.equal(evaluations, 2);
+  assert.ok(await current.service.outputFile(created.scene_id));
 });
 
 test('cancel is durable and a retry token starts one new scene-only cycle', async (t) => {

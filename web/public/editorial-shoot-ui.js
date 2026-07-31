@@ -21,6 +21,8 @@ import {
   safeEditorialOutputUrl,
   writeEditorialResume,
 } from './editorial-state.js?v=20260724-1';
+import { createThinkingOrb } from './thinking-orb.js?v=20260722-10';
+import { presentationImageUrl } from './presentation-media.js?v=20260731-1';
 
 function idOfLook(look) {
   return look?.look_id ?? look?.id ?? null;
@@ -257,7 +259,7 @@ export function editorialGalleryProgress(shoot) {
 
 function displayShotStatus(status) {
   return ({
-    BLOCKED: 'Очікує первинну перевірку образу',
+    BLOCKED: 'Очікує генерацію',
     QUEUED: 'У черзі',
     RUNNING: 'Створюється',
     QA_PASSED: 'QA пройдено',
@@ -292,16 +294,56 @@ function displayShootMessage(shoot) {
   })[status] ?? 'Стан фотосесії оновлено.';
 }
 
+function displaySeriesProgress({ completed, visibleFrames }) {
+  if (completed >= 5) return 'Усі 5 кадрів готові';
+  if (visibleFrames === 0) return 'Створюємо перший кадр';
+  if (visibleFrames > completed) {
+    return `${visibleFrames} з 5 з’явилося · перевіряємо якість`;
+  }
+  return `${completed} з 5 готово · створюємо далі`;
+}
+
 function displayShootState(status) {
   return ({
     BIBLE_PENDING_APPROVAL: 'ПІДГОТОВКА',
-    HERO_RUNNING: 'ПЕРЕВІРКА ОБРАЗУ',
+    HERO_RUNNING: 'ГЕНЕРАЦІЯ СТИЛЮ',
     HERO_PENDING_APPROVAL: 'ЗАПУСК КАДРІВ',
     SERIES_RUNNING: 'СТВОРЮЄМО',
-    NEEDS_RETRY: 'ДОПРАЦЬОВУЄМО',
+    NEEDS_RETRY: 'ПОТРІБЕН ПОВТОР',
     COMPLETED: 'ГОТОВО',
     CANCELLED: 'ЗУПИНЕНО',
   })[status] ?? 'ОНОВЛЮЄМО СТАН';
+}
+
+// A 409 is a deliberate server refusal, not a user-facing "Conflict" and not
+// a lost connection. In particular, no provider job has been started yet when
+// a saved-look evidence gate refuses a new Fashion Shoot. Keep the machine
+// code in telemetry but give the person one concrete next action.
+export function editorialRequestFailurePresentation(error) {
+  const statusCode = Number(error?.status);
+  const code = String(error?.code ?? '');
+  const messageByCode = {
+    LOOK_ITEM_EVIDENCE_INVALID: 'Збережений образ не має цілісного підтвердження речей. Фотосесію не запускали. Повернися до образу й створи його заново після перевірки.',
+    LOOK_ITEM_EVIDENCE_CONFLICT: 'Підтвердження речей у збереженому образі суперечливе. Фотосесію не запускали. Повернися до образу й створи його заново після перевірки.',
+    LOOK_RECEIPT_MISSING: 'Не знайдено підтвердження збереженого образу. Фотосесію не запускали.',
+    LOOK_RECEIPT_INVALID: 'Підтвердження збереженого образу застаріле або пошкоджене. Фотосесію не запускали.',
+    LOOK_BINDING_MISMATCH: 'Збережений образ змінився після перевірки. Повернися до образу та обери Fashion Shoot ще раз.',
+    LOOK_SOURCE_NOT_COMPLETED: 'Збережений образ ще не завершив перевірку. Дочекайся статусу «збережено» перед Fashion Shoot.',
+    IDEMPOTENCY_CONFLICT: 'Попередня спроба запуску не збігається з поточним вибором. Фотосесію не запускали.',
+  };
+  if (Number.isInteger(statusCode) && statusCode >= 400 && statusCode < 500) {
+    return {
+      status: 'ПОТРІБНА ПЕРЕВІРКА',
+      message: messageByCode[code]
+        ?? 'Сервер зупинив запуск до генерації, бо збережений образ або вибраний стиль потребує перевірки. Повернися до образу та спробуй ще раз.',
+      retryable: false,
+    };
+  }
+  return {
+    status: 'З’ЄДНАННЯ ПЕРЕРВАЛОСЯ',
+    message: 'Не вдалося отримати відповідь сервера. Натисни «Перевірити стан», щоб безпечно відновити цю саму фотосесію.',
+    retryable: true,
+  };
 }
 
 function modeFromShoot(shoot) {
@@ -356,6 +398,10 @@ export class EditorialShootUiController {
     this.actionPending = false;
     this.connectionFailed = false;
     this.bibleRequest = null;
+    this.thinkingOrb = createThinkingOrb(
+      document.querySelector('#editorial-thinking-orb'),
+      'composing',
+    );
     this.#bind();
   }
 
@@ -369,6 +415,10 @@ export class EditorialShootUiController {
     this.#element('#editorial-cancel-bible').addEventListener('click', () => this.cancel());
     this.#element('#editorial-cancel').addEventListener('click', () => this.cancel());
     this.#element('#editorial-delete').addEventListener('click', () => this.remove());
+    this.#element('#editorial-retry-failed').addEventListener('click', () => {
+      const failed = this.shoot?.shots?.find((shot) => shot.status === 'FAILED');
+      if (failed?.slot) void this.retryShot(failed.slot);
+    });
     this.#element('#editorial-reconnect').addEventListener('click', () => this.reconnect());
     this.#element('#editorial-shot-inspector-close').addEventListener(
       'click',
@@ -430,33 +480,33 @@ export class EditorialShootUiController {
         ariaValueText: message || 'Отримуємо актуальний стан Fashion Shoot.',
       },
     );
+    this.thinkingOrb.setState('composing');
     this.#renderActionButtons();
   }
 
   #showConnectionFailure(error, stage) {
     this.#show();
-    this.#setError(error?.message || 'Не вдалося з’єднатися із сервером');
-    const progressWrap = this.#element('#editorial-progress-wrap');
-    progressWrap.classList.remove('is-active', 'is-indeterminate');
-    const completed = this.shoot ? editorialGalleryProgress(this.shoot).completed : 0;
-    const meter = this.#element('#editorial-progress-meter');
-    meter.value = completed;
-    meter.setAttribute('aria-valuetext', 'Не вдалося оновити стан фотосесії.');
-    this.#element('#editorial-progress-announce').textContent = 'Не вдалося оновити стан';
-    this.#element('#editorial-progress-detail').textContent = 'Перевірте стан ще раз — готові кадри збережено.';
-    const gallery = this.#element('#editorial-gallery');
-    gallery.setAttribute('aria-busy', 'false');
-    for (const card of gallery.querySelectorAll('[aria-busy="true"]')) {
-      card.setAttribute('aria-busy', 'false');
+    const presentation = editorialRequestFailurePresentation(error);
+    this.#setHeader('Fashion Shoot', presentation.status, presentation.retryable ? 'running' : 'failed');
+    this.#setError(presentation.message);
+    this.#element('#editorial-connection').hidden = true;
+    this.#element('#editorial-message').hidden = true;
+    // A creation refusal does not have five pending frames. Leaving the empty
+    // gallery on screen made the server-side refusal look like a failed shoot.
+    if (!this.shoot) {
+      this.#element('#editorial-bible-stage').hidden = true;
+      this.#element('#editorial-gallery-stage').hidden = true;
     }
-    this.#element('#editorial-connection').textContent = 'ПОТРІБНЕ ПІДКЛЮЧЕННЯ';
-    this.#element('#editorial-connection').hidden = false;
-    this.connectionFailed = true;
-    this.#element('#editorial-reconnect').hidden = false;
+    this.connectionFailed = presentation.retryable;
+    const reconnect = this.#element('#editorial-reconnect');
+    reconnect.textContent = 'Перевірити стан';
+    reconnect.hidden = !presentation.retryable;
     this.telemetry('client.editorial_error', {
       shoot_id: this.shoot?.shoot_id,
       stage,
       message: String(error?.message ?? error).slice(0, 500),
+      code: String(error?.code ?? '').slice(0, 120),
+      status: Number.isInteger(error?.status) ? error.status : null,
     });
   }
 
@@ -658,7 +708,7 @@ export class EditorialShootUiController {
     this.#element('#editorial-bible-system').hidden = true;
     const url = modePreviewUrl(this.mode);
     if (url) {
-      preview.src = url;
+      preview.src = presentationImageUrl(url);
       preview.hidden = false;
     } else {
       preview.removeAttribute('src');
@@ -683,6 +733,13 @@ export class EditorialShootUiController {
     this.#element('#editorial-progress-detail').textContent = progress.detail;
     const gallery = this.#element('#editorial-gallery');
     gallery.setAttribute('aria-busy', progress.active ? 'true' : 'false');
+    this.#element('#editorial-gallery-stage').classList.remove('is-awaiting-first-frame');
+    const orbState = this.shoot?.status === 'NEEDS_RETRY'
+      ? 'solving'
+      : this.shoot?.status === 'COMPLETED'
+        ? 'ready'
+        : 'composing';
+    this.thinkingOrb.setState(orbState);
     const cards = shots.map((shot, index) => {
       const card = document.createElement('article');
       card.className = 'editorial-shot-card';
@@ -705,7 +762,7 @@ export class EditorialShootUiController {
           `Переглянути повний кадр: ${editorialShotLabel(shot.slot)}`,
         );
         const image = document.createElement('img');
-        image.src = imageUrl;
+        image.src = presentationImageUrl(imageUrl);
         image.alt = `${editorialShotLabel(shot.slot)} — ${displayShotStatus(shot.status)}`;
         image.loading = index === 0 ? 'eager' : 'lazy';
         inspect.append(image);
@@ -731,6 +788,14 @@ export class EditorialShootUiController {
       status.textContent = state;
       metadata.append(title, status);
       visual.append(metadata);
+      if (!imageUrl && shot.status !== 'FAILED') {
+        const pending = document.createElement('span');
+        pending.className = 'editorial-shot-pending';
+        pending.setAttribute('aria-hidden', 'true');
+        pending.append(document.createElement('i'));
+        visual.append(pending);
+        card.setAttribute('aria-label', `${editorialShotLabel(shot.slot)} — створюється`);
+      }
       const downloadUrl = outputDownloadUrl(shot.output);
       if (downloadUrl) {
         const download = document.createElement('a');
@@ -752,7 +817,7 @@ export class EditorialShootUiController {
     const image = this.#element('#editorial-shot-inspector-image');
     const title = this.#element('#editorial-shot-inspector-title');
     const download = this.#element('#editorial-shot-inspector-download');
-    image.src = imageUrl;
+    image.src = presentationImageUrl(imageUrl);
     image.alt = `${label} — повний кадр 4:5`;
     title.textContent = label;
     download.href = downloadUrl ?? imageUrl;
@@ -778,6 +843,7 @@ export class EditorialShootUiController {
     const cancel = this.#element('#editorial-cancel');
     const cancelBible = this.#element('#editorial-cancel-bible');
     const remove = this.#element('#editorial-delete');
+    const retryFailed = this.#element('#editorial-retry-failed');
     const hasBoundBible = Boolean(
       shoot?.bindings?.shoot_bible?.sha256
       ?? shoot?.shoot_bible?.sha256
@@ -793,7 +859,12 @@ export class EditorialShootUiController {
     cancel.hidden = !editorialCanCancel(shoot);
     cancelBible.hidden = shoot?.status !== 'BIBLE_PENDING_APPROVAL';
     remove.hidden = !editorialCanDelete(shoot);
-    for (const button of [approveBible, approveHero, cancel, cancelBible, remove]) {
+    const failedShot = shoot?.shots?.find((shot) => shot.status === 'FAILED');
+    retryFailed.hidden = shoot?.status !== 'NEEDS_RETRY' || !failedShot;
+    retryFailed.textContent = failedShot?.slot === INTERNAL_STYLE_CHECK_SLOT
+      ? 'Повторити перший кадр'
+      : 'Повторити невдалий кадр';
+    for (const button of [approveBible, approveHero, cancel, cancelBible, remove, retryFailed]) {
       button.disabled = pending;
     }
     approveBible.disabled = pending || !hasBoundBible;
@@ -1013,8 +1084,8 @@ export class EditorialShootUiController {
     await this.#executeAction(operation, `${action.type}_replay`);
   }
 
-  async resume() {
-    let resume = readEditorialResume();
+  async resume({ allowStored = true } = {}) {
+    let resume = allowStored ? readEditorialResume() : null;
     const queryShootId = new URLSearchParams(location.search).get('shoot');
     if (!resume && !queryShootId) return false;
     this.resumeRecord = resume;

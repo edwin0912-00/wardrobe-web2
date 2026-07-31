@@ -4,6 +4,7 @@ import path from 'node:path';
 import Fastify from 'fastify';
 import multipart from '@fastify/multipart';
 import fastifyStatic from '@fastify/static';
+import sharp from 'sharp';
 import { registerMonitorRoutes } from '../monitor/routes.js';
 import { publicManifestView } from '../runner/public-manifest.js';
 import { installDemoAuth } from './demo-auth.js';
@@ -23,6 +24,7 @@ import {
   registerVideoSourceBridgeRoutes,
 } from './video-source-bridge.js';
 import { registerHeicConversionRoute } from './heic-converter.js';
+import { registerGodViewRoutes } from './god-view-routes.js';
 
 export async function createWebApp({
   service,
@@ -38,6 +40,8 @@ export async function createWebApp({
   lucyTokenIssuer = null,
   videoService = null,
   videoSourceBridge = null,
+  releaseIdentity = null,
+  godViewAuth = null,
 }) {
   // A degraded provider preflight means the local CLI cannot prove that it can
   // create and observe a paid Higgsfield job. Do not let a user enter the
@@ -90,10 +94,6 @@ export async function createWebApp({
   await app.register(multipart, { limits: { files: 7, fileSize: 20 * 1024 * 1024, fields: 12, parts: 20 } });
   await registerHeicConversionRoute(app);
   await app.register(fastifyStatic, { root: publicDirectory, prefix: '/' });
-  await registerPostShootRoutes(app, {
-    projectRoot: path.resolve(import.meta.dirname, '..', '..'),
-    lucyTokenIssuer,
-  });
   const secureCookie = process.env.ZEELY_COOKIE_SECURE !== 'false';
   let sceneService = null;
   let scenePresetResolver = null;
@@ -170,6 +170,12 @@ export async function createWebApp({
         secureCookie,
       })
     : null;
+  await registerPostShootRoutes(app, {
+    projectRoot: path.resolve(import.meta.dirname, '..', '..'),
+    lucyTokenIssuer,
+    profileApi,
+    profiles,
+  });
   if (sceneService) {
     await registerSceneRoutes(app, {
       sceneService,
@@ -201,6 +207,14 @@ export async function createWebApp({
   if (videoSourceBridge) {
     await registerVideoSourceBridgeRoutes(app, { videoSourceBridge });
   }
+  await registerGodViewRoutes(app, {
+    auth: godViewAuth,
+    profiles,
+    runService: service,
+    sceneService,
+    editorialShootService,
+    videoService,
+  });
   if (drafts) await registerDraftRoutes(app, {
     service: drafts,
     runService: service,
@@ -257,6 +271,11 @@ export async function createWebApp({
       service: 'web',
       generation: generationAvailable ? 'available' : 'unavailable',
       semantic_qa: 'available',
+      fashion_shoot_qa_mode: ['strict', 'review', 'off']
+        .includes(resolved.fashion_shoot_qa_mode)
+        ? resolved.fashion_shoot_qa_mode
+        : 'strict',
+      ...(releaseIdentity ? releaseIdentity : {}),
       ...(runtimeStatus ? { runtime_status: runtimeStatus } : {}),
       ...(health.test_only ? { editorial_generation: 'available' } : { editorial_generation: editorialShootService
         ? (generationAvailable ? 'available' : 'unavailable')
@@ -394,6 +413,23 @@ export async function createWebApp({
         .header('Content-Disposition', 'inline; filename="run-manifest.json"')
         .send(publicManifestView(internalManifest));
     }
+    if (request.query?.preview === '1') {
+      try {
+        const preview = await sharp(filename, { failOn: 'error', limitInputPixels: 100_000_000 })
+          .rotate()
+          .resize({ width: 640, height: 640, fit: 'inside', withoutEnlargement: true })
+          .webp({ quality: 70, effort: 4 })
+          .toBuffer();
+        return reply.type('image/webp')
+          .header('Cache-Control', 'private, max-age=900')
+          .header('Vary', 'Cookie')
+          .header('X-Content-Type-Options', 'nosniff')
+          .header('X-Zeely-Presentation', 'webp-640')
+          .send(preview);
+      } catch {
+        return reply.code(422).send({ error: 'Не вдалося підготувати легке preview-зображення' });
+      }
+    }
     const type = request.params.name.endsWith('.json') ? 'application/json' : 'image/png';
     return reply.type(type).header('Content-Disposition', `inline; filename="${request.params.name}"`).send(createReadStream(filename));
   });
@@ -402,6 +438,25 @@ export async function createWebApp({
     if (!await ownsRun(request, reply)) return reply;
     const filename = await service.garmentSourceFile(request.params.id, request.params.index);
     if (!filename) return reply.code(404).send({ error: 'Фото речі не знайдено' });
+    if (request.query?.preview === '1') {
+      // This response is only a UI thumbnail. The original input remains the
+      // immutable source file used by conditioning, QA and generation.
+      try {
+        const preview = await sharp(filename, { failOn: 'error', limitInputPixels: 100_000_000 })
+          .rotate()
+          .resize({ width: 480, height: 480, fit: 'inside', withoutEnlargement: true })
+          .webp({ quality: 72, effort: 4 })
+          .toBuffer();
+        return reply
+          .type('image/webp')
+          .header('Cache-Control', 'private, max-age=900')
+          .header('Vary', 'Cookie')
+          .header('X-Content-Type-Options', 'nosniff')
+          .send(preview);
+      } catch {
+        return reply.code(422).send({ error: 'Не вдалося підготувати preview фото речі' });
+      }
+    }
     const type = new Map([['.png', 'image/png'], ['.jpg', 'image/jpeg'], ['.jpeg', 'image/jpeg'], ['.webp', 'image/webp']]).get(path.extname(filename).toLowerCase()) ?? 'application/octet-stream';
     return reply.type(type).header('Cache-Control', 'private, max-age=900').send(createReadStream(filename));
   });
@@ -417,6 +472,21 @@ export async function createWebApp({
       ? await service.visualAsset(request.params.id, request.params.assetId)
       : null;
     if (!asset) return reply.code(404).send({ error: 'Visual asset not found' });
+    if (request.query?.preview === '1') {
+      try {
+        const preview = await sharp(asset.bytes, { failOn: 'error', limitInputPixels: 100_000_000 })
+          .rotate()
+          .resize({ width: 640, height: 640, fit: 'inside', withoutEnlargement: true })
+          .webp({ quality: 70, effort: 4 })
+          .toBuffer();
+        return reply.type('image/webp')
+          .header('Cache-Control', 'private, max-age=900')
+          .header('X-Zeely-Presentation', 'webp-640')
+          .send(preview);
+      } catch {
+        return reply.code(422).send({ error: 'Не вдалося підготувати легке preview-зображення' });
+      }
+    }
     return reply
       .type(asset.media_type)
       .send(asset.bytes);

@@ -15,6 +15,7 @@ const WEB_ROOT = path.join(root, 'src', 'web');
 const EDITORIAL_MODE_IDS = [
   'editorial.edwin_novak.organic_contrast',
   'editorial.edwin_novak.urban_monochrome',
+  'shoot.terracotta_hardlight',
 ];
 const EDITORIAL_SHOT_SLOTS = [
   'clean_identity_hero',
@@ -237,7 +238,7 @@ test('an editorial receipt states the headroom waiver instead of leaving it to b
 
   // A standard scene has no waiver to state: headroom there is the product.
   const standard = assessSceneFraming({
-    subject_bbox_xywh_px: [202, 64, 620, 973],
+    subject_bbox_xywh_px: [202, 38, 620, 973],
     full_head_visible: true,
     full_footwear_visible: true,
   }, { preset: { preset_id: 'std.city.golden_hour_gloss' }, ...DELIVERY });
@@ -263,6 +264,91 @@ test('70–80 standard framing accepts the beta scene scale without a crop', () 
   assert.deepEqual(assessment.evidence.expected_subject_height_percent, [70, 80]);
   assert.deepEqual(assessment.defects, []);
   assert.equal(deterministicFramingCropPlan(assessment.evidence, { width: 1536, height: 2048 }), null);
+});
+
+test('standard delivery accepts a fully visible 86% subject as an explicit composition tolerance', () => {
+  // Exact geometry from scene_99d60… attempt 3. Identity, every item, scene,
+  // anatomy, contact shadow and head/foot clear space passed. The old code still
+  // spent the third provider attempt because it treated the preferred 70–80%
+  // composition band as an absolute delivery ceiling.
+  const assessment = assessSceneFraming({
+    subject_bbox_xywh_px: [344, 164, 848, 1762],
+    full_head_visible: true,
+    full_footwear_visible: true,
+  }, {
+    preset: { preset_id: 'std.city.amber_alley_cobblestone' },
+    width: 1536,
+    height: 2048,
+  });
+
+  assert.equal(assessment.evidence.subject_height_percent, 86.0352);
+  assert.equal(assessment.evidence.clear_space_above_hair_percent, 8.0078);
+  assert.equal(assessment.evidence.clear_space_below_footwear_percent, 5.957);
+  assert.deepEqual(assessment.evidence.expected_subject_height_percent, [70, 80]);
+  assert.equal(assessment.evidence.subject_height_delivery_tolerance_applied, true);
+  assert.deepEqual(assessment.defects, []);
+
+  const tooLarge = assessSceneFraming({
+    subject_bbox_xywh_px: [344, 164, 848, 1823],
+    full_head_visible: true,
+    full_footwear_visible: true,
+  }, {
+    preset: { preset_id: 'std.city.amber_alley_cobblestone' },
+    width: 1536,
+    height: 2048,
+  });
+  assert.ok(tooLarge.defects.includes('SUBJECT_HEIGHT_OUTSIDE_PRESET_RANGE'));
+
+  const cropped = assessSceneFraming({
+    subject_bbox_xywh_px: [344, 164, 848, 1762],
+    full_head_visible: false,
+    full_footwear_visible: true,
+  }, {
+    preset: { preset_id: 'std.city.amber_alley_cobblestone' },
+    width: 1536,
+    height: 2048,
+  });
+  assert.ok(cropped.defects.includes('FULL_HEAD_NOT_VISIBLE'));
+});
+
+test('standard delivery accepts the four-point 4–8% headroom tolerance only with a fully visible head', () => {
+  const accepted = assessSceneFraming({
+    // Fresh re-QA of scene_99d60… attempt 003 measured 155/2048 = 7.5684%.
+    subject_bbox_xywh_px: [420, 155, 696, 1570],
+    full_head_visible: true,
+    full_footwear_visible: true,
+  }, {
+    preset: { preset_id: 'std.city.amber_alley_cobblestone' },
+    width: 1536,
+    height: 2048,
+  });
+  assert.equal(accepted.evidence.clear_space_above_hair_percent, 7.5684);
+  assert.equal(accepted.evidence.minimum_clear_space_above_hair_percent, 8);
+  assert.equal(accepted.evidence.clear_space_above_hair_delivery_tolerance_applied, true);
+  assert.deepEqual(accepted.defects, []);
+
+  const tooShort = assessSceneFraming({
+    // 81/2048 = 3.9551%, below the four-point delivery floor.
+    subject_bbox_xywh_px: [420, 81, 696, 1570],
+    full_head_visible: true,
+    full_footwear_visible: true,
+  }, {
+    preset: { preset_id: 'std.city.amber_alley_cobblestone' },
+    width: 1536,
+    height: 2048,
+  });
+  assert.ok(tooShort.defects.includes('INSUFFICIENT_CLEAR_SPACE_ABOVE_HAIR'));
+
+  const cropped = assessSceneFraming({
+    subject_bbox_xywh_px: [420, 155, 696, 1570],
+    full_head_visible: false,
+    full_footwear_visible: true,
+  }, {
+    preset: { preset_id: 'std.city.amber_alley_cobblestone' },
+    width: 1536,
+    height: 2048,
+  });
+  assert.ok(cropped.defects.includes('FULL_HEAD_NOT_VISIBLE'));
 });
 
 test('the receipt reports the waiver the assessment found, never one the evaluator claims', () => {

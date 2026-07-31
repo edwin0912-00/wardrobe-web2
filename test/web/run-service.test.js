@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { access, mkdtemp, readFile, readdir, writeFile } from 'node:fs/promises';
+import { access, mkdir, mkdtemp, readFile, readdir, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -290,6 +290,7 @@ test('working core supports text-only outfit and rejects invalid uploads before 
   const service = new RunService({ rootDirectory: root, ...dependencies() });
   await service.initialize();
   const created = await service.createRun({ person: await upload(), outfitText: 'cobalt blazer and white top', generateScene: false });
+  assert.equal(created.requested_outfit_text, 'cobalt blazer and white top');
   assert.equal(created.execution_route.garment_images_supplied, false);
   assert.equal(created.execution_route.garment_source_image_count, 0);
   await service.running.get(created.run_id);
@@ -334,6 +335,43 @@ test('working core supports text-only outfit and rejects invalid uploads before 
   assert.equal(inputError.statusCode, 422);
   assert.equal(inputError.code, 'IMAGE_DECODE_FAILED');
   assert.equal(inputError.field, 'Фото людини');
+});
+
+test('approved identity reference returns only hash-verified bytes from the READY pack', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'zeely-web-video-identity-'));
+  const service = new RunService({ rootDirectory: root, ...dependencies() });
+  const runId = 'video-identity-run';
+  const identityDirectory = path.join(root, runId, 'conditioned', 'identity');
+  const primaryPath = path.join(identityDirectory, 'primary.png');
+  const primary = Buffer.from('verified-identity-reference');
+  const primarySha256 = createHash('sha256').update(primary).digest('hex');
+  await mkdir(identityDirectory, { recursive: true });
+  await writeFile(primaryPath, primary);
+  await writeFile(path.join(identityDirectory, 'reference-pack.json'), JSON.stringify({
+    schema_version: '1.0.0',
+    kind: 'HUMAN',
+    readiness: { decision: 'READY' },
+    generation_bindings: [{
+      order: 1,
+      role: 'IDENTITY_PRIMARY',
+      path: primaryPath,
+      sha256: primarySha256,
+    }],
+  }));
+
+  const identityReference = await service.approvedIdentityReferenceForRun(runId);
+  assert.deepEqual(identityReference, {
+    role: 'identity_face',
+    data: primary,
+    sha256: primarySha256,
+    media_type: 'image/png',
+  });
+
+  await writeFile(primaryPath, 'tampered');
+  await assert.rejects(
+    () => service.approvedIdentityReferenceForRun(runId),
+    (error) => error.code === 'APPROVED_IDENTITY_REFERENCE_HASH_MISMATCH',
+  );
 });
 
 test('slot conflicts become an explicit NEEDS_INPUT result', async () => {

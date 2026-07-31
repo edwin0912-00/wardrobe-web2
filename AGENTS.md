@@ -8,6 +8,7 @@ below.
 ```text
 origin/beta                         tested integration + beta deploy source
 ├── beta-block-08-antigravity-qa    independent browser QA observer
+├── beta-block-09-handoff-cloud-code-qa independent external browser QA
 ├── beta-block-1-core-look          chat 1 / codex-main
 ├── beta-block-2-profile-ui         chat 2
 ├── beta-block-3-backgrounds        chat 3
@@ -53,6 +54,16 @@ bash tools/join-antigravity-qa.sh antigravity-qa --watch
 It may write only its QA reports. It tests the deployed public beta through
 visible UI, publishes evidence, and requests the responsible Block 1–7 owner.
 It never edits product code, weakens checks, integrates or deploys.
+
+The external Handoff Cloud Code observer is a separate identity and writer:
+
+```bash
+bash tools/join-handoff-cloud-code-qa.sh handoff-cloud-code-qa --watch
+```
+
+It uses `beta-block-09-handoff-cloud-code-qa`, writes only its own QA report
+and evidence paths, and follows the same browser-first, exact-SHA and
+no-weakened-checks contract. It never shares Antigravity's branch or files.
 
 The mixed 2026-07-29 Creative Universe work is preserved at
 `part-job/2026-07-29-universe-checkpoint`. It is not a beta release candidate
