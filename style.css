@@ -337,7 +337,12 @@ body {
  * VELOCITY is exactly the inertia-dependent behaviour the window map says must not be
  * required to use the product. There the panel keeps following `--rest` only. */
 @media (prefers-reduced-motion: no-preference) {
-  .stage .glass,
+  /* SCOPED TO THE MIRROR STATION, AND ONLY THERE.
+   *
+   * This block first also carried a bare `.stage .glass`, which was a regression: that
+   * selector outranks the base rule that keeps the panel hidden away from leg zero, so the
+   * mirror interface appeared over the desk-and-laptop room, where there is no mirror to
+   * put it on. The motion coupling belongs to the one place the panel legitimately shows. */
   .stage[data-leg="0"][data-station="1"] .glass {
     /* `--ui-quiet` is a GAIN, not a mix. Coupling opacity to `--speed` one-to-one looked
      * right on the way out and wrong on the way back: that signal's release is 0.06 per
@@ -350,8 +355,20 @@ body {
      * carries the last stretch so the reappearance is a fade rather than a step. This is
      * still a curve fitted to someone else's signal: the honest fix is a thresholded
      * moving/at-rest flag published by the engine, which is Codex-side. */
+    /* BOUND TO THE SWIPE, NOT TO THE POSITION — owner correction.
+     *
+     * The first version multiplied by `--rest`, and that was the visible bug: `--rest` is
+     * the resistance ramp, so it starts lifting the panel from dampFrom (0.765) onwards,
+     * which is most of a second of footage before the camera reaches the static mirror
+     * frame the rectangles were measured on. The panel was therefore faintly present all
+     * through the approach, drawn at final-frame coordinates over a frame that had not
+     * arrived — text on the concrete beside the glass.
+     *
+     * Motion alone decides it now: still means present, travelling means gone. The station
+     * latch is what scopes it to the mirrors; the ramp is left to do its own job, which is
+     * resisting the swipe, not fading an interface. */
     --ui-quiet: 4;
-    opacity: calc(var(--rest, 1) * max(0, 1 - var(--speed, 0) * var(--ui-quiet)));
+    opacity: calc(max(0, 1 - var(--speed, 0) * var(--ui-quiet)));
     transition: opacity 220ms cubic-bezier(0.22, 0.61, 0.36, 1);
   }
 }
