@@ -127,6 +127,17 @@
 <script src="../loader.js"></script>
 <script src="../engine.js"></script>
 <script src="../ui.js"></script>
+<script type="module">
+  /* The cinematic mirror is a client of the stable API adapter, not a second beta UI.
+     ui.js begins inert and receives this bridge as soon as the module is evaluated; a
+     missing /api gateway therefore disables creation honestly instead of falling back to
+     local timer-based output. */
+  import { createCinematicUiBridge } from '../adapters/cinematic-ui-bridge.mjs';
+  const bridge = createCinematicUiBridge();
+  window.WardrobeCinematicBridge = bridge;
+  window.WardrobeCinematicBridgeReady = Promise.resolve(bridge);
+  if (window.ui && typeof window.ui.setBridge === 'function') window.ui.setBridge(bridge);
+</script>
 <script src="../audio.js"></script>
 <script>
 (function () {
@@ -509,8 +520,9 @@
       .observe(document.documentElement, { attributes: true, attributeFilter: ['data-gate'] });
     reflectGate();
 
-    /* The gate owns media and generation. No adapter is handed in, so it runs as a
-       declared placeholder and says so on screen. */
+    /* Media seams stay owned by the journey. Mirror work is independently owned by the
+       cinematic adapter bridge; an absent same-origin gateway leaves it inactive rather
+       than substituting demo output. */
 
     /* No button. Everything is in memory, so the journey opens by itself — but not before
      * the loading screen has been on screen long enough to have been a moment.
