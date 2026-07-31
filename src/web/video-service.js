@@ -41,6 +41,40 @@ export const REQUIRED_REFERENCE_CHECKS = Object.freeze([
 
 const SHA256 = /^[a-f0-9]{64}$/;
 const CUT_PEOPLE = new Set(['APPROVED_AVATAR_ONLY', 'NO_PERSON', 'REFERENCE_PERFORMER', 'MIXED_OR_UNKNOWN']);
+
+function sanitizeProviderWaitValue(value, key = '', depth = 0) {
+  if (depth > 12) return '[TRUNCATED_DEPTH]';
+  if (/token|secret|authorization|cookie|api[_-]?key/i.test(key)) return '[REDACTED]';
+  if (typeof value === 'string') {
+    try {
+      const parsed = new URL(value);
+      if (parsed.protocol === 'https:') return `${parsed.origin}${parsed.pathname}`;
+    } catch {
+      // Not a URL; continue with local-path protection.
+    }
+    if (/^(?:\/Users\/|\/home\/|[A-Za-z]:\\Users\\)/.test(value)) return '[REDACTED_LOCAL_PATH]';
+    return value.length > 2_000 ? `${value.slice(0, 2_000)}[TRUNCATED]` : value;
+  }
+  if (Array.isArray(value)) {
+    return value.slice(0, 100).map((entry) => sanitizeProviderWaitValue(entry, '', depth + 1));
+  }
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.entries(value).slice(0, 100).map(([childKey, child]) => [
+      childKey,
+      sanitizeProviderWaitValue(child, childKey, depth + 1),
+    ]));
+  }
+  return value;
+}
+
+function sanitizedUrl(value) {
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === 'https:' ? `${parsed.origin}${parsed.pathname}` : null;
+  } catch {
+    return null;
+  }
+}
 function validFashionCutSheet(sheet, durationSeconds) {
   if (sheet?.schema_version !== '1.0.0' || !Array.isArray(sheet.cuts)
     || sheet.cuts.length < 1 || sheet.cuts.length > 24) return false;
@@ -917,6 +951,30 @@ export class VideoService {
       });
     }
 
+    const rawPayloadSha256 = sha256(Buffer.from(JSON.stringify(finished.raw ?? null)));
+    const waitReceipt = {
+      schema_version: '1.0.0',
+      clip_id: clipId,
+      job_id: clip.jobId,
+      provider: clip.providerKey,
+      selected_field_path: finished.selectedFieldPath ?? null,
+      selected_url_sanitized: sanitizedUrl(finished.url),
+      raw_payload_sha256: rawPayloadSha256,
+      raw_payload_sanitized: sanitizeProviderWaitValue(finished.raw ?? null),
+    };
+    const waitReceiptBytes = Buffer.from(`${JSON.stringify(waitReceipt, null, 2)}\n`);
+    const waitReceiptSha256 = sha256(waitReceiptBytes);
+    const waitReceiptFile = `provider-wait-receipt-${rawPayloadSha256.slice(0, 16)}.json`;
+    await this.#store.saveQaReceipt(
+      clipId,
+      waitReceiptFile,
+      waitReceiptBytes,
+      'PROVIDER_WAIT_RECEIPT_CONFLICT',
+    );
+    clip.providerWaitReceiptFile = waitReceiptFile;
+    clip.providerWaitReceiptSha256 = waitReceiptSha256;
+    clip.providerOutputFieldPath = finished.selectedFieldPath ?? null;
+
     // Download
     if (typeof downloadFn !== 'function') {
       throw new VideoServiceError('A downloadFn is required', {
@@ -924,6 +982,18 @@ export class VideoService {
       });
     }
     const providerVideoBytes = await downloadFn(finished.url);
+    const providerVideoSha256 = sha256(providerVideoBytes);
+    if (clip.motionReferenceBinding?.sha256 === providerVideoSha256) {
+      clip.status = 'FAIL';
+      clip.failureCode = 'VIDEO_PROVIDER_OUTPUT_IS_REFERENCE';
+      clip.providerVideoSha256 = providerVideoSha256;
+      clip.videoUrl = sanitizedUrl(finished.url);
+      clip.updatedAt = new Date(this.#clock()).toISOString();
+      await this.#store.save(clipId, clip);
+      throw new VideoServiceError('Provider selected the locked motion reference as output', {
+        code: 'VIDEO_PROVIDER_OUTPUT_IS_REFERENCE', status: 502,
+      });
+    }
     const providerVideoPath = await this.#store.saveProviderVideo(clipId, providerVideoBytes);
     let videoPath = providerVideoPath;
     let audioBinding = { policy: 'SILENT_REQUIRED', referenceAudioAttached: false };
@@ -1006,6 +1076,7 @@ export class VideoService {
         extractFrameFn(videoPath, 'last'),
       ]);
       qa = evaluateClipQa(expected, { ...probe, firstFrameRgb, lastFrameRgb });
+      clip.deliveryDurationSeconds = probe.durationSeconds;
     }
 
     clip.status = qa
@@ -1013,8 +1084,8 @@ export class VideoService {
           ? (clip.motionReferenceBinding ? 'NEEDS_QA' : 'PASS')
           : 'FAIL')
       : 'NEEDS_QA';
-    clip.videoUrl = finished.url;
-    clip.providerVideoSha256 = sha256(providerVideoBytes);
+    clip.videoUrl = sanitizedUrl(finished.url);
+    clip.providerVideoSha256 = providerVideoSha256;
     clip.providerVideoFile = 'provider.mp4';
     clip.videoSha256 = videoSha256;
     clip.videoPath = videoPath;
@@ -1114,7 +1185,9 @@ export class VideoService {
         const failed = {
           ...clip,
           status: 'FAIL',
-          failureCode: cause?.code ?? 'VIDEO_AUTOMATIC_QA_FAILED',
+          failureCode: typeof cause?.code === 'string'
+            ? cause.code
+            : 'VIDEO_AUTOMATIC_QA_FAILED',
           updatedAt: new Date(this.#clock()).toISOString(),
         };
         await this.#store.save(clipId, failed);

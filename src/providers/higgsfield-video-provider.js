@@ -246,10 +246,67 @@ function findJobId(payload) {
   return null;
 }
 
-function findVideoUrl(payload) {
-  const text = JSON.stringify(payload ?? {});
-  const match = text.match(/https:\/\/[^"\s]+\.(?:mp4|mov|webm)/);
-  return match ? match[0] : null;
+const OUTPUT_CONTAINER_FIELDS = new Set(['output', 'outputs', 'result', 'results', 'artifacts']);
+const OUTPUT_URL_FIELDS = new Set(['url', 'video_url', 'output_url', 'download_url', 'file_url']);
+const NON_OUTPUT_FIELDS = new Set(['input', 'inputs', 'request', 'source', 'sources', 'reference', 'references']);
+
+function pointerPart(value) {
+  return String(value).replaceAll('~', '~0').replaceAll('/', '~1');
+}
+
+function isVideoUrl(value) {
+  if (typeof value !== 'string') return false;
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === 'https:' && /\.(?:mp4|mov|webm)$/i.test(parsed.pathname);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Select only an explicit completed-result media field from the envelope that
+ * answered for the persisted job. Provider payloads also contain input media
+ * URLs; scanning arbitrary JSON strings can therefore bind Video 1 itself as
+ * the generated output. Ambiguous explicit outputs fail closed.
+ */
+function findExplicitVideoOutput(payload) {
+  const candidates = [];
+  const seen = new Set();
+
+  function walk(value, parts, insideOutputContainer = false) {
+    if (!value || typeof value !== 'object' || seen.has(value)) return;
+    seen.add(value);
+    for (const [key, child] of Object.entries(value)) {
+      if (NON_OUTPUT_FIELDS.has(key)) continue;
+      const nextParts = [...parts, key];
+      const nextInside = insideOutputContainer || OUTPUT_CONTAINER_FIELDS.has(key);
+      if (nextInside
+        && (OUTPUT_URL_FIELDS.has(key) || OUTPUT_CONTAINER_FIELDS.has(key))
+        && isVideoUrl(child)) {
+        candidates.push({
+          url: child,
+          selectedFieldPath: `/${nextParts.map(pointerPart).join('/')}`,
+        });
+      }
+      if (nextInside && Array.isArray(child)) {
+        child.forEach((entry, index) => walk(entry, [...nextParts, index], true));
+      } else if (nextInside || OUTPUT_CONTAINER_FIELDS.has(key)) {
+        walk(child, nextParts, nextInside);
+      }
+    }
+  }
+
+  walk(payload, []);
+  const unique = new Map(candidates.map((candidate) => [candidate.url, candidate]));
+  if (unique.size === 1) return [...unique.values()][0];
+  if (unique.size > 1) {
+    throw new VideoProviderError('Provider returned multiple explicit video outputs', {
+      code: 'AMBIGUOUS_VIDEO_OUTPUT',
+      retryable: false,
+    });
+  }
+  return null;
 }
 
 /**
@@ -300,19 +357,19 @@ export class HiggsfieldVideoProvider {
     }
     const payload = parseJson(stdout, 'wait');
     const returnedId = findJobId(payload);
-    if (returnedId && returnedId !== jobId) {
+    if (returnedId !== jobId) {
       throw new VideoProviderError('Provider wait answered about a different job', {
         code: 'PROVIDER_JOB_MISMATCH',
       });
     }
-    const url = findVideoUrl(payload);
-    if (!url) {
+    const selected = findExplicitVideoOutput(payload);
+    if (!selected) {
       throw new VideoProviderError('Provider finished without a video URL', {
         code: 'MISSING_VIDEO_OUTPUT',
         retryable: true,
       });
     }
-    return { jobId, url, raw: payload };
+    return { jobId, url: selected.url, selectedFieldPath: selected.selectedFieldPath, raw: payload };
   }
 
   /** Create, hand the job id to the caller for persistence, then wait. */

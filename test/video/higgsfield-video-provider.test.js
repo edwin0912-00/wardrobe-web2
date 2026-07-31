@@ -141,7 +141,76 @@ test('the job id is handed over before the wait phase, so a restart can resume',
   assert.deepEqual(seen, ['job_abc']);
   assert.deepEqual(calls, ['create', 'wait']);
   assert.equal(result.url, 'https://cdn.example/clip.mp4');
+  assert.equal(result.selectedFieldPath, '/results/0/url');
   assert.equal(result.request.aspectRatio, '16:9');
+});
+
+test('wait selects an explicit result URL and never an earlier input reference URL', async () => {
+  const provider = new HiggsfieldVideoProvider({
+    commandRunner: async () => ({
+      stdout: JSON.stringify({
+        job_id: 'job_bound',
+        request: { video_url: 'https://cdn.example/private-reference.mp4' },
+        result: { output_url: 'https://cdn.example/generated-output.mp4' },
+      }),
+      stderr: '',
+    }),
+  });
+  const finished = await provider.waitForJob({ jobId: 'job_bound' });
+  assert.equal(finished.url, 'https://cdn.example/generated-output.mp4');
+  assert.equal(finished.selectedFieldPath, '/result/output_url');
+});
+
+test('wait fails closed when explicit result fields name different video outputs', async () => {
+  const provider = new HiggsfieldVideoProvider({
+    commandRunner: async () => ({
+      stdout: JSON.stringify({
+        job_id: 'job_ambiguous',
+        results: [
+          { url: 'https://cdn.example/output-a.mp4' },
+          { url: 'https://cdn.example/output-b.mp4' },
+        ],
+      }),
+      stderr: '',
+    }),
+  });
+  await assert.rejects(() => provider.waitForJob({ jobId: 'job_ambiguous' }), (error) => {
+    assert.equal(error.code, 'AMBIGUOUS_VIDEO_OUTPUT');
+    assert.equal(error.retryable, false);
+    return true;
+  });
+});
+
+test('wait refuses an input reference URL when no explicit output exists', async () => {
+  const provider = new HiggsfieldVideoProvider({
+    commandRunner: async () => ({
+      stdout: JSON.stringify({
+        job_id: 'job_no_output',
+        request: { video_url: 'https://cdn.example/private-reference.mp4' },
+      }),
+      stderr: '',
+    }),
+  });
+  await assert.rejects(() => provider.waitForJob({ jobId: 'job_no_output' }), (error) => {
+    assert.equal(error.code, 'MISSING_VIDEO_OUTPUT');
+    return true;
+  });
+});
+
+test('wait refuses an input URL even when it is nested inside a result envelope', async () => {
+  const provider = new HiggsfieldVideoProvider({
+    commandRunner: async () => ({
+      stdout: JSON.stringify({
+        job_id: 'job_nested_input',
+        result: { input: { video_url: 'https://cdn.example/private-reference.mp4' } },
+      }),
+      stderr: '',
+    }),
+  });
+  await assert.rejects(() => provider.waitForJob({ jobId: 'job_nested_input' }), (error) => {
+    assert.equal(error.code, 'MISSING_VIDEO_OUTPUT');
+    return true;
+  });
 });
 
 test('a batched CLI create response still yields the created job id', async () => {

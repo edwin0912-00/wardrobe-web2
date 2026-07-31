@@ -968,6 +968,46 @@ test('awaitAndFinalize marks a missing provider job FAILED without a second crea
   });
 });
 
+test('awaitAndFinalize rejects provider bytes equal to the locked motion reference before QA', async () => {
+  await withTempDir(async (dir) => {
+    const referenceBytes = Buffer.from('exact-private-motion-reference');
+    const referenceSha256 = sha256(referenceBytes);
+    const { provider } = makeStubProvider({ jobId: 'job_wrong_artifact' });
+    const store = new ClipStore(dir);
+    const service = new VideoService({ provider, clipStore: store });
+    await store.save('wrong-artifact-clip', {
+      clipId: 'wrong-artifact-clip',
+      status: 'CREATED',
+      jobId: 'job_wrong_artifact',
+      providerKey: 'higgsfield',
+      motionReferenceBinding: { sha256: referenceSha256 },
+    });
+
+    let probeCalls = 0;
+    await assert.rejects(
+      () => service.awaitAndFinalize('wrong-artifact-clip', {
+        downloadFn: async () => referenceBytes,
+        probeFn: async () => { probeCalls += 1; return {}; },
+        extractFrameFn: async () => new Uint8Array(10),
+      }),
+      (error) => error.code === 'VIDEO_PROVIDER_OUTPUT_IS_REFERENCE',
+    );
+    assert.equal(probeCalls, 0);
+    const persisted = await store.load('wrong-artifact-clip');
+    assert.equal(persisted.status, 'FAIL');
+    assert.equal(persisted.failureCode, 'VIDEO_PROVIDER_OUTPUT_IS_REFERENCE');
+    assert.equal(persisted.providerVideoSha256, referenceSha256);
+    assert.equal(persisted.providerOutputFieldPath, '/results/0/url');
+    assert.match(persisted.providerWaitReceiptSha256, /^[a-f0-9]{64}$/);
+    const receipt = JSON.parse(await readFile(
+      path.join(store.clipDir('wrong-artifact-clip'), persisted.providerWaitReceiptFile),
+      'utf8',
+    ));
+    assert.equal(receipt.selected_field_path, '/results/0/url');
+    assert.equal(receipt.selected_url_sanitized, 'https://cdn.example/clip.mp4');
+  });
+});
+
 test('recordIdentityItemQa makes a semantic RETRY fail a technically valid clip', async () => {
   await withTempDir(async (dir) => {
     const { provider } = makeStubProvider();
@@ -1072,6 +1112,27 @@ test('automatic QA consumes NEEDS_QA and returns a terminal retryable failure', 
     assert.equal(persisted.identityItemQa.pass, false);
     assert.equal(persisted.referenceAdherenceQa.pass, false);
     assert.equal(persisted.failureCode, 'VIDEO_REFERENCE_QA_FAILED');
+  });
+});
+
+test('automatic QA never persists a numeric process exit code as a public failure code', async () => {
+  await withTempDir(async (dir) => {
+    const { provider } = makeStubProvider();
+    const store = new ClipStore(dir);
+    const processError = new Error('ffmpeg failed');
+    processError.code = 234;
+    const service = new VideoService({
+      provider,
+      clipStore: store,
+      automaticQaFn: async () => { throw processError; },
+    });
+    await store.save('numeric-error-clip', {
+      clipId: 'numeric-error-clip', status: 'NEEDS_QA', videoSha256: 'a'.repeat(64),
+    });
+    const result = await service.runAutomaticQa('numeric-error-clip');
+    assert.equal(result.failureCode, 'VIDEO_AUTOMATIC_QA_FAILED');
+    const persisted = await store.load('numeric-error-clip');
+    assert.equal(persisted.failureCode, 'VIDEO_AUTOMATIC_QA_FAILED');
   });
 });
 
