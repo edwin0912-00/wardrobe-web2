@@ -42,8 +42,11 @@ The adapter maps the currently public beta routes for:
 - editorial Fashion Shoot, Bible and hero approvals;
 - Fashion Video capability, creation, finalization and playback URL;
 - Live Look capability, public pipeline description and scoped realtime token;
-- SSE for core runs, scenes and editorial shoots; polling only for Fashion
-  Video, because the current video contract deliberately exposes no SSE route.
+- SSE for core runs, scenes and editorial shoots, with bounded durable-status
+  reconciliation when a browser drops or misses a terminal event. Fashion Video
+  remains polling-only because the current video contract deliberately exposes
+  no SSE route. `NEEDS_RETRY` is treated as a terminal backend decision so the
+  presentation can show recovery instead of leaving an attention orb running.
 
 For server-draft finalization the adapter creates a UUID v4 (the backend uses
 that UUID as the persisted run id). Header idempotency keys for scenes and

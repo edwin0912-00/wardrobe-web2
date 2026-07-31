@@ -304,4 +304,16 @@ test('duplicate garment choices and explicit shoot approvals remain actionable',
   });
   await bridge.approveShoot();
   assert.deepEqual(client.calls.at(-1), ['approve-hero', 'shoot-1', 'b'.repeat(64)]);
+
+  client.emit({
+    type: 'shoot:reconciled',
+    shoot: {
+      shoot_id: 'shoot-1',
+      status: 'NEEDS_RETRY',
+      terminal_stage: 'SHOT_RETRY',
+      shots: [{ slot: 'hero', status: 'FAILED' }],
+    },
+  });
+  assert.equal(bridge.state().phase, 'failed');
+  assert.deepEqual(bridge.state().error, { code: 'SHOOT_NEEDS_RETRY' });
 });

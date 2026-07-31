@@ -16,7 +16,21 @@ export class ZeelyApiError extends Error {
   }
 }
 
-const terminal = new Set(['COMPLETED', 'PASS', 'READY', 'APPROVED', 'FAILED', 'FAIL', 'CANCELLED']);
+// NEEDS_RETRY is a terminal backend decision: the job is no longer running and
+// needs an explicit user action.  Keep it transport-terminal so a lost SSE
+// connection cannot leave the watchdog spinning forever while the bridge
+// presents its retry affordance.
+const terminal = new Set([
+  'COMPLETED', 'PASS', 'READY', 'APPROVED', 'FAILED', 'FAIL', 'CANCELLED', 'NEEDS_RETRY',
+]);
+
+function entityIdField(kind) {
+  return kind === 'run' ? 'run_id'
+    : kind === 'scene' ? 'scene_id'
+      : kind === 'shoot' ? 'shoot_id'
+        : kind === 'video' ? 'clip_id'
+          : `${kind}_id`;
+}
 
 function trimTrailingSlash(value) {
   return String(value || '/api').replace(/\/+$/, '') || '/api';
@@ -186,7 +200,7 @@ export function createZeelyClient({
     let terminalPollTimer = null;
     let terminalPollInFlight = false;
     const isCurrent = () => streams.get(key) === subscription
-      && snapshot[kind]?.run_id === id;
+      && snapshot[kind]?.[entityIdField(kind)] === id;
     const cancelRecovery = () => {
       if (recoveryTimer) clearTimeout(recoveryTimer);
       recoveryTimer = null;
@@ -428,7 +442,11 @@ export function createZeelyClient({
       update('scene', scene, 'scene:updated');
       return scene;
     },
-    watchScene(sceneId) { return watch('scene', sceneId, 'scene', `/profile/scenes/${encode(sceneId)}/events`); },
+    watchScene(sceneId) {
+      return watch('scene', sceneId, 'scene', `/profile/scenes/${encode(sceneId)}/events`, {
+        statusPath: `/profile/scenes/${encode(sceneId)}`,
+      });
+    },
     async retryScene(sceneId, key = null) {
       const scene = await request(`/profile/scenes/${encode(sceneId)}/retry`, {
         method: 'POST', headers: { 'Idempotency-Key': key || createIdempotencyKey('scene-retry') },
@@ -466,7 +484,11 @@ export function createZeelyClient({
     },
     loadShootBible: (shootId) => request(`/profile/editorial-shoots/${encode(shootId)}/bible`),
     loadShootContactSheet: (shootId) => request(`/profile/editorial-shoots/${encode(shootId)}/contact-sheet`),
-    watchShoot(shootId) { return watch('shoot', shootId, 'shoot', `/profile/editorial-shoots/${encode(shootId)}/events`); },
+    watchShoot(shootId) {
+      return watch('shoot', shootId, 'shoot', `/profile/editorial-shoots/${encode(shootId)}/events`, {
+        statusPath: `/profile/editorial-shoots/${encode(shootId)}`,
+      });
+    },
     async approveShootBible(shootId, expectedBibleSha256, key = null) {
       const shoot = await request(`/profile/editorial-shoots/${encode(shootId)}/approve-bible`, {
         method: 'POST', headers: { 'Idempotency-Key': key || createIdempotencyKey('shoot-bible') },
@@ -488,6 +510,7 @@ export function createZeelyClient({
         method: 'POST', headers: { 'Idempotency-Key': key || createIdempotencyKey('shoot-retry') },
       });
       update('shoot', shoot, 'shoot:shot_retried');
+      client.watchShoot(shoot.shoot_id);
       return shoot;
     },
     async cancelShoot(shootId) {

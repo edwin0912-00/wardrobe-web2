@@ -123,6 +123,40 @@ test('reconciles the current run once after an SSE drop so terminal failure reac
   assert.equal(stream.closed, true);
 });
 
+test('reconciles an editorial shoot after SSE drop and exposes NEEDS_RETRY', async () => {
+  const calls = [];
+  const client = createZeelyClient({
+    fetchImpl: async (url, options) => {
+      calls.push({ url, options });
+      if (url === '/api/profile/looks/look-shoot/editorial-shoots') {
+        return jsonResponse({ shoot_id: 'shoot-drop', status: 'QUEUED' }, 202);
+      }
+      if (url === '/api/profile/editorial-shoots/shoot-drop') {
+        return jsonResponse({
+          shoot_id: 'shoot-drop',
+          status: 'NEEDS_RETRY',
+          terminal_stage: 'SHOT_RETRY',
+          shots: [{ slot: 'hero', status: 'FAILED' }],
+        });
+      }
+      throw new Error(`unexpected request ${url}`);
+    },
+    EventSourceImpl: FakeEventSource,
+    sseRecoveryInitialDelayMs: 0,
+    sseRecoveryMaxAttempts: 1,
+  });
+
+  await client.createShoot('look-shoot', { modeId: 'shoot.editorial', modeVersion: '1.0.0' });
+  const stream = FakeEventSource.instances.at(-1);
+  stream.onerror();
+  await new Promise((resolve) => setTimeout(resolve, 10));
+
+  assert.equal(calls.filter(({ url }) => url === '/api/profile/editorial-shoots/shoot-drop').length, 1);
+  assert.equal(client.snapshot().shoot.status, 'NEEDS_RETRY');
+  assert.equal(client.snapshot().phase, 'recovering');
+  assert.equal(stream.closed, true);
+});
+
 test('terminal watchdog reconciles a mobile run when SSE stays open but misses completion', async () => {
   const client = createZeelyClient({
     fetchImpl: async (url) => url === '/api/draft/run'
