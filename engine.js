@@ -400,6 +400,13 @@
       }
       film.style.width = Math.round(w) + 'px';
       film.style.height = Math.round(h) + 'px';
+      /* Published so stage-space layers can place themselves against the PICTURE instead of
+       * against the viewport. The film is centred and letterboxed, so a sibling that anchors
+       * to the bottom of the stage lands in the black band below the footage rather than low
+       * in the frame — which is what happened to the film copy. Only these two numbers are
+       * needed to fix that, and they are already computed here. */
+      root.style.setProperty('--film-w', Math.round(w) + 'px');
+      root.style.setProperty('--film-h', Math.round(h) + 'px');
     }
 
     /* ---- preload --------------------------------------------------------------

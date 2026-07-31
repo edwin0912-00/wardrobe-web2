@@ -226,11 +226,27 @@ body {
  * both mirror panels every time (mirrors sit at 5-44% and 55.7-94.7%; the gap between
  * them is only ~11.7% of frame width, nowhere near enough to hold a sentence). Top-anchored
  * clears the featured object in all four legs without needing per-leg positions. */
+/* MOVED LOW, NOT DEAD-CENTRE — owner direction, 2026-07-31.
+ *
+ * The note above is still right about why centre fails: the gap between the mirrors is only
+ * ~11.7% of frame width, so a centred sentence crosses both panels. Top-anchored solved
+ * that but put the words above everything, which is where they were noticed as sitting over
+ * the room rather than in it. Low is the third option and the mirrors themselves make it
+ * safe: they end at 83.2% of frame height, so the band under them is empty in all four
+ * legs. The selected lines are also short enough to hold at a smaller size, which the long
+ * English headline was not. */
 .copy {
   position: absolute; inset: 0; z-index: 6;
-  display: grid; justify-content: center; align-content: start;
+  display: grid; justify-content: center; align-content: center;
   pointer-events: none;
-  padding: 6vh 6vw 0;
+  padding: 0 6vw;
+  /* Anchoring to the bottom of the STAGE put the words in the letterbox below the picture —
+   * measured at 120.6% of film height. The film is centred, so centring here lands on the
+   * film's own centre, and the offset below is a share of the film's height rather than of
+   * the viewport: 0.24 puts the band at roughly 74% of the frame, under the mirrors (which
+   * end at 83.2%) and clear of the floor edge. --film-h comes from engine.js, and the
+   * fallback keeps this sane for one frame before the first resize. */
+  transform: translate3d(0, calc(var(--film-h, 60vh) * 0.24), 0);
 }
 .copy__line {
   grid-area: 1 / 1;
@@ -245,7 +261,7 @@ body {
   visibility: hidden;
   font-family: ui-sans-serif, -apple-system, "Helvetica Neue", sans-serif;
   font-weight: 300;
-  font-size: clamp(22px, 4.6vw, 58px);
+  font-size: clamp(18px, 3.2vw, 40px);
   line-height: 1.1;
   letter-spacing: 0.02em;
   text-align: center;
@@ -270,6 +286,21 @@ body {
     min(1, max(0, (0.82 - var(--leg-p, 0)) * 6))
   );
   transform: translate3d(0, calc(var(--par-mid, 0px) * -0.10), 0);
+}
+
+/* THE INTERFACE AND THE WORDS ARE NEVER ON SCREEN TOGETHER.
+ *
+ * The per-leg curve above already clears a line by 82% of its leg, and with the stop now
+ * pinned at the end of leg zero that lands well before the panel. But "already should" is
+ * not the same as "cannot": the film copy and the mirror interface competing for the same
+ * frame is exactly what the owner saw, and it should be impossible rather than merely
+ * unlikely. Matching the per-leg selector's specificity and coming later in the file is
+ * what makes this win without reaching for !important. `visibility` is the guarantee —
+ * it flips at the boundary instead of interpolating, so no interrupted transition can
+ * leave a word readable under the panel. */
+.stage[data-station="1"] .copy__line[data-on] {
+  opacity: 0;
+  visibility: hidden;
 }
 
 /* -------------------------------------------------------------- mirror UI --- */
