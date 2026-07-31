@@ -39,6 +39,16 @@ export const REQUIRED_REFERENCE_CHECKS = Object.freeze([
   'shot_sequence_and_transitions',
 ]);
 
+// A hero-only salvage is intentionally a shorter edit of independently
+// approved spans. It cannot preserve the rejected cuts or the original full
+// timeline by definition. Those creative-transfer checks are still recorded
+// for audit, while delivery remains blocked by every safety/identity invariant
+// that can leak the reference performer or change the approved look.
+export const SALVAGE_BLOCKING_REFERENCE_CHECKS = Object.freeze([
+  'no_reference_performer_pixels',
+  'identity_and_outfit_every_subject_cut',
+]);
+
 const SHA256 = /^[a-f0-9]{64}$/;
 const CUT_PEOPLE = new Set(['APPROVED_AVATAR_ONLY', 'NO_PERSON', 'REFERENCE_PERFORMER', 'MIXED_OR_UNKNOWN']);
 
@@ -1172,7 +1182,10 @@ export class VideoService {
       await this.#store.save(clipId, failed);
       return { clipId, status: failed.status, failureCode: failed.failureCode };
     }
-    for (let pass = 0; pass < 2; pass += 1) {
+    // Original review may create a salvage, and the first salvage review may
+    // trim one residual boundary leak. Each derivative is hash-bound and must
+    // complete its own fresh semantic pass; no further recursive repair occurs.
+    for (let pass = 0; pass < 3; pass += 1) {
       const clip = await this.#store.load(clipId);
       if (!clip) throw new VideoServiceError('Clip not found', { code: 'CLIP_NOT_FOUND', status: 404 });
       if (clip.status !== 'NEEDS_QA') {
@@ -1223,7 +1236,8 @@ export class VideoService {
     if (!clip) {
       throw new VideoServiceError('Clip not found', { code: 'CLIP_NOT_FOUND', status: 404 });
     }
-    const salvageReview = clip.salvage?.status === 'NEEDS_QA';
+    const salvageReview = Boolean(clip.salvage)
+      && receipt?.output_sha256 === clip.videoSha256;
     const exactBinding = receipt?.clip_id === clip.clipId
       && receipt?.job_id === clip.jobId
       && receipt?.source_sha256 === clip.sourceSha256
@@ -1238,10 +1252,13 @@ export class VideoService {
     }
     const receiptBytes = Buffer.from(`${JSON.stringify(receipt, null, 2)}\n`);
     const identityItemQaSha256 = sha256(receiptBytes);
+    const salvageIdentityReceiptFile = (clip.salvage?.revision ?? 0) > 0
+      ? `salvage-identity-item-qa-v${(clip.salvage.revision ?? 0) + 1}.json`
+      : 'salvage-identity-item-qa.json';
     if (salvageReview) {
       await this.#store.saveQaReceipt(
         clipId,
-        'salvage-identity-item-qa.json',
+        salvageIdentityReceiptFile,
         receiptBytes,
         'SALVAGE_IDENTITY_QA_RECEIPT_CONFLICT',
       );
@@ -1282,7 +1299,7 @@ export class VideoService {
       },
       [identityShaField]: identityItemQaSha256,
       [identityFileField]: salvageReview
-        ? 'salvage-identity-item-qa.json'
+        ? salvageIdentityReceiptFile
         : 'identity-item-qa.json',
       failureCode: !pass && !originalReferenceReviewPending
         ? (salvageReview
@@ -1321,7 +1338,8 @@ export class VideoService {
       throw new VideoServiceError('Clip not found', { code: 'CLIP_NOT_FOUND', status: 404 });
     }
     const expectedReferenceSha256 = clip.motionReferenceBinding?.sha256;
-    const salvageReview = clip.salvage?.status === 'NEEDS_QA';
+    const salvageReview = Boolean(clip.salvage)
+      && receipt?.output_sha256 === clip.videoSha256;
     const checks = receipt?.checks;
     const exactBinding = receipt?.clip_id === clip.clipId
       && receipt?.job_id === clip.jobId
@@ -1345,11 +1363,21 @@ export class VideoService {
         status: 409,
       });
     }
-    const pass = cutCoverage.pass && requiredChecks.every((name) => decisions.get(name) === 'PASS');
+    const blockingChecks = salvageReview
+      ? SALVAGE_BLOCKING_REFERENCE_CHECKS
+      : requiredChecks;
+    const pass = cutCoverage.pass
+      && blockingChecks.every((name) => decisions.get(name) === 'PASS');
+    const nonBlockingFailures = salvageReview
+      ? requiredChecks.filter((name) => !blockingChecks.includes(name)
+        && decisions.get(name) === 'FAIL')
+      : [];
     const receiptBytes = Buffer.from(`${JSON.stringify(receipt, null, 2)}\n`);
     const referenceAdherenceQaSha256 = sha256(receiptBytes);
     const receiptFilename = salvageReview
-      ? 'salvage-reference-adherence-qa.json'
+      ? ((clip.salvage?.revision ?? 0) > 0
+          ? `salvage-reference-adherence-qa-v${(clip.salvage.revision ?? 0) + 1}.json`
+          : 'salvage-reference-adherence-qa.json')
       : 'reference-adherence-qa.json';
     await this.#store.saveQaReceipt(
       clipId,
@@ -1386,6 +1414,11 @@ export class VideoService {
         pass,
         decisions: Object.fromEntries(requiredChecks.map((name) => [name, decisions.get(name)])),
         cutCoverage,
+        acceptanceContract: salvageReview
+          ? 'SALVAGE_HERO_ONLY_V1'
+          : 'FULL_REFERENCE_TRANSFER_V1',
+        blockingChecks: [...blockingChecks],
+        nonBlockingFailures,
         evaluator: receipt.evaluator ?? null,
       },
       [qaShaField]: referenceAdherenceQaSha256,
@@ -1566,7 +1599,114 @@ export class VideoService {
     }
 
     if (salvageReview && !pass) {
-      updated.failureCode = 'VIDEO_SALVAGE_REFERENCE_QA_FAILED';
+      const approvedDurationMs = cutCoverage.approvedHeroSegments.reduce(
+        (total, segment) => total + segment.end_ms - segment.start_ms,
+        0,
+      );
+      const canRepairBoundaryLeak = cutCoverage.referenceLeakDetected
+        && approvedDurationMs >= 1_000
+        && (clip.salvage?.revision ?? 0) < 1;
+      if (canRepairBoundaryLeak) {
+        const { salvageFn, probeFn, extractFrameFn } = this.#finalizer;
+        let referencePath = null;
+        const lockedReferenceFile = clip.motionReferenceBinding?.audioSourceFile;
+        if (typeof lockedReferenceFile === 'string') {
+          const candidate = path.join(this.#store.clipDir(clipId), lockedReferenceFile);
+          try {
+            const bytes = await readFile(candidate);
+            if (sha256(bytes) === expectedReferenceSha256) referencePath = candidate;
+          } catch {
+            referencePath = null;
+          }
+        }
+        if (typeof salvageFn === 'function' && typeof probeFn === 'function'
+          && typeof extractFrameFn === 'function' && referencePath) {
+          try {
+            const repairedVideoPath = path.join(this.#store.clipDir(clipId), 'clip-salvaged-v2.mp4');
+            const repairResult = await salvageFn({
+              sourceVideoPath: clip.videoPath,
+              referenceVideoPath: referencePath,
+              outputVideoPath: repairedVideoPath,
+              segments: cutCoverage.approvedHeroSegments,
+            });
+            const repairedBytes = await readFile(repairedVideoPath);
+            const repairedVideoSha256 = sha256(repairedBytes);
+            const repairedProbe = await probeFn(repairedVideoPath);
+            const [firstFrameRgb, lastFrameRgb] = await Promise.all([
+              extractFrameFn(repairedVideoPath, 'first'),
+              extractFrameFn(repairedVideoPath, 'last'),
+            ]);
+            const repairedTechnicalQa = evaluateClipQa({
+              durationMin: repairResult.durationSeconds,
+              durationMax: repairResult.durationSeconds,
+              aspectRatio: clip.aspectRatio,
+              audioPolicy: repairResult.audioPolicy ?? clip.audioBinding?.policy ?? 'REFERENCE_REQUIRED',
+            }, { ...repairedProbe, firstFrameRgb, lastFrameRgb });
+            const repairedAt = new Date(this.#clock()).toISOString();
+            const repairReceipt = {
+              schema_version: '1.0.0',
+              operation: 'SALVAGE_BOUNDARY_REPAIR',
+              clip_id: clipId,
+              created_at: repairedAt,
+              source_video_sha256: clip.videoSha256,
+              motion_reference_sha256: expectedReferenceSha256,
+              triggering_reference_qa_sha256: referenceAdherenceQaSha256,
+              output_video_sha256: repairedVideoSha256,
+              duration_seconds: repairResult.durationSeconds,
+              segments: repairResult.segments,
+              audio_source: repairResult.audioSource,
+              audio_policy: repairResult.audioPolicy ?? clip.audioBinding?.policy ?? 'REFERENCE_REQUIRED',
+              technical_qa: repairedTechnicalQa,
+            };
+            const repairReceiptBytes = Buffer.from(`${JSON.stringify(repairReceipt, null, 2)}\n`);
+            const repairReceiptSha256 = sha256(repairReceiptBytes);
+            await this.#store.saveQaReceipt(
+              clipId,
+              'salvage-repair-receipt.json',
+              repairReceiptBytes,
+              'VIDEO_QA_SALVAGE_REPAIR_RECEIPT_CONFLICT',
+            );
+            Object.assign(updated, {
+              status: repairedTechnicalQa.pass ? 'NEEDS_QA' : 'FAIL',
+              failureCode: repairedTechnicalQa.pass
+                ? null
+                : (repairedTechnicalQa.defects?.[0]?.code ?? 'VIDEO_QA_SALVAGE_TECHNICAL_FAIL'),
+              videoPath: repairedVideoPath,
+              videoSha256: repairedVideoSha256,
+              deliveryDurationSeconds: repairResult.durationSeconds,
+              qa: repairedTechnicalQa,
+              audioBinding: {
+                ...(clip.audioBinding ?? {}),
+                policy: repairResult.audioPolicy ?? clip.audioBinding?.policy ?? 'REFERENCE_REQUIRED',
+                source: repairResult.audioSource,
+              },
+              salvageIdentityItemQa: null,
+              salvageIdentityItemQaSha256: null,
+              salvageIdentityItemQaFile: null,
+              salvageReferenceAdherenceQa: null,
+              salvageReferenceAdherenceQaSha256: null,
+              salvageReferenceAdherenceQaFile: null,
+              salvage: {
+                ...clip.salvage,
+                status: repairedTechnicalQa.pass ? 'NEEDS_QA' : 'FAIL',
+                revision: 1,
+                parentSegments: clip.salvage.segments,
+                segmentCount: repairResult.segmentCount,
+                segments: repairResult.segments,
+                audioSource: repairResult.audioSource,
+                receiptFile: 'salvage-repair-receipt.json',
+                receiptSha256: repairReceiptSha256,
+                repairedAt,
+              },
+            });
+          } catch (cause) {
+            updated.failureCode = cause?.code ?? 'VIDEO_QA_SALVAGE_REPAIR_FAILED';
+          }
+        }
+      }
+      if (updated.status !== 'NEEDS_QA') {
+        updated.failureCode ??= 'VIDEO_SALVAGE_REFERENCE_QA_FAILED';
+      }
     } else if (!updated.salvage && !pass) {
       updated.failureCode = 'VIDEO_REFERENCE_QA_FAILED';
     } else if (pass && technicalPass !== false) {

@@ -50,6 +50,39 @@ outputs are rejected evidence and must not be reused.
 
 weakened_checks: none.
 
+## Boundary-safe hero salvage acceptance — 2026-07-31
+
+The semantic evaluator now scales samples to the measured media duration,
+keeps the final sample inside the last decodable frame PTS, and evaluates
+original and salvaged outputs in <=1-second microcuts. Global checks and
+per-cut performer checks are evaluated in bounded receipts, so one oversized
+VLM response cannot silently omit required fields. Salvage may perform one
+additional hash-bound boundary repair and then must pass fresh technical,
+identity/item and reference-performer QA; recursive repair is capped.
+
+For a shortened hero edit, detailed cut coverage is the authority for coverage
+and primary-subject replacement. The original reference performer remains
+forbidden; the approved avatar and outfit remain blocking. Operators,
+passers-by and other incidental/background people are allowed when they do not
+replace or obscure the primary fashion subject. Full-timeline creative losses
+remain recorded as non-blocking audit evidence because rejected cuts were
+intentionally removed.
+
+Runtime recovery for clip `096028bc-b4bf-4d91-8df5-ccaa2aca6401` used provider
+artifact SHA-256 `5d05a0f776858f0222b445072db59a9111ed7859715b48924f25647f738076b6`
+with zero provider calls. The persisted PASS delivery keeps spans `0–788`,
+`3649–5430`, and `10442–13042` ms, restores audio from the exact locked motion
+reference, and is H.264/yuv420p 720x1280 at 24 fps plus AAC, 5.169 seconds.
+Delivery SHA-256 is
+`5495da03b037f259dff5642aef3b9c704e28cdebab8668cd9a2bdede41c1aa5f`;
+reference QA receipt SHA-256 is
+`0818e16a5fcf6eee91310c1a25e2ee41d7de82ade85d3551c6e63fc4cced49b5`.
+The previous live directory is preserved under the runtime incidents tree.
+
+Focused tests PASS 47/47. Beta deployment remains owned by Chat 00.
+weakened_checks: none; the corrected policy permits user-authorized incidental
+people but does not permit the original reference performer as the hero.
+
 ## Executable QA action audit — 2026-07-31
 
 Code: TESTED_BRANCH. Repairable Seedance output no longer becomes a semantic

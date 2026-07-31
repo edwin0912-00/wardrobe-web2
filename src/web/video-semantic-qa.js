@@ -20,16 +20,16 @@ async function extractJpeg(commandRunner, videoPath, seconds, outputPath) {
   await commandRunner('ffmpeg', [
     '-hide_banner', '-loglevel', 'error', '-y',
     '-ss', seconds.toFixed(3), '-i', videoPath,
-    '-frames:v', '1', '-vf', 'scale=360:-2', '-q:v', '2', outputPath,
+    '-frames:v', '1', '-vf', 'scale=360:-2', '-pix_fmt', 'yuvj420p',
+    '-threads', '1', '-q:v', '2', outputPath,
   ], { maxBuffer: 4 * 1024 * 1024 });
   const bytes = await readFile(outputPath);
   return { path: outputPath, sha256: sha256(bytes) };
 }
 
-async function contactSheet(framePaths, outputPath) {
+async function contactSheet(framePaths, outputPath, { columns = 4 } = {}) {
   const width = 256;
   const height = 455;
-  const columns = 4;
   const rows = Math.ceil(framePaths.length / columns);
   const composites = await Promise.all(framePaths.map(async (filename, index) => ({
     input: await sharp(filename).resize(width, height, { fit: 'cover' }).jpeg({ quality: 88 }).toBuffer(),
@@ -45,18 +45,22 @@ async function contactSheet(framePaths, outputPath) {
 function reviewCuts(clip, videoReference) {
   if (clip.salvage?.status === 'NEEDS_QA' && Array.isArray(clip.salvage.segments)) {
     let outputStart = 0;
-    return clip.salvage.segments.map((segment, index) => {
+    const microCuts = [];
+    for (const segment of clip.salvage.segments) {
       const duration = segment.end_ms - segment.start_ms;
-      const cut = {
-        cut_index: index,
-        start_ms: outputStart,
-        end_ms: outputStart + duration,
-        reference_start_ms: segment.start_ms,
-        reference_end_ms: segment.end_ms,
-      };
+      const partCount = Math.max(1, Math.ceil(duration / 1_000));
+      for (let part = 0; part < partCount; part += 1) {
+        microCuts.push({
+          cut_index: microCuts.length,
+          start_ms: Math.round(outputStart + (duration * part) / partCount),
+          end_ms: Math.round(outputStart + (duration * (part + 1)) / partCount),
+          reference_start_ms: Math.round(segment.start_ms + (duration * part) / partCount),
+          reference_end_ms: Math.round(segment.start_ms + (duration * (part + 1)) / partCount),
+        });
+      }
       outputStart += duration;
-      return cut;
-    });
+    }
+    return microCuts;
   }
   const referenceCuts = videoReference?.cut_sheet?.cuts ?? [];
   const referenceDurationMs = referenceCuts.at(-1)?.end_ms;
@@ -67,24 +71,42 @@ function reviewCuts(clip, videoReference) {
     && Number.isFinite(outputDurationMs) && outputDurationMs > 0
     ? outputDurationMs / referenceDurationMs
     : 1;
-  return referenceCuts.map((cut) => ({
-    cut_index: cut.cut_index,
-    start_ms: Math.round(cut.start_ms * scale),
-    end_ms: Math.round(cut.end_ms * scale),
-    reference_start_ms: cut.start_ms,
-    reference_end_ms: cut.end_ms,
-  }));
+  const microCuts = [];
+  for (const cut of referenceCuts) {
+    const outputStart = Math.round(cut.start_ms * scale);
+    const outputEnd = Math.round(cut.end_ms * scale);
+    // Keep the visual receipt bounded enough for deterministic VLM output,
+    // while splitting long reference cuts so mixed performer spans cannot
+    // donate an entire multi-second cut to salvage from two interior frames.
+    const partCount = Math.max(1, Math.ceil((outputEnd - outputStart) / 1_000));
+    for (let part = 0; part < partCount; part += 1) {
+      microCuts.push({
+        cut_index: microCuts.length,
+        start_ms: Math.round(outputStart + ((outputEnd - outputStart) * part) / partCount),
+        end_ms: Math.round(outputStart + ((outputEnd - outputStart) * (part + 1)) / partCount),
+        reference_start_ms: Math.round(cut.start_ms + ((cut.end_ms - cut.start_ms) * part) / partCount),
+        reference_end_ms: Math.round(cut.start_ms + ((cut.end_ms - cut.start_ms) * (part + 1)) / partCount),
+      });
+    }
+  }
+  return microCuts;
 }
 
 function checkMap(result) {
   return new Map((result?.checks ?? []).map((check) => [check.name, check]));
 }
 
-function videoPromptText(cutCount) {
+function globalVideoPromptText() {
   const global = REQUIRED_REFERENCE_CHECKS.join(', ');
-  const perCut = Array.from({ length: cutCount }, (_, index) =>
-    `CUT_${index}_APPROVED_AVATAR_ONLY and CUT_${index}_REFERENCE_PERFORMER_ABSENT`).join(', ');
-  return `Fashion Video QA contract. IDENTITY_REFERENCE and OUTFIT_REFERENCE are the exact approved person and complete outfit. GENERATED_CANDIDATE is an ordered output contact sheet with two samples per cut. QUALITY_REFERENCE_1 is the corresponding ordered source-video contact sheet with the same two samples per cut. Preserve the reference environment, light, grade, camera, pose timing, shot sequence and transitions, but replace the reference performer and clothing everywhere. Return checks with these exact unique names: ${global}, ${perCut}. A CUT_*_APPROVED_AVATAR_ONLY check passes only when both output samples visibly contain the approved person and outfit, or the cut intentionally contains no person. CUT_*_REFERENCE_PERFORMER_ABSENT passes only when neither output sample contains the source-video performer, their face, body or clothing. Every global check is blocking. Do not omit or rename checks.`;
+  return `Fashion Video global QA contract. IDENTITY_REFERENCE and OUTFIT_REFERENCE are the exact approved person and complete outfit. GENERATED_CANDIDATE is an ordered output contact sheet with samples near both boundaries and inside every cut. QUALITY_REFERENCE_1 is the corresponding ordered source-video contact sheet at the same relative positions. Preserve the reference environment, light, grade, camera, pose timing, shot sequence and transitions, but replace the reference performer and clothing everywhere. Return checks with these exact unique names only: ${global}. Every named check must be reported exactly once. Do not omit or rename checks.`;
+}
+
+function cutVideoPromptText(cuts, samplesPerCut) {
+  const perCut = cuts.flatMap((cut) => [
+    `CUT_${cut.cut_index}_APPROVED_AVATAR_ONLY`,
+    `CUT_${cut.cut_index}_REFERENCE_PERFORMER_ABSENT`,
+  ]).join(', ');
+  return `Fashion Video per-cut safety QA contract. IDENTITY_REFERENCE and OUTFIT_REFERENCE are the exact approved person and complete outfit. GENERATED_CANDIDATE and QUALITY_REFERENCE_1 are ordered grids: one row per cut, ${samplesPerCut} columns per row, and rows correspond in this exact order: ${cuts.map((cut) => `CUT_${cut.cut_index}`).join(', ')}. Return checks with these exact unique names only: ${perCut}. CUT_*_APPROVED_AVATAR_ONLY passes when the primary fashion subject, whenever present, is the approved person in the exact outfit; an intentionally empty shot also passes. Incidental crew, operators, passers-by, or background people are allowed and must not fail this check unless one replaces or obscures the primary fashion subject. CUT_*_REFERENCE_PERFORMER_ABSENT passes only when the original source-video performer is absent as the primary subject and no recognizable face, body, hair, clothing, silhouette, reflection, blur, or fragment of that performer is reused. Every named check must be reported exactly once. Do not omit or rename checks.`;
 }
 
 /**
@@ -132,7 +154,7 @@ export function createVideoSemanticQaEvaluator({
     }
 
     const cuts = reviewCuts(clip, reference);
-    if (cuts.length < 1 || cuts.length > 24) {
+    if (cuts.length < 1 || cuts.length > 32) {
       throw new VideoSemanticQaError('Video QA has no valid cut plan', {
         code: 'VIDEO_AUTOMATIC_QA_CUT_PLAN_INVALID',
       });
@@ -143,13 +165,33 @@ export function createVideoSemanticQaEvaluator({
       for (const cut of cuts) {
         const outputDuration = cut.end_ms - cut.start_ms;
         const referenceDuration = cut.reference_end_ms - cut.reference_start_ms;
+        // Container duration can extend past the last decodable frame PTS by
+        // one frame interval. Keep end-boundary samples 50ms inside the media
+        // so ffmpeg cannot return an empty image for an otherwise valid clip.
+        const outputMediaDurationMs = (clip.deliveryDurationSeconds ?? clip.durationSeconds) * 1000;
+        const outputLastFrameMs = Number.isFinite(outputMediaDurationMs)
+          ? Math.max(0, outputMediaDurationMs - 50)
+          : Number.POSITIVE_INFINITY;
+        const referenceLastFrameMs = Math.max(
+          0,
+          (reference.cut_sheet.cuts.at(-1)?.end_ms ?? cut.reference_end_ms) - 50,
+        );
         const outputHashes = [];
         const referenceHashes = [];
         const outputFrames = [];
         const referenceFrames = [];
-        for (const [sampleIndex, fraction] of [1 / 3, 2 / 3].entries()) {
-          const outputSeconds = (cut.start_ms + outputDuration * fraction) / 1000;
-          const referenceSeconds = (cut.reference_start_ms + referenceDuration * fraction) / 1000;
+        const sampleFractions = clip.salvage?.status === 'NEEDS_QA'
+          ? [0.02, 1 / 3, 2 / 3, 0.98]
+          : [0.04, 0.5, 0.96];
+        for (const [sampleIndex, fraction] of sampleFractions.entries()) {
+          const outputSeconds = Math.min(
+            cut.start_ms + outputDuration * fraction,
+            outputLastFrameMs,
+          ) / 1000;
+          const referenceSeconds = Math.min(
+            cut.reference_start_ms + referenceDuration * fraction,
+            referenceLastFrameMs,
+          ) / 1000;
           const output = await extractJpeg(
             commandRunner, clip.videoPath, outputSeconds,
             path.join(temporaryRoot, `output-${cut.cut_index}-${sampleIndex}.jpg`),
@@ -178,9 +220,10 @@ export function createVideoSemanticQaEvaluator({
           sampled.flatMap((sample) => sample.referenceFrames),
           path.join(temporaryRoot, 'reference-contact.jpg'),
         );
-        result = await evaluator.evaluateQa({
+        const evaluations = [];
+        evaluations.push(await evaluator.evaluateQa({
           phase: 'scene',
-          idempotencyKey: `video-qa:${clip.clipId}:${clip.videoSha256}`,
+          idempotencyKey: `video-qa:${clip.clipId}:${clip.videoSha256}:global`,
           evidence_manifest_sha256: sha256(Buffer.from(JSON.stringify({
             clip: clip.videoSha256,
             reference: reference.reference_sha256,
@@ -189,11 +232,60 @@ export function createVideoSemanticQaEvaluator({
           }))),
           evidence: {
             identity: { artifact: { path: sourcePath } },
-            outfit: { artifact: { path: sourcePath }, facts: { text: videoPromptText(cuts.length) } },
+            outfit: { artifact: { path: sourcePath }, facts: { text: globalVideoPromptText() } },
             candidate: { artifact: { path: outputSheet } },
             quality_references: [referenceSheet],
           },
-        });
+        }));
+        const batchSize = 6;
+        for (let offset = 0; offset < sampled.length; offset += batchSize) {
+          const batch = sampled.slice(offset, offset + batchSize);
+          const samplesPerCut = batch[0].outputFrames.length;
+          const batchOutputSheet = await contactSheet(
+            batch.flatMap((sample) => sample.outputFrames),
+            path.join(temporaryRoot, `output-cuts-${offset}.jpg`),
+            { columns: samplesPerCut },
+          );
+          const batchReferenceSheet = await contactSheet(
+            batch.flatMap((sample) => sample.referenceFrames),
+            path.join(temporaryRoot, `reference-cuts-${offset}.jpg`),
+            { columns: samplesPerCut },
+          );
+          evaluations.push(await evaluator.evaluateQa({
+            phase: 'scene',
+            idempotencyKey: `video-qa:${clip.clipId}:${clip.videoSha256}:cuts:${offset}`,
+            evidence_manifest_sha256: sha256(Buffer.from(JSON.stringify({
+              clip: clip.videoSha256,
+              reference: reference.reference_sha256,
+              cuts: batch.map((sample) => sample.cut),
+              output_frames: batch.flatMap((sample) => sample.outputHashes),
+              reference_frames: batch.flatMap((sample) => sample.referenceHashes),
+            }))),
+            evidence: {
+              identity: { artifact: { path: sourcePath } },
+              outfit: {
+                artifact: { path: sourcePath },
+                facts: { text: cutVideoPromptText(batch.map((sample) => sample.cut), samplesPerCut) },
+              },
+              candidate: { artifact: { path: batchOutputSheet } },
+              quality_references: [batchReferenceSheet],
+            },
+          }));
+        }
+        const evaluatorIdentities = evaluations.map((evaluation) => evaluation.evaluator);
+        result = {
+          checks: evaluations.flatMap((evaluation) => evaluation.checks ?? []),
+          evaluator: {
+            type: 'MODEL_ENSEMBLE',
+            provider: evaluatorIdentities.map((identity) => identity?.provider).filter(Boolean).join('+'),
+            model: evaluatorIdentities.map((identity) => identity?.model).filter(Boolean).join('+'),
+            version: evaluatorIdentities.map((identity) => identity?.version).filter(Boolean).join('+'),
+            evaluation_id: sha256(Buffer.from(JSON.stringify(
+              evaluatorIdentities.map((identity) => identity?.evaluation_id ?? null),
+            ))),
+            sub_evaluations: evaluatorIdentities,
+          },
+        };
       }
       const checks = checkMap(result);
       if (!exactReferenceCopy) {

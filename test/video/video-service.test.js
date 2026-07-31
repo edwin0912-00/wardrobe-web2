@@ -4,7 +4,12 @@ import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
 
-import { VideoService, VideoServiceError, ClipStore } from '../../src/web/video-service.js';
+import {
+  ClipStore,
+  REQUIRED_REFERENCE_CHECKS,
+  VideoService,
+  VideoServiceError,
+} from '../../src/web/video-service.js';
 import { HiggsfieldVideoProvider } from '../../src/providers/higgsfield-video-provider.js';
 import { sha256 } from '../../src/web/scene-contract.js';
 
@@ -896,7 +901,7 @@ test('reference leakage salvages PASSed hero cuts even when rejected cuts fail a
   });
 });
 
-test('fresh salvage reference failure persists an explicit terminal failure code', async () => {
+test('fresh salvage safety failure persists an explicit terminal failure code', async () => {
   await withTempDir(async (dir) => {
     const { provider } = makeStubProvider();
     const store = new ClipStore(dir);
@@ -914,12 +919,123 @@ test('fresh salvage reference failure persists an explicit terminal failure code
       source_sha256: 'a'.repeat(64), motion_reference_sha256: 'c'.repeat(64),
       output_sha256: 'b'.repeat(64),
       cut_coverage: microCutCoverage({ durationMs: 3_000 }),
-      checks: referenceTransferChecks('camera_and_framing'),
+      checks: referenceTransferChecks('no_reference_performer_pixels'),
     });
     assert.equal(result.status, 'FAIL');
     const persisted = await store.load('failed-salvage-review');
     assert.equal(persisted.failureCode, 'VIDEO_SALVAGE_REFERENCE_QA_FAILED');
     assert.equal(persisted.salvage.status, 'FAIL');
+  });
+});
+
+test('one localized leak in a salvage creates one hash-bound boundary repair', async () => {
+  await withTempDir(async (dir) => {
+    const { provider } = makeStubProvider();
+    const store = new ClipStore(dir);
+    const videoPath = await store.saveVideo('boundary-repair', Buffer.from('salvage-v1'));
+    const clipDir = store.clipDir('boundary-repair');
+    const referenceBytes = Buffer.from('locked-reference');
+    await writeFile(path.join(clipDir, 'style-reference.mp4'), referenceBytes);
+    let salvageCalls = 0;
+    const service = new VideoService({
+      provider,
+      clipStore: store,
+      finalizer: {
+        salvageFn: async ({ outputVideoPath, segments }) => {
+          salvageCalls += 1;
+          await writeFile(outputVideoPath, Buffer.from('salvage-v2'));
+          return {
+            durationSeconds: 2, segmentCount: segments.length, segments,
+            audioSource: 'MOTION_REFERENCE', audioPolicy: 'REFERENCE_REQUIRED',
+          };
+        },
+        probeFn: async () => ({ durationSeconds: 2, width: 720, height: 1280, hasAudio: true }),
+        extractFrameFn: async () => new Uint8Array(20).fill(128),
+      },
+    });
+    await store.save('boundary-repair', {
+      clipId: 'boundary-repair', jobId: 'job_boundary', status: 'NEEDS_QA',
+      durationSeconds: 5, deliveryDurationSeconds: 3, aspectRatio: '9:16',
+      sourceSha256: 'a'.repeat(64), videoPath, videoSha256: sha256(Buffer.from('salvage-v1')),
+      qa: { pass: true }, salvageIdentityItemQa: { pass: true },
+      audioBinding: { policy: 'REFERENCE_REQUIRED' },
+      salvage: { status: 'NEEDS_QA', revision: 0, segments: [{ start_ms: 0, end_ms: 3_000 }] },
+      motionReferenceBinding: {
+        sha256: sha256(referenceBytes), audioSourceFile: 'style-reference.mp4',
+      },
+    });
+    const result = await service.recordReferenceAdherenceQa('boundary-repair', {
+      clip_id: 'boundary-repair', job_id: 'job_boundary', source_sha256: 'a'.repeat(64),
+      motion_reference_sha256: sha256(referenceBytes), output_sha256: sha256(Buffer.from('salvage-v1')),
+      cut_coverage: {
+        sample_rate_fps: 2,
+        cuts: [
+          { cut_index: 0, start_ms: 0, end_ms: 2_000, sample_count: 4,
+            output_frame_sha256s: ['1'.repeat(64)], reference_frame_sha256s: ['2'.repeat(64)],
+            reference_performer_visible: false, visible_people: 'APPROVED_AVATAR_ONLY', decision: 'PASS' },
+          { cut_index: 1, start_ms: 2_000, end_ms: 3_000, sample_count: 2,
+            output_frame_sha256s: ['3'.repeat(64)], reference_frame_sha256s: ['4'.repeat(64)],
+            reference_performer_visible: true, visible_people: 'REFERENCE_PERFORMER', decision: 'FAIL' },
+        ],
+      },
+      checks: referenceTransferChecks('no_reference_performer_pixels'),
+    });
+    assert.equal(result.status, 'NEEDS_QA');
+    const persisted = await store.load('boundary-repair');
+    assert.equal(salvageCalls, 1);
+    assert.equal(persisted.salvage.revision, 1);
+    assert.equal(persisted.salvage.status, 'NEEDS_QA');
+    assert.match(persisted.videoPath, /clip-salvaged-v2\.mp4$/);
+    assert.equal(persisted.salvageIdentityItemQa, null);
+    assert.equal(persisted.salvageReferenceAdherenceQa, null);
+  });
+});
+
+test('hero-only salvage accepts safe approved spans while preserving creative losses as audit evidence', async () => {
+  await withTempDir(async (dir) => {
+    const { provider } = makeStubProvider();
+    const store = new ClipStore(dir);
+    const service = new VideoService({ provider, clipStore: store });
+    await store.save('safe-short-salvage', {
+      clipId: 'safe-short-salvage', jobId: 'job_safe_short', status: 'FAIL',
+      durationSeconds: 13, deliveryDurationSeconds: 6, sourceSha256: 'a'.repeat(64),
+      videoSha256: 'b'.repeat(64), qa: { pass: true },
+      salvage: { status: 'FAIL', segments: [{ start_ms: 0, end_ms: 6_000 }] },
+      salvageIdentityItemQa: { pass: true },
+      motionReferenceBinding: { sha256: 'c'.repeat(64) },
+    });
+    const creativeFailures = new Set([
+      'cut_coverage_complete',
+      'subject_replacement_every_cut',
+      'motion_and_pose_timing',
+      'camera_and_framing',
+      'environment_and_lighting',
+      'grade_and_optical_effects',
+      'shot_sequence_and_transitions',
+    ]);
+    const result = await service.recordReferenceAdherenceQa('safe-short-salvage', {
+      clip_id: 'safe-short-salvage', job_id: 'job_safe_short',
+      source_sha256: 'a'.repeat(64), motion_reference_sha256: 'c'.repeat(64),
+      output_sha256: 'b'.repeat(64),
+      cut_coverage: microCutCoverage({ durationMs: 6_000 }),
+      checks: REQUIRED_REFERENCE_CHECKS.map((name) => ({
+        name,
+        decision: creativeFailures.has(name) ? 'FAIL' : 'PASS',
+      })),
+    });
+    assert.equal(result.status, 'PASS');
+    const persisted = await store.load('safe-short-salvage');
+    assert.equal(persisted.failureCode, null);
+    assert.equal(persisted.salvage.status, 'PASS');
+    assert.equal(persisted.salvageReferenceAdherenceQa.pass, true);
+    assert.equal(
+      persisted.salvageReferenceAdherenceQa.acceptanceContract,
+      'SALVAGE_HERO_ONLY_V1',
+    );
+    assert.deepEqual(
+      persisted.salvageReferenceAdherenceQa.nonBlockingFailures,
+      [...creativeFailures],
+    );
   });
 });
 

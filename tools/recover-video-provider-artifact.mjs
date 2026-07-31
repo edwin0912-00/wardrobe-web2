@@ -176,11 +176,42 @@ const localBindingProvider = {
     };
   },
 };
-const automaticQaFn = createVideoSemanticQaEvaluator({
-  evaluator: createVlmEvaluator(),
+const qaDiagnostics = [];
+const vlmEvaluator = createVlmEvaluator();
+const semanticQaFn = createVideoSemanticQaEvaluator({
+  evaluator: {
+    async evaluateQa(context) {
+      const evaluation = await vlmEvaluator.evaluateQa(context);
+      qaDiagnostics.push({
+        idempotency_key: context?.idempotencyKey ?? null,
+        decision: evaluation?.decision ?? null,
+        check_names: Array.isArray(evaluation?.checks)
+          ? evaluation.checks.map((check) => check?.name).filter(Boolean)
+          : [],
+        reason: typeof evaluation?.reason === 'string'
+          ? evaluation.reason.replaceAll(/(?:\/[\w. -]+)+/g, '[redacted-path]').slice(0, 500)
+          : null,
+      });
+      return evaluation;
+    },
+  },
   fashionVideoReferenceResolver: resolver,
   commandRunner: (await import('node:util')).promisify((await import('node:child_process')).execFile),
 });
+const automaticQaFn = async (clipToReview) => {
+  try {
+    return await semanticQaFn(clipToReview);
+  } catch (cause) {
+    qaDiagnostics.push({
+      stage: 'semantic_qa',
+      code: typeof cause?.code === 'string' ? cause.code : null,
+      reason: typeof cause?.message === 'string'
+        ? cause.message.replaceAll(/(?:\/[\w. -]+)+/g, '[redacted-path]').slice(0, 500)
+        : 'unknown semantic QA failure',
+    });
+    throw cause;
+  }
+};
 const service = new VideoService({
   provider: localBindingProvider,
   clipStore: store,
@@ -257,6 +288,7 @@ process.stdout.write(`${JSON.stringify({
   provider_video_sha256: rebased.providerVideoSha256 ?? null,
   delivery_video_sha256: rebased.videoSha256 ?? null,
   salvage: rebased.salvage ?? null,
+  qa_diagnostics: qaDiagnostics,
   intent_sha256: intentSha256,
   recovery_receipt_sha256: recoveryReceiptSha256,
   preserved_incident_directory: incidentName,
