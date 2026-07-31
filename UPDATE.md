@@ -1,5 +1,17 @@
 # Wardrobe update board
 
+## Isolated beta preflight cut · 2026-07-31
+
+`release/beta-preflight-20260731` is an isolated, **not deployed** release
+candidate: `aa388e9636916b52391d499fa54d4933837872a4`. It contains the reconciled
+Higgsfield Nano Banana Pro CLI alias (`d45209d`) and its evidence record
+(`aa388e9`) on top of `origin/beta` `71617a5`. Focused tests passed `44/44` and
+contracts passed `9/9`. Full `npm test` did not begin: resource preflight
+refused it because swap was `9.38 GiB` while the configured ceiling is
+`1.50 GiB`. No bypass, runtime change, provider call, or beta deployment was
+made. Do not merge/deploy this cut until a clean full-suite preflight and the
+release-owner review both pass.
+
 ## Оголошення · Higgsfield image model aliases · 2026-07-31
 
 У контрактах не змішуємо внутрішні назви маршруту з назвами, які повертає CLI
