@@ -25,9 +25,9 @@
  * The concrete pier between them is the divider, so the split is real architecture rather
  * than a layout decision.
  *
- * WHAT IS SIMULATED, STATED PLAINLY: no generation backend is attached to this page. Every
- * result frame is a declared stand-in that says so on its face, and state() reports
- * `simulated: true`. No stock photograph is ever shown as output.
+ * RESULTS ARE NEVER SIMULATED. The mirror receives runs through the presentation-neutral
+ * ZeelyClient bridge. Until the same-origin /api gateway is ready, an unfinished mirror
+ * remains calm and non-interactive; a local input photo is never passed off as an output.
  *
  * One behavioural rule from the handoff: "Product decisions мають відбуватися на стабільних
  * зупинках, а не під час руху камери" — controls are inert unless the engine reports a
@@ -39,10 +39,6 @@
 
   var MAX_ITEMS = 5;
   var MIN_ITEMS = 1;
-
-  /* How long a result frame sits pending. A stated stand-in for a request that does not
-   * exist yet, not an estimate of anything. */
-  var SIM_MS = 1100;
 
   /* The three places where the viewer is asked something, in travel order. Named for the
    * place, because that is what the canon fixes — the surface follows the room. */
@@ -109,53 +105,122 @@
     var looks = [];
     var selected = -1;
     var pending = false;
-    var pendingTimer = 0;
+    var submittedItems = null;
+
+    /* This is deliberately a bridge, not a beta UI import. It is supplied by the small
+     * ES module loaded by b/index.html and can be replaced in tests or by a future site
+     * shell. Before it is ready, no click can manufacture a successful result locally. */
+    var bridge = opts.bridge || global.WardrobeCinematicBridge || null;
+    var bridgeState = bridge && typeof bridge.state === 'function'
+      ? bridge.state()
+      : { availability: 'checking', phase: 'idle', run: null, choices: [], result: null };
+    var bridgeUnsubscribe = null;
+    var garmentSelections = {};
 
     /* Which face of the selected look the right mirror is showing. */
     var view = 'look';          // 'look' | 'shoot' | 'video' | 'live'
     var bgOpen = false;         // the background list is open in the left mirror
-
-    /* An action (shoot/fash/bg — not live) waits for its aspect pick, then runs a
-     * generating phase before it resolves. Both states gate the scroll: a light swipe
-     * must not carry the viewer off a room that is still working. */
-    var awaitingAspect = null;   // null | 'shoot' | 'fash' | 'bg'
-    var pendingAction = null;    // null | { kind, aspect }
-    var pendingActionTimer = 0;
 
     function notifyGateChange() { if (typeof opts.onGateChange === 'function') opts.onGateChange(); }
 
     function station() { return stage.getAttribute('data-station') === '1'; }
     function locked() { return !station(); }
     function hasMain() { return !!person.main; }
-    function hasItems() { return items.length >= MIN_ITEMS; }
+    /* The real engine requires a source image for each garment. Preset words belonged to
+     * the old demo only; counting one as a submission would make a live-looking control
+     * fail only after the click. */
+    function hasItems() { return items.some(function (item) { return !!item.file; }); }
     function current() { return selected >= 0 ? looks[selected] : null; }
     /* THE gate for every action: a look with things in it must be VISIBLE first. */
     function lookVisible() { return !!current() && !pending; }
+
+    function bridgeReady() { return !!bridge && bridgeState.availability === 'ready'; }
+    function bridgeWorking() {
+      return ['uploading', 'running', 'needs_input', 'waiting_for_approval', 'recovering']
+        .indexOf(bridgeState.phase) >= 0;
+    }
+    function bridgeCopy() {
+      var copy = {
+        checking: 'Відкриваємо дзеркало',
+        unavailable: 'Ця частина простору ще готується',
+        uploading: 'Приймаємо матеріали',
+        running: 'Збираємо образ',
+        needs_input: 'Оберіть речі',
+        waiting_for_approval: 'Готуємо наступний кадр',
+        recovering: 'Повертаємося до образу',
+        completed: 'Образ готовий',
+        failed: 'Не вдалося завершити'
+      };
+      return copy[bridgeState.availability === 'unavailable' ? 'unavailable' : bridgeState.phase] || copy.checking;
+    }
 
     function esc(s) {
       return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     }
     function plural(n, one, few, many) { return n === 1 ? one : n < 5 ? few : many; }
 
+    function addCompletedRun(run) {
+      if (!run || run.status !== 'COMPLETED' || !run.outputs || !run.outputs.avatar_outfit) return;
+      var at = looks.findIndex(function (look) { return look.runId === run.run_id; });
+      var existing = at >= 0 ? looks[at] : null;
+      var next = {
+        id: bridgeState.savedLook && bridgeState.savedLook.look_id || run.run_id,
+        runId: run.run_id,
+        lookId: bridgeState.savedLook && bridgeState.savedLook.look_id || null,
+        imageUrl: run.outputs.avatar_outfit,
+        items: submittedItems ? submittedItems.slice() : existing ? existing.items : items.slice(),
+        bg: null, shot: false, video: false
+      };
+      if (at >= 0) looks[at] = Object.assign(looks[at], next);
+      else { looks.push(next); at = looks.length - 1; }
+      selected = at;
+      items = [];
+      submittedItems = null;
+      pending = false;
+      step = 2;
+      if (typeof opts.onLookReady === 'function') opts.onLookReady();
+    }
+
+    function receiveBridge(event) {
+      bridgeState = event || bridgeState;
+      var run = bridgeState.run;
+      pending = bridgeWorking() && bridgeState.phase !== 'needs_input';
+      if (bridgeState.phase === 'needs_input') step = 1;
+      if (run && run.status === 'COMPLETED') addCompletedRun(run);
+      if (run && bridgeState.savedLook && selected >= 0 && looks[selected] && looks[selected].runId === run.run_id) {
+        looks[selected].lookId = bridgeState.savedLook.look_id || looks[selected].lookId;
+        looks[selected].id = looks[selected].lookId || looks[selected].id;
+      }
+      render();
+      notifyGateChange();
+    }
+
+    function bindBridge(next) {
+      if (bridgeUnsubscribe) bridgeUnsubscribe();
+      bridge = next || null;
+      bridgeState = bridge && typeof bridge.state === 'function'
+        ? bridge.state()
+        : { availability: 'checking', phase: 'idle', run: null, choices: [], result: null };
+      bridgeUnsubscribe = bridge && typeof bridge.subscribe === 'function'
+        ? bridge.subscribe(receiveBridge)
+        : null;
+      render();
+      notifyGateChange();
+    }
+
     function makeLook() {
-      if (!hasMain() || !hasItems() || pending) return;
+      if (!hasMain() || !hasItems() || pending || !bridgeReady() || !bridge || !bridge.canStartLook()) return;
+      submittedItems = items.slice();
       pending = true; view = 'look';
       render();
-      clearTimeout(pendingTimer);
-      pendingTimer = setTimeout(function () {
-        looks.push({ id: 'look-' + (looks.length + 1), items: items.slice(),
-                     bg: null, shot: false, video: false });
-        selected = looks.length - 1;
-        items = [];                 // the next look starts empty
-        pending = false;
-        step = 2;
-        render();
-        /* Forward travel was closed until a look existed; this is only the unlock. The
-         * viewer stays exactly where they are, at the mirrors, with the action row now
-         * reachable — moving them on automatically would carry them past the very row this
-         * step exists to reveal. */
-        if (typeof opts.onLookReady === 'function') opts.onLookReady();
-      }, SIM_MS);
+      bridge.createLook({
+        person: person.main.file,
+        identityDetail: person.face && person.face.file,
+        garments: items.filter(function (item) { return !!item.file; }).map(function (item) { return item.file; })
+      }).catch(function () {
+        /* The bridge records the failure and tells the right mirror. Do not turn it into
+         * a local "ready" frame or a guessed progress value. */
+      });
     }
 
     /* ============================================================== ASK — left mirror */
@@ -204,18 +269,7 @@
               '<span class="slot__empty">' + (i + 1) + '</span></label>';
       }
       return '<div class="slots slots--big">' + cells + '</div>' +
-        '<input id="io-items" type="file" accept="image/*" multiple hidden' + (full ? ' disabled' : '') + '>' +
-        '<button class="secondary" type="button" data-presets aria-expanded="' + (presetsOpen ? 'true' : 'false') + '">' +
-          'нічого під рукою — обрати з готових</button>' +
-        (presetsOpen
-          ? '<div class="tray">' + PRESET_ITEMS.map(function (o, i) {
-              var on = items.some(function (x) { return !x.url && x.name === o; });
-              return '<button class="tray__chip" type="button" data-preset="' + i + '"' +
-                ' aria-pressed="' + (on ? 'true' : 'false') + '"' +
-                ' data-blocked="' + (full && !on ? '1' : '0') + '">' +
-                '<span>' + esc(o) + '</span></button>';
-            }).join('') + '</div>'
-          : '');
+        '<input id="io-items" type="file" accept="image/*" multiple hidden' + (full ? ' disabled' : '') + '>';
     }
 
     /* Small counts read as words in running Ukrainian text ("три речі"), not digits —
@@ -276,14 +330,42 @@
       applyEnabled();
     }
 
+    /* If the engine needs a real choice between garments, that question remains on the
+     * left mirror. The right mirror only holds the orb, so selection and outcome never
+     * compete on the same piece of glass. */
+    function renderGarmentChoice() {
+      var choices = bridgeState.choices || [];
+      var complete = choices.length > 0 && choices.every(function (choice) {
+        return !!garmentSelections[choice.category];
+      });
+      var groups = choices.map(function (choice) {
+        var options = choice.options.map(function (reference) {
+          var on = garmentSelections[choice.category] === reference;
+          return '<button class="rowpick__item" type="button" data-garment-choice="' +
+            encodeURIComponent(choice.category) + '" data-garment-reference="' + encodeURIComponent(reference) +
+            '" aria-pressed="' + (on ? 'true' : 'false') + '"><span class="rowpick__name">обрати</span></button>';
+        }).join('');
+        return '<div class="choicegroup"><div class="glass__lede">оберіть одну річ</div><div class="rowpick">' + options + '</div></div>';
+      }).join('');
+      askRoot.innerHTML =
+        '<div class="glass__eyebrow">РЕЧІ</div>' +
+        '<div class="glass__h">Оберіть речі</div>' +
+        '<div class="askbody">' + groups + '</div>' +
+        '<div class="acts"><button class="glass__cta" type="button" data-submit-garments data-blocked="' + (!complete ? '1' : '0') + '">Продовжити</button></div>';
+      applyEnabled();
+    }
+
     function renderAsk() {
       /* THE APPROVED LOOKS SCREEN has its own shape entirely — no eyebrow, no generic
        * CTA, no trail — so it bypasses the shared template below rather than bending it
        * to fit. */
+      if (bridgeState.phase === 'needs_input' && (bridgeState.choices || []).length) {
+        renderGarmentChoice(); return;
+      }
       if (step === 2) { renderAskLook(); return; }
 
       var s = STEPS[step];
-      var blocked = (step === 0 && !hasMain()) || (step === 1 && (!hasItems() || pending));
+      var blocked = (step === 0 && !hasMain()) || (step === 1 && (!hasItems() || pending || !bridgeReady()));
 
       /* UNREACHED STEPS ARE NOT RENDERED AT ALL. A greyed-out label still advertises an
        * offer, and there is no offer before the thing it applies to exists. */
@@ -307,7 +389,7 @@
         '<div class="acts">' +
           (step > 0 ? '<button class="glass__cta glass__cta--ghost" type="button" data-back>Назад</button>' : '') +
           '<button class="glass__cta" type="button" data-next data-blocked="' + (blocked ? '1' : '0') + '">' +
-            (pending ? 'Створюємо…' : s.cta) +
+            (pending ? 'Збираємо…' : s.cta) +
           '</button>' +
         '</div>' +
         '<p class="glass__hint" data-hint></p>' +
@@ -369,16 +451,21 @@
           (camError ? 'Спробувати ще' : 'Увімкнути камеру') + '</button>';
     }
 
-    /* Every result frame carries the same admission: no render is attached. The viewer's own
-     * photograph is all we have, so it is shown desaturated under the placeholder hatching.
-     * An undressed input photo presented as a finished look would be input passed off as
-     * output. */
-    function resultFrame(caption, state) {
-      var src = person.main ? person.main.url : '';
+    /* A completed output can only originate from the engine URL. The local portrait stays
+     * in the input slot and is never used as a stand-in result. */
+    function resultFrame(caption, state, src) {
       return '<div class="lookframe" data-state="' + state + '">' +
         (src ? '<img class="lookframe__img" src="' + src + '" alt="">' : '') +
         '<span class="lookframe__cap">' + caption + '</span>' +
       '</div>';
+    }
+
+    function waitingOrb(copy, phase) {
+      return '<div class="mirror-orb" data-phase="' + esc(phase) + '" role="status" aria-live="polite">' +
+          '<i class="mirror-orb__halo" aria-hidden="true"></i>' +
+          '<i class="mirror-orb__core" aria-hidden="true"></i>' +
+          '<span class="mirror-orb__copy">' + esc(copy) + '</span>' +
+        '</div>';
     }
 
     /* THE APPROVED LOOK FRAME — a watermark, not a caption bar. Copied from the same
@@ -386,7 +473,8 @@
      * word, the way a proof print is stamped, instead of the bottom label the other
      * result states use. */
     function lookResultFrame() {
-      var src = person.main ? person.main.url : '';
+      var look = current();
+      var src = look && look.imageUrl ? look.imageUrl : '';
       return '<div class="lookframe" data-state="ready">' +
         (src ? '<img class="lookframe__img" src="' + src + '" alt="">' : '') +
         '<span class="lookframe__word">образ</span>' +
@@ -401,22 +489,10 @@
     }
 
     function actionBlocks() {
-      /* The approved mock always has exactly ONE action lit, and the sentence beneath belongs
-       * to it — `focus = focus || 'shoot'` in the concept. So the fallback applies to the
-       * underline as well as to the sentence: a sentence about a photoshoot with nothing lit
-       * leaves the reader hunting for which word it describes.
-       * Lit means "this is what the sentence is about", not "this has been chosen" — nothing
-       * is marked done by being read. */
-      var on = activeAct() || 'shoot';
-      var say = ACTS[on][1];
-      var row = ACT_ORDER.map(function (k) {
-        return '<button class="act" type="button" data-act="' + k + '"' +
-          ' data-on="' + (k === on ? '1' : '0') + '"><b>' + ACTS[k][0] + '</b></button>';
-      }).join('');
-      return '<div class="actwrap">' +
-          '<div class="acts">' + row + '</div>' +
-          '<div class="actsay" data-actsay>' + say + '</div>' +
-        '</div>';
+      /* Secondary actions are intentionally absent until their catalog/approval contract is
+       * wired through the same bridge. A beautiful action row that resolves to a local timer
+       * is worse than no row; the result remains real and usable. */
+      return '';
     }
 
     /* THE ASPECT PICK. No real backend to read a result's aspect off of, so the viewer
@@ -436,57 +512,41 @@
     function renderShow() {
       /* The right mirror opens when a look is asked for, so the pending state is itself the
        * reveal. Before that there is no second mirror at all — not a stub, not a plate. */
-      var open = pending || looks.length > 0;
+      var bridgePending = bridgeWorking();
+      var bridgeFailed = bridgeState.phase === 'failed';
+      var open = bridgePending || bridgeFailed || looks.length > 0;
       showRoot.setAttribute('data-live', open ? '1' : '0');
       showRoot.setAttribute('aria-hidden', open ? 'false' : 'true');
 
       /* The invitation only exists once there is a look to try things on. */
       var invite = document.querySelector('[data-live-invite]');
       if (invite) {
-        invite.setAttribute('data-live', lookVisible() && view !== 'live' ? '1' : '0');
-        invite.setAttribute('aria-hidden', lookVisible() && view !== 'live' ? 'false' : 'true');
-        invite.disabled = !lookVisible() || locked() || view === 'live';
+        /* Live needs its own server capability and 40-second contract. Keep the global
+         * invitation absent until that real flow is wired rather than opening a local-only
+         * camera and implying that the product session has started. */
+        invite.setAttribute('data-live', '0');
+        invite.setAttribute('aria-hidden', 'true');
+        invite.disabled = true;
       }
 
       if (!open) { showRoot.innerHTML = ''; return; }
 
-      if (pending) {
-        showRoot.innerHTML = '<div class="glass__eyebrow">Образ створюється</div>' +
-          resultFrame('створюємо образ…', 'pending');
+      if (bridgePending) {
+        showRoot.innerHTML = waitingOrb(bridgeCopy(), bridgeState.phase);
         applyEnabled();
         return;
       }
 
-      /* An action (shoot/fash/bg) is working — no result to show yet, and nothing to
-       * click until it clears. Same pending treatment as the look itself, labelled for
-       * which action it is. */
-      if (pendingAction) {
-        showRoot.innerHTML = '<div class="glass__eyebrow">' + esc(ACTS[pendingAction.kind][0]) + '</div>' +
-          resultFrame('генерується…', 'pending');
+      if (bridgeFailed) {
+        showRoot.innerHTML = waitingOrb(bridgeCopy(), 'failed') +
+          (bridgeReady() && bridge && bridgeState.run
+            ? '<button class="glass__cta" type="button" data-retry-look>Спробувати ще раз</button>'
+            : '');
         applyEnabled();
         return;
       }
 
-      var l = current();
-      /* view 'look' is the approved picture exactly: no eyebrow, no details rows —
-       * just the watermarked frame and the action row beneath it. The other views
-       * (shoot/video/bg/live) are not what was approved here, so they keep what they had. */
-      var head = view === 'shoot' ? 'Фотозйомка'
-               : view === 'video' ? 'Фешн-відео'
-               : view === 'bg'    ? 'Новий фон'
-               : view === 'live'  ? 'Лайв-примірка' : null;
-      var cap = view === 'live' ? 'камера не підключена' : 'рендер не підключений';
-
-      showRoot.innerHTML =
-        (head ? '<div class="glass__eyebrow">' + head + '</div>' : '') +
-        (view === 'live' ? liveWindow() : view === 'look' ? lookResultFrame() : resultFrame(cap, 'ready')) +
-        (view === 'look' ? '' :
-          '<div class="glass__rows glass__rows--show">' +
-            '<div class="glass__row"><span>З речей</span> ' + l.items.length + ' ' +
-              plural(l.items.length, 'річ', 'речі', 'речей') + '</div>' +
-            (l.bg != null ? '<div class="glass__row"><span>Фон</span> ' + esc(BACKGROUNDS[l.bg]) + '</div>' : '') +
-          '</div>') +
-        (awaitingAspect ? aspectPicker(awaitingAspect) : actionBlocks());
+      showRoot.innerHTML = lookResultFrame() + actionBlocks();
       applyEnabled();
     }
 
@@ -506,10 +566,11 @@
       if (hint) {
         hint.textContent = (step === 0 && !hasMain()) ? 'потрібне одне фото'
                          : (step === 1 && !hasItems()) ? 'додайте хоча б одну річ'
+                         : (step === 1 && !bridgeReady()) ? bridgeCopy()
                          : lock ? 'камера рухається — рішення на зупинці' : '';
       }
       var invite = document.querySelector('[data-live-invite]');
-      if (invite) invite.disabled = !lookVisible() || lock || view === 'live';
+      if (invite) invite.disabled = true;
     }
 
     function render() { renderAsk(); renderShow(); }
@@ -517,7 +578,7 @@
     function addFiles(fileList) {
       var room = MAX_ITEMS - items.length;
       Array.prototype.slice.call(fileList, 0, Math.max(0, room)).forEach(function (f) {
-        items.push({ name: f.name, url: URL.createObjectURL(f) });
+        items.push({ name: f.name, file: f, url: URL.createObjectURL(f) });
       });
       render();
     }
@@ -527,7 +588,7 @@
       /* Release the old object URL: camera-sized photographs are real memory and nothing
        * else references them. */
       if (person[kind] && person[kind].url) URL.revokeObjectURL(person[kind].url);
-      person[kind] = { name: file.name, url: URL.createObjectURL(file) };
+      person[kind] = { name: file.name, file: file, url: URL.createObjectURL(file) };
       render();
     }
 
@@ -537,81 +598,26 @@
       render();
     }
 
-    function togglePreset(name) {
-      var at = -1;
-      for (var i = 0; i < items.length; i++) {
-        if (!items[i].url && items[i].name === name) { at = i; break; }
-      }
-      if (at >= 0) items.splice(at, 1);
-      else if (items.length < MAX_ITEMS) items.push({ name: name, url: null });
-      render();
-    }
-
     document.addEventListener('click', function (ev) {
       var t = ev.target, b;
-      if (t.closest('[data-presets]')) { presetsOpen = !presetsOpen; renderAsk(); return; }
       if (locked()) return;
 
       if ((b = t.closest('[data-remove]'))) { removeAt(Number(b.getAttribute('data-remove'))); return; }
-      if ((b = t.closest('[data-preset]'))) { togglePreset(PRESET_ITEMS[Number(b.getAttribute('data-preset'))]); return; }
       if ((b = t.closest('[data-select]'))) { stopCamera(); selected = Number(b.getAttribute('data-select')); view = 'look'; render(); return; }
-      if ((b = t.closest('[data-bg]'))) {
-        var lb = current(); if (lb) lb.bg = Number(b.getAttribute('data-bg'));
-        bgOpen = false;
-        /* Choosing a background is what actually starts "Новий фон" — the video on it.
-         * Same aspect-then-generate flow as shoot/fash below. */
-        awaitingAspect = 'bg';
-        render(); return;
-      }
-      if (t.closest('[data-bgopen]')) { bgOpen = !bgOpen; render(); return; }
       if (t.closest('[data-edit-items]')) { stopCamera(); step = 1; view = 'look'; render(); return; }
-      if ((b = t.closest('[data-act]'))) {
-        var k = b.getAttribute('data-act');
-        if (k === 'bg') { bgOpen = !bgOpen; render(); return; }
-        /* Live is not a generation — there is nothing to await an aspect for, it just
-         * opens the camera. shoot/fash do generate, so they ask which aspect first. */
-        if (k === 'live') { view = 'live'; render(); return; }
-        awaitingAspect = k;
-        render(); return;
+      if ((b = t.closest('[data-garment-choice]'))) {
+        garmentSelections[decodeURIComponent(b.getAttribute('data-garment-choice'))] =
+          decodeURIComponent(b.getAttribute('data-garment-reference'));
+        renderAsk(); return;
       }
-      if ((b = t.closest('[data-aspect]'))) {
-        var kind = awaitingAspect;
-        if (!kind) return;
-        var aspect = b.getAttribute('data-aspect');
-        awaitingAspect = null;
-        pendingAction = { kind: kind, aspect: aspect };
-        render(); notifyGateChange();
-        clearTimeout(pendingActionTimer);
-        pendingActionTimer = setTimeout(function () {
-          var want = kind === 'fash' ? 'video' : kind;
-          if (view === 'live' && want !== 'live') { stopCamera(); camError = ''; }
-          view = want;
-          var cur3 = current();
-          if (cur3) {
-            if (kind === 'shoot') { cur3.shot = true; cur3.shotAspect = aspect; }
-            if (kind === 'fash')  { cur3.video = true; cur3.videoAspect = aspect; }
-            if (kind === 'bg')    { cur3.bgVideo = true; cur3.bgAspect = aspect; }
-          }
-          pendingAction = null;
-          render(); notifyGateChange();
-          /* 16:9 belongs on the television — go look at it there. 9:16 belongs right
-           * here in the mirror; nothing carries the viewer anywhere for it. */
-          if (aspect === '16:9' && typeof opts.onWideResult === 'function') opts.onWideResult();
-        }, SIM_MS);
+      if ((b = t.closest('[data-submit-garments]')) && !b.disabled) {
+        if (!bridge || !bridgeReady()) return;
+        bridge.selectGarments(garmentSelections).catch(function () {});
         return;
       }
-      if (t.closest('[data-cam-start]')) { startCamera(); return; }
-      if (t.closest('[data-cam-stop]')) { stopCamera(); camError = ''; render(); return; }
-      if (t.closest('[data-live-invite]')) { view = 'live'; render(); return; }
-      if ((b = t.closest('[data-view]'))) {
-        var next = b.getAttribute('data-view');
-        /* Leaving the live view switches the device off. Nothing keeps streaming behind a
-         * panel the viewer is no longer looking at. */
-        if (view === 'live' && next !== 'live') { stopCamera(); camError = ''; }
-        view = next;
-        var cur = current();
-        if (cur) { if (view === 'shoot') cur.shot = true; if (view === 'video') cur.video = true; }
-        render(); return;
+      if (t.closest('[data-retry-look]')) {
+        if (bridge && bridgeReady()) bridge.retryLook().catch(function () {});
+        return;
       }
       if ((b = t.closest('[data-step]'))) { step = Number(b.getAttribute('data-step')); render(); return; }
       if ((b = t.closest('[data-next]')) && !b.disabled) {
@@ -666,7 +672,8 @@
     new MutationObserver(applyEnabled)
       .observe(stage, { attributes: true, attributeFilter: ['data-station', 'data-leg'] });
 
-    render();
+    if (bridge) bindBridge(bridge);
+    else render();
 
     return {
       state: function () {
@@ -682,10 +689,15 @@
                      shot: l.shot, video: l.video };
           }),
           selected: selected, lookVisible: lookVisible(), pending: pending,
-          awaitingAspect: awaitingAspect, pendingAction: pendingAction,
+          bridge: {
+            availability: bridgeState.availability,
+            phase: bridgeState.phase,
+            runId: bridgeState.run && bridgeState.run.run_id || null,
+            choices: (bridgeState.choices || []).length
+          },
           view: view, bgOpen: bgOpen, cameraOn: !!stream, cameraError: camError || null,
-          actionsOffered: lookVisible(),
-          simulated: true,               // no render backend is attached to this page
+          actionsOffered: false,
+          simulated: false,
           sells: false,                  // no prices, no basket, by canon
           station: station(), controlsEnabled: !locked()
         };
@@ -693,19 +705,17 @@
       /* Asked by the engine at every station through config.canAdvance.
        * Leg 0 holds until a look exists — the next room is a gallery of finished work, so
        * arriving with nothing made would be arriving at an empty shelf. It also holds
-       * while an action is actually working: generating a photoshoot/video/background
-       * (`pendingAction`), or the live camera actually streaming (`stream`) — a swipe
-       * should not carry the viewer off a room that's still busy. */
+       * while a real engine job is working. An unavailable gateway does not trap a person
+       * inside the room: it disables the submission affordance but leaves the film free. */
       canAdvance: function (leg) {
         if (leg !== 0) return true;
+        if (!bridgeReady()) return true;
         if (!looks.length) return false;
-        if (pendingAction) return false;
-        if (stream) return false;
-        return true;
+        return bridge ? bridge.canLeaveAttentionStation() : true;
       },
-      addPreset: function (name) { togglePreset(name); return items.length; },
       makeLook: makeLook,
-      steps: STEPS, presets: PRESET_ITEMS, backgrounds: BACKGROUNDS
+      setBridge: bindBridge,
+      steps: STEPS, backgrounds: BACKGROUNDS
     };
   }
 

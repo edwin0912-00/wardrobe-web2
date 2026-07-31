@@ -776,6 +776,65 @@ body {
   text-transform: uppercase; color: rgba(245, 243, 237, 0.4);
 }
 
+/* The right mirror's waiting state is glass light, not a loader card. It owns no numerical
+ * progress and never pretends to know how far a provider job has travelled. Its phases only
+ * change when the adapter reports a real state transition. */
+.mirror-orb {
+  position: relative; flex: 1 1 auto; min-height: 0; width: 100%;
+  display: grid; place-items: center; overflow: hidden;
+  isolation: isolate;
+}
+.mirror-orb::before,
+.mirror-orb::after {
+  content: ''; position: absolute; left: 50%; top: 50%; border-radius: 50%;
+  transform: translate(-50%, -50%); pointer-events: none;
+}
+.mirror-orb::before {
+  width: min(58cqh, 76cqw); aspect-ratio: 1;
+  border: 1px solid rgba(245,243,237,0.42);
+  box-shadow: 0 0 0 1px rgba(18,19,18,0.32) inset, 0 0 45px rgba(245,243,237,0.11);
+  animation: orb-breathe 5.8s ease-in-out infinite;
+}
+.mirror-orb::after {
+  width: min(37cqh, 49cqw); aspect-ratio: 1;
+  background: radial-gradient(circle at 37% 31%, rgba(245,243,237,0.56), rgba(245,243,237,0.10) 27%, rgba(14,15,14,0.13) 62%, transparent 71%);
+  mix-blend-mode: screen; opacity: 0.82;
+  animation: orb-drift 8.4s linear infinite;
+}
+.mirror-orb__halo,
+.mirror-orb__core {
+  position: absolute; left: 50%; top: 50%; border-radius: 50%; pointer-events: none;
+}
+.mirror-orb__halo {
+  width: min(72cqh, 91cqw); aspect-ratio: 1;
+  transform: translate(-50%, -50%) scale(0.86);
+  border: 1px solid rgba(245,243,237,0.13);
+  animation: orb-halo 6.2s ease-in-out infinite;
+}
+.mirror-orb__core {
+  width: min(14cqh, 19cqw); aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  background: rgba(245,243,237,0.8); box-shadow: 0 0 22px rgba(245,243,237,0.48);
+  opacity: 0.68;
+}
+.mirror-orb__copy {
+  position: absolute; left: 0; right: 0; bottom: clamp(12px, 6cqh, 36px); z-index: 2;
+  text-align: center; font-size: clamp(10px, 2.2cqh, 12px); letter-spacing: 0.2em;
+  text-transform: uppercase; color: rgba(245,243,237,0.78);
+}
+.mirror-orb[data-phase="needs_input"]::before { animation-play-state: paused; border-color: rgba(245,243,237,0.72); }
+.mirror-orb[data-phase="failed"]::before { animation: none; opacity: 0.44; }
+.mirror-orb[data-phase="failed"] .mirror-orb__core { opacity: 0.22; }
+@keyframes orb-breathe {
+  0%, 100% { transform: translate(-50%, -50%) scale(0.94); opacity: 0.58; }
+  50% { transform: translate(-50%, -50%) scale(1.04); opacity: 1; }
+}
+@keyframes orb-drift { to { transform: translate(-50%, -50%) rotate(360deg); } }
+@keyframes orb-halo {
+  0%, 100% { transform: translate(-50%, -50%) scale(0.83); opacity: 0.18; }
+  50% { transform: translate(-50%, -50%) scale(1.08); opacity: 0.56; }
+}
+
 /* The live view: a real camera feed in the mirror. Mirrored horizontally, because a mirror
  * is what the viewer expects to be standing in front of — an unflipped feed reads as a video
  * call, not as trying something on. No hatching over it: unlike the look, this IS live and
@@ -1099,6 +1158,8 @@ body {
   .film video { transform: none; }
   .copy__line { transform: none; transition: opacity 200ms; }
   .glass { transition: opacity 200ms; transform: none; }
+  .mirror-orb::before, .mirror-orb::after,
+  .mirror-orb__halo { animation: none; }
   .mark { transform: none; }
 }
 
