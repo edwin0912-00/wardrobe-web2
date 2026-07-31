@@ -94,6 +94,35 @@ test('SSE updates state and a stale watcher cannot close its replacement', () =>
   assert.equal(current.closed, true);
 });
 
+test('reconciles the current run once after an SSE drop so terminal failure reaches retry UI', async () => {
+  const calls = [];
+  const client = createZeelyClient({
+    fetchImpl: async (url, options) => {
+      calls.push({ url, options });
+      if (url === '/api/draft/run') return jsonResponse({ run_id: 'run-drop', status: 'RUNNING' }, 202);
+      if (url === '/api/runs/run-drop') return jsonResponse({
+        run_id: 'run-drop', status: 'FAILED', code: 'ITEM_FIDELITY_RETRY_EXHAUSTED',
+      });
+      throw new Error(`unexpected request ${url}`);
+    },
+    EventSourceImpl: FakeEventSource,
+    createFinalizationKey: () => '1fce992c-2139-4d12-b8b4-0c361f8a72e9',
+    sseRecoveryInitialDelayMs: 0,
+    sseRecoveryMaxAttempts: 3,
+  });
+
+  await client.createRunFromDraft({ fileManifest: { person: { id: 'p1' } } });
+  const stream = FakeEventSource.instances.at(-1);
+  stream.onerror();
+  stream.onerror();
+  await new Promise((resolve) => setTimeout(resolve, 10));
+
+  assert.equal(calls.filter(({ url }) => url === '/api/runs/run-drop').length, 1);
+  assert.equal(client.snapshot().run.status, 'FAILED');
+  assert.equal(client.snapshot().phase, 'failed');
+  assert.equal(stream.closed, true);
+});
+
 test('preserves a structured API error for cinematic UI recovery states', async () => {
   const client = createZeelyClient({
     fetchImpl: async () => jsonResponse({ error: 'Look not found', code: 'LOOK_NOT_FOUND' }, 404),

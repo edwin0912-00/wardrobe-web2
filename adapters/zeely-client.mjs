@@ -57,6 +57,8 @@ export function phaseFor(entity) {
  * @param {typeof EventSource} [options.EventSourceImpl=EventSource]
  * @param {() => string} [options.createIdempotencyKey]
  * @param {() => string} [options.createFinalizationKey] returns a UUID v4 for draft finalization.
+ * @param {number} [options.sseRecoveryInitialDelayMs=300] delay before the first durable status refresh after an SSE error.
+ * @param {number} [options.sseRecoveryMaxAttempts=3] bounded number of durable refreshes while EventSource reconnects.
  */
 export function createZeelyClient({
   apiBase = '/api',
@@ -64,8 +66,16 @@ export function createZeelyClient({
   EventSourceImpl = globalThis.EventSource,
   createIdempotencyKey = idempotencyKey,
   createFinalizationKey = finalizationKey,
+  sseRecoveryInitialDelayMs = 300,
+  sseRecoveryMaxAttempts = 3,
 } = {}) {
   if (typeof fetchImpl !== 'function') throw new TypeError('createZeelyClient requires fetch');
+  if (!Number.isFinite(sseRecoveryInitialDelayMs) || sseRecoveryInitialDelayMs < 0) {
+    throw new RangeError('sseRecoveryInitialDelayMs must be a non-negative number');
+  }
+  if (!Number.isInteger(sseRecoveryMaxAttempts) || sseRecoveryMaxAttempts < 1) {
+    throw new RangeError('sseRecoveryMaxAttempts must be a positive integer');
+  }
 
   const base = trimTrailingSlash(apiBase);
   const subscribers = new Set();
@@ -157,25 +167,74 @@ export function createZeelyClient({
     streams.delete(key);
   }
 
-  function watch(kind, id, eventName, path) {
+  function watch(kind, id, eventName, path, { statusPath = null } = {}) {
     if (typeof EventSourceImpl !== 'function') {
       throw new TypeError('This environment does not provide EventSource');
     }
     const key = `${kind}:${id}`;
     closeStream(key);
     const stream = new EventSourceImpl(url(path), { withCredentials: true });
+    let closed = false;
+    let recoveryTimer = null;
+    let recoveryAttempt = 0;
+    let recoveryInFlight = false;
+    const isCurrent = () => streams.get(key) === subscription
+      && snapshot[kind]?.run_id === id;
+    const cancelRecovery = () => {
+      if (recoveryTimer) clearTimeout(recoveryTimer);
+      recoveryTimer = null;
+      recoveryInFlight = false;
+    };
+    const scheduleRecovery = () => {
+      if (!statusPath || closed || !isCurrent() || recoveryTimer || recoveryInFlight
+        || recoveryAttempt >= sseRecoveryMaxAttempts) return;
+      const delay = sseRecoveryInitialDelayMs * (2 ** recoveryAttempt);
+      recoveryTimer = setTimeout(async () => {
+        recoveryTimer = null;
+        if (closed || !isCurrent()) return;
+        recoveryInFlight = true;
+        recoveryAttempt += 1;
+        try {
+          const refreshed = await request(statusPath);
+          if (closed || !isCurrent()) return;
+          update(kind, refreshed, `${kind}:reconciled`);
+          if (terminal.has(String(refreshed?.status ?? '').toUpperCase())) {
+            closeStream(key);
+            return;
+          }
+        } catch {
+          // request() emitted the structured API error. The bounded retry below
+          // is only a temporary bridge while EventSource reconnects.
+        } finally {
+          recoveryInFlight = false;
+          scheduleRecovery();
+        }
+      }, delay);
+    };
+    const subscription = {
+      close() {
+        closed = true;
+        cancelRecovery();
+        stream.close();
+      },
+    };
     stream.addEventListener(eventName, (event) => {
       try {
+        cancelRecovery();
+        recoveryAttempt = 0;
         update(kind, JSON.parse(event.data), `${kind}:event`);
       } catch {
         emit('connection:error', { error: { message: `Malformed ${kind} event`, code: 'MALFORMED_EVENT' } });
       }
     });
-    stream.onerror = () => emit('connection:reconnecting', { connection: { kind, id } });
-    streams.set(key, stream);
+    stream.onerror = () => {
+      emit('connection:reconnecting', { connection: { kind, id } });
+      scheduleRecovery();
+    };
+    streams.set(key, subscription);
     // A stale cleanup must not silence a newer replacement subscription.
     return () => {
-      if (streams.get(key) === stream) closeStream(key);
+      if (streams.get(key) === subscription) closeStream(key);
     };
   }
 
@@ -279,7 +338,14 @@ export function createZeelyClient({
       update('run', run, 'run:updated');
       return run;
     },
-    watchRun(runId) { return watch('run', runId, 'run', `/runs/${encode(runId)}/events`); },
+    watchRun(runId) {
+      return watch('run', runId, 'run', `/runs/${encode(runId)}/events`, {
+        // EventSource can miss the terminal message while the beta daemon
+        // completes the run. Reconcile only this exact active run, with a
+        // bounded backoff; do not turn a transport error into broad polling.
+        statusPath: `/runs/${encode(runId)}`,
+      });
+    },
     async retryRun(runId) {
       const run = await request(`/runs/${encode(runId)}/retry`, { method: 'POST' });
       update('run', run, 'run:retried');
