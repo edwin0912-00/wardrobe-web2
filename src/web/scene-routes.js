@@ -1,5 +1,6 @@
 import { createReadStream } from 'node:fs';
 import { ProfileError } from './profile-service.js';
+import { sendPresentationImage } from './presentation-preview.js';
 
 const TERMINAL_SCENE_STATES = new Set(['COMPLETED', 'FAILED', 'CANCELLED']);
 
@@ -356,12 +357,12 @@ export async function registerSceneRoutes(app, {
     if (!scene) return reply.code(404).send({ error: 'Scene not found' });
     const filename = await sceneService.outputFile(request.params.sceneId, 'scene.png');
     if (!filename) return reply.code(404).send({ error: 'Scene image not found' });
-    return reply
-      .type('image/png')
-      .header('Cache-Control', 'private, no-store')
-      .header('Vary', 'Cookie')
-      .header('Content-Disposition', `${disposition}; filename="scene.png"`)
-      .send(createReadStream(filename));
+    return sendPresentationImage(request, reply, {
+      filename,
+      disposition,
+      downloadName: 'scene.png',
+      cacheControl: 'private, max-age=900',
+    });
   }
 
   app.get('/api/profile/scenes/:sceneId/image', async (request, reply) => (

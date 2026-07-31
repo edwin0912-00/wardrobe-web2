@@ -22,6 +22,7 @@ import {
   sceneTone,
   writeSceneResume,
 } from './scene-state.js?v=20260724-2';
+import { presentationImageUrl } from './presentation-media.js?v=20260731-1';
 
 const UK_PLURAL_SCENE = Object.freeze(['стандартна сцена', 'стандартні сцени', 'стандартних сцен']);
 const UK_PLURAL_MODE = Object.freeze(['напрям', 'напрями', 'напрямів']);
@@ -82,7 +83,7 @@ function createPresetVisual(preset, { large = false } = {}) {
   const previewUrl = safePresetPreviewUrl(preset);
   if (previewUrl) {
     const image = document.createElement('img');
-    image.src = previewUrl;
+    image.src = presentationImageUrl(previewUrl);
     image.alt = '';
     image.loading = 'eager';
     wrapper.dataset.preview = 'api';
@@ -114,7 +115,7 @@ function createEditorialModeCard(mode, onSelect, { eager = false } = {}) {
   const previewUrl = safePresetPreviewUrl(mode);
   if (previewUrl) {
     const image = document.createElement('img');
-    image.src = previewUrl;
+    image.src = presentationImageUrl(previewUrl);
     image.alt = `Приклад стилю: ${nameText}`;
     image.loading = eager ? 'eager' : 'lazy';
     if (eager) image.fetchPriority = 'high';
@@ -284,7 +285,7 @@ export class SceneUiController {
     this.look = look;
     const imageUrl = imageOfLook(look);
     for (const image of document.querySelectorAll('[data-scene-look-image]')) {
-      image.src = imageUrl;
+      image.src = presentationImageUrl(imageUrl);
       image.alt = 'Збережений образ для сцени';
     }
     for (const label of document.querySelectorAll('[data-scene-look-name]')) {
@@ -640,7 +641,7 @@ export class SceneUiController {
     this.#element('#scene-output').hidden = !completed;
     if (completed) {
       const image = this.#element('#scene-output-image');
-      image.src = scene.output.image_url;
+      image.src = presentationImageUrl(scene.output.image_url);
       image.alt = `Готова сцена: ${preset.ui_name_uk || preset.preset_id}`;
       this.#element('#scene-output-download').href = scene.output.download_url || scene.output.image_url;
       this.#element('#scene-execution-title').textContent = 'Сцена готова';

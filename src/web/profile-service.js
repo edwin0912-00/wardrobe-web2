@@ -5,6 +5,7 @@ import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 
 import { buildLiveLookReferenceCard } from './live-look-reference.js';
+import { sendPresentationImage } from './presentation-preview.js';
 
 export const PROFILE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const TOKEN_BYTES = 32;
@@ -1990,13 +1991,12 @@ export async function registerProfileRoutes(app, {
     if (type === 'look') {
       const saved = service.savedLookImage(session.profileId, request.params.lookId);
       if (saved) {
-        return reply
-          .type('image/png')
-          .header('Cache-Control', 'private, no-store')
-          .header('Vary', 'Cookie')
-          .header('ETag', `"sha256-${saved.sha256}"`)
-          .header('Content-Disposition', 'inline; filename="avatar_outfit.png"')
-          .send(saved.bytes);
+        return sendPresentationImage(request, reply, {
+          bytes: saved.bytes,
+          mediaType: 'image/png',
+          downloadName: 'avatar_outfit.png',
+          cacheControl: 'private, max-age=900',
+        });
       }
     }
     const descriptor = type === 'avatar'
@@ -2005,12 +2005,11 @@ export async function registerProfileRoutes(app, {
     if (!descriptor) return reply.code(404).send({ error: 'Image not found' });
     const filename = await runService.outputFile(descriptor.runId, descriptor.filename);
     if (!filename) return reply.code(404).send({ error: 'Image not found' });
-    return reply
-      .type('image/png')
-      .header('Cache-Control', 'private, no-store')
-      .header('Vary', 'Cookie')
-      .header('Content-Disposition', `inline; filename="${descriptor.filename}"`)
-      .send(createReadStream(filename));
+    return sendPresentationImage(request, reply, {
+      filename,
+      downloadName: descriptor.filename,
+      cacheControl: 'private, max-age=900',
+    });
   }
 
   app.get('/api/profile', async (request, reply) => {

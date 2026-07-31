@@ -1,3 +1,5 @@
+import { presentationImageUrl } from './presentation-media.js?v=20260731-1';
+
 const PRESENTATIONS = new Set([
   'SOURCE_SCAN',
   'CANDIDATE_REVEAL',
@@ -432,7 +434,7 @@ export function createLiveVisualizer(root, dependencies = {}) {
           reject(new Error('VISUAL_ASSET_LOAD_FAILED'));
         };
       });
-      record.image.src = layer.url;
+      record.image.src = presentationImageUrl(layer.url);
       imageCache.set(layer.assetId, record);
     }
     return imageCache.get(layer.assetId).promise;

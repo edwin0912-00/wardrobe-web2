@@ -1,4 +1,5 @@
 import { createThinkingOrb } from './thinking-orb.js?v=20260722-10';
+import { presentationImageUrl } from './presentation-media.js?v=20260731-1';
 import { UploadSelectionStore } from './upload-state.js?v=20260722-8';
 import { clearDraft, loadDraft, requestPersistentStorage, saveDraft } from './draft-store.js?v=20260722-10';
 import { fileSummary, telemetry } from './telemetry.js?v=20260722-8';
@@ -777,7 +778,7 @@ function setAvatarDraftMode(avatar = null, look = null) {
 
   const preview = document.querySelector('#source-avatar-preview');
   if (reusingAvatar) {
-    preview.src = avatarImageUrl(avatar);
+    preview.src = presentationImageUrl(avatarImageUrl(avatar));
     preview.hidden = false;
     document.querySelector('#source-avatar-name').textContent = addItemsState.sourceName;
     document.querySelector('#source-avatar-detail').textContent = addItemsState.sourceDetail;
@@ -1082,7 +1083,7 @@ function renderProfileSceneLibrary(look) {
     visual.className = 'profile-look-scene-visual';
     if (scene.image_url) {
       const image = document.createElement('img');
-      image.src = scene.image_url;
+      image.src = presentationImageUrl(scene.image_url);
       image.alt = '';
       image.loading = 'lazy';
       visual.append(image);
@@ -1182,7 +1183,7 @@ function renderProfileEditorialLibrary(look, profile = currentProfile, supplied 
       ?? shoot.shots?.find((shot) => shot.slot === 'clean_identity_hero')?.output?.image_url;
     if (heroUrl) {
       const image = document.createElement('img');
-      image.src = heroUrl;
+      image.src = presentationImageUrl(heroUrl);
       image.alt = '';
       image.loading = 'lazy';
       visual.append(image);
@@ -1276,7 +1277,7 @@ async function renderProfile(profileValueToRender = null) {
         : `${active ? 'Вибрано' : 'Обрати'} ${avatar.name || `Аватар ${index + 1}`} і показати пов’язані образи`,
     );
     const image = document.createElement('img');
-    image.src = avatarImageUrl(avatar);
+    image.src = presentationImageUrl(avatarImageUrl(avatar));
     image.alt = avatar.name || `Аватар ${index + 1}`;
     const summary = document.createElement('span');
     summary.className = 'profile-avatar-summary';
@@ -1317,7 +1318,7 @@ async function renderProfile(profileValueToRender = null) {
     open.setAttribute('aria-expanded', String(active));
     open.setAttribute('aria-controls', 'profile-look-detail');
     const image = document.createElement('img');
-    image.src = look.image_url ?? `/api/profile/looks/${encodeURIComponent(lookId)}/image`;
+    image.src = presentationImageUrl(look.image_url ?? `/api/profile/looks/${encodeURIComponent(lookId)}/image`);
     image.alt = look.name || `Збережений образ ${index + 1}`;
     const title = document.createElement('strong');
     title.textContent = look.name || `Образ ${String(index + 1).padStart(2, '0')}`;
@@ -1372,8 +1373,8 @@ async function renderProfile(profileValueToRender = null) {
   detail.classList.toggle('hidden', !selectedProfileLookSelection);
   profileLibrary?.classList.toggle('has-open-look', Boolean(selectedProfileLookSelection));
   if (selectedProfileLookSelection) {
-    detailImage.src = selectedProfileLook.image_url
-      ?? `/api/profile/looks/${encodeURIComponent(selectedProfileLookSelection.lookId)}/image`;
+    detailImage.src = presentationImageUrl(selectedProfileLook.image_url
+      ?? `/api/profile/looks/${encodeURIComponent(selectedProfileLookSelection.lookId)}/image`);
     detailImage.alt = selectedProfileLook.name || 'Вибраний збережений образ';
     detailTitle.textContent = selectedProfileLook.name || 'Збережений образ';
     detailOwner.textContent = `${selectedProfileLookSelection.avatar?.name || 'Збережений аватар'} · зберігаємо зовнішність і пропорції тіла`;
@@ -1445,7 +1446,7 @@ function renderResults(run) {
   tabs.replaceChildren();
 
   const activate = (selected) => {
-    activeImage.src = selected.url;
+    activeImage.src = presentationImageUrl(selected.url);
     activeImage.alt = selected.label === 'Аватар' ? 'Базовий ZEELY аватар' : `ZEELY ${selected.label.toLowerCase()}`;
     activeLabel.textContent = selected.label;
     activeDownload.href = selected.url;
@@ -1462,7 +1463,7 @@ function renderResults(run) {
     button.className = 'result-tab';
     button.dataset.output = item.key;
     const thumb = document.createElement('img');
-    thumb.src = item.url;
+    thumb.src = presentationImageUrl(item.url);
     thumb.alt = '';
     const label = document.createElement('span');
     label.textContent = item.label;
@@ -1473,7 +1474,7 @@ function renderResults(run) {
 
   const avatarUrl = run.outputs.avatar || run.outputs.avatar_outfit;
   const avatarPreview = document.querySelector('#profile-avatar-preview');
-  avatarPreview.src = avatarUrl;
+  avatarPreview.src = presentationImageUrl(avatarUrl);
   avatarPreview.hidden = !avatarUrl;
   if (items.length) activate(items[0]);
   ensureCompletedRunSaved(run).catch(() => {});

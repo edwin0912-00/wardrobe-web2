@@ -1,3 +1,5 @@
+import { presentationImageUrl } from './presentation-media.js?v=20260731-1';
+
 const login = document.querySelector('#god-login');
 const dashboard = document.querySelector('#god-dashboard');
 const loginForm = document.querySelector('#god-login-form');
@@ -47,7 +49,7 @@ function statusLine(label, value) {
 function generatedImage(url, alt) {
   const image = document.createElement('img');
   image.loading = 'lazy';
-  image.src = url;
+  image.src = presentationImageUrl(url);
   image.alt = alt;
   return image;
 }

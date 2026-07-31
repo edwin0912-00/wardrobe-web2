@@ -1,22 +1,16 @@
 import { createReadStream } from 'node:fs';
-import path from 'node:path';
-
-const IMAGE_TYPES = new Map([
-  ['.png', 'image/png'],
-  ['.jpg', 'image/jpeg'],
-  ['.jpeg', 'image/jpeg'],
-  ['.webp', 'image/webp'],
-]);
+import { sendPresentationImage } from './presentation-preview.js';
 
 function noStore(reply) {
   return reply.header('Cache-Control', 'private, no-store').header('Vary', 'Cookie');
 }
 
-function imageReply(reply, filename) {
+function imageReply(request, reply, filename) {
   if (!filename) return reply.code(404).send({ error: 'God View asset not found' });
-  return noStore(reply)
-    .type(IMAGE_TYPES.get(path.extname(filename).toLowerCase()) ?? 'application/octet-stream')
-    .send(createReadStream(filename));
+  return sendPresentationImage(request, reply, {
+    filename,
+    cacheControl: 'private, max-age=900',
+  });
 }
 
 function runSummary(run, runId) {
@@ -204,13 +198,13 @@ export async function registerGodViewRoutes(app, {
       : request.params.asset === 'look'
       ? await runService.outputFile(request.params.runId, 'avatar_outfit.png')
       : null;
-    return imageReply(reply, filename);
+    return imageReply(request, reply, filename);
   });
 
   app.get('/api/god-view/assets/runs/:runId/garments/:sourceIndex', async (request, reply) => {
     if (!authorized(request, reply)) return reply;
     if (!profiles.godViewOwns('RUN', request.params.runId)) return reply.code(404).send({ error: 'God View asset not found' });
-    return imageReply(reply, await runService.garmentSourceFile(request.params.runId, request.params.sourceIndex));
+    return imageReply(request, reply, await runService.garmentSourceFile(request.params.runId, request.params.sourceIndex));
   });
 
   app.get('/api/god-view/assets/runs/:runId/inputs/:kind', async (request, reply) => {
@@ -221,19 +215,19 @@ export async function registerGodViewRoutes(app, {
       : request.params.kind === 'identity'
       ? await runService.identityDetailSourceFile(request.params.runId)
       : null;
-    return imageReply(reply, filename);
+    return imageReply(request, reply, filename);
   });
 
   app.get('/api/god-view/assets/scenes/:sceneId/image', async (request, reply) => {
     if (!authorized(request, reply)) return reply;
     if (!sceneService || !profiles.godViewOwns('SCENE', request.params.sceneId)) return reply.code(404).send({ error: 'God View asset not found' });
-    return imageReply(reply, await sceneService.outputFile(request.params.sceneId, 'scene.png'));
+    return imageReply(request, reply, await sceneService.outputFile(request.params.sceneId, 'scene.png'));
   });
 
   app.get('/api/god-view/assets/shoots/:shootId/shots/:slot', async (request, reply) => {
     if (!authorized(request, reply)) return reply;
     if (!editorialShootService || !profiles.godViewOwns('SHOOT', request.params.shootId)) return reply.code(404).send({ error: 'God View asset not found' });
-    return imageReply(reply, await editorialShootService.outputFile(request.params.shootId, request.params.slot));
+    return imageReply(request, reply, await editorialShootService.outputFile(request.params.shootId, request.params.slot));
   });
 
   app.get('/api/god-view/assets/videos/:clipId', async (request, reply) => {

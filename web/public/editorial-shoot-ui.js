@@ -21,6 +21,7 @@ import {
   writeEditorialResume,
 } from './editorial-state.js?v=20260724-1';
 import { createThinkingOrb } from './thinking-orb.js?v=20260722-10';
+import { presentationImageUrl } from './presentation-media.js?v=20260731-1';
 
 function idOfLook(look) {
   return look?.look_id ?? look?.id ?? null;
@@ -488,7 +489,7 @@ export class EditorialShootUiController {
     this.#element('#editorial-bible-system').hidden = true;
     const url = modePreviewUrl(this.mode);
     if (url) {
-      preview.src = url;
+      preview.src = presentationImageUrl(url);
       preview.hidden = false;
     } else {
       preview.removeAttribute('src');
@@ -535,7 +536,7 @@ export class EditorialShootUiController {
           `Переглянути повний кадр: ${editorialShotLabel(shot.slot)}`,
         );
         const image = document.createElement('img');
-        image.src = imageUrl;
+        image.src = presentationImageUrl(imageUrl);
         image.alt = `${editorialShotLabel(shot.slot)} — ${displayShotStatus(shot.status)}`;
         image.loading = index === 0 ? 'eager' : 'lazy';
         inspect.append(image);
@@ -576,7 +577,7 @@ export class EditorialShootUiController {
     const image = this.#element('#editorial-shot-inspector-image');
     const title = this.#element('#editorial-shot-inspector-title');
     const download = this.#element('#editorial-shot-inspector-download');
-    image.src = imageUrl;
+    image.src = presentationImageUrl(imageUrl);
     image.alt = `${label} — повний кадр 4:5`;
     title.textContent = label;
     download.href = downloadUrl ?? imageUrl;

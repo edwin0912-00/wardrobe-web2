@@ -413,6 +413,23 @@ export async function createWebApp({
         .header('Content-Disposition', 'inline; filename="run-manifest.json"')
         .send(publicManifestView(internalManifest));
     }
+    if (request.query?.preview === '1') {
+      try {
+        const preview = await sharp(filename, { failOn: 'error', limitInputPixels: 100_000_000 })
+          .rotate()
+          .resize({ width: 640, height: 640, fit: 'inside', withoutEnlargement: true })
+          .webp({ quality: 70, effort: 4 })
+          .toBuffer();
+        return reply.type('image/webp')
+          .header('Cache-Control', 'private, max-age=900')
+          .header('Vary', 'Cookie')
+          .header('X-Content-Type-Options', 'nosniff')
+          .header('X-Zeely-Presentation', 'webp-640')
+          .send(preview);
+      } catch {
+        return reply.code(422).send({ error: 'Не вдалося підготувати легке preview-зображення' });
+      }
+    }
     const type = request.params.name.endsWith('.json') ? 'application/json' : 'image/png';
     return reply.type(type).header('Content-Disposition', `inline; filename="${request.params.name}"`).send(createReadStream(filename));
   });
@@ -455,6 +472,21 @@ export async function createWebApp({
       ? await service.visualAsset(request.params.id, request.params.assetId)
       : null;
     if (!asset) return reply.code(404).send({ error: 'Visual asset not found' });
+    if (request.query?.preview === '1') {
+      try {
+        const preview = await sharp(asset.bytes, { failOn: 'error', limitInputPixels: 100_000_000 })
+          .rotate()
+          .resize({ width: 640, height: 640, fit: 'inside', withoutEnlargement: true })
+          .webp({ quality: 70, effort: 4 })
+          .toBuffer();
+        return reply.type('image/webp')
+          .header('Cache-Control', 'private, max-age=900')
+          .header('X-Zeely-Presentation', 'webp-640')
+          .send(preview);
+      } catch {
+        return reply.code(422).send({ error: 'Не вдалося підготувати легке preview-зображення' });
+      }
+    }
     return reply
       .type(asset.media_type)
       .send(asset.bytes);
