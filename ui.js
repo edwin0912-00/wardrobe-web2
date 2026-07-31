@@ -522,6 +522,7 @@
         return '<button class="lookthumb" type="button" data-select="' + i + '"' +
           ' aria-pressed="' + (i === selected ? 'true' : 'false') + '">' +
           (thumb ? '<img class="lookthumb__img" src="' + thumb + '" alt="">' : '') +
+          (i === selected ? '<span class="lookthumb__active" aria-hidden="true">●</span>' : '') +
           '</button>';
       }).join('');
       /* Padded to at least four so the row reads as an ongoing strip rather than a tally
@@ -688,6 +689,7 @@
       }
       askRoot.innerHTML = scene('looks',
         '<div class="glass__h">Образ ' + (selected + 1) + '</div>' +
+        '<div class="look-status" role="status"><span class="look-status__dot" aria-hidden="true"></span>АКТИВНИЙ ОБРАЗ</div>' +
         '<p class="glass__lede">' + esc(lookLede(l)) + '</p>' +
         '<div class="looklabel">ваші образи</div>' +
         '<div class="lookthumbs">' + askLookThumbs() + '</div>' +

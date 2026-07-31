@@ -890,6 +890,29 @@ body {
   font-size: clamp(11px, 2.4cqh, 13px); letter-spacing: 0.34em; text-indent: 0.34em;
   text-transform: uppercase; color: rgba(245, 243, 237, 0.4);
 }
+/* A generated look is an active result, not the waiting proof underneath it. The shared
+ * frame rules above deliberately mark empty/pending states with desaturation and hatching;
+ * this explicit state override prevents those presentation cues from leaking onto a real
+ * output. Contain preserves the complete approved avatar instead of cropping its head or
+ * footwear to fill the mirror aperture. */
+.lookframe[data-state="ready"] {
+  background: rgba(245, 243, 237, 0.08);
+}
+.lookframe[data-state="ready"] .lookframe__img {
+  object-fit: contain; object-position: center; filter: none;
+}
+.lookframe[data-state="ready"]::after { content: none; }
+
+.look-status {
+  display: inline-flex; align-items: center; gap: 6px; flex: 0 0 auto;
+  margin-top: clamp(5px, 1.2cqh, 8px);
+  font-size: clamp(8px, 1.6cqh, 10px); letter-spacing: 0.18em;
+  color: rgba(245, 243, 237, 0.68);
+}
+.look-status__dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--milk); box-shadow: 0 0 8px rgba(245, 243, 237, 0.72);
+}
 
 /* The live view: a real camera feed in the mirror. Mirrored horizontally, because a mirror
  * is what the viewer expects to be standing in front of — an unflipped feed reads as a video
@@ -1365,6 +1388,16 @@ body {
   cursor: pointer;
 }
 .lookthumb[aria-pressed="true"] { border-color: var(--milk); }
+.lookthumb[aria-pressed="true"] {
+  box-shadow: 0 0 0 1px var(--milk), 0 0 12px rgba(245, 243, 237, 0.18);
+}
+.lookthumb__active {
+  position: absolute; top: 4px; right: 4px; z-index: 2;
+  width: 12px; height: 12px; display: grid; place-items: center;
+  border: 1px solid var(--milk); border-radius: 50%;
+  color: var(--milk); background: rgba(16, 17, 15, 0.72);
+  font-size: 7px; line-height: 1;
+}
 .lookthumb:disabled { opacity: 0.4; cursor: default; }
 .lookthumb__img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
