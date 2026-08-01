@@ -1,33 +1,31 @@
 #!/usr/bin/env node
-// Integration test for the VIDEO pipeline.
-// Simulates the full UI flow:
-//   1. POST /api/runs — upload person + garment (creates avatar + look)
-//   2. GET /api/runs/:id — poll until COMPLETED
-//   3. POST /api/profile/runs/:runId/save — save look to profile
-//   4. Use the saved look as source for video generation
-//   5. QA the generated clip via ffprobe
+// Offline contract test for the VIDEO pipeline. It validates the motion plan,
+// wire contract and any checked-in clip fixtures. `--server-smoke` adds only
+// read-only health/catalog checks. `--live` is an explicit paid avatar/look
+// generator smoke; Fashion Video provider-to-delivery E2E is covered by the
+// persisted runtime audit and the dedicated test/video suite.
 //
 // Usage:
 //   # Start the server first:
 //   ZEELY_COOKIE_SECURE=false node src/web/start.js
 //
 //   # Then in another terminal:
-//   node tools/test-video-pipeline.mjs
+//   node tools/test-video-pipeline.mjs --server-smoke
 //
-// The script does NOT use real Seedance credits unless --live is passed.
-// By default it tests:
-//   - The full UI flow up to a saved look
-//   - Clip QA against existing videos in assets/generated_videos/
-//   - Motion plan + surface integration
-//   - Wire-contract export
+// The script never starts paid work unless both --live and
+// ZEELY_ALLOW_PAID_TESTS=1 are supplied with explicit fixture paths.
 
 import { readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 
-const BASE = process.env.ZEELY_BASE_URL ?? 'http://localhost:4173';
+const BASE = process.env.ZEELY_BASE_URL ?? 'http://localhost:4176';
 const PROJECT_ROOT = path.resolve(import.meta.dirname, '..');
 const LIVE = process.argv.includes('--live');
+const SERVER_SMOKE = LIVE || process.argv.includes('--server-smoke');
+const PAID_CONFIRMED = process.env.ZEELY_ALLOW_PAID_TESTS === '1';
+const PERSON_FIXTURE = process.env.ZEELY_TEST_PERSON_PATH ?? null;
+const GARMENT_FIXTURE = process.env.ZEELY_TEST_GARMENT_PATH ?? null;
 
 function sha256(data) {
   return createHash('sha256').update(data).digest('hex');
@@ -46,7 +44,12 @@ function info(msg) { console.log(`  ℹ️  ${msg}`); }
 // ─── Phase 0: Imports (module health) ───────────────────────
 section('Phase 0: Module imports');
 
-const { buildMotionPlan, SURFACES, MOTION_MODES, surface } = await import('../src/web/video-motion-plan.js');
+const {
+  buildMotionPlan,
+  VIDEO_SURFACES,
+  MOTION_MODES,
+  videoSurface,
+} = await import('../src/web/video-motion-plan.js');
 pass('video-motion-plan.js loaded');
 
 const { evaluateClipQa } = await import('../src/web/video-clip-qa.js');
@@ -92,10 +95,10 @@ else fail(`Expected >= 4 locks, got ${contract.locks.length}`);
 section('Phase 2: Motion plan + surface integration');
 
 for (const surfaceId of ['tv', 'mirror']) {
-  const s = surface(surfaceId);
+  const s = videoSurface(surfaceId);
   const plan = buildMotionPlan({
     modeId: 'editorial_micro_moment',
-    surfaceId,
+    surface: surfaceId,
   });
   if (plan.surface === surfaceId) pass(`${surfaceId}: surface=${plan.surface}`);
   else fail(`${surfaceId}: expected surface=${surfaceId}, got ${plan.surface}`);
@@ -104,19 +107,19 @@ for (const surfaceId of ['tv', 'mirror']) {
   else fail(`${surfaceId}: expected aspect=${s.aspectRatio}, got ${plan.aspectRatio}`);
 
   // Check that the prompt contains the hint but no geometry digits
-  if (plan.prompt.includes(s.hint)) pass(`${surfaceId}: hint in prompt`);
+  if (plan.prompt.includes(s.framingNote)) pass(`${surfaceId}: framing note in prompt`);
   else fail(`${surfaceId}: hint NOT in prompt`);
 
-  if (!/\b\d+:\d+\b/.test(s.hint)) pass(`${surfaceId}: hint has no digit ratios`);
+  if (!/\b\d+:\d+\b/.test(s.framingNote)) pass(`${surfaceId}: hint has no digit ratios`);
   else fail(`${surfaceId}: hint contains digit ratios — geometry guard will reject`);
 }
 
 // Verify all 8 mode+surface combos work
 let comboCount = 0;
 for (const mode of Object.values(MOTION_MODES)) {
-  for (const surfaceId of Object.keys(SURFACES)) {
+  for (const surfaceId of Object.keys(VIDEO_SURFACES)) {
     try {
-      buildMotionPlan({ modeId: mode.id, surfaceId, sourceCapabilities: { full_length: true } });
+      buildMotionPlan({ modeId: mode.id, surface: surfaceId, sourceCapabilities: { full_length: true } });
       comboCount++;
     } catch (err) {
       fail(`${mode.id}+${surfaceId}: ${err.message}`);
@@ -171,28 +174,52 @@ if (!probeVideo || !extractFrame) {
 }
 
 // ─── Phase 4: Simulate UI flow (server required) ───────────
-section('Phase 4: UI flow simulation (requires running server)');
+section('Phase 4: Read-only server contract smoke');
 
 let serverUp = false;
-try {
+if (!SERVER_SMOKE) {
+  info('Skipping server checks — pass --server-smoke (or --live) explicitly');
+} else try {
   const healthRes = await fetch(`${BASE}/api/health`, { signal: AbortSignal.timeout(3000) });
   const health = await healthRes.json();
-  if (healthRes.ok) {
+  if (healthRes.ok && health.status === 'ready') {
     pass(`Server healthy: status=${health.status}, generation=${health.generation}`);
     serverUp = true;
+    const [presetsRes, modesRes] = await Promise.all([
+      fetch(`${BASE}/api/scene-presets`, { signal: AbortSignal.timeout(3000) }),
+      fetch(`${BASE}/api/editorial-modes`, { signal: AbortSignal.timeout(3000) }),
+    ]);
+    if (!presetsRes.ok || !modesRes.ok) {
+      fail(`Public catalogs unavailable: scenes=${presetsRes.status}, modes=${modesRes.status}`);
+    } else {
+      const [presets, modes] = await Promise.all([presetsRes.json(), modesRes.json()]);
+      if (Array.isArray(presets.presets) && presets.presets.length > 0) {
+        pass(`Scene catalog: ${presets.presets.length} presets`);
+      } else fail('Scene catalog is empty or malformed');
+      if (Array.isArray(modes.modes) && modes.modes.length > 0) {
+        pass(`Creative catalog: ${modes.modes.length} modes`);
+      } else fail('Creative catalog is empty or malformed');
+    }
   } else {
-    info(`Server responded ${healthRes.status} — skipping UI flow`);
+    fail(`Server is not ready: HTTP ${healthRes.status}, status=${String(health.status)}`);
   }
-} catch {
-  info('Server not running — skipping UI flow simulation');
+} catch (error) {
+  fail(`Server smoke failed: ${error instanceof Error ? error.message : String(error)}`);
 }
 
-if (serverUp) {
+if (serverUp && LIVE && !PAID_CONFIRMED) {
+  fail('--live requires ZEELY_ALLOW_PAID_TESTS=1');
+}
+if (serverUp && LIVE && (!PERSON_FIXTURE || !GARMENT_FIXTURE)) {
+  fail('--live requires ZEELY_TEST_PERSON_PATH and ZEELY_TEST_GARMENT_PATH');
+}
+
+if (serverUp && LIVE && PAID_CONFIRMED && PERSON_FIXTURE && GARMENT_FIXTURE) {
   // Step 1: Upload person + garment to create a run
   info('Creating a run (simulating UI file upload)...');
 
-  const personPath = path.join(PROJECT_ROOT, 'assets', 'test_person_avatar.jpg');
-  const garmentPath = path.join(PROJECT_ROOT, 'assets', 'test_garment_hat.jpg');
+  const personPath = path.resolve(PERSON_FIXTURE);
+  const garmentPath = path.resolve(GARMENT_FIXTURE);
 
   const personBytes = await readFile(personPath);
   const garmentBytes = await readFile(garmentPath);
@@ -231,7 +258,7 @@ if (serverUp) {
     pass(`Run created: ${run.run_id}, status=${run.status}`);
 
     // Step 2: Poll until completed (max 5 minutes)
-    const maxWait = LIVE ? 300_000 : 30_000;
+    const maxWait = 300_000;
     const start = Date.now();
     let current = run;
 
@@ -251,7 +278,7 @@ if (serverUp) {
         const avatarBytes = Buffer.from(await avatarRes.arrayBuffer());
         pass(`Avatar downloaded: ${avatarBytes.length} bytes, sha256=${sha256(avatarBytes).slice(0, 12)}…`);
       } else {
-        info(`Avatar not available: ${avatarRes.status}`);
+        fail(`Avatar not available: ${avatarRes.status}`);
       }
 
       const lookRes = await fetch(`${BASE}/api/runs/${run.run_id}/files/avatar_outfit.png`);
@@ -263,17 +290,16 @@ if (serverUp) {
         info('This look image would be the locked source for video generation.');
         info('To run with real Seedance credits, pass --live flag.');
       } else {
-        info(`Look not available: ${lookRes.status}`);
+        fail(`Look not available: ${lookRes.status}`);
       }
     } else if (current.status === 'NEEDS_INPUT') {
-      info(`Run needs input: ${current.message ?? 'garment selection required'}`);
+      fail(`Run needs input: ${current.message ?? 'garment selection required'}`);
     } else {
-      info(`Run ended with status: ${current.status} (waited ${((Date.now() - start) / 1000).toFixed(0)}s)`);
+      fail(`Run ended with status: ${current.status} (waited ${((Date.now() - start) / 1000).toFixed(0)}s)`);
     }
   } else if (runRes.status === 503) {
     const err = await runRes.json();
-    info(`Generation unavailable (preflight degraded): ${err.code}`);
-    info('This is expected if Higgsfield is not configured.');
+    fail(`Generation unavailable (preflight degraded): ${err.code}`);
   } else {
     const err = await runRes.json().catch(() => ({}));
     fail(`Run creation failed: ${runRes.status} — ${err.error ?? err.message ?? 'unknown'}`);
