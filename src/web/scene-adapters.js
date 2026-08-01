@@ -1156,6 +1156,7 @@ export function evaluatorPrompt(
     ...attachments,
     '',
     'Authority: ATTACHMENT_2 alone controls identity, body, hair, outfit, product details, logos and garment text.',
+    `The candidate delivery canvas ${delivery.width}x${delivery.height} is authoritative. A source composition reference may record the aspect ratio of the source image it was derived from; translate its spatial intent into this delivery canvas and never fail SCENE_MATCH merely because that source ratio differs.`,
     'The five scene role inputs are authority only for their declared environment, lighting, composition, palette or avoidance role. They are never authority for a person, clothing, brands, readable text, landmarks or exact source architecture.',
     ...(heroAnchors.length > 0 ? [
       `ATTACHMENT_${imageReferences.length + 3} is the already approved hero from this exact shoot. It is authority only for series continuity in invented environment geometry, light direction and quality, colour grade and unit-wide optics.`,

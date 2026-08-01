@@ -1167,6 +1167,8 @@ test('SceneEvaluatorAdapter attaches candidate, look and all five roles and retu
   assert.match(calls[0].args[1], /ATTACHMENT_11 \[APPROVED_LOOK_LOWER_ITEM_DETAIL\]/);
   assert.match(calls[0].args[1], /Any substituted emblem, missing monogram, rewritten letter or number/);
   assert.match(calls[0].args[1], /ITEM_DETAIL_NOT_VERIFIABLE/);
+  assert.match(calls[0].args[1], /candidate delivery canvas 1024x1280 is authoritative/);
+  assert.match(calls[0].args[1], /never fail SCENE_MATCH merely because that source ratio differs/);
   assert.ok(calls[0].args.includes('model_reasoning_effort="high"'));
   assert.doesNotMatch(calls[0].args[1], /candidate\.png|approved-look\.png|\/Users\/|\/tmp\//);
   assert.equal(result.reviewer.type, 'MODEL');

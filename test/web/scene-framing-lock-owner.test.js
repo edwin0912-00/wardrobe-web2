@@ -266,6 +266,38 @@ test('70–80 standard framing accepts the beta scene scale without a crop', () 
   assert.equal(deterministicFramingCropPlan(assessment.evidence, { width: 1536, height: 2048 }), null);
 });
 
+test('an undersized 3:4 frame selects a nearby feasible crop when the mid-band crop lacks headroom', () => {
+  // Exact final evidence from hypercheck scene_c8c0148f, attempt 3.  The old planner
+  // tried only the 75% midpoint crop (1880px high), which needs 150.4px above the hair,
+  // and returned null because the candidate has 145px.  A 1800px native 3:4 crop keeps
+  // every source pixel of the person and lands at 77.94% with 8.06% headroom.
+  const assessment = assessSceneFraming({
+    subject_bbox_xywh_px: [492, 145, 425, 1403],
+    full_head_visible: true,
+    full_footwear_visible: true,
+  }, {
+    preset: { preset_id: 'std.city.golden_hour_gloss' },
+    width: 1536,
+    height: 2048,
+  });
+  assert.deepEqual(assessment.defects, ['SUBJECT_HEIGHT_OUTSIDE_PRESET_RANGE']);
+
+  const crop = deterministicFramingCropPlan(assessment.evidence, { width: 1536, height: 2048 });
+  assert.deepEqual(crop, {
+    left: 30,
+    top: 0,
+    width: 1350,
+    height: 1800,
+    target_subject_height_percent: 75,
+    output_scale: 1.137778,
+  });
+  assert.ok((1403 / crop.height) * 100 >= 70);
+  assert.ok((1403 / crop.height) * 100 <= 80);
+  assert.ok(((145 - crop.top) / crop.height) * 100 >= 8);
+  assert.ok(((crop.height - (145 - crop.top) - 1403) / crop.height) * 100 >= 2);
+  assert.equal(crop.width * 4, crop.height * 3);
+});
+
 test('standard delivery accepts a fully visible 86% subject as an explicit composition tolerance', () => {
   // Exact geometry from scene_99d60… attempt 3. Identity, every item, scene,
   // anatomy, contact shadow and head/foot clear space passed. The old code still

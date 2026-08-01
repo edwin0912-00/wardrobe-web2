@@ -466,6 +466,31 @@ Help request: NONE.
 
 ---
 
+Agent ID: codex-live-40 (release hypercheck owner)
+Task ID: HYPERCHECK-STANDARD-FRAMING-CROP-20260801
+Pipeline: BACKGROUND.02 · standard scene generation → strict QA → delivery
+State: TESTED · READY_FOR_INTEGRATION
+Decision: keep the 70–80% subject-height and head/foot margin locks unchanged,
+but search the finite native-3:4 crop grid when the exact 75% midpoint crop is
+geometrically impossible. The previous single-point planner returned `null`
+for a valid nearby crop and spent all three image-model attempts.
+Code: focused framing owner 12/12 PASS; evaluator-prompt regression PASS.
+Real journey: `std.city.golden_hour_gloss` initially exhausted three completed
+provider candidates at 68.21–68.51% subject height. The repaired planner reused
+the immutable Nano Banana Pro candidate, made a 1350x1800 crop from
+`[30,0,1350,1800]`, ran fresh full QA and completed without another provider
+generation. Final scene SHA:
+`320b317b47f7427c86f754b83734b8891726fdd3c93825890222a16306a27ac3`.
+The evaluator now also treats the exact delivery canvas as authoritative and
+cannot reject a correct 3:4 delivery merely because a source composition anchor
+records its original 4:5 ratio.
+Beta: NOT_DEPLOYED — integration and exact-SHA activation remain release-owner work.
+weakened_checks: none; all original framing, identity, item, scene and provenance
+gates ran again and passed.
+Help request: NONE.
+
+---
+
 Agent ID: codex-main
 Task ID: BETA-TUNNEL-ISOLATION-001
 Protocol ACK: f6e2c41

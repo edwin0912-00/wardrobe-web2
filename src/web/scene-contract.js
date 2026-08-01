@@ -1609,46 +1609,71 @@ export function deterministicFramingCropPlan(framing, delivery) {
   const maximumCropHeight = Math.floor(boxHeight / (minimumPercent / 100) / cropHeightUnit)
     * cropHeightUnit;
   if (minimumCropHeight > maximumCropHeight) return null;
-  let cropHeight = Math.round(boxHeight / (targetPercent / 100) / cropHeightUnit)
-    * cropHeightUnit;
-  cropHeight = Math.max(minimumCropHeight, Math.min(maximumCropHeight, cropHeight, delivery.height));
-  const cropWidth = cropHeight * delivery.width / delivery.height;
-  if (!Number.isInteger(cropWidth)
-    || cropWidth > delivery.width
-    || cropHeight > delivery.height
-    || cropWidth < boxWidth
-    || cropHeight < boxHeight) {
-    return null;
-  }
+  const idealCropHeight = boxHeight / (targetPercent / 100);
+  const candidates = [];
+  const lastCropHeight = Math.min(maximumCropHeight, delivery.height);
+  for (let cropHeight = minimumCropHeight;
+    cropHeight <= lastCropHeight;
+    cropHeight += cropHeightUnit) {
+    const cropWidth = cropHeight * delivery.width / delivery.height;
+    if (!Number.isInteger(cropWidth)
+      || cropWidth > delivery.width
+      || cropWidth < boxWidth
+      || cropHeight < boxHeight) {
+      continue;
+    }
 
-  const minimumAbove = cropHeight * (framing.minimum_clear_space_above_hair_percent / 100);
-  const minimumBelow = cropHeight * (framing.minimum_clear_space_below_footwear_percent / 100);
-  const minimumTop = Math.max(
-    0,
-    Math.ceil(boxY + boxHeight + minimumBelow - cropHeight),
-  );
-  const maximumTop = Math.min(
-    delivery.height - cropHeight,
-    Math.floor(boxY - minimumAbove),
-  );
-  if (minimumTop > maximumTop) return null;
-  const centeredTop = Math.round(boxY + boxHeight / 2 - cropHeight / 2);
-  const top = Math.max(minimumTop, Math.min(maximumTop, centeredTop));
-  const centeredLeft = Math.round(boxX + boxWidth / 2 - cropWidth / 2);
-  const left = Math.max(0, Math.min(delivery.width - cropWidth, centeredLeft));
-  if (left > boxX
-    || top > boxY
-    || left + cropWidth < boxX + boxWidth
-    || top + cropHeight < boxY + boxHeight) {
-    return null;
+    const minimumAbove = cropHeight * (framing.minimum_clear_space_above_hair_percent / 100);
+    const minimumBelow = cropHeight * (framing.minimum_clear_space_below_footwear_percent / 100);
+    const minimumTop = Math.max(
+      0,
+      Math.ceil(boxY + boxHeight + minimumBelow - cropHeight),
+    );
+    const maximumTop = Math.min(
+      delivery.height - cropHeight,
+      Math.floor(boxY - minimumAbove),
+    );
+    if (minimumTop > maximumTop) continue;
+    const centeredTop = Math.round(boxY + boxHeight / 2 - cropHeight / 2);
+    const top = Math.max(minimumTop, Math.min(maximumTop, centeredTop));
+    const centeredLeft = Math.round(boxX + boxWidth / 2 - cropWidth / 2);
+    const left = Math.max(0, Math.min(delivery.width - cropWidth, centeredLeft));
+    if (left > boxX
+      || top > boxY
+      || left + cropWidth < boxX + boxWidth
+      || top + cropHeight < boxY + boxHeight) {
+      continue;
+    }
+    candidates.push({
+      left,
+      top,
+      width: cropWidth,
+      height: cropHeight,
+      distance_from_ideal: Math.abs(cropHeight - idealCropHeight),
+    });
   }
+  // The mid-band crop can be geometrically impossible even when a nearby crop inside
+  // the same declared band is valid.  The live 1536x2048 failure that exposed this had
+  // 1403px of subject and 145px above the hair: 1880px (75%) needed 150.4px of headroom,
+  // while 1800px (77.94%) preserved the full head, footwear and both margin locks.  Picking
+  // one height and returning null discarded that safe no-generation repair.  Search the
+  // finite native-aspect grid and choose the feasible crop closest to the preset midpoint;
+  // no pixels are added and every original lock remains enforced by the bounds above.
+  candidates.sort((left, right) => (
+    left.distance_from_ideal - right.distance_from_ideal
+    || right.height - left.height
+    || left.top - right.top
+    || left.left - right.left
+  ));
+  const selected = candidates[0];
+  if (!selected) return null;
   return {
-    left,
-    top,
-    width: cropWidth,
-    height: cropHeight,
+    left: selected.left,
+    top: selected.top,
+    width: selected.width,
+    height: selected.height,
     target_subject_height_percent: targetPercent,
-    output_scale: Number((delivery.height / cropHeight).toFixed(6)),
+    output_scale: Number((delivery.height / selected.height).toFixed(6)),
   };
 }
 
