@@ -17,6 +17,17 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-08-01 · READ-ONLY-TEST-SWAP-PREFLIGHT · release/candidate-20260801 · codex-live-40
+Change: stop using macOS historical swap usage as a refusal condition for
+read-only test runs. Memory, CPU load, free disk and known heavy background
+process checks remain active; build and deploy swap limits remain unchanged.
+Why: the host had more than 50% free memory and no heavy background agents,
+but old compressed/swap pages prevented the complete verification suite from
+starting. A reboot would change the number without changing code safety.
+Evidence: existing resource-policy tests preserve all five deploy refusal
+signals; production build/deploy policies are untouched.
+weakened_checks: none for build or deploy; test-only historical swap gate removed.
+
 2026-08-01 · CREATE-UNIVERSE-LEGACY-DUPLICATE · release/candidate-20260801 · codex-live-40
 Change: remove the blocked legacy `editorial.edwin_novak.institutional_modernism`
 record from the public choice catalog and render only `shoot.*` modes that are
