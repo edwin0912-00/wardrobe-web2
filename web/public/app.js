@@ -18,7 +18,7 @@ import { createLiveVisualizer, isProviderWaitStage } from './live-visualizer.js?
 import { fetchRunWithRetry, RunNotFoundError } from './run-resume.js?v=20260722-3';
 import { claimProfileRun, deleteAnonymousProfile, deleteProfileLook, listProfileLookEditorialShoots, loadProfile, saveProfileRun } from './profile-client.js?v=20260724-5';
 import { needsInputPresentation, neutralizeItemTerms } from './visible-copy.js?v=20260731-2';
-import { createSceneUi } from './scene-ui.js?v=20260731-3';
+import { createSceneUi } from './scene-ui.js?v=20260801-1';
 import {
   addItemsScreenState,
   clearAddItemsSelection,
