@@ -628,10 +628,11 @@ async function assertDependencyCompatibility(live, release) {
   const npmLinkInfo = await lstat(npmExecutable);
   invariant(npmLinkInfo.isSymbolicLink(), 'Pinned npm launcher is missing or unsafe');
   const npmRealPath = await realpath(npmExecutable);
-  const homebrewRoot = await realpath('/opt/homebrew');
+  const homebrewLib = await realpath('/opt/homebrew/lib');
+  const homebrewCellar = await realpath('/opt/homebrew/Cellar');
   invariant(
-    npmRealPath === `${homebrewRoot}/lib/node_modules/npm/bin/npm-cli.js`
-      || npmRealPath.startsWith(`${homebrewRoot}/Cellar/node/`),
+    npmRealPath === `${homebrewLib}/node_modules/npm/bin/npm-cli.js`
+      || npmRealPath.startsWith(`${homebrewCellar}/node/`),
     'Pinned npm launcher resolves outside Homebrew Node',
   );
   const npmInfo = await lstat(npmRealPath);
