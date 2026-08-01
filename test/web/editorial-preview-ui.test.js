@@ -284,11 +284,26 @@ test('Fashion Shoot progress never reports a stopped or legacy failed job as liv
   assert.match(autoHeroSource, /if \(!approved\) this\.autoHeroApproved = false/);
 });
 
+// Asserting an exact hardcoded date+revision here made this test fail every time app.js's
+// own cache-bust moved for an unrelated change, while the actual defect it should catch —
+// scene-ui.js or editorial-shoot-ui.js NOT bumping when the chain that loads them does —
+// went unchecked. app.js?v=20260801-1 shipped with scene-ui.js and editorial-shoot-ui.js
+// still importing each other at ?v=20260731-3: a browser with an old app.js cached would
+// never fetch either updated file, since neither import's URL had changed. The property
+// worth guarding is that the whole chain advances together, not any one literal string.
 test('Fashion Shoot progress assets advance one cache-busted module chain', () => {
-  assert.match(indexHtml, /scene\.css\?v=20260731-3/);
-  assert.match(indexHtml, /app\.js\?v=20260731-3/);
-  assert.match(appSource, /scene-ui\.js\?v=20260731-3/);
-  assert.match(sceneUiSource, /editorial-shoot-ui\.js\?v=20260731-3/);
+  const versionOf = (source, filename) => {
+    const match = source.match(new RegExp(`${filename.replaceAll('.', '\\.')}\\?v=([0-9-]+)`));
+    assert.ok(match, `${filename} must be referenced with a ?v= cache-bust token`);
+    return match[1];
+  };
+  const appVersion = versionOf(indexHtml, 'app.js');
+  const sceneCssVersion = versionOf(indexHtml, 'scene.css');
+  const sceneUiVersion = versionOf(appSource, 'scene-ui.js');
+  const editorialShootUiVersion = versionOf(sceneUiSource, 'editorial-shoot-ui.js');
+  assert.equal(sceneCssVersion, appVersion, 'scene.css must advance with app.js');
+  assert.equal(sceneUiVersion, appVersion, 'scene-ui.js must advance with app.js');
+  assert.equal(editorialShootUiVersion, appVersion, 'editorial-shoot-ui.js must advance with app.js');
 });
 
 test('gallery exposes five Fashion Shoot frames, not its internal style check', () => {

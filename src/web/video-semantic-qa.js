@@ -16,15 +16,46 @@ export class VideoSemanticQaError extends Error {
   }
 }
 
+// The 50ms end-boundary margin the caller applies is a guess at how far a container's
+// declared duration can overstate its last decodable frame's PTS — it is not measured per
+// file. Observed on a real salvaged delivery: container duration 14.526s, last decoded
+// frame at 348/24fps = 14.500s, a 26ms gap that should have been safely inside the 50ms
+// margin but was not, because ffmpeg's `-ss` seek landed in the zero-frame tail anyway.
+// ffmpeg does not treat this as an error — it exits 0 and writes nothing — so the bug
+// this masked for months was a raw `ENOENT` surfacing all the way to `failureCode`,
+// indistinguishable from every other unrelated filesystem fault.
+//
+// Rather than trying to compute the exact last-frame time up front (which would need an
+// extra ffprobe round trip per sample, on every clip, for a boundary that is wrong on only
+// some files), this retries the one failure mode that is actually observed: ffmpeg ran,
+// exited cleanly, and produced no file. Each retry seeks a little earlier; by the third
+// step it is 450ms inside the clip, which is closer to "return the wrong frame" territory
+// than "the extractor is broken" territory, so the loop stops there and raises a named
+// error instead of letting a bare fs code stand in for "the video QA pipeline is broken".
+const EXTRACTION_RETREAT_STEPS_MS = [0, 100, 250, 450];
+
 async function extractJpeg(commandRunner, videoPath, seconds, outputPath) {
-  await commandRunner('ffmpeg', [
-    '-hide_banner', '-loglevel', 'error', '-y',
-    '-ss', seconds.toFixed(3), '-i', videoPath,
-    '-frames:v', '1', '-vf', 'scale=360:-2', '-pix_fmt', 'yuvj420p',
-    '-threads', '1', '-q:v', '2', outputPath,
-  ], { maxBuffer: 4 * 1024 * 1024 });
-  const bytes = await readFile(outputPath);
-  return { path: outputPath, sha256: sha256(bytes) };
+  let lastCause = null;
+  for (const retreatMs of EXTRACTION_RETREAT_STEPS_MS) {
+    const attemptSeconds = Math.max(0, seconds - retreatMs / 1000);
+    await commandRunner('ffmpeg', [
+      '-hide_banner', '-loglevel', 'error', '-y',
+      '-ss', attemptSeconds.toFixed(3), '-i', videoPath,
+      '-frames:v', '1', '-vf', 'scale=360:-2', '-pix_fmt', 'yuvj420p',
+      '-threads', '1', '-q:v', '2', outputPath,
+    ], { maxBuffer: 4 * 1024 * 1024 });
+    try {
+      const bytes = await readFile(outputPath);
+      return { path: outputPath, sha256: sha256(bytes) };
+    } catch (cause) {
+      if (cause?.code !== 'ENOENT') throw cause;
+      lastCause = cause;
+    }
+  }
+  throw new VideoSemanticQaError(
+    `ffmpeg produced no frame for ${videoPath} within ${EXTRACTION_RETREAT_STEPS_MS.at(-1)}ms of the requested ${seconds.toFixed(3)}s`,
+    { code: 'VIDEO_AUTOMATIC_QA_FRAME_EXTRACTION_FAILED', cause: lastCause },
+  );
 }
 
 async function contactSheet(framePaths, outputPath, { columns = 4 } = {}) {

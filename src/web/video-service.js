@@ -779,6 +779,23 @@ export class VideoService {
    * only the parent’s persisted, hash-locked source and appearance references;
    * it never silently substitutes today’s avatar, outfit, or style media.
    */
+  /**
+   * The public retry-claim surface. `claimRetry`/`completeRetryClaim` were
+   * defined only on the private `ClipStore` (`this.#store`), while
+   * `registerVideoRoutes` calls them directly on this facade
+   * (`videoService.claimRetry(...)`) — a `TypeError` in production every
+   * time a viewer pressed retry after a failed clip, because the method
+   * simply did not exist on the object the route held. Delegating here is
+   * the minimal fix: the store's idempotency-file semantics are unchanged.
+   */
+  async claimRetry(parentClipId, idempotencyKey) {
+    return this.#store.claimRetry(parentClipId, idempotencyKey);
+  }
+
+  async completeRetryClaim(claimPath, childClipId) {
+    return this.#store.completeRetryClaim(claimPath, childClipId);
+  }
+
   async retryFailedClip(parentClipId, { videoReference } = {}) {
     const parent = await this.#store.load(parentClipId);
     if (!parent) {
@@ -1784,7 +1801,16 @@ export class VideoService {
         updated.failureCode ??= 'VIDEO_SALVAGE_REFERENCE_QA_FAILED';
       }
     } else if (!updated.salvage && !pass) {
-      updated.failureCode = 'VIDEO_REFERENCE_QA_FAILED';
+      // The deterministic exact-reference-copy path (video-semantic-qa.js) marks
+      // `evaluator` with a fixed string rather than a model identity precisely so this can
+      // be told apart from a normal VLM rejection without adding a second field to the
+      // receipt schema. Reported as its own code: "the model said no" and "the delivery is
+      // byte-identical to the directing reference, so nothing was ever generated" are
+      // different failures with different remedies, and the client/QA report should not
+      // have to re-derive which one happened from cut_coverage.
+      updated.failureCode = receipt.evaluator === 'deterministic/exact-reference-copy-v1'
+        ? 'VIDEO_REFERENCE_NOT_REPLACED'
+        : 'VIDEO_REFERENCE_QA_FAILED';
     } else if (pass && technicalPass !== false) {
       updated.failureCode = null;
     }

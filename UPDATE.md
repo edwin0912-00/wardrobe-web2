@@ -1,5 +1,83 @@
 # Wardrobe update board
 
+
+## 2026-08-01 · small fix: stale cache-bust chain under Fashion Shoot UI
+
+Beta head now `6d72b30`, fast-forward from `c31f201`. Found while running full per-block
+suites and an end-to-end unauthenticated user journey (profile -> draft -> person/garment
+upload -> consent -> run) as part of a routine sweep after the video/shoot fixes above; not
+a paid generation, no provider job created.
+
+`app.js` had bumped to `?v=20260801-1` while its own dependents, `scene-ui.js` and
+`editorial-shoot-ui.js`, still imported each other at the stale `?v=20260731-3` — a browser
+holding a cached old `app.js` would never fetch either updated file, since neither import
+URL had changed. The regression test that should have caught this hardcoded an exact
+literal string on both sides of its own comparison instead of checking the two sides agree,
+so it could not catch the drift and would have failed again on the next unrelated app.js
+bump regardless. Fixed both the version chain and the test.
+
+E2E journey findings, no code defect: `POST /api/draft/run` needs an explicit
+`{consent:true, file_manifest:{version:1, person, identity, garments}}` body — the gate
+order (consent, then file_manifest, then per-image size/format) is correct and fail-closed
+at every step tried, including on a deliberately undersized 1x1 test image
+(`IMAGE_TOO_SMALL`, HTTP 422, matches its own body). Scene/editorial/Real-time Look/Video
+capability checks all correctly reject an invalid or missing look id. Test profile created
+during this sweep was deleted afterward (`DELETE /api/profile` → 204).
+
+Evidence: `test/web/editorial-preview-ui.test.js` 15/15 (new assertion fails pre-fix, passes
+post-fix); full editorial suite 62/62 (was 61/62). Deployed and externally verified on both
+`beta.madeforthisjob.com` and `site.madeforthisjob.com`.
+
+Known, not touched, not a regression from any change today: 27 pre-existing failures in
+`test/web/scene-*.test.js` (framing/repair/post-release paths) reproduce identically on
+unmodified `a2b263f`, before any work in this session — looks environment/resource-load
+sensitive (the runtime resource preflight separately flagged swap above its threshold), not
+a logic defect introduced here. Needs its own dedicated investigation, not a guess-fix.
+
+## 2026-08-01 · two pipeline links fixed: Fashion Video and Fashion Shoot
+
+Beta head is now `b0f76d6` (fast-forward from `a2b263f`; no rewrite, no force-push).
+Anyone with a local checkout older than this must `git fetch && git rebase origin/beta` (or
+merge) before pushing — a normal push from stale history will be rejected by Git itself,
+not silently overwritten. Do not force-push over this.
+
+These are the two most important links in the pipeline right after the avatar step, and
+both were broken on the live host at the same time:
+
+**Fashion Video — `b0f76d6`, agent `claude-code-handoff`.** Three defects, all reproduced
+against the exact bytes of a real failed live clip, not guessed:
+1. `videoService.claimRetry` didn't exist on the object the retry route called it on —
+   every retry click threw `videoService.claimRetry is not a function`. Fixed by delegating
+   the facade to the store that actually owns the method.
+2. A delivery that is byte-identical to the directing reference (nothing was generated) was
+   reported with the same generic code as an ordinary creative rejection. Now its own code:
+   `VIDEO_REFERENCE_NOT_REPLACED`.
+3. The real cause of the incident that prompted this: salvage correctly trimmed a
+   reference-performer leak and technical QA passed, but the second QA pass crashed with a
+   bare `ENOENT` on a 26ms gap between the container's declared duration and its last
+   decodable frame — `ffmpeg` exits 0 and silently writes nothing there. The client saw an
+   opaque failure on an almost-perfect clip, then a broken retry button on top of it.
+   Frame extraction now retreats the seek time in bounded steps before giving up.
+
+Full evidence and per-fix test proof: `LOG.md`, entry
+`FASHION-VIDEO-QA-RETRY-AND-DEADZONE`. `node --test test/video/*.test.js` → 187/187;
+`test/providers/*.test.js` → 71/71. No paid generation was created; the dead-zone
+reproduction reused an already-paid, already-failed clip's bytes read-only.
+
+**Fashion Shoot — `a2b263f`, agent `chat-00-master` (`dc67de6`), independently confirmed
+here.** Every compiled structured-reference fact is now bounded before being written into
+`references[0..n]`. Before this, `shoot.skylight_haze.sculptural_three_quarter`'s fourth
+spatial cue compiled to 303 characters against the schema's 240-character limit —
+`references[0] does not match the strict structured-reference schema` — which took all five
+customer slots of every affected style down with a generic `EXECUTOR_FAILED` before any
+provider was ever reached, behind a green test suite. See `LOG.md`, entry
+`FASHION-SHOOT-STRUCTURED-REFERENCE-BOUND`.
+
+Not touched by either fix, still open: `fashion_shoot_qa_mode: off` on the live host has no
+recorded owner authorisation; `GET /api/profile` mints a persistent 30-day profile with no
+authentication; God View's open-tester auth answers anonymous callers on the beta host
+(the client-domain half was closed separately in `wardrobe-web2` `191c805`).
+
 ## 2026-08-01 · release candidate pending beta activation
 
 Current source before this candidate: `origin/beta` `7f7c271`.
