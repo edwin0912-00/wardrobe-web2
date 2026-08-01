@@ -55,6 +55,21 @@ export function hasLiveProviderWaitLease(state, now = Date.now()) {
   return Number.isFinite(heartbeat) && heartbeat <= now && now - heartbeat <= MAX_LIVE_PROVIDER_WAIT_MS;
 }
 
+// A scene remains RUNNING while it advances through local normalization and
+// semantic QA. Those phases have no provider request in flight and are safe to
+// resume after a release restart: their candidate is already immutable on
+// disk. Only the pre-output GENERATING attempt can still be executing a paid
+// synchronous provider request, so it must continue to block deployment.
+//
+// Missing attempt data is intentionally fail-closed. It may represent an older
+// runtime that was between durable checkpoints and must not be silently
+// interrupted by a deploy.
+export function hasActiveSceneProviderWork(state) {
+  if (!state || !['QUEUED', 'RUNNING'].includes(state.status)) return false;
+  if (!Array.isArray(state.attempts) || state.attempts.length === 0) return true;
+  return state.attempts.some((attempt) => attempt?.status === 'GENERATING');
+}
+
 export async function activeBetaRunIds(runnerSource) {
   const runtimeRoot = runnerSource.match(/^runtime_root="([^"]+)"$/m)?.[1];
   invariant(runtimeRoot, 'Beta runner runtime_root is missing');
@@ -129,7 +144,7 @@ export async function activeBetaWorkIds(runnerSource) {
     }),
     activePersistedIds(path.join(runtimeRoot, 'scenes'), {
       stateFile: 'scene.json', idField: 'scene_id', prefix: 'scene',
-      isActive: (status) => ['QUEUED', 'RUNNING'].includes(status),
+      isActive: (_status, state) => hasActiveSceneProviderWork(state),
     }),
     activePersistedIds(path.join(runtimeRoot, 'editorial-shoots'), {
       stateFile: 'shoot.json', idField: 'shoot_id', prefix: 'shoot',

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { activeBetaRunIds, activeBetaWorkIds, hasLiveProviderWaitLease, parseBetaReleaseArguments, replaceRunnerAppRoot } from '../../tools/deploy-beta-release.mjs';
+import { activeBetaRunIds, activeBetaWorkIds, hasActiveSceneProviderWork, hasLiveProviderWaitLease, parseBetaReleaseArguments, replaceRunnerAppRoot } from '../../tools/deploy-beta-release.mjs';
 
 test('beta deploy parser requires explicit safe paths and canonical beta health', () => {
   const options = parseBetaReleaseArguments([
@@ -36,6 +36,7 @@ test('beta deploy refuses to restart through active scene, shoot, or video work'
   const createdClipId = '22222222-2222-4222-8222-222222222222';
   const completedClipId = '33333333-3333-4333-8333-333333333333';
   await mkdir(path.join(runtimeRoot, 'scenes', 'scene_running'), { recursive: true });
+  await mkdir(path.join(runtimeRoot, 'scenes', 'scene_local_qa'), { recursive: true });
   await mkdir(path.join(runtimeRoot, 'scenes', 'scene_complete'), { recursive: true });
   await mkdir(path.join(runtimeRoot, 'editorial-shoots', 'shoot_running'), { recursive: true });
   await mkdir(path.join(runtimeRoot, 'editorial-shoots', 'shoot_cancelled'), { recursive: true });
@@ -44,7 +45,15 @@ test('beta deploy refuses to restart through active scene, shoot, or video work'
   await mkdir(path.join(runtimeRoot, 'video-clips', 'clips', createdClipId), { recursive: true });
   await mkdir(path.join(runtimeRoot, 'video-clips', 'clips', completedClipId), { recursive: true });
   await mkdir(path.join(runtimeRoot, 'scenes', 'incidents'), { recursive: true });
+  // Missing attempt evidence stays fail-closed. This can be an interrupted
+  // pre-checkpoint legacy request, so a deployment must not stop it.
   await writeFile(path.join(runtimeRoot, 'scenes', 'scene_running', 'scene.json'), JSON.stringify({ scene_id: 'scene_running', status: 'RUNNING' }));
+  // A downloaded immutable candidate awaiting local QA has no paid provider
+  // call in flight. It must not indefinitely block a safe restart/deploy.
+  await writeFile(path.join(runtimeRoot, 'scenes', 'scene_local_qa', 'scene.json'), JSON.stringify({
+    scene_id: 'scene_local_qa', status: 'RUNNING', phase: 'RECOVERING',
+    attempts: [{ status: 'QA_PENDING', provider_metadata: { job_id: 'completed-provider-job' } }],
+  }));
   await writeFile(path.join(runtimeRoot, 'scenes', 'scene_complete', 'scene.json'), JSON.stringify({ scene_id: 'scene_complete', status: 'COMPLETED' }));
   await writeFile(path.join(runtimeRoot, 'editorial-shoots', 'shoot_running', 'shoot.json'), JSON.stringify({ shoot_id: 'shoot_running', status: 'HERO_RUNNING' }));
   await writeFile(path.join(runtimeRoot, 'editorial-shoots', 'shoot_cancelled', 'shoot.json'), JSON.stringify({ shoot_id: 'shoot_cancelled', status: 'CANCELLED' }));
@@ -62,6 +71,15 @@ test('beta deploy refuses to restart through active scene, shoot, or video work'
     'scene:scene_running',
     'shoot:shoot_running',
   ]);
+});
+
+test('beta deploy blocks a scene only while a provider generation attempt is active', () => {
+  assert.equal(hasActiveSceneProviderWork({ status: 'RUNNING', attempts: [{ status: 'GENERATING' }] }), true);
+  assert.equal(hasActiveSceneProviderWork({ status: 'QUEUED', attempts: [{ status: 'GENERATING' }] }), true);
+  assert.equal(hasActiveSceneProviderWork({ status: 'RUNNING', attempts: [{ status: 'QA_PENDING' }] }), false);
+  assert.equal(hasActiveSceneProviderWork({ status: 'RUNNING', attempts: [{ status: 'NORMALIZATION_PENDING' }] }), false);
+  assert.equal(hasActiveSceneProviderWork({ status: 'RUNNING', attempts: [] }), true);
+  assert.equal(hasActiveSceneProviderWork({ status: 'COMPLETED', attempts: [{ status: 'GENERATING' }] }), false);
 });
 
 test('beta deploy ignores stale video status without a fresh job-bound provider wait lease', async (t) => {

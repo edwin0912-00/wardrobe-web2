@@ -467,6 +467,26 @@ Help request: NONE.
 ---
 
 Agent ID: codex-main
+Task ID: BETA-RELEASE-GATE-STALE-SCENE-20260801
+Pipeline: Release safety · shared beta runtime
+State: TESTED — READY_FOR_DEPLOY
+Decision: a scene in `QA_PENDING` already has an immutable downloaded candidate
+and no paid provider request in flight. The deploy gate now lets that local QA
+checkpoint resume after restart, while still fail-closing a missing scene
+attempt and blocking every `GENERATING` attempt.
+Code: pending this commit; builds on contract integration
+`7a2e6a20c2f5cbb856fca4b2f738eba5f4ddbff6`.
+Evidence: `node --test test/release/beta-deployment.test.js` 6/6 PASS;
+real beta dry-run reports `active_run_ids=[]`, `active_work_ids=[]`.
+Beta: NOT_DEPLOYED — next action is an exact verified release build and a
+controlled end-to-end paid journey.
+Journey: NOT_RUN.
+weakened_checks: none — provider generation remains a hard restart block.
+Help request: NONE.
+
+---
+
+Agent ID: codex-main
 Task ID: BETA-PIPELINE-CONTRACT-INTEGRATION-20260801
 Pipeline: LOOK.01–06 · BACKGROUND.01–02 · UNIVERSE.03–04 · VIDEO.01–04
 State: TESTED — NOT_DEPLOYED
