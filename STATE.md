@@ -1,5 +1,23 @@
 # Wardrobe verified state
 
+## Native scene receipt and safe video smoke — 2026-08-01
+
+- Commit `7bffcf6ec5aa5fe5841a7078c51261d1def9fbf0` aligns the
+  post-release rejection receipt with the real native scene delivery:
+  `3:4`, `1536×2048`. This closes a fail-closed schema drift; no generation,
+  framing, identity or item gate was weakened.
+- The standalone Video pipeline check now calls the current `surface` API and
+  `VIDEO_SURFACES.framingNote`. Its default path is offline; the explicit
+  `--server-smoke` is read-only, and paid `/api/runs` work additionally
+  requires `--live`, `ZEELY_ALLOW_PAID_TESTS=1` and two explicit fixture paths.
+- Current live video evidence is complete: the latest PASS clip is persisted
+  in runtime and SQLite, and its authenticated video route returned HTTP 200.
+  Targeted Video tests plus the corrected harness pass `188/188`.
+- The pre-repair repository-wide run was `989/1048` PASS. The remaining
+  failures are historical fixture/deployment-harness debt (old 1024×1280
+  scene fixtures, pre-full-body mocks, obsolete add-items release tests and an
+  expired governance fixture), not a claim of a green full suite.
+
 ## Stabilized beta/main API candidate — 2026-08-01
 
 - `release/candidate-20260801` contains the complete latest `origin/beta`

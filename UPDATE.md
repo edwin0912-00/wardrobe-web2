@@ -1,5 +1,23 @@
 # Wardrobe update board
 
+## 2026-08-01 · native scene receipt + safe Video verification
+
+Commit `7bffcf6ec5aa5fe5841a7078c51261d1def9fbf0` repairs the one
+production-relevant defect found by the repository-wide run: the rejection
+receipt still required legacy `1024×1280` output while the scene runtime emits
+native `1536×2048` 3:4 delivery. Contracts pass after the correction.
+
+The Video smoke tool no longer silently tests TV geometry for a mirror, no
+longer discovers the retired port 4173, and cannot start paid image work from a
+normal test run. `--server-smoke` verifies health and public catalogs without
+mutation; `--live` is separately and explicitly cost-gated.
+
+Evidence: Video + harness `188/188` PASS; rejection receipt test PASS; strict
+contract verifier PASS. Live release before this follow-up remained healthy on
+both public hosts, with sixteen backgrounds, fifteen READY `shoot.*` styles,
+strict Fashion Shoot QA, and a real persisted PASS Fashion Video delivered by
+HTTP 200. `weakened_checks: none`.
+
 ## 2026-08-01 · release-owner stabilization and deployment candidate
 
 All current `origin/beta` commits have been merged into
