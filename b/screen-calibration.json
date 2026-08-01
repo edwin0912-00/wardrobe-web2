@@ -7,43 +7,37 @@
     "method": "manual full-frame audit; source coordinates are normalized to 1920×1080"
   },
   "tv": {
-    "leg": 1,
-    "measured_from": "seg2.mp4 · inner aperture, 2026-07-31 · conservative 6–7px bezel exclusion",
-    "frames": [
+    "tracks": [
       {
-        "time": 11,
-        "x": 0.63281,
-        "y": 0.27037,
-        "width": 0.34115,
-        "height": 0.33426
+        "leg": 1,
+        "measured_from": "seg2.mp4 · inner aperture, 2026-08-01 · first visible frame through exit",
+        "frames": [
+          { "time": 9, "x": 0.93021, "y": 0.27037, "width": 0.34115, "height": 0.33426 },
+          { "time": 9.5, "x": 0.85521, "y": 0.27037, "width": 0.34115, "height": 0.33426 },
+          { "time": 10, "x": 0.77760, "y": 0.27037, "width": 0.34115, "height": 0.33426 },
+          { "time": 10.5, "x": 0.70573, "y": 0.27037, "width": 0.34115, "height": 0.33426 },
+          { "time": 11, "x": 0.63281, "y": 0.27037, "width": 0.34115, "height": 0.33426 },
+          { "time": 12, "x": 0.50469, "y": 0.27037, "width": 0.34219, "height": 0.33426 },
+          { "time": 13, "x": 0.40625, "y": 0.27130, "width": 0.34271, "height": 0.33426 },
+          { "time": 14, "x": 0.34271, "y": 0.27130, "width": 0.34427, "height": 0.33426 },
+          { "time": 14.6, "x": 0.32344, "y": 0.27130, "width": 0.34479, "height": 0.33426 },
+          { "time": 15, "x": 0.31667, "y": 0.27037, "width": 0.34531, "height": 0.33426 }
+        ]
       },
       {
-        "time": 12,
-        "x": 0.50469,
-        "y": 0.27037,
-        "width": 0.34219,
-        "height": 0.33426
-      },
-      {
-        "time": 13,
-        "x": 0.40625,
-        "y": 0.2713,
-        "width": 0.34271,
-        "height": 0.33426
-      },
-      {
-        "time": 14,
-        "x": 0.34271,
-        "y": 0.2713,
-        "width": 0.34427,
-        "height": 0.33426
-      },
-      {
-        "time": 14.6,
-        "x": 0.32344,
-        "y": 0.2713,
-        "width": 0.34479,
-        "height": 0.33426
+        "leg": 2,
+        "measured_from": "seg3.mp4 · inner aperture, 2026-08-01 · full plane retained while crossing left edge",
+        "frames": [
+          { "time": 0, "x": 0.31979, "y": 0.27037, "width": 0.34115, "height": 0.33426 },
+          { "time": 1, "x": 0.26927, "y": 0.27037, "width": 0.34115, "height": 0.33426 },
+          { "time": 2, "x": 0.20417, "y": 0.27037, "width": 0.34115, "height": 0.33426 },
+          { "time": 3, "x": 0.13021, "y": 0.27037, "width": 0.34115, "height": 0.33426 },
+          { "time": 4, "x": 0.04427, "y": 0.27037, "width": 0.34115, "height": 0.33426 },
+          { "time": 5, "x": -0.05730, "y": 0.27037, "width": 0.34115, "height": 0.33426 },
+          { "time": 6, "x": -0.16042, "y": 0.27037, "width": 0.34115, "height": 0.33426 },
+          { "time": 7, "x": -0.26719, "y": 0.27037, "width": 0.34115, "height": 0.33426 },
+          { "time": 7.5, "x": -0.31979, "y": 0.27037, "width": 0.34115, "height": 0.33426 }
+        ]
       }
     ]
   },

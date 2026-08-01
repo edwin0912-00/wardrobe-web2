@@ -101,7 +101,21 @@ test('an unknown kind still resolves to a ranked, labelled result', () => {
 
 test('invalid TV geometry is rejected instead of spilling across the filmed bezel', () => {
   assert.throws(
-    () => surfaces.interpolateRect([{ time: 1, x: 0.8, y: 0.2, width: 0.4, height: 0.3 }], 1),
-    /inside the film frame/
+    () => surfaces.interpolateRect([{ time: 1, x: 1.8, y: 0.2, width: 0.4, height: 0.3 }], 1),
+    /extended film bounds/
   );
+});
+
+test('TV geometry keeps the complete plane while it crosses a frame edge', () => {
+  const entering = surfaces.interpolateRect([
+    { time: 0, x: 0.92, y: 0.27, width: 0.34, height: 0.334 },
+    { time: 1, x: 0.62, y: 0.27, width: 0.34, height: 0.334 },
+  ], 0);
+  const leaving = surfaces.interpolateRect([
+    { time: 0, x: -0.18, y: 0.27, width: 0.34, height: 0.334 },
+    { time: 1, x: -0.32, y: 0.27, width: 0.34, height: 0.334 },
+  ], 0.5);
+  assert.equal(entering.x, 0.92);
+  assert.ok(leaving.x < 0);
+  assert.ok(leaving.x + leaving.width > 0);
 });

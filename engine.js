@@ -463,6 +463,7 @@
     var target = 0;      // where scroll says we are
     var current = 0;     // where the film actually is, chasing target
     var speed = 0;       // smoothed movement rate, 0..1, published as --speed
+    var motionDirection = 0; // last non-zero scroll direction: 1 forward, -1 backward
     var uiLag = 0;       // signed pixel lag the glass panels trail by, published as --ui-lag
     var raf = null;
     var lastWritten = -1;
@@ -529,6 +530,8 @@
 
     function write(p, force) {
       var r = resolve(p);
+      var movement = lastWritten >= 0 ? p - lastWritten : 0;
+      if (Math.abs(movement) > 0.000001) motionDirection = movement > 0 ? 1 : -1;
 
       /* ---- the intro, scrubbed and dissolving ----------------------------------
        * Painted above the rooms so it hides them until it fades. Once gone it is taken out
@@ -652,6 +655,7 @@
             local: r.local,
             eased: r.eased,
             speed: speed,
+            direction: speed > 0.0005 ? motionDirection : 0,
             videoTime: d && isFinite(d) ? v.currentTime : null,
             duration: d && isFinite(d) ? d : null,
             stationId: active ? active.id : null,

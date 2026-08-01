@@ -1349,9 +1349,24 @@ body {
 .tv-surface__content {
   position: absolute; inset: 0;
   --tv-motion-blur: 0px;
+  --tv-motion-trail-opacity: 0;
+  --tv-motion-trail-shift: 0px;
+  --tv-motion-angle: 90deg;
   filter: blur(var(--tv-motion-blur));
   transition: filter 160ms ease-out;
   will-change: filter;
+}
+.tv-surface__content::after {
+  /* A very short, directional sheen makes fast scrubbing read as camera motion,
+     while the measured media plane itself remains locked to the filmed aperture. */
+  content: '';
+  position: absolute; inset: -12%; z-index: 8;
+  pointer-events: none;
+  opacity: var(--tv-motion-trail-opacity);
+  background: linear-gradient(var(--tv-motion-angle), transparent 39%, rgba(245,243,237,0.11) 50%, transparent 61%);
+  transform: translateX(var(--tv-motion-trail-shift));
+  mix-blend-mode: screen;
+  transition: opacity 120ms ease-out, transform 120ms ease-out;
 }
 .tv-gallery__head {
   position: absolute; z-index: 2; left: 3%; right: 3%; top: 3%;
@@ -1428,7 +1443,13 @@ body {
   .orb i, .orbfield .orb::after, .tv-surface::after, .live-overlay__time {
     animation: none !important;
   }
-  .tv-surface__content { --tv-motion-blur: 0px !important; filter: none !important; transition: none !important; }
+  .tv-surface__content {
+    --tv-motion-blur: 0px !important;
+    --tv-motion-trail-opacity: 0 !important;
+    filter: none !important;
+    transition: none !important;
+  }
+  .tv-surface__content::after { display: none !important; }
   .mirror-scene { animation: none !important; }
   .loader, .glass, .copy__line { transition-duration: 0.01ms !important; }
 }

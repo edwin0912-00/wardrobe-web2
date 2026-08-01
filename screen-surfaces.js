@@ -30,10 +30,16 @@
       width: finite(frame.width, -1),
       height: finite(frame.height, -1)
     };
-    if (result.time < 0 || result.x < 0 || result.y < 0 ||
+    /* A screen can enter from, or leave through, an edge of the shot. Keep the
+     * complete plane (including the part currently outside the viewport) and let
+     * `.film { overflow:hidden }` do the clipping. Collapsing to the visible slice
+     * would squeeze the media while the camera crosses the edge. */
+    if (result.time < 0 || result.x < -1.000001 || result.y < -1.000001 ||
         result.width <= 0 || result.height <= 0 ||
-        result.x + result.width > 1.000001 || result.y + result.height > 1.000001) {
-      throw new RangeError('TV frame must stay inside the film frame');
+        result.x > 1.000001 || result.y > 1.000001 ||
+        result.x + result.width < -0.000001 || result.y + result.height < -0.000001 ||
+        result.x + result.width > 2.000001 || result.y + result.height > 2.000001) {
+      throw new RangeError('TV frame must stay within the extended film bounds');
     }
     return Object.freeze(result);
   }
@@ -182,7 +188,7 @@
     var math = typeof globalThis !== 'undefined' ? globalThis.WardrobeSurfaceMath : null;
     var mediaPreview = typeof globalThis !== 'undefined' ? globalThis.WardrobeMediaPreview : null;
     var calibration = null;
-    var tvFrames = null;
+    var tvTracks = [];
     var laptopFrames = null;
     var results = [];
     var activeResult = -1;
@@ -273,15 +279,20 @@
     }
 
     function positionTelevision(frame) {
-      if (!tv || !calibration || !calibration.tv || !tvFrames || !results.length) {
+      if (!tv || !calibration || !calibration.tv || !tvTracks.length || !results.length) {
         setHidden(tv, true);
         return;
       }
-      var frames = tvFrames;
+      var track = tvTracks.find(function (candidate) { return candidate.leg === frame.leg; });
+      if (!track) {
+        setHidden(tv, true);
+        if (tv) tv.dataset.motion = 'still';
+        return;
+      }
+      var frames = track.frames;
       var first = frames[0].time;
       var last = frames[frames.length - 1].time;
-      var visible = frame.leg === calibration.tv.leg &&
-        frame.videoTime != null && frame.videoTime >= first && frame.videoTime <= last + 0.35;
+      var visible = frame.videoTime != null && frame.videoTime >= first && frame.videoTime <= last + 0.35;
       if (!visible) {
         setHidden(tv, true);
         if (tv) tv.dataset.motion = 'still';
@@ -293,8 +304,16 @@
       tv.style.width = (rect.width * 100).toFixed(4) + '%';
       tv.style.height = (rect.height * 100).toFixed(4) + '%';
       var speed = clamp01(finite(frame.speed, 0));
-      if (tvContent) tvContent.style.setProperty('--tv-motion-blur', (speed * 1.8).toFixed(3) + 'px');
+      var rawDirection = finite(frame.direction, 0);
+      var direction = rawDirection > 0.01 ? 1 : rawDirection < -0.01 ? -1 : 0;
+      if (tvContent) {
+        tvContent.style.setProperty('--tv-motion-blur', (speed * 1.8).toFixed(3) + 'px');
+        tvContent.style.setProperty('--tv-motion-trail-opacity', (speed * 0.12).toFixed(3));
+        tvContent.style.setProperty('--tv-motion-trail-shift', (direction * speed * -8).toFixed(2) + 'px');
+        tvContent.style.setProperty('--tv-motion-angle', direction < 0 ? '270deg' : '90deg');
+      }
       tv.dataset.motion = speed > 0.035 ? 'moving' : 'settled';
+      tv.dataset.direction = direction < 0 ? 'backward' : direction > 0 ? 'forward' : 'still';
       if (tvWakePending && !tvWake) {
         tvWakePending = false;
         tvWake = true;
@@ -409,8 +428,18 @@
         return response.json();
       }).then(function (value) {
         calibration = value;
-        if (calibration.tv && calibration.tv.frames) {
-          tvFrames = normaliseRectFrames(calibration.tv.frames);
+        if (calibration.tv) {
+          var rawTracks = Array.isArray(calibration.tv.tracks)
+            ? calibration.tv.tracks
+            : calibration.tv.frames
+              ? [{ leg: calibration.tv.leg, frames: calibration.tv.frames }]
+              : [];
+          tvTracks = rawTracks.map(function (track) {
+            return {
+              leg: Number(track.leg),
+              frames: normaliseRectFrames(track.frames)
+            };
+          }).filter(function (track) { return isFinite(track.leg); });
         }
         if (calibration.laptop && calibration.laptop.frames && math) {
           laptopFrames = math.normaliseQuadCalibration({
@@ -422,7 +451,7 @@
         update(lastFrame);
       }).catch(function () {
         calibration = null;
-        tvFrames = null;
+        tvTracks = [];
         laptopFrames = null;
         setHidden(tv, true);
         setHidden(laptop, true);
