@@ -1,5 +1,35 @@
 # Wardrobe verified state
 
+## Stabilized beta/main API candidate — 2026-08-01
+
+- `release/candidate-20260801` contains the complete latest `origin/beta`
+  chain, including Claude's Fashion Video retry/exact-copy/dead-zone repair,
+  plus the Create Universe transport, institutional alias and public-catalog
+  repairs completed in this stabilization pass.
+- Fashion Shoot runs in `strict` QA mode on the installed beta runner. `off`
+  is no longer the live configuration.
+- Public product choices expose exactly fifteen READY, generation-available
+  `shoot.*` styles. The blocked legacy institutional duplicate is hidden, while
+  old preview/deep-link compatibility remains.
+- Standard scene delivery is native `3:4` at `1536×2048`, without crop or
+  padding. Structured composition references keep their independent `4:5`
+  schema contract.
+- The product release includes only the fifteen published Create Universe
+  units, all SHA-verified. Unpublished workspace units remain in Git and are
+  not production authority.
+- Verified code evidence: Fashion Video 187/187; provider/image alias 47/47;
+  scene/Create Universe 68/68; public catalog/UI/backend 24/24; contracts and
+  canon PASS; product release determinism/tamper checks 2/2.
+- The cinematic main client is a separate presentation bundle on port 4180
+  and proxies the same beta engine on 4176. Its current local suite is 85/85
+  PASS; backend activation therefore updates both public domains without
+  overwriting the cinematic UI.
+- Operational recovery: the obsolete 4173 service is disabled, the monitor
+  derives its source from the active beta runner, and the runtime watcher is
+  independent of an old worktree.
+- Exact deployed SHA/cache token must be read from `/api/health`; this source
+  record never substitutes for the activation receipt.
+
 ## Create Universe transport repair — 2026-08-01
 
 - The immutable style pack remains seven sheets per `shoot.*` unit, and the

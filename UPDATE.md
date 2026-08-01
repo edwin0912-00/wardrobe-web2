@@ -1,5 +1,43 @@
 # Wardrobe update board
 
+## 2026-08-01 · release-owner stabilization and deployment candidate
+
+All current `origin/beta` commits have been merged into
+`release/candidate-20260801`; the pre-merge candidate is preserved at
+`backup/release-candidate-20260801-1909d52`. This includes Claude's latest
+Fashion Video retry, exact-reference-copy classification, end-frame extraction
+repair and cache-bust chain. Nothing was cherry-picked from a merge commit in
+isolation.
+
+Additional repairs in this candidate:
+
+- Create Universe no longer crashes when item evidence fills the provider
+  attachment budget; the three slot-safe style sheets are packed mechanically.
+- The old blocked institutional record is not a public choice; the verified
+  `shoot.zayn_institutional` unit remains available, and old links still map to
+  it.
+- Scene adapter fixtures now represent the actual native `3:4`, no-crop
+  production contract instead of forcing contradictory `4:5` fake providers.
+- Product releases ship exactly the fifteen published Create Universe units,
+  not two unpublished workspace units. The release stays under its finite
+  budget without recompressing or changing any approved image.
+- Read-only tests are no longer blocked by historical macOS swap pages. Build
+  and deploy safeguards remain unchanged.
+
+Verification: Fashion Video 187/187; provider/image alias 47/47; combined
+scene/Create Universe 68/68; editorial catalog/UI/backend 24/24; main cinematic
+client 85/85; contracts/canon PASS; product release deterministic/tamper test
+2/2. The public activation is allowed only after the strict release verifier,
+zero-active-work preflight and local/external health probes all pass.
+
+Operations: `com.madeforthisjob.zeely` (obsolete closed port 4173 crash-loop)
+is disabled but recoverable; beta 4176 and cinematic main 4180 remain live.
+The monitor and runtime watcher now follow stable runners instead of deleted or
+old release worktrees. Fashion Shoot is installed as `strict`, not `off`.
+
+`weakened_checks`: none in generation, identity, item, scene, Fashion Shoot or
+Fashion Video. Only the read-only test startup swap watermark was removed.
+
 
 ## 2026-08-01 · small fix: stale cache-bust chain under Fashion Shoot UI
 
