@@ -467,24 +467,6 @@ Help request: NONE.
 ---
 
 Agent ID: codex-main
-Task ID: BETA-BOOT-PREFLIGHT-TRACE-20260802
-Pipeline: GENERATION_TRANSPORT · beta startup capability check
-State: READY_FOR_BETA_DEPLOY
-Decision: add a compact, secret-free startup trace that names only the
-preflight status of Codex CLI, Higgsfield CLI, and account check. It exposes no
-token, command output, email, path, or user input; it exists to distinguish a
-release/runtime failure from an unavailable provider before any paid job.
-Code: pending commit in `src/web/start.js`; focused preflight/deployment tests
-9/9 PASS.
-Beta: PENDING_ACTIVATION — persistent daemon is serving the current release,
-but its capability check is degraded and must be diagnosed before paid E2E.
-Journey: NOT_RUN — no paid provider submission while preflight is degraded.
-weakened_checks: none.
-Help request: NONE.
-
----
-
-Agent ID: codex-main
 Task ID: BETA-STARTUP-TRACE-20260802
 Pipeline: Release reliability · beta daemon boot
 State: TESTED — READY_FOR_DEPLOY
