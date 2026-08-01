@@ -102,7 +102,14 @@ test('editorial catalog activates every Creative Universe shoot', async (t) => {
     'shoot.autumn_park_mediated_sun',
   ]);
   assert.deepEqual(catalog.shot_sequence, EXPECTED_SHOT_SEQUENCE);
-  assert.equal(catalog.modes.length, 19);
+  assert.equal(catalog.modes.length, 18);
+  assert.equal(
+    catalog.modes.some(
+      (mode) => mode.mode_id === 'editorial.edwin_novak.institutional_modernism',
+    ),
+    false,
+    'the preview-only legacy duplicate must not be a public catalog choice',
+  );
   assert.doesNotMatch(
     catalogResponse.body,
     /edwinnovak\.com|"sources?"|"source_(?:url|path)"|prompt|provider|model_|\/Users\/|file:\/\/|\.local\/share|assets\//i,
@@ -181,6 +188,17 @@ test('editorial catalog activates every Creative Universe shoot', async (t) => {
     assert.equal(cached.headers.etag, preview.headers.etag);
     assert.equal(cached.headers['cache-control'], 'public, max-age=31536000, immutable');
   }
+
+
+  // Compatibility is separate from catalog publication. Existing deep links
+  // keep their immutable legacy preview even though the duplicate card is no
+  // longer offered as a user choice.
+  const legacyPreview = await app.inject({
+    method: 'GET',
+    url: '/api/editorial-modes/editorial.edwin_novak.institutional_modernism/1.0.0/preview',
+  });
+  assert.equal(legacyPreview.statusCode, 200, legacyPreview.body);
+  assert.equal(legacyPreview.headers['content-type'], 'image/webp');
 });
 
 async function temporaryEditorialFixture(t) {

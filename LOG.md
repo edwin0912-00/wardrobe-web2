@@ -17,6 +17,18 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-08-01 · CREATE-UNIVERSE-LEGACY-DUPLICATE · release/candidate-20260801 · codex-live-40
+Change: remove the blocked legacy `editorial.edwin_novak.institutional_modernism`
+record from the public choice catalog and render only `shoot.*` modes that are
+both `READY` and generation-available. Legacy preview URLs stay immutable and
+legacy generation deep links still resolve to `shoot.zayn_institutional`.
+Why: the prepared old preview record and the verified Create Universe style
+appeared as two versions of one product, although only the `shoot.*` unit can
+generate. That made a working style look broken or duplicated.
+Evidence: editorial catalog/UI tests 17/17 PASS; alias/backend tests 7/7 PASS;
+syntax and `git diff --check` PASS.
+weakened_checks: none.
+
 2026-08-01 · SCENE-NATIVE-3-4-TEST-CONTRACT · release/candidate-20260801 · codex-live-40
 Change: align the scene adapter regression fixtures with the already-approved
 native `3:4` image transport and `1536×2048` delivery. The tests no longer ask a

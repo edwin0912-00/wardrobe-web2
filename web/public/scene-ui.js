@@ -7,7 +7,7 @@ import {
   loadScenePresets,
   retryProfileScene,
 } from './profile-client.js?v=20260724-5';
-import { createEditorialShootUi } from './editorial-shoot-ui.js?v=20260801-1';
+import { createEditorialShootUi } from './editorial-shoot-ui.js?v=20260801-2';
 import {
   clearSceneResume,
   presetCameraLabel,
@@ -136,6 +136,12 @@ function createEditorialModeCard(mode, onSelect, { eager = false } = {}) {
   card.append(preview, copy);
   if (ready) card.addEventListener('click', () => onSelect(mode));
   return card;
+}
+
+function isReadyFashionMode(mode) {
+  return mode?.mode_id?.startsWith('shoot.')
+    && mode?.source_set_status === 'READY'
+    && mode?.generation_available === true;
 }
 
 function lookDescriptor(profile, lookId) {
@@ -328,7 +334,7 @@ export class SceneUiController {
     const editorialTab = this.#element('#scene-tab-editorial');
     const standardPanel = this.#element('#scene-standard-panel');
     const editorialPanel = this.#element('#scene-editorial-panel');
-    const fashionModes = this.editorialModes.filter((mode) => mode.mode_id.startsWith('shoot.'));
+    const fashionModes = this.editorialModes.filter(isReadyFashionMode);
     // The counts used to be baked into index.html, so the tab still said five
     // standard scenes after the catalog grew to sixteen. Both labels now come
     // from the same data the grids are rendered from.
@@ -475,7 +481,7 @@ export class SceneUiController {
     // Only complete Creative Universe style units are a Fashion Shoot choice.
     // Historical editorial records remain addressable for owners, but they are
     // not silently presented as a second style product in the new picker.
-    const newModes = this.editorialModes.filter((m) => m.mode_id.startsWith('shoot.'));
+    const newModes = this.editorialModes.filter(isReadyFashionMode);
     
     const onSelect = (selected) => this.editorialUi.openForMode(selected, this.look).catch(
       (error) => this.#setError(error.message),

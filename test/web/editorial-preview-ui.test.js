@@ -76,7 +76,15 @@ test('catalog is production ACTIVE and only READY modes become controls', () => 
   assert.match(cardSource, /if \(eager\) image\.fetchPriority = 'high'/);
   assert.match(cardSource, /addEventListener\('click'/);
   assert.match(sceneUiSource, /createEditorialModeCard\(mode, onSelect, \{ eager: index < 4 \}\)/);
-  assert.match(sceneUiSource, /mode_id\.startsWith\('shoot\.'\)/);
+  const readyFashionSource = sourceBetween(
+    sceneUiSource,
+    'function isReadyFashionMode(mode)',
+    'function lookDescriptor(profile, lookId)',
+  );
+  assert.match(readyFashionSource, /mode\?\.mode_id\?\.startsWith\('shoot\.'\)/);
+  assert.match(readyFashionSource, /mode\?\.source_set_status === 'READY'/);
+  assert.match(readyFashionSource, /mode\?\.generation_available === true/);
+  assert.match(sceneUiSource, /this\.editorialModes\.filter\(isReadyFashionMode\)/);
   assert.doesNotMatch(indexHtml, /Legacy Editorial/);
   assert.doesNotMatch(indexHtml, /editorial-mode-grid-legacy/);
   assert.doesNotMatch(sceneUiSource, /editorial-mode-grid-legacy/);
@@ -420,7 +428,7 @@ test('standard scene workflow remains present beside Fashion Shoot', () => {
   assert.match(indexHtml, />Fashion Shoot<\/button>/);
   assert.doesNotMatch(indexHtml, /\d+ стандартних сцен<\/button>/);
   assert.match(sceneUiSource, /standardTab\.textContent = this\.presets\.length/);
-  assert.match(sceneUiSource, /const fashionModes = this\.editorialModes\.filter\(\(mode\) => mode\.mode_id\.startsWith\('shoot\.'\)\)/);
+  assert.match(sceneUiSource, /const fashionModes = this\.editorialModes\.filter\(isReadyFashionMode\)/);
   assert.match(sceneUiSource, /editorialTab\.textContent = fashionModes\.length/);
   assert.match(sceneUiSource, /function ukPlural\(/);
   assert.match(sceneUiSource, /createProfileScene/);

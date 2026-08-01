@@ -59,6 +59,9 @@ const CREATE_UNIVERSE_MODE_META = Object.freeze({
 const EDITORIAL_TO_CREATE_UNIVERSE_ALIAS = Object.freeze({
   'editorial.edwin_novak.institutional_modernism': 'shoot.zayn_institutional',
 });
+const USER_FACING_LEGACY_EDITORIAL_MODE_IDS = new Set(
+  Object.keys(EDITORIAL_TO_CREATE_UNIVERSE_ALIAS),
+);
 const CREATE_UNIVERSE_REQUIRED_SHEETS = Object.freeze([
   'camera_lens',
   'blocking',
@@ -1457,6 +1460,11 @@ export class FilesystemScenePresetResolver {
         mode,
       });
       previews.set(key, preview);
+      // The source program and prepared preview cache keep legacy records so
+      // old preview URLs remain integrity-checked and generation deep links can
+      // be upgraded through EDITORIAL_TO_CREATE_UNIVERSE_ALIAS. Only the public
+      // choices omit the duplicate preview-only record.
+      if (USER_FACING_LEGACY_EDITORIAL_MODE_IDS.has(mode.preset_id)) continue;
       modes.push({
         mode_id: mode.preset_id,
         version: mode.version,
