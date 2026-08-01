@@ -225,3 +225,140 @@ test('salvage review samples both segment boundaries so a short reference leak c
     await rm(root, { recursive: true, force: true });
   }
 });
+
+// Reproduces a real production failure verbatim: a container that claims 14.526s while its
+// last decodable frame sits at 14.500s. The 50ms end-boundary margin the caller already
+// applies (14.526 - 0.05 = 14.476) still lands inside that 26ms dead zone, so ffmpeg exits 0
+// and writes no file — exactly what a manual `ffmpeg -ss 14.476 -i clip-salvaged.mp4 ...` run
+// against the actual clip did. Before the retry loop, the next `readFile` threw a bare
+// ENOENT that surfaced all the way to the clip's `failureCode`, indistinguishable from any
+// other filesystem fault.
+test('a frame request landing in the dead zone past the last decodable frame retries backward instead of throwing ENOENT', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'video-semantic-deadzone-'));
+  try {
+    const clipDir = path.join(root, 'clip');
+    await import('node:fs/promises').then(({ mkdir }) => mkdir(clipDir, { recursive: true }));
+    const sourceBytes = Buffer.from('approved-look');
+    const referenceBytes = Buffer.from('reference-video');
+    const sourcePath = path.join(clipDir, 'source.png');
+    const referencePath = path.join(clipDir, 'style-reference.mp4');
+    const videoPath = path.join(clipDir, 'clip-salvaged.mp4');
+    await Promise.all([
+      writeFile(sourcePath, sourceBytes),
+      writeFile(referencePath, referenceBytes),
+      writeFile(videoPath, Buffer.from('provider-output')),
+    ]);
+    // The container claims 14.526s; nothing decodes past 14.500s. Any -ss at or above that
+    // boundary is the dead zone the real clip hit, matching the observed ffmpeg behaviour:
+    // it exits 0 and simply does not write `outputPath`.
+    const lastDecodableSeconds = 14.500;
+    const attempts = [];
+    // Output and reference frames are rendered in different colours, so this is an
+    // ordinary (non-identical) delivery: the model is called and must return a complete
+    // PASS receipt, exactly like the "non-identical output" test above. Retry recovery is
+    // the only thing under test here, not the exact-copy short-circuit.
+    const evaluate = createVideoSemanticQaEvaluator({
+      evaluator: {
+        async evaluateQa() {
+          // The reference/output duration ratio splits this into 15 micro-cuts (32 is the
+          // contract's own upper bound on cuts per clip), and the caller rejects a receipt
+          // missing any expected name — so every possible CUT_i_* name is supplied rather
+          // than hand-computing exactly 15.
+          const cutChecks = Array.from({ length: 32 }, (_, i) => [
+            `CUT_${i}_APPROVED_AVATAR_ONLY`, `CUT_${i}_REFERENCE_PERFORMER_ABSENT`,
+          ]).flat();
+          return {
+            evaluator: { type: 'MODEL', provider: 'test', model: 'fixed', version: 'fixed', evaluation_id: 'e'.repeat(64) },
+            checks: [...REQUIRED_REFERENCE_CHECKS, ...cutChecks]
+              .map((name) => ({ name, pass: true, score: 1, evidence: 'visible proof' })),
+          };
+        },
+      },
+      fashionVideoReferenceResolver: async () => ({
+        state: 'READY', reference_sha256: sha256(referenceBytes),
+        cut_sheet: { cuts: [{ cut_index: 0, start_ms: 0, end_ms: 15_042 }] },
+      }),
+      commandRunner: async (binary, args) => {
+        const input = path.basename(args[args.indexOf('-i') + 1]);
+        if (input !== 'clip-salvaged.mp4') {
+          await sharp({ create: { width: 32, height: 48, channels: 3, background: '#993366' } })
+            .jpeg().toFile(args.at(-1));
+          return;
+        }
+        const seconds = Number(args[args.indexOf('-ss') + 1]);
+        attempts.push(seconds);
+        if (seconds >= lastDecodableSeconds) return; // ffmpeg's real dead-zone behaviour: exit 0, write nothing
+        await sharp({ create: { width: 32, height: 48, channels: 3, background: '#336699' } })
+          .jpeg().toFile(args.at(-1));
+      },
+    });
+    const receipts = await evaluate({
+      clipId: 'clip-id', jobId: 'job-id', mode: 'mode', status: 'NEEDS_QA',
+      sourceSha256: sha256(sourceBytes), videoPath, videoSha256: 'a'.repeat(64),
+      durationSeconds: 15.041667, deliveryDurationSeconds: 14.526,
+      motionReferenceBinding: {
+        referenceId: 'style', sha256: sha256(referenceBytes), audioSourceFile: 'style-reference.mp4',
+      },
+    });
+    // The last sample fraction (0.96 for a non-salvage cut) computes to 14.4249... clamped
+    // to outputLastFrameMs (14.476), which is still in the dead zone: the first attempt at
+    // 14.476 fails, and the retry loop must step back until it lands before 14.500.
+    assert.ok(attempts.length >= 2, `expected at least one retry, got attempts: ${attempts}`);
+    assert.ok(attempts.at(-1) < lastDecodableSeconds, `final attempt ${attempts.at(-1)} must be before the last decodable frame`);
+    // The model approves every cut, so completing extraction (the thing under test) results
+    // in a normal PASS — proving the retry recovered a real frame rather than merely not
+    // crashing.
+    assert.equal(receipts.identityReceipt.results.last.decision, 'PASS');
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('extractJpeg raises a named error rather than a bare ENOENT when no retreat step recovers a frame', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'video-semantic-deadzone-permanent-'));
+  try {
+    const clipDir = path.join(root, 'clip');
+    await import('node:fs/promises').then(({ mkdir }) => mkdir(clipDir, { recursive: true }));
+    const sourceBytes = Buffer.from('approved-look');
+    const referenceBytes = Buffer.from('reference-video');
+    const sourcePath = path.join(clipDir, 'source.png');
+    const referencePath = path.join(clipDir, 'style-reference.mp4');
+    const videoPath = path.join(clipDir, 'clip.mp4');
+    await Promise.all([
+      writeFile(sourcePath, sourceBytes),
+      writeFile(referencePath, referenceBytes),
+      writeFile(videoPath, Buffer.from('provider-output')),
+    ]);
+    const evaluate = createVideoSemanticQaEvaluator({
+      evaluator: { async evaluateQa() { throw new Error('must not call model'); } },
+      fashionVideoReferenceResolver: async () => ({
+        state: 'READY', reference_sha256: sha256(referenceBytes),
+        cut_sheet: { cuts: [{ cut_index: 0, start_ms: 0, end_ms: 1_000 }] },
+      }),
+      commandRunner: async (binary, args) => {
+        const input = path.basename(args[args.indexOf('-i') + 1]);
+        if (input !== 'clip.mp4') {
+          await sharp({ create: { width: 32, height: 48, channels: 3, background: '#993366' } })
+            .jpeg().toFile(args.at(-1));
+        }
+        // clip.mp4 samples never write a file: every retreat step is exhausted.
+      },
+    });
+    await assert.rejects(
+      evaluate({
+        clipId: 'clip-id', jobId: 'job-id', mode: 'mode', status: 'NEEDS_QA',
+        sourceSha256: sha256(sourceBytes), videoPath, videoSha256: 'a'.repeat(64),
+        motionReferenceBinding: {
+          referenceId: 'style', sha256: sha256(referenceBytes), audioSourceFile: 'style-reference.mp4',
+        },
+      }),
+      (error) => {
+        assert.equal(error.code, 'VIDEO_AUTOMATIC_QA_FRAME_EXTRACTION_FAILED');
+        assert.notEqual(error.code, 'ENOENT');
+        return true;
+      },
+    );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});

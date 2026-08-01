@@ -727,6 +727,37 @@ test('reference transfer QA refuses delivery when any covered cut exposes the re
   });
 });
 
+// video-semantic-qa.js marks the deterministic exact-reference-copy path with a fixed
+// `evaluator: 'deterministic/exact-reference-copy-v1'` string precisely so it can be told
+// apart from an ordinary VLM rejection. Before this, both collapsed into the same generic
+// VIDEO_REFERENCE_QA_FAILED, so a delivery that was byte-identical to the directing
+// reference — meaning nothing was ever generated — was indistinguishable in the failure
+// code from a normal creative rejection. A viewer or a QA report reading only failureCode
+// could not tell "the model said no" from "the provider returned the reference itself".
+test('an exact reference-copy delivery is reported with its own failure code, not the generic one', async () => {
+  await withTempDir(async (dir) => {
+    const { provider } = makeStubProvider();
+    const store = new ClipStore(dir);
+    const service = new VideoService({ provider, clipStore: store });
+    await store.save('exact-copy-clip', {
+      clipId: 'exact-copy-clip', jobId: 'job_exact_copy', status: 'NEEDS_QA',
+      durationSeconds: 5, sourceSha256: 'a'.repeat(64), qa: { pass: true },
+      identityItemQa: { pass: true }, motionReferenceBinding: { sha256: 'b'.repeat(64) },
+    });
+    const checks = referenceTransferChecks('subject_replacement_every_cut');
+    const result = await service.recordReferenceAdherenceQa('exact-copy-clip', {
+      clip_id: 'exact-copy-clip', job_id: 'job_exact_copy',
+      source_sha256: 'a'.repeat(64), motion_reference_sha256: 'b'.repeat(64), checks,
+      evaluator: 'deterministic/exact-reference-copy-v1',
+      cut_coverage: microCutCoverage({ decision: 'FAIL', referencePerformerVisible: true, visiblePeople: 'REFERENCE_PERFORMER' }),
+    });
+    assert.equal(result.status, 'FAIL');
+    assert.equal(result.referenceAdherenceQa.cutCoverage.pass, false);
+    const stored = await store.load('exact-copy-clip');
+    assert.equal(stored.failureCode, 'VIDEO_REFERENCE_NOT_REPLACED');
+  });
+});
+
 test('reference-performer leakage is cut into a hero-only delivery and must pass semantic QA again', async () => {
   await withTempDir(async (dir) => {
     const { provider } = makeStubProvider();
@@ -1603,5 +1634,38 @@ test('walk_stride mode with full_length capability succeeds', async () => {
 
     assert.equal(result.plan.mode, 'walk_stride');
     assert.equal(result.status, 'CREATED');
+  });
+});
+
+// registerVideoRoutes calls videoService.claimRetry(...) and
+// videoService.completeRetryClaim(...) directly on the VideoService facade
+// (see src/web/video-routes.js). Those methods were defined only on the
+// private ClipStore, so every production retry click threw
+// "videoService.claimRetry is not a function" before this delegation
+// existed. This exercises the real, unmocked facade end to end so the
+// route-level test's monkeypatched fixture cannot hide the gap again.
+test('claimRetry and completeRetryClaim are callable on the VideoService facade, not just the store', async () => {
+  await withTempDir(async (dir) => {
+    const { provider } = makeStubProvider();
+    const store = new ClipStore(dir);
+    const service = new VideoService({ provider, clipStore: store });
+
+    assert.equal(typeof service.claimRetry, 'function');
+    assert.equal(typeof service.completeRetryClaim, 'function');
+
+    const key = 'retry-key-that-is-long-enough-1234567890';
+    const first = await service.claimRetry('parent-clip-1', key);
+    assert.equal(first.created, true);
+    assert.equal(first.claim.state, 'SUBMITTING');
+
+    // A second claim with the same key must be idempotent, matching the
+    // route's duplicate-tap handling.
+    const duplicate = await service.claimRetry('parent-clip-1', key);
+    assert.equal(duplicate.created, false);
+    assert.equal(duplicate.claim.state, 'SUBMITTING');
+
+    const completed = await service.completeRetryClaim(first.claimPath, 'child-clip-1');
+    assert.equal(completed.state, 'CREATED');
+    assert.equal(completed.child_clip_id, 'child-clip-1');
   });
 });
