@@ -17,6 +17,20 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-08-01 · SCENE-NATIVE-3-4-TEST-CONTRACT · release/candidate-20260801 · codex-live-40
+Change: align the scene adapter regression fixtures with the already-approved
+native `3:4` image transport and `1536×2048` delivery. The tests no longer ask a
+Nano Banana fake for `4:5`, pair a GPT response with a Nano request, or expect a
+crop that production explicitly forbids.
+Why: four stale fixtures failed after the intentional native `3:4` migration,
+while the production adapter correctly rejected their contradictory provider
+contracts. Structured `composition_anchor` references remain `4:5`; only the
+generated scene transport and delivery are `3:4`.
+Evidence: `test/web/scene-adapters.test.js` 54/54 PASS; combined Create Universe,
+editorial anchors and scene-adapter suite 68/68 PASS; production code and QA
+thresholds unchanged.
+weakened_checks: none.
+
 2026-08-01 · CREATE-UNIVERSE-TRANSPORT-001 · release/candidate-20260801 · codex-main
 Change: keep the complete four-image Create Universe reference pack validated,
 but transport only the three slot-safe style sheets. When the eight-image

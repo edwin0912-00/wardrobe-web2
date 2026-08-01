@@ -129,14 +129,14 @@ test('SceneGeneratorAdapter maps the exact three-model route and sends approved 
     const calls = [];
     const providerOutput = await sharp({
       create: {
-        width: route.job_set_type === 'gpt_image_2' ? 900 : 800,
-        height: route.job_set_type === 'gpt_image_2' ? 1200 : 1000,
+        width: route.job_set_type === 'gpt_image_2' ? 900 : 768,
+        height: route.job_set_type === 'gpt_image_2' ? 1200 : 1024,
         channels: 3,
         background: '#b98f72',
       },
     }).png().toBuffer();
     const provider = {
-      aspectRatio: route.job_set_type === 'gpt_image_2' ? '3:4' : '4:5',
+      aspectRatio: '3:4',
       async generate(context) {
         calls.push(context);
         return {
@@ -166,36 +166,21 @@ test('SceneGeneratorAdapter maps the exact three-model route and sends approved 
     assert.equal(calls[0].references.ordered[0].sha256, fixture.approved.sha256);
     assert.doesNotMatch(calls[0].prompt, /\/Users\/|\/tmp\/|scene-adapter-/);
     const metadata = await sharp(result.image).metadata();
-    assert.equal(metadata.width * 5, metadata.height * 4);
-    if (route.job_set_type === 'gpt_image_2') {
-      assert.deepEqual([metadata.width, metadata.height], [1024, 1280]);
-    }
+    assert.equal(metadata.width * 4, metadata.height * 3);
+    assert.deepEqual([metadata.width, metadata.height], [1536, 2048]);
     assert.equal(result.metadata.provider_request_id, `provider-job-${route.order}`);
     assert.equal(result.metadata.model_version, route.model_version);
     assert.equal(result.metadata.job_set_type, route.job_set_type);
-    assert.equal(result.metadata.source_width, route.job_set_type === 'gpt_image_2' ? 900 : 800);
-    assert.equal(result.metadata.source_height, route.job_set_type === 'gpt_image_2' ? 1200 : 1000);
-    assert.equal(result.metadata.source_aspect_ratio, route.job_set_type === 'gpt_image_2' ? '3:4' : '4:5');
-    assert.equal(
-      result.metadata.transport_aspect_ratio,
-      route.job_set_type === 'gpt_image_2' ? '3:4' : '4:5',
-    );
+    assert.equal(result.metadata.source_width, route.job_set_type === 'gpt_image_2' ? 900 : 768);
+    assert.equal(result.metadata.source_height, route.job_set_type === 'gpt_image_2' ? 1200 : 1024);
+    assert.equal(result.metadata.source_aspect_ratio, '3:4');
+    assert.equal(result.metadata.transport_aspect_ratio, '3:4');
     assert.equal(result.metadata.raw_output_sha256, sha256(providerOutput));
     assert.equal(result.metadata.geometry_output_sha256, sha256(result.image));
-    // 900×1200 is 3:4, six percent taller than the 4:5 delivery: a centre crop
-    // of 75 pixels of height, which states what it cost. 800×1000 is already
-    // 4:5 and only needs the canonical canvas, so nothing is discarded there.
-    assert.equal(
-      result.metadata.geometry_strategy,
-      route.job_set_type === 'gpt_image_2'
-        ? 'centre_crop_to_exact_4_5'
-        : 'provider_exact_4_5_rescaled',
-    );
-    if (route.job_set_type === 'gpt_image_2') {
-      assert.equal(result.metadata.geometry_crop_fraction, 0.0625);
-    } else {
-      assert.equal(result.metadata.geometry_crop_fraction, undefined);
-    }
+    // Every model uses a native 3:4 transport. The adapter may rescale a
+    // provider bucket, but it must not crop, pad or invent pixels.
+    assert.equal(result.metadata.geometry_strategy, 'provider_exact_3_4_rescaled');
+    assert.equal(result.metadata.geometry_crop_fraction, undefined);
   }
 });
 
@@ -626,9 +611,9 @@ test('SceneGeneratorAdapter drives the Higgsfield CLI harness with GPT 3:4 and s
   const adapter = new SceneGeneratorAdapter({ provider });
   const result = await adapter.generateScene({
     ...fixture.base,
-    attempt: 2,
-    cycle_attempt: 2,
-    ...DEFAULT_SCENE_MODEL_ROUTE[1],
+    attempt: 1,
+    cycle_attempt: 1,
+    ...DEFAULT_SCENE_MODEL_ROUTE[0],
   });
 
   const command = calls.find((call) => call.kind === 'command');
@@ -643,12 +628,12 @@ test('SceneGeneratorAdapter drives the Higgsfield CLI harness with GPT 3:4 and s
   );
   assert.doesNotMatch(command.args[command.args.indexOf('--prompt') + 1], /\/Users\/|\/tmp\//);
   assert.equal(result.metadata.provider_request_id, 'scene-provider-job-1');
-  assert.equal(result.metadata.geometry_strategy, 'centre_crop_to_exact_4_5');
-  assert.equal(result.metadata.geometry_crop_fraction, 0.0625);
+  assert.equal(result.metadata.geometry_strategy, 'provider_exact_3_4_rescaled');
+  assert.equal(result.metadata.geometry_crop_fraction, undefined);
   assert.deepEqual(
     [await sharp(result.image).metadata().then((metadata) => metadata.width),
       await sharp(result.image).metadata().then((metadata) => metadata.height)],
-    [1024, 1280],
+    [1536, 2048],
   );
 });
 
@@ -952,8 +937,8 @@ test('repair generation attaches the approved look then the hash-bound failed ca
   })));
   const repairCandidate = {
     ...(await imageFile(fixture.root, 'failed-scene-candidate.png', {
-      width: 1024,
-      height: 1280,
+      width: 1536,
+      height: 2048,
       color: '#caa68f',
     })),
     role: 'failed_candidate',
@@ -964,11 +949,11 @@ ATTACHMENT_2 is the hash-bound failed scene candidate. Edit it without redesigni
 
   const providerCalls = [];
   const providerOutput = await sharp({
-    create: { width: 800, height: 1000, channels: 3, background: '#9f765f' },
+    create: { width: 900, height: 1200, channels: 3, background: '#9f765f' },
   }).png().toBuffer();
   const generator = new SceneGeneratorAdapter({
     provider: {
-      aspectRatio: '4:5',
+      aspectRatio: '3:4',
       async generate(context) {
         providerCalls.push(context);
         return {
@@ -1953,7 +1938,7 @@ test('SceneGeneratorAdapter reserves a distinct attachment number for a mechanic
     target_clear_space_above_hair_percent: 9,
   };
   const calls = [];
-  const adapter = new SceneGeneratorAdapter({ provider: recordingProvider(await providerFrame(), calls, { aspectRatio: '4:5' }) });
+  const adapter = new SceneGeneratorAdapter({ provider: recordingProvider(await providerFrame(), calls) });
   await adapter.generateScene({
     ...fixture.base,
     attempt: 2,
