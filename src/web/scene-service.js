@@ -1443,9 +1443,11 @@ function compiledPrompt({
       .map((gate) => gate.id)
     : [];
   const itemFidelityFailed = failedGates.includes('ITEM_FIDELITY');
-  const framingFailed = repairAttempt?.qa.gates.some(
-    (gate) => gate.id === 'FRAMING_AND_ANATOMY' && gate.decision === 'FAIL',
-  ) ?? false;
+  const framingGate = repairAttempt?.qa.gates.find(
+    (gate) => gate.id === 'FRAMING_AND_ANATOMY',
+  ) ?? null;
+  const framingFailed = framingGate?.decision === 'FAIL';
+  const framingPassed = framingGate?.decision === 'PASS';
   const measuredSubjectHeight = repairAttempt?.qa.framing_evidence?.subject_height_percent;
   const expectedSubjectRange = repairAttempt?.qa.framing_evidence?.expected_subject_height_percent;
   const expectedMinimum = Array.isArray(expectedSubjectRange) && Number.isFinite(expectedSubjectRange[0])
@@ -1541,6 +1543,19 @@ function compiledPrompt({
       '- Make the smallest local edit required to pass QA. Do not regenerate or redesign scene content that already passed.',
       `- Preserve these passed gates exactly: ${passedGates.join(', ') || 'none recorded'}.`,
       `- Repair only these failed gates: ${failedGates.join(', ') || 'none recorded'}.`,
+      ...(framingPassed && framingLockEvidence
+        && Array.isArray(framingLockEvidence.subject_bbox_xywh_px)
+        && framingLockEvidence.subject_bbox_xywh_px.length === 4
+        && framingLockEvidence.subject_bbox_xywh_px.every(Number.isFinite)
+        && [
+          measuredSubjectHeight,
+          measuredAboveHair,
+          measuredBelowFootwear,
+        ].every(Number.isFinite) ? [
+          'FRAME GEOMETRY ALREADY PASSED — LOCK IT',
+          `- Keep the complete person at the accepted bounding box [${framingLockEvidence.subject_bbox_xywh_px.join(', ')}] on the ${state.delivery.width}x${state.delivery.height} canvas: ${measuredSubjectHeight}% subject height, ${measuredAboveHair}% above the hair and ${measuredBelowFootwear}% below the footwear.`,
+          '- Do not zoom, crop, reframe, enlarge, shrink or move the person while repairing another gate. Edit only the named failed visual detail and preserve the accepted scene geometry pixel-for-pixel wherever that repair does not touch it.',
+        ] : []),
       ...(itemFidelityFailed ? [
         'PRODUCT VISIBILITY LOCK',
         '- Do not cover the jeans waistband, closure, belt loops, front pockets or rivets with hands, hoodie or props.',

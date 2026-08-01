@@ -2048,6 +2048,9 @@ test('item-fidelity repair makes jeans and footwear observable without weakening
   assert.match(repair, /PRODUCT VISIBILITY LOCK/);
   assert.match(repair, /Do not cover the jeans waistband, closure, belt loops, front pockets or rivets with hands, hoodie or props/);
   assert.match(repair, /both shoes large enough to inspect their side overlays, sole units and color accents/);
+  assert.match(repair, /FRAME GEOMETRY ALREADY PASSED — LOCK IT/);
+  assert.match(repair, /Keep the complete person at the accepted bounding box \[300, 165, 930, 1550\] on the 1536x2048 canvas/);
+  assert.match(repair, /Do not zoom, crop, reframe, enlarge, shrink or move the person while repairing another gate/);
 });
 
 test('the crop refusal names the in-band guard the plan returned at, not a crop window it never computed', async (t) => {

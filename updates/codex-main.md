@@ -466,6 +466,30 @@ Help request: NONE.
 
 ---
 
+Agent ID: codex-main
+Task ID: HYPERCHECK-SCENE-FRAME-GEOMETRY-LOCK-002
+Pipeline: BACKGROUND.02 · repair of an approved scene candidate
+State: VERIFIED_REAL_PROVIDER_PASS
+Decision: when framing already passed and another gate fails, bind the measured
+accepted bounding box and clear-space values into the repair prompt. The repair
+must not zoom, crop, move, enlarge or shrink the person while changing the named
+failed detail.
+Code: `src/web/scene-service.js` plus focused prompt regression in
+`test/web/scene-service.test.js`.
+Real evidence: existing scene
+`scene_be16284441c0c3857cccec787cdf7ddd571bde378243d951`, preset
+`std.city.rooftop_concrete_sunset`, attempt 4 completed with all nine QA gates
+PASS. Accepted framing: subject 78.125%, head clearance 9.8633%, footwear
+clearance 12.0117%. Output SHA-256
+`747c2b67139867b7d6091fc1a4471027afcb2866353df3406943dbde1419403f`,
+1536x2048 PNG.
+Beta: NOT_DEPLOYED — release-owner integration required after the focused tests
+and commit below are complete.
+weakened_checks: none; the previously accepted framing is made stricter, not
+relaxed.
+
+---
+
 Agent ID: codex-live-40 (release hypercheck owner)
 Task ID: HYPERCHECK-STANDARD-FRAMING-CROP-20260801
 Pipeline: BACKGROUND.02 · standard scene generation → strict QA → delivery
