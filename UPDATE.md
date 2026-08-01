@@ -1,5 +1,39 @@
 # Wardrobe update board
 
+
+## 2026-08-01 · small fix: stale cache-bust chain under Fashion Shoot UI
+
+Beta head now `6d72b30`, fast-forward from `c31f201`. Found while running full per-block
+suites and an end-to-end unauthenticated user journey (profile -> draft -> person/garment
+upload -> consent -> run) as part of a routine sweep after the video/shoot fixes above; not
+a paid generation, no provider job created.
+
+`app.js` had bumped to `?v=20260801-1` while its own dependents, `scene-ui.js` and
+`editorial-shoot-ui.js`, still imported each other at the stale `?v=20260731-3` — a browser
+holding a cached old `app.js` would never fetch either updated file, since neither import
+URL had changed. The regression test that should have caught this hardcoded an exact
+literal string on both sides of its own comparison instead of checking the two sides agree,
+so it could not catch the drift and would have failed again on the next unrelated app.js
+bump regardless. Fixed both the version chain and the test.
+
+E2E journey findings, no code defect: `POST /api/draft/run` needs an explicit
+`{consent:true, file_manifest:{version:1, person, identity, garments}}` body — the gate
+order (consent, then file_manifest, then per-image size/format) is correct and fail-closed
+at every step tried, including on a deliberately undersized 1x1 test image
+(`IMAGE_TOO_SMALL`, HTTP 422, matches its own body). Scene/editorial/Real-time Look/Video
+capability checks all correctly reject an invalid or missing look id. Test profile created
+during this sweep was deleted afterward (`DELETE /api/profile` → 204).
+
+Evidence: `test/web/editorial-preview-ui.test.js` 15/15 (new assertion fails pre-fix, passes
+post-fix); full editorial suite 62/62 (was 61/62). Deployed and externally verified on both
+`beta.madeforthisjob.com` and `site.madeforthisjob.com`.
+
+Known, not touched, not a regression from any change today: 27 pre-existing failures in
+`test/web/scene-*.test.js` (framing/repair/post-release paths) reproduce identically on
+unmodified `a2b263f`, before any work in this session — looks environment/resource-load
+sensitive (the runtime resource preflight separately flagged swap above its threshold), not
+a logic defect introduced here. Needs its own dedicated investigation, not a guess-fix.
+
 ## 2026-08-01 · two pipeline links fixed: Fashion Video and Fashion Shoot
 
 Beta head is now `b0f76d6` (fast-forward from `a2b263f`; no rewrite, no force-push).
