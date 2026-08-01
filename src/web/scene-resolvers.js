@@ -52,6 +52,13 @@ const CREATE_UNIVERSE_MODE_META = Object.freeze({
   'shoot.rooftop_veil_monochrome': 'Дах і вуаль · монохром',
   'shoot.autumn_park_mediated_sun': 'Осінній парк · мʼяке сонце',
 });
+// The old editorial catalog used the same user-facing name as the verified
+// Create Universe unit. Keep old links backward-compatible, but resolve them
+// to the immutable CU pack instead of sending users into the preview-only
+// editorial record with the missing second source.
+const EDITORIAL_TO_CREATE_UNIVERSE_ALIAS = Object.freeze({
+  'editorial.edwin_novak.institutional_modernism': 'shoot.zayn_institutional',
+});
 const CREATE_UNIVERSE_REQUIRED_SHEETS = Object.freeze([
   'camera_lens',
   'blocking',
@@ -1236,7 +1243,10 @@ export class FilesystemScenePresetResolver {
   }
 
   async editorialModeDefinition({ modeId, version, requireReady = false }) {
-    const { mode } = await this.#editorialMode(modeId, version);
+    const resolvedModeId = requireReady
+      ? (EDITORIAL_TO_CREATE_UNIVERSE_ALIAS[modeId] ?? modeId)
+      : modeId;
+    const { mode } = await this.#editorialMode(resolvedModeId, version);
     if (requireReady && !READY_EDITORIAL_MODE_IDS.includes(mode.preset_id)) {
       throw resolverError(409, 'Editorial mode is published as preview-only and cannot generate');
     }

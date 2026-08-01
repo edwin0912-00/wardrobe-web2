@@ -232,13 +232,12 @@ test('READY editorial and Create Universe modes compile six strict per-shot pack
     }
   }
 
-  await assert.rejects(
-    () => resolver.compileEditorialShootBible({
-      modeId: 'editorial.edwin_novak.institutional_modernism',
-      version: '1.0.0',
-    }),
-    /preview-only|not ready/i,
-  );
+  const institutionalAlias = await resolver.compileEditorialShootBible({
+    modeId: 'editorial.edwin_novak.institutional_modernism',
+    version: '1.0.0',
+  });
+  assert.equal(institutionalAlias.mode_id, 'shoot.zayn_institutional');
+  assert.match(institutionalAlias.bible_id, /shoot_zayn_institutional/);
 });
 
 test('editorial item QA scope follows the intentional crop without weakening full-body shots', () => {
