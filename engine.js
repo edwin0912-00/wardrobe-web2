@@ -651,6 +651,7 @@
             leg: r.idx,
             local: r.local,
             eased: r.eased,
+            speed: speed,
             videoTime: d && isFinite(d) ? v.currentTime : null,
             duration: d && isFinite(d) ? d : null,
             stationId: active ? active.id : null,

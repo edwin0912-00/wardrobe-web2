@@ -90,7 +90,7 @@
    * The shelf is never a step and never empty once anything is finished. It carries the
    * most finished artefact the session owns, in this order:
    *
-   *   video (4) > shoot (3) > background (2) > look (1)
+   *   video (4) > shoot (3) > looks (2) > background (1)
    *
    * `rank` is what enforces that. The previous contract accepted only a 16:9 item or a
    * shoot and silently dropped everything else, so the two lower rungs could not reach
@@ -100,7 +100,7 @@
    *
    * Aspect stays part of the model because the surface fits media inside the measured
    * aperture, but it is deliberately NOT rendered as text — see renderTelevision. */
-  var RESULT_RANK = { look: 1, background: 2, shoot: 3, video: 4 };
+  var RESULT_RANK = { background: 1, look: 2, shoot: 3, video: 4 };
   var RESULT_LABEL = {
     look: 'Образ',
     background: 'Фон',
@@ -114,15 +114,60 @@
     var aspect = raw.aspect === '9:16' ? '9:16' : '16:9';
     var urls = Array.isArray(raw.urls) ? raw.urls.filter(function (url) {
       return typeof url === 'string' && url.length > 0;
-    }).slice(0, kind === 'shoot' ? 5 : 1) : [];
+    }).slice(0, (kind === 'shoot' || kind === 'look') ? 5 : 1) : [];
     return Object.freeze({
       kind: kind,
       rank: RESULT_RANK[kind],
       aspect: aspect,
       urls: Object.freeze(urls),
+      previewUrls: Object.freeze(Array.isArray(raw.previewUrls) ? raw.previewUrls.filter(function (url) {
+        return typeof url === 'string' && url.length > 0;
+      }).slice(0, (kind === 'shoot' || kind === 'look') ? 5 : 1) : []),
+      previewAttempted: raw.previewAttempted === true,
       mediaUrl: typeof raw.mediaUrl === 'string' ? raw.mediaUrl : '',
       label: RESULT_LABEL[kind],
       pendingRealMedia: raw.pendingRealMedia !== false && !urls.length && !raw.mediaUrl
+    });
+  }
+
+  /* Resolve the television shelf without knowing anything about the UI that produced it.
+   * Multiple completed looks are one client-facing rung, not five competing results: they
+   * form a row of 1–5 transparent portraits. Stronger artefacts still replace that rung in
+   * the same order (video > shoot > looks > background). This is deliberately pure so the
+   * beta bridge, the cinematic runtime and tests can share exactly the same decision. */
+  function strongestResult(results) {
+    var best = -1;
+    for (var i = 0; i < results.length; i++) {
+      if (best < 0 || results[i].rank >= results[best].rank) best = i;
+    }
+    return best;
+  }
+
+  function addResultToShelf(existing, raw) {
+    var shelf = Array.isArray(existing) ? existing.slice() : [];
+    var item = resultModel(raw);
+    if (item.kind === 'look') {
+      var lookIndex = shelf.findIndex(function (entry) { return entry.kind === 'look'; });
+      if (lookIndex >= 0) {
+        var urls = shelf[lookIndex].urls.slice();
+        item.urls.forEach(function (url) {
+          if (urls.indexOf(url) < 0 && urls.length < 5) urls.push(url);
+        });
+        shelf[lookIndex] = resultModel({
+          kind: 'look',
+          aspect: item.aspect,
+          urls: urls,
+          mediaUrl: urls.length === 1 ? urls[0] : ''
+        });
+      } else {
+        shelf.push(item);
+      }
+    } else {
+      shelf.push(item);
+    }
+    return Object.freeze({
+      results: Object.freeze(shelf),
+      activeResult: strongestResult(shelf)
     });
   }
 
@@ -131,9 +176,11 @@
     var film = options.film || (typeof document !== 'undefined' && document.querySelector('[data-film]'));
     var tv = film && film.querySelector('[data-tv-surface]');
     var tvGallery = tv && tv.querySelector('[data-tv-gallery]');
+    var tvContent = tv && tv.querySelector('.tv-surface__content');
     var laptop = film && film.querySelector('[data-laptop-surface]');
     var laptopPage = laptop && laptop.querySelector('[data-laptop-page]');
     var math = typeof globalThis !== 'undefined' ? globalThis.WardrobeSurfaceMath : null;
+    var mediaPreview = typeof globalThis !== 'undefined' ? globalThis.WardrobeMediaPreview : null;
     var calibration = null;
     var tvFrames = null;
     var laptopFrames = null;
@@ -153,14 +200,26 @@
 
     function portraitStrip(item) {
       var cells = '';
+      var urls = item.previewUrls.length ? item.previewUrls : item.urls;
       for (var i = 0; i < 5; i++) {
-        var url = item.urls[i];
+        var url = urls[i];
         cells += '<figure class="tv-shot" data-filled="' + (url ? '1' : '0') + '">' +
           (url ? '<img src="' + esc(url) + '" alt="Кадр ' + (i + 1) + '" width="240" height="360">'
                : '<span aria-hidden="true">' + String(i + 1).padStart(2, '0') + '</span>') +
           '</figure>';
       }
       return '<div class="tv-contact" aria-label="Пʼять вертикальних кадрів">' + cells + '</div>';
+    }
+
+    function lookStrip(item) {
+      var urls = (item.previewUrls.length ? item.previewUrls : item.urls).slice(0, 5);
+      var cells = urls.map(function (url, index) {
+        return '<figure class="tv-look" data-filled="1">' +
+          '<img src="' + esc(url) + '" alt="Образ ' + (index + 1) + '" width="240" height="360" loading="lazy">' +
+          '</figure>';
+      }).join('');
+      return '<div class="tv-look-strip" data-count="' + urls.length + '" aria-label="' +
+        (urls.length === 1 ? 'Один образ' : urls.length + ' образи') + '">' + cells + '</div>';
     }
 
     /* A television shows a moving picture, not a media player. `controls` put a play
@@ -183,7 +242,7 @@
      * `contain`, never cropped to fill: a portrait look inside the horizontal television
      * is meant to read as a picture on a screen, not as a stretched wallpaper. */
     function stillFrame(item) {
-      var url = item.mediaUrl || item.urls[0];
+      var url = item.previewUrls[0] || item.mediaUrl || item.urls[0];
       if (url) {
         return '<figure class="tv-result-still"><img src="' + esc(url) +
           '" alt="' + esc(item.label) + '" loading="lazy"></figure>';
@@ -204,6 +263,11 @@
       tvGallery.innerHTML =
         '<div class="tv-gallery__head"><span>' + esc(item.label) + '</span></div>' +
         (item.kind === 'shoot' ? portraitStrip(item)
+          : item.kind === 'look' && mediaPreview && item.urls.length &&
+            !item.previewUrls.length && !item.previewAttempted ?
+            '<div class="tv-result-wait" role="status"><span class="orb orb--small" aria-hidden="true">' +
+              '<i></i><i></i><i></i></span><b>Готуємо перегляд</b></div>'
+          : item.kind === 'look' && item.urls.length > 1 ? lookStrip(item)
           : item.kind === 'video' ? videoFrame(item)
           : stillFrame(item));
     }
@@ -220,6 +284,7 @@
         frame.videoTime != null && frame.videoTime >= first && frame.videoTime <= last + 0.35;
       if (!visible) {
         setHidden(tv, true);
+        if (tv) tv.dataset.motion = 'still';
         return;
       }
       var rect = interpolateRectPrepared(frames, frame.videoTime);
@@ -227,6 +292,9 @@
       tv.style.top = (rect.y * 100).toFixed(4) + '%';
       tv.style.width = (rect.width * 100).toFixed(4) + '%';
       tv.style.height = (rect.height * 100).toFixed(4) + '%';
+      var speed = clamp01(finite(frame.speed, 0));
+      if (tvContent) tvContent.style.setProperty('--tv-motion-blur', (speed * 1.8).toFixed(3) + 'px');
+      tv.dataset.motion = speed > 0.035 ? 'moving' : 'settled';
       if (tvWakePending && !tvWake) {
         tvWakePending = false;
         tvWake = true;
@@ -278,26 +346,44 @@
       positionLaptop(lastFrame);
     }
 
-    /* Every rung of the ladder is admitted; the shelf then shows the strongest one it
-     * holds. The old aspect/shoot guard is gone deliberately — it was the reason a
-     * portrait look or a finished background could never appear on the television. */
-    function addResult(raw) {
-      var item = resultModel(raw);
-      results.push(item);
-      activeResult = strongestResult();
-      renderTelevision();
-      update(lastFrame);
-      return item;
+    function prepareResultPreview(index) {
+      if (!mediaPreview || !results[index]) return;
+      var item = results[index];
+      if (!item.urls.length || item.kind === 'video' || item.previewUrls.length >= item.urls.length) return;
+      var removeBackground = item.kind === 'look';
+      Promise.all(item.urls.map(function (url) {
+        return mediaPreview.fromUrl(url, { removeBackground: removeBackground, maxEdge: 640 });
+      })).then(function (entries) {
+        var previews = entries.map(function (entry) { return entry && entry.url; }).filter(Boolean);
+        if (!results[index] || results[index].urls.join('|') !== item.urls.join('|')) return;
+        var current = results[index];
+        results = results.slice();
+        results[index] = resultModel({
+          kind: current.kind,
+          aspect: current.aspect,
+          urls: current.urls,
+          previewUrls: previews,
+          previewAttempted: true,
+          mediaUrl: current.mediaUrl
+        });
+        renderTelevision();
+        update(lastFrame);
+      }).catch(function () {
+        /* Protected or unsupported media keeps its original URL as the fallback. */
+      });
     }
 
-    /* Highest rank wins; a tie is settled by arrival, so a newer shoot replaces an older
-     * shoot but never loses to it. */
-    function strongestResult() {
-      var best = -1;
-      for (var i = 0; i < results.length; i++) {
-        if (best < 0 || results[i].rank >= results[best].rank) best = i;
-      }
-      return best;
+    /* Every rung of the ladder is admitted; the shelf then shows the strongest one it
+     * holds. Multiple looks are coalesced into one 1–5 portrait strip by the pure resolver
+     * above, so the TV never renders five separate headings for five saved looks. */
+    function addResult(raw) {
+      var shelf = addResultToShelf(results, raw);
+      results = shelf.results;
+      activeResult = shelf.activeResult;
+      renderTelevision();
+      update(lastFrame);
+      results.forEach(function (_item, index) { prepareResultPreview(index); });
+      return results[activeResult];
     }
 
     function wakeTelevision() {
@@ -382,6 +468,8 @@
     normaliseRectFrames: normaliseRectFrames,
     interpolateRect: interpolateRect,
     resultModel: resultModel,
+    addResultToShelf: addResultToShelf,
+    strongestResult: strongestResult,
     active: function () { return current; }
   });
 });

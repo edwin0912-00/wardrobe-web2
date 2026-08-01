@@ -1346,7 +1346,13 @@ body {
   pointer-events: auto;
 }
 .tv-surface[hidden] { display: none; }
-.tv-surface__content { position: absolute; inset: 0; }
+.tv-surface__content {
+  position: absolute; inset: 0;
+  --tv-motion-blur: 0px;
+  filter: blur(var(--tv-motion-blur));
+  transition: filter 160ms ease-out;
+  will-change: filter;
+}
 .tv-gallery__head {
   position: absolute; z-index: 2; left: 3%; right: 3%; top: 3%;
   display: flex; justify-content: space-between;
@@ -1356,6 +1362,23 @@ body {
 .tv-contact {
   position: absolute; inset: 12% 3% 4%;
   display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 1.5%;
+}
+.tv-look-strip {
+  position: absolute; inset: 8% 4% 4%;
+  display: grid; grid-template-columns: repeat(var(--tv-look-count, 1), minmax(0, 1fr));
+  gap: 1.5%; align-items: stretch; justify-items: center;
+}
+.tv-look-strip[data-count="1"] { --tv-look-count: 1; inset-inline: 22%; }
+.tv-look-strip[data-count="2"] { --tv-look-count: 2; inset-inline: 18%; }
+.tv-look-strip[data-count="3"] { --tv-look-count: 3; inset-inline: 11%; }
+.tv-look-strip[data-count="4"] { --tv-look-count: 4; inset-inline: 6%; }
+.tv-look-strip[data-count="5"] { --tv-look-count: 5; inset-inline: 4%; }
+.tv-look {
+  min-width: 0; width: 100%; height: 100%; margin: 0;
+  display: grid; place-items: center; overflow: hidden;
+}
+.tv-look img {
+  width: 100%; height: 100%; object-fit: contain; display: block;
 }
 .tv-shot {
   min-width: 0; overflow: hidden; display: grid; place-items: center;
@@ -1405,6 +1428,7 @@ body {
   .orb i, .orbfield .orb::after, .tv-surface::after, .live-overlay__time {
     animation: none !important;
   }
+  .tv-surface__content { --tv-motion-blur: 0px !important; filter: none !important; transition: none !important; }
   .mirror-scene { animation: none !important; }
   .loader, .glass, .copy__line { transition-duration: 0.01ms !important; }
 }

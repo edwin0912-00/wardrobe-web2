@@ -194,6 +194,39 @@
     ]).then(function (modules) {
       return { prepareImageFile: modules[0].prepareImageFile, acceptedDroppedImages: modules[1].acceptedDroppedImages };
     }).catch(function () { return null; });
+    var mediaPreview = global.WardrobeMediaPreview || null;
+
+    function ensureTransparentPreview(source, done) {
+      if (!mediaPreview || !source || typeof done !== 'function') return;
+      mediaPreview.fromUrl(source, { removeBackground: true, maxEdge: 640 })
+        .then(function (entry) { if (entry && entry.url) done(entry.url); })
+        .catch(function () {});
+    }
+
+    function ensureFilePreview(file, done, removeBackground) {
+      if (!mediaPreview || !file || typeof done !== 'function') return;
+      mediaPreview.fromBlob(file, { removeBackground: removeBackground !== false, maxEdge: 480 })
+        .then(function (entry) { if (entry && entry.url) done(entry.url); })
+        .catch(function () {});
+    }
+
+    function ensureActionPreviews(result) {
+      if (!mediaPreview || !result || result.kind === 'video') return;
+      var sources = Array.isArray(result.urls) && result.urls.length
+        ? result.urls.slice(0, 5)
+        : result.mediaUrl ? [result.mediaUrl] : [];
+      if (!sources.length) return;
+      if (Array.isArray(result.previewUrls) && result.previewUrls.length >= sources.length) return;
+      Promise.all(sources.map(function (source) {
+        return mediaPreview.fromUrl(source, { removeBackground: false, maxEdge: 640 });
+      })).then(function (entries) {
+        var previews = entries.map(function (entry) { return entry && entry.url; }).filter(Boolean);
+        if (!previews.length) return;
+        result.previewUrls = previews;
+        result.previewUrl = previews[0];
+        render();
+      }).catch(function () {});
+    }
 
     /* Product state arrives through one presentation-neutral bridge. The UI keeps
      * ownership of words, surfaces and motion; it never knows API routes or a host. */
@@ -270,6 +303,7 @@
           lookId: lookId,
           runId: record.source_run_id || null,
           resultUrl: resultUrl,
+          resultPreviewUrl: record.preview_url || (at >= 0 && looks[at].resultPreviewUrl) || null,
           result: resultUrl,
           items: Array.isArray(record.items) ? record.items.slice() : [],
           bg: null, shootStyle: null, videoStyle: null,
@@ -283,6 +317,15 @@
         else {
           looks[at] = Object.assign({}, looks[at], saved,
             { items: looks[at].items && looks[at].items.length ? looks[at].items : saved.items });
+        }
+        var existingLook = at >= 0 ? looks[at] : null;
+        if (!saved.resultPreviewUrl && resultUrl && !(existingLook && existingLook.resultPreviewUrl)) {
+          ensureTransparentPreview(resultUrl, function (previewUrl) {
+            var currentLook = looks.find(function (look) { return look.lookId === lookId; });
+            if (!currentLook || currentLook.resultUrl !== resultUrl) return;
+            currentLook.resultPreviewUrl = previewUrl;
+            render();
+          });
         }
       });
       if (looks.length && selected < 0 && !pending && !pendingAction) {
@@ -364,6 +407,7 @@
         return {
           name: local.name || garment.observed && garment.observed.garment_type || 'Річ',
           url: preview,
+          previewUrl: preview,
           file: local.file || null,
           serverPreview: Boolean(preview && preview === garment.preview_url)
         };
@@ -407,13 +451,16 @@
               runId: runId,
               lookId: bridgeState.savedLook && bridgeState.savedLook.look_id || null,
               resultUrl: bridgeState.result.mediaUrl || bridgeState.result.urls[0] || '',
+              resultPreviewUrl: null,
               items: items.slice(), bg: null, shootStyle: null, videoStyle: null,
               shot: false, video: false, actionResults: {}
             });
             at = looks.length - 1;
             items = [];
           } else {
-            looks[at].resultUrl = bridgeState.result.mediaUrl || bridgeState.result.urls[0] || looks[at].resultUrl;
+            var nextResultUrl = bridgeState.result.mediaUrl || bridgeState.result.urls[0] || looks[at].resultUrl;
+            if (looks[at].resultUrl !== nextResultUrl) looks[at].resultPreviewUrl = null;
+            looks[at].resultUrl = nextResultUrl;
             if (bridgeState.savedLook) looks[at].lookId = bridgeState.savedLook.look_id;
           }
           selected = at;
@@ -426,6 +473,13 @@
             retryable: true,
           }) : null;
           if (typeof opts.onLookReady === 'function') opts.onLookReady();
+          var resultSource = looks[at].resultUrl;
+          if (!looks[at].resultPreviewUrl) ensureTransparentPreview(resultSource, function (previewUrl) {
+            var currentLook = looks[at];
+            if (!currentLook || currentLook.resultUrl !== resultSource) return;
+            currentLook.resultPreviewUrl = previewUrl;
+            render();
+          });
         }
       } else {
         var uiKind = kind === 'background' ? 'bg' : kind === 'video' ? 'fash' : kind;
@@ -439,6 +493,7 @@
           if (activeLook) {
             activeLook.actionResults = activeLook.actionResults || {};
             activeLook.actionResults[kind] = bridgeState.result;
+            ensureActionPreviews(activeLook.actionResults[kind]);
             if (kind === 'shoot') activeLook.shot = true;
             if (kind === 'video') activeLook.video = true;
           }
@@ -496,7 +551,7 @@
       return '<label class="pslot pslot--' + kind + (p ? ' pslot--has' : '') +
         '" for="io-' + kind + '" role="button" tabindex="0" aria-label="' + action + '">' +
         '<span class="pslot__index" aria-hidden="true">0' + index + '</span>' +
-        (p ? '<img class="pslot__img" src="' + p.url + '" alt="">'
+        (p ? '<img class="pslot__img" src="' + (p.previewUrl || p.url) + '" alt="">'
            : '<span class="pslot__plus" aria-hidden="true">+</span>') +
         '<span class="pslot__copy"><span class="pslot__t">' + label + '</span>' +
           '<span class="pslot__n">' + (p ? 'замінити' : note) + '</span></span>' +
@@ -532,7 +587,7 @@
         var it = items[i];
         cells += it
           ? '<div class="slot" data-filled="1">' +
-              (it.url ? '<img class="slot__img" src="' + it.url + '" alt="">'
+              (it.url ? '<img class="slot__img" src="' + (it.previewUrl || it.url) + '" alt="">'
                       : '<span class="slot__ph"><span class="ph__g ph__g--garment"></span></span>') +
               '<button class="slot__x" type="button" data-remove="' + i + '" aria-label="прибрати">×</button>' +
             '</div>'
@@ -575,7 +630,7 @@
      * the picture has none of those once a look already exists. */
     function askLookThumbs() {
       var cells = looks.map(function (l, i) {
-        var thumb = l.resultUrl || (l.items[0] && l.items[0].url);
+        var thumb = l.resultPreviewUrl || l.resultUrl || (l.items[0] && (l.items[0].previewUrl || l.items[0].url));
         return '<button class="lookthumb" type="button" data-select="' + i + '"' +
           ' aria-pressed="' + (i === selected ? 'true' : 'false') + '">' +
           (thumb ? '<img class="lookthumb__img" src="' + thumb + '" alt="">' : '') +
@@ -1133,8 +1188,8 @@
     function resultFrame(caption, state) {
       var l = current();
       var activeResult = l && l.actionResults && l.actionResults[view === 'bg' ? 'background' : view];
-      var src = activeResult && (activeResult.mediaUrl || activeResult.urls && activeResult.urls[0]) ||
-        (l && l.resultUrl) || (!bridge && person.main ? person.main.url : '');
+      var src = activeResult && (activeResult.previewUrl || activeResult.mediaUrl || activeResult.urls && activeResult.urls[0]) ||
+        (l && (l.resultPreviewUrl || l.resultUrl)) || (!bridge && person.main ? (person.main.previewUrl || person.main.url) : '');
       return '<div class="lookframe" data-state="' + state + '">' +
         (src ? '<img class="lookframe__img" src="' + src + '" alt="">' : '') +
         '<span class="lookframe__cap">' + caption + '</span>' +
@@ -1151,7 +1206,7 @@
      * actions under it, was being shown their own input as a result. */
     function lookResultFrame() {
       var l = current();
-      var src = l && (l.resultUrl || l.result) || '';
+      var src = l && (l.resultPreviewUrl || l.resultUrl || l.result) || '';
       return '<div class="lookframe" data-state="ready">' +
         (src ? '<img class="lookframe__img" src="' + esc(src) + '" alt="">' : '') +
         '<span class="lookframe__word">образ</span>' +
@@ -1367,14 +1422,29 @@
         var room = MAX_ITEMS - items.length;
         prepared.slice(0, Math.max(0, room)).forEach(function (entry) {
           var file = entry.file;
-          items.push({ name: file.name, url: URL.createObjectURL(file), file: file });
+          var item = { name: file.name, url: URL.createObjectURL(file), previewUrl: null, file: file };
+          items.push(item);
+          ensureFilePreview(file, function (previewUrl) {
+            if (items.indexOf(item) < 0) return;
+            item.previewUrl = previewUrl;
+            render();
+          }, true);
         });
         return;
       }
       var file = prepared[0] && prepared[0].file;
       if (!file) return;
       if (person[kind] && person[kind].url) URL.revokeObjectURL(person[kind].url);
-      person[kind] = { name: file.name, url: URL.createObjectURL(file), file: file };
+      if (person[kind] && person[kind].previewUrl && global.URL && global.URL.revokeObjectURL) {
+        global.URL.revokeObjectURL(person[kind].previewUrl);
+      }
+      var personItem = { name: file.name, url: URL.createObjectURL(file), previewUrl: null, file: file };
+      person[kind] = personItem;
+      ensureFilePreview(file, function (previewUrl) {
+        if (person[kind] !== personItem) return;
+        personItem.previewUrl = previewUrl;
+        render();
+      }, true);
     }
 
     async function prepareSelected(kind, fileList) {
@@ -1411,6 +1481,9 @@
 
     function removeAt(i) {
       if (items[i] && items[i].url) URL.revokeObjectURL(items[i].url);
+      if (items[i] && items[i].previewUrl && global.URL && global.URL.revokeObjectURL) {
+        global.URL.revokeObjectURL(items[i].previewUrl);
+      }
       items.splice(i, 1);
       render();
     }

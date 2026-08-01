@@ -30,10 +30,10 @@ test('TV result model keeps shoot strips and widescreen video honest', () => {
   assert.equal(waitingVideo.pendingRealMedia, true);
 });
 
-test('the television ladder ranks video over shoot over background over look', () => {
+test('the television ladder ranks video over shoot over looks over background', () => {
   assert.deepEqual(
     ['look', 'background', 'shoot', 'video'].map((kind) => surfaces.resultModel({ kind }).rank),
-    [1, 2, 3, 4]
+    [2, 1, 3, 4]
   );
 });
 
@@ -46,6 +46,44 @@ test('a portrait look and a finished background are admitted to the shelf', () =
     assert.equal(item.pendingRealMedia, false);
     assert.ok(item.rank >= 1);
   }
+});
+
+test('coalesces one to five looks into a single TV portrait row', () => {
+  let shelf = [];
+  for (let index = 1; index <= 6; index += 1) {
+    const resolved = surfaces.addResultToShelf(shelf, {
+      kind: 'look', aspect: '9:16', urls: [`look-${index}.png`],
+    });
+    shelf = resolved.results;
+  }
+  assert.equal(shelf.length, 1);
+  assert.equal(shelf[0].kind, 'look');
+  assert.deepEqual(shelf[0].urls, [
+    'look-1.png', 'look-2.png', 'look-3.png', 'look-4.png', 'look-5.png',
+  ]);
+  assert.equal(surfaces.strongestResult(shelf), 0);
+});
+
+test('a stronger TV result wins over an aggregated look row', () => {
+  const look = surfaces.addResultToShelf([], {
+    kind: 'look', aspect: '9:16', urls: ['look.png'],
+  });
+  const shoot = surfaces.addResultToShelf(look.results, {
+    kind: 'shoot', aspect: '16:9', urls: ['shot-1.png', 'shot-2.png'],
+  });
+  assert.equal(shoot.results.length, 2);
+  assert.equal(shoot.activeResult, 1);
+  assert.equal(shoot.results[shoot.activeResult].kind, 'shoot');
+});
+
+test('a look row remains visible after a background finishes', () => {
+  const look = surfaces.addResultToShelf([], {
+    kind: 'look', aspect: '9:16', urls: ['look.png'],
+  });
+  const background = surfaces.addResultToShelf(look.results, {
+    kind: 'background', aspect: '9:16', urls: ['room.png'],
+  });
+  assert.equal(background.results[background.activeResult].kind, 'look');
 });
 
 test('each rung carries its own client label and no aspect vocabulary', () => {
