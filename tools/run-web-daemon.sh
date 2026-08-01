@@ -17,6 +17,7 @@ fi
 
 export PATH="${HOME}/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
 export PORT="4173"
+export ZEELY_PUBLIC_HTTPS_ORIGIN="https://site.madeforthisjob.com"
 # Codex CLI's ChatGPT-authenticated session hit its usage limit (resets
 # 2026-07-28), so every VLM call — semantic QA and garment classification —
 # goes through OpenRouter instead of the local Codex CLI. Set
