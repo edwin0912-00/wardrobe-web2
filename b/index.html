@@ -181,6 +181,10 @@
      path for instant desktop scrubbing. */
   var IOS_MEDIA = /iP(ad|hone|od)/.test(navigator.userAgent) ||
     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  /* Same query mobile.css gates its expanded input plane on, read once here so the
+     mirror-station capture window (below) can be widened for the same audience. */
+  var MOBILE_PORTRAIT = typeof window.matchMedia === 'function'
+    && window.matchMedia('(max-width: 767px) and (orientation: portrait)').matches;
   var INTRO = 'assets/intro.mp4';
   var MEDIA_STRATEGY = window.WardrobeMediaStrategy || null;
   /* The module makes this policy testable, but a partial static-file copy must never
@@ -621,7 +625,14 @@
        * The ramp keeps its old length (1.0 - 0.78 = 0.22, as 0.92 - 0.70 was) so the
        * approach feels unchanged, and dampMax stays 0.94 because it is a ceiling, not a
        * position. */
-      dampFrom: 0.78,
+      /* TOUCH PORTRAIT GETS A WIDER CAPTURE WINDOW — owner report: arriving at the mirror
+       * felt like aiming at an exact pixel. It measurably was: a touch flick's momentum is
+       * coarser than a trackpad's, and 0.99-1.0 of a leg is a sliver of physical scroll
+       * distance. Widening enter/exit/dampFrom on touch portrait only makes the station
+       * start capturing the swipe earlier and let go only much further back, so an ordinary
+       * flick reliably lands in and stays on the input UI. Desktop keeps the original
+       * numbers; this reads the same media query mobile.css gates its own layout on. */
+      dampFrom: MOBILE_PORTRAIT ? 0.55 : 0.78,
       dampMax: 0.94,
       stationAt: 1.0,
       /* TWO THRESHOLDS so the interface stops blinking. Enter just under the pin, and do
@@ -629,8 +640,8 @@
          so a hand resting near the station cannot toggle it. Asked for by the interface
          layer, which was rebuilding itself on every flip; it now only enables and
          disables. */
-      stationEnter: 0.99,
-      stationExit: 0.81,
+      stationEnter: MOBILE_PORTRAIT ? 0.93 : 0.99,
+      stationExit: MOBILE_PORTRAIT ? 0.60 : 0.81,
       /* FORWARD TRAVEL IS CLOSED UNTIL THE STEP HAS PRODUCED SOMETHING.
        *
        * There is nothing to travel to before a look exists — the next room shows a result,
