@@ -479,6 +479,7 @@ Evidence: focused cross-boundary suite 289/289 PASS; `npm run
 verify:contracts` PASS (41 schemas, 9 fixtures, 3 jobs, 1 external document);
 `git diff --check` PASS. No paid provider generation, public beta deploy, or
 QA threshold weakening was performed in this atom.
+Code: `ca6fa744e1b76b9d704274cb1d4e452d9f683043`.
 Beta: NOT_DEPLOYED — requires release-owner merge and an explicit live journey.
 Journey: NOT_RUN.
 weakened_checks: none.
