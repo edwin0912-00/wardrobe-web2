@@ -62,6 +62,9 @@ const editorialGenerationModeIds = [
   'shoot.rooftop_veil_monochrome',
   'shoot.autumn_park_mediated_sun',
 ];
+const createUniverseUnitRoots = editorialGenerationModeIds
+  .filter((modeId) => modeId.startsWith('shoot.'))
+  .map((modeId) => `docs/style-units/${modeId}`);
 const editorialPreviewFiles = editorialPreviewModeIds.flatMap((modeId) => [
   `assets/scene-mood-cards/${modeId}.json`,
   `assets/scene-mood-cards/${modeId}.webp`,
@@ -71,9 +74,10 @@ const directoryRoots = [
   // time, so a release missing one PNG does not degrade — that mode stops shooting.
   'assets/editorial-blocking',
   'assets/scene-presets',
-  // Immutable, hash-verified Create Universe reference units. These are source
-  // packs consumed by the editorial resolver, not general documentation.
-  'docs/style-units',
+  // Ship only the immutable units that are actually published by this release.
+  // Draft or retired workspace units remain in Git, but cannot inflate or
+  // silently broaden the production authority set.
+  ...createUniverseUnitRoots,
   'config',
   'prompts',
   'schemas',

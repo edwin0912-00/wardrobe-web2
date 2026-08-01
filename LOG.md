@@ -17,6 +17,18 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-08-01 · PRODUCT-RELEASE-PUBLISHED-STYLE-ROOTS · release/candidate-20260801 · codex-live-40
+Change: build the product release from the exact fifteen published Create
+Universe `shoot.*` unit roots instead of copying the whole development
+`docs/style-units` directory. Every published sheet remains byte-for-byte
+unchanged and verifier-enforced; two unpublished workspace units stay in Git
+but are not production authority.
+Why: the release reached 544,255,600 bytes and exceeded its finite 512 MiB
+budget solely because draft/retired source units were copied into production.
+Evidence: product release deterministic/completeness test 2/2 PASS, including
+full fifteen-unit hash verification and adversarial tamper rejection.
+weakened_checks: none; production allowlist is narrower.
+
 2026-08-01 · READ-ONLY-TEST-SWAP-PREFLIGHT · release/candidate-20260801 · codex-live-40
 Change: stop using macOS historical swap usage as a refusal condition for
 read-only test runs. Memory, CPU load, free disk and known heavy background

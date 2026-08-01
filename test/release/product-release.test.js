@@ -74,6 +74,8 @@ const requiredReleaseGenerationModeIds = [
   ...requiredEditorialGenerationModeIds,
   ...requiredCreateUniverseGenerationModeIds,
 ];
+const requiredCreateUniverseUnitRoots = requiredCreateUniverseGenerationModeIds
+  .map((modeId) => `docs/style-units/${modeId}`);
 const requiredEditorialPreviewFiles = requiredReleasePreviewModeIds.flatMap((modeId) => [
   `assets/scene-mood-cards/${modeId}.json`,
   `assets/scene-mood-cards/${modeId}.webp`,
@@ -93,7 +95,7 @@ const requiredEditorialBlockingFiles = [
 const directoryRoots = [
   'assets/editorial-blocking',
   'assets/scene-presets',
-  'docs/style-units',
+  ...requiredCreateUniverseUnitRoots,
   'config',
   'prompts',
   'schemas',

@@ -66,6 +66,8 @@ const requiredReleaseGenerationModeIds = [
   ...requiredEditorialGenerationModeIds,
   ...requiredCreateUniverseGenerationModeIds,
 ];
+const requiredCreateUniverseUnitRoots = requiredCreateUniverseGenerationModeIds
+  .map((modeId) => `docs/style-units/${modeId}/`);
 const requiredEditorialShotSlots = [
   'clean_identity_hero',
   'environmental_hero',
@@ -85,7 +87,7 @@ const requiredEditorialBlockingFiles = [
 const expectedSourceAllowlist = [
   'assets/editorial-blocking/',
   'assets/scene-presets/',
-  'docs/style-units/',
+  ...requiredCreateUniverseUnitRoots,
   'config/',
   'prompts/',
   'schemas/',
