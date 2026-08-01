@@ -17,17 +17,31 @@ import { createVideoAssetUrlResolver } from './video-source-bridge.js';
 import { loadReleaseIdentity } from './release-identity.js';
 import { GodViewAuth, OpenTesterGodViewAuth } from './god-view-auth.js';
 
+// Boot can touch durable run, scene, shoot and video ledgers. Keep a compact,
+// opt-in phase trace so a restart failure names its exact bootstrap boundary
+// without printing user data, paths outside the release, or credentials.
+const startupTraceEnabled = process.env.ZEELY_STARTUP_TRACE === 'true';
+const startupBeganAt = Date.now();
+function startupTrace(stage) {
+  if (!startupTraceEnabled) return;
+  process.stderr.write(`[zeely-startup] +${Date.now() - startupBeganAt}ms ${stage}\n`);
+}
+
+startupTrace('module_loaded');
 const projectRoot = path.resolve(import.meta.dirname, '..', '..');
 const releaseIdentity = await loadReleaseIdentity(projectRoot);
+startupTrace('release_identity_loaded');
 const generationMode = process.env.ZEELY_GENERATION_PROVIDER ?? 'higgsfield';
 const runtimeRoot = process.env.ZEELY_RUNTIME_ROOT
   ? path.resolve(process.env.ZEELY_RUNTIME_ROOT)
   : path.join(projectRoot, 'runtime');
 const monitor = new MonitorEventStore({ filename: path.join(runtimeRoot, 'monitor', 'events.jsonl') });
 await monitor.initialize();
+startupTrace('monitor_ready');
 const drafts = new DraftService({ rootDirectory: path.join(runtimeRoot, 'drafts') });
 await drafts.initialize();
 await drafts.cleanupExpired();
+startupTrace('drafts_ready');
 const profiles = new ProfileService({ databasePath: path.join(runtimeRoot, 'profiles.sqlite') });
 const vlm = createVlmEvaluator();
 const generation = await createGenerationRuntime({
@@ -43,6 +57,7 @@ const generation = await createGenerationRuntime({
     }).catch(() => {});
   },
 });
+startupTrace('generation_runtime_ready');
 const service = new RunService({
   rootDirectory: path.join(runtimeRoot, 'runs'),
   provider: generation.provider,
@@ -58,7 +73,9 @@ const service = new RunService({
   }),
 });
 await service.initialize();
+startupTrace('run_service_reconciled');
 const health = await runLocalPreflight({ generationMode, codexStatus: generation.status });
+startupTrace('provider_preflight_finished');
 health.fashion_shoot_qa_mode = process.env.ZEELY_FASHION_SHOOT_QA_MODE ?? 'strict';
 const auth = process.env.ZEELY_DEMO_PIN ? {
   pin: process.env.ZEELY_DEMO_PIN,
@@ -93,6 +110,7 @@ const adoptedShootIds = await adoptLegacyEditorialShootRoot({
   from: path.join(projectRoot, 'runtime', 'editorial-shoots'),
   to: sceneDependencies.editorialRootDirectory,
 });
+startupTrace('editorial_root_ready');
 if (adoptedShootIds.length > 0) {
   await monitor.append({
     source: 'server',
@@ -119,6 +137,7 @@ const videoService = createVideoRuntime({
   assetUrlResolver: videoSourceBridge.videoAssetUrlResolver,
   fashionVideoReferenceResolver,
 });
+startupTrace('video_runtime_ready');
 // A video create receipt is durable before the provider wait starts.  Recover
 // only those exact recorded jobs after a daemon restart; this does not call
 // createJob and therefore cannot duplicate a paid video.  The route layer also
@@ -150,6 +169,7 @@ const app = await createWebApp({
   releaseIdentity,
   godViewAuth,
 });
+startupTrace('web_app_ready');
 const draftCleanupTimer = setInterval(() => drafts.cleanupExpired().catch(() => {}), 60_000);
 const profileCleanup = async () => {
   profiles.cleanupExpired();
@@ -160,6 +180,7 @@ const profileCleanup = async () => {
   });
 };
 await profileCleanup();
+startupTrace('profile_cleanup_finished');
 const profileCleanupTimer = setInterval(() => profileCleanup().catch(() => {}), 60_000);
 app.addHook('onClose', async () => {
   clearInterval(draftCleanupTimer);
@@ -169,4 +190,5 @@ app.addHook('onClose', async () => {
 });
 const port = Number.parseInt(process.env.PORT ?? '4173', 10);
 await app.listen({ host: '127.0.0.1', port });
+startupTrace('listening');
 await monitor.append({ source: 'server', type: 'service.web_started', data: { port, pid: process.pid } });

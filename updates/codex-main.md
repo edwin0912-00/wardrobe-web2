@@ -467,6 +467,23 @@ Help request: NONE.
 ---
 
 Agent ID: codex-main
+Task ID: BETA-STARTUP-TRACE-20260802
+Pipeline: Release reliability · beta daemon boot
+State: TESTED — READY_FOR_DEPLOY
+Decision: add an opt-in, secret-free bootstrap phase trace so a failed beta
+restart identifies the exact durable-service boundary that did not complete.
+It never logs request content, user identities, source paths, or credentials.
+Code: pending this commit.
+Evidence: `node --check src/web/start.js`; focused release/scene/video tests
+111/111 PASS; `git diff --check` PASS.
+Beta: NOT_DEPLOYED — bundled with the next exact beta release.
+Journey: NOT_RUN.
+weakened_checks: none.
+Help request: NONE.
+
+---
+
+Agent ID: codex-main
 Task ID: BETA-RELEASE-GATE-STALE-SCENE-20260801
 Pipeline: Release safety · shared beta runtime
 State: TESTED — READY_FOR_DEPLOY
