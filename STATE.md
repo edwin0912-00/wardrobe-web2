@@ -1,5 +1,21 @@
 # Wardrobe verified state
 
+## Create Universe transport repair — 2026-08-01
+
+- The immutable style pack remains seven sheets per `shoot.*` unit, and the
+  resolver still validates all four image sheets including the generic
+  `blocking` board.
+- Per-frame provider transport now uses only the three slot-safe sheets:
+  `camera_lens`, `expression_gaze`, and `garment_behaviour`.
+- If the provider attachment budget is exceeded, those three sheets are packed
+  mechanically into one horizontal authority image. The pack cannot address an
+  undefined fourth cell and records its three source hashes and layout.
+- A focused regression covers four items plus a mechanical framing guide, the
+  live failure shape. No paid generation or beta activation has run for this
+  repair yet.
+- Code: `release/candidate-20260801`, pending release-owner integration.
+- Beta: NOT_DEPLOYED. Journey: NOT_RUN. `weakened_checks: none`.
+
 ## Block 6 capability integration — 2026-07-30
 
 - The consolidated beta source now has one backend capability contract for

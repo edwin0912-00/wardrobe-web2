@@ -40,7 +40,12 @@ const GENERATION_REFERENCE_ORDER = Object.freeze([
   'palette_anchor',
   'negative_reference',
 ]);
-const CREATE_UNIVERSE_IMAGE_REFERENCE_ORDER = Object.freeze([
+// The immutable Create Universe reference pack contains four image sheets
+// (the fourth is the generic unit blocking board).  That board is validated
+// for provenance but is intentionally not transported as a per-frame authority:
+// pose must come from a slot-specific blocking reference, never from a board
+// containing several unrelated poses.
+const CREATE_UNIVERSE_TRANSPORT_IMAGE_REFERENCE_ORDER = Object.freeze([
   'composition_anchor',
   'lighting_anchor',
   'palette_anchor',
@@ -257,9 +262,12 @@ function prioritizedImageReferences(references, presetId) {
   if (byRole.size !== Object.keys(CREATE_UNIVERSE_STYLE_SHEET_BY_ROLE).length) {
     throw new Error('Create Universe generation requires exactly four canonical image sheets');
   }
-  return CREATE_UNIVERSE_IMAGE_REFERENCE_ORDER.map((role) => {
+  // Validate the complete immutable pack, including the non-transported generic
+  // blocking board.  It remains provenance evidence even though it is not sent as
+  // pose authority for this individual slot.
+  for (const reference of byRole.values()) createUniverseStyleSheetRole(reference, presetId);
+  return CREATE_UNIVERSE_TRANSPORT_IMAGE_REFERENCE_ORDER.map((role) => {
     const reference = byRole.get(role);
-    createUniverseStyleSheetRole(reference, presetId);
     return reference;
   });
 }
@@ -269,8 +277,8 @@ function createUniverseStyleAttachmentInstructions(attachments, presetId) {
   const lines = attachments.flatMap((item) => {
     if (Array.isArray(item.styleSheetRoles)) {
       return [
-        `- ATTACHMENT_${item.order} [CREATE_UNIVERSE_AUTHORITY_SHEET] is one mechanical 2×2 transport sheet:`,
-        '  TOP_LEFT=CAMERA_LENS; TOP_RIGHT=BLOCKING; BOTTOM_LEFT=EXPRESSION_GAZE; BOTTOM_RIGHT=GARMENT_BEHAVIOUR.',
+        `- ATTACHMENT_${item.order} [CREATE_UNIVERSE_AUTHORITY_SHEET] is one mechanical three-panel transport sheet:`,
+        '  PANEL_1=CAMERA_LENS; PANEL_2=EXPRESSION_GAZE; PANEL_3=GARMENT_BEHAVIOUR.',
       ];
     }
     return item.styleSheetRole
@@ -290,8 +298,8 @@ function createUniverseStyleAttachmentInstructions(attachments, presetId) {
 }
 
 async function createUniverseAuthoritySheet(references, workDirectory) {
-  if (references.length !== CREATE_UNIVERSE_IMAGE_REFERENCE_ORDER.length) {
-    throw new Error('Create Universe authority sheet requires exactly four canonical image sheets');
+  if (references.length !== CREATE_UNIVERSE_TRANSPORT_IMAGE_REFERENCE_ORDER.length) {
+    throw new Error('Create Universe authority sheet requires exactly three transport image sheets');
   }
   const sourceBytes = await Promise.all(references.map((item) => readFile(item.path)));
   const metadata = await Promise.all(sourceBytes.map((bytes) => sharp(bytes).metadata()));
@@ -316,17 +324,13 @@ async function createUniverseAuthoritySheet(references, workDirectory) {
   const sourceSha256 = references.map((item) => item.sha256);
   const authorityBytes = await sharp({
     create: {
-      width: width * 2,
-      height: height * 2,
+      width: width * cells.length,
+      height,
       channels: 4,
       background: { r: 0, g: 0, b: 0, alpha: 0 },
     },
-  }).composite([
-    { input: cells[0], left: 0, top: 0 },
-    { input: cells[1], left: width, top: 0 },
-    { input: cells[2], left: 0, top: height },
-    { input: cells[3], left: width, top: height },
-  ]).png({ compressionLevel: 9, adaptiveFiltering: false }).toBuffer();
+  }).composite(cells.map((input, index) => ({ input, left: width * index, top: 0 })))
+    .png({ compressionLevel: 9, adaptiveFiltering: false }).toBuffer();
   const authoritySha256 = sha256(authorityBytes);
   const filename = path.join(
     path.resolve(workDirectory),
@@ -338,7 +342,6 @@ async function createUniverseAuthoritySheet(references, workDirectory) {
     role: 'CREATE_UNIVERSE_AUTHORITY_SHEET',
     styleSheetRoles: [
       'camera_lens',
-      'blocking',
       'expression_gaze',
       'garment_behaviour',
     ],
@@ -850,7 +853,7 @@ export class SceneGeneratorAdapter {
           create_universe_authority_source_geometry:
             createUniverseAuthority.styleSheetSourceGeometry.join(':'),
           create_universe_authority_layout:
-            'TOP_LEFT_CAMERA_LENS:TOP_RIGHT_BLOCKING:BOTTOM_LEFT_EXPRESSION_GAZE:BOTTOM_RIGHT_GARMENT_BEHAVIOUR',
+            'PANEL_1_CAMERA_LENS:PANEL_2_EXPRESSION_GAZE:PANEL_3_GARMENT_BEHAVIOUR',
         } : {}),
         outbound_prompt_sha256: sha256(Buffer.from(prompt)),
         ...(repairCandidate ? {

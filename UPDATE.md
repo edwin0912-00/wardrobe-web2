@@ -6,6 +6,11 @@ Current source before this candidate: `origin/beta` `7f7c271`.
 
 - Integrated safe current-beta UI atoms from `chat03/fashion-video-preview-delivery-20260731` without importing its stale video-route rewrite.
 - Integrated Claude handoff `dc67de6` (`fix/shoot-structured-reference-bound-20260801`): every compiled Fashion Shoot structured-reference fact is bounded at `referenceAsset()`; the strict 240-character contract remains enforced. This addresses the live pre-provider failure that exhausted every slot before Higgsfield.
+- Repaired the later Create Universe transport mismatch: the full four-image
+  pack is still validated, while the slot-safe three-sheet transport is packed
+  as a three-panel authority image when the provider budget is full. The
+  regression covers four items plus a framing guide and no longer reaches an
+  undefined Sharp composite input.
 - Candidate branch: `release/candidate-20260801`; exact tested SHA is recorded in the release-owner update after push.
 - Code proof: editorial/Create Universe + structured-reference suite `67/67 PASS`; strict contracts and canon PASS.
 - Beta: `READY_FOR_BETA_DEPLOY` until the exact candidate SHA is pushed and activated through `tools/deploy-beta-release.mjs`.

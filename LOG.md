@@ -17,6 +17,21 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-08-01 · CREATE-UNIVERSE-TRANSPORT-001 · release/candidate-20260801 · codex-main
+Change: keep the complete four-image Create Universe reference pack validated,
+but transport only the three slot-safe style sheets. When the eight-image
+provider budget is exceeded, pack those three sheets into one mechanical
+three-panel authority image; generic multi-pose blocking is not sent as pose
+authority.
+Why: the previous composer expected four cells after the generic blocking sheet
+was intentionally removed from per-slot transport. A four-item look plus a
+mechanical framing guide therefore passed three inputs and crashed on
+`cells[3] = undefined` before Higgsfield.
+Evidence: Create Universe transport regression 2/2 PASS; all Creative Universe
+runtime-style checks PASS; `verify:contracts` PASS (41/41); `verify:canon` PASS
+(43/43); no provider call or paid generation.
+weakened_checks: none.
+
 2026-07-30 · BETA-BLOCK-6-CAPABILITY-PORT · beta integration · codex-main
 Change: port only the server-owned Fashion Video capability contract from the
 latest Block 6 branch. GET readiness and POST creation now share immutable

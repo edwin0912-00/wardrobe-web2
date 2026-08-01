@@ -381,6 +381,95 @@ test('Create Universe keeps the three slot-safe canonical sheets when item locks
   assert.equal(generated.metadata.dropped_attachment_count, undefined);
 });
 
+test('Create Universe packs three transport sheets when four items and a framing guide fill the provider budget', async () => {
+  const fixture = await contextFixture();
+  const presetId = 'shoot.fixture_environmental.environmental_hero';
+  const environment = {
+    ...(await structuredReferenceFile(
+      fixture.root,
+      'packed-three-sheet-environment.json',
+      {
+        schema_version: '1.0.0',
+        role: 'environment_anchor',
+        facts: {
+          description: 'Invented mineral studio.',
+          spatial_cues: ['Disciplined full-length fashion frame.'],
+          materials: ['plaster'],
+          originality_rules: ['Invent new geometry.'],
+        },
+      },
+    )),
+    role: 'environment_anchor',
+    reference_id: `${presetId}.environment`,
+  };
+  const sheetByRole = {
+    composition_anchor: 'camera_lens',
+    negative_reference: 'blocking',
+    lighting_anchor: 'expression_gaze',
+    palette_anchor: 'garment_behaviour',
+  };
+  const imageReferences = await Promise.all(
+    fixture.references
+      .filter((reference) => reference.role !== 'environment_anchor')
+      .map(async (reference) => ({
+        ...reference,
+        reference_id: `${presetId}.style_${sheetByRole[reference.role]}`,
+      })),
+  );
+  const itemEvidence = await Promise.all(
+    ['top', 'bottom', 'footwear', 'bag'].map(async (category, index) => ({
+      order: index + 1,
+      role: `ITEM_${category.toUpperCase()}`,
+      category,
+      item_id: `packed-${category}`,
+      reference_set_id: `packed-${category}`,
+      observed: { garment_type: category, colors: ['black'] },
+      ...(await imageFile(fixture.root, `packed-three-sheet-item-${category}.png`, { color: '#222222' })),
+    })),
+  );
+  const guide = {
+    ...(await imageFile(fixture.root, 'packed-three-sheet-guide.png', { width: 1024, height: 1280 })),
+    role: 'mechanical_framing_guide',
+    source_attempt: 1,
+    target_subject_height_percent: 76,
+    target_clear_space_above_hair_percent: 9,
+  };
+  const calls = [];
+  const adapter = new SceneGeneratorAdapter({
+    provider: recordingProvider(await providerFrame(), calls, { maxOrderedReferences: 8 }),
+  });
+  const generated = await adapter.generateScene({
+    ...fixture.base,
+    references: [environment, ...imageReferences],
+    preset: { preset_id: presetId },
+    item_evidence: itemEvidence,
+    composition_guide: guide,
+    attempt: 1,
+    ...DEFAULT_SCENE_MODEL_ROUTE[0],
+  });
+  assert.deepEqual(
+    calls[0].references.ordered.map((item) => item.role),
+    [
+      'APPROVED_LOOK_MASTER',
+      'MECHANICAL_FRAMING_GUIDE',
+      'ITEM_TOP',
+      'ITEM_BOTTOM',
+      'ITEM_FOOTWEAR',
+      'ITEM_BAG',
+      'CREATE_UNIVERSE_AUTHORITY_SHEET',
+    ],
+  );
+  assert.equal(generated.metadata.attached_reference_count, 7);
+  assert.equal(generated.metadata.create_universe_authority_source_sha256.split(':').length, 3);
+  assert.equal(
+    generated.metadata.create_universe_authority_layout,
+    'PANEL_1_CAMERA_LENS:PANEL_2_EXPRESSION_GAZE:PANEL_3_GARMENT_BEHAVIOUR',
+  );
+  assert.match(calls[0].prompt, /mechanical three-panel transport sheet/);
+  assert.match(calls[0].prompt, /PANEL_1=CAMERA_LENS; PANEL_2=EXPRESSION_GAZE; PANEL_3=GARMENT_BEHAVIOUR/);
+  assert.doesNotMatch(calls[0].prompt, /CREATE_UNIVERSE_BLOCKING/);
+});
+
 test('SceneGeneratorAdapter attaches hash-bound item cutouts before optional scene images and compiles exact facts', async () => {
   const fixture = await contextFixture();
   const itemEvidence = await approvedItemEvidenceFixture(fixture.root);
