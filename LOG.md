@@ -17,6 +17,69 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-08-01 · FASHION-VIDEO-QA-RETRY-AND-DEADZONE · beta `b0f76d6` · claude-code-handoff
+Change: three independent Fashion Video defects, all reproduced against the exact bytes
+of a real failed live clip (`d2a7fc04-cefc-4136-b929-0f55a4d17dd5`), not guessed from
+source reading.
+  (1) `videoService.claimRetry`/`completeRetryClaim` were defined only on the private
+      `ClipStore`; `registerVideoRoutes` calls them directly on the `VideoService` facade,
+      so every production retry click threw `videoService.claimRetry is not a function` —
+      confirmed against the live running process (release-7f7c271, PID 85078) reading its
+      actual deployed file, not a stale-code guess. Both methods now delegate from the
+      facade to `#store`.
+  (2) The deterministic exact-reference-copy path in `video-semantic-qa.js` marks its
+      receipt `evaluator: 'deterministic/exact-reference-copy-v1'` specifically so it can
+      be told apart from an ordinary VLM rejection, but `recordReferenceAdherenceQa`
+      collapsed both into the same generic `VIDEO_REFERENCE_QA_FAILED`. Now reported as
+      `VIDEO_REFERENCE_NOT_REPLACED`: "the model said no" and "the delivery is
+      byte-identical to the directing reference, so nothing was ever generated" are
+      different failures with different remedies.
+  (3) The real cause of the observed live incident. Salvage correctly detected a 0.5s
+      reference-performer leak via a real VLM pass (`gpt-5.6-terra`), correctly trimmed it,
+      and technical QA on the trimmed file passed — the second, client-facing QA pass then
+      crashed with a bare `ENOENT` before recording any verdict, and the client displayed
+      it as an opaque failure. Root cause, confirmed with a manual `ffmpeg` run against the
+      actual salvaged file: container duration 14.526s, last decodable frame at
+      348 frames / 24fps = 14.500s — a 26ms gap the existing 50ms end-boundary margin did
+      not reliably clear on this file. `ffmpeg` exits 0 and writes nothing in that dead
+      zone; the following `readFile` threw `ENOENT`, which propagated to the clip's
+      `failureCode` indistinguishable from any unrelated filesystem fault. `extractJpeg`
+      now retreats the seek time in bounded steps (0/100/250/450ms) when `ffmpeg` produces
+      no file, and raises a named `VIDEO_AUTOMATIC_QA_FRAME_EXTRACTION_FAILED` only if none
+      of them recover a frame.
+Why: this is the Fashion Video path directly behind the approved master look — one of the
+two links in the pipeline right after the avatar step, alongside Fashion Shoot below. A
+viewer who received an almost-complete, correctly-salvaged 14.5s clip saw an opaque error
+instead, then a broken retry button.
+Evidence: `node --test test/video/*.test.js` → 187/187 PASS; `test/providers/*.test.js` →
+71/71 PASS. Each of the three fixes has a dedicated test that fails against the pre-fix
+commit (`a2b263f`) and passes after — verified both ways, not asserted. No paid generation
+was created in this session; the dead-zone reproduction used the exact bytes of an
+already-paid, already-failed clip copied read-only from the live host.
+weakened_checks: none introduced. `fashion_shoot_qa_mode: off` on the live host predates
+this change and is untouched by it; still no owner authorisation recorded in `UPDATE.md`.
+
+2026-08-01 · FASHION-SHOOT-STRUCTURED-REFERENCE-BOUND · beta `a2b263f` (already integrated,
+confirmed here) · chat-00-master via `dc67de6` / `fix/shoot-structured-reference-bound-20260801`
+Change: every compiled Fashion Shoot structured-reference fact is bounded at
+`referenceAsset()`/`boundedReferenceFact()` before it is written into a `references[0..n]`
+document, closing the gap where `spatial_cues[3]` — composed from
+`Subject light interaction: ${shot.subject_lighting}` — compiled to 303 characters against
+the schema's 240-character `maxLength`.
+Why (independently reproduced by `claude-code-handoff` before finding this already fixed):
+the live runtime record for `shoot.skylight_haze.sculptural_three_quarter` showed every one
+of the five customer slots exhausting all six attempts with `EXECUTOR_FAILED: Scene
+execution ended without a hash-bound QA candidate`; the actual per-attempt cause underneath
+was `GENERATION_FAILED: references[0] does not match the strict structured-reference
+schema`. Nothing reached a provider on any slot, so no candidate and no QA evidence ever
+existed — the whole five-frame Fashion Shoot was down behind a green test suite, because
+the two tests that should have caught it each covered only half the real compile path.
+Evidence: `test/web/editorial-structured-reference-bounds.test.js` compiles every ready
+style × every slot × every asset against the real AJV schema and fails without the bound,
+passes with it — verified directly on this beta head. This is the second of the two most
+important pipeline links right after the avatar step, alongside Fashion Video above.
+weakened_checks: none.
+
 2026-07-30 · BETA-BLOCK-6-CAPABILITY-PORT · beta integration · codex-main
 Change: port only the server-owned Fashion Video capability contract from the
 latest Block 6 branch. GET readiness and POST creation now share immutable

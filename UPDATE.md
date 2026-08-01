@@ -1,5 +1,49 @@
 # Wardrobe update board
 
+## 2026-08-01 · two pipeline links fixed: Fashion Video and Fashion Shoot
+
+Beta head is now `b0f76d6` (fast-forward from `a2b263f`; no rewrite, no force-push).
+Anyone with a local checkout older than this must `git fetch && git rebase origin/beta` (or
+merge) before pushing — a normal push from stale history will be rejected by Git itself,
+not silently overwritten. Do not force-push over this.
+
+These are the two most important links in the pipeline right after the avatar step, and
+both were broken on the live host at the same time:
+
+**Fashion Video — `b0f76d6`, agent `claude-code-handoff`.** Three defects, all reproduced
+against the exact bytes of a real failed live clip, not guessed:
+1. `videoService.claimRetry` didn't exist on the object the retry route called it on —
+   every retry click threw `videoService.claimRetry is not a function`. Fixed by delegating
+   the facade to the store that actually owns the method.
+2. A delivery that is byte-identical to the directing reference (nothing was generated) was
+   reported with the same generic code as an ordinary creative rejection. Now its own code:
+   `VIDEO_REFERENCE_NOT_REPLACED`.
+3. The real cause of the incident that prompted this: salvage correctly trimmed a
+   reference-performer leak and technical QA passed, but the second QA pass crashed with a
+   bare `ENOENT` on a 26ms gap between the container's declared duration and its last
+   decodable frame — `ffmpeg` exits 0 and silently writes nothing there. The client saw an
+   opaque failure on an almost-perfect clip, then a broken retry button on top of it.
+   Frame extraction now retreats the seek time in bounded steps before giving up.
+
+Full evidence and per-fix test proof: `LOG.md`, entry
+`FASHION-VIDEO-QA-RETRY-AND-DEADZONE`. `node --test test/video/*.test.js` → 187/187;
+`test/providers/*.test.js` → 71/71. No paid generation was created; the dead-zone
+reproduction reused an already-paid, already-failed clip's bytes read-only.
+
+**Fashion Shoot — `a2b263f`, agent `chat-00-master` (`dc67de6`), independently confirmed
+here.** Every compiled structured-reference fact is now bounded before being written into
+`references[0..n]`. Before this, `shoot.skylight_haze.sculptural_three_quarter`'s fourth
+spatial cue compiled to 303 characters against the schema's 240-character limit —
+`references[0] does not match the strict structured-reference schema` — which took all five
+customer slots of every affected style down with a generic `EXECUTOR_FAILED` before any
+provider was ever reached, behind a green test suite. See `LOG.md`, entry
+`FASHION-SHOOT-STRUCTURED-REFERENCE-BOUND`.
+
+Not touched by either fix, still open: `fashion_shoot_qa_mode: off` on the live host has no
+recorded owner authorisation; `GET /api/profile` mints a persistent 30-day profile with no
+authentication; God View's open-tester auth answers anonymous callers on the beta host
+(the client-domain half was closed separately in `wardrobe-web2` `191c805`).
+
 ## 2026-08-01 · release candidate pending beta activation
 
 Current source before this candidate: `origin/beta` `7f7c271`.
