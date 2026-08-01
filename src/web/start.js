@@ -59,7 +59,7 @@ const service = new RunService({
 });
 await service.initialize();
 const health = await runLocalPreflight({ generationMode, codexStatus: generation.status });
-health.fashion_shoot_qa_mode = process.env.ZEELY_FASHION_SHOOT_QA_MODE ?? 'review';
+health.fashion_shoot_qa_mode = process.env.ZEELY_FASHION_SHOOT_QA_MODE ?? 'strict';
 const auth = process.env.ZEELY_DEMO_PIN ? {
   pin: process.env.ZEELY_DEMO_PIN,
   secret: process.env.ZEELY_SESSION_SECRET,

@@ -107,10 +107,11 @@ test('create fails closed before provider spend while Fashion Video has no refer
     videoService: current.videoService,
     runService: {
       outputFile: async () => '/runtime/runs/source/avatar_outfit.png',
-      approvedIdentityReferenceForRun: async () => ({
+      approvedIdentityFaceReferenceForRun: async () => ({
         role: 'identity_face',
         data: Buffer.from('identity-reference'),
         sha256: 'a'.repeat(64),
+        white_background_verified: true,
       }),
     },
   });
@@ -462,10 +463,11 @@ test('create reaches VideoService only after the same two-reference contract is 
     videoService: current.videoService,
     runService: {
       outputFile: async () => '/runtime/runs/source/avatar_outfit.png',
-      approvedIdentityReferenceForRun: async () => ({
+      approvedIdentityFaceReferenceForRun: async () => ({
         role: 'identity_face',
         data: Buffer.from('identity-reference'),
         sha256: 'a'.repeat(64),
+        white_background_verified: true,
       }),
     },
   });
@@ -487,8 +489,11 @@ test('create reaches VideoService only after the same two-reference contract is 
   assert.equal(current.createRequests[0].lookBinding.sourceSha256, 'b'.repeat(64));
   assert.deepEqual(
     current.createRequests[0].appearanceReferences.map((reference) => reference.role),
-    ['garment_detail'],
+    ['identity_face', 'garment_detail'],
   );
+  assert.ok(current.createRequests[0].appearanceReferences.every(
+    (reference) => reference.white_background_verified === true,
+  ));
   assert.equal(current.projected[0].clip.status, 'CREATED');
   assert.equal(current.projected.at(-1).clip.status, 'PASS');
 });

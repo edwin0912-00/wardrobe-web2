@@ -108,7 +108,7 @@ function artifactDescriptor(value, role) {
   };
 }
 
-function orderedPackDescriptors(phase, references, maxOrdered) {
+function orderedPackDescriptors(phase, references, maxOrdered, requestedModel) {
   if (!Array.isArray(references?.ordered)) return null;
   if (references.ordered.length === 0 || references.ordered.length > maxOrdered) {
     throw new HiggsfieldProviderError(`references.ordered must contain 1–${maxOrdered} media bindings`, {
@@ -212,14 +212,42 @@ function orderedPackDescriptors(phase, references, maxOrdered) {
       retryable: false,
     });
   }
-  if (phase === 'scene' && result[0]?.scope !== 'avatar') {
-    throw new HiggsfieldProviderError('Scene generation must begin with the approved outfit still', {
+  const sceneGuideFirst = phase === 'scene'
+    && result[0]?.role === 'MECHANICAL_FRAMING_GUIDE';
+  if (sceneGuideFirst
+    && requestedModel !== undefined
+    && requestedModel !== 'gpt_image_2') {
+    throw new HiggsfieldProviderError('Only gpt_image_2 may use the mechanical guide as Image 1; this route requires the approved look master first and the guide second', {
+      code: 'INVALID_SCENE_REFERENCE_ORDER',
+      retryable: false,
+    });
+  }
+  const sceneApprovedIndex = sceneGuideFirst ? 1 : 0;
+  if (phase === 'scene' && (
+    result[sceneApprovedIndex]?.scope !== 'avatar'
+    || result[sceneApprovedIndex]?.role !== 'APPROVED_LOOK_MASTER'
+  )) {
+    throw new HiggsfieldProviderError('Scene generation requires the approved outfit master first, or second only when Image 1 is the mechanical base canvas', {
       code: 'MISSING_APPROVED_OUTFIT',
       retryable: false,
     });
   }
-  if (phase === 'scene' && result.slice(1).some((item) => item.scope === 'avatar')) {
-    throw new HiggsfieldProviderError('The approved outfit may appear only once and first in scene generation', {
+  if (phase === 'scene' && result.some((item, index) => (
+    item.scope === 'avatar' && index !== sceneApprovedIndex
+  ))) {
+    throw new HiggsfieldProviderError('The approved outfit may appear only once in the canonical scene base position', {
+      code: 'INVALID_SCENE_REFERENCE_ORDER',
+      retryable: false,
+    });
+  }
+  const guideBindings = phase === 'scene'
+    ? result.filter((item) => item.role === 'MECHANICAL_FRAMING_GUIDE')
+    : [];
+  if (phase === 'scene' && (
+    guideBindings.length > 1
+    || (guideBindings.length === 1 && ![0, 1].includes(result.indexOf(guideBindings[0])))
+  )) {
+    throw new HiggsfieldProviderError('The optional mechanical guide must be Image 1 base canvas or immediately follow the approved master', {
       code: 'INVALID_SCENE_REFERENCE_ORDER',
       retryable: false,
     });
@@ -231,14 +259,15 @@ function orderedPackDescriptors(phase, references, maxOrdered) {
       retryable: false,
     });
   }
+  const expectedRepairIndex = guideBindings.length === 1 ? 2 : 1;
   if (phase === 'scene' && (
     repairBindings.length > 1
     || (repairBindings.length === 1 && (
-      result[1] !== repairBindings[0]
+      result[expectedRepairIndex] !== repairBindings[0]
       || repairBindings[0].role !== 'FAILED_SCENE_CANDIDATE'
     ))
   )) {
-    throw new HiggsfieldProviderError('Scene repair accepts at most one FAILED_SCENE_CANDIDATE immediately after the approved look', {
+    throw new HiggsfieldProviderError('Scene repair accepts at most one FAILED_SCENE_CANDIDATE immediately after the base canvas and approved look', {
       code: 'INVALID_SCENE_REPAIR_BINDING',
       retryable: false,
     });
@@ -257,14 +286,17 @@ function orderedPackDescriptors(phase, references, maxOrdered) {
 // that does not know better. A transport that accepts more says how many: the
 // OpenRouter chat transport takes ten, and capping it at eight there silently threw
 // away conditioning the request had already paid to prepare.
-export function orderedReferenceDescriptors(phase, references, { maxOrdered = 8 } = {}) {
+export function orderedReferenceDescriptors(phase, references, {
+  maxOrdered = 8,
+  requestedModel,
+} = {}) {
   if (!references || typeof references !== 'object') {
     throw new HiggsfieldProviderError('Generation references are required', {
       code: 'MISSING_REFERENCES',
       retryable: false,
     });
   }
-  const packDescriptors = orderedPackDescriptors(phase, references, maxOrdered);
+  const packDescriptors = orderedPackDescriptors(phase, references, maxOrdered, requestedModel);
   if (packDescriptors) return packDescriptors;
   const ordered = phase === 'outfit'
     ? [
@@ -1248,7 +1280,9 @@ export class HiggsfieldCliProvider {
         retryable: false,
       });
     }
-    const descriptors = orderedReferenceDescriptors(phase, context.references);
+    const descriptors = orderedReferenceDescriptors(phase, context.references, {
+      requestedModel: model,
+    });
     await validateMedia(descriptors);
     let job;
     let journalInfo;

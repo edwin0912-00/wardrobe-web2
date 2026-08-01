@@ -20,6 +20,7 @@ import { sha256 } from './scene-contract.js';
 import {
   buildFashionVideoReferencePrompt,
   buildMotionPlan,
+  fashionVideoReferenceBindings,
   surface,
 } from './video-motion-plan.js';
 import { evaluateClipQa } from './video-clip-qa.js';
@@ -577,13 +578,32 @@ export class VideoService {
         status: 409,
       });
     }
-    if (verifiedVideoReference
-      && appearanceReferences.some((reference) => reference.role === 'identity_face')) {
+    const appearanceRoles = appearanceReferences.map((reference) => reference.role);
+    const canonicalAppearanceRoles = ['identity_face', 'garment_detail']
+      .filter((role) => appearanceRoles.includes(role));
+    if (appearanceRoles.some((role, index) => role !== canonicalAppearanceRoles[index])) {
+      throw new VideoServiceError('Fashion Video appearance references are out of canonical order', {
+        code: 'VIDEO_APPEARANCE_REFERENCE_ORDER_INVALID',
+        status: 409,
+      });
+    }
+    if (appearanceReferences.some((reference) => (
+      reference.role === 'identity_face' && reference.white_background_verified !== true
+    ))) {
       throw new VideoServiceError(
-        'Fashion Video accepts identity only through Image 1, the approved white master',
-        { code: 'VIDEO_IDENTITY_PHOTO_FORBIDDEN', status: 409 },
+        'Fashion Video identity-face input must be a verified white-background derivative',
+        { code: 'VIDEO_IDENTITY_FACE_BACKGROUND_INVALID', status: 409 },
       );
     }
+    if (appearanceReferences.some((reference) => (
+      reference.role === 'garment_detail' && reference.white_background_verified !== true
+    ))) {
+      throw new VideoServiceError(
+        'Fashion Video garment-detail input must be a verified white-background evidence card',
+        { code: 'VIDEO_GARMENT_REFERENCE_BACKGROUND_INVALID', status: 409 },
+      );
+    }
+    const referenceBindings = fashionVideoReferenceBindings({ appearanceRoles });
     const lockedSourcePath = await this.#store.saveSource(clipId, sourceBytes);
     if (verifiedVideoReference) {
       // The directing reference is allowed as provider input, but it is also
@@ -610,6 +630,10 @@ export class VideoService {
         role: reference.role,
         path: referencePath,
         sha256: reference.sha256,
+        white_background_verified: true,
+        provider_label: referenceBindings.appearance.find(
+          (binding) => binding.role === reference.role,
+        ).provider_label,
       });
     }
 
@@ -620,9 +644,7 @@ export class VideoService {
     const referenceBound = verifiedVideoReference !== null;
     const prompt = referenceBound
       ? buildFashionVideoReferencePrompt({
-          hasGarmentReference: lockedAppearanceReferences.some(
-            (reference) => reference.role === 'garment_detail',
-          ),
+          appearanceRoles,
           cutSheet: verifiedVideoReference.cutSheet,
         })
       : plan.prompt;
@@ -646,9 +668,55 @@ export class VideoService {
           ? {
               motionReferenceSha256: verifiedVideoReference.sha256,
               referencePackSha256: verifiedVideoReference.packSha256,
+              referenceManifestVersion: referenceBindings.schema_version,
             }
           : {}),
       },
+    };
+    const providerReferenceBindings = verifiedVideoReference
+      ? {
+          schema_version: referenceBindings.schema_version,
+          motion_reference: {
+            role: referenceBindings.motion_reference.role,
+            provider_label: referenceBindings.motion_reference.provider_label,
+            sha256: verifiedVideoReference.sha256,
+          },
+          images: [
+            {
+              role: referenceBindings.approved_white_master.role,
+              provider_label: referenceBindings.approved_white_master.provider_label,
+              sha256: sourceSha256,
+            },
+            ...lockedAppearanceReferences.map((reference) => ({
+              role: reference.role,
+              provider_label: reference.provider_label,
+              sha256: reference.sha256,
+            })),
+          ],
+        }
+      : null;
+    const immutableRequestBinding = {
+      schema_version: 'fashion-video-request-binding-v1',
+      source_binding: {
+        source_sha256: sourceSha256,
+        approved_look_receipt_sha256: lookBinding?.approvedLookReceiptSha256 ?? null,
+        white_background_verified: lookBinding?.whiteBackgroundVerified === true,
+      },
+      motion_reference: verifiedVideoReference
+        ? {
+            sha256: verifiedVideoReference.sha256,
+            reference_pack_sha256: verifiedVideoReference.packSha256,
+            provider_label: referenceBindings.motion_reference.provider_label,
+            reference_manifest_version: referenceBindings.schema_version,
+          }
+        : null,
+      appearance_references: lockedAppearanceReferences.map((reference) => ({
+        role: reference.role,
+        sha256: reference.sha256,
+        provider_label: reference.provider_label,
+        white_background_verified: reference.white_background_verified,
+      })),
+      reference_bindings: providerReferenceBindings,
     };
 
     const submitting = {
@@ -668,6 +736,8 @@ export class VideoService {
         role: reference.role,
         file: path.basename(reference.path),
         sha256: reference.sha256,
+        provider_label: reference.provider_label,
+        white_background_verified: reference.white_background_verified,
       })),
       motionReferenceBinding: verifiedVideoReference
         ? {
@@ -683,11 +753,14 @@ export class VideoService {
             cutCount: Array.isArray(verifiedVideoReference.cutSheet?.cuts)
               ? verifiedVideoReference.cutSheet.cuts.length
               : 0,
+            providerLabel: referenceBindings.motion_reference.provider_label,
+            referenceManifestVersion: referenceBindings.schema_version,
             audioSourceFile: 'style-reference.mp4',
             audioSourceSha256: verifiedVideoReference.audioSourceSha256,
           }
         : null,
       lookBinding,
+      immutableRequestBinding,
       createdAt,
       updatedAt: createdAt,
     };
@@ -735,7 +808,11 @@ export class VideoService {
         appearance_references: lockedAppearanceReferences.map((reference) => ({
           role: reference.role,
           sha256: reference.sha256,
+          provider_label: reference.provider_label,
+          white_background_verified: reference.white_background_verified,
         })),
+        reference_bindings: providerReferenceBindings,
+        immutable_request_binding: immutableRequestBinding,
       },
       response: {
         job_id: created.jobId,
@@ -807,9 +884,11 @@ export class VideoService {
       });
     }
     if (parent.lookBinding?.whiteBackgroundVerified !== true
-      || parent.appearanceReferences?.some((reference) => reference.role === 'identity_face')) {
+      || parent.appearanceReferences?.some((reference) => (
+        reference.white_background_verified !== true
+      ))) {
       throw new VideoServiceError(
-        'This failed clip used a legacy appearance input and cannot be retried. Start a new Fashion Video from the approved white master.',
+        'This failed clip used a legacy unverified appearance input and cannot be retried. Start a new Fashion Video from the approved white master.',
         { code: 'VIDEO_RETRY_LEGACY_APPEARANCE_FORBIDDEN', status: 409 },
       );
     }
@@ -830,7 +909,12 @@ export class VideoService {
           code: 'VIDEO_RETRY_APPEARANCE_MISMATCH', status: 409,
         });
       }
-      return { role: reference.role, bytes, sha256: reference.sha256 };
+      return {
+        role: reference.role,
+        bytes,
+        sha256: reference.sha256,
+        white_background_verified: reference.white_background_verified,
+      };
     }));
     return this.createClip({
       modeId: parent.mode,
@@ -849,16 +933,15 @@ export class VideoService {
   }
 
   /**
-   * Attach a provider job after the provider accepted a request but its create
-   * response could not be parsed. Recovery is strict: the provider's persisted
-   * request must match the immutable local prompt, aspect and duration.
+   * Ambiguous create recovery is deliberately disabled. Higgsfield's current
+   * job envelope can prove prompt, geometry and model, but it does not attest
+   * the SHA-256 values of the uploaded image/video inputs. A caller echoing our
+   * local binding is not provider evidence and could attach another user's job
+   * with the same prompt. Normal create persists the job id immediately; an
+   * unbound SUBMITTING clip remains quarantined until the provider exposes a
+   * verifiable media binding or the operator resolves it outside delivery.
    */
-  async recoverSubmittedClip(clipId, {
-    jobId,
-    providerKey = 'higgsfield',
-    raw,
-    createAttempt = 1,
-  } = {}) {
+  async recoverSubmittedClip(clipId) {
     const clip = await this.#store.load(clipId);
     if (!clip) {
       throw new VideoServiceError('Clip not found', { code: 'CLIP_NOT_FOUND', status: 404 });
@@ -869,57 +952,10 @@ export class VideoService {
         status: 409,
       });
     }
-    const params = raw?.params;
-    const exactMatch = typeof jobId === 'string'
-      && jobId.length > 0
-      && params?.prompt === clip.prompt
-      && params?.aspect_ratio === clip.aspectRatio
-      && Number(params?.duration) === clip.durationSeconds
-      && (raw?.job_set_type ?? params?.model) === 'seedance_2_0';
-    if (!exactMatch) {
-      throw new VideoServiceError('Provider job does not match the immutable clip request', {
-        code: 'RECOVERY_JOB_MISMATCH',
-        status: 409,
-      });
-    }
-
-    const recoveredAt = new Date(this.#clock()).toISOString();
-    const receipt = {
-      schema_version: '1.0.0',
-      clip_id: clipId,
-      created_at: clip.createdAt,
-      recovered_at: recoveredAt,
-      provider: providerKey,
-      provider_create_attempt: createAttempt,
-      fallback_used: false,
-      request: {
-        source_sha256: clip.sourceSha256,
-        prompt: clip.prompt,
-        aspect_ratio: clip.aspectRatio,
-        duration_seconds: clip.durationSeconds,
-      },
-      response: {
-        job_id: jobId,
-        payload: raw,
-      },
-    };
-    const receiptBytes = Buffer.from(`${JSON.stringify(receipt, null, 2)}\n`);
-    const createReceiptSha256 = sha256(receiptBytes);
-    await this.#store.saveCreateReceipt(clipId, receiptBytes);
-    const metadata = {
-      ...clip,
-      jobId,
-      providerKey,
-      providerCreateAttempt: createAttempt,
-      fallbackUsed: false,
-      status: 'CREATED',
-      createReceiptSha256,
-      createReceiptFile: 'create-receipt.json',
-      recoveredAt,
-      updatedAt: recoveredAt,
-    };
-    await this.#store.save(clipId, metadata);
-    return { clipId, jobId, status: 'CREATED', recovered: true };
+    throw new VideoServiceError(
+      'Provider job media inputs are not cryptographically attested; automatic recovery is unsafe',
+      { code: 'RECOVERY_PROVIDER_BINDING_UNVERIFIABLE', status: 409 },
+    );
   }
 
   /**

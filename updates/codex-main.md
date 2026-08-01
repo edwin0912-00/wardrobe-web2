@@ -467,6 +467,91 @@ Help request: NONE.
 ---
 
 Agent ID: codex-main
+Task ID: BETA-PIPELINE-CONTRACT-INTEGRATION-20260801
+Pipeline: LOOK.01–06 · BACKGROUND.01–02 · UNIVERSE.03–04 · VIDEO.01–04
+State: TESTED — NOT_DEPLOYED
+Decision: native 3:4 scene delivery, deterministic framing repair, immutable
+pre-spend provider manifests, Higgsfield Nano Banana alias normalization, and
+white-master Fashion Video binding are integrated as one contract set. A retry
+of an approved look reopens the SHA-verified first-appearance item lock rather
+than recreating it with a new timestamp.
+Evidence: focused cross-boundary suite 289/289 PASS; `npm run
+verify:contracts` PASS (41 schemas, 9 fixtures, 3 jobs, 1 external document);
+`git diff --check` PASS. No paid provider generation, public beta deploy, or
+QA threshold weakening was performed in this atom.
+Beta: NOT_DEPLOYED — requires release-owner merge and an explicit live journey.
+Journey: NOT_RUN.
+weakened_checks: none.
+
+---
+
+Agent ID: codex-main
+Task ID: MODEL-REFERENCE-CONTRACTS-20260801
+State: TESTED_NOT_DEPLOYED
+Decision: keep persisted model IDs stable (`gpt_image_2`,
+`nano_banana_flash`, `nano_banana_2`) and translate provider aliases only at
+the transport boundary (`nano_banana_2` -> Higgsfield `nano_banana_pro`).
+Image generation now compiles a model-aware ordered reference manifest. GPT
+Image 2 may use a mechanical base canvas as Image 1 and the approved look as
+Image 2; Nano Banana routes remain approved-master first. The exact
+`Image N -> role -> SHA-256` manifest and digest are persisted in scene
+receipts. Fashion Video now uses Seedance's explicit `@Video 1` and dynamic
+`@Image 1..N` bindings; optional identity detail is admitted only from a
+hash-verified white-background derivative. Paid-job recovery rehashes every
+locked input during normal submission and persists the complete immutable
+request binding. Ambiguous unbound-job recovery is disabled because the current
+Higgsfield job envelope does not attest uploaded-media SHA-256 values; a caller
+echo of local hashes is not accepted as provider evidence.
+Code: LOCAL DIRTY WORKTREE — no isolated commit has been created because these
+files overlap the active framing repair atom.
+Evidence: Higgsfield provider 46/46 PASS; scene adapter 55/55 PASS; video
+188/188 PASS; identity derivative 2/2 PASS; `verify:contracts` PASS (41
+schemas, 9 fixtures, 3 jobs, 1 external document); `git diff --check` PASS.
+Beta: NOT_DEPLOYED.
+Journey: NOT_RUN — no paid provider generation was started.
+weakened_checks: none.
+Compatibility: historic receipts remain valid because new schema fields are
+optional; legacy video retries without white-background evidence fail closed.
+Help request: release owner must isolate/integrate this atom before deploy.
+
+---
+
+Agent ID: codex-main
+Task ID: HYPERCHECK-BACKGROUND-FOOTWEAR-FLOOR-003
+Pipeline: BACKGROUND.02 · standard scene repair
+State: VERIFIED_REAL_PROVIDER_PASS
+Decision: a scene that fails only the lower footwear margin receives an opaque
+mechanical guide made from its own immutable failed candidate. The guide moves
+the existing pixels upward without rescaling the person and reserves a neutral
+lower strip; the provider then regenerates the authored environment around that
+geometry. The delivery remains fully generated and must pass the complete QA.
+Real evidence: scene
+`scene_b8c78074aa0b4882488b1366733fab0dd7afcad14086c551`, preset
+`std.interior.gallery_morning_gloss`. The first three candidates failed with
+0.6836–1.123% below footwear. Attempt 4 passed all nine gates with 73.6328%
+subject height, 12.6465% above hair and 13.7207% below footwear. Output SHA-256
+`1dcb9457e755ec457205a7f446f1a216411217c7d6802629dbb81b89b0cf491d`,
+1536x2048 PNG.
+Tests: focused footwear-floor guide, first-generation guide and item-repair
+tests PASS; framing-lock owner 13/13 PASS.
+Beta: NOT_DEPLOYED — release-owner integration required.
+weakened_checks: none.
+
+---
+
+Agent ID: codex-main
+Task ID: HYPERCHECK-STRICT-RUNNER-004
+Pipeline: engineering canary only
+State: FIXED_PENDING_COMMIT
+Decision: `tools/run-personal-scene-e2e.mjs` now defaults Fashion Shoot QA to
+`strict`. The former implicit `review` default could convert a real style-scale
+failure into a completed canary. The affected manual skylight retry is excluded
+from strict campaign results and will not be represented as product PASS.
+weakened_checks: none; the canary is stricter.
+
+---
+
+Agent ID: codex-main
 Task ID: HYPERCHECK-SCENE-FRAME-GEOMETRY-LOCK-002
 Pipeline: BACKGROUND.02 · repair of an approved scene candidate
 State: VERIFIED_REAL_PROVIDER_PASS

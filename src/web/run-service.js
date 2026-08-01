@@ -1314,6 +1314,110 @@ export class RunService {
   }
 
   /**
+   * Return the optional face-detail derivative for Fashion Video only when its
+   * exact persisted pixels independently pass the white-background contract.
+   * A missing or non-white detail is simply omitted: the approved white master
+   * remains Image 1 and already carries the authoritative identity.
+   */
+  async approvedIdentityFaceReferenceForRun(runId) {
+    if (typeof runId !== 'string' || !SAFE_RUN_ID.test(runId)) {
+      throw evidenceError('APPROVED_IDENTITY_FACE_REFERENCE_INVALID', 'Run id is invalid');
+    }
+    const directory = path.join(this.runDirectory(runId), 'conditioned', 'identity');
+    const packPath = path.join(directory, 'reference-pack.json');
+    let packBytes;
+    try {
+      packBytes = await this.#readApprovedItemEvidenceFile(
+        packPath,
+        directory,
+        'Identity reference pack',
+        MAX_APPROVED_ITEM_PACK_BYTES,
+      );
+    } catch (error) {
+      if (error?.code === 'APPROVED_ITEM_EVIDENCE_MISSING') return null;
+      throw error;
+    }
+    let pack;
+    try {
+      pack = JSON.parse(packBytes.toString('utf8'));
+    } catch {
+      throw evidenceError(
+        'APPROVED_IDENTITY_FACE_REFERENCE_INVALID',
+        'Identity reference pack is not valid JSON',
+      );
+    }
+    if (pack?.schema_version !== '1.0.0'
+      || pack.kind !== 'HUMAN'
+      || pack.readiness?.decision !== 'READY'
+      || !Array.isArray(pack.generation_bindings)) {
+      throw evidenceError(
+        'APPROVED_IDENTITY_FACE_REFERENCE_INVALID',
+        'Identity reference pack is incomplete',
+      );
+    }
+    const binding = pack.generation_bindings.find((candidate) => (
+      candidate?.role === 'FACE_DETAIL' || candidate?.role === 'IDENTITY_FACE_DETAIL'
+    ));
+    if (!binding) return null;
+    if (!Number.isInteger(binding.order)
+      || binding.order < 2
+      || !SHA256.test(binding.sha256 ?? '')
+      || typeof binding.path !== 'string') {
+      throw evidenceError(
+        'APPROVED_IDENTITY_FACE_REFERENCE_INVALID',
+        'Identity face-detail binding is incomplete',
+      );
+    }
+
+    const deterministicPath = path.join(directory, 'detail.png');
+    const relocationSuffix = path.join('conditioned', 'identity', 'detail.png');
+    const declaredPath = path.resolve(binding.path);
+    const referencePath = isInside(directory, declaredPath)
+      ? declaredPath
+      : (declaredPath.endsWith(`${path.sep}${relocationSuffix}`)
+        ? deterministicPath
+        : null);
+    if (!referencePath) {
+      throw evidenceError(
+        'APPROVED_IDENTITY_FACE_REFERENCE_PATH_ESCAPE',
+        'Identity face-detail reference escapes its run directory',
+      );
+    }
+    const data = await this.#readApprovedItemEvidenceFile(
+      referencePath,
+      directory,
+      'Identity face-detail reference',
+      MAX_APPROVED_ITEM_CUTOUT_BYTES,
+    );
+    if (sha256(data) !== binding.sha256) {
+      throw evidenceError(
+        'APPROVED_IDENTITY_FACE_REFERENCE_HASH_MISMATCH',
+        'Identity face-detail reference SHA-256 mismatch',
+      );
+    }
+    const inspected = await inspectImage(referencePath);
+    const technicalPass = Object.values(inspected.technical_gates ?? {})
+      .every((gate) => gate?.status === QA_STATUS.PASS);
+    if (!technicalPass || inspected.background_diagnostics?.status !== QA_STATUS.PASS) {
+      return null;
+    }
+    if (inspected.sha256 !== binding.sha256) {
+      throw evidenceError(
+        'APPROVED_IDENTITY_FACE_REFERENCE_HASH_MISMATCH',
+        'Identity face-detail reference changed during verification',
+      );
+    }
+    return {
+      role: 'identity_face',
+      data,
+      sha256: binding.sha256,
+      media_type: 'image/png',
+      white_background_verified: true,
+      background_diagnostics: inspected.background_diagnostics,
+    };
+  }
+
+  /**
    * Resolves the immutable, per-item evidence used to generate a completed
    * garment-backed look. The returned object intentionally contains logical
    * facts and bytes only: filesystem paths and raw source-pack fields never

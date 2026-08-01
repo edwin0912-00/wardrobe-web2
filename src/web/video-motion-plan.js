@@ -98,27 +98,87 @@ const LOCKS = [
   'No anatomy defects, no extra fingers, no melted hands, no face drift.',
 ].join(' ');
 
+export class MotionPlanError extends Error {
+  constructor(message, { code = 'MOTION_PLAN_INVALID' } = {}) {
+    super(message);
+    this.name = 'MotionPlanError';
+    this.code = code;
+  }
+}
+
+const FASHION_VIDEO_APPEARANCE_ROLE_ORDER = Object.freeze([
+  'identity_face',
+  'garment_detail',
+]);
+
+// Seedance numbers video and image inputs independently. Build every prompt
+// label from the exact outbound arrays instead of assuming that an optional
+// face or garment card always occupies Image 2.
+export function fashionVideoReferenceBindings({ appearanceRoles = [] } = {}) {
+  if (!Array.isArray(appearanceRoles)
+    || appearanceRoles.some((role) => !FASHION_VIDEO_APPEARANCE_ROLE_ORDER.includes(role))
+    || new Set(appearanceRoles).size !== appearanceRoles.length
+    || appearanceRoles.some((role, index) => (
+      FASHION_VIDEO_APPEARANCE_ROLE_ORDER.indexOf(role)
+        <= FASHION_VIDEO_APPEARANCE_ROLE_ORDER.indexOf(appearanceRoles[index - 1])
+    ))) {
+    throw new MotionPlanError('Fashion Video appearance roles must use canonical order', {
+      code: 'VIDEO_APPEARANCE_ROLE_ORDER_INVALID',
+    });
+  }
+
+  const appearance = appearanceRoles.map((role, index) => Object.freeze({
+    role,
+    image_order: index + 2,
+    provider_label: `@Image ${index + 2}`,
+  }));
+  return Object.freeze({
+    schema_version: 'fashion-video-reference-bindings-v1',
+    motion_reference: Object.freeze({
+      role: 'motion_reference',
+      video_order: 1,
+      provider_label: '@Video 1',
+    }),
+    approved_white_master: Object.freeze({
+      role: 'approved_white_master',
+      image_order: 1,
+      provider_label: '@Image 1',
+    }),
+    appearance: Object.freeze(appearance),
+  });
+}
+
 export function buildFashionVideoReferencePrompt({
-  hasGarmentReference = false,
+  appearanceRoles = [],
   cutSheet = null,
 } = {}) {
+  const bindings = fashionVideoReferenceBindings({ appearanceRoles });
+  const videoLabel = bindings.motion_reference.provider_label;
+  const masterLabel = bindings.approved_white_master.provider_label;
+  const identityBinding = bindings.appearance.find((binding) => binding.role === 'identity_face');
+  const garmentBinding = bindings.appearance.find((binding) => binding.role === 'garment_detail');
   const cuts = Array.isArray(cutSheet?.cuts) ? cutSheet.cuts : [];
   const lines = [
-    '[Video 1] is private reference-only directing material, never delivery media.',
+    `${videoLabel} is private reference-only directing material, never delivery media.`,
     'Use it only to reconstruct its complete shot sequence, cut timing, transitions, action timing, pose choreography, camera movement, framing, environment, lighting, colour grade, optical effects, props and environmental text.',
-    'Every final frame must be newly generated. Never splice, reuse, reveal, freeze, picture-in-picture, reflection, monitor image, transition frame or background person from [Video 1].',
-    '[Image 1] is the only permitted visible human: the exact approved person wearing the exact complete approved outfit, isolated on an exact pure-white background.',
-    '[Image 1] contains no scene authority. Use only its person, identity, hair, body and complete approved outfit; its white background is intentionally empty and must never become the environment.',
-    'For every cut: if a person is visible, render [Image 1] as that person with the same identity, body, hair and complete approved outfit. If the reference cut has no person, render no person. Remove any secondary person rather than retaining a reference performer.',
-    'No source performer face, body, skin, hair, clothing, silhouette or motion-blurred fragment may survive in any cut. Never mix [Image 1] with the reference performer.',
+    `Every final frame must be newly generated. Never splice, reuse, reveal, freeze, picture-in-picture, reflection, monitor image, transition frame or background person from ${videoLabel}.`,
+    `${masterLabel} is the only permitted visible human: the exact approved person wearing the exact complete approved outfit, isolated on an exact pure-white background.`,
+    `${masterLabel} contains no scene authority. Use only its person, identity, hair, body and complete approved outfit; its white background is intentionally empty and must never become the environment.`,
+    `For every cut: if a person is visible, render ${masterLabel} as that person with the same identity, body, hair and complete approved outfit. If the reference cut has no person, render no person. Remove any secondary person rather than retaining a reference performer.`,
+    `No source performer face, body, skin, hair, clothing, silhouette or motion-blurred fragment may survive in any cut. Never mix ${masterLabel} with the reference performer.`,
   ];
-  if (hasGarmentReference) {
+  if (identityBinding) {
     lines.push(
-      '[Image 2] is a white-background garment-only evidence card. It defines approved garment and footwear construction, colour, material, pattern, hardware, logo and text only. It contains no person or environment. Do not redesign any item.',
+      `${identityBinding.provider_label} is an optional white-background face-detail reference. It defines face identity and hair only. Ignore its clothing, body crop and background; it cannot override ${masterLabel}, the complete approved outfit or the reference environment.`,
+    );
+  }
+  if (garmentBinding) {
+    lines.push(
+      `${garmentBinding.provider_label} is a white-background garment-only evidence card. It defines approved garment and footwear construction, colour, material, pattern, hardware, logo and text only. It contains no person or environment. Do not redesign any item.`,
     );
   }
   if (cuts.length > 0) {
-    lines.push('CUT SHEET — reconstruct each listed interval as a newly generated cut. The subject rule is absolute: APPROVED_AVATAR_OR_EMPTY means render [Image 1] for any visible person, otherwise render no person; never retain a reference person in a transition, reflection, monitor, blur or background.');
+    lines.push(`CUT SHEET — reconstruct each listed interval as a newly generated cut. The subject rule is absolute: APPROVED_AVATAR_OR_EMPTY means render ${masterLabel} for any visible person, otherwise render no person; never retain a reference person in a transition, reflection, monitor, blur or background.`);
     for (const cut of cuts) {
       lines.push(
         `CUT ${String(cut.cut_index + 1).padStart(2, '0')} ${cut.start_ms}ms–${cut.end_ms}ms | ${cut.subject_rule} | ${cut.direction}.`,
@@ -131,14 +191,6 @@ export function buildFashionVideoReferencePrompt({
     'Do not add people, props, scene text, wardrobe changes, music, dialogue, voice or sound effects. The original uploaded person photo is not an allowed image input and must never be inferred as a background or scene source.',
   );
   return lines.join(' ');
-}
-
-export class MotionPlanError extends Error {
-  constructor(message, { code = 'MOTION_PLAN_INVALID' } = {}) {
-    super(message);
-    this.name = 'MotionPlanError';
-    this.code = code;
-  }
 }
 
 export function motionMode(id) {

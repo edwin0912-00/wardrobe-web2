@@ -24,6 +24,7 @@ import {
 import {
   DEFAULT_SCENE_DELIVERY,
   DEFAULT_SCENE_MODEL_ROUTE,
+  FRAMING_POLICY_RECHECK_VERSION,
   SCENE_EVALUATOR_GATES,
   SCENE_QA_GATES,
   SCENE_SCHEMA_VERSION,
@@ -38,6 +39,8 @@ import {
   normalizeDelivery,
   normalizeEvaluatorResult,
   normalizeModelRoute,
+  sceneGenerationFramingBand,
+  sceneGenerationFramingTarget,
   sceneQaItemScope,
   sha256,
   validateApprovedLookReference,
@@ -48,6 +51,12 @@ import {
   validateResolvedReferenceAssets,
   validateShotAnchorReferences,
 } from './scene-contract.js';
+import {
+  createDeterministicCropRepairPlan,
+  normalizeSceneDefect,
+  planSceneRepair,
+  validateSceneRepairPlan,
+} from './scene-repair-router.js';
 
 const OUTPUT_HASH_FIELDS = Object.freeze({
   'scene.png': 'sha256',
@@ -81,6 +90,7 @@ const SCENE_PRIVACY_RULES = Object.freeze([
 ]);
 const POST_RELEASE_REJECTION_TYPE = 'POST_RELEASE_SCENE_REJECTION';
 const POST_RELEASE_REJECTION_LEDGER_TYPE = 'POST_RELEASE_SCENE_REJECTION_LEDGER_ENTRY';
+const FRAMING_POLICY_RECHECK_TYPE = 'FRAMING_POLICY_RECHECK_DECISION';
 const POST_RELEASE_REJECTION_GATES = new Set(SCENE_EVALUATOR_GATES);
 const MOVING_REVIEWER_VERSION = /^(?:builtin-current|current|latest|unknown)$/i;
 const SHA256_PATTERN = /^[a-f0-9]{64}$/;
@@ -98,15 +108,23 @@ const FASHION_SHOOT_BLOCKING_ANATOMY_DEFECTS = new Set([
   'IMPLAUSIBLE_BODY_PROPORTION',
   'SUBJECT_FUSED_WITH_ENVIRONMENT',
 ]);
+const FASHION_SHOOT_SCALE_DEFECTS = new Set([
+  'CAMERA_COMPOSITION_OUT_OF_DECLARED_SCALE',
+  'CAMERA_COMPOSITION_SCALE_MISMATCH',
+  'SUBJECT_SCALE_OUTSIDE_DECLARED_CAMERA_CONSEQUENCE',
+  'SUBJECT_SCALE_EXCEEDS_DECLARED_CAMERA_CONSEQUENCE',
+  'CAMERA_CONSEQUENCE_SCALE_MISMATCH',
+  'CAMERA_CONSEQUENCE_MISMATCH',
+]);
 // Change this only when the bytes sent to the image provider change. It is part
 // of provider idempotency, so an old journal can never be replayed against a
 // materially different repair contract.
-const SCENE_GENERATION_CONTRACT_VERSION = 'scene-generation-contract-v9-native-3-4';
+const SCENE_GENERATION_CONTRACT_VERSION = 'scene-generation-contract-v13-deterministic-provider-request';
 
 export function applyFashionShootVisualReviewPolicy(
   evaluation,
   presetId,
-  mode = 'review',
+  mode = 'strict',
 ) {
   if (!['strict', 'review', 'off'].includes(mode)) {
     throw new Error(`Unknown Fashion Shoot QA mode: ${mode}`);
@@ -118,6 +136,12 @@ export function applyFashionShootVisualReviewPolicy(
   const notes = [];
   for (const gate of result.gates) {
     if (gate.decision !== 'FAIL') continue;
+    const deterministicScaleFailure = gate.id === 'SCENE_MATCH'
+      && gate.defects.some((defect) => FASHION_SHOOT_SCALE_DEFECTS.has(defect));
+    // A measured mismatch against the slot's immutable camera band is a
+    // contract failure, not a subjective visual-review note. Even review/off
+    // must not turn an environmental hero into a tight portrait.
+    if (deterministicScaleFailure) continue;
     const framingIsOnlyArtDirection = gate.id === 'FRAMING_AND_ANATOMY'
       && !gate.defects.some((defect) => FASHION_SHOOT_BLOCKING_ANATOMY_DEFECTS.has(defect));
     const nonBlocking = mode === 'off'
@@ -147,6 +171,37 @@ export function applyFashionShootVisualReviewPolicy(
     ).slice(0, 2_000);
   }
   return result;
+}
+
+export function applyFashionShootCompositionScaleLock(evaluation, preset) {
+  const presetId = typeof preset === 'string' ? preset : preset?.preset_id;
+  if (typeof presetId !== 'string'
+    || (!presetId.startsWith('shoot.') && !presetId.startsWith('editorial.'))) {
+    return evaluation;
+  }
+  const measured = evaluation?.framing_evidence?.subject_height_percent;
+  if (!Number.isFinite(measured)) return evaluation;
+  const [minimum, maximum] = sceneGenerationFramingBand(preset);
+  if (measured >= minimum && measured <= maximum) return evaluation;
+  const gate = evaluation.gates?.find((item) => item.id === 'SCENE_MATCH');
+  if (!gate) throw new Error('Fashion Shoot evaluation is missing SCENE_MATCH');
+  gate.decision = 'FAIL';
+  gate.defects = [...new Set([
+    ...(Array.isArray(gate.defects) ? gate.defects : []),
+    'CAMERA_CONSEQUENCE_SCALE_MISMATCH',
+  ])];
+  gate.evidence = sanitizeOutboundString([
+    gate.evidence,
+    `Deterministic Create Universe camera scale failed: ${measured}% subject height is outside the ${minimum}–${maximum}% slot band.`,
+  ].filter(Boolean).join('; '));
+  if (evaluation.score !== null) evaluation.score = Math.min(evaluation.score, 99);
+  evaluation.summary = sanitizeOutboundString([
+    `Deterministic Fashion Shoot camera consequence failed at ${measured}% subject height.`,
+    evaluation.summary
+      ? `The visual review passed other visible properties, but is not authoritative for this measured scale: ${evaluation.summary}`
+      : null,
+  ].filter(Boolean).join(' '));
+  return evaluation;
 }
 
 function nowIso(clock) {
@@ -410,39 +465,113 @@ async function verifiedRepairCandidate(directory, state, repairAttempt) {
 // authority to add scene pixels: it rescales the already failed candidate onto
 // a neutral opaque 3:4 canvas so the provider can see the measured target framing
 // instead of trying to infer "76% of frame height" from prose alone.
-async function mechanicalFramingGuide(directory, state, repairAttempt, repairCandidate) {
+async function mechanicalFramingGuide(
+  directory,
+  state,
+  repairAttempt,
+  repairCandidate,
+  preset,
+  destinationAttemptNumber,
+) {
   if (!repairAttempt || !repairCandidate) return null;
+  if (!Number.isInteger(destinationAttemptNumber) || destinationAttemptNumber <= repairAttempt.number) {
+    throw new Error('Mechanical framing guide destination attempt must follow its source attempt');
+  }
   const defects = repairAttempt.qa?.gates
     ?.find((gate) => gate.id === 'FRAMING_AND_ANATOMY')
     ?.defects ?? [];
+  const sceneMatchDefects = repairAttempt.qa?.gates
+    ?.find((gate) => gate.id === 'SCENE_MATCH')
+    ?.defects ?? [];
+  const styleScaleRepair = preset?.editorial
+    && sceneMatchDefects.some((defect) => FASHION_SHOOT_SCALE_DEFECTS.has(defect));
   const evidence = repairAttempt.qa?.framing_evidence;
   const bbox = evidence?.subject_bbox_xywh_px;
   const range = evidence?.expected_subject_height_percent;
   const measured = evidence?.subject_height_percent;
   const minimumAbove = evidence?.minimum_clear_space_above_hair_percent;
+  const minimumBelow = evidence?.minimum_clear_space_below_footwear_percent;
+  const measuredAbove = evidence?.clear_space_above_hair_percent;
+  const measuredBelow = evidence?.clear_space_below_footwear_percent;
+  const footwearFloorRepair = Array.isArray(defects)
+    && defects.includes('INSUFFICIENT_CLEAR_SPACE_BELOW_FOOTWEAR')
+    && Number.isFinite(minimumBelow)
+    && Number.isFinite(measuredBelow)
+    && Number.isFinite(measuredAbove)
+    && measuredBelow < minimumBelow;
+  const oversizedHeadRepair = Array.isArray(defects)
+    && defects.includes('SUBJECT_HEIGHT_OUTSIDE_PRESET_RANGE')
+    && defects.includes('INSUFFICIENT_CLEAR_SPACE_ABOVE_HAIR');
   if (
     !Array.isArray(defects)
-    || !defects.includes('SUBJECT_HEIGHT_OUTSIDE_PRESET_RANGE')
-    || !defects.includes('INSUFFICIENT_CLEAR_SPACE_ABOVE_HAIR')
+    || (!oversizedHeadRepair && !footwearFloorRepair && !styleScaleRepair)
     || !Array.isArray(bbox) || bbox.length !== 4 || !bbox.every(Number.isFinite)
     || !Array.isArray(range) || range.length !== 2 || !range.every(Number.isFinite)
     || !Number.isFinite(measured) || !Number.isFinite(minimumAbove)
-    || measured <= range[1] || range[0] <= 0 || range[0] > range[1]
+    || range[0] <= 0 || range[0] > range[1]
   ) return null;
 
   const [sourceX, sourceY] = bbox;
-  const targetSubjectHeight = (range[0] + range[1]) / 2;
-  const scale = targetSubjectHeight / measured;
   const source = await sharp(repairCandidate.path).metadata();
   if (!source.width || !source.height || source.width !== state.delivery.width || source.height !== state.delivery.height) {
     return null;
   }
+  if (footwearFloorRepair) {
+    const targetBelow = minimumBelow + 1;
+    const shiftPercent = targetBelow - measuredBelow;
+    // Moving the already rendered guide upward is allowed only when the
+    // measured headroom can pay for the complete move. No subject pixels are
+    // rescaled and the new lower strip remains a neutral layout field.
+    if (shiftPercent <= 0 || measuredAbove - shiftPercent < minimumAbove) return null;
+    const shiftPixels = Math.ceil((shiftPercent / 100) * source.height);
+    if (shiftPixels < 1 || shiftPixels >= source.height) return null;
+    const shifted = await sharp(repairCandidate.path)
+      .extract({ left: 0, top: shiftPixels, width: source.width, height: source.height - shiftPixels })
+      .extend({
+        bottom: shiftPixels,
+        background: { r: 240, g: 238, b: 232, alpha: 1 },
+      })
+      .png()
+      .toBuffer();
+    const filename = path.join(
+      directory,
+      `attempts/${String(destinationAttemptNumber).padStart(3, '0')}/mechanical-framing-guide.png`,
+    );
+    const expectedHash = sha256(shifted);
+    try {
+      const existing = await readFile(filename);
+      if (sha256(existing) !== expectedHash) {
+        throw new Error('Mechanical framing guide already exists with a different immutable SHA-256');
+      }
+    } catch (error) {
+      if (error?.code !== 'ENOENT') throw error;
+      await writeImmutable(filename, shifted);
+    }
+    return {
+      path: filename,
+      sha256: expectedHash,
+      media_type: 'image/png',
+      role: 'mechanical_framing_guide',
+      source_attempt: repairAttempt.number,
+      target_subject_height_percent: measured,
+      target_clear_space_above_hair_percent: Number((measuredAbove - shiftPercent).toFixed(4)),
+      target_clear_space_below_footwear_percent: targetBelow,
+      transform: 'translate_up_without_rescale',
+    };
+  }
+  if (!styleScaleRepair && measured <= range[1]) return null;
+  const generationTarget = styleScaleRepair
+    ? sceneGenerationFramingTarget(preset)
+    : null;
+  const targetSubjectHeight = generationTarget?.subject ?? ((range[0] + range[1]) / 2);
+  const scale = targetSubjectHeight / measured;
   const resizedWidth = Math.round(source.width * scale);
   const resizedHeight = Math.round(source.height * scale);
   if (resizedWidth < 1 || resizedHeight < 1 || resizedWidth > state.delivery.width || resizedHeight > state.delivery.height) {
     return null;
   }
-  const targetTop = Math.round(((minimumAbove + 1) / 100) * state.delivery.height);
+  const targetAbove = generationTarget?.above ?? (minimumAbove + 1);
+  const targetTop = Math.round((targetAbove / 100) * state.delivery.height);
   const left = Math.round((state.delivery.width - resizedWidth) / 2);
   const top = Math.round(targetTop - (sourceY * scale));
   if (left < 0 || top < 0 || left + resizedWidth > state.delivery.width || top + resizedHeight > state.delivery.height) {
@@ -469,7 +598,7 @@ async function mechanicalFramingGuide(directory, state, repairAttempt, repairCan
     .toBuffer();
   const filename = path.join(
     directory,
-    `attempts/${String(repairAttempt.number + 1).padStart(3, '0')}/mechanical-framing-guide.png`,
+    `attempts/${String(destinationAttemptNumber).padStart(3, '0')}/mechanical-framing-guide.png`,
   );
   const expectedHash = sha256(bytes);
   try {
@@ -488,7 +617,8 @@ async function mechanicalFramingGuide(directory, state, repairAttempt, repairCan
     role: 'mechanical_framing_guide',
     source_attempt: repairAttempt.number,
     target_subject_height_percent: targetSubjectHeight,
-    target_clear_space_above_hair_percent: minimumAbove + 1,
+    target_clear_space_above_hair_percent: targetAbove,
+    ...(styleScaleRepair ? { transform: 'style_camera_scale' } : {}),
   };
 }
 
@@ -498,16 +628,53 @@ async function mechanicalFramingGuide(directory, state, repairAttempt, repairCan
 // reference. A full-body master commonly fills its source frame; without this
 // separate geometry authority the provider faithfully repeats that oversized
 // composition in every new environment.
-async function initialComposedMasterGuide(directory, state, attemptNumber, approvedLook, transportAspectRatio) {
+async function initialComposedMasterGuide(
+  directory,
+  state,
+  attemptNumber,
+  approvedLook,
+  transportAspectRatio,
+  preset,
+) {
   if (!approvedLook?.path || !approvedLook?.sha256 || !Number.isInteger(attemptNumber)) return null;
   const source = await sharp(approvedLook.path).metadata();
   if (!source.width || !source.height || (source.pages ?? 1) !== 1) return null;
-  // The scene contract is now natively 3:4: every provider sees the same
-  // measured canvas and no route loses pixels in a post-generation crop.
-  const scale = 0.725;
+  const generationTarget = sceneGenerationFramingTarget(preset);
+  // Approved masters are locked to a clean white-background presentation. Trim
+  // only that neutral field so the guide scales the visible person, not the
+  // source canvas. If an older master has no trimmable field, the full source is
+  // the conservative measurement and the resulting guide still stays bounded.
+  let subjectHeight = source.height;
+  let subjectTop = 0;
+  try {
+    const { info } = await sharp(approvedLook.path)
+      .trim({ background: '#ffffff', threshold: 30 })
+      .png()
+      .toBuffer({ resolveWithObject: true });
+    if (Number.isInteger(info.height)
+      && info.height >= Math.round(source.height * 0.25)
+      && info.height <= source.height) {
+      subjectHeight = info.height;
+      subjectTop = Math.max(0, -(info.trimOffsetTop ?? 0));
+    }
+  } catch {
+    // A deterministic full-canvas fallback is safer than skipping the guide.
+  }
+  const sourceSubjectPercent = (subjectHeight / source.height) * 100;
+  const scale = Math.min(1, generationTarget.subject / sourceSubjectPercent);
   const resizedWidth = Math.round(state.delivery.width * scale);
   const resizedHeight = Math.round(state.delivery.height * scale);
-  const top = Math.round(state.delivery.height * 0.09);
+  const desiredSubjectTop = Math.round(
+    state.delivery.height * (generationTarget.above / 100),
+  );
+  const scaledSubjectTop = Math.round(subjectTop * (resizedHeight / source.height));
+  const top = Math.max(
+    0,
+    Math.min(
+      state.delivery.height - resizedHeight,
+      desiredSubjectTop - scaledSubjectTop,
+    ),
+  );
   const left = Math.round((state.delivery.width - resizedWidth) / 2);
   const bytes = await sharp({
     create: {
@@ -545,8 +712,8 @@ async function initialComposedMasterGuide(directory, state, attemptNumber, appro
     media_type: 'image/png',
     role: 'mechanical_framing_guide',
     source_kind: 'approved_look',
-    target_subject_height_percent: 76,
-    target_clear_space_above_hair_percent: 9,
+    target_subject_height_percent: generationTarget.subject,
+    target_clear_space_above_hair_percent: generationTarget.above,
   };
 }
 
@@ -702,6 +869,11 @@ function safeProviderMetadata(metadata) {
     'frame_finish_oversample_requested',
     'frame_finish_oversample_factor',
     'frame_finish_oversample_honoured',
+    'reference_manifest_version',
+    'provider_reference_strategy',
+    'provider_image_reference_manifest_version',
+    'provider_image_reference_manifest_json',
+    'provider_image_reference_manifest_sha256',
     'reference_role_order',
     'reference_evidence_sha256',
     'attached_reference_count',
@@ -712,6 +884,22 @@ function safeProviderMetadata(metadata) {
     'outbound_prompt_sha256',
     'repair_candidate_sha256',
     'repair_from_attempt',
+    'mechanical_framing_guide_sha256',
+    'mechanical_framing_guide_source_attempt',
+    'mechanical_framing_guide_target_subject_height_percent',
+    'mechanical_framing_guide_target_clear_space_above_hair_percent',
+    'mechanical_framing_guide_target_clear_space_below_footwear_percent',
+    'mechanical_framing_guide_transform',
+    // Deterministic controller metadata is a transport receipt mirror only;
+    // the full authoritative plan lives in attempt.repair_plan.  It still has
+    // to be explicitly listed here or the allowlist silently erases it.
+    'repair_route_version',
+    'repair_route_classification',
+    'repair_route_mechanism',
+    'repair_route_model_action',
+    'repair_defect_signature_sha256',
+    'repair_distance_to_delivery_band_pp',
+    'repair_progress_pp',
   ];
   return Object.fromEntries(
     allowed
@@ -1410,6 +1598,289 @@ function selectRepairAttempt(state, attempt) {
     ))[0] ?? null;
 }
 
+function repairProtectedHashes(state) {
+  return Object.freeze({
+    approved_look_sha256: state.bindings.approved_look.image_sha256,
+    preset_sha256: state.bindings.preset.sha256,
+    reference_pack_sha256: state.bindings.reference_pack.sha256,
+    ...(state.bindings.approved_items ? {
+      approved_items_evidence_sha256: state.bindings.approved_items.evidence_sha256,
+    } : {}),
+  });
+}
+
+function attemptedPassedGateIds(attempt) {
+  return (attempt.qa?.gates ?? [])
+    .filter((gate) => gate.decision === 'PASS')
+    .map((gate) => gate.id)
+    .filter((gate) => gate !== 'FRAMING_AND_ANATOMY');
+}
+
+// The router has no model authority: it receives a completed QA receipt and
+// decides only the next allowed mechanism.  The immutable route owner still
+// picks the actual next model, which prevents a repair loop from silently
+// paying for duplicate same-model attempts.
+function normalizedFramingDefectForAttempt(state, attempt, preset) {
+  const framingGate = attempt.qa?.gates?.find((gate) => gate.id === 'FRAMING_AND_ANATOMY');
+  if (!framingGate || framingGate.decision !== 'FAIL'
+    || !framingGate.defects?.includes('SUBJECT_HEIGHT_OUTSIDE_PRESET_RANGE')
+    || !attempt.candidate?.sha256 || !attempt.compiled_prompt?.sha256) {
+    return null;
+  }
+  return normalizeSceneDefect({
+    status: 'QA_FAILED',
+    gate: framingGate.id,
+    defect_code: 'SUBJECT_HEIGHT_OUTSIDE_PRESET_RANGE',
+    framing_evidence: attempt.qa.framing_evidence,
+    preset_id: preset.preset_id,
+    protected_hashes: repairProtectedHashes(state),
+    candidate_sha256: attempt.candidate.sha256,
+    prompt_sha256: attempt.compiled_prompt.sha256,
+    attempt: attempt.number,
+    cycle: attempt.cycle,
+  });
+}
+
+function repairPlanDigest(plan) {
+  const stable = structuredClone(plan);
+  // The request-manifest contains this plan, so including it in its own hash
+  // would be circular. The guide is already immutable and remains included.
+  stable.request_manifest = null;
+  return sha256(canonicalJsonBytes(stable));
+}
+
+async function repairGuideReceipt(sceneDirectory, guide) {
+  if (!guide) return null;
+  const bytes = await readFile(guide.path);
+  if (sha256(bytes) !== guide.sha256) {
+    throw new SceneServiceError(
+      409,
+      'BOUND_INPUT_INTEGRITY_FAILED',
+      'Mechanical repair guide no longer matches its immutable SHA-256',
+    );
+  }
+  return {
+    relative_path: path.relative(sceneDirectory, guide.path),
+    sha256: guide.sha256,
+    size: bytes.length,
+    media_type: 'image/png',
+    // An initial guide is still an actual deterministic layout; name its
+    // transform rather than pretending it was derived from a failed frame.
+    transform: guide.transform ?? 'approved_master_geometry_layout',
+    target_subject_height_percent: guide.target_subject_height_percent,
+    target_clear_space_above_hair_percent: guide.target_clear_space_above_hair_percent,
+    target_clear_space_below_footwear_percent:
+      guide.target_clear_space_below_footwear_percent ?? null,
+  };
+}
+
+async function rehydrateRepairGuide(sceneDirectory, plan) {
+  if (!plan?.guide) return null;
+  const filename = resolveInside(
+    sceneDirectory,
+    plan.guide.relative_path,
+    'Persisted mechanical repair guide',
+  );
+  let bytes;
+  try {
+    bytes = await readFile(filename);
+  } catch {
+    throw new SceneServiceError(
+      409,
+      'BOUND_INPUT_INTEGRITY_FAILED',
+      'Persisted mechanical repair guide is missing from its immutable receipt',
+    );
+  }
+  if (sha256(bytes) !== plan.guide.sha256 || bytes.length !== plan.guide.size) {
+    throw new SceneServiceError(
+      409,
+      'BOUND_INPUT_INTEGRITY_FAILED',
+      'Persisted mechanical repair guide no longer matches its receipt',
+    );
+  }
+  return {
+    path: filename,
+    sha256: plan.guide.sha256,
+    media_type: 'image/png',
+    role: 'mechanical_framing_guide',
+    source_attempt: plan.source_attempt,
+    target_subject_height_percent: plan.guide.target_subject_height_percent,
+    target_clear_space_above_hair_percent:
+      plan.guide.target_clear_space_above_hair_percent,
+    ...(plan.guide.target_clear_space_below_footwear_percent === null ? {} : {
+      target_clear_space_below_footwear_percent:
+        plan.guide.target_clear_space_below_footwear_percent,
+    }),
+    transform: plan.guide.transform,
+  };
+}
+
+function immutableArtifactPointer(relativePath, bytes) {
+  return Object.freeze({
+    relative_path: relativePath,
+    sha256: sha256(bytes),
+  });
+}
+
+// An existing receipt is an integrity boundary, not a cache hint.  A restart
+// must never silently rewrite a missing or altered request artifact and then
+// issue a different provider call under the old attempt identity.
+async function writeOrVerifyImmutableArtifact(sceneDirectory, receipt, relativePath, bytes, label) {
+  if (receipt !== null && receipt !== undefined) {
+    if (receipt.relative_path !== relativePath) {
+      throw new SceneServiceError(
+        409,
+        'BOUND_INPUT_INTEGRITY_FAILED',
+        `${label} receipt path no longer matches its attempt`,
+      );
+    }
+    const filename = resolveInside(sceneDirectory, receipt.relative_path, label);
+    let persisted;
+    try {
+      persisted = await readFile(filename);
+    } catch {
+      throw new SceneServiceError(
+        409,
+        'BOUND_INPUT_INTEGRITY_FAILED',
+        `${label} is missing from its immutable receipt`,
+      );
+    }
+    const expectedSha = sha256(bytes);
+    if (receipt.sha256 !== expectedSha || sha256(persisted) !== receipt.sha256 || !persisted.equals(bytes)) {
+      throw new SceneServiceError(
+        409,
+        'BOUND_INPUT_INTEGRITY_FAILED',
+        `${label} no longer matches its immutable receipt`,
+      );
+    }
+    return Object.freeze({ relative_path: receipt.relative_path, sha256: receipt.sha256 });
+  }
+  await writeImmutable(path.join(sceneDirectory, relativePath), bytes);
+  return immutableArtifactPointer(relativePath, bytes);
+}
+
+async function verifyImmutableArtifactReceipt(sceneDirectory, receipt, label) {
+  if (receipt === null || receipt === undefined) return null;
+  const filename = resolveInside(sceneDirectory, receipt.relative_path, label);
+  let bytes;
+  try {
+    bytes = await readFile(filename);
+  } catch {
+    throw new SceneServiceError(
+      409,
+      'BOUND_INPUT_INTEGRITY_FAILED',
+      `${label} is missing from its immutable receipt`,
+    );
+  }
+  if (sha256(bytes) !== receipt.sha256) {
+    throw new SceneServiceError(
+      409,
+      'BOUND_INPUT_INTEGRITY_FAILED',
+      `${label} no longer matches its immutable receipt`,
+    );
+  }
+  return bytes;
+}
+
+function fallbackProviderRequestManifest({
+  state,
+  attempt,
+  promptSha256,
+  repairPlan,
+}) {
+  // Test and local harness generators predate the adapter preflight.  This
+  // fallback still binds the logical request before they run, while the live
+  // SceneGeneratorAdapter always supplies the authoritative transport order.
+  return Object.freeze({
+    version: 'scene-provider-request-manifest-v1',
+    adapter_prepared: false,
+    route: {
+      job_set_type: attempt.route.job_set_type,
+      model: attempt.route.model,
+      model_version: attempt.route.model_version,
+      quality: attempt.route.quality,
+      route_hash: state.model_route.sha256,
+    },
+    delivery: {
+      aspect_ratio: '3:4',
+      width: state.delivery.width,
+      height: state.delivery.height,
+    },
+    compiled_prompt_sha256: promptSha256,
+    approved_look_sha256: state.bindings.approved_look.image_sha256,
+    approved_items_evidence_sha256: state.bindings.approved_items?.evidence_sha256 ?? null,
+    preset_sha256: state.bindings.preset.sha256,
+    reference_pack_sha256: state.bindings.reference_pack.sha256,
+    repair_plan_sha256: repairPlan ? repairPlanDigest(repairPlan) : null,
+  });
+}
+
+async function prepareProviderRequestManifest(generator, context, fallback) {
+  if (typeof generator?.prepareSceneGeneration !== 'function') {
+    const manifest = fallback;
+    return Object.freeze({
+      manifest,
+      sha256: sha256(canonicalJsonBytes(manifest)),
+      adapter_prepared: false,
+    });
+  }
+  const prepared = await generator.prepareSceneGeneration(context);
+  const manifest = prepared?.pre_spend_manifest;
+  const manifestSha256 = prepared?.pre_spend_manifest_sha256;
+  if (!manifest || typeof manifest !== 'object' || Array.isArray(manifest)
+    || typeof manifestSha256 !== 'string'
+    || manifestSha256 !== sha256(canonicalJsonBytes(manifest))) {
+    throw new SceneServiceError(
+      409,
+      'BOUND_INPUT_INTEGRITY_FAILED',
+      'Scene generator did not return a valid immutable pre-spend request manifest',
+    );
+  }
+  return Object.freeze({ manifest, sha256: manifestSha256, adapter_prepared: true });
+}
+
+async function writeRepairRequestManifest(sceneDirectory, state, attempt, repairPlan, {
+  repairAttempt,
+  repairCandidate,
+  compositionGuide,
+  compiledPrompt,
+  providerRequestManifest,
+} = {}) {
+  if (!compiledPrompt?.sha256 || !providerRequestManifest?.sha256) {
+    throw new Error('Repair request manifest requires compiled prompt and provider request receipts');
+  }
+  const manifest = {
+    version: 'scene-repair-request-manifest-v1',
+    scene_id: state.scene_id,
+    attempt: attempt.number,
+    route: attempt.route,
+    repair_plan_sha256: repairPlanDigest(repairPlan),
+    approved_look_sha256: state.bindings.approved_look.image_sha256,
+    approved_items_evidence_sha256: state.bindings.approved_items?.evidence_sha256 ?? null,
+    preset_sha256: state.bindings.preset.sha256,
+    reference_pack_sha256: state.bindings.reference_pack.sha256,
+    repair_source: repairAttempt ? {
+      attempt: repairAttempt.number,
+      candidate_sha256: repairCandidate?.sha256 ?? null,
+    } : null,
+    composition_guide: compositionGuide ? {
+      sha256: compositionGuide.sha256,
+      role: compositionGuide.role,
+    } : null,
+    compiled_prompt_sha256: compiledPrompt.sha256,
+    provider_request_manifest_sha256: providerRequestManifest.sha256,
+  };
+  const bytes = canonicalJsonBytes(manifest);
+  const relativePath = `attempts/${String(attempt.number).padStart(3, '0')}/repair-request-manifest.json`;
+  return writeOrVerifyImmutableArtifact(
+    sceneDirectory,
+    repairPlan.request_manifest,
+    relativePath,
+    bytes,
+    'Persisted repair request manifest',
+  );
+}
+
 function compiledPrompt({
   basePrompt,
   state,
@@ -1417,6 +1888,8 @@ function compiledPrompt({
   preset = null,
   approvedItems = [],
   repairAttempt = selectRepairAttempt(state, attempt),
+  compositionGuide = null,
+  repairPlan = null,
 }) {
   const camera = preset?.camera ?? null;
   const editorial = preset?.editorial ?? null;
@@ -1424,6 +1897,15 @@ function compiledPrompt({
   const requireFullFootwear = camera?.required_visibility?.full_footwear ?? true;
   const framingIntent = camera?.framing ?? 'full_body';
   const itemScope = editorial?.item_scope ?? 'ALL';
+  const gptBaseCanvasFirst = attempt?.route?.job_set_type === 'gpt_image_2'
+    && Boolean(compositionGuide);
+  const approvedMasterAttachment = gptBaseCanvasFirst ? 2 : 1;
+  const compositionGuideAttachment = compositionGuide
+    ? (gptBaseCanvasFirst ? 1 : 2)
+    : null;
+  const repairCandidateAttachment = repairAttempt
+    ? (compositionGuide ? 3 : 2)
+    : null;
   const detailItemId = itemScope === 'FIRST_ORDERED_ITEM'
     ? approvedItems[0]?.reference_set_id
     : null;
@@ -1456,14 +1938,28 @@ function compiledPrompt({
   const expectedMaximum = Array.isArray(expectedSubjectRange) && Number.isFinite(expectedSubjectRange[1])
     ? expectedSubjectRange[1]
     : 78;
-  const targetSubjectHeight = (expectedMinimum + expectedMaximum) / 2;
+  const styleScaleDefect = editorial
+    && repairAttempt?.qa.gates
+      ?.find((gate) => gate.id === 'SCENE_MATCH')
+      ?.defects
+      ?.some((defect) => FASHION_SHOOT_SCALE_DEFECTS.has(defect)) === true;
+  const styleGenerationTarget = editorial
+    ? sceneGenerationFramingTarget(preset).subject
+    : null;
+  const targetSubjectHeight = styleScaleDefect
+    ? styleGenerationTarget
+    : (expectedMinimum + expectedMaximum) / 2;
   const scaleHint = Number.isFinite(measuredSubjectHeight) && measuredSubjectHeight > 0
     ? (targetSubjectHeight / measuredSubjectHeight).toFixed(3)
     : null;
+  const subjectHeightDefect = framingGate?.defects
+    ?.includes('SUBJECT_HEIGHT_OUTSIDE_PRESET_RANGE') === true;
   const subjectTooLarge = Number.isFinite(measuredSubjectHeight)
-    && measuredSubjectHeight > expectedMaximum;
+    && measuredSubjectHeight > (styleScaleDefect ? styleGenerationTarget : expectedMaximum)
+    && (subjectHeightDefect || styleScaleDefect);
   const subjectTooSmall = Number.isFinite(measuredSubjectHeight)
-    && measuredSubjectHeight < expectedMinimum;
+    && measuredSubjectHeight < (styleScaleDefect ? styleGenerationTarget : expectedMinimum)
+    && (subjectHeightDefect || styleScaleDefect);
   // Keyed on the defect the assessment actually recorded, never on the preset's declared
   // minimum: an editorial slot whose headroom is waived measures under its own minimum and
   // is still a PASS on that axis, so reading the minimum would order a model to "fix"
@@ -1473,6 +1969,8 @@ function compiledPrompt({
     .find((gate) => gate.id === 'FRAMING_AND_ANATOMY')
     ?.defects
     ?.includes('INSUFFICIENT_CLEAR_SPACE_ABOVE_HAIR') === true;
+  const footwearFloorDefect = framingGate?.defects
+    ?.includes('INSUFFICIENT_CLEAR_SPACE_BELOW_FOOTWEAR') === true;
   const measuredAboveHair = framingLockEvidence?.clear_space_above_hair_percent;
   const measuredBelowFootwear = framingLockEvidence?.clear_space_below_footwear_percent;
   const minimumAboveHair = framingLockEvidence?.minimum_clear_space_above_hair_percent;
@@ -1513,9 +2011,12 @@ function compiledPrompt({
     basePrompt.trim(),
     '',
     'PRODUCTION INPUT AUTHORITY',
-    '- ATTACHMENT_1 is the immutable approved look and is the only authority for identity, body, hair, outfit, product details, logos and readable garment text.',
+    `- ATTACHMENT_${approvedMasterAttachment} is the immutable approved look and is the only authority for identity, body, hair, outfit, product details, logos and readable garment text.`,
+    ...(compositionGuide ? [
+      `- ATTACHMENT_${compositionGuideAttachment} is the hash-bound mechanical layout derivative of ${repairAttempt ? `failed scene attempt ${repairAttempt.number}` : 'the approved look'}. Its complete canvas and measured subject placement are the hard geometry authority${repairAttempt ? ' for this repair' : ''}; preserve the neutral border as space to reconstruct the authored environment.`,
+    ] : []),
     ...(repairAttempt ? [
-      `- ATTACHMENT_2 is the hash-bound failed scene candidate from attempt ${repairAttempt.number}. Edit this exact scene; it is not authority for identity or item details.`,
+      `- ATTACHMENT_${repairCandidateAttachment} is the original hash-bound failed scene candidate from attempt ${repairAttempt.number}. Use it for passed scene content, light and material continuity, but do not reuse its failed scale or crop and never treat it as identity or item authority.`,
     ] : []),
     '- Environment, lighting, composition, palette and negative references are role-limited exactly as declared by the attached reference pack.',
     '- Never copy a person, identity, garment, brand, text, landmark or exact architecture from a scene reference.',
@@ -1540,10 +2041,18 @@ function compiledPrompt({
     ...(repairAttempt ? [
       '',
       'REPAIR MODE — EDIT THE HASH-BOUND FAILED SCENE',
+      ...(repairPlan ? [
+        'DETERMINISTIC REPAIR ROUTER LOCK',
+        `- Route classification=${repairPlan.classification}; mechanism=${repairPlan.mechanism}; model_action=${repairPlan.model_action}. This route was selected from measured QA evidence, not from model prose.`,
+        `- Repair only defect signature ${repairPlan.defect_signature_sha256}; keep passed gates locked: ${repairPlan.locked_passed_gate_ids.join(', ') || 'none recorded'}.`,
+      ] : []),
+      ...(compositionGuide ? [
+        '- Start from the complete mechanical-guide canvas and keep its subject placement. Do not zoom into the placed subject or crop away the neutral field; fill only that field with a continuation of the already approved environment.',
+      ] : []),
       '- Make the smallest local edit required to pass QA. Do not regenerate or redesign scene content that already passed.',
       `- Preserve these passed gates exactly: ${passedGates.join(', ') || 'none recorded'}.`,
       `- Repair only these failed gates: ${failedGates.join(', ') || 'none recorded'}.`,
-      ...(framingPassed && framingLockEvidence
+      ...(framingPassed && !styleScaleDefect && framingLockEvidence
         && Array.isArray(framingLockEvidence.subject_bbox_xywh_px)
         && framingLockEvidence.subject_bbox_xywh_px.length === 4
         && framingLockEvidence.subject_bbox_xywh_px.every(Number.isFinite)
@@ -1592,6 +2101,14 @@ function compiledPrompt({
             `- Compose to about ${targetAboveHair}% empty above the hair, ${composedSubjectHeight}% person and ${targetBelowFootwear}% below the footwear, keeping the same person, pose, outfit, products, environment, light and camera character.`,
           ] : []),
         ] : []),
+        ...(footwearFloorDefect
+          && [measuredAboveHair, measuredBelowFootwear, minimumAboveHair, minimumBelowFootwear]
+            .every(Number.isFinite)
+          && measuredAboveHair - ((minimumBelowFootwear + 1) - measuredBelowFootwear)
+            >= minimumAboveHair ? [
+            `- Footwear clearance is the recorded defect: ${measuredBelowFootwear}% below the footwear against a ${minimumBelowFootwear}% minimum. Move the complete locked person-and-look group upward by ${Number(((minimumBelowFootwear + 1) - measuredBelowFootwear).toFixed(4))} percentage points, preserving its measured ${measuredSubjectHeight}% height and every other passed property.`,
+            `- Leave about ${minimumBelowFootwear + 1}% clean floor below the footwear. Do not zoom, rescale or redesign the person, items, pose, environment, light or camera character.`,
+          ] : []),
         // Never beside the block above: "scale up around the same optical center" is the
         // instruction whose clearance cost that block exists to state.
         ...(subjectTooSmall && !headroomShort ? [
@@ -1609,6 +2126,12 @@ function compiledPrompt({
         ...(scaleHint && !subjectInBand ? [
           `- The measured person height was ${measuredSubjectHeight}%. Scale the complete locked person-and-look group to approximately ${scaleHint} of its current rendered size.${subjectTooLarge ? ' Restore the surrounding scene by outpainting.' : ' Preserve the existing scene boundaries and fill only incidental edit seams.'}`,
         ] : []),
+      ] : []),
+      ...(styleScaleDefect ? [
+        'STYLE CAMERA CONSEQUENCE REPAIR',
+        `- The previous candidate failed the locked Fashion Shoot camera scale. Recompose the complete approved subject at approximately ${styleGenerationTarget}% of frame height so the authored environment, depth planes and camera consequence remain visible.`,
+        `- The measured person height was ${measuredSubjectHeight}%. Scale the complete locked person-and-look group to approximately ${scaleHint} of its current rendered size and outpaint only the surrounding authored environment.`,
+        '- Keep identity, approved items, pose intent, environment, light, palette and optical signature unchanged. Add no person, garment, prop, text or architecture from the references.',
       ] : []),
       ...(defects.length ? [
         '',
@@ -1759,7 +2282,10 @@ function candidateEligibleForDeliveryPolicyRecheck(state) {
   if (state.status !== SCENE_STATES.FAILED
     || state.error?.code !== 'SCENE_QA_EXHAUSTED') return false;
   const attempt = state.attempts.at(-1);
-  if (attempt?.status !== 'QA_FAILED' || !attempt.candidate || !Array.isArray(attempt.qa?.gates)) {
+  if (attempt?.status !== 'QA_FAILED'
+    || attempt.policy_recheck
+    || !attempt.candidate
+    || !Array.isArray(attempt.qa?.gates)) {
     return false;
   }
   const failed = attempt.qa.gates.filter((gate) => gate.decision === 'FAIL');
@@ -1780,6 +2306,30 @@ function candidateEligibleForDeliveryPolicyRecheck(state) {
   } catch {
     return false;
   }
+}
+
+function framingPolicyRecheckContract(state, framingEvidence) {
+  return {
+    preset: {
+      preset_id: state.bindings.preset.preset_id,
+      version: state.bindings.preset.version,
+      sha256: state.bindings.preset.sha256,
+      reference_pack_sha256: state.bindings.reference_pack.sha256,
+    },
+    delivery: structuredClone(state.delivery),
+    framing_evidence: structuredClone(framingEvidence),
+  };
+}
+
+function canonicalValuesEqual(left, right) {
+  return sha256(canonicalJsonBytes(left)) === sha256(canonicalJsonBytes(right));
+}
+
+function hasExactKeys(value, keys) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const actual = Object.keys(value).sort();
+  const expected = [...keys].sort();
+  return actual.length === expected.length && actual.every((key, index) => key === expected[index]);
 }
 
 function candidateEligibleForExportRetry(state) {
@@ -1852,7 +2402,7 @@ export class SceneService {
     delivery = DEFAULT_SCENE_DELIVERY,
     maxManualRetries = 2,
     qaMaxAttempts = 3,
-    fashionShootQaMode = 'review',
+    fashionShootQaMode = 'strict',
     observerTimeoutMs = 2_000,
     observer = null,
     autoRecoverQaInfrastructureFailures = false,
@@ -3315,6 +3865,7 @@ export class SceneService {
       started_at: nowIso(this.clock),
       updated_at: nowIso(this.clock),
       compiled_prompt: null,
+      provider_request_manifest: null,
       provider_source: null,
       candidate: null,
       provider_metadata: rejectionRecord ? {
@@ -3324,6 +3875,8 @@ export class SceneService {
         supersedes_output_sha256: rejectionRecord.receipt.rejected_release.output.sha256,
       } : {},
       normalization: null,
+      normalized_defect: null,
+      repair_plan: null,
       qa_infrastructure_attempts: 0,
       qa: null,
       error: null,
@@ -3335,6 +3888,256 @@ export class SceneService {
       message: `Generating scene attempt ${number} with ${route.model}`,
     }));
     return attempt;
+  }
+
+  // A policy-only recheck is not a generation retry.  The candidate was already
+  // paid for and the prior QA receipt was truthful under its old delivery
+  // ceiling.  Freeze that failure before changing the attempt back to
+  // QA_PENDING, then bind the recheck to the same candidate/prompt and the
+  // active framing contract.  This gives restart a receipt to verify without
+  // mutating or reinterpreting historic QA as current QA.
+  async #createFramingPolicyRecheckReceipt(sceneId, state, attempt, retryHash) {
+    if (!attempt?.candidate || !attempt?.compiled_prompt || !attempt?.qa) {
+      throw new SceneServiceError(
+        409,
+        'FRAMING_POLICY_RECHECK_UNAVAILABLE',
+        'The preserved candidate does not contain a complete historic QA receipt',
+      );
+    }
+    const assessment = assessSceneFraming(attempt.qa.framing_evidence, {
+      preset: { preset_id: state.bindings.preset.preset_id },
+      width: state.delivery.width,
+      height: state.delivery.height,
+    });
+    if (assessment.defects.length > 0) {
+      throw new SceneServiceError(
+        409,
+        'FRAMING_POLICY_RECHECK_UNAVAILABLE',
+        'The preserved candidate still fails the active framing policy',
+      );
+    }
+    const directory = this.sceneDirectory(sceneId);
+    const candidatePath = resolveInside(
+      directory,
+      attempt.candidate.relative_path,
+      'Framing-policy recheck candidate',
+    );
+    const promptPath = resolveInside(
+      directory,
+      attempt.compiled_prompt.relative_path,
+      'Framing-policy recheck prompt',
+    );
+    let candidateBytes;
+    let promptBytes;
+    try {
+      [candidateBytes, promptBytes] = await Promise.all([
+        readFile(candidatePath),
+        readFile(promptPath),
+      ]);
+    } catch {
+      throw new SceneServiceError(
+        409,
+        'BOUND_INPUT_INTEGRITY_FAILED',
+        'The preserved policy-recheck candidate or prompt is missing',
+      );
+    }
+    if (sha256(candidateBytes) !== attempt.candidate.sha256
+      || sha256(promptBytes) !== attempt.compiled_prompt.sha256) {
+      throw new SceneServiceError(
+        409,
+        'BOUND_INPUT_INTEGRITY_FAILED',
+        'The preserved policy-recheck candidate or prompt no longer matches its receipt',
+      );
+    }
+
+    const currentContract = framingPolicyRecheckContract(state, assessment.evidence);
+    const receipt = {
+      schema_version: SCENE_SCHEMA_VERSION,
+      receipt_type: FRAMING_POLICY_RECHECK_TYPE,
+      version: FRAMING_POLICY_RECHECK_VERSION,
+      scene_id: sceneId,
+      retry_request_sha256: retryHash,
+      source: {
+        attempt: attempt.number,
+        candidate: structuredClone(attempt.candidate),
+        prompt: structuredClone(attempt.compiled_prompt),
+        historic_qa: structuredClone(attempt.qa),
+        historic_normalized_defect: structuredClone(attempt.normalized_defect ?? null),
+      },
+      current_contract: currentContract,
+      decision: 'ELIGIBLE',
+    };
+    const receiptBytes = canonicalJsonBytes(receipt);
+    const receiptHash = sha256(receiptBytes);
+    const relativePath = `attempts/${String(attempt.number).padStart(3, '0')}`
+      + `/policy-rechecks/${retryHash}.json`;
+    await writeImmutable(path.join(directory, relativePath), receiptBytes);
+    return {
+      version: FRAMING_POLICY_RECHECK_VERSION,
+      relative_path: relativePath,
+      sha256: receiptHash,
+      retry_request_sha256: retryHash,
+      source_attempt: attempt.number,
+      candidate_sha256: attempt.candidate.sha256,
+      prompt_sha256: attempt.compiled_prompt.sha256,
+      historic_qa_sha256: sha256(canonicalJsonBytes(attempt.qa)),
+      historic_normalized_defect_sha256: sha256(canonicalJsonBytes(attempt.normalized_defect ?? null)),
+      current_contract_sha256: sha256(canonicalJsonBytes(currentContract)),
+    };
+  }
+
+  async #verifyFramingPolicyRecheckReceipt(sceneId, state, attempt) {
+    const pointer = attempt.policy_recheck;
+    if (!pointer) return null;
+    const directory = this.sceneDirectory(sceneId);
+    const receiptPath = resolveInside(
+      directory,
+      pointer.relative_path,
+      'Framing-policy recheck receipt',
+    );
+    let bytes;
+    let receipt;
+    try {
+      bytes = await readFile(receiptPath);
+      receipt = JSON.parse(bytes.toString('utf8'));
+    } catch {
+      throw new SceneServiceError(
+        409,
+        'BOUND_INPUT_INTEGRITY_FAILED',
+        'The framing-policy recheck receipt is missing or unreadable',
+      );
+    }
+    if (sha256(bytes) !== pointer.sha256 || !bytes.equals(canonicalJsonBytes(receipt))) {
+      throw new SceneServiceError(
+        409,
+        'BOUND_INPUT_INTEGRITY_FAILED',
+        'The framing-policy recheck receipt no longer matches its immutable hash',
+      );
+    }
+    if (!hasExactKeys(receipt, [
+      'schema_version',
+      'receipt_type',
+      'version',
+      'scene_id',
+      'retry_request_sha256',
+      'source',
+      'current_contract',
+      'decision',
+    ]) || !hasExactKeys(receipt.source, [
+      'attempt',
+      'candidate',
+      'prompt',
+      'historic_qa',
+      'historic_normalized_defect',
+    ])) {
+      throw new SceneServiceError(
+        409,
+        'BOUND_INPUT_INTEGRITY_FAILED',
+        'The framing-policy recheck receipt has an invalid contract shape',
+      );
+    }
+    if (receipt.schema_version !== SCENE_SCHEMA_VERSION
+      || receipt.receipt_type !== FRAMING_POLICY_RECHECK_TYPE
+      || receipt.version !== FRAMING_POLICY_RECHECK_VERSION
+      || receipt.scene_id !== sceneId
+      || receipt.retry_request_sha256 !== pointer.retry_request_sha256
+      || receipt.decision !== 'ELIGIBLE') {
+      throw new SceneServiceError(
+        409,
+        'BOUND_INPUT_INTEGRITY_FAILED',
+        'The framing-policy recheck receipt does not match its state binding',
+      );
+    }
+    const source = receipt.source;
+    if (source.attempt !== pointer.source_attempt
+      || source.attempt !== attempt.number
+      || !canonicalValuesEqual(source.candidate, attempt.candidate)
+      || !canonicalValuesEqual(source.prompt, attempt.compiled_prompt)
+      || sha256(canonicalJsonBytes(source.historic_qa)) !== pointer.historic_qa_sha256
+      || sha256(canonicalJsonBytes(source.historic_normalized_defect))
+        !== pointer.historic_normalized_defect_sha256
+      || pointer.candidate_sha256 !== attempt.candidate.sha256
+      || pointer.prompt_sha256 !== attempt.compiled_prompt.sha256) {
+      throw new SceneServiceError(
+        409,
+        'BOUND_INPUT_INTEGRITY_FAILED',
+        'The framing-policy recheck receipt no longer matches its preserved attempt',
+      );
+    }
+    if (!hasExactKeys(receipt.current_contract, [
+      'preset',
+      'delivery',
+      'framing_evidence',
+    ])) {
+      throw new SceneServiceError(
+        409,
+        'BOUND_INPUT_INTEGRITY_FAILED',
+        'The framing-policy recheck contract is invalid',
+      );
+    }
+    const currentAssessment = assessSceneFraming(source.historic_qa?.framing_evidence, {
+      preset: { preset_id: state.bindings.preset.preset_id },
+      width: state.delivery.width,
+      height: state.delivery.height,
+    });
+    const expectedContract = framingPolicyRecheckContract(state, currentAssessment.evidence);
+    if (currentAssessment.defects.length > 0
+      || !canonicalValuesEqual(receipt.current_contract, expectedContract)
+      || pointer.current_contract_sha256 !== sha256(canonicalJsonBytes(expectedContract))) {
+      throw new SceneServiceError(
+        409,
+        'BOUND_INPUT_INTEGRITY_FAILED',
+        'The framing-policy recheck no longer matches the active framing contract',
+      );
+    }
+    const candidatePath = resolveInside(
+      directory,
+      attempt.candidate.relative_path,
+      'Framing-policy recheck candidate',
+    );
+    const promptPath = resolveInside(
+      directory,
+      attempt.compiled_prompt.relative_path,
+      'Framing-policy recheck prompt',
+    );
+    let candidateBytes;
+    let promptBytes;
+    try {
+      [candidateBytes, promptBytes] = await Promise.all([
+        readFile(candidatePath),
+        readFile(promptPath),
+      ]);
+    } catch {
+      throw new SceneServiceError(
+        409,
+        'BOUND_INPUT_INTEGRITY_FAILED',
+        'The framing-policy recheck candidate or prompt is missing',
+      );
+    }
+    if (sha256(candidateBytes) !== pointer.candidate_sha256
+      || sha256(promptBytes) !== pointer.prompt_sha256) {
+      throw new SceneServiceError(
+        409,
+        'BOUND_INPUT_INTEGRITY_FAILED',
+        'The framing-policy recheck candidate or prompt no longer matches its receipt',
+      );
+    }
+    // During the transition the live attempt still exposes the historical QA so
+    // state validation can prove it. Once fresh QA lands it is intentionally
+    // replaced; this archive remains the immutable record of the old verdict.
+    if (attempt.status === 'QA_PENDING'
+      && (!canonicalValuesEqual(attempt.qa, source.historic_qa)
+        || !canonicalValuesEqual(
+          attempt.normalized_defect ?? null,
+          source.historic_normalized_defect,
+        ))) {
+      throw new SceneServiceError(
+        409,
+        'BOUND_INPUT_INTEGRITY_FAILED',
+        'The framing-policy recheck lost its historic QA binding before evaluation',
+      );
+    }
+    return receipt;
   }
 
   async #newDeterministicFramingAttempt(sceneId, state, sourceAttempt) {
@@ -3418,6 +4221,7 @@ export class SceneService {
       started_at: now,
       updated_at: now,
       compiled_prompt: structuredClone(sourceAttempt.compiled_prompt),
+      provider_request_manifest: structuredClone(sourceAttempt.provider_request_manifest ?? null),
       provider_source: structuredClone(sourceAttempt.provider_source),
       candidate: {
         relative_path: path.relative(sceneDirectory, repairedPath),
@@ -3449,6 +4253,8 @@ export class SceneService {
         trigger_framing_evidence: structuredClone(sourceAttempt.qa.framing_evidence),
         trigger_reviewer: structuredClone(sourceAttempt.qa.reviewer),
       },
+      normalized_defect: null,
+      repair_plan: null,
       qa_infrastructure_attempts: 0,
       qa: null,
       error: null,
@@ -3531,7 +4337,7 @@ export class SceneService {
   }
 
   async #generate(sceneId, attempt, signal) {
-    const state = await this.#read(sceneId);
+    let state = await this.#read(sceneId);
     const directory = this.sceneDirectory(sceneId);
     let bound = await this.#verifyBoundInputs(state);
     let rejectionRecord = attempt.provider_metadata.rejection_id
@@ -3553,19 +4359,107 @@ export class SceneService {
         'Post-release repair attempt no longer matches its rejection receipt',
       );
     }
-    const repairAttempt = rejectionRecord?.repairAttempt
+    let repairAttempt = rejectionRecord?.repairAttempt
       ?? selectRepairAttempt(state, attempt);
     const repairCandidate = await verifiedRepairCandidate(
       directory,
       state,
       repairAttempt,
     );
-    const compositionGuide = repairCandidate
-      ? await mechanicalFramingGuide(directory, state, repairAttempt, repairCandidate)
-      : await initialComposedMasterGuide(directory, state, attempt.number, {
+    let repairPlan = attempt.repair_plan ?? null;
+    if (repairAttempt && !repairPlan) {
+      const normalizedDefect = repairAttempt.normalized_defect
+        ?? normalizedFramingDefectForAttempt(state, repairAttempt, bound.preset);
+      // A legacy scene may have a valid QA receipt created before the router
+      // existed. Add the deterministic observation to that source attempt once;
+      // then the destination plan is crash-safe before any provider call.
+      if (normalizedDefect && !repairAttempt.normalized_defect) {
+        repairAttempt = { ...repairAttempt, normalized_defect: normalizedDefect };
+        await this.#checkpointAttempt(sceneId, repairAttempt);
+        state = await this.#read(sceneId);
+      }
+      if (normalizedDefect) {
+        repairPlan = planSceneRepair({
+          normalized_defect: normalizedDefect,
+          current_attempt: repairAttempt,
+          model_route: state.model_route.entries,
+          // The current failed source must not count as its own previous miss.
+          // Include every previous attempt (including the current failed
+          // source). The router deliberately ignores the source for progress
+          // arithmetic, but can then see whether a guide already failed and
+          // must spend the final configured fallback rather than repeat it.
+          repair_history: state.attempts.filter((item) => item.number < attempt.number),
+          locked_passed_gate_ids: attemptedPassedGateIds(repairAttempt),
+          framing_evidence: repairAttempt.qa?.framing_evidence,
+          delivery: state.delivery,
+          // Free crop is selected and executed inside #evaluate. A destination
+          // generation can never consume a crop plan retroactively.
+          crop_plan: false,
+        });
+        validateSceneRepairPlan(repairPlan);
+      }
+    }
+
+    let compositionGuide = null;
+    if (repairPlan?.mechanism === 'MECHANICAL_GUIDE') {
+      compositionGuide = await rehydrateRepairGuide(directory, repairPlan);
+      if (!compositionGuide) {
+        compositionGuide = repairCandidate
+          ? await mechanicalFramingGuide(
+            directory,
+            state,
+            repairAttempt,
+            repairCandidate,
+            bound.preset,
+            attempt.number,
+          )
+          : null;
+        // A 65% person can be un-croppable without being an oversize/outpaint
+        // case. The approved white master then supplies the geometry-only
+        // canvas; the failed candidate remains an evidence attachment for
+        // environment and light, never identity or wardrobe.
+        if (!compositionGuide) {
+          compositionGuide = await initialComposedMasterGuide(directory, state, attempt.number, {
+            path: bound.approvedLookPath,
+            sha256: state.bindings.approved_look.image_sha256,
+          }, '3:4', bound.preset);
+          if (compositionGuide) {
+            compositionGuide = {
+              ...compositionGuide,
+              source_attempt: repairAttempt?.number,
+              transform: 'approved_master_geometry_layout',
+            };
+          }
+        }
+        if (!compositionGuide) {
+          throw new SceneServiceError(
+            409,
+            'REPAIR_GUIDE_UNAVAILABLE',
+            'The deterministic repair route requires a mechanical guide, but no immutable guide could be assembled',
+          );
+        }
+        repairPlan = {
+          ...repairPlan,
+          guide: await repairGuideReceipt(directory, compositionGuide),
+        };
+      }
+    } else if (!repairAttempt) {
+      compositionGuide = await initialComposedMasterGuide(directory, state, attempt.number, {
         path: bound.approvedLookPath,
         sha256: state.bindings.approved_look.image_sha256,
-      }, '3:4');
+      }, '3:4', bound.preset);
+    } else if (!repairPlan && repairCandidate) {
+      // Preserve the earlier, non-framing repair behavior. This branch has no
+      // normalized geometry defect and therefore must not fabricate a router plan.
+      compositionGuide = await mechanicalFramingGuide(
+        directory,
+        state,
+        repairAttempt,
+        repairCandidate,
+        bound.preset,
+        attempt.number,
+      );
+    }
     const prompt = compiledPrompt({
       basePrompt: bound.prompt,
       state,
@@ -3573,16 +4467,130 @@ export class SceneService {
       preset: bound.preset,
       approvedItems: bound.approvedItems,
       repairAttempt,
+      compositionGuide,
+      repairPlan,
     });
     const promptBytes = Buffer.from(prompt);
     const promptRelativePath = `attempts/${String(attempt.number).padStart(3, '0')}/compiled-prompt.txt`;
-    await writeImmutable(path.join(directory, promptRelativePath), promptBytes);
+    if (attempt.compiled_prompt && !attempt.provider_request_manifest) {
+      // An interrupted legacy GENERATING checkpoint might already have been
+      // submitted under an unbound request. Reconstructing it and sending it
+      // again could duplicate a paid provider job, so it is deliberately not
+      // resumed. A manual retry creates a fresh, v13-bound attempt instead.
+      throw new SceneServiceError(
+        409,
+        'BOUND_INPUT_INTEGRITY_FAILED',
+        'A legacy generating attempt has no immutable provider request receipt and cannot be resumed safely',
+      );
+    }
+    const compiledPromptReceipt = await writeOrVerifyImmutableArtifact(
+      directory,
+      attempt.compiled_prompt,
+      promptRelativePath,
+      promptBytes,
+      'Compiled scene prompt',
+    );
     attempt = {
       ...attempt,
-      compiled_prompt: {
-        relative_path: promptRelativePath,
-        sha256: sha256(promptBytes),
+      compiled_prompt: compiledPromptReceipt,
+    };
+
+    const baseGenerationContext = {
+      scene_id: sceneId,
+      attempt: attempt.number,
+      cycle: attempt.cycle,
+      cycle_attempt: attempt.cycle_attempt,
+      model: attempt.route.model,
+      model_version: attempt.route.model_version,
+      job_set_type: attempt.route.job_set_type,
+      quality: attempt.route.quality,
+      route_hash: state.model_route.sha256,
+      idempotency_key: attempt.generation_idempotency_key,
+      aspect_ratio: '3:4',
+      width: state.delivery.width,
+      height: state.delivery.height,
+      prompt,
+      prompt_sha256: attempt.compiled_prompt.sha256,
+      approved_look: {
+        path: bound.approvedLookPath,
+        sha256: state.bindings.approved_look.image_sha256,
+        media_type: state.bindings.approved_look.media_type,
+        role: 'look_master',
       },
+      preset: {
+        path: bound.presetPath,
+        sha256: state.bindings.preset.sha256,
+        preset_id: state.bindings.preset.preset_id,
+        version: state.bindings.preset.version,
+      },
+      reference_pack: {
+        path: bound.referencePackPath,
+        sha256: state.bindings.reference_pack.sha256,
+        reference_pack_id: state.bindings.reference_pack.reference_pack_id,
+        version: state.bindings.reference_pack.version,
+      },
+      references: bound.references,
+      shot_anchors: bound.shotAnchors,
+      item_evidence: bound.approvedItems,
+      repair_candidate: repairCandidate,
+      composition_guide: compositionGuide,
+      repair_plan: repairPlan,
+      repair_plan_sha256: repairPlan ? repairPlanDigest(repairPlan) : null,
+      work_directory: this.attemptDirectory(sceneId, attempt.number),
+      signal,
+    };
+    const preparedRequest = await prepareProviderRequestManifest(
+      this.generator,
+      baseGenerationContext,
+      fallbackProviderRequestManifest({
+        state,
+        attempt,
+        promptSha256: attempt.compiled_prompt.sha256,
+        repairPlan,
+      }),
+    );
+    const providerRequestRelativePath = `attempts/${String(attempt.number).padStart(3, '0')}/provider-request-manifest.json`;
+    const providerRequestReceipt = await writeOrVerifyImmutableArtifact(
+      directory,
+      attempt.provider_request_manifest,
+      providerRequestRelativePath,
+      canonicalJsonBytes(preparedRequest.manifest),
+      'Provider request manifest',
+    );
+    if (providerRequestReceipt.sha256 !== preparedRequest.sha256) {
+      throw new SceneServiceError(
+        409,
+        'BOUND_INPUT_INTEGRITY_FAILED',
+        'Provider request manifest receipt does not match the prepared request',
+      );
+    }
+    if (repairPlan) {
+      const requestManifest = await writeRepairRequestManifest(directory, state, attempt, repairPlan, {
+        repairAttempt,
+        repairCandidate,
+        compositionGuide,
+        compiledPrompt: attempt.compiled_prompt,
+        providerRequestManifest: providerRequestReceipt,
+      });
+      repairPlan = { ...repairPlan, request_manifest: requestManifest };
+    }
+    // Every provider call is keyed by the exact immutable request derived by
+    // the adapter. A restart must recompile the same prompt and attachment
+    // order, or stop before spend instead of coalescing a different request.
+    const repairPlanSha256 = repairPlan ? repairPlanDigest(repairPlan) : null;
+    attempt = {
+      ...attempt,
+      provider_request_manifest: providerRequestReceipt,
+      repair_plan: repairPlan,
+      generation_idempotency_key: sha256(canonicalJsonBytes({
+        version: 'scene-provider-idempotency-v2',
+        scene_id: sceneId,
+        attempt: attempt.number,
+        cycle: attempt.cycle,
+        model_version: attempt.route.model_version,
+        provider_request_manifest_sha256: providerRequestReceipt.sha256,
+        repair_plan_sha256: repairPlanSha256,
+      })),
     };
     await this.#checkpointAttempt(sceneId, attempt);
     if (signal.aborted) return null;
@@ -3590,46 +4598,11 @@ export class SceneService {
     let generated;
     try {
       generated = await this.generator.generateScene({
-        scene_id: sceneId,
-        attempt: attempt.number,
-        cycle: attempt.cycle,
-        cycle_attempt: attempt.cycle_attempt,
-        model: attempt.route.model,
-        model_version: attempt.route.model_version,
-        job_set_type: attempt.route.job_set_type,
-        quality: attempt.route.quality,
-        route_hash: state.model_route.sha256,
+        ...baseGenerationContext,
         idempotency_key: attempt.generation_idempotency_key,
-        aspect_ratio: '3:4',
-        width: state.delivery.width,
-        height: state.delivery.height,
-        prompt,
-        prompt_sha256: attempt.compiled_prompt.sha256,
-        approved_look: {
-          path: bound.approvedLookPath,
-          sha256: state.bindings.approved_look.image_sha256,
-          media_type: state.bindings.approved_look.media_type,
-          role: 'look_master',
-        },
-        preset: {
-          path: bound.presetPath,
-          sha256: state.bindings.preset.sha256,
-          preset_id: state.bindings.preset.preset_id,
-          version: state.bindings.preset.version,
-        },
-        reference_pack: {
-          path: bound.referencePackPath,
-          sha256: state.bindings.reference_pack.sha256,
-          reference_pack_id: state.bindings.reference_pack.reference_pack_id,
-          version: state.bindings.reference_pack.version,
-        },
-        references: bound.references,
-        shot_anchors: bound.shotAnchors,
-        item_evidence: bound.approvedItems,
-        repair_candidate: repairCandidate,
-        composition_guide: compositionGuide,
-        work_directory: this.attemptDirectory(sceneId, attempt.number),
-        signal,
+        repair_plan: repairPlan,
+        repair_plan_sha256: repairPlanSha256,
+        expected_pre_spend_manifest_sha256: providerRequestReceipt.sha256,
       });
       if (signal.aborted) return null;
       bound = await this.#verifyBoundInputs(await this.#read(sceneId));
@@ -3812,8 +4785,10 @@ export class SceneService {
 
   async #evaluate(sceneId, attempt, signal) {
     const state = await this.#read(sceneId);
+    attempt = state?.attempts.find((item) => item.number === attempt.number) ?? attempt;
     const directory = this.sceneDirectory(sceneId);
     let bound = await this.#verifyBoundInputs(state);
+    await this.#verifyFramingPolicyRecheckReceipt(sceneId, state, attempt);
     let normalized;
     try {
       const result = await this.evaluator.evaluateScene({
@@ -3882,6 +4857,7 @@ export class SceneService {
           `Deterministic framing lock failed: ${framingAssessment.defects.join(', ')}`,
         ].filter(Boolean).join('; '));
       }
+      normalized = applyFashionShootCompositionScaleLock(normalized, bound.preset);
       normalized = applyFashionShootVisualReviewPolicy(
         normalized,
         state.bindings.preset.preset_id,
@@ -3907,6 +4883,34 @@ export class SceneService {
       }
       return attempt;
     }
+    const preflight = createPreflightGates(
+      state.bindings.approved_look.image_sha256,
+      state.bindings.reference_pack.sha256,
+      state.bindings.approved_items?.evidence_sha256 ?? null,
+    );
+    const visualPass = normalized.gates.every((gate) => gate.decision === 'PASS');
+    const qaReceipt = {
+      decision: visualPass ? 'PASS' : 'FAIL',
+      gates: [...preflight, ...normalized.gates],
+      score: normalized.score,
+      summary: normalized.summary,
+      reviewer: normalized.reviewer,
+      framing_evidence: normalized.framing_evidence,
+      ...(normalized.item_fidelity_evidence ? {
+        item_fidelity_evidence: normalized.item_fidelity_evidence,
+      } : {}),
+    };
+    const routingSourceAttempt = { ...attempt, qa: qaReceipt };
+    // A re-check that now passes must not keep a live failure receipt merely
+    // because an older workflow attached one to the same attempt. The one
+    // exception is a free deterministic crop: its plan is the audit trail for
+    // the just-replaced source pixels and deliberately retains the source
+    // defect while this same attempt moves through QA_PENDING → QA_PASS.
+    const normalizedDefect = visualPass
+      ? (attempt.repair_plan?.mechanism === 'MECHANICAL_CROP'
+        ? (attempt.normalized_defect ?? null)
+        : null)
+      : normalizedFramingDefectForAttempt(state, routingSourceAttempt, bound.preset);
     const failedVisualGates = normalized.gates.filter((gate) => gate.decision === 'FAIL');
     const cropEligible = attempt.normalization?.strategy === 'same_aspect_lossless_resize'
       && failedVisualGates.length === 1
@@ -3915,6 +4919,14 @@ export class SceneService {
       ? deterministicFramingCropPlan(normalized.framing_evidence, state.delivery)
       : null;
     if (cropPlan) {
+      const cropRepairPlan = normalizedDefect
+        ? createDeterministicCropRepairPlan({
+          normalized_defect: normalizedDefect,
+          framing_evidence: normalized.framing_evidence,
+          delivery: state.delivery,
+          locked_passed_gate_ids: attemptedPassedGateIds(routingSourceAttempt),
+        })
+        : null;
       const sourceCandidate = attempt.candidate;
       const sourcePath = resolveInside(
         directory,
@@ -3965,6 +4977,8 @@ export class SceneService {
           trigger_framing_evidence: normalized.framing_evidence,
           trigger_reviewer: normalized.reviewer,
         },
+        normalized_defect: normalizedDefect,
+        repair_plan: cropRepairPlan ?? attempt.repair_plan,
         qa: null,
         error: null,
       };
@@ -3976,26 +4990,11 @@ export class SceneService {
       }));
       return attempt;
     }
-    const preflight = createPreflightGates(
-      state.bindings.approved_look.image_sha256,
-      state.bindings.reference_pack.sha256,
-      state.bindings.approved_items?.evidence_sha256 ?? null,
-    );
-    const visualPass = normalized.gates.every((gate) => gate.decision === 'PASS');
     attempt = {
       ...attempt,
       status: visualPass ? 'QA_PASS' : 'QA_FAILED',
-      qa: {
-        decision: visualPass ? 'PASS' : 'FAIL',
-        gates: [...preflight, ...normalized.gates],
-        score: normalized.score,
-        summary: normalized.summary,
-        reviewer: normalized.reviewer,
-        framing_evidence: normalized.framing_evidence,
-        ...(normalized.item_fidelity_evidence ? {
-          item_fidelity_evidence: normalized.item_fidelity_evidence,
-        } : {}),
-      },
+      qa: qaReceipt,
+      normalized_defect: normalizedDefect,
       error: visualPass ? null : {
         code: 'BLOCKING_QA_FAILED',
         message: [
@@ -4111,6 +5110,24 @@ export class SceneService {
     });
     if (state.status !== SCENE_STATES.RUNNING) return state;
     const directory = this.sceneDirectory(sceneId);
+    for (const historicalAttempt of state.attempts) {
+      await verifyImmutableArtifactReceipt(
+        directory,
+        historicalAttempt.provider_request_manifest ?? null,
+        'Provider request manifest',
+      );
+      if (historicalAttempt.repair_plan?.request_manifest) {
+        await verifyImmutableArtifactReceipt(
+          directory,
+          historicalAttempt.repair_plan.request_manifest,
+          'Repair request manifest',
+        );
+      }
+      if (historicalAttempt.repair_plan?.guide) {
+        await rehydrateRepairGuide(directory, historicalAttempt.repair_plan);
+      }
+      await this.#verifyFramingPolicyRecheckReceipt(sceneId, state, historicalAttempt);
+    }
     const candidatePath = resolveInside(directory, attempt.candidate.relative_path, 'Approved scene candidate');
     const candidateBytes = await readFile(candidatePath);
     const outputHash = sha256(candidateBytes);
@@ -4188,6 +5205,7 @@ export class SceneService {
         job_set_type: attempt.route.job_set_type,
         quality: attempt.route.quality,
         generation_idempotency_key: attempt.generation_idempotency_key,
+        provider_request_manifest: attempt.provider_request_manifest ?? null,
         provider_source_sha256: attempt.provider_source.sha256,
         provider_metadata: attempt.provider_metadata,
         normalization: attempt.normalization,
@@ -4203,8 +5221,11 @@ export class SceneService {
         quality: item.route.quality,
         generation_idempotency_key: item.generation_idempotency_key,
         prompt_sha256: item.compiled_prompt?.sha256 ?? null,
+        provider_request_manifest: item.provider_request_manifest ?? null,
         provider_source_sha256: item.provider_source?.sha256 ?? null,
         candidate_sha256: item.candidate?.sha256 ?? null,
+        normalized_defect: item.normalized_defect ?? null,
+        repair_plan: item.repair_plan ?? null,
         qa: item.qa ? {
           decision: item.qa.decision,
           gates: item.qa.gates,
@@ -4844,6 +5865,14 @@ export class SceneService {
       const deterministicAttempt = deterministicSource
         ? await this.#newDeterministicFramingAttempt(sceneId, current, deterministicSource)
         : null;
+      const framingPolicyRecheckReceipt = framingPolicyRecheck
+        ? await this.#createFramingPolicyRecheckReceipt(
+          sceneId,
+          current,
+          current.attempts.at(-1),
+          retryHash,
+        )
+        : null;
       const state = await this.#mutate(sceneId, (current) => {
         if (current.retry_requests.includes(retryHash)) return NO_CHANGE;
         if (![SCENE_STATES.FAILED, SCENE_STATES.CANCELLED].includes(current.status)) {
@@ -4881,6 +5910,20 @@ export class SceneService {
             );
           }
         }
+        if (framingPolicyRecheck
+          && (!framingPolicyRecheckReceipt
+            || current.attempts.at(-1)?.number !== framingPolicyRecheckReceipt.source_attempt
+            || current.attempts.at(-1)?.candidate?.sha256
+              !== framingPolicyRecheckReceipt.candidate_sha256
+            || current.attempts.at(-1)?.compiled_prompt?.sha256
+              !== framingPolicyRecheckReceipt.prompt_sha256
+            || current.attempts.at(-1)?.policy_recheck)) {
+          throw new SceneServiceError(
+            409,
+            'SCENE_STATE_CONFLICT',
+            'The preserved candidate changed before the framing-policy recheck was queued',
+          );
+        }
         const preserveCandidateForQa = qaOnlyRetry || framingPolicyRecheck;
         const attempts = deterministicAttempt
           ? [...current.attempts, deterministicAttempt]
@@ -4892,7 +5935,15 @@ export class SceneService {
               ...attempt,
               status: 'QA_PENDING',
               qa_infrastructure_attempts: 0,
-              qa: null,
+              // A normal infrastructure retry clears its incomplete QA. A
+              // policy recheck instead keeps the historic QA long enough for
+              // the immutable decision receipt to bind it; #evaluate replaces
+              // it only after a fresh full QA result exists.
+              ...(framingPolicyRecheck ? {
+                policy_recheck: framingPolicyRecheckReceipt,
+              } : {
+                qa: null,
+              }),
               error: null,
             }
             : attempt)

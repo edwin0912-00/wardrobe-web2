@@ -53,7 +53,7 @@ export function createSceneRuntimeDependencies({
   monitor = null,
   vlmProvider = process.env.ZEELY_VLM_PROVIDER ?? CODEX_VLM_PROVIDER,
   sceneEvaluator,
-  fashionShootQaMode = process.env.ZEELY_FASHION_SHOOT_QA_MODE ?? 'review',
+  fashionShootQaMode = process.env.ZEELY_FASHION_SHOOT_QA_MODE ?? 'strict',
 } = {}) {
   if (typeof projectRoot !== 'string' || projectRoot.trim() === '') {
     throw new TypeError('createSceneRuntimeDependencies projectRoot is required');

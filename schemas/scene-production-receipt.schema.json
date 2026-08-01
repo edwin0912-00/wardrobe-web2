@@ -107,6 +107,12 @@
         "job_set_type": { "type": "string", "minLength": 1 },
         "quality": { "type": "string", "minLength": 1 },
         "generation_idempotency_key": { "$ref": "#/$defs/sha256" },
+        "provider_request_manifest": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/repairPlanRequestManifest" }
+          ]
+        },
         "provider_source_sha256": { "$ref": "#/$defs/sha256" },
         "provider_metadata": { "$ref": "#/$defs/providerMetadata" },
         "normalization": { "$ref": "#/$defs/normalization" }
@@ -1604,6 +1610,18 @@
         }
       ],
       "dependentRequired": {
+        "provider_image_reference_manifest_version": [
+          "provider_image_reference_manifest_json",
+          "provider_image_reference_manifest_sha256"
+        ],
+        "provider_image_reference_manifest_json": [
+          "provider_image_reference_manifest_version",
+          "provider_image_reference_manifest_sha256"
+        ],
+        "provider_image_reference_manifest_sha256": [
+          "provider_image_reference_manifest_version",
+          "provider_image_reference_manifest_json"
+        ],
         "repair_candidate_sha256": ["repair_from_attempt"],
         "repair_from_attempt": ["repair_candidate_sha256"],
         "rejection_id": [
@@ -1676,6 +1694,21 @@
         },
         "geometry_crop_fraction": { "type": "number", "minimum": 0, "maximum": 0.22 },
         "reference_role_order": { "type": "string", "maxLength": 500 },
+        "reference_manifest_version": {
+          "enum": ["scene-reference-manifest-v2-model-aware"]
+        },
+        "provider_reference_strategy": {
+          "enum": ["GPT_IMAGE_2_BASE_CANVAS_FIRST", "EXPLICIT_ROLE_MASTER_FIRST"]
+        },
+        "provider_image_reference_manifest_version": {
+          "const": "provider-image-reference-manifest-v1"
+        },
+        "provider_image_reference_manifest_json": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 4096
+        },
+        "provider_image_reference_manifest_sha256": { "$ref": "#/$defs/sha256" },
         "reference_evidence_sha256": { "$ref": "#/$defs/sha256" },
         "attached_reference_count": { "type": "number", "minimum": 1 },
         "structured_reference_count": { "type": "number", "minimum": 0 },
@@ -1685,6 +1718,22 @@
         "outbound_prompt_sha256": { "$ref": "#/$defs/sha256" },
         "repair_candidate_sha256": { "$ref": "#/$defs/sha256" },
         "repair_from_attempt": { "type": "integer", "minimum": 1 },
+        "mechanical_framing_guide_sha256": { "$ref": "#/$defs/sha256" },
+        "mechanical_framing_guide_source_attempt": { "type": "integer", "minimum": 1 },
+        "mechanical_framing_guide_target_subject_height_percent": { "type": "number", "minimum": 0, "maximum": 100 },
+        "mechanical_framing_guide_target_clear_space_above_hair_percent": { "type": "number", "minimum": 0, "maximum": 100 },
+        "mechanical_framing_guide_target_clear_space_below_footwear_percent": { "type": "number", "minimum": 0, "maximum": 100 },
+        "mechanical_framing_guide_transform": {
+          "enum": ["style_camera_scale", "translate_up_without_rescale", "approved_master_geometry_layout"]
+        },
+        "repair_route_version": { "const": "scene-repair-plan-v1" },
+        "repair_route_classification": { "type": "string", "maxLength": 100 },
+        "repair_route_mechanism": { "type": "string", "maxLength": 100 },
+        "repair_route_model_action": { "type": "string", "maxLength": 100 },
+        "repair_route_decision_reason": { "type": "string", "maxLength": 300 },
+        "repair_defect_signature_sha256": { "$ref": "#/$defs/sha256" },
+        "repair_distance_to_delivery_band_pp": { "type": ["number", "null"], "minimum": 0 },
+        "repair_progress_pp": { "type": ["number", "null"] },
         "rejection_id": { "$ref": "#/$defs/id" },
         "rejection_receipt_sha256": { "$ref": "#/$defs/sha256" },
         "rejection_gate_id": {
@@ -1854,6 +1903,74 @@
       ],
       "items": false
     },
+    "normalizedDefect": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "gate", "defect_code", "direction", "metric", "observed", "target", "preferred_band", "delivery_band", "measurement_epsilon", "distance_to_delivery_band_pp", "signature_sha256", "candidate_sha256", "prompt_sha256", "attempt", "cycle"],
+      "properties": {
+        "version": { "const": "scene-normalized-defect-v1" },
+        "gate": { "enum": ["MASTER_LOOK_LOCK", "REFERENCE_ROLE_ISOLATION", "NEAR_COPY_AND_LEAKAGE", "IDENTITY", "ITEM_FIDELITY", "SCENE_MATCH", "LIGHT_AND_CONTACT_SHADOW", "FRAMING_AND_ANATOMY", "PROVENANCE"] },
+        "defect_code": { "type": "string", "minLength": 1 },
+        "direction": { "type": "string", "minLength": 1 },
+        "metric": { "type": "string", "minLength": 1 },
+        "observed": { "type": "number" },
+        "target": { "type": "number" },
+        "preferred_band": { "type": "array", "minItems": 2, "maxItems": 2, "items": { "type": "number" } },
+        "delivery_band": { "type": "array", "minItems": 2, "maxItems": 2, "items": { "type": "number" } },
+        "measurement_epsilon": { "type": "number", "minimum": 0 },
+        "distance_to_delivery_band_pp": { "type": "number", "minimum": 0 },
+        "signature_sha256": { "$ref": "#/$defs/sha256" },
+        "candidate_sha256": { "$ref": "#/$defs/sha256" },
+        "prompt_sha256": { "$ref": "#/$defs/sha256" },
+        "attempt": { "type": "integer", "minimum": 1 },
+        "cycle": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "repairPlanGuide": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["relative_path", "sha256", "size", "media_type", "transform", "target_subject_height_percent", "target_clear_space_above_hair_percent", "target_clear_space_below_footwear_percent"],
+      "properties": {
+        "relative_path": { "type": "string", "pattern": "^(?!/)(?!.*\\.\\.)(?!.*\\\\)[A-Za-z0-9][A-Za-z0-9._/-]*$" },
+        "sha256": { "$ref": "#/$defs/sha256" },
+        "size": { "type": "integer", "minimum": 1 },
+        "media_type": { "const": "image/png" },
+        "transform": { "enum": ["style_camera_scale", "translate_up_without_rescale", "approved_master_geometry_layout"] },
+        "target_subject_height_percent": { "type": "number", "minimum": 0, "maximum": 100 },
+        "target_clear_space_above_hair_percent": { "type": "number", "minimum": 0, "maximum": 100 },
+        "target_clear_space_below_footwear_percent": { "type": ["number", "null"], "minimum": 0, "maximum": 100 }
+      }
+    },
+    "repairPlanRequestManifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["relative_path", "sha256"],
+      "properties": {
+        "relative_path": { "type": "string", "pattern": "^(?!/)(?!.*\\.\\.)(?!.*\\\\)[A-Za-z0-9][A-Za-z0-9._/-]*$" },
+        "sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "repairPlan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "source_attempt", "source_candidate_sha256", "normalized_defect_sha256", "defect_signature_sha256", "classification", "mechanism", "model_action", "decision_reason", "previous_distance_to_delivery_band_pp", "progress_pp", "locked_passed_gate_ids", "guide", "request_manifest"],
+      "properties": {
+        "version": { "const": "scene-repair-plan-v1" },
+        "source_attempt": { "type": "integer", "minimum": 1 },
+        "source_candidate_sha256": { "$ref": "#/$defs/sha256" },
+        "normalized_defect_sha256": { "$ref": "#/$defs/sha256" },
+        "defect_signature_sha256": { "$ref": "#/$defs/sha256" },
+        "classification": { "type": "string", "minLength": 1 },
+        "mechanism": { "type": "string", "minLength": 1 },
+        "model_action": { "type": "string", "minLength": 1 },
+        "decision_reason": { "type": "string", "minLength": 1 },
+        "previous_distance_to_delivery_band_pp": { "type": ["number", "null"], "minimum": 0 },
+        "progress_pp": { "type": ["number", "null"] },
+        "locked_passed_gate_ids": { "type": "array", "maxItems": 9, "uniqueItems": true, "items": { "enum": ["MASTER_LOOK_LOCK", "REFERENCE_ROLE_ISOLATION", "NEAR_COPY_AND_LEAKAGE", "IDENTITY", "ITEM_FIDELITY", "SCENE_MATCH", "LIGHT_AND_CONTACT_SHADOW", "FRAMING_AND_ANATOMY", "PROVENANCE"] } },
+        "guide": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/repairPlanGuide" }] },
+        "request_manifest": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/repairPlanRequestManifest" }] }
+      }
+    },
     "attempt": {
       "type": "object",
       "additionalProperties": false,
@@ -1893,8 +2010,26 @@
         "quality": { "type": "string", "minLength": 1 },
         "generation_idempotency_key": { "$ref": "#/$defs/sha256" },
         "prompt_sha256": { "type": ["string", "null"], "pattern": "^[a-f0-9]{64}$" },
+        "provider_request_manifest": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/repairPlanRequestManifest" }
+          ]
+        },
         "provider_source_sha256": { "type": ["string", "null"], "pattern": "^[a-f0-9]{64}$" },
         "candidate_sha256": { "type": ["string", "null"], "pattern": "^[a-f0-9]{64}$" },
+        "normalized_defect": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/normalizedDefect" }
+          ]
+        },
+        "repair_plan": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/repairPlan" }
+          ]
+        },
         "qa": {
           "oneOf": [
             { "type": "null" },

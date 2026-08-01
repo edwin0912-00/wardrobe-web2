@@ -24,6 +24,7 @@ import {
   SCENE_EVALUATOR_GATES,
   SCENE_REFERENCE_ROLES,
   SCENE_SHOT_ANCHOR_ROLES,
+  canonicalJsonBytes,
   contactPointInsideFrame,
   sceneQaItemScope,
   sha256,
@@ -336,7 +337,15 @@ async function createUniverseAuthoritySheet(references, workDirectory) {
     path.resolve(workDirectory),
     `create-universe-authority-${authoritySha256.slice(0, 16)}.png`,
   );
-  await writeFile(filename, authorityBytes);
+  try {
+    await writeFile(filename, authorityBytes, { flag: 'wx' });
+  } catch (error) {
+    if (error?.code !== 'EEXIST') throw error;
+    const existing = await readFile(filename);
+    if (!existing.equals(authorityBytes)) {
+      throw new Error('Create Universe authority sheet conflicts with its content-addressed SHA');
+    }
+  }
   return {
     scope: 'outfit',
     role: 'CREATE_UNIVERSE_AUTHORITY_SHEET',
@@ -496,6 +505,71 @@ function assertSceneRoute(context) {
   return jobSetType;
 }
 
+function assertRepairPlanGuidePreflight(context) {
+  const plan = context?.repair_plan;
+  if (!plan) return;
+  const compositionGuide = context.composition_guide;
+  const requiresMechanicalGuide = plan.mechanism === 'MECHANICAL_GUIDE';
+  if (requiresMechanicalGuide && !compositionGuide) {
+    throw new Error('repair_plan mechanism MECHANICAL_GUIDE requires composition_guide');
+  }
+  if (
+    (compositionGuide || plan.guide)
+    && plan.guide?.sha256 !== compositionGuide?.sha256
+  ) {
+    throw new Error('repair_plan.guide.sha256 must match composition_guide.sha256');
+  }
+}
+
+async function assertRepairPlanGuideBinding(context, compositionGuide) {
+  const plan = context?.repair_plan;
+  if (!plan) return;
+  const receipt = plan.guide;
+  if (plan.mechanism === 'MECHANICAL_GUIDE' && !receipt) {
+    throw new Error('repair_plan mechanism MECHANICAL_GUIDE requires a persisted guide receipt');
+  }
+  if (!receipt) {
+    if (compositionGuide) {
+      throw new Error('composition_guide is not allowed without a persisted repair guide receipt');
+    }
+    return;
+  }
+  if (!compositionGuide) {
+    throw new Error('repair_plan guide receipt requires composition_guide');
+  }
+  const bytes = await readFile(compositionGuide.path);
+  const expectedBelow = receipt.target_clear_space_below_footwear_percent;
+  const actualBelow = compositionGuide.target_clear_space_below_footwear_percent ?? null;
+  if (
+    receipt.sha256 !== compositionGuide.sha256
+    || sha256(bytes) !== receipt.sha256
+    || bytes.length !== receipt.size
+    || receipt.media_type !== compositionGuide.media_type
+    || compositionGuide.media_type !== 'image/png'
+    || receipt.transform !== compositionGuide.transform
+    || plan.source_attempt !== compositionGuide.source_attempt
+    || receipt.target_subject_height_percent !== compositionGuide.target_subject_height_percent
+    || receipt.target_clear_space_above_hair_percent
+      !== compositionGuide.target_clear_space_above_hair_percent
+    || expectedBelow !== actualBelow
+  ) {
+    throw new Error('repair_plan guide receipt does not match the bound mechanical guide');
+  }
+}
+
+function repairPlanMetadata(plan) {
+  if (!plan) return {};
+  return {
+    repair_route_version: plan.version,
+    repair_route_classification: plan.classification,
+    repair_route_mechanism: plan.mechanism,
+    repair_route_model_action: plan.model_action,
+    repair_defect_signature_sha256: plan.defect_signature_sha256,
+    repair_distance_to_delivery_band_pp: plan.previous_distance_to_delivery_band_pp,
+    repair_progress_pp: plan.progress_pp,
+  };
+}
+
 // A delivery never fakes its own size. The previous code padded any off-aspect
 // frame onto a blurred stretched copy of itself, which is how four approved
 // editorial frames each shipped a 128px band of blur above and below a 1024×1024
@@ -569,12 +643,27 @@ export class SceneGeneratorAdapter {
     this.providers = providers;
   }
 
+  // This is deliberately the same code path as generation, stopped at the
+  // last safe point before provider.generate.  SceneService calls it to store
+  // an immutable, path-free request manifest and derive the provider
+  // idempotency key *before* money is spent.  A resumed attempt asks this
+  // method again and fails closed if code or input ordering now compiles a
+  // different request.
+  async prepareSceneGeneration(context) {
+    const prepared = await this.generateScene({ ...context, prepare_only: true });
+    if (!prepared?.pre_spend_manifest || !prepared?.pre_spend_manifest_sha256) {
+      throw new Error('SceneGeneratorAdapter did not return a pre-spend request manifest');
+    }
+    return prepared;
+  }
+
   async generateScene(context) {
     const jobSetType = assertSceneRoute(context);
     const provider = this.providers?.[jobSetType] ?? this.provider;
     if (typeof provider?.generate !== 'function') {
       throw new Error(`SceneGeneratorAdapter has no provider for ${jobSetType}`);
     }
+    assertRepairPlanGuidePreflight(context);
     // The product has a single native 3:4 scene delivery across the fixed route.
     const requiredTransportAspectRatio = typeof provider.transportAspectRatio === 'string'
       ? provider.transportAspectRatio
@@ -610,6 +699,7 @@ export class SceneGeneratorAdapter {
         'composition_guide',
       )
       : null;
+    await assertRepairPlanGuideBinding(context, compositionGuide);
     if (
       repairCandidate
       && (
@@ -639,36 +729,44 @@ export class SceneGeneratorAdapter {
     const maxAttachments = Number.isInteger(provider.maxOrderedReferences)
       ? provider.maxOrderedReferences
       : 8;
-    // Everything the request is contractually obliged to carry: the look master is
-    // the sole identity and product authority, the failed candidate is the only
-    // thing a repair attempt is repairing, and each cutout is the exact evidence
-    // ITEM_FIDELITY compares against forensically. None of these may be traded for
-    // conditioning, so they claim the budget before anything else is considered.
-    const required = [
-      {
+    // Everything the request is contractually obliged to carry. GPT Image 2 is
+    // an edit-first transport: when a mechanical canvas exists it must be Image 1,
+    // while the untouched approved master remains Image 2 and the sole appearance
+    // authority. Gemini publishes no ordinal weighting, so its stable legacy order
+    // remains master first and every role is addressed explicitly in the prompt.
+    // None of these bindings may be traded for optional conditioning.
+    const approvedMasterBinding = {
         scope: 'avatar',
         role: 'APPROVED_LOOK_MASTER',
         path: approved.path,
         sha256: approved.sha256,
         mediaType: approved.media_type,
         source: 'APPROVED_AVATAR',
-      },
-      ...(repairCandidate ? [{
-        scope: 'scene',
-        role: 'FAILED_SCENE_CANDIDATE',
-        path: repairCandidate.path,
-        sha256: repairCandidate.sha256,
-        mediaType: repairCandidate.media_type,
-        source: 'REPAIR_CANDIDATE',
-      }] : []),
-      ...(compositionGuide ? [{
+      };
+    const compositionGuideBinding = compositionGuide ? {
         scope: 'outfit',
         role: 'MECHANICAL_FRAMING_GUIDE',
         path: compositionGuide.path,
         sha256: compositionGuide.sha256,
         mediaType: compositionGuide.media_type,
         source: 'CONDITIONED',
-      }] : []),
+      } : null;
+    const repairCandidateBinding = repairCandidate ? {
+        scope: 'scene',
+        role: 'FAILED_SCENE_CANDIDATE',
+        path: repairCandidate.path,
+        sha256: repairCandidate.sha256,
+        mediaType: repairCandidate.media_type,
+        source: 'REPAIR_CANDIDATE',
+      } : null;
+    const providerReferenceStrategy = jobSetType === 'gpt_image_2' && compositionGuideBinding
+      ? 'GPT_IMAGE_2_BASE_CANVAS_FIRST'
+      : 'EXPLICIT_ROLE_MASTER_FIRST';
+    const required = [
+      ...(providerReferenceStrategy === 'GPT_IMAGE_2_BASE_CANVAS_FIRST'
+        ? [compositionGuideBinding, approvedMasterBinding]
+        : [approvedMasterBinding, compositionGuideBinding].filter(Boolean)),
+      ...(repairCandidateBinding ? [repairCandidateBinding] : []),
       ...items.map((item) => ({
         scope: 'outfit',
         role: `ITEM_${item.category.toUpperCase()}`,
@@ -740,18 +838,29 @@ export class SceneGeneratorAdapter {
     // Higgsfield requires contiguous media positions. Structured JSON roles
     // remain in the five-role evidence receipt and prompt, never as --image.
     ordered.forEach((item, index) => { item.order = index + 1; });
+    // This is the exact provider-facing image order, not the logical five-role
+    // scene pack. Persist both the readable canonical representation and its
+    // digest so a receipt can prove which bytes occupied Image 1..N without
+    // relying on a prompt label or reconstructing a later version of routing.
+    const providerImageReferenceManifest = ordered.map((item) => ({
+      image: `Image ${item.order}`,
+      role: item.role,
+      sha256: item.sha256,
+    }));
+    const providerImageReferenceManifestBytes = canonicalJsonBytes(
+      providerImageReferenceManifest,
+    );
     const attachedAnchors = attachedDiscretionary
       .filter((item) => item.anchor)
       .map((item) => ({ ...item.anchor, order: item.order }));
     const guideAttachment = compositionGuide
       ? ordered.find((item) => item.role === 'MECHANICAL_FRAMING_GUIDE')
       : null;
-    const firstItemAttachment = repairCandidate ? 3 : 2;
-    const itemAttachmentStart = guideAttachment ? firstItemAttachment + 1 : firstItemAttachment;
+    const itemAttachmentStart = ordered.find((item) => item.role.startsWith('ITEM_'))?.order ?? 0;
     const prompt = sanitizeExternalPrompt(
       `${basePrompt}${structuredInstructions(references)}`
       + `${itemGenerationInstructions(items, itemAttachmentStart)}`
-      + `${guideAttachment ? `\nMECHANICAL COMPOSITION GUIDE\n- ATTACHMENT_${guideAttachment.order} is an opaque neutral mechanical layout derivative of ${compositionGuide.source_kind === 'approved_look' ? 'the approved master' : 'the failed candidate'}, not a new scene or content authority. It places the same pixels at the measured target scale: ${compositionGuide.target_subject_height_percent}% visible person height and ${compositionGuide.target_clear_space_above_hair_percent}% clear space above hair. Use it only to match framing; preserve the exact person, look, item details, environment and lighting from their authoritative attachments.\n` : ''}`
+      + `${guideAttachment ? `\nMECHANICAL COMPOSITION GUIDE\n- ATTACHMENT_${guideAttachment.order} is an opaque neutral mechanical layout derivative of ${compositionGuide.source_kind === 'approved_look' ? 'the approved master' : 'the failed candidate'}, not a new scene or content authority. It places the same pixels at the measured target scale: ${compositionGuide.target_subject_height_percent}% visible person height and ${compositionGuide.target_clear_space_above_hair_percent}% clear space above hair${Number.isFinite(compositionGuide.target_clear_space_below_footwear_percent) ? ` and ${compositionGuide.target_clear_space_below_footwear_percent}% clear space below footwear` : ''}. Treat this exact canvas and subject placement as the hard geometry authority: do not crop away, zoom through or fill over its neutral border. Reconstruct only the authored environment into that border while preserving the exact person, look and item details from their authoritative attachments.\n` : ''}`
       + `${createUniverseStyleAttachmentInstructions(attachedDiscretionary, context.preset?.preset_id)}`
       + `${shotAnchorInstructions(attachedAnchors)}`,
     );
@@ -760,6 +869,54 @@ export class SceneGeneratorAdapter {
     // takes effect on the next frame instead of on the next restart.
     const frameFinish = resolveFrameFinish();
     const oversample = resolveOversampleRequest(frameFinish, provider);
+    const evidence = referenceEvidence(references);
+    const preSpendManifest = {
+      version: 'scene-provider-request-manifest-v1',
+      route: {
+        job_set_type: jobSetType,
+        model: context.model,
+        model_version: context.model_version,
+        quality: context.quality,
+        route_hash: context.route_hash ?? null,
+      },
+      delivery: {
+        aspect_ratio: requiredTransportAspectRatio,
+        width: context.width,
+        height: context.height,
+      },
+      transport: {
+        oversample_requested: oversample.requested,
+        oversample_factor: oversample.factor,
+        oversample_honoured: oversample.honoured,
+      },
+      compiled_prompt_sha256: context.prompt_sha256,
+      outbound_prompt_sha256: sha256(Buffer.from(prompt)),
+      provider_reference_strategy: providerReferenceStrategy,
+      input_media: ordered.map((item) => ({
+        order: item.order,
+        scope: item.scope,
+        role: item.role,
+        sha256: item.sha256,
+        media_type: item.mediaType,
+        source: item.source,
+      })),
+      provider_image_reference_manifest: providerImageReferenceManifest,
+      structured_reference_evidence: evidence,
+      dropped_attachment_roles: droppedAttachmentRoles,
+      repair_plan_sha256: context.repair_plan_sha256 ?? null,
+    };
+    const preSpendManifestBytes = canonicalJsonBytes(preSpendManifest);
+    const preSpendManifestSha256 = sha256(preSpendManifestBytes);
+    if (context.expected_pre_spend_manifest_sha256 !== undefined
+      && context.expected_pre_spend_manifest_sha256 !== preSpendManifestSha256) {
+      throw new Error('Scene pre-spend request manifest no longer matches its immutable checkpoint');
+    }
+    if (context.prepare_only === true) {
+      return {
+        pre_spend_manifest: preSpendManifest,
+        pre_spend_manifest_sha256: preSpendManifestSha256,
+      };
+    }
     const providerResult = await provider.generate({
       operation: 'generate',
       phase: 'scene',
@@ -797,7 +954,6 @@ export class SceneGeneratorAdapter {
     const providerMetadata = providerResult.metadata ?? {};
     const providerJobId = providerMetadata.job_id ?? providerMetadata.provider_request_id;
     const requestId = context.idempotency_key;
-    const evidence = referenceEvidence(references);
     return {
       image: finished.image,
       media_type: 'image/png',
@@ -836,6 +992,11 @@ export class SceneGeneratorAdapter {
         ...(geometry.aspect_error_fraction === undefined ? {} : { aspect_error_fraction: geometry.aspect_error_fraction }),
         ...(geometry.transport_aspect_error_fraction === undefined ? {} : { transport_aspect_error_fraction: geometry.transport_aspect_error_fraction }),
         reference_role_order: evidence.map((item) => item.role).join(':'),
+        reference_manifest_version: 'scene-reference-manifest-v2-model-aware',
+        provider_reference_strategy: providerReferenceStrategy,
+        provider_image_reference_manifest_version: 'provider-image-reference-manifest-v1',
+        provider_image_reference_manifest_json: providerImageReferenceManifestBytes.toString('utf8'),
+        provider_image_reference_manifest_sha256: sha256(providerImageReferenceManifestBytes),
         reference_evidence_sha256: sha256(Buffer.from(JSON.stringify(evidence))),
         attached_reference_count: ordered.length,
         structured_reference_count: evidence.filter((item) => item.transport === 'structured_json').length,
@@ -865,7 +1026,15 @@ export class SceneGeneratorAdapter {
           mechanical_framing_guide_source_attempt: compositionGuide.source_attempt,
           mechanical_framing_guide_target_subject_height_percent: compositionGuide.target_subject_height_percent,
           mechanical_framing_guide_target_clear_space_above_hair_percent: compositionGuide.target_clear_space_above_hair_percent,
+          ...(Number.isFinite(compositionGuide.target_clear_space_below_footwear_percent) ? {
+            mechanical_framing_guide_target_clear_space_below_footwear_percent:
+              compositionGuide.target_clear_space_below_footwear_percent,
+          } : {}),
+          ...(compositionGuide.transform ? {
+            mechanical_framing_guide_transform: compositionGuide.transform,
+          } : {}),
         } : {}),
+        ...repairPlanMetadata(context.repair_plan),
         reference_evidence: evidence,
       },
     };

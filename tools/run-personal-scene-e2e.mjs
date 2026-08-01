@@ -92,6 +92,10 @@ async function waitForTerminal(service, sceneId) {
 }
 
 const args = parseArgs(process.argv.slice(2));
+const fashionShootQaMode = args['fashion-shoot-qa-mode'] ?? 'strict';
+if (!['strict', 'review', 'off'].includes(fashionShootQaMode)) {
+  throw new Error('--fashion-shoot-qa-mode must be strict, review or off');
+}
 const projectRoot = path.resolve(import.meta.dirname, '..');
 const runtimeRoot = path.resolve(args['runtime-root']);
 const outputRoot = path.resolve(args['output-root'] ?? path.join(projectRoot, 'runtime', 'personal-scene-e2e'));
@@ -115,10 +119,26 @@ try {
       args['look-id'],
       runService,
     );
-    presetReference = await presetResolver.presetReference({
-      presetId: args['preset-id'],
-      presetVersion: args['preset-version'],
-    });
+    if (args['preset-id'].startsWith('shoot.') || args['preset-id'].startsWith('editorial.')) {
+      const shotSlot = args['preset-id'].split('.').at(-1);
+      const modeId = args['preset-id'].slice(0, -(shotSlot.length + 1));
+      const bible = await presetResolver.compileEditorialShootBible({
+        modeId,
+        version: args['preset-version'],
+      });
+      const shotSpec = bible.shots.find((shot) => shot.slot === shotSlot);
+      if (!shotSpec) throw new Error(`Editorial shot slot is not available: ${shotSlot}`);
+      presetReference = await presetResolver.editorialShotPresetReference({
+        modeId,
+        version: args['preset-version'],
+        shotSpec,
+      });
+    } else {
+      presetReference = await presetResolver.presetReference({
+        presetId: args['preset-id'],
+        presetVersion: args['preset-version'],
+      });
+    }
   }
   const service = new SceneService({
     rootDirectory: path.join(outputRoot, 'scenes'),
@@ -126,6 +146,7 @@ try {
     presetResolver,
     generator: new SceneGeneratorAdapter({ providers: providerRoute(outputRoot) }),
     evaluator: new SceneEvaluatorAdapter({ timeoutMs: 180_000 }),
+    fashionShootQaMode,
     observer: async (scene) => {
       process.stdout.write(`${JSON.stringify({
         type: 'scene_progress',

@@ -310,6 +310,94 @@ test('scene repair accepts one typed failed candidate immediately after the appr
   );
 });
 
+test('scene repair uses the mechanical guide as Image 1 base canvas before the approved master and failed candidate', async () => {
+  const paths = await mediaFixture();
+  let argv;
+  const provider = oneShotProvider({
+    async commandRunner(_binary, args) {
+      argv = args;
+      return { stdout: JSON.stringify(completedJob('gpt_image_2')) };
+    },
+    async fetchImpl() { return pngResponse(); },
+  });
+  const ordered = [
+    { order: 1, scope: 'outfit', role: 'MECHANICAL_FRAMING_GUIDE', path: paths.identity, sha256: MOCK_SHA256, mediaType: 'image/png', source: 'CONDITIONED' },
+    { order: 2, scope: 'avatar', role: 'APPROVED_LOOK_MASTER', path: paths.avatar, sha256: MOCK_SHA256, mediaType: 'image/png', source: 'APPROVED_AVATAR' },
+    { order: 3, scope: 'scene', role: 'FAILED_SCENE_CANDIDATE', path: paths.outfit, sha256: MOCK_SHA256, mediaType: 'image/png', source: 'REPAIR_CANDIDATE' },
+  ];
+  const response = await provider.generate({
+    phase: 'scene',
+    model: 'gpt_image_2',
+    prompt: 'Use Image 1 as geometry, Image 2 as approved appearance, and Image 3 as scene continuity.',
+    references: { ordered },
+  });
+  assert.deepEqual(
+    argv.flatMap((item, index) => item === '--image' ? [argv[index + 1]] : []),
+    ordered.map((item) => item.path),
+  );
+  assert.deepEqual(response.metadata.input_media.map((item) => item.role), ordered.map((item) => item.role));
+});
+
+test('scene guide-first ordering is exclusive to GPT Image 2 while Gemini routes remain master-first', async (t) => {
+  const paths = await mediaFixture();
+  const guideFirst = [
+    { order: 1, scope: 'outfit', role: 'MECHANICAL_FRAMING_GUIDE', path: paths.identity, sha256: MOCK_SHA256, mediaType: 'image/png', source: 'CONDITIONED' },
+    { order: 2, scope: 'avatar', role: 'APPROVED_LOOK_MASTER', path: paths.avatar, sha256: MOCK_SHA256, mediaType: 'image/png', source: 'APPROVED_AVATAR' },
+  ];
+  const masterFirst = [
+    { ...guideFirst[1], order: 1 },
+    { ...guideFirst[0], order: 2 },
+  ];
+
+  for (const model of ['nano_banana_flash', 'nano_banana_2']) {
+    await t.test(`${model} rejects a mechanical guide in Image 1 before CLI execution`, async () => {
+      let commandCalls = 0;
+      const provider = oneShotProvider({
+        async commandRunner() {
+          commandCalls += 1;
+          throw new Error('must not execute');
+        },
+        async fetchImpl() { throw new Error('must not fetch'); },
+      });
+      await assert.rejects(
+        () => provider.generate({
+          phase: 'scene',
+          model,
+          prompt: 'Use the declared scene references.',
+          references: { ordered: guideFirst },
+        }),
+        (error) => error.code === 'INVALID_SCENE_REFERENCE_ORDER' && !error.retryable,
+      );
+      assert.equal(commandCalls, 0);
+    });
+
+    await t.test(`${model} accepts the approved master first and mechanical guide second`, async () => {
+      let argv;
+      const provider = oneShotProvider({
+        async commandRunner(_binary, args) {
+          argv = args;
+          return { stdout: JSON.stringify(completedJob(model)) };
+        },
+        async fetchImpl() { return pngResponse(); },
+      });
+      const response = await provider.generate({
+        phase: 'scene',
+        model,
+        prompt: 'Use Image 1 as approved appearance and Image 2 as framing guidance.',
+        references: { ordered: masterFirst },
+      });
+      assert.deepEqual(
+        argv.flatMap((item, index) => item === '--image' ? [argv[index + 1]] : []),
+        masterFirst.map((item) => item.path),
+      );
+      assert.deepEqual(
+        response.metadata.input_media.map((item) => item.role),
+        ['APPROVED_LOOK_MASTER', 'MECHANICAL_FRAMING_GUIDE'],
+      );
+    });
+  }
+});
+
 test('scene repair rejects an untyped source, a misplaced candidate, or more than one candidate before CLI execution', async () => {
   const paths = await mediaFixture();
   let calls = 0;

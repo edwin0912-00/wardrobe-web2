@@ -420,9 +420,22 @@ export async function registerVideoRoutes(app, {
       });
     }
     // Video 1 is the selected style MP4 and Image 1 is only the approved white
-    // master. Raw identity/user-photo inputs are intentionally not passed: a
-    // background in a face reference can become a false scene authority.
-    // Image 2, when present, is the deterministic white garment card.
+    // master. An optional face detail is admitted only after RunService proves
+    // that its persisted derivative has an exact white background. The garment
+    // card follows it, so VideoService can compile labels from the actual order.
+    let identityReference = null;
+    if (typeof runService.approvedIdentityFaceReferenceForRun === 'function') {
+      try {
+        identityReference = await runService.approvedIdentityFaceReferenceForRun(
+          lookDescriptor.runId,
+        );
+      } catch (error) {
+        return reply.code(error?.statusCode ?? 409).send({
+          error: 'Перевірене фото обличчя для Fashion Video пошкоджене або недоступне.',
+          code: error?.code ?? 'VIDEO_IDENTITY_FACE_REFERENCE_INVALID',
+        });
+      }
+    }
     let garmentReference = null;
     try {
       garmentReference = await profiles.approvedLookLiveReference(
@@ -446,10 +459,17 @@ export async function registerVideoRoutes(app, {
         sourceImagePath: whiteMaster.path,
         videoReference: motionReference,
         appearanceReferences: [
+          ...(identityReference ? [{
+            role: 'identity_face',
+            bytes: Buffer.from(identityReference.data),
+            sha256: identityReference.sha256,
+            white_background_verified: identityReference.white_background_verified === true,
+          }] : []),
           ...(garmentReference ? [{
             role: 'garment_detail',
             bytes: Buffer.from(garmentReference.image),
             sha256: garmentReference.reference_sha256,
+            white_background_verified: true,
           }] : []),
         ],
         lookBinding: {
@@ -516,9 +536,11 @@ export async function registerVideoRoutes(app, {
       });
     }
     if (parent.lookBinding?.whiteBackgroundVerified !== true
-      || parent.appearanceReferences?.some((reference) => reference.role === 'identity_face')) {
+      || parent.appearanceReferences?.some((reference) => (
+        reference.white_background_verified !== true
+      ))) {
       return reply.code(409).send({
-        error: 'This old failed video used an unapproved appearance input. Start a new Fashion Video from the approved white master.',
+        error: 'This old failed video used an unverified appearance input. Start a new Fashion Video from the approved white master.',
         code: 'VIDEO_RETRY_LEGACY_APPEARANCE_FORBIDDEN',
       });
     }

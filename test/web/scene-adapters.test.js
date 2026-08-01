@@ -29,6 +29,7 @@ import {
   SCENE_EVALUATOR_GATES,
   SCENE_REFERENCE_ROLES,
   assessFramingEvidence,
+  canonicalJsonBytes,
   normalizeEvaluatorResult,
   sha256,
   validateFramingEvidence,
@@ -121,6 +122,48 @@ async function approvedItemEvidenceFixture(root) {
     reference_set_id: item.item_id,
     ...(await imageFile(root, `approved-${item.item_id}.png`, { color: item.color })),
   })));
+}
+
+// This mirrors the durable guide receipt shape.  `relative_path` is deliberately
+// not the local fixture path: the provider-facing adapter must compare the
+// semantic guide binding, never accidentally leak or depend on a workstation
+// location.
+async function mechanicalGuideReceipt(guide, overrides = {}) {
+  const bytes = await readFile(guide.path);
+  return {
+    relative_path: 'attempts/001/mechanical-framing-guide.png',
+    sha256: guide.sha256,
+    size: bytes.length,
+    media_type: guide.media_type,
+    transform: guide.transform,
+    target_subject_height_percent: guide.target_subject_height_percent,
+    target_clear_space_above_hair_percent:
+      guide.target_clear_space_above_hair_percent,
+    target_clear_space_below_footwear_percent:
+      guide.target_clear_space_below_footwear_percent ?? null,
+    ...overrides,
+  };
+}
+
+async function mechanicalRepairPlan(guide, overrides = {}) {
+  const guideReceipt = await mechanicalGuideReceipt(guide);
+  return {
+    version: 'scene-repair-plan-v1',
+    source_attempt: guide.source_attempt,
+    source_candidate_sha256: 'a'.repeat(64),
+    normalized_defect_sha256: 'b'.repeat(64),
+    defect_signature_sha256: 'c'.repeat(64),
+    classification: 'STALLED_SAME_MODEL',
+    mechanism: 'MECHANICAL_GUIDE',
+    model_action: 'NEXT_ROUTE_MODEL',
+    decision_reason: 'The deterministic repair controller selected the next immutable route model.',
+    previous_distance_to_delivery_band_pp: 5,
+    progress_pp: 0.5,
+    locked_passed_gate_ids: ['IDENTITY', 'ITEM_FIDELITY'],
+    guide: guideReceipt,
+    request_manifest: null,
+    ...overrides,
+  };
 }
 
 test('SceneGeneratorAdapter maps the exact three-model route and sends approved look plus five roles in strict order', async () => {
@@ -435,8 +478,8 @@ test('Create Universe packs three transport sheets when four items and a framing
   assert.deepEqual(
     calls[0].references.ordered.map((item) => item.role),
     [
-      'APPROVED_LOOK_MASTER',
       'MECHANICAL_FRAMING_GUIDE',
+      'APPROVED_LOOK_MASTER',
       'ITEM_TOP',
       'ITEM_BOTTOM',
       'ITEM_FOOTWEAR',
@@ -1944,19 +1987,340 @@ test('SceneGeneratorAdapter reserves a distinct attachment number for a mechanic
   await adapter.generateScene({
     ...fixture.base,
     attempt: 2,
-    cycle_attempt: 2,
-    ...DEFAULT_SCENE_MODEL_ROUTE[1],
+    cycle_attempt: 1,
+    ...DEFAULT_SCENE_MODEL_ROUTE[0],
     item_evidence: items,
     repair_candidate: repair,
     composition_guide: guide,
   });
   assert.deepEqual(
     calls[0].references.ordered.slice(0, 5).map((item) => item.role),
-    ['APPROVED_LOOK_MASTER', 'FAILED_SCENE_CANDIDATE', 'MECHANICAL_FRAMING_GUIDE', 'ITEM_TOP', 'ITEM_BAG'],
+    ['MECHANICAL_FRAMING_GUIDE', 'APPROVED_LOOK_MASTER', 'FAILED_SCENE_CANDIDATE', 'ITEM_TOP', 'ITEM_BAG'],
   );
-  assert.match(calls[0].prompt, /ATTACHMENT_3 is an opaque neutral mechanical layout derivative/);
+  assert.match(calls[0].prompt, /ATTACHMENT_1 is an opaque neutral mechanical layout derivative/);
+  assert.match(calls[0].prompt, /Treat this exact canvas and subject placement as the hard geometry authority/);
   assert.match(calls[0].prompt, /ATTACHMENT_4 \[APPROVED_ITEM_SET-0\]/);
   assert.match(calls[0].prompt, /ATTACHMENT_5 \[APPROVED_ITEM_SET-2\]/);
+});
+
+test('SceneGeneratorAdapter prepares one path-free immutable request manifest without invoking the provider', async () => {
+  const fixture = await contextFixture();
+  const calls = [];
+  const adapter = new SceneGeneratorAdapter({
+    provider: {
+      aspectRatio: '3:4',
+      async generate(context) {
+        calls.push(context);
+        throw new Error('prepareSceneGeneration must never invoke provider.generate');
+      },
+    },
+  });
+  const context = {
+    ...fixture.base,
+    attempt: 1,
+    cycle_attempt: 1,
+    ...DEFAULT_SCENE_MODEL_ROUTE[0],
+  };
+
+  const first = await adapter.prepareSceneGeneration(context);
+  const second = await adapter.prepareSceneGeneration(context);
+
+  assert.equal(calls.length, 0, 'preparation must stop before provider.generate');
+  assert.deepEqual(second, first, 'the same bound request must compile byte-for-byte identically');
+  assert.equal(first.pre_spend_manifest_sha256, sha256(
+    canonicalJsonBytes(first.pre_spend_manifest),
+  ));
+  assert.equal(first.pre_spend_manifest.version, 'scene-provider-request-manifest-v1');
+  assert.equal(first.pre_spend_manifest.compiled_prompt_sha256, fixture.base.prompt_sha256);
+  // This fixture carries all five scene roles as physical image bindings, so
+  // no extra structured JSON facts are appended: the recorded outbound hash
+  // must still prove the exact base prompt that will be sent to the provider.
+  assert.equal(
+    first.pre_spend_manifest.outbound_prompt_sha256,
+    sha256(Buffer.from(fixture.base.prompt)),
+  );
+  const expectedRoles = [
+    'APPROVED_LOOK_MASTER',
+    ...SCENE_REFERENCE_ROLES.map((role) => `SCENE_${role.toUpperCase()}`),
+  ];
+  assert.deepEqual(
+    first.pre_spend_manifest.input_media.map((item) => item.role),
+    expectedRoles,
+  );
+  assert.deepEqual(
+    first.pre_spend_manifest.provider_image_reference_manifest,
+    first.pre_spend_manifest.input_media.map((item, index) => ({
+      image: `Image ${index + 1}`,
+      role: item.role,
+      sha256: item.sha256,
+    })),
+  );
+  // The receipt is portable evidence, never a dump of local paths or prompt prose.
+  assert.doesNotMatch(
+    JSON.stringify(first.pre_spend_manifest),
+    /\/tmp\/|scene-adapter-|approved-look\.png|environment_anchor\.png/,
+  );
+});
+
+test('SceneGeneratorAdapter rejects an immutable pre-spend hash mismatch before provider generation', async () => {
+  const fixture = await contextFixture();
+  const calls = [];
+  const adapter = new SceneGeneratorAdapter({
+    provider: {
+      aspectRatio: '3:4',
+      async generate(context) {
+        calls.push(context);
+        return {
+          image: await providerFrame(),
+          metadata: { provider: 'fixture', job_id: 'must-not-run' },
+        };
+      },
+    },
+  });
+  const context = {
+    ...fixture.base,
+    attempt: 1,
+    cycle_attempt: 1,
+    ...DEFAULT_SCENE_MODEL_ROUTE[0],
+  };
+  const prepared = await adapter.prepareSceneGeneration(context);
+  assert.equal(calls.length, 0);
+
+  await assert.rejects(
+    () => adapter.generateScene({
+      ...context,
+      expected_pre_spend_manifest_sha256: `${prepared.pre_spend_manifest_sha256.slice(0, -1)}0`,
+    }),
+    /pre-spend request manifest no longer matches its immutable checkpoint/,
+  );
+  assert.equal(calls.length, 0, 'manifest drift must fail before provider.generate');
+});
+
+test('SceneGeneratorAdapter rejects every guide receipt mismatch before provider generation', async (t) => {
+  const fixture = await contextFixture();
+  const guide = {
+    ...(await imageFile(fixture.root, 'strict-repair-guide.png', { width: 1024, height: 1280 })),
+    role: 'mechanical_framing_guide',
+    source_attempt: 1,
+    source_kind: 'failed_candidate',
+    transform: 'style_camera_scale',
+    target_subject_height_percent: 76,
+    target_clear_space_above_hair_percent: 9,
+    target_clear_space_below_footwear_percent: 2,
+  };
+  const plan = await mechanicalRepairPlan(guide);
+  const mismatchCases = [
+    ['source attempt', (value) => ({ ...value, source_attempt: 2 })],
+    ['guide media type', (value) => ({
+      ...value,
+      guide: { ...value.guide, media_type: 'image/webp' },
+    })],
+    ['guide transform', (value) => ({
+      ...value,
+      guide: { ...value.guide, transform: 'translate_up_without_rescale' },
+    })],
+    ['guide subject target', (value) => ({
+      ...value,
+      guide: { ...value.guide, target_subject_height_percent: 75 },
+    })],
+    ['guide headroom target', (value) => ({
+      ...value,
+      guide: { ...value.guide, target_clear_space_above_hair_percent: 8 },
+    })],
+    ['guide footwear clearance target', (value) => ({
+      ...value,
+      guide: { ...value.guide, target_clear_space_below_footwear_percent: 1 },
+    })],
+    ['guide byte size', (value) => ({
+      ...value,
+      guide: { ...value.guide, size: value.guide.size + 1 },
+    })],
+  ];
+
+  for (const [label, mutate] of mismatchCases) {
+    await t.test(label, async () => {
+      const calls = [];
+      const adapter = new SceneGeneratorAdapter({
+        provider: recordingProvider(await providerFrame(), calls),
+      });
+      await assert.rejects(() => adapter.generateScene({
+        ...fixture.base,
+        attempt: 2,
+        cycle_attempt: 1,
+        ...DEFAULT_SCENE_MODEL_ROUTE[0],
+        composition_guide: guide,
+        repair_plan: mutate(structuredClone(plan)),
+      }));
+      assert.equal(calls.length, 0, `${label} must fail before provider.generate`);
+    });
+  }
+});
+
+test('SceneGeneratorAdapter rejects an unbound mechanical-guide repair plan before provider generation', async () => {
+  const fixture = await contextFixture();
+  const guide = {
+    ...(await imageFile(fixture.root, 'repair-plan-guide.png', { width: 1024, height: 1280 })),
+    role: 'mechanical_framing_guide',
+    source_attempt: 1,
+    target_subject_height_percent: 76,
+    target_clear_space_above_hair_percent: 9,
+  };
+  const repairPlan = {
+    version: 'scene-repair-plan-v1',
+    classification: 'STALLED_SAME_MODEL',
+    mechanism: 'MECHANICAL_GUIDE',
+    model_action: 'RETRY_WITH_CURRENT_MODEL',
+    defect_signature_sha256: 'c'.repeat(64),
+    previous_distance_to_delivery_band_pp: 5,
+    progress_pp: 0.5,
+    guide: { sha256: guide.sha256 },
+  };
+  const calls = [];
+  const adapter = new SceneGeneratorAdapter({
+    provider: recordingProvider(await providerFrame(), calls),
+  });
+  const base = {
+    ...fixture.base,
+    attempt: 2,
+    cycle_attempt: 1,
+    ...DEFAULT_SCENE_MODEL_ROUTE[0],
+    repair_plan: repairPlan,
+  };
+
+  await assert.rejects(
+    () => adapter.generateScene(base),
+    /repair_plan mechanism MECHANICAL_GUIDE requires composition_guide/,
+  );
+  await assert.rejects(
+    () => adapter.generateScene({
+      ...base,
+      composition_guide: guide,
+      repair_plan: {
+        ...repairPlan,
+        guide: { sha256: 'd'.repeat(64) },
+      },
+    }),
+    /repair_plan\.guide\.sha256 must match composition_guide\.sha256/,
+  );
+  assert.equal(calls.length, 0);
+});
+
+test('SceneGeneratorAdapter mirrors only safe repair-route metadata from a hash-bound plan', async () => {
+  const fixture = await contextFixture();
+  const guide = {
+    ...(await imageFile(fixture.root, 'bound-repair-plan-guide.png', { width: 1024, height: 1280 })),
+    role: 'mechanical_framing_guide',
+    source_attempt: 1,
+    transform: 'style_camera_scale',
+    target_subject_height_percent: 76,
+    target_clear_space_above_hair_percent: 9,
+    target_clear_space_below_footwear_percent: 2,
+  };
+  const calls = [];
+  const adapter = new SceneGeneratorAdapter({
+    provider: recordingProvider(await providerFrame(), calls),
+  });
+  const generated = await adapter.generateScene({
+    ...fixture.base,
+    attempt: 2,
+    cycle_attempt: 1,
+    ...DEFAULT_SCENE_MODEL_ROUTE[0],
+    composition_guide: guide,
+    repair_plan: {
+      ...(await mechanicalRepairPlan(guide)),
+      decision_reason: 'internal routing prose must not enter provider metadata',
+    },
+  });
+
+  assert.deepEqual(calls[0].references.ordered.slice(0, 2).map((item) => item.role), [
+    'MECHANICAL_FRAMING_GUIDE',
+    'APPROVED_LOOK_MASTER',
+  ]);
+  assert.deepEqual(
+    {
+      repair_route_version: generated.metadata.repair_route_version,
+      repair_route_classification: generated.metadata.repair_route_classification,
+      repair_route_mechanism: generated.metadata.repair_route_mechanism,
+      repair_route_model_action: generated.metadata.repair_route_model_action,
+      repair_defect_signature_sha256: generated.metadata.repair_defect_signature_sha256,
+      repair_distance_to_delivery_band_pp: generated.metadata.repair_distance_to_delivery_band_pp,
+      repair_progress_pp: generated.metadata.repair_progress_pp,
+    },
+    {
+      repair_route_version: 'scene-repair-plan-v1',
+      repair_route_classification: 'STALLED_SAME_MODEL',
+      repair_route_mechanism: 'MECHANICAL_GUIDE',
+      repair_route_model_action: 'NEXT_ROUTE_MODEL',
+      repair_defect_signature_sha256: 'c'.repeat(64),
+      repair_distance_to_delivery_band_pp: 5,
+      repair_progress_pp: 0.5,
+    },
+  );
+  assert.equal(Object.hasOwn(generated.metadata, 'repair_route_decision_reason'), false);
+});
+
+test('scene reference manifest uses GPT base-canvas order and explicit-role order for Gemini routes', async () => {
+  const fixture = await contextFixture();
+  const guide = {
+    ...(await imageFile(fixture.root, 'initial-mechanical-guide.png', { width: 1024, height: 1280 })),
+    role: 'mechanical_framing_guide',
+    source_attempt: 0,
+    source_kind: 'approved_look',
+    target_subject_height_percent: 76,
+    target_clear_space_above_hair_percent: 9,
+  };
+  for (const route of DEFAULT_SCENE_MODEL_ROUTE) {
+    const calls = [];
+    const adapter = new SceneGeneratorAdapter({
+      provider: recordingProvider(await providerFrame(), calls),
+    });
+    const generated = await adapter.generateScene({
+      ...fixture.base,
+      attempt: route.order,
+      cycle_attempt: route.order,
+      ...route,
+      composition_guide: guide,
+    });
+    const expectedRoles = route.job_set_type === 'gpt_image_2'
+      ? ['MECHANICAL_FRAMING_GUIDE', 'APPROVED_LOOK_MASTER']
+      : ['APPROVED_LOOK_MASTER', 'MECHANICAL_FRAMING_GUIDE'];
+    assert.deepEqual(
+      calls[0].references.ordered.slice(0, 2).map((item) => item.role),
+      expectedRoles,
+      route.job_set_type,
+    );
+    assert.equal(
+      generated.metadata.provider_reference_strategy,
+      route.job_set_type === 'gpt_image_2'
+        ? 'GPT_IMAGE_2_BASE_CANVAS_FIRST'
+        : 'EXPLICIT_ROLE_MASTER_FIRST',
+    );
+    assert.equal(
+      generated.metadata.reference_manifest_version,
+      'scene-reference-manifest-v2-model-aware',
+    );
+    const persistedManifest = JSON.parse(
+      generated.metadata.provider_image_reference_manifest_json,
+    );
+    assert.deepEqual(
+      persistedManifest,
+      calls[0].references.ordered.map((reference, index) => ({
+        image: `Image ${index + 1}`,
+        role: reference.role,
+        sha256: reference.sha256,
+      })),
+      route.job_set_type,
+    );
+    assert.equal(
+      generated.metadata.provider_image_reference_manifest_version,
+      'provider-image-reference-manifest-v1',
+    );
+    assert.equal(
+      generated.metadata.provider_image_reference_manifest_sha256,
+      sha256(Buffer.from(generated.metadata.provider_image_reference_manifest_json)),
+      route.job_set_type,
+    );
+  }
 });
 
 test('SceneGeneratorAdapter spends the budget on anchors before image scene roles', async () => {

@@ -274,52 +274,89 @@ test('createClip settles a definite provider rejection instead of leaving a phan
   });
 });
 
-test('recoverSubmittedClip binds only an exact provider request and persists its receipt', async () => {
-  await withTempDir(async (dir) => {
-    const { provider } = makeStubProvider();
+test('recoverSubmittedClip refuses an ambiguous paid job even when the caller echoes the local binding', async () => {
+  await withTempDir(async (dir, sourcePath) => {
+    const referenceBytes = Buffer.from('recovery-style-video');
+    const referencePath = path.join(dir, 'recovery-style.mp4');
+    const garmentBytes = Buffer.from('recovery-garment-card');
+    await writeFile(referencePath, referenceBytes);
+    const provider = {
+      async createJob() {
+        const error = new Error('accepted response could not be parsed');
+        error.code = 'CREATE_OUTCOME_UNKNOWN';
+        throw error;
+      },
+    };
     const store = new ClipStore(dir);
     const service = new VideoService({ provider, clipStore: store });
-    const clipId = 'recoverable-clip';
-    await store.save(clipId, {
-      clipId,
-      jobId: null,
-      providerKey: null,
-      status: 'SUBMITTING',
-      prompt: 'locked prompt',
-      aspectRatio: '9:16',
-      durationSeconds: 5,
-      sourceSha256: 'a'.repeat(64),
-      createdAt: '2026-07-29T21:00:13.025Z',
-      updatedAt: '2026-07-29T21:00:13.025Z',
-    });
+    await assert.rejects(
+      () => service.createClip({
+        modeId: 'walk_stride',
+        surfaceId: 'mirror',
+        sourceCapabilities: { full_length: true },
+        sourceImagePath: sourcePath,
+        lookBinding: {
+          sourceSha256: sha256(Buffer.from('locked-source-image')),
+          approvedLookReceiptSha256: 'c'.repeat(64),
+          whiteBackgroundVerified: true,
+        },
+        videoReference: {
+          state: 'READY',
+          reference_id: 'recovery-style',
+          reference_path: referencePath,
+          reference_sha256: sha256(referenceBytes),
+          reference_pack_sha256: 'e'.repeat(64),
+          duration_seconds: 5,
+          provider_duration_seconds: 5,
+          ...verifiedCutSheet(5),
+        },
+        appearanceReferences: [{
+          role: 'garment_detail',
+          bytes: garmentBytes,
+          sha256: sha256(garmentBytes),
+          white_background_verified: true,
+        }],
+      }),
+      (error) => error.code === 'CREATE_OUTCOME_UNKNOWN',
+    );
+    const [clipId] = await readdir(path.join(dir, 'clips'));
+    const submitting = await store.load(clipId);
     const raw = {
       id: 'job_recovered',
       job_set_type: 'seedance_2_0',
       params: {
-        prompt: 'locked prompt',
+        prompt: submitting.prompt,
         aspect_ratio: '9:16',
         duration: 5,
       },
     };
 
-    const recovered = await service.recoverSubmittedClip(clipId, {
-      jobId: 'job_recovered',
-      raw,
-    });
-    assert.equal(recovered.status, 'CREATED');
-    assert.equal(recovered.recovered, true);
-    const saved = await store.load(clipId);
-    assert.equal(saved.jobId, 'job_recovered');
-    assert.equal(saved.providerKey, 'higgsfield');
-    const receipt = JSON.parse(
-      await readFile(path.join(store.clipDir(clipId), 'create-receipt.json'), 'utf8'),
+    assert.equal(submitting.immutableRequestBinding.motion_reference.sha256, sha256(referenceBytes));
+    assert.deepEqual(submitting.immutableRequestBinding.appearance_references, [{
+      role: 'garment_detail',
+      sha256: sha256(garmentBytes),
+      provider_label: '@Image 2',
+      white_background_verified: true,
+    }]);
+    await assert.rejects(
+      () => service.recoverSubmittedClip(clipId, {
+        jobId: 'job_recovered',
+        raw,
+        requestBinding: structuredClone(submitting.immutableRequestBinding),
+      }),
+      (error) => error.code === 'RECOVERY_PROVIDER_BINDING_UNVERIFIABLE',
     );
-    assert.equal(receipt.response.job_id, 'job_recovered');
-    assert.deepEqual(receipt.response.payload, raw);
+    const unchanged = await store.load(clipId);
+    assert.equal(unchanged.status, 'SUBMITTING');
+    assert.equal(unchanged.jobId, null);
+    await assert.rejects(
+      () => readFile(path.join(store.clipDir(clipId), 'create-receipt.json')),
+      (error) => error.code === 'ENOENT',
+    );
   });
 });
 
-test('recoverSubmittedClip refuses a provider job with different immutable geometry', async () => {
+test('recoverSubmittedClip refuses legacy prompt-only recovery without provider media attestation', async () => {
   await withTempDir(async (dir) => {
     const { provider } = makeStubProvider();
     const store = new ClipStore(dir);
@@ -343,7 +380,7 @@ test('recoverSubmittedClip refuses a provider job with different immutable geome
         },
       }),
       (error) => {
-        assert.equal(error.code, 'RECOVERY_JOB_MISMATCH');
+        assert.equal(error.code, 'RECOVERY_PROVIDER_BINDING_UNVERIFIABLE');
         return true;
       },
     );
@@ -449,6 +486,7 @@ test('createClip rechecks and passes the exact video reference binding', async (
   await withTempDir(async (dir, sourcePath) => {
     const referencePath = path.join(dir, 'motion.mp4');
     const referenceBytes = Buffer.from('motion-reference-bytes');
+    const identityBytes = Buffer.from('identity-reference-bytes');
     const garmentBytes = Buffer.from('garment-reference-bytes');
     await writeFile(referencePath, referenceBytes);
     const requests = [];
@@ -481,20 +519,29 @@ test('createClip rechecks and passes the exact video reference binding', async (
       },
       appearanceReferences: [
         {
+          role: 'identity_face',
+          bytes: identityBytes,
+          sha256: sha256(identityBytes),
+          white_background_verified: true,
+        },
+        {
           role: 'garment_detail',
           bytes: garmentBytes,
           sha256: sha256(garmentBytes),
+          white_background_verified: true,
         },
       ],
     });
     assert.deepEqual(requests[0].videoPaths.map((file) => path.basename(file)), ['style-reference.mp4']);
     assert.equal(requests[0].durationSeconds, 13);
-    assert.match(requests[0].prompt, /\[Video 1\].*private reference-only directing material, never delivery media/);
+    assert.match(requests[0].prompt, /@Video 1.*private reference-only directing material, never delivery media/);
+    assert.match(requests[0].prompt, /@Image 2 is an optional white-background face-detail reference/);
+    assert.match(requests[0].prompt, /@Image 3 is a white-background garment-only evidence card/);
     assert.match(requests[0].prompt, /Every final frame must be newly generated/);
     assert.match(requests[0].prompt, /No source performer face, body, skin, hair, clothing, silhouette or motion-blurred fragment may survive/);
     assert.deepEqual(
       requests[0].mediaPaths.map((mediaPath) => path.basename(mediaPath)),
-      ['source.png', 'garment-detail.png'],
+      ['source.png', 'identity-face.png', 'garment-detail.png'],
     );
     assert.equal(requests[0].sourceBinding.motionReferenceSha256, referenceSha256);
     assert.equal(requests[0].sourceBinding.referencePackSha256, 'f'.repeat(64));
@@ -504,7 +551,23 @@ test('createClip rechecks and passes the exact video reference binding', async (
     assert.equal(saved.motionReferenceBinding.audioSourceSha256, referenceSha256);
     assert.deepEqual(
       saved.appearanceReferences.map((reference) => reference.role),
-      ['garment_detail'],
+      ['identity_face', 'garment_detail'],
+    );
+    assert.deepEqual(
+      saved.appearanceReferences.map((reference) => reference.provider_label),
+      ['@Image 2', '@Image 3'],
+    );
+    const receipt = JSON.parse(await readFile(
+      path.join(store.clipDir(requests[0].sourceBinding.clipId), 'create-receipt.json'),
+      'utf8',
+    ));
+    assert.equal(
+      receipt.request.reference_bindings.schema_version,
+      'fashion-video-reference-bindings-v1',
+    );
+    assert.deepEqual(
+      receipt.request.reference_bindings.images.map((binding) => binding.provider_label),
+      ['@Image 1', '@Image 2', '@Image 3'],
     );
   });
 });
@@ -532,7 +595,8 @@ test('reference-bound Fashion Video refuses a raw identity-photo side input befo
         },
         appearanceReferences: [{ role: 'identity_face', bytes: identity, sha256: sha256(identity) }],
       }),
-      (error) => error instanceof VideoServiceError && error.code === 'VIDEO_IDENTITY_PHOTO_FORBIDDEN',
+      (error) => error instanceof VideoServiceError
+        && error.code === 'VIDEO_IDENTITY_FACE_BACKGROUND_INVALID',
     );
     assert.equal(calls, 0);
   });

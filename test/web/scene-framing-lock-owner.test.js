@@ -7,6 +7,8 @@ import {
   assessSceneFraming,
   deterministicFramingCropPlan,
   editorialFramingLock,
+  sceneGenerationFramingBand,
+  sceneGenerationFramingTarget,
   sceneFramingLock,
 } from '../../src/web/scene-contract.js';
 
@@ -175,6 +177,36 @@ test('the framing lock owner reproduces them for every compiled editorial shot',
         `${compiled.preset_id} must keep its headroom waiver`,
       );
     }
+  }
+});
+
+test('generation composition targets remain inside the lock and reserve the universe by slot', () => {
+  const standard = sceneGenerationFramingTarget({ preset_id: 'std.studio.peach_soft_gloss' });
+  assert.deepEqual(standard, { subject: 76, above: 9 });
+  const expected = {
+    clean_identity_hero: 68,
+    environmental_hero: 50,
+    sculptural_three_quarter: 70,
+    interference_frame: 78,
+    material_or_accessory_detail: 82,
+    wide_campaign_coda: 35,
+  };
+  const expectedBands = {
+    clean_identity_hero: [60, 80],
+    environmental_hero: [40, 55],
+    sculptural_three_quarter: [55, 80],
+    interference_frame: [65, 95],
+    material_or_accessory_detail: [70, 100],
+    wide_campaign_coda: [30, 45],
+  };
+  for (const [slot, subject] of Object.entries(expected)) {
+    const preset = { preset_id: `shoot.test.${slot}` };
+    const target = sceneGenerationFramingTarget(preset);
+    const lock = editorialFramingLock(slot);
+    assert.equal(target.subject, subject, slot);
+    assert.ok(target.subject >= lock.subject[0] && target.subject <= lock.subject[1], slot);
+    assert.equal(target.above, Math.min(100 - subject, lock.above + 1), slot);
+    assert.deepEqual(sceneGenerationFramingBand(preset), expectedBands[slot], slot);
   }
 });
 
