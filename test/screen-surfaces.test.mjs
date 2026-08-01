@@ -76,6 +76,20 @@ test('a stronger TV result wins over an aggregated look row', () => {
   assert.equal(shoot.results[shoot.activeResult].kind, 'shoot');
 });
 
+test('partial shoot updates replace the same TV rung when more frames arrive', () => {
+  const first = surfaces.addResultToShelf([], {
+    kind: 'shoot', aspect: '16:9', urls: ['shot-1.jpg', 'shot-2.jpg'],
+    partial: true, readyCount: 2, expectedCount: 5,
+  });
+  const second = surfaces.addResultToShelf(first.results, {
+    kind: 'shoot', aspect: '16:9', urls: ['shot-1.jpg', 'shot-2.jpg', 'shot-3.jpg'],
+    partial: true, readyCount: 3, expectedCount: 5,
+  });
+  assert.equal(second.results.length, 1);
+  assert.deepEqual(second.results[0].urls, ['shot-1.jpg', 'shot-2.jpg', 'shot-3.jpg']);
+  assert.equal(second.results[0].readyCount, 3);
+});
+
 test('a look row remains visible after a background finishes', () => {
   const look = surfaces.addResultToShelf([], {
     kind: 'look', aspect: '9:16', urls: ['look.png'],

@@ -316,18 +316,54 @@ export function createCinematicUiBridge({
     if (phase === 'completed') void saveCompletedRun(run);
   }
 
+  function shootResultFromState(shoot) {
+    if (!shoot?.shoot_id || !Array.isArray(shoot.shots)) return null;
+    // `clean_identity_hero` is an internal prerequisite, not one of the five
+    // client-facing editorial frames.  The beta payload may contain its output
+    // while the public series is still running, so filter it at this boundary.
+    const publicShots = shoot.shots.filter((shot) => shot?.slot !== 'clean_identity_hero');
+    const urls = publicShots.filter((shot) => (
+      String(shot?.status ?? '').toUpperCase() === 'APPROVED'
+    )).map((shot) => shot?.output?.image_url ?? shot?.image_url ?? shot?.output_url
+      ?? client.shootShotImageUrl(shoot.shoot_id, shot.slot)).filter(Boolean);
+    if (!urls.length) return null;
+    const expectedCount = Math.max(publicShots.length, 5);
+    return {
+      kind: 'shoot', aspect: '16:9', urls, mediaUrl: '',
+      pendingRealMedia: false,
+      partial: urls.length < expectedCount,
+      readyCount: urls.length,
+      expectedCount,
+    };
+  }
+
   async function syncShootResult(shoot) {
-    if (phaseFor(shoot) !== 'completed' || !shoot?.shoot_id) return;
+    if (!shoot?.shoot_id) return;
+    const phase = phaseFor(shoot);
+    const partial = shootResultFromState(shoot);
+    if (partial) emit('shoot:partial_result', { activeKind: 'shoot', phase, result: partial, error: null });
+    if (phase !== 'completed') return;
     try {
       const sheet = await client.loadShootContactSheet(shoot.shoot_id);
       const frames = sheet?.shots ?? sheet?.frames ?? sheet?.images ?? [];
       const urls = frames.map((frame) => frame?.image_url
         ?? (frame?.slot ? client.shootShotImageUrl(shoot.shoot_id, frame.slot) : null)).filter(Boolean);
-      emit('shoot:result', {
-        result: { kind: 'shoot', aspect: '16:9', urls, mediaUrl: '', pendingRealMedia: urls.length === 0 },
-      });
+      if (urls.length) {
+        emit('shoot:result', {
+          result: {
+            kind: 'shoot', aspect: '16:9', urls, mediaUrl: '', pendingRealMedia: false,
+            partial: false, readyCount: urls.length, expectedCount: urls.length,
+          },
+          error: null,
+        });
+      } else if (!partial) {
+        fail(new CinematicUiBridgeError('SHOOT_RESULT_EMPTY'), 'shoot:result_failed');
+      }
     } catch (error) {
-      fail(error, 'shoot:result_failed');
+      // A contact sheet is assembled after the individual shot resources.  A
+      // transient 404/409 here must not erase already-visible approved frames.
+      // Keep the partial result and allow the next watchdog snapshot to retry.
+      if (!partial) fail(error, 'shoot:result_failed');
     }
   }
 
@@ -344,6 +380,7 @@ export function createCinematicUiBridge({
       const media = entity.video_url ?? client.videoUrl(entity.clip_id);
       result = { kind, aspect: entity.surface === 'tv' ? '16:9' : '9:16', urls: [], mediaUrl: media, pendingRealMedia: false };
     }
+    if (kind === 'shoot') result = shootResultFromState(entity);
     emit(type, {
       activeKind: kind,
       phase,
@@ -353,7 +390,7 @@ export function createCinematicUiBridge({
         code: needsManualRetry ? `${kind.toUpperCase()}_NEEDS_RETRY` : `${kind.toUpperCase()}_FAILED`,
       } : null,
     });
-    if (kind === 'shoot' && phase === 'completed') void syncShootResult(entity);
+    if (kind === 'shoot') void syncShootResult(entity);
   }
 
   const unsubscribeClient = client.subscribe((event) => {

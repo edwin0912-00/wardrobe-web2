@@ -317,3 +317,36 @@ test('duplicate garment choices and explicit shoot approvals remain actionable',
   assert.equal(bridge.state().phase, 'failed');
   assert.deepEqual(bridge.state().error, { code: 'SHOOT_NEEDS_RETRY' });
 });
+
+test('approved fashion-shoot frames are visible before the series completes', async () => {
+  const client = clientStub();
+  const bridge = createCinematicUiBridge({ client, autoProbe: false });
+  await bridge.probe();
+
+  client.emit({
+    type: 'shoot:updated',
+    shoot: {
+      shoot_id: 'shoot-partial',
+      status: 'SERIES_RUNNING',
+      shots: [
+        { slot: 'clean_identity_hero', status: 'CANCELLED' },
+        { slot: 'environmental_hero', status: 'RUNNING' },
+        { slot: 'sculptural_three_quarter', status: 'APPROVED', output: { resource_id: 'r-1' } },
+        { slot: 'interference_frame', status: 'APPROVED', output: { resource_id: 'r-2' } },
+        { slot: 'material_or_accessory_detail', status: 'PENDING' },
+        { slot: 'wide_campaign_coda', status: 'PENDING' },
+      ],
+    },
+  });
+
+  const state = bridge.state();
+  assert.equal(state.phase, 'running');
+  assert.deepEqual(state.result.urls, [
+    '/api/profile/editorial-shoots/shoot-partial/shots/sculptural_three_quarter/image',
+    '/api/profile/editorial-shoots/shoot-partial/shots/interference_frame/image',
+  ]);
+  assert.equal(state.result.partial, true);
+  assert.equal(state.result.readyCount, 2);
+  assert.equal(state.result.expectedCount, 5);
+  assert.equal(state.error, null);
+});

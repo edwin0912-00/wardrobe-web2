@@ -131,6 +131,9 @@
       }).slice(0, (kind === 'shoot' || kind === 'look') ? 5 : 1) : []),
       previewAttempted: raw.previewAttempted === true,
       mediaUrl: typeof raw.mediaUrl === 'string' ? raw.mediaUrl : '',
+      partial: raw.partial === true,
+      readyCount: Number.isFinite(Number(raw.readyCount)) ? Number(raw.readyCount) : urls.length,
+      expectedCount: Number.isFinite(Number(raw.expectedCount)) ? Number(raw.expectedCount) : urls.length,
       label: RESULT_LABEL[kind],
       pendingRealMedia: raw.pendingRealMedia !== false && !urls.length && !raw.mediaUrl
     });
@@ -168,6 +171,13 @@
       } else {
         shelf.push(item);
       }
+    } else if (item.kind === 'shoot') {
+      /* A running shoot emits cumulative approved frames, then a final contact
+       * sheet. Replace the one shoot rung instead of stacking a stale partial
+       * strip beside the finished one. */
+      var shootIndex = shelf.findIndex(function (entry) { return entry.kind === 'shoot'; });
+      if (shootIndex >= 0) shelf[shootIndex] = item;
+      else shelf.push(item);
     } else {
       shelf.push(item);
     }
