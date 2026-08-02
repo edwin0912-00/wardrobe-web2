@@ -198,27 +198,48 @@
 
     /* Result-screen asset policy. The beta owns the immutable approved master and
      * may also return one hash-bound native RGBA cutout plus its compact derivative.
-     * A browser preview is never segmented here: if the native binding is absent,
-     * the UI deliberately shows the master instead of manufacturing a foreground. */
+     * If beta has not attached that native asset yet, ensureMasterCutout() below may
+     * derive it from the exact master bytes only; a preview is never a mask source. */
     function lookAssets(source, fallbackMaster) {
       source = source || {};
-      var masterUrl = source.masterUrl || source.master_image_url || source.image_url ||
-        source.resultUrl || source.mediaUrl || fallbackMaster || '';
-      var masterSha256 = source.masterSha256 || source.master_sha256 || source.image_sha256 || null;
-      var nativeUrl = source.cutoutNativeUrl || source.cutout_native_url ||
-        source.cutout_native && (source.cutout_native.url || source.cutout_native.image_url) || '';
-      var nativeSha256 = source.cutoutNativeSha256 || source.cutout_native_sha256 ||
-        source.cutout_native && source.cutout_native.sha256 || null;
-      var sourceMasterSha256 = source.cutoutNativeSourceMasterSha256 ||
-        source.cutout_native_source_master_sha256 || source.cutout_native &&
-        (source.cutout_native.source_master_sha256 || source.cutout_native.bound_master_sha256) || null;
-      var nativeHasAlpha = source.cutoutNativeHasAlpha === true || source.cutout_native_has_alpha === true ||
-        source.cutout_native && (source.cutout_native.has_alpha === true || source.cutout_native.alpha === true);
+      /* Beta revisions have used both a flat result object and a nested `outputs` /
+       * `assets` envelope. Read only explicit master/native/preview names at this
+       * boundary; an arbitrary `cutout` field is deliberately not accepted because
+       * beta also uses that name for garment evidence. */
+      var envelopes = [source, source.outputs, source.output, source.assets, source.result,
+        source.approved_look].filter(function (value) {
+          return value && typeof value === 'object' && !Array.isArray(value);
+        });
+      function first(names) {
+        for (var i = 0; i < envelopes.length; i++) {
+          for (var j = 0; j < names.length; j++) {
+            var value = envelopes[i][names[j]];
+            if (value !== undefined && value !== null && value !== '') return value;
+          }
+        }
+        return null;
+      }
+      var masterUrl = first(['masterUrl', 'master_image_url', 'avatar_outfit_master',
+        'avatar_outfit_url', 'image_url', 'resultUrl', 'mediaUrl']) || fallbackMaster || '';
+      var masterSha256 = first(['masterSha256', 'master_sha256', 'avatar_outfit_master_sha256',
+        'avatar_outfit_sha256', 'image_sha256']) || null;
+      var nativeEnvelope = first(['cutout_native', 'cutoutNative', 'native_cutout']);
+      if (!nativeEnvelope || typeof nativeEnvelope !== 'object') nativeEnvelope = {};
+      var nativeUrl = nativeEnvelope.url || nativeEnvelope.image_url ||
+        first(['cutoutNativeUrl', 'cutout_native_url', 'avatar_outfit_cutout_native_url']) || '';
+      var nativeSha256 = nativeEnvelope.sha256 ||
+        first(['cutoutNativeSha256', 'cutout_native_sha256', 'avatar_outfit_cutout_native_sha256']) || null;
+      var sourceMasterSha256 = nativeEnvelope.source_master_sha256 || nativeEnvelope.bound_master_sha256 ||
+        first(['cutoutNativeSourceMasterSha256', 'cutout_native_source_master_sha256',
+          'cutout_source_master_sha256']) || null;
+      var nativeHasAlpha = nativeEnvelope.has_alpha === true || nativeEnvelope.alpha === true ||
+        first(['cutoutNativeHasAlpha', 'cutout_native_has_alpha']) === true;
       var nativeBound = !!(nativeUrl && nativeSha256 && masterSha256 && sourceMasterSha256 === masterSha256 && nativeHasAlpha);
-      var previewUrl = source.cutoutPreviewUrl || source.cutout_preview_url || '';
-      var previewSha256 = source.cutoutPreviewSha256 || source.cutout_preview_sha256 || null;
-      var previewSourceNativeSha256 = source.cutoutPreviewSourceNativeSha256 ||
-        source.cutout_preview_source_native_sha256 || source.cutout_preview_source_sha256 || null;
+      var previewUrl = first(['cutoutPreviewUrl', 'cutout_preview_url', 'avatar_outfit_cutout_preview_url']) || '';
+      var previewSha256 = first(['cutoutPreviewSha256', 'cutout_preview_sha256',
+        'avatar_outfit_cutout_preview_sha256']) || null;
+      var previewSourceNativeSha256 = first(['cutoutPreviewSourceNativeSha256',
+        'cutout_preview_source_native_sha256', 'cutout_preview_source_sha256']) || null;
       var previewBound = nativeBound && !!(previewUrl && previewSha256 && previewSourceNativeSha256 === nativeSha256);
       return {
         masterUrl: masterUrl,
@@ -235,6 +256,37 @@
 
     function lookDisplayUrl(look) {
       return look && (look.cutoutPreviewUrl || look.cutoutNativeUrl || look.resultUrl || look.result) || '';
+    }
+
+    /* If beta has not yet attached CUTOUT_NATIVE to the profile response, derive it
+     * from the exact approved master once. `master-cutout.js` persists the native PNG
+     * in the same-origin Cache API, so a reload reuses that SHA-bound foreground and
+     * never re-runs segmentation or reads a preview as its source. A failure is silent
+     * and safe: the approved master remains the visible result. */
+    function ensureMasterCutout(look) {
+      if (!look || !look.resultUrl || look.cutoutNativeUrl || look.cutoutPending || look.cutoutAttempted) return;
+      var cutout = global.WardrobeMasterCutout;
+      if (!cutout || typeof cutout.create !== 'function') return;
+      look.cutoutPending = true;
+      cutout.create(look.resultUrl, look.masterSha256).then(function (asset) {
+        if (asset && asset.nativeUrl && asset.nativeSha256 && asset.sourceMasterSha256) {
+          look.cutoutNativeUrl = asset.nativeUrl;
+          look.cutoutNativeSha256 = asset.nativeSha256;
+          look.cutoutNativeSourceMasterSha256 = asset.sourceMasterSha256;
+          look.cutoutNativeHasAlpha = true;
+          /* The compact preview is generated from CUTOUT_NATIVE, never from MASTER.
+           * If encoding is unavailable, the full native PNG is still valid display. */
+          look.cutoutPreviewUrl = asset.previewUrl || '';
+          look.cutoutPreviewSha256 = asset.previewSha256 || null;
+          look.cutoutPreviewSourceNativeSha256 = asset.previewSha256 ? asset.nativeSha256 : null;
+        }
+      }).catch(function () {
+        /* Keep the master; do not manufacture a foreground from a failed preview. */
+      }).then(function () {
+        look.cutoutPending = false;
+        look.cutoutAttempted = true;
+        render();
+      });
     }
 
     function ensureFilePreview(file, done, removeBackground) {
@@ -367,11 +419,14 @@
         saved.cutoutNativeSha256 = savedAssets.cutoutNativeSha256;
         saved.cutoutPreviewUrl = savedAssets.cutoutPreviewUrl;
         saved.cutoutPreviewSha256 = savedAssets.cutoutPreviewSha256;
+        saved.cutoutNativeSourceMasterSha256 = savedAssets.nativeBound
+          ? (record.cutoutNativeSourceMasterSha256 || record.cutout_native_source_master_sha256 || null) : null;
         if (at < 0) looks.push(saved);
         else {
           looks[at] = Object.assign({}, looks[at], saved,
             { items: looks[at].items && looks[at].items.length ? looks[at].items : saved.items });
         }
+        ensureMasterCutout(at < 0 ? saved : looks[at]);
       });
       if (looks.length && selected < 0 && !pending && !pendingAction) {
         selected = 0;
@@ -519,6 +574,10 @@
           looks[at].cutoutNativeSha256 = resultAssets.cutoutNativeSha256;
           looks[at].cutoutPreviewUrl = resultAssets.cutoutPreviewUrl;
           looks[at].cutoutPreviewSha256 = resultAssets.cutoutPreviewSha256;
+          looks[at].cutoutNativeSourceMasterSha256 = resultAssets.nativeBound
+            ? resultAssets.masterSha256 : null;
+          looks[at].cutoutNativeHasAlpha = resultAssets.nativeBound;
+          ensureMasterCutout(looks[at]);
           selected = at;
           pending = false;
           step = 2;
@@ -776,6 +835,10 @@
     }
 
     function formatPicker(kind) {
+      /* Fashion Video owns its surface in the verified style manifest. It must never
+       * enter this generic 16:9/9:16 branch, even if an old state or a future caller
+       * accidentally leaves `awaitingAspect = 'fash'`. */
+      if (kind === 'fash') return visualPicker('fash');
       var option = selectedOption(kind, current());
       return scene('format-' + kind,
         '<div class="glass__eyebrow">' + pickerCopy(kind).eyebrow + ' · ФОРМАТ</div>' +
@@ -1692,7 +1755,9 @@
         pickerKind = null;
         if (choiceKind === 'fash') {
           var videoStyle = selectedOption('fash', choiceLook);
-          startGeneratedAction('fash', videoStyle, videoStyle && videoStyle.aspect || '9:16');
+          /* The style is the sole owner of its presentation surface. There is no
+           * viewer-selectable vertical/horizontal step for Fashion Video. */
+          startGeneratedAction('fash', videoStyle, null);
           return;
         }
         awaitingAspect = choiceKind;
@@ -1724,6 +1789,11 @@
       if ((b = t.closest('[data-aspect]'))) {
         var kind = awaitingAspect;
         if (!kind) return;
+        if (kind === 'fash') {
+          var style = selectedOption('fash', current());
+          startGeneratedAction('fash', style, null);
+          return;
+        }
         var aspect = b.getAttribute('data-aspect');
         if (aspect !== '16:9' && aspect !== '9:16') return;
         var chosen = selectedOption(kind, current());
@@ -1955,18 +2025,19 @@
       },
       /* Asked by the engine at every station through config.canAdvance.
        * Leg 0 holds until a look exists — the next room is a gallery of finished work, so
-       * arriving with nothing made would be arriving at an empty shelf. It also holds
-       * while an action is actually working: generating a photoshoot/video/background
-       * (`pendingAction`), or the live camera actually streaming (`stream`) — a swipe
-       * should not carry the viewer off a room that's still busy. */
+       * arriving with nothing made would be arriving at an empty shelf. Long Fashion Video
+       * generation is deliberately different: TV is its gallery, so the viewer may leave
+       * the mirror while the server job continues and the result arrives there later. */
       canAdvance: function (leg) {
         if (leg !== 0) return true;
         if (!looks.length) return false;
         if (!hasResult()) return false;
         if (pickerKind || awaitingAspect) return false;
-        if (pendingAction) return false;
+        var videoMayContinue = (pendingAction && pendingAction.kind === 'fash') ||
+          (bridgeState && bridgeState.activeKind === 'video' && bridgeWorking());
+        if (pendingAction && !videoMayContinue) return false;
         if (stream) return false;
-        if (bridge && bridge.canLeaveAttentionStation && !bridge.canLeaveAttentionStation()) return false;
+        if (!videoMayContinue && bridge && bridge.canLeaveAttentionStation && !bridge.canLeaveAttentionStation()) return false;
         return true;
       },
       /* THE ONLY WAY AN IMAGE BECOMES A RESULT.
@@ -1989,6 +2060,9 @@
         l.cutoutNativeSha256 = assets.cutoutNativeSha256;
         l.cutoutPreviewUrl = assets.cutoutPreviewUrl;
         l.cutoutPreviewSha256 = assets.cutoutPreviewSha256;
+        l.cutoutNativeSourceMasterSha256 = assets.nativeBound ? assets.masterSha256 : null;
+        l.cutoutNativeHasAlpha = assets.nativeBound;
+        ensureMasterCutout(l);
         render();
         if (typeof opts.onLookReady === 'function') opts.onLookReady();
         return true;

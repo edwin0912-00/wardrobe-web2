@@ -139,6 +139,7 @@
 <script src="../loader.js"></script>
 <script src="../media-strategy.js"></script>
 <script src="../media-preview.js"></script>
+<script src="../master-cutout.js"></script>
 <script src="../screen-surface-math.js"></script>
 <script src="../screen-surfaces.js"></script>
 <script src="pipeline-deck.js"></script>
@@ -567,27 +568,14 @@
        *                off to a calm room with no rails or garments in frame. Re-check both
        *                numbers if the master swaps again — they are fitted to THIS table. */
       intro: { screens: 1.8, handoverAt: 0.94, fadeFrom: 0.98 },
-      /* CUT AT THE SEAM, DO NOT DISSOLVE.
+      /* ROOM SEAMS ARE HARD CUTS, NOT DISSOLVES.
        *
-       * The default is 0.10 — a tenth of a leg spent with both films painted and
-       * cross-dissolved. The premise was that the outgoing last frame and the incoming
-       * first frame are the same picture, so a blend costs nothing. That premise only
-       * holds at the exact boundary: across the rest of the window the OUTGOING leg is
-       * still travelling (local 0.90 -> 1.00) while the incoming one sits frozen on its
-       * first frame, so what actually gets composited is a moving image over a still one.
-       * That is the double exposure.
-       *
-       * Measured on these four masters: end-of-leg against start-of-next differs by a mean
-       * of 2.5% per pixel (4.0-5.6% of pixels beyond a visible threshold). Near-identical,
-       * so a straight cut has almost nothing to hide — which is the whole point of chaining
-       * the last frame of each scene into the first frame of the next.
-       *
-       * Not zero: `config.seamWindow || 0.10` treats 0 as absent and would silently restore
-       * the default, and a window of a few frames still lets the next element be painted
-       * and seeked before it is needed, which is what actually prevents the decoder
-       * handover from popping. So the window stays just wide enough to pre-warm and far too
-       * short to read as a dissolve. */
-      seamWindow: 0.012,
+       * The four generated masters are near-identical rooms but their endpoint pixels are
+       * not registered: the outgoing last frame and incoming first frame differ by a mean
+       * 2.5% (up to 5.6% of pixels over the visible threshold). A crossfade therefore makes
+       * the two mirror frames ghost over one another. The intro keeps its intentional
+       * textile fade; room-to-room transitions use the exact decoded endpoint instead. */
+      seamWindow: 0,
       /* Blob-backed desktop rooms need only metadata: their bytes are already local.
          Native iOS rooms need an actual decoded frame before a preceding seam releases;
          otherwise a hidden video can report duration while its compositor is still black. */
@@ -621,9 +609,9 @@
        * An earlier pin left the stop wherever the crawl happened to die (measured: 13.33s,
        * then 14.72-14.98s) and the single static rectangle cannot match a moving target.
        *
-       * seamWindow (0.012) is not a reason to back off the boundary here: the blend into
-       * room two only begins once travel crosses into it, and a held gate is exactly what
-       * prevents that crossing. While the step is unfinished there is no seam to land in.
+       * seamWindow (0) is not a reason to back off the boundary here: the exact endpoint
+       * remains the calibrated stop, and a held gate is exactly what prevents an unfinished
+       * mirror step from crossing it.
        * The desktop ramp keeps its old length (1.0 - 0.78 = 0.22, as 0.92 - 0.70 was),
        * so that approach feels unchanged; portrait gets its longer ramp below. dampMax
        * stays 0.94 because it is a ceiling, not a position. */

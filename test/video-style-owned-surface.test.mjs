@@ -7,8 +7,16 @@ const root = new URL('..', import.meta.url);
 test('Fashion Video bypasses the viewer format picker and submits the style-owned surface', async () => {
   const ui = await readFile(new URL('ui.js', root), 'utf8');
   assert.match(ui, /choiceKind === 'fash'[\s\S]{0,500}startGeneratedAction\('fash'/);
+  assert.match(ui, /startGeneratedAction\('fash', videoStyle, null\)/);
   assert.match(ui, /presentationSurface: chosen && chosen\.presentationSurface/);
   assert.doesNotMatch(ui, /awaitingAspect = choiceKind;[\s\S]{0,80}choiceKind === 'fash'/);
+  assert.match(ui, /if \(kind === 'fash'\) return visualPicker\('fash'\)/);
+});
+
+test('Fashion Video generation does not close the route to the TV gallery', async () => {
+  const ui = await readFile(new URL('ui.js', root), 'utf8');
+  assert.match(ui, /var videoMayContinue = \(pendingAction && pendingAction\.kind === 'fash'\)/);
+  assert.match(ui, /if \(!videoMayContinue && bridge && bridge\.canLeaveAttentionStation/);
 });
 
 test('the cinematic bridge uses only the verified style surface for Fashion Video', async () => {

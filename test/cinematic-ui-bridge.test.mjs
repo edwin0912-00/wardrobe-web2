@@ -158,6 +158,31 @@ test('look result accepts only a SHA-bound alpha native cutout and its derivativ
   assert.equal(rejected.cutoutPreviewUrl, null);
 });
 
+test('look result reads the same SHA-bound cutout contract from a nested outputs envelope', async () => {
+  const client = clientStub();
+  const bridge = createCinematicUiBridge({ client, autoProbe: false });
+  await bridge.probe();
+  const masterSha = 'e'.repeat(64);
+  const nativeSha = 'f'.repeat(64);
+  client.emit({ type: 'run:event', run: {
+    run_id: 'run-nested-assets', status: 'COMPLETED', outputs: {
+      avatar_outfit_master: '/api/profile/looks/look-nested/image',
+      master_sha256: masterSha,
+      cutout_native: {
+        url: '/api/profile/looks/look-nested/cutout-native.png',
+        sha256: nativeSha,
+        source_master_sha256: masterSha,
+        has_alpha: true,
+      },
+    },
+  } });
+  assert.equal(bridge.state().result.cutoutNativeUrl,
+    '/api/profile/looks/look-nested/cutout-native.png');
+  assert.equal(bridge.state().result.cutoutNativeSha256, nativeSha);
+  assert.deepEqual(bridge.state().result.previewUrls,
+    ['/api/profile/looks/look-nested/cutout-native.png']);
+});
+
 test('normalizes beta mode_id catalogues so main renders real style previews', async () => {
   const client = clientStub();
   client.listEditorialModes = async () => ({ modes: [{
