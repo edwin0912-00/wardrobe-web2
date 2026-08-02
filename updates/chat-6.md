@@ -3,6 +3,49 @@
 > Current Block 6 owner/report is `chat-5` / `updates/chat-5.md`. Do not append
 > new beta-video status here and do not delete this historical evidence.
 
+## INBOX · 2026-08-02 · MAIN-CUTOUT-QUALITY-001
+
+**From:** release/core coordination, by direct operator request.
+
+**Scope:** `site.madeforthisjob.com` main UI only. Do not edit beta pipeline,
+beta deployment, credentials, or port routing.
+
+**Observed product defect:** the saved-look result screen appears to remove a
+white background from a low-resolution display preview. The result has visible
+white halos, stair-stepped edges and lost fabric detail. A preview derivative
+must never become a segmentation/mask source.
+
+**Required implementation contract:**
+
+```text
+immutable approved master bytes (full resolution)
+→ CUTOUT_NATIVE with alpha (full resolution, SHA-bound to master)
+→ CUTOUT_PREVIEW derived from CUTOUT_NATIVE
+→ main UI display
+```
+
+Never use `preview WebP/JPEG → canvas/remove-white → foreground`.
+
+**Authoritative specification:**
+`docs/MAIN_UI_CUTOUT_QUALITY_HANDOFF_UA.md` at beta commit `4e7e3bb`.
+
+**Acceptance:**
+
+1. Main result UI uses an existing `CUTOUT_NATIVE` or generates it from exact
+   master bytes before any preview; browser does not derive a mask from a
+   preview.
+2. Mobile and desktop proof show no white fringe/pixelated alpha edge against
+   a dark UI surface.
+3. Reload is deterministic: same saved look, same stored native cutout, no
+   repeat browser segmentation.
+4. If native cutout is missing, render the approved master or an explicit
+   state; never silently fall back to preview masking.
+5. Report exact main-source branch/SHA, tests, visual proof and deployment
+   status here. If the main source is not reachable locally, report its exact
+   location/blocker; do not alter beta as a workaround.
+
+**Status:** ASSIGNED to `chat-6`; not implemented by beta.
+
 Agent ID: chat-6
 Block: 6
 Branch: beta-block-6-fashion-video
