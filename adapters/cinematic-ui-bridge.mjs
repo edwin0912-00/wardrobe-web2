@@ -52,6 +52,10 @@ function initialState() {
     liveCapability: null,
     catalogs: { backgrounds: [], shoots: [], videos: [] },
     result: null,
+    /* A requested presentation ratio is metadata for an in-flight scene, never a
+     * deliverable result.  Keeping the two separate prevents a selection of a
+     * wide style from waking the television before beta has produced any media. */
+    requestedAspect: null,
     error: null,
     updatedAt: null,
   };
@@ -440,7 +444,10 @@ export function createCinematicUiBridge({
     let result = null;
     if (phase === 'completed' && kind === 'background' && entity.scene_id) {
       const image = client.sceneImageUrl(entity.scene_id);
-      result = { kind, aspect: state.result?.aspect ?? '9:16', urls: [image], mediaUrl: image, pendingRealMedia: false };
+      result = {
+        kind, aspect: state.requestedAspect ?? '9:16', urls: [image], mediaUrl: image,
+        pendingRealMedia: false,
+      };
     }
     if (phase === 'completed' && kind === 'video' && entity.clip_id) {
       const media = entity.video_url ?? client.videoUrl(entity.clip_id);
@@ -451,7 +458,10 @@ export function createCinematicUiBridge({
       activeKind: kind,
       phase,
       [kind === 'background' ? 'scene' : kind]: entity,
-      ...(result ? { result } : {}),
+      /* A later QUEUED/RUNNING event must clear an earlier look/result instead
+       * of inheriting it through emit's shallow state merge.  A shoot may carry
+       * real approved partial frames; all other in-flight product states do not. */
+      result: result ?? null,
       error: phase === 'failed' ? {
         code: needsManualRetry ? `${kind.toUpperCase()}_NEEDS_RETRY` : `${kind.toUpperCase()}_FAILED`,
       } : null,
@@ -557,7 +567,10 @@ export function createCinematicUiBridge({
     async createBackground({ presetId, presetVersion, aspect = '9:16', expectedReferencePackSha256 = null }) {
       requireReady();
       if (!state.savedLook?.look_id) throw new CinematicUiBridgeError('NO_SAVED_LOOK');
-      emit('scene:submitting', { activeKind: 'background', phase: 'running', result: { aspect }, error: null });
+      emit('scene:submitting', {
+        activeKind: 'background', phase: 'running', requestedAspect: aspect,
+        result: null, error: null,
+      });
       return client.createScene(state.savedLook.look_id, { presetId, presetVersion, expectedReferencePackSha256 });
     },
     async createShoot({ modeId, modeVersion }) {

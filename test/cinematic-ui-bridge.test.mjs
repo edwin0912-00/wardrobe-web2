@@ -338,6 +338,30 @@ test('background, shoot and video actions carry the selected saved look', async 
   assert.equal(client.calls.find(([kind]) => kind === 'video')[1].surface, 'mirror');
 });
 
+test('a wide background request is intent only until beta delivers an image', async () => {
+  const client = clientStub();
+  const bridge = createCinematicUiBridge({ client, autoProbe: false });
+  await bridge.probe();
+  await bridge.createLook({ person: new Blob(['a']), garments: [new Blob(['b'])] });
+  client.emit({ type: 'run:event', run: {
+    run_id: 'run-1', status: 'COMPLETED', outputs: { avatar_outfit: '/api/look.png' },
+  } });
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  await bridge.createBackground({ presetId: 'std.one', presetVersion: '1.0.0', aspect: '16:9' });
+  assert.equal(bridge.state().phase, 'running');
+  assert.equal(bridge.state().requestedAspect, '16:9');
+  assert.equal(bridge.state().result, null, 'a selected aspect is not a result');
+
+  client.emit({ type: 'scene:updated', scene: { scene_id: 'scene-1', status: 'RUNNING' } });
+  assert.equal(bridge.state().result, null, 'an in-flight scene cannot inherit the master image');
+
+  client.emit({ type: 'scene:completed', scene: { scene_id: 'scene-1', status: 'COMPLETED' } });
+  assert.equal(bridge.state().result.kind, 'background');
+  assert.equal(bridge.state().result.aspect, '16:9');
+  assert.equal(bridge.state().result.mediaUrl, '/api/profile/scenes/scene-1/image');
+});
+
 test('Fashion Video surface is derived from the verified style, not a viewer choice', async () => {
   const client = clientStub({ profile: { looks: [{
     look_id: 'look-1', image_url: '/api/profile/looks/look-1/image',

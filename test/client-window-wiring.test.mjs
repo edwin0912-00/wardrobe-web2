@@ -150,6 +150,26 @@ test('TV and laptop use the measured surface module', () => {
   assert.match(css, /\.laptop-surface--fullscreen/);
 });
 
+test('television keeps the approved look while an action is in flight and wakes only on delivered media', () => {
+  assert.match(ui, /function publishLookPresentation/);
+  assert.match(ui, /var display = look\.cutoutPreviewUrl \|\| look\.cutoutNativeUrl \|\| source/,
+    'the approved master is the honest TV fallback before a local cutout exists');
+  assert.match(ui, /publishLookPresentation\(hydrated\)/,
+    'saved looks are sent to the TV shelf during hydration');
+  assert.match(ui, /function isDeliveredBridgeResult/);
+  assert.match(ui, /bridgeState\.phase === 'completed' && isDeliveredBridgeResult\(bridgeState\.result\)/,
+    'no pending 16:9 selection may wake the television');
+  assert.match(bridge, /requestedAspect: aspect,\n\s*result: null/,
+    'a background selection stays intent metadata rather than a fake result');
+});
+
+test('shipped mirror thresholds have an explicit mobile and desktop hysteresis contract', () => {
+  assert.match(html, /stationAt:\s*1\.0/);
+  assert.match(html, /stationEnter:\s*MOBILE_PORTRAIT \? 0\.88 : 0\.99/);
+  assert.match(html, /stationExit:\s*MOBILE_PORTRAIT \? 0\.60 : 0\.81/);
+  assert.match(html, /dampFrom:\s*MOBILE_PORTRAIT \? 0\.46 : 0\.78/);
+});
+
 test('all missing mirror choice screens exist as one visual component family', () => {
   assert.match(ui, /BACKGROUND_OPTIONS/);
   assert.match(ui, /SHOOT_STYLES/);

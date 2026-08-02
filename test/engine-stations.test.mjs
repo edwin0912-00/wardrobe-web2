@@ -226,6 +226,26 @@ test('the same fast flick passes a station whose gate is open', () => {
   assert.equal(journey.state().leg, 1);
 });
 
+test('the shipped mirror thresholds latch at the calibrated frame and release only after a real reverse swipe', () => {
+  const { journey } = boot({
+    stationAt: 1.0,
+    stationEnter: 0.99,
+    stationExit: 0.81,
+    dampFrom: 0.78,
+    dampMax: 0.94,
+    canAdvance: (leg) => leg !== 0,
+  });
+
+  let state = seekLeg(journey, 0, 0.99);
+  assert.equal(state.stationId, 'leg-0-end');
+  assert.equal(state.gateOpen, false);
+  assert.equal(state.stationInfo.at, 1);
+  state = seekLeg(journey, 0, 0.82);
+  assert.equal(state.stationId, 'leg-0-end', 'desktop hysteresis holds through 0.82');
+  state = seekLeg(journey, 0, 0.80);
+  assert.equal(state.stationId, null, 'only a reverse swipe below 0.81 releases the mirrors');
+});
+
 test('a station authored at local 1 pins to the final frame of its own leg', () => {
   const { journey, scrollToProgress, flushFrame } = boot({
     inertia: 1,

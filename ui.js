@@ -166,6 +166,10 @@
     var looks = [];
     var selected = -1;
     var pending = false;
+    /* A hydrated/saved look may be sent to the physical television before its
+     * local transparent display derivative exists.  Keep a small idempotency
+     * ledger so ordinary bridge polls do not repaint the same shelf entry. */
+    var publishedLookPresentationKeys = {};
 
     /* Which face of the selected look the right mirror is showing. */
     var view = 'look';          // 'look' | 'shoot' | 'video' | 'bg' | 'live'
@@ -331,12 +335,18 @@
      * It may compact that already-transparent asset for display, but it must never
      * start a second remove-white pass from the master or a compact preview.  Re-adding
      * the same source URL updates the existing look shelf entry positionally. */
-    function publishNativeLookPresentation(look) {
+    function publishLookPresentation(look) {
       if (!look || typeof opts.onResult !== 'function') return;
       var source = look.masterSourceUrl ||
         (!isPreviewOnlyImageUrl(look.resultUrl) ? look.resultUrl : '');
-      var display = look.cutoutPreviewUrl || look.cutoutNativeUrl || '';
+      /* The approved master is a valid interim TV image.  A native alpha
+       * cutout replaces it when available, but an in-flight action must never
+       * leave the television blank while it waits for that local display work. */
+      var display = look.cutoutPreviewUrl || look.cutoutNativeUrl || source;
       if (!source || !display) return;
+      var key = source + '\n' + display;
+      if (publishedLookPresentationKeys[key]) return;
+      publishedLookPresentationKeys[key] = true;
       opts.onResult({
         kind: 'look',
         aspect: '9:16',
@@ -378,7 +388,7 @@
           target.cutoutPreviewUrl = asset.previewUrl || '';
           target.cutoutPreviewSha256 = asset.previewSha256 || null;
           target.cutoutPreviewSourceNativeSha256 = asset.previewSha256 ? asset.nativeSha256 : null;
-          publishNativeLookPresentation(target);
+          publishLookPresentation(target);
         }
       }).catch(function () {
         /* Keep the master; do not manufacture a foreground from a failed preview. */
@@ -533,7 +543,11 @@
           looks[at] = mergeHydratedLook(previous, saved);
           looks[at].items = previous.items && previous.items.length ? previous.items : saved.items;
         }
-        ensureMasterCutout(at < 0 ? saved : looks[at]);
+        var hydrated = at < 0 ? saved : looks[at];
+        /* Send the immutable master to the TV immediately.  If/when local
+         * cutout creation succeeds, the same master entry is updated in place. */
+        publishLookPresentation(hydrated);
+        ensureMasterCutout(hydrated);
       });
       if (looks.length && selected < 0 && !pending && !pendingAction) {
         selected = 0;
@@ -599,6 +613,14 @@
     }
 
     var lastBridgeResultKey = '';
+
+    function isDeliveredBridgeResult(result) {
+      if (!result || result.pendingRealMedia === true) return false;
+      if (typeof result.mediaUrl === 'string' && result.mediaUrl) return true;
+      return Array.isArray(result.urls) && result.urls.some(function (url) {
+        return typeof url === 'string' && url;
+      });
+    }
 
     function hydrateUploadedItemPreviews(run) {
       if (!run || !Array.isArray(run.garments) || !run.garments.length ||
@@ -686,6 +708,7 @@
           looks[at].cutoutNativeSourceMasterSha256 = resultAssets.nativeBound
             ? resultAssets.masterSha256 : null;
           looks[at].cutoutNativeHasAlpha = resultAssets.nativeBound;
+          publishLookPresentation(looks[at]);
           ensureMasterCutout(looks[at]);
           selected = at;
           pending = false;
@@ -702,7 +725,7 @@
         var uiKind = kind === 'background' ? 'bg' : kind === 'video' ? 'fash' : kind;
         pendingAction = working ? {
           kind: uiKind,
-          aspect: bridgeState.result && bridgeState.result.aspect || null
+          aspect: bridgeState.requestedAspect || bridgeState.result && bridgeState.result.aspect || null
         } : null;
         if (bridgeState.phase === 'completed' && bridgeState.result) {
           var activeLook = current();
@@ -729,7 +752,10 @@
         };
       }
 
-      if (bridgeState.result) {
+      /* The transition to the TV is a delivery event, not an intent event.
+       * `scene:submitting` and an in-flight video therefore remain on the
+       * mirrors even when their chosen style is 16:9. */
+      if (bridgeState.phase === 'completed' && isDeliveredBridgeResult(bridgeState.result)) {
         var resultKey = [bridgeState.result.kind, bridgeState.result.mediaUrl,
           (bridgeState.result.urls || []).join('|')].join(':');
         if (resultKey !== lastBridgeResultKey) {
