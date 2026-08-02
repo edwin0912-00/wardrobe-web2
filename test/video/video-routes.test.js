@@ -211,6 +211,27 @@ test('saved-look capability opens only from the server-verified two-reference co
       motion_mode: style.motion_mode,
       presentation_surface: style.presentation_surface,
       aspect_ratio: style.aspect_ratio,
+      input_contract: {
+        version: 'fashion-video-reference-contract-v1',
+        cut_count: null,
+        inputs: [
+          {
+            label: 'Відео 1',
+            role: 'motion_reference',
+            description_uk: 'Приватний режисерський референс: монтаж, рух, камера, простір і світло. У фінал не потрапляє.',
+          },
+          {
+            label: 'Зображення 1',
+            role: 'approved_white_master',
+            description_uk: 'Затверджений образ на білому: єдиний видимий герой і повний образ у кожному кадрі з людиною.',
+          },
+          {
+            label: 'Додаткове фото',
+            role: 'identity_face_or_garment_detail',
+            description_uk: 'Необовʼязково: очищене біле фото обличчя/волосся або перевірена картка речі. Оригінальний фон не передається.',
+          },
+        ],
+      },
       preview_url: `/api/profile/looks/33333333-3333-4333-8333-333333333333/video-styles/${style.id}/preview`,
       playback_url: `/api/profile/looks/33333333-3333-4333-8333-333333333333/video-styles/${style.id}/playback?v=${style.playback_sha256.slice(0, 16)}`,
       reference_url: `/api/profile/looks/33333333-3333-4333-8333-333333333333/video-styles/${style.id}/reference`,
