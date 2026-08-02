@@ -731,11 +731,17 @@
         }
       } else {
         var uiKind = kind === 'background' ? 'bg' : kind === 'video' ? 'fash' : kind;
+        var progressiveShoot = kind === 'shoot' && bridgeState.result && bridgeState.result.readyCount > 0;
         pendingAction = working ? {
           kind: uiKind,
-          aspect: bridgeState.requestedAspect || bridgeState.result && bridgeState.result.aspect || null
+          aspect: bridgeState.requestedAspect || bridgeState.result && bridgeState.result.aspect || null,
+          progressive: progressiveShoot
         } : null;
-        if (bridgeState.phase === 'completed' && bridgeState.result) {
+        /* A Fashion Shoot arrives one independently approved frame at a time.
+         * Preserve and render each one as soon as it arrives; waiting for all
+         * five made the right mirror claim it had nothing while Beta already
+         * held real finished pixels. */
+        if (bridgeState.result && (bridgeState.phase === 'completed' || progressiveShoot)) {
           var activeLook = current();
           view = kind === 'background' ? 'bg' : kind;
           if (activeLook) {
@@ -749,7 +755,9 @@
         }
       }
 
-      if (bridgeState.phase === 'failed' && !bridgeState.result?.reviewRequired) {
+      if (bridgeState.phase === 'failed'
+        && !bridgeState.result?.reviewRequired
+        && !(kind === 'shoot' && bridgeState.result?.readyCount > 0)) {
         pending = false;
         pendingAction = null;
         lookReview = null;
@@ -1444,14 +1452,46 @@
      * photograph is all we have, so it is shown desaturated under the placeholder hatching.
      * An undressed input photo presented as a finished look would be input passed off as
      * output. */
+    function shootProgressFrame(result, caption, state) {
+      var frames = Array.isArray(result && result.frames) ? result.frames : [];
+      var ready = frames.filter(function (frame) { return !!frame.imageUrl; });
+      /* Do not depend on Array.prototype.at here: the main site still supports
+       * older mobile Safari builds used by the mirror test devices. */
+      var lead = ready[ready.length - 1] || ready[0] || null;
+      var rail = frames.map(function (frame) {
+        var status = frame.imageUrl ? 'ready' : String(frame.status || 'QUEUED').toLowerCase();
+        var label = frame.imageUrl ? 'Готово'
+          : status === 'failed' ? 'Повторюємо'
+          : status === 'running' ? 'Створюємо'
+          : status === 'queued' ? 'У черзі'
+          : 'Перевіряємо';
+        return '<div class="shoot-progress__slot" data-state="' + esc(status) + '" aria-label="Кадр ' + frame.index + ': ' + esc(label) + '">' +
+          (frame.imageUrl
+            ? '<img src="' + esc(frame.imageUrl) + '" alt="Готовий кадр ' + frame.index + '">'
+            : '<span class="shoot-progress__slot-label">' + esc(frame.index + ' · ' + label) + '</span>') +
+        '</div>';
+      }).join('');
+      return '<section class="shoot-progress" data-state="' + esc(state) + '" aria-live="polite">' +
+        '<div class="shoot-progress__lead">' +
+          (lead ? '<img src="' + esc(lead.imageUrl) + '" alt="Готовий кадр ' + lead.index + '">' : '') +
+          '<span class="shoot-progress__count">' + esc((result.readyCount || ready.length) + ' з ' + (result.expectedCount || 5) + ' кадрів готово') + '</span>' +
+        '</div>' +
+        '<div class="shoot-progress__rail">' + rail + '</div>' +
+        '<span class="shoot-progress__caption">' + esc(caption) + '</span>' +
+      '</section>';
+    }
+
     function resultFrame(caption, state) {
       var l = current();
       var activeResult = l && l.actionResults && l.actionResults[view === 'bg' ? 'background' : view];
+      if (view === 'shoot' && activeResult && Array.isArray(activeResult.frames)) {
+        return shootProgressFrame(activeResult, caption, state);
+      }
       var src = activeResult && (activeResult.previewUrl || activeResult.mediaUrl || activeResult.urls && activeResult.urls[0]) ||
         lookDisplayUrl(l) || (!bridge && person.main ? (person.main.previewUrl || person.main.url) : '');
       return '<div class="lookframe" data-state="' + state + '">' +
-        (src ? '<img class="lookframe__img" src="' + src + '" alt="">' : '') +
-        '<span class="lookframe__cap">' + caption + '</span>' +
+        (src ? '<img class="lookframe__img" src="' + esc(src) + '" alt="">' : '') +
+        '<span class="lookframe__cap">' + esc(caption) + '</span>' +
       '</div>';
     }
 
@@ -1564,9 +1604,21 @@
         return;
       }
 
-      /* An action (shoot/fash/bg) is working — no result to show yet, and nothing to
-       * click until it clears. Same pending treatment as the look itself, labelled for
-       * which action it is. */
+      var l = current();
+      var progressiveShoot = pendingAction && pendingAction.kind === 'shoot'
+        && l && l.actionResults && l.actionResults.shoot
+        && l.actionResults.shoot.readyCount > 0;
+      if (progressiveShoot) {
+        showRoot.innerHTML = scene('shoot-progress',
+          '<div class="glass__eyebrow">ФОТОСЕСІЯ · У ПРОЦЕСІ</div>' +
+          resultFrame(resultCaption(l), 'ready') +
+          '<p class="glass__lede">Готові кадри вже збережені. Інші проходять окремі перевірки та повторюються самостійно.</p>');
+        applyEnabled();
+        return;
+      }
+
+      /* An action (shoot/fash/bg) is working and no Fashion Shoot frame is ready
+       * yet. The orb is truthful only for this short initial gap. */
       if (pendingAction) {
         showRoot.innerHTML = scene('pending-' + pendingAction.kind,
           orbWindow(pendingAction.kind, actionWaitingCopy(pendingAction.kind)));
@@ -1574,7 +1626,6 @@
         return;
       }
 
-      var l = current();
       /* view 'look' is the approved picture exactly: no eyebrow, no details rows —
        * just the watermarked frame and the action row beneath it. The other views
        * (shoot/video/bg/live) are not what was approved here, so they keep what they had. */

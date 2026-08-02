@@ -185,14 +185,22 @@ test('look result reads the same SHA-bound cutout contract from a nested outputs
 
 test('normalizes beta mode_id catalogues so main renders real style previews', async () => {
   const client = clientStub();
-  client.listEditorialModes = async () => ({ modes: [{
-    mode_id: 'shoot.real-style',
-    mode_version: '1.0.0',
-    ui_name_uk: 'Реальний стиль',
-    visual_system: 'власний preview',
-    source_set_status: 'READY',
-    preview_url: '/api/editorial-modes/shoot.real-style/1.0.0/preview?v=sha',
-  }] });
+  client.listEditorialModes = async () => ({ modes: [
+    {
+      mode_id: 'editorial.legacy-proof',
+      mode_version: '1.0.0',
+      ui_name_uk: 'Старий hero approval',
+      source_set_status: 'READY',
+    },
+    {
+      mode_id: 'shoot.real-style',
+      mode_version: '1.0.0',
+      ui_name_uk: 'Реальний стиль',
+      visual_system: 'власний preview',
+      source_set_status: 'READY',
+      preview_url: '/api/editorial-modes/shoot.real-style/1.0.0/preview?v=sha',
+    },
+  ] });
   const bridge = createCinematicUiBridge({ client, autoProbe: false });
   await bridge.probe();
   client.emit({ type: 'run:event', run: {
@@ -201,6 +209,8 @@ test('normalizes beta mode_id catalogues so main renders real style previews', a
   } });
   await new Promise((resolve) => setTimeout(resolve, 0));
   const style = bridge.state().catalogs.shoots[0];
+  assert.equal(bridge.state().catalogs.shoots.length, 1,
+    'the customer picker must not expose legacy one-hero editorial modes');
   assert.equal(style.id, 'shoot.real-style');
   assert.equal(style.version, '1.0.0');
   assert.equal(style.previewUrl, '/api/editorial-modes/shoot.real-style/1.0.0/preview?v=sha');
@@ -456,5 +466,22 @@ test('approved fashion-shoot frames are visible before the series completes', as
   assert.equal(state.result.partial, true);
   assert.equal(state.result.readyCount, 2);
   assert.equal(state.result.expectedCount, 5);
+  assert.deepEqual(state.result.frames.map((frame) => ({
+    slot: frame.slot,
+    status: frame.status,
+    imageUrl: frame.imageUrl,
+  })), [
+    { slot: 'environmental_hero', status: 'RUNNING', imageUrl: null },
+    {
+      slot: 'sculptural_three_quarter', status: 'APPROVED',
+      imageUrl: '/api/profile/editorial-shoots/shoot-partial/shots/sculptural_three_quarter/image',
+    },
+    {
+      slot: 'interference_frame', status: 'APPROVED',
+      imageUrl: '/api/profile/editorial-shoots/shoot-partial/shots/interference_frame/image',
+    },
+    { slot: 'material_or_accessory_detail', status: 'PENDING', imageUrl: null },
+    { slot: 'wide_campaign_coda', status: 'PENDING', imageUrl: null },
+  ]);
   assert.equal(state.error, null);
 });

@@ -898,6 +898,50 @@ body {
 .lookframe[data-state="ready"] {
   background: rgba(245, 243, 237, 0.08);
 }
+
+/* Fashion Shoot is progressive: the newest approved frame takes the main
+ * answer surface immediately, while the five fixed slots below show exactly
+ * what is ready, rendering, queued, or independently retrying.  This is one
+ * surface, not a nested modal or a second scroll area. */
+.shoot-progress {
+  display: flex; flex: 1 1 auto; flex-direction: column; gap: clamp(6px, 1.8cqh, 11px);
+  min-height: 0; width: 100%; margin-top: clamp(6px, 2.2cqh, 14px);
+}
+.shoot-progress__lead {
+  position: relative; flex: 1 1 auto; min-height: 0; overflow: hidden;
+  border: 1px solid rgba(245, 243, 237, 0.35); background: rgba(245, 243, 237, 0.055);
+}
+.shoot-progress__lead img {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain;
+  display: block; background: #111310;
+}
+.shoot-progress__count,
+.shoot-progress__caption {
+  display: block; font-size: clamp(9px, 1.9cqh, 11px); letter-spacing: 0.13em;
+  color: rgba(245,243,237,0.78); text-transform: uppercase;
+}
+.shoot-progress__count {
+  position: absolute; inset: auto 0 0; z-index: 1; padding: 6px 8px;
+  background: rgba(12,13,11,0.72); text-align: center;
+}
+.shoot-progress__caption { color: rgba(245,243,237,0.52); text-align: center; }
+.shoot-progress__rail {
+  display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 5px; flex: 0 0 auto;
+}
+.shoot-progress__slot {
+  position: relative; aspect-ratio: 3 / 4; overflow: hidden;
+  display: grid; place-items: center; border: 1px solid rgba(245,243,237,0.18);
+  background: rgba(245,243,237,0.035);
+}
+.shoot-progress__slot img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.shoot-progress__slot[data-state="approved"] { border-color: rgba(245,243,237,0.72); }
+.shoot-progress__slot[data-state="running"],
+.shoot-progress__slot[data-state="queued"] { border-color: rgba(184,255,61,0.36); }
+.shoot-progress__slot[data-state="failed"] { border-color: rgba(240,153,123,0.6); }
+.shoot-progress__slot-label {
+  padding: 3px; font-size: clamp(7px, 1.5cqh, 9px); line-height: 1.25; text-align: center;
+  letter-spacing: 0.07em; color: rgba(245,243,237,0.55); text-transform: uppercase;
+}
 .lookframe[data-state="ready"] .lookframe__img {
   object-fit: contain; object-position: center; filter: none;
 }

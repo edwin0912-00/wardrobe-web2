@@ -185,14 +185,18 @@ function normalizeShoots(payload, client) {
     const id = mode.mode_id ?? mode.preset_id;
     const version = mode.mode_version ?? mode.version;
     return {
-    id,
-    version,
-    name: mode.ui_name_uk ?? mode.title ?? id,
-    note: mode.visual_system ?? '',
-    previewUrl: mode.preview_url ?? (id && version
-      ? client.editorialModePreviewUrl(id, version)
-      : ''),
-  }; }).filter((item) => item.id && item.version);
+      id,
+      version,
+      name: mode.ui_name_uk ?? mode.title ?? id,
+      note: mode.visual_system ?? '',
+      previewUrl: mode.preview_url ?? (id && version
+        ? client.editorialModePreviewUrl(id, version)
+        : ''),
+    };
+  // `editorial.*` keeps the historical hero-approval workflow for engineering
+  // evidence.  It is not a customer Fashion Shoot.  Mixing it into this picker
+  // is what exposed a one-frame "continue" step beside five-frame styles.
+  }).filter((item) => item.id?.startsWith('shoot.') && item.version);
 }
 
 function normalizeVideos(capability) {
@@ -392,18 +396,31 @@ export function createCinematicUiBridge({
     // client-facing editorial frames.  The beta payload may contain its output
     // while the public series is still running, so filter it at this boundary.
     const publicShots = shoot.shots.filter((shot) => shot?.slot !== 'clean_identity_hero');
-    const urls = publicShots.filter((shot) => (
-      String(shot?.status ?? '').toUpperCase() === 'APPROVED'
-    )).map((shot) => shot?.output?.image_url ?? shot?.image_url ?? shot?.output_url
-      ?? client.shootShotImageUrl(shoot.shoot_id, shot.slot)).filter(Boolean);
+    const frames = publicShots.map((shot, index) => {
+      const ready = String(shot?.status ?? '').toUpperCase() === 'APPROVED'
+        && Boolean(shot?.output);
+      return {
+        slot: shot?.slot ?? `frame_${index + 1}`,
+        index: index + 1,
+        status: String(shot?.status ?? 'QUEUED').toUpperCase(),
+        retryCount: Number(shot?.retry_count ?? 0),
+        errorCode: shot?.error?.code ?? null,
+        imageUrl: ready
+          ? (shot.output?.image_url ?? shot?.image_url ?? shot?.output_url
+            ?? client.shootShotImageUrl(shoot.shoot_id, shot.slot))
+          : null,
+      };
+    });
+    const urls = frames.map((frame) => frame.imageUrl).filter(Boolean);
     if (!urls.length) return null;
-    const expectedCount = Math.max(publicShots.length, 5);
+    const expectedCount = Math.max(frames.length, 5);
     return {
       kind: 'shoot', aspect: '16:9', urls, mediaUrl: '',
       pendingRealMedia: false,
       partial: urls.length < expectedCount,
       readyCount: urls.length,
       expectedCount,
+      frames,
     };
   }
 

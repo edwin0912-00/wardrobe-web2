@@ -45,3 +45,10 @@ test('persistent chrome exposes the actual system release identifier', () => {
   assert.match(ui, /BUILD ' \+ String\(sha\)\.slice\(0, 7\)\.toUpperCase\(\)/);
   assert.match(css, /\.mark__build\s*\{/);
 });
+
+test('Fashion Shoot renders each approved frame while the remaining slots are still running', () => {
+  assert.match(ui, /progressiveShoot = kind === 'shoot'[\s\S]*?readyCount > 0/);
+  assert.match(ui, /function shootProgressFrame\(result, caption, state\)/);
+  assert.match(ui, /Готові кадри вже збережені/);
+  assert.match(css, /\.shoot-progress__rail\s*\{[^}]*grid-template-columns:\s*repeat\(5,/);
+});
