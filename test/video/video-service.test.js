@@ -1430,6 +1430,35 @@ test('delivery QA mode records visual misses but delivers an otherwise safe Fash
   });
 });
 
+test('delivery QA mode treats model cut-completeness styling judgment as advisory when deterministic coverage is safe', async () => {
+  await withTempDir(async (dir) => {
+    const { provider } = makeStubProvider();
+    const store = new ClipStore(dir);
+    const service = new VideoService({
+      provider,
+      clipStore: store,
+      fashionVideoQaMode: 'delivery',
+    });
+    await store.save('delivery-cut-style-clip', {
+      clipId: 'delivery-cut-style-clip', jobId: 'job_delivery_cut_style', status: 'NEEDS_QA',
+      durationSeconds: 5, sourceSha256: 'a'.repeat(64), qa: { pass: true },
+      identityItemQa: { pass: true }, motionReferenceBinding: { sha256: 'b'.repeat(64) },
+    });
+    const result = await service.recordReferenceAdherenceQa('delivery-cut-style-clip', {
+      clip_id: 'delivery-cut-style-clip', job_id: 'job_delivery_cut_style',
+      source_sha256: 'a'.repeat(64), motion_reference_sha256: 'b'.repeat(64),
+      cut_coverage: microCutCoverage(),
+      checks: referenceTransferChecks('cut_coverage_complete'),
+    });
+    assert.equal(result.status, 'PASS');
+    assert.equal(result.referenceAdherenceQa.pass, true);
+    assert.equal(result.referenceAdherenceQa.strictPass, false);
+    assert.equal(result.referenceAdherenceQa.deliverySafetyPass, true);
+    assert.deepEqual(result.referenceAdherenceQa.blockingChecks, ['no_reference_performer_pixels']);
+    assert.deepEqual(result.referenceAdherenceQa.nonBlockingFailures, ['cut_coverage_complete']);
+  });
+});
+
 test('delivery QA mode still blocks a reference performer leak', async () => {
   await withTempDir(async (dir) => {
     const { provider } = makeStubProvider();

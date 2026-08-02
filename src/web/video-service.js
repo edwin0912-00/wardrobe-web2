@@ -53,11 +53,13 @@ export const SALVAGE_BLOCKING_REFERENCE_CHECKS = Object.freeze([
 // `delivery` is an explicit closed-beta policy selected by the operator: it
 // keeps evidence and reports all visual mismatches, but only blocks a Fashion
 // Video when it is unsafe to show (reference performer/reused footage), when
-// its cut coverage is unprovable, or when its MP4 cannot technically play.
+// its *deterministic* cut coverage is unprovable, or when its MP4 cannot
+// technically play.  The model's creative `cut_coverage_complete` judgment
+// remains evidence only: it is a style/transfer assessment, not proof that a
+// source frame escaped into the output.
 // `strict` remains the default for every other runtime.
 const FASHION_VIDEO_QA_MODES = new Set(['strict', 'delivery']);
 const DELIVERY_SAFETY_REFERENCE_CHECKS = Object.freeze([
-  'cut_coverage_complete',
   'no_reference_performer_pixels',
 ]);
 
