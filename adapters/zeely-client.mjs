@@ -520,6 +520,10 @@ export function createZeelyClient({
     },
     deleteShoot(shootId) { return request(`/profile/editorial-shoots/${encode(shootId)}`, { method: 'DELETE' }); },
     shootShotImageUrl: (shootId, slot) => url(`/profile/editorial-shoots/${encode(shootId)}/shots/${encode(slot)}/image`),
+    // The image route is for the progressive in-mirror preview. The separate
+    // download route is the immutable delivered file, so a preview derivative
+    // can never accidentally become the user's download.
+    shootShotDownloadUrl: (shootId, slot) => url(`/profile/editorial-shoots/${encode(shootId)}/shots/${encode(slot)}/download`),
 
     // Fashion Video ---------------------------------------------------------
     videoCapability: (lookId) => request(`/profile/looks/${encode(lookId)}/video-capability`),

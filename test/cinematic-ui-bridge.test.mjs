@@ -23,7 +23,10 @@ function clientStub({ profileError = null, profile = { looks: [] } } = {}) {
     retryRun: async (runId) => { calls.push(['retry-run', runId]); return {}; },
     listScenePresets: async () => ({ presets: [{ preset_id: 'std.one', preset_version: '1.0.0', ui_name_uk: 'Один' }] }),
     scenePresetPreviewUrl: (id, version) => `/api/scene-presets/${id}/${version}/preview`,
-    listEditorialModes: async () => ({ modes: [{ preset_id: 'shoot.one', version: '1.0.0', ui_name_uk: 'Стиль' }] }),
+    listEditorialModes: async () => ({ modes: [{
+      preset_id: 'shoot.one', version: '1.0.0', ui_name_uk: 'Стиль',
+      source_set_status: 'READY', generation_available: true,
+    }] }),
     editorialModePreviewUrl: (id, version) => `/api/editorial-modes/${id}/${version}/preview`,
     videoCapability: async () => ({ available: true, styles: [{ id: 'air', title: 'Повітря', motion_mode: 'air', aspect_ratio: '9:16', presentation_surface: 'mirror', preview_url: '/p', playback_url: '/v', reference_url: '/r' }] }),
     realtimeCapability: async () => ({ paid_live_ready: true, consent: { maximum_session_seconds: 15 } }),
@@ -44,6 +47,7 @@ function clientStub({ profileError = null, profile = { looks: [] } } = {}) {
     sceneImageUrl: (id) => `/api/profile/scenes/${id}/image`,
     videoUrl: (id) => `/api/profile/video-clips/${id}/video`,
     shootShotImageUrl: (id, slot) => `/api/profile/editorial-shoots/${id}/shots/${slot}/image`,
+    shootShotDownloadUrl: (id, slot) => `/api/profile/editorial-shoots/${id}/shots/${slot}/download`,
     loadShootContactSheet: async () => ({ shots: [{ slot: 'hero' }, { slot: 'detail' }] }),
     startLiveLook: async (input) => { calls.push(['live', input]); return 'token'; },
   };
@@ -183,7 +187,7 @@ test('look result reads the same SHA-bound cutout contract from a nested outputs
     ['/api/profile/looks/look-nested/cutout-native.png']);
 });
 
-test('normalizes beta mode_id catalogues so main renders real style previews', async () => {
+test('normalizes every server-ready Fashion Shoot programme, regardless of legacy id prefix', async () => {
   const client = clientStub();
   client.listEditorialModes = async () => ({ modes: [
     {
@@ -191,6 +195,7 @@ test('normalizes beta mode_id catalogues so main renders real style previews', a
       mode_version: '1.0.0',
       ui_name_uk: 'Старий hero approval',
       source_set_status: 'READY',
+      generation_available: true,
     },
     {
       mode_id: 'shoot.real-style',
@@ -198,7 +203,15 @@ test('normalizes beta mode_id catalogues so main renders real style previews', a
       ui_name_uk: 'Реальний стиль',
       visual_system: 'власний preview',
       source_set_status: 'READY',
+      generation_available: true,
       preview_url: '/api/editorial-modes/shoot.real-style/1.0.0/preview?v=sha',
+    },
+    {
+      mode_id: 'shoot.blocked',
+      mode_version: '1.0.0',
+      ui_name_uk: 'Не готово',
+      source_set_status: 'BLOCKED_UNIT_MISSING',
+      generation_available: false,
     },
   ] });
   const bridge = createCinematicUiBridge({ client, autoProbe: false });
@@ -208,12 +221,12 @@ test('normalizes beta mode_id catalogues so main renders real style previews', a
     outputs: { avatar_outfit: '/api/runs/run-1/files/avatar_outfit.png' },
   } });
   await new Promise((resolve) => setTimeout(resolve, 0));
-  const style = bridge.state().catalogs.shoots[0];
-  assert.equal(bridge.state().catalogs.shoots.length, 1,
-    'the customer picker must not expose legacy one-hero editorial modes');
-  assert.equal(style.id, 'shoot.real-style');
-  assert.equal(style.version, '1.0.0');
-  assert.equal(style.previewUrl, '/api/editorial-modes/shoot.real-style/1.0.0/preview?v=sha');
+  const styles = bridge.state().catalogs.shoots;
+  assert.deepEqual(styles.map((style) => style.id), [
+    'editorial.legacy-proof', 'shoot.real-style',
+  ]);
+  assert.equal(styles[1].version, '1.0.0');
+  assert.equal(styles[1].previewUrl, '/api/editorial-modes/shoot.real-style/1.0.0/preview?v=sha');
 });
 
 test('failed outfit QA maps only the verified visible conflict into mirror copy', async () => {
@@ -470,18 +483,21 @@ test('approved fashion-shoot frames are visible before the series completes', as
     slot: frame.slot,
     status: frame.status,
     imageUrl: frame.imageUrl,
+    downloadUrl: frame.downloadUrl,
   })), [
-    { slot: 'environmental_hero', status: 'RUNNING', imageUrl: null },
+    { slot: 'environmental_hero', status: 'RUNNING', imageUrl: null, downloadUrl: null },
     {
       slot: 'sculptural_three_quarter', status: 'APPROVED',
       imageUrl: '/api/profile/editorial-shoots/shoot-partial/shots/sculptural_three_quarter/image',
+      downloadUrl: '/api/profile/editorial-shoots/shoot-partial/shots/sculptural_three_quarter/download',
     },
     {
       slot: 'interference_frame', status: 'APPROVED',
       imageUrl: '/api/profile/editorial-shoots/shoot-partial/shots/interference_frame/image',
+      downloadUrl: '/api/profile/editorial-shoots/shoot-partial/shots/interference_frame/download',
     },
-    { slot: 'material_or_accessory_detail', status: 'PENDING', imageUrl: null },
-    { slot: 'wide_campaign_coda', status: 'PENDING', imageUrl: null },
+    { slot: 'material_or_accessory_detail', status: 'PENDING', imageUrl: null, downloadUrl: null },
+    { slot: 'wide_campaign_coda', status: 'PENDING', imageUrl: null, downloadUrl: null },
   ]);
   assert.equal(state.error, null);
 });

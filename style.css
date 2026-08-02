@@ -924,6 +924,14 @@ body {
   position: absolute; inset: auto 0 0; z-index: 1; padding: 6px 8px;
   background: rgba(12,13,11,0.72); text-align: center;
 }
+.shoot-progress__lead-download,
+.shoot-progress__download {
+  position: absolute; z-index: 2; border: 1px solid rgba(245,243,237,0.58);
+  color: #f5f3ed; background: rgba(12,13,11,0.78); text-decoration: none;
+  text-transform: uppercase; letter-spacing: 0.08em; font-size: 8px; line-height: 1;
+}
+.shoot-progress__lead-download { right: 7px; top: 7px; padding: 7px 8px; }
+.shoot-progress__download { right: 3px; bottom: 3px; padding: 4px 5px; }
 .shoot-progress__caption { color: rgba(245,243,237,0.52); text-align: center; }
 .shoot-progress__rail {
   display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 5px; flex: 0 0 auto;
@@ -1151,8 +1159,10 @@ body {
   flex: 0 0 auto;
   margin-top: clamp(7px, 2cqh, 12px);
 }
-.visualpicks[data-picker="shoot"],
-.visualpicks[data-picker="fash"] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.visualpicks[data-picker="shoot"] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+/* Four verified Fashion Video styles are one desktop row; portrait mobile
+ * intentionally overrides this to a readable two-by-two grid. */
+.visualpicks[data-picker="fash"] { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .visualpick {
   min-width: 0; overflow: hidden; cursor: pointer;
   display: flex; flex-direction: column; text-align: left;
@@ -1247,6 +1257,16 @@ body {
   font: 400 clamp(8px, 1.65cqh, 9px)/1.35 ui-monospace, Menlo, monospace;
   color: rgba(245,243,237,0.58);
 }
+.visualpick__contract {
+  display: block; margin-top: 3px; color: rgba(245,243,237,0.72);
+  font: 400 clamp(7px, 1.35cqh, 8px)/1.34 ui-sans-serif, -apple-system, sans-serif;
+  text-transform: none; letter-spacing: 0;
+}
+.visualpick__contract em {
+  display: block; margin-bottom: 2px; color: rgba(184,255,61,0.9); font-style: normal;
+}
+.visualpick__contract ul { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
+.visualpick__contract b { font: inherit; color: rgba(245,243,237,0.95); }
 .pickerback { margin-top: clamp(7px, 1.8cqh, 11px); flex: 0 0 auto; }
 
 .formatpicks {
@@ -1275,7 +1295,8 @@ body {
 @container (max-height: 400px) {
   .pickerlede { display: none; }
   .visualpicks { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-  .visualpicks[data-picker="shoot"], .visualpicks[data-picker="fash"] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .visualpicks[data-picker="shoot"] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .visualpicks[data-picker="fash"] { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .visualpick__media { min-height: 34px; }
   .visualpick__copy { padding: 4px; }
   .visualpick__copy small { display: none; }

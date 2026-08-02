@@ -52,3 +52,17 @@ test('Fashion Shoot renders each approved frame while the remaining slots are st
   assert.match(ui, /Готові кадри вже збережені/);
   assert.match(css, /\.shoot-progress__rail\s*\{[^}]*grid-template-columns:\s*repeat\(5,/);
 });
+
+test('Fashion Shoot exposes the immutable download for every approved progressive frame', () => {
+  assert.match(ui, /shoot-progress__download/);
+  assert.match(ui, /shoot-progress__lead-download/);
+  assert.match(ui, /downloadUrl/);
+  assert.match(css, /\.shoot-progress__download/);
+});
+
+test('Fashion Video presents the server-owned reference roles instead of generic motion copy', () => {
+  assert.match(ui, /Оберіть відеостиль/);
+  assert.match(ui, /visualpick__contract/);
+  assert.match(ui, /videoCapability/);
+  assert.match(ui, /if \(bridge\) return \[\];/);
+});

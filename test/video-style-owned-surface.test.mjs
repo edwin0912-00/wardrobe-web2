@@ -25,3 +25,12 @@ test('the cinematic bridge uses only the verified style surface for Fashion Vide
   assert.doesNotMatch(bridge, /async createVideo\([^)]*aspect/);
   assert.match(bridge, /surface: presentationSurface/);
 });
+
+test('four verified Fashion Video styles remain a 4-up desktop row and 2-by-2 on mobile', async () => {
+  const [css, mobile] = await Promise.all([
+    readFile(new URL('style.css', root), 'utf8'),
+    readFile(new URL('mobile.css', root), 'utf8'),
+  ]);
+  assert.match(css, /\.visualpicks\[data-picker="fash"\]\s*\{\s*grid-template-columns:\s*repeat\(4,/);
+  assert.match(mobile, /\.mobile-attention \.visualpicks\[data-picker="fash"\]\s*\{[\s\S]*?grid-template-columns:\s*repeat\(2,/);
+});

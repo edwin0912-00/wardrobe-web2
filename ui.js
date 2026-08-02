@@ -925,10 +925,15 @@
             motionMode: option.motionMode || null,
             presentationSurface: option.presentationSurface || 'mirror',
             aspect: option.aspect || (option.presentationSurface === 'tv' ? '16:9' : '9:16'),
-            referencePackSha256: option.referencePackSha256 || null
+            referencePackSha256: option.referencePackSha256 || null,
+            inputContract: option.inputContract || null
           };
         });
       }
+      // When the real bridge is online, an empty server catalogue is a real
+      // availability condition — never replace it with local placeholder styles.
+      // The draft cards below are retained only for an offline design preview.
+      if (bridge) return [];
       return kind === 'shoot' ? SHOOT_STYLES
            : kind === 'fash' ? VIDEO_STYLES
            : BACKGROUND_OPTIONS;
@@ -945,7 +950,7 @@
       return kind === 'shoot'
         ? { eyebrow: 'ФОТОСЕСІЯ', title: 'Оберіть стиль', note: 'Пʼять кадрів з одного світла й настрою.' }
         : kind === 'fash'
-        ? { eyebrow: 'ФЕШН-ВІДЕО', title: 'Оберіть рух', note: 'Один характер руху для готового образу.' }
+        ? { eyebrow: 'ФЕШН-ВІДЕО', title: 'Оберіть відеостиль', note: 'Стиль задає монтаж, рух, камеру, простір і світло.' }
         : { eyebrow: 'НОВИЙ ФОН', title: 'Оберіть простір', note: 'Образ залишиться тим самим — зміниться світло навколо.' };
     }
 
@@ -955,7 +960,21 @@
     function visualPicker(kind) {
       var copy = pickerCopy(kind);
       var look = current();
-      var choices = optionsFor(kind).map(function (option, index) {
+      var options = optionsFor(kind);
+      if (!options.length) {
+        var videoReason = bridgeState && bridgeState.videoCapability && bridgeState.videoCapability.reason_code;
+        var unavailable = kind === 'fash'
+          ? (videoReason === 'FASHION_VIDEO_REFERENCE_PACK_REQUIRED'
+            ? 'Для цього образу ще немає повного перевіреного video reference pack.'
+            : 'Для цього образу зараз немає доступного перевіреного відеостилю.')
+          : 'Для цього образу зараз немає готового стилю фотосесії.';
+        return scene('picker-' + kind,
+          '<div class="glass__eyebrow">' + copy.eyebrow + '</div>' +
+          '<div class="glass__h">' + copy.title + '</div>' +
+          '<p class="glass__lede pickerlede">' + esc(unavailable) + '</p>' +
+          '<button class="secondary pickerback" type="button" data-picker-back>Назад до образу</button>');
+      }
+      var choices = options.map(function (option, index) {
         var selectedIndex = kind === 'shoot' ? look.shootStyle
                           : kind === 'fash' ? look.videoStyle : look.bg;
         var preview = option.previewUrl
@@ -969,12 +988,24 @@
             '"' + (option.previewUrl ? ' poster="' + esc(option.previewUrl) + '"' : '') +
             ' muted playsinline autoplay loop preload="metadata" aria-hidden="true"></video>';
         }
+        var contract = option.inputContract;
+        var contractCopy = '';
+        if (kind === 'fash' && contract) {
+          var entries = Array.isArray(contract.inputs) ? contract.inputs : [];
+          var labels = entries.map(function (entry) {
+            return '<li><b>' + esc(entry.label || '') + '</b> · ' + esc(entry.description_uk || '') + '</li>';
+          }).join('');
+          contractCopy = '<span class="visualpick__contract">' +
+            (Number.isInteger(contract.cut_count) ? '<em>' + esc(String(contract.cut_count)) + ' кадрів у референсі</em>' : '') +
+            (labels ? '<ul>' + labels + '</ul>' : '') +
+          '</span>';
+        }
         return '<button class="visualpick" type="button" data-choice-kind="' + kind + '"' +
           ' data-choice-index="' + index + '" aria-pressed="' + (selectedIndex === index ? 'true' : 'false') + '">' +
           '<span class="visualpick__media" data-visual="' + esc(option.visual) + '" aria-hidden="true">' +
             preview + '</span>' +
           '<span class="visualpick__copy"><b>' + esc(option.name) + '</b><small>' + esc(option.note || (kind === 'fash'
-            ? (option.presentationSurface === 'tv' ? 'відтвориться на телевізорі' : 'відтвориться у дзеркалі') : '')) + '</small></span>' +
+            ? (option.presentationSurface === 'tv' ? 'відтвориться на телевізорі' : 'відтвориться у дзеркалі') : '')) + '</small>' + contractCopy + '</span>' +
         '</button>';
       }).join('');
       return scene('picker-' + kind,
@@ -1467,7 +1498,8 @@
           : 'Перевіряємо';
         return '<div class="shoot-progress__slot" data-state="' + esc(status) + '" aria-label="Кадр ' + frame.index + ': ' + esc(label) + '">' +
           (frame.imageUrl
-            ? '<img src="' + esc(frame.imageUrl) + '" alt="Готовий кадр ' + frame.index + '">'
+            ? '<img src="' + esc(frame.imageUrl) + '" alt="Готовий кадр ' + frame.index + '">' +
+              (frame.downloadUrl ? '<a class="shoot-progress__download" href="' + esc(frame.downloadUrl) + '" download>Завантажити</a>' : '')
             : '<span class="shoot-progress__slot-label">' + esc(frame.index + ' · ' + label) + '</span>') +
         '</div>';
       }).join('');
@@ -1475,6 +1507,7 @@
         '<div class="shoot-progress__lead">' +
           (lead ? '<img src="' + esc(lead.imageUrl) + '" alt="Готовий кадр ' + lead.index + '">' : '') +
           '<span class="shoot-progress__count">' + esc((result.readyCount || ready.length) + ' з ' + (result.expectedCount || 5) + ' кадрів готово') + '</span>' +
+          (lead && lead.downloadUrl ? '<a class="shoot-progress__lead-download" href="' + esc(lead.downloadUrl) + '" download>Завантажити кадр</a>' : '') +
         '</div>' +
         '<div class="shoot-progress__rail">' + rail + '</div>' +
         '<span class="shoot-progress__caption">' + esc(caption) + '</span>' +

@@ -50,6 +50,7 @@ function initialState() {
     shoot: null,
     video: null,
     liveCapability: null,
+    videoCapability: null,
     catalogs: { backgrounds: [], shoots: [], videos: [] },
     result: null,
     /* A requested presentation ratio is metadata for an in-flight scene, never a
@@ -178,7 +179,9 @@ function normalizeBackgrounds(payload, client) {
 }
 
 function normalizeShoots(payload, client) {
-  return (payload?.modes ?? []).filter((mode) => mode?.source_set_status !== 'BLOCKED_UNIT_MISSING').map((mode) => {
+  return (payload?.modes ?? []).filter((mode) => (
+    mode?.source_set_status === 'READY' && mode?.generation_available === true
+  )).map((mode) => {
     // Beta's canonical editorial catalogue calls this field `mode_id`; older
     // snapshots used `preset_id`. Accept both so the main site renders the
     // server-owned catalogue instead of silently falling back to placeholders.
@@ -193,10 +196,10 @@ function normalizeShoots(payload, client) {
         ? client.editorialModePreviewUrl(id, version)
         : ''),
     };
-  // `editorial.*` keeps the historical hero-approval workflow for engineering
-  // evidence.  It is not a customer Fashion Shoot.  Mixing it into this picker
-  // is what exposed a one-frame "continue" step beside five-frame styles.
-  }).filter((item) => item.id?.startsWith('shoot.') && item.version);
+  // The server's READY flag is the only catalogue authority. Some valid,
+  // published Fashion Shoot programmes predate the `shoot.*` namespace; an id
+  // prefix is not a product rule and must never make them disappear.
+  }).filter((item) => item.id && item.version);
 }
 
 function normalizeVideos(capability) {
@@ -221,6 +224,7 @@ function normalizeVideos(capability) {
       previewUrl: style.preview_url,
       playbackUrl: style.playback_url,
       referenceUrl: style.reference_url,
+      inputContract: style.input_contract ?? null,
     };
   }).filter((item) => item.id && item.motionMode);
 }
@@ -349,6 +353,7 @@ export function createCinematicUiBridge({
     };
     emit('catalogs:ready', {
       catalogs,
+      videoCapability: videos.status === 'fulfilled' ? videos.value : null,
       liveCapability: live.status === 'fulfilled'
         ? enrichLiveCapability(live.value, pipeline.status === 'fulfilled' ? pipeline.value : null)
         : null,
@@ -409,6 +414,10 @@ export function createCinematicUiBridge({
           ? (shot.output?.image_url ?? shot?.image_url ?? shot?.output_url
             ?? client.shootShotImageUrl(shoot.shoot_id, shot.slot))
           : null,
+        downloadUrl: ready
+          ? (shot.output?.download_url ?? shot?.download_url
+            ?? client.shootShotDownloadUrl(shoot.shoot_id, shot.slot))
+          : null,
       };
     });
     const urls = frames.map((frame) => frame.imageUrl).filter(Boolean);
@@ -432,14 +441,19 @@ export function createCinematicUiBridge({
     if (phase !== 'completed') return;
     try {
       const sheet = await client.loadShootContactSheet(shoot.shoot_id);
+      const delivered = shootResultFromState(shoot);
       const frames = sheet?.shots ?? sheet?.frames ?? sheet?.images ?? [];
       const urls = frames.map((frame) => frame?.image_url
         ?? (frame?.slot ? client.shootShotImageUrl(shoot.shoot_id, frame.slot) : null)).filter(Boolean);
-      if (urls.length) {
+      if (urls.length || delivered?.frames?.length) {
         emit('shoot:result', {
           result: {
-            kind: 'shoot', aspect: '16:9', urls, mediaUrl: '', pendingRealMedia: false,
-            partial: false, readyCount: urls.length, expectedCount: urls.length,
+            ...(delivered ?? { kind: 'shoot', aspect: '16:9', frames: [] }),
+            urls: urls.length ? urls : delivered.urls,
+            mediaUrl: '', pendingRealMedia: false,
+            partial: false,
+            readyCount: delivered?.readyCount ?? urls.length,
+            expectedCount: delivered?.expectedCount ?? urls.length,
           },
           error: null,
         });
