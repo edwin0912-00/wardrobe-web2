@@ -104,6 +104,10 @@ test('saved look exposes actionable branches and their honest pipeline explanati
   assert.match(appSource, /payload\?\.requirements\?\.verified_video_style_catalog === true/);
   assert.doesNotMatch(appSource, /Fashion Video: обери перевірену відеостилістику й запусти генерацію/);
   assert.match(indexSource, /id="video-style-options"/);
+  assert.match(indexSource, /id="video-input-contract"/);
+  assert.match(appSource, /function renderFashionVideoInputContract/);
+  assert.match(appSource, /input_contract\?\.inputs/);
+  assert.match(appSource, /Що використовується для цього відео/);
   assert.match(indexSource, /id="god-view-trigger"/);
   assert.match(appSource, /window\.location\.assign\('\/god-view\.html'\)/);
   assert.match(appSource, /document\.createElement\('video'\)/);

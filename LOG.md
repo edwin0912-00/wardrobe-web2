@@ -1611,3 +1611,15 @@ Evidence: public and local health both returned `ready`; product release SHA
 Safety: two local Higgsfield wait processes were stopped; the remaining active
 Fashion Shoot was durably marked CANCELLED. No completed output was removed.
 weakened_checks: none.
+
+2026-08-03 · Fashion Shoot progressive downloads and Fashion Video input roles
+Change: made the progressive Fashion Shoot download control visibly labelled
+«Завантажити» while keeping its direct immutable output URL; added the verified
+three-input Fashion Video contract to the native beta picker.
+Why: a ready customer frame must be usable immediately, and the interface must
+state exactly that Video 1 is private direction, Image 1 is the approved white
+master / sole visible person, and optional input three is a cleaned face or
+garment detail.
+Evidence: relevant web / Fashion Shoot / Fashion Video suite 78/78 PASS;
+contract and canon verifiers PASS; no paid provider work.
+weakened_checks: none.

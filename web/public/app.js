@@ -1893,6 +1893,7 @@ document.querySelector('#profile-look-video').addEventListener('click', (event) 
 });
 function renderFashionVideoStyles(styles = []) {
   const root = document.querySelector('#video-style-options');
+  renderFashionVideoInputContract(styles[0] ?? null);
   const cards = styles.map((style, index) => {
     const card = document.createElement('button');
     card.type = 'button';
@@ -1919,10 +1920,46 @@ function renderFashionVideoStyles(styles = []) {
       root.querySelectorAll('.video-style-card').forEach((candidate) => {
         candidate.setAttribute('aria-checked', String(candidate === card));
       });
+      renderFashionVideoInputContract(style);
     });
     return card;
   });
   root.replaceChildren(...cards);
+}
+
+// Video 1 is private directing material; only the approved white master may
+// become the visible person. Keep those roles explicit instead of leaving the
+// card UI to imply that the original performer can survive into delivery.
+function renderFashionVideoInputContract(style) {
+  const root = document.querySelector('#video-input-contract');
+  if (!root) return;
+  const inputs = Array.isArray(style?.input_contract?.inputs)
+    ? style.input_contract.inputs.filter((input) => (
+      typeof input?.label === 'string'
+      && typeof input?.description_uk === 'string'
+    ))
+    : [];
+  if (inputs.length === 0) {
+    root.hidden = true;
+    root.replaceChildren();
+    return;
+  }
+  const heading = document.createElement('p');
+  heading.className = 'video-input-contract__title';
+  heading.textContent = 'Що використовується для цього відео';
+  const list = document.createElement('ol');
+  list.className = 'video-input-contract__list';
+  inputs.forEach((input) => {
+    const item = document.createElement('li');
+    const label = document.createElement('strong');
+    label.textContent = input.label;
+    const description = document.createElement('span');
+    description.textContent = input.description_uk;
+    item.append(label, description);
+    list.append(item);
+  });
+  root.replaceChildren(heading, list);
+  root.hidden = false;
 }
 // Video overlay: close
 function closeVideoOverlay() {

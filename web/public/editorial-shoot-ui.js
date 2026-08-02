@@ -809,7 +809,7 @@ export class EditorialShootUiController {
         download.href = downloadUrl;
         download.download = `${shot.slot}.png`;
         download.setAttribute('aria-label', `Завантажити ${editorialShotLabel(shot.slot)}`);
-        download.textContent = '↓';
+        download.textContent = 'Завантажити';
         download.className = 'editorial-shot-download';
         visual.append(download);
       }

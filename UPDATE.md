@@ -1293,3 +1293,16 @@ facts.
 - Evidence: Fashion Shoot/catalog/video tests **45/45 PASS**; contract verifier
   PASS (**41** schemas); canon verifier PASS (**43** rules).
 - No paid provider call and no beta deployment were made in this atom.
+
+### 2026-08-03 · Fashion Shoot delivery controls + native Fashion Video roles
+
+- Every approved Fashion Shoot frame now exposes a visible **«Завантажити»**
+  control as soon as it arrives; it points to the immutable full asset, not a
+  preview derivative. The five frames still stream independently.
+- Beta’s Fashion Video picker now renders the same verified input contract as
+  the main site: **Video 1** is private direction only, **Image 1** is the
+  approved white master / only visible performer, and the optional third input
+  is a cleaned face or garment-detail reference. No local path, hash, original
+  user background, or raw provider reference is exposed.
+- Evidence before release: relevant UI / Fashion Shoot / Fashion Video tests
+  **78/78 PASS**; contracts and canon PASS. No paid provider work was started.

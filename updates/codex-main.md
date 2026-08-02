@@ -173,6 +173,21 @@ weakened_checks: none.
 
 ---
 
+Agent ID: codex-live-40
+Task ID: BETA-VIDEO-INPUT-ROLES-AND-SHOOT-DOWNLOAD-20260803
+Pipeline: UNIVERSE.04 + VIDEO.01 · result delivery surface
+State: READY_FOR_BETA_DEPLOY
+Decision: restored every server-READY Fashion Shoot card; every delivered
+customer frame keeps its independent output and a visible «Завантажити» link.
+The native beta Fashion Video picker now renders the server-owned input roles:
+Video 1 is private directing material, Image 1 is the approved white master and
+sole visible person, and input three is optional cleaned face/garment detail.
+Evidence: UI / Fashion Shoot / Fashion Video tests 78/78 PASS; contracts and
+canon PASS. No paid generation was run.
+weakened_checks: none.
+
+---
+
 Agent ID: codex-main
 Task ID: BETA-FASHION-SHOOT-CATALOG-AND-VIDEO-METADATA-20260802
 Pipeline: UNIVERSE.01–04 + VIDEO.01 · catalog, style inputs, progressive output

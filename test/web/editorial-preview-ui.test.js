@@ -327,7 +327,8 @@ test('gallery exposes five Fashion Shoot frames, not its internal style check', 
     /\.editorial-gallery-stage > \.editorial-controls\s*\{[\s\S]*?max-width:\s*none;[\s\S]*?margin:\s*0;[\s\S]*?padding:\s*0;[\s\S]*?border:\s*0;/,
   );
   assert.match(portraitCss, /\.editorial-controls \.scene-control\s*\{[\s\S]*?min-height:\s*44px;/);
-  assert.match(sceneCss, /\.editorial-shot-download\s*\{[\s\S]*?width:\s*44px;[\s\S]*?height:\s*44px;/);
+  assert.match(sceneCss, /\.editorial-shot-download\s*\{[\s\S]*?min-width:\s*104px;[\s\S]*?height:\s*44px;/);
+  assert.match(editorialUiSource, /download\.textContent = 'Завантажити'/);
   assert.match(sceneCss, /\.editorial-shot-visual img\s*\{[\s\S]*?object-fit:\s*contain;/);
   assert.match(indexHtml, /id="editorial-shot-inspector"/);
   assert.match(editorialUiSource, /className = 'editorial-shot-inspect'/);
