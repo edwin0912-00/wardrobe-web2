@@ -193,14 +193,28 @@ function normalizeShoots(payload, client) {
 
 function normalizeVideos(capability) {
   if (!capability?.available) return [];
-  return (capability.styles ?? []).map((style) => ({
-    id: style.id,
-    name: style.title,
-    motionMode: style.motion_mode,
-    previewUrl: style.preview_url,
-    playbackUrl: style.playback_url,
-    referenceUrl: style.reference_url,
-  })).filter((item) => item.id && item.motionMode);
+  return (capability.styles ?? []).map((style) => {
+    // The immutable style video owns its geometry.  The cinematic client may
+    // display the resulting surface, but must never offer a second choice that
+    // can change the provider request away from the approved reference master.
+    const presentationSurface = style.presentation_surface === 'tv'
+      || style.surface === 'tv'
+      || style.aspect_ratio === '16:9'
+      ? 'tv'
+      : 'mirror';
+    return {
+      id: style.id,
+      name: style.title,
+      motionMode: style.motion_mode,
+      presentationSurface,
+      aspect: presentationSurface === 'tv' ? '16:9' : '9:16',
+      note: style.presentation_label
+        ?? (presentationSurface === 'tv' ? 'відтвориться на телевізорі' : 'відтвориться у дзеркалі'),
+      previewUrl: style.preview_url,
+      playbackUrl: style.playback_url,
+      referenceUrl: style.reference_url,
+    };
+  }).filter((item) => item.id && item.motionMode);
 }
 
 /* The public pipeline is beta's server-owned declaration of which realtime app exists.
@@ -564,13 +578,15 @@ export function createCinematicUiBridge({
       }
       throw new CinematicUiBridgeError('SHOOT_APPROVAL_UNAVAILABLE');
     },
-    async createVideo({ styleId, motionMode, aspect = '9:16', durationSeconds = null, styleNote = '' }) {
+    async createVideo({ styleId, motionMode, presentationSurface = 'mirror', durationSeconds = null, styleNote = '' }) {
       requireReady();
       if (!state.savedLook?.look_id) throw new CinematicUiBridgeError('NO_SAVED_LOOK');
       emit('video:submitting', { activeKind: 'video', phase: 'running', error: null, result: null });
       const video = await client.createVideo({
         lookId: state.savedLook.look_id,
-        surface: aspect === '16:9' ? 'tv' : 'mirror',
+        // Compatibility field for the current beta route.  Its value is
+        // derived from the verified style manifest, never from a UI control.
+        surface: presentationSurface,
         styleId,
         motionMode,
         durationSeconds,

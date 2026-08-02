@@ -527,14 +527,16 @@ export function createZeelyClient({
     videoStylePlaybackUrl: (lookId, styleId) => url(`/profile/looks/${encode(lookId)}/video-styles/${encode(styleId)}/playback`),
     videoStyleReferenceUrl: (lookId, styleId) => url(`/profile/looks/${encode(lookId)}/video-styles/${encode(styleId)}/reference`),
     listVideos: (lookId) => request(`/profile/looks/${encode(lookId)}/video-clips`),
-    async createVideo({ lookId, surface, styleId, motionMode, durationSeconds, styleNote }) {
+    async createVideo({ lookId, surface = null, styleId, motionMode, durationSeconds, styleNote }) {
       const video = await request('/profile/video-clips', {
         method: 'POST',
         body: {
           look_id: lookId,
-          surface,
           style_id: styleId,
           motion_mode: motionMode,
+          // The newer server derives this from the immutable style reference.
+          // Keep an optional derived value only for older server releases.
+          ...(surface === 'tv' || surface === 'mirror' ? { surface } : {}),
           ...(durationSeconds ? { duration_seconds: durationSeconds } : {}),
           ...(styleNote ? { style_note: styleNote } : {}),
         },

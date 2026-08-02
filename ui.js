@@ -175,10 +175,10 @@
     var bgOpen = false;         // compatibility state; pickerKind owns the actual picker
     var liveRequirementError = opts.liveError ? liveLookErrorCopy(opts.liveError) : null;
 
-    /* An action (shoot/fash/bg — not live) waits for its aspect pick, then runs a
-     * generating phase before it resolves. Both states gate the scroll: a light swipe
-     * must not carry the viewer off a room that is still working. */
-    var awaitingAspect = null;   // null | 'shoot' | 'fash' | 'bg'
+    /* Only background and shoot retain a presentation-format step. Fashion Video
+     * takes its surface from the immutable style reference, so it starts directly
+     * after the style has been selected. */
+    var awaitingAspect = null;   // null | 'shoot' | 'bg'
     var pendingAction = null;    // null | { kind, aspect }
     var actionError = null;      // adapter-owned failure: { kind, message }
     var lookReview = null;       // core image exists, but a retryable follow-up is pending
@@ -713,6 +713,8 @@
             playbackUrl: option.playbackUrl || '',
             version: option.version || null,
             motionMode: option.motionMode || null,
+            presentationSurface: option.presentationSurface || 'mirror',
+            aspect: option.aspect || (option.presentationSurface === 'tv' ? '16:9' : '9:16'),
             referencePackSha256: option.referencePackSha256 || null
           };
         });
@@ -761,7 +763,8 @@
           ' data-choice-index="' + index + '" aria-pressed="' + (selectedIndex === index ? 'true' : 'false') + '">' +
           '<span class="visualpick__media" data-visual="' + esc(option.visual) + '" aria-hidden="true">' +
             preview + '</span>' +
-          '<span class="visualpick__copy"><b>' + esc(option.name) + '</b><small>' + esc(option.note) + '</small></span>' +
+          '<span class="visualpick__copy"><b>' + esc(option.name) + '</b><small>' + esc(option.note || (kind === 'fash'
+            ? (option.presentationSurface === 'tv' ? 'відтвориться на телевізорі' : 'відтвориться у дзеркалі') : '')) + '</small></span>' +
         '</button>';
       }).join('');
       return scene('picker-' + kind,
@@ -1578,6 +1581,56 @@
       render();
     }
 
+    function startGeneratedAction(kind, chosen, aspect) {
+      awaitingAspect = null;
+      pendingAction = {
+        kind: kind, aspect: aspect,
+        optionId: chosen ? chosen.id : null,
+        optionLabel: chosen ? chosen.name : null
+      };
+      actionError = null;
+      render(); notifyGateChange();
+
+      if (bridge) {
+        if (!bridgeReady()) {
+          pendingAction = null;
+          actionError = { kind: kind, message: bridgeCopy() || 'Ця частина простору ще готується' };
+          render(); notifyGateChange();
+          return;
+        }
+        var command;
+        if (kind === 'bg') {
+          command = bridge.createBackground({
+            presetId: chosen && chosen.id,
+            presetVersion: chosen && chosen.version,
+            aspect: aspect,
+            expectedReferencePackSha256: chosen && chosen.referencePackSha256
+          });
+        } else if (kind === 'shoot') {
+          command = bridge.createShoot({
+            modeId: chosen && chosen.id,
+            modeVersion: chosen && chosen.version
+          });
+        } else {
+          command = bridge.createVideo({
+            styleId: chosen && chosen.id,
+            motionMode: chosen && chosen.motionMode,
+            presentationSurface: chosen && chosen.presentationSurface
+          });
+        }
+        Promise.resolve(command).catch(function () {
+          pendingAction = null;
+          actionError = { kind: kind, message: 'Спробуємо ще раз' };
+          render(); notifyGateChange();
+        });
+        return;
+      }
+
+      pendingAction = null;
+      actionError = { kind: kind, message: 'Ця частина простору ще готується' };
+      render(); notifyGateChange();
+    }
+
     document.addEventListener('click', function (ev) {
       var t = ev.target, b;
       if (locked()) return;
@@ -1637,6 +1690,11 @@
         else if (choiceKind === 'bg') choiceLook.bg = choiceIndex;
         else return;
         pickerKind = null;
+        if (choiceKind === 'fash') {
+          var videoStyle = selectedOption('fash', choiceLook);
+          startGeneratedAction('fash', videoStyle, videoStyle && videoStyle.aspect || '9:16');
+          return;
+        }
         awaitingAspect = choiceKind;
         render(); notifyGateChange(); return;
       }
@@ -1669,53 +1727,7 @@
         var aspect = b.getAttribute('data-aspect');
         if (aspect !== '16:9' && aspect !== '9:16') return;
         var chosen = selectedOption(kind, current());
-        awaitingAspect = null;
-        pendingAction = {
-          kind: kind, aspect: aspect,
-          optionId: chosen ? chosen.id : null,
-          optionLabel: chosen ? chosen.name : null
-        };
-        actionError = null;
-        render(); notifyGateChange();
-
-        if (bridge) {
-          if (!bridgeReady()) {
-            pendingAction = null;
-            actionError = { kind: kind, message: bridgeCopy() || 'Ця частина простору ще готується' };
-            render(); notifyGateChange();
-            return;
-          }
-          var command;
-          if (kind === 'bg') {
-            command = bridge.createBackground({
-              presetId: chosen && chosen.id,
-              presetVersion: chosen && chosen.version,
-              aspect: aspect,
-              expectedReferencePackSha256: chosen && chosen.referencePackSha256
-            });
-          } else if (kind === 'shoot') {
-            command = bridge.createShoot({
-              modeId: chosen && chosen.id,
-              modeVersion: chosen && chosen.version
-            });
-          } else {
-            command = bridge.createVideo({
-              styleId: chosen && chosen.id,
-              motionMode: chosen && chosen.motionMode,
-              aspect: aspect
-            });
-          }
-          Promise.resolve(command).catch(function () {
-            pendingAction = null;
-            actionError = { kind: kind, message: 'Спробуємо ще раз' };
-            render(); notifyGateChange();
-          });
-          return;
-        }
-
-        pendingAction = null;
-        actionError = { kind: kind, message: 'Ця частина простору ще готується' };
-        render(); notifyGateChange();
+        startGeneratedAction(kind, chosen, aspect);
         return;
       }
       if (t.closest('[data-live-return]')) {

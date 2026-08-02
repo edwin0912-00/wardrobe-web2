@@ -217,14 +217,12 @@ test('matches the deployed Fashion Video style and explicit retry contract', asy
 
   await client.createVideo({
     lookId: 'look-1',
-    surface: 'tv',
     styleId: 'fabric-air',
     motionMode: 'editorial-forward',
     durationSeconds: 8,
   });
   assert.deepEqual(JSON.parse(calls[0].options.body), {
     look_id: 'look-1',
-    surface: 'tv',
     style_id: 'fabric-air',
     motion_mode: 'editorial-forward',
     duration_seconds: 8,

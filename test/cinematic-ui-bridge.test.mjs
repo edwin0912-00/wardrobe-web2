@@ -25,7 +25,7 @@ function clientStub({ profileError = null, profile = { looks: [] } } = {}) {
     scenePresetPreviewUrl: (id, version) => `/api/scene-presets/${id}/${version}/preview`,
     listEditorialModes: async () => ({ modes: [{ preset_id: 'shoot.one', version: '1.0.0', ui_name_uk: 'Стиль' }] }),
     editorialModePreviewUrl: (id, version) => `/api/editorial-modes/${id}/${version}/preview`,
-    videoCapability: async () => ({ available: true, styles: [{ id: 'air', title: 'Повітря', motion_mode: 'air', preview_url: '/p', playback_url: '/v', reference_url: '/r' }] }),
+    videoCapability: async () => ({ available: true, styles: [{ id: 'air', title: 'Повітря', motion_mode: 'air', aspect_ratio: '9:16', presentation_surface: 'mirror', preview_url: '/p', playback_url: '/v', reference_url: '/r' }] }),
     realtimeCapability: async () => ({ paid_live_ready: true, consent: { maximum_session_seconds: 15 } }),
     postShootPipeline: async () => ({ modes: [{ id: 'live_webcam', provider: { model_id: 'server-owned-live' } }] }),
     liveReferenceDataUrl: async (lookId) => {
@@ -306,10 +306,27 @@ test('background, shoot and video actions carry the selected saved look', async 
 
   await bridge.createBackground({ presetId: 'std.one', presetVersion: '1.0.0', aspect: '9:16' });
   await bridge.createShoot({ modeId: 'shoot.one', modeVersion: '1.0.0' });
-  await bridge.createVideo({ styleId: 'air', motionMode: 'air', aspect: '16:9' });
+  await bridge.createVideo({ styleId: 'air', motionMode: 'air', presentationSurface: 'mirror' });
 
   assert.deepEqual(client.calls.find(([kind]) => kind === 'background').slice(0, 2), ['background', 'look-1']);
   assert.deepEqual(client.calls.find(([kind]) => kind === 'shoot').slice(0, 2), ['shoot', 'look-1']);
+  assert.equal(client.calls.find(([kind]) => kind === 'video')[1].surface, 'mirror');
+});
+
+test('Fashion Video surface is derived from the verified style, not a viewer choice', async () => {
+  const client = clientStub({ profile: { looks: [{
+    look_id: 'look-1', image_url: '/api/profile/looks/look-1/image',
+  }] } });
+  client.videoCapability = async () => ({ available: true, styles: [{
+    id: 'landscape-style', title: 'Широкий стиль', motion_mode: 'camera_drift',
+    aspect_ratio: '16:9', presentation_surface: 'tv', preview_url: '/p', playback_url: '/v', reference_url: '/r',
+  }] });
+  const bridge = createCinematicUiBridge({ client, autoProbe: false });
+  await bridge.probe();
+  assert.equal(bridge.state().catalogs.videos[0].presentationSurface, 'tv');
+  assert.equal(bridge.state().catalogs.videos[0].aspect, '16:9');
+  // The direct bridge call deliberately accepts no raw aspect field.
+  await bridge.createVideo({ styleId: 'landscape-style', motionMode: 'camera_drift', presentationSurface: 'tv' });
   assert.equal(client.calls.find(([kind]) => kind === 'video')[1].surface, 'tv');
 });
 
