@@ -8,6 +8,7 @@ import {
   MotionPlanError,
   buildFashionVideoReferencePrompt,
   buildMotionPlan,
+  fashionVideoReferenceRetryPlan,
   surfaceForReferenceGeometry,
   videoSurface,
   surface,
@@ -84,6 +85,34 @@ test('Fashion Video provider labels follow the exact appearance-reference array'
     }),
     (error) => error.code === 'VIDEO_APPEARANCE_ROLE_ORDER_INVALID',
   );
+});
+
+test('reference-performer repair plans are bounded, distinct and compiled into the prompt', () => {
+  const first = fashionVideoReferenceRetryPlan(1);
+  const second = fashionVideoReferenceRetryPlan(2);
+  assert.equal(first.id, 'full-subject-replacement-pass');
+  assert.equal(second.id, 'cut-boundary-subject-isolation-pass');
+  assert.notEqual(first.instruction, second.instruction);
+  assert.throws(
+    () => fashionVideoReferenceRetryPlan(3),
+    (error) => error.code === 'VIDEO_REFERENCE_RETRY_NUMBER_INVALID',
+  );
+  const prompt = buildFashionVideoReferencePrompt({
+    appearanceRoles: [],
+    cutSheet: {
+      schema_version: '1.0.0',
+      cuts: [{
+        cut_index: 0,
+        start_ms: 0,
+        end_ms: 5000,
+        subject_rule: 'APPROVED_AVATAR_OR_EMPTY',
+        direction: 'Reconstruct the cut with the approved avatar or an empty environment.',
+      }],
+    },
+    referenceRetryPlan: second,
+  });
+  assert.match(prompt, /REFERENCE REPAIR cut-boundary-subject-isolation-pass/);
+  assert.match(prompt, /every cut-sheet interval as an independent reconstruction boundary/);
 });
 
 test('walk or stride is refused unless the source really shows the feet', () => {

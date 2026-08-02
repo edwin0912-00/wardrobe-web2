@@ -39,3 +39,20 @@ test('terminal failures always expose an explicit retry while PASS still needs p
     action: 'RETRY_AVAILABLE', reason_code: 'VIDEO_OUTPUT_DOWNLOAD_FAILED', retry_available: true,
   });
 });
+
+test('reference QA parent waits while its bounded automatic child retry is being created', () => {
+  assert.deepEqual(resolveVideoQaAction({
+    status: 'FAIL',
+    failureCode: 'VIDEO_REFERENCE_QA_FAILED',
+    automaticRetry: {
+      state: 'CREATED',
+      retry_number: 1,
+      max_retries: 2,
+      child_clip_id: '44444444-4444-4444-8444-444444444444',
+    },
+  }), {
+    action: 'WAIT',
+    reason_code: 'VIDEO_REFERENCE_QA_AUTORETRY_IN_PROGRESS',
+    retry_available: false,
+  });
+});

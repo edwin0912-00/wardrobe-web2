@@ -1370,3 +1370,29 @@ public beta and same-origin main API both report `ready`.
 Evidence: UI / Fashion Shoot / Fashion Video tests 78/78 PASS; contracts and
 canon PASS; no paid provider run.
 weakened_checks: none.
+
+---
+
+Agent ID: codex-main
+Task ID: BETA-FASHION-VIDEO-REFERENCE-QA-AUTORETRY-20260803
+Pipeline: VIDEO.03–06 · provider output → reference QA → delivery
+State: READY_FOR_BETA_DEPLOY
+Decision: a terminal `VIDEO_REFERENCE_QA_FAILED` or
+`VIDEO_REFERENCE_NOT_REPLACED` now starts at most two server-owned child
+attempts. These are not duplicate resends: attempt 1 uses a full-subject
+replacement repair plan and attempt 2 uses cut-boundary subject isolation.
+Both plans are recorded in the child prompt, request receipt and immutable
+request binding. The provider never receives a changed avatar/look/style under
+the same job, and an unknown submission outcome remains paused rather than
+spending another generation.
+UI/API: while a child is being submitted or generated, the failed parent reports
+`VIDEO_REFERENCE_QA_AUTORETRY_IN_PROGRESS`, `retry_available=false`, and the
+child clip id. The browser follows that child automatically. Manual retry only
+returns after the two automatic attempts are exhausted or the failure is outside
+the reference-performer policy.
+Code: local commit pending; exact SHA will be recorded by release owner after
+push. No paid generation was triggered by this code change.
+Tests: `node --test test/video/*.test.js test/web/profile-ui-flow.test.js` —
+209/209 PASS.
+Beta: NOT_DEPLOYED.
+weakened_checks: none. The reference-performer gate remains blocking.

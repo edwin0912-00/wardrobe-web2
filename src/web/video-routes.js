@@ -118,6 +118,20 @@ function publicVideoFailure(liveClip) {
   return null;
 }
 
+function publicAutomaticRetry(liveClip) {
+  const retry = liveClip?.automaticRetry;
+  if (!retry || !['SUBMITTING', 'CREATED'].includes(retry.state)
+    || !Number.isInteger(retry.retry_number)
+    || !Number.isInteger(retry.max_retries)) return null;
+  return {
+    state: retry.state,
+    retry_number: retry.retry_number,
+    max_retries: retry.max_retries,
+    reason_code: retry.reason_code ?? null,
+    child_clip_id: typeof retry.child_clip_id === 'string' ? retry.child_clip_id : null,
+  };
+}
+
 /**
  * @param {import('fastify').FastifyInstance} app
  * @param {object} options
@@ -166,12 +180,67 @@ export async function registerVideoRoutes(app, {
   // issues another create request.  The in-process map only prevents duplicate
   // waits/downloads while this server instance is alive.
   const activeFinalizers = new Map();
+
+  // A source performer in a completed provider video is a safety/identity
+  // failure, not a result we can show.  The service has a tightly bounded
+  // two-pass reconstruction policy for exactly that evidence.  It re-resolves
+  // the current style only to prove the already-locked hashes still exist;
+  // retryFailedClip rechecks those hashes before a provider create.
+  const maybeStartAutomaticReferenceQaRetry = async ({ profileId, lookId, clipId }) => {
+    if (typeof videoService.automaticRetryReferenceQaFailure !== 'function') return null;
+    const failed = await videoService.getClip(clipId);
+    if (!failed || !['FAIL', 'FAILED'].includes(failed.status)
+      || !['VIDEO_REFERENCE_QA_FAILED', 'VIDEO_REFERENCE_NOT_REPLACED'].includes(failed.failureCode)) {
+      return null;
+    }
+    const styleId = failed.motionReferenceBinding?.referenceId;
+    if (typeof styleId !== 'string' || styleId.length === 0) return null;
+    const approvedLook = await profiles.approvedLookReference(profileId, lookId, runService);
+    if (approvedLook.image_sha256 !== failed.lookBinding?.sourceSha256
+      || approvedLook.receipt_sha256 !== failed.lookBinding?.approvedLookReceiptSha256) {
+      return null;
+    }
+    const motionReference = typeof videoService.fashionVideoCapability === 'function'
+      ? await videoService.fashionVideoCapability({
+          profileId,
+          lookId,
+          approvedLook,
+          referenceId: styleId,
+          motionMode: failed.mode,
+        })
+      : null;
+    const capability = fashionVideoCapability({ lookId, approvedLook, motionReference });
+    if (!capability.available) return null;
+
+    const automatic = await videoService.automaticRetryReferenceQaFailure(clipId, {
+      videoReference: motionReference,
+    });
+    if (typeof automatic?.childClipId === 'string') {
+      const child = await videoService.getClip(automatic.childClipId);
+      if (child) {
+        projectClip(profileId, lookId, child);
+        if (['CREATED', 'GENERATING', 'OUTPUT_DOWNLOAD_FAILED', 'NEEDS_QA'].includes(child.status)) {
+          void finalizePersistedClip({ profileId, lookId, clipId: child.clipId });
+        }
+      }
+    }
+    return automatic;
+  };
+
   const finalizePersistedClip = ({ profileId, lookId, clipId }) => {
     const active = activeFinalizers.get(clipId);
     if (active) return active;
     const finalizer = (async () => {
       try {
         await videoService.finalizeClip(clipId);
+        try {
+          await maybeStartAutomaticReferenceQaRetry({ profileId, lookId, clipId });
+        } catch (error) {
+          // A missing/changed style must not turn the failed parent into a
+          // false success. Keep its exact QA evidence and offer the normal
+          // explicit recovery path instead of risking a blind paid retry.
+          app.log?.warn?.({ err: error, clip_id: clipId }, 'fashion video automatic reference retry paused');
+        }
       } catch (error) {
         // Finalization is resumable.  Keep the immutable provider job and let
         // the next status request retry the wait; do not turn a transport blip
@@ -508,8 +577,8 @@ export async function registerVideoRoutes(app, {
   });
 
   // POST /api/profile/video-clips/:clipId/retry — creates exactly one explicit
-  // child attempt. A retry never happens automatically after QA FAIL: it is a
-  // new paid provider request and therefore requires an Idempotency-Key.
+  // child attempt. Reference-performer QA gets up to two server-owned attempts;
+  // all other retries remain a user action with an Idempotency-Key.
   app.post('/api/profile/video-clips/:clipId/retry', async (request, reply) => {
     sameOriginMutation(request);
     const session = await profileApi.resolveRequestProfile(request, reply);
@@ -538,6 +607,13 @@ export async function registerVideoRoutes(app, {
       return reply.code(409).send({
         error: 'This old failed video used an unverified appearance input. Start a new Fashion Video from the approved white master.',
         code: 'VIDEO_RETRY_LEGACY_APPEARANCE_FORBIDDEN',
+      });
+    }
+    if (['SUBMITTING', 'CREATED'].includes(parent.automaticRetry?.state)) {
+      return reply.code(409).send({
+        error: 'Автоматичний повтор перевірки reference уже виконується. Нова платна спроба не створювалася.',
+        code: 'VIDEO_AUTOMATIC_RETRY_IN_PROGRESS',
+        child_clip_id: parent.automaticRetry.child_clip_id ?? null,
       });
     }
     const styleId = parent.motionReferenceBinding?.referenceId;
@@ -658,6 +734,7 @@ export async function registerVideoRoutes(app, {
         next_action: next.action,
         next_action_reason_code: next.reason_code,
         retry_available: next.retry_available,
+        automatic_retry: publicAutomaticRetry(liveClip),
       });
     } catch (err) {
       if (err instanceof VideoServiceError) {
@@ -693,6 +770,18 @@ export async function registerVideoRoutes(app, {
       });
       liveClip = await videoService.getClip(request.params.clipId);
     }
+    if (['FAIL', 'FAILED'].includes(liveClip?.status)) {
+      try {
+        await maybeStartAutomaticReferenceQaRetry({
+          profileId: session.profileId,
+          lookId: clip.look_id,
+          clipId: request.params.clipId,
+        });
+        liveClip = await videoService.getClip(request.params.clipId);
+      } catch (error) {
+        app.log?.warn?.({ err: error, clip_id: request.params.clipId }, 'fashion video automatic reference retry status check paused');
+      }
+    }
     // The runtime file is authoritative. Persist it before replying so a
     // terminal FAIL can never be hidden behind a stale `CREATED` projection.
     const liveProjection = liveClip
@@ -713,6 +802,7 @@ export async function registerVideoRoutes(app, {
       next_action: next.action,
       next_action_reason_code: next.reason_code,
       retry_available: next.retry_available,
+      automatic_retry: publicAutomaticRetry(liveClip),
     });
   });
 

@@ -241,6 +241,92 @@ test('explicit retry creates a child only from the failed clip’s locked source
   });
 });
 
+test('reference-performer QA automatically creates at most two materially distinct child attempts', async () => {
+  await withTempDir(async (dir, sourcePath) => {
+    const referencePath = path.join(dir, 'style.mp4');
+    const referenceBytes = Buffer.from('verified-style-video');
+    await writeFile(referencePath, referenceBytes);
+    const { provider, calls } = makeStubProvider();
+    const store = new ClipStore(dir);
+    const service = new VideoService({ provider, clipStore: store });
+    const videoReference = {
+      state: 'READY',
+      reference_id: 'style-1',
+      reference_path: referencePath,
+      reference_sha256: sha256(referenceBytes),
+      reference_pack_sha256: 'e'.repeat(64),
+      duration_seconds: 5,
+      provider_duration_seconds: 5,
+      width: 720,
+      height: 1280,
+      fps: 24,
+      ...verifiedCutSheet(5),
+    };
+    const parent = await service.createClip({
+      modeId: 'walk_stride',
+      surfaceId: 'mirror',
+      sourceCapabilities: { full_length: true },
+      sourceImagePath: sourcePath,
+      videoReference,
+      lookBinding: {
+        sourceSha256: sha256(Buffer.from('locked-source-image')),
+        approvedLookReceiptSha256: 'c'.repeat(64),
+        whiteBackgroundVerified: true,
+      },
+    });
+    const failedParent = await store.load(parent.clipId);
+    await store.save(parent.clipId, {
+      ...failedParent,
+      status: 'FAIL',
+      failureCode: 'VIDEO_REFERENCE_QA_FAILED',
+      referenceAdherenceQaSha256: 'f'.repeat(64),
+    });
+
+    const first = await service.automaticRetryReferenceQaFailure(parent.clipId, { videoReference });
+    assert.equal(first.created, true);
+    assert.equal(first.retryNumber, 1);
+    const firstChild = await store.load(first.childClipId);
+    assert.equal(firstChild.retryOf, parent.clipId);
+    assert.equal(firstChild.automaticRetry.retry_number, 1);
+    assert.equal(firstChild.automaticRetry.id, 'full-subject-replacement-pass');
+    assert.match(firstChild.prompt, /REFERENCE REPAIR full-subject-replacement-pass/);
+    assert.equal(calls.filter((call) => call.phase === 'create').length, 2);
+
+    const duplicate = await service.automaticRetryReferenceQaFailure(parent.clipId, { videoReference });
+    assert.equal(duplicate.created, false);
+    assert.equal(duplicate.reused, true);
+    assert.equal(duplicate.childClipId, first.childClipId);
+    assert.equal(calls.filter((call) => call.phase === 'create').length, 2);
+
+    await store.save(firstChild.clipId, {
+      ...firstChild,
+      status: 'FAIL',
+      failureCode: 'VIDEO_REFERENCE_QA_FAILED',
+      referenceAdherenceQaSha256: 'a'.repeat(64),
+    });
+    const second = await service.automaticRetryReferenceQaFailure(firstChild.clipId, { videoReference });
+    assert.equal(second.created, true);
+    assert.equal(second.retryNumber, 2);
+    const secondChild = await store.load(second.childClipId);
+    assert.equal(secondChild.retryOf, firstChild.clipId);
+    assert.equal(secondChild.automaticRetry.retry_number, 2);
+    assert.equal(secondChild.automaticRetry.id, 'cut-boundary-subject-isolation-pass');
+    assert.match(secondChild.prompt, /REFERENCE REPAIR cut-boundary-subject-isolation-pass/);
+    assert.equal(calls.filter((call) => call.phase === 'create').length, 3);
+
+    await store.save(secondChild.clipId, {
+      ...secondChild,
+      status: 'FAIL',
+      failureCode: 'VIDEO_REFERENCE_QA_FAILED',
+      referenceAdherenceQaSha256: 'b'.repeat(64),
+    });
+    const exhausted = await service.automaticRetryReferenceQaFailure(secondChild.clipId, { videoReference });
+    assert.equal(exhausted.exhausted, true);
+    assert.equal(exhausted.retryNumber, 2);
+    assert.equal(calls.filter((call) => call.phase === 'create').length, 3);
+  });
+});
+
 test('retry refuses a changed video-style hash before a second provider create', async () => {
   await withTempDir(async (dir, sourcePath) => {
     const referencePath = path.join(dir, 'style.mp4');

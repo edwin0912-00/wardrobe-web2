@@ -130,7 +130,9 @@ test('saved look exposes actionable branches and their honest pipeline explanati
   assert.match(indexSource, /id="video-result" class="video-result" hidden/);
   assert.match(indexSource, /id="video-retry"[^>]*>Повторити спробу/);
   assert.match(appSource, /function showVideoRetry/);
-  assert.match(appSource, /Автоматичний повтор не запускався/);
+  assert.match(appSource, /Автоматична спроба \$\{automaticRetry\.retry_number\} з \$\{automaticRetry\.max_retries\}/);
+  assert.match(appSource, /автоматичних спроб/);
+  assert.doesNotMatch(appSource, /Автоматичний повтор не запускався/);
   assert.match(appSource, /Потрібні 2 референси/);
   assert.match(appSource, /action\.dataset\.state = state/);
   assert.match(appSource, /action\.classList\.toggle\('is-checking', state === 'checking'\)/);

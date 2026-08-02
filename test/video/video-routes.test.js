@@ -474,6 +474,129 @@ test('one explicit QA retry creates one child job and same idempotency key reuse
   assert.equal(retryCalls, 1);
 });
 
+test('failed reference QA exposes the server-owned automatic child as a wait state', async (t) => {
+  const current = fixture();
+  current.setLiveClip({
+    status: 'FAIL',
+    failureCode: 'VIDEO_REFERENCE_QA_FAILED',
+    automaticRetry: {
+      state: 'CREATED',
+      retry_number: 1,
+      max_retries: 2,
+      reason_code: 'VIDEO_REFERENCE_QA_FAILED',
+      child_clip_id: '44444444-4444-4444-8444-444444444444',
+    },
+  });
+  const app = Fastify();
+  t.after(() => app.close());
+  await registerVideoRoutes(app, {
+    profileApi: { resolveRequestProfile: async () => ({ profileId: 'profile-1' }) },
+    profiles: current.profiles,
+    videoService: current.videoService,
+    runService: { outputFile: async () => null },
+  });
+
+  const response = await app.inject({
+    method: 'GET', url: '/api/profile/video-clips/11111111-1111-4111-8111-111111111111',
+  });
+  assert.equal(response.statusCode, 200, response.body);
+  const body = response.json();
+  assert.equal(body.next_action, 'WAIT');
+  assert.equal(body.next_action_reason_code, 'VIDEO_REFERENCE_QA_AUTORETRY_IN_PROGRESS');
+  assert.equal(body.retry_available, false);
+  assert.deepEqual(body.automatic_retry, {
+    state: 'CREATED',
+    retry_number: 1,
+    max_retries: 2,
+    reason_code: 'VIDEO_REFERENCE_QA_FAILED',
+    child_clip_id: '44444444-4444-4444-8444-444444444444',
+  });
+});
+
+test('server finalization starts the bounded reference-QA child and projects it before returning', async (t) => {
+  const current = fixture();
+  const parentId = '11111111-1111-4111-8111-111111111111';
+  const childId = '44444444-4444-4444-8444-444444444444';
+  const child = {
+    clipId: childId,
+    jobId: 'higgs-job-auto-retry',
+    status: 'CREATED',
+    mode: 'motion_1',
+    surface: 'mirror',
+    durationSeconds: 5,
+    createdAt: '2026-08-03T10:00:00.000Z',
+    updatedAt: '2026-08-03T10:00:00.000Z',
+  };
+  current.setLiveClip({
+    status: 'CREATED',
+    mode: 'motion_1',
+    surface: 'mirror',
+    lookBinding: {
+      sourceSha256: 'b'.repeat(64),
+      approvedLookReceiptSha256: 'c'.repeat(64),
+      whiteBackgroundVerified: true,
+    },
+    motionReferenceBinding: {
+      referenceId: 'style-1',
+      sha256: 'd'.repeat(64),
+      packSha256: 'e'.repeat(64),
+    },
+  });
+  const getParent = current.videoService.getClip.bind(current.videoService);
+  current.videoService.getClip = async (clipId) => (clipId === childId ? child : getParent(clipId));
+  current.videoService.finalizeClip = async (clipId) => {
+    if (clipId === parentId) {
+      current.setLiveClip({
+        status: 'FAIL',
+        failureCode: 'VIDEO_REFERENCE_QA_FAILED',
+      });
+    }
+    return { clipId, status: clipId === parentId ? 'FAIL' : 'CREATED' };
+  };
+  current.videoService.fashionVideoCapability = async ({ referenceId }) => ({
+    state: 'READY',
+    selected_style_id: referenceId,
+    reference_id: referenceId,
+    reference_path: '/runtime/references/style.mp4',
+    reference_sha256: 'd'.repeat(64),
+    reference_pack_sha256: 'e'.repeat(64),
+    available_styles: availableStyles,
+  });
+  let automaticCalls = 0;
+  current.videoService.automaticRetryReferenceQaFailure = async (clipId, { videoReference }) => {
+    automaticCalls++;
+    assert.equal(clipId, parentId);
+    assert.equal(videoReference.reference_id, 'style-1');
+    current.setLiveClip({
+      automaticRetry: {
+        state: 'CREATED',
+        retry_number: 1,
+        max_retries: 2,
+        reason_code: 'VIDEO_REFERENCE_QA_FAILED',
+        child_clip_id: childId,
+      },
+    });
+    return { created: true, childClipId: childId, retryNumber: 1, maxRetries: 2 };
+  };
+  const app = Fastify();
+  t.after(() => app.close());
+  await registerVideoRoutes(app, {
+    profileApi: { resolveRequestProfile: async () => ({ profileId: 'profile-1' }) },
+    profiles: current.profiles,
+    videoService: current.videoService,
+    runService: { outputFile: async () => null },
+  });
+
+  const response = await app.inject({
+    method: 'POST', url: `/api/profile/video-clips/${parentId}/finalize`,
+  });
+  assert.equal(response.statusCode, 200, response.body);
+  assert.equal(automaticCalls, 1);
+  assert.equal(response.json().next_action, 'WAIT');
+  assert.equal(response.json().automatic_retry.child_clip_id, childId);
+  assert.equal(current.projected.some((entry) => entry.clip.clip_id === childId), true);
+});
+
 test('create reaches VideoService only after the same two-reference contract is ready', async (t) => {
   const current = fixture();
   current.videoService.fashionVideoCapability = async () => ({

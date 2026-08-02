@@ -1983,8 +1983,9 @@ function showVideoRetry(message, clipId = null) {
   error.hidden = false;
   failedFashionVideoClipId = clipId;
   failedFashionVideoRetryKey = clipId ? crypto.randomUUID() : null;
-  // This is an explicit user action. It may submit one new paid job; the
-  // server never retries a failed QA/provider result on its own.
+  // This is an explicit user action. Reference-performer QA gets two
+  // server-owned attempts first; this button appears only once those attempts
+  // are exhausted or when the failure is outside that bounded policy.
   document.querySelector('#video-retry').hidden = false;
 }
 function setVideoThinkingState(state, title, detail) {
@@ -2008,6 +2009,28 @@ async function pollFashionVideo(clipId) {
       const statusRes = await fetch(`/api/profile/video-clips/${clipId}`);
       if (!statusRes.ok) return;
       const status = await statusRes.json();
+      const automaticRetry = status.automatic_retry;
+      const automaticRetryRunning = ['SUBMITTING', 'CREATED'].includes(automaticRetry?.state)
+        && Number.isInteger(automaticRetry?.retry_number)
+        && Number.isInteger(automaticRetry?.max_retries);
+      if (automaticRetryRunning) {
+        const retryLabel = `Автоматична спроба ${automaticRetry.retry_number} з ${automaticRetry.max_retries}`;
+        if (typeof automaticRetry.child_clip_id === 'string'
+          && automaticRetry.child_clip_id.length > 0
+          && automaticRetry.child_clip_id !== clipId) {
+          clearInterval(poll);
+          progressFill.style.width = '30%';
+          progressStatus.textContent = `${retryLabel}: перезапускаємо лише заміну героя…`;
+          setVideoThinkingState('solving', 'AI виправляє заміну героя', 'Reference-людина не потрапить у фінальне відео');
+          failedFashionVideoClipId = null;
+          failedFashionVideoRetryKey = null;
+          pollFashionVideo(automaticRetry.child_clip_id);
+          return;
+        }
+        progressStatus.textContent = `${retryLabel}: сервер готує новий hash-bound job…`;
+        setVideoThinkingState('solving', 'AI виправляє заміну героя', 'Reference-людина не потрапить у фінальне відео');
+        return;
+      }
       progressStatus.textContent = `Статус: ${status.status}`;
       const normalizedStatus = String(status.status ?? '').toUpperCase();
       if (/QA|CHECK|VERIFY|REVIEW/.test(normalizedStatus)) {
@@ -2020,7 +2043,7 @@ async function pollFashionVideo(clipId) {
       if (status.status === 'COMPLETED' || status.status === 'PASS') {
         clearInterval(poll);
         if (!status.video_url) {
-          showVideoRetry(status.error ?? 'Відео не пройшло strict QA по кожному cut. Автоматичний повтор не запускався.', clipId);
+          showVideoRetry(status.error ?? 'Відео не пройшло QA після доступних автоматичних спроб.', clipId);
           setVideoGenerateBusy(false);
           return;
         }
@@ -2034,7 +2057,7 @@ async function pollFashionVideo(clipId) {
         setVideoGenerateBusy(false);
       } else if (status.status === 'FAILED' || status.status === 'FAIL') {
         clearInterval(poll);
-        showVideoRetry(status.error ?? 'Відео не пройшло QA. Автоматичний повтор не запускався.', clipId);
+        showVideoRetry(status.error ?? 'Відео не пройшло QA після доступних автоматичних спроб.', clipId);
         setVideoGenerateBusy(false);
         return;
       }

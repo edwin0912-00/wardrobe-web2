@@ -15,6 +15,20 @@ export function resolveVideoQaAction(clip, { deliverable = false } = {}) {
     return { action: 'WAIT', reason_code: 'VIDEO_PROVIDER_JOB_IN_PROGRESS', retry_available: false };
   }
 
+  // Reference-performer leakage receives up to two server-owned, materially
+  // changed reconstruction attempts.  While a child exists or is being
+  // submitted, the parent is not a user-facing retry dead-end.
+  if (['SUBMITTING', 'CREATED'].includes(clip.automaticRetry?.state)
+    && Number.isInteger(clip.automaticRetry?.retry_number)
+    && clip.automaticRetry.retry_number >= 1
+    && clip.automaticRetry.retry_number <= 2) {
+    return {
+      action: 'WAIT',
+      reason_code: 'VIDEO_REFERENCE_QA_AUTORETRY_IN_PROGRESS',
+      retry_available: false,
+    };
+  }
+
   if (clip.salvage?.status === 'BLOCKED') {
     return {
       action: 'REPAIR_SALVAGE_RUNTIME',

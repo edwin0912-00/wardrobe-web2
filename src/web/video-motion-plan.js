@@ -181,6 +181,7 @@ export function fashionVideoReferenceBindings({ appearanceRoles = [] } = {}) {
 export function buildFashionVideoReferencePrompt({
   appearanceRoles = [],
   cutSheet = null,
+  referenceRetryPlan = null,
 } = {}) {
   const bindings = fashionVideoReferenceBindings({ appearanceRoles });
   const videoLabel = bindings.motion_reference.provider_label;
@@ -215,12 +216,48 @@ export function buildFashionVideoReferencePrompt({
       );
     }
   }
+  if (referenceRetryPlan) {
+    lines.push(
+      `REFERENCE REPAIR ${referenceRetryPlan.id}: ${referenceRetryPlan.instruction}`,
+    );
+  }
   lines.push(
     'Never replace the reference environment with the background of an appearance image.',
     'Do not simplify the reference into a static portrait or a single continuous camera setup, but reconstruct every cut with the approved person or an empty environment only.',
     'Do not add people, props, scene text, wardrobe changes, music, dialogue, voice or sound effects. The original uploaded person photo is not an allowed image input and must never be inferred as a background or scene source.',
   );
   return lines.join(' ');
+}
+
+/**
+ * A reference-performer leak is not repaired by resending the same prose.
+ * These two bounded plans retain the locked source/style inputs but change the
+ * generation mechanism requested from the provider.  The plan is persisted in
+ * the child clip's request binding and therefore cannot be confused with an
+ * arbitrary manual retry.
+ */
+export function fashionVideoReferenceRetryPlan(retryNumber) {
+  if (!Number.isInteger(retryNumber) || retryNumber < 1 || retryNumber > 2) {
+    throw new MotionPlanError('Fashion Video reference retry number must be 1 or 2', {
+      code: 'VIDEO_REFERENCE_RETRY_NUMBER_INVALID',
+    });
+  }
+  const plans = [
+    null,
+    Object.freeze({
+      version: 'fashion-video-reference-repair-v1',
+      id: 'full-subject-replacement-pass',
+      retry_number: 1,
+      instruction: 'Before reconstructing each cut, rebuild every visible person from [Image 1] as a new full subject. Treat [Video 1] only as timing, camera and environment authority; preserve no human pixels, silhouette fragments, blur, reflection or transition from it.',
+    }),
+    Object.freeze({
+      version: 'fashion-video-reference-repair-v1',
+      id: 'cut-boundary-subject-isolation-pass',
+      retry_number: 2,
+      instruction: 'Use every cut-sheet interval as an independent reconstruction boundary. At the start and end of every cut, erase the reference performer completely, then render only [Image 1] where a person is required. Do not interpolate a source face, body, clothing, silhouette or motion blur across a cut boundary.',
+    }),
+  ];
+  return plans[retryNumber];
 }
 
 export function motionMode(id) {

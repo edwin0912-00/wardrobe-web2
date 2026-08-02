@@ -21,6 +21,7 @@ import {
   buildFashionVideoReferencePrompt,
   buildMotionPlan,
   fashionVideoReferenceBindings,
+  fashionVideoReferenceRetryPlan,
   surfaceForReferenceGeometry,
 } from './video-motion-plan.js';
 import { evaluateClipQa } from './video-clip-qa.js';
@@ -61,6 +62,16 @@ export const SALVAGE_BLOCKING_REFERENCE_CHECKS = Object.freeze([
 const FASHION_VIDEO_QA_MODES = new Set(['strict', 'delivery']);
 const DELIVERY_SAFETY_REFERENCE_CHECKS = Object.freeze([
   'no_reference_performer_pixels',
+]);
+
+// Initial render + two materially different, hash-bound reconstruction passes.
+// This budget is deliberately limited to reference-performer leakage; a broken
+// input, a missing provider job, or an unknown create outcome must never spend
+// a new paid job automatically.
+export const MAX_AUTOMATIC_REFERENCE_QA_RETRIES = 2;
+const AUTOMATIC_REFERENCE_QA_FAILURE_CODES = new Set([
+  'VIDEO_REFERENCE_QA_FAILED',
+  'VIDEO_REFERENCE_NOT_REPLACED',
 ]);
 
 const SHA256 = /^[a-f0-9]{64}$/;
@@ -501,6 +512,7 @@ export class VideoService {
     videoReference = null,
     appearanceReferences = [],
     retryOf = null,
+    automaticRetry = null,
   }) {
     if (!sourceImagePath) {
       throw new VideoServiceError('A locked source image path is required', {
@@ -691,10 +703,28 @@ export class VideoService {
     const aspectRatio = plan.aspectRatio;
 
     const referenceBound = verifiedVideoReference !== null;
+    let referenceRetryPlan = null;
+    if (automaticRetry !== null) {
+      if (!referenceBound
+        || !AUTOMATIC_REFERENCE_QA_FAILURE_CODES.has(automaticRetry?.reason_code)
+        || !Number.isInteger(automaticRetry?.retry_number)) {
+        throw new VideoServiceError('Automatic Fashion Video retry is invalid', {
+          code: 'VIDEO_AUTOMATIC_RETRY_INVALID', status: 409,
+        });
+      }
+      try {
+        referenceRetryPlan = fashionVideoReferenceRetryPlan(automaticRetry.retry_number);
+      } catch (cause) {
+        throw new VideoServiceError('Automatic Fashion Video retry is invalid', {
+          code: cause?.code ?? 'VIDEO_AUTOMATIC_RETRY_INVALID', status: 409, cause,
+        });
+      }
+    }
     const prompt = referenceBound
       ? buildFashionVideoReferencePrompt({
           appearanceRoles,
           cutSheet: verifiedVideoReference.cutSheet,
+          referenceRetryPlan,
         })
       : plan.prompt;
     const duration = referenceBound
@@ -767,6 +797,14 @@ export class VideoService {
         provider_label: reference.provider_label,
         white_background_verified: reference.white_background_verified,
       })),
+      automatic_reference_retry: referenceRetryPlan
+        ? {
+            version: referenceRetryPlan.version,
+            id: referenceRetryPlan.id,
+            retry_number: referenceRetryPlan.retry_number,
+            reason_code: automaticRetry.reason_code,
+          }
+        : null,
       reference_bindings: providerReferenceBindings,
     };
 
@@ -816,6 +854,16 @@ export class VideoService {
         : null,
       lookBinding,
       immutableRequestBinding,
+      automaticRetry: referenceRetryPlan
+        ? {
+            version: referenceRetryPlan.version,
+            id: referenceRetryPlan.id,
+            retry_number: referenceRetryPlan.retry_number,
+            max_retries: MAX_AUTOMATIC_REFERENCE_QA_RETRIES,
+            reason_code: automaticRetry.reason_code,
+            parent_clip_id: retryOf,
+          }
+        : null,
       createdAt,
       updatedAt: createdAt,
     };
@@ -866,6 +914,14 @@ export class VideoService {
           provider_label: reference.provider_label,
           white_background_verified: reference.white_background_verified,
         })),
+        automatic_reference_retry: referenceRetryPlan
+          ? {
+              version: referenceRetryPlan.version,
+              id: referenceRetryPlan.id,
+              retry_number: referenceRetryPlan.retry_number,
+              reason_code: automaticRetry.reason_code,
+            }
+          : null,
         reference_bindings: providerReferenceBindings,
         immutable_request_binding: immutableRequestBinding,
       },
@@ -928,7 +984,152 @@ export class VideoService {
     return this.#store.completeRetryClaim(claimPath, childClipId);
   }
 
-  async retryFailedClip(parentClipId, { videoReference } = {}) {
+  /**
+   * Create at most two autonomous children when semantic reference QA proves
+   * that a provider result leaked the directing performer.  Each child gets a
+   * different immutable repair plan; this is deliberately not a blind resend
+   * of the same paid request.
+   *
+   * A retry claim is durable before create.  If the create outcome becomes
+   * ambiguous, the claim remains pending and this method will not spend a
+   * duplicate provider job after a restart.
+   */
+  async automaticRetryReferenceQaFailure(parentClipId, { videoReference } = {}) {
+    const parent = await this.#store.load(parentClipId);
+    if (!parent) {
+      throw new VideoServiceError('Video clip not found', { code: 'CLIP_NOT_FOUND', status: 404 });
+    }
+    if (!['FAIL', 'FAILED'].includes(parent.status)
+      || !AUTOMATIC_REFERENCE_QA_FAILURE_CODES.has(parent.failureCode)) {
+      return {
+        eligible: false,
+        created: false,
+        exhausted: false,
+        reasonCode: parent.failureCode ?? 'VIDEO_AUTOMATIC_RETRY_NOT_APPLICABLE',
+      };
+    }
+
+    // The parent record is a pointer to an already-submitted child. Do not
+    // treat its recorded retry number as permission to create the next pass:
+    // only a terminal failure of that child may unlock retry #2.
+    if (['SUBMITTING', 'CREATED'].includes(parent.automaticRetry?.state)) {
+      return {
+        eligible: true,
+        created: false,
+        pending: parent.automaticRetry.state === 'SUBMITTING',
+        reused: typeof parent.automaticRetry.child_clip_id === 'string',
+        childClipId: parent.automaticRetry.child_clip_id ?? null,
+        retryNumber: parent.automaticRetry.retry_number,
+        maxRetries: parent.automaticRetry.max_retries ?? MAX_AUTOMATIC_REFERENCE_QA_RETRIES,
+      };
+    }
+
+    const previousRetry = Number.isInteger(parent.automaticRetry?.retry_number)
+      ? parent.automaticRetry.retry_number
+      : 0;
+    if (previousRetry >= MAX_AUTOMATIC_REFERENCE_QA_RETRIES) {
+      return {
+        eligible: true,
+        created: false,
+        exhausted: true,
+        retryNumber: previousRetry,
+        maxRetries: MAX_AUTOMATIC_REFERENCE_QA_RETRIES,
+      };
+    }
+
+    const retryNumber = previousRetry + 1;
+    const idempotencyKey = [
+      'fashion-video-reference-qa-autoretry-v1',
+      parentClipId,
+      parent.failureCode,
+      `attempt-${retryNumber}`,
+      parent.referenceAdherenceQaSha256 ?? 'unbound-reference-qa',
+    ].join(':');
+    const claim = await this.#store.claimRetry(parentClipId, idempotencyKey);
+    if (!claim.created) {
+      return {
+        eligible: true,
+        created: false,
+        pending: claim.claim.state === 'SUBMITTING',
+        reused: typeof claim.claim.child_clip_id === 'string',
+        childClipId: claim.claim.child_clip_id ?? null,
+        retryNumber,
+        maxRetries: MAX_AUTOMATIC_REFERENCE_QA_RETRIES,
+      };
+    }
+
+    const submittedAt = new Date(this.#clock()).toISOString();
+    await this.#store.save(parentClipId, {
+      ...parent,
+      automaticRetry: {
+        version: 'fashion-video-auto-retry-v1',
+        state: 'SUBMITTING',
+        retry_number: retryNumber,
+        max_retries: MAX_AUTOMATIC_REFERENCE_QA_RETRIES,
+        reason_code: parent.failureCode,
+        idempotency_key_sha256: sha256(Buffer.from(idempotencyKey)),
+        submitted_at: submittedAt,
+      },
+      updatedAt: submittedAt,
+    });
+
+    try {
+      const childResult = await this.retryFailedClip(parentClipId, {
+        videoReference,
+        automaticRetry: {
+          retry_number: retryNumber,
+          reason_code: parent.failureCode,
+        },
+      });
+      await this.#store.completeRetryClaim(claim.claimPath, childResult.clipId);
+      const latestParent = await this.#store.load(parentClipId);
+      const createdAt = new Date(this.#clock()).toISOString();
+      await this.#store.save(parentClipId, {
+        ...latestParent,
+        automaticRetry: {
+          version: 'fashion-video-auto-retry-v1',
+          state: 'CREATED',
+          retry_number: retryNumber,
+          max_retries: MAX_AUTOMATIC_REFERENCE_QA_RETRIES,
+          reason_code: parent.failureCode,
+          child_clip_id: childResult.clipId,
+          idempotency_key_sha256: sha256(Buffer.from(idempotencyKey)),
+          submitted_at: submittedAt,
+          created_at: createdAt,
+        },
+        updatedAt: createdAt,
+      });
+      return {
+        eligible: true,
+        created: true,
+        exhausted: false,
+        childClipId: childResult.clipId,
+        retryNumber,
+        maxRetries: MAX_AUTOMATIC_REFERENCE_QA_RETRIES,
+      };
+    } catch (cause) {
+      // Do not delete the durable SUBMITTING claim.  A missing acknowledgement
+      // could mean Higgsfield accepted the request; another automatic pass
+      // would risk a duplicate paid generation.
+      const latestParent = await this.#store.load(parentClipId);
+      if (latestParent?.automaticRetry?.state === 'SUBMITTING') {
+        const pausedAt = new Date(this.#clock()).toISOString();
+        await this.#store.save(parentClipId, {
+          ...latestParent,
+          automaticRetry: {
+            ...latestParent.automaticRetry,
+            state: 'PAUSED',
+            failure_code: cause?.code ?? 'VIDEO_AUTOMATIC_RETRY_SUBMISSION_FAILED',
+            paused_at: pausedAt,
+          },
+          updatedAt: pausedAt,
+        });
+      }
+      throw cause;
+    }
+  }
+
+  async retryFailedClip(parentClipId, { videoReference, automaticRetry = null } = {}) {
     const parent = await this.#store.load(parentClipId);
     if (!parent) {
       throw new VideoServiceError('Video clip not found', { code: 'CLIP_NOT_FOUND', status: 404 });
@@ -984,6 +1185,7 @@ export class VideoService {
       videoReference,
       appearanceReferences,
       retryOf: parentClipId,
+      automaticRetry,
     });
   }
 
