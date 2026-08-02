@@ -17,6 +17,15 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-08-02 · CHAT04-UNIMPLEMENTED-HANDOFF-CLARIFICATION · beta `26ea365` · codex-live-40
+Change: distinguish Chat 04's three unimplemented scene/UI proposals from
+assets that were already recovered into beta.
+Why: mood-card recovery could otherwise be mistaken for delivery of its
+cross-block framing, lighting and settings work.
+Evidence: `updates/chat-04.md` at `62e361a` labels those items as ownership
+handoff and `NOT_IMPLEMENTED`; its seven mood-card files already match beta.
+weakened_checks: none; documentation only, no runtime release.
+
 2026-08-02 · SOURCE-AND-CHAT-RECONCILIATION · beta `3240c70` · codex-live-40
 Change: record the exact public beta source/release SHA and classify the
 unmerged Chat 04/05 historical branches without merging stale code. Add an

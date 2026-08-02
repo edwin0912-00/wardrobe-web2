@@ -10,6 +10,10 @@
 - Chat 04’s current mood-card assets are already in the release.  Its
   Shutter-only slot-blocking additions are preserved but pending a common
   versioned `blocking_reference` contract across selectable shoot units.
+- Separately, Chat 04 leaves three cross-block proposals unimplemented:
+  safe-band terminal framing delivery, environment/master lighting coherence,
+  and a server-persisted master-light influence control.  They are proposals,
+  not missing commits, and require a scoped acceptance decision.
 - Chat 05’s formal Fashion Shoot line is already contained in beta.  Its
   historical video line is represented by newer beta video modules; it is not
   a safe wholesale merge candidate.

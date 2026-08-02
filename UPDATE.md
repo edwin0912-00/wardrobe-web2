@@ -23,6 +23,15 @@ not share that versioned runtime contract.  The assets are preserved at
 is a tested common contract for every selectable `shoot.*` unit, not a
 cherry-pick of one style.
 
+Chat 04 also contains three **unimplemented cross-block proposals**, not code
+that was lost: (1) a terminal framing hard-safe band of `65–87%` after normal
+repair exhausts, only when full head/footwear and all semantic gates pass;
+(2) a lighting-coherence verdict for contradictory neutral studio fill versus
+the selected environment; (3) an explicit `0–40%` “master-light influence”
+setting, persisted and validated by the server.  They require one scoped
+Block 1/2/3 decision and focused before/after tests.  They must not be smuggled
+in through an asset or branch merge.
+
 **Chat 05 review.** The formal Fashion Shoot branch tip (`9de13b2`) is already
 an ancestor of beta.  The historical branch whose update calls itself
 “CHAT05” is actually older Fashion Video work (`ee99114`).  Its core modules
