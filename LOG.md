@@ -1544,3 +1544,9 @@ graph were intact.
 Evidence: the restored beta release is healthy with local runtime dependencies;
 the full rule and allowlist are in `docs/DEPLOYMENT_UA.md`.
 weakened_checks: no runtime files were moved or deleted as part of this note.
+
+2026-08-02 · Paid beta core smoke · `c1d75ce8e9c4921e72d6b2ecb349481f00c89aef`
+Change: ran one real paid avatar → outfit journey on beta after isolating the Codex VLM worker with a dedicated `CODEX_HOME`.
+Why: prior paid attempts failed before generation because the persistent beta worker shared desktop Codex state and returned empty/timeout VLM results; unit tests did not exercise that host-level contention.
+Evidence: run `1638c656-4be6-46b9-bfaa-595109db03d6` completed; Higgsfield jobs `ba148144-0d22-467a-b9d5-1fc5d16978cf` and `7986c924-e831-4ed7-9c37-949609858925`; conditioning/avatar/outfit QA PASS; public `/api/health` ready with release SHA `c1d75ce8e9c4921e72d6b2ecb349481f00c89aef`.
+weakened_checks: none. Background/Fashion Shoot/video were not charged in this atom.

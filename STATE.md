@@ -595,3 +595,10 @@ be weakened to hide it.
   Universe tests `67/67` PASS; strict contracts and canon verification PASS.
 - Beta: READY_FOR_BETA_DEPLOY until exact candidate SHA is activated. Journey:
   NOT_RUN. weakened_checks: none.
+# Paid core proof — 2026-08-02
+
+- Public beta is serving release `c1d75ce8e9c4921e72d6b2ecb349481f00c89aef` and `/api/health` is `ready`.
+- A real paid avatar → outfit run `1638c656-4be6-46b9-bfaa-595109db03d6` completed. Conditioning, avatar and outfit QA all PASS; the two Higgsfield jobs completed and their outputs were persisted.
+- Root cause of the preceding live failures was host-level Codex CLI state contention: the beta VLM worker shared the desktop Codex state database. A dedicated worker `CODEX_HOME` fixed the live path; this is an operational requirement, not a QA relaxation.
+- Reconciliation warning: deployed `c1d75ce` is not currently an ancestor of `origin/beta=d4fd64b53f62e0f89a09d35e8172b5624ead60c6`. Do not claim Git beta and public runtime are identical until the release owner reconciles them.
+- This proof covers only paid avatar → outfit. No paid background, Fashion Shoot or video generation was run here.

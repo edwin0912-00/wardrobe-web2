@@ -4,6 +4,20 @@ Branch: beta-block-1-needs-input-recovery-20260731
 
 ---
 
+Agent ID: codex-main
+Task ID: BETA-PAID-CORE-SMOKE-20260802
+Product line: beta-placeholder
+Pipeline: LOOK.01–06 · paid avatar → outfit
+State: LIVE_PROOF_PASS — beta runtime
+Decision: A real paid beta run completed after isolating the persistent Codex VLM worker from the desktop Codex state database. The worker must run with a dedicated CODEX_HOME; shared global state caused empty/timeout VLM responses before GARMENT_CONDITIONING completed.
+Code: deployed runtime `c1d75ce8e9c4921e72d6b2ecb349481f00c89aef`; public `/api/health` is `ready` and reports that release. This runtime SHA is not yet an ancestor of `origin/beta=d4fd64b53f62e0f89a09d35e8172b5624ead60c6`; source/release reconciliation is still required.
+Paid evidence: run `1638c656-4be6-46b9-bfaa-595109db03d6`; Higgsfield jobs `ba148144-0d22-467a-b9d5-1fc5d16978cf` (avatar) and `7986c924-e831-4ed7-9c37-949609858925` (outfit); conditioning/avatar/outfit QA all PASS; final output files were downloaded and persisted.
+Evidence command: `curl -sS https://beta.madeforthisjob.com/api/health`; durable run receipt and provider-job receipts under the beta runtime for the exact run id.
+weakened_checks: none. This proves paid avatar → outfit only; no background, Fashion Shoot or video provider call was made in this atom.
+Help request: integrate the worker-isolation launch configuration into the release source before the next beta restart, then reconcile `origin/beta` with the deployed SHA.
+Next action: keep the dedicated worker home across restart and run one separately authorized paid scene/video journey.
+
+
 Task: make the core-look `NEEDS_INPUT` recovery actionable after the live run
 `aa7bc644-3542-4333-936d-51d8c04472ab`.
 
