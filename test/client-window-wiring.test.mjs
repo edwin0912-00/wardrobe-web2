@@ -123,8 +123,14 @@ test('a first failed look exposes recovery before the empty-look waiting orb', (
 test('TV and laptop use the measured surface module', () => {
   assert.match(html, /screen-surface-math\.js/);
   assert.match(html, /screen-surfaces\.js/);
+  assert.match(html, /<script src="pipeline-deck\.js"><\/script>/);
+  assert.match(html, /pipeline-deck-v2\.html/);
   assert.match(html, /calibrationUrl:\s*'screen-calibration\.json'/);
+  assert.match(html, /WardrobePipelineDeck\.create/);
+  assert.match(html, /screenSurfaces\.mountLaptop\(pipelineDeck\.host\)/);
+  assert.match(html, /pipelineDeck\.onCameraFrame\(frame\)/);
   assert.match(ui, /opts\.onResult/);
+  assert.match(css, /\.laptop-surface--fullscreen/);
 });
 
 test('all missing mirror choice screens exist as one visual component family', () => {

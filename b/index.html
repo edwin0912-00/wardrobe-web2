@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>WARDROBE</title>
+<link rel="icon" href="data:,">
 <link rel="stylesheet" href="../style.css">
 <link rel="stylesheet" href="../mobile.css">
 </head>
@@ -140,6 +141,7 @@
 <script src="../media-preview.js"></script>
 <script src="../screen-surface-math.js"></script>
 <script src="../screen-surfaces.js"></script>
+<script src="pipeline-deck.js"></script>
 <script src="../engine.js"></script>
 <script src="../client-observer.js"></script>
 <script src="../ui.js"></script>
@@ -199,6 +201,7 @@
     background: IOS_MEDIA ? [] : VIDEOS.slice(1)
   };
   var screenSurfaces = null;
+  var pipelineDeck = null;
   function hasLoadedBlob(blobs, key) {
     return MEDIA_STRATEGY ? MEDIA_STRATEGY.hasBlob(blobs, key)
       : !!(blobs && Object.prototype.hasOwnProperty.call(blobs, key) && blobs[key]);
@@ -596,6 +599,7 @@
       },
       onFrame: function (frame) {
         if (screenSurfaces) screenSurfaces.update(frame);
+        if (pipelineDeck) pipelineDeck.onCameraFrame(frame);
       },
       onSpeed: function (s) { if (window.score) window.score.setSpeed(s); },
       /* ATTENTION without a hard gate.
@@ -669,6 +673,26 @@
       film: document.querySelector('[data-film]'),
       calibrationUrl: 'screen-calibration.json'
     }) : null;
+
+    /* The pipeline is the exact same-origin HTML supplied in issue #2. It is fetched,
+       SHA-checked and mounted into the measured laptop plane by the adapter; until that
+       promise resolves the plane remains hidden, so a broken or stale document can never
+       appear as an untracked white rectangle. The adapter owns the terminal reversible
+       handoff, while the engine continues to own the cinematic camera before and after it. */
+    if (window.WardrobePipelineDeck && screenSurfaces) {
+      pipelineDeck = WardrobePipelineDeck.create({
+        surface: screenSurfaces,
+        sourceUrl: 'pipeline-deck-v2.html'
+      });
+      pipelineDeck.ready.then(function () {
+        if (screenSurfaces.mountLaptop(pipelineDeck.host)) {
+          pipelineDeck.host.setAttribute('data-mounted', '1');
+        }
+      }).catch(function () {
+        /* The adapter already renders a bounded error state in its own shadow tree. The
+           measured laptop stays hidden because no unverified document is mounted. */
+      });
+    }
 
     window.ui = WardrobeUI.create({
       /* The look landed, so the HOLD is over — the gate unlocks — but the page does not

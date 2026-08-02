@@ -229,6 +229,9 @@
     var tvWakePending = false;
     var tvWakeTimer = 0;
     var laptopMounted = false;
+    var laptopFullscreen = false;
+    var laptopHome = laptop && laptop.parentNode;
+    var laptopHomeNext = laptop && laptop.nextSibling;
     var lastFrame = null;
 
     function setHidden(element, hidden) {
@@ -357,8 +360,20 @@
     }
 
     function positionLaptop(frame) {
-      if (!laptop || !laptopPage || !laptopMounted || !calibration ||
-          !calibration.laptop || !laptopFrames || !math) {
+      if (!laptop || !laptopPage || !laptopMounted) {
+        setHidden(laptop, true);
+        return;
+      }
+      /* In fullscreen the same node is moved to document.body. A transformed `.film`
+       * ancestor would otherwise make `position: fixed` continue to behave like an
+       * absolute child of the movie, and the next camera frame would overwrite the
+       * fullscreen geometry. Leave the DOM node and its page scroll untouched until the
+       * reverse handoff explicitly returns it to the measured plane. */
+      if (laptopFullscreen) {
+        setHidden(laptop, false);
+        return;
+      }
+      if (!calibration || !calibration.laptop || !laptopFrames || !math) {
         setHidden(laptop, true);
         return;
       }
@@ -455,6 +470,44 @@
       return true;
     }
 
+    function setLaptopFullscreen(active) {
+      active = Boolean(active);
+      if (!laptop || !laptopMounted) return false;
+      if (active === laptopFullscreen) {
+        setHidden(laptop, false);
+        return true;
+      }
+      if (active) {
+        laptopHome = laptop.parentNode || laptopHome;
+        laptopHomeNext = laptop.nextSibling || laptopHomeNext;
+        (laptop.ownerDocument || document).body.appendChild(laptop);
+        laptop.classList.add('laptop-surface--fullscreen');
+        laptopFullscreen = true;
+        setHidden(laptop, false);
+      } else {
+        laptopFullscreen = false;
+        laptop.classList.remove('laptop-surface--fullscreen');
+        if (laptopHome) {
+          if (laptopHomeNext && laptopHomeNext.parentNode === laptopHome) {
+            laptopHome.insertBefore(laptop, laptopHomeNext);
+          } else {
+            laptopHome.appendChild(laptop);
+          }
+        }
+        positionLaptop(lastFrame || {});
+      }
+      return true;
+    }
+
+    function laptopWindow() {
+      if (!calibration || !calibration.laptop || !laptopFrames || !laptopFrames.length) return null;
+      return {
+        leg: Number(calibration.laptop.leg),
+        first: laptopFrames[0].time,
+        last: laptopFrames[laptopFrames.length - 1].time
+      };
+    }
+
     var calibrationUrl = options.calibrationUrl || 'screen-calibration.json';
     if (typeof fetch === 'function') {
       fetch(calibrationUrl).then(function (response) {
@@ -508,12 +561,15 @@
       addResult: addResult,
       wakeTelevision: wakeTelevision,
       mountLaptop: mountLaptop,
+      setLaptopFullscreen: setLaptopFullscreen,
+      laptopWindow: laptopWindow,
       state: function () {
         return {
           calibrated: !!calibration,
           results: results.slice(),
           activeResult: activeResult,
           laptopMounted: laptopMounted,
+          laptopFullscreen: laptopFullscreen,
           frame: lastFrame
         };
       }

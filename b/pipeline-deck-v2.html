@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wardrobe — Pipeline v2 · 2026-08-01</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23080B10'/%3E%3Cpath d='M12 16l8 32 12-22 12 22 8-32' fill='none' stroke='%2345E0A0' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#080B10;
+  --panel:#0D131B;
+  --panel-2:#111820;
+  --line:#1A2432;
+  --line-hot:#28394C;
+  --fg:#E6ECF4;
+  --fg-dim:#7F91A8;
+  --fg-faint:#4C5B6E;
+  --verify:#45E0A0;
+  --verify-dim:#1C4F3B;
+  --gate:#F2B33D;
+  --gate-dim:#4A3714;
+  --fail:#E85D62;
+  --live:#3FA7E8;
+  --live-dim:#173A55;
+  --mono:"SF Mono",ui-monospace,Menlo,Consolas,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--fg);font-family:var(--sans);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.deck{scroll-snap-type:y mandatory;overflow-y:auto;height:100vh}
+.panel{
+  min-height:100vh;scroll-snap-align:start;
+  display:flex;flex-direction:column;justify-content:center;
+  padding:96px 108px 72px 64px;position:relative;
+}
+.panel.wide{padding:88px 40px 90px}
+
+.bar{
+  position:fixed;top:0;left:0;right:0;height:56px;z-index:30;
+  display:flex;align-items:center;gap:20px;padding:0 24px;
+  background:rgba(8,11,16,.84);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);
+}
+.mark{font-family:var(--mono);font-size:12px;letter-spacing:.16em;color:var(--verify)}
+.bar-t{font-size:13px;color:var(--fg-dim)}
+.bar-sp{flex:1}
+.count{font-family:var(--mono);font-size:12px;color:var(--fg-faint);letter-spacing:.1em;font-variant-numeric:tabular-nums}
+.prog{position:fixed;top:56px;left:0;height:1px;background:var(--verify);z-index:31;width:0;transition:width .18s linear}
+.dots{position:fixed;right:22px;top:50%;transform:translateY(-50%);z-index:30;display:flex;flex-direction:column;gap:11px}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--line-hot);border:0;cursor:pointer;padding:0;transition:background .2s,transform .2s}
+.dot[aria-current="true"]{background:var(--verify);transform:scale(1.5)}
+.dot:focus-visible{outline:2px solid var(--verify);outline-offset:3px}
+.hint{position:fixed;bottom:20px;left:24px;z-index:30;font-family:var(--mono);font-size:11px;color:var(--fg-faint);letter-spacing:.08em}
+.hint b{color:var(--verify);font-weight:400}
+
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.22em;color:var(--fg-faint);margin-bottom:18px;display:flex;align-items:center;gap:14px}
+.eyebrow .n{color:var(--verify)}
+.eyebrow .r{flex:1;height:1px;background:var(--line);max-width:340px}
+h1{font-size:clamp(38px,6.4vw,92px);font-weight:600;letter-spacing:-.035em;line-height:.98;text-wrap:balance}
+h1 em{font-style:normal;color:var(--verify)}
+.lede{margin-top:26px;max-width:64ch;font-size:clamp(15px,1.5vw,19px);line-height:1.65;color:var(--fg-dim)}
+h2{font-size:clamp(25px,3.3vw,42px);font-weight:600;letter-spacing:-.025em;line-height:1.06;text-wrap:balance}
+.sub{margin-top:12px;max-width:66ch;font-size:15px;line-height:1.6;color:var(--fg-dim)}
+.sub code,.lede code{font-family:var(--mono);font-size:13px;color:var(--verify)}
+
+.chain{display:flex;align-items:stretch;margin-top:44px;flex-wrap:wrap}
+.node{
+  --hot:var(--verify);--edge:var(--verify-dim);
+  flex:1 1 200px;min-width:186px;background:var(--panel);
+  border:1px solid var(--line);border-radius:3px;padding:20px 18px 18px;
+  display:flex;flex-direction:column;gap:10px;position:relative;
+  opacity:0;text-align:left;color:inherit;font:inherit;cursor:pointer;
+}
+.node::before{content:"";position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--hot);transform:scaleY(0);transform-origin:top}
+.node.io{--hot:var(--line-hot);--edge:var(--line-hot);background:transparent;border-style:dashed}
+.node.gate{--hot:var(--gate);--edge:var(--gate-dim);background:var(--panel-2)}
+.node.art{--hot:var(--verify);--edge:var(--verify-dim);background:linear-gradient(180deg,#0A1714 0%,var(--panel) 72%)}
+.node.blocked{--hot:var(--fg-faint);--edge:var(--line);background:transparent;border-style:dashed;opacity:0;cursor:pointer}
+.node.blocked p{color:var(--fg-faint)}
+.node.live{--hot:var(--live);--edge:var(--live-dim);background:linear-gradient(180deg,#0A1B26 0%,var(--panel) 72%)}
+.node:hover,.node:focus-visible{border-color:var(--hot);box-shadow:0 0 0 1px var(--hot) inset}
+.node:focus-visible{outline:2px solid var(--hot);outline-offset:2px}
+.k{font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--fg-faint)}
+.node h3{font-size:17px;font-weight:600;letter-spacing:-.012em;line-height:1.25}
+.node p{font-size:13px;line-height:1.55;color:var(--fg-dim)}
+.spec{margin-top:auto;padding-top:12px;border-top:1px solid var(--line);font-family:var(--mono);font-size:11px;line-height:1.7;color:var(--fg-faint);word-break:break-word}
+.spec b{color:var(--fg-dim);font-weight:400}
+.tap{margin-top:2px;font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;color:var(--fg-faint);opacity:.8;display:flex;align-items:center;gap:5px}
+.tap::before{content:"";width:4px;height:4px;border-radius:50%;background:var(--hot)}
+.link{flex:0 0 34px;align-self:center;height:1px;background:var(--line-hot);position:relative;width:34px;transform:scaleX(0);transform-origin:left}
+.link::after{content:"";position:absolute;right:-1px;top:-3px;border-left:6px solid var(--line-hot);border-top:3.5px solid transparent;border-bottom:3.5px solid transparent}
+
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);margin-top:44px;border:1px solid var(--line)}
+.cell{--hot:var(--verify);background:var(--bg);padding:22px 20px;position:relative;opacity:0;text-align:left;color:inherit;font:inherit;cursor:pointer;display:block;width:100%}
+.cell::before{content:"";position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--hot);transform:scaleY(0);transform-origin:top}
+.cell.warn{--hot:var(--gate)}
+.cell:hover,.cell:focus-visible{background:#0E1520}
+.cell:focus-visible{outline:2px solid var(--hot);outline-offset:-2px}
+.cell .k{margin-bottom:10px;display:block}
+.cell h4{font-size:15px;font-weight:600;margin-bottom:8px;letter-spacing:-.01em}
+.cell p{font-size:13px;line-height:1.6;color:var(--fg-dim)}
+.cell code{font-family:var(--mono);font-size:11.5px;color:var(--verify);display:block;margin-top:10px;line-height:1.7;word-break:break-all}
+.cell.warn code{color:var(--gate)}
+
+@keyframes latch{
+  0%{opacity:0;transform:translateY(9px);border-color:var(--line)}
+  52%{opacity:1;transform:none;border-color:var(--hot);box-shadow:0 0 0 1px var(--hot),0 0 26px -8px var(--hot)}
+  100%{opacity:1;transform:none;border-color:var(--edge);box-shadow:none}
+}
+@keyframes latchCell{
+  0%{opacity:0;transform:translateY(7px)}
+  52%{opacity:1;transform:none;background:#0E1A17}
+  100%{opacity:1;transform:none;background:var(--bg)}
+}
+@keyframes barIn{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+@keyframes lineIn{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes labelIn{0%{color:var(--fg-faint)}52%{color:var(--hot)}100%{color:var(--fg-faint)}}
+
+.on .node{animation:latch .44s cubic-bezier(.16,.84,.24,1) var(--d,0s) both}
+.on .node::before{animation:barIn .26s cubic-bezier(.16,.84,.24,1) var(--d,0s) both}
+.on .node > .k{animation:labelIn .9s ease-out var(--d,0s) both}
+.on .link{animation:lineIn .2s linear var(--d,0s) both}
+.on .cell{animation:latchCell .4s cubic-bezier(.16,.84,.24,1) var(--d,0s) both}
+.on .cell::before{animation:barIn .24s cubic-bezier(.16,.84,.24,1) var(--d,0s) both}
+
+.fail{
+  margin-top:20px;display:inline-flex;align-self:flex-start;align-items:center;gap:10px;
+  font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--fail);
+  border:1px solid #3A1B1D;background:#150C0E;border-radius:2px;padding:8px 12px;opacity:0;
+}
+.on .fail{animation:latch .4s ease-out var(--fd,1s) both;--hot:var(--fail);--edge:#3A1B1D}
+.status{display:inline-flex;align-self:flex-start;align-items:center;gap:7px;font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--fg-faint);margin-top:26px}
+.status i{width:6px;height:6px;border-radius:50%;background:var(--gate);display:block}
+.status.on-air i{background:var(--live)}
+
+.hero-meta{margin-top:52px;display:flex;flex-wrap:wrap;border-top:1px solid var(--line)}
+.hm{padding:18px 26px 0 0;margin-right:26px;border-right:1px solid var(--line);padding-right:26px}
+.hm:last-child{border-right:0;margin-right:0}
+.hm .v{font-family:var(--mono);font-size:22px;color:var(--verify);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.hm .l{font-size:12px;color:var(--fg-faint);margin-top:6px}
+
+.gt{margin-top:32px;border:1px solid var(--line);border-radius:3px;overflow:hidden;font-size:13px}
+.gt-row{all:unset;display:grid;grid-template-columns:minmax(180px,1.05fr) minmax(200px,1.35fr) minmax(190px,1fr);gap:0;border-top:1px solid var(--line);opacity:0;position:relative;width:100%;cursor:pointer;font:inherit;color:inherit;box-sizing:border-box}
+.gt-row:first-child{border-top:0}
+.gt-row > span,.gt-row > code{padding:11px 16px 11px 18px;line-height:1.45}
+.gt-row > code{font-family:var(--mono);font-size:11px;color:var(--fg-faint);word-break:break-word;border-left:1px solid var(--line)}
+.gt-row > span:nth-child(2){color:var(--fg-dim);border-left:1px solid var(--line)}
+.gt-row::before{content:"";position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--hot);transform:scaleY(0);transform-origin:top}
+.gt-row:hover,.gt-row:focus-visible{background:#0E1520}
+.gt-row:focus-visible{outline:2px solid var(--hot);outline-offset:-2px;z-index:1}
+.gt-h{background:#0B1119;cursor:default}
+.gt-h > span,.gt-h > code{font-family:var(--mono);font-size:10px;letter-spacing:.16em;color:var(--fg-faint);padding-top:9px;padding-bottom:9px;text-transform:uppercase}
+.gt-h::before{display:none}
+.gt-row.ok{--hot:var(--verify)}
+.gt-row.ok > code{color:var(--verify)}
+.gt-row.warn{--hot:var(--gate)}
+.gt-row.warn > code{color:var(--gate)}
+.gt-row.bad{--hot:var(--fail)}
+.gt-row.bad > code{color:#D9797D}
+.gt-row.live{--hot:var(--live)}
+.gt-row.live > code{color:var(--live)}
+.on .gt-row{animation:latchRow .34s cubic-bezier(.16,.84,.24,1) var(--d,0s) both}
+.on .gt-row::before{animation:barIn .22s cubic-bezier(.16,.84,.24,1) var(--d,0s) both}
+@keyframes latchRow{0%{opacity:0;transform:translateX(-6px)}100%{opacity:1;transform:none}}
+.gt-h{opacity:1!important;animation:none!important}
+.calc{margin-top:22px;display:flex;flex-wrap:wrap;gap:10px}
+.calc div{font-family:var(--mono);font-size:11.5px;color:var(--fg-dim);border:1px solid var(--line);background:var(--panel);border-radius:2px;padding:9px 13px;font-variant-numeric:tabular-nums}
+.calc b{color:var(--fail);font-weight:400}
+.calc i{color:var(--verify);font-style:normal}
+@media (max-width:980px){.gt-row{grid-template-columns:1fr}.gt-row > span:nth-child(2),.gt-row > code{border-left:0}}
+
+.bp{margin-top:26px;width:100%}
+.bp svg{width:100%;height:auto;display:block}
+.bp .lane{font-family:var(--mono);font-size:10.5px;letter-spacing:.18em;fill:var(--fg-faint)}
+.bp .rowtag{font-family:var(--mono);font-size:9px;letter-spacing:.12em;fill:var(--fg-faint)}
+.bp .nm{font-family:var(--sans);font-size:12.5px;font-weight:600;fill:var(--fg)}
+.bp .sp{font-family:var(--mono);font-size:9.5px;fill:var(--fg-faint);letter-spacing:.02em}
+.bp rect.b{fill:var(--panel);stroke:var(--line);stroke-width:1}
+.bp rect.b.g{fill:var(--panel-2);stroke:var(--gate-dim)}
+.bp rect.b.a{fill:#0A1714;stroke:var(--verify-dim)}
+.bp rect.b.i{fill:none;stroke:var(--line-hot);stroke-dasharray:3 3}
+.bp rect.b.x{fill:none;stroke:var(--line-hot);stroke-dasharray:2 3;opacity:.55}
+.bp rect.b.l{fill:#0A1A24;stroke:var(--live-dim)}
+.bp path.w{fill:none;stroke:var(--line-hot);stroke-width:1}
+.bp path.f{fill:none;stroke:#5B2A2D;stroke-width:1;stroke-dasharray:3 3}
+.bp path.bus{fill:none;stroke:var(--line);stroke-width:1;stroke-dasharray:2 4}
+.bp text.fl{font-family:var(--mono);font-size:9px;fill:#8E4145;letter-spacing:.1em}
+.bp text.rj{font-family:var(--mono);font-size:8.5px;fill:#7A3A3D;letter-spacing:.06em}
+.bp path.rj{fill:none;stroke:#5B2A2D;stroke-width:1}
+.bp .tick{fill:var(--verify)}
+.bp g.u{opacity:0}
+.on .bp g.u{animation:bpIn .3s ease-out var(--d,0s) both}
+@keyframes bpIn{from{opacity:0}to{opacity:1}}
+.on .bp path.w,.on .bp path.bus,.on .bp path.f{stroke-dasharray:var(--len);stroke-dashoffset:var(--len);animation:draw .5s linear var(--d,0s) both}
+@keyframes draw{to{stroke-dashoffset:0}}
+.bp rect.hit{fill:transparent;stroke:none;cursor:pointer}
+.bp g.node-hit:hover rect.b{stroke:var(--live)}
+.bp .legend-title{font-family:var(--mono);font-size:9px;letter-spacing:.16em;fill:var(--fg-faint)}
+
+.bp-hint{margin-top:14px;display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;color:var(--fg-faint);letter-spacing:.06em}
+.bp-hint i{width:5px;height:5px;border-radius:50%;background:var(--live);display:block;flex:none}
+
+/* detail drawer */
+.scrim{position:fixed;inset:0;background:rgba(4,6,9,.5);opacity:0;pointer-events:none;transition:opacity .22s ease;z-index:48}
+.scrim.open{opacity:1;pointer-events:auto}
+.drawer{
+  position:fixed;top:0;right:0;bottom:0;width:min(420px,92vw);z-index:49;
+  background:#0B1119;border-left:1px solid var(--line-hot);
+  transform:translateX(100%);transition:transform .26s cubic-bezier(.2,.8,.24,1);
+  display:flex;flex-direction:column;box-shadow:-30px 0 60px -30px rgba(0,0,0,.6);
+}
+.drawer.open{transform:translateX(0)}
+.drawer-head{display:flex;align-items:flex-start;gap:14px;padding:22px 20px 18px;border-bottom:1px solid var(--line)}
+.drawer-eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:.16em;color:var(--fg-faint);margin-bottom:8px}
+.drawer-title{font-size:19px;font-weight:600;letter-spacing:-.015em;line-height:1.25;flex:1}
+.drawer-close{flex:none;width:28px;height:28px;border-radius:50%;border:1px solid var(--line);background:transparent;color:var(--fg-dim);font-size:15px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.drawer-close:hover{border-color:var(--fg-dim);color:var(--fg)}
+.drawer-body{padding:20px;overflow-y:auto;flex:1}
+.drawer-body p{font-size:14px;line-height:1.65;color:var(--fg-dim)}
+.drawer-body p + p{margin-top:12px}
+.drawer-code{margin-top:16px;display:flex;flex-direction:column;gap:6px}
+.drawer-code div{font-family:var(--mono);font-size:12px;line-height:1.6;color:var(--verify);background:var(--panel);border:1px solid var(--line);border-radius:2px;padding:9px 12px;word-break:break-word}
+.drawer-code div.live{color:var(--live)}
+.drawer-code div.bad{color:#D9797D}
+
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  .node,.cell,.fail{opacity:1}
+  .link{transform:none}
+  .node::before,.cell::before{transform:scaleY(1)}
+  .on .node,.on .cell,.on .fail,.on .link,.on .node::before,.on .cell::before,.on .node > .k,.on .bp g.u,.on .bp path.w,.on .bp path.bus,.on .bp path.f{animation:none}
+  .bp g.u{opacity:1}
+  .drawer,.scrim{transition:none}
+}
+@media (max-width:1180px){.grid{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:860px){
+  .panel{padding:88px 24px 64px}
+  .link{display:none}
+  .chain{gap:12px}
+  .dots{display:none}
+  .grid{grid-template-columns:1fr}
+  .drawer{width:100vw}
+}
+</style>
+</head>
+<body>
+
+<header class="bar">
+  <span class="mark">WARDROBE</span>
+  <span class="bar-t">Input → Master Look → Background · Fashion Shoot · Fashion Video · Real-time Look</span>
+  <span class="bar-sp"></span>
+  <span class="count" id="count">01 / 17</span>
+</header>
+<div class="prog" id="prog"></div>
+<nav class="dots" id="dots" aria-label="Розділи"></nav>
+<div class="hint">↓ / → далі · клікай на <b>будь-який блок</b></div>
+
+<main class="deck" id="deck">
+
+  <section class="panel" data-name="Архітектура">
+    <div class="eyebrow"><span class="n">00</span><span>architecture</span><span class="r"></span></div>
+    <h1>Один master look,<br><em>чотири незалежні продовження</em>.</h1>
+    <p class="lede">Input → conditioning → full-length avatar → approved master look — це центральний блок. Після нього користувач окремо обирає Background, Fashion Shoot, Fashion Video або Real-time Look. Кожен перехід hash-bound, кожен платний виклик bounded, а кожен результат має QA-receipt. Статус у цьому deck розділяє кодовий доказ і live-доказ: 1 серпня public beta повертає 502, тому жоден downstream-блок не названий live лише тому, що його код і тести готові.</p>
+    <div class="hero-meta">
+      <div class="hm"><div class="v">1→4</div><div class="l">master look → 4 незалежні продуктові гілки</div></div>
+      <div class="hm"><div class="v">9</div><div class="l">blocking QA-gates стандартної сцени</div></div>
+      <div class="hm"><div class="v">16</div><div class="l">стандартних пресетів фону</div></div>
+      <div class="hm"><div class="v">18/17</div><div class="l">Fashion Shoot cards · generation-ready</div></div>
+      <div class="hm"><div class="v">15×5</div><div class="l">Create Universe styles · user-facing frames</div></div>
+      <div class="hm"><div class="v">4</div><div class="l">Fashion Video reference styles</div></div>
+    </div>
+  </section>
+
+
+  <section class="panel" data-name="Input gate" data-beats="0,90,180,270,360,450,540">
+    <div class="eyebrow"><span class="n">01</span><span>input gate · DRAFT_RUN_INPUT_V1</span><span class="r"></span></div>
+    <h2>Що приймається, що масштабується, що відхиляється</h2>
+    <p class="sub">Перший gate стоїть до будь-якої генерації, щоб не витрачати платні виклики на непридатне джерело. Ресемплінг дозволений у межах <code>4×</code>, але в evidence прямо стоїть <code>semantic_generation: false</code> — система не вдає, що відновила деталі, яких у джерелі немає.</p>
+    <div class="gt">
+      <div class="gt-row gt-h"><span>умова</span><span>дія</span><span>код · evidence</span></div>
+      <button type="button" class="gt-row ok" data-title="UNCHANGED" data-body="Джерело вже достатньо велике — жодна генерація не має причини торкатись байтів. output_sha256 дорівнює source_sha256, тож перевірка на цьому кроці зводиться до порівняння хешів, а не повторного розкодування картинки." data-code="RUN_IMAGE_MIN_EDGE = 256 px||output_sha256 === source_sha256"><span>≥ 256 px на обох краях</span><span>Байти не змінюються взагалі</span><code>UNCHANGED · output_sha256 = source_sha256</code></button>
+      <button type="button" class="gt-row warn" data-title="UPSCALED" data-body="lanczos3-ресемплінг у fit:fill, вихід завжди sRGB PNG. semantic_generation: false в evidence — явне визнання, що це інтерполяція пікселів, а не домальовування деталей моделлю. Межа масштабування — рівно 4×." data-code="filter: lanczos3 · fit: fill||semantic_generation: false"><span>Менше 256, але scale ≤ 4×</span><span>lanczos3 · fit fill · sRGB · PNG. Деталі не домальовуються</span><code>UPSCALED · semantic_generation: false</code></button>
+      <button type="button" class="gt-row bad" data-title="IMAGE_TOO_SMALL" data-body="Потрібне масштабування понад 4× означає, що вихідна фотографія фізично замала для будь-якої чесної обробки. Відповідь містить перелік вимог (мінімальний край, максимальний край), а не просто відмову без пояснення." data-code="required_scale > 4×"><span>Потрібен scale &gt; 4×</span><span>Відхилення з переліком вимог у відповіді</span><code>IMAGE_TOO_SMALL</code></button>
+      <button type="button" class="gt-row bad" data-title="IMAGE_ASPECT_UNSUPPORTED" data-body="Навіть у межах дозволеного 4× масштабу екстремальний аспект (дуже вузьке і дуже довге фото) після ресемплінгу впирається у верхню межу полотна 4096 px по довшому краю. Система не обрізає кадр, щоб втиснутись — вона відмовляє чесно." data-code="RUN_IMAGE_MAX_EDGE = 4096 px"><span>Після scale край &gt; 4096 px</span><span>Екстремальний аспект недосяжний у межах ліміту</span><code>IMAGE_ASPECT_UNSUPPORTED</code></button>
+      <button type="button" class="gt-row bad" data-title="IMAGE_DECODE_FAILED" data-body="Файл не декодується як зображення взагалі — пошкоджені байти, обрізаний завантажений файл, невідомий кодек. Жодних спроб «підправити» чи вгадати вміст: непрочитане не обробляється." data-code="preparationError('IMAGE_DECODE_FAILED', ...)"><span>Не декодується · пошкоджені байти</span><span>Ніяких спроб «врятувати» файл</span><code>IMAGE_DECODE_FAILED</code></button>
+      <button type="button" class="gt-row bad" data-title="ANIMATED_IMAGE_UNSUPPORTED" data-body="Анімований GIF чи webp з кількома кадрами (pages > 1) відхиляється на вході — система бере рівно один статичний кадр по всьому пайплайну, і анімований джерельний файл ламає це припущення." data-code="pages > 1"><span>Анімація · pages &gt; 1</span><span>GIF та анімований webp не приймаються</span><code>ANIMATED_IMAGE_UNSUPPORTED</code></button>
+    </div>
+    <div class="calc">
+      <div>48×48 → 256/48 = <b>5.33×</b> &gt; 4× → IMAGE_TOO_SMALL</div>
+      <div>64×64 → 256/64 = <i>4.00×</i> → рівно межа, проходить у 256×256</div>
+      <div>2000×80 → scale 3.2× → 6400 px &gt; 4096 → IMAGE_ASPECT_UNSUPPORTED</div>
+      <div>mime allowlist: jpeg · png · webp · ≤ 18 MB</div>
+    </div>
+  </section>
+
+  <section class="panel" data-name="Avatar" data-beats="0,170,340" data-fail="620">
+    <div class="eyebrow"><span class="n">02</span><span>avatar</span><span class="r"></span></div>
+    <h2>Avatar generation + QA gate</h2>
+    <p class="sub">Вхід не нормалізований. Вихід специфікований: фон <code>#FFFFFF</code>, фронтальний full-length кадр від верхівки волосся до підошов. Оцінка — vision-модель зі строгим schema-виходом і рішенням з чотирьох значень.</p>
+    <div class="chain">
+      <button type="button" class="node io" data-title="Source photo" data-body="Довільний фон, поза й освітлення — саме те, що завантажує користувач, без будь-якої попередньої нормалізації. Формати обмежені allowlist-ом із input gate (§01)." data-code="jpg · png · webp"><span class="k">INPUT</span><h3>source photo</h3><p>Довільний фон, поза й освітлення.</p><div class="spec"><b>формати</b> jpg · png · webp</div><span class="tap">детальніше</span></button>
+      <div class="link"></div>
+      <button type="button" class="node" data-title="Avatar generation" data-body="Персонаж переноситься на чисто білий студійний фон зі збереженням рис обличчя, волосся й видимих пропорцій. Full-length є частиною контракту: майбутні сцени й відео не мають права домальовувати невидимі ноги або взуття." data-code="model: gpt_image_2||bg: #FFFFFF · crop: full-length"><span class="k">GENERATE</span><h3>avatar generation</h3><p>Перенос персонажа на студійний фон зі збереженням рис, волосся, статури.</p><div class="spec"><b>model</b> gpt_image_2<br><b>bg</b> #FFFFFF<br><b>crop</b> full-length</div><span class="tap">детальніше</span></button>
+      <div class="link"></div>
+      <button type="button" class="node gate" data-title="evaluateQa · phase avatar" data-body="Vision-модель порівнює кандидата з identity-джерелом і повертає строго типізований json_schema-вихід: назва чеку, pass/fail, числовий score, evidence-опис. Рішення — одне з чотирьох, і в кожного своя доля далі по пайплайну." data-code="checks: name · pass · score · evidence||decision: PASS | RETRY | NEEDS_INPUT | REJECT"><span class="k">GATE</span><h3>evaluateQa · phase avatar</h3><p>Порівняння з identity-джерелом, доказ на кожен чек.</p><div class="spec"><b>checks</b> name · pass · score · evidence<br><b>decision</b> PASS | RETRY | NEEDS_INPUT | REJECT</div><span class="tap">детальніше</span></button>
+    </div>
+    <div class="fail">RETRY → наступна модель маршруту · NEEDS_INPUT → джерело непридатне, аватар не чіпається</div>
+  </section>
+
+
+  <section class="panel" data-name="Decisions" data-beats="0,90,180,270,380">
+    <div class="eyebrow"><span class="n">03</span><span>decision semantics</span><span class="r"></span></div>
+    <h2>Чотири рішення, і кожне веде в інший бік</h2>
+    <p class="sub">Головне правило: <code>NEEDS_INPUT</code> означає «сирі дані непридатні», а не «кандидат вийшов поганим». Промпт це прямо забороняє плутати, інакше система гоняла б користувача по колу замість того, щоб зробити ще одну спробу генерації.</p>
+    <div class="gt">
+      <div class="gt-row gt-h"><span>рішення</span><span>що це означає й куди веде</span><span>наслідок</span></div>
+      <button type="button" class="gt-row ok" data-title="PASS" data-body="Усі блокуючі критерії видимо підтверджені доказом на кожен окремий чек — не загальна оцінка «виглядає добре», а перелік конкретних тверджень з evidence." data-code="артефакт затверджується"><span>PASS</span><span>Усі блокуючі критерії видимо підтверджені доказом на кожен чек</span><code>артефакт затверджується</code></button>
+      <button type="button" class="gt-row warn" data-title="RETRY" data-body="Дефект у самому згенерованому кандидаті — не в джерелі. Наступна спроба тим самим шляхом, але іншою моделлю з маршруту, часто виправляє проблему без участі людини." data-code="наступна модель у маршруті"><span>RETRY</span><span>Дефект згенерованого кандидата, який може виправити інша спроба</span><code>наступна модель у маршруті</code></button>
+      <button type="button" class="gt-row bad" data-title="REJECT" data-body="Кандидат непридатний структурно, і повторна спроба тим самим шляхом нічого не змінить — маршрут переходить до наступного класу дій, а не зациклюється на тій самій генерації." data-code="маршрут іде далі"><span>REJECT</span><span>Кандидат непридатний і повторна спроба тим самим шляхом не допоможе</span><code>маршрут іде далі</code></button>
+      <button type="button" class="gt-row bad" data-title="NEEDS_INPUT" data-body="Єдиний випадок, коли систему просять зупинитись і повернутись до користувача: самі вхідні фото недостатні для завдання (замало ракурсів, суперечливі речі, нечитабельна деталь). Жодна генерація тут не витрачається." data-code="генерації не витрачаються"><span>NEEDS_INPUT</span><span>Самі вхідні фото недостатні. Тільки тут ми просимо користувача про інше джерело</span><code>генерації не витрачаються</code></button>
+      <button type="button" class="gt-row warn" data-title="AUTOMATIC_SEMANTIC_QA" data-body="Коли сам оцінювач недоступний (провайдер ліг, таймаут), це технічний збій інфраструктури, не судження про якість кандидата. Для garment-класифікації такий збій трактується як RETRY — спробувати оцінку ще раз, — а не як NEEDS_INPUT, щоб не звинувачувати користувача в збої, якого він не робив." data-code="AUTOMATIC_SEMANTIC_QA"><span>Збій самої QA</span><span>Недоступність оцінювача не є судженням про якість. Для garment це RETRY, не NEEDS_INPUT</span><code>AUTOMATIC_SEMANTIC_QA</code></button>
+    </div>
+  </section>
+
+  <section class="panel" data-name="Garment" data-beats="0,130,520,650" data-fail="960">
+    <div class="eyebrow"><span class="n">04</span><span>garment</span><span class="r"></span></div>
+    <h2>inspectGarments → outfit transfer</h2>
+    <p class="sub">Фото речей зводяться в garment passport: рівно одна категорія з восьми (<code>outerwear · top · bottom · one_piece · footwear · headwear · bag · accessory</code>), тільки спостережувані ознаки, ракурси однієї речі групуються в <code>reference_sets</code>.</p>
+    <div class="chain">
+      <button type="button" class="node io" data-title="Garment photos" data-body="Незалежні знімки речей користувача — від 1 до 5 файлів за прогін. Кожен файл отримує власний source_index, який супроводжує його через усю класифікацію та групування." data-code="ліміт: 1–5 файлів"><span class="k">INPUT</span><h3>garment photos</h3><p>Незалежні знімки речей.</p><div class="spec"><b>ліміт</b> 1–5 файлів</div><span class="tap">детальніше</span></button>
+      <div class="link"></div>
+      <button type="button" class="node" data-title="inspectGarments" data-body="Кожна річ отримує рівно одну категорію з восьми фіксованих значень схеми garment-passport, плюс спостережувані ознаки: колір, матеріал, патерн, logo_text, конструкція. Пороги впевненості перевіряються окремим JS-кодом, не покладаючись лише на json-schema." data-code="categories: outerwear · top · bottom · one_piece||footwear · headwear · bag · accessory"><span class="k">CLASSIFY</span><h3>inspectGarments</h3><p>Категорія, колір, матеріал, патерн, logo_text, конструкція.</p><div class="spec"><b>categories</b> 8<br><b>confidence</b> ≥ 0.70<br><b>same_item</b> ≥ 0.90</div><span class="tap">детальніше</span></button>
+      <div class="link"></div>
+      <button type="button" class="node" data-title="Outfit transfer" data-body="Той самий персонаж (з approved avatar), новий одяг з класифікованих референсів. Референси подаються генератору у фіксованому порядку і hash-bound — підміна референсу між прив'язкою і використанням ловиться окремим integrity-гейтом." data-code="input: avatar + ordered refs"><span class="k">GENERATE</span><h3>outfit transfer</h3><p>Той самий персонаж, новий одяг. Референси впорядковані й hash-bound.</p><div class="spec"><b>input</b> avatar + ordered refs</div><span class="tap">детальніше</span></button>
+      <div class="link"></div>
+      <button type="button" class="node gate" data-title="evaluateQa · phase outfit" data-body="Перевіряється тип речі, колір, фактура, посадка й logo_text — а також явно блокується «залишок» попереднього вбрання, яке генерація мала прибрати повністю, а не приховати частково." data-code="блокує: residue попереднього одягу"><span class="k">GATE</span><h3>evaluateQa · phase outfit</h3><p>Тип, колір, фактура, посадка, logo_text.</p><div class="spec"><b>блокує</b> residue попереднього одягу</div><span class="tap">детальніше</span></button>
+    </div>
+    <div class="fail">Дві різні речі однієї категорії → NEEDS_INPUT з переліком варіантів, не помилка</div>
+  </section>
+
+
+  <section class="panel" data-name="Garment gate" data-beats="0,90,180,270,360,450">
+    <div class="eyebrow"><span class="n">05</span><span>garment gate</span><span class="r"></span></div>
+    <h2>Пороги класифікації речей</h2>
+    <p class="sub">Групування ракурсів — строга повна партиція: кожен індекс фото входить рівно в один <code>reference_set</code>, жоден не втрачається й не дублюється. Сумнів трактується на користь окремих наборів, а не хибного злиття.</p>
+    <div class="gt">
+      <div class="gt-row gt-h"><span>перевірка</span><span>правило</span><span>наслідок порушення</span></div>
+      <button type="button" class="gt-row ok" data-title="confidence ≥ 0.70" data-body="Категорія речі (одна з восьми) нижче порогу впевненості 0.70 не може мати статус READY. Невпевнена класифікація краще проситиме уточнення, ніж мовчки вгадає категорію." data-code="confidence ≥ 0.70"><span>Впевненість класифікації</span><span>Нижче 0.70 статус не може бути READY</span><code>confidence ≥ 0.70</code></button>
+      <button type="button" class="gt-row ok" data-title="same_item_confidence ≥ 0.90" data-body="Два ракурси визнаються тією самою річчю лише за конкретними доказами — крок смужки на тканині, форма коміра, розташування ґудзиків, шви, характер зношеності. Загального «схоже» недостатньо для злиття у reference_set." data-code="same_item_confidence ≥ 0.90"><span>Злиття ракурсів однієї речі</span><span>Потрібні конкретні докази: крок смужки, комір, ґудзики, шви, зношеність</span><code>same_item_confidence ≥ 0.90</code></button>
+      <button type="button" class="gt-row bad" data-title="Партиція наборів" data-body="Кожне фото входить рівно в один reference_set; жоден source_index не може бути втрачений чи задубльований, і категорії всередині одного набору не змішуються. Невалідна партиція — не попередження, а відмова цілого garment passport." data-code="невалідна партиція → відмова"><span>Партиція наборів</span><span>Кожне фото рівно в одному наборі, категорії в наборі не змішуються</span><code>невалідна партиція → відмова</code></button>
+      <button type="button" class="gt-row warn" data-title="conflicts[] · NEEDS_INPUT" data-body="Дві очевидно різні речі однієї категорії (наприклад дві різні куртки) — це не помилка класифікації, а явне питання до користувача: яку з них залишити. Відповідь несе перелік варіантів, а не абстрактну відмову." data-code="NEEDS_INPUT + conflicts[]"><span>Дві різні речі однієї категорії</span><span>Не помилка, а явне питання: яку залишити. З переліком варіантів</span><code>NEEDS_INPUT + conflicts[]</code></button>
+      <button type="button" class="gt-row bad" data-title="ORDERED_REFERENCE_LIMIT_EXCEEDED" data-body="Транспорт до генератора несе обмежену кількість референсів разом з identity-доказом аватара. Якщо унікальних речей більше, ніж влазить у цей ліміт, система відмовляє явно, а не мовчки відкидає зайві." data-code="ORDERED_REFERENCE_LIMIT_EXCEEDED"><span>Ліміт референсів маршруту</span><span>Речей більше, ніж транспорт може нести разом з identity-доказом</span><code>ORDERED_REFERENCE_LIMIT_EXCEEDED</code></button>
+      <button type="button" class="gt-row ok" data-title="source_preserved" data-body="Якщо надіслане фото вже є ізольованим предметом — alpha-канал або чиста біла рамка, розмір ≥ 256 px — його не проганяють крізь зайву перегенерацію. Оригінальні байти зберігаються як є." data-code="source_preserved"><span>Уже ізольований предмет</span><span>Одне фото ≥ 256 px з alpha або чистою білою рамкою не перегенеровується</span><code>source_preserved</code></button>
+    </div>
+  </section>
+
+  <section class="panel" data-name="Bindings" data-beats="0,70,140,540">
+    <div class="eyebrow"><span class="n">06</span><span>bindings</span><span class="r"></span></div>
+    <h2>Approved look — три незалежні привʼязки</h2>
+    <p class="sub">Майстер-артефакт не перегенеровується при падінні сцени чи зйомки. Підміна ловиться на трьох перевірках, кожна з власним кодом відмови — саме на цих привʼязках тримається все, що йде далі: стандартна сцена, Fashion Shoot і Fashion Video.</p>
+    <div class="grid">
+      <button type="button" class="cell" data-title="approved_look_sha256" data-body="Байти PNG, який пройшов outfit QA з рішенням PASS. Це не посилання на файл за іменем — сам вміст файлу зафіксований хешем, тож підміна файлу з тим самим іменем не пройде непоміченою." data-code="904e6e7c…5ac120e9"><span class="k">BINDING</span><h4>approved_look_sha256</h4><p>Байти PNG, який пройшов outfit QA.</p><code>904e6e7c…5ac120e9</code></button>
+      <button type="button" class="cell" data-title="approved_look_qa_receipt" data-body="Хешується не сам образ, а доказ того, що він пройшов QA — сам receipt проходження зі своїм source_id_authority. Це розділяє «файл існує» від «файл був схвалений саме цим прогоном оцінки»." data-code="path · sha256||source_id_authority"><span class="k">BINDING</span><h4>approved_look_qa_receipt</h4><p>Хеш самого доказу проходження, не образу.</p><code>path · sha256<br>source_id_authority</code></button>
+      <button type="button" class="cell" data-title="source_run_id" data-body="Прогін (run), у якому артефакт було створено і затверджено — прив'язка до контексту створення, а не лише до контенту. qa.outfit має дорівнювати PASS саме в цьому запису." data-code="qa.outfit = PASS"><span class="k">BINDING</span><h4>source_run_id</h4><p>Прогін, у якому артефакт створено.</p><code>qa.outfit = PASS</code></button>
+      <button type="button" class="cell warn" data-title="LOOK_MISMATCH · LOOK_RECEIPT_MISMATCH" data-body="Навіть образ, що виглядає ідентично до затвердженого, не пройде без валідного receipt — усі три привʼязки мають збігтись одночасно. Це захищає Background, Fashion Shoot і Fashion Video від генерації на підміненому образі." data-code="LOOK_MISMATCH||LOOK_RECEIPT_MISMATCH"><span class="k">REJECT</span><h4>Коди відмови</h4><p>Схожий образ без валідного receipt не проходить.</p><code>LOOK_MISMATCH<br>LOOK_RECEIPT_MISMATCH</code></button>
+    </div>
+  </section>
+
+  <section class="panel" data-name="Scene" data-beats="0,240,240,560" data-fail="820">
+    <div class="eyebrow"><span class="n">07</span><span>standard scene</span><span class="r"></span></div>
+    <h2>16 фонів, native 3:4, маршрут із трьох моделей</h2>
+    <p class="sub">Профіль → «Додати фон» → пікер із 16 пресетів → одна стандартна сцена. Delivery формується одразу як <code>1536×2048 · 3:4</code>, без crop до 4:5. Провал QA автоматично переходить до наступної моделі — до трьох спроб на сцену.</p>
+    <div class="chain">
+      <button type="button" class="node io" data-title="16 пресетів" data-body="Кожен пресет — версіонований набір: фіксований кадр, масштаб субʼєкта і референс-пак. expected_reference_pack_sha256 клієнта звіряється з актуальним на сервері; розбіжність — 409 SCENE_PRESET_STALE, а не мовчазне продовження зі старим пресетом." data-code="POST /api/profile/looks/:lookId/scenes||409 SCENE_PRESET_STALE"><span class="k">PRESET</span><h3>16 пресетів фону</h3><p>Кадр і масштаб субʼєкта зафіксовані на пресет, референс-пак версіонований.</p><div class="spec"><b>delivery</b> 3:4 · 1536×2048</div><span class="tap">детальніше</span></button>
+      <div class="link"></div>
+      <button type="button" class="node" data-title="Scene generation · маршрут із 3 моделей" data-body="Реальні виміри з живих спроб: GPT Image 2 — 205–461с за спробу; при провалі QA цикл переходить на Nano Banana 2 (109–121с), потім Nano Banana Pro (136–168с). Цикл обмежений довжиною маршруту — після третьої невдалої спроби сцена йде у FAILED, а не пробує моделі по колу." data-code="route: GPT Image 2 → Nano Banana 2 → Nano Banana Pro||cycleAttempts.length ≥ route.entries.length → FAILED"><span class="k">GENERATE</span><h3>scene generation</h3><p>Маршрут моделей фіксований, до 3 спроб на цикл.</p><div class="spec"><b>route</b> GPT Image 2 → Nano Banana 2 → Nano Banana Pro<br><b>виміряно</b> 205–461с · 109–121с · 136–168с</div><span class="tap">детальніше</span></button>
+      <div class="link"></div>
+      <button type="button" class="node gate" data-title="evaluateScene · 9 QA-gates" data-body="Уніфікований список із 9 gates: MASTER_LOOK_LOCK, REFERENCE_ROLE_ISOLATION, NEAR_COPY_AND_LEAKAGE, IDENTITY, ITEM_FIDELITY, SCENE_MATCH, LIGHT_AND_CONTACT_SHADOW, FRAMING_AND_ANATOMY, PROVENANCE — плюс окремий forensic-прохід на кожну видиму річ." data-code="SCENE_QA_GATES.length === 9||allGatesPass() вимагає PASS на кожен, по порядку"><span class="k">GATE</span><h3>evaluateScene</h3><p>Дев'ять gates і окремий item-forensic.</p><div class="spec"><b>framing</b> preferred 70–80% · explicit tolerance до 86% · headroom 4–8% лише з повною головою</div><span class="tap">детальніше</span></button>
+      <div class="link"></div>
+      <button type="button" class="node art" data-title="Approved scene state" data-body="Persisted attempt із рівно чотирма привʼязками входу: approved_look, preset, prompt, reference_pack. Це той самий клас захисту, що й approved look (§06) — сцена не може мовчки «переприв'язатись» до іншого образу чи пресету заднім числом." data-code="bindings: approved_look · preset · prompt · reference_pack"><span class="k">STATE</span><h3>scene state</h3><p>Persisted attempt із чотирма привʼязками входу.</p><div class="spec"><b>bindings</b> approved_look · preset · prompt · reference_pack</div><span class="tap">детальніше</span></button>
+    </div>
+    <div class="fail">Провал спроби → наступна модель циклу · 3/3 QA_FAILED → сцена FAILED, ручний ретрай запускає новий цикл</div>
+  </section>
+
+
+  <section class="panel" data-name="Framing gate" data-beats="0,90,180,270,360,450">
+    <div class="eyebrow"><span class="n">08</span><span>framing gate</span><span class="r"></span></div>
+    <h2>Кадрування перераховується, а не приймається на слово</h2>
+    <p class="sub">Модель повертає bbox субʼєкта в пікселях. Відсотки висоти й вільного простору система обчислює сама з цього bbox і полотна — заявленим числам моделі не довіряє. Bbox, що не вміщається в полотно, валить контракт.</p>
+    <div class="gt">
+      <div class="gt-row gt-h"><span>замок пресету</span><span>обчислення</span><span>код дефекту</span></div>
+      <button type="button" class="gt-row ok" data-title="SUBJECT_HEIGHT_OUTSIDE_PRESET_RANGE" data-body="Preferred standard composition band — 70–80% висоти native 3:4 кадру. Окремий зафіксований tolerance може прийняти до 86% лише коли повна голова, повне взуття й усі інші framing-факти проходять; це явна policy decision, не приховане послаблення." data-code="bbox_height / 2048 × 100"><span>Preferred висота субʼєкта 70–80%</span><span>bbox_height / 2048 × 100</span><code>SUBJECT_HEIGHT_OUTSIDE_PRESET_RANGE</code></button>
+      <button type="button" class="gt-row ok" data-title="INSUFFICIENT_CLEAR_SPACE_ABOVE_HAIR" data-body="Простір над волоссям обчислюється як y-координата bbox відносно native 2048px canvas. Стандартна сцена допускає тільки explicit 4–8% tolerance з повністю видимою головою; нижче 4% gate блокує." data-code="y / 2048 × 100"><span>Headroom 4–8% за повної голови</span><span>y / 2048 × 100</span><code>INSUFFICIENT_CLEAR_SPACE_ABOVE_HAIR</code></button>
+      <button type="button" class="gt-row ok" data-title="INSUFFICIENT_CLEAR_SPACE_BELOW_FOOTWEAR" data-body="Дзеркальна перевірка знизу кадру: скільки простору лишається під нижньою межею bbox. У стандартній сцені мінімум 2%; у editorial-слоті wide_campaign_coda — той самий поріг, бо це єдиний слот, де взуття взагалі має бути повністю в кадрі." data-code="(H − y − bbox_h) / H × 100"><span>Простір під взуттям ≥ 2%</span><span>(H − y − bbox_h) / H × 100</span><code>INSUFFICIENT_CLEAR_SPACE_BELOW_FOOTWEAR</code></button>
+      <button type="button" class="gt-row bad" data-title="FULL_HEAD_NOT_VISIBLE" data-body="Булеве спостереження моделі, обовʼязкове для full-body пресетів: голова видима повністю, без обрізання маківки чи підборіддя. У деяких editorial-слотах (наприклад material_or_accessory_detail) ця вимога свідомо вимкнена, бо слот взагалі не про обличчя." data-code="require_full_head: true"><span>Голова повністю в кадрі</span><span>Булеве спостереження, обовʼязкове для full-body пресетів</span><code>FULL_HEAD_NOT_VISIBLE</code></button>
+      <button type="button" class="gt-row bad" data-title="FULL_FOOTWEAR_NOT_VISIBLE" data-body="Те саме булеве спостереження для нижньої межі кадру. Для стандартної сцени й для editorial-коди — взуття має бути видиме повністю, а не обрізане по щиколотку." data-code="require_full_footwear: true"><span>Взуття повністю в кадрі</span><span>Те саме для нижньої межі</span><code>FULL_FOOTWEAR_NOT_VISIBLE</code></button>
+      <button type="button" class="gt-row bad" data-title="Bbox поза полотном" data-body="Якщо bbox, який повернула модель, виходить за межі заявленого полотна (x, y мають бути ≥ 0, x+w ≤ W, y+h ≤ H) — це ознака, що модель або галюцинує координати, або переплутала систему відліку. Контракт падає, а не намагається «стиснути» bbox назад у кадр." data-code="x,y ≥ 0 і x+w ≤ W, y+h ≤ H"><span>Bbox поза полотном</span><span>x, y ≥ 0 і x+w ≤ W, y+h ≤ H — інакше відповідь невалідна</span><code>контракт падає</code></button>
+    </div>
+  </section>
+
+  <section class="panel" data-name="Item forensic" data-beats="0,90,180,270,360">
+    <div class="eyebrow"><span class="n">09</span><span>per-item forensic</span><span class="r"></span></div>
+    <h2>Кожна річ звіряється окремим проходом</h2>
+    <p class="sub">Загальний gate дивиться на сцену, але кожна річ додатково перевіряється власним викликом на трьох вкладеннях: зона речі в кадрі, точний еталон, і повний кадр як контекст. Схожа річ — це не та сама річ.</p>
+    <div class="gt">
+      <div class="gt-row gt-h"><span>ситуація</span><span>правило</span><span>вихід</span></div>
+      <button type="button" class="gt-row ok" data-title="verdict PASS" data-body="PASS вимагає порожній масив дефектів — якщо модель ставить PASS, але список дефектів непорожній, це порушення контракту, а не прийнятна оцінка «майже добре»." data-code="verdict PASS · defects []"><span>Усі видимі деталі збігаються</span><span>PASS вимагає порожній масив дефектів, інакше контракт невалідний</span><code>verdict PASS · defects []</code></button>
+      <button type="button" class="gt-row bad" data-title="verdict REVISE — підміна деталі" data-body="Підмінений логотип, монограма чи текст на генеричний схожий візерунок — це відмова, навіть якщо загальна форма речі збігається. Схожість силуету не компенсує втрату конкретної деталі." data-code="verdict REVISE"><span>Підмінений емблем, монограма, текст</span><span>Генеричний візерунок замість конкретного — це відмова</span><code>verdict REVISE</code></button>
+      <button type="button" class="gt-row bad" data-title="ITEM_DETAIL_NOT_VERIFIABLE" data-body="Якщо деталь надто дрібна або розмита, щоб її прочитати — вона вважається непідтвердженою, а не автоматично збіжною. Сумнів завжди трактується проти кандидата, ніколи на його користь." data-code="ITEM_DETAIL_NOT_VERIFIABLE"><span>Деталь надто дрібна або розмита</span><span>Не читається — отже не підтверджена. Сумнів не трактується як збіг</span><code>ITEM_DETAIL_NOT_VERIFIABLE</code></button>
+      <button type="button" class="gt-row bad" data-title="ITEM_FIDELITY = FAIL" data-body="Будь-який REVISE серед перевірених речей автоматично тягне за собою загальний gate ITEM_FIDELITY у стан FAIL зі score ≤ 60 — незалежно від того, яку загальну оцінку сцені виставила модель. Одна погана деталь важить більше за загальне враження." data-code="ITEM_FIDELITY = FAIL · score ≤ 60"><span>Будь-який REVISE серед речей</span><span>Тягне за собою загальний gate незалежно від оцінки моделі</span><code>ITEM_FIDELITY = FAIL · score ≤ 60</code></button>
+      <button type="button" class="gt-row warn" data-title="SCENE_ITEM_EVALUATOR_CONTRACT_FAILED" data-body="Якщо сам оцінювач речей недоступний технічно — кандидат-зображення НЕ відкидається і НЕ перегенеровується. Повторюється лише сам QA-прохід, коли оцінювач знову стане доступний. Технічний збій інфраструктури не карається як дефект контенту." data-code="SCENE_ITEM_EVALUATOR_CONTRACT_FAILED"><span>Збій оцінювача речей</span><span>Кандидат зберігається, повторюється тільки QA — без нової генерації</span><code>SCENE_ITEM_EVALUATOR_CONTRACT_FAILED</code></button>
+    </div>
+  </section>
+
+
+  <section class="panel" data-name="Fashion Shoot" data-beats="0,220,460,700,940" data-fail="1260">
+    <div class="eyebrow"><span class="n">10</span><span>create universe → fashion shoot</span><span class="r"></span></div>
+    <h2>15 style units, п’ять customer frames</h2>
+    <p class="sub">Creative Universe — внутрішня система складання style pack; користувацький продукт називається Fashion Shoot. Каталог зараз має 18 карток: 17 generation-ready, серед них 15 повних <code>shoot.*</code> units, і одну preview-only. Внутрішній identity hero — QA-бар’єр, а не шосте фото для користувача.</p>
+    <div class="chain">
+      <button type="button" class="node gate" data-title="Style readiness gate" data-body="Кожен Create Universe unit має versioned manifest і role-specific sheets: environment, colour grade, camera/lens, garment behaviour, blocking та інші затверджені ролі. Файли рехешуються проти manifest; неповний unit лишається preview-only і не отримує кнопку запуску." data-code="manifest.json → every declared sheet rehashed||READY · BLOCKED_*"><span class="k">GATE</span><h3>style readiness</h3><p>Маніфест, sheets і reference roles проходять integrity до запуску.</p><div class="spec"><b>каталог</b> 18 cards · 17 ready · 15 Create Universe</div><span class="tap">детальніше</span></button>
+      <div class="link"></div>
+      <button type="button" class="node" data-title="Style pack + internal identity check" data-body="Сервер зберігає ShootBible/style binding і точний SHA. Внутрішній clean_identity_hero може перевірити identity/style continuity, але UI не рахує його як customer frame і не показує шостим результатом." data-code="style_pack_sha256 · approved_look_sha256 · internal clean_identity_hero"><span class="k">INTERNAL</span><h3>style pack + identity check</h3><p>Внутрішній hero перевіряє перенесення стилю, але не є customer output.</p><div class="spec"><b>visibility</b> engineering progress only</div><span class="tap">детальніше</span></button>
+      <div class="link"></div>
+      <button type="button" class="node gate" data-title="Five-frame launch gate" data-body="Новий product contract запускає всі п’ять customer frames на create; прихований hero не має створювати людську паузу. Legacy approve-hero лишається тільки для міграції старих smoke records і exact-hash compatibility." data-code="launch_policy: start_all_five_frames_on_create||legacy_smoke_migration: approve_only_existing_qa_passed_heroes_once"><span class="k">GATE</span><h3>five-frame launch</h3><p>П’ять кадрів стартують разом; прихованої ручної паузи немає.</p><div class="spec"><b>per shoot</b> concurrency 5</div><span class="tap">детальніше</span></button>
+      <div class="link"></div>
+      <button type="button" class="node" data-title="Five customer frames" data-body="П’ять різних кадрів запускаються з одного approved look і одного locked style unit. Кожен має власний blocking anchor; global matrix дозволяє не більше восьми одночасних generation requests між усіма зйомками." data-code="customer_frames_per_style: 5||per_shoot_frame_concurrency: 5 · matrix_max_inflight: 8"><span class="k">GENERATE</span><h3>five frames</h3><p>Кожен кадр унікальний, але look і style pack незмінні.</p><div class="spec"><b>global max</b> 8 generation requests</div><span class="tap">детальніше</span></button>
+      <div class="link"></div>
+      <button type="button" class="node art" data-title="Approved Fashion Shoot" data-body="Коли п’ять customer frames пройшли QA, вони зберігаються окремо і збираються у private contact sheet. Один failed frame ремонтується окремо; approved look і passed siblings не перегенеровуються." data-code="status: COMPLETED · 5/5 customer frames QA_PASSED"><span class="k">STATE</span><h3>approved shoot</h3><p>5/5 кадрів, contact sheet, фотосесія в профілі.</p><div class="spec"><b>ретрай</b> per-frame, автоматичний і bounded</div><span class="tap">детальніше</span></button>
+    </div>
+    <div class="fail">Провал одного кадру → ремонтується лише цей кадр · approved look і пройдені siblings не змінюються</div>
+  </section>
+
+  <section class="panel" data-name="Fashion Shoot locks" data-beats="0,70,140,210,280,350,420,490">
+    <div class="eyebrow"><span class="n">11</span><span>fashion shoot framing locks</span><span class="r"></span></div>
+    <h2>Один internal check + п’ять customer locks</h2>
+    <p class="sub">Сервіс зберігає шість технічних слотів, але користувач отримує рівно п’ять кадрів. <code>clean_identity_hero</code> — внутрішній gate. Кожен customer slot QA-перевіряється проти власного bbox-локу й hash-bound blocking diagram. Fashion Shoot не має загальної вимоги full-body: framing залежить від конкретного кадру.</p>
+    <div class="gt">
+      <div class="gt-row gt-h"><span>слот</span><span>subject % · headroom · below-footwear</span><span>голова · взуття</span></div>
+      <button type="button" class="gt-row ok" data-title="clean_identity_hero" data-body="Hero-слот — головний доказ ідентичності всієї зйомки. Нижня межа висоти субʼєкта тут найвища серед усіх слотів (50%), бо нижче половини кадру обличчя несе замало пікселів, щоб IDENTITY-gate міг чесно порівняти геометрію рис." data-code="subject 50–94% · headroom 6% · below-footwear 0%"><span>clean_identity_hero</span><span>50–94% · 6% · 0%</span><code>голова так · взуття ні</code></button>
+      <button type="button" class="gt-row ok" data-title="environmental_hero" data-body="Слот, чия розповідна робота — віддати частину кадру середовищу. Поріг висоти навмисно нижчий (40%), щоб людина не перетворилась на просту деталь декору у власній фотосесії." data-code="subject 40–95% · headroom 5% · below-footwear 0%"><span>environmental_hero</span><span>40–95% · 5% · 0%</span><code>голова так · взуття ні</code></button>
+      <button type="button" class="gt-row ok" data-title="sculptural_three_quarter" data-body="Портретний слот із тією самою логікою, що й hero: портрет, який перестає бути портретом, не має сенсу — тому поріг висоти теж 50%." data-code="subject 50–95% · headroom 5% · below-footwear 0%"><span>sculptural_three_quarter</span><span>50–95% · 5% · 0%</span><code>голова так · взуття ні</code></button>
+      <button type="button" class="gt-row ok" data-title="interference_frame" data-body="Слот віддає частину кадру одному оптичному переднику (interference-об'єкту в кадрі), тому поріг висоти лежить між портретними слотами і environmental — 45%, все ще зобов'язаний лишатись кадром ЛЮДИНИ, а не самого оптичного ефекту." data-code="subject 45–96% · headroom 4% · below-footwear 0%"><span>interference_frame</span><span>45–96% · 4% · 0%</span><code>голова так · взуття ні</code></button>
+      <button type="button" class="gt-row ok" data-title="material_or_accessory_detail" data-body="Єдиний слот, де вимога повної голови в кадрі свідомо вимкнена — це макро-деталь тканини чи аксесуара, а не портрет. Поріг висоти найгнучкіший (45–100%), бо ITEM_FIDELITY-гейт має форензично звірити логотип, шов чи текстуру, і кадру для цього потрібно якомога більше." data-code="subject 45–100% · headroom 0% · below-footwear 0%"><span>material_or_accessory_detail</span><span>45–100% · 0% · 0%</span><code>голова ні · взуття ні</code></button>
+      <button type="button" class="gt-row bad" data-title="wide_campaign_coda — FULL_LOOK_ITEMS_REQUIRED" data-body="Єдиний широкий full-body слот і єдиний, де і голова, і взуття мають бути повністю в кадрі. Кадр НЕ стартує без locked top + bottom + footwear evidence — заборонено «домальовувати» стиль для частин образу, яких немає на затверджених фото. framing тут строго wide_full_body, не three_quarter." data-code="subject 30–92% · headroom 8% · below-footwear 2%||FULL_LOOK_ITEMS_REQUIRED: top + bottom + footwear"><span>wide_campaign_coda</span><span>30–92% · 8% · 2%</span><code>голова так · взуття так</code></button>
+    </div>
+    <div class="calc">
+      <div>Blocking-діаграма: sha256 файлу + <i>drawn_facts</i> звіряються з живим локом слота</div>
+      <div>Розсинхрон → <b>«blocking diagram no longer states the lock it was drawn from»</b></div>
+      <div>1 internal + 5 customer slots = 6 різних діаграм; contact sheet містить лише 5 customer outputs</div>
+    </div>
+  </section>
+
+
+  <section class="panel" data-name="Motion" data-beats="0,110,220,540,660,780,900,1020" data-fail="1140">
+    <div class="eyebrow"><span class="n">12</span><span>motion · дві реальні гілки</span><span class="r"></span></div>
+    <h2>Два незалежні motion-продукти вже мають кодові маршрути</h2>
+    <p class="sub">Fashion Video створює й перевіряє готовий кліп із затвердженого master look. Real-time Look трансформує камеру через WebRTC. Обидві гілки мають продуктове API, стани й focused-тести; live provider smoke не заявляємо, доки public beta повертає 502.</p>
+    <div class="chain">
+      <button type="button" class="node gate" data-title="Fashion Video — PRODUCT ROUTE" data-body="Сервіс приймає тільки затверджений full-look master на білому та, за потреби, детерміновану garment card. Користувач обирає один із чотирьох hash-bound reference styles і один із чотирьох motion modes. Запуск, polling/resume, QA, retry та delivery є частиною продуктового маршруту." data-code="4 reference styles · 4 motion modes||Higgsfield primary · OpenRouter Seedance capability-safe fallback"><span class="k">CODE + TEST</span><h3>Fashion Video</h3><p>Provider output → assembly → video QA → retry або delivery.</p><div class="spec"><b>source</b> approved master only</div><span class="tap">детальніше</span></button>
+      <div class="link"></div>
+      <button type="button" class="node gate" data-title="Real-time Look — CODE + TEST" data-body="Кнопка відкриває camera preview і WebRTC-примірку через decart/lucy-2-5/realtime (fal.ai). До токена обовʼязкові згода на камеру, явне підтвердження вартості та session limit. Teardown зупиняє tracks і закриває peer connection; прихованого запису немає." data-code="model: decart/lucy-2-5/realtime||privacy consent · cost consent · bounded session"><span class="k">CODE + TEST</span><h3>Real-time Look</h3><p>Жива трансформація камери з явною згодою і bounded session.</p><div class="spec"><b>transport</b> FAL / Lucy WebRTC</div><span class="tap">детальніше</span></button>
+      <div class="link"></div>
+      <button type="button" class="node gate" data-title="Чесна межа активації" data-body="Контракт допускає bounded-сесію до 15 секунд за конфігурацією; поточний короткий UI/smoke flow може використовувати 5 секунд. Це не live-доказ: перед публічною позначкою AVAILABLE потрібні здоровий beta health, token smoke і фактичний provider connection." data-code="contract max: 15s||current short UI path: 5s"><span class="k">ACTIVATION GATE</span><h3>live proof</h3><p>Кодова готовність не дорівнює доступності провайдера зараз.</p><div class="spec"><b>01.08</b> public beta health 502</div><span class="tap">детальніше</span></button>
+    </div>
+    <div class="status"><i></i>Fashion Video + Real-time Look: code/test verified · public live proof pending after beta recovery</div>
+  </section>
+
+  <section class="panel" data-name="Motion gates" data-beats="0,90,180,270,360,450">
+    <div class="eyebrow"><span class="n">13</span><span>motion gates</span><span class="r"></span></div>
+    <h2>Гейти обох гілок в одному місці</h2>
+    <p class="sub"><code>POST /api/fal/realtime-token</code> перевіряє згоду перед живим підключенням; Fashion Video окремо звіряє source, reference style, provider receipt, кожен cut і фінальний delivery.</p>
+    <div class="gt">
+      <div class="gt-row gt-h"><span>гілка · перевірка</span><span>умова</span><span>код · повідомлення</span></div>
+      <button type="button" class="gt-row live" data-title="MODEL_NOT_ALLOWED" data-body="Allowlist моделі на бекенді — тіло запиту мусить називати рівно decart/lucy-2-5/realtime. Спроба підставити іншу модель відбивається до будь-якого звернення до fal.ai." data-code="400 MODEL_NOT_ALLOWED"><span>Real-time · allowlist моделі</span><span>body.app має дорівнювати decart/lucy-2-5/realtime</span><code>400 MODEL_NOT_ALLOWED</code></button>
+      <button type="button" class="gt-row live" data-title="PAID_SESSION_APPROVAL_REQUIRED" data-body="Токен не видається без явного cost_acknowledged і session limit, дозволеного поточним контрактом. Privacy consent на камеру — окремий обовʼязковий крок; відсутність будь-якої згоди блокує запуск до провайдера." data-code="409 PAID_SESSION_APPROVAL_REQUIRED"><span>Real-time · згода</span><span>camera privacy + cost acknowledgement + bounded duration</span><code>409 PAID_SESSION_APPROVAL_REQUIRED</code></button>
+      <button type="button" class="gt-row warn" data-title="LUCY_PROVIDER_NOT_CONFIGURED" data-body="Якщо видавач токена не налаштований на бекенді, живий Lucy-виклик недоступний, але безкоштовний camera preview (без трансформації) лишається робочим — деградація не забирає геть усю функцію." data-code="503 LUCY_PROVIDER_NOT_CONFIGURED"><span>Real-time · провайдер не готовий</span><span>lucyTokenIssuer не функція</span><code>503 LUCY_PROVIDER_NOT_CONFIGURED</code></button>
+      <button type="button" class="gt-row bad" data-title="SOURCE MASTER LOCK" data-body="Fashion Video не бере raw identity-фото чи випадковий scene output. Source має збігтися з approved full-look master і його receipt; зміна hash після create відхиляє resume/retry." data-code="approved look SHA + receipt"><span>Fashion Video · source lock</span><span>тільки approved master, незмінний між create/resume/retry</span><code>SOURCE / RECEIPT MISMATCH</code></button>
+      <button type="button" class="gt-row bad" data-title="REFERENCE STYLE LOCK" data-body="Кожен із чотирьох video styles має hash-bound reference Video 1 і cut sheet. Заміна стилю або reference asset після create не може непомітно продовжити старий job." data-code="4 style packs · reference SHA · cut-sheet SHA"><span>Fashion Video · style lock</span><span>reference video та cut sheet мають точні hash</span><code>STYLE_BINDING_MISMATCH</code></button>
+      <button type="button" class="gt-row bad" data-title="VIDEO DELIVERY QA" data-body="Provider output спочатку збирається у delivery: візуал від моделі, аудіо тільки з approved reference Video 1; якщо reference silent, delivery теж silent. Далі перевіряються geometry/duration, exact-copy, identity/item fidelity і leakage кожного cut. Допустимий salvage лише проблемного cut; retry явний та idempotent." data-code="assembly → per-cut QA → salvage/retry → delivery"><span>Fashion Video · приймання кліпу</span><span>assembly, exact-copy, leakage, fidelity, retry</span><code>video receipt + QA receipt</code></button>
+    </div>
+  </section>
+
+  <section class="panel" data-name="Boot resilience" data-beats="0,150,300,450">
+    <div class="eyebrow"><span class="n">14</span><span>boot resilience · quarantine</span><span class="r"></span></div>
+    <h2>Одна невалідна зйомка більше не кладе весь сайт</h2>
+    <p class="sub">28.07.2026 зміна контракту кадрування (<code>wide_campaign_coda</code>: three_quarter → wide_full_body) лишила стару копію локу в persisted-стані. Перша ж активація впала на буті: <code>Error: wide_campaign_coda must use wide_full_body framing</code> — і без цього патерну впав би весь процес, а не одна зйомка.</p>
+    <div class="grid">
+      <button type="button" class="cell warn" data-title="Симптом: смерть процесу на буті" data-body="initialize() читав кожну персистовану зйомку по черзі й валідував її проти актуального контракту. Одна зйомка зі старим специфікатором framing кидала виняток — і через відсутність try/catch навколо одного запису валилась ІНІЦІАЛІЗАЦІЯ ВСЬОГО СЕРВІСУ, а не тільки цей запис." data-code="Error: wide_campaign_coda must use wide_full_body framing"><span class="k">СИМПТОМ</span><h4>смерть процесу</h4><p>Один старий запис валив ініціалізацію всього сервісу.</p><code>site 000 · rollback за хвилини</code></button>
+      <button type="button" class="cell" data-title="Виправлення: quarantine замість смерті" data-body="initialize() тепер обгортає відновлення КОЖНОЇ зйомки в try/catch. Провал валідації одного запису переносить його директорію в quarantine/malformed-<id>-<timestamp>-<uuid> і пише інцидент-файл з кодом і повідомленням — і продовжує ініціалізацію решти. Той самий патерн існував раніше для scene-service, тепер віддзеркалений і для editorial-shoot-service." data-code="editorial-shoots/quarantine/malformed-<id>-…||incidents/<id>-<suffix>.json"><span class="k">ВИПРАВЛЕННЯ</span><h4>quarantine-at-boot</h4><p>Невалідний запис ізолюється, решта продовжує ініціалізацію.</p><code>MALFORMED_PERSISTED_EDITORIAL_SHOOT</code></button>
+      <button type="button" class="cell" data-title="Наслідок на проді, виміряно 28.07.2026" data-body="Після релізу репаіру 10 історичних зйомок зі старим специфікатором опинились у карантині з інцидент-файлами — жодна з них не видалена, кожна відновна перейменуванням назад і правкою framing. Сайт піднявся зі status 200 з першого спроби після фіксу." data-code="10 карантинних записів · 0 втрачених · 200 OK"><span class="k">НАСЛІДОК</span><h4>10 у карантині, 0 втрат</h4><p>Дані збережені, відновні; сайт піднявся з 200.</p><code>release-58703b9 · 45/45 tests</code></button>
+      <button type="button" class="cell warn" data-title="Урок для наступної зміни контракту" data-body="Одна зміна лока лишила чотири-шість stale-копій одного значення (тестова фікстура, JSON-схема, друга таблиця локів, пікселі blocking-діаграми, фікстура камери в тесті) — жодна з них не була самим контрактом, всі — його відлунням у різних форматах. git grep на старе значення після будь-якої зміни лока — тепер обовʼязковий крок." data-code="git grep 'three_quarter' — after any framing change"><span class="k">УРОК</span><h4>одна зміна, шість копій</h4><p>Лок живе в коді, тестах, схемі й пікселях одночасно.</p><code>перевіряти всі одразу</code></button>
+    </div>
+  </section>
+
+  <section class="panel" data-name="Провайдери" data-beats="0,60,120,180,240,300,360,420">
+    <div class="eyebrow"><span class="n">15</span><span>providers · invariants</span><span class="r"></span></div>
+    <h2>Транспорт через env, контракт незмінний</h2>
+    <p class="sub">Оцінювач і генератор підмінюються змінною середовища, але контракти й JS-валідація спільні. Тут показані доступні в коді транспорти; активний live provider не стверджується без успішного public smoke.</p>
+    <div class="grid">
+      <button type="button" class="cell" data-title="Маршрут генерації" data-body="Порядок фіксований, локальні псевдоніми моделей заборонені на конструкторі. Реальні виміряні назви з живих receipts: GPT Image 2, Nano Banana 2, Nano Banana Pro — саме в цьому порядку." data-code="GPT Image 2||Nano Banana 2||Nano Banana Pro"><span class="k">IMAGE</span><h4>Маршрут генерації</h4><p>Порядок фіксований, локальні псевдоніми моделей заборонені.</p><code>GPT Image 2<br>Nano Banana 2<br>Nano Banana Pro</code></button>
+      <button type="button" class="cell" data-title="Оцінювач" data-body="Строгий json_schema вихід, точна версія моделі в кожному receipt. Реалізовані Codex і OpenRouter VLM transports; конкретна активація задається env і перевіряється health/smoke, а не текстом презентації." data-code="ZEELY_VLM_PROVIDER=codex|openrouter"><span class="k">VLM</span><h4>Оцінювач</h4><p>Строгий json_schema вихід і точна версія в receipt.</p><code>Codex · OpenRouter</code></button>
+      <button type="button" class="cell" data-title="Рух" data-body="Fashion Video: Higgsfield primary і OpenRouter Seedance fallback лише коли capability contract сумісний. Real-time Look: FAL/Lucy 2.5 WebRTC. Обидва мають продуктовий код; public provider proof очікує відновлення beta." data-code="Higgsfield → OpenRouter Seedance||FAL / Lucy 2.5 realtime"><span class="k">MOTION</span><h4>Рух</h4><p>Два окремі transports і два окремі продукти.</p><code>Fashion Video · Real-time Look</code></button>
+      <button type="button" class="cell" data-title="Підміна провайдера" data-body="Image generation має Higgsfield, OpenRouter і test-only Codex imagegen transport; VLM — Codex або OpenRouter. Fallback дозволений лише коли наступний transport виконує той самий контракт — не як сліпа заміна моделі." data-code="ZEELY_GENERATION_PROVIDER||ZEELY_VLM_PROVIDER"><span class="k">SWITCH</span><h4>Підміна провайдера</h4><p>Fallback проходить capability gate до платного виклику.</p><code>Higgsfield · OpenRouter<br>Codex test transport</code></button>
+      <button type="button" class="cell" data-title="Незмінність версій" data-body="Плаваючі аліаси моделей (щось на кшталт 'latest') відхиляються прямо на конструкторі провайдера — точна версія моделі завжди явна в коді і в receipt, інакше поведінка непередбачувано «попливе» під ногами продукту." data-code="MOVING_MODEL_VERSION||assertNonAmbiguousModel"><span class="k">INVARIANT</span><h4>Незмінність версій</h4><p>Плаваючі аліаси відхиляються на конструкторі.</p><code>MOVING_MODEL_VERSION<br>assertNonAmbiguousModel</code></button>
+      <button type="button" class="cell" data-title="Приватність промптів" data-body="Локальні шляхи файлової системи, імʼя користувача й назва продукту вирізаються з будь-якого промпту, що йде до зовнішнього провайдера — перевіряється окремим assert перед кожним викликом, а не покладається на дисципліну автора промпту." data-code="assertExternalPromptPrivacy"><span class="k">INVARIANT</span><h4>Приватність промптів</h4><p>Локальні шляхи, імʼя користувача й назва продукту не виходять назовні.</p><code>assertExternalPromptPrivacy</code></button>
+      <button type="button" class="cell" data-title="Типізовані відмови" data-body="Кожен клас збою має власний код замість загальної помилки — це те, що дозволяє QA й агентам відрізнити «провайдер ліг за 0.1с» від «QA чесно відхилив кадр за 4 хвилини роботи», не заглядаючи в стектрейс." data-code="SCENE_ITEM_EVALUATOR_CONTRACT_FAILED||QA_INFRASTRUCTURE_FAILED"><span class="k">INVARIANT</span><h4>Типізовані відмови</h4><p>Кожен клас збою має власний код, а не загальну помилку.</p><code>SCENE_ITEM_EVALUATOR_<br>CONTRACT_FAILED<br>QA_INFRASTRUCTURE_FAILED</code></button>
+      <button type="button" class="cell warn" data-title="Поточний activation status" data-body="Презентацію синхронізовано з exact origin/beta SHA 7a2e6a2. Focused integration suite: 259/259 PASS. Публічний /api/health 1 серпня повернув 502, тому code/test evidence не перетворено на неправдиву позначку LIVE." data-code="source 7a2e6a2||259/259 focused PASS · public health 502"><span class="k">STATUS</span><h4>Код готовий ≠ live зараз</h4><p>Live повертається лише після health і реального browser/provider smoke.</p><code>259/259 PASS<br>public beta 502</code></button>
+    </div>
+  </section>
+
+  <section class="panel wide" data-name="Креслення">
+    <div class="eyebrow"><span class="n">16</span><span>full schema</span><span class="r"></span></div>
+    <h2>Повна схема</h2>
+    <p class="sub">П'ять смуг — identity, wardrobe, background, Fashion Shoot, motion. Кожен вузол — окремий блок; наведи курсор на будь-який, щоб побачити повний опис праворуч, або торкнись на мобільному.</p>
+    <div class="bp-hint"><i></i>наведи курсор на блок — деталі відкриються самі</div>
+    <div class="bp">
+      <svg viewBox="0 0 1480 830" role="img" aria-label="Повна схема пайплайна: пʼять смуг — identity, wardrobe, background, Fashion Shoot, motion">
+        <defs><marker id="a" viewBox="0 0 8 8" refX="6.4" refY="4" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M1.5 1L6 4L1.5 7" fill="none" stroke="context-stroke" stroke-width="1.2" stroke-linecap="round"/></marker></defs>
+        <text class="lane" x="0" y="30">01 · IDENTITY</text>
+        <text class="lane" x="0" y="158">02 · WARDROBE</text>
+        <text class="lane" x="0" y="286">03 · BACKGROUND</text>
+        <text class="lane" x="0" y="444">04 · FASHION SHOOT</text>
+        <text class="lane" x="0" y="574">05 · MOTION</text>
+
+        <g class="u node-hit" data-b="0" tabindex="0" data-title="Фото" data-body="Довільний вхід від користувача — жоден нормалізуючий крок ще не застосований. Входить в input gate (§01)." data-code="jpg · png · webp · ≤18MB"><rect class="b i" x="90" y="44" width="150" height="46" rx="2"/><rect class="hit" x="90" y="44" width="150" height="46"/><text class="nm" x="102" y="64">Фото</text><text class="sp" x="102" y="80">довільний вхід</text></g>
+        <g class="u node-hit" data-b="60" tabindex="0" data-title="Avatar gen" data-body="Перенос персонажа на студійний фон #FFFFFF зі збереженням рис, волосся, статури. §02." data-code="model: gpt_image_2"><rect class="b" x="280" y="44" width="150" height="46" rx="2"/><rect class="hit" x="280" y="44" width="150" height="46"/><text class="nm" x="292" y="64">Avatar gen</text><text class="sp" x="292" y="80">GPT Image 2</text></g>
+        <g class="u node-hit" data-b="120" tabindex="0" data-title="Avatar QA" data-body="Порівняння з identity-джерелом. Рішення PASS/RETRY/NEEDS_INPUT/REJECT. §02–03." data-code="decision: PASS | RETRY | NEEDS_INPUT | REJECT"><rect class="b g" x="470" y="44" width="150" height="46" rx="2"/><rect class="hit" x="470" y="44" width="150" height="46"/><text class="nm" x="482" y="64">Avatar QA</text><text class="sp" x="482" y="80">identity · framing</text></g>
+        <path class="w" d="M240 67 L272 67" data-b="30" marker-end="url(#a)"/>
+        <path class="w" d="M430 67 L462 67" data-b="90" marker-end="url(#a)"/>
+        <path class="f" d="M545 44 L545 26 L355 26 L355 42" data-b="150" marker-end="url(#a)"/>
+        <text class="fl" x="424" y="21">FAIL</text>
+
+        <path class="bus" d="M620 67 L648 67 L648 118 L60 118 L60 172 L82 172" data-b="190" marker-end="url(#a)"/>
+
+        <g class="u node-hit" data-b="240" tabindex="0" data-title="Фото речей" data-body="1–5 незалежних знімків речей користувача. §04." data-code="ліміт 1–5 файлів"><rect class="b i" x="90" y="172" width="150" height="46" rx="2"/><rect class="hit" x="90" y="172" width="150" height="46"/><text class="nm" x="102" y="192">Фото речей</text><text class="sp" x="102" y="208">1–5 знімків</text></g>
+        <g class="u node-hit" data-b="290" tabindex="0" data-title="inspectGarments" data-body="8 категорій, пороги confidence ≥0.70 і same_item ≥0.90. §04–05." data-code="8 категорій"><rect class="b" x="280" y="172" width="150" height="46" rx="2"/><rect class="hit" x="280" y="172" width="150" height="46"/><text class="nm" x="292" y="192">inspectGarments</text><text class="sp" x="292" y="208">8 категорій</text></g>
+        <g class="u node-hit" data-b="340" tabindex="0" data-title="Outfit transfer" data-body="Той самий персонаж, новий одяг. Референси впорядковані й hash-bound. §04." data-code="input: avatar + ordered refs"><rect class="b" x="470" y="172" width="150" height="46" rx="2"/><rect class="hit" x="470" y="172" width="150" height="46"/><text class="nm" x="482" y="192">Outfit transfer</text><text class="sp" x="482" y="208">ordered refs</text></g>
+        <g class="u node-hit" data-b="390" tabindex="0" data-title="Outfit QA" data-body="Тип, колір, фактура, посадка, logo_text. Блокує residue попереднього одягу. §04." data-code="блокує residue"><rect class="b g" x="660" y="172" width="150" height="46" rx="2"/><rect class="hit" x="660" y="172" width="150" height="46"/><text class="nm" x="672" y="192">Outfit QA</text><text class="sp" x="672" y="208">той самий одяг</text></g>
+        <g class="u node-hit" data-b="440" tabindex="0" data-title="Approved look" data-body="Hash-locked master: approved_look_sha256, qa_receipt, source_run_id. §06." data-code="LOOK_MISMATCH · LOOK_RECEIPT_MISMATCH"><rect class="b a" x="850" y="172" width="170" height="46" rx="2"/><rect class="tick" x="850" y="172" width="2" height="46"/><rect class="hit" x="850" y="172" width="170" height="46"/><text class="nm" x="864" y="192">Approved look</text><text class="sp" x="864" y="208">hash-locked master</text></g>
+        <path class="w" d="M240 195 L272 195" data-b="265" marker-end="url(#a)"/>
+        <path class="w" d="M430 195 L462 195" data-b="315" marker-end="url(#a)"/>
+        <path class="w" d="M620 195 L652 195" data-b="365" marker-end="url(#a)"/>
+        <path class="w" d="M810 195 L842 195" data-b="415" marker-end="url(#a)"/>
+        <path class="f" d="M735 172 L735 154 L545 154 L545 170" data-b="470" marker-end="url(#a)"/>
+        <text class="fl" x="614" y="149">FAIL</text>
+
+        <path class="bus" d="M1020 195 L1048 195 L1048 246 L60 246 L60 300 L82 300" data-b="510" marker-end="url(#a)"/>
+
+        <g class="u node-hit" data-b="560" tabindex="0" data-title="16 пресетів" data-body="Версіонований пресет: фіксований кадр, масштаб субʼєкта, референс-пак. Delivery одразу нативний 3:4, без фінального crop. §07." data-code="3:4 · 1536×2048"><rect class="b i" x="90" y="300" width="150" height="46" rx="2"/><rect class="hit" x="90" y="300" width="150" height="46"/><text class="nm" x="102" y="320">16 пресетів</text><text class="sp" x="102" y="336">3:4 · 1536×2048</text></g>
+        <g class="u node-hit" data-b="610" tabindex="0" data-title="Scene gen" data-body="Маршрут із 3 моделей: GPT Image 2 → Nano Banana 2 → Nano Banana Pro. Виміряно 205–461с / 109–121с / 136–168с. §07." data-code="≤3 спроби циклу"><rect class="b" x="280" y="300" width="150" height="46" rx="2"/><rect class="hit" x="280" y="300" width="150" height="46"/><text class="nm" x="292" y="320">Scene gen</text><text class="sp" x="292" y="336">3-модельний маршрут</text></g>
+        <g class="u node-hit" data-b="670" tabindex="0" data-title="Scene QA" data-body="9 blocking gates. Preferred subject height 70–80%; стандартна tolerance може сягати 86% лише за записаних умов. Headroom 4–8% допустимий тільки коли вся голова видима; нижче 4% блокує. §07–08." data-code="9 gates"><rect class="b g" x="470" y="300" width="150" height="46" rx="2"/><rect class="hit" x="470" y="300" width="150" height="46"/><text class="nm" x="482" y="320">Scene QA</text><text class="sp" x="482" y="336">70–80% · 9 gates</text></g>
+        <g class="u node-hit" data-b="730" tabindex="0" data-title="Approved scene" data-body="Persisted attempt із 4 привʼязками: approved_look, preset, prompt, reference_pack. §07." data-code="4 bindings"><rect class="b a" x="660" y="300" width="170" height="46" rx="2"/><rect class="tick" x="660" y="300" width="2" height="46"/><rect class="hit" x="660" y="300" width="170" height="46"/><text class="nm" x="674" y="320">Approved scene</text><text class="sp" x="674" y="336">immutable receipt</text></g>
+        <path class="w" d="M240 323 L272 323" data-b="585" marker-end="url(#a)"/>
+        <path class="w" d="M430 323 L462 323" data-b="645" marker-end="url(#a)"/>
+        <path class="w" d="M620 323 L652 323" data-b="705" marker-end="url(#a)"/>
+        <path class="f" d="M545 300 L545 282 L355 282 L355 298" data-b="790" marker-end="url(#a)"/>
+        <text class="fl" x="424" y="277">RETRY</text>
+
+        <path class="bus" d="M830 323 L858 323 L858 400 L60 400 L60 458 L82 458" data-b="830" marker-end="url(#a)"/>
+
+        <g class="u node-hit" data-b="880" tabindex="0" data-title="Style catalog" data-body="18 карток у каталозі; 17 generation-ready. Із них 15 — повні Create Universe shoot.* units, ще 2 — готові legacy modes, 1 legacy mode лише preview. §10." data-code="18 catalog · 17 ready · 15 Create Universe"><rect class="b g" x="90" y="458" width="150" height="46" rx="2"/><rect class="hit" x="90" y="458" width="150" height="46"/><text class="nm" x="102" y="478">Style catalog</text><text class="sp" x="102" y="494">18 / 17 ready</text></g>
+        <g class="u node-hit" data-b="940" tabindex="0" data-title="Style pack lock" data-body="Кожен Create Universe unit замикає environment, light, camera, grade, posing, framing і reference assets точними SHA. Create Universe — внутрішній authoring process; користувач бачить Fashion Shoot. §10." data-code="style pack + manifest SHA"><rect class="b" x="280" y="458" width="150" height="46" rx="2"/><rect class="hit" x="280" y="458" width="150" height="46"/><text class="nm" x="292" y="478">Style pack lock</text><text class="sp" x="292" y="494">Create Universe · SHA</text></g>
+        <g class="u node-hit" data-b="1000" tabindex="0" data-title="Identity checkpoint" data-body="Внутрішній clean_identity_hero перевіряє continuity, але не є шостим customer frame і не створює прихованої ручної паузи перед запуском серії. §10." data-code="internal QA checkpoint"><rect class="b g" x="470" y="458" width="150" height="46" rx="2"/><rect class="hit" x="470" y="458" width="150" height="46"/><text class="nm" x="482" y="478">Identity check</text><text class="sp" x="482" y="494">внутрішній · не кадр</text></g>
+        <g class="u node-hit" data-b="1060" tabindex="0" data-title="Customer frames ×5" data-body="Create запускає всі пʼять customer frames. Per-shoot concurrency = 5; matrix-wide максимум одночасних generation requests = 8. Кожен кадр має власний slot lock і QA. §10–11." data-code="5 frames · concurrency 5 · global max 8"><rect class="b" x="660" y="458" width="150" height="46" rx="2"/><rect class="hit" x="660" y="458" width="150" height="46"/><text class="nm" x="672" y="478">Frames ×5</text><text class="sp" x="672" y="494">parallel · max 5</text></g>
+        <g class="u node-hit" data-b="1120" tabindex="0" data-title="Per-frame QA" data-body="Кожен customer frame окремо проходить identity, item/style fidelity, framing/anatomy і reference-binding checks. Повторюється лише проблемний кадр, не вся серія. §11." data-code="independent retry"><rect class="b g" x="850" y="458" width="150" height="46" rx="2"/><rect class="hit" x="850" y="458" width="150" height="46"/><text class="nm" x="862" y="478">Per-frame QA</text><text class="sp" x="862" y="494">retry only failed</text></g>
+        <g class="u node-hit" data-b="1180" tabindex="0" data-title="Approved shoot" data-body="Пʼять customer frames QA_PASSED — фотосесія доступна в профілі та як contact sheet із рівно пʼяти delivered outputs. §10." data-code="5/5 QA_PASSED"><rect class="b a" x="1040" y="458" width="170" height="46" rx="2"/><rect class="tick" x="1040" y="458" width="2" height="46"/><rect class="hit" x="1040" y="458" width="170" height="46"/><text class="nm" x="1054" y="478">Approved shoot</text><text class="sp" x="1054" y="494">5 кадрів · contact sheet</text></g>
+        <path class="w" d="M240 481 L272 481" data-b="905" marker-end="url(#a)"/>
+        <path class="w" d="M430 481 L462 481" data-b="965" marker-end="url(#a)"/>
+        <path class="w" d="M620 481 L652 481" data-b="1025" marker-end="url(#a)"/>
+        <path class="w" d="M810 481 L842 481" data-b="1085" marker-end="url(#a)"/>
+        <path class="w" d="M1000 481 L1032 481" data-b="1145" marker-end="url(#a)"/>
+        <path class="f" d="M925 458 L925 440 L735 440 L735 456" data-b="1220" marker-end="url(#a)"/>
+        <text class="fl" x="800" y="435">NEEDS_RETRY</text>
+
+        <path class="bus" d="M1210 481 L1238 481 L1238 550 L60 550 L60 586 L82 586" data-b="1260" marker-end="url(#a)"/>
+
+        <text class="rowtag" x="90" y="580">FASHION VIDEO · code + test verified</text>
+        <g class="u node-hit" data-b="1310" tabindex="0" data-title="Master + style" data-body="Approved full-look master, опційна garment card, один із 4 hash-bound video styles і один із 4 motion modes формують immutable job. §12." data-code="source SHA · style SHA · cut-sheet SHA"><rect class="b g" x="90" y="586" width="150" height="40" rx="2"/><rect class="hit" x="90" y="586" width="150" height="40"/><text class="nm" x="102" y="604">Master + style</text><text class="sp" x="102" y="618">4 refs · 4 modes</text></g>
+        <g class="u node-hit" data-b="1350" tabindex="0" data-title="Generate + QA" data-body="Product route запускає provider, відновлює status polling, збирає delivery, перевіряє exact-copy і leakage per cut, після чого робить explicit retry або delivery. §12–13." data-code="Higgsfield → safe OpenRouter fallback"><rect class="b" x="280" y="586" width="150" height="40" rx="2"/><rect class="hit" x="280" y="586" width="150" height="40"/><text class="nm" x="292" y="604">Generate + QA</text><text class="sp" x="292" y="618">route · retry · deliver</text></g>
+        <path class="w" d="M240 606 L272 606" data-b="1330" marker-end="url(#a)"/>
+
+        <text class="rowtag" x="90" y="644">REAL-TIME LOOK · code + test verified</text>
+        <g class="u node-hit" data-b="1390" tabindex="0" data-title="Камера + референс" data-body="getUserMedia на HTTPS, референс-образ ≥512×512. §12." data-code="min 512×512"><rect class="b i" x="90" y="650" width="150" height="46" rx="2"/><rect class="hit" x="90" y="650" width="150" height="46"/><text class="nm" x="102" y="670">Камера + референс</text><text class="sp" x="102" y="686">≥512×512</text></g>
+        <g class="u node-hit" data-b="1440" tabindex="0" data-title="Privacy + cost consent" data-body="Камера й платна provider-сесія потребують двох явних згод; без них token не видається. §12–13." data-code="privacy consent · cost_acknowledged"><rect class="b g" x="280" y="650" width="150" height="46" rx="2"/><rect class="hit" x="280" y="650" width="150" height="46"/><text class="nm" x="292" y="670">Дві згоди</text><text class="sp" x="292" y="686">privacy · cost</text></g>
+        <g class="u node-hit" data-b="1490" tabindex="0" data-title="Token + WebRTC" data-body="POST /api/fal/realtime-token з гейтами MODEL_NOT_ALLOWED / PAID_SESSION_APPROVAL_REQUIRED / LUCY_PROVIDER_NOT_CONFIGURED. §13." data-code="expiresInSeconds: 10"><rect class="b" x="470" y="650" width="150" height="46" rx="2"/><rect class="hit" x="470" y="650" width="150" height="46"/><text class="nm" x="482" y="670">Token + WebRTC</text><text class="sp" x="482" y="686">offer · answer · ICE</text></g>
+        <g class="u node-hit" data-b="1540" tabindex="0" data-title="Live transform" data-body="Камера підмінюється трансформованим потоком у реальному часі — той самий образ, нове вбрання, збережена особа, поза й фон. §12." data-code="'LUCY LIVE · transformed stream'"><rect class="b l" x="660" y="650" width="170" height="46" rx="2"/><rect class="hit" x="660" y="650" width="170" height="46"/><text class="nm" x="674" y="670">Live transform</text><text class="sp" x="674" y="686">трансформований потік</text></g>
+        <g class="u node-hit" data-b="1590" tabindex="0" data-title="Bounded teardown" data-body="Контракт обмежує сесію, а teardown закриває WebRTC і всі camera tracks. Current short UI path може бути 5с; config ceiling — до 15с. §12." data-code="close peer + stop tracks"><rect class="b g" x="850" y="650" width="150" height="46" rx="2"/><rect class="hit" x="850" y="650" width="150" height="46"/><text class="nm" x="862" y="670">Bounded stop</text><text class="sp" x="862" y="686">5с UI · ≤15с contract</text></g>
+        <path class="w" d="M240 673 L272 673" data-b="1415" marker-end="url(#a)"/>
+        <path class="w" d="M430 673 L462 673" data-b="1465" marker-end="url(#a)"/>
+        <path class="w" d="M620 673 L652 673" data-b="1515" marker-end="url(#a)"/>
+        <path class="w" d="M830 673 L842 673" data-b="1565" marker-end="url(#a)"/>
+
+        <g class="u" data-b="1650">
+          <path class="rj" d="M545 90 L545 108" marker-end="url(#a)"/>
+          <text class="rj" x="556" y="106">NEEDS_INPUT · джерело непридатне</text>
+          <path class="rj" d="M165 90 L165 108" marker-end="url(#a)"/>
+          <text class="rj" x="176" y="106">IMAGE_TOO_SMALL · DECODE_FAILED</text>
+
+          <path class="rj" d="M735 218 L735 236" marker-end="url(#a)"/>
+          <text class="rj" x="746" y="234">NEEDS_INPUT · residue одягу</text>
+          <path class="rj" d="M355 218 L355 236" marker-end="url(#a)"/>
+          <text class="rj" x="366" y="234">conflicts[] · ORDERED_REFERENCE_LIMIT</text>
+
+          <path class="rj" d="M595 346 L595 364" marker-end="url(#a)"/>
+          <text class="rj" x="606" y="362">SCENE_ITEM_EVALUATOR_CONTRACT_FAILED</text>
+
+          <path class="rj" d="M925 502 L925 520" marker-end="url(#a)"/>
+          <text class="rj" x="810" y="536">'no longer states the lock it was drawn from'</text>
+        </g>
+
+        <g class="u" data-b="1700">
+          <rect class="b i" x="1090" y="44" width="330" height="180" rx="2"/>
+          <text class="legend-title" x="1104" y="66">ЛЕГЕНДА</text>
+          <rect class="b" x="1104" y="78" width="18" height="12" rx="1"/><text class="sp" x="1130" y="88">автоматичний крок</text>
+          <rect class="b g" x="1104" y="98" width="18" height="12" rx="1"/><text class="sp" x="1130" y="108">перевірка · рішення · activation gate</text>
+          <rect class="b a" x="1104" y="118" width="18" height="12" rx="1"/><rect class="tick" x="1104" y="118" width="2" height="12"/><text class="sp" x="1130" y="128">hash-locked артефакт</text>
+          <rect class="b i" x="1104" y="138" width="18" height="12" rx="1"/><text class="sp" x="1130" y="148">вхід · вихід</text>
+          <rect class="b l" x="1104" y="158" width="18" height="12" rx="1"/><text class="sp" x="1130" y="168">provider-backed · потребує live smoke</text>
+          <rect class="b x" x="1104" y="178" width="18" height="12" rx="1"/><text class="sp" x="1130" y="188">заблокований або недоступний блок</text>
+          <path class="rj" d="M1104 202 L1122 202" marker-end="url(#a)"/><text class="sp" x="1130" y="206">відмова · типізований код</text>
+        </g>
+      </svg>
+    </div>
+  </section>
+
+</main>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title">
+  <div class="drawer-head">
+    <div style="flex:1">
+      <div class="drawer-eyebrow" id="drawer-eyebrow">ДЕТАЛІ</div>
+      <div class="drawer-title" id="drawer-title">—</div>
+    </div>
+    <button type="button" class="drawer-close" id="drawer-close" aria-label="Закрити">×</button>
+  </div>
+  <div class="drawer-body" id="drawer-body"></div>
+</aside>
+
+<script>
+(function(){
+  var deck=document.getElementById('deck');
+  var panels=[].slice.call(document.querySelectorAll('.panel'));
+  var dotsWrap=document.getElementById('dots');
+  var count=document.getElementById('count');
+  var prog=document.getElementById('prog');
+  var pad=function(n){return (n<10?'0':'')+n;};
+
+  panels.forEach(function(p){
+    var beats=(p.dataset.beats||'').split(',').filter(function(s){return s!=='';}).map(Number);
+    var items=[].slice.call(p.querySelectorAll('.node,.cell,.gt-row:not(.gt-h)'));
+    var links=[].slice.call(p.querySelectorAll('.link'));
+    items.forEach(function(el,i){
+      var d=beats.length?(beats[Math.min(i,beats.length-1)]):i*120;
+      el.style.setProperty('--d',d+'ms');
+    });
+    links.forEach(function(el,i){
+      var a=beats[i]||0,b=beats[i+1]||(a+120);
+      el.style.setProperty('--d',Math.round(a+(b-a)*0.42)+'ms');
+    });
+    var f=p.querySelector('.fail');
+    if(f)f.style.setProperty('--fd',(p.dataset.fail||'900')+'ms');
+
+    [].slice.call(p.querySelectorAll('.bp g.u')).forEach(function(g){
+      g.style.setProperty('--d',(g.dataset.b||0)+'ms');
+    });
+    [].slice.call(p.querySelectorAll('.bp path.w,.bp path.bus,.bp path.f')).forEach(function(pt){
+      var len=0;
+      try{len=pt.getTotalLength();}catch(e){len=200;}
+      pt.style.setProperty('--len',Math.ceil(len));
+      pt.style.setProperty('--d',(pt.dataset.b||0)+'ms');
+    });
+  });
+
+  panels.forEach(function(p,i){
+    var b=document.createElement('button');
+    b.className='dot';
+    b.setAttribute('aria-label',p.dataset.name||('Розділ '+(i+1)));
+    b.addEventListener('click',function(){p.scrollIntoView();});
+    dotsWrap.appendChild(b);
+  });
+  var dots=[].slice.call(dotsWrap.children);
+
+  var io=new IntersectionObserver(function(es){
+    es.forEach(function(e){
+      if(e.isIntersecting)e.target.classList.add('on');
+    });
+  },{threshold:.3});
+  panels.forEach(function(p){io.observe(p);});
+
+  function sync(){
+    var mid=deck.scrollTop+deck.clientHeight/2,idx=0;
+    panels.forEach(function(p,i){if(p.offsetTop<=mid)idx=i;});
+    dots.forEach(function(d,i){d.setAttribute('aria-current',i===idx?'true':'false');});
+    count.textContent=pad(idx+1)+' / '+pad(panels.length);
+    var max=deck.scrollHeight-deck.clientHeight;
+    prog.style.width=(max>0?(deck.scrollTop/max*100):0)+'%';
+  }
+  deck.addEventListener('scroll',sync,{passive:true});
+  sync();
+
+  function go(dir){
+    var mid=deck.scrollTop+deck.clientHeight/2,idx=0;
+    panels.forEach(function(p,i){if(p.offsetTop<=mid)idx=i;});
+    panels[Math.min(panels.length-1,Math.max(0,idx+dir))].scrollIntoView();
+  }
+  document.addEventListener('keydown',function(e){
+    if(drawer.classList.contains('open')){
+      if(e.key==='Escape'){closeDrawer();}
+      return;
+    }
+    if(e.key==='ArrowDown'||e.key==='ArrowRight'||e.key===' '||e.key==='PageDown'){e.preventDefault();go(1);}
+    if(e.key==='ArrowUp'||e.key==='ArrowLeft'||e.key==='PageUp'){e.preventDefault();go(-1);}
+    if(e.key==='Home'){e.preventDefault();panels[0].scrollIntoView();}
+    if(e.key==='End'){e.preventDefault();panels[panels.length-1].scrollIntoView();}
+    if(e.key==='r'||e.key==='R'){
+      var mid=deck.scrollTop+deck.clientHeight/2,idx=0;
+      panels.forEach(function(p,i){if(p.offsetTop<=mid)idx=i;});
+      var p=panels[idx];p.classList.remove('on');void p.offsetWidth;p.classList.add('on');
+    }
+  });
+
+  // ---- detail drawer ----
+  var drawer=document.getElementById('drawer');
+  var scrim=document.getElementById('scrim');
+  var drawerTitle=document.getElementById('drawer-title');
+  var drawerEyebrow=document.getElementById('drawer-eyebrow');
+  var drawerBody=document.getElementById('drawer-body');
+  var drawerClose=document.getElementById('drawer-close');
+
+  function eyebrowFor(el){
+    if(el.closest('.bp'))return 'ПОВНА СХЕМА';
+    var panel=el.closest('.panel');
+    if(!panel)return 'ДЕТАЛІ';
+    var ey=panel.querySelector('.eyebrow span:nth-child(2)');
+    return ey?ey.textContent.toUpperCase():'ДЕТАЛІ';
+  }
+
+  function openDrawer(el){
+    var title=el.getAttribute('data-title')||el.querySelector('h3,h4')?.textContent||'Деталі';
+    var body=el.getAttribute('data-body')||'';
+    var code=el.getAttribute('data-code')||'';
+    drawerTitle.textContent=title;
+    drawerEyebrow.textContent=eyebrowFor(el);
+    drawerBody.innerHTML='';
+    body.split('¶').forEach(function(seg){
+      if(!seg)return;
+      var p=document.createElement('p');
+      p.textContent=seg;
+      drawerBody.appendChild(p);
+    });
+    if(code){
+      var wrap=document.createElement('div');
+      wrap.className='drawer-code';
+      code.split('||').forEach(function(line){
+        var d=document.createElement('div');
+        if(el.classList.contains('live')||el.classList.contains('gt-row live'))d.className='live';
+        if(el.classList.contains('bad')||el.classList.contains('gt-row bad'))d.className='bad';
+        d.textContent=line;
+        wrap.appendChild(d);
+      });
+      drawerBody.appendChild(wrap);
+    }
+    drawer.classList.add('open');
+    scrim.classList.add('open');
+  }
+  function closeDrawer(){
+    drawer.classList.remove('open');
+    scrim.classList.remove('open');
+  }
+  drawerClose.addEventListener('click',closeDrawer);
+  scrim.addEventListener('click',closeDrawer);
+
+  document.addEventListener('click',function(e){
+    var el=e.target.closest('[data-title]');
+    if(!el)return;
+    if(el.closest('.bp'))return; // blueprint uses hover, handled separately
+    openDrawer(el);
+  });
+
+  // blueprint: hover opens the same drawer, click pins it (parity for touch)
+  [].slice.call(document.querySelectorAll('.bp .node-hit')).forEach(function(g){
+    g.addEventListener('mouseenter',function(){openDrawer(g);});
+    g.addEventListener('click',function(){openDrawer(g);});
+    g.addEventListener('focus',function(){openDrawer(g);});
+  });
+})();
+</script>
+</body>
+</html>

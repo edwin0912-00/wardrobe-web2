@@ -1433,6 +1433,18 @@ body {
 }
 .laptop-surface[hidden] { display: none; }
 .laptop-surface__page { position: absolute; inset: 0; overflow: auto; overscroll-behavior: contain; }
+.laptop-surface--fullscreen {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  transform: none !important;
+  z-index: 1000 !important;
+}
+.laptop-surface--fullscreen .laptop-surface__page {
+  width: 100%;
+  height: 100%;
+}
 
 @media (pointer: coarse) {
   .glass button, .glass label, .sound { min-height: 44px; }
