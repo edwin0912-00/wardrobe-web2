@@ -1306,3 +1306,25 @@ facts.
   user background, or raw provider reference is exposed.
 - Evidence before release: relevant UI / Fashion Shoot / Fashion Video tests
   **78/78 PASS**; contracts and canon PASS. No paid provider work was started.
+
+### 2026-08-03 · Fashion Shoot catalogue and Video contract — LIVE
+
+- Functional release `85bce99fc2e90b5f1689f5daffd56f931cd57ab0` is active on
+  beta and the same-origin main API; both public health endpoints report
+  `ready` with that exact release SHA.
+- The Fashion Shoot picker now follows server truth (`READY` plus
+  `generation_available`) rather than a `shoot.*` name-prefix. This restores
+  the two valid legacy styles **«Органічний контраст»** and **«Міський
+  монохром»** while keeping genuinely unavailable units hidden.
+- A ready Fashion Shoot frame appears immediately in the progressive gallery
+  with a visible **«Завантажити»** link to its immutable full asset. All five
+  customer frames still run independently; there is no customer-facing
+  «Продовжити» gate after frame one.
+- Fashion Video now shows the checked three-input contract in beta: private
+  directing video; approved white master as the sole visible hero; optional
+  cleaned identity/garment detail. It never exposes a local path, hash, raw
+  user-photo background, or reference video as delivery media.
+- Evidence: focused UI/Fashion Shoot/Fashion Video tests **78/78 PASS**,
+  `verify:contracts` PASS, `verify:canon` PASS. No paid provider request was
+  sent for this release.
+- `weakened_checks: none`.

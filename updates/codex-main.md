@@ -1349,3 +1349,24 @@ style-only; the blocking diagram is geometry-only and supplies the missing pose,
 camera, scale and headroom reference. This replaces the erroneous omission that
 left the provider with pose prose only.
 weakened_checks: none.
+
+---
+
+Agent ID: codex-live-40
+Task ID: BETA-FASHION-SHOOT-CATALOG-AND-VIDEO-INPUTS-20260803
+State: LIVE
+Pipeline: UNIVERSE.01–04 / Fashion Shoot and VIDEO.01 / Fashion Video input binding
+Decision: catalogue cards are driven only by the server readiness contract
+(`READY` + `generation_available`), not by a `shoot.*` name convention. The
+progressive gallery exposes a visible immutable download link per ready frame.
+Fashion Video exposes the verified reference roles: private directing video,
+approved white master as sole visible hero, optional cleaned identity/garment
+detail.
+Code: `7378e2809bd1639b19565606e9c421107dcea89d`,
+`ae218578ec05a9fab535e4580bf57557b9441448`,
+`85bce99fc2e90b5f1689f5daffd56f931cd57ab0`.
+Beta: LIVE — functional release SHA `85bce99fc2e90b5f1689f5daffd56f931cd57ab0`;
+public beta and same-origin main API both report `ready`.
+Evidence: UI / Fashion Shoot / Fashion Video tests 78/78 PASS; contracts and
+canon PASS; no paid provider run.
+weakened_checks: none.

@@ -1623,3 +1623,16 @@ garment detail.
 Evidence: relevant web / Fashion Shoot / Fashion Video suite 78/78 PASS;
 contract and canon verifiers PASS; no paid provider work.
 weakened_checks: none.
+
+2026-08-03 · Beta activation · Fashion Shoot catalogue + Fashion Video roles
+Change: activated product release `85bce99fc2e90b5f1689f5daffd56f931cd57ab0`.
+The public Fashion Shoot catalogue reads readiness from the service contract
+rather than an ID-prefix heuristic, restoring the two valid legacy styles.
+Ready progressive frames expose a visible «Завантажити» full-asset link;
+Fashion Video exposes its safe three-input reference contract in beta.
+Why: the prefix filter silently hid valid styles, while the product needed an
+honest explanation of the references actually bound to a video job.
+Evidence: beta and same-origin main API health both return `ready` and this
+exact release SHA; focused suite 78/78 PASS; contract and canon verification
+PASS. No paid generation was run.
+weakened_checks: none.
