@@ -1,5 +1,23 @@
 const SHA256 = /^[a-f0-9]{64}$/;
 
+const FASHION_VIDEO_INPUT_CONTRACT = Object.freeze([
+  Object.freeze({
+    label: 'Відео 1',
+    role: 'motion_reference',
+    description_uk: 'Приватний режисерський референс: монтаж, рух, камера, простір і світло. У фінал не потрапляє.',
+  }),
+  Object.freeze({
+    label: 'Зображення 1',
+    role: 'approved_white_master',
+    description_uk: 'Затверджений образ на білому: єдиний видимий герой і повний образ у кожному кадрі з людиною.',
+  }),
+  Object.freeze({
+    label: 'Додаткове фото',
+    role: 'identity_face_or_garment_detail',
+    description_uk: 'Необовʼязково: очищене біле фото обличчя/волосся або перевірена картка речі. Оригінальний фон не передається.',
+  }),
+]);
+
 function hasSha256(value) {
   return typeof value === 'string' && SHA256.test(value);
 }
@@ -54,6 +72,11 @@ export function fashionVideoCapability({
         // A contact sheet is only the poster.  The style itself is a real
         // reference video and must be visible before a paid create is allowed.
         reference_url: `/api/profile/looks/${encodeURIComponent(lookId)}/video-styles/${encodeURIComponent(style.id)}/reference`,
+        input_contract: Object.freeze({
+          version: 'fashion-video-reference-contract-v1',
+          cut_count: Number.isInteger(style.cut_count) ? style.cut_count : null,
+          inputs: FASHION_VIDEO_INPUT_CONTRACT,
+        }),
       }))
     : [];
 

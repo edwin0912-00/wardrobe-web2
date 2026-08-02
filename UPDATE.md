@@ -1276,3 +1276,20 @@ facts.
 - The release owner cancelled the remaining active Fashion Shoot and stopped
   its two local provider wait processes before the restart; no completed
   output or saved profile data was deleted.
+
+### 2026-08-02 · Fashion Shoot catalog + Fashion Video input labels (TESTED, NOT DEPLOYED)
+
+- Fashion Shoot cards now use the server’s `READY + generation_available`
+  state, instead of an accidental `shoot.*` ID-prefix filter. This returns the
+  two published styles `Органічний контраст` and `Міський монохром` to the
+  catalogue without exposing the genuinely blocked monochrome unit.
+- Both restored styles use the same direct five-customer-frame schedule as the
+  current Create Universe styles; the internal identity check is not a user
+  frame and there is no `Продовжити` step between frame one and frames two–five.
+- Fashion Video’s capability payload now describes the actual bound inputs:
+  private Video 1 for direction only, approved white Image 1 as the only
+  visible performer, plus optional cleaned face/garment detail. The public UI
+  receives no filesystem path, SHA or original user background.
+- Evidence: Fashion Shoot/catalog/video tests **45/45 PASS**; contract verifier
+  PASS (**41** schemas); canon verifier PASS (**43** rules).
+- No paid provider call and no beta deployment were made in this atom.

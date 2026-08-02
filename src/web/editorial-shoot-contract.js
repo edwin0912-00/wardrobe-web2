@@ -36,6 +36,25 @@ export const EDITORIAL_MODE_IDS = Object.freeze([
   'shoot.autumn_park_mediated_sun',
 ]);
 
+// A customer Fashion Shoot is always the same five-frame product.  The two
+// older, still-published Edwin programmes are customer styles too; treating
+// their id prefix as a product rule accidentally hid them behind a technical
+// hero/"Continue" step.  Preview-only and blocked records deliberately stay
+// out of this list.
+export const DIRECT_FIVE_FASHION_SHOOT_MODE_IDS = Object.freeze([
+  'editorial.edwin_novak.organic_contrast',
+  'editorial.edwin_novak.urban_monochrome',
+  ...EDITORIAL_MODE_IDS.filter((modeId) => (
+    modeId.startsWith('shoot.') && modeId !== 'shoot.hardsun_street_monochrome'
+  )),
+]);
+
+const DIRECT_FIVE_FASHION_SHOOT_MODE_ID_SET = new Set(DIRECT_FIVE_FASHION_SHOOT_MODE_IDS);
+
+export function isDirectFiveFashionShootModeId(modeId) {
+  return typeof modeId === 'string' && DIRECT_FIVE_FASHION_SHOOT_MODE_ID_SET.has(modeId);
+}
+
 export const EDITORIAL_QA_GATES = Object.freeze([
   'MASTER_LOOK_LOCK',
   'REFERENCE_ROLE_ISOLATION',
@@ -786,7 +805,13 @@ export function validatePersistedEditorialShoot(state, expectedShootId = null) {
   }
   const hero = state.shots[0];
   const heroApproved = hero.status === EDITORIAL_SHOT_STATES.APPROVED;
-  const parallelFashionShoot = state.bindings.shoot_bible.mode_id.startsWith('shoot.');
+  // Keep the persisted-state validator on exactly the same product decision as
+  // the scheduler. A namespace prefix is not a workflow contract: two
+  // published legacy Fashion Shoot styles use `editorial.*` and still start
+  // their five customer frames directly.
+  const parallelFashionShoot = isDirectFiveFashionShootModeId(
+    state.bindings.shoot_bible.mode_id,
+  );
   if (state.hero_approval) {
     if (!heroApproved
       || state.hero_approval.output_sha256 !== hero.output?.sha256

@@ -88,6 +88,7 @@ test('resolver selects and verifies the hash-bound motion reference and UI playb
     assert.equal(result.available_styles[0].title, 'Рух');
     assert.equal(result.available_styles[0].presentation_surface, 'mirror');
     assert.equal(result.available_styles[0].aspect_ratio, '9:16');
+    assert.equal(result.available_styles[0].cut_count, 1);
     assert.equal(result.playback_path, await realpath(playbackPath));
     assert.equal(result.available_styles[0].playback_sha256, sha256(playbackBytes));
     assert.match(result.reference_pack_sha256, /^[a-f0-9]{64}$/);

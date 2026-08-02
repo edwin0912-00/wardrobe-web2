@@ -75,6 +75,19 @@ Evidence: editorial catalog/UI tests 17/17 PASS; alias/backend tests 7/7 PASS;
 syntax and `git diff --check` PASS.
 weakened_checks: none.
 
+2026-08-02 · Fashion Shoot catalogue / direct-five / video input metadata
+Change: restored server-ready legacy Fashion Shoot modes to the customer
+catalogue, changed the persisted scheduler guard to the exact product mode set,
+and added safe Fashion Video input-role metadata plus cut count to the capability
+response.
+Why: UI prefix checks hid two valid styles and routed them into a one-frame
+hero/Continue workflow; the video picker had no truthful explanation of which
+reference is direction-only versus the approved visible person.
+Evidence: direct-five legacy regression plus targeted editorial/video suite
+45/45 PASS; `verify:contracts` PASS; `verify:canon` PASS.
+Beta: NOT_DEPLOYED at this log entry. No paid generation.
+weakened_checks: none.
+
 2026-08-01 · SCENE-NATIVE-3-4-TEST-CONTRACT · release/candidate-20260801 · codex-live-40
 Change: align the scene adapter regression fixtures with the already-approved
 native `3:4` image transport and `1536×2048` delivery. The tests no longer ask a

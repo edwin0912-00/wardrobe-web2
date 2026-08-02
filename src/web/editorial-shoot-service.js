@@ -22,6 +22,7 @@ import {
   EDITORIAL_SHOT_SLOTS,
   EDITORIAL_SHOT_STATES,
   EDITORIAL_TERMINAL_SHOOT_STATES,
+  isDirectFiveFashionShootModeId,
   assertEditorialId,
   assertEditorialIdempotencyKey,
   assertEditorialSha256,
@@ -197,8 +198,7 @@ function clone(value) {
 }
 
 function isParallelFashionShoot(state) {
-  return typeof state?.bindings?.shoot_bible?.mode_id === 'string'
-    && state.bindings.shoot_bible.mode_id.startsWith('shoot.');
+  return isDirectFiveFashionShootModeId(state?.bindings?.shoot_bible?.mode_id);
 }
 
 function shotConcurrencyLimit(state) {

@@ -81,7 +81,6 @@ test('catalog is production ACTIVE and only READY modes become controls', () => 
     'function isReadyFashionMode(mode)',
     'function lookDescriptor(profile, lookId)',
   );
-  assert.match(readyFashionSource, /mode\?\.mode_id\?\.startsWith\('shoot\.'\)/);
   assert.match(readyFashionSource, /mode\?\.source_set_status === 'READY'/);
   assert.match(readyFashionSource, /mode\?\.generation_available === true/);
   assert.match(sceneUiSource, /this\.editorialModes\.filter\(isReadyFashionMode\)/);

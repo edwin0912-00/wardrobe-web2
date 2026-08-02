@@ -174,6 +174,33 @@ weakened_checks: none.
 ---
 
 Agent ID: codex-main
+Task ID: BETA-FASHION-SHOOT-CATALOG-AND-VIDEO-METADATA-20260802
+Pipeline: UNIVERSE.01–04 + VIDEO.01 · catalog, style inputs, progressive output
+State: TESTED — beta deploy pending
+Decision: customer Fashion Shoot selection follows only the server-owned
+`READY + generation_available` contract. The two published legacy styles
+`organic_contrast` and `urban_monochrome` are visible and directly queue their
+five customer frames; no hidden hero/Continue gate remains. The genuinely
+blocked `shoot.hardsun_street_monochrome` remains unavailable.
+Technical refs: 15 published `shoot.*` Creative Universe units each own seven
+hash-verified sheets (camera/lens, blocking, expression/gaze, garment
+behaviour, colour grade, environment, person) and six slot-specific directions.
+The two legacy styles retain their verified legacy source packs but do not claim
+the seven-sheet unit contract. `architectural_stair_glitch` remains video-only.
+Video: the capability response now carries safe user-visible labels for Video 1
+(private motion/directing reference), Image 1 (approved white master) and the
+optional cleaned identity/garment reference plus cut count; no path, SHA or
+private source bytes are exposed.
+Evidence: editorial/style/video targeted suite 45/45 PASS;
+`verify:contracts` PASS (41 schemas, 9 fixtures, 3 jobs);
+`verify:canon` PASS (43 rules).
+Beta: NOT_DEPLOYED.
+Journey: NOT_RUN — no provider generation was started.
+weakened_checks: none.
+
+---
+
+Agent ID: codex-main
 Task ID: BETA-GOD-VIEW-GLOBAL-CATALOG-001
 Pipeline: TESTER CONTROL · global read-only catalogue
 State: CODE_VERIFIED — awaiting beta deployment

@@ -57,6 +57,9 @@ test('Fashion Video becomes available only when look, style and motion are verif
   assert.match(capability.styles[0].reference_url, /\/reference$/);
   assert.equal(capability.styles[0].presentation_surface, 'mirror');
   assert.equal(capability.styles[0].aspect_ratio, '9:16');
+  assert.equal(capability.styles[0].input_contract.version, 'fashion-video-reference-contract-v1');
+  assert.equal(capability.styles[0].input_contract.inputs[0].role, 'motion_reference');
+  assert.equal(capability.styles[0].input_contract.inputs[1].role, 'approved_white_master');
 });
 
 test('Fashion Video rejects incomplete or malformed reference hashes', () => {

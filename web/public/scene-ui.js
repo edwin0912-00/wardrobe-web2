@@ -139,8 +139,7 @@ function createEditorialModeCard(mode, onSelect, { eager = false } = {}) {
 }
 
 function isReadyFashionMode(mode) {
-  return mode?.mode_id?.startsWith('shoot.')
-    && mode?.source_set_status === 'READY'
+  return mode?.source_set_status === 'READY'
     && mode?.generation_available === true;
 }
 
@@ -478,9 +477,10 @@ export class SceneUiController {
       return;
     }
 
-    // Only complete Creative Universe style units are a Fashion Shoot choice.
-    // Historical editorial records remain addressable for owners, but they are
-    // not silently presented as a second style product in the new picker.
+    // Every server-published customer Fashion Shoot belongs in this picker.
+    // A mode's READY + generation_available flags are the one authority here;
+    // an id prefix is not a product rule and must never make a working style
+    // disappear from the customer catalogue.
     const newModes = this.editorialModes.filter(isReadyFashionMode);
     
     const onSelect = (selected) => this.editorialUi.openForMode(selected, this.look).catch(

@@ -51,10 +51,13 @@ function makeBible(overrides = {}) {
   };
   return {
     schema_version: '1.0.0',
-    bible_id: 'bible_edwin_organic_fixture',
-    mode_id: 'editorial.edwin_novak.organic_contrast',
+    bible_id: 'bible_editorial_technical_fixture',
+    // Keep one non-customer technical fixture for the legacy hero-path tests.
+    // The two user-visible legacy programmes now use the direct five-frame
+    // customer route, just like every published shoot.* style.
+    mode_id: 'editorial.edwin_novak.institutional_modernism',
     mode_version: '1.0.0',
-    title: 'Edwin organic contrast — six-shot program',
+    title: 'Editorial technical fixture — six-shot program',
     visual_system: 'Deep green environmental weight, tactile off-white surfaces, restrained mustard accents, and one controlled optical interruption.',
     source_references: [
       {
@@ -518,6 +521,47 @@ test('Fashion Shoot queues its five customer frames immediately and never waits 
   await current.service.waitForIdle(created.shoot_id);
   assert.equal(executor.maxInFlight, 5);
   assert.equal(completed.shots[0].status, 'CANCELLED');
+  assert.deepEqual(completed.shots.slice(1).map((shot) => shot.status), Array(5).fill('APPROVED'));
+});
+
+test('published legacy Fashion Shoot also queues five customer frames without a Continue gate', async (t) => {
+  const customerFrames = deferred();
+  const executor = new FakeSceneExecutor({
+    plans: Object.fromEntries(EDITORIAL_SHOT_SLOTS.slice(1).map((slot) => [
+      slot,
+      async (context) => {
+        await customerFrames.promise;
+        return executionResult(context);
+      },
+    ])),
+  });
+  const legacyCustomerBible = makeBible({
+    bible_id: 'bible_organic_direct_five_fixture',
+    mode_id: 'editorial.edwin_novak.organic_contrast',
+    title: 'Органічний контраст — пʼять customer кадрів',
+  });
+  const current = await fixture(t, { executor, bible: legacyCustomerBible });
+  const created = await createAndApproveBible(current);
+  const running = await waitForState(
+    current.service,
+    created.shoot_id,
+    (state) => executor.inFlight === 5,
+  );
+  assert.equal(running.status, 'SERIES_RUNNING');
+  assert.equal(running.shots[0].status, 'CANCELLED');
+  assert.deepEqual(
+    executor.invocations.map((call) => call.slot).sort(),
+    [...EDITORIAL_SHOT_SLOTS.slice(1)].sort(),
+  );
+  assert.ok(executor.invocations.every((call) => call.hero_output === null));
+
+  customerFrames.resolve();
+  const completed = await waitForState(
+    current.service,
+    created.shoot_id,
+    (state) => state.status === 'COMPLETED',
+    5_000,
+  );
   assert.deepEqual(completed.shots.slice(1).map((shot) => shot.status), Array(5).fill('APPROVED'));
 });
 

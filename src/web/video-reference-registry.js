@@ -174,6 +174,9 @@ export function createFashionVideoReferenceResolver({
         id: reference.id,
         title: reference.ui_title_uk,
         motion_mode: reference.default_motion_mode,
+        // Safe UI metadata from the immutable, already-validated cut sheet.
+        // No path, hash, or private source media is exposed here.
+        cut_count: reference.cut_sheet.cuts.length,
         presentation_surface: presentationSurface.id,
         aspect_ratio: presentationSurface.aspectRatio,
         width: reference.width,
