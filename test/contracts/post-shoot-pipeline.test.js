@@ -16,21 +16,18 @@ test('Lucy node exposes provider, cost, hard timeout, and no credential', async 
   assert.equal(live.provider.model_id, 'decart/lucy-2-5/realtime');
   assert.equal(live.provider.transport, 'WEBRTC');
   assert.equal(live.price_usd_per_second, 0.04);
-  assert.equal(live.max_session_seconds, 15);
+  assert.equal(live.max_session_seconds, 40);
   assert.equal(JSON.stringify(pipeline).includes('b4a37'), false);
   assert.equal(JSON.stringify(pipeline).toLowerCase().includes('fal_key'), false);
 });
 
-test('browser draft requires a local reference photo and states the fifteen-second cost ceiling', async () => {
+test('browser draft requires a local reference photo and exposes a 40-second technical ceiling', async () => {
   const html = await readFile(new URL('../../web/public/post-shoot-mvp.html', import.meta.url), 'utf8');
   const client = await readFile(new URL('../../web/public/post-shoot-mvp.js', import.meta.url), 'utf8');
   const css = await readFile(new URL('../../web/public/post-shoot-mvp.css', import.meta.url), 'utf8');
 
   assert.match(html, /id="reference-upload"/);
   assert.match(html, /id="fit-guide"/);
-  assert.match(html, /id="privacy-gate-consent"/);
-  assert.match(html, /id="privacy-consent"/);
-  assert.match(html, /id="cost-consent"/);
   assert.match(html, /id="camera-permission-status"/);
   assert.match(html, /id="camera-start"[^>]*disabled/);
   assert.match(html, /id="live-ai-thinking"[\s\S]*?id="live-thinking-orb"/);
@@ -39,10 +36,10 @@ test('browser draft requires a local reference photo and states the fifteen-seco
   assert.match(client, /setAiThinking\(true, 'solving', 'AI налаштовує потік'/);
   assert.match(client, /setAiThinking\(true, 'composing', 'AI формує Live-потік'/);
   assert.match(client, /state\.peer\.ontrack = \(event\) => \{[\s\S]*?setAiThinking\(false\)/);
-  assert.match(client, /max_session_seconds:\s*SESSION_SECONDS/);
-  assert.match(client, /privacy_consent:\s*true/);
   assert.match(client, /look_id:\s*selectedLookId/);
-  assert.match(client, /!state\.running \|\| !\$\('#privacy-consent'\)\.checked \|\| !\$\('#cost-consent'\)\.checked/);
+  assert.match(client, /const SESSION_SECONDS = 40/);
+  assert.doesNotMatch(client, /privacy_consent|cost_acknowledged/);
+  assert.doesNotMatch(html, /privacy-gate|cost-consent|privacy-consent/);
   assert.match(client, /\/api\/profile\/looks\/\$\{encodeURIComponent\(lookId\)\}\/live-reference\.png/);
   assert.doesNotMatch(client, /window\.confirm/);
   assert.doesNotMatch(client, /MediaRecorder|getDisplayMedia/);

@@ -57,10 +57,10 @@ test('saved-look action hub receives a full-viewport truthful Real-time Look lau
       internal_scroll: false,
     },
     consent: {
-      privacy_required: true,
-      cost_required: true,
-      maximum_cost_usd: 0.6,
-      maximum_session_seconds: 15,
+      privacy_required: false,
+      cost_required: false,
+      maximum_cost_usd: 1.6,
+      maximum_session_seconds: 40,
     },
     camera: {
       permission_required: true,
@@ -117,50 +117,25 @@ test('live entrypoint opens a cache-busted test with the outfit-only reference p
   assert.equal(response.headers.location, '/post-shoot-mvp.html?demo=outfit&release=20260729-2');
 });
 
-test('token route rejects missing cost approval before provider access', async (t) => {
-  let calls = 0;
+test('token route accepts a saved look without a second price or privacy confirmation', async (t) => {
+  const calls = [];
   const app = Fastify();
   await registerPostShootRoutes(app, {
     ...ownershipFixture(),
-    lucyTokenIssuer: async () => { calls += 1; return 'test-token-that-is-long-enough'; },
+    lucyTokenIssuer: async (request) => { calls.push(request); return 'test-token-that-is-long-enough'; },
   });
   t.after(() => app.close());
   const response = await app.inject({
     method: 'POST',
     url: '/api/fal/realtime-token',
-    payload: { app: 'decart/lucy-2-5/realtime', max_session_seconds: 15 },
+    payload: { app: 'decart/lucy-2-5/realtime', look_id: 'look-123' },
   });
-  assert.equal(response.statusCode, 409);
-  assert.equal(response.json().maximum_cost_usd, 0.6);
-  assert.equal(calls, 0);
-});
-
-test('token route rejects missing privacy approval before provider access', async (t) => {
-  let calls = 0;
-  const app = Fastify();
-  await registerPostShootRoutes(app, {
-    ...ownershipFixture(),
-    lucyTokenIssuer: async () => {
-      calls += 1;
-      return 'test-token-that-is-long-enough';
-    },
-  });
-  t.after(() => app.close());
-
-  const response = await app.inject({
-    method: 'POST',
-    url: '/api/fal/realtime-token',
-    payload: {
-      app: 'decart/lucy-2-5/realtime',
-      look_id: 'look-123',
-      cost_acknowledged: true,
-      max_session_seconds: 15,
-    },
-  });
-
-  assert.equal(response.statusCode, 409);
-  assert.equal(response.json().code, 'PRIVACY_CONSENT_REQUIRED');
-  assert.equal(calls, 0);
+  assert.equal(response.statusCode, 200);
+  assert.deepEqual(calls, [{
+    app: 'decart/lucy-2-5/realtime',
+    expiresInSeconds: 10,
+    maxSessionSeconds: 40,
+  }]);
 });
 
 test('token route rejects cross-site, missing-look and foreign-look requests before provider access', async (t) => {
@@ -178,9 +153,6 @@ test('token route rejects cross-site, missing-look and foreign-look requests bef
 
   const base = {
     app: 'decart/lucy-2-5/realtime',
-    privacy_consent: true,
-    cost_acknowledged: true,
-    max_session_seconds: 15,
   };
   const crossSite = await app.inject({
     method: 'POST',
@@ -231,9 +203,6 @@ test('token route issues only an allowlisted bounded session token', async (t) =
     payload: {
       app: 'decart/lucy-2-5/realtime',
       look_id: 'look-123',
-      privacy_consent: true,
-      cost_acknowledged: true,
-      max_session_seconds: 15,
     },
   });
   assert.equal(response.statusCode, 200);
@@ -241,7 +210,7 @@ test('token route issues only an allowlisted bounded session token', async (t) =
   assert.deepEqual(calls, [{
     app: 'decart/lucy-2-5/realtime',
     expiresInSeconds: 10,
-    maxSessionSeconds: 15,
+    maxSessionSeconds: 40,
   }]);
   assert.equal(owner.sessions.length, 1);
 });

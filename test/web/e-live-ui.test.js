@@ -16,30 +16,24 @@ test('saved-look E-Live CTA opens one full-viewport surface with real capability
   assert.doesNotMatch(indexSource, /title="Live примірка вибраного образу"/);
   assert.match(appSource, /\/api\/post-shoot\/realtime-look-capability\?look_id=/);
   assert.match(appSource, /payload\?\.launch\?\.presentation === 'FULL_VIEWPORT'/);
-  assert.match(appSource, /payload\?\.consent\?\.privacy_required === true/);
-  assert.match(appSource, /payload\?\.consent\?\.cost_required === true/);
+  assert.match(appSource, /payload\?\.consent\?\.privacy_required === false/);
+  assert.match(appSource, /payload\?\.consent\?\.cost_required === false/);
   assert.match(appSource, /launchUrl\.searchParams\.set\('return', 'profile'\)/);
 });
 
-test('camera cannot start before explicit privacy consent', () => {
-  assert.match(liveHtml, /id="privacy-gate-consent"/);
-  assert.match(liveHtml, /id="privacy-consent"/);
-  assert.match(liveHtml, /id="cost-consent"/);
-  assert.match(liveHtml, /id="privacy-continue"[^>]*disabled/);
+test('camera starts from browser permission without a second beta confirmation panel', () => {
   assert.match(liveHtml, /id="camera-start"[^>]*disabled/);
-  const consentGate = liveClient.indexOf("if (!$('#privacy-consent').checked)");
   const mediaRequest = liveClient.indexOf('navigator.mediaDevices.getUserMedia');
-  assert.ok(consentGate >= 0 && mediaRequest > consentGate);
-  assert.match(liveClient, /\$\('#privacy-consent'\)\.checked = true/);
-  assert.match(liveClient, /\$\('#privacy-gate'\)\.classList\.add\('hidden'\)/);
+  assert.ok(mediaRequest >= 0);
+  assert.doesNotMatch(liveHtml, /privacy-gate|cost-consent|privacy-consent/);
+  assert.doesNotMatch(liveClient, /cost_acknowledged|privacy_consent/);
 });
 
-test('saved look uses the verified Live reference and paid start remains separately confirmed', () => {
+test('saved look uses the verified Live reference and the 40-second bound is server-owned', () => {
   assert.match(liveClient, /\/api\/profile\/looks\/\$\{encodeURIComponent\(lookId\)\}\/live-reference\.png/);
-  assert.match(liveClient, /id="cost-consent"|cost-consent/);
-  assert.match(liveClient, /privacy_consent: true/);
   assert.match(liveClient, /look_id: selectedLookId/);
-  assert.match(liveClient, /cost_acknowledged: true/);
+  assert.match(liveClient, /const SESSION_SECONDS = 40/);
+  assert.match(liveHtml, /Lucy 2\.5 · \$2\.40\/хв · до 40 с/);
 });
 
 test('close, Escape and pagehide tear down camera without hidden recording', () => {

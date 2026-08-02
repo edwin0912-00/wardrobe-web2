@@ -1,7 +1,7 @@
 import { createThinkingOrb } from './thinking-orb.js?v=20260722-10';
 
 const MODEL_ID = 'decart/lucy-2-5/realtime';
-const SESSION_SECONDS = 15;
+const SESSION_SECONDS = 40;
 const state = {
   stream: null, reference: null, previewUrl: null, connection: null, peer: null, timer: null,
   countdownTimer: null, deadline: null, guideTimer: null, running: false, phase: 'READY',
@@ -32,14 +32,10 @@ function setAiThinking(active, orbState = 'working', title = 'AI працює', 
   $('#live-ai-detail').textContent = detail;
 }
 function ready() {
-  const privacyApproved = $('#privacy-consent').checked;
-  const costApproved = $('#cost-consent').checked;
-  $('#camera-start').disabled = state.running || !privacyApproved || Boolean(state.stream);
+  $('#camera-start').disabled = state.running || Boolean(state.stream);
   $('#lucy-start').disabled = state.running
     || !state.stream
-    || !state.reference
-    || !privacyApproved
-    || !costApproved;
+    || !state.reference;
 }
 function renderCameraPermission() {
   const labels = {
@@ -118,7 +114,6 @@ async function loadReferenceUrl(url, fileName, readyLabel, { publicProviderUrl =
   $('#reference-status').textContent = readyLabel;
 }
 async function startCamera() {
-  if (!$('#privacy-consent').checked) throw new Error('Спочатку підтвердь використання камери для цієї сесії.');
   if (!window.isSecureContext) throw new Error('Камера потребує HTTPS.');
   if (!navigator.mediaDevices?.getUserMedia) {
     throw new Error('Цей вбудований браузер не дає доступу до камери. Відкрий сторінку в Safari або Chrome.');
@@ -232,8 +227,6 @@ async function signal(result) {
   }
 }
 async function startLive() {
-  if (!$('#privacy-consent').checked) throw new Error('Не підтверджено використання camera-потоку.');
-  if (!$('#cost-consent').checked) throw new Error('Не підтверджено ліміт платної 15-секундної сесії.');
   if (!selectedLookId) throw new Error('Live запускається лише зі збереженого образу.');
   setAiThinking(true, 'working', 'AI підключає Live', 'Готуємо захищену realtime-сесію');
   const falModule = await import('./vendor/fal-client.js?v=20260727-7');
@@ -248,16 +241,16 @@ async function startLive() {
   state.countdownTimer = setInterval(renderStatus, 250);
   state.timer = setTimeout(() => closeLive(
     $('#camera').srcObject === state.stream
-      ? '15 секунд завершено до отримання live-потоку.'
-      : '15 секунд завершено. Live автоматично зупинено.',
+      ? '40 секунд завершено до отримання live-потоку.'
+      : '40 секунд завершено. Live автоматично зупинено.',
   ), SESSION_SECONDS * 1_000);
   state.connection = fal.realtime.connect(MODEL_ID, {
     connectionKey: `zeely-${crypto.randomUUID?.() || Date.now()}`,
     throttleInterval: 0,
     tokenExpirationSeconds: 10,
     tokenProvider: async (app) => {
-      if (!state.running || !$('#privacy-consent').checked || !$('#cost-consent').checked) {
-        throw new Error('Згоду відкликано до створення Live-сесії.');
+      if (!state.running) {
+        throw new Error('Live-сесію зупинено до створення токена.');
       }
       // Keep the SDK-provided app value intact here. The server validates the
       // full endpoint, then scopes fal's temporary JWT to the endpoint alias.
@@ -269,9 +262,6 @@ async function startLive() {
         body: JSON.stringify({
           app,
           look_id: selectedLookId,
-          privacy_consent: true,
-          cost_acknowledged: true,
-          max_session_seconds: SESSION_SECONDS,
         }),
       });
       if (!response.ok) {
@@ -290,27 +280,8 @@ $('#reference-upload').addEventListener('change', (event) => loadReference(event
   event.target.value = '';
   $('#reference-status').textContent = error.message;
 }));
-$('#privacy-gate-consent').addEventListener('change', (event) => {
-  $('#privacy-continue').disabled = !event.target.checked;
-});
-$('#privacy-continue').addEventListener('click', () => {
-  if (!$('#privacy-gate-consent').checked) return;
-  $('#privacy-consent').checked = true;
-  $('#privacy-gate').classList.add('hidden');
-  ready();
-  status('Згоду підтверджено. Камера ще вимкнена.');
-  $('#camera-start').focus({ preventScroll: true });
-});
 $('#camera-start').addEventListener('click', () => startCamera().catch((error) => status(`Помилка камери: ${error.message}`)));
 $('#camera-stop').addEventListener('click', stopCamera);
-$('#privacy-consent').addEventListener('change', () => {
-  if (!$('#privacy-consent').checked && state.stream) stopCamera();
-  ready();
-});
-$('#cost-consent').addEventListener('change', () => {
-  if (!$('#cost-consent').checked && state.running) closeLive('Платну Live-сесію зупинено.');
-  ready();
-});
 $('#lucy-start').addEventListener('click', () => startLive().catch((error) => closeLive(`Помилка: ${error.message}`)));
 $('#lucy-stop').addEventListener('click', () => closeLive());
 document.querySelectorAll('[data-live-close]').forEach((button) => button.addEventListener('click', exitLiveSurface));
@@ -364,4 +335,4 @@ if (selectedLookId) {
 }
 renderCameraPermission();
 observeCameraPermission();
-requestAnimationFrame(() => $('#privacy-gate-consent').focus({ preventScroll: true }));
+requestAnimationFrame(() => $('#camera-start').focus({ preventScroll: true }));

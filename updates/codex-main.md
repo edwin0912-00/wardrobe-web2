@@ -524,6 +524,25 @@ Help request: NONE.
 ---
 
 Agent ID: codex-main
+Task ID: BETA-LIVE-40S-NO-SECOND-CONFIRM-001
+Pipeline: LIVE.01–04 · Real-time Look
+State: READY_FOR_BETA_DEPLOY
+Decision: the browser camera permission remains the only interactive permission.
+The beta server owns the 40-second ceiling and look ownership; it no longer
+requires duplicate price/privacy checkboxes before issuing the short-lived
+Live token. Beta's standalone Live surface shows `Lucy 2.5 · $2.40/хв · до 40 с`;
+the main cinematic client renders no provider or price copy.
+Code: focused routes, UI, contract and token tests 20/20 PASS.
+Beta: NOT_DEPLOYED.
+Journey: NOT_RUN — no camera or provider session was started.
+weakened_checks: no auth, ownership, same-origin, browser camera permission,
+short-lived token, or hard-timeout checks were removed; only redundant UI/API
+acknowledgements were removed.
+Help request: NONE.
+
+---
+
+Agent ID: codex-main
 Task ID: MAIN-FASHION-VIDEO-DELIVERY-002
 Pipeline: VIDEO.01–05 · approved white master → reference-bound generation → delivery
 State: TESTED_PENDING_DEPLOY

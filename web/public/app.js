@@ -1842,8 +1842,8 @@ async function refreshRealtimeLookCapability(look) {
       && payload?.launch?.target === '_self'
       && payload?.launch?.nested === false
       && payload?.launch?.internal_scroll === false
-      && payload?.consent?.privacy_required === true
-      && payload?.consent?.cost_required === true
+      && payload?.consent?.privacy_required === false
+      && payload?.consent?.cost_required === false
       && payload?.camera?.permission_required === true
       && payload?.camera?.audio === false
       && payload?.capture?.automatic_recording === false
