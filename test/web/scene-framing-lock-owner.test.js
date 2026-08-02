@@ -250,23 +250,26 @@ test('inside the owner the framing lock options are spelled in exactly one place
   }
 });
 
-test('an editorial receipt states the headroom waiver instead of leaving it to be inferred', () => {
-  const waived = assessSceneFraming(WAIVED_EDITORIAL_FRAME, {
+test('an editorial crown crop is intentional while standard headroom remains a hard lock', () => {
+  const visible = assessSceneFraming(WAIVED_EDITORIAL_FRAME, {
     preset: { preset_id: `${EDITORIAL_MODE_IDS[0]}.clean_identity_hero` },
     ...DELIVERY,
   });
-  assert.equal(waived.evidence.clear_space_above_hair_percent, 3.2813);
-  assert.equal(waived.evidence.minimum_clear_space_above_hair_percent, 6);
-  assert.equal(waived.evidence.clear_space_above_hair_waived_by_full_head, true);
-  assert.deepEqual(waived.defects, []);
+  assert.equal(visible.evidence.clear_space_above_hair_percent, 3.2813);
+  assert.equal(visible.evidence.minimum_clear_space_above_hair_percent, 6);
+  assert.equal(visible.evidence.clear_space_above_hair_waived_by_full_head, false);
+  assert.deepEqual(visible.defects, []);
 
-  // The waiver rests on the observation, so it disappears with it — and says so.
+  // Fashion Shoot is art direction: the crown can intentionally cross the frame
+  // edge. It must not trigger a headroom/full-head failure or a retry.
   const cropped = assessSceneFraming(
-    { ...WAIVED_EDITORIAL_FRAME, full_head_visible: false },
+    { ...WAIVED_EDITORIAL_FRAME, subject_bbox_xywh_px: [383, 0, 337, 1250], full_head_visible: false },
     { preset: { preset_id: `${EDITORIAL_MODE_IDS[0]}.clean_identity_hero` }, ...DELIVERY },
   );
   assert.equal(cropped.evidence.clear_space_above_hair_waived_by_full_head, false);
-  assert.ok(cropped.defects.includes('INSUFFICIENT_CLEAR_SPACE_ABOVE_HAIR'));
+  assert.ok(!cropped.defects.includes('INSUFFICIENT_CLEAR_SPACE_ABOVE_HAIR'));
+  assert.ok(!cropped.defects.includes('FULL_HEAD_NOT_VISIBLE'));
+  assert.ok(!cropped.defects.includes('SUBJECT_HEIGHT_OUTSIDE_PRESET_RANGE'));
 
   // A standard scene has no waiver to state: headroom there is the product.
   const standard = assessSceneFraming({
@@ -426,7 +429,7 @@ test('the receipt reports the waiver the assessment found, never one the evaluat
   assert.equal(claimed.evidence.clear_space_above_hair_waived_by_full_head, false);
 });
 
-test('all three receipt schemas accept the waiver flag and refuse it on the standard path', async () => {
+test('all three receipt schemas accept intentional editorial crown crops and refuse a standard waiver', async () => {
   const jobFraming = await subschemaValidator(
     'scene-job.schema.json',
     '#/$defs/framingEvidence',
@@ -483,11 +486,25 @@ test('all three receipt schemas accept the waiver flag and refuse it on the stan
     assetResult(result(
       `${EDITORIAL_MODE_IDS[0]}.clean_identity_hero`,
       editorialFramingEvidence('clean_identity_hero', {
-        clear_space_above_hair_waived_by_full_head: true,
+        // A Fashion Shoot crop can cross the crown. This is art direction,
+        // not a fictitious waiver: identity remains a separate hard gate.
+        full_head_visible: false,
+        clear_space_above_hair_percent: 0,
+        clear_space_above_hair_waived_by_full_head: false,
       }),
     )),
     true,
     JSON.stringify(assetResult.errors),
+  );
+  assert.equal(
+    assetResult(result(
+      `${EDITORIAL_MODE_IDS[0]}.clean_identity_hero`,
+      editorialFramingEvidence('clean_identity_hero', {
+        clear_space_above_hair_waived_by_full_head: true,
+      }),
+    )),
+    false,
+    'an editorial crown crop must not be represented as a headroom waiver',
   );
   assert.equal(
     assetResult(result(

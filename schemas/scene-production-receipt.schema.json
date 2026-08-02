@@ -278,7 +278,7 @@
                 "expected_subject_height_percent": {
                   "const": [
                     50,
-                    94
+                    100
                   ]
                 },
                 "minimum_clear_space_above_hair_percent": {
@@ -286,6 +286,9 @@
                 },
                 "minimum_clear_space_below_footwear_percent": {
                   "const": 0
+                },
+                "clear_space_above_hair_waived_by_full_head": {
+                  "const": false
                 },
                 "clear_space_above_hair_delivery_tolerance_applied": {
                   "type": "boolean"
@@ -302,7 +305,7 @@
                 "expected_subject_height_percent": {
                   "const": [
                     40,
-                    95
+                    100
                   ]
                 },
                 "minimum_clear_space_above_hair_percent": {
@@ -310,6 +313,9 @@
                 },
                 "minimum_clear_space_below_footwear_percent": {
                   "const": 0
+                },
+                "clear_space_above_hair_waived_by_full_head": {
+                  "const": false
                 },
                 "clear_space_above_hair_delivery_tolerance_applied": {
                   "type": "boolean"
@@ -326,7 +332,7 @@
                 "expected_subject_height_percent": {
                   "const": [
                     50,
-                    95
+                    100
                   ]
                 },
                 "minimum_clear_space_above_hair_percent": {
@@ -334,6 +340,9 @@
                 },
                 "minimum_clear_space_below_footwear_percent": {
                   "const": 0
+                },
+                "clear_space_above_hair_waived_by_full_head": {
+                  "const": false
                 },
                 "clear_space_above_hair_delivery_tolerance_applied": {
                   "type": "boolean"
@@ -350,7 +359,7 @@
                 "expected_subject_height_percent": {
                   "const": [
                     45,
-                    96
+                    100
                   ]
                 },
                 "minimum_clear_space_above_hair_percent": {
@@ -358,6 +367,9 @@
                 },
                 "minimum_clear_space_below_footwear_percent": {
                   "const": 0
+                },
+                "clear_space_above_hair_waived_by_full_head": {
+                  "const": false
                 },
                 "clear_space_above_hair_delivery_tolerance_applied": {
                   "type": "boolean"
@@ -401,7 +413,7 @@
                 "expected_subject_height_percent": {
                   "const": [
                     30,
-                    92
+                    100
                   ]
                 },
                 "minimum_clear_space_above_hair_percent": {
@@ -409,6 +421,9 @@
                 },
                 "minimum_clear_space_below_footwear_percent": {
                   "const": 2
+                },
+                "clear_space_above_hair_waived_by_full_head": {
+                  "const": false
                 },
                 "clear_space_above_hair_delivery_tolerance_applied": {
                   "type": "boolean"
@@ -529,7 +544,7 @@
                 "expected_subject_height_percent": {
                   "const": [
                     50,
-                    94
+                    100
                   ]
                 },
                 "minimum_clear_space_above_hair_percent": {
@@ -540,13 +555,13 @@
                 },
                 "subject_height_percent": {
                   "minimum": 50,
-                  "maximum": 94
+                  "maximum": 100
                 },
                 "clear_space_above_hair_delivery_tolerance_applied": {
                   "const": false
                 },
-                "full_head_visible": {
-                  "const": true
+                "clear_space_above_hair_waived_by_full_head": {
+                  "const": false
                 }
               },
               "required": [
@@ -559,44 +574,12 @@
                   "properties": {
                     "subject_height_percent": {
                       "minimum": 50,
-                      "maximum": 94
+                      "maximum": 100
                     },
                     "subject_height_delivery_tolerance_applied": {
                       "const": false
                     }
                   }
-                }
-              ],
-              "allOf": [
-                {
-                  "anyOf": [
-                    {
-                      "properties": {
-                        "clear_space_above_hair_percent": {
-                          "minimum": 6
-                        },
-                        "clear_space_above_hair_waived_by_full_head": {
-                          "const": false
-                        }
-                      }
-                    },
-                    {
-                      "properties": {
-                        "clear_space_above_hair_percent": {
-                          "exclusiveMaximum": 6
-                        },
-                        "full_head_visible": {
-                          "const": true
-                        },
-                        "clear_space_above_hair_waived_by_full_head": {
-                          "const": true
-                        }
-                      },
-                      "required": [
-                        "clear_space_above_hair_waived_by_full_head"
-                      ]
-                    }
-                  ]
                 }
               ]
             },
@@ -605,7 +588,7 @@
                 "expected_subject_height_percent": {
                   "const": [
                     40,
-                    95
+                    100
                   ]
                 },
                 "minimum_clear_space_above_hair_percent": {
@@ -616,13 +599,13 @@
                 },
                 "subject_height_percent": {
                   "minimum": 40,
-                  "maximum": 95
+                  "maximum": 100
                 },
                 "clear_space_above_hair_delivery_tolerance_applied": {
                   "const": false
                 },
-                "full_head_visible": {
-                  "const": true
+                "clear_space_above_hair_waived_by_full_head": {
+                  "const": false
                 }
               },
               "required": [
@@ -635,44 +618,12 @@
                   "properties": {
                     "subject_height_percent": {
                       "minimum": 40,
-                      "maximum": 95
+                      "maximum": 100
                     },
                     "subject_height_delivery_tolerance_applied": {
                       "const": false
                     }
                   }
-                }
-              ],
-              "allOf": [
-                {
-                  "anyOf": [
-                    {
-                      "properties": {
-                        "clear_space_above_hair_percent": {
-                          "minimum": 5
-                        },
-                        "clear_space_above_hair_waived_by_full_head": {
-                          "const": false
-                        }
-                      }
-                    },
-                    {
-                      "properties": {
-                        "clear_space_above_hair_percent": {
-                          "exclusiveMaximum": 5
-                        },
-                        "full_head_visible": {
-                          "const": true
-                        },
-                        "clear_space_above_hair_waived_by_full_head": {
-                          "const": true
-                        }
-                      },
-                      "required": [
-                        "clear_space_above_hair_waived_by_full_head"
-                      ]
-                    }
-                  ]
                 }
               ]
             },
@@ -681,7 +632,7 @@
                 "expected_subject_height_percent": {
                   "const": [
                     50,
-                    95
+                    100
                   ]
                 },
                 "minimum_clear_space_above_hair_percent": {
@@ -692,13 +643,13 @@
                 },
                 "subject_height_percent": {
                   "minimum": 50,
-                  "maximum": 95
+                  "maximum": 100
                 },
                 "clear_space_above_hair_delivery_tolerance_applied": {
                   "const": false
                 },
-                "full_head_visible": {
-                  "const": true
+                "clear_space_above_hair_waived_by_full_head": {
+                  "const": false
                 }
               },
               "required": [
@@ -711,44 +662,12 @@
                   "properties": {
                     "subject_height_percent": {
                       "minimum": 50,
-                      "maximum": 95
+                      "maximum": 100
                     },
                     "subject_height_delivery_tolerance_applied": {
                       "const": false
                     }
                   }
-                }
-              ],
-              "allOf": [
-                {
-                  "anyOf": [
-                    {
-                      "properties": {
-                        "clear_space_above_hair_percent": {
-                          "minimum": 5
-                        },
-                        "clear_space_above_hair_waived_by_full_head": {
-                          "const": false
-                        }
-                      }
-                    },
-                    {
-                      "properties": {
-                        "clear_space_above_hair_percent": {
-                          "exclusiveMaximum": 5
-                        },
-                        "full_head_visible": {
-                          "const": true
-                        },
-                        "clear_space_above_hair_waived_by_full_head": {
-                          "const": true
-                        }
-                      },
-                      "required": [
-                        "clear_space_above_hair_waived_by_full_head"
-                      ]
-                    }
-                  ]
                 }
               ]
             },
@@ -757,7 +676,7 @@
                 "expected_subject_height_percent": {
                   "const": [
                     45,
-                    96
+                    100
                   ]
                 },
                 "minimum_clear_space_above_hair_percent": {
@@ -768,13 +687,13 @@
                 },
                 "subject_height_percent": {
                   "minimum": 45,
-                  "maximum": 96
+                  "maximum": 100
                 },
                 "clear_space_above_hair_delivery_tolerance_applied": {
                   "const": false
                 },
-                "full_head_visible": {
-                  "const": true
+                "clear_space_above_hair_waived_by_full_head": {
+                  "const": false
                 }
               },
               "required": [
@@ -787,44 +706,12 @@
                   "properties": {
                     "subject_height_percent": {
                       "minimum": 45,
-                      "maximum": 96
+                      "maximum": 100
                     },
                     "subject_height_delivery_tolerance_applied": {
                       "const": false
                     }
                   }
-                }
-              ],
-              "allOf": [
-                {
-                  "anyOf": [
-                    {
-                      "properties": {
-                        "clear_space_above_hair_percent": {
-                          "minimum": 4
-                        },
-                        "clear_space_above_hair_waived_by_full_head": {
-                          "const": false
-                        }
-                      }
-                    },
-                    {
-                      "properties": {
-                        "clear_space_above_hair_percent": {
-                          "exclusiveMaximum": 4
-                        },
-                        "full_head_visible": {
-                          "const": true
-                        },
-                        "clear_space_above_hair_waived_by_full_head": {
-                          "const": true
-                        }
-                      },
-                      "required": [
-                        "clear_space_above_hair_waived_by_full_head"
-                      ]
-                    }
-                  ]
                 }
               ]
             },
@@ -877,7 +764,7 @@
                 "expected_subject_height_percent": {
                   "const": [
                     30,
-                    92
+                    100
                   ]
                 },
                 "minimum_clear_space_above_hair_percent": {
@@ -888,19 +775,19 @@
                 },
                 "subject_height_percent": {
                   "minimum": 30,
-                  "maximum": 92
+                  "maximum": 100
                 },
                 "clear_space_above_hair_delivery_tolerance_applied": {
                   "const": false
-                },
-                "full_head_visible": {
-                  "const": true
                 },
                 "full_footwear_visible": {
                   "const": true
                 },
                 "clear_space_below_footwear_percent": {
                   "minimum": 2
+                },
+                "clear_space_above_hair_waived_by_full_head": {
+                  "const": false
                 }
               },
               "required": [
@@ -913,44 +800,12 @@
                   "properties": {
                     "subject_height_percent": {
                       "minimum": 30,
-                      "maximum": 92
+                      "maximum": 100
                     },
                     "subject_height_delivery_tolerance_applied": {
                       "const": false
                     }
                   }
-                }
-              ],
-              "allOf": [
-                {
-                  "anyOf": [
-                    {
-                      "properties": {
-                        "clear_space_above_hair_percent": {
-                          "minimum": 8
-                        },
-                        "clear_space_above_hair_waived_by_full_head": {
-                          "const": false
-                        }
-                      }
-                    },
-                    {
-                      "properties": {
-                        "clear_space_above_hair_percent": {
-                          "exclusiveMaximum": 8
-                        },
-                        "full_head_visible": {
-                          "const": true
-                        },
-                        "clear_space_above_hair_waived_by_full_head": {
-                          "const": true
-                        }
-                      },
-                      "required": [
-                        "clear_space_above_hair_waived_by_full_head"
-                      ]
-                    }
-                  ]
                 }
               ]
             }
@@ -977,7 +832,7 @@
             "expected_subject_height_percent": {
               "const": [
                 50,
-                94
+                100
               ]
             },
             "minimum_clear_space_above_hair_percent": {
@@ -993,7 +848,7 @@
             "expected_subject_height_percent": {
               "const": [
                 40,
-                95
+                100
               ]
             },
             "minimum_clear_space_above_hair_percent": {
@@ -1009,7 +864,7 @@
             "expected_subject_height_percent": {
               "const": [
                 50,
-                95
+                100
               ]
             },
             "minimum_clear_space_above_hair_percent": {
@@ -1025,7 +880,7 @@
             "expected_subject_height_percent": {
               "const": [
                 45,
-                96
+                100
               ]
             },
             "minimum_clear_space_above_hair_percent": {
@@ -1057,7 +912,7 @@
             "expected_subject_height_percent": {
               "const": [
                 30,
-                92
+                100
               ]
             },
             "minimum_clear_space_above_hair_percent": {

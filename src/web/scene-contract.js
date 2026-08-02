@@ -219,16 +219,17 @@ const EDITORIAL_IDENTITY_VISIBILITY = new Set(['full_face', 'partial_face', 'not
 // FRAMING_AND_ANATOMY prose called it a coherent three-quarter fashion frame. The miss
 // was also unrepairable in kind: "subject too large" can only be answered by
 // outpainting invented surroundings, so three points of taste burned the whole retry
-// budget on inventing scene. So the ceiling is DERIVED as the complement of the head
-// guard — a subject may grow until it would start eating the room that guard already
-// reserves, and not one point further.
+// budget on inventing scene. A head-required slot gets a ceiling derived from its
+// head guard. Fashion Shoot slots deliberately do not: their crop is part of the
+// selected art direction, and an intentional crown crop cannot be rejected as a
+// framing defect.
 const EDITORIAL_HEAD_GUARDS = Object.freeze({
-  clean_identity_hero: { above: 6, below: 0, head: true, footwear: false },
-  environmental_hero: { above: 5, below: 0, head: true, footwear: false },
-  sculptural_three_quarter: { above: 5, below: 0, head: true, footwear: false },
-  interference_frame: { above: 4, below: 0, head: true, footwear: false },
+  clean_identity_hero: { above: 6, below: 0, head: false, footwear: false },
+  environmental_hero: { above: 5, below: 0, head: false, footwear: false },
+  sculptural_three_quarter: { above: 5, below: 0, head: false, footwear: false },
+  interference_frame: { above: 4, below: 0, head: false, footwear: false },
   material_or_accessory_detail: { above: 0, below: 0, head: false, footwear: false },
-  wide_campaign_coda: { above: 8, below: 2, head: true, footwear: true },
+  wide_campaign_coda: { above: 8, below: 2, head: false, footwear: true },
 });
 
 // The floor cannot be derived from the head guard, so it stays a chosen number — but a
@@ -289,7 +290,7 @@ const EDITORIAL_FRAMING_LOCKS = Object.freeze(Object.fromEntries(
   Object.entries(EDITORIAL_HEAD_GUARDS).map(([slot, guard]) => [slot, Object.freeze({
     subject: Object.freeze([
       EDITORIAL_SUBJECT_HEIGHT_FLOORS[slot],
-      100 - guard.above,
+      guard.head ? 100 - guard.above : 100,
     ]),
     above: guard.above,
     below: guard.below,
@@ -297,16 +298,11 @@ const EDITORIAL_FRAMING_LOCKS = Object.freeze(Object.fromEntries(
     footwear: guard.footwear,
     generationTarget: EDITORIAL_GENERATION_TARGETS[slot],
     generationBand: EDITORIAL_GENERATION_BANDS[slot],
-    // Headroom is a proxy for "the head is not cropped", and in editorial the
-    // direct observation of that is already in hand. An identity hero measured
-    // 5% of headroom against a 6% minimum and was rejected while its own gate
-    // text read "Full head is visible and the figure is anatomically coherent"
-    // and every other gate passed — thirteen pixels of a 1280-tall canvas, on a
-    // frame whose head was demonstrably whole. A proxy that overrules the
-    // measurement it stands in for is worse than no proxy, so here it advises
-    // and full_head_visible decides. Standard scenes keep it blocking: their
-    // promise is the same avatar composed the same way in every environment, so
-    // headroom there is the product and not art direction.
+    // Headroom remains a composition target in the prompt, not an editorial
+    // delivery lock. Fashion Shoot uses intentional crops, including a crown
+    // crossing the frame edge; identity is checked from the visible face, not
+    // from a mandatory margin above hair. Standard scenes keep headroom and
+    // full-head visibility as hard product locks.
     aboveIsAdvisoryWhenHeadVisible: true,
   })]),
 ));
@@ -856,16 +852,9 @@ function validateEditorialPresetCamera(camera, editorial) {
     || camera.required_visibility.full_footwear !== framingLock.footwear) {
     throw new Error('Resolved editorial camera does not match its canonical framing lock');
   }
-  // Footwear is no longer required by any editorial slot: art direction crops
-  // are intentional, and demanding feet forced the generator to invent a lower
-  // half that no approved reference could verify. The head requirement stays —
-  // an editorial frame that loses the face loses its identity evidence, which is
-  // the one thing these gates exist to protect.
-  if (['clean_identity_hero', 'environmental_hero', 'wide_campaign_coda']
-    .includes(editorial.shot_slot)
-    && !camera.required_visibility.full_head) {
-    throw new Error('Resolved editorial hero and coda shots require the complete head');
-  }
+  // Editorial crop is art direction. The separate IDENTITY gate still rejects
+  // a missing or conflicting visible face where a slot requires full-face
+  // evidence; framing must not require an uncropped crown as a proxy for it.
 }
 
 function validateEditorialPresetSnapshot(preset, reference) {

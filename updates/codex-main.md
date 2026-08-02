@@ -466,6 +466,34 @@ Help request: NONE.
 
 ---
 
+Agent ID: codex-live-40
+Task ID: BETA-FASHION-SHOOT-CROWN-CROP-001
+Pipeline: UNIVERSE.03–04 · Create Universe / Fashion Shoot delivery QA
+State: READY_FOR_BETA_DEPLOY
+Decision: user-authorized editorial framing policy. An intentional crop through
+the crown now passes in every Fashion Shoot slot; the crop is a property of the
+selected style, not a delivery failure. The standard-background contract is
+unchanged: it still requires a complete head and its existing headroom band.
+Code: `EDITORIAL_HEAD_GUARDS` now has `head: false` only for Fashion Shoot
+slots; their upper subject-height ceiling is 100 instead of a derived headroom
+ceiling. Compiled camera contracts and all three generated JSON receipt schemas
+were regenerated from that one lock owner. The QA receipt explicitly records
+`clear_space_above_hair_waived_by_full_head: false`: this is an allowed crop,
+not a hidden waiver.
+Still blocking: identity/visible-face evidence, selected-item fidelity,
+anatomy, reference provenance, style/lighting, footwear where the slot asks
+for it, and all standard-scene framing checks.
+Tests: focused framing + editorial service + adapters 99/99 PASS;
+`npm run verify:contracts` PASS (41 schemas / 9 fixtures / 3 jobs).
+Beta: NOT_DEPLOYED — pending commit/push/release by this owner.
+Journey: NOT_RUN — no paid provider generation was spent for this policy change.
+weakened_checks: `EDITORIAL_CROWN_CROP_POLICY` only; authorized by Edwin on
+2026-08-02; scope is Fashion Shoot/Create Universe, never standard backgrounds
+or the master-look.
+Help request: NONE.
+
+---
+
 Agent ID: codex-main
 Task ID: BETA-STARTUP-TRACE-20260802
 Pipeline: Release reliability · beta daemon boot
