@@ -1187,3 +1187,11 @@ facts.
 - Only explicit allowlisted, completed artifacts may be archived after an
   active-job and restart-readability check. Full operational rule:
   `docs/DEPLOYMENT_UA.md` → “Жорстка межа зберігання — не переносити runtime”.
+
+### 2026-08-02 · PAID CORE SMOKE / CODEX WORKER STATE INCIDENT
+
+- Public beta currently serves `c1d75ce8e9c4921e72d6b2ecb349481f00c89aef`; `/api/health` is `ready`.
+- Real paid run `1638c656-4be6-46b9-bfaa-595109db03d6` completed the core `avatar → outfit` path. Higgsfield jobs `ba148144-0d22-467a-b9d5-1fc5d16978cf` and `7986c924-e831-4ed7-9c37-949609858925` completed, downloaded and persisted; conditioning/avatar/outfit QA all PASS.
+- Root cause of the preceding live failures: the persistent beta Codex VLM worker shared the desktop Codex state database, so the VLM returned empty/timeout results before garment conditioning completed. A dedicated worker `CODEX_HOME` fixed the live run. This is a host/runtime isolation requirement, not a QA relaxation.
+- Reconciliation warning: deployed `c1d75ce` is not an ancestor of current `origin/beta` until the release owner reconciles the current beta head; do not call Git beta and public runtime identical.
+- `weakened_checks: none`. This atom proves only paid avatar → outfit; no paid background, Fashion Shoot or video call was made.
