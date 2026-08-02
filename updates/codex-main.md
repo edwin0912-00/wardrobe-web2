@@ -1403,7 +1403,7 @@ weakened_checks: none. The reference-performer gate remains blocking.
 Agent ID: codex-main
 Task ID: BETA-FASHION-SHOOT-SAVED-PREVIEW-20260803
 Pipeline: UNIVERSE.04 · completed Fashion Shoot → saved library / presentation
-State: READY_FOR_BETA_DEPLOY
+State: LIVE
 Decision: a direct `shoot.*` product has five customer frames and an internal
 `clean_identity_hero` check that intentionally is not a customer image. The
 saved-profile projection previously used only that internal slot as its preview,
@@ -1411,10 +1411,11 @@ so a completed shoot could reload as a blank card even when customer frames had
 already passed. The projection now durably stores `preview_slot` and
 `preview_output_sha256` for the first approved customer frame; the UI uses that
 preview and its download URL. Legacy editorial retains its internal-hero preview.
-Code: pending commit on `beta-block-5-direct-five-shoots-20260802`.
+Code: `27c3efdac0e1cc8ddae948e9aee4dd674c649557`.
 Tests: targeted direct-five projection regression PASS; profile service and UI
-flow checks PASS.
-Beta: NOT_DEPLOYED.
+flow checks PASS. Public preview route returns WebP 640px from the stored source.
+Beta: LIVE — health release SHA `27c3efdac0e1cc8ddae948e9aee4dd674c649557`.
 Journey: existing completed `shoot.zayn_institutional` has five customer output
-files; its server-side preview will be backfilled safely at beta restart.
+files; restart backfilled `environmental_hero` as its saved preview. The source
+PNG remains the Download asset; only the on-screen preview is a light WebP.
 weakened_checks: none; no QA state or output bytes are altered.
