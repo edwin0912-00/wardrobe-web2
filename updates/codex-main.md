@@ -1390,9 +1390,10 @@ UI/API: while a child is being submitted or generated, the failed parent reports
 child clip id. The browser follows that child automatically. Manual retry only
 returns after the two automatic attempts are exhausted or the failure is outside
 the reference-performer policy.
-Code: local commit pending; exact SHA will be recorded by release owner after
-push. No paid generation was triggered by this code change.
+Code: `e5531523b84d0ad4b5a26eea77c66aa7ee142cea`. No paid generation was
+triggered by this code change.
 Tests: `node --test test/video/*.test.js test/web/profile-ui-flow.test.js` —
-209/209 PASS.
-Beta: NOT_DEPLOYED.
+210/210 PASS.
+Beta: LIVE — public and local health report release SHA
+`e5531523b84d0ad4b5a26eea77c66aa7ee142cea`, `status=ready`.
 weakened_checks: none. The reference-performer gate remains blocking.
