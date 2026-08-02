@@ -1,4 +1,9 @@
 import { createHash } from 'node:crypto';
+import {
+  GPT_IMAGE_2_LADDER,
+  GPT_IMAGE_2_LADDER_VERSION,
+  LEGACY_IMAGE_MODEL_ROUTE,
+} from '../runner/model-policy.js';
 
 export const SCENE_SCHEMA_VERSION = '1.0.0';
 export const FRAMING_POLICY_RECHECK_VERSION = 'scene-framing-policy-recheck-v1';
@@ -76,11 +81,12 @@ export const SCENE_SOURCE_FORBIDDEN_AUTHORITIES = Object.freeze([
   'exact_architecture',
 ]);
 
-/**
- * These are immutable transport route identifiers, not marketing aliases.
- * Every job snapshots the complete route and its hash before generation.
- */
-export const DEFAULT_SCENE_MODEL_ROUTE = Object.freeze([
+export const LEGACY_SCENE_IMAGE_ROUTE_VERSION = 'zeely.scene.image-route.v1';
+export const SCENE_IMAGE_ROUTE_VERSION = 'zeely.scene.image-route.v2';
+
+// Kept only to verify and resume already-snapshotted scene attempts. New
+// scenes use the GPT ladder below; no new scene is routed to Nano Banana.
+export const LEGACY_SCENE_MODEL_ROUTE = Object.freeze([
   Object.freeze({
     order: 1,
     job_set_type: 'gpt_image_2',
@@ -103,6 +109,23 @@ export const DEFAULT_SCENE_MODEL_ROUTE = Object.freeze([
     quality: 'high',
   }),
 ]);
+
+/**
+ * Immutable transport route for every new standard background and Fashion
+ * Shoot frame. Each entry is a distinct request profile even though all five
+ * calls use GPT Image 2. The exact quality/resolution profile is snapshotted
+ * before provider spend.
+ */
+export const DEFAULT_SCENE_MODEL_ROUTE = Object.freeze(GPT_IMAGE_2_LADDER.map((profile) => Object.freeze({
+  order: profile.order,
+  id: profile.id,
+  job_set_type: profile.job_set_type,
+  model: profile.model,
+  model_version: profile.model_version,
+  resolution: profile.resolution,
+  quality: profile.quality,
+  repair_kind: profile.repair_kind,
+})));
 
 export const DEFAULT_SCENE_DELIVERY = Object.freeze({
   aspect_ratio: '3:4',
@@ -129,7 +152,7 @@ const CREATE_UNIVERSE_SOURCE_URI = /^create-universe:\/\/shoot\.[a-z0-9._-]+\/(?
 function isVerifiedSourceUri(value) {
   return typeof value === 'string' && (value.startsWith('https://') || CREATE_UNIVERSE_SOURCE_URI.test(value));
 }
-const FIXED_MODEL_ROUTE = Object.freeze([
+const LEGACY_FIXED_MODEL_ROUTE = Object.freeze([
   Object.freeze({ job_set_type: 'gpt_image_2', model: 'GPT Image 2' }),
   Object.freeze({ job_set_type: 'nano_banana_flash', model: 'Nano Banana 2' }),
   Object.freeze({ job_set_type: 'nano_banana_2', model: 'Nano Banana Pro' }),
@@ -438,9 +461,46 @@ export function assertIdempotencyKey(value) {
   return value;
 }
 
-export function normalizeModelRoute(route = DEFAULT_SCENE_MODEL_ROUTE) {
-  if (!Array.isArray(route) || route.length !== FIXED_MODEL_ROUTE.length) {
-    throw new Error('Scene model route must contain exactly the three approved models');
+function isNewSceneRoute(route) {
+  return Array.isArray(route) && route.length === GPT_IMAGE_2_LADDER.length
+    && route.every((entry) => entry && typeof entry === 'object' && Object.hasOwn(entry, 'id'));
+}
+
+export function sceneModelRouteVersion(route = DEFAULT_SCENE_MODEL_ROUTE) {
+  if (isNewSceneRoute(route)) return SCENE_IMAGE_ROUTE_VERSION;
+  if (Array.isArray(route) && route.length === LEGACY_FIXED_MODEL_ROUTE.length) {
+    return LEGACY_SCENE_IMAGE_ROUTE_VERSION;
+  }
+  throw new Error('Scene model route has no supported immutable version');
+}
+
+export function normalizeModelRoute(route = DEFAULT_SCENE_MODEL_ROUTE, routeVersion = undefined) {
+  const version = routeVersion ?? sceneModelRouteVersion(route);
+  if (version === SCENE_IMAGE_ROUTE_VERSION) {
+    if (!Array.isArray(route) || route.length !== GPT_IMAGE_2_LADDER.length) {
+      throw new Error('Scene GPT Image 2 route must contain exactly five immutable profiles');
+    }
+    return Object.freeze(route.map((entry, index) => {
+      if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+        throw new Error(`Scene model route entry ${index + 1} must be an object`);
+      }
+      assertExactKeys(
+        entry,
+        ['order', 'id', 'job_set_type', 'model', 'model_version', 'resolution', 'quality', 'repair_kind'],
+        `Scene GPT Image 2 route entry ${index + 1}`,
+      );
+      const expected = GPT_IMAGE_2_LADDER[index];
+      for (const field of ['order', 'id', 'job_set_type', 'model', 'model_version', 'resolution', 'quality', 'repair_kind']) {
+        if (entry[field] !== expected[field]) {
+          throw new Error(`Scene GPT Image 2 route entry ${index + 1} does not match the immutable ${expected.id} profile`);
+        }
+      }
+      return Object.freeze({ ...expected });
+    }));
+  }
+  if (version !== LEGACY_SCENE_IMAGE_ROUTE_VERSION
+    || !Array.isArray(route) || route.length !== LEGACY_FIXED_MODEL_ROUTE.length) {
+    throw new Error('Scene model route must be a supported immutable version');
   }
   const seenTypes = new Set();
   const normalized = route.map((entry, index) => {
@@ -461,7 +521,7 @@ export function normalizeModelRoute(route = DEFAULT_SCENE_MODEL_ROUTE) {
         throw new Error(`Scene model route entry ${expectedOrder} is missing ${field}`);
       }
     }
-    const fixed = FIXED_MODEL_ROUTE[index];
+    const fixed = LEGACY_FIXED_MODEL_ROUTE[index];
     if (entry.job_set_type !== fixed.job_set_type || entry.model !== fixed.model || entry.quality !== 'high') {
       throw new Error('Scene model route must exactly match GPT Image 2 → Nano Banana 2 → Nano Banana Pro at high quality');
     }
@@ -2435,10 +2495,11 @@ export function validatePersistedSceneState(state, expectedSceneId) {
   normalizeDelivery(state.delivery);
   if (!state.model_route || typeof state.model_route !== 'object') throw new Error('Persisted scene model route is invalid');
   assertExactKeys(state.model_route, ['route_version', 'sha256', 'entries'], 'Persisted scene model route');
-  const route = normalizeModelRoute(state.model_route.entries);
-  if (state.model_route.route_version !== 'zeely.scene.image-route.v1') {
+  const routeVersion = state.model_route.route_version;
+  if (![LEGACY_SCENE_IMAGE_ROUTE_VERSION, SCENE_IMAGE_ROUTE_VERSION].includes(routeVersion)) {
     throw new Error('Persisted scene route version is invalid');
   }
+  const route = normalizeModelRoute(state.model_route.entries, routeVersion);
   assertSha256(state.model_route.sha256, 'scene.model_route.sha256');
   if (sha256(canonicalJsonBytes(route)) !== state.model_route.sha256) {
     throw new Error('Persisted scene model route hash is invalid');

@@ -11,7 +11,7 @@ function mediaType(filename) {
 export class HiggsfieldAssetGenerator {
   constructor({ provider }) { this.provider = provider; }
 
-  async #generate({ phase, model, prompt, references, workDirectory, operationId }) {
+  async #generate({ phase, model, generationProfile = null, prompt, references, workDirectory, operationId }) {
     const ordered = [];
     for (const [index, reference] of references.entries()) {
       const filename = path.resolve(reference.path);
@@ -25,20 +25,31 @@ export class HiggsfieldAssetGenerator {
         source: reference.source,
       });
     }
-    const idempotencyKey = digest(`${operationId}:${phase}:${model}:${prompt}:${ordered.map((item) => item.sha256).join(':')}`);
+    // A retry may deliberately use the same model with a different immutable
+    // quality/resolution profile. It must never coalesce with the earlier
+    // provider request merely because the model name is identical.
+    const profileIdentity = generationProfile
+      ? `${generationProfile.id}:${generationProfile.resolution}:${generationProfile.quality ?? ''}`
+      : 'legacy-default-profile';
+    const idempotencyKey = digest(`${operationId}:${phase}:${model}:${profileIdentity}:${prompt}:${ordered.map((item) => item.sha256).join(':')}`);
     return this.provider.generate({
       operation: 'generate', phase, attempt: 1, model, model_name: imageModelName(model), job_set_type: model,
       prompt, references: { ordered }, idempotencyKey, jobId: operationId, workDirectory,
+      ...(generationProfile ? {
+        generation_profile: generationProfile,
+        resolution: generationProfile.resolution,
+        quality: generationProfile.quality,
+      } : {}),
     });
   }
 
-  generateGarment({ sourcePath, sourcePaths = sourcePath ? [sourcePath] : [], model, prompt, workDirectory, operationId }) {
-    return this.#generate({ phase: 'garment', model, prompt, workDirectory, operationId,
+  generateGarment({ sourcePath, sourcePaths = sourcePath ? [sourcePath] : [], model, generationProfile = null, prompt, workDirectory, operationId }) {
+    return this.#generate({ phase: 'garment', model, generationProfile, prompt, workDirectory, operationId,
       references: sourcePaths.map((filename, index) => ({ path: filename, scope: 'outfit', role: `GARMENT_RAW_VIEW_${index + 1}`, source: 'CONDITIONED' })) });
   }
 
-  generateScene({ approvedOutfitPath, model, prompt, workDirectory, operationId }) {
-    return this.#generate({ phase: 'scene', model, prompt, workDirectory, operationId,
+  generateScene({ approvedOutfitPath, model, generationProfile = null, prompt, workDirectory, operationId }) {
+    return this.#generate({ phase: 'scene', model, generationProfile, prompt, workDirectory, operationId,
       references: [{ path: approvedOutfitPath, scope: 'avatar', role: 'APPROVED_OUTFIT', source: 'APPROVED_AVATAR' }] });
   }
 }

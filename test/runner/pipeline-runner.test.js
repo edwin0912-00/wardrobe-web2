@@ -111,7 +111,7 @@ test('rejects a neutral floor gradient before semantic QA and retries the avatar
   const result = await new PipelineRunner({ provider }).runJobFile(files.jobPath);
 
   assert.equal(result.status, STATES.FAILED);
-  assert.equal(result.attempts.avatar, 3);
+  assert.equal(result.attempts.avatar, IMAGE_MODEL_ROUTE.length);
   assert.deepEqual(
     provider.calls
       .filter((call) => call.operation === 'generate' && call.context.phase === 'avatar')
@@ -125,7 +125,7 @@ test('rejects a neutral floor gradient before semantic QA and retries the avatar
   );
   const events = (await readFile(result.eventsPath, 'utf8')).trim().split('\n').map(JSON.parse);
   assert.equal(events.filter((event) => event.type === 'DETERMINISTIC_QA_FAILED'
-    && event.data.gate === 'EXACT_WHITE_KEY_SURFACE').length, 3);
+    && event.data.gate === 'EXACT_WHITE_KEY_SURFACE').length, IMAGE_MODEL_ROUTE.length);
 });
 
 test('master prompt templates explicitly forbid a floor and every kind of shadow', async () => {
@@ -233,12 +233,12 @@ test('refuses to reuse receipts when an input file changes under the same immuta
   );
 });
 
-test('uses the fixed GPT Image 2 -> Nano Banana 2 -> Nano Banana Pro route after QA retries', async () => {
+test('uses the immutable GPT Image 2 low-to-high ladder after QA retries', async () => {
   const files = await fixture();
   const provider = new MockProvider({
     script: {
       qa(context) {
-        if (context.phase === 'avatar' && context.attempt < 3) {
+        if (context.phase === 'avatar' && context.attempt < IMAGE_MODEL_ROUTE.length) {
           return { decision: 'RETRY', defects: [`avatar-attempt-${context.attempt}`] };
         }
         return { decision: 'PASS', checks: [], defects: [] };
@@ -247,7 +247,7 @@ test('uses the fixed GPT Image 2 -> Nano Banana 2 -> Nano Banana Pro route after
   });
   const result = await new PipelineRunner({ provider }).runJobFile(files.jobPath);
   assert.equal(result.status, STATES.COMPLETED);
-  assert.equal(result.attempts.avatar, 3);
+  assert.equal(result.attempts.avatar, IMAGE_MODEL_ROUTE.length);
   const avatarJobSetTypes = provider.calls
     .filter((call) => call.operation === 'generate' && call.context.phase === 'avatar')
     .map((call) => call.context.job_set_type);
@@ -257,6 +257,24 @@ test('uses the fixed GPT Image 2 -> Nano Banana 2 -> Nano Banana Pro route after
       .filter((call) => call.operation === 'generate' && call.context.phase === 'avatar')
       .map((call) => call.context.model_name),
     IMAGE_MODEL_ROUTE.map((jobSetType) => IMAGE_MODEL_NAMES[jobSetType]),
+  );
+  const profiles = provider.calls
+    .filter((call) => call.operation === 'generate' && call.context.phase === 'avatar')
+    .map((call) => call.context.generation_profile);
+  assert.deepEqual(
+    profiles.map((profile) => [profile.id, profile.resolution, profile.quality]),
+    [
+      ['gpt_image_2.low_1k.initial', '1k', 'low'],
+      ['gpt_image_2.low_1k.qa_repair_1', '1k', 'low'],
+      ['gpt_image_2.low_1k.qa_repair_2', '1k', 'low'],
+      ['gpt_image_2.medium_2k.escalation', '2k', 'medium'],
+      ['gpt_image_2.high_4k.final', '4k', 'high'],
+    ],
+  );
+  assert.notEqual(
+    provider.calls.find((call) => call.operation === 'generate' && call.context.phase === 'avatar' && call.context.attempt === 1).context.prompt,
+    provider.calls.find((call) => call.operation === 'generate' && call.context.phase === 'avatar' && call.context.attempt === 2).context.prompt,
+    'a low/1k retry must materially carry the preceding QA defect rather than resubmit the same prompt',
   );
 });
 
@@ -272,7 +290,7 @@ test('stops after the bounded model route is exhausted', async () => {
   });
   const result = await new PipelineRunner({ provider }).runJobFile(files.jobPath);
   assert.equal(result.status, STATES.FAILED);
-  assert.equal(result.attempts.avatar, 3);
+  assert.equal(result.attempts.avatar, IMAGE_MODEL_ROUTE.length);
   const avatarJobSetTypes = provider.calls
     .filter((call) => call.operation === 'generate' && call.context.phase === 'avatar')
     .map((call) => call.context.job_set_type);

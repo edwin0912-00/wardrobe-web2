@@ -621,8 +621,8 @@ test('SceneGeneratorAdapter drives the Higgsfield CLI harness with GPT 3:4 and s
           result_url: 'https://assets.cloudfront.net/scene.png?temporary=secret',
           params: {
             aspect_ratio: '3:4',
-            resolution: '2k',
-            quality: 'high',
+            resolution: '1k',
+            quality: 'low',
             model: 'provider-internal',
           },
         }),
@@ -703,7 +703,6 @@ test('an exact 3:4 frame at a provider bucket size is rescaled without discardin
     attempt: 1,
     cycle_attempt: 1,
     ...DEFAULT_SCENE_MODEL_ROUTE[0],
-    quality: 'high',
   });
   assert.equal(result.metadata.geometry_strategy, 'provider_exact_3_4_rescaled');
   assert.equal(result.metadata.geometry_crop_fraction, undefined);
@@ -792,7 +791,6 @@ test('a landscape provider frame fails the attempt instead of faking the deliver
       attempt: 2,
       cycle_attempt: 2,
       ...DEFAULT_SCENE_MODEL_ROUTE[1],
-      quality: 'high',
     }),
     /1200×900, outside the native 3:4 tolerance; cropping is forbidden/,
   );

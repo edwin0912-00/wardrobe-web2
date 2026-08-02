@@ -627,3 +627,17 @@ be weakened to hide it.
 - Root cause of the preceding live failures was host-level Codex CLI state contention: the beta VLM worker shared the desktop Codex state database. A dedicated worker `CODEX_HOME` fixed the live path; this is an operational requirement, not a QA relaxation.
 - Reconciliation warning: deployed `c1d75ce` is not currently an ancestor of `origin/beta=d4fd64b53f62e0f89a09d35e8172b5624ead60c6`. Do not claim Git beta and public runtime are identical until the release owner reconciles them.
 - This proof covers only paid avatar → outfit. No paid background, Fashion Shoot or video generation was run here.
+
+## Current image-generation policy — 2026-08-02
+
+- This section supersedes historical statements that a new fast route begins
+  with Nano Banana. New image jobs use the versioned GPT Image 2 route:
+  low/1K initial, two low/1K QA repairs, medium/2K escalation and high/4K
+  final escalation.
+- The route, resolution, quality and per-attempt repair identity are immutable
+  request/receipt metadata. Existing Nano jobs remain compatible through the
+  Higgsfield CLI alias boundary but no new job selects Nano.
+- Candidate validation: focused route/provider/core/scene/repair checks
+  221/221 PASS; scene-service 58/58 PASS; contract and canon verifiers PASS.
+- Deployment state at this record: candidate not yet activated. Public health
+  must be checked against the exact activated release SHA after deployment.

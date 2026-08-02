@@ -1251,3 +1251,18 @@ facts.
 - Root cause of the preceding live failures: the persistent beta Codex VLM worker shared the desktop Codex state database, so the VLM returned empty/timeout results before garment conditioning completed. A dedicated worker `CODEX_HOME` fixed the live run. This is a host/runtime isolation requirement, not a QA relaxation.
 - Reconciliation warning: deployed `c1d75ce` is not an ancestor of current `origin/beta` until the release owner reconciles the current beta head; do not call Git beta and public runtime identical.
 - `weakened_checks: none`. This atom proves only paid avatar → outfit; no paid background, Fashion Shoot or video call was made.
+
+### 2026-08-02 · CURRENT NEW-IMAGE ROUTE OVERRIDE
+
+- Historical statements that a new fast image route starts with Nano Banana are
+  superseded. New avatar, garment-conditioning and scene jobs use GPT Image 2:
+  low/1K initial, two distinct low/1K QA repairs, medium/2K escalation and
+  high/4K final escalation.
+- Resolution and quality are provider request fields, not prompt prose. The
+  exact generation profile is persisted in each durable request and receipt.
+- Legacy Nano route IDs remain readable for historic job recovery only; no new
+  job chooses Nano.
+- Candidate proof: focused route/provider/core/scene/repair suite 221/221
+  PASS; scene-service 58/58 PASS; `verify:contracts` and `verify:canon` PASS.
+- Deployment status at this update: candidate not yet activated. The release
+  record must carry the exact public release SHA after deploy.

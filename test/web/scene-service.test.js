@@ -7,6 +7,9 @@ import Ajv2020 from 'ajv/dist/2020.js';
 import sharp from 'sharp';
 import {
   DEFAULT_SCENE_DELIVERY,
+  DEFAULT_SCENE_MODEL_ROUTE,
+  LEGACY_SCENE_MODEL_ROUTE,
+  SCENE_IMAGE_ROUTE_VERSION,
   SCENE_EVALUATOR_GATES,
   SCENE_QA_GATES,
   assessFramingEvidence,
@@ -232,6 +235,10 @@ async function fixture(t, {
   generator,
   evaluator,
   maxManualRetries = 2,
+  // The historical service suite asserts legacy 3-step recovery behavior.
+  // Pin it explicitly so it continues to prove durable v1 resume semantics
+  // while new scenes default to the v2 GPT Image 2 ladder.
+  modelRoute = LEGACY_SCENE_MODEL_ROUTE,
   root,
 } = {}) {
   const directory = root ?? await mkdtemp(path.join(os.tmpdir(), 'zeely-scenes-'));
@@ -419,6 +426,7 @@ async function fixture(t, {
   const service = new SceneService({
     rootDirectory: directory,
     ...dependencies,
+    modelRoute,
     maxManualRetries,
   });
   await service.initialize();
@@ -639,6 +647,37 @@ test('creates one immutable scene, normalizes it to exact 3:4, and releases only
   const validateLook = new Ajv2020({ strict: false }).compile(lookSchema);
   const storedLookReceipt = JSON.parse(await readFile(path.join(root, created.scene_id, 'inputs/approved-look-receipt.json'), 'utf8'));
   assert.equal(validateLook(storedLookReceipt), true, JSON.stringify(validateLook.errors, null, 2));
+});
+
+test('a new scene snapshots the five-step GPT Image 2 ladder and starts low at 1k', async (t) => {
+  const { root, service, request, calls } = await fixture(t, {
+    modelRoute: DEFAULT_SCENE_MODEL_ROUTE,
+  });
+  const created = await service.createScene({
+    ...request,
+    idempotencyKey: 'scene-gpt-image-ladder-v2',
+  });
+  const completed = await waitFor(service, created.scene_id);
+  assert.equal(completed.status, 'COMPLETED', JSON.stringify(completed, null, 2));
+  assert.equal(calls.generator.length, 1);
+  assert.deepEqual(calls.generator[0].generation_profile, {
+    order: 1,
+    id: 'gpt_image_2.low_1k.initial',
+    job_set_type: 'gpt_image_2',
+    model: 'GPT Image 2',
+    model_version: 'gpt_image_2',
+    resolution: '1k',
+    quality: 'low',
+    repair_kind: 'INITIAL',
+  });
+  assert.equal(calls.generator[0].resolution, '1k');
+  assert.equal(calls.generator[0].quality, 'low');
+
+  const state = JSON.parse(await readFile(path.join(root, created.scene_id, 'scene.json'), 'utf8'));
+  assert.equal(state.model_route.route_version, SCENE_IMAGE_ROUTE_VERSION);
+  assert.deepEqual(state.model_route.entries, DEFAULT_SCENE_MODEL_ROUTE);
+  assert.equal(state.attempts[0].provider_metadata.generation_profile_id, 'gpt_image_2.low_1k.initial');
+  assert.equal(state.attempts[0].provider_metadata.resolution, '1k');
 });
 
 test('post-release rejection is stale-hash guarded, append-only, idempotent, and quarantines every original PASS receipt', async (t) => {
@@ -1362,6 +1401,7 @@ test('two service instances share durable create/execution locks and generate on
   const second = new SceneService({
     rootDirectory: current.root,
     ...current.dependencies,
+    modelRoute: current.service.modelRoute,
   });
   await second.initialize();
   const [firstCreate, secondCreate] = await Promise.all([

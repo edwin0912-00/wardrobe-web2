@@ -19,6 +19,7 @@ import {
   IMAGE_MODEL_NAMES,
   IMAGE_MODEL_ROUTE,
   assertAllowedImageModel,
+  generationProfileForAttempt,
 } from '../runner/model-policy.js';
 import {
   SCENE_EVALUATOR_GATES,
@@ -490,19 +491,25 @@ export async function mapWithConcurrency(values, limit, mapper) {
 }
 
 function assertSceneRoute(context) {
-  const jobSetType = assertAllowedImageModel(context?.job_set_type);
-  const routeIndex = IMAGE_MODEL_ROUTE.indexOf(jobSetType);
   const routeAttempt = Number(context?.cycle_attempt ?? context?.attempt);
-  if (routeIndex !== routeAttempt - 1) {
-    throw new Error('Scene attempt does not match the fixed GPT Image 2 → Nano Banana 2 → Nano Banana Pro route');
+  const route = Array.isArray(context?.model_route)
+    ? context.model_route.map((entry) => entry.job_set_type)
+    : IMAGE_MODEL_ROUTE;
+  const expected = context?.generation_profile ?? generationProfileForAttempt(routeAttempt, route);
+  const jobSetType = assertAllowedImageModel(context?.job_set_type);
+  if (jobSetType !== expected.job_set_type) {
+    throw new Error('Scene attempt does not match its immutable generation profile');
   }
-  if (context.model !== IMAGE_MODEL_NAMES[jobSetType] || context.model_version !== jobSetType || context.quality !== 'high') {
+  if (context.model !== IMAGE_MODEL_NAMES[jobSetType]
+    || context.model_version !== jobSetType
+    || context.quality !== expected.quality
+    || (context.resolution !== undefined && context.resolution !== expected.resolution)) {
     throw new Error('Scene model metadata does not match the locked production route');
   }
   if (context.aspect_ratio !== '3:4' || context.width * 4 !== context.height * 3) {
     throw new Error('Scene delivery must be exact 3:4');
   }
-  return jobSetType;
+  return expected;
 }
 
 function assertRepairPlanGuidePreflight(context) {
@@ -658,7 +665,17 @@ export class SceneGeneratorAdapter {
   }
 
   async generateScene(context) {
-    const jobSetType = assertSceneRoute(context);
+    const generationProfile = assertSceneRoute(context);
+    const jobSetType = generationProfile.job_set_type;
+    // Direct adapter callers can provide only a snapshotted route entry.
+    // Fill the provider-facing fields from that same immutable profile so the
+    // CLI cannot quietly fall back to its constructor's 2k/high defaults.
+    context = {
+      ...context,
+      generation_profile: context.generation_profile ?? generationProfile,
+      resolution: context.resolution ?? generationProfile.resolution,
+      quality: context.quality ?? generationProfile.quality,
+    };
     const provider = this.providers?.[jobSetType] ?? this.provider;
     if (typeof provider?.generate !== 'function') {
       throw new Error(`SceneGeneratorAdapter has no provider for ${jobSetType}`);
@@ -876,7 +893,9 @@ export class SceneGeneratorAdapter {
         job_set_type: jobSetType,
         model: context.model,
         model_version: context.model_version,
+        resolution: context.resolution ?? null,
         quality: context.quality,
+        generation_profile: context.generation_profile?.id ?? null,
         route_hash: context.route_hash ?? null,
       },
       delivery: {
@@ -925,8 +944,11 @@ export class SceneGeneratorAdapter {
       model: jobSetType,
       model_name: IMAGE_MODEL_NAMES[jobSetType],
       job_set_type: jobSetType,
+      generation_profile: context.generation_profile,
+      resolution: context.resolution,
       prompt,
       aspectRatio: requiredTransportAspectRatio,
+      aspect_ratio: requiredTransportAspectRatio,
       // Only sent when a provider has declared it can obey it, so the request
       // that goes to a provider which cannot is byte-for-byte what it was
       // before — the journal replay hash does not move and no cached frame is
@@ -965,7 +987,9 @@ export class SceneGeneratorAdapter {
         model: context.model,
         model_version: context.model_version,
         job_set_type: jobSetType,
+        resolution: context.resolution,
         quality: context.quality,
+        ...(context.generation_profile ? { generation_profile_id: context.generation_profile.id } : {}),
         source_width: geometry.source_width,
         source_height: geometry.source_height,
         source_aspect_ratio: reducedAspectRatio(geometry.source_width, geometry.source_height),

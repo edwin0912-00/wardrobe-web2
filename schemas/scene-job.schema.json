@@ -1308,28 +1308,61 @@
       "oneOf": [
         { "$ref": "#/$defs/routeGpt" },
         { "$ref": "#/$defs/routeNano2" },
-        { "$ref": "#/$defs/routeNanoPro" }
+        { "$ref": "#/$defs/routeNanoPro" },
+        { "$ref": "#/$defs/routeGptLadder" }
       ]
+    },
+    "routeGptLadder": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["order", "id", "job_set_type", "model", "model_version", "resolution", "quality", "repair_kind"],
+      "properties": {
+        "order": { "type": "integer", "minimum": 1, "maximum": 5 },
+        "id": { "enum": ["gpt_image_2.low_1k.initial", "gpt_image_2.low_1k.qa_repair_1", "gpt_image_2.low_1k.qa_repair_2", "gpt_image_2.medium_2k.escalation", "gpt_image_2.high_4k.final"] },
+        "job_set_type": { "const": "gpt_image_2" },
+        "model": { "const": "GPT Image 2" },
+        "model_version": { "const": "gpt_image_2" },
+        "resolution": { "enum": ["1k", "2k", "4k"] },
+        "quality": { "enum": ["low", "medium", "high"] },
+        "repair_kind": { "enum": ["INITIAL", "QA_REPAIR_1", "QA_REPAIR_2", "QUALITY_ESCALATION_MEDIUM", "QUALITY_ESCALATION_HIGH"] }
+      }
     },
     "modelRoute": {
       "type": "object",
-      "additionalProperties": false,
       "required": ["route_version", "sha256", "entries"],
-      "properties": {
-        "route_version": { "const": "zeely.scene.image-route.v1" },
-        "sha256": { "$ref": "#/$defs/sha256" },
-        "entries": {
-          "type": "array",
-          "minItems": 3,
-          "maxItems": 3,
-          "prefixItems": [
-            { "$ref": "#/$defs/routeGpt" },
-            { "$ref": "#/$defs/routeNano2" },
-            { "$ref": "#/$defs/routeNanoPro" }
-          ],
-          "items": false
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "route_version": { "const": "zeely.scene.image-route.v1" },
+            "sha256": { "$ref": "#/$defs/sha256" },
+            "entries": {
+              "type": "array",
+              "minItems": 3,
+              "maxItems": 3,
+              "prefixItems": [
+                { "$ref": "#/$defs/routeGpt" },
+                { "$ref": "#/$defs/routeNano2" },
+                { "$ref": "#/$defs/routeNanoPro" }
+              ],
+              "items": false
+            }
+          }
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "route_version": { "const": "zeely.scene.image-route.v2" },
+            "sha256": { "$ref": "#/$defs/sha256" },
+            "entries": {
+              "type": "array",
+              "minItems": 5,
+              "maxItems": 5,
+              "items": { "$ref": "#/$defs/routeGptLadder" }
+            }
+          }
         }
-      }
+      ]
     },
     "approvedLookBinding": {
       "type": "object",
@@ -1888,6 +1921,8 @@
         "model": { "type": "string", "maxLength": 200 },
         "model_version": { "type": "string", "maxLength": 200 },
         "job_set_type": { "type": "string", "maxLength": 200 },
+        "generation_profile_id": { "type": ["string", "null"], "maxLength": 128 },
+        "resolution": { "type": ["string", "null"], "enum": ["1k", "2k", "4k", null] },
         "quality": { "type": "string", "maxLength": 100 },
         "seed": { "type": ["string", "number", "boolean"] },
         "geometry_strategy": { "type": "string", "maxLength": 200 },
@@ -2172,7 +2207,7 @@
       "properties": {
         "number": { "type": "integer", "minimum": 1 },
         "cycle": { "type": "integer", "minimum": 1 },
-        "cycle_attempt": { "type": "integer", "minimum": 1, "maximum": 3 },
+        "cycle_attempt": { "type": "integer", "minimum": 1, "maximum": 5 },
         "status": {
           "enum": [
             "GENERATING",

@@ -39,6 +39,7 @@ import {
   normalizeDelivery,
   normalizeEvaluatorResult,
   normalizeModelRoute,
+  sceneModelRouteVersion,
   sceneGenerationFramingBand,
   sceneGenerationFramingTarget,
   sceneQaItemScope,
@@ -51,6 +52,7 @@ import {
   validateResolvedReferenceAssets,
   validateShotAnchorReferences,
 } from './scene-contract.js';
+import { generationProfileForAttempt } from '../runner/model-policy.js';
 import {
   createDeterministicCropRepairPlan,
   normalizeSceneDefect,
@@ -846,6 +848,8 @@ function safeProviderMetadata(metadata) {
     'model',
     'model_version',
     'job_set_type',
+    'generation_profile_id',
+    'resolution',
     'quality',
     'seed',
     'geometry_strategy',
@@ -2442,6 +2446,7 @@ export class SceneService {
     this.evaluator = evaluator;
     this.clock = clock;
     this.modelRoute = normalizeModelRoute(modelRoute);
+    this.modelRouteVersion = sceneModelRouteVersion(this.modelRoute);
     this.delivery = normalizeDelivery(delivery);
     this.maxManualRetries = maxManualRetries;
     this.qaMaxAttempts = qaMaxAttempts;
@@ -3662,7 +3667,7 @@ export class SceneService {
       },
       delivery: this.delivery,
       model_route: {
-        route_version: 'zeely.scene.image-route.v1',
+        route_version: this.modelRouteVersion,
         sha256: sha256(routeBytes),
         entries: this.modelRoute,
       },
@@ -4495,6 +4500,10 @@ export class SceneService {
       compiled_prompt: compiledPromptReceipt,
     };
 
+    const generationProfile = generationProfileForAttempt(
+      attempt.cycle_attempt,
+      state.model_route.entries.map((entry) => entry.job_set_type),
+    );
     const baseGenerationContext = {
       scene_id: sceneId,
       attempt: attempt.number,
@@ -4503,6 +4512,9 @@ export class SceneService {
       model: attempt.route.model,
       model_version: attempt.route.model_version,
       job_set_type: attempt.route.job_set_type,
+      model_route: state.model_route.entries,
+      generation_profile: generationProfile,
+      resolution: generationProfile.resolution,
       quality: attempt.route.quality,
       route_hash: state.model_route.sha256,
       idempotency_key: attempt.generation_idempotency_key,
@@ -4707,6 +4719,8 @@ export class SceneService {
       model: attempt.provider_metadata.model ?? attempt.route.model,
       model_version: attempt.provider_metadata.model_version ?? attempt.route.model_version,
       job_set_type: attempt.provider_metadata.job_set_type ?? attempt.route.job_set_type,
+      generation_profile_id: attempt.provider_metadata.generation_profile_id ?? attempt.route.id ?? null,
+      resolution: attempt.provider_metadata.resolution ?? attempt.route.resolution ?? null,
       quality: attempt.provider_metadata.quality ?? attempt.route.quality,
       source_width: attempt.provider_metadata.source_width ?? sourceMetadata.width,
       source_height: attempt.provider_metadata.source_height ?? sourceMetadata.height,
@@ -5203,6 +5217,8 @@ export class SceneService {
         model: attempt.route.model,
         model_version: attempt.route.model_version,
         job_set_type: attempt.route.job_set_type,
+        generation_profile_id: attempt.provider_metadata.generation_profile_id ?? attempt.route.id ?? null,
+        resolution: attempt.provider_metadata.resolution ?? attempt.route.resolution ?? null,
         quality: attempt.route.quality,
         generation_idempotency_key: attempt.generation_idempotency_key,
         provider_request_manifest: attempt.provider_request_manifest ?? null,
@@ -5218,6 +5234,8 @@ export class SceneService {
         model: item.route.model,
         model_version: item.route.model_version,
         job_set_type: item.route.job_set_type,
+        generation_profile_id: item.provider_metadata?.generation_profile_id ?? item.route.id ?? null,
+        resolution: item.provider_metadata?.resolution ?? item.route.resolution ?? null,
         quality: item.route.quality,
         generation_idempotency_key: item.generation_idempotency_key,
         prompt_sha256: item.compiled_prompt?.sha256 ?? null,

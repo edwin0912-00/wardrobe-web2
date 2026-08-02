@@ -72,7 +72,7 @@ test('a standard 65% frame is a large miss and consumes the next immutable route
   assert.equal(plan.mechanism, 'MECHANICAL_GUIDE');
   assert.equal(plan.model_action, 'NEXT_ROUTE_MODEL');
   assert.match(plan.decision_reason, /NEXT_ROUTE_MODEL/);
-  assert.equal(nextConfiguredSceneRepairRoute({ current_route_order: 1 }).job_set_type, 'nano_banana_flash');
+  assert.equal(nextConfiguredSceneRepairRoute({ current_route_order: 1 }).job_set_type, 'gpt_image_2');
   assert.equal(validateSceneRepairPlan(plan), plan);
 });
 
@@ -88,7 +88,7 @@ test('less than one percentage point progress on the same signature is stalled',
   assert.equal(plan.mechanism, 'MECHANICAL_GUIDE');
   assert.equal(plan.model_action, 'NEXT_ROUTE_MODEL');
   assert.equal(plan.progress_pp, 0.6);
-  assert.equal(nextConfiguredSceneRepairRoute({ current_route_order: 2 }).job_set_type, 'nano_banana_2');
+  assert.equal(nextConfiguredSceneRepairRoute({ current_route_order: 2 }).job_set_type, 'gpt_image_2');
 });
 
 test('a guide that already failed for the same signature requires model fallback', () => {
@@ -143,5 +143,5 @@ test('a deterministic crop repairs for free and does not consume a model route',
 
 test('threshold weakening and exhausted route entries are rejected', () => {
   assert.throws(() => normalizeSceneDefect(failure({ delivery_band: [65, 88] })), /immutable preset lock/);
-  assert.throws(() => planSceneRepair({ ...failure(), current_route_order: 3 }), /No configured next route model/);
+  assert.throws(() => planSceneRepair({ ...failure(), current_route_order: 5 }), /No configured next route model/);
 });

@@ -136,6 +136,45 @@ test('builds exact two-phase argv and only sends quality to GPT Image 2', () => 
   );
 });
 
+test('uses the immutable per-attempt GPT Image 2 quality and resolution rather than provider defaults', async () => {
+  const paths = await mediaFixture();
+  let argv;
+  const provider = oneShotProvider({
+    async commandRunner(_binary, args) {
+      argv = args;
+      return { stdout: JSON.stringify(completedJob('gpt_image_2', {
+        params: { aspect_ratio: '3:4', resolution: '1k', quality: 'low' },
+      })), exitCode: 0 };
+    },
+    async fetchImpl() { return pngResponse(); },
+  });
+  const response = await provider.generate({
+    phase: 'outfit',
+    model: 'gpt_image_2',
+    job_set_type: 'gpt_image_2',
+    model_name: 'GPT Image 2',
+    resolution: '1k',
+    quality: 'low',
+    generation_profile: {
+      id: 'gpt_image_2.low_1k.initial',
+      resolution: '1k',
+      quality: 'low',
+      repair_kind: 'INITIAL',
+    },
+    prompt: 'portrait',
+    idempotencyKey: 'f'.repeat(64),
+    references: {
+      avatar: { artifact: { path: paths.avatar, digest: MOCK_SHA256 } },
+      identity: { artifact: { path: paths.identity, digest: MOCK_SHA256 } },
+    },
+  });
+  assert.equal(argv[argv.indexOf('--resolution') + 1], '1k');
+  assert.equal(argv[argv.indexOf('--quality') + 1], 'low');
+  assert.equal(response.metadata.generation_profile.id, 'gpt_image_2.low_1k.initial');
+  assert.equal(response.metadata.resolution, '1k');
+  assert.equal(response.metadata.quality, 'low');
+});
+
 test('normalizes the Nano Banana Pro CLI alias while keeping the internal route', async (t) => {
   const paths = await mediaFixture();
   const run = async (responseJob, expectedModel = 'nano_banana_2') => {

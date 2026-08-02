@@ -642,6 +642,28 @@ Help request: NONE.
 ---
 
 Agent ID: codex-main
+Task ID: BETA-GPT-IMAGE-2-LADDER-20260802
+Pipeline: LOOK.01–06 · BACKGROUND.02 · UNIVERSE.03–04
+State: READY_FOR_BETA_DEPLOY
+Decision: new image generation no longer starts on Nano Banana. Every new
+avatar, item-conditioning and scene job uses the versioned GPT Image 2 ladder:
+`low / 1K` initial, two materially different `low / 1K` QA repairs, then
+`medium / 2K`, then `high / 4K`. Nano aliases remain readable only for a
+previously persisted legacy job; they are not selected for a new job.
+Code: TESTED — focused route, provider, core, scene and repair suites 221/221
+PASS; scene-service 58/58 PASS; `verify:contracts` and `verify:canon` PASS.
+Beta: NOT_DEPLOYED — exact commit is created by this release atom; do not use
+older board entries that describe Nano as the fast route.
+Journey: NOT_RUN — no new paid provider request was spent for this policy
+change.
+weakened_checks: none.
+Next action: fast-forward this exact candidate into `beta`, activate it through
+`tools/deploy-beta-release.mjs --apply`, then verify public release SHA and
+run one controlled new-job journey.
+
+---
+
+Agent ID: codex-main
 Task ID: BETA-RELEASE-GATE-STALE-SCENE-20260801
 Pipeline: Release safety · shared beta runtime
 State: TESTED — READY_FOR_DEPLOY

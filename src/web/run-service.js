@@ -15,7 +15,7 @@ import path from 'node:path';
 import sharp from 'sharp';
 import { FilesystemArtifactStore } from '../runner/artifact-store.js';
 import { verifyCoreQaReceipt } from '../runner/core-qa-receipt.js';
-import { IMAGE_MODEL_ROUTE } from '../runner/model-policy.js';
+import { IMAGE_MODEL_ROUTE, GPT_IMAGE_2_LADDER_VERSION, generationProfileForAttempt } from '../runner/model-policy.js';
 import { PipelineRunner } from '../runner/pipeline-runner.js';
 import { assessImageQuality, normalizeReference } from '../conditioning/index.mjs';
 import { normalizeWhitePngBytes } from '../qa/white-normalizer.mjs';
@@ -472,11 +472,10 @@ function publicRun(state) {
 
 export class RunService {
   constructor({ rootDirectory, provider, vlm, assetGenerator, generationRoute = IMAGE_MODEL_ROUTE, projectRoot = path.resolve(import.meta.dirname, '..', '..'), clock = () => new Date(), observer = null }) {
-    if (!Array.isArray(generationRoute) || generationRoute.length < 1
-      || new Set(generationRoute).size !== generationRoute.length
-      || generationRoute.some((model) => !IMAGE_MODEL_ROUTE.includes(model))) {
-      throw new TypeError('generationRoute must contain unique allowed Zeely image models');
+    if (!Array.isArray(generationRoute) || generationRoute.length < 1) {
+      throw new TypeError('generationRoute must contain immutable Zeely image profiles');
     }
+    generationRoute.forEach((_, index) => generationProfileForAttempt(index + 1, generationRoute));
     this.rootDirectory = path.resolve(rootDirectory);
     this.provider = provider;
     this.vlm = vlm;
@@ -608,6 +607,7 @@ export class RunService {
       schema_version: '1.0.0', run_id: runId, status: 'QUEUED', phase: 'UPLOADED', message: 'Inputs accepted',
       created_at: now, updated_at: now, inputs: { person: personPath, identity_detail: identityDetailPath, garments: garmentPaths, outfit_text: outfitText.trim(), generate_scene: Boolean(generateScene), ...(importedApprovedAvatar ? { approved_avatar: importedApprovedAvatar } : {}) },
       image_model_route: [...this.generationRoute],
+      image_model_route_version: GPT_IMAGE_2_LADDER_VERSION,
       ...(this.maxOrderedReferences === null ? {} : { max_ordered_references: this.maxOrderedReferences }),
       garments: [], conflicts: [], qa: {}, outputs: {}, error: null,
       visual_epoch: 1,
@@ -1043,7 +1043,12 @@ export class RunService {
       // Test fixtures never ship with a product release. Production QA relies
       // exclusively on the immutable user evidence and generated candidate.
       quality_references: [],
-      model_route: [...this.generationRoute], max_attempts: this.generationRoute.length, conditioning_max_attempts: this.generationRoute.length,
+      model_route: [...this.generationRoute],
+      max_attempts: this.generationRoute.length,
+      // Conditioning is a separate evidence-preparation lane, not image
+      // synthesis. Do not multiply its VLM work merely because GPT Image 2
+      // has a five-step image ladder.
+      conditioning_max_attempts: 2,
       ...(state.inputs.approved_avatar ? { approved_avatar_reference: state.inputs.approved_avatar } : {}),
     };
     await atomicJson(jobPath, job);
@@ -1142,8 +1147,9 @@ export class RunService {
     await this.#write(state, { phase: 'OPTIONAL_SCENE', inner_state: null, message: 'Генеруємо додатковий редакційний кадр' });
     const sceneDirectory = path.join(this.runDirectory(state.run_id), 'scene');
     for (const [index, model] of this.generationRoute.entries()) {
+      const generationProfile = generationProfileForAttempt(index + 1, this.generationRoute);
       const response = await this.assetGenerator.generateScene({
-        approvedOutfitPath, model, workDirectory: sceneDirectory, operationId: `${state.run_id}-scene-${index + 1}`,
+        approvedOutfitPath, model, generationProfile, workDirectory: sceneDirectory, operationId: `${state.run_id}-scene-${index + 1}`,
         prompt: 'Using ATTACHMENT_1 [APPROVED_OUTFIT], create one memorable high-fashion editorial photograph with the exact same approved person and complete outfit. Preserve identity, face, hair, body proportions, every item color, texture, logo, text and fit. Place the subject in a bold contemporary editorial studio environment with sculptural light and a confident pose. No text overlay, no brand invention, no wardrobe changes.',
       });
       const candidatePath = path.join(sceneDirectory, `candidate-${index + 1}.png`);

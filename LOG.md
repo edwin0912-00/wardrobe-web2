@@ -1573,3 +1573,17 @@ Change: ran one real paid avatar → outfit journey on beta after isolating the 
 Why: prior paid attempts failed before generation because the persistent beta worker shared desktop Codex state and returned empty/timeout VLM results; unit tests did not exercise that host-level contention.
 Evidence: run `1638c656-4be6-46b9-bfaa-595109db03d6` completed; Higgsfield jobs `ba148144-0d22-467a-b9d5-1fc5d16978cf` and `7986c924-e831-4ed7-9c37-949609858925`; conditioning/avatar/outfit QA PASS; public `/api/health` ready with release SHA `c1d75ce8e9c4921e72d6b2ecb349481f00c89aef`.
 weakened_checks: none. Background/Fashion Shoot/video were not charged in this atom.
+
+2026-08-02 · Current new-image route override · candidate pending deploy
+Change: new avatar, garment-conditioning and scene jobs use GPT Image 2 only:
+low/1K initial, two distinct low/1K QA repair attempts, medium/2K escalation,
+then high/4K final escalation. The generation profile is sent as provider
+request configuration and stored with the durable request/receipt.
+Why: Nano Banana and Nano Banana Pro frequently returned unsuitable images.
+Legacy Nano identifiers remain accepted solely to reopen or audit historical
+jobs; they cannot be selected for a new job.
+Evidence: focused route/provider/core/scene suite 221/221 PASS; scene-service
+58/58 PASS; contract and canon verifiers PASS.
+Beta: NOT_DEPLOYED at the time of this log entry; a release record must name
+the exact activated SHA after `tools/deploy-beta-release.mjs --apply`.
+weakened_checks: none.
