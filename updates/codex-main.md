@@ -664,6 +664,21 @@ run one controlled new-job journey.
 ---
 
 Agent ID: codex-main
+Task ID: BETA-GPT-IMAGE-2-LADDER-20260802
+State: LIVE
+Code: `c673a5d40573bd1830b0643c723b9557a496a453`; activation-record source:
+this commit.
+Beta: LIVE — prior product activation `bb781c2c542c1c6c91f0fdb6298c2c0470578dbf`,
+`product-bb781c2c-d3e13b84b4e5`; local and external health both `ready`.
+Safety: before activation the release owner stopped two active local provider
+wait processes and durably cancelled the one remaining Fashion Shoot. No web
+daemon, profile, completed result or saved look was deleted.
+Journey: NOT_RUN on the new route after activation.
+weakened_checks: none.
+
+---
+
+Agent ID: codex-main
 Task ID: BETA-RELEASE-GATE-STALE-SCENE-20260801
 Pipeline: Release safety · shared beta runtime
 State: TESTED — READY_FOR_DEPLOY

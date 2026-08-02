@@ -1587,3 +1587,14 @@ Evidence: focused route/provider/core/scene suite 221/221 PASS; scene-service
 Beta: NOT_DEPLOYED at the time of this log entry; a release record must name
 the exact activated SHA after `tools/deploy-beta-release.mjs --apply`.
 weakened_checks: none.
+
+2026-08-02 · GPT Image 2 ladder beta activation
+Change: activated the tested GPT Image 2 ladder release through the dedicated
+beta deploy tool after active generation work was cancelled by the release
+owner.
+Evidence: public and local health both returned `ready`; product release SHA
+`bb781c2c542c1c6c91f0fdb6298c2c0470578dbf`, cache
+`product-bb781c2c-d3e13b84b4e5`.
+Safety: two local Higgsfield wait processes were stopped; the remaining active
+Fashion Shoot was durably marked CANCELLED. No completed output was removed.
+weakened_checks: none.

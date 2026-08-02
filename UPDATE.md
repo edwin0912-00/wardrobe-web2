@@ -1266,3 +1266,13 @@ facts.
   PASS; scene-service 58/58 PASS; `verify:contracts` and `verify:canon` PASS.
 - Deployment status at this update: candidate not yet activated. The release
   record must carry the exact public release SHA after deploy.
+
+### 2026-08-02 · GPT IMAGE 2 LADDER ACTIVATED
+
+- The ladder was activated through `tools/deploy-beta-release.mjs --apply`.
+  Activated product SHA: `bb781c2c542c1c6c91f0fdb6298c2c0470578dbf`; cache:
+  `product-bb781c2c-d3e13b84b4e5`.
+- Both local and external health checks returned `ready`.
+- The release owner cancelled the remaining active Fashion Shoot and stopped
+  its two local provider wait processes before the restart; no completed
+  output or saved profile data was deleted.
