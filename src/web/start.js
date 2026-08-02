@@ -136,6 +136,7 @@ const videoService = createVideoRuntime({
   openRouterApiKey: process.env.OPENROUTER_API_KEY,
   assetUrlResolver: videoSourceBridge.videoAssetUrlResolver,
   fashionVideoReferenceResolver,
+  fashionVideoQaMode: process.env.ZEELY_FASHION_VIDEO_QA_MODE ?? 'strict',
 });
 startupTrace('video_runtime_ready');
 // A video create receipt is durable before the provider wait starts.  Recover

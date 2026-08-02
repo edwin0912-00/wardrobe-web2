@@ -50,6 +50,17 @@ export const SALVAGE_BLOCKING_REFERENCE_CHECKS = Object.freeze([
   'identity_and_outfit_every_subject_cut',
 ]);
 
+// `delivery` is an explicit closed-beta policy selected by the operator: it
+// keeps evidence and reports all visual mismatches, but only blocks a Fashion
+// Video when it is unsafe to show (reference performer/reused footage), when
+// its cut coverage is unprovable, or when its MP4 cannot technically play.
+// `strict` remains the default for every other runtime.
+const FASHION_VIDEO_QA_MODES = new Set(['strict', 'delivery']);
+const DELIVERY_SAFETY_REFERENCE_CHECKS = Object.freeze([
+  'cut_coverage_complete',
+  'no_reference_performer_pixels',
+]);
+
 const SHA256 = /^[a-f0-9]{64}$/;
 const CUT_PEOPLE = new Set(['APPROVED_AVATAR_ONLY', 'NO_PERSON', 'REFERENCE_PERFORMER', 'MIXED_OR_UNKNOWN']);
 
@@ -152,6 +163,12 @@ function validatedMicroCutCoverage(coverage, durationSeconds) {
     && !['REFERENCE_PERFORMER', 'MIXED_OR_UNKNOWN'].includes(cut.visible_people));
   return {
     pass,
+    // This is intentionally narrower than `pass`: the delivery beta accepts
+    // a recorded identity/item mismatch as an advisory result, but never an
+    // uninspected span or a possible surviving source performer.
+    deliverySafetyPass: previousEnd >= expectedEndMs - 125
+      && cuts.every((cut) => cut.reference_performer_visible === false
+        && ['APPROVED_AVATAR_ONLY', 'NO_PERSON'].includes(cut.visible_people)),
     cutCount: cuts.length,
     sampleRateFps: coverage.sample_rate_fps,
     inspectedDurationMs: previousEnd,
@@ -406,6 +423,8 @@ export class VideoService {
 
   #automaticQaFn;
 
+  #fashionVideoQaMode;
+
   /**
    * @param {object} options
    * @param {object} options.provider — HiggsfieldVideoProvider instance
@@ -419,6 +438,7 @@ export class VideoService {
     finalizer = {},
     fashionVideoReferenceResolver = null,
     automaticQaFn = null,
+    fashionVideoQaMode = 'strict',
   } = {}) {
     if (!provider) {
       throw new VideoServiceError('A video provider is required', {
@@ -430,12 +450,18 @@ export class VideoService {
         code: 'SERVICE_MISCONFIGURED',
       });
     }
+    if (!FASHION_VIDEO_QA_MODES.has(fashionVideoQaMode)) {
+      throw new VideoServiceError(`Unknown Fashion Video QA mode: ${String(fashionVideoQaMode)}`, {
+        code: 'SERVICE_MISCONFIGURED',
+      });
+    }
     this.#provider = provider;
     this.#store = clipStore;
     this.#clock = clock;
     this.#finalizer = finalizer;
     this.#fashionVideoReferenceResolver = fashionVideoReferenceResolver;
     this.#automaticQaFn = automaticQaFn;
+    this.#fashionVideoQaMode = fashionVideoQaMode;
   }
 
   async fashionVideoCapability({
@@ -1421,7 +1447,8 @@ export class VideoService {
     } else {
       await this.#store.saveIdentityItemQa(clipId, receiptBytes);
     }
-    const pass = firstDecision === 'PASS' && lastDecision === 'PASS';
+    const strictPass = firstDecision === 'PASS' && lastDecision === 'PASS';
+    const pass = strictPass || this.#fashionVideoQaMode === 'delivery';
     const referencePass = salvageReview
       ? clip.salvageReferenceAdherenceQa?.pass === true
       : clip.referenceAdherenceQa?.pass === true;
@@ -1449,6 +1476,8 @@ export class VideoService {
             : 'PASS',
       [identityField]: {
         pass,
+        strictPass,
+        advisory: !strictPass && this.#fashionVideoQaMode === 'delivery',
         firstDecision,
         lastDecision,
         evaluator: receipt.evaluator ?? null,
@@ -1519,13 +1548,18 @@ export class VideoService {
         status: 409,
       });
     }
-    const blockingChecks = salvageReview
+    const strictBlockingChecks = salvageReview
       ? SALVAGE_BLOCKING_REFERENCE_CHECKS
       : requiredChecks;
-    const pass = cutCoverage.pass
-      && blockingChecks.every((name) => decisions.get(name) === 'PASS');
+    const strictPass = cutCoverage.pass
+      && strictBlockingChecks.every((name) => decisions.get(name) === 'PASS');
+    const deliverySafetyPass = cutCoverage.deliverySafetyPass === true
+      && DELIVERY_SAFETY_REFERENCE_CHECKS.every((name) => decisions.get(name) === 'PASS');
+    const pass = this.#fashionVideoQaMode === 'delivery'
+      ? deliverySafetyPass
+      : strictPass;
     const nonBlockingFailures = salvageReview
-      ? requiredChecks.filter((name) => !blockingChecks.includes(name)
+      ? requiredChecks.filter((name) => !strictBlockingChecks.includes(name)
         && decisions.get(name) === 'FAIL')
       : [];
     const receiptBytes = Buffer.from(`${JSON.stringify(receipt, null, 2)}\n`);
@@ -1568,13 +1602,21 @@ export class VideoService {
           : identityPass ? 'PASS' : 'FAIL',
       [qaField]: {
         pass,
+        strictPass,
+        deliverySafetyPass,
+        qaMode: this.#fashionVideoQaMode,
         decisions: Object.fromEntries(requiredChecks.map((name) => [name, decisions.get(name)])),
         cutCoverage,
         acceptanceContract: salvageReview
           ? 'SALVAGE_HERO_ONLY_V1'
           : 'FULL_REFERENCE_TRANSFER_V1',
-        blockingChecks: [...blockingChecks],
-        nonBlockingFailures,
+        blockingChecks: this.#fashionVideoQaMode === 'delivery'
+          ? [...DELIVERY_SAFETY_REFERENCE_CHECKS]
+          : [...strictBlockingChecks],
+        nonBlockingFailures: this.#fashionVideoQaMode === 'delivery'
+          ? requiredChecks.filter((name) => !DELIVERY_SAFETY_REFERENCE_CHECKS.includes(name)
+            && decisions.get(name) === 'FAIL')
+          : nonBlockingFailures,
         evaluator: receipt.evaluator ?? null,
       },
       [qaShaField]: referenceAdherenceQaSha256,

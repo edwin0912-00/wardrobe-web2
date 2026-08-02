@@ -367,7 +367,7 @@ test('recoverSubmittedClip refuses an ambiguous paid job even when the caller ec
     assert.deepEqual(submitting.immutableRequestBinding.appearance_references, [{
       role: 'garment_detail',
       sha256: sha256(garmentBytes),
-      provider_label: '@Image 2',
+      provider_label: '[Image 2]',
       white_background_verified: true,
     }]);
     await assert.rejects(
@@ -566,9 +566,9 @@ test('createClip rechecks and passes the exact video reference binding', async (
     });
     assert.deepEqual(requests[0].videoPaths.map((file) => path.basename(file)), ['style-reference.mp4']);
     assert.equal(requests[0].durationSeconds, 13);
-    assert.match(requests[0].prompt, /@Video 1.*private reference-only directing material, never delivery media/);
-    assert.match(requests[0].prompt, /@Image 2 is an optional white-background face-detail reference/);
-    assert.match(requests[0].prompt, /@Image 3 is a white-background garment-only evidence card/);
+    assert.match(requests[0].prompt, /\[Video 1\].*private reference-only directing material, never delivery media/);
+    assert.match(requests[0].prompt, /\[Image 2\] is an optional white-background face-detail reference/);
+    assert.match(requests[0].prompt, /\[Image 3\] is a white-background garment-only evidence card/);
     assert.match(requests[0].prompt, /Every final frame must be newly generated/);
     assert.match(requests[0].prompt, /No source performer face, body, skin, hair, clothing, silhouette or motion-blurred fragment may survive/);
     assert.deepEqual(
@@ -587,7 +587,7 @@ test('createClip rechecks and passes the exact video reference binding', async (
     );
     assert.deepEqual(
       saved.appearanceReferences.map((reference) => reference.provider_label),
-      ['@Image 2', '@Image 3'],
+      ['[Image 2]', '[Image 3]'],
     );
     const receipt = JSON.parse(await readFile(
       path.join(store.clipDir(requests[0].sourceBinding.clipId), 'create-receipt.json'),
@@ -599,7 +599,7 @@ test('createClip rechecks and passes the exact video reference binding', async (
     );
     assert.deepEqual(
       receipt.request.reference_bindings.images.map((binding) => binding.provider_label),
-      ['@Image 1', '@Image 2', '@Image 3'],
+      ['[Image 1]', '[Image 2]', '[Image 3]'],
     );
   });
 });
@@ -1376,6 +1376,8 @@ test('recordIdentityItemQa makes a semantic RETRY fail a technically valid clip'
     assert.equal(result.status, 'FAIL');
     assert.deepEqual(result.identityItemQa, {
       pass: false,
+      strictPass: false,
+      advisory: false,
       firstDecision: 'RETRY',
       lastDecision: 'PASS',
       evaluator: 'test/evaluator',
@@ -1384,6 +1386,75 @@ test('recordIdentityItemQa makes a semantic RETRY fail a technically valid clip'
     const saved = await store.load('semantic-clip');
     assert.equal(saved.status, 'FAIL');
     assert.equal(saved.identityItemQaFile, 'identity-item-qa.json');
+  });
+});
+
+test('delivery QA mode records visual misses but delivers an otherwise safe Fashion Video', async () => {
+  await withTempDir(async (dir) => {
+    const { provider } = makeStubProvider();
+    const store = new ClipStore(dir);
+    const service = new VideoService({
+      provider,
+      clipStore: store,
+      fashionVideoQaMode: 'delivery',
+    });
+    await store.save('delivery-qa-clip', {
+      clipId: 'delivery-qa-clip', jobId: 'job_delivery_qa', status: 'NEEDS_QA',
+      durationSeconds: 5, sourceSha256: 'a'.repeat(64), qa: { pass: true },
+      motionReferenceBinding: { sha256: 'b'.repeat(64) },
+    });
+    const identity = await service.recordIdentityItemQa('delivery-qa-clip', {
+      clip_id: 'delivery-qa-clip', job_id: 'job_delivery_qa', source_sha256: 'a'.repeat(64),
+      results: { first: { decision: 'RETRY' }, last: { decision: 'PASS' } },
+    });
+    assert.equal(identity.status, 'NEEDS_QA');
+    assert.deepEqual(identity.identityItemQa, {
+      pass: true,
+      strictPass: false,
+      advisory: true,
+      firstDecision: 'RETRY',
+      lastDecision: 'PASS',
+      evaluator: null,
+    });
+    const reference = await service.recordReferenceAdherenceQa('delivery-qa-clip', {
+      clip_id: 'delivery-qa-clip', job_id: 'job_delivery_qa',
+      source_sha256: 'a'.repeat(64), motion_reference_sha256: 'b'.repeat(64),
+      cut_coverage: microCutCoverage(),
+      checks: referenceTransferChecks('camera_and_framing'),
+    });
+    assert.equal(reference.status, 'PASS');
+    assert.equal(reference.referenceAdherenceQa.pass, true);
+    assert.equal(reference.referenceAdherenceQa.strictPass, false);
+    assert.equal(reference.referenceAdherenceQa.deliverySafetyPass, true);
+    assert.deepEqual(reference.referenceAdherenceQa.nonBlockingFailures, ['camera_and_framing']);
+  });
+});
+
+test('delivery QA mode still blocks a reference performer leak', async () => {
+  await withTempDir(async (dir) => {
+    const { provider } = makeStubProvider();
+    const store = new ClipStore(dir);
+    const service = new VideoService({
+      provider,
+      clipStore: store,
+      fashionVideoQaMode: 'delivery',
+    });
+    await store.save('delivery-leak-clip', {
+      clipId: 'delivery-leak-clip', jobId: 'job_delivery_leak', status: 'NEEDS_QA',
+      durationSeconds: 5, sourceSha256: 'a'.repeat(64), qa: { pass: true },
+      identityItemQa: { pass: true }, motionReferenceBinding: { sha256: 'b'.repeat(64) },
+    });
+    const result = await service.recordReferenceAdherenceQa('delivery-leak-clip', {
+      clip_id: 'delivery-leak-clip', job_id: 'job_delivery_leak',
+      source_sha256: 'a'.repeat(64), motion_reference_sha256: 'b'.repeat(64),
+      cut_coverage: microCutCoverage({
+        decision: 'FAIL', referencePerformerVisible: true, visiblePeople: 'REFERENCE_PERFORMER',
+      }),
+      checks: referenceTransferChecks('no_reference_performer_pixels'),
+    });
+    assert.equal(result.status, 'FAIL');
+    assert.equal(result.referenceAdherenceQa.pass, false);
+    assert.equal(result.referenceAdherenceQa.deliverySafetyPass, false);
   });
 });
 

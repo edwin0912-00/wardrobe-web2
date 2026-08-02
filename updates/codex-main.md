@@ -523,6 +523,27 @@ Help request: NONE.
 
 ---
 
+Agent ID: codex-main
+Task ID: MAIN-FASHION-VIDEO-DELIVERY-001
+Pipeline: VIDEO.01–05 · approved white master → private style reference → Seedance → returned MP4
+State: READY_FOR_DEPLOY
+Decision: the closed beta uses explicit `delivery` QA policy for Fashion Video.
+It records identity/item/style misses as advisory so an otherwise playable clip
+returns to the user, while it still blocks unplayable media, missing cut
+coverage, reused reference footage, or any reference-performer pixel. The
+policy is runtime-configured; `strict` remains the code default.
+Code: pending commit in this atom. Tests: video service/runtime/routes 71/71
+PASS; full video suite will be rerun after commit.
+Beta: PENDING_DEPLOY — set `ZEELY_FASHION_VIDEO_QA_MODE=delivery` in beta's
+runner only with this exact code release.
+Journey: PENDING — submit one current approved white master through the live
+Fashion Video route and verify a persisted MP4 is returned.
+weakened_checks: identity/item/style checks advisory only in closed beta;
+reference-performer / raw-reference / cut-coverage / technical delivery remain hard.
+Help request: NONE.
+
+---
+
 Agent ID: codex-live-40
 Task ID: BETA-FASHION-SHOOT-CROWN-CROP-002
 Pipeline: UNIVERSE.03–04 · Create Universe / Fashion Shoot contract alignment

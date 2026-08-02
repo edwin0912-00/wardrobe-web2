@@ -121,6 +121,7 @@ export function createVideoRuntime({
   openRouterApiKey,
   assetUrlResolver,
   fashionVideoReferenceResolver = null,
+  fashionVideoQaMode = 'strict',
   qaEvaluator = null,
   commandRunner = execFileAsync,
   ffmpegRunner = execFileAsync,
@@ -146,6 +147,7 @@ export function createVideoRuntime({
     provider,
     clipStore: new ClipStore(path.join(runtimeRoot, 'video-clips')),
     fashionVideoReferenceResolver,
+    fashionVideoQaMode,
     automaticQaFn: fashionVideoReferenceResolver
       ? createVideoSemanticQaEvaluator({
           evaluator: semanticEvaluator,
