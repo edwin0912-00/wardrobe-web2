@@ -200,6 +200,10 @@
      * may also return one hash-bound native RGBA cutout plus its compact derivative.
      * If beta has not attached that native asset yet, ensureMasterCutout() below may
      * derive it from the exact master bytes only; a preview is never a mask source. */
+    function isPreviewOnlyImageUrl(value) {
+      return /[?&](?:preview|thumbnail|derivative|max_edge|width|quality)=/i.test(String(value || ''));
+    }
+
     function lookAssets(source, fallbackMaster) {
       source = source || {};
       /* Beta revisions have used both a flat result object and a nested `outputs` /
@@ -210,17 +214,24 @@
         source.approved_look].filter(function (value) {
           return value && typeof value === 'object' && !Array.isArray(value);
         });
-      function first(names) {
+      function first(names, accept) {
         for (var i = 0; i < envelopes.length; i++) {
           for (var j = 0; j < names.length; j++) {
             var value = envelopes[i][names[j]];
-            if (value !== undefined && value !== null && value !== '') return value;
+            if (value !== undefined && value !== null && value !== '' && (!accept || accept(value))) return value;
           }
         }
         return null;
       }
-      var masterUrl = first(['masterUrl', 'master_image_url', 'avatar_outfit_master',
-        'avatar_outfit_url', 'image_url', 'resultUrl', 'mediaUrl']) || fallbackMaster || '';
+      var masterNames = ['masterUrl', 'master_image_url', 'avatar_outfit_master',
+        'avatar_outfit_url', 'image_url', 'resultUrl', 'mediaUrl'];
+      /* Keep a preview usable as a display fallback, but never let it become the
+       * source of local background removal.  The cutout is allowed only to read
+       * a full approved master returned by beta. */
+      var displayFallback = first(masterNames) || fallbackMaster || '';
+      var masterUrl = first(masterNames, function (value) {
+        return typeof value === 'string' && !isPreviewOnlyImageUrl(value);
+      }) || (!isPreviewOnlyImageUrl(fallbackMaster) ? fallbackMaster : '');
       var masterSha256 = first(['masterSha256', 'master_sha256', 'avatar_outfit_master_sha256',
         'avatar_outfit_sha256', 'image_sha256']) || null;
       var nativeEnvelope = first(['cutout_native', 'cutoutNative', 'native_cutout']);
@@ -248,7 +259,8 @@
         cutoutNativeSha256: nativeBound ? nativeSha256 : null,
         cutoutPreviewUrl: previewBound ? previewUrl : '',
         cutoutPreviewSha256: previewBound ? previewSha256 : null,
-        displayUrl: previewBound ? previewUrl : nativeBound ? nativeUrl : masterUrl,
+        displayFallback: displayFallback,
+        displayUrl: previewBound ? previewUrl : nativeBound ? nativeUrl : masterUrl || displayFallback,
         nativeBound: nativeBound,
         previewBound: previewBound,
       };
@@ -267,8 +279,8 @@
 
     function sameApprovedMaster(one, two) {
       if (!one || !two) return false;
-      var oneUrl = String(one.resultUrl || one.result || '');
-      var twoUrl = String(two.resultUrl || two.result || '');
+      var oneUrl = String(one.masterSourceUrl || one.resultUrl || one.result || '');
+      var twoUrl = String(two.masterSourceUrl || two.resultUrl || two.result || '');
       if (!oneUrl || oneUrl !== twoUrl) return false;
       var oneSha = String(one.masterSha256 || '').toLowerCase();
       var twoSha = String(two.masterSha256 || '').toLowerCase();
@@ -321,15 +333,16 @@
      * never re-runs segmentation or reads a preview as its source. A failure is silent
      * and safe: the approved master remains the visible result. */
     function ensureMasterCutout(look) {
-      if (!look || !look.resultUrl || look.cutoutNativeUrl || look.cutoutPending || look.cutoutAttempted) return;
+      var sourceUrl = look && (look.masterSourceUrl || (!isPreviewOnlyImageUrl(look.resultUrl) ? look.resultUrl : ''));
+      if (!look || !sourceUrl || look.cutoutNativeUrl || look.cutoutPending || look.cutoutAttempted) return;
       var cutout = global.WardrobeMasterCutout;
       if (!cutout || typeof cutout.create !== 'function') return;
-      var masterUrl = look.resultUrl;
+      var masterUrl = sourceUrl;
       var masterSha256 = look.masterSha256 || null;
       look.cutoutPending = true;
       /* Arguments are evaluated now, before any later profile poll can replace the
        * look object; the captured values below are used only to reject a stale reply. */
-      cutout.create(look.resultUrl, look.masterSha256).then(function (asset) {
+      cutout.create(masterUrl, look.masterSha256).then(function (asset) {
         var target = currentLookForCutout(look);
         if (!target || !sameApprovedMaster(target, {
           resultUrl: masterUrl,
@@ -482,8 +495,9 @@
           avatarId: record.avatar_id || null
         };
         var savedAssets = lookAssets(record, resultUrl);
-        saved.resultUrl = savedAssets.masterUrl || resultUrl;
+        saved.resultUrl = savedAssets.masterUrl || savedAssets.displayFallback || resultUrl;
         saved.result = saved.resultUrl;
+        saved.masterSourceUrl = savedAssets.masterUrl || '';
         saved.resultPreviewUrl = savedAssets.displayUrl !== saved.resultUrl ? savedAssets.displayUrl : null;
         saved.masterSha256 = savedAssets.masterSha256;
         saved.cutoutNativeUrl = savedAssets.cutoutNativeUrl;
@@ -623,7 +637,8 @@
               id: bridgeState.savedLook && bridgeState.savedLook.look_id || runId,
               runId: runId,
               lookId: bridgeState.savedLook && bridgeState.savedLook.look_id || null,
-              resultUrl: bridgeState.result.mediaUrl || bridgeState.result.masterUrl || bridgeState.result.urls[0] || '',
+              resultUrl: bridgeState.result.masterUrl || bridgeState.result.mediaUrl || bridgeState.result.urls[0] || '',
+              masterSourceUrl: bridgeState.result.masterUrl || '',
               resultPreviewUrl: null,
               items: items.slice(), bg: null, shootStyle: null, videoStyle: null,
               shot: false, video: false, actionResults: {}
@@ -631,14 +646,15 @@
             at = looks.length - 1;
             items = [];
           } else {
-            var nextResultUrl = bridgeState.result.mediaUrl || bridgeState.result.masterUrl || bridgeState.result.urls[0] || looks[at].resultUrl;
+            var nextResultUrl = bridgeState.result.masterUrl || bridgeState.result.mediaUrl || bridgeState.result.urls[0] || looks[at].resultUrl;
             if (looks[at].resultUrl !== nextResultUrl) looks[at].resultPreviewUrl = null;
             looks[at].resultUrl = nextResultUrl;
             if (bridgeState.savedLook) looks[at].lookId = bridgeState.savedLook.look_id;
           }
           var resultAssets = lookAssets(bridgeState.result, looks[at].resultUrl);
-          looks[at].resultUrl = resultAssets.masterUrl || looks[at].resultUrl;
+          looks[at].resultUrl = resultAssets.masterUrl || resultAssets.displayFallback || looks[at].resultUrl;
           looks[at].result = looks[at].resultUrl;
+          looks[at].masterSourceUrl = resultAssets.masterUrl || '';
           looks[at].resultPreviewUrl = resultAssets.displayUrl !== looks[at].resultUrl
             ? resultAssets.displayUrl : null;
           looks[at].masterSha256 = resultAssets.masterSha256;
@@ -2123,10 +2139,11 @@
         var l = current();
         var source = typeof asset === 'string' ? { image_url: asset } : asset;
         var assets = lookAssets(source, '');
-        if (!l || !assets.masterUrl) return false;
-        l.result = assets.masterUrl;
-        l.resultUrl = assets.masterUrl;
-        l.resultPreviewUrl = assets.displayUrl !== assets.masterUrl ? assets.displayUrl : null;
+        if (!l || !(assets.masterUrl || assets.displayFallback)) return false;
+        l.result = assets.masterUrl || assets.displayFallback;
+        l.resultUrl = l.result;
+        l.masterSourceUrl = assets.masterUrl || '';
+        l.resultPreviewUrl = assets.displayUrl !== l.result ? assets.displayUrl : null;
         l.masterSha256 = assets.masterSha256;
         l.cutoutNativeUrl = assets.cutoutNativeUrl;
         l.cutoutNativeSha256 = assets.cutoutNativeSha256;

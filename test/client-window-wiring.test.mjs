@@ -103,6 +103,8 @@ test('result presentation keeps a native cutout through profile polling and rese
     'the large result mirror must prefer the native-resolution transparent master');
   assert.match(display, /surface === 'thumbnail'/,
     'only thumbnail presentation may prefer the compact derivative');
+  assert.match(ui, /function isPreviewOnlyImageUrl/,
+    'the answer mirror must identify compact URLs before requesting local segmentation');
 });
 
 test('a first failed look exposes recovery before the empty-look waiting orb', () => {

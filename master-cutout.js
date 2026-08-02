@@ -11,8 +11,18 @@
 (function (global) {
   'use strict';
 
-  var CACHE_NAME = 'wardrobe-cutout-native-v1';
+  /* Bump the cache name whenever the native alpha policy changes.  A 640px or
+   * white-matte legacy derivative must never survive into the answer mirror. */
+  var CACHE_NAME = 'wardrobe-cutout-native-v2';
   var SHA256 = /^[0-9a-f]{64}$/i;
+
+  function isPreviewOnlyUrl(value) {
+    var source = String(value || '');
+    /* Presentation query values identify a compact derivative, not the immutable
+     * approved master.  Refuse it here too: UI selection mistakes must fail safe
+     * rather than segmenting a low-resolution preview. */
+    return /[?&](?:preview|thumbnail|derivative|max_edge|width|quality)=/i.test(source);
+  }
 
   function bytesToHex(bytes) {
     return Array.prototype.map.call(bytes, function (value) {
@@ -97,6 +107,9 @@
   async function create(masterUrl, knownSourceSha256) {
     var sourceUrl = String(masterUrl || '');
     if (!sourceUrl || typeof global.fetch !== 'function') return null;
+    if (isPreviewOnlyUrl(sourceUrl)) {
+      throw new Error('Preview derivative is not an approved master');
+    }
     var sourceResponse = await global.fetch(sourceUrl, {
       credentials: 'same-origin',
       cache: 'force-cache',
@@ -129,7 +142,11 @@
       global.WardrobeMediaPreview.removeEdgeBackground(pixels, {
         whiteThreshold: 238,
         whiteChroma: 18,
-        featherAlpha: 150,
+        /* On the dark answer mirror a semitransparent white matte reads as a
+         * low-quality pixel fringe.  This operation is at native source size;
+         * remove the edge-connected white matte fully, then make the compact
+         * WebP only from this native alpha asset. */
+        featherAlpha: 0,
       });
       context.putImageData(pixels, 0, 0);
       nativeBlob = await pngBlob(canvas);
