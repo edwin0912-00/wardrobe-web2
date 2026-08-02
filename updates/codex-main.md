@@ -1,3 +1,25 @@
+Agent ID: codex-live-40
+Task: FASHION-VIDEO-START-REGRESSION-20260802
+Product line: beta-placeholder → main bridge
+Pipeline: VIDEO.01 style reference → VIDEO.02 provider create
+State: CODE_VERIFIED — release-owner integration/deploy required
+Finding: Fashion Video was returning HTTP 502 before a Higgsfield job existed.
+The reference-transfer prompt began with `@Video 1`; Higgsfield CLI interprets
+an argument beginning with `@` as a response-file path and rejected it with
+`Failed to read Video 1 ...`. This was a local CLI parsing regression, not a
+quality-QA failure and not a rejected approved master.
+Change: provider-facing labels are now `[Video 1]`, `[Image 1]` and so on;
+the exact reference order is unchanged. The CLI argv now uses its documented
+`--video-references` and `--image-references` flags rather than short aliases.
+Evidence: exact failed hard-sun package (locked style MP4 + approved white
+master) passed `higgsfield generate cost seedance_2_0` at 67.5 credits with no
+job created; focused motion-plan/provider tests PASS 43/43.
+Beta: NOT_DEPLOYED. Journey: no paid video created by this repair.
+weakened_checks: none — the private style video remains directing-only and
+reference-performer leakage remains a delivery blocker.
+
+---
+
 Agent ID: codex-main
 Cross-block handoff: Fashion Video style-owned presentation geometry
 Product line: beta-placeholder

@@ -50,9 +50,9 @@ test('a verified motion reference travels through the dedicated video flag', () 
     ...BASE,
     videoPaths: ['/runtime/references/walk.mp4'],
   });
-  assert.equal(flag(args, '--image'), BASE.mediaPaths[0]);
-  assert.equal(flag(args, '--video'), '/runtime/references/walk.mp4');
-  assert.ok(args.indexOf('--video') < args.indexOf('--image'));
+  assert.equal(flag(args, '--image-references'), BASE.mediaPaths[0]);
+  assert.equal(flag(args, '--video-references'), '/runtime/references/walk.mp4');
+  assert.ok(args.indexOf('--video-references') < args.indexOf('--image-references'));
 });
 
 test('a prompt that names geometry is refused', () => {

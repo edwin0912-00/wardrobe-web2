@@ -161,8 +161,11 @@ export function buildVideoCreateArgs({
   // (appearance authority). Reversing this order made the white-background
   // approved look the dominant start frame and reduced Fashion Video to a
   // passport-photo animation.
-  for (const videoPath of videoPaths) args.push('--video', videoPath);
-  for (const mediaPath of mediaPaths) args.push('--image', mediaPath);
+  // Use the canonical CLI flags documented by `higgsfield generate create`.
+  // The short aliases happen to work today, but are not part of this transport
+  // contract and made diagnosis of the prompt-token regression needlessly hard.
+  for (const videoPath of videoPaths) args.push('--video-references', videoPath);
+  for (const mediaPath of mediaPaths) args.push('--image-references', mediaPath);
   args.push('--json', '--no-color');
   return args;
 }

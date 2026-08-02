@@ -155,19 +155,24 @@ export function fashionVideoReferenceBindings({ appearanceRoles = [] } = {}) {
   const appearance = appearanceRoles.map((role, index) => Object.freeze({
     role,
     image_order: index + 2,
-    provider_label: `@Image ${index + 2}`,
+    // These are prompt labels, not CLI media-file syntax. Higgsfield CLI
+    // expands a token beginning with "@" as a local response-file path; a
+    // prompt that starts with "@Video 1" therefore fails before any job is
+    // created. Square-bracket labels preserve the ordered-reference meaning
+    // for Seedance without invoking that CLI parser feature.
+    provider_label: `[Image ${index + 2}]`,
   }));
   return Object.freeze({
     schema_version: 'fashion-video-reference-bindings-v1',
     motion_reference: Object.freeze({
       role: 'motion_reference',
       video_order: 1,
-      provider_label: '@Video 1',
+      provider_label: '[Video 1]',
     }),
     approved_white_master: Object.freeze({
       role: 'approved_white_master',
       image_order: 1,
-      provider_label: '@Image 1',
+      provider_label: '[Image 1]',
     }),
     appearance: Object.freeze(appearance),
   });

@@ -53,20 +53,21 @@ test('the reference-transfer prompt makes Video 1 style authority only and bans 
     appearanceRoles: ['identity_face', 'garment_detail'],
     cutSheet,
   });
-  assert.match(prompt, /@Video 1.*private reference-only directing material/);
+  assert.match(prompt, /\[Video 1\].*private reference-only directing material/);
   assert.match(prompt, /complete shot sequence, cut timing, transitions/);
   assert.match(prompt, /Every final frame must be newly generated/);
   assert.match(prompt, /Never splice, reuse, reveal, freeze, picture-in-picture, reflection, monitor image/);
-  assert.match(prompt, /@Image 1.*exact approved person.*complete approved outfit/);
+  assert.match(prompt, /\[Image 1\].*exact approved person.*complete approved outfit/);
   assert.match(prompt, /For every cut/);
   assert.match(prompt, /No source performer face, body, skin, hair, clothing/);
-  assert.match(prompt, /@Image 1.*exact pure-white background/);
-  assert.match(prompt, /@Image 2 is an optional white-background face-detail reference/);
-  assert.match(prompt, /@Image 3 is a white-background garment-only evidence card/);
+  assert.match(prompt, /\[Image 1\].*exact pure-white background/);
+  assert.match(prompt, /\[Image 2\] is an optional white-background face-detail reference/);
+  assert.match(prompt, /\[Image 3\] is a white-background garment-only evidence card/);
   assert.match(prompt, /CUT SHEET/);
   assert.match(prompt, /CUT 01 0ms–5000ms \| APPROVED_AVATAR_OR_EMPTY/);
   assert.match(prompt, /Never replace the reference environment/);
   assert.match(prompt, /Do not simplify the reference into a static portrait/);
+  assert.doesNotMatch(prompt, /(^|\s)@(?:Video|Image)\b/);
   assert.doesNotMatch(prompt, /blink|breathe|camera is effectively still/i);
 });
 
@@ -74,7 +75,7 @@ test('Fashion Video provider labels follow the exact appearance-reference array'
   const garmentOnly = buildFashionVideoReferencePrompt({
     appearanceRoles: ['garment_detail'],
   });
-  assert.match(garmentOnly, /@Image 2 is a white-background garment-only evidence card/);
+  assert.match(garmentOnly, /\[Image 2\] is a white-background garment-only evidence card/);
   assert.doesNotMatch(garmentOnly, /face-detail reference/);
 
   assert.throws(
