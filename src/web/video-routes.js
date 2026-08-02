@@ -77,10 +77,10 @@ function hasVerifiedFashionStyle(liveClip) {
 
 function publicVideoFailure(liveClip) {
   if (liveClip?.salvage?.status === 'NEEDS_QA') {
-    return 'QA вирізала фрагменти з reference-людиною. Hero-only версія проходить повторну перевірку.';
+    return 'Система залишила лише підтверджено чисті фрагменти без reference-людини. Коротша версія проходить повторну перевірку.';
   }
   if (liveClip?.salvage?.status === 'BLOCKED') {
-    return 'QA знайшла reference-людину, але hero-only монтаж недоступний у цьому runtime.';
+    return 'QA знайшла reference-людину, але система не має достатньо чистих фрагментів для безпечного короткого монтажу.';
   }
   if (liveClip?.failureCode === 'VIDEO_PROVIDER_JOB_NOT_FOUND') {
     return 'Higgsfield більше не має цей job. Нове відео не створювалося автоматично.';

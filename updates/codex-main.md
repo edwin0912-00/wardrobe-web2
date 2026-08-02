@@ -1398,6 +1398,11 @@ Beta: LIVE — public and local health report release SHA
 `e5531523b84d0ad4b5a26eea77c66aa7ee142cea`, `status=ready`.
 weakened_checks: none. The reference-performer gate remains blocking.
 
+Follow-up copy correction: QA detects reference-performer leakage; it does not
+"cut" pixels. When independently approved spans exist, the server-side
+salvage step assembles only those spans and then runs QA again. When no such
+span exists, the bounded automatic reconstruction retry is the only safe path.
+
 ---
 
 Agent ID: codex-main
