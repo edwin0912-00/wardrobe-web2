@@ -558,18 +558,15 @@
        *
        * screens 1.8    the silk is 8 s of film; less scroll than a room because it has no
        *                station to arrive at and nothing to read on it.
-       * handoverAt .72 from 72% of the intro's span the scroll drives ROOM ONE as well.
-       *                Both advance from here, so nothing freezes.
-       * fadeFrom  .932 the dissolve starts here. This gap (handoverAt -> fadeFrom) is how
-       *                much of room one's own footage plays HIDDEN behind the still-opaque
-       *                intro before reveal. The selected D master spends its opening on
-       *                the sofa/empty room, while the visible assembly begins around 4.4s.
-       *                Inverting this master's committed motion table puts that frame at
-       *                intro u=.932. The room therefore moves underneath the textile but
-       *                cannot leak through before the furniture and rails are readable.
-       *                Re-check this number if the master swaps again — it is fitted to
-       *                THIS file's motion table, not a universal constant. */
-      intro: { screens: 1.8, handoverAt: 0.72, fadeFrom: 0.932 },
+       * handoverAt .94 from 94% of the intro's span the scroll starts ROOM ONE as well.
+       *                The late handoff is deliberate: the second film must appear at its
+       *                sofa-only opening, not after the rails and clothes have assembled.
+       * fadeFrom  .98 the dissolve starts here. The .04 gap gives a readable fade while
+       *                keeping room one's motion under 1.10s by the end of the intro
+       *                (measured against this master's motion table), so the scarf hands
+       *                off to a calm room with no rails or garments in frame. Re-check both
+       *                numbers if the master swaps again — they are fitted to THIS table. */
+      intro: { screens: 1.8, handoverAt: 0.94, fadeFrom: 0.98 },
       /* CUT AT THE SEAM, DO NOT DISSOLVE.
        *
        * The default is 0.10 — a tenth of a leg spent with both films painted and

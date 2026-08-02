@@ -14,7 +14,7 @@ function tableLookup(table, local) {
   return table[index] + (table[index + 1] - table[index]) * ratio;
 }
 
-test('the textile remains above D until the measured rail-assembly moment', () => {
+test('the scarf hands off to the sofa-only opening before rails appear', () => {
   const screensPerLeg = Number(html.match(/screensPerLeg:\s*([0-9.]+)/)?.[1]);
   const intro = html.match(
     /intro:\s*\{\s*screens:\s*([0-9.]+),\s*handoverAt:\s*([0-9.]+),\s*fadeFrom:\s*([0-9.]+)\s*\}/
@@ -28,12 +28,17 @@ test('the textile remains above D until the measured rail-assembly moment', () =
   const totalScreens = introScreens + screensPerLeg * legCount;
   const introFraction = introScreens / totalScreens;
   const legsStart = introFraction * handoverAt;
-  const revealProgress = introFraction * fadeFrom;
-  const firstLegLocal = ((revealProgress - legsStart) / (1 - legsStart)) * legCount;
-  const revealTime = tableLookup(motion.legs[0].table, firstLegLocal);
+  const fadeStartProgress = introFraction * fadeFrom;
+  const introEndProgress = introFraction;
+  const fadeStartLocal = ((fadeStartProgress - legsStart) / (1 - legsStart)) * legCount;
+  const introEndLocal = ((introEndProgress - legsStart) / (1 - legsStart)) * legCount;
+  const fadeStartTime = tableLookup(motion.legs[0].table, fadeStartLocal);
+  const introEndTime = tableLookup(motion.legs[0].table, introEndLocal);
 
-  assert.ok(revealTime >= 4.2, `D leaked before the rails assembled (${revealTime.toFixed(2)}s)`);
-  assert.ok(revealTime <= 4.7, `the textile hid the approved assembly too long (${revealTime.toFixed(2)}s)`);
+  assert.ok(fadeStartTime >= 0.1, `the scarf handoff is too abrupt (${fadeStartTime.toFixed(2)}s)`);
+  assert.ok(introEndTime <= 1.3, `rails leaked into the scarf handoff (${introEndTime.toFixed(2)}s)`);
+  assert.equal(handoverAt, 0.94, 'room one must not advance early behind the scarf');
+  assert.equal(fadeFrom, 0.98, 'the sofa reveal gap must remain calibrated');
   assert.match(css, /\.film video\[data-intro\]\s*\{\s*z-index:\s*4;\s*\}/);
   assert.match(css, /\.film video\[data-leg\]\s*\{\s*z-index:\s*1;\s*\}/);
 });
