@@ -26,3 +26,9 @@ test('result screen never performs browser segmentation of a master or compact p
   assert.match(source, /cutoutPreviewSourceNativeSha256/);
   assert.match(surfaces, /results\[index\]\.kind === 'look'/);
 });
+
+test('persistent chrome exposes the actual system release identifier', () => {
+  assert.match(ui, /data-build/);
+  assert.match(ui, /BUILD ' \+ String\(sha\)\.slice\(0, 7\)\.toUpperCase\(\)/);
+  assert.match(css, /\.mark__build\s*\{/);
+});

@@ -1682,12 +1682,18 @@ body {
 
 .mark {
   position: fixed; left: 22px; top: 20px; z-index: 30;
+  display: inline-flex; align-items: baseline; gap: 14px;
   font-family: ui-sans-serif, -apple-system, sans-serif;
   font-size: 12px; font-weight: 400;
   letter-spacing: 0.36em; text-indent: 0.36em;
   color: var(--milk); mix-blend-mode: difference;
   /* Nearest plane: moves most. */
   transform: translate3d(0, calc(var(--par-fast, 0px) * -0.014), 0);
+}
+.mark__build {
+  font-size: 8px; font-weight: 400; letter-spacing: 0.18em;
+  color: var(--alum); opacity: 0.72; white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 .hud {
   position: fixed; right: 22px; bottom: 18px; z-index: 30;

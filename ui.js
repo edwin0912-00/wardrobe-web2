@@ -297,6 +297,14 @@
 
     function notifyGateChange() { if (typeof opts.onGateChange === 'function') opts.onGateChange(); }
 
+    function updateBuildNumber() {
+      var element = document.querySelector('[data-build]');
+      if (!element) return;
+      var sha = bridgeState && bridgeState.releaseSha;
+      element.textContent = sha ? 'BUILD ' + String(sha).slice(0, 7).toUpperCase() : 'BUILD —';
+      element.dataset.value = sha || '';
+    }
+
     function station() { return stage.getAttribute('data-station') === '1'; }
     function locked() { return !station(); }
     function hasMain() { return !!person.main; }
@@ -458,6 +466,7 @@
     function receiveBridge(event) {
       bridgeState = event || (bridge && bridge.state ? bridge.state() : bridgeState);
       if (!bridgeState) return;
+      updateBuildNumber();
 
       hydrateSavedLooks(bridgeState.profile);
 
@@ -569,6 +578,7 @@
       if (bridgeUnsubscribe) bridgeUnsubscribe();
       bridge = next || null;
       bridgeState = bridge && typeof bridge.state === 'function' ? bridge.state() : null;
+      updateBuildNumber();
       bridgeUnsubscribe = bridge && typeof bridge.subscribe === 'function'
         ? bridge.subscribe(receiveBridge) : null;
       render();
