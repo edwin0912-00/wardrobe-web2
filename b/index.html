@@ -627,25 +627,22 @@
        * seamWindow (0.012) is not a reason to back off the boundary here: the blend into
        * room two only begins once travel crosses into it, and a held gate is exactly what
        * prevents that crossing. While the step is unfinished there is no seam to land in.
-       * The ramp keeps its old length (1.0 - 0.78 = 0.22, as 0.92 - 0.70 was) so the
-       * approach feels unchanged, and dampMax stays 0.94 because it is a ceiling, not a
-       * position. */
-      /* TOUCH PORTRAIT GETS A WIDER CAPTURE WINDOW — owner report: arriving at the mirror
-       * felt like aiming at an exact pixel. It measurably was: a touch flick's momentum is
-       * coarser than a trackpad's, and 0.99-1.0 of a leg is a sliver of physical scroll
-       * distance. Widening enter/exit/dampFrom on touch portrait only makes the station
-       * start capturing the swipe earlier and let go only much further back, so an ordinary
-       * flick reliably lands in and stays on the input UI. Desktop keeps the original
-       * numbers; this reads the same media query mobile.css gates its own layout on. */
-      dampFrom: MOBILE_PORTRAIT ? 0.55 : 0.78,
+       * The desktop ramp keeps its old length (1.0 - 0.78 = 0.22, as 0.92 - 0.70 was),
+       * so that approach feels unchanged; portrait gets its longer ramp below. dampMax
+       * stays 0.94 because it is a ceiling, not a position. */
+      /* TOUCH PORTRAIT GETS A WIDER CAPTURE WINDOW — the mirror is already fully visible
+       * around 13.5s, but the old 0.93 latch only gave a phone about 0.77s of approach
+       * before the calibrated 1.0 pin. Start damping at 0.46 and capture at 0.88 so the
+       * attention plane has a deliberate reveal instead of flashing in at the last swipe.
+       * The exact pin, desktop thresholds and the indefinite data gate remain unchanged. */
+      dampFrom: MOBILE_PORTRAIT ? 0.46 : 0.78,
       dampMax: 0.94,
       stationAt: 1.0,
-      /* TWO THRESHOLDS so the interface stops blinking. Enter just under the pin, and do
-         not let go until progress falls back by the same wide dead band as before (0.18),
-         so a hand resting near the station cannot toggle it. Asked for by the interface
-         layer, which was rebuilding itself on every flip; it now only enables and
-         disables. */
-      stationEnter: MOBILE_PORTRAIT ? 0.93 : 0.99,
+      /* TWO THRESHOLDS so the interface stops blinking. Mobile enters at 0.88, once both
+         mirrors are visible, and still does not let go until progress falls back by the
+         same wide dead band (0.28 on mobile / 0.18 on desktop). A hand resting near the
+         station therefore cannot toggle it. */
+      stationEnter: MOBILE_PORTRAIT ? 0.88 : 0.99,
       stationExit: MOBILE_PORTRAIT ? 0.60 : 0.81,
       /* FORWARD TRAVEL IS CLOSED UNTIL THE STEP HAS PRODUCED SOMETHING.
        *
