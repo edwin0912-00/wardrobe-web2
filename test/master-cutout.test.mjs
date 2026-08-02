@@ -19,6 +19,11 @@ test('main result cutout starts from exact master bytes and caches the native al
   assert.match(cutout, /Preview derivative is not an approved master/);
   assert.match(ui, /cutout\.create\(masterUrl, look\.masterSha256\)/);
   assert.match(ui, /cutoutPreviewSourceNativeSha256/);
+  assert.match(ui, /function publishNativeLookPresentation/);
+  assert.match(ui, /previewUrls: \[display\]/,
+    'the physical result surface receives the alpha asset derived from the full master');
+  assert.match(ui, /publishNativeLookPresentation\(target\)/,
+    'a completed native cutout updates the television shelf, not just the answer mirror');
   assert.doesNotMatch(ui, /mediaPreview\.fromUrl\([^;]+removeBackground:\s*true/);
 });
 

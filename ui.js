@@ -327,6 +327,26 @@
       return looks.find(function (candidate) { return sameApprovedMaster(candidate, origin); }) || origin;
     }
 
+    /* The physical television receives the same alpha asset as the answer mirror.
+     * It may compact that already-transparent asset for display, but it must never
+     * start a second remove-white pass from the master or a compact preview.  Re-adding
+     * the same source URL updates the existing look shelf entry positionally. */
+    function publishNativeLookPresentation(look) {
+      if (!look || typeof opts.onResult !== 'function') return;
+      var source = look.masterSourceUrl ||
+        (!isPreviewOnlyImageUrl(look.resultUrl) ? look.resultUrl : '');
+      var display = look.cutoutPreviewUrl || look.cutoutNativeUrl || '';
+      if (!source || !display) return;
+      opts.onResult({
+        kind: 'look',
+        aspect: '9:16',
+        urls: [source],
+        previewUrls: [display],
+        previewAttempted: true,
+        mediaUrl: source
+      });
+    }
+
     /* If beta has not yet attached CUTOUT_NATIVE to the profile response, derive it
      * from the exact approved master once. `master-cutout.js` persists the native PNG
      * in the same-origin Cache API, so a reload reuses that SHA-bound foreground and
@@ -358,6 +378,7 @@
           target.cutoutPreviewUrl = asset.previewUrl || '';
           target.cutoutPreviewSha256 = asset.previewSha256 || null;
           target.cutoutPreviewSourceNativeSha256 = asset.previewSha256 ? asset.nativeSha256 : null;
+          publishNativeLookPresentation(target);
         }
       }).catch(function () {
         /* Keep the master; do not manufacture a foreground from a failed preview. */

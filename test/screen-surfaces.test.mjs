@@ -77,6 +77,19 @@ test('coalesced looks keep each native preview paired with its master', () => {
   assert.deepEqual(second.results[0].previewUrls, ['cutout-a', 'cutout-b']);
 });
 
+test('a native cutout arriving after the master replaces that look display without adding a second look', () => {
+  const masterOnly = surfaces.addResultToShelf([], {
+    kind: 'look', aspect: '9:16', urls: ['master-a'],
+  });
+  const alphaReady = surfaces.addResultToShelf(masterOnly.results, {
+    kind: 'look', aspect: '9:16', urls: ['master-a'],
+    previewUrls: ['native-cutout-a'], previewAttempted: true,
+  });
+  assert.equal(alphaReady.results.length, 1);
+  assert.deepEqual(alphaReady.results[0].urls, ['master-a']);
+  assert.deepEqual(alphaReady.results[0].previewUrls, ['native-cutout-a']);
+});
+
 test('a master-only look is immediately usable and does not wait for a preview job', () => {
   const item = surfaces.resultModel({ kind: 'look', aspect: '9:16', urls: ['master'] });
   assert.equal(item.pendingRealMedia, false);
