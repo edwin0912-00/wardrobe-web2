@@ -22,6 +22,16 @@ Read
 [`docs/coordination/BETA_BLOCKS_2026-07-29.md`](docs/coordination/BETA_BLOCKS_2026-07-29.md)
 and the assigned file in `docs/coordination/blocks/` before any product action.
 
+Before trusting a local `origin/beta`, fetch that ref explicitly and record its
+SHA. Some existing clones have a deliberately narrow `remote.origin.fetch`
+rule which omits `beta`; a plain `git fetch origin` can therefore leave a
+stale remote-tracking ref and create a false “missing deploy/commit” report.
+
+```bash
+git fetch origin +refs/heads/beta:refs/remotes/origin/beta
+git rev-parse origin/beta
+```
+
 1. A block agent works only in its named `beta-block-*` branch and reserved
    paths. It never pushes to `beta` or `main` and never deploys.
 2. Each commit starts `[agent:<agent-id>] [block:<1-7>]` and includes the
@@ -86,7 +96,7 @@ There are only two branches that matter now:
 Before doing anything, every agent runs:
 
 ```bash
-git fetch origin
+git fetch origin +refs/heads/beta:refs/remotes/origin/beta
 git switch beta
 git pull --ff-only origin beta
 sed -n '1,180p' AGENTS.md

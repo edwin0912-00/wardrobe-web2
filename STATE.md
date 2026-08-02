@@ -1,5 +1,26 @@
 # Wardrobe verified state
 
+## Release/source reconciliation — 2026-08-02
+
+- Exact public beta engine release: `3240c7069e9eaaa878b554bd02bcbfde3a6b6f52`.
+  It matches an explicit fetch of `refs/heads/beta`; do not trust a stale
+  remote-tracking `origin/beta` from a clone with a narrow fetch refspec.
+- Public health at this release is `ready` with generation and semantic QA
+  available.  Its observed `fashion_shoot_qa_mode` is `review`, not `strict`.
+- Chat 04’s current mood-card assets are already in the release.  Its
+  Shutter-only slot-blocking additions are preserved but pending a common
+  versioned `blocking_reference` contract across selectable shoot units.
+- Chat 05’s formal Fashion Shoot line is already contained in beta.  Its
+  historical video line is represented by newer beta video modules; it is not
+  a safe wholesale merge candidate.
+- The cinematic main is not this repository: `wardrobe-web2` canonical main
+  `ee2dfc95417f3c6a6f17c2d824ec374f5e8a6e78` is separately deployed.  Its
+  avatar presentation now derives alpha from the approved full master before
+  producing a compact preview.
+- Documentation reconciliation after `3240c70` does not activate a new
+  runtime.  A code release still needs exact-SHA deployment and public
+  journey evidence.
+
 ## Native scene receipt and safe video smoke — 2026-08-01
 
 - Commit `7bffcf6ec5aa5fe5841a7078c51261d1def9fbf0` aligns the

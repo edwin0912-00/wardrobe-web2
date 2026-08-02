@@ -1,5 +1,52 @@
 # Wardrobe update board
 
+## 2026-08-02 · source, release and historical-chat reconciliation
+
+**Current engine source and public beta are the same code SHA:**
+`3240c7069e9eaaa878b554bd02bcbfde3a6b6f52`.  This was checked by explicitly
+fetching `refs/heads/beta` and by reading the public beta `/api/health`
+`release_sha`.  Several local clones had a narrow fetch refspec, so a plain
+`git fetch origin` left a stale `origin/beta` and falsely made already-live
+work look missing.  All agents must use the explicit beta fetch in `AGENTS.md`
+before comparing Git with a site.
+
+This documentation commit does not change application code or restart a
+runner; the live engine remains `3240c70` until a separately tested product
+commit is released.
+
+**Chat 04 / Create Universe review.** The seven named mood-card WebP/JSON
+pairs at its remote tip already exist in `3240c70`.  Its later preserved
+Shutter slot-blocking atom (`5a91a0d`) is not safely releasable alone: it adds
+one style-specific `blocking_reference` role while current published units do
+not share that versioned runtime contract.  The assets are preserved at
+`recovery/chat04-shutter-slot-blocking-5a91a0d-20260802`; the next valid task
+is a tested common contract for every selectable `shoot.*` unit, not a
+cherry-pick of one style.
+
+**Chat 05 review.** The formal Fashion Shoot branch tip (`9de13b2`) is already
+an ancestor of beta.  The historical branch whose update calls itself
+“CHAT05” is actually older Fashion Video work (`ee99114`).  Its core modules
+are present in newer form in `3240c70` (`video-provider-router`,
+`video-runtime`, `video-source-bridge`, `video-capability`, and start-up
+wiring).  Do not merge it wholesale: that would reintroduce stale UI/runtime
+behaviour.  Current code proof is not a substitute for a new paid browser
+journey; that remains a separate test task.
+
+**Main site is a separate product repository.** `wardrobe-web2`, branch
+`canonical-site-main`, is deployed at `site.madeforthisjob.com`; its current
+preview repair is `ee2dfc95417f3c6a6f17c2d824ec374f5e8a6e78`.  The repair uses
+only the full approved master for native cutout first, then makes a compact
+preview; preview derivatives are rejected as cutout inputs and the local
+cutout cache was versioned.  Historic chat numbers are not product ownership
+authority: use repository + branch + pipeline block instead.
+
+Public beta health currently reports `fashion_shoot_qa_mode: review`; no
+document may claim that live mode is `strict` without a new observed health
+receipt.
+
+`weakened_checks: none`; this entry only corrects source-of-truth and release
+traceability.
+
 ## 2026-08-01 · native scene receipt + safe Video verification
 
 Commit `7bffcf6ec5aa5fe5841a7078c51261d1def9fbf0` repairs the one

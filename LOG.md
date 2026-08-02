@@ -17,6 +17,20 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-08-02 · SOURCE-AND-CHAT-RECONCILIATION · beta `3240c70` · codex-live-40
+Change: record the exact public beta source/release SHA and classify the
+unmerged Chat 04/05 historical branches without merging stale code. Add an
+explicit beta fetch rule for clones with a narrow refspec.
+Why: stale local `origin/beta` refs made released code appear missing and
+encouraged unsafe whole-branch recovery. Chat labels also no longer identify a
+product reliably because the cinematic main lives in a separate repository.
+Evidence: direct `git fetch origin +refs/heads/beta:refs/remotes/origin/beta`
+resolved `3240c7069e9eaaa878b554bd02bcbfde3a6b6f52`; public beta health
+reported the same `release_sha`. Chat 04 mood cards were present in that tree;
+its Shutter-only blocking atom is preserved separately. Chat 05 formal
+Fashion Shoot is contained; its older video modules are present in newer form.
+weakened_checks: none; docs-only, no runner restart or product release.
+
 2026-08-01 · PRODUCT-RELEASE-PUBLISHED-STYLE-ROOTS · release/candidate-20260801 · codex-live-40
 Change: build the product release from the exact fifteen published Create
 Universe `shoot.*` unit roots instead of copying the whole development
