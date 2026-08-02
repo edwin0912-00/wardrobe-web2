@@ -1534,3 +1534,13 @@ generic executor failure after retries.
 Evidence: structured-reference plus editorial/Create Universe suite `67/67`
 PASS; `verify:contracts` and `verify:canon` PASS; no weakened checks and no
 paid generation.
+
+2026-08-02 · Internal/external storage boundary
+Change: recorded a hard operational rule: active beta runtime stays on the
+internal SSD; the external SSD can hold only explicit archive/cache classes.
+Why: a runtime dependency path placed on the external volume made the
+LaunchAgent unable to boot beta after restart, even though the source and node
+graph were intact.
+Evidence: the restored beta release is healthy with local runtime dependencies;
+the full rule and allowlist are in `docs/DEPLOYMENT_UA.md`.
+weakened_checks: no runtime files were moved or deleted as part of this note.

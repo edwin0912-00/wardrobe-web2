@@ -1177,3 +1177,13 @@ facts.
 - `weakened_checks: none`. The full repository suite is not claimed green;
   the known unrelated `run-service` fixture drift remains outside this release
   atom.
+
+### 2026-08-02 · INTERNAL STORAGE BOUNDARY (ACTIVE RULE)
+
+- External SSD is archive/cache storage only. It must never host or be a
+  symlink target for active beta code, `node_modules`, Node/Higgsfield/Codex
+  executables, secrets, LaunchAgent control paths, active runtime state,
+  SQLite/receipts, or in-flight provider jobs.
+- Only explicit allowlisted, completed artifacts may be archived after an
+  active-job and restart-readability check. Full operational rule:
+  `docs/DEPLOYMENT_UA.md` → “Жорстка межа зберігання — не переносити runtime”.

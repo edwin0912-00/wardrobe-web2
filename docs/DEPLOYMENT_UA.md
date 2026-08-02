@@ -51,3 +51,30 @@ cloudflared tunnel route dns zeely-madeforthisjob madeforthisjob.com
 ## Backup boundary
 
 Зашифрований `secrets/zeely-runtime-private.tar.gz.enc` містить PIN, session secret і project-scoped Tunnel credential. Ключ шифрування залишається у macOS Keychain. Account-level Cloudflare `cert.pem` у Git не потрапляє.
+
+## Жорстка межа зберігання — не переносити runtime
+
+Зовнішній SSD призначений **лише** для versioned release-збірок, резервних
+копій, закритих reference media та архівованих завершених результатів. Він не
+є runtime-диском beta.
+
+Ніколи не переносити, не симлінкувати на зовнішній SSD і не чистити
+автоматично:
+
+- `node_modules`, Node runtime, `higgsfield`/`codex` CLI та їхні executable
+  залежності;
+- код активного release, LaunchAgent runner/plist і його stdout/stderr;
+- `.env`, Keychain/credential paths, session secrets або будь-які runtime
+  конфіги;
+- активні `runs`, `scenes`, `video-clips`, SQLite/receipts та незавершені
+  provider jobs.
+
+Ці шляхи мають лишатися на внутрішньому SSD: beta повинна переживати restart
+macOS навіть коли зовнішній диск відключений.
+
+Можна переносити тільки за явним allowlist після завершення job і перевірки
+відновлення: cache каталоги, локальні preview/derivative copies, immutable
+release archives, резервні копії та media, які не потрібні запущеному job.
+Перед будь-яким перенесенням перевірити, що шлях не читається LaunchAgent,
+поточним release або active run. Секрети не потрапляють у Git або зовнішній
+архів без окремого зашифрованого backup-процесу.
