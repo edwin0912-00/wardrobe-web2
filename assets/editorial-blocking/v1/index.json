@@ -10,9 +10,9 @@
     "format": "png"
   },
   "generation": {
-    "provider_path": "openrouter_imagegen",
-    "model_family": "openai/gpt-5.4-image-2",
-    "model_version": "openai/gpt-5.4-image-2",
+    "provider_path": "deterministic_mechanical_guide",
+    "model_family": "deterministic_svg_to_png",
+    "model_version": "deterministic_svg_to_png",
     "aspect_ratio": "16:9",
     "derived_from": [
       "src/web/editorial-shoot-bible.js SLOT_CONTENT (lens_mm, framing, height, pose, identity_visibility)",
@@ -25,12 +25,12 @@
   "contains_environment_content": false,
   "contains_identity_content": false,
   "approval": "PENDING_VISUAL_JUDGE",
-  "created_at": "2026-07-26T03:15:00.000Z",
+  "created_at": "2026-08-02T00:00:00.000Z",
   "diagrams": [
     {
       "slot": "clean_identity_hero",
       "file": "assets/editorial-blocking/v1/clean_identity_hero.png",
-      "sha256": "886e7e7715fb92878cf7d495ca2bf417733b5a0ad242d8c88df93b9354839b96",
+      "sha256": "e2534b4666d155abde602d40c8446e843be3c84d143a86cdea553de615861a0e",
       "media_type": "image/png",
       "width": 1280,
       "height": 720,
@@ -39,20 +39,20 @@
         "framing": "three_quarter",
         "subject_height_percent": [
           50,
-          94
+          100
         ],
         "minimum_clear_space_percent": {
           "above_hair": 6,
           "below_footwear": 0
         },
-        "require_full_head": true,
+        "require_full_head": false,
         "require_full_footwear": false
       }
     },
     {
       "slot": "environmental_hero",
       "file": "assets/editorial-blocking/v1/environmental_hero.png",
-      "sha256": "9dd8737e5bcded8208f061f98d5fc047a408ef4dd49b8d3e00b2a117bf609ddd",
+      "sha256": "47098e88425b9b0b8687d82fdecb3e99e71a8716ac92ceed8d826693ba957ad2",
       "media_type": "image/png",
       "width": 1280,
       "height": 720,
@@ -61,20 +61,20 @@
         "framing": "three_quarter",
         "subject_height_percent": [
           40,
-          95
+          100
         ],
         "minimum_clear_space_percent": {
           "above_hair": 5,
           "below_footwear": 0
         },
-        "require_full_head": true,
+        "require_full_head": false,
         "require_full_footwear": false
       }
     },
     {
       "slot": "sculptural_three_quarter",
       "file": "assets/editorial-blocking/v1/sculptural_three_quarter.png",
-      "sha256": "b23c4d352ce1e022bb79aaa7c30da7880884a8abb04e12d5f54a771a8d787fba",
+      "sha256": "2ce0458d4d73179b3d2eea08c1b9ac9ae85143edc634f9a83925e291626cc056",
       "media_type": "image/png",
       "width": 1280,
       "height": 720,
@@ -83,20 +83,20 @@
         "framing": "three_quarter",
         "subject_height_percent": [
           50,
-          95
+          100
         ],
         "minimum_clear_space_percent": {
           "above_hair": 5,
           "below_footwear": 0
         },
-        "require_full_head": true,
+        "require_full_head": false,
         "require_full_footwear": false
       }
     },
     {
       "slot": "interference_frame",
       "file": "assets/editorial-blocking/v1/interference_frame.png",
-      "sha256": "2fc68802fc64642392ed27ecb3b5f2d7a4fc8754c17720c916e1edefec197a0a",
+      "sha256": "5de7823cfeac3d911f839cb9731aab561187c60cc79f4eca01828739cf0b5d6c",
       "media_type": "image/png",
       "width": 1280,
       "height": 720,
@@ -105,20 +105,20 @@
         "framing": "three_quarter",
         "subject_height_percent": [
           45,
-          96
+          100
         ],
         "minimum_clear_space_percent": {
           "above_hair": 4,
           "below_footwear": 0
         },
-        "require_full_head": true,
+        "require_full_head": false,
         "require_full_footwear": false
       }
     },
     {
       "slot": "material_or_accessory_detail",
       "file": "assets/editorial-blocking/v1/material_or_accessory_detail.png",
-      "sha256": "2ccc10ea429f0545056248e76ecfd5099def50d77100d169c9dd0819ffb1c0f8",
+      "sha256": "9c88173ece58002e924d34c7ecd255a61b4311213664602bb4ea2d8257217395",
       "media_type": "image/png",
       "width": 1280,
       "height": 720,
@@ -140,7 +140,7 @@
     {
       "slot": "wide_campaign_coda",
       "file": "assets/editorial-blocking/v1/wide_campaign_coda.png",
-      "sha256": "1c928fc81f613d5417c814af7f9f72eab142d901322bb844264b974b02d2ce80",
+      "sha256": "033b9cb3e924407577c0db4e43a9e9e3182de134b9bfc3fee7635d4c9ee8e563",
       "media_type": "image/png",
       "width": 1280,
       "height": 720,
@@ -149,13 +149,13 @@
         "framing": "wide_full_body",
         "subject_height_percent": [
           30,
-          92
+          100
         ],
         "minimum_clear_space_percent": {
           "above_hair": 8,
           "below_footwear": 2
         },
-        "require_full_head": true,
+        "require_full_head": false,
         "require_full_footwear": true
       }
     }

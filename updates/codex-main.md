@@ -467,6 +467,30 @@ Help request: NONE.
 ---
 
 Agent ID: codex-live-40
+Task ID: BETA-FASHION-SHOOT-CROWN-CROP-002
+Pipeline: UNIVERSE.03–04 · Create Universe / Fashion Shoot contract alignment
+State: READY_FOR_BETA_DEPLOY
+Decision: rebuilt all six hash-bound mechanical blocking guides from the current
+editorial framing lock. The guides now encode the 100% upper subject ceiling and
+`require_full_head=false` for intentional style crops; standard backgrounds keep
+their independent full-head contract. The guide remains geometry-only; identity,
+items, anatomy, provenance and style gates remain active.
+Code: updated `assets/editorial-blocking/v1/*.png`, its manifest, and the
+deterministic generator `tools/generate-editorial-blocking-crop-guides.mjs`.
+Tests: core 157/157; scene service 57/57; scene adapters/runtime 81/81;
+scene/framing contracts 22/22; Fashion Shoot/Create Universe 38/38;
+Fashion Video 188/188; Upload/HEIC/Profile 139/139; Real-time Look 31/31.
+Release suite: BLOCKED only by local resource preflight (swap 7.64 GiB above
+1.25 GiB) and one existing add-items smoke expecting an unavailable draft entry
+point; no QA gate was bypassed.
+Beta: pending this commit and release verification.
+Journey: no paid provider generation.
+weakened_checks: `EDITORIAL_CROWN_CROP_POLICY` only, user-authorized 2026-08-02.
+Help request: NONE.
+
+---
+
+Agent ID: codex-live-40
 Task ID: BETA-FASHION-SHOOT-CROWN-CROP-001
 Pipeline: UNIVERSE.03–04 · Create Universe / Fashion Shoot delivery QA
 State: READY_FOR_BETA_DEPLOY

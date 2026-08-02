@@ -1128,11 +1128,10 @@ test('a framing rule reaches the persisted receipts and the live verdict or neit
   const baseState = JSON.parse(await readFile(current.service.statePath(created.scene_id), 'utf8'));
 
   // The measured frame of scene_13313d49: 3.2813% of headroom against the identity
-  // hero's 6% minimum, head observed whole. The waiver was threaded through the
-  // persisted validators alone once already, so this state — accepted here, refused
-  // under the standard lock below — is what tells the two apart.
+  // hero's 6% composition target. Fashion Shoot treats the crown crop as art direction;
+  // the lock is still persisted, but there is no hidden headroom waiver.
   const editorialPresetId = 'editorial.edwin_novak.organic_contrast.clean_identity_hero';
-  const waived = assessSceneFraming({
+  const editorialFrame = assessSceneFraming({
     subject_bbox_xywh_px: [383, 42, 337, 1200],
     full_head_visible: true,
     full_footwear_visible: true,
@@ -1141,26 +1140,25 @@ test('a framing rule reaches the persisted receipts and the live verdict or neit
     width: baseState.delivery.width,
     height: baseState.delivery.height,
   });
-  assert.deepEqual(waived.defects, []);
-  assert.equal(waived.evidence.clear_space_above_hair_waived_by_full_head, true);
+  assert.deepEqual(editorialFrame.defects, []);
+  assert.equal(editorialFrame.evidence.clear_space_above_hair_waived_by_full_head, false);
 
   const editorial = structuredClone(baseState);
   editorial.bindings.preset.preset_id = editorialPresetId;
-  editorial.attempts.at(-1).qa.framing_evidence = structuredClone(waived.evidence);
-  editorial.qa.framing_evidence = structuredClone(waived.evidence);
+  editorial.attempts.at(-1).qa.framing_evidence = structuredClone(editorialFrame.evidence);
+  editorial.qa.framing_evidence = structuredClone(editorialFrame.evidence);
   assert.doesNotThrow(() => validatePersistedSceneState(editorial, editorial.scene_id));
 
-  // Same receipt, standard preset: the lock the persisted sites resolve is the preset's,
-  // so the recomputed bands no longer match what the receipt recorded.
+  // Same receipt, standard preset: the standard lock still blocks the editorial
+  // crop because its headroom and subject-height bands are product requirements.
   const standard = structuredClone(editorial);
   standard.bindings.preset.preset_id = PRESET_ID;
   assert.throws(
     () => validatePersistedSceneState(standard, standard.scene_id),
-    /framing evidence does not match its measured bounding box/,
+    /Persisted scene attempt .* violates SUBJECT_HEIGHT_OUTSIDE_PRESET_RANGE|INSUFFICIENT_CLEAR_SPACE_ABOVE_HAIR/,
   );
 
-  // And the waiver stays conditional on the observation everywhere: a cropped head is
-  // still a blocking defect on a PASS receipt.
+  // A cropped crown is valid editorial composition and remains a PASS receipt.
   const cropped = assessSceneFraming({
     subject_bbox_xywh_px: [383, 42, 337, 1200],
     full_head_visible: false,
@@ -1174,10 +1172,7 @@ test('a framing rule reaches the persisted receipts and the live verdict or neit
   const croppedState = structuredClone(editorial);
   croppedState.attempts.at(-1).qa.framing_evidence = structuredClone(cropped.evidence);
   croppedState.qa.framing_evidence = structuredClone(cropped.evidence);
-  assert.throws(
-    () => validatePersistedSceneState(croppedState, croppedState.scene_id),
-    /PASS framing evidence violates INSUFFICIENT_CLEAR_SPACE_ABOVE_HAIR/,
-  );
+  assert.doesNotThrow(() => validatePersistedSceneState(croppedState, croppedState.scene_id));
 
   // A receipt written before either derived framing flag was stated omits them;
   // recomputing them from the same measurements is exact, so those scenes must

@@ -168,14 +168,17 @@ test('READY editorial and Create Universe modes compile six strict per-shot pack
         assert.ok(styleContract.subject_lighting.length >= 8, `${modeId}/${shotSpec.slot}`);
         assert.match(pack.prompt, /SUBJECT LIGHT INTERACTION:/, `${modeId}/${shotSpec.slot}`);
       }
-      // Assert the derivation, not a number: an editorial ceiling is whatever the
-      // slot's head guard does not reserve. Two frames were rejected at 84.7656% and
-      // 93.9063% by ceilings picked by hand, so no hand-picked ceiling may come back.
+      // Assert the derivation, not a number: a head-required slot derives its
+      // ceiling from the head guard; a Fashion Shoot slot intentionally allows
+      // the crown to cross the frame edge and therefore has a 100% ceiling.
       const [floor, ceiling] = pack.preset.camera.subject_height_percent;
+      const expectedCeiling = pack.preset.camera.required_visibility.full_head
+        ? 100 - pack.preset.camera.minimum_clear_space_percent.above_hair
+        : 100;
       assert.equal(
         ceiling,
-        100 - pack.preset.camera.minimum_clear_space_percent.above_hair,
-        `${shotSpec.slot} ceiling must be the complement of its head guard`,
+        expectedCeiling,
+        `${shotSpec.slot} ceiling must follow its editorial head policy`,
       );
       assert.ok(floor < ceiling, `${shotSpec.slot} floor must stay below its ceiling`);
       assert.deepEqual(

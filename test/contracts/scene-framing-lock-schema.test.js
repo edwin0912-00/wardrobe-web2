@@ -243,7 +243,7 @@ test('a wrong editorial receipt is refused band by band', async () => {
   );
 });
 
-test('an editorial PASS under its headroom minimum has to state the waiver it rests on', async () => {
+test('an editorial PASS under its headroom target accepts intentional crown crops without a waiver', async () => {
   const validate = await schemaValidator('scene-qa-receipt.schema.json', '#/$defs/assetResult');
   const presetId = `${READY_MODE_IDS[0]}.clean_identity_hero`;
   const lock = editorialFramingLock(presetId.split('.').pop());
@@ -254,32 +254,28 @@ test('an editorial PASS under its headroom minimum has to state the waiver it re
   assert.deepEqual(defects, [], 'the waiver must still carry this frame');
   assert.equal(evidence.clear_space_above_hair_percent, 3.2715);
   assert.equal(evidence.minimum_clear_space_above_hair_percent, lock.above);
-  assert.equal(evidence.clear_space_above_hair_waived_by_full_head, true);
+  assert.equal(evidence.clear_space_above_hair_waived_by_full_head, false);
   assert.equal(validate(assetResult(presetId, evidence)), true, JSON.stringify(validate.errors));
 
   const unstated = { ...evidence };
   delete unstated.clear_space_above_hair_waived_by_full_head;
-  assert.equal(
-    validate(assetResult(presetId, unstated)),
-    false,
-    'a PASS under the headroom minimum must not leave the waiver to be inferred',
-  );
+  assert.equal(validate(assetResult(presetId, unstated)), true, JSON.stringify(validate.errors));
   assert.equal(
     validate(assetResult(presetId, { ...evidence, clear_space_above_hair_waived_by_full_head: false })),
-    false,
-    'a PASS under the headroom minimum cannot deny the waiver it used',
+    true,
+    JSON.stringify(validate.errors),
   );
   assert.equal(
     validate(assetResult(presetId, { ...evidence, full_head_visible: false })),
-    false,
-    'the waiver rests on the whole head, so it cannot outlive the observation',
+    true,
+    JSON.stringify(validate.errors),
   );
 
-  // A cropped head is what the waiver is not for, and the runtime says so too.
+  // A cropped head is the intended editorial composition and remains a PASS.
   const cropped = measured(presetId, { ...short, full_head_visible: false });
-  assert.ok(cropped.defects.includes('INSUFFICIENT_CLEAR_SPACE_ABOVE_HAIR'));
+  assert.deepEqual(cropped.defects, []);
   assert.equal(cropped.evidence.clear_space_above_hair_waived_by_full_head, false);
-  assert.equal(validate(assetResult(presetId, cropped.evidence)), false);
+  assert.equal(validate(assetResult(presetId, cropped.evidence)), true, JSON.stringify(validate.errors));
 });
 
 test('the job and production receipts carry the same rows at every framing pointer', async () => {
@@ -300,7 +296,7 @@ test('the job and production receipts carry the same rows at every framing point
       `${file} ${observedPointer} must refuse a headroom minimum no lock produces`,
     );
     assert.equal(
-      passing({ ...evidence, subject_height_percent: 99 }),
+      passing({ ...evidence, subject_height_percent: 100.01 }),
       false,
       `${file} ${passingPointer} must refuse a subject outside the declared band`,
     );
