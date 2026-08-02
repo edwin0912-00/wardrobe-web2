@@ -2053,7 +2053,6 @@ document.querySelector('#video-generate').addEventListener('click', async () => 
   if (!selectedProfileLook) return;
   const lookId = idOfLook(selectedProfileLook);
   const selectedStyle = document.querySelector('#video-style-options .video-style-card[aria-checked="true"]');
-  const surface = 'mirror';
   const styleId = selectedStyle?.dataset.styleId;
   const motionMode = selectedStyle?.dataset.motionMode;
   const progressEl = document.querySelector('#video-progress');
@@ -2075,7 +2074,6 @@ document.querySelector('#video-generate').addEventListener('click', async () => 
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         look_id: lookId,
-        surface,
         style_id: styleId,
         motion_mode: motionMode,
       }),

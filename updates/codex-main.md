@@ -1,4 +1,25 @@
 Agent ID: codex-main
+Cross-block handoff: Fashion Video style-owned presentation geometry
+Product line: beta-placeholder
+Pipeline: VIDEO.01 style reference → VIDEO.02 provider request → VIDEO.04 delivery
+State: CODE_VERIFIED — release-owner integration/deploy required
+Decision: Fashion Video does not expose or trust a TV/mirror choice. The exact
+hash-bound style reference owns both presentation surface and provider aspect:
+vertical `9:16` → mirror; landscape `16:9` → television. A legacy client
+surface is accepted only for compatibility and ignored before provider create.
+The derived value is persisted with the style binding and returned by the
+capability and create APIs.
+Code: local branch `fix/video-style-owned-surface-20260802`; commit pending.
+Evidence: `node --test test/video/*.test.js` — 191/191 PASS; `node --test
+test/web/profile-ui-flow.test.js test/video/video-routes.test.js` — 26/26 PASS.
+The four current approved style masters all resolve 1080×1920 → mirror/9:16.
+Beta: NOT_DEPLOYED. Journey: NOT_RUN. No provider generation was spent.
+weakened_checks: none. Unsupported reference geometry fails before provider
+spend rather than being cropped or silently converted.
+
+---
+
+Agent ID: codex-main
 Block: 1
 Branch: beta-block-1-needs-input-recovery-20260731
 

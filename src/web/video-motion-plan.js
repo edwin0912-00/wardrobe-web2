@@ -5,16 +5,13 @@
 // names an aspect, a duration or a resolution — those are provider parameters,
 // and the transport refuses a prompt that mentions them.
 //
-// Surfaces (operator decision 2026-07-28): the user picks a playback surface,
-// not a raw aspect ratio. `tv` → 16:9, `mirror` → 9:16. There is no free-text
-// aspect field, so vertical on a TV is impossible by construction. Each surface
-// carries a framing hint in words only — no digits — because digits trip the
-// geometry guard in the transport.
-
-// Where the clip plays decides its shape, so the caller picks a surface and the
-// aspect follows. Operator decision, 2026-07-28: the television in the scene runs
-// 16:9, the mirror runs 9:16. Exposing a free aspect field instead would make a
-// vertical clip on the television a one-keystroke mistake.
+// A Fashion Video's shape belongs to its hash-bound style reference. The user
+// chooses a style, never a display format. A vertical reference plays in the
+// mirror; a landscape reference plays on the television. The server derives
+// this before it calls the provider and persists it in the immutable receipt.
+//
+// `VIDEO_SURFACES` remains for legacy non-reference video callers. It is not a
+// user-selectable Fashion Video setting.
 export const VIDEO_SURFACES = Object.freeze({
   tv: Object.freeze({
     id: 'tv',
@@ -32,6 +29,8 @@ export const VIDEO_SURFACES = Object.freeze({
 });
 
 export const DEFAULT_VIDEO_SURFACE = 'tv';
+
+const REFERENCE_ASPECT_RELATIVE_TOLERANCE = 0.02;
 
 export function videoSurface(id = DEFAULT_VIDEO_SURFACE) {
   const surface = VIDEO_SURFACES[id];
@@ -104,6 +103,32 @@ export class MotionPlanError extends Error {
     this.name = 'MotionPlanError';
     this.code = code;
   }
+}
+
+function matchesAspect(width, height, expected) {
+  const actual = width / height;
+  return Math.abs(actual - expected) / expected <= REFERENCE_ASPECT_RELATIVE_TOLERANCE;
+}
+
+/**
+ * Resolve a presentation surface from the approved style-reference geometry.
+ *
+ * Deliberately supports only the two provider/presentation contracts that are
+ * actually implemented. An arbitrary source ratio cannot silently become a
+ * stretched 16:9 or 9:16 delivery.
+ */
+export function surfaceForReferenceGeometry(width, height) {
+  if (!Number.isInteger(width) || !Number.isInteger(height) || width < 1 || height < 1) {
+    throw new MotionPlanError('Fashion Video reference needs positive integer dimensions', {
+      code: 'VIDEO_REFERENCE_GEOMETRY_INVALID',
+    });
+  }
+  if (matchesAspect(width, height, 16 / 9)) return VIDEO_SURFACES.tv;
+  if (matchesAspect(width, height, 9 / 16)) return VIDEO_SURFACES.mirror;
+  throw new MotionPlanError(
+    `Fashion Video reference geometry ${width}x${height} has no supported presentation surface`,
+    { code: 'VIDEO_REFERENCE_ASPECT_UNSUPPORTED' },
+  );
 }
 
 const FASHION_VIDEO_APPEARANCE_ROLE_ORDER = Object.freeze([
@@ -215,6 +240,8 @@ export function surface(id) {
  * `sourceCapabilities` describes what the source frame can actually support —
  * today only `full_length` matters, and it gates walk/stride. A mode whose
  * requirement is unmet is refused here rather than discovered in the output.
+ * Reference-bound callers pass the surface derived from
+ * `surfaceForReferenceGeometry`; this function never derives it from UI state.
  */
 export function buildMotionPlan({
   modeId,

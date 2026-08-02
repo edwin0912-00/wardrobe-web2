@@ -345,7 +345,6 @@ export async function registerVideoRoutes(app, {
     const session = await profileApi.resolveRequestProfile(request, reply);
     const {
       look_id,
-      surface,
       style_id,
       motion_mode,
       duration_seconds,
@@ -354,9 +353,6 @@ export async function registerVideoRoutes(app, {
 
     if (typeof look_id !== 'string' || look_id.length === 0) {
       throw new ProfileError(400, 'MISSING_LOOK_ID', 'look_id is required');
-    }
-    if (typeof surface !== 'string') {
-      throw new ProfileError(400, 'MISSING_SURFACE', 'surface is required (tv or mirror)');
     }
     if (typeof style_id !== 'string' || style_id.length === 0) {
       throw new ProfileError(400, 'MISSING_VIDEO_STYLE_ID', 'style_id is required');
@@ -452,7 +448,6 @@ export async function registerVideoRoutes(app, {
     try {
       const result = await videoService.createClip({
         modeId: motion_mode,
-        surfaceId: surface,
         durationSeconds: duration_seconds ?? undefined,
         sourceCapabilities: whiteMaster.source_capabilities ?? { full_length: false },
         styleNote: style_note ?? null,
@@ -498,7 +493,8 @@ export async function registerVideoRoutes(app, {
         clip_id: result.clipId,
         job_id: result.jobId,
         status: result.status,
-        surface,
+        surface: result.plan.surface,
+        aspect_ratio: result.plan.aspectRatio,
         style_id,
         motion_mode,
         look_id,

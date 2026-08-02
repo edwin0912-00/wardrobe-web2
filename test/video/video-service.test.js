@@ -165,6 +165,36 @@ test('createClip builds a motion plan and persists the job id', async () => {
   });
 });
 
+test('reference-bound Fashion Video ignores a stale client surface and uses the style geometry', async () => {
+  await withTempDir(async (dir, sourcePath) => {
+    const referencePath = path.join(dir, 'vertical-style.mp4');
+    const referenceBytes = Buffer.from('verified-vertical-style');
+    await writeFile(referencePath, referenceBytes);
+    const { provider, calls } = makeStubProvider();
+    const store = new ClipStore(dir);
+    const service = new VideoService({ provider, clipStore: store });
+    const videoReference = {
+      state: 'READY', reference_id: 'vertical-style', reference_path: referencePath,
+      reference_sha256: sha256(referenceBytes), reference_pack_sha256: 'e'.repeat(64),
+      duration_seconds: 5, provider_duration_seconds: 5, width: 720, height: 1280, fps: 24,
+      ...verifiedCutSheet(5),
+    };
+    const result = await service.createClip({
+      modeId: 'editorial_micro_moment',
+      surfaceId: 'tv',
+      sourceImagePath: sourcePath,
+      videoReference,
+      lookBinding: { whiteBackgroundVerified: true },
+    });
+    assert.equal(result.plan.surface, 'mirror');
+    assert.equal(result.plan.aspectRatio, '9:16');
+    assert.equal(calls[0].args[calls[0].args.indexOf('--aspect_ratio') + 1], '9:16');
+    const saved = await store.load(result.clipId);
+    assert.equal(saved.motionReferenceBinding.presentationSurface, 'mirror');
+    assert.equal(saved.motionReferenceBinding.aspectRatio, '9:16');
+  });
+});
+
 test('explicit retry creates a child only from the failed clip’s locked source and style binding', async () => {
   await withTempDir(async (dir, sourcePath) => {
     const referencePath = path.join(dir, 'style.mp4');
@@ -308,6 +338,8 @@ test('recoverSubmittedClip refuses an ambiguous paid job even when the caller ec
           reference_pack_sha256: 'e'.repeat(64),
           duration_seconds: 5,
           provider_duration_seconds: 5,
+          width: 720,
+          height: 1280,
           ...verifiedCutSheet(5),
         },
         appearanceReferences: [{

@@ -8,6 +8,7 @@ import {
   MotionPlanError,
   buildFashionVideoReferencePrompt,
   buildMotionPlan,
+  surfaceForReferenceGeometry,
   videoSurface,
   surface,
 } from '../../src/web/video-motion-plan.js';
@@ -155,6 +156,17 @@ test('the surface decides the shape: television is wide, mirror is tall', () => 
 test('the television is the default surface', () => {
   assert.equal(buildMotionPlan({ modeId: 'camera_drift' }).surface, 'tv');
   assert.equal(buildMotionPlan({ modeId: 'camera_drift' }).aspectRatio, '16:9');
+});
+
+test('a Fashion Video presentation surface is derived from its verified style-reference geometry', () => {
+  assert.equal(surfaceForReferenceGeometry(1920, 1080).id, 'tv');
+  assert.equal(surfaceForReferenceGeometry(1920, 1080).aspectRatio, '16:9');
+  assert.equal(surfaceForReferenceGeometry(1080, 1920).id, 'mirror');
+  assert.equal(surfaceForReferenceGeometry(1080, 1920).aspectRatio, '9:16');
+  assert.throws(
+    () => surfaceForReferenceGeometry(1440, 1080),
+    (error) => error.code === 'VIDEO_REFERENCE_ASPECT_UNSUPPORTED',
+  );
 });
 
 test('an unknown surface is refused rather than silently defaulted', () => {

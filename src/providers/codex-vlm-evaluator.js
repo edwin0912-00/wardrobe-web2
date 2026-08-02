@@ -11,6 +11,7 @@ const CATEGORIES = new Set(['outerwear', 'top', 'bottom', 'one_piece', 'footwear
 const AMBIGUOUS_VERSIONS = /^(?:latest|current|unknown|unattested)$/i;
 const SURFACE_ONLY_TERMS = /\b(?:surface|weave|woven|mesh|grain|pebbl(?:ed|y)|texture|textile|gloss|finish)\b/i;
 const PRODUCT_IDENTITY_TERMS = /\b(?:wrong item|different product|product type|silhouette|shape|color|logo|readable text|missing|extra|added|outsole|sole|heel|toe shape|closure|seam|panel layout|panel geometry)\b/i;
+const GARMENT_INSPECTION_ATTEMPTS = 2;
 
 export function sha256(value) {
   return createHash('sha256').update(value).digest('hex');
@@ -349,6 +350,19 @@ export class CodexVlmEvaluator {
     }
   }
 
+  async #runWithTransportRetry(options, maxAttempts = 2) {
+    let lastError;
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      try {
+        return await this.#run(options);
+      } catch (error) {
+        lastError = error;
+        if (attempt === maxAttempts) break;
+      }
+    }
+    throw lastError;
+  }
+
   async evaluateQa(context) {
     const images = collectQaImages(context?.evidence, context?.phase);
     try {
@@ -389,12 +403,12 @@ export class CodexVlmEvaluator {
 
   async inspectGarments(images) {
     if (!Array.isArray(images) || images.length < 1 || images.length > 5) throw new Error('Для аналізу потрібно від одного до п’яти фото речей');
-    const result = await this.#run({
+    const result = await this.#runWithTransportRetry({
       images,
       promptBuilder: garmentPrompt,
       schemaPath: this.passportSchemaPath,
       deduplicate: false,
-    });
+    }, GARMENT_INSPECTION_ATTEMPTS);
     return validatePassport(result.value, images.length);
   }
 }

@@ -58,7 +58,12 @@ function fixture() {
   const videoService = {
     async createClip(request) {
       createRequests.push(request);
-      return { clipId: liveClip.clipId, jobId: liveClip.jobId, status: liveClip.status };
+      return {
+        clipId: liveClip.clipId,
+        jobId: liveClip.jobId,
+        status: liveClip.status,
+        plan: { surface: liveClip.surface, aspectRatio: '9:16' },
+      };
     },
     async getClip() {
       return liveClip;
@@ -90,6 +95,8 @@ const availableStyles = [1, 2, 3].map((index) => ({
   id: `style-${index}`,
   title: `Style ${index}`,
   motion_mode: `motion_${index}`,
+  presentation_surface: 'mirror',
+  aspect_ratio: '9:16',
   playback_path: `/runtime/references/playback-${index}.mp4`,
   playback_sha256: String(index + 3).repeat(64),
   preview_sha256: String(index).repeat(64),
@@ -202,6 +209,8 @@ test('saved-look capability opens only from the server-verified two-reference co
       id: style.id,
       title: style.title,
       motion_mode: style.motion_mode,
+      presentation_surface: style.presentation_surface,
+      aspect_ratio: style.aspect_ratio,
       preview_url: `/api/profile/looks/33333333-3333-4333-8333-333333333333/video-styles/${style.id}/preview`,
       playback_url: `/api/profile/looks/33333333-3333-4333-8333-333333333333/video-styles/${style.id}/playback?v=${style.playback_sha256.slice(0, 16)}`,
       reference_url: `/api/profile/looks/33333333-3333-4333-8333-333333333333/video-styles/${style.id}/reference`,
@@ -477,14 +486,17 @@ test('create reaches VideoService only after the same two-reference contract is 
     url: '/api/profile/video-clips',
     payload: {
       look_id: '33333333-3333-4333-8333-333333333333',
-      surface: 'mirror',
+      surface: 'tv',
       style_id: 'style-1',
       motion_mode: 'editorial_micro_moment',
     },
   });
   assert.equal(response.statusCode, 202, response.body);
   assert.equal(response.json().status, 'CREATED');
+  assert.equal(response.json().surface, 'mirror');
+  assert.equal(response.json().aspect_ratio, '9:16');
   assert.equal(current.createRequests.length, 1);
+  assert.equal(Object.hasOwn(current.createRequests[0], 'surfaceId'), false);
   assert.deepEqual(current.createRequests[0].sourceCapabilities, { full_length: true });
   assert.equal(current.createRequests[0].lookBinding.sourceSha256, 'b'.repeat(64));
   assert.deepEqual(

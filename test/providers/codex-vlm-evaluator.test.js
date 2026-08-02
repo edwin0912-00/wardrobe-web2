@@ -66,6 +66,24 @@ test('Codex evaluator returns a strict structured garment analysis and blocks lo
   await assert.rejects(() => low.inspectGarments([filename]), /низькою впевненістю/);
 });
 
+test('garment inspection retries a transient empty VLM result once', async () => {
+  const filename = await imageFixture();
+  const valid = { status: 'READY', reason: 'visible item', items: [{ source_index: 0, category: 'top', confidence: 0.94,
+    observed: { garment_type: 'green hoodie', colors: ['green'], material: ['fleece'], pattern: [], logo_text: [], construction: ['hood'] }, unknowns: [], blockers: [] }],
+  reference_sets: [{ source_indexes: [0], primary_source_index: 0, same_item_confidence: 1, evidence: ['one clear view'] }] };
+  let calls = 0;
+  const evaluator = new CodexVlmEvaluator({ commandRunner: async (binary, args, options) => {
+    calls += 1;
+    if (calls === 1) return { stdout: '', stderr: 'temporary empty result', exitCode: 0 };
+    const outputIndex = args.indexOf('--output-last-message');
+    await writeFile(args[outputIndex + 1], JSON.stringify(valid));
+    return { stdout: '', stderr: '', exitCode: 0 };
+  } });
+  const result = await evaluator.inspectGarments([filename]);
+  assert.equal(result.status, 'READY');
+  assert.equal(calls, 2);
+});
+
 test('garment reference sets are a strict full partition and multi-view grouping needs high confidence', async () => {
   const first = await imageFixture();
   const second = await imageFixture();
