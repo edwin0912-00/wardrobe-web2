@@ -13,6 +13,8 @@ const availableStyles = [1, 2, 3].map((index) => ({
   id: `style-${index}`,
   title: `Style ${index}`,
   motion_mode: `motion_${index}`,
+  presentation_surface: 'mirror',
+  aspect_ratio: '9:16',
   playback_path: `/runtime/references/playback-${index}.mp4`,
   playback_sha256: String(index + 3).repeat(64),
   preview_sha256: String(index).repeat(64),
@@ -53,6 +55,8 @@ test('Fashion Video becomes available only when look, style and motion are verif
   assert.equal(capability.next_action, 'CREATE_FASHION_VIDEO');
   assert.match(capability.styles[0].playback_url, /\/playback\?v=4444444444444444$/);
   assert.match(capability.styles[0].reference_url, /\/reference$/);
+  assert.equal(capability.styles[0].presentation_surface, 'mirror');
+  assert.equal(capability.styles[0].aspect_ratio, '9:16');
 });
 
 test('Fashion Video rejects incomplete or malformed reference hashes', () => {
@@ -87,6 +91,8 @@ test('Fashion Video remains ready when an approved fourth video style is added',
           id: 'style-4',
           title: 'Style 4',
           motion_mode: 'walk_stride',
+          presentation_surface: 'tv',
+          aspect_ratio: '16:9',
           playback_path: '/runtime/references/playback-4.mp4',
           playback_sha256: '7'.repeat(64),
           preview_sha256: '8'.repeat(64),

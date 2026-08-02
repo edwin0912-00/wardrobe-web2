@@ -116,6 +116,11 @@ test('saved look exposes actionable branches and their honest pipeline explanati
   assert.match(appSource, /video\.preload = 'auto'/);
   assert.match(appSource, /#video-style-options video/);
   assert.match(appSource, /style_id: styleId/);
+  assert.doesNotMatch(
+    appSource,
+    /look_id: lookId,\s*surface:/,
+    'Fashion Video must not let a browser choose the delivery surface',
+  );
   assert.doesNotMatch(indexSource, /gentle_sway|confident_turn|editorial_pose/);
   assert.doesNotMatch(indexSource, /id="video-source-image"/);
   assert.match(indexSource, /id="video-result" class="video-result" hidden/);

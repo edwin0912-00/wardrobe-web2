@@ -86,13 +86,32 @@ test('resolver selects and verifies the hash-bound motion reference and UI playb
     assert.equal(result.reference_path, await realpath(referencePath));
     assert.equal(result.reference_sha256, sha256(referenceBytes));
     assert.equal(result.available_styles[0].title, 'Рух');
+    assert.equal(result.available_styles[0].presentation_surface, 'mirror');
+    assert.equal(result.available_styles[0].aspect_ratio, '9:16');
     assert.equal(result.playback_path, await realpath(playbackPath));
     assert.equal(result.available_styles[0].playback_sha256, sha256(playbackBytes));
     assert.match(result.reference_pack_sha256, /^[a-f0-9]{64}$/);
     assert.equal(result.duration_seconds, 13.24);
     assert.equal(result.provider_duration_seconds, 13);
+    assert.equal(result.presentation_surface, 'mirror');
+    assert.equal(result.aspect_ratio, '9:16');
     assert.equal(result.cut_sheet.cuts.length, 1);
     assert.match(result.cut_sheet_sha256, /^[a-f0-9]{64}$/);
+  });
+});
+
+test('resolver refuses a reference geometry that cannot be delivered without changing its aspect', async () => {
+  await fixture(async ({ manifestPath, root }) => {
+    const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
+    manifest.references[0].width = 1440;
+    manifest.references[0].height = 1080;
+    await writeFile(manifestPath, JSON.stringify(manifest));
+    const resolve = createFashionVideoReferenceResolver({ rootDirectory: root, manifestPath });
+    await assert.rejects(
+      () => resolve({ motionMode: 'walk_stride' }),
+      (error) => error instanceof VideoReferenceRegistryError
+        && error.code === 'VIDEO_REFERENCE_ASPECT_UNSUPPORTED',
+    );
   });
 });
 

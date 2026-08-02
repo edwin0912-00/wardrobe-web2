@@ -2,6 +2,7 @@ import { readFile, realpath, stat } from 'node:fs/promises';
 import path from 'node:path';
 
 import { sha256 } from './scene-contract.js';
+import { surfaceForReferenceGeometry } from './video-motion-plan.js';
 
 const SHA256 = /^[a-f0-9]{64}$/;
 const SAFE_FILENAME = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
@@ -71,6 +72,14 @@ function validateManifest(manifest) {
     if (!validCutSheet(reference.cut_sheet, reference.duration_seconds)) {
       throw new VideoReferenceRegistryError('Fashion Video reference has no valid cut sheet');
     }
+    try {
+      surfaceForReferenceGeometry(reference.width, reference.height);
+    } catch (cause) {
+      throw new VideoReferenceRegistryError(
+        'Fashion Video reference geometry has no supported presentation surface',
+        { code: 'VIDEO_REFERENCE_ASPECT_UNSUPPORTED', cause },
+      );
+    }
   }
   return manifest;
 }
@@ -136,6 +145,7 @@ export function createFashionVideoReferenceResolver({
 
     const availableStyles = [];
     for (const reference of manifest.references) {
+      const presentationSurface = surfaceForReferenceGeometry(reference.width, reference.height);
       const playbackPath = await realpath(path.join(root, reference.playback_filename));
       if (path.dirname(playbackPath) !== root) {
         throw new VideoReferenceRegistryError('Fashion Video playback escaped its root');
@@ -164,6 +174,10 @@ export function createFashionVideoReferenceResolver({
         id: reference.id,
         title: reference.ui_title_uk,
         motion_mode: reference.default_motion_mode,
+        presentation_surface: presentationSurface.id,
+        aspect_ratio: presentationSurface.aspectRatio,
+        width: reference.width,
+        height: reference.height,
         playback_path: playbackPath,
         playback_sha256: reference.playback_sha256,
         preview_path: previewPath,
@@ -182,6 +196,8 @@ export function createFashionVideoReferenceResolver({
       provider_duration_seconds: Math.min(15, Math.round(selected.duration_seconds)),
       width: selected.width,
       height: selected.height,
+      presentation_surface: surfaceForReferenceGeometry(selected.width, selected.height).id,
+      aspect_ratio: surfaceForReferenceGeometry(selected.width, selected.height).aspectRatio,
       fps: selected.fps,
       cut_sheet: selected.cut_sheet,
       cut_sheet_sha256: sha256(Buffer.from(JSON.stringify(selected.cut_sheet))),

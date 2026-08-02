@@ -21,7 +21,7 @@ import {
   buildFashionVideoReferencePrompt,
   buildMotionPlan,
   fashionVideoReferenceBindings,
-  surface,
+  surfaceForReferenceGeometry,
 } from './video-motion-plan.js';
 import { evaluateClipQa } from './video-clip-qa.js';
 
@@ -480,13 +480,8 @@ export class VideoService {
       });
     }
 
-    const plan = buildMotionPlan({
-      modeId,
-      surface: surfaceId,
-      durationSeconds,
-      sourceCapabilities,
-      styleNote,
-    });
+    let plan;
+    let referenceOwnedSurface = null;
 
     const clipId = randomUUID();
     const createdAt = new Date(this.#clock()).toISOString();
@@ -525,6 +520,10 @@ export class VideoService {
         || !Number.isInteger(videoReference.provider_duration_seconds)
         || videoReference.provider_duration_seconds < 3
         || videoReference.provider_duration_seconds > 15
+        || !Number.isInteger(videoReference.width)
+        || !Number.isInteger(videoReference.height)
+        || videoReference.width < 1
+        || videoReference.height < 1
         || !validFashionCutSheet(videoReference.cut_sheet, videoReference.duration_seconds)
         || !SHA256.test(videoReference.cut_sheet_sha256 ?? '')
         || sha256(Buffer.from(JSON.stringify(videoReference.cut_sheet))) !== videoReference.cut_sheet_sha256) {
@@ -561,7 +560,29 @@ export class VideoService {
         cutSheet: videoReference.cut_sheet ?? null,
         cutSheetSha256: videoReference.cut_sheet_sha256 ?? null,
       };
+      try {
+        referenceOwnedSurface = surfaceForReferenceGeometry(
+          verifiedVideoReference.width,
+          verifiedVideoReference.height,
+        );
+      } catch (cause) {
+        throw new VideoServiceError(
+          'Fashion Video reference geometry has no supported presentation surface',
+          { code: 'VIDEO_REFERENCE_ASPECT_UNSUPPORTED', status: 409, cause },
+        );
+      }
+      verifiedVideoReference.presentationSurface = referenceOwnedSurface.id;
+      verifiedVideoReference.aspectRatio = referenceOwnedSurface.aspectRatio;
     }
+    // A reference-bound Fashion Video owns its geometry. Any legacy
+    // `surfaceId` supplied by an old client is deliberately ignored here.
+    plan = buildMotionPlan({
+      modeId,
+      surface: referenceOwnedSurface?.id ?? surfaceId,
+      durationSeconds,
+      sourceCapabilities,
+      styleNote,
+    });
     if (!Array.isArray(appearanceReferences)
       || appearanceReferences.length > 2
       || appearanceReferences.some((reference) => (
@@ -637,9 +658,9 @@ export class VideoService {
       });
     }
 
-    // Resolve aspect from the surface, or fall back to the provider default.
-    const resolvedSurface = surfaceId ? surface(surfaceId) : null;
-    const aspectRatio = resolvedSurface ? resolvedSurface.aspectRatio : '16:9';
+    // For Fashion Video this is derived from the verified reference geometry;
+    // legacy callers retain their existing MotionPlan-derived surface.
+    const aspectRatio = plan.aspectRatio;
 
     const referenceBound = verifiedVideoReference !== null;
     const prompt = referenceBound
@@ -708,6 +729,8 @@ export class VideoService {
             reference_pack_sha256: verifiedVideoReference.packSha256,
             provider_label: referenceBindings.motion_reference.provider_label,
             reference_manifest_version: referenceBindings.schema_version,
+            presentation_surface: verifiedVideoReference.presentationSurface,
+            aspect_ratio: verifiedVideoReference.aspectRatio,
           }
         : null,
       appearance_references: lockedAppearanceReferences.map((reference) => ({
@@ -748,6 +771,8 @@ export class VideoService {
             providerDurationSeconds: verifiedVideoReference.providerDurationSeconds,
             width: verifiedVideoReference.width,
             height: verifiedVideoReference.height,
+            presentationSurface: verifiedVideoReference.presentationSurface,
+            aspectRatio: verifiedVideoReference.aspectRatio,
             fps: verifiedVideoReference.fps,
             cutSheetSha256: verifiedVideoReference.cutSheetSha256,
             cutCount: Array.isArray(verifiedVideoReference.cutSheet?.cuts)
@@ -755,6 +780,8 @@ export class VideoService {
               : 0,
             providerLabel: referenceBindings.motion_reference.provider_label,
             referenceManifestVersion: referenceBindings.schema_version,
+            presentationSurface: verifiedVideoReference.presentationSurface,
+            aspectRatio: verifiedVideoReference.aspectRatio,
             audioSourceFile: 'style-reference.mp4',
             audioSourceSha256: verifiedVideoReference.audioSourceSha256,
           }
