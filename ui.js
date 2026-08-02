@@ -357,6 +357,14 @@
       });
     }
 
+    /* Keep the explicit native-cutout handoff name as a compatibility boundary:
+     * older integration checks and handoffs use it to verify that alpha delivery
+     * updates the same TV shelf entry.  The generic helper above also covers the
+     * master-only interim state. */
+    function publishNativeLookPresentation(look) {
+      publishLookPresentation(look);
+    }
+
     /* If beta has not yet attached CUTOUT_NATIVE to the profile response, derive it
      * from the exact approved master once. `master-cutout.js` persists the native PNG
      * in the same-origin Cache API, so a reload reuses that SHA-bound foreground and
@@ -388,7 +396,7 @@
           target.cutoutPreviewUrl = asset.previewUrl || '';
           target.cutoutPreviewSha256 = asset.previewSha256 || null;
           target.cutoutPreviewSourceNativeSha256 = asset.previewSha256 ? asset.nativeSha256 : null;
-          publishLookPresentation(target);
+          publishNativeLookPresentation(target);
         }
       }).catch(function () {
         /* Keep the master; do not manufacture a foreground from a failed preview. */
