@@ -601,6 +601,56 @@ test('profile ownership hides foreign editorial mutations before the service can
   assert.equal(cancellations, 1, 'cancel must be idempotent without requiring an unused key');
 });
 
+test('direct five-frame Fashion Shoot persists its first approved customer frame as the saved-library preview', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'editorial-profile-preview-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const profiles = new ProfileService({
+    databasePath: path.join(root, 'profiles.sqlite'),
+  });
+  await profiles.initialize();
+  t.after(() => profiles.close());
+  const owner = profiles.createSession();
+  profiles.claimRun(owner.profileId, 'direct-preview-run');
+  const saved = profiles.saveClaimedRun(owner.profileId, 'direct-preview-run');
+  const shoot = rawShoot({
+    shootId: 'shoot_direct_preview',
+    lookId: saved.look.look_id,
+    status: 'SERIES_RUNNING',
+  });
+  shoot.bindings.shoot_bible = {
+    ...shoot.bindings.shoot_bible,
+    mode_id: 'shoot.window_gobo_warm',
+  };
+  shoot.shots[0] = { ...shoot.shots[0], status: 'CANCELLED' };
+  shoot.shots[1] = {
+    ...shoot.shots[1],
+    status: 'APPROVED',
+    output: {
+      resource_id: 'scene_customer_preview',
+      sha256: 'e'.repeat(64),
+      receipt_sha256: 'f'.repeat(64),
+      width: 1536,
+      height: 2048,
+      media_type: 'image/png',
+    },
+  };
+  profiles.projectEditorialShoot(owner.profileId, saved.look.look_id, shoot);
+
+  const reopened = profiles.getProfile(owner.profileId);
+  const projection = reopened.looks[0].editorial_shoots[0];
+  assert.equal(projection.hero_image_url, null, 'the internal check has no customer image');
+  assert.equal(projection.preview_slot, 'environmental_hero');
+  assert.equal(projection.preview_output_sha256, 'e'.repeat(64));
+  assert.match(
+    projection.preview_image_url,
+    /\/editorial-shoots\/shoot_direct_preview\/shots\/environmental_hero\/image$/,
+  );
+  assert.match(
+    projection.preview_download_url,
+    /\/editorial-shoots\/shoot_direct_preview\/shots\/environmental_hero\/download$/,
+  );
+});
+
 async function ownedShootRoutes(t, shoot) {
   const root = await mkdtemp(path.join(os.tmpdir(), 'editorial-api-contract-'));
   t.after(() => rm(root, { recursive: true, force: true }));

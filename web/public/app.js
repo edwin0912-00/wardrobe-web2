@@ -1225,7 +1225,11 @@ function renderProfileEditorialLibrary(look, profile = currentProfile, supplied 
 
     const visual = document.createElement('span');
     visual.className = 'profile-look-scene-visual';
-    const heroUrl = shoot.hero_image_url
+    // Direct Fashion Shoots have an internal, non-delivery hero check. The
+    // backend persists the first approved customer frame as preview_image_url
+    // so saved sessions never regress to a blank F-card after reload.
+    const heroUrl = shoot.preview_image_url
+      ?? shoot.hero_image_url
       ?? shoot.preview_url
       ?? shoot.shots?.find((shot) => shot.slot === 'clean_identity_hero')?.output?.image_url;
     if (heroUrl) {

@@ -268,7 +268,14 @@ function rowScene(row) {
 function rowEditorialShoot(row) {
   const hasHero = typeof row.hero_output_sha256 === 'string'
     && row.hero_output_sha256.length > 0;
+  const hasPreview = typeof row.preview_output_sha256 === 'string'
+    && row.preview_output_sha256.length > 0
+    && typeof row.preview_slot === 'string'
+    && row.preview_slot.length > 0;
   const heroBaseUrl = `/api/profile/editorial-shoots/${encodeURIComponent(row.shoot_id)}/shots/clean_identity_hero`;
+  const previewBaseUrl = hasPreview
+    ? `/api/profile/editorial-shoots/${encodeURIComponent(row.shoot_id)}/shots/${encodeURIComponent(row.preview_slot)}`
+    : null;
   return {
     shoot_id: row.shoot_id,
     look_id: row.look_id,
@@ -284,7 +291,29 @@ function rowEditorialShoot(row) {
     hero_output_sha256: row.hero_output_sha256 ?? null,
     hero_image_url: hasHero ? `${heroBaseUrl}/image` : null,
     hero_download_url: hasHero ? `${heroBaseUrl}/download` : null,
+    // `clean_identity_hero` is an internal check for the direct five-frame
+    // Fashion Shoot product.  It intentionally has no customer image, so the
+    // saved library needs its own durable first-delivered-frame projection.
+    preview_slot: hasPreview ? row.preview_slot : null,
+    preview_output_sha256: hasPreview ? row.preview_output_sha256 : null,
+    preview_image_url: previewBaseUrl ? `${previewBaseUrl}/image` : null,
+    preview_download_url: previewBaseUrl ? `${previewBaseUrl}/download` : null,
   };
+}
+
+function editorialPresentationPreview(shoot) {
+  const shots = Array.isArray(shoot?.shots) ? shoot.shots : [];
+  // Prefer the internal check only when it really produced output (legacy
+  // editorial). Direct `shoot.*` mode delivers the five customer slots, so
+  // select their first durable output in the canonical slot order instead.
+  const isDirectFiveShoot = String(shoot?.bindings?.shoot_bible?.mode_id ?? '').startsWith('shoot.');
+  const candidates = isDirectFiveShoot
+    ? shots.filter((shot) => shot?.slot !== 'clean_identity_hero')
+    : shots;
+  return candidates.find((shot) => (
+    shot?.output?.sha256
+    && ['APPROVED', 'QA_PASSED'].includes(shot.status)
+  )) ?? candidates.find((shot) => shot?.output?.sha256) ?? null;
 }
 
 function rowVideoClip(row) {
@@ -428,6 +457,8 @@ export class ProfileService {
         status TEXT NOT NULL,
         approved_shot_count INTEGER NOT NULL DEFAULT 0,
         hero_output_sha256 TEXT,
+        preview_slot TEXT,
+        preview_output_sha256 TEXT,
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL,
         expires_at INTEGER NOT NULL,
@@ -486,6 +517,13 @@ export class ProfileService {
         ALTER TABLE run_claims
         ADD COLUMN source_look_id TEXT REFERENCES looks(look_id) ON DELETE SET NULL
       `);
+    }
+    const editorialColumns = this.database.prepare('PRAGMA table_info(editorial_shoots)').all();
+    if (!editorialColumns.some((column) => column.name === 'preview_slot')) {
+      this.database.exec('ALTER TABLE editorial_shoots ADD COLUMN preview_slot TEXT');
+    }
+    if (!editorialColumns.some((column) => column.name === 'preview_output_sha256')) {
+      this.database.exec('ALTER TABLE editorial_shoots ADD COLUMN preview_output_sha256 TEXT');
     }
     const deletionTable = this.database.prepare(`
       SELECT sql FROM sqlite_master
@@ -604,7 +642,8 @@ export class ProfileService {
     `).all(profileId);
     const editorialRows = this.#db().prepare(`
       SELECT shoot_id, look_id, mode_id, mode_version, status, approved_shot_count,
-             hero_output_sha256, created_at, updated_at, expires_at
+             hero_output_sha256, preview_slot, preview_output_sha256,
+             created_at, updated_at, expires_at
       FROM editorial_shoots WHERE profile_id = ?
       ORDER BY updated_at DESC, shoot_id
     `).all(profileId);
@@ -1211,15 +1250,21 @@ export class ProfileService {
         ? shoot.shots.filter((shot) => shot.status === 'APPROVED').length
         : 0;
       const heroOutputSha256 = shoot.shots?.[0]?.output?.sha256 ?? null;
+      const preview = editorialPresentationPreview(shoot);
+      const previewSlot = preview?.slot ?? null;
+      const previewOutputSha256 = preview?.output?.sha256 ?? null;
       database.prepare(`
         INSERT INTO editorial_shoots(
           shoot_id, profile_id, look_id, mode_id, mode_version, status,
-          approved_shot_count, hero_output_sha256, created_at, updated_at, expires_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          approved_shot_count, hero_output_sha256, preview_slot, preview_output_sha256,
+          created_at, updated_at, expires_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(shoot_id) DO UPDATE SET
           status = excluded.status,
           approved_shot_count = excluded.approved_shot_count,
           hero_output_sha256 = excluded.hero_output_sha256,
+          preview_slot = excluded.preview_slot,
+          preview_output_sha256 = excluded.preview_output_sha256,
           updated_at = excluded.updated_at
       `).run(
         shoot.shoot_id,
@@ -1230,6 +1275,8 @@ export class ProfileService {
         shoot.status,
         approvedShotCount,
         heroOutputSha256,
+        previewSlot,
+        previewOutputSha256,
         createdAt,
         updatedAt,
         profile.expires_at,
@@ -1249,14 +1296,18 @@ export class ProfileService {
     const updatedAt = Number.isFinite(Date.parse(shoot.updated_at))
       ? Date.parse(shoot.updated_at)
       : nowFrom(this.clock);
+    const preview = editorialPresentationPreview(shoot);
     const result = this.#db().prepare(`
       UPDATE editorial_shoots
-      SET status = ?, approved_shot_count = ?, hero_output_sha256 = ?, updated_at = ?
+      SET status = ?, approved_shot_count = ?, hero_output_sha256 = ?,
+          preview_slot = ?, preview_output_sha256 = ?, updated_at = ?
       WHERE shoot_id = ? AND look_id = ?
     `).run(
       shoot.status,
       approvedShotCount,
       shoot.shots?.[0]?.output?.sha256 ?? null,
+      preview?.slot ?? null,
+      preview?.output?.sha256 ?? null,
       updatedAt,
       shoot.shoot_id,
       shoot.bindings.approved_look.look_id,
@@ -1280,6 +1331,7 @@ export class ProfileService {
     const row = this.#db().prepare(`
       SELECT e.shoot_id, e.look_id, e.mode_id, e.mode_version, e.status,
              e.approved_shot_count, e.hero_output_sha256,
+             e.preview_slot, e.preview_output_sha256,
              e.created_at, e.updated_at, e.expires_at
       FROM editorial_shoots e JOIN profiles p ON p.profile_id = e.profile_id
       WHERE e.shoot_id = ? AND e.profile_id = ?
@@ -1293,7 +1345,8 @@ export class ProfileService {
     if (!this.ownsLook(profileId, lookId)) return null;
     return this.#db().prepare(`
       SELECT shoot_id, look_id, mode_id, mode_version, status, approved_shot_count,
-             hero_output_sha256, created_at, updated_at, expires_at
+             hero_output_sha256, preview_slot, preview_output_sha256,
+             created_at, updated_at, expires_at
       FROM editorial_shoots
       WHERE profile_id = ? AND look_id = ?
       ORDER BY updated_at DESC, shoot_id
@@ -1558,7 +1611,9 @@ export class ProfileService {
 
     for (const row of this.#db().prepare(`
       SELECT e.shoot_id, e.look_id, e.mode_id, e.mode_version, e.status,
-             e.approved_shot_count, e.hero_output_sha256, e.created_at, e.updated_at
+             e.approved_shot_count, e.hero_output_sha256,
+             e.preview_slot, e.preview_output_sha256,
+             e.created_at, e.updated_at
       FROM editorial_shoots e JOIN profiles p ON p.profile_id = e.profile_id
       WHERE p.revoked_at IS NULL AND p.expires_at > ?
       ORDER BY e.updated_at DESC, e.shoot_id
@@ -1570,6 +1625,8 @@ export class ProfileService {
         status: row.status,
         approved_shot_count: row.approved_shot_count,
         hero_output_sha256: row.hero_output_sha256 ?? null,
+        preview_slot: row.preview_slot ?? null,
+        preview_output_sha256: row.preview_output_sha256 ?? null,
         created_at: iso(row.created_at),
         updated_at: iso(row.updated_at),
       });

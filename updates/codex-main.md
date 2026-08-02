@@ -1397,3 +1397,24 @@ Tests: `node --test test/video/*.test.js test/web/profile-ui-flow.test.js` —
 Beta: LIVE — public and local health report release SHA
 `e5531523b84d0ad4b5a26eea77c66aa7ee142cea`, `status=ready`.
 weakened_checks: none. The reference-performer gate remains blocking.
+
+---
+
+Agent ID: codex-main
+Task ID: BETA-FASHION-SHOOT-SAVED-PREVIEW-20260803
+Pipeline: UNIVERSE.04 · completed Fashion Shoot → saved library / presentation
+State: READY_FOR_BETA_DEPLOY
+Decision: a direct `shoot.*` product has five customer frames and an internal
+`clean_identity_hero` check that intentionally is not a customer image. The
+saved-profile projection previously used only that internal slot as its preview,
+so a completed shoot could reload as a blank card even when customer frames had
+already passed. The projection now durably stores `preview_slot` and
+`preview_output_sha256` for the first approved customer frame; the UI uses that
+preview and its download URL. Legacy editorial retains its internal-hero preview.
+Code: pending commit on `beta-block-5-direct-five-shoots-20260802`.
+Tests: targeted direct-five projection regression PASS; profile service and UI
+flow checks PASS.
+Beta: NOT_DEPLOYED.
+Journey: existing completed `shoot.zayn_institutional` has five customer output
+files; its server-side preview will be backfilled safely at beta restart.
+weakened_checks: none; no QA state or output bytes are altered.
