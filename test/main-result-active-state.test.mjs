@@ -27,6 +27,19 @@ test('result screen never performs browser segmentation of a master or compact p
   assert.match(surfaces, /results\[index\]\.kind === 'look'/);
 });
 
+test('look creation requires an uploaded garment while keeping named presets additive', () => {
+  assert.match(ui, /function hasUploadedItems\(\)/);
+  assert.match(ui, /step === 1 && \(!hasItems\(\) \|\| !hasUploadedItems\(\)/);
+  assert.match(ui, /готові назви можна додати до фото/);
+});
+
+test('preset tray and mirror panels respect station and mobile accessibility state', () => {
+  assert.match(ui, /if \(locked\(\)\) return;\s*if \(t\.closest\('\[data-presets\]'\)\)/);
+  assert.match(ui, /el\.hasAttribute\('data-presets'\)[\s\S]*?el\.disabled = lock \|\| preparingFiles/);
+  assert.match(ui, /function syncPanelAccessibility\(\)/);
+  assert.match(ui, /syncMobileAttention\(\);\s*syncPanelAccessibility\(\);/);
+});
+
 test('persistent chrome exposes the actual system release identifier', () => {
   assert.match(ui, /data-build/);
   assert.match(ui, /BUILD ' \+ String\(sha\)\.slice\(0, 7\)\.toUpperCase\(\)/);

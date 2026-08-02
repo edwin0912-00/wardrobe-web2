@@ -64,6 +64,25 @@ test('coalesces one to five looks into a single TV portrait row', () => {
   assert.equal(surfaces.strongestResult(shelf), 0);
 });
 
+test('coalesced looks keep each native preview paired with its master', () => {
+  const first = surfaces.addResultToShelf([], {
+    kind: 'look', aspect: '9:16', urls: ['master-a'],
+    previewUrls: ['cutout-a'], previewAttempted: true,
+  });
+  const second = surfaces.addResultToShelf(first.results, {
+    kind: 'look', aspect: '9:16', urls: ['master-b'],
+    previewUrls: ['cutout-b'], previewAttempted: true,
+  });
+  assert.deepEqual(second.results[0].urls, ['master-a', 'master-b']);
+  assert.deepEqual(second.results[0].previewUrls, ['cutout-a', 'cutout-b']);
+});
+
+test('a master-only look is immediately usable and does not wait for a preview job', () => {
+  const item = surfaces.resultModel({ kind: 'look', aspect: '9:16', urls: ['master'] });
+  assert.equal(item.pendingRealMedia, false);
+  assert.deepEqual(item.previewUrls, []);
+});
+
 test('a stronger TV result wins over an aggregated look row', () => {
   const look = surfaces.addResultToShelf([], {
     kind: 'look', aspect: '9:16', urls: ['look.png'],

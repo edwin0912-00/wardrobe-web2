@@ -309,6 +309,9 @@
     function locked() { return !station(); }
     function hasMain() { return !!person.main; }
     function hasItems() { return items.length >= MIN_ITEMS; }
+    function hasUploadedItems() {
+      return items.some(function (item) { return !!(item && item.file); });
+    }
     function current() { return selected >= 0 ? looks[selected] : null; }
     /* A look owns the image a generation returned for it, or nothing. There is no route
      * that can fill this yet, and that is the point: the frame stays empty rather than
@@ -409,7 +412,7 @@
         var garmentFiles = items.filter(function (item) { return !!item.file; })
           .map(function (item) { return item.file; });
         if (!garmentFiles.length) {
-          actionError = { kind: 'look', message: 'Додайте фото хоча б однієї речі' };
+          actionError = { kind: 'look', message: 'Додайте фото хоча б однієї речі; готові назви можна додати до фото' };
           render(); notifyGateChange();
           return;
         }
@@ -883,7 +886,7 @@
 
       var s = STEPS[step];
       var blocked = (step === 0 && !hasMain()) ||
-        (step === 1 && (!hasItems() || pending || adapterLoading || adapterUnavailable ||
+        (step === 1 && (!hasItems() || !hasUploadedItems() || pending || adapterLoading || adapterUnavailable ||
           (bridge && !bridgeReady()) || preparingFiles));
 
       /* UNREACHED STEPS ARE NOT RENDERED AT ALL. A greyed-out label still advertises an
@@ -1302,7 +1305,7 @@
        * Before a result exists it holds the calm orb; the result replaces that exact
        * aperture, so waiting and arrival are one continuous spatial event. */
       showRoot.setAttribute('data-live', '1');
-      showRoot.setAttribute('aria-hidden', 'false');
+      showRoot.setAttribute('aria-hidden', station() ? 'false' : 'true');
 
       /* A first look can fail before there is anything in `looks`. Error recovery must
        * therefore win over both empty-look waiting paths below: otherwise the terminal
@@ -1395,20 +1398,45 @@
       var lock = locked();
       document.querySelectorAll('[data-ui-ask] button, [data-ui-show] button, [data-ui-ask] input')
         .forEach(function (el) {
-          if (el.hasAttribute('data-presets')) return;
+          if (el.hasAttribute('data-presets')) {
+            /* Presets are a tray control, not a generation action. They remain available
+             * when the five visible slots are full so a text-only preset can be removed;
+             * they are unavailable while the camera is moving or files are being prepared. */
+            el.disabled = lock || preparingFiles;
+            el.setAttribute('aria-disabled', el.disabled ? 'true' : 'false');
+            return;
+          }
           var blocked = el.getAttribute('data-blocked') === '1';
           var full = el.id === 'io-items' && items.length >= MAX_ITEMS;
           el.disabled = lock || blocked || full || preparingFiles;
+          el.setAttribute('aria-disabled', el.disabled ? 'true' : 'false');
         });
       var hint = askRoot.querySelector('[data-hint]');
       if (hint) {
         hint.textContent = (step === 0 && !hasMain()) ? 'потрібне одне фото'
                          : (step === 1 && !hasItems()) ? 'додайте хоча б одну річ'
+                         : (step === 1 && !hasUploadedItems()) ? 'додайте фото хоча б однієї речі; готові назви можна додати до фото'
                          : (step === 1 && (adapterLoading || adapterUnavailable || (bridge && !bridgeReady())))
                            ? (bridgeCopy() || 'Ця частина простору ще готується')
                          : preparingFiles ? 'готуємо фото…'
                          : lock ? 'камера рухається — рішення на зупинці' : '';
       }
+      syncPanelAccessibility();
+    }
+
+    function syncPanelAccessibility() {
+      var atStation = station();
+      function accessible(root) {
+        if (!root || !atStation) return false;
+        /* On portrait mobile the active panel is moved into the attention plane. The
+         * filmed panel left behind may still contain controls, so hide it from the
+         * accessibility tree rather than exposing two competing journeys. A passive
+         * waiting/status surface can remain announced when it has no controls. */
+        if (!mobileQuery.matches || root.parentNode === mobileRoot) return true;
+        return !root.querySelector('button, input, select, textarea, a[href]');
+      }
+      askRoot.setAttribute('aria-hidden', accessible(askRoot) ? 'false' : 'true');
+      showRoot.setAttribute('aria-hidden', accessible(showRoot) ? 'false' : 'true');
     }
 
     function mobileFocus() {
@@ -1459,10 +1487,15 @@
       renderAsk();
       renderShow();
       syncMobileAttention();
+      syncPanelAccessibility();
     }
 
-    if (mobileQuery.addEventListener) mobileQuery.addEventListener('change', syncMobileAttention);
-    else if (mobileQuery.addListener) mobileQuery.addListener(syncMobileAttention);
+    function syncViewportAttention() {
+      syncMobileAttention();
+      syncPanelAccessibility();
+    }
+    if (mobileQuery.addEventListener) mobileQuery.addEventListener('change', syncViewportAttention);
+    else if (mobileQuery.addListener) mobileQuery.addListener(syncViewportAttention);
 
     function commitPreparedFiles(kind, prepared) {
       if (kind === 'items') {
@@ -1547,8 +1580,8 @@
 
     document.addEventListener('click', function (ev) {
       var t = ev.target, b;
-      if (t.closest('[data-presets]')) { presetsOpen = !presetsOpen; renderAsk(); return; }
       if (locked()) return;
+      if (t.closest('[data-presets]')) { presetsOpen = !presetsOpen; renderAsk(); return; }
 
       if ((b = t.closest('[data-garment-category]'))) {
         garmentSelections[b.getAttribute('data-garment-category')] = b.getAttribute('data-garment-id');

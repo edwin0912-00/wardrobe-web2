@@ -152,20 +152,43 @@
     return best;
   }
 
+  /* Keep each portrait's display derivative paired with its source master when
+   * the TV coalesces several looks into one row.  `previewUrls` is positional:
+   * an entry at index i belongs to `urls[i]`.  Missing derivatives deliberately
+   * fall back to that same master, so one missing cutout never shifts every
+   * portrait to the wrong person. */
+  function mergeLookDisplayUrls(existing, incoming, urls) {
+    var previews = new Map();
+    [existing, incoming].forEach(function (item) {
+      if (!item || !Array.isArray(item.urls) || !Array.isArray(item.previewUrls)) return;
+      item.urls.forEach(function (source, index) {
+        var preview = item.previewUrls[index];
+        if (typeof source === 'string' && source && typeof preview === 'string' && preview) {
+          previews.set(source, preview);
+        }
+      });
+    });
+    return urls.map(function (source) { return previews.get(source) || source; });
+  }
+
   function addResultToShelf(existing, raw) {
     var shelf = Array.isArray(existing) ? existing.slice() : [];
     var item = resultModel(raw);
     if (item.kind === 'look') {
       var lookIndex = shelf.findIndex(function (entry) { return entry.kind === 'look'; });
       if (lookIndex >= 0) {
-        var urls = shelf[lookIndex].urls.slice();
+        var existingLook = shelf[lookIndex];
+        var urls = existingLook.urls.slice();
         item.urls.forEach(function (url) {
           if (urls.indexOf(url) < 0 && urls.length < 5) urls.push(url);
         });
+        var previewUrls = mergeLookDisplayUrls(existingLook, item, urls);
         shelf[lookIndex] = resultModel({
           kind: 'look',
           aspect: item.aspect,
           urls: urls,
+          previewUrls: previewUrls,
+          previewAttempted: existingLook.previewAttempted || item.previewAttempted || false,
           mediaUrl: urls.length === 1 ? urls[0] : ''
         });
       } else {
@@ -279,10 +302,6 @@
       tvGallery.innerHTML =
         '<div class="tv-gallery__head"><span>' + esc(item.label) + '</span></div>' +
         (item.kind === 'shoot' ? portraitStrip(item)
-          : item.kind === 'look' && mediaPreview && item.urls.length &&
-            !item.previewUrls.length && !item.previewAttempted ?
-            '<div class="tv-result-wait" role="status"><span class="orb orb--small" aria-hidden="true">' +
-              '<i></i><i></i><i></i></span><b>Готуємо перегляд</b></div>'
           : item.kind === 'look' && item.urls.length > 1 ? lookStrip(item)
           : item.kind === 'video' ? videoFrame(item)
           : stillFrame(item));
