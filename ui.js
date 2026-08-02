@@ -196,11 +196,45 @@
     }).catch(function () { return null; });
     var mediaPreview = global.WardrobeMediaPreview || null;
 
-    function ensureTransparentPreview(source, done) {
-      if (!mediaPreview || !source || typeof done !== 'function') return;
-      mediaPreview.fromUrl(source, { removeBackground: true, maxEdge: 640 })
-        .then(function (entry) { if (entry && entry.url) done(entry.url); })
-        .catch(function () {});
+    /* Result-screen asset policy. The beta owns the immutable approved master and
+     * may also return one hash-bound native RGBA cutout plus its compact derivative.
+     * A browser preview is never segmented here: if the native binding is absent,
+     * the UI deliberately shows the master instead of manufacturing a foreground. */
+    function lookAssets(source, fallbackMaster) {
+      source = source || {};
+      var masterUrl = source.masterUrl || source.master_image_url || source.image_url ||
+        source.resultUrl || source.mediaUrl || fallbackMaster || '';
+      var masterSha256 = source.masterSha256 || source.master_sha256 || source.image_sha256 || null;
+      var nativeUrl = source.cutoutNativeUrl || source.cutout_native_url ||
+        source.cutout_native && (source.cutout_native.url || source.cutout_native.image_url) || '';
+      var nativeSha256 = source.cutoutNativeSha256 || source.cutout_native_sha256 ||
+        source.cutout_native && source.cutout_native.sha256 || null;
+      var sourceMasterSha256 = source.cutoutNativeSourceMasterSha256 ||
+        source.cutout_native_source_master_sha256 || source.cutout_native &&
+        (source.cutout_native.source_master_sha256 || source.cutout_native.bound_master_sha256) || null;
+      var nativeHasAlpha = source.cutoutNativeHasAlpha === true || source.cutout_native_has_alpha === true ||
+        source.cutout_native && (source.cutout_native.has_alpha === true || source.cutout_native.alpha === true);
+      var nativeBound = !!(nativeUrl && nativeSha256 && masterSha256 && sourceMasterSha256 === masterSha256 && nativeHasAlpha);
+      var previewUrl = source.cutoutPreviewUrl || source.cutout_preview_url || '';
+      var previewSha256 = source.cutoutPreviewSha256 || source.cutout_preview_sha256 || null;
+      var previewSourceNativeSha256 = source.cutoutPreviewSourceNativeSha256 ||
+        source.cutout_preview_source_native_sha256 || source.cutout_preview_source_sha256 || null;
+      var previewBound = nativeBound && !!(previewUrl && previewSha256 && previewSourceNativeSha256 === nativeSha256);
+      return {
+        masterUrl: masterUrl,
+        masterSha256: masterSha256,
+        cutoutNativeUrl: nativeBound ? nativeUrl : '',
+        cutoutNativeSha256: nativeBound ? nativeSha256 : null,
+        cutoutPreviewUrl: previewBound ? previewUrl : '',
+        cutoutPreviewSha256: previewBound ? previewSha256 : null,
+        displayUrl: previewBound ? previewUrl : nativeBound ? nativeUrl : masterUrl,
+        nativeBound: nativeBound,
+        previewBound: previewBound,
+      };
+    }
+
+    function lookDisplayUrl(look) {
+      return look && (look.cutoutPreviewUrl || look.cutoutNativeUrl || look.resultUrl || look.result) || '';
     }
 
     function ensureFilePreview(file, done, removeBackground) {
@@ -303,7 +337,7 @@
           lookId: lookId,
           runId: record.source_run_id || null,
           resultUrl: resultUrl,
-          resultPreviewUrl: record.preview_url || (at >= 0 && looks[at].resultPreviewUrl) || null,
+          resultPreviewUrl: null,
           result: resultUrl,
           items: Array.isArray(record.items) ? record.items.slice() : [],
           bg: null, shootStyle: null, videoStyle: null,
@@ -313,19 +347,19 @@
           createdAt: record.created_at || null,
           avatarId: record.avatar_id || null
         };
+        var savedAssets = lookAssets(record, resultUrl);
+        saved.resultUrl = savedAssets.masterUrl || resultUrl;
+        saved.result = saved.resultUrl;
+        saved.resultPreviewUrl = savedAssets.displayUrl !== saved.resultUrl ? savedAssets.displayUrl : null;
+        saved.masterSha256 = savedAssets.masterSha256;
+        saved.cutoutNativeUrl = savedAssets.cutoutNativeUrl;
+        saved.cutoutNativeSha256 = savedAssets.cutoutNativeSha256;
+        saved.cutoutPreviewUrl = savedAssets.cutoutPreviewUrl;
+        saved.cutoutPreviewSha256 = savedAssets.cutoutPreviewSha256;
         if (at < 0) looks.push(saved);
         else {
           looks[at] = Object.assign({}, looks[at], saved,
             { items: looks[at].items && looks[at].items.length ? looks[at].items : saved.items });
-        }
-        var existingLook = at >= 0 ? looks[at] : null;
-        if (!saved.resultPreviewUrl && resultUrl && !(existingLook && existingLook.resultPreviewUrl)) {
-          ensureTransparentPreview(resultUrl, function (previewUrl) {
-            var currentLook = looks.find(function (look) { return look.lookId === lookId; });
-            if (!currentLook || currentLook.resultUrl !== resultUrl) return;
-            currentLook.resultPreviewUrl = previewUrl;
-            render();
-          });
         }
       });
       if (looks.length && selected < 0 && !pending && !pendingAction) {
@@ -450,7 +484,7 @@
               id: bridgeState.savedLook && bridgeState.savedLook.look_id || runId,
               runId: runId,
               lookId: bridgeState.savedLook && bridgeState.savedLook.look_id || null,
-              resultUrl: bridgeState.result.mediaUrl || bridgeState.result.urls[0] || '',
+              resultUrl: bridgeState.result.mediaUrl || bridgeState.result.masterUrl || bridgeState.result.urls[0] || '',
               resultPreviewUrl: null,
               items: items.slice(), bg: null, shootStyle: null, videoStyle: null,
               shot: false, video: false, actionResults: {}
@@ -458,11 +492,21 @@
             at = looks.length - 1;
             items = [];
           } else {
-            var nextResultUrl = bridgeState.result.mediaUrl || bridgeState.result.urls[0] || looks[at].resultUrl;
+            var nextResultUrl = bridgeState.result.mediaUrl || bridgeState.result.masterUrl || bridgeState.result.urls[0] || looks[at].resultUrl;
             if (looks[at].resultUrl !== nextResultUrl) looks[at].resultPreviewUrl = null;
             looks[at].resultUrl = nextResultUrl;
             if (bridgeState.savedLook) looks[at].lookId = bridgeState.savedLook.look_id;
           }
+          var resultAssets = lookAssets(bridgeState.result, looks[at].resultUrl);
+          looks[at].resultUrl = resultAssets.masterUrl || looks[at].resultUrl;
+          looks[at].result = looks[at].resultUrl;
+          looks[at].resultPreviewUrl = resultAssets.displayUrl !== looks[at].resultUrl
+            ? resultAssets.displayUrl : null;
+          looks[at].masterSha256 = resultAssets.masterSha256;
+          looks[at].cutoutNativeUrl = resultAssets.cutoutNativeUrl;
+          looks[at].cutoutNativeSha256 = resultAssets.cutoutNativeSha256;
+          looks[at].cutoutPreviewUrl = resultAssets.cutoutPreviewUrl;
+          looks[at].cutoutPreviewSha256 = resultAssets.cutoutPreviewSha256;
           selected = at;
           pending = false;
           step = 2;
@@ -473,13 +517,6 @@
             retryable: true,
           }) : null;
           if (typeof opts.onLookReady === 'function') opts.onLookReady();
-          var resultSource = looks[at].resultUrl;
-          if (!looks[at].resultPreviewUrl) ensureTransparentPreview(resultSource, function (previewUrl) {
-            var currentLook = looks[at];
-            if (!currentLook || currentLook.resultUrl !== resultSource) return;
-            currentLook.resultPreviewUrl = previewUrl;
-            render();
-          });
         }
       } else {
         var uiKind = kind === 'background' ? 'bg' : kind === 'video' ? 'fash' : kind;
@@ -630,7 +667,7 @@
      * the picture has none of those once a look already exists. */
     function askLookThumbs() {
       var cells = looks.map(function (l, i) {
-        var thumb = l.resultPreviewUrl || l.resultUrl || (l.items[0] && (l.items[0].previewUrl || l.items[0].url));
+        var thumb = lookDisplayUrl(l) || (l.items[0] && (l.items[0].previewUrl || l.items[0].url));
         return '<button class="lookthumb" type="button" data-select="' + i + '"' +
           ' aria-pressed="' + (i === selected ? 'true' : 'false') + '">' +
           (thumb ? '<img class="lookthumb__img" src="' + thumb + '" alt="">' : '') +
@@ -1189,7 +1226,7 @@
       var l = current();
       var activeResult = l && l.actionResults && l.actionResults[view === 'bg' ? 'background' : view];
       var src = activeResult && (activeResult.previewUrl || activeResult.mediaUrl || activeResult.urls && activeResult.urls[0]) ||
-        (l && (l.resultPreviewUrl || l.resultUrl)) || (!bridge && person.main ? (person.main.previewUrl || person.main.url) : '');
+        lookDisplayUrl(l) || (!bridge && person.main ? (person.main.previewUrl || person.main.url) : '');
       return '<div class="lookframe" data-state="' + state + '">' +
         (src ? '<img class="lookframe__img" src="' + src + '" alt="">' : '') +
         '<span class="lookframe__cap">' + caption + '</span>' +
@@ -1206,7 +1243,7 @@
      * actions under it, was being shown their own input as a result. */
     function lookResultFrame() {
       var l = current();
-      var src = l && (l.resultPreviewUrl || l.resultUrl || l.result) || '';
+      var src = lookDisplayUrl(l);
       return '<div class="lookframe" data-state="ready">' +
         (src ? '<img class="lookframe__img" src="' + esc(src) + '" alt="">' : '') +
         '<span class="lookframe__word">образ</span>' +
@@ -1884,11 +1921,19 @@
        * adapter will call it when a real look returns; until then it is also how a result
        * can be put on the glass deliberately for review. Opening the forward gate lives
        * here because arrival of the image is the event that makes the next room meaningful. */
-      setLookResult: function (url) {
+      setLookResult: function (asset) {
         var l = current();
-        if (!l || typeof url !== 'string' || !url) return false;
-        l.result = url;
-        l.resultUrl = url;
+        var source = typeof asset === 'string' ? { image_url: asset } : asset;
+        var assets = lookAssets(source, '');
+        if (!l || !assets.masterUrl) return false;
+        l.result = assets.masterUrl;
+        l.resultUrl = assets.masterUrl;
+        l.resultPreviewUrl = assets.displayUrl !== assets.masterUrl ? assets.displayUrl : null;
+        l.masterSha256 = assets.masterSha256;
+        l.cutoutNativeUrl = assets.cutoutNativeUrl;
+        l.cutoutNativeSha256 = assets.cutoutNativeSha256;
+        l.cutoutPreviewUrl = assets.cutoutPreviewUrl;
+        l.cutoutPreviewSha256 = assets.cutoutPreviewSha256;
         render();
         if (typeof opts.onLookReady === 'function') opts.onLookReady();
         return true;

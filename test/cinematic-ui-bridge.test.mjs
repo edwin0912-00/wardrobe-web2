@@ -116,6 +116,48 @@ test('a completed real run becomes the saved look and loads all action catalogue
   assert.equal(state.liveCapability.app, 'server-owned-live');
 });
 
+test('look result accepts only a SHA-bound alpha native cutout and its derivative preview', async () => {
+  const client = clientStub();
+  const bridge = createCinematicUiBridge({ client, autoProbe: false });
+  await bridge.probe();
+  const masterSha = 'a'.repeat(64);
+  const nativeSha = 'b'.repeat(64);
+  const previewSha = 'c'.repeat(64);
+  client.emit({ type: 'run:event', run: {
+    run_id: 'run-assets', status: 'COMPLETED', outputs: {
+      avatar_outfit_master: '/api/profile/looks/look-assets/image',
+      master_sha256: masterSha,
+      cutout_native_url: '/api/profile/looks/look-assets/cutout-native.png',
+      cutout_native_sha256: nativeSha,
+      cutout_native_source_master_sha256: masterSha,
+      cutout_native_has_alpha: true,
+      cutout_preview_url: '/api/profile/looks/look-assets/cutout-preview.webp',
+      cutout_preview_sha256: previewSha,
+      cutout_preview_source_native_sha256: nativeSha,
+    },
+  } });
+  const accepted = bridge.state().result;
+  assert.equal(accepted.mediaUrl, '/api/profile/looks/look-assets/image');
+  assert.equal(accepted.cutoutNativeUrl, '/api/profile/looks/look-assets/cutout-native.png');
+  assert.equal(accepted.cutoutPreviewUrl, '/api/profile/looks/look-assets/cutout-preview.webp');
+  assert.deepEqual(accepted.previewUrls, ['/api/profile/looks/look-assets/cutout-preview.webp']);
+
+  client.emit({ type: 'run:event', run: { run_id: 'run-unbound', status: 'COMPLETED', outputs: {
+    avatar_outfit_master: '/api/profile/looks/look-unbound/image',
+    master_sha256: masterSha,
+    cutout_native_url: '/api/profile/looks/look-unbound/cutout-native.png',
+    cutout_native_sha256: nativeSha,
+    cutout_native_source_master_sha256: 'd'.repeat(64),
+    cutout_native_has_alpha: true,
+    cutout_preview_url: '/api/profile/looks/look-unbound/cutout-preview.webp',
+    cutout_preview_sha256: previewSha,
+    cutout_preview_source_native_sha256: nativeSha,
+  } } });
+  const rejected = bridge.state().result;
+  assert.equal(rejected.cutoutNativeUrl, null);
+  assert.equal(rejected.cutoutPreviewUrl, null);
+});
+
 test('normalizes beta mode_id catalogues so main renders real style previews', async () => {
   const client = clientStub();
   client.listEditorialModes = async () => ({ modes: [{

@@ -15,3 +15,14 @@ test('ready look is visibly active and does not inherit placeholder treatment', 
   assert.match(css, /\.lookframe\[data-state="ready"\]::after\s*\{\s*content:\s*none/);
   assert.match(css, /\.lookthumb\[aria-pressed="true"\]\s*\{[^}]*box-shadow:/);
 });
+
+test('result screen never performs browser segmentation of a master or compact preview', async () => {
+  const [source, surfaces] = await Promise.all([
+    readFile(new URL('../ui.js', import.meta.url), 'utf8'),
+    readFile(new URL('../screen-surfaces.js', import.meta.url), 'utf8'),
+  ]);
+  assert.doesNotMatch(source, /ensureTransparentPreview/);
+  assert.match(source, /cutoutNativeSourceMasterSha256/);
+  assert.match(source, /cutoutPreviewSourceNativeSha256/);
+  assert.match(surfaces, /results\[index\]\.kind === 'look'/);
+});

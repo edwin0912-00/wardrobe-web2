@@ -97,16 +97,68 @@ function runChoices(run) {
 }
 
 function runResult(run) {
-  const imageUrl = run?.outputs?.avatar_outfit;
+  const outputs = run?.outputs ?? run?.output ?? run ?? {};
+  const imageUrl = outputs.avatar_outfit_master
+    ?? outputs.master_image_url
+    ?? outputs.avatar_outfit;
   const phase = phaseFor(run);
   const review = (phase === 'needs_input' || phase === 'failed') &&
     (run?.error?.code === 'FIRST_APPEARANCE_NEEDS_INPUT' ||
       run?.error?.name === 'FirstAppearanceNeedsInputError');
   if ((phase !== 'completed' && !review) || typeof imageUrl !== 'string' || !imageUrl.startsWith('/')) return null;
+  const masterSha256 = outputs.avatar_outfit_master_sha256
+    ?? outputs.master_sha256
+    ?? outputs.image_sha256
+    ?? null;
+  const native = outputs.cutout_native ?? {};
+  const cutoutNativeUrl = native.url
+    ?? native.image_url
+    ?? outputs.cutout_native_url
+    ?? outputs.avatar_outfit_cutout_native_url
+    ?? null;
+  const cutoutNativeSha256 = native.sha256
+    ?? outputs.cutout_native_sha256
+    ?? outputs.avatar_outfit_cutout_native_sha256
+    ?? null;
+  const cutoutSourceSha256 = native.source_master_sha256
+    ?? native.bound_master_sha256
+    ?? outputs.cutout_native_source_master_sha256
+    ?? outputs.cutout_source_master_sha256
+    ?? null;
+  const nativeHasAlpha = native.has_alpha === true || native.alpha === true
+    || outputs.cutout_native_has_alpha === true;
+  const cutoutBound = typeof cutoutNativeUrl === 'string'
+    && cutoutNativeUrl.startsWith('/')
+    && typeof cutoutNativeSha256 === 'string'
+    && nativeHasAlpha
+    && typeof masterSha256 === 'string'
+    && typeof cutoutSourceSha256 === 'string'
+    && cutoutSourceSha256 === masterSha256;
+  const cutoutPreviewUrl = outputs.cutout_preview_url
+    ?? outputs.avatar_outfit_cutout_preview_url
+    ?? null;
+  const cutoutPreviewSha256 = outputs.cutout_preview_sha256
+    ?? outputs.avatar_outfit_cutout_preview_sha256
+    ?? null;
+  const previewSourceSha256 = outputs.cutout_preview_source_native_sha256
+    ?? outputs.cutout_preview_source_sha256
+    ?? null;
+  const previewBound = cutoutBound && typeof cutoutPreviewUrl === 'string'
+    && cutoutPreviewUrl.startsWith('/')
+    && typeof cutoutPreviewSha256 === 'string'
+    && typeof previewSourceSha256 === 'string'
+    && previewSourceSha256 === cutoutNativeSha256;
   return {
     kind: 'look', aspect: '9:16', urls: [imageUrl], mediaUrl: imageUrl,
+    previewUrls: [previewBound ? cutoutPreviewUrl : cutoutBound ? cutoutNativeUrl : imageUrl],
     pendingRealMedia: false,
     reviewRequired: review,
+    masterUrl: imageUrl,
+    masterSha256,
+    cutoutNativeUrl: cutoutBound ? cutoutNativeUrl : null,
+    cutoutNativeSha256: cutoutBound ? cutoutNativeSha256 : null,
+    cutoutPreviewUrl: previewBound ? cutoutPreviewUrl : null,
+    cutoutPreviewSha256: previewBound ? cutoutPreviewSha256 : null,
   };
 }
 

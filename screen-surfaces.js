@@ -376,7 +376,12 @@
     }
 
     function prepareResultPreview(index) {
-      if (!mediaPreview || !results[index]) return;
+      /* The approved look is already a server-owned master/native-cutout pair.
+       * Never run browser remove-white segmentation on its master or on any
+       * compact preview: that path creates halos and breaks the SHA binding.
+       * The bridge supplies CUTOUT_PREVIEW only when it was derived from the
+       * verified CUTOUT_NATIVE; otherwise the master remains the honest fallback. */
+      if (!mediaPreview || !results[index] || results[index].kind === 'look') return;
       var item = results[index];
       if (!item.urls.length || item.kind === 'video' || item.previewUrls.length >= item.urls.length) return;
       var removeBackground = item.kind === 'look';
