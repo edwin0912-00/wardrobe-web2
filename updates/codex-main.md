@@ -1294,3 +1294,16 @@ Journey: the failing run was not replayed because it had not reached a provider
 submission; no new paid provider generation was started by this repair.
 weakened_checks: none.
 Help request: NONE.
+
+---
+
+Agent ID: codex-main
+Task ID: BETA-FASHION-SHOOT-POSE-ANCHOR-20260802
+Pipeline: UNIVERSE.03–04 · Fashion Shoot frame execution
+State: CODE_CHANGED — tests/deploy pending
+Decision: every Create Universe `shoot.*` slot now carries the already
+hash-verified slot-specific `blocking_topdown` diagram. The style sheets remain
+style-only; the blocking diagram is geometry-only and supplies the missing pose,
+camera, scale and headroom reference. This replaces the erroneous omission that
+left the provider with pose prose only.
+weakened_checks: none.

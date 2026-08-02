@@ -70,15 +70,13 @@ export class EditorialSceneExecutor {
    * place and continuity was only ever hash-checked, never conditioned.
    */
   async #shotAnchors(context) {
-    // A slot diagram is a generic framing aid, not a per-style pose illustration.
-    // Create Universe already carries its own immutable observations. Until a unit
-    // binds a slot-specific illustrated pose panel to the exact joint chain, sending
-    // this unrelated diagram would make the provider arbitrate between pixels and
-    // the compiled shot direction. Text is the only honest pose authority here.
-    const isCreateUniverseShoot = context.shoot_bible?.mode_id?.startsWith('shoot.');
-    const anchors = isCreateUniverseShoot
-      ? []
-      : [await editorialBlockingReference({ shotSpec: context.shot_spec })];
+    // This is a diagram for this exact slot, not a mood board: its hash-bound
+    // numbers are verified against the slot's camera/framing lock before it is
+    // attached. Create Universe's style sheets deliberately do not control a body
+    // pose, so omitting this only made the provider infer the pose from prose.
+    // The anchor controls geometry only; identity, hair, outfit and style remain
+    // governed by their separate immutable inputs.
+    const anchors = [await editorialBlockingReference({ shotSpec: context.shot_spec })];
     const hero = context.hero_output;
     if (hero) {
       const filename = await this.outputFile({
@@ -101,12 +99,7 @@ export class EditorialSceneExecutor {
         data: await readFile(filename),
       });
     }
-    // SceneService distinguishes an omitted optional anchor set (null) from an
-    // explicitly malformed set ([]). Create Universe shots intentionally rely on
-    // their immutable style sheets and shot direction, so a shot without a hero
-    // continuity frame must omit this optional field rather than submit an empty
-    // array that the contract correctly rejects.
-    return anchors.length > 0 ? anchors : null;
+    return anchors;
   }
 
   async executeShot(context) {
