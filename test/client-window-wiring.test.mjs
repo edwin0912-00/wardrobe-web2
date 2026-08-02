@@ -90,6 +90,21 @@ test('nothing may be done with a look until its own image exists', () => {
   assert.match(ui, /setLookResult/, 'only an explicit result may complete a look');
 });
 
+test('result presentation keeps a native cutout through profile polling and reserves the compact derivative for thumbnails', () => {
+  assert.match(ui, /function mergeHydratedLook/);
+  assert.match(ui, /sameApprovedMaster\(previous, fresh\)/);
+  assert.match(ui, /localCutoutMatchesMaster\(previous, fresh\)/);
+  assert.match(ui, /function currentLookForCutout/);
+  assert.match(ui, /var target = currentLookForCutout\(look\)/);
+  assert.match(ui, /lookDisplayUrl\(l, 'thumbnail'\)/,
+    'the library strip may use a lightweight cutout derivative');
+  const display = ui.slice(ui.indexOf('function lookDisplayUrl'), ui.indexOf('function sameApprovedMaster'));
+  assert.match(display, /return look\.cutoutNativeUrl \|\| look\.resultUrl/,
+    'the large result mirror must prefer the native-resolution transparent master');
+  assert.match(display, /surface === 'thumbnail'/,
+    'only thumbnail presentation may prefer the compact derivative');
+});
+
 test('a first failed look exposes recovery before the empty-look waiting orb', () => {
   const renderShow = ui.slice(ui.indexOf('function renderShow()'), ui.indexOf('function applyEnabled()'));
   const failure = renderShow.indexOf("if (actionError)");

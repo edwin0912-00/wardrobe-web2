@@ -254,8 +254,65 @@
       };
     }
 
-    function lookDisplayUrl(look) {
-      return look && (look.cutoutPreviewUrl || look.cutoutNativeUrl || look.resultUrl || look.result) || '';
+    /* The large answer mirror and the small library strip have different jobs.
+     * A 640px derivative belongs in a thumbnail; using it for the answer mirror
+     * made a real, native-resolution cutout look like a low-quality preview. */
+    function lookDisplayUrl(look, surface) {
+      if (!look) return '';
+      if (surface === 'thumbnail') {
+        return look.cutoutPreviewUrl || look.cutoutNativeUrl || look.resultUrl || look.result || '';
+      }
+      return look.cutoutNativeUrl || look.resultUrl || look.result || look.cutoutPreviewUrl || '';
+    }
+
+    function sameApprovedMaster(one, two) {
+      if (!one || !two) return false;
+      var oneUrl = String(one.resultUrl || one.result || '');
+      var twoUrl = String(two.resultUrl || two.result || '');
+      if (!oneUrl || oneUrl !== twoUrl) return false;
+      var oneSha = String(one.masterSha256 || '').toLowerCase();
+      var twoSha = String(two.masterSha256 || '').toLowerCase();
+      return !oneSha || !twoSha || oneSha === twoSha;
+    }
+
+    function localCutoutMatchesMaster(previous, fresh) {
+      if (!previous || !fresh || !previous.cutoutNativeUrl) return false;
+      var expected = String(fresh.masterSha256 || '').toLowerCase();
+      var bound = String(previous.cutoutNativeSourceMasterSha256 || '').toLowerCase();
+      return !expected || (bound && bound === expected);
+    }
+
+    /* Profile polling rebuilds server records frequently. A locally-derived native
+     * cutout is tied to the same immutable master but is not part of that profile
+     * response, so copying the fresh record wholesale used to erase it while its
+     * native-resolution conversion was still in flight. Keep only a verified local
+     * derivative for exactly the same master; a new master always starts clean. */
+    function mergeHydratedLook(previous, fresh) {
+      if (!previous || !sameApprovedMaster(previous, fresh)) return fresh;
+      var merged = Object.assign({}, previous, fresh);
+      if (!fresh.cutoutNativeUrl && localCutoutMatchesMaster(previous, fresh)) {
+        merged.cutoutNativeUrl = previous.cutoutNativeUrl;
+        merged.cutoutNativeSha256 = previous.cutoutNativeSha256;
+        merged.cutoutNativeSourceMasterSha256 = previous.cutoutNativeSourceMasterSha256;
+        merged.cutoutNativeHasAlpha = true;
+        merged.cutoutPreviewUrl = previous.cutoutPreviewUrl || '';
+        merged.cutoutPreviewSha256 = previous.cutoutPreviewSha256 || null;
+        merged.cutoutPreviewSourceNativeSha256 = previous.cutoutPreviewSourceNativeSha256 || null;
+      }
+      if (!fresh.cutoutNativeUrl && previous.cutoutPending) {
+        merged.cutoutPending = true;
+        merged.cutoutAttempted = Boolean(previous.cutoutAttempted);
+      }
+      return merged;
+    }
+
+    function currentLookForCutout(origin) {
+      var lookId = String(origin && (origin.lookId || origin.id || origin.runId) || '');
+      var currentLook = looks.find(function (candidate) {
+        return lookId && String(candidate && (candidate.lookId || candidate.id || candidate.runId) || '') === lookId;
+      });
+      if (currentLook) return currentLook;
+      return looks.find(function (candidate) { return sameApprovedMaster(candidate, origin); }) || origin;
     }
 
     /* If beta has not yet attached CUTOUT_NATIVE to the profile response, derive it
@@ -267,24 +324,38 @@
       if (!look || !look.resultUrl || look.cutoutNativeUrl || look.cutoutPending || look.cutoutAttempted) return;
       var cutout = global.WardrobeMasterCutout;
       if (!cutout || typeof cutout.create !== 'function') return;
+      var masterUrl = look.resultUrl;
+      var masterSha256 = look.masterSha256 || null;
       look.cutoutPending = true;
+      /* Arguments are evaluated now, before any later profile poll can replace the
+       * look object; the captured values below are used only to reject a stale reply. */
       cutout.create(look.resultUrl, look.masterSha256).then(function (asset) {
+        var target = currentLookForCutout(look);
+        if (!target || !sameApprovedMaster(target, {
+          resultUrl: masterUrl,
+          masterSha256: masterSha256
+        })) return;
         if (asset && asset.nativeUrl && asset.nativeSha256 && asset.sourceMasterSha256) {
-          look.cutoutNativeUrl = asset.nativeUrl;
-          look.cutoutNativeSha256 = asset.nativeSha256;
-          look.cutoutNativeSourceMasterSha256 = asset.sourceMasterSha256;
-          look.cutoutNativeHasAlpha = true;
+          target.cutoutNativeUrl = asset.nativeUrl;
+          target.cutoutNativeSha256 = asset.nativeSha256;
+          target.cutoutNativeSourceMasterSha256 = asset.sourceMasterSha256;
+          target.cutoutNativeHasAlpha = true;
           /* The compact preview is generated from CUTOUT_NATIVE, never from MASTER.
            * If encoding is unavailable, the full native PNG is still valid display. */
-          look.cutoutPreviewUrl = asset.previewUrl || '';
-          look.cutoutPreviewSha256 = asset.previewSha256 || null;
-          look.cutoutPreviewSourceNativeSha256 = asset.previewSha256 ? asset.nativeSha256 : null;
+          target.cutoutPreviewUrl = asset.previewUrl || '';
+          target.cutoutPreviewSha256 = asset.previewSha256 || null;
+          target.cutoutPreviewSourceNativeSha256 = asset.previewSha256 ? asset.nativeSha256 : null;
         }
       }).catch(function () {
         /* Keep the master; do not manufacture a foreground from a failed preview. */
       }).then(function () {
-        look.cutoutPending = false;
-        look.cutoutAttempted = true;
+        var target = currentLookForCutout(look);
+        if (!target || !sameApprovedMaster(target, {
+          resultUrl: masterUrl,
+          masterSha256: masterSha256
+        })) return;
+        target.cutoutPending = false;
+        target.cutoutAttempted = true;
         render();
       });
     }
@@ -423,8 +494,9 @@
           ? (record.cutoutNativeSourceMasterSha256 || record.cutout_native_source_master_sha256 || null) : null;
         if (at < 0) looks.push(saved);
         else {
-          looks[at] = Object.assign({}, looks[at], saved,
-            { items: looks[at].items && looks[at].items.length ? looks[at].items : saved.items });
+          var previous = looks[at];
+          looks[at] = mergeHydratedLook(previous, saved);
+          looks[at].items = previous.items && previous.items.length ? previous.items : saved.items;
         }
         ensureMasterCutout(at < 0 ? saved : looks[at]);
       });
@@ -739,7 +811,7 @@
      * the picture has none of those once a look already exists. */
     function askLookThumbs() {
       var cells = looks.map(function (l, i) {
-        var thumb = lookDisplayUrl(l) || (l.items[0] && (l.items[0].previewUrl || l.items[0].url));
+        var thumb = lookDisplayUrl(l, 'thumbnail') || (l.items[0] && (l.items[0].previewUrl || l.items[0].url));
         return '<button class="lookthumb" type="button" data-select="' + i + '"' +
           ' aria-pressed="' + (i === selected ? 'true' : 'false') + '">' +
           (thumb ? '<img class="lookthumb__img" src="' + thumb + '" alt="">' : '') +
