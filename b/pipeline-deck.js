@@ -98,7 +98,17 @@
     host.setAttribute('aria-label', 'Історія створення');
     var shadow = host.attachShadow ? host.attachShadow({ mode: 'open' }) : null;
     var deck = null;
-    var mode = 'camera'; // camera | screen
+    /*
+     * There is one scroll owner at a time.  The old two-state version changed to
+     * `screen` as soon as the camera crossed the terminal threshold, then asked the
+     * camera to correct an overshoot afterwards.  That could freeze the projected
+     * laptop on the later frame while the film was travelling back underneath it.
+     *
+     * `settling` is deliberately short and input-blocking: the camera first lands on
+     * the measured 14.145 s frame, then — and only then — the document acquires the
+     * gesture and locks that exact physical laptop plane.
+     */
+    var mode = 'camera'; // camera | settling | screen
     var ready = false;
     var loadError = null;
     var touchY = null;
@@ -112,6 +122,15 @@
      * a one-subframe rounding difference from withholding the handoff forever. */
     var SCREEN_SCROLL_EPSILON_SECONDS = 0.02;
     var screenScrollRequested = false;
+    var terminalSettleToken = 0;
+    var terminalSettleApproved = false;
+    var reverseReleaseDistance = 0;
+    /* A light upward correction at the top of the document must not eject a person
+     * from the laptop.  Only a deliberate pull of 72 px returns control to the film;
+     * the first camera movement is bounded, so a single large trackpad event cannot
+     * jump across an unrelated frame. */
+    var REVERSE_RELEASE_THRESHOLD_PX = 72;
+    var REVERSE_RELEASE_MAX_DELTA_PX = 160;
     /* A person can reach the measured terminal by a natural swipe as well as via
      * the HOW control.  They are the same destination: a finished camera move must
      * always hand its next gesture to the verified document, otherwise a fast swipe
@@ -121,8 +140,8 @@
      * top and the person swipes back, do not immediately capture it again merely
      * because the camera has not yet travelled below the terminal frame. */
     var terminalReleased = false;
-    var onTerminalEnter = typeof options.onTerminalEnter === 'function'
-      ? options.onTerminalEnter : null;
+    var onTerminalSettle = typeof options.onTerminalSettle === 'function'
+      ? options.onTerminalSettle : null;
 
     function errorPanel(message) {
       if (!shadow) return;
@@ -224,15 +243,30 @@
       return progress();
     }
 
+    function isTerminalFrame(frame) {
+      var windowInfo = surface && typeof surface.laptopWindow === 'function'
+        ? surface.laptopWindow() : null;
+      return !!(frame && windowInfo && Number(frame.leg) === Number(windowInfo.leg) &&
+        Math.abs(Number(frame.videoTime) - SCREEN_SCROLL_STOP_SECONDS) <= SCREEN_SCROLL_EPSILON_SECONDS);
+    }
+
+    function clearScreenOwnership() {
+      terminalSettleApproved = false;
+      reverseReleaseDistance = 0;
+      host.removeAttribute('data-screen-settling');
+      host.removeAttribute('data-screen-scroll');
+    }
+
     function handBack(delta) {
       var amount = Number(delta) || 0;
+      terminalSettleToken += 1;
       if (surface && typeof surface.setLaptopTerminalLock === 'function') {
         surface.setLaptopTerminalLock(false);
       }
       mode = 'camera';
       screenScrollRequested = false;
       terminalReleased = true;
-      host.removeAttribute('data-screen-scroll');
+      clearScreenOwnership();
       if (amount) {
         var y = Math.max(0, window.scrollY + amount);
         window.scrollTo(0, y);
@@ -247,15 +281,22 @@
       var next = current + amount;
       if (amount < 0 && next < 0) {
         deck.scrollTop = 0;
-        handBack(next);
+        reverseReleaseDistance += Math.abs(next);
+        if (reverseReleaseDistance < REVERSE_RELEASE_THRESHOLD_PX) return true;
+        var outward = Math.min(
+          REVERSE_RELEASE_MAX_DELTA_PX,
+          reverseReleaseDistance - REVERSE_RELEASE_THRESHOLD_PX
+        );
+        handBack(-outward);
         return true;
       }
+      reverseReleaseDistance = 0;
       deck.scrollTop = clamp(next, 0, maxScroll());
       return true;
     }
 
     function enterScreenScroll(frame) {
-      if (!ready || mode === 'screen') return false;
+      if (!ready || mode === 'screen' || !isTerminalFrame(frame || lastFrame)) return false;
       mode = 'screen';
       /* The camera has reached its measured final laptop frame. From here on the
        * presentation is one projected document: later inertial events can scroll that
@@ -263,12 +304,63 @@
       if (surface && typeof surface.setLaptopTerminalLock === 'function') {
         surface.setLaptopTerminalLock(true);
       }
+      host.removeAttribute('data-screen-settling');
       host.setAttribute('data-screen-scroll', '1');
       host.focus({ preventScroll: true });
-      /* The cinematic shell owns the camera clock.  It may correct a large inertial
-       * overshoot back to the measured terminal, but this adapter never guesses the
-       * scroll geometry itself. */
-      if (onTerminalEnter) onTerminalEnter(frame || lastFrame || null);
+      return true;
+    }
+
+    function abandonTerminalSettle() {
+      terminalSettleToken += 1;
+      if (surface && typeof surface.setLaptopTerminalLock === 'function') {
+        surface.setLaptopTerminalLock(false);
+      }
+      mode = 'camera';
+      screenScrollRequested = false;
+      terminalReleased = true;
+      clearScreenOwnership();
+    }
+
+    function finishTerminalSettle() {
+      if (mode !== 'settling' || !terminalSettleApproved) return false;
+      return enterScreenScroll(lastFrame);
+    }
+
+    function beginTerminalSettle(frame) {
+      if (!ready || mode !== 'camera') return false;
+      mode = 'settling';
+      terminalSettleApproved = false;
+      reverseReleaseDistance = 0;
+      host.setAttribute('data-screen-settling', '1');
+      host.removeAttribute('data-screen-scroll');
+      var token = ++terminalSettleToken;
+      /* The page-level journey owns the only camera correction.  This adapter does
+       * not lock geometry, move page scroll, or replay the crossing gesture until the
+       * callback certifies arrival at the measured terminal.
+       *
+       * Defer the correction by one animation frame.  This function is called from
+       * engine.js's frame callback; calling `advanceTo…` recursively in that same
+       * tick would replace the engine's active auto-drive while its previous step was
+       * still running, creating two writers for the camera position. */
+      var defer = typeof window.requestAnimationFrame === 'function'
+        ? window.requestAnimationFrame.bind(window)
+        : function (callback) { return setTimeout(callback, 0); };
+      defer(function () {
+        if (token !== terminalSettleToken || mode !== 'settling') return;
+        Promise.resolve(onTerminalSettle ? onTerminalSettle(lastFrame || frame || null) : 'arrived')
+          .then(function (outcome) {
+            if (token !== terminalSettleToken || mode !== 'settling') return;
+            if (outcome && outcome !== 'arrived') {
+              abandonTerminalSettle();
+              return;
+            }
+            terminalSettleApproved = true;
+            finishTerminalSettle();
+          })
+          .catch(function () {
+            if (token === terminalSettleToken && mode === 'settling') abandonTerminalSettle();
+          });
+      });
       return true;
     }
 
@@ -280,6 +372,11 @@
     }
 
     function wheel(event) {
+      if (mode === 'settling') {
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
       if (mode !== 'screen' || drawerScrollTarget(event)) return;
       event.preventDefault();
       event.stopPropagation();
@@ -287,12 +384,23 @@
     }
 
     function touchStart(event) {
+      if (mode === 'settling') {
+        touchY = null;
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
       if (mode !== 'screen' || drawerScrollTarget(event) || !event.touches.length) return;
       touchY = event.touches[0].clientY;
       event.preventDefault();
     }
 
     function touchMove(event) {
+      if (mode === 'settling') {
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
       if (mode !== 'screen' || touchY === null || drawerScrollTarget(event) || !event.touches.length) return;
       var y = event.touches[0].clientY;
       var delta = touchY - y;
@@ -305,6 +413,12 @@
     function touchEnd() { touchY = null; }
 
     function keydown(event) {
+      if (mode === 'settling') {
+        if (' ArrowUp ArrowDown PageUp PageDown Home End '.indexOf(' ' + event.key + ' ') !== -1) {
+          event.preventDefault(); event.stopPropagation();
+        }
+        return;
+      }
       if (mode !== 'screen') return;
       var amount = Math.max(160, Math.round(window.innerHeight * 0.82));
       if (event.key === 'Escape') return;
@@ -340,6 +454,7 @@
       if (!windowInfo || !lastFrame) return;
       if (lastFrame.leg !== windowInfo.leg) {
         if (mode === 'screen') handBack(0);
+        else if (mode === 'settling') abandonTerminalSettle();
         return;
       }
       /* Going back below this buffer is an explicit return to the camera journey.
@@ -353,9 +468,17 @@
        * mode.  Do not require an upper video-time bound: a touch flick may legitimately
        * cross the final calibrated frame in one paint; the shell callback restores the
        * camera to that exact terminal while this surface remains visible. */
+      if (mode === 'settling') {
+        if (lastFrame.videoTime < SCREEN_SCROLL_STOP_SECONDS - 0.35) {
+          abandonTerminalSettle();
+          return;
+        }
+        finishTerminalSettle();
+        return;
+      }
       if (!terminalReleased && mode === 'camera'
         && lastFrame.videoTime >= SCREEN_SCROLL_STOP_SECONDS - SCREEN_SCROLL_EPSILON_SECONDS) {
-        enterScreenScroll(lastFrame);
+        beginTerminalSettle(lastFrame);
       }
       if (mode === 'screen' && lastFrame.videoTime < SCREEN_SCROLL_STOP_SECONDS - 0.35) {
         handBack(0);
@@ -366,6 +489,8 @@
       if (surface && typeof surface.setLaptopTerminalLock === 'function') {
         surface.setLaptopTerminalLock(false);
       }
+      terminalSettleToken += 1;
+      clearScreenOwnership();
       window.removeEventListener('wheel', wheel, { capture: true });
       window.removeEventListener('touchstart', touchStart, { capture: true });
       window.removeEventListener('touchmove', touchMove, { capture: true });
@@ -388,7 +513,9 @@
           ready: ready,
           mode: mode,
           progress: progress(),
+          settling: mode === 'settling',
           screenScrollRequested: screenScrollRequested,
+          reverseReleaseDistance: reverseReleaseDistance,
           screenScrollStopSeconds: SCREEN_SCROLL_STOP_SECONDS,
           error: loadError,
           sourceSha256: expectedSha256

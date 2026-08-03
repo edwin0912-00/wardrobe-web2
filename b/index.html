@@ -765,24 +765,32 @@
        promise resolves the plane remains hidden, so a broken or stale document can never
        appear as an untracked white rectangle. The adapter owns the terminal reversible
        handoff, while the engine continues to own the cinematic camera before and after it. */
-    var terminalCameraCorrectionPending = false;
+    var terminalCameraSettle = null;
     if (window.WardrobePipelineDeck && screenSurfaces) {
       pipelineDeck = WardrobePipelineDeck.create({
         surface: screenSurfaces,
         sourceUrl: 'zeely-pipeline-clients.html',
         /* A natural fling can cross the measured 14.145s stop in one browser frame.
-         * The document has already taken ownership of touch at that point; settle the
-         * cinematic clock back onto the calibrated terminal beneath it.  The same node
-         * remains mounted throughout, so this is not a second page or a fullscreen jump. */
-        onTerminalEnter: function (frame) {
-          if (terminalCameraCorrectionPending || !frame || frame.leg !== 3 ||
-              !window.journey || typeof window.journey.advanceToVideoTime !== 'function') return;
+         * The deck must not acquire the gesture or lock the projected laptop until this
+         * promise has brought the one cinematic clock back to that exact measured frame.
+         * This is a handoff, not a second scrolling scene. */
+        onTerminalSettle: function (frame) {
+          if (!frame || frame.leg !== 3 || !window.journey ||
+              typeof window.journey.advanceToVideoTime !== 'function') return Promise.resolve('unavailable');
           var terminalSeconds = 14.145;
-          if (Number(frame.videoTime) <= terminalSeconds + 0.03) return;
-          terminalCameraCorrectionPending = true;
-          Promise.resolve(window.journey.advanceToVideoTime(3, terminalSeconds, { ease: 0.24 }))
-            .catch(function () {})
-            .then(function () { terminalCameraCorrectionPending = false; });
+          if (Math.abs(Number(frame.videoTime) - terminalSeconds) <= 0.02) {
+            return Promise.resolve('arrived');
+          }
+          if (terminalCameraSettle) return terminalCameraSettle;
+          terminalCameraSettle = Promise.resolve(
+            window.journey.advanceToVideoTime(3, terminalSeconds, { ease: 0.24 })
+          ).catch(function () {
+            return 'failed';
+          }).then(function (outcome) {
+            terminalCameraSettle = null;
+            return outcome || 'arrived';
+          });
+          return terminalCameraSettle;
         }
       });
       pipelineDeck.ready.then(function () {

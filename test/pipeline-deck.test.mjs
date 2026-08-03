@@ -69,27 +69,45 @@ test('the cinematic handoff stops on the measured laptop and scrolls in that pro
 test('the current laptop calibration never invents a fullscreen handoff', () => {
   const cameraFrame = adapter.slice(adapter.indexOf('function onCameraFrame(frame)'), adapter.indexOf('function destroy()'));
   assert.match(cameraFrame, /SCREEN_SCROLL_STOP_SECONDS/);
-  assert.match(cameraFrame, /enterScreenScroll\(lastFrame\)/);
+  assert.match(cameraFrame, /beginTerminalSettle\(lastFrame\)/);
+  assert.match(adapter, /function enterScreenScroll\(frame\)/);
+  assert.match(adapter, /function isTerminalFrame\(frame\)/);
   assert.doesNotMatch(cameraFrame, /enterFullscreen|setLaptopFullscreen/);
 });
 
-test('the document handoff begins only at the measured 14.145s terminal laptop frame', () => {
+test('the document locks only after the camera has settled on the measured 14.145s terminal frame', () => {
   assert.match(page, /HOW_TARGET_SECONDS = 14\.145/);
   assert.match(adapter, /lastFrame\.videoTime >= SCREEN_SCROLL_STOP_SECONDS - SCREEN_SCROLL_EPSILON_SECONDS/);
-  assert.match(adapter, /if \(amount < 0 && next < 0\)[\s\S]*?handBack\(next\)/);
+  assert.match(adapter, /Math\.abs\(Number\(frame\.videoTime\) - SCREEN_SCROLL_STOP_SECONDS\) <= SCREEN_SCROLL_EPSILON_SECONDS/);
+  assert.match(adapter, /mode = 'settling'/);
+  assert.match(adapter, /onTerminalSettle/);
+  assert.match(adapter, /if \(!ready \|\| mode === 'screen' \|\| !isTerminalFrame/);
   assert.match(surfaces, /var laptopTerminalLock = false/);
   assert.match(surfaces, /var geometryTime = laptopTerminalLock \? last : frame\.videoTime/);
 });
 
-test('natural terminal arrival and HOW share one reversible document handoff', () => {
+test('natural terminal arrival and HOW share one reversible, thresholded document handoff', () => {
   assert.match(adapter, /var terminalReleased = false/);
   assert.match(adapter, /screenScrollRequested = false;\s*terminalReleased = true;/);
+  assert.match(adapter, /REVERSE_RELEASE_THRESHOLD_PX = 72/);
+  assert.match(adapter, /reverseReleaseDistance \+= Math\.abs\(next\)/);
+  assert.match(adapter, /REVERSE_RELEASE_MAX_DELTA_PX/);
   assert.match(adapter, /lastFrame\.videoTime < SCREEN_SCROLL_STOP_SECONDS - 0\.35/);
   assert.match(adapter, /!terminalReleased && mode === 'camera'/);
-  assert.match(adapter, /enterScreenScroll\(lastFrame\)/);
-  assert.match(adapter, /onTerminalEnter/);
-  assert.match(page, /onTerminalEnter: function \(frame\)/);
+  assert.match(adapter, /beginTerminalSettle\(lastFrame\)/);
+  assert.match(adapter, /onTerminalSettle/);
+  assert.match(page, /onTerminalSettle: function \(frame\)/);
   assert.match(page, /advanceToVideoTime\(3, terminalSeconds/);
+});
+
+test('the settling state blocks residual inertial input before the document owns the gesture', () => {
+  assert.match(adapter, /function beginTerminalSettle\(frame\)/);
+  assert.match(adapter, /host\.setAttribute\('data-screen-settling', '1'\)/);
+  assert.match(adapter, /window\.requestAnimationFrame\.bind\(window\)/,
+    'the camera correction is deferred out of engine.js\'s active frame callback');
+  assert.match(adapter, /if \(mode === 'settling'\) \{\s*event\.preventDefault\(\);\s*event\.stopPropagation\(\);/s);
+  assert.match(adapter, /function finishTerminalSettle\(\)[\s\S]*?enterScreenScroll\(lastFrame\)/);
+  assert.match(adapter, /host\.removeAttribute\('data-screen-settling'\);\s*host\.setAttribute\('data-screen-scroll', '1'\)/s);
 });
 
 test('portrait phones keep the verified document in the measured laptop plane', () => {
