@@ -270,9 +270,13 @@
         if (mode === 'fullscreen') handBack(0);
         return;
       }
-      if (mode === 'camera' && lastFrame.videoTime >= windowInfo.last - 0.04) {
-        enterFullscreen();
-      } else if (mode === 'fullscreen' && lastFrame.videoTime < windowInfo.last - 0.35) {
+      /* The current calibrated sequence ends while the physical laptop is still visible
+       * around the deck. There is no measured contact frame that authorises a full-viewport
+       * handoff, so do not invent one by snapping the projected screen into fullscreen.
+       * Keep the deck inside its actual laptop aperture. If a future master supplies a
+       * measured terminal contact point, that must be added as a separate calibration
+       * contract before it can call enterFullscreen(). */
+      if (mode === 'fullscreen' && lastFrame.videoTime < windowInfo.last - 0.35) {
         handBack(0);
       }
     }

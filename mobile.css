@@ -162,6 +162,18 @@
     font-size: 13px;
   }
   .mobile-attention .actsay { min-height: 38px; font-size: 10px; }
+  /* This is not another generation action. It returns the single mobile attention
+   * plane to the saved-look library, so the person can verify or switch context before
+   * choosing a shoot, video, background or live action. */
+  .mobile-attention .mobile-look-switch,
+  .mobile-attention .mobile-look-return {
+    width: 100%;
+    min-height: 44px;
+    margin-top: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
   .mobile-attention .lookframe { min-height: 260px; }
   .mobile-attention .orbfield { min-height: 280px; }
 

@@ -60,9 +60,11 @@ test('Fashion Shoot exposes the immutable download for every approved progressiv
   assert.match(css, /\.shoot-progress__download/);
 });
 
-test('Fashion Video presents the server-owned reference roles instead of generic motion copy', () => {
+test('Fashion Video keeps the style contract server-owned without exposing its production inputs', () => {
   assert.match(ui, /Оберіть відеостиль/);
-  assert.match(ui, /visualpick__contract/);
   assert.match(ui, /videoCapability/);
+  assert.match(ui, /inputContract: option\.inputContract/);
+  assert.doesNotMatch(ui, /visualpick__contract/);
+  assert.doesNotMatch(ui, /description_uk/);
   assert.match(ui, /if \(bridge\) return \[\];/);
 });

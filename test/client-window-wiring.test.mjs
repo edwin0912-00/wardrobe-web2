@@ -45,6 +45,15 @@ test('portrait mobile promotes a pending first look into the answer mirror', () 
   );
 });
 
+test('portrait mobile can return from result actions to the selected look library', () => {
+  const mobileFocus = ui.slice(ui.indexOf('function mobileFocus()'), ui.indexOf('function restorePanel()'));
+  assert.match(ui, /var mobileLookChooser = false/);
+  assert.match(mobileFocus, /if \(mobileLookChooser \|\| pickerKind \|\| awaitingAspect\) return 'ask';/);
+  assert.match(ui, /data-open-look-picker/);
+  assert.match(ui, /data-close-look-picker/);
+  assert.match(mobileCss, /\.mobile-attention \.mobile-look-switch/);
+});
+
 test('right mirror owns orb, result actions and the 40-second live expansion', () => {
   assert.match(ui, /function orbWindow/);
   assert.match(ui, /LIVE_MAX_MS\s*=\s*40000/);

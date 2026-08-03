@@ -176,6 +176,10 @@
     /* Every product decision opens on the left mirror. The right mirror remains the
      * answer surface: current look while choosing, orb while working, result on arrival. */
     var pickerKind = null;      // null | 'shoot' | 'fash' | 'bg'
+    /* Portrait has one physical attention plane. The saved-look library belongs to the
+     * left mirror on desktop, but a phone needs an explicit route back to it before the
+     * viewer chooses the next action. */
+    var mobileLookChooser = false;
     var bgOpen = false;         // compatibility state; pickerKind owns the actual picker
     var liveRequirementError = opts.liveError ? liveLookErrorCopy(opts.liveError) : null;
 
@@ -988,24 +992,15 @@
             '"' + (option.previewUrl ? ' poster="' + esc(option.previewUrl) + '"' : '') +
             ' muted playsinline autoplay loop preload="metadata" aria-hidden="true"></video>';
         }
-        var contract = option.inputContract;
-        var contractCopy = '';
-        if (kind === 'fash' && contract) {
-          var entries = Array.isArray(contract.inputs) ? contract.inputs : [];
-          var labels = entries.map(function (entry) {
-            return '<li><b>' + esc(entry.label || '') + '</b> · ' + esc(entry.description_uk || '') + '</li>';
-          }).join('');
-          contractCopy = '<span class="visualpick__contract">' +
-            (Number.isInteger(contract.cut_count) ? '<em>' + esc(String(contract.cut_count)) + ' кадрів у референсі</em>' : '') +
-            (labels ? '<ul>' + labels + '</ul>' : '') +
-          '</span>';
-        }
+        /* `inputContract` remains attached to the server-owned style record for the
+         * generator and QA. Its reference roles are internal production instructions,
+         * not client-facing copy on a style card. */
         return '<button class="visualpick" type="button" data-choice-kind="' + kind + '"' +
           ' data-choice-index="' + index + '" aria-pressed="' + (selectedIndex === index ? 'true' : 'false') + '">' +
           '<span class="visualpick__media" data-visual="' + esc(option.visual) + '" aria-hidden="true">' +
             preview + '</span>' +
           '<span class="visualpick__copy"><b>' + esc(option.name) + '</b><small>' + esc(option.note || (kind === 'fash'
-            ? (option.presentationSurface === 'tv' ? 'відтвориться на телевізорі' : 'відтвориться у дзеркалі') : '')) + '</small>' + contractCopy + '</span>' +
+            ? (option.presentationSurface === 'tv' ? 'відтвориться на телевізорі' : 'відтвориться у дзеркалі') : '')) + '</small></span>' +
         '</button>';
       }).join('');
       return scene('picker-' + kind,
@@ -1116,7 +1111,10 @@
         '<p class="glass__lede">' + esc(lookLede(l)) + '</p>' +
         '<div class="looklabel">ваші образи</div>' +
         '<div class="lookthumbs">' + askLookThumbs() + '</div>' +
-        '<button class="secondary" type="button" data-edit-items>Змінити речі</button>');
+        '<button class="secondary" type="button" data-edit-items>Змінити речі</button>' +
+        (mobileLookChooser
+          ? '<button class="secondary mobile-look-return" type="button" data-close-look-picker>До образу</button>'
+          : ''));
       applyEnabled();
     }
 
@@ -1570,6 +1568,7 @@
       return '<div class="actwrap">' +
           '<div class="acts">' + row + '</div>' +
           '<div class="actsay" data-actsay>' + say + '</div>' +
+          '<button class="secondary mobile-look-switch" type="button" data-open-look-picker>Образи</button>' +
         '</div>';
     }
 
@@ -1738,7 +1737,7 @@
        * cards are no longer an action surface while the server is working. Previously
        * `step < 2` won here, so a real pending first look rendered its orb off-plane and
        * the visitor was immediately shown the same “Створити образ” form again. */
-      if (pickerKind || awaitingAspect) return 'ask';
+      if (mobileLookChooser || pickerKind || awaitingAspect) return 'ask';
       if (bridgeState && (bridgeState.phase === 'needs_input' ||
           bridgeState.phase === 'waiting_for_approval')) return 'ask';
       if (pending || pendingAction || actionError) return 'show';
@@ -1960,7 +1959,7 @@
       if ((b = t.closest('[data-preset]'))) { togglePreset(PRESET_ITEMS[Number(b.getAttribute('data-preset'))]); return; }
       if ((b = t.closest('[data-select]'))) {
         stopCamera(); selected = Number(b.getAttribute('data-select'));
-        pickerKind = null; awaitingAspect = null; view = 'look';
+        mobileLookChooser = false; pickerKind = null; awaitingAspect = null; view = 'look';
         var selectedLook = current();
         if (selectedLook && selectedLook.saved && bridge && bridge.useSavedLook && selectedLook.lookId) {
           bridge.useSavedLook(selectedLook.lookId).catch(function () {
@@ -1993,16 +1992,24 @@
       if (t.closest('[data-picker-back]')) {
         pickerKind = null; awaitingAspect = null; render(); notifyGateChange(); return;
       }
+      if (t.closest('[data-open-look-picker]')) {
+        stopCamera(); mobileLookChooser = true; pickerKind = null; awaitingAspect = null; view = 'look';
+        render(); notifyGateChange(); return;
+      }
+      if (t.closest('[data-close-look-picker]')) {
+        mobileLookChooser = false; pickerKind = null; awaitingAspect = null; view = 'look';
+        render(); notifyGateChange(); return;
+      }
       if (t.closest('[data-format-back]')) {
         pickerKind = awaitingAspect; awaitingAspect = null; render(); notifyGateChange(); return;
       }
       if (t.closest('[data-edit-items]')) {
-        stopCamera(); pickerKind = null; awaitingAspect = null;
+        stopCamera(); mobileLookChooser = false; pickerKind = null; awaitingAspect = null;
         step = 1; view = 'look'; render(); return;
       }
       if ((b = t.closest('[data-act]'))) {
         var k = b.getAttribute('data-act');
-        actionError = null;
+        actionError = null; mobileLookChooser = false;
         /* Live is not a generated branch. Every generated action opens its visual
          * catalogue on the left mirror first, then the destination format. */
         if (k === 'live') {
@@ -2235,7 +2242,7 @@
           selected: selected, lookVisible: lookVisible(), pending: pending,
           awaitingAspect: awaitingAspect, pendingAction: pendingAction,
           actionError: actionError,
-          pickerKind: pickerKind, bgOpen: pickerKind === 'bg',
+          pickerKind: pickerKind, mobileLookChooser: mobileLookChooser, bgOpen: pickerKind === 'bg',
           view: view, cameraOn: !!stream, cameraError: camError || null,
           liveError: liveRequirementError ? { ...liveRequirementError } : null,
           actionsOffered: lookVisible(),

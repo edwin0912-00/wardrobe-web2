@@ -7,6 +7,7 @@ import vm from 'node:vm';
 const require = createRequire(import.meta.url);
 const mediaStrategy = require('../media-strategy.js');
 const html = await readFile(new URL('../b/index.html', import.meta.url), 'utf8');
+const audioSource = await readFile(new URL('../audio.js', import.meta.url), 'utf8');
 const inline = [...html.matchAll(/<script(?:[^>]*)>([\s\S]*?)<\/script>/g)].at(-1)?.[1];
 
 if (!inline) throw new Error('WARDROBE inline journey bootstrap is missing');
@@ -200,6 +201,13 @@ test('prepares the score early but requests audible playback at the factual 50% 
     { type: 'create', ratio: 0.49 },
     { type: 'start', ratio: 0.5 },
   ]);
+});
+
+test('the factual 50% audio entry fades in rather than switching the room on at full gain', () => {
+  assert.match(html, /entryFadeInMs:\s*1400/);
+  assert.match(audioSource, /var masterTargetGain/);
+  assert.match(audioSource, /master\.gain\.value = 0/);
+  assert.match(audioSource, /function bringMasterIn\(\)[\s\S]*?rampGain\(master\.gain, masterTargetGain, entryFadeInMs\)/);
 });
 
 test('iOS starts D native, does not launch Blob work for later rooms, then prewarms one next room at a time', async () => {

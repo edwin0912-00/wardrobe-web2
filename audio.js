@@ -112,7 +112,15 @@
 
     /* ---- shared tail of the graph ---- */
     var master = ctx.createGain();
-    master.gain.value = typeof config.volume === 'number' ? config.volume : 0.55;
+    var masterTargetGain = typeof config.volume === 'number' ? config.volume : 0.55;
+    /* The first audible entry is a distinct event from every later track handover.
+     * Begin from real silence, then bring the entire room in after the first accepted
+     * media play. This catches the dry track, reverb and echo together, so the 50% loader
+     * cue feels like an arrival rather than a hard switch. */
+    var entryFadeInMs = typeof config.entryFadeInMs === 'number'
+      ? Math.max(0, config.entryFadeInMs) : 1400;
+    var masterFadedIn = false;
+    master.gain.value = 0;
 
     /* "Трошки приглушений бас" — a gentle shelf, not a filter sweep. */
     var lowShelf = ctx.createBiquadFilter();
@@ -203,6 +211,12 @@
       param.linearRampToValueAtTime(to, now + ms / 1000);
     }
 
+    function bringMasterIn() {
+      if (masterFadedIn) return;
+      masterFadedIn = true;
+      rampGain(master.gain, masterTargetGain, entryFadeInMs);
+    }
+
     /* TRANSITION THROUGH SILENCE, not a crossfade.
      *
      * A direct crossfade means both tracks are audible together for its whole length, and
@@ -244,6 +258,7 @@
          * scroll is the fastest way to make audio feel cheap. */
         var p = els[index].play();
         if (p && p.catch) p.catch(function () {});
+        bringMasterIn();
         rampGain(gains[index].gain, muted ? 0 : 1, fadeInMs);
         pending = null;
       }, outFor + gap);
@@ -373,6 +388,7 @@
           reverbWet: +reverbWet.gain.value.toFixed(3),
           echoWet: +echoWet.gain.value.toFixed(3),
           feedback: +feedback.gain.value.toFixed(3),
+          entryFadeInMs: entryFadeInMs,
           echoCutoffHz: Math.round(echoDamp.frequency.value),
           lowShelfDb: lowShelf.gain.value,
           highShelfDb: highShelf.gain.value,

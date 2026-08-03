@@ -53,3 +53,9 @@ test('the cinematic handoff is wired to one projected node and is reversible', (
   assert.match(css, /\.laptop-surface--fullscreen[\s\S]*position: fixed/);
   assert.match(css, /\.laptop-surface--fullscreen[\s\S]*transform: none/);
 });
+
+test('the current laptop calibration never invents a fullscreen handoff before a close camera frame exists', () => {
+  const cameraFrame = adapter.slice(adapter.indexOf('function onCameraFrame(frame)'), adapter.indexOf('function destroy()'));
+  assert.match(cameraFrame, /There is no measured contact frame/);
+  assert.doesNotMatch(cameraFrame, /^\s*enterFullscreen\(\);/m);
+});
