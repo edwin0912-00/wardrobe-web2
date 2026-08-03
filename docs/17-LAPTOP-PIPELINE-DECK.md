@@ -9,8 +9,8 @@ the same commit; there is no runtime URL switch or untracked replacement:
 
 - title: `Wardrobe — Pipeline v2 · 2026-08-01`
 - 17 panels, desktop and portrait-browser interaction states
-- bytes: `114345`
-- SHA-256: `5dc129bfde06a987d87c407ed348fb91221bb6e62850ad867242f017ecca3f43`
+- bytes: `114569`
+- SHA-256: `a6c5a0df0cec153465f15ae86ecd001da7aa4eb1661d357ef4196811217b996b`
 - source: `https://github.com/edwin0912-00/wardrobe-beta-github-draft/blob/main/docs/zeely-pipeline-deck-v2.html`
 
 `test/pipeline-deck.test.mjs` is the byte and structure lock. If the deck changes,

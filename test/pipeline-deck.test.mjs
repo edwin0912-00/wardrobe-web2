@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
-const SOURCE_SHA256 = '5dc129bfde06a987d87c407ed348fb91221bb6e62850ad867242f017ecca3f43';
+const SOURCE_SHA256 = 'a6c5a0df0cec153465f15ae86ecd001da7aa4eb1661d357ef4196811217b996b';
 
 const [sourceBytes, source, adapter, page, surfaces, css] = await Promise.all([
   readFile(new URL('../b/pipeline-deck-v2.html', import.meta.url)),
@@ -15,7 +15,7 @@ const [sourceBytes, source, adapter, page, surfaces, css] = await Promise.all([
 ]);
 
 test('the laptop source is vendored byte-for-byte from the approved handoff', () => {
-  assert.equal(sourceBytes.byteLength, 114345);
+  assert.equal(sourceBytes.byteLength, 114569);
   assert.equal(createHash('sha256').update(sourceBytes).digest('hex'), SOURCE_SHA256);
   assert.match(source, /<title>Wardrobe — Pipeline v2 · 2026-08-01<\/title>/);
   assert.equal((source.match(/<section\b[^>]*\bclass="[^"]*\bpanel\b/g) || []).length, 17);
