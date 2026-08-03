@@ -975,6 +975,45 @@ body {
 }
 .lookframe[data-state="ready"]::after { content: none; }
 
+.lookframe--video { display: flex; flex: 1 1 auto; flex-direction: column; }
+.lookframe__video {
+  width: 100%; min-height: 0; flex: 1 1 auto; display: block;
+  background: #0b0c0a; object-fit: contain;
+}
+.lookframe__delivery-actions {
+  display: flex; flex: 0 0 auto; justify-content: center; flex-wrap: wrap; gap: 7px;
+  padding: 7px; background: rgba(12,13,11,0.8);
+}
+.lookframe__delivery-actions :is(a, button) {
+  border: 1px solid rgba(245,243,237,0.5); background: transparent; color: #f5f3ed;
+  padding: 6px 8px; font: inherit; font-size: 9px; letter-spacing: 0.08em;
+  text-decoration: none; text-transform: uppercase; cursor: pointer;
+}
+
+.saved-materials { margin-top: 10px; }
+.saved-materials__head {
+  margin-bottom: 6px; color: rgba(245,243,237,0.68); font-size: 9px;
+  letter-spacing: 0.16em; text-transform: uppercase;
+}
+.saved-materials__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.saved-material {
+  min-width: 0; overflow: hidden; border: 1px solid rgba(245,243,237,0.2);
+  background: rgba(245,243,237,0.04);
+}
+.saved-material__open {
+  display: grid; grid-template-columns: 42px minmax(0, 1fr); align-items: center; gap: 7px;
+  width: 100%; min-height: 48px; padding: 0; border: 0; background: transparent;
+  color: #f5f3ed; font: inherit; font-size: 10px; text-align: left; cursor: pointer;
+}
+.saved-material__open img { width: 42px; height: 48px; object-fit: cover; display: block; }
+.saved-material__placeholder { display: grid; width: 42px; height: 48px; place-items: center; background: rgba(245,243,237,0.09); }
+.saved-material__actions { display: flex; flex-wrap: wrap; gap: 5px; padding: 5px; }
+.saved-material__actions :is(a, button) {
+  border: 0; background: transparent; color: rgba(245,243,237,0.78); padding: 0;
+  font: inherit; font-size: 8px; letter-spacing: 0.06em; text-decoration: underline; cursor: pointer;
+}
+.saved-materials__note { margin: 6px 0 0; color: rgba(245,243,237,0.44); font-size: 8px; line-height: 1.35; }
+
 .look-status {
   display: inline-flex; align-items: center; gap: 6px; flex: 0 0 auto;
   margin-top: clamp(5px, 1.2cqh, 8px);

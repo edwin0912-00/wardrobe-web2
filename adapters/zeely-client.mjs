@@ -604,6 +604,10 @@ export function createZeelyClient({
     },
     deleteVideo(clipId) { return request(`/profile/video-clips/${encode(clipId)}`, { method: 'DELETE' }); },
     videoUrl: (clipId) => url(`/profile/video-clips/${encode(clipId)}/video`),
+    // The server authorizes both URLs against the current private profile. A
+    // playback URL is not a share link; this attachment URL only changes the
+    // browser disposition of the same verified delivery file.
+    videoDownloadUrl: (clipId) => url(`/profile/video-clips/${encode(clipId)}/download`),
 
     // Live mirror -----------------------------------------------------------
     postShootPipeline: () => request('/post-shoot/pipeline'),

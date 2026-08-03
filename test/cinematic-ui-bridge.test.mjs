@@ -125,6 +125,45 @@ test('restores beta saved looks and action context after a browser reload', asyn
   ));
 });
 
+test('restores saved Fashion Shoot frames and verified Fashion Video delivery after reload', async () => {
+  const profile = {
+    looks: [{
+      look_id: 'look-library',
+      image_url: '/api/profile/looks/look-library/image',
+    }],
+  };
+  const client = clientStub({ profile });
+  client.listShoots = async () => ({ shoots: [{
+    shoot_id: 'shoot-library',
+    status: 'COMPLETED',
+    shots: [
+      { slot: 'clean_identity_hero', status: 'APPROVED', output: { image_url: '/internal.png' } },
+      { slot: 'environmental_hero', status: 'APPROVED', output: { image_url: '/shot-1.png', download_url: '/shot-1/download' } },
+      { slot: 'sculptural_three_quarter', status: 'APPROVED', output: { image_url: '/shot-2.png', download_url: '/shot-2/download' } },
+      { slot: 'interference_frame', status: 'APPROVED', output: { image_url: '/shot-3.png', download_url: '/shot-3/download' } },
+      { slot: 'material_or_accessory_detail', status: 'APPROVED', output: { image_url: '/shot-4.png', download_url: '/shot-4/download' } },
+      { slot: 'wide_campaign_coda', status: 'APPROVED', output: { image_url: '/shot-5.png', download_url: '/shot-5/download' } },
+    ],
+  }] });
+  client.listVideos = async () => ({ clips: [{
+    clip_id: 'clip-library', status: 'PASS', surface: 'mirror',
+    video_url: '/api/profile/video-clips/clip-library/video',
+    download_url: '/api/profile/video-clips/clip-library/download',
+  }] });
+  client.videoDownloadUrl = (clipId) => `/api/profile/video-clips/${clipId}/download`;
+  const bridge = createCinematicUiBridge({ client, autoProbe: false });
+  await bridge.probe();
+
+  const deliveries = bridge.state().deliveries;
+  assert.equal(deliveries.lookId, 'look-library');
+  assert.equal(deliveries.shoots.length, 1);
+  assert.equal(deliveries.shoots[0].result.readyCount, 5);
+  assert.equal(deliveries.videos.length, 1);
+  assert.equal(deliveries.videos[0].result.mediaUrl, '/api/profile/video-clips/clip-library/video');
+  assert.equal(deliveries.videos[0].result.downloadUrl, '/api/profile/video-clips/clip-library/download');
+  assert.equal(bridge.state().result, null, 'restoring a library must not impersonate a new active job');
+});
+
 test('restores nested avatar looks from older beta profile payloads', async () => {
   const client = clientStub({ profile: {
     looks: [],

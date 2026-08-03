@@ -5,7 +5,7 @@
  * The active site may be replaced wholesale while this bridge continues to use
  * the same relative `/api` contract.
  */
-import { createZeelyClient, phaseFor } from './zeely-client.mjs';
+import { createZeelyClient, phaseFor } from './zeely-client.mjs?v=20260803-1';
 
 const ACTIVE_PHASES = new Set([
   'uploading', 'running', 'needs_input', 'waiting_for_approval', 'recovering',
@@ -52,6 +52,10 @@ function initialState() {
     liveCapability: null,
     videoCapability: null,
     catalogs: { backgrounds: [], shoots: [], videos: [] },
+    // Durable deliveries are deliberately separate from the active job/result.
+    // A browser refresh can restore a finished series or clip without making it
+    // look like a newly submitted job, and without replacing the master image.
+    deliveries: { lookId: null, shoots: [], videos: [] },
     result: null,
     /* A requested presentation ratio is metadata for an in-flight scene, never a
      * deliverable result.  Keeping the two separate prevents a selection of a
@@ -575,7 +579,16 @@ export function createCinematicUiBridge({
     }
     if (phase === 'completed' && kind === 'video' && entity.clip_id) {
       const media = entity.video_url ?? client.videoUrl(entity.clip_id);
-      result = { kind, aspect: entity.surface === 'tv' ? '16:9' : '9:16', urls: [], mediaUrl: media, pendingRealMedia: false };
+      result = {
+        kind,
+        clipId: entity.clip_id,
+        aspect: entity.surface === 'tv' ? '16:9' : '9:16',
+        urls: [],
+        mediaUrl: media,
+        downloadUrl: entity.download_url
+          ?? (typeof client.videoDownloadUrl === 'function' ? client.videoDownloadUrl(entity.clip_id) : null),
+        pendingRealMedia: false,
+      };
     }
     if (kind === 'shoot') result = shootResultFromState(entity);
     emit(type, {
@@ -619,6 +632,71 @@ export function createCinematicUiBridge({
     }
   }
 
+  function collection(value, keys) {
+    if (Array.isArray(value)) return value;
+    for (const key of keys) {
+      if (Array.isArray(value?.[key])) return value[key];
+    }
+    return [];
+  }
+
+  function savedShootDelivery(shoot) {
+    const result = shootResultFromState(shoot);
+    if (!result) return null;
+    return {
+      shoot_id: shoot.shoot_id ?? shoot.id,
+      status: shoot.status ?? 'COMPLETED',
+      updated_at: shoot.updated_at ?? shoot.created_at ?? null,
+      result,
+    };
+  }
+
+  function savedVideoDelivery(clip) {
+    const clipId = clip?.clip_id ?? clip?.id;
+    const mediaUrl = clip?.video_url ?? null;
+    if (typeof clipId !== 'string' || !mediaUrl) return null;
+    return {
+      clip_id: clipId,
+      status: clip.status ?? 'PASS',
+      updated_at: clip.updated_at ?? clip.created_at ?? null,
+      result: {
+        kind: 'video',
+        clipId,
+        aspect: clip.surface === 'tv' ? '16:9' : '9:16',
+        urls: [],
+        mediaUrl,
+        downloadUrl: clip.download_url
+          ?? (typeof client.videoDownloadUrl === 'function' ? client.videoDownloadUrl(clipId) : null),
+        pendingRealMedia: false,
+      },
+    };
+  }
+
+  /* Read delivery state from the profile-owned list routes, never from a
+   * browser-local action cache.  The API omits unverified video clips; for a
+   * shoot we retain every already-approved client frame, including a series
+   * that was only partly complete when the page refreshed. */
+  async function restoreSavedDeliveries(savedLook) {
+    const lookId = profileLookId(savedLook);
+    if (!lookId) return null;
+    const [shootsResponse, videosResponse] = await Promise.allSettled([
+      typeof client.listShoots === 'function' ? client.listShoots(lookId) : Promise.resolve([]),
+      typeof client.listVideos === 'function' ? client.listVideos(lookId) : Promise.resolve([]),
+    ]);
+    const shoots = shootsResponse.status === 'fulfilled'
+      ? collection(shootsResponse.value, ['shoots', 'editorial_shoots'])
+        .map(savedShootDelivery).filter(Boolean)
+      : [];
+    const videos = videosResponse.status === 'fulfilled'
+      ? collection(videosResponse.value, ['clips', 'video_clips'])
+        .map(savedVideoDelivery).filter(Boolean)
+      : [];
+    emit('deliveries:restored', {
+      deliveries: { lookId, shoots, videos },
+    });
+    return state.deliveries;
+  }
+
   const unsubscribeClient = client.subscribe((event) => {
     if (disposed || !event) return;
     const type = String(event.type ?? '');
@@ -654,6 +732,7 @@ export function createCinematicUiBridge({
           await Promise.all([
             loadCatalogs(profileLookId(savedLook)),
             restoreActiveShoot(profile, savedLook),
+            restoreSavedDeliveries(savedLook),
           ]);
         }
       } catch (error) {
@@ -694,7 +773,10 @@ export function createCinematicUiBridge({
       const look = profileLooks(state.profile).find((candidate) => profileLookId(candidate) === String(lookId));
       if (!look) throw new CinematicUiBridgeError('SAVED_LOOK_NOT_FOUND', 'Збережений образ більше недоступний');
       emit('look:selected', { savedLook: look, error: null });
-      await loadCatalogs(profileLookId(look));
+      await Promise.all([
+        loadCatalogs(profileLookId(look)),
+        restoreSavedDeliveries(look),
+      ]);
       return look;
     },
     isReady: () => state.availability === 'ready',

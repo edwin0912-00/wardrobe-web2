@@ -229,6 +229,7 @@ test('matches the deployed Fashion Video style and explicit retry contract', asy
   });
   assert.equal(client.videoStylePlaybackUrl('look-1', 'fabric-air'), '/api/profile/looks/look-1/video-styles/fabric-air/playback');
   assert.equal(client.videoStyleReferenceUrl('look-1', 'fabric-air'), '/api/profile/looks/look-1/video-styles/fabric-air/reference');
+  assert.equal(client.videoDownloadUrl('clip-1'), '/api/profile/video-clips/clip-1/download');
 
   await client.retryVideo('clip-1', 'retry-key');
   assert.equal(calls[1].url, '/api/profile/video-clips/clip-1/retry');

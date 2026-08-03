@@ -310,6 +310,13 @@
     function mergeHydratedLook(previous, fresh) {
       if (!previous || !sameApprovedMaster(previous, fresh)) return fresh;
       var merged = Object.assign({}, previous, fresh);
+      /* Profile polls describe the master look, not its durable product
+       * library.  Preserve already-restored sessions for this same immutable
+       * look instead of overwriting them with the profile's empty local shell. */
+      if (previous.savedDeliveries) merged.savedDeliveries = previous.savedDeliveries;
+      if (previous.actionResults && Object.keys(previous.actionResults).length) {
+        merged.actionResults = previous.actionResults;
+      }
       if (!fresh.cutoutNativeUrl && localCutoutMatchesMaster(previous, fresh)) {
         merged.cutoutNativeUrl = previous.cutoutNativeUrl;
         merged.cutoutNativeSha256 = previous.cutoutNativeSha256;
@@ -537,6 +544,7 @@
           items: Array.isArray(record.items) ? record.items.slice() : [],
           bg: null, shootStyle: null, videoStyle: null,
           shot: false, video: false, actionResults: {},
+          savedDeliveries: { shoots: [], videos: [] },
           saved: true,
           name: record.name || '',
           createdAt: record.created_at || null,
@@ -572,6 +580,19 @@
         view = 'look';
       }
       return changed;
+    }
+
+    function hydrateSavedDeliveries(deliveries) {
+      if (!deliveries || !deliveries.lookId) return false;
+      var look = looks.find(function (candidate) {
+        return String(candidate.lookId || candidate.id || '') === String(deliveries.lookId);
+      });
+      if (!look) return false;
+      look.savedDeliveries = {
+        shoots: Array.isArray(deliveries.shoots) ? deliveries.shoots.slice() : [],
+        videos: Array.isArray(deliveries.videos) ? deliveries.videos.slice() : []
+      };
+      return true;
     }
 
     /* THE gate for every action: a look with things in it must be VISIBLE first — and
@@ -673,6 +694,7 @@
       updateBuildNumber();
 
       hydrateSavedLooks(bridgeState.profile);
+      hydrateSavedDeliveries(bridgeState.deliveries);
 
       var working = bridgeWorking();
       var kind = bridgeState.activeKind || 'look';
@@ -913,6 +935,77 @@
       return cells;
     }
 
+    function copyPrivateDeliveryUrl(value, control) {
+      if (!value) return;
+      var absolute = new URL(value, global.location.href).href;
+      var original = control && control.textContent || 'Копіювати посилання';
+      var copied = function () {
+        if (!control) return;
+        control.textContent = 'Скопійовано';
+        global.setTimeout(function () { control.textContent = original; }, 1800);
+      };
+      var failed = function () {
+        if (control) control.textContent = 'Не вдалося скопіювати';
+      };
+      if (global.navigator && global.navigator.clipboard && global.navigator.clipboard.writeText) {
+        global.navigator.clipboard.writeText(absolute).then(copied).catch(failed);
+        return;
+      }
+      try {
+        var fallback = document.createElement('textarea');
+        fallback.value = absolute;
+        fallback.setAttribute('readonly', '');
+        fallback.style.position = 'fixed';
+        fallback.style.opacity = '0';
+        document.body.appendChild(fallback);
+        fallback.select();
+        var didCopy = document.execCommand('copy');
+        fallback.remove();
+        if (didCopy) copied(); else failed();
+      } catch (error) {
+        failed();
+      }
+    }
+
+    function savedMaterialsLibrary(look) {
+      var deliveries = look && look.savedDeliveries || { shoots: [], videos: [] };
+      var shoots = Array.isArray(deliveries.shoots) ? deliveries.shoots : [];
+      var videos = Array.isArray(deliveries.videos) ? deliveries.videos : [];
+      if (!shoots.length && !videos.length) return '';
+      var shootCards = shoots.map(function (delivery, index) {
+        var result = delivery && delivery.result || {};
+        var frames = Array.isArray(result.frames) ? result.frames : [];
+        var lead = frames.find(function (frame) { return frame && frame.imageUrl; }) || null;
+        var label = 'Фотосесія · ' + (result.readyCount || frames.filter(function (frame) {
+          return frame && frame.imageUrl;
+        }).length) + ' з ' + (result.expectedCount || 5) + ' кадрів';
+        return '<article class="saved-material saved-material--shoot">' +
+          '<button type="button" class="saved-material__open" data-open-saved-shoot="' + index + '">' +
+            (lead ? '<img src="' + esc(lead.imageUrl) + '" alt="">' : '<span class="saved-material__placeholder">Ф</span>') +
+            '<span>' + esc(label) + '</span>' +
+          '</button>' +
+        '</article>';
+      }).join('');
+      var videoCards = videos.map(function (delivery, index) {
+        var result = delivery && delivery.result || {};
+        var download = result.downloadUrl || result.mediaUrl || '';
+        return '<article class="saved-material saved-material--video">' +
+          '<button type="button" class="saved-material__open" data-open-saved-video="' + index + '">' +
+            '<span class="saved-material__placeholder">▶</span><span>Fashion-відео</span>' +
+          '</button>' +
+          '<div class="saved-material__actions">' +
+            '<a href="' + esc(download) + '" download>Завантажити</a>' +
+            '<button type="button" data-copy-delivery-url="' + esc(result.mediaUrl || '') + '">Копіювати посилання</button>' +
+          '</div>' +
+        '</article>';
+      }).join('');
+      return '<section class="saved-materials" aria-label="Збережені матеріали образу">' +
+        '<div class="saved-materials__head">Збережені матеріали</div>' +
+        '<div class="saved-materials__grid">' + shootCards + videoCards + '</div>' +
+        '<p class="saved-materials__note">Посилання на відео приватне: працює лише в цьому профілі.</p>' +
+      '</section>';
+    }
+
     function optionsFor(kind) {
       var catalogs = bridgeState && bridgeState.catalogs;
       var live = kind === 'shoot' ? catalogs && catalogs.shoots
@@ -1116,6 +1209,7 @@
         '<p class="glass__lede">' + esc(lookLede(l)) + '</p>' +
         '<div class="looklabel">ваші образи</div>' +
         '<div class="lookthumbs">' + askLookThumbs() + '</div>' +
+        savedMaterialsLibrary(l) +
         '<button class="secondary" type="button" data-edit-items>Змінити речі</button>' +
         (mobileLookChooser
           ? '<button class="secondary mobile-look-return" type="button" data-close-look-picker>До образу</button>'
@@ -1600,6 +1694,16 @@
       if (view === 'shoot' && activeResult && Array.isArray(activeResult.frames)) {
         return shootProgressFrame(activeResult, caption, state);
       }
+      if (view === 'video' && activeResult && activeResult.kind === 'video' && activeResult.mediaUrl) {
+        var downloadUrl = activeResult.downloadUrl || activeResult.mediaUrl;
+        return '<div class="lookframe lookframe--video" data-state="ready">' +
+          '<video class="lookframe__video" src="' + esc(activeResult.mediaUrl) + '" controls playsinline preload="metadata"></video>' +
+          '<div class="lookframe__delivery-actions">' +
+            '<a href="' + esc(downloadUrl) + '" download>Завантажити MP4</a>' +
+            '<button type="button" data-copy-delivery-url="' + esc(activeResult.mediaUrl) + '">Копіювати посилання</button>' +
+          '</div>' +
+        '</div>';
+      }
       var src = activeResult && (activeResult.previewUrl || activeResult.mediaUrl || activeResult.urls && activeResult.urls[0]) ||
         lookDisplayUrl(l) || (!bridge && person.main ? (person.main.previewUrl || person.main.url) : '');
       return '<div class="lookframe" data-state="' + state + '">' +
@@ -2035,6 +2139,28 @@
           actionError = { kind: 'shoot', message: 'Не вдалося продовжити фотозйомку' };
           render(); notifyGateChange();
         });
+        return;
+      }
+      if ((b = t.closest('[data-open-saved-shoot]'))) {
+        var restoredShoot = current() && current().savedDeliveries && current().savedDeliveries.shoots[Number(b.getAttribute('data-open-saved-shoot'))];
+        if (!restoredShoot || !restoredShoot.result) return;
+        current().actionResults = current().actionResults || {};
+        current().actionResults.shoot = restoredShoot.result;
+        current().shot = true;
+        pendingAction = null; actionError = null; pickerKind = null; awaitingAspect = null; view = 'shoot';
+        render(); notifyGateChange(); return;
+      }
+      if ((b = t.closest('[data-open-saved-video]'))) {
+        var restoredVideo = current() && current().savedDeliveries && current().savedDeliveries.videos[Number(b.getAttribute('data-open-saved-video'))];
+        if (!restoredVideo || !restoredVideo.result) return;
+        current().actionResults = current().actionResults || {};
+        current().actionResults.video = restoredVideo.result;
+        current().video = true;
+        pendingAction = null; actionError = null; pickerKind = null; awaitingAspect = null; view = 'video';
+        render(); notifyGateChange(); return;
+      }
+      if ((b = t.closest('[data-copy-delivery-url]'))) {
+        copyPrivateDeliveryUrl(b.getAttribute('data-copy-delivery-url'), b);
         return;
       }
       if ((b = t.closest('[data-remove]'))) { removeAt(Number(b.getAttribute('data-remove'))); return; }

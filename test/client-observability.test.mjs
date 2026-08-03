@@ -10,7 +10,7 @@ const [server, observer, html, ui] = await Promise.all([
 ]);
 
 test('browser observability is narrow, same-origin, and loaded before the UI bridge', () => {
-  assert.match(html, /engine\.js"><\/script>\s*<script src="\.\.\/client-observer\.js"><\/script>\s*<script src="\.\.\/ui\.js">/);
+  assert.match(html, /engine\.js"><\/script>\s*<script src="\.\.\/client-observer\.js"><\/script>\s*<script src="\.\.\/ui\.js(?:\?v=[^"]+)?">/);
   assert.match(observer, /var ENDPOINT = '\/__site-observability';/);
   assert.match(observer, /credentials: 'same-origin'/);
   assert.match(observer, /keepalive: true/);

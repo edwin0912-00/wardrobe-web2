@@ -148,7 +148,7 @@
 <script src="pipeline-deck.js"></script>
 <script src="../engine.js"></script>
 <script src="../client-observer.js"></script>
-<script src="../ui.js"></script>
+<script src="../ui.js?v=20260803-1"></script>
 <script>
   /* The canonical orb renderer is an ES module and the rest of this page is classic
      scripts, so it is published on the global the same way every other controller here is
@@ -200,7 +200,7 @@
      now travel in parallel, so arriving at the two mirrors does not begin a new
      cold request chain.  ui.js receives this exact promise later and must not
      construct a duplicate bridge. */
-  var productBridgePromise = import('../adapters/cinematic-ui-bridge.mjs').then(function (module) {
+  var productBridgePromise = import('../adapters/cinematic-ui-bridge.mjs?v=20260803-1').then(function (module) {
     var bridge = module.createCinematicUiBridge();
     window.WardrobeCinematicBridge = bridge;
     return bridge;
