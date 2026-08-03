@@ -311,3 +311,16 @@ test('rejects an unknown explicit station instead of travelling to another surfa
     /Unknown station "not-a-station" for leg 0/
   );
 });
+
+test('a measured laptop time is a real camera stop, not a fullscreen substitution', async () => {
+  const { journey, flushFrame } = boot({ inertia: 1 });
+  const arrived = journey.advanceToVideoTime(1, 6);
+  /* One frame writes the destination; the next certifies the same ordinary
+     scroll arrival path used by advanceTo(). */
+  flushFrame();
+  flushFrame();
+  await arrived;
+  const state = journey.state();
+  assert.equal(state.leg, 1);
+  assert.ok(Math.abs(state.videoTime - 6) < 0.08, `expected ~6s, got ${state.videoTime}`);
+});

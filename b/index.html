@@ -779,11 +779,9 @@
       });
     }
 
-    /* HOW follows the one existing cinematic clock instead of creating a second
-     * scrolling mechanism. `advanceTo(3)` uses the journey's ordinary inertia and is
-     * immediately cancellable by a real touch, wheel or key. The projected laptop
-     * remains a physical screen — the page fades in only once that measured screen is
-     * actually visible, never as a floating modal or full-viewport document. */
+    /* HOW follows the cinematic clock only until the measured laptop stop at
+     * 13.25s. Then wheel/touch belong to the verified document inside the
+     * physical screen. The laptop never expands to a floating/fullscreen page. */
     if (howBtn) {
       howBtn.disabled = false;
       howBtn.addEventListener('click', function (ev) {
@@ -797,7 +795,13 @@
         if (pipelineDeck && typeof pipelineDeck.setProgress === 'function') {
           pipelineDeck.setProgress(0);
         }
-        if (window.journey && typeof window.journey.advanceTo === 'function') {
+        if (pipelineDeck && typeof pipelineDeck.requestScreenScroll === 'function') {
+          pipelineDeck.requestScreenScroll();
+        }
+        if (window.journey && typeof window.journey.advanceToVideoTime === 'function') {
+          var move = window.journey.advanceToVideoTime(3, 13.25);
+          if (move && typeof move.catch === 'function') move.catch(function () {});
+        } else if (window.journey && typeof window.journey.advanceTo === 'function') {
           var move = window.journey.advanceTo(3);
           if (move && typeof move.catch === 'function') move.catch(function () {});
         }

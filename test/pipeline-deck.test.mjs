@@ -36,28 +36,28 @@ test('the adapter is same-origin, SHA-bound, and fails closed without an iframe'
   assert.match(adapter, /addEventListener\(['"]wheel['"].*capture: true/s);
   assert.match(adapter, /addEventListener\(['"]touchstart['"].*capture: true/s);
   assert.match(adapter, /addEventListener\(['"]keydown['"].*capture: true/s);
-  assert.match(adapter, /setLaptopFullscreen/);
+  assert.match(adapter, /requestScreenScroll/);
+  assert.match(adapter, /SCREEN_SCROLL_STOP_SECONDS = 13\.25/);
+  assert.doesNotMatch(adapter, /setLaptopFullscreen/);
   assert.doesNotMatch(adapter, /<iframe|createElement\(['"]iframe/i);
 });
 
-test('the cinematic handoff is wired to one projected node and is reversible', () => {
+test('the cinematic handoff stops on the measured laptop and scrolls in that projected node', () => {
   assert.match(page, /<script src="pipeline-deck\.js"><\/script>/);
   assert.match(page, /pipelineDeck = WardrobePipelineDeck\.create/);
   assert.match(page, /pipelineDeck\.ready\.then/);
   assert.match(page, /mountLaptop\(pipelineDeck\.host\)/);
   assert.match(page, /pipelineDeck\.onCameraFrame\(frame\)/);
-  assert.match(surfaces, /laptopHomeNext/);
-  assert.match(surfaces, /appendChild\(laptop\)/);
-  assert.match(surfaces, /laptopFullscreen/);
   assert.match(surfaces, /laptopWindow/);
-  assert.match(css, /\.laptop-surface--fullscreen[\s\S]*position: fixed/);
-  assert.match(css, /\.laptop-surface--fullscreen[\s\S]*transform: none/);
   assert.match(surfaces, /data-how-visible/);
   assert.match(css, /laptop-surface\[data-how-reveal="1"\]/);
+  assert.match(adapter, /data-screen-scroll/);
+  assert.doesNotMatch(adapter, /laptop-surface--fullscreen/);
 });
 
-test('the current laptop calibration never invents a fullscreen handoff before a close camera frame exists', () => {
+test('the current laptop calibration never invents a fullscreen handoff', () => {
   const cameraFrame = adapter.slice(adapter.indexOf('function onCameraFrame(frame)'), adapter.indexOf('function destroy()'));
-  assert.match(cameraFrame, /There is no measured contact frame/);
-  assert.doesNotMatch(cameraFrame, /^\s*enterFullscreen\(\);/m);
+  assert.match(cameraFrame, /SCREEN_SCROLL_STOP_SECONDS/);
+  assert.match(cameraFrame, /enterScreenScroll\(\)/);
+  assert.doesNotMatch(cameraFrame, /enterFullscreen|setLaptopFullscreen/);
 });

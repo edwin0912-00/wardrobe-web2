@@ -521,6 +521,30 @@
         : easeSine(clamp01(local)) * (d - 0.001);
     }
 
+    /* The laptop is a real physical stop inside leg 3, not a request to turn
+     * the document into a full-window page.  A caller can therefore target a
+     * measured film time without reimplementing the intro/leg scroll mapping.
+     * `timeFor` is monotonic for both the measured table and the fallback
+     * easing curve, so a short bisection is deterministic and does not add a
+     * second animation clock. */
+    function progressForVideoTime(idx, seconds) {
+      idx = Math.max(0, Math.min(legs.length - 1, Number(idx) || 0));
+      var duration = videos[idx] && videos[idx].duration;
+      if (!(duration > 0) || !isFinite(duration)) return null;
+      var wanted = Math.max(0, Math.min(duration - 0.001, Number(seconds) || 0));
+      var low = 0;
+      var high = 1;
+      for (var i = 0; i < 26; i++) {
+        var middle = (low + high) / 2;
+        var at = timeFor(idx, middle);
+        if (at === null || at < wanted) low = middle;
+        else high = middle;
+      }
+      var local = (low + high) / 2;
+      var s = legsStart();
+      return clamp01(s + ((idx + local) / legs.length) * (1 - s));
+    }
+
     function seekTo(v, t, force) {
       if (t === null) return;
       /* Seeking costs real work. Below roughly a third of a frame the viewer cannot
@@ -1036,7 +1060,12 @@
       var n = legs.length;
       var leg = Math.max(0, Math.min(n - 1, idx));
       var requestedStation = opts.stationId !== undefined ? stationAtId(leg, opts.stationId) : null;
-      var dest = opts.toStation === false
+      var requestedProgress = typeof opts.progress === 'number' && isFinite(opts.progress)
+        ? clamp01(opts.progress)
+        : null;
+      var dest = requestedProgress !== null
+        ? Math.round(requestedProgress * (root.scrollHeight - viewport()))
+        : opts.toStation === false
         ? Math.round(clamp01(legsStart() + (leg / n) * (1 - legsStart())) * (root.scrollHeight - viewport()))
         : stationScrollFor(leg, requestedStation);
 
@@ -1255,6 +1284,17 @@
        * easing as a hand, and a hand cancels it. Returns a promise resolving to why it ended:
        * 'arrived' | 'user took over' | 'superseded'. */
       advanceTo: advanceTo,
+      /* A measured in-film stop. This is used by HOW to land on the actual
+       * laptop at 13.25s, then hand wheel/touch input to the document inside
+       * that physical screen. It never promotes the laptop to fullscreen. */
+      advanceToVideoTime: function (leg, seconds, opts) {
+        var legIndex = Math.max(0, Math.min(legs.length - 1, Number(leg) || 0));
+        var progress = progressForVideoTime(legIndex, seconds);
+        if (progress === null) return advanceTo(legIndex, opts);
+        opts = opts || {};
+        opts.progress = progress;
+        return advanceTo(legIndex, opts);
+      },
       /* Explicitly target a physical station without teaching UI code the scroll
        * arithmetic. `advanceTo(leg)` remains the backwards-compatible "last station in
        * that leg" primitive. */

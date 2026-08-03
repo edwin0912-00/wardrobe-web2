@@ -4,7 +4,8 @@
  * that exact document, verifies its SHA-256 before it can reach the laptop plane, and runs
  * the deck inside a ShadowRoot so its styles and controls cannot leak into the cinematic
  * chrome. The one DOM tree is moved by screen-surfaces.js from the calibrated laptop quad
- * to the viewport and back; there is no iframe and no second page scroll owner.
+ * inside its measured laptop aperture; there is no iframe, fullscreen takeover
+ * or second page scroll owner.
  */
 (function (global) {
   'use strict';
@@ -78,11 +79,16 @@
     host.setAttribute('aria-label', 'Історія створення');
     var shadow = host.attachShadow ? host.attachShadow({ mode: 'open' }) : null;
     var deck = null;
-    var mode = 'camera';
+    var mode = 'camera'; // camera | screen
     var ready = false;
     var loadError = null;
     var touchY = null;
     var lastFrame = null;
+    /* This time is a measured frame inside the calibrated laptop window, not
+     * a generic percentage of page scroll.  It matches the visible stop in
+     * the owner-approved camera move. */
+    var SCREEN_SCROLL_STOP_SECONDS = 13.25;
+    var screenScrollRequested = false;
 
     function errorPanel(message) {
       if (!shadow) return;
@@ -167,8 +173,7 @@
     function handBack(delta) {
       var amount = Number(delta) || 0;
       mode = 'camera';
-      if (surface && surface.setLaptopFullscreen) surface.setLaptopFullscreen(false);
-      host.removeAttribute('data-fullscreen');
+      host.removeAttribute('data-screen-scroll');
       if (amount) {
         var y = Math.max(0, window.scrollY + amount);
         window.scrollTo(0, y);
@@ -176,7 +181,7 @@
     }
 
     function consumeDelta(delta) {
-      if (mode !== 'fullscreen' || !deck) return false;
+      if (mode !== 'screen' || !deck) return false;
       var amount = Number(delta) || 0;
       if (!amount) return true;
       var current = deck.scrollTop;
@@ -190,12 +195,10 @@
       return true;
     }
 
-    function enterFullscreen() {
-      if (!ready || mode === 'fullscreen') return false;
-      mode = 'fullscreen';
-      setProgress(0);
-      if (surface && surface.setLaptopFullscreen) surface.setLaptopFullscreen(true);
-      host.setAttribute('data-fullscreen', '1');
+    function enterScreenScroll() {
+      if (!ready || mode === 'screen') return false;
+      mode = 'screen';
+      host.setAttribute('data-screen-scroll', '1');
       host.focus({ preventScroll: true });
       return true;
     }
@@ -208,20 +211,20 @@
     }
 
     function wheel(event) {
-      if (mode !== 'fullscreen' || drawerScrollTarget(event)) return;
+      if (mode !== 'screen' || drawerScrollTarget(event)) return;
       event.preventDefault();
       event.stopPropagation();
       consumeDelta(event.deltaY);
     }
 
     function touchStart(event) {
-      if (mode !== 'fullscreen' || drawerScrollTarget(event) || !event.touches.length) return;
+      if (mode !== 'screen' || drawerScrollTarget(event) || !event.touches.length) return;
       touchY = event.touches[0].clientY;
       event.preventDefault();
     }
 
     function touchMove(event) {
-      if (mode !== 'fullscreen' || touchY === null || drawerScrollTarget(event) || !event.touches.length) return;
+      if (mode !== 'screen' || touchY === null || drawerScrollTarget(event) || !event.touches.length) return;
       var y = event.touches[0].clientY;
       var delta = touchY - y;
       touchY = y;
@@ -233,7 +236,7 @@
     function touchEnd() { touchY = null; }
 
     function keydown(event) {
-      if (mode !== 'fullscreen') return;
+      if (mode !== 'screen') return;
       var amount = Math.max(160, Math.round(window.innerHeight * 0.82));
       if (event.key === 'Escape') return;
       if (event.key === 'Home') {
@@ -267,16 +270,18 @@
       var windowInfo = surface.laptopWindow();
       if (!windowInfo || !lastFrame) return;
       if (lastFrame.leg !== windowInfo.leg) {
-        if (mode === 'fullscreen') handBack(0);
+        if (mode === 'screen') handBack(0);
         return;
       }
-      /* The current calibrated sequence ends while the physical laptop is still visible
-       * around the deck. There is no measured contact frame that authorises a full-viewport
-       * handoff, so do not invent one by snapping the projected screen into fullscreen.
-       * Keep the deck inside its actual laptop aperture. If a future master supplies a
-       * measured terminal contact point, that must be added as a separate calibration
-       * contract before it can call enterFullscreen(). */
-      if (mode === 'fullscreen' && lastFrame.videoTime < windowInfo.last - 0.35) {
+      /* Once HOW reaches the measured stop, the journey stops on the laptop
+       * and wheel/touch scroll the verified document inside its real screen.
+       * There is deliberately no contact-frame guess and no fullscreen route. */
+      if (screenScrollRequested && mode === 'camera'
+        && lastFrame.videoTime >= SCREEN_SCROLL_STOP_SECONDS
+        && lastFrame.videoTime <= windowInfo.last) {
+        enterScreenScroll();
+      }
+      if (mode === 'screen' && lastFrame.videoTime < SCREEN_SCROLL_STOP_SECONDS - 0.35) {
         handBack(0);
       }
     }
@@ -293,14 +298,22 @@
       host: host,
       ready: null,
       load: load,
-      enterFullscreen: enterFullscreen,
-      exitFullscreen: function () { if (mode === 'fullscreen') handBack(0); },
+      requestScreenScroll: function () { screenScrollRequested = true; return true; },
+      exitScreenScroll: function () { if (mode === 'screen') handBack(0); },
       onCameraFrame: onCameraFrame,
       consumeDelta: consumeDelta,
       setProgress: setProgress,
       progress: progress,
       state: function () {
-        return { ready: ready, mode: mode, progress: progress(), error: loadError, sourceSha256: expectedSha256 };
+        return {
+          ready: ready,
+          mode: mode,
+          progress: progress(),
+          screenScrollRequested: screenScrollRequested,
+          screenScrollStopSeconds: SCREEN_SCROLL_STOP_SECONDS,
+          error: loadError,
+          sourceSha256: expectedSha256
+        };
       },
       destroy: destroy
     };
