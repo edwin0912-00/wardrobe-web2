@@ -102,6 +102,23 @@ test('explicit mirror Live may use beta transport while its local camera remains
   assert.match(bridge, /loadLiveReference/);
 });
 
+test('Live can switch a saved look without closing the local camera', () => {
+  const switcher = ui.slice(ui.indexOf('function switchLiveLook'), ui.indexOf('function startCamera'));
+  assert.match(switcher, /liveSwitchInFlight/);
+  assert.match(switcher, /stopLiveTransport\(\)/,
+    'a new saved look must retire only the old provider transport');
+  assert.doesNotMatch(switcher, /stopCamera\(\)/,
+    'the local camera tracks must remain open while the saved look changes');
+  assert.match(switcher, /bridge\.useSavedLook\(next\.lookId\)/);
+  assert.match(switcher, /setLiveVideo\(stream\)/,
+    'the local mirror stays visible during the provider hand-off');
+  assert.match(switcher, /startServerLive\(\)/,
+    'the provider session is renewed only after the bridge binds the new look');
+  assert.match(ui, /data-open-look-picker/, 'Live exposes a visible saved-look switch control');
+  assert.match(ui, /if \(stream\) \{\s*mobileLookChooser = true;/,
+    'opening the picker during Live keeps the camera session rather than closing it');
+});
+
 test('nothing may be done with a look until its own image exists', () => {
   /* Pre-change proof: the result frame rendered person.main.url — the uploaded portrait —
    * and both the action gate and the forward gate keyed off an elapsed stand-in interval,

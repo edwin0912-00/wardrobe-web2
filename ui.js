@@ -1176,6 +1176,10 @@
     var liveTimer = 0;
     var liveTrigger = null;
     var liveTransport = null;
+    /* A live provider session owns an immutable reference image.  Changing a saved
+     * look must therefore replace that server session, never pretend that a remote
+     * renderer can mutate its reference mid-stream.  The local camera stays open. */
+    var liveSwitchInFlight = false;
 
     function canStartServerLive() {
       return !!(bridgeReady() && bridgeState && bridgeState.savedLook &&
@@ -1297,7 +1301,7 @@
     }
 
     function startServerLive() {
-      if (!stream || liveTransport || !canStartServerLive()) return;
+      if (!stream || liveTransport || liveSwitchInFlight || !canStartServerLive()) return;
       if (liveStart) { liveStart.disabled = true; liveStart.hidden = false; }
       setLiveStatus('Налаштовуємо відображення');
       import('./adapters/live-realtime.mjs').then(function (mod) {
@@ -1338,6 +1342,59 @@
       });
     }
 
+    function switchLiveLook(nextIndex) {
+      if (!stream || liveSwitchInFlight) return false;
+      var next = looks[Number(nextIndex)];
+      if (!next || !next.saved || !next.lookId || !bridge || !bridgeReady() ||
+          typeof bridge.useSavedLook !== 'function') {
+        setLiveStatus('Для дзеркала потрібен збережений образ');
+        render();
+        return false;
+      }
+
+      /* Keep the hardware stream and the visible local camera.  Only the provider
+       * transport is stopped, because its old reference must never survive under the
+       * newly selected look. */
+      selected = Number(nextIndex);
+      mobileLookChooser = false;
+      pickerKind = null;
+      awaitingAspect = null;
+      view = 'live';
+      step = 2;
+      liveSwitchInFlight = true;
+      stopLiveTransport();
+      setLiveStatus('Змінюємо образ…');
+      render();
+      setLiveVideo(stream);
+      notifyGateChange();
+
+      Promise.resolve().then(function () {
+        return bridge.useSavedLook(next.lookId);
+      }).then(function () {
+        liveSwitchInFlight = false;
+        if (!stream) return;
+        setLiveStatus('Новий образ підключено');
+        render();
+        setLiveVideo(stream);
+        /* The bridge now owns the new immutable white-master reference.  A fresh
+         * provider session uses the same local camera tracks; no old remote frame is
+         * kept visible while that hand-off happens. */
+        startServerLive();
+        notifyGateChange();
+      }).catch(function () {
+        liveSwitchInFlight = false;
+        if (!stream) return;
+        /* Do not resurrect an old transport after an ambiguous bridge failure: that
+         * could display the wrong AI outfit under the newly selected name.  The user
+         * remains in the honest local mirror and can select again. */
+        setLiveStatus('Не вдалося змінити образ — камера лишається відкритою');
+        render();
+        setLiveVideo(stream);
+        notifyGateChange();
+      });
+      return true;
+    }
+
     function startCamera() {
       if (stream || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         if (!navigator.mediaDevices) { camError = 'браузер не дає доступу до камери'; render(); }
@@ -1375,8 +1432,12 @@
       if (stream) {
         return '<div class="lookframe" data-state="live">' +
             '<video class="lookframe__cam" data-cam autoplay playsinline muted></video>' +
-            '<span class="lookframe__cap">' + esc(BACKGROUNDS[current().bg != null ? current().bg : 0]) + '</span>' +
+            '<span class="lookframe__cap">' + esc(liveSwitchInFlight
+              ? 'Змінюємо образ…'
+              : BACKGROUNDS[current().bg != null ? current().bg : 0]) + '</span>' +
           '</div>' +
+          '<button class="camctl" type="button" data-open-look-picker' +
+            (liveSwitchInFlight ? ' disabled' : '') + '>Змінити образ</button>' +
           '<button class="camctl" type="button" data-cam-stop>Закрити</button>';
       }
       return orbWindow('live', camError || 'Відкрийте дзеркало') +
@@ -1958,6 +2019,10 @@
       if ((b = t.closest('[data-remove]'))) { removeAt(Number(b.getAttribute('data-remove'))); return; }
       if ((b = t.closest('[data-preset]'))) { togglePreset(PRESET_ITEMS[Number(b.getAttribute('data-preset'))]); return; }
       if ((b = t.closest('[data-select]'))) {
+        if (stream && mobileLookChooser && view === 'live') {
+          switchLiveLook(Number(b.getAttribute('data-select')));
+          return;
+        }
         stopCamera(); selected = Number(b.getAttribute('data-select'));
         mobileLookChooser = false; pickerKind = null; awaitingAspect = null; view = 'look';
         var selectedLook = current();
@@ -1993,10 +2058,33 @@
         pickerKind = null; awaitingAspect = null; render(); notifyGateChange(); return;
       }
       if (t.closest('[data-open-look-picker]')) {
+        if (stream) {
+          mobileLookChooser = true;
+          pickerKind = null;
+          awaitingAspect = null;
+          view = 'live';
+          step = 2;
+          setLiveStatus('Оберіть інший збережений образ');
+          render();
+          setLiveVideo(stream);
+          notifyGateChange();
+          return;
+        }
         stopCamera(); mobileLookChooser = true; pickerKind = null; awaitingAspect = null; view = 'look';
         render(); notifyGateChange(); return;
       }
       if (t.closest('[data-close-look-picker]')) {
+        if (stream) {
+          mobileLookChooser = false;
+          pickerKind = null;
+          awaitingAspect = null;
+          view = 'live';
+          step = 2;
+          render();
+          setLiveVideo(stream);
+          notifyGateChange();
+          return;
+        }
         mobileLookChooser = false; pickerKind = null; awaitingAspect = null; view = 'look';
         render(); notifyGateChange(); return;
       }
