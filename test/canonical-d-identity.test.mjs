@@ -22,6 +22,7 @@ const root = fileURLToPath(new URL('..', import.meta.url));
 const assetPath = new URL('../b/assets/seg1.mp4', import.meta.url);
 const journeyPath = new URL('../b/index.html', import.meta.url);
 const entryPath = new URL('../index.html', import.meta.url);
+const serverPath = new URL('../serve.py', import.meta.url);
 
 const CANONICAL_D = Object.freeze({
   sha256: '5f13fb155eee8affa416fbf7689326b8abcbfc9570417c1ce74932fddfa0d424',
@@ -43,10 +44,11 @@ test('the selected D master is the exact first room asset', async () => {
   assert.equal(sha256, CANONICAL_D.sha256);
 });
 
-test('the direct-entry journey is wired only to the approved D route', async () => {
-  const [journey, entry] = await Promise.all([
+test('the canonical root serves only the approved D journey without exposing its historical source directory', async () => {
+  const [journey, entry, server] = await Promise.all([
     readFile(journeyPath, 'utf8'),
-    readFile(entryPath, 'utf8')
+    readFile(entryPath, 'utf8'),
+    readFile(serverPath, 'utf8')
   ]);
 
   for (const video of CANONICAL_D.legs) assert.ok(journey.includes(video), video);
@@ -59,5 +61,9 @@ test('the direct-entry journey is wired only to the approved D route', async () 
   );
   assert.doesNotMatch(journey, /assets\/seg1-[ABC]\.mp4/, 'archived candidate masters must stay unreachable');
   assert.doesNotMatch(journey, /(?:location\.search|URLSearchParams)/, 'a runtime candidate switch must not return');
-  assert.match(entry, /(?:location\.replace|location\.href)\(['\"]\.\/b\/?['\"]\)/);
+  assert.match(journey, /<base href="\/b\/">/);
+  assert.match(journey, /href="\/#journey"/);
+  assert.doesNotMatch(entry, /(?:location\.replace|location\.href|http-equiv="refresh")/);
+  assert.match(server, /requested in \{"", "\/", "\/index\.html"\}/);
+  assert.match(server, /Location", "\/"/);
 });

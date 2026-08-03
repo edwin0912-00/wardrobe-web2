@@ -4,13 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>WARDROBE</title>
+<!-- The browser-facing entry is `/`; `b/` is only the repository's historical
+     source directory. Keep every relative asset bound here so the verified journey
+     can be served at the canonical root without exposing that implementation path. -->
+<base href="/b/">
 <link rel="icon" href="data:,">
 <link rel="stylesheet" href="../style.css">
 <link rel="stylesheet" href="../mobile.css">
 </head>
 <body>
 
-<a class="skip" href="#journey">До взаємодії</a>
+<a class="skip" href="/#journey">До взаємодії</a>
 
 <div class="progress" aria-hidden="true"></div>
 

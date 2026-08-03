@@ -56,6 +56,27 @@ BLOCKED_API_PREFIXES = ("/api/god-view",)
 class RangeHandler(SimpleHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
 
+    def _is_legacy_entry_path(self):
+        return urlsplit(self.path).path.rstrip("/") == "/b"
+
+    def _redirect_legacy_entry(self):
+        # `b/` was an internal A/B-era source directory, never a product route.
+        # Keep old bookmarks working, but remove that implementation detail from
+        # the browser address immediately and serve the selected journey at `/`.
+        self.send_response(308)
+        self.send_header("Location", "/")
+        self.send_header("Content-Length", "0")
+        self.end_headers()
+
+    def translate_path(self, path):
+        # Serve the selected cinematic document at the canonical root without
+        # copying it into a second source file. Its `<base href="/b/">` keeps
+        # the verified asset tree internal while the visitor remains at `/`.
+        requested = urlsplit(path).path
+        if requested in {"", "/", "/index.html"}:
+            path = "/b/index.html"
+        return super().translate_path(path)
+
     def _is_api_request(self):
         path = urlsplit(self.path).path
         return path == "/api" or path.startswith("/api/")
@@ -271,11 +292,15 @@ class RangeHandler(SimpleHTTPRequestHandler):
             conn.close()
 
     def do_GET(self):
+        if self._is_legacy_entry_path():
+            return self._redirect_legacy_entry()
         if self._is_api_request():
             return self._proxy_api()
         return super().do_GET()
 
     def do_HEAD(self):
+        if self._is_legacy_entry_path():
+            return self._redirect_legacy_entry()
         if self._is_api_request():
             return self._proxy_api()
         return super().do_HEAD()
