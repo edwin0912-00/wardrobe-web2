@@ -17,6 +17,18 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-08-03 · FASHION-VIDEO-STYLE-DURATION-RETRY · beta pending deploy · codex-main
+Change: make an immutable Fashion Video style reference the sole duration
+authority for reference-bound create and retry. A generic motion mode remains
+semantic direction only; non-reference video still uses its strict mode window.
+Why: a live retry of a 13-second verified style carrying legacy
+`camera_drift=6` was rejected locally with `MOTION_DURATION_OUT_OF_RANGE`
+before a Higgsfield job could exist.
+Evidence: regression recreates that exact parent state and asserts a 13-second
+child/provider request; `node --test test/video/*.test.js` 209/209 PASS;
+`npm run verify:contracts` PASS.
+weakened_checks: none.
+
 2026-08-02 · CHAT04-UNIMPLEMENTED-HANDOFF-CLARIFICATION · beta `26ea365` · codex-live-40
 Change: distinguish Chat 04's three unimplemented scene/UI proposals from
 assets that were already recovered into beta.

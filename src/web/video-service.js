@@ -636,6 +636,10 @@ export class VideoService {
       modeId,
       surface: referenceOwnedSurface?.id ?? surfaceId,
       durationSeconds,
+      // A reference-bound style owns duration exactly as it owns aspect ratio.
+      // This avoids treating a historical mode demo duration as authority when
+      // retrying a completed style binding.
+      referenceDurationSeconds: verifiedVideoReference?.providerDurationSeconds ?? null,
       sourceCapabilities,
       styleNote,
     });

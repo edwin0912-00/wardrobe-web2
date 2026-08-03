@@ -775,6 +775,56 @@ test('createClip rechecks and passes the exact video reference binding', async (
   });
 });
 
+test('retry uses the immutable style duration rather than an obsolete motion-mode duration', async () => {
+  await withTempDir(async (dir, sourcePath) => {
+    const referencePath = path.join(dir, 'style-reference.mp4');
+    const referenceBytes = Buffer.from('style-duration-authority');
+    await writeFile(referencePath, referenceBytes);
+    const requests = [];
+    const provider = {
+      async createJob(request) {
+        requests.push(request);
+        return { jobId: `job_style_duration_${requests.length}`, raw: {} };
+      },
+    };
+    const store = new ClipStore(dir);
+    const service = new VideoService({ provider, clipStore: store });
+    const videoReference = {
+      state: 'READY',
+      reference_id: 'long-camera-drift-style',
+      reference_path: referencePath,
+      reference_sha256: sha256(referenceBytes),
+      reference_pack_sha256: 'd'.repeat(64),
+      duration_seconds: 13.24,
+      provider_duration_seconds: 13,
+      width: 1080,
+      height: 1920,
+      fps: 25,
+      ...verifiedCutSheet(13.24),
+    };
+    const parent = await service.createClip({
+      modeId: 'camera_drift',
+      sourceImagePath: sourcePath,
+      lookBinding: { whiteBackgroundVerified: true },
+      videoReference,
+    });
+    const persistedParent = await store.load(parent.clipId);
+    // This is the exact legacy state that caused the live retry to be rejected
+    // with "Camera drift runs 5–7 seconds" before provider submission.
+    await store.save(parent.clipId, {
+      ...persistedParent,
+      durationSeconds: 6,
+      status: 'FAIL',
+      failureCode: 'VIDEO_PROVIDER_JOB_NOT_FOUND',
+    });
+    const child = await service.retryFailedClip(parent.clipId, { videoReference });
+    const persistedChild = await store.load(child.clipId);
+    assert.equal(requests.at(-1).durationSeconds, 13);
+    assert.equal(persistedChild.durationSeconds, 13);
+    assert.equal(persistedChild.motionReferenceBinding.providerDurationSeconds, 13);
+  });
+});
+
 test('reference-bound Fashion Video refuses a raw identity-photo side input before provider spend', async () => {
   await withTempDir(async (dir, sourcePath) => {
     const referencePath = path.join(dir, 'motion.mp4');

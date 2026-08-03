@@ -1493,3 +1493,23 @@ restart it. It was restored from its valid local template with the current
 `madeforthisjob-beta-launcher/run-beta-daemon.sh` argument, then validated by
 `plutil`, `launchctl print`, dry-run and successful guarded activation. No
 runtime data or secret was changed.
+Agent ID: codex-main
+Task: FASHION-VIDEO-STYLE-DURATION-RETRY-20260803
+Product line: beta engine → main bridge
+Pipeline: VIDEO.01 verified style reference → VIDEO.02 retry submission
+State: CODE_VERIFIED — release pending
+Finding: a persisted legacy clip could retain the old generic motion-mode
+duration (for example `camera_drift=6`) while its verified style reference
+owns a different provider-safe duration (for example `13`). On retry the
+generic duration gate ran before provider submission and returned HTTP 400
+`MOTION_DURATION_OUT_OF_RANGE`. No Higgsfield job was created.
+Decision: for a reference-bound Fashion Video, only the verified style
+reference's provider duration (3–15 whole seconds) is duration authority.
+The motion mode remains a semantic direction. Non-reference clips retain the
+existing strict per-mode duration window.
+Evidence: `node --test test/video/*.test.js` 209/209 PASS;
+`npm run verify:contracts` PASS (41 schemas, 9 fixtures, 3 jobs).
+Beta: NOT_DEPLOYED. Journey: exact legacy retry regression covered locally;
+no paid provider request made. weakened_checks: none.
+
+---

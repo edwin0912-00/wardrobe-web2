@@ -1,5 +1,17 @@
 # Wardrobe verified state
 
+## Pending beta activation — reference-owned Fashion Video duration
+
+- A reference-bound Fashion Video now uses the verified style reference's
+  provider duration (3–15 whole seconds) on create and retry. It does not use
+  a historical generic mode duration such as `camera_drift=6`.
+- This closes the observed pre-provider retry failure `Camera drift runs 5–7
+  seconds`; it does not weaken person-replacement, identity, item, reference
+  leakage, or output QA.
+- Code proof: video suite 209/209 PASS; contract verifier PASS. No paid retry
+  has been created by this repair. Public activation is still required before
+  the user retries the failed clip.
+
 ## Release/source reconciliation — 2026-08-02
 
 - Exact public beta engine release: `3240c7069e9eaaa878b554bd02bcbfde3a6b6f52`.

@@ -140,6 +140,29 @@ test('a duration outside the mode window is refused, not clamped', () => {
   );
 });
 
+test('a verified Fashion Video style owns duration over a legacy motion-mode window', () => {
+  const plan = buildMotionPlan({
+    modeId: 'camera_drift',
+    // Simulates an old persisted retry value. It must not override the
+    // immutable style reference's provider-safe duration.
+    durationSeconds: 6,
+    referenceDurationSeconds: 13,
+  });
+  assert.equal(plan.durationSeconds, 13);
+  assert.throws(
+    () => buildMotionPlan({
+      modeId: 'camera_drift',
+      referenceDurationSeconds: 16,
+    }),
+    (error) => error.code === 'VIDEO_REFERENCE_PROVIDER_DURATION_INVALID',
+  );
+  // Non-reference callers retain the strict canonical motion-mode window.
+  assert.throws(
+    () => buildMotionPlan({ modeId: 'camera_drift', durationSeconds: 13 }),
+    (error) => error.code === 'MOTION_DURATION_OUT_OF_RANGE',
+  );
+});
+
 test('an unknown mode is refused', () => {
   assert.throws(() => buildMotionPlan({ modeId: 'dance_off' }), (error) => {
     assert.equal(error.code, 'UNKNOWN_MOTION_MODE');
