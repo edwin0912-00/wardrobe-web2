@@ -1515,7 +1515,7 @@ Agent ID: codex-main
 Task: FASHION-VIDEO-STYLE-DURATION-RETRY-20260803
 Product line: beta engine → main bridge
 Pipeline: VIDEO.01 verified style reference → VIDEO.02 retry submission
-State: CODE_VERIFIED — release pending
+State: READY_FOR_BETA_DEPLOY
 Finding: a persisted legacy clip could retain the old generic motion-mode
 duration (for example `camera_drift=6`) while its verified style reference
 owns a different provider-safe duration (for example `13`). On retry the
@@ -1585,7 +1585,7 @@ God View lets an authorized tester manually mark a browser as `Мій тест`,
 `Зовнішній` or unclassified. Raw IPs, complete user-agent strings, cookies,
 uploads, filenames, prompts, provider URLs and error text are rejected or never
 accepted by the endpoint.
-Code: this commit; private SQLite store `test-audit.sqlite`, allowlisted
+Code: `01cca5ee7eb3ebe9bf70bea412748c571e03dc95`; private SQLite store `test-audit.sqlite`, allowlisted
 same-origin route, beta telemetry bridge, God View dashboard/labels, and a
 small cinematic-main client that forwards only visible journey state.
 Tests: audit + God View + profile/monitor focused suite 20/20 PASS;
