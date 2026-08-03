@@ -321,6 +321,37 @@ test('a missing persisted job is terminal and is not misreported as a timeout', 
   });
 });
 
+test('a persisted Higgsfield job reported failed is terminal, not a retryable wait error', async () => {
+  const provider = new HiggsfieldVideoProvider({
+    commandRunner: async (binary, args) => {
+      if (args[1] === 'create') return { stdout: JSON.stringify({ job_id: 'job_failed' }), stderr: '' };
+      const error = new Error('job job_failed ended with status "failed"');
+      error.stderr = 'Error: job job_failed ended with status "failed"';
+      throw error;
+    },
+  });
+  await assert.rejects(() => provider.generate(BASE), (error) => {
+    assert.equal(error.code, 'PROVIDER_JOB_FAILED');
+    assert.equal(error.retryable, false);
+    return true;
+  });
+});
+
+test('an ordinary Higgsfield wait transport error remains retryable against the same job', async () => {
+  const provider = new HiggsfieldVideoProvider({
+    commandRunner: async () => {
+      const error = new Error('connection reset by peer');
+      error.stderr = 'network transport error';
+      throw error;
+    },
+  });
+  await assert.rejects(() => provider.waitForJob({ jobId: 'job_transport' }), (error) => {
+    assert.equal(error.code, 'PROVIDER_COMMAND_FAILED');
+    assert.equal(error.retryable, true);
+    return true;
+  });
+});
+
 test('a create response without a job id is an unknown paid outcome and is not retried', async () => {
   const provider = new HiggsfieldVideoProvider({
     commandRunner: async () => ({ stdout: JSON.stringify({ accepted: true }), stderr: '' }),

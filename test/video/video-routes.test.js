@@ -358,6 +358,27 @@ test('status gives the real terminal provider reason instead of a connection or 
   assert.equal(response.json().retry_available, true);
 });
 
+test('status exposes a failed Higgsfield job as a retryable terminal result', async (t) => {
+  const current = fixture();
+  current.setLiveClip({ status: 'FAILED', failureCode: 'VIDEO_PROVIDER_JOB_FAILED' });
+  const app = Fastify();
+  t.after(() => app.close());
+  await registerVideoRoutes(app, {
+    profileApi: { resolveRequestProfile: async () => ({ profileId: 'profile-1' }) },
+    profiles: current.profiles,
+    videoService: current.videoService,
+    runService: { outputFile: async () => null },
+  });
+  const response = await app.inject({
+    method: 'GET', url: '/api/profile/video-clips/11111111-1111-4111-8111-111111111111',
+  });
+  assert.equal(response.statusCode, 200, response.body);
+  assert.equal(response.json().failure_code, 'VIDEO_PROVIDER_JOB_FAILED');
+  assert.match(response.json().error, /завершив цей job помилкою/);
+  assert.equal(response.json().next_action, 'RETRY_AVAILABLE');
+  assert.equal(response.json().retry_available, true);
+});
+
 test('status repairs a stale CREATED profile projection from the terminal runtime QA result', async (t) => {
   const current = fixture();
   current.setProjectionStatus('CREATED');

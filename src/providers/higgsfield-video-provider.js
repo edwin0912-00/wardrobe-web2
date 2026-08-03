@@ -210,6 +210,18 @@ function providerCommandFailure(cause, phase) {
       cause,
     });
   }
+  // The Higgsfield CLI exits non-zero for a completed terminal job whose
+  // provider status is `failed`. That job cannot become successful by
+  // polling it again, so distinguish it from a network/CLI transport blip.
+  // Keep the match tied to a job status; a generic command failure remains
+  // retryable against the same immutable job.
+  if (/\bjob\b[\s\S]{0,200}\b(?:ended with\s+)?status\s*(?:is\s*)?[:=]?\s*["']?(?:failed|cancelled|canceled)["']?\b/i.test(detail)) {
+    return new VideoProviderError('The persisted Higgsfield job finished unsuccessfully', {
+      code: 'PROVIDER_JOB_FAILED',
+      retryable: false,
+      cause,
+    });
+  }
   return new VideoProviderError(`Higgsfield ${phase} command failed`, {
     code: 'PROVIDER_COMMAND_FAILED',
     retryable: true,
