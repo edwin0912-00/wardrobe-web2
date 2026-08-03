@@ -24,9 +24,10 @@
   }
   .laptop-surface[data-mobile-terminal="1"] .laptop-surface__page {
     overflow-x: hidden;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    -webkit-overflow-scrolling: touch;
+    /* The verified deck inside the ShadowRoot is the sole vertical scroll owner.
+     * Letting this wrapper scroll as well made an iPhone consume the last swipe here,
+     * then leave the deck at an invisible offset or let the film run past the laptop. */
+    overflow-y: hidden;
   }
 
   .mobile-attention {

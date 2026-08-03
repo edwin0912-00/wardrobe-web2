@@ -93,6 +93,17 @@
      * a one-subframe rounding difference from withholding the handoff forever. */
     var SCREEN_SCROLL_EPSILON_SECONDS = 0.02;
     var screenScrollRequested = false;
+    /* A person can reach the measured terminal by a natural swipe as well as via
+     * the HOW control.  They are the same destination: a finished camera move must
+     * always hand its next gesture to the verified document, otherwise a fast swipe
+     * runs past the last calibrated laptop frame and leaves a black screen behind.
+     *
+     * `terminalReleased` is the reverse-path latch.  When the document is at its own
+     * top and the person swipes back, do not immediately capture it again merely
+     * because the camera has not yet travelled below the terminal frame. */
+    var terminalReleased = false;
+    var onTerminalEnter = typeof options.onTerminalEnter === 'function'
+      ? options.onTerminalEnter : null;
 
     function errorPanel(message) {
       if (!shadow) return;
@@ -200,6 +211,8 @@
         surface.setLaptopTerminalLock(false);
       }
       mode = 'camera';
+      screenScrollRequested = false;
+      terminalReleased = true;
       host.removeAttribute('data-screen-scroll');
       if (amount) {
         var y = Math.max(0, window.scrollY + amount);
@@ -222,7 +235,7 @@
       return true;
     }
 
-    function enterScreenScroll() {
+    function enterScreenScroll(frame) {
       if (!ready || mode === 'screen') return false;
       mode = 'screen';
       /* The camera has reached its measured final laptop frame. From here on the
@@ -233,6 +246,10 @@
       }
       host.setAttribute('data-screen-scroll', '1');
       host.focus({ preventScroll: true });
+      /* The cinematic shell owns the camera clock.  It may correct a large inertial
+       * overshoot back to the measured terminal, but this adapter never guesses the
+       * scroll geometry itself. */
+      if (onTerminalEnter) onTerminalEnter(frame || lastFrame || null);
       return true;
     }
 
@@ -306,13 +323,20 @@
         if (mode === 'screen') handBack(0);
         return;
       }
-      /* Once HOW reaches the measured stop, the journey stops on the laptop
-       * and wheel/touch scroll the verified document inside its real screen.
-       * There is deliberately no contact-frame guess and no fullscreen route. */
-      if (screenScrollRequested && mode === 'camera'
-        && lastFrame.videoTime >= SCREEN_SCROLL_STOP_SECONDS - SCREEN_SCROLL_EPSILON_SECONDS
-        && lastFrame.videoTime <= windowInfo.last + SCREEN_SCROLL_EPSILON_SECONDS) {
-        enterScreenScroll();
+      /* Going back below this buffer is an explicit return to the camera journey.
+       * It arms the terminal again for the next forward pass, without making the
+       * presentation flicker during a sub-frame timing difference at 14.145s. */
+      if (lastFrame.videoTime < SCREEN_SCROLL_STOP_SECONDS - 0.35) {
+        terminalReleased = false;
+      }
+      /* The terminal is a native continuation of the journey, not a hidden HOW-only
+       * feature.  A manual swipe and HOW therefore enter the very same locked document
+       * mode.  Do not require an upper video-time bound: a touch flick may legitimately
+       * cross the final calibrated frame in one paint; the shell callback restores the
+       * camera to that exact terminal while this surface remains visible. */
+      if (!terminalReleased && mode === 'camera'
+        && lastFrame.videoTime >= SCREEN_SCROLL_STOP_SECONDS - SCREEN_SCROLL_EPSILON_SECONDS) {
+        enterScreenScroll(lastFrame);
       }
       if (mode === 'screen' && lastFrame.videoTime < SCREEN_SCROLL_STOP_SECONDS - 0.35) {
         handBack(0);

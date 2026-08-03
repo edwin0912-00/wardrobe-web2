@@ -69,7 +69,7 @@ test('the cinematic handoff stops on the measured laptop and scrolls in that pro
 test('the current laptop calibration never invents a fullscreen handoff', () => {
   const cameraFrame = adapter.slice(adapter.indexOf('function onCameraFrame(frame)'), adapter.indexOf('function destroy()'));
   assert.match(cameraFrame, /SCREEN_SCROLL_STOP_SECONDS/);
-  assert.match(cameraFrame, /enterScreenScroll\(\)/);
+  assert.match(cameraFrame, /enterScreenScroll\(lastFrame\)/);
   assert.doesNotMatch(cameraFrame, /enterFullscreen|setLaptopFullscreen/);
 });
 
@@ -81,6 +81,17 @@ test('the document handoff begins only at the measured 14.145s terminal laptop f
   assert.match(surfaces, /var geometryTime = laptopTerminalLock \? last : frame\.videoTime/);
 });
 
+test('natural terminal arrival and HOW share one reversible document handoff', () => {
+  assert.match(adapter, /var terminalReleased = false/);
+  assert.match(adapter, /screenScrollRequested = false;\s*terminalReleased = true;/);
+  assert.match(adapter, /lastFrame\.videoTime < SCREEN_SCROLL_STOP_SECONDS - 0\.35/);
+  assert.match(adapter, /!terminalReleased && mode === 'camera'/);
+  assert.match(adapter, /enterScreenScroll\(lastFrame\)/);
+  assert.match(adapter, /onTerminalEnter/);
+  assert.match(page, /onTerminalEnter: function \(frame\)/);
+  assert.match(page, /advanceToVideoTime\(3, terminalSeconds/);
+});
+
 test('portrait phones enlarge the same terminal document without invoking fullscreen', () => {
   assert.match(surfaces, /function isPortraitMobileViewport\(\)/);
   assert.match(surfaces, /laptopTerminalLock && isPortraitMobileViewport\(\)/);
@@ -90,5 +101,6 @@ test('portrait phones enlarge the same terminal document without invoking fullsc
   assert.match(surfaces, /laptop\.setAttribute\('data-mobile-terminal', '1'\)/);
   assert.match(mobileCss, /\.laptop-surface\[data-mobile-terminal="1"\]/);
   assert.match(mobileCss, /height: min\(68vh, calc\(100% - 152px\)\) !important;/);
+  assert.match(mobileCss, /\.laptop-surface\[data-mobile-terminal="1"\] \.laptop-surface__page[\s\S]*?overflow-y: hidden/);
   assert.doesNotMatch(mobileCss, /data-mobile-terminal="1"\][\s\S]{0,600}laptop-surface--fullscreen/);
 });
