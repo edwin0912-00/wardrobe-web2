@@ -155,24 +155,23 @@ export function fashionVideoReferenceBindings({ appearanceRoles = [] } = {}) {
   const appearance = appearanceRoles.map((role, index) => Object.freeze({
     role,
     image_order: index + 2,
-    // These are prompt labels, not CLI media-file syntax. Higgsfield CLI
-    // expands a token beginning with "@" as a local response-file path; a
-    // prompt that starts with "@Video 1" therefore fails before any job is
-    // created. Square-bracket labels preserve the ordered-reference meaning
-    // for Seedance without invoking that CLI parser feature.
-    provider_label: `[Image ${index + 2}]`,
+    provider_label: `@Image ${index + 2}`,
   }));
   return Object.freeze({
-    schema_version: 'fashion-video-reference-bindings-v1',
+    // `@` is the documented provider-facing input notation.  The CLI only
+    // treats an *entire prompt argument beginning with @* as a response-file
+    // path, so buildFashionVideoReferencePrompt deliberately prepends neutral
+    // prose before the first label.  This was verified with a paid A/B job.
+    schema_version: 'fashion-video-reference-bindings-v2',
     motion_reference: Object.freeze({
       role: 'motion_reference',
       video_order: 1,
-      provider_label: '[Video 1]',
+      provider_label: '@Video 1',
     }),
     approved_white_master: Object.freeze({
       role: 'approved_white_master',
       image_order: 1,
-      provider_label: '[Image 1]',
+      provider_label: '@Image 1',
     }),
     appearance: Object.freeze(appearance),
   });
@@ -190,6 +189,10 @@ export function buildFashionVideoReferencePrompt({
   const garmentBinding = bindings.appearance.find((binding) => binding.role === 'garment_detail');
   const cuts = Array.isArray(cutSheet?.cuts) ? cutSheet.cuts : [];
   const lines = [
+    // Do not let the single argv value passed to Higgsfield start with `@`.
+    // It must remain prose plus provider-recognised labels, never a CLI
+    // response-file expression.
+    'Reference bindings.',
     `${videoLabel} is private reference-only directing material, never delivery media.`,
     'Use it only to reconstruct its complete shot sequence, cut timing, transitions, action timing, pose choreography, camera movement, framing, environment, lighting, colour grade, optical effects, props and environmental text.',
     `Every final frame must be newly generated. Never splice, reuse, reveal, freeze, picture-in-picture, reflection, monitor image, transition frame or background person from ${videoLabel}.`,
@@ -248,13 +251,13 @@ export function fashionVideoReferenceRetryPlan(retryNumber) {
       version: 'fashion-video-reference-repair-v1',
       id: 'full-subject-replacement-pass',
       retry_number: 1,
-      instruction: 'Before reconstructing each cut, rebuild every visible person from [Image 1] as a new full subject. Treat [Video 1] only as timing, camera and environment authority; preserve no human pixels, silhouette fragments, blur, reflection or transition from it.',
+      instruction: 'Before reconstructing each cut, rebuild every visible person from @Image 1 as a new full subject. Treat @Video 1 only as timing, camera and environment authority; preserve no human pixels, silhouette fragments, blur, reflection or transition from it.',
     }),
     Object.freeze({
       version: 'fashion-video-reference-repair-v1',
       id: 'cut-boundary-subject-isolation-pass',
       retry_number: 2,
-      instruction: 'Use every cut-sheet interval as an independent reconstruction boundary. At the start and end of every cut, erase the reference performer completely, then render only [Image 1] where a person is required. Do not interpolate a source face, body, clothing, silhouette or motion blur across a cut boundary.',
+      instruction: 'Use every cut-sheet interval as an independent reconstruction boundary. At the start and end of every cut, erase the reference performer completely, then render only @Image 1 where a person is required. Do not interpolate a source face, body, clothing, silhouette or motion blur across a cut boundary.',
     }),
   ];
   return plans[retryNumber];

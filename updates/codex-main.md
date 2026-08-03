@@ -1,4 +1,23 @@
 Agent ID: codex-live-40
+Task: FASHION-VIDEO-PROVIDER-LABELS-V2-20260803
+Product line: Fashion Video
+Pipeline: VIDEO.01 locked style reference → VIDEO.02 Seedance create
+State: CODE_TESTED — release-owner integration/deploy required
+Decision: use Seedance-style `@Video 1`, `@Image 1..N` labels for every new
+Fashion Video request. The prompt is deliberately prefixed with neutral prose
+(`Reference bindings.`), so the Higgsfield CLI cannot parse the entire prompt
+argument as a local `@response-file` expression. Existing persisted v1
+bracket-labelled jobs are immutable and unchanged; new requests record binding
+schema v2.
+Evidence: paid, same-input A/B used two real Seedance jobs. The `@` request
+completed normally and increased clean approved-avatar temporal coverage from
+14.55% to 42.95%; focused video motion-plan/service tests run after this edit.
+weakened_checks: none; the source performer remains a delivery blocker.
+Beta: NOT_DEPLOYED. Journey: code-level test only after the A/B.
+
+---
+
+Agent ID: codex-live-40
 Task: FASHION-VIDEO-START-REGRESSION-20260802
 Product line: beta-placeholder → main bridge
 Pipeline: VIDEO.01 style reference → VIDEO.02 provider create
