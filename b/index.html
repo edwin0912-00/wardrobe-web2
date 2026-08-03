@@ -409,7 +409,17 @@
     var settle = function () {
       events.forEach(function (eventName) { window.removeEventListener(eventName, settle); });
       soundGestureArmed = false;
-      setTimeout(reflectSoundState, 0);
+      /* iOS will reject an audible call made at loader time.  This is the first
+       * ordinary swipe/tap, so retry the already-requested score inside that
+       * gesture rather than asking for a separate tap on the sound control. */
+      var start = scorePlaybackRequested && window.score && typeof window.score.start === 'function'
+        ? window.score.start()
+        : null;
+      if (start && typeof start.then === 'function') {
+        start.then(function () { setTimeout(reflectSoundState, 0); }, function () { setTimeout(reflectSoundState, 0); });
+      } else {
+        setTimeout(reflectSoundState, 0);
+      }
     };
     events.forEach(function (eventName) {
       window.addEventListener(eventName, settle, { passive: true, once: true });
@@ -794,7 +804,7 @@
     }
 
     /* HOW follows the cinematic clock only until the measured laptop stop at
-     * 13.25s. Then wheel/touch belong to the verified document inside the
+     * 14.145s. Then wheel/touch belong to the verified document inside the
      * physical screen. The laptop never expands to a floating/fullscreen page.
      *
      * This is deliberately a two-part hand-off.  A programmatic move used to skip
@@ -804,7 +814,7 @@
      * wrong scene.  Wait for the exact target room first; only then begin the
      * normal inertial camera move. */
     var HOW_TARGET_LEG = 3;
-    var HOW_TARGET_SECONDS = 13.25;
+    var HOW_TARGET_SECONDS = 14.145;
     var howTravelPending = false;
 
     function howTargetRoomReady() {

@@ -43,7 +43,7 @@
   },
   "laptop": {
     "leg": 3,
-    "measured_from": "seg4.mp4 · raw display face quads, 2026-07-31 · ±4px sides/top, ±8px lower chin boundary",
+    "measured_from": "seg4.mp4 · raw display face quads, 2026-07-31 and terminal stop 14.145s, 2026-08-03 · ±4px sides/top, ±8px lower chin boundary",
     "corner_order": [
       "tl",
       "tr",
@@ -164,6 +164,25 @@
         "bl": {
           "x": 0.09062,
           "y": 0.90926
+        }
+      },
+      {
+        "time": 14.145,
+        "tl": {
+          "x": 0.12789,
+          "y": 0.14305
+        },
+        "tr": {
+          "x": 0.8803,
+          "y": 0.14305
+        },
+        "br": {
+          "x": 0.92639,
+          "y": 0.91785
+        },
+        "bl": {
+          "x": 0.07755,
+          "y": 0.91785
         }
       }
     ]

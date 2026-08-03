@@ -106,6 +106,19 @@ export function savedLookPreviewUrl(look, client) {
   return `${image}${image.includes('?') ? '&' : '?'}preview=1`;
 }
 
+/* The API owns the only allowed display derivative.  A cinematic client must
+ * never download an original PNG and re-encode it in the browser just to make
+ * a tile: that delays the result and makes a phone spend memory on a file the
+ * user did not ask to download.  The immutable `/download` route remains a
+ * separate, original-byte operation. */
+export function presentationImagePreviewUrl(value) {
+  if (typeof value !== 'string' || !value.startsWith('/api/') || value.startsWith('//')) return null;
+  const [path, hash = ''] = value.split('#', 2);
+  if (/(?:^|\/)download(?:$|\?)/.test(path)) return null;
+  if (/(?:[?&])preview=1(?:&|$)/.test(path)) return value;
+  return `${path}${path.includes('?') ? '&' : '?'}preview=1${hash ? `#${hash}` : ''}`;
+}
+
 /* Fashion Shoot state is server-owned. A phone refresh must not make five
  * independently running frames look as though they were lost: the same profile response
  * already contains the durable shoot projection, both flat and nested under its look.
@@ -501,16 +514,21 @@ export function createCinematicUiBridge({
     const frames = publicShots.map((shot, index) => {
       const ready = String(shot?.status ?? '').toUpperCase() === 'APPROVED'
         && Boolean(shot?.output);
+      const imageUrl = ready
+        ? (shot.output?.image_url ?? shot?.image_url ?? shot?.output_url
+          ?? client.shootShotImageUrl(shoot.shoot_id, shot.slot))
+        : null;
+      const previewCandidate = ready
+        ? (shot.output?.preview_url ?? shot.output?.previewUrl ?? shot?.preview_url ?? imageUrl)
+        : null;
       return {
         slot: shot?.slot ?? `frame_${index + 1}`,
         index: index + 1,
         status: String(shot?.status ?? 'QUEUED').toUpperCase(),
         retryCount: Number(shot?.retry_count ?? 0),
         errorCode: shot?.error?.code ?? null,
-        imageUrl: ready
-          ? (shot.output?.image_url ?? shot?.image_url ?? shot?.output_url
-            ?? client.shootShotImageUrl(shoot.shoot_id, shot.slot))
-          : null,
+        imageUrl,
+        previewUrl: presentationImagePreviewUrl(previewCandidate) ?? previewCandidate ?? null,
         downloadUrl: ready
           ? (shot.output?.download_url ?? shot?.download_url
             ?? client.shootShotDownloadUrl(shoot.shoot_id, shot.slot))
@@ -518,10 +536,11 @@ export function createCinematicUiBridge({
       };
     });
     const urls = frames.map((frame) => frame.imageUrl).filter(Boolean);
+    const previewUrls = frames.map((frame) => frame.previewUrl).filter(Boolean);
     if (!urls.length) return null;
     const expectedCount = Math.max(frames.length, 5);
     return {
-      kind: 'shoot', aspect: '16:9', urls, mediaUrl: '',
+      kind: 'shoot', aspect: '16:9', urls, previewUrls, mediaUrl: '',
       pendingRealMedia: false,
       partial: urls.length < expectedCount,
       readyCount: urls.length,
@@ -542,11 +561,14 @@ export function createCinematicUiBridge({
       const frames = sheet?.shots ?? sheet?.frames ?? sheet?.images ?? [];
       const urls = frames.map((frame) => frame?.image_url
         ?? (frame?.slot ? client.shootShotImageUrl(shoot.shoot_id, frame.slot) : null)).filter(Boolean);
+      const previewUrls = frames.map((frame) => presentationImagePreviewUrl(frame?.preview_url ?? frame?.image_url
+        ?? (frame?.slot ? client.shootShotImageUrl(shoot.shoot_id, frame.slot) : null))).filter(Boolean);
       if (urls.length || delivered?.frames?.length) {
         emit('shoot:result', {
           result: {
             ...(delivered ?? { kind: 'shoot', aspect: '16:9', frames: [] }),
             urls: urls.length ? urls : delivered.urls,
+            previewUrls: previewUrls.length ? previewUrls : (delivered?.previewUrls ?? []),
             mediaUrl: '', pendingRealMedia: false,
             partial: false,
             readyCount: delivered?.readyCount ?? urls.length,
@@ -574,17 +596,24 @@ export function createCinematicUiBridge({
       const image = client.sceneImageUrl(entity.scene_id);
       result = {
         kind, aspect: state.requestedAspect ?? '9:16', urls: [image], mediaUrl: image,
+        previewUrl: presentationImagePreviewUrl(entity.preview_url ?? image) ?? entity.preview_url ?? null,
+        previewUrls: [presentationImagePreviewUrl(entity.preview_url ?? image) ?? entity.preview_url ?? image],
         pendingRealMedia: false,
       };
     }
     if (phase === 'completed' && kind === 'video' && entity.clip_id) {
       const media = entity.video_url ?? client.videoUrl(entity.clip_id);
+      const styleId = entity.style_id ?? entity.styleId ?? null;
+      const stylePreview = state.catalogs.videos.find((style) => style.id === styleId)?.previewUrl ?? null;
       result = {
         kind,
         clipId: entity.clip_id,
         aspect: entity.surface === 'tv' ? '16:9' : '9:16',
         urls: [],
         mediaUrl: media,
+        /* A card opens on an approved lightweight style/poster if beta supplied
+         * one. It never downloads a whole MP4 until the user opens that video. */
+        posterUrl: entity.poster_url ?? entity.preview_url ?? stylePreview,
         downloadUrl: entity.download_url
           ?? (typeof client.videoDownloadUrl === 'function' ? client.videoDownloadUrl(entity.clip_id) : null),
         pendingRealMedia: false,
@@ -665,6 +694,9 @@ export function createCinematicUiBridge({
         aspect: clip.surface === 'tv' ? '16:9' : '9:16',
         urls: [],
         mediaUrl,
+        posterUrl: clip?.poster_url ?? clip?.preview_url
+          ?? state.catalogs.videos.find((style) => style.id === (clip?.style_id ?? clip?.styleId))?.previewUrl
+          ?? null,
         downloadUrl: clip.download_url
           ?? (typeof client.videoDownloadUrl === 'function' ? client.videoDownloadUrl(clipId) : null),
         pendingRealMedia: false,

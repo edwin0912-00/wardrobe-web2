@@ -87,7 +87,11 @@
     /* This time is a measured frame inside the calibrated laptop window, not
      * a generic percentage of page scroll.  It matches the visible stop in
      * the owner-approved camera move. */
-    var SCREEN_SCROLL_STOP_SECONDS = 13.25;
+    var SCREEN_SCROLL_STOP_SECONDS = 14.145;
+    /* `currentTime` is a floating video clock, while the terminal calibration is
+     * written in frame time. Keep the visible stop exact; this epsilon only prevents
+     * a one-subframe rounding difference from withholding the handoff forever. */
+    var SCREEN_SCROLL_EPSILON_SECONDS = 0.02;
     var screenScrollRequested = false;
 
     function errorPanel(message) {
@@ -277,8 +281,8 @@
        * and wheel/touch scroll the verified document inside its real screen.
        * There is deliberately no contact-frame guess and no fullscreen route. */
       if (screenScrollRequested && mode === 'camera'
-        && lastFrame.videoTime >= SCREEN_SCROLL_STOP_SECONDS
-        && lastFrame.videoTime <= windowInfo.last) {
+        && lastFrame.videoTime >= SCREEN_SCROLL_STOP_SECONDS - SCREEN_SCROLL_EPSILON_SECONDS
+        && lastFrame.videoTime <= windowInfo.last + SCREEN_SCROLL_EPSILON_SECONDS) {
         enterScreenScroll();
       }
       if (mode === 'screen' && lastFrame.videoTime < SCREEN_SCROLL_STOP_SECONDS - 0.35) {

@@ -37,7 +37,7 @@ test('the adapter is same-origin, SHA-bound, and fails closed without an iframe'
   assert.match(adapter, /addEventListener\(['"]touchstart['"].*capture: true/s);
   assert.match(adapter, /addEventListener\(['"]keydown['"].*capture: true/s);
   assert.match(adapter, /requestScreenScroll/);
-  assert.match(adapter, /SCREEN_SCROLL_STOP_SECONDS = 13\.25/);
+  assert.match(adapter, /SCREEN_SCROLL_STOP_SECONDS = 14\.145/);
   assert.doesNotMatch(adapter, /setLaptopFullscreen/);
   assert.doesNotMatch(adapter, /<iframe|createElement\(['"]iframe/i);
 });
@@ -64,4 +64,10 @@ test('the current laptop calibration never invents a fullscreen handoff', () => 
   assert.match(cameraFrame, /SCREEN_SCROLL_STOP_SECONDS/);
   assert.match(cameraFrame, /enterScreenScroll\(\)/);
   assert.doesNotMatch(cameraFrame, /enterFullscreen|setLaptopFullscreen/);
+});
+
+test('the document handoff begins only at the measured 14.145s terminal laptop frame', () => {
+  assert.match(page, /HOW_TARGET_SECONDS = 14\.145/);
+  assert.match(adapter, /lastFrame\.videoTime >= SCREEN_SCROLL_STOP_SECONDS - SCREEN_SCROLL_EPSILON_SECONDS/);
+  assert.match(adapter, /if \(amount < 0 && next < 0\)[\s\S]*?handBack\(next\)/);
 });

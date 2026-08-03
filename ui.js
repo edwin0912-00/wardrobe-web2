@@ -212,6 +212,18 @@
       return /[?&](?:preview|thumbnail|derivative|max_edge|width|quality)=/i.test(String(value || ''));
     }
 
+    /* The bridge normally supplies these already.  This small fallback protects a
+     * partially upgraded server payload from making the browser fetch a 5 MB original
+     * before it can paint a result tile.  It is display-only: download URLs never pass
+     * through this helper. */
+    function serverImagePreviewUrl(value) {
+      if (typeof value !== 'string' || !/^\/api\//.test(value)) return '';
+      var split = value.split('#');
+      var path = split[0];
+      if (/[?&]preview=1(?:&|$)/.test(path)) return value;
+      return path + (path.indexOf('?') >= 0 ? '&' : '?') + 'preview=1' + (split[1] ? '#' + split[1] : '');
+    }
+
     function lookAssets(source, fallbackMaster) {
       source = source || {};
       /* Beta revisions have used both a flat result object and a nested `outputs` /
@@ -437,6 +449,13 @@
         : result.mediaUrl ? [result.mediaUrl] : [];
       if (!sources.length) return;
       if (Array.isArray(result.previewUrls) && result.previewUrls.length >= sources.length) return;
+      var serverPreviews = sources.map(serverImagePreviewUrl);
+      if (serverPreviews.length && serverPreviews.every(Boolean)) {
+        result.previewUrls = serverPreviews;
+        result.previewUrl = serverPreviews[0];
+        render();
+        return;
+      }
       Promise.all(sources.map(function (source) {
         return mediaPreview.fromUrl(source, { removeBackground: false, maxEdge: 640 });
       })).then(function (entries) {
@@ -981,7 +1000,7 @@
         }).length) + ' з ' + (result.expectedCount || 5) + ' кадрів';
         return '<article class="saved-material saved-material--shoot">' +
           '<button type="button" class="saved-material__open" data-open-saved-shoot="' + index + '">' +
-            (lead ? '<img src="' + esc(lead.imageUrl) + '" alt="">' : '<span class="saved-material__placeholder">Ф</span>') +
+            (lead ? '<img src="' + esc(lead.previewUrl || lead.imageUrl) + '" alt="" loading="lazy" decoding="async">' : '<span class="saved-material__placeholder">Ф</span>') +
             '<span>' + esc(label) + '</span>' +
           '</button>' +
         '</article>';
@@ -991,7 +1010,10 @@
         var download = result.downloadUrl || result.mediaUrl || '';
         return '<article class="saved-material saved-material--video">' +
           '<button type="button" class="saved-material__open" data-open-saved-video="' + index + '">' +
-            '<span class="saved-material__placeholder">▶</span><span>Fashion-відео</span>' +
+            (result.posterUrl
+              ? '<img src="' + esc(result.posterUrl) + '" alt="" loading="lazy" decoding="async">'
+              : '<span class="saved-material__placeholder">▶</span>') +
+            '<span>Fashion-відео</span>' +
           '</button>' +
           '<div class="saved-material__actions">' +
             '<a href="' + esc(download) + '" download>Завантажити</a>' +
@@ -1672,14 +1694,14 @@
           : 'Перевіряємо';
         return '<div class="shoot-progress__slot" data-state="' + esc(status) + '" aria-label="Кадр ' + frame.index + ': ' + esc(label) + '">' +
           (frame.imageUrl
-            ? '<img src="' + esc(frame.imageUrl) + '" alt="Готовий кадр ' + frame.index + '">' +
+            ? '<img src="' + esc(frame.previewUrl || frame.imageUrl) + '" alt="Готовий кадр ' + frame.index + '" decoding="async">' +
               (frame.downloadUrl ? '<a class="shoot-progress__download" href="' + esc(frame.downloadUrl) + '" download>Завантажити</a>' : '')
             : '<span class="shoot-progress__slot-label">' + esc(frame.index + ' · ' + label) + '</span>') +
         '</div>';
       }).join('');
       return '<section class="shoot-progress" data-state="' + esc(state) + '" aria-live="polite">' +
         '<div class="shoot-progress__lead">' +
-          (lead ? '<img src="' + esc(lead.imageUrl) + '" alt="Готовий кадр ' + lead.index + '">' : '') +
+          (lead ? '<img src="' + esc(lead.previewUrl || lead.imageUrl) + '" alt="Готовий кадр ' + lead.index + '" decoding="async">' : '') +
           '<span class="shoot-progress__count">' + esc((result.readyCount || ready.length) + ' з ' + (result.expectedCount || 5) + ' кадрів готово') + '</span>' +
           (lead && lead.downloadUrl ? '<a class="shoot-progress__lead-download" href="' + esc(lead.downloadUrl) + '" download>Завантажити кадр</a>' : '') +
         '</div>' +
@@ -1697,7 +1719,9 @@
       if (view === 'video' && activeResult && activeResult.kind === 'video' && activeResult.mediaUrl) {
         var downloadUrl = activeResult.downloadUrl || activeResult.mediaUrl;
         return '<div class="lookframe lookframe--video" data-state="ready">' +
-          '<video class="lookframe__video" src="' + esc(activeResult.mediaUrl) + '" controls playsinline preload="metadata"></video>' +
+          '<video class="lookframe__video" src="' + esc(activeResult.mediaUrl) + '"' +
+            (activeResult.posterUrl ? ' poster="' + esc(activeResult.posterUrl) + '"' : '') +
+            ' controls playsinline preload="metadata"></video>' +
           '<div class="lookframe__delivery-actions">' +
             '<a href="' + esc(downloadUrl) + '" download>Завантажити MP4</a>' +
             '<button type="button" data-copy-delivery-url="' + esc(activeResult.mediaUrl) + '">Копіювати посилання</button>' +

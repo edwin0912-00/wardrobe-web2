@@ -1285,7 +1285,7 @@
        * 'arrived' | 'user took over' | 'superseded'. */
       advanceTo: advanceTo,
       /* A measured in-film stop. This is used by HOW to land on the actual
-       * laptop at 13.25s, then hand wheel/touch input to the document inside
+       * laptop at 14.145s, then hand wheel/touch input to the document inside
        * that physical screen. It never promotes the laptop to fullscreen. */
       advanceToVideoTime: function (leg, seconds, opts) {
         var legIndex = Math.max(0, Math.min(legs.length - 1, Number(leg) || 0));

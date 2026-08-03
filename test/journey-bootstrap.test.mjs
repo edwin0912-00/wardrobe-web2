@@ -59,7 +59,7 @@ async function settle() {
   for (let index = 0; index < 8; index += 1) await Promise.resolve();
 }
 
-async function boot({ ios, videoFrameCallback = false, withStrategy = true, progressSamples = [1], journeyOutcome = 'arrived' }) {
+async function boot({ ios, videoFrameCallback = false, withStrategy = true, progressSamples = [1], journeyOutcome = 'arrived', audioStartResults = [true] }) {
   const intro = node({ 'data-src': 'assets/intro.mp4' });
   const rooms = [0, 1, 2, 3].map((index) => node({
     'data-leg': String(index),
@@ -86,6 +86,9 @@ async function boot({ ios, videoFrameCallback = false, withStrategy = true, prog
   const journeyCalls = [];
   const videoJourneyCalls = [];
   const lookLibraryCalls = [];
+  const windowListeners = new Map();
+  let audioStartIndex = 0;
+  let audioPlaying = false;
   let reportedRatio = null;
 
   const allVideos = [intro, ...rooms];
@@ -123,8 +126,15 @@ async function boot({ ios, videoFrameCallback = false, withStrategy = true, prog
   };
 
   const window = {
-    addEventListener() {},
-    removeEventListener() {},
+    addEventListener(type, handler, options = {}) {
+      const list = windowListeners.get(type) ?? [];
+      list.push({ handler, once: options.once === true });
+      windowListeners.set(type, list);
+    },
+    removeEventListener(type, handler) {
+      const list = windowListeners.get(type) ?? [];
+      windowListeners.set(type, list.filter((entry) => entry.handler !== handler));
+    },
     WardrobeLoader: {
       load(urls, onProgress, options = {}) {
         calls.push({ urls: [...urls], options });
@@ -148,9 +158,12 @@ async function boot({ ios, videoFrameCallback = false, withStrategy = true, prog
           unlock() {},
           start: () => {
             audioEvents.push({ type: 'start', ratio: reportedRatio });
-            return Promise.resolve(true);
+            const result = audioStartResults[Math.min(audioStartIndex, audioStartResults.length - 1)];
+            audioStartIndex += 1;
+            audioPlaying = result === true;
+            return Promise.resolve(result);
           },
-          state: () => ({ muted: false, activeIndex: 0, paused: [false] }),
+          state: () => ({ muted: false, activeIndex: 0, paused: [!audioPlaying] }),
           setMuted() {}, toggleMute: () => false, setSpeed() {}
         };
       }
@@ -163,7 +176,7 @@ async function boot({ ios, videoFrameCallback = false, withStrategy = true, prog
         videoJourneyCalls.push({ leg, seconds });
         return Promise.resolve(journeyOutcome);
       },
-      state() { return { leg: 3, videoTime: 13.25 }; },
+      state() { return { leg: 3, videoTime: 14.145 }; },
     }) },
     WardrobeUI: { create: () => ({
       canAdvance: () => true,
@@ -194,7 +207,14 @@ async function boot({ ios, videoFrameCallback = false, withStrategy = true, prog
   };
   vm.runInNewContext(inline, context, { filename: 'b/index.inline.js' });
   await settle();
-  return { calls, intro, rooms, audioEvents, looks, how, laptop, journeyCalls, videoJourneyCalls, lookLibraryCalls };
+  return {
+    calls, intro, rooms, audioEvents, looks, how, laptop, journeyCalls, videoJourneyCalls, lookLibraryCalls,
+    gesture(type) {
+      const list = windowListeners.get(type) ?? [];
+      windowListeners.set(type, list.filter((entry) => !entry.once));
+      list.forEach((entry) => entry.handler({ type, target: window }));
+    },
+  };
 }
 
 test('desktop fully loads selected D before the fabric handoff and backgrounds only later rooms', async () => {
@@ -231,6 +251,21 @@ test('the factual 50% audio entry fades in rather than switching the room on at 
   assert.match(audioSource, /function bringMasterIn\(\)[\s\S]*?rampGain\(master\.gain, masterTargetGain, entryFadeInMs\)/);
 });
 
+test('a mobile first natural gesture retries the already-requested audible score', async () => {
+  const app = await boot({ ios: true, progressSamples: [0.5], audioStartResults: [false, true] });
+  assert.deepEqual(app.audioEvents, [
+    { type: 'create', ratio: 0.5 },
+    { type: 'start', ratio: 0.5 },
+  ]);
+  app.gesture('touchstart');
+  await settle();
+  assert.deepEqual(app.audioEvents, [
+    { type: 'create', ratio: 0.5 },
+    { type: 'start', ratio: 0.5 },
+    { type: 'start', ratio: 0.5 },
+  ]);
+});
+
 test('header “Образи” returns to the selected look library and mirror station', async () => {
   const app = await boot({ ios: false });
   assert.equal(app.looks.disabled, false, 'the control becomes usable after UI and journey are ready');
@@ -245,7 +280,7 @@ test('HOW waits for the target room, then reveals the laptop only after measured
   assert.equal(app.how.disabled, false, 'the control becomes usable after the journey is ready');
   app.how.emit('click');
   await settle();
-  assert.deepEqual(app.videoJourneyCalls, [{ leg: 3, seconds: 13.25 }]);
+  assert.deepEqual(app.videoJourneyCalls, [{ leg: 3, seconds: 14.145 }]);
   assert.equal(app.laptop.getAttribute('data-how-reveal'), '1');
   assert.equal(app.laptop.getAttribute('data-how-visible'), '1');
 });
@@ -254,7 +289,7 @@ test('an interrupted HOW camera move never reveals the laptop over another scene
   const app = await boot({ ios: false, journeyOutcome: 'user took over' });
   app.how.emit('click');
   await settle();
-  assert.deepEqual(app.videoJourneyCalls, [{ leg: 3, seconds: 13.25 }]);
+  assert.deepEqual(app.videoJourneyCalls, [{ leg: 3, seconds: 14.145 }]);
   assert.equal(app.laptop.getAttribute('data-how-reveal'), null);
   assert.equal(app.laptop.getAttribute('data-how-visible'), null);
 });

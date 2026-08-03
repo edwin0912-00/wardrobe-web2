@@ -28,6 +28,7 @@ test('D screen calibration contains only bounded, explicitly sourced measurement
     measuredFrom: calibration.laptop.measured_from,
     frames: calibration.laptop.frames
   }, 'Laptop');
-  assert.equal(laptop.frames.length, 6);
+  assert.equal(laptop.frames.length, 7);
   assert.equal(laptop.frames[3].time, 12);
+  assert.equal(laptop.frames.at(-1).time, 14.145);
 });

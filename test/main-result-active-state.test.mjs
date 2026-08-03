@@ -60,6 +60,16 @@ test('Fashion Shoot exposes the immutable download for every approved progressiv
   assert.match(css, /\.shoot-progress__download/);
 });
 
+test('libraries and progressive Fashion Shoot use server previews while downloads retain originals', () => {
+  assert.match(ui, /function serverImagePreviewUrl/);
+  assert.match(ui, /result\.previewUrls = serverPreviews/);
+  assert.match(ui, /lead\.previewUrl \|\| lead\.imageUrl/);
+  assert.match(ui, /frame\.previewUrl \|\| frame\.imageUrl/);
+  assert.match(ui, /href="' \+ esc\(frame\.downloadUrl\) \+ '" download/);
+  assert.match(ui, /result\.posterUrl/);
+  assert.match(ui, /preload="metadata"/);
+});
+
 test('Fashion Video keeps the style contract server-owned without exposing its production inputs', () => {
   assert.match(ui, /Оберіть відеостиль/);
   assert.match(ui, /videoCapability/);

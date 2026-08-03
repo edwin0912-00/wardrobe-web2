@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {
   CinematicUiBridgeError,
   createCinematicUiBridge,
+  presentationImagePreviewUrl,
   savedLookPreviewUrl,
 } from '../adapters/cinematic-ui-bridge.mjs';
 
@@ -99,6 +100,19 @@ test('starts saved-look restoration before health resolves and uses a lightweigh
     look_id: 'look-native',
     cutout_preview_url: '/api/profile/looks/look-native/cutout-preview.webp',
   }, client), '/api/profile/looks/look-native/cutout-preview.webp');
+});
+
+test('server image previews are derived only for same-origin API image routes', () => {
+  assert.equal(presentationImagePreviewUrl('/api/profile/scenes/one/image'),
+    '/api/profile/scenes/one/image?preview=1');
+  assert.equal(presentationImagePreviewUrl('/api/profile/scenes/one/image?rev=abc#top'),
+    '/api/profile/scenes/one/image?rev=abc&preview=1#top');
+  assert.equal(presentationImagePreviewUrl('/api/profile/scenes/one/image?preview=1'),
+    '/api/profile/scenes/one/image?preview=1');
+  assert.equal(presentationImagePreviewUrl('/api/profile/scenes/one/download'), null,
+    'an immutable download route must never become a display derivative');
+  assert.equal(presentationImagePreviewUrl('https://other.example/image.png'), null);
+  assert.equal(presentationImagePreviewUrl('/assets/image.png'), null);
 });
 
 test('restores beta saved looks and action context after a browser reload', async () => {
@@ -622,6 +636,10 @@ test('approved fashion-shoot frames are visible before the series completes', as
     '/api/profile/editorial-shoots/shoot-partial/shots/sculptural_three_quarter/image',
     '/api/profile/editorial-shoots/shoot-partial/shots/interference_frame/image',
   ]);
+  assert.deepEqual(state.result.previewUrls, [
+    '/api/profile/editorial-shoots/shoot-partial/shots/sculptural_three_quarter/image?preview=1',
+    '/api/profile/editorial-shoots/shoot-partial/shots/interference_frame/image?preview=1',
+  ]);
   assert.equal(state.result.partial, true);
   assert.equal(state.result.readyCount, 2);
   assert.equal(state.result.expectedCount, 5);
@@ -629,21 +647,24 @@ test('approved fashion-shoot frames are visible before the series completes', as
     slot: frame.slot,
     status: frame.status,
     imageUrl: frame.imageUrl,
+    previewUrl: frame.previewUrl,
     downloadUrl: frame.downloadUrl,
   })), [
-    { slot: 'environmental_hero', status: 'RUNNING', imageUrl: null, downloadUrl: null },
+    { slot: 'environmental_hero', status: 'RUNNING', imageUrl: null, previewUrl: null, downloadUrl: null },
     {
       slot: 'sculptural_three_quarter', status: 'APPROVED',
       imageUrl: '/api/profile/editorial-shoots/shoot-partial/shots/sculptural_three_quarter/image',
+      previewUrl: '/api/profile/editorial-shoots/shoot-partial/shots/sculptural_three_quarter/image?preview=1',
       downloadUrl: '/api/profile/editorial-shoots/shoot-partial/shots/sculptural_three_quarter/download',
     },
     {
       slot: 'interference_frame', status: 'APPROVED',
       imageUrl: '/api/profile/editorial-shoots/shoot-partial/shots/interference_frame/image',
+      previewUrl: '/api/profile/editorial-shoots/shoot-partial/shots/interference_frame/image?preview=1',
       downloadUrl: '/api/profile/editorial-shoots/shoot-partial/shots/interference_frame/download',
     },
-    { slot: 'material_or_accessory_detail', status: 'PENDING', imageUrl: null, downloadUrl: null },
-    { slot: 'wide_campaign_coda', status: 'PENDING', imageUrl: null, downloadUrl: null },
+    { slot: 'material_or_accessory_detail', status: 'PENDING', imageUrl: null, previewUrl: null, downloadUrl: null },
+    { slot: 'wide_campaign_coda', status: 'PENDING', imageUrl: null, previewUrl: null, downloadUrl: null },
   ]);
   assert.equal(state.error, null);
 });
