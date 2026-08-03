@@ -127,7 +127,10 @@
 
 <div class="legs" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
 <div class="hud" data-readout>—</div>
-<button class="sound" type="button" data-sound aria-pressed="true">звук</button>
+<div class="chrome-actions" aria-label="Навігація">
+  <button class="looks" type="button" data-looks disabled>образи</button>
+  <button class="sound" type="button" data-sound aria-pressed="true">звук</button>
+</div>
 <div class="gate" role="status" aria-live="polite">
   <i></i><b data-gate-text>Завантажте медіа цього кроку, щоб іти далі</b>
 </div>
@@ -180,6 +183,7 @@
   var bytesEl = document.querySelector('[data-loader-bytes]');
   var filesEl = document.querySelector('[data-loader-files]');
   var soundBtn = document.querySelector('[data-sound]');
+  var looksBtn = document.querySelector('[data-looks]');
   /* iPhone Safari can fetch an MP4 into a Blob yet leave its video compositor black.
      Let it use the native Range-backed source instead; Chrome keeps the measured Blob
      path for instant desktop scrubbing. */
@@ -753,6 +757,26 @@
         if (screenSurfaces) screenSurfaces.wakeTelevision();
       }
     });
+
+    /* A persistent return to the selected saved-look library.  It does not create or
+     * cancel anything: it first moves the presentation back to the physical mirror
+     * station, then lets the UI expose the current library on that station.  Keeping this
+     * in the chrome is especially important once a person has travelled on to TV/laptop —
+     * the active look must remain reachable without reverse-scrolling through the film. */
+    if (looksBtn) {
+      looksBtn.disabled = false;
+      looksBtn.addEventListener('click', function (ev) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        if (window.ui && typeof window.ui.openLookLibrary === 'function') {
+          window.ui.openLookLibrary();
+        }
+        if (window.journey && typeof window.journey.advanceTo === 'function') {
+          var move = window.journey.advanceTo(0);
+          if (move && typeof move.catch === 'function') move.catch(function () {});
+        }
+      });
+    }
 
     /* The banner must say WHY the journey stopped. Its default sentence asks for media,
        which is the right sentence for a closed step gate and the wrong one for a room

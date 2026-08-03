@@ -18,6 +18,17 @@ test('client UI stays on its physical owners', () => {
   assert.doesNotMatch(html, /data-live-invite/, 'Live must not return as bottom chrome');
 });
 
+test('persistent chrome can return to the active saved-look library without creating a job', () => {
+  assert.match(html, /class="chrome-actions"/);
+  assert.match(html, /data-looks/);
+  assert.match(html, /window\.journey\.advanceTo\(0\)/);
+  assert.match(html, /window\.ui\.openLookLibrary\(\)/);
+  assert.match(ui, /openLookLibrary: function \(\)/);
+  assert.match(ui, /returning to\n\s*\* the library changes the viewing context, never the server job/i);
+  assert.match(css, /\.chrome-actions/);
+  assert.match(css, /\.looks:focus-visible/);
+});
+
 test('portrait mobile promotes one active mirror into a usable attention plane', () => {
   assert.match(html, /href="\.\.\/mobile\.css"/);
   assert.match(html, /data-mobile-attention/);

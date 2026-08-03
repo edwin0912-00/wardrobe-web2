@@ -37,7 +37,7 @@ function node(attributes = {}) {
     emit(type) {
       const list = listeners.get(type) ?? [];
       listeners.set(type, list.filter((entry) => !entry.once));
-      for (const entry of list) entry.handler({ type, target: this });
+      for (const entry of list) entry.handler({ type, target: this, preventDefault() {}, stopPropagation() {} });
     },
     load() { this.loadCalls += 1; },
     play() { return Promise.resolve(); },
@@ -73,6 +73,7 @@ async function boot({ ios, videoFrameCallback = false, withStrategy = true, prog
   const loaderBytes = node();
   const loaderFiles = node();
   const sound = node();
+  const looks = node();
   const film = node();
   const gateText = node();
   const stage = node();
@@ -80,6 +81,8 @@ async function boot({ ios, videoFrameCallback = false, withStrategy = true, prog
   const root = node();
   const calls = [];
   const audioEvents = [];
+  const journeyCalls = [];
+  const lookLibraryCalls = [];
   let reportedRatio = null;
 
   const allVideos = [intro, ...rooms];
@@ -100,6 +103,7 @@ async function boot({ ios, videoFrameCallback = false, withStrategy = true, prog
       if (selector === '[data-loader-bytes]') return loaderBytes;
       if (selector === '[data-loader-files]') return loaderFiles;
       if (selector === '[data-sound]') return sound;
+      if (selector === '[data-looks]') return looks;
       if (selector === '[data-intro]') return intro;
       if (selector === '[data-film]') return film;
       if (selector === '[data-gate-text]') return gateText;
@@ -146,8 +150,15 @@ async function boot({ ios, videoFrameCallback = false, withStrategy = true, prog
         };
       }
     },
-    WardrobeJourney: { create: () => ({ refreshGate() {}, releaseAndAdvance() {} }) },
-    WardrobeUI: { create: () => ({ canAdvance: () => true }) },
+    WardrobeJourney: { create: () => ({
+      refreshGate() {},
+      releaseAndAdvance() {},
+      advanceTo(leg) { journeyCalls.push(leg); return Promise.resolve('arrived'); },
+    }) },
+    WardrobeUI: { create: () => ({
+      canAdvance: () => true,
+      openLookLibrary() { lookLibraryCalls.push('opened'); return true; },
+    }) },
     score: null
   };
   if (withStrategy) window.WardrobeMediaStrategy = mediaStrategy;
@@ -173,7 +184,7 @@ async function boot({ ios, videoFrameCallback = false, withStrategy = true, prog
   };
   vm.runInNewContext(inline, context, { filename: 'b/index.inline.js' });
   await settle();
-  return { calls, intro, rooms, audioEvents };
+  return { calls, intro, rooms, audioEvents, looks, journeyCalls, lookLibraryCalls };
 }
 
 test('desktop fully loads selected D before the fabric handoff and backgrounds only later rooms', async () => {
@@ -208,6 +219,15 @@ test('the factual 50% audio entry fades in rather than switching the room on at 
   assert.match(audioSource, /var masterTargetGain/);
   assert.match(audioSource, /master\.gain\.value = 0/);
   assert.match(audioSource, /function bringMasterIn\(\)[\s\S]*?rampGain\(master\.gain, masterTargetGain, entryFadeInMs\)/);
+});
+
+test('header “Образи” returns to the selected look library and mirror station', async () => {
+  const app = await boot({ ios: false });
+  assert.equal(app.looks.disabled, false, 'the control becomes usable after UI and journey are ready');
+  app.looks.emit('click');
+  await settle();
+  assert.deepEqual(app.lookLibraryCalls, ['opened']);
+  assert.deepEqual(app.journeyCalls, [0]);
 });
 
 test('iOS starts D native, does not launch Blob work for later rooms, then prewarms one next room at a time', async () => {

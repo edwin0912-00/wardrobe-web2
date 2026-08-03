@@ -642,14 +642,28 @@ body {
  * lag behind the real figure and turn an honest bar back into a decorative one. */
 .loader__bar { transition: none; }
 
-.sound {
+.chrome-actions {
   position: fixed; right: 22px; top: 20px; z-index: 30;
+  display: inline-flex; align-items: center; gap: 8px;
+}
+.sound,
+.looks {
+  position: relative;
   font: inherit; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
   color: var(--alum); background: rgba(29,30,28,0.6);
   border: 1px solid var(--rule-soft); padding: 7px 12px; cursor: pointer;
   backdrop-filter: blur(8px);
+  transition: background 120ms ease-out, border-color 120ms ease-out, color 120ms ease-out, transform 80ms ease-out;
 }
 .sound[aria-pressed="true"] { color: var(--milk); }
+.looks { color: var(--milk); }
+.sound:hover,
+.looks:hover { background: rgba(45, 46, 43, 0.82); border-color: rgba(245, 243, 237, 0.44); }
+.sound:active,
+.looks:active { transform: scale(0.97); }
+.sound:focus-visible,
+.looks:focus-visible { outline: 2px solid var(--milk); outline-offset: 3px; }
+.looks:disabled { opacity: 0.38; cursor: not-allowed; pointer-events: none; }
 
 /* Movement widens the grain a touch — the picture answers the echo. */
 
@@ -1512,7 +1526,7 @@ body {
 }
 
 @media (pointer: coarse) {
-  .glass button, .glass label, .sound { min-height: 44px; }
+  .glass button, .glass label, .sound, .looks { min-height: 44px; }
   .slot__x { min-width: 44px; min-height: 44px; right: 0; top: 0; }
 }
 

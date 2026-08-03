@@ -2306,6 +2306,26 @@
        * already written its canvas. This lets it announce itself instead of the waiting
        * state having to poll for it. */
       refreshOrbs: mountOrbs,
+      /* The fixed chrome needs one safe way back to a saved look.  It deliberately
+       * leaves any independent Fashion Video or Fashion Shoot job running; returning to
+       * the library changes the viewing context, never the server job.  On portrait this
+       * also promotes the left-mirror library into the one usable attention plane. */
+      openLookLibrary: function () {
+        stopCamera();
+        pickerKind = null;
+        awaitingAspect = null;
+        mobileLookChooser = true;
+        if (looks.length) {
+          if (!current()) selected = 0;
+          step = 2;
+        } else {
+          step = hasMain() ? 1 : 0;
+        }
+        view = 'look';
+        render();
+        notifyGateChange();
+        return looks.length > 0;
+      },
       addPreset: function (name) { togglePreset(name); return items.length; },
       makeLook: makeLook,
       setLiveError: function (error) {
