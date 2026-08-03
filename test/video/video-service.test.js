@@ -1324,6 +1324,34 @@ test('awaitAndFinalize marks a missing provider job FAILED without a second crea
   });
 });
 
+test('awaitAndFinalize persists a failed provider job instead of polling it forever', async () => {
+  await withTempDir(async (dir, sourcePath) => {
+    const provider = {
+      async createJob() { return { jobId: 'failed-job', providerKey: 'higgsfield' }; },
+      async waitForJob() {
+        const error = new Error('provider marked job failed');
+        error.code = 'PROVIDER_JOB_FAILED';
+        throw error;
+      },
+    };
+    const store = new ClipStore(dir);
+    const service = new VideoService({ provider, clipStore: store });
+    const created = await service.createClip({
+      modeId: 'editorial_micro_moment', surfaceId: 'tv', sourceImagePath: sourcePath,
+    });
+    await assert.rejects(
+      () => service.awaitAndFinalize(created.clipId, { downloadFn: makeStubDownload(), ...makeStubQa() }),
+      (error) => error.code === 'VIDEO_PROVIDER_JOB_FAILED',
+    );
+    const persisted = await store.load(created.clipId);
+    assert.equal(persisted.status, 'FAILED');
+    assert.equal(persisted.failureCode, 'VIDEO_PROVIDER_JOB_FAILED');
+    assert.equal(persisted.providerTerminal.jobId, 'failed-job');
+    assert.equal(persisted.providerTerminal.retryable, true);
+    assert.equal(persisted.providerWaitLease, undefined);
+  });
+});
+
 test('awaitAndFinalize persists terminal missing video output instead of leaving GENERATING', async () => {
   await withTempDir(async (dir, sourcePath) => {
     const provider = {

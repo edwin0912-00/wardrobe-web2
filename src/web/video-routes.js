@@ -85,6 +85,9 @@ function publicVideoFailure(liveClip) {
   if (liveClip?.failureCode === 'VIDEO_PROVIDER_JOB_NOT_FOUND') {
     return 'Higgsfield більше не має цей job. Нове відео не створювалося автоматично.';
   }
+  if (liveClip?.failureCode === 'VIDEO_PROVIDER_JOB_FAILED') {
+    return 'Higgsfield завершив цей job помилкою. Відео не створилось; можна запустити нову спробу.';
+  }
   if (liveClip?.failureCode === 'MISSING_VIDEO_OUTPUT') {
     return 'Провайдер завершив job, але beta не отримала адресу готового відео. QA не запускався; можна повторити отримання або створити нову спробу.';
   }

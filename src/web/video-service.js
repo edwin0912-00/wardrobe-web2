@@ -1275,23 +1275,29 @@ export class VideoService {
       // immutable job again. Persist them as retryable failure evidence; do
       // not invent a video, issue another paid create, or leave a stale
       // GENERATING state that blocks deployment forever.
-        if (['PROVIDER_JOB_NOT_FOUND', 'MISSING_VIDEO_OUTPUT'].includes(cause?.code)) {
+        if (['PROVIDER_JOB_NOT_FOUND', 'PROVIDER_JOB_FAILED', 'MISSING_VIDEO_OUTPUT'].includes(cause?.code)) {
           clip.status = 'FAILED';
           clip.failureCode = cause.code === 'MISSING_VIDEO_OUTPUT'
             ? 'MISSING_VIDEO_OUTPUT'
-            : 'VIDEO_PROVIDER_JOB_NOT_FOUND';
+            : cause.code === 'PROVIDER_JOB_FAILED'
+              ? 'VIDEO_PROVIDER_JOB_FAILED'
+              : 'VIDEO_PROVIDER_JOB_NOT_FOUND';
           clip.providerTerminal = {
             code: clip.failureCode,
             jobId: clip.jobId,
             recordedAt: new Date(this.#clock()).toISOString(),
-            retryable: cause.code === 'MISSING_VIDEO_OUTPUT',
+            // A retry creates a new explicit child attempt; the finished
+            // provider job itself is immutable and will never be polled again.
+            retryable: cause.code !== 'PROVIDER_JOB_NOT_FOUND',
           };
           delete clip.providerWaitLease;
           clip.updatedAt = new Date(this.#clock()).toISOString();
           await this.#store.save(clipId, clip);
           throw new VideoServiceError(cause.code === 'MISSING_VIDEO_OUTPUT'
             ? 'Provider finished without a video URL; no video was generated.'
-            : 'The video provider no longer has this job; it was not generated.', {
+            : cause.code === 'PROVIDER_JOB_FAILED'
+              ? 'The video provider marked this job failed; create a new attempt to retry.'
+              : 'The video provider no longer has this job; it was not generated.', {
             code: clip.failureCode,
             status: 502,
           });
