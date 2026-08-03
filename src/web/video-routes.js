@@ -86,6 +86,9 @@ function publicVideoFailure(liveClip) {
     return 'Higgsfield більше не має цей job. Нове відео не створювалося автоматично.';
   }
   if (liveClip?.failureCode === 'VIDEO_PROVIDER_JOB_FAILED') {
+    if (['SUBMITTING', 'CREATED'].includes(liveClip?.automaticRetry?.state)) {
+      return 'Higgsfield завершив попередній job помилкою. Сервер уже запускає обмежену автоматичну спробу з тим самим затвердженим образом і стилем.';
+    }
     return 'Higgsfield завершив цей job помилкою. Відео не створилось; можна запустити нову спробу.';
   }
   if (liveClip?.failureCode === 'VIDEO_INPUT_MEDIA_IP_CHECK_PENDING') {
@@ -188,15 +191,20 @@ export async function registerVideoRoutes(app, {
   const activeFinalizers = new Map();
 
   // A source performer in a completed provider video is a safety/identity
-  // failure, not a result we can show.  The service has a tightly bounded
-  // two-pass reconstruction policy for exactly that evidence.  It re-resolves
-  // the current style only to prove the already-locked hashes still exist;
+  // failure, not a result we can show. A job explicitly marked failed by the
+  // provider is also safe to retry: it has no delivery. Both use the same
+  // tightly bounded two-pass reconstruction policy. The route re-resolves the
+  // current style only to prove the already-locked hashes still exist;
   // retryFailedClip rechecks those hashes before a provider create.
   const maybeStartAutomaticReferenceQaRetry = async ({ profileId, lookId, clipId }) => {
     if (typeof videoService.automaticRetryReferenceQaFailure !== 'function') return null;
     const failed = await videoService.getClip(clipId);
     if (!failed || !['FAIL', 'FAILED'].includes(failed.status)
-      || !['VIDEO_REFERENCE_QA_FAILED', 'VIDEO_REFERENCE_NOT_REPLACED'].includes(failed.failureCode)) {
+      || ![
+        'VIDEO_REFERENCE_QA_FAILED',
+        'VIDEO_REFERENCE_NOT_REPLACED',
+        'VIDEO_PROVIDER_JOB_FAILED',
+      ].includes(failed.failureCode)) {
       return null;
     }
     const styleId = failed.motionReferenceBinding?.referenceId;
@@ -245,13 +253,22 @@ export async function registerVideoRoutes(app, {
           // A missing/changed style must not turn the failed parent into a
           // false success. Keep its exact QA evidence and offer the normal
           // explicit recovery path instead of risking a blind paid retry.
-          app.log?.warn?.({ err: error, clip_id: clipId }, 'fashion video automatic reference retry paused');
+          app.log?.warn?.({ err: error, clip_id: clipId }, 'fashion video automatic retry paused');
         }
       } catch (error) {
         // Finalization is resumable.  Keep the immutable provider job and let
         // the next status request retry the wait; do not turn a transport blip
         // into a fresh paid generation or a false terminal result.
         app.log?.warn?.({ err: error, clip_id: clipId }, 'fashion video finalization paused');
+        // A provider-declared terminal failure is not a transport blip. The
+        // helper inspects the persisted status and only creates a bounded child
+        // for an attested failed job; unknown/missing jobs remain manual so a
+        // restart can never spend a duplicate generation.
+        try {
+          await maybeStartAutomaticReferenceQaRetry({ profileId, lookId, clipId });
+        } catch (retryError) {
+          app.log?.warn?.({ err: retryError, clip_id: clipId }, 'fashion video automatic retry after terminal provider failure paused');
+        }
       } finally {
         try {
           const liveClip = await videoService.getClip(clipId);
@@ -785,7 +802,7 @@ export async function registerVideoRoutes(app, {
         });
         liveClip = await videoService.getClip(request.params.clipId);
       } catch (error) {
-        app.log?.warn?.({ err: error, clip_id: request.params.clipId }, 'fashion video automatic reference retry status check paused');
+        app.log?.warn?.({ err: error, clip_id: request.params.clipId }, 'fashion video automatic retry status check paused');
       }
     }
     // The runtime file is authoritative. Persist it before replying so a

@@ -693,3 +693,15 @@ be weakened to hide it.
 - The beta LaunchAgent was restored from a malformed JSON array to its valid
   persistent plist shape before activation; `plutil`, `launchctl`, deploy
   dry-run, local health and external health all passed.
+
+## Fashion Video terminal-provider retry · 2026-08-03
+
+- A terminal `VIDEO_PROVIDER_JOB_FAILED` is now distinguished from an unknown
+  missing job. It can create no more than two automatically submitted child
+  attempts, each re-validating the approved white master and exact style pack.
+- `VIDEO_PROVIDER_JOB_NOT_FOUND` remains explicit/manual only. The provider may
+  have accepted a job whose state is no longer observable; auto-submitting a
+  duplicate would be unsafe.
+- The semantic QA path remains unchanged: reference-performer pixels still
+  block delivery, then use the same shared two-attempt bound with visibly
+  recorded retry state for the client.

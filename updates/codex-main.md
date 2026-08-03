@@ -1513,3 +1513,20 @@ Beta: NOT_DEPLOYED. Journey: exact legacy retry regression covered locally;
 no paid provider request made. weakened_checks: none.
 
 ---
+
+Agent ID: codex-main
+Task: VIDEO-TERMINAL-FAILED-AUTORETRY-20260803
+Pipeline: VIDEO.02 · accepted Higgsfield job → terminal result → delivery/retry
+State: CODE_VERIFIED — deployment pending
+Finding: the observed clip `aaf3d47e-70d5-4451-8e6d-99a0ac4e4903` reached an
+attested Higgsfield `failed` terminal state. The old release only logged and
+re-polled it; later provider cleanup changed the visible result to `not found`.
+Decision: `VIDEO_PROVIDER_JOB_FAILED` starts the existing server-owned,
+hash-bound recovery chain, maximum two total automatic children. A missing job
+is intentionally not retried automatically. The current UI receives an explicit
+WAIT/automatic-retry state rather than a dead manual retry.
+Code: candidate on `beta` after `7436300`.
+Tests: VideoService + Video routes 78/78 PASS; new regression covers terminal
+provider failure → automatic child → two-attempt exhaustion.
+Beta: NOT_DEPLOYED. Journey: no paid provider request made by this code repair.
+weakened_checks: none; reference performer leakage remains delivery-blocking.

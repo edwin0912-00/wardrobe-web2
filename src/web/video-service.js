@@ -65,13 +65,15 @@ const DELIVERY_SAFETY_REFERENCE_CHECKS = Object.freeze([
 ]);
 
 // Initial render + two materially different, hash-bound reconstruction passes.
-// This budget is deliberately limited to reference-performer leakage; a broken
-// input, a missing provider job, or an unknown create outcome must never spend
-// a new paid job automatically.
+// A provider job explicitly marked `failed` may use the same bounded recovery
+// path: no delivery exists, the original job remains immutable, and every new
+// child records a distinct prompt and idempotency key. A missing/ambiguous job
+// is deliberately excluded because another paid create could duplicate it.
 export const MAX_AUTOMATIC_REFERENCE_QA_RETRIES = 2;
 const AUTOMATIC_REFERENCE_QA_FAILURE_CODES = new Set([
   'VIDEO_REFERENCE_QA_FAILED',
   'VIDEO_REFERENCE_NOT_REPLACED',
+  'VIDEO_PROVIDER_JOB_FAILED',
 ]);
 
 // Higgsfield can reject a create before it has accepted or billed a job while
@@ -821,9 +823,9 @@ export class VideoService {
         ? {
             version: referenceRetryPlan.version,
             id: referenceRetryPlan.id,
-            retry_number: referenceRetryPlan.retry_number,
+            retry_number: automaticRetry.retry_number,
             reason_code: automaticRetry.reason_code,
-          }
+        }
         : null,
       reference_bindings: providerReferenceBindings,
     };
@@ -983,9 +985,9 @@ export class VideoService {
           ? {
               version: referenceRetryPlan.version,
               id: referenceRetryPlan.id,
-              retry_number: referenceRetryPlan.retry_number,
+              retry_number: automaticRetry.retry_number,
               reason_code: automaticRetry.reason_code,
-            }
+          }
           : null,
         reference_bindings: providerReferenceBindings,
         immutable_request_binding: immutableRequestBinding,

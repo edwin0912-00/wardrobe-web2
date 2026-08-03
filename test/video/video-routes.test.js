@@ -555,6 +555,67 @@ test('failed reference QA exposes the server-owned automatic child as a wait sta
   });
 });
 
+test('an attested failed Higgsfield job starts the bounded automatic child instead of showing a dead retry', async (t) => {
+  const current = fixture();
+  const childId = '44444444-4444-4444-8444-444444444444';
+  current.setLiveClip({
+    status: 'FAILED',
+    failureCode: 'VIDEO_PROVIDER_JOB_FAILED',
+    lookBinding: {
+      sourceSha256: 'b'.repeat(64),
+      approvedLookReceiptSha256: 'c'.repeat(64),
+      whiteBackgroundVerified: true,
+    },
+    motionReferenceBinding: {
+      referenceId: 'style-1',
+      sha256: 'd'.repeat(64),
+      packSha256: 'e'.repeat(64),
+    },
+  });
+  current.videoService.fashionVideoCapability = async ({ referenceId }) => ({
+    state: 'READY',
+    selected_style_id: referenceId,
+    reference_id: referenceId,
+    reference_path: '/runtime/references/style.mp4',
+    reference_sha256: 'd'.repeat(64),
+    reference_pack_sha256: 'e'.repeat(64),
+    available_styles: availableStyles,
+  });
+  let automaticCalls = 0;
+  current.videoService.automaticRetryReferenceQaFailure = async (clipId, { videoReference }) => {
+    automaticCalls += 1;
+    assert.equal(clipId, '11111111-1111-4111-8111-111111111111');
+    assert.equal(videoReference.reference_id, 'style-1');
+    current.setLiveClip({
+      automaticRetry: {
+        state: 'CREATED',
+        retry_number: 1,
+        max_retries: 2,
+        reason_code: 'VIDEO_PROVIDER_JOB_FAILED',
+        child_clip_id: childId,
+      },
+    });
+    return { created: true, childClipId: null, retryNumber: 1, maxRetries: 2 };
+  };
+  const app = Fastify();
+  t.after(() => app.close());
+  await registerVideoRoutes(app, {
+    profileApi: { resolveRequestProfile: async () => ({ profileId: 'profile-1' }) },
+    profiles: current.profiles,
+    videoService: current.videoService,
+    runService: { outputFile: async () => null },
+  });
+
+  const response = await app.inject({
+    method: 'GET', url: '/api/profile/video-clips/11111111-1111-4111-8111-111111111111',
+  });
+  assert.equal(response.statusCode, 200, response.body);
+  assert.equal(automaticCalls, 1);
+  assert.equal(response.json().next_action, 'WAIT');
+  assert.match(response.json().error, /автоматичну спробу/);
+  assert.equal(response.json().automatic_retry.child_clip_id, childId);
+});
+
 test('server finalization starts the bounded reference-QA child and projects it before returning', async (t) => {
   const current = fixture();
   const parentId = '11111111-1111-4111-8111-111111111111';

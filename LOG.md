@@ -29,6 +29,20 @@ child/provider request; `node --test test/video/*.test.js` 209/209 PASS;
 `npm run verify:contracts` PASS.
 weakened_checks: none.
 
+2026-08-03 · Fashion Video terminal-provider recovery · candidate
+Change: a Higgsfield job explicitly reported as `failed` now starts the same
+bounded, hash-bound Fashion Video recovery chain as reference-QA failure: at
+most two child attempts, each with a new immutable prompt/idempotency binding.
+Why: the observed clip `aaf3d47e-70d5-4451-8e6d-99a0ac4e4903` was repeatedly
+polled after Higgsfield had already returned `failed`, then later became a
+misleading `not found` result when the provider removed it. No child was made.
+Evidence: focused VideoService + routes suite 78/78 PASS, including a new
+terminal-failure route regression and the two-attempt bound.
+Beta: NOT_DEPLOYED at this entry. `VIDEO_PROVIDER_JOB_NOT_FOUND` remains
+manual-only because its outcome is ambiguous and an automatic paid duplicate
+would be unsafe.
+weakened_checks: none; source-performer/reference leakage still blocks delivery.
+
 2026-08-02 · CHAT04-UNIMPLEMENTED-HANDOFF-CLARIFICATION · beta `26ea365` · codex-live-40
 Change: distinguish Chat 04's three unimplemented scene/UI proposals from
 assets that were already recovered into beta.
