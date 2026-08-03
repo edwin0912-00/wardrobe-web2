@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {
   CinematicUiBridgeError,
   createCinematicUiBridge,
+  savedLookPreviewUrl,
 } from '../adapters/cinematic-ui-bridge.mjs';
 
 function clientStub({ profileError = null, profile = { looks: [] } } = {}) {
@@ -47,6 +48,7 @@ function clientStub({ profileError = null, profile = { looks: [] } } = {}) {
     approveShootHero: async (shootId, hash) => { calls.push(['approve-hero', shootId, hash]); return {}; },
     retryShootShot: async (shootId, slot) => { calls.push(['retry-shoot', shootId, slot]); return {}; },
     sceneImageUrl: (id) => `/api/profile/scenes/${id}/image`,
+    lookImageUrl: (id) => `/api/profile/looks/${id}/image`,
     videoUrl: (id) => `/api/profile/video-clips/${id}/video`,
     shootShotImageUrl: (id, slot) => `/api/profile/editorial-shoots/${id}/shots/${slot}/image`,
     shootShotDownloadUrl: (id, slot) => `/api/profile/editorial-shoots/${id}/shots/${slot}/download`,
@@ -67,6 +69,36 @@ test('reports the deployed beta release and keeps authentication explicit', asyn
     bridge.createLook({ person: new Blob(['a']), garments: [new Blob(['b'])] }),
     (error) => error instanceof CinematicUiBridgeError && error.code === 'AUTH_REQUIRED',
   );
+});
+
+test('starts saved-look restoration before health resolves and uses a lightweight preview URL', async () => {
+  let resolveHealth;
+  let profileStarted = false;
+  const client = clientStub({ profile: {
+    looks: [{
+      look_id: 'look-warm',
+      image_url: '/api/profile/looks/look-warm/image',
+    }],
+  } });
+  client.health = () => new Promise((resolve) => { resolveHealth = resolve; });
+  client.loadProfile = async () => {
+    profileStarted = true;
+    return { looks: [{ look_id: 'look-warm', image_url: '/api/profile/looks/look-warm/image' }] };
+  };
+  const bridge = createCinematicUiBridge({ client, autoProbe: false });
+  const probing = bridge.probe();
+
+  await Promise.resolve();
+  assert.equal(profileStarted, true);
+  resolveHealth({ status: 'ready', release_sha: 'warm-sha' });
+  await probing;
+  assert.equal(bridge.state().savedLook.look_id, 'look-warm');
+  assert.equal(savedLookPreviewUrl(bridge.state().savedLook, client),
+    '/api/profile/looks/look-warm/image?preview=1');
+  assert.equal(savedLookPreviewUrl({
+    look_id: 'look-native',
+    cutout_preview_url: '/api/profile/looks/look-native/cutout-preview.webp',
+  }, client), '/api/profile/looks/look-native/cutout-preview.webp');
 });
 
 test('restores beta saved looks and action context after a browser reload', async () => {

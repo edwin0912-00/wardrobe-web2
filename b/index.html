@@ -194,6 +194,19 @@
      mirror-station capture window (below) can be widened for the same audience. */
   var MOBILE_PORTRAIT = typeof window.matchMedia === 'function'
     && window.matchMedia('(max-width: 767px) and (orientation: portrait)').matches;
+  /* Begin the product side of the journey while the physical intro is loading.
+     This is not part of the byte-progress bar: the bar remains an honest measure
+     of film media only.  Health, profile state and the compact saved-look preview
+     now travel in parallel, so arriving at the two mirrors does not begin a new
+     cold request chain.  ui.js receives this exact promise later and must not
+     construct a duplicate bridge. */
+  var productBridgePromise = import('../adapters/cinematic-ui-bridge.mjs').then(function (module) {
+    var bridge = module.createCinematicUiBridge();
+    window.WardrobeCinematicBridge = bridge;
+    return bridge;
+  }).catch(function () {
+    return null;
+  });
   var INTRO = 'assets/intro.mp4';
   var MEDIA_STRATEGY = window.WardrobeMediaStrategy || null;
   /* The module makes this policy testable, but a partial static-file copy must never
@@ -726,6 +739,7 @@
     }
 
     window.ui = WardrobeUI.create({
+      bridgePromise: productBridgePromise,
       /* The look landed, so the HOLD is over — the gate unlocks — but the page does not
          carry the viewer anywhere. This used to call releaseAndAdvance(), which drives the
          real scroll straight into leg 1 (the television) the instant a look exists, so the

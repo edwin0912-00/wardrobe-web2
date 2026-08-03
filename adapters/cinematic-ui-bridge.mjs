@@ -81,6 +81,27 @@ function profileLookId(look) {
   return look?.look_id ?? look?.id ?? null;
 }
 
+/* The cinematic site never needs the original master bytes to paint the first
+ * saved look.  Prefer the immutable compact cutout when beta has published
+ * one; otherwise explicitly ask the image route for its presentation
+ * derivative.  This keeps the opening warm-up small and, critically, never
+ * lets a heavyweight white-background master compete with the intro film. */
+export function savedLookPreviewUrl(look, client) {
+  const explicit = [
+    look?.cutout_preview_url,
+    look?.cutoutPreviewUrl,
+    look?.avatar_outfit_cutout_preview_url,
+    look?.avatarOutfitCutoutPreviewUrl,
+  ].find((value) => typeof value === 'string' && value.startsWith('/') && !value.startsWith('//'));
+  if (explicit) return explicit;
+
+  const lookId = profileLookId(look);
+  if (!lookId || typeof client?.lookImageUrl !== 'function') return null;
+  const image = client.lookImageUrl(lookId);
+  if (typeof image !== 'string' || !image.startsWith('/') || image.startsWith('//')) return null;
+  return `${image}${image.includes('?') ? '&' : '?'}preview=1`;
+}
+
 /* Fashion Shoot state is server-owned. A phone refresh must not make five
  * independently running frames look as though they were lost: the same profile response
  * already contains the durable shoot projection, both flat and nested under its look.
@@ -372,6 +393,26 @@ export function createCinematicUiBridge({
   let state = initialState();
   let disposed = false;
   let savingRunId = null;
+  const prewarmedPreviewUrls = new Set();
+  const prewarmedImages = new Set();
+
+  /* Starts during the filmed intro, before the mirrors are reachable.  It is
+   * deliberately best-effort: no profile or image failure can hold the
+   * cinematic loader, and the visible UI still receives the normal immutable
+   * profile payload through `probe()`. */
+  function warmFirstSavedLookPreview(profile) {
+    const url = savedLookPreviewUrl(profileLooks(profile)[0], client);
+    if (!url || prewarmedPreviewUrls.has(url) || typeof globalThis.Image !== 'function') return;
+    prewarmedPreviewUrls.add(url);
+    const image = new globalThis.Image();
+    image.decoding = 'async';
+    if ('fetchPriority' in image) image.fetchPriority = 'high';
+    const release = () => prewarmedImages.delete(image);
+    image.onload = release;
+    image.onerror = release;
+    prewarmedImages.add(image);
+    image.src = url;
+  }
 
   const emit = (type, patch = {}) => {
     state = { ...state, ...patch, updatedAt: new Date().toISOString() };
@@ -590,13 +631,23 @@ export function createCinematicUiBridge({
   async function probe() {
     emit('connection:checking', { availability: 'checking', error: null });
     try {
+      /* Health is small and profile state is the thing the first mirror needs.
+       * Starting both on the intro's first frame removes a full request round
+       * trip from the saved-look arrival without weakening either check. */
+      const profileTask = client.loadProfile().then(
+        (profile) => ({ profile }),
+        (error) => ({ error }),
+      );
       const health = await client.health();
       if (!['ready', 'ok'].includes(String(health?.status ?? '').toLowerCase())) {
         throw new CinematicUiBridgeError('ENGINE_UNAVAILABLE');
       }
       emit('connection:healthy', { availability: 'checking', releaseSha: health.release_sha ?? null });
+      const profileResult = await profileTask;
       try {
-        const profile = await client.loadProfile();
+        if (profileResult.error) throw profileResult.error;
+        const profile = profileResult.profile;
+        warmFirstSavedLookPreview(profile);
         const savedLook = profileLooks(profile)[0] ?? null;
         emit('connection:ready', { availability: 'ready', profile, savedLook, error: null });
         if (savedLook) {

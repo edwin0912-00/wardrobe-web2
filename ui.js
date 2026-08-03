@@ -444,6 +444,11 @@
     /* Product state arrives through one presentation-neutral bridge. The UI keeps
      * ownership of words, surfaces and motion; it never knows API routes or a host. */
     var bridge = opts.bridge || global.WardrobeCinematicBridge || null;
+    /* b/index starts the real bridge at the beginning of the film.  Keeping
+     * its promise means a warm profile is handed to this UI when the mirror
+     * station appears, rather than accidentally constructing a second bridge
+     * and issuing a second profile request at 100% loader progress. */
+    var bridgePromise = opts.bridgePromise || null;
     var bridgeUnsubscribe = null;
     var bridgeState = bridge && typeof bridge.state === 'function' ? bridge.state() : null;
     var adapterLoading = !bridge;
@@ -2317,11 +2322,19 @@
     } else {
       render();
       /* Dynamic import keeps b/index.html free of API knowledge and lets any future
-       * presentation bundle reuse this exact UI file. Failure is fail-closed: the
-       * mirror never falls back to a timer-generated fake result. */
-      import('./adapters/cinematic-ui-bridge.mjs').then(function (module) {
-        var loaded = module.createCinematicUiBridge();
-        global.WardrobeCinematicBridge = loaded;
+       * presentation bundle reuse this exact UI file. A supplied warm promise was
+       * started while intro media loaded; the fallback remains for other hosts that
+       * instantiate this UI directly. Failure is fail-closed: the mirror never falls
+       * back to a timer-generated fake result. */
+      var bridgeTask = bridgePromise && typeof bridgePromise.then === 'function'
+        ? bridgePromise
+        : import('./adapters/cinematic-ui-bridge.mjs').then(function (module) {
+          var loaded = module.createCinematicUiBridge();
+          global.WardrobeCinematicBridge = loaded;
+          return loaded;
+        });
+      bridgeTask.then(function (loaded) {
+        if (!loaded) throw new Error('CINEMATIC_BRIDGE_UNAVAILABLE');
         adapterLoading = false;
         bindBridge(loaded);
       }).catch(function () {
