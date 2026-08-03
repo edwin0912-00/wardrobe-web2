@@ -1517,6 +1517,22 @@
         error.code === 'IMAGE_TOO_SMALL' || error.code === 'INPUT_REPLACEMENT_REQUIRED'));
     }
 
+    /* The bridge/API already translate known recovery states into Ukrainian.
+     * A direct action rejection still reaches this catch path first, so retain
+     * that authored fact instead of overwriting it with a misleading generic
+     * retry. Unknown transport text remains private and falls back safely. */
+    function actionFailureCopy(error) {
+      var code = String(error && error.code || '');
+      var known = {
+        VIDEO_PROVIDER_JOB_FAILED: 'Higgsfield не зміг завершити цей ролик. Можна запустити нову спробу.',
+        VIDEO_INPUT_MEDIA_IP_CHECK_PENDING: 'Higgsfield ще перевіряє завантажені медіа. Job не створився; спробуйте ще раз через кілька секунд.',
+        VIDEO_AUTOMATIC_RETRY_IN_PROGRESS: 'Сервер уже завершує автоматичну спробу цього відео. Нова генерація не запускалася.',
+        VIDEO_PROVIDER_JOB_NOT_FOUND: 'Higgsfield більше не має цей job. Можна створити нову спробу.',
+        VIDEO_REFERENCE_QA_FAILED: 'Відео не пройшло перевірку заміни героя. Можна запустити нову спробу.'
+      };
+      return known[code] || 'Не вдалося завершити цю дію. Спробуйте ще раз.';
+    }
+
     function inputFailureWindow(error) {
       return '<div class="failure-state failure-state--input" role="alert">' +
         '<div class="glass__eyebrow">ПОТРІБНЕ УТОЧНЕННЯ</div>' +
@@ -1968,9 +1984,9 @@
             presentationSurface: chosen && chosen.presentationSurface
           });
         }
-        Promise.resolve(command).catch(function () {
+        Promise.resolve(command).catch(function (error) {
           pendingAction = null;
-          actionError = { kind: kind, message: 'Спробуємо ще раз' };
+          actionError = { kind: kind, code: error && error.code || null, message: actionFailureCopy(error) };
           render(); notifyGateChange();
         });
         return;
@@ -2132,8 +2148,12 @@
         var inputRejected = inputReplacementError(actionError);
         if (bridge && bridgeReady() && (actionError || lookReview) && !inputRejected) {
           lookReview = null;
-          bridge.retryActive().catch(function () {
-            actionError = { kind: actionError && actionError.kind || 'look', message: 'Спробуємо ще раз' };
+          bridge.retryActive().catch(function (error) {
+            actionError = {
+              kind: actionError && actionError.kind || 'look',
+              code: error && error.code || null,
+              message: actionFailureCopy(error)
+            };
             render(); notifyGateChange();
           });
           actionError = null;

@@ -499,7 +499,29 @@ test('duplicate garment choices and explicit shoot approvals remain actionable',
     },
   });
   assert.equal(bridge.state().phase, 'failed');
-  assert.deepEqual(bridge.state().error, { code: 'SHOOT_NEEDS_RETRY' });
+  assert.deepEqual(bridge.state().error, {
+    code: 'SHOOT_NEEDS_RETRY',
+    message: 'Цей результат потребує повторної спроби.',
+  });
+});
+
+test('a terminal Fashion Video provider failure keeps its actionable reason on the main mirror', async () => {
+  const client = clientStub();
+  const bridge = createCinematicUiBridge({ client, autoProbe: false });
+  await bridge.probe();
+  client.emit({
+    type: 'video:updated',
+    video: {
+      clip_id: 'clip-provider-failed',
+      status: 'FAILED',
+      failure_code: 'VIDEO_PROVIDER_JOB_FAILED',
+    },
+  });
+  assert.equal(bridge.state().phase, 'failed');
+  assert.deepEqual(bridge.state().error, {
+    code: 'VIDEO_PROVIDER_JOB_FAILED',
+    message: 'Higgsfield не зміг завершити цей ролик. Автоматичні спроби вже завершилися — можна запустити нову.',
+  });
 });
 
 test('approved fashion-shoot frames are visible before the series completes', async () => {

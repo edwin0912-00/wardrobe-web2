@@ -339,6 +339,27 @@ function runReviewPresentation(run) {
   return null;
 }
 
+/* A product entity is server-owned. Keep only the small, authored failure
+ * vocabulary that Beta deliberately exposes to a visitor; raw provider/VLM
+ * prose must never be mirrored into the cinematic site. */
+function productFailurePresentation(kind, entity, needsManualRetry) {
+  const code = entity?.failure_code ?? entity?.failureCode
+    ?? (needsManualRetry ? `${kind.toUpperCase()}_NEEDS_RETRY` : `${kind.toUpperCase()}_FAILED`);
+  const copy = {
+    VIDEO_PROVIDER_JOB_FAILED: 'Higgsfield не зміг завершити цей ролик. Автоматичні спроби вже завершилися — можна запустити нову.',
+    VIDEO_INPUT_MEDIA_IP_CHECK_PENDING: 'Higgsfield ще перевіряє завантажені медіа. Job не створився; спробуйте ще раз через кілька секунд.',
+    VIDEO_AUTOMATIC_RETRY_IN_PROGRESS: 'Сервер уже завершує автоматичну спробу цього відео. Нова генерація не запускалася.',
+    VIDEO_PROVIDER_JOB_NOT_FOUND: 'Higgsfield більше не має цей job. Можна створити нову спробу.',
+    VIDEO_REFERENCE_QA_FAILED: 'Відео не пройшло перевірку заміни героя. Можна запустити нову спробу.',
+  };
+  return {
+    code,
+    message: copy[code] ?? (needsManualRetry
+      ? 'Цей результат потребує повторної спроби.'
+      : 'Не вдалося завершити цю дію. Спробуйте ще раз.'),
+  };
+}
+
 export function createCinematicUiBridge({
   client = createZeelyClient({ apiBase: '/api' }),
   autoProbe = true,
@@ -524,9 +545,9 @@ export function createCinematicUiBridge({
        * of inheriting it through emit's shallow state merge.  A shoot may carry
        * real approved partial frames; all other in-flight product states do not. */
       result: result ?? null,
-      error: phase === 'failed' ? {
-        code: needsManualRetry ? `${kind.toUpperCase()}_NEEDS_RETRY` : `${kind.toUpperCase()}_FAILED`,
-      } : null,
+      error: phase === 'failed'
+        ? productFailurePresentation(kind, entity, needsManualRetry)
+        : null,
     });
     if (kind === 'shoot') void syncShootResult(entity);
   }
