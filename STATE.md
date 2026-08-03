@@ -705,3 +705,6 @@ be weakened to hide it.
 - The semantic QA path remains unchanged: reference-performer pixels still
   block delivery, then use the same shared two-attempt bound with visibly
   recorded retry state for the client.
+- Active beta release: `505729016624be756c264ca3c5f30edf92ed6da5`; local and
+  external health returned `ready` at guarded activation. No active provider
+  work was interrupted.

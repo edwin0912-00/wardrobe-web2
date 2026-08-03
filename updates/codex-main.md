@@ -1530,3 +1530,8 @@ Tests: VideoService + Video routes 78/78 PASS; new regression covers terminal
 provider failure → automatic child → two-attempt exhaustion.
 Beta: NOT_DEPLOYED. Journey: no paid provider request made by this code repair.
 weakened_checks: none; reference performer leakage remains delivery-blocking.
+
+Activation: LIVE — product release
+`505729016624be756c264ca3c5f30edf92ed6da5`; verifier PASS (741 deploy files),
+guarded deploy found zero active persisted work, and local + public beta health
+both returned `ready`.

@@ -43,6 +43,13 @@ manual-only because its outcome is ambiguous and an automatic paid duplicate
 would be unsafe.
 weakened_checks: none; source-performer/reference leakage still blocks delivery.
 
+2026-08-03 · Beta activation · Fashion Video terminal-provider recovery
+Change: activated product release `505729016624be756c264ca3c5f30edf92ed6da5`.
+Evidence: immutable product verifier PASS (741 deploy files, 16 standard
+scenes, 15 Create Universe generation styles); guarded activation found zero
+active persisted work; local and external health both returned `ready`.
+weakened_checks: none.
+
 2026-08-02 · CHAT04-UNIMPLEMENTED-HANDOFF-CLARIFICATION · beta `26ea365` · codex-live-40
 Change: distinguish Chat 04's three unimplemented scene/UI proposals from
 assets that were already recovered into beta.
