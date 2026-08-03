@@ -21,16 +21,6 @@
       .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
-  /* The measured laptop aperture is deliberately tiny in the final phone shot.
-   * That is correct film geometry, but it makes the actual document unusable on a
-   * portrait phone. At the terminal handoff only, the same mounted node becomes
-   * a bounded reading plane inside the film. Desktop keeps the physical projected
-   * laptop and this is explicitly not the retired fullscreen route. */
-  function isPortraitMobileViewport() {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
-    return window.matchMedia('(max-width: 767px) and (orientation: portrait)').matches;
-  }
-
   function normaliseRect(frame) {
     if (!frame || typeof frame !== 'object') throw new TypeError('TV frame must be an object');
     var result = {
@@ -244,9 +234,6 @@
      * reverses out of the document. This is a geometry lock, not a fullscreen route:
      * the same mounted node remains on the filmed laptop. */
     var laptopTerminalLock = false;
-    var laptopMobileTerminal = false;
-    var laptopHome = laptop && laptop.parentNode;
-    var laptopHomeNext = laptop && laptop.nextSibling;
     var lastFrame = null;
 
     function setHidden(element, hidden) {
@@ -256,38 +243,6 @@
       /* Geometry owns only geometry. HOW's caller reveals the document after its
        * measured camera move resolves; entering the laptop calibration window alone
        * must not fade the document over an earlier frame. */
-    }
-
-    function returnLaptopToFilm() {
-      if (!laptop || !laptopHome || laptop.parentNode === laptopHome) return;
-      if (laptopHomeNext && laptopHomeNext.parentNode === laptopHome) {
-        laptopHome.insertBefore(laptop, laptopHomeNext);
-      } else {
-        laptopHome.appendChild(laptop);
-      }
-    }
-
-    /* On a portrait phone the calibrated physical laptop is too small to read.
-     * Reparent the *same* already-mounted node to the stage, never to document.body,
-     * and retain its state and its one vertical scroll owner. This is a bounded
-     * document panel, not a fullscreen or a second window. */
-    function setLaptopMobileTerminal(active) {
-      active = Boolean(active);
-      if (!laptop) return false;
-      if (active && !laptopMobileTerminal) {
-        laptopHome = laptop.parentNode || laptopHome;
-        laptopHomeNext = laptop.nextSibling || laptopHomeNext;
-        var stage = film && film.parentNode;
-        if (!stage || typeof stage.appendChild !== 'function') return false;
-        stage.appendChild(laptop);
-        laptopMobileTerminal = true;
-      } else if (!active && laptopMobileTerminal) {
-        returnLaptopToFilm();
-        laptopMobileTerminal = false;
-      }
-      if (active) laptop.setAttribute('data-mobile-terminal', '1');
-      else laptop.removeAttribute('data-mobile-terminal');
-      return laptopMobileTerminal;
     }
 
     function portraitStrip(item) {
@@ -437,27 +392,12 @@
       var visible = laptopTerminalLock || (frame.leg === calibration.laptop.leg &&
         frame.videoTime != null && frame.videoTime >= first && frame.videoTime <= last + terminalClockTolerance);
       if (!visible) {
-        setLaptopMobileTerminal(false);
         setHidden(laptop, true);
         return;
       }
-      if (laptopTerminalLock && isPortraitMobileViewport()) {
-        /* Do not clone, move or fullscreen the document. Keeping this exact node
-         * preserves its mounted state and one vertical scroll owner. */
-        if (!setLaptopMobileTerminal(true)) {
-          setHidden(laptop, true);
-          return;
-        }
-        laptop.style.width = '';
-        laptop.style.height = '';
-        laptop.style.transform = '';
-        setHidden(laptop, false);
-        return;
-      }
-      setLaptopMobileTerminal(false);
-      /* The movie's decoded clock may continue for a subframe after the terminal
-       * handoff. While the document owns scroll, pin it to the last calibrated laptop
-       * quad instead of letting a later movie frame remove the only visible document. */
+      /* This document always belongs to the calibrated laptop aperture.  At the
+       * terminal handoff its last measured quad is simply held; it is never moved to
+       * a phone-sized overlay, cloned, or hidden behind a later film frame. */
       var geometryTime = laptopTerminalLock ? last : frame.videoTime;
       var quad = math.interpolateQuad(frames, geometryTime);
       quad = insetQuad(quad, calibration.laptop.safe_inset || 0);
@@ -552,14 +492,11 @@
     function setLaptopFullscreen(active) {
       active = Boolean(active);
       if (!laptop || !laptopMounted) return false;
-      setLaptopMobileTerminal(false);
       if (active === laptopFullscreen) {
         setHidden(laptop, false);
         return true;
       }
       if (active) {
-        laptopHome = laptop.parentNode || laptopHome;
-        laptopHomeNext = laptop.nextSibling || laptopHomeNext;
         (laptop.ownerDocument || document).body.appendChild(laptop);
         laptop.classList.add('laptop-surface--fullscreen');
         laptopFullscreen = true;
@@ -567,7 +504,7 @@
       } else {
         laptopFullscreen = false;
         laptop.classList.remove('laptop-surface--fullscreen');
-        returnLaptopToFilm();
+        if (film && typeof film.appendChild === 'function') film.appendChild(laptop);
         positionLaptop(lastFrame || {});
       }
       return true;
@@ -646,7 +583,6 @@
           laptopMounted: laptopMounted,
           laptopFullscreen: laptopFullscreen,
           laptopTerminalLock: laptopTerminalLock,
-          laptopMobileTerminal: laptopMobileTerminal,
           frame: lastFrame
         };
       }

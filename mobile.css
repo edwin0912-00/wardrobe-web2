@@ -5,31 +5,6 @@
  * moves exactly one active mirror into this larger translucent plane. The inactive mirror
  * stays in the film: while the left side asks, the right side can still hold the orb. */
 @media (max-width: 767px) and (orientation: portrait) {
-  /* At the HOW terminal the real HTML document stays one mounted surface, but the
-   * measured laptop screen is only ~180 px high on a phone. Give that same surface
-   * a readable, bounded document plane. This is intentionally not fullscreen: the
-   * site chrome and the finite cinematic frame remain visible. */
-  .laptop-surface[data-mobile-terminal="1"] {
-    left: 12px !important;
-    top: max(76px, env(safe-area-inset-top)) !important;
-    width: calc(100% - 24px) !important;
-    height: min(68vh, calc(100% - 152px)) !important;
-    z-index: 28;
-    overflow: hidden;
-    transform: none !important;
-    transform-origin: 0 0 !important;
-    background: #050605;
-    border: 1px solid rgba(245, 243, 237, 0.2);
-    box-shadow: 0 22px 58px rgba(0, 0, 0, 0.52), inset 0 1px rgba(245, 243, 237, 0.08);
-  }
-  .laptop-surface[data-mobile-terminal="1"] .laptop-surface__page {
-    overflow-x: hidden;
-    /* The verified deck inside the ShadowRoot is the sole vertical scroll owner.
-     * Letting this wrapper scroll as well made an iPhone consume the last swipe here,
-     * then leave the deck at an invisible offset or let the film run past the laptop. */
-    overflow-y: hidden;
-  }
-
   .mobile-attention {
     position: absolute;
     z-index: 24;

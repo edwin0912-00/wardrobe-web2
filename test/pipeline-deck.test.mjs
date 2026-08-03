@@ -92,15 +92,14 @@ test('natural terminal arrival and HOW share one reversible document handoff', (
   assert.match(page, /advanceToVideoTime\(3, terminalSeconds/);
 });
 
-test('portrait phones enlarge the same terminal document without invoking fullscreen', () => {
-  assert.match(surfaces, /function isPortraitMobileViewport\(\)/);
-  assert.match(surfaces, /laptopTerminalLock && isPortraitMobileViewport\(\)/);
-  assert.match(surfaces, /function setLaptopMobileTerminal\(active\)/);
-  assert.match(surfaces, /stage\.appendChild\(laptop\)/);
-  assert.match(surfaces, /returnLaptopToFilm\(\)/);
-  assert.match(surfaces, /laptop\.setAttribute\('data-mobile-terminal', '1'\)/);
-  assert.match(mobileCss, /\.laptop-surface\[data-mobile-terminal="1"\]/);
-  assert.match(mobileCss, /height: min\(68vh, calc\(100% - 152px\)\) !important;/);
-  assert.match(mobileCss, /\.laptop-surface\[data-mobile-terminal="1"\] \.laptop-surface__page[\s\S]*?overflow-y: hidden/);
-  assert.doesNotMatch(mobileCss, /data-mobile-terminal="1"\][\s\S]{0,600}laptop-surface--fullscreen/);
+test('portrait phones keep the verified document in the measured laptop plane', () => {
+  const projection = surfaces.slice(
+    surfaces.indexOf('function positionLaptop(frame)'),
+    surfaces.indexOf('function update(frame)')
+  );
+  assert.match(surfaces, /This document always belongs to the calibrated laptop aperture/);
+  assert.match(surfaces, /var geometryTime = laptopTerminalLock \? last : frame\.videoTime/);
+  assert.doesNotMatch(surfaces, /setLaptopMobileTerminal|data-mobile-terminal|isPortraitMobileViewport/);
+  assert.doesNotMatch(mobileCss, /data-mobile-terminal/);
+  assert.doesNotMatch(projection, /appendChild\(laptop\)|laptop-surface--fullscreen/);
 });
