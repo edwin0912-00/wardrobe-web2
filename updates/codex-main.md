@@ -1449,7 +1449,7 @@ weakened_checks: none; no QA state or output bytes are altered.
 Agent ID: codex-main
 Task ID: BETA-SHOOT-RETRY-AND-VIDEO-IP-CHECK-20260803
 Pipeline: UNIVERSE.04 · five Fashion Shoot frames → saved library; VIDEO.02 · Higgsfield submission
-State: READY_FOR_BETA_DEPLOY
+State: LIVE
 Decision: in live `review` mode, a `shoot.*` camera-scale miss is retained as
 `NON_BLOCKING_FASHION_REVIEW` receipt evidence rather than consuming another
 paid Fashion Shoot retry. Identity, selected-item construction, leakage and
@@ -1461,10 +1461,10 @@ the explicit Ukrainian status `VIDEO_INPUT_MEDIA_IP_CHECK_PENDING`.
 Observed: the inspected completed Fashion Shoot already has five customer frames
 and a durable saved-profile projection; the apparent many images were two
 camera-scale retries (2 + 3) plus successful slots, not duplicate shoots.
-Code: pending commit from current beta worktree.
+Code: `a828cd542360ed396d4f3247f0eaefc2e2397207`.
 Tests: new regressions failed before this change; after it, focused
 video/provider/routes + Fashion Shoot scene suite PASS (all selected tests).
-Beta: NOT_DEPLOYED.
+Beta: LIVE — public health release SHA `a828cd542360ed396d4f3247f0eaefc2e2397207`.
 Journey: no paid provider call was made by this repair.
 weakened_checks: only `shoot.*` camera-scale art direction in live `review`/`off`
 mode becomes advisory. The measured value remains in the receipt. This is an
