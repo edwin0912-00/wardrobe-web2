@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
-const SOURCE_SHA256 = '43262d5359b53f02ab3fb22792ab984da25dfa6484530dd1b672286d868f813e';
+const SOURCE_SHA256 = '5dc129bfde06a987d87c407ed348fb91221bb6e62850ad867242f017ecca3f43';
 
 const [sourceBytes, source, adapter, page, surfaces, css] = await Promise.all([
   readFile(new URL('../b/pipeline-deck-v2.html', import.meta.url)),
@@ -15,7 +15,7 @@ const [sourceBytes, source, adapter, page, surfaces, css] = await Promise.all([
 ]);
 
 test('the laptop source is vendored byte-for-byte from the approved handoff', () => {
-  assert.equal(sourceBytes.byteLength, 114332);
+  assert.equal(sourceBytes.byteLength, 114345);
   assert.equal(createHash('sha256').update(sourceBytes).digest('hex'), SOURCE_SHA256);
   assert.match(source, /<title>Wardrobe — Pipeline v2 · 2026-08-01<\/title>/);
   assert.equal((source.match(/<section\b[^>]*\bclass="[^"]*\bpanel\b/g) || []).length, 17);
@@ -52,6 +52,8 @@ test('the cinematic handoff is wired to one projected node and is reversible', (
   assert.match(surfaces, /laptopWindow/);
   assert.match(css, /\.laptop-surface--fullscreen[\s\S]*position: fixed/);
   assert.match(css, /\.laptop-surface--fullscreen[\s\S]*transform: none/);
+  assert.match(surfaces, /data-how-visible/);
+  assert.match(css, /laptop-surface\[data-how-reveal="1"\]/);
 });
 
 test('the current laptop calibration never invents a fullscreen handoff before a close camera frame exists', () => {

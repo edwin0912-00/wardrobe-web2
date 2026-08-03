@@ -2,19 +2,20 @@
 
 ## Source lock
 
-The final laptop content is the exact HTML supplied in GitHub issue #2 by the
-`pipeline-life / deck-sync` lane. It is vendored at `b/pipeline-deck-v2.html` and
-must remain byte-for-byte identical to the approved handoff:
+The laptop document is first-party versioned HTML at `b/pipeline-deck-v2.html`.
+It began from the approved GitHub handoff and is now updated only as an explicit
+main-site atom. Every document edit updates its bytes, SHA-256 and lock test in
+the same commit; there is no runtime URL switch or untracked replacement:
 
 - title: `Wardrobe — Pipeline v2 · 2026-08-01`
 - 17 panels, desktop and portrait-browser interaction states
-- bytes: `114332`
-- SHA-256: `43262d5359b53f02ab3fb22792ab984da25dfa6484530dd1b672286d868f813e`
+- bytes: `114345`
+- SHA-256: `5dc129bfde06a987d87c407ed348fb91221bb6e62850ad867242f017ecca3f43`
 - source: `https://github.com/edwin0912-00/wardrobe-beta-github-draft/blob/main/docs/zeely-pipeline-deck-v2.html`
 
 `test/pipeline-deck.test.mjs` is the byte and structure lock. If the deck changes,
-the source owner must issue a new handoff and SHA; do not silently edit the vendored
-file or add a runtime URL switch.
+update its SHA and byte count in the same reviewed commit; do not add a runtime URL
+switch or silently replace the vendored file.
 
 ## Runtime architecture
 

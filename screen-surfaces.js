@@ -238,6 +238,11 @@
       if (!element) return;
       element.hidden = hidden;
       element.setAttribute('aria-hidden', hidden ? 'true' : 'false');
+      /* HOW prepares a fade before the journey starts. Only the measured laptop
+       * projection may complete it, so no document fades in over another room. */
+      if (!hidden && element.hasAttribute('data-how-reveal')) {
+        element.setAttribute('data-how-visible', '1');
+      }
     }
 
     function portraitStrip(item) {

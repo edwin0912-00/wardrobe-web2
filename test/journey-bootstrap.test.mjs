@@ -74,6 +74,8 @@ async function boot({ ios, videoFrameCallback = false, withStrategy = true, prog
   const loaderFiles = node();
   const sound = node();
   const looks = node();
+  const how = node();
+  const laptop = node();
   const film = node();
   const gateText = node();
   const stage = node();
@@ -104,6 +106,8 @@ async function boot({ ios, videoFrameCallback = false, withStrategy = true, prog
       if (selector === '[data-loader-files]') return loaderFiles;
       if (selector === '[data-sound]') return sound;
       if (selector === '[data-looks]') return looks;
+      if (selector === '[data-how]') return how;
+      if (selector === '[data-laptop-surface]') return laptop;
       if (selector === '[data-intro]') return intro;
       if (selector === '[data-film]') return film;
       if (selector === '[data-gate-text]') return gateText;
@@ -184,7 +188,7 @@ async function boot({ ios, videoFrameCallback = false, withStrategy = true, prog
   };
   vm.runInNewContext(inline, context, { filename: 'b/index.inline.js' });
   await settle();
-  return { calls, intro, rooms, audioEvents, looks, journeyCalls, lookLibraryCalls };
+  return { calls, intro, rooms, audioEvents, looks, how, laptop, journeyCalls, lookLibraryCalls };
 }
 
 test('desktop fully loads selected D before the fabric handoff and backgrounds only later rooms', async () => {
@@ -228,6 +232,16 @@ test('header “Образи” returns to the selected look library and mirror 
   await settle();
   assert.deepEqual(app.lookLibraryCalls, ['opened']);
   assert.deepEqual(app.journeyCalls, [0]);
+});
+
+test('HOW follows the existing inertial journey to the measured laptop and prepares its reveal', async () => {
+  const app = await boot({ ios: false });
+  assert.equal(app.how.disabled, false, 'the control becomes usable after the journey is ready');
+  app.how.emit('click');
+  await settle();
+  assert.deepEqual(app.journeyCalls, [3]);
+  assert.equal(app.laptop.getAttribute('data-how-reveal'), '1');
+  assert.equal(app.laptop.getAttribute('data-how-visible'), null);
 });
 
 test('iOS starts D native, does not launch Blob work for later rooms, then prewarms one next room at a time', async () => {

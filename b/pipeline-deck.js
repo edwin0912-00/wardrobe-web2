@@ -10,7 +10,7 @@
   'use strict';
 
   var SOURCE_URL = 'pipeline-deck-v2.html';
-  var SOURCE_SHA256 = '43262d5359b53f02ab3fb22792ab984da25dfa6484530dd1b672286d868f813e';
+  var SOURCE_SHA256 = '5dc129bfde06a987d87c407ed348fb91221bb6e62850ad867242f017ecca3f43';
 
   function clamp01(value) {
     value = Number(value);

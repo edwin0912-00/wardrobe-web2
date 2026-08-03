@@ -29,6 +29,14 @@ test('persistent chrome can return to the active saved-look library without crea
   assert.match(css, /\.looks:focus-visible/);
 });
 
+test('HOW uses the measured laptop journey rather than opening a second window', () => {
+  assert.match(html, /data-how/);
+  assert.match(html, /window\.journey\.advanceTo\(3\)/);
+  assert.match(html, /data-how-reveal/);
+  assert.match(css, /\.how:focus-visible/);
+  assert.match(css, /laptop-surface\[data-how-reveal="1"\]/);
+});
+
 test('portrait mobile promotes one active mirror into a usable attention plane', () => {
   assert.match(html, /href="\.\.\/mobile\.css"/);
   assert.match(html, /data-mobile-attention/);

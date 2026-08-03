@@ -106,7 +106,6 @@
     <h1 class="copy__line" data-on="0">Речі чекають довше за людей</h1>
     <p class="copy__line" data-on="1">Бетон, дуб, шовк — і більше нікого</p>
     <p class="copy__line" data-on="2">Дзеркало не поспішає</p>
-    <p class="copy__line" data-on="3">Усе, що зібралось, іде з тобою</p>
   </div>
 
 </main>
@@ -128,6 +127,7 @@
 <div class="legs" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
 <div class="hud" data-readout>—</div>
 <div class="chrome-actions" aria-label="Навігація">
+  <button class="how" type="button" data-how disabled>HOW</button>
   <button class="looks" type="button" data-looks disabled>образи</button>
   <button class="sound" type="button" data-sound aria-pressed="true">звук</button>
 </div>
@@ -184,6 +184,7 @@
   var filesEl = document.querySelector('[data-loader-files]');
   var soundBtn = document.querySelector('[data-sound]');
   var looksBtn = document.querySelector('[data-looks]');
+  var howBtn = document.querySelector('[data-how]');
   /* iPhone Safari can fetch an MP4 into a Blob yet leave its video compositor black.
      Let it use the native Range-backed source instead; Chrome keeps the measured Blob
      path for instant desktop scrubbing. */
@@ -773,6 +774,31 @@
         }
         if (window.journey && typeof window.journey.advanceTo === 'function') {
           var move = window.journey.advanceTo(0);
+          if (move && typeof move.catch === 'function') move.catch(function () {});
+        }
+      });
+    }
+
+    /* HOW follows the one existing cinematic clock instead of creating a second
+     * scrolling mechanism. `advanceTo(3)` uses the journey's ordinary inertia and is
+     * immediately cancellable by a real touch, wheel or key. The projected laptop
+     * remains a physical screen — the page fades in only once that measured screen is
+     * actually visible, never as a floating modal or full-viewport document. */
+    if (howBtn) {
+      howBtn.disabled = false;
+      howBtn.addEventListener('click', function (ev) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        var laptop = document.querySelector('[data-laptop-surface]');
+        if (laptop) {
+          laptop.setAttribute('data-how-reveal', '1');
+          laptop.removeAttribute('data-how-visible');
+        }
+        if (pipelineDeck && typeof pipelineDeck.setProgress === 'function') {
+          pipelineDeck.setProgress(0);
+        }
+        if (window.journey && typeof window.journey.advanceTo === 'function') {
+          var move = window.journey.advanceTo(3);
           if (move && typeof move.catch === 'function') move.catch(function () {});
         }
       });
