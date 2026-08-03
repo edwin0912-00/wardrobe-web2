@@ -46,6 +46,25 @@
       '.bar,.prog,.dots,.hint{position:absolute;} ',
       '.drawer{position:absolute;} ',
       '.scrim{position:absolute;inset:0;} ',
+      /* The terminal remains physically projected into the laptop on a portrait
+       * phone. At that distance the supplied desktop document otherwise renders
+       * ordinary 25px copy at roughly 5px on the device: the next panel is there,
+       * but reads as a blank black screen. Enlarge the document's own type only
+       * while it owns the terminal gesture; do not move, clone or fullscreen its
+       * host. `touch-action:none` makes the same one-finger swipe unambiguously
+       * belong to the verified deck instead of escaping into the camera journey. */
+      '@media (max-width:767px){',
+        ':host([data-screen-scroll="1"]){touch-action:none;} ',
+        ':host([data-screen-scroll="1"]) .deck{touch-action:none;overscroll-behavior:none;-webkit-overflow-scrolling:auto;} ',
+        ':host([data-screen-scroll="1"]) .panel{padding:66px 62px 54px;justify-content:flex-start;} ',
+        ':host([data-screen-scroll="1"]) h1{font-size:72px;line-height:1.02;} ',
+        ':host([data-screen-scroll="1"]) h2{font-size:58px;line-height:1.06;} ',
+        ':host([data-screen-scroll="1"]) .lede,:host([data-screen-scroll="1"]) .sub{font-size:34px;line-height:1.42;} ',
+        ':host([data-screen-scroll="1"]) .eyebrow,:host([data-screen-scroll="1"]) .mark{font-size:22px;} ',
+        ':host([data-screen-scroll="1"]) .bar-t,:host([data-screen-scroll="1"]) .count,:host([data-screen-scroll="1"]) .hint{font-size:18px;} ',
+        ':host([data-screen-scroll="1"]) .node h3{font-size:34px;line-height:1.18;} ',
+        ':host([data-screen-scroll="1"]) .node p,:host([data-screen-scroll="1"]) .spec{font-size:24px;line-height:1.35;} ',
+      '} ',
       '.pipeline-deck-error{height:100%;display:grid;place-items:center;padding:24px;text-align:center;',
         'font:12px/1.5 var(--mono,ui-monospace,monospace);letter-spacing:.08em;color:#7F91A8;} '
     ].join('');

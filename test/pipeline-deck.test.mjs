@@ -103,3 +103,11 @@ test('portrait phones keep the verified document in the measured laptop plane', 
   assert.doesNotMatch(mobileCss, /data-mobile-terminal/);
   assert.doesNotMatch(projection, /appendChild\(laptop\)|laptop-surface--fullscreen/);
 });
+
+test('portrait terminal keeps the document in the laptop but makes its own pages readable and swipe-owned', () => {
+  assert.match(adapter, /:host\(\[data-screen-scroll="1"\]\)\{touch-action:none;\}/);
+  assert.match(adapter, /:host\(\[data-screen-scroll="1"\]\) \.deck\{touch-action:none;overscroll-behavior:none/);
+  assert.match(adapter, /:host\(\[data-screen-scroll="1"\]\) h1\{font-size:72px/);
+  assert.match(adapter, /:host\(\[data-screen-scroll="1"\]\) h2\{font-size:58px/);
+  assert.doesNotMatch(adapter, /data-mobile-terminal|setLaptopMobileTerminal/);
+});
