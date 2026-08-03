@@ -75,6 +75,37 @@ Evidence: editorial catalog/UI tests 17/17 PASS; alias/backend tests 7/7 PASS;
 syntax and `git diff --check` PASS.
 weakened_checks: none.
 
+2026-08-03 · Fashion Shoot retry calibration / Video IP readiness / cache chain
+Change: scoped `shoot.*` review-mode camera-scale variance to a non-blocking
+receipt note; added one exact immutable retry for Higgsfield's pre-submit
+`IP check not finished for input media`; advanced the linked Fashion Shoot
+frontend modules as one cache-busted chain.
+Why: camera art direction had spent 2+3 paid retries on an already saved
+five-frame shoot, and an unaccepted video job showed only a generic failure.
+Evidence: focused UI/provider/video/scene tests 177/177 PASS; contracts and
+canon PASS. No paid provider work was used.
+weakened_checks: only Create Universe camera-scale in explicit `review`/`off`;
+identity, items, anatomy, leakage and standard-scene framing stay blocking.
+
+2026-08-03 · Fashion Shoot retry policy + Higgsfield input-media readiness · candidate pending deploy
+Change: scoped Fashion Shoot camera-scale defects to `NON_BLOCKING_FASHION_REVIEW`
+only for `shoot.*` in the already live `review`/`off` policy; standard scenes
+are untouched. Classified Higgsfield's exact `IP check not finished for input
+media` create response as a pre-submit readiness state, persisted it, waited
+3 seconds and retried the exact immutable request once. A second response is
+stored and returned as `VIDEO_INPUT_MEDIA_IP_CHECK_PENDING`, not a fake timeout
+or a claim that a job exists.
+Why: one completed five-frame shoot appeared as many duplicate images because
+two slots spent 2 and 3 retries solely on an art-direction camera band. A video
+user received a generic create failure while Higgsfield had not yet accepted
+their media.
+Evidence: the new regressions fail against prior code and pass after the
+repair; focused provider/video/routes/Fashion Shoot suite PASS. The inspected
+shoot has a durable five-frame profile projection.
+weakened_checks: camera-scale for `shoot.*` in review/off is advisory by explicit
+operator decision. Identity, item fidelity, reference leakage, anatomy and all
+`std.*` framing remain blocking. No paid generation was run.
+
 2026-08-02 · Fashion Shoot catalogue / direct-five / video input metadata
 Change: restored server-ready legacy Fashion Shoot modes to the customer
 catalogue, changed the persisted scheduler guard to the exact product mode set,

@@ -1443,3 +1443,46 @@ Journey: existing completed `shoot.zayn_institutional` has five customer output
 files; restart backfilled `environmental_hero` as its saved preview. The source
 PNG remains the Download asset; only the on-screen preview is a light WebP.
 weakened_checks: none; no QA state or output bytes are altered.
+
+---
+
+Agent ID: codex-main
+Task ID: BETA-SHOOT-RETRY-AND-VIDEO-IP-CHECK-20260803
+Pipeline: UNIVERSE.04 · five Fashion Shoot frames → saved library; VIDEO.02 · Higgsfield submission
+State: READY_FOR_BETA_DEPLOY
+Decision: in live `review` mode, a `shoot.*` camera-scale miss is retained as
+`NON_BLOCKING_FASHION_REVIEW` receipt evidence rather than consuming another
+paid Fashion Shoot retry. Identity, selected-item construction, leakage and
+anatomy remain blocking; `std.*` backgrounds are unchanged. Higgsfield's exact
+`IP check not finished for input media` create rejection now waits 3 seconds
+and retries the identical, already-bound request once. It never retries an
+unknown create outcome or an accepted job. A second identical rejection returns
+the explicit Ukrainian status `VIDEO_INPUT_MEDIA_IP_CHECK_PENDING`.
+Observed: the inspected completed Fashion Shoot already has five customer frames
+and a durable saved-profile projection; the apparent many images were two
+camera-scale retries (2 + 3) plus successful slots, not duplicate shoots.
+Code: pending commit from current beta worktree.
+Tests: new regressions failed before this change; after it, focused
+video/provider/routes + Fashion Shoot scene suite PASS (all selected tests).
+Beta: NOT_DEPLOYED.
+Journey: no paid provider call was made by this repair.
+weakened_checks: only `shoot.*` camera-scale art direction in live `review`/`off`
+mode becomes advisory. The measured value remains in the receipt. This is an
+explicit operator decision; standard scenes and hard identity/item/leakage/anatomy
+checks are unchanged.
+
+---
+
+Agent ID: codex-main
+Task ID: BETA-SHOOT-RETRY-AND-VIDEO-IP-CHECK-20260803
+Pipeline: UNIVERSE.04 · Fashion Shoot delivery; VIDEO.02 · provider input readiness
+State: READY_FOR_BETA_DEPLOY
+Decision: cache-bust identifiers for `scene.css`, `app.js`, `scene-ui.js`, and
+`editorial-shoot-ui.js` now advance as one chain (`20260803-2`). A browser can
+therefore not retain a stale Fashion Shoot shell after the new `app.js` arrives.
+Code: pending commit from this beta worktree.
+Tests: focused UI/provider/video/scene suite 177/177 PASS; contracts and canon PASS.
+Beta: NOT_DEPLOYED.
+Journey: no paid provider call was made by this repair.
+weakened_checks: only the explicit `shoot.*` review-policy change above; no
+identity, item, anatomy, leakage, standard-scene, or video-reference check changed.

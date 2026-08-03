@@ -203,6 +203,17 @@ function providerCommandFailure(cause, phase) {
   const detail = [cause?.message, cause?.stderr, cause?.stdout]
     .filter((value) => typeof value === 'string')
     .join('\n');
+  // This response is emitted before Higgsfield accepts a job: its own input
+  // media replication/IP preflight is still running.  It is therefore safe to
+  // retry the *same immutable request* once; it is not an unknown paid create
+  // outcome and it must not be collapsed into a generic provider rejection.
+  if (phase === 'create' && /\bIP check not finished for input media\b/i.test(detail)) {
+    return new VideoProviderError('Higgsfield is still completing the IP check for input media', {
+      code: 'PROVIDER_INPUT_MEDIA_IP_CHECK_PENDING',
+      retryable: true,
+      cause,
+    });
+  }
   if (/\bjob not found\b/i.test(detail)) {
     return new VideoProviderError('The persisted Higgsfield job no longer exists', {
       code: 'PROVIDER_JOB_NOT_FOUND',
@@ -356,7 +367,12 @@ export class HiggsfieldVideoProvider {
 
   async createJob(request) {
     const args = buildVideoCreateArgs(request);
-    const { stdout } = await this.#run(this.#binary, args);
+    let stdout;
+    try {
+      ({ stdout } = await this.#run(this.#binary, args));
+    } catch (cause) {
+      throw providerCommandFailure(cause, 'create');
+    }
     const payload = parseJson(stdout, 'create');
     const jobId = findJobId(payload);
     if (!jobId) {

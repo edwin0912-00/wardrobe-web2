@@ -352,6 +352,22 @@ test('an ordinary Higgsfield wait transport error remains retryable against the 
   });
 });
 
+test('create classifies Higgsfield input-media IP verification as a retryable pre-submit condition', async () => {
+  const provider = new HiggsfieldVideoProvider({
+    commandRunner: async () => {
+      const error = new Error('IP check not finished for input media');
+      error.stderr = 'IP check not finished for input media';
+      throw error;
+    },
+  });
+
+  await assert.rejects(() => provider.createJob(BASE), (error) => {
+    assert.equal(error.code, 'PROVIDER_INPUT_MEDIA_IP_CHECK_PENDING');
+    assert.equal(error.retryable, true);
+    return true;
+  });
+});
+
 test('a create response without a job id is an unknown paid outcome and is not retried', async () => {
   const provider = new HiggsfieldVideoProvider({
     commandRunner: async () => ({ stdout: JSON.stringify({ accepted: true }), stderr: '' }),

@@ -379,6 +379,27 @@ test('status exposes a failed Higgsfield job as a retryable terminal result', as
   assert.equal(response.json().retry_available, true);
 });
 
+test('status explains bounded Higgsfield input-media IP retries without claiming a job exists', async (t) => {
+  const current = fixture();
+  current.setLiveClip({ status: 'FAILED', failureCode: 'VIDEO_INPUT_MEDIA_IP_CHECK_PENDING' });
+  const app = Fastify();
+  t.after(() => app.close());
+  await registerVideoRoutes(app, {
+    profileApi: { resolveRequestProfile: async () => ({ profileId: 'profile-1' }) },
+    profiles: current.profiles,
+    videoService: current.videoService,
+    runService: { outputFile: async () => null },
+  });
+  const response = await app.inject({
+    method: 'GET', url: '/api/profile/video-clips/11111111-1111-4111-8111-111111111111',
+  });
+  assert.equal(response.statusCode, 200, response.body);
+  assert.equal(response.json().failure_code, 'VIDEO_INPUT_MEDIA_IP_CHECK_PENDING');
+  assert.match(response.json().error, /IP-перевірку/);
+  assert.match(response.json().error, /job не створився/);
+  assert.equal(response.json().next_action, 'RETRY_AVAILABLE');
+});
+
 test('status repairs a stale CREATED profile projection from the terminal runtime QA result', async (t) => {
   const current = fixture();
   current.setProjectionStatus('CREATED');

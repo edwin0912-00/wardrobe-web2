@@ -168,7 +168,7 @@ test('Fashion Shoot records creative QA as review notes while preserving safety 
   assert.match(disabled.summary, /Non-blocking Fashion Shoot review/);
 });
 
-test('strict Fashion Shoot makes the slot camera scale deterministic instead of trusting prose QA', () => {
+test('Fashion Shoot review records camera scale instead of spending retries on its art-direction band', () => {
   const tooLarge = passEvaluation();
   tooLarge.framing_evidence = {
     ...tooLarge.framing_evidence,
@@ -182,6 +182,13 @@ test('strict Fashion Shoot makes the slot camera scale deterministic instead of 
   assert.equal(sceneMatch.decision, 'FAIL');
   assert.deepEqual(sceneMatch.defects, ['CAMERA_CONSEQUENCE_SCALE_MISMATCH']);
   assert.match(sceneMatch.evidence, /61\.1328% subject height is outside the 40–55% slot band/);
+  const strict = applyFashionShootVisualReviewPolicy(
+    structuredClone(locked),
+    'shoot.skylight_haze.environmental_hero',
+    'strict',
+  );
+  assert.equal(strict.gates.find((gate) => gate.id === 'SCENE_MATCH').decision, 'FAIL');
+
   for (const mode of ['review', 'off']) {
     const policyResult = applyFashionShootVisualReviewPolicy(
       structuredClone(locked),
@@ -189,9 +196,17 @@ test('strict Fashion Shoot makes the slot camera scale deterministic instead of 
       mode,
     );
     const policyGate = policyResult.gates.find((gate) => gate.id === 'SCENE_MATCH');
-    assert.equal(policyGate.decision, 'FAIL', `${mode} must not suppress measured camera scale`);
-    assert.deepEqual(policyGate.defects, ['CAMERA_CONSEQUENCE_SCALE_MISMATCH']);
+    assert.equal(policyGate.decision, 'PASS', `${mode} keeps the measured scale as a review note`);
+    assert.match(policyGate.evidence, /NON_BLOCKING_FASHION_REVIEW/);
+    assert.match(policyResult.summary, /CAMERA_CONSEQUENCE_SCALE_MISMATCH/);
   }
+
+  const standard = applyFashionShootVisualReviewPolicy(
+    structuredClone(locked),
+    'std.studio.peach_soft_gloss',
+    'review',
+  );
+  assert.equal(standard.gates.find((gate) => gate.id === 'SCENE_MATCH').decision, 'FAIL');
 
   const inBand = passEvaluation();
   inBand.framing_evidence = {

@@ -390,6 +390,91 @@ test('createClip settles a definite provider rejection instead of leaving a phan
   });
 });
 
+test('createClip retries one exact input-media IP check with the same immutable request', async () => {
+  await withTempDir(async (dir, sourcePath) => {
+    let attempts = 0;
+    const requests = [];
+    const provider = {
+      async createJob(request) {
+        requests.push(request);
+        attempts += 1;
+        if (attempts === 1) {
+          const error = new Error('IP check not finished for input media');
+          error.code = 'PROVIDER_INPUT_MEDIA_IP_CHECK_PENDING';
+          throw error;
+        }
+        return { jobId: 'job_ip_check_ready', raw: { job_id: 'job_ip_check_ready' } };
+      },
+    };
+    const sleeps = [];
+    const store = new ClipStore(dir);
+    const service = new VideoService({
+      provider,
+      clipStore: store,
+      sleep: async (milliseconds) => { sleeps.push(milliseconds); },
+      clock: () => Date.parse('2026-08-03T10:00:00.000Z'),
+    });
+
+    const created = await service.createClip({
+      modeId: 'editorial_micro_moment',
+      surfaceId: 'tv',
+      sourceImagePath: sourcePath,
+    });
+
+    assert.equal(created.jobId, 'job_ip_check_ready');
+    assert.equal(attempts, 2);
+    assert.equal(requests[0], requests[1]);
+    assert.deepEqual(sleeps, [3_000]);
+    const saved = await store.load(created.clipId);
+    assert.deepEqual(saved.providerInputMedia, {
+      state: 'READY',
+      attempt: 2,
+      max_attempts: 2,
+    });
+  });
+});
+
+test('createClip reports input-media IP verification after its bounded automatic retry', async () => {
+  await withTempDir(async (dir, sourcePath) => {
+    let attempts = 0;
+    const provider = {
+      async createJob() {
+        attempts += 1;
+        const error = new Error('IP check not finished for input media');
+        error.code = 'PROVIDER_INPUT_MEDIA_IP_CHECK_PENDING';
+        throw error;
+      },
+    };
+    const store = new ClipStore(dir);
+    const service = new VideoService({
+      provider,
+      clipStore: store,
+      sleep: async () => {},
+      clock: () => Date.parse('2026-08-03T10:00:00.000Z'),
+    });
+
+    await assert.rejects(
+      () => service.createClip({
+        modeId: 'editorial_micro_moment',
+        surfaceId: 'tv',
+        sourceImagePath: sourcePath,
+      }),
+      (error) => error.code === 'VIDEO_INPUT_MEDIA_IP_CHECK_PENDING' && error.status === 503,
+    );
+
+    assert.equal(attempts, 2);
+    const [clipId] = await readdir(path.join(dir, 'clips'));
+    const saved = await store.load(clipId);
+    assert.equal(saved.status, 'FAILED');
+    assert.equal(saved.failureCode, 'VIDEO_INPUT_MEDIA_IP_CHECK_PENDING');
+    assert.deepEqual(saved.providerInputMedia, {
+      state: 'PENDING',
+      attempt: 2,
+      max_attempts: 2,
+    });
+  });
+});
+
 test('recoverSubmittedClip refuses an ambiguous paid job even when the caller echoes the local binding', async () => {
   await withTempDir(async (dir, sourcePath) => {
     const referenceBytes = Buffer.from('recovery-style-video');

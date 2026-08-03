@@ -641,3 +641,33 @@ be weakened to hide it.
   221/221 PASS; scene-service 58/58 PASS; contract and canon verifiers PASS.
 - Deployment state at this record: candidate not yet activated. Public health
   must be checked against the exact activated release SHA after deployment.
+
+## Fashion Shoot retry and Higgsfield input-media readiness — 2026-08-03
+
+- The inspected completed `shoot.*` run is already projected into the saved
+  profile with five customer frames. It was not lost during generation.
+- Its visible surplus candidates came from two strict camera-scale failures:
+  one slot required two retries and another required three. The provider was
+  not the cause; these were deterministic `SCENE_MATCH` camera-band rejections.
+- In beta's explicit Fashion Shoot `review` mode, camera-scale remains measured
+  and recorded but becomes a review note, so it no longer spends paid retries.
+  Identity, selected items, reference leakage and anatomical defects remain hard.
+  Standard `std.*` backgrounds retain their existing framing enforcement.
+- A pre-submit Higgsfield error `IP check not finished for input media` now has
+  a bounded server retry: one 3-second wait, then the exact same immutable
+  request. A second pre-submit refusal reports a truthful retryable status;
+  no remote job or duplicate charge is claimed.
+- Code tests are green; beta activation is pending the exact product commit.
+  No paid generation was used for this repair.
+
+## Pending beta release · 2026-08-03
+
+- Fashion Shoot camera-scale misses in `shoot.*` review mode are receipt notes,
+  not paid retry triggers; standard-background framing and all hard safety/item
+  checks are unchanged.
+- Higgsfield input-media IP preflight receives one same-request retry after
+  three seconds. A second refusal is surfaced to the client as a real,
+  retryable `VIDEO_INPUT_MEDIA_IP_CHECK_PENDING` condition.
+- The four linked Fashion Shoot frontend assets share cache token
+  `20260803-2`, eliminating the verified stale-module chain.
+- Focused UI/provider/video/scene checks: 177/177 PASS; contracts and canon PASS.

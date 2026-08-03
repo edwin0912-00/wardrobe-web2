@@ -110,14 +110,6 @@ const FASHION_SHOOT_BLOCKING_ANATOMY_DEFECTS = new Set([
   'IMPLAUSIBLE_BODY_PROPORTION',
   'SUBJECT_FUSED_WITH_ENVIRONMENT',
 ]);
-const FASHION_SHOOT_SCALE_DEFECTS = new Set([
-  'CAMERA_COMPOSITION_OUT_OF_DECLARED_SCALE',
-  'CAMERA_COMPOSITION_SCALE_MISMATCH',
-  'SUBJECT_SCALE_OUTSIDE_DECLARED_CAMERA_CONSEQUENCE',
-  'SUBJECT_SCALE_EXCEEDS_DECLARED_CAMERA_CONSEQUENCE',
-  'CAMERA_CONSEQUENCE_SCALE_MISMATCH',
-  'CAMERA_CONSEQUENCE_MISMATCH',
-]);
 // Change this only when the bytes sent to the image provider change. It is part
 // of provider idempotency, so an old journal can never be replayed against a
 // materially different repair contract.
@@ -138,12 +130,11 @@ export function applyFashionShootVisualReviewPolicy(
   const notes = [];
   for (const gate of result.gates) {
     if (gate.decision !== 'FAIL') continue;
-    const deterministicScaleFailure = gate.id === 'SCENE_MATCH'
-      && gate.defects.some((defect) => FASHION_SHOOT_SCALE_DEFECTS.has(defect));
-    // A measured mismatch against the slot's immutable camera band is a
-    // contract failure, not a subjective visual-review note. Even review/off
-    // must not turn an environmental hero into a tight portrait.
-    if (deterministicScaleFailure) continue;
+    // In `review` the Create Universe camera band remains recorded in the
+    // receipt, but it is art direction rather than a reason to discard an
+    // otherwise valid paid shot. Identity, item construction, leakage and
+    // anatomy never enter this path. This scope is only `shoot.*`; standard
+    // backgrounds continue to enforce their framing contract unchanged.
     const framingIsOnlyArtDirection = gate.id === 'FRAMING_AND_ANATOMY'
       && !gate.defects.some((defect) => FASHION_SHOOT_BLOCKING_ANATOMY_DEFECTS.has(defect));
     const nonBlocking = mode === 'off'

@@ -207,6 +207,44 @@ Current source before this candidate: `origin/beta` `7f7c271`.
 - Journey: `NOT_RUN` until the public beta Fashion Shoot smoke is observed.
 - `weakened_checks: none`.
 
+### 2026-08-03 · Pending beta repair: retries, input-media readiness, fresh UI modules
+
+- A completed Fashion Shoot remains five customer frames in the profile; its
+  apparent surplus was camera-scale QA retries, not duplicate shoots. In its
+  explicit `review` mode, that measured art-direction variance is recorded
+  without re-spending a paid frame attempt. Core visual safety remains strict.
+- Higgsfield's pre-submit input-media IP check now gets one same-request retry
+  after three seconds. If it is still pending, beta clearly reports that no job
+  was created and offers the user a retry instead of a false connection error.
+- `scene.css`, `app.js`, `scene-ui.js`, and `editorial-shoot-ui.js` now ship
+  with a single cache-bust token, so a stale dependent module cannot mask a
+  newly deployed Fashion Shoot UI.
+- Evidence: focused UI/provider/video/scene tests **177/177 PASS**;
+  contracts and canon PASS. No paid generation.
+
+## 2026-08-03 · active candidate: Fashion Shoot retries + truthful Higgsfield video readiness
+
+Plain product change: a Fashion Shoot customer frame no longer gets discarded
+solely for falling outside its stylistic camera-scale band while beta is in
+`review`. The measured band result remains visible in its receipt, but the
+five-frame series proceeds. This applies only to `shoot.*`; the 16 ordinary
+backgrounds stay strict.
+
+Video create now understands Higgsfield's exact pre-submit message `IP check
+not finished for input media`: it waits three seconds, resends the *same*
+hash-bound request once, and then gives a clear Ukrainian recovery message if
+Higgsfield is still not ready. It never retries a missing/ambiguous accepted
+job and never claims a provider job was created when it was not.
+
+Verified investigation: the apparent duplicate last Fashion Shoot was already
+saved with five customer frames; the extra provider images came from two
+camera-scale retries (2 + 3), not a persistence loss.
+
+State: `READY_FOR_BETA_DEPLOY`; focused provider/video/routes/Fashion Shoot
+tests PASS. `weakened_checks`: only `shoot.*` camera-scale in review/off is
+advisory, by explicit operator decision; hard identity/item/leakage/anatomy and
+all `std.*` gates remain unchanged. No paid call was made by this candidate.
+
 ## Beta sync · 2026-07-31 · integration candidate
 
 This sync started from the safe beta source cut `e7d175c`. The synced release

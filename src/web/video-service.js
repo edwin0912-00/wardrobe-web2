@@ -74,6 +74,14 @@ const AUTOMATIC_REFERENCE_QA_FAILURE_CODES = new Set([
   'VIDEO_REFERENCE_NOT_REPLACED',
 ]);
 
+// Higgsfield can reject a create before it has accepted or billed a job while
+// its own input-media IP check is still in progress.  This is deliberately a
+// separate, tiny retry budget from semantic Fashion Video repair: no provider
+// job exists yet, and the same bound request can be resubmitted once.
+export const MAX_INPUT_MEDIA_IP_CHECK_CREATE_ATTEMPTS = 2;
+export const INPUT_MEDIA_IP_CHECK_RETRY_DELAY_MS = 3_000;
+const INPUT_MEDIA_IP_CHECK_PENDING_CODE = 'PROVIDER_INPUT_MEDIA_IP_CHECK_PENDING';
+
 const SHA256 = /^[a-f0-9]{64}$/;
 const CUT_PEOPLE = new Set(['APPROVED_AVATAR_ONLY', 'NO_PERSON', 'REFERENCE_PERFORMER', 'MIXED_OR_UNKNOWN']);
 
@@ -429,6 +437,7 @@ export class VideoService {
   #provider;
   #store;
   #clock;
+  #sleep;
 
   #finalizer;
 
@@ -452,6 +461,7 @@ export class VideoService {
     fashionVideoReferenceResolver = null,
     automaticQaFn = null,
     fashionVideoQaMode = 'strict',
+    sleep = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
   } = {}) {
     if (!provider) {
       throw new VideoServiceError('A video provider is required', {
@@ -468,9 +478,15 @@ export class VideoService {
         code: 'SERVICE_MISCONFIGURED',
       });
     }
+    if (typeof sleep !== 'function') {
+      throw new VideoServiceError('A video sleep function must be callable', {
+        code: 'SERVICE_MISCONFIGURED',
+      });
+    }
     this.#provider = provider;
     this.#store = clipStore;
     this.#clock = clock;
+    this.#sleep = sleep;
     this.#finalizer = finalizer;
     this.#fashionVideoReferenceResolver = fashionVideoReferenceResolver;
     this.#automaticQaFn = automaticQaFn;
@@ -872,25 +888,70 @@ export class VideoService {
     // Phase 1: create the job. The onJobCreated hook persists the job id
     // before the wait phase starts, so a crash cannot orphan a paid job.
     let created;
-    try {
-      created = await this.#provider.createJob(request);
-    } catch (cause) {
-      // A provider can reject locally before it accepts a job (invalid media
-      // shape, expired local authentication, etc.). Leaving such a clip in
-      // SUBMITTING makes it look paid/active forever and blocks a safe release.
-      // The one exception is an acknowledgement we cannot parse: that outcome
-      // may already be billed, so it stays recoverable until reconciled.
-      if (cause?.code === 'CREATE_OUTCOME_UNKNOWN') throw cause;
-      await this.#store.save(clipId, {
-        ...submitting,
-        status: 'FAILED',
-        failureCode: 'VIDEO_CREATE_REJECTED',
-        updatedAt: new Date(this.#clock()).toISOString(),
-      });
-      throw new VideoServiceError('Video provider rejected the create request', {
-        code: 'VIDEO_CREATE_REJECTED',
-        status: 502,
-      });
+    let providerInputMedia = null;
+    for (let attempt = 1; attempt <= MAX_INPUT_MEDIA_IP_CHECK_CREATE_ATTEMPTS; attempt += 1) {
+      try {
+        // `request` is deliberately constructed once above and reused by
+        // identity, not cloned/recompiled: the retry has the same content
+        // hashes, prompt, reference order and idempotency binding.
+        created = await this.#provider.createJob(request);
+        if (attempt > 1) {
+          providerInputMedia = {
+            state: 'READY',
+            attempt,
+            max_attempts: MAX_INPUT_MEDIA_IP_CHECK_CREATE_ATTEMPTS,
+          };
+        }
+        break;
+      } catch (cause) {
+        const inputMediaPending = cause?.code === INPUT_MEDIA_IP_CHECK_PENDING_CODE;
+        if (inputMediaPending && attempt < MAX_INPUT_MEDIA_IP_CHECK_CREATE_ATTEMPTS) {
+          await this.#store.save(clipId, {
+            ...submitting,
+            providerInputMedia: {
+              state: 'WAITING_TO_RETRY',
+              attempt,
+              max_attempts: MAX_INPUT_MEDIA_IP_CHECK_CREATE_ATTEMPTS,
+              retry_after_ms: INPUT_MEDIA_IP_CHECK_RETRY_DELAY_MS,
+            },
+            updatedAt: new Date(this.#clock()).toISOString(),
+          });
+          await this.#sleep(INPUT_MEDIA_IP_CHECK_RETRY_DELAY_MS);
+          continue;
+        }
+        // A provider can reject locally before it accepts a job (invalid media
+        // shape, expired local authentication, etc.). Leaving such a clip in
+        // SUBMITTING makes it look paid/active forever and blocks a safe release.
+        // The one exception is an acknowledgement we cannot parse: that outcome
+        // may already be billed, so it stays recoverable until reconciled.
+        if (cause?.code === 'CREATE_OUTCOME_UNKNOWN') throw cause;
+        const terminalInputMedia = inputMediaPending
+          ? {
+              state: 'PENDING',
+              attempt,
+              max_attempts: MAX_INPUT_MEDIA_IP_CHECK_CREATE_ATTEMPTS,
+            }
+          : null;
+        await this.#store.save(clipId, {
+          ...submitting,
+          ...(terminalInputMedia ? { providerInputMedia: terminalInputMedia } : {}),
+          status: 'FAILED',
+          failureCode: inputMediaPending
+            ? 'VIDEO_INPUT_MEDIA_IP_CHECK_PENDING'
+            : 'VIDEO_CREATE_REJECTED',
+          updatedAt: new Date(this.#clock()).toISOString(),
+        });
+        if (inputMediaPending) {
+          throw new VideoServiceError(
+            'Higgsfield ще завершує IP-перевірку завантажених медіа. Генерація не стартувала; спробуйте ще раз через кілька секунд.',
+            { code: 'VIDEO_INPUT_MEDIA_IP_CHECK_PENDING', status: 503 },
+          );
+        }
+        throw new VideoServiceError('Video provider rejected the create request', {
+          code: 'VIDEO_CREATE_REJECTED',
+          status: 502,
+        });
+      }
     }
 
     const receipt = {
@@ -929,6 +990,7 @@ export class VideoService {
         job_id: created.jobId,
         payload: created.raw ?? null,
       },
+      provider_input_media: providerInputMedia,
     };
     const receiptBytes = Buffer.from(`${JSON.stringify(receipt, null, 2)}\n`);
     const createReceiptSha256 = sha256(receiptBytes);
@@ -941,6 +1003,7 @@ export class VideoService {
       providerKey: created.providerKey ?? 'higgsfield',
       providerCreateAttempt: created.createAttempt ?? 1,
       fallbackUsed: created.fallbackUsed === true,
+      ...(providerInputMedia ? { providerInputMedia } : {}),
       status: 'CREATED',
       createReceiptSha256,
       createReceiptFile: 'create-receipt.json',
