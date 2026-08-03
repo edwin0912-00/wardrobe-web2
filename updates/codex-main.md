@@ -1552,26 +1552,3 @@ Code: this commit.
 Tests: `node --test test/video/*.test.js` 213/213 PASS.
 Beta: NOT_DEPLOYED. Journey: no paid provider request made.
 weakened_checks: none.
-Agent ID: codex-main
-Task: FASHION-VIDEO-REFERENCE-LABEL-ROLLBACK-20260803
-Product line: Fashion Video
-Pipeline: VIDEO.01 locked style reference → VIDEO.02 Higgsfield create
-State: CODE_TESTED — release-owner activation pending
-Finding: the latest live chain created three real Higgsfield Seedance jobs, and
-each terminally returned `failed` without a provider reason. All six observed
-terminal failures after the label rollout used `@Video 1` / `@Image N`; the
-same verified `hard-sun-pose` reference previously reached persisted PASS with
-`[Video 1]` / `[Image N]`. Higgsfield's job query exposes `status: failed`,
-but no finer error field.
-Change: new requests use the proven inert bracket labels again, while actual
-media order remains governed only by `--video-references` and
-`--image-references`. The immutable binding moves to v3, so v2 receipts are
-not rewritten. No QA rule, retry count, source image, style reference, or
-delivery rule was weakened.
-Evidence: pre-change bracket regression test failed 16/19; post-change
-`node --test test/video/*.test.js` PASS 213/213; `git diff --check` PASS.
-Beta: NOT_DEPLOYED.
-Journey: NOT_RUN — no fourth paid retry was created before release.
-weakened_checks: none.
-
----

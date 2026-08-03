@@ -54,21 +54,21 @@ test('the reference-transfer prompt makes Video 1 style authority only and bans 
     appearanceRoles: ['identity_face', 'garment_detail'],
     cutSheet,
   });
-  assert.match(prompt, /^Reference bindings\. \[Video 1\] is private reference-only directing material/);
+  assert.match(prompt, /^Reference bindings\. @Video 1 is private reference-only directing material/);
   assert.match(prompt, /complete shot sequence, cut timing, transitions/);
   assert.match(prompt, /Every final frame must be newly generated/);
   assert.match(prompt, /Never splice, reuse, reveal, freeze, picture-in-picture, reflection, monitor image/);
-  assert.match(prompt, /\[Image 1\].*exact approved person.*complete approved outfit/);
+  assert.match(prompt, /@Image 1.*exact approved person.*complete approved outfit/);
   assert.match(prompt, /For every cut/);
   assert.match(prompt, /No source performer face, body, skin, hair, clothing/);
-  assert.match(prompt, /\[Image 1\].*exact pure-white background/);
-  assert.match(prompt, /\[Image 2\] is an optional white-background face-detail reference/);
-  assert.match(prompt, /\[Image 3\] is a white-background garment-only evidence card/);
+  assert.match(prompt, /@Image 1.*exact pure-white background/);
+  assert.match(prompt, /@Image 2 is an optional white-background face-detail reference/);
+  assert.match(prompt, /@Image 3 is a white-background garment-only evidence card/);
   assert.match(prompt, /CUT SHEET/);
   assert.match(prompt, /CUT 01 0ms–5000ms \| APPROVED_AVATAR_OR_EMPTY/);
   assert.match(prompt, /Never replace the reference environment/);
   assert.match(prompt, /Do not simplify the reference into a static portrait/);
-  assert.doesNotMatch(prompt, /@Video|@Image/);
+  assert.doesNotMatch(prompt, /^@/);
   assert.doesNotMatch(prompt, /blink|breathe|camera is effectively still/i);
 });
 
@@ -76,7 +76,7 @@ test('Fashion Video provider labels follow the exact appearance-reference array'
   const garmentOnly = buildFashionVideoReferencePrompt({
     appearanceRoles: ['garment_detail'],
   });
-  assert.match(garmentOnly, /\[Image 2\] is a white-background garment-only evidence card/);
+  assert.match(garmentOnly, /@Image 2 is a white-background garment-only evidence card/);
   assert.doesNotMatch(garmentOnly, /face-detail reference/);
 
   assert.throws(
@@ -113,8 +113,8 @@ test('reference-performer repair plans are bounded, distinct and compiled into t
   });
   assert.match(prompt, /REFERENCE REPAIR cut-boundary-subject-isolation-pass/);
   assert.match(prompt, /every cut-sheet interval as an independent reconstruction boundary/);
-  assert.match(prompt, /only \[Image 1\] where a person is required/);
-  assert.match(first.instruction, /Treat \[Video 1\] only as timing, camera and environment authority/);
+  assert.match(prompt, /only @Image 1 where a person is required/);
+  assert.match(first.instruction, /Treat @Video 1 only as timing, camera and environment authority/);
 });
 
 test('walk or stride is refused unless the source really shows the feet', () => {
