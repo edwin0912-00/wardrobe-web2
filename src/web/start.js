@@ -6,6 +6,7 @@ import { DraftService } from './draft-service.js';
 import { adoptLegacyEditorialShootRoot } from './editorial-shoot-service.js';
 import { createGenerationRuntime } from './generation-provider.js';
 import { ProfileService } from './profile-service.js';
+import { TestAuditService } from './test-audit-service.js';
 import { RunService } from './run-service.js';
 import { runLocalPreflight } from './preflight.js';
 import { createSceneRuntimeDependencies } from './scene-runtime.js';
@@ -43,6 +44,21 @@ await drafts.initialize();
 await drafts.cleanupExpired();
 startupTrace('drafts_ready');
 const profiles = new ProfileService({ databasePath: path.join(runtimeRoot, 'profiles.sqlite') });
+const configuredAuditRetention = Number.parseInt(process.env.ZEELY_TEST_AUDIT_RETENTION_DAYS ?? '30', 10);
+const testAudit = process.env.ZEELY_TEST_AUDIT_ENABLED === 'false'
+  ? null
+  : new TestAuditService({
+    databasePath: path.join(runtimeRoot, 'test-audit.sqlite'),
+    // Do not emit or persist the source IP. This secret only turns it into an
+    // internal correlation value so an operator can spot one network without
+    // recovering the address from the audit database.
+    ipHashKey: process.env.ZEELY_TEST_AUDIT_IP_HASH_KEY ?? process.env.ZEELY_SESSION_SECRET ?? null,
+    retentionDays: Number.isInteger(configuredAuditRetention) && configuredAuditRetention > 0
+      ? configuredAuditRetention
+      : 30,
+  });
+await testAudit?.initialize();
+startupTrace('test_audit_ready');
 const vlm = createVlmEvaluator();
 const generation = await createGenerationRuntime({
   mode: generationMode,
@@ -169,11 +185,13 @@ const app = await createWebApp({
   videoSourceBridge,
   releaseIdentity,
   godViewAuth,
+  testAudit,
 });
 startupTrace('web_app_ready');
 const draftCleanupTimer = setInterval(() => drafts.cleanupExpired().catch(() => {}), 60_000);
 const profileCleanup = async () => {
   profiles.cleanupExpired();
+  testAudit?.cleanup();
   await profiles.flushDeletionQueue({
     runService: service,
     sceneService: app.sceneService,
@@ -187,6 +205,7 @@ app.addHook('onClose', async () => {
   clearInterval(draftCleanupTimer);
   clearInterval(profileCleanupTimer);
   profiles.close();
+  testAudit?.close();
   await generation.close();
 });
 const port = Number.parseInt(process.env.PORT ?? '4173', 10);

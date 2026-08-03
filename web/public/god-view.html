@@ -6,7 +6,7 @@
   <meta name="robots" content="noindex,nofollow,noarchive">
   <meta name="referrer" content="same-origin">
   <title>Wardrobe · усі тестові образи</title>
-  <link rel="stylesheet" href="/god-view.css?v=20260730-2">
+  <link rel="stylesheet" href="/god-view.css?v=20260803-1">
 </head>
 <body>
   <main class="god-shell">
@@ -28,6 +28,21 @@
 
     <section id="god-dashboard" hidden>
       <section id="god-summary" class="god-summary" aria-label="Підсумок runtime"></section>
+      <section id="god-audit" class="god-audit" aria-labelledby="god-audit-title">
+        <div class="god-picker-head">
+          <div><p class="god-eyebrow">PRIVATE TEST AUDIT · 30 DAYS</p><h2 id="god-audit-title">Тестові сесії та реакція на journey</h2></div>
+          <span id="god-audit-status" class="god-muted"></span>
+        </div>
+        <p class="god-note">Анонімні browser-профілі: пристрій, ОС, браузер, країна з edge-заголовка, останній крок, помилки та вихід. Сирі IP, фото, промпти й повний user-agent не зберігаються.</p>
+        <div id="god-audit-summary" class="god-audit-summary" aria-label="Підсумок тестових сесій"></div>
+        <div class="god-audit-filters" aria-label="Фільтр тестових сесій">
+          <button type="button" data-audit-filter="ALL" aria-pressed="true">Усі</button>
+          <button type="button" data-audit-filter="MY_TESTS" aria-pressed="false">Мої тести</button>
+          <button type="button" data-audit-filter="EXTERNAL_TESTS" aria-pressed="false">Зовнішні</button>
+          <button type="button" data-audit-filter="UNCLASSIFIED" aria-pressed="false">Нерозмічені</button>
+        </div>
+        <div id="god-audit-profiles" class="god-audit-profiles" aria-live="polite"></div>
+      </section>
       <section class="god-look-picker" aria-labelledby="god-look-picker-title">
         <div class="god-picker-head"><div><p class="god-eyebrow">GOD VIEW · УСІ АКТИВНІ СЕСІЇ</p><h2 id="god-look-picker-title">Обери збережений образ</h2></div><span id="god-live-status" class="god-muted" aria-live="polite"></span></div>
         <div id="god-look-picker-grid" class="god-look-picker-grid" aria-live="polite"></div>
@@ -36,6 +51,6 @@
       <div id="god-profiles" class="god-profiles" aria-live="polite"></div>
     </section>
   </main>
-  <script type="module" src="/god-view.js?v=20260731-1"></script>
+  <script type="module" src="/god-view.js?v=20260803-1"></script>
 </body>
 </html>

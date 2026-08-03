@@ -25,6 +25,7 @@ import {
 } from './video-source-bridge.js';
 import { registerHeicConversionRoute } from './heic-converter.js';
 import { registerGodViewRoutes } from './god-view-routes.js';
+import { registerTestAuditRoutes } from './test-audit-routes.js';
 
 export async function createWebApp({
   service,
@@ -42,6 +43,7 @@ export async function createWebApp({
   videoSourceBridge = null,
   releaseIdentity = null,
   godViewAuth = null,
+  testAudit = null,
 }) {
   // A degraded provider preflight means the local CLI cannot prove that it can
   // create and observe a paid Higgsfield job. Do not let a user enter the
@@ -170,6 +172,7 @@ export async function createWebApp({
         secureCookie,
       })
     : null;
+  await registerTestAuditRoutes(app, { testAudit, profileApi });
   await registerPostShootRoutes(app, {
     projectRoot: path.resolve(import.meta.dirname, '..', '..'),
     lucyTokenIssuer,
@@ -214,6 +217,7 @@ export async function createWebApp({
     sceneService,
     editorialShootService,
     videoService,
+    testAudit,
   });
   if (drafts) await registerDraftRoutes(app, {
     service: drafts,
@@ -238,6 +242,8 @@ export async function createWebApp({
     await registerMonitorRoutes(app, {
       store: monitor,
       acceptClientTelemetry: true,
+      testAudit,
+      profileApi,
       statusProvider: async () => ({
         status: 'ok',
         service: 'web',

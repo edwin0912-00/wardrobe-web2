@@ -1570,3 +1570,27 @@ Code: this commit.
 Tests: `node --test test/video/*.test.js` 213/213 PASS.
 Beta: NOT_DEPLOYED. Journey: no paid provider request made.
 weakened_checks: none.
+
+---
+
+Agent ID: codex-main
+Task: BETA-TEST-AUDIT-001
+Pipeline: private test journey → God View; cinematic main adapter → beta engine
+State: CODE_VERIFIED — release pending
+Decision: no invite codes and no hidden browser fingerprinting.  Every browser
+receives the existing anonymous profile session; the journal stores only coarse
+device class/OS/browser major, edge country, a one-way network correlation ID,
+entry, meaningful journey stage, error count, completion count and page exit.
+God View lets an authorized tester manually mark a browser as `Мій тест`,
+`Зовнішній` or unclassified. Raw IPs, complete user-agent strings, cookies,
+uploads, filenames, prompts, provider URLs and error text are rejected or never
+accepted by the endpoint.
+Code: this commit; private SQLite store `test-audit.sqlite`, allowlisted
+same-origin route, beta telemetry bridge, God View dashboard/labels, and a
+small cinematic-main client that forwards only visible journey state.
+Tests: audit + God View + profile/monitor focused suite 20/20 PASS;
+`npm run verify:contracts` PASS (41 schemas, 9 fixtures, 3 jobs); cinematic
+client wiring/privacy tests 5/5 PASS.
+Beta: NOT_DEPLOYED. Journey: local Fastify route, lifecycle and God View
+integration covered; no provider or paid generation invoked.
+weakened_checks: none.

@@ -10,7 +10,11 @@ const summary = document.querySelector('#god-summary');
 const profilesRoot = document.querySelector('#god-profiles');
 const lookPicker = document.querySelector('#god-look-picker-grid');
 const liveStatus = document.querySelector('#god-live-status');
+const auditRoot = document.querySelector('#god-audit-profiles');
+const auditSummary = document.querySelector('#god-audit-summary');
+const auditStatus = document.querySelector('#god-audit-status');
 let refreshTimer = null;
+let auditFilter = 'ALL';
 
 async function request(url, options = {}) {
   const response = await fetch(url, {
@@ -189,6 +193,151 @@ function renderLookPicker(data) {
   });
 }
 
+function countryName(code) {
+  if (!code) return 'Країна не передана edge';
+  try {
+    return new Intl.DisplayNames(['uk'], { type: 'region' }).of(code) || code;
+  } catch {
+    return code;
+  }
+}
+
+function auditSegmentLabel(segment) {
+  if (segment === 'MY_TESTS') return 'Мої тести';
+  if (segment === 'EXTERNAL_TESTS') return 'Зовнішній тест';
+  return 'Нерозмічений browser';
+}
+
+function shortProfileId(value) {
+  return typeof value === 'string' ? value.slice(0, 8) : '—';
+}
+
+function eventDescription(event) {
+  const parts = [event.type];
+  if (event.stage) parts.push(event.stage);
+  if (event.gate) parts.push(`gate:${event.gate}`);
+  if (Number.isInteger(event.leg)) parts.push(`room:${event.leg + 1}`);
+  if (event.code) parts.push(event.code);
+  return parts.join(' · ');
+}
+
+async function updateAuditSegment(profileId, segment) {
+  await request(`/api/god-view/test-audit/profiles/${encodeURIComponent(profileId)}/segment`, {
+    method: 'POST',
+    body: JSON.stringify({ segment }),
+  });
+  await loadOverview();
+}
+
+function auditSegmentButton(profile, segment, label) {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = profile.segment === segment ? 'god-audit-segment active' : 'god-audit-segment';
+  button.textContent = label;
+  button.addEventListener('click', () => updateAuditSegment(profile.profile_id, segment).catch((error) => {
+    auditStatus.textContent = `Не вдалося змінити мітку: ${error.message}`;
+  }));
+  return button;
+}
+
+function auditCard(profile) {
+  const card = element('article', null, 'god-audit-profile');
+  const head = element('header');
+  const title = element('div');
+  title.append(
+    element('p', auditSegmentLabel(profile.segment), 'god-label'),
+    element('h3', `Browser ${shortProfileId(profile.profile_id)}`),
+  );
+  head.append(title, element('span', `Остання дія ${stamp(profile.last_seen_at)}`, 'god-muted'));
+  card.append(head);
+
+  const facts = element('dl', null, 'god-audit-facts');
+  const addFact = (label, value) => {
+    facts.append(element('dt', label), element('dd', value || '—'));
+  };
+  addFact('Пристрій', `${profile.device} · ${profile.os}`);
+  addFact('Браузер', `${profile.browser}${profile.browser_major ? ` ${profile.browser_major}` : ''}`);
+  addFact('Звідки', countryName(profile.country_code));
+  addFact('Мережа', profile.network_id ? `псевдо-ID ${profile.network_id}` : 'IP не переданий edge');
+  addFact('Вхід', stamp(profile.first_seen_at));
+  addFact('Останній крок', [profile.last_event, profile.last_stage].filter(Boolean).join(' · ') || '—');
+  addFact('Вихід', profile.last_ended_at ? stamp(profile.last_ended_at) : 'ще не зафіксований');
+  card.append(facts);
+
+  const counters = element('div', null, 'god-audit-counters');
+  for (const [label, value] of [
+    ['сесій', profile.session_count],
+    ['подій', profile.event_count],
+    ['помилок', profile.error_count],
+    ['результатів', profile.completion_count],
+  ]) {
+    const unit = element('span');
+    unit.append(element('strong', String(value)), ` ${label}`);
+    counters.append(unit);
+  }
+  card.append(counters);
+
+  const controls = element('div', null, 'god-audit-segments');
+  controls.append(
+    auditSegmentButton(profile, 'MY_TESTS', 'Мій тест'),
+    auditSegmentButton(profile, 'EXTERNAL_TESTS', 'Зовнішній'),
+    auditSegmentButton(profile, 'UNCLASSIFIED', 'Зняти мітку'),
+  );
+  card.append(controls);
+
+  const details = element('details', null, 'god-audit-events');
+  details.append(element('summary', `Останні події · ${profile.events?.length ?? 0}`));
+  const list = element('ol');
+  for (const event of profile.events ?? []) {
+    const item = element('li');
+    item.append(element('time', stamp(event.occurred_at)), ' ', eventDescription(event));
+    list.append(item);
+  }
+  details.append(list);
+  card.append(details);
+  return card;
+}
+
+function renderAudit(audit) {
+  if (!auditRoot || !auditSummary || !auditStatus) return;
+  auditRoot.replaceChildren();
+  auditSummary.replaceChildren();
+  if (!audit) {
+    auditStatus.textContent = 'test-audit не увімкнено на цьому runtime';
+    auditRoot.append(element('p', 'Поки немає приватного test-audit store.', 'god-muted'));
+    return;
+  }
+  for (const [label, value] of [
+    ['browser-профілі', audit.summary?.profiles ?? 0],
+    ['мої', audit.summary?.my_tests ?? 0],
+    ['зовнішні', audit.summary?.external_tests ?? 0],
+    ['нерозмічені', audit.summary?.unclassified ?? 0],
+    ['завершення', audit.summary?.completions ?? 0],
+    ['помилки', audit.summary?.errors ?? 0],
+  ]) {
+    const unit = element('article');
+    unit.append(element('strong', String(value)), element('span', label));
+    auditSummary.append(unit);
+  }
+  auditStatus.textContent = `${audit.range_days} днів · зберігаємо ${audit.retention_days} днів`;
+  const profiles = (audit.profiles ?? []).filter((profile) => auditFilter === 'ALL' || profile.segment === auditFilter);
+  if (!profiles.length) {
+    auditRoot.append(element('p', 'У цьому фільтрі ще немає browser-сесій.', 'god-muted'));
+  } else {
+    for (const profile of profiles) auditRoot.append(auditCard(profile));
+  }
+}
+
+for (const button of document.querySelectorAll('[data-audit-filter]')) {
+  button.addEventListener('click', () => {
+    auditFilter = button.dataset.auditFilter || 'ALL';
+    for (const peer of document.querySelectorAll('[data-audit-filter]')) {
+      peer.setAttribute('aria-pressed', String(peer === button));
+    }
+    loadOverview().catch((error) => { auditStatus.textContent = error.message; });
+  });
+}
+
 function profileCard(profile) {
   const card = element('section', null, 'god-profile');
   const head = element('header');
@@ -225,6 +374,7 @@ function render(data) {
     summary.append(unit);
   }
   profilesRoot.replaceChildren();
+  renderAudit(data.audit);
   renderLookPicker(data);
   if (!data.profiles?.length) {
     profilesRoot.append(element('p', 'У активному runtime ще немає збережених профілів.', 'god-muted'));

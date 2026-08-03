@@ -35,6 +35,9 @@ const PUBLIC_EVENT_TYPES = new Set([
   'client.file_selected',
   'client.garment_selected',
   'client.online',
+  'client.exit',
+  'client.profile_error',
+  'client.profile_saved',
   'client.ready',
   'client.run_event',
   'client.sse_error',
@@ -298,6 +301,11 @@ function publicData(data, type) {
       return result;
     case 'client.online':
       add('online', publicBoolean(source.online));
+      return result;
+    case 'client.exit':
+    case 'client.profile_error':
+    case 'client.profile_saved':
+      add('status', publicEnum(source.status, PUBLIC_RUN_STATUSES));
       return result;
     case 'client.visibility':
       add('visibility', source.visibility === 'hidden' || source.visibility === 'visible' ? source.visibility : undefined);

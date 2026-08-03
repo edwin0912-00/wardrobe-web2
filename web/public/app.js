@@ -2284,6 +2284,10 @@ document.addEventListener('keydown', (event) => {
   }
 });
 window.addEventListener('pageshow', () => {
+  // A back/forward-cache restore reuses this browser session. Re-open its
+  // audit lifecycle before returning focus so God View does not show a live
+  // tester as having permanently exited.
+  telemetry('client.boot', { stage: 'pageshow' });
   if (sessionStorage.getItem(LIVE_RETURN_FOCUS_KEY) !== 'return') return;
   sessionStorage.removeItem(LIVE_RETURN_FOCUS_KEY);
   requestAnimationFrame(() => document.querySelector('#profile-look-live')?.focus({ preventScroll: true }));
@@ -2580,6 +2584,15 @@ window.addEventListener('online', () => {
   if (runId && !isTerminal(activeRun)) resumeRun(runId).then((found) => { if (!found) initialize().catch(() => {}); });
 });
 window.addEventListener('offline', () => telemetry('client.online', { online: false, stage: 'network' }));
+window.addEventListener('pagehide', () => {
+  // `pagehide` survives ordinary reload/navigation on mobile where `unload`
+  // is unreliable.  This records only the public run stage, never a photo,
+  // filename, prompt or provider message.
+  telemetry('client.exit', {
+    status: activeRun?.status ?? null,
+    stage: activeRun?.inner_state ?? activeRun?.phase ?? 'pagehide',
+  }, activeRun?.run_id ?? null);
+});
 
 initialize().catch((error) => {
   formError.textContent = `Не вдалося запустити інтерфейс: ${humanizeVisibleText(error.message)}`;
