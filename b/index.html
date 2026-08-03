@@ -388,7 +388,8 @@
    * desktop and mobile instead of coupling it to which file happened to finish first.
    * iOS/Safari may still refuse audible autoplay without a gesture; in that case audio.js
    * keeps the same intended audible state and unlocks on the first genuine interaction.
-   * The UI says that honestly rather than falsely claiming the room has sound. */
+   * The ordinary first swipe/tap owns that retry — the sound control never asks the
+   * visitor for a separate "tap to start" action. */
   var scorePrepared = false;
   var scorePlaybackRequested = false;
   var soundGestureArmed = false;
@@ -398,8 +399,12 @@
     var state = window.score.state();
     var active = state.activeIndex >= 0 ? state.activeIndex : 0;
     var playing = state.activeIndex >= 0 && state.paused && state.paused[active] === false;
-    soundBtn.setAttribute('aria-pressed', String(playing && !state.muted));
-    soundBtn.textContent = !playing ? 'звук: торкніться' : (state.muted ? 'без звуку' : 'звук');
+    /* Sound is ON by default. `playing` is retained only as machine-readable state:
+     * iOS can defer the initial audible call until the visitor's first ordinary swipe,
+     * but we never turn that browser policy into a second required UI action. */
+    soundBtn.setAttribute('aria-pressed', String(!state.muted));
+    soundBtn.dataset.playback = playing ? 'playing' : (state.muted ? 'muted' : 'starting');
+    soundBtn.textContent = state.muted ? 'без звуку' : 'звук';
   }
 
   function armSoundStateAfterGesture() {

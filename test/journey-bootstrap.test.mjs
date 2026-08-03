@@ -251,7 +251,7 @@ test('the factual 50% audio entry fades in rather than switching the room on at 
   assert.match(audioSource, /function bringMasterIn\(\)[\s\S]*?rampGain\(master\.gain, masterTargetGain, entryFadeInMs\)/);
 });
 
-test('a mobile first natural gesture retries the already-requested audible score', async () => {
+test('mobile requests sound automatically and retries on the first natural gesture without a separate sound prompt', async () => {
   const app = await boot({ ios: true, progressSamples: [0.5], audioStartResults: [false, true] });
   assert.deepEqual(app.audioEvents, [
     { type: 'create', ratio: 0.5 },
@@ -264,6 +264,9 @@ test('a mobile first natural gesture retries the already-requested audible score
     { type: 'start', ratio: 0.5 },
     { type: 'start', ratio: 0.5 },
   ]);
+  assert.doesNotMatch(html, /звук:\s*торкніться/i);
+  assert.match(html, /soundBtn\.textContent = state\.muted \? 'без звуку' : 'звук'/);
+  assert.match(html, /soundBtn\.setAttribute\('aria-pressed', String\(!state\.muted\)\)/);
 });
 
 test('header “Образи” returns to the selected look library and mirror station', async () => {
