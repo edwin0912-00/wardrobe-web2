@@ -230,6 +230,10 @@
     var tvWakeTimer = 0;
     var laptopMounted = false;
     var laptopFullscreen = false;
+    /* The terminal handoff owns the last measured quad until the user explicitly
+     * reverses out of the document. This is a geometry lock, not a fullscreen route:
+     * the same mounted node remains on the filmed laptop. */
+    var laptopTerminalLock = false;
     var laptopHome = laptop && laptop.parentNode;
     var laptopHomeNext = laptop && laptop.nextSibling;
     var lastFrame = null;
@@ -387,13 +391,17 @@
        * Let the calibrated terminal quad hold for one subframe so an arrival at
        * 14.14567 does not hide the document just after it was correctly mounted. */
       var terminalClockTolerance = 0.02;
-      var visible = frame.leg === calibration.laptop.leg &&
-        frame.videoTime != null && frame.videoTime >= first && frame.videoTime <= last + terminalClockTolerance;
+      var visible = laptopTerminalLock || (frame.leg === calibration.laptop.leg &&
+        frame.videoTime != null && frame.videoTime >= first && frame.videoTime <= last + terminalClockTolerance);
       if (!visible) {
         setHidden(laptop, true);
         return;
       }
-      var quad = math.interpolateQuad(frames, frame.videoTime);
+      /* The movie's decoded clock may continue for a subframe after the terminal
+       * handoff. While the document owns scroll, pin it to the last calibrated laptop
+       * quad instead of letting a later movie frame remove the only visible document. */
+      var geometryTime = laptopTerminalLock ? last : frame.videoTime;
+      var quad = math.interpolateQuad(frames, geometryTime);
       quad = insetQuad(quad, calibration.laptop.safe_inset || 0);
       var sourceWidth = 1200;
       var sourceHeight = 800;
@@ -475,6 +483,12 @@
       laptopMounted = true;
       update(lastFrame);
       return true;
+    }
+
+    function setLaptopTerminalLock(active) {
+      laptopTerminalLock = Boolean(active);
+      update(lastFrame);
+      return laptopTerminalLock;
     }
 
     function setLaptopFullscreen(active) {
@@ -568,6 +582,7 @@
       addResult: addResult,
       wakeTelevision: wakeTelevision,
       mountLaptop: mountLaptop,
+      setLaptopTerminalLock: setLaptopTerminalLock,
       setLaptopFullscreen: setLaptopFullscreen,
       laptopWindow: laptopWindow,
       state: function () {
@@ -577,6 +592,7 @@
           activeResult: activeResult,
           laptopMounted: laptopMounted,
           laptopFullscreen: laptopFullscreen,
+          laptopTerminalLock: laptopTerminalLock,
           frame: lastFrame
         };
       }

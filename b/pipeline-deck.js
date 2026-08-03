@@ -1,6 +1,6 @@
 /* WARDROBE — same-origin laptop pipeline deck.
  *
- * The supplied deck is vendored byte-for-byte in pipeline-deck-v2.html. This adapter loads
+ * The owner-supplied deck is vendored byte-for-byte in zeely-pipeline-clients.html. This adapter loads
  * that exact document, verifies its SHA-256 before it can reach the laptop plane, and runs
  * the deck inside a ShadowRoot so its styles and controls cannot leak into the cinematic
  * chrome. The one DOM tree is moved by screen-surfaces.js from the calibrated laptop quad
@@ -10,8 +10,8 @@
 (function (global) {
   'use strict';
 
-  var SOURCE_URL = 'pipeline-deck-v2.html';
-  var SOURCE_SHA256 = 'a6c5a0df0cec153465f15ae86ecd001da7aa4eb1661d357ef4196811217b996b';
+  var SOURCE_URL = 'zeely-pipeline-clients.html';
+  var SOURCE_SHA256 = '0aea43bd7f1cf6ac77b5db68521b3712dbae2de964ab57fd14f206818171389b';
 
   function clamp01(value) {
     value = Number(value);
@@ -116,6 +116,16 @@
       return (new Function('document', script))(localDocument);
     }
 
+    function isDataScript(node) {
+      var type = String(node.getAttribute('type') || '').trim().toLowerCase();
+      return type === 'application/json' || type === 'application/ld+json';
+    }
+
+    function isExecutableScript(node) {
+      var type = String(node.getAttribute('type') || '').trim().toLowerCase();
+      return !type || type === 'text/javascript' || type === 'application/javascript';
+    }
+
     function load() {
       if (!shadow) {
         loadError = new Error('ShadowRoot is unavailable');
@@ -141,12 +151,22 @@
         ).join('\n'));
         shadow.appendChild(style);
         Array.prototype.forEach.call(parsed.body.childNodes, function (node) {
-          if (node.nodeType === 1 && node.tagName.toLowerCase() === 'script') return;
+          if (node.nodeType === 1 && node.tagName.toLowerCase() === 'script') {
+            /* The supplied document stores its node contract in an inert JSON script.
+             * Keep that exact data node inside the shadow tree for its interaction script,
+             * but never run it as JavaScript. */
+            if (isDataScript(node)) shadow.appendChild(node.cloneNode(true));
+            return;
+          }
           shadow.appendChild(node.cloneNode(true));
         });
-        var script = parsed.body.querySelector('script');
-        if (!script) throw new Error('pipeline deck script is missing');
-        runDeckScript(script.textContent || '');
+        var scripts = Array.prototype.filter.call(
+          parsed.body.querySelectorAll('script'), isExecutableScript
+        );
+        if (!scripts.length) throw new Error('pipeline deck script is missing');
+        scripts.forEach(function (script) {
+          runDeckScript(script.textContent || '');
+        });
         deck = shadow.querySelector('#deck');
         if (!deck) throw new Error('pipeline deck scroll root is missing');
         ready = true;
@@ -176,6 +196,9 @@
 
     function handBack(delta) {
       var amount = Number(delta) || 0;
+      if (surface && typeof surface.setLaptopTerminalLock === 'function') {
+        surface.setLaptopTerminalLock(false);
+      }
       mode = 'camera';
       host.removeAttribute('data-screen-scroll');
       if (amount) {
@@ -202,6 +225,12 @@
     function enterScreenScroll() {
       if (!ready || mode === 'screen') return false;
       mode = 'screen';
+      /* The camera has reached its measured final laptop frame. From here on the
+       * presentation is one projected document: later inertial events can scroll that
+       * document, but must never move the camera past the physical laptop aperture. */
+      if (surface && typeof surface.setLaptopTerminalLock === 'function') {
+        surface.setLaptopTerminalLock(true);
+      }
       host.setAttribute('data-screen-scroll', '1');
       host.focus({ preventScroll: true });
       return true;
@@ -291,6 +320,9 @@
     }
 
     function destroy() {
+      if (surface && typeof surface.setLaptopTerminalLock === 'function') {
+        surface.setLaptopTerminalLock(false);
+      }
       window.removeEventListener('wheel', wheel, { capture: true });
       window.removeEventListener('touchstart', touchStart, { capture: true });
       window.removeEventListener('touchmove', touchMove, { capture: true });
@@ -323,7 +355,7 @@
     };
     controller.ready = load().then(function (value) {
       installInput();
-      /* If the camera reached the terminal frame while the 114 KB deck was loading, the
+      /* If the camera reached the terminal frame while the verified deck was loading, the
        * next engine tick may be far away. Re-evaluate the handoff immediately after the
        * verified DOM is mounted so the laptop cannot remain parked at its hidden state. */
       onCameraFrame(lastFrame);

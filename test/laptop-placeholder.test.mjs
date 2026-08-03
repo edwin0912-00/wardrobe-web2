@@ -6,7 +6,7 @@ test('the calibrated laptop plane stays hidden until the verified deck is mounte
   const [page, adapter, deck, surfaces] = await Promise.all([
     readFile(new URL('../b/index.html', import.meta.url), 'utf8'),
     readFile(new URL('../b/pipeline-deck.js', import.meta.url), 'utf8'),
-    readFile(new URL('../b/pipeline-deck-v2.html', import.meta.url), 'utf8'),
+    readFile(new URL('../b/zeely-pipeline-clients.html', import.meta.url), 'utf8'),
     readFile(new URL('../screen-surfaces.js', import.meta.url), 'utf8'),
   ]);
   assert.match(
@@ -17,14 +17,15 @@ test('the calibrated laptop plane stays hidden until the verified deck is mounte
   assert.match(page, /<div class="laptop-surface__page" data-laptop-page><\/div>/);
   assert.doesNotMatch(page, /data-screen-layer/, 'the false rectangular placeholder must not return');
   assert.match(page, /<script src="pipeline-deck\.js"><\/script>/);
-  assert.match(page, /pipeline-deck-v2\.html/);
+  assert.match(page, /zeely-pipeline-clients\.html/);
   assert.match(adapter, /SCREEN_SCROLL_STOP_SECONDS = 14\.145/);
   assert.match(surfaces, /var terminalClockTolerance = 0\.02/);
-  assert.match(surfaces, /frame\.videoTime <= last \+ terminalClockTolerance/);
+  assert.match(surfaces, /laptopTerminalLock \|\| \(frame\.leg === calibration\.laptop\.leg/);
+  assert.match(surfaces, /var geometryTime = laptopTerminalLock \? last : frame\.videoTime/);
   assert.match(adapter, /enterScreenScroll/);
   assert.doesNotMatch(adapter, /setLaptopFullscreen/);
   assert.match(adapter, /new Function\('document'/);
   assert.doesNotMatch(adapter, /<iframe|createElement\(['"]iframe/i);
   assert.match(deck, /<main class="deck" id="deck">/);
-  assert.equal((deck.match(/<section\b[^>]*\bclass="[^"]*\bpanel\b/g) || []).length, 17);
+  assert.equal((deck.match(/<section\b[^>]*\bclass="[^"]*\bpanel\b/g) || []).length, 10);
 });

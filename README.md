@@ -75,7 +75,7 @@ Identity / framing / item-fidelity QA
 
 ### Пояснення на ноутбуці
 
-Фінальний ноутбук містить актуальну інтерактивну презентацію з 17 панелей:
+Фінальний ноутбук містить актуальну інтерактивну презентацію з 10 панелей:
 
 - джерела даних і reference contracts;
 - avatar/look pipeline;
@@ -84,7 +84,7 @@ Identity / framing / item-fidelity QA
 - Fashion Shoot, Fashion Video і Real-time Look;
 - runtime, provider transport і release evidence.
 
-Джерело презентації — [`b/pipeline-deck-v2.html`](b/pipeline-deck-v2.html). Воно
+Джерело презентації — [`b/zeely-pipeline-clients.html`](b/zeely-pipeline-clients.html). Воно
 монтується same-origin у ShadowRoot, перевіряється за SHA-256 і обрізається точно до
 площини ноутбука. Reverse scroll повертає користувача назад у квартиру.
 
@@ -186,7 +186,7 @@ curl -I -H 'Range: bytes=0-1023' http://127.0.0.1:4173/b/assets/seg1.mp4
 ```text
 b/                              cinematic site та laptop deck
 b/assets/                       оптимізовані відео й візуальні assets
-b/pipeline-deck-v2.html         актуальне пояснення всього pipeline
+b/zeely-pipeline-clients.html   актуальне пояснення всього pipeline
 serve.py                        Range-сервер і same-origin API gateway
 scripts/install-local.sh        перевірка та однокомандне встановлення
 scripts/run-local.sh            локальний запуск
