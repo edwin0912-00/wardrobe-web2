@@ -244,6 +244,7 @@
      * reverses out of the document. This is a geometry lock, not a fullscreen route:
      * the same mounted node remains on the filmed laptop. */
     var laptopTerminalLock = false;
+    var laptopMobileTerminal = false;
     var laptopHome = laptop && laptop.parentNode;
     var laptopHomeNext = laptop && laptop.nextSibling;
     var lastFrame = null;
@@ -255,6 +256,38 @@
       /* Geometry owns only geometry. HOW's caller reveals the document after its
        * measured camera move resolves; entering the laptop calibration window alone
        * must not fade the document over an earlier frame. */
+    }
+
+    function returnLaptopToFilm() {
+      if (!laptop || !laptopHome || laptop.parentNode === laptopHome) return;
+      if (laptopHomeNext && laptopHomeNext.parentNode === laptopHome) {
+        laptopHome.insertBefore(laptop, laptopHomeNext);
+      } else {
+        laptopHome.appendChild(laptop);
+      }
+    }
+
+    /* On a portrait phone the calibrated physical laptop is too small to read.
+     * Reparent the *same* already-mounted node to the stage, never to document.body,
+     * and retain its state and its one vertical scroll owner. This is a bounded
+     * document panel, not a fullscreen or a second window. */
+    function setLaptopMobileTerminal(active) {
+      active = Boolean(active);
+      if (!laptop) return false;
+      if (active && !laptopMobileTerminal) {
+        laptopHome = laptop.parentNode || laptopHome;
+        laptopHomeNext = laptop.nextSibling || laptopHomeNext;
+        var stage = film && film.parentNode;
+        if (!stage || typeof stage.appendChild !== 'function') return false;
+        stage.appendChild(laptop);
+        laptopMobileTerminal = true;
+      } else if (!active && laptopMobileTerminal) {
+        returnLaptopToFilm();
+        laptopMobileTerminal = false;
+      }
+      if (active) laptop.setAttribute('data-mobile-terminal', '1');
+      else laptop.removeAttribute('data-mobile-terminal');
+      return laptopMobileTerminal;
     }
 
     function portraitStrip(item) {
@@ -404,21 +437,24 @@
       var visible = laptopTerminalLock || (frame.leg === calibration.laptop.leg &&
         frame.videoTime != null && frame.videoTime >= first && frame.videoTime <= last + terminalClockTolerance);
       if (!visible) {
-        laptop.removeAttribute('data-mobile-terminal');
+        setLaptopMobileTerminal(false);
         setHidden(laptop, true);
         return;
       }
       if (laptopTerminalLock && isPortraitMobileViewport()) {
         /* Do not clone, move or fullscreen the document. Keeping this exact node
          * preserves its mounted state and one vertical scroll owner. */
-        laptop.setAttribute('data-mobile-terminal', '1');
+        if (!setLaptopMobileTerminal(true)) {
+          setHidden(laptop, true);
+          return;
+        }
         laptop.style.width = '';
         laptop.style.height = '';
         laptop.style.transform = '';
         setHidden(laptop, false);
         return;
       }
-      laptop.removeAttribute('data-mobile-terminal');
+      setLaptopMobileTerminal(false);
       /* The movie's decoded clock may continue for a subframe after the terminal
        * handoff. While the document owns scroll, pin it to the last calibrated laptop
        * quad instead of letting a later movie frame remove the only visible document. */
@@ -516,6 +552,7 @@
     function setLaptopFullscreen(active) {
       active = Boolean(active);
       if (!laptop || !laptopMounted) return false;
+      setLaptopMobileTerminal(false);
       if (active === laptopFullscreen) {
         setHidden(laptop, false);
         return true;
@@ -530,13 +567,7 @@
       } else {
         laptopFullscreen = false;
         laptop.classList.remove('laptop-surface--fullscreen');
-        if (laptopHome) {
-          if (laptopHomeNext && laptopHomeNext.parentNode === laptopHome) {
-            laptopHome.insertBefore(laptop, laptopHomeNext);
-          } else {
-            laptopHome.appendChild(laptop);
-          }
-        }
+        returnLaptopToFilm();
         positionLaptop(lastFrame || {});
       }
       return true;
@@ -615,6 +646,7 @@
           laptopMounted: laptopMounted,
           laptopFullscreen: laptopFullscreen,
           laptopTerminalLock: laptopTerminalLock,
+          laptopMobileTerminal: laptopMobileTerminal,
           frame: lastFrame
         };
       }

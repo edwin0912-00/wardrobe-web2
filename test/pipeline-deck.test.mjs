@@ -84,8 +84,10 @@ test('the document handoff begins only at the measured 14.145s terminal laptop f
 test('portrait phones enlarge the same terminal document without invoking fullscreen', () => {
   assert.match(surfaces, /function isPortraitMobileViewport\(\)/);
   assert.match(surfaces, /laptopTerminalLock && isPortraitMobileViewport\(\)/);
+  assert.match(surfaces, /function setLaptopMobileTerminal\(active\)/);
+  assert.match(surfaces, /stage\.appendChild\(laptop\)/);
+  assert.match(surfaces, /returnLaptopToFilm\(\)/);
   assert.match(surfaces, /laptop\.setAttribute\('data-mobile-terminal', '1'\)/);
-  assert.match(surfaces, /laptop\.removeAttribute\('data-mobile-terminal'\)/);
   assert.match(mobileCss, /\.laptop-surface\[data-mobile-terminal="1"\]/);
   assert.match(mobileCss, /height: min\(68vh, calc\(100% - 152px\)\) !important;/);
   assert.doesNotMatch(mobileCss, /data-mobile-terminal="1"\][\s\S]{0,600}laptop-surface--fullscreen/);
