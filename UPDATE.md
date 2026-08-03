@@ -222,6 +222,20 @@ Current source before this candidate: `origin/beta` `7f7c271`.
 - Evidence: focused UI/provider/video/scene tests **177/177 PASS**;
   contracts and canon PASS. No paid generation.
 
+### 2026-08-03 · Beta release `a828cd5` — LIVE
+
+- Beta is active and healthy on exact source SHA
+  `a828cd542360ed396d4f3247f0eaefc2e2397207`. Its guarded release verified
+  741 product files, 16 standard presets and 15 Create Universe styles with
+  UI/API/runtime enabled.
+- The deployment was initially stopped safely because the local beta
+  LaunchAgent file had been corrupted into a JSON array. It was restored to a
+  standard persistent plist using the existing current beta runner, then
+  validated with `plutil`, launchd inspection and a clean dry-run before the
+  guarded switch.
+- No active run, scene, Fashion Shoot or video job was interrupted; no paid
+  generation was created by the release.
+
 ## 2026-08-03 · active candidate: Fashion Shoot retries + truthful Higgsfield video readiness
 
 Plain product change: a Fashion Shoot customer frame no longer gets discarded

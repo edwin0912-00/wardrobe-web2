@@ -87,6 +87,17 @@ canon PASS. No paid provider work was used.
 weakened_checks: only Create Universe camera-scale in explicit `review`/`off`;
 identity, items, anatomy, leakage and standard-scene framing stay blocking.
 
+2026-08-03 · Beta activation · retry/input-media/cache-chain repair
+Change: activated `a828cd542360ed396d4f3247f0eaefc2e2397207` after restoring the
+beta LaunchAgent from a malformed JSON array to the known-good persistent plist
+shape with the current beta runner.
+Why: the release tool correctly refused to restart an invalid LaunchAgent;
+proceeding without that check could have broken the active site.
+Evidence: strict product verifier PASS (741 files; 16 standard presets; 15
+Create Universe styles); deploy dry-run PASS; local and public beta health
+both `ready` on the exact SHA; no active persisted work.
+weakened_checks: only the previously logged Fashion Shoot review-scale policy.
+
 2026-08-03 · Fashion Shoot retry policy + Higgsfield input-media readiness · candidate pending deploy
 Change: scoped Fashion Shoot camera-scale defects to `NON_BLOCKING_FASHION_REVIEW`
 only for `shoot.*` in the already live `review`/`off` policy; standard scenes

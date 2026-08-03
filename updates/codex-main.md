@@ -195,7 +195,7 @@ weakened_checks: none.
 Agent ID: codex-live-40
 Task ID: BETA-VIDEO-INPUT-ROLES-AND-SHOOT-DOWNLOAD-20260803
 Pipeline: UNIVERSE.04 + VIDEO.01 · result delivery surface
-State: READY_FOR_BETA_DEPLOY
+State: LIVE
 Decision: restored every server-READY Fashion Shoot card; every delivered
 customer frame keeps its independent output and a visible «Завантажити» link.
 The native beta Fashion Video picker now renders the server-owned input roles:
@@ -1480,9 +1480,16 @@ State: READY_FOR_BETA_DEPLOY
 Decision: cache-bust identifiers for `scene.css`, `app.js`, `scene-ui.js`, and
 `editorial-shoot-ui.js` now advance as one chain (`20260803-2`). A browser can
 therefore not retain a stale Fashion Shoot shell after the new `app.js` arrives.
-Code: pending commit from this beta worktree.
+Code: `a828cd542360ed396d4f3247f0eaefc2e2397207`.
 Tests: focused UI/provider/video/scene suite 177/177 PASS; contracts and canon PASS.
-Beta: NOT_DEPLOYED.
+Beta: LIVE — public health release SHA `a828cd542360ed396d4f3247f0eaefc2e2397207`.
 Journey: no paid provider call was made by this repair.
 weakened_checks: only the explicit `shoot.*` review-policy change above; no
 identity, item, anatomy, leakage, standard-scene, or video-reference check changed.
+
+Operational correction: beta's local LaunchAgent plist had been replaced by a
+two-element JSON array, so the guarded release tool correctly refused to
+restart it. It was restored from its valid local template with the current
+`madeforthisjob-beta-launcher/run-beta-daemon.sh` argument, then validated by
+`plutil`, `launchctl print`, dry-run and successful guarded activation. No
+runtime data or secret was changed.

@@ -671,3 +671,13 @@ be weakened to hide it.
 - The four linked Fashion Shoot frontend assets share cache token
   `20260803-2`, eliminating the verified stale-module chain.
 - Focused UI/provider/video/scene checks: 177/177 PASS; contracts and canon PASS.
+
+## Active beta release · 2026-08-03
+
+- Public beta health is `ready` on
+  `a828cd542360ed396d4f3247f0eaefc2e2397207`.
+- The product verifier confirmed the exact release: 741 deploy files, 16
+  standard scenes, 15 Create Universe generation styles, UI/API/runtime enabled.
+- The beta LaunchAgent was restored from a malformed JSON array to its valid
+  persistent plist shape before activation; `plutil`, `launchctl`, deploy
+  dry-run, local health and external health all passed.
