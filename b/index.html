@@ -301,8 +301,19 @@
      the engine holds honestly at any later seam until that certificate exists. */
   var nextIOSNativeLeg = 1;
   var iosRoomReady = Object.create(null);
+  /* A visitor can deliberately jump to HOW before the ordinary sequential warm-up
+     has reached the terminal clip.  Keep the one-prewarm-at-a-time guarantee, but
+     let that explicit action choose the *next* native room.  Previously it only
+     polled leg 3 for 15 seconds; when WebKit aborted/restarted one of the range
+     requests, the click ended silently and looked broken. */
+  var iosPriorityNativeLeg = null;
   function queueNextIOSRoom() {
     if (!IOS_MEDIA) return;
+    if (iosPriorityNativeLeg !== null) {
+      var priorityIndex = iosPriorityNativeLeg;
+      iosPriorityNativeLeg = null;
+      if (mountIOSRoom(priorityIndex)) return;
+    }
     while (nextIOSNativeLeg < VIDEOS.length) {
       var index = nextIOSNativeLeg++;
       if (mountIOSRoom(index)) return;
@@ -373,6 +384,17 @@
     room.load();
     return true;
   }
+
+  function prioritizeIOSRoom(index) {
+    if (!IOS_MEDIA) return false;
+    var room = document.querySelector('video[data-leg="' + index + '"]');
+    if (!room || room.src) return false;
+    /* Do not create a second native prewarm.  The current certificate will release
+       the queue, and the requested room becomes the next one it mounts. */
+    iosPriorityNativeLeg = index;
+    return true;
+  }
+
   if (IOS_MEDIA && firstRoomVideo) {
     certifyIOSRoom(0, firstRoomVideo, queueNextIOSRoom);
   }
@@ -889,6 +911,10 @@
         howTravelPending = true;
         howBtn.disabled = true;
         var laptop = document.querySelector('[data-laptop-surface]');
+        /* A direct HOW request is a real navigation intent: on iPhone make its
+           terminal clip the next single native prewarm instead of silently waiting
+           behind all intervening rooms. */
+        prioritizeIOSRoom(HOW_TARGET_LEG);
         waitForHowTargetRoom().then(function (ready) {
           if (!ready) { clearHowReveal(laptop); return 'target-room-unavailable'; }
           if (laptop) {

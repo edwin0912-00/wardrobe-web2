@@ -323,6 +323,22 @@ test('iOS starts D native, does not launch Blob work for later rooms, then prewa
   assert.equal(app.rooms[2].dataset.iosPrewarm, '1');
 });
 
+test('HOW makes the terminal room the next iOS prewarm without opening a second native download', async () => {
+  const app = await boot({ ios: true });
+  app.how.emit('click');
+  await settle();
+
+  assert.equal(app.rooms[3].src, '', 'the click waits behind the current native certificate');
+  app.rooms[0].readyState = 2;
+  app.rooms[0].emit('loadeddata');
+  app.rooms[0].readyState = 4;
+  app.rooms[0].emit('canplaythrough');
+
+  assert.equal(app.rooms[3].src, 'assets/seg4.mp4', 'the explicit HOW destination wins the next queue slot');
+  assert.equal(app.rooms[1].src, '', 'intermediate rooms do not compete with the requested terminal download');
+  assert.equal(app.rooms[3].dataset.iosPrewarm, '1');
+});
+
 test('iOS with requestVideoFrameCallback keeps a prewarm plane until a composited frame is proven', async () => {
   const app = await boot({ ios: true, videoFrameCallback: true });
 
