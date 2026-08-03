@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="/conflict.css?v=20260801-1">
   <link rel="stylesheet" href="/experience.css?v=20260730-7">
   <link rel="stylesheet" href="/result.css?v=20260730-6">
-  <link rel="stylesheet" href="/scene.css?v=20260803-2">
+  <link rel="stylesheet" href="/scene.css?v=20260803-3">
   <link rel="stylesheet" href="/scene-cta.css?v=20260727-1">
   <script type="module" src="/scene-cta.js?v=20260725-1"></script>
 </head>
@@ -201,6 +201,14 @@
                     <ul id="profile-look-editorial-list" class="profile-look-scene-list"></ul>
                     <p id="profile-look-editorial-empty" class="profile-look-scenes-empty">Фотосесій ще немає. Відкрий «Створити сцену» → Fashion Shoot.</p>
                   </section>
+                  <section id="profile-look-videos" class="profile-look-scenes profile-look-videos" aria-labelledby="profile-look-videos-title">
+                    <div class="profile-look-scenes-head">
+                      <h5 id="profile-look-videos-title">Fashion-відео цього образу</h5>
+                      <span id="profile-look-videos-count" aria-live="polite">0</span>
+                    </div>
+                    <ul id="profile-look-video-list" class="profile-look-video-list"></ul>
+                    <p id="profile-look-videos-empty" class="profile-look-scenes-empty">Fashion-відео ще немає.</p>
+                  </section>
                   <section class="profile-look-next" aria-labelledby="profile-look-next-title">
                     <div class="profile-look-next-head">
                       <p class="result-kicker">СТВОРИТИ З ЦЬОГО ОБРАЗУ</p>
@@ -263,7 +271,10 @@
                 </div>
                 <div id="video-result" class="video-result" hidden>
                   <video id="video-result-player" controls playsinline loop></video>
-                  <a id="video-result-download" download="fashion-video.mp4">Завантажити MP4 ↓</a>
+                  <div class="video-result-actions">
+                    <a id="video-result-download" download="fashion-video.mp4">Завантажити MP4 ↓</a>
+                    <button id="video-result-copy" type="button" hidden>Копіювати посилання</button>
+                  </div>
                 </div>
                 <p id="video-error" class="scene-error" role="alert" hidden></p>
               </div>
@@ -428,6 +439,6 @@
   </aside>
   <script src="/boot-guard.js?v=20260722-3"></script>
   <script src="/vendor/heic2any.min.js?v=0.0.4"></script>
-  <script type="module" src="/app.js?v=20260803-2"></script>
+  <script type="module" src="/app.js?v=20260803-3"></script>
 </body>
 </html>

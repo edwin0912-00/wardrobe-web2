@@ -7,6 +7,7 @@
 //   GET    /api/profile/video-clips/:clipId       — get clip status
 //   POST   /api/profile/video-clips/:clipId/retry — one explicit child attempt
 //   GET    /api/profile/video-clips/:clipId/video — stream the clip mp4
+//   GET    /api/profile/video-clips/:clipId/download — download the verified clip mp4
 //   DELETE /api/profile/video-clips/:clipId       — delete a clip
 //   GET    /api/profile/looks/:lookId/video-clips — list clips for a look
 
@@ -73,6 +74,23 @@ function hasVerifiedFashionStyle(liveClip) {
     && identityQa?.pass === true
     && referenceQa?.pass === true
     && referenceQa?.cutCoverage?.pass === true;
+}
+
+/* A ready MP4 is private profile media.  The only URLs we expose are two
+ * authenticated views of the exact same verified file: one for playback and
+ * one with an attachment disposition.  There is deliberately no public share
+ * URL and no URL at all for a provider output that did not pass the Fashion
+ * Video delivery contract. */
+function verifiedVideoDeliveryUrls(liveClip) {
+  const clipId = liveClip?.clipId ?? liveClip?.clip_id;
+  if (!hasVerifiedFashionStyle(liveClip) || typeof clipId !== 'string' || clipId.length === 0) {
+    return { video_url: null, download_url: null };
+  }
+  const encodedClipId = encodeURIComponent(clipId);
+  return {
+    video_url: `/api/profile/video-clips/${encodedClipId}/video`,
+    download_url: `/api/profile/video-clips/${encodedClipId}/download`,
+  };
 }
 
 function publicVideoFailure(liveClip) {
@@ -781,6 +799,7 @@ export async function registerVideoRoutes(app, {
       const effectiveClip = automatic.leaf;
       const updated = projectClip(session.profileId, projection.look_id, effectiveClip);
       const verifiedStyle = hasVerifiedFashionStyle(effectiveClip);
+      const delivery = verifiedVideoDeliveryUrls(effectiveClip);
       const next = resolveVideoQaAction(
         presentationClip(effectiveClip, automatic.inFlight),
         { deliverable: verifiedStyle },
@@ -790,9 +809,7 @@ export async function registerVideoRoutes(app, {
         qa: effectiveClip.qa,
         // A technically valid MP4 is not deliverable Fashion Video until the
         // hash-bound cut audit proves it contains no source performer.
-        video_url: verifiedStyle
-          ? `/api/profile/video-clips/${effectiveClip.clipId}/video`
-          : null,
+        ...delivery,
         delivery_code: verifiedStyle
           ? null
           : 'VIDEO_STYLE_PROVENANCE_MISSING',
@@ -860,6 +877,7 @@ export async function registerVideoRoutes(app, {
       ? projectClip(session.profileId, clip.look_id, effectiveClip)
       : clip;
     const verifiedStyle = hasVerifiedFashionStyle(effectiveClip);
+    const delivery = verifiedVideoDeliveryUrls(effectiveClip);
     const displayClip = presentationClip(effectiveClip, automatic.inFlight);
     const next = resolveVideoQaAction(displayClip, { deliverable: verifiedStyle });
     return reply.header('Cache-Control', 'private, no-store').send({
@@ -870,9 +888,7 @@ export async function registerVideoRoutes(app, {
       failure_code: effectiveClip?.failureCode
         ?? effectiveClip?.qa?.defects?.[0]?.code
         ?? null,
-      video_url: verifiedStyle
-        ? `/api/profile/video-clips/${effectiveClip.clipId}/video`
-        : null,
+      ...delivery,
       delivery_code: verifiedStyle ? null : 'VIDEO_STYLE_PROVENANCE_MISSING',
       next_action: next.action,
       next_action_reason_code: next.reason_code,
@@ -884,8 +900,7 @@ export async function registerVideoRoutes(app, {
     });
   });
 
-  // GET /api/profile/video-clips/:clipId/video — stream the mp4
-  app.get('/api/profile/video-clips/:clipId/video', async (request, reply) => {
+  const sendVerifiedVideo = async (request, reply, { attachment = false } = {}) => {
     const session = await profileApi.resolveRequestProfile(request, reply);
     const clip = profiles.videoClipProjection(session.profileId, request.params.clipId);
     if (!clip) {
@@ -906,13 +921,26 @@ export async function registerVideoRoutes(app, {
       return reply
         .type('video/mp4')
         .header('Cache-Control', 'private, no-store')
+        .header('X-Content-Type-Options', 'nosniff')
         .header('Content-Length', fileStat.size)
-        .header('Content-Disposition', `inline; filename="${request.params.clipId}.mp4"`)
+        .header('Content-Disposition', `${attachment ? 'attachment' : 'inline'}; filename="fashion-video.mp4"`)
         .send(createReadStream(liveClip.videoPath));
     } catch {
       return reply.code(404).send({ error: 'Video file not found on disk', code: 'VIDEO_FILE_MISSING' });
     }
-  });
+  };
+
+  // GET /api/profile/video-clips/:clipId/video — stream the verified mp4.
+  app.get('/api/profile/video-clips/:clipId/video', async (request, reply) => (
+    sendVerifiedVideo(request, reply)
+  ));
+
+  // GET /api/profile/video-clips/:clipId/download — same private file, as an
+  // attachment.  This is intentionally separate from playback so a browser
+  // preview can never accidentally become the user’s downloaded asset.
+  app.get('/api/profile/video-clips/:clipId/download', async (request, reply) => (
+    sendVerifiedVideo(request, reply, { attachment: true })
+  ));
 
   // DELETE /api/profile/video-clips/:clipId — delete a clip
   app.delete('/api/profile/video-clips/:clipId', async (request, reply) => {
@@ -935,7 +963,9 @@ export async function registerVideoRoutes(app, {
     const verified = [];
     for (const clip of clips) {
       const liveClip = await videoService.getClip(clip.clip_id);
-      if (hasVerifiedFashionStyle(liveClip)) verified.push(clip);
+      if (hasVerifiedFashionStyle(liveClip)) {
+        verified.push({ ...clip, ...verifiedVideoDeliveryUrls(liveClip) });
+      }
     }
     return reply.header('Cache-Control', 'private, no-store').send({ clips: verified });
   });

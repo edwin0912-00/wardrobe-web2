@@ -1119,12 +1119,24 @@ body.profile-live-open {
   background: #000;
 }
 
-.video-result a {
+.video-result-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
+.video-result a,
+.video-result-actions button {
   font-size: .7rem;
   font-weight: 700;
   color: #b8ff3d;
+  border: 0;
+  background: transparent;
+  font: inherit;
   text-decoration: none;
   text-align: center;
+  cursor: pointer;
 }
 
 @media (max-width: 700px) {
@@ -2307,6 +2319,62 @@ body.profile-live-open {
   padding: 0;
   overflow: auto;
   list-style: none;
+}
+
+.profile-look-video-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  max-height: 220px;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  list-style: none;
+}
+
+.profile-look-video-item {
+  min-width: 0;
+  padding: 7px;
+  border: 1px solid var(--result-line);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, .88);
+}
+
+.profile-look-video-player {
+  display: block;
+  width: 100%;
+  aspect-ratio: 9 / 16;
+  border-radius: 8px;
+  background: #10110e;
+}
+
+.profile-look-video-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 7px;
+}
+
+.profile-look-video-actions :is(a, button) {
+  min-height: 30px;
+  padding: 6px 8px;
+  border: 1px solid var(--result-line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--result-deep);
+  font: inherit;
+  font-size: 10px;
+  font-weight: 800;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.profile-look-video-note {
+  display: block;
+  margin-top: 6px;
+  color: var(--result-muted);
+  font-size: 9px;
+  line-height: 1.35;
 }
 
 .profile-look-scene-item {

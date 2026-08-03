@@ -337,6 +337,61 @@ test('a legacy generic animation is never delivered as Fashion Video', async (t)
   assert.equal(response.json().code, 'VIDEO_STYLE_PROVENANCE_MISSING');
 });
 
+test('a verified Fashion Video survives the saved-look library with private playback and download URLs', async (t) => {
+  const current = fixture();
+  const root = await mkdtemp(path.join(os.tmpdir(), 'zeely-video-delivery-library-'));
+  const videoPath = path.join(root, 'delivered.mp4');
+  await writeFile(videoPath, 'delivered-video');
+  t.after(async () => { await rm(root, { recursive: true, force: true }); });
+  current.setLiveClip({
+    status: 'PASS',
+    videoPath,
+    qa: { pass: true, defects: [] },
+    motionReferenceBinding: { sha256: 'c'.repeat(64), packSha256: 'd'.repeat(64) },
+    identityItemQa: { pass: true },
+    referenceAdherenceQa: { pass: true, cutCoverage: { pass: true } },
+  });
+  current.profiles.listVideoClips = () => [{
+    clip_id: '11111111-1111-4111-8111-111111111111',
+    look_id: '33333333-3333-4333-8333-333333333333',
+    status: 'PASS',
+  }];
+  const app = Fastify();
+  t.after(() => app.close());
+  await registerVideoRoutes(app, {
+    profileApi: { resolveRequestProfile: async () => ({ profileId: 'profile-1' }) },
+    profiles: current.profiles,
+    videoService: current.videoService,
+    runService: { outputFile: async () => null },
+  });
+
+  const status = await app.inject({
+    method: 'GET', url: '/api/profile/video-clips/11111111-1111-4111-8111-111111111111',
+  });
+  assert.equal(status.statusCode, 200, status.body);
+  assert.equal(status.json().video_url, '/api/profile/video-clips/11111111-1111-4111-8111-111111111111/video');
+  assert.equal(status.json().download_url, '/api/profile/video-clips/11111111-1111-4111-8111-111111111111/download');
+
+  const download = await app.inject({
+    method: 'GET', url: '/api/profile/video-clips/11111111-1111-4111-8111-111111111111/download',
+  });
+  assert.equal(download.statusCode, 200, download.body);
+  assert.match(download.headers['content-disposition'], /^attachment; filename="fashion-video\.mp4"$/);
+  assert.equal(download.rawPayload.toString(), 'delivered-video');
+
+  const listed = await app.inject({
+    method: 'GET', url: '/api/profile/looks/33333333-3333-4333-8333-333333333333/video-clips',
+  });
+  assert.equal(listed.statusCode, 200, listed.body);
+  assert.deepEqual(listed.json().clips, [{
+    clip_id: '11111111-1111-4111-8111-111111111111',
+    look_id: '33333333-3333-4333-8333-333333333333',
+    status: 'PASS',
+    video_url: '/api/profile/video-clips/11111111-1111-4111-8111-111111111111/video',
+    download_url: '/api/profile/video-clips/11111111-1111-4111-8111-111111111111/download',
+  }]);
+});
+
 test('status gives the real terminal provider reason instead of a connection or timeout fiction', async (t) => {
   const current = fixture();
   current.setLiveClip({ status: 'FAILED', failureCode: 'VIDEO_PROVIDER_JOB_NOT_FOUND' });

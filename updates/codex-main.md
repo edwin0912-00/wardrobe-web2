@@ -17,6 +17,24 @@ Beta: NOT_DEPLOYED. Journey: code-level test only after the A/B.
 
 ---
 
+Agent ID: codex-main
+Task: SAVED-DELIVERY-LIBRARY-20260803
+Product line: beta engine + cinematic main presentation
+Pipeline: completed Fashion Shoot / verified Fashion Video → saved look → reload → review / download
+State: CODE_VERIFIED — deployment pending
+Decision: approved customer Fashion Shoot frames and only verified Fashion Video
+deliveries are reloaded from the saved-look server routes.  Video playback and
+download stay profile-authorized and `private, no-store`; the copied URL is not
+a public share link.  The cinematic main restores the library without turning a
+historical delivery into an active job.
+Evidence: beta routes/profile UI suite 49/49 PASS; cinematic preflight 138/138
+PASS and focused bridge/client/result suite 44/44 PASS.  Cache-bust chains
+advance together so browsers fetch the added UI and API client.
+weakened_checks: none.
+Beta: PENDING_DEPLOY. Main: PENDING_DEPLOY. Journey: no paid generation created.
+
+---
+
 Agent ID: codex-live-40
 Task: FASHION-VIDEO-START-REGRESSION-20260802
 Product line: beta-placeholder → main bridge

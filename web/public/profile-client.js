@@ -91,6 +91,15 @@ export function listProfileLookEditorialShoots(lookId) {
   );
 }
 
+// Delivery URLs remain private to the browser profile.  The server returns
+// only Fashion Video clips whose immutable style/QA binding is complete.
+export function listProfileLookVideoClips(lookId) {
+  return profileRequest(
+    `/api/profile/looks/${encodeURIComponent(lookId)}/video-clips`,
+    { cache: 'no-store' },
+  );
+}
+
 export function loadProfileEditorialShoot(shootId) {
   return profileRequest(`/api/profile/editorial-shoots/${encodeURIComponent(shootId)}`, {
     cache: 'no-store',

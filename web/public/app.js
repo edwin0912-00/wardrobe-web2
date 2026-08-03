@@ -16,9 +16,9 @@ import {
 import { PIPELINE_NODE_COUNT, PIPELINE_NODES, checkpointDisplayCode, nodeState, resolveProgressState } from './progress-model.js?v=20260722-7';
 import { createLiveVisualizer, isProviderWaitStage } from './live-visualizer.js?v=20260724-1';
 import { fetchRunWithRetry, RunNotFoundError } from './run-resume.js?v=20260722-3';
-import { claimProfileRun, deleteAnonymousProfile, deleteProfileLook, listProfileLookEditorialShoots, loadProfile, saveProfileRun } from './profile-client.js?v=20260724-5';
+import { claimProfileRun, deleteAnonymousProfile, deleteProfileLook, listProfileLookEditorialShoots, listProfileLookVideoClips, loadProfile, saveProfileRun } from './profile-client.js?v=20260803-3';
 import { needsInputPresentation, neutralizeItemTerms } from './visible-copy.js?v=20260731-2';
-import { createSceneUi } from './scene-ui.js?v=20260803-2';
+import { createSceneUi } from './scene-ui.js?v=20260803-3';
 import {
   addItemsScreenState,
   clearAddItemsSelection,
@@ -107,6 +107,7 @@ let selectedProfileLookId = null;
 let selectedProfileLookSelection = null;
 let selectedProfileLook = null;
 let profileEditorialRequestVersion = 0;
+let profileVideoRequestVersion = 0;
 let fashionVideoCapabilityRequestVersion = 0;
 let fashionVideoCapability = null;
 let realtimeLookCapabilityRequestVersion = 0;
@@ -1265,6 +1266,91 @@ function renderProfileEditorialLibrary(look, profile = currentProfile, supplied 
   });
 }
 
+function videoClipsForLook(look, supplied = null) {
+  if (!look) return [];
+  // Profile projections can outlive a failed or legacy provider result.  The
+  // explicit video-clips route is the delivery authority, so do not turn a
+  // raw DB projection into a playable card before that route confirms it.
+  return Array.isArray(supplied) ? supplied : [];
+}
+
+async function copyPrivateDeliveryLink(value, control) {
+  if (typeof value !== 'string' || value.length === 0) return;
+  const href = new URL(value, window.location.origin).href;
+  const initialLabel = control?.textContent ?? 'Копіювати посилання';
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(href);
+    } else {
+      const fallback = document.createElement('textarea');
+      fallback.value = href;
+      fallback.setAttribute('readonly', '');
+      fallback.style.position = 'fixed';
+      fallback.style.opacity = '0';
+      document.body.append(fallback);
+      fallback.select();
+      const copied = document.execCommand('copy');
+      fallback.remove();
+      if (!copied) throw new Error('copy failed');
+    }
+    if (control) {
+      control.textContent = 'Посилання скопійовано';
+      window.setTimeout(() => { control.textContent = initialLabel; }, 1800);
+    }
+  } catch {
+    if (control) control.textContent = 'Не вдалося скопіювати';
+  }
+}
+
+function renderProfileVideoLibrary(look, supplied = null) {
+  const clips = videoClipsForLook(look, supplied);
+  const list = document.querySelector('#profile-look-video-list');
+  const emptyState = document.querySelector('#profile-look-videos-empty');
+  const count = document.querySelector('#profile-look-videos-count');
+  const section = document.querySelector('#profile-look-videos');
+  list.replaceChildren();
+  section.classList.toggle('hidden', clips.length === 0);
+  count.textContent = String(clips.length);
+  count.setAttribute(
+    'aria-label',
+    clips.length === 1 ? '1 збережене fashion-відео' : `${clips.length} збережених fashion-відео`,
+  );
+  emptyState.classList.toggle('hidden', clips.length > 0);
+
+  clips.forEach((clip, index) => {
+    const clipId = clip.clip_id ?? clip.id;
+    const playbackUrl = clip.video_url;
+    if (!clipId || !playbackUrl) return;
+    const item = document.createElement('li');
+    item.className = 'profile-look-video-item';
+    const player = document.createElement('video');
+    player.className = 'profile-look-video-player';
+    player.src = playbackUrl;
+    player.controls = true;
+    player.playsInline = true;
+    player.preload = 'metadata';
+    player.setAttribute('aria-label', `Fashion-відео ${index + 1}`);
+
+    const actions = document.createElement('div');
+    actions.className = 'profile-look-video-actions';
+    const download = document.createElement('a');
+    download.href = clip.download_url ?? playbackUrl;
+    download.download = 'fashion-video.mp4';
+    download.textContent = 'Завантажити MP4';
+    const copy = document.createElement('button');
+    copy.type = 'button';
+    copy.textContent = 'Копіювати посилання';
+    copy.addEventListener('click', () => copyPrivateDeliveryLink(playbackUrl, copy));
+    actions.append(download, copy);
+
+    const note = document.createElement('small');
+    note.className = 'profile-look-video-note';
+    note.textContent = 'Посилання приватне: відкривається лише в цьому профілі.';
+    item.append(player, actions, note);
+    list.append(item);
+  });
+}
+
 async function renderProfile(profileValueToRender = null) {
   sceneUi?.stopWatching();
   const openedProfile = captureProfileReturnState();
@@ -1421,6 +1507,7 @@ async function renderProfile(profileValueToRender = null) {
   const detailTitle = document.querySelector('#profile-look-detail-title');
   const detailOwner = document.querySelector('#profile-look-detail-owner');
   const editorialRequestVersion = ++profileEditorialRequestVersion;
+  const videoRequestVersion = ++profileVideoRequestVersion;
   detail.classList.toggle('hidden', !selectedProfileLookSelection);
   profileLibrary?.classList.toggle('has-open-look', Boolean(selectedProfileLookSelection));
   if (selectedProfileLookSelection) {
@@ -1431,6 +1518,7 @@ async function renderProfile(profileValueToRender = null) {
     detailOwner.textContent = `${selectedProfileLookSelection.avatar?.name || 'Збережений аватар'} · зберігаємо зовнішність і пропорції тіла`;
     renderProfileSceneLibrary(selectedProfileLook);
     renderProfileEditorialLibrary(selectedProfileLook, profile);
+    renderProfileVideoLibrary(selectedProfileLook);
     const requestedLookId = selectedProfileLookSelection.lookId;
     listProfileLookEditorialShoots(requestedLookId)
       .then((response) => {
@@ -1443,6 +1531,13 @@ async function renderProfile(profileValueToRender = null) {
         );
       })
       .catch(() => undefined);
+    listProfileLookVideoClips(requestedLookId)
+      .then((response) => {
+        if (profileVideoRequestVersion !== videoRequestVersion
+          || selectedProfileLookId !== requestedLookId) return;
+        renderProfileVideoLibrary(selectedProfileLook, response?.clips ?? response);
+      })
+      .catch(() => undefined);
     refreshFashionVideoCapability(selectedProfileLook);
     refreshRealtimeLookCapability(selectedProfileLook);
   } else {
@@ -1451,6 +1546,7 @@ async function renderProfile(profileValueToRender = null) {
     detailOwner.textContent = '';
     renderProfileSceneLibrary(null);
     renderProfileEditorialLibrary(null, profile);
+    renderProfileVideoLibrary(null);
     refreshFashionVideoCapability(null);
     refreshRealtimeLookCapability(null);
   }
@@ -2055,8 +2151,12 @@ async function pollFashionVideo(clipId) {
         progressStatus.textContent = 'Відео готове!';
         const player = document.querySelector('#video-result-player');
         const downloadLink = document.querySelector('#video-result-download');
+        const copyLink = document.querySelector('#video-result-copy');
         player.src = status.video_url;
-        downloadLink.href = status.video_url;
+        downloadLink.href = status.download_url ?? status.video_url;
+        copyLink.dataset.deliveryUrl = status.video_url;
+        copyLink.hidden = false;
+        copyLink.textContent = 'Копіювати посилання';
         resultEl.hidden = false;
         setVideoGenerateBusy(false);
       } else if (status.status === 'FAILED' || status.status === 'FAIL') {
@@ -2111,6 +2211,10 @@ document.querySelector('#video-retry').addEventListener('click', async () => {
     showVideoRetry(error.message, clipId);
     setVideoGenerateBusy(false);
   }
+});
+document.querySelector('#video-result-copy').addEventListener('click', (event) => {
+  const control = event.currentTarget;
+  copyPrivateDeliveryLink(control.dataset.deliveryUrl, control);
 });
 // Video overlay: generate
 document.querySelector('#video-generate').addEventListener('click', async () => {
