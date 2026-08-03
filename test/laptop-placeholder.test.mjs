@@ -3,10 +3,11 @@ import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
 test('the calibrated laptop plane stays hidden until the verified deck is mounted', async () => {
-  const [page, adapter, deck] = await Promise.all([
+  const [page, adapter, deck, surfaces] = await Promise.all([
     readFile(new URL('../b/index.html', import.meta.url), 'utf8'),
     readFile(new URL('../b/pipeline-deck.js', import.meta.url), 'utf8'),
     readFile(new URL('../b/pipeline-deck-v2.html', import.meta.url), 'utf8'),
+    readFile(new URL('../screen-surfaces.js', import.meta.url), 'utf8'),
   ]);
   assert.match(
     page,
@@ -18,6 +19,8 @@ test('the calibrated laptop plane stays hidden until the verified deck is mounte
   assert.match(page, /<script src="pipeline-deck\.js"><\/script>/);
   assert.match(page, /pipeline-deck-v2\.html/);
   assert.match(adapter, /SCREEN_SCROLL_STOP_SECONDS = 14\.145/);
+  assert.match(surfaces, /var terminalClockTolerance = 0\.02/);
+  assert.match(surfaces, /frame\.videoTime <= last \+ terminalClockTolerance/);
   assert.match(adapter, /enterScreenScroll/);
   assert.doesNotMatch(adapter, /setLaptopFullscreen/);
   assert.match(adapter, /new Function\('document'/);

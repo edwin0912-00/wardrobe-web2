@@ -383,8 +383,12 @@
       var frames = laptopFrames;
       var first = frames[0].time;
       var last = frames[frames.length - 1].time;
+      /* The handoff is measured at 14.145 s, but decoded `currentTime` is a float.
+       * Let the calibrated terminal quad hold for one subframe so an arrival at
+       * 14.14567 does not hide the document just after it was correctly mounted. */
+      var terminalClockTolerance = 0.02;
       var visible = frame.leg === calibration.laptop.leg &&
-        frame.videoTime != null && frame.videoTime >= first && frame.videoTime <= last;
+        frame.videoTime != null && frame.videoTime >= first && frame.videoTime <= last + terminalClockTolerance;
       if (!visible) {
         setHidden(laptop, true);
         return;
