@@ -287,6 +287,42 @@ export async function registerVideoRoutes(app, {
     'CREATED', 'GENERATING', 'OUTPUT_DOWNLOAD_FAILED',
   ].includes(status);
 
+  // The retry record is intentionally kept on its failed parent as evidence of
+  // the bounded automatic recovery.  That evidence must not, however, make a
+  // *completed* child look permanently in-flight.  In particular, a parent may
+  // point to retry #1 while that retry in turn points to terminal retry #2.
+  // Follow the small, server-owned chain before deciding whether the UI should
+  // wait or offer an explicit new attempt.  We fail closed for a missing child:
+  // its outcome is unknown, so a user action must not pay for a duplicate.
+  const resolveAutomaticRetryChain = async (rootClip) => {
+    let clip = rootClip;
+    const seen = new Set();
+    while (['SUBMITTING', 'CREATED'].includes(clip?.automaticRetry?.state)) {
+      const childClipId = clip.automaticRetry.child_clip_id;
+      if (typeof childClipId !== 'string' || seen.has(childClipId)) {
+        return { leaf: clip, inFlight: true };
+      }
+      seen.add(childClipId);
+      const child = await videoService.getClip(childClipId);
+      if (!child) return { leaf: clip, inFlight: true };
+      clip = child;
+      // A child with a persisted remote job is the thing the visitor must wait
+      // for, even though it has not itself created a further automatic child.
+      // Without this check the parent was presented as terminal as soon as its
+      // first retry was submitted.
+      if (isResumableVideoStatus(clip.status) || ['SUBMITTING', 'NEEDS_QA'].includes(clip.status)) {
+        return { leaf: clip, inFlight: true };
+      }
+    }
+    return { leaf: clip, inFlight: false };
+  };
+
+  const presentationClip = (clip, automaticRetryInFlight) => (
+    automaticRetryInFlight
+      ? clip
+      : { ...clip, automaticRetry: null }
+  );
+
   // GET /api/profile/looks/:lookId/video-capability — the saved-look action
   // hub reads this before enabling Fashion Video. The optional service hook
   // must return two immutable hashes: the selected style/reference pack and
@@ -632,11 +668,12 @@ export async function registerVideoRoutes(app, {
         code: 'VIDEO_RETRY_LEGACY_APPEARANCE_FORBIDDEN',
       });
     }
-    if (['SUBMITTING', 'CREATED'].includes(parent.automaticRetry?.state)) {
+    const automatic = await resolveAutomaticRetryChain(parent);
+    if (automatic.inFlight) {
       return reply.code(409).send({
         error: 'Автоматичний повтор перевірки reference уже виконується. Нова платна спроба не створювалася.',
         code: 'VIDEO_AUTOMATIC_RETRY_IN_PROGRESS',
-        child_clip_id: parent.automaticRetry.child_clip_id ?? null,
+        child_clip_id: automatic.leaf?.clipId ?? parent.automaticRetry?.child_clip_id ?? null,
       });
     }
     const styleId = parent.motionReferenceBinding?.referenceId;
@@ -740,16 +777,21 @@ export async function registerVideoRoutes(app, {
         clipId: request.params.clipId,
       });
       const liveClip = await videoService.getClip(request.params.clipId);
-      const updated = projectClip(session.profileId, projection.look_id, liveClip);
-      const verifiedStyle = hasVerifiedFashionStyle(liveClip);
-      const next = resolveVideoQaAction(liveClip, { deliverable: verifiedStyle });
+      const automatic = await resolveAutomaticRetryChain(liveClip);
+      const effectiveClip = automatic.leaf;
+      const updated = projectClip(session.profileId, projection.look_id, effectiveClip);
+      const verifiedStyle = hasVerifiedFashionStyle(effectiveClip);
+      const next = resolveVideoQaAction(
+        presentationClip(effectiveClip, automatic.inFlight),
+        { deliverable: verifiedStyle },
+      );
       return reply.code(200).send({
         ...updated,
-        qa: liveClip.qa,
+        qa: effectiveClip.qa,
         // A technically valid MP4 is not deliverable Fashion Video until the
         // hash-bound cut audit proves it contains no source performer.
         video_url: verifiedStyle
-          ? `/api/profile/video-clips/${liveClip.clipId}/video`
+          ? `/api/profile/video-clips/${effectiveClip.clipId}/video`
           : null,
         delivery_code: verifiedStyle
           ? null
@@ -757,7 +799,10 @@ export async function registerVideoRoutes(app, {
         next_action: next.action,
         next_action_reason_code: next.reason_code,
         retry_available: next.retry_available,
-        automatic_retry: publicAutomaticRetry(liveClip),
+        // `effectiveClip` is the running child and therefore has no retry
+        // record of its own.  The retry evidence belongs to the requested
+        // parent clip, which is what the client is polling.
+        automatic_retry: automatic.inFlight ? publicAutomaticRetry(liveClip) : null,
       });
     } catch (err) {
       if (err instanceof VideoServiceError) {
@@ -807,25 +852,35 @@ export async function registerVideoRoutes(app, {
     }
     // The runtime file is authoritative. Persist it before replying so a
     // terminal FAIL can never be hidden behind a stale `CREATED` projection.
-    const liveProjection = liveClip
-      ? projectClip(session.profileId, clip.look_id, liveClip)
+    const automatic = liveClip
+      ? await resolveAutomaticRetryChain(liveClip)
+      : { leaf: liveClip, inFlight: false };
+    const effectiveClip = automatic.leaf;
+    const liveProjection = effectiveClip
+      ? projectClip(session.profileId, clip.look_id, effectiveClip)
       : clip;
-    const verifiedStyle = hasVerifiedFashionStyle(liveClip);
-    const next = resolveVideoQaAction(liveClip, { deliverable: verifiedStyle });
+    const verifiedStyle = hasVerifiedFashionStyle(effectiveClip);
+    const displayClip = presentationClip(effectiveClip, automatic.inFlight);
+    const next = resolveVideoQaAction(displayClip, { deliverable: verifiedStyle });
     return reply.header('Cache-Control', 'private, no-store').send({
       ...liveProjection,
-      status: liveClip?.status ?? liveProjection.status,
-      qa: liveClip?.qa ?? null,
-      error: publicVideoFailure(liveClip),
-      failure_code: liveClip?.failureCode
-        ?? liveClip?.qa?.defects?.[0]?.code
+      status: effectiveClip?.status ?? liveProjection.status,
+      qa: effectiveClip?.qa ?? null,
+      error: publicVideoFailure(displayClip),
+      failure_code: effectiveClip?.failureCode
+        ?? effectiveClip?.qa?.defects?.[0]?.code
         ?? null,
-      video_url: verifiedStyle ? clip.video_url ?? null : null,
+      video_url: verifiedStyle
+        ? `/api/profile/video-clips/${effectiveClip.clipId}/video`
+        : null,
       delivery_code: verifiedStyle ? null : 'VIDEO_STYLE_PROVENANCE_MISSING',
       next_action: next.action,
       next_action_reason_code: next.reason_code,
       retry_available: next.retry_available,
-      automatic_retry: publicAutomaticRetry(liveClip),
+      // See finalization above: keep the parent-owned retry receipt visible
+      // while a child is genuinely active, but clear it once the chain is
+      // terminal so the user can make a fresh explicit attempt.
+      automatic_retry: automatic.inFlight ? publicAutomaticRetry(liveClip) : null,
     });
   });
 

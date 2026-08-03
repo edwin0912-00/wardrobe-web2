@@ -27,6 +27,19 @@ before a Higgsfield job could exist.
 Evidence: regression recreates that exact parent state and asserts a 13-second
 child/provider request; `node --test test/video/*.test.js` 209/209 PASS;
 `npm run verify:contracts` PASS.
+ weakened_checks: none.
+
+2026-08-03 · Fashion Video terminal retry-chain recovery
+Change: the Fashion Video status and retry routes now follow the bounded
+server-owned retry-child chain before deciding whether a retry is active.
+When every automatic child is terminal, the terminal child is shown with its
+real public failure code and a fresh explicit retry is enabled. Only a child
+that is actually active still blocks a duplicate paid retry.
+Why: a parent could retain `automatic_retry.state=CREATED` forever after its
+children failed, leaving the client on a generic failure screen and making its
+Retry button return HTTP 409.
+Evidence: `node --test test/video/*.test.js` 213/213 PASS, including terminal
+chain and explicit-retry regressions. No paid provider request was run.
 weakened_checks: none.
 
 2026-08-03 · Fashion Video terminal-provider recovery · candidate

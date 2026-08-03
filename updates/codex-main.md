@@ -1535,3 +1535,20 @@ Activation: LIVE — product release
 `505729016624be756c264ca3c5f30edf92ed6da5`; verifier PASS (741 deploy files),
 guarded deploy found zero active persisted work, and local + public beta health
 both returned `ready`.
+
+---
+
+Agent ID: codex-main
+Task: VIDEO-TERMINAL-CHAIN-RECOVERY-20260803
+Pipeline: VIDEO.02 · automatic recovery → terminal state → explicit retry
+State: CODE_VERIFIED — deployment pending
+Finding: an automatic retry record belongs to its parent clip. After the two
+child jobs reached terminal `FAILED`, the parent still said `CREATED`, so
+manual retry returned 409 and main showed a generic failure.
+Decision: resolve the bounded child chain on status/finalize/retry. Only a
+resumable child is in progress. A terminal chain exposes the terminal leaf and
+allows a new explicit retry; a missing child remains fail-closed.
+Code: this commit.
+Tests: `node --test test/video/*.test.js` 213/213 PASS.
+Beta: NOT_DEPLOYED. Journey: no paid provider request made.
+weakened_checks: none.

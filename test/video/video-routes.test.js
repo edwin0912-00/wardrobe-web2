@@ -555,6 +555,111 @@ test('failed reference QA exposes the server-owned automatic child as a wait sta
   });
 });
 
+test('a terminal automatic retry chain returns its failed leaf and re-enables an explicit retry', async (t) => {
+  const current = fixture();
+  const childId = '44444444-4444-4444-8444-444444444444';
+  const parent = {
+    ...await current.videoService.getClip(),
+    status: 'FAILED',
+    failureCode: 'VIDEO_PROVIDER_JOB_FAILED',
+    automaticRetry: {
+      state: 'CREATED',
+      retry_number: 1,
+      max_retries: 2,
+      reason_code: 'VIDEO_PROVIDER_JOB_FAILED',
+      child_clip_id: childId,
+    },
+  };
+  const failedChild = {
+    ...parent,
+    clipId: childId,
+    jobId: 'higgs-job-terminal-child',
+    automaticRetry: null,
+  };
+  current.videoService.getClip = async (clipId) => (
+    clipId === childId ? failedChild : parent
+  );
+  const app = Fastify();
+  t.after(() => app.close());
+  await registerVideoRoutes(app, {
+    profileApi: { resolveRequestProfile: async () => ({ profileId: 'profile-1' }) },
+    profiles: current.profiles,
+    videoService: current.videoService,
+    runService: { outputFile: async () => null },
+  });
+
+  const response = await app.inject({
+    method: 'GET', url: '/api/profile/video-clips/11111111-1111-4111-8111-111111111111',
+  });
+  assert.equal(response.statusCode, 200, response.body);
+  const body = response.json();
+  assert.equal(body.clip_id, childId);
+  assert.equal(body.status, 'FAILED');
+  assert.equal(body.next_action, 'RETRY_AVAILABLE');
+  assert.equal(body.retry_available, true);
+  assert.equal(body.automatic_retry, null);
+  assert.match(body.error, /завершив цей job помилкою/);
+});
+
+test('an exhausted automatic child does not block a fresh explicit retry', async (t) => {
+  const current = fixture();
+  const automaticChildId = '44444444-4444-4444-8444-444444444444';
+  const explicitChildId = '55555555-5555-4555-8555-555555555555';
+  const parent = {
+    ...await current.videoService.getClip(),
+    status: 'FAILED',
+    mode: 'motion_1',
+    lookBinding: {
+      sourceSha256: 'b'.repeat(64),
+      approvedLookReceiptSha256: 'c'.repeat(64),
+      whiteBackgroundVerified: true,
+    },
+    motionReferenceBinding: { referenceId: 'style-1', sha256: 'd'.repeat(64), packSha256: 'e'.repeat(64) },
+    automaticRetry: {
+      state: 'CREATED', retry_number: 2, max_retries: 2,
+      reason_code: 'VIDEO_PROVIDER_JOB_FAILED', child_clip_id: automaticChildId,
+    },
+  };
+  const failedAutomaticChild = {
+    ...parent, clipId: automaticChildId, jobId: 'higgs-job-auto-terminal', automaticRetry: null,
+  };
+  current.videoService.getClip = async (clipId) => (
+    clipId === automaticChildId ? failedAutomaticChild : parent
+  );
+  current.videoService.fashionVideoCapability = async ({ referenceId }) => ({
+    state: 'READY', selected_style_id: referenceId, reference_id: referenceId,
+    reference_path: '/runtime/references/style.mp4', reference_sha256: 'd'.repeat(64),
+    reference_pack_sha256: 'e'.repeat(64), duration_seconds: 5,
+    provider_duration_seconds: 5, available_styles: availableStyles,
+  });
+  current.videoService.claimRetry = async () => ({
+    created: true, claim: { state: 'SUBMITTING' }, claimPath: 'fresh-explicit-claim',
+  });
+  current.videoService.completeRetryClaim = async () => {};
+  let retries = 0;
+  current.videoService.retryFailedClip = async () => {
+    retries += 1;
+    return { clipId: explicitChildId, jobId: 'higgs-job-explicit', status: 'CREATED' };
+  };
+  const app = Fastify();
+  t.after(() => app.close());
+  await registerVideoRoutes(app, {
+    profileApi: { resolveRequestProfile: async () => ({ profileId: 'profile-1' }) },
+    profiles: current.profiles,
+    videoService: current.videoService,
+    runService: { outputFile: async () => null },
+  });
+
+  const response = await app.inject({
+    method: 'POST',
+    url: '/api/profile/video-clips/11111111-1111-4111-8111-111111111111/retry',
+    headers: { 'idempotency-key': 'fresh-explicit-retry-key-123456789' },
+  });
+  assert.equal(response.statusCode, 202, response.body);
+  assert.equal(response.json().clip_id, explicitChildId);
+  assert.equal(retries, 1);
+});
+
 test('an attested failed Higgsfield job starts the bounded automatic child instead of showing a dead retry', async (t) => {
   const current = fixture();
   const childId = '44444444-4444-4444-8444-444444444444';

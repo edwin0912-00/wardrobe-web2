@@ -708,3 +708,13 @@ be weakened to hide it.
 - Active beta release: `505729016624be756c264ca3c5f30edf92ed6da5`; local and
   external health returned `ready` at guarded activation. No active provider
   work was interrupted.
+
+## Fashion Video retry-chain status · pending next beta release
+
+- A terminal automatic retry chain is terminal, not permanently in flight:
+  status returns the final child, preserves its authored public reason and
+  enables one new explicit attempt.
+- The UI remains blocked only while the retry child has a resumable job. A
+  missing child remains fail-closed to avoid an unprovable duplicate charge.
+- Focused Video suite: 213/213 PASS. No paid provider work was used to test
+  this route change.
