@@ -613,7 +613,7 @@ test('recoverSubmittedClip refuses an ambiguous paid job even when the caller ec
     assert.deepEqual(submitting.immutableRequestBinding.appearance_references, [{
       role: 'garment_detail',
       sha256: sha256(garmentBytes),
-      provider_label: '@Image 2',
+      provider_label: '[Image 2]',
       white_background_verified: true,
     }]);
     await assert.rejects(
@@ -812,9 +812,9 @@ test('createClip rechecks and passes the exact video reference binding', async (
     });
     assert.deepEqual(requests[0].videoPaths.map((file) => path.basename(file)), ['style-reference.mp4']);
     assert.equal(requests[0].durationSeconds, 13);
-    assert.match(requests[0].prompt, /^Reference bindings\. @Video 1 is private reference-only directing material, never delivery media/);
-    assert.match(requests[0].prompt, /@Image 2 is an optional white-background face-detail reference/);
-    assert.match(requests[0].prompt, /@Image 3 is a white-background garment-only evidence card/);
+    assert.match(requests[0].prompt, /^Reference bindings\. \[Video 1\] is private reference-only directing material, never delivery media/);
+    assert.match(requests[0].prompt, /\[Image 2\] is an optional white-background face-detail reference/);
+    assert.match(requests[0].prompt, /\[Image 3\] is a white-background garment-only evidence card/);
     assert.match(requests[0].prompt, /Every final frame must be newly generated/);
     assert.match(requests[0].prompt, /No source performer face, body, skin, hair, clothing, silhouette or motion-blurred fragment may survive/);
     assert.deepEqual(
@@ -833,7 +833,7 @@ test('createClip rechecks and passes the exact video reference binding', async (
     );
     assert.deepEqual(
       saved.appearanceReferences.map((reference) => reference.provider_label),
-      ['@Image 2', '@Image 3'],
+      ['[Image 2]', '[Image 3]'],
     );
     const receipt = JSON.parse(await readFile(
       path.join(store.clipDir(requests[0].sourceBinding.clipId), 'create-receipt.json'),
@@ -841,11 +841,11 @@ test('createClip rechecks and passes the exact video reference binding', async (
     ));
     assert.equal(
       receipt.request.reference_bindings.schema_version,
-      'fashion-video-reference-bindings-v2',
+      'fashion-video-reference-bindings-v3',
     );
     assert.deepEqual(
       receipt.request.reference_bindings.images.map((binding) => binding.provider_label),
-      ['@Image 1', '@Image 2', '@Image 3'],
+      ['[Image 1]', '[Image 2]', '[Image 3]'],
     );
   });
 });
