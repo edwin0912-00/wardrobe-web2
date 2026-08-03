@@ -31,7 +31,7 @@ test('persistent chrome can return to the active saved-look library without crea
 
 test('HOW uses the measured laptop journey rather than opening a second window', () => {
   assert.match(html, /data-how/);
-  assert.match(html, /window\.journey\.advanceToVideoTime\(3, 13\.25\)/);
+  assert.match(html, /window\.journey\.advanceToVideoTime\(HOW_TARGET_LEG, HOW_TARGET_SECONDS\)/);
   assert.match(html, /pipelineDeck\.requestScreenScroll\(\)/);
   assert.match(html, /data-how-reveal/);
   assert.match(css, /\.how:focus-visible/);
@@ -193,7 +193,7 @@ test('TV and laptop use the measured surface module', () => {
   assert.match(html, /screenSurfaces\.mountLaptop\(pipelineDeck\.host\)/);
   assert.match(html, /pipelineDeck\.onCameraFrame\(frame\)/);
   assert.match(ui, /opts\.onResult/);
-  assert.match(html, /advanceToVideoTime\(3, 13\.25\)/);
+  assert.match(html, /advanceToVideoTime\(HOW_TARGET_LEG, HOW_TARGET_SECONDS\)/);
   assert.match(css, /\.laptop-surface__page/);
 });
 

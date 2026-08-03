@@ -795,30 +795,97 @@
 
     /* HOW follows the cinematic clock only until the measured laptop stop at
      * 13.25s. Then wheel/touch belong to the verified document inside the
-     * physical screen. The laptop never expands to a floating/fullscreen page. */
+     * physical screen. The laptop never expands to a floating/fullscreen page.
+     *
+     * This is deliberately a two-part hand-off.  A programmatic move used to skip
+     * the ordinary seam guard, so on a cold mobile device it could land on leg 3
+     * before that film had a painted native frame.  The textile safety layer then
+     * remained above the missing room and looked like HOW had teleported to the
+     * wrong scene.  Wait for the exact target room first; only then begin the
+     * normal inertial camera move. */
+    var HOW_TARGET_LEG = 3;
+    var HOW_TARGET_SECONDS = 13.25;
+    var howTravelPending = false;
+
+    function howTargetRoomReady() {
+      var room = document.querySelector('video[data-leg="' + HOW_TARGET_LEG + '"]');
+      var metadataReady = !!(room && room.src && room.duration > 0 && isFinite(room.duration));
+      return metadataReady && (!IOS_MEDIA || iosRoomReady[HOW_TARGET_LEG] === true);
+    }
+
+    function waitForHowTargetRoom() {
+      if (howTargetRoomReady()) return Promise.resolve(true);
+      /* The iOS queue begins at boot and is deliberately sequential.  HOW waits for
+       * that existing certificate instead of starting a second native prewarm. */
+      return new Promise(function (resolve) {
+        var checksLeft = 150; // 15 seconds at 100 ms; no unbounded invisible wait.
+        function check() {
+          if (howTargetRoomReady()) { resolve(true); return; }
+          checksLeft -= 1;
+          if (checksLeft <= 0) { resolve(false); return; }
+          setTimeout(check, 100);
+        }
+        check();
+      });
+    }
+
+    function clearHowReveal(laptop) {
+      if (!laptop) return;
+      laptop.removeAttribute('data-how-reveal');
+      laptop.removeAttribute('data-how-visible');
+    }
+
+    function revealHowAtArrival(laptop, outcome) {
+      /* A projection entering its calibration bounds is not enough: only the finished
+       * camera move at the measured laptop stop may expose the document. */
+      if (outcome !== 'arrived') { clearHowReveal(laptop); return outcome; }
+      var state = window.journey && typeof window.journey.state === 'function'
+        ? window.journey.state() : null;
+      if (state && (state.leg !== HOW_TARGET_LEG || Number(state.videoTime) < HOW_TARGET_SECONDS - 0.10)) {
+        clearHowReveal(laptop);
+        return 'not-at-laptop';
+      }
+      if (laptop) laptop.setAttribute('data-how-visible', '1');
+      return outcome;
+    }
+
     if (howBtn) {
       howBtn.disabled = false;
       howBtn.addEventListener('click', function (ev) {
         ev.preventDefault();
         ev.stopPropagation();
+        if (howTravelPending) return;
+        howTravelPending = true;
+        howBtn.disabled = true;
         var laptop = document.querySelector('[data-laptop-surface]');
-        if (laptop) {
-          laptop.setAttribute('data-how-reveal', '1');
-          laptop.removeAttribute('data-how-visible');
-        }
-        if (pipelineDeck && typeof pipelineDeck.setProgress === 'function') {
-          pipelineDeck.setProgress(0);
-        }
-        if (pipelineDeck && typeof pipelineDeck.requestScreenScroll === 'function') {
-          pipelineDeck.requestScreenScroll();
-        }
-        if (window.journey && typeof window.journey.advanceToVideoTime === 'function') {
-          var move = window.journey.advanceToVideoTime(3, 13.25);
-          if (move && typeof move.catch === 'function') move.catch(function () {});
-        } else if (window.journey && typeof window.journey.advanceTo === 'function') {
-          var move = window.journey.advanceTo(3);
-          if (move && typeof move.catch === 'function') move.catch(function () {});
-        }
+        waitForHowTargetRoom().then(function (ready) {
+          if (!ready) { clearHowReveal(laptop); return 'target-room-unavailable'; }
+          if (laptop) {
+            laptop.setAttribute('data-how-reveal', '1');
+            laptop.removeAttribute('data-how-visible');
+          }
+          if (pipelineDeck && typeof pipelineDeck.setProgress === 'function') {
+            pipelineDeck.setProgress(0);
+          }
+          if (pipelineDeck && typeof pipelineDeck.requestScreenScroll === 'function') {
+            pipelineDeck.requestScreenScroll();
+          }
+          if (window.journey && typeof window.journey.advanceToVideoTime === 'function') {
+            return window.journey.advanceToVideoTime(HOW_TARGET_LEG, HOW_TARGET_SECONDS);
+          }
+          if (window.journey && typeof window.journey.advanceTo === 'function') {
+            return window.journey.advanceTo(HOW_TARGET_LEG);
+          }
+          clearHowReveal(laptop);
+          return 'journey-unavailable';
+        }).then(function (outcome) {
+          revealHowAtArrival(laptop, outcome);
+        }, function () {
+          clearHowReveal(laptop);
+        }).then(function () {
+          howTravelPending = false;
+          howBtn.disabled = false;
+        });
       });
     }
 

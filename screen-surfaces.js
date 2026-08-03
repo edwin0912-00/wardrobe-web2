@@ -238,11 +238,9 @@
       if (!element) return;
       element.hidden = hidden;
       element.setAttribute('aria-hidden', hidden ? 'true' : 'false');
-      /* HOW prepares a fade before the journey starts. Only the measured laptop
-       * projection may complete it, so no document fades in over another room. */
-      if (!hidden && element.hasAttribute('data-how-reveal')) {
-        element.setAttribute('data-how-visible', '1');
-      }
+      /* Geometry owns only geometry. HOW's caller reveals the document after its
+       * measured camera move resolves; entering the laptop calibration window alone
+       * must not fade the document over an earlier frame. */
     }
 
     function portraitStrip(item) {

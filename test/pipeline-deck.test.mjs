@@ -49,7 +49,11 @@ test('the cinematic handoff stops on the measured laptop and scrolls in that pro
   assert.match(page, /mountLaptop\(pipelineDeck\.host\)/);
   assert.match(page, /pipelineDeck\.onCameraFrame\(frame\)/);
   assert.match(surfaces, /laptopWindow/);
-  assert.match(surfaces, /data-how-visible/);
+  assert.match(page, /waitForHowTargetRoom/);
+  assert.match(page, /outcome !== 'arrived'/);
+  assert.match(page, /data-how-visible/);
+  assert.doesNotMatch(surfaces, /data-how-visible/,
+    'surface geometry cannot itself reveal the document before the camera arrives');
   assert.match(css, /laptop-surface\[data-how-reveal="1"\]/);
   assert.match(adapter, /data-screen-scroll/);
   assert.doesNotMatch(adapter, /laptop-surface--fullscreen/);

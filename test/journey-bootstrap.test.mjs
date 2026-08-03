@@ -59,7 +59,7 @@ async function settle() {
   for (let index = 0; index < 8; index += 1) await Promise.resolve();
 }
 
-async function boot({ ios, videoFrameCallback = false, withStrategy = true, progressSamples = [1] }) {
+async function boot({ ios, videoFrameCallback = false, withStrategy = true, progressSamples = [1], journeyOutcome = 'arrived' }) {
   const intro = node({ 'data-src': 'assets/intro.mp4' });
   const rooms = [0, 1, 2, 3].map((index) => node({
     'data-leg': String(index),
@@ -84,6 +84,7 @@ async function boot({ ios, videoFrameCallback = false, withStrategy = true, prog
   const calls = [];
   const audioEvents = [];
   const journeyCalls = [];
+  const videoJourneyCalls = [];
   const lookLibraryCalls = [];
   let reportedRatio = null;
 
@@ -158,6 +159,11 @@ async function boot({ ios, videoFrameCallback = false, withStrategy = true, prog
       refreshGate() {},
       releaseAndAdvance() {},
       advanceTo(leg) { journeyCalls.push(leg); return Promise.resolve('arrived'); },
+      advanceToVideoTime(leg, seconds) {
+        videoJourneyCalls.push({ leg, seconds });
+        return Promise.resolve(journeyOutcome);
+      },
+      state() { return { leg: 3, videoTime: 13.25 }; },
     }) },
     WardrobeUI: { create: () => ({
       canAdvance: () => true,
@@ -188,7 +194,7 @@ async function boot({ ios, videoFrameCallback = false, withStrategy = true, prog
   };
   vm.runInNewContext(inline, context, { filename: 'b/index.inline.js' });
   await settle();
-  return { calls, intro, rooms, audioEvents, looks, how, laptop, journeyCalls, lookLibraryCalls };
+  return { calls, intro, rooms, audioEvents, looks, how, laptop, journeyCalls, videoJourneyCalls, lookLibraryCalls };
 }
 
 test('desktop fully loads selected D before the fabric handoff and backgrounds only later rooms', async () => {
@@ -234,13 +240,22 @@ test('header “Образи” returns to the selected look library and mirror 
   assert.deepEqual(app.journeyCalls, [0]);
 });
 
-test('HOW follows the existing inertial journey to the measured laptop and prepares its reveal', async () => {
+test('HOW waits for the target room, then reveals the laptop only after measured arrival', async () => {
   const app = await boot({ ios: false });
   assert.equal(app.how.disabled, false, 'the control becomes usable after the journey is ready');
   app.how.emit('click');
   await settle();
-  assert.deepEqual(app.journeyCalls, [3]);
+  assert.deepEqual(app.videoJourneyCalls, [{ leg: 3, seconds: 13.25 }]);
   assert.equal(app.laptop.getAttribute('data-how-reveal'), '1');
+  assert.equal(app.laptop.getAttribute('data-how-visible'), '1');
+});
+
+test('an interrupted HOW camera move never reveals the laptop over another scene', async () => {
+  const app = await boot({ ios: false, journeyOutcome: 'user took over' });
+  app.how.emit('click');
+  await settle();
+  assert.deepEqual(app.videoJourneyCalls, [{ leg: 3, seconds: 13.25 }]);
+  assert.equal(app.laptop.getAttribute('data-how-reveal'), null);
   assert.equal(app.laptop.getAttribute('data-how-visible'), null);
 });
 
