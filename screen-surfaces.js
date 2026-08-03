@@ -21,6 +21,16 @@
       .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
+  /* The measured laptop aperture is deliberately tiny in the final phone shot.
+   * That is correct film geometry, but it makes the actual document unusable on a
+   * portrait phone. At the terminal handoff only, the same mounted node becomes
+   * a bounded reading plane inside the film. Desktop keeps the physical projected
+   * laptop and this is explicitly not the retired fullscreen route. */
+  function isPortraitMobileViewport() {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
+    return window.matchMedia('(max-width: 767px) and (orientation: portrait)').matches;
+  }
+
   function normaliseRect(frame) {
     if (!frame || typeof frame !== 'object') throw new TypeError('TV frame must be an object');
     var result = {
@@ -394,9 +404,21 @@
       var visible = laptopTerminalLock || (frame.leg === calibration.laptop.leg &&
         frame.videoTime != null && frame.videoTime >= first && frame.videoTime <= last + terminalClockTolerance);
       if (!visible) {
+        laptop.removeAttribute('data-mobile-terminal');
         setHidden(laptop, true);
         return;
       }
+      if (laptopTerminalLock && isPortraitMobileViewport()) {
+        /* Do not clone, move or fullscreen the document. Keeping this exact node
+         * preserves its mounted state and one vertical scroll owner. */
+        laptop.setAttribute('data-mobile-terminal', '1');
+        laptop.style.width = '';
+        laptop.style.height = '';
+        laptop.style.transform = '';
+        setHidden(laptop, false);
+        return;
+      }
+      laptop.removeAttribute('data-mobile-terminal');
       /* The movie's decoded clock may continue for a subframe after the terminal
        * handoff. While the document owns scroll, pin it to the last calibrated laptop
        * quad instead of letting a later movie frame remove the only visible document. */

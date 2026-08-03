@@ -5,13 +5,14 @@ import test from 'node:test';
 
 const SOURCE_SHA256 = '0aea43bd7f1cf6ac77b5db68521b3712dbae2de964ab57fd14f206818171389b';
 
-const [sourceBytes, source, adapter, page, surfaces, css] = await Promise.all([
+const [sourceBytes, source, adapter, page, surfaces, css, mobileCss] = await Promise.all([
   readFile(new URL('../b/zeely-pipeline-clients.html', import.meta.url)),
   readFile(new URL('../b/zeely-pipeline-clients.html', import.meta.url), 'utf8'),
   readFile(new URL('../b/pipeline-deck.js', import.meta.url), 'utf8'),
   readFile(new URL('../b/index.html', import.meta.url), 'utf8'),
   readFile(new URL('../screen-surfaces.js', import.meta.url), 'utf8'),
   readFile(new URL('../style.css', import.meta.url), 'utf8'),
+  readFile(new URL('../mobile.css', import.meta.url), 'utf8'),
 ]);
 
 test('the laptop source is vendored byte-for-byte from the approved handoff', () => {
@@ -78,4 +79,14 @@ test('the document handoff begins only at the measured 14.145s terminal laptop f
   assert.match(adapter, /if \(amount < 0 && next < 0\)[\s\S]*?handBack\(next\)/);
   assert.match(surfaces, /var laptopTerminalLock = false/);
   assert.match(surfaces, /var geometryTime = laptopTerminalLock \? last : frame\.videoTime/);
+});
+
+test('portrait phones enlarge the same terminal document without invoking fullscreen', () => {
+  assert.match(surfaces, /function isPortraitMobileViewport\(\)/);
+  assert.match(surfaces, /laptopTerminalLock && isPortraitMobileViewport\(\)/);
+  assert.match(surfaces, /laptop\.setAttribute\('data-mobile-terminal', '1'\)/);
+  assert.match(surfaces, /laptop\.removeAttribute\('data-mobile-terminal'\)/);
+  assert.match(mobileCss, /\.laptop-surface\[data-mobile-terminal="1"\]/);
+  assert.match(mobileCss, /height: min\(68vh, calc\(100% - 152px\)\) !important;/);
+  assert.doesNotMatch(mobileCss, /data-mobile-terminal="1"\][\s\S]{0,600}laptop-surface--fullscreen/);
 });
