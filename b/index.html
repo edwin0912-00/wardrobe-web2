@@ -363,27 +363,51 @@
   /* Every byte of the experience, counted. Audio is in the list because it is part of
      the load — reporting only the video would be the same kind of half-truth the old
      bar told. */
-  /* MUSIC STARTS DURING THE LOAD, AUDIBLE BY DEFAULT.
+  /* SOUND STARTS AT A REAL 50% OF THE OPENING LOAD.
    *
-   * The intended default is sound on, and we begin it before the reveal. Browsers that
-   * forbid audible autoplay honestly change the control to "звук: торкніться"; the first
-   * real interaction unlocks the same score without changing the visitor's preference.
-   * Starting it at the reveal instead meant the first track began from nothing exactly
-   * when the picture appeared, which is the busiest moment on screen. */
-  var scoreStarted = false;
-  function startScoreEarly(blobs, from) {
-    if (scoreStarted || !blobs || !blobs[TRACKS[0]]) return;
-    scoreStarted = true;
-    /* Which path actually started the score, and how far the load had got. Readable from
-       the console, because "the music starts during the load" is otherwise a claim nobody
-       can check — and on a warm cache the whole load finishes before anything can be
-       sampled from outside. */
-    window.scoreStartedFrom = from || 'unknown';
+   * The score is prepared as soon as its first track lands, but playback is not requested
+   * until the byte-truthful loader crosses 50%. This makes the moment deterministic on
+   * desktop and mobile instead of coupling it to which file happened to finish first.
+   * iOS/Safari may still refuse audible autoplay without a gesture; in that case audio.js
+   * keeps the same intended audible state and unlocks on the first genuine interaction.
+   * The UI says that honestly rather than falsely claiming the room has sound. */
+  var scorePrepared = false;
+  var scorePlaybackRequested = false;
+  var soundGestureArmed = false;
+
+  function reflectSoundState() {
+    if (!window.score || !soundBtn) return;
+    var state = window.score.state();
+    var active = state.activeIndex >= 0 ? state.activeIndex : 0;
+    var playing = state.activeIndex >= 0 && state.paused && state.paused[active] === false;
+    soundBtn.setAttribute('aria-pressed', String(playing && !state.muted));
+    soundBtn.textContent = !playing ? 'звук: торкніться' : (state.muted ? 'без звуку' : 'звук');
+  }
+
+  function armSoundStateAfterGesture() {
+    if (soundGestureArmed) return;
+    soundGestureArmed = true;
+    var events = ['pointerdown', 'keydown', 'touchstart', 'wheel'];
+    var settle = function () {
+      events.forEach(function (eventName) { window.removeEventListener(eventName, settle); });
+      soundGestureArmed = false;
+      setTimeout(reflectSoundState, 0);
+    };
+    events.forEach(function (eventName) {
+      window.addEventListener(eventName, settle, { passive: true, once: true });
+    });
+  }
+
+  function prepareScore(blobs, from) {
+    if (scorePrepared || !blobs || !blobs[TRACKS[0]]) return;
+    scorePrepared = true;
+    /* The exact prepared source and threshold are visible for QA without exposing
+       private media or inventing a playback result. */
+    window.scorePreparedFrom = from || 'unknown';
     window.score = WardrobeAudio.create({
       tracks: TRACKS.map(function (t) { return blobs[t] || t; }),
-      /* Browsers may reject audible autoplay, but the first real swipe/touch is a
-         permitted gesture.  Keep the intended state audible so audio.js can start
-         the score on that gesture instead of silently unlocking a muted mixer. */
+      /* Keep the intended state audible. If autoplay is blocked, audio.js waits for
+         a real gesture and starts audible on that gesture; it never unlocks muted. */
       startMuted: false,
       volume: 0.55,
       /* 15% — the owner's number. Constant: the room does not get more concrete when you
@@ -404,7 +428,25 @@
       echoMax: 0.80,
       feedbackMax: 0.66
     });
-    window.score.unlock();
+  }
+
+  function requestScoreAtHalf(blobs, ratio) {
+    if (ratio < 0.5) return;
+    prepareScore(blobs, 'loader @ ' + Math.round(ratio * 100) + '%');
+    if (!window.score || scorePlaybackRequested) return;
+    scorePlaybackRequested = true;
+    window.scoreStartedFrom = 'loader @ ' + Math.round(ratio * 100) + '%';
+    window.score.start().then(function () {
+      reflectSoundState();
+      var state = window.score && window.score.state ? window.score.state() : null;
+      var active = state && state.activeIndex >= 0 ? state.activeIndex : 0;
+      if (!state || !state.paused || state.paused[active] !== false) armSoundStateAfterGesture();
+    }).catch(function () {
+      /* `start()` normally resolves false on policy rejection, but keep this honest
+         fallback for an unexpected audio implementation error. */
+      reflectSoundState();
+      armSoundStateAfterGesture();
+    });
   }
 
   /* THE SCORE'S FIRST TRACK LOADS ON ITS OWN, AHEAD OF EVERYTHING.
@@ -457,13 +499,14 @@
   WardrobeLoader.load(REQUIRED, function (p) {
     paint(p);
 
-    /* As soon as the score's own first track is in memory, start it — muted, under the
-       loader. It does not wait for the film. */
+    /* Prepare the decoded first track as soon as it lands, then make the single audible
+       autoplay request exactly when the real aggregate loader reaches 50%. */
     var t0 = p.files.filter(function (f) { return f.url === TRACKS[0] && f.blobUrl; })[0];
     if (t0) {
       var blobs = {};
       p.files.forEach(function (f) { if (f.blobUrl) blobs[f.url] = f.blobUrl; });
-      startScoreEarly(blobs, 'during-load @ ' + Math.round(p.ratio * 100) + '%');
+      prepareScore(blobs, 'track-ready @ ' + Math.round(p.ratio * 100) + '%');
+      requestScoreAtHalf(blobs, p.ratio);
     }
   }, { firstWave: FIRST_WAVE }).then(function (res) {
     if (res.unmeasurable.length) {
@@ -543,10 +586,10 @@
       bytesEl.textContent = 'решта фільму не дозавантажилась: ' + err.message;
     }) : Promise.resolve({ blobs: {}, bytes: 0, unmeasurable: [], files: [] });
 
-    /* The score already exists — it started under the loader. Creating another here would
-       leave two mixers running the same tracks, which is exactly the doubling being
-       removed. Only start it if the early path never fired. */
-    startScoreEarly(res.blobs, 'after-load (early path did not fire)');
+    /* Warm caches may jump directly from 0 to 100. They use the same threshold path,
+       never a second mixer or a later reveal-time start. */
+    prepareScore(res.blobs, 'after-load');
+    requestScoreAtHalf(res.blobs, 1);
     window.journey = WardrobeJourney.create({
       /* The page downloaded everything itself, so the engine must not run a second
          preload nor repaint the bar. One owner for loading. */
@@ -745,20 +788,9 @@
     window.loaderHeldMs = Math.round(hold);
     setTimeout(function () { loaderEl.setAttribute('data-done', '1'); }, hold);
 
-    /* THE BUTTON STATES WHETHER THERE IS SOUND, NOT WHETHER A TRACK IS ROLLING.
-     *
-     * The score starts muted and rolling, which is the point — it is already underway
-     * when the picture arrives. But the label used to be driven by "did playback begin",
-     * and playback does begin, so the control read "звук" and announced aria-pressed=true
-     * over a silent room: the opposite of the truth, and for a screen reader the only
-     * thing it says. It now reports the mute state, which is the thing a listener can
-     * actually hear. The one case worth distinguishing is a browser that refused to play
-     * at all — then the button has to ask for the gesture instead of claiming silence. */
-    window.score.start().then(function (playing) {
-      var m = window.score.state().muted;
-      soundBtn.setAttribute('aria-pressed', String(playing && !m));
-      soundBtn.textContent = !playing ? 'звук: торкніться' : (m ? 'без звуку' : 'звук');
-    });
+    /* `requestScoreAtHalf()` owns the one autoplay attempt. Keep the button truthful
+       when an unexpectedly fast cache reached completion before its microtask ran. */
+    reflectSoundState();
 
     soundBtn.addEventListener('click', function (ev) {
       ev.stopPropagation();

@@ -81,6 +81,37 @@ function profileLookId(look) {
   return look?.look_id ?? look?.id ?? null;
 }
 
+/* Fashion Shoot state is server-owned. A phone refresh must not make five
+ * independently running frames look as though they were lost: the same profile response
+ * already contains the durable shoot projection, both flat and nested under its look.
+ * Read both shapes, dedupe by id, then reconnect only the newest nonterminal programme
+ * belonging to the currently restored look. */
+function profileEditorialShoots(profile, lookId) {
+  const records = [];
+  const seen = new Set();
+  const append = (shoot) => {
+    const id = String(shoot?.shoot_id ?? shoot?.id ?? '');
+    if (!id || seen.has(id)) return;
+    if (String(shoot?.look_id ?? '') !== String(lookId ?? '')) return;
+    seen.add(id);
+    records.push(shoot);
+  };
+  (profile?.editorial_shoots ?? []).forEach(append);
+  profileLooks(profile).forEach((look) => {
+    if (String(profileLookId(look) ?? '') !== String(lookId ?? '')) return;
+    (look?.editorial_shoots ?? []).forEach(append);
+  });
+  return records;
+}
+
+function newestActiveEditorialShoot(profile, lookId) {
+  const terminal = new Set(['COMPLETED', 'CANCELLED']);
+  return profileEditorialShoots(profile, lookId)
+    .filter((shoot) => !terminal.has(String(shoot?.status ?? '').toUpperCase()))
+    .sort((left, right) => String(right?.updated_at ?? right?.created_at ?? '')
+      .localeCompare(String(left?.updated_at ?? left?.created_at ?? '')))[0] ?? null;
+}
+
 function runChoices(run) {
   return (run?.conflicts ?? [])
     .filter((conflict) => conflict?.type === 'DUPLICATE_SLOT')
@@ -500,6 +531,32 @@ export function createCinematicUiBridge({
     if (kind === 'shoot') void syncShootResult(entity);
   }
 
+  async function restoreActiveShoot(profile, savedLook) {
+    const lookId = profileLookId(savedLook);
+    const persisted = newestActiveEditorialShoot(profile, lookId);
+    const shootId = persisted?.shoot_id ?? persisted?.id ?? null;
+    if (!shootId || typeof client.loadShoot !== 'function') return null;
+    try {
+      const shoot = await client.loadShoot(shootId);
+      /* ZeelyClient emits while loading; simple test/different clients may not.
+       * Reconcile once at this neutral boundary so both clients restore the exact same
+       * 3/5 projection after refresh. */
+      if (state.shoot?.shoot_id !== shoot?.shoot_id || state.shoot?.updated_at !== shoot?.updated_at) {
+        syncProduct('shoot', shoot, 'shoot:restored');
+      }
+      const terminal = new Set(['COMPLETED', 'CANCELLED']);
+      if (!terminal.has(String(shoot?.status ?? '').toUpperCase())
+        && typeof client.watchShoot === 'function') {
+        client.watchShoot(shoot.shoot_id);
+      }
+      return shoot;
+    } catch {
+      /* A stale profile projection must not break recovery of the saved look itself.
+       * The server remains the authority and the next profile refresh can repair it. */
+      return null;
+    }
+  }
+
   const unsubscribeClient = client.subscribe((event) => {
     if (disposed || !event) return;
     const type = String(event.type ?? '');
@@ -521,7 +578,12 @@ export function createCinematicUiBridge({
         const profile = await client.loadProfile();
         const savedLook = profileLooks(profile)[0] ?? null;
         emit('connection:ready', { availability: 'ready', profile, savedLook, error: null });
-        if (savedLook) await loadCatalogs(profileLookId(savedLook));
+        if (savedLook) {
+          await Promise.all([
+            loadCatalogs(profileLookId(savedLook)),
+            restoreActiveShoot(profile, savedLook),
+          ]);
+        }
       } catch (error) {
         if (error?.status === 401) fail(error, 'connection:auth_required');
         else throw error;

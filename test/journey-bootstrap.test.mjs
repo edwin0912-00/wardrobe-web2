@@ -58,7 +58,7 @@ async function settle() {
   for (let index = 0; index < 8; index += 1) await Promise.resolve();
 }
 
-async function boot({ ios, videoFrameCallback = false, withStrategy = true }) {
+async function boot({ ios, videoFrameCallback = false, withStrategy = true, progressSamples = [1] }) {
   const intro = node({ 'data-src': 'assets/intro.mp4' });
   const rooms = [0, 1, 2, 3].map((index) => node({
     'data-leg': String(index),
@@ -78,6 +78,8 @@ async function boot({ ios, videoFrameCallback = false, withStrategy = true }) {
   const track = node();
   const root = node();
   const calls = [];
+  const audioEvents = [];
+  let reportedRatio = null;
 
   const allVideos = [intro, ...rooms];
   if (videoFrameCallback) {
@@ -112,18 +114,33 @@ async function boot({ ios, videoFrameCallback = false, withStrategy = true }) {
 
   const window = {
     addEventListener() {},
+    removeEventListener() {},
     WardrobeLoader: {
       load(urls, onProgress, options = {}) {
         calls.push({ urls: [...urls], options });
         const files = urls.map((url) => ({ url, blobUrl: `blob:${url}`, done: true }));
-        onProgress?.({ ratio: 1, loaded: urls.length * 100, total: urls.length * 100, files });
+        for (const ratio of progressSamples) {
+          reportedRatio = ratio;
+          onProgress?.({
+            ratio,
+            loaded: Math.round(urls.length * 100 * ratio),
+            total: urls.length * 100,
+            files,
+          });
+        }
         return Promise.resolve(makeResult(urls));
       }
     },
     WardrobeAudio: {
       create() {
+        audioEvents.push({ type: 'create', ratio: reportedRatio });
         return {
-          unlock() {}, start: () => Promise.resolve(false), state: () => ({ muted: false, activeIndex: -1, paused: [] }),
+          unlock() {},
+          start: () => {
+            audioEvents.push({ type: 'start', ratio: reportedRatio });
+            return Promise.resolve(true);
+          },
+          state: () => ({ muted: false, activeIndex: 0, paused: [false] }),
           setMuted() {}, toggleMute: () => false, setSpeed() {}
         };
       }
@@ -155,7 +172,7 @@ async function boot({ ios, videoFrameCallback = false, withStrategy = true }) {
   };
   vm.runInNewContext(inline, context, { filename: 'b/index.inline.js' });
   await settle();
-  return { calls, intro, rooms };
+  return { calls, intro, rooms, audioEvents };
 }
 
 test('desktop fully loads selected D before the fabric handoff and backgrounds only later rooms', async () => {
@@ -175,6 +192,14 @@ test('a missing companion strategy asset falls back safely instead of blanking t
     ['assets/seg2.mp4', 'assets/seg3.mp4', 'assets/seg4.mp4']
   ]);
   assert.equal(app.rooms[0].src, 'blob:assets/seg1.mp4?v=seg1-d-20260730');
+});
+
+test('prepares the score early but requests audible playback at the factual 50% mark', async () => {
+  const app = await boot({ ios: false, progressSamples: [0.49, 0.5, 1] });
+  assert.deepEqual(app.audioEvents, [
+    { type: 'create', ratio: 0.49 },
+    { type: 'start', ratio: 0.5 },
+  ]);
 });
 
 test('iOS starts D native, does not launch Blob work for later rooms, then prewarms one next room at a time', async () => {

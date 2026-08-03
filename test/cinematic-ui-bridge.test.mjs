@@ -39,6 +39,8 @@ function clientStub({ profileError = null, profile = { looks: [] } } = {}) {
     createShoot: async (lookId, input) => { calls.push(['shoot', lookId, input]); return { shoot_id: 'shoot-1', status: 'QUEUED' }; },
     createVideo: async (input) => { calls.push(['video', input]); return { clip_id: 'clip-1', status: 'CREATED' }; },
     watchVideo: () => () => {},
+    loadShoot: async (shootId) => { calls.push(['load-shoot', shootId]); return null; },
+    watchShoot: (shootId) => { calls.push(['watch-shoot', shootId]); return () => {}; },
     retryScene: async () => ({}),
     retryVideo: async () => ({}),
     approveShootBible: async (shootId, hash) => { calls.push(['approve-bible', shootId, hash]); return {}; },
@@ -101,6 +103,57 @@ test('restores nested avatar looks from older beta profile payloads', async () =
   const bridge = createCinematicUiBridge({ client, autoProbe: false });
   await bridge.probe();
   assert.equal(bridge.state().savedLook.look_id, 'look-legacy');
+});
+
+test('a mobile refresh restores the persisted partial Fashion Shoot and reconnects its event stream', async () => {
+  const profile = {
+    looks: [{
+      look_id: 'look-saved',
+      image_url: '/api/profile/looks/look-saved/image',
+      editorial_shoots: [{
+        shoot_id: 'shoot-three-of-five', look_id: 'look-saved', status: 'SERIES_RUNNING',
+        updated_at: '2026-08-03T01:12:00.000Z',
+      }],
+    }],
+    editorial_shoots: [{
+      shoot_id: 'shoot-three-of-five', look_id: 'look-saved', status: 'SERIES_RUNNING',
+      updated_at: '2026-08-03T01:12:00.000Z',
+    }],
+  };
+  const client = clientStub({ profile });
+  client.loadShoot = async (shootId) => {
+    client.calls.push(['load-shoot', shootId]);
+    return {
+      shoot_id: shootId,
+      status: 'SERIES_RUNNING',
+      updated_at: '2026-08-03T01:12:01.000Z',
+      shots: [
+        { slot: 'clean_identity_hero', status: 'CANCELLED' },
+        { slot: 'environmental_hero', status: 'APPROVED', output: { resource_id: 'frame-1' } },
+        { slot: 'sculptural_three_quarter', status: 'APPROVED', output: { resource_id: 'frame-2' } },
+        { slot: 'interference_frame', status: 'APPROVED', output: { resource_id: 'frame-3' } },
+        { slot: 'material_or_accessory_detail', status: 'RUNNING' },
+        { slot: 'wide_campaign_coda', status: 'PENDING' },
+      ],
+    };
+  };
+  const bridge = createCinematicUiBridge({ client, autoProbe: false });
+  await bridge.probe();
+
+  const state = bridge.state();
+  assert.equal(state.activeKind, 'shoot');
+  assert.equal(state.phase, 'running');
+  assert.equal(state.result.readyCount, 3);
+  assert.equal(state.result.expectedCount, 5);
+  assert.deepEqual(state.result.urls, [
+    '/api/profile/editorial-shoots/shoot-three-of-five/shots/environmental_hero/image',
+    '/api/profile/editorial-shoots/shoot-three-of-five/shots/sculptural_three_quarter/image',
+    '/api/profile/editorial-shoots/shoot-three-of-five/shots/interference_frame/image',
+  ]);
+  assert.deepEqual(client.calls.filter(([kind]) => kind === 'load-shoot' || kind === 'watch-shoot'), [
+    ['load-shoot', 'shoot-three-of-five'],
+    ['watch-shoot', 'shoot-three-of-five'],
+  ]);
 });
 
 test('a completed real run becomes the saved look and loads all action catalogues', async () => {
