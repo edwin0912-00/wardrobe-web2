@@ -1738,3 +1738,12 @@ PASS. No new provider generation was charged. The prior failed receipt remains
 immutable rather than being reclassified.
 weakened_checks: none — selected garment, identity, anatomy and white
 background QA remain blocking.
+2026-08-04 · README-LOCAL-HTTP-SMOKE · beta · codex-main
+Change: add a behavioral local startup smoke that follows the browser module
+graph through the real Fastify static resolver and checks `/api/health`; also
+decouple local app boot from the deployment-only public video-source origin and
+the optional OpenRouter fallback key.
+Why: a source-string assertion cannot detect a UI bridge/module loaded at a
+wrong HTTP path. The repository handoff must fail before review if that happens.
+Evidence: `npm run verify:readme` (record exact result with the code commit).
+weakened_checks: none.

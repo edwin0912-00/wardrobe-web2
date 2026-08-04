@@ -7,6 +7,7 @@ import test from 'node:test';
 import Fastify from 'fastify';
 
 import {
+  createUnavailableVideoAssetUrlResolver,
   createVideoAssetUrlResolver,
   redactVideoSourceRequestPath,
   registerVideoSourceBridgeRoutes,
@@ -205,4 +206,12 @@ test('logging redaction removes capability tokens and leaves ordinary stages int
     '/api/video-source/[redacted-capability]',
   );
   assert.equal(redactVideoSourceRequestPath('/api/health'), '/api/health');
+});
+
+test('local startup can defer an absent public origin until an OpenRouter fallback actually needs it', async () => {
+  const resolver = createUnavailableVideoAssetUrlResolver();
+  await assert.rejects(
+    () => resolver('/not-a-real-source.png', {}),
+    (error) => error.code === 'VIDEO_SOURCE_ORIGIN_UNAVAILABLE' && error.status === 503,
+  );
 });

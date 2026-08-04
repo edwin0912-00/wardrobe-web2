@@ -21,6 +21,19 @@ export class VideoRuntimeError extends Error {
   }
 }
 
+function unavailableOpenRouterVideoProvider() {
+  const unavailable = async () => {
+    const error = new VideoRuntimeError(
+      'OpenRouter video fallback is unavailable until OPENROUTER_API_KEY is configured',
+      { code: 'OPENROUTER_VIDEO_FALLBACK_UNAVAILABLE' },
+    );
+    // A missing local configuration is terminal, not a reason to loop.
+    error.retryable = false;
+    throw error;
+  };
+  return Object.freeze({ createJob: unavailable, waitForJob: unavailable });
+}
+
 export async function downloadVideoBytes(url, {
   fetchFn = globalThis.fetch,
   openRouterApiKey = null,
@@ -133,11 +146,16 @@ export function createVideoRuntime({
     });
   }
   const higgsfield = new HiggsfieldVideoProvider({ commandRunner });
-  const openRouter = new OpenRouterVideoProvider({
-    apiKey: openRouterApiKey,
-    assetUrlResolver,
-    fetchFn,
-  });
+  // OpenRouter is a fallback, not a boot prerequisite. Requiring its key here
+  // made `npm run app` die before serving the local UI even though the
+  // reference-bound Higgsfield route is independent.
+  const openRouter = typeof openRouterApiKey === 'string' && openRouterApiKey.trim().length > 0
+    ? new OpenRouterVideoProvider({
+        apiKey: openRouterApiKey,
+        assetUrlResolver,
+        fetchFn,
+      })
+    : unavailableOpenRouterVideoProvider();
   const provider = new VideoProviderRouter({
     primary: higgsfield,
     fallback: openRouter,

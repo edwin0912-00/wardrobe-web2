@@ -1640,3 +1640,25 @@ immutable and is not retroactively relabelled PASS. The next top-only run uses
 the corrected scope.
 weakened_checks: none — selected hoodie, identity, anatomy and white-background
 checks remain blocking; only unselected clothing is no longer treated as target.
+## README local startup contract — 2026-08-04
+
+Code: `PENDING_COMMIT`. Added `npm run verify:readme`: a behavioral Fastify
+smoke test that resolves `index.html`, every local static/module dependency and
+`/api/health` through the actual HTTP application surface, then runs the real
+`src/web/start.js` in a clean temporary runtime. It is specifically intended to
+fail on a UI-module path/bridge 404 rather than merely prove that an import
+string exists in source.
+
+The same repair decouples local app boot from the deployment-only
+`ZEELY_PUBLIC_HTTPS_ORIGIN`: the video source bridge is created only when that
+origin exists. An absent origin now blocks only the OpenRouter video fallback
+with `VIDEO_SOURCE_ORIGIN_UNAVAILABLE`; it cannot prevent the app, API, image
+journey or reference-bound Higgsfield Video route from starting.
+
+Likewise, `OPENROUTER_API_KEY` is now an optional fallback configuration rather
+than a process-start prerequisite. The primary Higgsfield video provider stays
+available; a missing fallback key fails only on an actual fallback request.
+
+Beta: NOT_DEPLOYED — this is repository handoff coverage, not a runtime change.
+Journey: local README surface PASS only after the focused command is recorded.
+weakened_checks: none.

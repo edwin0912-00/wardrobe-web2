@@ -79,16 +79,14 @@ test('download refuses non-HTTPS and oversized provider output', async () => {
   );
 });
 
-test('runtime refuses incomplete paid-provider configuration', () => {
-  assert.throws(
-    () => createVideoRuntime({
-      runtimeRoot: '/tmp/runtime',
-      openRouterApiKey: '',
-      assetUrlResolver: async () => 'https://assets.example/look.png',
-      commandRunner: async () => ({ stdout: '{}', stderr: '' }),
-    }),
-    (error) => error.code === 'OPENROUTER_VIDEO_MISCONFIGURED',
-  );
+test('runtime keeps the local app bootable when the optional OpenRouter fallback is unconfigured', () => {
+  const runtime = createVideoRuntime({
+    runtimeRoot: '/tmp/runtime',
+    openRouterApiKey: '',
+    assetUrlResolver: async () => 'https://assets.example/look.png',
+    commandRunner: async () => ({ stdout: '{}', stderr: '' }),
+  });
+  assert.ok(runtime, 'primary Higgsfield video runtime remains available');
   assert.throws(
     () => createVideoRuntime({}),
     (error) => error instanceof VideoRuntimeError

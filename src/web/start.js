@@ -14,7 +14,10 @@ import { createVlmEvaluator } from './vlm-provider.js';
 import { createFalRealtimeTokenIssuer } from './fal-realtime-token.js';
 import { createVideoRuntime } from './video-runtime.js';
 import { createFashionVideoReferenceResolver } from './video-reference-registry.js';
-import { createVideoAssetUrlResolver } from './video-source-bridge.js';
+import {
+  createUnavailableVideoAssetUrlResolver,
+  createVideoAssetUrlResolver,
+} from './video-source-bridge.js';
 import { loadReleaseIdentity } from './release-identity.js';
 import { GodViewAuth, OpenTesterGodViewAuth } from './god-view-auth.js';
 
@@ -154,10 +157,13 @@ if (adoptedShootIds.length > 0) {
     data: { count: adoptedShootIds.length, shoot_ids: adoptedShootIds },
   });
 }
-const videoSourceBridge = createVideoAssetUrlResolver({
-  clipStoreRoot: path.join(runtimeRoot, 'video-clips'),
-  httpsOrigin: process.env.ZEELY_PUBLIC_HTTPS_ORIGIN,
-});
+const publicHttpsOrigin = String(process.env.ZEELY_PUBLIC_HTTPS_ORIGIN ?? '').trim();
+const videoSourceBridge = publicHttpsOrigin
+  ? createVideoAssetUrlResolver({
+      clipStoreRoot: path.join(runtimeRoot, 'video-clips'),
+      httpsOrigin: publicHttpsOrigin,
+    })
+  : null;
 const fashionVideoReferenceResolver = createFashionVideoReferenceResolver({
   rootDirectory: process.env.ZEELY_VIDEO_REFERENCE_ROOT,
   manifestPath: path.join(
@@ -170,7 +176,8 @@ const fashionVideoReferenceResolver = createFashionVideoReferenceResolver({
 const videoService = createVideoRuntime({
   runtimeRoot,
   openRouterApiKey: process.env.OPENROUTER_API_KEY,
-  assetUrlResolver: videoSourceBridge.videoAssetUrlResolver,
+  assetUrlResolver: videoSourceBridge?.videoAssetUrlResolver
+    ?? createUnavailableVideoAssetUrlResolver(),
   fashionVideoReferenceResolver,
   fashionVideoQaMode: process.env.ZEELY_FASHION_VIDEO_QA_MODE ?? 'strict',
 });

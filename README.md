@@ -31,6 +31,26 @@ npm run app
 
 Відкрити `http://127.0.0.1:4173`. Окремі OpenAI/Gemini API keys не потрібні: generation виконує Higgsfield CLI, а тимчасовий independent semantic judge — авторизований `codex exec` у `--ephemeral`, read-only, strict-schema режимі.
 
+Локальний старт не потребує `ZEELY_PUBLIC_HTTPS_ORIGIN` або
+`OPENROUTER_API_KEY`: вони потрібні лише для зовнішнього OpenRouter video
+fallback, який має забрати приватний кадр через HTTPS. Без них сайт, API,
+image-flow та reference-bound Higgsfield Fashion Video запускаються; лише цей
+fallback чесно поверне конфігураційну помилку, якщо колись буде обраний.
+
+Перед передаванням проєкту або локальною перевіркою запусти:
+
+```bash
+npm run verify:readme
+```
+
+Це не текстова перевірка import-рядків: тест піднімає той самий Fastify
+application surface, проходить від `index.html` усі локальні browser-assets та
+module imports реальними HTTP-запитами, а потім запускає реальний
+`src/web/start.js` у чистому тимчасовому runtime й перевіряє `/api/health`,
+`/app.js` та `/scene-ui.js`. Будь-який неправильний шлях до UI-модуля або
+розрив UI ↔ backend поверне HTTP-помилку й завалить команду до ручного
+тестування.
+
 Для публічного demo увімкнути серверний PIN-gate. PIN та secret не зберігаються в репозиторії:
 
 ```bash
