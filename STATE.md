@@ -1,6 +1,6 @@
 # Wardrobe verified state
 
-## Pending beta activation — structured failure diagnostics
+## Release candidate — structured failure diagnostics
 
 - The beta browser carries safe machine-readable failure fields from API to
   the visible failed state: `code`, `failure_code`, `reason_code`,
@@ -11,7 +11,8 @@
 - This covers avatar/outfit draft upload and creation, standard backgrounds,
   Fashion Shoot, and Fashion Video polling/retry paths.
 - Evidence: focused browser and route tests 38/38 PASS; no paid generation.
-  Public activation and one no-cost browser error-surface check remain pending.
+  The exact public activation and one no-cost browser error-surface check are
+  recorded by the release owner after this candidate is activated.
   `weakened_checks: none`.
 
 ## Active beta: saved materials recover without deletion — 2026-08-04

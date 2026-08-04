@@ -1,6 +1,6 @@
 # Wardrobe update board
 
-## 2026-08-04 · Structured generation failures reach the beta screen — pending activation
+## 2026-08-04 · Structured generation failures reach the beta screen — release candidate
 
 The browser now preserves the safe, structured fields returned by beta across
 create, polling and retry boundaries: `code`, `failure_code`, `reason_code`,
