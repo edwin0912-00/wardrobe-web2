@@ -133,6 +133,7 @@
     var terminalSettleToken = 0;
     var terminalSettleApproved = false;
     var reverseReleaseDistance = 0;
+    var freshTerminalEntry = true;
     /* A light upward correction at the top of the document must not eject a person
      * from the laptop.  Only a deliberate pull of 72 px returns control to the film;
      * the first camera movement is bounded, so a single large trackpad event cannot
@@ -274,6 +275,7 @@
       mode = 'camera';
       screenScrollRequested = false;
       terminalReleased = true;
+      freshTerminalEntry = true;
       clearScreenOwnership();
       if (amount) {
         var y = Math.max(0, window.scrollY + amount);
@@ -281,9 +283,21 @@
       }
     }
 
+    function projectedDelta(delta) {
+      if (!deck || !host || typeof host.getBoundingClientRect !== 'function') return Number(delta) || 0;
+      var rect = host.getBoundingClientRect();
+      var projectedHeight = Math.max(1, Number(rect.height) || 0);
+      var documentHeight = Math.max(1, Number(deck.clientHeight) || 0);
+      /* Touch/wheel deltas arrive in viewport pixels, while the verified document is
+       * a 1200x800 plane projected into a much smaller filmed laptop.  Apply the
+       * inverse projection scale so one deliberate physical swipe advances the same
+       * proportion of a slide on phone, desktop and trackpad. */
+      return (Number(delta) || 0) * clamp(documentHeight / projectedHeight, 1, 4);
+    }
+
     function consumeDelta(delta) {
       if (mode !== 'screen' || !deck) return false;
-      var amount = Number(delta) || 0;
+      var amount = projectedDelta(delta);
       if (!amount) return true;
       var current = deck.scrollTop;
       var next = current + amount;
@@ -314,6 +328,14 @@
       }
       host.removeAttribute('data-screen-settling');
       host.setAttribute('data-screen-scroll', '1');
+      /* A new camera -> document journey always begins at the first page.  Previously
+       * the ShadowRoot preserved an old scrollTop, so revisiting HOW could land on
+       * slide 10/10 and look like a dark, empty laptop.  Do not reset while the user
+       * is already reading; reset only after a genuine return to the camera. */
+      if (freshTerminalEntry) {
+        deck.scrollTop = 0;
+        freshTerminalEntry = false;
+      }
       host.focus({ preventScroll: true });
       return true;
     }

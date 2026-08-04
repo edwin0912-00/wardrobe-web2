@@ -104,6 +104,19 @@ test('natural terminal arrival and HOW share one reversible, thresholded documen
   assert.match(page, /advanceToVideoTime\(3, terminalSeconds/);
 });
 
+test('every fresh camera-to-laptop entry starts visibly on page one', () => {
+  assert.match(adapter, /var freshTerminalEntry = true/);
+  assert.match(adapter, /terminalReleased = true;\s*freshTerminalEntry = true;/);
+  assert.match(adapter, /if \(freshTerminalEntry\) \{\s*deck\.scrollTop = 0;\s*freshTerminalEntry = false;/s);
+});
+
+test('projected laptop gestures are scaled from viewport pixels into document pixels', () => {
+  assert.match(adapter, /function projectedDelta\(delta\)/);
+  assert.match(adapter, /host\.getBoundingClientRect\(\)/);
+  assert.match(adapter, /documentHeight \/ projectedHeight/);
+  assert.match(adapter, /var amount = projectedDelta\(delta\)/);
+});
+
 test('the settling state blocks residual inertial input before the document owns the gesture', () => {
   assert.match(adapter, /function beginTerminalSettle\(frame\)/);
   assert.match(adapter, /host\.setAttribute\('data-screen-settling', '1'\)/);
