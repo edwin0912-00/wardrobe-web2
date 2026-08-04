@@ -175,16 +175,27 @@ test('terminal watchdog reconciles a mobile run when SSE stays open but misses c
 
 test('preserves a structured API error for cinematic UI recovery states', async () => {
   const client = createZeelyClient({
-    fetchImpl: async () => jsonResponse({ error: 'Look not found', code: 'LOOK_NOT_FOUND' }, 404),
+    fetchImpl: async () => jsonResponse({
+      error: 'Look not found',
+      code: 'LOOK_NOT_FOUND',
+      failure_code: 'VIDEO_INPUT_MEDIA_IP_CHECK_PENDING',
+      next_action: 'RETRY_AVAILABLE',
+      next_action_reason_code: 'VIDEO_INPUT_MEDIA_IP_CHECK_PENDING',
+    }, 404),
     EventSourceImpl: FakeEventSource,
   });
   await assert.rejects(() => client.loadProfile(), (error) => {
     assert.ok(error instanceof ZeelyApiError);
     assert.equal(error.status, 404);
     assert.equal(error.code, 'LOOK_NOT_FOUND');
+    assert.equal(error.failureCode, 'VIDEO_INPUT_MEDIA_IP_CHECK_PENDING');
+    assert.equal(error.nextAction, 'RETRY_AVAILABLE');
+    assert.equal(error.nextActionReasonCode, 'VIDEO_INPUT_MEDIA_IP_CHECK_PENDING');
     return true;
   });
   assert.equal(client.snapshot().error.code, 'LOOK_NOT_FOUND');
+  assert.equal(client.snapshot().error.failureCode, 'VIDEO_INPUT_MEDIA_IP_CHECK_PENDING');
+  assert.equal(client.snapshot().error.nextAction, 'RETRY_AVAILABLE');
 });
 
 test('video polling is opt-in, begins immediately, and can be stopped', async () => {

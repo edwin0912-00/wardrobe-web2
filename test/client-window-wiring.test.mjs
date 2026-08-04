@@ -168,9 +168,13 @@ test('a first failed look exposes recovery before the empty-look waiting orb', (
   assert.match(renderShow, /failureWindow\(actionError\)/);
   assert.match(ui, /data-retry-action/);
   assert.match(ui, /Спробувати ще/);
-  assert.match(ui, /bridgeState\.error && bridgeState\.error\.message/,
-    'terminal bridge failure copy must reach the recovery mirror');
-  assert.match(ui, /UNSUPPORTED_GARMENT_MEDIA/,
+  assert.match(ui, /actionFailurePresentation\(/,
+    'terminal bridge failure code, copy and next action must reach the recovery mirror');
+  assert.match(ui, /failureDiagnostic\(/,
+    'the recovery mirror must visibly show the structured code and next action');
+  assert.match(ui, /message: actionFailureCopy\(error\)/,
+    'raw provider or model prose must not bypass the authored public failure copy');
+  assert.match(ui, /UNSUPPORTED_MEDIA_TYPE/,
     'a rejected source file must return to the garment picker, not fake a generator retry');
   assert.match(ui, /IMAGE_TOO_SMALL/,
     'a thumbnail rejected by the input contract must return to the picker, not retry generation');

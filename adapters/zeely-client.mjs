@@ -6,12 +6,30 @@
  * reverse-proxy.  The API paths below mirror beta's public Fastify routes.
  */
 
+const PUBLIC_CODE = /^[A-Z][A-Z0-9_]{1,119}$/;
+
+function publicCode(value) {
+  return typeof value === 'string' && PUBLIC_CODE.test(value) ? value : null;
+}
+
 export class ZeelyApiError extends Error {
-  constructor(message, { status = 0, code = null, body = null } = {}) {
+  constructor(message, {
+    status = 0,
+    code = null,
+    failureCode = null,
+    reasonCode = null,
+    nextAction = null,
+    nextActionReasonCode = null,
+    body = null,
+  } = {}) {
     super(message);
     this.name = 'ZeelyApiError';
     this.status = status;
-    this.code = code;
+    this.code = publicCode(code);
+    this.failureCode = publicCode(failureCode);
+    this.reasonCode = publicCode(reasonCode);
+    this.nextAction = publicCode(nextAction);
+    this.nextActionReasonCode = publicCode(nextActionReasonCode);
     this.body = body;
   }
 }
@@ -146,9 +164,23 @@ export function createZeelyClient({
       const error = new ZeelyApiError(errorBody.error || `Zeely API returned ${response.status}`, {
         status: response.status,
         code: errorBody.code || null,
+        failureCode: errorBody.failure_code ?? errorBody.failureCode ?? null,
+        reasonCode: errorBody.reason_code ?? errorBody.reasonCode ?? null,
+        nextAction: errorBody.next_action ?? errorBody.nextAction ?? null,
+        nextActionReasonCode: errorBody.next_action_reason_code ?? errorBody.nextActionReasonCode ?? null,
         body: errorBody,
       });
-      emit('error', { error: { message: error.message, status: error.status, code: error.code } });
+      emit('error', {
+        error: {
+          message: error.message,
+          status: error.status,
+          code: error.code,
+          failureCode: error.failureCode,
+          reasonCode: error.reasonCode,
+          nextAction: error.nextAction,
+          nextActionReasonCode: error.nextActionReasonCode,
+        },
+      });
       throw error;
     }
     return payload;

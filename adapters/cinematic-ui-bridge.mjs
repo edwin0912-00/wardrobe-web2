@@ -310,18 +310,71 @@ function enrichLiveCapability(capability, pipeline) {
   };
 }
 
+const PUBLIC_ERROR_CODE = /^[A-Z][A-Z0-9_]{1,119}$/;
+
+const NEXT_ACTION_COPY = Object.freeze({
+  REPLACE_INPUT: 'додайте інше фото або ракурс',
+  REMOVE_EXTRA_INPUTS: 'залиште один варіант речі цього типу',
+  RETRY_AVAILABLE: 'можна повторити цю саму спробу',
+  CREATE_NEW_ATTEMPT: 'створіть нову спробу',
+  SELECT_VERIFIED_VIDEO_STYLE: 'оберіть перевірений відеостиль',
+  CREATE_SCENE_FROM_SAVED_LOOK: 'оберіть збережений образ і спробуйте ще раз',
+  RETRY_AFTER_PROVIDER_READY: 'спробуйте ще раз, коли провайдер буде готовий',
+  WAIT: 'дочекайтеся наступного оновлення',
+  BLOCK: 'цей результат не можна видати без виправлення',
+});
+
+function safePublicCode(value) {
+  return typeof value === 'string' && PUBLIC_ERROR_CODE.test(value) ? value : null;
+}
+
+function publicFailureDetails(source) {
+  const values = [source, source?.error, source?.body, source?.response].filter(Boolean);
+  const read = (fields) => {
+    for (const value of values) {
+      for (const field of fields) {
+        const code = safePublicCode(value?.[field]);
+        if (code) return code;
+      }
+    }
+    return null;
+  };
+  const nextActionCode = read(['next_action', 'nextAction', 'action']);
+  return {
+    code: read([
+      'failure_code', 'failureCode', 'code', 'reason_code', 'reasonCode',
+      'next_action_reason_code', 'nextActionReasonCode',
+    ]),
+    nextActionCode,
+    nextAction: nextActionCode ? (NEXT_ACTION_COPY[nextActionCode] ?? null) : null,
+  };
+}
+
+function withFailureDetails(presentation, source) {
+  const details = publicFailureDetails(source);
+  return {
+    ...presentation,
+    code: details.code ?? presentation.code ?? null,
+    ...(details.nextActionCode ? { nextActionCode: details.nextActionCode } : {}),
+    ...(details.nextAction ? { nextAction: details.nextAction } : {}),
+  };
+}
+
 function statusError(error) {
-  if (error?.status === 401) return { availability: 'auth_required', code: 'AUTH_REQUIRED' };
+  const details = publicFailureDetails(error);
+  if (error?.status === 401) return withFailureDetails({ availability: 'auth_required', code: 'AUTH_REQUIRED' }, error);
   if (error?.code === 'ENGINE_UNAVAILABLE' || error?.status === 404 || error?.status === 0) {
-    return { availability: 'unavailable', code: 'ENGINE_UNAVAILABLE' };
+    return withFailureDetails({ availability: 'unavailable', code: 'ENGINE_UNAVAILABLE' }, error);
   }
   if (error?.code === 'UNSUPPORTED_MEDIA_TYPE') {
     const rawField = String(error?.body?.field ?? '');
     const field = /^(Ваше фото|Фото речі [1-5])$/.test(rawField) ? rawField : 'Це фото';
     return {
       availability: null,
-      code: 'UNSUPPORTED_GARMENT_MEDIA',
+      code: details.code ?? 'UNSUPPORTED_GARMENT_MEDIA',
       message: `${field}: оберіть JPEG, PNG або WebP.`,
+      ...(details.nextActionCode ? { nextActionCode: details.nextActionCode } : {}),
+      ...(details.nextAction ? { nextAction: details.nextAction } : {}),
     };
   }
   if (error?.code === 'IMAGE_TOO_SMALL' ||
@@ -330,11 +383,18 @@ function statusError(error) {
     const field = /^(Ваше фото|Фото речі [1-5])$/.test(rawField) ? rawField : 'Це фото';
     return {
       availability: null,
-      code: 'IMAGE_TOO_SMALL',
+      code: details.code ?? 'IMAGE_TOO_SMALL',
       message: `${field}: потрібне зображення щонайменше 256×256 px.`,
+      ...(details.nextActionCode ? { nextActionCode: details.nextActionCode } : {}),
+      ...(details.nextAction ? { nextAction: details.nextAction } : {}),
     };
   }
-  return { availability: null, code: error?.code ?? 'REQUEST_FAILED' };
+  return {
+    availability: null,
+    code: details.code ?? 'REQUEST_FAILED',
+    ...(details.nextActionCode ? { nextActionCode: details.nextActionCode } : {}),
+    ...(details.nextAction ? { nextAction: details.nextAction } : {}),
+  };
 }
 
 /* Beta's terminal `message` is useful evidence for a repair prompt, but it is
@@ -345,24 +405,24 @@ function runFailurePresentation(run) {
   const message = String(run?.message ?? '').toLowerCase();
   const stage = String(run?.terminal_stage ?? run?.phase ?? '').toUpperCase();
   if (stage === 'OUTFIT_QA' && /blue\s+(?:t-?shirt|shirt)|син(?:я|ій).*футбол/.test(message)) {
-    return {
+    return withFailureDetails({
       code: 'OUTFIT_QA_VISIBLE_BLUE_LAYER',
       message: 'На образі лишився синій шар замість погодженого темного верху. Повторимо тільки образ.',
-    };
+    }, run);
   }
   if (stage === 'OUTFIT_QA') {
-    return {
+    return withFailureDetails({
       code: 'OUTFIT_QA_MISMATCH',
       message: 'Образ не пройшов перевірку точності речей. Повторимо тільки образ.',
-    };
+    }, run);
   }
   if (stage === 'AVATAR_QA') {
-    return {
+    return withFailureDetails({
       code: 'AVATAR_QA_MISMATCH',
       message: 'Не вдалося точно зберегти зовнішність. Повторимо тільки образ.',
-    };
+    }, run);
   }
-  return { code: 'RUN_FAILED', message: 'Не вдалося зібрати образ. Спробуйте ще раз.' };
+  return withFailureDetails({ code: 'RUN_FAILED', message: 'Не вдалося зібрати образ. Спробуйте ще раз.' }, run);
 }
 
 function runReviewPresentation(run) {
@@ -381,7 +441,8 @@ function runReviewPresentation(run) {
  * vocabulary that Beta deliberately exposes to a visitor; raw provider/VLM
  * prose must never be mirrored into the cinematic site. */
 function productFailurePresentation(kind, entity, needsManualRetry) {
-  const code = entity?.failure_code ?? entity?.failureCode
+  const details = publicFailureDetails(entity);
+  const code = details.code
     ?? (needsManualRetry ? `${kind.toUpperCase()}_NEEDS_RETRY` : `${kind.toUpperCase()}_FAILED`);
   const copy = {
     VIDEO_PROVIDER_JOB_FAILED: 'Higgsfield не зміг завершити цей ролик. Автоматичні спроби вже завершилися — можна запустити нову.',
@@ -395,6 +456,8 @@ function productFailurePresentation(kind, entity, needsManualRetry) {
     message: copy[code] ?? (needsManualRetry
       ? 'Цей результат потребує повторної спроби.'
       : 'Не вдалося завершити цю дію. Спробуйте ще раз.'),
+    ...(details.nextActionCode ? { nextActionCode: details.nextActionCode } : {}),
+    ...(details.nextAction ? { nextAction: details.nextAction } : {}),
   };
 }
 
@@ -445,7 +508,13 @@ export function createCinematicUiBridge({
     emit(type, {
       ...(mapped.availability ? { availability: mapped.availability } : {}),
       phase: mapped.availability ? 'idle' : 'failed',
-      error: { code: mapped.code, status: error?.status ?? 0, message: mapped.message ?? null },
+      error: {
+        code: mapped.code,
+        status: error?.status ?? 0,
+        message: mapped.message ?? null,
+        ...(mapped.nextActionCode ? { nextActionCode: mapped.nextActionCode } : {}),
+        ...(mapped.nextAction ? { nextAction: mapped.nextAction } : {}),
+      },
     });
   }
 

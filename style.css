@@ -1401,6 +1401,13 @@ body {
 }
 .review-actions .glass__lede { margin: 0; }
 .failure-state { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
+.failure-diagnostic {
+  margin-top: clamp(8px, 1.8cqh, 12px);
+  color: rgba(245, 243, 237, 0.76);
+  font: 500 clamp(9px, 1.9cqh, 11px)/1.45 ui-monospace, Menlo, monospace;
+  letter-spacing: 0.055em;
+  text-transform: none;
+}
 
 /* LIVE — the camera leaves the right mirror and becomes the viewport. */
 .live-overlay {

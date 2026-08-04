@@ -546,7 +546,7 @@ test('an unsupported garment format returns a precise replacement instruction', 
   await bridge.probe();
   await assert.rejects(bridge.createLook({ person: new Blob(['a']), garments: [new Blob(['b'])] }));
   assert.deepEqual(bridge.state().error, {
-    code: 'UNSUPPORTED_GARMENT_MEDIA', status: 422,
+    code: 'UNSUPPORTED_MEDIA_TYPE', status: 422,
     message: 'Фото речі 2: оберіть JPEG, PNG або WebP.',
   });
 });
@@ -565,6 +565,8 @@ test('a too-small garment returns a replacement instruction instead of a paid re
   assert.deepEqual(bridge.state().error, {
     code: 'IMAGE_TOO_SMALL', status: 422,
     message: 'Фото речі 3: потрібне зображення щонайменше 256×256 px.',
+    nextActionCode: 'REPLACE_INPUT',
+    nextAction: 'додайте інше фото або ракурс',
   });
 });
 
@@ -705,12 +707,15 @@ test('a terminal Fashion Video provider failure keeps its actionable reason on t
       clip_id: 'clip-provider-failed',
       status: 'FAILED',
       failure_code: 'VIDEO_PROVIDER_JOB_FAILED',
+      next_action: 'RETRY_AVAILABLE',
     },
   });
   assert.equal(bridge.state().phase, 'failed');
   assert.deepEqual(bridge.state().error, {
     code: 'VIDEO_PROVIDER_JOB_FAILED',
     message: 'Higgsfield не зміг завершити цей ролик. Автоматичні спроби вже завершилися — можна запустити нову.',
+    nextActionCode: 'RETRY_AVAILABLE',
+    nextAction: 'можна повторити цю саму спробу',
   });
 });
 

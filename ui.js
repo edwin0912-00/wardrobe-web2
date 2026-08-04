@@ -188,7 +188,7 @@
      * after the style has been selected. */
     var awaitingAspect = null;   // null | 'shoot' | 'bg'
     var pendingAction = null;    // null | { kind, aspect }
-    var actionError = null;      // adapter-owned failure: { kind, message }
+    var actionError = null;      // adapter-owned failure: { kind, code, message, nextAction }
     var lookReview = null;       // core image exists, but a retryable follow-up is pending
     /* Upload preparation is intentionally presentation-neutral. The beta accepts the
      * same normalized JPEG/PNG/WebP payload after HEIC/HEIF conversion; while that work
@@ -920,11 +920,10 @@
         pending = false;
         pendingAction = null;
         lookReview = null;
-        actionError = {
-          kind: kind === 'background' ? 'bg' : kind === 'video' ? 'fash' : kind,
-          code: bridgeState.error && bridgeState.error.code || null,
-          message: bridgeState.error && bridgeState.error.message || 'Спробуємо ще раз'
-        };
+        actionError = actionFailurePresentation(
+          kind === 'background' ? 'bg' : kind === 'video' ? 'fash' : kind,
+          bridgeState.error,
+        );
       }
 
       /* The transition to the TV is a delivery event, not an intent event.
@@ -1771,15 +1770,23 @@
 
     function inputReplacementError(error) {
       return !!(error && (error.code === 'UNSUPPORTED_GARMENT_MEDIA' ||
-        error.code === 'IMAGE_TOO_SMALL' || error.code === 'INPUT_REPLACEMENT_REQUIRED'));
+        error.code === 'UNSUPPORTED_MEDIA_TYPE' || error.code === 'IMAGE_TOO_SMALL' ||
+        error.code === 'INPUT_REPLACEMENT_REQUIRED'));
     }
 
     /* The bridge/API already translate known recovery states into Ukrainian.
      * A direct action rejection still reaches this catch path first, so retain
      * that authored fact instead of overwriting it with a misleading generic
      * retry. Unknown transport text remains private and falls back safely. */
+    function publicFailureCode(error) {
+      var candidate = error && (error.failureCode || error.failure_code || error.code ||
+        error.reasonCode || error.reason_code || error.nextActionReasonCode || error.next_action_reason_code);
+      candidate = String(candidate || '');
+      return /^[A-Z][A-Z0-9_]{1,119}$/.test(candidate) ? candidate : null;
+    }
+
     function actionFailureCopy(error) {
-      var code = String(error && error.code || '');
+      var code = publicFailureCode(error) || '';
       var known = {
         VIDEO_PROVIDER_JOB_FAILED: 'Higgsfield не зміг завершити цей ролик. Можна запустити нову спробу.',
         VIDEO_INPUT_MEDIA_IP_CHECK_PENDING: 'Higgsfield ще перевіряє завантажені медіа. Job не створився; спробуйте ще раз через кілька секунд.',
@@ -1790,11 +1797,44 @@
       return known[code] || 'Не вдалося завершити цю дію. Спробуйте ще раз.';
     }
 
+    function actionNextAction(error) {
+      var actionCode = String(error && (error.nextActionCode || error.next_action || error.nextAction) || '');
+      var known = {
+        REPLACE_INPUT: 'додайте інше фото або ракурс',
+        REMOVE_EXTRA_INPUTS: 'залиште один варіант речі цього типу',
+        RETRY_AVAILABLE: 'можна повторити цю саму спробу',
+        CREATE_NEW_ATTEMPT: 'створіть нову спробу',
+        SELECT_VERIFIED_VIDEO_STYLE: 'оберіть перевірений відеостиль',
+        CREATE_SCENE_FROM_SAVED_LOOK: 'оберіть збережений образ і спробуйте ще раз',
+        RETRY_AFTER_PROVIDER_READY: 'спробуйте ще раз, коли система буде готова',
+        WAIT: 'дочекайтеся наступного оновлення',
+        BLOCK: 'цей результат не можна видати без виправлення'
+      };
+      return known[actionCode] || null;
+    }
+
+    function actionFailurePresentation(kind, error) {
+      return {
+        kind: kind,
+        code: publicFailureCode(error),
+        message: actionFailureCopy(error),
+        nextAction: actionNextAction(error),
+      };
+    }
+
+    function failureDiagnostic(error) {
+      var fragments = [];
+      if (error && error.code) fragments.push('Код: ' + esc(error.code));
+      if (error && error.nextAction) fragments.push('Далі: ' + esc(error.nextAction));
+      return fragments.length ? '<div class="failure-diagnostic">' + fragments.join(' · ') + '</div>' : '';
+    }
+
     function inputFailureWindow(error) {
       return '<div class="failure-state failure-state--input" role="alert">' +
         '<div class="glass__eyebrow">ПОТРІБНЕ УТОЧНЕННЯ</div>' +
         '<div class="glass__h">Оберіть інше фото</div>' +
         '<p class="glass__lede">' + esc(error && error.message || 'Це фото не можна використати для образу.') + '</p>' +
+        failureDiagnostic(error) +
         '<div class="recovery-actions">' +
           '<button class="glass__cta" type="button" data-retry-action>Замінити фото</button>' +
           '<button class="secondary" type="button" data-cancel-action>До фото</button>' +
@@ -1804,6 +1844,7 @@
     function failureWindow(error) {
       return '<div class="failure-state" role="alert"><div class="glass__eyebrow">Не вдалося завершити</div>' +
         orbWindow('failed', error.message || 'Спробуємо ще раз') +
+        failureDiagnostic(error) +
         '<div class="recovery-actions">' +
           '<button class="glass__cta" type="button" data-retry-action>' +
             'Спробувати ще' + '</button>' +
@@ -2258,7 +2299,7 @@
         }
         Promise.resolve(command).catch(function (error) {
           pendingAction = null;
-          actionError = { kind: kind, code: error && error.code || null, message: actionFailureCopy(error) };
+          actionError = actionFailurePresentation(kind, error);
           render(); notifyGateChange();
         });
         return;
@@ -2452,11 +2493,7 @@
         if (bridge && bridgeReady() && (actionError || lookReview) && !inputRejected) {
           lookReview = null;
           bridge.retryActive().catch(function (error) {
-            actionError = {
-              kind: actionError && actionError.kind || 'look',
-              code: error && error.code || null,
-              message: actionFailureCopy(error)
-            };
+            actionError = actionFailurePresentation(actionError && actionError.kind || 'look', error);
             render(); notifyGateChange();
           });
           actionError = null;
