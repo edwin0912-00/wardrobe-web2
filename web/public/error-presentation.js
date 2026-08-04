@@ -18,6 +18,20 @@ const NEXT_ACTION_COPY = Object.freeze({
   BLOCK: 'цей результат не можна видати без виправлення',
 });
 
+const ERROR_COPY = Object.freeze({
+  IMAGE_TOO_SMALL: 'Це зображення замале для надійної підготовки.',
+  IMAGE_DECODE_FAILED: 'Браузер або сервер не зміг прочитати це зображення.',
+  UNSUPPORTED_MEDIA_TYPE: 'Цей формат зображення не підтримується.',
+  GENERATION_UNAVAILABLE: 'Генерація тимчасово недоступна.',
+  MODEL_RESPONSE_MISMATCH: 'Відповідь моделі не відповідає очікуваному маршруту.',
+  PROVIDER_INPUT_MEDIA_IP_CHECK_PENDING: 'Вхідне медіа ще проходить перевірку. Запуск не почався.',
+  VIDEO_INPUT_MEDIA_IP_CHECK_PENDING: 'Вхідне відео ще проходить перевірку. Запуск не почався.',
+  PROVIDER_JOB_NOT_FOUND: 'Постачальник більше не бачить цю спробу.',
+  PROVIDER_JOB_FAILED: 'Постачальник завершив цю спробу без результату.',
+  VIDEO_PROVIDER_JOB_FAILED: 'Постачальник завершив відео без результату.',
+  VIDEO_REFERENCE_QA_FAILED: 'Відео не пройшло перевірку відповідності референсу.',
+});
+
 function valuesFrom(source) {
   if (!source || typeof source !== 'object') return [];
   const nested = [source.error, source.body, source.response].filter(Boolean);
@@ -58,6 +72,16 @@ export function publicNextAction(source) {
 }
 
 /**
+ * Resolve only authored product copy.  Provider/model free-form error text is
+ * not a public contract even when the provider returns it alongside a code.
+ */
+export function publicErrorMessage(source, fallback = 'Дію зупинено. Перевірте код і наступну дію.') {
+  const code = publicErrorCode(source);
+  if (code) return ERROR_COPY[code] ?? 'Дію зупинено. Перевірте код і наступну дію.';
+  return String(fallback || 'Дію зупинено. Спробуйте ще раз.');
+}
+
+/**
  * Add a terse, safe diagnostic to authored Ukrainian copy.  The caller owns
  * the human sentence; this module only exposes fields explicitly structured by
  * our API/provider adapter.
@@ -73,7 +97,7 @@ export function withPublicDiagnostic(message, source, { fallbackCode = null } = 
 
 /** Construct a normal Error while preserving the safe structured API fields. */
 export function errorFromApiResponse(response, body = {}, fallbackMessage = null) {
-  const error = new Error(body?.error || fallbackMessage || `HTTP ${response?.status ?? 0}`);
+  const error = new Error(publicErrorMessage(body, fallbackMessage || `HTTP ${response?.status ?? 0}`));
   error.status = Number(response?.status) || 0;
   error.code = publicErrorCode(body);
   error.failure_code = publicErrorCode(body);

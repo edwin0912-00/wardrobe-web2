@@ -39,6 +39,8 @@ test('API response error retains safe structured fields without treating free-fo
   assert.equal(error.status, 422);
   assert.equal(error.code, 'IMAGE_TOO_SMALL');
   assert.equal(error.next_action, 'REPLACE_INPUT');
+  assert.equal(error.message, 'Це зображення замале для надійної підготовки.');
+  assert.doesNotMatch(error.message, /raw provider/i);
   assert.match(withPublicDiagnostic('Потрібне інше зображення.', error), /Код: IMAGE_TOO_SMALL/);
   assert.match(withPublicDiagnostic('Потрібне інше зображення.', error), /Далі: додайте інше фото або ракурс/);
   assert.equal(publicErrorCode({ error: 'MODEL SAID NO' }), null);

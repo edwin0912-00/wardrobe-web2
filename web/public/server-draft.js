@@ -5,11 +5,11 @@ import {
   finalizationFileManifest,
   sha256Blob,
 } from './draft-file-contract.js?v=20260723-1';
-import { publicErrorCode } from './error-presentation.js?v=20260804-1';
+import { publicErrorCode, publicErrorMessage } from './error-presentation.js?v=20260804-1';
 
 export class DraftApiError extends Error {
   constructor(message, { status, body } = {}) {
-    super(message);
+    super(publicErrorMessage(body, message));
     this.name = 'DraftApiError';
     this.status = status;
     this.body = body;
