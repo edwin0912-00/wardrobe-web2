@@ -334,6 +334,7 @@
        * is already reading; reset only after a genuine return to the camera. */
       if (freshTerminalEntry) {
         deck.scrollTop = 0;
+        deck.dispatchEvent(new Event('scroll'));
         freshTerminalEntry = false;
       }
       host.focus({ preventScroll: true });

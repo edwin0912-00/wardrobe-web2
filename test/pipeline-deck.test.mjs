@@ -107,7 +107,7 @@ test('natural terminal arrival and HOW share one reversible, thresholded documen
 test('every fresh camera-to-laptop entry starts visibly on page one', () => {
   assert.match(adapter, /var freshTerminalEntry = true/);
   assert.match(adapter, /terminalReleased = true;\s*freshTerminalEntry = true;/);
-  assert.match(adapter, /if \(freshTerminalEntry\) \{\s*deck\.scrollTop = 0;\s*freshTerminalEntry = false;/s);
+  assert.match(adapter, /if \(freshTerminalEntry\) \{\s*deck\.scrollTop = 0;\s*deck\.dispatchEvent\(new Event\('scroll'\)\);\s*freshTerminalEntry = false;/s);
 });
 
 test('projected laptop gestures are scaled from viewport pixels into document pixels', () => {
