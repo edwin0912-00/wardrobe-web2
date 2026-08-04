@@ -63,3 +63,23 @@ test('degraded provider preflight refuses paid generation before uploads enter t
   assert.equal(createCalls, 0);
   await app.close();
 });
+
+test('a recovered cached preflight re-enables the journey without restarting the web app', async () => {
+  let latest = { status: 'degraded', runtime_status: 'ready' };
+  const app = await createWebApp({
+    service: serviceThatLeaksInternally(),
+    health: { status: 'degraded' },
+    healthProvider: async () => latest,
+  });
+
+  let response = await app.inject({ method: 'GET', url: '/api/health' });
+  assert.equal(response.json().status, 'degraded');
+  assert.equal(response.json().generation, 'unavailable');
+
+  latest = { status: 'ready', runtime_status: 'ready' };
+  response = await app.inject({ method: 'GET', url: '/api/health' });
+  assert.equal(response.json().status, 'ready');
+  assert.equal(response.json().generation, 'available');
+
+  await app.close();
+});

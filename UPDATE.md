@@ -1,5 +1,24 @@
 # Wardrobe update board
 
+## 2026-08-04 · beta provider preflight self-recovery
+
+At 13:19 the main client correctly disabled `Створити образ` even though five
+garment uploads were accepted: the beta engine had retained a boot-time
+`degraded` provider preflight and therefore exposed `generation: unavailable`.
+The same Higgsfield CLI/account check was healthy when replayed read-only.
+
+The immediate safe recovery was a guarded beta restart after confirming that
+there were no active persisted runs, scenes, or Fashion Shoots. Public beta
+and the main proxy then both returned `status: ready`, `generation: available`.
+
+The source follow-up makes that recovery automatic: cached provider preflight
+is refreshed every 30 seconds using only CLI/account-status probes; a recovered
+check reopens the journey, while a failed check remains fail-closed. It never
+creates a provider job. Code verification and activation are recorded in
+`updates/codex-main.md` with the exact commit.
+
+`weakened_checks: none`.
+
 ## 2026-08-02 · source, release and historical-chat reconciliation
 
 **Current engine source and public beta are the same code SHA:**

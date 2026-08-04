@@ -48,17 +48,23 @@ export async function createWebApp({
   // A degraded provider preflight means the local CLI cannot prove that it can
   // create and observe a paid Higgsfield job. Do not let a user enter the
   // pipeline only to fail later with an ambiguous provider-create message.
-  const generationAvailable = health.status !== 'degraded';
+  //
+  // `health` is the boot snapshot; `healthProvider` is the latest cached
+  // provider preflight. The latter matters when a short CLI/network failure
+  // occurs exactly while the daemon starts: a later healthy preflight must
+  // reopen the journey without waiting for a manual process restart.
   const currentHealth = async () => {
-    const runtime = typeof healthProvider === 'function' ? await healthProvider() : null;
-    return {
+    const latest = typeof healthProvider === 'function' ? await healthProvider() : null;
+    const resolved = {
       ...health,
-      ...(runtime ? {
-        runtime_status: runtime.status,
-        ...(runtime.status === 'ready' ? {} : { status: 'degraded' }),
-      } : {}),
+      ...(latest && typeof latest === 'object' ? latest : {}),
     };
+    if (resolved.runtime_status && resolved.runtime_status !== 'ready') {
+      return { ...resolved, status: 'degraded' };
+    }
+    return resolved;
   };
+  const generationAvailable = (resolvedHealth) => ['ready', 'ok'].includes(resolvedHealth?.status);
   const generationTrigger = (request) => {
     if (request.method !== 'POST') return false;
     const pathname = request.url.split('?')[0];
@@ -83,7 +89,7 @@ export async function createWebApp({
   });
   installDemoAuth(app, auth);
   app.addHook('onRequest', async (request, reply) => {
-    if (generationAvailable || !generationTrigger(request)) return;
+    if (!generationTrigger(request) || generationAvailable(await currentHealth())) return;
     return reply
       .header('Retry-After', '60')
       .code(503)
@@ -244,15 +250,19 @@ export async function createWebApp({
       acceptClientTelemetry: true,
       testAudit,
       profileApi,
-      statusProvider: async () => ({
-        status: 'ok',
-        service: 'web',
-        generation: generationAvailable ? 'available' : 'unavailable',
-        editorial_generation: editorialShootService
-          ? (generationAvailable ? 'available' : 'unavailable')
-          : 'disabled',
-        preflight: health.status,
-      }),
+      statusProvider: async () => {
+        const resolved = await currentHealth();
+        const available = generationAvailable(resolved);
+        return {
+          status: 'ok',
+          service: 'web',
+          generation: available ? 'available' : 'unavailable',
+          editorial_generation: editorialShootService
+            ? (available ? 'available' : 'unavailable')
+            : 'disabled',
+          preflight: resolved.status,
+        };
+      },
     });
     app.addHook('onResponse', async (request, reply) => {
       const pathname = request.url.split('?')[0];
@@ -269,13 +279,14 @@ export async function createWebApp({
   app.get('/api/health', async () => {
     const resolved = await currentHealth();
     const status = resolved.status === 'ready' || resolved.status === 'ok' ? resolved.status : 'degraded';
+    const available = generationAvailable(resolved);
     const runtimeStatus = resolved.runtime_status
       ? (resolved.runtime_status === 'ready' ? 'ready' : 'degraded')
       : null;
     return {
       status,
       service: 'web',
-      generation: generationAvailable ? 'available' : 'unavailable',
+      generation: available ? 'available' : 'unavailable',
       semantic_qa: 'available',
       fashion_shoot_qa_mode: ['strict', 'review', 'off']
         .includes(resolved.fashion_shoot_qa_mode)
@@ -283,8 +294,8 @@ export async function createWebApp({
         : 'strict',
       ...(releaseIdentity ? releaseIdentity : {}),
       ...(runtimeStatus ? { runtime_status: runtimeStatus } : {}),
-      ...(health.test_only ? { editorial_generation: 'available' } : { editorial_generation: editorialShootService
-        ? (generationAvailable ? 'available' : 'unavailable')
+      ...(resolved.test_only ? { editorial_generation: 'available' } : { editorial_generation: editorialShootService
+        ? (available ? 'available' : 'unavailable')
         : 'disabled' }),
     };
   });

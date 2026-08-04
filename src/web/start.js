@@ -90,9 +90,29 @@ const service = new RunService({
 });
 await service.initialize();
 startupTrace('run_service_reconciled');
-const health = await runLocalPreflight({ generationMode, codexStatus: generation.status });
+const preflightOptions = { generationMode, codexStatus: generation.status };
+let health = await runLocalPreflight(preflightOptions);
 startupTrace('provider_preflight_finished');
 health.fashion_shoot_qa_mode = process.env.ZEELY_FASHION_SHOOT_QA_MODE ?? 'strict';
+// A launchd restart can occur while a local CLI momentarily cannot answer its
+// account-status check. Keep the boot-time gate fail-closed, but refresh the
+// cached preflight afterward so a recovered provider does not leave all user
+// journeys disabled until the next manual restart. This performs only local
+// version/account status checks; it never creates a provider job.
+const refreshProviderPreflight = async () => {
+  try {
+    const next = await runLocalPreflight(preflightOptions);
+    next.fashion_shoot_qa_mode = process.env.ZEELY_FASHION_SHOOT_QA_MODE ?? 'strict';
+    health = next;
+  } catch {
+    health = { ...health, status: 'degraded' };
+  }
+  return health;
+};
+const providerPreflightTimer = setInterval(() => {
+  void refreshProviderPreflight();
+}, 30_000);
+providerPreflightTimer.unref?.();
 const auth = process.env.ZEELY_DEMO_PIN ? {
   pin: process.env.ZEELY_DEMO_PIN,
   secret: process.env.ZEELY_SESSION_SECRET,
@@ -173,7 +193,13 @@ for (const clipId of await videoService.resumableClipIds()) {
 const app = await createWebApp({
   service,
   health,
-  healthProvider: generation.healthStatus,
+  healthProvider: async () => {
+    const runtime = await Promise.resolve(generation.healthStatus?.());
+    return {
+      ...health,
+      ...(runtime?.status ? { runtime_status: runtime.status } : {}),
+    };
+  },
   logger: true,
   auth,
   monitor,
@@ -187,6 +213,7 @@ const app = await createWebApp({
   godViewAuth,
   testAudit,
 });
+app.addHook('onClose', async () => clearInterval(providerPreflightTimer));
 startupTrace('web_app_ready');
 const draftCleanupTimer = setInterval(() => drafts.cleanupExpired().catch(() => {}), 60_000);
 const profileCleanup = async () => {

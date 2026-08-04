@@ -312,6 +312,25 @@ weakened_checks: none.
 Agent ID: codex-main
 Task ID: BETA-FASHION-VIDEO-STYLE-LABELS-001
 Pipeline: VIDEO.01 · Вибір відеостилю до запуску
+Agent ID: codex-main
+Task: BETA-PREFLIGHT-SELF-RECOVERY-20260804
+Pipeline: platform health → LOOK.01/03 generation admission
+State: READY_FOR_BETA_DEPLOY
+Finding: a transient startup preflight failure left the beta engine degraded for
+the entire daemon lifetime. The actual Higgsfield CLI/account check had
+recovered, but the main client still received `generation: unavailable` and
+disabled `Створити образ` before any generation request.
+Decision: preserve the fail-closed provider gate, refresh its cached result
+every 30 seconds without creating a provider job, and make API admission read
+the current cached result rather than the boot snapshot.
+Code: this atomic commit.
+Tests: `node --test test/web/outbound-privacy.test.js test/web/preflight.test.js` → 7/7 PASS.
+Beta: runtime manually recovered with zero active persisted work; source activation pending.
+Journey: public `/api/health` now reports ready/available after the guarded restart.
+weakened_checks: none.
+
+---
+
 State: READY_FOR_BETA_DEPLOY
 Decision: the three contact-sheet-backed video style units remain unchanged.
 Only the second UI label changes from the internal action wording `Рух у кадрі`
