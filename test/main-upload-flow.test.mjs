@@ -39,3 +39,12 @@ test('upload preparation gates generation and exposes a recoverable presentation
   assert.match(ui, /role="alert"/);
   assert.match(ui, /if \(!hasMain\(\) \|\| !hasItems\(\) \|\| pending \|\| preparingFiles\) return/);
 });
+
+test('prepared local uploads survive a reload without being sent to beta early', () => {
+  assert.match(ui, /import\('\.\/draft-media-store\.js'\)/);
+  assert.match(ui, /function persistDraftMedia\(\)/);
+  assert.match(ui, /function restorePersistedDraftMedia\(\)/);
+  assert.match(ui, /restorePersistedDraftMedia\(\);/);
+  assert.match(ui, /clearPersistedDraftMedia\(\);/);
+  assert.match(ui, /not sent to beta/);
+});

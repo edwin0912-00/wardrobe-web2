@@ -202,6 +202,13 @@
     ]).then(function (modules) {
       return { prepareImageFile: modules[0].prepareImageFile, acceptedDroppedImages: modules[1].acceptedDroppedImages };
     }).catch(function () { return null; });
+    /* Prepared files must survive a harmless page reload.  They are deliberately
+     * stored in the browser's own IndexedDB, not sent to beta and not attached to
+     * a profile until the viewer actually presses “Створити образ”. */
+    var draftMediaStorePromise = import('./draft-media-store.js').catch(function () { return null; });
+    var draftMediaQueue = Promise.resolve();
+    var draftMediaRevision = 0;
+    var draftMediaRestored = false;
     var mediaPreview = global.WardrobeMediaPreview || null;
 
     /* Result-screen asset policy. The beta owns the immutable approved master and
@@ -522,15 +529,110 @@
     function hasUploadedItems() {
       return items.some(function (item) { return !!(item && item.file); });
     }
+    function hasLocalDraftMedia() {
+      return !!(person.main && person.main.file) || !!(person.face && person.face.file) || hasUploadedItems();
+    }
+    function draftMediaSnapshot() {
+      return {
+        main: person.main && person.main.file || null,
+        face: person.face && person.face.file || null,
+        items: items.map(function (item) {
+          return { name: item && item.name || 'Річ', file: item && item.file || null };
+        })
+      };
+    }
+    /* Serialize mutations so a slow IndexedDB write from an earlier selection
+     * cannot overwrite a newer one.  Local-draft persistence is best-effort:
+     * quota/private-mode failures never block an otherwise valid upload flow. */
+    function persistDraftMedia() {
+      var revision = ++draftMediaRevision;
+      var snapshot = draftMediaSnapshot();
+      draftMediaQueue = draftMediaQueue.catch(function () {}).then(function () {
+        if (revision !== draftMediaRevision) return null;
+        return draftMediaStorePromise.then(function (store) {
+          if (!store) return null;
+          return hasLocalDraftMedia() ? store.saveDraftMedia(snapshot) : store.clearDraftMedia();
+        }).catch(function () { return null; });
+      });
+      return draftMediaQueue;
+    }
+    function clearPersistedDraftMedia() {
+      var revision = ++draftMediaRevision;
+      draftMediaQueue = draftMediaQueue.catch(function () {}).then(function () {
+        if (revision !== draftMediaRevision) return null;
+        return draftMediaStorePromise.then(function (store) {
+          return store ? store.clearDraftMedia() : null;
+        }).catch(function () { return null; });
+      });
+      return draftMediaQueue;
+    }
+    function attachItemPreview(item) {
+      if (!item || !item.file) return;
+      ensureFilePreview(item.file, function (previewUrl) {
+        if (items.indexOf(item) < 0) return;
+        item.previewUrl = previewUrl;
+        render();
+      }, true);
+    }
+    function attachPersonPreview(kind, entry) {
+      if (!entry || !entry.file) return;
+      ensureFilePreview(entry.file, function (previewUrl) {
+        if (person[kind] !== entry) return;
+        entry.previewUrl = previewUrl;
+        render();
+      }, true);
+    }
+    function restorePersistedDraftMedia() {
+      if (draftMediaRestored) return;
+      draftMediaRestored = true;
+      draftMediaStorePromise.then(function (store) {
+        return store ? store.loadDraftMedia() : null;
+      }).then(function (draft) {
+        /* A live run/result is already authoritative.  Never let an old local
+         * form draft replace an in-flight server job or a saved look. */
+        if (!draft || pending || looks.length || hasMain() || items.length) return;
+        if (draft.main) {
+          person.main = {
+            name: draft.main.name,
+            url: URL.createObjectURL(draft.main),
+            previewUrl: null,
+            file: draft.main
+          };
+          attachPersonPreview('main', person.main);
+        }
+        if (draft.face) {
+          person.face = {
+            name: draft.face.name,
+            url: URL.createObjectURL(draft.face),
+            previewUrl: null,
+            file: draft.face
+          };
+          attachPersonPreview('face', person.face);
+        }
+        items = draft.items.slice(0, MAX_ITEMS).map(function (item) {
+          if (!item.file) return { name: item.name, url: null, previewUrl: null, file: null };
+          return {
+            name: item.name || item.file.name,
+            url: URL.createObjectURL(item.file),
+            previewUrl: null,
+            file: item.file
+          };
+        });
+        items.forEach(attachItemPreview);
+        if (person.main && step < 1) step = 1;
+        render(); notifyGateChange();
+      }).catch(function () { /* IndexedDB remains optional on privacy-restricted browsers. */ });
+    }
     function current() { return selected >= 0 ? looks[selected] : null; }
     /* A look owns the image a generation returned for it, or nothing. There is no route
      * that can fill this yet, and that is the point: the frame stays empty rather than
      * borrowing the uploaded photograph and calling it a result. */
     function hasResult() { var l = current(); return !!(l && (l.resultUrl || l.result)); }
 
-    /* Beta's profile is the durable source for “Мої образи”. The cinematic page
-     * keeps only transient File/object-URL state locally; after a reload these
-     * records are rebuilt from the same-origin profile cookie. */
+    /* Beta's profile is the durable source for “Мої образи”.  Before a viewer
+     * submits a look, their selected files live only in this browser's local
+     * draft store; after a reload durable output records are rebuilt from the
+     * same-origin profile cookie. */
     function hydrateSavedLooks(profile) {
       var records = Array.isArray(profile && profile.looks) ? profile.looks.slice() : [];
       if (!records.length && profile && Array.isArray(profile.avatars)) {
@@ -661,6 +763,10 @@
             .map(function (item) { return item.name; }).join(', ')
         }).then(function (run) {
           pendingRunId = run && run.run_id || pendingRunId;
+          /* The server now owns the submitted bytes and run receipt.  Clear only
+           * after it has acknowledged the run so a failed network request keeps
+           * the viewer's local draft recoverable. */
+          clearPersistedDraftMedia();
         }).catch(function () { /* bridge event owns the visible recovery state */ });
         return;
       }
@@ -2012,6 +2118,7 @@
             render();
           }, true);
         });
+        persistDraftMedia();
         return;
       }
       var file = prepared[0] && prepared[0].file;
@@ -2027,6 +2134,7 @@
         personItem.previewUrl = previewUrl;
         render();
       }, true);
+      persistDraftMedia();
     }
 
     async function prepareSelected(kind, fileList) {
@@ -2067,6 +2175,7 @@
         global.URL.revokeObjectURL(items[i].previewUrl);
       }
       items.splice(i, 1);
+      persistDraftMedia();
       render();
     }
 
@@ -2077,6 +2186,7 @@
       }
       if (at >= 0) items.splice(at, 1);
       else if (items.length < MAX_ITEMS) items.push({ name: name, url: null });
+      persistDraftMedia();
       render();
     }
 
@@ -2465,6 +2575,11 @@
 
     new MutationObserver(applyEnabled)
       .observe(stage, { attributes: true, attributeFilter: ['data-station', 'data-leg'] });
+
+    /* Start this immediately rather than waiting for the beta bridge: a reload
+     * must restore the visible form even while health/catalogue hydration is
+     * still in flight. */
+    restorePersistedDraftMedia();
 
     if (bridge) {
       adapterLoading = false;
