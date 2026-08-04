@@ -16,7 +16,7 @@ import time
 from functools import partial
 from http.client import HTTPConnection
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
-from urllib.parse import urlsplit
+from urllib.parse import parse_qs, urlsplit
 
 RANGE_RE = re.compile(r"bytes=(\d*)-(\d*)")
 API_UPSTREAM = os.environ.get("WARDROBE_API_UPSTREAM", "http://127.0.0.1:4176")
@@ -31,6 +31,8 @@ OBSERVABILITY_EVENTS = {
     "gate_stalled", "bridge_failed", "bridge_needs_input",
 }
 SAFE_OBSERVABILITY_TOKEN = re.compile(r"[^a-z0-9_.-]+")
+IMMUTABLE_MEDIA_PREFIXES = ("/b/assets/", "/b/audio/")
+IMMUTABLE_MEDIA_EXTENSIONS = {".mp4", ".mp3", ".jpg", ".jpeg", ".png", ".webp", ".avif"}
 
 # Paths the cinematic client must never be able to reach through this origin.
 #
@@ -55,6 +57,25 @@ BLOCKED_API_PREFIXES = ("/api/god-view",)
 
 class RangeHandler(SimpleHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
+
+    def _cache_control_for_static_response(self):
+        """Cache only media whose URL explicitly names its immutable revision.
+
+        The cinematic page fetches its opening MP4/MP3 files through JavaScript rather
+        than normal media tags. A blanket ``no-store`` therefore forced every repeat
+        visit to download the full opening film again. A media file is safe to cache for
+        a year only when its request carries a non-empty ``v`` key; a later byte change
+        must change that key too. HTML, scripts, API results, unversioned media and a
+        missing versioned file remain ``no-store``.
+        """
+        request = urlsplit(self.path)
+        is_media_path = request.path.startswith(IMMUTABLE_MEDIA_PREFIXES)
+        extension = os.path.splitext(request.path)[1].lower()
+        revision = parse_qs(request.query).get("v", [""])[0]
+        exists = os.path.isfile(self.translate_path(self.path))
+        if is_media_path and extension in IMMUTABLE_MEDIA_EXTENSIONS and revision and exists:
+            return "public, max-age=31536000, immutable"
+        return "no-store"
 
     def _is_legacy_entry_path(self):
         return urlsplit(self.path).path.rstrip("/") == "/b"
@@ -330,7 +351,7 @@ class RangeHandler(SimpleHTTPRequestHandler):
     def end_headers(self):
         if not getattr(self, "_proxying", False):
             self.send_header("Accept-Ranges", "bytes")
-            self.send_header("Cache-Control", "no-store")
+            self.send_header("Cache-Control", self._cache_control_for_static_response())
         super().end_headers()
 
     def send_head(self):

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer, request as httpRequest } from 'node:http';
-import { mkdtemp, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
@@ -206,4 +206,45 @@ test('the internal control room is never relayed to the client origin', async (t
   const allowed = await requestGateway(port, { path: '/api/health' });
   assert.equal(allowed.status, 200);
   assert.deepEqual(reached, ['/api/health']);
+});
+
+test('only versioned cinematic media is reusable on a repeat visit', async (t) => {
+  const upstream = createServer((_request, response) => {
+    response.writeHead(200, { 'content-type': 'application/json' });
+    response.end('{"status":"ready"}');
+  });
+  const upstreamPort = await listen(upstream);
+  t.after(() => upstream.close());
+
+  const root = await mkdtemp(path.join(tmpdir(), 'wardrobe-media-cache-'));
+  await mkdir(path.join(root, 'b', 'assets'), { recursive: true });
+  await mkdir(path.join(root, 'b', 'audio'), { recursive: true });
+  await writeFile(path.join(root, 'b', 'assets', 'intro.mp4'), Buffer.from('video'));
+  await writeFile(path.join(root, 'b', 'audio', 't1.mp3'), Buffer.from('audio'));
+  await writeFile(path.join(root, 'b', 'index.html'), '<!doctype html>');
+
+  const gateway = await startGateway(root, upstreamPort);
+  t.after(async () => {
+    gateway.child.kill('SIGTERM');
+    await once(gateway.child, 'exit').catch(() => {});
+  });
+
+  for (const requestPath of [
+    '/b/assets/intro.mp4?v=media-20260804-1',
+    '/b/audio/t1.mp3?v=media-20260804-1',
+  ]) {
+    const response = await requestGateway(gateway.port, { path: requestPath });
+    assert.equal(response.status, 200);
+    assert.equal(
+      response.headers['cache-control'],
+      'public, max-age=31536000, immutable',
+      `${requestPath} must survive a repeat visit without a re-download`,
+    );
+  }
+
+  for (const requestPath of ['/b/assets/intro.mp4', '/b/index.html?v=media-20260804-1']) {
+    const response = await requestGateway(gateway.port, { path: requestPath });
+    assert.equal(response.status, 200);
+    assert.equal(response.headers['cache-control'], 'no-store', `${requestPath} must not become stale`);
+  }
 });

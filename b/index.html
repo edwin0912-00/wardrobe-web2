@@ -50,12 +50,12 @@
          room one. It is NOT a leg: data-leg 0..3 stay bound to the four rooms, so the copy
          lines, the mirror rectangles and ui.js are untouched by its arrival. It sits inside
          .film so it is cropped and scaled exactly like the footage it hands over to. -->
-    <video data-intro data-src="assets/intro.mp4" poster="assets/intro-poster.jpg" muted playsinline preload="auto" aria-hidden="true"></video>
+    <video data-intro data-src="assets/intro.mp4?v=media-20260804-1" poster="assets/intro-poster.jpg?v=media-20260804-1" muted playsinline preload="auto" aria-hidden="true"></video>
 
     <video data-leg="0" data-src="assets/seg1.mp4?v=seg1-d-20260730" muted playsinline preload="auto" aria-hidden="true"></video>
-    <video data-leg="1" data-src="assets/seg2.mp4" muted playsinline preload="auto" aria-hidden="true" hidden></video>
-    <video data-leg="2" data-src="assets/seg3.mp4" muted playsinline preload="auto" aria-hidden="true" hidden></video>
-    <video data-leg="3" data-src="assets/seg4.mp4" muted playsinline preload="auto" aria-hidden="true" hidden></video>
+    <video data-leg="1" data-src="assets/seg2.mp4?v=media-20260804-1" muted playsinline preload="auto" aria-hidden="true" hidden></video>
+    <video data-leg="2" data-src="assets/seg3.mp4?v=media-20260804-1" muted playsinline preload="auto" aria-hidden="true" hidden></video>
+    <video data-leg="3" data-src="assets/seg4.mp4?v=media-20260804-1" muted playsinline preload="auto" aria-hidden="true" hidden></video>
 
     <!-- TWO MIRRORS, TWO JOBS: one asks, the other shows.
          Rectangles measured off this version's own final frame: left mirror x 5.0-44.0%,
@@ -179,8 +179,11 @@
    * not deleted. `assets/seg1.mp4` IS variant D now — the file was replaced in place so
    * nothing else in this file (the data-src below, motion.json's leg-0 table) needed to
    * change. */
-  var VIDEOS = ['assets/seg1.mp4?v=seg1-d-20260730', 'assets/seg2.mp4', 'assets/seg3.mp4', 'assets/seg4.mp4'];
-  var TRACKS = ['audio/t1.mp3', 'audio/t2.mp3', 'audio/t3.mp3'];
+  /* Every byte-addressed cinematic asset carries a revision. `serve.py` grants long
+   * browser caching only to this explicit form, so a repeat entry reuses the film while
+   * a future media replacement remains a deliberate, reviewable URL change. */
+  var VIDEOS = ['assets/seg1.mp4?v=seg1-d-20260730', 'assets/seg2.mp4?v=media-20260804-1', 'assets/seg3.mp4?v=media-20260804-1', 'assets/seg4.mp4?v=media-20260804-1'];
+  var TRACKS = ['audio/t1.mp3?v=media-20260804-1', 'audio/t2.mp3?v=media-20260804-1', 'audio/t3.mp3?v=media-20260804-1'];
 
   var loaderEl = document.querySelector('[data-loader]');
   var barEl = document.querySelector('[data-loader-bar]');
@@ -212,7 +215,7 @@
   }).catch(function () {
     return null;
   });
-  var INTRO = 'assets/intro.mp4';
+  var INTRO = 'assets/intro.mp4?v=media-20260804-1';
   var MEDIA_STRATEGY = window.WardrobeMediaStrategy || null;
   /* The module makes this policy testable, but a partial static-file copy must never
      turn into a blank stage. The tiny in-page fallback has the same fixed policy and

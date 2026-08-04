@@ -60,12 +60,12 @@ async function settle() {
 }
 
 async function boot({ ios, videoFrameCallback = false, withStrategy = true, progressSamples = [1], journeyOutcome = 'arrived', audioStartResults = [true] }) {
-  const intro = node({ 'data-src': 'assets/intro.mp4' });
+  const intro = node({ 'data-src': 'assets/intro.mp4?v=media-20260804-1' });
   const rooms = [0, 1, 2, 3].map((index) => node({
     'data-leg': String(index),
     'data-src': index === 0
       ? 'assets/seg1.mp4?v=seg1-d-20260730'
-      : `assets/seg${index + 1}.mp4`
+      : `assets/seg${index + 1}.mp4?v=media-20260804-1`
   }));
   const loader = node();
   const loaderBar = node();
@@ -220,18 +220,18 @@ async function boot({ ios, videoFrameCallback = false, withStrategy = true, prog
 test('desktop fully loads selected D before the fabric handoff and backgrounds only later rooms', async () => {
   const app = await boot({ ios: false });
   assert.deepEqual(app.calls.map((call) => call.urls), [
-    ['audio/t1.mp3', 'assets/intro.mp4', 'assets/seg1.mp4?v=seg1-d-20260730'],
-    ['assets/seg2.mp4', 'assets/seg3.mp4', 'assets/seg4.mp4']
+    ['audio/t1.mp3?v=media-20260804-1', 'assets/intro.mp4?v=media-20260804-1', 'assets/seg1.mp4?v=seg1-d-20260730'],
+    ['assets/seg2.mp4?v=media-20260804-1', 'assets/seg3.mp4?v=media-20260804-1', 'assets/seg4.mp4?v=media-20260804-1']
   ]);
-  assert.equal(app.intro.src, 'blob:assets/intro.mp4');
+  assert.equal(app.intro.src, 'blob:assets/intro.mp4?v=media-20260804-1');
   assert.equal(app.rooms[0].src, 'blob:assets/seg1.mp4?v=seg1-d-20260730');
 });
 
 test('a missing companion strategy asset falls back safely instead of blanking the journey', async () => {
   const app = await boot({ ios: false, withStrategy: false });
   assert.deepEqual(app.calls.map((call) => call.urls), [
-    ['audio/t1.mp3', 'assets/intro.mp4', 'assets/seg1.mp4?v=seg1-d-20260730'],
-    ['assets/seg2.mp4', 'assets/seg3.mp4', 'assets/seg4.mp4']
+    ['audio/t1.mp3?v=media-20260804-1', 'assets/intro.mp4?v=media-20260804-1', 'assets/seg1.mp4?v=seg1-d-20260730'],
+    ['assets/seg2.mp4?v=media-20260804-1', 'assets/seg3.mp4?v=media-20260804-1', 'assets/seg4.mp4?v=media-20260804-1']
   ]);
   assert.equal(app.rooms[0].src, 'blob:assets/seg1.mp4?v=seg1-d-20260730');
 });
@@ -299,8 +299,8 @@ test('an interrupted HOW camera move never reveals the laptop over another scene
 
 test('iOS starts D native, does not launch Blob work for later rooms, then prewarms one next room at a time', async () => {
   const app = await boot({ ios: true });
-  assert.deepEqual(app.calls.map((call) => call.urls), [['audio/t1.mp3', 'assets/intro.mp4']]);
-  assert.equal(app.intro.src, 'assets/intro.mp4');
+  assert.deepEqual(app.calls.map((call) => call.urls), [['audio/t1.mp3?v=media-20260804-1', 'assets/intro.mp4?v=media-20260804-1']]);
+  assert.equal(app.intro.src, 'assets/intro.mp4?v=media-20260804-1');
   assert.equal(app.rooms[0].src, 'assets/seg1.mp4?v=seg1-d-20260730');
   assert.equal(app.rooms[1].src, '');
   assert.equal(app.rooms[2].src, '');
@@ -310,7 +310,7 @@ test('iOS starts D native, does not launch Blob work for later rooms, then prewa
   assert.equal(app.rooms[1].src, '', 'decoded data alone must not release the next native room');
   app.rooms[0].readyState = 4;
   app.rooms[0].emit('canplaythrough');
-  assert.equal(app.rooms[1].src, 'assets/seg2.mp4');
+  assert.equal(app.rooms[1].src, 'assets/seg2.mp4?v=media-20260804-1');
   assert.equal(app.rooms[1].dataset.iosPrewarm, '1');
 
   app.rooms[1].readyState = 2;
@@ -319,7 +319,7 @@ test('iOS starts D native, does not launch Blob work for later rooms, then prewa
   app.rooms[1].readyState = 4;
   app.rooms[1].emit('canplaythrough');
   assert.equal(app.rooms[1].dataset.iosPrewarm, undefined);
-  assert.equal(app.rooms[2].src, 'assets/seg3.mp4');
+  assert.equal(app.rooms[2].src, 'assets/seg3.mp4?v=media-20260804-1');
   assert.equal(app.rooms[2].dataset.iosPrewarm, '1');
 });
 
@@ -334,7 +334,7 @@ test('HOW makes the terminal room the next iOS prewarm without opening a second 
   app.rooms[0].readyState = 4;
   app.rooms[0].emit('canplaythrough');
 
-  assert.equal(app.rooms[3].src, 'assets/seg4.mp4', 'the explicit HOW destination wins the next queue slot');
+  assert.equal(app.rooms[3].src, 'assets/seg4.mp4?v=media-20260804-1', 'the explicit HOW destination wins the next queue slot');
   assert.equal(app.rooms[1].src, '', 'intermediate rooms do not compete with the requested terminal download');
   assert.equal(app.rooms[3].dataset.iosPrewarm, '1');
 });
@@ -350,6 +350,6 @@ test('iOS with requestVideoFrameCallback keeps a prewarm plane until a composite
   assert.equal(app.rooms[1].src, '', 'playback coverage alone cannot release a native seam');
 
   app.rooms[0].frameCallback(0, { mediaTime: 0.001 });
-  assert.equal(app.rooms[1].src, 'assets/seg2.mp4');
+  assert.equal(app.rooms[1].src, 'assets/seg2.mp4?v=media-20260804-1');
   assert.equal(app.rooms[1].dataset.iosPrewarm, '1');
 });

@@ -118,7 +118,7 @@ body {
   position: absolute;
   top: 50%; left: 50%;
   width: 100%; height: 100%;                 /* script overwrites both in px */
-  background: #000 url("b/assets/intro-poster.jpg") center / cover no-repeat;
+  background: #000 url("b/assets/intro-poster.jpg?v=media-20260804-1") center / cover no-repeat;
   transform: translate(-50%, -50%)
              translate3d(calc(var(--par-slow, 0px) * -0.06), 0, 0);
   will-change: transform;

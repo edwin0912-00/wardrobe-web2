@@ -30,9 +30,9 @@ const CANONICAL_D = Object.freeze({
   cacheKey: 'seg1-d-20260730',
   legs: [
     'assets/seg1.mp4?v=seg1-d-20260730',
-    'assets/seg2.mp4',
-    'assets/seg3.mp4',
-    'assets/seg4.mp4'
+    'assets/seg2.mp4?v=media-20260804-1',
+    'assets/seg3.mp4?v=media-20260804-1',
+    'assets/seg4.mp4?v=media-20260804-1'
   ]
 });
 
@@ -66,4 +66,15 @@ test('the canonical root serves only the approved D journey without exposing its
   assert.doesNotMatch(entry, /(?:location\.replace|location\.href|http-equiv="refresh")/);
   assert.match(server, /requested in \{"", "\/", "\/index\.html"\}/);
   assert.match(server, /Location", "\/"/);
+});
+
+test('opening media uses explicit immutable revisions for repeat-visit caching', async () => {
+  const journey = await readFile(journeyPath, 'utf8');
+  for (const url of [
+    'assets/intro.mp4?v=media-20260804-1',
+    'assets/intro-poster.jpg?v=media-20260804-1',
+    'audio/t1.mp3?v=media-20260804-1',
+    'audio/t2.mp3?v=media-20260804-1',
+    'audio/t3.mp3?v=media-20260804-1',
+  ]) assert.ok(journey.includes(url), url);
 });
