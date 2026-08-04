@@ -1,5 +1,16 @@
 # WARDROBE agent entrypoint
 
+## Alpha unified branch
+
+When the checked-out branch is `alpha`, this repository intentionally contains
+both products: the cinematic site at the repository root and the complete beta
+engine under `beta/`. Read `README-ALPHA.md` and `release/RELEASE.lock.json`
+before changing either side. `scripts/install-alpha.sh` is the installation
+acceptance gate and `scripts/run-alpha.sh` is the only supported combined local
+entrypoint. The restriction below against modifying beta applies to the live
+`canonical-site-main` line; on `alpha`, beta changes must remain explicit,
+tested and release-locked.
+
 Before changing, merging, or deploying this repository, read
 `INTEGRATION-HANDOFF.md` in full. Claude Code must also read `CLAUDE.md` and
 `docs/15-CLAUDE-CODE-SIDEBYSIDE.md`.
