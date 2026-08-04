@@ -72,6 +72,31 @@ test('reports the deployed beta release and keeps authentication explicit', asyn
   );
 });
 
+test('retries a transient unavailable beta engine and reopens the mirror without reload', async () => {
+  const client = clientStub();
+  let healthCalls = 0;
+  client.health = async () => {
+    healthCalls += 1;
+    return healthCalls === 1
+      ? { status: 'degraded' }
+      : { status: 'ready', release_sha: 'recovered-sha' };
+  };
+  const bridge = createCinematicUiBridge({
+    client,
+    autoProbe: false,
+    unavailableRetryMs: 1_000,
+  });
+
+  await bridge.probe();
+  assert.equal(bridge.state().availability, 'unavailable');
+
+  await new Promise((resolve) => setTimeout(resolve, 1_050));
+  assert.equal(healthCalls, 2);
+  assert.equal(bridge.state().availability, 'ready');
+  assert.equal(bridge.state().releaseSha, 'recovered-sha');
+  bridge.dispose();
+});
+
 test('starts saved-look restoration before health resolves and uses a lightweight preview URL', async () => {
   let resolveHealth;
   let profileStarted = false;

@@ -401,6 +401,7 @@ function productFailurePresentation(kind, entity, needsManualRetry) {
 export function createCinematicUiBridge({
   client = createZeelyClient({ apiBase: '/api' }),
   autoProbe = true,
+  unavailableRetryMs = 5_000,
 } = {}) {
   if (!client || typeof client.health !== 'function' || typeof client.subscribe !== 'function') {
     throw new TypeError('createCinematicUiBridge requires a ZeelyClient-compatible client');
@@ -409,6 +410,7 @@ export function createCinematicUiBridge({
   const listeners = new Set();
   let state = initialState();
   let disposed = false;
+  let unavailableRetryTimer = null;
   let savingRunId = null;
   const prewarmedPreviewUrls = new Set();
   const prewarmedImages = new Set();
@@ -738,7 +740,23 @@ export function createCinematicUiBridge({
     else if (type.startsWith('video:') && event.video) syncProduct('video', event.video, type);
   });
 
+  function cancelUnavailableRetry() {
+    if (unavailableRetryTimer === null) return;
+    clearTimeout(unavailableRetryTimer);
+    unavailableRetryTimer = null;
+  }
+
+  function scheduleUnavailableRetry() {
+    if (disposed || unavailableRetryTimer !== null) return;
+    unavailableRetryTimer = setTimeout(() => {
+      unavailableRetryTimer = null;
+      if (disposed || state.availability !== 'unavailable') return;
+      void probe();
+    }, Math.max(1_000, Number(unavailableRetryMs) || 5_000));
+  }
+
   async function probe() {
+    cancelUnavailableRetry();
     emit('connection:checking', { availability: 'checking', error: null });
     try {
       /* Health is small and profile state is the thing the first mirror needs.
@@ -760,6 +778,7 @@ export function createCinematicUiBridge({
         warmFirstSavedLookPreview(profile);
         const savedLook = profileLooks(profile)[0] ?? null;
         emit('connection:ready', { availability: 'ready', profile, savedLook, error: null });
+        cancelUnavailableRetry();
         if (savedLook) {
           await Promise.all([
             loadCatalogs(profileLookId(savedLook)),
@@ -773,6 +792,7 @@ export function createCinematicUiBridge({
       }
     } catch (error) {
       fail(error, 'connection:unavailable');
+      if (statusError(error).availability === 'unavailable') scheduleUnavailableRetry();
     }
     return clone(state);
   }
@@ -919,6 +939,7 @@ export function createCinematicUiBridge({
     },
     dispose() {
       disposed = true;
+      cancelUnavailableRetry();
       unsubscribeClient?.();
       client.dispose?.();
       listeners.clear();
