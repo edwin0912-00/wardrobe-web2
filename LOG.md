@@ -17,6 +17,18 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-08-04 · TEST-TASK-ACCEPTANCE-AUDIT · beta `320b1af`
+Change: add one consolidated audit mapping the original Notion task, current
+canon, checked-in three-user submission, public beta and optional product
+extensions without collapsing code, beta health and E2E evidence.
+Why: the repository contained a stale PASS submission manifest alongside
+NEEDS_REVIEW QA reports, and public beta reported a release SHA absent from
+the fetched Git refs. Both facts block a defensible 100% completion claim.
+Evidence: verify:contracts PASS (41 schemas / 9 fixtures / 3 jobs), verify:canon
+PASS (43 rules / 34 blocking), verify:output NEEDS_REVIEW for 001–003; public
+health ready with 16 backgrounds and 18 fashion/editorial records.
+weakened_checks: none.
+
 2026-08-02 · CHAT04-UNIMPLEMENTED-HANDOFF-CLARIFICATION · beta `26ea365` · codex-live-40
 Change: distinguish Chat 04's three unimplemented scene/UI proposals from
 assets that were already recovered into beta.
