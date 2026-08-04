@@ -1622,6 +1622,7 @@ Agent ID: codex-main
 Task: LOOK-SELECTED-GARMENT-SCOPE-20260804
 Pipeline: LOOK.04–06 · selected garment → approved master look → outfit QA
 State: CODE_VERIFIED — deployment pending
+Code: `8ff02eb3d8bb890ca5679e894cb9069914cd33c1`.
 Finding: a single selected `GARMENT_TOP` (green hoodie) was conditioned into a
 canonical cutout correctly, but look QA later received its raw full-body source
 again. It falsely promoted incidental trousers and footwear from that source

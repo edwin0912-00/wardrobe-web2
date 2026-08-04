@@ -1726,6 +1726,7 @@ PASS. No paid generation was run.
 weakened_checks: none.
 
 2026-08-04 · LOOK selected-garment QA scope · beta candidate pending deploy
+Code: `8ff02eb3d8bb890ca5679e894cb9069914cd33c1`.
 Change: the outfit candidate, prompt and Codex VLM QA now bind only canonical
 selected garment cutouts and an explicit selected-category scope. A raw
 full-body garment photo remains provenance/conditioning evidence but cannot
