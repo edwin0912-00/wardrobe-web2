@@ -1,5 +1,23 @@
 # Wardrobe update board
 
+## 2026-08-04 · Saved materials recovery is active
+
+The active beta engine code is `79b14560971ec0478b0be99be00c984869e29938`.
+Its guarded activation found no active persisted run, scene, Fashion Shoot or
+video work; local and public health both returned `ready`.
+
+The change has two linked halves:
+
+- beta keeps a durable Fashion Shoot profile record when the in-memory shoot
+  runtime is temporarily unavailable, and returns an explicit recovery card
+  instead of deleting/hiding the saved shoot;
+- the cinematic main at `21cbc599739865494fa8d6636794dcd429515b43` now asks
+  beta for saved scenes as well as shoots and videos, renders server previews,
+  and exposes original-file downloads.
+
+No paid job was created. See `updates/codex-main.md` and `LOG.md` for exact
+tests and the recovery boundary. `weakened_checks: none`.
+
 ## 2026-08-04 · beta provider preflight self-recovery
 
 At 13:19 the main client correctly disabled `Створити образ` even though five

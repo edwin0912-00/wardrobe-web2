@@ -1766,3 +1766,14 @@ suite 50/50 PASS. Main code: `21cbc59`.
 Beta: NOT_DEPLOYED; no provider work was created.
 weakened_checks: none; no offline projection is allowed to disclose a frame
 until current runner ownership resolves it.
+
+2026-08-04 · BETA-ACTIVATION-SAVED-MATERIAL-RECOVERY · beta · codex-main
+Change: activated `79b14560971ec0478b0be99be00c984869e29938` after the strict
+release verifier and zero-active-work guard.
+Why: saved materials need the backend recovery boundary live before the main
+client can truthfully restore the full library.
+Evidence: local and public beta health `ready`; public `release_sha` and cache
+token `product-79b14560-42e6606d7baa` match the activation receipt. Main
+`21cbc59` passed its 160-test deploy preflight and serves the new scene-library
+client code.
+weakened_checks: none; no paid generation was started.

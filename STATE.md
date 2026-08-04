@@ -1,5 +1,18 @@
 # Wardrobe verified state
 
+## Active beta: saved materials recover without deletion — 2026-08-04
+
+- Public beta engine code: `79b14560971ec0478b0be99be00c984869e29938`;
+  health reports `ready`, generation and semantic QA available.
+- A temporary absent Fashion Shoot runtime no longer deletes the durable
+  profile projection or returns an empty saved-library list. It yields an
+  explicit recovery card with no asset URL until runner ownership returns.
+- The separately deployed cinematic main `21cbc599739865494fa8d6636794dcd429515b43`
+  now restores saved backgrounds, Fashion Shoots and verified Fashion Videos.
+  Display uses server preview derivatives; downloads use original bytes.
+- Evidence: editorial recovery/profile suite 12/12 PASS; main preflight
+  160/160 PASS; no paid provider work. `weakened_checks: none`.
+
 ## Pending beta activation — reference-owned Fashion Video duration
 
 - A reference-bound Fashion Video now uses the verified style reference's
