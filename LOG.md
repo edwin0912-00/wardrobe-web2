@@ -1777,3 +1777,12 @@ token `product-79b14560-42e6606d7baa` match the activation receipt. Main
 `21cbc59` passed its 160-test deploy preflight and serves the new scene-library
 client code.
 weakened_checks: none; no paid generation was started.
+
+2026-08-04 · BETA-SOURCE-SYNC-SAVED-MATERIAL-RECOVERY · beta · codex-main
+Change: activated source release `0050381af5194c594d53b9c0258e5357dcc7b169`,
+which contains the product repair and its shared-state activation record.
+Why: keep `origin/beta` and the public `release_sha` identical after recording
+the successful activation, rather than creating a Git/runtime traceability gap.
+Evidence: guarded activation again found zero active work; local and public
+health returned `ready` with cache token `product-0050381a-42e6606d7baa`.
+weakened_checks: none; documentation/source sync only, no provider work.
