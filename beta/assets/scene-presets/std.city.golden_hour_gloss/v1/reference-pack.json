@@ -1,0 +1,134 @@
+{
+  "preset_id": "std.city.golden_hour_gloss",
+  "preset_sha256": "ebd8a4ef30c84cc14b9f869d605afd41f6bbb082cede80bc8fea359615db94c1",
+  "preset_version": "1.0.0",
+  "prompt_sha256": "8f8a4890c4265f4dd6bcb5862b153de0f29265dd9c9cb534fd8d2d06153f8533",
+  "reference_pack_id": "pack.std.city.golden_hour_gloss.v1.1",
+  "references": [
+    {
+      "media_type": "application/json",
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit"
+      ],
+      "reference_id": "std.city.golden_hour_gloss.environment",
+      "role": "environment_anchor",
+      "sha256": "bb7cbf6208d27e1d8e053342cbbd754a07f307c1b2da5c2560b3c7ce23b9f100"
+    },
+    {
+      "media_type": "application/json",
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit"
+      ],
+      "reference_id": "std.city.golden_hour_gloss.lighting",
+      "role": "lighting_anchor",
+      "sha256": "4438a4c7554f3c8dc288b3f7a14e1f03242dc26f32ab5f3235320009c221c5ab"
+    },
+    {
+      "media_type": "application/json",
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit"
+      ],
+      "reference_id": "std.city.golden_hour_gloss.composition",
+      "role": "composition_anchor",
+      "sha256": "2217cac41aee3f4b30716465a41fee37885fd02ad84e8c3a51b8c4a210b6b03b"
+    },
+    {
+      "media_type": "application/json",
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit"
+      ],
+      "reference_id": "std.city.golden_hour_gloss.palette",
+      "role": "palette_anchor",
+      "sha256": "00120d8505e3024f4297db4c17b4adb62371d51cb0c7c8a81e064178e9d59b46"
+    },
+    {
+      "media_type": "application/json",
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit"
+      ],
+      "reference_id": "std.city.golden_hour_gloss.negative",
+      "role": "negative_reference",
+      "sha256": "deed4cca0ab092b14d8d371dcb80670fe49200ec39e6b6f4b64eaa0077f0b095"
+    }
+  ],
+  "schema_version": "1.0.0",
+  "source_ledger": {
+    "created_at": "2026-07-23T09:40:00Z",
+    "ledger_id": "ledger.std.city.golden_hour_gloss.v1",
+    "preset_id": "std.city.golden_hour_gloss",
+    "preset_version": "1.0.0",
+    "revision": 1,
+    "schema_version": "1.0.0",
+    "sources": [
+      {
+        "content_sha256": "c89e1a6d1865d4db72fd69db0df7929c0f505eeb5020813474f8636baeed1649",
+        "not_authority_for": [
+          "identity",
+          "body",
+          "hair",
+          "outfit",
+          "brands",
+          "readable_text",
+          "exact_architecture"
+        ],
+        "retrieved_at": "2026-07-23T09:40:00Z",
+        "rights": {
+          "basis": "LICENSED",
+          "evidence_sha256": "b2fd5090492719bd8f3c9779be0650b29cc37bb286a2ea0bf0cf0eff88f127e8",
+          "evidence_uri": "evidence/licenses/pexels-license-2026-07-23.md",
+          "rights_holder": "Swapnil Sharma via Pexels license",
+          "status": "VERIFIED",
+          "verified_at": "2026-07-23T09:40:00Z"
+        },
+        "role": "lighting_composition_palette_inspiration",
+        "snapshot_uri": "evidence/scene-sources/pexels.29090315.json",
+        "source_id": "pexels.29090315",
+        "url": "https://www.pexels.com/photo/sunny-european-street-with-classic-architecture-29090315/",
+        "use": "warm facade-light behavior, stone palette and restrained perspective only; storefronts, people, brands and exact architecture are excluded"
+      },
+      {
+        "content_sha256": "b1265f4088b249457673c7550b7dadaaacccceac6766d2f2e482c8532d3953c3",
+        "not_authority_for": [
+          "identity",
+          "body",
+          "hair",
+          "outfit",
+          "brands",
+          "readable_text",
+          "exact_architecture"
+        ],
+        "retrieved_at": "2026-07-23T09:40:00Z",
+        "rights": {
+          "basis": "LICENSED",
+          "evidence_sha256": "b2fd5090492719bd8f3c9779be0650b29cc37bb286a2ea0bf0cf0eff88f127e8",
+          "evidence_uri": "evidence/licenses/pexels-license-2026-07-23.md",
+          "rights_holder": "Oleksandra Litvinova via Pexels license",
+          "status": "VERIFIED",
+          "verified_at": "2026-07-23T09:40:00Z"
+        },
+        "role": "environment_material_inspiration",
+        "snapshot_uri": "evidence/scene-sources/pexels.33276833.json",
+        "source_id": "pexels.33276833",
+        "url": "https://www.pexels.com/photo/empty-european-street-with-classic-architecture-33276833/",
+        "use": "secondary stone palette and restrained architectural texture only"
+      }
+    ],
+    "status": "VERIFIED_FOR_RELEASE"
+  },
+  "version": "1.1.0"
+}

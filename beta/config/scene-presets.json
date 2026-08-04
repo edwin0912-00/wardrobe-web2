@@ -1,0 +1,521 @@
+{
+  "schema_version": "1.0.0",
+  "catalog_id": "zeely.scene-presets.launch-v0.1",
+  "status": "DRAFT_FOR_APPROVAL",
+  "release_readiness": "BLOCKED_MISSING_EVIDENCE_AND_PRODUCTION_ASSETS",
+  "launch_selection": {
+    "status": "PENDING",
+    "selected_preset_ids": []
+  },
+  "reference_policy": {
+    "external_images_are_extraction_only": true,
+    "generated_assets_required_for_release": true,
+    "minimum_source_inspirations": 2,
+    "forbidden_external_authority_fields": ["identity", "body", "hair", "outfit", "brands", "readable_text"],
+    "release_provenance_fields": [
+      "sha256",
+      "revision",
+      "exact_prompt_sha256",
+      "model_provider",
+      "model_family",
+      "model_version",
+      "provider_request_id",
+      "source_ledger",
+      "derivation_lineage",
+      "created_at",
+      "visual_qa_receipt",
+      "human_approval"
+    ]
+  },
+  "global_locks": [
+    "identity",
+    "body",
+    "hair",
+    "approved_items",
+    "item_colors",
+    "item_construction",
+    "logos_and_text",
+    "master_look_sha256"
+  ],
+  "framing_measurement": {
+    "measurement_basis": "final_1024x1280_delivery",
+    "subject_bbox_definition": "topmost visible hair pixel through lowest visible footwear pixel",
+    "percent_formula": "subject_bbox_height_px / 1280 * 100",
+    "standard_subject_height_percent": [70, 80],
+    "editorial_subject_height_percent": {
+      "editorial.edwin_novak.organic_contrast": [66, 70],
+      "editorial.edwin_novak.urban_monochrome": [62, 70],
+      "editorial.edwin_novak.institutional_modernism": [64, 72],
+      "editorial.edwin_novak.luminous_blue_white": [68, 72]
+    },
+    "minimum_clear_space_percent": {
+      "above_hair": 8,
+      "below_footwear": 2
+    }
+  },
+  "asset_pipeline": [
+    { "order": 1, "id": "SOURCE_EXTRACTION", "input": "two or more licensed source inspirations", "output": "role-limited observations", "blocking_gate": true },
+    { "order": 2, "id": "ENVIRONMENT_SPEC", "input": "role-limited observations", "output": "strict EnvironmentSpec", "blocking_gate": true },
+    { "order": 3, "id": "MOOD_CARD", "input": "EnvironmentSpec", "output": "original fashion mood card with neutral test subject", "blocking_gate": false },
+    { "order": 4, "id": "HUMAN_APPROVAL", "input": "two variants per family", "output": "approved launch winner or revision", "blocking_gate": true },
+    { "order": 5, "id": "ENVIRONMENT_PLATE", "input": "approved EnvironmentSpec", "output": "empty original environment plate", "blocking_gate": true },
+    { "order": 6, "id": "LIGHTING_PREVIEW", "input": "approved lighting spec", "output": "generic lighting test card", "blocking_gate": true },
+    { "order": 7, "id": "REFERENCE_PACK", "input": "approved plate, light, camera, palette and negatives", "output": "versioned hash-bound preset pack", "blocking_gate": true },
+    { "order": 8, "id": "PRODUCTION_SCENE", "input": "locked approved look plus one preset pack", "output": "one scene candidate", "blocking_gate": false },
+    { "order": 9, "id": "SCENE_QA", "input": "scene candidate plus locked evidence", "output": "approved scene or defect-specific retry", "blocking_gate": true }
+  ],
+  "technical_authorities": [
+    {
+      "id": "profoto.rembrandt",
+      "url": "https://www.profoto.com/us/en/still-photography/tips-tricks/how-to-create-rembrandt-light",
+      "authority_for": ["Rembrandt cheek triangle", "key height and side placement", "negative fill"]
+    },
+    {
+      "id": "canon.fashion",
+      "url": "https://www.canon.co.nz/get-inspired/fashion-photography-101-essential-tips",
+      "authority_for": ["fashion framing", "light and camera principles"]
+    },
+    {
+      "id": "nikon.environmental_portrait",
+      "url": "https://www.nikonusa.com/p/environmental-portraiture-featuring-joey-terrill/18483/overview",
+      "authority_for": ["subject-environment relationship", "location-led portrait logic"]
+    }
+  ],
+  "standard_presets": [
+    {
+      "preset_id": "std.city.early_morning_gloss",
+      "version": "1.0.0",
+      "family": "city",
+      "ui_name_uk": "Місто — ранковий глянець",
+      "source_authorities": [
+        {
+          "url": "https://www.pexels.com/photo/empty-european-street-with-classic-architecture-33276833/",
+          "role": "environment_and_composition_inspiration",
+          "use": "street scale, calm vanishing point and stone material cues only",
+          "not_authority_for": ["identity", "body", "hair", "outfit", "brands", "readable_text", "exact_architecture"]
+        },
+        {
+          "url": "https://www.pexels.com/photo/empty-urban-street-with-traditional-architecture-36673650/",
+          "role": "environment_material_inspiration",
+          "use": "secondary facade rhythm and neutral European material vocabulary only",
+          "not_authority_for": ["identity", "body", "hair", "outfit", "brands", "readable_text", "exact_architecture"]
+        }
+      ],
+      "environment": "A newly designed quiet European stone street with one calm vanishing point, no recognizable landmark and geometry distinct from either source.",
+      "lighting": {
+        "time_or_setup": "early morning",
+        "key": "cool open-sky fill with a narrow warm side and back edge from low morning sun",
+        "fill": "natural cool sky fill",
+        "finish": "polished_editorial_gloss_without_skin_smoothing_or_hdr",
+        "protected_regions": ["eyes", "face_identity", "item_logos", "item_text", "critical_construction"]
+      },
+      "camera": { "aspect_ratio": "4:5", "lens_mm": 50, "height": "eye_level", "subject_height_percent": [70, 80], "minimum_clear_space_percent": { "above_hair": 8, "below_footwear": 2 }, "max_vertical_error_deg": 1.5 },
+      "palette": ["limestone", "pearl white", "blue grey", "muted sage", "pale warm gold"],
+      "hard_negatives": ["people", "cars", "brands", "readable text", "recognizable landmarks", "wet pavement", "postcard decoration", "wide-angle distortion"],
+      "prompt_path": "prompts/scenes/std.city.early_morning_gloss.txt",
+      "mvp_assets": ["mood_card"],
+      "post_selection_assets": ["environment_plate", "lighting_preview"]
+    },
+    {
+      "preset_id": "std.city.golden_hour_gloss",
+      "version": "1.0.0",
+      "family": "city",
+      "ui_name_uk": "Місто — золота година",
+      "source_authorities": [
+        {
+          "url": "https://www.pexels.com/photo/sunny-european-street-with-classic-architecture-29090315/",
+          "role": "lighting_composition_palette_inspiration",
+          "use": "warm facade-light behavior, stone palette and restrained perspective only; storefronts, people, brands and exact architecture are excluded",
+          "not_authority_for": ["identity", "body", "hair", "outfit", "brands", "readable_text", "exact_architecture"]
+        },
+        {
+          "url": "https://www.pexels.com/photo/empty-european-street-with-classic-architecture-33276833/",
+          "role": "environment_material_inspiration",
+          "use": "secondary stone palette and restrained architectural texture only",
+          "not_authority_for": ["identity", "body", "hair", "outfit", "brands", "readable_text", "exact_architecture"]
+        }
+      ],
+      "environment": "An original restrained stone arcade and city lane with simplified facades and no landmark, sign or copied source geometry.",
+      "lighting": {
+        "time_or_setup": "golden hour",
+        "key": "low warm side and back sunlight with long coherent shadows and clean highlight roll-off",
+        "fill": "cool open-sky ambient fill",
+        "finish": "polished_editorial_gloss_without_skin_smoothing_or_hdr",
+        "protected_regions": ["eyes", "face_identity", "item_logos", "item_text", "critical_construction"]
+      },
+      "camera": { "aspect_ratio": "4:5", "lens_mm": 50, "height": "eye_level", "subject_height_percent": [70, 80], "minimum_clear_space_percent": { "above_hair": 8, "below_footwear": 2 }, "max_vertical_error_deg": 1.5 },
+      "palette": ["honey", "cream stone", "olive shadow", "cool blue grey"],
+      "hard_negatives": ["orange teal grade", "cafe clutter", "advertising", "readable text", "flare across face", "flare across product", "tourist landmark"],
+      "prompt_path": "prompts/scenes/std.city.golden_hour_gloss.txt",
+      "mvp_assets": ["mood_card"],
+      "post_selection_assets": ["environment_plate", "lighting_preview"]
+    },
+    {
+      "preset_id": "std.studio.peach_soft_gloss",
+      "version": "1.0.0",
+      "family": "light_studio",
+      "ui_name_uk": "Студія — персиковий софт",
+      "source_authorities": [
+        {
+          "url": "https://www.pexels.com/photo/woman-in-pink-cardigan-7506932/",
+          "role": "lighting_composition_palette_inspiration",
+          "use": "soft studio falloff and warm background relationship only",
+          "not_authority_for": ["identity", "body", "hair", "outfit", "brands", "readable_text", "exact_architecture"]
+        },
+        {
+          "url": "https://www.pexels.com/photo/a-woman-in-red-long-sleeve-dress-14001742/",
+          "role": "lighting_composition_palette_inspiration",
+          "use": "full-body studio scale and seamless-background behavior only",
+          "not_authority_for": ["identity", "body", "hair", "outfit", "brands", "readable_text", "exact_architecture"]
+        }
+      ],
+      "environment": "An original empty dusty-peach seamless cyclorama with a clean floor-to-wall transition and no props.",
+      "lighting": {
+        "time_or_setup": "large studio softbox",
+        "key": "large softbox thirty-five to forty-five degrees from camera with delicate sculpting and smooth falloff",
+        "fill": "weak frontal fill plus subtle floor bounce",
+        "finish": "polished_editorial_gloss_without_skin_smoothing_or_hdr",
+        "protected_regions": ["eyes", "lips", "face_identity", "item_logos", "item_text", "critical_construction"]
+      },
+      "camera": { "aspect_ratio": "4:5", "lens_mm": 65, "height": "eye_level", "subject_height_percent": [70, 80], "minimum_clear_space_percent": { "above_hair": 8, "below_footwear": 2 }, "max_vertical_error_deg": 1.0 },
+      "palette": ["dusty peach #E4AD96", "warm ivory", "cocoa", "neutral skin"],
+      "hard_negatives": ["neon peach", "coral cast", "visible paper edge", "props", "plastic skin", "peach recolor on items", "background blotches"],
+      "prompt_path": "prompts/scenes/std.studio.peach_soft_gloss.txt",
+      "mvp_assets": ["mood_card"],
+      "post_selection_assets": ["environment_plate", "lighting_preview"]
+    },
+    {
+      "preset_id": "std.studio.white_window_honeycomb",
+      "version": "1.0.0",
+      "family": "light_studio",
+      "ui_name_uk": "Студія — віконне соте світло",
+      "source_authorities": [
+        {
+          "url": "https://www.pexels.com/photo/a-woman-in-red-long-sleeve-dress-14001742/",
+          "role": "lighting_composition_palette_inspiration",
+          "use": "clean white studio depth and full-body composition only",
+          "not_authority_for": ["identity", "body", "hair", "outfit", "brands", "readable_text", "exact_architecture"]
+        },
+        {
+          "url": "https://www.pexels.com/photo/woman-in-pink-cardigan-7506932/",
+          "role": "lighting_composition_palette_inspiration",
+          "use": "soft fill level and restrained beauty finish only",
+          "not_authority_for": ["identity", "body", "hair", "outfit", "brands", "readable_text", "exact_architecture"]
+        }
+      ],
+      "environment": "An original optical-white seamless studio with a newly designed geometric window-lattice light pattern on the wall and floor.",
+      "lighting": {
+        "time_or_setup": "early-morning hard window gobo",
+        "key": "hard warm morning light through a geometric honeycomb lattice, coherent on wall, floor and part of the face",
+        "fill": "cool skylight fill preserving eye and item detail",
+        "finish": "polished_editorial_gloss_without_skin_smoothing_or_hdr",
+        "protected_regions": ["eyes", "lips", "face_identity", "item_logos", "item_text", "critical_construction"]
+      },
+      "camera": { "aspect_ratio": "4:5", "lens_mm": 65, "height": "eye_level", "subject_height_percent": [70, 80], "minimum_clear_space_percent": { "above_hair": 8, "below_footwear": 2 }, "max_vertical_error_deg": 1.0 },
+      "palette": ["optical white", "warm sun", "cool pearl shadow", "neutral skin"],
+      "hard_negatives": ["pattern across eyes", "pattern across logos", "prison bars", "zebra stripes", "blown white", "random geometry", "invented text"],
+      "prompt_path": "prompts/scenes/std.studio.white_window_honeycomb.txt",
+      "mvp_assets": ["mood_card"],
+      "post_selection_assets": ["environment_plate", "lighting_preview"]
+    },
+    {
+      "preset_id": "std.studio.taupe_rembrandt_gloss",
+      "version": "1.0.0",
+      "family": "dramatic_studio",
+      "ui_name_uk": "Драматична студія — Рембрандт",
+      "source_authorities": [
+        {
+          "url": "https://unsplash.com/photos/a-woman-is-posing-for-a-picture-in-a-dark-room-_d0Uv9sIEmY",
+          "role": "lighting_composition_palette_inspiration",
+          "use": "dark studio separation, negative space and tonal restraint only",
+          "not_authority_for": ["identity", "body", "hair", "outfit", "brands", "readable_text", "exact_architecture"]
+        },
+        {
+          "url": "https://www.pexels.com/photo/stylish-woman-in-dramatic-studio-lighting-32497260/",
+          "role": "lighting_composition_palette_inspiration",
+          "use": "dramatic face modelling and full-body shadow readability only",
+          "not_authority_for": ["identity", "body", "hair", "outfit", "brands", "readable_text", "exact_architecture"]
+        }
+      ],
+      "environment": "An original dark-taupe seamless studio with gentle depth and no theatre, smoke or visible equipment.",
+      "lighting": {
+        "time_or_setup": "controlled Rembrandt studio setup",
+        "key": "warm elevated key at roughly forty-five degrees forming a small cheek triangle on the shadow side",
+        "fill": "controlled three-to-one to five-to-one key-fill relationship with a very weak rim",
+        "finish": "polished_editorial_gloss_without_skin_smoothing_or_hdr",
+        "protected_regions": ["eyes", "lips", "face_identity", "item_logos", "item_text", "critical_construction"]
+      },
+      "camera": { "aspect_ratio": "4:5", "lens_mm": 70, "height": "eye_level", "subject_height_percent": [70, 80], "minimum_clear_space_percent": { "above_hair": 8, "below_footwear": 2 }, "max_vertical_error_deg": 1.0 },
+      "palette": ["dark taupe", "espresso", "champagne", "neutral skin"],
+      "hard_negatives": ["split light", "fully black eye", "smoke", "theatre props", "neon", "crushed item detail", "beauty smoothing"],
+      "prompt_path": "prompts/scenes/std.studio.taupe_rembrandt_gloss.txt",
+      "mvp_assets": ["mood_card"],
+      "post_selection_assets": ["environment_plate", "lighting_preview"]
+    },
+    {
+      "preset_id": "std.studio.charcoal_dawn_rim",
+      "version": "1.0.0",
+      "family": "dramatic_studio",
+      "ui_name_uk": "Драматична студія — графітовий світанок",
+      "source_authorities": [
+        {
+          "url": "https://www.pexels.com/photo/stylish-woman-in-dramatic-studio-lighting-32497260/",
+          "role": "lighting_composition_palette_inspiration",
+          "use": "edge-light separation and restrained dramatic pose scale only",
+          "not_authority_for": ["identity", "body", "hair", "outfit", "brands", "readable_text", "exact_architecture"]
+        },
+        {
+          "url": "https://unsplash.com/photos/a-woman-is-posing-for-a-picture-in-a-dark-room-_d0Uv9sIEmY",
+          "role": "lighting_composition_palette_inspiration",
+          "use": "charcoal tonal field and quiet negative space only",
+          "not_authority_for": ["identity", "body", "hair", "outfit", "brands", "readable_text", "exact_architecture"]
+        }
+      ],
+      "environment": "An original graphite curved studio wall and floor with subtle texture, empty of props and visible equipment.",
+      "lighting": {
+        "time_or_setup": "stylized studio dawn",
+        "key": "cool early-morning side and top ambience with a narrow pale-gold rim or coherent window shaft",
+        "fill": "soft steel-blue fill retaining dark-item texture",
+        "finish": "polished_editorial_gloss_without_skin_smoothing_or_hdr",
+        "protected_regions": ["eyes", "face_identity", "item_logos", "item_text", "critical_construction"]
+      },
+      "camera": { "aspect_ratio": "4:5", "lens_mm": 70, "height": "eye_level", "subject_height_percent": [70, 80], "minimum_clear_space_percent": { "above_hair": 8, "below_footwear": 2 }, "max_vertical_error_deg": 1.0 },
+      "palette": ["graphite", "steel blue", "pale amber", "soft black"],
+      "hard_negatives": ["neon", "science fiction", "dense fog", "featureless silhouette", "shaft across face", "shaft across logo", "crushed blacks"],
+      "prompt_path": "prompts/scenes/std.studio.charcoal_dawn_rim.txt",
+      "mvp_assets": ["mood_card"],
+      "post_selection_assets": ["environment_plate", "lighting_preview"]
+    },
+    {
+      "preset_id": "std.interior.gallery_morning_gloss",
+      "version": "1.0.0",
+      "family": "interior",
+      "ui_name_uk": "Галерея — ранкове світло",
+      "source_authorities": [
+        {
+          "url": "https://www.pexels.com/photo/minimalist-empty-modern-interior-with-high-windows-30699852/",
+          "role": "environment_and_composition_inspiration",
+          "use": "high-window scale, quiet gallery proportion and daylight direction only",
+          "not_authority_for": ["identity", "body", "hair", "outfit", "brands", "readable_text", "exact_architecture"]
+        },
+        {
+          "url": "https://www.pexels.com/photo/interior-of-an-empty-industrial-room-18132317/",
+          "role": "environment_material_inspiration",
+          "use": "secondary wall and floor material restraint only",
+          "not_authority_for": ["identity", "body", "hair", "outfit", "brands", "readable_text", "exact_architecture"]
+        }
+      ],
+      "environment": "A newly designed off-white gallery with plaster, travertine or light oak and one large window, distinct from source architecture.",
+      "lighting": {
+        "time_or_setup": "early morning through one large window",
+        "key": "long soft side light with a gentle warm edge and physically coherent contact shadow",
+        "fill": "clean cool ambient room fill",
+        "finish": "polished_editorial_gloss_without_skin_smoothing_or_hdr",
+        "protected_regions": ["eyes", "face_identity", "item_logos", "item_text", "critical_construction"]
+      },
+      "camera": { "aspect_ratio": "4:5", "lens_mm": 50, "height": "eye_level", "subject_height_percent": [70, 80], "minimum_clear_space_percent": { "above_hair": 8, "below_footwear": 2 }, "max_vertical_error_deg": 1.5 },
+      "palette": ["off white", "travertine", "light oak", "pearl shadow", "pale gold"],
+      "hard_negatives": ["furniture clutter", "artwork", "posters", "readable text", "hotel decoration", "blown windows", "crooked verticals"],
+      "prompt_path": "prompts/scenes/std.interior.gallery_morning_gloss.txt",
+      "mvp_assets": ["mood_card"],
+      "post_selection_assets": ["environment_plate", "lighting_preview"]
+    },
+    {
+      "preset_id": "std.interior.loft_golden_hour_gloss",
+      "version": "1.0.0",
+      "family": "interior",
+      "ui_name_uk": "Лофт — золота година",
+      "source_authorities": [
+        {
+          "url": "https://www.pexels.com/photo/interior-of-an-empty-industrial-room-18132317/",
+          "role": "environment_and_composition_inspiration",
+          "use": "room depth and window rhythm without industrial grime or copied geometry",
+          "not_authority_for": ["identity", "body", "hair", "outfit", "brands", "readable_text", "exact_architecture"]
+        },
+        {
+          "url": "https://www.pexels.com/photo/minimalist-empty-modern-interior-with-high-windows-30699852/",
+          "role": "environment_material_inspiration",
+          "use": "secondary minimalist scale and clean window-light logic only",
+          "not_authority_for": ["identity", "body", "hair", "outfit", "brands", "readable_text", "exact_architecture"]
+        }
+      ],
+      "environment": "An original controlled plaster, wood and stone loft with broad clean surfaces, no recognizable furniture and no copied source layout.",
+      "lighting": {
+        "time_or_setup": "golden hour through architectural windows",
+        "key": "low golden beams with long coherent geometry and soft highlight roll-off",
+        "fill": "natural cool ambient fill preserving item color",
+        "finish": "polished_editorial_gloss_without_skin_smoothing_or_hdr",
+        "protected_regions": ["eyes", "face_identity", "item_logos", "item_text", "critical_construction"]
+      },
+      "camera": { "aspect_ratio": "4:5", "lens_mm": 50, "height": "eye_level", "subject_height_percent": [70, 80], "minimum_clear_space_percent": { "above_hair": 8, "below_footwear": 2 }, "max_vertical_error_deg": 1.5 },
+      "palette": ["cream", "warm plaster", "terracotta", "honey", "cool stone shadow"],
+      "hard_negatives": ["industrial grime", "exposed pipes", "boho props", "orange item cast", "furniture catalogue", "readable text", "crooked verticals"],
+      "prompt_path": "prompts/scenes/std.interior.loft_golden_hour_gloss.txt",
+      "mvp_assets": ["mood_card"],
+      "post_selection_assets": ["environment_plate", "lighting_preview"]
+    },
+    {
+      "preset_id": "std.nature_architecture.stone_terrace_morning",
+      "version": "1.0.0",
+      "family": "nature_architecture",
+      "ui_name_uk": "Кам’яна тераса — ранкове світло",
+      "source_authorities": [
+        {
+          "url": "https://www.pexels.com/photo/scenic-garden-pathway-at-sunset-35133173/",
+          "role": "environment_material_inspiration",
+          "use": "path rhythm, restrained planting and low-light atmosphere only",
+          "not_authority_for": ["identity", "body", "hair", "outfit", "brands", "readable_text", "exact_architecture"]
+        },
+        {
+          "url": "https://www.pexels.com/photo/man-taking-a-picture-of-ornamental-grass-under-an-elevated-road-17191701/",
+          "role": "environment_and_composition_inspiration",
+          "use": "architecture-to-grass balance and clean structural scale only",
+          "not_authority_for": ["identity", "body", "hair", "outfit", "brands", "readable_text", "exact_architecture"]
+        }
+      ],
+      "environment": "An original pale-limestone terrace with restrained dry grasses and minimal sage greenery, not a park and not a tourist location.",
+      "lighting": {
+        "time_or_setup": "early morning outdoors",
+        "key": "cool morning sky with a narrow warm side edge and soft natural shadow transition",
+        "fill": "open cool sky fill",
+        "finish": "polished_editorial_gloss_without_skin_smoothing_or_hdr",
+        "protected_regions": ["eyes", "face_identity", "item_logos", "item_text", "critical_construction"]
+      },
+      "camera": { "aspect_ratio": "4:5", "lens_mm": 50, "height": "eye_level", "subject_height_percent": [70, 80], "minimum_clear_space_percent": { "above_hair": 8, "below_footwear": 2 }, "max_vertical_error_deg": 1.5 },
+      "palette": ["limestone", "fog blue", "dry sage", "pale gold", "warm ivory"],
+      "hard_negatives": ["park", "forest", "flowers", "tourist location", "garden furniture", "foliage across face", "foliage across item"],
+      "prompt_path": "prompts/scenes/std.nature_architecture.stone_terrace_morning.txt",
+      "mvp_assets": ["mood_card"],
+      "post_selection_assets": ["environment_plate", "lighting_preview"]
+    },
+    {
+      "preset_id": "std.nature_architecture.concrete_grass_golden_hour",
+      "version": "1.0.0",
+      "family": "nature_architecture",
+      "ui_name_uk": "Бетон і трави — золота година",
+      "source_authorities": [
+        {
+          "url": "https://www.pexels.com/photo/man-taking-a-picture-of-ornamental-grass-under-an-elevated-road-17191701/",
+          "role": "environment_and_composition_inspiration",
+          "use": "concrete and ornamental-grass relationship without road or underpass cues",
+          "not_authority_for": ["identity", "body", "hair", "outfit", "brands", "readable_text", "exact_architecture"]
+        },
+        {
+          "url": "https://www.pexels.com/photo/scenic-garden-pathway-at-sunset-35133173/",
+          "role": "environment_material_inspiration",
+          "use": "secondary dry-grass palette and low warm-light behavior only",
+          "not_authority_for": ["identity", "body", "hair", "outfit", "brands", "readable_text", "exact_architecture"]
+        }
+      ],
+      "environment": "An original clean concrete and stone platform with controlled ornamental dry grasses and no highway, bridge or copied structure.",
+      "lighting": {
+        "time_or_setup": "golden hour outdoors",
+        "key": "low golden side and back light defining the body and grasses without destructive flare",
+        "fill": "cool open-sky fill preserving item texture",
+        "finish": "polished_editorial_gloss_without_skin_smoothing_or_hdr",
+        "protected_regions": ["eyes", "face_identity", "item_logos", "item_text", "critical_construction"]
+      },
+      "camera": { "aspect_ratio": "4:5", "lens_mm": 50, "height": "low_max_5deg", "subject_height_percent": [70, 80], "minimum_clear_space_percent": { "above_hair": 8, "below_footwear": 2 }, "max_vertical_error_deg": 1.5 },
+      "palette": ["concrete grey", "straw", "ochre", "olive", "cool sky shadow"],
+      "hard_negatives": ["highway", "underpass", "wild meadow", "strong flare", "grass across face", "grass across item", "recognizable landmark"],
+      "prompt_path": "prompts/scenes/std.nature_architecture.concrete_grass_golden_hour.txt",
+      "mvp_assets": ["mood_card"],
+      "post_selection_assets": ["environment_plate", "lighting_preview"]
+    }
+  ],
+  "editorial_program": {
+    "namespace": "editorial.edwin_novak",
+    "inherits_standard_automatically": false,
+    "modes": [
+      {
+        "preset_id": "editorial.edwin_novak.organic_contrast",
+        "version": "1.0.0",
+        "source_set_status": "READY",
+        "ui_name_uk": "Органічний контраст",
+        "visual_system": "Deep green, off-white and mustard; foliage, water and one dappled or low backlight interruption.",
+        "sources": [
+          {
+            "url": "https://www.edwinnovak.com/alaska",
+            "role": "editorial_style_observation",
+            "use": "observe organic contrast, environmental weight, dappled light and one optical interruption only",
+            "not_authority_for": ["identity", "body", "hair", "outfit", "brands", "readable_text", "exact_architecture"]
+          },
+          {
+            "url": "https://www.edwinnovak.com/kraybag",
+            "role": "editorial_style_observation",
+            "use": "observe product integration, low backlight and restrained material palette only",
+            "not_authority_for": ["identity", "body", "hair", "outfit", "brands", "readable_text", "exact_architecture"]
+          }
+        ],
+        "prompt_path": "prompts/scenes/editorial.edwin_novak.organic_contrast.txt"
+      },
+      {
+        "preset_id": "editorial.edwin_novak.urban_monochrome",
+        "version": "1.0.0",
+        "source_set_status": "READY",
+        "ui_name_uk": "Міський монохром",
+        "visual_system": "Rooftop, concrete and facade grids; black-and-white contrast, restrained grain and negative space.",
+        "sources": [
+          {
+            "url": "https://www.edwinnovak.com/bw",
+            "role": "editorial_style_observation",
+            "use": "observe monochrome contrast, geometry, grain and negative-space sequencing only",
+            "not_authority_for": ["identity", "body", "hair", "outfit", "brands", "readable_text", "exact_architecture"]
+          },
+          {
+            "url": "https://www.edwinnovak.com/naked",
+            "role": "editorial_style_observation",
+            "use": "observe rooftop scale, sculptural pose and oblique framing only",
+            "not_authority_for": ["identity", "body", "hair", "outfit", "brands", "readable_text", "exact_architecture"]
+          }
+        ],
+        "prompt_path": "prompts/scenes/editorial.edwin_novak.urban_monochrome.txt"
+      },
+      {
+        "preset_id": "editorial.edwin_novak.institutional_modernism",
+        "version": "1.0.0",
+        "source_set_status": "BLOCKED_MISSING_SECOND_SOURCE",
+        "ui_name_uk": "Інституційний модернізм",
+        "visual_system": "Olive, cream and black; symmetry, repeated architectural modules and ceremonial stillness.",
+        "sources": [
+          {
+            "url": "https://www.edwinnovak.com/zayn",
+            "role": "editorial_style_observation",
+            "use": "observe institutional repetition, symmetry, palette and ceremonial stillness only",
+            "not_authority_for": ["identity", "body", "hair", "outfit", "brands", "readable_text", "exact_architecture"]
+          }
+        ],
+        "prompt_path": "prompts/scenes/editorial.edwin_novak.institutional_modernism.txt"
+      },
+      {
+        "preset_id": "editorial.edwin_novak.luminous_blue_white",
+        "version": "1.0.0",
+        "source_set_status": "BLOCKED_MISSING_SECOND_SOURCE",
+        "ui_name_uk": "Світлий синьо-білий",
+        "visual_system": "Blue sky, white translucent textile, grass or flowers and warm hard sun with clear material detail.",
+        "sources": [
+          {
+            "url": "https://www.edwinnovak.com/liza",
+            "role": "editorial_style_observation",
+            "use": "observe blue-white palette, warm hard sun, wind and translucent textile only",
+            "not_authority_for": ["identity", "body", "hair", "outfit", "brands", "readable_text", "exact_architecture"]
+          }
+        ],
+        "prompt_path": "prompts/scenes/editorial.edwin_novak.luminous_blue_white.txt"
+      }
+    ],
+    "shot_sequence": ["clean_identity_hero", "environmental_hero", "sculptural_three_quarter", "interference_frame", "material_or_accessory_detail", "wide_campaign_coda"],
+    "one_optical_device_per_experimental_frame": true
+  },
+  "qa_gates": [
+    { "id": "MASTER_LOOK_LOCK", "blocking": true, "pass_condition": "approved white master SHA-256 exactly matches the requested look", "on_fail": "REJECT_PRESET_ASSET" },
+    { "id": "REFERENCE_ROLE_ISOLATION", "blocking": true, "pass_condition": "external subjects have zero authority over identity, body, hair or outfit", "on_fail": "REJECT_PRESET_ASSET" },
+    { "id": "NEAR_COPY_AND_LEAKAGE", "blocking": true, "pass_condition": "no copied person, text, brand, landmark or source-specific architecture is present", "on_fail": "REJECT_PRESET_ASSET" },
+    { "id": "IDENTITY", "blocking": true, "pass_condition": "observable identity remains the approved person without substitution", "on_fail": "RETRY_SCENE_ONLY" },
+    { "id": "ITEM_FIDELITY", "blocking": true, "pass_condition": "all approved visible items, colors, construction, logos and text remain faithful", "on_fail": "RETRY_SCENE_ONLY" },
+    { "id": "SCENE_MATCH", "blocking": true, "pass_condition": "environment, time, palette and prohibited-object checklist match the selected preset", "on_fail": "RETRY_SCENE_ONLY" },
+    { "id": "LIGHT_AND_CONTACT_SHADOW", "blocking": true, "pass_condition": "key direction, fill, subject integration and contact shadow are physically coherent", "on_fail": "RETRY_SCENE_ONLY" },
+    { "id": "FRAMING_AND_ANATOMY", "blocking": true, "pass_condition": "full-body framing, margins, verticals and anatomy satisfy the preset locks", "on_fail": "RETRY_SCENE_ONLY" },
+    { "id": "PROVENANCE", "blocking": true, "pass_condition": "released asset has hash, exact prompt, model version, source ledger and approval", "on_fail": "REQUIRE_HUMAN_REVIEW" }
+  ]
+}

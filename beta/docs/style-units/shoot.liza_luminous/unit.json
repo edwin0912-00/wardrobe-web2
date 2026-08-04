@@ -1,0 +1,166 @@
+{
+  "unit_id": "shoot.liza_luminous",
+  "style_unit_status": "READY",
+  "title": "Luminous Field — low sun, open sky, wind and tactile flowers",
+  "palette_size": 6,
+  "palette": [
+    {
+      "name": "deep sky blue",
+      "hex": "#254D6C",
+      "role": "deepest saturated sky"
+    },
+    {
+      "name": "clear sky blue",
+      "hex": "#5C8EB0",
+      "role": "mid-blue sky field"
+    },
+    {
+      "name": "luminous white",
+      "hex": "#FCFCFB",
+      "role": "brightest petal, blown sky and highlight"
+    },
+    {
+      "name": "sun veil cream",
+      "hex": "#E6CEB0",
+      "role": "warm sun veil and petal inner warmth"
+    },
+    {
+      "name": "sunlit grass",
+      "hex": "#76883F",
+      "role": "grass and leaf midtone"
+    },
+    {
+      "name": "deep grass shadow",
+      "hex": "#252611",
+      "role": "deepest field shadow"
+    }
+  ],
+  "source_frames": [
+    "frame-01.jpg — 1365×2048, full-body backlit field frame with tall grass and direct sun, SHA-256 95883cd7a74d529354370ed015b3fe49fa55cd0a8da90aa1f19cc4e1b070c253",
+    "frame-02.jpg — 1365×2048, close low-angle clean identity portrait against deep blue sky, SHA-256 3e5811f573d06e73d371d00a94cfe84555f54b80981a59e9048937481b126513",
+    "frame-05.jpg — 1365×2048, extreme low sculptural body frame with wind-driven translucent textile, SHA-256 cac3d8b35d2bc38e6b98e1c47ebee0f38fc48c53f9b976734b686472b7c0b0d5",
+    "frame-06.jpg — 1365×2048, extreme flower-interference face frame from below, SHA-256 adbeaf1ed844d8b5f8ba99ab925ff8c9991c919d20cc962d18062f9f72c68557",
+    "frame-07.jpg — 2048×1365, top-down body-in-grass frame with flowers and bent joint chain, SHA-256 2fe01bd7f10dfc78dce8db193cf5ee8544bd313dc25266f9ecdb6ade24c368c6",
+    "frame-08.jpg — 1365×2048, low close portrait with hair and translucent layer crossing, SHA-256 b93c6cd5a8cb294b44e6e98556f12c93a9544b631e33fb9fab89762058e4273b",
+    "frame-09.jpg — 1365×2048, low medium bouquet/material portrait against pale sky, SHA-256 eb8989d3a71b4b594d0b7992396a8af4f7d546f807de04248652f49ac23bc14a"
+  ],
+  "unknowns": [
+    "focal lengths, apertures, shutter speeds, camera make and film stock",
+    "whether exposure or grading contributes more to pale skies in frame-01.jpg and frame-09.jpg",
+    "wind speed and whether an off-frame fan supplemented natural wind",
+    "exact field location, flower cultivar and time of day",
+    "all source-person names, biographies, face geometry, skin marks and body dimensions"
+  ],
+  "runtime_style": {
+    "visual_system": "Luminous open-field fashion photography built from very low skyward cameras, one overhead grass view, warm hard sun, wind-responsive layers and tactile near flowers.",
+    "mood_line": "Sun-struck and airy: the approved subject rises into open sky while wind, grass and flowers keep every frame physical.",
+    "environment": "An open tall-grass field with no architecture, alternating clear deep-blue sky and pale backlit sky, plus white flowers and green leaves as held or near-lens elements.",
+    "lighting": "Warm hard low sun from front-side or behind; expose to hold saturated blue in clean portraits or allow pale rolled-off sky when facing the sun, while preserving real material transmission and crisp shadows.",
+    "materials": [
+      "tall grass and seed heads crossing lower body planes",
+      "white petals with dark green leaves used as held and near-lens elements",
+      "approved item surfaces kept materially truthful under hard sun and backlight"
+    ],
+    "contrast": "High local hard-sun contrast with luminous whites, saturated blue or green fields, dark grass shadows and controlled pale-sky roll-off.",
+    "expression_signature": "No smile, cheekbones at rest, brows quiet, lids neutral-to-low or sun-narrowed, mouth closed or softly parted, and gaze down toward, past or deliberately away from the lens.",
+    "garment_behaviour": "Wind lifts genuinely light layers laterally in broad sheets; translucent approved material glows and reveals overlaps, while opaque or heavy approved items keep their real opacity and move only at free edges.",
+    "optical_signature": [
+      "Every frame uses clean high-clarity rendering with crisp hard-sun edges and no added swirl, chromatic fringe or vignette.",
+      "No fixed flare, halation or global bloom; do not repeat the single source flare disc.",
+      "Keep grain restrained and uniform, with softness created only by focus falloff, airborne cloth or a real near-lens flower."
+    ],
+    "shot_directions": {
+      "clean_identity_hero": {
+        "camera_consequence": "Close vertical portrait from well below shoulder height; the near torso enlarges while a deep blue sky remains an uncluttered field.",
+        "pose_joint_chain": "Torso leans slightly over camera, one shoulder closer, neck lengthened, chin gently lowered, head facing lens and arms held outside the core face area.",
+        "focus": "Approved subject face and visible eye plane sharp; wind-lifted edge at frame right falls slightly softer.",
+        "foreground": "No separate foreground object; keep the lower torso as the nearest perspective plane.",
+        "provenance": [
+          "frame-02.jpg — low clean portrait, direct downward gaze, near-shoulder enlargement and deep sky"
+        ]
+      },
+      "environmental_hero": {
+        "camera_consequence": "Vertical full-body field frame from grass-to-waist height with very large pale sky and the sun aligned behind the head.",
+        "pose_joint_chain": "One leg advances through grass, pelvis follows, torso upright, one arm hangs while the opposite loose sleeve or approved free edge lifts sideways.",
+        "focus": "Approved subject and nearby seed heads remain legible; distant tree line dissolves into warm backlight.",
+        "foreground": "Tall grass and seed heads cross the lower legs and consume the lower third without hiding the full human chain.",
+        "provenance": [
+          "frame-01.jpg — full-body grass depth, sun-behind-head alignment, lifted free edge and large sky"
+        ]
+      },
+      "sculptural_three_quarter": {
+        "camera_consequence": "Extreme low vertical three-quarter/body composition; near hip or lower torso enlarges and the subject rises diagonally into blue sky.",
+        "pose_joint_chain": "Pelvis rotated three-quarter, spine extended, both shoulders open, elbows travel outward and wrists continue the wind-driven approved layer.",
+        "focus": "Face and central torso sharp; extended translucent edges soften modestly as they depart the focus plane.",
+        "foreground": "No prop crosses the lens; the near hip and approved layer form the closest planes.",
+        "provenance": [
+          "frame-05.jpg — extreme low hip consequence, open arm chain and wind-wrapped translucent layer"
+        ]
+      },
+      "interference_frame": {
+        "camera_consequence": "Extreme close vertical view from below with face, flowers and sky stacked in a shallow depth plane.",
+        "pose_joint_chain": "Head tilts back slightly, neck extends, shoulders remain below crop and the visible gaze passes through the flower opening toward camera.",
+        "focus": "Visible eye, nose and mouth share a narrow sharp band with one near flower; farther petals dissolve softly.",
+        "foreground": "Large white flower heads and dark leaves cover roughly one quarter to one third near lens, while the fixed clean optic keeps no flare, halation or swirl on the visible face.",
+        "provenance": [
+          "frame-06.jpg — flower occlusion, low face angle, shared shallow focus band and clean sky"
+        ]
+      },
+      "material_or_accessory_detail": {
+        "camera_consequence": "Low medium vertical detail against pale sky; held material and broad sleeve occupy the lower half while body and head context remain.",
+        "pose_joint_chain": "Elbows bend toward torso, both wrists gather the approved material or accessory at chest level, shoulders relax and head looks down past camera.",
+        "focus": "Hands, approved material surface and nearest petal or edge sharp; face remains legible but secondary.",
+        "foreground": "Approved sleeve, hand and held material fill the near lower plane; never detach the detail from wrist, shoulder or torso context.",
+        "provenance": [
+          "frame-09.jpg — chest-held bouquet/material, broad sleeve, hand context and pale backlit sky"
+        ]
+      },
+      "wide_campaign_coda": {
+        "camera_consequence": "Horizontal top-down view with the approved subject occupying most of a dense grass field and no visible horizon.",
+        "pose_joint_chain": "Body forms a bent zigzag: one knee raised, opposite leg extended, one elbow folded over the head and the other hand anchoring material across torso.",
+        "focus": "Approved subject and central held material sharp; surrounding grass remains detailed with mild edge falloff.",
+        "foreground": "Grass blades and seed heads cross clothing and hair at the body plane without a separate lens occluder.",
+        "provenance": [
+          "frame-07.jpg — unique overhead viewpoint, bent joint chain, grass enclosure and central material anchor"
+        ]
+      }
+    }
+  },
+  "sheets": {
+    "camera_lens": {
+      "aspect": "16:9",
+      "quality": "medium",
+      "prompt": "Create a 3-by-2 illustrated grid titled LUMINOUS FIELD — CAMERA & LENS. Every panel must contain a large anonymous featureless JOINTED ARTIST MANNEQUIN wearing a plain opaque full-coverage neutral jumpsuit image in its upper half and exactly four short text lines below it: SLOT + SOURCE, CAM, FOCUS, FG. No table, no extra narrative paragraph, no empty mini-frame. Copy these concise panel lines exactly. Panel 1: CLEAN IDENTITY HERO — frame-02.jpg; CAM: CLOSE LOW PORTRAIT, DEEP BLUE SKY; FOCUS: FACE + VISIBLE EYE SHARP, RIGHT EDGE SOFTER; FG: NONE, LOWER TORSO NEAREST. Panel 2: ENVIRONMENTAL HERO — frame-01.jpg; CAM: GRASS-HEIGHT FULL BODY, SUN BEHIND HEAD; FOCUS: SUBJECT + NEAR SEED HEADS LEGIBLE, TREE LINE SOFT; FG: GRASS CROSSES LOWER LEGS, NEVER HIDES BODY CHAIN. Panel 3: SCULPTURAL THREE-QUARTER — frame-05.jpg; CAM: EXTREME LOW, NEAR HIP ENLARGED; FOCUS: FACE + CENTRAL TORSO SHARP, FREE EDGES SOFTER; FG: NO PROP, NEAR HIP + APPROVED LAYER CLOSEST. Panel 4: INTERFERENCE FRAME — frame-06.jpg; CAM: EXTREME CLOSE FROM BELOW, FLOWERS + FACE; FOCUS: VISIBLE EYE + NOSE + MOUTH + ONE FLOWER SHARP; FG: FLOWERS + LEAVES CROSS LENS, FACE REMAINS VISIBLE. Panel 5: MATERIAL OR ACCESSORY DETAIL — frame-09.jpg; CAM: LOW MEDIUM DETAIL, PALE SKY; FOCUS: HANDS + MATERIAL SHARP, FACE SECONDARY; FG: SLEEVE + HELD MATERIAL NEAR, BODY CONTEXT REMAINS. Panel 6: WIDE CAMPAIGN CODA — frame-07.jpg; CAM: HORIZONTAL TOP-DOWN, JUMPSUITED MANNEQUIN LYING IN GRASS; FOCUS: SUBJECT + CENTRAL MATERIAL SHARP, MILD EDGE FALLOFF; FG: GRASS AT BODY PLANE, NO LENS OCCLUDER. Panel 6 must visibly show an jumpsuited articulated mannequin LYING in grass; never standing and never empty field. Use only these six source labels; never mention frame-03.jpg or frame-04.jpg. Below grid print FIXED OPTIC: CLEAN HIGH CLARITY; CRISP HARD-SUN EDGES; RESTRAINED GRAIN; NO ADDED FLARE, HALATION, GLOBAL BLOOM, SWIRL, CHROMATIC FRINGE OR VIGNETTE; DO NOT REPEAT SOURCE FLARE DISC. Print UNKNOWN: FOCAL LENGTH, APERTURE, SHUTTER, CAMERA MAKE, NUMERICAL HEIGHT, NUMERICAL FOCUS DISTANCE. Print exact Master Gamma once: #254D6C #5C8EB0 #FCFCFB #E6CEB0 #76883F #252611. Fully legible text only; do not paraphrase or add prose; no recognisable identity. No version number, no date, no invented metadata, no board codes, no photographer credits, no brand marks, no readable third-party text, no watermark."
+    },
+    "blocking": {
+      "aspect": "16:9",
+      "quality": "medium",
+      "prompt": "Create a strict six-panel diagram board titled LUMINOUS FIELD — BLOCKING & POSE. Use only featureless articulated mannequins and simple camera axes. Copy these six qualitative joint chains exactly and put the source label directly below each. CLEAN IDENTITY HERO — frame-02.jpg: torso leans slightly over low camera, one shoulder nearer, neck long, chin gently down; lower-body support UNKNOWN. ENVIRONMENTAL HERO — frame-01.jpg: one leg advances through grass, torso upright, one arm hangs, opposite real free edge lifts sideways; exact support foot UNKNOWN. SCULPTURAL THREE-QUARTER — frame-05.jpg: pelvis three-quarter, spine extended, shoulders open, elbows outward, wrists continue the approved free layer. INTERFERENCE FRAME — frame-06.jpg: head slightly back, neck extended, shoulders below crop, face held within near-flower opening; lower body UNKNOWN. MATERIAL OR ACCESSORY DETAIL — frame-09.jpg: elbows bend inward, wrists hold approved material at chest, shoulders relaxed, head down past camera. WIDE CAMPAIGN CODA — frame-07.jpg: mannequin is LYING in grass under an OVERHEAD camera, body forms a bent zigzag, one knee raised, opposite leg extended, one elbow over head, other hand at torso. Show shoulder-to-elbow-to-wrist and hip-to-knee-to-ankle chains where visible; label unsupported joints UNKNOWN. Show camera axis and crop qualitatively. Wind speed, exact wind direction, support side and foreground amount are UNKNOWN unless explicitly stated above. Do not print degrees, percentages, ratios, weight values or invented biomechanics. No alternative standing or ballet pose for frame-07.jpg. Do not copy source body, face, garment or bouquet arrangement. Print the exact Master Gamma row once and exactly: #254D6C #5C8EB0 #FCFCFB #E6CEB0 #76883F #252611. Fully legible short labels only. No version number, no date, no invented metadata, no board codes, no photographer credits, no brand marks, no readable third-party text, no watermark."
+    },
+    "expression_gaze": {
+      "aspect": "3:2",
+      "quality": "medium",
+      "prompt": "Create an editorial specification board titled LUMINOUS FIELD — EXPRESSION & GAZE. Use one large generic plaster mannequin head with no unique facial anatomy, hair, skin marks, ethnicity or reconstructable identity. Overlay precise muscle-state callouts: upper lids neutral-to-low or narrowed against sun, lower lids quiet, brows at rest, cheekbones not engaged, jaw relaxed, mouth closed or softly parted with level corners, chin gently down for low-camera portraits. Show gaze arrows on the same head: down toward lens from frame-02.jpg/frame-08.jpg, past lens from frame-09.jpg, and deliberately withheld by hair/light/flowers from frame-01.jpg/frame-06.jpg. Include head pan/tilt/roll, neck extension, range-across-shoot and provenance; no smile, no invented emotion. State that the approved product subject supplies all identity geometry. Include the exact Master Gamma hex row: #254D6C #5C8EB0 #FCFCFB #E6CEB0 #76883F #252611. Crisp fully legible labels. No version number, no date, no invented metadata, no board codes, no photographer credits, no brand marks, no readable third-party text, no watermark."
+    },
+    "garment_behaviour": {
+      "aspect": "3:2",
+      "quality": "medium",
+      "prompt": "Create an editorial specification board titled LUMINOUS FIELD — GARMENT BEHAVIOUR. Use abstract neutral cloth studies attached to anonymous mannequin shoulders, wrists, torso and hip; do not reproduce source garment cut, colour, lingerie construction, jacket, ruffles, pearls, bouquet arrangement or body. Panels: MOTION STATE — wind-driven only where a real free edge exists; AIR INTERACTION — genuinely light layers lift laterally in broad sheets and travel away from body; DRAPE/WEIGHT — light layers form wide soft arcs, structured opaque approved items keep broad folds and move only at sleeves or hems; TRANSPARENCY — only genuinely translucent approved material glows and reveals overlaps in hard backlight, heavy items never become sheer; EDGE QUALITY — crisp central cloth with modest softening as it leaves focus; SURFACE RESPONSE — luminous transmission without synthetic gloss; TRANSFER RULE — preserve the approved item's true weight and opacity. Cite frame-01.jpg, frame-02.jpg, frame-05.jpg, frame-08.jpg and frame-09.jpg; mark wind speed and fibre UNKNOWN. Include the exact Master Gamma hex row: #254D6C #5C8EB0 #FCFCFB #E6CEB0 #76883F #252611. Crisp fully legible labels. No version number, no date, no invented metadata, no board codes, no photographer credits, no brand marks, no readable third-party text, no watermark."
+    },
+    "colour_grade": {
+      "aspect": "16:9",
+      "quality": "medium",
+      "prompt": "Create a simple colour-science board titled LUMINOUS FIELD — COLOUR & GRADE. Use a sparse grid with short labels and no long paragraphs. Top row: CLOSED PALETTE; PALETTE_SIZE 6; six large swatches with these exact labels and hex values: DEEP SKY #254D6C; CLEAR SKY #5C8EB0; LUMINOUS WHITE #FCFCFB; SUN VEIL #E6CEB0; SUNLIT GRASS #76883F; DEEP GRASS #252611. State PALETTE-STRIP.SVG IS COLOUR AUTHORITY. Show two large abstract exposure diagrams inside one gamma: BLUE SKY — front or side hard sun, saturated blue; PALE SKY — facing low sun, pale-to-white soft roll-off. Add five short grade rules: HIGH LOCAL CONTRAST; WARM HIGHLIGHTS; CLEAN WHITES; NATURAL GREENS; NO FOREIGN ACCENT. Add EXEMPTIONS: approved item colours; human skin, hair and eyes; neutral ramps. Print exactly one FAIL GATE: AFTER EXEMPTIONS, EVERY CLUSTER AT LEAST 2% OF PIXELS MAPS TO A PALETTE MEMBER OR NEUTRAL RAMP WITHIN RGB EUCLIDEAN DISTANCE 26. Print PROVENANCE: frame-01.jpg, frame-02.jpg, frame-05.jpg, frame-06.jpg, frame-07.jpg, frame-08.jpg, frame-09.jpg. No prose outside these labels. Fully legible typography. No version number, no date, no invented metadata, no board codes, no photographer credits, no brand marks, no readable third-party text, no watermark."
+    },
+    "environment": {
+      "aspect": "16:9",
+      "quality": "medium",
+      "prompt": "Create an abstract exterior diagram board titled LUMINOUS FIELD — ENVIRONMENT. No photographs and no photoreal people. Show one original open tall-grass field with no architecture, furniture or horizon clutter. Use only simple plan, section, material icons and tiny anonymous outline subject markers. Panels: LOW FIELD PLAN — subject path, sun axis, wind direction UNKNOWN; DEPTH PLANES — near grass and seed heads, approved subject, distant soft tree line, sky; SKY STATES — deep #254D6C and #5C8EB0 when exposed for subject, pale #FCFCFB and #E6CEB0 when facing sun; MATERIALS — tall green grass, seed heads, white petals, dark leaves; FOREGROUND OPTIONS — grass across lower legs, OBSERVED IN frame-01.jpg, and flowers near lens, OBSERVED IN frame-06.jpg; OVERHEAD STATE — anonymous body outline lying and embedded in grass, OBSERVED IN frame-07.jpg. Never write NOT FRAME or create a different reference person. Mark LOCATION UNKNOWN, FLOWER CULTIVAR UNKNOWN, WIND SPEED UNKNOWN, SUN ANGLE UNKNOWN. Write NOT TO SCALE; do not print numerical scale, distance, percentage or compass bearing. Do not copy the exact field, flower arrangement or source body. Print the exact Master Gamma row once and exactly: #254D6C #5C8EB0 #FCFCFB #E6CEB0 #76883F #252611. Fully legible short labels only. No version number, no date, no invented metadata, no board codes, no photographer credits, no brand marks, no readable third-party text, no watermark."
+    },
+    "person": {
+      "aspect": "2:3",
+      "quality": "medium",
+      "prompt": "Create a compact vertical EMPTY form titled LUMINOUS FIELD — PERSON SHEET TEMPLATE. Use these stacked sections and keep every field blank. Compact top section: FACE GEOMETRY with one empty oval and straight cross guides only; EARS with two simple outline icons and blank lines. Next: EVERYTHING ON THE FACE with eight empty checkboxes and blank lines; no face drawing. Next: SKIN MARKS with blank OBSERVED and PLAUSIBLE columns and PLAUSIBLE IS NEVER FACT. Next: SKIN TONE with eight white unfilled boxes labelled SUBJECT-SUPPLIED VALUE RAMP; no gradient, grey fill, colour fill or example. Next: LIGHT RESPONSE with two blank white circles, arrows and separate labels HARD WARM FRONT OR SIDE SUN and DIRECT BACKLIGHT; no features or shading inside circles. Next: blank PROVENANCE and UNKNOWN lines. Print STYLE SOURCE PROVIDES LIGHT ONLY; APPROVED PRODUCT SUBJECT PROVIDES IDENTITY. Final footer must contain ONLY six large colour swatches, each with its exact hex directly below, in this exact order: #254D6C #5C8EB0 #FCFCFB #E6CEB0 #76883F #252611. Do not replace any footer hex with a colour name and do not omit any hex. Do not print the layout words TOP BAND, NEXT BAND, FOOTER or percentages. No eyes, brows, nose, mouth, freckles, moles, scars, piercings, hair, skin, body, age, gender or ethnicity anywhere. No checkbox or field is filled. Fully legible labels only. No version number, no date, no invented metadata, no board codes, no photographer credits, no brand marks, no readable third-party text, no watermark."
+    }
+  }
+}

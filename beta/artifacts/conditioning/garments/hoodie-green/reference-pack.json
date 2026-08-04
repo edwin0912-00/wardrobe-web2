@@ -1,0 +1,133 @@
+{
+  "schema_version": "1.0.0",
+  "asset_id": "outfit-green-hoodie",
+  "kind": "GARMENT",
+  "source": {
+    "path": "inputs/zeely-test/outfits/180827-1.webp",
+    "sha256": "cf9da0ad452d265b40cdf68c3939e5b2147f17b0816811b7acb1e87a1b869526",
+    "immutable": true
+  },
+  "extraction": {
+    "method": "explicit_visual_review",
+    "category": "TOP",
+    "observed_facts": {
+      "garmentType": "forest-green pullover hoodie",
+      "structure": [
+        "hood",
+        "green drawstrings with metal tips",
+        "long sleeves",
+        "ribbed cuffs and hem"
+      ],
+      "graphic": [
+        "GUCCI",
+        "central double-G emblem",
+        "red and dark-navy braided stripe",
+        "FIRENZE",
+        "1921"
+      ]
+    },
+    "provenance": "OBSERVED",
+    "unknowns": []
+  },
+  "technical_assessment": {
+    "schema_version": "1.0.0",
+    "metadata": {
+      "format": "webp",
+      "mime_type": "image/webp",
+      "source_width": 888,
+      "source_height": 1328,
+      "display_width": 888,
+      "display_height": 1328,
+      "orientation": 1,
+      "color_space": "srgb",
+      "channels": 4,
+      "has_alpha": true,
+      "density": null,
+      "pages": 1,
+      "byte_length": 108446,
+      "source_sha256": "cf9da0ad452d265b40cdf68c3939e5b2147f17b0816811b7acb1e87a1b869526"
+    },
+    "signals": {
+      "analysis_width": 171,
+      "analysis_height": 256,
+      "mean_luminance": 0.187803,
+      "black_clip_ratio": 0.407461,
+      "white_clip_ratio": 0,
+      "luminance_range_p05_p95": 0.376471,
+      "edge_energy": 0.018882,
+      "subject_coverage": null
+    },
+    "resize_evidence": {
+      "preferred_long_edge": 1024,
+      "current_long_edge": 1328,
+      "factor_to_preferred": 0.771084,
+      "max_upscale_factor": 2,
+      "applied_upscale_factor": 1,
+      "target_reachable": true
+    },
+    "fatal_issues": [],
+    "repairable_issues": [],
+    "risks": []
+  },
+  "conditioning": {
+    "normalized": {
+      "path": "artifacts/conditioning/garments/hoodie-green/normalized.png",
+      "sha256": "2d41bb7d867142fdf1da6e5c291d57be47a3826d2db4ec2f92c7043f332df944",
+      "bytes": 1260276
+    },
+    "cutout": {
+      "path": "artifacts/conditioning/garments/hoodie-green/cutout.png",
+      "sha256": "f36477caa2e86652c09091cb1f1e63a2bae988741c47caa983d27faef6b51c2e",
+      "bytes": 743376,
+      "is_isolated": true,
+      "isolation_method": "SOURCE_ALPHA"
+    },
+    "reference_card": {
+      "path": "artifacts/conditioning/garments/hoodie-green/reference-card.png",
+      "sha256": "0fcb792ffe8bd97998248b2b00d997a2fef2a367a06362b43d3b99ce677c60bf",
+      "bytes": 734761
+    },
+    "warnings": [],
+    "operations": [
+      {
+        "type": "AUTO_ORIENT"
+      },
+      {
+        "type": "CONVERT_COLOR_SPACE",
+        "to": "srgb"
+      },
+      {
+        "type": "SOURCE_ALPHA",
+        "bbox_pixels": null
+      },
+      {
+        "type": "CREATE_REFERENCE_CARD",
+        "width": 1024,
+        "height": 1280
+      }
+    ]
+  },
+  "readiness": {
+    "decision": "READY",
+    "reasons": [
+      "ALL_REQUIRED_EVIDENCE_AND_TECHNICAL_GATES_PASS"
+    ],
+    "actions": [],
+    "terminal": false
+  },
+  "generation_bindings": [
+    {
+      "order": 1,
+      "role": "GARMENT_PRIMARY",
+      "path": "artifacts/conditioning/garments/hoodie-green/cutout.png",
+      "sha256": "f36477caa2e86652c09091cb1f1e63a2bae988741c47caa983d27faef6b51c2e"
+    },
+    {
+      "order": 2,
+      "role": "GARMENT_REFERENCE_CARD",
+      "path": "artifacts/conditioning/garments/hoodie-green/reference-card.png",
+      "sha256": "0fcb792ffe8bd97998248b2b00d997a2fef2a367a06362b43d3b99ce677c60bf"
+    }
+  ],
+  "created_at": "2026-07-22T00:37:53.983Z"
+}

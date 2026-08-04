@@ -1,0 +1,23 @@
+{
+  "availability": "VERIFIED",
+  "creator": "Mery Amiri",
+  "extraction_role": "lighting_composition_palette_inspiration",
+  "license_evidence": "evidence/licenses/pexels-license-2026-07-23.md",
+  "not_authority_for": [
+    "identity",
+    "body",
+    "hair",
+    "outfit",
+    "brands",
+    "readable_text",
+    "exact_architecture"
+  ],
+  "page_title": "Portrait of a woman in a dark room with dramatic lighting",
+  "permitted_observation": "dramatic face modelling and full-body shadow readability only",
+  "pixel_policy": "PAGE_METADATA_AND_ROLE_LIMITS_ONLY_SOURCE_PIXELS_NOT_SHIPPED",
+  "platform": "Pexels",
+  "retrieved_at": "2026-07-23T09:40:00Z",
+  "schema_version": "1.0.0",
+  "source_id": "pexels.32497260",
+  "url": "https://www.pexels.com/photo/stylish-woman-in-dramatic-studio-lighting-32497260/"
+}

@@ -1,0 +1,9 @@
+Use case: photorealistic-natural
+Asset type: production environment plate for later full-body fashion compositing
+Primary request: Create an original empty premium minimalist gallery interior in clean early-morning light. Environment plate only; no person or mannequin.
+Scene/backdrop: contemporary gallery with off-white hand-plastered walls, pale travertine floor, one restrained light-oak architectural accent and one large floor-to-ceiling window outside the central subject zone. Quiet invented architecture, no recognizable building.
+Style/medium: photorealistic high-end fashion campaign location plate, subtle real material texture, polished magazine color, calm expensive minimalism rather than an interior-design catalog.
+Composition/framing: exact vertical 4:5, eye-level 50 mm equivalent, straight verticals, one clear vanishing structure, uncluttered central full-body staging zone with safe headroom and floor for future contact shadow, no wide-angle distortion.
+Lighting/mood: long soft early-morning side light from camera-left window, narrow warm edge, cool clean room fill, controlled window highlights and readable floor texture.
+Color palette: warm off-white plaster, pale limestone/travertine, very light natural oak, cool morning fill.
+Constraints: completely empty; no people, faces, bodies, mannequins, furniture, artwork, frames, sculpture, plants, curtains, lamps, props, text, logos, signs, visible street detail, watermark or border. No blown window, orange cast, HDR, bloom or sterile CGI surfaces.

@@ -1,0 +1,31 @@
+{
+  "job_id": "zeely-core-002",
+  "identity_reference": "../inputs/zeely-test/users/input2.jpg",
+  "identity_reference_pack": {
+    "path": "../artifacts/conditioning/humans/002/reference-pack.json",
+    "path_base": ".."
+  },
+  "output_directory": "../runs/live/002",
+  "prompts": {
+    "avatar": "../prompts/avatar.txt",
+    "outfit": "../prompts/outfit-text.txt",
+    "repair": "../prompts/repair.txt"
+  },
+  "outfit": {
+    "mode": "text",
+    "text": "A cobalt-blue single-breasted tailored blazer in matte finely woven fabric, relaxed regular fit, notch lapels, one visible dark-blue button and clean welt pockets, worn over a plain opaque white crew-neck cotton top. No logo, text, pattern, jewelry, scarf or extra layer.",
+    "target_region": "upper_body_clothing"
+  },
+  "quality_references": [
+    "../inputs/zeely-test/quality-references/output1.png",
+    "../inputs/zeely-test/quality-references/output2.png",
+    "../inputs/zeely-test/quality-references/output3.png"
+  ],
+  "model_route": [
+    "gpt_image_2",
+    "nano_banana_flash",
+    "nano_banana_2"
+  ],
+  "max_attempts": 3,
+  "conditioning_max_attempts": 2
+}

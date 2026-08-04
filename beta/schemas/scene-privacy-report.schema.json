@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zeely.ai/schemas/scene-privacy-report.schema.json",
+  "title": "Zeely Scene Privacy Report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "status",
+    "scope",
+    "excluded_paths",
+    "checked_rules",
+    "checked_files",
+    "findings",
+    "completed_at"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "status": { "enum": ["PASS", "FAIL"] },
+    "scope": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "excluded_paths": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "checked_rules": {
+      "type": "array",
+      "minItems": 5,
+      "maxItems": 5,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "NO_ABSOLUTE_USER_PATHS",
+          "NO_PRIVATE_RUNTIME_PATHS",
+          "NO_SECRET_VALUES",
+          "NO_LOCAL_FILE_URIS",
+          "PERSONAL_INPUT_POLICY"
+        ]
+      }
+    },
+    "checked_files": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "sha256", "inspection"],
+        "properties": {
+          "path": { "type": "string", "minLength": 1 },
+          "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+          "inspection": { "enum": ["TEXT", "IMAGE_METADATA", "BINARY_HASH_ONLY"] }
+        }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["rule", "path", "line", "message"],
+        "properties": {
+          "rule": {
+            "enum": [
+              "NO_ABSOLUTE_USER_PATHS",
+              "NO_PRIVATE_RUNTIME_PATHS",
+              "NO_SECRET_VALUES",
+              "NO_LOCAL_FILE_URIS",
+              "PERSONAL_INPUT_POLICY"
+            ]
+          },
+          "path": { "type": "string", "minLength": 1 },
+          "line": { "type": ["integer", "null"], "minimum": 1 },
+          "message": { "type": "string", "minLength": 3 }
+        }
+      }
+    },
+    "completed_at": { "type": "string", "format": "date-time" }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "status": { "const": "PASS" } },
+        "required": ["status"]
+      },
+      "then": { "properties": { "findings": { "maxItems": 0 } } }
+    },
+    {
+      "if": {
+        "properties": { "status": { "const": "FAIL" } },
+        "required": ["status"]
+      },
+      "then": { "properties": { "findings": { "minItems": 1 } } }
+    }
+  ]
+}

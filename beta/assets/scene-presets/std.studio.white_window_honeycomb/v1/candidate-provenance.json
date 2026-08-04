@@ -1,0 +1,27 @@
+{
+  "assets": [
+    {
+      "exact_prompt_path": "prompts/scene-presets/std.studio.white_window_honeycomb/v1/environment-plate.txt",
+      "path": "assets/scene-presets/std.studio.white_window_honeycomb/v1/environment-plate.webp",
+      "provider_receipt_status": "MISSING_FROM_BUILTIN_IMAGE_TOOL",
+      "role": "environment_plate",
+      "sha256": "35addc49d0debd5e44c76357eb53f1a126d3bd2cf30ab842da81761cd7673fea"
+    },
+    {
+      "derivation": {
+        "exact_prompt_path": "prompts/scenes/std.studio.white_window_honeycomb.txt",
+        "operation": "ROLE_REASSIGNMENT_FROM_VISUALLY_APPROVED_MOOD_CARD",
+        "source_path": "assets/scene-mood-cards/std.studio.white_window_honeycomb.webp",
+        "source_sha256": "bae6dfcfce3775cabc0d6439055b4f995049051ef7793ca517d6f660b09b807e"
+      },
+      "path": "assets/scene-presets/std.studio.white_window_honeycomb/v1/lighting-preview.webp",
+      "provider_receipt_status": "MISSING_FROM_BUILTIN_IMAGE_TOOL",
+      "role": "lighting_preview",
+      "sha256": "7c1b4d58e79a817be6673a50ed7efdd9c13d818b2b10eeaaa533c2e7df5730e2"
+    }
+  ],
+  "preset_id": "std.studio.white_window_honeycomb",
+  "preset_version": "1.0.0",
+  "release_status": "BLOCKED_MISSING_STABLE_PROVIDER_RECEIPTS",
+  "schema_version": "1.0.0"
+}

@@ -1,0 +1,163 @@
+{
+  "schema_version": "1.0.0",
+  "asset_role": "blocking_topdown",
+  "kind": "editorial",
+  "version": "1.0.0",
+  "ui_name_uk": "Схема блокінгу",
+  "delivery": {
+    "width": 1280,
+    "height": 720,
+    "format": "png"
+  },
+  "generation": {
+    "provider_path": "deterministic_mechanical_guide",
+    "model_family": "deterministic_svg_to_png",
+    "model_version": "deterministic_svg_to_png",
+    "aspect_ratio": "16:9",
+    "derived_from": [
+      "src/web/editorial-shoot-bible.js SLOT_CONTENT (lens_mm, framing, height, pose, identity_visibility)",
+      "src/web/scene-contract.js EDITORIAL_HEAD_GUARDS + EDITORIAL_SUBJECT_HEIGHT_FLOORS"
+    ],
+    "reference_photos": [],
+    "reference_source": "none — every line is drawn from the declared slot fields listed in derived_from"
+  },
+  "contains_personal_input": false,
+  "contains_environment_content": false,
+  "contains_identity_content": false,
+  "approval": "PENDING_VISUAL_JUDGE",
+  "created_at": "2026-08-02T00:00:00.000Z",
+  "diagrams": [
+    {
+      "slot": "clean_identity_hero",
+      "file": "assets/editorial-blocking/v1/clean_identity_hero.png",
+      "sha256": "e2534b4666d155abde602d40c8446e843be3c84d143a86cdea553de615861a0e",
+      "media_type": "image/png",
+      "width": 1280,
+      "height": 720,
+      "drawn_facts": {
+        "lens_mm": 50,
+        "framing": "three_quarter",
+        "subject_height_percent": [
+          50,
+          100
+        ],
+        "minimum_clear_space_percent": {
+          "above_hair": 6,
+          "below_footwear": 0
+        },
+        "require_full_head": false,
+        "require_full_footwear": false
+      }
+    },
+    {
+      "slot": "environmental_hero",
+      "file": "assets/editorial-blocking/v1/environmental_hero.png",
+      "sha256": "47098e88425b9b0b8687d82fdecb3e99e71a8716ac92ceed8d826693ba957ad2",
+      "media_type": "image/png",
+      "width": 1280,
+      "height": 720,
+      "drawn_facts": {
+        "lens_mm": 50,
+        "framing": "three_quarter",
+        "subject_height_percent": [
+          40,
+          100
+        ],
+        "minimum_clear_space_percent": {
+          "above_hair": 5,
+          "below_footwear": 0
+        },
+        "require_full_head": false,
+        "require_full_footwear": false
+      }
+    },
+    {
+      "slot": "sculptural_three_quarter",
+      "file": "assets/editorial-blocking/v1/sculptural_three_quarter.png",
+      "sha256": "2ce0458d4d73179b3d2eea08c1b9ac9ae85143edc634f9a83925e291626cc056",
+      "media_type": "image/png",
+      "width": 1280,
+      "height": 720,
+      "drawn_facts": {
+        "lens_mm": 65,
+        "framing": "three_quarter",
+        "subject_height_percent": [
+          50,
+          100
+        ],
+        "minimum_clear_space_percent": {
+          "above_hair": 5,
+          "below_footwear": 0
+        },
+        "require_full_head": false,
+        "require_full_footwear": false
+      }
+    },
+    {
+      "slot": "interference_frame",
+      "file": "assets/editorial-blocking/v1/interference_frame.png",
+      "sha256": "5de7823cfeac3d911f839cb9731aab561187c60cc79f4eca01828739cf0b5d6c",
+      "media_type": "image/png",
+      "width": 1280,
+      "height": 720,
+      "drawn_facts": {
+        "lens_mm": 55,
+        "framing": "three_quarter",
+        "subject_height_percent": [
+          45,
+          100
+        ],
+        "minimum_clear_space_percent": {
+          "above_hair": 4,
+          "below_footwear": 0
+        },
+        "require_full_head": false,
+        "require_full_footwear": false
+      }
+    },
+    {
+      "slot": "material_or_accessory_detail",
+      "file": "assets/editorial-blocking/v1/material_or_accessory_detail.png",
+      "sha256": "9c88173ece58002e924d34c7ecd255a61b4311213664602bb4ea2d8257217395",
+      "media_type": "image/png",
+      "width": 1280,
+      "height": 720,
+      "drawn_facts": {
+        "lens_mm": 85,
+        "framing": "detail",
+        "subject_height_percent": [
+          45,
+          100
+        ],
+        "minimum_clear_space_percent": {
+          "above_hair": 0,
+          "below_footwear": 0
+        },
+        "require_full_head": false,
+        "require_full_footwear": false
+      }
+    },
+    {
+      "slot": "wide_campaign_coda",
+      "file": "assets/editorial-blocking/v1/wide_campaign_coda.png",
+      "sha256": "033b9cb3e924407577c0db4e43a9e9e3182de134b9bfc3fee7635d4c9ee8e563",
+      "media_type": "image/png",
+      "width": 1280,
+      "height": 720,
+      "drawn_facts": {
+        "lens_mm": 35,
+        "framing": "wide_full_body",
+        "subject_height_percent": [
+          30,
+          100
+        ],
+        "minimum_clear_space_percent": {
+          "above_hair": 8,
+          "below_footwear": 2
+        },
+        "require_full_head": false,
+        "require_full_footwear": true
+      }
+    }
+  ]
+}

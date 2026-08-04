@@ -1,0 +1,480 @@
+{
+  "schema_version": "1.1.0",
+  "generated_at": "2026-07-27T15:25:34.715Z",
+  "subject_id": "002",
+  "visual_review_fixture": "../reviews/visual-review.json",
+  "status": "NEEDS_REVIEW",
+  "pair_checks": {
+    "dimensions_match": {
+      "status": "PASS",
+      "avatar": "1744x2336",
+      "avatar_outfit": "1744x2336"
+    },
+    "aspect_ratio_parity": {
+      "status": "PASS",
+      "absolute_delta": 0,
+      "tolerance": 0.000001
+    },
+    "nonduplicate": {
+      "status": "PASS",
+      "avatar_sha256": "737cbc8ea1fd296a4d6a847bca101635653a1976681e993de7116bfcf1466d91",
+      "avatar_outfit_sha256": "b38bc1e2bbbc4436b6fbf5ccc57933a175867f152d1dee4b389c03190d7d5c22"
+    }
+  },
+  "artifacts": {
+    "avatar": {
+      "path": "002/avatar.png",
+      "sha256": "737cbc8ea1fd296a4d6a847bca101635653a1976681e993de7116bfcf1466d91",
+      "byte_size": 4146231,
+      "decoded": true,
+      "format": "png",
+      "width": 1744,
+      "height": 2336,
+      "aspect_ratio": 0.74657534,
+      "color_space": "srgb",
+      "channels": 3,
+      "has_alpha": false,
+      "technical_gates": {
+        "decode": {
+          "status": "PASS",
+          "observed": true
+        },
+        "png": {
+          "status": "PASS",
+          "observed": "png"
+        },
+        "srgb": {
+          "status": "PASS",
+          "observed": "srgb"
+        },
+        "no_alpha": {
+          "status": "PASS",
+          "observed": false
+        }
+      },
+      "background_diagnostics": {
+        "method": "corner-seeded_4-connected_near-white_background",
+        "classified_background_pixels": 1725963,
+        "sampled_pixels": 1725963,
+        "exact_white_pixels": 1725963,
+        "exact_white_ratio": 1,
+        "every_classified_background_pixel_exact_white": true,
+        "near_white_definition": "min(R,G,B) >= 245 and channel chroma <= 10",
+        "mean_classified_background_chroma": 0,
+        "coverage": {
+          "image": 0.423655,
+          "corners": {
+            "top_left": 1,
+            "top_right": 1,
+            "bottom_left": 0.948441,
+            "bottom_right": 0.734122
+          },
+          "minimum_top_corner": 1,
+          "bottom_corners_are_informational": true,
+          "left_side": 1,
+          "right_side": 0.989,
+          "minimum_side": 0.989,
+          "maximum_side": 1,
+          "gated_side_metric": "maximum(left_side,right_side)"
+        },
+        "thresholds": {
+          "exact_white_ratio_required": 1,
+          "minimum_channel": 245,
+          "maximum_chroma": 10,
+          "minimum_top_corner_coverage": 0.9,
+          "minimum_one_side_coverage": 0.75,
+          "minimum_image_coverage": 0.12
+        },
+        "status": "PASS",
+        "note": "Both top corners and at least one full-height side are gated; the opposite side and bottom corners are informational because a full-length standing subject reaches them with feet, footwear or a contact shadow. Central top/bottom pixels are not seeds, so hair, clothing or footwear touching the frame is not mislabeled as background. Near-white that the subject fully encloses, such as the gap between the legs of a figure standing on the bottom edge, is not border-connected, so it is outside both this classified set and the exact-white gate. The source image is never modified."
+      },
+      "notion_criteria": [
+        {
+          "id": "white_background",
+          "label": "Exact #FFFFFF studio background",
+          "evaluation_mode": "automatic",
+          "status": "PASS",
+          "source": "automatic_border_diagnostics",
+          "evidence": {
+            "method": "corner-seeded_4-connected_near-white_background",
+            "classified_background_pixels": 1725963,
+            "sampled_pixels": 1725963,
+            "exact_white_pixels": 1725963,
+            "exact_white_ratio": 1,
+            "every_classified_background_pixel_exact_white": true,
+            "near_white_definition": "min(R,G,B) >= 245 and channel chroma <= 10",
+            "mean_classified_background_chroma": 0,
+            "coverage": {
+              "image": 0.423655,
+              "corners": {
+                "top_left": 1,
+                "top_right": 1,
+                "bottom_left": 0.948441,
+                "bottom_right": 0.734122
+              },
+              "minimum_top_corner": 1,
+              "bottom_corners_are_informational": true,
+              "left_side": 1,
+              "right_side": 0.989,
+              "minimum_side": 0.989,
+              "maximum_side": 1,
+              "gated_side_metric": "maximum(left_side,right_side)"
+            },
+            "thresholds": {
+              "exact_white_ratio_required": 1,
+              "minimum_channel": 245,
+              "maximum_chroma": 10,
+              "minimum_top_corner_coverage": 0.9,
+              "minimum_one_side_coverage": 0.75,
+              "minimum_image_coverage": 0.12
+            },
+            "status": "PASS",
+            "note": "Both top corners and at least one full-height side are gated; the opposite side and bottom corners are informational because a full-length standing subject reaches them with feet, footwear or a contact shadow. Central top/bottom pixels are not seeds, so hair, clothing or footwear touching the frame is not mislabeled as background. Near-white that the subject fully encloses, such as the gap between the legs of a figure standing on the bottom edge, is not border-connected, so it is outside both this classified set and the exact-white gate. The source image is never modified."
+          }
+        },
+        {
+          "id": "identity_preservation",
+          "label": "Identity preserved: face, hair, skin tone and body build",
+          "evaluation_mode": "visual",
+          "status": "PASS",
+          "source": "explicit_visual_review_fixture",
+          "artifact_sha256": "737cbc8ea1fd296a4d6a847bca101635653a1976681e993de7116bfcf1466d91",
+          "reviewed_artifact_sha256": "737cbc8ea1fd296a4d6a847bca101635653a1976681e993de7116bfcf1466d91",
+          "reviewer": "codex_visual_review",
+          "reviewed_at": "2026-07-22T00:52:44Z",
+          "notes": "Recognizable face, bob and bangs, darker roots, round rose-gold glasses, skin tone and teal neck tattoo are preserved. Body build is NOT_EVALUABLE in the source and is not treated as an identity lock."
+        },
+        {
+          "id": "frontal_full_length_composition",
+          "label": "Frontal full-length composition",
+          "evaluation_mode": "visual",
+          "status": "NEEDS_REVIEW",
+          "source": "missing_visual_review",
+          "artifact_sha256": "737cbc8ea1fd296a4d6a847bca101635653a1976681e993de7116bfcf1466d91",
+          "reviewed_artifact_sha256": "737cbc8ea1fd296a4d6a847bca101635653a1976681e993de7116bfcf1466d91",
+          "notes": "No explicit human/VLM visual review fixture was supplied for this semantic gate."
+        },
+        {
+          "id": "studio_lighting",
+          "label": "Even professional studio lighting",
+          "evaluation_mode": "visual",
+          "status": "PASS",
+          "source": "explicit_visual_review_fixture",
+          "artifact_sha256": "737cbc8ea1fd296a4d6a847bca101635653a1976681e993de7116bfcf1466d91",
+          "reviewed_artifact_sha256": "737cbc8ea1fd296a4d6a847bca101635653a1976681e993de7116bfcf1466d91",
+          "reviewer": "codex_visual_review",
+          "reviewed_at": "2026-07-22T00:52:44Z",
+          "notes": "Soft even illumination with no harsh facial shadow or blown area."
+        },
+        {
+          "id": "neutral_white_balance",
+          "label": "Neutral white balance",
+          "evaluation_mode": "hybrid",
+          "status": "PASS",
+          "source": "explicit_visual_review_fixture",
+          "artifact_sha256": "737cbc8ea1fd296a4d6a847bca101635653a1976681e993de7116bfcf1466d91",
+          "reviewed_artifact_sha256": "737cbc8ea1fd296a4d6a847bca101635653a1976681e993de7116bfcf1466d91",
+          "reviewer": "codex_visual_review",
+          "reviewed_at": "2026-07-22T00:52:44Z",
+          "notes": "Skin, hair, glasses and black garment retain plausible neutral color.",
+          "automatic_evidence": {
+            "conservative_background_mean_chroma": 0,
+            "note": "This diagnostic cannot establish subject/lighting white balance without semantic review."
+          }
+        },
+        {
+          "id": "face_hair_detail",
+          "label": "Sharp natural face and hair detail",
+          "evaluation_mode": "visual",
+          "status": "PASS",
+          "source": "explicit_visual_review_fixture",
+          "artifact_sha256": "737cbc8ea1fd296a4d6a847bca101635653a1976681e993de7116bfcf1466d91",
+          "reviewed_artifact_sha256": "737cbc8ea1fd296a4d6a847bca101635653a1976681e993de7116bfcf1466d91",
+          "reviewer": "codex_visual_review",
+          "reviewed_at": "2026-07-22T00:52:44Z",
+          "notes": "Eyes, glasses rims, skin texture, bangs and hair tips are sharp and natural."
+        },
+        {
+          "id": "photorealism",
+          "label": "Photorealistic result without plastic skin",
+          "evaluation_mode": "visual",
+          "status": "PASS",
+          "source": "explicit_visual_review_fixture",
+          "artifact_sha256": "737cbc8ea1fd296a4d6a847bca101635653a1976681e993de7116bfcf1466d91",
+          "reviewed_artifact_sha256": "737cbc8ea1fd296a4d6a847bca101635653a1976681e993de7116bfcf1466d91",
+          "reviewer": "codex_visual_review",
+          "reviewed_at": "2026-07-22T00:52:44Z",
+          "notes": "Result reads as a high-resolution studio photograph."
+        },
+        {
+          "id": "outfit_fidelity",
+          "label": "Outfit text/reference fidelity",
+          "evaluation_mode": "visual",
+          "status": "PASS",
+          "source": "explicit_visual_review_fixture",
+          "artifact_sha256": "737cbc8ea1fd296a4d6a847bca101635653a1976681e993de7116bfcf1466d91",
+          "reviewed_artifact_sha256": "737cbc8ea1fd296a4d6a847bca101635653a1976681e993de7116bfcf1466d91",
+          "reviewer": "codex_visual_review",
+          "reviewed_at": "2026-07-22T00:52:44Z",
+          "notes": "Plain matte black crew-neck T-shirt matches the canonical garment request."
+        },
+        {
+          "id": "anatomy",
+          "label": "Correct anatomy, including hands when visible",
+          "evaluation_mode": "visual",
+          "status": "PASS",
+          "source": "explicit_visual_review_fixture",
+          "artifact_sha256": "737cbc8ea1fd296a4d6a847bca101635653a1976681e993de7116bfcf1466d91",
+          "reviewed_artifact_sha256": "737cbc8ea1fd296a4d6a847bca101635653a1976681e993de7116bfcf1466d91",
+          "reviewer": "codex_visual_review",
+          "reviewed_at": "2026-07-22T00:52:44Z",
+          "notes": "Visible head, neck, shoulders and arms are coherent; hands are outside the frame."
+        },
+        {
+          "id": "no_residue_or_bleed",
+          "label": "No source-background residue, bleed or generation artifacts",
+          "evaluation_mode": "hybrid",
+          "status": "PASS",
+          "source": "explicit_visual_review_fixture",
+          "artifact_sha256": "737cbc8ea1fd296a4d6a847bca101635653a1976681e993de7116bfcf1466d91",
+          "reviewed_artifact_sha256": "737cbc8ea1fd296a4d6a847bca101635653a1976681e993de7116bfcf1466d91",
+          "reviewer": "codex_visual_review",
+          "reviewed_at": "2026-07-22T00:52:44Z",
+          "notes": "Ivy scene is fully removed; hair and glasses edges are clean without visible halo.",
+          "automatic_evidence": {
+            "alpha_channel_absent": true,
+            "note": "Metadata cannot rule out visible residue or bleed; explicit visual review remains required."
+          }
+        }
+      ],
+      "status": "NEEDS_REVIEW"
+    },
+    "avatar_outfit": {
+      "path": "002/avatar_outfit.png",
+      "sha256": "b38bc1e2bbbc4436b6fbf5ccc57933a175867f152d1dee4b389c03190d7d5c22",
+      "byte_size": 5038094,
+      "decoded": true,
+      "format": "png",
+      "width": 1744,
+      "height": 2336,
+      "aspect_ratio": 0.74657534,
+      "color_space": "srgb",
+      "channels": 3,
+      "has_alpha": false,
+      "technical_gates": {
+        "decode": {
+          "status": "PASS",
+          "observed": true
+        },
+        "png": {
+          "status": "PASS",
+          "observed": "png"
+        },
+        "srgb": {
+          "status": "PASS",
+          "observed": "srgb"
+        },
+        "no_alpha": {
+          "status": "PASS",
+          "observed": false
+        }
+      },
+      "background_diagnostics": {
+        "method": "corner-seeded_4-connected_near-white_background",
+        "classified_background_pixels": 1758457,
+        "sampled_pixels": 1758457,
+        "exact_white_pixels": 1758457,
+        "exact_white_ratio": 1,
+        "every_classified_background_pixel_exact_white": true,
+        "near_white_definition": "min(R,G,B) >= 245 and channel chroma <= 10",
+        "mean_classified_background_chroma": 0,
+        "coverage": {
+          "image": 0.431631,
+          "corners": {
+            "top_left": 1,
+            "top_right": 1,
+            "bottom_left": 1,
+            "bottom_right": 0.392628
+          },
+          "minimum_top_corner": 1,
+          "bottom_corners_are_informational": true,
+          "left_side": 1,
+          "right_side": 0.968589,
+          "minimum_side": 0.968589,
+          "maximum_side": 1,
+          "gated_side_metric": "maximum(left_side,right_side)"
+        },
+        "thresholds": {
+          "exact_white_ratio_required": 1,
+          "minimum_channel": 245,
+          "maximum_chroma": 10,
+          "minimum_top_corner_coverage": 0.9,
+          "minimum_one_side_coverage": 0.75,
+          "minimum_image_coverage": 0.12
+        },
+        "status": "PASS",
+        "note": "Both top corners and at least one full-height side are gated; the opposite side and bottom corners are informational because a full-length standing subject reaches them with feet, footwear or a contact shadow. Central top/bottom pixels are not seeds, so hair, clothing or footwear touching the frame is not mislabeled as background. Near-white that the subject fully encloses, such as the gap between the legs of a figure standing on the bottom edge, is not border-connected, so it is outside both this classified set and the exact-white gate. The source image is never modified."
+      },
+      "notion_criteria": [
+        {
+          "id": "white_background",
+          "label": "Exact #FFFFFF studio background",
+          "evaluation_mode": "automatic",
+          "status": "PASS",
+          "source": "automatic_border_diagnostics",
+          "evidence": {
+            "method": "corner-seeded_4-connected_near-white_background",
+            "classified_background_pixels": 1758457,
+            "sampled_pixels": 1758457,
+            "exact_white_pixels": 1758457,
+            "exact_white_ratio": 1,
+            "every_classified_background_pixel_exact_white": true,
+            "near_white_definition": "min(R,G,B) >= 245 and channel chroma <= 10",
+            "mean_classified_background_chroma": 0,
+            "coverage": {
+              "image": 0.431631,
+              "corners": {
+                "top_left": 1,
+                "top_right": 1,
+                "bottom_left": 1,
+                "bottom_right": 0.392628
+              },
+              "minimum_top_corner": 1,
+              "bottom_corners_are_informational": true,
+              "left_side": 1,
+              "right_side": 0.968589,
+              "minimum_side": 0.968589,
+              "maximum_side": 1,
+              "gated_side_metric": "maximum(left_side,right_side)"
+            },
+            "thresholds": {
+              "exact_white_ratio_required": 1,
+              "minimum_channel": 245,
+              "maximum_chroma": 10,
+              "minimum_top_corner_coverage": 0.9,
+              "minimum_one_side_coverage": 0.75,
+              "minimum_image_coverage": 0.12
+            },
+            "status": "PASS",
+            "note": "Both top corners and at least one full-height side are gated; the opposite side and bottom corners are informational because a full-length standing subject reaches them with feet, footwear or a contact shadow. Central top/bottom pixels are not seeds, so hair, clothing or footwear touching the frame is not mislabeled as background. Near-white that the subject fully encloses, such as the gap between the legs of a figure standing on the bottom edge, is not border-connected, so it is outside both this classified set and the exact-white gate. The source image is never modified."
+          }
+        },
+        {
+          "id": "identity_preservation",
+          "label": "Identity preserved: face, hair, skin tone and body build",
+          "evaluation_mode": "visual",
+          "status": "PASS",
+          "source": "explicit_visual_review_fixture",
+          "artifact_sha256": "b38bc1e2bbbc4436b6fbf5ccc57933a175867f152d1dee4b389c03190d7d5c22",
+          "reviewed_artifact_sha256": "b38bc1e2bbbc4436b6fbf5ccc57933a175867f152d1dee4b389c03190d7d5c22",
+          "reviewer": "codex_visual_review",
+          "reviewed_at": "2026-07-22T00:52:44Z",
+          "notes": "Face, glasses, hairstyle, skin and teal tattoo remain consistent with the approved avatar."
+        },
+        {
+          "id": "frontal_full_length_composition",
+          "label": "Frontal full-length composition",
+          "evaluation_mode": "visual",
+          "status": "NEEDS_REVIEW",
+          "source": "missing_visual_review",
+          "artifact_sha256": "b38bc1e2bbbc4436b6fbf5ccc57933a175867f152d1dee4b389c03190d7d5c22",
+          "reviewed_artifact_sha256": "b38bc1e2bbbc4436b6fbf5ccc57933a175867f152d1dee4b389c03190d7d5c22",
+          "notes": "No explicit human/VLM visual review fixture was supplied for this semantic gate."
+        },
+        {
+          "id": "studio_lighting",
+          "label": "Even professional studio lighting",
+          "evaluation_mode": "visual",
+          "status": "PASS",
+          "source": "explicit_visual_review_fixture",
+          "artifact_sha256": "b38bc1e2bbbc4436b6fbf5ccc57933a175867f152d1dee4b389c03190d7d5c22",
+          "reviewed_artifact_sha256": "b38bc1e2bbbc4436b6fbf5ccc57933a175867f152d1dee4b389c03190d7d5c22",
+          "reviewer": "codex_visual_review",
+          "reviewed_at": "2026-07-22T00:52:44Z",
+          "notes": "Lighting is soft and coherent on skin, white top and blue blazer."
+        },
+        {
+          "id": "neutral_white_balance",
+          "label": "Neutral white balance",
+          "evaluation_mode": "hybrid",
+          "status": "PASS",
+          "source": "explicit_visual_review_fixture",
+          "artifact_sha256": "b38bc1e2bbbc4436b6fbf5ccc57933a175867f152d1dee4b389c03190d7d5c22",
+          "reviewed_artifact_sha256": "b38bc1e2bbbc4436b6fbf5ccc57933a175867f152d1dee4b389c03190d7d5c22",
+          "reviewer": "codex_visual_review",
+          "reviewed_at": "2026-07-22T00:52:44Z",
+          "notes": "White top remains neutral while cobalt fabric retains intended color.",
+          "automatic_evidence": {
+            "conservative_background_mean_chroma": 0,
+            "note": "This diagnostic cannot establish subject/lighting white balance without semantic review."
+          }
+        },
+        {
+          "id": "face_hair_detail",
+          "label": "Sharp natural face and hair detail",
+          "evaluation_mode": "visual",
+          "status": "PASS",
+          "source": "explicit_visual_review_fixture",
+          "artifact_sha256": "b38bc1e2bbbc4436b6fbf5ccc57933a175867f152d1dee4b389c03190d7d5c22",
+          "reviewed_artifact_sha256": "b38bc1e2bbbc4436b6fbf5ccc57933a175867f152d1dee4b389c03190d7d5c22",
+          "reviewer": "codex_visual_review",
+          "reviewed_at": "2026-07-22T00:52:44Z",
+          "notes": "Eyes, skin, glasses and hair remain sharp and natural."
+        },
+        {
+          "id": "photorealism",
+          "label": "Photorealistic result without plastic skin",
+          "evaluation_mode": "visual",
+          "status": "PASS",
+          "source": "explicit_visual_review_fixture",
+          "artifact_sha256": "b38bc1e2bbbc4436b6fbf5ccc57933a175867f152d1dee4b389c03190d7d5c22",
+          "reviewed_artifact_sha256": "b38bc1e2bbbc4436b6fbf5ccc57933a175867f152d1dee4b389c03190d7d5c22",
+          "reviewer": "codex_visual_review",
+          "reviewed_at": "2026-07-22T00:52:44Z",
+          "notes": "Tailoring, seams, lapels and fabric folds read as a real studio garment."
+        },
+        {
+          "id": "outfit_fidelity",
+          "label": "Outfit text/reference fidelity",
+          "evaluation_mode": "visual",
+          "status": "PASS",
+          "source": "explicit_visual_review_fixture",
+          "artifact_sha256": "b38bc1e2bbbc4436b6fbf5ccc57933a175867f152d1dee4b389c03190d7d5c22",
+          "reviewed_artifact_sha256": "b38bc1e2bbbc4436b6fbf5ccc57933a175867f152d1dee4b389c03190d7d5c22",
+          "reviewer": "codex_visual_review",
+          "reviewed_at": "2026-07-22T00:52:44Z",
+          "notes": "Cobalt single-breasted notch-lapel blazer, one dark button, welt pockets and plain white crew-neck top match the text specification; no extra branding."
+        },
+        {
+          "id": "anatomy",
+          "label": "Correct anatomy, including hands when visible",
+          "evaluation_mode": "visual",
+          "status": "PASS",
+          "source": "explicit_visual_review_fixture",
+          "artifact_sha256": "b38bc1e2bbbc4436b6fbf5ccc57933a175867f152d1dee4b389c03190d7d5c22",
+          "reviewed_artifact_sha256": "b38bc1e2bbbc4436b6fbf5ccc57933a175867f152d1dee4b389c03190d7d5c22",
+          "reviewer": "codex_visual_review",
+          "reviewed_at": "2026-07-22T00:52:44Z",
+          "notes": "Shoulders, torso and sleeves are physically coherent; hands are outside the frame."
+        },
+        {
+          "id": "no_residue_or_bleed",
+          "label": "No source-background residue, bleed or generation artifacts",
+          "evaluation_mode": "hybrid",
+          "status": "PASS",
+          "source": "explicit_visual_review_fixture",
+          "artifact_sha256": "b38bc1e2bbbc4436b6fbf5ccc57933a175867f152d1dee4b389c03190d7d5c22",
+          "reviewed_artifact_sha256": "b38bc1e2bbbc4436b6fbf5ccc57933a175867f152d1dee4b389c03190d7d5c22",
+          "reviewer": "codex_visual_review",
+          "reviewed_at": "2026-07-22T00:52:44Z",
+          "notes": "No former black-shirt edge remains where replaced; garment and hair boundaries are clean.",
+          "automatic_evidence": {
+            "alpha_channel_absent": true,
+            "note": "Metadata cannot rule out visible residue or bleed; explicit visual review remains required."
+          }
+        }
+      ],
+      "status": "NEEDS_REVIEW"
+    }
+  }
+}

@@ -1,0 +1,139 @@
+{
+  "unit_id": "shoot.sky_dune_surreal",
+  "title": "Sky Dune Surreal — cloud sky, one sand ridge, deadpan frontal",
+  "palette_size": 7,
+  "palette": [
+    { "name": "sky blue", "hex": "#A8B6C8", "role": "ground, the whole upper field behind the subject" },
+    { "name": "cloud white", "hex": "#F4F5F5", "role": "brightest highlight, the discrete cumulus" },
+    { "name": "warm sand", "hex": "#C4A385", "role": "ground, the sand ridge below the horizon" },
+    { "name": "pale lilac", "hex": "#D9C3D6", "role": "accent, the cool pastel note in cloud shadow" },
+    { "name": "peach", "hex": "#E7C4A8", "role": "accent, the warm pastel note on the lit sand" },
+    { "name": "cream", "hex": "#EFE9DC", "role": "highlight, the pale garment and lightest ground" },
+    { "name": "deep skin", "hex": "#4A2E22", "role": "deepest value, skin holding full saturation under even light" }
+  ],
+  "style_unit_status": "READY",
+  "source_frames": ["assets/scene-mood-cards/shoot.sky_dune_surreal.webp — visually inspected 1024x1280 owner-supplied derivative, mood-card sha256 415d09e80eb31b4238b17001e85f57ef28a1cb1f3bf236b1e6a050a368cc0385; sidecar records cover crop/re-encode only from 1968x2464 source sha256 bc8331019e3e8a1de6043124e32f967c7eaae99e487bae50eda26cd83269bcaf"],
+  "source_reconciliation": {
+    "status": "RESTORED_LEGACY_ARTIFACT_AUTHORITY",
+    "authority_mode": "OWNER_AUTHORIZED_ONE_SOURCE_PLUS_PRESERVED_GENERATED_SHEETS",
+    "primary_frame": "assets/scene-mood-cards/shoot.sky_dune_surreal.webp",
+    "source_bytes_present": true,
+    "included_artifacts": "Seven canonical generated sheets preserved in git and reviewed at native resolution.",
+    "coverage_policy": "One source defines the universe. Six runtime directions are original coverage constructions from the preserved sheet system and are not claims of additional historical source frames."
+  },
+  "unknowns": [
+    "focal length, aperture, shutter speed and physical camera height",
+    "whether sky, clouds and sand are a location, a built set or a composite",
+    "the uncropped outer composition of the 1968x2464 original source",
+    "eyes, eyelids, brows and exact gaze direction, occluded by opaque lenses and knitted headwear",
+    "whether the six runtime coverage constructions existed in the historical shoot; they are owner-authorized extensions of the preserved universe",
+    "the origin of the subtle grain and the physical construction of the artifact-defined sky and ridge"
+  ],
+  "runtime_style": {
+    "visual_system": "A clean pastel surreal campaign places an approved subject against a vast blue-grey cloud sky and one immaculate warm sand ridge, using a low horizon, deep focus, frontal stillness and inert sculptural cloth.",
+    "mood_line": "Affectless and presented rather than performed: the person stands still while scale, empty sky and withheld eyes make the image strange.",
+    "environment": "An empty pale blue-grey sky with discrete separate cumulus clouds above one clean untracked sand ridge, shown broadside or along its crest; no buildings, plants, furniture, roads, mountains or heat shimmer.",
+    "lighting": "Soft mildly diffused daylight sits slightly above and frontal, giving short soft ground contact, low contrast, broad quiet skin response and no backlit glow.",
+    "materials": [
+      "fine warm sand with readable grain",
+      "soft-edged white cumulus against a flat sky field",
+      "heavy plush opaque approved cloth with broad pile-softened folds",
+      "coarse knit or matte styling completion when required",
+      "one plain woven hand-held accessory with no readable mark"
+    ],
+    "contrast": "Low pastel contrast with lifted blacks, soft non-clipped highlights and cool-sky versus warm-ground separation carried by object colour rather than split-tone.",
+    "expression_signature": "Opaque approved lenses withhold the eyes; the approved mouth stays closed with level corners, cheeks rest, jaw relaxes and head carriage remains neutral or only slightly panned, with no smile or source identity transfer.",
+    "garment_behaviour": "Approved cloth is completely still, opaque and light-absorbing, holding broad soft volume through weight and construction with rounded pile edges, no flutter, no motion blur and no specular hotspot.",
+    "optical_signature": [
+      "Normal clean perspective with parallel verticals, even body proportions and no limb enlargement.",
+      "Level roll, deep readable focus across subject, sand and cloud, with no foreground object between lens and person.",
+      "No flare, halation, bloom or vignette; only subtle very fine grain and a clean graphic finish."
+    ],
+    "shot_directions": {
+      "clean_identity_hero": {
+        "camera_consequence": "Use a vertical centred crop from above the approved head through below the knees, level at chest height, with a low sand horizon and a large quiet sky field.",
+        "pose_joint_chain": "Keep shoulders level, arms long beside the ribs, one connected hand holding a plain accessory at thigh height, knees unlocked and head nearly frontal behind opaque approved lenses.",
+        "focus": "Hold the approved face outline, lens frame, mouth, accessory hand and plush surface sharply while retaining cloud edges and sand grain.",
+        "foreground": "Nothing crosses the lens; leave clean sky around the approved head and keep the ridge as a low band.",
+        "provenance": [
+          "owner-supplied derivative plus legacy camera_lens frame panel and expression_gaze; owner-authorized identity coverage construction"
+        ]
+      },
+      "environmental_hero": {
+        "camera_consequence": "Use the canonical portrait full-length frontal composition with complete person, modest headroom, low horizon around knee height and most of the frame given to sky.",
+        "pose_joint_chain": "Plant both feet close and nearly parallel with a small fore-aft offset, keep hips quiet, let both arms hang and connect one hand to the low plain accessory.",
+        "focus": "Keep person, footwear contact, ridge crest and discrete clouds all legible with deep clean focus.",
+        "foreground": "The sand surface is the only lower plane and nothing sits between lens and subject.",
+        "provenance": [
+          "owner-supplied full-length seed plus legacy blocking, environment hero and camera_lens deep-focus system"
+        ]
+      },
+      "sculptural_three_quarter": {
+        "camera_consequence": "Use a vertical head-through-calf frame from a shallow three-quarter axis while keeping roll level, proportions normal and the sand horizon low.",
+        "pose_joint_chain": "Turn shoulders and pelvis a few degrees together, keep feet close, raise the accessory-bearing forearm across the lower torso and let the free hand rest open beside the thigh; head pans only slightly.",
+        "focus": "Place the sharp plane on approved lens frame, mouth, connected hands and the broad plush volume around the torso.",
+        "foreground": "Use empty sky and one clean dune curve; no cloth, plant or prop crosses the lens.",
+        "provenance": [
+          "legacy garment_behaviour broad-volume system, expression head-carriage rules and camera_lens normal perspective; extrapolated within the authorized universe"
+        ]
+      },
+      "interference_frame": {
+        "camera_consequence": "Use a horizontal waist-up frame with the approved subject offset from centre and one large cloud mass touching the outer silhouette while the low ridge remains visible.",
+        "pose_joint_chain": "Keep the torso frontal, drop one shoulder slightly through a relaxed elbow, hold the accessory low and turn the head a few degrees away without exposing an eye through the lenses.",
+        "focus": "Hold the approved outline and opaque lenses sharp while the contacting cloud edge remains readable rather than dissolved.",
+        "foreground": "Interference is a background silhouette collision only; no physical object or synthetic haze crosses the lens.",
+        "provenance": [
+          "legacy environment cloud field and camera_lens explicit no-occlusion rule; owner-authorized interference interpretation"
+        ]
+      },
+      "material_or_accessory_detail": {
+        "camera_consequence": "Use a vertical torso-to-knee detail with the connected accessory hand enlarged at centre, normal perspective and a strip of sand behind.",
+        "pose_joint_chain": "Connect relaxed fingers around one plain woven handle, keep the wrist below the hip and include the opposite forearm, side torso and upper legs so the person is never reduced to a flat lay.",
+        "focus": "Put critical focus on hand connection, woven surface, plush pile and one broad rounded fold; retain enough body context to prove wear.",
+        "foreground": "The approved hand and accessory own the near plane; no detached object, vivid flower, logo or additional colour family.",
+        "provenance": [
+          "owner-supplied hand-held basket relation plus legacy garment_behaviour texture panels and blocking connected-hand placement"
+        ]
+      },
+      "wide_campaign_coda": {
+        "camera_consequence": "Use a wide horizontal level frame with the complete approved person at roughly one third of frame height on the ridge and an expansive field of separate clouds above.",
+        "pose_joint_chain": "Stand still with feet close, arms long and one accessory hand weighted downward; turn the head only slightly while maintaining withheld eyes and a neutral mouth.",
+        "focus": "Keep person, full ridge crest, sand texture and cloud field readable in one clean deep-focus hierarchy.",
+        "foreground": "Use only uninterrupted sand in the lower band; no footprints, vegetation, architecture or foreground occluder.",
+        "provenance": [
+          "legacy environment hero wide and reverse ridge plates plus camera_lens deep-focus rule; owner-authorized wide coda"
+        ]
+      }
+    }
+  },
+  "sheets": {
+    "camera_lens": {
+      "aspect": "16:9",
+      "prompt": "Dense editorial CAMERA & LENS reference board, 16:9, dark neutral look-dev layout, neat labelled panels, film-production house style, hand-set English labels, no photograph of a real person anywhere, no version number, no date, no board code, no client name, no photographer credit, no file name, no invented metadata of any kind. Headline: 'SKY DUNE SURREAL — CAMERA & LENS'. PANEL 1 CAMERA POSITION: a clean side-elevation diagram of a featureless wooden artist mannequin standing, the camera drawn at CHEST HEIGHT with its sight line dead horizontal and squared dead frontal to the figure, labelled 'CHEST HEIGHT · LEVEL · DEAD FRONTAL'. Beside it a frame diagram with the horizon dead level and drawn LOW, at roughly the figure's knee height, labelled 'ROLL LEVEL — NO TILT · HORIZON SITS LOW, AROUND KNEE HEIGHT, WHICH FLATTENS THE GROUND INTO A BAND'. PANEL 2 PERSPECTIVE CHARACTER: two comparison diagrams, one showing wide-lens convergence and limb enlargement crossed out, one showing parallel verticals and even proportion ticked, labelled 'NORMAL · NO CONVERGENCE · NO LIMB ENLARGEMENT'. PANEL 3 DEPTH OF FIELD: a depth ramp showing both the clouds and the sand grain holding detail, labelled 'DEEP · CLOUDS AND SAND GRAIN BOTH HOLD DETAIL · NOTHING IS THROWN AWAY'. PANEL 4 FOREGROUND OCCLUSION: an empty frame rectangle with a diagonal strike through it, labelled 'NONE — NOTHING BETWEEN LENS AND SUBJECT'. PANEL 5 OPTICAL SIGNATURE, marked MANDATORY ON EVERY FRAME AND FIXED FOR THE WHOLE UNIT: sample tiles reading 'NO FLARE', 'NO HALATION', 'NO VIGNETTE', 'VERY FINE GRAIN', 'CLEAN AND GRAPHIC', each tile carrying a strength word, and a line beneath reading 'THIS UNIT IS OPTICALLY CLEAN AND THAT ABSENCE IS ITSELF THE LENS DECISION — A FRAME THAT ARRIVES FLARED, GLOWING OR VIGNETTED IS OFF-STYLE EVEN IF ITS COMPOSITION IS PERFECT'. PANEL 6 FRAME: a portrait rectangle roughly 4 to 5 with a full-length figure silhouette centred, generous headroom, the horizon drawn low behind it, labelled 'PORTRAIT 4:5 · SUBJECT CENTRED · FULL LENGTH, FOOTWEAR ENTIRELY IN FRAME · GENEROUS HEADROOM · HORIZON LOW'. Bottom edge: a palette row of seven labelled swatches with the hex printed under each — #A8B6C8, #F4F5F5, #C4A385, #D9C3D6, #E7C4A8, #EFE9DC, #4A2E22. Clean technical board, very high type legibility, no people, no product, no brand mark."
+    },
+    "blocking": {
+      "aspect": "16:9",
+      "prompt": "Rough pencil BLOCKING sketch on toned paper, 16:9, loose graphite gesture-rough with visible construction lines, NOT finished art, hand-lettered English labels, black and white pencil with one small colour swatch row, no version number, no date, no board code, no credit, no invented metadata. Headline lettered 'SKY DUNE SURREAL — BLOCKING'. MAIN FRAME: a featureless wooden artist mannequin — no face, no facial features at all, no hair, no gender, no clothing detail — standing DEAD FRONTAL and squared to the lens, perfectly still. Draw the limb chain explicitly as joints and directions, never as a named pose: both feet planted flat and apart at roughly shoulder width, toes pointing forward, both knees straight and unlocked, hips level; both upper arms hang plumb from the shoulders close to the ribs, both elbows almost straight, both wrists beside the thighs with palms facing inward toward the legs, and the hand on one side closes around a small plain object carried at THIGH HEIGHT, hanging straight down with no marking or text on it. Letter 'FEET PLANTED APART, TOES FORWARD · ARMS HANG PLUMB · ONE HAND CARRIES AN OBJECT AT THIGH HEIGHT' and 'WEIGHT EVEN ON BOTH FEET — NO CONTRAPPOSTO, NO HIP SHIFT'. For the head give pan, tilt and roll separately: letter 'HEAD PAN NEUTRAL · TILT NEUTRAL · ROLL NEUTRAL — DEAD FRONTAL, SQUARED TO THE LENS', and draw the eye-line arrow running dead straight and level into the lens, with a note that the eyes themselves are behind opaque dark lenses so the direction is read from the head, not from the eyes. Draw the camera at chest height with a level sight-line arrow dead frontal. Draw the soft veiled source high and frontal as a large softly rayed disc, and a SHORT SOFT shadow directly beneath the feet, lettered 'SOFT EVEN DAYLIGHT, MILDLY DIFFUSED, SLIGHTLY ABOVE AND FRONTAL · SHORT SOFT SHADOW UNDER THE FEET, SO THE SUN IS HIGH BUT VEILED · LOW CONTRAST, NO HARD EDGE ANYWHERE'. Draw the sand ridge crest as a clean curve behind the figure and mark the horizon LOW, at roughly knee height, lettered 'HORIZON LOW AT KNEE HEIGHT — THE GROUND FLATTENS INTO A BAND'. Letter 'ROLL LEVEL' and 'FULL LENGTH — FOOTWEAR ENTIRELY IN FRAME'. BOXED TOP-DOWN PLAN INSET in the bottom-right corner, drawn inside a ruled box: bird's-eye view showing the mannequin footprint with a facing arrow pointing straight AT the camera, both footprints level and equally shaded to show even weight, the camera marker with its angle wedge on that same axis, the sand ridge crest drawn as a curved line behind the figure, and the light direction arrow entering frontally from above, lettered 'TOP-DOWN PLAN'. Small palette row bottom-left with hex lettered: #A8B6C8, #C4A385, #4A2E22. Schematic diagram only, no rendering, no faces, no features on the mannequin, no text other than the hand-lettered labels."
+    },
+    "expression_gaze": {
+      "aspect": "3:2",
+      "prompt": "Dense editorial EXPRESSION & GAZE reference sheet, 3:2, neutral dark studio board, neat labelled panels, hand-set English labels, film-production house style, no version number, no date, no board code, no credit, no invented metadata. Headline 'SKY DUNE SURREAL — EXPRESSION & GAZE'. Show FOUR VERY LARGE head studies of the SAME neutral unnamed generic face, identical identity in every panel, each head filling the height of its panel so the mouth, jaw and the readable part of the midface are rendered large and in fine detail. In EVERY panel the eyes are covered by OPAQUE white-framed dark lenses through which nothing at all is visible, and a knitted cap sits low over the brow line. Do NOT draw eyes, eyelids or brows anywhere on this sheet. Panel labels, lettered exactly: 'GAZE WITHHELD — THE EYES ARE BEHIND OPAQUE DARK LENSES. DIRECTION READS AS STRAIGHT TO THE LENS FROM THE HEAD ORIENTATION, BUT THE EYES THEMSELVES ARE UNAVAILABLE. THIS IS A DELIBERATE FORMAT, NOT MISSING DATA'; 'EYELIDS — UNKNOWN, OCCLUDED BY THE LENSES. DO NOT INFER'; 'BROWS — UNKNOWN, ABOVE THE LENS FRAME LINE AND UNDER THE KNITTED CAP. DO NOT INFER'; 'CHEEKBONES AT REST — READABLE BELOW THE LENSES: THE MIDFACE IS FLAT, NO LIFT, NO CREASE'. Add a panel headed 'MOUTH': 'CLOSED, CORNERS LEVEL, ABSOLUTELY NEUTRAL — NO COMPRESSION, NO SMILE, NO TENSION. DEADPAN IN THE STRICT SENSE'. Add a panel headed 'JAW AND NECK': 'JAW RELAXED, NO MASSETER · CHIN LEVEL · NECK COVERED BY THE HIGH COLLAR'. Add a small diagram panel headed 'HEAD ORIENTATION' with three icons for pan, tilt and roll carrying the values 'PAN NEUTRAL · TILT NEUTRAL · ROLL NEUTRAL — DEAD FRONTAL, SQUARED TO THE LENS'. Add a NEGATIVES strip lettered 'NEVER DRAW EYES OR EYELIDS THROUGH THE LENSES · NO CHEEK LIFT · NO CREASE UNDER THE LOWER LID · CORNERS NEVER TURNED UP · NO SMILE OF ANY KIND'. Add a signature strip lettered 'SIGNATURE: AFFECTLESS AND UNREADABLE ON PURPOSE — THE DARK LENSES ARE THE EXPRESSION DECISION. THE UNIT MOOD COMES FROM REFUSING THE VIEWER AN EYE TO READ'. Bottom palette row with hex printed: #4A2E22, #A8B6C8, #EFE9DC. Light every study with a soft, mildly diffused frontal daylight source slightly above, very low contrast and almost no visible terminator, deep skin retaining full value and saturation. Very high label legibility, fine skin detail, no named individual, no brand text, no readable text on the lens frames."
+    },
+    "garment_behaviour": {
+      "aspect": "3:2",
+      "prompt": "Dense editorial GARMENT BEHAVIOUR reference sheet, 3:2, neutral dark studio board, neat labelled panels, hand-set English labels, no version number, no date, no board code, no credit, no invented metadata. Headline 'SKY DUNE SURREAL — GARMENT BEHAVIOUR'. This sheet studies WHAT CLOTH DOES, never what cloth is: plain unbranded UNPRINTED fabric studies only, no pattern, no logo, no garment silhouette, no product, no colourway claim. PANEL 1 MOTION STATE: a fabric study hanging completely inert, labelled 'STILL, DELIBERATELY INERT · NOTHING MOVES AT ALL'. PANEL 2 AIR INTERACTION: cloth sitting on a form as pure volume with no departure from it, labelled 'NONE · THE GARMENT SITS ON THE BODY AS VOLUME, HELD BY ITS OWN CONSTRUCTION'. PANEL 3 DRAPE AND WEIGHT: a fold study with very broad soft folds where a pile surface absorbs the fold instead of creasing, labelled 'HEAVY AND PLUSH · FOLD RADIUS VERY BROAD AND SOFT · THE PILE ABSORBS THE FOLD RATHER THAN CREASING'. PANEL 4 TRANSPARENCY UNDER THIS LIGHT: the same plain cloth shown single-layered and stacked under soft veiled daylight, reading solid in both cases, labelled 'FULLY OPAQUE · THE DIFFUSE DAYLIGHT GIVES NO TRANSLUCENCY ANYWHERE, NOT EVEN ON A SINGLE LAYER'. PANEL 5 EDGE QUALITY: a hem sitting where it falls, labelled 'SOFT AND ROUNDED FROM THE PILE BUT NOT MOVING · HEMS SIT WHERE THEY FALL · NO FLUTTER, NO BLUR'. PANEL 6 SURFACE RESPONSE: labelled 'MATTE AND LIGHT-ABSORBING, NO SPECULAR AT ALL · THE DIFFUSE LIGHT MAKES THE SURFACE READ AS TEXTURE RATHER THAN SHEEN'. TRANSFER STRIP along the bottom, lettered: 'THE APPROVED ITEM IS PRESENTED, NOT PERFORMED — IT HANGS AT FULL REST, HOLDS BROAD SOFT VOLUME AND GIVES NO HIGHLIGHT. A LIGHT GARMENT IN THIS UNIT MUST BE STYLED TO HANG DEAD RATHER THAN ALLOWED TO MOVE, OR THE FRAME STOPS BELONGING TO THE UNIT'. Palette row with hex printed: #EFE9DC, #C4A385, #4A2E22. Light every panel with the same soft, mildly diffused, slightly-above frontal daylight so the opacity and the matte no-specular panels read truthfully. Very high label legibility, no people, no faces."
+    },
+    "colour_grade": {
+      "aspect": "16:9",
+      "prompt": "Dense editorial COLOUR & GRADE reference board, 16:9, dark look-dev layout, neat labelled panels, hand-set English labels, no version number, no date, no board code, no client name, no credit, no invented metadata. Headline 'SKY DUNE SURREAL — COLOUR & GRADE'. PANEL PALETTE, marked 'CLOSED SET · PALETTE_SIZE 7': seven large swatches in a row, each with its name above and its hex printed beneath in clear monospace type — 'SKY BLUE #A8B6C8', 'CLOUD WHITE #F4F5F5', 'WARM SAND #C4A385', 'PALE LILAC #D9C3D6', 'PEACH #E7C4A8', 'CREAM #EFE9DC', 'DEEP SKIN #4A2E22'. Letter beneath the row: 'PASTEL AND DESATURATED THROUGHOUT · A COOL SKY AGAINST A WARM GROUND, AND NOTHING IN THE FRAME IS ALLOWED TO BE VIVID'. PANEL EXEMPTIONS, three lines: 'THE APPROVED ITEM OWN COLOURS', 'SKIN HAIR EYES', 'THE NEUTRAL RAMP BETWEEN TWO DECLARED MEMBERS'. PANEL FORBIDDEN: 'ANY EIGHTH COLOUR IS A FAIL, NOT A VARIATION · NO SATURATED BLUE, NO GREEN PLANT, NO VIVID PROP — THE WHOLE UNIT LIVES ON PASTELS'. PANEL CURVE: a tone-curve graph drawn with low contrast and a plainly LIFTED black end, annotated 'CONTRAST LOW · BLACKS LIFTED, NEVER CRUSHED · HIGHLIGHTS SOFT AND FAR FROM CLIPPING'. PANEL SPLIT-TONE: annotated 'NO SPLIT-TONE · THE COOL-SKY-AGAINST-WARM-GROUND CONTRAST IS OBJECT COLOUR, NOT GRADE'. PANEL FAIL CONDITION, written so a gate can run it: 'QUANTISE THE DELIVERED FRAME, DROP SKIN HAIR AND EYES AND THE DECLARED ITEM COLOURS, AND EVERY REMAINING CLUSTER OVER 2 PERCENT OF FRAME AREA MUST MAP TO A PALETTE MEMBER WITHIN A DISTANCE OF 20'. PANEL GRADED SAMPLE: one clean graded plate of a pale blue sky with discrete cumulus clouds above a clean curved sand ridge crest, with NO person in it, carrying the palette exactly. Clean technical board, very high type legibility, no people, no product, no photograph of a face, no brand mark."
+    },
+    "environment": {
+      "aspect": "21:9",
+      "prompt": "Dense editorial ENVIRONMENT PLATES board, 21:9, labelled panels, architectural reference style, hand-set English labels, THE SAME PLACE throughout with identical materials and identical light across every panel, NO PEOPLE in any panel, no version number, no date, no board code, no credit, no invented metadata. Headline 'SKY DUNE SURREAL — ENVIRONMENT'. PLATE 1 PLAN: a top-down site diagram showing the sand ridge crest drawn as a curved line, the subject footprint standing in front of it, the camera at chest height dead frontal on the axis, the veiled overhead-frontal light marked with an arrow, the low horizon line marked, plus a scale bar and a north arrow. PLATE 2 HERO WIDE: a pale blue sky with discrete separate cumulus clouds above a sand ridge whose crest reads as one clean curve, and absolutely nothing else in frame — no horizon furniture, no plants, no structures, no tracks. PLATE 3 REVERSE ANGLE: the SAME ridge seen from AT LEAST 120 DEGREES around, a genuinely and obviously different viewpoint and NOT a repeat of the hero — from here the ridge is seen end-on along its spine so the crest curve runs away from the camera into depth instead of across the frame, the far slope that the hero could not see is now revealed, and the cloud field sits at a visibly different position and scale. The two plates must not be mistakable for one another. PLATE 4 MATERIALS: seven labelled swatches — pale sky gradient in #A8B6C8, cumulus cloud in #F4F5F5, lit sand grain in #C4A385, cloud-shadow lilac in #D9C3D6, warm sand highlight in #E7C4A8, pale cream textile in #EFE9DC, deep skin reference in #4A2E22. PLATE 5 SIGNATURE DETAILS: the sand grain at close range holding sharp detail, the ridge crest edge as an unbroken clean curve with no footprints or disturbance, and the soft cloud edge against the flat sky. PLATE 6 ATMOSPHERE: labelled tiles for LIGHT 'soft even daylight, mildly diffused, slightly above and frontal, the sun high but veiled', HAZE 'none, the air is clear and the sky is flat', TEMPERATURE 'mild, no heat shimmer', plus short SOUND and SMELL notes. Annotate the depth planes as three labelled bands: 'SKY AND CLOUD · RIDGE CREST · SUBJECT', and letter 'THE CLEANLINESS IS THE POINT — NOTHING IS ALLOWED INTO THIS FRAME'. Letter one line: 'UNKNOWN — WHETHER THE SKY IS REAL, PAINTED OR COMPOSITED, AND WHETHER THE RIDGE IS A LOCATION DUNE OR BUILT. RECORD THE LOOK, NEVER THE METHOD'. High detail, very high label legibility, no people, no readable brand text."
+    },
+    "person": {
+      "aspect": "2:3",
+      "prompt": "Dense editorial PERSON SHEET, 2:3, neutral dark studio board, neat labelled panels, hand-set English labels, film-production house style, no version number, no date, no board code, no credit, no invented metadata. Headline 'SKY DUNE SURREAL — PERSON SHEET (TEMPLATE)'. This sheet is a TEMPLATE describing what must be recorded about whoever is photographed, never a portrait of a specific individual: use one neutral unnamed generic face, identical in every panel, and label the anatomy rather than naming a person. PANEL FACE GEOMETRY: an annotated diagram calling out skull and jaw shape, cheekbone height and projection, brow ridge, nose bridge and tip and nostril shape, philtrum, lip volume and corner direction, chin, hairline shape, and the neck-to-jaw transition, with a note lettered 'IN THIS UNIT THE BROW RIDGE AND HAIRLINE ARE COVERED BY A KNITTED CAP AND THE ORBITS BY OPAQUE LENSES — RECORD THEM FROM ELSEWHERE OR MARK THEM UNKNOWN'. PANEL EARS: a labelled ear study calling out set height relative to the eye and nose line, protrusion, helix curl, lobe attached or free, and piercings, lettered 'EARS ARE THE FASTEST TELL OF DRIFT'. PANEL EVERYTHING ON THE FACE: brow density and direction, lashes, eye colour and limbal ring, iris pattern, sclera tone, under-eye structure, and the exact lens frame if worn, with the eye and brow rows plainly marked 'UNKNOWN — OCCLUDED BY OPAQUE DARK LENSES AND A CAP; DO NOT INFER'. PANEL SKIN MARKS, two clearly separated columns lettered 'OBSERVED — READ OFF A FRAME' and 'PLAUSIBLE — CONSISTENT WITH THE OBSERVED TYPE BUT NOT VISIBLE', with a line beneath: 'DISCRETE MARKS MUST BE OBSERVED · CONTINUOUS GEOMETRY MAY BE INFERRED ACROSS ANGLES · NEVER BLUR THE TWO'. PANEL SKIN TONE: a value ramp with hex printed including #4A2E22, plus undertone and the lit-to-shadow shift, lettered 'THE SHIFT IS VERY SMALL — THE LIGHT IS EVEN, SO LIT AND SHADOWED SKIN SIT CLOSE IN VALUE'. PANEL HOW THIS SKIN TAKES THIS LIGHT: annotated close studies lettered 'VERY SOFT BROAD SPECULARS ON FOREHEAD AND CHEEKBONES'; 'ALMOST NO VISIBLE TERMINATOR ANYWHERE'; 'DEEP SKIN RETAINS FULL VALUE AND SATURATION BECAUSE THE LIGHT IS EVEN RATHER THAN HOT'; 'NO HALATION, NO BLOOM, NO SPECULAR HOTSPOT — THIS UNIT IS OPTICALLY CLEAN'. Light every study with a soft, mildly diffused, slightly-above frontal daylight source at low contrast so the absent terminator reads truthfully. Palette row with hex printed: #4A2E22, #C4A385, #A8B6C8. Very high label legibility, fine skin detail, no named individual, no brand text, no readable text on the lens frames."
+    }
+  }
+}

@@ -1,0 +1,88 @@
+{
+  "camera": {
+    "aspect_ratio": "4:5",
+    "height": "eye_level",
+    "lens_mm": 50,
+    "max_vertical_error_deg": 1.5,
+    "minimum_clear_space_percent": {
+      "above_hair": 8,
+      "below_footwear": 2
+    },
+    "subject_height_percent": [
+      70,
+      80
+    ]
+  },
+  "environment": "A newly designed off-white gallery with plaster, travertine or light oak and one large window, distinct from source architecture.",
+  "family": "interior",
+  "hard_negatives": [
+    "furniture clutter",
+    "artwork",
+    "posters",
+    "readable text",
+    "hotel decoration",
+    "blown windows",
+    "crooked verticals"
+  ],
+  "lighting": {
+    "fill": "clean cool ambient room fill",
+    "finish": "polished_editorial_gloss_without_skin_smoothing_or_hdr",
+    "key": "long soft side light with a gentle warm edge and physically coherent contact shadow",
+    "protected_regions": [
+      "eyes",
+      "face_identity",
+      "item_logos",
+      "item_text",
+      "critical_construction"
+    ],
+    "time_or_setup": "early morning through one large window"
+  },
+  "mvp_assets": [
+    "mood_card"
+  ],
+  "palette": [
+    "off white",
+    "travertine",
+    "light oak",
+    "pearl shadow",
+    "pale gold"
+  ],
+  "post_selection_assets": [
+    "environment_plate",
+    "lighting_preview"
+  ],
+  "preset_id": "std.interior.gallery_morning_gloss",
+  "prompt_path": "prompts/scenes/std.interior.gallery_morning_gloss.txt",
+  "source_authorities": [
+    {
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit",
+        "brands",
+        "readable_text",
+        "exact_architecture"
+      ],
+      "role": "environment_and_composition_inspiration",
+      "url": "https://www.pexels.com/photo/minimalist-empty-modern-interior-with-high-windows-30699852/",
+      "use": "high-window scale, quiet gallery proportion and daylight direction only"
+    },
+    {
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit",
+        "brands",
+        "readable_text",
+        "exact_architecture"
+      ],
+      "role": "environment_material_inspiration",
+      "url": "https://www.pexels.com/photo/interior-of-an-empty-industrial-room-18132317/",
+      "use": "secondary wall and floor material restraint only"
+    }
+  ],
+  "ui_name_uk": "Галерея — ранкове світло",
+  "version": "1.0.0"
+}

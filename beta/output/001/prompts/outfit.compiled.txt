@@ -1,0 +1,9 @@
+CONTROLLED GARMENT-REGION EDIT.
+
+Input 1 is the approved canonical avatar and exact composition/edit base. Inputs 2–3 are conditioned identity evidence (normalized full reference and face-detail crop) for the same person. Inputs 4–5 are conditioned garment evidence (alpha-preserving cutout and exact-white reference card) derived from the same product photo. Change only the clothing region of input 1.
+
+Preserve the same recognizable identity, facial geometry, dark wavy hair, skin tone, body proportions, expression, frontal pose, head-to-hips crop, camera angle, subject scale, soft studio lighting, neutral white balance, and seamless pure #FFFFFF background. Do not retouch or alter the face.
+
+GARMENT HARD LOCKS: dark forest-green fleece; pullover hoodie construction; hood naturally behind the neck; matching green drawstrings with metal tips; regular relaxed fit; original front-print placement and proportions; large white curved GUCCI text; white central double-G emblem; braided horizontal stripe in bright red and very dark navy; curved white FIRENZE text; white 1921 below. Preserve spelling, order, colors, and geometry as visible in the garment reference. The print must follow the fabric naturally without warping or missing letters.
+
+Keep one person only. Hands may remain outside the crop. No former black-shirt remnants at collar, sleeves, hem, or edges. No new garment, coat, accessory, jewelry, prop, shadow, background texture, watermark, extra text, malformed anatomy, halo, or bleed. Photorealistic studio photograph with natural skin and textile detail, not CGI or illustration.

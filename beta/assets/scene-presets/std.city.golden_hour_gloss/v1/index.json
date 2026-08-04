@@ -1,0 +1,55 @@
+{
+  "preset_id": "std.city.golden_hour_gloss",
+  "preset_path": "assets/scene-presets/std.city.golden_hour_gloss/v1/preset.json",
+  "preset_sha256": "ebd8a4ef30c84cc14b9f869d605afd41f6bbb082cede80bc8fea359615db94c1",
+  "preset_version": "1.0.0",
+  "production_prompt_path": "prompts/scene-presets/std.city.golden_hour_gloss/v1/production-scene.txt",
+  "prompt_sha256": "8f8a4890c4265f4dd6bcb5862b153de0f29265dd9c9cb534fd8d2d06153f8533",
+  "reference_pack_path": "assets/scene-presets/std.city.golden_hour_gloss/v1/reference-pack.json",
+  "reference_pack_sha256": "2d733a251a0e0c1727297e03ba65b8f044e47c98e84fc8698690a845215a23db",
+  "references": [
+    {
+      "media_type": "application/json",
+      "order": 1,
+      "path": "assets/scene-presets/std.city.golden_hour_gloss/v1/environment-reference.json",
+      "reference_id": "std.city.golden_hour_gloss.environment",
+      "role": "environment_anchor",
+      "sha256": "bb7cbf6208d27e1d8e053342cbbd754a07f307c1b2da5c2560b3c7ce23b9f100"
+    },
+    {
+      "media_type": "application/json",
+      "order": 2,
+      "path": "assets/scene-presets/std.city.golden_hour_gloss/v1/lighting-reference.json",
+      "reference_id": "std.city.golden_hour_gloss.lighting",
+      "role": "lighting_anchor",
+      "sha256": "4438a4c7554f3c8dc288b3f7a14e1f03242dc26f32ab5f3235320009c221c5ab"
+    },
+    {
+      "media_type": "application/json",
+      "order": 3,
+      "path": "assets/scene-presets/std.city.golden_hour_gloss/v1/composition-reference.json",
+      "reference_id": "std.city.golden_hour_gloss.composition",
+      "role": "composition_anchor",
+      "sha256": "2217cac41aee3f4b30716465a41fee37885fd02ad84e8c3a51b8c4a210b6b03b"
+    },
+    {
+      "media_type": "application/json",
+      "order": 4,
+      "path": "assets/scene-presets/std.city.golden_hour_gloss/v1/palette-anchor.json",
+      "reference_id": "std.city.golden_hour_gloss.palette",
+      "role": "palette_anchor",
+      "sha256": "00120d8505e3024f4297db4c17b4adb62371d51cb0c7c8a81e064178e9d59b46"
+    },
+    {
+      "media_type": "application/json",
+      "order": 5,
+      "path": "assets/scene-presets/std.city.golden_hour_gloss/v1/negative-reference.json",
+      "reference_id": "std.city.golden_hour_gloss.negative",
+      "role": "negative_reference",
+      "sha256": "deed4cca0ab092b14d8d371dcb80670fe49200ec39e6b6f4b64eaa0077f0b095"
+    }
+  ],
+  "schema_version": "1.0.0",
+  "source_ledger_path": "assets/scene-presets/std.city.golden_hour_gloss/v1/source-ledger.json",
+  "source_ledger_sha256": "f6ea4d1c6123af2e30123c68924107cb218787ad6bbe30242eb8229c7db99590"
+}

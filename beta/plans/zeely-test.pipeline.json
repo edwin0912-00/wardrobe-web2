@@ -1,0 +1,296 @@
+{
+  "schema_version": "2.0.0",
+  "plan_id": "zeely-test-core-v2-conditioned",
+  "task_source": "https://righteous-spoon-d6a.notion.site/Zeely-Test-Task-for-AI-Engineer-Image-Video-Generation-33bcef9155c980189a4def1cd74e1e6c",
+  "asset_manifest": "../inputs/zeely-test/dataset.manifest.json",
+  "model_policy": "../config/model-policy.json",
+  "runtime_contract": {
+    "execution_unit": "IMMUTABLE_JOB_JSON",
+    "executor": "DETERMINISTIC_STATE_MACHINE",
+    "provider_boundary": "EXPLICIT_PROVIDER_ADAPTER",
+    "runtime_agents": false,
+    "hermes": false,
+    "openclaw": false,
+    "free_form_llm_planning": false,
+    "credentials_in_job_json": false,
+    "credentials_source": "PROCESS_ENVIRONMENT_OR_PROVIDER_CREDENTIAL_STORE",
+    "idempotency_required": true,
+    "input_and_output_hashes_required": true,
+    "append_only_event_log_required": true
+  },
+  "core_scope": {
+    "users": 3,
+    "required_outputs_per_user": [
+      "avatar.png",
+      "avatar_outfit.png"
+    ],
+    "sequential_avatar_then_outfit": true,
+    "reference_conditioning_required_before_generation": true,
+    "video_required": false,
+    "html5_required": false,
+    "art_director_mode_required": false
+  },
+  "execution_lane": {
+    "selected": "TASK_COMPATIBILITY",
+    "reason": "The core test must process three supplied user inputs, while none of the first three provides complete body-proportion evidence.",
+    "strict_production": {
+      "users_001_to_003": "NEEDS_INPUT",
+      "required_action": "REQUEST_A_REFERENCE_WITH_OBSERVABLE_BODY_PROPORTIONS",
+      "may_claim_body_preservation": false
+    },
+    "task_compatibility": {
+      "users_001_to_003": "READY",
+      "body_build_qa": "NOT_EVALUABLE",
+      "rule": "Preserve only observable identity attributes; do not infer, lock, or claim unobservable full-body proportions."
+    }
+  },
+  "reference_conditioning": {
+    "raw_sources_immutable": true,
+    "stages": [
+      "READ_METADATA_AND_VERIFY_SHA256",
+      "AUTO_ORIENT_AND_CONVERT_TO_SRGB",
+      "ASSESS_RESOLUTION_EXPOSURE_CLIPPING_AND_DETAIL",
+      "EXTRACT_OBSERVED_FACTS_AND_EXPLICIT_UNKNOWNS",
+      "CREATE_CAPPED_NORMALIZED_DERIVATIVE",
+      "CREATE_EXPLICIT_FACE_AND_PERSON_CROPS_FOR_HUMANS",
+      "CREATE_CUTOUT_AND_WHITE_REFERENCE_CARD_FOR_IMAGE_OUTFITS",
+      "WRITE_SHA256_LINEAGE",
+      "RUN_CONDITIONING_QA",
+      "ROUTE_READY_REPAIRABLE_NEEDS_INPUT_OR_INCOMPATIBLE",
+      "BUILD_ORDERED_GENERATION_REFERENCE_PACK"
+    ],
+    "generated_hypothesis_may_be_a_lock": false,
+    "written_rule_precedence": [
+      "WRITTEN_TASK_RULE",
+      "OBSERVED_SOURCE_EVIDENCE",
+      "QUALITY_BENCHMARK_MEASUREMENT",
+      "DEFAULT"
+    ],
+    "blocking_routes": {
+      "NEEDS_INPUT": "STOP_BEFORE_GENERATION",
+      "INCOMPATIBLE": "STOP_BEFORE_GENERATION",
+      "REPAIRABLE": "RUN_ONLY_DECLARED_DETERMINISTIC_REPAIR_THEN_RETEST",
+      "READY": "COMPILE_GENERATION_INPUTS"
+    }
+  },
+  "jobs": [
+    {
+      "job_id": "zeely-001",
+      "identity_asset_id": "user-input-001",
+      "identity_source": "../inputs/zeely-test/users/input1.webp",
+      "identity_reference_pack": "../artifacts/conditioning/humans/001/reference-pack.json",
+      "identity_generation_bindings": [
+        "../artifacts/conditioning/humans/001/normalized.png",
+        "../artifacts/conditioning/humans/001/face.png",
+        "../artifacts/conditioning/humans/001/person.png"
+      ],
+      "body_build_qa": "NOT_EVALUABLE",
+      "avatar_prompt": "../prompts/avatar.txt",
+      "outfit": {
+        "mode": "reference_image",
+        "asset_id": "outfit-green-hoodie",
+        "source": "../inputs/zeely-test/outfits/180827-1.webp",
+        "reference_pack": "../artifacts/conditioning/garments/hoodie-green/reference-pack.json",
+        "generation_bindings": [
+          "../artifacts/conditioning/garments/hoodie-green/cutout.png",
+          "../artifacts/conditioning/garments/hoodie-green/reference-card.png"
+        ],
+        "prompt": "../prompts/outfit-reference.txt"
+      },
+      "quality_reference_ids": [
+        "quality-output-001",
+        "quality-output-002",
+        "quality-output-003"
+      ],
+      "output_directory": "../output/001"
+    },
+    {
+      "job_id": "zeely-002",
+      "identity_asset_id": "user-input-002",
+      "identity_source": "../inputs/zeely-test/users/input2.jpg",
+      "identity_reference_pack": "../artifacts/conditioning/humans/002/reference-pack.json",
+      "identity_generation_bindings": [
+        "../artifacts/conditioning/humans/002/normalized.png",
+        "../artifacts/conditioning/humans/002/face.png",
+        "../artifacts/conditioning/humans/002/person.png"
+      ],
+      "body_build_qa": "NOT_EVALUABLE",
+      "avatar_prompt": "../prompts/avatar.txt",
+      "outfit": {
+        "mode": "text",
+        "asset_id": "outfit-text-cobalt-blazer",
+        "text": "A cobalt-blue single-breasted tailored blazer in matte finely woven fabric over a plain opaque white crew-neck cotton top.",
+        "prompt": "../prompts/outfit-text.txt"
+      },
+      "quality_reference_ids": [
+        "quality-output-001",
+        "quality-output-002",
+        "quality-output-003"
+      ],
+      "output_directory": "../output/002"
+    },
+    {
+      "job_id": "zeely-003",
+      "identity_asset_id": "user-input-003",
+      "identity_source": "../inputs/zeely-test/users/input3.webp",
+      "identity_reference_pack": "../artifacts/conditioning/humans/003/reference-pack.json",
+      "identity_generation_bindings": [
+        "../artifacts/conditioning/humans/003/normalized.png",
+        "../artifacts/conditioning/humans/003/face.png",
+        "../artifacts/conditioning/humans/003/person.png"
+      ],
+      "body_build_qa": "NOT_EVALUABLE",
+      "avatar_prompt": "../prompts/avatar.txt",
+      "outfit": {
+        "mode": "text",
+        "asset_id": "outfit-text-brown-suede-overshirt",
+        "text": "A dark chocolate-brown suede overshirt with pointed collar, dark horn buttons and two chest flap pockets, worn open over a plain opaque black crew-neck cotton T-shirt.",
+        "prompt": "../prompts/outfit-text.txt"
+      },
+      "quality_reference_ids": [
+        "quality-output-001",
+        "quality-output-002",
+        "quality-output-003"
+      ],
+      "output_directory": "../output/003"
+    }
+  ],
+  "excluded_reference_decisions": [
+    {
+      "asset_id": "outfit-black-sneaker",
+      "decision": "REPAIRABLE",
+      "reason": "Not assigned to a core job. Footwear is inside the required head-to-soles frame, so the half-body incompatibility that once excluded this reference no longer describes anything; only the declared conservative upscale from 437x437 remains."
+    },
+    {
+      "asset_id": "outfit-cowboy-hat",
+      "decision": "NEEDS_INPUT",
+      "reason": "The 197x256 source cannot support exact material and fine-detail fidelity; request a higher-resolution reference."
+    }
+  ],
+  "pipeline": [
+    "VALIDATE_IMMUTABLE_JOB_JSON",
+    "VERIFY_RAW_ASSET_HASHES",
+    "INSPECT_AND_EXTRACT_REFERENCE_EVIDENCE",
+    "CONDITION_IDENTITY_REFERENCES",
+    "CONDITION_OUTFIT_REFERENCE_WHEN_PRESENT",
+    "CONDITIONING_TECHNICAL_AND_EVIDENCE_QA",
+    "ROUTE_REFERENCE_READINESS",
+    "COMPILE_AVATAR_PROMPT_AND_ORDERED_BINDINGS",
+    "GENERATE_AVATAR",
+    "NORMALIZE_BORDER_CONNECTED_NEAR_WHITE_BACKGROUND_TO_EXACT_WHITE",
+    "AVATAR_TECHNICAL_QA",
+    "AVATAR_EXPLICIT_SEMANTIC_QA",
+    "APPROVE_CANONICAL_AVATAR",
+    "COMPILE_OUTFIT_PROMPT_AND_ORDERED_BINDINGS",
+    "GENERATE_OUTFIT",
+    "NORMALIZE_BORDER_CONNECTED_NEAR_WHITE_BACKGROUND_TO_EXACT_WHITE",
+    "OUTFIT_TECHNICAL_QA",
+    "OUTFIT_EXPLICIT_SEMANTIC_QA",
+    "EXPORT_APPROVED_OUTPUTS",
+    "WRITE_RUN_MANIFEST_RECEIPTS_HASHES_PROMPTS_AND_QA"
+  ],
+  "provider_route": {
+    "current_live_transport": "HIGGSFIELD_CLI",
+    "verified_cli_version": "0.1.33",
+    "adapter_module": "../src/providers/higgsfield-cli-provider.js",
+    "sample_outputs_generated_with_authenticated_cli": true,
+    "generation_mode": "TWO_PHASE_JOURNALED_CREATE_THEN_WAIT",
+    "provider_job_journal": "<run-work-directory>/provider-jobs/<idempotency-key>.json",
+    "resume_reuses_remote_job_id": true,
+    "legacy_oneshot_enabled_by_default": false,
+    "irreducible_transport_gap": "REMOTE_CREATE_RESPONSE_BEFORE_FIRST_ATOMIC_JOURNAL_WRITE",
+    "transport_equivalent_future_options": [
+      "HIGGSFIELD_MCP",
+      "DIRECT_PROVIDER_API"
+    ],
+    "future_options_are_currently_claimed_runnable": false
+  },
+  "image_model_route": {
+    "deny_unlisted_models": true,
+    "models": [
+      {
+        "attempt": 1,
+        "name": "GPT Image 2",
+        "job_set_type": "gpt_image_2",
+        "role": "PRIMARY"
+      },
+      {
+        "attempt": 2,
+        "name": "Nano Banana 2",
+        "job_set_type": "nano_banana_flash",
+        "role": "FALLBACK"
+      },
+      {
+        "attempt": 3,
+        "name": "Nano Banana Pro",
+        "job_set_type": "nano_banana_2",
+        "role": "QUALITY_FALLBACK"
+      }
+    ],
+    "max_attempts_per_image_step": 3,
+    "unbounded_retry": false,
+    "route_after_exhaustion": "FAILED_OR_EXPLICIT_REVIEW",
+    "video_model_routing_enabled": false
+  },
+  "qa_policy": {
+    "technical_checks_are_deterministic": true,
+    "semantic_qa_is_an_explicit_blocking_gate": true,
+    "automatic_vlm_semantic_acceptance_claimed": false,
+    "white_normalization_scope": "ONLY_4_CONNECTED_NEAR_WHITE_PIXELS_REACHABLE_FROM_THE_IMAGE_BORDER",
+    "normalization_is_not_a_substitute_for_semantic_qa": true
+  },
+  "quality_rules": [
+    "Background is exact #FFFFFF, with no gradient, artifacts, edge shadows or subject halo.",
+    "Identity preserves recognizable facial geometry, hair structure and color, natural skin tone and every other observable identity attribute; unobservable body build is NOT_EVALUABLE rather than invented.",
+    "Pose is neutral and frontal; framing is full-length from the top of the head to the soles of the feet; face, hair, hands and feet are fully visible and not cropped.",
+    "Lighting is soft, even and diffused, with no harsh facial shadows, blown highlights or crushed shadows.",
+    "White balance is neutral; background remains white and skin remains natural.",
+    "Eyes, hair, skin texture and fabric are sharp and detailed without blur or AI-plastic smoothing.",
+    "The result is a photorealistic studio photograph rather than a render or illustration.",
+    "The outfit matches the text or conditioned reference in type, layer order, color, material, construction, graphics and fit.",
+    "There are no extra fingers, fused hands, duplicated anatomy, facial asymmetry or deformed ears.",
+    "There are no remnants of replaced clothing and no background or garment leakage onto the person."
+  ],
+  "quality_reference_usage": {
+    "sent_to_generation_by_default": false,
+    "used_for": [
+      "FRAMING_BENCHMARK",
+      "LIGHTING_BENCHMARK",
+      "FINISH_BENCHMARK",
+      "DETAIL_BENCHMARK",
+      "SIDE_BY_SIDE_QA"
+    ],
+    "must_not_define": [
+      "IDENTITY",
+      "BODY_BUILD",
+      "OUTFIT",
+      "EXACT_BACKGROUND_COLOR"
+    ],
+    "measured_background": "#F6F6F4",
+    "required_background": "#FFFFFF",
+    "conflict_resolution": "WRITTEN_TASK_RULE_WINS"
+  },
+  "acceptance": {
+    "required_files": [
+      "../output/001/avatar.png",
+      "../output/001/avatar_outfit.png",
+      "../output/002/avatar.png",
+      "../output/002/avatar_outfit.png",
+      "../output/003/avatar.png",
+      "../output/003/avatar_outfit.png"
+    ],
+    "all_technical_and_semantic_gates_must_pass": true,
+    "compiled_prompts_and_provenance_must_be_saved": true
+  },
+  "presentation_extension": {
+    "required_by_core_task": false,
+    "executed_by_core_runner": false,
+    "starts_only_after_image_outputs_are_approved": true,
+    "concept": [
+      "Wardrobe with exactly two mirrors; interface and approved result also appear in a mirror.",
+      "Transition into a TV with the same approved person in a fashion-editorial shoot.",
+      "Transition into a laptop that scrolls through the pipeline explanation and ends with a thank-you screen."
+    ],
+    "html5_binding": "If implemented separately, swipe or scroll progress controls video.currentTime deterministically."
+  }
+}

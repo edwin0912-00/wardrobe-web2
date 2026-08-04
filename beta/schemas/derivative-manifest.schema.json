@@ -1,0 +1,274 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zeely.ai/schemas/derivative-manifest.schema.json",
+  "title": "Zeely Conditioned Derivative Manifest",
+  "description": "Content-addressed outputs of a conditioning plan with explicit lineage, authority and QA.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "manifest_id",
+    "job_id",
+    "conditioning_plan_id",
+    "source_assets",
+    "derivatives",
+    "completed_at"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "manifest_id": { "$ref": "#/$defs/id" },
+    "job_id": { "$ref": "#/$defs/id" },
+    "conditioning_plan_id": { "$ref": "#/$defs/id" },
+    "source_assets": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["asset_id", "sha256"],
+        "properties": {
+          "asset_id": { "$ref": "#/$defs/id" },
+          "sha256": { "$ref": "#/$defs/sha256" }
+        }
+      }
+    },
+    "derivatives": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/derivative" }
+    },
+    "completed_at": { "type": "string", "format": "date-time" }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]{3,95}$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "parameterValue": {
+      "oneOf": [
+        { "type": "string" },
+        { "type": "number" },
+        { "type": "boolean" },
+        {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              { "type": "string" },
+              { "type": "number" },
+              { "type": "boolean" }
+            ]
+          }
+        }
+      ]
+    },
+    "derivative": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "derivative_id",
+        "type",
+        "uri",
+        "sha256",
+        "mime_type",
+        "byte_size",
+        "dimensions",
+        "produced_by",
+        "lineage",
+        "authority",
+        "qa"
+      ],
+      "properties": {
+        "derivative_id": { "$ref": "#/$defs/id" },
+        "type": {
+          "enum": [
+            "NORMALIZED_SOURCE",
+            "FACE_CROP",
+            "PERSON_CROP",
+            "PERSON_MASK",
+            "OCCLUSION_MAP",
+            "VISIBILITY_MAP",
+            "GARMENT_CROP",
+            "GARMENT_CUTOUT",
+            "GARMENT_DETAIL_CROP",
+            "OCR_EVIDENCE",
+            "UPSCALED_REFERENCE",
+            "REFERENCE_CARD",
+            "QUALITY_TARGET"
+          ]
+        },
+        "uri": { "type": "string", "format": "uri-reference", "minLength": 1 },
+        "sha256": { "$ref": "#/$defs/sha256" },
+        "mime_type": { "enum": ["image/png", "image/jpeg", "image/webp", "application/json"] },
+        "byte_size": { "type": "integer", "minimum": 1 },
+        "dimensions": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["width_px", "height_px"],
+              "properties": {
+                "width_px": { "type": "integer", "minimum": 1 },
+                "height_px": { "type": "integer", "minimum": 1 }
+              }
+            },
+            { "type": "null" }
+          ]
+        },
+        "produced_by": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["operation_id", "executor_class", "tool", "version", "parameters"],
+          "properties": {
+            "operation_id": { "$ref": "#/$defs/id" },
+            "executor_class": { "enum": ["DETERMINISTIC", "VLM", "AI_ASSISTED_NON_GENERATIVE"] },
+            "tool": { "type": "string", "minLength": 1 },
+            "version": { "type": "string", "minLength": 1 },
+            "parameters": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["name", "value"],
+                "properties": {
+                  "name": { "type": "string", "pattern": "^[a-z][a-z0-9_]{1,63}$" },
+                  "value": { "$ref": "#/$defs/parameterValue" }
+                }
+              }
+            }
+          }
+        },
+        "lineage": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["source_asset_ids", "source_derivative_ids", "transformation_class"],
+          "properties": {
+            "source_asset_ids": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": { "$ref": "#/$defs/id" }
+            },
+            "source_derivative_ids": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": { "$ref": "#/$defs/id" }
+            },
+            "transformation_class": {
+              "enum": ["PIXEL_PRESERVING", "DETERMINISTIC_DERIVATION", "AI_RESTORATION", "GENERATIVE_SYNTHESIS"]
+            }
+          }
+        },
+        "authority": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["class", "lock_eligible", "contains_synthetic_pixels"],
+          "properties": {
+            "class": { "enum": ["PRIMARY_EVIDENCE", "DERIVED_EVIDENCE", "CONVENIENCE_ONLY", "NON_AUTHORITATIVE"] },
+            "lock_eligible": { "type": "boolean" },
+            "contains_synthetic_pixels": { "type": "boolean" }
+          }
+        },
+        "qa": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["status", "checks"],
+          "properties": {
+            "status": { "enum": ["PASS", "FAIL"] },
+            "checks": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["name", "pass", "score", "threshold"],
+                "properties": {
+                  "name": {
+                    "enum": ["DECODE", "LINEAGE", "IDENTITY_PRESERVATION", "COLOR_PRESERVATION", "GEOMETRY_PRESERVATION", "MASK_QUALITY", "OCR_CONSISTENCY", "NO_SYNTHETIC_LOCKS"]
+                  },
+                  "pass": { "type": "boolean" },
+                  "score": { "type": "number", "minimum": 0, "maximum": 1 },
+                  "threshold": { "type": "number", "minimum": 0, "maximum": 1 },
+                  "note": { "type": "string", "maxLength": 500 }
+                }
+              }
+            }
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "authority": {
+                "properties": { "contains_synthetic_pixels": { "const": true } },
+                "required": ["contains_synthetic_pixels"]
+              }
+            },
+            "required": ["authority"]
+          },
+          "then": {
+            "properties": {
+              "authority": {
+                "properties": {
+                  "lock_eligible": { "const": false },
+                  "class": { "enum": ["CONVENIENCE_ONLY", "NON_AUTHORITATIVE"] }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "lineage": {
+                "properties": { "transformation_class": { "const": "GENERATIVE_SYNTHESIS" } },
+                "required": ["transformation_class"]
+              }
+            },
+            "required": ["lineage"]
+          },
+          "then": {
+            "properties": {
+              "authority": {
+                "properties": {
+                  "contains_synthetic_pixels": { "const": true },
+                  "lock_eligible": { "const": false }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "authority": {
+                "properties": { "lock_eligible": { "const": true } },
+                "required": ["lock_eligible"]
+              }
+            },
+            "required": ["authority"]
+          },
+          "then": {
+            "properties": {
+              "authority": {
+                "properties": {
+                  "contains_synthetic_pixels": { "const": false },
+                  "class": { "enum": ["PRIMARY_EVIDENCE", "DERIVED_EVIDENCE"] }
+                }
+              },
+              "lineage": {
+                "properties": {
+                  "transformation_class": { "enum": ["PIXEL_PRESERVING", "DETERMINISTIC_DERIVATION"] }
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

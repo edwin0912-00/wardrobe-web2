@@ -1,0 +1,169 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zeely.ai/schemas/motion-job.schema.json",
+  "title": "Zeely Motion Job",
+  "$comment": "The contract the server emits for post-shoot mode `video`, and the receipt an MCP-capable agent returns. The server never contacts a provider itself: it cannot hold an MCP session, so the provider boundary is this file. Every constraint here was measured on 2026-07-27, not assumed; the reasons are in the descriptions so a future reader does not re-derive them by spending credits.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "job_id",
+    "created_at",
+    "source",
+    "delivery",
+    "route",
+    "references",
+    "audio"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "job_id": { "type": "string", "pattern": "^[a-zA-Z0-9._-]{8,180}$" },
+    "created_at": { "type": "string", "format": "date-time" },
+
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["look_id", "look_image_sha256", "scene_kind"],
+      "properties": {
+        "look_id": { "type": "string", "minLength": 8 },
+        "look_image_sha256": { "$ref": "#/$defs/sha256" },
+        "scene_kind": {
+          "enum": ["standard_background", "art_fashion_shoot"],
+          "description": "Decides the route. Operator decision 2026-07-27: ordinary backgrounds go to Omni, art and fashion shoots go to Seedance."
+        },
+        "style_unit_id": {
+          "type": ["string", "null"],
+          "description": "Required for art_fashion_shoot: the shoot whose world the clip lives in."
+        }
+      }
+    },
+
+    "delivery": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["aspect_ratio", "duration_seconds", "resolution"],
+      "properties": {
+        "aspect_ratio": {
+          "const": "9:16",
+          "description": "The supplied reference reel is 1080x1920 and 4:5 does not exist in any video model measured. Vertical is the delivery, and it is never reached by padding a different aspect."
+        },
+        "duration_seconds": {
+          "type": "integer",
+          "minimum": 3,
+          "maximum": 15,
+          "description": "15 is the hard ceiling of Seedance 2.0; Omni stops at 10 and the route validator enforces that separately."
+        },
+        "resolution": { "enum": ["720p", "1080p"] }
+      }
+    },
+
+    "route": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["model_slug", "transport"],
+      "properties": {
+        "model_slug": { "enum": ["bytedance-seedance-pro-2.0", "gemini-omni-preview"] },
+        "transport": {
+          "const": "mcp",
+          "description": "Higgsfield and Magnific are reached only over MCP here, never over an API or a CLI. A job with any other transport is refused rather than attempted."
+        },
+        "camera_motion": { "type": ["string", "null"] },
+        "prompt": {
+          "type": ["string", "null"],
+          "minLength": 12,
+          "description": "The whole-clip prompt. Seedance refuses a shot list that arrives without one — its API answers `Undefined array key \"prompt\"`, which names nothing — so the contract requires the pair up front."
+        },
+        "shot_list": {
+          "type": "array",
+          "maxItems": 6,
+          "description": "Both models take a shot list of up to six shots. Omni executed nine timecoded beats in the order given, measured 2026-07-27. An earlier version of this description claimed Seedance ignores the list; that was never measured — the one attempt was a malformed call refused before the model saw it.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["index", "seconds", "prompt"],
+            "properties": {
+              "index": { "type": "integer", "minimum": 1, "maximum": 6 },
+              "seconds": { "type": "number", "minimum": 1, "maximum": 12 },
+              "prompt": { "type": "string", "minLength": 12 }
+            }
+          }
+        }
+      }
+    },
+
+    "references": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 9,
+      "items": { "$ref": "#/$defs/reference" }
+    },
+
+    "audio": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source"],
+      "properties": {
+        "source": {
+          "enum": ["muxed_in_post", "described_in_prompt"],
+          "description": "The model's own invented audio never ships. Seedance and Omni both produced an audio track when none was requested, with the reference track stripped, and it tends to the stock and corporate sound the operator has forbidden."
+        },
+        "track_sha256": { "$ref": "#/$defs/sha256Nullable" },
+        "description": { "type": ["string", "null"] }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "source": { "const": "muxed_in_post" } }, "required": ["source"] },
+          "then": { "required": ["track_sha256"], "properties": { "track_sha256": { "$ref": "#/$defs/sha256" } } }
+        },
+        {
+          "if": { "properties": { "source": { "const": "described_in_prompt" } }, "required": ["source"] },
+          "then": { "required": ["description"], "properties": { "description": { "type": "string", "minLength": 12 } } }
+        }
+      ]
+    },
+
+    "receipt": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["output_sha256", "width", "height", "duration_seconds", "fulfilled_at", "provider"],
+      "description": "Written back by the fulfilling agent. Absent until the job is fulfilled.",
+      "properties": {
+        "output_sha256": { "$ref": "#/$defs/sha256" },
+        "width": { "const": 1080 },
+        "height": { "const": 1920 },
+        "duration_seconds": { "type": "number", "minimum": 3, "maximum": 15.5 },
+        "fulfilled_at": { "type": "string", "format": "date-time" },
+        "provider": { "type": "string", "minLength": 2 },
+        "cut_count": { "type": ["integer", "null"], "minimum": 0 },
+        "audio_replaced": { "type": ["boolean", "null"] }
+      }
+    }
+  },
+
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "sha256Nullable": { "type": ["string", "null"], "pattern": "^[a-f0-9]{64}$" },
+    "reference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["role", "kind", "sha256", "background_free"],
+      "properties": {
+        "role": {
+          "enum": ["identity", "face", "garment_detail", "footwear_detail", "hem_detail", "environment_motion"],
+          "description": "Roles are isolated. `character` is deliberately not a role: passing a real face as a character reference is refused by provider moderation every time it was tried, while the same face as a plain image reference passes."
+        },
+        "kind": { "enum": ["image", "video"] },
+        "sha256": { "$ref": "#/$defs/sha256" },
+        "background_free": {
+          "type": "boolean",
+          "description": "True only for a cut-out on flat white. A person reference carrying its own environment relocated half of a fifteen-second reel into a garden present in no prompt, so the contract records the property rather than trusting the caller."
+        },
+        "excludes_foreign_footwear": {
+          "type": ["boolean", "null"],
+          "description": "For an environment_motion video reference: whether the supplied clip's own footwear close-ups were cut out. Left in, they were copied wholesale — a stranger's bare leg and sandal arrived in one shot at the same timecode as the reference's own footwear frame."
+        },
+        "seconds": { "type": ["number", "null"], "minimum": 0.5, "maximum": 15 }
+      }
+    }
+  }
+}

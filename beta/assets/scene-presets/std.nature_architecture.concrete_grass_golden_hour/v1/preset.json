@@ -1,0 +1,88 @@
+{
+  "camera": {
+    "aspect_ratio": "4:5",
+    "height": "low_max_5deg",
+    "lens_mm": 50,
+    "max_vertical_error_deg": 1.5,
+    "minimum_clear_space_percent": {
+      "above_hair": 8,
+      "below_footwear": 2
+    },
+    "subject_height_percent": [
+      70,
+      80
+    ]
+  },
+  "environment": "An original clean concrete and stone platform with controlled ornamental dry grasses and no highway, bridge or copied structure.",
+  "family": "nature_architecture",
+  "hard_negatives": [
+    "highway",
+    "underpass",
+    "wild meadow",
+    "strong flare",
+    "grass across face",
+    "grass across item",
+    "recognizable landmark"
+  ],
+  "lighting": {
+    "fill": "cool open-sky fill preserving item texture",
+    "finish": "polished_editorial_gloss_without_skin_smoothing_or_hdr",
+    "key": "low golden side and back light defining the body and grasses without destructive flare",
+    "protected_regions": [
+      "eyes",
+      "face_identity",
+      "item_logos",
+      "item_text",
+      "critical_construction"
+    ],
+    "time_or_setup": "golden hour outdoors"
+  },
+  "mvp_assets": [
+    "mood_card"
+  ],
+  "palette": [
+    "concrete grey",
+    "straw",
+    "ochre",
+    "olive",
+    "cool sky shadow"
+  ],
+  "post_selection_assets": [
+    "environment_plate",
+    "lighting_preview"
+  ],
+  "preset_id": "std.nature_architecture.concrete_grass_golden_hour",
+  "prompt_path": "prompts/scenes/std.nature_architecture.concrete_grass_golden_hour.txt",
+  "source_authorities": [
+    {
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit",
+        "brands",
+        "readable_text",
+        "exact_architecture"
+      ],
+      "role": "environment_and_composition_inspiration",
+      "url": "https://www.pexels.com/photo/man-taking-a-picture-of-ornamental-grass-under-an-elevated-road-17191701/",
+      "use": "concrete and ornamental-grass relationship without road or underpass cues"
+    },
+    {
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit",
+        "brands",
+        "readable_text",
+        "exact_architecture"
+      ],
+      "role": "environment_material_inspiration",
+      "url": "https://www.pexels.com/photo/scenic-garden-pathway-at-sunset-35133173/",
+      "use": "secondary dry-grass palette and low warm-light behavior only"
+    }
+  ],
+  "ui_name_uk": "Бетон і трави — золота година",
+  "version": "1.0.0"
+}

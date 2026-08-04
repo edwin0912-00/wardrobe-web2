@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zeely.local/schemas/scene-reference-pack.schema.json",
+  "title": "Zeely production scene reference pack",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "reference_pack_id",
+    "version",
+    "preset_id",
+    "preset_version",
+    "preset_sha256",
+    "prompt_sha256",
+    "references",
+    "source_ledger"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "reference_pack_id": { "$ref": "#/$defs/id" },
+    "version": { "$ref": "#/$defs/id" },
+    "preset_id": { "$ref": "#/$defs/id" },
+    "preset_version": { "$ref": "#/$defs/id" },
+    "preset_sha256": { "$ref": "#/$defs/sha256" },
+    "prompt_sha256": { "$ref": "#/$defs/sha256" },
+    "references": {
+      "type": "array",
+      "minItems": 5,
+      "maxItems": 5,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/reference" },
+      "allOf": [
+        { "contains": { "properties": { "role": { "const": "environment_anchor" } }, "required": ["role"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "role": { "const": "lighting_anchor" } }, "required": ["role"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "role": { "const": "composition_anchor" } }, "required": ["role"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "role": { "const": "palette_anchor" } }, "required": ["role"] }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "properties": { "role": { "const": "negative_reference" } }, "required": ["role"] }, "minContains": 1, "maxContains": 1 }
+      ]
+    },
+    "source_ledger": {
+      "$ref": "https://zeely.ai/schemas/scene-source-ledger.schema.json"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "version": { "const": "1.1.0" } },
+        "required": ["version"]
+      },
+      "then": {
+        "properties": {
+          "references": {
+            "items": {
+              "allOf": [
+                { "$ref": "#/$defs/reference" },
+                { "properties": { "media_type": { "const": "application/json" } } }
+              ]
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "reference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reference_id", "role", "sha256", "media_type", "not_authority_for"],
+      "properties": {
+        "reference_id": { "$ref": "#/$defs/id" },
+        "role": {
+          "enum": [
+            "environment_anchor",
+            "lighting_anchor",
+            "composition_anchor",
+            "palette_anchor",
+            "negative_reference"
+          ]
+        },
+        "sha256": { "$ref": "#/$defs/sha256" },
+        "media_type": {
+          "enum": ["image/png", "image/jpeg", "image/webp", "application/json"]
+        },
+        "not_authority_for": {
+          "type": "array",
+          "minItems": 4,
+          "uniqueItems": true,
+          "items": { "type": "string" },
+          "allOf": [
+            { "contains": { "const": "identity" } },
+            { "contains": { "const": "body" } },
+            { "contains": { "const": "hair" } },
+            { "contains": { "const": "outfit" } }
+          ]
+        }
+      }
+    }
+  }
+}

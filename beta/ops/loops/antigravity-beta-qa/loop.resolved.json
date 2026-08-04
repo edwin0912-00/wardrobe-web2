@@ -1,0 +1,318 @@
+{
+  "$schema": "https://github.com/ksimback/looper/schema/loop.resolved.v1.json",
+  "compiled_at": "2026-07-29T20:17:03+00:00",
+  "council": [
+    {
+      "cli": "codex",
+      "id": "evidence-critic",
+      "invoke": [
+        "codex",
+        "exec"
+      ],
+      "local": false,
+      "model": "default",
+      "role": "judge",
+      "scope": [
+        "plan",
+        "delivery"
+      ],
+      "timeout_sec": 600
+    }
+  ],
+  "council_by_id": {
+    "evidence-critic": {
+      "cli": "codex",
+      "id": "evidence-critic",
+      "invoke": [
+        "codex",
+        "exec"
+      ],
+      "local": false,
+      "model": "default",
+      "role": "judge",
+      "scope": [
+        "plan",
+        "delivery"
+      ],
+      "timeout_sec": 600
+    }
+  },
+  "criteria_by_id": {
+    "board-valid": {
+      "check": [
+        "node",
+        "tools/coordination/validate-board.mjs",
+        "--board-only"
+      ],
+      "expect": "exit_zero",
+      "id": "board-valid",
+      "timeout_sec": 60,
+      "type": "programmatic"
+    },
+    "browser-evidence-is-real": {
+      "id": "browser-evidence-is-real",
+      "rubric": "Judge QA-REPORT.md and its evidence manifest. PASS requires a real public-beta browser journey beginning at visible UI, screenshots at transitions, console/network summaries, a persistence refresh, and a terminal saved result. FAIL requires repeatable numbered steps and the first blocking observation. Revise if evidence comes only from source, tests, health, internal API shortcuts, stale screenshots, or another release SHA.\n",
+      "type": "judge"
+    },
+    "checks-not-weakened": {
+      "id": "checks-not-weakened",
+      "rubric": "Try to disprove the verdict. Revise if the report hides a failed QA check, treats retry as PASS, accepts fake progress, skips a visible UI action, creates a duplicate paid job, or recommends weakening identity, item, silhouette, colour, logo/text, anatomy, framing or persistence checks.\n",
+      "type": "judge"
+    },
+    "plan-binds-exact-release": {
+      "id": "plan-binds-exact-release",
+      "rubric": "The plan names the exact origin/beta SHA, the deployed health SHA, one affected block and one user journey. Verdict revise if the SHAs do not match, the journey is vague, a private upload is proposed, or a paid generation lacks explicit authorization for this SHA.\n",
+      "type": "judge"
+    },
+    "report-schema": {
+      "check": [
+        "node",
+        "ops/loops/antigravity-beta-qa/scripts/check-qa-report.mjs",
+        "ops/loops/antigravity-beta-qa/loop-workspace/QA-REPORT.md"
+      ],
+      "expect": "exit_zero",
+      "id": "report-schema",
+      "timeout_sec": 60,
+      "type": "programmatic"
+    }
+  },
+  "execution": {
+    "isolation": "branch",
+    "mode": "in_session",
+    "side_effects": {
+      "duplicate_action_check": true,
+      "notes": "Product code, beta and main are read-only. The agent writes only its QA report/update paths on beta-block-08-antigravity-qa. A provider job is forbidden unless UPDATE.md explicitly authorizes one idempotent smoke for the exact beta SHA.\n",
+      "requires_approval": false
+    }
+  },
+  "gates": {
+    "delivery_gate": {
+      "criteria": [
+        "report-schema",
+        "board-valid",
+        "browser-evidence-is-real",
+        "checks-not-weakened"
+      ],
+      "max_revisions": 2,
+      "members": [
+        "evidence-critic"
+      ],
+      "verdict_policy": "revise_until_clean",
+      "verdict_source": "evidence-critic",
+      "when": "after_each_delivery"
+    },
+    "plan_gate": {
+      "criteria": [
+        "plan-binds-exact-release"
+      ],
+      "max_revisions": 2,
+      "members": [
+        "evidence-critic"
+      ],
+      "verdict_policy": "revise_until_clean",
+      "verdict_source": "evidence-critic",
+      "when": "after_plan"
+    }
+  },
+  "goal": {
+    "context_sources": [
+      {
+        "cmd": [
+          "git",
+          "fetch",
+          "origin",
+          "beta",
+          "beta-block-08-antigravity-qa",
+          "beta-block-1-core-look",
+          "beta-block-2-profile-ui",
+          "beta-block-3-backgrounds",
+          "beta-block-4-universe",
+          "beta-block-5-fashion-shoot",
+          "beta-block-6-fashion-video",
+          "beta-block-7-realtime-look"
+        ],
+        "timeout_sec": 90
+      },
+      {
+        "cmd": [
+          "git",
+          "show",
+          "origin/beta:AGENTS.md"
+        ],
+        "timeout_sec": 60
+      },
+      {
+        "cmd": [
+          "git",
+          "show",
+          "origin/beta:UPDATE.md"
+        ],
+        "timeout_sec": 60
+      },
+      {
+        "cmd": [
+          "git",
+          "show",
+          "origin/beta:STATE.md"
+        ],
+        "timeout_sec": 60
+      },
+      {
+        "cmd": [
+          "git",
+          "show",
+          "origin/beta:LOG.md"
+        ],
+        "timeout_sec": 60
+      },
+      {
+        "cmd": [
+          "git",
+          "show",
+          "origin/beta:docs/coordination/BETA_BLOCKS_2026-07-29.md"
+        ],
+        "timeout_sec": 60
+      },
+      {
+        "cmd": [
+          "git",
+          "show",
+          "origin/beta:docs/coordination/blocks/08-antigravity-qa.md"
+        ],
+        "timeout_sec": 60
+      },
+      {
+        "cmd": [
+          "git",
+          "log",
+          "--oneline",
+          "--decorate",
+          "-20",
+          "origin/beta"
+        ],
+        "timeout_sec": 60
+      }
+    ],
+    "definition_of_done": "QA-REPORT.md binds the tested and deployed SHAs, names one affected block and journey, contains real browser evidence, console/network summaries and a typed PASS/FAIL/FLAKY/BLOCKED verdict, passes the report checker, and the evidence critic finds no unsupported PASS or weakened check.\n",
+    "statement": "For the exact newly deployed beta SHA, identify the affected product block, execute its user-visible journey on https://beta.madeforthisjob.com in a real browser, and publish QA-REPORT.md with reproducible evidence. Never edit product code, weaken checks, deploy, or claim PASS from source/tests alone.\n",
+    "verification": [
+      {
+        "check": [
+          "node",
+          "ops/loops/antigravity-beta-qa/scripts/check-qa-report.mjs",
+          "ops/loops/antigravity-beta-qa/loop-workspace/QA-REPORT.md"
+        ],
+        "expect": "exit_zero",
+        "id": "report-schema",
+        "timeout_sec": 60,
+        "type": "programmatic"
+      },
+      {
+        "check": [
+          "node",
+          "tools/coordination/validate-board.mjs",
+          "--board-only"
+        ],
+        "expect": "exit_zero",
+        "id": "board-valid",
+        "timeout_sec": 60,
+        "type": "programmatic"
+      },
+      {
+        "id": "plan-binds-exact-release",
+        "rubric": "The plan names the exact origin/beta SHA, the deployed health SHA, one affected block and one user journey. Verdict revise if the SHAs do not match, the journey is vague, a private upload is proposed, or a paid generation lacks explicit authorization for this SHA.\n",
+        "type": "judge"
+      },
+      {
+        "id": "browser-evidence-is-real",
+        "rubric": "Judge QA-REPORT.md and its evidence manifest. PASS requires a real public-beta browser journey beginning at visible UI, screenshots at transitions, console/network summaries, a persistence refresh, and a terminal saved result. FAIL requires repeatable numbered steps and the first blocking observation. Revise if evidence comes only from source, tests, health, internal API shortcuts, stale screenshots, or another release SHA.\n",
+        "type": "judge"
+      },
+      {
+        "id": "checks-not-weakened",
+        "rubric": "Try to disprove the verdict. Revise if the report hides a failed QA check, treats retry as PASS, accepts fake progress, skips a visible UI action, creates a duplicate paid job, or recommends weakening identity, item, silhouette, colour, logo/text, anatomy, framing or persistence checks.\n",
+        "type": "judge"
+      }
+    ]
+  },
+  "host": {
+    "cli": "gemini",
+    "invoke": [
+      "gemini",
+      "-p"
+    ],
+    "model": "default",
+    "timeout_sec": 1200
+  },
+  "loop_control": {
+    "budget": {
+      "tokens": 750000,
+      "wall_clock_min": 45
+    },
+    "human_checkpoints": [],
+    "max_iterations": 8,
+    "no_progress": {
+      "action": "stop",
+      "max_stalled_iterations": 2,
+      "signals": [
+        "the same release mismatch repeats",
+        "the same browser blocker repeats without a new owner commit",
+        "QA-REPORT.md has no new evidence after a revise verdict"
+      ]
+    },
+    "stop_conditions": [
+      "delivery_gate passes clean on QA-REPORT.md",
+      "first confirmed blocking defect is documented with reproducible evidence",
+      "max_iterations reached",
+      "same blocker repeats for 2 iterations",
+      "wall-clock or token budget is exceeded"
+    ]
+  },
+  "meta": {
+    "author": "codex-main",
+    "created": "2026-07-29",
+    "description": "Independent browser QA for each deployed Wardrobe beta commit, with GitHub change detection, evidence capture, adversarial review and a typed PASS/FAIL/BLOCKED report.\n",
+    "name": "antigravity-beta-qa"
+  },
+  "observability": {
+    "checkpoint_granularity": "gate",
+    "run_log": "run-log.md",
+    "state_file": "state.json"
+  },
+  "privacy": {
+    "egress": [
+      {
+        "consent": "required",
+        "redact": [
+          ".env",
+          ".env.*",
+          "secrets/**",
+          "**/*.key",
+          "runtime/**",
+          "uploads/**",
+          "**/.zeely-run/**",
+          "**/*token*"
+        ],
+        "sends": [
+          "qa-plan",
+          "qa-report",
+          "redacted-browser-evidence-manifest"
+        ],
+        "to": "evidence-critic"
+      }
+    ]
+  },
+  "source": "/Volumes/diskSSD/zeely-block-orchestration-20260729/ops/loops/antigravity-beta-qa/loop.yaml",
+  "version": 1,
+  "workspace": {
+    "dir": "./loop-workspace",
+    "layout": [
+      "qa-plan.md",
+      "browser-run-{n}.md",
+      "review-{n}.md",
+      "QA-REPORT.md",
+      "state.json",
+      "run-log.md"
+    ]
+  }
+}

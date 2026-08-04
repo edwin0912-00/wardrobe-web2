@@ -1,0 +1,115 @@
+{
+  "schema_version": "1.0.0",
+  "extraction_id": "extract-human-001",
+  "job_id": "zeely-test-001",
+  "source_asset_id": "source-human-001",
+  "source_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+  "entity_type": "HUMAN",
+  "extractor": {
+    "component": "zeely-visual-extractor",
+    "version": "1.0.0",
+    "method": "VLM",
+    "model": "configured-vision-model",
+    "prompt_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "evidence": [
+    {
+      "evidence_id": "evidence-human-full-001",
+      "type": "FULL_IMAGE",
+      "source_asset_id": "source-human-001",
+      "uri": "inputs/zeely-test/humans/input1.webp",
+      "note": "Immutable full source image."
+    },
+    {
+      "evidence_id": "evidence-human-face-001",
+      "type": "BBOX",
+      "source_asset_id": "source-human-001",
+      "bbox_xywh_norm": [0.31, 0.08, 0.38, 0.3],
+      "uri": null,
+      "note": "Visible face region."
+    },
+    {
+      "evidence_id": "evidence-human-body-001",
+      "type": "BBOX",
+      "source_asset_id": "source-human-001",
+      "bbox_xywh_norm": [0.17, 0.05, 0.66, 0.9],
+      "uri": null,
+      "note": "Upper body is visible; lower-body proportions are outside the frame."
+    }
+  ],
+  "observed_facts": [
+    {
+      "fact_id": "fact-human-face-shape-001",
+      "path": "/human/face/shape",
+      "value": "oval",
+      "unit": null,
+      "confidence": 0.91,
+      "provenance": {
+        "type": "OBSERVED",
+        "source_asset_id": "source-human-001",
+        "evidence_ids": ["evidence-human-face-001"],
+        "method": "direct visual observation"
+      },
+      "lock_eligibility": "ELIGIBLE"
+    },
+    {
+      "fact_id": "fact-human-hair-color-001",
+      "path": "/human/hair/color",
+      "value": "dark brown",
+      "unit": null,
+      "confidence": 0.96,
+      "provenance": {
+        "type": "OBSERVED",
+        "source_asset_id": "source-human-001",
+        "evidence_ids": ["evidence-human-full-001", "evidence-human-face-001"],
+        "method": "direct visual observation"
+      },
+      "lock_eligibility": "ELIGIBLE"
+    },
+    {
+      "fact_id": "fact-human-visible-body-001",
+      "path": "/human/body/visible_region",
+      "value": "head through upper torso",
+      "unit": null,
+      "confidence": 0.99,
+      "provenance": {
+        "type": "OBSERVED",
+        "source_asset_id": "source-human-001",
+        "evidence_ids": ["evidence-human-body-001"],
+        "method": "framing analysis"
+      },
+      "lock_eligibility": "ELIGIBLE"
+    }
+  ],
+  "unknowns": [
+    {
+      "unknown_id": "unknown-human-full-body-001",
+      "path": "/human/body/lower_body_proportions",
+      "reason": "NOT_VISIBLE",
+      "required_for": ["AVATAR", "IDENTITY_QA"],
+      "blocking": true,
+      "requested_remedy": "FULL_BODY_PHOTO",
+      "provenance": {
+        "type": "UNKNOWN",
+        "source_asset_id": "source-human-001",
+        "evidence_ids": ["evidence-human-body-001"]
+      }
+    }
+  ],
+  "quality_assessment": {
+    "scores": {
+      "sharpness": 0.78,
+      "exposure": 0.88,
+      "compression": 0.8,
+      "occlusion": 0.96,
+      "subject_coverage": 0.84
+    },
+    "flags": ["INCOMPATIBLE_FRAMING"],
+    "usable_regions": ["FACE", "HAIR", "UPPER_BODY"]
+  },
+  "recommended_disposition": "MISSING_REQUIRED_EVIDENCE",
+  "disposition_reasons": [
+    "The written task requires body-build preservation, but lower-body proportions are not observable."
+  ],
+  "created_at": "2026-07-22T00:02:00Z"
+}

@@ -1,0 +1,63 @@
+{
+  "created_at": "2026-07-23T09:40:00Z",
+  "ledger_id": "ledger.std.city.amber_alley_cobblestone.v1",
+  "preset_id": "std.city.amber_alley_cobblestone",
+  "preset_version": "1.0.0",
+  "revision": 1,
+  "schema_version": "1.0.0",
+  "sources": [
+    {
+      "content_sha256": "240db191c3d5850c17392292420e90ec007cb6c0c491f920c256a1a94ce20a06",
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit",
+        "brands",
+        "readable_text",
+        "exact_architecture"
+      ],
+      "retrieved_at": "2026-07-23T09:40:00Z",
+      "rights": {
+        "basis": "LICENSED",
+        "evidence_sha256": "86a558a192adac12108998fb02dd40db4b72dc06a04c09719d47db91854dacb5",
+        "evidence_uri": "evidence/licenses/unsplash-license-2026-07-23.md",
+        "rights_holder": "Desmond Leung via Unsplash license",
+        "status": "VERIFIED",
+        "verified_at": "2026-07-23T09:40:00Z"
+      },
+      "role": "lighting_composition_palette_inspiration",
+      "snapshot_uri": "evidence/scene-sources/unsplash.v095s_t1_6o.json",
+      "source_id": "unsplash.v095s_t1_6o",
+      "url": "https://unsplash.com/photos/concrete-road-beside-building-v095s_t1_6o",
+      "use": "warm amber backlight behavior, wet cobblestone reflections and narrow street depth only"
+    },
+    {
+      "content_sha256": "8be5e15f4c2f3e71ddb68931c7411aece3da927dfd7b03967ecd8bbb8280ddcc",
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit",
+        "brands",
+        "readable_text",
+        "exact_architecture"
+      ],
+      "retrieved_at": "2026-07-23T09:40:00Z",
+      "rights": {
+        "basis": "LICENSED",
+        "evidence_sha256": "86a558a192adac12108998fb02dd40db4b72dc06a04c09719d47db91854dacb5",
+        "evidence_uri": "evidence/licenses/unsplash-license-2026-07-23.md",
+        "rights_holder": "Darien Attridge via Unsplash license",
+        "status": "VERIFIED",
+        "verified_at": "2026-07-23T09:40:00Z"
+      },
+      "role": "environment_material_inspiration",
+      "snapshot_uri": "evidence/scene-sources/unsplash.X19Lp3_Kk_Q.json",
+      "source_id": "unsplash.X19Lp3_Kk_Q",
+      "url": "https://unsplash.com/photos/a-car-driving-down-a-rain-soaked-street-at-night-X19Lp3_Kk-Q",
+      "use": "secondary wet surface reflection behavior and atmospheric haze only"
+    }
+  ],
+  "status": "VERIFIED_FOR_RELEASE"
+}

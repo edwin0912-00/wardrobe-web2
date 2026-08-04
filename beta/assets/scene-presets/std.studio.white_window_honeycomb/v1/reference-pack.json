@@ -1,0 +1,134 @@
+{
+  "preset_id": "std.studio.white_window_honeycomb",
+  "preset_sha256": "e00b6ff4b97b631bbd0fa5c4707831f79426882424e76f72a6fe0410a65d9d2f",
+  "preset_version": "1.0.0",
+  "prompt_sha256": "33e4d095cbe2635cd425b58cdf11cad6c43259e2e726230f916104d2834a09a4",
+  "reference_pack_id": "pack.std.studio.white_window_honeycomb.v1.1",
+  "references": [
+    {
+      "media_type": "application/json",
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit"
+      ],
+      "reference_id": "std.studio.white_window_honeycomb.environment",
+      "role": "environment_anchor",
+      "sha256": "a6ab132e87cdb75b7f93e789e4848330b0b89c860acf35caa86a12b1bab1dc8d"
+    },
+    {
+      "media_type": "application/json",
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit"
+      ],
+      "reference_id": "std.studio.white_window_honeycomb.lighting",
+      "role": "lighting_anchor",
+      "sha256": "458d82e365d6fe8e497f469357b3b4c377e5c571a4ac437e002b7d0d09a26c98"
+    },
+    {
+      "media_type": "application/json",
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit"
+      ],
+      "reference_id": "std.studio.white_window_honeycomb.composition",
+      "role": "composition_anchor",
+      "sha256": "224f96b26152d89862312849874356cf512790f6b9367a4b135667b836151e54"
+    },
+    {
+      "media_type": "application/json",
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit"
+      ],
+      "reference_id": "std.studio.white_window_honeycomb.palette",
+      "role": "palette_anchor",
+      "sha256": "8058d6e1703cc4918a69328b7b7b87e9cd023366cf6d6da297c38424d01ff1fb"
+    },
+    {
+      "media_type": "application/json",
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit"
+      ],
+      "reference_id": "std.studio.white_window_honeycomb.negative",
+      "role": "negative_reference",
+      "sha256": "97cad3ee9d8b6b1dcf2a19a0c034820b3e02fd64951f9ae4be00789b954e6c73"
+    }
+  ],
+  "schema_version": "1.0.0",
+  "source_ledger": {
+    "created_at": "2026-07-23T09:40:00Z",
+    "ledger_id": "ledger.std.studio.white_window_honeycomb.v1",
+    "preset_id": "std.studio.white_window_honeycomb",
+    "preset_version": "1.0.0",
+    "revision": 1,
+    "schema_version": "1.0.0",
+    "sources": [
+      {
+        "content_sha256": "574be4b264aec099dce89e61671f228510d138ab86bfd3113b8de845205cb66e",
+        "not_authority_for": [
+          "identity",
+          "body",
+          "hair",
+          "outfit",
+          "brands",
+          "readable_text",
+          "exact_architecture"
+        ],
+        "retrieved_at": "2026-07-23T09:40:00Z",
+        "rights": {
+          "basis": "LICENSED",
+          "evidence_sha256": "b2fd5090492719bd8f3c9779be0650b29cc37bb286a2ea0bf0cf0eff88f127e8",
+          "evidence_uri": "evidence/licenses/pexels-license-2026-07-23.md",
+          "rights_holder": "Ayomide Onasanya via Pexels license",
+          "status": "VERIFIED",
+          "verified_at": "2026-07-23T09:40:00Z"
+        },
+        "role": "lighting_composition_palette_inspiration",
+        "snapshot_uri": "evidence/scene-sources/pexels.14001742.json",
+        "source_id": "pexels.14001742",
+        "url": "https://www.pexels.com/photo/a-woman-in-red-long-sleeve-dress-14001742/",
+        "use": "clean white studio depth and full-body composition only"
+      },
+      {
+        "content_sha256": "b7f103093fc49acd62bf35a16b2f810ca5972d6bd33bffd1c73da4bbe72b37c7",
+        "not_authority_for": [
+          "identity",
+          "body",
+          "hair",
+          "outfit",
+          "brands",
+          "readable_text",
+          "exact_architecture"
+        ],
+        "retrieved_at": "2026-07-23T09:40:00Z",
+        "rights": {
+          "basis": "LICENSED",
+          "evidence_sha256": "b2fd5090492719bd8f3c9779be0650b29cc37bb286a2ea0bf0cf0eff88f127e8",
+          "evidence_uri": "evidence/licenses/pexels-license-2026-07-23.md",
+          "rights_holder": "SHVETS production via Pexels license",
+          "status": "VERIFIED",
+          "verified_at": "2026-07-23T09:40:00Z"
+        },
+        "role": "lighting_composition_palette_inspiration",
+        "snapshot_uri": "evidence/scene-sources/pexels.7506932.json",
+        "source_id": "pexels.7506932",
+        "url": "https://www.pexels.com/photo/woman-in-pink-cardigan-7506932/",
+        "use": "soft fill level and restrained beauty finish only"
+      }
+    ],
+    "status": "VERIFIED_FOR_RELEASE"
+  },
+  "version": "1.1.0"
+}

@@ -1,0 +1,100 @@
+{
+  "schema_version": "1.0.0",
+  "purpose": "Shared operational truth for every agent and every chat. Read it before touching the host or the provider; update it the moment you change either. Prose belongs in STATE.md; this file holds only facts a machine can check.",
+  "updated_at": "2026-07-29T17:50:00.000Z",
+  "updated_by": "codex-main",
+  "host": {
+    "role": "beta and production deployment host",
+    "reach": "tailscale",
+    "tailscale_name": "jarviss-macbook-pro",
+    "ssh_user": "jarvis1",
+    "note": "Resolve the address with `tailscale status`; never hard-code a LAN IP. The LAN address has changed three times in two days (.16, .35, .33) and is not a reliable identifier.",
+    "verified_at": "2026-07-28T17:03:00.000Z",
+    "reachable": true,
+    "disk_free_gib": 14,
+    "release_rotation": "prune-deploys.sh, cron hourly at :17, keeps the three newest per directory and never the running one"
+  },
+  "beta": {
+    "url": "https://beta.madeforthisjob.com",
+    "release": "release-5b452ab-1785347404292",
+    "health": "ready",
+    "verified_at": "2026-07-29T17:50:00.000Z"
+  },
+  "generation": {
+    "active_provider": "higgsfield",
+    "vlm": "codex",
+    "changed_by": "claude-code-20260727-557761",
+    "reason": "The host CLI was downgraded from the broken 1.1.19 to the working 0.2.3 and re-authenticated by the operator, so the Higgsfield route answers again. The previous switch to the codex path by claude-code-20260727-a3f1c8 was correct while the CLI was broken.",
+    "rollback": "one line in run-beta-daemon.sh plus a kickstart; the pre-change copy is kept as run-beta-daemon.sh.bak-20260728-preprovider"
+  },
+  "providers": {
+    "higgsfield": {
+      "kind": "cli",
+      "note": "Invoked as a CLI binary, never as an HTTP API. Both builds target higgsfield.ai; api.higgsfield.ai returning 521 is an unrelated subdomain. Two accounts exist and the device login stores one shared token, so a new login replaces the previous account.",
+      "operator_mac": {
+        "version": "0.2.3",
+        "status": "working",
+        "account": "nebula.marketing-remote@gen.tech"
+      },
+      "host": {
+        "version": "0.2.3",
+        "status": "working",
+        "account": "nebula.marketing@gen.tech",
+        "credits": 3707,
+        "history": "A homebrew upgrade to 1.1.19 broke every call and the stored credentials file disappeared. Fixed by npm i -g @higgsfield/cli@0.2.3 plus a fresh device login. Pin the version before any future upgrade.",
+        "pinned_version": "0.2.3",
+        "guard": "higgsfield-guard.sh on the host, cron every 30 minutes: reinstalls the pinned version if it drifted, probes the account, and writes higgsfield-guard.state (OK/BROKEN) plus higgsfield-guard.log. Proven by deliberately installing the broken 1.1.19 and watching the guard restore 0.2.3 on the next run.",
+        "why_pinned": "The 1.x line targets a new gateway (fnf-api-gw.higgsfield.ai) and requires a workspace: 1.1.20 says 'No workspace selected', 1.1.19 hides the same cause behind 'request failed (no response received)'. This account cannot even list workspaces on that gateway, so the whole 1.x line is unusable until a workspace exists in the account. 0.2.x uses fnf.higgsfield.ai and works. api.higgsfield.ai returning 521 is an unrelated subdomain.",
+        "if_it_breaks_again": "1) check `higgsfield --version` on the host, it must be 0.2.3; 2) read higgsfield-guard.state (OK/BROKEN) and higgsfield-guard.log; 3) BROKEN with 'Not authenticated' means the token is gone and only the operator can re-login; 4) never run `npm i -g @higgsfield/cli` without a version — that is what broke it on 2026-07-28.",
+        "stale_binary_removed": "A duplicate standalone 1.1.19 binary in ~/.local/bin shadowed PATH; moved out on 2026-07-28."
+      }
+    },
+    "openrouter": {
+      "kind": "api",
+      "role": "last-resort fallback",
+      "api": "dead",
+      "last_error": "HTTP 401",
+      "note": "Only transport that served the 4:5 delivery aspect natively."
+    },
+    "magnific": {
+      "kind": "mcp",
+      "status": "cancelled_as_app_provider",
+      "note": "Works only inside an interactive agent session; a server process cannot use it. REST exists (api.magnific.com, x-magnific-api-key) but the key is gated to a higher plan and is not issued."
+    },
+    "fal": {
+      "kind": "api",
+      "role": "live camera (Lucy)",
+      "key_on_host": "fal-realtime-api-key",
+      "status": "key present, unverified"
+    },
+    "codex": {
+      "kind": "cli",
+      "status": "logged_in_both_machines",
+      "role": "active VLM and the current generation path"
+    }
+  },
+  "blockers": [
+    {
+      "id": "release-size",
+      "what": "Product release is about 249 MiB against a 160 MiB budget, so no release verifies and no deploy is possible.",
+      "owner": "codex-main",
+      "contributors": "commit d1b6ab5 added 43.6 MiB of unregistered style units; eleven new preset plates added about 77 MiB."
+    },
+    {
+      "id": "presentation-split-missing",
+      "what": "No man/woman value exists anywhere, so female-read style units are offered for male looks.",
+      "owner": "unassigned"
+    },
+    {
+      "id": "catalog-families-merged",
+      "what": "/api/editorial-modes returns shoot.* and legacy editorial.* in one list with no field distinguishing them.",
+      "owner": "unassigned"
+    },
+    {
+      "id": "health-not-probed",
+      "what": "/api/health reports a construction-time boolean, so a provider outage is invisible.",
+      "owner": "unassigned"
+    }
+  ],
+  "catalog_check": "node ops/runtime.mjs --verify prints a two-way diff between the live catalogue and the ids declared in the SHA you are about to deploy. WOULD LOSE must be empty before any activation."
+}

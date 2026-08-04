@@ -1,0 +1,235 @@
+{
+  "unit_id": "shoot.zayn_institutional",
+  "title": "Institutional Modernism — ceremonial stillness under monumental concrete",
+  "palette_size": 9,
+  "palette": [
+    {
+      "name": "deepest void",
+      "hex": "#0C0E0C",
+      "role": "deepest shadow and black anchor"
+    },
+    {
+      "name": "structural charcoal",
+      "hex": "#2F332B",
+      "role": "dark concrete bay and secondary shadow"
+    },
+    {
+      "name": "institutional olive",
+      "hex": "#626452",
+      "role": "green-olive interior midtone"
+    },
+    {
+      "name": "cool raw concrete",
+      "hex": "#9EA293",
+      "role": "structural concrete midtone"
+    },
+    {
+      "name": "pale chalk concrete",
+      "hex": "#C6C4B0",
+      "role": "pale architectural field"
+    },
+    {
+      "name": "aperture white",
+      "hex": "#FDFEFD",
+      "role": "brightest ceiling opening and highlight"
+    },
+    {
+      "name": "warm sun concrete",
+      "hex": "#C5A87B",
+      "role": "warm exterior light and reflected ceiling"
+    },
+    {
+      "name": "muted sky",
+      "hex": "#7C908B",
+      "role": "desaturated blue-green exterior sky"
+    },
+    {
+      "name": "rust metal accent",
+      "hex": "#8A6539",
+      "role": "restrained rust and warm metal accent"
+    }
+  ],
+  "item_colours_exempt": true,
+  "palette_authority": {
+    "path": "palette-strip.svg",
+    "sha256": "526912e93894e1d8cbedb6d0b7b13b4071d2db32057445ef3354f33525cf992e",
+    "rendered_not_generated": true
+  },
+  "source_frames": [
+    "frame-01.jpg — 1365×2048, central-axis seated hall with circular ceiling wells and repeated desks, SHA-256 05f7b9dda68fdff0ebf9da4dc755e37a8ced418a863a47d3f584eb1d9593ba0d",
+    "frame-02.jpg — 2048×1365, hooded central table portrait with near device interference, SHA-256 5ae684e3c8ac5ae99d79ea79519aaf418bfa21bdd3457acc46a10c0e484bae9f",
+    "frame-03.jpg — 2048×1365, extreme low exterior human-context accessory frame, SHA-256 76c009ae80ae38a62c388bd0a76c060d72f2b1f1cd2b1bea3f18e25252f5cf00",
+    "frame-04.jpg — 1365×2048, warm profile portrait against repeated vertical ribs, SHA-256 c5a29c4cd341f40849cc25840d4018d28cf4a661e4f30f1673facdc08162d935",
+    "frame-05.jpg — 2048×1365, low frontal formation inside raw concrete shell, SHA-256 af27dbedf9e91c25611939a5102bc5bce3542bb7f5bc15ec2b9af7d50d876ea7",
+    "frame-06.jpg — 2048×1365, distant wide with diagonal stair, repeated figures and haze, SHA-256 3ac28b35415f7d2187cbfff93d4a65d99052df03d66b3ff97e38981b6c3e8031",
+    "frame-07.jpg — 2048×1365, extreme modular-concrete wide with warm apertures, SHA-256 ad0249e3e809de795e0ad2d9fb86ed6d293f56274964b926a780f525fa565589"
+  ],
+  "unknowns": [
+    "focal lengths, apertures, shutter speeds, camera makes and film stock",
+    "whether the interior green cast comes from fixtures, grade, surfaces or a combination",
+    "the physical haze method in frame-06.jpg",
+    "exact room dimensions and the identity of the architecture",
+    "all source-person names, biographies, face geometry, skin marks and body dimensions"
+  ],
+  "unit_contract": {
+    "path": "unit.json",
+    "sha256": "1b60e7d21bc4e3d421ee2a6612cec0cdea99aa62ca0df677da1205c1e1ce75d7"
+  },
+  "observation_log": {
+    "path": "OBSERVATION.md",
+    "sha256": "135ff35eb1e7ed09de5495d4445e9b8015fba381a1581d4b28fafb71f3ff369f"
+  },
+  "self_verification": {
+    "path": "SELF-VERIFY.md",
+    "sha256": "cd777b71eaa570fb21ff8a8bc83a016ad3ab336a86e3fb90eee4a56defae9fe6",
+    "status": "APPROVED"
+  },
+  "runtime_style_sha256": "74821b0887559f37b5c5f74bc107b63859d45efb3eaebf9d3c4b71a5c1392429",
+  "sheets": [
+    {
+      "sheet_id": "camera_lens",
+      "path": "sheet-camera_lens.png",
+      "sha256": "f8e18752615625d0e3efd418a04f1786e34d6dc63b6090bd33e8437445bee0f1",
+      "byte_size": 6327755,
+      "width": 2752,
+      "height": 1536,
+      "requested_aspect": "16:9",
+      "attempts": 1,
+      "provider_receipt": {
+        "provider": "higgsfield",
+        "transport": "higgsfield-cli",
+        "job_id": "c44114a1-5dc2-4c05-a79a-d6a6a69d0b86",
+        "model": "nano_banana_2",
+        "model_name": "Nano Banana Pro",
+        "output_sha256": "f8e18752615625d0e3efd418a04f1786e34d6dc63b6090bd33e8437445bee0f1",
+        "provider_journal_sha256": "68ffa3fd45a9059ef3c48d8059cc4f325b8ef7bade4919830788dc335adc2098"
+      },
+      "colour_authoritative": false
+    },
+    {
+      "sheet_id": "blocking",
+      "path": "sheet-blocking.png",
+      "sha256": "0f49a7ab86b71c1088c05f44208150443439f3300e846def77b4061c71c44d84",
+      "byte_size": 3644746,
+      "width": 2752,
+      "height": 1536,
+      "requested_aspect": "16:9",
+      "attempts": 1,
+      "provider_receipt": {
+        "provider": "higgsfield",
+        "transport": "higgsfield-cli",
+        "job_id": "689e87f6-1267-4810-9215-f074b494fcb8",
+        "model": "nano_banana_2",
+        "model_name": "Nano Banana Pro",
+        "output_sha256": "0f49a7ab86b71c1088c05f44208150443439f3300e846def77b4061c71c44d84",
+        "provider_journal_sha256": "f6814241f0d82ecf2461f93b270071b9fc20c44678b58d383a5ac302c4c674ca"
+      },
+      "colour_authoritative": false
+    },
+    {
+      "sheet_id": "expression_gaze",
+      "path": "sheet-expression_gaze.png",
+      "sha256": "a14a8deb6b1299f22d5068274907ad165eb94a5226e6e9b0ca8e0ede47f8c9f6",
+      "byte_size": 3770030,
+      "width": 2528,
+      "height": 1696,
+      "requested_aspect": "3:2",
+      "attempts": 1,
+      "provider_receipt": {
+        "provider": "higgsfield",
+        "transport": "higgsfield-cli",
+        "job_id": "e1380ed0-6200-4c93-919a-9fd16b999066",
+        "model": "nano_banana_2",
+        "model_name": "Nano Banana Pro",
+        "output_sha256": "a14a8deb6b1299f22d5068274907ad165eb94a5226e6e9b0ca8e0ede47f8c9f6",
+        "provider_journal_sha256": "7918d40ad47eecdc84b4feee269619ca9a08530924a14c116500dad6c4151634"
+      },
+      "colour_authoritative": false
+    },
+    {
+      "sheet_id": "garment_behaviour",
+      "path": "sheet-garment_behaviour.png",
+      "sha256": "5eff00138e630d4b2b2e8b46b7f21cce96719e42c82638cf4e308054f37a25cc",
+      "byte_size": 5692279,
+      "width": 2528,
+      "height": 1696,
+      "requested_aspect": "3:2",
+      "attempts": 1,
+      "provider_receipt": {
+        "provider": "higgsfield",
+        "transport": "higgsfield-cli",
+        "job_id": "063175bb-e189-4937-9879-91dd3091a3c3",
+        "model": "nano_banana_2",
+        "model_name": "Nano Banana Pro",
+        "output_sha256": "5eff00138e630d4b2b2e8b46b7f21cce96719e42c82638cf4e308054f37a25cc",
+        "provider_journal_sha256": "3d77bd85f24f1d2a59094d466c373abd156bfc8029f3a02ea4acfdad7da21572"
+      },
+      "colour_authoritative": false
+    },
+    {
+      "sheet_id": "colour_grade",
+      "path": "sheet-colour_grade.png",
+      "sha256": "3142c28c160fb7acef68866b7b4e1fba2a4db9df609740183d81a406518d2960",
+      "byte_size": 4565807,
+      "width": 2752,
+      "height": 1536,
+      "requested_aspect": "16:9",
+      "attempts": 1,
+      "provider_receipt": {
+        "provider": "higgsfield",
+        "transport": "higgsfield-cli",
+        "job_id": "cda31dd6-bade-4d34-8285-9ba9fd496a88",
+        "model": "nano_banana_2",
+        "model_name": "Nano Banana Pro",
+        "output_sha256": "3142c28c160fb7acef68866b7b4e1fba2a4db9df609740183d81a406518d2960",
+        "provider_journal_sha256": "fe7e8e9cb852048ec522df2acf3ca61eb7b719c59dbca7c31189bb2096c27de7"
+      },
+      "colour_authoritative": false
+    },
+    {
+      "sheet_id": "environment",
+      "path": "sheet-environment.png",
+      "sha256": "0bbe11420af61b49d7b75d82cc3a9e100c12d0ee05e25eddaf89743326498a97",
+      "byte_size": 5392736,
+      "width": 3168,
+      "height": 1344,
+      "requested_aspect": "21:9",
+      "attempts": 1,
+      "provider_receipt": {
+        "provider": "higgsfield",
+        "transport": "higgsfield-cli",
+        "job_id": "f99e2e8c-caed-4b8b-8ab6-aeb0210e941d",
+        "model": "nano_banana_2",
+        "model_name": "Nano Banana Pro",
+        "output_sha256": "0bbe11420af61b49d7b75d82cc3a9e100c12d0ee05e25eddaf89743326498a97",
+        "provider_journal_sha256": "62a5ca64fb9b86c90364f8085d8141f9c9ee066ec9708a1d11e80317877afd85"
+      },
+      "colour_authoritative": false
+    },
+    {
+      "sheet_id": "person",
+      "path": "sheet-person.png",
+      "sha256": "b597d35ee1b8f8a6e619aecb5a9c020a45cff6e4650f1849189f871deab16b70",
+      "byte_size": 4187356,
+      "width": 1696,
+      "height": 2528,
+      "requested_aspect": "2:3",
+      "attempts": 1,
+      "provider_receipt": {
+        "provider": "higgsfield",
+        "transport": "higgsfield-cli",
+        "job_id": "587f4c55-8cc4-485b-87bc-f1fb12f7075a",
+        "model": "nano_banana_2",
+        "model_name": "Nano Banana Pro",
+        "output_sha256": "b597d35ee1b8f8a6e619aecb5a9c020a45cff6e4650f1849189f871deab16b70",
+        "provider_journal_sha256": "4f1bfc7efd68c606de81377e093810f974e7a2d32dad99eba6a071e260af3207"
+      },
+      "colour_authoritative": false
+    }
+  ],
+  "unit_sha256": "2a6893fd3849fab4d5a3f4508a045b74dfa89d0912a549c3caecd0e35a5ecf70",
+  "generated_with": {
+    "model": "nano_banana_2",
+    "transport": "higgsfield-cli"
+  }
+}

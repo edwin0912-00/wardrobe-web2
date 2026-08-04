@@ -1,0 +1,7 @@
+Create one original environmental high-fashion mood card, vertical 4:5, photorealistic.
+SUBJECT: one anonymous adult test model with neutral expression, wearing a plain unbranded black tailored set and simple black shoes. The model is lighting/composition evidence only, not an identity reference.
+COMPOSITION: full body, complete head and footwear, 50 mm equivalent, camera no more than five degrees low, clean platform geometry and restrained grasses. SOURCE-SCALE LOCK: the complete person occupies only 60–64% of the tall source image, with at least 16% clean space above the head and 12% below the footwear; these margins are mandatory for a later centered 3:4 crop.
+SETTING: a newly invented concrete and pale-stone platform with controlled ornamental dry grasses; no road, bridge, underpass, wild meadow or recognizable structure.
+LIGHTING: true golden hour, low warm side/back light defines the body and grasses while cool sky fill preserves black fabric detail; flare stays outside face and outfit, contact shadow is physical.
+FINISH: polished campaign gloss with concrete grey, straw, ochre and olive, crisp silhouette and realistic material texture; no HDR, bloom or smoothing.
+CONSTRAINTS: no highway cues, heavy flare, grass over face or outfit, readable text, brands, props, crop, excessive low angle, anatomy defects or extra accessories.

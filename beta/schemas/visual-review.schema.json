@@ -1,0 +1,159 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://madeforthisjob.com/schemas/visual-review.schema.json",
+  "title": "Hash-bound core visual review",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "reviewer",
+    "reviewed_at",
+    "method",
+    "reviews"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.1.0"
+    },
+    "reviewer": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 120
+    },
+    "reviewed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "method": {
+      "type": "string",
+      "minLength": 20,
+      "maxLength": 2000
+    },
+    "reviews": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[0-9]{3}$": {
+          "$ref": "#/$defs/subjectReview"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "notes"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "NEEDS_REVIEW"
+          ]
+        },
+        "notes": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 2000
+        },
+        "reviewer": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 120
+        },
+        "reviewed_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "artifactReview": {
+      "type": "object",
+      "additionalProperties": false,
+      "$comment": "frontal_half_body_composition was renamed frontal_full_length_composition when the avatar became a full-length figure. Both keys stay accepted so review documents written before the rename still validate; anyOf keeps the framing gate itself mandatory. src/qa/constants.mjs asks only for the new key, so a pre-rename framing PASS is re-reviewed instead of being counted as a full-length review.",
+      "required": [
+        "artifact_sha256",
+        "identity_preservation",
+        "studio_lighting",
+        "neutral_white_balance",
+        "face_hair_detail",
+        "photorealism",
+        "outfit_fidelity",
+        "anatomy",
+        "no_residue_or_bleed"
+      ],
+      "properties": {
+        "artifact_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "identity_preservation": {
+          "$ref": "#/$defs/decision"
+        },
+        "frontal_full_length_composition": {
+          "$ref": "#/$defs/decision"
+        },
+        "frontal_half_body_composition": {
+          "$ref": "#/$defs/decision"
+        },
+        "studio_lighting": {
+          "$ref": "#/$defs/decision"
+        },
+        "neutral_white_balance": {
+          "$ref": "#/$defs/decision"
+        },
+        "face_hair_detail": {
+          "$ref": "#/$defs/decision"
+        },
+        "photorealism": {
+          "$ref": "#/$defs/decision"
+        },
+        "outfit_fidelity": {
+          "$ref": "#/$defs/decision"
+        },
+        "anatomy": {
+          "$ref": "#/$defs/decision"
+        },
+        "no_residue_or_bleed": {
+          "$ref": "#/$defs/decision"
+        }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "frontal_full_length_composition"
+          ]
+        },
+        {
+          "required": [
+            "frontal_half_body_composition"
+          ]
+        }
+      ]
+    },
+    "subjectReview": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "avatar",
+        "avatar_outfit"
+      ],
+      "properties": {
+        "avatar": {
+          "$ref": "#/$defs/artifactReview"
+        },
+        "avatar_outfit": {
+          "$ref": "#/$defs/artifactReview"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "schema_version": "ai-reference-contract-v1",
+  "operation": "video_generation",
+  "internal_model_id": "seedance_2_0",
+  "provider_model_id": "seedance_2_0",
+  "reference_strategy": "independent_at_namespaces",
+  "binding_styles": {
+    "images": "at_ordinal",
+    "videos": "at_ordinal",
+    "audio": "at_ordinal"
+  },
+  "inputs": {
+    "images": [
+      {
+        "order": 1,
+        "provider_label": "@Image 1",
+        "semantic_role": "approved_white_master",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "media_type": "image/png",
+        "allows": ["identity", "body", "hair", "complete_outfit"],
+        "forbids": ["environment", "camera", "lighting"],
+        "white_background_verified": true
+      },
+      {
+        "order": 2,
+        "provider_label": "@Image 2",
+        "semantic_role": "garment_detail",
+        "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "media_type": "image/png",
+        "allows": ["garment_construction", "colour", "material", "logo_text"],
+        "forbids": ["identity", "body", "environment"],
+        "white_background_verified": true
+      }
+    ],
+    "videos": [
+      {
+        "order": 1,
+        "provider_label": "@Video 1",
+        "semantic_role": "motion_reference",
+        "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "media_type": "video/mp4",
+        "allows": ["cuts", "timing", "motion", "camera", "environment", "lighting", "grade"],
+        "forbids": ["visible_person_identity", "visible_person_body", "visible_person_hair", "visible_person_clothing"]
+      }
+    ],
+    "audio": []
+  },
+  "prompt": "Use @Video 1 only for cuts, timing, motion, camera, environment, lighting and grade. Use @Image 1 as the only visible person and complete outfit. Use @Image 2 only for garment construction, colour, material, logo and text. Every output frame must be newly generated; no reference performer pixels may survive."
+}

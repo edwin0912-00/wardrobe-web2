@@ -1,0 +1,63 @@
+{
+  "created_at": "2026-07-23T09:40:00Z",
+  "ledger_id": "ledger.std.interior.gallery_morning_gloss.v1",
+  "preset_id": "std.interior.gallery_morning_gloss",
+  "preset_version": "1.0.0",
+  "revision": 1,
+  "schema_version": "1.0.0",
+  "sources": [
+    {
+      "content_sha256": "3fc6c4950e5ef3458fe32d6612d7f810781273fb2ba3d820b48423f18f8bac9f",
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit",
+        "brands",
+        "readable_text",
+        "exact_architecture"
+      ],
+      "retrieved_at": "2026-07-23T09:40:00Z",
+      "rights": {
+        "basis": "LICENSED",
+        "evidence_sha256": "b2fd5090492719bd8f3c9779be0650b29cc37bb286a2ea0bf0cf0eff88f127e8",
+        "evidence_uri": "evidence/licenses/pexels-license-2026-07-23.md",
+        "rights_holder": "Alexey K. via Pexels license",
+        "status": "VERIFIED",
+        "verified_at": "2026-07-23T09:40:00Z"
+      },
+      "role": "environment_and_composition_inspiration",
+      "snapshot_uri": "evidence/scene-sources/pexels.30699852.json",
+      "source_id": "pexels.30699852",
+      "url": "https://www.pexels.com/photo/minimalist-empty-modern-interior-with-high-windows-30699852/",
+      "use": "high-window scale, quiet gallery proportion and daylight direction only"
+    },
+    {
+      "content_sha256": "ae7e6e54b633b692aee978d196b4c402b94b4c3e4a0dea1ad3aa8b5e98fe692e",
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit",
+        "brands",
+        "readable_text",
+        "exact_architecture"
+      ],
+      "retrieved_at": "2026-07-23T09:40:00Z",
+      "rights": {
+        "basis": "LICENSED",
+        "evidence_sha256": "b2fd5090492719bd8f3c9779be0650b29cc37bb286a2ea0bf0cf0eff88f127e8",
+        "evidence_uri": "evidence/licenses/pexels-license-2026-07-23.md",
+        "rights_holder": "Yusuf Çelik via Pexels license",
+        "status": "VERIFIED",
+        "verified_at": "2026-07-23T09:40:00Z"
+      },
+      "role": "environment_material_inspiration",
+      "snapshot_uri": "evidence/scene-sources/pexels.18132317.json",
+      "source_id": "pexels.18132317",
+      "url": "https://www.pexels.com/photo/interior-of-an-empty-industrial-room-18132317/",
+      "use": "secondary wall and floor material restraint only"
+    }
+  ],
+  "status": "VERIFIED_FOR_RELEASE"
+}

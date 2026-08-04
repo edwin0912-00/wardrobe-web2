@@ -1,0 +1,185 @@
+{
+  "unit_id": "shoot.rooftop_veil_monochrome",
+  "title": "Rooftop Veil Monochrome — grain, overcast sky, body folds and sheer interference",
+  "palette_size": 6,
+  "palette": [
+    {
+      "name": "ink black",
+      "hex": "#0E0E0E",
+      "role": "lifted black anchor"
+    },
+    {
+      "name": "lace charcoal",
+      "hex": "#343434",
+      "role": "dark cloth mass"
+    },
+    {
+      "name": "city grey",
+      "hex": "#737373",
+      "role": "roof and city midtone"
+    },
+    {
+      "name": "parapet stone",
+      "hex": "#9A9A9A",
+      "role": "architecture mid-light"
+    },
+    {
+      "name": "bedding white",
+      "hex": "#D8D8D8",
+      "role": "light fabric surface"
+    },
+    {
+      "name": "overcast sky",
+      "hex": "#ECECEC",
+      "role": "retained sky highlight"
+    }
+  ],
+  "item_colours_exempt": true,
+  "palette_authority": "palette-strip.svg rendered from these manifest hex values; generated sheet swatches are never sampled",
+  "style_unit_status": "READY",
+  "source_frames": [
+    "frame-01.jpg — 2048x1357; sha256 903e5f1818f31fecb74fdd5dce2f448f9d418cea29dec9a6f4630384744a77ca; rolled high-oblique curled mattress composition",
+    "frame-02.jpg — 2048x1357; sha256 8938155e373cf6897831cf3877dbbefc2fc0c15e7f332a261b200b65a39696fb; mattress-level side-recline with foreshortened legs and soft city",
+    "frame-03.jpg — 2048x1357; sha256 a2f39076bd330d79dd30b3e9a50a13f03626014bc3c5ba5ee67f92e876b40d50; rolled high-angle kneeling fold with hands over head",
+    "frame-04.jpg — 2048x1357; sha256 8213a7fc8f0b4b0c22097684ea3d86bd25a91875d78e15f31653b072225d769c; extreme close face through full-frame translucent veil",
+    "frame-05.jpg — 2048x1357; sha256 63b73e76b517305194c523beebe1be252bd2436fe1b9bb19bf16c28a423dbb96; standing profile torso with one arm lifting airborne veil",
+    "frame-06.jpg — 2048x1357; sha256 da953ab88e3e6766fdc28207e2d5b65a4f65fe21142eb67034ee424e3df5e4ba; steep over-parapet downshot with optically soft city",
+    "frame-07.jpg — 2048x1357; sha256 dbcddfc8caf63a68685156b4a9e5d5a8f35d9ea3d4696d005b95b84130d08a77; wide supine rooftop-hardware composition",
+    "frame-08.jpg — 2048x1357; sha256 8160830712aa6999d9614f88a8a457ec95c218fee47bdd837c7edf8c366323a2; standing self-embrace medium with closed eyes",
+    "frame-09.jpg — 2048x1357; sha256 a4190be86ea8950bf2532d189112d17c2af200aa6d26cdf1a802725c7add5739; level formal frontal full-length at parapet corner"
+  ],
+  "source_reconciliation": {
+    "status": "COHERENT_SOURCE_SET",
+    "included_frames": [
+      "frame-01.jpg",
+      "frame-02.jpg",
+      "frame-03.jpg",
+      "frame-04.jpg",
+      "frame-05.jpg",
+      "frame-06.jpg",
+      "frame-07.jpg",
+      "frame-08.jpg",
+      "frame-09.jpg"
+    ],
+    "excluded_frames": [],
+    "continuity_basis": "The same parapet, mattress, rooftop hardware, anonymous city, flat overcast dome, sheer layers, monochrome grain and inward body-led performance recur across all nine frames."
+  },
+  "unknowns": [
+    "camera body, sensor or film stock, focal lengths, apertures, ISO and shutter speeds",
+    "whether the visible grain is capture stock, scan treatment, post treatment or a combination",
+    "true colour of every surface because the source rendering destroys hue",
+    "exact rooftop orientation, dimensions, plan, height and unseen reverse views",
+    "whether the airborne veil was moved by wind, hand action or both",
+    "whether frame roll was captured in camera or introduced later",
+    "identity traits, marks, tattoos, piercings and facial measurements of any approved future subject"
+  ],
+  "runtime_style": {
+    "visual_system": "A monochrome rooftop fashion sequence alternates rolled mattress folds, self-containing body chains, a sheer full-frame veil, one steep parapet downshot and wide architecture-led figures under flat sky.",
+    "mood_line": "Inward and unperformed: closed eyes and softened joints let cloth, grain, altitude and the city carry the tension.",
+    "environment": "An anonymous high rooftop with worn deck, waist-height parapet and coping, a low white mattress or bedding mass, sparse cables or pipe hardware, dense low-rise city below and hazed distant hills under a retained-tone overcast sky.",
+    "lighting": "The whole overcast sky acts as one broad soft source with a faint top bias, very soft form transitions, little or no crisp cast shadow and no backlight glow.",
+    "materials": [
+      "worn rooftop deck and scattered small hardware",
+      "speckled parapet coping and flat inner wall",
+      "soft white mattress and bedding",
+      "light sheer net or tulle that can settle, lift or cross the lens",
+      "fluid matte garment cloth without transferable motif",
+      "distant city masonry softened by focus and atmosphere"
+    ],
+    "contrast": "Low-to-medium global contrast with slightly lifted blacks, retained mid-grey architecture, a bright but non-clipped sky, soft highlight shoulder and visible grain at every value.",
+    "expression_signature": "Eyes are normally fully closed with smooth unsqueezed lids, resting brows and cheeks, relaxed closed or barely parted mouth; the one open-eye state carries low lids and gaze past the lens.",
+    "garment_behaviour": "Sheer cloth can hold air, crumple with small-radius folds, lie as a translucent grey layer or fill the lens; opaque cloth falls softly and nothing acquires sunlit glow or wet cling.",
+    "optical_signature": [
+      "Strict monochrome with uniform silver-halide-like grain across sky, skin, cloth, architecture and city.",
+      "Slightly lifted blacks and a soft highlight shoulder preserve detail in both dark cloth and overcast sky.",
+      "No visible flare, halation, vignette or bloom; mild corner softness is allowed.",
+      "Depth of field and roll are shot-specific: close and downshot city planes may blur optically, while wide frames retain more context; rolled frames coexist with a level formal coda."
+    ],
+    "shot_directions": {
+      "clean_identity_hero": {
+        "camera_consequence": "Use a standing medium horizontal frame from around chest height with a modest roll, keeping the approved face readable against a softly separated city.",
+        "pose_joint_chain": "Wrap both arms asymmetrically around the head and upper neck, lift one shoulder more than the other, keep elbows bent and eyes softly closed without copying source facial geometry or marks.",
+        "focus": "Place critical focus on the approved closed eyelids and near facial plane while the city recedes softly; retain grain on skin and sky.",
+        "foreground": "Keep the foreground clean and connected to the body; no veil crosses the face in this identity direction.",
+        "provenance": [
+          "frame-08.jpg: standing self-embrace medium, asymmetrical shoulders, wrapped arms, closed eyes, rolled city background"
+        ]
+      },
+      "environmental_hero": {
+        "camera_consequence": "Use a level wide horizontal frame from roughly waist-to-chest height, retaining the complete person, parapet corner, city bands and a large overcast-sky field.",
+        "pose_joint_chain": "Stand frontally with weight calm across both feet, arms abducted gently downward, elbows soft, palms turned back and chin level; keep the eyes closed and face unperformed.",
+        "focus": "Hold the approved person and parapet together, with the city readable but progressively softened toward distant hills.",
+        "foreground": "Use only the authentic roof deck as the lower plane; no mattress, veil or near limb may block the full figure.",
+        "provenance": [
+          "frame-09.jpg: level formal frontal full-length at the parapet corner with gently abducted arms and closed eyes"
+        ]
+      },
+      "sculptural_three_quarter": {
+        "camera_consequence": "Look down from a high oblique angle in a deliberately rolled horizontal frame so mattress, parapet and city become diagonal planes without inventing a universal roll value.",
+        "pose_joint_chain": "Kneel or fold compactly on the mattress, bring hands over the crown, close elbows around the face, round the upper back and keep the pelvis grounded rather than lying prone.",
+        "focus": "Keep the complete folded joint chain and near mattress texture readable while the city falls progressively softer.",
+        "foreground": "The mattress edge may form the lower near plane; no detached cloth mass or architecture crosses the face.",
+        "provenance": [
+          "frame-03.jpg: high-angle rolled kneeling fold, hands over head, enclosing elbows, mattress and diagonal city/parapet"
+        ]
+      },
+      "interference_frame": {
+        "camera_consequence": "Move to an extreme close horizontal portrait and shoot through one translucent cloth plane that fills the complete frame.",
+        "pose_joint_chain": "Keep the head gently turned with eyes fully closed and unsqueezed, jaw loose and shoulders still; the connected hand may gather the veil outside the central face.",
+        "focus": "Allow no plane to become clinically sharp, but retain enough eyelid, nose and mouth structure to identify the approved subject through the cloth and grain.",
+        "foreground": "One translucent veil is the sole full-frame interference; do not add glow, double exposure, flare, water, glass or a second cloth layer.",
+        "provenance": [
+          "frame-04.jpg: extreme close closed-eye face under a full-frame translucent veil with grain and soft retained highlights"
+        ]
+      },
+      "material_or_accessory_detail": {
+        "camera_consequence": "Use a standing profile torso crop with the city kept low and soft, leaving space above the raised connected arm for the airborne sheer material.",
+        "pose_joint_chain": "Turn the body to profile, close the visible eye, lift one arm overhead and let the hand hold or release one edge while the other shoulder stays lowered.",
+        "focus": "Keep the approved profile, connected hand and nearest veil edge readable while the airborne trailing cloth and city soften naturally.",
+        "foreground": "The sheer veil may cross open sky but must not cover the approved face in this direction; no architecture-contact requirement is added.",
+        "provenance": [
+          "frame-05.jpg: standing profile torso, closed eye, one connected arm overhead and a single airborne sheer veil"
+        ]
+      },
+      "wide_campaign_coda": {
+        "camera_consequence": "Use a wide horizontal view from above deck level, preserving worn roof surface, sparse cables or pipe hardware, city and hills as distinct depth bands.",
+        "pose_joint_chain": "Rest supine on a diagonal with one arm extended outward and the other bent behind the head, legs long but relaxed and shoulders surrendered to the roof plane.",
+        "focus": "Retain the whole person and immediate rooftop hardware, allowing the far city and hills to soften without erasing environmental proof.",
+        "foreground": "Worn roof, a small authentic cable or pipe and one settled sheer cloth mass establish the near plane; do not invent extra equipment or a surveyed layout.",
+        "provenance": [
+          "frame-07.jpg: wide supine rooftop composition with unequal arms, settled sheer cloth, cables/hardware, city and distant hills"
+        ]
+      }
+    }
+  },
+  "sheets": {
+    "camera_lens": {
+      "aspect": "16:9",
+      "prompt": "Create a dense technical CAMERA & LENS reference board titled ROOFTOP VEIL MONOCHROME — CAMERA & LENS. Use only featureless mannequins and abstract camera diagrams, never a source face, tattoo, piercing, garment motif or identity. Show observed shot-specific positions: mattress-level foreshortening from frame-02.jpg; high rolled oblique from frame-03.jpg; steep over-parapet downshot from frame-06.jpg; chest-height standing frame from frame-08.jpg; level wide formal frame from frame-09.jpg. State roll is common but NOT universal and exact degrees/capture method are UNKNOWN. Correctly show variable focus: clear optical city falloff in frames 02/06, more contextual depth in frames 07/09. Fix the shoot-wide optic: monochrome, uniform grain, lifted blacks, soft highlight shoulder, mild corner softness, no flare, halation, vignette or bloom. State camera body, stock, focal length and aperture UNKNOWN. Print gamma #0E0E0E #343434 #737373 #9A9A9A #D8D8D8 #ECECEC. No version number, no date, no invented metadata, no fabricated lens numbers, no credits, no brand, no watermark."
+    },
+    "blocking": {
+      "aspect": "16:9",
+      "prompt": "Create a rough graphite BLOCKING sheet titled ROOFTOP VEIL MONOCHROME — BLOCKING using featureless wooden mannequins with visible joint construction, no source likeness, tattoos, piercings or clothing design. Show six separate source-backed chains: standing self-embrace around head/neck from frame-08.jpg; formal frontal stance with arms gently abducted from frame-09.jpg; high-angle kneeling fold with hands over head from frame-03.jpg; still closed-eye head beneath a veil from frame-04.jpg; standing profile with one connected arm lifting sheer cloth from frame-05.jpg; wide supine diagonal with unequal arms from frame-07.jpg. Add optional separate source-observed examples of mattress-level side-recline from frame-02.jpg and over-coping fold from frame-06.jpg, explicitly noting architecture contact is shot-specific. Pair poses with simple height/roll icons, not a rooftop survey. Do not invent north, metric scale, exact roof plan, camera coordinates or reverse views. Print gamma #0E0E0E #343434 #737373 #9A9A9A #D8D8D8 #ECECEC. No version number, no date, no invented metadata, no identity, no brand, no watermark."
+    },
+    "expression_gaze": {
+      "aspect": "3:2",
+      "prompt": "Create a purely schematic EXPRESSION & GAZE board titled ROOFTOP VEIL MONOCHROME — EXPRESSION & GAZE. ABSOLUTE STOP: draw no human face and no reference-model identity. Use only neutral featureless mannequin head ovals with coordinate grids and vector arrows: no hair, hairline, ears, eyes, irises, eyelids, brows, nose, nostrils, lips, mouth shape, jaw shape, cheekbones, skin texture or photoreal rendering. Encode the primary source state as abstract CLOSED-EYE BAND, UNSQUEEZED VECTOR, RESTING BROW VECTOR, INACTIVE CHEEK VECTOR, LEVEL MOUTH-CORNER VECTOR and RELAXED JAW for frames 01/03/04/05/08/09. Encode the frame-06 exception only as an OPEN-EYE BAND with LOW-LID and GAZE-PAST-LENS arrows, never drawn eyes. Diagram head extension, lateral flexion and neutral frontal alignment with blank head volumes. Every facial field must read UNKNOWN UNTIL APPROVED USER REFERENCE. State APPROVED USER IDENTITY IS THE ONLY IDENTITY AUTHORITY; SOURCE FACES AND MARKS NEVER TRANSFER. Monochrome grain and overcast response may appear only as abstract texture samples, never on a face. Print gamma #0E0E0E #343434 #737373 #9A9A9A #D8D8D8 #ECECEC. No version number, no date, no invented metadata, no source likeness, no personal name, no brand, no watermark."
+    },
+    "garment_behaviour": {
+      "aspect": "3:2",
+      "prompt": "Create a GARMENT BEHAVIOUR board titled ROOFTOP VEIL MONOCHROME — GARMENT BEHAVIOUR. Study anonymous unbranded fabric behavior only; never copy the source lace motif, garment cut, tattoo, body identity, logo or product geometry. Show a featherweight sheer layer in three observed states: small-radius crumple folds settled on mattress/body; lifted airborne by a connected raised hand; full-frame translucent veil that greys and softens what lies behind it without glow. On the airborne panel print exactly CAUSE UNKNOWN — THE STILL FRAME CANNOT DISTINGUISH WIND, HAND-THROW OR BOTH. Do not draw or label wind arrows, air currents, throw momentum or any combined cause. Contrast a matte fluid opaque cloth falling in soft columns. State that no sunlight, backlit halo, wet cling, specular thread or stiff ballooning is observed. Approved item construction and input colours remain exact; delivered styling is monochrome and only behavior transfers. Print gamma #0E0E0E #343434 #737373 #9A9A9A #D8D8D8 #ECECEC. No version number, no date, no invented metadata, no people, no identity, no lace pattern, no logo, no brand, no watermark."
+    },
+    "colour_grade": {
+      "aspect": "16:9",
+      "prompt": "Create a COLOUR & GRADE specification board titled ROOFTOP VEIL MONOCHROME — COLOUR & GRADE. Declare CLOSED SET, palette_size 6, A VALUE LADDER NOT HUES. Show exact swatches: #0E0E0E ink black; #343434 lace charcoal; #737373 city grey; #9A9A9A parapet stone; #D8D8D8 bedding white; #ECECEC retained-tone overcast sky. State delivered chroma is zero and true source-surface hues are UNKNOWN. Diagram low-to-medium global contrast, slightly lifted blacks, visible grain at every value, soft highlight shoulder, non-clipped sky and soft overcast form transitions. Skin, hair, eyes and approved item colours are exempt at input, but the finished style remains monochrome. No people, faces or source products. No version number, no date, no invented metadata, no board code, no credits, no brand, no watermark."
+    },
+    "environment": {
+      "aspect": "21:9",
+      "prompt": "Create an ENVIRONMENT plate board titled ROOFTOP VEIL MONOCHROME — ENVIRONMENT, monochrome and without people. Organise only source-observed evidence tiles, never a fabricated map: worn roof deck with sparse cables and pipe hardware from frame-07.jpg; waist-height parapet and speckled coping from frames 06/09; low white mattress/bedding beside the parapet from frames 01/02/03; dense anonymous city and distant hazed hills from frames 05/07/09; bright retained-tone overcast sky across the set. Show a steep coping-to-city view only as directly observed in frame-06.jpg and a wide deck/city view only as observed in frame-07.jpg. Allow city softness to come from both optical falloff and atmosphere. Do not invent north arrows, scale bars, site dimensions, exact roof plan, camera stations, reverse angles, landmark identities, sound, smell, temperature or weather measurements. Print gamma #0E0E0E #343434 #737373 #9A9A9A #D8D8D8 #ECECEC. No version number, no date, no invented metadata, no signage, no identity, no brand, no watermark."
+    },
+    "person": {
+      "aspect": "2:3",
+      "prompt": "Create a blank per-subject PERSON TEMPLATE titled ROOFTOP VEIL MONOCHROME — PERSON. ABSOLUTE STOP: do not draw a human face, human skull mesh, portrait, synthetic identity or reconstructed anatomy. The identity placeholder must be three identical SMOOTH SEALED EGG-SHAPED CALIBRATION ELLIPSOIDS on plain cylindrical neck plinths, rotated front, three-quarter and side. Each ellipsoid is one continuous blank oval with only a uniform latitude-longitude grid. It is NOT a human-head mesh. Forbidden on every ellipsoid: eye sockets, orbital holes or topology, eyelids, eyes, brows, brow ridge, nose or nose protrusion, nostrils, mouth line or groove, lips, chin, jaw angle or jaw contour, cheek planes, ears or ear protrusions, hair, scalp shape, hairline, skin texture, marks, freckles, tattoos and piercings. Do not change the perfect smooth egg silhouette into a facial profile. If any panel would contain a face feature or human-head topology, replace the whole object with a plain perfect ellipsoid. Add one connected-hand topology diagram made only from simple joint nodes and straight connecting rods, without skin, nails, marks or identity. Put all identity data in separate empty checklist boxes, each printed UNKNOWN UNTIL APPROVED USER REFERENCE: FACE GEOMETRY, CLOSED-LID GEOMETRY, EAR GEOMETRY, HAIRLINE, EYES, NOSE, MOUTH, JAW, NECK, SKIN TONE, MARKS, TATTOOS, PIERCINGS, EYE COLOUR. Demonstrate observed response only on separate abstract spheres, cylinders, flat cloth and translucent scrim, never on an ellipsoid or face: broad overcast modelling, faint top bias, very soft terminator, matte surface, retained highlights, monochrome grain and veil-driven contrast reduction without glow. State APPROVED USER IDENTITY IS THE SOLE PERSON AUTHORITY and SOURCE IDENTITY AND MARKS NEVER TRANSFER. Print gamma #0E0E0E #343434 #737373 #9A9A9A #D8D8D8 #ECECEC. No version number, no date, no invented metadata, no source likeness, no copied marks, no personal name, no brand, no watermark."
+    }
+  }
+}

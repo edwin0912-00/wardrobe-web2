@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zeely.local/schemas/editorial-shoot-transaction.schema.json",
+  "title": "Zeely editorial state-event write-ahead transaction",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "transaction_type",
+    "shoot_id",
+    "base_state_revision",
+    "target_state_revision",
+    "state_sha256",
+    "event_sha256",
+    "state",
+    "event",
+    "transaction_sha256"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "transaction_type": { "const": "EDITORIAL_STATE_EVENT_COMMIT" },
+    "shoot_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+    },
+    "base_state_revision": { "type": "integer", "minimum": 0 },
+    "target_state_revision": { "type": "integer", "minimum": 1 },
+    "state_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "event_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "state": {
+      "$ref": "https://zeely.local/schemas/editorial-shoot-job.schema.json"
+    },
+    "event": {
+      "$ref": "https://zeely.local/schemas/editorial-shoot-event.schema.json"
+    },
+    "transaction_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    }
+  }
+}

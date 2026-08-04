@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zeely.local/schemas/editorial-shoot-event.schema.json",
+  "title": "Zeely hash-chained editorial shoot event",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "shoot_id",
+    "event_id",
+    "event_type",
+    "created_at",
+    "previous_event_sha256",
+    "state_sha256",
+    "bindings",
+    "slot",
+    "shot_output_sha256",
+    "data",
+    "event_sha256"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "shoot_id": { "$ref": "#/$defs/id" },
+    "event_id": { "type": "integer", "minimum": 1 },
+    "event_type": {
+      "enum": [
+        "shoot.created",
+        "shoot.bible_approved",
+        "shoot.hero_approved",
+        "shoot.recovery_queued",
+        "shoot.auto_repair_recovered",
+        "shoot.cancelled",
+        "shot.started",
+        "shot.resumed",
+        "shot.qa_passed",
+        "shot.qa_failed",
+        "shot.executor_failed",
+        "shot.auto_repair_queued",
+        "shot.retry_queued"
+      ]
+    },
+    "created_at": { "$ref": "#/$defs/timestamp" },
+    "previous_event_sha256": { "$ref": "#/$defs/sha256" },
+    "state_sha256": { "$ref": "#/$defs/sha256" },
+    "bindings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "approved_look_image_sha256",
+        "approved_look_receipt_sha256",
+        "shoot_bible_sha256"
+      ],
+      "properties": {
+        "approved_look_image_sha256": { "$ref": "#/$defs/sha256" },
+        "approved_look_receipt_sha256": { "$ref": "#/$defs/sha256" },
+        "shoot_bible_sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "slot": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/slot" }
+      ]
+    },
+    "shot_output_sha256": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/sha256" }
+      ]
+    },
+    "data": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "event_sha256": { "$ref": "#/$defs/sha256" }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]{3})?Z$"
+    },
+    "slot": {
+      "enum": [
+        "clean_identity_hero",
+        "environmental_hero",
+        "sculptural_three_quarter",
+        "interference_frame",
+        "material_or_accessory_detail",
+        "wide_campaign_coda"
+      ]
+    }
+  }
+}

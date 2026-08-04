@@ -1,0 +1,27 @@
+{
+  "assets": [
+    {
+      "exact_prompt_path": "prompts/scene-presets/std.city.night_neon_wet_asphalt/v1/environment-plate.txt",
+      "path": "assets/scene-presets/std.city.night_neon_wet_asphalt/v1/environment-plate.webp",
+      "provider_receipt_status": "MISSING_FROM_BUILTIN_IMAGE_TOOL",
+      "role": "environment_plate",
+      "sha256": "155c7092eb6a789b00dfd1e7b130d5d8352caed4fddb3e936eeb723dbe536ea3"
+    },
+    {
+      "derivation": {
+        "exact_prompt_path": "prompts/scenes/std.city.night_neon_wet_asphalt.txt",
+        "operation": "ROLE_REASSIGNMENT_FROM_VISUALLY_APPROVED_MOOD_CARD",
+        "source_path": "assets/scene-mood-cards/std.city.night_neon_wet_asphalt.webp",
+        "source_sha256": "05c3ae7362b9f5b584b86127a097bf640d333e1d73ff08f18ff7ee2b63914a2a"
+      },
+      "path": "assets/scene-presets/std.city.night_neon_wet_asphalt/v1/lighting-preview.webp",
+      "provider_receipt_status": "MISSING_FROM_BUILTIN_IMAGE_TOOL",
+      "role": "lighting_preview",
+      "sha256": "05c3ae7362b9f5b584b86127a097bf640d333e1d73ff08f18ff7ee2b63914a2a"
+    }
+  ],
+  "preset_id": "std.city.night_neon_wet_asphalt",
+  "preset_version": "1.0.0",
+  "release_status": "BLOCKED_MISSING_STABLE_PROVIDER_RECEIPTS",
+  "schema_version": "1.0.0"
+}

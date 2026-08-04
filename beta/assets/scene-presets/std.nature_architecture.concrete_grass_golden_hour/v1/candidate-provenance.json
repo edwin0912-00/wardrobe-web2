@@ -1,0 +1,27 @@
+{
+  "assets": [
+    {
+      "exact_prompt_path": "prompts/scene-presets/std.nature_architecture.concrete_grass_golden_hour/v1/environment-plate.txt",
+      "path": "assets/scene-presets/std.nature_architecture.concrete_grass_golden_hour/v1/environment-plate.webp",
+      "provider_receipt_status": "MISSING_FROM_BUILTIN_IMAGE_TOOL",
+      "role": "environment_plate",
+      "sha256": "ea105c7c78c2ed7958d7227c115601aee74f2621f69a40eec1d9e2c9c9d16050"
+    },
+    {
+      "derivation": {
+        "exact_prompt_path": "prompts/scenes/std.nature_architecture.concrete_grass_golden_hour.txt",
+        "operation": "ROLE_REASSIGNMENT_FROM_VISUALLY_APPROVED_MOOD_CARD",
+        "source_path": "assets/scene-mood-cards/std.nature_architecture.concrete_grass_golden_hour.webp",
+        "source_sha256": "ce1562ab3e6c3b5cce437713d64bd3319ffaf54d1bde16e6f001747e4ded5ae0"
+      },
+      "path": "assets/scene-presets/std.nature_architecture.concrete_grass_golden_hour/v1/lighting-preview.webp",
+      "provider_receipt_status": "MISSING_FROM_BUILTIN_IMAGE_TOOL",
+      "role": "lighting_preview",
+      "sha256": "30ded9477f499a315fb4ee2860e5e1eb0d1f781ac9525ffc4bdc1bd11389bc28"
+    }
+  ],
+  "preset_id": "std.nature_architecture.concrete_grass_golden_hour",
+  "preset_version": "1.0.0",
+  "release_status": "BLOCKED_MISSING_STABLE_PROVIDER_RECEIPTS",
+  "schema_version": "1.0.0"
+}

@@ -1,0 +1,583 @@
+{
+  "$schema": "https://github.com/ksimback/looper/schema/loop.resolved.v1.json",
+  "compiled_at": "2026-07-23T09:20:55+00:00",
+  "council": [
+    {
+      "cli": "codex",
+      "id": "architecture-reviewer",
+      "invoke": [
+        "codex",
+        "exec"
+      ],
+      "local": false,
+      "model": "gpt-5.6-sol",
+      "role": "reviewer",
+      "scope": [
+        "plan",
+        "delivery"
+      ],
+      "timeout_sec": 1800
+    },
+    {
+      "cli": "codex",
+      "id": "production-judge",
+      "invoke": [
+        "codex",
+        "exec"
+      ],
+      "local": false,
+      "model": "gpt-5.6-sol",
+      "role": "judge",
+      "scope": [
+        "plan",
+        "delivery"
+      ],
+      "timeout_sec": 1800
+    }
+  ],
+  "council_by_id": {
+    "architecture-reviewer": {
+      "cli": "codex",
+      "id": "architecture-reviewer",
+      "invoke": [
+        "codex",
+        "exec"
+      ],
+      "local": false,
+      "model": "gpt-5.6-sol",
+      "role": "reviewer",
+      "scope": [
+        "plan",
+        "delivery"
+      ],
+      "timeout_sec": 1800
+    },
+    "production-judge": {
+      "cli": "codex",
+      "id": "production-judge",
+      "invoke": [
+        "codex",
+        "exec"
+      ],
+      "local": false,
+      "model": "gpt-5.6-sol",
+      "role": "judge",
+      "scope": [
+        "plan",
+        "delivery"
+      ],
+      "timeout_sec": 1800
+    }
+  },
+  "criteria_by_id": {
+    "browser-product-flow": {
+      "id": "browser-product-flow",
+      "rubric": "Inspect desktop and iPhone-size browser evidence for the complete flow: open saved profile, choose an existing look, choose a scene, start, observe truthful real-time stages, survive reload, inspect or retry a failed scene, and view/delete/download the saved result. Score 100 only if the active screen is legible, no required action is hidden, no internal paths or engineering-only labels leak, and core look results stay accessible throughout.\n",
+      "type": "judge"
+    },
+    "browser-scene-e2e": {
+      "check": [
+        "node",
+        "--test",
+        "test/web/scene-browser-e2e.test.js"
+      ],
+      "expect": "exit_zero",
+      "id": "browser-scene-e2e",
+      "timeout_sec": 900,
+      "type": "programmatic"
+    },
+    "editorial-orchestration": {
+      "check": [
+        "node",
+        "--test",
+        "test/web/editorial-shoot-service.test.js"
+      ],
+      "expect": "exit_zero",
+      "id": "editorial-orchestration",
+      "timeout_sec": 900,
+      "type": "programmatic"
+    },
+    "editorial-series-quality": {
+      "id": "editorial-series-quality",
+      "rubric": "Review the ShootBible and all six exact shot hashes. Score 100 only when the series contains a clean identity hero, environmental hero, sculptural three-quarter, one controlled interference frame, material/accessory detail and wide campaign coda; identity and outfit are consistent; each shot follows its own camera/pose/light authority; experimental devices never obscure critical identity or item evidence; and a failed shot can be retried without regenerating the approved look or the other five shots.\n",
+      "type": "judge"
+    },
+    "full-repository-tests": {
+      "check": [
+        "npm",
+        "test"
+      ],
+      "expect": "exit_zero",
+      "id": "full-repository-tests",
+      "timeout_sec": 1800,
+      "type": "programmatic"
+    },
+    "implementation-plan": {
+      "id": "implementation-plan",
+      "rubric": "Review plan.md against the complete definition of done and current repository architecture. Pass only if the plan names every missing contract, asset, service, persistence, API, UI, QA, privacy, E2E and editorial-series obligation; preserves approved avatar/look outputs; sequences interfaces so parallel edits do not conflict; assigns authoritative proof to every requirement; and contains no step that can declare broad completion from a narrower test.\n",
+      "type": "judge"
+    },
+    "personal-scene-receipts": {
+      "check": [
+        "node",
+        "tools/validate-personal-scene-receipts.mjs",
+        "--strict"
+      ],
+      "expect": "exit_zero",
+      "id": "personal-scene-receipts",
+      "timeout_sec": 300,
+      "type": "programmatic"
+    },
+    "production-architecture": {
+      "id": "production-architecture",
+      "rubric": "Inspect current source, schemas, tests and receipts. Score 100 only when: SceneService is independent from core; exact approved-look SHA and PASS receipt are verified; preset/version/reference-pack bindings are immutable; 4:5 is enforced; jobs persist and resume; retries are idempotent and defect-specific; outputs and QA are stored under the profile look; every declared gate is actually enforced; failures never invalidate an already approved avatar/look; and tests exercise success, retry, crash-resume, rejection, authorization and deletion. Return structured JSON and name every missing proof.\n",
+      "type": "judge"
+    },
+    "production-visual-quality": {
+      "id": "production-visual-quality",
+      "rubric": "Review every non-personal released plate and lighting preview at original resolution. For personal avatar-conditioned outputs, do not receive pixels: review the redacted exact-hash receipt structure and the result of the strict local personal-receipt validator. Score 100 only when every non-personal asset has its own visual matrix and every personal candidate hash has all blocking same-vendor/current-session receipts for identity, items, scene, lighting, framing, anatomy, leakage and provenance. Aggregate counts or a receipt not bound to the final hash are a failure.\n",
+      "type": "judge"
+    },
+    "scene-events-restart": {
+      "check": [
+        "node",
+        "--test",
+        "test/web/scene-events-restart.test.js"
+      ],
+      "expect": "exit_zero",
+      "id": "scene-events-restart",
+      "timeout_sec": 600,
+      "type": "programmatic"
+    },
+    "scene-privacy": {
+      "check": [
+        "node",
+        "tools/validate-scene-privacy.mjs",
+        "--strict"
+      ],
+      "expect": "exit_zero",
+      "id": "scene-privacy",
+      "timeout_sec": 300,
+      "type": "programmatic"
+    },
+    "scene-provider-capabilities": {
+      "check": [
+        "node",
+        "--test",
+        "test/providers/scene-provider-capabilities.test.js"
+      ],
+      "expect": "exit_zero",
+      "id": "scene-provider-capabilities",
+      "timeout_sec": 300,
+      "type": "programmatic"
+    },
+    "scene-release-contract": {
+      "check": [
+        "node",
+        "tools/validate-scene-release.mjs",
+        "--strict"
+      ],
+      "expect": "exit_zero",
+      "id": "scene-release-contract",
+      "timeout_sec": 600,
+      "type": "programmatic"
+    },
+    "scene-retention-cascade": {
+      "check": [
+        "node",
+        "--test",
+        "test/web/scene-retention.test.js"
+      ],
+      "expect": "exit_zero",
+      "id": "scene-retention-cascade",
+      "timeout_sec": 600,
+      "type": "programmatic"
+    },
+    "scene-service-integration": {
+      "check": [
+        "node",
+        "--test",
+        "test/web/scene-service.test.js",
+        "test/web/scene-api.test.js",
+        "test/web/scene-profile-integration.test.js"
+      ],
+      "expect": "exit_zero",
+      "id": "scene-service-integration",
+      "timeout_sec": 900,
+      "type": "programmatic"
+    },
+    "scene-ui-contract": {
+      "check": [
+        "node",
+        "--test",
+        "test/web/scene-ui-contract.test.js"
+      ],
+      "expect": "exit_zero",
+      "id": "scene-ui-contract",
+      "timeout_sec": 300,
+      "type": "programmatic"
+    },
+    "strict-contracts": {
+      "check": [
+        "node",
+        "tools/validate-contracts.mjs"
+      ],
+      "expect": "exit_zero",
+      "id": "strict-contracts",
+      "timeout_sec": 300,
+      "type": "programmatic"
+    }
+  },
+  "execution": {
+    "isolation": "current_workspace",
+    "mode": "in_session",
+    "side_effects": {
+      "duplicate_action_check": true,
+      "notes": "The user explicitly authorized autonomous implementation and verification. The loop may edit scene and profile runtime, schemas, migrations, UI, tests, generated scene assets, prompts, manifests and local QA artifacts. It may call configured image providers for scoped scene assets and inspect an existing local approved-look output for in-session E2E. It must not reveal personal input paths, copy runtime inputs to reviewer contexts, expose secrets, delete unrelated user data, commit, push, deploy or restart the live service without a separate explicit request.\n",
+      "requires_approval": false
+    }
+  },
+  "gates": {
+    "delivery_gate": {
+      "criteria": [
+        "full-repository-tests",
+        "strict-contracts",
+        "scene-release-contract",
+        "scene-service-integration",
+        "scene-ui-contract",
+        "scene-privacy",
+        "scene-events-restart",
+        "browser-scene-e2e",
+        "editorial-orchestration",
+        "scene-retention-cascade",
+        "scene-provider-capabilities",
+        "personal-scene-receipts",
+        "production-architecture",
+        "production-visual-quality",
+        "editorial-series-quality",
+        "browser-product-flow"
+      ],
+      "max_revisions": 3,
+      "members": [
+        "architecture-reviewer",
+        "production-judge"
+      ],
+      "verdict_policy": "revise_until_clean",
+      "verdict_source": "production-judge",
+      "when": "after_each_delivery"
+    },
+    "plan_gate": {
+      "criteria": [
+        "strict-contracts",
+        "implementation-plan"
+      ],
+      "max_revisions": 3,
+      "members": [
+        "architecture-reviewer",
+        "production-judge"
+      ],
+      "verdict_policy": "revise_until_clean",
+      "verdict_source": "production-judge",
+      "when": "after_plan"
+    }
+  },
+  "goal": {
+    "context_sources": [
+      {
+        "file": "./inputs/scene-brief.md"
+      },
+      {
+        "cmd": [
+          "git",
+          "-C",
+          "../..",
+          "status",
+          "--short"
+        ],
+        "timeout_sec": 60
+      },
+      {
+        "cmd": [
+          "node",
+          "--test",
+          "../../test/contracts/scene-preset-catalog.test.js"
+        ],
+        "timeout_sec": 180
+      },
+      {
+        "cmd": [
+          "npm",
+          "--prefix",
+          "../..",
+          "test"
+        ],
+        "timeout_sec": 1800
+      }
+    ],
+    "definition_of_done": "The catalog has five explicitly selected and approved standard launch presets. Every selected preset has an immutable empty environment plate, lighting preview, versioned reference pack, source/rights ledger, exact prompt lineage, stable provider/model receipt, and per-asset QA evidence. A persisted SceneService accepts an exact approved-look receipt, produces 4:5 scene jobs independently of core avatar generation, survives restart, supports idempotent scene-only retry, stores results under the saved look, and streams truthful progress. The UI exposes preset selection, generation, retry, deletion and download without forcing a new avatar. All nine scene gates are programmatically or judge enforced. The Edwin mode produces a validated ShootBible and six independently retryable shots using a hero-first gate and concurrency two. Full tests, strict contract/release validators, browser E2E, privacy checks, per-asset visual matrices and production-result judges all pass with zero unresolved findings.\n",
+    "statement": "Deliver a working Zeely production scene layer in which an anonymous browser profile can select a saved approved look, choose an approved standard scene or an Edwin editorial program, generate persistent 4:5 results through resumable jobs, and retry only failed scenes or shots. Complete the launch reference assets, strict contracts, provenance, SceneService, API, profile graph, live progress UI, production QA, and the six-shot ShootBible flow. Do not call the result complete until every deterministic requirement is proved and independent judges return 100/100 with no pending, skipped, aggregate-only, or unbound evidence.\n",
+    "verification": [
+      {
+        "id": "implementation-plan",
+        "rubric": "Review plan.md against the complete definition of done and current repository architecture. Pass only if the plan names every missing contract, asset, service, persistence, API, UI, QA, privacy, E2E and editorial-series obligation; preserves approved avatar/look outputs; sequences interfaces so parallel edits do not conflict; assigns authoritative proof to every requirement; and contains no step that can declare broad completion from a narrower test.\n",
+        "type": "judge"
+      },
+      {
+        "check": [
+          "npm",
+          "test"
+        ],
+        "expect": "exit_zero",
+        "id": "full-repository-tests",
+        "timeout_sec": 1800,
+        "type": "programmatic"
+      },
+      {
+        "check": [
+          "node",
+          "tools/validate-contracts.mjs"
+        ],
+        "expect": "exit_zero",
+        "id": "strict-contracts",
+        "timeout_sec": 300,
+        "type": "programmatic"
+      },
+      {
+        "check": [
+          "node",
+          "tools/validate-scene-release.mjs",
+          "--strict"
+        ],
+        "expect": "exit_zero",
+        "id": "scene-release-contract",
+        "timeout_sec": 600,
+        "type": "programmatic"
+      },
+      {
+        "check": [
+          "node",
+          "--test",
+          "test/web/scene-service.test.js",
+          "test/web/scene-api.test.js",
+          "test/web/scene-profile-integration.test.js"
+        ],
+        "expect": "exit_zero",
+        "id": "scene-service-integration",
+        "timeout_sec": 900,
+        "type": "programmatic"
+      },
+      {
+        "check": [
+          "node",
+          "--test",
+          "test/web/scene-ui-contract.test.js"
+        ],
+        "expect": "exit_zero",
+        "id": "scene-ui-contract",
+        "timeout_sec": 300,
+        "type": "programmatic"
+      },
+      {
+        "check": [
+          "node",
+          "tools/validate-scene-privacy.mjs",
+          "--strict"
+        ],
+        "expect": "exit_zero",
+        "id": "scene-privacy",
+        "timeout_sec": 300,
+        "type": "programmatic"
+      },
+      {
+        "check": [
+          "node",
+          "--test",
+          "test/web/scene-events-restart.test.js"
+        ],
+        "expect": "exit_zero",
+        "id": "scene-events-restart",
+        "timeout_sec": 600,
+        "type": "programmatic"
+      },
+      {
+        "check": [
+          "node",
+          "--test",
+          "test/web/scene-browser-e2e.test.js"
+        ],
+        "expect": "exit_zero",
+        "id": "browser-scene-e2e",
+        "timeout_sec": 900,
+        "type": "programmatic"
+      },
+      {
+        "check": [
+          "node",
+          "--test",
+          "test/web/editorial-shoot-service.test.js"
+        ],
+        "expect": "exit_zero",
+        "id": "editorial-orchestration",
+        "timeout_sec": 900,
+        "type": "programmatic"
+      },
+      {
+        "check": [
+          "node",
+          "--test",
+          "test/web/scene-retention.test.js"
+        ],
+        "expect": "exit_zero",
+        "id": "scene-retention-cascade",
+        "timeout_sec": 600,
+        "type": "programmatic"
+      },
+      {
+        "check": [
+          "node",
+          "--test",
+          "test/providers/scene-provider-capabilities.test.js"
+        ],
+        "expect": "exit_zero",
+        "id": "scene-provider-capabilities",
+        "timeout_sec": 300,
+        "type": "programmatic"
+      },
+      {
+        "check": [
+          "node",
+          "tools/validate-personal-scene-receipts.mjs",
+          "--strict"
+        ],
+        "expect": "exit_zero",
+        "id": "personal-scene-receipts",
+        "timeout_sec": 300,
+        "type": "programmatic"
+      },
+      {
+        "id": "production-architecture",
+        "rubric": "Inspect current source, schemas, tests and receipts. Score 100 only when: SceneService is independent from core; exact approved-look SHA and PASS receipt are verified; preset/version/reference-pack bindings are immutable; 4:5 is enforced; jobs persist and resume; retries are idempotent and defect-specific; outputs and QA are stored under the profile look; every declared gate is actually enforced; failures never invalidate an already approved avatar/look; and tests exercise success, retry, crash-resume, rejection, authorization and deletion. Return structured JSON and name every missing proof.\n",
+        "type": "judge"
+      },
+      {
+        "id": "production-visual-quality",
+        "rubric": "Review every non-personal released plate and lighting preview at original resolution. For personal avatar-conditioned outputs, do not receive pixels: review the redacted exact-hash receipt structure and the result of the strict local personal-receipt validator. Score 100 only when every non-personal asset has its own visual matrix and every personal candidate hash has all blocking same-vendor/current-session receipts for identity, items, scene, lighting, framing, anatomy, leakage and provenance. Aggregate counts or a receipt not bound to the final hash are a failure.\n",
+        "type": "judge"
+      },
+      {
+        "id": "editorial-series-quality",
+        "rubric": "Review the ShootBible and all six exact shot hashes. Score 100 only when the series contains a clean identity hero, environmental hero, sculptural three-quarter, one controlled interference frame, material/accessory detail and wide campaign coda; identity and outfit are consistent; each shot follows its own camera/pose/light authority; experimental devices never obscure critical identity or item evidence; and a failed shot can be retried without regenerating the approved look or the other five shots.\n",
+        "type": "judge"
+      },
+      {
+        "id": "browser-product-flow",
+        "rubric": "Inspect desktop and iPhone-size browser evidence for the complete flow: open saved profile, choose an existing look, choose a scene, start, observe truthful real-time stages, survive reload, inspect or retry a failed scene, and view/delete/download the saved result. Score 100 only if the active screen is legible, no required action is hidden, no internal paths or engineering-only labels leak, and core look results stay accessible throughout.\n",
+        "type": "judge"
+      }
+    ]
+  },
+  "host": {
+    "cli": "codex",
+    "invoke": [
+      "codex",
+      "exec"
+    ],
+    "model": "gpt-5.6-terra",
+    "timeout_sec": 2400
+  },
+  "loop_control": {
+    "budget": {
+      "wall_clock_min": 720
+    },
+    "human_checkpoints": [],
+    "max_iterations": 24,
+    "no_progress": {
+      "action": "stop",
+      "max_stalled_iterations": 2,
+      "signals": [
+        "the same failing requirement has the same evidence after a targeted revision",
+        "a deterministic check fails with byte-identical output after a relevant edit",
+        "a scene or shot hash and its named visual defect remain unchanged after retry",
+        "runtime restart or reload reproduces the same unaddressed persistence failure"
+      ]
+    },
+    "stop_conditions": [
+      "every delivery-gate criterion passes and every judge score is 100 with zero blocking issues",
+      "max_iterations reached",
+      "the same blocker repeats twice without measurable improvement",
+      "wall-clock budget is exceeded"
+    ]
+  },
+  "meta": {
+    "author": "zeely-team",
+    "created": "2026-07-23",
+    "description": "Build and verify the complete saved-look scene and six-shot editorial pipeline, not only its mood board.",
+    "name": "zeely-production-scene-until-clean"
+  },
+  "observability": {
+    "checkpoint_granularity": "gate",
+    "run_log": "run-log.md",
+    "state_file": "state.json"
+  },
+  "privacy": {
+    "egress": [
+      {
+        "consent": "granted",
+        "redact": [
+          ".env",
+          ".env.*",
+          "secrets/**",
+          "**/*.key",
+          "runtime/**",
+          "inputs/**",
+          "output/*/avatar*",
+          "artifacts/conditioning/humans/**"
+        ],
+        "sends": [
+          "source-code",
+          "schemas",
+          "tests",
+          "redacted-contracts",
+          "generated-nonpersonal-assets"
+        ],
+        "to": "architecture-reviewer"
+      },
+      {
+        "consent": "granted",
+        "redact": [
+          ".env",
+          ".env.*",
+          "secrets/**",
+          "**/*.key",
+          "runtime/**",
+          "inputs/**",
+          "output/*/avatar*",
+          "artifacts/conditioning/humans/**"
+        ],
+        "sends": [
+          "source-code",
+          "schemas",
+          "tests",
+          "redacted-contracts",
+          "generated-nonpersonal-assets"
+        ],
+        "to": "production-judge"
+      }
+    ]
+  },
+  "source": "loop.yaml",
+  "version": 1,
+  "workspace": {
+    "dir": "./loop-workspace-production-v2",
+    "layout": [
+      "plan.md",
+      "state.json",
+      "run-log.md",
+      "architecture-review.md",
+      "judge-verdict.json",
+      "release-evidence.json",
+      "browser-evidence.md",
+      "delivery-report.md"
+    ]
+  }
+}

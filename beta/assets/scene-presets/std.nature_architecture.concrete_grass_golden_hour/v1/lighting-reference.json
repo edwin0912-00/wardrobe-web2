@@ -1,0 +1,17 @@
+{
+  "facts": {
+    "fill": "cool open-sky fill preserving item texture",
+    "finish": "polished_editorial_gloss_without_skin_smoothing_or_hdr",
+    "key": "low golden side and back light defining the body and grasses without destructive flare",
+    "protected_regions": [
+      "eyes",
+      "face_identity",
+      "item_logos",
+      "item_text",
+      "critical_construction"
+    ],
+    "time_or_setup": "golden hour outdoors"
+  },
+  "role": "lighting_anchor",
+  "schema_version": "1.0.0"
+}

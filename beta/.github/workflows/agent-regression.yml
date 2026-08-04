@@ -1,0 +1,191 @@
+name: Agent regression gate
+
+on:
+  pull_request:
+    branches:
+      - integration/wardrobe-20260726
+
+permissions:
+  contents: read
+
+concurrency:
+  group: agent-regression-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  classify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      product_changed: ${{ steps.diff.outputs.product_changed }}
+      trusted_control_available: ${{ steps.diff.outputs.trusted_control_available }}
+    steps:
+      - name: Checkout prospective PR merge
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: refs/pull/${{ github.event.pull_request.number }}/merge
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Checkout trusted base
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+          path: trusted
+
+      - name: Classify the change surface
+        id: diff
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if test -f trusted/tools/coordination/classify-pr-diff.mjs; then
+            classifier=trusted/tools/coordination/classify-pr-diff.mjs
+            echo "trusted_control_available=true" >> "$GITHUB_OUTPUT"
+          else
+            classifier=tools/coordination/classify-pr-diff.mjs
+            echo "trusted_control_available=false" >> "$GITHUB_OUTPUT"
+          fi
+          classification=$(node "$classifier" --root . \
+            --base "$BASE_SHA" --head "$HEAD_SHA")
+          product_changed=$(node -e \
+            'let s="";process.stdin.on("data",c=>s+=c).on("end",()=>process.stdout.write(String(JSON.parse(s).product_changed)))' \
+            <<<"$classification")
+          echo "product_changed=$product_changed" >> "$GITHUB_OUTPUT"
+
+  task-acceptance:
+    needs: classify
+    if: needs.classify.outputs.trusted_control_available == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout trusted base control plane
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+          path: trusted
+
+      - name: Checkout candidate
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+          path: candidate
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22
+
+      - name: Install trusted validator dependencies
+        working-directory: trusted
+        run: npm ci --ignore-scripts
+
+      - name: Enforce trusted task scope and handoff
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: >-
+          node trusted/tools/coordination/assert-pr-scope.mjs
+          --root candidate
+          --base "$BASE_SHA"
+          --head "$HEAD_SHA"
+          --branch "$HEAD_REF"
+
+      - name: Install candidate test dependencies
+        if: github.event.pull_request.head.ref != 'control/codex-main'
+        working-directory: candidate
+        run: npm ci --ignore-scripts
+
+      - name: Execute trusted task acceptance argv
+        if: github.event.pull_request.head.ref != 'control/codex-main'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: >-
+          node trusted/tools/coordination/run-task-acceptance.mjs
+          --root candidate
+          --base "$BASE_SHA"
+          --head "$HEAD_SHA"
+          --branch "$HEAD_REF"
+
+  candidate-regression:
+    needs: [classify, task-acceptance]
+    if: >-
+      needs.classify.outputs.trusted_control_available == 'true' &&
+      needs.classify.outputs.product_changed == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout prospective PR merge
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: refs/pull/${{ github.event.pull_request.number }}/merge
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Checkout trusted base checker
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+          path: trusted
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22
+
+      - run: npm ci --ignore-scripts
+
+      - name: Enforce the exact regression baseline
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: node trusted/tools/coordination/check-test-baseline.mjs --base "$BASE_SHA"
+
+  trusted-test-compatibility:
+    needs: [classify, task-acceptance]
+    if: >-
+      needs.classify.outputs.trusted_control_available == 'true' &&
+      needs.classify.outputs.product_changed == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout prospective PR merge
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: refs/pull/${{ github.event.pull_request.number }}/merge
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Checkout trusted base checker
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+          path: trusted
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22
+
+      - run: npm ci --ignore-scripts
+
+      - name: Restore the trusted base test tree over candidate source
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          git rm -r --quiet --ignore-unmatch test
+          git checkout "$BASE_SHA" -- test
+
+      - name: Prove candidate code still passes the trusted base tests
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: node trusted/tools/coordination/check-test-baseline.mjs --base "$BASE_SHA"

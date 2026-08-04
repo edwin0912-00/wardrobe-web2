@@ -1,0 +1,32 @@
+{
+  "schema_version": "1.0.0",
+  "plan_id": "condition-human-missing-body-001",
+  "job_id": "zeely-test-001",
+  "extraction_ids": ["extract-human-001"],
+  "source_asset_ids": ["source-human-001"],
+  "target_use": "AVATAR",
+  "disposition": "MISSING_REQUIRED_EVIDENCE",
+  "blocking_reasons": [
+    "Lower-body proportions are not visible, so body-build preservation cannot be verified."
+  ],
+  "operations": [],
+  "fidelity_policy": {
+    "allow_content_synthesis": false,
+    "generated_pixels_are_evidence": false,
+    "max_upscale_factor": 4,
+    "preserve_source_hash": true,
+    "lock_sources": ["OBSERVED", "USER_PROVIDED", "DERIVED_DETERMINISTIC"]
+  },
+  "conditioning_gate": {
+    "required_derivative_types": ["NORMALIZED_SOURCE", "FACE_CROP", "PERSON_CROP", "PERSON_MASK", "VISIBILITY_MAP", "REFERENCE_CARD"],
+    "checks": [
+      { "name": "DECODE", "blocking": true, "threshold": 1 },
+      { "name": "IDENTITY_PRESERVATION", "blocking": true, "threshold": 0.95 },
+      { "name": "NO_SYNTHETIC_LOCKS", "blocking": true, "threshold": 1 }
+    ],
+    "on_pass": "BUILD_PACK",
+    "on_fail": "REQUEST_INPUT"
+  },
+  "next_action": "REQUEST_INPUT",
+  "created_at": "2026-07-22T00:03:01Z"
+}

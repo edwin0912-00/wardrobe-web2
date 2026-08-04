@@ -1,0 +1,313 @@
+{
+  "schema_version": "2.0.0",
+  "dataset_id": "zeely-public-test-assets-2026-07",
+  "task_url": "https://righteous-spoon-d6a.notion.site/Zeely-Test-Task-for-AI-Engineer-Image-Video-Generation-33bcef9155c980189a4def1cd74e1e6c",
+  "source_folders": {
+    "user_inputs": "https://drive.google.com/drive/folders/1eTOYLosmDc1AUaBM5eRY1N4dHHqnAnBh",
+    "quality_references": "https://drive.google.com/drive/folders/19j04t4Pq604UJqW48s0ELGrBPxpMix9g",
+    "outfit_references": "https://drive.google.com/drive/folders/1l-X0-VIiCdPG4IJ0soI156mu5-dDbCH2"
+  },
+  "asset_policy": {
+    "raw_assets_immutable": true,
+    "derivatives_are_generation_inputs_only_when_conditioning_qa_passes": true,
+    "generated_hypotheses_are_never_identity_or_product_locks": true,
+    "unobservable_attributes_remain_unknown": true,
+    "authority_precedence": [
+      "WRITTEN_TASK_RULE",
+      "OBSERVED_SOURCE_EVIDENCE",
+      "QUALITY_BENCHMARK_MEASUREMENT",
+      "DEFAULT"
+    ]
+  },
+  "reference_policy": {
+    "identity_reference": "Authority for observable identity evidence only. It is supplied to avatar generation and again to outfit editing after conditioning. Unseen body proportions must not be inferred or claimed as preserved.",
+    "approved_avatar_reference": "Authority for the approved pose, framing, camera, lighting and background during outfit editing; it does not replace the original identity evidence.",
+    "outfit_reference": "Authority only for observable garment or accessory structure, color, material, graphic placement and fit. It is used only after conditioning readiness passes.",
+    "quality_reference": "Benchmark for framing, lighting, finish and detail, plus side-by-side QA. It must not supply identity, body, garment, or exact background color and is not sent to generation by default.",
+    "written_background_rule": "The required output background is exact RGB(255,255,255) / #FFFFFF. This written rule overrides the approximately #F6F6F4 background measured in the benchmark images."
+  },
+  "execution_lanes": {
+    "strict_production": {
+      "requires_observable_body_proportions_when_body_preservation_is_required": true,
+      "missing_required_evidence_action": "NEEDS_INPUT",
+      "may_claim_unobservable_body_preservation": false
+    },
+    "task_compatibility": {
+      "selected_for_core_submission": true,
+      "purpose": "Complete the required three-user test with the supplied assets without inventing missing evidence.",
+      "missing_body_evidence_action": "CONTINUE_WITH_BODY_BUILD_NOT_EVALUABLE",
+      "may_claim_unobservable_body_preservation": false
+    }
+  },
+  "user_inputs": [
+    {
+      "asset_id": "user-input-001",
+      "local_path": "users/input1.webp",
+      "drive_file_id": "1WToajjUJsxrX4NuzaPFB08KDDqRHD8f7",
+      "sha256": "27716f2c8d38a1ec1ad14c55776910f0d1c9f21a1222c3d4532818a7de3ad460",
+      "mime_type": "image/webp",
+      "width": 364,
+      "height": 594,
+      "body_build_evidence": "PARTIAL_UPPER_BODY_ONLY",
+      "conditioning_reference_pack": "../../artifacts/conditioning/humans/001/reference-pack.json",
+      "readiness": {
+        "strict_production": {
+          "decision": "NEEDS_INPUT",
+          "reason": "FULL_BODY_PROPORTIONS_NOT_OBSERVABLE"
+        },
+        "task_compatibility": {
+          "decision": "READY",
+          "body_build_qa": "NOT_EVALUABLE"
+        }
+      },
+      "core_run": true,
+      "assigned_outfit_id": "outfit-green-hoodie"
+    },
+    {
+      "asset_id": "user-input-002",
+      "local_path": "users/input2.jpg",
+      "drive_file_id": "1SK5e1132OAPL3NGYCJ08D6HfYKL7Vq_B",
+      "sha256": "a284c9c9d94eeb67f3d6c9f1b43a7c8771743a6554ac95063a55334b5516000e",
+      "mime_type": "image/jpeg",
+      "width": 460,
+      "height": 612,
+      "body_build_evidence": "NOT_EVALUABLE_FACE_AND_SHOULDERS_ONLY",
+      "conditioning_reference_pack": "../../artifacts/conditioning/humans/002/reference-pack.json",
+      "readiness": {
+        "strict_production": {
+          "decision": "NEEDS_INPUT",
+          "reason": "BODY_PROPORTIONS_NOT_OBSERVABLE"
+        },
+        "task_compatibility": {
+          "decision": "READY",
+          "body_build_qa": "NOT_EVALUABLE"
+        }
+      },
+      "core_run": true,
+      "assigned_outfit_id": "outfit-text-cobalt-blazer"
+    },
+    {
+      "asset_id": "user-input-003",
+      "local_path": "users/input3.webp",
+      "drive_file_id": "1EGXdMLAhkV7HgRDkz7TDeffy1gKuDiNO",
+      "sha256": "0ff6bf257080068b48b034c5fcd8ae6bdfb390f9976106e194525f1de62a06ff",
+      "mime_type": "image/webp",
+      "width": 640,
+      "height": 749,
+      "body_build_evidence": "NOT_EVALUABLE_FACE_AND_SHOULDERS_ONLY",
+      "conditioning_reference_pack": "../../artifacts/conditioning/humans/003/reference-pack.json",
+      "readiness": {
+        "strict_production": {
+          "decision": "NEEDS_INPUT",
+          "reason": "BODY_PROPORTIONS_NOT_OBSERVABLE"
+        },
+        "task_compatibility": {
+          "decision": "READY",
+          "body_build_qa": "NOT_EVALUABLE"
+        }
+      },
+      "core_run": true,
+      "assigned_outfit_id": "outfit-text-brown-suede-overshirt"
+    },
+    {
+      "asset_id": "user-input-004",
+      "local_path": "users/input4.jpg",
+      "drive_file_id": "1z416MicQskRF1Ll8K_JXkQaCbRMtjnB5",
+      "sha256": "89ef3541af854e40e0e8fa271518f98fbab6ff481ff504e1be71e454fe055418",
+      "mime_type": "image/jpeg",
+      "width": 2988,
+      "height": 5312,
+      "body_build_evidence": "FULL_BODY_VISIBLE",
+      "conditioning_reference_pack": "../../artifacts/conditioning/humans/004/reference-pack.json",
+      "readiness": {
+        "strict_production": {
+          "decision": "READY"
+        },
+        "task_compatibility": {
+          "decision": "READY"
+        }
+      },
+      "core_run": false,
+      "use": "Robustness input with observable full-body evidence; not required for the minimum three-user submission."
+    }
+  ],
+  "outfit_references": [
+    {
+      "asset_id": "outfit-green-hoodie",
+      "local_path": "outfits/180827-1.webp",
+      "drive_file_id": "1nDtnBhFof0RL2rYN5Xga0f7lGVdv04WR",
+      "sha256": "cf9da0ad452d265b40cdf68c3939e5b2147f17b0816811b7acb1e87a1b869526",
+      "mime_type": "image/webp",
+      "width": 888,
+      "height": 1328,
+      "mode": "reference_image",
+      "target_region": "upper_body_clothing",
+      "conditioning_reference_pack": "../../artifacts/conditioning/garments/hoodie-green/reference-pack.json",
+      "readiness": {
+        "decision": "READY",
+        "reason": "ALL_REQUIRED_EVIDENCE_AND_TECHNICAL_GATES_PASS"
+      },
+      "generation_bindings": [
+        "../../artifacts/conditioning/garments/hoodie-green/cutout.png",
+        "../../artifacts/conditioning/garments/hoodie-green/reference-card.png"
+      ],
+      "must_match": [
+        "dark forest-green pullover hoodie",
+        "hood, matching drawstrings with metal tips, long sleeves, ribbed cuffs and hem",
+        "large white curved GUCCI text",
+        "white central double-G emblem",
+        "bright-red and very-dark-navy braided horizontal stripe",
+        "curved white FIRENZE text and white 1921 below",
+        "original graphic order, placement, proportions and visible letterforms",
+        "soft heavyweight sweatshirt fabric"
+      ]
+    },
+    {
+      "asset_id": "outfit-black-sneaker",
+      "local_path": "outfits/68d39339521f3-6389105.webp",
+      "drive_file_id": "1Mkcz8zKgHexg7pOKRtU_3fTZRiV0zQ7o",
+      "sha256": "5075f38ef46f9811640c2e0d22849e72f042f43f91d3cc706ae107fa8a62c346",
+      "mime_type": "image/webp",
+      "width": 437,
+      "height": 437,
+      "mode": "reference_image",
+      "target_region": "footwear",
+      "conditioning_reference_pack": "../../artifacts/conditioning/garments/sneaker-black/reference-pack.json",
+      "readiness": {
+        "decision": "REPAIRABLE",
+        "reason": "BELOW_PREFERRED_RESOLUTION",
+        "required_change": "Run the declared conservative upscale before generation.",
+        "superseded_decision": {
+          "decision": "INCOMPATIBLE",
+          "reason": "GARMENT_FOOTWEAR_NOT_VISIBLE_IN_HALF_BODY",
+          "retired_because": "The shipped avatar frame runs head to soles, so footwear is inside it. The conditioning reference pack under artifacts/ still carries the old verdict until the next `npm run condition` pass."
+        }
+      },
+      "generation_bindings": [
+        "../../artifacts/conditioning/garments/sneaker-black/cutout.png",
+        "../../artifacts/conditioning/garments/sneaker-black/reference-card.png"
+      ]
+    },
+    {
+      "asset_id": "outfit-locked-black-trousers",
+      "local_path": "outfits/locked-black-trousers.png",
+      "sha256": "43236b483d8e5acfee4d4c33d2e3cd94a64ec3c31ee0b5b5e4cccd00fe6cf9d8",
+      "mime_type": "image/png",
+      "width": 1024,
+      "height": 1536,
+      "mode": "reference_image",
+      "target_region": "lower_body_clothing",
+      "conditioning_reference_pack": "../../artifacts/conditioning/garments/trousers-black/reference-pack.json",
+      "provenance": {
+        "kind": "SYNTHETIC_LOCKED",
+        "policy": "ONE_TIME_OPERATOR_APPROVED_SYNTHESIS",
+        "source_sha256": "f4f27a29e778fc3ed875f46b1d29210105546c13e02857c5f422d793044c053f",
+        "immutable_after_approval": true
+      },
+      "readiness": {
+        "decision": "READY",
+        "reason": "ONE_TIME_SYNTHETIC_ITEM_LOCKED_WITH_HASH_BOUND_DOSSIER"
+      },
+      "generation_bindings": [
+        "../../artifacts/conditioning/garments/trousers-black/cutout.png",
+        "../../artifacts/conditioning/garments/trousers-black/reference-card.png"
+      ],
+      "must_match": [
+        "charcoal-black straight-leg five-pocket jeans",
+        "mid-rise waistband, zip fly, button closure and belt loops",
+        "plain washed-black opaque cotton denim with no branding, text, graphic or distressing"
+      ]
+    },
+    {
+      "asset_id": "outfit-cowboy-hat",
+      "local_path": "outfits/images.jpeg",
+      "drive_file_id": "1TWf0SiOunEXqbjk9Lz0AYgHRIsq3gXtF",
+      "sha256": "77333f7493242972296c10fc6ea92ded821bf0dea0b412f552fe55c93293c66f",
+      "mime_type": "image/jpeg",
+      "width": 197,
+      "height": 256,
+      "mode": "reference_image",
+      "target_region": "headwear",
+      "conditioning_reference_pack": "../../artifacts/conditioning/garments/hat-western/reference-pack.json",
+      "readiness": {
+        "decision": "NEEDS_INPUT",
+        "reason": "EXACT_DETAIL_UNSUPPORTED_BY_RESOLUTION",
+        "required_change": "Request a higher-resolution reference before exact-detail generation."
+      },
+      "generation_bindings": []
+    },
+    {
+      "asset_id": "outfit-text-cobalt-blazer",
+      "mode": "text",
+      "target_region": "upper_body_clothing",
+      "readiness": {
+        "decision": "READY"
+      },
+      "text": "A cobalt-blue single-breasted tailored blazer in matte finely woven fabric, relaxed regular fit, notch lapels, one visible dark-blue button and clean welt pockets, worn over a plain opaque white crew-neck cotton top. No logo, text, pattern, jewelry, scarf or extra layer."
+    },
+    {
+      "asset_id": "outfit-text-brown-suede-overshirt",
+      "mode": "text",
+      "target_region": "upper_body_clothing",
+      "readiness": {
+        "decision": "READY"
+      },
+      "text": "A dark chocolate-brown suede overshirt with matte fine-nap texture, regular relaxed fit, pointed collar, full button front with small dark horn buttons, two clean chest flap pockets and long sleeves, worn open over a plain opaque black crew-neck cotton T-shirt. No logo, text, pattern, jewelry or accessory."
+    }
+  ],
+  "quality_references": [
+    {
+      "asset_id": "quality-output-001",
+      "local_path": "quality-references/output1.png",
+      "drive_file_id": "1LZuXDmQF5N4WQrWL8V54w0xvczpVDSY7",
+      "sha256": "790bd899f978217629b19e6da39c0fdf8e6475c5732a31c92329d39ee9d8ea54",
+      "mime_type": "image/png",
+      "width": 536,
+      "height": 960,
+      "use": "Framing, lighting, finish and detail benchmark only."
+    },
+    {
+      "asset_id": "quality-output-002",
+      "local_path": "quality-references/output2.png",
+      "drive_file_id": "1BiI-gOLmHdvlKA5M8y_zdK3FgJKvlbMZ",
+      "sha256": "fc732b9a29e75e716726daa01ee012c5603ecbe56d48d070f7b8b8e113e25763",
+      "mime_type": "image/png",
+      "width": 556,
+      "height": 960,
+      "use": "Framing, lighting, finish and detail benchmark only."
+    },
+    {
+      "asset_id": "quality-output-003",
+      "local_path": "quality-references/output3.png",
+      "drive_file_id": "1ULZzgXoLkC32-y-J34It64I78pb96e6g",
+      "sha256": "a9a89be4f051b0f0f7176799fb11257116c282eb509a33e66e80a6a1585cd0db",
+      "mime_type": "image/png",
+      "width": 530,
+      "height": 948,
+      "use": "Framing, lighting, finish and detail benchmark only."
+    }
+  ],
+  "quality_target": {
+    "path": "../../artifacts/conditioning/quality-target.json",
+    "exact_background": "#FFFFFF",
+    "measured_benchmark_background": "#F6F6F4",
+    "conflict_resolution": "WRITTEN_TASK_RULE_WINS"
+  },
+  "core_job_assignments": [
+    {
+      "job_id": "zeely-001",
+      "identity_asset_id": "user-input-001",
+      "outfit_asset_id": "outfit-green-hoodie"
+    },
+    {
+      "job_id": "zeely-002",
+      "identity_asset_id": "user-input-002",
+      "outfit_asset_id": "outfit-text-cobalt-blazer"
+    },
+    {
+      "job_id": "zeely-003",
+      "identity_asset_id": "user-input-003",
+      "outfit_asset_id": "outfit-text-brown-suede-overshirt"
+    }
+  ]
+}

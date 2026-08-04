@@ -1,0 +1,33 @@
+{
+  "schema_version": "1.0.0",
+  "preset_id": "editorial.edwin_novak.urban_monochrome",
+  "kind": "editorial",
+  "family": "edwin_novak",
+  "ui_name_uk": "Міський монохром",
+  "asset_role": "mood_card",
+  "file": "assets/scene-mood-cards/editorial.edwin_novak.urban_monochrome.webp",
+  "sha256": "32988193c9a155efc4ca60aa4c9655778038a4eefb9de59898a8ff7c5725b2c9",
+  "prompt_path": "prompts/scenes/editorial.edwin_novak.urban_monochrome.txt",
+  "prompt_sha256": "853687f6d7f799e2170b3220319b9c9ae1c39fba3dfb8f3bff49ee736ce836fe",
+  "generation": {
+    "provider_path": "openrouter_imagegen",
+    "model_family": "openai/gpt-5.4-image-2",
+    "model_version": "openai/gpt-5.4-image-2",
+    "source_width": 1024,
+    "source_height": 1024,
+    "reference_photos": [
+      "urban_monochrome-01.jpg",
+      "urban_monochrome-02.jpg"
+    ],
+    "reference_source": "edwinnovak.com (owner-provided, used for style/lighting/composition only)"
+  },
+  "delivery": {
+    "width": 1024,
+    "height": 1280,
+    "format": "webp",
+    "aspect_ratio": "4:5"
+  },
+  "contains_personal_input": false,
+  "approval": "PENDING_VISUAL_JUDGE",
+  "created_at": "2026-07-25T01:00:00.000Z"
+}

@@ -1,0 +1,37 @@
+{
+  "schema_version": "1.0.0",
+  "catalog_id": "zeely.motion-modes.v1",
+  "status": "DRAFT_FOR_APPROVAL",
+  "route_policy": {
+    "transport": "MCP",
+    "note": "Higgsfield and Magnific are reached over MCP only. The web process holds no MCP session, so a mode never names a transport of its own: the job is emitted and an MCP-capable agent fulfils it.",
+    "audio_policy": "MODEL_AUDIO_NEVER_SHIPS",
+    "aspect_policy": "DELIVERY_ASPECT_IS_A_ROUTE_PARAMETER_NEVER_PROMPT_PROSE"
+  },
+  "modes": [
+    {
+      "id": "motion.standard_background.default",
+      "title": "Живий кадр на звичайному фоні",
+      "description": "Спокійний рух у затвердженому образі на звичайному фоні. Реалістичніший із двох маршрутів.",
+      "billable": true,
+      "scene_kind": "standard_background",
+      "route": { "model_slug": "gemini-omni-preview" },
+      "delivery": { "aspect_ratio": "9:16", "resolution": "720p", "duration_seconds": 10 },
+      "shot_list": "SUPPORTED",
+      "reference_roles": ["identity", "face", "garment_detail", "footwear_detail", "environment_motion"],
+      "audio": "muxed_in_post"
+    },
+    {
+      "id": "motion.art_fashion_shoot.default",
+      "title": "Fashion motion після арт-зйомки",
+      "description": "Рух у стилі обраної фотосесії. Тримає енергію поданого референс-кліпу.",
+      "billable": true,
+      "scene_kind": "art_fashion_shoot",
+      "route": { "model_slug": "bytedance-seedance-pro-2.0" },
+      "delivery": { "aspect_ratio": "9:16", "resolution": "1080p", "duration_seconds": 15 },
+      "shot_list": "SUPPORTED_REQUIRES_PROMPT_ALONGSIDE",
+      "reference_roles": ["identity", "face", "garment_detail", "footwear_detail", "hem_detail", "environment_motion"],
+      "audio": "muxed_in_post"
+    }
+  ]
+}

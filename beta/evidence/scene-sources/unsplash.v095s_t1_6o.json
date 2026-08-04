@@ -1,0 +1,23 @@
+{
+  "availability": "VERIFIED",
+  "creator": "Desmond Leung",
+  "extraction_role": "environment_and_composition_inspiration",
+  "license_evidence": "evidence/licenses/unsplash-license-2026-07-23.md",
+  "not_authority_for": [
+    "identity",
+    "body",
+    "hair",
+    "outfit",
+    "brands",
+    "readable_text",
+    "exact_architecture"
+  ],
+  "page_title": "Concrete road beside building at night with amber light",
+  "permitted_observation": "wet urban asphalt reflection behavior and moody night atmosphere only",
+  "pixel_policy": "PAGE_METADATA_AND_ROLE_LIMITS_ONLY_SOURCE_PIXELS_NOT_SHIPPED",
+  "platform": "Unsplash",
+  "retrieved_at": "2026-07-23T09:40:00Z",
+  "schema_version": "1.0.0",
+  "source_id": "unsplash.v095s_t1_6o",
+  "url": "https://unsplash.com/photos/concrete-road-beside-building-v095s_t1_6o"
+}

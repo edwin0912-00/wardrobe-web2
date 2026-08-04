@@ -1,0 +1,126 @@
+{
+  "schema_version": "1.0.0",
+  "pipeline_id": "zeely.post_shoot.v1",
+  "source_contract": {
+    "required_status": "APPROVED",
+    "required_type": "ART_SHOOT",
+    "required_step": "ART_SHOOT.05"
+  },
+  "modes": [
+    {
+      "id": "video",
+      "title": "Зробити відео",
+      "description": "Короткий fashion motion із затвердженого кадру.",
+      "billable": true,
+      "nodes": ["VIDEO.01", "VIDEO.02", "VIDEO.03", "VIDEO.04"]
+    },
+    {
+      "id": "live_webcam",
+      "title": "Live webcam",
+      "description": "Живе AI-дзеркало Lucy 2.5 з тим самим locked look.",
+      "billable": true,
+      "price_usd_per_second": 0.04,
+      "max_session_seconds": 40,
+      "provider": {
+        "broker": "fal.ai",
+        "model_id": "decart/lucy-2-5/realtime",
+        "transport": "WEBRTC",
+        "media_path": "BROWSER_TO_DECART_P2P",
+        "credential_surface": "SERVER_ONLY_SHORT_LIVED_TOKEN"
+      },
+      "nodes": ["LIVE.01", "LIVE.02", "LIVE.03", "LIVE.04"]
+    }
+  ],
+  "nodes": [
+    {
+      "id": "SOURCE.01",
+      "kind": "gate",
+      "title": "Approved shoot",
+      "input": ["approved_shoot_id", "approved_frame_url", "approved_look_id", "style_unit_id"],
+      "output": ["locked_source"],
+      "gate": "APPROVED_SOURCE_ONLY",
+      "next": ["CHOICE.01"]
+    },
+    {
+      "id": "CHOICE.01",
+      "kind": "choice",
+      "title": "Video або Live webcam",
+      "input": ["locked_source"],
+      "output": ["selected_mode"],
+      "gate": "EXPLICIT_USER_CHOICE",
+      "next": ["VIDEO.01", "LIVE.01"]
+    },
+    {
+      "id": "VIDEO.01",
+      "kind": "input",
+      "title": "Source motion",
+      "input": ["locked_source"],
+      "output": ["video_source"],
+      "gate": "SOURCE_HASH_BOUND",
+      "next": ["VIDEO.02"]
+    },
+    {
+      "id": "VIDEO.02",
+      "kind": "choice",
+      "title": "Motion plan",
+      "input": ["video_source"],
+      "output": ["motion_plan"],
+      "gate": "ALLOWED_PRESET_ONLY",
+      "next": ["VIDEO.03"]
+    },
+    {
+      "id": "VIDEO.03",
+      "kind": "process",
+      "title": "Generate + QA",
+      "input": ["video_source", "motion_plan"],
+      "output": ["qa_video"],
+      "gate": "EXPLICIT_PAID_CREATE",
+      "next": ["VIDEO.04"]
+    },
+    {
+      "id": "VIDEO.04",
+      "kind": "result",
+      "title": "Saved clip",
+      "input": ["qa_video"],
+      "output": ["profile_motion_asset"],
+      "gate": "QA_PASS_BEFORE_SAVE",
+      "next": []
+    },
+    {
+      "id": "LIVE.01",
+      "kind": "choice",
+      "title": "Lucy live session",
+      "input": ["locked_source"],
+      "output": ["bounded_live_plan"],
+      "gate": "BROWSER_PERMISSION_AND_HARD_TIMEOUT",
+      "next": ["LIVE.02"]
+    },
+    {
+      "id": "LIVE.02",
+      "kind": "input",
+      "title": "Camera preview",
+      "input": ["bounded_live_plan"],
+      "output": ["local_media_stream"],
+      "gate": "BROWSER_PERMISSION",
+      "next": ["LIVE.03"]
+    },
+    {
+      "id": "LIVE.03",
+      "kind": "process",
+      "title": "Lucy WebRTC",
+      "input": ["local_media_stream", "locked_source", "short_lived_token"],
+      "output": ["transformed_live_stream"],
+      "gate": "TOKEN_AND_HARD_TIMEOUT",
+      "next": ["LIVE.04"]
+    },
+    {
+      "id": "LIVE.04",
+      "kind": "result",
+      "title": "Stop or capture",
+      "input": ["transformed_live_stream"],
+      "output": ["explicitly_saved_capture"],
+      "gate": "NO_BACKGROUND_RECORDING",
+      "next": []
+    }
+  ]
+}

@@ -1,0 +1,92 @@
+{
+  "schema_version": "1.0.0",
+  "task_id": "SCENE-001",
+  "agent_id": "scene-contract",
+  "branch": "lane/SCENE-001/scene-contract",
+  "base_sha": "44aa829176b76f8da0d08233d996ebac982ff06e",
+  "lease_generation": 2,
+  "tested_code_sha": "0e823ec11b6caf1cefd7bf61cbbf6e4ec8de6640",
+  "status": "READY_FOR_REVIEW",
+  "summary": "Restored the missing scene-contract contact-point geometry export and passed the actual delivery canvas into the OpenRouter evaluator's existing strict payload validator. The added handoff regression is source-only, so it independently proves that delivery reaches validation without importing either evaluator implementation.",
+  "changed_paths": [
+    ".agents/handoffs/SCENE-001.json",
+    ".agents/status/SCENE-001.json",
+    "src/web/openrouter-scene-evaluator.js",
+    "src/web/scene-contract.js",
+    "test/web/openrouter-scene-evaluator-handoff.test.js",
+    "test/web/scene-contract-contact-point.test.js"
+  ],
+  "pre_change_proof": [
+    {
+      "check_id": "evaluator-delivery-handoff-static-regression",
+      "command": [
+        "node",
+        "--test",
+        "test/web/openrouter-scene-evaluator-handoff.test.js"
+      ],
+      "result": "FAIL",
+      "evidence": "The source-only regression was applied to exact base 44aa829; it failed because the OpenRouter call was validateEvaluatorPayload(JSON.parse(raw)) and omitted context.delivery."
+    },
+    {
+      "check_id": "scene-contract-import-regression",
+      "command": [
+        "node",
+        "--test",
+        "test/web/openrouter-scene-evaluator.test.js",
+        "test/web/scene-adapters.test.js",
+        "test/web/scene-runtime-vlm-provider.test.js",
+        "test/web/scene-runtime.test.js",
+        "test/web/scene-contract-contact-point.test.js",
+        "test/web/openrouter-scene-evaluator-handoff.test.js"
+      ],
+      "result": "FAIL",
+      "evidence": "The two regressions were applied to exact base 44aa829; the contact-point test failed at module import because the scene contract did not export contactPointInsideFrame, and the static evaluator check also found the missing delivery argument."
+    }
+  ],
+  "post_change_proof": [
+    {
+      "check_id": "evaluator-delivery-handoff-static-regression",
+      "command": [
+        "node",
+        "--test",
+        "test/web/openrouter-scene-evaluator-handoff.test.js"
+      ],
+      "result": "PASS",
+      "evidence": "The source-only evaluator handoff regression passed 1 of 1 test and verifies the exact context.delivery argument reaches strict payload validation."
+    },
+    {
+      "check_id": "scene-contract-import-regression",
+      "command": [
+        "node",
+        "--test",
+        "test/web/openrouter-scene-evaluator.test.js",
+        "test/web/scene-adapters.test.js",
+        "test/web/scene-runtime-vlm-provider.test.js",
+        "test/web/scene-runtime.test.js",
+        "test/web/scene-contract-contact-point.test.js",
+        "test/web/openrouter-scene-evaluator-handoff.test.js"
+      ],
+      "result": "PASS",
+      "evidence": "The exact focused acceptance command passed 60 of 60 tests, including OpenRouter evaluation, adapter import, runtime wiring, contact geometry, and the source-only delivery handoff regression."
+    },
+    {
+      "check_id": "diff-hygiene",
+      "command": [
+        "git",
+        "diff",
+        "--check",
+        "$TASK_BASE_SHA...$TESTED_CODE_SHA"
+      ],
+      "result": "PASS",
+      "evidence": "Whitespace and conflict-marker validation passed from exact task base 44aa829 through tested code SHA 0e823ec."
+    }
+  ],
+  "adversarial_review": {
+    "goal": "Find a missing delivery handoff, a false-positive static test, any policy, gate, framing, contact-shadow, provider, model-route, or API change beyond the leased repair, or any suppressed existing check.",
+    "result": "PASS",
+    "reviewer_id": "scene_scope_review_round2",
+    "reviewed_code_sha": "0e823ec11b6caf1cefd7bf61cbbf6e4ec8de6640"
+  },
+  "weakened_checks": [],
+  "open_risks": []
+}

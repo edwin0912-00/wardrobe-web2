@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zeely.ai/schemas/generation-job.schema.json",
+  "title": "Zeely Generation Job",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "job_id", "node_id", "attempt", "idempotency_key", "provider", "model",
+    "job_set_type", "task", "input_asset_hashes", "prompt_hash", "budget", "state"
+  ],
+  "properties": {
+    "job_id": { "type": "string" },
+    "node_id": { "type": "string" },
+    "attempt": { "type": "integer", "minimum": 1, "maximum": 3 },
+    "idempotency_key": { "type": "string", "minLength": 16 },
+    "provider": { "enum": ["HIGGSFIELD_CLI", "HIGGSFIELD_MCP"] },
+    "model": {
+      "enum": [
+        "GPT Image 2",
+        "Nano Banana 2",
+        "Nano Banana Pro"
+      ]
+    },
+    "job_set_type": {
+      "enum": [
+        "gpt_image_2",
+        "nano_banana_flash",
+        "nano_banana_2"
+      ]
+    },
+    "task": { "enum": ["EXTRACT", "NORMALIZE", "IMAGE_GENERATE", "IMAGE_EDIT", "VTO", "VIDEO_GENERATE", "VIDEO_EDIT", "UPSCALE", "QA", "EXPORT"] },
+    "input_asset_hashes": { "type": "array", "items": { "type": "string", "pattern": "^[a-f0-9]{64}$" }, "minItems": 1 },
+    "prompt_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "seed": { "type": ["integer", "null"] },
+    "budget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["max_usd", "timeout_s", "max_attempts"],
+      "properties": {
+        "max_usd": { "type": "number", "exclusiveMinimum": 0 },
+        "timeout_s": { "type": "integer", "minimum": 1 },
+        "max_attempts": { "type": "integer", "minimum": 1, "maximum": 3 }
+      }
+    },
+    "state": { "enum": ["PLANNED", "QUEUED", "RUNNING", "SUCCEEDED", "FAILED_RETRYABLE", "FAILED_FINAL", "AWAITING_APPROVAL", "APPROVED", "REJECTED", "CANCELLED"] },
+    "provider_job_id": { "type": ["string", "null"] },
+    "output_uris": { "type": "array", "items": { "type": "string", "format": "uri-reference" } },
+    "created_at": { "type": "string", "format": "date-time" },
+    "completed_at": { "type": ["string", "null"], "format": "date-time" }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "job_set_type": { "const": "gpt_image_2" } } },
+      "then": { "properties": { "model": { "const": "GPT Image 2" } } }
+    },
+    {
+      "if": { "properties": { "job_set_type": { "const": "nano_banana_flash" } } },
+      "then": { "properties": { "model": { "const": "Nano Banana 2" } } }
+    },
+    {
+      "if": { "properties": { "job_set_type": { "const": "nano_banana_2" } } },
+      "then": { "properties": { "model": { "const": "Nano Banana Pro" } } }
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "schema_version": "1.0.0",
+  "preset_id": "editorial.edwin_novak.luminous_blue_white",
+  "kind": "editorial",
+  "family": "edwin_novak",
+  "ui_name_uk": "Світлий синьо-білий",
+  "asset_role": "mood_card",
+  "file": "assets/scene-mood-cards/editorial.edwin_novak.luminous_blue_white.webp",
+  "sha256": "360b65b6f4bd1ca58077ea60a4a9bd0ebf43cbc8bee4f4459a964f787bdf8431",
+  "prompt_path": "prompts/scenes/editorial.edwin_novak.luminous_blue_white.txt",
+  "prompt_sha256": "a69beb9a0b516f904e2c9f68bd7b70d2f142558d2de40ece8d5f33be244e5575",
+  "generation": {
+    "provider_path": "openrouter_imagegen",
+    "model_family": "openai/gpt-5.4-image-2",
+    "model_version": "openai/gpt-5.4-image-2",
+    "source_width": 1024,
+    "source_height": 1024,
+    "reference_photos": [
+      "luminous_blue_white-01.jpg"
+    ],
+    "reference_source": "edwinnovak.com (owner-provided, used for style/lighting/composition only)"
+  },
+  "delivery": {
+    "width": 1024,
+    "height": 1280,
+    "format": "webp",
+    "aspect_ratio": "4:5"
+  },
+  "contains_personal_input": false,
+  "approval": "PENDING_VISUAL_JUDGE",
+  "created_at": "2026-07-25T01:00:00.000Z"
+}

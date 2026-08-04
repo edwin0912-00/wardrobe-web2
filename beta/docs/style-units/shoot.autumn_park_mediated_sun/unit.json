@@ -1,0 +1,211 @@
+{
+  "unit_id": "shoot.autumn_park_mediated_sun",
+  "title": "Autumn Park Mediated Sun — low sun filtered through foliage, bodies and a translucent scrim",
+  "palette_size": 8,
+  "palette": [
+    {
+      "name": "ink",
+      "hex": "#04070C",
+      "role": "deepest observed shadow in trunks, undergrowth and shaded figure masses; texture remains above zero"
+    },
+    {
+      "name": "worn camel",
+      "hex": "#7F6A5C",
+      "role": "warm structural neutral observed in bark, dry vegetation and low-sun midtones"
+    },
+    {
+      "name": "ecru white",
+      "hex": "#C2C2C6",
+      "role": "bright neutral field and soft highlight observed in the campaign"
+    },
+    {
+      "name": "dim ochre",
+      "hex": "#786446",
+      "role": "low-saturation warm midtone observed across dry grass, leaves and shaded vegetation"
+    },
+    {
+      "name": "foliage gold",
+      "hex": "#E2B036",
+      "role": "key environmental accent observed in sunlit autumn foliage"
+    },
+    {
+      "name": "dry sage",
+      "hex": "#6B7A5F",
+      "role": "ground-plane neutral observed in grass and undergrowth"
+    },
+    {
+      "name": "dried mauve",
+      "hex": "#6C4650",
+      "role": "small organic accent observed in dried flowers"
+    },
+    {
+      "name": "october sky",
+      "hex": "#2291D4",
+      "role": "sole cool field observed in the clear autumn sky"
+    }
+  ],
+  "item_colours_exempt": true,
+  "palette_authority": "palette-strip.svg rendered from these manifest hex values; generated sheet swatches are never sampled",
+  "style_unit_status": "READY",
+  "source_frames": [
+    "frame-01.jpg — low ground-up four-person environmental group in grass under clear sky",
+    "frame-02.jpg — extreme face close-up through a crumpled translucent plastic scrim",
+    "frame-03.jpg — shallow-focus hand, dried-flower and carried-textile detail",
+    "frame-04.jpg — solitary back-facing full figure in the park with a long carried textile",
+    "frame-05.jpg — landscape torso-and-carried-textile crop against backlit trees",
+    "frame-06.jpg — low-angle two-person embrace with several carried textile masses",
+    "frame-07.jpg — landscape torso crop of two still figures against smooth autumn bokeh",
+    "frame-08.jpg — close portrait under a translucent plastic scrim with hand and textile foreground",
+    "frame-09.jpg — close garment, flower and carried-textile material study",
+    "frame-10.jpg — lower three-quarter two-person crop with hands, carried textiles and leaf-litter ground",
+    "frame-11.jpg — extreme shoulder-tie and hair detail in raking low sun",
+    "frame-12.jpg — portrait torso-and-carried-textile crop with mediated sun behind",
+    "frame-13.jpg — near-full standing figure in woodland holding a long textile at thigh height",
+    "frame-14.jpg — hand and gathered textile-handle detail against autumn bokeh",
+    "frame-15.jpg — landscape lower-body environmental crop with a long textile in dense undergrowth",
+    "frame-16.jpg — low-angle four-person campaign group arranged around one large tree"
+  ],
+  "source_reconciliation": {
+    "status": "COHERENT_SOURCE_SET",
+    "included_frames": [
+      "frame-01.jpg",
+      "frame-02.jpg",
+      "frame-03.jpg",
+      "frame-04.jpg",
+      "frame-05.jpg",
+      "frame-06.jpg",
+      "frame-07.jpg",
+      "frame-08.jpg",
+      "frame-09.jpg",
+      "frame-10.jpg",
+      "frame-11.jpg",
+      "frame-12.jpg",
+      "frame-13.jpg",
+      "frame-14.jpg",
+      "frame-15.jpg",
+      "frame-16.jpg"
+    ],
+    "excluded_frames": [],
+    "continuity_basis": "The same autumn park, low hard sun plus cool open shade, recurring people, dried flowers, carried textile forms, shallow smooth bokeh and two repeated plastic-scrim portraits connect all sixteen frames."
+  },
+  "unknowns": [
+    "camera body, sensor or film stock, focal lengths, apertures, ISO and shutter speeds",
+    "exact lens model and whether one or more optics were used",
+    "exact time elapsed between clear-sky, white-sky and lower-sun frames",
+    "whether the small green flare trace in the group frame is optical or a later artifact",
+    "exact thickness and material specification of the translucent scrim",
+    "exact focus distances and depth-of-field measurements"
+  ],
+  "runtime_style": {
+    "visual_system": "A quiet autumn-park fashion campaign alternates low environmental figures, still sculptural groupings, hand-led material details and two faces seen through a crumpled translucent scrim.",
+    "mood_line": "Unhurried, unsmiling and tactile: people stand or rest as if the low sun and the objects they carry are the only events.",
+    "environment": "A semi-wild park in mid-autumn with grass and leaf litter at the feet, dry weeds in the near foreground, yellow foliage and shrubs in the middle distance, dark trunks behind and clear or white-bright sky beyond.",
+    "lighting": "One low hard daylight source rakes laterally or from behind as camera position changes; foliage, a body, a carried form or the plastic scrim mediates the sun, while cool open-sky light supplies the only fill.",
+    "materials": [
+      "dry grass and leaf litter",
+      "dark fissured tree bark",
+      "yellow autumn foliage",
+      "dried flowers",
+      "matte woven textile with broad gravity folds",
+      "crumpled translucent plastic used only as a foreground scrim"
+    ],
+    "contrast": "Moderate-to-strong local contrast with deep breathing shadows, warm low-sun highlights, cool shaded neutrals, smooth highlight roll-off on skin and cloth, and occasional white-bright sky.",
+    "expression_signature": "Visible faces are unsmiling with resting brows, neutral-to-low lids and relaxed closed mouths; gaze is often withheld by a turn, crop or fully closed eyes beneath the scrim.",
+    "garment_behaviour": "Cloth is static and gravity-led: opaque layers hang plumb, settle into broad slow folds and hold crease memory; only the plastic scrim is translucent and it forms sharp ridges beside milky soft areas.",
+    "optical_signature": [
+      "Clean rendering without visible swirl, deliberate chromatic fringe or a halation ring.",
+      "When the sun approaches the frame it is broken by foliage, a person, a carried form or the scrim rather than entering as naked veiling flare.",
+      "Out-of-plane foliage resolves as large smooth round-to-soft-edged discs while the selected hand, face or carried material remains crisp.",
+      "The plastic veil is a slot-specific foreground device; the clean optical baseline remains unchanged in the other five directions."
+    ],
+    "shot_directions": {
+      "clean_identity_hero": {
+        "camera_consequence": "Use the low portrait viewpoint observed on the frame-right standing figure at the tree: camera below the waist, slight upward convergence and enough distance to keep the head, torso and hands anatomically calm.",
+        "pose_joint_chain": "One shoulder rests into the trunk; pelvis remains grounded, one knee soft, the near arm hangs to the thigh, the far arm stays quiet and the head tilts only slightly while the face remains visible.",
+        "focus": "Place critical focus on the visible face and near eye, retaining readable bark beside it while the distant foliage falls away smoothly.",
+        "foreground": "Keep only a thin band of dry grass at the lower edge; no plastic scrim and no foreground object may cover the face or approved item.",
+        "provenance": [
+          "frame-16.jpg: low-angle group around one trunk; frame-right standing person supplies the visible-face, shoulder-to-tree and hanging-arm geometry"
+        ]
+      },
+      "environmental_hero": {
+        "camera_consequence": "Use a vertical frame from roughly waist-to-chest camera height with a shallow background and enough ground to prove grass and leaf litter, matching the solitary park figure.",
+        "pose_joint_chain": "Turn the torso and pelvis away from camera, let one arm hang straight with a carried approved item at thigh height, keep the other arm relaxed, and rotate the head only slightly off the shoulder.",
+        "focus": "Hold the full person and carried approved item sharp enough to read while shrubs, trunks and yellow foliage become smooth separated depth planes.",
+        "foreground": "Allow soft grass stems at the bottom edge but keep the silhouette and carried approved item unobstructed.",
+        "provenance": [
+          "frame-04.jpg: solitary back-facing figure, straight hanging arm, long carried form, foreground grass and shallow autumn-park background"
+        ]
+      },
+      "sculptural_three_quarter": {
+        "camera_consequence": "Crop from head through the extended knees at the same low position used by the seated foreground figure against the large trunk; the trunk is a broad vertical counterweight.",
+        "pose_joint_chain": "Seat the pelvis at the trunk base, extend the legs diagonally, keep the torso long but lightly supported by the bark, drop both shoulders and let one hand rest flat across the near thigh.",
+        "focus": "Keep the face, shoulder line, hand and near knee on the readable plane; let the standing-depth foliage and rear figures disappear entirely into soft park texture.",
+        "foreground": "Dry grass may cross the extreme lower edge out of focus, but nothing crosses the face, hand or approved item.",
+        "provenance": [
+          "frame-16.jpg: seated foreground person at the trunk base with diagonal legs, relaxed shoulder line and one hand resting across the lap"
+        ]
+      },
+      "interference_frame": {
+        "camera_consequence": "Move to an intimate head-and-shoulders portrait and shoot through one crumpled translucent plastic plane that fills the entire frame; no second effect is added.",
+        "pose_joint_chain": "The head turns gently toward camera with eyes closed or low, jaw loose and shoulders still; one raised hand gathers the scrim at the upper corner without covering the central facial geometry.",
+        "focus": "Let selected plastic ridges and one eye-or-lash plane alternate between crisp and milky softness; the face stays legible through the veil rather than disappearing.",
+        "foreground": "The translucent plastic is the load-bearing full-frame foreground, with stretched clear lanes, cloudy folds and a warm backlit edge.",
+        "provenance": [
+          "frame-02.jpg: extreme closed-eye face beneath full-frame crumpled plastic with warm lower-edge glow",
+          "frame-08.jpg: hand gathering the plastic at upper right while face and carried textile remain visible through mixed clear and milky lanes"
+        ]
+      },
+      "material_or_accessory_detail": {
+        "camera_consequence": "Use a vertical close detail with compressed space and very shallow depth, framing a connected hand, the approved item construction and one small organic accent rather than an isolated product.",
+        "pose_joint_chain": "The arm hangs naturally from the shoulder; fingers close around a gathered approved handle or edge at thigh height without tension, while the wrist remains straight and knuckles remain anatomically separated.",
+        "focus": "Set the sharp plane on finger edges, the approved construction junction and adjacent texture; allow the torso and park to fall off rapidly.",
+        "foreground": "No separate foreground device; the connected hand and approved material occupy the near plane, with optional dried flowers staying secondary.",
+        "provenance": [
+          "frame-03.jpg: connected hand, dried flowers and carried textile on a shallow sharp plane",
+          "frame-14.jpg: relaxed fingers around gathered textile handles against smooth autumn bokeh"
+        ]
+      },
+      "wide_campaign_coda": {
+        "camera_consequence": "Return to a low landscape-wide camera in grass, preserve a large clear-sky field and converging trunks, and keep the approved person fully readable without wide-angle stretching of the head.",
+        "pose_joint_chain": "Use the still frame-right standing geometry from the group: feet planted apart, pelvis neutral, torso upright against a trunk, arms hanging at different relaxed heights and head inclined slightly toward camera.",
+        "focus": "Hold the complete person and adjacent trunk together while the far park stays moderately softer; the sky remains an uncluttered negative field.",
+        "foreground": "Grass and leaf litter establish the lower plane, and a dark trunk may anchor one edge; no scrim or near limb may dominate the frame.",
+        "provenance": [
+          "frame-01.jpg: low ground-up wide group, broad clear sky, converging trunks and enlarged near-ground perspective",
+          "frame-16.jpg: complete frame-right standing figure against the large trunk provides the single-person coda geometry"
+        ]
+      }
+    }
+  },
+  "sheets": {
+    "camera_lens": {
+      "aspect": "16:9",
+      "prompt": "Create a dense technical CAMERA & LENS reference board titled AUTUMN PARK MEDIATED SUN — CAMERA & LENS. Diagram only with featureless mannequins, never a source person's face or clothing. Show three observed camera consequences: low ground-up environmental frames with converging trunks and enlarged near ground from frame-01.jpg/frame-16.jpg; waist-to-chest vertical solo coverage from frame-04.jpg; compressed shallow hand and material details from frame-03.jpg/frame-14.jpg. State UNKNOWN for focal lengths, aperture and camera body. Fix the optical signature: clean rendering, no swirl, no deliberate chromatic fringe, no halation ring, smooth round bokeh, and sun mediated by foliage, person, carried form or scrim. Show the plastic as the single full-frame interference device only. Print the closed gamma row #04070C #7F6A5C #C2C2C6 #786446 #E2B036 #6B7A5F #6C4650 #2291D4. No version number, no date, no invented metadata, no board code, no credits, no brand, no watermark."
+    },
+    "blocking": {
+      "aspect": "16:9",
+      "prompt": "Create a rough graphite BLOCKING sheet titled AUTUMN PARK MEDIATED SUN — BLOCKING, with EXACTLY six left-to-right pose panels plus one top-down plan. Use only featureless wooden mannequins with visible joint construction: every head must be a blank oval with no eyes, brows, nose, mouth, hair or source likeness. The six observed joint chains are: 1 shoulder-to-tree upright visible-face stance from frame-16.jpg; 2 solitary upright back-facing carry from frame-04.jpg, holding only a loose blank textile edge and NEVER a box or designed object; 3 seated diagonal-leg trunk pose from frame-16.jpg; 4 blank head inclined with one raised hand for the closed-eye scrim state from frame-02.jpg/frame-08.jpg; 5 relaxed hanging hand gripping an approved edge from frame-03.jpg/frame-14.jpg; 6 low-camera WIDE PLANTED UPRIGHT STANCE from frame-01.jpg/frame-16.jpg, with knees nearly straight and arms relaxed. Put the exact short label 1 TREE STANCE, 2 BACK CARRY, 3 SEATED DIAGONAL, 4 SCRIM HAND, 5 DETAIL HAND, 6 WIDE UPRIGHT beneath the matching panels. Panel 6 must remain standing: NEVER squat, crouch, kneel, jump or place hands on knees. Mark all bodies static and gravity-led; never reproduce source garment silhouettes or bag design. The top-down park plan may contain only GRASS, LEAF LITTER, TRUNK, FOLIAGE DEPTH and LOW SUN DIRECTION; no filler text or pseudo-letters. MANDATORY: reserve a continuous bottom strip across the full board for eight flat swatches, all visible, with exact labels #04070C #7F6A5C #C2C2C6 #786446 #E2B036 #6B7A5F #6C4650 #2291D4; do not omit, crop or replace this gamma strip. No version number, no date, no invented metadata, no identity, no brand, no watermark."
+    },
+    "expression_gaze": {
+      "aspect": "3:2",
+      "prompt": "Create a non-identifying EXPRESSION & GAZE anatomy diagram titled AUTUMN PARK MEDIATED SUN — EXPRESSION & GAZE. Use the same neutral grey feature-minimal mannequin head in every panel: smooth blank material, no photorealistic person, no skin texture or skin colour, no gender, age or ethnicity, no hair, no iris colour, no lashes, no marks, no source likeness and no individualized face geometry. Show only simplified anatomical line symbols needed to communicate resting brow line, neutral-to-low lid line, relaxed closed-mouth line, level corners, no cheek lift and gaze-vector arrows. Separate three observed states: neutral gaze vector near camera from frame-16.jpg; gaze vector withheld by turn or crop from frame-04.jpg/frame-05.jpg; fully closed lid lines beneath the scrim state from frame-02.jpg. Label muscle state and gaze direction, not emotion. Add exact warnings EMPTY PER-SUBJECT TEMPLATE and IDENTITY COMES ONLY FROM THE APPROVED USER REFERENCE AT GENERATION TIME; SOURCE FACES NEVER TRANSFER. Print gamma #04070C #7F6A5C #C2C2C6 #786446 #E2B036 #6B7A5F #6C4650 #2291D4. No version number, no date, no invented metadata, no personal name, no concrete identity anchor, no brand, no watermark."
+    },
+    "garment_behaviour": {
+      "aspect": "3:2",
+      "prompt": "Create a dense technical GARMENT BEHAVIOUR board titled AUTUMN PARK MEDIATED SUN — GARMENT BEHAVIOUR. Use anonymous rectangular unbranded cloth swatches and diagrams only, never a finished garment, body, torso, source cut, print, motif, bag, elastic waistband, cuff, collar, pocket, hem design or construction detail. Include six clearly separated and fully labelled behavior panels: HANGS PLUMB — opaque matte cloth falls vertically; BROAD SLOW FOLDS — gravity folds stay wide; SETTLED CREASE MEMORY — still cloth keeps soft previous bends; GATHERED EDGE UNDER RELAXED HAND — one anatomically clean hand gathers only a loose standalone swatch, with no seam or garment around it; OPAQUE IN BACKLIGHT — light rims the cloth but never passes through; TRANSLUCENT SCRIM ONLY — crumpled plastic from frame-02.jpg/frame-08.jpg shows sharp ridges, clear stretched lanes and milky backlit folds. The plastic itself is NEUTRAL COLOURLESS CLEAR, never blue or another local colour; autumn colours may appear only as transmitted background through it. Add the exact rules NO WIND-DRIVEN TRAILING and APPROVED ITEM GEOMETRY AND COLOUR REMAIN EXACT AND EXEMPT; ONLY BEHAVIOUR TRANSFERS. MANDATORY: reserve a continuous bottom strip across the full board for eight flat swatches, all visible, with exact labels #04070C #7F6A5C #C2C2C6 #786446 #E2B036 #6B7A5F #6C4650 #2291D4; do not omit, crop or replace this gamma strip. No version number, no date, no invented metadata, no identity, no logo, no brand, no watermark."
+    },
+    "colour_grade": {
+      "aspect": "16:9",
+      "prompt": "Create a COLOUR & GRADE specification board titled AUTUMN PARK MEDIATED SUN — COLOUR & GRADE. Declare CLOSED SET, palette_size 8, with exact swatches and observed roles: #04070C deep breathing shadow; #7F6A5C warm structural neutral; #C2C2C6 bright neutral; #786446 dim ochre vegetation; #E2B036 sunlit foliage key; #6B7A5F dry sage ground; #6C4650 dried-flower accent; #2291D4 clear-sky cool field. Diagram moderate-to-strong local contrast, warm low-sun highlights, cool open-shade neutrals, preserved dark texture, smooth skin-and-cloth highlight roll-off and occasional white-bright sky. State skin, hair, eyes and approved item colours are exempt. Any additional non-exempt colour field is a fail. No people or source products. No version number, no date, no invented metadata, no board code, no credits, no brand, no watermark."
+    },
+    "environment": {
+      "aspect": "21:9",
+      "prompt": "Create an ENVIRONMENT plate board titled AUTUMN PARK MEDIATED SUN — ENVIRONMENT, depicting one coherent semi-wild mid-autumn park and no people. Derive only observed planes: grass and leaf litter at camera, dry weeds crossing the lower edge, a large dark fissured trunk, yellow foliage and shrubs in middle distance, darker trunks behind, then clear blue or white-bright sky. Show the hero low-sun view, the solitary vertical view, a low ground-up sky-heavy view and detail tiles of grass, leaf litter, bark, dried flowers and backlit foliage; do not invent buildings, paths, furniture, signage, north arrows or measurements. One low hard daylight source is mediated by leaves or a subject position; cool sky is the only fill. Print gamma #04070C #7F6A5C #C2C2C6 #786446 #E2B036 #6B7A5F #6C4650 #2291D4. No version number, no date, no invented metadata, no people, no identity, no brand, no watermark."
+    },
+    "person": {
+      "aspect": "2:3",
+      "prompt": "Create an EMPTY PER-SUBJECT PERSON TEMPLATE titled AUTUMN PARK MEDIATED SUN — PERSON. It must not depict any concrete person or usable identity anchor. The identity area must contain ONLY one perfectly blank neutral-grey head oval with a sparse proportion grid and one flat generic five-digit hand-outline grid. ABSOLUTELY DO NOT draw, render, outline, diagram, iconize, or symbolize eyes, irises, eyelids, eyebrows, nose, nostrils, lips, mouth, ears, hairline, hair, freckles, scars, pores, skin marks, or any other facial component anywhere on the sheet—not even as separate educational sketches. Do not imply skin colour, gender, age, ethnicity, expression, or individualized geometry. Put these plain-text labels in a vertical checklist beside empty unmarked rectangular fields: FACE GEOMETRY — UNKNOWN UNTIL APPROVED USER REFERENCE; EARS — UNKNOWN; HAIRLINE — UNKNOWN; EYES — UNKNOWN; NOSE — UNKNOWN; MOUTH — UNKNOWN; SKIN MARKS — UNKNOWN; HAND GEOMETRY — UNKNOWN. Every rectangle must remain empty: no anatomical glyphs or marks inside it. Demonstrate the observed lighting only on abstract geometric volumes—a sphere, a featureless flat oval volume, and a separate translucent plastic sample: low hard sun gives a warm lateral/back rim, cool open sky fills the opposite side, and plastic alternates sharp ridges with milky softness. The featureless oval lighting sample must remain completely blank, with no ears or face lines. Add the exact rule APPROVED IDENTITY IS THE SOLE AUTHORITY AT GENERATION TIME; SOURCE FACES NEVER TRANSFER. Print gamma #04070C #7F6A5C #C2C2C6 #786446 #E2B036 #6B7A5F #6C4650 #2291D4. No version number, no date, no invented metadata, no facial features or anatomical component drawings, no personal name, no source likeness, no brand, no watermark."
+    }
+  }
+}

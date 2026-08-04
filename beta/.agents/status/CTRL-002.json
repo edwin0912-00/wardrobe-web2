@@ -1,0 +1,14 @@
+{
+  "schema_version": "1.0.0",
+  "task_id": "CTRL-002",
+  "agent_id": "codex-main",
+  "branch": "lane/CTRL-002/codex-main",
+  "base_sha": "ccea7dd7739883144a27388977ce8284a52a8027",
+  "lease_generation": 1,
+  "state": "HEARTBEAT",
+  "observed_at": "2026-07-27T01:47:36.119Z",
+  "observed_head_sha": "e5af37013fb1eeb5c66fd8d88b22522a5099bb29",
+  "summary_code": "CHECKPOINT_VERIFIED",
+  "next_action_code": "RUN_ADVERSARIAL_REVIEW",
+  "blocker_code": null
+}

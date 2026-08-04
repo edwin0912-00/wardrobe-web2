@@ -1,0 +1,22 @@
+{
+  "schema_version": "1.0.0",
+  "status": "running",
+  "iteration": 7,
+  "phase": "scene_candidate_repair",
+  "last_gate": {
+    "name": "facts-only-scene-generation",
+    "verdict": "REVISE",
+    "evidence": "A real saved-look v1.1 scene completed all three fixed model attempts. Exact-hash QA proved FACTS_ONLY eliminated reference copying, but every attempt failed blocking full-body framing; attempts 2 and 3 also regressed identity and item fidelity."
+  },
+  "consent": {
+    "architecture-reviewer": "granted_redacted_same_vendor",
+    "production-judge": "granted_redacted_same_vendor"
+  },
+  "blockers": [
+    "scene retries still need to repair the strongest prior candidate instead of regenerating the full scene from the approved look",
+    "the saved-look scene UI is implemented locally but has not completed the final browser/reload audit",
+    "Edwin six-shot orchestration and exact-shot release evidence remain incomplete"
+  ],
+  "started_at": "2026-07-23T08:52:58Z",
+  "updated_at": "2026-07-23T11:02:38Z"
+}

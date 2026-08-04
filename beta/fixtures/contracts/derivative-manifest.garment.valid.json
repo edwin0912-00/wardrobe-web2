@@ -1,0 +1,193 @@
+{
+  "schema_version": "1.0.0",
+  "manifest_id": "manifest-garment-hat-001",
+  "job_id": "zeely-test-001",
+  "conditioning_plan_id": "condition-garment-hat-001",
+  "source_assets": [
+    {
+      "asset_id": "source-garment-hat-001",
+      "sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+    }
+  ],
+  "derivatives": [
+    {
+      "derivative_id": "deriv-hat-normalized-001",
+      "type": "NORMALIZED_SOURCE",
+      "uri": "work/zeely-test-001/conditioned/hat/normalized.png",
+      "sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "mime_type": "image/png",
+      "byte_size": 29144,
+      "dimensions": { "width_px": 197, "height_px": 256 },
+      "produced_by": {
+        "operation_id": "op-hat-srgb-001",
+        "executor_class": "DETERMINISTIC",
+        "tool": "libvips",
+        "version": "8.17.1",
+        "parameters": [{ "name": "intent", "value": "relative_colorimetric" }]
+      },
+      "lineage": {
+        "source_asset_ids": ["source-garment-hat-001"],
+        "source_derivative_ids": [],
+        "transformation_class": "PIXEL_PRESERVING"
+      },
+      "authority": {
+        "class": "PRIMARY_EVIDENCE",
+        "lock_eligible": true,
+        "contains_synthetic_pixels": false
+      },
+      "qa": {
+        "status": "PASS",
+        "checks": [
+          { "name": "DECODE", "pass": true, "score": 1, "threshold": 1 },
+          { "name": "COLOR_PRESERVATION", "pass": true, "score": 0.99, "threshold": 0.95 }
+        ]
+      }
+    },
+    {
+      "derivative_id": "deriv-hat-crop-001",
+      "type": "GARMENT_CROP",
+      "uri": "work/zeely-test-001/conditioned/hat/crop.png",
+      "sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+      "mime_type": "image/png",
+      "byte_size": 26411,
+      "dimensions": { "width_px": 173, "height_px": 230 },
+      "produced_by": {
+        "operation_id": "op-hat-crop-001",
+        "executor_class": "DETERMINISTIC",
+        "tool": "libvips",
+        "version": "8.17.1",
+        "parameters": [
+          { "name": "bbox_xywh_norm", "value": [0.08, 0.06, 0.84, 0.86] },
+          { "name": "padding_fraction", "value": 0.04 }
+        ]
+      },
+      "lineage": {
+        "source_asset_ids": ["source-garment-hat-001"],
+        "source_derivative_ids": ["deriv-hat-normalized-001"],
+        "transformation_class": "DETERMINISTIC_DERIVATION"
+      },
+      "authority": {
+        "class": "DERIVED_EVIDENCE",
+        "lock_eligible": true,
+        "contains_synthetic_pixels": false
+      },
+      "qa": {
+        "status": "PASS",
+        "checks": [
+          { "name": "LINEAGE", "pass": true, "score": 1, "threshold": 1 },
+          { "name": "GEOMETRY_PRESERVATION", "pass": true, "score": 1, "threshold": 0.95 }
+        ]
+      }
+    },
+    {
+      "derivative_id": "deriv-hat-cutout-001",
+      "type": "GARMENT_CUTOUT",
+      "uri": "work/zeely-test-001/conditioned/hat/cutout.png",
+      "sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+      "mime_type": "image/png",
+      "byte_size": 25108,
+      "dimensions": { "width_px": 173, "height_px": 230 },
+      "produced_by": {
+        "operation_id": "op-hat-segment-001",
+        "executor_class": "AI_ASSISTED_NON_GENERATIVE",
+        "tool": "foreground-segmenter",
+        "version": "1.0.0",
+        "parameters": [
+          { "name": "alpha_mode", "value": "hard_subject_soft_edge" },
+          { "name": "edge_feather_px", "value": 1 }
+        ]
+      },
+      "lineage": {
+        "source_asset_ids": ["source-garment-hat-001"],
+        "source_derivative_ids": ["deriv-hat-crop-001"],
+        "transformation_class": "DETERMINISTIC_DERIVATION"
+      },
+      "authority": {
+        "class": "DERIVED_EVIDENCE",
+        "lock_eligible": true,
+        "contains_synthetic_pixels": false
+      },
+      "qa": {
+        "status": "PASS",
+        "checks": [
+          { "name": "MASK_QUALITY", "pass": true, "score": 0.96, "threshold": 0.92 },
+          { "name": "COLOR_PRESERVATION", "pass": true, "score": 0.98, "threshold": 0.95 }
+        ]
+      }
+    },
+    {
+      "derivative_id": "deriv-hat-upscaled-001",
+      "type": "UPSCALED_REFERENCE",
+      "uri": "work/zeely-test-001/conditioned/hat/upscaled.png",
+      "sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+      "mime_type": "image/png",
+      "byte_size": 162002,
+      "dimensions": { "width_px": 692, "height_px": 920 },
+      "produced_by": {
+        "operation_id": "op-hat-upscale-001",
+        "executor_class": "DETERMINISTIC",
+        "tool": "libvips-lanczos3",
+        "version": "8.17.1",
+        "parameters": [
+          { "name": "scale_factor", "value": 4 },
+          { "name": "resampler", "value": "lanczos3" },
+          { "name": "sharpen", "value": false }
+        ]
+      },
+      "lineage": {
+        "source_asset_ids": ["source-garment-hat-001"],
+        "source_derivative_ids": ["deriv-hat-cutout-001"],
+        "transformation_class": "DETERMINISTIC_DERIVATION"
+      },
+      "authority": {
+        "class": "DERIVED_EVIDENCE",
+        "lock_eligible": true,
+        "contains_synthetic_pixels": false
+      },
+      "qa": {
+        "status": "PASS",
+        "checks": [
+          { "name": "GEOMETRY_PRESERVATION", "pass": true, "score": 0.99, "threshold": 0.95 },
+          { "name": "NO_SYNTHETIC_LOCKS", "pass": true, "score": 1, "threshold": 1 }
+        ]
+      }
+    },
+    {
+      "derivative_id": "deriv-hat-card-001",
+      "type": "REFERENCE_CARD",
+      "uri": "work/zeely-test-001/conditioned/hat/reference-card.png",
+      "sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+      "mime_type": "image/png",
+      "byte_size": 201811,
+      "dimensions": { "width_px": 1024, "height_px": 1024 },
+      "produced_by": {
+        "operation_id": "op-hat-card-001",
+        "executor_class": "DETERMINISTIC",
+        "tool": "zeely-reference-card",
+        "version": "1.0.0",
+        "parameters": [
+          { "name": "include_unknowns", "value": true },
+          { "name": "background", "value": "checkerboard" }
+        ]
+      },
+      "lineage": {
+        "source_asset_ids": ["source-garment-hat-001"],
+        "source_derivative_ids": ["deriv-hat-cutout-001", "deriv-hat-upscaled-001"],
+        "transformation_class": "DETERMINISTIC_DERIVATION"
+      },
+      "authority": {
+        "class": "CONVENIENCE_ONLY",
+        "lock_eligible": false,
+        "contains_synthetic_pixels": false
+      },
+      "qa": {
+        "status": "PASS",
+        "checks": [
+          { "name": "LINEAGE", "pass": true, "score": 1, "threshold": 1 },
+          { "name": "NO_SYNTHETIC_LOCKS", "pass": true, "score": 1, "threshold": 1 }
+        ]
+      }
+    }
+  ],
+  "completed_at": "2026-07-22T00:05:00Z"
+}

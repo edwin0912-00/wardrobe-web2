@@ -1,0 +1,202 @@
+{
+  "schema_version": "1.0.0",
+  "pack_id": "pack-outfit-reference-001",
+  "job_id": "zeely-test-001",
+  "target_task": "OUTFIT_REFERENCE",
+  "status": "READY",
+  "source_asset_ids": [
+    "source-human-001",
+    "source-garment-hat-001"
+  ],
+  "extraction_ids": [
+    "extract-human-001",
+    "extract-garment-hat-001"
+  ],
+  "conditioning_plan_ids": ["condition-garment-hat-001"],
+  "derivative_manifest_ids": ["manifest-garment-hat-001"],
+  "quality_target_id": "quality-target-zeely-001",
+  "references": [
+    {
+      "binding_id": "binding-avatar-base-001",
+      "role": "AVATAR_BASE",
+      "ref_type": "APPROVED_GENERATION",
+      "ref_id": "approved-avatar-001",
+      "uri": "output/001/avatar.png",
+      "sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+      "authority": "APPROVED_BASE",
+      "allowed_uses": ["IDENTITY", "FACE_GEOMETRY", "HAIR", "BODY_EVIDENCE"]
+    },
+    {
+      "binding_id": "binding-identity-source-001",
+      "role": "IDENTITY_PRIMARY",
+      "ref_type": "SOURCE_ASSET",
+      "ref_id": "source-human-001",
+      "uri": "inputs/zeely-test/humans/input1.webp",
+      "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "authority": "PRIMARY_EVIDENCE",
+      "allowed_uses": ["IDENTITY", "FACE_GEOMETRY", "HAIR", "BODY_EVIDENCE"]
+    },
+    {
+      "binding_id": "binding-garment-cutout-001",
+      "role": "GARMENT_PRIMARY",
+      "ref_type": "DERIVATIVE",
+      "ref_id": "deriv-hat-cutout-001",
+      "uri": "work/zeely-test-001/conditioned/hat/cutout.png",
+      "sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+      "authority": "DERIVED_EVIDENCE",
+      "allowed_uses": ["GARMENT_STRUCTURE", "COLOR"]
+    },
+    {
+      "binding_id": "binding-garment-upscaled-001",
+      "role": "GARMENT_DETAIL",
+      "ref_type": "DERIVATIVE",
+      "ref_id": "deriv-hat-upscaled-001",
+      "uri": "work/zeely-test-001/conditioned/hat/upscaled.png",
+      "sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+      "authority": "DERIVED_EVIDENCE",
+      "allowed_uses": ["GARMENT_STRUCTURE", "COLOR"]
+    },
+    {
+      "binding_id": "binding-quality-benchmark-001",
+      "role": "QUALITY_BENCHMARK",
+      "ref_type": "SOURCE_ASSET",
+      "ref_id": "quality-benchmark-001",
+      "uri": "inputs/zeely-test/expected/output1.jpg",
+      "sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+      "authority": "QUALITY_ONLY",
+      "allowed_uses": ["POSE_FRAMING", "LIGHTING", "FINISH"]
+    }
+  ],
+  "locks": [
+    {
+      "lock_id": "lock-face-shape-001",
+      "category": "FACE_GEOMETRY",
+      "fact_path": "/human/face/shape",
+      "value": "oval",
+      "confidence": 0.91,
+      "provenance_type": "OBSERVED",
+      "source_fact_ids": ["fact-human-face-shape-001"],
+      "source_ref_ids": ["source-human-001", "approved-avatar-001"]
+    },
+    {
+      "lock_id": "lock-hair-color-001",
+      "category": "HAIR",
+      "fact_path": "/human/hair/color",
+      "value": "dark brown",
+      "confidence": 0.96,
+      "provenance_type": "OBSERVED",
+      "source_fact_ids": ["fact-human-hair-color-001"],
+      "source_ref_ids": ["source-human-001", "approved-avatar-001"]
+    },
+    {
+      "lock_id": "lock-garment-category-001",
+      "category": "GARMENT_STRUCTURE",
+      "fact_path": "/garment/category",
+      "value": "cowboy hat",
+      "confidence": 0.98,
+      "provenance_type": "OBSERVED",
+      "source_fact_ids": ["fact-garment-category-001"],
+      "source_ref_ids": ["deriv-hat-cutout-001"]
+    },
+    {
+      "lock_id": "lock-garment-color-001",
+      "category": "COLOR",
+      "fact_path": "/garment/color/dominant",
+      "value": "warm medium brown",
+      "confidence": 0.86,
+      "provenance_type": "OBSERVED",
+      "source_fact_ids": ["fact-garment-color-001"],
+      "source_ref_ids": ["deriv-hat-cutout-001", "deriv-hat-upscaled-001"]
+    },
+    {
+      "lock_id": "lock-garment-structure-001",
+      "category": "GARMENT_STRUCTURE",
+      "fact_path": "/garment/structure/visible_features",
+      "value": ["creased crown", "curved brim", "hat band"],
+      "confidence": 0.9,
+      "provenance_type": "OBSERVED",
+      "source_fact_ids": ["fact-garment-structure-001"],
+      "source_ref_ids": ["deriv-hat-cutout-001", "deriv-hat-upscaled-001"]
+    }
+  ],
+  "unknowns": [
+    {
+      "unknown_id": "unknown-garment-material-001",
+      "fact_path": "/garment/material/exact",
+      "blocking": false,
+      "handling": "DO_NOT_INFER"
+    },
+    {
+      "unknown_id": "unknown-garment-logo-001",
+      "fact_path": "/garment/logo_text",
+      "blocking": false,
+      "handling": "DO_NOT_INFER"
+    }
+  ],
+  "risks": [
+    {
+      "risk_id": "risk-hat-low-resolution-001",
+      "severity": "MEDIUM",
+      "description": "The source is sufficient for silhouette and color but not for exact fine material or logo details.",
+      "mitigation": "Lock only observed structure and color; prohibit inferred logos and exact material claims."
+    }
+  ],
+  "unresolved_blockers": [],
+  "model_policy": {
+    "provider": "HIGGSFIELD_CLI",
+    "primary": {
+      "name": "GPT Image 2",
+      "job_set_type": "gpt_image_2"
+    },
+    "fallbacks": [
+      {
+        "name": "Nano Banana 2",
+        "job_set_type": "nano_banana_flash"
+      },
+      {
+        "name": "Nano Banana Pro",
+        "job_set_type": "nano_banana_2"
+      }
+    ],
+    "fallback_trigger": "PROVIDER_OR_QA_FAILURE",
+    "max_generation_attempts": 3
+  },
+  "readiness_checks": [
+    {
+      "name": "SOURCE_HASHES_VERIFIED",
+      "pass": true,
+      "evidence_ref_ids": ["source-human-001", "source-garment-hat-001"]
+    },
+    {
+      "name": "CONSENT_AUTHORIZED",
+      "pass": true,
+      "evidence_ref_ids": ["source-human-001"]
+    },
+    {
+      "name": "CONDITIONING_QA_PASSED",
+      "pass": true,
+      "evidence_ref_ids": ["manifest-garment-hat-001"]
+    },
+    {
+      "name": "REQUIRED_REFERENCES_PRESENT",
+      "pass": true,
+      "evidence_ref_ids": ["approved-avatar-001", "deriv-hat-cutout-001"]
+    },
+    {
+      "name": "NO_SYNTHETIC_LOCKS",
+      "pass": true,
+      "evidence_ref_ids": ["manifest-garment-hat-001"]
+    },
+    {
+      "name": "NO_BLOCKING_UNKNOWNS",
+      "pass": true,
+      "evidence_ref_ids": ["extract-garment-hat-001"]
+    },
+    {
+      "name": "QUALITY_TARGET_BOUND",
+      "pass": true,
+      "evidence_ref_ids": ["quality-target-zeely-001"]
+    }
+  ],
+  "created_at": "2026-07-22T00:06:00Z"
+}

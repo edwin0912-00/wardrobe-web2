@@ -1,0 +1,55 @@
+{
+  "preset_id": "std.architecture.glass_corridor_sunset",
+  "preset_path": "assets/scene-presets/std.architecture.glass_corridor_sunset/v1/preset.json",
+  "preset_sha256": "32ce38cb643987df70a8f12ccf2f1d91d0fd0bd24b2bf316dac09139a5b0cee8",
+  "preset_version": "1.0.0",
+  "production_prompt_path": "prompts/scene-presets/std.architecture.glass_corridor_sunset/v1/production-scene.txt",
+  "prompt_sha256": "9e9814f2f995e0cca142b32400d66c51f821748b0f2c94b727ac30027ca6d062",
+  "reference_pack_path": "assets/scene-presets/std.architecture.glass_corridor_sunset/v1/reference-pack.json",
+  "reference_pack_sha256": "4d8a67c718072c179978b2a8f164f1ea6cc601cdcac94b2735ab72408e0e6fc5",
+  "references": [
+    {
+      "media_type": "application/json",
+      "order": 1,
+      "path": "assets/scene-presets/std.architecture.glass_corridor_sunset/v1/environment-reference.json",
+      "reference_id": "std.architecture.glass_corridor_sunset.environment",
+      "role": "environment_anchor",
+      "sha256": "f3bf479ff5385a91375f3326a9150236976f0e9053a0c617dad86bbecbf82666"
+    },
+    {
+      "media_type": "application/json",
+      "order": 2,
+      "path": "assets/scene-presets/std.architecture.glass_corridor_sunset/v1/lighting-reference.json",
+      "reference_id": "std.architecture.glass_corridor_sunset.lighting",
+      "role": "lighting_anchor",
+      "sha256": "9984ba36739f15567347e39cc047cd42dae57c05922b1c16fe45a1319c07e9f7"
+    },
+    {
+      "media_type": "application/json",
+      "order": 3,
+      "path": "assets/scene-presets/std.architecture.glass_corridor_sunset/v1/composition-reference.json",
+      "reference_id": "std.architecture.glass_corridor_sunset.composition",
+      "role": "composition_anchor",
+      "sha256": "2217cac41aee3f4b30716465a41fee37885fd02ad84e8c3a51b8c4a210b6b03b"
+    },
+    {
+      "media_type": "application/json",
+      "order": 4,
+      "path": "assets/scene-presets/std.architecture.glass_corridor_sunset/v1/palette-anchor.json",
+      "reference_id": "std.architecture.glass_corridor_sunset.palette",
+      "role": "palette_anchor",
+      "sha256": "25b04cea718e961f8ccf96ac79c4d0e6e408876263621c41736b69ce7975de19"
+    },
+    {
+      "media_type": "application/json",
+      "order": 5,
+      "path": "assets/scene-presets/std.architecture.glass_corridor_sunset/v1/negative-reference.json",
+      "reference_id": "std.architecture.glass_corridor_sunset.negative",
+      "role": "negative_reference",
+      "sha256": "28a91a379861ea61de6f86ccc96459ad1fb1fa61423ff1cf7ee7156b27efa9eb"
+    }
+  ],
+  "schema_version": "1.0.0",
+  "source_ledger_path": "assets/scene-presets/std.architecture.glass_corridor_sunset/v1/source-ledger.json",
+  "source_ledger_sha256": "1e644609fe0705a053734da8d17dee78f961644fe9606c5408a263058a8bcb20"
+}

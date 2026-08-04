@@ -1,0 +1,23 @@
+{
+  "availability": "VERIFIED",
+  "creator": "Esther Masscheleyn",
+  "extraction_role": "lighting_composition_palette_inspiration",
+  "license_evidence": "evidence/licenses/unsplash-license-2026-07-23.md",
+  "not_authority_for": [
+    "identity",
+    "body",
+    "hair",
+    "outfit",
+    "brands",
+    "readable_text",
+    "exact_architecture"
+  ],
+  "page_title": "A woman posing in a dark studio with Rembrandt lighting",
+  "permitted_observation": "dark studio separation, negative space and tonal restraint only",
+  "pixel_policy": "PAGE_METADATA_AND_ROLE_LIMITS_ONLY_SOURCE_PIXELS_NOT_SHIPPED",
+  "platform": "Unsplash",
+  "retrieved_at": "2026-07-23T09:40:00Z",
+  "schema_version": "1.0.0",
+  "source_id": "unsplash._d0Uv9sIEmY",
+  "url": "https://unsplash.com/photos/a-woman-is-posing-for-a-picture-in-a-dark-room-_d0Uv9sIEmY"
+}

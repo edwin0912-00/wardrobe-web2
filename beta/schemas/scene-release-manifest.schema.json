@@ -1,0 +1,445 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zeely.ai/schemas/scene-release-manifest.schema.json",
+  "title": "Zeely Scene Preset Release Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "release_id",
+    "revision",
+    "release_status",
+    "evidence_subject_sha256",
+    "catalog_snapshot",
+    "selection_receipt",
+    "selected_standard_preset_ids",
+    "required_asset_roles",
+    "asset_count",
+    "assets",
+    "created_at"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "release_id": { "type": "string", "pattern": "^[a-zA-Z0-9._-]{8,160}$" },
+    "revision": { "type": "integer", "minimum": 1 },
+    "release_status": {
+      "enum": [
+        "DRAFT_BLOCKED",
+        "READY_FOR_HUMAN_APPROVAL",
+        "APPROVED",
+        "RETIRED"
+      ]
+    },
+    "evidence_subject_sha256": { "$ref": "#/$defs/sha256" },
+    "catalog_snapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["catalog_id", "catalog_sha256", "catalog_status"],
+      "properties": {
+        "catalog_id": { "const": "zeely.scene-presets.launch-v0.1" },
+        "catalog_sha256": { "$ref": "#/$defs/sha256" },
+        "catalog_status": { "const": "APPROVED" }
+      }
+    },
+    "selection_receipt": { "$ref": "#/$defs/receiptReference" },
+    "selected_standard_preset_ids": {
+      "type": "array",
+      "minItems": 5,
+      "maxItems": 5,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "std.city.early_morning_gloss",
+          "std.city.golden_hour_gloss",
+          "std.studio.peach_soft_gloss",
+          "std.studio.white_window_honeycomb",
+          "std.studio.taupe_rembrandt_gloss",
+          "std.studio.charcoal_dawn_rim",
+          "std.interior.gallery_morning_gloss",
+          "std.interior.loft_golden_hour_gloss",
+          "std.nature_architecture.stone_terrace_morning",
+          "std.nature_architecture.concrete_grass_golden_hour"
+        ]
+      },
+      "allOf": [
+        {
+          "contains": { "enum": ["std.city.early_morning_gloss", "std.city.golden_hour_gloss"] },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": { "enum": ["std.studio.peach_soft_gloss", "std.studio.white_window_honeycomb"] },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": { "enum": ["std.studio.taupe_rembrandt_gloss", "std.studio.charcoal_dawn_rim"] },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": { "enum": ["std.interior.gallery_morning_gloss", "std.interior.loft_golden_hour_gloss"] },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": { "enum": ["std.nature_architecture.stone_terrace_morning", "std.nature_architecture.concrete_grass_golden_hour"] },
+          "minContains": 1,
+          "maxContains": 1
+        }
+      ]
+    },
+    "required_asset_roles": {
+      "type": "array",
+      "minItems": 5,
+      "maxItems": 5,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "mood_card",
+          "environment_plate",
+          "lighting_preview",
+          "reference_pack",
+          "production_scene"
+        ]
+      }
+    },
+    "asset_count": { "type": "integer", "minimum": 1 },
+    "assets": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/releaseAsset" }
+    },
+    "created_at": { "type": "string", "format": "date-time" }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "release_status": { "const": "APPROVED" } },
+        "required": ["release_status"]
+      },
+      "then": {
+        "properties": {
+          "selection_receipt": {
+            "properties": { "status": { "const": "PASS" } }
+          },
+          "assets": {
+            "items": {
+              "allOf": [
+                { "$ref": "#/$defs/releaseAsset" },
+                {
+                  "properties": {
+                    "visual_qa": {
+                      "properties": { "status": { "const": "PASS" } }
+                    },
+                    "human_approval": {
+                      "properties": { "status": { "const": "APPROVED" } }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "relativePath": {
+      "type": "string",
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.?(?:/|$))[a-zA-Z0-9][a-zA-Z0-9._/-]*$"
+    },
+    "receiptReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "path", "sha256"],
+      "properties": {
+        "status": { "enum": ["PASS", "FAIL"] },
+        "path": { "$ref": "#/$defs/relativePath" },
+        "sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "releaseAsset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "asset_id",
+        "revision",
+        "previous_revision",
+        "preset_id",
+        "preset_version",
+        "asset_role",
+        "file",
+        "sha256",
+        "exact_prompt",
+        "generation",
+        "derivation_lineage",
+        "source_ledger",
+        "delivery",
+        "privacy",
+        "visual_qa",
+        "human_approval",
+        "created_at"
+      ],
+      "properties": {
+        "asset_id": { "type": "string", "pattern": "^[a-zA-Z0-9._-]{8,180}$" },
+        "revision": { "type": "integer", "minimum": 1 },
+        "previous_revision": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["asset_id", "revision", "sha256"],
+              "properties": {
+                "asset_id": { "type": "string", "pattern": "^[a-zA-Z0-9._-]{8,180}$" },
+                "revision": { "type": "integer", "minimum": 1 },
+                "sha256": { "$ref": "#/$defs/sha256" }
+              }
+            }
+          ]
+        },
+        "preset_id": { "type": "string", "pattern": "^(std|editorial)\\.[a-z0-9._-]+$" },
+        "preset_version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+        "asset_role": {
+          "enum": [
+            "mood_card",
+            "environment_plate",
+            "lighting_preview",
+            "reference_pack",
+            "production_scene",
+            "editorial_shot"
+          ]
+        },
+        "file": { "$ref": "#/$defs/relativePath" },
+        "sha256": { "$ref": "#/$defs/sha256" },
+        "exact_prompt": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["path", "sha256"],
+          "properties": {
+            "path": { "$ref": "#/$defs/relativePath" },
+            "sha256": { "$ref": "#/$defs/sha256" }
+          }
+        },
+        "generation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "provider",
+            "model_family",
+            "model_version",
+            "provider_request_id",
+            "provider_receipt",
+            "parameters"
+          ],
+          "properties": {
+            "provider": { "type": "string", "minLength": 2 },
+            "model_family": { "type": "string", "minLength": 2 },
+            "model_version": {
+              "type": "string",
+              "minLength": 3,
+              "not": { "enum": ["builtin-current", "current", "latest", "unknown"] }
+            },
+            "provider_request_id": { "type": "string", "minLength": 4 },
+            "provider_receipt": { "$ref": "#/$defs/fileEvidence" },
+            "parameters": { "type": "object" }
+          }
+        },
+        "derivation_lineage": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["lineage_id", "revision", "operations"],
+          "properties": {
+            "lineage_id": { "type": "string", "pattern": "^[a-zA-Z0-9._-]{8,180}$" },
+            "revision": { "type": "integer", "minimum": 1 },
+            "operations": {
+              "type": "array",
+              "minItems": 1,
+              "items": { "$ref": "#/$defs/derivationOperation" }
+            }
+          }
+        },
+        "source_ledger": {
+          "$ref": "https://zeely.ai/schemas/scene-source-ledger.schema.json"
+        },
+        "delivery": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["width", "height", "format", "aspect_ratio"],
+          "properties": {
+            "width": { "type": "integer", "minimum": 1 },
+            "height": { "type": "integer", "minimum": 1 },
+            "format": { "enum": ["webp", "png", "json"] },
+            "aspect_ratio": { "enum": ["4:5", "not_applicable"] }
+          }
+        },
+        "privacy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["contains_personal_input", "privacy_receipt"],
+          "properties": {
+            "contains_personal_input": { "type": "boolean" },
+            "privacy_receipt": { "$ref": "#/$defs/receiptReference" }
+          }
+        },
+        "visual_qa": { "$ref": "#/$defs/receiptReference" },
+        "human_approval": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["status"],
+          "properties": {
+            "status": { "enum": ["PENDING", "APPROVED", "REJECTED"] },
+            "receipt_path": { "$ref": "#/$defs/relativePath" },
+            "receipt_sha256": { "$ref": "#/$defs/sha256" },
+            "decided_at": { "type": "string", "format": "date-time" }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": { "status": { "enum": ["APPROVED", "REJECTED"] } },
+                "required": ["status"]
+              },
+              "then": {
+                "required": ["receipt_path", "receipt_sha256", "decided_at"]
+              }
+            }
+          ]
+        },
+        "created_at": { "type": "string", "format": "date-time" }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "asset_role": { "const": "reference_pack" } },
+            "required": ["asset_role"]
+          },
+          "then": {
+            "properties": {
+              "delivery": {
+                "properties": {
+                  "format": { "const": "json" },
+                  "aspect_ratio": { "const": "not_applicable" }
+                }
+              },
+              "privacy": {
+                "properties": { "contains_personal_input": { "const": false } }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "asset_role": {
+                "enum": [
+                  "mood_card",
+                  "environment_plate",
+                  "lighting_preview",
+                  "production_scene",
+                  "editorial_shot"
+                ]
+              }
+            },
+            "required": ["asset_role"]
+          },
+          "then": {
+            "properties": {
+              "delivery": {
+                "properties": {
+                  "format": { "enum": ["webp", "png"] },
+                  "aspect_ratio": { "const": "4:5" }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "asset_role": {
+                "enum": ["mood_card", "environment_plate", "lighting_preview"]
+              }
+            },
+            "required": ["asset_role"]
+          },
+          "then": {
+            "properties": {
+              "privacy": {
+                "properties": { "contains_personal_input": { "const": false } }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "asset_role": { "enum": ["production_scene", "editorial_shot"] }
+            },
+            "required": ["asset_role"]
+          },
+          "then": {
+            "properties": {
+              "privacy": {
+                "properties": { "contains_personal_input": { "const": true } }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "fileEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": { "$ref": "#/$defs/relativePath" },
+        "sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "derivationOperation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operation_id",
+        "type",
+        "input_sha256s",
+        "output_sha256",
+        "parameters",
+        "created_at"
+      ],
+      "properties": {
+        "operation_id": { "type": "string", "pattern": "^[a-zA-Z0-9._-]{4,180}$" },
+        "type": { "enum": ["GENERATE", "EDIT", "REFRAME", "COMPOSITE", "NORMALIZE"] },
+        "input_sha256s": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/sha256" }
+        },
+        "output_sha256": { "$ref": "#/$defs/sha256" },
+        "prompt_sha256": { "$ref": "#/$defs/sha256" },
+        "prompt_path": { "$ref": "#/$defs/relativePath" },
+        "provider_request_id": { "type": "string", "minLength": 4 },
+        "parameters": { "type": "object" },
+        "created_at": { "type": "string", "format": "date-time" }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "type": { "enum": ["GENERATE", "EDIT"] } },
+            "required": ["type"]
+          },
+          "then": { "required": ["prompt_sha256", "prompt_path", "provider_request_id"] }
+        },
+        {
+          "if": {
+            "properties": { "type": { "enum": ["EDIT", "REFRAME", "COMPOSITE", "NORMALIZE"] } },
+            "required": ["type"]
+          },
+          "then": { "properties": { "input_sha256s": { "minItems": 1 } } }
+        }
+      ]
+    }
+  }
+}

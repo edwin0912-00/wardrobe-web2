@@ -1,0 +1,46 @@
+{
+  "schema_version": "1.0.0",
+  "asset_id": "source-human-001",
+  "job_id": "zeely-test-001",
+  "asset_class": "HUMAN",
+  "role": "IDENTITY_PRIMARY",
+  "intended_uses": [
+    "EXTRACTION",
+    "IDENTITY_CONDITIONING",
+    "AVATAR_GENERATION",
+    "OUTPUT_QA"
+  ],
+  "source": {
+    "uri": "inputs/zeely-test/humans/input1.webp",
+    "original_filename": "input1.webp",
+    "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "byte_size": 184233,
+    "supplied_by": "TEST_DATASET",
+    "origin": "PUBLIC_TASK_ASSET",
+    "captured_at": null,
+    "external_id": "zeely-drive-input1"
+  },
+  "media": {
+    "mime_type": "image/webp",
+    "width_px": 768,
+    "height_px": 1024,
+    "orientation": "NORMAL",
+    "color_space": "SRGB",
+    "has_alpha": false,
+    "exif_present": false
+  },
+  "ingest": {
+    "ingested_at": "2026-07-22T00:00:00Z",
+    "immutable": true,
+    "decode_status": "PASS",
+    "malware_scan": "PASS",
+    "decoder": "sharp-0.34.2"
+  },
+  "consent": {
+    "status": "AUTHORIZED",
+    "likeness_use_authorized": true,
+    "commercial_use_authorized": true,
+    "recorded_at": "2026-07-22T00:00:00Z",
+    "evidence_uri": "records/consent/zeely-test-001.json"
+  }
+}

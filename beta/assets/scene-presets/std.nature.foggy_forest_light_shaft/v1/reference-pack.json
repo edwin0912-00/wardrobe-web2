@@ -1,0 +1,134 @@
+{
+  "preset_id": "std.nature.foggy_forest_light_shaft",
+  "preset_sha256": "5462d82c55945e4fea04b8faff868b2e85fa682b3d6c50699d40730ac6ca2f57",
+  "preset_version": "1.0.0",
+  "prompt_sha256": "df4775ca3a0707ca6f96af63a7366c0b1c8452de81f6595ec800dca41e26bacb",
+  "reference_pack_id": "pack.std.nature.foggy_forest_light_shaft.v1.1",
+  "references": [
+    {
+      "media_type": "application/json",
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit"
+      ],
+      "reference_id": "std.nature.foggy_forest_light_shaft.environment",
+      "role": "environment_anchor",
+      "sha256": "822c1c79715c8881510e6e8651eb3d0dbea447140adc986fc3ea33217726323b"
+    },
+    {
+      "media_type": "application/json",
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit"
+      ],
+      "reference_id": "std.nature.foggy_forest_light_shaft.lighting",
+      "role": "lighting_anchor",
+      "sha256": "9ad2d785e2e10f8051888e36edb8fc6ff29c4f6729a388617ce1ab29bbfb1d54"
+    },
+    {
+      "media_type": "application/json",
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit"
+      ],
+      "reference_id": "std.nature.foggy_forest_light_shaft.composition",
+      "role": "composition_anchor",
+      "sha256": "2217cac41aee3f4b30716465a41fee37885fd02ad84e8c3a51b8c4a210b6b03b"
+    },
+    {
+      "media_type": "application/json",
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit"
+      ],
+      "reference_id": "std.nature.foggy_forest_light_shaft.palette",
+      "role": "palette_anchor",
+      "sha256": "013f899107e4146545c9b60eb532db687e0fde8726c23eb1f67750e3ecb4bb03"
+    },
+    {
+      "media_type": "application/json",
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit"
+      ],
+      "reference_id": "std.nature.foggy_forest_light_shaft.negative",
+      "role": "negative_reference",
+      "sha256": "d8caa2d649e48c99529a562f0d45aa21378d12e46245feb1a6ad7a8727e90f24"
+    }
+  ],
+  "schema_version": "1.0.0",
+  "source_ledger": {
+    "created_at": "2026-07-23T09:40:00Z",
+    "ledger_id": "ledger.std.nature.foggy_forest_light_shaft.v1",
+    "preset_id": "std.nature.foggy_forest_light_shaft",
+    "preset_version": "1.0.0",
+    "revision": 1,
+    "schema_version": "1.0.0",
+    "sources": [
+      {
+        "content_sha256": "10986117f8aeabbdd06e26b0ef447fb7ddb4f540d1255f282588642c58ac95ba",
+        "not_authority_for": [
+          "identity",
+          "body",
+          "hair",
+          "outfit",
+          "brands",
+          "readable_text",
+          "exact_architecture"
+        ],
+        "retrieved_at": "2026-07-23T09:40:00Z",
+        "rights": {
+          "basis": "LICENSED",
+          "evidence_sha256": "86a558a192adac12108998fb02dd40db4b72dc06a04c09719d47db91854dacb5",
+          "evidence_uri": "evidence/licenses/unsplash-license-2026-07-23.md",
+          "rights_holder": "Nature Lens via Unsplash license",
+          "status": "VERIFIED",
+          "verified_at": "2026-07-23T09:40:00Z"
+        },
+        "role": "environment_and_composition_inspiration",
+        "snapshot_uri": "evidence/scene-sources/unsplash.rO11U7uF4sA.json",
+        "source_id": "unsplash.rO11U7uF4sA",
+        "url": "https://unsplash.com/photos/sunlit-forest-path-with-dappled-light-and-shadows-rO11U7uF4sA",
+        "use": "dappled forest light behavior, moss texture and path depth only"
+      },
+      {
+        "content_sha256": "ce6930193124338ab85059a3c2660ac70f944baceba87867624fa881276d622e",
+        "not_authority_for": [
+          "identity",
+          "body",
+          "hair",
+          "outfit",
+          "brands",
+          "readable_text",
+          "exact_architecture"
+        ],
+        "retrieved_at": "2026-07-23T09:40:00Z",
+        "rights": {
+          "basis": "LICENSED",
+          "evidence_sha256": "86a558a192adac12108998fb02dd40db4b72dc06a04c09719d47db91854dacb5",
+          "evidence_uri": "evidence/licenses/unsplash-license-2026-07-23.md",
+          "rights_holder": "Forest Explorer via Unsplash license",
+          "status": "VERIFIED",
+          "verified_at": "2026-07-23T09:40:00Z"
+        },
+        "role": "environment_material_inspiration",
+        "snapshot_uri": "evidence/scene-sources/unsplash.B5t4c8fE2_M.json",
+        "source_id": "unsplash.B5t4c8fE2_M",
+        "url": "https://unsplash.com/photos/a-sun-dappled-forest-path-surrounded-by-lush-green-trees-B5t4c8fE2_M",
+        "use": "canopy bokeh and atmospheric mist behavior only"
+      }
+    ],
+    "status": "VERIFIED_FOR_RELEASE"
+  },
+  "version": "1.1.0"
+}

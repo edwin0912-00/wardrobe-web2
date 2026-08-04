@@ -1,0 +1,55 @@
+flowchart TD
+    WEB["Core Web App<br/>фото людини · додаткове фото<br/>текст і/або до 5 фото речей"] --> INTAKE["Validate uploads · consent<br/>decode · type · size · dimensions"]
+    INTAKE --> GP["Codex: картка речі<br/>категорія · ВИДИМЕ · НЕВІДОМЕ · впевненість"]
+    GP --> GC["Підготовка кожної речі<br/>GPT Image 2 route · білий фон · вирізаний об’єкт"]
+    GC --> GQA{"Оригінал ↔ підготовлена річ<br/>QA відповідності"}
+    GQA -->|NEEDS_INPUT / conflict| STOP2
+    GQA -->|READY| J
+    INTAKE --> J
+    J["Immutable job.json<br/>paths · policies · limits · outputs"] --> V["Validate schema, allowlist,<br/>paths and immutable hashes"]
+    CRED["Process authority<br/>provider credentials outside job"] -. "explicit adapter only" .-> CALL
+
+    V --> RAW["Immutable raw identity<br/>and optional outfit reference"]
+    RAW --> INSPECT["Inspect metadata and evidence<br/>EXIF · sRGB · resolution · clipping · detail"]
+    INSPECT --> EXTRACT["Strict extraction<br/>OBSERVED facts · UNKNOWN fields · provenance"]
+    EXTRACT --> DERIVE["Deterministic conditioning<br/>normalize · crops · cutout · white card · lineage"]
+    DERIVE --> CQ{Conditioning QA}
+
+    CQ -->|INCOMPATIBLE| STOP1["STOP<br/>change framing or reference"]
+    CQ -->|NEEDS_INPUT| STOP2["STOP<br/>request missing evidence"]
+    CQ -->|REPAIRABLE| REPAIR["Declared deterministic repair<br/>bounded retry"]
+    REPAIR --> CQ
+    CQ -->|READY| LANE{Execution lane}
+
+    LANE -->|strict production| BODY{Required body<br/>evidence observable?}
+    BODY -->|no| STOP2
+    BODY -->|yes| PACK
+    LANE -->|test compatibility| UNKNOWN["Keep body build<br/>NOT_EVALUABLE"]
+    UNKNOWN --> PACK["Ordered generation-ready<br/>reference pack"]
+
+    RULE["Written requirements<br/>exact #FFFFFF"] --> TARGET["Quality target"]
+    BENCH["Expected-output images<br/>framing · lighting · finish · detail only"] --> TARGET
+    RULE -. "higher precedence" .-> BENCH
+    TARGET --> AP
+
+    PACK --> AP["Compile exact avatar prompt<br/>and input ordering"]
+    AP --> ROUTE1["Fixed model route<br/>GPT Image 2 → Nano Banana 2 → Nano Banana Pro"]
+    ROUTE1 --> CALL["Provider adapter call<br/>create · atomic job journal · wait/resume"]
+    CALL --> AW["Border-connected<br/>exact-white normalization"]
+    AW --> AQA{Avatar QA<br/>technical + explicit semantic}
+    AQA -->|retryable and route remains| ROUTE1
+    AQA -->|NEEDS_INPUT / route exhausted| STOP3["Terminal report<br/>no threshold reduction"]
+    AQA -->|PASS| AV["Approved canonical avatar"]
+
+    AV --> OP["Compile outfit prompt<br/>avatar first · identity repeated · outfit scoped"]
+    PACK --> OP
+    OP --> ROUTE2["Same fixed model route"]
+    ROUTE2 --> OCALL["Provider adapter call<br/>create · atomic job journal · wait/resume"]
+    OCALL --> OW["Border-connected<br/>exact-white normalization"]
+    OW --> OQA{Outfit QA<br/>technical + explicit semantic}
+    OQA -->|retryable and route remains| ROUTE2
+    OQA -->|NEEDS_INPUT / route exhausted| STOP3
+    OQA -->|PASS| EXPORT["Export avatar.png<br/>and avatar_outfit.png"]
+    EXPORT --> EVIDENCE["Manifest · exact prompts · hashes<br/>events · receipts · QA evidence"]
+
+    EVIDENCE -. "optional only after core PASS" .-> OPTIONAL["Separate HTML5/video extension<br/>two mirrors → TV → laptop"]

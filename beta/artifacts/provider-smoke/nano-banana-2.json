@@ -1,0 +1,23 @@
+{
+  "schema_version": "1.0.0",
+  "purpose": "Validate the live two-phase Higgsfield create -> wait transport and the locked Nano Banana 2 fallback selector without affecting approved core outputs.",
+  "provider": "HIGGSFIELD_CLI",
+  "cli_version": "0.1.33",
+  "provider_job_id": "dcf86ddf-ed5d-434a-b3eb-1d0b56e75983",
+  "display_name": "Nano Banana 2",
+  "job_set_type": "nano_banana_flash",
+  "status": "completed",
+  "parameters": {
+    "aspect_ratio": "3:4",
+    "resolution": "1k",
+    "width": 896,
+    "height": 1200
+  },
+  "estimated_credits_exact": 1.5,
+  "reference": "artifacts/conditioning/garments/hoodie-green/reference-card.png",
+  "selected_for_core_output": false,
+  "transport_observation": {
+    "create_json_shape": "one-element array containing the provider job ID string",
+    "wait_json_shape": "one completed job object"
+  }
+}

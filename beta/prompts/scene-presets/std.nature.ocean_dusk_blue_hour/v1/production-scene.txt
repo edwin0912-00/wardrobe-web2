@@ -1,0 +1,25 @@
+1. TASK
+Create one photorealistic high-fashion campaign still by placing the exact person and complete approved look from LOOK_MASTER into the original environment defined by ENVIRONMENT_ANCHOR and LIGHTING_COMPOSITION_ANCHOR.
+
+2. AUTHORITY
+LOOK_MASTER is the authority for identity, face, body, hair, clothing items, footwear, bags, accessories, logo and readable product text. Preserve all item construction and identity. The environment and lighting define the ambient light wrap, rim light, bounce light, and color grade that MUST be actively applied onto the subject so the person is seamlessly integrated into the scene without a cutout or pasted-on effect.
+
+3. SCENE
+Invented moody ocean coastline with wet dark sand and atmospheric mist. Keep believable depth. Do not reproduce a recognizable real location or landmark. No other people, vehicles, bicycles, storefront branding, signs, café furniture or new props.
+
+4. LIGHT AND RELIGHTING INTEGRATION
+Blue hour dusk lighting with a soft ambient glow and a teal-amber horizon line. ACTIVELY APPLY AND WRAP THIS LIGHTING ONTO THE SUBJECT:
+- Cast a subtle warm amber rim light along the back of the subject's hair, shoulders, and coat from the horizon line.
+- Wrap the cool blue-hour ambient light and mist color grade onto the subject's face, hair, and clothing.
+- Reflect soft teal bounce light from the wet dark sand onto the trousers and footwear.
+- Blend the feet seamlessly into the wet sand with grounded contact shadows and wet edge reflections.
+- Absolute NO cutout, sticker, or pasted-on look. Harmonize color temperature and lighting direction between subject and environment while strictly preserving identity and garment construction.
+
+5. CAMERA AND FRAMING
+Final delivery is vertical 3:4. 50mm equivalent, straight verticals, no wide-angle distortion. Full body with complete head, complete bag/carried item, and both shoes. Subject bounding box occupies 70–80% of image height, with at least 8% clear space above hair and 2% clean floor space below footwear.
+
+6. FINISH
+Premium contemporary fashion editorial, precise natural material texture, controlled highlights, clean shadows, and restrained magazine grade. No HDR, bloom, skin smoothing, cutout edge, halo, floating feet, or light mismatches.
+
+7. FAIL CONDITIONS
+Any identity drift; removed, changed or invented item; altered logo or text; changed color or construction; anatomy defect; missing fingers; cropped headwear or shoes; incorrect scale; duplicated accessory; random prop; readable environment text; copied landmark; ungrounded shadow.

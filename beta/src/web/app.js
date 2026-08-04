@@ -1,0 +1,577 @@
+import { createReadStream } from 'node:fs';
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
+import Fastify from 'fastify';
+import multipart from '@fastify/multipart';
+import fastifyStatic from '@fastify/static';
+import sharp from 'sharp';
+import { registerMonitorRoutes } from '../monitor/routes.js';
+import { publicManifestView } from '../runner/public-manifest.js';
+import { installDemoAuth } from './demo-auth.js';
+import { registerDraftRoutes } from './draft-service.js';
+import { registerProfileRoutes } from './profile-service.js';
+import { EditorialSceneExecutor } from './editorial-scene-executor.js';
+import { registerEditorialShootRoutes } from './editorial-shoot-routes.js';
+import { EditorialShootService } from './editorial-shoot-service.js';
+import { createProfileApprovedLookResolver } from './scene-resolvers.js';
+import { registerSceneRoutes } from './scene-routes.js';
+import { SceneService } from './scene-service.js';
+import { sanitizeOutboundString } from '../security/outbound-redaction.js';
+import { registerPostShootRoutes } from './post-shoot-routes.js';
+import { registerVideoRoutes } from './video-routes.js';
+import {
+  redactVideoSourceRequestPath,
+  registerVideoSourceBridgeRoutes,
+} from './video-source-bridge.js';
+import { registerHeicConversionRoute } from './heic-converter.js';
+import { registerGodViewRoutes } from './god-view-routes.js';
+import { registerTestAuditRoutes } from './test-audit-routes.js';
+
+const PUBLIC_ERROR_CODE = /^[A-Z][A-Z0-9_]{1,119}$/;
+const PUBLIC_ERROR_COPY = Object.freeze({
+  PROVIDER_INPUT_MEDIA_IP_CHECK_PENDING: 'Вхідне медіа ще проходить перевірку. Запуск не почався.',
+  PROVIDER_JOB_NOT_FOUND: 'Постачальник більше не бачить цю спробу.',
+  PROVIDER_JOB_FAILED: 'Постачальник завершив цю спробу без результату.',
+  PROVIDER_COMMAND_FAILED: 'Постачальник не зміг завершити запит.',
+  MODEL_RESPONSE_MISMATCH: 'Відповідь моделі не відповідає очікуваному маршруту.',
+  IMAGE_TOO_SMALL: 'Це зображення замале для надійної підготовки.',
+  UNSUPPORTED_MEDIA_TYPE: 'Цей формат зображення не підтримується.',
+});
+
+function publicErrorCode(value) {
+  return typeof value === 'string' && PUBLIC_ERROR_CODE.test(value)
+    ? value
+    : null;
+}
+
+function publicErrorMessage(error, code) {
+  if (code && PUBLIC_ERROR_COPY[code]) return PUBLIC_ERROR_COPY[code];
+  // Input errors are authored by the validation contract and describe the
+  // user’s supplied material. Provider/model diagnostics are intentionally
+  // not passed through as free-form browser copy.
+  if (error.status === 'NEEDS_INPUT') return sanitizeOutboundString(error.message);
+  return 'Дію зупинено. Перевірте код і наступну дію.';
+}
+
+export async function createWebApp({
+  service,
+  health = { status: 'ok' },
+  healthProvider = null,
+  publicDirectory = path.resolve(import.meta.dirname, '..', '..', 'web', 'public'),
+  logger = false,
+  auth = null,
+  monitor = null,
+  drafts = null,
+  profiles = null,
+  sceneDependencies = null,
+  lucyTokenIssuer = null,
+  videoService = null,
+  videoSourceBridge = null,
+  releaseIdentity = null,
+  godViewAuth = null,
+  testAudit = null,
+}) {
+  // A degraded provider preflight means the local CLI cannot prove that it can
+  // create and observe a paid Higgsfield job. Do not let a user enter the
+  // pipeline only to fail later with an ambiguous provider-create message.
+  //
+  // `health` is the boot snapshot; `healthProvider` is the latest cached
+  // provider preflight. The latter matters when a short CLI/network failure
+  // occurs exactly while the daemon starts: a later healthy preflight must
+  // reopen the journey without waiting for a manual process restart.
+  const currentHealth = async () => {
+    const latest = typeof healthProvider === 'function' ? await healthProvider() : null;
+    const resolved = {
+      ...health,
+      ...(latest && typeof latest === 'object' ? latest : {}),
+    };
+    if (resolved.runtime_status && resolved.runtime_status !== 'ready') {
+      return { ...resolved, status: 'degraded' };
+    }
+    return resolved;
+  };
+  const generationAvailable = (resolvedHealth) => ['ready', 'ok'].includes(resolvedHealth?.status);
+  const generationTrigger = (request) => {
+    if (request.method !== 'POST') return false;
+    const pathname = request.url.split('?')[0];
+    return pathname === '/api/runs'
+      || pathname === '/api/draft/run'
+      || /^\/api\/runs\/[^/]+\/(?:retry|garment-selection)$/.test(pathname)
+      || /^\/api\/profile\/looks\/[^/]+\/scenes$/.test(pathname)
+      || /^\/api\/profile\/scenes\/[^/]+\/retry$/.test(pathname)
+      || /^\/api\/profile\/editorial-shoots\/[^/]+\/(?:approve-bible|approve-hero)$/.test(pathname)
+      || /^\/api\/profile\/editorial-shoots\/[^/]+\/shots\/[^/]+\/retry$/.test(pathname);
+  };
+  const app = Fastify({
+    logger,
+    bodyLimit: 150 * 1024 * 1024,
+    logController: new Fastify.LogController({
+      disableRequestLogging: (request) => false,
+    }),
+  });
+  const activeSseCleanups = new Set();
+  app.addHook('onClose', async () => {
+    for (const cleanup of [...activeSseCleanups]) cleanup();
+  });
+  installDemoAuth(app, auth);
+  app.addHook('onRequest', async (request, reply) => {
+    if (!generationTrigger(request) || generationAvailable(await currentHealth())) return;
+    return reply
+      .header('Retry-After', '60')
+      .code(503)
+      .send({
+        error: 'Генерація тимчасово недоступна: потрібна авторизація або перевірка Higgsfield.',
+        code: 'GENERATION_UNAVAILABLE',
+        next_action: 'RETRY_AFTER_PROVIDER_READY',
+      });
+  });
+  await app.register(multipart, { limits: { files: 7, fileSize: 20 * 1024 * 1024, fields: 12, parts: 20 } });
+  await registerHeicConversionRoute(app);
+  await app.register(fastifyStatic, { root: publicDirectory, prefix: '/' });
+  const secureCookie = process.env.ZEELY_COOKIE_SECURE !== 'false';
+  let sceneService = null;
+  let scenePresetResolver = null;
+  let editorialShootService = null;
+  if (sceneDependencies) {
+    if (!profiles) throw new Error('SceneService requires ProfileService ownership');
+    await profiles.initialize();
+    const {
+      approvedLookResolver: _untrustedApprovedLookResolver,
+      observer: suppliedSceneObserver = null,
+      presetResolver,
+      editorialRootDirectory = null,
+      ...sceneOptions
+    } = sceneDependencies;
+    if (!presetResolver) throw new Error('sceneDependencies.presetResolver is required');
+    await presetResolver.initialize?.();
+    scenePresetResolver = presetResolver;
+    sceneService = new SceneService({
+      ...sceneOptions,
+      presetResolver,
+      approvedLookResolver: createProfileApprovedLookResolver({
+        profiles,
+        runService: service,
+      }),
+      observer: async (scene) => {
+        profiles.syncSceneProjection(scene);
+        if (suppliedSceneObserver) await suppliedSceneObserver(scene);
+      },
+    });
+    await sceneService.initialize();
+    app.decorate('sceneService', sceneService);
+    if (typeof presetResolver.compileEditorialShootBible === 'function'
+      && typeof presetResolver.editorialShotPresetReference === 'function') {
+      const editorialSceneExecutor = new EditorialSceneExecutor({
+        sceneService,
+        presetResolver,
+      });
+      editorialShootService = new EditorialShootService({
+        rootDirectory: editorialRootDirectory
+          ?? path.join(path.dirname(sceneOptions.rootDirectory), 'editorial-shoots'),
+        sceneExecutor: editorialSceneExecutor,
+        observer: async (shoot, event) => {
+          profiles.syncEditorialShootProjection(shoot);
+          if (monitor) {
+            await monitor.append({
+              source: 'runner',
+              type: 'editorial.phase',
+              severity: shoot.status === 'CANCELLED'
+                ? 'warn'
+                : shoot.status === 'NEEDS_RETRY'
+                ? 'error'
+                : 'info',
+              data: {
+                shoot_id: shoot.shoot_id,
+                status: shoot.status,
+                stage: shoot.phase,
+                event_type: event?.event_type,
+                message: sanitizeOutboundString(shoot.message),
+              },
+            });
+          }
+        },
+      });
+      await editorialShootService.initialize();
+      app.decorate('editorialShootService', editorialShootService);
+    }
+  }
+  const profileApi = profiles
+    ? await registerProfileRoutes(app, {
+        service: profiles,
+        runService: service,
+        sceneService,
+        editorialShootService,
+        secureCookie,
+      })
+    : null;
+  await registerTestAuditRoutes(app, { testAudit, profileApi });
+  await registerPostShootRoutes(app, {
+    projectRoot: path.resolve(import.meta.dirname, '..', '..'),
+    lucyTokenIssuer,
+    profileApi,
+    profiles,
+  });
+  if (sceneService) {
+    await registerSceneRoutes(app, {
+      sceneService,
+      profiles,
+      profileApi,
+      runService: service,
+      presetResolver: scenePresetResolver,
+      editorialShootService,
+    });
+  }
+  if (editorialShootService) {
+    await registerEditorialShootRoutes(app, {
+      editorialShootService,
+      profiles,
+      profileApi,
+      runService: service,
+      presetResolver: scenePresetResolver,
+      sceneService,
+    });
+  }
+  if (videoService && profileApi && profiles) {
+    await registerVideoRoutes(app, {
+      profileApi,
+      profiles,
+      videoService,
+      runService: service,
+    });
+  }
+  if (videoSourceBridge) {
+    await registerVideoSourceBridgeRoutes(app, { videoSourceBridge });
+  }
+  await registerGodViewRoutes(app, {
+    auth: godViewAuth,
+    profiles,
+    runService: service,
+    sceneService,
+    editorialShootService,
+    videoService,
+    testAudit,
+  });
+  if (drafts) await registerDraftRoutes(app, {
+    service: drafts,
+    runService: service,
+    profileService: profiles,
+    profileApi,
+    secureCookie,
+  });
+
+  async function ownsRun(request, reply) {
+    if (!profiles || !profileApi) return true;
+    const session = await profileApi.resolveRequestProfile(request, reply);
+    if (profiles.getClaim(session.profileId, request.params.id)) {
+      reply.header('Cache-Control', 'private, no-store').header('Vary', 'Cookie');
+      return true;
+    }
+    reply.code(404).send({ error: 'Run not found' });
+    return false;
+  }
+
+  if (monitor) {
+    await registerMonitorRoutes(app, {
+      store: monitor,
+      acceptClientTelemetry: true,
+      testAudit,
+      profileApi,
+      statusProvider: async () => {
+        const resolved = await currentHealth();
+        const available = generationAvailable(resolved);
+        return {
+          status: 'ok',
+          service: 'web',
+          generation: available ? 'available' : 'unavailable',
+          editorial_generation: editorialShootService
+            ? (available ? 'available' : 'unavailable')
+            : 'disabled',
+          preflight: resolved.status,
+        };
+      },
+    });
+    app.addHook('onResponse', async (request, reply) => {
+      const pathname = request.url.split('?')[0];
+      if (!pathname.startsWith('/api/') || pathname.startsWith('/api/monitor') || pathname === '/api/telemetry') return;
+      const stage = redactVideoSourceRequestPath(pathname);
+      await monitor.append({
+        source: 'http', type: 'http.response', severity: reply.statusCode >= 400 ? 'error' : 'info',
+        run_id: request.params?.id,
+        data: { method: request.method, stage, status: reply.statusCode },
+      });
+    });
+  }
+
+  app.get('/api/health', async () => {
+    const resolved = await currentHealth();
+    const status = resolved.status === 'ready' || resolved.status === 'ok' ? resolved.status : 'degraded';
+    const available = generationAvailable(resolved);
+    const runtimeStatus = resolved.runtime_status
+      ? (resolved.runtime_status === 'ready' ? 'ready' : 'degraded')
+      : null;
+    return {
+      status,
+      service: 'web',
+      generation: available ? 'available' : 'unavailable',
+      semantic_qa: 'available',
+      fashion_shoot_qa_mode: ['strict', 'review', 'off']
+        .includes(resolved.fashion_shoot_qa_mode)
+        ? resolved.fashion_shoot_qa_mode
+        : 'strict',
+      ...(releaseIdentity ? releaseIdentity : {}),
+      ...(runtimeStatus ? { runtime_status: runtimeStatus } : {}),
+      ...(resolved.test_only ? { editorial_generation: 'available' } : { editorial_generation: editorialShootService
+        ? (available ? 'available' : 'unavailable')
+        : 'disabled' }),
+    };
+  });
+
+
+  app.post('/api/runs', async (request, reply) => {
+    const uploads = { garments: [] };
+    const fields = {};
+    for await (const part of request.parts()) {
+      if (part.type === 'file') {
+        const upload = { filename: part.filename, mimetype: part.mimetype, buffer: await part.toBuffer() };
+        if (part.fieldname === 'person_photo') uploads.person = upload;
+        else if (part.fieldname === 'identity_detail') uploads.identityDetail = upload;
+        else if (part.fieldname === 'garment_images') uploads.garments.push(upload);
+      } else fields[part.fieldname] = part.value;
+    }
+    if (monitor) await monitor.append({
+      source: 'server', type: 'run.upload_received',
+      data: {
+        count: (uploads.person ? 1 : 0) + (uploads.identityDetail ? 1 : 0) + uploads.garments.length,
+        bytes: [uploads.person, uploads.identityDetail, ...uploads.garments].filter(Boolean).reduce((total, upload) => total + upload.buffer.length, 0),
+        stage: `person:${Boolean(uploads.person)} identity:${Boolean(uploads.identityDetail)} garments:${uploads.garments.length}`,
+      },
+    });
+    if (fields.consent !== 'true') return reply.code(400).send({ error: 'Consent is required for processing personal images' });
+    if (fields.generate_scene === 'true') {
+      return reply.code(422).send({
+        error: 'Legacy scene generation is disabled. Save the completed look, then create a scene from that look.',
+        code: 'LEGACY_SCENE_DISABLED',
+        next_action: 'CREATE_SCENE_FROM_SAVED_LOOK',
+      });
+    }
+    const run = await service.createRun({
+      person: uploads.person,
+      identityDetail: uploads.identityDetail,
+      garments: uploads.garments,
+      outfitText: String(fields.outfit_text ?? ''),
+      generateScene: false,
+    });
+    if (profileApi) await profileApi.claimRunForRequest(request, reply, run.run_id, { sourceAvatarId: null });
+    return reply.code(202).send(run);
+  });
+
+  app.get('/api/runs/:id', async (request, reply) => {
+    if (!await ownsRun(request, reply)) return reply;
+    const run = await service.getRun(request.params.id);
+    return run ? run : reply.code(404).send({ error: 'Run not found' });
+  });
+
+  app.get('/api/runs/:id/events', async (request, reply) => {
+    if (!await ownsRun(request, reply)) return reply;
+    const current = await service.getRun(request.params.id);
+    if (!current) return reply.code(404).send({ error: 'Run not found' });
+    const buffered = [];
+    let live = false;
+    const send = (value) => reply.raw.write(`event: run\ndata: ${JSON.stringify(value)}\n\n`);
+    const listener = (value) => {
+      if (live) send(value);
+      else buffered.push(value);
+    };
+    const unsubscribe = service.subscribe(request.params.id, listener);
+    let heartbeat = null;
+    let cleaned = false;
+    const cleanup = () => {
+      if (cleaned) return;
+      cleaned = true;
+      if (heartbeat) clearInterval(heartbeat);
+      unsubscribe();
+      activeSseCleanups.delete(cleanup);
+    };
+    activeSseCleanups.add(cleanup);
+    request.raw.once('close', cleanup);
+    let snapshot;
+    try {
+      snapshot = await service.getRun(request.params.id);
+    } catch (error) {
+      cleanup();
+      throw error;
+    }
+    if (!snapshot) {
+      cleanup();
+      return reply.code(404).send({ error: 'Run not found' });
+    }
+    if (cleaned || request.raw.destroyed || reply.raw.destroyed || reply.raw.writableEnded) {
+      cleanup();
+      return reply;
+    }
+    reply.hijack();
+    reply.raw.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache, no-transform', Connection: 'keep-alive', 'X-Accel-Buffering': 'no' });
+    send(snapshot);
+    live = true;
+    const bufferedTail = buffered.at(-1);
+    if (bufferedTail && bufferedTail.updated_at >= snapshot.updated_at && JSON.stringify(bufferedTail) !== JSON.stringify(snapshot)) send(bufferedTail);
+    heartbeat = setInterval(() => {
+      if (reply.raw.destroyed || reply.raw.writableEnded) cleanup();
+      else reply.raw.write(': keep-alive\n\n');
+    }, 15_000);
+  });
+
+  app.post('/api/runs/:id/retry', async (request, reply) => {
+    if (!await ownsRun(request, reply)) return reply;
+    try {
+      const run = await service.retry(request.params.id);
+      return run ? reply.code(202).send(run) : reply.code(404).send({ error: 'Run not found' });
+    } catch (error) {
+      if (error?.statusCode === 409) return reply.code(409).send({ error: error.message, code: error.code });
+      throw error;
+    }
+  });
+
+  app.post('/api/runs/:id/garment-selection', async (request, reply) => {
+    if (!await ownsRun(request, reply)) return reply;
+    const run = await service.selectGarments(request.params.id, request.body?.selections);
+    return run ? reply.code(202).send(run) : reply.code(404).send({ error: 'Run not found' });
+  });
+
+  app.delete('/api/runs/:id', async (request, reply) => {
+    if (!await ownsRun(request, reply)) return reply;
+    await service.deleteRun(request.params.id);
+    return reply.code(204).send();
+  });
+
+  app.get('/api/runs/:id/files/:name', async (request, reply) => {
+    if (!await ownsRun(request, reply)) return reply;
+    const filename = await service.outputFile(request.params.id, request.params.name);
+    if (!filename) return reply.code(404).send({ error: 'Output not found' });
+    if (request.params.name === 'run-manifest.json') {
+      const internalManifest = JSON.parse(await readFile(filename, 'utf8'));
+      return reply
+        .type('application/json')
+        .header('Cache-Control', 'private, no-store')
+        .header('Content-Disposition', 'inline; filename="run-manifest.json"')
+        .send(publicManifestView(internalManifest));
+    }
+    if (request.query?.preview === '1') {
+      try {
+        const preview = await sharp(filename, { failOn: 'error', limitInputPixels: 100_000_000 })
+          .rotate()
+          .resize({ width: 640, height: 640, fit: 'inside', withoutEnlargement: true })
+          .webp({ quality: 70, effort: 4 })
+          .toBuffer();
+        return reply.type('image/webp')
+          .header('Cache-Control', 'private, max-age=900')
+          .header('Vary', 'Cookie')
+          .header('X-Content-Type-Options', 'nosniff')
+          .header('X-Zeely-Presentation', 'webp-640')
+          .send(preview);
+      } catch {
+        return reply.code(422).send({ error: 'Не вдалося підготувати легке preview-зображення' });
+      }
+    }
+    const type = request.params.name.endsWith('.json') ? 'application/json' : 'image/png';
+    return reply.type(type).header('Content-Disposition', `inline; filename="${request.params.name}"`).send(createReadStream(filename));
+  });
+
+  app.get('/api/runs/:id/garments/:index', async (request, reply) => {
+    if (!await ownsRun(request, reply)) return reply;
+    const filename = await service.garmentSourceFile(request.params.id, request.params.index);
+    if (!filename) return reply.code(404).send({ error: 'Фото речі не знайдено' });
+    if (request.query?.preview === '1') {
+      // This response is only a UI thumbnail. The original input remains the
+      // immutable source file used by conditioning, QA and generation.
+      try {
+        const preview = await sharp(filename, { failOn: 'error', limitInputPixels: 100_000_000 })
+          .rotate()
+          .resize({ width: 480, height: 480, fit: 'inside', withoutEnlargement: true })
+          .webp({ quality: 72, effort: 4 })
+          .toBuffer();
+        return reply
+          .type('image/webp')
+          .header('Cache-Control', 'private, max-age=900')
+          .header('Vary', 'Cookie')
+          .header('X-Content-Type-Options', 'nosniff')
+          .send(preview);
+      } catch {
+        return reply.code(422).send({ error: 'Не вдалося підготувати preview фото речі' });
+      }
+    }
+    const type = new Map([['.png', 'image/png'], ['.jpg', 'image/jpeg'], ['.jpeg', 'image/jpeg'], ['.webp', 'image/webp']]).get(path.extname(filename).toLowerCase()) ?? 'application/octet-stream';
+    return reply.type(type).header('Cache-Control', 'private, max-age=900').send(createReadStream(filename));
+  });
+
+  app.get('/api/runs/:id/visual-assets/:assetId', async (request, reply) => {
+    reply
+      .header('Cache-Control', 'private, no-store')
+      .header('Vary', 'Cookie')
+      .header('Cross-Origin-Resource-Policy', 'same-origin')
+      .header('X-Content-Type-Options', 'nosniff');
+    if (!await ownsRun(request, reply)) return reply;
+    const asset = typeof service.visualAsset === 'function'
+      ? await service.visualAsset(request.params.id, request.params.assetId)
+      : null;
+    if (!asset) return reply.code(404).send({ error: 'Visual asset not found' });
+    if (request.query?.preview === '1') {
+      try {
+        const preview = await sharp(asset.bytes, { failOn: 'error', limitInputPixels: 100_000_000 })
+          .rotate()
+          .resize({ width: 640, height: 640, fit: 'inside', withoutEnlargement: true })
+          .webp({ quality: 70, effort: 4 })
+          .toBuffer();
+        return reply.type('image/webp')
+          .header('Cache-Control', 'private, max-age=900')
+          .header('X-Zeely-Presentation', 'webp-640')
+          .send(preview);
+      } catch {
+        return reply.code(422).send({ error: 'Не вдалося підготувати легке preview-зображення' });
+      }
+    }
+    return reply
+      .type(asset.media_type)
+      .send(asset.bytes);
+  });
+
+  app.setErrorHandler((error, request, reply) => {
+    request.log.error(error);
+    const statusCode = error.statusCode && error.statusCode < 500 ? error.statusCode : 400;
+    const code = publicErrorCode(error.code);
+    const publicMessage = publicErrorMessage(error, code);
+    if (monitor) monitor.append({
+      source: 'server', type: 'server.error', severity: 'error', run_id: request.params?.id,
+      data: {
+        method: request.method,
+        stage: redactVideoSourceRequestPath(request.url.split('?')[0]),
+        status: statusCode,
+        message: publicMessage,
+      },
+    }).catch(() => {});
+    const failureCode = publicErrorCode(error.failureCode ?? error.failure_code);
+    const reasonCode = publicErrorCode(error.reasonCode ?? error.reason_code);
+    const nextAction = publicErrorCode(error.nextAction ?? error.next_action);
+    const nextActionReasonCode = publicErrorCode(error.nextActionReasonCode ?? error.next_action_reason_code);
+    const payload = {
+      error: publicMessage,
+      ...(code ? { code } : {}),
+      ...(failureCode ? { failure_code: failureCode } : {}),
+      ...(reasonCode ? { reason_code: reasonCode } : {}),
+      ...(nextAction ? { next_action: nextAction } : {}),
+      ...(nextActionReasonCode ? { next_action_reason_code: nextActionReasonCode } : {}),
+    };
+    if (error.status === 'NEEDS_INPUT') {
+      payload.status = 'NEEDS_INPUT';
+      payload.code = code ?? 'INPUT_REJECTED';
+      payload.field = error.field ? sanitizeOutboundString(error.field) : null;
+      payload.requirements = Array.isArray(error.requirements)
+        ? error.requirements.map((value) => sanitizeOutboundString(value)).slice(0, 12)
+        : [];
+      payload.next_action = nextAction ?? 'REPLACE_INPUT';
+    }
+    reply.code(statusCode).send(payload);
+  });
+
+  return app;
+}

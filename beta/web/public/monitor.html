@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>ZEELY — Live Monitor</title>
+  <link rel="stylesheet" href="/monitor.css?v=20260722-1">
+</head>
+<body>
+  <header>
+    <div><span class="mark">Z</span><div><strong>ZEELY LIVE MONITOR</strong><small>Browser → API → pipeline, у реальному часі</small></div></div>
+    <a href="https://www.madeforthisjob.com">Відкрити studio ↗</a>
+  </header>
+  <main>
+    <section class="health-grid">
+      <article><span id="monitor-dot" class="dot unknown"></span><div><small>MONITOR SERVICE</small><strong id="monitor-status">Connecting…</strong></div></article>
+      <article><span id="app-dot" class="dot unknown"></span><div><small>CORE APPLICATION</small><strong id="app-status">Checking…</strong></div></article>
+      <article><span id="supervisor-dot" class="dot unknown"></span><div><small>AGENT SUPERVISOR</small><strong id="supervisor-status">Checking…</strong></div></article>
+      <article><div><small>EVENTS IN VIEW</small><strong id="event-count">0</strong></div></article>
+      <article><div><small>LAST EVENT</small><strong id="last-event">—</strong></div></article>
+    </section>
+    <section class="toolbar">
+      <div class="live"><span></span> LIVE</div>
+      <select id="source-filter" aria-label="Фільтр джерела">
+        <option value="">All sources</option><option value="agent">Agent</option><option value="client">Client</option><option value="http">HTTP</option><option value="server">Server</option><option value="runner">Runner</option><option value="watchdog">Watchdog</option>
+      </select>
+      <select id="severity-filter" aria-label="Фільтр рівня">
+        <option value="">All severity</option><option value="error">Errors</option><option value="warn">Warnings</option><option value="info">Info</option>
+      </select>
+      <input id="search" type="search" placeholder="run id, type, stage…" aria-label="Пошук журналу">
+      <button id="clear-view" type="button">Очистити екран</button>
+    </section>
+    <section class="log-panel">
+      <div class="log-head"><span>TIME</span><span>SOURCE / EVENT</span><span>RUN / SESSION</span><span>DETAILS</span></div>
+      <div id="event-list" class="event-list" aria-live="polite"></div>
+      <div id="empty-log" class="empty-log">Очікуємо першу подію…</div>
+    </section>
+    <p class="privacy">Журнал не зберігає зображення, назви файлів, PIN або prompt. Лише технічні події, розмір/кількість input та стани pipeline.</p>
+  </main>
+  <script type="module" src="/monitor.js?v=20260722-4"></script>
+</body>
+</html>

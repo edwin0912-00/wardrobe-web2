@@ -1,0 +1,120 @@
+{
+  "schema_version": "1.0.0",
+  "extraction_id": "extract-garment-hat-001",
+  "job_id": "zeely-test-001",
+  "source_asset_id": "source-garment-hat-001",
+  "source_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+  "entity_type": "GARMENT",
+  "extractor": {
+    "component": "zeely-visual-extractor",
+    "version": "1.0.0",
+    "method": "HYBRID",
+    "model": "configured-vision-model",
+    "prompt_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  },
+  "evidence": [
+    {
+      "evidence_id": "evidence-garment-full-001",
+      "type": "FULL_IMAGE",
+      "source_asset_id": "source-garment-hat-001",
+      "uri": "inputs/zeely-test/outfits/cowboy-hat.jpg",
+      "note": "Immutable low-resolution source."
+    },
+    {
+      "evidence_id": "evidence-garment-object-001",
+      "type": "BBOX",
+      "source_asset_id": "source-garment-hat-001",
+      "bbox_xywh_norm": [0.08, 0.06, 0.84, 0.86],
+      "uri": null,
+      "note": "Detected hat silhouette."
+    }
+  ],
+  "observed_facts": [
+    {
+      "fact_id": "fact-garment-category-001",
+      "path": "/garment/category",
+      "value": "cowboy hat",
+      "unit": null,
+      "confidence": 0.98,
+      "provenance": {
+        "type": "OBSERVED",
+        "source_asset_id": "source-garment-hat-001",
+        "evidence_ids": ["evidence-garment-full-001", "evidence-garment-object-001"],
+        "method": "shape and construction observation"
+      },
+      "lock_eligibility": "ELIGIBLE"
+    },
+    {
+      "fact_id": "fact-garment-color-001",
+      "path": "/garment/color/dominant",
+      "value": "warm medium brown",
+      "unit": null,
+      "confidence": 0.86,
+      "provenance": {
+        "type": "OBSERVED",
+        "source_asset_id": "source-garment-hat-001",
+        "evidence_ids": ["evidence-garment-object-001"],
+        "method": "masked median color estimate"
+      },
+      "lock_eligibility": "ELIGIBLE"
+    },
+    {
+      "fact_id": "fact-garment-structure-001",
+      "path": "/garment/structure/visible_features",
+      "value": ["creased crown", "curved brim", "hat band"],
+      "unit": null,
+      "confidence": 0.9,
+      "provenance": {
+        "type": "OBSERVED",
+        "source_asset_id": "source-garment-hat-001",
+        "evidence_ids": ["evidence-garment-object-001"],
+        "method": "visible construction analysis"
+      },
+      "lock_eligibility": "ELIGIBLE"
+    }
+  ],
+  "unknowns": [
+    {
+      "unknown_id": "unknown-garment-material-001",
+      "path": "/garment/material/exact",
+      "reason": "LOW_RESOLUTION",
+      "required_for": ["OUTFIT_REFERENCE", "GARMENT_QA"],
+      "blocking": false,
+      "requested_remedy": "DETAIL_PHOTO",
+      "provenance": {
+        "type": "UNKNOWN",
+        "source_asset_id": "source-garment-hat-001",
+        "evidence_ids": ["evidence-garment-full-001"]
+      }
+    },
+    {
+      "unknown_id": "unknown-garment-logo-001",
+      "path": "/garment/logo_text",
+      "reason": "LOW_RESOLUTION",
+      "required_for": ["GARMENT_QA"],
+      "blocking": false,
+      "requested_remedy": "DETAIL_PHOTO",
+      "provenance": {
+        "type": "UNKNOWN",
+        "source_asset_id": "source-garment-hat-001",
+        "evidence_ids": ["evidence-garment-full-001"]
+      }
+    }
+  ],
+  "quality_assessment": {
+    "scores": {
+      "sharpness": 0.48,
+      "exposure": 0.76,
+      "compression": 0.51,
+      "occlusion": 0.98,
+      "subject_coverage": 0.72
+    },
+    "flags": ["LOW_RESOLUTION", "HEAVY_COMPRESSION"],
+    "usable_regions": ["GARMENT_SILHOUETTE", "GARMENT_COLOR"]
+  },
+  "recommended_disposition": "REPAIRABLE",
+  "disposition_reasons": [
+    "Silhouette and dominant color are usable; fine material and logo evidence must remain unknown."
+  ],
+  "created_at": "2026-07-22T00:02:03Z"
+}

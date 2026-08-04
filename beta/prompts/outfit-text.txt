@@ -1,0 +1,24 @@
+TASK
+Edit the approved avatar so the same person wears exactly this outfit: {{OUTFIT_TEXT}}.
+
+NON-NEGOTIABLE WHITE KEY SURFACE
+Every pixel that is not the person must be exact RGB #FFFFFF. This includes the entire lower frame, both bottom corners and the area surrounding the soles. Do not render a studio floor, floor plane, horizon, grey or cream gradient, vignette, reflection, ambient occlusion, contact shadow, cast shadow or drop shadow. Leave a visible #FFFFFF gap below and around both soles. If a shadow would make the pose feel more grounded, omit it: the product UI adds any presentation shadow separately and the master image must remain one-click keyable.
+
+REFERENCE BINDINGS
+{{REFERENCE_BINDINGS}}
+- {{ORIGINAL_IDENTITY_REFERENCE}} is the authority for identity.
+- {{APPROVED_AVATAR_REFERENCE}} is the authority for pose, crop, lighting and background.
+- The text description is the authority for the new outfit.
+- Quality-reference images are QA benchmarks only and must not affect identity.
+
+LOCKED ELEMENTS
+Preserve observable facial geometry, skin tone and texture, hair and distinctive features from the identity evidence. Preserve the approved avatar's expression, visible proportions, frontal pose, full-length crop from the top of the head through the soles of the feet, camera, lighting and pure-white background. Never reinterpret an UNKNOWN or NOT_EVALUABLE source-body attribute as observed evidence.
+
+OUTFIT RULES
+Follow the requested garment type, layer order, color, material, construction and fit. Do not add logos, prints, jewelry or accessories unless explicitly requested. Remove the previous outfit completely.
+
+QUALITY
+Photorealistic studio photograph with natural anatomy, sharp face, realistic hair and fabric, neutral white balance and a uniform pure #FFFFFF background from every edge through the area below the feet. No floor, gradient, contact shadow, halos, deformations, old-clothing remnants or background bleed.
+
+OUTPUT
+One portrait-oriented sRGB image matching the approved avatar's framing and dimensions.

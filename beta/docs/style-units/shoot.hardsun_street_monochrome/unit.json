@@ -1,0 +1,110 @@
+{
+  "unit_id": "shoot.hardsun_street_monochrome",
+  "title": "Hard-Sun Street Monochrome — candidate high-contrast street subset",
+  "palette_size": 4,
+  "palette": [
+    {
+      "name": "street black",
+      "hex": "#181818",
+      "role": "quantized deepest recurring value across the retained street frames"
+    },
+    {
+      "name": "shadow grey",
+      "hex": "#5D5D5D",
+      "role": "quantized dark midtone across shaded people, reflections and architecture"
+    },
+    {
+      "name": "film mid grey",
+      "hex": "#A3A3A3",
+      "role": "quantized central tonal field across pavement, skin rendering and reflected street layers"
+    },
+    {
+      "name": "sun paper",
+      "hex": "#E2E2E2",
+      "role": "quantized brightest recurring field across hard-sun pavement, sky and white clothing"
+    }
+  ],
+  "item_colours_exempt": true,
+  "palette_authority": "candidate measured grayscale gamma only; no generated colour sheet is authoritative",
+  "style_unit_status": "BLOCKED_SOURCE",
+  "source_frames": [
+    "frame-04.jpg — hard-sun street head-and-shoulders portrait with sunglasses",
+    "frame-06.jpg — low street-action frame with a near skateboarder and multiple pedestrians",
+    "frame-07.jpg — compressed crowded market street under hard daylight",
+    "frame-11.jpg — layered shop-window reflection containing pedestrians and street text",
+    "frame-14.jpg — downward walking-crowd crop dominated by bodies, feet and sharp shadows"
+  ],
+  "source_reconciliation": {
+    "status": "BLOCKED_SOURCE",
+    "included_candidate_street_frames": [
+      "frame-04.jpg",
+      "frame-06.jpg",
+      "frame-07.jpg",
+      "frame-11.jpg",
+      "frame-14.jpg"
+    ],
+    "excluded_frames": [
+      {
+        "frame": "frame-01.jpg",
+        "reason": "Rooftop fashion portrait from a separate two-frame shoot."
+      },
+      {
+        "frame": "frame-02.jpg",
+        "reason": "Rooftop full-length fashion portrait paired with frame-01.jpg, not the street subset."
+      },
+      {
+        "frame": "frame-03.jpg",
+        "reason": "Water-surface beauty portrait with a different person, environment, light and optical system."
+      },
+      {
+        "frame": "frame-05.jpg",
+        "reason": "Graphic site card reading '/ lines', not a photograph."
+      },
+      {
+        "frame": "frame-08.jpg",
+        "reason": "Architecture-only facade study with no person coverage."
+      },
+      {
+        "frame": "frame-09.jpg",
+        "reason": "Architecture-only window-grid study with no person coverage."
+      },
+      {
+        "frame": "frame-10.jpg",
+        "reason": "Architecture-only reflective facade study with no person coverage."
+      },
+      {
+        "frame": "frame-12.jpg",
+        "reason": "Eiffel Tower landmark study, not a fashion or street-person frame."
+      },
+      {
+        "frame": "frame-13.jpg",
+        "reason": "Separate overcast architectural fashion portrait with a different person, soft light and vertical format."
+      },
+      {
+        "frame": "frame-15.jpg",
+        "reason": "Bus advertisement and cyclist street observation containing a third-party fashion image and readable brand."
+      }
+    ],
+    "coverage_failure": "The retained subset contains five candid street observations but only one deliberate close portrait. It has no recurring approved person, look or environment and cannot source six unique fashion-shot joint chains including clean identity, sculptural three-quarter, interference and connected material detail without invention.",
+    "needs_source": "Additional original frames from one intentional hard-sun monochrome street fashion shoot: a recurring person and look, clean visible-face hero, environmental full figure, sculptural three-quarter pose, one real foreground interference frame, a connected hand/material detail and a wide campaign coda."
+  },
+  "candidate_observations": {
+    "environment": "Public streets, plaza and market surfaces under hard daylight, plus one reflective shopfront; locations are not proven to be one place.",
+    "lighting": "Hard daylight and strong black-white separation recur, but direction and subject treatment vary by location.",
+    "contrast": "High contrast with deep blacks, bright pavement and visible fine grain or scan texture.",
+    "optical_facts": [
+      "No EXIF lens or exposure metadata is present.",
+      "Frame-04.jpg uses shallow portrait separation while frames 07 and 14 use much broader street depth.",
+      "Frame-11.jpg uses a reflective glass layer; it is the only retained candidate interference source."
+    ]
+  },
+  "unknowns": [
+    "whether the five retained street frames were photographed on one day or one camera roll",
+    "whether one photographer and one optic made all retained frames",
+    "camera body, film stock, development, scan process, focal lengths, apertures, ISO and shutter speeds",
+    "rights and production intent of third-party passersby and readable storefront text",
+    "a recurring subject identity, styling system or approved item",
+    "six coherent fashion-shot pose, focus and foreground directions"
+  ],
+  "sheets": {}
+}

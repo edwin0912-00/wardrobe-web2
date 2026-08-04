@@ -1,0 +1,3 @@
+# The runner may materialize watcher context and reports here. They are local,
+# derived observability artifacts, never Git evidence or input to a lane.
+loop-workspace/

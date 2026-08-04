@@ -1,0 +1,114 @@
+{
+  "schema_version": "1.0.0",
+  "plan_id": "condition-garment-hat-001",
+  "job_id": "zeely-test-001",
+  "extraction_ids": ["extract-garment-hat-001"],
+  "source_asset_ids": ["source-garment-hat-001"],
+  "target_use": "OUTFIT_REFERENCE",
+  "disposition": "REPAIRABLE",
+  "blocking_reasons": [],
+  "operations": [
+    {
+      "operation_id": "op-hat-srgb-001",
+      "order": 1,
+      "type": "CONVERT_SRGB",
+      "executor_class": "DETERMINISTIC",
+      "input_refs": ["source-garment-hat-001"],
+      "depends_on": [],
+      "output_derivative_id": "deriv-hat-normalized-001",
+      "parameters": [
+        { "name": "intent", "value": "relative_colorimetric" }
+      ],
+      "preserve": ["GARMENT_GEOMETRY", "COLOR", "PIXEL_EVIDENCE"],
+      "prohibited_changes": ["ADD_DETAILS", "CHANGE_GARMENT_STRUCTURE", "CHANGE_COLOR", "RECONSTRUCT_LOGO_TEXT"],
+      "requires_qa": true
+    },
+    {
+      "operation_id": "op-hat-crop-001",
+      "order": 2,
+      "type": "CROP_GARMENT",
+      "executor_class": "DETERMINISTIC",
+      "input_refs": ["deriv-hat-normalized-001"],
+      "depends_on": ["op-hat-srgb-001"],
+      "output_derivative_id": "deriv-hat-crop-001",
+      "parameters": [
+        { "name": "bbox_xywh_norm", "value": [0.08, 0.06, 0.84, 0.86] },
+        { "name": "padding_fraction", "value": 0.04 }
+      ],
+      "preserve": ["GARMENT_GEOMETRY", "COLOR", "MATERIAL", "PIXEL_EVIDENCE"],
+      "prohibited_changes": ["ADD_DETAILS", "CHANGE_GARMENT_STRUCTURE", "CHANGE_COLOR", "RECONSTRUCT_LOGO_TEXT"],
+      "requires_qa": true
+    },
+    {
+      "operation_id": "op-hat-segment-001",
+      "order": 3,
+      "type": "SEGMENT_GARMENT",
+      "executor_class": "AI_ASSISTED_NON_GENERATIVE",
+      "input_refs": ["deriv-hat-crop-001"],
+      "depends_on": ["op-hat-crop-001"],
+      "output_derivative_id": "deriv-hat-cutout-001",
+      "parameters": [
+        { "name": "alpha_mode", "value": "hard_subject_soft_edge" },
+        { "name": "edge_feather_px", "value": 1 }
+      ],
+      "preserve": ["GARMENT_GEOMETRY", "COLOR", "MATERIAL", "PIXEL_EVIDENCE"],
+      "prohibited_changes": ["ADD_DETAILS", "CHANGE_GARMENT_STRUCTURE", "CHANGE_COLOR", "RECONSTRUCT_LOGO_TEXT"],
+      "requires_qa": true
+    },
+    {
+      "operation_id": "op-hat-upscale-001",
+      "order": 4,
+      "type": "CONSERVATIVE_UPSCALE",
+      "executor_class": "DETERMINISTIC",
+      "input_refs": ["deriv-hat-cutout-001"],
+      "depends_on": ["op-hat-segment-001"],
+      "output_derivative_id": "deriv-hat-upscaled-001",
+      "parameters": [
+        { "name": "scale_factor", "value": 4 },
+        { "name": "resampler", "value": "lanczos3" },
+        { "name": "sharpen", "value": false }
+      ],
+      "preserve": ["GARMENT_GEOMETRY", "COLOR", "PIXEL_EVIDENCE"],
+      "prohibited_changes": ["ADD_DETAILS", "CHANGE_GARMENT_STRUCTURE", "CHANGE_COLOR", "RECONSTRUCT_LOGO_TEXT"],
+      "requires_qa": true
+    },
+    {
+      "operation_id": "op-hat-card-001",
+      "order": 5,
+      "type": "BUILD_REFERENCE_CARD",
+      "executor_class": "DETERMINISTIC",
+      "input_refs": ["deriv-hat-cutout-001", "deriv-hat-upscaled-001", "extract-garment-hat-001"],
+      "depends_on": ["op-hat-upscale-001"],
+      "output_derivative_id": "deriv-hat-card-001",
+      "parameters": [
+        { "name": "include_unknowns", "value": true },
+        { "name": "background", "value": "checkerboard" }
+      ],
+      "preserve": ["GARMENT_GEOMETRY", "COLOR", "PIXEL_EVIDENCE"],
+      "prohibited_changes": ["ADD_DETAILS", "CHANGE_GARMENT_STRUCTURE", "CHANGE_COLOR", "RECONSTRUCT_LOGO_TEXT"],
+      "requires_qa": true
+    }
+  ],
+  "fidelity_policy": {
+    "allow_content_synthesis": false,
+    "generated_pixels_are_evidence": false,
+    "max_upscale_factor": 4,
+    "preserve_source_hash": true,
+    "lock_sources": ["OBSERVED", "USER_PROVIDED", "DERIVED_DETERMINISTIC"]
+  },
+  "conditioning_gate": {
+    "required_derivative_types": ["NORMALIZED_SOURCE", "GARMENT_CROP", "GARMENT_CUTOUT", "UPSCALED_REFERENCE", "REFERENCE_CARD"],
+    "checks": [
+      { "name": "DECODE", "blocking": true, "threshold": 1 },
+      { "name": "LINEAGE", "blocking": true, "threshold": 1 },
+      { "name": "COLOR_PRESERVATION", "blocking": true, "threshold": 0.95 },
+      { "name": "GEOMETRY_PRESERVATION", "blocking": true, "threshold": 0.95 },
+      { "name": "MASK_QUALITY", "blocking": true, "threshold": 0.92 },
+      { "name": "NO_SYNTHETIC_LOCKS", "blocking": true, "threshold": 1 }
+    ],
+    "on_pass": "BUILD_PACK",
+    "on_fail": "REQUEST_INPUT"
+  },
+  "next_action": "EXECUTE_PLAN",
+  "created_at": "2026-07-22T00:03:00Z"
+}

@@ -1,0 +1,70 @@
+{
+  "schema_version": "1.0.0",
+  "preset_id": "shoot.skylight_haze",
+  "kind": "editorial",
+  "family": "create_universe",
+  "ui_name_uk": "Скляний дах · теплий серпанок",
+  "asset_role": "mood_card",
+  "file": "assets/scene-mood-cards/shoot.skylight_haze.webp",
+  "sha256": "af819ea1f0ea5758087d8e327a6f6c712b09b8bebbc762677ab2c0a841bb8d82",
+  "origin": {
+    "kind": "OWN_GENERATED_PREVIEW",
+    "note": "Original preview generated solely from the immutable runtime_style contract and deterministic palette authority. No source photographs, approved looks, source identity, or personal input were supplied to the provider.",
+    "unit_contract": "docs/style-units/shoot.skylight_haze/unit.json",
+    "unit_contract_sha256": "fc01ec934128dc9be0a2977b903aab11485f9254948ff50f9b13cc7ac3723765",
+    "unit_binding_sha256": "9ee409f1c094e67ef9896aa0e3557b3c577502e9bee64c89ef7515a3806fc06b",
+    "runtime_style_sha256": "786daf3acfa166cff091bc9d8e45103259c62f1a1d3362c9f30890b8edfa8f59",
+    "palette_authority": {
+      "file": "docs/style-units/shoot.skylight_haze/palette-strip.svg",
+      "sha256": "1aa17dc4db9f00a3fd8d780de7d0ece1afdf3848e0b73a985aad178e48a0bfa2",
+      "rendered_not_generated": true
+    }
+  },
+  "generation": {
+    "provider_path": "higgsfield-cli",
+    "prompt_contract_version": "create-universe-mood-card-v1",
+    "prompt_sha256": "6cdbedf304882086a61ab89268b8d61c6e8bffdfc554200e888603becd8815cb",
+    "composition_slot": "environmental_hero",
+    "provider_receipt": {
+      "provider": "higgsfield",
+      "transport": "higgsfield-cli",
+      "generation_mode": "journaled",
+      "job_id": "3d7d250e-971b-480a-ad53-77a6467e829b",
+      "job_set_type": "nano_banana_2",
+      "model_name": "Nano Banana Pro",
+      "provider_internal_model": null,
+      "requested_aspect_ratio": "4:5",
+      "requested_resolution": "2k",
+      "requested_quality": null,
+      "output_sha256": "3edfce215ed34907ab97de40b07b67bfd6a3bec24fd040748ef2540eca706f30",
+      "provider_journal_sha256": "3ff0dbda661607916497fef8ce13eb91bdaf7f365071f011938d2ca28a13c615",
+      "request_sha256": "c5f05b7f5654276de43612fc8268685b46e8f9fb546e4b91011924f08ffe441d",
+      "palette_input_sha256": "2c62c17400cd405662bec8e597281691d94c96f27bf398d9ce2694fe8f55ce6a"
+    },
+    "source_width": 1856,
+    "source_height": 2304,
+    "normalization": {
+      "method": "deterministic_4x5_cover",
+      "crop_position": "centre",
+      "width": 1024,
+      "height": 1280,
+      "format": "webp"
+    }
+  },
+  "delivery": {
+    "width": 1024,
+    "height": 1280,
+    "format": "webp",
+    "aspect_ratio": "4:5"
+  },
+  "contains_personal_input": false,
+  "approval": "APPROVED",
+  "visual_review": {
+    "status": "APPROVED",
+    "reviewed_at": "2026-07-29T22:13:37.072Z",
+    "reviewed_source_width": 1856,
+    "reviewed_source_height": 2304,
+    "notes": "Full-resolution current-binding review passed: luminous glass-roof geometry, warm cream and peach haze, low-angle raised-arm blocking, layered opaque styling, controlled foreground foliage, and identity-independent adult subject."
+  },
+  "created_at": "2026-07-29T22:13:37.072Z"
+}

@@ -1,0 +1,63 @@
+{
+  "created_at": "2026-07-23T09:40:00Z",
+  "ledger_id": "ledger.std.studio.taupe_rembrandt_gloss.v1",
+  "preset_id": "std.studio.taupe_rembrandt_gloss",
+  "preset_version": "1.0.0",
+  "revision": 1,
+  "schema_version": "1.0.0",
+  "sources": [
+    {
+      "content_sha256": "134495589b2c15fe1ab5b27fc45b2e3d3a1f4b09ddbdb4521eebdec2bfe50951",
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit",
+        "brands",
+        "readable_text",
+        "exact_architecture"
+      ],
+      "retrieved_at": "2026-07-23T09:40:00Z",
+      "rights": {
+        "basis": "LICENSED",
+        "evidence_sha256": "86a558a192adac12108998fb02dd40db4b72dc06a04c09719d47db91854dacb5",
+        "evidence_uri": "evidence/licenses/unsplash-license-2026-07-23.md",
+        "rights_holder": "Esther Masscheleyn via Unsplash license",
+        "status": "VERIFIED",
+        "verified_at": "2026-07-23T09:40:00Z"
+      },
+      "role": "lighting_composition_palette_inspiration",
+      "snapshot_uri": "evidence/scene-sources/unsplash._d0Uv9sIEmY.json",
+      "source_id": "unsplash._d0Uv9sIEmY",
+      "url": "https://unsplash.com/photos/a-woman-is-posing-for-a-picture-in-a-dark-room-_d0Uv9sIEmY",
+      "use": "dark studio separation, negative space and tonal restraint only"
+    },
+    {
+      "content_sha256": "d308b1b78df011965ab01527d59964b244c8ad90885ab1649990eaef37740e2a",
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit",
+        "brands",
+        "readable_text",
+        "exact_architecture"
+      ],
+      "retrieved_at": "2026-07-23T09:40:00Z",
+      "rights": {
+        "basis": "LICENSED",
+        "evidence_sha256": "b2fd5090492719bd8f3c9779be0650b29cc37bb286a2ea0bf0cf0eff88f127e8",
+        "evidence_uri": "evidence/licenses/pexels-license-2026-07-23.md",
+        "rights_holder": "Mery Amiri via Pexels license",
+        "status": "VERIFIED",
+        "verified_at": "2026-07-23T09:40:00Z"
+      },
+      "role": "lighting_composition_palette_inspiration",
+      "snapshot_uri": "evidence/scene-sources/pexels.32497260.json",
+      "source_id": "pexels.32497260",
+      "url": "https://www.pexels.com/photo/stylish-woman-in-dramatic-studio-lighting-32497260/",
+      "use": "dramatic face modelling and full-body shadow readability only"
+    }
+  ],
+  "status": "VERIFIED_FOR_RELEASE"
+}

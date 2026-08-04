@@ -1,0 +1,23 @@
+1. TASK
+Create one photorealistic high-fashion campaign still by placing the exact person and complete approved look from LOOK_MASTER into the original environment defined by ENVIRONMENT_ANCHOR and LIGHTING_COMPOSITION_ANCHOR.
+
+2. AUTHORITY
+LOOK_MASTER is the only authority for identity, face, body, hair, every approved clothing item, footwear, bag, accessory, color, material, construction, graphic, logo and readable product text. Preserve all of them exactly. The environment and lighting define the ambient light wrap, rim light, bounce light, and color grade that MUST be actively applied onto the subject so the person is seamlessly integrated into the scene without a cutout or pasted-on effect.
+
+3. SCENE
+Invented raw industrial loft with exposed brick walls, concrete floor, and steel beams. Keep believable depth. Do not reproduce a recognizable real location or landmark. No other people, vehicles, bicycles, storefront branding, signs, café furniture or new props.
+
+4. LIGHT AND RELIGHTING INTEGRATION
+Single large factory window key light with directional side illumination. ACTIVELY APPLY AND WRAP THIS LIGHTING ONTO THE SUBJECT:
+- Sculpt strong directional key light on the illuminated side of the face, torso, and clothing.
+- Reflect warm brick-tinted fill light onto the shadow side of the subject.
+- Ground the subject with a crisp floor contact shadow extending onto the concrete.
+- Absolute NO cutout, sticker, or pasted-on look. Harmonize color temperature and lighting direction while strictly preserving identity and garment construction.
+5. CAMERA AND FRAMING
+Final delivery is vertical 3:4. 50mm equivalent, straight verticals, no wide-angle distortion. Full body with complete head, complete bag/carried item, and both shoes. Subject bounding box occupies 70–80% of image height, with at least 8% clear space above hair and 2% clean floor space below footwear.
+
+6. FINISH
+Premium contemporary fashion editorial, precise natural material texture, controlled highlights, clean shadows, and restrained magazine grade. No HDR, bloom, skin smoothing, cutout edge, halo, floating feet, or light mismatches.
+
+7. FAIL CONDITIONS
+Any identity drift; removed, changed or invented item; altered logo or text; changed color or construction; anatomy defect; missing fingers; cropped headwear or shoes; incorrect scale; duplicated accessory; random prop; readable environment text; copied landmark; ungrounded shadow.

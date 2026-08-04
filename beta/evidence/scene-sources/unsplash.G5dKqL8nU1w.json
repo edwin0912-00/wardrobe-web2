@@ -1,0 +1,23 @@
+{
+  "availability": "VERIFIED",
+  "creator": "Declan Sun",
+  "extraction_role": "environment_and_composition_inspiration",
+  "license_evidence": "evidence/licenses/unsplash-license-2026-07-23.md",
+  "not_authority_for": [
+    "identity",
+    "body",
+    "hair",
+    "outfit",
+    "brands",
+    "readable_text",
+    "exact_architecture"
+  ],
+  "page_title": "Modern architecture glass facade in contrasting sunlight",
+  "permitted_observation": "glass facade geometry, clean lines and sunset reflection behavior only",
+  "pixel_policy": "PAGE_METADATA_AND_ROLE_LIMITS_ONLY_SOURCE_PIXELS_NOT_SHIPPED",
+  "platform": "Unsplash",
+  "retrieved_at": "2026-07-23T09:40:00Z",
+  "schema_version": "1.0.0",
+  "source_id": "unsplash.G5dKqL8nU1w",
+  "url": "https://unsplash.com/photos/modern-architectures-glass-facade-in-contrasting-sunlight-G5dKqL8nU1w"
+}

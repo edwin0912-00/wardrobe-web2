@@ -1,0 +1,70 @@
+{
+  "schema_version": "1.0.0",
+  "preset_id": "shoot.window_gobo_warm",
+  "kind": "editorial",
+  "family": "create_universe",
+  "ui_name_uk": "Тепле вікно · gobo-тінь",
+  "asset_role": "mood_card",
+  "file": "assets/scene-mood-cards/shoot.window_gobo_warm.webp",
+  "sha256": "c6be70591c3a478c1700554b26b0633de21cca1076dbb5595a0a893fd320dbdf",
+  "origin": {
+    "kind": "OWN_GENERATED_PREVIEW",
+    "note": "Original preview generated solely from the immutable runtime_style contract and deterministic palette authority. No source photographs, approved looks, source identity, or personal input were supplied to the provider.",
+    "unit_contract": "docs/style-units/shoot.window_gobo_warm/unit.json",
+    "unit_contract_sha256": "e19ca9f80a85ad4f4ff7a9918257153f0940616b891650d3f3cd5f87ef8905b3",
+    "unit_binding_sha256": "1ed449e3a23d80cf651935e97aa4ba65a5ba9e3ec7a4a8f6244b96bb6b9ac07f",
+    "runtime_style_sha256": "b9689447de62212728272b631f1bc52caf64c9d7d1eb2b12a59ec3f4b93e6146",
+    "palette_authority": {
+      "file": "docs/style-units/shoot.window_gobo_warm/palette-strip.svg",
+      "sha256": "ac341a376ead0d58ba6747e0c636305231275b02a57436bc95b218829c360574",
+      "rendered_not_generated": true
+    }
+  },
+  "generation": {
+    "provider_path": "higgsfield-cli",
+    "prompt_contract_version": "create-universe-mood-card-v1",
+    "prompt_sha256": "037e20018186dffbd1ba5a6715e9b73adb2bfeb92f9ae8a5e7d6ecaf676506aa",
+    "composition_slot": "wide_campaign_coda",
+    "provider_receipt": {
+      "provider": "higgsfield",
+      "transport": "higgsfield-cli",
+      "generation_mode": "journaled",
+      "job_id": "21d98d22-1193-4062-ac3a-2aa56e76dadf",
+      "job_set_type": "nano_banana_2",
+      "model_name": "Nano Banana Pro",
+      "provider_internal_model": null,
+      "requested_aspect_ratio": "4:5",
+      "requested_resolution": "2k",
+      "requested_quality": null,
+      "output_sha256": "e54314d59376d7ccee021e1800c3a20a17a7685d6b54430f84badea1f6b0d7f4",
+      "provider_journal_sha256": "9fe8fd23b14722541eafd5e1ec49939c6c447da0983e6ea215bb8138f342069c",
+      "request_sha256": "04a856ec1172107872532e22288bdb100a0d02571e6fe535b15f6add1791a803",
+      "palette_input_sha256": "0840bffc0d964d8c898be8d82280acf822706292991b9a27ed7a42f0d437932f"
+    },
+    "source_width": 1856,
+    "source_height": 2304,
+    "normalization": {
+      "method": "deterministic_4x5_cover",
+      "crop_position": "centre",
+      "width": 1024,
+      "height": 1280,
+      "format": "webp"
+    }
+  },
+  "delivery": {
+    "width": 1024,
+    "height": 1280,
+    "format": "webp",
+    "aspect_ratio": "4:5"
+  },
+  "contains_personal_input": false,
+  "approval": "APPROVED",
+  "visual_review": {
+    "status": "APPROVED",
+    "reviewed_at": "2026-07-29T22:18:17.474Z",
+    "reviewed_source_width": 1856,
+    "reviewed_source_height": 2304,
+    "notes": "Full-resolution review passed: warm rectangular window-gobo field, restrained plaster wall, opaque high-neck layered coat, complete standing silhouette, coherent cast shadow, and identity-independent adult subject."
+  },
+  "created_at": "2026-07-29T22:18:17.474Z"
+}

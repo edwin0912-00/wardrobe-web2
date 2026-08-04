@@ -1,0 +1,41 @@
+{
+  "schema_version": "1.0.0",
+  "preset_id": "std.city.early_morning_gloss",
+  "kind": "standard",
+  "family": "city",
+  "ui_name_uk": "Місто — ранковий глянець",
+  "asset_role": "mood_card",
+  "file": "assets/scene-mood-cards/std.city.early_morning_gloss.webp",
+  "sha256": "d038d02da544cd111c7d1462a65d105083a455c10d19ffb99d3cd473a874b9eb",
+  "prompt_path": "prompts/scenes/std.city.early_morning_gloss.txt",
+  "prompt_sha256": "0565e22cbc0dd4f992f08eeb523a4192dbc839ab5de8f2e75349f8f914d9e884",
+  "generation": {
+    "provider_path": "codex_builtin_imagegen",
+    "model_family": "gpt-image-2",
+    "model_version": "builtin-current",
+    "source_width": 1003,
+    "source_height": 1568,
+    "crop_position": "south",
+    "reframe": {
+      "method": "deterministic_4x5_extract",
+      "input_sha256": "9bbfb2736871a3c9c7cf9b59c15a0f00ced81d5e951065f7ea16d7cd9852d415",
+      "source_width": 1024,
+      "source_height": 1280,
+      "crop_px": {
+        "left": 159,
+        "top": 320,
+        "width": 706,
+        "height": 883
+      }
+    }
+  },
+  "delivery": {
+    "width": 1024,
+    "height": 1280,
+    "format": "webp",
+    "aspect_ratio": "4:5"
+  },
+  "contains_personal_input": false,
+  "approval": "PENDING_VISUAL_JUDGE",
+  "created_at": "2026-07-22T23:47:44.633Z"
+}

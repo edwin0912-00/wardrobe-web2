@@ -1,0 +1,23 @@
+{
+  "availability": "VERIFIED",
+  "creator": "Alexey K.",
+  "extraction_role": "environment_and_composition_inspiration",
+  "license_evidence": "evidence/licenses/pexels-license-2026-07-23.md",
+  "not_authority_for": [
+    "identity",
+    "body",
+    "hair",
+    "outfit",
+    "brands",
+    "readable_text",
+    "exact_architecture"
+  ],
+  "page_title": "Spacious modern minimalist room with tall windows and concrete walls",
+  "permitted_observation": "high-window scale, quiet gallery proportion and daylight direction only",
+  "pixel_policy": "PAGE_METADATA_AND_ROLE_LIMITS_ONLY_SOURCE_PIXELS_NOT_SHIPPED",
+  "platform": "Pexels",
+  "retrieved_at": "2026-07-23T09:40:00Z",
+  "schema_version": "1.0.0",
+  "source_id": "pexels.30699852",
+  "url": "https://www.pexels.com/photo/minimalist-empty-modern-interior-with-high-windows-30699852/"
+}

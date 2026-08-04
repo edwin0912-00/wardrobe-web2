@@ -1,0 +1,149 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zeely.ai/schemas/source-asset.schema.json",
+  "title": "Zeely Immutable Source Asset",
+  "description": "An immutable user-supplied or task-supplied asset before extraction or conditioning.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "asset_id",
+    "job_id",
+    "asset_class",
+    "role",
+    "intended_uses",
+    "source",
+    "media",
+    "ingest",
+    "consent"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "asset_id": { "$ref": "#/$defs/id" },
+    "job_id": { "$ref": "#/$defs/id" },
+    "asset_class": {
+      "enum": ["HUMAN", "GARMENT", "PRODUCT", "ENVIRONMENT", "QUALITY_REFERENCE"]
+    },
+    "role": {
+      "enum": [
+        "IDENTITY_PRIMARY",
+        "IDENTITY_SUPPORT",
+        "BODY_EVIDENCE",
+        "GARMENT_PRIMARY",
+        "GARMENT_DETAIL",
+        "PRODUCT_PRIMARY",
+        "ENVIRONMENT_REFERENCE",
+        "QUALITY_BENCHMARK"
+      ]
+    },
+    "intended_uses": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "EXTRACTION",
+          "IDENTITY_CONDITIONING",
+          "GARMENT_CONDITIONING",
+          "ENVIRONMENT_CONDITIONING",
+          "QUALITY_TARGET_EXTRACTION",
+          "AVATAR_GENERATION",
+          "OUTFIT_TRANSFER",
+          "OUTPUT_QA"
+        ]
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["uri", "original_filename", "sha256", "byte_size", "supplied_by", "origin"],
+      "properties": {
+        "uri": { "type": "string", "format": "uri-reference", "minLength": 1 },
+        "original_filename": { "type": "string", "minLength": 1, "maxLength": 255 },
+        "sha256": { "$ref": "#/$defs/sha256" },
+        "byte_size": { "type": "integer", "minimum": 1 },
+        "supplied_by": { "enum": ["USER", "TEST_DATASET", "OPERATOR"] },
+        "origin": { "enum": ["UPLOAD", "PUBLIC_TASK_ASSET", "AUTHORIZED_LIBRARY"] },
+        "captured_at": { "type": ["string", "null"], "format": "date-time" },
+        "external_id": { "type": ["string", "null"], "maxLength": 200 }
+      }
+    },
+    "media": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mime_type", "width_px", "height_px", "orientation", "color_space", "has_alpha"],
+      "properties": {
+        "mime_type": { "enum": ["image/jpeg", "image/png", "image/webp", "image/heic"] },
+        "width_px": { "type": "integer", "minimum": 1 },
+        "height_px": { "type": "integer", "minimum": 1 },
+        "orientation": {
+          "enum": ["NORMAL", "ROTATE_90_CW", "ROTATE_180", "ROTATE_90_CCW", "MIRRORED", "UNKNOWN"]
+        },
+        "color_space": { "enum": ["SRGB", "DISPLAY_P3", "ADOBE_RGB", "UNKNOWN"] },
+        "has_alpha": { "type": "boolean" },
+        "exif_present": { "type": "boolean" }
+      }
+    },
+    "ingest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ingested_at", "immutable", "decode_status", "malware_scan"],
+      "properties": {
+        "ingested_at": { "type": "string", "format": "date-time" },
+        "immutable": { "const": true },
+        "decode_status": { "enum": ["PASS", "FAIL"] },
+        "malware_scan": { "enum": ["PASS", "FAIL", "NOT_APPLICABLE"] },
+        "decoder": { "type": "string", "minLength": 1 }
+      }
+    },
+    "consent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "likeness_use_authorized", "commercial_use_authorized", "recorded_at"],
+      "properties": {
+        "status": { "enum": ["AUTHORIZED", "NOT_REQUIRED", "MISSING", "REVOKED"] },
+        "likeness_use_authorized": { "type": "boolean" },
+        "commercial_use_authorized": { "type": "boolean" },
+        "recorded_at": { "type": ["string", "null"], "format": "date-time" },
+        "evidence_uri": { "type": ["string", "null"], "format": "uri-reference" }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "asset_class": { "const": "HUMAN" } },
+        "required": ["asset_class"]
+      },
+      "then": {
+        "properties": {
+          "consent": {
+            "properties": {
+              "status": { "const": "AUTHORIZED" },
+              "likeness_use_authorized": { "const": true }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "asset_class": { "const": "QUALITY_REFERENCE" } },
+        "required": ["asset_class"]
+      },
+      "then": {
+        "properties": { "role": { "const": "QUALITY_BENCHMARK" } }
+      }
+    }
+  ],
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]{3,95}$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    }
+  }
+}

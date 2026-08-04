@@ -1,0 +1,141 @@
+{
+  "unit_id": "shoot.skylight_haze",
+  "title": "Skylight Haze — backlit glass-roof editorial",
+  "style_unit_status": "READY",
+  "source_reconciliation": {
+    "status": "READY",
+    "mode": "SINGLE_FRAME_UNIVERSE_WITH_GENERATIVE_COVERAGE",
+    "included": [
+      "frame-01 — provenance-bound 1024×1280 cover crop; observed low-angle raised-arm moment with a defocused near limb and warm veiling backlight",
+      "seven git-preserved reference sheets — approved generative grammar for camera, blocking, expression, garment behaviour, colour, environment and person-template boundaries"
+    ],
+    "excluded": [
+      "unavailable 928×1232 owner-source bytes",
+      "unavailable additional same-shoot frames"
+    ],
+    "coverage_policy": "frame-01 defines the observed universe; all six runtime shot directions are explicitly labelled original generative extrapolations constrained by the seven preserved sheets, never additional source claims."
+  },
+  "palette_size": 6,
+  "palette": [
+    { "name": "blown skylight", "hex": "#EAF0F2", "role": "brightest highlight, the blown source behind the head" },
+    { "name": "warm cream", "hex": "#EFE0CE", "role": "hazed light and pale garment ground" },
+    { "name": "peach bloom", "hex": "#E8B79A", "role": "warm optical bloom and backlit transition; never a required skin value" },
+    { "name": "dusty rose accent", "hex": "#C98A78", "role": "restrained environmental or styling-completion accent; never source-person or source-garment authority" },
+    { "name": "olive sage", "hex": "#6F7355", "role": "abstract foliage and environment midground" },
+    { "name": "deep foliage", "hex": "#3B4630", "role": "deepest shadow, lifted not crushed" }
+  ],
+  "source_frames": ["frame-01 — single supplied frame, portrait, floral organza, arms raised, low camera"],
+  "unknowns": [
+    "focal length in millimetres — never stated, only its consequences",
+    "aperture and shutter values",
+    "whether the room has walls in shot; the haze hides them",
+    "the subject's weight distribution — the frame cuts at mid-thigh",
+    "what the out-of-focus foreground mass physically is: reads as fabric or foliage"
+  ],
+  "runtime_style": {
+    "visual_system": "A low-viewpoint fashion universe suspended in warm backlit haze: one approved subject, pale glazed-roof geometry, abstract olive foliage, raised-arm diagonals, dissolved near planes and luminous lifted colour.",
+    "mood_line": "A calm figure appears through warm veil and backlight as if the air, glass and cloth are all glowing at once.",
+    "environment": "Invent an original non-recognisable glazed-roof atrium using pale beams and mullions, blown sky apertures, warm cream floor or wall fields, abstract olive foliage and dusty-rose accents; never reconstruct a real conservatory or source location.",
+    "lighting": "A broad source above and behind the approved subject blows the palest apertures, wraps edges in warm light and leaves the front softly readable through lifted fill; heavy atmospheric or optical veil is densest in the upper field.",
+    "materials": [
+      "pale painted structural beams and abstract glazing with no identifiable building geometry",
+      "warm matte mineral floor or wall planes softened by haze",
+      "abstract olive foliage masses used only as non-identifying depth and occlusion",
+      "the approved item rendered in its own verified materials and colours, never the source floral garment"
+    ],
+    "contrast": "Lifted deep greens oppose blown pale apertures without hard black clipping; warm peach and cream transitions roll softly through haze while restrained dusty rose remains an accent.",
+    "expression_signature": "Calm and unperformed: upper lids neutral to low, brows and cheekbones at rest, jaw relaxed, mouth closed or softly parted, chin level to slightly dropped, and gaze directed into or just beneath the lens without a smile.",
+    "garment_behaviour": "Apply light transmission, soft folds and free-edge lift only to the approved item: light layers may glow near raised arms; heavy items hold one broad fold. Never copy the source print, cut or colourway.",
+    "optical_signature": [
+      "Every frame carries a strong warm veiling wash concentrated behind and above the subject, while the face and approved-item evidence remain readable.",
+      "Every frame carries soft bloom on blown pale apertures and warm halation on backlit hair, skin-edge and approved-cloth edges; no chromatic fringe, swirl or vignette.",
+      "Fine low grain and lifted shadows are fixed across the unit; the image must never become clinically crisp or globally muddy."
+    ],
+    "shot_directions": {
+      "clean_identity_hero": {
+        "camera_consequence": "Vertical portrait from below chest height with a gentle upward view; the approved subject fills roughly sixty to seventy-five percent of frame height against one blown aperture and a clean pale beam.",
+        "pose_joint_chain": "Torso faces camera, shoulders lowered, neck long, chin slightly dropped, one elbow relaxed near the ribs and the opposite forearm lifted only enough to create a diagonal without covering the face.",
+        "focus": "Approved face, eyes and nearest garment edge are sharp; pale structure and upper veil fall progressively softer.",
+        "foreground": "No object crosses the lens in this clean identity frame; keep the mandatory veil behind and above the readable face.",
+        "provenance": [
+          "frame-01 low-viewpoint/backlight observations + preserved camera_lens and expression_gaze sheets — GENERATIVE EXTRAPOLATION"
+        ]
+      },
+      "environmental_hero": {
+        "camera_consequence": "Low vertical three-quarter-to-full figure view on a central atrium axis; the subject remains forty to fifty-five percent of frame height while glazed-roof geometry and foliage establish three depth planes.",
+        "pose_joint_chain": "Feet or lower support remain plausibly grounded, pelvis square, spine upright, one shoulder-elbow-wrist chain reaches upward toward the light and the other arm hangs with a relaxed bend.",
+        "focus": "Approved subject and nearest beam are readable; foliage softens first and the blown roof aperture dissolves into the fixed veil.",
+        "foreground": "One soft olive foliage edge may enter a lower corner but cannot cover the body or approved-item evidence.",
+        "provenance": [
+          "frame-01 bright veiled field + preserved environment, camera_lens and blocking sheets — GENERATIVE EXTRAPOLATION"
+        ]
+      },
+      "sculptural_three_quarter": {
+        "camera_consequence": "Oblique low camera from the approved subject's near side, cropped between knee and full three-quarter height; converging pale beams and raised limbs form an asymmetric triangle.",
+        "pose_joint_chain": "Pelvis turns three-quarter, spine lengthens, near upper arm rises beside the ear, near elbow bends outward, wrist clears the crown, while the far elbow opens laterally and its wrist remains below the near wrist.",
+        "focus": "Face, near shoulder and the tautest approved-cloth plane are sharp; far hand, beams and foliage soften in that order.",
+        "foreground": "A translucent approved free edge may skim the lower frame but must stay attached to a visible wrist, shoulder or torso.",
+        "provenance": [
+          "frame-01 raised-arm geometry + preserved blocking and garment_behaviour sheets — GENERATIVE EXTRAPOLATION"
+        ]
+      },
+      "interference_frame": {
+        "camera_consequence": "Extreme low close portrait with the face and upper torso centred behind a near depth plane; the view exaggerates the closest hand or approved-cloth edge without distorting identity.",
+        "pose_joint_chain": "Torso stays frontal, both shoulders lift into raised arms, one elbow bends above the crown while the near wrist travels toward the lens and the opposite wrist remains high beside the head.",
+        "focus": "Eyes and upper torso hold the narrow sharp plane; the near hand or approved fabric is fully dissolved and the roof field blooms behind.",
+        "foreground": "A warm defocused hand, sleeve or approved free edge occupies about one quarter to one third of one side, never the full face.",
+        "provenance": [
+          "frame-01 observed near-limb occlusion + preserved camera_lens and blocking sheets — GENERATIVE EXTRAPOLATION"
+        ]
+      },
+      "material_or_accessory_detail": {
+        "camera_consequence": "Close low upward human-context detail of an approved sleeve, cuff, accessory or material edge against a blown aperture; head visibility is optional but torso attachment is mandatory.",
+        "pose_joint_chain": "One shoulder-elbow-wrist chain raises the approved detail into backlight while the other hand stabilises it near the chest; wrist, hand and adjacent torso remain anatomically connected.",
+        "focus": "Approved material texture, gripping fingers and the backlit edge are sharp; face or structure may fall softly behind.",
+        "foreground": "The approved detail is the nearest plane and may fill half the frame, but a hand, wrist and shoulder or torso must remain visible so it is never a flat lay.",
+        "provenance": [
+          "frame-01 light-transmitting edge + preserved garment_behaviour and camera_lens sheets — GENERATIVE EXTRAPOLATION"
+        ]
+      },
+      "wide_campaign_coda": {
+        "camera_consequence": "Horizontal wide from a level-to-slightly-low position across original pale structure and foliage; the approved subject stays thirty to forty percent of frame height beneath the brightest roof opening.",
+        "pose_joint_chain": "Full or near-full standing chain grounded on one leg, opposite knee relaxed, spine upright, one arm raised into the light and the other lowered away from the body to keep a clear silhouette.",
+        "focus": "Subject and nearest structural rhythm remain legible; deeper foliage and roof bays dissolve progressively into the warm upper haze.",
+        "foreground": "A low dark-olive foliage band may anchor the bottom edge without crossing the subject's feet, body or approved-item evidence.",
+        "provenance": [
+          "frame-01 palette/backlight universe + preserved environment and camera_lens sheets — GENERATIVE EXTRAPOLATION"
+        ]
+      }
+    }
+  },
+  "sheets": {
+    "camera_lens": {
+      "aspect": "16:9",
+      "prompt": "Dense editorial CAMERA & LENS reference board, 16:9, dark neutral look-dev layout, neat labelled panels, film-production house style, hand-set typographic labels in English, no photograph of a person anywhere. Headline: 'SKYLIGHT HAZE — CAMERA & LENS'. PANEL 1 CAMERA POSITION: a clean side-elevation diagram of a featureless wooden artist mannequin standing, with the camera drawn BELOW HIP HEIGHT aimed steeply upward, the sight line marked, labelled 'BELOW HIP · STEEP UP'. Beside it a small frame diagram showing the frame ROLLED 5-8 degrees anticlockwise, labelled 'ROLL 5-8 CCW'. PANEL 2 PERSPECTIVE CHARACTER: two small diagrams contrasting converging verticals against parallel verticals, the converging one ticked, labelled 'VERTICALS CONVERGE HARD UPWARD · NEAR LIMB ENLARGES · HEAD READS SMALL'. PANEL 3 DEPTH OF FIELD: a depth ramp graphic showing a narrow sharp band at the eyes and upper chest with fast falloff both ways, labelled 'PLANE AT EYES · FAST FALLOFF'. PANEL 4 FOREGROUND OCCLUSION: a frame rectangle with the left third and lower-left corner filled by a soft dissolved warm mass in #EFE0CE, plus a second soft shape crossing upper-left, labelled 'OCCLUDES 30-35 PERCENT · FULLY DISSOLVED · WARM'. PANEL 5 OPTICAL SIGNATURE, marked MANDATORY ON EVERY FRAME: sample tiles for veiling flare from behind the subject, a blown highlight ring, halation on single hair strands, warm bloom into pale areas, and fine low grain, each tile labelled with a strength word. PANEL 6 FRAME: a portrait rectangle roughly 3 to 4 with the subject silhouette filling most of the height, cut at mid-thigh, small headroom, labelled 'PORTRAIT · CUT MID-THIGH · SMALL HEADROOM'. Bottom edge: a palette row of six labelled swatches with hex printed under each: #EAF0F2, #EFE0CE, #E8B79A, #C98A78, #6F7355, #3B4630. Clean technical board, high legibility, no people, no product. No version number, no date, no board code, no client name, no photographer credit, no invented metadata."
+    },
+    "blocking": {
+      "aspect": "16:9",
+      "prompt": "Rough pencil BLOCKING sketch on toned paper, 16:9, loose graphite gesture-rough with visible construction lines, NOT finished art, hand-lettered English labels, black and white pencil with one small colour swatch row. Headline lettered 'SKYLIGHT HAZE — BLOCKING'. MAIN FRAME: a featureless wooden artist mannequin, no face, no hair, no gender, no clothing detail, standing square to the lens with BOTH ARMS RAISED OVERHEAD and elbows out, head tipped DOWN so the chin drops toward the chest. Draw the camera low, below hip height, with an arrow showing its steep upward sight line meeting the mannequin's face, and a second arrow marking the eye line travelling DOWN and OUT to the lens. Draw the frame border ROLLED 5 to 8 degrees anticlockwise around the mannequin and letter 'ROLL 5-8 CCW'. Letter 'CUT AT MID-THIGH' across the lower frame edge and 'WEIGHT UNKNOWN — FRAME CUTS' beneath it. Indicate the dissolved foreground mass as a loose scribbled shape over the left third, lettered 'FG OCCLUSION 30-35 PERCENT'. BOXED TOP-DOWN PLAN INSET in the bottom-right corner: bird's-eye view showing the mannequin's footprint, the camera marker with its angle drawn as a wedge, and the ground reference, lettered 'TOP-DOWN PLAN'. Small palette row bottom-left with hex lettered: #EFE0CE, #6F7355, #3B4630. Schematic diagram only, no rendering, no faces. No version number, no date, no board code, no client name, no photographer credit, no invented metadata."
+    },
+    "expression_gaze": {
+      "aspect": "3:2",
+      "prompt": "Dense editorial EXPRESSION & GAZE reference sheet, 3:2, neutral dark studio board, neat labelled panels, hand-set English labels, film-production house style. Headline 'SKYLIGHT HAZE — EXPRESSION & GAZE'. Show a clean grid of six head-and-shoulders studies of the SAME neutral unnamed face, identical identity in every panel, generic and non-specific, each panel annotated with anatomical labels rather than mood words. Panel labels, lettered exactly: 'GAZE INTO LENS FROM BENEATH — CHIN DROPPED, EYES TRAVEL UP-OUT'; 'UPPER LIDS LOW — TOP THIRD OF IRIS COVERED, SYMMETRIC'; 'NO SCLERA ABOVE IRIS · THIN BAND BELOW'; 'BROWS AT REST — NO INNER PULL, NO ARCH LIFT'; 'CHEEKBONES AT REST — MIDFACE FLAT, NO LOWER-LID CREASE, NOT A SMILE'; 'LIPS PARTED 2-3 MM, JAW NOT DROPPED, CORNERS LEVEL'. Add a small side panel headed 'JAW AND NECK': 'JAW RELAXED · NO MASSETER · CHIN DROPPED TO CHEST · NECK SHORTENS AT FRONT'. Add a small diagram panel headed 'HEAD ORIENTATION': three tiny icons for pan, tilt and roll with values 'PAN NEUTRAL · TILT DOWN · ROLL FOLLOWS FRAME'. Add a one-line signature strip lettered 'SIGNATURE: LOW LID PLUS RAISED ARMS — THE FACE DOES ALMOST NOTHING'. Bottom palette row with hex printed: #E8B79A, #C98A78, #EFE0CE. Soft even lighting on the studies so the anatomy reads clearly, fine skin detail, editorial layout, high label legibility. No version number, no date, no board code, no client name, no photographer credit, no invented metadata."
+    },
+    "garment_behaviour": {
+      "aspect": "3:2",
+      "prompt": "Dense editorial GARMENT BEHAVIOUR reference sheet, 3:2, neutral dark studio board, neat labelled panels, hand-set English labels. Headline 'SKYLIGHT HAZE — GARMENT BEHAVIOUR'. This sheet studies WHAT CLOTH DOES, never what cloth is: show plain unbranded UNPRINTED fabric studies only, no pattern, no logo, no garment silhouette, no product. PANEL 1 MOTION STATE: a fabric study caught settling after an upward arm movement, labelled 'SETTLING · DRIVEN BY THE SUBJECT, NOT WIND · CAUGHT LATE'. PANEL 2 AIR INTERACTION: a sleeve-like tube of thin cloth ballooned outward holding air while the body of the cloth stays close, labelled 'BALLOONS AT SLEEVE ONE HAND WIDTH · BODY STAYS CLOSE'. PANEL 3 DRAPE AND WEIGHT: a fold study with many tight small folds, labelled 'VERY LIGHT · TIGHT NUMEROUS FOLDS · NO BODY OF ITS OWN'. PANEL 4 TRANSPARENCY UNDER THIS LIGHT: the same cloth shown twice, once backlit so it GLOWS and reveals the arm beneath, once frontlit so it reads solid, labelled 'BACKLIT GLOWS AND REVEALS · FRONTLIT READS SOLID · A PROPERTY OF THE PAIR'. PANEL 5 EDGE QUALITY: a hem study softly dissolved by motion and haze, labelled 'SOFT · DISSOLVED AT HEM'. PANEL 6 SURFACE RESPONSE: labelled 'LOW SHEEN · DIFFUSE GLOW, NO SPECULAR HIT'. TRANSFER STRIP along the bottom, lettered: 'HEAVY KNIT DOES NOT BALLOON — IT LIFTS AT THE HEM, HOLDS ONE BROAD SLOW FOLD, AND ITS EDGE GLOWS WHERE THE BACKLIGHT RAKES PAST'. Palette row with hex printed: #EFE0CE, #E8B79A, #6F7355. Backlit studio setup so the transparency panel reads truthfully, high label legibility, no people. No version number, no date, no board code, no client name, no photographer credit, no invented metadata."
+    },
+    "colour_grade": {
+      "aspect": "16:9",
+      "prompt": "Dense editorial COLOUR & GRADE reference board, 16:9, dark look-dev layout, neat labelled panels, hand-set English labels. Headline 'SKYLIGHT HAZE — COLOUR & GRADE'. PANEL PALETTE, marked 'CLOSED SET · PALETTE_SIZE 6': six large swatches in a row, each with its name above and its hex printed beneath in clear type — 'BLOWN SKYLIGHT #EAF0F2', 'WARM CREAM #EFE0CE', 'PEACH #E8B79A', 'DUSTY ROSE #C98A78', 'OLIVE SAGE #6F7355', 'DEEP FOLIAGE #3B4630'. PANEL EXEMPTIONS, lettered as three lines: 'APPROVED ITEM COLOURS', 'SKIN HAIR EYES', 'THE RAMP BETWEEN TWO MEMBERS'. PANEL FORBIDDEN, lettered: 'ANY SEVENTH COLOUR IS A FAIL, NOT A VARIATION'. PANEL CURVE: a tone-curve graph showing lifted blacks and a warm rolled-off highlight shoulder, annotated 'BLACKS LIFTED · HIGHLIGHTS ROLLED, NOT CLIPPED'. PANEL SPLIT-TONE: a two-swatch diagram annotated 'WARM HIGHLIGHTS · COOL-NEUTRAL SHADOWS'. PANEL GRADED SAMPLE: one clean graded plate of hazy backlit interior light with no person in it, carrying the palette exactly. Clean technical board, very high type legibility, no people, no product, no photograph of a face. No version number, no date, no board code, no client name, no photographer credit, no invented metadata."
+    },
+    "environment": {
+      "aspect": "21:9",
+      "prompt": "Dense editorial ENVIRONMENT PLATES board, 21:9, labelled panels, architectural reference style, hand-set English labels, THE SAME PLACE throughout with identical materials and light across panels, and NO PEOPLE in any panel. Headline 'SKYLIGHT HAZE — ENVIRONMENT'. PLATE 1 PLAN: a top-down site diagram of an atrium under a glass roof, with a scale bar, a north arrow, the camera position marked low, and the subject footprint marked. PLATE 2 HERO WIDE: the interior looking up toward a glass roof with pale beams and mullions, the sky beyond blown to near white #EAF0F2, heavy veiling haze across the upper frame. PLATE 3 REVERSE ANGLE: the same space from the opposite side under the same light. PLATE 4 MATERIALS: six labelled swatches — pale painted steel mullion, clear glazing, warm concrete floor in #EFE0CE, olive foliage in #6F7355, deep foliage shadow in #3B4630, dusty rose bloom in #C98A78. PLATE 5 SIGNATURE DETAILS: the mullion junction, the glazing edge where flare originates, a foliage cluster read against the blown sky. PLATE 6 ATMOSPHERE: labelled tiles for LIGHT 'broad source above and behind, blown', HAZE 'heavy veiling, densest upper centre', TEMPERATURE 'warm', SOUND and SMELL left as short notes. Annotate the depth planes as four labelled bands: 'BLOWN SKY · STRUCTURE · SUBJECT · OCCLUDING FOREGROUND'. Letter one line: 'UNKNOWN — WHETHER THE ROOM HAS WALLS IN SHOT'. High detail, high label legibility, no people, no readable brand text. No version number, no date, no board code, no client name, no photographer credit, no invented metadata."
+    },
+    "person": {
+      "aspect": "2:3",
+      "prompt": "Dense editorial PERSON SHEET, 2:3, neutral dark studio board, neat labelled panels, hand-set English labels, film-production house style. Headline 'SKYLIGHT HAZE — PERSON SHEET (TEMPLATE)'. This sheet is a TEMPLATE describing what must be recorded about whoever is photographed, not a portrait of any specific individual: use one neutral unnamed generic face, identical in every panel, and label the anatomy rather than naming a person. PANEL FACE GEOMETRY: annotated diagram calling out skull and jaw shape, cheekbone height and projection, brow ridge, nose bridge and tip and nostril shape, philtrum, lip volume and corner direction, chin, hairline shape, neck-to-jaw transition. PANEL EARS: a labelled ear study calling out set height relative to eye and nose line, protrusion, helix curl, lobe attached or free, piercings, lettered 'EARS ARE THE FASTEST TELL OF DRIFT'. PANEL EVERYTHING ON THE FACE: brows density and direction, lashes, eye colour and limbal ring, sclera tone, under-eye structure, glasses frame if worn. PANEL SKIN MARKS, split into two clearly separated columns lettered 'OBSERVED — READ OFF A FRAME' and 'PLAUSIBLE — CONSISTENT BUT NOT VISIBLE', with a line beneath: 'DISCRETE MARKS MUST BE OBSERVED · CONTINUOUS GEOMETRY MAY BE INFERRED'. PANEL SKIN TONE: a value ramp with hex printed, including #E8B79A and #C98A78, plus undertone and the lit-to-shadow shift. PANEL HOW THIS SKIN TAKES THIS LIGHT: annotated studies lettered 'BROAD SOFT SPECULARS ON FOREHEAD, NOSE BRIDGE, CHEEKBONE TOPS'; 'WARM SUBSURFACE GLOW THROUGH THE EAR AND ALONG THE JAW'; 'TERMINATOR VERY SOFT, ALMOST ABSENT'; 'LIGHT WRAPS, DOES NOT CUT'; 'WARM HALATION FRINGE WHERE SKIN MEETS THE BLOWN BACKGROUND'. Backlit setup so the halation panel reads truthfully. Palette row with hex printed: #EFE0CE, #E8B79A, #C98A78. High label legibility, fine skin detail, no named individual, no brand text. No version number, no date, no board code, no client name, no photographer credit, no invented metadata."
+    }
+  }
+}

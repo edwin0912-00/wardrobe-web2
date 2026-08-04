@@ -1,0 +1,7 @@
+CONTROLLED TEXT-DEFINED OUTFIT EDIT.
+
+Input 1 is the approved canonical avatar and exact composition/edit base. Inputs 2–3 are conditioned identity evidence (normalized full reference and face-detail crop) for the same person. Change only the garment region of input 1. Preserve the exact recognizable person, facial geometry, natural skin texture, short blonde bob and bangs, darker roots, rose-gold round eyeglasses, teal neck tattoo, expression, head angle, body proportions, frontal half-body framing, camera, subject scale, soft studio lighting, neutral white balance, and seamless pure #FFFFFF background. Do not retouch the face or change hair or glasses.
+
+OUTFIT SPECIFICATION: a cobalt-blue single-breasted tailored blazer in matte finely woven fabric, relaxed regular fit, notch lapels, one visible dark-blue button, clean welt pockets, worn over a plain opaque white crew-neck cotton top. No logo, text, pattern, jewelry, scarf, or extra layer. The blazer must look physically worn with natural seams, folds, collar overlap, and sleeve construction.
+
+BACKGROUND HARD RULE: exact uniform RGB #FFFFFF with no shadow, gradient, texture, halo, prop, or bleed. One person only. No black T-shirt remnants at neckline, sleeves, hem, or edges. No anatomy change, extra limbs, malformed hands, watermark, CGI, or illustration. Photorealistic studio photograph with crisp natural skin, hair, and fabric detail.

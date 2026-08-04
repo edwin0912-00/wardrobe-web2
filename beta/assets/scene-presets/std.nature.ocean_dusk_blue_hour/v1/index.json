@@ -1,0 +1,55 @@
+{
+  "preset_id": "std.nature.ocean_dusk_blue_hour",
+  "preset_path": "assets/scene-presets/std.nature.ocean_dusk_blue_hour/v1/preset.json",
+  "preset_sha256": "587f3f8a36c51c7931c9d282ba98ea42e86990923d5e6f76603397bedced73f4",
+  "preset_version": "1.0.0",
+  "production_prompt_path": "prompts/scene-presets/std.nature.ocean_dusk_blue_hour/v1/production-scene.txt",
+  "prompt_sha256": "34b5a98ca56eccf53c2bba69afea5b9a301302a2ab7ad3de0382b142dc7cb0a9",
+  "reference_pack_path": "assets/scene-presets/std.nature.ocean_dusk_blue_hour/v1/reference-pack.json",
+  "reference_pack_sha256": "75c273feb8c2b3a980e5a248088a2989b8f415886d055a2c2d3bfdce0f0e2f9c",
+  "references": [
+    {
+      "media_type": "application/json",
+      "order": 1,
+      "path": "assets/scene-presets/std.nature.ocean_dusk_blue_hour/v1/environment-reference.json",
+      "reference_id": "std.nature.ocean_dusk_blue_hour.environment",
+      "role": "environment_anchor",
+      "sha256": "891353fa7623de8556ffa0fac3291b43ddfb0ee95baf266c6adc03deb50ce786"
+    },
+    {
+      "media_type": "application/json",
+      "order": 2,
+      "path": "assets/scene-presets/std.nature.ocean_dusk_blue_hour/v1/lighting-reference.json",
+      "reference_id": "std.nature.ocean_dusk_blue_hour.lighting",
+      "role": "lighting_anchor",
+      "sha256": "7acb3f8178ce2b216721223977086eefa7c8b5d2643e30edbd538dfba986a98e"
+    },
+    {
+      "media_type": "application/json",
+      "order": 3,
+      "path": "assets/scene-presets/std.nature.ocean_dusk_blue_hour/v1/composition-reference.json",
+      "reference_id": "std.nature.ocean_dusk_blue_hour.composition",
+      "role": "composition_anchor",
+      "sha256": "2217cac41aee3f4b30716465a41fee37885fd02ad84e8c3a51b8c4a210b6b03b"
+    },
+    {
+      "media_type": "application/json",
+      "order": 4,
+      "path": "assets/scene-presets/std.nature.ocean_dusk_blue_hour/v1/palette-anchor.json",
+      "reference_id": "std.nature.ocean_dusk_blue_hour.palette",
+      "role": "palette_anchor",
+      "sha256": "26a46c867b997fb262923edddadf039b18a78aed82441c1286bb9d403d9cfe17"
+    },
+    {
+      "media_type": "application/json",
+      "order": 5,
+      "path": "assets/scene-presets/std.nature.ocean_dusk_blue_hour/v1/negative-reference.json",
+      "reference_id": "std.nature.ocean_dusk_blue_hour.negative",
+      "role": "negative_reference",
+      "sha256": "fea1cac3c4b44ab535657a749dc5c3ebd97d964c7e27a9bf4730c51e66cd4d11"
+    }
+  ],
+  "schema_version": "1.0.0",
+  "source_ledger_path": "assets/scene-presets/std.nature.ocean_dusk_blue_hour/v1/source-ledger.json",
+  "source_ledger_sha256": "57bac2c01a211211de229c91b0127727846f3d7148fc3dbb11f1106f26a37e95"
+}

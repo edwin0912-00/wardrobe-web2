@@ -1,0 +1,88 @@
+{
+  "camera": {
+    "aspect_ratio": "4:5",
+    "height": "eye_level",
+    "lens_mm": 65,
+    "max_vertical_error_deg": 1,
+    "minimum_clear_space_percent": {
+      "above_hair": 8,
+      "below_footwear": 2
+    },
+    "subject_height_percent": [
+      70,
+      80
+    ]
+  },
+  "environment": "An original warm terracotta-colored textured concrete wall with dark polished concrete floor, minimalist set with atmospheric haze, no props.",
+  "family": "dramatic_studio",
+  "hard_negatives": [
+    "orange cast on items",
+    "teal cast on items",
+    "props",
+    "readable text",
+    "cracked wall distraction",
+    "beauty smoothing",
+    "neon"
+  ],
+  "lighting": {
+    "fill": "cool teal shadow on non-lit side providing warm-cool contrast",
+    "finish": "polished_editorial_gloss_without_skin_smoothing_or_hdr",
+    "key": "hard warm side light raking across textured terracotta wall creating deep relief shadows",
+    "protected_regions": [
+      "eyes",
+      "face_identity",
+      "item_logos",
+      "item_text",
+      "critical_construction"
+    ],
+    "time_or_setup": "dramatic raking side light"
+  },
+  "mvp_assets": [
+    "mood_card"
+  ],
+  "palette": [
+    "terracotta #C06040",
+    "burnt sienna",
+    "teal shadow",
+    "warm amber",
+    "dark concrete"
+  ],
+  "post_selection_assets": [
+    "environment_plate",
+    "lighting_preview"
+  ],
+  "preset_id": "std.studio.terracotta_raking_light",
+  "prompt_path": "prompts/scenes/std.studio.terracotta_raking_light.txt",
+  "source_authorities": [
+    {
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit",
+        "brands",
+        "readable_text",
+        "exact_architecture"
+      ],
+      "role": "lighting_composition_palette_inspiration",
+      "url": "https://www.pexels.com/photo/stylish-woman-in-dramatic-studio-lighting-32497260/",
+      "use": "raking side light and warm-cool color contrast only"
+    },
+    {
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit",
+        "brands",
+        "readable_text",
+        "exact_architecture"
+      ],
+      "role": "environment_material_inspiration",
+      "url": "https://unsplash.com/photos/a-woman-is-posing-for-a-picture-in-a-dark-room-_d0Uv9sIEmY",
+      "use": "dark studio separation and textured wall behavior only"
+    }
+  ],
+  "ui_name_uk": "Теракота",
+  "version": "1.0.0"
+}

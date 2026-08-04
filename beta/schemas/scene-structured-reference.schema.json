@@ -1,0 +1,189 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zeely.local/schemas/scene-structured-reference.schema.json",
+  "title": "Zeely strict structured scene reference",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "role", "facts"],
+      "properties": {
+        "schema_version": { "const": "1.0.0" },
+        "role": { "const": "environment_anchor" },
+        "facts": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["description", "spatial_cues", "materials", "originality_rules"],
+          "properties": {
+            "description": { "$ref": "#/$defs/fact" },
+            "spatial_cues": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 12,
+              "items": { "$ref": "#/$defs/fact" }
+            },
+            "materials": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 12,
+              "items": { "$ref": "#/$defs/fact" }
+            },
+            "originality_rules": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 12,
+              "items": { "$ref": "#/$defs/fact" }
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "role", "facts"],
+      "properties": {
+        "schema_version": { "const": "1.0.0" },
+        "role": { "const": "lighting_anchor" },
+        "facts": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["time_or_setup", "key", "fill", "finish", "protected_regions"],
+          "properties": {
+            "time_or_setup": { "$ref": "#/$defs/fact" },
+            "key": { "$ref": "#/$defs/fact" },
+            "fill": { "$ref": "#/$defs/fact" },
+            "finish": { "$ref": "#/$defs/fact" },
+            "protected_regions": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 12,
+              "items": { "$ref": "#/$defs/fact" }
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "role", "facts"],
+      "properties": {
+        "schema_version": { "const": "1.0.0" },
+        "role": { "const": "composition_anchor" },
+        "facts": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "aspect_ratio",
+            "lens_mm",
+            "camera_height",
+            "subject_height_percent",
+            "minimum_clear_space_percent",
+            "max_vertical_error_deg",
+            "notes"
+          ],
+          "properties": {
+            "aspect_ratio": { "const": "4:5" },
+            "lens_mm": { "type": "integer", "minimum": 24, "maximum": 200 },
+            "camera_height": { "enum": ["eye_level", "waist_level", "low_max_5deg"] },
+            "subject_height_percent": {
+              "$comment": "100 is reachable: a slot that waives headroom and footroom fills the canvas, and material_or_accessory_detail locks [45, 100] out of guard above=0/below=0. Capping at 99 made that one slot unshootable — its composition anchor was refused here before any provider call, three identical 120ms attempts, while the five slots with guards of 4 to 8 never came near the bound. Which band a shot may claim stays with EDITORIAL_FRAMING_LOCKS.",
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 2,
+              "prefixItems": [
+                { "type": "number", "minimum": 1, "maximum": 100 },
+                { "type": "number", "minimum": 1, "maximum": 100 }
+              ],
+              "items": false
+            },
+            "minimum_clear_space_percent": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["above_hair", "below_footwear"],
+              "properties": {
+                "above_hair": { "type": "number", "minimum": 0, "maximum": 100 },
+                "below_footwear": { "type": "number", "minimum": 0, "maximum": 100 }
+              }
+            },
+            "max_vertical_error_deg": { "type": "number", "minimum": 0, "maximum": 15 },
+            "notes": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 12,
+              "items": { "$ref": "#/$defs/fact" }
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "role", "facts"],
+      "properties": {
+        "schema_version": { "const": "1.0.0" },
+        "role": { "const": "palette_anchor" },
+        "facts": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["colors", "contrast", "materials", "notes"],
+          "properties": {
+            "colors": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 12,
+              "items": { "$ref": "#/$defs/fact" }
+            },
+            "contrast": { "enum": ["low", "medium", "high"] },
+            "materials": {
+              "type": "array",
+              "maxItems": 12,
+              "items": { "$ref": "#/$defs/fact" }
+            },
+            "notes": {
+              "type": "array",
+              "maxItems": 12,
+              "items": { "$ref": "#/$defs/fact" }
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "role", "facts"],
+      "properties": {
+        "schema_version": { "const": "1.0.0" },
+        "role": { "const": "negative_reference" },
+        "facts": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["avoid", "notes"],
+          "properties": {
+            "avoid": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 20,
+              "items": { "$ref": "#/$defs/fact" }
+            },
+            "notes": {
+              "type": "array",
+              "maxItems": 12,
+              "items": { "$ref": "#/$defs/fact" }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "fact": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 240
+    }
+  }
+}

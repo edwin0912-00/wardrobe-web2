@@ -1,0 +1,160 @@
+{
+  "unit_id": "shoot.overcast_street_stride",
+  "title": "Overcast Street Stride — sky-dome light, a living street, a walk",
+  "palette_size": 6,
+  "palette": [
+    {
+      "name": "sand suede",
+      "hex": "#C7B08C",
+      "role": "key mid / styling completion"
+    },
+    {
+      "name": "indigo denim",
+      "hex": "#2E4468",
+      "role": "second mass"
+    },
+    {
+      "name": "brown leather",
+      "hex": "#7A4A2E",
+      "role": "accent"
+    },
+    {
+      "name": "grey-white sky",
+      "hex": "#C9CDD0",
+      "role": "brightest"
+    },
+    {
+      "name": "beige limestone",
+      "hex": "#CFC5B0",
+      "role": "field"
+    },
+    {
+      "name": "asphalt",
+      "hex": "#8A8A88",
+      "role": "ground"
+    }
+  ],
+  "style_unit_status": "READY",
+  "source_frames": [
+    "frame-01 — legacy extraction description: portrait full-length figure mid-stride across a living European street under bright overcast, with pedestrians, parked cars, long-lens compression and soft short shadows; source bytes are no longer retained"
+  ],
+  "unknowns": [
+    "exact city and whether the crossing is signal-controlled",
+    "lens focal length, aperture, shutter speed and numerical physical camera height",
+    "exact source capture dimensions and SHA-256 of the unavailable extraction-only frame",
+    "which six coverage directions, beyond the observed stride, existed in the historical source shoot"
+  ],
+  "runtime_style": {
+    "visual_system": "Living-street fashion photography under a bright overcast sky dome, using long-perspective compression, full human walking chains, restrained colour and real pedestrian depth rather than a clean studio backdrop.",
+    "mood_line": "A composed subject crosses a city already in motion: calm eye contact, quiet colour and one decisive stride held inside compressed street life.",
+    "environment": "An original non-identifiable European street with beige limestone facades, grey asphalt, worn crossing marks, parked cars and a few anonymous pedestrians; no landmark, logo, readable sign or copied storefront.",
+    "lighting": "One neutral bright overcast sky dome with no sun disc or hard sun vector; light wraps the face and approved items, shadows stay short and soft, and no artificial rim or second key is added.",
+    "materials": [
+      "beige limestone facade planes with restrained weathering",
+      "grey asphalt and worn painted crossing marks",
+      "parked vehicle surfaces and anonymous pedestrian silhouettes held inside the closed palette",
+      "approved item materials preserved truthfully while gait supplies movement"
+    ],
+    "contrast": "Gentle neutral contrast with slightly lifted blacks, long soft highlight roll-off, restrained saturation and the six-colour closed environment palette #C7B08C #2E4468 #7A4A2E #C9CDD0 #CFC5B0 #8A8A88.",
+    "expression_signature": "Upper lids neutral to low, brows and cheekbones at rest, mouth closed with level corners, jaw relaxed, and gaze either into or just past the lens while the body continues its walk; never smile or raise the brows.",
+    "garment_behaviour": "Motion is driven by the subject's walk rather than wind: an approved free outer edge swings, a free hem or wide leg trails with mild motion softening, and matte surfaces remain quiet without invented gloss or transparency.",
+    "optical_signature": [
+      "Every frame keeps clean neutral rendering, restrained fine grain and no flare, halation, vignette or chromatic fringe.",
+      "Long-perspective compression keeps distant facades and street context visually present without naming a focal length.",
+      "Focus falloff is gradual: the approved subject is decisive, mid-ground people and cars are slightly softer, and the far street softens further."
+    ],
+    "shot_directions": {
+      "clean_identity_hero": {
+        "camera_consequence": "Vertical head-to-hip portrait from eye-to-chest height with compressed limestone planes and a soft anonymous pedestrian layer behind the approved subject.",
+        "pose_joint_chain": "Pelvis stays in walking alignment, near shoulder advances slightly, neck counter-rotates toward camera, chin remains level and the near arm completes a relaxed backward swing.",
+        "focus": "Approved face, visible eye plane and near shoulder sharp; pedestrians and facade seams fall gradually softer.",
+        "foreground": "No lens-crossing object; the near shoulder and swinging forearm are the closest planes.",
+        "provenance": [
+          "frame-01 plus sheet-camera_lens.png and sheet-expression_gaze.png — approved universe authority; this tighter coverage is an authored extension, not a claim of a second observed source frame"
+        ]
+      },
+      "environmental_hero": {
+        "camera_consequence": "Vertical full-length street crossing from chest height with both walking feet inside frame and generous space in the direction of travel.",
+        "pose_joint_chain": "Front heel plants, rear heel rises, knees remain soft, hips and shoulders counter-rotate naturally, one arm swings forward, the other back, and head pans toward lens.",
+        "focus": "Approved subject sharp head to foot; nearest crossing marks readable, mid pedestrians slightly soft and the street end softer.",
+        "foreground": "A low strip of asphalt and worn crossing paint occupies the lower edge without covering either foot.",
+        "provenance": [
+          "frame-01 and sheet-blocking.png — observed stride grammar and authored environmental-hero framing inside the approved street universe"
+        ]
+      },
+      "sculptural_three_quarter": {
+        "camera_consequence": "Low vertical three-quarter stride from around hip height; the near leg enlarges modestly while compressed facades remain upright and ordered.",
+        "pose_joint_chain": "Weight transfers onto the near leg, far knee bends behind, pelvis turns three-quarter, torso counter-rotates, one elbow opens away from the waist and chin turns past camera.",
+        "focus": "Approved face, torso and planted near leg sharp; the trailing hem and far foot soften slightly with motion.",
+        "foreground": "The planted near leg and a diagonal crossing stripe form the closest lower-frame planes; no unrelated prop enters.",
+        "provenance": [
+          "sheet-camera_lens.png, sheet-blocking.png and sheet-garment_behaviour.png — authored three-quarter coverage using the approved compression, gait and cloth rules"
+        ]
+      },
+      "interference_frame": {
+        "camera_consequence": "Vertical medium walking portrait through one heavily defocused street-context edge while the subject remains large enough for the head and full joint chain to read.",
+        "pose_joint_chain": "Torso stays in profile stride, near elbow bends through its forward swing, shoulders counter the hips, and head turns to hold a calm near-lens gaze.",
+        "focus": "Approved face and central torso sharp; the passing context edge and far parked cars dissolve into soft shapes.",
+        "foreground": "One anonymous pedestrian shoulder or parked-car mirror crosses no more than a quarter of one side, fully defocused and never covering the face.",
+        "provenance": [
+          "sheet-environment.png and sheet-camera_lens.png — authored interference variation from the living-street depth planes; no additional source frame is asserted"
+        ]
+      },
+      "material_or_accessory_detail": {
+        "camera_consequence": "Vertical waist-to-shoulder human-context detail from near chest height, keeping the walking street soft behind the approved item.",
+        "pose_joint_chain": "One shoulder leads, elbow flexes naturally in the stride, wrist passes beside the hip or approved accessory and fingers remain anatomically relaxed with torso attached.",
+        "focus": "Approved material surface, hand and wrist sharp; face remains present but secondary and street context falls soft.",
+        "foreground": "The approved sleeve, free hem or accessory and attached hand fill the near lower plane; never detach the detail from the person.",
+        "provenance": [
+          "sheet-garment_behaviour.png and sheet-blocking.png — authored item-detail coverage preserving observed gait-driven swing and body context"
+        ]
+      },
+      "wide_campaign_coda": {
+        "camera_consequence": "Horizontal compressed street wide from the opposite kerb; the approved subject stays at least thirty percent of frame height amid facades, parked cars and sparse pedestrians.",
+        "pose_joint_chain": "Full walking chain continues diagonally across frame, front foot accepting weight, rear leg extending, arms counter-swinging and head turned away past the street.",
+        "focus": "Approved subject and near crossing plane legible; background figures and the far facade rhythm soften in successive depth bands.",
+        "foreground": "An empty asphalt band and one soft near kerb edge establish depth without hiding the body.",
+        "provenance": [
+          "sheet-environment.png plus frame-01 — authored reverse-direction coda within the approved street plan and overcast optical system"
+        ]
+      }
+    }
+  },
+  "sheets": {
+    "camera_lens": {
+      "aspect": "16:9",
+      "quality": "medium",
+      "prompt": "Editorial specification board titled OVERCAST STREET STRIDE — CAMERA & LENS. Panels: 1 CAMERA POSITION — chest-to-eye height, level, roll level; small diagram. 2 PERSPECTIVE CHARACTER — long-lens compression: distant facades held large relative to the subject, verticals do not converge; evidence stated. 3 DEPTH OF FIELD — subject sharp head to shoe, mid-ground pedestrians slightly soft, far end softer, gradual falloff; focus-plane diagram. 4 FOREGROUND OCCLUSION — none. 5 OPTICAL SIGNATURE, FIXED — clean, neutral, fine grain, no flare, no halation, no vignette; every frame of the unit carries this cleanliness. 6 FRAME — full-length, both shoes fully inside the frame, generous lateral space in the walking direction. Include a small palette hex row strip labelled exactly: #C7B08C #2E4468 #7A4A2E #C9CDD0 #CFC5B0 #8A8A88. Typeset like a printed specification board with crisp fully legible labels. No version number, no date, no invented metadata, no board codes, no photographer credits, no brand marks, no readable third-party text, no watermark."
+    },
+    "blocking": {
+      "aspect": "16:9",
+      "quality": "low",
+      "prompt": "Technical blocking diagram board titled OVERCAST STREET STRIDE — BLOCKING, neutral grey artist mannequin, schematic arrows and labels. Main view: mannequin in profile mid-stride crossing left to right, rear leg extended with heel rising, front leg planted mid-step, near arm swinging past the hip, head turned toward the camera while the body keeps walking; camera icon at chest height with a long-lens cone. Joint-chain labels: hip line level, rear knee soft, front heel planted, shoulder line counter-rotated to the hips, head panned to lens, no roll. Top-down inset plan: street crossing, subject path arrow across, camera far back with narrow field-of-view cone, pedestrians and parked cars marked as context dots along both kerbs, sky-dome light symbol labelled OVERCAST — NO SUN VECTOR. Include a small palette hex row strip labelled exactly: #C7B08C #2E4468 #7A4A2E #C9CDD0 #CFC5B0 #8A8A88. Typeset like a printed specification board with crisp fully legible labels. No version number, no date, no invented metadata, no board codes, no photographer credits, no brand marks, no readable third-party text, no watermark."
+    },
+    "expression_gaze": {
+      "aspect": "3:2",
+      "quality": "medium",
+      "prompt": "Editorial specification board titled OVERCAST STREET STRIDE — EXPRESSION & GAZE, one large face panel plus small side panels, generic template model. 1 GAZE FORMAT — into the lens while the body walks across frame; the tension between stride and gaze is the signature. 2 EYELIDS — neutral, symmetric. 3 BROWS — at rest. 4 CHEEKBONES — at rest, no lift. 5 MOUTH — closed, relaxed, corners level. 6 JAW AND NECK — relaxed, sternocleidomastoid engaged only by the head turn. 7 HEAD ORIENTATION — pan toward the lens against the walking direction, no tilt, no roll. Negatives stated on the board: no smile, no raised brows, no squint. Include a small palette hex row strip labelled exactly: #C7B08C #2E4468 #7A4A2E #C9CDD0 #CFC5B0 #8A8A88. Typeset like a printed specification board with crisp fully legible labels. No version number, no date, no invented metadata, no board codes, no photographer credits, no brand marks, no readable third-party text, no watermark."
+    },
+    "garment_behaviour": {
+      "aspect": "3:2",
+      "quality": "medium",
+      "prompt": "Editorial specification board titled OVERCAST STREET STRIDE — GARMENT BEHAVIOUR. Six photographic panels of plain unbranded cloth under bright overcast against beige limestone #CFC5B0 and asphalt, no person: 1 MOTION STATE — caught mid-motion, driven by the subject's own walk, not by wind. 2 AIR INTERACTION — an open outer layer swings, hem lifts slightly, fronts part; a wide trouser leg ripples and trails at the leading edge. 3 DRAPE AND WEIGHT — mid-weight, fluid; folds medium and mobile. 4 TRANSPARENCY UNDER THIS LIGHT — opaque; the sky dome produces no shine-through. 5 EDGE QUALITY — soft edges, mild motion softening at the fastest hem. 6 SURFACE RESPONSE — suede-class matte, light-absorbing, zero specular; knits stay quiet. TRANSFER line: garments in this unit move with the walk — an open layer swings, a wide leg ripples, matte surfaces stay matte, nothing blooms or shines. Include a small palette hex row strip labelled exactly: #C7B08C #2E4468 #7A4A2E #C9CDD0 #CFC5B0 #8A8A88. Typeset like a printed specification board with crisp fully legible labels. No version number, no date, no invented metadata, no board codes, no photographer credits, no brand marks, no readable third-party text, no watermark."
+    },
+    "colour_grade": {
+      "aspect": "16:9",
+      "quality": "medium",
+      "prompt": "Editorial specification board titled OVERCAST STREET STRIDE — COLOUR & GRADE. Declare palette_size 6 as a closed counted set with swatches and roles: #C7B08C sand suede key mid, #2E4468 indigo denim second mass, #7A4A2E brown leather accent, #C9CDD0 grey-white sky brightest, #CFC5B0 beige limestone field, #8A8A88 asphalt ground. Panels: tonal ramp from asphalt to sky; GRADE BEHAVIOUR — gentle contrast, neutral colour, blacks lifted slightly, highlight roll-off long and soft, saturation restrained and even; skin, hair, eyes and approved item colours exempt; FAIL CONDITION: any non-exempt cluster above two percent of frame area must map to a palette member; the living street stays visible — pedestrians and cars are context, not palette violations, when their tones sit inside the set. Include a small palette hex row strip labelled exactly: #C7B08C #2E4468 #7A4A2E #C9CDD0 #CFC5B0 #8A8A88. Typeset like a printed specification board with crisp fully legible labels. No version number, no date, no invented metadata, no board codes, no photographer credits, no brand marks, no readable third-party text, no watermark."
+    },
+    "environment": {
+      "aspect": "21:9",
+      "quality": "medium",
+      "prompt": "Wide editorial specification board titled OVERCAST STREET STRIDE — ENVIRONMENT. Panel 1 PLAN — top-down drawing: street crossing, both kerbs, parked cars along the far kerb, pedestrian dots on the pavement, subject path arrow crossing, camera far back with a narrow long-lens cone, overcast sky-dome symbol. Panel 2 HERO VIEW — photographic: a living European street under bright overcast, beige limestone facades #CFC5B0, parked cars, a few pedestrians mid-distance, grey asphalt with worn markings, soft short shadows, no sun disc, no identifiable landmark, no readable signage. Panel 3 REVERSE ANGLE, at least 120 degrees from the hero and visibly different — photographic: looking back along the same street from the far kerb, shopfront line close on one side. Panel 4 MATERIALS — limestone, asphalt, painted markings close-ups. Panel 5 DEPTH PLANES — sky, far facades, mid pedestrians and cars, subject zone, asphalt. Include a small palette hex row strip labelled exactly: #C7B08C #2E4468 #7A4A2E #C9CDD0 #CFC5B0 #8A8A88. Typeset like a printed specification board with crisp fully legible labels. No version number, no date, no invented metadata, no board codes, no photographer credits, no brand marks, no readable third-party text, no watermark."
+    },
+    "person": {
+      "aspect": "2:3",
+      "quality": "medium",
+      "prompt": "Editorial specification board titled OVERCAST STREET STRIDE — PERSON SHEET, marked TEMPLATE, illustrated with a neutral generic template face, clearly not a specific person. Sections: 1 FACE GEOMETRY callouts. 2 EARS checklist. 3 EVERYTHING ON THE FACE checklist. 4 SKIN MARKS — observed versus plausible, separate. 5 SKIN TONE — value ramp lit versus shaded. 6 HOW THIS SKIN TAKES THIS LIGHT, unit-specific: highlights broad, soft and low-contrast on forehead, cheekbones and nose bridge, fed by the whole sky #C9CDD0; no hard terminator anywhere — the light wraps fully; matte overall with a soft sheen only on the highest planes; neutral undertone, no environmental cast; no halation, no rim. Include a small palette hex row strip labelled exactly: #C7B08C #2E4468 #7A4A2E #C9CDD0 #CFC5B0 #8A8A88. Typeset like a printed specification board with crisp fully legible labels. No version number, no date, no invented metadata, no board codes, no photographer credits, no brand marks, no readable third-party text, no watermark."
+    }
+  }
+}

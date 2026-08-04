@@ -1,0 +1,27 @@
+{
+  "assets": [
+    {
+      "exact_prompt_path": "prompts/scene-presets/std.interior.industrial_brick_loft/v1/environment-plate.txt",
+      "path": "assets/scene-presets/std.interior.industrial_brick_loft/v1/environment-plate.webp",
+      "provider_receipt_status": "MISSING_FROM_BUILTIN_IMAGE_TOOL",
+      "role": "environment_plate",
+      "sha256": "a464186ebee0c9ab4859aebe12ca88ca8e89cd13757f465b090554b059236694"
+    },
+    {
+      "derivation": {
+        "exact_prompt_path": "prompts/scenes/std.interior.industrial_brick_loft.txt",
+        "operation": "ROLE_REASSIGNMENT_FROM_VISUALLY_APPROVED_MOOD_CARD",
+        "source_path": "assets/scene-mood-cards/std.interior.industrial_brick_loft.webp",
+        "source_sha256": "9d6d3849a7ffb8320a9fec1a548f21688a3bc1389ceb92e120be9edecd075eca"
+      },
+      "path": "assets/scene-presets/std.interior.industrial_brick_loft/v1/lighting-preview.webp",
+      "provider_receipt_status": "MISSING_FROM_BUILTIN_IMAGE_TOOL",
+      "role": "lighting_preview",
+      "sha256": "9d6d3849a7ffb8320a9fec1a548f21688a3bc1389ceb92e120be9edecd075eca"
+    }
+  ],
+  "preset_id": "std.interior.industrial_brick_loft",
+  "preset_version": "1.0.0",
+  "release_status": "BLOCKED_MISSING_STABLE_PROVIDER_RECEIPTS",
+  "schema_version": "1.0.0"
+}

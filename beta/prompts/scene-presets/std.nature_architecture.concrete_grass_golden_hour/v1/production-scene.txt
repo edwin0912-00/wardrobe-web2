@@ -1,0 +1,21 @@
+TASK
+Create one photorealistic outdoor fashion campaign still using the exact person and complete approved look from LOOK_MASTER in the original concrete-and-grass environment defined by ENVIRONMENT_ANCHOR and LIGHTING_COMPOSITION_ANCHOR.
+
+AUTHORITY
+LOOK_MASTER is the only authority for identity, face, body, hair, every approved clothing item, footwear, bag, accessory, color, material, construction, graphic, logo and readable product text. Preserve all of them exactly. Environment references have zero authority over the person or look.
+
+SCENE
+Use an original clean concrete and pale-stone platform with controlled ornamental dry grasses and restrained open-sky depth. Do not reproduce an underpass, highway, bridge, garden, wild meadow or recognizable landmark. No other people, animals, vehicles, signs, readable text or new props. Grasses must not cover the face, look, bag, logos or footwear.
+
+LIGHT
+Low golden side/back light defining the body and grass edges, balanced by cool open-sky fill. Keep flare away from the face and products. Preserve natural skin, exact item colors, readable logos and construction. Add a physically coherent contact shadow aligned with the sun.
+
+CAMERA AND FRAMING
+Final delivery is vertical 3:4. 50 mm equivalent with a restrained low angle no greater than five degrees, straight architecture and no wide-angle distortion. Full body with complete head or approved headwear, complete carried approved item and both shoes. The person occupies 70–80% of image height with at least 8% clear sky or architecture above and 2% clean ground below.
+
+FINISH
+High-end natural fashion gloss with straw, ochre, olive and cool-grey balance, controlled golden highlights and realistic textile, leather and vegetation texture. No orange-teal grade, HDR, bloom, skin smoothing, pasted edge or fantasy landscape.
+
+FAIL CONDITIONS
+Identity drift; removed, changed or invented item; altered logo or text; grass occlusion; highway or underpass cue; excessive flare; anatomy defect; crop; floating feet; duplicated accessory; random outdoor prop.
+

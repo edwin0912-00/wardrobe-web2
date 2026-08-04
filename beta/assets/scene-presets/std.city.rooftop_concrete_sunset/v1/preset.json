@@ -1,0 +1,88 @@
+{
+  "camera": {
+    "aspect_ratio": "4:5",
+    "height": "eye_level",
+    "lens_mm": 50,
+    "max_vertical_error_deg": 1.5,
+    "minimum_clear_space_percent": {
+      "above_hair": 8,
+      "below_footwear": 2
+    },
+    "subject_height_percent": [
+      70,
+      80
+    ]
+  },
+  "environment": "An original concrete rooftop terrace with raw parapet, overlooking an unrecognizable city skyline in deep bokeh, no furniture or equipment.",
+  "family": "city",
+  "hard_negatives": [
+    "recognizable skyline",
+    "readable signs",
+    "rooftop furniture",
+    "antenna dishes",
+    "HVAC equipment",
+    "people",
+    "wide-angle distortion"
+  ],
+  "lighting": {
+    "fill": "cool teal-blue sky fill from above",
+    "finish": "polished_editorial_gloss_without_skin_smoothing_or_hdr",
+    "key": "low warm golden sun at horizon creating long shadows across concrete, warm rim on subject",
+    "protected_regions": [
+      "eyes",
+      "face_identity",
+      "item_logos",
+      "item_text",
+      "critical_construction"
+    ],
+    "time_or_setup": "sunset golden hour from horizon"
+  },
+  "mvp_assets": [
+    "mood_card"
+  ],
+  "palette": [
+    "concrete grey",
+    "sunset amber",
+    "cool teal sky",
+    "warm gold rim",
+    "deep shadow"
+  ],
+  "post_selection_assets": [
+    "environment_plate",
+    "lighting_preview"
+  ],
+  "preset_id": "std.city.rooftop_concrete_sunset",
+  "prompt_path": "prompts/scenes/std.city.rooftop_concrete_sunset.txt",
+  "source_authorities": [
+    {
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit",
+        "brands",
+        "readable_text",
+        "exact_architecture"
+      ],
+      "role": "environment_and_composition_inspiration",
+      "url": "https://unsplash.com/photos/cityscape-at-sunset-viewed-from-a-rooftop-bar-fpeeters",
+      "use": "rooftop elevation, skyline bokeh depth and sunset horizon color only"
+    },
+    {
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit",
+        "brands",
+        "readable_text",
+        "exact_architecture"
+      ],
+      "role": "environment_material_inspiration",
+      "url": "https://unsplash.com/photos/a-view-of-a-city-from-a-rooftop-at-night-a7med7",
+      "use": "concrete parapet texture and cool evening tone only"
+    }
+  ],
+  "ui_name_uk": "Дах — захід",
+  "version": "1.0.0"
+}

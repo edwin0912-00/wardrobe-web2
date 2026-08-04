@@ -1,0 +1,55 @@
+{
+  "preset_id": "std.studio.taupe_rembrandt_gloss",
+  "preset_path": "assets/scene-presets/std.studio.taupe_rembrandt_gloss/v1/preset.json",
+  "preset_sha256": "6cfa2df1aabbcd2481ab5e8a023773b85cf4fd8d5cacae57aca05d67207201a3",
+  "preset_version": "1.0.0",
+  "production_prompt_path": "prompts/scene-presets/std.studio.taupe_rembrandt_gloss/v1/production-scene.txt",
+  "prompt_sha256": "4475ed0d95f17f4d4a91cb7f3bff8eeaf9c5fc0abf9b7c13f6252ecf8e965fed",
+  "reference_pack_path": "assets/scene-presets/std.studio.taupe_rembrandt_gloss/v1/reference-pack.json",
+  "reference_pack_sha256": "894ede562d5f530906eaf738a7b56b34edd495203b47aa80e4ced51a4b30c9b8",
+  "references": [
+    {
+      "media_type": "application/json",
+      "order": 1,
+      "path": "assets/scene-presets/std.studio.taupe_rembrandt_gloss/v1/environment-reference.json",
+      "reference_id": "std.studio.taupe_rembrandt_gloss.environment",
+      "role": "environment_anchor",
+      "sha256": "546327338186ccc7ebe76eccfa2bcde13ffa98bebd9c553e4d64ca382b433d97"
+    },
+    {
+      "media_type": "application/json",
+      "order": 2,
+      "path": "assets/scene-presets/std.studio.taupe_rembrandt_gloss/v1/lighting-reference.json",
+      "reference_id": "std.studio.taupe_rembrandt_gloss.lighting",
+      "role": "lighting_anchor",
+      "sha256": "35774c9487ae3063fa41244284b2c495fc0993db5660d2654ff868ab42f61677"
+    },
+    {
+      "media_type": "application/json",
+      "order": 3,
+      "path": "assets/scene-presets/std.studio.taupe_rembrandt_gloss/v1/composition-reference.json",
+      "reference_id": "std.studio.taupe_rembrandt_gloss.composition",
+      "role": "composition_anchor",
+      "sha256": "16ceb5ed7ab3d79c30d32398d644ffe099cfe2ed94875a1b67b1562a2faa800c"
+    },
+    {
+      "media_type": "application/json",
+      "order": 4,
+      "path": "assets/scene-presets/std.studio.taupe_rembrandt_gloss/v1/palette-anchor.json",
+      "reference_id": "std.studio.taupe_rembrandt_gloss.palette",
+      "role": "palette_anchor",
+      "sha256": "0f4b63aa0147be24a2ceef2cda04b6f06850c9d57f426562f48c2a4528dac19f"
+    },
+    {
+      "media_type": "application/json",
+      "order": 5,
+      "path": "assets/scene-presets/std.studio.taupe_rembrandt_gloss/v1/negative-reference.json",
+      "reference_id": "std.studio.taupe_rembrandt_gloss.negative",
+      "role": "negative_reference",
+      "sha256": "8f0637f2a807fae9b6da373197775c5722f093d74fbe8e180d60013d969ad7ae"
+    }
+  ],
+  "schema_version": "1.0.0",
+  "source_ledger_path": "assets/scene-presets/std.studio.taupe_rembrandt_gloss/v1/source-ledger.json",
+  "source_ledger_sha256": "78a2bc497754cdf443a5edc1934e66a2794e85f9b54fcad6b49086bf70ddce6a"
+}

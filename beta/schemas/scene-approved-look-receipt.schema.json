@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zeely.local/schemas/scene-approved-look-receipt.schema.json",
+  "title": "Zeely approved look receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "receipt_type",
+    "look_id",
+    "decision",
+    "output",
+    "qa",
+    "created_at"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "receipt_type": { "const": "APPROVED_LOOK" },
+    "look_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+    },
+    "decision": { "const": "PASS" },
+    "output": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sha256"],
+      "properties": {
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "qa": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["identity", "item_fidelity"],
+      "properties": {
+        "identity": { "const": "PASS" },
+        "item_fidelity": { "const": "PASS" }
+      }
+    },
+    "created_at": { "type": "string", "minLength": 1 }
+  }
+}

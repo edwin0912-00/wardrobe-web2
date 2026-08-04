@@ -1,0 +1,17 @@
+{
+  "facts": {
+    "fill": "minimal dark ambient with slight warm bounce from brick",
+    "finish": "cinematic_editorial_gloss_without_skin_smoothing_or_hdr",
+    "key": "one dramatic warm light shaft from large factory window across dusty concrete floor",
+    "protected_regions": [
+      "eyes",
+      "face_identity",
+      "item_logos",
+      "item_text",
+      "critical_construction"
+    ],
+    "time_or_setup": "late afternoon single factory window"
+  },
+  "role": "lighting_anchor",
+  "schema_version": "1.0.0"
+}

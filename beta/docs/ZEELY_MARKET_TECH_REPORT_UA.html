@@ -1,0 +1,2637 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Zeely market and technical report: reliable cloud image/video pipeline and three implementation variants">
+<title>ZEELY — Market &amp; Technical Report</title>
+<style>
+:root{--ink:#172033;--muted:#667085;--line:#d9deea;--paper:#fff;--wash:#f5f7fb;--accent:#635bff;--accent2:#14b8a6;--warn:#b54708;--code:#101828}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:#edf0f6;color:var(--ink);font:15.5px/1.62 Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
+.page{max-width:1180px;margin:32px auto;background:var(--paper);box-shadow:0 16px 70px #1d29391f}.cover{min-height:86vh;padding:88px 9% 64px;display:flex;flex-direction:column;justify-content:space-between;background:radial-gradient(circle at 88% 12%,#b9fff0 0,transparent 28%),radial-gradient(circle at 15% 85%,#d7d4ff 0,transparent 32%),linear-gradient(145deg,#111827,#252b45);color:#fff}.eyebrow{font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:#b8fff3}.cover h1{font-size:clamp(42px,7vw,86px);line-height:.95;letter-spacing:-.055em;max-width:900px;margin:24px 0}.cover p{max-width:740px;color:#d0d5dd;font-size:19px}.cover-meta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;border-top:1px solid #ffffff2e;padding-top:24px}.cover-meta b{display:block;color:#fff}.cover-meta span{color:#aeb7ca;font-size:13px}.layout{display:grid;grid-template-columns:270px minmax(0,1fr);gap:54px;padding:56px 6% 100px}.toc{position:sticky;top:20px;align-self:start;max-height:calc(100vh - 40px);overflow:auto;padding:22px;border:1px solid var(--line);border-radius:14px;background:var(--wash)}.toc h2{font-size:13px;margin:0 0 14px;text-transform:uppercase;letter-spacing:.12em}.toc ol{padding:0;margin:0;list-style:none}.toc li{margin:7px 0}.toc a{color:#344054;text-decoration:none;font-size:12.5px;line-height:1.3;display:block}.toc a:hover{color:var(--accent)}.toc-l3{padding-left:12px;border-left:2px solid #e4e7ec}.article{min-width:0}.article>h1:first-child,.article>p:nth-child(-n+5),.article>blockquote:first-of-type,.article>hr:first-of-type{display:none}h2{font-size:30px;line-height:1.18;letter-spacing:-.025em;margin:74px 0 22px;padding-top:10px;border-top:3px solid var(--ink)}h3{font-size:21px;line-height:1.3;margin:42px 0 14px}h4{font-size:17px;margin:30px 0 10px}h2 .anchor,h3 .anchor{opacity:0;text-decoration:none;color:var(--accent);font-size:.65em;margin-left:8px}h2:hover .anchor,h3:hover .anchor{opacity:1}p{margin:0 0 15px}a{color:#4f46e5;text-underline-offset:2px}strong{color:#101828}blockquote{margin:24px 0;padding:18px 22px;border-left:4px solid var(--accent);background:#f1f0ff;border-radius:0 10px 10px 0}blockquote p:last-child{margin-bottom:0}hr{border:0;border-top:1px solid var(--line);margin:55px 0}ul,ol{padding-left:24px;margin:10px 0 20px}li{margin:5px 0}code{font-family:"SFMono-Regular",Consolas,monospace;font-size:.88em;background:#eef1f6;padding:.12em .35em;border-radius:4px}pre{overflow:auto;background:var(--code);color:#e6edf7;border-radius:12px;padding:18px 20px;line-height:1.5;box-shadow:inset 0 0 0 1px #ffffff12}pre code{background:none;padding:0;color:inherit}table{border-collapse:separate;border-spacing:0;width:100%;margin:18px 0 28px;font-size:12.5px;line-height:1.42;display:block;overflow:auto;border:1px solid var(--line);border-radius:10px}thead{background:#eaecf5}th{font-weight:700;color:#101828}th,td{text-align:left;vertical-align:top;padding:10px 11px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);min-width:105px}tr:last-child td{border-bottom:0}th:last-child,td:last-child{border-right:0}tbody tr:nth-child(even){background:#fafbfc}.footer{padding:30px 6%;border-top:1px solid var(--line);color:var(--muted);font-size:12px;display:flex;justify-content:space-between}
+@media(max-width:900px){.cover{min-height:auto;padding:60px 7%}.cover-meta{grid-template-columns:1fr}.layout{display:block;padding:35px 6% 70px}.toc{position:relative;top:auto;max-height:none;margin-bottom:40px}.page{margin:0}.article table{font-size:12px}h2{font-size:26px}}
+@media print{@page{size:A4;margin:14mm 13mm 16mm}.page{max-width:none;margin:0;box-shadow:none}.cover{min-height:255mm;page-break-after:always;-webkit-print-color-adjust:exact;print-color-adjust:exact}.layout{display:block;padding:0}.toc{position:relative;max-height:none;page-break-after:always;border:0;padding:0;background:none}.article{font-size:10pt}.article h2{font-size:19pt;page-break-after:avoid}.article h3{font-size:14pt;page-break-after:avoid}.article p,.article li{orphans:3;widows:3}table{font-size:7.6pt;display:table;page-break-inside:auto}thead{display:table-header-group}tr{page-break-inside:avoid}pre,blockquote{page-break-inside:avoid}.footer{display:none}a{color:inherit;text-decoration:none}.anchor{display:none!important}}
+</style>
+</head>
+<body>
+<main class="page">
+  <section class="cover">
+    <div>
+      <div class="eyebrow">Deep research · Production blueprint · 2026</div>
+      <h1>ZEELY<br>Market &amp; Technical Report</h1>
+      <p>Надійний cloud-only image/video pipeline, аналіз конкурентів, alternatives to Higgsfield і три варіанти реалізації.</p>
+    </div>
+    <div class="cover-meta">
+      <div><span>Рекомендація</span><b>API-native dual-provider</b></div>
+      <div><span>Core pattern</span><b>Agent plans · Graph executes</b></div>
+      <div><span>Audit date</span><b>19 July 2026</b></div>
+    </div>
+  </section>
+  <section class="layout">
+    <nav class="toc" aria-label="Зміст"><h2>Зміст</h2><ol><li class="toc-l2"><a href="#s-0-рішення-на-ранок">0. Рішення на ранок</a></li>
+<li class="toc-l3"><a href="#s-що-обрати">Що обрати</a></li>
+<li class="toc-l3"><a href="#s-три-варіанти-одним-екраном">Три варіанти одним екраном</a></li>
+<li class="toc-l3"><a href="#s-рішення-які-не-можна-відкладати">Рішення, які не можна відкладати</a></li>
+<li class="toc-l2"><a href="#s-1-що-саме-будуємо">1. Що саме будуємо</a></li>
+<li class="toc-l3"><a href="#s-product-outcome">Product outcome</a></li>
+<li class="toc-l3"><a href="#s-1-1-test-task-acceptance-baseline">1.1 Test-task acceptance baseline</a></li>
+<li class="toc-l3"><a href="#s-два-режими-композиціі">Два режими композиції</a></li>
+<li class="toc-l3"><a href="#s-основна-одиниця-системи">Основна одиниця системи</a></li>
+<li class="toc-l2"><a href="#s-2-як-ринок-реально-це-робить">2. Як ринок реально це робить</a></li>
+<li class="toc-l3"><a href="#s-вісім-повторюваних-патернів">Вісім повторюваних патернів</a></li>
+<li class="toc-l3"><a href="#s-головна-ринкова-правда">Головна ринкова правда</a></li>
+<li class="toc-l2"><a href="#s-3-карта-прямих-конкурентів">3. Карта прямих конкурентів</a></li>
+<li class="toc-l3"><a href="#s-3-1-наи-ближчі-до-задачі-zeely">3.1 Найближчі до задачі Zeely</a></li>
+<li class="toc-l3"><a href="#s-3-2-avatar-presenter-competitors">3.2 Avatar/presenter competitors</a></li>
+<li class="toc-l3"><a href="#s-3-3-creative-model-platforms-з-яких-конкуренти-складають-pipelines">3.3 Creative/model platforms, з яких конкуренти складають pipelines</a></li>
+<li class="toc-l3"><a href="#s-3-4-конкурентнии-висновок">3.4 Конкурентний висновок</a></li>
+<li class="toc-l2"><a href="#s-4-cloud-image-api-що-використовувати-і-коли">4. Cloud image API: що використовувати і коли</a></li>
+<li class="toc-l3"><a href="#s-4-1-виправлення-назв-і-параметрів">4.1 Виправлення назв і параметрів</a></li>
+<li class="toc-l3"><a href="#s-4-2-image-model-matrix">4.2 Image model matrix</a></li>
+<li class="toc-l3"><a href="#s-4-3-image-router-якии-я-рекомендую">4.3 Image router, який я рекомендую</a></li>
+<li class="toc-l2"><a href="#s-5-cloud-video-api-alternatives-to-higgsfield">5. Cloud video API: alternatives to Higgsfield</a></li>
+<li class="toc-l3"><a href="#s-5-1-current-video-matrix">5.1 Current video matrix</a></li>
+<li class="toc-l3"><a href="#s-5-1-1-gateway-disaster-recovery">5.1.1 Gateway ≠ disaster recovery</a></li>
+<li class="toc-l3"><a href="#s-5-2-provider-access-layers">5.2 Provider access layers</a></li>
+<li class="toc-l3"><a href="#s-5-3-video-router">5.3 Video router</a></li>
+<li class="toc-l3"><a href="#s-5-4-чому-sora-2-не-входить-у-нову-схему">5.4 Чому Sora 2 не входить у нову схему</a></li>
+<li class="toc-l3"><a href="#s-5-5-якщо-потрібен-talking-human-а-не-cinematic-generation">5.5 Якщо потрібен talking-human, а не cinematic generation</a></li>
+<li class="toc-l2"><a href="#s-6-model-lifecycle-registry-обов-язкова-частина-системи">6. Model lifecycle registry: обов’язкова частина системи</a></li>
+<li class="toc-l2"><a href="#s-7-надіи-на-архітектура-agent-plans-graph-executes">7. Надійна архітектура: agent plans, graph executes</a></li>
+<li class="toc-l3"><a href="#s-7-1-чого-не-робити">7.1 Чого не робити</a></li>
+<li class="toc-l3"><a href="#s-7-2-цільова-схема">7.2 Цільова схема</a></li>
+<li class="toc-l3"><a href="#s-7-3-state-machine">7.3 State machine</a></li>
+<li class="toc-l2"><a href="#s-8-intake-і-strict-extraction">8. Intake і strict extraction</a></li>
+<li class="toc-l3"><a href="#s-8-1-input-contract">8.1 Input contract</a></li>
+<li class="toc-l3"><a href="#s-8-2-preflight-status">8.2 Preflight status</a></li>
+<li class="toc-l3"><a href="#s-8-3-extraction-rule-observed-user-provided-unknown">8.3 Extraction rule: observed, user-provided, unknown</a></li>
+<li class="toc-l3"><a href="#s-8-4-required-extraction-payloads">8.4 Required extraction payloads</a></li>
+<li class="toc-l3"><a href="#s-8-5-prompt-injection-defense">8.5 Prompt injection defense</a></li>
+<li class="toc-l2"><a href="#s-9-strict-image-pipeline">9. Strict image pipeline</a></li>
+<li class="toc-l3"><a href="#s-9-1-canonical-order">9.1 Canonical order</a></li>
+<li class="toc-l3"><a href="#s-9-2-prompt-compiler-не-prompt-improvisation">9.2 Prompt compiler, не prompt improvisation</a></li>
+<li class="toc-l3"><a href="#s-9-3-candidate-policy">9.3 Candidate policy</a></li>
+<li class="toc-l3"><a href="#s-9-4-white-background-avatar-task">9.4 White-background avatar task</a></li>
+<li class="toc-l2"><a href="#s-10-strict-video-pipeline">10. Strict video pipeline</a></li>
+<li class="toc-l3"><a href="#s-10-1-still-first-є-hard-gate">10.1 Still-first є hard gate</a></li>
+<li class="toc-l3"><a href="#s-10-2-one-shot-one-main-action-one-camera-intent">10.2 One shot = one main action + one camera intent</a></li>
+<li class="toc-l3"><a href="#s-10-3-continuity-pack-для-кожного-shot">10.3 Continuity pack для кожного shot</a></li>
+<li class="toc-l3"><a href="#s-10-4-shot-strategy-для-mvp-narrative">10.4 Shot strategy для MVP narrative</a></li>
+<li class="toc-l2"><a href="#s-11-qa-blocking-gates-а-не-один-beauty-score">11. QA: blocking gates, а не один beauty score</a></li>
+<li class="toc-l3"><a href="#s-11-1-quality-dimensions">11.1 Quality dimensions</a></li>
+<li class="toc-l3"><a href="#s-11-2-no-aggregate-score-loophole">11.2 No aggregate-score loophole</a></li>
+<li class="toc-l3"><a href="#s-11-3-judges">11.3 Judges</a></li>
+<li class="toc-l3"><a href="#s-11-4-evidence-а-не-просто-verdict">11.4 Evidence, а не просто verdict</a></li>
+<li class="toc-l3"><a href="#s-11-5-initial-acceptance-profiles">11.5 Initial acceptance profiles</a></li>
+<li class="toc-l2"><a href="#s-12-retry-repair-і-provider-switching">12. Retry, repair і provider switching</a></li>
+<li class="toc-l3"><a href="#s-12-1-transport-retry-semantic-retry">12.1 Transport retry ≠ semantic retry</a></li>
+<li class="toc-l3"><a href="#s-12-2-earliest-defect-repair">12.2 Earliest-defect repair</a></li>
+<li class="toc-l3"><a href="#s-12-3-budget-policy">12.3 Budget policy</a></li>
+<li class="toc-l2"><a href="#s-13-storage-lineage-и-observability">13. Storage, lineage й observability</a></li>
+<li class="toc-l3"><a href="#s-13-1-canonical-local-object-storage-layout">13.1 Canonical local/object-storage layout</a></li>
+<li class="toc-l3"><a href="#s-13-2-per-attempt-provenance">13.2 Per-attempt provenance</a></li>
+<li class="toc-l3"><a href="#s-13-3-provider-url-ttl">13.3 Provider URL TTL</a></li>
+<li class="toc-l3"><a href="#s-13-4-minimum-dashboards">13.4 Minimum dashboards</a></li>
+<li class="toc-l2"><a href="#s-14-hermes-мінімум-із-strict-rules-of-work">14. Hermes: мінімум із strict rules of work</a></li>
+<li class="toc-l3"><a href="#s-14-1-production-configuration-principles">14.1 Production configuration principles</a></li>
+<li class="toc-l3"><a href="#s-14-2-locked-zeely-skill-rules">14.2 Locked Zeely skill rules</a></li>
+<li class="toc-l2"><a href="#s-15-три-варіанти-реалізаціі">15. Три варіанти реалізації</a></li>
+<li class="toc-l2"><a href="#s-15-1-варіант-1-higgsfield-first-fast-mvp">15.1 Варіант 1 — Higgsfield-first Fast MVP</a></li>
+<li class="toc-l3"><a href="#s-коли-обирати">Коли обирати</a></li>
+<li class="toc-l3"><a href="#s-схема">Схема</a></li>
+<li class="toc-l3"><a href="#s-exact-stack">Exact stack</a></li>
+<li class="toc-l3"><a href="#s-retry-policy">Retry policy</a></li>
+<li class="toc-l3"><a href="#s-scope">Scope</a></li>
+<li class="toc-l3"><a href="#s-estimate">Estimate</a></li>
+<li class="toc-l3"><a href="#s-main-failure-modes">Main failure modes</a></li>
+<li class="toc-l3"><a href="#s-definition-of-done">Definition of done</a></li>
+<li class="toc-l2"><a href="#s-15-2-варіант-2-api-native-dual-provider-production-рекомендовании">15.2 Варіант 2 — API-native dual-provider production — рекомендований</a></li>
+<li class="toc-l3"><a href="#s-коли-обирати-2">Коли обирати</a></li>
+<li class="toc-l3"><a href="#s-схема-2">Схема</a></li>
+<li class="toc-l3"><a href="#s-primary-routes">Primary routes</a></li>
+<li class="toc-l3"><a href="#s-durable-workflow-specifics">Durable workflow specifics</a></li>
+<li class="toc-l3"><a href="#s-security-privacy">Security/privacy</a></li>
+<li class="toc-l3"><a href="#s-scope-2">Scope</a></li>
+<li class="toc-l3"><a href="#s-estimate-2">Estimate</a></li>
+<li class="toc-l3"><a href="#s-main-failure-modes-2">Main failure modes</a></li>
+<li class="toc-l3"><a href="#s-definition-of-done-2">Definition of done</a></li>
+<li class="toc-l2"><a href="#s-15-3-варіант-3-premium-best-of-n-quality-router">15.3 Варіант 3 — Premium Best-of-N Quality Router</a></li>
+<li class="toc-l3"><a href="#s-коли-обирати-3">Коли обирати</a></li>
+<li class="toc-l3"><a href="#s-схема-3">Схема</a></li>
+<li class="toc-l3"><a href="#s-candidate-tournament">Candidate tournament</a></li>
+<li class="toc-l3"><a href="#s-data-aware-routing">Data-aware routing</a></li>
+<li class="toc-l3"><a href="#s-scope-3">Scope</a></li>
+<li class="toc-l3"><a href="#s-estimate-3">Estimate</a></li>
+<li class="toc-l3"><a href="#s-main-failure-modes-3">Main failure modes</a></li>
+<li class="toc-l3"><a href="#s-go-no-go-condition">Go/no-go condition</a></li>
+<li class="toc-l2"><a href="#s-15-4-decision-matrix">15.4 Decision matrix</a></li>
+<li class="toc-l2"><a href="#s-16-html5-swipe-scroll-прив-язании-до-video-time">16. HTML5 swipe/scroll, прив’язаний до video time</a></li>
+<li class="toc-l3"><a href="#s-16-1-delivery-architecture">16.1 Delivery architecture</a></li>
+<li class="toc-l3"><a href="#s-16-2-chapters">16.2 Chapters</a></li>
+<li class="toc-l3"><a href="#s-16-3-interaction-rules">16.3 Interaction rules</a></li>
+<li class="toc-l3"><a href="#s-16-4-encoding-profile-for-smooth-seek">16.4 Encoding profile for smooth seek</a></li>
+<li class="toc-l3"><a href="#s-16-5-fail-safe-experience">16.5 Fail-safe experience</a></li>
+<li class="toc-l2"><a href="#s-17-benchmark-і-economics">17. Benchmark і economics</a></li>
+<li class="toc-l3"><a href="#s-17-1-спочатку-benchmark-потім-quality-router">17.1 Спочатку benchmark, потім “quality router”</a></li>
+<li class="toc-l3"><a href="#s-17-2-labeling-rubric">17.2 Labeling rubric</a></li>
+<li class="toc-l3"><a href="#s-17-3-core-kpis">17.3 Core KPIs</a></li>
+<li class="toc-l3"><a href="#s-17-4-unit-economics-formula">17.4 Unit economics formula</a></li>
+<li class="toc-l3"><a href="#s-17-5-example-cost-envelope">17.5 Example cost envelope</a></li>
+<li class="toc-l2"><a href="#s-18-план-запуску">18. План запуску</a></li>
+<li class="toc-l3"><a href="#s-18-1-перші-5-8-engineering-days-variant-1">18.1 Перші 5–8 engineering days: Variant 1</a></li>
+<li class="toc-l3"><a href="#s-18-2-production-hardening-variant-2">18.2 Production hardening: Variant 2</a></li>
+<li class="toc-l3"><a href="#s-18-3-p0-backlog">18.3 P0 backlog</a></li>
+<li class="toc-l3"><a href="#s-18-4-p1-backlog">18.4 P1 backlog</a></li>
+<li class="toc-l2"><a href="#s-19-ризики-и-controls">19. Ризики й controls</a></li>
+<li class="toc-l3"><a href="#s-privacy-guardrails">Privacy guardrails</a></li>
+<li class="toc-l2"><a href="#s-20-final-recommendation">20. Final recommendation</a></li>
+<li class="toc-l3"><a href="#s-architecture-decision">Architecture decision</a></li>
+<li class="toc-l3"><a href="#s-мінімальнии-production-provider-set">Мінімальний production provider set</a></li>
+<li class="toc-l3"><a href="#s-одна-фраза-для-cto">Одна фраза для CTO</a></li>
+<li class="toc-l2"><a href="#s-21-методологія-і-обмеження">21. Методологія і обмеження</a></li></ol></nav>
+    <article class="article"><h1>ZEELY: ринок, надійний image/video pipeline і 3 варіанти реалізації</h1>
+<p><strong>Deep research + production blueprint</strong><br>Версія: 1.0 · 19 липня 2026 · Europe/Madrid<br>Статус: decision-ready<br>Scope: cloud-only image/video models; Higgsfield MCP наявний, але не є єдиною залежністю</p>
+<blockquote>
+<p><strong>Архівний market survey, не runtime specification.</strong> У цьому документі навмисно перелічені конкуренти й альтернативи, зокрема Hermes, Runway та direct-provider IDs. Після повторного читання тестового фінальне виконання зафіксоване окремо в <code>README.md</code>, <code>docs/ZEELY_EXECUTION_PLAN_UA.md</code> і <code>config/model-policy.json</code>: детермінований JSON runner без агентів, GPT Image 2 → Nano Banana 2 → Nano Banana Pro через Higgsfield, video route вимкнений. У разі суперечності execution-документи мають пріоритет.</p>
+</blockquote>
+<blockquote>
+<p>Коротка відповідь: Zeely не виграє ще одним “магічним промптом” або однією моделлю. Виграшна система — <strong>asset-first, still-first, provider-agnostic production protocol</strong>: людина, продукт/одяг і середовище мають окремі типізовані контракти; агент планує, детермінований graph виконує; кожен дорогий крок проходить blocking QA; провайдер можна замінити без зміни product contract.</p>
+</blockquote>
+<hr>
+<h2 id="s-0-рішення-на-ранок">0. Рішення на ранок<a class="anchor" href="#s-0-рішення-на-ранок" aria-label="Link to section">#</a></h2>
+<h3 id="s-що-обрати">Що обрати<a class="anchor" href="#s-що-обрати" aria-label="Link to section">#</a></h3>
+<p><strong>Рекомендація: Варіант 2 — API-native dual-provider production.</strong></p>
+<p>Він дає найкращий баланс швидкості, якості й надійності:</p>
+<ul>
+<li>Hermes залишається conversation/planning layer, але не керує станом “зі своєї пам’яті”.</li>
+<li>JSON Schema + state machine є єдиним source of truth.</li>
+<li>Higgsfield MCP — creative adapter і R&amp;D surface, а не single point of failure.</li>
+<li>Draft image: Nano Banana 2 / FLUX.2; final image: GPT Image 2 / FLUX.2 Max / Nano Banana Pro залежно від defect.</li>
+<li>Draft video: Gemini Omni Flash Preview; controlled video: Kling 3 Pro / Runway Gen-4.5; hero або first/last-frame: Veo 3.1 / Luma Ray.</li>
+<li>Кожний output одразу зберігається у власний object storage разом із model ID, version, seed, prompt hash, input hashes і QA evidence.</li>
+</ul>
+<h3 id="s-три-варіанти-одним-екраном">Три варіанти одним екраном<a class="anchor" href="#s-три-варіанти-одним-екраном" aria-label="Link to section">#</a></h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Варіант 1 — Higgsfield-first MVP</th>
+<th>Варіант 2 — API-native production</th>
+<th>Варіант 3 — Best-of-N studio</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Для чого</td>
+<td>ефектне демо і тест пайплайна</td>
+<td>production MVP Zeely</td>
+<td>premium/hero campaigns</td>
+</tr>
+<tr>
+<td>Час до першого working path</td>
+<td>5–8 engineering days</td>
+<td>18–28 engineering days</td>
+<td>45–70 engineering days</td>
+</tr>
+<tr>
+<td>Control plane</td>
+<td>Hermes + thin JSON runner</td>
+<td>Hermes + versioned DAG/state machine</td>
+<td>той самий DAG + experiment/evaluation layer</td>
+</tr>
+<tr>
+<td>Image</td>
+<td>Higgsfield MCP; NB2 fallback</td>
+<td>NB2/FLUX draft; GPT Image 2/FLUX/NB Pro final</td>
+<td>2–3 providers × N candidates</td>
+</tr>
+<tr>
+<td>Video</td>
+<td>Higgsfield MCP; fal.ai Kling fallback</td>
+<td>Omni draft; Kling/Runway default; Veo/Luma fallback</td>
+<td>Veo/Runway/Kling/Luma best-of-N</td>
+</tr>
+<tr>
+<td>Human gate</td>
+<td>перед фінальним video</td>
+<td>після still, перед hero render, перед export</td>
+<td>art director на look/shot/final</td>
+</tr>
+<tr>
+<td>Lock-in</td>
+<td>високий</td>
+<td>низький</td>
+<td>низький</td>
+</tr>
+<tr>
+<td>Reliability target</td>
+<td>85–90% jobs complete</td>
+<td>97% jobs complete без engineer</td>
+<td>99% completion із human recovery</td>
+</tr>
+<tr>
+<td>Орієнтовний generation spend / 15–18 s accepted pack¹</td>
+<td>$5–20 + Higgsfield credits</td>
+<td>$10–35</td>
+<td>$40–150</td>
+</tr>
+<tr>
+<td>Ризик</td>
+<td>MCP/tool contract і ручна відтворюваність</td>
+<td>потрібен нормальний backend</td>
+<td>дорожче й повільніше</td>
+</tr>
+</tbody></table>
+<p>¹ Не quote: API generation only, до storage/egress/LLM QA/engineering; включено типовий candidate/retry multiplier. Актуальну ціну завжди рахує router до запуску job.</p>
+<h3 id="s-рішення-які-не-можна-відкладати">Рішення, які не можна відкладати<a class="anchor" href="#s-рішення-які-не-можна-відкладати" aria-label="Link to section">#</a></h3>
+<ol>
+<li>Затвердити <code>ORG_PRESERVE</code> і <code>DIFF_REPLACE</code> як executable environment policies, а не текст у промпті.</li>
+<li>Зробити approved still обов’язковим gate перед image-to-video.</li>
+<li>Не давати Hermes змінювати locked facts, thresholds, budget або provider allowlist.</li>
+<li>Вести model lifecycle registry: preview/GA/deprecated/shutdown date, feature tests і fallback.</li>
+<li>Не починати новий production на Sora 2: модель уже deprecated; відеомаршрут OpenAI треба вважати legacy, не fallback для нового сервісу. <a href="https://developers.openai.com/api/docs/models">OpenAI model catalog</a></li>
+</ol>
+<hr>
+<h2 id="s-1-що-саме-будуємо">1. Що саме будуємо<a class="anchor" href="#s-1-що-саме-будуємо" aria-label="Link to section">#</a></h2>
+<h3 id="s-product-outcome">Product outcome<a class="anchor" href="#s-product-outcome" aria-label="Link to section">#</a></h3>
+<p>З довільного user input треба контрольовано отримати:</p>
+<ol>
+<li>впізнавану людину / avatar;</li>
+<li>ту саму людину з указаним продуктом або одягом;</li>
+<li>потрібне середовище за однією з двох політик;</li>
+<li>approved key visual;</li>
+<li>короткі контрольовані video shots;</li>
+<li>фінальний HTML5 experience, де swipe/scroll прив’язаний до video timeline;</li>
+<li>повну lineage: що, ким, з яких refs, якою моделлю і чому було прийнято.</li>
+</ol>
+<h3 id="s-1-1-test-task-acceptance-baseline">1.1 Test-task acceptance baseline<a class="anchor" href="#s-1-1-test-task-acceptance-baseline" aria-label="Link to section">#</a></h3>
+<p>Базова задача Zeely вимагає:</p>
+<ul>
+<li>arbitrary user photo → recognizable, photorealistic half-body avatar;</li>
+<li>exact white <code>#FFFFFF</code> background;</li>
+<li>same person + new outfit from text or clothing reference;</li>
+<li>щонайменше 3 users;</li>
+<li>local structured outputs, prompts, README і pipeline diagram;</li>
+<li>identity, anatomy, light/color/detail, outfit fidelity та background bleed входять у review.</li>
+</ul>
+<p>Пункт про half-body кадр залишено як запис ТЗ. Shipped avatar contract (<a href="../prompts/avatar.txt"><code>prompts/avatar.txt</code></a>) відтоді розширив кадр до full-length від голови до стоп: scene continuity міряється від верхнього пікселя волосся до нижнього пікселя взуття, і half-length avatar робить цю перевірку неможливою.</p>
+<p>Цей доклад не замінює ці deliverables відео-демо: він розширює їх до production image/video system. <a href="https://app.notion.com/p/Zeely-Test-Task-for-AI-Engineer-Image-Video-Generation-33bcef9155c980189a4def1cd74e1e6c">Zeely AI Engineer test task</a></p>
+<h3 id="s-два-режими-композиціі">Два режими композиції<a class="anchor" href="#s-два-режими-композиціі" aria-label="Link to section">#</a></h3>
+<table>
+<thead>
+<tr>
+<th>Policy</th>
+<th>Human</th>
+<th>Product/річ</th>
+<th>Environment</th>
+<th>Типова задача</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>ORG_PRESERVE</code></td>
+<td>preserve</td>
+<td>add/replace under locks</td>
+<td>preserve layout, light intent and key objects</td>
+<td>same person + new look у тому самому світі</td>
+</tr>
+<tr>
+<td><code>DIFF_REPLACE</code></td>
+<td>preserve</td>
+<td>preserve target SKU/річ</td>
+<td>replace with approved target environment</td>
+<td>same person + product у новій campaign scene</td>
+</tr>
+</tbody></table>
+<h3 id="s-основна-одиниця-системи">Основна одиниця системи<a class="anchor" href="#s-основна-одиниця-системи" aria-label="Link to section">#</a></h3>
+<p>Не “prompt”, а <strong>Look Package</strong>:</p>
+<pre><code class="language-text">LookPackage
+├── HumanAsset[]
+├── ProductAsset[] / GarmentAsset[]
+├── EnvironmentAsset[]
+├── StyleAsset[]
+├── locked_facts[]
+├── allowed_changes[]
+├── approved_still
+├── ShotPlan[]
+└── QAProfile
+</code></pre>
+<p>Кожна генерація є лише attempt конкретної версії Look Package. Це прибирає головну причину drift: неявні refs і переписані промпти.</p>
+<hr>
+<h2 id="s-2-як-ринок-реально-це-робить">2. Як ринок реально це робить<a class="anchor" href="#s-2-як-ринок-реально-це-робить" aria-label="Link to section">#</a></h2>
+<h3 id="s-вісім-повторюваних-патернів">Вісім повторюваних патернів<a class="anchor" href="#s-вісім-повторюваних-патернів" aria-label="Link to section">#</a></h3>
+<ol>
+<li><strong>Asset-first, не prompt-first.</strong> Спочатку створюють/затверджують character, product, location, props; потім пишуть shotlist і запускають video.</li>
+<li><strong>Still-first.</strong> Product + actor спочатку зводять у контрольований combined image; video лише анімує затверджений кадр.</li>
+<li><strong>Identity і product fidelity — різні задачі.</strong> Digital twin добре тримає обличчя, але не гарантує SKU; inpainting/composite добре тримає SKU, але не рух.</li>
+<li><strong>Короткі shots замість одного довгого generation.</strong> 3–10 секунд, окремий QA і монтаж.</li>
+<li><strong>Graph і agent — різні шари.</strong> Agent готує plan, graph забезпечує repeatability, retry, approvals і lineage.</li>
+<li><strong>Human approval стоїть перед дорогим downstream.</strong> Вибір still/keyframe дешевший за повтор 20 секунд відео.</li>
+<li><strong>Variants fan out від approved base.</strong> Змінюється один hook/CTA/look, а не перебудовується вся кампанія.</li>
+<li><strong>Власне storage є обов’язковим.</strong> Provider URLs часто живуть від 10 хвилин до кількох днів.</li>
+</ol>
+<h3 id="s-головна-ринкова-правда">Головна ринкова правда<a class="anchor" href="#s-головна-ринкова-правда" aria-label="Link to section">#</a></h3>
+<p>Жоден досліджений vendor публічно не гарантує одночасно:</p>
+<pre><code class="language-text">same human
++ exact product/garment geometry, logo, text and color
++ requested environment policy
++ correct anatomy and contact
++ stable long motion
+</code></pre>
+<p>Кожен оптимізує одну частину: digital twin, talking head, product still, VTO або короткий cinematic clip. Тому production reliability виникає <strong>між моделями</strong> — у contracts, QA, repair і routing.</p>
+<hr>
+<h2 id="s-3-карта-прямих-конкурентів">3. Карта прямих конкурентів<a class="anchor" href="#s-3-карта-прямих-конкурентів" aria-label="Link to section">#</a></h2>
+<p>Позначення: <code>Vendor claim</code> — твердження виробника; <code>Inference</code> — наш висновок із задокументованого workflow, не гарантія.</p>
+<h3 id="s-3-1-наи-ближчі-до-задачі-zeely">3.1 Найближчі до задачі Zeely<a class="anchor" href="#s-3-1-наи-ближчі-до-задачі-zeely" aria-label="Link to section">#</a></h3>
+<table>
+<thead>
+<tr>
+<th>Конкурент</th>
+<th>Як починає</th>
+<th>Як тримає human/product/environment</th>
+<th>Automation і QA</th>
+<th>Що варто забрати</th>
+<th>Де gap</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Higgsfield</strong></td>
+<td>product/brief → character sheet + product sheet + location/props → shotlist → animation</td>
+<td>named/locked assets; Soul/Cast; product refs; asset-first</td>
+<td>MCP/CLI, video analyzer, history; approval переважно ручний</td>
+<td>asset bible, named refs, shot discipline, creative agent UX</td>
+<td>у публічних docs не знайдено self-serve REST із idempotency, signed webhook, pinning, SLA і strict QA contract</td>
+</tr>
+<tr>
+<td><strong>Creatify</strong></td>
+<td>URL/brief → research → strategy → scripts → casting → videos/variants; або AdFlow nodes</td>
+<td>Smart Assets, avatar/product nodes, model swap, branch</td>
+<td>Agent + replayable node DAG; заявлений vision QA; REST async/webhooks</td>
+<td>URL ingestion, modular AdFlow, intervention at every stage</td>
+<td>thresholds/judge prompts не відкриті; Agent/UI/API feature parity не гарантована</td>
+</tr>
+<tr>
+<td><strong>Arcads</strong></td>
+<td>product upload → scene image → Talking Actor або B-roll</td>
+<td>auto-detected product, actor/clone, product showcase, start/end frames</td>
+<td>node workflows, reuse, batch; public product/video API</td>
+<td>fast UGC batching, actors × languages, still-to-talking-video</td>
+<td>exact SKU в cinematic video не гарантовано; публічних semantic gates немає</td>
+</tr>
+<tr>
+<td><strong>HeyGen</strong></td>
+<td>product + avatar → <strong>4 combined stills</strong> → select → script/motion → Avatar IV</td>
+<td>reusable Digital Twin/Looks; selected still anchors product</td>
+<td>manual still gate; API for avatars/videos</td>
+<td>надзвичайно правильний still approval pattern</td>
+<td>optimized for handheld/small products; Product Placement REST не публічний</td>
+</tr>
+<tr>
+<td><strong>Pencil</strong></td>
+<td>typed workflow canvas: text/context/attachment/work</td>
+<td>brand refs/templates/attachments, not a fixed avatar pipeline</td>
+<td><code>Scores → If/Else → Approval → Export</code>; lineage/expiry</td>
+<td>найкраща governance model: typed pins, approvals, branching, lineage</td>
+<td>image/video models не мають direct access до всієї brand library; self-serve REST не знайдено</td>
+</tr>
+<tr>
+<td><strong>AdCreative.ai</strong></td>
+<td>product image → isolate/tag → style preset → inpainting → six outputs</td>
+<td>mask/composite + preset/color context</td>
+<td>async status/webhook; creative scoring claim</td>
+<td>deterministic product stills, safe margins, ad formats</td>
+<td>не вирішує same person + річ + video continuity</td>
+</tr>
+<tr>
+<td><strong>Captions/Mirage</strong></td>
+<td>product URL → review metadata/script → actor → UGC video</td>
+<td>selected creator/AI Twin + media/B-roll</td>
+<td>public AI Ads API submit/poll, variants</td>
+<td>turnkey URL-to-UGC and real API</td>
+<td>human/product/environment не мають independent typed locks</td>
+</tr>
+<tr>
+<td><strong>Zeely today</strong></td>
+<td>product + image + optional reference → concept/avatar/model → start image → video</td>
+<td>correct start-image-first UI</td>
+<td>manual regenerate/review</td>
+<td>правильна UX послідовність уже є</td>
+<td>немає public job contract, visible lineage, model lifecycle registry і hard QA gates</td>
+</tr>
+</tbody></table>
+<p>Джерела: <a href="https://higgsfield.ai/academy/how-to-use/how-to-make-ultra-realistic-ai-ads">Higgsfield asset-first</a>, <a href="https://higgsfield.ai/mcp">Higgsfield MCP</a>, <a href="https://creatify.ai/blog/introducing-creatify-agent-the-first-creative-agent-designed-to-prevent-hallucinations">Creatify Agent</a>, <a href="https://creatify.ai/blog/introducing-adflow-the-node-based-ad-builder-built-for-production-scale">Creatify AdFlow</a>, <a href="https://intercom.help/arcads/en/articles/15393713-what-is-the-workflow-feature">Arcads Workflows</a>, <a href="https://help.heygen.com/en/articles/12704854-product-placement-combine-a-product-with-an-avatar-in-a-video">HeyGen Product Placement</a>, <a href="https://help.trypencil.com/en/articles/14667773-what-are-workflow-nodes-and-how-do-i-connect-them">Pencil nodes</a>, <a href="https://api-docs.adcreative.ai/docs/features/product-photoshoot-api">AdCreative Product Photoshoot API</a>, <a href="https://captions.ai/help/api-reference/ai-ads">Captions AI Ads API</a>, <a href="https://help.zeely.ai/en/articles/15326044-how-to-create-video-ad">Zeely Video Ad</a>.</p>
+<h3 id="s-3-2-avatar-presenter-competitors">3.2 Avatar/presenter competitors<a class="anchor" href="#s-3-2-avatar-presenter-competitors" aria-label="Link to section">#</a></h3>
+<table>
+<thead>
+<tr>
+<th>Vendor</th>
+<th>Сильна зона</th>
+<th>Asset model</th>
+<th>Чому не універсальний Zeely engine</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Synthesia</strong></td>
+<td>business/training presenter, template + brand kit</td>
+<td>reusable personal avatar; scene media; customizable outfit</td>
+<td>product — media layer, не exact locked SKU; не cinematic VTO pipeline</td>
+</tr>
+<tr>
+<td><strong>Tavus</strong></td>
+<td>API-first digital replica, scripted/realtime</td>
+<td>trained Replica + Persona + background</td>
+<td>product/річ не є typed references</td>
+</tr>
+<tr>
+<td><strong>D-ID</strong></td>
+<td>talking portrait і realtime agents</td>
+<td>presenter/source image</td>
+<td>не full-body fashion/product/environment system</td>
+</tr>
+<tr>
+<td><strong>HeyGen</strong></td>
+<td>digital twin, Looks, product placement</td>
+<td>one identity → up to 500 looks; consent reused for same identity</td>
+<td>сильний presenter, але не universal product compositor</td>
+</tr>
+<tr>
+<td><strong>Captions/Mirage</strong></td>
+<td>UGC actor + audio/video</td>
+<td>AI Twin/creator + script/media</td>
+<td>finished-video abstraction приховує fidelity control</td>
+</tr>
+</tbody></table>
+<p>Джерела: <a href="https://help.synthesia.io/en/articles/9994493-what-is-synthesia">Synthesia overview</a>, <a href="https://help.synthesia.io/en/articles/9046610-how-do-i-use-a-synthesia-brand-kit">Synthesia Brand Kit</a>, <a href="https://docs.tavus.io/api-reference/overview">Tavus API</a>, <a href="https://docs.d-id.com/docs/quickstart">D-ID quickstart</a>, <a href="https://help.heygen.com/en/articles/9964694-avatar-looks-explained">HeyGen Looks</a>, <a href="https://captions.ai/help/api-reference/api">Mirage API</a>.</p>
+<h3 id="s-3-3-creative-model-platforms-з-яких-конкуренти-складають-pipelines">3.3 Creative/model platforms, з яких конкуренти складають pipelines<a class="anchor" href="#s-3-3-creative-model-platforms-з-яких-конкуренти-складають-pipelines" aria-label="Link to section">#</a></h3>
+<table>
+<thead>
+<tr>
+<th>Platform</th>
+<th>Production primitive</th>
+<th>API maturity</th>
+<th>Fit для Zeely</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Runway</strong></td>
+<td>Product Ad/UGC/Swap recipes; multi-ref; Workflows; own + third-party models</td>
+<td>REST/SDK, workflow API, official MCP, versioned recipes</td>
+<td>найкращий ready-made API abstraction для швидкого product video</td>
+</tr>
+<tr>
+<td><strong>Luma</strong></td>
+<td>Master References, Boards, keyframes, video edit/reframe, Ray</td>
+<td>async REST; pay-as-you-go/provisioned</td>
+<td>strong alternate motion/editor, cheap draft-to-premium ladder</td>
+</tr>
+<tr>
+<td><strong>Google</strong></td>
+<td>Nano Banana image; Omni conversational video; Veo controlled video</td>
+<td>Gemini API + Vertex AI</td>
+<td>primary direct-cloud lane; треба registry через preview/stable ID churn</td>
+</tr>
+<tr>
+<td><strong>BFL FLUX</strong></td>
+<td>multi-ref image edit, JSON prompts, HEX control, pose, VTO</td>
+<td>direct REST, pinned/preview IDs</td>
+<td>strongest photo/VTO primitive before video</td>
+</tr>
+<tr>
+<td><strong>Adobe Firefly</strong></td>
+<td>Precise/Adaptive Composite, masks, harmonization, custom subject/style models</td>
+<td>enterprise APIs</td>
+<td>exact product still and enterprise governance; motion secondary</td>
+</tr>
+<tr>
+<td><strong>Kling</strong></td>
+<td>Elements/subject binding, motion control, native audio</td>
+<td>enterprise/API via partners and brokers</td>
+<td>strong identity/product-aware motion, but own QA required</td>
+</tr>
+<tr>
+<td><strong>Ideogram</strong></td>
+<td>Character Reference, Magic Fill, typography</td>
+<td>public image API</td>
+<td>useful still specialist, no video, face/hair-oriented identity</td>
+</tr>
+<tr>
+<td><strong>Recraft</strong></td>
+<td>brand palette, mockups, vector/raster, custom style</td>
+<td>public API</td>
+<td>design/brand layer, not identity/video engine</td>
+</tr>
+</tbody></table>
+<p>Джерела: <a href="https://docs.dev.runwayml.com/recipes/product-ad/">Runway Product Ad</a>, <a href="https://docs.dev.runwayml.com/guides/models/">Runway models</a>, <a href="https://docs.agents.lumalabs.ai/">Luma Agents API</a>, <a href="https://ai.google.dev/gemini-api/docs/omni">Google Omni</a>, <a href="https://docs.bfl.ai/flux_2/flux2_image_editing">FLUX.2 editing</a>, <a href="https://developer.adobe.com/firefly-services/docs/firefly-api/guides/how-tos/object-composite/">Adobe Composite API</a>, <a href="https://app.klingai.com/cn/quickstart/klingai-video-3-model-user-guide">Kling 3.0 guide</a>, <a href="https://developer.ideogram.ai/">Ideogram API</a>, <a href="https://www.recraft.ai/docs/api-reference/endpoints">Recraft API</a>.</p>
+<h3 id="s-3-4-конкурентнии-висновок">3.4 Конкурентний висновок<a class="anchor" href="#s-3-4-конкурентнии-висновок" aria-label="Link to section">#</a></h3>
+<p>Найкраще з ринку треба зібрати в один protocol:</p>
+<ul>
+<li>від Higgsfield — asset bible і creative workflow;</li>
+<li>від HeyGen/Zeely — mandatory combined/start still;</li>
+<li>від Pencil — typed graph, scores, blocking approval і lineage;</li>
+<li>від Runway — replaceable API nodes і product-oriented recipes;</li>
+<li>від Adobe/AdCreative — masks/composite для SKU;</li>
+<li>від BFL — multi-reference/VTO;</li>
+<li>від Kling/Veo/Luma — короткий image-to-video з control refs;</li>
+<li>від Creatify — URL ingestion, agent visibility і campaign variants.</li>
+</ul>
+<p><strong>Moat Zeely:</strong> не “наша модель краща”, а “будь-яка модель стає керованою, observable і replaceable”.</p>
+<hr>
+<h2 id="s-4-cloud-image-api-що-використовувати-і-коли">4. Cloud image API: що використовувати і коли<a class="anchor" href="#s-4-cloud-image-api-що-використовувати-і-коли" aria-label="Link to section">#</a></h2>
+<h3 id="s-4-1-виправлення-назв-і-параметрів">4.1 Виправлення назв і параметрів<a class="anchor" href="#s-4-1-виправлення-назв-і-параметрів" aria-label="Link to section">#</a></h3>
+<p>У первинній нотатці змішані model families і quality controls. Правильний contract:</p>
+<table>
+<thead>
+<tr>
+<th>Назва</th>
+<th>Реальний model ID / family</th>
+<th>Quality control</th>
+<th>Resolution control</th>
+<th>Production роль</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>GPT Image 2</strong></td>
+<td><code>gpt-image-2</code>, pinned <code>gpt-image-2-2026-04-21</code></td>
+<td><code>low / medium / high / auto</code></td>
+<td>flexible 1K/2K/до 4K dimensions</td>
+<td>identity-sensitive edit, precise final still</td>
+</tr>
+<tr>
+<td><strong>Nano Banana 2</strong></td>
+<td><code>gemini-3.1-flash-image</code></td>
+<td>немає <code>low/high</code>; є thinking/iteration controls</td>
+<td>0.5K / 1K / 2K / 4K</td>
+<td>high-volume multi-reference draft/default</td>
+</tr>
+<tr>
+<td><strong>Nano Banana Pro</strong></td>
+<td><code>gemini-3-pro-image</code></td>
+<td>professional model, не “NB2 Pro”</td>
+<td>1K / 2K / 4K</td>
+<td>complex brand/product/text composition</td>
+</tr>
+<tr>
+<td><strong>Nano Banana 2 Lite</strong></td>
+<td><code>gemini-3.1-flash-lite-image</code></td>
+<td>efficiency lane</td>
+<td>1K</td>
+<td>preflight visualizations/cheap concepts</td>
+</tr>
+<tr>
+<td><strong>FLUX.2</strong></td>
+<td><code>klein / pro / max / flex</code></td>
+<td>model + steps/guidance у Flex</td>
+<td>до 4 MP</td>
+<td>specialist для речей/product/pose/multi-ref</td>
+</tr>
+</tbody></table>
+<p>Джерела: <a href="https://developers.openai.com/api/docs/models/gpt-image-2">GPT Image 2</a>, <a href="https://developers.openai.com/api/docs/guides/image-generation">OpenAI image guide</a>, <a href="https://ai.google.dev/gemini-api/docs/models/gemini-3.1-flash-image">Nano Banana 2</a>, <a href="https://ai.google.dev/gemini-api/docs/image-generation">Google image generation</a>, <a href="https://docs.bfl.ai/guides/prompting_guide_flux2">FLUX.2 prompting</a>.</p>
+<h3 id="s-4-2-image-model-matrix">4.2 Image model matrix<a class="anchor" href="#s-4-2-image-model-matrix" aria-label="Link to section">#</a></h3>
+<p>Ціна — орієнтир станом на дату звіту, без input tokens/storage/egress; перед production call router читає актуальний price registry.</p>
+<table>
+<thead>
+<tr>
+<th>API/model</th>
+<th>References і control</th>
+<th>Output</th>
+<th>Орієнтовна ціна</th>
+<th>Найкращий use case</th>
+<th>Не використовувати як</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Gemini 3.1 Flash Image / NB2</strong></td>
+<td>up to 10 object refs + 4 character refs in documented detailed mode; conversational editing</td>
+<td>0.5K/1K/2K/4K; SynthID</td>
+<td>$0.045 / $0.067 / $0.101 / $0.151</td>
+<td>default draft, environment replace, multi-object combine</td>
+<td>єдиний judge власного output</td>
+</tr>
+<tr>
+<td><strong>Gemini 3 Pro Image / NB Pro</strong></td>
+<td>premium multi-ref; documented limits vary by role/surface, so contract-test exact mix</td>
+<td>1K/2K/4K; SynthID</td>
+<td>≈$0.134 1K/2K; ≈$0.24 4K</td>
+<td>hero still, typography, difficult product</td>
+<td>cheap iteration lane</td>
+</tr>
+<tr>
+<td><strong>GPT Image 2</strong></td>
+<td>all image inputs automatically high-fidelity; multi-image edit/mask; versioned snapshot</td>
+<td>flexible sizes; <code>low/medium/high</code>; no transparent output</td>
+<td>square ≈$0.006/$0.053/$0.211</td>
+<td>identity-sensitive edit, targeted repair, final</td>
+<td>bulk blind fan-out at high quality</td>
+</tr>
+<tr>
+<td><strong>FLUX.2 Pro</strong></td>
+<td>up to 8 API refs within input/output pixel budget; JSON prompts; HEX; pose</td>
+<td>up to 4 MP</td>
+<td>T2I from $0.03; edit from $0.045</td>
+<td>outfit/product/reference composition</td>
+<td>video engine</td>
+</tr>
+<tr>
+<td><strong>FLUX.2 Max</strong></td>
+<td>same family, highest precision</td>
+<td>up to 4 MP</td>
+<td>from $0.07</td>
+<td>final still after draft pass</td>
+<td>first-pass cheap generation</td>
+</tr>
+<tr>
+<td><strong>FLUX VTO</strong></td>
+<td>person + refs речей, clothing-specific</td>
+<td>image</td>
+<td>contract-dependent</td>
+<td>outfit transfer and fabric/logo structure</td>
+<td>physical fit guarantee</td>
+</tr>
+<tr>
+<td><strong>FASHN Try-On Max</strong></td>
+<td>person/product/face specialist; clothes, shoes, hats, jewelry, bags</td>
+<td>1K/2K/4K</td>
+<td>roughly $0.075–$0.375 by mode</td>
+<td>independent fashion try-on lane</td>
+<td>general-image fallback without VTO benchmark</td>
+</tr>
+<tr>
+<td><strong>Runway Gen-4 Image/Turbo</strong></td>
+<td>character/object/style refs in Runway ecosystem</td>
+<td>tiered</td>
+<td>API credit-based</td>
+<td>environment/style exploration and recipe compatibility</td>
+<td>exact SKU without external QA</td>
+</tr>
+<tr>
+<td><strong>Luma Uni-1</strong></td>
+<td>up to 9 refs in Agents API</td>
+<td>2K</td>
+<td>≈$0.0404 base; refs add small increment</td>
+<td>alternate style/reference candidate</td>
+<td>identity source of truth</td>
+</tr>
+<tr>
+<td><strong>Adobe Composite</strong></td>
+<td>mask + exact subject composite/harmonization</td>
+<td>image</td>
+<td>enterprise</td>
+<td>exact product anchor, deterministic compositing</td>
+<td>final motion</td>
+</tr>
+<tr>
+<td><strong>Ideogram</strong></td>
+<td>Character Reference, Magic Fill, text strength</td>
+<td>image</td>
+<td>plan/API dependent</td>
+<td>face/hair continuity and typography</td>
+<td>full-body product video</td>
+</tr>
+</tbody></table>
+<p>Pricing sources: <a href="https://ai.google.dev/gemini-api/docs/pricing">Google Gemini API pricing</a>, <a href="https://developers.openai.com/api/docs/guides/image-generation">OpenAI image guide</a>, <a href="https://docs.bfl.ai/quick_start/pricing">BFL pricing</a>, <a href="https://docs.fashn.ai/api-reference">FASHN API</a>, <a href="https://docs.agents.lumalabs.ai/guides/pricing/">Luma Agents pricing</a>.</p>
+<h3 id="s-4-3-image-router-якии-я-рекомендую">4.3 Image router, який я рекомендую<a class="anchor" href="#s-4-3-image-router-якии-я-рекомендую" aria-label="Link to section">#</a></h3>
+<pre><code class="language-text">IF task = cheap_concept
+  → Nano Banana 2 Lite, 1K
+
+ELSE IF task = multi_reference OR environment_replace
+  → Nano Banana 2, 1K
+  → escalate 2K only after semantic PASS
+
+ELSE IF task = outfit_transfer
+  → FLUX VTO or FLUX.2 Pro
+  → fallback GPT Image 2 medium targeted edit
+
+ELSE IF task = identity_sensitive_edit
+  → GPT Image 2 medium with pinned snapshot
+  → fallback FLUX.2 Max / Nano Banana Pro
+
+ELSE IF task = logo_text_brand_hero
+  → Nano Banana Pro or FLUX.2 Flex/Max
+
+IF semantic PASS AND export needs 4K
+  → high-res regenerate/upscale from approved candidate
+</code></pre>
+<p>Правило: <strong>resolution не є quality fix</strong>. 4K не виправляє неправильне обличчя, SKU або рукав; лише дорожче деталізує дефект.</p>
+<hr>
+<h2 id="s-5-cloud-video-api-alternatives-to-higgsfield">5. Cloud video API: alternatives to Higgsfield<a class="anchor" href="#s-5-cloud-video-api-alternatives-to-higgsfield" aria-label="Link to section">#</a></h2>
+<h3 id="s-5-1-current-video-matrix">5.1 Current video matrix<a class="anchor" href="#s-5-1-current-video-matrix" aria-label="Link to section">#</a></h3>
+<table>
+<thead>
+<tr>
+<th>API/model</th>
+<th>Control surface</th>
+<th>Typical output</th>
+<th>Орієнтир ціни</th>
+<th>Роль у Zeely</th>
+<th>Критичний нюанс</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Gemini Omni Flash Preview</strong></td>
+<td>text/image/reference-to-video, conversational edit</td>
+<td>3–10 s, 720p, 24 fps, audio</td>
+<td>≈$0.10/s</td>
+<td>cheap/default draft, quick correction</td>
+<td>preview; no first/last interpolation, extension, provisioned throughput; multi-video refs unsupported</td>
+</tr>
+<tr>
+<td><strong>Veo 3.1 / Fast / Lite</strong></td>
+<td>text/I2V; first+last frames, extension and up to 3 subject refs on supported variants; native audio</td>
+<td>4/6/8 s; 720/1080/4K with mode constraints</td>
+<td>Gemini API: Standard ≈$0.40/s 720/1080, Fast ≈$0.10–0.12/s, Lite ≈$0.05–0.08/s; 4K higher</td>
+<td>controlled transitions, hero, native audio</td>
+<td>Flow UI ≠ Gemini API ≠ Vertex feature surface; use exact ID per surface</td>
+</tr>
+<tr>
+<td><strong>Runway Gen-4.5</strong></td>
+<td>text/I2V, strong camera choreography</td>
+<td>2–10 s</td>
+<td>12 credits/s = $0.12/s</td>
+<td>production general motion</td>
+<td>input/output URLs ephemeral; identity/SKU still need external gates</td>
+</tr>
+<tr>
+<td><strong>Runway Gen-4 Turbo</strong></td>
+<td>I2V</td>
+<td>5/10 s, 720p</td>
+<td>5 credits/s = $0.05/s</td>
+<td>cheap motion proof</td>
+<td>lower ceiling than Gen-4.5</td>
+</tr>
+<tr>
+<td><strong>Kling 3 Pro</strong></td>
+<td>image-to-video, Elements, element binding, native audio/motion control</td>
+<td>up to 15 s depending endpoint</td>
+<td>fal ≈$0.112/s no audio; $0.168/s audio</td>
+<td>default human/product-aware motion</td>
+<td>partner/API surface varies; consistency is capability, not guarantee</td>
+</tr>
+<tr>
+<td><strong>Seedance 2.0 / BytePlus ModelArk</strong></td>
+<td>up to 9 image, 3 video and 3 audio refs; first/last, edit/extend, native audio</td>
+<td>endpoint/token-dependent; up to 4K on supported route</td>
+<td>direct token billing; fal fast ≈$0.242/s at 720p audio</td>
+<td>complex action/story, alternate model family</td>
+<td>restrictions on arbitrary real-face external refs require contract test</td>
+</tr>
+<tr>
+<td><strong>Luma Ray 3.2</strong></td>
+<td>keyframes, I2V/V2V, reframe, HDR/EXR</td>
+<td>5/10 s; up to 1080p</td>
+<td>720p $0.30/5s; 1080p $1.20/5s</td>
+<td>keyframe/edit/reframe fallback</td>
+<td>shared PAYG has no latency SLA; 10 s pricing nonlinear</td>
+</tr>
+<tr>
+<td><strong>Higgsfield MCP</strong></td>
+<td>agent tools, 30+ models, Soul/Cast/Elements, analyzer/history</td>
+<td>model-dependent</td>
+<td>account/credit-dependent</td>
+<td>creative console, break-glass route</td>
+<td>public MCP is not the same as documented production REST contract</td>
+</tr>
+<tr>
+<td><strong>fal.ai broker</strong></td>
+<td>one queue/SDK/webhook contract across Veo/Kling/Seedance/etc.</td>
+<td>model-dependent</td>
+<td>transparent per model</td>
+<td>fastest API alternative and model router</td>
+<td>adds intermediary, terms and dependency</td>
+</tr>
+<tr>
+<td><strong>Replicate broker</strong></td>
+<td>generic async predictions, polling/SSE, signed webhooks</td>
+<td>model-dependent</td>
+<td>model/hardware-dependent</td>
+<td>experimental/emergency provider</td>
+<td>API files removed after ~1 h by default; persist immediately</td>
+</tr>
+<tr>
+<td><strong>MiniMax Hailuo 2.3/Fast</strong></td>
+<td>T2V/I2V, first frame</td>
+<td>6/10 s; 768p, selected 1080p</td>
+<td>roughly $0.19–$0.56/clip</td>
+<td>cheap independent tertiary motion fallback</td>
+<td>less control than Kling/Veo/Runway</td>
+</tr>
+</tbody></table>
+<p>Sources: <a href="https://ai.google.dev/gemini-api/docs/omni">Gemini Omni</a>, <a href="https://ai.google.dev/gemini-api/docs/veo">Gemini Veo</a>, <a href="https://docs.cloud.google.com/vertex-ai/generative-ai/docs/models/veo/3-1-generate">Veo on Vertex</a>, <a href="https://docs.dev.runwayml.com/guides/pricing/">Runway pricing</a>, <a href="https://help.runwayml.com/hc/en-us/articles/46974685288467-Creating-with-Gen-4-5">Runway Gen-4.5</a>, <a href="https://fal.ai/models/fal-ai/kling-video/v3/pro/image-to-video">Kling 3 via fal</a>, <a href="https://docs.byteplus.com/en/docs/modelark/1520757">BytePlus Seedance</a>, <a href="https://platform.minimax.io/docs/guides/pricing-paygo">MiniMax pricing</a>, <a href="https://fal.ai/explore/image-to-video-apis">fal video overview</a>, <a href="https://docs.agents.lumalabs.ai/guides/pricing/">Luma pricing</a>, <a href="https://higgsfield.ai/mcp">Higgsfield MCP</a>, <a href="https://replicate.com/docs/topics/webhooks">Replicate webhooks/storage</a>.</p>
+<h3 id="s-5-1-1-gateway-disaster-recovery">5.1.1 Gateway ≠ disaster recovery<a class="anchor" href="#s-5-1-1-gateway-disaster-recovery" aria-label="Link to section">#</a></h3>
+<p><code>Veo direct → Runway-hosted Veo</code> або <code>GPT Image direct → broker-hosted GPT Image</code> спрощує integration, але <strong>не дає незалежного model fallback</strong>. Якщо upstream lab, safety policy або model version має incident, wrapper часто успадковує його.</p>
+<p>Незалежні пари мають бути з різних лабораторій:</p>
+<ul>
+<li>general image: OpenAI → Google → BFL;</li>
+<li>fashion try-on: FASHN specialist → окремо benchmarked FLUX VTO → general image лише manual fallback;</li>
+<li>no-audio motion: Runway → Kling → MiniMax;</li>
+<li>native-audio motion: Google Veo → Kling → Seedance;</li>
+<li>talking avatar: HeyGen → Tavus → Synthesia enterprise.</li>
+</ul>
+<h3 id="s-5-2-provider-access-layers">5.2 Provider access layers<a class="anchor" href="#s-5-2-provider-access-layers" aria-label="Link to section">#</a></h3>
+<table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>Що підключити</th>
+<th>Перевага</th>
+<th>Ризик</th>
+<th>Рекомендація</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Agent-facing</td>
+<td>Higgsfield MCP</td>
+<td>дуже швидкий creative breadth</td>
+<td>tool/schema/underlying route можуть змінюватися</td>
+<td>залишити, але обгорнути adapter-ом</td>
+</tr>
+<tr>
+<td>Direct primary</td>
+<td>Google Gemini/Vertex + Runway Dev</td>
+<td>documented APIs, own billing, clearer lifecycle</td>
+<td>дві інтеграції</td>
+<td><strong>production default</strong></td>
+</tr>
+<tr>
+<td>Direct image specialist</td>
+<td>OpenAI Images + BFL</td>
+<td>pinned GPT snapshot + strong VTO/multi-ref</td>
+<td>ще два DPAs/keys</td>
+<td>увімкнути за task class</td>
+</tr>
+<tr>
+<td>Direct motion specialist</td>
+<td>Luma</td>
+<td>keyframes/V2V/reframe/HDR</td>
+<td>ще один vendor</td>
+<td>premium fallback</td>
+</tr>
+<tr>
+<td>Multi-model broker</td>
+<td>fal.ai</td>
+<td>one SDK/queue/webhook, fast switch Kling/Seedance/Veo</td>
+<td>intermediary pricing/privacy/availability</td>
+<td>найкращий швидкий API fallback</td>
+</tr>
+<tr>
+<td>Emergency/experiments</td>
+<td>Replicate</td>
+<td>широкий catalog, version schemas, signed webhooks</td>
+<td>model provenance/retention/quality vary</td>
+<td>не ставити primary</td>
+</tr>
+</tbody></table>
+<h3 id="s-5-3-video-router">5.3 Video router<a class="anchor" href="#s-5-3-video-router" aria-label="Link to section">#</a></h3>
+<pre><code class="language-text">draft_motion / &lt;$1 target
+  → Gemini Omni Flash Preview
+  → fallback Runway Gen-4 Turbo
+
+identity_or_product_critical_motion
+  → Kling 3 Pro with Elements/binding
+  → fallback Runway Gen-4.5
+
+complex_camera_choreography
+  → Runway Gen-4.5
+  → fallback Seedance 2.0
+
+first_last_frame_transition / extension / native_audio_hero
+  → Veo 3.1 exact supported endpoint
+  → fallback Luma Ray keyframes
+
+video_edit_or_reframe
+  → Luma Ray / Runway Aleph 2 / Omni conversational edit
+
+both direct routes unhealthy
+  → Higgsfield MCP break-glass OR fal.ai broker
+  → mandatory human approval
+</code></pre>
+<h3 id="s-5-4-чому-sora-2-не-входить-у-нову-схему">5.4 Чому Sora 2 не входить у нову схему<a class="anchor" href="#s-5-4-чому-sora-2-не-входить-у-нову-схему" aria-label="Link to section">#</a></h3>
+<p>OpenAI позначає Sora 2 як deprecated/legacy; для нового production його не можна вважати довгостроковим video fallback. За актуальним повідомленням API discontinuation заплановано на <strong>24 вересня 2026 року</strong>. <a href="https://help.openai.com/en/articles/20001152-what-to-know-about-the-sora-discontinuation">OpenAI Sora discontinuation</a></p>
+<h3 id="s-5-5-якщо-потрібен-talking-human-а-не-cinematic-generation">5.5 Якщо потрібен talking-human, а не cinematic generation<a class="anchor" href="#s-5-5-якщо-потрібен-talking-human-а-не-cinematic-generation" aria-label="Link to section">#</a></h3>
+<p>Це окрема capability lane; не треба змушувати cinematic model імітувати довгий presenter video.</p>
+<table>
+<thead>
+<tr>
+<th>Primary</th>
+<th>Independent fallback</th>
+<th>Best fit</th>
+<th>Не вирішує</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>HeyGen Avatar IV / Digital Twin API</strong></td>
+<td><strong>Tavus Replica API</strong></td>
+<td>consented talking presenter, script/audio, localization</td>
+<td>exact interaction речі/product у cinematic world</td>
+</tr>
+<tr>
+<td><strong>Synthesia API</strong></td>
+<td>HeyGen/Tavus</td>
+<td>enterprise templates, learning/business video, governance</td>
+<td>fashion/product VTO</td>
+</tr>
+<tr>
+<td><strong>Captions/Mirage API</strong></td>
+<td>HeyGen</td>
+<td>UGC-style creator ad and audio-driven actor</td>
+<td>typed human/product/environment locks</td>
+</tr>
+</tbody></table>
+<p>Sources: <a href="https://developers.heygen.com/">HeyGen developers</a>, <a href="https://docs.tavus.io/api-reference/video-request/create-video">Tavus video API</a>, <a href="https://docs.synthesia.io/reference/introduction">Synthesia API</a>, <a href="https://captions.ai/help/api-reference/ai-ads">Captions AI Ads API</a>.</p>
+<hr>
+<h2 id="s-6-model-lifecycle-registry-обов-язкова-частина-системи">6. Model lifecycle registry: обов’язкова частина системи<a class="anchor" href="#s-6-model-lifecycle-registry-обов-язкова-частина-системи" aria-label="Link to section">#</a></h2>
+<p>“Latest” alias без registry — прихований production incident.</p>
+<table>
+<thead>
+<tr>
+<th>Model/endpoint</th>
+<th>Стан 19.07.2026</th>
+<th>Дія</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>gpt-image-2-2026-04-21</code></td>
+<td>pinned snapshot</td>
+<td>дозволити primary/fallback</td>
+</tr>
+<tr>
+<td><code>gemini-3.1-flash-image</code></td>
+<td>current image workhorse</td>
+<td>version test щотижня; batch lane окремо</td>
+</tr>
+<tr>
+<td><code>gemini-3-pro-image</code></td>
+<td>premium image family</td>
+<td>contract test refs/resolution до release</td>
+</tr>
+<tr>
+<td><code>gemini-omni-flash-preview</code></td>
+<td>preview</td>
+<td>cheap lane; завжди мати GA fallback</td>
+</tr>
+<tr>
+<td>Gemini API <code>veo-3.1-*-generate-preview</code></td>
+<td>current preview surface</td>
+<td>contract test; keep independent fallback</td>
+</tr>
+<tr>
+<td>Vertex <code>veo-3.1-...-001</code></td>
+<td>versioned production surface where available</td>
+<td>pin exact current ID; do not assume Gemini/Flow parity</td>
+</tr>
+<tr>
+<td>Veo 2 / 3.0 legacy IDs</td>
+<td>deprecated/shutdown</td>
+<td>remove from allowlist; Veo 3.1 only</td>
+</tr>
+<tr>
+<td>Sora 2 / Pro</td>
+<td>deprecated; API discontinuation 24.09.2026</td>
+<td>заборонити для нових workflows</td>
+</tr>
+<tr>
+<td>Imagen 4 legacy endpoints</td>
+<td>shutdown 17.08.2026</td>
+<td>мігрувати на Nano Banana family</td>
+</tr>
+<tr>
+<td>GPT Image 1.5</td>
+<td>legacy/deprecated relative to GPT Image 2</td>
+<td>new adapter тільки GPT Image 2</td>
+</tr>
+<tr>
+<td>Runway Gen-3 Alpha Turbo / Gen-4 Aleph</td>
+<td>shutdown 30.07.2026</td>
+<td>Gen-4 Turbo / Gen-4.5 / Aleph 2</td>
+</tr>
+<tr>
+<td><code>flux-2-pro-preview</code></td>
+<td>moving preview</td>
+<td>experiments only</td>
+</tr>
+<tr>
+<td><code>flux-2-pro</code> / Max pinned endpoint</td>
+<td>stable/pinned behavior</td>
+<td>production</td>
+</tr>
+</tbody></table>
+<p>Sources: <a href="https://ai.google.dev/gemini-api/docs/changelog">Google Gemini changelog</a>, <a href="https://ai.google.dev/gemini-api/docs/image-generation">Google image guide</a>, <a href="https://docs.cloud.google.com/vertex-ai/generative-ai/docs/release-notes">Vertex release notes</a>, <a href="https://docs.dev.runwayml.com/guides/pricing/">Runway lifecycle/pricing</a>, <a href="https://docs.bfl.ai/release-notes">BFL release notes</a>.</p>
+<p>Мінімальні поля registry:</p>
+<pre><code class="language-json">{
+  &quot;provider&quot;: &quot;google&quot;,
+  &quot;alias&quot;: &quot;video_fast_default&quot;,
+  &quot;model_id&quot;: &quot;gemini-omni-flash-preview&quot;,
+  &quot;lifecycle&quot;: &quot;preview&quot;,
+  &quot;enabled&quot;: true,
+  &quot;allowed_data_classes&quot;: [&quot;P0&quot;, &quot;P1_CONSENTED&quot;],
+  &quot;capabilities&quot;: [&quot;t2v&quot;, &quot;i2v&quot;, &quot;edit&quot;, &quot;audio&quot;],
+  &quot;known_limits&quot;: [&quot;720p&quot;, &quot;no_first_last&quot;, &quot;no_extension&quot;],
+  &quot;fallback_alias&quot;: &quot;video_general_ga&quot;,
+  &quot;contract_tested_at&quot;: &quot;2026-07-19T00:00:00Z&quot;,
+  &quot;sunset_at&quot;: null
+}
+</code></pre>
+<hr>
+<h2 id="s-7-надіи-на-архітектура-agent-plans-graph-executes">7. Надійна архітектура: agent plans, graph executes<a class="anchor" href="#s-7-надіи-на-архітектура-agent-plans-graph-executes" aria-label="Link to section">#</a></h2>
+<h3 id="s-7-1-чого-не-робити">7.1 Чого не робити<a class="anchor" href="#s-7-1-чого-не-робити" aria-label="Link to section">#</a></h3>
+<pre><code class="language-text">User → Hermes → вільний prompt → model → “на око норм” → video
+</code></pre>
+<p>Ця схема не має відтворюваного стану, typed refs, budget guard, defect-specific retry, approval gate або lineage. Вона годиться для single-shot exploration, не для production.</p>
+<h3 id="s-7-2-цільова-схема">7.2 Цільова схема<a class="anchor" href="#s-7-2-цільова-схема" aria-label="Link to section">#</a></h3>
+<pre><code class="language-text">User / Reviewer
+       │
+       ▼
+Hermes conversation + planning
+       │ produces validated JSON only
+       ▼
+Job API + Schema Registry + Policy Engine
+       │
+       ▼
+Durable State Machine / DAG
+       │
+       ├── Intake &amp; Preflight
+       ├── Cloud VLM Extraction
+       ├── Asset Lock
+       ├── Image Router → Provider adapters
+       ├── Image QA → Approval
+       ├── Shot Planner
+       ├── Video Router → Provider adapters
+       ├── Video QA → Approval
+       └── Composer / HTML5 Export
+                    │
+                    ▼
+       Object Storage + Postgres + events.jsonl
+</code></pre>
+<p>Hermes має право:</p>
+<ul>
+<li>пояснити задачу;</li>
+<li>запросити відсутній blocking input;</li>
+<li>сформувати <code>AssetManifest</code>, <code>ScenePlan</code> і prompt proposal;</li>
+<li>викликати allowlisted <code>create_job</code>, <code>get_job</code>, <code>approve</code>, <code>cancel</code>;</li>
+<li>пояснити QA defect і запропонований repair.</li>
+</ul>
+<p>Hermes <strong>не має права</strong>:</p>
+<ul>
+<li>напряму викликати provider повз adapter;</li>
+<li>змінювати approved asset hash;</li>
+<li>переписувати <code>locked_facts</code>;</li>
+<li>послаблювати QA threshold;</li>
+<li>піднімати budget/max attempts;</li>
+<li>вмикати provider/model поза allowlist;</li>
+<li>робити auto-publish;</li>
+<li>трактувати timeout як failure і дублювати paid call без lookup за provider job ID.</li>
+</ul>
+<h3 id="s-7-3-state-machine">7.3 State machine<a class="anchor" href="#s-7-3-state-machine" aria-label="Link to section">#</a></h3>
+<pre><code class="language-text">RECEIVED
+  → PREFLIGHTED
+  → EXTRACTED
+  → ASSETS_LOCKED
+  → PLANNED
+  → IMAGE_GENERATING
+  → IMAGE_QA
+  → IMAGE_APPROVAL_REQUIRED
+  → IMAGE_APPROVED
+  → VIDEO_GENERATING
+  → VIDEO_QA
+  → VIDEO_APPROVAL_REQUIRED
+  → PACKAGED
+  → DONE
+</code></pre>
+<p>Side states:</p>
+<pre><code class="language-text">NEEDS_INPUT
+NEEDS_REVIEW
+RETRYABLE_FAILURE
+TERMINAL_FAILURE
+CANCELLED
+</code></pre>
+<p>Hard invariants:</p>
+<ol>
+<li><code>IMAGE_GENERATING</code> неможливий без schema-valid locked assets.</li>
+<li><code>VIDEO_GENERATING</code> неможливий без <code>approved_still_sha256</code>.</li>
+<li>Attempt ніколи не переписується; нова спроба = новий <code>attempt_id</code>.</li>
+<li>Один logical attempt має один idempotency key.</li>
+<li>Blocking QA failure не може бути компенсований високим aesthetic score.</li>
+<li>Provider result зберігається у власний storage до переходу далі.</li>
+<li>Після budget hard limit дозволений лише review/cancel, не generation.</li>
+</ol>
+<hr>
+<h2 id="s-8-intake-і-strict-extraction">8. Intake і strict extraction<a class="anchor" href="#s-8-intake-і-strict-extraction" aria-label="Link to section">#</a></h2>
+<h3 id="s-8-1-input-contract">8.1 Input contract<a class="anchor" href="#s-8-1-input-contract" aria-label="Link to section">#</a></h3>
+<p>Усі inputs діляться на typed assets:</p>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Що це</th>
+<th>Мінімальні refs</th>
+<th>Що lock-имо</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>HUMAN</code></td>
+<td>людина/identity</td>
+<td>1 usable; бажано face + half/full body</td>
+<td>face geometry, hair, body proportions, distinctive features</td>
+</tr>
+<tr>
+<td><code>PRODUCT</code></td>
+<td>purse, bottle, device, SKU</td>
+<td>1; бажано front + 3/4 + detail</td>
+<td>silhouette, proportions, logo, text, color, material, hardware</td>
+</tr>
+<tr>
+<td><code>GARMENT</code></td>
+<td>shirt/dress/jacket/shoes</td>
+<td>front; бажано back/detail</td>
+<td>structure, sleeve/neckline/length, print, seams, logo, material</td>
+</tr>
+<tr>
+<td><code>ENVIRONMENT</code></td>
+<td>existing або target scene</td>
+<td>1 plate/reference</td>
+<td>layout/key objects або лише visual intent залежно policy</td>
+</tr>
+<tr>
+<td><code>STYLE</code></td>
+<td>mood/color/art direction</td>
+<td>1–4</td>
+<td>palette, lighting/camera treatment; ніколи не identity</td>
+</tr>
+<tr>
+<td><code>POSE/MOTION</code></td>
+<td>structural/motion guide</td>
+<td>optional</td>
+<td>pose/action only</td>
+</tr>
+<tr>
+<td><code>LOGO</code></td>
+<td>master brand mark</td>
+<td>vector/transparent raster</td>
+<td>exact geometry/color/text</td>
+</tr>
+</tbody></table>
+<h3 id="s-8-2-preflight-status">8.2 Preflight status<a class="anchor" href="#s-8-2-preflight-status" aria-label="Link to section">#</a></h3>
+<p>Кожний asset отримує:</p>
+<ul>
+<li><code>PASS</code> — можна використовувати;</li>
+<li><code>REPAIRABLE</code> — можна rotate/crop/color-normalize/rematte без semantic invention;</li>
+<li><code>REJECT</code> — потрібен інший input.</li>
+</ul>
+<p>Стартові, не універсальні thresholds для MVP:</p>
+<table>
+<thead>
+<tr>
+<th>Check</th>
+<th>PASS guideline</th>
+<th>REPAIRABLE</th>
+<th>REJECT</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Person short edge</td>
+<td>≥1024 px</td>
+<td>768–1023</td>
+<td>&lt;768 або decode fail</td>
+</tr>
+<tr>
+<td>Visible face crop</td>
+<td>≥256×256 px</td>
+<td>160–255</td>
+<td>&lt;160 / severe occlusion</td>
+</tr>
+<tr>
+<td>Коротша сторона product/речі</td>
+<td>≥1024 px</td>
+<td>768–1023</td>
+<td>&lt;768</td>
+</tr>
+<tr>
+<td>Target object coverage</td>
+<td>≥25% frame</td>
+<td>12–25%</td>
+<td>&lt;12%</td>
+</tr>
+<tr>
+<td>Видимість речі</td>
+<td>full front, key structure visible</td>
+<td>minor crop/occlusion</td>
+<td>key structure hidden</td>
+</tr>
+<tr>
+<td>Blur/exposure</td>
+<td>no critical-detail loss</td>
+<td>locally repairable</td>
+<td>logo/face/texture unreadable</td>
+</tr>
+</tbody></table>
+<p>Ці числа — calibration starting point. Після benchmark вони мають стати task-specific thresholds, а не “вічною правдою”.</p>
+<h3 id="s-8-3-extraction-rule-observed-user-provided-unknown">8.3 Extraction rule: observed, user-provided, unknown<a class="anchor" href="#s-8-3-extraction-rule-observed-user-provided-unknown" aria-label="Link to section">#</a></h3>
+<p>Cloud VLM не має права “дописувати” невидиму спинку сумки, матеріал або точний відтінок. Кожен fact має provenance:</p>
+<pre><code class="language-json">{
+  &quot;key&quot;: &quot;garment.neckline&quot;,
+  &quot;value&quot;: &quot;crew neck&quot;,
+  &quot;provenance&quot;: &quot;OBSERVED&quot;,
+  &quot;confidence&quot;: 0.96,
+  &quot;source_asset_id&quot;: &quot;shirt_front&quot;,
+  &quot;bbox_xywh&quot;: [0.18, 0.09, 0.63, 0.74]
+}
+</code></pre>
+<pre><code class="language-json">{
+  &quot;key&quot;: &quot;garment.back_print&quot;,
+  &quot;value&quot;: null,
+  &quot;provenance&quot;: &quot;UNKNOWN&quot;,
+  &quot;confidence&quot;: 0.0,
+  &quot;source_asset_id&quot;: &quot;shirt_front&quot;,
+  &quot;bbox_xywh&quot;: null
+}
+</code></pre>
+<h3 id="s-8-4-required-extraction-payloads">8.4 Required extraction payloads<a class="anchor" href="#s-8-4-required-extraction-payloads" aria-label="Link to section">#</a></h3>
+<p><code>human.json</code>:</p>
+<ul>
+<li>identity refs and consent;</li>
+<li>framing/visibility;</li>
+<li>stable visible traits;</li>
+<li>current outfit, but marked replaceable when requested;</li>
+<li>occlusions;</li>
+<li>immutable vs allowed-to-change list;</li>
+<li>no sensitive attribute inference.</li>
+</ul>
+<p><code>product.json</code> / <code>garment.json</code>:</p>
+<ul>
+<li>category/SKU identifier;</li>
+<li>geometry and proportions;</li>
+<li>colors as observed HEX/Lab estimate with evidence crop;</li>
+<li>logo/text OCR plus confidence;</li>
+<li>materials/textures only if visible;</li>
+<li>front/back/detail availability;</li>
+<li>defects/occlusions;</li>
+<li>exact locks.</li>
+</ul>
+<p><code>environment.json</code>:</p>
+<ul>
+<li>policy <code>ORG_PRESERVE</code> or <code>DIFF_REPLACE</code>;</li>
+<li>layout and key objects;</li>
+<li>lighting direction/temperature;</li>
+<li>camera/framing;</li>
+<li>palette;</li>
+<li>keep/remove/add list;</li>
+<li>target background requirements.</li>
+</ul>
+<h3 id="s-8-5-prompt-injection-defense">8.5 Prompt injection defense<a class="anchor" href="#s-8-5-prompt-injection-defense" aria-label="Link to section">#</a></h3>
+<p>Text у EXIF, filenames, product pages, OCR або uploaded documents — <strong>data, не instruction</strong>. Extraction service:</p>
+<ul>
+<li>strips EXIF before provider upload;</li>
+<li>never executes URLs/scripts found in an asset;</li>
+<li>wraps external text in a quoted data field;</li>
+<li>validates structured output;</li>
+<li>rejects unknown properties;</li>
+<li>requires user approval for any instruction discovered inside content.</li>
+</ul>
+<hr>
+<h2 id="s-9-strict-image-pipeline">9. Strict image pipeline<a class="anchor" href="#s-9-strict-image-pipeline" aria-label="Link to section">#</a></h2>
+<h3 id="s-9-1-canonical-order">9.1 Canonical order<a class="anchor" href="#s-9-1-canonical-order" aria-label="Link to section">#</a></h3>
+<pre><code class="language-text">Originals
+  → technical preflight
+  → structured extraction
+  → person/product/environment sheets
+  → normalized masks/crops
+  → 1K semantic candidates
+  → blocking QA
+  → targeted repair/provider switch
+  → human approval
+  → 2K/4K final only if required
+  → immutable approved still
+</code></pre>
+<h3 id="s-9-2-prompt-compiler-не-prompt-improvisation">9.2 Prompt compiler, не prompt improvisation<a class="anchor" href="#s-9-2-prompt-compiler-не-prompt-improvisation" aria-label="Link to section">#</a></h3>
+<p>Provider prompt збирається з фіксованих blocks:</p>
+<pre><code class="language-text">[TASK]
+[ASSET_BINDINGS]
+[MUST_PRESERVE]
+[ALLOWED_CHANGES]
+[ENVIRONMENT_POLICY]
+[COMPOSITION]
+[CAMERA_LIGHTING]
+[OUTPUT_SPEC]
+[NEGATIVE_CONSTRAINTS]
+[ACCEPTANCE_CRITERIA]
+</code></pre>
+<p>Приклад:</p>
+<pre><code class="language-text">TASK: Create a photorealistic full-length fashion image.
+ASSET_BINDINGS: image 1 = HUMAN identity; image 2 = GARMENT front; image 3 = logo detail.
+MUST_PRESERVE: facial geometry, hairline, body proportions, garment neckline, sleeve length,
+front print geometry, logo spelling and color.
+ALLOWED_CHANGES: replace only the original top with the referenced garment.
+ENVIRONMENT_POLICY: ORG_PRESERVE; retain room layout, mirror geometry and light direction.
+COMPOSITION: front-neutral full length head to soles, arms relaxed, full garment front and footwear visible.
+OUTPUT: sRGB, 1024×1536 draft, no text added, no watermark.
+NEGATIVE: no extra accessories, no modified logo, no second person, no cropped sleeves.
+</code></pre>
+<p>Locked values вставляє code, не LLM. Якщо compiled prompt не містить усі locks, job не запускається.</p>
+<h3 id="s-9-3-candidate-policy">9.3 Candidate policy<a class="anchor" href="#s-9-3-candidate-policy" aria-label="Link to section">#</a></h3>
+<ul>
+<li>Draft: 1K, 2 candidates primary provider.</li>
+<li>Якщо один проходить — не генерувати “про всяк випадок” ще п’ять.</li>
+<li>Якщо blocking defect локальний — masked/targeted repair.</li>
+<li>Якщо identity/product defect повторюється двічі — independent provider switch.</li>
+<li>2K/4K лише для approved semantic candidate.</li>
+<li>Provider auto-prompt rewrite/<code>auto_fix</code> вимкнути для locked production jobs, якщо неможливо отримати diff і затвердити rewrite.</li>
+</ul>
+<h3 id="s-9-4-white-background-avatar-task">9.4 White-background avatar task<a class="anchor" href="#s-9-4-white-background-avatar-task" aria-label="Link to section">#</a></h3>
+<p>Для canonical avatar:</p>
+<ul>
+<li>RGB output, не “майже біла студія”;</li>
+<li>exact target <code>#FFFFFF</code> outside subject mask;</li>
+<li>soft even light і neutral white balance;</li>
+<li>one person, front-neutral, full length from head to soles;</li>
+<li>no clothing/background bleed;</li>
+<li>edge matting перевіряється окремо від aesthetics.</li>
+</ul>
+<p>Якщо model дає off-white, краще зробити deterministic/cloud segmentation + composite на <code>#FFFFFF</code>, ніж витрачати video-grade model retry.</p>
+<hr>
+<h2 id="s-10-strict-video-pipeline">10. Strict video pipeline<a class="anchor" href="#s-10-strict-video-pipeline" aria-label="Link to section">#</a></h2>
+<h3 id="s-10-1-still-first-є-hard-gate">10.1 Still-first є hard gate<a class="anchor" href="#s-10-1-still-first-є-hard-gate" aria-label="Link to section">#</a></h3>
+<p>Video ніколи не “виправляє” незатверджене зображення. Він лише множить помилку по кадрах.</p>
+<pre><code class="language-text">approved still
+  → one-shot motion contract
+  → 4–6 s draft
+  → temporal QA
+  → repair/switch
+  → approved clip
+  → deterministic edit/composition
+</code></pre>
+<h3 id="s-10-2-one-shot-one-main-action-one-camera-intent">10.2 One shot = one main action + one camera intent<a class="anchor" href="#s-10-2-one-shot-one-main-action-one-camera-intent" aria-label="Link to section">#</a></h3>
+<p>Погано:</p>
+<blockquote>
+<p>Person walks, turns, opens laptop, changes outfit, camera circles, room becomes studio, product flies in.</p>
+</blockquote>
+<p>Добре:</p>
+<blockquote>
+<p>5 s. Subject makes one slow half-turn while keeping the front of the clothing item visible. Camera performs a subtle 10% push-in. No cut. Preserve face, clothing-item logo, mirror geometry and lighting.</p>
+</blockquote>
+<h3 id="s-10-3-continuity-pack-для-кожного-shot">10.3 Continuity pack для кожного shot<a class="anchor" href="#s-10-3-continuity-pack-для-кожного-shot" aria-label="Link to section">#</a></h3>
+<ul>
+<li>approved first frame hash;</li>
+<li>optional approved last frame hash;</li>
+<li>human/product/environment bindings;</li>
+<li>one motion reference if needed;</li>
+<li>camera/framing/lens description;</li>
+<li>action with timing beats;</li>
+<li><code>must_preserve</code>;</li>
+<li>negative constraints;</li>
+<li>duration/fps/aspect/audio;</li>
+<li>QA profile.</li>
+</ul>
+<h3 id="s-10-4-shot-strategy-для-mvp-narrative">10.4 Shot strategy для MVP narrative<a class="anchor" href="#s-10-4-shot-strategy-для-mvp-narrative" aria-label="Link to section">#</a></h3>
+<table>
+<thead>
+<tr>
+<th>Chapter</th>
+<th>Time</th>
+<th>Visual</th>
+<th>Generation/control</th>
+<th>DOM layer</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1. Wardrobe/mirrors</td>
+<td>0–6 s</td>
+<td>шафа, два дзеркала, UI, input/result in mirrors</td>
+<td>approved still + subtle I2V; mirror result as separate layer where practical</td>
+<td>controls, labels, before/after</td>
+</tr>
+<tr>
+<td>2. Vogue-like shoot on TV</td>
+<td>6–15 s</td>
+<td>та сама людина у fashion shoot, transition into TV</td>
+<td>2 short approved clips; controlled transition/first-last frames</td>
+<td>no baked text</td>
+</tr>
+<tr>
+<td>3. Laptop/pipeline</td>
+<td>15–28 s</td>
+<td>camera enters laptop; pipeline/credits scroll; “дякую”</td>
+<td>pre-rendered transition + deterministic screen surface</td>
+<td>titles, explanation, credits, CTA</td>
+</tr>
+</tbody></table>
+<p>Не генерувати весь 28-second journey одним prompt. Три approved segments + deterministic transition/edit дають кращу continuity і repairability.</p>
+<hr>
+<h2 id="s-11-qa-blocking-gates-а-не-один-beauty-score">11. QA: blocking gates, а не один beauty score<a class="anchor" href="#s-11-qa-blocking-gates-а-не-один-beauty-score" aria-label="Link to section">#</a></h2>
+<h3 id="s-11-1-quality-dimensions">11.1 Quality dimensions<a class="anchor" href="#s-11-1-quality-dimensions" aria-label="Link to section">#</a></h3>
+<table>
+<thead>
+<tr>
+<th>Gate</th>
+<th>Image</th>
+<th>Video</th>
+<th>Blocking?</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Technical</td>
+<td>decode, dimensions, colorspace, background, file hash</td>
+<td>codec, duration, fps, black/frozen frames, audio stream</td>
+<td>так</td>
+</tr>
+<tr>
+<td>Identity</td>
+<td>face/hair/body visible traits vs refs</td>
+<td>sampled-frame identity drift</td>
+<td>так</td>
+</tr>
+<tr>
+<td>Product/SKU</td>
+<td>geometry, logo, OCR, color, material, scale</td>
+<td>persistence, interaction/contact, logo/text stability</td>
+<td>так</td>
+</tr>
+<tr>
+<td>Річ</td>
+<td>neckline, sleeves, length, print, seams, drape</td>
+<td>temporal structure, no morph/flicker</td>
+<td>так</td>
+</tr>
+<tr>
+<td>Environment</td>
+<td>ORG preserve or DIFF replace compliance</td>
+<td>background continuity and unwanted mutations</td>
+<td>так</td>
+</tr>
+<tr>
+<td>Anatomy</td>
+<td>hands, limbs, face, contact</td>
+<td>hand/object artifacts and body continuity</td>
+<td>так</td>
+</tr>
+<tr>
+<td>Prompt compliance</td>
+<td>pose/framing/action</td>
+<td>timing/camera/no unwanted cut</td>
+<td>так/за profile</td>
+</tr>
+<tr>
+<td>Aesthetics</td>
+<td>lighting, realism, composition</td>
+<td>motion quality, cinematography</td>
+<td>ranking, не override</td>
+</tr>
+<tr>
+<td>Safety/rights</td>
+<td>consent, prohibited content, brand policy</td>
+<td>same</td>
+<td>так</td>
+</tr>
+</tbody></table>
+<h3 id="s-11-2-no-aggregate-score-loophole">11.2 No aggregate-score loophole<a class="anchor" href="#s-11-2-no-aggregate-score-loophole" aria-label="Link to section">#</a></h3>
+<p>Неправильно:</p>
+<pre><code class="language-text">identity 0.55 + aesthetics 0.98 → average 0.77 → PASS
+</code></pre>
+<p>Правильно:</p>
+<pre><code class="language-text">identity &lt; blocking threshold → FAIL
+product &lt; blocking threshold → FAIL
+all blocking gates PASS → rank by aesthetics/cost/latency
+</code></pre>
+<h3 id="s-11-3-judges">11.3 Judges<a class="anchor" href="#s-11-3-judges" aria-label="Link to section">#</a></h3>
+<p>MVP без локальних моделей:</p>
+<ol>
+<li>deterministic media checks локально;</li>
+<li>primary cloud VLM structured rubric;</li>
+<li>independent cloud VLM або human для critical disagreement;</li>
+<li>human approval before video and export.</li>
+</ol>
+<p>Model не повинен бути єдиним judge власної генерації. Google output оцінює не лише Google judge; OpenAI output — не лише OpenAI judge.</p>
+<h3 id="s-11-4-evidence-а-не-просто-verdict">11.4 Evidence, а не просто verdict<a class="anchor" href="#s-11-4-evidence-а-не-просто-verdict" aria-label="Link to section">#</a></h3>
+<p>Кожен failure зберігає:</p>
+<ul>
+<li>reference crop;</li>
+<li>output crop;</li>
+<li>mask/diff;</li>
+<li>OCR text;</li>
+<li>video timecode/frame;</li>
+<li>judge/model/version;</li>
+<li>rule/threshold;</li>
+<li>proposed router action.</li>
+</ul>
+<p>Приклад:</p>
+<pre><code class="language-json">{
+  &quot;name&quot;: &quot;LOGO_TEXT&quot;,
+  &quot;blocking&quot;: true,
+  &quot;score&quot;: 0.62,
+  &quot;threshold&quot;: 0.92,
+  &quot;pass&quot;: false,
+  &quot;reason&quot;: &quot;Second character changed from E to F at 00:03.12&quot;,
+  &quot;router_action&quot;: &quot;REDUCE_MOTION&quot;,
+  &quot;evidence&quot;: [&quot;qa/frame_0075.png&quot;, &quot;qa/logo_crop_0075.png&quot;]
+}
+</code></pre>
+<h3 id="s-11-5-initial-acceptance-profiles">11.5 Initial acceptance profiles<a class="anchor" href="#s-11-5-initial-acceptance-profiles" aria-label="Link to section">#</a></h3>
+<table>
+<thead>
+<tr>
+<th>Profile</th>
+<th>Candidate count</th>
+<th>QA</th>
+<th>Human gate</th>
+<th>Use</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>DRAFT</code></td>
+<td>1–2</td>
+<td>technical + coarse semantic</td>
+<td>optional</td>
+<td>concepts/motion proof</td>
+</tr>
+<tr>
+<td><code>STANDARD</code></td>
+<td>2 primary + conditional fallback</td>
+<td>all blocking gates + evidence</td>
+<td>before video/export</td>
+<td>routine ads</td>
+</tr>
+<tr>
+<td><code>HERO</code></td>
+<td>multi-provider conditional tournament</td>
+<td>two judges + specialist OCR/color + temporal</td>
+<td>art director</td>
+<td>launch/TV/hero</td>
+</tr>
+</tbody></table>
+<p>Thresholds треба калібрувати на labeled benchmark. До цього будь-яке <code>0.90</code> — робоча policy, не наукова гарантія.</p>
+<hr>
+<h2 id="s-12-retry-repair-і-provider-switching">12. Retry, repair і provider switching<a class="anchor" href="#s-12-retry-repair-і-provider-switching" aria-label="Link to section">#</a></h2>
+<h3 id="s-12-1-transport-retry-semantic-retry">12.1 Transport retry ≠ semantic retry<a class="anchor" href="#s-12-1-transport-retry-semantic-retry" aria-label="Link to section">#</a></h3>
+<p>Transport errors:</p>
+<ul>
+<li><code>429</code>, timeout, transient <code>5xx</code>;</li>
+<li>до 3 retries;</li>
+<li>exponential backoff + jitter;</li>
+<li>same logical attempt/idempotency key;</li>
+<li>lookup existing provider job before повторною оплатою.</li>
+</ul>
+<p>Semantic errors:</p>
+<ul>
+<li>wrong face, logo, clothing item, background, hands, motion;</li>
+<li>кожний новий generation = new attempt;</li>
+<li>максимум 2 attempts per provider;</li>
+<li>той самий blocking defect двічі → switch independent model family;</li>
+<li>safety rejection не перефразовується автоматично.</li>
+</ul>
+<h3 id="s-12-2-earliest-defect-repair">12.2 Earliest-defect repair<a class="anchor" href="#s-12-2-earliest-defect-repair" aria-label="Link to section">#</a></h3>
+<table>
+<thead>
+<tr>
+<th>Defect</th>
+<th>Repair</th>
+<th>Не робити</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>input blurry/occluded</td>
+<td>request better input</td>
+<td>6 random generations</td>
+</tr>
+<tr>
+<td>mask/background edge</td>
+<td>rematte/composite</td>
+<td>switch cinematic video model</td>
+</tr>
+<tr>
+<td>face drift</td>
+<td>stronger original refs / identity-specialist provider</td>
+<td>only add more adjectives</td>
+</tr>
+<tr>
+<td>локальна деталь речі</td>
+<td>masked edit/VTO route</td>
+<td>full scene regeneration first</td>
+</tr>
+<tr>
+<td>logo/text</td>
+<td>targeted edit/composite; reduce motion</td>
+<td>upscale defect</td>
+</tr>
+<tr>
+<td>environment only</td>
+<td>environment edit preserving approved subject</td>
+<td>regenerate identity</td>
+</tr>
+<tr>
+<td>hand/product contact</td>
+<td>simpler pose/action; shorter clip</td>
+<td>increase resolution</td>
+</tr>
+<tr>
+<td>temporal drift</td>
+<td>reduce motion, bind element, shorter shot, switch model</td>
+<td>longer prompt with more actions</td>
+</tr>
+<tr>
+<td>provider outage</td>
+<td>circuit breaker + independent lab</td>
+<td>same upstream through another gateway</td>
+</tr>
+</tbody></table>
+<h3 id="s-12-3-budget-policy">12.3 Budget policy<a class="anchor" href="#s-12-3-budget-policy" aria-label="Link to section">#</a></h3>
+<ul>
+<li>estimate cost before queueing;</li>
+<li>reserve budget atomically;</li>
+<li>soft alert at 70%;</li>
+<li>hard stop at 100%;</li>
+<li>max semantic candidates per asset;</li>
+<li>max provider switches;</li>
+<li>failed-charge policy recorded per provider;</li>
+<li>“best effort” never overrides customer budget.</li>
+</ul>
+<hr>
+<h2 id="s-13-storage-lineage-и-observability">13. Storage, lineage й observability<a class="anchor" href="#s-13-storage-lineage-и-observability" aria-label="Link to section">#</a></h2>
+<h3 id="s-13-1-canonical-local-object-storage-layout">13.1 Canonical local/object-storage layout<a class="anchor" href="#s-13-1-canonical-local-object-storage-layout" aria-label="Link to section">#</a></h3>
+<pre><code class="language-text">runs/&lt;job_id&gt;/
+├── job.json
+├── 00_input/
+│   ├── original/
+│   └── consent/
+├── 01_preflight/
+├── 02_extraction/
+│   ├── human.json
+│   ├── product.json
+│   └── environment.json
+├── 03_assets_locked/
+├── 04_attempts/&lt;attempt_id&gt;/
+│   ├── request.json
+│   ├── response.json
+│   ├── output.png|mp4
+│   └── qa.json
+├── 05_approved/
+├── 06_master/
+├── 07_web/
+└── events.jsonl
+</code></pre>
+<h3 id="s-13-2-per-attempt-provenance">13.2 Per-attempt provenance<a class="anchor" href="#s-13-2-per-attempt-provenance" aria-label="Link to section">#</a></h3>
+<p>Зберігати:</p>
+<ul>
+<li>provider, model ID, concrete version/snapshot;</li>
+<li>adapter version;</li>
+<li>provider job ID;</li>
+<li>input asset SHA-256;</li>
+<li>compiled prompt and prompt SHA-256;</li>
+<li>seed, якщо підтримується;</li>
+<li>всі parameters;</li>
+<li>estimated/actual cost;</li>
+<li>queue/runtime timestamps;</li>
+<li>output SHA-256;</li>
+<li>QA judge/version/evidence;</li>
+<li>reviewer identity and decision;</li>
+<li>route reason and fallback chain.</li>
+</ul>
+<p>Replay означає відтворюваний <strong>process</strong>, не гарантію identical pixels. Багато generative APIs недетерміновані навіть із seed.</p>
+<h3 id="s-13-3-provider-url-ttl">13.3 Provider URL TTL<a class="anchor" href="#s-13-3-provider-url-ttl" aria-label="Link to section">#</a></h3>
+<p>Результат треба скачати одразу:</p>
+<ul>
+<li>BFL signed URL може жити близько 10 хвилин;</li>
+<li>Runway output — обмежений час, документація вимагає власне збереження;</li>
+<li>Replicate API files за замовчуванням прибираються приблизно через годину;</li>
+<li>інші vendors теж не є asset archive.</li>
+</ul>
+<h3 id="s-13-4-minimum-dashboards">13.4 Minimum dashboards<a class="anchor" href="#s-13-4-minimum-dashboards" aria-label="Link to section">#</a></h3>
+<ul>
+<li>job completion rate;</li>
+<li>first-pass image/video rate;</li>
+<li>pass rate by task/model/version;</li>
+<li>defect taxonomy;</li>
+<li>semantic attempts per accepted asset;</li>
+<li>cost per accepted image/second/job;</li>
+<li>queue and wall-clock latency p50/p95;</li>
+<li>provider error/429/safety rate;</li>
+<li>human review rate and review time;</li>
+<li>fallback rate;</li>
+<li>model lifecycle alerts.</li>
+</ul>
+<hr>
+<h2 id="s-14-hermes-мінімум-із-strict-rules-of-work">14. Hermes: мінімум із strict rules of work<a class="anchor" href="#s-14-hermes-мінімум-із-strict-rules-of-work" aria-label="Link to section">#</a></h2>
+<p>Hermes підходить як conversational planner/tool user: має skills, delegation і security controls. Але “розумний агент” не замінює workflow engine. <a href="https://hermes-agent.nousresearch.com/docs/">Hermes docs</a>, <a href="https://hermes-agent.nousresearch.com/docs/user-guide/security/">Hermes security</a>, <a href="https://hermes-agent.nousresearch.com/docs/user-guide/features/skills">Hermes skills</a>.</p>
+<h3 id="s-14-1-production-configuration-principles">14.1 Production configuration principles<a class="anchor" href="#s-14-1-production-configuration-principles" aria-label="Link to section">#</a></h3>
+<ul>
+<li>containerized execution;</li>
+<li>safe write root тільки в <code>runs/&lt;job_id&gt;</code>;</li>
+<li><code>skills.write_approval: true</code>;</li>
+<li>new/changed skills require human approval;</li>
+<li>credential filtering;</li>
+<li>allowlisted tools and domains;</li>
+<li>separate dev/stage/prod keys;</li>
+<li>no raw secrets in prompts/logs;</li>
+<li>agent can emit only schema-valid tool payloads;</li>
+<li>provider adapters validate again server-side.</li>
+</ul>
+<h3 id="s-14-2-locked-zeely-skill-rules">14.2 Locked Zeely skill rules<a class="anchor" href="#s-14-2-locked-zeely-skill-rules" aria-label="Link to section">#</a></h3>
+<pre><code class="language-text">1. Never infer invisible product facts; use UNKNOWN.
+2. Never change an approved asset or locked fact.
+3. Never call video generation without approved_still_sha256.
+4. Never lower QA thresholds or raise budget.
+5. Never retry safety rejection automatically.
+6. Never use an unapproved provider for P1 likeness data.
+7. Never treat a gateway wrapper as independent model redundancy.
+8. Never auto-publish.
+9. Always persist provider output before advancing state.
+10. Always explain blocking defect with evidence and next action.
+</code></pre>
+<hr>
+<h2 id="s-15-три-варіанти-реалізаціі">15. Три варіанти реалізації<a class="anchor" href="#s-15-три-варіанти-реалізаціі" aria-label="Link to section">#</a></h2>
+<h2 id="s-15-1-варіант-1-higgsfield-first-fast-mvp">15.1 Варіант 1 — Higgsfield-first Fast MVP<a class="anchor" href="#s-15-1-варіант-1-higgsfield-first-fast-mvp" aria-label="Link to section">#</a></h2>
+<h3 id="s-коли-обирати">Коли обирати<a class="anchor" href="#s-коли-обирати" aria-label="Link to section">#</a></h3>
+<p>Потрібен сильний working demo за 5–8 engineering days, а Higgsfield MCP уже авторизований. Це demo architecture з правильними seams, не фінальний control plane.</p>
+<h3 id="s-схема">Схема<a class="anchor" href="#s-схема" aria-label="Link to section">#</a></h3>
+<pre><code class="language-text">User / reviewer
+      │
+      ▼
+Hermes + locked Zeely skill
+      │ validated JSON
+      ▼
+Thin Orchestrator
+FastAPI + Pydantic + SQLite
+      │
+      ├── primary image/video → Higgsfield MCP
+      ├── image API fallback → Gemini NB2 / OpenAI / BFL
+      └── video API fallback → fal.ai Kling / Runway
+                         │
+                         ▼
+                 runs/&lt;job_id&gt;/
+                         │
+             deterministic checks + cloud VLM
+                         │
+                   human approval
+                         │
+                 FFmpeg + HTML5 pack
+</code></pre>
+<h3 id="s-exact-stack">Exact stack<a class="anchor" href="#s-exact-stack" aria-label="Link to section">#</a></h3>
+<ul>
+<li>Hermes: brief, extraction request, scene plan, status, approval UX.</li>
+<li>Higgsfield MCP: Soul/Cast/Elements, image/video exploration, analyzer/history.</li>
+<li>Direct image fallback: <code>gemini-3.1-flash-image</code>; secondary <code>gpt-image-2</code> or <code>flux-2-pro</code>.</li>
+<li>Video fallback: fal.ai <code>kling-video/v3/pro/image-to-video</code>; cheap draft <code>gemini-omni-flash-preview</code> or Runway Gen-4 Turbo.</li>
+<li>State: SQLite + append-only <code>events.jsonl</code>.</li>
+<li>Files: local encrypted workspace for demo; S3/R2-compatible storage optional.</li>
+<li>QA: deterministic checks + one cloud VLM + mandatory reviewer.</li>
+<li>Packaging: FFmpeg + static HTML/CSS/JS.</li>
+</ul>
+<h3 id="s-retry-policy">Retry policy<a class="anchor" href="#s-retry-policy" aria-label="Link to section">#</a></h3>
+<ul>
+<li>3 transport retries for <code>429/5xx/timeout</code>.</li>
+<li>1 semantic retry same model.</li>
+<li>repeated same defect → direct API fallback, not another vague MCP prompt.</li>
+<li>max 2 providers per asset.</li>
+<li>safety rejection → review.</li>
+<li>hard budget in <code>job.json</code>.</li>
+</ul>
+<h3 id="s-scope">Scope<a class="anchor" href="#s-scope" aria-label="Link to section">#</a></h3>
+<ul>
+<li>3 people;</li>
+<li>avatar + one outfit result for each;</li>
+<li>one hero person in the full 3-chapter experience;</li>
+<li>ORG mandatory, one DIFF showcase;</li>
+<li>3 clips × 4–6 s;</li>
+<li>HTML5 swipe/scroll timeline;</li>
+<li>run report with requests, attempts, QA and cost.</li>
+</ul>
+<h3 id="s-estimate">Estimate<a class="anchor" href="#s-estimate" aria-label="Link to section">#</a></h3>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Estimate</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Engineering</td>
+<td>5–8 days</td>
+</tr>
+<tr>
+<td>Calendar</td>
+<td>1–1.5 weeks</td>
+</tr>
+<tr>
+<td>Generation cost / accepted 15–18 s demo</td>
+<td>$5–20 + Higgsfield credits</td>
+</tr>
+<tr>
+<td>E2E run latency</td>
+<td>10–30 min</td>
+</tr>
+<tr>
+<td>Quality ceiling</td>
+<td>3.5/5</td>
+</tr>
+<tr>
+<td>Semantic reliability</td>
+<td>3/5</td>
+</tr>
+<tr>
+<td>Lock-in</td>
+<td>high</td>
+</tr>
+</tbody></table>
+<h3 id="s-main-failure-modes">Main failure modes<a class="anchor" href="#s-main-failure-modes" aria-label="Link to section">#</a></h3>
+<ul>
+<li>MCP tool schema/behavior змінюється;</li>
+<li>underlying model при auto-routing невідомий;</li>
+<li>result URL/task ID губиться;</li>
+<li>direct fallback дає інший visual language;</li>
+<li>один judge пропускає identity/SKU drift;</li>
+<li>iOS scrub поганий через довгий GOP/неправильний preload.</li>
+</ul>
+<h3 id="s-definition-of-done">Definition of done<a class="anchor" href="#s-definition-of-done" aria-label="Link to section">#</a></h3>
+<ul>
+<li>process restart не губить job;</li>
+<li>duplicate webhook/poll не створює duplicate paid call;</li>
+<li>failed Higgsfield route реально переходить на independent API;</li>
+<li>video не запускається без approval hash;</li>
+<li>reviewer може побачити refs, prompt, model, attempts і defect evidence.</li>
+</ul>
+<hr>
+<h2 id="s-15-2-варіант-2-api-native-dual-provider-production-рекомендовании">15.2 Варіант 2 — API-native dual-provider production — рекомендований<a class="anchor" href="#s-15-2-варіант-2-api-native-dual-provider-production-рекомендовании" aria-label="Link to section">#</a></h2>
+<h3 id="s-коли-обирати-2">Коли обирати<a class="anchor" href="#s-коли-обирати-2" aria-label="Link to section">#</a></h3>
+<p>Потрібен beta/production pipeline, який не залежить від Higgsfield і переживає provider/model churn. Найкращий баланс для Zeely зараз.</p>
+<h3 id="s-схема-2">Схема<a class="anchor" href="#s-схема-2" aria-label="Link to section">#</a></h3>
+<pre><code class="language-text">Hermes UI / Zeely UI
+       │
+       ▼
+Job Gateway
+       │
+Schema Registry + Policy + Budget
+       │
+       ▼
+Temporal Cloud / durable workflow
+       │
+       ├── Google adapter
+       │   NB2 / NB Pro / Omni / Veo
+       │
+       ├── Runway adapter
+       │   Gen-4 Image / Gen-4 Turbo / Gen-4.5
+       │
+       ├── specialist image adapters
+       │   OpenAI GPT Image 2 / BFL / FASHN
+       │
+       └── specialist video adapter
+           Kling direct or fal.ai
+                 │
+                 ▼
+        Postgres + encrypted object storage
+                 │
+      cross-provider QA + Review UI
+                 │
+          FFmpeg + HTML5 exporter
+</code></pre>
+<h3 id="s-primary-routes">Primary routes<a class="anchor" href="#s-primary-routes" aria-label="Link to section">#</a></h3>
+<p>Image:</p>
+<ul>
+<li>default multi-ref/environment: Nano Banana 2, 1K;</li>
+<li>identity-sensitive edit: GPT Image 2 medium, pinned snapshot;</li>
+<li>речі/VTO: FLUX VTO or FASHN; fallback GPT Image 2/FLUX.2 Pro after benchmark;</li>
+<li>brand/text/hero: Nano Banana Pro or FLUX.2 Max/Flex;</li>
+<li>2K/4K only after semantic pass.</li>
+</ul>
+<p>Video:</p>
+<ul>
+<li>cheap draft: Gemini Omni Flash Preview;</li>
+<li>general final motion: Runway Gen-4.5;</li>
+<li>human/product-aware motion: Kling 3 Elements;</li>
+<li>first/last transition or native-audio hero: Veo 3.1;</li>
+<li>reframe/keyframe/video edit fallback: Luma when enabled;</li>
+<li>Higgsfield MCP: <code>break_glass</code>, never silent automatic route.</li>
+</ul>
+<h3 id="s-durable-workflow-specifics">Durable workflow specifics<a class="anchor" href="#s-durable-workflow-specifics" aria-label="Link to section">#</a></h3>
+<ul>
+<li>Temporal activity wraps each provider call.</li>
+<li><code>GenerationLedger</code> reserves idempotency key and budget before API call.</li>
+<li>Activity timeout does not immediately retry; first resolves provider job status.</li>
+<li>Outbox pattern emits webhook/events exactly once logically.</li>
+<li>Provider adapters normalize <code>submit / status / cancel / result / delete</code>.</li>
+<li>Every adapter exposes <code>capabilities()</code>, <code>priceEstimate()</code> and <code>health()</code>.</li>
+<li>Model IDs resolve through lifecycle registry, not hardcoded UI strings.</li>
+<li>Storage download is part of activity success; remote URL alone is not success.</li>
+</ul>
+<h3 id="s-security-privacy">Security/privacy<a class="anchor" href="#s-security-privacy" aria-label="Link to section">#</a></h3>
+<ul>
+<li>paid API tiers and contractual no-training terms;</li>
+<li>P1 likeness routing allowlist;</li>
+<li>signed URLs ≤15 min;</li>
+<li>provider uploads deleted after download/retention policy;</li>
+<li>originals encrypted at rest;</li>
+<li>no face images in general logs/analytics;</li>
+<li>explicit consent and revocation workflow;</li>
+<li>no sensitive attribute inference;</li>
+<li>human approval before external export/publish.</li>
+</ul>
+<h3 id="s-scope-2">Scope<a class="anchor" href="#s-scope-2" aria-label="Link to section">#</a></h3>
+<ul>
+<li>3–10 people in batch;</li>
+<li>ORG and DIFF;</li>
+<li>avatar + 2 outfit/product variants;</li>
+<li>review UI with evidence and route history;</li>
+<li>pause/resume across deploy/restart;</li>
+<li>live fallback test;</li>
+<li>9:16 HTML5 experience and MP4 master;</li>
+<li>cost/latency/quality dashboard.</li>
+</ul>
+<h3 id="s-estimate-2">Estimate<a class="anchor" href="#s-estimate-2" aria-label="Link to section">#</a></h3>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Estimate</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Engineering</td>
+<td>18–28 days</td>
+</tr>
+<tr>
+<td>Calendar, 1 senior</td>
+<td>3–5 weeks</td>
+</tr>
+<tr>
+<td>Calendar, backend/AI + frontend</td>
+<td>2–3 weeks</td>
+</tr>
+<tr>
+<td>Generation cost / accepted 15–18 s job</td>
+<td>$10–35</td>
+</tr>
+<tr>
+<td>E2E run latency</td>
+<td>15–45 min</td>
+</tr>
+<tr>
+<td>Quality</td>
+<td>4/5</td>
+</tr>
+<tr>
+<td>Semantic reliability after calibration</td>
+<td>4/5</td>
+</tr>
+<tr>
+<td>Lock-in</td>
+<td>low/medium</td>
+</tr>
+</tbody></table>
+<h3 id="s-main-failure-modes-2">Main failure modes<a class="anchor" href="#s-main-failure-modes-2" aria-label="Link to section">#</a></h3>
+<ul>
+<li>style mismatch між independent models;</li>
+<li>preview endpoint deprecation;</li>
+<li>moderation mismatch for valid consented likeness;</li>
+<li>judges disagree;</li>
+<li>workflow retry duplicates paid call if ledger is wrong;</li>
+<li>regional restriction removes a route;</li>
+<li>4K escalation wastes money without semantic improvement;</li>
+<li>third-party model inside a gateway fails with same upstream incident.</li>
+</ul>
+<h3 id="s-definition-of-done-2">Definition of done<a class="anchor" href="#s-definition-of-done-2" aria-label="Link to section">#</a></h3>
+<ul>
+<li>≥97% jobs reach terminal state without engineer intervention;</li>
+<li>no orphan provider jobs;</li>
+<li>provider outage produces circuit-breaker fallback;</li>
+<li>100% accepted outputs have lineage and QA evidence;</li>
+<li>first-pass and accepted-cost metrics visible by model version;</li>
+<li>consent revocation deletes all scoped artifacts with audit proof.</li>
+</ul>
+<hr>
+<h2 id="s-15-3-варіант-3-premium-best-of-n-quality-router">15.3 Варіант 3 — Premium Best-of-N Quality Router<a class="anchor" href="#s-15-3-варіант-3-premium-best-of-n-quality-router" aria-label="Link to section">#</a></h2>
+<h3 id="s-коли-обирати-3">Коли обирати<a class="anchor" href="#s-коли-обирати-3" aria-label="Link to section">#</a></h3>
+<p>Після benchmark на 30–50 consented cases, якщо quality ceiling Варіанта 2 не закриває hero campaigns. Не починати з цього: без власних labels router лише дорого множить випадковість.</p>
+<h3 id="s-схема-3">Схема<a class="anchor" href="#s-схема-3" aria-label="Link to section">#</a></h3>
+<pre><code class="language-text">Hermes / Art Director UI
+          │
+          ▼
+Policy + Consent + Budget Engine
+          │
+          ▼
+Benchmark-aware Capability Router
+  ┌───────┼────────┬────────┬────────┐
+  ▼       ▼        ▼        ▼        ▼
+OpenAI  Google   BFL/FASHN Runway  Kling/Luma/HF
+  └───────┴────────┴────────┴────────┘
+                     │
+                     ▼
+              Candidate Ledger
+                     │
+ deterministic QA + two VLMs + specialist checks
+                     │
+                     ▼
+             Pareto Selector
+ identity / SKU / environment / motion / cost / latency
+                     │
+              Art Director Gate
+                     │
+        master + variants + localization
+</code></pre>
+<h3 id="s-candidate-tournament">Candidate tournament<a class="anchor" href="#s-candidate-tournament" aria-label="Link to section">#</a></h3>
+<ol>
+<li>Router ranks providers per <code>task_class</code>, not globally.</li>
+<li>Usually 2 labs × 2 candidates; hard limit 6 semantic candidates.</li>
+<li>Technical/blocking failures are removed before aesthetics.</li>
+<li>Winners lie on a Pareto frontier; beauty cannot compensate identity/SKU failure.</li>
+<li>Reviewer sees why a candidate won and all defeated alternatives.</li>
+<li>2K/4K/video fan-out begins only after approved still/style/shotlist.</li>
+<li>Accepted/rejected labels update benchmark registry only after review.</li>
+</ol>
+<h3 id="s-data-aware-routing">Data-aware routing<a class="anchor" href="#s-data-aware-routing" aria-label="Link to section">#</a></h3>
+<ul>
+<li><code>P0</code>: non-sensitive product/environment;</li>
+<li><code>P1</code>: consented adult likeness;</li>
+<li><code>P2</code>: minors/sensitive/legal-hold — restricted/manual policy;</li>
+<li>quality tournament never fans P1/P2 data to every vendor by default;</li>
+<li>each provider has DPA/no-training/region/retention fields in registry.</li>
+</ul>
+<h3 id="s-scope-3">Scope<a class="anchor" href="#s-scope-3" aria-label="Link to section">#</a></h3>
+<ul>
+<li>benchmark 30–50 ORG/DIFF cases;</li>
+<li>3–5 campaign styles;</li>
+<li>multiple outfits/SKUs;</li>
+<li>Art Director comparison UI;</li>
+<li>provider scorecard;</li>
+<li>1K draft → 2K/4K masters;</li>
+<li>1080p master + 9:16/16:9/1:1 variants;</li>
+<li>localization and DOM captions;</li>
+<li>cost/latency/pass-rate dashboard;</li>
+<li>privacy deletion and provider failover demos.</li>
+</ul>
+<h3 id="s-estimate-3">Estimate<a class="anchor" href="#s-estimate-3" aria-label="Link to section">#</a></h3>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Estimate</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Engineering</td>
+<td>45–70 days</td>
+</tr>
+<tr>
+<td>Calendar, 2–3 engineers</td>
+<td>6–10 weeks</td>
+</tr>
+<tr>
+<td>Generation cost / accepted 15–18 s job</td>
+<td>$40–150</td>
+</tr>
+<tr>
+<td>E2E latency</td>
+<td>45–120 min</td>
+</tr>
+<tr>
+<td>Quality ceiling</td>
+<td>4.8/5</td>
+</tr>
+<tr>
+<td>Semantic reliability after calibration</td>
+<td>4.5/5</td>
+</tr>
+<tr>
+<td>Lock-in</td>
+<td>low</td>
+</tr>
+<tr>
+<td>Operational complexity</td>
+<td>high</td>
+</tr>
+</tbody></table>
+<h3 id="s-main-failure-modes-3">Main failure modes<a class="anchor" href="#s-main-failure-modes-3" aria-label="Link to section">#</a></h3>
+<ul>
+<li>benchmark overfit;</li>
+<li>correlated judges miss the same defect;</li>
+<li>cost grows faster than quality;</li>
+<li>cross-model style discontinuity;</li>
+<li>privacy surface expands with each vendor;</li>
+<li>router selects spectacular over faithful;</li>
+<li>preview alias drifts;</li>
+<li>rate limits block tournament;</li>
+<li>insufficient labels make ranking noise.</li>
+</ul>
+<h3 id="s-go-no-go-condition">Go/no-go condition<a class="anchor" href="#s-go-no-go-condition" aria-label="Link to section">#</a></h3>
+<p>Add Best-of-N only if measured uplift justifies it:</p>
+<pre><code class="language-text">Δ accepted quality or first-pass rate
+&gt; added generation cost + review cost + latency cost
+</code></pre>
+<hr>
+<h2 id="s-15-4-decision-matrix">15.4 Decision matrix<a class="anchor" href="#s-15-4-decision-matrix" aria-label="Link to section">#</a></h2>
+<table>
+<thead>
+<tr>
+<th>Criterion</th>
+<th>V1 Higgsfield-first</th>
+<th>V2 API-native</th>
+<th>V3 Premium router</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Best use</td>
+<td>test/demo</td>
+<td>beta/production</td>
+<td>hero/creative platform</td>
+</tr>
+<tr>
+<td>Engineering</td>
+<td>5–8 d</td>
+<td>18–28 d</td>
+<td>45–70 d</td>
+</tr>
+<tr>
+<td>Provider resilience</td>
+<td>low</td>
+<td>high</td>
+<td>very high</td>
+</tr>
+<tr>
+<td>Reproducible graph</td>
+<td>basic</td>
+<td>full</td>
+<td>full + benchmark</td>
+</tr>
+<tr>
+<td>Semantic QA</td>
+<td>one VLM + human</td>
+<td>cross-provider + human</td>
+<td>ensemble + specialist + art director</td>
+</tr>
+<tr>
+<td>Cost multiplier</td>
+<td>1×</td>
+<td>1.5–2.5×</td>
+<td>4–8×</td>
+</tr>
+<tr>
+<td>Quality ceiling</td>
+<td>3.5/5</td>
+<td>4/5</td>
+<td>4.8/5</td>
+</tr>
+<tr>
+<td>Lock-in</td>
+<td>high</td>
+<td>low/medium</td>
+<td>low</td>
+</tr>
+<tr>
+<td>Recommendation</td>
+<td>build as demo shell</td>
+<td><strong>choose now</strong></td>
+<td>add after evidence</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="s-16-html5-swipe-scroll-прив-язании-до-video-time">16. HTML5 swipe/scroll, прив’язаний до video time<a class="anchor" href="#s-16-html5-swipe-scroll-прив-язании-до-video-time" aria-label="Link to section">#</a></h2>
+<h3 id="s-16-1-delivery-architecture">16.1 Delivery architecture<a class="anchor" href="#s-16-1-delivery-architecture" aria-label="Link to section">#</a></h3>
+<p>Один silent scrub master відповідає за camera/world transition. Інтерфейс, назви, pipeline explanation і “дякую” залишаються DOM overlays — їх можна локалізувати, виправити і зробити доступними без нового render.</p>
+<pre><code class="language-text">native scroll / touch / wheel
+          │
+          ▼
+normalized progress 0…1
+          │
+          ▼
+timeline.json
+progress → target video time + overlay state
+          │
+          ▼
+requestAnimationFrame easing
+          │
+          ▼
+video.currentTime
+          │
+          ▼
+requestVideoFrameCallback
+sync DOM overlays with presented frame
+</code></pre>
+<h3 id="s-16-2-chapters">16.2 Chapters<a class="anchor" href="#s-16-2-chapters" aria-label="Link to section">#</a></h3>
+<p><code>timeline.json</code>:</p>
+<pre><code class="language-json">{
+  &quot;duration&quot;: 28.0,
+  &quot;chapters&quot;: [
+    { &quot;id&quot;: &quot;mirrors&quot;, &quot;scroll&quot;: [0.00, 0.24], &quot;video&quot;: [0.0, 6.0] },
+    { &quot;id&quot;: &quot;tv-shoot&quot;, &quot;scroll&quot;: [0.24, 0.62], &quot;video&quot;: [6.0, 15.0] },
+    { &quot;id&quot;: &quot;laptop&quot;, &quot;scroll&quot;: [0.62, 1.00], &quot;video&quot;: [15.0, 28.0] }
+  ],
+  &quot;overlays&quot;: [
+    { &quot;id&quot;: &quot;mirror-ui&quot;, &quot;show&quot;: [0.6, 5.8] },
+    { &quot;id&quot;: &quot;pipeline-titles&quot;, &quot;show&quot;: [17.0, 26.8] },
+    { &quot;id&quot;: &quot;thanks&quot;, &quot;show&quot;: [26.0, 28.0] }
+  ]
+}
+</code></pre>
+<h3 id="s-16-3-interaction-rules">16.3 Interaction rules<a class="anchor" href="#s-16-3-interaction-rules" aria-label="Link to section">#</a></h3>
+<ul>
+<li>Native page scroll is the primary input; swipe maps naturally to scroll.</li>
+<li>Touch/wheel events change <code>targetProgress</code>, not video directly.</li>
+<li>RAF eases current progress toward target to avoid seek jitter.</li>
+<li>Chapter boundaries can snap softly after input ends.</li>
+<li>Do not use <code>timeupdate</code> as the main frame clock; it is too sparse for scrub synchronization.</li>
+<li>Use <code>requestVideoFrameCallback()</code> when supported; RAF fallback otherwise.</li>
+<li><code>playsinline muted preload=&quot;auto&quot;</code>; tap-to-start fallback for iOS.</li>
+<li>First interaction primes playback, then pauses and scrubs.</li>
+<li><code>prefers-reduced-motion</code> switches to posters/crossfades and keyboard/next controls.</li>
+<li>Keyboard arrows/PageUp/PageDown and visible chapter navigation remain available.</li>
+</ul>
+<p>References: <a href="https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/currentTime">MDN <code>currentTime</code></a>, <a href="https://developer.mozilla.org/en-US/docs/Web/API/HTMLVideoElement/requestVideoFrameCallback">MDN <code>requestVideoFrameCallback</code></a>.</p>
+<h3 id="s-16-4-encoding-profile-for-smooth-seek">16.4 Encoding profile for smooth seek<a class="anchor" href="#s-16-4-encoding-profile-for-smooth-seek" aria-label="Link to section">#</a></h3>
+<ul>
+<li>H.264 MP4 primary; WebM optional;</li>
+<li>constant 24 fps;</li>
+<li>short GOP around 6–12 frames after device testing;</li>
+<li>frequent keyframes at chapter boundaries;</li>
+<li><code>-movflags +faststart</code>;</li>
+<li>720p mobile-first scrub master; separate 1080p linear playback asset if needed;</li>
+<li>poster per chapter;</li>
+<li>no baked UI text;</li>
+<li>asset cache with hashed filenames;</li>
+<li>range requests/CDN enabled.</li>
+</ul>
+<p>Trade-off: shorter GOP increases file size, but gives much better random seeking. Test actual iPhone Safari and low-end Android; desktop Chrome alone is not acceptance.</p>
+<h3 id="s-16-5-fail-safe-experience">16.5 Fail-safe experience<a class="anchor" href="#s-16-5-fail-safe-experience" aria-label="Link to section">#</a></h3>
+<p>If video cannot autoplay/seek:</p>
+<ol>
+<li>show chapter poster;</li>
+<li>keep all copy/UI usable;</li>
+<li>offer “tap to start”;</li>
+<li>fall back to discrete next/previous scene;</li>
+<li>never block access to results or pipeline explanation.</li>
+</ol>
+<hr>
+<h2 id="s-17-benchmark-і-economics">17. Benchmark і economics<a class="anchor" href="#s-17-benchmark-і-economics" aria-label="Link to section">#</a></h2>
+<h3 id="s-17-1-спочатку-benchmark-потім-quality-router">17.1 Спочатку benchmark, потім “quality router”<a class="anchor" href="#s-17-1-спочатку-benchmark-потім-quality-router" aria-label="Link to section">#</a></h3>
+<p>Мінімальний evaluation set:</p>
+<table>
+<thead>
+<tr>
+<th>Dimension</th>
+<th>Coverage</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Humans</td>
+<td>30–50 consented adults; lighting/skin tone/hair/glasses variety</td>
+</tr>
+<tr>
+<td>Input quality</td>
+<td>clean, mediocre, repairable, reject cases</td>
+</tr>
+<tr>
+<td>Речі</td>
+<td>T-shirt, shirt, jacket, dress, patterned/logotyped items</td>
+</tr>
+<tr>
+<td>Products</td>
+<td>bag, bottle, cosmetics, small device, reflective/transparent item</td>
+</tr>
+<tr>
+<td>Environment</td>
+<td>ORG preserve + DIFF replace; simple and cluttered scenes</td>
+</tr>
+<tr>
+<td>Motion</td>
+<td>static, turn, walk, hand-product contact, camera push/pan</td>
+</tr>
+<tr>
+<td>Formats</td>
+<td>9:16 primary; 16:9 and 1:1 subset</td>
+</tr>
+</tbody></table>
+<p>Не використовувати production customer faces у broad provider tournament без окремої згоди.</p>
+<h3 id="s-17-2-labeling-rubric">17.2 Labeling rubric<a class="anchor" href="#s-17-2-labeling-rubric" aria-label="Link to section">#</a></h3>
+<p>Кожний output отримує окремі labels:</p>
+<ul>
+<li>identity: pass/minor/major;</li>
+<li>product geometry;</li>
+<li>logo/text;</li>
+<li>color/material;</li>
+<li>структура речі;</li>
+<li>environment policy;</li>
+<li>anatomy/contact;</li>
+<li>temporal stability;</li>
+<li>aesthetic/art direction;</li>
+<li>final ship/no-ship;</li>
+<li>defect evidence and repair type.</li>
+</ul>
+<h3 id="s-17-3-core-kpis">17.3 Core KPIs<a class="anchor" href="#s-17-3-core-kpis" aria-label="Link to section">#</a></h3>
+<table>
+<thead>
+<tr>
+<th>KPI</th>
+<th>MVP target</th>
+<th>Production target</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Job terminal-state rate</td>
+<td>≥95%</td>
+<td>≥99%</td>
+</tr>
+<tr>
+<td>First-pass accepted still</td>
+<td>measure baseline</td>
+<td>≥60–70% by supported task class</td>
+</tr>
+<tr>
+<td>First-pass accepted clip</td>
+<td>measure baseline</td>
+<td>≥45–60% by shot class</td>
+</tr>
+<tr>
+<td>Jobs needing engineer</td>
+<td>&lt;10%</td>
+<td>&lt;3%</td>
+</tr>
+<tr>
+<td>Orphan paid jobs</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr>
+<td>Accepted output with full lineage</td>
+<td>100%</td>
+<td>100%</td>
+</tr>
+<tr>
+<td>Review-before-video compliance</td>
+<td>100%</td>
+<td>100%</td>
+</tr>
+<tr>
+<td>Budget overshoot</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr>
+<td>Consent/deletion SLA success</td>
+<td>100%</td>
+<td>100%</td>
+</tr>
+</tbody></table>
+<p>Quality targets must be reported per task class. Один global “92% quality” приховує, що talking head може бути 95%, а річ+logo+walk — 30%.</p>
+<h3 id="s-17-4-unit-economics-formula">17.4 Unit economics formula<a class="anchor" href="#s-17-4-unit-economics-formula" aria-label="Link to section">#</a></h3>
+<pre><code class="language-text">accepted_job_cost =
+  Σ successful_generation_calls
+  + charged_failed_calls
+  + VLM_QA
+  + storage_and_egress
+  + human_review_minutes × loaded_rate
+</code></pre>
+<p>Не рахуйте лише ціну winner. Якщо для одного accepted clip було 5 paid candidates, усі 5 входять у COGS.</p>
+<h3 id="s-17-5-example-cost-envelope">17.5 Example cost envelope<a class="anchor" href="#s-17-5-example-cost-envelope" aria-label="Link to section">#</a></h3>
+<p>Для 3 clips × 5 s:</p>
+<ul>
+<li>Runway Gen-4.5 raw one-pass: 15 s × $0.12 ≈ $1.80;</li>
+<li>Kling 3 Pro no audio raw one-pass через fal: 15 s × $0.112 ≈ $1.68;</li>
+<li>Veo Fast raw one-pass: roughly $0.10–$0.12/s ≈ $1.50–$1.80;</li>
+<li>accepted cost стає вищим через candidates, semantic retries, stills, QA і review.</li>
+</ul>
+<p>Тому Варіант 2 <code>$10–35</code> за accepted pack — не ціна одного render, а operational envelope. Ціни змінюються; це planning estimate, не commercial quote.</p>
+<hr>
+<h2 id="s-18-план-запуску">18. План запуску<a class="anchor" href="#s-18-план-запуску" aria-label="Link to section">#</a></h2>
+<h3 id="s-18-1-перші-5-8-engineering-days-variant-1">18.1 Перші 5–8 engineering days: Variant 1<a class="anchor" href="#s-18-1-перші-5-8-engineering-days-variant-1" aria-label="Link to section">#</a></h3>
+<table>
+<thead>
+<tr>
+<th>Day</th>
+<th>Deliverable</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>ADR, schemas, folder structure, consent/preflight, provider interface</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Higgsfield MCP adapter + direct image fallback + attempt ledger</td>
+</tr>
+<tr>
+<td>3</td>
+<td>strict extraction, prompt compiler, image generation, technical QA</td>
+</tr>
+<tr>
+<td>4</td>
+<td>cloud VLM rubric, approval gate, video adapter/fallback</td>
+</tr>
+<tr>
+<td>5</td>
+<td>temporal QA, FFmpeg master, HTML5 timeline</td>
+</tr>
+<tr>
+<td>6</td>
+<td>3-user batch, failure injection, cost/latency report</td>
+</tr>
+<tr>
+<td>7–8</td>
+<td>visual polish, mobile QA, README/demo capture, contingency</td>
+</tr>
+</tbody></table>
+<h3 id="s-18-2-production-hardening-variant-2">18.2 Production hardening: Variant 2<a class="anchor" href="#s-18-2-production-hardening-variant-2" aria-label="Link to section">#</a></h3>
+<p><strong>Phase A — control plane, 4–6 days</strong></p>
+<ul>
+<li>Postgres schema;</li>
+<li>durable workflow;</li>
+<li>idempotency/budget ledger;</li>
+<li>schema registry;</li>
+<li>encrypted object storage;</li>
+<li>event/audit model.</li>
+</ul>
+<p><strong>Phase B — providers, 5–8 days</strong></p>
+<ul>
+<li>Google adapter;</li>
+<li>Runway adapter;</li>
+<li>OpenAI/BFL/FASHN image specialist adapters;</li>
+<li>Kling/fal video specialist;</li>
+<li>health/circuit breaker;</li>
+<li>lifecycle registry and contract tests.</li>
+</ul>
+<p><strong>Phase C — QA/review, 5–8 days</strong></p>
+<ul>
+<li>deterministic checks;</li>
+<li>cross-provider VLM QA;</li>
+<li>evidence extraction;</li>
+<li>review UI;</li>
+<li>defect-aware router;</li>
+<li>consent/deletion workflow.</li>
+</ul>
+<p><strong>Phase D — delivery/benchmark, 4–6 days</strong></p>
+<ul>
+<li>HTML5 packager;</li>
+<li>mobile/browser QA;</li>
+<li>30-case benchmark subset;</li>
+<li>dashboards and alerts;</li>
+<li>runbook/provider outage drill.</li>
+</ul>
+<h3 id="s-18-3-p0-backlog">18.3 P0 backlog<a class="anchor" href="#s-18-3-p0-backlog" aria-label="Link to section">#</a></h3>
+<ol>
+<li>Asset/scene/job/QA schemas.</li>
+<li>Consent and deletion.</li>
+<li>State machine and immutable attempt ledger.</li>
+<li>Higgsfield adapter + one independent image and video API.</li>
+<li>Approved-still gate.</li>
+<li>Technical + identity/product/environment QA.</li>
+<li>Budget/idempotency/circuit breaker.</li>
+<li>Own storage and lineage.</li>
+<li>3-user required test deliverables.</li>
+<li>HTML5 3-chapter demo.</li>
+</ol>
+<h3 id="s-18-4-p1-backlog">18.4 P1 backlog<a class="anchor" href="#s-18-4-p1-backlog" aria-label="Link to section">#</a></h3>
+<ul>
+<li>specialist VTO route;</li>
+<li>cross-provider judges;</li>
+<li>review UI evidence overlays;</li>
+<li>model lifecycle automation;</li>
+<li>provider benchmark registry;</li>
+<li>multi-format reframe/localization;</li>
+<li>enterprise DPA/region policies;</li>
+<li>C2PA/provenance handling;</li>
+<li>best-of-N only after labels.</li>
+</ul>
+<hr>
+<h2 id="s-19-ризики-и-controls">19. Ризики й controls<a class="anchor" href="#s-19-ризики-и-controls" aria-label="Link to section">#</a></h2>
+<table>
+<thead>
+<tr>
+<th>Risk</th>
+<th>Probability</th>
+<th>Impact</th>
+<th>Control</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>identity drift</td>
+<td>high</td>
+<td>high</td>
+<td>canonical refs, independent QA, human gate, shorter shots</td>
+</tr>
+<tr>
+<td>exact SKU/logo drift</td>
+<td>high</td>
+<td>high</td>
+<td>isolation/mask, multi-view refs, OCR/color gates, composite/VTO</td>
+</tr>
+<tr>
+<td>environment mutation</td>
+<td>medium</td>
+<td>high</td>
+<td>executable ORG/DIFF policy, environment plate, evidence diff</td>
+</tr>
+<tr>
+<td>temporal morphing</td>
+<td>high</td>
+<td>high</td>
+<td>approved still, one action, shorter clips, Elements/provider switch</td>
+</tr>
+<tr>
+<td>provider outage/rate limit</td>
+<td>medium</td>
+<td>high</td>
+<td>circuit breaker, independent lab fallback, durable queue</td>
+</tr>
+<tr>
+<td>gateway/upstream correlated failure</td>
+<td>medium</td>
+<td>high</td>
+<td>track upstream lab, not only API host</td>
+</tr>
+<tr>
+<td>model deprecation</td>
+<td>high</td>
+<td>medium/high</td>
+<td>lifecycle registry, contract tests, sunset alert, aliases resolved to IDs</td>
+</tr>
+<tr>
+<td>hidden cost explosion</td>
+<td>medium</td>
+<td>high</td>
+<td>pre-reservation, candidate limits, cost per accepted output</td>
+</tr>
+<tr>
+<td>prompt injection</td>
+<td>medium</td>
+<td>high</td>
+<td>external content as data, schema validation, tool allowlist</td>
+</tr>
+<tr>
+<td>privacy/likeness misuse</td>
+<td>low/medium</td>
+<td>critical</td>
+<td>explicit consent, data-class routing, encryption, deletion, no auto-publish</td>
+</tr>
+<tr>
+<td>judge false pass</td>
+<td>medium</td>
+<td>high</td>
+<td>independent judge/human, evidence, blocking gates</td>
+</tr>
+<tr>
+<td>style mismatch after fallback</td>
+<td>medium</td>
+<td>medium</td>
+<td>approved style header, post-grade, use fallback per shot carefully</td>
+</tr>
+<tr>
+<td>mobile scrub failure</td>
+<td>medium</td>
+<td>medium</td>
+<td>short GOP, posters, native scroll, device matrix, reduced-motion fallback</td>
+</tr>
+</tbody></table>
+<h3 id="s-privacy-guardrails">Privacy guardrails<a class="anchor" href="#s-privacy-guardrails" aria-label="Link to section">#</a></h3>
+<ul>
+<li>Use only consented likeness and commercial rights evidence.</li>
+<li>Do not infer ethnicity, health, gender identity or exact age.</li>
+<li>Handle minors and sensitive requests through a separate legal/manual route.</li>
+<li>Do not store face embeddings unless explicitly justified and approved.</li>
+<li>Provider terms, regions, training use and retention must be recorded in registry.</li>
+<li>Revocation must delete originals, derived identity assets, provider files and scoped outputs.</li>
+<li>Preserve invisible provenance watermarks/metadata when required; do not build stripping as a feature.</li>
+</ul>
+<hr>
+<h2 id="s-20-final-recommendation">20. Final recommendation<a class="anchor" href="#s-20-final-recommendation" aria-label="Link to section">#</a></h2>
+<h3 id="s-architecture-decision">Architecture decision<a class="anchor" href="#s-architecture-decision" aria-label="Link to section">#</a></h3>
+<p>Прийняти <strong>Variant 2</strong> як target architecture, але доставити його через практичну послідовність:</p>
+<ol>
+<li>За 5–8 днів зібрати Variant 1 із правильними interfaces і schemas.</li>
+<li>Не розмазувати Higgsfield MCP calls по codebase; один <code>HiggsfieldAdapter</code>.</li>
+<li>Відразу додати independent <code>ImageProvider</code> і <code>VideoProvider</code> fallback.</li>
+<li>Перенести state у durable graph/ledger до beta.</li>
+<li>Зібрати 30–50 labeled cases і виміряти defect/pass/cost.</li>
+<li>Лише на доказах додати Variant 3.</li>
+</ol>
+<h3 id="s-мінімальнии-production-provider-set">Мінімальний production provider set<a class="anchor" href="#s-мінімальнии-production-provider-set" aria-label="Link to section">#</a></h3>
+<pre><code class="language-text">Image
+  primary general: Google Nano Banana 2
+  identity/final: OpenAI GPT Image 2 pinned
+  product/VTO specialist: BFL FLUX / FASHN
+
+Video
+  cheap draft: Google Omni Flash Preview
+  general final: Runway Gen-4.5
+  human/product motion: Kling 3
+  first/last or hero audio: Veo 3.1
+  tertiary independent fallback: MiniMax/Luma by task
+
+Agent/creative
+  Hermes + Higgsfield MCP adapter
+
+Talking presenter, if separate product lane
+  HeyGen → Tavus
+</code></pre>
+<h3 id="s-одна-фраза-для-cto">Одна фраза для CTO<a class="anchor" href="#s-одна-фраза-для-cto" aria-label="Link to section">#</a></h3>
+<blockquote>
+<p>Назовні — сильний Hermes-agent experience. Під капотом — strict JSON, durable state machine, immutable approved assets, independent provider routes, blocking QA і повна lineage. Саме protocol, а не одна модель, робить Zeely надійним.</p>
+</blockquote>
+<hr>
+<h2 id="s-21-методологія-і-обмеження">21. Методологія і обмеження<a class="anchor" href="#s-21-методологія-і-обмеження" aria-label="Link to section">#</a></h2>
+<ul>
+<li>Audit виконано 19.07.2026.</li>
+<li>Використані переважно official product/help/API/pricing/lifecycle sources.</li>
+<li>Vendor claims не трактуються як independent benchmark.</li>
+<li>“Не знайдено public API/feature” не означає, що enterprise/private API не існує; це означає, що його не можна закладати без commercial verification.</li>
+<li>Ціни — planning snapshots, не quote; currency/tax/region/volume/failed-call rules можуть відрізнятися.</li>
+<li>Feature parity між web UI, MCP, direct API і gateway-hosted model не припускається.</li>
+<li>Перед контрактом потрібні live API contract tests, DPA/retention review і benchmark на Zeely data.</li>
+</ul>
+<p>Ключові індекси документації: <a href="https://higgsfield.ai/mcp">Higgsfield MCP</a>, <a href="https://docs.dev.runwayml.com/api/">Runway API</a>, <a href="https://ai.google.dev/gemini-api/docs/image-generation">Gemini image</a>, <a href="https://ai.google.dev/gemini-api/docs/omni">Gemini video</a>, <a href="https://developers.openai.com/api/docs/models/gpt-image-2">OpenAI GPT Image 2</a>, <a href="https://docs.bfl.ai/flux_2/flux2_overview">BFL FLUX.2</a>, <a href="https://docs.agents.lumalabs.ai/">Luma Agents API</a>, <a href="https://fal.ai/docs/model-api-reference">fal.ai model API</a>, <a href="https://replicate.com/docs/reference/http/">Replicate HTTP API</a>, <a href="https://hermes-agent.nousresearch.com/docs/">Hermes</a>.</p>
+</article>
+  </section>
+  <footer class="footer"><span>ZEELY · Deep research &amp; production blueprint</span><span>Version 1.0 · 19.07.2026</span></footer>
+</main>
+</body>
+</html>

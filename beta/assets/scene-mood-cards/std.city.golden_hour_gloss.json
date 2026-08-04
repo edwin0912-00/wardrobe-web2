@@ -1,0 +1,41 @@
+{
+  "schema_version": "1.0.0",
+  "preset_id": "std.city.golden_hour_gloss",
+  "kind": "standard",
+  "family": "city",
+  "ui_name_uk": "Місто — золота година",
+  "asset_role": "mood_card",
+  "file": "assets/scene-mood-cards/std.city.golden_hour_gloss.webp",
+  "sha256": "15314f8f423fac41f59a6bdfb813de3466ba0eade7b1bcb1b64263d82b20dccc",
+  "prompt_path": "prompts/scenes/std.city.golden_hour_gloss.txt",
+  "prompt_sha256": "280841ab8b74688b50fa11f44427990d2fb7307d06b9fd6dd8fdbbfdb974d40f",
+  "generation": {
+    "provider_path": "codex_builtin_imagegen",
+    "model_family": "gpt-image-2",
+    "model_version": "builtin-current",
+    "source_width": 1122,
+    "source_height": 1402,
+    "crop_position": "centre",
+    "reframe": {
+      "method": "deterministic_4x5_extract",
+      "input_sha256": "f4ab5c0f6b5b959d52a4f8cd5af7ca00851ee2fd5ae8ca5729560a1d613c26f9",
+      "source_width": 1024,
+      "source_height": 1280,
+      "crop_px": {
+        "left": 128,
+        "top": 220,
+        "width": 768,
+        "height": 960
+      }
+    }
+  },
+  "delivery": {
+    "width": 1024,
+    "height": 1280,
+    "format": "webp",
+    "aspect_ratio": "4:5"
+  },
+  "contains_personal_input": false,
+  "approval": "PENDING_VISUAL_JUDGE",
+  "created_at": "2026-07-22T23:47:44.979Z"
+}

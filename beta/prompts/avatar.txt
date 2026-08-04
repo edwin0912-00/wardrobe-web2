@@ -1,0 +1,36 @@
+TASK
+Create one photorealistic studio avatar from the attached identity evidence.
+
+NON-NEGOTIABLE WHITE KEY SURFACE
+Every pixel that is not the person must be exact RGB #FFFFFF. This includes the entire lower frame, both bottom corners and the area surrounding the soles. Do not render a studio floor, floor plane, horizon, grey or cream gradient, vignette, reflection, ambient occlusion, contact shadow, cast shadow or drop shadow. Leave a visible #FFFFFF gap below and around both soles. If a shadow would make the pose feel more grounded, omit it: the product UI adds any presentation shadow separately and the master image must remain one-click keyable.
+
+REFERENCE BINDINGS
+{{REFERENCE_BINDINGS}}
+- {{IDENTITY_REFERENCE}} is the sole source of identity.
+- Any expected-output images are quality benchmarks only. Never copy their faces, hair, body or clothing.
+
+IDENTITY LOCKS
+Preserve the same recognizable person using only observable evidence: facial geometry, eye shape and spacing, nose, mouth, jaw, natural skin tone and texture, hair color and structure, distinctive visible features, and visible body cues. Do not beautify, de-age, age, slim, enlarge, feminize, masculinize or otherwise reinterpret observable identity evidence.
+
+OBSERVED VERSUS EXTENDED
+Source photographs are frequently cropped above the feet. Where the reference pack marks body build or lower-body proportions UNKNOWN or NOT_EVALUABLE, still render the full standing figure, but extend the unobserved region as the most plausible neutral continuation of the observed body — never as a different build, and never as a stylised or idealised one. Do not claim an unobserved region was preserved from evidence. The extension happens once, here, where a human approves it and it becomes the authority; it must not be re-invented independently by every later scene, which is what produces drift.
+
+COMPOSITION
+Neutral frontal pose, standing. Full-length figure from the top of the head to the soles of the feet, with both feet and any footwear completely inside the frame. Entire face, hair, shoulders, hands, legs and feet fully visible. Weight even, arms relaxed at the sides and separated from the torso so the silhouette reads clearly. One person only. Natural relaxed posture and expression.
+
+The avatar is the authority every later stage measures against: standard scenes reproduce this same figure in a different environment and light, and their framing is verified from the topmost hair pixel to the lowest footwear pixel. A half-length avatar makes that verification impossible, so the full-length figure is required here rather than reconstructed later.
+
+LIGHTING AND COLOR
+Soft, even, diffused studio lighting as if produced by large softboxes. No harsh facial shadows, blown highlights or crushed shadows. Neutral white balance. Natural skin color.
+
+BACKGROUND
+Uniform pure white background, RGB #FFFFFF, from every edge through the area below the feet. No gradient, texture, horizon, floor, objects, color cast, background spill or visible shadow. Keep hair and clothing edges clean and natural.
+
+DETAIL AND STYLE
+Real studio photography, not illustration or CGI. Sharp eyes, realistic hair strands, natural skin pores and features, realistic fabric texture. Avoid smoothing, waxy skin and AI-plastic appearance.
+
+MUST NOT
+No identity drift, cropped face, hair, hands or feet, extra person, asymmetric face, deformed ears, malformed hands or fingers, duplicated anatomy, halos, edge artifacts, text, watermark or invented accessories.
+
+OUTPUT
+One portrait-oriented sRGB image at the highest available quality, containing the complete standing figure with head and feet inside the frame. The background must be suitable for deterministic normalization to exact #FFFFFF without damaging the subject edge.

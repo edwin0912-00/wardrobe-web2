@@ -1,0 +1,55 @@
+{
+  "preset_id": "std.city.rooftop_concrete_sunset",
+  "preset_path": "assets/scene-presets/std.city.rooftop_concrete_sunset/v1/preset.json",
+  "preset_sha256": "64d699b334fa4ec748fcb1718d642eedcf4bc932716a284fdb20a71f1a8c6160",
+  "preset_version": "1.0.0",
+  "production_prompt_path": "prompts/scene-presets/std.city.rooftop_concrete_sunset/v1/production-scene.txt",
+  "prompt_sha256": "2dd3ea7106bdb587f852d7ac5d41b48d79cfe5d1ea186c6cdc219d7d0b7a35b1",
+  "reference_pack_path": "assets/scene-presets/std.city.rooftop_concrete_sunset/v1/reference-pack.json",
+  "reference_pack_sha256": "ba1f462f5dabcc8cd0f52d1461e00666d3434baea4fbd7687b49ca014bcd7075",
+  "references": [
+    {
+      "media_type": "application/json",
+      "order": 1,
+      "path": "assets/scene-presets/std.city.rooftop_concrete_sunset/v1/environment-reference.json",
+      "reference_id": "std.city.rooftop_concrete_sunset.environment",
+      "role": "environment_anchor",
+      "sha256": "eee8185bfca9921efc19e69a686e231e5deeb69fff8cafca0437309c58b32a25"
+    },
+    {
+      "media_type": "application/json",
+      "order": 2,
+      "path": "assets/scene-presets/std.city.rooftop_concrete_sunset/v1/lighting-reference.json",
+      "reference_id": "std.city.rooftop_concrete_sunset.lighting",
+      "role": "lighting_anchor",
+      "sha256": "fa3e09e8ff63aef94b858586377ed7a07d53b3ecd7b8693dd04ba96023363620"
+    },
+    {
+      "media_type": "application/json",
+      "order": 3,
+      "path": "assets/scene-presets/std.city.rooftop_concrete_sunset/v1/composition-reference.json",
+      "reference_id": "std.city.rooftop_concrete_sunset.composition",
+      "role": "composition_anchor",
+      "sha256": "2217cac41aee3f4b30716465a41fee37885fd02ad84e8c3a51b8c4a210b6b03b"
+    },
+    {
+      "media_type": "application/json",
+      "order": 4,
+      "path": "assets/scene-presets/std.city.rooftop_concrete_sunset/v1/palette-anchor.json",
+      "reference_id": "std.city.rooftop_concrete_sunset.palette",
+      "role": "palette_anchor",
+      "sha256": "cd1ce88bf77f671bb3a24fadf038162d14a7ac0f438daeb256d9dc7e3e4f81bb"
+    },
+    {
+      "media_type": "application/json",
+      "order": 5,
+      "path": "assets/scene-presets/std.city.rooftop_concrete_sunset/v1/negative-reference.json",
+      "reference_id": "std.city.rooftop_concrete_sunset.negative",
+      "role": "negative_reference",
+      "sha256": "e01bf31e4f287c08e968f65ff0d081b9d4c9f217754e94139b376803c9e33437"
+    }
+  ],
+  "schema_version": "1.0.0",
+  "source_ledger_path": "assets/scene-presets/std.city.rooftop_concrete_sunset/v1/source-ledger.json",
+  "source_ledger_sha256": "a66af75d3e837031faea37fa4dc0a9ab3b16c9d652eb43a927fc5593484dd841"
+}

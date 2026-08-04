@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:wardrobe:agent-board:1.0.0",
+  "title": "Wardrobe agent task board",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "integration_branch",
+    "orchestrator",
+    "updated_at",
+    "tasks"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0.0"
+    },
+    "integration_branch": {
+      "type": "string",
+      "const": "integration/wardrobe-20260726"
+    },
+    "orchestrator": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,119}$"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "tasks": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "urn:wardrobe:agent-task:1.0.0"
+      }
+    }
+  }
+}

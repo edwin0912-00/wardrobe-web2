@@ -1,0 +1,156 @@
+{
+  "schema_version": "1.0.0",
+  "pack_id": "fashion.cool_style.v1",
+  "title": "Cool Style Fashion Motion",
+  "source_folder": "https://drive.google.com/drive/folders/1GJrJOjGJTuyNcDxvA_ZfRUGZubgD0H65",
+  "references": [
+    {
+      "id": "editorial-detail",
+      "ui_title_uk": "Редакційний акцент",
+      "filename": "reference-01.mp4",
+      "playback_filename": "ui-loop-01.mp4",
+      "playback_sha256": "643e8f48fec4c72371d6c1f7bf9baecf4f433cc5c3030873afe8dd28bc56941f",
+      "playback_bytes": 325684,
+      "preview_filename": "contact-01.jpg",
+      "preview_sha256": "97ddf8257879260cc3595a9cdda0fa75aa7fe15ad95f4d618220f35039ee4f81",
+      "preview_bytes": 89630,
+      "default_motion_mode": "editorial_micro_moment",
+      "source_file_id": "1hQ3JLP8v0bL9yyRXerPn473D5pb5I1_A",
+      "sha256": "12ff78b162da5a66e1cb05ddae9c878e18468ebeeabce07ddf36821b196c2d72",
+      "bytes": 163838342,
+      "width": 1080,
+      "height": 1920,
+      "fps": 25,
+      "duration_seconds": 13.24,
+      "motion_modes": [
+        "editorial_micro_moment"
+      ],
+      "cut_sheet": {
+        "schema_version": "1.0.0",
+        "cuts": [
+          { "cut_index": 0, "start_ms": 0, "end_ms": 800, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Full-length editorial street frame at the ochre doorway; preserve the vertical architecture, frontal camera distance and still opening pose." },
+          { "cut_index": 1, "start_ms": 800, "end_ms": 2800, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Side-profile street portrait through foliage; preserve shallow depth, the ochre-and-green palette and the deliberate head turn." },
+          { "cut_index": 2, "start_ms": 2800, "end_ms": 7320, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Alternating soft-focus and front-facing editorial portrait coverage in the same street world; retain the rapid editorial reframing rather than collapsing it to one shot." },
+          { "cut_index": 3, "start_ms": 7320, "end_ms": 8400, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Full-figure graphic alley composition; preserve scale, hard architectural colour blocks and the centered fashion stance. Remove any secondary person." },
+          { "cut_index": 4, "start_ms": 8400, "end_ms": 8800, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Tight waist-to-knee garment detail; preserve the downward camera angle and body rhythm while keeping the approved outfit exact." },
+          { "cut_index": 5, "start_ms": 8800, "end_ms": 12400, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Three-quarter and full-body foliage portraits; retain the alternating soft focus, pose changes and warm street light." },
+          { "cut_index": 6, "start_ms": 12400, "end_ms": 13040, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Wide behind-the-camera street view; render only the approved avatar where the reference has a person and remove crew or passers-by." },
+          { "cut_index": 7, "start_ms": 13040, "end_ms": 13240, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Tight finishing face-and-collar portrait; preserve the close lens, ochre background and final stillness." }
+        ]
+      }
+    },
+    {
+      "id": "walk-camera-energy",
+      "ui_title_uk": "Графічне місто",
+      "filename": "reference-02.mp4",
+      "playback_filename": "ui-loop-02.mp4",
+      "playback_sha256": "2590a9c1b2f35c49a175630c933fe2abcfaf63a66333762f978c06dfae12134e",
+      "playback_bytes": 299894,
+      "preview_filename": "contact-02.jpg",
+      "preview_sha256": "bfdcf7514b89880666910e8bfcb4b2b38537b13d32b05594ace7307932f61205",
+      "preview_bytes": 68263,
+      "default_motion_mode": "walk_stride",
+      "source_file_id": "1Oq-_VJcMO9skBVjoTUCs0lG8SWQYfKw1",
+      "sha256": "90cea68c0bf6191e987fcabf7a922386867620f06cad8eeeb51bc1da0e91455e",
+      "bytes": 87672785,
+      "width": 1080,
+      "height": 1920,
+      "fps": 25,
+      "duration_seconds": 15.16,
+      "motion_modes": [
+        "walk_stride",
+        "garment_gesture"
+      ],
+      "cut_sheet": {
+        "schema_version": "1.0.0",
+        "cuts": [
+          { "cut_index": 0, "start_ms": 0, "end_ms": 1040, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Fast shallow-focus opening portrait under hard midday sun; preserve the energetic lens proximity and hat-adjustment choreography without retaining the source performer." },
+          { "cut_index": 1, "start_ms": 1040, "end_ms": 3280, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Full-body alley stance and hat gesture; retain direct sun, blue sky, ochre facades and the fashion silhouette." },
+          { "cut_index": 2, "start_ms": 3280, "end_ms": 6280, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Three-quarter wall and mural coverage; preserve the lateral camera energy, changing stance and graphic street geometry." },
+          { "cut_index": 3, "start_ms": 6280, "end_ms": 8840, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Low-angle close portraits beneath the hat brim; retain hard shadow direction, sky colour and face framing." },
+          { "cut_index": 4, "start_ms": 8840, "end_ms": 10240, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Street-width portrait with architectural perspective; preserve the low camera and travel through the alley." },
+          { "cut_index": 5, "start_ms": 10240, "end_ms": 12440, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Hard-sun wall portraits with dappled shadow; keep the approved avatar only and exact outfit readability." },
+          { "cut_index": 6, "start_ms": 12440, "end_ms": 14960, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Medium-to-full-body return to the alley; preserve the pose sequence, angular composition and editorial pace." },
+          { "cut_index": 7, "start_ms": 14960, "end_ms": 15160, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Close final portrait; preserve the hat gesture and abrupt editorial finish." }
+        ]
+      }
+    },
+    {
+      "id": "hard-sun-pose",
+      "ui_title_uk": "Жорстке сонце",
+      "filename": "reference-03.mp4",
+      "playback_filename": "ui-loop-03.mp4",
+      "playback_sha256": "69bf628239415b73ad83141977084a6789289e29ec0982c2e80b5edc0456086f",
+      "playback_bytes": 216953,
+      "preview_filename": "contact-03.jpg",
+      "preview_sha256": "c7de07c5d835bd46a66ed1707fba02f26365f8204543c1f44a8e3732976414e7",
+      "preview_bytes": 72760,
+      "default_motion_mode": "camera_drift",
+      "source_file_id": "1JNumOqtXXRQYJ6BpHWOrV1W_KqPYC4sY",
+      "sha256": "e78ecce55f6bb694c17246b3bd16c172348fde85d7f22afc438f839b9466ed02",
+      "bytes": 61479953,
+      "width": 1080,
+      "height": 1920,
+      "fps": 25,
+      "duration_seconds": 15.12,
+      "motion_modes": [
+        "camera_drift"
+      ],
+      "cut_sheet": {
+        "schema_version": "1.0.0",
+        "cuts": [
+          { "cut_index": 0, "start_ms": 0, "end_ms": 1280, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Wide corner-building opening with an upright figure; preserve the mustard facade, deep shadow and small full-body scale." },
+          { "cut_index": 1, "start_ms": 1280, "end_ms": 2560, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Extreme fisheye close portrait; preserve the optical distortion, upward camera and formal face framing with the approved avatar." },
+          { "cut_index": 2, "start_ms": 2560, "end_ms": 3880, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Wide moving street-crossing composition; retain broad architectural space and remove every non-approved pedestrian." },
+          { "cut_index": 3, "start_ms": 3880, "end_ms": 4680, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Vertical side full-body pose against the warm facade; preserve hard sun, raised-arm choreography and deep shade." },
+          { "cut_index": 4, "start_ms": 4680, "end_ms": 8360, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Architecture-to-portrait sequence at the yellow wall; preserve the shift from wide building scale to medium fashion portrait." },
+          { "cut_index": 5, "start_ms": 8360, "end_ms": 13240, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Compressed close portrait in hard directional light; preserve the shadow pattern, hand-to-neck choreography and changing crop." },
+          { "cut_index": 6, "start_ms": 13240, "end_ms": 15120, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Final intimate close-up; preserve the slow camera drift, warm wall, deep contrast and final gaze without any source-person pixels." }
+        ]
+      }
+    },
+    {
+      "id": "architectural-stair-glitch",
+      "ui_title_uk": "Архітектурні сходи",
+      "filename": "reference-04.mp4",
+      "playback_filename": "ui-loop-04.mp4",
+      "playback_sha256": "d26955c927ce488ec0926e6ac9c639f75c61892c572f7d3aefca57173a69ca0d",
+      "playback_bytes": 638584,
+      "preview_filename": "contact-04.jpg",
+      "preview_sha256": "38a9bc461a5fa6a748a2edeff9c48d2f6b8455dd889ffaa1af9eb078048b1357",
+      "preview_bytes": 76759,
+      "default_motion_mode": "walk_stride",
+      "source_file_id": null,
+      "sha256": "a76035555805d93d6c18c39c3d544e8cb38c24c635280a9b88ec6afc74c99058",
+      "bytes": 23450878,
+      "width": 1080,
+      "height": 1920,
+      "fps": 25,
+      "duration_seconds": 15,
+      "motion_modes": [
+        "walk_stride"
+      ],
+      "cut_sheet": {
+        "schema_version": "1.0.0",
+        "cuts": [
+          { "cut_index": 0, "start_ms": 0, "end_ms": 1470, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Wide lateral bridge walk: render the approved full look as a small complete figure between pale concrete and dark rails under hard daylight." },
+          { "cut_index": 1, "start_ms": 1470, "end_ms": 2120, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Closer profile bridge coverage: retain travel direction, crisp hard-light garment edges and the approved face; never retain the source performer." },
+          { "cut_index": 2, "start_ms": 2120, "end_ms": 2320, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Brief monochrome collage punctuation: reconstruct a new graphic transition using the approved look or an empty architectural fragment only." },
+          { "cut_index": 3, "start_ms": 2320, "end_ms": 2640, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Frontal full-body arrival at the stairs: preserve blue-sky negative space, exact approved outfit and a readable planted stance." },
+          { "cut_index": 4, "start_ms": 2640, "end_ms": 2920, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Reflective silhouette interlude: rebuild cool lavender reflection without source body fragments, source clothing, logos or source product." },
+          { "cut_index": 5, "start_ms": 2920, "end_ms": 3920, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Tread-level stair descent: show one believable weight transfer with approved footwear visible against concrete edges and hard daylight." },
+          { "cut_index": 6, "start_ms": 3920, "end_ms": 4640, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Rail-and-stair interference frame: architecture may occlude, but keep the approved face or exact item readable in a clear zone." },
+          { "cut_index": 7, "start_ms": 4640, "end_ms": 5760, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Connected waist-and-hand detail: show only approved item construction in torso and hand context; never recreate the source green product." },
+          { "cut_index": 8, "start_ms": 5760, "end_ms": 6240, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Full-body stair hold: reset the architecture with the same approved person, complete outfit and footwear, with no secondary person." },
+          { "cut_index": 9, "start_ms": 6240, "end_ms": 6640, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Closer side stair beat: preserve the same hard light and structural perspective while the approved body remains connected and natural." },
+          { "cut_index": 10, "start_ms": 6640, "end_ms": 7080, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Controlled blur-and-glitch transition: new imagery only, no frozen source frame, no source face, wardrobe or motion-blurred fragment." },
+          { "cut_index": 11, "start_ms": 7080, "end_ms": 9520, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Reflective product-only insert: use only the approved item in a lavender editorial layer; if no approved item is visible, render no person." },
+          { "cut_index": 12, "start_ms": 9520, "end_ms": 10280, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Rapid glitch item montage: preserve the editorial cadence while every garment, logo, material and text comes from the approved item evidence." },
+          { "cut_index": 13, "start_ms": 10280, "end_ms": 12960, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Low stair push and held pose: retain converging rails, grounded anatomy, hard concrete boundaries and the exact approved look." },
+          { "cut_index": 14, "start_ms": 12960, "end_ms": 14440, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Extreme low sky angle: build a new sculptural full or upper-body geometry with the approved person only and no source silhouette." },
+          { "cut_index": 15, "start_ms": 14440, "end_ms": 15000, "subject_rule": "APPROVED_AVATAR_OR_EMPTY", "direction": "Connected hand-and-accessory close: keep the approved item, hand, forearm and garment context exact; stop before the excluded source end-card." }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,259 @@
+{
+  "$schema": "https://github.com/ksimback/looper/schema/loop.resolved.v1.json",
+  "compiled_at": "2026-07-22T13:49:24+00:00",
+  "council": [
+    {
+      "cli": "codex",
+      "id": "judge-1",
+      "invoke": [
+        "codex",
+        "exec"
+      ],
+      "local": false,
+      "model": "gpt-5.6-terra",
+      "role": "judge",
+      "scope": [
+        "delivery"
+      ],
+      "timeout_sec": 600
+    }
+  ],
+  "council_by_id": {
+    "judge-1": {
+      "cli": "codex",
+      "id": "judge-1",
+      "invoke": [
+        "codex",
+        "exec"
+      ],
+      "local": false,
+      "model": "gpt-5.6-terra",
+      "role": "judge",
+      "scope": [
+        "delivery"
+      ],
+      "timeout_sec": 600
+    }
+  },
+  "criteria_by_id": {
+    "full-tests": {
+      "check": [
+        "npm",
+        "test"
+      ],
+      "expect": "exit_zero",
+      "id": "full-tests",
+      "timeout_sec": 600,
+      "type": "programmatic"
+    },
+    "report-schema": {
+      "check": [
+        "python3",
+        "scripts/check-fix-report.py",
+        "loop-workspace/FIX-REPORT.md"
+      ],
+      "expect": "exit_zero",
+      "id": "report-schema",
+      "timeout_sec": 300,
+      "type": "programmatic"
+    },
+    "root-cause-sound": {
+      "id": "root-cause-sound",
+      "rubric": "Compare FIX-REPORT.md with the incident JSON, persisted run state, tests, and diff. Pass only when the stated cause explains the exact transition, the fix removes that cause without weakening fail-closed behavior, and no runtime images, secrets, model policy, or unrelated files were used.\n",
+      "type": "judge"
+    },
+    "targeted-tests": {
+      "check": [
+        "node",
+        "--test",
+        "test/web/garment-passport.test.js",
+        "test/providers/codex-vlm-evaluator.test.js",
+        "test/web/run-service.test.js",
+        "test/monitor/agent-supervisor.test.js"
+      ],
+      "expect": "exit_zero",
+      "id": "targeted-tests",
+      "timeout_sec": 300,
+      "type": "programmatic"
+    }
+  },
+  "execution": {
+    "isolation": "current_workspace",
+    "mode": "in_session",
+    "side_effects": {
+      "duplicate_action_check": true,
+      "notes": "The user explicitly authorized automatic diagnosis and repair. The loop may edit source/tests only; it never commits, pushes, deploys, restarts, deletes data, changes secrets, or changes model policy.\n",
+      "requires_approval": false
+    }
+  },
+  "gates": {
+    "delivery_gate": {
+      "criteria": [
+        "targeted-tests",
+        "full-tests",
+        "report-schema",
+        "root-cause-sound"
+      ],
+      "max_revisions": 3,
+      "members": [
+        "judge-1"
+      ],
+      "verdict_policy": "revise_until_clean",
+      "verdict_source": "judge-1",
+      "when": "after_each_delivery"
+    },
+    "plan_gate": {
+      "criteria": [
+        "root-cause-sound"
+      ],
+      "max_revisions": 2,
+      "members": [
+        "judge-1"
+      ],
+      "verdict_policy": "revise_until_clean",
+      "verdict_source": "judge-1",
+      "when": "after_plan"
+    }
+  },
+  "goal": {
+    "context_sources": [
+      {
+        "file": "./inputs/current-incident.json"
+      },
+      {
+        "cmd": [
+          "git",
+          "-C",
+          "../..",
+          "log",
+          "--oneline",
+          "-10"
+        ],
+        "timeout_sec": 60
+      }
+    ],
+    "definition_of_done": "The incident has a reproducible classification, FIX-REPORT.md has exact evidence and file:line locations, targeted tests and npm test pass, no unrelated files change, and monitor receives a terminal agent result.\n",
+    "statement": "Diagnose the latest sanitized incident in runtime/supervisor without opening runtime images or secrets. If it is a code defect, add a deterministic regression test, fix the root cause, run targeted and full tests, and write FIX-REPORT.md. If behavior is correct NEEDS_INPUT, make no code change and document the evidence.\n",
+    "verification": [
+      {
+        "check": [
+          "node",
+          "--test",
+          "test/web/garment-passport.test.js",
+          "test/providers/codex-vlm-evaluator.test.js",
+          "test/web/run-service.test.js",
+          "test/monitor/agent-supervisor.test.js"
+        ],
+        "expect": "exit_zero",
+        "id": "targeted-tests",
+        "timeout_sec": 300,
+        "type": "programmatic"
+      },
+      {
+        "check": [
+          "npm",
+          "test"
+        ],
+        "expect": "exit_zero",
+        "id": "full-tests",
+        "timeout_sec": 600,
+        "type": "programmatic"
+      },
+      {
+        "check": [
+          "python3",
+          "scripts/check-fix-report.py",
+          "loop-workspace/FIX-REPORT.md"
+        ],
+        "expect": "exit_zero",
+        "id": "report-schema",
+        "timeout_sec": 300,
+        "type": "programmatic"
+      },
+      {
+        "id": "root-cause-sound",
+        "rubric": "Compare FIX-REPORT.md with the incident JSON, persisted run state, tests, and diff. Pass only when the stated cause explains the exact transition, the fix removes that cause without weakening fail-closed behavior, and no runtime images, secrets, model policy, or unrelated files were used.\n",
+        "type": "judge"
+      }
+    ]
+  },
+  "host": {
+    "cli": "codex",
+    "invoke": [
+      "codex",
+      "exec"
+    ],
+    "model": "gpt-5.6-terra",
+    "timeout_sec": 900
+  },
+  "loop_control": {
+    "budget": {
+      "tokens": 2000000,
+      "usd": 5.0,
+      "wall_clock_min": 45
+    },
+    "human_checkpoints": [],
+    "max_iterations": 10,
+    "no_progress": {
+      "action": "stop",
+      "max_stalled_iterations": 2,
+      "signals": [
+        "same incident fingerprint repeats without a new test or diagnosis",
+        "targeted test fails with an unchanged error after revision",
+        "FIX-REPORT.md has no material change after revision"
+      ]
+    },
+    "stop_conditions": [
+      "delivery_gate passes clean",
+      "max_iterations reached",
+      "same blocker repeats twice",
+      "any budget cap exceeded"
+    ]
+  },
+  "meta": {
+    "author": "zeely-team",
+    "created": "2026-07-22",
+    "description": "Reproduce, repair, verify, and report one deduplicated Zeely production incident.",
+    "name": "zeely-live-bug-hunt"
+  },
+  "observability": {
+    "checkpoint_granularity": "gate",
+    "run_log": "run-log.md",
+    "state_file": "state.json"
+  },
+  "privacy": {
+    "egress": [
+      {
+        "consent": "granted",
+        "redact": [
+          ".env",
+          ".env.*",
+          "secrets/**",
+          "**/*.key",
+          "runtime/runs/**/inputs/**",
+          "runtime/drafts/**"
+        ],
+        "sends": [
+          "sanitized-incident-json",
+          "source-diff",
+          "test-results",
+          "fix-report"
+        ],
+        "to": "judge-1"
+      }
+    ]
+  },
+  "source": "/Users/jarvis1/Documents/Codex/2026-07-19/mvp-zeely-format-html5-1-2/ops/zeely-supervisor-loop/loop.yaml",
+  "version": 1,
+  "workspace": {
+    "dir": "./loop-workspace",
+    "layout": [
+      "fix-plan.md",
+      "fix-draft-{n}.md",
+      "review-{n}.md",
+      "FIX-REPORT.md",
+      "state.json",
+      "run-log.md"
+    ]
+  }
+}

@@ -1,0 +1,164 @@
+{
+  "schema_version": "1.0.0",
+  "asset_id": "outfit-black-sneaker",
+  "kind": "GARMENT",
+  "source": {
+    "path": "inputs/zeely-test/outfits/68d39339521f3-6389105.webp",
+    "sha256": "5075f38ef46f9811640c2e0d22849e72f042f43f91d3cc706ae107fa8a62c346",
+    "immutable": true
+  },
+  "extraction": {
+    "method": "explicit_visual_review",
+    "category": "FOOTWEAR",
+    "observed_facts": {
+      "garmentType": "all-black athletic sneaker",
+      "structure": [
+        "mesh and synthetic upper",
+        "black laces",
+        "sculpted sole",
+        "visible air units"
+      ],
+      "material": [
+        "mesh textile",
+        "synthetic overlay",
+        "rubber sole"
+      ],
+      "pattern": [
+        "plain black technical paneling"
+      ]
+    },
+    "provenance": "OBSERVED",
+    "unknowns": []
+  },
+  "technical_assessment": {
+    "schema_version": "1.0.0",
+    "metadata": {
+      "format": "webp",
+      "mime_type": "image/webp",
+      "source_width": 437,
+      "source_height": 437,
+      "display_width": 437,
+      "display_height": 437,
+      "orientation": 1,
+      "color_space": "srgb",
+      "channels": 3,
+      "has_alpha": false,
+      "density": null,
+      "pages": 1,
+      "byte_length": 14942,
+      "source_sha256": "5075f38ef46f9811640c2e0d22849e72f042f43f91d3cc706ae107fa8a62c346"
+    },
+    "signals": {
+      "analysis_width": 256,
+      "analysis_height": 256,
+      "mean_luminance": 0.730406,
+      "black_clip_ratio": 0.011429,
+      "white_clip_ratio": 0,
+      "luminance_range_p05_p95": 0.87451,
+      "edge_energy": 0.014337,
+      "subject_coverage": null
+    },
+    "resize_evidence": {
+      "preferred_long_edge": 1024,
+      "current_long_edge": 437,
+      "factor_to_preferred": 2.343249,
+      "max_upscale_factor": 2,
+      "applied_upscale_factor": 2,
+      "target_reachable": false
+    },
+    "fatal_issues": [],
+    "repairable_issues": [
+      {
+        "code": "BELOW_PREFERRED_RESOLUTION",
+        "severity": "REPAIRABLE",
+        "repair": "CONSERVATIVE_UPSCALE",
+        "details": {
+          "preferred_long_edge": 1024,
+          "actual_long_edge": 437,
+          "applied_upscale_factor": 2
+        }
+      }
+    ],
+    "risks": [
+      {
+        "code": "RESOLUTION_TARGET_UNREACHABLE",
+        "severity": "RISK",
+        "repair": "REQUEST_BETTER_REFERENCE_FOR_EXACT_DETAIL",
+        "details": {
+          "factor_to_preferred": 2.343249,
+          "max_upscale_factor": 2
+        }
+      }
+    ]
+  },
+  "conditioning": {
+    "normalized": {
+      "path": "artifacts/conditioning/garments/sneaker-black/normalized.png",
+      "sha256": "68d22fb0464f4e9ea6eef7cf83abc13b25e2b8502d566e880e2b458b7be2ec23",
+      "bytes": 313173
+    },
+    "cutout": {
+      "path": "artifacts/conditioning/garments/sneaker-black/cutout.png",
+      "sha256": "655d6fec39dd4b5bea52f6e92a02aff668e6f29d49444f25606387d4dfb0e2ed",
+      "bytes": 72346,
+      "is_isolated": false,
+      "isolation_method": "EXPLICIT_BBOX_CROP"
+    },
+    "reference_card": {
+      "path": "artifacts/conditioning/garments/sneaker-black/reference-card.png",
+      "sha256": "1c3221bc937727f02eddbde03d31f20f2cb8efba904c17d2d7f75982fccfda51",
+      "bytes": 95222
+    },
+    "warnings": [
+      "BBOX_CROP_IS_NOT_PIXEL_LEVEL_SEGMENTATION"
+    ],
+    "operations": [
+      {
+        "type": "AUTO_ORIENT"
+      },
+      {
+        "type": "CONVERT_COLOR_SPACE",
+        "to": "srgb"
+      },
+      {
+        "type": "EXPLICIT_BBOX_CROP",
+        "bbox_pixels": {
+          "left": 0,
+          "top": 0,
+          "width": 437,
+          "height": 437
+        }
+      },
+      {
+        "type": "CREATE_REFERENCE_CARD",
+        "width": 1024,
+        "height": 1280
+      }
+    ]
+  },
+  "readiness": {
+    "decision": "REPAIRABLE",
+    "reasons": [
+      "BELOW_PREFERRED_RESOLUTION"
+    ],
+    "actions": [
+      "CONSERVATIVE_UPSCALE"
+    ],
+    "terminal": false
+  },
+  "generation_bindings": [
+    {
+      "order": 1,
+      "role": "GARMENT_PRIMARY",
+      "path": "artifacts/conditioning/garments/sneaker-black/cutout.png",
+      "sha256": "655d6fec39dd4b5bea52f6e92a02aff668e6f29d49444f25606387d4dfb0e2ed"
+    },
+    {
+      "order": 2,
+      "role": "GARMENT_REFERENCE_CARD",
+      "path": "artifacts/conditioning/garments/sneaker-black/reference-card.png",
+      "sha256": "1c3221bc937727f02eddbde03d31f20f2cb8efba904c17d2d7f75982fccfda51"
+    }
+  ],
+  "created_at": "2026-07-28T11:00:03.443Z"
+}

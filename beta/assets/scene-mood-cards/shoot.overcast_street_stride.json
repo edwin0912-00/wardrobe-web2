@@ -1,0 +1,70 @@
+{
+  "schema_version": "1.0.0",
+  "preset_id": "shoot.overcast_street_stride",
+  "kind": "editorial",
+  "family": "create_universe",
+  "ui_name_uk": "Хмарна вулиця · крок",
+  "asset_role": "mood_card",
+  "file": "assets/scene-mood-cards/shoot.overcast_street_stride.webp",
+  "sha256": "2c4eff1e78da6d8a11f493cb2ea8ec762d68622a77c6845d6ae403a94ce9b8bc",
+  "origin": {
+    "kind": "OWN_GENERATED_PREVIEW",
+    "note": "Original preview generated solely from the immutable runtime_style contract and deterministic palette authority. No source photographs, approved looks, source identity, or personal input were supplied to the provider.",
+    "unit_contract": "docs/style-units/shoot.overcast_street_stride/unit.json",
+    "unit_contract_sha256": "5d0ff917253d5e9c886228b949bdc017741135fc5fa5446e2a7ee93bca045e44",
+    "unit_binding_sha256": "637fad0f1f7d8c03e4fa03037298f49ed1ea62e18dfabcda3c3567396f0fa25f",
+    "runtime_style_sha256": "884c5bf666cea228bb12938d9f3f9258cfa9adabf444b74ac274232ffa1bb7d7",
+    "palette_authority": {
+      "file": "docs/style-units/shoot.overcast_street_stride/palette-strip.svg",
+      "sha256": "e60f4b429e0acf170982d1926a98e3e336665375e39b4cdc1f54be80b7e32f2f",
+      "rendered_not_generated": true
+    }
+  },
+  "generation": {
+    "provider_path": "higgsfield-cli",
+    "prompt_contract_version": "create-universe-mood-card-v1",
+    "prompt_sha256": "e239e81b3ceba90218d27e3e204fd11df033d9a7f6d096376c77962ded7f0c12",
+    "composition_slot": "environmental_hero",
+    "provider_receipt": {
+      "provider": "higgsfield",
+      "transport": "higgsfield-cli",
+      "generation_mode": "journaled",
+      "job_id": "5bf56a8b-5cbd-443e-ad64-4844ed8f463c",
+      "job_set_type": "nano_banana_2",
+      "model_name": "Nano Banana Pro",
+      "provider_internal_model": null,
+      "requested_aspect_ratio": "4:5",
+      "requested_resolution": "2k",
+      "requested_quality": null,
+      "output_sha256": "f800050ac953e2008b99b58643d206b0071d6f826b66abf32f91c383e3fed353",
+      "provider_journal_sha256": "d30755739d57ce4e6454179d26c31ac05dd0333f2ddb922dc7d84d6c0d829bff",
+      "request_sha256": "aa56099f0f71c487fc14fce6496f6053bc37e41020c3b6a2de85a67734c669e6",
+      "palette_input_sha256": "c2787de374a129aa2e734f28b3cca221319f5e3354a0abaa48560eb0619c20a1"
+    },
+    "source_width": 1856,
+    "source_height": 2304,
+    "normalization": {
+      "method": "deterministic_4x5_cover",
+      "crop_position": "centre",
+      "width": 1024,
+      "height": 1280,
+      "format": "webp"
+    }
+  },
+  "delivery": {
+    "width": 1024,
+    "height": 1280,
+    "format": "webp",
+    "aspect_ratio": "4:5"
+  },
+  "contains_personal_input": false,
+  "approval": "APPROVED",
+  "visual_review": {
+    "status": "APPROVED",
+    "reviewed_at": "2026-07-29T22:00:47.492Z",
+    "reviewed_source_width": 1856,
+    "reviewed_source_height": 2304,
+    "notes": "Full-resolution review passed: overcast urban street depth, decisive stride geometry, cool neutral palette, controlled background motion, full-body legibility, and identity-independent generated subject."
+  },
+  "created_at": "2026-07-29T22:00:47.492Z"
+}

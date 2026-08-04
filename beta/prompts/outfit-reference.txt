@@ -1,0 +1,30 @@
+TASK
+Edit the approved avatar so the same person wears the outfit or accessory defined by the attached outfit evidence and the authoritative supporting text.
+
+NON-NEGOTIABLE WHITE KEY SURFACE
+Every pixel that is not the person must be exact RGB #FFFFFF. This includes the entire lower frame, both bottom corners and the area surrounding the soles. Do not render a studio floor, floor plane, horizon, grey or cream gradient, vignette, reflection, ambient occlusion, contact shadow, cast shadow or drop shadow. Leave a visible #FFFFFF gap below and around both soles. If a shadow would make the pose feel more grounded, omit it: the product UI adds any presentation shadow separately and the master image must remain one-click keyable.
+
+REFERENCE BINDINGS
+{{REFERENCE_BINDINGS}}
+- {{ORIGINAL_IDENTITY_REFERENCE}} is the authority for identity.
+- {{APPROVED_AVATAR_REFERENCE}} is the authority for pose, crop, lighting and background.
+- {{OUTFIT_REFERENCE}} is the authority only for garment/accessory structure, color, material, print, logo/text placement and fit.
+- Quality-reference images are QA benchmarks only and must not affect identity.
+
+AUTHORITATIVE SUPPORTING TEXT
+{{SUPPORTING_TEXT}}
+
+LOCKED ELEMENTS
+Preserve observable facial geometry, skin tone and texture, hair and distinctive features from the identity evidence. Preserve the approved avatar's expression, visible proportions, pose, camera, crop, lighting and pure-white background. Never reinterpret an UNKNOWN or NOT_EVALUABLE source-body attribute as observed evidence. Do not change any body region outside {{TARGET_REGION}} unless required for physically plausible garment occlusion.
+
+OUTFIT FIDELITY
+Reproduce every item in {{MUST_MATCH}}. Respect construction, neckline, hood/collar, sleeve length, closures, seams, silhouette, material, color and visible graphic placement. Preserve readable text and logos when the reference contains them; do not invent additional branding.
+
+CLEAN REPLACEMENT
+Remove only the clothing being replaced inside {{TARGET_REGION}}. No remnants, double collars, overlapping sleeves, fused fabric, duplicated accessories or skin/background leakage inside that selected region. Clothing outside {{TARGET_REGION}} is intentionally unselected: preserve it or complete it plausibly, but never infer a target item from incidental clothing visible in the garment source photo. Garments must contact and drape on the body naturally.
+
+QUALITY
+Photorealistic studio photograph. Sharp face, hair and fabric. Natural anatomy. Uniform pure #FFFFFF background from every edge through the area below the feet, with no floor, gradient or shadow.
+
+OUTPUT
+One portrait-oriented sRGB image matching the approved avatar's framing and dimensions.

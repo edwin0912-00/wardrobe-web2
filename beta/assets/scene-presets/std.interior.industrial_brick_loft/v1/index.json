@@ -1,0 +1,55 @@
+{
+  "preset_id": "std.interior.industrial_brick_loft",
+  "preset_path": "assets/scene-presets/std.interior.industrial_brick_loft/v1/preset.json",
+  "preset_sha256": "dfdc86cfec674321ec7c1c1881683b372138effd7d301387630f67b6b7a31b41",
+  "preset_version": "1.0.0",
+  "production_prompt_path": "prompts/scene-presets/std.interior.industrial_brick_loft/v1/production-scene.txt",
+  "prompt_sha256": "e6f6795615673d83235e7fcda879e804d2cd9889260d0667cc11ae835b299de0",
+  "reference_pack_path": "assets/scene-presets/std.interior.industrial_brick_loft/v1/reference-pack.json",
+  "reference_pack_sha256": "8ca5fcedb83f120766891b0b41b6501281ece7440500256391f8416c20a5c76d",
+  "references": [
+    {
+      "media_type": "application/json",
+      "order": 1,
+      "path": "assets/scene-presets/std.interior.industrial_brick_loft/v1/environment-reference.json",
+      "reference_id": "std.interior.industrial_brick_loft.environment",
+      "role": "environment_anchor",
+      "sha256": "edd592687b0d942230b3bbf4b17c2d36aa48439e295f174aceb8b6b8d95ec9f7"
+    },
+    {
+      "media_type": "application/json",
+      "order": 2,
+      "path": "assets/scene-presets/std.interior.industrial_brick_loft/v1/lighting-reference.json",
+      "reference_id": "std.interior.industrial_brick_loft.lighting",
+      "role": "lighting_anchor",
+      "sha256": "7f028c6ed8607c4c49b1d8171678747233caa494f7e8055dfb9a228ca2aa7759"
+    },
+    {
+      "media_type": "application/json",
+      "order": 3,
+      "path": "assets/scene-presets/std.interior.industrial_brick_loft/v1/composition-reference.json",
+      "reference_id": "std.interior.industrial_brick_loft.composition",
+      "role": "composition_anchor",
+      "sha256": "2217cac41aee3f4b30716465a41fee37885fd02ad84e8c3a51b8c4a210b6b03b"
+    },
+    {
+      "media_type": "application/json",
+      "order": 4,
+      "path": "assets/scene-presets/std.interior.industrial_brick_loft/v1/palette-anchor.json",
+      "reference_id": "std.interior.industrial_brick_loft.palette",
+      "role": "palette_anchor",
+      "sha256": "adfe2fa2bb2263dff63cd5ebd20b6b3f90a43a236beb6ed7d93cfecfc6e0ba3d"
+    },
+    {
+      "media_type": "application/json",
+      "order": 5,
+      "path": "assets/scene-presets/std.interior.industrial_brick_loft/v1/negative-reference.json",
+      "reference_id": "std.interior.industrial_brick_loft.negative",
+      "role": "negative_reference",
+      "sha256": "b6d7c55c1c50847ad38f6459c40720b723f2b4a17c667c238607bdebcffe6707"
+    }
+  ],
+  "schema_version": "1.0.0",
+  "source_ledger_path": "assets/scene-presets/std.interior.industrial_brick_loft/v1/source-ledger.json",
+  "source_ledger_sha256": "4b5d62871ee1217526e07a550f651bdb4cb4849cd5727e90b45d1fea2a645fed"
+}

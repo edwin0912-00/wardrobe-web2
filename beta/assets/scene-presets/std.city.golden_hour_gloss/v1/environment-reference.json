@@ -1,0 +1,20 @@
+{
+  "facts": {
+    "description": "An original restrained stone arcade and city lane with simplified facades and no landmark, sign or copied source geometry.",
+    "materials": [
+      "pale limestone",
+      "matte stone paving",
+      "restrained metal details"
+    ],
+    "originality_rules": [
+      "Invent new geometry instead of reconstructing any preview, source photograph or recognizable place.",
+      "No landmark, signage, storefront brand, other person, vehicle or unauthorized prop."
+    ],
+    "spatial_cues": [
+      "Create a new city layout consistent with the scene description.",
+      "Keep coherent depth, grounded perspective and clean negative space around the subject."
+    ]
+  },
+  "role": "environment_anchor",
+  "schema_version": "1.0.0"
+}

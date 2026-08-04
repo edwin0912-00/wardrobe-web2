@@ -1,0 +1,41 @@
+{
+  "schema_version": "1.0.0",
+  "preset_id": "std.interior.loft_golden_hour_gloss",
+  "kind": "standard",
+  "family": "interior",
+  "ui_name_uk": "Лофт — золота година",
+  "asset_role": "mood_card",
+  "file": "assets/scene-mood-cards/std.interior.loft_golden_hour_gloss.webp",
+  "sha256": "ef7d0cbbf1263838c9f5aedf385a8b9b5cc1bc70f04aa4d0197cad3f2f52a6f6",
+  "prompt_path": "prompts/scenes/std.interior.loft_golden_hour_gloss.txt",
+  "prompt_sha256": "8bfe6b171a5481dcb7234415296ae15a7f4358e9f8b1824d77c08401f5faf52c",
+  "generation": {
+    "provider_path": "codex_builtin_imagegen",
+    "model_family": "gpt-image-2",
+    "model_version": "builtin-current",
+    "source_width": 1003,
+    "source_height": 1568,
+    "crop_position": "centre",
+    "reframe": {
+      "method": "deterministic_4x5_extract",
+      "input_sha256": "4f24d82a5fe0d9ff3e470e3631e40e670eee3bb49e88a3d935e28409d1c2f202",
+      "source_width": 1024,
+      "source_height": 1280,
+      "crop_px": {
+        "left": 114,
+        "top": 230,
+        "width": 796,
+        "height": 995
+      }
+    }
+  },
+  "delivery": {
+    "width": 1024,
+    "height": 1280,
+    "format": "webp",
+    "aspect_ratio": "4:5"
+  },
+  "contains_personal_input": false,
+  "approval": "PENDING_VISUAL_JUDGE",
+  "created_at": "2026-07-22T23:28:22.027Z"
+}

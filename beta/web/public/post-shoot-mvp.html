@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>WARDROBE · Real-time Look</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/post-shoot-mvp.css?v=20260730-2">
+  <link rel="stylesheet" href="/live-layout-fix.css?v=20260727-8">
+</head>
+<body>
+  <main class="live-shell">
+    <header class="live-header">
+      <button class="live-header-close" type="button" data-live-close aria-label="Закрити Real-time Look">W</button>
+      <span>REAL-TIME LOOK</span>
+      <i></i>
+    </header>
+
+    <section class="live-stage">
+      <video id="camera" autoplay muted playsinline></video>
+      <div id="camera-placeholder" class="empty-state">
+        <span class="aperture"></span>
+        <b>Увімкни камеру</b>
+        <small>Тримай телефон вертикально на рівні грудей</small>
+      </div>
+      <div id="live-ai-thinking" class="live-ai-thinking hidden" role="status" aria-live="polite">
+        <canvas id="live-thinking-orb"></canvas>
+        <span><b id="live-ai-title">AI готує Live</b><small id="live-ai-detail">Завантажуємо перевірений образ</small></span>
+      </div>
+
+      <div id="fit-guide" class="fit-guide" aria-hidden="true">
+        <div class="scan-line"></div>
+        <svg viewBox="0 0 240 420" role="presentation">
+          <path class="body-line" d="M120 24c-25 0-44 20-44 45 0 22 14 40 34 45v17c-12 3-26 8-40 16-23 14-32 42-34 74l-4 70m88-160v270m0-270c12 3 26 8 40 16 23 14 32 42 34 74l4 70M70 147c12 38 13 82 9 130l-15 124m106-254c-12 38-13 82-9 130l15 124"/>
+          <path class="shoulder-bracket" d="M38 179v-24h28m136 24v-24h-28M38 294v24h28m136-24v24h-28"/>
+        </svg>
+        <p><b>Відійди на 1.5–2 м</b><span>Голова, торс і стегна мають бути в рамці</span></p>
+      </div>
+
+      <div class="stage-top">
+        <span class="live-mark"><i></i> LIVE</span>
+        <span><i id="camera-permission-status">КАМЕРА · НЕ ЗАПИТАНО</i> <b id="live-status">READY</b><small class="live-session-meta">Lucy 2.5 · $2.40/хв · до 40 с</small><button class="live-stage-close" type="button" data-live-close aria-label="Закрити Real-time Look">×</button></span>
+      </div>
+
+      <div class="control-dock">
+        <label class="reference-control" aria-label="Додати образ">
+          <input id="reference-upload" type="file" accept="image/jpeg,image/png,image/webp">
+          <span class="reference-visual">
+            <img id="reference-preview" class="hidden" alt="Reference look">
+            <i id="reference-placeholder">+</i>
+          </span>
+          <span><b>Образ</b><small id="reference-status">Додати фото</small></span>
+        </label>
+        <button id="camera-start" class="camera-button" type="button" disabled>Увімкнути камеру</button>
+        <button id="camera-stop" class="camera-button hidden" type="button">Вимкнути камеру</button>
+        <button id="lucy-start" class="test-button" type="button" disabled>Запустити Live</button>
+        <button id="lucy-stop" class="stop-button" type="button" aria-label="Зупинити">■</button>
+      </div>
+    </section>
+  </main>
+  <script type="module" src="/post-shoot-mvp.js?v=20260802-1"></script>
+</body>
+</html>

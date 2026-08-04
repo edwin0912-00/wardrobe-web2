@@ -1,0 +1,195 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zeely.ai/schemas/quality-target.schema.json",
+  "title": "Zeely Image Quality Target",
+  "description": "Machine-readable target derived from written task rules first and visual benchmark images second.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "quality_target_id",
+    "job_id",
+    "authority_order",
+    "written_rules",
+    "visual_benchmarks",
+    "output",
+    "composition",
+    "background",
+    "lighting",
+    "rendering",
+    "fidelity",
+    "negative_constraints",
+    "qa_thresholds",
+    "created_at"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "quality_target_id": { "$ref": "#/$defs/id" },
+    "job_id": { "$ref": "#/$defs/id" },
+    "authority_order": {
+      "type": "array",
+      "prefixItems": [
+        { "const": "WRITTEN_TASK_RULES" },
+        { "const": "USER_PROVIDED_FACTS" },
+        { "const": "VISUAL_BENCHMARKS" }
+      ],
+      "minItems": 3,
+      "maxItems": 3
+    },
+    "written_rules": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["rule_id", "text", "blocking"],
+        "properties": {
+          "rule_id": { "$ref": "#/$defs/id" },
+          "text": { "type": "string", "minLength": 1, "maxLength": 1000 },
+          "blocking": { "type": "boolean" }
+        }
+      }
+    },
+    "visual_benchmarks": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["asset_id", "authoritative_for", "must_not_define"],
+        "properties": {
+          "asset_id": { "$ref": "#/$defs/id" },
+          "authoritative_for": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": { "enum": ["POSE", "FRAMING", "LIGHTING", "WHITE_BALANCE", "PHOTOREALISTIC_FINISH", "DETAIL_LEVEL"] }
+          },
+          "must_not_define": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": { "enum": ["IDENTITY", "FACE", "HAIR", "BODY", "GARMENT", "EXACT_BACKGROUND_COLOR"] }
+          }
+        }
+      }
+    },
+    "output": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["media_type", "format", "color_space", "min_width_px", "min_height_px", "alpha"],
+      "properties": {
+        "media_type": { "const": "IMAGE" },
+        "format": { "enum": ["PNG", "WEBP"] },
+        "color_space": { "const": "SRGB" },
+        "min_width_px": { "type": "integer", "minimum": 512 },
+        "min_height_px": { "type": "integer", "minimum": 512 },
+        "alpha": { "const": false },
+        "aspect_ratio": { "enum": ["1:1", "4:5", "3:4"] }
+      }
+    },
+    "composition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pose", "framing", "camera_angle", "gaze", "expression", "subject_count"],
+      "properties": {
+        "pose": { "const": "NEUTRAL_FRONTAL" },
+        "framing": { "const": "FULL_LENGTH_HEAD_TO_SOLES" },
+        "camera_angle": { "const": "EYE_LEVEL" },
+        "gaze": { "const": "CAMERA" },
+        "expression": { "enum": ["NEUTRAL", "NATURAL_RELAXED"] },
+        "subject_count": { "const": 1 }
+      }
+    },
+    "background": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "hex", "rgb", "uniform", "shadow_policy", "edge_tolerance"],
+      "properties": {
+        "mode": { "const": "SOLID" },
+        "hex": { "const": "#FFFFFF" },
+        "rgb": {
+          "type": "array",
+          "prefixItems": [{ "const": 255 }, { "const": 255 }, { "const": 255 }],
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "uniform": { "const": true },
+        "shadow_policy": { "enum": ["NONE", "SUBTLE_CONTACT_ONLY"] },
+        "edge_tolerance": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["max_nonwhite_corner_fraction", "max_halo_px"],
+          "properties": {
+            "max_nonwhite_corner_fraction": { "type": "number", "minimum": 0, "maximum": 0.01 },
+            "max_halo_px": { "type": "number", "minimum": 0, "maximum": 2 }
+          }
+        }
+      }
+    },
+    "lighting": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["setup", "direction", "contrast", "white_balance", "color_cast_allowed"],
+      "properties": {
+        "setup": { "const": "SOFT_DIFFUSED_STUDIO" },
+        "direction": { "enum": ["FRONTAL", "FRONTAL_SLIGHT_SIDE"] },
+        "contrast": { "enum": ["LOW", "MEDIUM_LOW"] },
+        "white_balance": { "const": "NEUTRAL" },
+        "color_cast_allowed": { "const": false }
+      }
+    },
+    "rendering": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["style", "skin", "hair", "fabric", "retouching"],
+      "properties": {
+        "style": { "const": "PHOTOREALISTIC" },
+        "skin": { "const": "NATURAL_TEXTURE" },
+        "hair": { "const": "NATURAL_STRAND_DETAIL" },
+        "fabric": { "const": "MATERIAL_ACCURATE_DETAIL" },
+        "retouching": { "const": "NON_PLASTIC" }
+      }
+    },
+    "fidelity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["identity", "hair", "body", "garment", "anatomy"],
+      "properties": {
+        "identity": { "const": "PRESERVE_OBSERVED" },
+        "hair": { "const": "PRESERVE_OBSERVED" },
+        "body": { "const": "PRESERVE_OBSERVED_ONLY" },
+        "garment": { "const": "PRESERVE_REFERENCE_EVIDENCE" },
+        "anatomy": { "const": "NATURAL_NO_DEFORMATIONS" }
+      }
+    },
+    "negative_constraints": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "enum": ["NO_IDENTITY_DRIFT", "NO_BODY_INVENTION", "NO_GARMENT_RESIDUE", "NO_BACKGROUND_BLEED", "NO_HALO", "NO_EXTRA_LIMBS", "NO_DEFORMED_HANDS", "NO_PLASTIC_SKIN", "NO_COLOR_CAST", "NO_UNAUTHORIZED_LOGO_RECONSTRUCTION"]
+      }
+    },
+    "qa_thresholds": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["identity", "anatomy", "garment_structure", "color", "background", "prompt_compliance"],
+      "properties": {
+        "identity": { "type": "number", "minimum": 0, "maximum": 1 },
+        "anatomy": { "type": "number", "minimum": 0, "maximum": 1 },
+        "garment_structure": { "type": "number", "minimum": 0, "maximum": 1 },
+        "color": { "type": "number", "minimum": 0, "maximum": 1 },
+        "background": { "type": "number", "minimum": 0, "maximum": 1 },
+        "prompt_compliance": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "created_at": { "type": "string", "format": "date-time" }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]{3,95}$"
+    }
+  }
+}

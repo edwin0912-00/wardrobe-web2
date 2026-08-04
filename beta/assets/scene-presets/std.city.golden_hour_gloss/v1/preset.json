@@ -1,0 +1,87 @@
+{
+  "camera": {
+    "aspect_ratio": "4:5",
+    "height": "eye_level",
+    "lens_mm": 50,
+    "max_vertical_error_deg": 1.5,
+    "minimum_clear_space_percent": {
+      "above_hair": 8,
+      "below_footwear": 2
+    },
+    "subject_height_percent": [
+      70,
+      80
+    ]
+  },
+  "environment": "An original restrained stone arcade and city lane with simplified facades and no landmark, sign or copied source geometry.",
+  "family": "city",
+  "hard_negatives": [
+    "orange teal grade",
+    "cafe clutter",
+    "advertising",
+    "readable text",
+    "flare across face",
+    "flare across product",
+    "tourist landmark"
+  ],
+  "lighting": {
+    "fill": "cool open-sky ambient fill",
+    "finish": "polished_editorial_gloss_without_skin_smoothing_or_hdr",
+    "key": "low warm side and back sunlight with long coherent shadows and clean highlight roll-off",
+    "protected_regions": [
+      "eyes",
+      "face_identity",
+      "item_logos",
+      "item_text",
+      "critical_construction"
+    ],
+    "time_or_setup": "golden hour"
+  },
+  "mvp_assets": [
+    "mood_card"
+  ],
+  "palette": [
+    "honey",
+    "cream stone",
+    "olive shadow",
+    "cool blue grey"
+  ],
+  "post_selection_assets": [
+    "environment_plate",
+    "lighting_preview"
+  ],
+  "preset_id": "std.city.golden_hour_gloss",
+  "prompt_path": "prompts/scenes/std.city.golden_hour_gloss.txt",
+  "source_authorities": [
+    {
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit",
+        "brands",
+        "readable_text",
+        "exact_architecture"
+      ],
+      "role": "lighting_composition_palette_inspiration",
+      "url": "https://www.pexels.com/photo/sunny-european-street-with-classic-architecture-29090315/",
+      "use": "warm facade-light behavior, stone palette and restrained perspective only; storefronts, people, brands and exact architecture are excluded"
+    },
+    {
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit",
+        "brands",
+        "readable_text",
+        "exact_architecture"
+      ],
+      "role": "environment_material_inspiration",
+      "url": "https://www.pexels.com/photo/empty-european-street-with-classic-architecture-33276833/",
+      "use": "secondary stone palette and restrained architectural texture only"
+    }
+  ],
+  "ui_name_uk": "Місто — золота година",
+  "version": "1.0.0"
+}

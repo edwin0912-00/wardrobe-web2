@@ -1,0 +1,36 @@
+{
+  "name": "zeely-reference-conditioning-pipeline",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "app": "node src/web/start.js",
+    "build:report": "node tools/build-report.mjs",
+    "build:manifests": "node tools/build-generation-manifests.mjs",
+    "condition": "node tools/condition-dataset.mjs",
+    "preflight:resources": "node tools/resource-preflight.mjs --mode test",
+    "test": "node tools/resource-preflight.mjs --mode test && node --test --test-concurrency=2",
+    "test:conditioning": "node --test test/conditioning/*.test.mjs",
+    "test:contracts": "node --test test/contracts/*.test.js",
+    "test:integration": "node --test test/integration/*.test.js",
+    "test:qa": "node --test test/qa/*.test.mjs",
+    "test:runner": "node --test test/runner/*.test.js",
+    "verify:readme": "node --test test/web/readme-startup-smoke.test.js && node tools/verify-readme-startup.mjs",
+    "verify:contracts": "node tools/validate-contracts.mjs",
+    "verify:output": "node tools/verify-output.mjs --output output --visual-review reviews/visual-review.json",
+    "verify:canon": "node tools/validate-canon.mjs",
+    "verify": "npm test && npm run verify:contracts && npm run verify:canon && npm run verify:output && npm run build:manifests"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.1",
+    "form-data": "^4.0.6",
+    "marked": "^16.1.2"
+  },
+  "dependencies": {
+    "@fal-ai/client": "^1.10.1",
+    "@fastify/multipart": "^10.1.0",
+    "@fastify/static": "^10.1.0",
+    "ajv": "^8.20.0",
+    "fastify": "^5.10.0",
+    "sharp": "^0.35.3"
+  }
+}

@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zeely.invalid/schemas/post-shoot-pipeline.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "pipeline_id", "source_contract", "modes", "nodes"],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "pipeline_id": { "const": "zeely.post_shoot.v1" },
+    "source_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["required_status", "required_type", "required_step"],
+      "properties": {
+        "required_status": { "const": "APPROVED" },
+        "required_type": { "const": "ART_SHOOT" },
+        "required_step": { "const": "ART_SHOOT.05" }
+      }
+    },
+    "modes": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "title", "description", "billable", "nodes"],
+        "properties": {
+          "id": { "enum": ["video", "live_webcam"] },
+          "title": { "type": "string", "minLength": 1 },
+          "description": { "type": "string", "minLength": 1 },
+          "billable": { "type": "boolean" },
+          "price_usd_per_second": { "type": "number", "minimum": 0 },
+          "max_session_seconds": { "type": "integer", "minimum": 5, "maximum": 300 },
+          "provider": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["broker", "model_id", "transport", "media_path", "credential_surface"],
+            "properties": {
+              "broker": { "const": "fal.ai" },
+              "model_id": { "const": "decart/lucy-2-5/realtime" },
+              "transport": { "const": "WEBRTC" },
+              "media_path": { "const": "BROWSER_TO_DECART_P2P" },
+              "credential_surface": { "const": "SERVER_ONLY_SHORT_LIVED_TOKEN" }
+            }
+          },
+          "nodes": {
+            "type": "array",
+            "minItems": 4,
+            "items": { "type": "string", "pattern": "^(VIDEO|LIVE)\\.[0-9]{2}$" },
+            "uniqueItems": true
+          }
+        }
+      }
+    },
+    "nodes": {
+      "type": "array",
+      "minItems": 10,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "kind", "title", "input", "output", "gate", "next"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^(SOURCE|CHOICE|VIDEO|LIVE)\\.[0-9]{2}$" },
+          "kind": { "enum": ["gate", "choice", "input", "process", "result"] },
+          "title": { "type": "string", "minLength": 1 },
+          "input": { "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true },
+          "output": { "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true },
+          "gate": { "type": "string", "minLength": 1 },
+          "next": { "type": "array", "items": { "type": "string" }, "uniqueItems": true }
+        }
+      }
+    }
+  }
+}

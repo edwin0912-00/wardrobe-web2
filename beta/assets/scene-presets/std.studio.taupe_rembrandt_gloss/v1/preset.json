@@ -1,0 +1,88 @@
+{
+  "camera": {
+    "aspect_ratio": "4:5",
+    "height": "eye_level",
+    "lens_mm": 70,
+    "max_vertical_error_deg": 1,
+    "minimum_clear_space_percent": {
+      "above_hair": 8,
+      "below_footwear": 2
+    },
+    "subject_height_percent": [
+      70,
+      80
+    ]
+  },
+  "environment": "An original dark-taupe seamless studio with gentle depth and no theatre, smoke or visible equipment.",
+  "family": "dramatic_studio",
+  "hard_negatives": [
+    "split light",
+    "fully black eye",
+    "smoke",
+    "theatre props",
+    "neon",
+    "crushed item detail",
+    "beauty smoothing"
+  ],
+  "lighting": {
+    "fill": "controlled three-to-one to five-to-one key-fill relationship with a very weak rim",
+    "finish": "polished_editorial_gloss_without_skin_smoothing_or_hdr",
+    "key": "warm elevated key at roughly forty-five degrees forming a small cheek triangle on the shadow side",
+    "protected_regions": [
+      "eyes",
+      "lips",
+      "face_identity",
+      "item_logos",
+      "item_text",
+      "critical_construction"
+    ],
+    "time_or_setup": "controlled Rembrandt studio setup"
+  },
+  "mvp_assets": [
+    "mood_card"
+  ],
+  "palette": [
+    "dark taupe",
+    "espresso",
+    "champagne",
+    "neutral skin"
+  ],
+  "post_selection_assets": [
+    "environment_plate",
+    "lighting_preview"
+  ],
+  "preset_id": "std.studio.taupe_rembrandt_gloss",
+  "prompt_path": "prompts/scenes/std.studio.taupe_rembrandt_gloss.txt",
+  "source_authorities": [
+    {
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit",
+        "brands",
+        "readable_text",
+        "exact_architecture"
+      ],
+      "role": "lighting_composition_palette_inspiration",
+      "url": "https://unsplash.com/photos/a-woman-is-posing-for-a-picture-in-a-dark-room-_d0Uv9sIEmY",
+      "use": "dark studio separation, negative space and tonal restraint only"
+    },
+    {
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit",
+        "brands",
+        "readable_text",
+        "exact_architecture"
+      ],
+      "role": "lighting_composition_palette_inspiration",
+      "url": "https://www.pexels.com/photo/stylish-woman-in-dramatic-studio-lighting-32497260/",
+      "use": "dramatic face modelling and full-body shadow readability only"
+    }
+  ],
+  "ui_name_uk": "Драматична студія — Рембрандт",
+  "version": "1.0.0"
+}

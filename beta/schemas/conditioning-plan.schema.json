@@ -1,0 +1,291 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zeely.ai/schemas/conditioning-plan.schema.json",
+  "title": "Zeely Reference Conditioning Plan",
+  "description": "A bounded, auditable plan that converts deficient source assets into generation-ready references without inventing evidence.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "plan_id",
+    "job_id",
+    "extraction_ids",
+    "source_asset_ids",
+    "target_use",
+    "disposition",
+    "blocking_reasons",
+    "operations",
+    "fidelity_policy",
+    "conditioning_gate",
+    "next_action",
+    "created_at"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "plan_id": { "$ref": "#/$defs/id" },
+    "job_id": { "$ref": "#/$defs/id" },
+    "extraction_ids": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/id" }
+    },
+    "source_asset_ids": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/id" }
+    },
+    "target_use": {
+      "enum": ["AVATAR", "OUTFIT_TEXT", "OUTFIT_REFERENCE", "QUALITY_TARGET"]
+    },
+    "disposition": {
+      "enum": [
+        "READY",
+        "REPAIRABLE",
+        "AMBIGUOUS",
+        "MISSING_REQUIRED_EVIDENCE",
+        "INCOMPATIBLE_WITH_TARGET",
+        "UNUSABLE"
+      ]
+    },
+    "blocking_reasons": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1, "maxLength": 300 }
+    },
+    "operations": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/operation" }
+    },
+    "fidelity_policy": { "$ref": "#/$defs/fidelityPolicy" },
+    "conditioning_gate": { "$ref": "#/$defs/gate" },
+    "next_action": {
+      "enum": ["EXECUTE_PLAN", "BUILD_PACK", "REQUEST_INPUT", "REQUEST_CLARIFICATION", "CHANGE_TARGET_MODE", "REJECT_ASSET"]
+    },
+    "created_at": { "type": "string", "format": "date-time" }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "disposition": { "const": "REPAIRABLE" } },
+        "required": ["disposition"]
+      },
+      "then": {
+        "properties": {
+          "operations": { "minItems": 1 },
+          "next_action": { "const": "EXECUTE_PLAN" }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "disposition": { "const": "READY" } },
+        "required": ["disposition"]
+      },
+      "then": {
+        "properties": {
+          "blocking_reasons": { "maxItems": 0 },
+          "next_action": { "enum": ["EXECUTE_PLAN", "BUILD_PACK"] }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "disposition": {
+            "enum": ["AMBIGUOUS", "MISSING_REQUIRED_EVIDENCE", "INCOMPATIBLE_WITH_TARGET", "UNUSABLE"]
+          }
+        },
+        "required": ["disposition"]
+      },
+      "then": {
+        "properties": {
+          "blocking_reasons": { "minItems": 1 },
+          "operations": { "maxItems": 0 },
+          "next_action": {
+            "enum": ["REQUEST_INPUT", "REQUEST_CLARIFICATION", "CHANGE_TARGET_MODE", "REJECT_ASSET"]
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]{3,95}$"
+    },
+    "parameterValue": {
+      "oneOf": [
+        { "type": "string" },
+        { "type": "number" },
+        { "type": "boolean" },
+        {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              { "type": "string" },
+              { "type": "number" },
+              { "type": "boolean" }
+            ]
+          }
+        }
+      ]
+    },
+    "parameter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "value"],
+      "properties": {
+        "name": { "type": "string", "pattern": "^[a-z][a-z0-9_]{1,63}$" },
+        "value": { "$ref": "#/$defs/parameterValue" }
+      }
+    },
+    "operation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operation_id",
+        "order",
+        "type",
+        "executor_class",
+        "input_refs",
+        "output_derivative_id",
+        "parameters",
+        "preserve",
+        "prohibited_changes",
+        "requires_qa"
+      ],
+      "properties": {
+        "operation_id": { "$ref": "#/$defs/id" },
+        "order": { "type": "integer", "minimum": 1 },
+        "type": {
+          "enum": [
+            "NORMALIZE_ORIENTATION",
+            "CONVERT_SRGB",
+            "CROP_FACE",
+            "CROP_PERSON",
+            "CROP_GARMENT",
+            "CROP_DETAIL",
+            "SEGMENT_PERSON",
+            "SEGMENT_GARMENT",
+            "BUILD_OCCLUSION_MAP",
+            "BUILD_VISIBILITY_MAP",
+            "REMOVE_BACKGROUND",
+            "CONSERVATIVE_UPSCALE",
+            "DENOISE",
+            "DEBLUR",
+            "OCR",
+            "BUILD_REFERENCE_CARD",
+            "EXTRACT_QUALITY_TARGET"
+          ]
+        },
+        "executor_class": { "enum": ["DETERMINISTIC", "VLM", "AI_ASSISTED_NON_GENERATIVE"] },
+        "input_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/id" }
+        },
+        "depends_on": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/id" }
+        },
+        "output_derivative_id": { "$ref": "#/$defs/id" },
+        "parameters": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/parameter" }
+        },
+        "preserve": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": ["IDENTITY", "FACE_GEOMETRY", "HAIR", "BODY_EVIDENCE", "GARMENT_GEOMETRY", "COLOR", "MATERIAL", "LOGO_TEXT", "PIXEL_EVIDENCE"]
+          }
+        },
+        "prohibited_changes": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": ["ADD_DETAILS", "CHANGE_IDENTITY", "CHANGE_BODY", "CHANGE_GARMENT_STRUCTURE", "CHANGE_COLOR", "RECONSTRUCT_LOGO_TEXT", "INPAINT_OCCLUDED_EVIDENCE"]
+          }
+        },
+        "requires_qa": { "type": "boolean" }
+      }
+    },
+    "fidelityPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "allow_content_synthesis",
+        "generated_pixels_are_evidence",
+        "max_upscale_factor",
+        "preserve_source_hash",
+        "lock_sources"
+      ],
+      "properties": {
+        "allow_content_synthesis": { "const": false },
+        "generated_pixels_are_evidence": { "const": false },
+        "max_upscale_factor": { "type": "number", "minimum": 1, "maximum": 4 },
+        "preserve_source_hash": { "const": true },
+        "lock_sources": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "enum": ["OBSERVED", "USER_PROVIDED", "DERIVED_DETERMINISTIC"] }
+        }
+      }
+    },
+    "gate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["required_derivative_types", "checks", "on_pass", "on_fail"],
+      "properties": {
+        "required_derivative_types": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "NORMALIZED_SOURCE",
+              "FACE_CROP",
+              "PERSON_CROP",
+              "PERSON_MASK",
+              "OCCLUSION_MAP",
+              "VISIBILITY_MAP",
+              "GARMENT_CROP",
+              "GARMENT_CUTOUT",
+              "GARMENT_DETAIL_CROP",
+              "OCR_EVIDENCE",
+              "UPSCALED_REFERENCE",
+              "REFERENCE_CARD",
+              "QUALITY_TARGET"
+            ]
+          }
+        },
+        "checks": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "blocking", "threshold"],
+            "properties": {
+              "name": {
+                "enum": ["DECODE", "LINEAGE", "IDENTITY_PRESERVATION", "COLOR_PRESERVATION", "GEOMETRY_PRESERVATION", "MASK_QUALITY", "OCR_CONSISTENCY", "NO_SYNTHETIC_LOCKS"]
+              },
+              "blocking": { "type": "boolean" },
+              "threshold": { "type": "number", "minimum": 0, "maximum": 1 }
+            }
+          }
+        },
+        "on_pass": { "const": "BUILD_PACK" },
+        "on_fail": { "enum": ["REPLAN_ONCE", "REQUEST_INPUT", "REJECT_ASSET"] }
+      }
+    }
+  }
+}

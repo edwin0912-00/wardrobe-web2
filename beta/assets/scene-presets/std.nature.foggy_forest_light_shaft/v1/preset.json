@@ -1,0 +1,89 @@
+{
+  "camera": {
+    "aspect_ratio": "4:5",
+    "height": "eye_level",
+    "lens_mm": 50,
+    "max_vertical_error_deg": 1.5,
+    "minimum_clear_space_percent": {
+      "above_hair": 8,
+      "below_footwear": 2
+    },
+    "subject_height_percent": [
+      70,
+      80
+    ]
+  },
+  "environment": "An original mystical foggy forest path with dense tree canopy, moss-covered ground, atmospheric mist, and no recognizable trail or park.",
+  "family": "nature_architecture",
+  "hard_negatives": [
+    "recognizable park",
+    "trail markers",
+    "buildings",
+    "people",
+    "foliage across face",
+    "foliage across item",
+    "fantasy elements",
+    "animals"
+  ],
+  "lighting": {
+    "fill": "cool green-tinted ambient forest fill",
+    "finish": "polished_editorial_gloss_without_skin_smoothing_or_hdr",
+    "key": "warm amber light rays piercing through dense tree canopy catching fog particles",
+    "protected_regions": [
+      "eyes",
+      "face_identity",
+      "item_logos",
+      "item_text",
+      "critical_construction"
+    ],
+    "time_or_setup": "dawn light shafts through canopy"
+  },
+  "mvp_assets": [
+    "mood_card"
+  ],
+  "palette": [
+    "moss green",
+    "warm amber shaft",
+    "deep forest shadow",
+    "mist grey",
+    "bark brown"
+  ],
+  "post_selection_assets": [
+    "environment_plate",
+    "lighting_preview"
+  ],
+  "preset_id": "std.nature.foggy_forest_light_shaft",
+  "prompt_path": "prompts/scenes/std.nature.foggy_forest_light_shaft.txt",
+  "source_authorities": [
+    {
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit",
+        "brands",
+        "readable_text",
+        "exact_architecture"
+      ],
+      "role": "environment_and_composition_inspiration",
+      "url": "https://unsplash.com/photos/sunlit-forest-path-with-dappled-light-and-shadows-rO11U7uF4sA",
+      "use": "dappled forest light behavior, moss texture and path depth only"
+    },
+    {
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit",
+        "brands",
+        "readable_text",
+        "exact_architecture"
+      ],
+      "role": "environment_material_inspiration",
+      "url": "https://unsplash.com/photos/a-sun-dappled-forest-path-surrounded-by-lush-green-trees-B5t4c8fE2_M",
+      "use": "canopy bokeh and atmospheric mist behavior only"
+    }
+  ],
+  "ui_name_uk": "Туманний ліс",
+  "version": "1.0.0"
+}

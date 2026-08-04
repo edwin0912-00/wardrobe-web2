@@ -1,0 +1,23 @@
+{
+  "availability": "VERIFIED",
+  "creator": "Ayomide Onasanya",
+  "extraction_role": "lighting_composition_palette_inspiration",
+  "license_evidence": "evidence/licenses/pexels-license-2026-07-23.md",
+  "not_authority_for": [
+    "identity",
+    "body",
+    "hair",
+    "outfit",
+    "brands",
+    "readable_text",
+    "exact_architecture"
+  ],
+  "page_title": "Beautiful woman posing in a red dress with a neutral backdrop",
+  "permitted_observation": "clean white studio depth and full-body composition only",
+  "pixel_policy": "PAGE_METADATA_AND_ROLE_LIMITS_ONLY_SOURCE_PIXELS_NOT_SHIPPED",
+  "platform": "Pexels",
+  "retrieved_at": "2026-07-23T09:40:00Z",
+  "schema_version": "1.0.0",
+  "source_id": "pexels.14001742",
+  "url": "https://www.pexels.com/photo/a-woman-in-red-long-sleeve-dress-14001742/"
+}

@@ -1,0 +1,221 @@
+{
+  "$schema": "https://github.com/ksimback/looper/schema/loop.resolved.v1.json",
+  "compiled_at": "2026-07-27T01:24:00+00:00",
+  "council": [],
+  "council_by_id": {},
+  "criteria_by_id": {
+    "board-valid": {
+      "check": [
+        "node",
+        "../../tools/coordination/validate-board.mjs",
+        "--board-only"
+      ],
+      "expect": "exit_zero",
+      "id": "board-valid",
+      "timeout_sec": 60,
+      "type": "programmatic"
+    },
+    "report-safe": {
+      "check": [
+        "node",
+        "../../tools/coordination/check-coordination-report.mjs",
+        "loop-workspace/coordination-report.md"
+      ],
+      "expect": "exit_zero",
+      "id": "report-safe",
+      "timeout_sec": 60,
+      "type": "programmatic"
+    },
+    "report-snapshot": {
+      "check": [
+        "node",
+        "../../tools/coordination/watch-agent-reports.mjs",
+        "--once"
+      ],
+      "expect": "exit_zero",
+      "id": "report-snapshot",
+      "timeout_sec": 60,
+      "type": "programmatic"
+    },
+    "reporting-contract": {
+      "check": [
+        "node",
+        "--test",
+        "../../test/governance/agent-status.test.js",
+        "../../test/governance/agent-control.test.js"
+      ],
+      "expect": "exit_zero",
+      "id": "reporting-contract",
+      "timeout_sec": 120,
+      "type": "programmatic"
+    }
+  },
+  "execution": {
+    "isolation": "current_workspace",
+    "mode": "in_session",
+    "side_effects": {
+      "duplicate_action_check": true,
+      "notes": "The user authorized autonomous coordination observation. This loop may write only its own loop-workspace report. It never edits product code, TASKS.json, another agent branch, credentials, media, provider state, deployment, or a live process. Its host is a checked-in deterministic reporter, not Codex or any external model.\n",
+      "requires_approval": false
+    }
+  },
+  "gates": {
+    "delivery_gate": {
+      "criteria": [
+        "board-valid",
+        "report-snapshot",
+        "report-safe",
+        "reporting-contract"
+      ],
+      "max_revisions": 0,
+      "members": [],
+      "verdict_policy": "fixed_passes",
+      "when": "after_each_delivery"
+    },
+    "plan_gate": {
+      "criteria": [
+        "board-valid",
+        "report-snapshot",
+        "report-safe",
+        "reporting-contract"
+      ],
+      "max_revisions": 0,
+      "members": [],
+      "verdict_policy": "fixed_passes",
+      "when": "after_plan"
+    }
+  },
+  "goal": {
+    "context_sources": [
+      {
+        "cmd": [
+          "node",
+          "../../tools/coordination/validate-board.mjs",
+          "--board-only"
+        ],
+        "timeout_sec": 60
+      },
+      {
+        "cmd": [
+          "node",
+          "../../tools/coordination/watch-agent-reports.mjs",
+          "--once"
+        ],
+        "timeout_sec": 60
+      },
+      {
+        "file": "./inputs/coordination-brief.md"
+      }
+    ],
+    "definition_of_done": "loop-workspace/coordination-report.md names the exact report state for every active lease, separates a missing report from an invalid report or unavailable lane, includes no secret, prompt, raw media, runtime/output identifier, or local absolute path, and all programmatic checks pass.\n",
+    "statement": "Keep the GitHub coordination plane observable without editing product code, contacting providers, or impersonating an agent. For each active lease, determine whether its exact status artifact is present, schema and lease valid, and reachable from its declared lane. Write a sanitized coordination report that identifies only concrete follow-up actions.\n",
+    "verification": [
+      {
+        "check": [
+          "node",
+          "../../tools/coordination/validate-board.mjs",
+          "--board-only"
+        ],
+        "expect": "exit_zero",
+        "id": "board-valid",
+        "timeout_sec": 60,
+        "type": "programmatic"
+      },
+      {
+        "check": [
+          "node",
+          "../../tools/coordination/watch-agent-reports.mjs",
+          "--once"
+        ],
+        "expect": "exit_zero",
+        "id": "report-snapshot",
+        "timeout_sec": 60,
+        "type": "programmatic"
+      },
+      {
+        "check": [
+          "node",
+          "../../tools/coordination/check-coordination-report.mjs",
+          "loop-workspace/coordination-report.md"
+        ],
+        "expect": "exit_zero",
+        "id": "report-safe",
+        "timeout_sec": 60,
+        "type": "programmatic"
+      },
+      {
+        "check": [
+          "node",
+          "--test",
+          "../../test/governance/agent-status.test.js",
+          "../../test/governance/agent-control.test.js"
+        ],
+        "expect": "exit_zero",
+        "id": "reporting-contract",
+        "timeout_sec": 120,
+        "type": "programmatic"
+      }
+    ]
+  },
+  "host": {
+    "cli": "python3",
+    "invoke": [
+      "python3",
+      "scripts/deterministic-observer.py"
+    ],
+    "model": "deterministic-report-builder",
+    "timeout_sec": 60
+  },
+  "loop_control": {
+    "budget": {
+      "tokens": 300000,
+      "usd": 0.01,
+      "wall_clock_min": 30
+    },
+    "human_checkpoints": [],
+    "max_iterations": 12,
+    "no_progress": {
+      "action": "stop",
+      "max_stalled_iterations": 2,
+      "signals": [
+        "same report snapshot repeats without a new valid agent report",
+        "coordination report has no material change after a revision",
+        "programmatic verifier has unchanged failure output"
+      ]
+    },
+    "stop_conditions": [
+      "delivery gate passes clean",
+      "max_iterations reached",
+      "same blocker repeats twice",
+      "any budget cap exceeded",
+      "a report would require product, deployment, provider, or credential action"
+    ]
+  },
+  "meta": {
+    "author": "wardrobe-team",
+    "created": "2026-07-27",
+    "description": "Observe sanitized GitHub task and agent-status evidence, verify its contract, and record only actionable queue findings for the orchestrator.\n",
+    "name": "zeely-agent-coordination"
+  },
+  "observability": {
+    "checkpoint_granularity": "gate",
+    "run_log": "run-log.md",
+    "state_file": "state.json"
+  },
+  "privacy": {
+    "egress": []
+  },
+  "source": "ops/zeely-agent-coordination-loop/loop.yaml",
+  "version": 1,
+  "workspace": {
+    "dir": "./loop-workspace",
+    "layout": [
+      "plan.md",
+      "delivery-{n}.md",
+      "review-{n}.md",
+      "coordination-report.md",
+      "state.json",
+      "run-log.md"
+    ]
+  }
+}

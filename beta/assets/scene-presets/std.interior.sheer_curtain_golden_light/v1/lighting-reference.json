@@ -1,0 +1,17 @@
+{
+  "facts": {
+    "fill": "cool room shadow on non-window side",
+    "finish": "cinematic_editorial_gloss_without_skin_smoothing_or_hdr",
+    "key": "warm golden light flooding through sheer fabric creating soft diffused glow and dust particles in beams",
+    "protected_regions": [
+      "eyes",
+      "face_identity",
+      "item_logos",
+      "item_text",
+      "critical_construction"
+    ],
+    "time_or_setup": "golden hour diffused through sheer curtains"
+  },
+  "role": "lighting_anchor",
+  "schema_version": "1.0.0"
+}

@@ -1,0 +1,134 @@
+{
+  "preset_id": "std.interior.industrial_brick_loft",
+  "preset_sha256": "dfdc86cfec674321ec7c1c1881683b372138effd7d301387630f67b6b7a31b41",
+  "preset_version": "1.0.0",
+  "prompt_sha256": "e6f6795615673d83235e7fcda879e804d2cd9889260d0667cc11ae835b299de0",
+  "reference_pack_id": "pack.std.interior.industrial_brick_loft.v1.1",
+  "references": [
+    {
+      "media_type": "application/json",
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit"
+      ],
+      "reference_id": "std.interior.industrial_brick_loft.environment",
+      "role": "environment_anchor",
+      "sha256": "edd592687b0d942230b3bbf4b17c2d36aa48439e295f174aceb8b6b8d95ec9f7"
+    },
+    {
+      "media_type": "application/json",
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit"
+      ],
+      "reference_id": "std.interior.industrial_brick_loft.lighting",
+      "role": "lighting_anchor",
+      "sha256": "7f028c6ed8607c4c49b1d8171678747233caa494f7e8055dfb9a228ca2aa7759"
+    },
+    {
+      "media_type": "application/json",
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit"
+      ],
+      "reference_id": "std.interior.industrial_brick_loft.composition",
+      "role": "composition_anchor",
+      "sha256": "2217cac41aee3f4b30716465a41fee37885fd02ad84e8c3a51b8c4a210b6b03b"
+    },
+    {
+      "media_type": "application/json",
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit"
+      ],
+      "reference_id": "std.interior.industrial_brick_loft.palette",
+      "role": "palette_anchor",
+      "sha256": "adfe2fa2bb2263dff63cd5ebd20b6b3f90a43a236beb6ed7d93cfecfc6e0ba3d"
+    },
+    {
+      "media_type": "application/json",
+      "not_authority_for": [
+        "identity",
+        "body",
+        "hair",
+        "outfit"
+      ],
+      "reference_id": "std.interior.industrial_brick_loft.negative",
+      "role": "negative_reference",
+      "sha256": "b6d7c55c1c50847ad38f6459c40720b723f2b4a17c667c238607bdebcffe6707"
+    }
+  ],
+  "schema_version": "1.0.0",
+  "source_ledger": {
+    "created_at": "2026-07-23T09:40:00Z",
+    "ledger_id": "ledger.std.interior.industrial_brick_loft.v1",
+    "preset_id": "std.interior.industrial_brick_loft",
+    "preset_version": "1.0.0",
+    "revision": 1,
+    "schema_version": "1.0.0",
+    "sources": [
+      {
+        "content_sha256": "c50b9b65cd1e801f840344ecb59056aa1741f3e6ae7cada597b7502c06e27e11",
+        "not_authority_for": [
+          "identity",
+          "body",
+          "hair",
+          "outfit",
+          "brands",
+          "readable_text",
+          "exact_architecture"
+        ],
+        "retrieved_at": "2026-07-23T09:40:00Z",
+        "rights": {
+          "basis": "LICENSED",
+          "evidence_sha256": "86a558a192adac12108998fb02dd40db4b72dc06a04c09719d47db91854dacb5",
+          "evidence_uri": "evidence/licenses/unsplash-license-2026-07-23.md",
+          "rights_holder": "Alexander S. via Unsplash license",
+          "status": "VERIFIED",
+          "verified_at": "2026-07-23T09:40:00Z"
+        },
+        "role": "environment_and_composition_inspiration",
+        "snapshot_uri": "evidence/scene-sources/unsplash.J3522uS9n8w.json",
+        "source_id": "unsplash.J3522uS9n8w",
+        "url": "https://unsplash.com/photos/industrial-loft-bedroom-3d-render-J3522uS9n8w",
+        "use": "exposed brick texture, steel beam rhythm and factory window scale only"
+      },
+      {
+        "content_sha256": "d04e449a663c6519550652dedb8fe9674ec6af37c32ee581fbc6896ae5733001",
+        "not_authority_for": [
+          "identity",
+          "body",
+          "hair",
+          "outfit",
+          "brands",
+          "readable_text",
+          "exact_architecture"
+        ],
+        "retrieved_at": "2026-07-23T09:40:00Z",
+        "rights": {
+          "basis": "LICENSED",
+          "evidence_sha256": "86a558a192adac12108998fb02dd40db4b72dc06a04c09719d47db91854dacb5",
+          "evidence_uri": "evidence/licenses/unsplash-license-2026-07-23.md",
+          "rights_holder": "Max B. via Unsplash license",
+          "status": "VERIFIED",
+          "verified_at": "2026-07-23T09:40:00Z"
+        },
+        "role": "environment_material_inspiration",
+        "snapshot_uri": "evidence/scene-sources/unsplash.p5_4b8f59S4.json",
+        "source_id": "unsplash.p5_4b8f59S4",
+        "url": "https://unsplash.com/photos/a-cozy-bedroom-with-a-brick-accent-wall-p5_4b8f59S4",
+        "use": "brick-to-concrete material contrast and raw texture only"
+      }
+    ],
+    "status": "VERIFIED_FOR_RELEASE"
+  },
+  "version": "1.1.0"
+}

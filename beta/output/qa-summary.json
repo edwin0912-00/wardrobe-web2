@@ -1,0 +1,33 @@
+{
+  "schema_version": "1.1.0",
+  "generated_at": "2026-07-27T15:25:34.879Z",
+  "output_directory": "output",
+  "visual_review_fixture": "../reviews/visual-review.json",
+  "status": "NEEDS_REVIEW",
+  "subjects": [
+    {
+      "subject_id": "001",
+      "status": "NEEDS_REVIEW",
+      "report": "001/qa-report.json"
+    },
+    {
+      "subject_id": "002",
+      "status": "NEEDS_REVIEW",
+      "report": "002/qa-report.json"
+    },
+    {
+      "subject_id": "003",
+      "status": "NEEDS_REVIEW",
+      "report": "003/qa-report.json"
+    }
+  ],
+  "cross_subject_duplicate_check": {
+    "status": "PASS",
+    "duplicates": []
+  },
+  "interpretation": {
+    "PASS": "All automatic and explicitly reviewed visual gates passed.",
+    "FAIL": "At least one automatic or explicit visual gate failed.",
+    "NEEDS_REVIEW": "Automatic checks did not fail, but one or more semantic gates lack explicit review."
+  }
+}

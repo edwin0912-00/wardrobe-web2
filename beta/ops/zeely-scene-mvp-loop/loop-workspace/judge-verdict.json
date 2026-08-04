@@ -1,0 +1,39 @@
+{
+  "schema_version": "1.0.0",
+  "verdict": "PASS",
+  "score_10": 10,
+  "collection_pass_count": 14,
+  "collection_revise_count": 0,
+  "exact_retry_ids": [],
+  "final_asset": {
+    "preset_id": "std.studio.white_window_honeycomb",
+    "sha256": "bae6dfcfce3775cabc0d6439055b4f995049051ef7793ca517d6f660b09b807e",
+    "width": 1024,
+    "height": 1280,
+    "measured_subject_height_percent": 75.7
+  },
+  "rule_checks": {
+    "premium_white_seamless_fashion_studio": true,
+    "coherent_honeycomb_lattice_on_wall_and_floor": true,
+    "recognizable_angular_lattice_edge_on_one_outer_cheek": true,
+    "cheek_coverage_approximately_5_to_15_percent": true,
+    "natural_face_curvature_and_penumbra": true,
+    "no_band_circle_or_bruise_appearance": true,
+    "eyes_unobstructed": true,
+    "lips_unobstructed": true,
+    "identity_unobscured": true,
+    "full_head_visible": true,
+    "both_shoes_fully_visible": true,
+    "human_bbox_74_to_78_percent": true,
+    "no_named_visual_defect_remaining": true
+  },
+  "evidence": "The final 1024x1280 card has a coherent wall/floor lattice and one small, softly integrated angular fragment on the outer cheek. It preserves identity, full head and footwear and satisfies the measurable framing lock.",
+  "delivery_history": [
+    { "iteration": 1, "verdict": "REVISE", "pass_count": 3, "revise_count": 11 },
+    { "iteration": 2, "verdict": "REVISE", "pass_count": 13, "revise_count": 1 },
+    { "iteration": 3, "verdict": "REVISE", "pass_count": 13, "revise_count": 1, "score_10": 8 },
+    { "iteration": 4, "verdict": "PASS", "pass_count": 14, "revise_count": 0, "score_10": 10 }
+  ],
+  "human_preset_selection": "PENDING",
+  "completed_at": "2026-07-23T00:08:59Z"
+}

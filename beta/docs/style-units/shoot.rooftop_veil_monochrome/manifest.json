@@ -1,0 +1,224 @@
+{
+  "unit_id": "shoot.rooftop_veil_monochrome",
+  "title": "Rooftop Veil Monochrome — grain, overcast sky, body folds and sheer interference",
+  "palette_size": 6,
+  "palette": [
+    {
+      "name": "ink black",
+      "hex": "#0E0E0E",
+      "role": "lifted black anchor"
+    },
+    {
+      "name": "lace charcoal",
+      "hex": "#343434",
+      "role": "dark cloth mass"
+    },
+    {
+      "name": "city grey",
+      "hex": "#737373",
+      "role": "roof and city midtone"
+    },
+    {
+      "name": "parapet stone",
+      "hex": "#9A9A9A",
+      "role": "architecture mid-light"
+    },
+    {
+      "name": "bedding white",
+      "hex": "#D8D8D8",
+      "role": "light fabric surface"
+    },
+    {
+      "name": "overcast sky",
+      "hex": "#ECECEC",
+      "role": "retained sky highlight"
+    }
+  ],
+  "item_colours_exempt": true,
+  "palette_authority": {
+    "path": "palette-strip.svg",
+    "sha256": "bc9da056580b50cd4aa7bc4c3eda8adb2fa02bcdcf9fa7cf9c15c5bd74ad1a2a",
+    "rendered_not_generated": true
+  },
+  "source_frames": [
+    "frame-01.jpg — 2048x1357; sha256 903e5f1818f31fecb74fdd5dce2f448f9d418cea29dec9a6f4630384744a77ca; rolled high-oblique curled mattress composition",
+    "frame-02.jpg — 2048x1357; sha256 8938155e373cf6897831cf3877dbbefc2fc0c15e7f332a261b200b65a39696fb; mattress-level side-recline with foreshortened legs and soft city",
+    "frame-03.jpg — 2048x1357; sha256 a2f39076bd330d79dd30b3e9a50a13f03626014bc3c5ba5ee67f92e876b40d50; rolled high-angle kneeling fold with hands over head",
+    "frame-04.jpg — 2048x1357; sha256 8213a7fc8f0b4b0c22097684ea3d86bd25a91875d78e15f31653b072225d769c; extreme close face through full-frame translucent veil",
+    "frame-05.jpg — 2048x1357; sha256 63b73e76b517305194c523beebe1be252bd2436fe1b9bb19bf16c28a423dbb96; standing profile torso with one arm lifting airborne veil",
+    "frame-06.jpg — 2048x1357; sha256 da953ab88e3e6766fdc28207e2d5b65a4f65fe21142eb67034ee424e3df5e4ba; steep over-parapet downshot with optically soft city",
+    "frame-07.jpg — 2048x1357; sha256 dbcddfc8caf63a68685156b4a9e5d5a8f35d9ea3d4696d005b95b84130d08a77; wide supine rooftop-hardware composition",
+    "frame-08.jpg — 2048x1357; sha256 8160830712aa6999d9614f88a8a457ec95c218fee47bdd837c7edf8c366323a2; standing self-embrace medium with closed eyes",
+    "frame-09.jpg — 2048x1357; sha256 a4190be86ea8950bf2532d189112d17c2af200aa6d26cdf1a802725c7add5739; level formal frontal full-length at parapet corner"
+  ],
+  "unknowns": [
+    "camera body, sensor or film stock, focal lengths, apertures, ISO and shutter speeds",
+    "whether the visible grain is capture stock, scan treatment, post treatment or a combination",
+    "true colour of every surface because the source rendering destroys hue",
+    "exact rooftop orientation, dimensions, plan, height and unseen reverse views",
+    "whether the airborne veil was moved by wind, hand action or both",
+    "whether frame roll was captured in camera or introduced later",
+    "identity traits, marks, tattoos, piercings and facial measurements of any approved future subject"
+  ],
+  "unit_contract": {
+    "path": "unit.json",
+    "sha256": "ee98e925ca69e1130068905d52fff3b3ea1687c8e3039b9a4d1621d5a9e2232e"
+  },
+  "observation_log": {
+    "path": "OBSERVATION.md",
+    "sha256": "dfb7688f33398ad8e98703c097cfb9e0c23001e62f0b4fc4cdf9f2d481780f0d"
+  },
+  "self_verification": {
+    "path": "SELF-VERIFY.md",
+    "sha256": "d6f6106acdbaf017d9948f3f8fc528970191daedd171871a36ee16cfc8cd6952",
+    "status": "APPROVED"
+  },
+  "runtime_style_sha256": "a95ac2e07b01a705d68355f02a124d5771bcaf805579af2e6d69f2a20118bbc8",
+  "sheets": [
+    {
+      "sheet_id": "camera_lens",
+      "path": "sheet-camera_lens.png",
+      "sha256": "607cbcf64d3aa44b14c5ab1f07015de7840440fc4124be18068a9ceeca51d250",
+      "byte_size": 4188060,
+      "width": 2752,
+      "height": 1536,
+      "requested_aspect": "16:9",
+      "attempts": 1,
+      "provider_receipt": {
+        "provider": "higgsfield",
+        "transport": "higgsfield-cli",
+        "job_id": "57d2571d-a7fe-473b-a1ae-b07a77264a46",
+        "model": "nano_banana_2",
+        "model_name": "Nano Banana Pro",
+        "output_sha256": "607cbcf64d3aa44b14c5ab1f07015de7840440fc4124be18068a9ceeca51d250",
+        "provider_journal_sha256": "027605fe8e6dee41ee5a0ff90d58c6b0ae728077760686ba2140bcb2e2eb13b1"
+      },
+      "colour_authoritative": false
+    },
+    {
+      "sheet_id": "blocking",
+      "path": "sheet-blocking.png",
+      "sha256": "9ad38f57488b33b9075a94b6bcf812f36f5668db44d4c9f6751e973587c4d651",
+      "byte_size": 4380957,
+      "width": 2752,
+      "height": 1536,
+      "requested_aspect": "16:9",
+      "attempts": 1,
+      "provider_receipt": {
+        "provider": "higgsfield",
+        "transport": "higgsfield-cli",
+        "job_id": "54f450e5-c3a6-4357-aa45-641b48a5f08b",
+        "model": "nano_banana_2",
+        "model_name": "Nano Banana Pro",
+        "output_sha256": "9ad38f57488b33b9075a94b6bcf812f36f5668db44d4c9f6751e973587c4d651",
+        "provider_journal_sha256": "8216e658cb1d5b1d136bd32139460b607701afa17bdce75355567091cd8d147e"
+      },
+      "colour_authoritative": false
+    },
+    {
+      "sheet_id": "expression_gaze",
+      "path": "sheet-expression_gaze.png",
+      "sha256": "621bd99def40c075e9a3371c2fe8aa135497b525c8494ee7ad45f8c5ae5e1b5c",
+      "byte_size": 3920768,
+      "width": 2528,
+      "height": 1696,
+      "requested_aspect": "3:2",
+      "attempts": 1,
+      "provider_receipt": {
+        "provider": "higgsfield",
+        "transport": "higgsfield-cli",
+        "job_id": "dd980a98-7b37-428c-bb12-8bc91dc7b044",
+        "model": "nano_banana_2",
+        "model_name": "Nano Banana Pro",
+        "output_sha256": "621bd99def40c075e9a3371c2fe8aa135497b525c8494ee7ad45f8c5ae5e1b5c",
+        "provider_journal_sha256": "1c91221072439f7c4dd4fc12669446308a15e2a95f6c975d525c5cbcbe6d57e7"
+      },
+      "colour_authoritative": false
+    },
+    {
+      "sheet_id": "garment_behaviour",
+      "path": "sheet-garment_behaviour.png",
+      "sha256": "7682fb63702ecb41b354c7f8b513a1aa0e93339a4e41535961226b7c0b4caa52",
+      "byte_size": 4762636,
+      "width": 2528,
+      "height": 1696,
+      "requested_aspect": "3:2",
+      "attempts": 1,
+      "provider_receipt": {
+        "provider": "higgsfield",
+        "transport": "higgsfield-cli",
+        "job_id": "c46d4de4-899a-4146-a4eb-2f3574331091",
+        "model": "nano_banana_2",
+        "model_name": "Nano Banana Pro",
+        "output_sha256": "7682fb63702ecb41b354c7f8b513a1aa0e93339a4e41535961226b7c0b4caa52",
+        "provider_journal_sha256": "dbc26144f0529e302da7ae702e10c8531ab2c8cdc43ed34ff2da47dfb19d073f"
+      },
+      "colour_authoritative": false
+    },
+    {
+      "sheet_id": "colour_grade",
+      "path": "sheet-colour_grade.png",
+      "sha256": "fdfa0af6c103d4a5a9361a6b3f33ae042b25985e2e08e0aad6a99d160a839d2c",
+      "byte_size": 3166278,
+      "width": 2752,
+      "height": 1536,
+      "requested_aspect": "16:9",
+      "attempts": 1,
+      "provider_receipt": {
+        "provider": "higgsfield",
+        "transport": "higgsfield-cli",
+        "job_id": "08b75215-e994-4760-b6c5-20cd797e0685",
+        "model": "nano_banana_2",
+        "model_name": "Nano Banana Pro",
+        "output_sha256": "fdfa0af6c103d4a5a9361a6b3f33ae042b25985e2e08e0aad6a99d160a839d2c",
+        "provider_journal_sha256": "2bdd6817617e7dbc112b013aabc67ae722e9849e947dd07ec6cef93394b852b7"
+      },
+      "colour_authoritative": false
+    },
+    {
+      "sheet_id": "environment",
+      "path": "sheet-environment.png",
+      "sha256": "5cf952bf022667a235896594f216088079ea284b33d1fc52c820e61e19545ce2",
+      "byte_size": 5606006,
+      "width": 3168,
+      "height": 1344,
+      "requested_aspect": "21:9",
+      "attempts": 1,
+      "provider_receipt": {
+        "provider": "higgsfield",
+        "transport": "higgsfield-cli",
+        "job_id": "e5fa4413-48f9-44b5-9534-2e2272ae0b25",
+        "model": "nano_banana_2",
+        "model_name": "Nano Banana Pro",
+        "output_sha256": "5cf952bf022667a235896594f216088079ea284b33d1fc52c820e61e19545ce2",
+        "provider_journal_sha256": "727c9fda0cdf644d862122c9b0e9866549f586814a1702f2b422e01ca1e5c23c"
+      },
+      "colour_authoritative": false
+    },
+    {
+      "sheet_id": "person",
+      "path": "sheet-person.png",
+      "sha256": "3ee493dfc65c4385b643205efef3a94374eb6d66b8c8ae9175ad0c24b8e41acd",
+      "byte_size": 3749933,
+      "width": 1696,
+      "height": 2528,
+      "requested_aspect": "2:3",
+      "attempts": 1,
+      "provider_receipt": {
+        "provider": "higgsfield",
+        "transport": "higgsfield-cli",
+        "job_id": "1af1fea8-e07c-4bd2-9b51-f0ecfa2b465c",
+        "model": "nano_banana_2",
+        "model_name": "Nano Banana Pro",
+        "output_sha256": "3ee493dfc65c4385b643205efef3a94374eb6d66b8c8ae9175ad0c24b8e41acd",
+        "provider_journal_sha256": "7673fd355d55e86905a76af7cddd551ab378070e3f27577846f885057129af7e"
+      },
+      "colour_authoritative": false
+    }
+  ],
+  "unit_sha256": "0adb8ff172dbdb6f093397a4ffc171fc06a4c6458441425010f7010ecdac41fb",
+  "generated_with": {
+    "model": "nano_banana_2",
+    "transport": "higgsfield-cli"
+  }
+}

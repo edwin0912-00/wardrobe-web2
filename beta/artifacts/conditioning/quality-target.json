@@ -1,0 +1,97 @@
+{
+  "schema_version": "1.0.0",
+  "values": {
+    "background_color": "#FFFFFF",
+    "framing": "HALF_BODY_HEAD_TO_HIPS",
+    "pose": "NEUTRAL_FRONTAL",
+    "lighting": "SOFT_DIFFUSED_STUDIO",
+    "white_balance": "NEUTRAL",
+    "finish": "PHOTOREALISTIC",
+    "detail": "NATURAL_SKIN_HAIR_FABRIC"
+  },
+  "provenance": {
+    "background_color": "WRITTEN_RULE",
+    "framing": "WRITTEN_RULE",
+    "pose": "WRITTEN_RULE",
+    "lighting": "WRITTEN_RULE",
+    "white_balance": "WRITTEN_RULE",
+    "finish": "WRITTEN_RULE",
+    "detail": "WRITTEN_RULE"
+  },
+  "conflicts": [
+    {
+      "field": "background_color",
+      "lower_priority_value": "#FFFFFF",
+      "lower_priority_source": "DEFAULT",
+      "selected_value": "#F6F6F4",
+      "selected_source": "SAMPLE_MEASUREMENT",
+      "resolution": "SAMPLE_MEASUREMENT_WINS"
+    },
+    {
+      "field": "background_color",
+      "lower_priority_value": "#F6F6F4",
+      "lower_priority_source": "SAMPLE_MEASUREMENT",
+      "selected_value": "#FFFFFF",
+      "selected_source": "WRITTEN_RULE",
+      "resolution": "WRITTEN_RULE_WINS"
+    }
+  ],
+  "sample_measurement": {
+    "background_color": "#F6F6F4",
+    "background_rgb": [
+      246,
+      246,
+      244
+    ],
+    "corner_rgb": [
+      [
+        246,
+        246,
+        244
+      ],
+      [
+        246,
+        246,
+        244
+      ],
+      [
+        245,
+        246,
+        240
+      ],
+      [
+        246,
+        246,
+        245
+      ]
+    ],
+    "corner_spread": 4.5,
+    "confidence": 0.982353,
+    "method": "MEDIAN_OF_FOUR_CORNER_PATCHES"
+  },
+  "precedence": [
+    "WRITTEN_RULE",
+    "SAMPLE_MEASUREMENT",
+    "DEFAULT"
+  ],
+  "policy": {
+    "exact_background_rgb": [
+      255,
+      255,
+      255
+    ],
+    "written_rules_override_benchmark_pixels": true,
+    "benchmark_use": [
+      "FRAMING",
+      "LIGHTING",
+      "FINISH",
+      "DETAIL"
+    ],
+    "benchmark_must_not_define": [
+      "IDENTITY",
+      "BODY",
+      "GARMENT",
+      "EXACT_BACKGROUND_COLOR"
+    ]
+  }
+}

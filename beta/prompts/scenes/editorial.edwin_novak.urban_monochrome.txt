@@ -1,0 +1,11 @@
+Use case: photorealistic-natural
+Asset type: original fashion editorial direction card for an approved internal visual system
+Reference photos attached (ATTACHMENT_1-2): a real photographer's black-and-white rooftop editorial — study them ONLY for pose energy, camera height, tonal grade and skyline density/scale. Do not reproduce the specific person shown; the attached face is not identity authority.
+Primary request: create one original black-and-white environmental fashion image built from portrait, rooftop space and architectural geometry; do not imitate or reproduce any specific existing photograph.
+Subject: one anonymous adult test model with calm detached expression in a plain unbranded sheer dark tailored look; the model is mood evidence only, never identity authority. Dramatic pose: one or both arms extended from the body, head tilted back.
+Scene/backdrop: an open rooftop edge with a newly invented dense mixed-height skyline behind (mid-rise blocks plus a couple of taller towers); no recognizable real skyline or landmark.
+Style/medium: crisp black-and-white high-fashion photograph with restrained film grain, wide tonal range exactly like the attached references — deep blacks in wardrobe/hair, pale near-white sky.
+Composition/framing: vertical 4:5 environmental hero, complete head and footwear, 50 mm equivalent, one controlled oblique architectural line, subject around 66% of frame height.
+Lighting/mood: flat soft overcast daylight, even exposure across subject and skyline, no hard shadow interruption.
+Color palette: true monochrome with separated blacks, mid-grey city fabric and clean whites.
+Constraints: exactly one optical device; no veil, mirror, water or stacked effects; no text, logos, watermark, extra people, generic catalogue pose, crop or anatomy defects; no crushed outfit detail, HDR or artificial blur.

@@ -1,0 +1,70 @@
+{
+  "schema_version": "1.0.0",
+  "preset_id": "shoot.sky_dune_surreal",
+  "kind": "editorial",
+  "family": "create_universe",
+  "ui_name_uk": "Небо й дюна · сюрреалізм",
+  "asset_role": "mood_card",
+  "file": "assets/scene-mood-cards/shoot.sky_dune_surreal.webp",
+  "sha256": "0e91cbb62d4ae6a0060d252306a16fc9115bb6351c6d99a7e7e5437f8ff95df1",
+  "origin": {
+    "kind": "OWN_GENERATED_PREVIEW",
+    "note": "Original preview generated solely from the immutable runtime_style contract and deterministic palette authority. No source photographs, approved looks, source identity, or personal input were supplied to the provider.",
+    "unit_contract": "docs/style-units/shoot.sky_dune_surreal/unit.json",
+    "unit_contract_sha256": "a103fc09755e5a392ba63a3850bcee84c85abce4f5c33216eedb4fd1eda4f16a",
+    "unit_binding_sha256": "3a4183170917996720b24058ccbae8c61b80d6fe0f72ead44a4d6ddd6c82bac3",
+    "runtime_style_sha256": "b2f77a3d33fd3d1cc8312edbdea1026e6b74f564955b94f680796cc7c3393267",
+    "palette_authority": {
+      "file": "docs/style-units/shoot.sky_dune_surreal/palette-strip.svg",
+      "sha256": "f0bb83147b4c18ae0390aab11687acf70d2485f9bba8b3b2e61b29fa4c2ad4f3",
+      "rendered_not_generated": true
+    }
+  },
+  "generation": {
+    "provider_path": "higgsfield-cli",
+    "prompt_contract_version": "create-universe-mood-card-v1",
+    "prompt_sha256": "b2b8124fbe92ae821217226d3f605efa11a958a35c07c7d757ea913dd6798a8a",
+    "composition_slot": "environmental_hero",
+    "provider_receipt": {
+      "provider": "higgsfield",
+      "transport": "higgsfield-cli",
+      "generation_mode": "journaled",
+      "job_id": "a9d1db06-f4a3-4509-a163-e2e83b6e1d0b",
+      "job_set_type": "nano_banana_2",
+      "model_name": "Nano Banana Pro",
+      "provider_internal_model": null,
+      "requested_aspect_ratio": "4:5",
+      "requested_resolution": "2k",
+      "requested_quality": null,
+      "output_sha256": "9126072f11c1f8542982c5cea4b96f6447cbdad706d516f1f2c91ac4ea67e118",
+      "provider_journal_sha256": "e744424dae9830ae91b0ac4a397eb1b9cf3bf0273e7f5b09896706f9ddf903ed",
+      "request_sha256": "1630323e4a1b74ea1097229425f35d11e16df5153b2dad7016dd88a620bdcf7b",
+      "palette_input_sha256": "f6418693714ef79506d04ae4f4061fb81229b666eac50931794c24a73976ed09"
+    },
+    "source_width": 1856,
+    "source_height": 2304,
+    "normalization": {
+      "method": "deterministic_4x5_cover",
+      "crop_position": "centre",
+      "width": 1024,
+      "height": 1280,
+      "format": "webp"
+    }
+  },
+  "delivery": {
+    "width": 1024,
+    "height": 1280,
+    "format": "webp",
+    "aspect_ratio": "4:5"
+  },
+  "contains_personal_input": false,
+  "approval": "APPROVED",
+  "visual_review": {
+    "status": "APPROVED",
+    "reviewed_at": "2026-07-29T22:23:42.595Z",
+    "reviewed_source_width": 1856,
+    "reviewed_source_height": 2304,
+    "notes": "Full-resolution review passed: surreal pale-blue sky and suspended cloud field, clean sand ridge, isolated full-body scale, opaque cream coat, restrained optical flatness, and identity-independent adult subject."
+  },
+  "created_at": "2026-07-29T22:23:42.595Z"
+}
