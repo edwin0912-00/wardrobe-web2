@@ -1724,3 +1724,16 @@ Evidence: beta and same-origin main API health both return `ready` and this
 exact release SHA; focused suite 78/78 PASS; contract and canon verification
 PASS. No paid generation was run.
 weakened_checks: none.
+
+2026-08-04 · LOOK selected-garment QA scope · beta candidate pending deploy
+Change: the outfit candidate, prompt and Codex VLM QA now bind only canonical
+selected garment cutouts and an explicit selected-category scope. A raw
+full-body garment photo remains provenance/conditioning evidence but cannot
+silently make incidental trousers, footwear or accessories into required locks.
+Why: a top-only hoodie run generated a faithful hoodie but QA exhausted retries
+because it demanded incidental trousers and boots from the hoodie source photo.
+Evidence: focused core QA 37/37 PASS; runner 12/12 PASS; contracts and canon
+PASS. No new provider generation was charged. The prior failed receipt remains
+immutable rather than being reclassified.
+weakened_checks: none — selected garment, identity, anatomy and white
+background QA remain blocking.

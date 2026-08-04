@@ -1,5 +1,16 @@
 export const GARMENT_CATEGORIES = Object.freeze(['outerwear', 'top', 'bottom', 'one_piece', 'footwear', 'headwear', 'bag', 'accessory']);
 
+const GARMENT_REGION_LABELS = Object.freeze({
+  outerwear: 'outerwear / upper-body layer',
+  top: 'upper body / top',
+  bottom: 'lower body / bottom',
+  one_piece: 'one-piece garment',
+  footwear: 'footwear',
+  headwear: 'headwear',
+  bag: 'bag',
+  accessory: 'accessory',
+});
+
 function unique(values) {
   return [...new Set(values.map((value) => String(value).trim()).filter(Boolean))];
 }
@@ -71,7 +82,25 @@ export function garmentLocks(item) {
   ].filter(Boolean);
 }
 
+// A source photo often shows a complete person even when the user selected only
+// one item from it.  The category extracted by the garment passport is the
+// contract: incidental trousers, shoes, or other clothing visible in that
+// source photo are not silently promoted into required look locks.
+export function outfitTargetRegion(items) {
+  const categories = unique(items.map((item) => item?.category))
+    .filter((category) => GARMENT_CATEGORIES.includes(category));
+  const labels = categories.map((category) => GARMENT_REGION_LABELS[category]);
+  if (labels.length === 0) return 'the user-selected garment region';
+  return `only the selected garment region${labels.length === 1 ? '' : 's'}: ${labels.join(', ')}. Clothing outside these selected regions is intentionally open and must not be treated as a required match merely because it appears in a source photo`;
+}
+
 export function compileFullLookText(items, supportingText = '') {
   const lines = items.flatMap((item) => garmentLocks(item).map((lock) => `[${item.category}] ${lock}`));
-  return [supportingText.trim(), 'Build one coherent full look from every approved garment reference:', ...lines].filter(Boolean).join('\n');
+  return [
+    supportingText.trim(),
+    'Build one coherent look around the selected garment locks below.',
+    `Scope: ${outfitTargetRegion(items)}.`,
+    'A full-body source photo can contain incidental clothing outside that scope; it is not a target garment. Preserve or plausibly complete unselected clothing without treating it as a lock.',
+    ...lines,
+  ].filter(Boolean).join('\n');
 }

@@ -1615,3 +1615,27 @@ client wiring/privacy tests 5/5 PASS.
 Beta: NOT_DEPLOYED. Journey: local Fastify route, lifecycle and God View
 integration covered; no provider or paid generation invoked.
 weakened_checks: none.
+
+---
+
+Agent ID: codex-main
+Task: LOOK-SELECTED-GARMENT-SCOPE-20260804
+Pipeline: LOOK.04–06 · selected garment → approved master look → outfit QA
+State: CODE_VERIFIED — deployment pending
+Finding: a single selected `GARMENT_TOP` (green hoodie) was conditioned into a
+canonical cutout correctly, but look QA later received its raw full-body source
+again. It falsely promoted incidental trousers and footwear from that source
+photo into required outfit locks and exhausted five valid-looking candidates.
+Decision: canonical selected-item bindings are the only image authority during
+outfit QA. The explicit selected-category scope is also passed to generation
+and QA. Raw source bytes remain immutable conditioning/provenance evidence but
+are not re-attached as a second full-look target.
+Evidence: focused garment/run/Codex-VLM suite 37/37 PASS; runner suite 12/12
+PASS; contracts and canon PASS. Full `npm test` exercised this atom but has 21
+pre-existing unrelated failures in deployment fixtures, stale UI expectations,
+and an expired governance lease.
+Beta: NOT_DEPLOYED. Journey: no new paid generation; the old failed run remains
+immutable and is not retroactively relabelled PASS. The next top-only run uses
+the corrected scope.
+weakened_checks: none — selected hoodie, identity, anatomy and white-background
+checks remain blocking; only unselected clothing is no longer treated as target.

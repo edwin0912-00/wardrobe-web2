@@ -327,6 +327,45 @@ test('working core accepts a fresh user and garment upload and returns two downl
   assert.ok(await service.outputFile(created.run_id, 'avatar_outfit.png'));
 });
 
+test('single selected garment binds outfit QA to the canonical item scope, not incidental full-body source clothing', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'zeely-web-partial-item-scope-'));
+  const deps = dependencies();
+  let outfitQaEvidence = null;
+  deps.provider = new MockProvider({
+    image: CANONICAL,
+    script: {
+      qa: (context) => {
+        if (context.phase === 'outfit') outfitQaEvidence = structuredClone(context.evidence);
+        return {
+          decision: 'PASS', reason: 'selected garment matches',
+          checks: [{ name: 'FIDELITY', pass: true, score: 0.98, evidence: 'selected green hoodie matches' }],
+          defects: [],
+        };
+      },
+    },
+  });
+  const service = new RunService({ rootDirectory: root, ...deps });
+  await service.initialize();
+  const created = await service.createRun({
+    person: await upload('#956b58'),
+    garments: [await upload('#275b36')],
+    outfitText: '',
+    generateScene: false,
+  });
+  await service.running.get(created.run_id);
+
+  assert.ok(outfitQaEvidence);
+  assert.equal(outfitQaEvidence.outfit, undefined, 'raw full-body garment source is not QA authority after canonicalization');
+  assert.equal(outfitQaEvidence.source_outfit, undefined, 'raw source image is not appended to outfit QA');
+  assert.match(outfitQaEvidence.outfit_text, /\[top\]/);
+  assert.match(outfitQaEvidence.outfit_scope, /upper body \/ top/);
+  assert.equal(outfitQaEvidence.reference_packs.outfit.bindings[0].role, 'GARMENT_TOP');
+
+  const job = JSON.parse(await readFile(path.join(root, created.run_id, 'job.json'), 'utf8'));
+  assert.match(job.outfit.target_region, /upper body \/ top/);
+  assert.doesNotMatch(job.outfit.target_region, /complete outfit/i);
+});
+
 test('a new-look run imports a verified completed avatar without avatar provider generation', async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'zeely-web-approved-avatar-'));
   const deps = dependencies();

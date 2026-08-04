@@ -90,6 +90,8 @@ export function collectQaImages(evidence = {}, phase = 'outfit') {
     for (const [index, binding] of (evidence.reference_packs?.[scope]?.bindings ?? []).entries()) {
       const role = phase === 'garment' && scope === 'outfit'
         ? `RAW_GARMENT_VIEW_${index + 1}`
+        : phase === 'outfit' && scope === 'outfit' && typeof binding?.role === 'string'
+          ? binding.role
         : `${scope.toUpperCase()}_REFERENCE_${index + 1}`;
       ordered.push(qaImage(binding, role));
     }
@@ -156,11 +158,18 @@ export function qaPrompt(phase, images, evidence = {}) {
       : [];
     return `ATTACHMENT_${index + 1} [${role}]${aliases.length ? ` aliases: ${aliases.map((alias) => `[${alias}]`).join(' ')}` : ''}`;
   }).join('\n');
-  const outfitText = textOnlyOutfitText(evidence)
+  const outfitText = (typeof evidence.outfit_text === 'string' && evidence.outfit_text.trim())
+    || textOnlyOutfitText(evidence)
     || (typeof evidence.outfit?.facts?.text === 'string' ? evidence.outfit.facts.text : '');
   const isTextOnlyOutfit = phase === 'outfit' && Boolean(textOnlyOutfitText(evidence));
   const targetContext = outfitText
     ? `\nAUTHORITATIVE TARGET OUTFIT TEXT\n${outfitText}\nThe clothing visible in identity photos is identity context only. Do not treat it as the target outfit or reject its intentional replacement.`
+    : '';
+  const outfitScope = phase === 'outfit' && typeof evidence.outfit_scope === 'string'
+    ? evidence.outfit_scope.trim()
+    : '';
+  const selectionScope = outfitScope
+    ? `\nSELECTED GARMENT SCOPE\n${outfitScope}\nOnly the declared selected garment regions are blocking fidelity targets. Clothing outside those regions is intentionally open. Never infer a required bottom, footwear, accessory, or other unselected item from incidental clothing visible in a full-body source photo. Old-clothing residue is blocking only inside a selected garment region.\n`
     : '';
   const textOnlyAuthority = isTextOnlyOutfit
     ? '\nTEXT-ONLY CREATIVE BRIEF: This text is the complete authority. It fixes only facts it explicitly says. Any colour, jacket subtype, material detail, hardware, construction, fit, logo/text or styling detail it does not state is intentionally open for a plausible premium interpretation. Never use NEEDS_INPUT, RETRY or REJECT merely because those omitted details cannot be exact-matched to a photo. A well-formed candidate that does not contradict the stated text must PASS. Use RETRY only for a positive contradiction of explicit text, old-clothing residue, identity mismatch or visible anatomy/image defect. The user can refine the text or add a reference photo in a later separate revision.'
@@ -179,11 +188,11 @@ export function qaPrompt(phase, images, evidence = {}) {
     // crop here rejected all three avatar attempts of run 0810e427 on framing
     // alone while the generator was producing exactly what it was told to.
     avatar: 'Compare the candidate avatar with identity evidence. Require the same recognizable person, frontal full-length framing from the top of the head through the soles of the feet with both feet and any footwear inside the frame, full face, natural anatomy, studio photorealism, and no visible background defects.',
-    outfit: 'Compare the candidate with identity, approved avatar, and garment/text evidence. Require the same person and exact observable garment type, colors, material, pattern, logo/text, construction and fit. Reject old-clothing residue and anatomy defects.',
+    outfit: 'Compare the candidate with identity, approved avatar, and garment/text evidence. Require the same person and exact observable garment type, colors, material, pattern, logo/text, construction and fit for the selected garment regions only. Reject old-clothing residue only where it overlaps a selected garment region, plus identity or anatomy defects. Do not promote incidental clothing in a source photo into an unselected target.',
     garment: 'RAW_GARMENT_PRIMARY and RAW_GARMENT_VIEW_* are authoritative source photos; GENERATED_CANONICAL_CANDIDATE is the generated image under review. Compare the candidate against every raw view, never the reverse. Require unchanged type, shape, color, pattern, logo/text and construction only where that fact is clearly visible in at least one raw view. A hidden, absent or unreadable logo/text, rear detail, sole or other unobserved property is UNKNOWN: it is not a mismatch and the candidate must not be required to prove it. Surface weave, grain, gloss, microtexture, or a close material-rendering difference is advisory only: it must never cause RETRY by itself. In particular, do not call a close upper-surface difference (such as mesh versus a pebbled texture) a construction mismatch when the silhouette, panel layout, logo, closures and distinctive geometry agree. Material becomes blocking only when it visibly changes the product category or design, for example a leather boot becoming a knit runner. Reject a candidate only for a positive contradiction, or an omission of a clearly visible source feature. The canonical image must show only the complete garment on clean white. Use NEEDS_INPUT only when the raw garment photos themselves are insufficient to identify the target, regardless of candidate quality. When raw evidence is usable, a blocking mismatch, omission, invention, crop, background issue or other candidate defect is a generated-route failure: use RETRY when another generation can fix it, or REJECT when this candidate is unusable. Never use NEEDS_INPUT merely because the generated candidate differs from usable raw evidence.',
     scene: 'Compare the editorial scene with the approved outfit still. Require the same person and unchanged approved outfit; judge scene intent separately.',
   };
-  return sanitizeExternalPrompt(`Visually judge the attached images for ${phase} QA. ${phaseRules[phase] ?? phaseRules.outfit}${targetContext}${textOnlyAuthority}\nOrdered attachment bindings:\n${labels}\nFill every schema field with concise visible evidence. PASS only if all blocking criteria are visibly supported; RETRY for a fixable generated defect; NEEDS_INPUT for insufficient source evidence; REJECT for an irrecoverable mismatch. Return only JSON.`);
+  return sanitizeExternalPrompt(`Visually judge the attached images for ${phase} QA. ${phaseRules[phase] ?? phaseRules.outfit}${targetContext}${selectionScope}${textOnlyAuthority}\nOrdered attachment bindings:\n${labels}\nFill every schema field with concise visible evidence. PASS only if all blocking criteria are visibly supported; RETRY for a fixable generated defect; NEEDS_INPUT for insufficient source evidence; REJECT for an irrecoverable mismatch. Return only JSON.`);
 }
 
 export function garmentPrompt(images) {
