@@ -11,11 +11,11 @@ The immediate safe recovery was a guarded beta restart after confirming that
 there were no active persisted runs, scenes, or Fashion Shoots. Public beta
 and the main proxy then both returned `status: ready`, `generation: available`.
 
-The source follow-up makes that recovery automatic: cached provider preflight
-is refreshed every 30 seconds using only CLI/account-status probes; a recovered
-check reopens the journey, while a failed check remains fail-closed. It never
-creates a provider job. Code verification and activation are recorded in
-`updates/codex-main.md` with the exact commit.
+The source follow-up is live at `e5c910e224604500f0b691dedf7cdc0f6f0b5c35`:
+cached provider preflight is refreshed every 30 seconds using only
+CLI/account-status probes; a recovered check reopens the journey, while a
+failed check remains fail-closed. It never creates a provider job. Local beta,
+public beta and the main proxy all returned `ready/available` after activation.
 
 `weakened_checks: none`.
 

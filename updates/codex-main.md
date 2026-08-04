@@ -315,7 +315,7 @@ Pipeline: VIDEO.01 · Вибір відеостилю до запуску
 Agent ID: codex-main
 Task: BETA-PREFLIGHT-SELF-RECOVERY-20260804
 Pipeline: platform health → LOOK.01/03 generation admission
-State: READY_FOR_BETA_DEPLOY
+State: LIVE
 Finding: a transient startup preflight failure left the beta engine degraded for
 the entire daemon lifetime. The actual Higgsfield CLI/account check had
 recovered, but the main client still received `generation: unavailable` and
@@ -323,10 +323,12 @@ disabled `Створити образ` before any generation request.
 Decision: preserve the fail-closed provider gate, refresh its cached result
 every 30 seconds without creating a provider job, and make API admission read
 the current cached result rather than the boot snapshot.
-Code: this atomic commit.
+Code: `e5c910e224604500f0b691dedf7cdc0f6f0b5c35`.
 Tests: `node --test test/web/outbound-privacy.test.js test/web/preflight.test.js` → 7/7 PASS.
-Beta: runtime manually recovered with zero active persisted work; source activation pending.
-Journey: public `/api/health` now reports ready/available after the guarded restart.
+Beta: guarded activation of the exact code SHA after zero-active-work preflight;
+local and public beta both returned `ready/available`.
+Journey: the main proxy `https://madeforthisjob.com/api/health` returned the
+same `e5c910e` release and `generation: available`.
 weakened_checks: none.
 
 ---
