@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { compileFullLookText, findGarmentConflicts, garmentLocks, groupGarmentViews } from '../../src/web/garment-passport.js';
+import { compileFullLookText, findGarmentConflicts, garmentLocks, groupGarmentViews, outfitTargetRegion } from '../../src/web/garment-passport.js';
 
 const item = (category, source_index) => ({ source_index, category, confidence: 0.9,
   observed: { garment_type: `${category} garment`, colors: ['black'], material: ['wool'], pattern: [], logo_text: [], construction: ['clean seams'] }, unknowns: [], blockers: [] });
@@ -32,4 +32,15 @@ test('garment locks and full-look prompt preserve observable details', () => {
   assert.match(prompt, /editorial fit/);
   assert.match(prompt, /outerwear/);
   assert.match(prompt, /ZEELY/);
+});
+
+test('one selected garment does not turn incidental clothing in its source photo into a full-look lock', () => {
+  const top = item('top', 0);
+  const scope = outfitTargetRegion([top]);
+  const prompt = compileFullLookText([top]);
+  assert.match(scope, /upper body \/ top/);
+  assert.match(scope, /intentionally open/);
+  assert.match(prompt, /selected garment locks/);
+  assert.match(prompt, /incidental clothing/);
+  assert.doesNotMatch(scope, /complete outfit/i);
 });

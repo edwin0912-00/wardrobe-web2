@@ -1,5 +1,63 @@
 # Wardrobe update board
 
+## 2026-08-04 · Structured generation failures reach the beta screen — release candidate
+
+The browser now preserves the safe, structured fields returned by beta across
+create, polling and retry boundaries: `code`, `failure_code`, `reason_code`,
+`next_action`, and `next_action_reason_code`. A failed step shows authored
+Ukrainian copy together with the actual safe code and a concrete next action,
+rather than relabelling every failure as a connection problem or `Conflict`.
+
+Examples include `IMAGE_TOO_SMALL`, `UNSUPPORTED_MEDIA_TYPE`,
+`VIDEO_INPUT_MEDIA_IP_CHECK_PENDING`, and video/scene QA rejection codes. The
+screen never prints raw provider errors, VLM rationale, URLs, credentials, or
+internal stack text: those are not stable product explanations and may contain
+private material. If a provider supplies no safe structured code, the UI keeps
+the existing authored recovery message instead of inventing one.
+
+Evidence: browser error-presentation, draft, scene, editorial, API and video
+route tests 38/38 PASS; JavaScript syntax checks PASS. No provider job was
+created.
+`weakened_checks: none`.
+
+## 2026-08-04 · Saved materials recovery is active
+
+The active beta source release must be read from public `/api/health`; it
+contains product repair `79b14560971ec0478b0be99be00c984869e29938`.
+Every guarded activation found no active persisted run, scene, Fashion Shoot
+or video work; local and public health returned `ready`.
+
+The change has two linked halves:
+
+- beta keeps a durable Fashion Shoot profile record when the in-memory shoot
+  runtime is temporarily unavailable, and returns an explicit recovery card
+  instead of deleting/hiding the saved shoot;
+- the cinematic main at `21cbc599739865494fa8d6636794dcd429515b43` now asks
+  beta for saved scenes as well as shoots and videos, renders server previews,
+  and exposes original-file downloads.
+
+No paid job was created. See `updates/codex-main.md` and `LOG.md` for exact
+tests and the recovery boundary. `weakened_checks: none`.
+
+## 2026-08-04 · beta provider preflight self-recovery
+
+At 13:19 the main client correctly disabled `Створити образ` even though five
+garment uploads were accepted: the beta engine had retained a boot-time
+`degraded` provider preflight and therefore exposed `generation: unavailable`.
+The same Higgsfield CLI/account check was healthy when replayed read-only.
+
+The immediate safe recovery was a guarded beta restart after confirming that
+there were no active persisted runs, scenes, or Fashion Shoots. Public beta
+and the main proxy then both returned `status: ready`, `generation: available`.
+
+The source follow-up is live at `e5c910e224604500f0b691dedf7cdc0f6f0b5c35`:
+cached provider preflight is refreshed every 30 seconds using only
+CLI/account-status probes; a recovered check reopens the journey, while a
+failed check remains fail-closed. It never creates a provider job. Local beta,
+public beta and the main proxy all returned `ready/available` after activation.
+
+`weakened_checks: none`.
+
 ## 2026-08-02 · source, release and historical-chat reconciliation
 
 **Current engine source and public beta are the same code SHA:**
@@ -206,6 +264,58 @@ Current source before this candidate: `origin/beta` `7f7c271`.
 - Beta: `READY_FOR_BETA_DEPLOY` until the exact candidate SHA is pushed and activated through `tools/deploy-beta-release.mjs`.
 - Journey: `NOT_RUN` until the public beta Fashion Shoot smoke is observed.
 - `weakened_checks: none`.
+
+### 2026-08-03 · Pending beta repair: retries, input-media readiness, fresh UI modules
+
+- A completed Fashion Shoot remains five customer frames in the profile; its
+  apparent surplus was camera-scale QA retries, not duplicate shoots. In its
+  explicit `review` mode, that measured art-direction variance is recorded
+  without re-spending a paid frame attempt. Core visual safety remains strict.
+- Higgsfield's pre-submit input-media IP check now gets one same-request retry
+  after three seconds. If it is still pending, beta clearly reports that no job
+  was created and offers the user a retry instead of a false connection error.
+- `scene.css`, `app.js`, `scene-ui.js`, and `editorial-shoot-ui.js` now ship
+  with a single cache-bust token, so a stale dependent module cannot mask a
+  newly deployed Fashion Shoot UI.
+- Evidence: focused UI/provider/video/scene tests **177/177 PASS**;
+  contracts and canon PASS. No paid generation.
+
+### 2026-08-03 · Beta release `a828cd5` — LIVE
+
+- Beta is active and healthy on exact source SHA
+  `a828cd542360ed396d4f3247f0eaefc2e2397207`. Its guarded release verified
+  741 product files, 16 standard presets and 15 Create Universe styles with
+  UI/API/runtime enabled.
+- The deployment was initially stopped safely because the local beta
+  LaunchAgent file had been corrupted into a JSON array. It was restored to a
+  standard persistent plist using the existing current beta runner, then
+  validated with `plutil`, launchd inspection and a clean dry-run before the
+  guarded switch.
+- No active run, scene, Fashion Shoot or video job was interrupted; no paid
+  generation was created by the release.
+
+## 2026-08-03 · active candidate: Fashion Shoot retries + truthful Higgsfield video readiness
+
+Plain product change: a Fashion Shoot customer frame no longer gets discarded
+solely for falling outside its stylistic camera-scale band while beta is in
+`review`. The measured band result remains visible in its receipt, but the
+five-frame series proceeds. This applies only to `shoot.*`; the 16 ordinary
+backgrounds stay strict.
+
+Video create now understands Higgsfield's exact pre-submit message `IP check
+not finished for input media`: it waits three seconds, resends the *same*
+hash-bound request once, and then gives a clear Ukrainian recovery message if
+Higgsfield is still not ready. It never retries a missing/ambiguous accepted
+job and never claims a provider job was created when it was not.
+
+Verified investigation: the apparent duplicate last Fashion Shoot was already
+saved with five customer frames; the extra provider images came from two
+camera-scale retries (2 + 3), not a persistence loss.
+
+State: `READY_FOR_BETA_DEPLOY`; focused provider/video/routes/Fashion Shoot
+tests PASS. `weakened_checks`: only `shoot.*` camera-scale in review/off is
+advisory, by explicit operator decision; hard identity/item/leakage/anatomy and
+all `std.*` gates remain unchanged. No paid call was made by this candidate.
 
 ## Beta sync · 2026-07-31 · integration candidate
 
@@ -644,6 +754,7 @@ beta release. A card, API contract, or mocked status alone is not a PASS.
 | ID | Назва / місце в пайплайні | Owner | State | Type | Reserved paths | One concrete outcome |
 | --- | --- | --- | --- | --- | --- | --- |
 | BETA-FULL-JOURNEY-GATE-001 | RELEASE · Один прохід від saved look до всіх продуктів | codex-main | IN_PROGRESS | COORD + QA | `UPDATE.md`; `STATE.md`; `LOG.md`; `PIPELINE.md` | Maintain the exact beta release ledger: Profile/look, Background, Background Video, Create Universe/Art Shoot, primary Fashion Video, Live, and pipeline explainer. Record only reproducible current-beta evidence; a missing result becomes the next atomic task. |
+| BETA-TEST-AUDIT-001 | TEST · Приватний аудит тестових browser-сесій | codex-main | READY_FOR_BETA_DEPLOY | CODE + QA | `src/web/test-audit-service.js`; `src/web/test-audit-routes.js`; `src/web/god-view-routes.js`; `src/web/app.js`; `src/web/start.js`; `src/monitor/routes.js`; `web/public/god-view.*`; `test/web/test-audit-*.test.js`; `updates/codex-main.md`; `UPDATE.md` | Direct operator request 2026-08-03: record the useful test journey without invite codes or hidden browser fingerprinting. Each anonymous browser profile is correlated with device class/browser/OS, trusted edge country and a pseudonymous network correlation hash; God View separates manually marked **Мої тести** from external/unclassified sessions and shows entry, last meaningful step, errors, completion and exit. Code `01cca5ee7eb3ebe9bf70bea412748c571e03dc95`; focused audit/God View/profile/monitor tests 20/20 PASS; contracts PASS. No raw uploads, prompts, cookies, full IPs or full user-agent strings are stored. |
 | BETA-ROOT-UI-RECOVERY-001 | SHELL.01 · Beta віддає поточний placeholder shell | codex-main | READY | DEPLOY + MANUAL QA | `tools/build-product-release.mjs`; `tools/verify-product-release.mjs`; `updates/codex-main.md` | Старий root shell не є джерелом для ремонту або повернення. Випустити поточний beta-placeholder exact SHA після того, як release manifest і verifier чесно включать усі актуальні Create Universe assets. Потім незалежно пройти 01–04 без fatal overlay. |
 | BETA-POSTSHOOT-CHOICE-001 | LOOK.06 → CHOICE.01 · Три live-продовження образу | codex-main | LIVE | CODE | `web/public/index.html`; `web/public/app.js`; `web/public/result.css`; `test/web/profile-ui-flow.test.js`; `updates/codex-main.md` | Commit `39e369a` passed `node --test test/web/profile-ui-flow.test.js` (9/9), and cache-version follow-up `e05eb44` is live in `release-e05eb44-20260728003504`: a selected saved look now presents Photoshoot, Fashion video and Live camera together. Video is deliberately a truthful blocked action until `BETA-VIDEO-SEEDANCE-001` supplies transport, QA and saving; it is never substituted with mock media. This existing UI is not yet the four-way product choice below. |
 | BETA-LOOK-NEXT-ACTIONS-001 | LOOK.06 → CHOICE.01–02 · П’ять живих карток після образу | codex-main | BLOCKED_DEPLOY | CODE + VISUAL QA | `web/public/choice-universe-preview.html`; `test/web/choice-universe-preview.test.js`; `updates/codex-main.md` | Complete in `2a1a445`: standalone, non-functional preview screen for **Покращити образ**, **Додати фон**, **Створити фотозйомку**, **Fashion Video**, and **Real-time Look**. Focused test 2/2 PASS. Exact beta release build is blocked before packaging by pre-existing invalid editorial preview sidecar `editorial.edwin_novak.organic_contrast`; no manual copy/bypass was used. No provider call, camera permission, hidden navigation, or change to the saved-look flow. |

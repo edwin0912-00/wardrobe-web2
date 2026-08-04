@@ -155,6 +155,44 @@ export function editorialShootView(shoot) {
   };
 }
 
+/* A profile projection is the durable record that a user owns a Fashion Shoot.
+ * The runner state can be temporarily unavailable during a restart or runtime
+ * migration. That is not evidence that the user deleted the shoot. Keep the
+ * card visible, mark it as recovering, and wait for the authoritative runtime
+ * to return instead of fabricating a downloadable frame. */
+export function persistedEditorialShootView(projection) {
+  if (!projection) return null;
+  return {
+    shoot_id: projection.shoot_id,
+    look_id: projection.look_id,
+    status: projection.status,
+    phase: 'RECOVERY_PENDING',
+    message: 'Збережену фотосесію відновлюємо',
+    created_at: projection.created_at,
+    updated_at: projection.updated_at,
+    mode: {
+      mode_id: projection.mode?.mode_id ?? null,
+      version: projection.mode?.version ?? null,
+      ui_name_uk: null,
+      visual_system: null,
+    },
+    bible: null,
+    hero_approval_status: 'BLOCKED',
+    hero_output_sha256: projection.hero_output_sha256 ?? null,
+    hero_image_url: null,
+    hero_download_url: null,
+    shots: [],
+    recovery: {
+      code: 'EDITORIAL_SHOOT_RUNTIME_UNAVAILABLE',
+      retryable: true,
+      approved_shot_count: projection.approved_shot_count ?? 0,
+      preview_slot: projection.preview_slot ?? null,
+      preview_output_sha256: projection.preview_output_sha256 ?? null,
+    },
+    cancellation: null,
+  };
+}
+
 async function currentOwnedShoot({
   profiles,
   profileId,
@@ -192,9 +230,11 @@ export async function registerEditorialShootRoutes(app, {
     const shoot = await editorialShootService.getShoot(projection.shoot_id);
     if (shoot?.bindings.approved_look.look_id === projection.look_id) {
       profiles.syncEditorialShootProjection(shoot);
-    } else {
-      profiles.deleteEditorialShoot(projection.profile_id, projection.shoot_id);
     }
+    // Do not delete a durable user-owned projection here. A service restart,
+    // a temporary runtime mount failure, or a stale in-memory index can make
+    // getShoot() return null. Only the explicit owner DELETE route is allowed
+    // to remove a saved Fashion Shoot from a profile.
   }
   await profiles.flushDeletionQueue({
     runService,
@@ -236,6 +276,12 @@ export async function registerEditorialShootRoutes(app, {
         if (shoot?.bindings.approved_look.look_id === request.params.lookId) {
           profiles.syncEditorialShootProjection(shoot);
           resolved.push(editorialShootView(shoot));
+        } else {
+          // Return a truthful durable card instead of silently turning a
+          // temporary runtime outage into an empty saved-library response.
+          // It deliberately contains no output URL: the media endpoint still
+          // requires current runner ownership before it can disclose bytes.
+          resolved.push(persistedEditorialShootView(projection));
         }
       }
       return reply

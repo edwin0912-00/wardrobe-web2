@@ -17,6 +17,24 @@ Beta: NOT_DEPLOYED. Journey: code-level test only after the A/B.
 
 ---
 
+Agent ID: codex-main
+Task: SAVED-DELIVERY-LIBRARY-20260803
+Product line: beta engine + cinematic main presentation
+Pipeline: completed Fashion Shoot / verified Fashion Video → saved look → reload → review / download
+State: CODE_VERIFIED — deployment pending
+Decision: approved customer Fashion Shoot frames and only verified Fashion Video
+deliveries are reloaded from the saved-look server routes.  Video playback and
+download stay profile-authorized and `private, no-store`; the copied URL is not
+a public share link.  The cinematic main restores the library without turning a
+historical delivery into an active job.
+Evidence: beta routes/profile UI suite 49/49 PASS; cinematic preflight 138/138
+PASS and focused bridge/client/result suite 44/44 PASS.  Cache-bust chains
+advance together so browsers fetch the added UI and API client.
+weakened_checks: none.
+Beta: PENDING_DEPLOY. Main: PENDING_DEPLOY. Journey: no paid generation created.
+
+---
+
 Agent ID: codex-live-40
 Task: FASHION-VIDEO-START-REGRESSION-20260802
 Product line: beta-placeholder → main bridge
@@ -195,7 +213,7 @@ weakened_checks: none.
 Agent ID: codex-live-40
 Task ID: BETA-VIDEO-INPUT-ROLES-AND-SHOOT-DOWNLOAD-20260803
 Pipeline: UNIVERSE.04 + VIDEO.01 · result delivery surface
-State: READY_FOR_BETA_DEPLOY
+State: LIVE
 Decision: restored every server-READY Fashion Shoot card; every delivered
 customer frame keeps its independent output and a visible «Завантажити» link.
 The native beta Fashion Video picker now renders the server-owned input roles:
@@ -294,6 +312,27 @@ weakened_checks: none.
 Agent ID: codex-main
 Task ID: BETA-FASHION-VIDEO-STYLE-LABELS-001
 Pipeline: VIDEO.01 · Вибір відеостилю до запуску
+Agent ID: codex-main
+Task: BETA-PREFLIGHT-SELF-RECOVERY-20260804
+Pipeline: platform health → LOOK.01/03 generation admission
+State: LIVE
+Finding: a transient startup preflight failure left the beta engine degraded for
+the entire daemon lifetime. The actual Higgsfield CLI/account check had
+recovered, but the main client still received `generation: unavailable` and
+disabled `Створити образ` before any generation request.
+Decision: preserve the fail-closed provider gate, refresh its cached result
+every 30 seconds without creating a provider job, and make API admission read
+the current cached result rather than the boot snapshot.
+Code: `e5c910e224604500f0b691dedf7cdc0f6f0b5c35`.
+Tests: `node --test test/web/outbound-privacy.test.js test/web/preflight.test.js` → 7/7 PASS.
+Beta: guarded activation of the exact code SHA after zero-active-work preflight;
+local and public beta both returned `ready/available`.
+Journey: the main proxy `https://madeforthisjob.com/api/health` returned the
+same `e5c910e` release and `generation: available`.
+weakened_checks: none.
+
+---
+
 State: READY_FOR_BETA_DEPLOY
 Decision: the three contact-sheet-backed video style units remain unchanged.
 Only the second UI label changes from the internal action wording `Рух у кадрі`
@@ -1443,3 +1482,227 @@ Journey: existing completed `shoot.zayn_institutional` has five customer output
 files; restart backfilled `environmental_hero` as its saved preview. The source
 PNG remains the Download asset; only the on-screen preview is a light WebP.
 weakened_checks: none; no QA state or output bytes are altered.
+
+---
+
+Agent ID: codex-main
+Task ID: BETA-SHOOT-RETRY-AND-VIDEO-IP-CHECK-20260803
+Pipeline: UNIVERSE.04 · five Fashion Shoot frames → saved library; VIDEO.02 · Higgsfield submission
+State: LIVE
+Decision: in live `review` mode, a `shoot.*` camera-scale miss is retained as
+`NON_BLOCKING_FASHION_REVIEW` receipt evidence rather than consuming another
+paid Fashion Shoot retry. Identity, selected-item construction, leakage and
+anatomy remain blocking; `std.*` backgrounds are unchanged. Higgsfield's exact
+`IP check not finished for input media` create rejection now waits 3 seconds
+and retries the identical, already-bound request once. It never retries an
+unknown create outcome or an accepted job. A second identical rejection returns
+the explicit Ukrainian status `VIDEO_INPUT_MEDIA_IP_CHECK_PENDING`.
+Observed: the inspected completed Fashion Shoot already has five customer frames
+and a durable saved-profile projection; the apparent many images were two
+camera-scale retries (2 + 3) plus successful slots, not duplicate shoots.
+Code: `a828cd542360ed396d4f3247f0eaefc2e2397207`.
+Tests: new regressions failed before this change; after it, focused
+video/provider/routes + Fashion Shoot scene suite PASS (all selected tests).
+Beta: LIVE — public health release SHA `a828cd542360ed396d4f3247f0eaefc2e2397207`.
+Journey: no paid provider call was made by this repair.
+weakened_checks: only `shoot.*` camera-scale art direction in live `review`/`off`
+mode becomes advisory. The measured value remains in the receipt. This is an
+explicit operator decision; standard scenes and hard identity/item/leakage/anatomy
+checks are unchanged.
+
+---
+
+Agent ID: codex-main
+Task ID: BETA-SHOOT-RETRY-AND-VIDEO-IP-CHECK-20260803
+Pipeline: UNIVERSE.04 · Fashion Shoot delivery; VIDEO.02 · provider input readiness
+State: READY_FOR_BETA_DEPLOY
+Decision: cache-bust identifiers for `scene.css`, `app.js`, `scene-ui.js`, and
+`editorial-shoot-ui.js` now advance as one chain (`20260803-2`). A browser can
+therefore not retain a stale Fashion Shoot shell after the new `app.js` arrives.
+Code: `a828cd542360ed396d4f3247f0eaefc2e2397207`.
+Tests: focused UI/provider/video/scene suite 177/177 PASS; contracts and canon PASS.
+Beta: LIVE — public health release SHA `a828cd542360ed396d4f3247f0eaefc2e2397207`.
+Journey: no paid provider call was made by this repair.
+weakened_checks: only the explicit `shoot.*` review-policy change above; no
+identity, item, anatomy, leakage, standard-scene, or video-reference check changed.
+
+Operational correction: beta's local LaunchAgent plist had been replaced by a
+two-element JSON array, so the guarded release tool correctly refused to
+restart it. It was restored from its valid local template with the current
+`madeforthisjob-beta-launcher/run-beta-daemon.sh` argument, then validated by
+`plutil`, `launchctl print`, dry-run and successful guarded activation. No
+runtime data or secret was changed.
+Agent ID: codex-main
+Task: FASHION-VIDEO-STYLE-DURATION-RETRY-20260803
+Product line: beta engine → main bridge
+Pipeline: VIDEO.01 verified style reference → VIDEO.02 retry submission
+State: READY_FOR_BETA_DEPLOY
+Finding: a persisted legacy clip could retain the old generic motion-mode
+duration (for example `camera_drift=6`) while its verified style reference
+owns a different provider-safe duration (for example `13`). On retry the
+generic duration gate ran before provider submission and returned HTTP 400
+`MOTION_DURATION_OUT_OF_RANGE`. No Higgsfield job was created.
+Decision: for a reference-bound Fashion Video, only the verified style
+reference's provider duration (3–15 whole seconds) is duration authority.
+The motion mode remains a semantic direction. Non-reference clips retain the
+existing strict per-mode duration window.
+Evidence: `node --test test/video/*.test.js` 209/209 PASS;
+`npm run verify:contracts` PASS (41 schemas, 9 fixtures, 3 jobs).
+Beta: NOT_DEPLOYED. Journey: exact legacy retry regression covered locally;
+no paid provider request made. weakened_checks: none.
+
+---
+
+Agent ID: codex-main
+Task: VIDEO-TERMINAL-FAILED-AUTORETRY-20260803
+Pipeline: VIDEO.02 · accepted Higgsfield job → terminal result → delivery/retry
+State: CODE_VERIFIED — deployment pending
+Finding: the observed clip `aaf3d47e-70d5-4451-8e6d-99a0ac4e4903` reached an
+attested Higgsfield `failed` terminal state. The old release only logged and
+re-polled it; later provider cleanup changed the visible result to `not found`.
+Decision: `VIDEO_PROVIDER_JOB_FAILED` starts the existing server-owned,
+hash-bound recovery chain, maximum two total automatic children. A missing job
+is intentionally not retried automatically. The current UI receives an explicit
+WAIT/automatic-retry state rather than a dead manual retry.
+Code: candidate on `beta` after `7436300`.
+Tests: VideoService + Video routes 78/78 PASS; new regression covers terminal
+provider failure → automatic child → two-attempt exhaustion.
+Beta: NOT_DEPLOYED. Journey: no paid provider request made by this code repair.
+weakened_checks: none; reference performer leakage remains delivery-blocking.
+
+Activation: LIVE — product release
+`505729016624be756c264ca3c5f30edf92ed6da5`; verifier PASS (741 deploy files),
+guarded deploy found zero active persisted work, and local + public beta health
+both returned `ready`.
+
+---
+
+Agent ID: codex-main
+Task: VIDEO-TERMINAL-CHAIN-RECOVERY-20260803
+Pipeline: VIDEO.02 · automatic recovery → terminal state → explicit retry
+State: CODE_VERIFIED — deployment pending
+Finding: an automatic retry record belongs to its parent clip. After the two
+child jobs reached terminal `FAILED`, the parent still said `CREATED`, so
+manual retry returned 409 and main showed a generic failure.
+Decision: resolve the bounded child chain on status/finalize/retry. Only a
+resumable child is in progress. A terminal chain exposes the terminal leaf and
+allows a new explicit retry; a missing child remains fail-closed.
+Code: this commit.
+Tests: `node --test test/video/*.test.js` 213/213 PASS.
+Beta: NOT_DEPLOYED. Journey: no paid provider request made.
+weakened_checks: none.
+
+---
+
+Agent ID: codex-main
+Task: BETA-TEST-AUDIT-001
+Pipeline: private test journey → God View; cinematic main adapter → beta engine
+State: CODE_VERIFIED — release pending
+Decision: no invite codes and no hidden browser fingerprinting.  Every browser
+receives the existing anonymous profile session; the journal stores only coarse
+device class/OS/browser major, edge country, a one-way network correlation ID,
+entry, meaningful journey stage, error count, completion count and page exit.
+God View lets an authorized tester manually mark a browser as `Мій тест`,
+`Зовнішній` or unclassified. Raw IPs, complete user-agent strings, cookies,
+uploads, filenames, prompts, provider URLs and error text are rejected or never
+accepted by the endpoint.
+Code: `01cca5ee7eb3ebe9bf70bea412748c571e03dc95`; private SQLite store `test-audit.sqlite`, allowlisted
+same-origin route, beta telemetry bridge, God View dashboard/labels, and a
+small cinematic-main client that forwards only visible journey state.
+Tests: audit + God View + profile/monitor focused suite 20/20 PASS;
+## Structured public failure diagnostics — 2026-08-04
+
+Pipeline: `LOOK.01–06`, `BACKGROUND.01–02`, `UNIVERSE.01–04`, `VIDEO.*`.
+
+Code: API/browser failure fields now survive profile creation, uploads,
+backgrounds, Fashion Shoot and Fashion Video polling/retry. The public screen
+uses authored Ukrainian copy with the exact safe `Код` and an actionable next
+step. It never exposes raw provider/model error prose, internal URLs, stack
+traces, credentials or reasoning.
+
+Evidence: focused browser, API and video-route tests 38/38 PASS; JS syntax checks
+PASS. Beta: NOT_DEPLOYED. Journey: NOT_RUN. No provider/paid generation.
+weakened_checks: none.
+
+---
+
+`npm run verify:contracts` PASS (41 schemas, 9 fixtures, 3 jobs); cinematic
+client wiring/privacy tests 5/5 PASS.
+Beta: NOT_DEPLOYED. Journey: local Fastify route, lifecycle and God View
+integration covered; no provider or paid generation invoked.
+weakened_checks: none.
+
+---
+
+Agent ID: codex-main
+Task: LOOK-SELECTED-GARMENT-SCOPE-20260804
+Pipeline: LOOK.04–06 · selected garment → approved master look → outfit QA
+State: CODE_VERIFIED — deployment pending
+Code: `8ff02eb3d8bb890ca5679e894cb9069914cd33c1`.
+Finding: a single selected `GARMENT_TOP` (green hoodie) was conditioned into a
+canonical cutout correctly, but look QA later received its raw full-body source
+again. It falsely promoted incidental trousers and footwear from that source
+photo into required outfit locks and exhausted five valid-looking candidates.
+Decision: canonical selected-item bindings are the only image authority during
+outfit QA. The explicit selected-category scope is also passed to generation
+and QA. Raw source bytes remain immutable conditioning/provenance evidence but
+are not re-attached as a second full-look target.
+Evidence: focused garment/run/Codex-VLM suite 37/37 PASS; runner suite 12/12
+PASS; contracts and canon PASS. Full `npm test` exercised this atom but has 21
+pre-existing unrelated failures in deployment fixtures, stale UI expectations,
+and an expired governance lease.
+Beta: NOT_DEPLOYED. Journey: no new paid generation; the old failed run remains
+immutable and is not retroactively relabelled PASS. The next top-only run uses
+the corrected scope.
+weakened_checks: none — selected hoodie, identity, anatomy and white-background
+checks remain blocking; only unselected clothing is no longer treated as target.
+## README local startup contract — 2026-08-04
+
+Code: `e808ab941838b48d91f50b8c2b74961021012e53`. Added `npm run verify:readme`: a behavioral Fastify
+smoke test that resolves `index.html`, every local static/module dependency and
+`/api/health` through the actual HTTP application surface, then runs the real
+`src/web/start.js` in a clean temporary runtime. It is specifically intended to
+fail on a UI-module path/bridge 404 rather than merely prove that an import
+string exists in source.
+
+The same repair decouples local app boot from the deployment-only
+`ZEELY_PUBLIC_HTTPS_ORIGIN`: the video source bridge is created only when that
+origin exists. An absent origin now blocks only the OpenRouter video fallback
+with `VIDEO_SOURCE_ORIGIN_UNAVAILABLE`; it cannot prevent the app, API, image
+journey or reference-bound Higgsfield Video route from starting.
+
+Likewise, `OPENROUTER_API_KEY` is now an optional fallback configuration rather
+than a process-start prerequisite. The primary Higgsfield video provider stays
+available; a missing fallback key fails only on an actual fallback request.
+
+Beta: NOT_DEPLOYED — this is repository handoff coverage, not a runtime change.
+Journey: `npm run verify:readme` PASS: real Fastify static/module graph and a
+clean `src/web/start.js` returned HTTP 200 for `/`, `/app.js`, `/scene-ui.js`
+and `/api/health`.
+weakened_checks: none.
+
+## Saved materials: durable Fashion Shoot recovery — 2026-08-04
+
+Pipeline: `PROFILE.03 → BACKGROUND.02 / UNIVERSE.04 / VIDEO.04`.
+
+Finding: the server persists completed backgrounds in `scenes`, Fashion Shoot
+projections in `editorial_shoots`, and delivered clips in `video_clips`. The
+main cinematic adapter already had `listScenes`, but never called it, so saved
+backgrounds could not appear after reload. More seriously, Fashion Shoot route
+startup deleted a saved profile projection if its in-memory runtime could not
+be reopened at that instant; the list route then silently returned no shoot.
+
+Decision: only an explicit owner DELETE can remove a Fashion Shoot projection.
+When its runtime is temporarily unavailable, the private list route returns a
+truthful recovery card with no media URL; the client keeps already-visible
+materials instead of replacing them with an empty library. Main now restores
+backgrounds, shoots and verified videos through the same saved-look flow, with
+WebP preview routes for display and original files only for download.
+
+Code: this commit plus main-site commit `21cbc59`.
+Tests: `node --test test/web/editorial-activation-backend.test.js` 9/9 PASS;
+main cinematic bridge/client/result suite 50/50 PASS.
+Beta: NOT_DEPLOYED. Journey: no paid generation; regression covers save →
+runtime unavailable/list → refresh recovery without deletion.
+weakened_checks: none — no output URL is issued while the runner cannot prove
+current ownership of the media bytes.

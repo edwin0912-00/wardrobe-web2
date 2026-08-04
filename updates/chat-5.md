@@ -50,6 +50,34 @@ outputs are rejected evidence and must not be reused.
 
 weakened_checks: none.
 
+## Terminal Higgsfield failure settles visibly — 2026-08-03
+
+Code: `04b534d9ecf541b4316daca18ec08e2f08c684b8`.
+
+Higgsfield CLI reports a completed unsuccessful video job by exiting its wait
+command with `job … ended with status "failed"`. Previously beta classified
+that as a generic retryable command interruption, left the immutable clip in
+`GENERATING`, and polled the same failed job forever. The repair has one owner
+at the provider boundary: it classifies only explicit terminal job statuses as
+`PROVIDER_JOB_FAILED`; ordinary transport errors stay `PROVIDER_COMMAND_FAILED`
+and remain resumable against the same job. `VideoService` then persists a
+terminal `FAILED / VIDEO_PROVIDER_JOB_FAILED`, removes its wait lease, and the
+status route returns a Ukrainian explanation plus the existing explicit retry
+action. The retry is a new user action; this repair makes no paid request.
+
+Pre-change proof: the two new provider/service regressions fail on
+`320b1af085a59c10bc0cd087680294ea7cc486ea` because the provider returned
+`PROVIDER_COMMAND_FAILED` and the clip stayed non-terminal. Current evidence:
+`node --test test/video/*.test.js` — PASS 203/203; `git diff --check` — PASS.
+Adversarial check: a generic `connection reset by peer` still maps to the
+retryable transport code, so the rule does not turn normal network errors into
+false terminal failures.
+
+Beta: READY_FOR_BETA_DEPLOY after integration of this exact code SHA.
+Journey: an existing read-only Higgsfield job with provider status `failed`
+identified the production failure path; no new provider job was created.
+weakened_checks: none.
+
 ## Boundary-safe hero salvage acceptance — 2026-07-31
 
 The semantic evaluator now scales samples to the measured media duration,

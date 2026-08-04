@@ -1,9 +1,12 @@
 // The four canonical motion modes from docs/VIDEO_LIVE_CANON_UA.md, turned into
 // something a machine can enforce instead of a paragraph a prompt can ignore.
 //
-// Each mode owns its duration window and its own prompt body. The body never
-// names an aspect, a duration or a resolution — those are provider parameters,
-// and the transport refuses a prompt that mentions them.
+// A standalone mode owns its duration window and its own prompt body. A
+// reference-bound Fashion Video instead inherits its whole-second provider
+// duration from the immutable style reference; the mode remains a semantic
+// motion instruction, not a second conflicting duration authority. The body
+// never names an aspect, a duration or a resolution — those are provider
+// parameters, and the transport refuses a prompt that mentions them.
 //
 // A Fashion Video's shape belongs to its hash-bound style reference. The user
 // chooses a style, never a display format. A vertical reference plays in the
@@ -291,6 +294,7 @@ export function surface(id) {
 export function buildMotionPlan({
   modeId,
   durationSeconds,
+  referenceDurationSeconds = null,
   surface: surfaceId = DEFAULT_VIDEO_SURFACE,
   sourceCapabilities = {},
   styleNote = null,
@@ -305,8 +309,24 @@ export function buildMotionPlan({
     );
   }
 
-  const seconds = durationSeconds ?? mode.seconds.default;
-  if (!Number.isInteger(seconds) || seconds < mode.seconds.minimum || seconds > mode.seconds.maximum) {
+  // The reference registry already derives this from the immutable source as
+  // a value the provider accepts (whole seconds, 3–15).  It must take
+  // precedence over an old persisted clip's mode-duration value on retry.
+  // Otherwise a valid 13 s style with the `camera_drift` motion label is
+  // rejected before it reaches Higgsfield merely because the generic drift
+  // demo window is 5–7 s.
+  const hasReferenceDuration = referenceDurationSeconds !== null;
+  const seconds = hasReferenceDuration
+    ? referenceDurationSeconds
+    : (durationSeconds ?? mode.seconds.default);
+  if (hasReferenceDuration) {
+    if (!Number.isInteger(seconds) || seconds < 3 || seconds > 15) {
+      throw new MotionPlanError(
+        'Fashion Video style reference must resolve to a provider duration of 3–15 whole seconds',
+        { code: 'VIDEO_REFERENCE_PROVIDER_DURATION_INVALID' },
+      );
+    }
+  } else if (!Number.isInteger(seconds) || seconds < mode.seconds.minimum || seconds > mode.seconds.maximum) {
     throw new MotionPlanError(
       `${mode.title} runs ${mode.seconds.minimum}–${mode.seconds.maximum} seconds`,
       { code: 'MOTION_DURATION_OUT_OF_RANGE' },

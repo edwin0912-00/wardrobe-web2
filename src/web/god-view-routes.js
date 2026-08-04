@@ -55,7 +55,7 @@ function publicShot(shot) {
   };
 }
 
-async function buildOverview({ profiles, runService, sceneService, editorialShootService, videoService }) {
+async function buildOverview({ profiles, runService, sceneService, editorialShootService, videoService, testAudit }) {
   const snapshot = profiles.godViewSnapshot();
   let avatars = 0;
   let looks = 0;
@@ -144,6 +144,10 @@ async function buildOverview({ profiles, runService, sceneService, editorialShoo
   return {
     generated_at: new Date().toISOString(),
     summary: { profiles: viewProfiles.length, avatars, looks, runs, scenes, shoots, videos },
+    // The audit is private behind the same God View authorization. It contains
+    // coarse device/browser/country and product journey state only — never raw
+    // IPs, raw user-agent strings, uploads, prompts or provider URLs.
+    audit: testAudit ? testAudit.overview() : null,
     profiles: viewProfiles,
   };
 }
@@ -159,6 +163,7 @@ export async function registerGodViewRoutes(app, {
   sceneService = null,
   editorialShootService = null,
   videoService = null,
+  testAudit = null,
 }) {
   if (!auth || !profiles || !runService) return { enabled: false };
   const authorized = (request, reply) => auth.require(request, reply);
@@ -187,7 +192,20 @@ export async function registerGodViewRoutes(app, {
       sceneService,
       editorialShootService,
       videoService,
+      testAudit,
     }));
+  });
+
+  app.post('/api/god-view/test-audit/profiles/:profileId/segment', async (request, reply) => {
+    if (!authorized(request, reply)) return reply;
+    if (!testAudit) return reply.code(404).send({ error: 'Test audit is not enabled' });
+    try {
+      const updated = testAudit.setSegment(request.params.profileId, String(request.body?.segment ?? ''));
+      if (!updated) return reply.code(404).send({ error: 'Test audit profile not found' });
+      return noStore(reply).send(updated);
+    } catch (error) {
+      return reply.code(400).send({ error: error.message });
+    }
   });
 
   app.get('/api/god-view/assets/runs/:runId/:asset', async (request, reply) => {

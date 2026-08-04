@@ -337,6 +337,61 @@ test('a legacy generic animation is never delivered as Fashion Video', async (t)
   assert.equal(response.json().code, 'VIDEO_STYLE_PROVENANCE_MISSING');
 });
 
+test('a verified Fashion Video survives the saved-look library with private playback and download URLs', async (t) => {
+  const current = fixture();
+  const root = await mkdtemp(path.join(os.tmpdir(), 'zeely-video-delivery-library-'));
+  const videoPath = path.join(root, 'delivered.mp4');
+  await writeFile(videoPath, 'delivered-video');
+  t.after(async () => { await rm(root, { recursive: true, force: true }); });
+  current.setLiveClip({
+    status: 'PASS',
+    videoPath,
+    qa: { pass: true, defects: [] },
+    motionReferenceBinding: { sha256: 'c'.repeat(64), packSha256: 'd'.repeat(64) },
+    identityItemQa: { pass: true },
+    referenceAdherenceQa: { pass: true, cutCoverage: { pass: true } },
+  });
+  current.profiles.listVideoClips = () => [{
+    clip_id: '11111111-1111-4111-8111-111111111111',
+    look_id: '33333333-3333-4333-8333-333333333333',
+    status: 'PASS',
+  }];
+  const app = Fastify();
+  t.after(() => app.close());
+  await registerVideoRoutes(app, {
+    profileApi: { resolveRequestProfile: async () => ({ profileId: 'profile-1' }) },
+    profiles: current.profiles,
+    videoService: current.videoService,
+    runService: { outputFile: async () => null },
+  });
+
+  const status = await app.inject({
+    method: 'GET', url: '/api/profile/video-clips/11111111-1111-4111-8111-111111111111',
+  });
+  assert.equal(status.statusCode, 200, status.body);
+  assert.equal(status.json().video_url, '/api/profile/video-clips/11111111-1111-4111-8111-111111111111/video');
+  assert.equal(status.json().download_url, '/api/profile/video-clips/11111111-1111-4111-8111-111111111111/download');
+
+  const download = await app.inject({
+    method: 'GET', url: '/api/profile/video-clips/11111111-1111-4111-8111-111111111111/download',
+  });
+  assert.equal(download.statusCode, 200, download.body);
+  assert.match(download.headers['content-disposition'], /^attachment; filename="fashion-video\.mp4"$/);
+  assert.equal(download.rawPayload.toString(), 'delivered-video');
+
+  const listed = await app.inject({
+    method: 'GET', url: '/api/profile/looks/33333333-3333-4333-8333-333333333333/video-clips',
+  });
+  assert.equal(listed.statusCode, 200, listed.body);
+  assert.deepEqual(listed.json().clips, [{
+    clip_id: '11111111-1111-4111-8111-111111111111',
+    look_id: '33333333-3333-4333-8333-333333333333',
+    status: 'PASS',
+    video_url: '/api/profile/video-clips/11111111-1111-4111-8111-111111111111/video',
+    download_url: '/api/profile/video-clips/11111111-1111-4111-8111-111111111111/download',
+  }]);
+});
+
 test('status gives the real terminal provider reason instead of a connection or timeout fiction', async (t) => {
   const current = fixture();
   current.setLiveClip({ status: 'FAILED', failureCode: 'VIDEO_PROVIDER_JOB_NOT_FOUND' });
@@ -356,6 +411,48 @@ test('status gives the real terminal provider reason instead of a connection or 
   assert.match(response.json().error, /не має цей job/);
   assert.equal(response.json().next_action, 'RETRY_AVAILABLE');
   assert.equal(response.json().retry_available, true);
+});
+
+test('status exposes a failed Higgsfield job as a retryable terminal result', async (t) => {
+  const current = fixture();
+  current.setLiveClip({ status: 'FAILED', failureCode: 'VIDEO_PROVIDER_JOB_FAILED' });
+  const app = Fastify();
+  t.after(() => app.close());
+  await registerVideoRoutes(app, {
+    profileApi: { resolveRequestProfile: async () => ({ profileId: 'profile-1' }) },
+    profiles: current.profiles,
+    videoService: current.videoService,
+    runService: { outputFile: async () => null },
+  });
+  const response = await app.inject({
+    method: 'GET', url: '/api/profile/video-clips/11111111-1111-4111-8111-111111111111',
+  });
+  assert.equal(response.statusCode, 200, response.body);
+  assert.equal(response.json().failure_code, 'VIDEO_PROVIDER_JOB_FAILED');
+  assert.match(response.json().error, /завершив цей job помилкою/);
+  assert.equal(response.json().next_action, 'RETRY_AVAILABLE');
+  assert.equal(response.json().retry_available, true);
+});
+
+test('status explains bounded Higgsfield input-media IP retries without claiming a job exists', async (t) => {
+  const current = fixture();
+  current.setLiveClip({ status: 'FAILED', failureCode: 'VIDEO_INPUT_MEDIA_IP_CHECK_PENDING' });
+  const app = Fastify();
+  t.after(() => app.close());
+  await registerVideoRoutes(app, {
+    profileApi: { resolveRequestProfile: async () => ({ profileId: 'profile-1' }) },
+    profiles: current.profiles,
+    videoService: current.videoService,
+    runService: { outputFile: async () => null },
+  });
+  const response = await app.inject({
+    method: 'GET', url: '/api/profile/video-clips/11111111-1111-4111-8111-111111111111',
+  });
+  assert.equal(response.statusCode, 200, response.body);
+  assert.equal(response.json().failure_code, 'VIDEO_INPUT_MEDIA_IP_CHECK_PENDING');
+  assert.match(response.json().error, /IP-перевірку/);
+  assert.match(response.json().error, /job не створився/);
+  assert.equal(response.json().next_action, 'RETRY_AVAILABLE');
 });
 
 test('status repairs a stale CREATED profile projection from the terminal runtime QA result', async (t) => {
@@ -511,6 +608,172 @@ test('failed reference QA exposes the server-owned automatic child as a wait sta
     reason_code: 'VIDEO_REFERENCE_QA_FAILED',
     child_clip_id: '44444444-4444-4444-8444-444444444444',
   });
+});
+
+test('a terminal automatic retry chain returns its failed leaf and re-enables an explicit retry', async (t) => {
+  const current = fixture();
+  const childId = '44444444-4444-4444-8444-444444444444';
+  const parent = {
+    ...await current.videoService.getClip(),
+    status: 'FAILED',
+    failureCode: 'VIDEO_PROVIDER_JOB_FAILED',
+    automaticRetry: {
+      state: 'CREATED',
+      retry_number: 1,
+      max_retries: 2,
+      reason_code: 'VIDEO_PROVIDER_JOB_FAILED',
+      child_clip_id: childId,
+    },
+  };
+  const failedChild = {
+    ...parent,
+    clipId: childId,
+    jobId: 'higgs-job-terminal-child',
+    automaticRetry: null,
+  };
+  current.videoService.getClip = async (clipId) => (
+    clipId === childId ? failedChild : parent
+  );
+  const app = Fastify();
+  t.after(() => app.close());
+  await registerVideoRoutes(app, {
+    profileApi: { resolveRequestProfile: async () => ({ profileId: 'profile-1' }) },
+    profiles: current.profiles,
+    videoService: current.videoService,
+    runService: { outputFile: async () => null },
+  });
+
+  const response = await app.inject({
+    method: 'GET', url: '/api/profile/video-clips/11111111-1111-4111-8111-111111111111',
+  });
+  assert.equal(response.statusCode, 200, response.body);
+  const body = response.json();
+  assert.equal(body.clip_id, childId);
+  assert.equal(body.status, 'FAILED');
+  assert.equal(body.next_action, 'RETRY_AVAILABLE');
+  assert.equal(body.retry_available, true);
+  assert.equal(body.automatic_retry, null);
+  assert.match(body.error, /завершив цей job помилкою/);
+});
+
+test('an exhausted automatic child does not block a fresh explicit retry', async (t) => {
+  const current = fixture();
+  const automaticChildId = '44444444-4444-4444-8444-444444444444';
+  const explicitChildId = '55555555-5555-4555-8555-555555555555';
+  const parent = {
+    ...await current.videoService.getClip(),
+    status: 'FAILED',
+    mode: 'motion_1',
+    lookBinding: {
+      sourceSha256: 'b'.repeat(64),
+      approvedLookReceiptSha256: 'c'.repeat(64),
+      whiteBackgroundVerified: true,
+    },
+    motionReferenceBinding: { referenceId: 'style-1', sha256: 'd'.repeat(64), packSha256: 'e'.repeat(64) },
+    automaticRetry: {
+      state: 'CREATED', retry_number: 2, max_retries: 2,
+      reason_code: 'VIDEO_PROVIDER_JOB_FAILED', child_clip_id: automaticChildId,
+    },
+  };
+  const failedAutomaticChild = {
+    ...parent, clipId: automaticChildId, jobId: 'higgs-job-auto-terminal', automaticRetry: null,
+  };
+  current.videoService.getClip = async (clipId) => (
+    clipId === automaticChildId ? failedAutomaticChild : parent
+  );
+  current.videoService.fashionVideoCapability = async ({ referenceId }) => ({
+    state: 'READY', selected_style_id: referenceId, reference_id: referenceId,
+    reference_path: '/runtime/references/style.mp4', reference_sha256: 'd'.repeat(64),
+    reference_pack_sha256: 'e'.repeat(64), duration_seconds: 5,
+    provider_duration_seconds: 5, available_styles: availableStyles,
+  });
+  current.videoService.claimRetry = async () => ({
+    created: true, claim: { state: 'SUBMITTING' }, claimPath: 'fresh-explicit-claim',
+  });
+  current.videoService.completeRetryClaim = async () => {};
+  let retries = 0;
+  current.videoService.retryFailedClip = async () => {
+    retries += 1;
+    return { clipId: explicitChildId, jobId: 'higgs-job-explicit', status: 'CREATED' };
+  };
+  const app = Fastify();
+  t.after(() => app.close());
+  await registerVideoRoutes(app, {
+    profileApi: { resolveRequestProfile: async () => ({ profileId: 'profile-1' }) },
+    profiles: current.profiles,
+    videoService: current.videoService,
+    runService: { outputFile: async () => null },
+  });
+
+  const response = await app.inject({
+    method: 'POST',
+    url: '/api/profile/video-clips/11111111-1111-4111-8111-111111111111/retry',
+    headers: { 'idempotency-key': 'fresh-explicit-retry-key-123456789' },
+  });
+  assert.equal(response.statusCode, 202, response.body);
+  assert.equal(response.json().clip_id, explicitChildId);
+  assert.equal(retries, 1);
+});
+
+test('an attested failed Higgsfield job starts the bounded automatic child instead of showing a dead retry', async (t) => {
+  const current = fixture();
+  const childId = '44444444-4444-4444-8444-444444444444';
+  current.setLiveClip({
+    status: 'FAILED',
+    failureCode: 'VIDEO_PROVIDER_JOB_FAILED',
+    lookBinding: {
+      sourceSha256: 'b'.repeat(64),
+      approvedLookReceiptSha256: 'c'.repeat(64),
+      whiteBackgroundVerified: true,
+    },
+    motionReferenceBinding: {
+      referenceId: 'style-1',
+      sha256: 'd'.repeat(64),
+      packSha256: 'e'.repeat(64),
+    },
+  });
+  current.videoService.fashionVideoCapability = async ({ referenceId }) => ({
+    state: 'READY',
+    selected_style_id: referenceId,
+    reference_id: referenceId,
+    reference_path: '/runtime/references/style.mp4',
+    reference_sha256: 'd'.repeat(64),
+    reference_pack_sha256: 'e'.repeat(64),
+    available_styles: availableStyles,
+  });
+  let automaticCalls = 0;
+  current.videoService.automaticRetryReferenceQaFailure = async (clipId, { videoReference }) => {
+    automaticCalls += 1;
+    assert.equal(clipId, '11111111-1111-4111-8111-111111111111');
+    assert.equal(videoReference.reference_id, 'style-1');
+    current.setLiveClip({
+      automaticRetry: {
+        state: 'CREATED',
+        retry_number: 1,
+        max_retries: 2,
+        reason_code: 'VIDEO_PROVIDER_JOB_FAILED',
+        child_clip_id: childId,
+      },
+    });
+    return { created: true, childClipId: null, retryNumber: 1, maxRetries: 2 };
+  };
+  const app = Fastify();
+  t.after(() => app.close());
+  await registerVideoRoutes(app, {
+    profileApi: { resolveRequestProfile: async () => ({ profileId: 'profile-1' }) },
+    profiles: current.profiles,
+    videoService: current.videoService,
+    runService: { outputFile: async () => null },
+  });
+
+  const response = await app.inject({
+    method: 'GET', url: '/api/profile/video-clips/11111111-1111-4111-8111-111111111111',
+  });
+  assert.equal(response.statusCode, 200, response.body);
+  assert.equal(automaticCalls, 1);
+  assert.equal(response.json().next_action, 'WAIT');
+  assert.match(response.json().error, /автоматичну спробу/);
+  assert.equal(response.json().automatic_retry.child_clip_id, childId);
 });
 
 test('server finalization starts the bounded reference-QA child and projects it before returning', async (t) => {

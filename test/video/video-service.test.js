@@ -327,6 +327,81 @@ test('reference-performer QA automatically creates at most two materially distin
   });
 });
 
+test('an attested Higgsfield terminal failure automatically creates at most two bound child attempts', async () => {
+  await withTempDir(async (dir, sourcePath) => {
+    const referencePath = path.join(dir, 'style.mp4');
+    const referenceBytes = Buffer.from('verified-style-video');
+    await writeFile(referencePath, referenceBytes);
+    const { provider, calls } = makeStubProvider();
+    const store = new ClipStore(dir);
+    const service = new VideoService({ provider, clipStore: store });
+    const videoReference = {
+      state: 'READY',
+      reference_id: 'style-1',
+      reference_path: referencePath,
+      reference_sha256: sha256(referenceBytes),
+      reference_pack_sha256: 'e'.repeat(64),
+      duration_seconds: 5,
+      provider_duration_seconds: 5,
+      width: 720,
+      height: 1280,
+      fps: 24,
+      ...verifiedCutSheet(5),
+    };
+    const parent = await service.createClip({
+      modeId: 'walk_stride',
+      surfaceId: 'mirror',
+      sourceCapabilities: { full_length: true },
+      sourceImagePath: sourcePath,
+      videoReference,
+      lookBinding: {
+        sourceSha256: sha256(Buffer.from('locked-source-image')),
+        approvedLookReceiptSha256: 'c'.repeat(64),
+        whiteBackgroundVerified: true,
+      },
+    });
+    const failedParent = await store.load(parent.clipId);
+    await store.save(parent.clipId, {
+      ...failedParent,
+      status: 'FAILED',
+      failureCode: 'VIDEO_PROVIDER_JOB_FAILED',
+      providerTerminal: { code: 'VIDEO_PROVIDER_JOB_FAILED', retryable: true },
+    });
+
+    const first = await service.automaticRetryReferenceQaFailure(parent.clipId, { videoReference });
+    assert.equal(first.created, true);
+    assert.equal(first.retryNumber, 1);
+    const firstChild = await store.load(first.childClipId);
+    assert.equal(firstChild.retryOf, parent.clipId);
+    assert.equal(firstChild.automaticRetry.reason_code, 'VIDEO_PROVIDER_JOB_FAILED');
+    assert.match(firstChild.prompt, /REFERENCE REPAIR full-subject-replacement-pass/);
+
+    await store.save(firstChild.clipId, {
+      ...firstChild,
+      status: 'FAILED',
+      failureCode: 'VIDEO_PROVIDER_JOB_FAILED',
+      providerTerminal: { code: 'VIDEO_PROVIDER_JOB_FAILED', retryable: true },
+    });
+    const second = await service.automaticRetryReferenceQaFailure(firstChild.clipId, { videoReference });
+    assert.equal(second.created, true);
+    assert.equal(second.retryNumber, 2);
+    const secondChild = await store.load(second.childClipId);
+    assert.equal(secondChild.retryOf, firstChild.clipId);
+    assert.equal(secondChild.automaticRetry.reason_code, 'VIDEO_PROVIDER_JOB_FAILED');
+
+    await store.save(secondChild.clipId, {
+      ...secondChild,
+      status: 'FAILED',
+      failureCode: 'VIDEO_PROVIDER_JOB_FAILED',
+      providerTerminal: { code: 'VIDEO_PROVIDER_JOB_FAILED', retryable: true },
+    });
+    const exhausted = await service.automaticRetryReferenceQaFailure(secondChild.clipId, { videoReference });
+    assert.equal(exhausted.exhausted, true);
+    assert.equal(exhausted.retryNumber, 2);
+    assert.equal(calls.filter((call) => call.phase === 'create').length, 3);
+  });
+});
+
 test('retry refuses a changed video-style hash before a second provider create', async () => {
   await withTempDir(async (dir, sourcePath) => {
     const referencePath = path.join(dir, 'style.mp4');
@@ -387,6 +462,91 @@ test('createClip settles a definite provider rejection instead of leaving a phan
     assert.equal(saved.status, 'FAILED');
     assert.equal(saved.failureCode, 'VIDEO_CREATE_REJECTED');
     assert.equal(saved.jobId, null);
+  });
+});
+
+test('createClip retries one exact input-media IP check with the same immutable request', async () => {
+  await withTempDir(async (dir, sourcePath) => {
+    let attempts = 0;
+    const requests = [];
+    const provider = {
+      async createJob(request) {
+        requests.push(request);
+        attempts += 1;
+        if (attempts === 1) {
+          const error = new Error('IP check not finished for input media');
+          error.code = 'PROVIDER_INPUT_MEDIA_IP_CHECK_PENDING';
+          throw error;
+        }
+        return { jobId: 'job_ip_check_ready', raw: { job_id: 'job_ip_check_ready' } };
+      },
+    };
+    const sleeps = [];
+    const store = new ClipStore(dir);
+    const service = new VideoService({
+      provider,
+      clipStore: store,
+      sleep: async (milliseconds) => { sleeps.push(milliseconds); },
+      clock: () => Date.parse('2026-08-03T10:00:00.000Z'),
+    });
+
+    const created = await service.createClip({
+      modeId: 'editorial_micro_moment',
+      surfaceId: 'tv',
+      sourceImagePath: sourcePath,
+    });
+
+    assert.equal(created.jobId, 'job_ip_check_ready');
+    assert.equal(attempts, 2);
+    assert.equal(requests[0], requests[1]);
+    assert.deepEqual(sleeps, [3_000]);
+    const saved = await store.load(created.clipId);
+    assert.deepEqual(saved.providerInputMedia, {
+      state: 'READY',
+      attempt: 2,
+      max_attempts: 2,
+    });
+  });
+});
+
+test('createClip reports input-media IP verification after its bounded automatic retry', async () => {
+  await withTempDir(async (dir, sourcePath) => {
+    let attempts = 0;
+    const provider = {
+      async createJob() {
+        attempts += 1;
+        const error = new Error('IP check not finished for input media');
+        error.code = 'PROVIDER_INPUT_MEDIA_IP_CHECK_PENDING';
+        throw error;
+      },
+    };
+    const store = new ClipStore(dir);
+    const service = new VideoService({
+      provider,
+      clipStore: store,
+      sleep: async () => {},
+      clock: () => Date.parse('2026-08-03T10:00:00.000Z'),
+    });
+
+    await assert.rejects(
+      () => service.createClip({
+        modeId: 'editorial_micro_moment',
+        surfaceId: 'tv',
+        sourceImagePath: sourcePath,
+      }),
+      (error) => error.code === 'VIDEO_INPUT_MEDIA_IP_CHECK_PENDING' && error.status === 503,
+    );
+
+    assert.equal(attempts, 2);
+    const [clipId] = await readdir(path.join(dir, 'clips'));
+    const saved = await store.load(clipId);
+    assert.equal(saved.status, 'FAILED');
+    assert.equal(saved.failureCode, 'VIDEO_INPUT_MEDIA_IP_CHECK_PENDING');
+    assert.deepEqual(saved.providerInputMedia, {
+      state: 'PENDING',
+      attempt: 2,
+      max_attempts: 2,
+    });
   });
 });
 
@@ -687,6 +847,56 @@ test('createClip rechecks and passes the exact video reference binding', async (
       receipt.request.reference_bindings.images.map((binding) => binding.provider_label),
       ['@Image 1', '@Image 2', '@Image 3'],
     );
+  });
+});
+
+test('retry uses the immutable style duration rather than an obsolete motion-mode duration', async () => {
+  await withTempDir(async (dir, sourcePath) => {
+    const referencePath = path.join(dir, 'style-reference.mp4');
+    const referenceBytes = Buffer.from('style-duration-authority');
+    await writeFile(referencePath, referenceBytes);
+    const requests = [];
+    const provider = {
+      async createJob(request) {
+        requests.push(request);
+        return { jobId: `job_style_duration_${requests.length}`, raw: {} };
+      },
+    };
+    const store = new ClipStore(dir);
+    const service = new VideoService({ provider, clipStore: store });
+    const videoReference = {
+      state: 'READY',
+      reference_id: 'long-camera-drift-style',
+      reference_path: referencePath,
+      reference_sha256: sha256(referenceBytes),
+      reference_pack_sha256: 'd'.repeat(64),
+      duration_seconds: 13.24,
+      provider_duration_seconds: 13,
+      width: 1080,
+      height: 1920,
+      fps: 25,
+      ...verifiedCutSheet(13.24),
+    };
+    const parent = await service.createClip({
+      modeId: 'camera_drift',
+      sourceImagePath: sourcePath,
+      lookBinding: { whiteBackgroundVerified: true },
+      videoReference,
+    });
+    const persistedParent = await store.load(parent.clipId);
+    // This is the exact legacy state that caused the live retry to be rejected
+    // with "Camera drift runs 5–7 seconds" before provider submission.
+    await store.save(parent.clipId, {
+      ...persistedParent,
+      durationSeconds: 6,
+      status: 'FAIL',
+      failureCode: 'VIDEO_PROVIDER_JOB_NOT_FOUND',
+    });
+    const child = await service.retryFailedClip(parent.clipId, { videoReference });
+    const persistedChild = await store.load(child.clipId);
+    assert.equal(requests.at(-1).durationSeconds, 13);
+    assert.equal(persistedChild.durationSeconds, 13);
+    assert.equal(persistedChild.motionReferenceBinding.providerDurationSeconds, 13);
   });
 });
 
@@ -1321,6 +1531,34 @@ test('awaitAndFinalize marks a missing provider job FAILED without a second crea
     const persisted = await store.load(created.clipId);
     assert.equal(persisted.status, 'FAILED');
     assert.equal(persisted.failureCode, 'VIDEO_PROVIDER_JOB_NOT_FOUND');
+  });
+});
+
+test('awaitAndFinalize persists a failed provider job instead of polling it forever', async () => {
+  await withTempDir(async (dir, sourcePath) => {
+    const provider = {
+      async createJob() { return { jobId: 'failed-job', providerKey: 'higgsfield' }; },
+      async waitForJob() {
+        const error = new Error('provider marked job failed');
+        error.code = 'PROVIDER_JOB_FAILED';
+        throw error;
+      },
+    };
+    const store = new ClipStore(dir);
+    const service = new VideoService({ provider, clipStore: store });
+    const created = await service.createClip({
+      modeId: 'editorial_micro_moment', surfaceId: 'tv', sourceImagePath: sourcePath,
+    });
+    await assert.rejects(
+      () => service.awaitAndFinalize(created.clipId, { downloadFn: makeStubDownload(), ...makeStubQa() }),
+      (error) => error.code === 'VIDEO_PROVIDER_JOB_FAILED',
+    );
+    const persisted = await store.load(created.clipId);
+    assert.equal(persisted.status, 'FAILED');
+    assert.equal(persisted.failureCode, 'VIDEO_PROVIDER_JOB_FAILED');
+    assert.equal(persisted.providerTerminal.jobId, 'failed-job');
+    assert.equal(persisted.providerTerminal.retryable, true);
+    assert.equal(persisted.providerWaitLease, undefined);
   });
 });
 

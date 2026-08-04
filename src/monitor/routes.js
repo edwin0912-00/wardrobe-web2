@@ -7,6 +7,7 @@ const CLIENT_TYPES = new Set([
   'client.file_prepared', 'client.upload_progress',
   'client.sse_open', 'client.sse_error', 'client.run_event',
   'client.garment_selected',
+  'client.profile_saved', 'client.profile_error', 'client.exit',
   'client.error', 'client.unhandled_rejection', 'client.visibility', 'client.online',
 ]);
 
@@ -35,14 +36,39 @@ function normalizeClientEvent(payload) {
   };
 }
 
-export async function registerMonitorRoutes(app, { store, acceptClientTelemetry = false, statusProvider = async () => ({ status: 'ok' }) }) {
+export async function registerMonitorRoutes(app, {
+  store,
+  acceptClientTelemetry = false,
+  statusProvider = async () => ({ status: 'ok' }),
+  testAudit = null,
+  profileApi = null,
+}) {
   const publicEvents = async (limit) => (await store.tail(limit)).map(projectMonitorEvent);
   if (acceptClientTelemetry) {
     app.post('/api/telemetry', async (request, reply) => {
       const serialized = JSON.stringify(request.body ?? {});
       if (serialized.length > 16_384) return reply.code(413).send({ error: 'Telemetry payload too large' });
       try {
-        await store.append(normalizeClientEvent(request.body));
+        const event = normalizeClientEvent(request.body);
+        await store.append(event);
+        // Telemetry is allowed to remain available if the optional test audit
+        // is temporarily unavailable. It never receives raw error text,
+        // source media, filenames or request URLs from the client payload.
+        if (testAudit && profileApi && event.session_id) {
+          try {
+            const profile = await profileApi.resolveRequestProfile(request, reply);
+            await testAudit.record({
+              request,
+              profile_id: profile.profileId,
+              event: {
+                type: event.type,
+                session_id: event.session_id,
+                stage: event.data?.stage,
+                status: event.data?.status,
+              },
+            });
+          } catch { /* audit must not degrade the product's existing telemetry */ }
+        }
         return reply.code(202).send({ accepted: true });
       } catch (error) {
         return reply.code(400).send({ error: error.message });

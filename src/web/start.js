@@ -6,6 +6,7 @@ import { DraftService } from './draft-service.js';
 import { adoptLegacyEditorialShootRoot } from './editorial-shoot-service.js';
 import { createGenerationRuntime } from './generation-provider.js';
 import { ProfileService } from './profile-service.js';
+import { TestAuditService } from './test-audit-service.js';
 import { RunService } from './run-service.js';
 import { runLocalPreflight } from './preflight.js';
 import { createSceneRuntimeDependencies } from './scene-runtime.js';
@@ -13,7 +14,10 @@ import { createVlmEvaluator } from './vlm-provider.js';
 import { createFalRealtimeTokenIssuer } from './fal-realtime-token.js';
 import { createVideoRuntime } from './video-runtime.js';
 import { createFashionVideoReferenceResolver } from './video-reference-registry.js';
-import { createVideoAssetUrlResolver } from './video-source-bridge.js';
+import {
+  createUnavailableVideoAssetUrlResolver,
+  createVideoAssetUrlResolver,
+} from './video-source-bridge.js';
 import { loadReleaseIdentity } from './release-identity.js';
 import { GodViewAuth, OpenTesterGodViewAuth } from './god-view-auth.js';
 
@@ -43,6 +47,21 @@ await drafts.initialize();
 await drafts.cleanupExpired();
 startupTrace('drafts_ready');
 const profiles = new ProfileService({ databasePath: path.join(runtimeRoot, 'profiles.sqlite') });
+const configuredAuditRetention = Number.parseInt(process.env.ZEELY_TEST_AUDIT_RETENTION_DAYS ?? '30', 10);
+const testAudit = process.env.ZEELY_TEST_AUDIT_ENABLED === 'false'
+  ? null
+  : new TestAuditService({
+    databasePath: path.join(runtimeRoot, 'test-audit.sqlite'),
+    // Do not emit or persist the source IP. This secret only turns it into an
+    // internal correlation value so an operator can spot one network without
+    // recovering the address from the audit database.
+    ipHashKey: process.env.ZEELY_TEST_AUDIT_IP_HASH_KEY ?? process.env.ZEELY_SESSION_SECRET ?? null,
+    retentionDays: Number.isInteger(configuredAuditRetention) && configuredAuditRetention > 0
+      ? configuredAuditRetention
+      : 30,
+  });
+await testAudit?.initialize();
+startupTrace('test_audit_ready');
 const vlm = createVlmEvaluator();
 const generation = await createGenerationRuntime({
   mode: generationMode,
@@ -74,9 +93,29 @@ const service = new RunService({
 });
 await service.initialize();
 startupTrace('run_service_reconciled');
-const health = await runLocalPreflight({ generationMode, codexStatus: generation.status });
+const preflightOptions = { generationMode, codexStatus: generation.status };
+let health = await runLocalPreflight(preflightOptions);
 startupTrace('provider_preflight_finished');
 health.fashion_shoot_qa_mode = process.env.ZEELY_FASHION_SHOOT_QA_MODE ?? 'strict';
+// A launchd restart can occur while a local CLI momentarily cannot answer its
+// account-status check. Keep the boot-time gate fail-closed, but refresh the
+// cached preflight afterward so a recovered provider does not leave all user
+// journeys disabled until the next manual restart. This performs only local
+// version/account status checks; it never creates a provider job.
+const refreshProviderPreflight = async () => {
+  try {
+    const next = await runLocalPreflight(preflightOptions);
+    next.fashion_shoot_qa_mode = process.env.ZEELY_FASHION_SHOOT_QA_MODE ?? 'strict';
+    health = next;
+  } catch {
+    health = { ...health, status: 'degraded' };
+  }
+  return health;
+};
+const providerPreflightTimer = setInterval(() => {
+  void refreshProviderPreflight();
+}, 30_000);
+providerPreflightTimer.unref?.();
 const auth = process.env.ZEELY_DEMO_PIN ? {
   pin: process.env.ZEELY_DEMO_PIN,
   secret: process.env.ZEELY_SESSION_SECRET,
@@ -118,10 +157,13 @@ if (adoptedShootIds.length > 0) {
     data: { count: adoptedShootIds.length, shoot_ids: adoptedShootIds },
   });
 }
-const videoSourceBridge = createVideoAssetUrlResolver({
-  clipStoreRoot: path.join(runtimeRoot, 'video-clips'),
-  httpsOrigin: process.env.ZEELY_PUBLIC_HTTPS_ORIGIN,
-});
+const publicHttpsOrigin = String(process.env.ZEELY_PUBLIC_HTTPS_ORIGIN ?? '').trim();
+const videoSourceBridge = publicHttpsOrigin
+  ? createVideoAssetUrlResolver({
+      clipStoreRoot: path.join(runtimeRoot, 'video-clips'),
+      httpsOrigin: publicHttpsOrigin,
+    })
+  : null;
 const fashionVideoReferenceResolver = createFashionVideoReferenceResolver({
   rootDirectory: process.env.ZEELY_VIDEO_REFERENCE_ROOT,
   manifestPath: path.join(
@@ -134,7 +176,8 @@ const fashionVideoReferenceResolver = createFashionVideoReferenceResolver({
 const videoService = createVideoRuntime({
   runtimeRoot,
   openRouterApiKey: process.env.OPENROUTER_API_KEY,
-  assetUrlResolver: videoSourceBridge.videoAssetUrlResolver,
+  assetUrlResolver: videoSourceBridge?.videoAssetUrlResolver
+    ?? createUnavailableVideoAssetUrlResolver(),
   fashionVideoReferenceResolver,
   fashionVideoQaMode: process.env.ZEELY_FASHION_VIDEO_QA_MODE ?? 'strict',
 });
@@ -157,7 +200,13 @@ for (const clipId of await videoService.resumableClipIds()) {
 const app = await createWebApp({
   service,
   health,
-  healthProvider: generation.healthStatus,
+  healthProvider: async () => {
+    const runtime = await Promise.resolve(generation.healthStatus?.());
+    return {
+      ...health,
+      ...(runtime?.status ? { runtime_status: runtime.status } : {}),
+    };
+  },
   logger: true,
   auth,
   monitor,
@@ -169,11 +218,14 @@ const app = await createWebApp({
   videoSourceBridge,
   releaseIdentity,
   godViewAuth,
+  testAudit,
 });
+app.addHook('onClose', async () => clearInterval(providerPreflightTimer));
 startupTrace('web_app_ready');
 const draftCleanupTimer = setInterval(() => drafts.cleanupExpired().catch(() => {}), 60_000);
 const profileCleanup = async () => {
   profiles.cleanupExpired();
+  testAudit?.cleanup();
   await profiles.flushDeletionQueue({
     runService: service,
     sceneService: app.sceneService,
@@ -187,6 +239,7 @@ app.addHook('onClose', async () => {
   clearInterval(draftCleanupTimer);
   clearInterval(profileCleanupTimer);
   profiles.close();
+  testAudit?.close();
   await generation.close();
 });
 const port = Number.parseInt(process.env.PORT ?? '4173', 10);

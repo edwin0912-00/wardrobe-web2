@@ -195,6 +195,7 @@ function addQaBinding(bindings, {
 }
 
 function qaProviderEvidence(context, phase) {
+  const hasCanonicalOutfitPack = (context.referencePacks.outfit?.bindings?.length ?? 0) > 0;
   if (phase === 'conditioning') {
     return {
       identity: context.checkpoint.artifacts.conditioned_identity,
@@ -212,15 +213,24 @@ function qaProviderEvidence(context, phase) {
     candidate: context.checkpoint.artifacts[phase],
     identity: context.checkpoint.artifacts.conditioned_identity,
     outfit: phase === 'outfit'
-      ? context.checkpoint.artifacts.conditioned_outfit
+      // The conditioner has already made the selected-item cutouts authoritative.
+      // Re-attaching the original full-body source here makes incidental trousers
+      // or shoes look like part of a single selected top/accessory and lets QA
+      // reject a correct candidate for the wrong region.
+      ? (hasCanonicalOutfitPack ? undefined : context.checkpoint.artifacts.conditioned_outfit)
       : undefined,
     avatar: phase === 'outfit'
       ? context.checkpoint.artifacts.avatar
       : undefined,
     source_identity: context.job.identity_reference,
     source_outfit: phase === 'outfit'
-      ? (context.job.outfit.reference ?? context.job.outfit.text)
+      // Raw outfit images are conditioning evidence.  For look QA, use only the
+      // canonical pack bindings and their declared categories; the text remains
+      // available as a non-image authority below.
+      ? (hasCanonicalOutfitPack ? undefined : (context.job.outfit.reference ?? context.job.outfit.text))
       : undefined,
+    outfit_text: phase === 'outfit' ? context.job.outfit.text ?? '' : '',
+    outfit_scope: phase === 'outfit' ? context.job.outfit.target_region ?? '' : '',
     quality_references: context.job.quality_references,
     reference_packs: {
       identity: providerPackSummary(context.referencePacks.identity),

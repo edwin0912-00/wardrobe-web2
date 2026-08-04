@@ -7,6 +7,7 @@
 //   GET    /api/profile/video-clips/:clipId       — get clip status
 //   POST   /api/profile/video-clips/:clipId/retry — one explicit child attempt
 //   GET    /api/profile/video-clips/:clipId/video — stream the clip mp4
+//   GET    /api/profile/video-clips/:clipId/download — download the verified clip mp4
 //   DELETE /api/profile/video-clips/:clipId       — delete a clip
 //   GET    /api/profile/looks/:lookId/video-clips — list clips for a look
 
@@ -75,6 +76,23 @@ function hasVerifiedFashionStyle(liveClip) {
     && referenceQa?.cutCoverage?.pass === true;
 }
 
+/* A ready MP4 is private profile media.  The only URLs we expose are two
+ * authenticated views of the exact same verified file: one for playback and
+ * one with an attachment disposition.  There is deliberately no public share
+ * URL and no URL at all for a provider output that did not pass the Fashion
+ * Video delivery contract. */
+function verifiedVideoDeliveryUrls(liveClip) {
+  const clipId = liveClip?.clipId ?? liveClip?.clip_id;
+  if (!hasVerifiedFashionStyle(liveClip) || typeof clipId !== 'string' || clipId.length === 0) {
+    return { video_url: null, download_url: null };
+  }
+  const encodedClipId = encodeURIComponent(clipId);
+  return {
+    video_url: `/api/profile/video-clips/${encodedClipId}/video`,
+    download_url: `/api/profile/video-clips/${encodedClipId}/download`,
+  };
+}
+
 function publicVideoFailure(liveClip) {
   if (liveClip?.salvage?.status === 'NEEDS_QA') {
     return 'Система залишила лише підтверджено чисті фрагменти без reference-людини. Коротша версія проходить повторну перевірку.';
@@ -84,6 +102,15 @@ function publicVideoFailure(liveClip) {
   }
   if (liveClip?.failureCode === 'VIDEO_PROVIDER_JOB_NOT_FOUND') {
     return 'Higgsfield більше не має цей job. Нове відео не створювалося автоматично.';
+  }
+  if (liveClip?.failureCode === 'VIDEO_PROVIDER_JOB_FAILED') {
+    if (['SUBMITTING', 'CREATED'].includes(liveClip?.automaticRetry?.state)) {
+      return 'Higgsfield завершив попередній job помилкою. Сервер уже запускає обмежену автоматичну спробу з тим самим затвердженим образом і стилем.';
+    }
+    return 'Higgsfield завершив цей job помилкою. Відео не створилось; можна запустити нову спробу.';
+  }
+  if (liveClip?.failureCode === 'VIDEO_INPUT_MEDIA_IP_CHECK_PENDING') {
+    return 'Higgsfield ще завершує IP-перевірку завантажених медіа. Сервер уже зробив одну безпечну автоматичну спробу; job не створився. Спробуйте ще раз через кілька секунд.';
   }
   if (liveClip?.failureCode === 'MISSING_VIDEO_OUTPUT') {
     return 'Провайдер завершив job, але beta не отримала адресу готового відео. QA не запускався; можна повторити отримання або створити нову спробу.';
@@ -182,15 +209,20 @@ export async function registerVideoRoutes(app, {
   const activeFinalizers = new Map();
 
   // A source performer in a completed provider video is a safety/identity
-  // failure, not a result we can show.  The service has a tightly bounded
-  // two-pass reconstruction policy for exactly that evidence.  It re-resolves
-  // the current style only to prove the already-locked hashes still exist;
+  // failure, not a result we can show. A job explicitly marked failed by the
+  // provider is also safe to retry: it has no delivery. Both use the same
+  // tightly bounded two-pass reconstruction policy. The route re-resolves the
+  // current style only to prove the already-locked hashes still exist;
   // retryFailedClip rechecks those hashes before a provider create.
   const maybeStartAutomaticReferenceQaRetry = async ({ profileId, lookId, clipId }) => {
     if (typeof videoService.automaticRetryReferenceQaFailure !== 'function') return null;
     const failed = await videoService.getClip(clipId);
     if (!failed || !['FAIL', 'FAILED'].includes(failed.status)
-      || !['VIDEO_REFERENCE_QA_FAILED', 'VIDEO_REFERENCE_NOT_REPLACED'].includes(failed.failureCode)) {
+      || ![
+        'VIDEO_REFERENCE_QA_FAILED',
+        'VIDEO_REFERENCE_NOT_REPLACED',
+        'VIDEO_PROVIDER_JOB_FAILED',
+      ].includes(failed.failureCode)) {
       return null;
     }
     const styleId = failed.motionReferenceBinding?.referenceId;
@@ -239,13 +271,22 @@ export async function registerVideoRoutes(app, {
           // A missing/changed style must not turn the failed parent into a
           // false success. Keep its exact QA evidence and offer the normal
           // explicit recovery path instead of risking a blind paid retry.
-          app.log?.warn?.({ err: error, clip_id: clipId }, 'fashion video automatic reference retry paused');
+          app.log?.warn?.({ err: error, clip_id: clipId }, 'fashion video automatic retry paused');
         }
       } catch (error) {
         // Finalization is resumable.  Keep the immutable provider job and let
         // the next status request retry the wait; do not turn a transport blip
         // into a fresh paid generation or a false terminal result.
         app.log?.warn?.({ err: error, clip_id: clipId }, 'fashion video finalization paused');
+        // A provider-declared terminal failure is not a transport blip. The
+        // helper inspects the persisted status and only creates a bounded child
+        // for an attested failed job; unknown/missing jobs remain manual so a
+        // restart can never spend a duplicate generation.
+        try {
+          await maybeStartAutomaticReferenceQaRetry({ profileId, lookId, clipId });
+        } catch (retryError) {
+          app.log?.warn?.({ err: retryError, clip_id: clipId }, 'fashion video automatic retry after terminal provider failure paused');
+        }
       } finally {
         try {
           const liveClip = await videoService.getClip(clipId);
@@ -263,6 +304,42 @@ export async function registerVideoRoutes(app, {
   const isResumableVideoStatus = (status) => [
     'CREATED', 'GENERATING', 'OUTPUT_DOWNLOAD_FAILED',
   ].includes(status);
+
+  // The retry record is intentionally kept on its failed parent as evidence of
+  // the bounded automatic recovery.  That evidence must not, however, make a
+  // *completed* child look permanently in-flight.  In particular, a parent may
+  // point to retry #1 while that retry in turn points to terminal retry #2.
+  // Follow the small, server-owned chain before deciding whether the UI should
+  // wait or offer an explicit new attempt.  We fail closed for a missing child:
+  // its outcome is unknown, so a user action must not pay for a duplicate.
+  const resolveAutomaticRetryChain = async (rootClip) => {
+    let clip = rootClip;
+    const seen = new Set();
+    while (['SUBMITTING', 'CREATED'].includes(clip?.automaticRetry?.state)) {
+      const childClipId = clip.automaticRetry.child_clip_id;
+      if (typeof childClipId !== 'string' || seen.has(childClipId)) {
+        return { leaf: clip, inFlight: true };
+      }
+      seen.add(childClipId);
+      const child = await videoService.getClip(childClipId);
+      if (!child) return { leaf: clip, inFlight: true };
+      clip = child;
+      // A child with a persisted remote job is the thing the visitor must wait
+      // for, even though it has not itself created a further automatic child.
+      // Without this check the parent was presented as terminal as soon as its
+      // first retry was submitted.
+      if (isResumableVideoStatus(clip.status) || ['SUBMITTING', 'NEEDS_QA'].includes(clip.status)) {
+        return { leaf: clip, inFlight: true };
+      }
+    }
+    return { leaf: clip, inFlight: false };
+  };
+
+  const presentationClip = (clip, automaticRetryInFlight) => (
+    automaticRetryInFlight
+      ? clip
+      : { ...clip, automaticRetry: null }
+  );
 
   // GET /api/profile/looks/:lookId/video-capability — the saved-look action
   // hub reads this before enabling Fashion Video. The optional service hook
@@ -609,11 +686,12 @@ export async function registerVideoRoutes(app, {
         code: 'VIDEO_RETRY_LEGACY_APPEARANCE_FORBIDDEN',
       });
     }
-    if (['SUBMITTING', 'CREATED'].includes(parent.automaticRetry?.state)) {
+    const automatic = await resolveAutomaticRetryChain(parent);
+    if (automatic.inFlight) {
       return reply.code(409).send({
         error: 'Автоматичний повтор перевірки reference уже виконується. Нова платна спроба не створювалася.',
         code: 'VIDEO_AUTOMATIC_RETRY_IN_PROGRESS',
-        child_clip_id: parent.automaticRetry.child_clip_id ?? null,
+        child_clip_id: automatic.leaf?.clipId ?? parent.automaticRetry?.child_clip_id ?? null,
       });
     }
     const styleId = parent.motionReferenceBinding?.referenceId;
@@ -717,24 +795,31 @@ export async function registerVideoRoutes(app, {
         clipId: request.params.clipId,
       });
       const liveClip = await videoService.getClip(request.params.clipId);
-      const updated = projectClip(session.profileId, projection.look_id, liveClip);
-      const verifiedStyle = hasVerifiedFashionStyle(liveClip);
-      const next = resolveVideoQaAction(liveClip, { deliverable: verifiedStyle });
+      const automatic = await resolveAutomaticRetryChain(liveClip);
+      const effectiveClip = automatic.leaf;
+      const updated = projectClip(session.profileId, projection.look_id, effectiveClip);
+      const verifiedStyle = hasVerifiedFashionStyle(effectiveClip);
+      const delivery = verifiedVideoDeliveryUrls(effectiveClip);
+      const next = resolveVideoQaAction(
+        presentationClip(effectiveClip, automatic.inFlight),
+        { deliverable: verifiedStyle },
+      );
       return reply.code(200).send({
         ...updated,
-        qa: liveClip.qa,
+        qa: effectiveClip.qa,
         // A technically valid MP4 is not deliverable Fashion Video until the
         // hash-bound cut audit proves it contains no source performer.
-        video_url: verifiedStyle
-          ? `/api/profile/video-clips/${liveClip.clipId}/video`
-          : null,
+        ...delivery,
         delivery_code: verifiedStyle
           ? null
           : 'VIDEO_STYLE_PROVENANCE_MISSING',
         next_action: next.action,
         next_action_reason_code: next.reason_code,
         retry_available: next.retry_available,
-        automatic_retry: publicAutomaticRetry(liveClip),
+        // `effectiveClip` is the running child and therefore has no retry
+        // record of its own.  The retry evidence belongs to the requested
+        // parent clip, which is what the client is polling.
+        automatic_retry: automatic.inFlight ? publicAutomaticRetry(liveClip) : null,
       });
     } catch (err) {
       if (err instanceof VideoServiceError) {
@@ -779,35 +864,43 @@ export async function registerVideoRoutes(app, {
         });
         liveClip = await videoService.getClip(request.params.clipId);
       } catch (error) {
-        app.log?.warn?.({ err: error, clip_id: request.params.clipId }, 'fashion video automatic reference retry status check paused');
+        app.log?.warn?.({ err: error, clip_id: request.params.clipId }, 'fashion video automatic retry status check paused');
       }
     }
     // The runtime file is authoritative. Persist it before replying so a
     // terminal FAIL can never be hidden behind a stale `CREATED` projection.
-    const liveProjection = liveClip
-      ? projectClip(session.profileId, clip.look_id, liveClip)
+    const automatic = liveClip
+      ? await resolveAutomaticRetryChain(liveClip)
+      : { leaf: liveClip, inFlight: false };
+    const effectiveClip = automatic.leaf;
+    const liveProjection = effectiveClip
+      ? projectClip(session.profileId, clip.look_id, effectiveClip)
       : clip;
-    const verifiedStyle = hasVerifiedFashionStyle(liveClip);
-    const next = resolveVideoQaAction(liveClip, { deliverable: verifiedStyle });
+    const verifiedStyle = hasVerifiedFashionStyle(effectiveClip);
+    const delivery = verifiedVideoDeliveryUrls(effectiveClip);
+    const displayClip = presentationClip(effectiveClip, automatic.inFlight);
+    const next = resolveVideoQaAction(displayClip, { deliverable: verifiedStyle });
     return reply.header('Cache-Control', 'private, no-store').send({
       ...liveProjection,
-      status: liveClip?.status ?? liveProjection.status,
-      qa: liveClip?.qa ?? null,
-      error: publicVideoFailure(liveClip),
-      failure_code: liveClip?.failureCode
-        ?? liveClip?.qa?.defects?.[0]?.code
+      status: effectiveClip?.status ?? liveProjection.status,
+      qa: effectiveClip?.qa ?? null,
+      error: publicVideoFailure(displayClip),
+      failure_code: effectiveClip?.failureCode
+        ?? effectiveClip?.qa?.defects?.[0]?.code
         ?? null,
-      video_url: verifiedStyle ? clip.video_url ?? null : null,
+      ...delivery,
       delivery_code: verifiedStyle ? null : 'VIDEO_STYLE_PROVENANCE_MISSING',
       next_action: next.action,
       next_action_reason_code: next.reason_code,
       retry_available: next.retry_available,
-      automatic_retry: publicAutomaticRetry(liveClip),
+      // See finalization above: keep the parent-owned retry receipt visible
+      // while a child is genuinely active, but clear it once the chain is
+      // terminal so the user can make a fresh explicit attempt.
+      automatic_retry: automatic.inFlight ? publicAutomaticRetry(liveClip) : null,
     });
   });
 
-  // GET /api/profile/video-clips/:clipId/video — stream the mp4
-  app.get('/api/profile/video-clips/:clipId/video', async (request, reply) => {
+  const sendVerifiedVideo = async (request, reply, { attachment = false } = {}) => {
     const session = await profileApi.resolveRequestProfile(request, reply);
     const clip = profiles.videoClipProjection(session.profileId, request.params.clipId);
     if (!clip) {
@@ -828,13 +921,26 @@ export async function registerVideoRoutes(app, {
       return reply
         .type('video/mp4')
         .header('Cache-Control', 'private, no-store')
+        .header('X-Content-Type-Options', 'nosniff')
         .header('Content-Length', fileStat.size)
-        .header('Content-Disposition', `inline; filename="${request.params.clipId}.mp4"`)
+        .header('Content-Disposition', `${attachment ? 'attachment' : 'inline'}; filename="fashion-video.mp4"`)
         .send(createReadStream(liveClip.videoPath));
     } catch {
       return reply.code(404).send({ error: 'Video file not found on disk', code: 'VIDEO_FILE_MISSING' });
     }
-  });
+  };
+
+  // GET /api/profile/video-clips/:clipId/video — stream the verified mp4.
+  app.get('/api/profile/video-clips/:clipId/video', async (request, reply) => (
+    sendVerifiedVideo(request, reply)
+  ));
+
+  // GET /api/profile/video-clips/:clipId/download — same private file, as an
+  // attachment.  This is intentionally separate from playback so a browser
+  // preview can never accidentally become the user’s downloaded asset.
+  app.get('/api/profile/video-clips/:clipId/download', async (request, reply) => (
+    sendVerifiedVideo(request, reply, { attachment: true })
+  ));
 
   // DELETE /api/profile/video-clips/:clipId — delete a clip
   app.delete('/api/profile/video-clips/:clipId', async (request, reply) => {
@@ -857,7 +963,9 @@ export async function registerVideoRoutes(app, {
     const verified = [];
     for (const clip of clips) {
       const liveClip = await videoService.getClip(clip.clip_id);
-      if (hasVerifiedFashionStyle(liveClip)) verified.push(clip);
+      if (hasVerifiedFashionStyle(liveClip)) {
+        verified.push({ ...clip, ...verifiedVideoDeliveryUrls(liveClip) });
+      }
     }
     return reply.header('Cache-Control', 'private, no-store').send({ clips: verified });
   });

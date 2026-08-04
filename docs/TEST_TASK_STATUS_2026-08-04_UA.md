@@ -2,7 +2,7 @@
 
 Дата перевірки: 2026-08-04.
 
-Git source: `origin/beta` = `320b1af085a59c10bc0cd087680294ea7cc486ea`.
+Git source: `origin/beta` = `7129c5c9f0c8c45cab12bf747e833af1e8a37815`.
 
 Public beta health: `ready`, `release_sha = 7129c5c9f0c8c45cab12bf747e833af1e8a37815`.
 
@@ -14,9 +14,8 @@ Public beta health: `ready`, `release_sha = 7129c5c9f0c8c45cab12bf747e833af1e8a3
 здача.** Мінімальні outputs, engine, web surface, prompts, manifests і схема
 існують. Реальний публічний avatar → outfit run проходив усі core QA gates.
 Водночас актуальний штатний `npm run verify:output` повертає `NEEDS_REVIEW` для
-всіх трьох checked-in користувачів, а public beta release SHA не резолвиться в
-поточній Git-історії. До виправлення обох розбіжностей не можна чесно писати
-«ТЗ виконано на 100%».
+всіх трьох checked-in користувачів. До виправлення цієї розбіжності не можна
+чесно писати «ТЗ виконано на 100%».
 
 ## Матриця оригінального ТЗ
 
@@ -35,7 +34,7 @@ Public beta health: `ready`, `release_sha = 7129c5c9f0c8c45cab12bf747e833af1e8a3
 
 ## QA — що саме не закрито
 
-На чистому `origin/beta` виконано:
+На чистому fetched `origin/beta` виконано:
 
 ```text
 npm run verify:contracts → PASS, 41 schemas, 9 fixtures, 3 jobs
@@ -65,13 +64,12 @@ residue checks мають PASS, але framing лишається `missing_visua
 
 ## Code, beta і journey — це різні факти
 
-- **Git code:** `origin/beta = 320b1af085a59c10bc0cd087680294ea7cc486ea`.
+- **Git code:** `origin/beta = 7129c5c9f0c8c45cab12bf747e833af1e8a37815`.
 - **Public beta:** health `ready`, generation `available`, semantic QA
   `available`, 16 background presets і 18 fashion/editorial mode records.
-- **Release drift:** health називає
-  `7129c5c9f0c8c45cab12bf747e833af1e8a37815`, але цей object відсутній після
-  explicit fetch актуальних Git refs. Тому не доведено, що public beta виконує
-  точні bytes поточного Git source.
+- **Release lineage:** health і explicit fetched `origin/beta` називають один
+  точний SHA `7129c5c9f0c8c45cab12bf747e833af1e8a37815`. Попередня локальна
+  розбіжність була stale remote-tracking ref, а не втрачений release commit.
 - **Історичний real proof:** paid avatar → outfit journey проходив
   conditioning, Avatar QA і Outfit QA з persisted result. Це доводить
   працездатність core, але не замінює current-release proof.
@@ -85,7 +83,7 @@ Health `ready`, каталог або unit tests не дорівнюють E2E P
 | Browser profile / saved looks | Реалізовано й історично E2E PASS. |
 | Standard backgrounds | 16 cards live; каталог доведений, але не кожен preset має current-release paid E2E. |
 | Create Universe / Fashion Shoot | 18 mode records у live catalog; code і progressive UI значно розвиненіші за ТЗ, але повний current-release five-frame journey не доведений цим аудитом. |
-| Fashion Video | Route, persistence, retries, reference locks і QA реалізовані; історичний real persisted PASS існує, current public release lineage не збігається з Git. |
+| Fashion Video | Route, persistence, retries, reference locks і QA реалізовані; історичний real persisted PASS існує, current public release lineage збігається з Git. |
 | Real-time Look | Контракт і UI існують; paid generative webcam E2E не доведений. |
 | Cinematic HTML5 site | Окремий public repo `wardrobe-web2`, installable main, 135/135 preflight; це presentation layer, не заміна image-engine submission. |
 
@@ -102,8 +100,8 @@ Health `ready`, каталог або unit tests не дорівнюють E2E P
 5. **31 липня – 3 серпня:** Fashion Video persistence/retry/audio/fidelity,
    Fashion Shoot five-frame UI and reference bindings, GPT Image 2 ladder,
    Real-time Look contracts та cinematic TV/laptop presentation.
-6. **4 серпня:** strict audit встановив два release blockers: stale three-user
-   framing evidence і Git ↔ public-beta release drift.
+6. **4 серпня:** strict audit встановив stale three-user framing evidence;
+   explicit beta fetch одночасно підтвердив точний Git ↔ public-beta SHA.
 
 Повна append-only технічна історія збережена у `LOG.md`; operational blocks —
 у `STATE.md`, `UPDATE.md`, `BLOCK_STATUS.md` і `PIPELINE.md`.
@@ -116,14 +114,12 @@ Health `ready`, каталог або unit tests не дорівнюють E2E P
    новий hash-bound semantic review і отримати `npm run verify:output = PASS`.
 3. Детерміновано перебудувати `submission-manifest.json`; прибрати суперечність
    `manifest PASS` проти `qa-summary NEEDS_REVIEW`.
-4. Відновити Git provenance public release `7129c5c…` або активувати точний
-   reviewed `origin/beta` SHA штатним deploy adapter.
-5. На цьому exact SHA пройти fresh public input → conditioning → avatar →
+4. На exact SHA пройти fresh public input → conditioning → avatar →
    outfit → downloads і зберегти run/receipt як current E2E evidence.
-6. Підготувати один evaluator-facing package/repository. Public cinematic
+5. Підготувати один evaluator-facing package/repository. Public cinematic
    frontend зараз не містить generation engine, а engine repo не є публічною
    інсталяційною здачею.
 
-Після цих шести пунктів мінімальне ТЗ можна позначити `COMPLETE`. Backgrounds,
+Після цих п'яти пунктів мінімальне ТЗ можна позначити `COMPLETE`. Backgrounds,
 Fashion Shoot, Video, Real-time Look і cinematic apartment залишаються bonus /
 product expansion та не повинні приховувати core acceptance.

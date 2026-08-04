@@ -211,6 +211,33 @@ test('outfit QA receives authoritative text and separates it from identity cloth
   assert.match(calls[0].args[1], /identity photos is identity context only/);
 });
 
+test('outfit QA uses canonical selected-item bindings and scopes partial garment checks', async () => {
+  const identity = await imageFixture('#d4c1af', 'identity.png');
+  const avatar = await imageFixture('#abb9c7', 'avatar.png');
+  const candidate = await imageFixture('#ffffff', 'candidate.png');
+  const hoodie = await imageFixture('#275b36', 'hoodie-cutout.png');
+  const calls = [];
+  const evaluator = new CodexVlmEvaluator({ commandRunner: runnerFor({
+    decision: 'PASS', reason: 'selected hoodie matches',
+    checks: [{ name: 'GARMENT_TOP', pass: true, score: 0.97, evidence: 'green hoodie matches' }], defects: [],
+  }, calls) });
+  await evaluator.evaluateQa({ phase: 'outfit', evidence: {
+    identity: { artifact: { path: identity } },
+    avatar: { artifact: { path: avatar } },
+    candidate: { artifact: { path: candidate } },
+    outfit_text: '[top] forest green hoodie with cream logo',
+    outfit_scope: 'only the selected garment region: upper body / top. Clothing outside this selected region is intentionally open',
+    reference_packs: { outfit: { bindings: [{ role: 'GARMENT_TOP', artifact: { path: hoodie } }] } },
+  } });
+  const prompt = calls[0].args[1];
+  assert.match(prompt, /AUTHORITATIVE TARGET OUTFIT TEXT/);
+  assert.match(prompt, /forest green hoodie/);
+  assert.match(prompt, /SELECTED GARMENT SCOPE/);
+  assert.match(prompt, /Only the declared selected garment regions are blocking fidelity targets/);
+  assert.match(prompt, /ATTACHMENT_4 \[GARMENT_TOP\]/);
+  assert.equal(calls[0].args.filter((value) => value === '--image').length, 4);
+});
+
 test('text-only outfit QA treats omitted garment details as creative freedom, not missing evidence', async () => {
   const filename = await imageFixture();
   const calls = [];

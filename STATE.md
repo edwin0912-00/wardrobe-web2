@@ -5,19 +5,60 @@
 - Consolidated requirement-by-requirement evidence is recorded in
   `docs/TEST_TASK_STATUS_2026-08-04_UA.md`.
 - Verdict: core is functionally implemented, but the submission is not yet a
-  formal 100% PASS. On clean `origin/beta` `320b1af`, contracts and canon pass,
+  formal 100% PASS. On clean `origin/beta` `7129c5c`, contracts and canon pass,
   while `npm run verify:output` returns `NEEDS_REVIEW` for `001–003` because
   their visual review is bound to the retired half-body gate rather than the
   current full-length gate.
 - `output/submission-manifest.json` says PASS while the three QA reports and
   `qa-summary.json` say NEEDS_REVIEW; the manifest is stale evidence until
   rebuilt from current reports.
-- Public beta health is ready but reports release SHA `7129c5c…`, which does
-  not resolve after fetching current Git refs. Git source and deployed source
-  are therefore not claimed identical.
+- Public beta health is ready and its release SHA exactly matches fetched
+  `origin/beta` `7129c5c…`; the earlier apparent drift was a stale ref that
+  disappeared after the explicit beta ref fetch.
 - No QA threshold or lock was weakened. Next closure atoms are full-length
-  three-user evidence, deterministic manifest rebuild, release provenance
-  reconciliation, and one fresh exact-SHA public core journey.
+  three-user evidence, deterministic manifest rebuild and one fresh exact-SHA
+  public core journey.
+
+## Release candidate — structured failure diagnostics
+
+- The beta browser carries safe machine-readable failure fields from API to
+  the visible failed state: `code`, `failure_code`, `reason_code`,
+  `next_action`, and `next_action_reason_code`.
+- It renders an authored Ukrainian explanation, `Код: …`, and a specific next
+  action for known codes. It does not display raw provider/model prose,
+  private URLs, stack traces, or reasoning.
+- This covers avatar/outfit draft upload and creation, standard backgrounds,
+  Fashion Shoot, and Fashion Video polling/retry paths.
+- Evidence: focused browser and route tests 38/38 PASS; no paid generation.
+  The exact public activation and one no-cost browser error-surface check are
+  recorded by the release owner after this candidate is activated.
+  `weakened_checks: none`.
+
+## Active beta: saved materials recover without deletion — 2026-08-04
+
+- Public beta's exact source release is the value returned by `/api/health`.
+  It contains product repair `79b14560971ec0478b0be99be00c984869e29938`;
+  health reports `ready`, generation and semantic QA available.
+- A temporary absent Fashion Shoot runtime no longer deletes the durable
+  profile projection or returns an empty saved-library list. It yields an
+  explicit recovery card with no asset URL until runner ownership returns.
+- The separately deployed cinematic main `21cbc599739865494fa8d6636794dcd429515b43`
+  now restores saved backgrounds, Fashion Shoots and verified Fashion Videos.
+  Display uses server preview derivatives; downloads use original bytes.
+- Evidence: editorial recovery/profile suite 12/12 PASS; main preflight
+  160/160 PASS; no paid provider work. `weakened_checks: none`.
+
+## Pending beta activation — reference-owned Fashion Video duration
+
+- A reference-bound Fashion Video now uses the verified style reference's
+  provider duration (3–15 whole seconds) on create and retry. It does not use
+  a historical generic mode duration such as `camera_drift=6`.
+- This closes the observed pre-provider retry failure `Camera drift runs 5–7
+  seconds`; it does not weaken person-replacement, identity, item, reference
+  leakage, or output QA.
+- Code proof: video suite 209/209 PASS; contract verifier PASS. No paid retry
+  has been created by this repair. Public activation is still required before
+  the user retries the failed clip.
 
 ## Release/source reconciliation — 2026-08-02
 
@@ -660,3 +701,68 @@ be weakened to hide it.
   221/221 PASS; scene-service 58/58 PASS; contract and canon verifiers PASS.
 - Deployment state at this record: candidate not yet activated. Public health
   must be checked against the exact activated release SHA after deployment.
+
+## Fashion Shoot retry and Higgsfield input-media readiness — 2026-08-03
+
+- The inspected completed `shoot.*` run is already projected into the saved
+  profile with five customer frames. It was not lost during generation.
+- Its visible surplus candidates came from two strict camera-scale failures:
+  one slot required two retries and another required three. The provider was
+  not the cause; these were deterministic `SCENE_MATCH` camera-band rejections.
+- In beta's explicit Fashion Shoot `review` mode, camera-scale remains measured
+  and recorded but becomes a review note, so it no longer spends paid retries.
+  Identity, selected items, reference leakage and anatomical defects remain hard.
+  Standard `std.*` backgrounds retain their existing framing enforcement.
+- A pre-submit Higgsfield error `IP check not finished for input media` now has
+  a bounded server retry: one 3-second wait, then the exact same immutable
+  request. A second pre-submit refusal reports a truthful retryable status;
+  no remote job or duplicate charge is claimed.
+- Code tests are green; beta activation is pending the exact product commit.
+  No paid generation was used for this repair.
+
+## Pending beta release · 2026-08-03
+
+- Fashion Shoot camera-scale misses in `shoot.*` review mode are receipt notes,
+  not paid retry triggers; standard-background framing and all hard safety/item
+  checks are unchanged.
+- Higgsfield input-media IP preflight receives one same-request retry after
+  three seconds. A second refusal is surfaced to the client as a real,
+  retryable `VIDEO_INPUT_MEDIA_IP_CHECK_PENDING` condition.
+- The four linked Fashion Shoot frontend assets share cache token
+  `20260803-2`, eliminating the verified stale-module chain.
+- Focused UI/provider/video/scene checks: 177/177 PASS; contracts and canon PASS.
+
+## Active beta release · 2026-08-03
+
+- Public beta health is `ready` on
+  `a828cd542360ed396d4f3247f0eaefc2e2397207`.
+- The product verifier confirmed the exact release: 741 deploy files, 16
+  standard scenes, 15 Create Universe generation styles, UI/API/runtime enabled.
+- The beta LaunchAgent was restored from a malformed JSON array to its valid
+  persistent plist shape before activation; `plutil`, `launchctl`, deploy
+  dry-run, local health and external health all passed.
+
+## Fashion Video terminal-provider retry · 2026-08-03
+
+- A terminal `VIDEO_PROVIDER_JOB_FAILED` is now distinguished from an unknown
+  missing job. It can create no more than two automatically submitted child
+  attempts, each re-validating the approved white master and exact style pack.
+- `VIDEO_PROVIDER_JOB_NOT_FOUND` remains explicit/manual only. The provider may
+  have accepted a job whose state is no longer observable; auto-submitting a
+  duplicate would be unsafe.
+- The semantic QA path remains unchanged: reference-performer pixels still
+  block delivery, then use the same shared two-attempt bound with visibly
+  recorded retry state for the client.
+- Active beta release: `505729016624be756c264ca3c5f30edf92ed6da5`; local and
+  external health returned `ready` at guarded activation. No active provider
+  work was interrupted.
+
+## Fashion Video retry-chain status · pending next beta release
+
+- A terminal automatic retry chain is terminal, not permanently in flight:
+  status returns the final child, preserves its authored public reason and
+  enables one new explicit attempt.
+- The UI remains blocked only while the retry child has a resumable job. A
+  missing child remains fail-closed to avoid an unprovable duplicate charge.
+- Focused Video suite: 213/213 PASS. No paid provider work was used to test
+  this route change.

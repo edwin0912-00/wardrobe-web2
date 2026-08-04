@@ -29,6 +29,7 @@ import {
   compileFullLookText,
   garmentLocks,
   groupGarmentViews,
+  outfitTargetRegion,
 } from './garment-passport.js';
 import {
   prepareVisualCheckpoint,
@@ -1025,7 +1026,7 @@ export class RunService {
       ...(hasReference ? {
         reference: conditioned.items[0].source_path,
         reference_pack: { path: conditioned.pack.path },
-        target_region: 'complete_outfit',
+        target_region: outfitTargetRegion(conditioned.items),
         must_match: conditioned.items.flatMap(garmentLocks),
       } : {}),
     };

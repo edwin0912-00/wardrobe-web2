@@ -21,7 +21,7 @@ OUTFIT FIDELITY
 Reproduce every item in {{MUST_MATCH}}. Respect construction, neckline, hood/collar, sleeve length, closures, seams, silhouette, material, color and visible graphic placement. Preserve readable text and logos when the reference contains them; do not invent additional branding.
 
 CLEAN REPLACEMENT
-Remove the replaced clothing completely. No remnants, double collars, overlapping sleeves, fused fabric, duplicated accessories or skin/background leakage. Garments must contact and drape on the body naturally.
+Remove only the clothing being replaced inside {{TARGET_REGION}}. No remnants, double collars, overlapping sleeves, fused fabric, duplicated accessories or skin/background leakage inside that selected region. Clothing outside {{TARGET_REGION}} is intentionally unselected: preserve it or complete it plausibly, but never infer a target item from incidental clothing visible in the garment source photo. Garments must contact and drape on the body naturally.
 
 QUALITY
 Photorealistic studio photograph. Sharp face, hair and fabric. Natural anatomy. Uniform pure #FFFFFF background from every edge through the area below the feet, with no floor, gradient or shadow.

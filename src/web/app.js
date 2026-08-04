@@ -25,6 +25,33 @@ import {
 } from './video-source-bridge.js';
 import { registerHeicConversionRoute } from './heic-converter.js';
 import { registerGodViewRoutes } from './god-view-routes.js';
+import { registerTestAuditRoutes } from './test-audit-routes.js';
+
+const PUBLIC_ERROR_CODE = /^[A-Z][A-Z0-9_]{1,119}$/;
+const PUBLIC_ERROR_COPY = Object.freeze({
+  PROVIDER_INPUT_MEDIA_IP_CHECK_PENDING: 'Вхідне медіа ще проходить перевірку. Запуск не почався.',
+  PROVIDER_JOB_NOT_FOUND: 'Постачальник більше не бачить цю спробу.',
+  PROVIDER_JOB_FAILED: 'Постачальник завершив цю спробу без результату.',
+  PROVIDER_COMMAND_FAILED: 'Постачальник не зміг завершити запит.',
+  MODEL_RESPONSE_MISMATCH: 'Відповідь моделі не відповідає очікуваному маршруту.',
+  IMAGE_TOO_SMALL: 'Це зображення замале для надійної підготовки.',
+  UNSUPPORTED_MEDIA_TYPE: 'Цей формат зображення не підтримується.',
+});
+
+function publicErrorCode(value) {
+  return typeof value === 'string' && PUBLIC_ERROR_CODE.test(value)
+    ? value
+    : null;
+}
+
+function publicErrorMessage(error, code) {
+  if (code && PUBLIC_ERROR_COPY[code]) return PUBLIC_ERROR_COPY[code];
+  // Input errors are authored by the validation contract and describe the
+  // user’s supplied material. Provider/model diagnostics are intentionally
+  // not passed through as free-form browser copy.
+  if (error.status === 'NEEDS_INPUT') return sanitizeOutboundString(error.message);
+  return 'Дію зупинено. Перевірте код і наступну дію.';
+}
 
 export async function createWebApp({
   service,
@@ -42,21 +69,28 @@ export async function createWebApp({
   videoSourceBridge = null,
   releaseIdentity = null,
   godViewAuth = null,
+  testAudit = null,
 }) {
   // A degraded provider preflight means the local CLI cannot prove that it can
   // create and observe a paid Higgsfield job. Do not let a user enter the
   // pipeline only to fail later with an ambiguous provider-create message.
-  const generationAvailable = health.status !== 'degraded';
+  //
+  // `health` is the boot snapshot; `healthProvider` is the latest cached
+  // provider preflight. The latter matters when a short CLI/network failure
+  // occurs exactly while the daemon starts: a later healthy preflight must
+  // reopen the journey without waiting for a manual process restart.
   const currentHealth = async () => {
-    const runtime = typeof healthProvider === 'function' ? await healthProvider() : null;
-    return {
+    const latest = typeof healthProvider === 'function' ? await healthProvider() : null;
+    const resolved = {
       ...health,
-      ...(runtime ? {
-        runtime_status: runtime.status,
-        ...(runtime.status === 'ready' ? {} : { status: 'degraded' }),
-      } : {}),
+      ...(latest && typeof latest === 'object' ? latest : {}),
     };
+    if (resolved.runtime_status && resolved.runtime_status !== 'ready') {
+      return { ...resolved, status: 'degraded' };
+    }
+    return resolved;
   };
+  const generationAvailable = (resolvedHealth) => ['ready', 'ok'].includes(resolvedHealth?.status);
   const generationTrigger = (request) => {
     if (request.method !== 'POST') return false;
     const pathname = request.url.split('?')[0];
@@ -81,7 +115,7 @@ export async function createWebApp({
   });
   installDemoAuth(app, auth);
   app.addHook('onRequest', async (request, reply) => {
-    if (generationAvailable || !generationTrigger(request)) return;
+    if (!generationTrigger(request) || generationAvailable(await currentHealth())) return;
     return reply
       .header('Retry-After', '60')
       .code(503)
@@ -170,6 +204,7 @@ export async function createWebApp({
         secureCookie,
       })
     : null;
+  await registerTestAuditRoutes(app, { testAudit, profileApi });
   await registerPostShootRoutes(app, {
     projectRoot: path.resolve(import.meta.dirname, '..', '..'),
     lucyTokenIssuer,
@@ -214,6 +249,7 @@ export async function createWebApp({
     sceneService,
     editorialShootService,
     videoService,
+    testAudit,
   });
   if (drafts) await registerDraftRoutes(app, {
     service: drafts,
@@ -238,15 +274,21 @@ export async function createWebApp({
     await registerMonitorRoutes(app, {
       store: monitor,
       acceptClientTelemetry: true,
-      statusProvider: async () => ({
-        status: 'ok',
-        service: 'web',
-        generation: generationAvailable ? 'available' : 'unavailable',
-        editorial_generation: editorialShootService
-          ? (generationAvailable ? 'available' : 'unavailable')
-          : 'disabled',
-        preflight: health.status,
-      }),
+      testAudit,
+      profileApi,
+      statusProvider: async () => {
+        const resolved = await currentHealth();
+        const available = generationAvailable(resolved);
+        return {
+          status: 'ok',
+          service: 'web',
+          generation: available ? 'available' : 'unavailable',
+          editorial_generation: editorialShootService
+            ? (available ? 'available' : 'unavailable')
+            : 'disabled',
+          preflight: resolved.status,
+        };
+      },
     });
     app.addHook('onResponse', async (request, reply) => {
       const pathname = request.url.split('?')[0];
@@ -263,13 +305,14 @@ export async function createWebApp({
   app.get('/api/health', async () => {
     const resolved = await currentHealth();
     const status = resolved.status === 'ready' || resolved.status === 'ok' ? resolved.status : 'degraded';
+    const available = generationAvailable(resolved);
     const runtimeStatus = resolved.runtime_status
       ? (resolved.runtime_status === 'ready' ? 'ready' : 'degraded')
       : null;
     return {
       status,
       service: 'web',
-      generation: generationAvailable ? 'available' : 'unavailable',
+      generation: available ? 'available' : 'unavailable',
       semantic_qa: 'available',
       fashion_shoot_qa_mode: ['strict', 'review', 'off']
         .includes(resolved.fashion_shoot_qa_mode)
@@ -277,8 +320,8 @@ export async function createWebApp({
         : 'strict',
       ...(releaseIdentity ? releaseIdentity : {}),
       ...(runtimeStatus ? { runtime_status: runtimeStatus } : {}),
-      ...(health.test_only ? { editorial_generation: 'available' } : { editorial_generation: editorialShootService
-        ? (generationAvailable ? 'available' : 'unavailable')
+      ...(resolved.test_only ? { editorial_generation: 'available' } : { editorial_generation: editorialShootService
+        ? (available ? 'available' : 'unavailable')
         : 'disabled' }),
     };
   });
@@ -495,7 +538,8 @@ export async function createWebApp({
   app.setErrorHandler((error, request, reply) => {
     request.log.error(error);
     const statusCode = error.statusCode && error.statusCode < 500 ? error.statusCode : 400;
-    const publicMessage = sanitizeOutboundString(error.message);
+    const code = publicErrorCode(error.code);
+    const publicMessage = publicErrorMessage(error, code);
     if (monitor) monitor.append({
       source: 'server', type: 'server.error', severity: 'error', run_id: request.params?.id,
       data: {
@@ -505,18 +549,26 @@ export async function createWebApp({
         message: publicMessage,
       },
     }).catch(() => {});
+    const failureCode = publicErrorCode(error.failureCode ?? error.failure_code);
+    const reasonCode = publicErrorCode(error.reasonCode ?? error.reason_code);
+    const nextAction = publicErrorCode(error.nextAction ?? error.next_action);
+    const nextActionReasonCode = publicErrorCode(error.nextActionReasonCode ?? error.next_action_reason_code);
     const payload = {
       error: publicMessage,
-      ...(error.code ? { code: sanitizeOutboundString(error.code) } : {}),
+      ...(code ? { code } : {}),
+      ...(failureCode ? { failure_code: failureCode } : {}),
+      ...(reasonCode ? { reason_code: reasonCode } : {}),
+      ...(nextAction ? { next_action: nextAction } : {}),
+      ...(nextActionReasonCode ? { next_action_reason_code: nextActionReasonCode } : {}),
     };
     if (error.status === 'NEEDS_INPUT') {
       payload.status = 'NEEDS_INPUT';
-      payload.code = sanitizeOutboundString(error.code ?? 'INPUT_REJECTED');
+      payload.code = code ?? 'INPUT_REJECTED';
       payload.field = error.field ? sanitizeOutboundString(error.field) : null;
       payload.requirements = Array.isArray(error.requirements)
         ? error.requirements.map((value) => sanitizeOutboundString(value)).slice(0, 12)
         : [];
-      payload.next_action = sanitizeOutboundString(error.nextAction ?? 'REPLACE_INPUT');
+      payload.next_action = nextAction ?? 'REPLACE_INPUT';
     }
     reply.code(statusCode).send(payload);
   });

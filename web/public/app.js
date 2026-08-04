@@ -16,9 +16,10 @@ import {
 import { PIPELINE_NODE_COUNT, PIPELINE_NODES, checkpointDisplayCode, nodeState, resolveProgressState } from './progress-model.js?v=20260722-7';
 import { createLiveVisualizer, isProviderWaitStage } from './live-visualizer.js?v=20260724-1';
 import { fetchRunWithRetry, RunNotFoundError } from './run-resume.js?v=20260722-3';
-import { claimProfileRun, deleteAnonymousProfile, deleteProfileLook, listProfileLookEditorialShoots, loadProfile, saveProfileRun } from './profile-client.js?v=20260724-5';
+import { claimProfileRun, deleteAnonymousProfile, deleteProfileLook, listProfileLookEditorialShoots, listProfileLookVideoClips, loadProfile, saveProfileRun } from './profile-client.js?v=20260804-1';
 import { needsInputPresentation, neutralizeItemTerms } from './visible-copy.js?v=20260731-2';
-import { createSceneUi } from './scene-ui.js?v=20260801-2';
+import { createSceneUi } from './scene-ui.js?v=20260804-1';
+import { errorFromApiResponse, withPublicDiagnostic } from './error-presentation.js?v=20260804-1';
 import {
   addItemsScreenState,
   clearAddItemsSelection,
@@ -107,6 +108,7 @@ let selectedProfileLookId = null;
 let selectedProfileLookSelection = null;
 let selectedProfileLook = null;
 let profileEditorialRequestVersion = 0;
+let profileVideoRequestVersion = 0;
 let fashionVideoCapabilityRequestVersion = 0;
 let fashionVideoCapability = null;
 let realtimeLookCapabilityRequestVersion = 0;
@@ -128,6 +130,10 @@ function humanizeVisibleText(value) {
   return neutralizeItemTerms(String(value ?? '')
     .replace(/visible garment mismatch/gi, 'невідповідність видимих характеристик речі')
     .replace(/garment mismatch/gi, 'невідповідність речі'));
+}
+
+function publicFailureMessage(message, source, fallback = 'Не вдалося завершити цю дію.') {
+  return withPublicDiagnostic(humanizeVisibleText(message || fallback), source);
 }
 
 async function loadBuildIdentity() {
@@ -704,7 +710,13 @@ function renderRun(run) {
     failure.classList.toggle('choice', hasSelectableConflict);
     document.querySelector('.failure-mark').textContent = hasSelectableConflict ? '?' : '!';
     document.querySelector('#failure-title').textContent = hasSelectableConflict ? 'Виберіть одну річ для образу' : needsInput?.title ?? 'Генерацію зупинено';
-    document.querySelector('#failure-message').textContent = hasSelectableConflict ? 'Знайдено кілька речей одного типу. Натисніть одну картку нижче — генерація продовжиться з нею.' : needsInput?.message ?? humanizeVisibleText(run.message || run.error?.message || 'Невідома помилка');
+    document.querySelector('#failure-message').textContent = hasSelectableConflict
+      ? 'Знайдено кілька речей одного типу. Натисніть одну картку нижче — генерація продовжиться з нею.'
+      : publicFailureMessage(
+        needsInput?.message ?? run.message ?? run.error?.message,
+        run,
+        'Генерацію зупинено до наступної дії.',
+      );
     renderConflictPicker(run);
     document.querySelector('#retry-run').classList.toggle('hidden', hasSelectableConflict || needsReplacementMaterials);
     submit.disabled = false;
@@ -771,12 +783,12 @@ function renderConflictPicker(run) {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ selections }),
       });
       const body = await response.json();
-      if (!response.ok) throw new Error(body.error || 'Не вдалося зберегти вибір');
+      if (!response.ok) throw errorFromApiResponse(response, body, 'Не вдалося зберегти вибір');
       telemetry('client.garment_selected', { categories: Object.keys(selections), stage: 'garment_conflict' }, run.run_id);
       renderRun(body);
       watch(body.run_id);
     } catch (error) {
-      document.querySelector('#failure-message').textContent = humanizeVisibleText(error.message);
+      document.querySelector('#failure-message').textContent = publicFailureMessage(error.message, error);
       continueButton.disabled = false;
     }
   });
@@ -1265,6 +1277,91 @@ function renderProfileEditorialLibrary(look, profile = currentProfile, supplied 
   });
 }
 
+function videoClipsForLook(look, supplied = null) {
+  if (!look) return [];
+  // Profile projections can outlive a failed or legacy provider result.  The
+  // explicit video-clips route is the delivery authority, so do not turn a
+  // raw DB projection into a playable card before that route confirms it.
+  return Array.isArray(supplied) ? supplied : [];
+}
+
+async function copyPrivateDeliveryLink(value, control) {
+  if (typeof value !== 'string' || value.length === 0) return;
+  const href = new URL(value, window.location.origin).href;
+  const initialLabel = control?.textContent ?? 'Копіювати посилання';
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(href);
+    } else {
+      const fallback = document.createElement('textarea');
+      fallback.value = href;
+      fallback.setAttribute('readonly', '');
+      fallback.style.position = 'fixed';
+      fallback.style.opacity = '0';
+      document.body.append(fallback);
+      fallback.select();
+      const copied = document.execCommand('copy');
+      fallback.remove();
+      if (!copied) throw new Error('copy failed');
+    }
+    if (control) {
+      control.textContent = 'Посилання скопійовано';
+      window.setTimeout(() => { control.textContent = initialLabel; }, 1800);
+    }
+  } catch {
+    if (control) control.textContent = 'Не вдалося скопіювати';
+  }
+}
+
+function renderProfileVideoLibrary(look, supplied = null) {
+  const clips = videoClipsForLook(look, supplied);
+  const list = document.querySelector('#profile-look-video-list');
+  const emptyState = document.querySelector('#profile-look-videos-empty');
+  const count = document.querySelector('#profile-look-videos-count');
+  const section = document.querySelector('#profile-look-videos');
+  list.replaceChildren();
+  section.classList.toggle('hidden', clips.length === 0);
+  count.textContent = String(clips.length);
+  count.setAttribute(
+    'aria-label',
+    clips.length === 1 ? '1 збережене fashion-відео' : `${clips.length} збережених fashion-відео`,
+  );
+  emptyState.classList.toggle('hidden', clips.length > 0);
+
+  clips.forEach((clip, index) => {
+    const clipId = clip.clip_id ?? clip.id;
+    const playbackUrl = clip.video_url;
+    if (!clipId || !playbackUrl) return;
+    const item = document.createElement('li');
+    item.className = 'profile-look-video-item';
+    const player = document.createElement('video');
+    player.className = 'profile-look-video-player';
+    player.src = playbackUrl;
+    player.controls = true;
+    player.playsInline = true;
+    player.preload = 'metadata';
+    player.setAttribute('aria-label', `Fashion-відео ${index + 1}`);
+
+    const actions = document.createElement('div');
+    actions.className = 'profile-look-video-actions';
+    const download = document.createElement('a');
+    download.href = clip.download_url ?? playbackUrl;
+    download.download = 'fashion-video.mp4';
+    download.textContent = 'Завантажити MP4';
+    const copy = document.createElement('button');
+    copy.type = 'button';
+    copy.textContent = 'Копіювати посилання';
+    copy.addEventListener('click', () => copyPrivateDeliveryLink(playbackUrl, copy));
+    actions.append(download, copy);
+
+    const note = document.createElement('small');
+    note.className = 'profile-look-video-note';
+    note.textContent = 'Посилання приватне: відкривається лише в цьому профілі.';
+    item.append(player, actions, note);
+    list.append(item);
+  });
+}
+
 async function renderProfile(profileValueToRender = null) {
   sceneUi?.stopWatching();
   const openedProfile = captureProfileReturnState();
@@ -1421,6 +1518,7 @@ async function renderProfile(profileValueToRender = null) {
   const detailTitle = document.querySelector('#profile-look-detail-title');
   const detailOwner = document.querySelector('#profile-look-detail-owner');
   const editorialRequestVersion = ++profileEditorialRequestVersion;
+  const videoRequestVersion = ++profileVideoRequestVersion;
   detail.classList.toggle('hidden', !selectedProfileLookSelection);
   profileLibrary?.classList.toggle('has-open-look', Boolean(selectedProfileLookSelection));
   if (selectedProfileLookSelection) {
@@ -1431,6 +1529,7 @@ async function renderProfile(profileValueToRender = null) {
     detailOwner.textContent = `${selectedProfileLookSelection.avatar?.name || 'Збережений аватар'} · зберігаємо зовнішність і пропорції тіла`;
     renderProfileSceneLibrary(selectedProfileLook);
     renderProfileEditorialLibrary(selectedProfileLook, profile);
+    renderProfileVideoLibrary(selectedProfileLook);
     const requestedLookId = selectedProfileLookSelection.lookId;
     listProfileLookEditorialShoots(requestedLookId)
       .then((response) => {
@@ -1443,6 +1542,13 @@ async function renderProfile(profileValueToRender = null) {
         );
       })
       .catch(() => undefined);
+    listProfileLookVideoClips(requestedLookId)
+      .then((response) => {
+        if (profileVideoRequestVersion !== videoRequestVersion
+          || selectedProfileLookId !== requestedLookId) return;
+        renderProfileVideoLibrary(selectedProfileLook, response?.clips ?? response);
+      })
+      .catch(() => undefined);
     refreshFashionVideoCapability(selectedProfileLook);
     refreshRealtimeLookCapability(selectedProfileLook);
   } else {
@@ -1451,6 +1557,7 @@ async function renderProfile(profileValueToRender = null) {
     detailOwner.textContent = '';
     renderProfileSceneLibrary(null);
     renderProfileEditorialLibrary(null, profile);
+    renderProfileVideoLibrary(null);
     refreshFashionVideoCapability(null);
     refreshRealtimeLookCapability(null);
   }
@@ -1660,10 +1767,10 @@ document.querySelector('#retry-run').addEventListener('click', async () => {
     renderedProgressFloor = 0;
     const response = await fetch(`/api/runs/${encodeURIComponent(activeRun.run_id)}/retry`, { method: 'POST' });
     const body = await response.json();
-    if (!response.ok) throw new Error(body.error);
+    if (!response.ok) throw errorFromApiResponse(response, body, 'Не вдалося повторити генерацію');
     renderRun(body); watch(body.run_id);
   } catch (error) {
-    document.querySelector('#failure-message').textContent = humanizeVisibleText(error.message);
+    document.querySelector('#failure-message').textContent = publicFailureMessage(error.message, error);
     telemetry('client.fetch_error', { message: error.message.slice(0, 500), stage: 'retry' }, activeRun.run_id);
   }
 });
@@ -1981,9 +2088,12 @@ function setVideoGenerateBusy(busy) {
   thinking.hidden = !busy;
   if (busy) setVideoThinkingState('searching', 'AI готує запуск', 'Перевіряємо reference pack');
 }
-function showVideoRetry(message, clipId = null) {
+function showVideoRetry(problem, clipId = null) {
   const error = document.querySelector('#video-error');
-  error.textContent = message;
+  const message = typeof problem === 'string'
+    ? problem
+    : problem?.error ?? problem?.message ?? 'Відео не пройшло перевірку після доступних автоматичних спроб.';
+  error.textContent = publicFailureMessage(message, problem);
   error.hidden = false;
   failedFashionVideoClipId = clipId;
   failedFashionVideoRetryKey = clipId ? crypto.randomUUID() : null;
@@ -2047,7 +2157,7 @@ async function pollFashionVideo(clipId) {
       if (status.status === 'COMPLETED' || status.status === 'PASS') {
         clearInterval(poll);
         if (!status.video_url) {
-          showVideoRetry(status.error ?? 'Відео не пройшло QA після доступних автоматичних спроб.', clipId);
+          showVideoRetry(status, clipId);
           setVideoGenerateBusy(false);
           return;
         }
@@ -2055,19 +2165,23 @@ async function pollFashionVideo(clipId) {
         progressStatus.textContent = 'Відео готове!';
         const player = document.querySelector('#video-result-player');
         const downloadLink = document.querySelector('#video-result-download');
+        const copyLink = document.querySelector('#video-result-copy');
         player.src = status.video_url;
-        downloadLink.href = status.video_url;
+        downloadLink.href = status.download_url ?? status.video_url;
+        copyLink.dataset.deliveryUrl = status.video_url;
+        copyLink.hidden = false;
+        copyLink.textContent = 'Копіювати посилання';
         resultEl.hidden = false;
         setVideoGenerateBusy(false);
       } else if (status.status === 'FAILED' || status.status === 'FAIL') {
         clearInterval(poll);
-        showVideoRetry(status.error ?? 'Відео не пройшло QA після доступних автоматичних спроб.', clipId);
+        showVideoRetry(status, clipId);
         setVideoGenerateBusy(false);
         return;
       }
     } catch (pollErr) {
       clearInterval(poll);
-      showVideoRetry(pollErr.message, clipId);
+      showVideoRetry(pollErr, clipId);
       setVideoGenerateBusy(false);
     }
     if (attempts === 120) {
@@ -2099,7 +2213,7 @@ document.querySelector('#video-retry').addEventListener('click', async () => {
       headers: { 'Idempotency-Key': retryKey },
     });
     const body = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(body.error || `HTTP ${response.status}`);
+    if (!response.ok) throw errorFromApiResponse(response, body, `HTTP ${response.status}`);
     failedFashionVideoClipId = null;
     failedFashionVideoRetryKey = null;
     progressFill.style.width = '30%';
@@ -2108,9 +2222,13 @@ document.querySelector('#video-retry').addEventListener('click', async () => {
       : `Створено нову спробу ${body.clip_id}…`;
     pollFashionVideo(body.clip_id);
   } catch (error) {
-    showVideoRetry(error.message, clipId);
+    showVideoRetry(error, clipId);
     setVideoGenerateBusy(false);
   }
+});
+document.querySelector('#video-result-copy').addEventListener('click', (event) => {
+  const control = event.currentTarget;
+  copyPrivateDeliveryLink(control.dataset.deliveryUrl, control);
 });
 // Video overlay: generate
 document.querySelector('#video-generate').addEventListener('click', async () => {
@@ -2145,9 +2263,11 @@ document.querySelector('#video-generate').addEventListener('click', async () => 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       if (err.code === 'MOTION_MODE_SOURCE_MISMATCH') {
-        throw new Error('Для цього руху потрібен збережений образ у повний зріст: мають бути видні ноги й взуття. Обери інший стиль або створи full-body образ.');
+        const error = errorFromApiResponse(res, err, 'Для цього руху потрібен збережений образ у повний зріст.');
+        error.message = 'Для цього руху потрібен збережений образ у повний зріст: мають бути видні ноги й взуття. Обери інший стиль або створи full-body образ.';
+        throw error;
       }
-      throw new Error(err.error || `HTTP ${res.status}`);
+      throw errorFromApiResponse(res, err, `HTTP ${res.status}`);
     }
     const clip = await res.json();
     setVideoThinkingState('composing', 'AI збирає рух', 'Створюємо fashion motion із перевірених референсів');
@@ -2155,7 +2275,7 @@ document.querySelector('#video-generate').addEventListener('click', async () => 
     progressStatus.textContent = `Clip ${clip.clip_id} створено — генерація…`;
     pollFashionVideo(clip.clip_id);
   } catch (err) {
-    showVideoRetry(err.message);
+    showVideoRetry(err);
     setVideoGenerateBusy(false);
   }
 });
@@ -2180,6 +2300,10 @@ document.addEventListener('keydown', (event) => {
   }
 });
 window.addEventListener('pageshow', () => {
+  // A back/forward-cache restore reuses this browser session. Re-open its
+  // audit lifecycle before returning focus so God View does not show a live
+  // tester as having permanently exited.
+  telemetry('client.boot', { stage: 'pageshow' });
   if (sessionStorage.getItem(LIVE_RETURN_FOCUS_KEY) !== 'return') return;
   sessionStorage.removeItem(LIVE_RETURN_FOCUS_KEY);
   requestAnimationFrame(() => document.querySelector('#profile-look-live')?.focus({ preventScroll: true }));
@@ -2476,6 +2600,15 @@ window.addEventListener('online', () => {
   if (runId && !isTerminal(activeRun)) resumeRun(runId).then((found) => { if (!found) initialize().catch(() => {}); });
 });
 window.addEventListener('offline', () => telemetry('client.online', { online: false, stage: 'network' }));
+window.addEventListener('pagehide', () => {
+  // `pagehide` survives ordinary reload/navigation on mobile where `unload`
+  // is unreliable.  This records only the public run stage, never a photo,
+  // filename, prompt or provider message.
+  telemetry('client.exit', {
+    status: activeRun?.status ?? null,
+    stage: activeRun?.inner_state ?? activeRun?.phase ?? 'pagehide',
+  }, activeRun?.run_id ?? null);
+});
 
 initialize().catch((error) => {
   formError.textContent = `Не вдалося запустити інтерфейс: ${humanizeVisibleText(error.message)}`;
