@@ -1,5 +1,24 @@
 # Wardrobe verified state
 
+## Test-task acceptance audit — 2026-08-04
+
+- Consolidated requirement-by-requirement evidence is recorded in
+  `docs/TEST_TASK_STATUS_2026-08-04_UA.md`.
+- Verdict: core is functionally implemented, but the submission is not yet a
+  formal 100% PASS. On clean `origin/beta` `7129c5c`, contracts and canon pass,
+  while `npm run verify:output` returns `NEEDS_REVIEW` for `001–003` because
+  their visual review is bound to the retired half-body gate rather than the
+  current full-length gate.
+- `output/submission-manifest.json` says PASS while the three QA reports and
+  `qa-summary.json` say NEEDS_REVIEW; the manifest is stale evidence until
+  rebuilt from current reports.
+- Public beta health is ready and its release SHA exactly matches fetched
+  `origin/beta` `7129c5c…`; the earlier apparent drift was a stale ref that
+  disappeared after the explicit beta ref fetch.
+- No QA threshold or lock was weakened. Next closure atoms are full-length
+  three-user evidence, deterministic manifest rebuild and one fresh exact-SHA
+  public core journey.
+
 ## Release candidate — structured failure diagnostics
 
 - The beta browser carries safe machine-readable failure fields from API to

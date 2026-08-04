@@ -17,6 +17,18 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-08-04 · TEST-TASK-ACCEPTANCE-AUDIT · beta `7129c5c`
+Change: add one consolidated audit mapping the original Notion task, current
+canon, checked-in three-user submission, public beta and optional product
+extensions without collapsing code, beta health and E2E evidence.
+Why: the repository contains a stale PASS submission manifest alongside
+NEEDS_REVIEW QA reports. This blocks a defensible 100% completion claim.
+Evidence: verify:contracts PASS (41 schemas / 9 fixtures / 3 jobs), verify:canon
+PASS (43 rules / 34 blocking), verify:output NEEDS_REVIEW for 001–003; public
+health ready with 16 backgrounds and 18 fashion/editorial records; explicit
+beta fetch and public health both resolve exact SHA `7129c5c`.
+weakened_checks: none.
+
 2026-08-03 · FASHION-VIDEO-STYLE-DURATION-RETRY · beta pending deploy · codex-main
 Change: make an immutable Fashion Video style reference the sole duration
 authority for reference-bound create and retry. A generic motion mode remains
