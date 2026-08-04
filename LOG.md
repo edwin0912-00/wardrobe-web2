@@ -1786,3 +1786,14 @@ the successful activation, rather than creating a Git/runtime traceability gap.
 Evidence: guarded activation again found zero active work; local and public
 health returned `ready` with cache token `product-0050381a-42e6606d7baa`.
 weakened_checks: none; documentation/source sync only, no provider work.
+
+2026-08-04 · RELEASE-TRACEABILITY-RULE · beta · codex-main
+Change: the current release SHA is no longer copied into state prose, because
+each source-record commit necessarily creates a newer SHA. The public health
+endpoint is the exact runtime authority; product-change commits remain named
+in the same record.
+Why: static documentation claiming its own current commit would recreate the
+Git/runtime drift it is meant to prevent.
+Evidence: every beta activation is guarded and records its observed health;
+this source contains product repair `79b1456` and activation records.
+weakened_checks: none; documentation protocol only, no provider work.

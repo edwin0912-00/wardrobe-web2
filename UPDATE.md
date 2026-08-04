@@ -2,10 +2,10 @@
 
 ## 2026-08-04 · Saved materials recovery is active
 
-The active beta source release is `0050381af5194c594d53b9c0258e5357dcc7b169`;
-it contains product repair `79b14560971ec0478b0be99be00c984869e29938`.
-Its guarded activation found no active persisted run, scene, Fashion Shoot or
-video work; local and public health both returned `ready`.
+The active beta source release must be read from public `/api/health`; it
+contains product repair `79b14560971ec0478b0be99be00c984869e29938`.
+Every guarded activation found no active persisted run, scene, Fashion Shoot
+or video work; local and public health returned `ready`.
 
 The change has two linked halves:
 

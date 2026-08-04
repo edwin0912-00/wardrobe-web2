@@ -2,8 +2,8 @@
 
 ## Active beta: saved materials recover without deletion — 2026-08-04
 
-- Public beta source release: `0050381af5194c594d53b9c0258e5357dcc7b169`,
-  containing product repair `79b14560971ec0478b0be99be00c984869e29938`;
+- Public beta's exact source release is the value returned by `/api/health`.
+  It contains product repair `79b14560971ec0478b0be99be00c984869e29938`;
   health reports `ready`, generation and semantic QA available.
 - A temporary absent Fashion Shoot runtime no longer deletes the durable
   profile projection or returns an empty saved-library list. It yields an
