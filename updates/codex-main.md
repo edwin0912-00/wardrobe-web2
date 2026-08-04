@@ -1642,7 +1642,7 @@ weakened_checks: none — selected hoodie, identity, anatomy and white-backgroun
 checks remain blocking; only unselected clothing is no longer treated as target.
 ## README local startup contract — 2026-08-04
 
-Code: `PENDING_COMMIT`. Added `npm run verify:readme`: a behavioral Fastify
+Code: `e808ab941838b48d91f50b8c2b74961021012e53`. Added `npm run verify:readme`: a behavioral Fastify
 smoke test that resolves `index.html`, every local static/module dependency and
 `/api/health` through the actual HTTP application surface, then runs the real
 `src/web/start.js` in a clean temporary runtime. It is specifically intended to
@@ -1660,5 +1660,7 @@ than a process-start prerequisite. The primary Higgsfield video provider stays
 available; a missing fallback key fails only on an actual fallback request.
 
 Beta: NOT_DEPLOYED — this is repository handoff coverage, not a runtime change.
-Journey: local README surface PASS only after the focused command is recorded.
+Journey: `npm run verify:readme` PASS: real Fastify static/module graph and a
+clean `src/web/start.js` returned HTTP 200 for `/`, `/app.js`, `/scene-ui.js`
+and `/api/health`.
 weakened_checks: none.

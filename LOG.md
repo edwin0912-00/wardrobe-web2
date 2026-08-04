@@ -1745,5 +1745,8 @@ decouple local app boot from the deployment-only public video-source origin and
 the optional OpenRouter fallback key.
 Why: a source-string assertion cannot detect a UI bridge/module loaded at a
 wrong HTTP path. The repository handoff must fail before review if that happens.
-Evidence: `npm run verify:readme` (record exact result with the code commit).
+Code: `e808ab941838b48d91f50b8c2b74961021012e53`.
+Evidence: `npm run verify:readme` PASS — real Fastify static/module graph and
+clean `src/web/start.js` served `/`, `/app.js`, `/scene-ui.js` and
+`/api/health` with HTTP 200.
 weakened_checks: none.
