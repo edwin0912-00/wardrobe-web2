@@ -462,6 +462,7 @@ export function createZeelyClient({
     },
     deleteScene(sceneId) { return request(`/profile/scenes/${encode(sceneId)}`, { method: 'DELETE' }); },
     sceneImageUrl: (sceneId) => url(`/profile/scenes/${encode(sceneId)}/image`),
+    sceneDownloadUrl: (sceneId) => url(`/profile/scenes/${encode(sceneId)}/download`),
 
     // Editorial / Fashion Shoot --------------------------------------------
     listEditorialModes: () => request('/editorial-modes'),

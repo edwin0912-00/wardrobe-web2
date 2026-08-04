@@ -38,6 +38,7 @@ function clientStub({ profileError = null, profile = { looks: [] } } = {}) {
       return 'data:image/png;base64,AA==';
     },
     createScene: async (lookId, input) => { calls.push(['background', lookId, input]); return { scene_id: 'scene-1', status: 'QUEUED' }; },
+    listScenes: async () => ({ scenes: [] }),
     createShoot: async (lookId, input) => { calls.push(['shoot', lookId, input]); return { shoot_id: 'shoot-1', status: 'QUEUED' }; },
     createVideo: async (input) => { calls.push(['video', input]); return { clip_id: 'clip-1', status: 'CREATED' }; },
     watchVideo: () => () => {},
@@ -193,7 +194,7 @@ test('restores beta saved looks and action context after a browser reload', asyn
   ));
 });
 
-test('restores saved Fashion Shoot frames and verified Fashion Video delivery after reload', async () => {
+test('restores saved backgrounds, Fashion Shoot frames and verified Fashion Video delivery after reload', async () => {
   const profile = {
     looks: [{
       look_id: 'look-library',
@@ -201,6 +202,12 @@ test('restores saved Fashion Shoot frames and verified Fashion Video delivery af
     }],
   };
   const client = clientStub({ profile });
+  client.listScenes = async () => ({ scenes: [{
+    scene_id: 'scene-library', status: 'COMPLETED',
+    preset: { preset_id: 'std.library', ui_name_uk: 'Тестовий фон' },
+    image_url: '/api/profile/scenes/scene-library/image',
+    download_url: '/api/profile/scenes/scene-library/download',
+  }] });
   client.listShoots = async () => ({ shoots: [{
     shoot_id: 'shoot-library',
     status: 'COMPLETED',
@@ -224,12 +231,56 @@ test('restores saved Fashion Shoot frames and verified Fashion Video delivery af
 
   const deliveries = bridge.state().deliveries;
   assert.equal(deliveries.lookId, 'look-library');
+  assert.equal(deliveries.scenes.length, 1);
+  assert.equal(deliveries.scenes[0].result.previewUrl, '/api/profile/scenes/scene-library/image?preview=1');
+  assert.equal(deliveries.scenes[0].result.downloadUrl, '/api/profile/scenes/scene-library/download');
   assert.equal(deliveries.shoots.length, 1);
   assert.equal(deliveries.shoots[0].result.readyCount, 5);
   assert.equal(deliveries.videos.length, 1);
   assert.equal(deliveries.videos[0].result.mediaUrl, '/api/profile/video-clips/clip-library/video');
   assert.equal(deliveries.videos[0].result.downloadUrl, '/api/profile/video-clips/clip-library/download');
   assert.equal(bridge.state().result, null, 'restoring a library must not impersonate a new active job');
+});
+
+test('a temporary private library-list failure keeps already-restored materials visible', async () => {
+  const client = clientStub({ profile: { looks: [{
+    look_id: 'look-resilient-library', image_url: '/api/profile/looks/look-resilient-library/image',
+  }] } });
+  let failLists = false;
+  client.listScenes = async () => {
+    if (failLists) throw new Error('temporary scene list outage');
+    return { scenes: [{ scene_id: 'scene-resilient', status: 'COMPLETED', image_url: '/api/profile/scenes/scene-resilient/image' }] };
+  };
+  client.listShoots = async () => {
+    if (failLists) throw new Error('temporary shoot list outage');
+    return { shoots: [{
+      shoot_id: 'shoot-resilient', status: 'COMPLETED', shots: [
+        { slot: 'clean_identity_hero', status: 'CANCELLED' },
+        { slot: 'environmental_hero', status: 'APPROVED', output: { image_url: '/api/profile/editorial-shoots/shoot-resilient/shots/environmental_hero/image' } },
+      ],
+    }] };
+  };
+  client.listVideos = async () => {
+    if (failLists) throw new Error('temporary video list outage');
+    return { clips: [{ clip_id: 'clip-resilient', status: 'PASS', video_url: '/api/profile/video-clips/clip-resilient/video' }] };
+  };
+  const bridge = createCinematicUiBridge({ client, autoProbe: false });
+  await bridge.probe();
+  assert.deepEqual(bridge.state().deliveries, {
+    lookId: 'look-resilient-library',
+    scenes: bridge.state().deliveries.scenes,
+    shoots: bridge.state().deliveries.shoots,
+    videos: bridge.state().deliveries.videos,
+    restoreErrors: [],
+  });
+
+  failLists = true;
+  await bridge.useSavedLook('look-resilient-library');
+  const restored = bridge.state().deliveries;
+  assert.equal(restored.scenes.length, 1);
+  assert.equal(restored.shoots.length, 1);
+  assert.equal(restored.videos.length, 1);
+  assert.deepEqual(restored.restoreErrors, ['backgrounds', 'shoots', 'videos']);
 });
 
 test('restores nested avatar looks from older beta profile payloads', async () => {

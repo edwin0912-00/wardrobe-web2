@@ -665,7 +665,7 @@
           items: Array.isArray(record.items) ? record.items.slice() : [],
           bg: null, shootStyle: null, videoStyle: null,
           shot: false, video: false, actionResults: {},
-          savedDeliveries: { shoots: [], videos: [] },
+          savedDeliveries: { scenes: [], shoots: [], videos: [], restoreErrors: [] },
           saved: true,
           name: record.name || '',
           createdAt: record.created_at || null,
@@ -710,8 +710,10 @@
       });
       if (!look) return false;
       look.savedDeliveries = {
+        scenes: Array.isArray(deliveries.scenes) ? deliveries.scenes.slice() : [],
         shoots: Array.isArray(deliveries.shoots) ? deliveries.shoots.slice() : [],
-        videos: Array.isArray(deliveries.videos) ? deliveries.videos.slice() : []
+        videos: Array.isArray(deliveries.videos) ? deliveries.videos.slice() : [],
+        restoreErrors: Array.isArray(deliveries.restoreErrors) ? deliveries.restoreErrors.slice() : []
       };
       return true;
     }
@@ -1094,14 +1096,38 @@
     }
 
     function savedMaterialsLibrary(look) {
-      var deliveries = look && look.savedDeliveries || { shoots: [], videos: [] };
+      var deliveries = look && look.savedDeliveries || { scenes: [], shoots: [], videos: [], restoreErrors: [] };
+      var scenes = Array.isArray(deliveries.scenes) ? deliveries.scenes : [];
       var shoots = Array.isArray(deliveries.shoots) ? deliveries.shoots : [];
       var videos = Array.isArray(deliveries.videos) ? deliveries.videos : [];
-      if (!shoots.length && !videos.length) return '';
+      var restoreErrors = Array.isArray(deliveries.restoreErrors) ? deliveries.restoreErrors : [];
+      if (!scenes.length && !shoots.length && !videos.length && !restoreErrors.length) return '';
+      var sceneCards = scenes.map(function (delivery, index) {
+        var result = delivery && delivery.result || {};
+        var label = delivery && delivery.preset && (delivery.preset.ui_name_uk || delivery.preset.preset_id)
+          || 'Збережений фон';
+        return '<article class="saved-material saved-material--scene">' +
+          '<button type="button" class="saved-material__open" data-open-saved-background="' + index + '">' +
+            (result.previewUrl || result.mediaUrl
+              ? '<img src="' + esc(result.previewUrl || result.mediaUrl) + '" alt="" loading="lazy" decoding="async">'
+              : '<span class="saved-material__placeholder">Ф</span>') +
+            '<span>' + esc(label) + '</span>' +
+          '</button>' +
+          (result.downloadUrl ? '<div class="saved-material__actions"><a href="' + esc(result.downloadUrl) + '" download>Завантажити</a></div>' : '') +
+        '</article>';
+      }).join('');
       var shootCards = shoots.map(function (delivery, index) {
         var result = delivery && delivery.result || {};
         var frames = Array.isArray(result.frames) ? result.frames : [];
         var lead = frames.find(function (frame) { return frame && frame.imageUrl; }) || null;
+        if (delivery && delivery.recovery) {
+          return '<article class="saved-material saved-material--shoot saved-material--recovering">' +
+            '<span class="saved-material__open" aria-live="polite">' +
+              '<span class="saved-material__placeholder">Ф</span>' +
+              '<span>Фотосесія · відновлюємо матеріали</span>' +
+            '</span>' +
+          '</article>';
+        }
         var label = 'Фотосесія · ' + (result.readyCount || frames.filter(function (frame) {
           return frame && frame.imageUrl;
         }).length) + ' з ' + (result.expectedCount || 5) + ' кадрів';
@@ -1128,10 +1154,13 @@
           '</div>' +
         '</article>';
       }).join('');
+      var notes = [];
+      if (videos.length) notes.push('Посилання на відео приватне: працює лише в цьому профілі.');
+      if (restoreErrors.length) notes.push('Частину матеріалів ще відновлюємо. Уже завантажені не приховано.');
       return '<section class="saved-materials" aria-label="Збережені матеріали образу">' +
         '<div class="saved-materials__head">Збережені матеріали</div>' +
-        '<div class="saved-materials__grid">' + shootCards + videoCards + '</div>' +
-        '<p class="saved-materials__note">Посилання на відео приватне: працює лише в цьому профілі.</p>' +
+        '<div class="saved-materials__grid">' + sceneCards + shootCards + videoCards + '</div>' +
+        (notes.length ? '<p class="saved-materials__note">' + esc(notes.join(' ')) + '</p>' : '') +
       '</section>';
     }
 
@@ -2282,6 +2311,15 @@
         current().actionResults.shoot = restoredShoot.result;
         current().shot = true;
         pendingAction = null; actionError = null; pickerKind = null; awaitingAspect = null; view = 'shoot';
+        render(); notifyGateChange(); return;
+      }
+      if ((b = t.closest('[data-open-saved-background]'))) {
+        var restoredBackground = current() && current().savedDeliveries && current().savedDeliveries.scenes[Number(b.getAttribute('data-open-saved-background'))];
+        if (!restoredBackground || !restoredBackground.result) return;
+        current().actionResults = current().actionResults || {};
+        current().actionResults.background = restoredBackground.result;
+        current().bg = true;
+        pendingAction = null; actionError = null; pickerKind = null; awaitingAspect = null; view = 'bg';
         render(); notifyGateChange(); return;
       }
       if ((b = t.closest('[data-open-saved-video]'))) {

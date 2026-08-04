@@ -55,7 +55,7 @@ function initialState() {
     // Durable deliveries are deliberately separate from the active job/result.
     // A browser refresh can restore a finished series or clip without making it
     // look like a newly submitted job, and without replacing the master image.
-    deliveries: { lookId: null, shoots: [], videos: [] },
+    deliveries: { lookId: null, scenes: [], shoots: [], videos: [], restoreErrors: [] },
     result: null,
     /* A requested presentation ratio is metadata for an in-flight scene, never a
      * deliverable result.  Keeping the two separate prevents a selection of a
@@ -673,12 +673,55 @@ export function createCinematicUiBridge({
 
   function savedShootDelivery(shoot) {
     const result = shootResultFromState(shoot);
-    if (!result) return null;
+    const recovery = shoot?.recovery ?? null;
+    if (!result && !recovery) return null;
     return {
       shoot_id: shoot.shoot_id ?? shoot.id,
       status: shoot.status ?? 'COMPLETED',
       updated_at: shoot.updated_at ?? shoot.created_at ?? null,
-      result,
+      recovery,
+      // A durable profile record can outlive an in-memory runner reload. The
+      // card remains visible but cannot claim an image until the authoritative
+      // shoot state reappears and yields immutable output URLs.
+      result: result ?? {
+        kind: 'shoot', aspect: '16:9', urls: [], previewUrls: [], mediaUrl: '',
+        pendingRealMedia: true, partial: true,
+        readyCount: Number(recovery.approved_shot_count ?? 0), expectedCount: 5,
+        frames: [], recoveryPending: true,
+      },
+    };
+  }
+
+  function savedSceneDelivery(scene) {
+    const sceneId = scene?.scene_id ?? scene?.id;
+    const imageUrl = scene?.image_url
+      ?? (typeof client.sceneImageUrl === 'function' && typeof sceneId === 'string'
+        ? client.sceneImageUrl(sceneId)
+        : null);
+    // The profile list only includes an image URL after the server has stored
+    // a completed scene and its immutable output hash. Do not turn an active
+    // scene into a fake saved result just because it has an id.
+    if (typeof sceneId !== 'string' || !imageUrl) return null;
+    const previewUrl = presentationImagePreviewUrl(scene?.preview_url ?? imageUrl)
+      ?? scene?.preview_url
+      ?? imageUrl;
+    return {
+      scene_id: sceneId,
+      status: scene.status ?? 'COMPLETED',
+      updated_at: scene.updated_at ?? scene.created_at ?? null,
+      preset: scene.preset ?? null,
+      result: {
+        kind: 'background',
+        sceneId,
+        aspect: scene?.aspect_ratio ?? scene?.aspect ?? '3:4',
+        urls: [imageUrl],
+        previewUrls: [previewUrl],
+        mediaUrl: imageUrl,
+        previewUrl,
+        downloadUrl: scene?.download_url
+          ?? (typeof client.sceneDownloadUrl === 'function' ? client.sceneDownloadUrl(sceneId) : null),
+        pendingRealMedia: false,
+      },
     };
   }
 
@@ -713,20 +756,36 @@ export function createCinematicUiBridge({
   async function restoreSavedDeliveries(savedLook) {
     const lookId = profileLookId(savedLook);
     if (!lookId) return null;
-    const [shootsResponse, videosResponse] = await Promise.allSettled([
+    const previous = state.deliveries?.lookId === lookId
+      ? state.deliveries
+      : { scenes: [], shoots: [], videos: [], restoreErrors: [] };
+    const [scenesResponse, shootsResponse, videosResponse] = await Promise.allSettled([
+      typeof client.listScenes === 'function' ? client.listScenes(lookId) : Promise.resolve([]),
       typeof client.listShoots === 'function' ? client.listShoots(lookId) : Promise.resolve([]),
       typeof client.listVideos === 'function' ? client.listVideos(lookId) : Promise.resolve([]),
     ]);
+    const scenes = scenesResponse.status === 'fulfilled'
+      ? collection(scenesResponse.value, ['scenes'])
+        .map(savedSceneDelivery).filter(Boolean)
+      : previous.scenes;
     const shoots = shootsResponse.status === 'fulfilled'
       ? collection(shootsResponse.value, ['shoots', 'editorial_shoots'])
         .map(savedShootDelivery).filter(Boolean)
-      : [];
+      : previous.shoots;
     const videos = videosResponse.status === 'fulfilled'
       ? collection(videosResponse.value, ['clips', 'video_clips'])
         .map(savedVideoDelivery).filter(Boolean)
-      : [];
+      : previous.videos;
+    const restoreErrors = [
+      scenesResponse.status === 'rejected' ? 'backgrounds' : null,
+      shootsResponse.status === 'rejected' ? 'shoots' : null,
+      videosResponse.status === 'rejected' ? 'videos' : null,
+    ].filter(Boolean);
     emit('deliveries:restored', {
-      deliveries: { lookId, shoots, videos },
+      // A refresh must not erase a material already visible in this browser
+      // because one private list request temporarily failed. The next profile
+      // refresh still replaces it with the server-authoritative list.
+      deliveries: { lookId, scenes, shoots, videos, restoreErrors },
     });
     return state.deliveries;
   }
