@@ -12,9 +12,10 @@
 - `output/submission-manifest.json` says PASS while the three QA reports and
   `qa-summary.json` say NEEDS_REVIEW; the manifest is stale evidence until
   rebuilt from current reports.
-- Public beta health is ready and its release SHA exactly matches fetched
-  `origin/beta` `7129c5c…`; the earlier apparent drift was a stale ref that
-  disappeared after the explicit beta ref fetch.
+- Public beta health is ready and its release SHA exactly matches audited
+  product commit `7129c5c…`. Current `origin/beta` `449910f…` adds only this
+  audit documentation; the earlier apparent drift was a stale ref, not a
+  missing runtime commit.
 - No QA threshold or lock was weakened. Next closure atoms are full-length
   three-user evidence, deterministic manifest rebuild and one fresh exact-SHA
   public core journey.

@@ -2,7 +2,9 @@
 
 Дата перевірки: 2026-08-04.
 
-Git source: `origin/beta` = `7129c5c9f0c8c45cab12bf747e833af1e8a37815`.
+Audited product source: `7129c5c9f0c8c45cab12bf747e833af1e8a37815`.
+
+Git documentation head after this audit: `449910fcfcac638c0d76df1662cab1f1301e1568`.
 
 Public beta health: `ready`, `release_sha = 7129c5c9f0c8c45cab12bf747e833af1e8a37815`.
 
@@ -64,12 +66,15 @@ residue checks мають PASS, але framing лишається `missing_visua
 
 ## Code, beta і journey — це різні факти
 
-- **Git code:** `origin/beta = 7129c5c9f0c8c45cab12bf747e833af1e8a37815`.
+- **Git code:** audited product bytes are at
+  `7129c5c9f0c8c45cab12bf747e833af1e8a37815`; current `origin/beta`
+  `449910fcfcac638c0d76df1662cab1f1301e1568` adds this documentation only.
 - **Public beta:** health `ready`, generation `available`, semantic QA
   `available`, 16 background presets і 18 fashion/editorial mode records.
 - **Release lineage:** health і explicit fetched `origin/beta` називають один
-  точний SHA `7129c5c9f0c8c45cab12bf747e833af1e8a37815`. Попередня локальна
-  розбіжність була stale remote-tracking ref, а не втрачений release commit.
+  точний product SHA `7129c5c9f0c8c45cab12bf747e833af1e8a37815`. Попередня локальна
+  розбіжність була stale remote-tracking ref, а не втрачений release commit;
+  наступний Git commit є documentation-only і не потребує runtime activation.
 - **Історичний real proof:** paid avatar → outfit journey проходив
   conditioning, Avatar QA і Outfit QA з persisted result. Це доводить
   працездатність core, але не замінює current-release proof.
