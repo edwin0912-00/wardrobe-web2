@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
-  "release": "alpha-0.01-unified",
+  "release": "main-0.01-unified-reviewer",
   "created_at": "2026-08-04",
-  "purpose": "One installable branch containing the exact live cinematic site and exact live beta engine.",
+  "purpose": "One evaluator-safe installable branch containing the cinematic site and the complete beta engine, verified through their real HTTP boundary.",
   "sources": {
     "main_site": {
       "repository": "https://github.com/edwin0912-00/wardrobe-web2.git",
@@ -12,7 +12,8 @@
     "beta_engine": {
       "repository": "https://github.com/edwin0912-00/zeely-ai-engineering-test.git",
       "commit": "7129c5c9f0c8c45cab12bf747e833af1e8a37815",
-      "tree": "aa0e59b5afaa055e6feedcc3523952c3744fd166",
+      "source_tree": "aa0e59b5afaa055e6feedcc3523952c3744fd166",
+      "tree": "b45984bc990593179300737be9ce77dffdceb183",
       "location": "beta"
     }
   },
@@ -22,7 +23,10 @@
       "09115c64fae6fa6c01c47d963946e1ef8759183d",
       "7129c5c9f0c8c45cab12bf747e833af1e8a37815"
     ],
-    "strategy": "two-parent merge; beta Git tree imported under beta/ without rewriting either source history"
+    "strategy": "two-parent merge; beta source commit retained, with the evaluator-facing tree sanitized only by removing the runtime credential backup",
+    "excluded_private_paths": [
+      "beta/secrets/zeely-runtime-private.tar.gz.enc"
+    ]
   },
   "runtime": {
     "site_port": 4173,
@@ -32,8 +36,8 @@
     "bridge_health_url": "http://127.0.0.1:4173/api/health"
   },
   "entrypoints": {
-    "install": "scripts/install-alpha.sh",
-    "run": "scripts/run-alpha.sh",
+    "install": "scripts/install-local.sh",
+    "run": "scripts/run-local.sh",
     "verify": "scripts/verify-alpha.mjs"
   },
   "external_private_state": [

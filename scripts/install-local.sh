@@ -4,6 +4,13 @@ set -eu
 REPO_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 cd "$REPO_DIR"
 
+# The evaluator-facing default branch contains both the cinematic site and the
+# beta engine. Keep the historical command working, but make it run the full
+# product installer instead of silently starting only the presentation layer.
+if [ -f "$REPO_DIR/beta/package.json" ]; then
+  exec "$REPO_DIR/scripts/install-alpha.sh" "$@"
+fi
+
 fail() {
   echo "install check failed: $*" >&2
   exit 1
@@ -49,4 +56,3 @@ echo "Open: http://127.0.0.1:${PORT:-4173}/b/"
 if [ "${1:-}" = "--run" ]; then
   exec ./scripts/run-local.sh
 fi
-

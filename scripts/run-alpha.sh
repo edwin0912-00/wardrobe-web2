@@ -151,6 +151,7 @@ fi
 (
   PORT=$SITE_PORT \
   WARDROBE_API_UPSTREAM="http://127.0.0.1:$ENGINE_PORT" \
+  WARDROBE_SITE_ONLY=1 \
   "$REPO_DIR/scripts/run-local.sh"
 ) >"$LOG_ROOT/site.log" 2>&1 &
 SITE_PID=$!
@@ -173,11 +174,14 @@ def fetch(url, headers=None):
         return response.status, response.headers, response.read()
 
 checks = [
+    (f"http://127.0.0.1:{site_port}/", "main root"),
     (f"http://127.0.0.1:{engine_port}/", "beta UI"),
     (f"http://127.0.0.1:{engine_port}/api/health", "beta health"),
     (f"http://127.0.0.1:{site_port}/b/", "main UI"),
     (f"http://127.0.0.1:{site_port}/api/health", "main-to-beta bridge"),
     (f"http://127.0.0.1:{site_port}/api/editorial-modes", "main API catalog bridge"),
+    (f"http://127.0.0.1:{site_port}/adapters/zeely-client.mjs", "browser API client module"),
+    (f"http://127.0.0.1:{site_port}/adapters/cinematic-ui-bridge.mjs", "browser state bridge module"),
     (f"http://127.0.0.1:{site_port}/b/zeely-pipeline-clients.html", "pipeline presentation"),
 ]
 for url, label in checks:
@@ -185,6 +189,11 @@ for url, label in checks:
     if status != 200 or not body:
         raise SystemExit(f"alpha runtime failed: {label} returned HTTP {status} or an empty body")
     print(f"PASS {label}: HTTP {status}")
+
+_, _, bridge_health_bytes = fetch(f"http://127.0.0.1:{site_port}/api/health")
+bridge_health = json.loads(bridge_health_bytes)
+if bridge_health.get("status") != "ready":
+    raise SystemExit("alpha runtime failed: main bridge did not return the ready backend state")
 
 status, headers, body = fetch(
     f"http://127.0.0.1:{site_port}/b/assets/seg1.mp4",

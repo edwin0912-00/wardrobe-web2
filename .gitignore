@@ -5,3 +5,11 @@ a/
 *.bak
 *.bak-*
 *.bak-precanon
+
+# Deployment credentials and runtime backups never belong in an installable
+# or evaluator-facing branch, even when encrypted.
+beta/secrets/*.enc
+beta/secrets/*.tar.gz
+beta/secrets/*.json
+beta/secrets/*.pem
+beta/secrets/*.key

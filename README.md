@@ -1,226 +1,162 @@
-# Wardrobe — AI wardrobe pipeline у кінематографічному HTML5-сайті
+# Wardrobe — інсталяційний AI wardrobe pipeline
 
-Wardrobe — це інсталяційна версія інтерактивного сайту, який поєднує:
+Цей репозиторій містить **обидві частини робочого продукту** в одній гілці:
 
-- завантаження фотографії людини та референсів одягу;
-- створення і збереження перевіреного master-образу;
-- стандартні фони, Fashion Shoot, Fashion Video та Real-time Look;
-- технічний live-прогрес із реальними станами pipeline;
-- scroll-driven HTML5-подорож квартирою;
-- результати на телевізорі й інтерактивне пояснення pipeline на екрані ноутбука.
+```text
+wardrobe-web2/
+├── b/          кінематографічний main-сайт
+├── adapters/   browser ↔ API bridge
+├── serve.py    same-origin gateway і MP4 Range server
+└── beta/       engine, engineering UI, contracts, providers і QA
+```
 
-Офіційна стабільна гілка — `main`. Зафіксовані версії доступні в
-[GitHub Releases](https://github.com/edwin0912-00/wardrobe-web2/releases).
+Default branch `main` є самодостатньою інсталяційною версією. Backend не треба
+клонувати з іншого репозиторію або вручну підставляти за іншою адресою.
 
 ## Встановити й запустити однією командою
 
-Потрібні Git і Python 3.10 або новіший. У Terminal виконайте:
+Потрібні Git, Python 3.10+ і Node.js 22+:
 
 ```bash
-git clone --depth 1 --branch main https://github.com/edwin0912-00/wardrobe-web2.git && cd wardrobe-web2 && ./scripts/install-local.sh --run
+git clone --branch main https://github.com/edwin0912-00/wardrobe-web2.git \
+  && cd wardrobe-web2 \
+  && ./scripts/install-local.sh --run
 ```
 
-Після повідомлення про запуск відкрийте:
+Runner обирає вільні loopback-порти, якщо стандартні вже зайняті, і друкує
+фактичні адреси. Зазвичай це:
 
-**[http://127.0.0.1:4173/b/](http://127.0.0.1:4173/b/)**
+- main-сайт: `http://127.0.0.1:4173/b/`;
+- engineering beta: `http://127.0.0.1:4176/`;
+- backend через main: `http://127.0.0.1:4173/api/health`.
 
-Зупинити локальний сервер: `Ctrl+C` у тому самому Terminal.
+Зупинка — `Ctrl+C` у тому самому Terminal.
 
-## Що робить команда встановлення
+## Що інсталятор перевіряє насправді
 
-`scripts/install-local.sh` не встановлює приховані глобальні залежності. Він:
+`install-local.sh` не обмежується пошуком рядків у файлах. Перед запуском він:
 
-1. перевіряє Python і наявність усіх обов'язкових HTML, JavaScript, відео та calibration-файлів;
-2. перевіряє синтаксис локального Python-сервера;
-3. якщо встановлений Node.js — запускає focused-тести ноутбука та JavaScript;
-4. з параметром `--run` запускає `scripts/run-local.sh`;
-5. відкриває сайт через спеціальний локальний сервер із HTTP Range support.
+1. встановлює locked backend dependencies через `npm ci`;
+2. запускає поведінкові тести main, API gateway, browser client, recovery та
+   збереженої бібліотеки;
+3. перевіряє backend contracts і canon;
+4. запускає main і beta як два реальні процеси;
+5. робить HTTP-запити до main UI, beta UI, `/api/health`, каталогів і bridge
+   modules;
+6. перевіряє, що MP4 Range повертає `206`, а не повний файл;
+7. завершується помилкою, якщо main не бачить backend або module graph не
+   завантажується.
 
-HTTP Range потрібен для коректного покадрового scrubbing MP4. Через це проєкт не слід
-запускати командою `python3 -m http.server` або простим подвійним кліком по HTML.
-
-## Як працює продукт
+Тому зелений install gate означає не «в коді є слово bridge», а фактичний
+same-origin маршрут:
 
 ```text
-Фото людини + фото речей
-        ↓
-Перевірка і нормалізація вхідних матеріалів
-        ↓
-Створення аватара та master-образу
-        ↓
-Identity / framing / item-fidelity QA
-        ↓
-Збережений образ
-        ├── Додати нові речі
-        ├── Створити стандартний фон
-        ├── Створити Fashion Shoot
-        ├── Створити Fashion Video
-        └── Відкрити Real-time Look
+browser → main /api/* gateway → beta engine → profile/job state
 ```
 
-Сайт не підміняє backend намальованим прогресом. Інтерфейс читає фактичні серверні
-стани, checkpoints, результати QA та recovery-дії. Після оновлення сторінки збережений
-контекст відновлюється через server profile/draft state, якщо API engine доступний.
+## Поведінка без provider-авторизації
 
-### Кінематографічний шар
+Код, UI, API, профіль, каталоги, contracts і тести запускаються без секретів.
+Реальна платна генерація потребує окремої локальної авторизації провайдера:
 
-Маршрут сайту працює так:
+```bash
+higgsfield account status --json
+codex login status
+```
+
+Якщо її немає, health чесно показує недоступний generation transport. UI не
+імітує прогрес і не вигадує результат.
+
+## Основний user journey
 
 ```text
-тканина → квартира → дзеркало з продуктом → телевізор із результатами → ноутбук із pipeline deck
+Фото людини + 1–5 фото/описів речей
+        ↓
+Conditioning → avatar/look generation → QA
+        ↓
+Approved saved look
+        ├── стандартний фон
+        ├── Fashion Shoot
+        ├── Fashion Video
+        └── Real-time Look
 ```
 
-Основні відео прокручуються відповідно до scroll-position. Телевізор і ноутбук — це
-калібровані поверхні всередині відеокадру, а не окремі fullscreen-вікна.
+Кожна гілка читає той самий збережений look, але не залежить від результатів
+іншої гілки. Фони не є Fashion Shoot presets.
 
-### Пояснення на ноутбуці
+## Базові продуктові сценарії
 
-Фінальний ноутбук містить актуальну інтерактивну презентацію з 10 панелей:
+### Помилка генерації
 
-- джерела даних і reference contracts;
-- avatar/look pipeline;
-- QA та recovery;
-- стандартні сцени;
-- Fashion Shoot, Fashion Video і Real-time Look;
-- runtime, provider transport і release evidence.
+Backend повертає structured `code`, `failure_code`, `reason_code` і
+`next_action`. Main показує авторський безпечний текст, фактичний код і доступну
+дію: повторити, замінити input або повернутися до образу. Raw provider output,
+URL, stack trace і model reasoning користувачу не показуються.
 
-Джерело презентації — [`b/zeely-pipeline-clients.html`](b/zeely-pipeline-clients.html). Воно
-монтується same-origin у ShadowRoot, перевіряється за SHA-256 і обрізається точно до
-площини ноутбука. Reverse scroll повертає користувача назад у квартиру.
+### Повернення назад
 
-Детальний контракт: [`docs/17-LAPTOP-PIPELINE-DECK.md`](docs/17-LAPTOP-PIPELINE-DECK.md).
+`Образи` повертає до бібліотеки збережених look’ів. `До образу` повертає з
+terminal error/result до активного look. Reverse scroll із TV/laptop повертає
+користувача в попередню кімнату.
 
-## Два режими запуску
+### Профіль і акаунт
 
-### 1. Локальна демонстрація без AI backend
+Для тестової версії використовується анонімний browser profile з fixed expiry,
+а не email/password registration. Cookie зв’язує лише цього браузерного
+користувача з його avatar/look records. Інші профілі main gateway не віддає.
 
-Команда встановлення вище запускає:
+### Історія створених матеріалів
 
-- HTML5/JavaScript-інтерфейс;
-- відео та scroll-scrubbing;
-- дзеркала, TV/laptop surfaces;
-- інтерактивну pipeline-презентацію.
+Після reload bridge відновлює:
 
-Дії, які потребують генерації, чесно показують недоступність server/provider route.
+- avatars і approved looks;
+- стандартні фони;
+- частково або повністю готові Fashion Shoots;
+- перевірені Fashion Videos.
 
-### 2. Повний pipeline із backend
+Прев’ю використовують server-side lightweight derivatives; завантаження
+повертає оригінальні байти.
 
-За замовчуванням frontend очікує API engine на:
+## Перевірка окремо від інсталятора
 
-```text
-http://127.0.0.1:4176
-```
-
-Інший endpoint можна передати під час запуску:
+Повний non-paid acceptance gate:
 
 ```bash
-WARDROBE_API_UPSTREAM=http://127.0.0.1:4176 ./scripts/run-local.sh
-```
-
-Власний порт сайту:
-
-```bash
-PORT=4311 WARDROBE_API_UPSTREAM=http://127.0.0.1:4176 ./scripts/run-local.sh
-```
-
-AI-провайдери, API-ключі, OAuth-сесії та runtime-користувацькі дані навмисно не входять
-до публічного репозиторію. Вони підключаються на backend через дозволені environment,
-CLI або MCP credential stores. Frontend спілкується з ними лише через same-origin API
-gateway і не отримує секретів.
-
-## Залежності
-
-Обов'язкові:
-
-- Git;
-- Python 3.10+;
-- сучасний Chrome, Safari, Edge або інший Chromium/WebKit-браузер.
-
-Для розробки та повної перевірки:
-
-- Node.js 22+;
-- Bash або Zsh;
-- macOS, Linux чи Windows через WSL.
-
-Python package manager і `npm install` для базового запуску не потрібні.
-
-## Запуск після першого встановлення
-
-```bash
-cd wardrobe-web2
-./scripts/run-local.sh
-```
-
-Оновити локальну копію:
-
-```bash
-cd wardrobe-web2
-git pull --ff-only origin main
 ./scripts/install-local.sh
 ```
 
-## Перевірка
-
-Повна локальна non-paid перевірка:
+Тільки main поведінкові тести:
 
 ```bash
 ./scripts/site-preflight.sh
 ```
 
-Focused-тест інтерактивного ноутбука:
+Повна beta suite додатково:
 
 ```bash
-node --test test/pipeline-deck.test.mjs test/laptop-placeholder.test.mjs test/client-window-wiring.test.mjs
+node scripts/verify-alpha.mjs --full
 ```
 
-Перевірка HTTP Range вручну:
+Ручна HTTP-перевірка після запуску:
 
 ```bash
+curl -fsS http://127.0.0.1:4173/api/health
 curl -I -H 'Range: bytes=0-1023' http://127.0.0.1:4173/b/assets/seg1.mp4
 ```
 
-Очікуваний статус — `206 Partial Content`.
+## Важливі файли
 
-## Основна структура
-
-```text
-b/                              cinematic site та laptop deck
-b/assets/                       оптимізовані відео й візуальні assets
-b/zeely-pipeline-clients.html   актуальне пояснення всього pipeline
-serve.py                        Range-сервер і same-origin API gateway
-scripts/install-local.sh        перевірка та однокомандне встановлення
-scripts/run-local.sh            локальний запуск
-scripts/site-preflight.sh       повний non-paid test gate
-test/                           контрактні й browser-facing тести
-docs/                           архітектура, calibration і release contracts
-```
-
-## Якщо не запускається
-
-Перевірте версію Python:
-
-```bash
-python3 --version
-```
-
-Якщо порт `4173` зайнятий:
-
-```bash
-PORT=4311 ./scripts/run-local.sh
-```
-
-Якщо сторінка відкрилась, але генерація недоступна — cinematic frontend працює,
-але API engine на `4176` не запущений або не має авторизованого provider transport.
+- `adapters/zeely-client.mjs` — API client, idempotency, SSE recovery;
+- `adapters/cinematic-ui-bridge.mjs` — presentation-neutral product state;
+- `serve.py` — static media, Range і same-origin `/api` gateway;
+- `beta/src/web/start.js` — backend entrypoint;
+- `FUNCTION-MAP.md` — актуальна карта функцій і UI-поверхонь;
+- `release/RELEASE.lock.json` — provenance обох частин;
+- `scripts/run-alpha.sh` — спільний runtime;
+- `scripts/verify-alpha.mjs` — source і behavior verifier.
 
 ## Безпека
 
-Не додавайте в Git:
-
-- API-ключі та `.env`;
-- OAuth/cookie/browser sessions;
-- приватні фотографії користувачів;
-- runtime uploads, receipts або generated media;
-- локальні credential stores.
-
-Customer-facing gateway не проксуює внутрішній God View. Публічна версія містить код,
-документацію та дозволені demo-assets, але не provider credentials чи приватний runtime.
+У Git не входять API keys, OAuth/browser sessions, user runtime, uploads,
+receipts, generated media або deployment credentials. Provider credentials
+залишаються в системних credential stores конкретного комп’ютера.

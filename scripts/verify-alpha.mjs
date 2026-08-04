@@ -75,10 +75,16 @@ const allowedAlphaOverlay = [
   ':(exclude)beta/**',
   ':(exclude)release/**',
   ':(exclude)README-ALPHA.md',
+  ':(exclude)README.md',
+  ':(exclude)FUNCTION-MAP.md',
   ':(exclude)AGENTS.md',
+  ':(exclude).gitignore',
+  ':(exclude)scripts/install-local.sh',
   ':(exclude)scripts/install-alpha.sh',
+  ':(exclude)scripts/run-local.sh',
   ':(exclude)scripts/run-alpha.sh',
   ':(exclude)scripts/verify-alpha.mjs',
+  ':(exclude)test/reviewer-criteria.test.mjs',
 ];
 const mainDrift = spawnSync('git', ['diff', '--quiet', mainCommit, '--', '.', ...allowedAlphaOverlay], {
   cwd: repositoryRoot,
