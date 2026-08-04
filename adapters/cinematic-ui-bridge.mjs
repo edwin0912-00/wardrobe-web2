@@ -841,7 +841,10 @@ export function createCinematicUiBridge({
     },
     async createLook({ person, identityDetail = null, garments = [], outfitText = '' } = {}) {
       requireReady();
-      if (!person || !garments.length) throw new CinematicUiBridgeError('INCOMPLETE_LOOK', 'Додайте себе й хоча б одну річ');
+      const hasOutfitText = typeof outfitText === 'string' && outfitText.trim().length > 0;
+      if (!person || (!garments.length && !hasOutfitText)) {
+        throw new CinematicUiBridgeError('INCOMPLETE_LOOK', 'Додайте себе й хоча б одну річ');
+      }
       emit('look:submitting', { activeKind: 'look', phase: 'uploading', error: null, result: null });
       try {
         const run = await client.createRunFromUploads({ person, identityDetail, garments, outfitText });

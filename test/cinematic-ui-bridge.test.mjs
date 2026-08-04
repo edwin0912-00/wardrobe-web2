@@ -72,6 +72,35 @@ test('reports the deployed beta release and keeps authentication explicit', asyn
   );
 });
 
+test('passes a selected text-only outfit to beta without inventing a garment upload', async () => {
+  const client = clientStub();
+  const bridge = createCinematicUiBridge({ client, autoProbe: false });
+  await bridge.probe();
+
+  await bridge.createLook({ person: new Blob(['person']), garments: [], outfitText: 'лляні штани, вовняний джемпер' });
+
+  assert.deepEqual(client.calls.find(([kind]) => kind === 'look'), [
+    'look', {
+      person: new Blob(['person']),
+      identityDetail: null,
+      garments: [],
+      outfitText: 'лляні штани, вовняний джемпер',
+    },
+  ]);
+});
+
+test('does not start an empty look without a garment image or a selected text item', async () => {
+  const client = clientStub();
+  const bridge = createCinematicUiBridge({ client, autoProbe: false });
+  await bridge.probe();
+
+  await assert.rejects(
+    bridge.createLook({ person: new Blob(['person']), garments: [], outfitText: '  ' }),
+    (error) => error instanceof CinematicUiBridgeError && error.code === 'INCOMPLETE_LOOK',
+  );
+  assert.equal(client.calls.some(([kind]) => kind === 'look'), false);
+});
+
 test('retries a transient unavailable beta engine and reopens the mirror without reload', async () => {
   const client = clientStub();
   let healthCalls = 0;

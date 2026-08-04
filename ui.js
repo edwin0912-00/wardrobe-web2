@@ -746,8 +746,10 @@
         }
         var garmentFiles = items.filter(function (item) { return !!item.file; })
           .map(function (item) { return item.file; });
-        if (!garmentFiles.length) {
-          actionError = { kind: 'look', message: 'Додайте фото хоча б однієї речі; готові назви можна додати до фото' };
+        var outfitText = items.filter(function (item) { return !item.file; })
+          .map(function (item) { return item.name; }).join(', ');
+        if (!garmentFiles.length && !outfitText.trim()) {
+          actionError = { kind: 'look', message: 'Оберіть хоча б одну річ або додайте її фото' };
           render(); notifyGateChange();
           return;
         }
@@ -759,8 +761,7 @@
           person: person.main.file,
           identityDetail: person.face ? person.face.file : null,
           garments: garmentFiles,
-          outfitText: items.filter(function (item) { return !item.file; })
-            .map(function (item) { return item.name; }).join(', ')
+          outfitText: outfitText
         }).then(function (run) {
           pendingRunId = run && run.run_id || pendingRunId;
           /* The server now owns the submitted bytes and run receipt.  Clear only
@@ -1359,7 +1360,7 @@
 
       var s = STEPS[step];
       var blocked = (step === 0 && !hasMain()) ||
-        (step === 1 && (!hasItems() || !hasUploadedItems() || pending || adapterLoading || adapterUnavailable ||
+        (step === 1 && (!hasItems() || pending || adapterLoading || adapterUnavailable ||
           (bridge && !bridgeReady()) || preparingFiles));
 
       /* UNREACHED STEPS ARE NOT RENDERED AT ALL. A greyed-out label still advertises an
@@ -2023,7 +2024,6 @@
       if (hint) {
         hint.textContent = (step === 0 && !hasMain()) ? 'потрібне одне фото'
                          : (step === 1 && !hasItems()) ? 'додайте хоча б одну річ'
-                         : (step === 1 && !hasUploadedItems()) ? 'додайте фото хоча б однієї речі; готові назви можна додати до фото'
                          : (step === 1 && (adapterLoading || adapterUnavailable || (bridge && !bridgeReady())))
                            ? (bridgeCopy() || 'Ця частина простору ще готується')
                          : preparingFiles ? 'готуємо фото…'

@@ -27,10 +27,11 @@ test('result screen never performs browser segmentation of a master or compact p
   assert.match(surfaces, /results\[index\]\.kind === 'look'/);
 });
 
-test('look creation requires an uploaded garment while keeping named presets additive', () => {
+test('look creation accepts a selected text-only garment or an uploaded garment', () => {
   assert.match(ui, /function hasUploadedItems\(\)/);
-  assert.match(ui, /step === 1 && \(!hasItems\(\) \|\| !hasUploadedItems\(\)/);
-  assert.match(ui, /готові назви можна додати до фото/);
+  assert.match(ui, /step === 1 && \(!hasItems\(\) \|\| pending \|\| adapterLoading/);
+  assert.match(ui, /if \(!garmentFiles\.length && !outfitText\.trim\(\)\)/);
+  assert.match(ui, /outfitText: outfitText/);
 });
 
 test('preset tray and mirror panels respect station and mobile accessibility state', () => {
