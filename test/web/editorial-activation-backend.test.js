@@ -651,6 +651,87 @@ test('direct five-frame Fashion Shoot persists its first approved customer frame
   );
 });
 
+test('a temporarily unavailable shoot runtime cannot delete or hide a saved Fashion Shoot', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'editorial-profile-durable-library-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const profiles = new ProfileService({
+    databasePath: path.join(root, 'profiles.sqlite'),
+  });
+  await profiles.initialize();
+  t.after(() => profiles.close());
+  const owner = profiles.createSession();
+  profiles.claimRun(owner.profileId, 'durable-library-run');
+  const saved = profiles.saveClaimedRun(owner.profileId, 'durable-library-run');
+  const shoot = rawShoot({
+    shootId: 'shoot_durable_unavailable',
+    lookId: saved.look.look_id,
+    status: 'COMPLETED',
+  });
+  shoot.bindings.shoot_bible = {
+    ...shoot.bindings.shoot_bible,
+    mode_id: 'shoot.window_gobo_warm',
+  };
+  shoot.shots[0] = { ...shoot.shots[0], status: 'CANCELLED' };
+  shoot.shots[1] = {
+    ...shoot.shots[1],
+    status: 'APPROVED',
+    output: {
+      resource_id: 'scene_durable_preview',
+      sha256: 'a'.repeat(64),
+      receipt_sha256: 'b'.repeat(64),
+      width: 1536,
+      height: 2048,
+      media_type: 'image/png',
+    },
+  };
+  profiles.projectEditorialShoot(owner.profileId, saved.look.look_id, shoot);
+
+  const app = Fastify({ logger: false });
+  await registerEditorialShootRoutes(app, {
+    editorialShootService: {
+      async getShoot() { return null; },
+      subscribe() { return () => {}; },
+    },
+    profiles,
+    profileApi: {
+      async resolveRequestProfile(request) {
+        return { profileId: request.headers['x-profile-id'] };
+      },
+    },
+    runService: {},
+    presetResolver: {},
+    sceneService: {},
+  });
+  await app.ready();
+  t.after(() => app.close());
+
+  const retained = profiles.listEditorialShoots(owner.profileId, saved.look.look_id);
+  assert.equal(retained.length, 1, 'startup must not delete a durable projection');
+  assert.equal(retained[0].preview_slot, 'environmental_hero');
+
+  const response = await app.inject({
+    method: 'GET',
+    url: `/api/profile/looks/${saved.look.look_id}/editorial-shoots`,
+    headers: { 'x-profile-id': owner.profileId },
+  });
+  assert.equal(response.statusCode, 200, response.body);
+  const [listed] = response.json().editorial_shoots;
+  assert.equal(listed.shoot_id, shoot.shoot_id);
+  assert.deepEqual(listed.shots, []);
+  assert.deepEqual(listed.recovery, {
+    code: 'EDITORIAL_SHOOT_RUNTIME_UNAVAILABLE',
+    retryable: true,
+    approved_shot_count: 1,
+    preview_slot: 'environmental_hero',
+    preview_output_sha256: 'a'.repeat(64),
+  });
+  assert.equal(
+    profiles.listEditorialShoots(owner.profileId, saved.look.look_id).length,
+    1,
+    'listing a temporarily unavailable runner must not erase saved ownership',
+  );
+});
+
 async function ownedShootRoutes(t, shoot) {
   const root = await mkdtemp(path.join(os.tmpdir(), 'editorial-api-contract-'));
   t.after(() => rm(root, { recursive: true, force: true }));

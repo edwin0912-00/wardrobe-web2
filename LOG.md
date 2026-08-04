@@ -1750,3 +1750,19 @@ Evidence: `npm run verify:readme` PASS — real Fastify static/module graph and
 clean `src/web/start.js` served `/`, `/app.js`, `/scene-ui.js` and
 `/api/health` with HTTP 200.
 weakened_checks: none.
+
+2026-08-04 · SAVED-MATERIAL-LIBRARY-DURABLE-RECOVERY · beta/main · codex-main
+Change: retain Fashion Shoot profile projections across a temporary absent
+runner and return a recovery card rather than silently removing it from the
+saved list. The cinematic main client now restores background scenes as well
+as Fashion Shoots and verified Fashion Videos, using lightweight previews for
+display and immutable originals only for download.
+Why: a completed material may be durably saved while a runner is reloading;
+runtime absence is not user deletion and must not erase ownership or make the
+library look empty after refresh.
+Evidence: `test/web/editorial-activation-backend.test.js` 9/9 PASS, including
+startup/list recovery without projection deletion; main bridge/client/result
+suite 50/50 PASS. Main code: `21cbc59`.
+Beta: NOT_DEPLOYED; no provider work was created.
+weakened_checks: none; no offline projection is allowed to disclose a frame
+until current runner ownership resolves it.

@@ -1664,3 +1664,29 @@ Journey: `npm run verify:readme` PASS: real Fastify static/module graph and a
 clean `src/web/start.js` returned HTTP 200 for `/`, `/app.js`, `/scene-ui.js`
 and `/api/health`.
 weakened_checks: none.
+
+## Saved materials: durable Fashion Shoot recovery — 2026-08-04
+
+Pipeline: `PROFILE.03 → BACKGROUND.02 / UNIVERSE.04 / VIDEO.04`.
+
+Finding: the server persists completed backgrounds in `scenes`, Fashion Shoot
+projections in `editorial_shoots`, and delivered clips in `video_clips`. The
+main cinematic adapter already had `listScenes`, but never called it, so saved
+backgrounds could not appear after reload. More seriously, Fashion Shoot route
+startup deleted a saved profile projection if its in-memory runtime could not
+be reopened at that instant; the list route then silently returned no shoot.
+
+Decision: only an explicit owner DELETE can remove a Fashion Shoot projection.
+When its runtime is temporarily unavailable, the private list route returns a
+truthful recovery card with no media URL; the client keeps already-visible
+materials instead of replacing them with an empty library. Main now restores
+backgrounds, shoots and verified videos through the same saved-look flow, with
+WebP preview routes for display and original files only for download.
+
+Code: this commit plus main-site commit `21cbc59`.
+Tests: `node --test test/web/editorial-activation-backend.test.js` 9/9 PASS;
+main cinematic bridge/client/result suite 50/50 PASS.
+Beta: NOT_DEPLOYED. Journey: no paid generation; regression covers save →
+runtime unavailable/list → refresh recovery without deletion.
+weakened_checks: none — no output URL is issued while the runner cannot prove
+current ownership of the media bytes.
