@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
-const SOURCE_SHA256 = '0aea43bd7f1cf6ac77b5db68521b3712dbae2de964ab57fd14f206818171389b';
+const SOURCE_SHA256 = 'd24637d53d4c407f98f1db37690056e854b93579e498ba380918605a18e0a2cf';
 
 const [sourceBytes, source, adapter, page, surfaces, css, mobileCss] = await Promise.all([
   readFile(new URL('../b/zeely-pipeline-clients.html', import.meta.url)),
@@ -16,7 +16,7 @@ const [sourceBytes, source, adapter, page, surfaces, css, mobileCss] = await Pro
 ]);
 
 test('the laptop source is vendored byte-for-byte from the approved handoff', () => {
-  assert.equal(sourceBytes.byteLength, 803177);
+  assert.equal(sourceBytes.byteLength, 807062);
   assert.equal(createHash('sha256').update(sourceBytes).digest('hex'), SOURCE_SHA256);
   assert.match(source, /<title>wardrobe — Pipeline<\/title>/);
   assert.equal((source.match(/<section\b[^>]*\bclass="[^"]*\bpanel\b/g) || []).length, 10);
@@ -24,6 +24,8 @@ test('the laptop source is vendored byte-for-byte from the approved handoff', ()
   assert.match(source, /type="application\/json" id="node-specs"/);
   assert.match(source, /id="drawer"/);
   assert.match(source, /id="drawer-close"/);
+  assert.match(source, /document\.body\.classList\.toggle\('pres'\)/);
+  assert.match(source, /body\.pres/);
   assert.doesNotMatch(source, /<iframe\b/i);
   assert.doesNotMatch(source, /(?:src|href)=["']https?:/i);
 });
@@ -38,6 +40,8 @@ test('the adapter is same-origin, SHA-bound, and fails closed without an iframe'
   assert.match(adapter, /isExecutableScript/);
   assert.match(adapter, /scripts\.forEach/);
   assert.match(adapter, /pipeline-deck-error/);
+  assert.match(adapter, /body: root\.host/);
+  assert.match(adapter, /:host\(\.\$2\)/);
   assert.match(adapter, /addEventListener\(['"]wheel['"].*capture: true/s);
   assert.match(adapter, /addEventListener\(['"]touchstart['"].*capture: true/s);
   assert.match(adapter, /addEventListener\(['"]keydown['"].*capture: true/s);

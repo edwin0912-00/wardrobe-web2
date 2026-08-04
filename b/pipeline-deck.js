@@ -11,7 +11,7 @@
   'use strict';
 
   var SOURCE_URL = 'zeely-pipeline-clients.html';
-  var SOURCE_SHA256 = '0aea43bd7f1cf6ac77b5db68521b3712dbae2de964ab57fd14f206818171389b';
+  var SOURCE_SHA256 = 'd24637d53d4c407f98f1db37690056e854b93579e498ba380918605a18e0a2cf';
 
   function clamp01(value) {
     value = Number(value);
@@ -37,7 +37,11 @@
     /* `html` and `body` are the only document selectors in the supplied sheet. Inside a
      * shadow tree they mean the host; use a boundary-aware expression so `.drawer-body`
      * is never accidentally rewritten as `:host`. */
-    css = css.replace(/(^|[}\s])html\s*\{/g, '$1:host{')
+    /* The current owner document has an optional presentation state on `body`.
+     * Preserve that state inside the measured laptop by mapping its class to the
+     * ShadowRoot host; never let it target the cinematic page body. */
+    css = css.replace(/(^|[}\s,])(?:html|body)\.([_a-zA-Z][\w-]*)/g, '$1:host(.$2)')
+      .replace(/(^|[}\s])html\s*\{/g, '$1:host{')
       .replace(/(^|[}\s])body\s*\{/g, '$1:host{');
     return css + '\n' + [
       ':host{display:block;position:relative;width:100%;height:100%;overflow:hidden;background:#080B10;color:#E6ECF4;} ',
@@ -73,6 +77,10 @@
   function createDocumentProxy(root) {
     var ownerDocument = root.ownerDocument;
     return {
+      /* The supplied document uses `document.body.classList` only for state local
+       * to the deck (presentation/inspector). The host is the local equivalent of
+       * that body and is physically projected into the laptop aperture. */
+      body: root.host,
       createElement: function (tag) { return ownerDocument.createElement(tag); },
       getElementById: function (id) {
         /* The supplied deck uses fixed, simple ids. Avoid making the adapter depend on
