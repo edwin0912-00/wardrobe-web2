@@ -6,8 +6,8 @@ import {
   loadProfileScene,
   loadScenePresets,
   retryProfileScene,
-} from './profile-client.js?v=20260724-5';
-import { createEditorialShootUi } from './editorial-shoot-ui.js?v=20260803-3';
+} from './profile-client.js?v=20260804-1';
+import { createEditorialShootUi } from './editorial-shoot-ui.js?v=20260804-1';
 import {
   clearSceneResume,
   presetCameraLabel,
@@ -23,6 +23,7 @@ import {
   writeSceneResume,
 } from './scene-state.js?v=20260724-2';
 import { presentationImageUrl } from './presentation-media.js?v=20260731-1';
+import { publicErrorCode, withPublicDiagnostic } from './error-presentation.js?v=20260804-1';
 
 const UK_PLURAL_SCENE = Object.freeze(['стандартна сцена', 'стандартні сцени', 'стандартних сцен']);
 const UK_PLURAL_MODE = Object.freeze(['напрям', 'напрями', 'напрямів']);
@@ -177,7 +178,7 @@ function sceneConnectionPresentation(polling) {
 }
 
 export function sceneRequestFailurePresentation(error) {
-  const code = String(error?.code ?? '');
+  const code = publicErrorCode(error);
   const structured = Number.isInteger(error?.status) && error.status >= 400;
   const messageByCode = {
     LOOK_ITEM_EVIDENCE_INVALID: 'Збережений образ не має цілісного підтвердження речей. Запуск сцени зупинено без генерації.',
@@ -190,7 +191,10 @@ export function sceneRequestFailurePresentation(error) {
       status: 'ЗАПУСК ВІДХИЛЕНО',
       phase: 'Потрібна перевірка збереженого образу',
       connection: 'СЕРВЕР НА ЗВ’ЯЗКУ',
-      message: messageByCode[code] ?? String(error?.message || `Сервер відхилив запуск (${error.status})`),
+      message: withPublicDiagnostic(
+        messageByCode[code] ?? 'Сервер відхилив запуск до генерації. Перевір вибраний образ або стиль.',
+        error,
+      ),
       reconnect: false,
     };
   }
@@ -198,7 +202,7 @@ export function sceneRequestFailurePresentation(error) {
     status: 'НЕМАЄ З’ЄДНАННЯ',
     phase: 'Не вдалося отримати стан',
     connection: 'З’ЄДНАННЯ ПЕРЕРВАЛОСЯ',
-    message: String(error?.message || 'Не вдалося з’єднатися із сервером'),
+    message: withPublicDiagnostic('Не вдалося з’єднатися із сервером.', error),
     reconnect: true,
   };
 }

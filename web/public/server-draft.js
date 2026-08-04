@@ -5,6 +5,7 @@ import {
   finalizationFileManifest,
   sha256Blob,
 } from './draft-file-contract.js?v=20260723-1';
+import { publicErrorCode } from './error-presentation.js?v=20260804-1';
 
 export class DraftApiError extends Error {
   constructor(message, { status, body } = {}) {
@@ -12,6 +13,13 @@ export class DraftApiError extends Error {
     this.name = 'DraftApiError';
     this.status = status;
     this.body = body;
+    this.code = publicErrorCode(body);
+    this.failure_code = publicErrorCode({ failure_code: body?.failure_code ?? body?.failureCode });
+    this.reason_code = publicErrorCode({ reason_code: body?.reason_code ?? body?.reasonCode });
+    this.next_action = typeof body?.next_action === 'string' ? body.next_action : null;
+    this.next_action_reason_code = publicErrorCode({
+      next_action_reason_code: body?.next_action_reason_code ?? body?.nextActionReasonCode,
+    });
   }
 }
 
@@ -61,7 +69,12 @@ export async function uploadDraftFile(slot, file, { onProgress = () => {} } = {}
   const data = new FormData();
   data.append('file', file, file.name);
   const response = await uploadFormData(`/api/draft/file/${encodeURIComponent(slot)}`, data, { timeoutMs: 10 * 60_000, onProgress });
-  if (!response.ok) throw new Error(response.body?.error || `Чернетку не збережено: HTTP ${response.status}`);
+  if (!response.ok) {
+    throw new DraftApiError(response.body?.error || `Чернетку не збережено: HTTP ${response.status}`, {
+      status: response.status,
+      body: response.body,
+    });
+  }
   return response.body;
 }
 

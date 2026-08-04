@@ -1,3 +1,5 @@
+import { errorFromApiResponse } from './error-presentation.js?v=20260804-1';
+
 const JSON_HEADERS = Object.freeze({ 'Content-Type': 'application/json' });
 
 async function profileRequest(url, options = {}) {
@@ -12,13 +14,7 @@ async function profileRequest(url, options = {}) {
     });
     if (response.status === 204) return null;
     const body = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      const error = new Error(body.error || `Profile request failed (${response.status})`);
-      error.status = response.status;
-      error.code = body.code;
-      error.body = body;
-      throw error;
-    }
+    if (!response.ok) throw errorFromApiResponse(response, body, `Profile request failed (${response.status})`);
     return body;
   } finally {
     clearTimeout(timeout);

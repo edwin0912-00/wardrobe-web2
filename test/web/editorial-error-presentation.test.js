@@ -13,6 +13,7 @@ test('Fashion Shoot never exposes a raw HTTP Conflict as product copy', () => {
   assert.equal(presentation.retryable, false);
   assert.match(presentation.status, /ПЕРЕВІРКА/);
   assert.match(presentation.message, /збережен/i);
+  assert.match(presentation.message, /Код: LOOK_ITEM_EVIDENCE_INVALID/);
   assert.doesNotMatch(presentation.message, /Conflict/i);
 });
 

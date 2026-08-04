@@ -16,9 +16,10 @@ import {
 import { PIPELINE_NODE_COUNT, PIPELINE_NODES, checkpointDisplayCode, nodeState, resolveProgressState } from './progress-model.js?v=20260722-7';
 import { createLiveVisualizer, isProviderWaitStage } from './live-visualizer.js?v=20260724-1';
 import { fetchRunWithRetry, RunNotFoundError } from './run-resume.js?v=20260722-3';
-import { claimProfileRun, deleteAnonymousProfile, deleteProfileLook, listProfileLookEditorialShoots, listProfileLookVideoClips, loadProfile, saveProfileRun } from './profile-client.js?v=20260803-3';
+import { claimProfileRun, deleteAnonymousProfile, deleteProfileLook, listProfileLookEditorialShoots, listProfileLookVideoClips, loadProfile, saveProfileRun } from './profile-client.js?v=20260804-1';
 import { needsInputPresentation, neutralizeItemTerms } from './visible-copy.js?v=20260731-2';
-import { createSceneUi } from './scene-ui.js?v=20260803-3';
+import { createSceneUi } from './scene-ui.js?v=20260804-1';
+import { errorFromApiResponse, withPublicDiagnostic } from './error-presentation.js?v=20260804-1';
 import {
   addItemsScreenState,
   clearAddItemsSelection,
@@ -129,6 +130,10 @@ function humanizeVisibleText(value) {
   return neutralizeItemTerms(String(value ?? '')
     .replace(/visible garment mismatch/gi, 'невідповідність видимих характеристик речі')
     .replace(/garment mismatch/gi, 'невідповідність речі'));
+}
+
+function publicFailureMessage(message, source, fallback = 'Не вдалося завершити цю дію.') {
+  return withPublicDiagnostic(humanizeVisibleText(message || fallback), source);
 }
 
 async function loadBuildIdentity() {
@@ -705,7 +710,13 @@ function renderRun(run) {
     failure.classList.toggle('choice', hasSelectableConflict);
     document.querySelector('.failure-mark').textContent = hasSelectableConflict ? '?' : '!';
     document.querySelector('#failure-title').textContent = hasSelectableConflict ? 'Виберіть одну річ для образу' : needsInput?.title ?? 'Генерацію зупинено';
-    document.querySelector('#failure-message').textContent = hasSelectableConflict ? 'Знайдено кілька речей одного типу. Натисніть одну картку нижче — генерація продовжиться з нею.' : needsInput?.message ?? humanizeVisibleText(run.message || run.error?.message || 'Невідома помилка');
+    document.querySelector('#failure-message').textContent = hasSelectableConflict
+      ? 'Знайдено кілька речей одного типу. Натисніть одну картку нижче — генерація продовжиться з нею.'
+      : publicFailureMessage(
+        needsInput?.message ?? run.message ?? run.error?.message,
+        run,
+        'Генерацію зупинено до наступної дії.',
+      );
     renderConflictPicker(run);
     document.querySelector('#retry-run').classList.toggle('hidden', hasSelectableConflict || needsReplacementMaterials);
     submit.disabled = false;
@@ -772,12 +783,12 @@ function renderConflictPicker(run) {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ selections }),
       });
       const body = await response.json();
-      if (!response.ok) throw new Error(body.error || 'Не вдалося зберегти вибір');
+      if (!response.ok) throw errorFromApiResponse(response, body, 'Не вдалося зберегти вибір');
       telemetry('client.garment_selected', { categories: Object.keys(selections), stage: 'garment_conflict' }, run.run_id);
       renderRun(body);
       watch(body.run_id);
     } catch (error) {
-      document.querySelector('#failure-message').textContent = humanizeVisibleText(error.message);
+      document.querySelector('#failure-message').textContent = publicFailureMessage(error.message, error);
       continueButton.disabled = false;
     }
   });
@@ -1756,10 +1767,10 @@ document.querySelector('#retry-run').addEventListener('click', async () => {
     renderedProgressFloor = 0;
     const response = await fetch(`/api/runs/${encodeURIComponent(activeRun.run_id)}/retry`, { method: 'POST' });
     const body = await response.json();
-    if (!response.ok) throw new Error(body.error);
+    if (!response.ok) throw errorFromApiResponse(response, body, 'Не вдалося повторити генерацію');
     renderRun(body); watch(body.run_id);
   } catch (error) {
-    document.querySelector('#failure-message').textContent = humanizeVisibleText(error.message);
+    document.querySelector('#failure-message').textContent = publicFailureMessage(error.message, error);
     telemetry('client.fetch_error', { message: error.message.slice(0, 500), stage: 'retry' }, activeRun.run_id);
   }
 });
@@ -2077,9 +2088,12 @@ function setVideoGenerateBusy(busy) {
   thinking.hidden = !busy;
   if (busy) setVideoThinkingState('searching', 'AI готує запуск', 'Перевіряємо reference pack');
 }
-function showVideoRetry(message, clipId = null) {
+function showVideoRetry(problem, clipId = null) {
   const error = document.querySelector('#video-error');
-  error.textContent = message;
+  const message = typeof problem === 'string'
+    ? problem
+    : problem?.error ?? problem?.message ?? 'Відео не пройшло перевірку після доступних автоматичних спроб.';
+  error.textContent = publicFailureMessage(message, problem);
   error.hidden = false;
   failedFashionVideoClipId = clipId;
   failedFashionVideoRetryKey = clipId ? crypto.randomUUID() : null;
@@ -2143,7 +2157,7 @@ async function pollFashionVideo(clipId) {
       if (status.status === 'COMPLETED' || status.status === 'PASS') {
         clearInterval(poll);
         if (!status.video_url) {
-          showVideoRetry(status.error ?? 'Відео не пройшло QA після доступних автоматичних спроб.', clipId);
+          showVideoRetry(status, clipId);
           setVideoGenerateBusy(false);
           return;
         }
@@ -2161,13 +2175,13 @@ async function pollFashionVideo(clipId) {
         setVideoGenerateBusy(false);
       } else if (status.status === 'FAILED' || status.status === 'FAIL') {
         clearInterval(poll);
-        showVideoRetry(status.error ?? 'Відео не пройшло QA після доступних автоматичних спроб.', clipId);
+        showVideoRetry(status, clipId);
         setVideoGenerateBusy(false);
         return;
       }
     } catch (pollErr) {
       clearInterval(poll);
-      showVideoRetry(pollErr.message, clipId);
+      showVideoRetry(pollErr, clipId);
       setVideoGenerateBusy(false);
     }
     if (attempts === 120) {
@@ -2199,7 +2213,7 @@ document.querySelector('#video-retry').addEventListener('click', async () => {
       headers: { 'Idempotency-Key': retryKey },
     });
     const body = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(body.error || `HTTP ${response.status}`);
+    if (!response.ok) throw errorFromApiResponse(response, body, `HTTP ${response.status}`);
     failedFashionVideoClipId = null;
     failedFashionVideoRetryKey = null;
     progressFill.style.width = '30%';
@@ -2208,7 +2222,7 @@ document.querySelector('#video-retry').addEventListener('click', async () => {
       : `Створено нову спробу ${body.clip_id}…`;
     pollFashionVideo(body.clip_id);
   } catch (error) {
-    showVideoRetry(error.message, clipId);
+    showVideoRetry(error, clipId);
     setVideoGenerateBusy(false);
   }
 });
@@ -2249,9 +2263,11 @@ document.querySelector('#video-generate').addEventListener('click', async () => 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       if (err.code === 'MOTION_MODE_SOURCE_MISMATCH') {
-        throw new Error('Для цього руху потрібен збережений образ у повний зріст: мають бути видні ноги й взуття. Обери інший стиль або створи full-body образ.');
+        const error = errorFromApiResponse(res, err, 'Для цього руху потрібен збережений образ у повний зріст.');
+        error.message = 'Для цього руху потрібен збережений образ у повний зріст: мають бути видні ноги й взуття. Обери інший стиль або створи full-body образ.';
+        throw error;
       }
-      throw new Error(err.error || `HTTP ${res.status}`);
+      throw errorFromApiResponse(res, err, `HTTP ${res.status}`);
     }
     const clip = await res.json();
     setVideoThinkingState('composing', 'AI збирає рух', 'Створюємо fashion motion із перевірених референсів');
@@ -2259,7 +2275,7 @@ document.querySelector('#video-generate').addEventListener('click', async () => 
     progressStatus.textContent = `Clip ${clip.clip_id} створено — генерація…`;
     pollFashionVideo(clip.clip_id);
   } catch (err) {
-    showVideoRetry(err.message);
+    showVideoRetry(err);
     setVideoGenerateBusy(false);
   }
 });

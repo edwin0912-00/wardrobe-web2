@@ -1,5 +1,25 @@
 # Wardrobe update board
 
+## 2026-08-04 · Structured generation failures reach the beta screen — pending activation
+
+The browser now preserves the safe, structured fields returned by beta across
+create, polling and retry boundaries: `code`, `failure_code`, `reason_code`,
+`next_action`, and `next_action_reason_code`. A failed step shows authored
+Ukrainian copy together with the actual safe code and a concrete next action,
+rather than relabelling every failure as a connection problem or `Conflict`.
+
+Examples include `IMAGE_TOO_SMALL`, `UNSUPPORTED_MEDIA_TYPE`,
+`VIDEO_INPUT_MEDIA_IP_CHECK_PENDING`, and video/scene QA rejection codes. The
+screen never prints raw provider errors, VLM rationale, URLs, credentials, or
+internal stack text: those are not stable product explanations and may contain
+private material. If a provider supplies no safe structured code, the UI keeps
+the existing authored recovery message instead of inventing one.
+
+Evidence: browser error-presentation, draft, scene, editorial, API and video
+route tests 38/38 PASS; JavaScript syntax checks PASS. No provider job was
+created.
+`weakened_checks: none`.
+
 ## 2026-08-04 · Saved materials recovery is active
 
 The active beta source release must be read from public `/api/health`; it

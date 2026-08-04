@@ -59,6 +59,8 @@ test('a definitive 4xx finalization response is not eligible for run polling', a
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async () => new Response(JSON.stringify({
     error: 'garment_images[0] is too small for bounded preparation',
+    code: 'IMAGE_TOO_SMALL',
+    next_action: 'REPLACE_INPUT',
   }), {
     status: 422,
     headers: { 'content-type': 'application/json' },
@@ -74,6 +76,8 @@ test('a definitive 4xx finalization response is not eligible for run polling', a
       rejectedError = error;
       assert.ok(error instanceof DraftApiError);
       assert.equal(error.status, 422);
+      assert.equal(error.code, 'IMAGE_TOO_SMALL');
+      assert.equal(error.next_action, 'REPLACE_INPUT');
       assert.equal(isDefinitiveDraftRunRejection(error), true);
       return true;
     },

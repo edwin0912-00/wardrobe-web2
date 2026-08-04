@@ -1,5 +1,19 @@
 # Wardrobe verified state
 
+## Pending beta activation — structured failure diagnostics
+
+- The beta browser carries safe machine-readable failure fields from API to
+  the visible failed state: `code`, `failure_code`, `reason_code`,
+  `next_action`, and `next_action_reason_code`.
+- It renders an authored Ukrainian explanation, `Код: …`, and a specific next
+  action for known codes. It does not display raw provider/model prose,
+  private URLs, stack traces, or reasoning.
+- This covers avatar/outfit draft upload and creation, standard backgrounds,
+  Fashion Shoot, and Fashion Video polling/retry paths.
+- Evidence: focused browser and route tests 38/38 PASS; no paid generation.
+  Public activation and one no-cost browser error-surface check remain pending.
+  `weakened_checks: none`.
+
 ## Active beta: saved materials recover without deletion — 2026-08-04
 
 - Public beta's exact source release is the value returned by `/api/health`.

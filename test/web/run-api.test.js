@@ -85,6 +85,45 @@ test('web API exposes invalid input as structured NEEDS_INPUT', async () => {
   await app.close();
 });
 
+test('web API preserves safe provider failure codes and actions without forwarding unstructured detail', async () => {
+  const service = {
+    createRun: async () => {
+      const error = new Error('The provider rejected this immutable input after a private preflight detail');
+      error.code = 'PROVIDER_INPUT_MEDIA_IP_CHECK_PENDING';
+      error.failureCode = 'PROVIDER_INPUT_MEDIA_IP_CHECK_PENDING';
+      error.nextAction = 'WAIT';
+      error.nextActionReasonCode = 'VIDEO_PROVIDER_JOB_IN_PROGRESS';
+      error.statusCode = 503;
+      throw error;
+    },
+    getRun: async () => null,
+    subscribe: () => () => {},
+    outputFile: async () => null,
+    retry: async () => null,
+    selectGarments: async () => null,
+    garmentSourceFile: async () => null,
+    deleteRun: async () => {},
+  };
+  const app = await createWebApp({ service });
+  const image = await sharp({ create: { width: 300, height: 400, channels: 3, background: '#ffffff' } }).png().toBuffer();
+  const form = new FormData();
+  form.append('person_photo', image, { filename: 'person.png', contentType: 'image/png' });
+  form.append('outfit_text', 'black top');
+  form.append('consent', 'true');
+  const response = await app.inject({
+    method: 'POST', url: '/api/runs', headers: form.getHeaders(), payload: form.getBuffer(),
+  });
+  assert.equal(response.statusCode, 400);
+  assert.deepEqual(response.json(), {
+    error: 'Вхідне медіа ще проходить перевірку. Запуск не почався.',
+    code: 'PROVIDER_INPUT_MEDIA_IP_CHECK_PENDING',
+    failure_code: 'PROVIDER_INPUT_MEDIA_IP_CHECK_PENDING',
+    next_action: 'WAIT',
+    next_action_reason_code: 'VIDEO_PROVIDER_JOB_IN_PROGRESS',
+  });
+  await app.close();
+});
+
 test('web API requires consent before transmitting personal images', async () => {
   const service = { createRun: async () => { throw new Error('must not run'); }, getRun: async () => null, subscribe: () => () => {}, outputFile: async () => null, retry: async () => null, selectGarments: async () => null, garmentSourceFile: async () => null, deleteRun: async () => {} };
   const app = await createWebApp({ service });

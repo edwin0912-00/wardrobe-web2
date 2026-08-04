@@ -1797,3 +1797,16 @@ Git/runtime drift it is meant to prevent.
 Evidence: every beta activation is guarded and records its observed health;
 this source contains product repair `79b1456` and activation records.
 weakened_checks: none; documentation protocol only, no provider work.
+
+2026-08-04 · STRUCTURED-FAILURE-DIAGNOSTICS · beta · codex-main
+Change: preserve the server's safe `code`, `failure_code`, `reason_code`,
+`next_action`, and `next_action_reason_code` fields through browser fetch,
+polling, retry and terminal-state presentation. A failed action now shows an
+authored Ukrainian explanation plus its true safe code and next action.
+Why: `Conflict` and generic connection copy hid the real recoverable reason,
+such as unsupported input, insufficient image detail, a pending input-media
+check, or an explicit QA rejection.
+Evidence: error-presentation/draft/scene/editorial/API/video route suite 38/38
+PASS; JavaScript syntax checks PASS; no paid provider request created.
+weakened_checks: none; raw provider/model reasoning, URLs and stack text remain
+private and are intentionally not rendered.

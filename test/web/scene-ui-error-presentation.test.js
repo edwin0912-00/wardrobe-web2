@@ -14,6 +14,7 @@ test('structured item-evidence 409 is not presented as a lost connection', () =>
   assert.equal(presentation.status, 'ЗАПУСК ВІДХИЛЕНО');
   assert.equal(presentation.reconnect, false);
   assert.match(presentation.message, /підтвердження речей/i);
+  assert.match(presentation.message, /Код: LOOK_ITEM_EVIDENCE_INVALID/);
   assert.doesNotMatch(presentation.message, /Conflict|з’єднання перервалося/i);
 });
 

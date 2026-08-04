@@ -27,6 +27,32 @@ import { registerHeicConversionRoute } from './heic-converter.js';
 import { registerGodViewRoutes } from './god-view-routes.js';
 import { registerTestAuditRoutes } from './test-audit-routes.js';
 
+const PUBLIC_ERROR_CODE = /^[A-Z][A-Z0-9_]{1,119}$/;
+const PUBLIC_ERROR_COPY = Object.freeze({
+  PROVIDER_INPUT_MEDIA_IP_CHECK_PENDING: 'Вхідне медіа ще проходить перевірку. Запуск не почався.',
+  PROVIDER_JOB_NOT_FOUND: 'Постачальник більше не бачить цю спробу.',
+  PROVIDER_JOB_FAILED: 'Постачальник завершив цю спробу без результату.',
+  PROVIDER_COMMAND_FAILED: 'Постачальник не зміг завершити запит.',
+  MODEL_RESPONSE_MISMATCH: 'Відповідь моделі не відповідає очікуваному маршруту.',
+  IMAGE_TOO_SMALL: 'Це зображення замале для надійної підготовки.',
+  UNSUPPORTED_MEDIA_TYPE: 'Цей формат зображення не підтримується.',
+});
+
+function publicErrorCode(value) {
+  return typeof value === 'string' && PUBLIC_ERROR_CODE.test(value)
+    ? value
+    : null;
+}
+
+function publicErrorMessage(error, code) {
+  if (code && PUBLIC_ERROR_COPY[code]) return PUBLIC_ERROR_COPY[code];
+  // Input errors are authored by the validation contract and describe the
+  // user’s supplied material. Provider/model diagnostics are intentionally
+  // not passed through as free-form browser copy.
+  if (error.status === 'NEEDS_INPUT') return sanitizeOutboundString(error.message);
+  return 'Дію зупинено. Перевірте код і наступну дію.';
+}
+
 export async function createWebApp({
   service,
   health = { status: 'ok' },
@@ -512,7 +538,8 @@ export async function createWebApp({
   app.setErrorHandler((error, request, reply) => {
     request.log.error(error);
     const statusCode = error.statusCode && error.statusCode < 500 ? error.statusCode : 400;
-    const publicMessage = sanitizeOutboundString(error.message);
+    const code = publicErrorCode(error.code);
+    const publicMessage = publicErrorMessage(error, code);
     if (monitor) monitor.append({
       source: 'server', type: 'server.error', severity: 'error', run_id: request.params?.id,
       data: {
@@ -522,18 +549,26 @@ export async function createWebApp({
         message: publicMessage,
       },
     }).catch(() => {});
+    const failureCode = publicErrorCode(error.failureCode ?? error.failure_code);
+    const reasonCode = publicErrorCode(error.reasonCode ?? error.reason_code);
+    const nextAction = publicErrorCode(error.nextAction ?? error.next_action);
+    const nextActionReasonCode = publicErrorCode(error.nextActionReasonCode ?? error.next_action_reason_code);
     const payload = {
       error: publicMessage,
-      ...(error.code ? { code: sanitizeOutboundString(error.code) } : {}),
+      ...(code ? { code } : {}),
+      ...(failureCode ? { failure_code: failureCode } : {}),
+      ...(reasonCode ? { reason_code: reasonCode } : {}),
+      ...(nextAction ? { next_action: nextAction } : {}),
+      ...(nextActionReasonCode ? { next_action_reason_code: nextActionReasonCode } : {}),
     };
     if (error.status === 'NEEDS_INPUT') {
       payload.status = 'NEEDS_INPUT';
-      payload.code = sanitizeOutboundString(error.code ?? 'INPUT_REJECTED');
+      payload.code = code ?? 'INPUT_REJECTED';
       payload.field = error.field ? sanitizeOutboundString(error.field) : null;
       payload.requirements = Array.isArray(error.requirements)
         ? error.requirements.map((value) => sanitizeOutboundString(value)).slice(0, 12)
         : [];
-      payload.next_action = sanitizeOutboundString(error.nextAction ?? 'REPLACE_INPUT');
+      payload.next_action = nextAction ?? 'REPLACE_INPUT';
     }
     reply.code(statusCode).send(payload);
   });

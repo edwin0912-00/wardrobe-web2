@@ -7,7 +7,7 @@ import {
   loadProfileEditorialShoot,
   loadProfileEditorialShootBible,
   retryProfileEditorialShot,
-} from './profile-client.js?v=20260724-5';
+} from './profile-client.js?v=20260804-1';
 import {
   clearEditorialResume,
   EDITORIAL_SHOT_SLOTS,
@@ -23,6 +23,7 @@ import {
 } from './editorial-state.js?v=20260724-1';
 import { createThinkingOrb } from './thinking-orb.js?v=20260722-10';
 import { presentationImageUrl } from './presentation-media.js?v=20260731-1';
+import { publicErrorCode, withPublicDiagnostic } from './error-presentation.js?v=20260804-1';
 
 function idOfLook(look) {
   return look?.look_id ?? look?.id ?? null;
@@ -321,7 +322,7 @@ function displayShootState(status) {
 // code in telemetry but give the person one concrete next action.
 export function editorialRequestFailurePresentation(error) {
   const statusCode = Number(error?.status);
-  const code = String(error?.code ?? '');
+  const code = publicErrorCode(error);
   const messageByCode = {
     LOOK_ITEM_EVIDENCE_INVALID: 'Збережений образ не має цілісного підтвердження речей. Фотосесію не запускали. Повернися до образу й створи його заново після перевірки.',
     LOOK_ITEM_EVIDENCE_CONFLICT: 'Підтвердження речей у збереженому образі суперечливе. Фотосесію не запускали. Повернися до образу й створи його заново після перевірки.',
@@ -334,14 +335,20 @@ export function editorialRequestFailurePresentation(error) {
   if (Number.isInteger(statusCode) && statusCode >= 400 && statusCode < 500) {
     return {
       status: 'ПОТРІБНА ПЕРЕВІРКА',
-      message: messageByCode[code]
-        ?? 'Сервер зупинив запуск до генерації, бо збережений образ або вибраний стиль потребує перевірки. Повернися до образу та спробуй ще раз.',
+      message: withPublicDiagnostic(
+        messageByCode[code]
+          ?? 'Сервер зупинив запуск до генерації, бо збережений образ або вибраний стиль потребує перевірки. Повернися до образу та спробуй ще раз.',
+        error,
+      ),
       retryable: false,
     };
   }
   return {
     status: 'З’ЄДНАННЯ ПЕРЕРВАЛОСЯ',
-    message: 'Не вдалося отримати відповідь сервера. Натисни «Перевірити стан», щоб безпечно відновити цю саму фотосесію.',
+    message: withPublicDiagnostic(
+      'Не вдалося отримати відповідь сервера. Натисни «Перевірити стан», щоб безпечно відновити цю саму фотосесію.',
+      error,
+    ),
     retryable: true,
   };
 }

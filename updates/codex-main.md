@@ -1610,6 +1610,22 @@ Code: `01cca5ee7eb3ebe9bf70bea412748c571e03dc95`; private SQLite store `test-aud
 same-origin route, beta telemetry bridge, God View dashboard/labels, and a
 small cinematic-main client that forwards only visible journey state.
 Tests: audit + God View + profile/monitor focused suite 20/20 PASS;
+## Structured public failure diagnostics — 2026-08-04
+
+Pipeline: `LOOK.01–06`, `BACKGROUND.01–02`, `UNIVERSE.01–04`, `VIDEO.*`.
+
+Code: API/browser failure fields now survive profile creation, uploads,
+backgrounds, Fashion Shoot and Fashion Video polling/retry. The public screen
+uses authored Ukrainian copy with the exact safe `Код` and an actionable next
+step. It never exposes raw provider/model error prose, internal URLs, stack
+traces, credentials or reasoning.
+
+Evidence: focused browser, API and video-route tests 38/38 PASS; JS syntax checks
+PASS. Beta: NOT_DEPLOYED. Journey: NOT_RUN. No provider/paid generation.
+weakened_checks: none.
+
+---
+
 `npm run verify:contracts` PASS (41 schemas, 9 fixtures, 3 jobs); cinematic
 client wiring/privacy tests 5/5 PASS.
 Beta: NOT_DEPLOYED. Journey: local Fastify route, lifecycle and God View
