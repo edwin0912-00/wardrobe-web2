@@ -1318,3 +1318,11 @@ and `bottom` and owns a durable snapshot; focused tests PASS `40/40`; strict
 release verification PASS; local/public health ready; public catalogs report
 16 backgrounds and 19 Fashion Shoot modes.
 weakened_checks: none.
+
+2026-08-05 · Temporary Higgsfield hold · source `abed29c`, live beta release `7129c5c`
+Change: added `ZEELY_DISABLE_HIGGSFIELD=true`; image/scene routes use the configured
+OpenRouter provider, and video uses only the explicit OpenRouter route without a
+Higgsfield fallback. The active beta launcher was restarted with the hold enabled.
+Evidence: source/deployed syntax checks PASS; video/provider tests PASS `8/8`; local
+and public beta/main health return `ready`; no Higgsfield process is running.
+weakened_checks: none.

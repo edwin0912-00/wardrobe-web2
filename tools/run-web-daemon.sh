@@ -36,6 +36,10 @@ export PORT="4173"
 # path was removed.
 export ZEELY_GENERATION_PROVIDER="openrouter"
 export ZEELY_VLM_PROVIDER="openrouter"
+# Temporary provider hold: no Higgsfield image/scene/video process may be
+# created. Images/scenes use the configured OpenRouter route; video uses only
+# the explicit OpenRouter route, never a hidden Higgsfield fallback.
+export ZEELY_DISABLE_HIGGSFIELD="true"
 if [[ -s "$PRIVATE_DIR/openrouter-api-key" ]]; then
   OPENROUTER_API_KEY="$(cat "$PRIVATE_DIR/openrouter-api-key")"
   export OPENROUTER_API_KEY

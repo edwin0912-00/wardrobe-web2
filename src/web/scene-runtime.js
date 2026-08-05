@@ -50,6 +50,7 @@ export function createSceneRuntimeDependencies({
   projectRoot,
   qaEvaluator,
   generationProvider = null,
+  disableHiggsfield = process.env.ZEELY_DISABLE_HIGGSFIELD === 'true',
   monitor = null,
   vlmProvider = process.env.ZEELY_VLM_PROVIDER ?? CODEX_VLM_PROVIDER,
   sceneEvaluator,
@@ -63,6 +64,9 @@ export function createSceneRuntimeDependencies({
   if (generationProvider !== null && typeof generationProvider?.generate !== 'function') {
     throw new TypeError('createSceneRuntimeDependencies generationProvider.generate must be a function');
   }
+  if (disableHiggsfield && !generationProvider) {
+    throw new Error('Higgsfield is disabled and no alternate scene generation provider is configured');
+  }
   if (monitor !== null && typeof monitor?.append !== 'function') {
     throw new TypeError('createSceneRuntimeDependencies monitor.append must be a function');
   }
@@ -75,7 +79,9 @@ export function createSceneRuntimeDependencies({
   // All scene routes use the one 3:4 delivery contract. No scene route crops
   // one provider's output into a different product aspect ratio.
   // OpenRouterImageGenProvider covers every route through its own map.
-  const generationProviderCoversAllRoutes = generationProvider instanceof OpenRouterImageGenProvider;
+  const generationProviderCoversAllRoutes = disableHiggsfield
+    ? Boolean(generationProvider)
+    : generationProvider instanceof OpenRouterImageGenProvider;
   const providers = Object.fromEntries(
     Object.entries(SCENE_PROVIDER_RUNTIME_CONFIG).map(([model, config]) => [
       model,

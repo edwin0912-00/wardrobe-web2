@@ -16,6 +16,7 @@ import { createVideoAssetUrlResolver } from './video-source-bridge.js';
 
 const projectRoot = path.resolve(import.meta.dirname, '..', '..');
 const generationMode = process.env.ZEELY_GENERATION_PROVIDER ?? 'higgsfield';
+const disableHiggsfield = process.env.ZEELY_DISABLE_HIGGSFIELD === 'true';
 const runtimeRoot = process.env.ZEELY_RUNTIME_ROOT
   ? path.resolve(process.env.ZEELY_RUNTIME_ROOT)
   : path.join(projectRoot, 'runtime');
@@ -64,6 +65,7 @@ const sceneDependencies = createSceneRuntimeDependencies({
   projectRoot,
   qaEvaluator: vlm.evaluateQa.bind(vlm),
   generationProvider: generation.provider,
+  disableHiggsfield,
   monitor,
 });
 // A shoot's state and a shoot's scene assets are one shoot, so they take one root.
@@ -91,6 +93,7 @@ const videoSourceBridge = createVideoAssetUrlResolver({
 const videoService = createVideoRuntime({
   runtimeRoot,
   openRouterApiKey: process.env.OPENROUTER_API_KEY,
+  disableHiggsfield,
   assetUrlResolver: videoSourceBridge.videoAssetUrlResolver,
 });
 const app = await createWebApp({

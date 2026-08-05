@@ -471,3 +471,15 @@ be weakened to hide it.
   strict product release verification PASS; 16 background presets, 19 Fashion
   Shoot modes and 17 generation-ready modes are public.
 - weakened_checks: none.
+
+## Temporary Higgsfield hold — 2026-08-05
+
+- Live beta process is running with `ZEELY_DISABLE_HIGGSFIELD=true` and
+  `ZEELY_GENERATION_PROVIDER=openrouter`.
+- Images and scenes remain on OpenRouter. Video no longer constructs or retries
+  the Higgsfield provider; it uses the explicit OpenRouter route only.
+- Local and public `beta.madeforthisjob.com` / `site.madeforthisjob.com` health are
+  `ready` on release `7129c5c9f0c8c45cab12bf747e833af1e8a37815`.
+- Focused provider/video tests: `8/8 PASS`; no Higgsfield process observed.
+- This is a temporary operational hold; restoring Higgsfield requires removing
+  the flag and deploying a deliberate release.

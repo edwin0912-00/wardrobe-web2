@@ -18,6 +18,29 @@ export class VideoRuntimeError extends Error {
   }
 }
 
+function openRouterOnlyVideoProvider(openRouter) {
+  return Object.freeze({
+    async createJob(request) {
+      const created = await openRouter.createJob(request);
+      return {
+        ...created,
+        providerKey: 'openrouter',
+        createAttempt: 1,
+        fallbackUsed: false,
+      };
+    },
+    async waitForJob({ providerKey, ...request }) {
+      if (providerKey && providerKey !== 'openrouter') {
+        throw new VideoRuntimeError(
+          `Persisted video provider is disabled or unsupported: ${String(providerKey)}`,
+          { code: 'UNKNOWN_PERSISTED_VIDEO_PROVIDER' },
+        );
+      }
+      return openRouter.waitForJob(request);
+    },
+  });
+}
+
 export async function downloadVideoBytes(url, {
   fetchFn = globalThis.fetch,
   openRouterApiKey = null,
@@ -72,6 +95,7 @@ export function createVideoRuntime({
   runtimeRoot,
   openRouterApiKey,
   assetUrlResolver,
+  disableHiggsfield = process.env.ZEELY_DISABLE_HIGGSFIELD === 'true',
   commandRunner = execFileAsync,
   fetchFn = globalThis.fetch,
 } = {}) {
@@ -80,16 +104,18 @@ export function createVideoRuntime({
       code: 'VIDEO_RUNTIME_MISCONFIGURED',
     });
   }
-  const higgsfield = new HiggsfieldVideoProvider({ commandRunner });
+  const higgsfield = disableHiggsfield ? null : new HiggsfieldVideoProvider({ commandRunner });
   const openRouter = new OpenRouterVideoProvider({
     apiKey: openRouterApiKey,
     assetUrlResolver,
     fetchFn,
   });
-  const provider = new VideoProviderRouter({
-    primary: higgsfield,
-    fallback: openRouter,
-  });
+  const provider = disableHiggsfield
+    ? openRouterOnlyVideoProvider(openRouter)
+    : new VideoProviderRouter({
+        primary: higgsfield,
+        fallback: openRouter,
+      });
   return new VideoService({
     provider,
     clipStore: new ClipStore(path.join(runtimeRoot, 'video-clips')),
