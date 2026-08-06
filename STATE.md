@@ -786,15 +786,15 @@ be weakened to hide it.
 ## Beta active on OpenRouter-only release — 2026-08-06
 
 - `beta.madeforthisjob.com` and local `127.0.0.1:4176` are `ready` on
-  `release-edd5a88-1786010585934` / source
-  `edd5a88b81a2a53336bd3cdbe326bdcaa44d0fab`.
+  `release-105cdd2-1786012191968` / source
+  `105cdd2a4855d6937c6f9ffa341acf8354fe3530`.
 - Image, scene, Fashion Video and VLM runtime paths are OpenRouter-only;
   active source imports, constructors, preflight probes and fallback switches
   contain no Higgsfield route. Historical adapters/tests/receipts remain only
   as audit evidence.
-- Release verification passed; focused runtime/provider/contracts/video suite
-  is `117/117 PASS`. No paid generation was started and the deploy guard saw
-  zero active work.
+- Release verification passed; focused runtime/provider/contracts/video and
+  deployment suite is `33/33 PASS`. No paid generation was started and the
+  deploy guard saw zero active work.
 - The generated release uses a materialized 66 MiB `node_modules` directory;
   the prior symlink is retained beside it as a recoverable backup because
   launchd hung while resolving npm packages through the nested symlink.

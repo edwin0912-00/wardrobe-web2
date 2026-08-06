@@ -1851,3 +1851,14 @@ Evidence: focused runtime/provider/contracts/video suite `78/78 PASS`; `git diff
 Historical adapters, tests and receipts remain outside the active provider graph
 as audit evidence.
 weakened_checks: none.
+2026-08-06 · BETA-ACTIVATION-OPENROUTER-ONLY-105CDD2 · beta · codex-main
+Change: activated the exact `105cdd2a4855d6937c6f9ffa341acf8354fe3530`
+release on the beta runner after materializing its dependency tree. Both local
+`127.0.0.1:4176/api/health` and public `beta.madeforthisjob.com/api/health`
+returned `ready` with the same release SHA and cache token.
+Why: the launchd process hung while resolving a nested `node_modules` symlink;
+the symlink was retained as a recoverable backup and the release now contains a
+direct 66 MiB dependency directory. This changes no source or user data.
+Evidence: strict release verify PASS; focused runtime/provider/contracts/video
+and deployment suite `33/33 PASS`; zero active run/work ids; no paid generation.
+weakened_checks: none.
