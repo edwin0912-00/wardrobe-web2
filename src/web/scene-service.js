@@ -925,8 +925,8 @@ function provenanceGate({
     };
   }
   const provider = attempt.provider_metadata;
-  // The transport aspect is what the serving transport handed over, so the GPT
-  // route has two truthful values: 3:4 from the Higgsfield CLI, which offered
+  // The transport aspect is what the serving transport handed over. The product
+  // contract has one truthful value: native 3:4.
   const expectedTransportAspectRatios = ['3:4'];
   const geometryReceiptValid = typeof provider.provider === 'string'
     && provider.provider.length > 0

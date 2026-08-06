@@ -129,7 +129,7 @@ test('recoverSubmittedClip binds only an exact provider request and persists its
     assert.equal(recovered.recovered, true);
     const saved = await store.load(clipId);
     assert.equal(saved.jobId, 'job_recovered');
-    assert.equal(saved.providerKey, 'higgsfield');
+    assert.equal(saved.providerKey, 'openrouter');
     const receipt = JSON.parse(
       await readFile(path.join(store.clipDir(clipId), 'create-receipt.json'), 'utf8'),
     );
@@ -432,7 +432,7 @@ test('getClip returns persisted metadata', async () => {
     assert.equal(loaded.jobId, 'job_test_123');
     assert.equal(loaded.surface, 'mirror');
     assert.equal(loaded.aspectRatio, '9:16');
-    assert.equal(loaded.providerKey, 'higgsfield');
+    assert.equal(loaded.providerKey, 'openrouter');
     assert.equal(loaded.providerCreateAttempt, 1);
     assert.equal(loaded.fallbackUsed, false);
   });

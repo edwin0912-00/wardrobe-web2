@@ -1,10 +1,9 @@
 {
   "schema_version": "1.0.0",
   "transport": {
-    "current_live": "HIGGSFIELD_CLI",
+    "current_live": "OPENROUTER_API",
     "supported": [
-      "HIGGSFIELD_CLI",
-      "HIGGSFIELD_MCP"
+      "OPENROUTER_API"
     ],
     "smoke_test_required": true,
     "required_capabilities": [

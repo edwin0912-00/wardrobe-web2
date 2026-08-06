@@ -39,9 +39,8 @@ export async function createWebApp({
   videoService = null,
   videoSourceBridge = null,
 }) {
-  // A degraded provider preflight means the local CLI cannot prove that it can
-  // create and observe a paid Higgsfield job. Do not let a user enter the
-  // pipeline only to fail later with an ambiguous provider-create message.
+  // A degraded provider preflight means the configured transport is not ready.
+  // Do not let a user enter the pipeline only to fail later ambiguously.
   const generationAvailable = health.status !== 'degraded';
   const currentHealth = async () => {
     const runtime = typeof healthProvider === 'function' ? await healthProvider() : null;
@@ -82,7 +81,7 @@ export async function createWebApp({
       .header('Retry-After', '60')
       .code(503)
       .send({
-        error: 'Генерація тимчасово недоступна: потрібна авторизація або перевірка Higgsfield.',
+        error: 'Генерація тимчасово недоступна: перевірте налаштування провайдера.',
         code: 'GENERATION_UNAVAILABLE',
         next_action: 'RETRY_AFTER_PROVIDER_READY',
       });

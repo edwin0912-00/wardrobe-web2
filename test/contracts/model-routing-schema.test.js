@@ -15,7 +15,7 @@ function validator(schema) {
   }).compile(schema);
 }
 
-test('model policy config pins the three Higgsfield image routes in order', async () => {
+test('model policy config pins the three OpenRouter image routes in order', async () => {
   const policy = await readJson('config/model-policy.json');
   assert.deepEqual(policy.image_models, {
     primary: { name: 'GPT Image 2', job_set_type: 'gpt_image_2' },
@@ -33,7 +33,7 @@ test('generation job schema accepts only matching locked model and job_set_type 
     node_id: 'avatar',
     attempt: 1,
     idempotency_key: '0123456789abcdef',
-    provider: 'HIGGSFIELD_CLI',
+    provider: 'OPENROUTER_API',
     task: 'IMAGE_GENERATE',
     input_asset_hashes: ['a'.repeat(64)],
     prompt_hash: 'b'.repeat(64),

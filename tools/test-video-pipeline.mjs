@@ -273,7 +273,7 @@ if (serverUp) {
   } else if (runRes.status === 503) {
     const err = await runRes.json();
     info(`Generation unavailable (preflight degraded): ${err.code}`);
-    info('This is expected if Higgsfield is not configured.');
+    info('This is expected when the configured provider is not ready.');
   } else {
     const err = await runRes.json().catch(() => ({}));
     fail(`Run creation failed: ${runRes.status} — ${err.error ?? err.message ?? 'unknown'}`);

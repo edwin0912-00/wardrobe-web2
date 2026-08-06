@@ -483,3 +483,19 @@ be weakened to hide it.
 - Focused provider/video tests: `8/8 PASS`; no Higgsfield process observed.
 - This is a temporary operational hold; restoring Higgsfield requires removing
   the flag and deploying a deliberate release.
+
+## OpenRouter-only transport — 2026-08-06
+
+- Source runtime now has one provider path: OpenRouter for image, scene, video and
+  VLM. Higgsfield is not imported, constructed, selected by preflight, or reachable
+  as a fallback from the web runtime.
+- Active schemas and model policy allow only `OPENROUTER_API`; persisted video jobs
+  with another provider key fail closed instead of being silently resumed through a
+  retired adapter.
+- The beta process is still on release `7129c5c9f0c8c45cab12bf747e833af1e8a37815`,
+  whose deployed files predate this source change. A new strict beta release must be
+  built and activated before the public process matches this state.
+- Focused source verification: `78/78 PASS`; `git diff --check` PASS. No paid
+  generation was started by this change. Historical Higgsfield adapters/receipts are
+  retained only as audit evidence and are not part of the active provider graph.
+- `weakened_checks: none`.

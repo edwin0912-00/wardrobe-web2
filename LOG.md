@@ -1326,3 +1326,16 @@ Higgsfield fallback. The active beta launcher was restarted with the hold enable
 Evidence: source/deployed syntax checks PASS; video/provider tests PASS `8/8`; local
 and public beta/main health return `ready`; no Higgsfield process is running.
 weakened_checks: none.
+
+2026-08-06 · Higgsfield removed from active runtime · source pending beta activation
+Change: OpenRouter is now the only image, scene, video and VLM transport in source;
+the web runtime no longer imports or constructs Higgsfield providers, preflight no
+longer probes its CLI/account, and the active model/motion schemas allow only the
+OpenRouter transport. Shared image reference/journal/QA helpers were extracted
+from the retired provider module so the OpenRouter adapter has the same contracts.
+Why: the provider was explicitly retired; a feature flag is not sufficient because
+an old fallback could still spend a job after restart or recovery.
+Evidence: focused runtime/provider/contracts/video suite `78/78 PASS`; `git diff --check`
+PASS; active source has no Higgsfield provider import or constructor. Historical
+provider source, tests and receipts remain outside the runtime as an audit archive.
+weakened_checks: none.

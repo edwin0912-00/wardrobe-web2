@@ -2,9 +2,7 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import path from 'node:path';
 
-import { HiggsfieldVideoProvider } from '../providers/higgsfield-video-provider.js';
 import { OpenRouterVideoProvider } from '../providers/openrouter-video-provider.js';
-import { VideoProviderRouter } from '../providers/video-provider-router.js';
 import { extractFrame, probeVideo } from './ffprobe-video-probe.js';
 import { ClipStore, VideoService } from './video-service.js';
 
@@ -95,7 +93,6 @@ export function createVideoRuntime({
   runtimeRoot,
   openRouterApiKey,
   assetUrlResolver,
-  disableHiggsfield = process.env.ZEELY_DISABLE_HIGGSFIELD === 'true',
   commandRunner = execFileAsync,
   fetchFn = globalThis.fetch,
 } = {}) {
@@ -104,18 +101,12 @@ export function createVideoRuntime({
       code: 'VIDEO_RUNTIME_MISCONFIGURED',
     });
   }
-  const higgsfield = disableHiggsfield ? null : new HiggsfieldVideoProvider({ commandRunner });
   const openRouter = new OpenRouterVideoProvider({
     apiKey: openRouterApiKey,
     assetUrlResolver,
     fetchFn,
   });
-  const provider = disableHiggsfield
-    ? openRouterOnlyVideoProvider(openRouter)
-    : new VideoProviderRouter({
-        primary: higgsfield,
-        fallback: openRouter,
-      });
+  const provider = openRouterOnlyVideoProvider(openRouter);
   return new VideoService({
     provider,
     clipStore: new ClipStore(path.join(runtimeRoot, 'video-clips')),

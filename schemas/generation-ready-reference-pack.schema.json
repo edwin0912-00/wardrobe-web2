@@ -272,7 +272,7 @@
       "additionalProperties": false,
       "required": ["provider", "primary", "fallbacks", "fallback_trigger", "max_generation_attempts"],
       "properties": {
-        "provider": { "enum": ["HIGGSFIELD_CLI", "HIGGSFIELD_MCP"] },
+        "provider": { "const": "OPENROUTER_API" },
         "primary": {
           "type": "object",
           "additionalProperties": false,

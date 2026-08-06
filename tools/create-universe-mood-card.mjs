@@ -9,7 +9,7 @@ import {
 } from 'node:fs/promises';
 import path from 'node:path';
 import sharp from 'sharp';
-import { HiggsfieldCliProvider } from '../src/providers/higgsfield-cli-provider.js';
+import { OpenRouterImageGenProvider } from '../src/providers/openrouter-imagegen-provider.js';
 import { FilesystemScenePresetResolver } from '../src/web/scene-resolvers.js';
 
 const projectRoot = path.resolve(import.meta.dirname, '..');
@@ -212,11 +212,10 @@ async function generate({ unitId, slot, revision, revisionNote }) {
     approved.paletteSha256,
     prompt,
   ].join('\n')));
-  const provider = new HiggsfieldCliProvider({
+  const provider = new OpenRouterImageGenProvider({
     aspectRatio: '4:5',
     resolution: '2k',
     quality: 'high',
-    generationMode: 'journaled',
     journalDirectory: path.join(journalRoot, unitId),
   });
   const generated = await provider.generate({
@@ -382,7 +381,7 @@ async function finalize({
       },
     },
     generation: {
-      provider_path: 'higgsfield-cli',
+      provider_path: 'openrouter-imagegen',
       prompt_contract_version: promptContractVersion,
       prompt_sha256: receipt.prompt_sha256,
       composition_slot: receipt.composition_slot,

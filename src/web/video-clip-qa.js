@@ -9,7 +9,7 @@
 // 5. Last frame is not black
 //
 // Both `probeFn` and `extractFrameFn` are injected — same pattern as the
-// `commandRunner` in higgsfield-video-provider.js — so every test runs without
+// the provider command runner — so every test runs without
 // ffprobe installed and without spending a credit.
 
 export class ClipQaError extends Error {

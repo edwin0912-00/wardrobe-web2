@@ -13,7 +13,7 @@ async function run(binary, args, commandRunner) {
   }
 }
 
-export async function runLocalPreflight({ commandRunner = execFileAsync, generationMode = 'higgsfield', codexStatus = null } = {}) {
+export async function runLocalPreflight({ commandRunner = execFileAsync, generationMode = 'openrouter', codexStatus = null } = {}) {
   if (generationMode === 'codex-imagegen-test') {
     const [, loginStatus] = await Promise.all([
       run('codex', ['--version'], commandRunner),
@@ -37,51 +37,12 @@ export async function runLocalPreflight({ commandRunner = execFileAsync, generat
     //
     // Deliberately no network probe. Preflight gates process startup, so
     // reaching out to the provider makes a provider outage indistinguishable
-    // from a broken deploy: a Higgsfield 521 blocked promotion twice today
-    // precisely because the higgsfield branch below polls the account. A
+    // from a broken deploy. A
     // provider being down must degrade individual jobs, not prevent boot.
     if (!String(process.env.OPENROUTER_API_KEY ?? '').trim()) {
       throw new Error('OpenRouter generation preflight requires OPENROUTER_API_KEY');
     }
     return { status: 'ready', generation: 'OpenRouter Image Generation' };
   }
-  if (generationMode !== 'higgsfield') throw new Error(`Unsupported generation mode: ${generationMode}`);
-  const [codexResult, higgsfieldResult, accountResult] = await Promise.allSettled([
-    run('codex', ['--version'], commandRunner),
-    run('higgsfield', ['--version'], commandRunner),
-    run('higgsfield', ['account', 'status', '--json'], commandRunner),
-  ]);
-
-  const codexVersion = codexResult.status === 'fulfilled'
-    ? codexResult.value
-    : 'unavailable';
-  const higgsfieldVersion = higgsfieldResult.status === 'fulfilled'
-    ? higgsfieldResult.value
-    : 'unavailable';
-  if (codexResult.status === 'rejected' || higgsfieldResult.status === 'rejected') {
-    return {
-      status: 'degraded',
-      codex: codexVersion,
-      higgsfield: higgsfieldVersion,
-      higgsfield_account: 'not_checked',
-      warning: [codexResult, higgsfieldResult]
-        .filter((result) => result.status === 'rejected')
-        .map((result) => result.reason.message)
-        .join('; '),
-    };
-  }
-  if (accountResult.status === 'rejected') return {
-    status: 'degraded', codex: codexVersion, higgsfield: higgsfieldVersion,
-    higgsfield_account: 'temporarily_unavailable', warning: accountResult.reason.message,
-  };
-  let account;
-  try { account = JSON.parse(accountResult.value); } catch { return { status: 'degraded', codex: codexVersion, higgsfield: higgsfieldVersion, higgsfield_account: 'invalid_response' }; }
-  if (!Number.isFinite(account.credits)) return { status: 'degraded', codex: codexVersion, higgsfield: higgsfieldVersion, higgsfield_account: 'not_ready' };
-  return {
-    status: 'ready',
-    codex: codexVersion,
-    higgsfield: higgsfieldVersion,
-    higgsfield_plan: account.subscription_plan_type,
-    higgsfield_credits: account.credits,
-  };
+  throw new Error(`Unsupported generation mode: ${generationMode}`);
 }

@@ -17,29 +17,11 @@ fi
 
 export PATH="${HOME}/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
 export PORT="4173"
-# Codex CLI's ChatGPT-authenticated session hit its usage limit (resets
-# 2026-07-28), so every VLM call — semantic QA and garment classification —
-# goes through OpenRouter instead of the local Codex CLI. Set
-# ZEELY_VLM_PROVIDER=codex to restore that transport; nothing was removed.
-#
-# Image GENERATION also runs through OpenRouter. Both other transports are
-# unavailable, and each failed differently rather than gracefully:
-#   codex-imagegen-test — ChatGPT session hit its usage limit (resets 2026-07-28)
-#   higgsfield          — api.higgsfield.ai returned 521 (provider outage)
-# The Higgsfield outage additionally blocked promotion twice, because the
-# higgsfield preflight branch polls the account over the network and a dead
-# provider is then indistinguishable from a broken release. The openrouter
-# branch in src/web/preflight.js checks only that OPENROUTER_API_KEY is present
-# and makes no network call, so a provider outage degrades individual jobs
-# instead of preventing the service from booting.
-# To switch back: set this to higgsfield (or codex-imagegen-test) — neither
-# path was removed.
+# The live daemon uses OpenRouter for image, scene and video generation.
+# Provider calls are made only by the explicit OpenRouter adapters; there is no
+# local-provider fallback or account probe in this launcher.
 export ZEELY_GENERATION_PROVIDER="openrouter"
 export ZEELY_VLM_PROVIDER="openrouter"
-# Temporary provider hold: no Higgsfield image/scene/video process may be
-# created. Images/scenes use the configured OpenRouter route; video uses only
-# the explicit OpenRouter route, never a hidden Higgsfield fallback.
-export ZEELY_DISABLE_HIGGSFIELD="true"
 if [[ -s "$PRIVATE_DIR/openrouter-api-key" ]]; then
   OPENROUTER_API_KEY="$(cat "$PRIVATE_DIR/openrouter-api-key")"
   export OPENROUTER_API_KEY

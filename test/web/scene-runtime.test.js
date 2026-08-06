@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import test from 'node:test';
-import { HiggsfieldCliProvider } from '../../src/providers/higgsfield-cli-provider.js';
 import { SceneEvaluatorAdapter, SceneGeneratorAdapter } from '../../src/web/scene-adapters.js';
 import { FilesystemScenePresetResolver } from '../../src/web/scene-resolvers.js';
 import {
@@ -14,7 +13,8 @@ const realProjectRoot = path.resolve(import.meta.dirname, '..', '..');
 test('production scene runtime builds the exact three-provider route with isolated storage', () => {
   const projectRoot = path.resolve('/test/project');
   const qaEvaluator = async () => ({ decision: 'PASS' });
-  const dependencies = createSceneRuntimeDependencies({ projectRoot, qaEvaluator });
+  const generationProvider = { generate: async () => ({}) };
+  const dependencies = createSceneRuntimeDependencies({ projectRoot, qaEvaluator, generationProvider });
 
   assert.equal(dependencies.rootDirectory, path.join(projectRoot, 'runtime', 'scenes'));
   assert.ok(dependencies.generator instanceof SceneGeneratorAdapter);
@@ -33,22 +33,10 @@ test('production scene runtime builds the exact three-provider route with isolat
     'nano_banana_flash',
     'nano_banana_2',
   ]);
-  for (const [model, expected] of Object.entries(SCENE_PROVIDER_RUNTIME_CONFIG)) {
+  for (const model of Object.keys(SCENE_PROVIDER_RUNTIME_CONFIG)) {
     const provider = dependencies.generator.providers[model];
-    assert.ok(provider instanceof HiggsfieldCliProvider);
-    assert.equal(provider.aspectRatio, expected.aspectRatio);
-    assert.equal(provider.resolution, '2k');
-    assert.equal(provider.quality, 'high');
-    assert.equal(provider.qaEvaluator, qaEvaluator);
-    assert.equal(
-      provider.journalDirectory,
-      path.join(projectRoot, 'runtime', 'provider-journals', 'scenes', model),
-    );
+    assert.equal(provider, generationProvider);
   }
-  assert.notEqual(
-    dependencies.generator.providers.gpt_image_2.journalDirectory,
-    dependencies.generator.providers.nano_banana_flash.journalDirectory,
-  );
 });
 
 test('scene runtime monitor observer exposes useful state but redacts paths and credential-shaped text', async () => {
@@ -57,6 +45,7 @@ test('scene runtime monitor observer exposes useful state but redacts paths and 
   const dependencies = createSceneRuntimeDependencies({
     projectRoot: '/Users/private/project',
     qaEvaluator: async () => ({ decision: 'PASS' }),
+    generationProvider: { generate: async () => ({}) },
     monitor,
   });
 
@@ -100,6 +89,7 @@ test('production scene runtime resolver opens the checked-in sixteen-preset cata
   const dependencies = createSceneRuntimeDependencies({
     projectRoot: realProjectRoot,
     qaEvaluator: async () => ({ decision: 'PASS' }),
+    generationProvider: { generate: async () => ({}) },
   });
   await dependencies.presetResolver.initialize();
   const presets = await dependencies.presetResolver.listPresets();
@@ -132,6 +122,7 @@ test('scene runtime refuses incomplete evaluator and monitor wiring', () => {
     () => createSceneRuntimeDependencies({
       projectRoot: '/test/project',
       qaEvaluator: async () => ({ decision: 'PASS' }),
+      generationProvider: { generate: async () => ({}) },
       monitor: {},
     }),
     /monitor\.append/,

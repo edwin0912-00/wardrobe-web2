@@ -190,9 +190,9 @@
     "WRITE_RUN_MANIFEST_RECEIPTS_HASHES_PROMPTS_AND_QA"
   ],
   "provider_route": {
-    "current_live_transport": "HIGGSFIELD_CLI",
+    "current_live_transport": "OPENROUTER_API",
     "verified_cli_version": "0.1.33",
-    "adapter_module": "../src/providers/higgsfield-cli-provider.js",
+    "adapter_module": "../src/providers/openrouter-imagegen-provider.js",
     "sample_outputs_generated_with_authenticated_cli": true,
     "generation_mode": "TWO_PHASE_JOURNALED_CREATE_THEN_WAIT",
     "provider_job_journal": "<run-work-directory>/provider-jobs/<idempotency-key>.json",
@@ -200,8 +200,7 @@
     "legacy_oneshot_enabled_by_default": false,
     "irreducible_transport_gap": "REMOTE_CREATE_RESPONSE_BEFORE_FIRST_ATOMIC_JOURNAL_WRITE",
     "transport_equivalent_future_options": [
-      "HIGGSFIELD_MCP",
-      "DIRECT_PROVIDER_API"
+      "OPENROUTER_API"
     ],
     "future_options_are_currently_claimed_runnable": false
   },

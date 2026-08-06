@@ -12,7 +12,7 @@ const REQUIRED_METHODS = ['condition', 'qa', 'generate'];
  * }
  *
  * generate(context) -> {
- *   // context.model and context.job_set_type are the exact Higgsfield route
+ *   // context.model and context.job_set_type are the exact locked image route
  *   // identifier; context.model_name is its locked display name.
  *   // context.references keeps the legacy identity/outfit/avatar values and adds:
  *   //   ordered: [{ order, scope, role, path, sha256, mediaType, source,

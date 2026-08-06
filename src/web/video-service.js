@@ -126,7 +126,7 @@ export class VideoService {
 
   /**
    * @param {object} options
-   * @param {object} options.provider — HiggsfieldVideoProvider instance
+   * @param {object} options.provider — configured video provider instance
    * @param {ClipStore} options.clipStore
    * @param {function} [options.clock] — () => Date.now(), for testing
    */
@@ -247,7 +247,7 @@ export class VideoService {
       schema_version: '1.0.0',
       clip_id: clipId,
       created_at: createdAt,
-      provider: created.providerKey ?? 'higgsfield',
+      provider: created.providerKey ?? 'openrouter',
       provider_create_attempt: created.createAttempt ?? 1,
       fallback_used: created.fallbackUsed === true,
       request: {
@@ -269,7 +269,7 @@ export class VideoService {
     const metadata = {
       ...submitting,
       jobId: created.jobId,
-      providerKey: created.providerKey ?? 'higgsfield',
+      providerKey: created.providerKey ?? 'openrouter',
       providerCreateAttempt: created.createAttempt ?? 1,
       fallbackUsed: created.fallbackUsed === true,
       status: 'CREATED',
@@ -290,7 +290,7 @@ export class VideoService {
    */
   async recoverSubmittedClip(clipId, {
     jobId,
-    providerKey = 'higgsfield',
+    providerKey = 'openrouter',
     raw,
     createAttempt = 1,
   } = {}) {

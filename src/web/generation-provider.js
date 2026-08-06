@@ -1,11 +1,9 @@
 import { CodexAppServerClient } from '../providers/codex-app-server-client.js';
 import { CodexImagegenProvider } from '../providers/codex-imagegen-provider.js';
-import { HiggsfieldCliProvider } from '../providers/higgsfield-cli-provider.js';
 import { OpenRouterImageGenProvider } from '../providers/openrouter-imagegen-provider.js';
 import { resolveLookImageRoute } from '../runner/model-policy.js';
-import { HiggsfieldAssetGenerator as ProviderAssetGenerator } from './higgsfield-asset-generator.js';
+import { ImageAssetGenerator as ProviderAssetGenerator } from './image-asset-generator.js';
 
-export const HIGGSFIELD_MODE = 'higgsfield';
 export const CODEX_IMAGEGEN_TEST_MODE = 'codex-imagegen-test';
 export const OPENROUTER_IMAGEGEN_MODE = 'openrouter';
 
@@ -19,7 +17,7 @@ function timeoutFrom(value) {
 }
 
 export async function createGenerationRuntime({
-  mode = process.env.ZEELY_GENERATION_PROVIDER ?? HIGGSFIELD_MODE,
+  mode = process.env.ZEELY_GENERATION_PROVIDER ?? OPENROUTER_IMAGEGEN_MODE,
   enableCodexTest = process.env.ZEELY_ENABLE_CODEX_IMAGEGEN_TEST_ONLY === 'true',
   vlm,
   projectRoot,
@@ -31,21 +29,6 @@ export async function createGenerationRuntime({
   if (!vlm || typeof vlm.evaluateQa !== 'function') throw new TypeError('vlm evaluator is required');
   if (typeof onCloseReady !== 'function') throw new TypeError('onCloseReady must be a function');
   if (typeof onFatal !== 'function') throw new TypeError('onFatal must be a function');
-  if (mode === HIGGSFIELD_MODE) {
-    const provider = new HiggsfieldCliProvider({ qaEvaluator: vlm.evaluateQa.bind(vlm) });
-    const runtime = {
-      mode,
-      provider,
-      assetGenerator: new ProviderAssetGenerator({ provider }),
-      generationRoute: [...lookImageRoute],
-      label: 'Higgsfield CLI',
-      status: null,
-      healthStatus: () => ({ status: 'ready' }),
-      close: async () => {},
-    };
-    onCloseReady(runtime.close);
-    return runtime;
-  }
   if (mode === OPENROUTER_IMAGEGEN_MODE) {
     const provider = new OpenRouterImageGenProvider({ qaEvaluator: vlm.evaluateQa.bind(vlm) });
     const runtime = {

@@ -1,6 +1,4 @@
 import path from 'node:path';
-import { HiggsfieldCliProvider } from '../providers/higgsfield-cli-provider.js';
-import { OpenRouterImageGenProvider } from '../providers/openrouter-imagegen-provider.js';
 import { sanitizeOutboundString } from '../security/outbound-redaction.js';
 import { OpenRouterSceneEvaluator } from './openrouter-scene-evaluator.js';
 import { SceneEvaluatorAdapter, SceneGeneratorAdapter } from './scene-adapters.js';
@@ -50,7 +48,6 @@ export function createSceneRuntimeDependencies({
   projectRoot,
   qaEvaluator,
   generationProvider = null,
-  disableHiggsfield = process.env.ZEELY_DISABLE_HIGGSFIELD === 'true',
   monitor = null,
   vlmProvider = process.env.ZEELY_VLM_PROVIDER ?? CODEX_VLM_PROVIDER,
   sceneEvaluator,
@@ -64,8 +61,8 @@ export function createSceneRuntimeDependencies({
   if (generationProvider !== null && typeof generationProvider?.generate !== 'function') {
     throw new TypeError('createSceneRuntimeDependencies generationProvider.generate must be a function');
   }
-  if (disableHiggsfield && !generationProvider) {
-    throw new Error('Higgsfield is disabled and no alternate scene generation provider is configured');
+  if (!generationProvider) {
+    throw new Error('Scene generation requires the configured image provider');
   }
   if (monitor !== null && typeof monitor?.append !== 'function') {
     throw new TypeError('createSceneRuntimeDependencies monitor.append must be a function');
@@ -75,23 +72,13 @@ export function createSceneRuntimeDependencies({
   }
 
   const resolvedProjectRoot = path.resolve(projectRoot);
-  const journalRoot = path.join(resolvedProjectRoot, 'runtime', 'provider-journals', 'scenes');
   // All scene routes use the one 3:4 delivery contract. No scene route crops
   // one provider's output into a different product aspect ratio.
   // OpenRouterImageGenProvider covers every route through its own map.
-  const generationProviderCoversAllRoutes = disableHiggsfield
-    ? Boolean(generationProvider)
-    : generationProvider instanceof OpenRouterImageGenProvider;
   const providers = Object.fromEntries(
-    Object.entries(SCENE_PROVIDER_RUNTIME_CONFIG).map(([model, config]) => [
+    Object.keys(SCENE_PROVIDER_RUNTIME_CONFIG).map((model) => [
       model,
-      generationProviderCoversAllRoutes || (model === 'gpt_image_2' && generationProvider)
-        ? generationProvider
-        : new HiggsfieldCliProvider({
-        qaEvaluator,
-        ...config,
-        journalDirectory: path.join(journalRoot, model),
-      }),
+      generationProvider,
     ]),
   );
 
