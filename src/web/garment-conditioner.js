@@ -4,7 +4,7 @@ import path from 'node:path';
 import sharp from 'sharp';
 import { normalizeWhitePngBytes } from '../qa/white-normalizer.mjs';
 import { removeBorderConnectedWhiteToAlpha } from '../conditioning/transparent-cutout.mjs';
-import { IMAGE_MODEL_ROUTE } from '../runner/model-policy.js';
+import { IMAGE_MODEL_ROUTE, generationProfileForAttempt } from '../runner/model-policy.js';
 import { assertExternalPromptPrivacy, sanitizeExternalPrompt } from '../providers/provider-prompt-privacy.js';
 import { compileFullLookText, findGarmentConflicts, garmentLocks, groupGarmentViews } from './garment-passport.js';
 
@@ -53,7 +53,17 @@ async function sourceHashes(sourcePaths) {
     sha256: sha256(await readFile(sourcePath)),
   })));
 }
-async function loadAttemptReceipt({ itemDirectory, attempt, model, runId, referenceSetId, sources }) {
+function profileReceiptShape(profile) {
+  if (!profile) return null;
+  return {
+    id: profile.id,
+    resolution: profile.resolution,
+    quality: profile.quality,
+    repair_kind: profile.repair_kind,
+  };
+}
+
+async function loadAttemptReceipt({ itemDirectory, attempt, model, generationProfile, runId, referenceSetId, sources }) {
   const receiptPath = attemptReceiptPath(itemDirectory, attempt);
   let receipt;
   try {
@@ -65,9 +75,17 @@ async function loadAttemptReceipt({ itemDirectory, attempt, model, runId, refere
   const expectedCandidatePath = candidatePathForAttempt(itemDirectory, attempt);
   const sourceMatches = Array.isArray(receipt.sources)
     && JSON.stringify(receipt.sources) === JSON.stringify(sources);
+  const expectedProfile = profileReceiptShape(generationProfile);
+  const profileMatches = expectedProfile === null
+    ? receipt.generation_profile === undefined || receipt.generation_profile === null
+    : receipt.generation_profile
+      ? JSON.stringify(receipt.generation_profile) === JSON.stringify(expectedProfile)
+      // Historic run receipts did not persist a profile. They are resume-safe
+      // only when their explicit legacy route remains unchanged.
+      : generationProfile.legacy === true;
   if (receipt.schema_version !== '1.0.0' || receipt.kind !== 'GARMENT_ATTEMPT'
     || receipt.run_id !== runId || receipt.reference_set_id !== referenceSetId
-    || receipt.attempt !== attempt || receipt.model !== model || !sourceMatches
+    || receipt.attempt !== attempt || receipt.model !== model || !profileMatches || !sourceMatches
     || receipt.candidate?.filename !== path.basename(expectedCandidatePath)
     || !/^[a-f0-9]{64}$/.test(receipt.candidate?.sha256 ?? '')
     || !validQaDecision(receipt.qa)) {
@@ -83,10 +101,11 @@ async function loadAttemptReceipt({ itemDirectory, attempt, model, runId, refere
     candidate: { path: expectedCandidatePath, sha256: receipt.candidate.sha256 },
     qa: receipt.qa,
     provider: receipt.provider ?? {},
+    generation_profile: receipt.generation_profile ?? profileReceiptShape(generationProfile),
     image: candidate,
   };
 }
-async function persistAttemptReceipt({ itemDirectory, attempt, model, runId, referenceSetId, sources, candidatePath, candidate, qa, provider, clock }) {
+async function persistAttemptReceipt({ itemDirectory, attempt, model, generationProfile, runId, referenceSetId, sources, candidatePath, candidate, qa, provider, clock }) {
   const receipt = {
     schema_version: '1.0.0',
     kind: 'GARMENT_ATTEMPT',
@@ -94,6 +113,7 @@ async function persistAttemptReceipt({ itemDirectory, attempt, model, runId, ref
     reference_set_id: referenceSetId,
     attempt,
     model,
+    generation_profile: profileReceiptShape(generationProfile),
     sources,
     candidate: { filename: path.basename(candidatePath), sha256: sha256(candidate) },
     qa,
@@ -106,10 +126,13 @@ async function persistAttemptReceipt({ itemDirectory, attempt, model, runId, ref
   );
   return receipt;
 }
-function canonicalPrompt(item, referenceCount) {
+function canonicalPrompt(item, referenceCount, generationProfile = null, previousQa = null) {
   const locks = garmentLocks(item).map((value) => `- ${value}`).join('\n');
   const bindings = Array.from({ length: referenceCount }, (_, index) => `- ATTACHMENT_${index + 1} [GARMENT_RAW_VIEW_${index + 1}]`).join('\n');
-  const prompt = `Create a canonical ecommerce reference of the exact same primary wardrobe item visible across the attached views. Every attachment is evidence for the same item. Show the complete item alone, centered, in the most evidence-preserving orientation on uniform pure #FFFFFF. Preserve the primary raw view orientation unless multiple attached views visibly establish a different canonical angle. Remove the person, hands, hanger, room, floor, props and shadows. Preserve every observable color, material, pattern, seam, closure, logo, text and construction detail exactly. Do not invent hidden details, branding or decoration. If part of the item is obscured, use the most conservative structurally neutral completion.\n\nREFERENCE BINDINGS:\n${bindings}\n\nOBSERVED LOCKS:\n${locks}`;
+  const repair = generationProfile?.repair_kind && generationProfile.repair_kind !== 'INITIAL'
+    ? `\n\nREPAIR PASS ${generationProfile.repair_kind}: The previous candidate did not pass QA. Rebuild from the attached raw evidence rather than reusing its pixels. Correct only the observed defects: ${(previousQa?.defects ?? []).filter((value) => typeof value === 'string').join('; ') || previousQa?.reason || 'preserve all declared visible locks exactly'}. Keep every already-correct visible fact locked. This is a materially changed repair request, never a duplicate submission.`
+    : '';
+  const prompt = `Create a canonical ecommerce reference of the exact same primary wardrobe item visible across the attached views. Every attachment is evidence for the same item. Show the complete item alone, centered, in the most evidence-preserving orientation on uniform pure #FFFFFF. Preserve the primary raw view orientation unless multiple attached views visibly establish a different canonical angle. Remove the person, hands, hanger, room, floor, props and shadows. Preserve every observable color, material, pattern, seam, closure, logo, text and construction detail exactly. Do not invent hidden details, branding or decoration. If part of the item is obscured, use the most conservative structurally neutral completion.\n\nREFERENCE BINDINGS:\n${bindings}\n\nOBSERVED LOCKS:\n${locks}${repair}`;
   return assertExternalPromptPrivacy(sanitizeExternalPrompt(prompt));
 }
 
@@ -134,6 +157,35 @@ async function hasCleanWhiteBorder(sourcePath) {
   return borderPixels > 0 && cleanPixels / borderPixels >= 0.96;
 }
 
+async function canonicalBackgroundEvidence(bytes) {
+  const { data, info } = await sharp(bytes, { failOn: 'error', limitInputPixels: 100_000_000 })
+    .rotate()
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  let borderPixels = 0;
+  let cleanPixels = 0;
+  for (let y = 0; y < info.height; y += 1) {
+    for (let x = 0; x < info.width; x += 1) {
+      if (x !== 0 && y !== 0 && x !== info.width - 1 && y !== info.height - 1) continue;
+      const offset = (y * info.width + x) * info.channels;
+      const values = [data[offset], data[offset + 1], data[offset + 2]];
+      borderPixels += 1;
+      if (data[offset + 3] < 16
+        || (Math.min(...values) >= 242 && Math.max(...values) - Math.min(...values) <= 10)) {
+        cleanPixels += 1;
+      }
+    }
+  }
+  const cleanRatio = borderPixels > 0 ? cleanPixels / borderPixels : 0;
+  return {
+    pass: borderPixels > 0 && cleanRatio >= 0.96,
+    border_pixels: borderPixels,
+    clean_border_pixels: cleanPixels,
+    clean_border_ratio: Number(cleanRatio.toFixed(6)),
+  };
+}
+
 export class GarmentNeedsInputError extends Error {
   constructor(message, details = {}) { super(message); this.name = 'GarmentNeedsInputError'; this.details = details; }
 }
@@ -144,10 +196,10 @@ export class GarmentRouteExhaustedError extends Error {
 
 export class GarmentConditioner {
   constructor({ vlm, generator, generationRoute = IMAGE_MODEL_ROUTE, maxGarmentBindings = null, clock = () => new Date() }) {
-    if (!Array.isArray(generationRoute) || generationRoute.length < 1
-      || new Set(generationRoute).size !== generationRoute.length) {
-      throw new TypeError('generationRoute must contain unique models');
+    if (!Array.isArray(generationRoute) || generationRoute.length < 1) {
+      throw new TypeError('generationRoute must contain one or more immutable generation profiles');
     }
+    generationRoute.forEach((_, index) => generationProfileForAttempt(index + 1, generationRoute));
     if (maxGarmentBindings !== null && (!Number.isInteger(maxGarmentBindings) || maxGarmentBindings < 0)) {
       throw new TypeError('maxGarmentBindings must be null or a non-negative integer');
     }
@@ -234,13 +286,18 @@ export class GarmentConditioner {
         && sourceMetadata.height >= 256
         && (sourceMetadata.hasAlpha === true || await hasCleanWhiteBorder(sourcePath));
       const route = preserveSource ? ['source_preserved'] : this.generationRoute;
-      for (const [routeIndex, model] of route.entries()) {
+      for (const [routeIndex, routeModel] of route.entries()) {
         const attempt = routeIndex + 1;
+        const generationProfile = preserveSource
+          ? null
+          : generationProfileForAttempt(attempt, this.generationRoute);
+        const model = preserveSource ? routeModel : generationProfile.job_set_type;
         const candidatePath = candidatePathForAttempt(itemDirectory, attempt);
         const persisted = await loadAttemptReceipt({
           itemDirectory,
           attempt,
           model,
+          generationProfile,
           runId,
           referenceSetId: item.reference_set_id,
           sources,
@@ -252,6 +309,7 @@ export class GarmentConditioner {
             candidate: persisted.candidate,
             qa: persisted.qa,
             provider: persisted.provider,
+            generation_profile: persisted.generation_profile,
           });
           if (persisted.qa.decision === 'PASS') {
             accepted = {
@@ -295,7 +353,8 @@ export class GarmentConditioner {
               metadata: { provider: 'deterministic-source-preservation', mode: 'ALREADY_ISOLATED_REFERENCE' },
             }
             : await this.generator.generateGarment({
-              sourcePath, sourcePaths, model, prompt: canonicalPrompt(item, sourcePaths.length), workDirectory: itemDirectory,
+              sourcePath, sourcePaths, model, generationProfile,
+              prompt: canonicalPrompt(item, sourcePaths.length, generationProfile, attempts.at(-1)?.qa), workDirectory: itemDirectory,
               operationId: `${runId}-garment-${item.source_index}-${attempt}`,
             });
           // Canonical item reference cards are intentionally opaque white. Flattening is
@@ -345,14 +404,36 @@ export class GarmentConditioner {
           }],
           metrics: { attempt },
         });
-        const qa = await this.vlm.evaluateQa({ phase: 'garment', evidence: {
+        let qa = await this.vlm.evaluateQa({ phase: 'garment', evidence: {
           identity: { artifact: { path: sourcePath } }, candidate: { artifact: { path: candidatePath } },
           reference_packs: { outfit: { bindings: sourcePaths.map((filename) => ({ artifact: { path: filename } })) } },
         } });
+        if (qa.decision === 'PASS') {
+          const background = await canonicalBackgroundEvidence(candidate);
+          if (!background.pass) {
+            const defect = `Canonical garment background is not uniform pure white (${background.clean_border_ratio} clean border ratio)`;
+            qa = {
+              ...qa,
+              decision: 'REJECT',
+              reason: defect,
+              checks: [
+                ...qa.checks,
+                {
+                  name: 'CANONICAL_BACKGROUND_UNIFORMITY',
+                  pass: false,
+                  score: background.clean_border_ratio,
+                  evidence: JSON.stringify(background),
+                },
+              ],
+              defects: [...qa.defects, defect],
+            };
+          }
+        }
         const receipt = await persistAttemptReceipt({
           itemDirectory,
           attempt,
           model,
+          generationProfile,
           runId,
           referenceSetId: item.reference_set_id,
           sources,
@@ -360,6 +441,7 @@ export class GarmentConditioner {
           candidate,
           qa,
           provider,
+          generation_profile: profileReceiptShape(generationProfile),
           clock: this.clock,
         });
         attempts.push({
@@ -382,7 +464,10 @@ export class GarmentConditioner {
       });
       const referenceCardPath = path.join(itemDirectory, 'reference-card.png');
       await atomicWrite(referenceCardPath, accepted.image);
-      const cutout = await removeBorderConnectedWhiteToAlpha(accepted.image);
+      const cutout = await removeBorderConnectedWhiteToAlpha(accepted.image, {
+        removeBorderConnectedNeutralGradient: true,
+        removeDetachedLowContrastResidue: true,
+      });
       const cutoutPath = path.join(itemDirectory, 'cutout.png');
       await atomicWrite(cutoutPath, cutout.image);
       await emitVisual({
@@ -412,6 +497,13 @@ export class GarmentConditioner {
           selected_pixels: cutout.stats.transparent_pixels,
           total_pixels: cutout.stats.width * cutout.stats.height,
           connectivity: cutout.stats.connectivity,
+          border_gradient_cleanup_applied: cutout.stats.border_gradient_cleanup_applied,
+          gradient_cleanup_skipped_reason: cutout.stats.gradient_cleanup_skipped_reason,
+          removed_gradient_pixels: cutout.stats.removed_gradient_pixels,
+          protected_subject_bbox: cutout.stats.protected_subject_bbox,
+          subject_protection_source: cutout.stats.subject_protection_source,
+          removed_residue_pixels: cutout.stats.removed_residue_pixels,
+          removed_residue_components: cutout.stats.removed_residue_components,
         },
       });
       conditioned.push({ ...item, source_path: sourcePath, source_paths: sourcePaths, reference_card: { path: referenceCardPath, sha256: sha256(accepted.image) },

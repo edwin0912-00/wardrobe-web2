@@ -103,6 +103,23 @@ export function redactVideoSourceRequestPath(value) {
     : value;
 }
 
+// A public HTTPS capability bridge is required only by the OpenRouter
+// image-first fallback.  A local developer must still be able to start and
+// inspect the application without a deployed origin; fail only if that
+// route is actually selected. Fashion Video uses the same explicit OpenRouter
+// transport and consumes this resolver for its private first-frame input.
+export function createUnavailableVideoAssetUrlResolver() {
+  return async () => {
+    throw new VideoSourceBridgeError(
+      'OpenRouter video fallback requires ZEELY_PUBLIC_HTTPS_ORIGIN',
+      {
+        code: 'VIDEO_SOURCE_ORIGIN_UNAVAILABLE',
+        status: 503,
+      },
+    );
+  };
+}
+
 /**
  * Create an in-memory, short-lived capability bridge.
  *

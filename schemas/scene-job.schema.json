@@ -122,6 +122,9 @@
                 },
                 "clear_space_above_hair_waived_by_full_head": {
                   "const": false
+                },
+                "clear_space_above_hair_delivery_tolerance_applied": {
+                  "type": "boolean"
                 }
               },
               "required": [
@@ -135,7 +138,7 @@
                 "expected_subject_height_percent": {
                   "const": [
                     50,
-                    94
+                    100
                   ]
                 },
                 "minimum_clear_space_above_hair_percent": {
@@ -143,6 +146,12 @@
                 },
                 "minimum_clear_space_below_footwear_percent": {
                   "const": 0
+                },
+                "clear_space_above_hair_waived_by_full_head": {
+                  "const": false
+                },
+                "clear_space_above_hair_delivery_tolerance_applied": {
+                  "type": "boolean"
                 }
               },
               "required": [
@@ -156,7 +165,7 @@
                 "expected_subject_height_percent": {
                   "const": [
                     40,
-                    95
+                    100
                   ]
                 },
                 "minimum_clear_space_above_hair_percent": {
@@ -164,6 +173,12 @@
                 },
                 "minimum_clear_space_below_footwear_percent": {
                   "const": 0
+                },
+                "clear_space_above_hair_waived_by_full_head": {
+                  "const": false
+                },
+                "clear_space_above_hair_delivery_tolerance_applied": {
+                  "type": "boolean"
                 }
               },
               "required": [
@@ -177,7 +192,7 @@
                 "expected_subject_height_percent": {
                   "const": [
                     50,
-                    95
+                    100
                   ]
                 },
                 "minimum_clear_space_above_hair_percent": {
@@ -185,6 +200,12 @@
                 },
                 "minimum_clear_space_below_footwear_percent": {
                   "const": 0
+                },
+                "clear_space_above_hair_waived_by_full_head": {
+                  "const": false
+                },
+                "clear_space_above_hair_delivery_tolerance_applied": {
+                  "type": "boolean"
                 }
               },
               "required": [
@@ -198,7 +219,7 @@
                 "expected_subject_height_percent": {
                   "const": [
                     45,
-                    96
+                    100
                   ]
                 },
                 "minimum_clear_space_above_hair_percent": {
@@ -206,6 +227,12 @@
                 },
                 "minimum_clear_space_below_footwear_percent": {
                   "const": 0
+                },
+                "clear_space_above_hair_waived_by_full_head": {
+                  "const": false
+                },
+                "clear_space_above_hair_delivery_tolerance_applied": {
+                  "type": "boolean"
                 }
               },
               "required": [
@@ -230,6 +257,9 @@
                 },
                 "clear_space_above_hair_waived_by_full_head": {
                   "const": false
+                },
+                "clear_space_above_hair_delivery_tolerance_applied": {
+                  "type": "boolean"
                 }
               },
               "required": [
@@ -243,7 +273,7 @@
                 "expected_subject_height_percent": {
                   "const": [
                     30,
-                    92
+                    100
                   ]
                 },
                 "minimum_clear_space_above_hair_percent": {
@@ -251,6 +281,12 @@
                 },
                 "minimum_clear_space_below_footwear_percent": {
                   "const": 2
+                },
+                "clear_space_above_hair_waived_by_full_head": {
+                  "const": false
+                },
+                "clear_space_above_hair_delivery_tolerance_applied": {
+                  "type": "boolean"
                 }
               },
               "required": [
@@ -279,7 +315,10 @@
                 },
                 "subject_height_percent": {
                   "minimum": 70,
-                  "maximum": 80
+                  "maximum": 88
+                },
+                "clear_space_above_hair_delivery_tolerance_applied": {
+                  "const": false
                 },
                 "full_head_visible": {
                   "const": true
@@ -292,15 +331,72 @@
                 },
                 "clear_space_above_hair_waived_by_full_head": {
                   "const": false
-                },
-                "clear_space_above_hair_percent": {
-                  "minimum": 8
                 }
               },
               "required": [
                 "expected_subject_height_percent",
                 "minimum_clear_space_above_hair_percent",
                 "minimum_clear_space_below_footwear_percent"
+              ],
+              "anyOf": [
+                {
+                  "properties": {
+                    "subject_height_percent": {
+                      "minimum": 70,
+                      "maximum": 80
+                    },
+                    "subject_height_delivery_tolerance_applied": {
+                      "const": false
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "subject_height_percent": {
+                      "exclusiveMinimum": 80,
+                      "maximum": 88
+                    },
+                    "subject_height_delivery_tolerance_applied": {
+                      "const": true
+                    }
+                  },
+                  "required": [
+                    "subject_height_delivery_tolerance_applied"
+                  ]
+                }
+              ],
+              "allOf": [
+                {
+                  "anyOf": [
+                    {
+                      "properties": {
+                        "clear_space_above_hair_percent": {
+                          "minimum": 8
+                        },
+                        "clear_space_above_hair_delivery_tolerance_applied": {
+                          "const": false
+                        }
+                      }
+                    },
+                    {
+                      "properties": {
+                        "clear_space_above_hair_percent": {
+                          "minimum": 4,
+                          "exclusiveMaximum": 8
+                        },
+                        "full_head_visible": {
+                          "const": true
+                        },
+                        "clear_space_above_hair_delivery_tolerance_applied": {
+                          "const": true
+                        }
+                      },
+                      "required": [
+                        "clear_space_above_hair_delivery_tolerance_applied"
+                      ]
+                    }
+                  ]
+                }
               ]
             },
             {
@@ -308,7 +404,7 @@
                 "expected_subject_height_percent": {
                   "const": [
                     50,
-                    94
+                    100
                   ]
                 },
                 "minimum_clear_space_above_hair_percent": {
@@ -319,10 +415,13 @@
                 },
                 "subject_height_percent": {
                   "minimum": 50,
-                  "maximum": 94
+                  "maximum": 100
                 },
-                "full_head_visible": {
-                  "const": true
+                "clear_space_above_hair_delivery_tolerance_applied": {
+                  "const": false
+                },
+                "clear_space_above_hair_waived_by_full_head": {
+                  "const": false
                 }
               },
               "required": [
@@ -333,29 +432,14 @@
               "anyOf": [
                 {
                   "properties": {
-                    "clear_space_above_hair_percent": {
-                      "minimum": 6
+                    "subject_height_percent": {
+                      "minimum": 50,
+                      "maximum": 100
                     },
-                    "clear_space_above_hair_waived_by_full_head": {
+                    "subject_height_delivery_tolerance_applied": {
                       "const": false
                     }
                   }
-                },
-                {
-                  "properties": {
-                    "clear_space_above_hair_percent": {
-                      "exclusiveMaximum": 6
-                    },
-                    "full_head_visible": {
-                      "const": true
-                    },
-                    "clear_space_above_hair_waived_by_full_head": {
-                      "const": true
-                    }
-                  },
-                  "required": [
-                    "clear_space_above_hair_waived_by_full_head"
-                  ]
                 }
               ]
             },
@@ -364,7 +448,7 @@
                 "expected_subject_height_percent": {
                   "const": [
                     40,
-                    95
+                    100
                   ]
                 },
                 "minimum_clear_space_above_hair_percent": {
@@ -375,10 +459,13 @@
                 },
                 "subject_height_percent": {
                   "minimum": 40,
-                  "maximum": 95
+                  "maximum": 100
                 },
-                "full_head_visible": {
-                  "const": true
+                "clear_space_above_hair_delivery_tolerance_applied": {
+                  "const": false
+                },
+                "clear_space_above_hair_waived_by_full_head": {
+                  "const": false
                 }
               },
               "required": [
@@ -389,29 +476,14 @@
               "anyOf": [
                 {
                   "properties": {
-                    "clear_space_above_hair_percent": {
-                      "minimum": 5
+                    "subject_height_percent": {
+                      "minimum": 40,
+                      "maximum": 100
                     },
-                    "clear_space_above_hair_waived_by_full_head": {
+                    "subject_height_delivery_tolerance_applied": {
                       "const": false
                     }
                   }
-                },
-                {
-                  "properties": {
-                    "clear_space_above_hair_percent": {
-                      "exclusiveMaximum": 5
-                    },
-                    "full_head_visible": {
-                      "const": true
-                    },
-                    "clear_space_above_hair_waived_by_full_head": {
-                      "const": true
-                    }
-                  },
-                  "required": [
-                    "clear_space_above_hair_waived_by_full_head"
-                  ]
                 }
               ]
             },
@@ -420,7 +492,7 @@
                 "expected_subject_height_percent": {
                   "const": [
                     50,
-                    95
+                    100
                   ]
                 },
                 "minimum_clear_space_above_hair_percent": {
@@ -431,10 +503,13 @@
                 },
                 "subject_height_percent": {
                   "minimum": 50,
-                  "maximum": 95
+                  "maximum": 100
                 },
-                "full_head_visible": {
-                  "const": true
+                "clear_space_above_hair_delivery_tolerance_applied": {
+                  "const": false
+                },
+                "clear_space_above_hair_waived_by_full_head": {
+                  "const": false
                 }
               },
               "required": [
@@ -445,29 +520,14 @@
               "anyOf": [
                 {
                   "properties": {
-                    "clear_space_above_hair_percent": {
-                      "minimum": 5
+                    "subject_height_percent": {
+                      "minimum": 50,
+                      "maximum": 100
                     },
-                    "clear_space_above_hair_waived_by_full_head": {
+                    "subject_height_delivery_tolerance_applied": {
                       "const": false
                     }
                   }
-                },
-                {
-                  "properties": {
-                    "clear_space_above_hair_percent": {
-                      "exclusiveMaximum": 5
-                    },
-                    "full_head_visible": {
-                      "const": true
-                    },
-                    "clear_space_above_hair_waived_by_full_head": {
-                      "const": true
-                    }
-                  },
-                  "required": [
-                    "clear_space_above_hair_waived_by_full_head"
-                  ]
                 }
               ]
             },
@@ -476,7 +536,7 @@
                 "expected_subject_height_percent": {
                   "const": [
                     45,
-                    96
+                    100
                   ]
                 },
                 "minimum_clear_space_above_hair_percent": {
@@ -487,10 +547,13 @@
                 },
                 "subject_height_percent": {
                   "minimum": 45,
-                  "maximum": 96
+                  "maximum": 100
                 },
-                "full_head_visible": {
-                  "const": true
+                "clear_space_above_hair_delivery_tolerance_applied": {
+                  "const": false
+                },
+                "clear_space_above_hair_waived_by_full_head": {
+                  "const": false
                 }
               },
               "required": [
@@ -501,29 +564,14 @@
               "anyOf": [
                 {
                   "properties": {
-                    "clear_space_above_hair_percent": {
-                      "minimum": 4
+                    "subject_height_percent": {
+                      "minimum": 45,
+                      "maximum": 100
                     },
-                    "clear_space_above_hair_waived_by_full_head": {
+                    "subject_height_delivery_tolerance_applied": {
                       "const": false
                     }
                   }
-                },
-                {
-                  "properties": {
-                    "clear_space_above_hair_percent": {
-                      "exclusiveMaximum": 4
-                    },
-                    "full_head_visible": {
-                      "const": true
-                    },
-                    "clear_space_above_hair_waived_by_full_head": {
-                      "const": true
-                    }
-                  },
-                  "required": [
-                    "clear_space_above_hair_waived_by_full_head"
-                  ]
                 }
               ]
             },
@@ -545,42 +593,11 @@
                   "minimum": 45,
                   "maximum": 100
                 },
+                "clear_space_above_hair_delivery_tolerance_applied": {
+                  "const": false
+                },
                 "clear_space_above_hair_waived_by_full_head": {
                   "const": false
-                }
-              },
-              "required": [
-                "expected_subject_height_percent",
-                "minimum_clear_space_above_hair_percent",
-                "minimum_clear_space_below_footwear_percent"
-              ]
-            },
-            {
-              "properties": {
-                "expected_subject_height_percent": {
-                  "const": [
-                    30,
-                    92
-                  ]
-                },
-                "minimum_clear_space_above_hair_percent": {
-                  "const": 8
-                },
-                "minimum_clear_space_below_footwear_percent": {
-                  "const": 2
-                },
-                "subject_height_percent": {
-                  "minimum": 30,
-                  "maximum": 92
-                },
-                "full_head_visible": {
-                  "const": true
-                },
-                "full_footwear_visible": {
-                  "const": true
-                },
-                "clear_space_below_footwear_percent": {
-                  "minimum": 2
                 }
               },
               "required": [
@@ -591,29 +608,64 @@
               "anyOf": [
                 {
                   "properties": {
-                    "clear_space_above_hair_percent": {
-                      "minimum": 8
+                    "subject_height_percent": {
+                      "minimum": 45,
+                      "maximum": 100
                     },
-                    "clear_space_above_hair_waived_by_full_head": {
+                    "subject_height_delivery_tolerance_applied": {
                       "const": false
                     }
                   }
+                }
+              ]
+            },
+            {
+              "properties": {
+                "expected_subject_height_percent": {
+                  "const": [
+                    30,
+                    100
+                  ]
                 },
+                "minimum_clear_space_above_hair_percent": {
+                  "const": 8
+                },
+                "minimum_clear_space_below_footwear_percent": {
+                  "const": 2
+                },
+                "subject_height_percent": {
+                  "minimum": 30,
+                  "maximum": 100
+                },
+                "clear_space_above_hair_delivery_tolerance_applied": {
+                  "const": false
+                },
+                "full_footwear_visible": {
+                  "const": true
+                },
+                "clear_space_below_footwear_percent": {
+                  "minimum": 2
+                },
+                "clear_space_above_hair_waived_by_full_head": {
+                  "const": false
+                }
+              },
+              "required": [
+                "expected_subject_height_percent",
+                "minimum_clear_space_above_hair_percent",
+                "minimum_clear_space_below_footwear_percent"
+              ],
+              "anyOf": [
                 {
                   "properties": {
-                    "clear_space_above_hair_percent": {
-                      "exclusiveMaximum": 8
+                    "subject_height_percent": {
+                      "minimum": 30,
+                      "maximum": 100
                     },
-                    "full_head_visible": {
-                      "const": true
-                    },
-                    "clear_space_above_hair_waived_by_full_head": {
-                      "const": true
+                    "subject_height_delivery_tolerance_applied": {
+                      "const": false
                     }
-                  },
-                  "required": [
-                    "clear_space_above_hair_waived_by_full_head"
-                  ]
+                  }
                 }
               ]
             }
@@ -640,7 +692,7 @@
             "expected_subject_height_percent": {
               "const": [
                 50,
-                94
+                100
               ]
             },
             "minimum_clear_space_above_hair_percent": {
@@ -656,7 +708,7 @@
             "expected_subject_height_percent": {
               "const": [
                 40,
-                95
+                100
               ]
             },
             "minimum_clear_space_above_hair_percent": {
@@ -672,7 +724,7 @@
             "expected_subject_height_percent": {
               "const": [
                 50,
-                95
+                100
               ]
             },
             "minimum_clear_space_above_hair_percent": {
@@ -688,7 +740,7 @@
             "expected_subject_height_percent": {
               "const": [
                 45,
-                96
+                100
               ]
             },
             "minimum_clear_space_above_hair_percent": {
@@ -720,7 +772,7 @@
             "expected_subject_height_percent": {
               "const": [
                 30,
-                92
+                100
               ]
             },
             "minimum_clear_space_above_hair_percent": {
@@ -1256,28 +1308,61 @@
       "oneOf": [
         { "$ref": "#/$defs/routeGpt" },
         { "$ref": "#/$defs/routeNano2" },
-        { "$ref": "#/$defs/routeNanoPro" }
+        { "$ref": "#/$defs/routeNanoPro" },
+        { "$ref": "#/$defs/routeGptLadder" }
       ]
+    },
+    "routeGptLadder": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["order", "id", "job_set_type", "model", "model_version", "resolution", "quality", "repair_kind"],
+      "properties": {
+        "order": { "type": "integer", "minimum": 1, "maximum": 5 },
+        "id": { "enum": ["gpt_image_2.low_1k.initial", "gpt_image_2.low_1k.qa_repair_1", "gpt_image_2.low_1k.qa_repair_2", "gpt_image_2.medium_2k.escalation", "gpt_image_2.high_4k.final"] },
+        "job_set_type": { "const": "gpt_image_2" },
+        "model": { "const": "GPT Image 2" },
+        "model_version": { "const": "gpt_image_2" },
+        "resolution": { "enum": ["1k", "2k", "4k"] },
+        "quality": { "enum": ["low", "medium", "high"] },
+        "repair_kind": { "enum": ["INITIAL", "QA_REPAIR_1", "QA_REPAIR_2", "QUALITY_ESCALATION_MEDIUM", "QUALITY_ESCALATION_HIGH"] }
+      }
     },
     "modelRoute": {
       "type": "object",
-      "additionalProperties": false,
       "required": ["route_version", "sha256", "entries"],
-      "properties": {
-        "route_version": { "const": "zeely.scene.image-route.v1" },
-        "sha256": { "$ref": "#/$defs/sha256" },
-        "entries": {
-          "type": "array",
-          "minItems": 3,
-          "maxItems": 3,
-          "prefixItems": [
-            { "$ref": "#/$defs/routeGpt" },
-            { "$ref": "#/$defs/routeNano2" },
-            { "$ref": "#/$defs/routeNanoPro" }
-          ],
-          "items": false
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "route_version": { "const": "zeely.scene.image-route.v1" },
+            "sha256": { "$ref": "#/$defs/sha256" },
+            "entries": {
+              "type": "array",
+              "minItems": 3,
+              "maxItems": 3,
+              "prefixItems": [
+                { "$ref": "#/$defs/routeGpt" },
+                { "$ref": "#/$defs/routeNano2" },
+                { "$ref": "#/$defs/routeNanoPro" }
+              ],
+              "items": false
+            }
+          }
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "route_version": { "const": "zeely.scene.image-route.v2" },
+            "sha256": { "$ref": "#/$defs/sha256" },
+            "entries": {
+              "type": "array",
+              "minItems": 5,
+              "maxItems": 5,
+              "items": { "$ref": "#/$defs/routeGptLadder" }
+            }
+          }
         }
-      }
+      ]
     },
     "approvedLookBinding": {
       "type": "object",
@@ -1707,6 +1792,8 @@
           "items": false
         },
         "subject_height_percent": { "type": "number", "minimum": 0, "maximum": 100 },
+        "subject_height_delivery_tolerance_applied": { "type": "boolean" },
+        "clear_space_above_hair_delivery_tolerance_applied": { "type": "boolean" },
         "minimum_clear_space_above_hair_percent": { "type": "number", "minimum": 0, "maximum": 100 },
         "minimum_clear_space_below_footwear_percent": { "type": "number", "minimum": 0, "maximum": 100 },
         "clear_space_above_hair_percent": { "type": "number", "minimum": 0, "maximum": 100 },
@@ -1791,6 +1878,18 @@
       "type": "object",
       "additionalProperties": false,
       "dependentRequired": {
+        "provider_image_reference_manifest_version": [
+          "provider_image_reference_manifest_json",
+          "provider_image_reference_manifest_sha256"
+        ],
+        "provider_image_reference_manifest_json": [
+          "provider_image_reference_manifest_version",
+          "provider_image_reference_manifest_sha256"
+        ],
+        "provider_image_reference_manifest_sha256": [
+          "provider_image_reference_manifest_version",
+          "provider_image_reference_manifest_json"
+        ],
         "repair_candidate_sha256": ["repair_from_attempt"],
         "repair_from_attempt": ["repair_candidate_sha256"],
         "rejection_id": [
@@ -1822,6 +1921,8 @@
         "model": { "type": "string", "maxLength": 200 },
         "model_version": { "type": "string", "maxLength": 200 },
         "job_set_type": { "type": "string", "maxLength": 200 },
+        "generation_profile_id": { "type": ["string", "null"], "maxLength": 128 },
+        "resolution": { "type": ["string", "null"], "enum": ["1k", "2k", "4k", null] },
         "quality": { "type": "string", "maxLength": 100 },
         "seed": { "type": ["string", "number", "boolean"] },
         "geometry_strategy": { "type": "string", "maxLength": 200 },
@@ -1833,6 +1934,19 @@
         "raw_output_sha256": { "$ref": "#/$defs/sha256" },
         "geometry_output_sha256": { "$ref": "#/$defs/sha256" },
         "reference_role_order": { "type": "string", "maxLength": 500 },
+        "reference_manifest_version": { "type": "string", "maxLength": 100 },
+        "provider_reference_strategy": {
+          "enum": ["GPT_IMAGE_2_BASE_CANVAS_FIRST", "EXPLICIT_ROLE_MASTER_FIRST"]
+        },
+        "provider_image_reference_manifest_version": {
+          "const": "provider-image-reference-manifest-v1"
+        },
+        "provider_image_reference_manifest_json": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 4096
+        },
+        "provider_image_reference_manifest_sha256": { "$ref": "#/$defs/sha256" },
         "reference_evidence_sha256": { "$ref": "#/$defs/sha256" },
         "attached_reference_count": { "type": "number", "minimum": 1 },
         "structured_reference_count": { "type": "number", "minimum": 0 },
@@ -1842,6 +1956,22 @@
         "outbound_prompt_sha256": { "$ref": "#/$defs/sha256" },
         "repair_candidate_sha256": { "$ref": "#/$defs/sha256" },
         "repair_from_attempt": { "type": "integer", "minimum": 1 },
+        "mechanical_framing_guide_sha256": { "$ref": "#/$defs/sha256" },
+        "mechanical_framing_guide_source_attempt": { "type": "integer", "minimum": 1 },
+        "mechanical_framing_guide_target_subject_height_percent": { "type": "number", "minimum": 0, "maximum": 100 },
+        "mechanical_framing_guide_target_clear_space_above_hair_percent": { "type": "number", "minimum": 0, "maximum": 100 },
+        "mechanical_framing_guide_target_clear_space_below_footwear_percent": { "type": "number", "minimum": 0, "maximum": 100 },
+        "mechanical_framing_guide_transform": {
+          "enum": ["style_camera_scale", "translate_up_without_rescale", "approved_master_geometry_layout"]
+        },
+        "repair_route_version": { "const": "scene-repair-plan-v1" },
+        "repair_route_classification": { "type": "string", "maxLength": 100 },
+        "repair_route_mechanism": { "type": "string", "maxLength": 100 },
+        "repair_route_model_action": { "type": "string", "maxLength": 100 },
+        "repair_route_decision_reason": { "type": "string", "maxLength": 300 },
+        "repair_defect_signature_sha256": { "$ref": "#/$defs/sha256" },
+        "repair_distance_to_delivery_band_pp": { "type": ["number", "null"], "minimum": 0 },
+        "repair_progress_pp": { "type": ["number", "null"] },
         "rejection_id": { "$ref": "#/$defs/id" },
         "rejection_receipt_sha256": { "$ref": "#/$defs/sha256" },
         "rejection_gate_id": {
@@ -1968,6 +2098,91 @@
         }
       ]
     },
+    "normalizedDefect": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "gate", "defect_code", "direction", "metric", "observed", "target", "preferred_band", "delivery_band", "measurement_epsilon", "distance_to_delivery_band_pp", "signature_sha256", "candidate_sha256", "prompt_sha256", "attempt", "cycle"],
+      "properties": {
+        "version": { "const": "scene-normalized-defect-v1" },
+        "gate": { "enum": ["MASTER_LOOK_LOCK", "REFERENCE_ROLE_ISOLATION", "NEAR_COPY_AND_LEAKAGE", "IDENTITY", "ITEM_FIDELITY", "SCENE_MATCH", "LIGHT_AND_CONTACT_SHADOW", "FRAMING_AND_ANATOMY", "PROVENANCE"] },
+        "defect_code": { "type": "string", "minLength": 1, "maxLength": 300 },
+        "direction": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "metric": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "observed": { "type": "number" },
+        "target": { "type": "number" },
+        "preferred_band": { "type": "array", "minItems": 2, "maxItems": 2, "items": { "type": "number" } },
+        "delivery_band": { "type": "array", "minItems": 2, "maxItems": 2, "items": { "type": "number" } },
+        "measurement_epsilon": { "type": "number", "minimum": 0 },
+        "distance_to_delivery_band_pp": { "type": "number", "minimum": 0 },
+        "signature_sha256": { "$ref": "#/$defs/sha256" },
+        "candidate_sha256": { "$ref": "#/$defs/sha256" },
+        "prompt_sha256": { "$ref": "#/$defs/sha256" },
+        "attempt": { "type": "integer", "minimum": 1 },
+        "cycle": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "repairPlanGuide": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["relative_path", "sha256", "size", "media_type", "transform", "target_subject_height_percent", "target_clear_space_above_hair_percent", "target_clear_space_below_footwear_percent"],
+      "properties": {
+        "relative_path": { "$ref": "#/$defs/relativePath" },
+        "sha256": { "$ref": "#/$defs/sha256" },
+        "size": { "type": "integer", "minimum": 1 },
+        "media_type": { "const": "image/png" },
+        "transform": { "enum": ["style_camera_scale", "translate_up_without_rescale", "approved_master_geometry_layout"] },
+        "target_subject_height_percent": { "type": "number", "minimum": 0, "maximum": 100 },
+        "target_clear_space_above_hair_percent": { "type": "number", "minimum": 0, "maximum": 100 },
+        "target_clear_space_below_footwear_percent": { "type": ["number", "null"], "minimum": 0, "maximum": 100 }
+      }
+    },
+    "repairPlanRequestManifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["relative_path", "sha256"],
+      "properties": {
+        "relative_path": { "$ref": "#/$defs/relativePath" },
+        "sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "repairPlan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "source_attempt", "source_candidate_sha256", "normalized_defect_sha256", "defect_signature_sha256", "classification", "mechanism", "model_action", "decision_reason", "previous_distance_to_delivery_band_pp", "progress_pp", "locked_passed_gate_ids", "guide", "request_manifest"],
+      "properties": {
+        "version": { "const": "scene-repair-plan-v1" },
+        "source_attempt": { "type": "integer", "minimum": 1 },
+        "source_candidate_sha256": { "$ref": "#/$defs/sha256" },
+        "normalized_defect_sha256": { "$ref": "#/$defs/sha256" },
+        "defect_signature_sha256": { "$ref": "#/$defs/sha256" },
+        "classification": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "mechanism": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "model_action": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "decision_reason": { "type": "string", "minLength": 1, "maxLength": 300 },
+        "previous_distance_to_delivery_band_pp": { "type": ["number", "null"], "minimum": 0 },
+        "progress_pp": { "type": ["number", "null"] },
+        "locked_passed_gate_ids": { "type": "array", "maxItems": 9, "uniqueItems": true, "items": { "enum": ["MASTER_LOOK_LOCK", "REFERENCE_ROLE_ISOLATION", "NEAR_COPY_AND_LEAKAGE", "IDENTITY", "ITEM_FIDELITY", "SCENE_MATCH", "LIGHT_AND_CONTACT_SHADOW", "FRAMING_AND_ANATOMY", "PROVENANCE"] } },
+        "guide": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/repairPlanGuide" }] },
+        "request_manifest": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/repairPlanRequestManifest" }] }
+      }
+    },
+    "policyRecheck": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "relative_path", "sha256", "retry_request_sha256", "source_attempt", "candidate_sha256", "prompt_sha256", "historic_qa_sha256", "historic_normalized_defect_sha256", "current_contract_sha256"],
+      "properties": {
+        "version": { "const": "scene-framing-policy-recheck-v1" },
+        "relative_path": { "$ref": "#/$defs/relativePath" },
+        "sha256": { "$ref": "#/$defs/sha256" },
+        "retry_request_sha256": { "$ref": "#/$defs/sha256" },
+        "source_attempt": { "type": "integer", "minimum": 1 },
+        "candidate_sha256": { "$ref": "#/$defs/sha256" },
+        "prompt_sha256": { "$ref": "#/$defs/sha256" },
+        "historic_qa_sha256": { "$ref": "#/$defs/sha256" },
+        "historic_normalized_defect_sha256": { "$ref": "#/$defs/sha256" },
+        "current_contract_sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
     "attempt": {
       "type": "object",
       "additionalProperties": false,
@@ -1992,7 +2207,7 @@
       "properties": {
         "number": { "type": "integer", "minimum": 1 },
         "cycle": { "type": "integer", "minimum": 1 },
-        "cycle_attempt": { "type": "integer", "minimum": 1, "maximum": 3 },
+        "cycle_attempt": { "type": "integer", "minimum": 1, "maximum": 5 },
         "status": {
           "enum": [
             "GENERATING",
@@ -2013,6 +2228,12 @@
             { "$ref": "#/$defs/promptArtifact" }
           ]
         },
+        "provider_request_manifest": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/repairPlanRequestManifest" }
+          ]
+        },
         "provider_source": {
           "oneOf": [
             { "type": "null" },
@@ -2030,6 +2251,24 @@
           "oneOf": [
             { "type": "null" },
             { "$ref": "#/$defs/normalization" }
+          ]
+        },
+        "normalized_defect": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/normalizedDefect" }
+          ]
+        },
+        "repair_plan": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/repairPlan" }
+          ]
+        },
+        "policy_recheck": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/policyRecheck" }
           ]
         },
         "qa_infrastructure_attempts": { "type": "integer", "minimum": 0, "maximum": 10 },

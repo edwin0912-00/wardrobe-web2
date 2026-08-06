@@ -6,9 +6,12 @@ import { installDemoAuth } from '../web/demo-auth.js';
 import { MonitorEventStore } from './event-store.js';
 import { AgentSupervisor } from './agent-supervisor.js';
 import { registerMonitorRoutes } from './routes.js';
+import { resolveMonitorRuntimeConfig } from './runtime-config.js';
 
 const projectRoot = path.resolve(import.meta.dirname, '..', '..');
-const runtimeRoot = path.join(projectRoot, 'runtime');
+const { runtimeRoot, appHealthUrl } = resolveMonitorRuntimeConfig({
+  projectRoot,
+});
 const store = new MonitorEventStore({ filename: path.join(runtimeRoot, 'monitor', 'events.jsonl') });
 await store.initialize();
 const supervisor = new AgentSupervisor({
@@ -37,7 +40,7 @@ let appHealth = { status: 'unknown', checked_at: null, detail: null };
 async function checkApp() {
   const checkedAt = new Date().toISOString();
   try {
-    const response = await fetch('http://127.0.0.1:4173/api/health', { signal: AbortSignal.timeout(5_000) });
+    const response = await fetch(appHealthUrl, { signal: AbortSignal.timeout(5_000) });
     appHealth = { status: response.ok ? 'up' : 'degraded', checked_at: checkedAt, detail: `HTTP ${response.status}` };
   } catch (error) {
     appHealth = { status: 'down', checked_at: checkedAt, detail: error.message.slice(0, 300) };

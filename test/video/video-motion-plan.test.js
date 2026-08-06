@@ -1,7 +1,18 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { MOTION_MODES, VIDEO_SURFACES, SURFACES, MotionPlanError, buildMotionPlan, videoSurface, surface } from '../../src/web/video-motion-plan.js';
+import {
+  MOTION_MODES,
+  VIDEO_SURFACES,
+  SURFACES,
+  MotionPlanError,
+  buildFashionVideoReferencePrompt,
+  buildMotionPlan,
+  fashionVideoReferenceRetryPlan,
+  surfaceForReferenceGeometry,
+  videoSurface,
+  surface,
+} from '../../src/web/video-motion-plan.js';
 import { buildVideoCreateArgs } from '../../src/providers/higgsfield-video-provider.js';
 
 test('the canon has exactly four motion modes', () => {
@@ -30,6 +41,82 @@ test('a plan states the locks that make it a fashion clip and not a lookalike', 
   assert.match(plan.prompt, /No new props, no text, no logos/);
 });
 
+test('the reference-transfer prompt makes Video 1 style authority only and bans source-performer leakage', () => {
+  const cutSheet = {
+    schema_version: '1.0.0',
+    cuts: [{
+      cut_index: 0, start_ms: 0, end_ms: 5000,
+      subject_rule: 'APPROVED_AVATAR_OR_EMPTY',
+      direction: 'Full-body doorway pose with a controlled cut-specific camera move and no secondary people.',
+    }],
+  };
+  const prompt = buildFashionVideoReferencePrompt({
+    appearanceRoles: ['identity_face', 'garment_detail'],
+    cutSheet,
+  });
+  assert.match(prompt, /^Reference bindings\. @Video 1 is private reference-only directing material/);
+  assert.match(prompt, /complete shot sequence, cut timing, transitions/);
+  assert.match(prompt, /Every final frame must be newly generated/);
+  assert.match(prompt, /Never splice, reuse, reveal, freeze, picture-in-picture, reflection, monitor image/);
+  assert.match(prompt, /@Image 1.*exact approved person.*complete approved outfit/);
+  assert.match(prompt, /For every cut/);
+  assert.match(prompt, /No source performer face, body, skin, hair, clothing/);
+  assert.match(prompt, /@Image 1.*exact pure-white background/);
+  assert.match(prompt, /@Image 2 is an optional white-background face-detail reference/);
+  assert.match(prompt, /@Image 3 is a white-background garment-only evidence card/);
+  assert.match(prompt, /CUT SHEET/);
+  assert.match(prompt, /CUT 01 0ms–5000ms \| APPROVED_AVATAR_OR_EMPTY/);
+  assert.match(prompt, /Never replace the reference environment/);
+  assert.match(prompt, /Do not simplify the reference into a static portrait/);
+  assert.doesNotMatch(prompt, /^@/);
+  assert.doesNotMatch(prompt, /blink|breathe|camera is effectively still/i);
+});
+
+test('Fashion Video provider labels follow the exact appearance-reference array', () => {
+  const garmentOnly = buildFashionVideoReferencePrompt({
+    appearanceRoles: ['garment_detail'],
+  });
+  assert.match(garmentOnly, /@Image 2 is a white-background garment-only evidence card/);
+  assert.doesNotMatch(garmentOnly, /face-detail reference/);
+
+  assert.throws(
+    () => buildFashionVideoReferencePrompt({
+      appearanceRoles: ['garment_detail', 'identity_face'],
+    }),
+    (error) => error.code === 'VIDEO_APPEARANCE_ROLE_ORDER_INVALID',
+  );
+});
+
+test('reference-performer repair plans are bounded, distinct and compiled into the prompt', () => {
+  const first = fashionVideoReferenceRetryPlan(1);
+  const second = fashionVideoReferenceRetryPlan(2);
+  assert.equal(first.id, 'full-subject-replacement-pass');
+  assert.equal(second.id, 'cut-boundary-subject-isolation-pass');
+  assert.notEqual(first.instruction, second.instruction);
+  assert.throws(
+    () => fashionVideoReferenceRetryPlan(3),
+    (error) => error.code === 'VIDEO_REFERENCE_RETRY_NUMBER_INVALID',
+  );
+  const prompt = buildFashionVideoReferencePrompt({
+    appearanceRoles: [],
+    cutSheet: {
+      schema_version: '1.0.0',
+      cuts: [{
+        cut_index: 0,
+        start_ms: 0,
+        end_ms: 5000,
+        subject_rule: 'APPROVED_AVATAR_OR_EMPTY',
+        direction: 'Reconstruct the cut with the approved avatar or an empty environment.',
+      }],
+    },
+    referenceRetryPlan: second,
+  });
+  assert.match(prompt, /REFERENCE REPAIR cut-boundary-subject-isolation-pass/);
+  assert.match(prompt, /every cut-sheet interval as an independent reconstruction boundary/);
+  assert.match(prompt, /only @Image 1 where a person is required/);
+  assert.match(first.instruction, /Treat @Video 1 only as timing, camera and environment authority/);
+});
+
 test('walk or stride is refused unless the source really shows the feet', () => {
   assert.throws(
     () => buildMotionPlan({ modeId: 'walk_stride' }),
@@ -50,6 +137,29 @@ test('a duration outside the mode window is refused, not clamped', () => {
       assert.match(error.message, /4–6 seconds/);
       return true;
     },
+  );
+});
+
+test('a verified Fashion Video style owns duration over a legacy motion-mode window', () => {
+  const plan = buildMotionPlan({
+    modeId: 'camera_drift',
+    // Simulates an old persisted retry value. It must not override the
+    // immutable style reference's provider-safe duration.
+    durationSeconds: 6,
+    referenceDurationSeconds: 13,
+  });
+  assert.equal(plan.durationSeconds, 13);
+  assert.throws(
+    () => buildMotionPlan({
+      modeId: 'camera_drift',
+      referenceDurationSeconds: 16,
+    }),
+    (error) => error.code === 'VIDEO_REFERENCE_PROVIDER_DURATION_INVALID',
+  );
+  // Non-reference callers retain the strict canonical motion-mode window.
+  assert.throws(
+    () => buildMotionPlan({ modeId: 'camera_drift', durationSeconds: 13 }),
+    (error) => error.code === 'MOTION_DURATION_OUT_OF_RANGE',
   );
 });
 
@@ -101,6 +211,17 @@ test('the surface decides the shape: television is wide, mirror is tall', () => 
 test('the television is the default surface', () => {
   assert.equal(buildMotionPlan({ modeId: 'camera_drift' }).surface, 'tv');
   assert.equal(buildMotionPlan({ modeId: 'camera_drift' }).aspectRatio, '16:9');
+});
+
+test('a Fashion Video presentation surface is derived from its verified style-reference geometry', () => {
+  assert.equal(surfaceForReferenceGeometry(1920, 1080).id, 'tv');
+  assert.equal(surfaceForReferenceGeometry(1920, 1080).aspectRatio, '16:9');
+  assert.equal(surfaceForReferenceGeometry(1080, 1920).id, 'mirror');
+  assert.equal(surfaceForReferenceGeometry(1080, 1920).aspectRatio, '9:16');
+  assert.throws(
+    () => surfaceForReferenceGeometry(1440, 1080),
+    (error) => error.code === 'VIDEO_REFERENCE_ASPECT_UNSUPPORTED',
+  );
 });
 
 test('an unknown surface is refused rather than silently defaulted', () => {

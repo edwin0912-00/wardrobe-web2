@@ -6,8 +6,8 @@ import {
   loadProfileScene,
   loadScenePresets,
   retryProfileScene,
-} from './profile-client.js?v=20260724-5';
-import { createEditorialShootUi } from './editorial-shoot-ui.js?v=20260729-2';
+} from './profile-client.js?v=20260804-1';
+import { createEditorialShootUi } from './editorial-shoot-ui.js?v=20260804-1';
 import {
   clearSceneResume,
   presetCameraLabel,
@@ -22,6 +22,8 @@ import {
   sceneTone,
   writeSceneResume,
 } from './scene-state.js?v=20260724-2';
+import { presentationImageUrl } from './presentation-media.js?v=20260731-1';
+import { publicErrorCode, withPublicDiagnostic } from './error-presentation.js?v=20260804-1';
 
 const UK_PLURAL_SCENE = Object.freeze(['стандартна сцена', 'стандартні сцени', 'стандартних сцен']);
 const UK_PLURAL_MODE = Object.freeze(['напрям', 'напрями', 'напрямів']);
@@ -82,7 +84,7 @@ function createPresetVisual(preset, { large = false } = {}) {
   const previewUrl = safePresetPreviewUrl(preset);
   if (previewUrl) {
     const image = document.createElement('img');
-    image.src = previewUrl;
+    image.src = presentationImageUrl(previewUrl);
     image.alt = '';
     image.loading = 'eager';
     wrapper.dataset.preview = 'api';
@@ -97,7 +99,7 @@ function createPresetVisual(preset, { large = false } = {}) {
   return wrapper;
 }
 
-function createEditorialModeCard(mode, onSelect) {
+function createEditorialModeCard(mode, onSelect, { eager = false } = {}) {
   const ready = mode.source_set_status === 'READY' && mode.generation_available === true;
   const card = document.createElement('button');
   card.type = 'button';
@@ -114,9 +116,10 @@ function createEditorialModeCard(mode, onSelect) {
   const previewUrl = safePresetPreviewUrl(mode);
   if (previewUrl) {
     const image = document.createElement('img');
-    image.src = previewUrl;
+    image.src = presentationImageUrl(previewUrl);
     image.alt = `Приклад стилю: ${nameText}`;
-    image.loading = 'eager';
+    image.loading = eager ? 'eager' : 'lazy';
+    if (eager) image.fetchPriority = 'high';
     preview.append(image);
   } else {
     preview.classList.add('is-missing');
@@ -134,6 +137,11 @@ function createEditorialModeCard(mode, onSelect) {
   card.append(preview, copy);
   if (ready) card.addEventListener('click', () => onSelect(mode));
   return card;
+}
+
+function isReadyFashionMode(mode) {
+  return mode?.source_set_status === 'READY'
+    && mode?.generation_available === true;
 }
 
 function lookDescriptor(profile, lookId) {
@@ -170,7 +178,7 @@ function sceneConnectionPresentation(polling) {
 }
 
 export function sceneRequestFailurePresentation(error) {
-  const code = String(error?.code ?? '');
+  const code = publicErrorCode(error);
   const structured = Number.isInteger(error?.status) && error.status >= 400;
   const messageByCode = {
     LOOK_ITEM_EVIDENCE_INVALID: 'Збережений образ не має цілісного підтвердження речей. Запуск сцени зупинено без генерації.',
@@ -183,7 +191,10 @@ export function sceneRequestFailurePresentation(error) {
       status: 'ЗАПУСК ВІДХИЛЕНО',
       phase: 'Потрібна перевірка збереженого образу',
       connection: 'СЕРВЕР НА ЗВ’ЯЗКУ',
-      message: messageByCode[code] ?? String(error?.message || `Сервер відхилив запуск (${error.status})`),
+      message: withPublicDiagnostic(
+        messageByCode[code] ?? 'Сервер відхилив запуск до генерації. Перевір вибраний образ або стиль.',
+        error,
+      ),
       reconnect: false,
     };
   }
@@ -191,7 +202,7 @@ export function sceneRequestFailurePresentation(error) {
     status: 'НЕМАЄ З’ЄДНАННЯ',
     phase: 'Не вдалося отримати стан',
     connection: 'З’ЄДНАННЯ ПЕРЕРВАЛОСЯ',
-    message: String(error?.message || 'Не вдалося з’єднатися із сервером'),
+    message: withPublicDiagnostic('Не вдалося з’єднатися із сервером.', error),
     reconnect: true,
   };
 }
@@ -283,7 +294,7 @@ export class SceneUiController {
     this.look = look;
     const imageUrl = imageOfLook(look);
     for (const image of document.querySelectorAll('[data-scene-look-image]')) {
-      image.src = imageUrl;
+      image.src = presentationImageUrl(imageUrl);
       image.alt = 'Збережений образ для сцени';
     }
     for (const label of document.querySelectorAll('[data-scene-look-name]')) {
@@ -326,7 +337,7 @@ export class SceneUiController {
     const editorialTab = this.#element('#scene-tab-editorial');
     const standardPanel = this.#element('#scene-standard-panel');
     const editorialPanel = this.#element('#scene-editorial-panel');
-    const fashionModes = this.editorialModes.filter((mode) => mode.mode_id.startsWith('shoot.'));
+    const fashionModes = this.editorialModes.filter(isReadyFashionMode);
     // The counts used to be baked into index.html, so the tab still said five
     // standard scenes after the catalog grew to sixteen. Both labels now come
     // from the same data the grids are rendered from.
@@ -470,16 +481,19 @@ export class SceneUiController {
       return;
     }
 
-    // Only complete Creative Universe style units are a Fashion Shoot choice.
-    // Historical editorial records remain addressable for owners, but they are
-    // not silently presented as a second style product in the new picker.
-    const newModes = this.editorialModes.filter((m) => m.mode_id.startsWith('shoot.'));
+    // Every server-published customer Fashion Shoot belongs in this picker.
+    // A mode's READY + generation_available flags are the one authority here;
+    // an id prefix is not a product rule and must never make a working style
+    // disappear from the customer catalogue.
+    const newModes = this.editorialModes.filter(isReadyFashionMode);
     
     const onSelect = (selected) => this.editorialUi.openForMode(selected, this.look).catch(
       (error) => this.#setError(error.message),
     );
     
-    gridNew.replaceChildren(...newModes.map((mode) => createEditorialModeCard(mode, onSelect)));
+    gridNew.replaceChildren(...newModes.map(
+      (mode, index) => createEditorialModeCard(mode, onSelect, { eager: index < 4 }),
+    ));
   }
 
   showPicker() {
@@ -637,7 +651,7 @@ export class SceneUiController {
     this.#element('#scene-output').hidden = !completed;
     if (completed) {
       const image = this.#element('#scene-output-image');
-      image.src = scene.output.image_url;
+      image.src = presentationImageUrl(scene.output.image_url);
       image.alt = `Готова сцена: ${preset.ui_name_uk || preset.preset_id}`;
       this.#element('#scene-output-download').href = scene.output.download_url || scene.output.image_url;
       this.#element('#scene-execution-title').textContent = 'Сцена готова';
@@ -850,10 +864,13 @@ export class SceneUiController {
     }
   }
 
-  async resume() {
-    if (await this.editorialUi.resume()) return true;
-    let resume = readSceneResume();
-    const querySceneId = new URLSearchParams(location.search).get('scene');
+  async resume({ allowStored = true } = {}) {
+    const query = new URLSearchParams(location.search);
+    const queryShootId = query.get('shoot');
+    const querySceneId = query.get('scene');
+    if (queryShootId && await this.editorialUi.resume({ allowStored: false })) return true;
+    if (!querySceneId && allowStored && await this.editorialUi.resume()) return true;
+    let resume = allowStored ? readSceneResume() : null;
     if (!resume && !querySceneId) return false;
     this.resumeRecord = resume;
     this.#showConnecting(

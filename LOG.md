@@ -17,6 +17,280 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-08-04 · TEST-TASK-ACCEPTANCE-AUDIT · beta `7129c5c`
+Change: add one consolidated audit mapping the original Notion task, current
+canon, checked-in three-user submission, public beta and optional product
+extensions without collapsing code, beta health and E2E evidence.
+Why: the repository contains a stale PASS submission manifest alongside
+NEEDS_REVIEW QA reports. This blocks a defensible 100% completion claim.
+Evidence: verify:contracts PASS (41 schemas / 9 fixtures / 3 jobs), verify:canon
+PASS (43 rules / 34 blocking), verify:output NEEDS_REVIEW for 001–003; public
+health ready with 16 backgrounds and 18 fashion/editorial records; explicit
+beta fetch and public health both resolve exact SHA `7129c5c`.
+weakened_checks: none.
+
+2026-08-03 · FASHION-VIDEO-STYLE-DURATION-RETRY · beta pending deploy · codex-main
+Change: make an immutable Fashion Video style reference the sole duration
+authority for reference-bound create and retry. A generic motion mode remains
+semantic direction only; non-reference video still uses its strict mode window.
+Why: a live retry of a 13-second verified style carrying legacy
+`camera_drift=6` was rejected locally with `MOTION_DURATION_OUT_OF_RANGE`
+before a Higgsfield job could exist.
+Evidence: regression recreates that exact parent state and asserts a 13-second
+child/provider request; `node --test test/video/*.test.js` 209/209 PASS;
+`npm run verify:contracts` PASS.
+ weakened_checks: none.
+
+2026-08-03 · Fashion Video terminal retry-chain recovery
+Change: the Fashion Video status and retry routes now follow the bounded
+server-owned retry-child chain before deciding whether a retry is active.
+When every automatic child is terminal, the terminal child is shown with its
+real public failure code and a fresh explicit retry is enabled. Only a child
+that is actually active still blocks a duplicate paid retry.
+Why: a parent could retain `automatic_retry.state=CREATED` forever after its
+children failed, leaving the client on a generic failure screen and making its
+Retry button return HTTP 409.
+Evidence: `node --test test/video/*.test.js` 213/213 PASS, including terminal
+chain and explicit-retry regressions. No paid provider request was run.
+weakened_checks: none.
+
+2026-08-03 · Fashion Video terminal-provider recovery · candidate
+Change: a Higgsfield job explicitly reported as `failed` now starts the same
+bounded, hash-bound Fashion Video recovery chain as reference-QA failure: at
+most two child attempts, each with a new immutable prompt/idempotency binding.
+Why: the observed clip `aaf3d47e-70d5-4451-8e6d-99a0ac4e4903` was repeatedly
+polled after Higgsfield had already returned `failed`, then later became a
+misleading `not found` result when the provider removed it. No child was made.
+Evidence: focused VideoService + routes suite 78/78 PASS, including a new
+terminal-failure route regression and the two-attempt bound.
+Beta: NOT_DEPLOYED at this entry. `VIDEO_PROVIDER_JOB_NOT_FOUND` remains
+manual-only because its outcome is ambiguous and an automatic paid duplicate
+would be unsafe.
+weakened_checks: none; source-performer/reference leakage still blocks delivery.
+
+2026-08-03 · Beta activation · Fashion Video terminal-provider recovery
+Change: activated product release `505729016624be756c264ca3c5f30edf92ed6da5`.
+Evidence: immutable product verifier PASS (741 deploy files, 16 standard
+scenes, 15 Create Universe generation styles); guarded activation found zero
+active persisted work; local and external health both returned `ready`.
+weakened_checks: none.
+
+2026-08-02 · CHAT04-UNIMPLEMENTED-HANDOFF-CLARIFICATION · beta `26ea365` · codex-live-40
+Change: distinguish Chat 04's three unimplemented scene/UI proposals from
+assets that were already recovered into beta.
+Why: mood-card recovery could otherwise be mistaken for delivery of its
+cross-block framing, lighting and settings work.
+Evidence: `updates/chat-04.md` at `62e361a` labels those items as ownership
+handoff and `NOT_IMPLEMENTED`; its seven mood-card files already match beta.
+weakened_checks: none; documentation only, no runtime release.
+
+2026-08-02 · SOURCE-AND-CHAT-RECONCILIATION · beta `3240c70` · codex-live-40
+Change: record the exact public beta source/release SHA and classify the
+unmerged Chat 04/05 historical branches without merging stale code. Add an
+explicit beta fetch rule for clones with a narrow refspec.
+Why: stale local `origin/beta` refs made released code appear missing and
+encouraged unsafe whole-branch recovery. Chat labels also no longer identify a
+product reliably because the cinematic main lives in a separate repository.
+Evidence: direct `git fetch origin +refs/heads/beta:refs/remotes/origin/beta`
+resolved `3240c7069e9eaaa878b554bd02bcbfde3a6b6f52`; public beta health
+reported the same `release_sha`. Chat 04 mood cards were present in that tree;
+its Shutter-only blocking atom is preserved separately. Chat 05 formal
+Fashion Shoot is contained; its older video modules are present in newer form.
+weakened_checks: none; docs-only, no runner restart or product release.
+
+2026-08-01 · PRODUCT-RELEASE-PUBLISHED-STYLE-ROOTS · release/candidate-20260801 · codex-live-40
+Change: build the product release from the exact fifteen published Create
+Universe `shoot.*` unit roots instead of copying the whole development
+`docs/style-units` directory. Every published sheet remains byte-for-byte
+unchanged and verifier-enforced; two unpublished workspace units stay in Git
+but are not production authority.
+Why: the release reached 544,255,600 bytes and exceeded its finite 512 MiB
+budget solely because draft/retired source units were copied into production.
+Evidence: product release deterministic/completeness test 2/2 PASS, including
+full fifteen-unit hash verification and adversarial tamper rejection.
+weakened_checks: none; production allowlist is narrower.
+
+2026-08-01 · READ-ONLY-TEST-SWAP-PREFLIGHT · release/candidate-20260801 · codex-live-40
+Change: stop using macOS historical swap usage as a refusal condition for
+read-only test runs. Memory, CPU load, free disk and known heavy background
+process checks remain active; build and deploy swap limits remain unchanged.
+Why: the host had more than 50% free memory and no heavy background agents,
+but old compressed/swap pages prevented the complete verification suite from
+starting. A reboot would change the number without changing code safety.
+Evidence: existing resource-policy tests preserve all five deploy refusal
+signals; production build/deploy policies are untouched.
+weakened_checks: none for build or deploy; test-only historical swap gate removed.
+
+2026-08-01 · CREATE-UNIVERSE-LEGACY-DUPLICATE · release/candidate-20260801 · codex-live-40
+Change: remove the blocked legacy `editorial.edwin_novak.institutional_modernism`
+record from the public choice catalog and render only `shoot.*` modes that are
+both `READY` and generation-available. Legacy preview URLs stay immutable and
+legacy generation deep links still resolve to `shoot.zayn_institutional`.
+Why: the prepared old preview record and the verified Create Universe style
+appeared as two versions of one product, although only the `shoot.*` unit can
+generate. That made a working style look broken or duplicated.
+Evidence: editorial catalog/UI tests 17/17 PASS; alias/backend tests 7/7 PASS;
+syntax and `git diff --check` PASS.
+weakened_checks: none.
+
+2026-08-03 · Fashion Shoot retry calibration / Video IP readiness / cache chain
+Change: scoped `shoot.*` review-mode camera-scale variance to a non-blocking
+receipt note; added one exact immutable retry for Higgsfield's pre-submit
+`IP check not finished for input media`; advanced the linked Fashion Shoot
+frontend modules as one cache-busted chain.
+Why: camera art direction had spent 2+3 paid retries on an already saved
+five-frame shoot, and an unaccepted video job showed only a generic failure.
+Evidence: focused UI/provider/video/scene tests 177/177 PASS; contracts and
+canon PASS. No paid provider work was used.
+weakened_checks: only Create Universe camera-scale in explicit `review`/`off`;
+identity, items, anatomy, leakage and standard-scene framing stay blocking.
+
+2026-08-03 · Beta activation · retry/input-media/cache-chain repair
+Change: activated `a828cd542360ed396d4f3247f0eaefc2e2397207` after restoring the
+beta LaunchAgent from a malformed JSON array to the known-good persistent plist
+shape with the current beta runner.
+Why: the release tool correctly refused to restart an invalid LaunchAgent;
+proceeding without that check could have broken the active site.
+Evidence: strict product verifier PASS (741 files; 16 standard presets; 15
+Create Universe styles); deploy dry-run PASS; local and public beta health
+both `ready` on the exact SHA; no active persisted work.
+weakened_checks: only the previously logged Fashion Shoot review-scale policy.
+
+2026-08-03 · Fashion Shoot retry policy + Higgsfield input-media readiness · candidate pending deploy
+Change: scoped Fashion Shoot camera-scale defects to `NON_BLOCKING_FASHION_REVIEW`
+only for `shoot.*` in the already live `review`/`off` policy; standard scenes
+are untouched. Classified Higgsfield's exact `IP check not finished for input
+media` create response as a pre-submit readiness state, persisted it, waited
+3 seconds and retried the exact immutable request once. A second response is
+stored and returned as `VIDEO_INPUT_MEDIA_IP_CHECK_PENDING`, not a fake timeout
+or a claim that a job exists.
+Why: one completed five-frame shoot appeared as many duplicate images because
+two slots spent 2 and 3 retries solely on an art-direction camera band. A video
+user received a generic create failure while Higgsfield had not yet accepted
+their media.
+Evidence: the new regressions fail against prior code and pass after the
+repair; focused provider/video/routes/Fashion Shoot suite PASS. The inspected
+shoot has a durable five-frame profile projection.
+weakened_checks: camera-scale for `shoot.*` in review/off is advisory by explicit
+operator decision. Identity, item fidelity, reference leakage, anatomy and all
+`std.*` framing remain blocking. No paid generation was run.
+
+2026-08-02 · Fashion Shoot catalogue / direct-five / video input metadata
+Change: restored server-ready legacy Fashion Shoot modes to the customer
+catalogue, changed the persisted scheduler guard to the exact product mode set,
+and added safe Fashion Video input-role metadata plus cut count to the capability
+response.
+Why: UI prefix checks hid two valid styles and routed them into a one-frame
+hero/Continue workflow; the video picker had no truthful explanation of which
+reference is direction-only versus the approved visible person.
+Evidence: direct-five legacy regression plus targeted editorial/video suite
+45/45 PASS; `verify:contracts` PASS; `verify:canon` PASS.
+Beta: NOT_DEPLOYED at this log entry. No paid generation.
+weakened_checks: none.
+
+2026-08-01 · SCENE-NATIVE-3-4-TEST-CONTRACT · release/candidate-20260801 · codex-live-40
+Change: align the scene adapter regression fixtures with the already-approved
+native `3:4` image transport and `1536×2048` delivery. The tests no longer ask a
+Nano Banana fake for `4:5`, pair a GPT response with a Nano request, or expect a
+crop that production explicitly forbids.
+Why: four stale fixtures failed after the intentional native `3:4` migration,
+while the production adapter correctly rejected their contradictory provider
+contracts. Structured `composition_anchor` references remain `4:5`; only the
+generated scene transport and delivery are `3:4`.
+Evidence: `test/web/scene-adapters.test.js` 54/54 PASS; combined Create Universe,
+editorial anchors and scene-adapter suite 68/68 PASS; production code and QA
+thresholds unchanged.
+weakened_checks: none.
+
+2026-08-01 · CREATE-UNIVERSE-TRANSPORT-001 · release/candidate-20260801 · codex-main
+Change: keep the complete four-image Create Universe reference pack validated,
+but transport only the three slot-safe style sheets. When the eight-image
+provider budget is exceeded, pack those three sheets into one mechanical
+three-panel authority image; generic multi-pose blocking is not sent as pose
+authority.
+Why: the previous composer expected four cells after the generic blocking sheet
+was intentionally removed from per-slot transport. A four-item look plus a
+mechanical framing guide therefore passed three inputs and crashed on
+`cells[3] = undefined` before Higgsfield.
+Evidence: Create Universe transport regression 2/2 PASS; all Creative Universe
+runtime-style checks PASS; `verify:contracts` PASS (41/41); `verify:canon` PASS
+(43/43); no provider call or paid generation.
+weakened_checks: none.
+
+2026-08-01 · FASHION-VIDEO-QA-RETRY-AND-DEADZONE · beta `b0f76d6` · claude-code-handoff
+Change: three independent Fashion Video defects, all reproduced against the exact bytes
+of a real failed live clip (`d2a7fc04-cefc-4136-b929-0f55a4d17dd5`), not guessed from
+source reading.
+  (1) `videoService.claimRetry`/`completeRetryClaim` were defined only on the private
+      `ClipStore`; `registerVideoRoutes` calls them directly on the `VideoService` facade,
+      so every production retry click threw `videoService.claimRetry is not a function` —
+      confirmed against the live running process (release-7f7c271, PID 85078) reading its
+      actual deployed file, not a stale-code guess. Both methods now delegate from the
+      facade to `#store`.
+  (2) The deterministic exact-reference-copy path in `video-semantic-qa.js` marks its
+      receipt `evaluator: 'deterministic/exact-reference-copy-v1'` specifically so it can
+      be told apart from an ordinary VLM rejection, but `recordReferenceAdherenceQa`
+      collapsed both into the same generic `VIDEO_REFERENCE_QA_FAILED`. Now reported as
+      `VIDEO_REFERENCE_NOT_REPLACED`: "the model said no" and "the delivery is
+      byte-identical to the directing reference, so nothing was ever generated" are
+      different failures with different remedies.
+  (3) The real cause of the observed live incident. Salvage correctly detected a 0.5s
+      reference-performer leak via a real VLM pass (`gpt-5.6-terra`), correctly trimmed it,
+      and technical QA on the trimmed file passed — the second, client-facing QA pass then
+      crashed with a bare `ENOENT` before recording any verdict, and the client displayed
+      it as an opaque failure. Root cause, confirmed with a manual `ffmpeg` run against the
+      actual salvaged file: container duration 14.526s, last decodable frame at
+      348 frames / 24fps = 14.500s — a 26ms gap the existing 50ms end-boundary margin did
+      not reliably clear on this file. `ffmpeg` exits 0 and writes nothing in that dead
+      zone; the following `readFile` threw `ENOENT`, which propagated to the clip's
+      `failureCode` indistinguishable from any unrelated filesystem fault. `extractJpeg`
+      now retreats the seek time in bounded steps (0/100/250/450ms) when `ffmpeg` produces
+      no file, and raises a named `VIDEO_AUTOMATIC_QA_FRAME_EXTRACTION_FAILED` only if none
+      of them recover a frame.
+Why: this is the Fashion Video path directly behind the approved master look — one of the
+two links in the pipeline right after the avatar step, alongside Fashion Shoot below. A
+viewer who received an almost-complete, correctly-salvaged 14.5s clip saw an opaque error
+instead, then a broken retry button.
+Evidence: `node --test test/video/*.test.js` → 187/187 PASS; `test/providers/*.test.js` →
+71/71 PASS. Each of the three fixes has a dedicated test that fails against the pre-fix
+commit (`a2b263f`) and passes after — verified both ways, not asserted. No paid generation
+was created in this session; the dead-zone reproduction used the exact bytes of an
+already-paid, already-failed clip copied read-only from the live host.
+weakened_checks: none introduced. `fashion_shoot_qa_mode: off` on the live host predates
+this change and is untouched by it; still no owner authorisation recorded in `UPDATE.md`.
+
+2026-08-01 · FASHION-SHOOT-STRUCTURED-REFERENCE-BOUND · beta `a2b263f` (already integrated,
+confirmed here) · chat-00-master via `dc67de6` / `fix/shoot-structured-reference-bound-20260801`
+Change: every compiled Fashion Shoot structured-reference fact is bounded at
+`referenceAsset()`/`boundedReferenceFact()` before it is written into a `references[0..n]`
+document, closing the gap where `spatial_cues[3]` — composed from
+`Subject light interaction: ${shot.subject_lighting}` — compiled to 303 characters against
+the schema's 240-character `maxLength`.
+Why (independently reproduced by `claude-code-handoff` before finding this already fixed):
+the live runtime record for `shoot.skylight_haze.sculptural_three_quarter` showed every one
+of the five customer slots exhausting all six attempts with `EXECUTOR_FAILED: Scene
+execution ended without a hash-bound QA candidate`; the actual per-attempt cause underneath
+was `GENERATION_FAILED: references[0] does not match the strict structured-reference
+schema`. Nothing reached a provider on any slot, so no candidate and no QA evidence ever
+existed — the whole five-frame Fashion Shoot was down behind a green test suite, because
+the two tests that should have caught it each covered only half the real compile path.
+Evidence: `test/web/editorial-structured-reference-bounds.test.js` compiles every ready
+style × every slot × every asset against the real AJV schema and fails without the bound,
+passes with it — verified directly on this beta head. This is the second of the two most
+important pipeline links right after the avatar step, alongside Fashion Video above.
+weakened_checks: none.
+
+2026-07-30 · BETA-BLOCK-6-CAPABILITY-PORT · beta integration · codex-main
+Change: port only the server-owned Fashion Video capability contract from the
+latest Block 6 branch. GET readiness and POST creation now share immutable
+approved-look, style-pack and motion-reference SHA gates. The older Block 6 UI
+was not integrated, so the consolidated Action Hub remains unchanged.
+Why: the raw branch could report READY while its conflicting UI and a separate
+unconditional POST guard disagreed. One server contract now owns both answers.
+Evidence: focused video/profile/Live suite 130/130 PASS; syntax and diff checks
+PASS; no provider call or paid generation.
+weakened_checks: none. Missing resolver or reference hash remains fail-closed.
+
 2026-07-29 · ANTIGRAVITY-QA-LOOP-001 · beta QA observer · codex-main
 Change: add Block 0.8 as an independent Gemini/Antigravity observer. Its
 bounded loop watches GitHub, tests the exact deployed beta through visible
@@ -42,6 +316,58 @@ because focused proof is 14/16 and the draft makes all ten `shoot.*`
 generation routes unavailable.
 Evidence: governance block-map tests and shell syntax checks are required
 before this control-plane commit is integrated.
+weakened_checks: none.
+
+2026-07-31 · Fashion Video terminal QA/retry repair · pending commit
+Change: fixed runtime/profile status split, surfaced `CLIP_HAS_AUDIO`, and
+replaced the UI’s synthetic “Generate” click with an explicit child retry
+route protected by durable idempotency.
+Why: a failed provider result could leave a stale `CREATED` projection, so the
+browser polled forever and never reached a real retry action. A retry is a new
+paid provider job and must not be automatic or duplicable.
+Evidence: focused service + route tests 48/48 PASS; no provider generation.
+weakened_checks: none.
+
+2026-07-31 · Fashion Video white-master and cut-sheet repair · pending commit
+Change: removed raw identity-photo media from the V2V request; Image 1 is a
+verified exact-white approved master and Image 2 is only a white garment card.
+Added immutable per-style timed cut sheets to the reference pack and prompt.
+Why: any photo background can compete with Video 1’s environment, while a
+single generic instruction can miss source-performer leakage in a later cut.
+Evidence: current runtime master passes the white-surface diagnostic; focused
+Fashion Video tests 69/69 PASS; no provider creation.
+weakened_checks: none.
+
+2026-07-30 · Fashion Video motion-reference authority
+Change: registered three operator-provided motion videos as a content-addressed
+runtime pack and wired deterministic per-mode selection into Seedance's native
+video-reference input. The media remains outside Git; manifests and receipts
+contain hashes only. OpenRouter refuses the unsupported video-reference
+contract before a network request.
+Why: Fashion Video must copy real motion/style authority rather than animate a
+saved look from prompt text alone.
+Evidence: real-path/size/hash verification passed for all three SSD files; all
+four modes select exactly one reference; focused suites PASS 138/138.
+weakened_checks: none.
+
+2026-07-30 · Two independent browser-QA observers and beta node monitor
+Change: preserved Antigravity as Observer 0.8 and added a separate external
+Handoff Cloud Code Observer 0.9 with unique identity, branch, report and
+evidence paths. Monitor runtime configuration now binds the current beta
+runtime and loopback health endpoint; a sanitized terminal watcher maps
+persisted events to Blocks 1–7.
+Why: two QA writers must never share a branch or evidence file, and the live
+monitor was still tied to a retired source path and port.
+Evidence: focused governance/monitor tests, shell syntax, strict release and
+local/public monitor health are required before activation.
+weakened_checks: none.
+
+2026-07-30 · Public health release binding
+Change: release runtime loads the immutable product manifest and publishes only
+its exact Git SHA and cache token in `/api/health`.
+Why: independent browser QA must prove it tested the deployed release, not
+merely a healthy endpoint or stale browser cache.
+Evidence: manifest validation and public health regression tests.
 weakened_checks: none.
 
 2026-07-30 · Upload drag-and-drop + HEIC · `6f17367` → beta
@@ -1319,23 +1645,194 @@ release verification PASS; local/public health ready; public catalogs report
 16 backgrounds and 19 Fashion Shoot modes.
 weakened_checks: none.
 
-2026-08-05 · Temporary Higgsfield hold · source `abed29c`, live beta release `7129c5c`
-Change: added `ZEELY_DISABLE_HIGGSFIELD=true`; image/scene routes use the configured
-OpenRouter provider, and video uses only the explicit OpenRouter route without a
-Higgsfield fallback. The active beta launcher was restarted with the hold enabled.
-Evidence: source/deployed syntax checks PASS; video/provider tests PASS `8/8`; local
-and public beta/main health return `ready`; no Higgsfield process is running.
+2026-07-31 · Fashion Video delivery-audio assembly · `21fd0c8` → beta
+Change: provider output is retained only as `provider.mp4` for audit. Before
+technical QA, Fashion Video freezes the exact approved Video 1 locally,
+rebuilds `clip.mp4` with provider video stream plus that reference's audio
+stream; when Video 1 is silent it emits a silent delivery. Explicit stream maps
+make provider audio ineligible for delivery.
+Why: `CLIP_HAS_AUDIO` incorrectly rejected otherwise reviewable provider output
+before the final delivery file existed.
+Evidence: video suite 155/155 PASS; actual ffmpeg verification on the existing
+provider MP4 produced one HEVC video stream plus AAC from `reference-03.mp4`.
+Beta health reports release SHA `21fd0c8` ready.
+weakened_checks: legacy clips created before this change have no frozen
+reference copy and remain rejected; the observed legacy clip also has a video
+SHA equal to its directing reference and is blocked for reference leakage.
+
+2026-08-01 · Fashion Shoot structured-reference bounds · `dc67de6` → candidate
+Change: bound every compiled structured-reference fact at the single
+`referenceAsset()` producer boundary, with a word-boundary truncation rule and
+a catalogue-wide schema regression.
+Why: the live shoot path compiled 90 facts over the strict 240-character
+contract; no provider call or QA candidate was possible, so the UI surfaced a
+generic executor failure after retries.
+Evidence: structured-reference plus editorial/Create Universe suite `67/67`
+PASS; `verify:contracts` and `verify:canon` PASS; no weakened checks and no
+paid generation.
+
+2026-08-02 · Internal/external storage boundary
+Change: recorded a hard operational rule: active beta runtime stays on the
+internal SSD; the external SSD can hold only explicit archive/cache classes.
+Why: a runtime dependency path placed on the external volume made the
+LaunchAgent unable to boot beta after restart, even though the source and node
+graph were intact.
+Evidence: the restored beta release is healthy with local runtime dependencies;
+the full rule and allowlist are in `docs/DEPLOYMENT_UA.md`.
+weakened_checks: no runtime files were moved or deleted as part of this note.
+
+2026-08-02 · Paid beta core smoke · `c1d75ce8e9c4921e72d6b2ecb349481f00c89aef`
+Change: ran one real paid avatar → outfit journey on beta after isolating the Codex VLM worker with a dedicated `CODEX_HOME`.
+Why: prior paid attempts failed before generation because the persistent beta worker shared desktop Codex state and returned empty/timeout VLM results; unit tests did not exercise that host-level contention.
+Evidence: run `1638c656-4be6-46b9-bfaa-595109db03d6` completed; Higgsfield jobs `ba148144-0d22-467a-b9d5-1fc5d16978cf` and `7986c924-e831-4ed7-9c37-949609858925`; conditioning/avatar/outfit QA PASS; public `/api/health` ready with release SHA `c1d75ce8e9c4921e72d6b2ecb349481f00c89aef`.
+weakened_checks: none. Background/Fashion Shoot/video were not charged in this atom.
+
+2026-08-02 · Current new-image route override · candidate pending deploy
+Change: new avatar, garment-conditioning and scene jobs use GPT Image 2 only:
+low/1K initial, two distinct low/1K QA repair attempts, medium/2K escalation,
+then high/4K final escalation. The generation profile is sent as provider
+request configuration and stored with the durable request/receipt.
+Why: Nano Banana and Nano Banana Pro frequently returned unsuitable images.
+Legacy Nano identifiers remain accepted solely to reopen or audit historical
+jobs; they cannot be selected for a new job.
+Evidence: focused route/provider/core/scene suite 221/221 PASS; scene-service
+58/58 PASS; contract and canon verifiers PASS.
+Beta: NOT_DEPLOYED at the time of this log entry; a release record must name
+the exact activated SHA after `tools/deploy-beta-release.mjs --apply`.
 weakened_checks: none.
 
-2026-08-06 · Higgsfield removed from active runtime · source pending beta activation
-Change: OpenRouter is now the only image, scene, video and VLM transport in source;
-the web runtime no longer imports or constructs Higgsfield providers, preflight no
-longer probes its CLI/account, and the active model/motion schemas allow only the
-OpenRouter transport. Shared image reference/journal/QA helpers were extracted
-from the retired provider module so the OpenRouter adapter has the same contracts.
-Why: the provider was explicitly retired; a feature flag is not sufficient because
-an old fallback could still spend a job after restart or recovery.
-Evidence: focused runtime/provider/contracts/video suite `78/78 PASS`; `git diff --check`
-PASS; active source has no Higgsfield provider import or constructor. Historical
-provider source, tests and receipts remain outside the runtime as an audit archive.
+2026-08-02 · GPT Image 2 ladder beta activation
+Change: activated the tested GPT Image 2 ladder release through the dedicated
+beta deploy tool after active generation work was cancelled by the release
+owner.
+Evidence: public and local health both returned `ready`; product release SHA
+`bb781c2c542c1c6c91f0fdb6298c2c0470578dbf`, cache
+`product-bb781c2c-d3e13b84b4e5`.
+Safety: two local Higgsfield wait processes were stopped; the remaining active
+Fashion Shoot was durably marked CANCELLED. No completed output was removed.
+weakened_checks: none.
+
+2026-08-03 · Fashion Shoot progressive downloads and Fashion Video input roles
+Change: made the progressive Fashion Shoot download control visibly labelled
+«Завантажити» while keeping its direct immutable output URL; added the verified
+three-input Fashion Video contract to the native beta picker.
+Why: a ready customer frame must be usable immediately, and the interface must
+state exactly that Video 1 is private direction, Image 1 is the approved white
+master / sole visible person, and optional input three is a cleaned face or
+garment detail.
+Evidence: relevant web / Fashion Shoot / Fashion Video suite 78/78 PASS;
+contract and canon verifiers PASS; no paid provider work.
+weakened_checks: none.
+
+2026-08-03 · Beta activation · Fashion Shoot catalogue + Fashion Video roles
+Change: activated product release `85bce99fc2e90b5f1689f5daffd56f931cd57ab0`.
+The public Fashion Shoot catalogue reads readiness from the service contract
+rather than an ID-prefix heuristic, restoring the two valid legacy styles.
+Ready progressive frames expose a visible «Завантажити» full-asset link;
+Fashion Video exposes its safe three-input reference contract in beta.
+Why: the prefix filter silently hid valid styles, while the product needed an
+honest explanation of the references actually bound to a video job.
+Evidence: beta and same-origin main API health both return `ready` and this
+exact release SHA; focused suite 78/78 PASS; contract and canon verification
+PASS. No paid generation was run.
+weakened_checks: none.
+
+2026-08-04 · LOOK selected-garment QA scope · beta candidate pending deploy
+Code: `8ff02eb3d8bb890ca5679e894cb9069914cd33c1`.
+Change: the outfit candidate, prompt and Codex VLM QA now bind only canonical
+selected garment cutouts and an explicit selected-category scope. A raw
+full-body garment photo remains provenance/conditioning evidence but cannot
+silently make incidental trousers, footwear or accessories into required locks.
+Why: a top-only hoodie run generated a faithful hoodie but QA exhausted retries
+because it demanded incidental trousers and boots from the hoodie source photo.
+Evidence: focused core QA 37/37 PASS; runner 12/12 PASS; contracts and canon
+PASS. No new provider generation was charged. The prior failed receipt remains
+immutable rather than being reclassified.
+weakened_checks: none — selected garment, identity, anatomy and white
+background QA remain blocking.
+2026-08-04 · README-LOCAL-HTTP-SMOKE · beta · codex-main
+Change: add a behavioral local startup smoke that follows the browser module
+graph through the real Fastify static resolver and checks `/api/health`; also
+decouple local app boot from the deployment-only public video-source origin and
+the optional OpenRouter fallback key.
+Why: a source-string assertion cannot detect a UI bridge/module loaded at a
+wrong HTTP path. The repository handoff must fail before review if that happens.
+Code: `e808ab941838b48d91f50b8c2b74961021012e53`.
+Evidence: `npm run verify:readme` PASS — real Fastify static/module graph and
+clean `src/web/start.js` served `/`, `/app.js`, `/scene-ui.js` and
+`/api/health` with HTTP 200.
+weakened_checks: none.
+
+2026-08-04 · SAVED-MATERIAL-LIBRARY-DURABLE-RECOVERY · beta/main · codex-main
+Change: retain Fashion Shoot profile projections across a temporary absent
+runner and return a recovery card rather than silently removing it from the
+saved list. The cinematic main client now restores background scenes as well
+as Fashion Shoots and verified Fashion Videos, using lightweight previews for
+display and immutable originals only for download.
+Why: a completed material may be durably saved while a runner is reloading;
+runtime absence is not user deletion and must not erase ownership or make the
+library look empty after refresh.
+Evidence: `test/web/editorial-activation-backend.test.js` 9/9 PASS, including
+startup/list recovery without projection deletion; main bridge/client/result
+suite 50/50 PASS. Main code: `21cbc59`.
+Beta: NOT_DEPLOYED; no provider work was created.
+weakened_checks: none; no offline projection is allowed to disclose a frame
+until current runner ownership resolves it.
+
+2026-08-04 · BETA-ACTIVATION-SAVED-MATERIAL-RECOVERY · beta · codex-main
+Change: activated `79b14560971ec0478b0be99be00c984869e29938` after the strict
+release verifier and zero-active-work guard.
+Why: saved materials need the backend recovery boundary live before the main
+client can truthfully restore the full library.
+Evidence: local and public beta health `ready`; public `release_sha` and cache
+token `product-79b14560-42e6606d7baa` match the activation receipt. Main
+`21cbc59` passed its 160-test deploy preflight and serves the new scene-library
+client code.
+weakened_checks: none; no paid generation was started.
+
+2026-08-04 · BETA-SOURCE-SYNC-SAVED-MATERIAL-RECOVERY · beta · codex-main
+Change: activated source release `0050381af5194c594d53b9c0258e5357dcc7b169`,
+which contains the product repair and its shared-state activation record.
+Why: keep `origin/beta` and the public `release_sha` identical after recording
+the successful activation, rather than creating a Git/runtime traceability gap.
+Evidence: guarded activation again found zero active work; local and public
+health returned `ready` with cache token `product-0050381a-42e6606d7baa`.
+weakened_checks: none; documentation/source sync only, no provider work.
+
+2026-08-04 · RELEASE-TRACEABILITY-RULE · beta · codex-main
+Change: the current release SHA is no longer copied into state prose, because
+each source-record commit necessarily creates a newer SHA. The public health
+endpoint is the exact runtime authority; product-change commits remain named
+in the same record.
+Why: static documentation claiming its own current commit would recreate the
+Git/runtime drift it is meant to prevent.
+Evidence: every beta activation is guarded and records its observed health;
+this source contains product repair `79b1456` and activation records.
+weakened_checks: none; documentation protocol only, no provider work.
+
+2026-08-04 · STRUCTURED-FAILURE-DIAGNOSTICS · beta · codex-main
+Change: preserve the server's safe `code`, `failure_code`, `reason_code`,
+`next_action`, and `next_action_reason_code` fields through browser fetch,
+polling, retry and terminal-state presentation. A failed action now shows an
+authored Ukrainian explanation plus its true safe code and next action.
+Why: `Conflict` and generic connection copy hid the real recoverable reason,
+such as unsupported input, insufficient image detail, a pending input-media
+check, or an explicit QA rejection.
+Evidence: error-presentation/draft/scene/editorial/API/video route suite 38/38
+PASS; JavaScript syntax checks PASS; no paid provider request created.
+weakened_checks: none; raw provider/model reasoning, URLs and stack text remain
+private and are intentionally not rendered.
+
+2026-08-06 · Higgsfield removed from active runtime · source synced with origin/beta
+Change: OpenRouter is the only image, scene, video and VLM transport in the web
+runtime. The web process no longer imports or constructs Higgsfield providers,
+preflight no longer probes its CLI/account, and launch configuration has no
+Higgsfield switch or fallback. Shared image reference/journal/QA helpers are
+provider-neutral.
+Why: retiring only by flag left the old adapter in the deployed release and made
+restart/recovery able to select it again.
+Evidence: focused runtime/provider/contracts/video suite `78/78 PASS`; `git diff
+--check` PASS; active source has no Higgsfield provider import or constructor.
+Historical adapters, tests and receipts remain outside the active provider graph
+as audit evidence.
 weakened_checks: none.

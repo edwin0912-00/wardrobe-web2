@@ -1,8 +1,9 @@
 import { createThinkingOrb } from './thinking-orb.js?v=20260722-10';
+import { presentationImageUrl } from './presentation-media.js?v=20260731-1';
 import { UploadSelectionStore } from './upload-state.js?v=20260722-8';
 import { clearDraft, loadDraft, requestPersistentStorage, saveDraft } from './draft-store.js?v=20260722-10';
 import { fileSummary, telemetry } from './telemetry.js?v=20260722-8';
-import { prepareImageFile } from './image-upload.js?v=20260729-1';
+import { createImagePreviewBlob, prepareImageFile } from './image-upload.js?v=20260731-1';
 import { bindImageDropZone } from './drop-upload.js?v=20260729-1';
 import { clearDefinitivelyRejectedRunState, clearServerDraft, createRunFromServerDraft, loadServerDraft, removeServerDraftFile, updateServerDraftMetadata, uploadDraftFile } from './server-draft.js?v=20260723-13';
 import {
@@ -15,9 +16,10 @@ import {
 import { PIPELINE_NODE_COUNT, PIPELINE_NODES, checkpointDisplayCode, nodeState, resolveProgressState } from './progress-model.js?v=20260722-7';
 import { createLiveVisualizer, isProviderWaitStage } from './live-visualizer.js?v=20260724-1';
 import { fetchRunWithRetry, RunNotFoundError } from './run-resume.js?v=20260722-3';
-import { claimProfileRun, deleteAnonymousProfile, deleteProfileAvatar, deleteProfileLook, listProfileLookEditorialShoots, loadProfile, saveProfileRun } from './profile-client.js?v=20260724-5';
-import { neutralizeItemTerms } from './visible-copy.js?v=20260722-1';
-import { createSceneUi } from './scene-ui.js?v=20260728-2';
+import { claimProfileRun, deleteAnonymousProfile, deleteProfileLook, listProfileLookEditorialShoots, listProfileLookVideoClips, loadProfile, saveProfileRun } from './profile-client.js?v=20260804-1';
+import { needsInputPresentation, neutralizeItemTerms } from './visible-copy.js?v=20260731-2';
+import { createSceneUi } from './scene-ui.js?v=20260804-1';
+import { errorFromApiResponse, withPublicDiagnostic } from './error-presentation.js?v=20260804-1';
 import {
   addItemsScreenState,
   clearAddItemsSelection,
@@ -61,9 +63,18 @@ const failure = document.querySelector('#failure-view');
 const studioShell = document.querySelector('#studio-shell');
 const resultPanelTitle = document.querySelector('#result-panel-title');
 const thinkingOrb = createThinkingOrb(document.querySelector('#progress-orb-canvas'));
+const fashionVideoCapabilityOrb = createThinkingOrb(document.querySelector('#profile-video-orb'), 'searching');
+const realtimeLookCapabilityOrb = createThinkingOrb(document.querySelector('#profile-live-orb'), 'searching');
+const videoThinkingOrb = createThinkingOrb(document.querySelector('#video-thinking-orb'), 'searching');
 const liveVisualizer = createLiveVisualizer(document.querySelector('#pipeline-live-visualizer'));
+// This screen must not live below a transformed workflow panel: `position:
+// fixed` would then be clipped as a window inside a window. Keep the Fashion
+// Video task as a single direct-body, full-viewport screen.
+const fashionVideoOverlay = document.querySelector('#video-overlay');
+document.body.append(fashionVideoOverlay);
 const uploads = new UploadSelectionStore({ maxGarments: 5 });
 let previewUrls = [];
+let previewRenderEpoch = 0;
 let activeRun = null;
 let eventSource = null;
 let saveTimer = null;
@@ -97,14 +108,19 @@ let selectedProfileLookId = null;
 let selectedProfileLookSelection = null;
 let selectedProfileLook = null;
 let profileEditorialRequestVersion = 0;
+let profileVideoRequestVersion = 0;
 let fashionVideoCapabilityRequestVersion = 0;
 let fashionVideoCapability = null;
 let realtimeLookCapabilityRequestVersion = 0;
 let realtimeLookCapability = null;
+let videoGenerationBusy = false;
+let failedFashionVideoClipId = null;
+let failedFashionVideoRetryKey = null;
 
 const ACTIVE_RUN_KEY = 'zeely_active_run_id';
 const PENDING_FINALIZATION_KEY = 'zeely_pending_finalization_id';
 const DRAFT_RESET_PENDING_KEY = 'zeely_draft_reset_pending';
+const LIVE_RETURN_FOCUS_KEY = 'zeely_live_return_focus';
 const TERMINAL_STATUSES = new Set(['COMPLETED', 'FAILED', 'NEEDS_INPUT']);
 const PIPELINE_STATUS_LABELS = Object.freeze({
   done: 'SAVED', active: 'ACTIVE', pending: 'WAIT', skipped: 'SKIP', reused: 'REUSE', stopped: 'STOP',
@@ -114,6 +130,42 @@ function humanizeVisibleText(value) {
   return neutralizeItemTerms(String(value ?? '')
     .replace(/visible garment mismatch/gi, 'невідповідність видимих характеристик речі')
     .replace(/garment mismatch/gi, 'невідповідність речі'));
+}
+
+function publicFailureMessage(message, source, fallback = 'Не вдалося завершити цю дію.') {
+  return withPublicDiagnostic(humanizeVisibleText(message || fallback), source);
+}
+
+async function loadBuildIdentity() {
+  const marker = document.querySelector('#build-identity');
+  if (!marker) return;
+  try {
+    const response = await fetch('/api/health', {
+      cache: 'no-store',
+      headers: { Accept: 'application/json' },
+    });
+    if (!response.ok) throw new Error(`health ${response.status}`);
+    const health = await response.json();
+    const releaseSha = typeof health.release_sha === 'string' && /^[a-f0-9]{40}$/.test(health.release_sha)
+      ? health.release_sha
+      : null;
+    const cacheToken = typeof health.cache_token === 'string' && /^product-[a-f0-9]{8}-[a-f0-9]{12}$/.test(health.cache_token)
+      ? health.cache_token
+      : null;
+    if (!releaseSha) {
+      marker.textContent = 'REL DEV';
+      marker.dataset.state = 'dev';
+      marker.title = 'Release manifest is not available';
+      return;
+    }
+    marker.textContent = `REL ${releaseSha.slice(0, 8)}`;
+    marker.dataset.state = 'ready';
+    marker.title = `Release ${releaseSha}${cacheToken ? ` · ${cacheToken}` : ''}`;
+  } catch {
+    marker.textContent = 'REL ?';
+    marker.dataset.state = 'unknown';
+    marker.title = 'Release identity unavailable';
+  }
 }
 
 function initializePipelineGraph() {
@@ -170,6 +222,7 @@ function initializePipelineGraph() {
 }
 
 initializePipelineGraph();
+void loadBuildIdentity();
 
 function movePipelineBoard(destination = 'progress') {
   const board = document.querySelector('.pipeline-board');
@@ -341,14 +394,35 @@ function fileLabel(input, count, filename = '') {
   else label.textContent = filename || 'Обрати файл';
 }
 
-function previewItem(file, onRemove) {
+function previewItem(file, onRemove, renderEpoch) {
   const item = document.createElement('article');
   item.className = 'selected-file';
   const image = document.createElement('img');
-  const url = URL.createObjectURL(file);
-  previewUrls.push(url);
-  image.src = url;
   image.alt = file.name;
+  image.setAttribute('aria-busy', 'true');
+  // A preview is an asynchronous, local WebP derivative. The selected File
+  // remains the source that is uploaded and hashed; the UI never swaps it.
+  void createImagePreviewBlob(file).then((preview) => {
+    const url = URL.createObjectURL(preview);
+    if (renderEpoch !== previewRenderEpoch || !item.isConnected) {
+      URL.revokeObjectURL(url);
+      return;
+    }
+    previewUrls.push(url);
+    image.src = url;
+    image.removeAttribute('aria-busy');
+  }).catch(() => {
+    // Fallback only for a browser without an image bitmap/canvas decoder.
+    // It preserves usability; normal browsers always receive the light copy.
+    const url = URL.createObjectURL(file);
+    if (renderEpoch !== previewRenderEpoch || !item.isConnected) {
+      URL.revokeObjectURL(url);
+      return;
+    }
+    previewUrls.push(url);
+    image.src = url;
+    image.removeAttribute('aria-busy');
+  });
   const name = document.createElement('span');
   name.textContent = file.name;
   const remove = document.createElement('button');
@@ -362,6 +436,7 @@ function previewItem(file, onRemove) {
 }
 
 function renderUploads() {
+  const renderEpoch = ++previewRenderEpoch;
   previewUrls.forEach((url) => URL.revokeObjectURL(url));
   previewUrls = [];
   const personPreview = document.querySelector('#person-preview');
@@ -373,13 +448,13 @@ function renderUploads() {
 
   if (uploads.person) personPreview.append(previewItem(uploads.person, () => {
     queueDraftMutation(() => removeFile('person'), 'remove_person');
-  }));
+  }, renderEpoch));
   if (uploads.identityDetail) identityPreview.append(previewItem(uploads.identityDetail, () => {
     queueDraftMutation(() => removeFile('identity'), 'remove_identity');
-  }));
+  }, renderEpoch));
   uploads.garments.forEach((file, index) => garmentPreview.append(previewItem(file, () => {
     queueDraftMutation(() => removeFile('garment', index), 'remove_item');
-  })));
+  }, renderEpoch)));
 
   fileLabel(document.querySelector('#person-photo'), uploads.person ? 1 : 0, uploads.person?.name);
   fileLabel(document.querySelector('#identity-detail'), uploads.identityDetail ? 1 : 0, uploads.identityDetail?.name);
@@ -608,12 +683,15 @@ function renderRun(run) {
   setWorkflowActive(true);
   localStorage.setItem(ACTIVE_RUN_KEY, run.run_id);
   const hasSelectableConflict = run.status === 'NEEDS_INPUT' && (run.conflicts || []).some((item) => item.type === 'DUPLICATE_SLOT');
+  const needsReplacementMaterials = run.status === 'NEEDS_INPUT' && !hasSelectableConflict;
+  const needsInput = needsReplacementMaterials
+    ? needsInputPresentation(run.message || run.error?.message)
+    : null;
   statusChip.textContent = hasSelectableConflict ? 'ПОТРІБЕН ВИБІР' : run.status.replaceAll('_', ' ');
   statusChip.className = `status-chip ${hasSelectableConflict ? 'choice' : run.status === 'COMPLETED' ? 'completed' : run.status === 'FAILED' || run.status === 'NEEDS_INPUT' ? 'failed' : 'running'}`;
   if (run.status === 'COMPLETED') {
     renderProgress(resolveProgressState('COMPLETED'), run.message);
     movePipelineBoard('completed');
-    document.querySelector('#completed-pipeline-trace').open = true;
     resultPanelTitle.textContent = 'Результат';
     setView('result');
     renderResults(run);
@@ -631,10 +709,16 @@ function renderRun(run) {
     setView('failure');
     failure.classList.toggle('choice', hasSelectableConflict);
     document.querySelector('.failure-mark').textContent = hasSelectableConflict ? '?' : '!';
-    document.querySelector('#failure-title').textContent = hasSelectableConflict ? 'Обери річ для образу' : run.status === 'NEEDS_INPUT' ? 'Потрібне інше фото' : 'Генерацію зупинено';
-    document.querySelector('#failure-message').textContent = hasSelectableConflict ? 'Знайдено кілька різних речей одного типу. Обери одну — генерація продовжиться з цього етапу.' : humanizeVisibleText(run.message || run.error?.message || 'Невідома помилка');
+    document.querySelector('#failure-title').textContent = hasSelectableConflict ? 'Виберіть одну річ для образу' : needsInput?.title ?? 'Генерацію зупинено';
+    document.querySelector('#failure-message').textContent = hasSelectableConflict
+      ? 'Знайдено кілька речей одного типу. Натисніть одну картку нижче — генерація продовжиться з нею.'
+      : publicFailureMessage(
+        needsInput?.message ?? run.message ?? run.error?.message,
+        run,
+        'Генерацію зупинено до наступної дії.',
+      );
     renderConflictPicker(run);
-    document.querySelector('#retry-run').classList.toggle('hidden', hasSelectableConflict);
+    document.querySelector('#retry-run').classList.toggle('hidden', hasSelectableConflict || needsReplacementMaterials);
     submit.disabled = false;
     eventSource?.close();
     return;
@@ -650,10 +734,14 @@ function renderConflictPicker(run) {
   const conflicts = (run.conflicts || []).filter((item) => item.type === 'DUPLICATE_SLOT');
   if (!conflicts.length) return;
   const selections = {};
+  const instruction = document.createElement('p');
+  instruction.className = 'conflict-instruction';
+  instruction.textContent = 'Виберіть одну річ для образу';
+  picker.append(instruction);
   const continueButton = document.createElement('button');
   continueButton.type = 'button';
   continueButton.className = 'primary-button conflict-continue';
-  continueButton.textContent = 'Продовжити з обраними речами →';
+  continueButton.textContent = 'Продовжити з обраною річчю →';
   continueButton.disabled = true;
 
   const categoryNames = { outerwear: 'верхній одяг', top: 'верх', bottom: 'низ', one_piece: 'цільний образ', footwear: 'взуття', headwear: 'головний убір', bag: 'сумка', accessory: 'аксесуар' };
@@ -695,12 +783,12 @@ function renderConflictPicker(run) {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ selections }),
       });
       const body = await response.json();
-      if (!response.ok) throw new Error(body.error || 'Не вдалося зберегти вибір');
+      if (!response.ok) throw errorFromApiResponse(response, body, 'Не вдалося зберегти вибір');
       telemetry('client.garment_selected', { categories: Object.keys(selections), stage: 'garment_conflict' }, run.run_id);
       renderRun(body);
       watch(body.run_id);
     } catch (error) {
-      document.querySelector('#failure-message').textContent = humanizeVisibleText(error.message);
+      document.querySelector('#failure-message').textContent = publicFailureMessage(error.message, error);
       continueButton.disabled = false;
     }
   });
@@ -749,7 +837,7 @@ function setAvatarDraftMode(avatar = null, look = null) {
 
   const preview = document.querySelector('#source-avatar-preview');
   if (reusingAvatar) {
-    preview.src = avatarImageUrl(avatar);
+    preview.src = presentationImageUrl(avatarImageUrl(avatar));
     preview.hidden = false;
     document.querySelector('#source-avatar-name').textContent = addItemsState.sourceName;
     document.querySelector('#source-avatar-detail').textContent = addItemsState.sourceDetail;
@@ -842,7 +930,7 @@ async function ensureCompletedRunSaved(run) {
     return currentProfile;
   })().catch((error) => {
     profileSavePromises.delete(run.run_id);
-    saveState.textContent = 'Профіль не збережено · повторити';
+    saveState.textContent = 'Не вдалося підтвердити збереження · повторити';
     saveState.classList.remove('saving');
     saveState.classList.add('failed');
     saveState.onclick = () => ensureCompletedRunSaved(run).catch(() => {});
@@ -891,8 +979,9 @@ function appendProfilePager(container, { label, page, pageCount, onChange }) {
   container.append(pager);
 }
 
-async function beginDraft({ avatar = null, look = null } = {}) {
+async function beginDraft({ avatar = null, look = null, outfitText = '' } = {}) {
   const selection = avatar ? resolveAddItemsSelection({ avatar, look }) : null;
+  const carriedOutfitText = typeof outfitText === 'string' ? outfitText.trim() : '';
   form.inert = true;
   form.setAttribute('aria-busy', 'true');
   try {
@@ -905,6 +994,7 @@ async function beginDraft({ avatar = null, look = null } = {}) {
     currentResultLookId = null;
     renderedProgressFloor = 0;
     form.reset();
+    form.elements.outfit_text.value = carriedOutfitText;
     uploads.reset();
     renderUploads();
     localStorage.removeItem(ACTIVE_RUN_KEY);
@@ -930,10 +1020,10 @@ async function beginDraft({ avatar = null, look = null } = {}) {
 
     if (selection) {
       renderUploads();
-      await saveDraft({ ...uploads, outfitText: '', generateScene: false });
+      await saveDraft({ ...uploads, outfitText: carriedOutfitText, generateScene: false });
       if (didClearServer) {
         await updateServerDraftMetadata({
-          outfitText: '',
+          outfitText: carriedOutfitText,
           generateScene: false,
           sourceAvatarId: selection.avatarId,
           sourceLookId: selection.lookId,
@@ -944,7 +1034,9 @@ async function beginDraft({ avatar = null, look = null } = {}) {
         };
         serverDraftLoaded = true;
       }
-      draftStatus.textContent = 'Аватар зафіксовано · додай речі для окремого образу';
+      draftStatus.textContent = carriedOutfitText
+        ? 'Попередній опис перенесено · уточни його або додай фото речі'
+        : 'Аватар зафіксовано · додай речі для окремого образу';
       draftStatus.className = 'draft-status saved';
     } else {
       draftStatus.textContent = 'Нова порожня чернетка аватара';
@@ -1050,7 +1142,7 @@ function renderProfileSceneLibrary(look) {
     visual.className = 'profile-look-scene-visual';
     if (scene.image_url) {
       const image = document.createElement('img');
-      image.src = scene.image_url;
+      image.src = presentationImageUrl(scene.image_url);
       image.alt = '';
       image.loading = 'lazy';
       visual.append(image);
@@ -1145,12 +1237,16 @@ function renderProfileEditorialLibrary(look, profile = currentProfile, supplied 
 
     const visual = document.createElement('span');
     visual.className = 'profile-look-scene-visual';
-    const heroUrl = shoot.hero_image_url
+    // Direct Fashion Shoots have an internal, non-delivery hero check. The
+    // backend persists the first approved customer frame as preview_image_url
+    // so saved sessions never regress to a blank F-card after reload.
+    const heroUrl = shoot.preview_image_url
+      ?? shoot.hero_image_url
       ?? shoot.preview_url
       ?? shoot.shots?.find((shot) => shot.slot === 'clean_identity_hero')?.output?.image_url;
     if (heroUrl) {
       const image = document.createElement('img');
-      image.src = heroUrl;
+      image.src = presentationImageUrl(heroUrl);
       image.alt = '';
       image.loading = 'lazy';
       visual.append(image);
@@ -1177,6 +1273,91 @@ function renderProfileEditorialLibrary(look, profile = currentProfile, supplied 
       sceneUi.openExistingEditorial(shoot, look).catch(showProfileError);
     });
     item.append(open);
+    list.append(item);
+  });
+}
+
+function videoClipsForLook(look, supplied = null) {
+  if (!look) return [];
+  // Profile projections can outlive a failed or legacy provider result.  The
+  // explicit video-clips route is the delivery authority, so do not turn a
+  // raw DB projection into a playable card before that route confirms it.
+  return Array.isArray(supplied) ? supplied : [];
+}
+
+async function copyPrivateDeliveryLink(value, control) {
+  if (typeof value !== 'string' || value.length === 0) return;
+  const href = new URL(value, window.location.origin).href;
+  const initialLabel = control?.textContent ?? 'Копіювати посилання';
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(href);
+    } else {
+      const fallback = document.createElement('textarea');
+      fallback.value = href;
+      fallback.setAttribute('readonly', '');
+      fallback.style.position = 'fixed';
+      fallback.style.opacity = '0';
+      document.body.append(fallback);
+      fallback.select();
+      const copied = document.execCommand('copy');
+      fallback.remove();
+      if (!copied) throw new Error('copy failed');
+    }
+    if (control) {
+      control.textContent = 'Посилання скопійовано';
+      window.setTimeout(() => { control.textContent = initialLabel; }, 1800);
+    }
+  } catch {
+    if (control) control.textContent = 'Не вдалося скопіювати';
+  }
+}
+
+function renderProfileVideoLibrary(look, supplied = null) {
+  const clips = videoClipsForLook(look, supplied);
+  const list = document.querySelector('#profile-look-video-list');
+  const emptyState = document.querySelector('#profile-look-videos-empty');
+  const count = document.querySelector('#profile-look-videos-count');
+  const section = document.querySelector('#profile-look-videos');
+  list.replaceChildren();
+  section.classList.toggle('hidden', clips.length === 0);
+  count.textContent = String(clips.length);
+  count.setAttribute(
+    'aria-label',
+    clips.length === 1 ? '1 збережене fashion-відео' : `${clips.length} збережених fashion-відео`,
+  );
+  emptyState.classList.toggle('hidden', clips.length > 0);
+
+  clips.forEach((clip, index) => {
+    const clipId = clip.clip_id ?? clip.id;
+    const playbackUrl = clip.video_url;
+    if (!clipId || !playbackUrl) return;
+    const item = document.createElement('li');
+    item.className = 'profile-look-video-item';
+    const player = document.createElement('video');
+    player.className = 'profile-look-video-player';
+    player.src = playbackUrl;
+    player.controls = true;
+    player.playsInline = true;
+    player.preload = 'metadata';
+    player.setAttribute('aria-label', `Fashion-відео ${index + 1}`);
+
+    const actions = document.createElement('div');
+    actions.className = 'profile-look-video-actions';
+    const download = document.createElement('a');
+    download.href = clip.download_url ?? playbackUrl;
+    download.download = 'fashion-video.mp4';
+    download.textContent = 'Завантажити MP4';
+    const copy = document.createElement('button');
+    copy.type = 'button';
+    copy.textContent = 'Копіювати посилання';
+    copy.addEventListener('click', () => copyPrivateDeliveryLink(playbackUrl, copy));
+    actions.append(download, copy);
+
+    const note = document.createElement('small');
+    note.className = 'profile-look-video-note';
+    note.textContent = 'Посилання приватне: відкривається лише в цьому профілі.';
+    item.append(player, actions, note);
     list.append(item);
   });
 }
@@ -1244,7 +1425,7 @@ async function renderProfile(profileValueToRender = null) {
         : `${active ? 'Вибрано' : 'Обрати'} ${avatar.name || `Аватар ${index + 1}`} і показати пов’язані образи`,
     );
     const image = document.createElement('img');
-    image.src = avatarImageUrl(avatar);
+    image.src = presentationImageUrl(avatarImageUrl(avatar));
     image.alt = avatar.name || `Аватар ${index + 1}`;
     const summary = document.createElement('span');
     summary.className = 'profile-avatar-summary';
@@ -1264,20 +1445,6 @@ async function renderProfile(profileValueToRender = null) {
           resolveSavedAvatarTransition(profile, avatar).selection,
           beginDraft,
         ).catch(showProfileError);
-      }),
-      createProfileButton('Видалити', 'profile-delete-action', async (event) => {
-        event.stopPropagation();
-        try {
-          if (!confirm('Видалити цей аватар і всі пов’язані образи?')) return;
-          await deleteProfileAvatar(id);
-          if (selectedProfileAvatarId === id) {
-            selectedProfileAvatarId = null;
-            selectedProfileLookId = null;
-          }
-          await renderProfile(await loadCurrentProfile({ refresh: true }));
-        } catch (error) {
-          showProfileError(error);
-        }
       }),
     );
     card.append(selector, actions);
@@ -1299,7 +1466,7 @@ async function renderProfile(profileValueToRender = null) {
     open.setAttribute('aria-expanded', String(active));
     open.setAttribute('aria-controls', 'profile-look-detail');
     const image = document.createElement('img');
-    image.src = look.image_url ?? `/api/profile/looks/${encodeURIComponent(lookId)}/image`;
+    image.src = presentationImageUrl(look.image_url ?? `/api/profile/looks/${encodeURIComponent(lookId)}/image`);
     image.alt = look.name || `Збережений образ ${index + 1}`;
     const title = document.createElement('strong');
     title.textContent = look.name || `Образ ${String(index + 1).padStart(2, '0')}`;
@@ -1351,16 +1518,18 @@ async function renderProfile(profileValueToRender = null) {
   const detailTitle = document.querySelector('#profile-look-detail-title');
   const detailOwner = document.querySelector('#profile-look-detail-owner');
   const editorialRequestVersion = ++profileEditorialRequestVersion;
+  const videoRequestVersion = ++profileVideoRequestVersion;
   detail.classList.toggle('hidden', !selectedProfileLookSelection);
   profileLibrary?.classList.toggle('has-open-look', Boolean(selectedProfileLookSelection));
   if (selectedProfileLookSelection) {
-    detailImage.src = selectedProfileLook.image_url
-      ?? `/api/profile/looks/${encodeURIComponent(selectedProfileLookSelection.lookId)}/image`;
+    detailImage.src = presentationImageUrl(selectedProfileLook.image_url
+      ?? `/api/profile/looks/${encodeURIComponent(selectedProfileLookSelection.lookId)}/image`);
     detailImage.alt = selectedProfileLook.name || 'Вибраний збережений образ';
     detailTitle.textContent = selectedProfileLook.name || 'Збережений образ';
     detailOwner.textContent = `${selectedProfileLookSelection.avatar?.name || 'Збережений аватар'} · зберігаємо зовнішність і пропорції тіла`;
     renderProfileSceneLibrary(selectedProfileLook);
     renderProfileEditorialLibrary(selectedProfileLook, profile);
+    renderProfileVideoLibrary(selectedProfileLook);
     const requestedLookId = selectedProfileLookSelection.lookId;
     listProfileLookEditorialShoots(requestedLookId)
       .then((response) => {
@@ -1373,6 +1542,13 @@ async function renderProfile(profileValueToRender = null) {
         );
       })
       .catch(() => undefined);
+    listProfileLookVideoClips(requestedLookId)
+      .then((response) => {
+        if (profileVideoRequestVersion !== videoRequestVersion
+          || selectedProfileLookId !== requestedLookId) return;
+        renderProfileVideoLibrary(selectedProfileLook, response?.clips ?? response);
+      })
+      .catch(() => undefined);
     refreshFashionVideoCapability(selectedProfileLook);
     refreshRealtimeLookCapability(selectedProfileLook);
   } else {
@@ -1381,6 +1557,7 @@ async function renderProfile(profileValueToRender = null) {
     detailOwner.textContent = '';
     renderProfileSceneLibrary(null);
     renderProfileEditorialLibrary(null, profile);
+    renderProfileVideoLibrary(null);
     refreshFashionVideoCapability(null);
     refreshRealtimeLookCapability(null);
   }
@@ -1427,7 +1604,7 @@ function renderResults(run) {
   tabs.replaceChildren();
 
   const activate = (selected) => {
-    activeImage.src = selected.url;
+    activeImage.src = presentationImageUrl(selected.url);
     activeImage.alt = selected.label === 'Аватар' ? 'Базовий ZEELY аватар' : `ZEELY ${selected.label.toLowerCase()}`;
     activeLabel.textContent = selected.label;
     activeDownload.href = selected.url;
@@ -1444,7 +1621,7 @@ function renderResults(run) {
     button.className = 'result-tab';
     button.dataset.output = item.key;
     const thumb = document.createElement('img');
-    thumb.src = item.url;
+    thumb.src = presentationImageUrl(item.url);
     thumb.alt = '';
     const label = document.createElement('span');
     label.textContent = item.label;
@@ -1455,7 +1632,7 @@ function renderResults(run) {
 
   const avatarUrl = run.outputs.avatar || run.outputs.avatar_outfit;
   const avatarPreview = document.querySelector('#profile-avatar-preview');
-  avatarPreview.src = avatarUrl;
+  avatarPreview.src = presentationImageUrl(avatarUrl);
   avatarPreview.hidden = !avatarUrl;
   if (items.length) activate(items[0]);
   ensureCompletedRunSaved(run).catch(() => {});
@@ -1590,10 +1767,10 @@ document.querySelector('#retry-run').addEventListener('click', async () => {
     renderedProgressFloor = 0;
     const response = await fetch(`/api/runs/${encodeURIComponent(activeRun.run_id)}/retry`, { method: 'POST' });
     const body = await response.json();
-    if (!response.ok) throw new Error(body.error);
+    if (!response.ok) throw errorFromApiResponse(response, body, 'Не вдалося повторити генерацію');
     renderRun(body); watch(body.run_id);
   } catch (error) {
-    document.querySelector('#failure-message').textContent = humanizeVisibleText(error.message);
+    document.querySelector('#failure-message').textContent = publicFailureMessage(error.message, error);
     telemetry('client.fetch_error', { message: error.message.slice(0, 500), stage: 'retry' }, activeRun.run_id);
   }
 });
@@ -1679,6 +1856,10 @@ function syncFashionVideoAction({ state = 'checking', capability = null } = {}) 
   const label = document.querySelector('#profile-look-video-state');
   if (!action || !label) return;
   fashionVideoCapability = capability;
+  action.dataset.state = state;
+  action.classList.toggle('is-checking', state === 'checking');
+  action.setAttribute('aria-busy', String(state === 'checking'));
+  if (state === 'checking') fashionVideoCapabilityOrb.setState('searching');
   action.disabled = !selectedProfileLook || state !== 'ready';
   action.setAttribute(
     'aria-label',
@@ -1711,9 +1892,12 @@ async function refreshFashionVideoCapability(look) {
       && payload?.create_route === '/api/profile/video-clips'
       && payload?.requirements?.approved_master_look === true
       && payload?.requirements?.verified_style_reference === true
-      && payload?.requirements?.verified_motion_reference === true;
+      && payload?.requirements?.verified_motion_reference === true
+      && payload?.requirements?.verified_video_style_catalog === true
+      && Array.isArray(payload?.styles)
+      && payload.styles.length >= 3;
     syncFashionVideoAction(ready
-      ? { state: 'ready', capability: { lookId } }
+      ? { state: 'ready', capability: { lookId, styles: payload.styles ?? [] } }
       : { state: 'unavailable' });
   } catch {
     if (requestVersion === fashionVideoCapabilityRequestVersion) {
@@ -1726,7 +1910,19 @@ function syncRealtimeLookAction({ state = 'checking', capability = null } = {}) 
   const label = document.querySelector('#profile-look-live-state');
   if (!action || !label) return;
   realtimeLookCapability = capability;
+  action.dataset.state = state;
+  action.classList.toggle('is-checking', state === 'checking');
+  action.setAttribute('aria-busy', String(state === 'checking'));
+  if (state === 'checking') realtimeLookCapabilityOrb.setState('searching');
   action.disabled = !selectedProfileLook || state !== 'ready';
+  action.setAttribute(
+    'aria-label',
+    state === 'ready'
+      ? 'Відкрити Live Look'
+      : state === 'unavailable'
+        ? 'Live Look тимчасово недоступний'
+        : 'Перевіряємо доступність Live Look',
+  );
   label.textContent = state === 'ready'
     ? capability.paidLiveReady
       ? 'Камера й AI доступні'
@@ -1757,8 +1953,8 @@ async function refreshRealtimeLookCapability(look) {
       && payload?.launch?.target === '_self'
       && payload?.launch?.nested === false
       && payload?.launch?.internal_scroll === false
-      && payload?.consent?.privacy_required === true
-      && payload?.consent?.cost_required === true
+      && payload?.consent?.privacy_required === false
+      && payload?.consent?.cost_required === false
       && payload?.camera?.permission_required === true
       && payload?.camera?.audio === false
       && payload?.capture?.automatic_recording === false
@@ -1795,126 +1991,322 @@ document.querySelector('#profile-look-video').addEventListener('click', (event) 
   if (!selectedProfileLook) return;
   const lookId = idOfLook(selectedProfileLook);
   if (!lookId || fashionVideoCapability?.lookId !== lookId) return;
-  const overlay = document.querySelector('#video-overlay');
-  const sourceImg = document.querySelector('#video-source-image');
-  setLookActionStatus('Fashion Video: обери формат кадру й подачу. Після запуску сервер створює кліп, перевіряє його та зберігає до цього образу.');
-  sourceImg.src = selectedProfileLook.image_url ?? `/api/profile/looks/${encodeURIComponent(lookId)}/image`;
+  const overlay = fashionVideoOverlay;
+  renderFashionVideoStyles(fashionVideoCapability.styles);
   document.querySelector('#video-progress').hidden = true;
   document.querySelector('#video-result').hidden = true;
   document.querySelector('#video-error').hidden = true;
-  document.querySelector('#video-generate').disabled = false;
+  document.querySelector('#video-retry').hidden = true;
+  setVideoGenerateBusy(videoGenerationBusy);
+  document.body.classList.add('profile-live-open');
   overlay.classList.remove('hidden');
   document.querySelector('#video-overlay-close').focus({ preventScroll: true });
 });
-// Refine button handler
-document.querySelector('#profile-look-refine').addEventListener('click', (event) => {
-  event.stopPropagation();
-  if (!selectedProfileLook) return;
-  setLookActionStatus('Покращити: master і вибрані речі locked. Функція ще готується і нічого не змінює.');
-});
-// Video overlay: option selection
-document.querySelectorAll('#video-surface-options .video-option, #video-motion-options .video-option').forEach((btn) => {
-  btn.addEventListener('click', () => {
-    const group = btn.closest('.video-options');
-    group.querySelectorAll('.video-option').forEach((b) => { b.classList.remove('active'); b.setAttribute('aria-pressed', 'false'); });
-    btn.classList.add('active');
-    btn.setAttribute('aria-pressed', 'true');
+function renderFashionVideoStyles(styles = []) {
+  const root = document.querySelector('#video-style-options');
+  renderFashionVideoInputContract(styles[0] ?? null);
+  const cards = styles.map((style, index) => {
+    const card = document.createElement('button');
+    card.type = 'button';
+    card.className = 'video-style-card';
+    card.dataset.motionMode = style.motion_mode;
+    card.dataset.styleId = style.id;
+    card.setAttribute('role', 'radio');
+    card.setAttribute('aria-checked', String(index === 0));
+    const video = document.createElement('video');
+    video.src = style.playback_url;
+    video.poster = style.preview_url;
+    video.autoplay = true;
+    video.muted = true;
+    video.loop = true;
+    video.playsInline = true;
+    video.preload = 'auto';
+    video.disablePictureInPicture = true;
+    video.setAttribute('aria-label', `Відеореференс стилю: ${style.title}`);
+    video.addEventListener('canplay', () => video.play().catch(() => {}), { once: true });
+    const label = document.createElement('span');
+    label.textContent = style.title;
+    card.append(video, label);
+    card.addEventListener('click', () => {
+      root.querySelectorAll('.video-style-card').forEach((candidate) => {
+        candidate.setAttribute('aria-checked', String(candidate === card));
+      });
+      renderFashionVideoInputContract(style);
+    });
+    return card;
   });
-});
+  root.replaceChildren(...cards);
+}
+
+// Video 1 is private directing material; only the approved white master may
+// become the visible person. Keep those roles explicit instead of leaving the
+// card UI to imply that the original performer can survive into delivery.
+function renderFashionVideoInputContract(style) {
+  const root = document.querySelector('#video-input-contract');
+  if (!root) return;
+  const inputs = Array.isArray(style?.input_contract?.inputs)
+    ? style.input_contract.inputs.filter((input) => (
+      typeof input?.label === 'string'
+      && typeof input?.description_uk === 'string'
+    ))
+    : [];
+  if (inputs.length === 0) {
+    root.hidden = true;
+    root.replaceChildren();
+    return;
+  }
+  const heading = document.createElement('p');
+  heading.className = 'video-input-contract__title';
+  heading.textContent = 'Що використовується для цього відео';
+  const list = document.createElement('ol');
+  list.className = 'video-input-contract__list';
+  inputs.forEach((input) => {
+    const item = document.createElement('li');
+    const label = document.createElement('strong');
+    label.textContent = input.label;
+    const description = document.createElement('span');
+    description.textContent = input.description_uk;
+    item.append(label, description);
+    list.append(item);
+  });
+  root.replaceChildren(heading, list);
+  root.hidden = false;
+}
 // Video overlay: close
 function closeVideoOverlay() {
-  document.querySelector('#video-overlay').classList.add('hidden');
+  document.querySelectorAll('#video-style-options video').forEach((video) => video.pause());
+  fashionVideoOverlay.classList.add('hidden');
+  document.body.classList.remove('profile-live-open');
+}
+function setVideoGenerateBusy(busy) {
+  const action = document.querySelector('#video-generate');
+  const thinking = document.querySelector('#video-ai-thinking');
+  videoGenerationBusy = busy;
+  action.disabled = busy;
+  action.classList.toggle('is-loading', busy);
+  action.setAttribute('aria-busy', String(busy));
+  thinking.hidden = !busy;
+  if (busy) setVideoThinkingState('searching', 'AI готує запуск', 'Перевіряємо reference pack');
+}
+function showVideoRetry(problem, clipId = null) {
+  const error = document.querySelector('#video-error');
+  const message = typeof problem === 'string'
+    ? problem
+    : problem?.error ?? problem?.message ?? 'Відео не пройшло перевірку після доступних автоматичних спроб.';
+  error.textContent = publicFailureMessage(message, problem);
+  error.hidden = false;
+  failedFashionVideoClipId = clipId;
+  failedFashionVideoRetryKey = clipId ? crypto.randomUUID() : null;
+  // This is an explicit user action. Reference-performer QA gets two
+  // server-owned attempts first; this button appears only once those attempts
+  // are exhausted or when the failure is outside that bounded policy.
+  document.querySelector('#video-retry').hidden = false;
+}
+function setVideoThinkingState(state, title, detail) {
+  videoThinkingOrb.setState(state);
+  document.querySelector('#video-ai-title').textContent = title;
+  document.querySelector('#video-ai-detail').textContent = detail;
 }
 document.querySelector('#video-overlay-close').addEventListener('click', closeVideoOverlay);
 document.querySelector('#video-overlay').addEventListener('click', (event) => {
   if (event.target === event.currentTarget) closeVideoOverlay();
 });
+async function pollFashionVideo(clipId) {
+  const progressFill = document.querySelector('#video-progress-fill');
+  const progressStatus = document.querySelector('#video-progress-status');
+  const resultEl = document.querySelector('#video-result');
+  let attempts = 0;
+  const poll = setInterval(async () => {
+    attempts++;
+    progressFill.style.width = `${Math.min(30 + attempts * 0.5, 92)}%`;
+    try {
+      const statusRes = await fetch(`/api/profile/video-clips/${clipId}`);
+      if (!statusRes.ok) return;
+      const status = await statusRes.json();
+      const automaticRetry = status.automatic_retry;
+      const automaticRetryRunning = ['SUBMITTING', 'CREATED'].includes(automaticRetry?.state)
+        && Number.isInteger(automaticRetry?.retry_number)
+        && Number.isInteger(automaticRetry?.max_retries);
+      if (automaticRetryRunning) {
+        const retryLabel = `Автоматична спроба ${automaticRetry.retry_number} з ${automaticRetry.max_retries}`;
+        if (typeof automaticRetry.child_clip_id === 'string'
+          && automaticRetry.child_clip_id.length > 0
+          && automaticRetry.child_clip_id !== clipId) {
+          clearInterval(poll);
+          progressFill.style.width = '30%';
+          progressStatus.textContent = `${retryLabel}: перезапускаємо лише заміну героя…`;
+          setVideoThinkingState('solving', 'AI виправляє заміну героя', 'Reference-людина не потрапить у фінальне відео');
+          failedFashionVideoClipId = null;
+          failedFashionVideoRetryKey = null;
+          pollFashionVideo(automaticRetry.child_clip_id);
+          return;
+        }
+        progressStatus.textContent = `${retryLabel}: сервер готує новий hash-bound job…`;
+        setVideoThinkingState('solving', 'AI виправляє заміну героя', 'Reference-людина не потрапить у фінальне відео');
+        return;
+      }
+      progressStatus.textContent = `Статус: ${status.status}`;
+      const normalizedStatus = String(status.status ?? '').toUpperCase();
+      if (/QA|CHECK|VERIFY|REVIEW/.test(normalizedStatus)) {
+        setVideoThinkingState('solving', 'AI перевіряє відео', 'Звіряємо образ, речі та рух');
+      } else if (/GENERAT|PROCESS|RUNNING|QUEUED/.test(normalizedStatus)) {
+        setVideoThinkingState('composing', 'AI збирає рух', 'Генеруємо та монтуємо fashion clip');
+      } else {
+        setVideoThinkingState('working', 'AI працює', 'Очікуємо наступний server checkpoint');
+      }
+      if (status.status === 'COMPLETED' || status.status === 'PASS') {
+        clearInterval(poll);
+        if (!status.video_url) {
+          showVideoRetry(status, clipId);
+          setVideoGenerateBusy(false);
+          return;
+        }
+        progressFill.style.width = '100%';
+        progressStatus.textContent = 'Відео готове!';
+        const player = document.querySelector('#video-result-player');
+        const downloadLink = document.querySelector('#video-result-download');
+        const copyLink = document.querySelector('#video-result-copy');
+        player.src = status.video_url;
+        downloadLink.href = status.download_url ?? status.video_url;
+        copyLink.dataset.deliveryUrl = status.video_url;
+        copyLink.hidden = false;
+        copyLink.textContent = 'Копіювати посилання';
+        resultEl.hidden = false;
+        setVideoGenerateBusy(false);
+      } else if (status.status === 'FAILED' || status.status === 'FAIL') {
+        clearInterval(poll);
+        showVideoRetry(status, clipId);
+        setVideoGenerateBusy(false);
+        return;
+      }
+    } catch (pollErr) {
+      clearInterval(poll);
+      showVideoRetry(pollErr, clipId);
+      setVideoGenerateBusy(false);
+    }
+    if (attempts === 120) {
+      // Six minutes is not a provider failure. The server owns this persisted
+      // job and continues even if the tab closes, so do not issue a duplicate.
+      progressFill.style.width = '92%';
+      progressStatus.textContent = 'Генерація ще триває на сервері. Можна закрити вікно — результат збережеться.';
+    }
+  }, 3000);
+}
+document.querySelector('#video-retry').addEventListener('click', async () => {
+  const clipId = failedFashionVideoClipId;
+  const retryKey = failedFashionVideoRetryKey;
+  if (!clipId || !retryKey) {
+    showVideoRetry('Немає зафіксованої failed-спроби. Запусти нове відео зі стилю.');
+    return;
+  }
+  const progressEl = document.querySelector('#video-progress');
+  const progressFill = document.querySelector('#video-progress-fill');
+  const progressStatus = document.querySelector('#video-progress-status');
+  document.querySelector('#video-retry').hidden = true;
+  setVideoGenerateBusy(true);
+  progressEl.hidden = false;
+  progressFill.style.width = '15%';
+  progressStatus.textContent = 'Створюємо одну нову спробу з тим самим locked look і video style…';
+  try {
+    const response = await fetch(`/api/profile/video-clips/${clipId}/retry`, {
+      method: 'POST',
+      headers: { 'Idempotency-Key': retryKey },
+    });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) throw errorFromApiResponse(response, body, `HTTP ${response.status}`);
+    failedFashionVideoClipId = null;
+    failedFashionVideoRetryKey = null;
+    progressFill.style.width = '30%';
+    progressStatus.textContent = body.reused
+      ? `Відкрито вже створену спробу ${body.clip_id}…`
+      : `Створено нову спробу ${body.clip_id}…`;
+    pollFashionVideo(body.clip_id);
+  } catch (error) {
+    showVideoRetry(error, clipId);
+    setVideoGenerateBusy(false);
+  }
+});
+document.querySelector('#video-result-copy').addEventListener('click', (event) => {
+  const control = event.currentTarget;
+  copyPrivateDeliveryLink(control.dataset.deliveryUrl, control);
+});
 // Video overlay: generate
 document.querySelector('#video-generate').addEventListener('click', async () => {
   if (!selectedProfileLook) return;
   const lookId = idOfLook(selectedProfileLook);
-  const surface = document.querySelector('#video-surface-options .video-option.active')?.dataset.value ?? 'mirror';
-  const motionMode = document.querySelector('#video-motion-options .video-option.active')?.dataset.value ?? 'gentle_sway';
-  const generateBtn = document.querySelector('#video-generate');
+  const selectedStyle = document.querySelector('#video-style-options .video-style-card[aria-checked="true"]');
+  const styleId = selectedStyle?.dataset.styleId;
+  const motionMode = selectedStyle?.dataset.motionMode;
   const progressEl = document.querySelector('#video-progress');
   const progressFill = document.querySelector('#video-progress-fill');
   const progressStatus = document.querySelector('#video-progress-status');
   const resultEl = document.querySelector('#video-result');
   const errorEl = document.querySelector('#video-error');
-  generateBtn.disabled = true;
+  setVideoGenerateBusy(true);
   progressEl.hidden = false;
   resultEl.hidden = true;
   errorEl.hidden = true;
+  document.querySelector('#video-retry').hidden = true;
   progressFill.style.width = '10%';
-  progressStatus.textContent = 'Відправляємо на Seedance 2…';
+  progressStatus.textContent = 'Відправляємо вибраний стиль на Seedance 2…';
   try {
+    if (!styleId || !motionMode) throw new Error('Обери один із трьох відеостилів.');
     const res = await fetch('/api/profile/video-clips', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ look_id: lookId, surface, motion_mode: motionMode }),
+      body: JSON.stringify({
+        look_id: lookId,
+        style_id: styleId,
+        motion_mode: motionMode,
+      }),
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || `HTTP ${res.status}`);
+      if (err.code === 'MOTION_MODE_SOURCE_MISMATCH') {
+        const error = errorFromApiResponse(res, err, 'Для цього руху потрібен збережений образ у повний зріст.');
+        error.message = 'Для цього руху потрібен збережений образ у повний зріст: мають бути видні ноги й взуття. Обери інший стиль або створи full-body образ.';
+        throw error;
+      }
+      throw errorFromApiResponse(res, err, `HTTP ${res.status}`);
     }
     const clip = await res.json();
+    setVideoThinkingState('composing', 'AI збирає рух', 'Створюємо fashion motion із перевірених референсів');
     progressFill.style.width = '30%';
     progressStatus.textContent = `Clip ${clip.clip_id} створено — генерація…`;
-    // Poll for completion
-    let attempts = 0;
-    const maxAttempts = 120;
-    const poll = setInterval(async () => {
-      attempts++;
-      progressFill.style.width = `${Math.min(30 + attempts * 0.5, 92)}%`;
-      try {
-        const statusRes = await fetch(`/api/profile/video-clips/${clip.clip_id}`);
-        if (!statusRes.ok) return;
-        const status = await statusRes.json();
-        progressStatus.textContent = `Статус: ${status.status}`;
-        if (status.status === 'COMPLETED' || status.status === 'PASS') {
-          clearInterval(poll);
-          progressFill.style.width = '100%';
-          progressStatus.textContent = 'Відео готове!';
-          const player = document.querySelector('#video-result-player');
-          const downloadLink = document.querySelector('#video-result-download');
-          player.src = `/api/profile/video-clips/${clip.clip_id}/video`;
-          downloadLink.href = `/api/profile/video-clips/${clip.clip_id}/video`;
-          resultEl.hidden = false;
-          generateBtn.disabled = false;
-        } else if (status.status === 'FAILED' || status.status === 'FAIL') {
-          clearInterval(poll);
-          throw new Error(status.error ?? 'Генерація не вдалася');
-        }
-      } catch (pollErr) {
-        clearInterval(poll);
-        errorEl.textContent = pollErr.message;
-        errorEl.hidden = false;
-        generateBtn.disabled = false;
-      }
-      if (attempts >= maxAttempts) {
-        clearInterval(poll);
-        errorEl.textContent = 'Timeout: відео не згенерувалося за 6 хвилин';
-        errorEl.hidden = false;
-        generateBtn.disabled = false;
-      }
-    }, 3000);
+    pollFashionVideo(clip.clip_id);
   } catch (err) {
-    errorEl.textContent = err.message;
-    errorEl.hidden = false;
-    generateBtn.disabled = false;
+    showVideoRetry(err);
+    setVideoGenerateBusy(false);
   }
 });
 document.querySelector('#profile-look-live').addEventListener('click', (event) => {
   event.stopPropagation();
   const lookId = idOfLook(selectedProfileLook);
   if (!lookId || realtimeLookCapability?.lookId !== lookId) return;
-  setLookActionStatus('Real-time Look: переходимо в окрему consented camera-сесію на весь екран.');
-  window.location.assign(realtimeLookCapability.href);
+  setLookActionStatus('Live Look: переходимо в окрему camera-сесію на весь екран після явної згоди.');
+  const action = document.querySelector('#profile-look-live');
+  realtimeLookCapabilityOrb.setState('working');
+  action.classList.add('is-loading');
+  action.setAttribute('aria-busy', 'true');
+  action.disabled = true;
+  sessionStorage.setItem(LIVE_RETURN_FOCUS_KEY, 'armed');
+  const launchUrl = new URL(realtimeLookCapability.href, window.location.origin);
+  launchUrl.searchParams.set('return', 'profile');
+  window.location.assign(`${launchUrl.pathname}${launchUrl.search}${launchUrl.hash}`);
 });
 document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape' && !document.querySelector('#video-overlay').classList.contains('hidden')) {
     closeVideoOverlay();
   }
+});
+window.addEventListener('pageshow', () => {
+  // A back/forward-cache restore reuses this browser session. Re-open its
+  // audit lifecycle before returning focus so God View does not show a live
+  // tester as having permanently exited.
+  telemetry('client.boot', { stage: 'pageshow' });
+  if (sessionStorage.getItem(LIVE_RETURN_FOCUS_KEY) !== 'return') return;
+  sessionStorage.removeItem(LIVE_RETURN_FOCUS_KEY);
+  requestAnimationFrame(() => document.querySelector('#profile-look-live')?.focus({ preventScroll: true }));
 });
 document.querySelector('#profile-look-delete').addEventListener('click', async (event) => {
   event.stopPropagation();
@@ -1936,7 +2328,11 @@ document.querySelector('#add-look').addEventListener('click', async () => {
       currentAvatarId: currentResultAvatarId,
       currentLookId: currentResultLookId,
     });
-    await beginDraft({ avatar: selection.avatar, look: selection.look });
+    await beginDraft({
+      avatar: selection.avatar,
+      look: selection.look,
+      outfitText: activeRun?.requested_outfit_text ?? '',
+    });
   } catch (error) { showProfileError(error); }
 });
 document.querySelector('#create-scene').addEventListener('click', async () => {
@@ -1949,6 +2345,15 @@ document.querySelector('#create-scene').addEventListener('click', async () => {
   } catch (error) { showProfileError(error); }
 });
 document.querySelector('#open-profile').addEventListener('click', () => renderProfile().catch(showProfileError));
+document.querySelector('#god-view-trigger')?.addEventListener('click', () => {
+  window.location.assign('/god-view.html');
+});
+document.addEventListener('keydown', (event) => {
+  if (event.shiftKey && event.key.toLowerCase() === 'g') {
+    event.preventDefault();
+    window.location.assign('/god-view.html');
+  }
+});
 document.querySelector('#delete-profile').addEventListener('click', async () => {
   if (!confirm('Видалити всі аватари, образи та профіль цього браузера?')) return;
   try {
@@ -2080,7 +2485,7 @@ async function initialize() {
   const pendingRunId = localStorage.getItem(PENDING_FINALIZATION_KEY);
   const candidates = [...new Set([queryRunId, storedRunId, pendingRunId].filter(Boolean))];
   await pendingProfile;
-  if ((queryShootId || querySceneId || !queryRunId) && await sceneUi.resume()) {
+  if ((queryShootId || querySceneId) && await sceneUi.resume({ allowStored: false })) {
     window.ZeelyBootGuard?.ready();
     telemetry('client.ready', {
       scene_id: querySceneId,
@@ -2195,6 +2600,15 @@ window.addEventListener('online', () => {
   if (runId && !isTerminal(activeRun)) resumeRun(runId).then((found) => { if (!found) initialize().catch(() => {}); });
 });
 window.addEventListener('offline', () => telemetry('client.online', { online: false, stage: 'network' }));
+window.addEventListener('pagehide', () => {
+  // `pagehide` survives ordinary reload/navigation on mobile where `unload`
+  // is unreliable.  This records only the public run stage, never a photo,
+  // filename, prompt or provider message.
+  telemetry('client.exit', {
+    status: activeRun?.status ?? null,
+    stage: activeRun?.inner_state ?? activeRun?.phase ?? 'pagehide',
+  }, activeRun?.run_id ?? null);
+});
 
 initialize().catch((error) => {
   formError.textContent = `Не вдалося запустити інтерфейс: ${humanizeVisibleText(error.message)}`;

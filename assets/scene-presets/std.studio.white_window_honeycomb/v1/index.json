@@ -6,7 +6,7 @@
   "production_prompt_path": "prompts/scene-presets/std.studio.white_window_honeycomb/v1/production-scene.txt",
   "prompt_sha256": "33e4d095cbe2635cd425b58cdf11cad6c43259e2e726230f916104d2834a09a4",
   "reference_pack_path": "assets/scene-presets/std.studio.white_window_honeycomb/v1/reference-pack.json",
-  "reference_pack_sha256": "5010622ce6fcaea845f54fc4fa04adb67c5769118d7e19fffb202b12faaa22ca",
+  "reference_pack_sha256": "4e704743fdacdedfc541558701c37ed832141e0416a5c75c64287c8215b2d446",
   "references": [
     {
       "media_type": "application/json",
@@ -51,5 +51,5 @@
   ],
   "schema_version": "1.0.0",
   "source_ledger_path": "assets/scene-presets/std.studio.white_window_honeycomb/v1/source-ledger.json",
-  "source_ledger_sha256": "3d4de8f6d74ac921e7f1736b8d046317fb08bd5cd3e364ff73a3f34fbecb2476"
+  "source_ledger_sha256": "9e80798a4edb7369b8180a7c343c1eb0567611c6a9ef95ba8500f3a8bca7d15a"
 }

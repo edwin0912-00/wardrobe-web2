@@ -4,7 +4,8 @@
 // The handoff mandates five checks:
 // 1. Duration is within the motion mode's window
 // 2. Aspect ratio matches the requested surface
-// 3. No audio track (Seedance invents audio; it must never ship)
+// 3. Delivery audio has approved provenance: source-reference audio only, or
+//    silence when that reference has no audio. Provider audio never ships.
 // 4. First frame is not black
 // 5. Last frame is not black
 //
@@ -96,12 +97,22 @@ export function evaluateClipQa(expected, probeResult) {
     }
   }
 
-  // 3. No audio
-  if (probeResult.hasAudio === true) {
+  // 3. Audio provenance. `REFERENCE_REQUIRED` is set only after the runtime
+  // has muxed the immutable Video 1 track into the generated picture. A
+  // silent source reference deliberately produces a silent delivery.
+  const audioPolicy = expected.audioPolicy ?? 'SILENT_REQUIRED';
+  if (audioPolicy === 'REFERENCE_REQUIRED' && probeResult.hasAudio !== true) {
     defects.push({
-      code: 'CLIP_HAS_AUDIO',
-      detail: 'The clip carries an audio track; Seedance invents audio and it must never ship',
+      code: 'CLIP_REFERENCE_AUDIO_MISSING',
+      detail: 'The delivery is missing the approved reference audio track',
     });
+  } else if (audioPolicy === 'SILENT_REQUIRED' && probeResult.hasAudio === true) {
+    defects.push({
+      code: 'CLIP_UNAUTHORIZED_AUDIO',
+      detail: 'Delivery carries audio although its approved reference is silent',
+    });
+  } else if (!['REFERENCE_REQUIRED', 'SILENT_REQUIRED'].includes(audioPolicy)) {
+    throw new ClipQaError('Unknown delivery audio policy', { code: 'AUDIO_POLICY_INVALID' });
   }
 
   // 4. First frame not black

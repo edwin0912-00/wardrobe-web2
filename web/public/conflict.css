@@ -6,6 +6,13 @@
   background: #f2ffd9;
   color: #426315;
 }
+.conflict-instruction {
+  margin: 0 0 12px;
+  color: var(--deep);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.25;
+}
 .failure-view.choice .failure-mark {
   background: #f2ffd9;
   color: var(--deep);
@@ -77,6 +84,11 @@
     max-height: 280px;
     margin-top: 7px;
     overflow: hidden;
+  }
+
+  .conflict-instruction {
+    margin-bottom: 6px;
+    font-size: 10px;
   }
 
   .conflict-group > strong {

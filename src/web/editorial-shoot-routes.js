@@ -1,10 +1,14 @@
 import { createReadStream } from 'node:fs';
-import { isEditorialSha256 } from './editorial-shoot-contract.js';
+import {
+  EDITORIAL_AUTO_REPAIR_MAX_RETRIES,
+  isEditorialSha256,
+} from './editorial-shoot-contract.js';
 import {
   EditorialContactSheetError,
   createEditorialContactSheetManifest,
 } from './editorial-contact-sheet.js';
 import { ProfileError } from './profile-service.js';
+import { sendPresentationImage } from './presentation-preview.js';
 
 const TERMINAL_SHOOT_STATES = new Set(['COMPLETED', 'CANCELLED']);
 
@@ -84,6 +88,8 @@ function publicShot(shootId, shot) {
     slot: shot.slot,
     status: shot.status,
     retry_count: shot.retry_count,
+    auto_repair_exhausted: shot.status === 'FAILED'
+      && shot.retry_count >= EDITORIAL_AUTO_REPAIR_MAX_RETRIES,
     output: shot.output ? {
       sha256: shot.output.sha256,
       receipt_sha256: shot.output.receipt_sha256,
@@ -149,6 +155,44 @@ export function editorialShootView(shoot) {
   };
 }
 
+/* A profile projection is the durable record that a user owns a Fashion Shoot.
+ * The runner state can be temporarily unavailable during a restart or runtime
+ * migration. That is not evidence that the user deleted the shoot. Keep the
+ * card visible, mark it as recovering, and wait for the authoritative runtime
+ * to return instead of fabricating a downloadable frame. */
+export function persistedEditorialShootView(projection) {
+  if (!projection) return null;
+  return {
+    shoot_id: projection.shoot_id,
+    look_id: projection.look_id,
+    status: projection.status,
+    phase: 'RECOVERY_PENDING',
+    message: 'Збережену фотосесію відновлюємо',
+    created_at: projection.created_at,
+    updated_at: projection.updated_at,
+    mode: {
+      mode_id: projection.mode?.mode_id ?? null,
+      version: projection.mode?.version ?? null,
+      ui_name_uk: null,
+      visual_system: null,
+    },
+    bible: null,
+    hero_approval_status: 'BLOCKED',
+    hero_output_sha256: projection.hero_output_sha256 ?? null,
+    hero_image_url: null,
+    hero_download_url: null,
+    shots: [],
+    recovery: {
+      code: 'EDITORIAL_SHOOT_RUNTIME_UNAVAILABLE',
+      retryable: true,
+      approved_shot_count: projection.approved_shot_count ?? 0,
+      preview_slot: projection.preview_slot ?? null,
+      preview_output_sha256: projection.preview_output_sha256 ?? null,
+    },
+    cancellation: null,
+  };
+}
+
 async function currentOwnedShoot({
   profiles,
   profileId,
@@ -186,9 +230,11 @@ export async function registerEditorialShootRoutes(app, {
     const shoot = await editorialShootService.getShoot(projection.shoot_id);
     if (shoot?.bindings.approved_look.look_id === projection.look_id) {
       profiles.syncEditorialShootProjection(shoot);
-    } else {
-      profiles.deleteEditorialShoot(projection.profile_id, projection.shoot_id);
     }
+    // Do not delete a durable user-owned projection here. A service restart,
+    // a temporary runtime mount failure, or a stale in-memory index can make
+    // getShoot() return null. Only the explicit owner DELETE route is allowed
+    // to remove a saved Fashion Shoot from a profile.
   }
   await profiles.flushDeletionQueue({
     runService,
@@ -230,6 +276,12 @@ export async function registerEditorialShootRoutes(app, {
         if (shoot?.bindings.approved_look.look_id === request.params.lookId) {
           profiles.syncEditorialShootProjection(shoot);
           resolved.push(editorialShootView(shoot));
+        } else {
+          // Return a truthful durable card instead of silently turning a
+          // temporary runtime outage into an empty saved-library response.
+          // It deliberately contains no output URL: the media endpoint still
+          // requires current runner ownership before it can disclose bytes.
+          resolved.push(persistedEditorialShootView(projection));
         }
       }
       return reply
@@ -252,11 +304,22 @@ export async function registerEditorialShootRoutes(app, {
         modeId,
         version: modeVersion,
       });
-      const shoot = await editorialShootService.createShoot({
+      let shoot = await editorialShootService.createShoot({
         idempotencyKey: key,
         approvedLookReference,
         shootBible,
       });
+      // A Fashion Shoot is a direct five-frame product. The user has already
+      // approved its selected style by pressing this create action, so the
+      // server starts all five customer frames immediately rather than exposing
+      // a second hidden Bible/hero confirmation step. Legacy `editorial.*`
+      // modes retain their explicit review flow.
+      if (modeId.startsWith('shoot.') && shoot.status === 'BIBLE_PENDING_APPROVAL') {
+        shoot = await editorialShootService.approveBible(shoot.shoot_id, {
+          idempotencyKey: `fashion-series-${shoot.shoot_id.slice(-40)}`,
+          expectedBibleSha256: shoot.bindings.shoot_bible.sha256,
+        });
+      }
       profiles.projectEditorialShoot(
         session.profileId,
         request.params.lookId,
@@ -516,12 +579,12 @@ export async function registerEditorialShootRoutes(app, {
         request.params.slot,
       );
       if (!filename) return reply.code(404).send({ error: 'Editorial shot image not found' });
-      return reply
-        .type('image/png')
-        .header('Cache-Control', 'private, no-store')
-        .header('Vary', 'Cookie')
-        .header('Content-Disposition', `${disposition}; filename="${request.params.slot}.png"`)
-        .send(createReadStream(filename));
+      return sendPresentationImage(request, reply, {
+        filename,
+        disposition,
+        downloadName: `${request.params.slot}.png`,
+        cacheControl: 'private, max-age=900',
+      });
     }
 
     app.get('/api/profile/editorial-shoots/:shootId/shots/:slot/image', async (

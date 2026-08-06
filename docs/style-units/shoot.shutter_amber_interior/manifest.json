@@ -55,7 +55,7 @@
   ],
   "unit_contract": {
     "path": "unit.json",
-    "sha256": "838359340d1d176be4fe16045f6a92662f4b21a9ac2bee6231f85a43e0c748c1"
+    "sha256": "652bff65b6afa82bdee9aa98a8b38d32376b821baf4a89c66eb56cf566281a57"
   },
   "observation_log": {
     "path": "OBSERVATION.md",
@@ -66,7 +66,7 @@
     "sha256": "3fe77ef76dd5960766f12da3de72268b5151548e6c079cc69778f9b533fb0493",
     "status": "APPROVED"
   },
-  "runtime_style_sha256": "805db2da02ffeaf49e764ca3741d284d2c15a7cb8e32f4234f7c6a6b11488f70",
+  "runtime_style_sha256": "6cc8fd9a351e535a8ecb34dc82f004fc4e6e51296edb951fa38c7167033081a2",
   "sheets": [
     {
       "sheet_id": "camera_lens",
@@ -223,7 +223,7 @@
       "colour_authoritative": false
     }
   ],
-  "unit_sha256": "223dbb4e2bc37a4a7b366e11d589ae0ae185ce3ae887b1471b3543241d70c3ae",
+  "unit_sha256": "05e8bdcbf1956540a60aeed3d7f5a51114ed030e4d2feaa6043f276ddf5b8e9b",
   "generated_with": {
     "model": "UNAVAILABLE_LEGACY",
     "transport": "GIT_PRESERVED_GENERATED_ASSET"

@@ -76,6 +76,7 @@ function runtimeStyleIsComplete(runtimeStyle) {
         && typeof direction.pose_joint_chain === 'string'
         && typeof direction.focus === 'string'
         && typeof direction.foreground === 'string'
+        && (!Object.hasOwn(direction, 'subject_lighting') || typeof direction.subject_lighting === 'string')
         && Array.isArray(direction.provenance)
         && direction.provenance.length > 0;
     });

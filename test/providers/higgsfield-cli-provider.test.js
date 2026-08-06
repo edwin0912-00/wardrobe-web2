@@ -115,7 +115,7 @@ test('builds exact two-phase argv and only sends quality to GPT Image 2', () => 
       prompt: 'portrait',
       mediaPaths: ['/tmp/reference.png'],
     });
-    assert.equal(args[2], model);
+    assert.equal(args[2], model === 'nano_banana_2' ? 'nano_banana_pro' : model);
     assert.equal(args.includes('--quality'), model === 'gpt_image_2');
     assert.equal(args.includes('--wait'), false);
     assert.deepEqual(args.slice(-2), ['--json', '--no-color']);
@@ -134,6 +134,108 @@ test('builds exact two-phase argv and only sends quality to GPT Image 2', () => 
     legacy.slice(-7),
     ['--wait', '--wait-timeout', '20m', '--wait-interval', '3s', '--json', '--no-color'],
   );
+});
+
+test('uses the immutable per-attempt GPT Image 2 quality and resolution rather than provider defaults', async () => {
+  const paths = await mediaFixture();
+  let argv;
+  const provider = oneShotProvider({
+    async commandRunner(_binary, args) {
+      argv = args;
+      return { stdout: JSON.stringify(completedJob('gpt_image_2', {
+        params: { aspect_ratio: '3:4', resolution: '1k', quality: 'low' },
+      })), exitCode: 0 };
+    },
+    async fetchImpl() { return pngResponse(); },
+  });
+  const response = await provider.generate({
+    phase: 'outfit',
+    model: 'gpt_image_2',
+    job_set_type: 'gpt_image_2',
+    model_name: 'GPT Image 2',
+    resolution: '1k',
+    quality: 'low',
+    generation_profile: {
+      id: 'gpt_image_2.low_1k.initial',
+      resolution: '1k',
+      quality: 'low',
+      repair_kind: 'INITIAL',
+    },
+    prompt: 'portrait',
+    idempotencyKey: 'f'.repeat(64),
+    references: {
+      avatar: { artifact: { path: paths.avatar, digest: MOCK_SHA256 } },
+      identity: { artifact: { path: paths.identity, digest: MOCK_SHA256 } },
+    },
+  });
+  assert.equal(argv[argv.indexOf('--resolution') + 1], '1k');
+  assert.equal(argv[argv.indexOf('--quality') + 1], 'low');
+  assert.equal(response.metadata.generation_profile.id, 'gpt_image_2.low_1k.initial');
+  assert.equal(response.metadata.resolution, '1k');
+  assert.equal(response.metadata.quality, 'low');
+});
+
+test('normalizes the Nano Banana Pro CLI alias while keeping the internal route', async (t) => {
+  const paths = await mediaFixture();
+  const run = async (responseJob, expectedModel = 'nano_banana_2') => {
+    const calls = [];
+    const provider = oneShotProvider({
+      async commandRunner(binary, args, options) {
+        calls.push({ binary, args, options });
+        return { stdout: JSON.stringify(responseJob), exitCode: 0 };
+      },
+      async fetchImpl() {
+        return pngResponse();
+      },
+    });
+    const response = await provider.generate({
+      phase: 'outfit', model: expectedModel, prompt: 'portrait',
+      references: {
+        avatar: { artifact: { path: paths.avatar, digest: MOCK_SHA256 } },
+        identity: { artifact: { path: paths.identity, digest: MOCK_SHA256 } },
+      },
+    });
+    return { calls, response };
+  };
+
+  await t.test('current job_type nano_banana_pro passes for internal nano_banana_2', async () => {
+    const job = completedJob('nano_banana_2');
+    delete job.job_set_type;
+    job.job_type = 'nano_banana_pro';
+    const { calls, response } = await run(job);
+    assert.equal(calls[0].args[2], 'nano_banana_pro');
+    assert.equal(response.metadata.job_set_type, 'nano_banana_2');
+  });
+
+  await t.test('legacy job_set_type and current job_type agree after canonicalization', async () => {
+    const job = completedJob('nano_banana_2', { job_set_type: 'nano_banana_2', job_type: 'nano_banana_pro' });
+    const { response } = await run(job);
+    assert.equal(response.metadata.job_set_type, 'nano_banana_2');
+  });
+
+  await t.test('GPT Image 2 rejects a Nano Banana Pro response', async () => {
+    const job = completedJob('gpt_image_2', { job_set_type: 'nano_banana_pro', job_type: 'nano_banana_pro' });
+    await assert.rejects(
+      () => run(job, 'gpt_image_2'),
+      (error) => error.code === 'MODEL_RESPONSE_MISMATCH',
+    );
+  });
+
+  await t.test('contradictory model fields fail closed', async () => {
+    const job = completedJob('nano_banana_2', { job_set_type: 'nano_banana_2', job_type: 'gpt_image_2' });
+    await assert.rejects(
+      () => run(job),
+      (error) => error.code === 'MODEL_RESPONSE_MISMATCH',
+    );
+  });
+
+  await t.test('unknown model fields fail closed', async () => {
+    const job = completedJob('nano_banana_2', { job_set_type: 'nano_banana_quantum' });
+    await assert.rejects(
+      () => run(job),
+      (error) => error.code === 'MODEL_RESPONSE_MISMATCH',
+    );
+  });
 });
 
 test('fails closed before CLI execution when a provider prompt contains local metadata', async () => {
@@ -245,6 +347,94 @@ test('scene repair accepts one typed failed candidate immediately after the appr
     response.metadata.input_media.map(({ scope, role, source }) => ({ scope, role, source })),
     ordered.map(({ scope, role, source }) => ({ scope, role, source })),
   );
+});
+
+test('scene repair uses the mechanical guide as Image 1 base canvas before the approved master and failed candidate', async () => {
+  const paths = await mediaFixture();
+  let argv;
+  const provider = oneShotProvider({
+    async commandRunner(_binary, args) {
+      argv = args;
+      return { stdout: JSON.stringify(completedJob('gpt_image_2')) };
+    },
+    async fetchImpl() { return pngResponse(); },
+  });
+  const ordered = [
+    { order: 1, scope: 'outfit', role: 'MECHANICAL_FRAMING_GUIDE', path: paths.identity, sha256: MOCK_SHA256, mediaType: 'image/png', source: 'CONDITIONED' },
+    { order: 2, scope: 'avatar', role: 'APPROVED_LOOK_MASTER', path: paths.avatar, sha256: MOCK_SHA256, mediaType: 'image/png', source: 'APPROVED_AVATAR' },
+    { order: 3, scope: 'scene', role: 'FAILED_SCENE_CANDIDATE', path: paths.outfit, sha256: MOCK_SHA256, mediaType: 'image/png', source: 'REPAIR_CANDIDATE' },
+  ];
+  const response = await provider.generate({
+    phase: 'scene',
+    model: 'gpt_image_2',
+    prompt: 'Use Image 1 as geometry, Image 2 as approved appearance, and Image 3 as scene continuity.',
+    references: { ordered },
+  });
+  assert.deepEqual(
+    argv.flatMap((item, index) => item === '--image' ? [argv[index + 1]] : []),
+    ordered.map((item) => item.path),
+  );
+  assert.deepEqual(response.metadata.input_media.map((item) => item.role), ordered.map((item) => item.role));
+});
+
+test('scene guide-first ordering is exclusive to GPT Image 2 while Gemini routes remain master-first', async (t) => {
+  const paths = await mediaFixture();
+  const guideFirst = [
+    { order: 1, scope: 'outfit', role: 'MECHANICAL_FRAMING_GUIDE', path: paths.identity, sha256: MOCK_SHA256, mediaType: 'image/png', source: 'CONDITIONED' },
+    { order: 2, scope: 'avatar', role: 'APPROVED_LOOK_MASTER', path: paths.avatar, sha256: MOCK_SHA256, mediaType: 'image/png', source: 'APPROVED_AVATAR' },
+  ];
+  const masterFirst = [
+    { ...guideFirst[1], order: 1 },
+    { ...guideFirst[0], order: 2 },
+  ];
+
+  for (const model of ['nano_banana_flash', 'nano_banana_2']) {
+    await t.test(`${model} rejects a mechanical guide in Image 1 before CLI execution`, async () => {
+      let commandCalls = 0;
+      const provider = oneShotProvider({
+        async commandRunner() {
+          commandCalls += 1;
+          throw new Error('must not execute');
+        },
+        async fetchImpl() { throw new Error('must not fetch'); },
+      });
+      await assert.rejects(
+        () => provider.generate({
+          phase: 'scene',
+          model,
+          prompt: 'Use the declared scene references.',
+          references: { ordered: guideFirst },
+        }),
+        (error) => error.code === 'INVALID_SCENE_REFERENCE_ORDER' && !error.retryable,
+      );
+      assert.equal(commandCalls, 0);
+    });
+
+    await t.test(`${model} accepts the approved master first and mechanical guide second`, async () => {
+      let argv;
+      const provider = oneShotProvider({
+        async commandRunner(_binary, args) {
+          argv = args;
+          return { stdout: JSON.stringify(completedJob(model)) };
+        },
+        async fetchImpl() { return pngResponse(); },
+      });
+      const response = await provider.generate({
+        phase: 'scene',
+        model,
+        prompt: 'Use Image 1 as approved appearance and Image 2 as framing guidance.',
+        references: { ordered: masterFirst },
+      });
+      assert.deepEqual(
+        argv.flatMap((item, index) => item === '--image' ? [argv[index + 1]] : []),
+        masterFirst.map((item) => item.path),
+      );
+      assert.deepEqual(
+        response.metadata.input_media.map((item) => item.role),
+        ['APPROVED_LOOK_MASTER', 'MECHANICAL_FRAMING_GUIDE'],
+      );
+    });
+  }
 });
 
 test('scene repair rejects an untyped source, a misplaced candidate, or more than one candidate before CLI execution', async () => {
@@ -384,6 +574,7 @@ test('fails closed on malformed, incomplete, or model-mismatched CLI output', as
     [JSON.stringify([completedJob('gpt_image_2'), completedJob('gpt_image_2')]), 'INVALID_CLI_RESPONSE'],
     [JSON.stringify(completedJob('gpt_image_2', { status: 'failed' })), 'JOB_NOT_COMPLETED'],
     [JSON.stringify(completedJob('nano_banana_flash')), 'MODEL_RESPONSE_MISMATCH'],
+    [JSON.stringify(completedJob('gpt_image_2', { job_type: 'nano_banana_flash' })), 'MODEL_RESPONSE_MISMATCH'],
     [JSON.stringify(completedJob('gpt_image_2', { result_url: null })), 'MISSING_RESULT_URL'],
   ];
   for (const [stdout, code] of cases) {
@@ -403,6 +594,26 @@ test('fails closed on malformed, incomplete, or model-mismatched CLI output', as
       );
     });
   }
+});
+
+test('accepts the current CLI job_type field as the exact requested model route', async () => {
+  const paths = await mediaFixture();
+  const provider = oneShotProvider({
+    async commandRunner() {
+      const job = completedJob('gpt_image_2');
+      delete job.job_set_type;
+      job.job_type = 'gpt_image_2';
+      return { stdout: JSON.stringify(job), exitCode: 0 };
+    },
+    async fetchImpl() { return pngResponse(); },
+  });
+  const response = await provider.generate({
+    phase: 'avatar',
+    model: 'gpt_image_2',
+    prompt: 'portrait',
+    references: { identity: { artifact: { path: paths.identity } } },
+  });
+  assert.equal(response.metadata.job_set_type, 'gpt_image_2');
 });
 
 test('accepts the live CLI one-element JSON array response shape', async () => {

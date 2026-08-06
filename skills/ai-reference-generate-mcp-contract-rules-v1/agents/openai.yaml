@@ -1,0 +1,4 @@
+interface:
+  display_name: "AI Reference Generate MCP Rules V1"
+  short_description: "Reliable image and video reference contracts"
+  default_prompt: "Use $ai-reference-generate-mcp-contract-rules-v1 to design or audit this multimodal generation pipeline and its QA repair loop."

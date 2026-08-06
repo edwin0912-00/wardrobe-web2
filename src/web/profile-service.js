@@ -5,6 +5,7 @@ import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 
 import { buildLiveLookReferenceCard } from './live-look-reference.js';
+import { sendPresentationImage } from './presentation-preview.js';
 
 export const PROFILE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const TOKEN_BYTES = 32;
@@ -267,7 +268,14 @@ function rowScene(row) {
 function rowEditorialShoot(row) {
   const hasHero = typeof row.hero_output_sha256 === 'string'
     && row.hero_output_sha256.length > 0;
+  const hasPreview = typeof row.preview_output_sha256 === 'string'
+    && row.preview_output_sha256.length > 0
+    && typeof row.preview_slot === 'string'
+    && row.preview_slot.length > 0;
   const heroBaseUrl = `/api/profile/editorial-shoots/${encodeURIComponent(row.shoot_id)}/shots/clean_identity_hero`;
+  const previewBaseUrl = hasPreview
+    ? `/api/profile/editorial-shoots/${encodeURIComponent(row.shoot_id)}/shots/${encodeURIComponent(row.preview_slot)}`
+    : null;
   return {
     shoot_id: row.shoot_id,
     look_id: row.look_id,
@@ -283,7 +291,29 @@ function rowEditorialShoot(row) {
     hero_output_sha256: row.hero_output_sha256 ?? null,
     hero_image_url: hasHero ? `${heroBaseUrl}/image` : null,
     hero_download_url: hasHero ? `${heroBaseUrl}/download` : null,
+    // `clean_identity_hero` is an internal check for the direct five-frame
+    // Fashion Shoot product.  It intentionally has no customer image, so the
+    // saved library needs its own durable first-delivered-frame projection.
+    preview_slot: hasPreview ? row.preview_slot : null,
+    preview_output_sha256: hasPreview ? row.preview_output_sha256 : null,
+    preview_image_url: previewBaseUrl ? `${previewBaseUrl}/image` : null,
+    preview_download_url: previewBaseUrl ? `${previewBaseUrl}/download` : null,
   };
+}
+
+function editorialPresentationPreview(shoot) {
+  const shots = Array.isArray(shoot?.shots) ? shoot.shots : [];
+  // Prefer the internal check only when it really produced output (legacy
+  // editorial). Direct `shoot.*` mode delivers the five customer slots, so
+  // select their first durable output in the canonical slot order instead.
+  const isDirectFiveShoot = String(shoot?.bindings?.shoot_bible?.mode_id ?? '').startsWith('shoot.');
+  const candidates = isDirectFiveShoot
+    ? shots.filter((shot) => shot?.slot !== 'clean_identity_hero')
+    : shots;
+  return candidates.find((shot) => (
+    shot?.output?.sha256
+    && ['APPROVED', 'QA_PASSED'].includes(shot.status)
+  )) ?? candidates.find((shot) => shot?.output?.sha256) ?? null;
 }
 
 function rowVideoClip(row) {
@@ -427,6 +457,8 @@ export class ProfileService {
         status TEXT NOT NULL,
         approved_shot_count INTEGER NOT NULL DEFAULT 0,
         hero_output_sha256 TEXT,
+        preview_slot TEXT,
+        preview_output_sha256 TEXT,
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL,
         expires_at INTEGER NOT NULL,
@@ -485,6 +517,13 @@ export class ProfileService {
         ALTER TABLE run_claims
         ADD COLUMN source_look_id TEXT REFERENCES looks(look_id) ON DELETE SET NULL
       `);
+    }
+    const editorialColumns = this.database.prepare('PRAGMA table_info(editorial_shoots)').all();
+    if (!editorialColumns.some((column) => column.name === 'preview_slot')) {
+      this.database.exec('ALTER TABLE editorial_shoots ADD COLUMN preview_slot TEXT');
+    }
+    if (!editorialColumns.some((column) => column.name === 'preview_output_sha256')) {
+      this.database.exec('ALTER TABLE editorial_shoots ADD COLUMN preview_output_sha256 TEXT');
     }
     const deletionTable = this.database.prepare(`
       SELECT sql FROM sqlite_master
@@ -603,7 +642,8 @@ export class ProfileService {
     `).all(profileId);
     const editorialRows = this.#db().prepare(`
       SELECT shoot_id, look_id, mode_id, mode_version, status, approved_shot_count,
-             hero_output_sha256, created_at, updated_at, expires_at
+             hero_output_sha256, preview_slot, preview_output_sha256,
+             created_at, updated_at, expires_at
       FROM editorial_shoots WHERE profile_id = ?
       ORDER BY updated_at DESC, shoot_id
     `).all(profileId);
@@ -691,13 +731,15 @@ export class ProfileService {
       `).get(runId);
       if (current) {
         const sameProfile = constantTimeTextEqual(current.profile_id, profileId);
-        const sameSource = (current.source_avatar_id ?? null) === sourceAvatarId
-          && (current.source_look_id ?? null) === sourceLookId;
-        if (!sameProfile || !sameSource) throw new ProfileError(409, 'RUN_UNAVAILABLE', 'Run is unavailable');
+        if (!sameProfile) throw new ProfileError(409, 'RUN_UNAVAILABLE', 'Run is unavailable');
+        // A run's lineage is fixed on its first claim. After a successful save
+        // the browser deliberately clears local draft lineage; a refresh must
+        // therefore replay the original claim, not misreport the already saved
+        // profile as unavailable. Never rewrite the stored lineage here.
         return {
           run_id: runId,
-          source_avatar_id: sourceAvatarId,
-          source_look_id: sourceLookId,
+          source_avatar_id: current.source_avatar_id ?? null,
+          source_look_id: current.source_look_id ?? null,
           replayed: true,
         };
       }
@@ -1208,15 +1250,21 @@ export class ProfileService {
         ? shoot.shots.filter((shot) => shot.status === 'APPROVED').length
         : 0;
       const heroOutputSha256 = shoot.shots?.[0]?.output?.sha256 ?? null;
+      const preview = editorialPresentationPreview(shoot);
+      const previewSlot = preview?.slot ?? null;
+      const previewOutputSha256 = preview?.output?.sha256 ?? null;
       database.prepare(`
         INSERT INTO editorial_shoots(
           shoot_id, profile_id, look_id, mode_id, mode_version, status,
-          approved_shot_count, hero_output_sha256, created_at, updated_at, expires_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          approved_shot_count, hero_output_sha256, preview_slot, preview_output_sha256,
+          created_at, updated_at, expires_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(shoot_id) DO UPDATE SET
           status = excluded.status,
           approved_shot_count = excluded.approved_shot_count,
           hero_output_sha256 = excluded.hero_output_sha256,
+          preview_slot = excluded.preview_slot,
+          preview_output_sha256 = excluded.preview_output_sha256,
           updated_at = excluded.updated_at
       `).run(
         shoot.shoot_id,
@@ -1227,6 +1275,8 @@ export class ProfileService {
         shoot.status,
         approvedShotCount,
         heroOutputSha256,
+        previewSlot,
+        previewOutputSha256,
         createdAt,
         updatedAt,
         profile.expires_at,
@@ -1246,14 +1296,18 @@ export class ProfileService {
     const updatedAt = Number.isFinite(Date.parse(shoot.updated_at))
       ? Date.parse(shoot.updated_at)
       : nowFrom(this.clock);
+    const preview = editorialPresentationPreview(shoot);
     const result = this.#db().prepare(`
       UPDATE editorial_shoots
-      SET status = ?, approved_shot_count = ?, hero_output_sha256 = ?, updated_at = ?
+      SET status = ?, approved_shot_count = ?, hero_output_sha256 = ?,
+          preview_slot = ?, preview_output_sha256 = ?, updated_at = ?
       WHERE shoot_id = ? AND look_id = ?
     `).run(
       shoot.status,
       approvedShotCount,
       shoot.shots?.[0]?.output?.sha256 ?? null,
+      preview?.slot ?? null,
+      preview?.output?.sha256 ?? null,
       updatedAt,
       shoot.shoot_id,
       shoot.bindings.approved_look.look_id,
@@ -1277,6 +1331,7 @@ export class ProfileService {
     const row = this.#db().prepare(`
       SELECT e.shoot_id, e.look_id, e.mode_id, e.mode_version, e.status,
              e.approved_shot_count, e.hero_output_sha256,
+             e.preview_slot, e.preview_output_sha256,
              e.created_at, e.updated_at, e.expires_at
       FROM editorial_shoots e JOIN profiles p ON p.profile_id = e.profile_id
       WHERE e.shoot_id = ? AND e.profile_id = ?
@@ -1290,7 +1345,8 @@ export class ProfileService {
     if (!this.ownsLook(profileId, lookId)) return null;
     return this.#db().prepare(`
       SELECT shoot_id, look_id, mode_id, mode_version, status, approved_shot_count,
-             hero_output_sha256, created_at, updated_at, expires_at
+             hero_output_sha256, preview_slot, preview_output_sha256,
+             created_at, updated_at, expires_at
       FROM editorial_shoots
       WHERE profile_id = ? AND look_id = ?
       ORDER BY updated_at DESC, shoot_id
@@ -1454,6 +1510,165 @@ export class ProfileService {
       WHERE profile_id = ? AND look_id = ?
       ORDER BY updated_at DESC, clip_id
     `).all(profileId, lookId).map(rowVideoClip);
+  }
+
+  /**
+   * Read-only, server-internal inventory for the separately authenticated God
+   * View. It intentionally excludes browser verifier hashes, cookies and any
+   * filesystem path. Asset bytes stay behind the God View route authorization.
+   */
+  godViewSnapshot() {
+    const now = nowFrom(this.clock);
+    const activeProfiles = this.#db().prepare(`
+      SELECT profile_id, created_at, expires_at
+      FROM profiles
+      WHERE revoked_at IS NULL AND expires_at > ?
+      ORDER BY created_at DESC, profile_id
+    `).all(now);
+    const profiles = activeProfiles.map((row) => ({
+      profile_id: row.profile_id,
+      created_at: iso(row.created_at),
+      expires_at: iso(row.expires_at),
+      avatars: [],
+      runs: [],
+    }));
+    const byProfile = new Map(profiles.map((profile) => [profile.profile_id, profile]));
+    const avatars = new Map();
+    const looks = new Map();
+
+    for (const row of this.#db().prepare(`
+      SELECT a.avatar_id, a.profile_id, a.source_run_id, a.created_at, a.expires_at
+      FROM avatars a JOIN profiles p ON p.profile_id = a.profile_id
+      WHERE p.revoked_at IS NULL AND p.expires_at > ?
+      ORDER BY a.created_at DESC, a.avatar_id
+    `).all(now)) {
+      const avatar = {
+        avatar_id: row.avatar_id,
+        source_run_id: row.source_run_id,
+        created_at: iso(row.created_at),
+        expires_at: iso(row.expires_at),
+        looks: [],
+      };
+      avatars.set(row.avatar_id, avatar);
+      byProfile.get(row.profile_id)?.avatars.push(avatar);
+    }
+
+    for (const row of this.#db().prepare(`
+      SELECT l.look_id, l.profile_id, l.avatar_id, l.source_run_id, l.parent_look_id,
+             l.created_at, l.expires_at
+      FROM looks l JOIN profiles p ON p.profile_id = l.profile_id
+      WHERE p.revoked_at IS NULL AND p.expires_at > ?
+      ORDER BY l.created_at DESC, l.look_id
+    `).all(now)) {
+      const look = {
+        look_id: row.look_id,
+        source_run_id: row.source_run_id,
+        parent_look_id: row.parent_look_id ?? null,
+        created_at: iso(row.created_at),
+        expires_at: iso(row.expires_at),
+        scenes: [],
+        shoots: [],
+        videos: [],
+      };
+      looks.set(row.look_id, look);
+      avatars.get(row.avatar_id)?.looks.push(look);
+    }
+
+    for (const row of this.#db().prepare(`
+      SELECT rc.run_id, rc.profile_id, rc.source_avatar_id, rc.source_look_id,
+             rc.saved_avatar_id, rc.saved_look_id, rc.claimed_at
+      FROM run_claims rc JOIN profiles p ON p.profile_id = rc.profile_id
+      WHERE p.revoked_at IS NULL AND p.expires_at > ?
+      ORDER BY rc.claimed_at DESC, rc.run_id
+    `).all(now)) {
+      byProfile.get(row.profile_id)?.runs.push({
+        run_id: row.run_id,
+        source_avatar_id: row.source_avatar_id ?? null,
+        source_look_id: row.source_look_id ?? null,
+        saved_avatar_id: row.saved_avatar_id ?? null,
+        saved_look_id: row.saved_look_id ?? null,
+        claimed_at: iso(row.claimed_at),
+      });
+    }
+
+    for (const row of this.#db().prepare(`
+      SELECT s.scene_id, s.look_id, s.preset_id, s.preset_version, s.status,
+             s.output_sha256, s.created_at, s.updated_at
+      FROM scenes s JOIN profiles p ON p.profile_id = s.profile_id
+      WHERE p.revoked_at IS NULL AND p.expires_at > ?
+      ORDER BY s.updated_at DESC, s.scene_id
+    `).all(now)) {
+      looks.get(row.look_id)?.scenes.push({
+        scene_id: row.scene_id,
+        preset_id: row.preset_id,
+        preset_version: row.preset_version,
+        status: row.status,
+        output_sha256: row.output_sha256 ?? null,
+        created_at: iso(row.created_at),
+        updated_at: iso(row.updated_at),
+      });
+    }
+
+    for (const row of this.#db().prepare(`
+      SELECT e.shoot_id, e.look_id, e.mode_id, e.mode_version, e.status,
+             e.approved_shot_count, e.hero_output_sha256,
+             e.preview_slot, e.preview_output_sha256,
+             e.created_at, e.updated_at
+      FROM editorial_shoots e JOIN profiles p ON p.profile_id = e.profile_id
+      WHERE p.revoked_at IS NULL AND p.expires_at > ?
+      ORDER BY e.updated_at DESC, e.shoot_id
+    `).all(now)) {
+      looks.get(row.look_id)?.shoots.push({
+        shoot_id: row.shoot_id,
+        mode_id: row.mode_id,
+        mode_version: row.mode_version,
+        status: row.status,
+        approved_shot_count: row.approved_shot_count,
+        hero_output_sha256: row.hero_output_sha256 ?? null,
+        preview_slot: row.preview_slot ?? null,
+        preview_output_sha256: row.preview_output_sha256 ?? null,
+        created_at: iso(row.created_at),
+        updated_at: iso(row.updated_at),
+      });
+    }
+
+    for (const row of this.#db().prepare(`
+      SELECT v.clip_id, v.look_id, v.motion_mode, v.surface, v.job_id, v.status,
+             v.output_sha256, v.duration_seconds, v.created_at, v.updated_at
+      FROM video_clips v JOIN profiles p ON p.profile_id = v.profile_id
+      WHERE p.revoked_at IS NULL AND p.expires_at > ?
+      ORDER BY v.updated_at DESC, v.clip_id
+    `).all(now)) {
+      looks.get(row.look_id)?.videos.push({
+        clip_id: row.clip_id,
+        motion_mode: row.motion_mode,
+        surface: row.surface,
+        job_id: row.job_id ?? null,
+        status: row.status,
+        output_sha256: row.output_sha256 ?? null,
+        duration_seconds: row.duration_seconds ?? null,
+        created_at: iso(row.created_at),
+        updated_at: iso(row.updated_at),
+      });
+    }
+    return { profiles };
+  }
+
+  godViewOwns(kind, resourceId) {
+    assertRunId(resourceId);
+    const now = nowFrom(this.clock);
+    const queries = {
+      RUN: `SELECT 1 FROM run_claims r JOIN profiles p ON p.profile_id = r.profile_id
+            WHERE r.run_id = ? AND p.revoked_at IS NULL AND p.expires_at > ?`,
+      SCENE: `SELECT 1 FROM scenes s JOIN profiles p ON p.profile_id = s.profile_id
+              WHERE s.scene_id = ? AND p.revoked_at IS NULL AND p.expires_at > ?`,
+      SHOOT: `SELECT 1 FROM editorial_shoots e JOIN profiles p ON p.profile_id = e.profile_id
+              WHERE e.shoot_id = ? AND p.revoked_at IS NULL AND p.expires_at > ?`,
+      VIDEO: `SELECT 1 FROM video_clips v JOIN profiles p ON p.profile_id = v.profile_id
+              WHERE v.clip_id = ? AND p.revoked_at IS NULL AND p.expires_at > ?`,
+    };
+    if (!queries[kind]) throw new Error('God View resource kind is invalid');
+    return Boolean(this.#db().prepare(queries[kind]).get(resourceId, now));
   }
 
   deleteVideoClip(profileId, clipId) {
@@ -1833,13 +2048,12 @@ export async function registerProfileRoutes(app, {
     if (type === 'look') {
       const saved = service.savedLookImage(session.profileId, request.params.lookId);
       if (saved) {
-        return reply
-          .type('image/png')
-          .header('Cache-Control', 'private, no-store')
-          .header('Vary', 'Cookie')
-          .header('ETag', `"sha256-${saved.sha256}"`)
-          .header('Content-Disposition', 'inline; filename="avatar_outfit.png"')
-          .send(saved.bytes);
+        return sendPresentationImage(request, reply, {
+          bytes: saved.bytes,
+          mediaType: 'image/png',
+          downloadName: 'avatar_outfit.png',
+          cacheControl: 'private, max-age=900',
+        });
       }
     }
     const descriptor = type === 'avatar'
@@ -1848,12 +2062,11 @@ export async function registerProfileRoutes(app, {
     if (!descriptor) return reply.code(404).send({ error: 'Image not found' });
     const filename = await runService.outputFile(descriptor.runId, descriptor.filename);
     if (!filename) return reply.code(404).send({ error: 'Image not found' });
-    return reply
-      .type('image/png')
-      .header('Cache-Control', 'private, no-store')
-      .header('Vary', 'Cookie')
-      .header('Content-Disposition', `inline; filename="${descriptor.filename}"`)
-      .send(createReadStream(filename));
+    return sendPresentationImage(request, reply, {
+      filename,
+      downloadName: descriptor.filename,
+      cacheControl: 'private, max-age=900',
+    });
   }
 
   app.get('/api/profile', async (request, reply) => {

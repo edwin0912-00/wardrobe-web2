@@ -8,6 +8,7 @@ below.
 ```text
 origin/beta                         tested integration + beta deploy source
 ├── beta-block-08-antigravity-qa    independent browser QA observer
+├── beta-block-09-handoff-cloud-code-qa independent external browser QA
 ├── beta-block-1-core-look          chat 1 / codex-main
 ├── beta-block-2-profile-ui         chat 2
 ├── beta-block-3-backgrounds        chat 3
@@ -20,6 +21,16 @@ origin/beta                         tested integration + beta deploy source
 Read
 [`docs/coordination/BETA_BLOCKS_2026-07-29.md`](docs/coordination/BETA_BLOCKS_2026-07-29.md)
 and the assigned file in `docs/coordination/blocks/` before any product action.
+
+Before trusting a local `origin/beta`, fetch that ref explicitly and record its
+SHA. Some existing clones have a deliberately narrow `remote.origin.fetch`
+rule which omits `beta`; a plain `git fetch origin` can therefore leave a
+stale remote-tracking ref and create a false “missing deploy/commit” report.
+
+```bash
+git fetch origin +refs/heads/beta:refs/remotes/origin/beta
+git rev-parse origin/beta
+```
 
 1. A block agent works only in its named `beta-block-*` branch and reserved
    paths. It never pushes to `beta` or `main` and never deploys.
@@ -54,6 +65,16 @@ It may write only its QA reports. It tests the deployed public beta through
 visible UI, publishes evidence, and requests the responsible Block 1–7 owner.
 It never edits product code, weakens checks, integrates or deploys.
 
+The external Handoff Cloud Code observer is a separate identity and writer:
+
+```bash
+bash tools/join-handoff-cloud-code-qa.sh handoff-cloud-code-qa --watch
+```
+
+It uses `beta-block-09-handoff-cloud-code-qa`, writes only its own QA report
+and evidence paths, and follows the same browser-first, exact-SHA and
+no-weakened-checks contract. It never shares Antigravity's branch or files.
+
 The mixed 2026-07-29 Creative Universe work is preserved at
 `part-job/2026-07-29-universe-checkpoint`. It is not a beta release candidate
 and must be recovered into Block 4/5 atomically rather than merged wholesale.
@@ -75,7 +96,7 @@ There are only two branches that matter now:
 Before doing anything, every agent runs:
 
 ```bash
-git fetch origin
+git fetch origin +refs/heads/beta:refs/remotes/origin/beta
 git switch beta
 git pull --ff-only origin beta
 sed -n '1,180p' AGENTS.md

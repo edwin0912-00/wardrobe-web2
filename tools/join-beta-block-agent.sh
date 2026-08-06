@@ -13,21 +13,20 @@ watch_mode="${3:-}"
 [[ "$block_number" =~ ^[1-7]$ ]] || usage
 [[ -z "$watch_mode" || "$watch_mode" == "--watch" ]] || usage
 
-case "$block_number" in
-  1) branch="beta-block-1-core-look"; handoff="docs/coordination/blocks/01-core-look.md" ;;
-  2) branch="beta-block-2-profile-ui"; handoff="docs/coordination/blocks/02-profile-ui.md" ;;
-  3) branch="beta-block-3-backgrounds"; handoff="docs/coordination/blocks/03-backgrounds.md" ;;
-  4) branch="beta-block-4-universe"; handoff="docs/coordination/blocks/04-universe.md" ;;
-  5) branch="beta-block-5-fashion-shoot"; handoff="docs/coordination/blocks/05-fashion-shoot.md" ;;
-  6) branch="beta-block-6-fashion-video"; handoff="docs/coordination/blocks/06-fashion-video.md" ;;
-  7) branch="beta-block-7-realtime-look"; handoff="docs/coordination/blocks/07-realtime-look.md" ;;
-esac
-
 repo_root="$(git rev-parse --show-toplevel 2>/dev/null)" || {
   echo "Run this inside the Wardrobe repository." >&2
   exit 2
 }
 cd "$repo_root"
+
+owner_map_tool="tools/coordination/beta-thread-owner-map.mjs"
+if ! node "$owner_map_tool" validate "$agent_id" "$block_number"; then
+  echo "Agent '$agent_id' is not the canonical owner of beta Block $block_number." >&2
+  exit 65
+fi
+branch="$(node "$owner_map_tool" field "$block_number" branch)"
+handoff="$(node "$owner_map_tool" field "$block_number" handoff)"
+report="$(node "$owner_map_tool" field "$block_number" report)"
 
 [[ -z "$(git status --porcelain)" ]] || {
   echo "Workspace is dirty. Preserve its work before joining a block branch." >&2
@@ -63,7 +62,6 @@ chmod 755 "$hook_path"
 
 bash tools/agent-local-log.sh sync "$agent_id"
 
-report="updates/chat-$block_number.md"
 if [[ ! -f "$report" ]]; then
   {
     printf 'Agent ID: %s\n' "$agent_id"
@@ -86,6 +84,7 @@ echo "ONLINE: $agent_id"
 echo "Block: $block_number"
 echo "Branch: $branch"
 echo "Handoff: $handoff"
+echo "Report: $report"
 sed -n '1,220p' AGENTS.md
 sed -n '1,260p' docs/coordination/BETA_BLOCKS_2026-07-29.md
 sed -n '1,220p' "$handoff"

@@ -35,6 +35,9 @@ const PUBLIC_EVENT_TYPES = new Set([
   'client.file_selected',
   'client.garment_selected',
   'client.online',
+  'client.exit',
+  'client.profile_error',
+  'client.profile_saved',
   'client.ready',
   'client.run_event',
   'client.sse_error',
@@ -153,12 +156,14 @@ const PUBLIC_EDITORIAL_EVENT_TYPES = new Set([
   'shoot.bible_approved',
   'shoot.hero_approved',
   'shoot.recovery_queued',
+  'shoot.auto_repair_recovered',
   'shoot.cancelled',
   'shot.started',
   'shot.resumed',
   'shot.qa_passed',
   'shot.qa_failed',
   'shot.executor_failed',
+  'shot.auto_repair_queued',
   'shot.retry_queued',
 ]);
 const PUBLIC_CODEX_WORKER_CODES = new Set([
@@ -296,6 +301,11 @@ function publicData(data, type) {
       return result;
     case 'client.online':
       add('online', publicBoolean(source.online));
+      return result;
+    case 'client.exit':
+    case 'client.profile_error':
+    case 'client.profile_saved':
+      add('status', publicEnum(source.status, PUBLIC_RUN_STATUSES));
       return result;
     case 'client.visibility':
       add('visibility', source.visibility === 'hidden' || source.visibility === 'visible' ? source.visibility : undefined);

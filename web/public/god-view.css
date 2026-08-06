@@ -1,0 +1,83 @@
+:root { color-scheme: dark; font-family: Inter, ui-sans-serif, system-ui, sans-serif; background: #0b0d0c; color: #f2f5ed; }
+* { box-sizing: border-box; }
+body { margin: 0; background: radial-gradient(circle at 15% 0%, #24351a 0, transparent 28rem), #0b0d0c; }
+button, input { font: inherit; }
+button { border: 1px solid #66715d; border-radius: 999px; padding: .72rem 1rem; color: inherit; background: #192017; cursor: pointer; }
+button:hover { background: #2a3525; }
+.god-shell { max-width: 1480px; margin: 0 auto; min-height: 100vh; padding: 1.5rem; }
+.god-header { display: flex; justify-content: space-between; align-items: center; gap: 1rem; border-bottom: 1px solid #30372d; padding-bottom: 1rem; }
+.god-header p, .god-eyebrow, .god-label { margin: 0 0 .25rem; letter-spacing: .12em; font-size: .68rem; font-weight: 800; color: #a8b39e; }
+h1, h2, h3, p { margin-top: 0; }
+h1 { margin-bottom: 0; font-size: clamp(1.7rem, 4vw, 3.1rem); }
+.god-header-actions { display: flex; gap: .75rem; align-items: center; }
+.god-status { color: #c8ff70; font-size: .82rem; }
+.god-login { max-width: 500px; margin: 10vh auto; padding: 1.5rem; border: 1px solid #3d4838; border-radius: 1rem; background: #111610e8; }
+.god-login label { display: grid; gap: .5rem; margin-top: 1rem; font-weight: 700; }
+.god-login input { width: 100%; border: 1px solid #5d6857; border-radius: .6rem; padding: .7rem; background: #080a08; color: #fff; }
+.god-login button { margin-top: 1rem; background: #c8ff70; color: #0b1106; border-color: #c8ff70; font-weight: 800; }
+#god-login-error { min-height: 1.25rem; margin: .75rem 0 0; color: #ff9d9d; }
+.god-summary { display: grid; grid-template-columns: repeat(7, minmax(100px, 1fr)); gap: .75rem; margin: 1.5rem 0; }
+.god-summary article, .god-profile, .god-avatar, .god-look, .god-run, .god-output { border: 1px solid #374132; border-radius: .85rem; background: #121711db; }
+.god-summary article { padding: .85rem; }
+.god-summary strong { display: block; font-size: 1.5rem; color: #d9ff96; }
+.god-summary span { color: #aab1a6; font-size: .76rem; }
+.god-note { color: #adb6a4; max-width: 840px; font-size: .88rem; }
+.god-audit { margin: 1.5rem 0; padding: 1rem; border: 1px solid #4c5950; border-radius: 1rem; background: linear-gradient(145deg, #141b19, #0d1210); }
+.god-audit h2 { margin: 0; font-size: clamp(1.1rem, 2vw, 1.55rem); }
+.god-audit-summary { display: grid; grid-template-columns: repeat(6, minmax(94px, 1fr)); gap: .6rem; margin: 1rem 0; }
+.god-audit-summary article { padding: .7rem; border: 1px solid #3a4c43; border-radius: .65rem; background: #0d1410; }
+.god-audit-summary strong { display: block; color: #aee8c2; font-size: 1.25rem; }
+.god-audit-summary span { color: #aab1a6; font-size: .68rem; }
+.god-audit-filters, .god-audit-segments { display: flex; flex-wrap: wrap; gap: .45rem; }
+.god-audit-filters { margin-bottom: .8rem; }
+.god-audit-filters button, .god-audit-segment { border-radius: .55rem; padding: .46rem .65rem; font-size: .73rem; background: #151d19; border-color: #44534a; }
+.god-audit-filters button[aria-pressed="true"], .god-audit-segment.active { color: #08110b; background: #aee8c2; border-color: #aee8c2; }
+.god-audit-profiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: .75rem; }
+.god-audit-profile { padding: .85rem; border: 1px solid #3d4d43; border-radius: .75rem; background: #0d1210; }
+.god-audit-profile > header { display: flex; justify-content: space-between; gap: .7rem; align-items: start; }
+.god-audit-profile h3 { margin: 0; font-size: 1rem; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.god-audit-facts { display: grid; grid-template-columns: max-content 1fr; gap: .3rem .65rem; margin: .75rem 0; font-size: .76rem; }
+.god-audit-facts dt { color: #8d978d; }
+.god-audit-facts dd { margin: 0; color: #e2e8dd; overflow-wrap: anywhere; }
+.god-audit-counters { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: .65rem; }
+.god-audit-counters span { padding: .22rem .42rem; border-radius: .35rem; background: #1b2821; color: #b7c8b7; font-size: .68rem; }
+.god-audit-counters strong { color: #d8ff91; }
+.god-audit-events { margin-top: .75rem; font-size: .72rem; color: #b1b9ad; }
+.god-audit-events summary { cursor: pointer; color: #d8ff91; }
+.god-audit-events ol { margin: .55rem 0 0; padding-left: 1.1rem; display: grid; gap: .28rem; }
+.god-audit-events time { color: #7f8b80; }
+.god-look-picker { margin: 1.5rem 0; padding: 1rem; border: 1px solid #526048; border-radius: 1rem; background: linear-gradient(145deg, #1a2118, #10150f); }
+.god-picker-head { display: flex; align-items: end; justify-content: space-between; gap: 1rem; margin-bottom: .85rem; }
+.god-picker-head h2 { margin: 0; font-size: clamp(1.1rem, 2vw, 1.55rem); }
+.god-look-picker-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: .7rem; }
+.god-look-choice { min-width: 0; overflow: hidden; padding: 0; border-radius: .75rem; border-color: #53624a; background: #0e130d; text-align: left; }
+.god-look-choice:hover { transform: translateY(-2px); border-color: #c8ff70; background: #151d12; }
+.god-look-choice:focus-visible { outline: 3px solid #c8ff70; outline-offset: 3px; }
+.god-look-choice img { display: block; width: 100%; aspect-ratio: 3 / 4; object-fit: contain; background: #060806; }
+.god-look-choice-copy { display: grid; gap: .15rem; padding: .6rem .65rem .65rem; }
+.god-look-choice-copy strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .85rem; }
+.god-look-choice-copy small { color: #aab1a6; font-size: .67rem; }
+.god-profiles { display: grid; gap: 1rem; }
+.god-profile { padding: 1rem; }
+.god-profile > header, .god-look > header, .god-output > header { display: flex; justify-content: space-between; gap: 1rem; align-items: baseline; }
+.god-id { color: #bcd6a2; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .76rem; overflow-wrap: anywhere; }
+.god-muted { color: #9aa295; font-size: .78rem; }
+.god-avatar-list, .god-look-list, .god-output-list, .god-run-list, .god-gallery { display: grid; gap: .75rem; margin-top: .75rem; }
+.god-avatar-list { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+.god-avatar, .god-look, .god-run, .god-output { padding: .75rem; }
+.god-image-row { display: grid; grid-template-columns: 104px 1fr; gap: .75rem; align-items: start; }
+.god-image-row > img, .god-shot img, .god-source-grid img { width: 100%; aspect-ratio: 3 / 4; object-fit: contain; border-radius: .5rem; background: #080a08; }
+.god-run { border-color: #293326; }
+.god-output-list { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+.god-output header h3 { margin-bottom: 0; font-size: .95rem; }
+.god-gallery { grid-template-columns: repeat(5, minmax(96px, 1fr)); }
+.god-shot { min-width: 0; }
+.god-shot img { display: block; }
+.god-shot span { display: block; margin-top: .25rem; font-size: .68rem; color: #aeb6a8; overflow-wrap: anywhere; }
+.god-source { margin-top: .7rem; }
+.god-source summary { cursor: pointer; color: #d8ff91; font-size: .82rem; }
+.god-source-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: .5rem; margin-top: .65rem; }
+.god-source-grid figcaption { font-size: .7rem; color: #aeb6a8; overflow-wrap: anywhere; }
+.god-video { width: 100%; max-height: 420px; background: #000; border-radius: .5rem; }
+@media (max-width: 900px) { .god-summary { grid-template-columns: repeat(3, minmax(100px, 1fr)); } .god-audit-summary { grid-template-columns: repeat(3, minmax(94px, 1fr)); } .god-gallery { grid-template-columns: repeat(3, minmax(96px, 1fr)); } }
+@media (max-width: 560px) { .god-shell { padding: 1rem; } .god-header { align-items: flex-start; flex-direction: column; } .god-summary { grid-template-columns: repeat(2, minmax(100px, 1fr)); } .god-audit-summary { grid-template-columns: repeat(2, minmax(94px, 1fr)); } .god-picker-head { align-items: flex-start; flex-direction: column; } .god-look-picker-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .god-image-row { grid-template-columns: 80px 1fr; } .god-gallery { grid-template-columns: repeat(2, minmax(96px, 1fr)); } }

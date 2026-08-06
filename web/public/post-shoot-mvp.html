@@ -5,13 +5,13 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <title>WARDROBE · Real-time Look</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/post-shoot-mvp.css?v=20260727-8">
+  <link rel="stylesheet" href="/post-shoot-mvp.css?v=20260730-2">
   <link rel="stylesheet" href="/live-layout-fix.css?v=20260727-8">
 </head>
 <body>
   <main class="live-shell">
     <header class="live-header">
-      <a href="/" aria-label="Назад">W</a>
+      <button class="live-header-close" type="button" data-live-close aria-label="Закрити Real-time Look">W</button>
       <span>REAL-TIME LOOK</span>
       <i></i>
     </header>
@@ -22,6 +22,10 @@
         <span class="aperture"></span>
         <b>Увімкни камеру</b>
         <small>Тримай телефон вертикально на рівні грудей</small>
+      </div>
+      <div id="live-ai-thinking" class="live-ai-thinking hidden" role="status" aria-live="polite">
+        <canvas id="live-thinking-orb"></canvas>
+        <span><b id="live-ai-title">AI готує Live</b><small id="live-ai-detail">Завантажуємо перевірений образ</small></span>
       </div>
 
       <div id="fit-guide" class="fit-guide" aria-hidden="true">
@@ -35,18 +39,7 @@
 
       <div class="stage-top">
         <span class="live-mark"><i></i> LIVE</span>
-        <span><i id="camera-permission-status">КАМЕРА · НЕ ЗАПИТАНО</i> <b id="live-status">READY</b></span>
-      </div>
-
-      <div class="consent-panel" aria-label="Дозволи Real-time Look">
-        <label>
-          <input id="privacy-consent" type="checkbox">
-          <span><b>Камера лише для цієї сесії</b><small>Без запису й автоматичного збереження</small></span>
-        </label>
-        <label>
-          <input id="cost-consent" type="checkbox">
-          <span><b>Платний Live · до $0.60</b><small>Максимум 15 секунд, потім автозупинка</small></span>
-        </label>
+        <span><i id="camera-permission-status">КАМЕРА · НЕ ЗАПИТАНО</i> <b id="live-status">READY</b><small class="live-session-meta">Lucy 2.5 · $2.40/хв · до 40 с</small><button class="live-stage-close" type="button" data-live-close aria-label="Закрити Real-time Look">×</button></span>
       </div>
 
       <div class="control-dock">
@@ -65,6 +58,6 @@
       </div>
     </section>
   </main>
-  <script type="module" src="/post-shoot-mvp.js?v=20260730-1"></script>
+  <script type="module" src="/post-shoot-mvp.js?v=20260802-1"></script>
 </body>
 </html>

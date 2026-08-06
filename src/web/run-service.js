@@ -15,17 +15,21 @@ import path from 'node:path';
 import sharp from 'sharp';
 import { FilesystemArtifactStore } from '../runner/artifact-store.js';
 import { verifyCoreQaReceipt } from '../runner/core-qa-receipt.js';
-import { IMAGE_MODEL_ROUTE } from '../runner/model-policy.js';
+import { IMAGE_MODEL_ROUTE, GPT_IMAGE_2_LADDER_VERSION, generationProfileForAttempt } from '../runner/model-policy.js';
 import { PipelineRunner } from '../runner/pipeline-runner.js';
 import { assessImageQuality, normalizeReference } from '../conditioning/index.mjs';
 import { normalizeWhitePngBytes } from '../qa/white-normalizer.mjs';
+import { inspectImage } from '../qa/image-inspector.mjs';
+import { STATUS as QA_STATUS } from '../qa/constants.mjs';
+import { removeBorderConnectedWhiteToAlpha } from '../conditioning/transparent-cutout.mjs';
 import { GarmentNeedsInputError, GarmentConditioner } from './garment-conditioner.js';
-import { FirstAppearanceNeedsInputError, lockFirstAppearance } from './first-appearance-lock.js';
+import { lockFirstAppearance } from './first-appearance-lock.js';
 import {
   GARMENT_CATEGORIES,
   compileFullLookText,
   garmentLocks,
   groupGarmentViews,
+  outfitTargetRegion,
 } from './garment-passport.js';
 import {
   prepareVisualCheckpoint,
@@ -45,7 +49,8 @@ const MAX_APPROVED_ITEM_CHECKPOINT_BYTES = 16 * 1024 * 1024;
 const MAX_APPROVED_ITEM_JOB_BYTES = 2 * 1024 * 1024;
 const MAX_APPROVED_ITEM_MANIFEST_BYTES = 16 * 1024 * 1024;
 const PNG_SIGNATURE = Buffer.from('89504e470d0a1a0a', 'hex');
-const FIRST_APPEARANCE_REVIEW_CODE = 'FIRST_APPEARANCE_NEEDS_INPUT';
+const PROVIDER_WAIT_HEARTBEAT_MS = 60_000;
+const SAFE_PROVIDER_JOB_ID = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/;
 // A valid .webp was rejected as UNSUPPORTED_MEDIA_TYPE because curl declared
 // application/octet-stream, and the identical bytes were accepted once the client
 // relabelled them image/webp. Browsers fill the header in, so only a mobile app, a
@@ -112,6 +117,40 @@ function needsInput(code, message, options) {
 
 function evidenceError(code, message) {
   return new ApprovedItemEvidenceError(code, message);
+}
+
+// Fashion Video must decide whether a stride is physically grounded before a
+// provider job exists. The approved white master is already the only legal
+// image input, so this is a deterministic measurement of those exact pixels —
+// never a generated extension and never a VLM guess. A half-body crop cannot
+// prove footwear; a visible figure that reaches from the upper to lower area of
+// the white canvas can.
+async function fullLengthSourceCapability(filename) {
+  try {
+    const isolated = await removeBorderConnectedWhiteToAlpha(filename, {
+      removeBorderConnectedNeutralGradient: true,
+      removeDetachedLowContrastResidue: true,
+    });
+    const { data, info } = await sharp(isolated.image).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+    let top = info.height;
+    let bottom = -1;
+    for (let pixel = 0; pixel < info.width * info.height; pixel += 1) {
+      if (data[pixel * info.channels + 3] === 0) continue;
+      const y = Math.floor(pixel / info.width);
+      top = Math.min(top, y);
+      bottom = Math.max(bottom, y);
+    }
+    const visibleHeight = bottom >= top ? bottom - top + 1 : 0;
+    return Object.freeze({
+      full_length: visibleHeight >= info.height * 0.52
+        && top <= info.height * 0.32
+        && bottom >= info.height * 0.72,
+    });
+  } catch {
+    // This is a capability check, not a license to infer unseen legs. If the
+    // exact source cannot be measured, stride remains unavailable.
+    return Object.freeze({ full_length: false });
+  }
 }
 
 function isInside(root, filename) {
@@ -307,6 +346,80 @@ async function validateUpload(upload, field) {
   return { extension, metadata };
 }
 
+function publicProviderWait(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  if (value.state !== 'WAITING'
+    || !Number.isSafeInteger(value.attempt) || value.attempt < 1 || value.attempt > 5
+    || !Number.isSafeInteger(value.elapsed_seconds) || value.elapsed_seconds < 60
+    || typeof value.started_at !== 'string' || !Number.isFinite(Date.parse(value.started_at))) {
+    return null;
+  }
+  // The exact provider job id stays in the private persisted run state. The
+  // browser only needs proof that a real remote job is still in progress.
+  return {
+    state: 'WAITING',
+    attempt: value.attempt,
+    started_at: value.started_at,
+    elapsed_seconds: value.elapsed_seconds,
+  };
+}
+
+export function providerWaitHeartbeatFromJournal(journal, {
+  now = new Date(),
+  heartbeatMs = PROVIDER_WAIT_HEARTBEAT_MS,
+} = {}) {
+  if (!journal || typeof journal !== 'object' || Array.isArray(journal)
+    || journal.state !== 'WAITING'
+    || !SAFE_PROVIDER_JOB_ID.test(journal.provider_job_id ?? '')
+    || !Array.isArray(journal.events)
+    || !(now instanceof Date) || !Number.isFinite(now.getTime())
+    || !Number.isInteger(heartbeatMs) || heartbeatMs < 1_000) return null;
+  const started = [...journal.events].reverse().find((event) => (
+    event?.type === 'WAIT_STARTED'
+    && event.provider_job_id === journal.provider_job_id
+    && Number.isSafeInteger(event.wait_attempt)
+    && event.wait_attempt >= 1
+    && event.wait_attempt <= 5
+    && typeof event.at === 'string'
+    && Number.isFinite(Date.parse(event.at))
+  ));
+  if (!started) return null;
+  const startedAt = Date.parse(started.at);
+  const elapsedMs = now.getTime() - startedAt;
+  if (!Number.isFinite(elapsedMs) || elapsedMs < heartbeatMs) return null;
+  return {
+    state: 'WAITING',
+    provider: typeof journal.provider === 'string' ? journal.provider.slice(0, 32) : 'provider',
+    provider_job_id: journal.provider_job_id,
+    attempt: started.wait_attempt,
+    started_at: new Date(startedAt).toISOString(),
+    // The persisted heartbeat deliberately advances once per minute. It proves
+    // that this is a live provider wait without rewriting run.json every second.
+    elapsed_seconds: Math.floor(elapsedMs / heartbeatMs) * Math.floor(heartbeatMs / 1000),
+  };
+}
+
+async function providerWaitHeartbeatFromDirectory(directory, options) {
+  let entries;
+  try { entries = await readdir(directory, { withFileTypes: true }); } catch (error) {
+    if (error.code === 'ENOENT') return null;
+    throw error;
+  }
+  const candidates = [];
+  for (const entry of entries) {
+    if (!entry.isFile() || !/^[a-f0-9]{64}\.json$/.test(entry.name)) continue;
+    try {
+      const journal = JSON.parse(await readFile(path.join(directory, entry.name), 'utf8'));
+      const heartbeat = providerWaitHeartbeatFromJournal(journal, options);
+      if (heartbeat) candidates.push(heartbeat);
+    } catch {
+      // A partial or unrelated provider receipt is never a reason to stop the
+      // core run or to claim a connection failure to the browser.
+    }
+  }
+  return candidates.sort((left, right) => right.elapsed_seconds - left.elapsed_seconds)[0] ?? null;
+}
+
 function publicRun(state) {
   const visualCheckpoint = publicVisualCheckpoint(
     state.run_id,
@@ -329,11 +442,14 @@ function publicRun(state) {
       category: item.category,
       confidence: item.confidence,
       observed: sanitizeOutbound(item.observed ?? {}),
-      preview_url: `/api/runs/${state.run_id}/garments/${item.source_index}`,
+      // Presentation derivative; raw evidence never leaves this endpoint by
+      // default in a conflict/picker UI.
+      preview_url: `/api/runs/${state.run_id}/garments/${item.source_index}?preview=1`,
     })),
     conflicts: sanitizeOutbound(state.conflicts ?? []),
     qa: sanitizeOutbound(state.qa ?? {}),
     outputs: sanitizeOutbound(state.outputs ?? {}),
+    requested_outfit_text: sanitizeOutboundString(state.inputs?.outfit_text ?? ''),
     execution_route: {
       ...(Array.isArray(state.image_model_route)
         && JSON.stringify(state.image_model_route) !== JSON.stringify(IMAGE_MODEL_ROUTE)
@@ -349,6 +465,7 @@ function publicRun(state) {
       purpose: 'NEW_LOOK',
       source_run_id: state.inputs.approved_avatar.source_run_id,
     } } : {}),
+    ...(publicProviderWait(state.provider_wait) ? { provider_wait: publicProviderWait(state.provider_wait) } : {}),
     ...(visualCheckpoint ? { visual_checkpoint: visualCheckpoint } : {}),
     error: sanitizeOutbound(state.error ?? null),
   };
@@ -356,11 +473,10 @@ function publicRun(state) {
 
 export class RunService {
   constructor({ rootDirectory, provider, vlm, assetGenerator, generationRoute = IMAGE_MODEL_ROUTE, projectRoot = path.resolve(import.meta.dirname, '..', '..'), clock = () => new Date(), observer = null }) {
-    if (!Array.isArray(generationRoute) || generationRoute.length < 1
-      || new Set(generationRoute).size !== generationRoute.length
-      || generationRoute.some((model) => !IMAGE_MODEL_ROUTE.includes(model))) {
-      throw new TypeError('generationRoute must contain unique allowed Zeely image models');
+    if (!Array.isArray(generationRoute) || generationRoute.length < 1) {
+      throw new TypeError('generationRoute must contain immutable Zeely image profiles');
     }
+    generationRoute.forEach((_, index) => generationProfileForAttempt(index + 1, generationRoute));
     this.rootDirectory = path.resolve(rootDirectory);
     this.provider = provider;
     this.vlm = vlm;
@@ -492,6 +608,7 @@ export class RunService {
       schema_version: '1.0.0', run_id: runId, status: 'QUEUED', phase: 'UPLOADED', message: 'Inputs accepted',
       created_at: now, updated_at: now, inputs: { person: personPath, identity_detail: identityDetailPath, garments: garmentPaths, outfit_text: outfitText.trim(), generate_scene: Boolean(generateScene), ...(importedApprovedAvatar ? { approved_avatar: importedApprovedAvatar } : {}) },
       image_model_route: [...this.generationRoute],
+      image_model_route_version: GPT_IMAGE_2_LADDER_VERSION,
       ...(this.maxOrderedReferences === null ? {} : { max_ordered_references: this.maxOrderedReferences }),
       garments: [], conflicts: [], qa: {}, outputs: {}, error: null,
       visual_epoch: 1,
@@ -674,26 +791,6 @@ export class RunService {
       });
       return this.#write(state, { status: 'COMPLETED', phase: 'COMPLETED', inner_state: null, terminal_stage: null, message: 'Аватар і образ готові', outputs: state.outputs });
     } catch (error) {
-      /* Core avatar/outfit generation has already passed and materialized its
-       * outputs at this point. First-appearance evidence is a follow-up
-       * contract, not a reason to erase or hide that result. Keep the durable
-       * outputs, expose a retryable NEEDS_INPUT state, and let the client show
-       * the image while the follow-up evidence is repaired. */
-      if (error instanceof FirstAppearanceNeedsInputError && state.outputs?.avatar_outfit) {
-        const reviewError = {
-          name: error.name,
-          code: FIRST_APPEARANCE_REVIEW_CODE,
-          message: error.message,
-          details: error.details ?? null,
-        };
-        return this.#write(state, {
-          status: 'NEEDS_INPUT',
-          phase: 'CORE_PIPELINE',
-          terminal_stage: 'FIRST_APPEARANCE',
-          message: 'Образ готовий; потрібно уточнити додаткову річ',
-          error: reviewError,
-        });
-      }
       if (error instanceof GarmentNeedsInputError) {
         const passport = error.details.passport;
         const garments = passport?.items ? groupGarmentViews(passport.items, passport.reference_sets) : state.garments;
@@ -711,6 +808,12 @@ export class RunService {
     } catch {
       return;
     }
+    const providerWait = await providerWaitHeartbeatFromDirectory(
+      path.join(this.runDirectory(state.run_id), 'outputs', '.zeely-run', 'provider-jobs'),
+      { now: this.clock() },
+    );
+    const priorWait = publicProviderWait(state.provider_wait);
+    const waitChanged = JSON.stringify(priorWait) !== JSON.stringify(publicProviderWait(providerWait));
     let visualChanged = false;
     const retryStates = new Set(['CONDITIONING_RETRY', 'AVATAR_RETRY', 'OUTFIT_RETRY']);
     if (retryStates.has(checkpoint.state)) {
@@ -731,10 +834,14 @@ export class RunService {
         });
       }
     }
-    if (checkpoint.state !== state.inner_state || visualChanged) {
+    if (checkpoint.state !== state.inner_state || visualChanged || waitChanged) {
+      const waitMessage = providerWait
+        ? `Модель обробляє запит у провайдера · спроба ${providerWait.attempt} · очікуємо ${Math.floor(providerWait.elapsed_seconds / 60)} хв`
+        : null;
       await this.#write(state, {
         inner_state: checkpoint.state,
-        message: CHECKPOINT_MESSAGES[checkpoint.state] ?? checkpoint.state.replaceAll('_', ' ').toLowerCase(),
+        ...(providerWait ? { provider_wait: providerWait, message: waitMessage } : { provider_wait: null }),
+        message: waitMessage ?? CHECKPOINT_MESSAGES[checkpoint.state] ?? checkpoint.state.replaceAll('_', ' ').toLowerCase(),
       });
     }
   }
@@ -919,7 +1026,7 @@ export class RunService {
       ...(hasReference ? {
         reference: conditioned.items[0].source_path,
         reference_pack: { path: conditioned.pack.path },
-        target_region: 'complete_outfit',
+        target_region: outfitTargetRegion(conditioned.items),
         must_match: conditioned.items.flatMap(garmentLocks),
       } : {}),
     };
@@ -937,7 +1044,12 @@ export class RunService {
       // Test fixtures never ship with a product release. Production QA relies
       // exclusively on the immutable user evidence and generated candidate.
       quality_references: [],
-      model_route: [...this.generationRoute], max_attempts: this.generationRoute.length, conditioning_max_attempts: this.generationRoute.length,
+      model_route: [...this.generationRoute],
+      max_attempts: this.generationRoute.length,
+      // Conditioning is a separate evidence-preparation lane, not image
+      // synthesis. Do not multiply its VLM work merely because GPT Image 2
+      // has a five-step image ladder.
+      conditioning_max_attempts: 2,
       ...(state.inputs.approved_avatar ? { approved_avatar_reference: state.inputs.approved_avatar } : {}),
     };
     await atomicJson(jobPath, job);
@@ -1036,8 +1148,9 @@ export class RunService {
     await this.#write(state, { phase: 'OPTIONAL_SCENE', inner_state: null, message: 'Генеруємо додатковий редакційний кадр' });
     const sceneDirectory = path.join(this.runDirectory(state.run_id), 'scene');
     for (const [index, model] of this.generationRoute.entries()) {
+      const generationProfile = generationProfileForAttempt(index + 1, this.generationRoute);
       const response = await this.assetGenerator.generateScene({
-        approvedOutfitPath, model, workDirectory: sceneDirectory, operationId: `${state.run_id}-scene-${index + 1}`,
+        approvedOutfitPath, model, generationProfile, workDirectory: sceneDirectory, operationId: `${state.run_id}-scene-${index + 1}`,
         prompt: 'Using ATTACHMENT_1 [APPROVED_OUTFIT], create one memorable high-fashion editorial photograph with the exact same approved person and complete outfit. Preserve identity, face, hair, body proportions, every item color, texture, logo, text and fit. Place the subject in a bold contemporary editorial studio environment with sculptural light and a confident pose. No text overlay, no brand invention, no wardrobe changes.',
       });
       const candidatePath = path.join(sceneDirectory, `candidate-${index + 1}.png`);
@@ -1132,6 +1245,183 @@ export class RunService {
       throw evidenceError('APPROVED_ITEM_EVIDENCE_INVALID_FILE', `${label} has an invalid size`);
     }
     return bytes;
+  }
+
+  /**
+   * Return the verified identity image used by downstream appearance-bound
+   * video. Bytes only: callers never receive a run-local filesystem path.
+   */
+  async approvedIdentityReferenceForRun(runId) {
+    if (typeof runId !== 'string' || !SAFE_RUN_ID.test(runId)) {
+      throw evidenceError('APPROVED_IDENTITY_REFERENCE_INVALID', 'Run id is invalid');
+    }
+    const directory = path.join(this.runDirectory(runId), 'conditioned', 'identity');
+    const packPath = path.join(directory, 'reference-pack.json');
+    const packBytes = await this.#readApprovedItemEvidenceFile(
+      packPath,
+      directory,
+      'Identity reference pack',
+      MAX_APPROVED_ITEM_PACK_BYTES,
+    );
+    let pack;
+    try {
+      pack = JSON.parse(packBytes.toString('utf8'));
+    } catch {
+      throw evidenceError(
+        'APPROVED_IDENTITY_REFERENCE_INVALID',
+        'Identity reference pack is not valid JSON',
+      );
+    }
+    const binding = pack?.generation_bindings?.find(
+      (candidate) => candidate?.order === 1 && candidate?.role === 'IDENTITY_PRIMARY',
+    );
+    if (pack?.schema_version !== '1.0.0'
+      || pack.kind !== 'HUMAN'
+      || pack.readiness?.decision !== 'READY'
+      || !binding
+      || !SHA256.test(binding.sha256 ?? '')
+      || typeof binding.path !== 'string') {
+      throw evidenceError(
+        'APPROVED_IDENTITY_REFERENCE_INVALID',
+        'Identity reference pack is incomplete',
+      );
+    }
+    const deterministicPath = path.join(directory, 'primary.png');
+    const relocationSuffix = path.join('conditioned', 'identity', 'primary.png');
+    const declaredPath = path.resolve(binding.path);
+    const referencePath = isInside(directory, declaredPath)
+      ? declaredPath
+      : (declaredPath.endsWith(`${path.sep}${relocationSuffix}`)
+        ? deterministicPath
+        : null);
+    if (!referencePath) {
+      throw evidenceError(
+        'APPROVED_IDENTITY_REFERENCE_PATH_ESCAPE',
+        'Identity reference escapes its run directory',
+      );
+    }
+    const data = await this.#readApprovedItemEvidenceFile(
+      referencePath,
+      directory,
+      'Identity reference',
+      MAX_APPROVED_ITEM_CUTOUT_BYTES,
+    );
+    if (sha256(data) !== binding.sha256) {
+      throw evidenceError(
+        'APPROVED_IDENTITY_REFERENCE_HASH_MISMATCH',
+        'Identity reference SHA-256 mismatch',
+      );
+    }
+    return {
+      role: 'identity_face',
+      data,
+      sha256: binding.sha256,
+      media_type: 'image/png',
+    };
+  }
+
+  /**
+   * Return the optional face-detail derivative for Fashion Video only when its
+   * exact persisted pixels independently pass the white-background contract.
+   * A missing or non-white detail is simply omitted: the approved white master
+   * remains Image 1 and already carries the authoritative identity.
+   */
+  async approvedIdentityFaceReferenceForRun(runId) {
+    if (typeof runId !== 'string' || !SAFE_RUN_ID.test(runId)) {
+      throw evidenceError('APPROVED_IDENTITY_FACE_REFERENCE_INVALID', 'Run id is invalid');
+    }
+    const directory = path.join(this.runDirectory(runId), 'conditioned', 'identity');
+    const packPath = path.join(directory, 'reference-pack.json');
+    let packBytes;
+    try {
+      packBytes = await this.#readApprovedItemEvidenceFile(
+        packPath,
+        directory,
+        'Identity reference pack',
+        MAX_APPROVED_ITEM_PACK_BYTES,
+      );
+    } catch (error) {
+      if (error?.code === 'APPROVED_ITEM_EVIDENCE_MISSING') return null;
+      throw error;
+    }
+    let pack;
+    try {
+      pack = JSON.parse(packBytes.toString('utf8'));
+    } catch {
+      throw evidenceError(
+        'APPROVED_IDENTITY_FACE_REFERENCE_INVALID',
+        'Identity reference pack is not valid JSON',
+      );
+    }
+    if (pack?.schema_version !== '1.0.0'
+      || pack.kind !== 'HUMAN'
+      || pack.readiness?.decision !== 'READY'
+      || !Array.isArray(pack.generation_bindings)) {
+      throw evidenceError(
+        'APPROVED_IDENTITY_FACE_REFERENCE_INVALID',
+        'Identity reference pack is incomplete',
+      );
+    }
+    const binding = pack.generation_bindings.find((candidate) => (
+      candidate?.role === 'FACE_DETAIL' || candidate?.role === 'IDENTITY_FACE_DETAIL'
+    ));
+    if (!binding) return null;
+    if (!Number.isInteger(binding.order)
+      || binding.order < 2
+      || !SHA256.test(binding.sha256 ?? '')
+      || typeof binding.path !== 'string') {
+      throw evidenceError(
+        'APPROVED_IDENTITY_FACE_REFERENCE_INVALID',
+        'Identity face-detail binding is incomplete',
+      );
+    }
+
+    const deterministicPath = path.join(directory, 'detail.png');
+    const relocationSuffix = path.join('conditioned', 'identity', 'detail.png');
+    const declaredPath = path.resolve(binding.path);
+    const referencePath = isInside(directory, declaredPath)
+      ? declaredPath
+      : (declaredPath.endsWith(`${path.sep}${relocationSuffix}`)
+        ? deterministicPath
+        : null);
+    if (!referencePath) {
+      throw evidenceError(
+        'APPROVED_IDENTITY_FACE_REFERENCE_PATH_ESCAPE',
+        'Identity face-detail reference escapes its run directory',
+      );
+    }
+    const data = await this.#readApprovedItemEvidenceFile(
+      referencePath,
+      directory,
+      'Identity face-detail reference',
+      MAX_APPROVED_ITEM_CUTOUT_BYTES,
+    );
+    if (sha256(data) !== binding.sha256) {
+      throw evidenceError(
+        'APPROVED_IDENTITY_FACE_REFERENCE_HASH_MISMATCH',
+        'Identity face-detail reference SHA-256 mismatch',
+      );
+    }
+    const inspected = await inspectImage(referencePath);
+    const technicalPass = Object.values(inspected.technical_gates ?? {})
+      .every((gate) => gate?.status === QA_STATUS.PASS);
+    if (!technicalPass || inspected.background_diagnostics?.status !== QA_STATUS.PASS) {
+      return null;
+    }
+    if (inspected.sha256 !== binding.sha256) {
+      throw evidenceError(
+        'APPROVED_IDENTITY_FACE_REFERENCE_HASH_MISMATCH',
+        'Identity face-detail reference changed during verification',
+      );
+    }
+    return {
+      role: 'identity_face',
+      data,
+      sha256: binding.sha256,
+      media_type: 'image/png',
+      white_background_verified: true,
+      background_diagnostics: inspected.background_diagnostics,
+    };
   }
 
   /**
@@ -1617,16 +1907,12 @@ export class RunService {
     };
   }
 
-  async #verifyCompletedOutputSet(runId, { allowFirstAppearanceReview = false } = {}) {
+  async #verifyCompletedOutputSet(runId) {
     if (typeof runId !== 'string' || !SAFE_RUN_ID.test(runId)) {
       throw new Error('Completed output run id is invalid');
     }
     const state = await this.#read(runId);
-    const reviewState = allowFirstAppearanceReview
-      && ['NEEDS_INPUT', 'FAILED'].includes(state?.status)
-      && (state?.error?.code === FIRST_APPEARANCE_REVIEW_CODE
-        || state?.error?.name === 'FirstAppearanceNeedsInputError');
-    if (!state || (state.status !== 'COMPLETED' && !reviewState)) {
+    if (!state || state.status !== 'COMPLETED') {
       throw new Error('Completed output source run must exist and be completed');
     }
     const outputDirectory = path.join(this.runDirectory(runId), 'outputs');
@@ -1802,7 +2088,7 @@ export class RunService {
     if (!allowed.has(name)) return null;
     if (name !== 'art_director_scene.png') {
       try {
-        const verified = await this.#verifyCompletedOutputSet(runId, { allowFirstAppearanceReview: true });
+        const verified = await this.#verifyCompletedOutputSet(runId);
         return ({
           'avatar.png': verified.avatar,
           'avatar_outfit.png': verified.outfit,
@@ -1816,11 +2102,65 @@ export class RunService {
     try { await access(filename); return filename; } catch { return null; }
   }
 
+  /**
+   * Fashion Video may receive only the approved full-look master, never the
+   * original user upload or an identity-pack photo. Verify the same keyable
+   * white surface again at this downstream boundary so an arbitrary image path
+   * cannot become `[Image 1]` by accident.
+   */
+  async approvedWhiteMasterReferenceForRun(runId) {
+    const filename = await this.outputFile(runId, 'avatar_outfit.png');
+    if (!filename) {
+      throw evidenceError('APPROVED_WHITE_MASTER_MISSING', 'Approved white master is missing');
+    }
+    // Footwear legitimately reaches the lower edge of a full-length master.
+    // The inspector therefore gates both upper corners and a full-height side,
+    // rather than mistaking a sole at the bottom for a non-white background.
+    const inspected = await inspectImage(filename);
+    const technicalPass = Object.values(inspected.technical_gates ?? {})
+      .every((gate) => gate?.status === QA_STATUS.PASS);
+    if (!technicalPass || inspected.background_diagnostics?.status !== QA_STATUS.PASS) {
+      throw evidenceError(
+        'APPROVED_WHITE_MASTER_INVALID',
+        'Fashion Video requires the approved full-look master on exact white; original input photos are not allowed',
+      );
+    }
+    const data = await readFile(filename);
+    if (sha256(data) !== inspected.sha256) {
+      throw evidenceError('APPROVED_WHITE_MASTER_HASH_MISMATCH', 'Approved white master changed during verification');
+    }
+    return {
+      role: 'approved_white_master',
+      path: filename,
+      data,
+      sha256: inspected.sha256,
+      white_background_verified: true,
+      source_capabilities: await fullLengthSourceCapability(filename),
+      background_diagnostics: inspected.background_diagnostics,
+    };
+  }
+
   async garmentSourceFile(runId, sourceIndex) {
     const state = await this.#read(runId);
     const index = Number(sourceIndex);
     if (!state || !Number.isInteger(index) || index < 0 || index >= state.inputs.garments.length) return null;
     const filename = state.inputs.garments[index];
+    try { await access(filename); return filename; } catch { return null; }
+  }
+
+  // Raw person inputs are never part of the ordinary profile API. The only
+  // caller is the separately authenticated, read-only God View route.
+  async personSourceFile(runId) {
+    const state = await this.#read(runId);
+    const filename = state?.inputs?.person;
+    if (typeof filename !== 'string') return null;
+    try { await access(filename); return filename; } catch { return null; }
+  }
+
+  async identityDetailSourceFile(runId) {
+    const state = await this.#read(runId);
+    const filename = state?.inputs?.identity_detail;
+    if (typeof filename !== 'string') return null;
     try { await access(filename); return filename; } catch { return null; }
   }
 

@@ -1,0 +1,397 @@
+<!doctype html>
+<html lang="uk"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Fashion Shoot — style atlas</title>
+<style>
+  :root { color-scheme: dark; --bg:#0e1010; --paper:#151918; --line:#303837; --ink:#f1f4ee; --muted:#a7afa9; --lime:#bbff44; --amber:#ffc33f; --red:#ff8b86; }
+  * { box-sizing:border-box } body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.45 ui-sans-serif,system-ui,sans-serif; } main{max-width:1320px;margin:auto;padding:36px 20px 80px}.eyebrow{color:var(--lime);font-size:12px;font-weight:800;letter-spacing:.13em}h1{font-size:clamp(31px,5vw,62px);line-height:1;margin:10px 0 18px} h2{font-size:25px;margin:0 0 10px} h3{font-size:18px;margin:0} h4{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#cfdbd0;margin:24px 0 8px}p{color:var(--muted);max-width:78ch}.callout{background:#1e251e;border:1px solid #607053;border-radius:14px;padding:16px 18px;margin:20px 0 28px}.callout b{color:var(--lime)} details.style{background:var(--paper);border:1px solid var(--line);border-radius:18px;margin:18px 0;overflow:hidden} summary{cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:20px 22px;font-size:20px;font-weight:750}summary code{font-size:12px;color:var(--lime)}.style-content{padding:0 22px 25px}.style-top{display:grid;grid-template-columns:220px 1fr;gap:24px;align-items:start;padding-bottom:20px;border-bottom:1px solid var(--line)}.mood{width:100%;border-radius:10px;background:#202322}.attachments{padding:14px 0 20px;border-bottom:1px solid var(--line)}.attachment-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.attachment-grid figure{margin:0;background:#0c0d0d;border:1px solid var(--line);border-radius:10px;overflow:hidden}.attachment-grid img{display:block;width:100%;aspect-ratio:1;object-fit:cover}.attachment-grid figcaption{padding:8px;font-size:11px;color:var(--muted)}.slot{padding:28px 0;border-bottom:1px solid var(--line)}.slot:last-child{border:0}.slot.legacy{opacity:.72}.slot-head{display:flex;justify-content:space-between;gap:14px;align-items:center}.slot-head>div{display:flex;gap:10px;align-items:center}.num{font-size:11px;font-weight:900;color:#111;background:var(--lime);padding:4px 7px;border-radius:999px}.badge{font-size:11px;font-weight:850;letter-spacing:.05em;padding:5px 8px;border-radius:999px}.live-badge{background:#233416;color:var(--lime)}.legacy-badge{background:#3a2423;color:var(--red)}.slot-grid{display:grid;grid-template-columns:minmax(260px,480px) 1fr;gap:22px;margin-top:17px}.slot figure{margin:0;background:#0c0d0d;border:1px solid var(--line);border-radius:12px;overflow:hidden}.slot figure img{display:block;width:100%;height:auto}.slot figcaption{padding:10px;font-size:12px;color:var(--muted)}pre{white-space:pre-wrap;overflow-wrap:anywhere;margin:0;background:#0c0e0e;border:1px solid #252c2a;border-radius:10px;padding:13px;color:#d8e1d9;font:12px/1.43 ui-monospace,SFMono-Regular,Menlo,monospace}.binding{border-color:#819b47;background:#192114;box-shadow:inset 4px 0 var(--lime)}.prompt{border-color:#815e22;background:#211b10;box-shadow:inset 4px 0 var(--amber)}code{overflow-wrap:anywhere;color:#dce9c2}.legacy-note{color:var(--red)}@media(max-width:760px){main{padding:24px 12px}.style-content{padding:0 13px 18px}.style-top,.slot-grid{grid-template-columns:1fr}.attachment-grid{grid-template-columns:repeat(2,1fr)}.mood{max-width:260px}.slot-head,summary{align-items:flex-start;flex-direction:column}.badge{align-self:flex-start}}
+</style>
+<main>
+  <div class="eyebrow">BETA · ONE CONCRETE FASHION SHOOT · COMPILED FROM CURRENT SOURCE</div>
+  <h1>Fashion Shoot<br>One example: Skylight Haze</h1>
+  <div class="callout"><b>Як читати:</b> кожен стиль нижче містить п’ять активних кадрів, їхню технічну blocking-схему, кадровий запис, точний content-addressed binding та повний compiled prompt. Prompt не містить персональних даних: під час реального запуску до нього окремо додається immutable approved master-look конкретного користувача. <b>Legacy clean_identity_hero</b> показано лише для прозорості й не генерується при новому Fashion Shoot.</div>
+  <div class="callout"><b>Один конкретний Fashion Shoot:</b> п’ять live-кадрів нижче генеруються одним натисканням. Кожен блок = одна майбутня фотографія, її blocking-схема, exact binding, прикріплені style reference-фото й повний compiled prompt. Шостий legacy блок залишено наприкінці тільки для аудиту старої системи.</div>
+    <details class="style" open>
+      <summary><span>Скляний дах · теплий серпанок</span><code>shoot.skylight_haze</code></summary>
+      <div class="style-content">
+        <div class="style-top">
+          <img class="mood" src="../../assets/scene-mood-cards/shoot.skylight_haze.webp" alt="Mood card Скляний дах · теплий серпанок">
+          <section><h2>Скляний дах · теплий серпанок</h2><p><b>Create Universe style:</b> A low-viewpoint fashion universe suspended in warm backlit haze: one approved subject, pale glazed-roof geometry, abstract olive foliage, raised-arm diagonals, dissolved near planes and luminous lifted colour.</p><p>Style-pack робить атмосферу, світло, матеріали та оптику. Approved master-look залишається єдиним джерелом людини й речей.</p><h4>Виділений style record</h4><pre class="binding">{
+  &quot;mode_id&quot;: &quot;shoot.skylight_haze&quot;,
+  &quot;version&quot;: &quot;1.0.0&quot;,
+  &quot;ui_name_uk&quot;: &quot;Скляний дах · теплий серпанок&quot;,
+  &quot;visual_system&quot;: &quot;A low-viewpoint fashion universe suspended in warm backlit haze: one approved subject, pale glazed-roof geometry, abstract olive foliage, raised-arm diagonals, dissolved near planes and luminous lifted colour.&quot;,
+  &quot;source_set_status&quot;: &quot;READY&quot;,
+  &quot;generation_available&quot;: true,
+  &quot;mood_card_sha256&quot;: &quot;af819ea1f0ea5758087d8e327a6f6c712b09b8bebbc762677ab2c0a841bb8d82&quot;,
+  &quot;unit_contract&quot;: null,
+  &quot;unit_contract_sha256&quot;: null
+}</pre></section>
+        </div>
+        <section class="attachments">
+          <h4>Фото, прикріплені до prompt-ів цього стилю</h4>
+          <p>Ці чотири фото передаються окремими reference-assets до <b>кожного з п’яти</b> кадрів. Вони не є текстом prompt-а і не мають права змінювати людину або її речі.</p>
+          <div class="attachment-grid"><figure><img src="../../sheet-camera_lens.png" alt="camera_lens"><figcaption><b>camera_lens</b> → <code>composition_anchor</code><br><code>./sheet-camera_lens.png</code></figcaption></figure><figure><img src="../../sheet-blocking.png" alt="blocking"><figcaption><b>blocking</b> → <code>negative_reference</code><br><code>./sheet-blocking.png</code></figcaption></figure><figure><img src="../../sheet-expression_gaze.png" alt="expression_gaze"><figcaption><b>expression_gaze</b> → <code>lighting_anchor</code><br><code>./sheet-expression_gaze.png</code></figcaption></figure><figure><img src="../../sheet-garment_behaviour.png" alt="garment_behaviour"><figcaption><b>garment_behaviour</b> → <code>palette_anchor</code><br><code>./sheet-garment_behaviour.png</code></figcaption></figure></div>
+        </section>
+        
+      <article class="slot legacy">
+        <div class="slot-head">
+          <div><span class="num">clean_identity_hero</span><h3>Чистий hero-кадр</h3></div>
+          <span class="badge legacy-badge">LEGACY — не генерується</span>
+        </div>
+        <div class="slot-grid">
+          <figure>
+            <img src="../../assets/editorial-blocking/v1/clean_identity_hero.png" alt="Blocking clean_identity_hero">
+            <figcaption><b>Blocking-схема</b><br><code>assets/editorial-blocking/v1/clean_identity_hero.png</code><br>SHA-256: <code>886e7e7715fb92878cf7d495ca2bf417733b5a0ad242d8c88df93b9354839b96</code></figcaption>
+          </figure>
+          <section class="facts">
+            <h4>Що схема має право задавати</h4>
+            <pre>{
+  &quot;lens_mm&quot;: 50,
+  &quot;framing&quot;: &quot;three_quarter&quot;,
+  &quot;subject_height_percent&quot;: [
+    50,
+    94
+  ],
+  &quot;minimum_clear_space_percent&quot;: {
+    &quot;above_hair&quot;: 6,
+    &quot;below_footwear&quot;: 0
+  },
+  &quot;require_full_head&quot;: true,
+  &quot;require_full_footwear&quot;: false
+}</pre>
+            <p>Схема задає лише механіку кадру: lens, framing, масштаб, зазор, видимість голови/взуття. Вона <b>не має права</b> змінювати людину, волосся, одяг або середовище.</p>
+          </section>
+        </div>
+        <h4>Кадровий запис</h4>
+        <pre>{
+  &quot;slot&quot;: &quot;clean_identity_hero&quot;,
+  &quot;objective&quot;: &quot;Establish exact identity, natural body proportions and every approved item without obstruction before any experimental frame.&quot;,
+  &quot;pose&quot;: &quot;Front or near-front three-quarter stance; shoulders relaxed, face returned directly to lens, hands separated from the torso, and every visible approved item unobstructed.&quot;,
+  &quot;camera&quot;: {
+    &quot;lens_mm&quot;: 50,
+    &quot;framing&quot;: &quot;three_quarter&quot;,
+    &quot;angle&quot;: &quot;Eye-level 50 mm clean fashion portrait with disciplined verticals, moderate perspective and enough scale to verify the face and visible approved items.&quot;,
+    &quot;subject_height_percent&quot;: [
+      50,
+      94
+    ]
+  },
+  &quot;lighting&quot;: &quot;A broad source above and behind the approved subject blows the palest apertures, wraps edges in warm light and leaves the front softly readable through lifted fill; heavy atmospheric or optical veil is densest in the upper field. Fixed optical signature on every frame: Every frame carries a strong warm veiling wash concentrated behind and above the subject, while the face and approved-item evidence remain readable. | Every frame carries soft bloom on blown pale apertures and warm halation on backlit hair, skin-edge and approved-cloth edges; no chromatic fringe, swirl or vignette. | Fine low grain and lifted shadows are fixed across the unit; the image must never become clinically crisp or globally muddy..&quot;,
+  &quot;environment&quot;: &quot;Invent an original non-recognisable glazed-roof atrium using pale beams and mullions, blown sky apertures, warm cream floor or wall fields, abstract olive foliage and dusty-rose accents; never reconstruct a real conservatory or source location.&quot;,
+  &quot;identity_visibility&quot;: &quot;full_face&quot;,
+  &quot;optical_device&quot;: null,
+  &quot;negative_constraints&quot;: [
+    &quot;No identity drift, age change, face replacement, body redesign or skin smoothing.&quot;,
+    &quot;No removed, substituted, recolored or redesigned approved garment, accessory, footwear, logo or text. Do not replace an unregistered item already visible in the approved look with a synthesized alternative.&quot;,
+    &quot;No copied source person, landmark, readable signage or exact source architecture.&quot;,
+    &quot;No malformed hands, merged limbs, destructive crop or incoherent contact shadow.&quot;,
+    &quot;Do not omit or replace this unit-wide optical rule: Every frame carries a strong warm veiling wash concentrated behind and above the subject, while the face and approved-item evidence remain readable.&quot;,
+    &quot;Do not omit or replace this unit-wide optical rule: Every frame carries soft bloom on blown pale apertures and warm halation on backlit hair, skin-edge and approved-cloth edges; no chromatic fringe, swirl or vignette.&quot;,
+    &quot;Do not omit or replace this unit-wide optical rule: Fine low grain and lifted shadows are fixed across the unit; the image must never become clinically crisp or globally muddy.&quot;
+  ]
+}</pre>
+        <p class="legacy-note">Це legacy validation frame. У новому Fashion Shoot він автоматично скасовується; тому для нього не створюється production binding чи provider prompt.</p>
+      </article>
+
+      <article class="slot ">
+        <div class="slot-head">
+          <div><span class="num">environmental_hero</span><h3>Hero у просторі</h3></div>
+          <span class="badge live-badge">LIVE — входить у 5 кадрів</span>
+        </div>
+        <div class="slot-grid">
+          <figure>
+            <img src="../../assets/editorial-blocking/v1/environmental_hero.png" alt="Blocking environmental_hero">
+            <figcaption><b>Blocking-схема</b><br><code>assets/editorial-blocking/v1/environmental_hero.png</code><br>SHA-256: <code>9dd8737e5bcded8208f061f98d5fc047a408ef4dd49b8d3e00b2a117bf609ddd</code></figcaption>
+          </figure>
+          <section class="facts">
+            <h4>Що схема має право задавати</h4>
+            <pre>{
+  &quot;lens_mm&quot;: 50,
+  &quot;framing&quot;: &quot;three_quarter&quot;,
+  &quot;subject_height_percent&quot;: [
+    40,
+    95
+  ],
+  &quot;minimum_clear_space_percent&quot;: {
+    &quot;above_hair&quot;: 5,
+    &quot;below_footwear&quot;: 0
+  },
+  &quot;require_full_head&quot;: true,
+  &quot;require_full_footwear&quot;: false
+}</pre>
+            <p>Схема задає лише механіку кадру: lens, framing, масштаб, зазор, видимість голови/взуття. Вона <b>не має права</b> змінювати людину, волосся, одяг або середовище.</p>
+          </section>
+        </div>
+        <h4>Кадровий запис</h4>
+        <pre>{
+  &quot;slot&quot;: &quot;environmental_hero&quot;,
+  &quot;objective&quot;: &quot;Integrate the exact approved person and look into the mode environment while preserving clear identity and complete item evidence.&quot;,
+  &quot;pose&quot;: &quot;Feet or lower support remain plausibly grounded, pelvis square, spine upright, one shoulder-elbow-wrist chain reaches upward toward the light and the other arm hangs with a relaxed bend.&quot;,
+  &quot;camera&quot;: {
+    &quot;lens_mm&quot;: 50,
+    &quot;framing&quot;: &quot;three_quarter&quot;,
+    &quot;angle&quot;: &quot;Low vertical three-quarter-to-full figure view on a central atrium axis; the subject remains forty to fifty-five percent of frame height while glazed-roof geometry and foliage establish three depth planes.&quot;,
+    &quot;subject_height_percent&quot;: [
+      40,
+      95
+    ]
+  },
+  &quot;lighting&quot;: &quot;A broad source above and behind the approved subject blows the palest apertures, wraps edges in warm light and leaves the front softly readable through lifted fill; heavy atmospheric or optical veil is densest in the upper field. Fixed optical signature on every frame: Every frame carries a strong warm veiling wash concentrated behind and above the subject, while the face and approved-item evidence remain readable. | Every frame carries soft bloom on blown pale apertures and warm halation on backlit hair, skin-edge and approved-cloth edges; no chromatic fringe, swirl or vignette. | Fine low grain and lifted shadows are fixed across the unit; the image must never become clinically crisp or globally muddy..&quot;,
+  &quot;environment&quot;: &quot;Invent an original non-recognisable glazed-roof atrium using pale beams and mullions, blown sky apertures, warm cream floor or wall fields, abstract olive foliage and dusty-rose accents; never reconstruct a real conservatory or source location.&quot;,
+  &quot;identity_visibility&quot;: &quot;full_face&quot;,
+  &quot;optical_device&quot;: null,
+  &quot;negative_constraints&quot;: [
+    &quot;No identity drift, age change, face replacement, body redesign or skin smoothing.&quot;,
+    &quot;No removed, substituted, recolored or redesigned approved garment, accessory, footwear, logo or text. Do not replace an unregistered item already visible in the approved look with a synthesized alternative.&quot;,
+    &quot;No copied source person, landmark, readable signage or exact source architecture.&quot;,
+    &quot;No malformed hands, merged limbs, destructive crop or incoherent contact shadow.&quot;,
+    &quot;Do not omit or replace this unit-wide optical rule: Every frame carries a strong warm veiling wash concentrated behind and above the subject, while the face and approved-item evidence remain readable.&quot;,
+    &quot;Do not omit or replace this unit-wide optical rule: Every frame carries soft bloom on blown pale apertures and warm halation on backlit hair, skin-edge and approved-cloth edges; no chromatic fringe, swirl or vignette.&quot;,
+    &quot;Do not omit or replace this unit-wide optical rule: Fine low grain and lifted shadows are fixed across the unit; the image must never become clinically crisp or globally muddy.&quot;
+  ]
+}</pre>
+        <p class="legacy-note">Це legacy validation frame. У новому Fashion Shoot він автоматично скасовується; тому для нього не створюється production binding чи provider prompt.</p>
+      </article>
+
+      <article class="slot ">
+        <div class="slot-head">
+          <div><span class="num">sculptural_three_quarter</span><h3>Скульптурний 3/4</h3></div>
+          <span class="badge live-badge">LIVE — входить у 5 кадрів</span>
+        </div>
+        <div class="slot-grid">
+          <figure>
+            <img src="../../assets/editorial-blocking/v1/sculptural_three_quarter.png" alt="Blocking sculptural_three_quarter">
+            <figcaption><b>Blocking-схема</b><br><code>assets/editorial-blocking/v1/sculptural_three_quarter.png</code><br>SHA-256: <code>b23c4d352ce1e022bb79aaa7c30da7880884a8abb04e12d5f54a771a8d787fba</code></figcaption>
+          </figure>
+          <section class="facts">
+            <h4>Що схема має право задавати</h4>
+            <pre>{
+  &quot;lens_mm&quot;: 65,
+  &quot;framing&quot;: &quot;three_quarter&quot;,
+  &quot;subject_height_percent&quot;: [
+    50,
+    95
+  ],
+  &quot;minimum_clear_space_percent&quot;: {
+    &quot;above_hair&quot;: 5,
+    &quot;below_footwear&quot;: 0
+  },
+  &quot;require_full_head&quot;: true,
+  &quot;require_full_footwear&quot;: false
+}</pre>
+            <p>Схема задає лише механіку кадру: lens, framing, масштаб, зазор, видимість голови/взуття. Вона <b>не має права</b> змінювати людину, волосся, одяг або середовище.</p>
+          </section>
+        </div>
+        <h4>Кадровий запис</h4>
+        <pre>{
+  &quot;slot&quot;: &quot;sculptural_three_quarter&quot;,
+  &quot;objective&quot;: &quot;Create a sculptural three-quarter fashion portrait while keeping face, upper-body construction and the dominant accessories exact.&quot;,
+  &quot;pose&quot;: &quot;Pelvis turns three-quarter, spine lengthens, near upper arm rises beside the ear, near elbow bends outward, wrist clears the crown, while the far elbow opens laterally and its wrist remains below the near wrist.&quot;,
+  &quot;camera&quot;: {
+    &quot;lens_mm&quot;: 65,
+    &quot;framing&quot;: &quot;three_quarter&quot;,
+    &quot;angle&quot;: &quot;Oblique low camera from the approved subject&#39;s near side, cropped between knee and full three-quarter height; converging pale beams and raised limbs form an asymmetric triangle.&quot;,
+    &quot;subject_height_percent&quot;: [
+      50,
+      95
+    ]
+  },
+  &quot;lighting&quot;: &quot;A broad source above and behind the approved subject blows the palest apertures, wraps edges in warm light and leaves the front softly readable through lifted fill; heavy atmospheric or optical veil is densest in the upper field. Fixed optical signature on every frame: Every frame carries a strong warm veiling wash concentrated behind and above the subject, while the face and approved-item evidence remain readable. | Every frame carries soft bloom on blown pale apertures and warm halation on backlit hair, skin-edge and approved-cloth edges; no chromatic fringe, swirl or vignette. | Fine low grain and lifted shadows are fixed across the unit; the image must never become clinically crisp or globally muddy..&quot;,
+  &quot;environment&quot;: &quot;Invent an original non-recognisable glazed-roof atrium using pale beams and mullions, blown sky apertures, warm cream floor or wall fields, abstract olive foliage and dusty-rose accents; never reconstruct a real conservatory or source location.&quot;,
+  &quot;identity_visibility&quot;: &quot;full_face&quot;,
+  &quot;optical_device&quot;: null,
+  &quot;negative_constraints&quot;: [
+    &quot;No identity drift, age change, face replacement, body redesign or skin smoothing.&quot;,
+    &quot;No removed, substituted, recolored or redesigned approved garment, accessory, footwear, logo or text. Do not replace an unregistered item already visible in the approved look with a synthesized alternative.&quot;,
+    &quot;No copied source person, landmark, readable signage or exact source architecture.&quot;,
+    &quot;No malformed hands, merged limbs, destructive crop or incoherent contact shadow.&quot;,
+    &quot;Do not omit or replace this unit-wide optical rule: Every frame carries a strong warm veiling wash concentrated behind and above the subject, while the face and approved-item evidence remain readable.&quot;,
+    &quot;Do not omit or replace this unit-wide optical rule: Every frame carries soft bloom on blown pale apertures and warm halation on backlit hair, skin-edge and approved-cloth edges; no chromatic fringe, swirl or vignette.&quot;,
+    &quot;Do not omit or replace this unit-wide optical rule: Fine low grain and lifted shadows are fixed across the unit; the image must never become clinically crisp or globally muddy.&quot;
+  ]
+}</pre>
+        <p class="legacy-note">Це legacy validation frame. У новому Fashion Shoot він автоматично скасовується; тому для нього не створюється production binding чи provider prompt.</p>
+      </article>
+
+      <article class="slot ">
+        <div class="slot-head">
+          <div><span class="num">interference_frame</span><h3>Кадр з оптичним акцентом</h3></div>
+          <span class="badge live-badge">LIVE — входить у 5 кадрів</span>
+        </div>
+        <div class="slot-grid">
+          <figure>
+            <img src="../../assets/editorial-blocking/v1/interference_frame.png" alt="Blocking interference_frame">
+            <figcaption><b>Blocking-схема</b><br><code>assets/editorial-blocking/v1/interference_frame.png</code><br>SHA-256: <code>2fc68802fc64642392ed27ecb3b5f2d7a4fc8754c17720c916e1edefec197a0a</code></figcaption>
+          </figure>
+          <section class="facts">
+            <h4>Що схема має право задавати</h4>
+            <pre>{
+  &quot;lens_mm&quot;: 55,
+  &quot;framing&quot;: &quot;three_quarter&quot;,
+  &quot;subject_height_percent&quot;: [
+    45,
+    96
+  ],
+  &quot;minimum_clear_space_percent&quot;: {
+    &quot;above_hair&quot;: 4,
+    &quot;below_footwear&quot;: 0
+  },
+  &quot;require_full_head&quot;: true,
+  &quot;require_full_footwear&quot;: false
+}</pre>
+            <p>Схема задає лише механіку кадру: lens, framing, масштаб, зазор, видимість голови/взуття. Вона <b>не має права</b> змінювати людину, волосся, одяг або середовище.</p>
+          </section>
+        </div>
+        <h4>Кадровий запис</h4>
+        <pre>{
+  &quot;slot&quot;: &quot;interference_frame&quot;,
+  &quot;objective&quot;: &quot;Use exactly one controlled foreground optical interruption without covering identity, logos, text or critical construction.&quot;,
+  &quot;pose&quot;: &quot;Torso stays frontal, both shoulders lift into raised arms, one elbow bends above the crown while the near wrist travels toward the lens and the opposite wrist remains high beside the head.&quot;,
+  &quot;camera&quot;: {
+    &quot;lens_mm&quot;: 55,
+    &quot;framing&quot;: &quot;three_quarter&quot;,
+    &quot;angle&quot;: &quot;Extreme low close portrait with the face and upper torso centred behind a near depth plane; the view exaggerates the closest hand or approved-cloth edge without distorting identity.&quot;,
+    &quot;subject_height_percent&quot;: [
+      45,
+      96
+    ]
+  },
+  &quot;lighting&quot;: &quot;A broad source above and behind the approved subject blows the palest apertures, wraps edges in warm light and leaves the front softly readable through lifted fill; heavy atmospheric or optical veil is densest in the upper field. Fixed optical signature on every frame: Every frame carries a strong warm veiling wash concentrated behind and above the subject, while the face and approved-item evidence remain readable. | Every frame carries soft bloom on blown pale apertures and warm halation on backlit hair, skin-edge and approved-cloth edges; no chromatic fringe, swirl or vignette. | Fine low grain and lifted shadows are fixed across the unit; the image must never become clinically crisp or globally muddy..&quot;,
+  &quot;environment&quot;: &quot;Invent an original non-recognisable glazed-roof atrium using pale beams and mullions, blown sky apertures, warm cream floor or wall fields, abstract olive foliage and dusty-rose accents; never reconstruct a real conservatory or source location.&quot;,
+  &quot;identity_visibility&quot;: &quot;full_face&quot;,
+  &quot;optical_device&quot;: &quot;A warm defocused hand, sleeve or approved free edge occupies about one quarter to one third of one side, never the full face.&quot;,
+  &quot;negative_constraints&quot;: [
+    &quot;No identity drift, age change, face replacement, body redesign or skin smoothing.&quot;,
+    &quot;No removed, substituted, recolored or redesigned approved garment, accessory, footwear, logo or text. Do not replace an unregistered item already visible in the approved look with a synthesized alternative.&quot;,
+    &quot;No copied source person, landmark, readable signage or exact source architecture.&quot;,
+    &quot;No malformed hands, merged limbs, destructive crop or incoherent contact shadow.&quot;,
+    &quot;Do not omit or replace this unit-wide optical rule: Every frame carries a strong warm veiling wash concentrated behind and above the subject, while the face and approved-item evidence remain readable.&quot;,
+    &quot;Do not omit or replace this unit-wide optical rule: Every frame carries soft bloom on blown pale apertures and warm halation on backlit hair, skin-edge and approved-cloth edges; no chromatic fringe, swirl or vignette.&quot;,
+    &quot;Do not omit or replace this unit-wide optical rule: Fine low grain and lifted shadows are fixed across the unit; the image must never become clinically crisp or globally muddy.&quot;
+  ]
+}</pre>
+        <p class="legacy-note">Це legacy validation frame. У новому Fashion Shoot він автоматично скасовується; тому для нього не створюється production binding чи provider prompt.</p>
+      </article>
+
+      <article class="slot ">
+        <div class="slot-head">
+          <div><span class="num">material_or_accessory_detail</span><h3>Деталь матеріалу або аксесуара</h3></div>
+          <span class="badge live-badge">LIVE — входить у 5 кадрів</span>
+        </div>
+        <div class="slot-grid">
+          <figure>
+            <img src="../../assets/editorial-blocking/v1/material_or_accessory_detail.png" alt="Blocking material_or_accessory_detail">
+            <figcaption><b>Blocking-схема</b><br><code>assets/editorial-blocking/v1/material_or_accessory_detail.png</code><br>SHA-256: <code>2ccc10ea429f0545056248e76ecfd5099def50d77100d169c9dd0819ffb1c0f8</code></figcaption>
+          </figure>
+          <section class="facts">
+            <h4>Що схема має право задавати</h4>
+            <pre>{
+  &quot;lens_mm&quot;: 85,
+  &quot;framing&quot;: &quot;detail&quot;,
+  &quot;subject_height_percent&quot;: [
+    45,
+    100
+  ],
+  &quot;minimum_clear_space_percent&quot;: {
+    &quot;above_hair&quot;: 0,
+    &quot;below_footwear&quot;: 0
+  },
+  &quot;require_full_head&quot;: false,
+  &quot;require_full_footwear&quot;: false
+}</pre>
+            <p>Схема задає лише механіку кадру: lens, framing, масштаб, зазор, видимість голови/взуття. Вона <b>не має права</b> змінювати людину, волосся, одяг або середовище.</p>
+          </section>
+        </div>
+        <h4>Кадровий запис</h4>
+        <pre>{
+  &quot;slot&quot;: &quot;material_or_accessory_detail&quot;,
+  &quot;objective&quot;: &quot;Show one approved material, construction, logo, text, footwear or accessory detail at forensic fidelity while retaining non-conflicting visible identity evidence.&quot;,
+  &quot;pose&quot;: &quot;One shoulder-elbow-wrist chain raises the approved detail into backlight while the other hand stabilises it near the chest; wrist, hand and adjacent torso remain anatomically connected.&quot;,
+  &quot;camera&quot;: {
+    &quot;lens_mm&quot;: 85,
+    &quot;framing&quot;: &quot;detail&quot;,
+    &quot;angle&quot;: &quot;Close low upward human-context detail of an approved sleeve, cuff, accessory or material edge against a blown aperture; head visibility is optional but torso attachment is mandatory.&quot;,
+    &quot;subject_height_percent&quot;: [
+      45,
+      100
+    ]
+  },
+  &quot;lighting&quot;: &quot;A broad source above and behind the approved subject blows the palest apertures, wraps edges in warm light and leaves the front softly readable through lifted fill; heavy atmospheric or optical veil is densest in the upper field. Fixed optical signature on every frame: Every frame carries a strong warm veiling wash concentrated behind and above the subject, while the face and approved-item evidence remain readable. | Every frame carries soft bloom on blown pale apertures and warm halation on backlit hair, skin-edge and approved-cloth edges; no chromatic fringe, swirl or vignette. | Fine low grain and lifted shadows are fixed across the unit; the image must never become clinically crisp or globally muddy..&quot;,
+  &quot;environment&quot;: &quot;Invent an original non-recognisable glazed-roof atrium using pale beams and mullions, blown sky apertures, warm cream floor or wall fields, abstract olive foliage and dusty-rose accents; never reconstruct a real conservatory or source location.&quot;,
+  &quot;identity_visibility&quot;: &quot;partial_face&quot;,
+  &quot;optical_device&quot;: null,
+  &quot;negative_constraints&quot;: [
+    &quot;No identity drift, age change, face replacement, body redesign or skin smoothing.&quot;,
+    &quot;No removed, substituted, recolored or redesigned approved garment, accessory, footwear, logo or text. Do not replace an unregistered item already visible in the approved look with a synthesized alternative.&quot;,
+    &quot;No copied source person, landmark, readable signage or exact source architecture.&quot;,
+    &quot;No malformed hands, merged limbs, destructive crop or incoherent contact shadow.&quot;,
+    &quot;Do not omit or replace this unit-wide optical rule: Every frame carries a strong warm veiling wash concentrated behind and above the subject, while the face and approved-item evidence remain readable.&quot;,
+    &quot;Do not omit or replace this unit-wide optical rule: Every frame carries soft bloom on blown pale apertures and warm halation on backlit hair, skin-edge and approved-cloth edges; no chromatic fringe, swirl or vignette.&quot;,
+    &quot;Do not omit or replace this unit-wide optical rule: Fine low grain and lifted shadows are fixed across the unit; the image must never become clinically crisp or globally muddy.&quot;
+  ]
+}</pre>
+        <p class="legacy-note">Це legacy validation frame. У новому Fashion Shoot він автоматично скасовується; тому для нього не створюється production binding чи provider prompt.</p>
+      </article>
+
+      <article class="slot ">
+        <div class="slot-head">
+          <div><span class="num">wide_campaign_coda</span><h3>Широкий campaign-фінал</h3></div>
+          <span class="badge live-badge">LIVE — входить у 5 кадрів</span>
+        </div>
+        <div class="slot-grid">
+          <figure>
+            <img src="../../assets/editorial-blocking/v1/wide_campaign_coda.png" alt="Blocking wide_campaign_coda">
+            <figcaption><b>Blocking-схема</b><br><code>assets/editorial-blocking/v1/wide_campaign_coda.png</code><br>SHA-256: <code>1c928fc81f613d5417c814af7f9f72eab142d901322bb844264b974b02d2ce80</code></figcaption>
+          </figure>
+          <section class="facts">
+            <h4>Що схема має право задавати</h4>
+            <pre>{
+  &quot;lens_mm&quot;: 35,
+  &quot;framing&quot;: &quot;wide_full_body&quot;,
+  &quot;subject_height_percent&quot;: [
+    30,
+    92
+  ],
+  &quot;minimum_clear_space_percent&quot;: {
+    &quot;above_hair&quot;: 8,
+    &quot;below_footwear&quot;: 2
+  },
+  &quot;require_full_head&quot;: true,
+  &quot;require_full_footwear&quot;: true
+}</pre>
+            <p>Схема задає лише механіку кадру: lens, framing, масштаб, зазор, видимість голови/взуття. Вона <b>не має права</b> змінювати людину, волосся, одяг або середовище.</p>
+          </section>
+        </div>
+        <h4>Кадровий запис</h4>
+        <pre>{
+  &quot;slot&quot;: &quot;wide_campaign_coda&quot;,
+  &quot;objective&quot;: &quot;Close the series with a wide campaign frame that preserves the exact complete person and look inside strong original negative space.&quot;,
+  &quot;pose&quot;: &quot;Full or near-full standing chain grounded on one leg, opposite knee relaxed, spine upright, one arm raised into the light and the other lowered away from the body to keep a clear silhouette.&quot;,
+  &quot;camera&quot;: {
+    &quot;lens_mm&quot;: 35,
+    &quot;framing&quot;: &quot;wide_full_body&quot;,
+    &quot;angle&quot;: &quot;Horizontal wide from a level-to-slightly-low position across original pale structure and foliage; the approved subject stays thirty to forty percent of frame height beneath the brightest roof opening.&quot;,
+    &quot;subject_height_percent&quot;: [
+      30,
+      92
+    ]
+  },
+  &quot;lighting&quot;: &quot;A broad source above and behind the approved subject blows the palest apertures, wraps edges in warm light and leaves the front softly readable through lifted fill; heavy atmospheric or optical veil is densest in the upper field. Fixed optical signature on every frame: Every frame carries a strong warm veiling wash concentrated behind and above the subject, while the face and approved-item evidence remain readable. | Every frame carries soft bloom on blown pale apertures and warm halation on backlit hair, skin-edge and approved-cloth edges; no chromatic fringe, swirl or vignette. | Fine low grain and lifted shadows are fixed across the unit; the image must never become clinically crisp or globally muddy..&quot;,
+  &quot;environment&quot;: &quot;Invent an original non-recognisable glazed-roof atrium using pale beams and mullions, blown sky apertures, warm cream floor or wall fields, abstract olive foliage and dusty-rose accents; never reconstruct a real conservatory or source location.&quot;,
+  &quot;identity_visibility&quot;: &quot;full_face&quot;,
+  &quot;optical_device&quot;: null,
+  &quot;negative_constraints&quot;: [
+    &quot;No identity drift, age change, face replacement, body redesign or skin smoothing.&quot;,
+    &quot;No removed, substituted, recolored or redesigned approved garment, accessory, footwear, logo or text. Do not replace an unregistered item already visible in the approved look with a synthesized alternative.&quot;,
+    &quot;No copied source person, landmark, readable signage or exact source architecture.&quot;,
+    &quot;No malformed hands, merged limbs, destructive crop or incoherent contact shadow.&quot;,
+    &quot;Do not omit or replace this unit-wide optical rule: Every frame carries a strong warm veiling wash concentrated behind and above the subject, while the face and approved-item evidence remain readable.&quot;,
+    &quot;Do not omit or replace this unit-wide optical rule: Every frame carries soft bloom on blown pale apertures and warm halation on backlit hair, skin-edge and approved-cloth edges; no chromatic fringe, swirl or vignette.&quot;,
+    &quot;Do not omit or replace this unit-wide optical rule: Fine low grain and lifted shadows are fixed across the unit; the image must never become clinically crisp or globally muddy.&quot;
+  ]
+}</pre>
+        <p class="legacy-note">Це legacy validation frame. У новому Fashion Shoot він автоматично скасовується; тому для нього не створюється production binding чи provider prompt.</p>
+      </article>
+      </div>
+    </details>
+</main>

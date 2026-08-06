@@ -52,6 +52,21 @@ test('all Creative Universe units compile their observed runtime style', async (
       bible.shots.every((shot) => /optical signature/i.test(shot.lighting)),
       `${modeId} must carry its fixed optical signature on every frame`,
     );
+
+    const validationShot = bible.shots.find((shot) => shot.slot === 'clean_identity_hero');
+    assert.match(validationShot.pose, /front or near-front three-quarter/i, modeId);
+    assert.doesNotMatch(validationShot.pose, /back-three-quarter/i, modeId);
+    const reference = await resolver.editorialShotPresetReference({
+      modeId,
+      version: mode.version,
+      shotSpec: validationShot,
+    });
+    const pack = await resolver.resolveScenePreset(reference);
+    assert.equal(pack.preset.editorial.item_scope, 'EXCLUDE_FOOTWEAR', modeId);
+    assert.match(pack.preset.editorial.style_contract.visual_system, /validation frame/i, modeId);
+    assert.match(pack.preset.editorial.style_contract.garment_behaviour, /naturally at rest/i, modeId);
+    assert.doesNotMatch(pack.preset.editorial.style_contract.garment_behaviour, /moving cloth plane/i, modeId);
+    assert.match(pack.prompt, /front or near-front three-quarter/i, modeId);
   }
   assert.equal(visualSystems.size, READY_SHOOT_IDS.length);
 });

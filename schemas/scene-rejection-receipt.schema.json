@@ -72,8 +72,8 @@
         "relative_path": { "$ref": "#/$defs/relativePath" },
         "sha256": { "$ref": "#/$defs/sha256" },
         "media_type": { "const": "image/png" },
-        "width": { "const": 1024 },
-        "height": { "const": 1280 },
+        "width": { "const": 1536 },
+        "height": { "const": 2048 },
         "source_attempt": { "type": "integer", "minimum": 1 }
       }
     },
@@ -159,8 +159,8 @@
         "privacy_report_sha256": { "$ref": "#/$defs/sha256" },
         "size": { "type": "integer", "minimum": 1 },
         "media_type": { "const": "image/png" },
-        "width": { "const": 1024 },
-        "height": { "const": 1280 }
+        "width": { "const": 1536 },
+        "height": { "const": 2048 }
       }
     }
   }

@@ -1,6 +1,9 @@
 TASK
 Create one photorealistic studio avatar from the attached identity evidence.
 
+NON-NEGOTIABLE WHITE KEY SURFACE
+Every pixel that is not the person must be exact RGB #FFFFFF. This includes the entire lower frame, both bottom corners and the area surrounding the soles. Do not render a studio floor, floor plane, horizon, grey or cream gradient, vignette, reflection, ambient occlusion, contact shadow, cast shadow or drop shadow. Leave a visible #FFFFFF gap below and around both soles. If a shadow would make the pose feel more grounded, omit it: the product UI adds any presentation shadow separately and the master image must remain one-click keyable.
+
 REFERENCE BINDINGS
 {{REFERENCE_BINDINGS}}
 - {{IDENTITY_REFERENCE}} is the sole source of identity.
@@ -21,7 +24,7 @@ LIGHTING AND COLOR
 Soft, even, diffused studio lighting as if produced by large softboxes. No harsh facial shadows, blown highlights or crushed shadows. Neutral white balance. Natural skin color.
 
 BACKGROUND
-Uniform pure white background, RGB #FFFFFF. No gradient, texture, horizon, objects, color cast, background spill or visible shadow. Keep hair and clothing edges clean and natural.
+Uniform pure white background, RGB #FFFFFF, from every edge through the area below the feet. No gradient, texture, horizon, floor, objects, color cast, background spill or visible shadow. Keep hair and clothing edges clean and natural.
 
 DETAIL AND STYLE
 Real studio photography, not illustration or CGI. Sharp eyes, realistic hair strands, natural skin pores and features, realistic fabric texture. Avoid smoothing, waxy skin and AI-plastic appearance.

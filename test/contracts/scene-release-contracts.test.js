@@ -218,8 +218,8 @@ function validQaReceipt() {
         sha256: hashC,
         status: 'PASS',
         framing_evidence: {
-          canvas_width: 1024,
-          canvas_height: 1280,
+          canvas_width: 1536,
+          canvas_height: 2048,
           subject_bbox_xywh_px: [200, 103, 620, 973],
           expected_subject_height_percent: [70, 80],
           subject_height_percent: 76.02,

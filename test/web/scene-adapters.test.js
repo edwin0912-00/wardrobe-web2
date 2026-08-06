@@ -29,6 +29,7 @@ import {
   SCENE_EVALUATOR_GATES,
   SCENE_REFERENCE_ROLES,
   assessFramingEvidence,
+  canonicalJsonBytes,
   normalizeEvaluatorResult,
   sha256,
   validateFramingEvidence,
@@ -123,20 +124,62 @@ async function approvedItemEvidenceFixture(root) {
   })));
 }
 
+// This mirrors the durable guide receipt shape.  `relative_path` is deliberately
+// not the local fixture path: the provider-facing adapter must compare the
+// semantic guide binding, never accidentally leak or depend on a workstation
+// location.
+async function mechanicalGuideReceipt(guide, overrides = {}) {
+  const bytes = await readFile(guide.path);
+  return {
+    relative_path: 'attempts/001/mechanical-framing-guide.png',
+    sha256: guide.sha256,
+    size: bytes.length,
+    media_type: guide.media_type,
+    transform: guide.transform,
+    target_subject_height_percent: guide.target_subject_height_percent,
+    target_clear_space_above_hair_percent:
+      guide.target_clear_space_above_hair_percent,
+    target_clear_space_below_footwear_percent:
+      guide.target_clear_space_below_footwear_percent ?? null,
+    ...overrides,
+  };
+}
+
+async function mechanicalRepairPlan(guide, overrides = {}) {
+  const guideReceipt = await mechanicalGuideReceipt(guide);
+  return {
+    version: 'scene-repair-plan-v1',
+    source_attempt: guide.source_attempt,
+    source_candidate_sha256: 'a'.repeat(64),
+    normalized_defect_sha256: 'b'.repeat(64),
+    defect_signature_sha256: 'c'.repeat(64),
+    classification: 'STALLED_SAME_MODEL',
+    mechanism: 'MECHANICAL_GUIDE',
+    model_action: 'NEXT_ROUTE_MODEL',
+    decision_reason: 'The deterministic repair controller selected the next immutable route model.',
+    previous_distance_to_delivery_band_pp: 5,
+    progress_pp: 0.5,
+    locked_passed_gate_ids: ['IDENTITY', 'ITEM_FIDELITY'],
+    guide: guideReceipt,
+    request_manifest: null,
+    ...overrides,
+  };
+}
+
 test('SceneGeneratorAdapter maps the exact three-model route and sends approved look plus five roles in strict order', async () => {
   const fixture = await contextFixture();
   for (const route of DEFAULT_SCENE_MODEL_ROUTE) {
     const calls = [];
     const providerOutput = await sharp({
       create: {
-        width: route.job_set_type === 'gpt_image_2' ? 900 : 800,
-        height: route.job_set_type === 'gpt_image_2' ? 1200 : 1000,
+        width: route.job_set_type === 'gpt_image_2' ? 900 : 768,
+        height: route.job_set_type === 'gpt_image_2' ? 1200 : 1024,
         channels: 3,
         background: '#b98f72',
       },
     }).png().toBuffer();
     const provider = {
-      aspectRatio: route.job_set_type === 'gpt_image_2' ? '3:4' : '4:5',
+      aspectRatio: '3:4',
       async generate(context) {
         calls.push(context);
         return {
@@ -166,40 +209,25 @@ test('SceneGeneratorAdapter maps the exact three-model route and sends approved 
     assert.equal(calls[0].references.ordered[0].sha256, fixture.approved.sha256);
     assert.doesNotMatch(calls[0].prompt, /\/Users\/|\/tmp\/|scene-adapter-/);
     const metadata = await sharp(result.image).metadata();
-    assert.equal(metadata.width * 5, metadata.height * 4);
-    if (route.job_set_type === 'gpt_image_2') {
-      assert.deepEqual([metadata.width, metadata.height], [1024, 1280]);
-    }
+    assert.equal(metadata.width * 4, metadata.height * 3);
+    assert.deepEqual([metadata.width, metadata.height], [1536, 2048]);
     assert.equal(result.metadata.provider_request_id, `provider-job-${route.order}`);
     assert.equal(result.metadata.model_version, route.model_version);
     assert.equal(result.metadata.job_set_type, route.job_set_type);
-    assert.equal(result.metadata.source_width, route.job_set_type === 'gpt_image_2' ? 900 : 800);
-    assert.equal(result.metadata.source_height, route.job_set_type === 'gpt_image_2' ? 1200 : 1000);
-    assert.equal(result.metadata.source_aspect_ratio, route.job_set_type === 'gpt_image_2' ? '3:4' : '4:5');
-    assert.equal(
-      result.metadata.transport_aspect_ratio,
-      route.job_set_type === 'gpt_image_2' ? '3:4' : '4:5',
-    );
+    assert.equal(result.metadata.source_width, route.job_set_type === 'gpt_image_2' ? 900 : 768);
+    assert.equal(result.metadata.source_height, route.job_set_type === 'gpt_image_2' ? 1200 : 1024);
+    assert.equal(result.metadata.source_aspect_ratio, '3:4');
+    assert.equal(result.metadata.transport_aspect_ratio, '3:4');
     assert.equal(result.metadata.raw_output_sha256, sha256(providerOutput));
     assert.equal(result.metadata.geometry_output_sha256, sha256(result.image));
-    // 900×1200 is 3:4, six percent taller than the 4:5 delivery: a centre crop
-    // of 75 pixels of height, which states what it cost. 800×1000 is already
-    // 4:5 and only needs the canonical canvas, so nothing is discarded there.
-    assert.equal(
-      result.metadata.geometry_strategy,
-      route.job_set_type === 'gpt_image_2'
-        ? 'centre_crop_to_exact_4_5'
-        : 'provider_exact_4_5_rescaled',
-    );
-    if (route.job_set_type === 'gpt_image_2') {
-      assert.equal(result.metadata.geometry_crop_fraction, 0.0625);
-    } else {
-      assert.equal(result.metadata.geometry_crop_fraction, undefined);
-    }
+    // Every model uses a native 3:4 transport. The adapter may rescale a
+    // provider bucket, but it must not crop, pad or invent pixels.
+    assert.equal(result.metadata.geometry_strategy, 'provider_exact_3_4_rescaled');
+    assert.equal(result.metadata.geometry_crop_fraction, undefined);
   }
 });
 
-test('Create Universe generation carries four canonical sheets in fixed priority and environment as facts', async () => {
+test('Create Universe generation omits an unbound blocking board and keeps the three non-pose sheets in fixed priority', async () => {
   const fixture = await contextFixture();
   const presetId = 'shoot.fixture_environmental.environmental_hero';
   const environment = {
@@ -275,19 +303,199 @@ test('Create Universe generation carries four canonical sheets in fixed priority
     [
       'APPROVED_LOOK_MASTER',
       'CREATE_UNIVERSE_CAMERA_LENS',
-      'CREATE_UNIVERSE_BLOCKING',
       'CREATE_UNIVERSE_EXPRESSION_GAZE',
       'CREATE_UNIVERSE_GARMENT_BEHAVIOUR',
+      'SHOT_HERO_CONTINUITY_ANCHOR',
     ],
   );
   assert.match(calls[0].prompt, /SCENE_ENVIRONMENT_ANCHOR .*raw-concrete hall/);
   assert.match(calls[0].prompt, /ATTACHMENT_2 \[CREATE_UNIVERSE_CAMERA_LENS\]/);
-  assert.match(calls[0].prompt, /ATTACHMENT_3 \[CREATE_UNIVERSE_BLOCKING\]/);
-  assert.match(calls[0].prompt, /ATTACHMENT_4 \[CREATE_UNIVERSE_EXPRESSION_GAZE\]/);
-  assert.match(calls[0].prompt, /ATTACHMENT_5 \[CREATE_UNIVERSE_GARMENT_BEHAVIOUR\]/);
+  assert.doesNotMatch(calls[0].prompt, /CREATE_UNIVERSE_BLOCKING/);
+  assert.match(calls[0].prompt, /ATTACHMENT_3 \[CREATE_UNIVERSE_EXPRESSION_GAZE\]/);
+  assert.match(calls[0].prompt, /ATTACHMENT_4 \[CREATE_UNIVERSE_GARMENT_BEHAVIOUR\]/);
+  assert.match(calls[0].prompt, /POSE is the sole physical-pose authority/);
   assert.equal(generated.metadata.structured_reference_count, 1);
   assert.equal(generated.metadata.attached_reference_count, 5);
-  assert.equal(generated.metadata.dropped_attachment_roles, 'SHOT_HERO_CONTINUITY_ANCHOR');
+  assert.equal(generated.metadata.dropped_attachment_roles, undefined);
+});
+
+test('Create Universe keeps the three slot-safe canonical sheets when item locks fill the provider budget', async () => {
+  const fixture = await contextFixture();
+  const presetId = 'shoot.fixture_environmental.environmental_hero';
+  const environment = {
+    ...await structuredReferenceFile(
+      fixture.root,
+      'packed-create-universe-environment.json',
+      {
+        schema_version: '1.0.0',
+        role: 'environment_anchor',
+        facts: {
+          description: 'Invented mineral studio.',
+          spatial_cues: ['Disciplined full-length fashion frame.'],
+          materials: ['plaster'],
+          originality_rules: ['Invent new geometry.'],
+        },
+      },
+    ),
+    role: 'environment_anchor',
+    reference_id: `${presetId}.environment`,
+  };
+  const definitions = [
+    ['composition_anchor', 'camera_lens', '#665544', 2688, 1520],
+    ['negative_reference', 'blocking', '#554433', 1344, 752],
+    ['lighting_anchor', 'expression_gaze', '#887766', 3072, 2048],
+    ['palette_anchor', 'garment_behaviour', '#776655', 3072, 2048],
+  ];
+  const imageReferences = await Promise.all(definitions.map(
+    async ([role, sheet, color, width, height]) => ({
+      ...await imageFile(fixture.root, `packed-${sheet}.png`, { color, width, height }),
+      role,
+      reference_id: `${presetId}.style_${sheet}`,
+    }),
+  ));
+  const itemEvidence = await Promise.all(
+    ['top', 'bottom', 'footwear', 'bag'].map(async (category, index) => ({
+      order: index + 1,
+      role: `ITEM_${category.toUpperCase()}`,
+      category,
+      item_id: `set-${category}`,
+      reference_set_id: `set-${category}`,
+      observed: { garment_type: category, colors: ['black'] },
+      ...(await imageFile(fixture.root, `packed-item-${category}.png`, { color: '#222222' })),
+    })),
+  );
+  const calls = [];
+  const adapter = new SceneGeneratorAdapter({
+    provider: {
+      aspectRatio: '3:4',
+      maxOrderedReferences: 8,
+      async generate(context) {
+        calls.push(context);
+        return {
+          image: await providerFrame(),
+          mediaType: 'image/png',
+          metadata: { provider: 'fixture', job_id: 'packed-create-universe' },
+        };
+      },
+    },
+  });
+  const generated = await adapter.generateScene({
+    ...fixture.base,
+    references: [environment, ...imageReferences],
+    preset: { preset_id: presetId },
+    item_evidence: itemEvidence,
+    attempt: 1,
+    ...DEFAULT_SCENE_MODEL_ROUTE[0],
+  });
+  assert.deepEqual(
+    calls[0].references.ordered.map((item) => item.role),
+    [
+      'APPROVED_LOOK_MASTER',
+      'ITEM_TOP',
+      'ITEM_BOTTOM',
+      'ITEM_FOOTWEAR',
+      'ITEM_BAG',
+      'CREATE_UNIVERSE_CAMERA_LENS',
+      'CREATE_UNIVERSE_EXPRESSION_GAZE',
+      'CREATE_UNIVERSE_GARMENT_BEHAVIOUR',
+    ],
+  );
+  assert.equal(generated.metadata.create_universe_authority_sheet_sha256, undefined);
+  assert.doesNotMatch(calls[0].prompt, /CREATE_UNIVERSE_AUTHORITY_SHEET/);
+  assert.doesNotMatch(calls[0].prompt, /CREATE_UNIVERSE_BLOCKING/);
+  assert.match(calls[0].prompt, /ATTACHMENT_6 \[CREATE_UNIVERSE_CAMERA_LENS\]/);
+  assert.match(calls[0].prompt, /ATTACHMENT_7 \[CREATE_UNIVERSE_EXPRESSION_GAZE\]/);
+  assert.match(calls[0].prompt, /ATTACHMENT_8 \[CREATE_UNIVERSE_GARMENT_BEHAVIOUR\]/);
+  assert.equal(generated.metadata.dropped_attachment_count, undefined);
+});
+
+test('Create Universe packs three transport sheets when four items and a framing guide fill the provider budget', async () => {
+  const fixture = await contextFixture();
+  const presetId = 'shoot.fixture_environmental.environmental_hero';
+  const environment = {
+    ...(await structuredReferenceFile(
+      fixture.root,
+      'packed-three-sheet-environment.json',
+      {
+        schema_version: '1.0.0',
+        role: 'environment_anchor',
+        facts: {
+          description: 'Invented mineral studio.',
+          spatial_cues: ['Disciplined full-length fashion frame.'],
+          materials: ['plaster'],
+          originality_rules: ['Invent new geometry.'],
+        },
+      },
+    )),
+    role: 'environment_anchor',
+    reference_id: `${presetId}.environment`,
+  };
+  const sheetByRole = {
+    composition_anchor: 'camera_lens',
+    negative_reference: 'blocking',
+    lighting_anchor: 'expression_gaze',
+    palette_anchor: 'garment_behaviour',
+  };
+  const imageReferences = await Promise.all(
+    fixture.references
+      .filter((reference) => reference.role !== 'environment_anchor')
+      .map(async (reference) => ({
+        ...reference,
+        reference_id: `${presetId}.style_${sheetByRole[reference.role]}`,
+      })),
+  );
+  const itemEvidence = await Promise.all(
+    ['top', 'bottom', 'footwear', 'bag'].map(async (category, index) => ({
+      order: index + 1,
+      role: `ITEM_${category.toUpperCase()}`,
+      category,
+      item_id: `packed-${category}`,
+      reference_set_id: `packed-${category}`,
+      observed: { garment_type: category, colors: ['black'] },
+      ...(await imageFile(fixture.root, `packed-three-sheet-item-${category}.png`, { color: '#222222' })),
+    })),
+  );
+  const guide = {
+    ...(await imageFile(fixture.root, 'packed-three-sheet-guide.png', { width: 1024, height: 1280 })),
+    role: 'mechanical_framing_guide',
+    source_attempt: 1,
+    target_subject_height_percent: 76,
+    target_clear_space_above_hair_percent: 9,
+  };
+  const calls = [];
+  const adapter = new SceneGeneratorAdapter({
+    provider: recordingProvider(await providerFrame(), calls, { maxOrderedReferences: 8 }),
+  });
+  const generated = await adapter.generateScene({
+    ...fixture.base,
+    references: [environment, ...imageReferences],
+    preset: { preset_id: presetId },
+    item_evidence: itemEvidence,
+    composition_guide: guide,
+    attempt: 1,
+    ...DEFAULT_SCENE_MODEL_ROUTE[0],
+  });
+  assert.deepEqual(
+    calls[0].references.ordered.map((item) => item.role),
+    [
+      'MECHANICAL_FRAMING_GUIDE',
+      'APPROVED_LOOK_MASTER',
+      'ITEM_TOP',
+      'ITEM_BOTTOM',
+      'ITEM_FOOTWEAR',
+      'ITEM_BAG',
+      'CREATE_UNIVERSE_AUTHORITY_SHEET',
+    ],
+  );
+  assert.equal(generated.metadata.attached_reference_count, 7);
+  assert.equal(generated.metadata.create_universe_authority_source_sha256.split(':').length, 3);
+  assert.equal(
+    generated.metadata.create_universe_authority_layout,
+    'PANEL_1_CAMERA_LENS:PANEL_2_EXPRESSION_GAZE:PANEL_3_GARMENT_BEHAVIOUR',
+  );
+  assert.match(calls[0].prompt, /mechanical three-panel transport sheet/);
+  assert.match(calls[0].prompt, /PANEL_1=CAMERA_LENS; PANEL_2=EXPRESSION_GAZE; PANEL_3=GARMENT_BEHAVIOUR/);
+  assert.doesNotMatch(calls[0].prompt, /CREATE_UNIVERSE_BLOCKING/);
 });
 
 test('SceneGeneratorAdapter attaches hash-bound item cutouts before optional scene images and compiles exact facts', async () => {
@@ -413,8 +621,8 @@ test('SceneGeneratorAdapter drives the Higgsfield CLI harness with GPT 3:4 and s
           result_url: 'https://assets.cloudfront.net/scene.png?temporary=secret',
           params: {
             aspect_ratio: '3:4',
-            resolution: '2k',
-            quality: 'high',
+            resolution: '1k',
+            quality: 'low',
             model: 'provider-internal',
           },
         }),
@@ -446,9 +654,9 @@ test('SceneGeneratorAdapter drives the Higgsfield CLI harness with GPT 3:4 and s
   const adapter = new SceneGeneratorAdapter({ provider });
   const result = await adapter.generateScene({
     ...fixture.base,
-    attempt: 2,
-    cycle_attempt: 2,
-    ...DEFAULT_SCENE_MODEL_ROUTE[1],
+    attempt: 1,
+    cycle_attempt: 1,
+    ...DEFAULT_SCENE_MODEL_ROUTE[0],
   });
 
   const command = calls.find((call) => call.kind === 'command');
@@ -463,12 +671,12 @@ test('SceneGeneratorAdapter drives the Higgsfield CLI harness with GPT 3:4 and s
   );
   assert.doesNotMatch(command.args[command.args.indexOf('--prompt') + 1], /\/Users\/|\/tmp\//);
   assert.equal(result.metadata.provider_request_id, 'scene-provider-job-1');
-  assert.equal(result.metadata.geometry_strategy, 'centre_crop_to_exact_4_5');
-  assert.equal(result.metadata.geometry_crop_fraction, 0.0625);
+  assert.equal(result.metadata.geometry_strategy, 'provider_exact_3_4_rescaled');
+  assert.equal(result.metadata.geometry_crop_fraction, undefined);
   assert.deepEqual(
     [await sharp(result.image).metadata().then((metadata) => metadata.width),
       await sharp(result.image).metadata().then((metadata) => metadata.height)],
-    [1024, 1280],
+    [1536, 2048],
   );
 });
 
@@ -495,7 +703,6 @@ test('an exact 3:4 frame at a provider bucket size is rescaled without discardin
     attempt: 1,
     cycle_attempt: 1,
     ...DEFAULT_SCENE_MODEL_ROUTE[0],
-    quality: 'high',
   });
   assert.equal(result.metadata.geometry_strategy, 'provider_exact_3_4_rescaled');
   assert.equal(result.metadata.geometry_crop_fraction, undefined);
@@ -584,7 +791,6 @@ test('a landscape provider frame fails the attempt instead of faking the deliver
       attempt: 2,
       cycle_attempt: 2,
       ...DEFAULT_SCENE_MODEL_ROUTE[1],
-      quality: 'high',
     }),
     /1200×900, outside the native 3:4 tolerance; cropping is forbidden/,
   );
@@ -772,8 +978,8 @@ test('repair generation attaches the approved look then the hash-bound failed ca
   })));
   const repairCandidate = {
     ...(await imageFile(fixture.root, 'failed-scene-candidate.png', {
-      width: 1024,
-      height: 1280,
+      width: 1536,
+      height: 2048,
       color: '#caa68f',
     })),
     role: 'failed_candidate',
@@ -784,11 +990,11 @@ ATTACHMENT_2 is the hash-bound failed scene candidate. Edit it without redesigni
 
   const providerCalls = [];
   const providerOutput = await sharp({
-    create: { width: 800, height: 1000, channels: 3, background: '#9f765f' },
+    create: { width: 900, height: 1200, channels: 3, background: '#9f765f' },
   }).png().toBuffer();
   const generator = new SceneGeneratorAdapter({
     provider: {
-      aspectRatio: '4:5',
+      aspectRatio: '3:4',
       async generate(context) {
         providerCalls.push(context);
         return {
@@ -1002,6 +1208,8 @@ test('SceneEvaluatorAdapter attaches candidate, look and all five roles and retu
   assert.match(calls[0].args[1], /ATTACHMENT_11 \[APPROVED_LOOK_LOWER_ITEM_DETAIL\]/);
   assert.match(calls[0].args[1], /Any substituted emblem, missing monogram, rewritten letter or number/);
   assert.match(calls[0].args[1], /ITEM_DETAIL_NOT_VERIFIABLE/);
+  assert.match(calls[0].args[1], /candidate delivery canvas 1024x1280 is authoritative/);
+  assert.match(calls[0].args[1], /never fail SCENE_MATCH merely because that source ratio differs/);
   assert.ok(calls[0].args.includes('model_reasoning_effort="high"'));
   assert.doesNotMatch(calls[0].args[1], /candidate\.png|approved-look\.png|\/Users\/|\/tmp\//);
   assert.equal(result.reviewer.type, 'MODEL');
@@ -1042,6 +1250,7 @@ test('Create Universe QA makes whole-shoot style fidelity and fixed optics block
           focus: 'Face and approved look sharp; architecture falls away without swirl.',
           foreground: 'One restrained near-device interruption below the face.',
           expression_signature: 'Reserved mouth and direct steady gaze without transferred facial geometry.',
+          subject_lighting: 'One declared environmental key visibly shapes the face and approved cloth without camera-axis fill.',
           garment_behaviour: 'Approved cloth falls in heavy controlled planes with one restrained wind response.',
           optical_signature: ['clean rectilinear rendering', 'fine restrained grain'],
         },
@@ -1166,7 +1375,13 @@ test('standard-background item QA keeps unobservable master details locked witho
   });
   assert.match(mainCalls[0].args[1], /full-body standard-background photograph/);
   assert.match(mainCalls[0].args[1], /unobservable details/);
+  assert.match(mainCalls[0].args[1], /minor omission or simplification of small hardware/);
+  assert.match(mainCalls[0].args[1], /independently judge \(1\) observed key direction/);
+  assert.match(mainCalls[0].args[1], /mild extra frontal fill is advisory/);
+  assert.match(mainCalls[0].args[1], /frontal studio key visibly replaces/);
+  assert.match(mainCalls[0].args[1], /contact shadow alone cannot compensate/i);
   assert.ok(itemCalls.every((call) => /full-body standard-background photograph/.test(call.args[1])));
+  assert.ok(itemCalls.every((call) => /Presentation-scene tolerance/.test(call.args[1])));
   assert.ok(itemCalls.every((call) => /visible contradiction or substitution/.test(call.args[1])));
   assert.equal(result.gates.find((gate) => gate.id === 'ITEM_FIDELITY').decision, 'FAIL');
   assert.equal(result.item_fidelity_evidence.find((item) => item.item_id === 'set-2').verdict, 'REVISE');
@@ -1766,23 +1981,344 @@ test('SceneGeneratorAdapter reserves a distinct attachment number for a mechanic
     target_clear_space_above_hair_percent: 9,
   };
   const calls = [];
-  const adapter = new SceneGeneratorAdapter({ provider: recordingProvider(await providerFrame(), calls, { aspectRatio: '4:5' }) });
+  const adapter = new SceneGeneratorAdapter({ provider: recordingProvider(await providerFrame(), calls) });
   await adapter.generateScene({
     ...fixture.base,
     attempt: 2,
-    cycle_attempt: 2,
-    ...DEFAULT_SCENE_MODEL_ROUTE[1],
+    cycle_attempt: 1,
+    ...DEFAULT_SCENE_MODEL_ROUTE[0],
     item_evidence: items,
     repair_candidate: repair,
     composition_guide: guide,
   });
   assert.deepEqual(
     calls[0].references.ordered.slice(0, 5).map((item) => item.role),
-    ['APPROVED_LOOK_MASTER', 'FAILED_SCENE_CANDIDATE', 'MECHANICAL_FRAMING_GUIDE', 'ITEM_TOP', 'ITEM_BAG'],
+    ['MECHANICAL_FRAMING_GUIDE', 'APPROVED_LOOK_MASTER', 'FAILED_SCENE_CANDIDATE', 'ITEM_TOP', 'ITEM_BAG'],
   );
-  assert.match(calls[0].prompt, /ATTACHMENT_3 is an opaque neutral mechanical layout derivative/);
+  assert.match(calls[0].prompt, /ATTACHMENT_1 is an opaque neutral mechanical layout derivative/);
+  assert.match(calls[0].prompt, /Treat this exact canvas and subject placement as the hard geometry authority/);
   assert.match(calls[0].prompt, /ATTACHMENT_4 \[APPROVED_ITEM_SET-0\]/);
   assert.match(calls[0].prompt, /ATTACHMENT_5 \[APPROVED_ITEM_SET-2\]/);
+});
+
+test('SceneGeneratorAdapter prepares one path-free immutable request manifest without invoking the provider', async () => {
+  const fixture = await contextFixture();
+  const calls = [];
+  const adapter = new SceneGeneratorAdapter({
+    provider: {
+      aspectRatio: '3:4',
+      async generate(context) {
+        calls.push(context);
+        throw new Error('prepareSceneGeneration must never invoke provider.generate');
+      },
+    },
+  });
+  const context = {
+    ...fixture.base,
+    attempt: 1,
+    cycle_attempt: 1,
+    ...DEFAULT_SCENE_MODEL_ROUTE[0],
+  };
+
+  const first = await adapter.prepareSceneGeneration(context);
+  const second = await adapter.prepareSceneGeneration(context);
+
+  assert.equal(calls.length, 0, 'preparation must stop before provider.generate');
+  assert.deepEqual(second, first, 'the same bound request must compile byte-for-byte identically');
+  assert.equal(first.pre_spend_manifest_sha256, sha256(
+    canonicalJsonBytes(first.pre_spend_manifest),
+  ));
+  assert.equal(first.pre_spend_manifest.version, 'scene-provider-request-manifest-v1');
+  assert.equal(first.pre_spend_manifest.compiled_prompt_sha256, fixture.base.prompt_sha256);
+  // This fixture carries all five scene roles as physical image bindings, so
+  // no extra structured JSON facts are appended: the recorded outbound hash
+  // must still prove the exact base prompt that will be sent to the provider.
+  assert.equal(
+    first.pre_spend_manifest.outbound_prompt_sha256,
+    sha256(Buffer.from(fixture.base.prompt)),
+  );
+  const expectedRoles = [
+    'APPROVED_LOOK_MASTER',
+    ...SCENE_REFERENCE_ROLES.map((role) => `SCENE_${role.toUpperCase()}`),
+  ];
+  assert.deepEqual(
+    first.pre_spend_manifest.input_media.map((item) => item.role),
+    expectedRoles,
+  );
+  assert.deepEqual(
+    first.pre_spend_manifest.provider_image_reference_manifest,
+    first.pre_spend_manifest.input_media.map((item, index) => ({
+      image: `Image ${index + 1}`,
+      role: item.role,
+      sha256: item.sha256,
+    })),
+  );
+  // The receipt is portable evidence, never a dump of local paths or prompt prose.
+  assert.doesNotMatch(
+    JSON.stringify(first.pre_spend_manifest),
+    /\/tmp\/|scene-adapter-|approved-look\.png|environment_anchor\.png/,
+  );
+});
+
+test('SceneGeneratorAdapter rejects an immutable pre-spend hash mismatch before provider generation', async () => {
+  const fixture = await contextFixture();
+  const calls = [];
+  const adapter = new SceneGeneratorAdapter({
+    provider: {
+      aspectRatio: '3:4',
+      async generate(context) {
+        calls.push(context);
+        return {
+          image: await providerFrame(),
+          metadata: { provider: 'fixture', job_id: 'must-not-run' },
+        };
+      },
+    },
+  });
+  const context = {
+    ...fixture.base,
+    attempt: 1,
+    cycle_attempt: 1,
+    ...DEFAULT_SCENE_MODEL_ROUTE[0],
+  };
+  const prepared = await adapter.prepareSceneGeneration(context);
+  assert.equal(calls.length, 0);
+
+  await assert.rejects(
+    () => adapter.generateScene({
+      ...context,
+      expected_pre_spend_manifest_sha256: `${prepared.pre_spend_manifest_sha256.slice(0, -1)}0`,
+    }),
+    /pre-spend request manifest no longer matches its immutable checkpoint/,
+  );
+  assert.equal(calls.length, 0, 'manifest drift must fail before provider.generate');
+});
+
+test('SceneGeneratorAdapter rejects every guide receipt mismatch before provider generation', async (t) => {
+  const fixture = await contextFixture();
+  const guide = {
+    ...(await imageFile(fixture.root, 'strict-repair-guide.png', { width: 1024, height: 1280 })),
+    role: 'mechanical_framing_guide',
+    source_attempt: 1,
+    source_kind: 'failed_candidate',
+    transform: 'style_camera_scale',
+    target_subject_height_percent: 76,
+    target_clear_space_above_hair_percent: 9,
+    target_clear_space_below_footwear_percent: 2,
+  };
+  const plan = await mechanicalRepairPlan(guide);
+  const mismatchCases = [
+    ['source attempt', (value) => ({ ...value, source_attempt: 2 })],
+    ['guide media type', (value) => ({
+      ...value,
+      guide: { ...value.guide, media_type: 'image/webp' },
+    })],
+    ['guide transform', (value) => ({
+      ...value,
+      guide: { ...value.guide, transform: 'translate_up_without_rescale' },
+    })],
+    ['guide subject target', (value) => ({
+      ...value,
+      guide: { ...value.guide, target_subject_height_percent: 75 },
+    })],
+    ['guide headroom target', (value) => ({
+      ...value,
+      guide: { ...value.guide, target_clear_space_above_hair_percent: 8 },
+    })],
+    ['guide footwear clearance target', (value) => ({
+      ...value,
+      guide: { ...value.guide, target_clear_space_below_footwear_percent: 1 },
+    })],
+    ['guide byte size', (value) => ({
+      ...value,
+      guide: { ...value.guide, size: value.guide.size + 1 },
+    })],
+  ];
+
+  for (const [label, mutate] of mismatchCases) {
+    await t.test(label, async () => {
+      const calls = [];
+      const adapter = new SceneGeneratorAdapter({
+        provider: recordingProvider(await providerFrame(), calls),
+      });
+      await assert.rejects(() => adapter.generateScene({
+        ...fixture.base,
+        attempt: 2,
+        cycle_attempt: 1,
+        ...DEFAULT_SCENE_MODEL_ROUTE[0],
+        composition_guide: guide,
+        repair_plan: mutate(structuredClone(plan)),
+      }));
+      assert.equal(calls.length, 0, `${label} must fail before provider.generate`);
+    });
+  }
+});
+
+test('SceneGeneratorAdapter rejects an unbound mechanical-guide repair plan before provider generation', async () => {
+  const fixture = await contextFixture();
+  const guide = {
+    ...(await imageFile(fixture.root, 'repair-plan-guide.png', { width: 1024, height: 1280 })),
+    role: 'mechanical_framing_guide',
+    source_attempt: 1,
+    target_subject_height_percent: 76,
+    target_clear_space_above_hair_percent: 9,
+  };
+  const repairPlan = {
+    version: 'scene-repair-plan-v1',
+    classification: 'STALLED_SAME_MODEL',
+    mechanism: 'MECHANICAL_GUIDE',
+    model_action: 'RETRY_WITH_CURRENT_MODEL',
+    defect_signature_sha256: 'c'.repeat(64),
+    previous_distance_to_delivery_band_pp: 5,
+    progress_pp: 0.5,
+    guide: { sha256: guide.sha256 },
+  };
+  const calls = [];
+  const adapter = new SceneGeneratorAdapter({
+    provider: recordingProvider(await providerFrame(), calls),
+  });
+  const base = {
+    ...fixture.base,
+    attempt: 2,
+    cycle_attempt: 1,
+    ...DEFAULT_SCENE_MODEL_ROUTE[0],
+    repair_plan: repairPlan,
+  };
+
+  await assert.rejects(
+    () => adapter.generateScene(base),
+    /repair_plan mechanism MECHANICAL_GUIDE requires composition_guide/,
+  );
+  await assert.rejects(
+    () => adapter.generateScene({
+      ...base,
+      composition_guide: guide,
+      repair_plan: {
+        ...repairPlan,
+        guide: { sha256: 'd'.repeat(64) },
+      },
+    }),
+    /repair_plan\.guide\.sha256 must match composition_guide\.sha256/,
+  );
+  assert.equal(calls.length, 0);
+});
+
+test('SceneGeneratorAdapter mirrors only safe repair-route metadata from a hash-bound plan', async () => {
+  const fixture = await contextFixture();
+  const guide = {
+    ...(await imageFile(fixture.root, 'bound-repair-plan-guide.png', { width: 1024, height: 1280 })),
+    role: 'mechanical_framing_guide',
+    source_attempt: 1,
+    transform: 'style_camera_scale',
+    target_subject_height_percent: 76,
+    target_clear_space_above_hair_percent: 9,
+    target_clear_space_below_footwear_percent: 2,
+  };
+  const calls = [];
+  const adapter = new SceneGeneratorAdapter({
+    provider: recordingProvider(await providerFrame(), calls),
+  });
+  const generated = await adapter.generateScene({
+    ...fixture.base,
+    attempt: 2,
+    cycle_attempt: 1,
+    ...DEFAULT_SCENE_MODEL_ROUTE[0],
+    composition_guide: guide,
+    repair_plan: {
+      ...(await mechanicalRepairPlan(guide)),
+      decision_reason: 'internal routing prose must not enter provider metadata',
+    },
+  });
+
+  assert.deepEqual(calls[0].references.ordered.slice(0, 2).map((item) => item.role), [
+    'MECHANICAL_FRAMING_GUIDE',
+    'APPROVED_LOOK_MASTER',
+  ]);
+  assert.deepEqual(
+    {
+      repair_route_version: generated.metadata.repair_route_version,
+      repair_route_classification: generated.metadata.repair_route_classification,
+      repair_route_mechanism: generated.metadata.repair_route_mechanism,
+      repair_route_model_action: generated.metadata.repair_route_model_action,
+      repair_defect_signature_sha256: generated.metadata.repair_defect_signature_sha256,
+      repair_distance_to_delivery_band_pp: generated.metadata.repair_distance_to_delivery_band_pp,
+      repair_progress_pp: generated.metadata.repair_progress_pp,
+    },
+    {
+      repair_route_version: 'scene-repair-plan-v1',
+      repair_route_classification: 'STALLED_SAME_MODEL',
+      repair_route_mechanism: 'MECHANICAL_GUIDE',
+      repair_route_model_action: 'NEXT_ROUTE_MODEL',
+      repair_defect_signature_sha256: 'c'.repeat(64),
+      repair_distance_to_delivery_band_pp: 5,
+      repair_progress_pp: 0.5,
+    },
+  );
+  assert.equal(Object.hasOwn(generated.metadata, 'repair_route_decision_reason'), false);
+});
+
+test('scene reference manifest uses GPT base-canvas order and explicit-role order for Gemini routes', async () => {
+  const fixture = await contextFixture();
+  const guide = {
+    ...(await imageFile(fixture.root, 'initial-mechanical-guide.png', { width: 1024, height: 1280 })),
+    role: 'mechanical_framing_guide',
+    source_attempt: 0,
+    source_kind: 'approved_look',
+    target_subject_height_percent: 76,
+    target_clear_space_above_hair_percent: 9,
+  };
+  for (const route of DEFAULT_SCENE_MODEL_ROUTE) {
+    const calls = [];
+    const adapter = new SceneGeneratorAdapter({
+      provider: recordingProvider(await providerFrame(), calls),
+    });
+    const generated = await adapter.generateScene({
+      ...fixture.base,
+      attempt: route.order,
+      cycle_attempt: route.order,
+      ...route,
+      composition_guide: guide,
+    });
+    const expectedRoles = route.job_set_type === 'gpt_image_2'
+      ? ['MECHANICAL_FRAMING_GUIDE', 'APPROVED_LOOK_MASTER']
+      : ['APPROVED_LOOK_MASTER', 'MECHANICAL_FRAMING_GUIDE'];
+    assert.deepEqual(
+      calls[0].references.ordered.slice(0, 2).map((item) => item.role),
+      expectedRoles,
+      route.job_set_type,
+    );
+    assert.equal(
+      generated.metadata.provider_reference_strategy,
+      route.job_set_type === 'gpt_image_2'
+        ? 'GPT_IMAGE_2_BASE_CANVAS_FIRST'
+        : 'EXPLICIT_ROLE_MASTER_FIRST',
+    );
+    assert.equal(
+      generated.metadata.reference_manifest_version,
+      'scene-reference-manifest-v2-model-aware',
+    );
+    const persistedManifest = JSON.parse(
+      generated.metadata.provider_image_reference_manifest_json,
+    );
+    assert.deepEqual(
+      persistedManifest,
+      calls[0].references.ordered.map((reference, index) => ({
+        image: `Image ${index + 1}`,
+        role: reference.role,
+        sha256: reference.sha256,
+      })),
+      route.job_set_type,
+    );
+    assert.equal(
+      generated.metadata.provider_image_reference_manifest_version,
+      'provider-image-reference-manifest-v1',
+    );
+    assert.equal(
+      generated.metadata.provider_image_reference_manifest_sha256,
+      sha256(Buffer.from(generated.metadata.provider_image_reference_manifest_json)),
+      route.job_set_type,
+    );
+  }
 });
 
 test('SceneGeneratorAdapter spends the budget on anchors before image scene roles', async () => {

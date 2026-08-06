@@ -2,8 +2,11 @@ import { loadPostShootPipeline, publicPostShootPipeline } from './post-shoot-pip
 import { ProfileError } from './profile-service.js';
 
 const MODEL_ID = 'decart/lucy-2-5/realtime';
-const MAX_SESSION_SECONDS = 15;
-const MAXIMUM_COST_USD = 0.6;
+/* The browser remains the only camera permission gate.  This beta session has
+ * an explicit server-owned 40 second ceiling; neither a price checkbox nor a
+ * second confirmation is a reliable technical safeguard. */
+const MAX_SESSION_SECONDS = 40;
+const MAXIMUM_COST_USD = 1.6;
 const SAVED_LOOK_ID = /^[A-Za-z0-9][A-Za-z0-9-]{0,127}$/;
 
 function sameOriginMutation(request) {
@@ -81,8 +84,8 @@ export async function registerPostShootRoutes(app, {
           internal_scroll: false,
         },
         consent: {
-          privacy_required: true,
-          cost_required: true,
+          privacy_required: false,
+          cost_required: false,
           maximum_cost_usd: MAXIMUM_COST_USD,
           maximum_session_seconds: MAX_SESSION_SECONDS,
         },
@@ -103,19 +106,6 @@ export async function registerPostShootRoutes(app, {
     const body = request.body ?? {};
     if (body.app !== MODEL_ID) {
       return reply.code(400).send({ code: 'MODEL_NOT_ALLOWED', error: 'Lucy model is not allowlisted' });
-    }
-    if (body.cost_acknowledged !== true || body.max_session_seconds !== MAX_SESSION_SECONDS) {
-      return reply.code(409).send({
-        code: 'PAID_SESSION_APPROVAL_REQUIRED',
-        error: 'Потрібне явне підтвердження платної 15-секундної Lucy-сесії.',
-        maximum_cost_usd: MAXIMUM_COST_USD,
-      });
-    }
-    if (body.privacy_consent !== true) {
-      return reply.code(409).send({
-        code: 'PRIVACY_CONSENT_REQUIRED',
-        error: 'Потрібна явна згода на передачу camera-потоку для цієї Live-сесії.',
-      });
     }
     const lookId = String(body.look_id ?? '');
     if (!SAVED_LOOK_ID.test(lookId)) {

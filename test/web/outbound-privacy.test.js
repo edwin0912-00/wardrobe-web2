@@ -24,7 +24,11 @@ test('HTTP error responses redact local infrastructure metadata', async () => {
 
 test('health response exposes capability status without provider or project fingerprints', async () => {
   const app = await createWebApp({ service: serviceThatLeaksInternally(), health: {
-    status: 'ok', generation: 'Higgsfield CLI', semantic_qa: 'Codex CLI', internal_path: '/Users/jarvis1/app',
+    status: 'ok',
+    generation: 'Higgsfield CLI',
+    semantic_qa: 'Codex CLI',
+    fashion_shoot_qa_mode: 'off',
+    internal_path: '/Users/jarvis1/app',
   } });
   const response = await app.inject({ method: 'GET', url: '/api/health' });
   assert.equal(response.statusCode, 200);
@@ -33,6 +37,7 @@ test('health response exposes capability status without provider or project fing
     service: 'web',
     generation: 'available',
     semantic_qa: 'available',
+    fashion_shoot_qa_mode: 'off',
     editorial_generation: 'disabled',
   });
   await app.close();
@@ -56,5 +61,25 @@ test('degraded provider preflight refuses paid generation before uploads enter t
   });
   assert.equal(response.headers['retry-after'], '60');
   assert.equal(createCalls, 0);
+  await app.close();
+});
+
+test('a recovered cached preflight re-enables the journey without restarting the web app', async () => {
+  let latest = { status: 'degraded', runtime_status: 'ready' };
+  const app = await createWebApp({
+    service: serviceThatLeaksInternally(),
+    health: { status: 'degraded' },
+    healthProvider: async () => latest,
+  });
+
+  let response = await app.inject({ method: 'GET', url: '/api/health' });
+  assert.equal(response.json().status, 'degraded');
+  assert.equal(response.json().generation, 'unavailable');
+
+  latest = { status: 'ready', runtime_status: 'ready' };
+  response = await app.inject({ method: 'GET', url: '/api/health' });
+  assert.equal(response.json().status, 'ready');
+  assert.equal(response.json().generation, 'available');
+
   await app.close();
 });

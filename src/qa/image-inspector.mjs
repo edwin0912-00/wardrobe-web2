@@ -25,6 +25,10 @@ export function diagnoseBackground(data, width, height, channels = 3, options = 
   const minimumChannel = options.minimumChannel ?? 245;
   const maximumChroma = options.maximumChroma ?? 10;
   const minCornerCoverage = options.minCornerCoverage ?? 0.9;
+  // Some archival/general-purpose inspection callers intentionally analyse a
+  // crop that reaches the bottom edge. Master avatar/outfit generation opts
+  // into the strict key-surface contract explicitly below in PipelineRunner.
+  const requireBottomCorners = options.requireBottomCorners ?? false;
   const minSideCoverage = options.minSideCoverage ?? 0.75;
   const minImageCoverage = options.minImageCoverage ?? 0.12;
   const cornerWidth = Math.max(1, Math.floor(width * 0.08));
@@ -105,6 +109,10 @@ export function diagnoseBackground(data, width, height, channels = 3, options = 
     cornerCoverage.top_left,
     cornerCoverage.top_right,
   );
+  const minimumObservedBottomCornerCoverage = Math.min(
+    cornerCoverage.bottom_left,
+    cornerCoverage.bottom_right,
+  );
   const leftSideCoverage = ratio(leftSideConnected, sideWidth * height);
   const rightSideCoverage = ratio(rightSideConnected, sideWidth * height);
   const minimumObservedSideCoverage = Math.min(leftSideCoverage, rightSideCoverage);
@@ -120,7 +128,8 @@ export function diagnoseBackground(data, width, height, channels = 3, options = 
     // plus total image coverage proves that the corner-seeded component is a
     // real background rather than isolated specks.
     && maximumObservedSideCoverage >= minSideCoverage
-    && imageCoverage >= minImageCoverage;
+    && imageCoverage >= minImageCoverage
+    && (!requireBottomCorners || minimumObservedBottomCornerCoverage >= minCornerCoverage);
 
   return {
     method: 'corner-seeded_4-connected_near-white_background',
@@ -137,7 +146,8 @@ export function diagnoseBackground(data, width, height, channels = 3, options = 
       image: imageCoverage,
       corners: cornerCoverage,
       minimum_top_corner: minimumObservedTopCornerCoverage,
-      bottom_corners_are_informational: true,
+      minimum_bottom_corner: minimumObservedBottomCornerCoverage,
+      bottom_corners_are_required: requireBottomCorners,
       left_side: leftSideCoverage,
       right_side: rightSideCoverage,
       minimum_side: minimumObservedSideCoverage,
@@ -149,11 +159,14 @@ export function diagnoseBackground(data, width, height, channels = 3, options = 
       minimum_channel: minimumChannel,
       maximum_chroma: maximumChroma,
       minimum_top_corner_coverage: minCornerCoverage,
+      minimum_bottom_corner_coverage: requireBottomCorners ? minCornerCoverage : null,
       minimum_one_side_coverage: minSideCoverage,
       minimum_image_coverage: minImageCoverage,
     },
     status: everyClassifiedPixelExactWhite && sufficientCoverage ? STATUS.PASS : STATUS.FAIL,
-    note: 'Both top corners and at least one full-height side are gated; the opposite side and bottom corners are informational because a full-length standing subject reaches them with feet, footwear or a contact shadow. Central top/bottom pixels are not seeds, so hair, clothing or footwear touching the frame is not mislabeled as background. Near-white that the subject fully encloses, such as the gap between the legs of a figure standing on the bottom edge, is not border-connected, so it is outside both this classified set and the exact-white gate. The source image is never modified.',
+    note: requireBottomCorners
+      ? 'All four corners and at least one full-height side are gated. The master output requires a visible exact-white margin around the entire figure, including beneath the soles; presentation shadows belong in UI, not in the keyable source image. Central pixels are not seeds, so hair, clothing or footwear is not mislabeled as background. The source image is never modified.'
+      : 'Both top corners and at least one full-height side are gated. Central and bottom pixels are not seeds, so hair, clothing or footwear is not mislabeled as background. The source image is never modified.',
   };
 }
 

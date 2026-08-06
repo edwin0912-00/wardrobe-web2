@@ -16,11 +16,13 @@ import {
 import path from 'node:path';
 import {
   EDITORIAL_HERO_SLOT,
+  EDITORIAL_AUTO_REPAIR_MAX_RETRIES,
   EDITORIAL_SCHEMA_VERSION,
   EDITORIAL_SHOOT_STATES,
   EDITORIAL_SHOT_SLOTS,
   EDITORIAL_SHOT_STATES,
   EDITORIAL_TERMINAL_SHOOT_STATES,
+  isDirectFiveFashionShootModeId,
   assertEditorialId,
   assertEditorialIdempotencyKey,
   assertEditorialSha256,
@@ -39,7 +41,13 @@ const NO_CHANGE = Symbol('NO_CHANGE');
 const RESERVED_DIRECTORIES = new Set(['.locks', 'incidents', 'quarantine']);
 const LOCK_WAIT_MS = 10_000;
 const LOCK_POLL_MS = 20;
-const AUTO_REPAIR_MAX_RETRIES = 3;
+const AUTO_REPAIR_BASE_DELAY_MS = 1_000;
+// Fashion Shoot is a five-frame product. Its internal style pack and approved
+// master-look are sufficient conditioning for each frame, so it does not make
+// the customer wait for a hidden hero approval. This is a global ceiling across
+// all Fashion Shoots, not a per-shoot multiplier.
+const FASHION_SHOOT_GLOBAL_MAX_CONCURRENCY = 8;
+const FASHION_SHOOT_FRAME_CONCURRENCY = 5;
 const PROCESS_STARTED_AT_MS = Date.now() - Math.round(process.uptime() * 1_000);
 const PROCESS_STARTED_AT_ISO = new Date(PROCESS_STARTED_AT_MS).toISOString();
 
@@ -189,6 +197,17 @@ function clone(value) {
   return structuredClone(value);
 }
 
+function isParallelFashionShoot(state) {
+  return isDirectFiveFashionShootModeId(state?.bindings?.shoot_bible?.mode_id);
+}
+
+function shotConcurrencyLimit(state) {
+  if (isParallelFashionShoot(state)) return FASHION_SHOOT_FRAME_CONCURRENCY;
+  return state.shots[0].status === EDITORIAL_SHOT_STATES.APPROVED
+    ? FASHION_SHOOT_FRAME_CONCURRENCY
+    : 1;
+}
+
 function repairInstructions(attempt) {
   if (!attempt) return null;
   const failedGates = Array.isArray(attempt.qa?.gates)
@@ -207,8 +226,16 @@ function repairInstructions(attempt) {
 }
 
 function canAutoRepair(shot, failureCode) {
+  // A failed candidate is a backend responsibility, not a user action. Every
+  // non-cancelled failure gets its own new attempt until the persisted retry
+  // budget is exhausted; passed siblings stay bound to immutable outputs and
+  // are never regenerated.
   return failureCode !== 'EXECUTION_CANCELLED'
-    && shot.retry_count < AUTO_REPAIR_MAX_RETRIES;
+    && shot.retry_count < EDITORIAL_AUTO_REPAIR_MAX_RETRIES;
+}
+
+function autoRepairDelayMs(retryCount, baseDelayMs) {
+  return Math.min(baseDelayMs * (2 ** Math.max(0, retryCount - 1)), 30_000);
 }
 
 function eventHash(event) {
@@ -229,6 +256,37 @@ function publicShoot(state) {
 
 function stateAfterShotMutation(state, shots) {
   const hero = shots[0];
+  if (isParallelFashionShoot(state)) {
+    const customerFrames = shots.slice(1);
+    if (customerFrames.every((shot) => shot.status === EDITORIAL_SHOT_STATES.APPROVED)) {
+      return {
+        ...state,
+        shots,
+        status: EDITORIAL_SHOOT_STATES.COMPLETED,
+        phase: 'COMPLETED',
+        message: 'All five Fashion Shoot frames passed',
+      };
+    }
+    if (customerFrames.some((shot) => [
+      EDITORIAL_SHOT_STATES.QUEUED,
+      EDITORIAL_SHOT_STATES.RUNNING,
+    ].includes(shot.status))) {
+      return {
+        ...state,
+        shots,
+        status: EDITORIAL_SHOOT_STATES.SERIES_RUNNING,
+        phase: 'FASHION_SHOOT_GENERATION',
+        message: 'Generating all five Fashion Shoot frames',
+      };
+    }
+    return {
+      ...state,
+      shots,
+      status: EDITORIAL_SHOOT_STATES.NEEDS_RETRY,
+      phase: 'SHOT_RETRY',
+      message: 'Passed Fashion Shoot frames are preserved; only failed frames need retry',
+    };
+  }
   if ([EDITORIAL_SHOT_STATES.QUEUED, EDITORIAL_SHOT_STATES.RUNNING].includes(hero.status)) {
     return {
       ...state,
@@ -275,7 +333,7 @@ function stateAfterShotMutation(state, shots) {
       shots,
       status: EDITORIAL_SHOOT_STATES.SERIES_RUNNING,
       phase: 'SERIES_GENERATION',
-      message: 'Generating the five post-hero editorial shots with concurrency two',
+      message: 'Generating all five post-hero editorial shots concurrently',
     };
   }
   return {
@@ -356,7 +414,7 @@ export class EditorialShootServiceError extends Error {
  * }
  *
  * The executor owns scene generation. This service owns only the immutable
- * ShootBible, hero transaction barrier, two-wide scheduler, shot retries,
+ * ShootBible, hero transaction barrier, five-wide scheduler, shot retries,
  * cancellation, and hash-bound orchestration ledger.
  */
 export class EditorialShootService {
@@ -367,6 +425,7 @@ export class EditorialShootService {
     observer = null,
     observerTimeoutMs = 2_000,
     leaseDurationMs = 30 * 60 * 1_000,
+    autoRepairBaseDelayMs = AUTO_REPAIR_BASE_DELAY_MS,
   }) {
     if (!rootDirectory) throw new Error('EditorialShootService rootDirectory is required');
     if (typeof sceneExecutor?.executeShot !== 'function') {
@@ -381,12 +440,18 @@ export class EditorialShootService {
     if (!Number.isFinite(leaseDurationMs) || leaseDurationMs < 10_000 || leaseDurationMs > 3_600_000) {
       throw new Error('EditorialShootService leaseDurationMs must be between 10000 and 3600000 milliseconds');
     }
+    if (!Number.isInteger(autoRepairBaseDelayMs)
+      || autoRepairBaseDelayMs < 0
+      || autoRepairBaseDelayMs > 30_000) {
+      throw new Error('EditorialShootService autoRepairBaseDelayMs must be between 0 and 30000 milliseconds');
+    }
     this.rootDirectory = path.resolve(rootDirectory);
     this.sceneExecutor = sceneExecutor;
     this.clock = clock;
     this.observer = observer;
     this.observerTimeoutMs = observerTimeoutMs;
     this.leaseDurationMs = leaseDurationMs;
+    this.autoRepairBaseDelayMs = autoRepairBaseDelayMs;
     this.instanceId = `editorial_worker_${randomUUID()}`;
     this.events = new EventEmitter();
     this.mutations = new Map();
@@ -429,6 +494,29 @@ export class EditorialShootService {
       throw new Error('Unsupported EditorialShootService lock kind');
     }
     return path.join(this.rootDirectory, '.locks', `${shootId}.${kind}.lock`);
+  }
+
+  globalSchedulerLockPath() {
+    return path.join(this.rootDirectory, '.locks', 'fashion-shoot-global-scheduler.lock');
+  }
+
+  async #runningFashionFrameCount() {
+    const entries = await readdir(this.rootDirectory, { withFileTypes: true });
+    let running = 0;
+    for (const entry of entries) {
+      if (!entry.isDirectory() || RESERVED_DIRECTORIES.has(entry.name)) continue;
+      try {
+        assertEditorialId(entry.name, 'persisted shoot directory');
+      } catch {
+        continue;
+      }
+      const state = await this.#read(entry.name);
+      if (!state || !isParallelFashionShoot(state)) continue;
+      running += state.shots.slice(1).filter(
+        (shot) => shot.status === EDITORIAL_SHOT_STATES.RUNNING,
+      ).length;
+    }
+    return running;
   }
 
   async #withLock(shootId, kind, action) {
@@ -779,6 +867,43 @@ export class EditorialShootService {
           };
         });
       }
+      // Releases before this contract stopped a shot at FAILED after three
+      // retries and left the whole shoot at NEEDS_RETRY forever. Resume those
+      // persisted jobs as individual automatic repairs; do not require a user
+      // click and do not regenerate any approved sibling.
+      let requeuedSlots = [];
+      if (state.shots.some((shot) => shot.status === EDITORIAL_SHOT_STATES.FAILED)) {
+        await this.#mutate(entry.name, (current) => {
+          requeuedSlots = current.shots
+            .filter((shot) => shot.status === EDITORIAL_SHOT_STATES.FAILED
+              && shot.retry_count < EDITORIAL_AUTO_REPAIR_MAX_RETRIES)
+            .map((shot) => shot.slot);
+          if (requeuedSlots.length === 0) return NO_CHANGE;
+          const shots = current.shots.map((shot) => requeuedSlots.includes(shot.slot)
+            ? {
+              ...shot,
+              status: EDITORIAL_SHOT_STATES.QUEUED,
+              retry_count: shot.retry_count + 1,
+              output: null,
+              error: null,
+              lease: null,
+            }
+            : shot);
+          const next = stateAfterShotMutation(current, shots);
+          return {
+            state: {
+              ...next,
+              phase: 'RECOVERY_QUEUED',
+              message: 'Previously failed editorial frames were automatically requeued',
+            },
+            event_type: 'shoot.auto_repair_recovered',
+            data: {
+              requeued_slots: requeuedSlots,
+              reason: 'legacy_failed_frame',
+            },
+          };
+        });
+      }
       this.start(entry.name);
     }
   }
@@ -826,12 +951,19 @@ export class EditorialShootService {
       approved_look: approvedLook,
       bible_sha256: bibleSha256,
       shot_spec_hashes: shotSpecHashes,
+      scheduler_max_concurrency: FASHION_SHOOT_FRAME_CONCURRENCY,
+    }));
+    const legacyRequestFingerprint = sha256(canonicalJsonBytes({
+      approved_look: approvedLook,
+      bible_sha256: bibleSha256,
+      shot_spec_hashes: shotSpecHashes,
       scheduler_max_concurrency: 2,
     }));
 
     const existing = await this.#read(shootId);
     if (existing) {
-      if (existing.request_fingerprint !== requestFingerprint) {
+      if (existing.request_fingerprint !== requestFingerprint
+        && existing.request_fingerprint !== legacyRequestFingerprint) {
         throw new EditorialShootServiceError(
           409,
           'IDEMPOTENCY_CONFLICT',
@@ -845,7 +977,8 @@ export class EditorialShootService {
       await this.#withLock(shootId, 'state', () => this.#recoverTransactions(shootId));
       const raced = await this.#read(shootId);
       if (raced) {
-        if (raced.request_fingerprint !== requestFingerprint) {
+        if (raced.request_fingerprint !== requestFingerprint
+          && raced.request_fingerprint !== legacyRequestFingerprint) {
           throw new EditorialShootServiceError(
             409,
             'IDEMPOTENCY_CONFLICT',
@@ -900,7 +1033,7 @@ export class EditorialShootService {
         data: {
           mode_id: bible.mode_id,
           shot_count: EDITORIAL_SHOT_SLOTS.length,
-          scheduler_max_concurrency: 2,
+          scheduler_max_concurrency: FASHION_SHOOT_FRAME_CONCURRENCY,
         },
       });
       return publicShoot(state);
@@ -948,15 +1081,32 @@ export class EditorialShootService {
         );
       }
       const approvedAt = nowIso(this.clock);
-      const shots = current.shots.map((shot) => shot.slot === EDITORIAL_HERO_SLOT
-        ? { ...shot, status: EDITORIAL_SHOT_STATES.QUEUED }
-        : shot);
+      const parallelFashionShoot = isParallelFashionShoot(current);
+      const shots = current.shots.map((shot) => {
+        if (!parallelFashionShoot) {
+          return shot.slot === EDITORIAL_HERO_SLOT
+            ? { ...shot, status: EDITORIAL_SHOT_STATES.QUEUED }
+            : shot;
+        }
+        // `clean_identity_hero` is a legacy technical slot. Fashion Shoot
+        // delivers the other five frames immediately from the master-look and
+        // style pack; no hidden first generation blocks the user.
+        if (shot.slot === EDITORIAL_HERO_SLOT) {
+          return { ...shot, status: EDITORIAL_SHOT_STATES.CANCELLED };
+        }
+        return { ...shot, status: EDITORIAL_SHOT_STATES.QUEUED };
+      });
       return {
         state: {
           ...current,
-          status: EDITORIAL_SHOOT_STATES.HERO_RUNNING,
-          phase: 'HERO_GENERATION',
-          message: 'ShootBible approved; only the clean identity hero is queued',
+          ...(parallelFashionShoot
+            ? stateAfterShotMutation(current, shots)
+            : {
+              status: EDITORIAL_SHOOT_STATES.HERO_RUNNING,
+              phase: 'HERO_GENERATION',
+              message: 'ShootBible approved; only the clean identity hero is queued',
+              shots,
+            }),
           bible_approval: {
             idempotency_hash: approvalHash,
             bible_sha256: expectedBibleSha256,
@@ -969,7 +1119,12 @@ export class EditorialShootService {
         event_type: 'shoot.bible_approved',
         data: {
           bible_sha256: expectedBibleSha256,
-          queued_slot: EDITORIAL_HERO_SLOT,
+          queued_slots: parallelFashionShoot
+            ? EDITORIAL_SHOT_SLOTS.slice(1)
+            : [EDITORIAL_HERO_SLOT],
+          scheduler_max_concurrency: parallelFashionShoot
+            ? FASHION_SHOOT_GLOBAL_MAX_CONCURRENCY
+            : 2,
         },
       };
     });
@@ -1045,7 +1200,7 @@ export class EditorialShootService {
           ...(shots.slice(1).some((shot) => shot.status === EDITORIAL_SHOT_STATES.QUEUED)
             ? {
               phase: 'SERIES_GENERATION',
-              message: 'Hero approved; five remaining shots are queued with concurrency two',
+              message: 'Hero approved; all five remaining shots are queued together',
             }
             : {}),
         },
@@ -1054,7 +1209,7 @@ export class EditorialShootService {
         shot_output_sha256: expectedOutputSha256,
         data: {
           queued_slots: EDITORIAL_SHOT_SLOTS.slice(1),
-          scheduler_max_concurrency: 2,
+          scheduler_max_concurrency: FASHION_SHOOT_FRAME_CONCURRENCY,
         },
       };
     });
@@ -1071,6 +1226,12 @@ export class EditorialShootService {
   #runnableSlots(state) {
     const hero = state.shots[0];
     if (!state.bible_approval) return [];
+    if (isParallelFashionShoot(state)) {
+      return state.shots
+        .slice(1)
+        .filter((shot) => shot.status === EDITORIAL_SHOT_STATES.QUEUED)
+        .map((shot) => shot.slot);
+    }
     if (hero.status !== EDITORIAL_SHOT_STATES.APPROVED) {
       return hero.status === EDITORIAL_SHOT_STATES.QUEUED ? [EDITORIAL_HERO_SLOT] : [];
     }
@@ -1095,7 +1256,7 @@ export class EditorialShootService {
           ].includes(state.status)) {
           break;
         }
-        const maxConcurrency = state.shots[0].status === EDITORIAL_SHOT_STATES.APPROVED ? 2 : 1;
+        const maxConcurrency = shotConcurrencyLimit(state);
         const persistedRunning = state.shots.filter(
           (shot) => shot.status === EDITORIAL_SHOT_STATES.RUNNING,
         ).length;
@@ -1125,18 +1286,30 @@ export class EditorialShootService {
   async #runShot(shootId, slot) {
     let operationId;
     let claimed = false;
-    const runningState = await this.#mutate(shootId, (current) => {
+    let automaticRepairRetryCount = null;
+    let reusingExistingExecution = false;
+    let runningState;
+    const releaseGlobalScheduler = await acquireFilesystemLock(this.globalSchedulerLockPath());
+    if (!releaseGlobalScheduler) return;
+    try {
+      const globalRunningFashionFrames = await this.#runningFashionFrameCount();
+      runningState = await this.#mutate(shootId, (current) => {
       const index = EDITORIAL_SHOT_SLOTS.indexOf(slot);
       const shot = current.shots[index];
       if (!shot || shot.status !== EDITORIAL_SHOT_STATES.QUEUED) return NO_CHANGE;
+      if (isParallelFashionShoot(current)
+        && globalRunningFashionFrames >= FASHION_SHOOT_GLOBAL_MAX_CONCURRENCY) {
+        return NO_CHANGE;
+      }
       const persistedRunning = current.shots.filter(
         (item) => item.status === EDITORIAL_SHOT_STATES.RUNNING,
       ).length;
-      const concurrencyLimit = current.shots[0].status === EDITORIAL_SHOT_STATES.APPROVED ? 2 : 1;
+      const concurrencyLimit = shotConcurrencyLimit(current);
       if (persistedRunning >= concurrencyLimit) return NO_CHANGE;
       const resumedAttempt = shot.attempts.at(-1)?.status === 'RUNNING'
         ? shot.attempts.at(-1)
         : null;
+      reusingExistingExecution = resumedAttempt !== null;
       const number = resumedAttempt?.number ?? shot.attempts.length + 1;
       operationId = resumedAttempt?.operation_id
         ?? `editorial_${shootId.slice(-24)}_${slot}_${number}`;
@@ -1198,7 +1371,10 @@ export class EditorialShootService {
           execution_idempotency_key: attempt.execution_idempotency_key,
         },
       };
-    });
+      });
+    } finally {
+      await releaseGlobalScheduler();
+    }
     if (!claimed) return;
     const shot = runningState.shots.find((item) => item.slot === slot);
     if (!shot
@@ -1220,7 +1396,7 @@ export class EditorialShootService {
       }
       const { bible } = await this.#readBible(shootId, runningState.bindings.shoot_bible);
       const shotSpec = bible.shots.find((item) => item.slot === slot);
-      const heroOutput = slot === EDITORIAL_HERO_SLOT
+      const heroOutput = slot === EDITORIAL_HERO_SLOT || isParallelFashionShoot(runningState)
         ? null
         : runningState.shots[0].output;
       const rawResult = await this.sceneExecutor.executeShot({
@@ -1229,6 +1405,7 @@ export class EditorialShootService {
         attempt: attempt.number,
         operation_id: operationId,
         idempotency_key: attempt.execution_idempotency_key,
+        reuse_existing_execution: reusingExistingExecution,
         approved_look: clone(runningState.bindings.approved_look),
         shoot_bible: {
           bible_id: bible.bible_id,
@@ -1241,9 +1418,9 @@ export class EditorialShootService {
         hero_output: heroOutput ? clone(heroOutput) : null,
         repair: repairInstructions(shot.attempts.at(-2)),
         delivery: {
-          aspect_ratio: '4:5',
-          width: 1024,
-          height: 1280,
+          aspect_ratio: '3:4',
+          width: 1536,
+          height: 2048,
           media_type: 'image/png',
         },
         signal: controller.signal,
@@ -1296,6 +1473,7 @@ export class EditorialShootService {
           error: autoRepair ? null : failure,
           lease: null,
         };
+        if (autoRepair) automaticRepairRetryCount = nextShot.retry_count;
         const shots = [...current.shots];
         shots[index] = nextShot;
         return {
@@ -1319,6 +1497,12 @@ export class EditorialShootService {
           },
         };
       });
+      if (automaticRepairRetryCount !== null) {
+        await delay(autoRepairDelayMs(
+          automaticRepairRetryCount,
+          this.autoRepairBaseDelayMs,
+        ));
+      }
     } catch (error) {
       await this.#mutate(shootId, (current) => {
         const index = EDITORIAL_SHOT_SLOTS.indexOf(slot);
@@ -1352,6 +1536,7 @@ export class EditorialShootService {
           error: autoRepair ? null : failure,
           lease: null,
         };
+        if (autoRepair) automaticRepairRetryCount = shots[index].retry_count;
         return {
           state: stateAfterShotMutation(current, shots),
           event_type: autoRepair ? 'shot.auto_repair_queued' : 'shot.executor_failed',
@@ -1365,6 +1550,12 @@ export class EditorialShootService {
           },
         };
       });
+      if (automaticRepairRetryCount !== null) {
+        await delay(autoRepairDelayMs(
+          automaticRepairRetryCount,
+          this.autoRepairBaseDelayMs,
+        ));
+      }
     } finally {
       const key = `${shootId}:${slot}`;
       if (this.controllers.get(key) === controller) this.controllers.delete(key);
@@ -1401,7 +1592,8 @@ export class EditorialShootService {
           'Only one failed editorial shot can be retried',
         );
       }
-      if (slot !== EDITORIAL_HERO_SLOT
+      if (!isParallelFashionShoot(current)
+        && slot !== EDITORIAL_HERO_SLOT
         && current.shots[0].status !== EDITORIAL_SHOT_STATES.APPROVED) {
         throw new EditorialShootServiceError(
           409,
@@ -1410,6 +1602,14 @@ export class EditorialShootService {
         );
       }
       const previousAttempt = shot.attempts.at(-1) ?? null;
+      // An executor can fail after its child SceneService has already finished
+      // and persisted a valid output (for example, when this parent still
+      // expected the legacy 4:5 canvas). A manual retry must replay the exact
+      // execution address so SceneService can return that immutable result; a
+      // new attempt number would create a new provider job for no new pixels.
+      const resumeExecutorFailure = previousAttempt?.status === 'FAIL'
+        && previousAttempt?.error?.code === 'EXECUTOR_FAILED'
+        && previousAttempt?.execution_id === null;
       const requestFingerprint = sha256(canonicalJsonBytes({
         shoot_id: shootId,
         slot,
@@ -1417,10 +1617,24 @@ export class EditorialShootService {
         previous_candidate_sha256: previousAttempt?.qa?.candidate_sha256 ?? null,
       }));
       const shots = [...current.shots];
+      const attempts = resumeExecutorFailure
+        ? [
+            ...shot.attempts.slice(0, -1),
+            {
+              ...previousAttempt,
+              status: 'RUNNING',
+              completed_at: null,
+              output: null,
+              qa: null,
+              error: null,
+            },
+          ]
+        : shot.attempts;
       shots[index] = {
         ...shot,
         status: EDITORIAL_SHOT_STATES.QUEUED,
         retry_count: shot.retry_count + 1,
+        attempts,
         output: null,
         error: null,
         lease: null,
@@ -1451,6 +1665,7 @@ export class EditorialShootService {
         data: {
           retry_count: shot.retry_count + 1,
           request_fingerprint: requestFingerprint,
+          resumed_executor_failure: resumeExecutorFailure,
         },
       };
     });

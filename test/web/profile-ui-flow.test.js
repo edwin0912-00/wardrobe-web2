@@ -54,7 +54,8 @@ test('selected saved look consumes the fail-closed full-viewport Live capability
   assert.match(appSource, /payload\?\.launch\?\.target === '_self'/);
   assert.match(appSource, /payload\?\.launch\?\.nested === false/);
   assert.match(appSource, /payload\?\.launch\?\.internal_scroll === false/);
-  assert.match(appSource, /window\.location\.assign\(realtimeLookCapability\.href\)/);
+  assert.match(appSource, /launchUrl\.searchParams\.set\('return', 'profile'\)/);
+  assert.match(appSource, /window\.location\.assign\(`\$\{launchUrl\.pathname\}\$\{launchUrl\.search\}\$\{launchUrl\.hash\}`\)/);
   assert.doesNotMatch(appSource, /selectedLookLiveUrl/);
   assert.doesNotMatch(indexSource, /id="profile-live-frame"/);
   assert.doesNotMatch(indexSource, /id="profile-live-overlay"/);
@@ -69,7 +70,6 @@ test('saved look exposes actionable branches and their honest pipeline explanati
   );
   for (const id of [
     'profile-look-background-primary',
-    'profile-look-refine',
     'profile-look-photoshoot',
     'profile-look-video',
     'profile-look-live',
@@ -82,14 +82,14 @@ test('saved look exposes actionable branches and their honest pipeline explanati
   assert.doesNotMatch(indexSource, /class="profile-branch-brief/);
   assert.doesNotMatch(indexSource, /id="profile-background-video-brief"/);
   assert.doesNotMatch(indexSource, /id="profile-pipeline-explainer"/);
-  assert.match(indexSource, /aria-label="Відкрити Real-time Look"/);
+  assert.match(indexSource, /aria-label="Відкрити Live Look"/);
   assert.match(indexSource, /Додати фон<\/strong><small>16 стандартних сцен/);
-  assert.match(indexSource, /Покращити образ<\/strong><small>Скоро/);
-  assert.match(indexSource, /Fashion Shoot<\/strong><small>5 fashion-кадрів/);
+  assert.doesNotMatch(indexSource, /Покращити образ<\/strong>/);
+  assert.match(indexSource, /Fashion Shoot<\/strong><small>5 арткадрів/);
   assert.match(indexSource, /Fashion Video<\/strong><small id="profile-look-video-state">Перевіряємо доступність/);
   assert.match(indexSource, /id="profile-look-video"[^>]*disabled/);
   assert.match(indexSource, /без другого референсу ролик не стартує/);
-  assert.match(indexSource, /Real-time Look<\/strong><small id="profile-look-live-state">Перевіряємо доступність/);
+  assert.match(indexSource, /Live Look<\/strong><small id="profile-look-live-state">Перевіряємо доступність/);
   assert.match(appSource, /openSelectedLookScene\('standard'\)/);
   assert.match(appSource, /openSelectedLookScene\('editorial'\)/);
   assert.doesNotMatch(appSource, /document\.querySelector\('#profile-look-background'\)/);
@@ -101,11 +101,56 @@ test('saved look exposes actionable branches and their honest pipeline explanati
   assert.match(appSource, /payload\?\.available === true/);
   assert.match(appSource, /payload\?\.requirements\?\.verified_style_reference === true/);
   assert.match(appSource, /payload\?\.requirements\?\.verified_motion_reference === true/);
-  assert.match(appSource, /Fashion Video: обери формат кадру й подачу/);
+  assert.match(appSource, /payload\?\.requirements\?\.verified_video_style_catalog === true/);
+  assert.doesNotMatch(appSource, /Fashion Video: обери перевірену відеостилістику й запусти генерацію/);
+  assert.match(indexSource, /id="video-style-options"/);
+  assert.match(indexSource, /id="video-input-contract"/);
+  assert.match(appSource, /function renderFashionVideoInputContract/);
+  assert.match(appSource, /input_contract\?\.inputs/);
+  assert.match(appSource, /Що використовується для цього відео/);
+  assert.match(indexSource, /id="god-view-trigger"/);
+  assert.match(appSource, /window\.location\.assign\('\/god-view\.html'\)/);
+  assert.match(appSource, /document\.createElement\('video'\)/);
+  assert.match(appSource, /document\.body\.append\(fashionVideoOverlay\)/);
+  assert.match(appSource, /video\.src = style\.playback_url/);
+  assert.match(appSource, /video\.poster = style\.preview_url/);
+  assert.doesNotMatch(appSource, /Timeout: відео не згенерувалося за 6 хвилин/);
+  assert.match(appSource, /Генерація ще триває на сервері/);
+  assert.match(appSource, /video\.autoplay = true/);
+  assert.match(appSource, /video\.preload = 'auto'/);
+  assert.match(appSource, /#video-style-options video/);
+  assert.match(appSource, /style_id: styleId/);
+  assert.doesNotMatch(
+    appSource,
+    /look_id: lookId,\s*surface:/,
+    'Fashion Video must not let a browser choose the delivery surface',
+  );
+  assert.doesNotMatch(indexSource, /gentle_sway|confident_turn|editorial_pose/);
+  assert.doesNotMatch(indexSource, /id="video-source-image"/);
+  assert.match(indexSource, /id="video-result" class="video-result" hidden/);
+  assert.match(indexSource, /id="video-retry"[^>]*>Повторити спробу/);
+  assert.match(appSource, /function showVideoRetry/);
+  assert.match(appSource, /Автоматична спроба \$\{automaticRetry\.retry_number\} з \$\{automaticRetry\.max_retries\}/);
+  assert.match(appSource, /автоматичних спроб/);
+  assert.doesNotMatch(appSource, /Автоматичний повтор не запускався/);
   assert.match(appSource, /Потрібні 2 референси/);
+  assert.match(appSource, /action\.dataset\.state = state/);
+  assert.match(appSource, /action\.classList\.toggle\('is-checking', state === 'checking'\)/);
+  assert.match(appSource, /action\.setAttribute\('aria-busy', String\(state === 'checking'\)\)/);
+  assert.match(appSource, /function setVideoGenerateBusy\(busy\)/);
+  assert.match(appSource, /videoGenerationBusy = busy/);
+  assert.match(appSource, /setVideoGenerateBusy\(videoGenerationBusy\)/);
+  assert.match(appSource, /action\.classList\.toggle\('is-loading', busy\)/);
   assert.doesNotMatch(appSource, /function showLookBrief/);
   assert.doesNotMatch(appSource, /function hideLookBriefs/);
-  assert.match(appSource, /Покращити: master і вибрані речі locked/);
+  assert.doesNotMatch(appSource, /#profile-look-refine/);
+});
+
+test('terminal NEEDS_INPUT asks for replacement material and never exposes a futile retry', () => {
+  assert.match(appSource, /const needsReplacementMaterials = run\.status === 'NEEDS_INPUT' && !hasSelectableConflict;/);
+  assert.match(appSource, /needsInputPresentation\(run\.message \|\| run\.error\?\.message\)/);
+  assert.match(appSource, /hasSelectableConflict \|\| needsReplacementMaterials/);
+  assert.match(appSource, /import \{ needsInputPresentation, neutralizeItemTerms \}/);
 });
 test('Add items continuation receives the exact selected avatar and look once', async () => {
   const { avatar, newerLook, profile } = profileFixture();
@@ -120,6 +165,15 @@ test('Add items continuation receives the exact selected avatar and look once', 
   assert.strictEqual(continued.avatar, avatar);
   assert.strictEqual(continued.look, newerLook);
   assert.deepEqual(received, [{ avatar, look: newerLook }]);
+});
+
+test('continuing a saved look can carry its text-only outfit brief into a new revision', () => {
+  assert.match(
+    appSource,
+    /beginDraft\(\{\s*avatar: selection\.avatar,\s*look: selection\.look,\s*outfitText: activeRun\?\.requested_outfit_text \?\? '',/s,
+  );
+  assert.match(appSource, /form\.elements\.outfit_text\.value = carriedOutfitText/);
+  assert.match(indexSource, /Без фото фіксуємо лише те, що ти написав/);
 });
 
 test('saved-avatar selection executes only the open-look effect, never a draft action', async () => {
@@ -190,4 +244,10 @@ test('the public profile UI delegates clicks to the executable transition helper
   assert.match(appSource, /await executeSavedAvatarTransition\(transition, \{/);
   assert.match(appSource, /continueAddItemsFromSelection\(selectedProfileLookSelection, beginDraft\)/);
   assert.match(appSource, /restoreProfileReturnState\(profileReturnState, \{/);
+});
+
+test('local upload previews use a presentation derivative while raw files remain upload inputs', () => {
+  assert.match(appSource, /createImagePreviewBlob/);
+  assert.match(appSource, /createObjectURL\(preview\)/);
+  assert.match(appSource, /The selected File\n?\s*\/\/ remains the source/);
 });

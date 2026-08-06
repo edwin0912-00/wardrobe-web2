@@ -235,15 +235,21 @@ function assertUnit(unit) {
       for (const slot of SHOT_SLOTS) {
         const direction = directions[slot];
         const keys = ['camera_consequence', 'pose_joint_chain', 'focus', 'foreground', 'provenance'];
+        const allowedKeys = [...keys, 'subject_lighting'];
         if (!direction || typeof direction !== 'object' || Array.isArray(direction)
-          || JSON.stringify(Object.keys(direction).sort()) !== JSON.stringify([...keys].sort())) {
-          problems.push(`runtime_style.shot_directions.${slot} must contain exactly ${keys.join(', ')}`);
+          || Object.keys(direction).some((key) => !allowedKeys.includes(key))
+          || keys.some((key) => !Object.hasOwn(direction, key))) {
+          problems.push(`runtime_style.shot_directions.${slot} must contain ${keys.join(', ')} and may add subject_lighting`);
           continue;
         }
         for (const field of ['camera_consequence', 'pose_joint_chain', 'focus', 'foreground']) {
           if (typeof direction[field] !== 'string' || direction[field].trim().length < 8) {
             problems.push(`runtime_style.shot_directions.${slot}.${field} must be observed text`);
           }
+        }
+        if (Object.hasOwn(direction, 'subject_lighting')
+          && (typeof direction.subject_lighting !== 'string' || direction.subject_lighting.trim().length < 8)) {
+          problems.push(`runtime_style.shot_directions.${slot}.subject_lighting must be observed text when present`);
         }
         if (!Array.isArray(direction.provenance)
           || direction.provenance.length < 1

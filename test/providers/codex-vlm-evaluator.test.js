@@ -4,7 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import sharp from 'sharp';
-import { applyGarmentSurfaceFidelityPolicy, CodexVlmEvaluator } from '../../src/providers/codex-vlm-evaluator.js';
+import { applyGarmentSurfaceFidelityPolicy, applyTextOnlyOutfitInterpretationPolicy, CodexVlmEvaluator } from '../../src/providers/codex-vlm-evaluator.js';
 
 async function imageFixture(background = '#ffffff', basename = 'image.png') {
   const root = await mkdtemp(path.join(os.tmpdir(), 'zeely-codex-test-'));
@@ -64,6 +64,24 @@ test('Codex evaluator returns a strict structured garment analysis and blocks lo
   const invalid = structuredClone(valid); invalid.items[0].confidence = 0.4;
   const low = new CodexVlmEvaluator({ commandRunner: runnerFor(invalid, []) });
   await assert.rejects(() => low.inspectGarments([filename]), /низькою впевненістю/);
+});
+
+test('garment inspection retries a transient empty VLM result once', async () => {
+  const filename = await imageFixture();
+  const valid = { status: 'READY', reason: 'visible item', items: [{ source_index: 0, category: 'top', confidence: 0.94,
+    observed: { garment_type: 'green hoodie', colors: ['green'], material: ['fleece'], pattern: [], logo_text: [], construction: ['hood'] }, unknowns: [], blockers: [] }],
+  reference_sets: [{ source_indexes: [0], primary_source_index: 0, same_item_confidence: 1, evidence: ['one clear view'] }] };
+  let calls = 0;
+  const evaluator = new CodexVlmEvaluator({ commandRunner: async (binary, args, options) => {
+    calls += 1;
+    if (calls === 1) return { stdout: '', stderr: 'temporary empty result', exitCode: 0 };
+    const outputIndex = args.indexOf('--output-last-message');
+    await writeFile(args[outputIndex + 1], JSON.stringify(valid));
+    return { stdout: '', stderr: '', exitCode: 0 };
+  } });
+  const result = await evaluator.inspectGarments([filename]);
+  assert.equal(result.status, 'READY');
+  assert.equal(calls, 2);
 });
 
 test('garment reference sets are a strict full partition and multi-view grouping needs high confidence', async () => {
@@ -191,6 +209,64 @@ test('outfit QA receives authoritative text and separates it from identity cloth
   assert.match(calls[0].args[1], /AUTHORITATIVE TARGET OUTFIT TEXT/);
   assert.match(calls[0].args[1], /cobalt-blue blazer/);
   assert.match(calls[0].args[1], /identity photos is identity context only/);
+});
+
+test('outfit QA uses canonical selected-item bindings and scopes partial garment checks', async () => {
+  const identity = await imageFixture('#d4c1af', 'identity.png');
+  const avatar = await imageFixture('#abb9c7', 'avatar.png');
+  const candidate = await imageFixture('#ffffff', 'candidate.png');
+  const hoodie = await imageFixture('#275b36', 'hoodie-cutout.png');
+  const calls = [];
+  const evaluator = new CodexVlmEvaluator({ commandRunner: runnerFor({
+    decision: 'PASS', reason: 'selected hoodie matches',
+    checks: [{ name: 'GARMENT_TOP', pass: true, score: 0.97, evidence: 'green hoodie matches' }], defects: [],
+  }, calls) });
+  await evaluator.evaluateQa({ phase: 'outfit', evidence: {
+    identity: { artifact: { path: identity } },
+    avatar: { artifact: { path: avatar } },
+    candidate: { artifact: { path: candidate } },
+    outfit_text: '[top] forest green hoodie with cream logo',
+    outfit_scope: 'only the selected garment region: upper body / top. Clothing outside this selected region is intentionally open',
+    reference_packs: { outfit: { bindings: [{ role: 'GARMENT_TOP', artifact: { path: hoodie } }] } },
+  } });
+  const prompt = calls[0].args[1];
+  assert.match(prompt, /AUTHORITATIVE TARGET OUTFIT TEXT/);
+  assert.match(prompt, /forest green hoodie/);
+  assert.match(prompt, /SELECTED GARMENT SCOPE/);
+  assert.match(prompt, /Only the declared selected garment regions are blocking fidelity targets/);
+  assert.match(prompt, /ATTACHMENT_4 \[GARMENT_TOP\]/);
+  assert.equal(calls[0].args.filter((value) => value === '--image').length, 4);
+});
+
+test('text-only outfit QA treats omitted garment details as creative freedom, not missing evidence', async () => {
+  const filename = await imageFixture();
+  const calls = [];
+  const evaluator = new CodexVlmEvaluator({ commandRunner: runnerFor({
+    decision: 'PASS', reason: 'same person in a well-formed black leather biker jacket',
+    checks: [{ name: 'OUTFIT', pass: true, score: 0.96, evidence: 'plausible leather-jacket interpretation' }], defects: [],
+  }, calls) });
+  const brief = 'Хочу охуєнну кожану куртку на цей аватар';
+  const result = await evaluator.evaluateQa({ phase: 'outfit', evidence: {
+    identity: { artifact: { path: filename } },
+    avatar: { artifact: { path: filename } },
+    candidate: { artifact: { path: filename } },
+    source_outfit: brief,
+  } });
+  assert.equal(result.decision, 'PASS');
+  assert.match(calls[0].args[1], /TEXT-ONLY CREATIVE BRIEF/);
+  assert.match(calls[0].args[1], /does not state is intentionally open/);
+
+  const recovered = applyTextOnlyOutfitInterpretationPolicy({
+    decision: 'NEEDS_INPUT',
+    reason: 'The authoritative outfit text does not specify an exact jacket type, color, material, construction, fit, or required logo/text.',
+    checks: [{ name: 'OUTFIT', pass: false, score: 0.6, evidence: 'candidate is otherwise well formed' }],
+    defects: ['missing exact jacket type'],
+  }, brief);
+  assert.equal(recovered.decision, 'PASS');
+  assert.match(recovered.reason, /^PASS_WITH_TEXT_INTERPRETATION:/);
+  assert.equal(recovered.defects.length, 0);
+  assert.ok(recovered.checks.every((check) => check.pass));
+  assert.match(recovered.checks[0].name, /ADVISORY_TEXT_BRIEF$/);
 });
 
 test('outfit QA redacts incidental local metadata from authoritative user text', async () => {

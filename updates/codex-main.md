@@ -1,3 +1,201 @@
+Agent ID: codex-live-40
+Task: FASHION-VIDEO-PROVIDER-LABELS-V2-20260803
+Product line: Fashion Video
+Pipeline: VIDEO.01 locked style reference → VIDEO.02 Seedance create
+State: CODE_TESTED — release-owner integration/deploy required
+Decision: use Seedance-style `@Video 1`, `@Image 1..N` labels for every new
+Fashion Video request. The prompt is deliberately prefixed with neutral prose
+(`Reference bindings.`), so the Higgsfield CLI cannot parse the entire prompt
+argument as a local `@response-file` expression. Existing persisted v1
+bracket-labelled jobs are immutable and unchanged; new requests record binding
+schema v2.
+Evidence: paid, same-input A/B used two real Seedance jobs. The `@` request
+completed normally and increased clean approved-avatar temporal coverage from
+14.55% to 42.95%; focused video motion-plan/service tests run after this edit.
+weakened_checks: none; the source performer remains a delivery blocker.
+Beta: NOT_DEPLOYED. Journey: code-level test only after the A/B.
+
+---
+
+Agent ID: codex-main
+Task: SAVED-DELIVERY-LIBRARY-20260803
+Product line: beta engine + cinematic main presentation
+Pipeline: completed Fashion Shoot / verified Fashion Video → saved look → reload → review / download
+State: CODE_VERIFIED — deployment pending
+Decision: approved customer Fashion Shoot frames and only verified Fashion Video
+deliveries are reloaded from the saved-look server routes.  Video playback and
+download stay profile-authorized and `private, no-store`; the copied URL is not
+a public share link.  The cinematic main restores the library without turning a
+historical delivery into an active job.
+Evidence: beta routes/profile UI suite 49/49 PASS; cinematic preflight 138/138
+PASS and focused bridge/client/result suite 44/44 PASS.  Cache-bust chains
+advance together so browsers fetch the added UI and API client.
+weakened_checks: none.
+Beta: PENDING_DEPLOY. Main: PENDING_DEPLOY. Journey: no paid generation created.
+
+---
+
+Agent ID: codex-live-40
+Task: FASHION-VIDEO-START-REGRESSION-20260802
+Product line: beta-placeholder → main bridge
+Pipeline: VIDEO.01 style reference → VIDEO.02 provider create
+State: CODE_VERIFIED — release-owner integration/deploy required
+Finding: Fashion Video was returning HTTP 502 before a Higgsfield job existed.
+The reference-transfer prompt began with `@Video 1`; Higgsfield CLI interprets
+an argument beginning with `@` as a response-file path and rejected it with
+`Failed to read Video 1 ...`. This was a local CLI parsing regression, not a
+quality-QA failure and not a rejected approved master.
+Change: provider-facing labels are now `[Video 1]`, `[Image 1]` and so on;
+the exact reference order is unchanged. The CLI argv now uses its documented
+`--video-references` and `--image-references` flags rather than short aliases.
+Evidence: exact failed hard-sun package (locked style MP4 + approved white
+master) passed `higgsfield generate cost seedance_2_0` at 67.5 credits with no
+job created; focused motion-plan/provider tests PASS 43/43.
+Beta: NOT_DEPLOYED. Journey: no paid video created by this repair.
+weakened_checks: none — the private style video remains directing-only and
+reference-performer leakage remains a delivery blocker.
+
+---
+
+Agent ID: codex-main
+Cross-block handoff: Fashion Video style-owned presentation geometry
+Product line: beta-placeholder
+Pipeline: VIDEO.01 style reference → VIDEO.02 provider request → VIDEO.04 delivery
+State: CODE_VERIFIED — release-owner integration/deploy required
+Decision: Fashion Video does not expose or trust a TV/mirror choice. The exact
+hash-bound style reference owns both presentation surface and provider aspect:
+vertical `9:16` → mirror; landscape `16:9` → television. A legacy client
+surface is accepted only for compatibility and ignored before provider create.
+The derived value is persisted with the style binding and returned by the
+capability and create APIs.
+Code: local branch `fix/video-style-owned-surface-20260802`; commit pending.
+Evidence: `node --test test/video/*.test.js` — 191/191 PASS; `node --test
+test/web/profile-ui-flow.test.js test/video/video-routes.test.js` — 26/26 PASS.
+The four current approved style masters all resolve 1080×1920 → mirror/9:16.
+Beta: NOT_DEPLOYED. Journey: NOT_RUN. No provider generation was spent.
+weakened_checks: none. Unsupported reference geometry fails before provider
+spend rather than being cropped or silently converted.
+
+---
+
+Agent ID: codex-main
+Block: 1
+Branch: beta-block-1-needs-input-recovery-20260731
+
+---
+
+Agent ID: codex-main
+Task ID: BETA-PAID-CORE-SMOKE-20260802
+Product line: beta-placeholder
+Pipeline: LOOK.01–06 · paid avatar → outfit
+State: LIVE_PROOF_PASS — beta runtime
+Decision: A real paid beta run completed after isolating the persistent Codex VLM worker from the desktop Codex state database. The worker must run with a dedicated CODEX_HOME; shared global state caused empty/timeout VLM responses before GARMENT_CONDITIONING completed.
+Code: deployed runtime `c1d75ce8e9c4921e72d6b2ecb349481f00c89aef`; public `/api/health` is `ready` and reports that release. This runtime SHA is not yet an ancestor of `origin/beta=d4fd64b53f62e0f89a09d35e8172b5624ead60c6`; source/release reconciliation is still required.
+Paid evidence: run `1638c656-4be6-46b9-bfaa-595109db03d6`; Higgsfield jobs `ba148144-0d22-467a-b9d5-1fc5d16978cf` (avatar) and `7986c924-e831-4ed7-9c37-949609858925` (outfit); conditioning/avatar/outfit QA all PASS; final output files were downloaded and persisted.
+Evidence command: `curl -sS https://beta.madeforthisjob.com/api/health`; durable run receipt and provider-job receipts under the beta runtime for the exact run id.
+weakened_checks: none. This proves paid avatar → outfit only; no background, Fashion Shoot or video provider call was made in this atom.
+Help request: integrate the worker-isolation launch configuration into the release source before the next beta restart, then reconcile `origin/beta` with the deployed SHA.
+Next action: keep the dedicated worker home across restart and run one separately authorized paid scene/video journey.
+
+
+Task: make the core-look `NEEDS_INPUT` recovery actionable after the live run
+`aa7bc644-3542-4333-936d-51d8c04472ab`.
+
+Finding: this run did not lose two uploaded items. Its browser monitor records
+one garment upload and `garment_count: 1` at submit; the immutable run input
+is one cowboy-hat image. Conditioning correctly stopped before full-look
+generation because that evidence cannot establish a complete outfit.
+
+Decision: `NEEDS_INPUT` without a duplicate-slot choice is a material-change
+state, not a provider retry state. The terminal UI now hides the futile retry,
+keeps **«Змінити матеріали»**, and translates the specific headwear-only case
+into the required top/bottom/one-piece input. Duplicate-slot selection still
+uses its existing continuation flow; `FAILED` keeps retry.
+
+Code: READY_FOR_REVIEW — focused public-copy/UI contracts PASS 14/14; app
+syntax and whitespace checks PASS.
+Beta: NOT_DEPLOYED.
+Journey: live run evidence inspected; no new provider request was created.
+weakened_checks: none — conditioning and product QA remain unchanged.
+
+---
+
+Agent ID: codex-main
+Task ID: BETA-PRESENTATION-DERIVATIVES-001
+Product line: beta-placeholder
+Pipeline: UI transport only · local inputs/style preview → lightweight display copy
+State: CODE_VERIFIED — beta deployment pending
+Decision: immutable source images and master Fashion-Video references are never
+sent to ordinary preview UI. A browser makes a local 480px WebP only for an
+upload card; raw bytes remain the exact upload/draft/QA input. The server's
+garment conflict picker returns a 480px WebP thumbnail only. Fashion Video
+cards now stream separately hash-bound 288×512/12fps UI loops (217–326 KB)
+instead of the prior 1.4–1.6 MB derivatives; original MP4s remain the sole
+generation references.
+Evidence: registry/capability/routes/UI/run API suite 35/35 PASS. The API test
+proves the picker response is WebP, bounded to 480px and smaller than its PNG
+source.
+weakened_checks: browser fallback on an engine without bitmap/canvas decoding
+uses the original local object URL so file selection remains usable; it never
+changes uploaded bytes or server evidence.
+
+---
+
+Agent ID: codex-main
+Task ID: BETA-FASHION-VIDEO-REFERENCE-PERFORMER-STOP-001
+Product line: beta-placeholder
+Pipeline: VIDEO.01 → VIDEO.04 · reference style → generated clip → cut QA → delivery
+State: CODE_VERIFIED — beta deployment pending
+Decision: Video 1 is now explicitly private directing material, never source
+footage for delivery. The provider prompt requires a newly generated frame for
+every cut: only the approved avatar or an empty scene may be visible. It
+forbids source-performer pixels in cuts, transitions, reflections, monitors,
+picture-in-picture and frozen frames. A technically valid MP4 cannot be
+delivered until a hash-bound cut-coverage receipt spans its duration and each
+cut records output/reference samples, person presence and PASS verdict.
+Evidence: focused motion-plan/service/routes/profile-UI suite 68/68 PASS.
+Route regression proves even a PASS MP4 returns no delivery URL without the
+complete Fashion-Video cut QA binding.
+weakened_checks: automatic extraction + VLM evaluation of the cut receipt is
+the next execution atom. Until it exists, reference-bound clips remain
+undeliverable rather than being falsely approved. The retry control is an
+explicit user action only; it never creates a duplicate provider job itself.
+
+---
+
+Agent ID: codex-main
+Task ID: BETA-FASHION-VIDEO-PROVIDER-TRUTH-001
+Product line: beta-placeholder
+Pipeline: VIDEO.02 · persisted provider job → provider wait
+State: CODE_VERIFIED — deployment pending
+Decision: provider `Job not found` is a terminal, visible failure, not a six-
+minute timeout or a connection error. The service records
+`VIDEO_PROVIDER_JOB_NOT_FOUND`; it never creates a replacement automatically.
+Evidence: exact live job `7ed8551f-8227-4a94-99bf-8510a6e096fc` returned
+`Error: Job not found` from the authenticated Higgsfield CLI on 2026-07-31.
+Focused provider/service/route/UI suite 152/152 PASS.
+weakened_checks: none. The missing remote job cannot yield a real MP4 or QA
+receipt; a human must explicitly request a new paid generation.
+
+---
+
+Agent ID: codex-main
+Task ID: BETA-FASHION-VIDEO-SERVER-RESUME-001
+Product line: beta-placeholder
+Pipeline: VIDEO.02 → VIDEO.04 · provider job → MP4 → QA
+State: CODE_VERIFIED — deployment pending
+Decision: a Fashion Video POST persists one provider job, then server-owned
+finalization waits for that same job, downloads it and enters QA. Status reads
+after a daemon restart resume the same persisted job; startup also resumes
+every persisted CREATED/GENERATING job. The browser no longer calls six minutes
+of waiting a failure: it truthfully says processing continues on the server.
+Evidence: focused video + UI suite 149/149 PASS. Route regression proves
+multiple status reads attach to one finalizer and one provider create.
+weakened_checks: none. Resume never invokes provider create; it uses only the
+stored job id. Semantic Fashion-Video QA remains required for delivery.
+
+---
+
 Agent ID: codex-main
 Task ID: ANTIGRAVITY-QA-LOOP-001
 Product line: beta-placeholder
@@ -8,6 +206,140 @@ exact deployed beta SHA through visible browser UI. It writes reports and
 evidence manifests, never product code or deployments.
 Evidence: compiled Looper contract, governance checks, QA report schema and
 one-shot watcher.
+weakened_checks: none.
+
+---
+
+Agent ID: codex-live-40
+Task ID: BETA-VIDEO-INPUT-ROLES-AND-SHOOT-DOWNLOAD-20260803
+Pipeline: UNIVERSE.04 + VIDEO.01 · result delivery surface
+State: LIVE
+Decision: restored every server-READY Fashion Shoot card; every delivered
+customer frame keeps its independent output and a visible «Завантажити» link.
+The native beta Fashion Video picker now renders the server-owned input roles:
+Video 1 is private directing material, Image 1 is the approved white master and
+sole visible person, and input three is optional cleaned face/garment detail.
+Evidence: UI / Fashion Shoot / Fashion Video tests 78/78 PASS; contracts and
+canon PASS. No paid generation was run.
+weakened_checks: none.
+
+---
+
+Agent ID: codex-main
+Task ID: BETA-FASHION-SHOOT-CATALOG-AND-VIDEO-METADATA-20260802
+Pipeline: UNIVERSE.01–04 + VIDEO.01 · catalog, style inputs, progressive output
+State: TESTED — beta deploy pending
+Decision: customer Fashion Shoot selection follows only the server-owned
+`READY + generation_available` contract. The two published legacy styles
+`organic_contrast` and `urban_monochrome` are visible and directly queue their
+five customer frames; no hidden hero/Continue gate remains. The genuinely
+blocked `shoot.hardsun_street_monochrome` remains unavailable.
+Technical refs: 15 published `shoot.*` Creative Universe units each own seven
+hash-verified sheets (camera/lens, blocking, expression/gaze, garment
+behaviour, colour grade, environment, person) and six slot-specific directions.
+The two legacy styles retain their verified legacy source packs but do not claim
+the seven-sheet unit contract. `architectural_stair_glitch` remains video-only.
+Video: the capability response now carries safe user-visible labels for Video 1
+(private motion/directing reference), Image 1 (approved white master) and the
+optional cleaned identity/garment reference plus cut count; no path, SHA or
+private source bytes are exposed.
+Evidence: editorial/style/video targeted suite 45/45 PASS;
+`verify:contracts` PASS (41 schemas, 9 fixtures, 3 jobs);
+`verify:canon` PASS (43 rules).
+Beta: NOT_DEPLOYED.
+Journey: NOT_RUN — no provider generation was started.
+weakened_checks: none.
+
+---
+
+Agent ID: codex-main
+Task ID: BETA-GOD-VIEW-GLOBAL-CATALOG-001
+Pipeline: TESTER CONTROL · global read-only catalogue
+State: CODE_VERIFIED — awaiting beta deployment
+Decision: restored the lost global God View branch, not the obsolete local
+pipeline-status modal. Its data model is every active beta profile → avatar →
+saved look → run, background, Fashion Shoot and video. In the explicit beta
+tester flag it needs no second password; it remains read-only and is reached
+from the small footer control or Shift+G.
+Evidence: God View API tests cover cross-profile aggregation and the explicit
+open-tester flag; normal profile ownership remains unchanged.
+weakened_checks: global catalogue visibility is intentionally enabled only by
+ZEELY_GOD_VIEW_OPEN_TESTERS=true on beta, under the operator's tester-link scope.
+
+---
+
+Agent ID: codex-main
+Task ID: BETA-FASHION-VIDEO-DIRECT-STYLE-BINDING-001
+Pipeline: VIDEO.01 → VIDEO.03 · selected style → immutable provider request → QA
+State: CODE_VERIFIED — awaiting beta deployment
+Decision: Fashion Video POST now carries the selected `style_id` as well as its
+internal motion mode. The exact style MP4 becomes Video 1; the approved white
+master becomes Image 1. The optional garment composite is no longer allowed to
+import Real-time Look's top/bottom/footwear taxonomy gate into V2V.
+Evidence: route regression creates from a selected style with an incomplete
+Real-time garment taxonomy and sends only the valid identity companion.
+weakened_checks: none.
+
+---
+
+Agent ID: codex-main
+Task ID: BETA-FASHION-VIDEO-LEGACY-DELIVERY-001
+Pipeline: VIDEO.03 · Delivery only after video-style QA
+State: CODE_VERIFIED — awaiting beta deployment
+Decision: old generic clips without a video-reference hash binding and a PASS
+reference-style QA verdict are retained on disk but excluded from Fashion Video
+delivery and listings. They cannot be presented as a valid Fashion Video.
+Evidence: runtime audit found one technical PASS with neither binding nor style
+QA; route regression denies it with VIDEO_STYLE_PROVENANCE_MISSING.
+weakened_checks: none.
+
+---
+
+Agent ID: codex-main
+Task ID: BETA-FASHION-VIDEO-REFERENCE-PREVIEW-001
+Pipeline: VIDEO.01 · Вибір video-derived стилю
+State: CODE_VERIFIED — awaiting beta deployment
+Decision: a Fashion Video style card now plays the private, hash-verified
+source MP4; the contact sheet is only its poster. The new range-enabled route
+is bound to the current tester profile and approved look. Generic motion labels
+are not user-facing style options.
+Evidence: route test proves a byte-range response from the exact selected
+reference; video/provider/reference tests pass 49/49.
+weakened_checks: none.
+
+---
+
+Agent ID: codex-main
+Task ID: BETA-FASHION-VIDEO-STYLE-LABELS-001
+Pipeline: VIDEO.01 · Вибір відеостилю до запуску
+Agent ID: codex-main
+Task: BETA-PREFLIGHT-SELF-RECOVERY-20260804
+Pipeline: platform health → LOOK.01/03 generation admission
+State: LIVE
+Finding: a transient startup preflight failure left the beta engine degraded for
+the entire daemon lifetime. The actual Higgsfield CLI/account check had
+recovered, but the main client still received `generation: unavailable` and
+disabled `Створити образ` before any generation request.
+Decision: preserve the fail-closed provider gate, refresh its cached result
+every 30 seconds without creating a provider job, and make API admission read
+the current cached result rather than the boot snapshot.
+Code: `e5c910e224604500f0b691dedf7cdc0f6f0b5c35`.
+Tests: `node --test test/web/outbound-privacy.test.js test/web/preflight.test.js` → 7/7 PASS.
+Beta: guarded activation of the exact code SHA after zero-active-work preflight;
+local and public beta both returned `ready/available`.
+Journey: the main proxy `https://madeforthisjob.com/api/health` returned the
+same `e5c910e` release and `generation: available`.
+weakened_checks: none.
+
+---
+
+State: READY_FOR_BETA_DEPLOY
+Decision: the three contact-sheet-backed video style units remain unchanged.
+Only the second UI label changes from the internal action wording `Рух у кадрі`
+to `Графічне місто`; motion modes stay server-side contract data and are not
+presented as styles.
+Evidence: manifest hashes for all three source MP4/contact sheets match; video
+reference registry tests pass.
 weakened_checks: none.
 
 ---
@@ -287,6 +619,335 @@ target and not the beta domain. No substitution, manual copy or release was
 attempted. The next safe action is for the beta release owner to provide or
 approve the exact beta-targeted activation path, then visually smoke tap
 selection on one mobile viewport and one desktop viewport.
+Help request: NONE.
+
+---
+
+Agent ID: codex-main
+Task ID: BETA-LIVE-40S-NO-SECOND-CONFIRM-001
+Pipeline: LIVE.01–04 · Real-time Look
+State: READY_FOR_BETA_DEPLOY
+Decision: the browser camera permission remains the only interactive permission.
+The beta server owns the 40-second ceiling and look ownership; it no longer
+requires duplicate price/privacy checkboxes before issuing the short-lived
+Live token. Beta's standalone Live surface shows `Lucy 2.5 · $2.40/хв · до 40 с`;
+the main cinematic client renders no provider or price copy.
+Code: focused routes, UI, contract and token tests 20/20 PASS.
+Beta: NOT_DEPLOYED.
+Journey: NOT_RUN — no camera or provider session was started.
+weakened_checks: no auth, ownership, same-origin, browser camera permission,
+short-lived token, or hard-timeout checks were removed; only redundant UI/API
+acknowledgements were removed.
+Help request: NONE.
+
+---
+
+Agent ID: codex-main
+Task ID: MAIN-FASHION-VIDEO-DELIVERY-002
+Pipeline: VIDEO.01–05 · approved white master → reference-bound generation → delivery
+State: TESTED_PENDING_DEPLOY
+Decision: in explicit closed-beta `delivery` QA mode, the model's creative
+`cut_coverage_complete` verdict is advisory. Deterministic sampled coverage
+already proves that every cut was inspected; only a detected reference
+performer remains a semantic delivery blocker. This prevents a generated MP4
+with a PASS technical check, PASS identity/outfit check, and PASS anti-leak
+check from being discarded because it did not reproduce every editorial cut
+closely enough.
+Code: current worktree; video tests 194/194 PASS. New regression proves a
+`cut_coverage_complete` visual miss still delivers when deterministic coverage
+and `no_reference_performer_pixels` pass. A real Seedance job
+`94f7c61f-def6-4334-aba1-6dbf25705564` produced an MP4; its prior terminal
+failure was exactly this stale blocking classification, not a provider or
+photo-input failure.
+Beta: PENDING_DEPLOY — deploy only after no active persisted provider work.
+Journey: replay the existing completed clip without a second provider create;
+the MP4, white master binding, technical QA, identity/outfit QA, and sampled
+anti-leak evidence are already persisted.
+weakened_checks: creative style/cut similarity is advisory only in delivery
+mode. Technical MP4 QA, deterministic coverage, and reference-performer
+leakage remain hard.
+Help request: NONE.
+
+---
+
+Agent ID: codex-main
+Task ID: MAIN-FASHION-VIDEO-DELIVERY-001
+Pipeline: VIDEO.01–05 · approved white master → private style reference → Seedance → returned MP4
+State: READY_FOR_DEPLOY
+Decision: the closed beta uses explicit `delivery` QA policy for Fashion Video.
+It records identity/item/style misses as advisory so an otherwise playable clip
+returns to the user, while it still blocks unplayable media, missing cut
+coverage, reused reference footage, or any reference-performer pixel. The
+policy is runtime-configured; `strict` remains the code default.
+Code: pending commit in this atom. Tests: video service/runtime/routes 71/71
+PASS; full video suite will be rerun after commit.
+Beta: PENDING_DEPLOY — set `ZEELY_FASHION_VIDEO_QA_MODE=delivery` in beta's
+runner only with this exact code release.
+Journey: PENDING — submit one current approved white master through the live
+Fashion Video route and verify a persisted MP4 is returned.
+weakened_checks: identity/item/style checks advisory only in closed beta;
+reference-performer / raw-reference / cut-coverage / technical delivery remain hard.
+Help request: NONE.
+
+---
+
+Agent ID: codex-live-40
+Task ID: BETA-FASHION-SHOOT-CROWN-CROP-002
+Pipeline: UNIVERSE.03–04 · Create Universe / Fashion Shoot contract alignment
+State: READY_FOR_BETA_DEPLOY
+Decision: rebuilt all six hash-bound mechanical blocking guides from the current
+editorial framing lock. The guides now encode the 100% upper subject ceiling and
+`require_full_head=false` for intentional style crops; standard backgrounds keep
+their independent full-head contract. The guide remains geometry-only; identity,
+items, anatomy, provenance and style gates remain active.
+Code: updated `assets/editorial-blocking/v1/*.png`, its manifest, and the
+deterministic generator `tools/generate-editorial-blocking-crop-guides.mjs`.
+Tests: core 157/157; scene service 57/57; scene adapters/runtime 81/81;
+scene/framing contracts 22/22; Fashion Shoot/Create Universe 38/38;
+Fashion Video 188/188; Upload/HEIC/Profile 139/139; Real-time Look 31/31.
+Release suite: BLOCKED only by local resource preflight (swap 7.64 GiB above
+1.25 GiB) and one existing add-items smoke expecting an unavailable draft entry
+point; no QA gate was bypassed.
+Beta: pending this commit and release verification.
+Journey: no paid provider generation.
+weakened_checks: `EDITORIAL_CROWN_CROP_POLICY` only, user-authorized 2026-08-02.
+Help request: NONE.
+
+---
+
+Agent ID: codex-live-40
+Task ID: BETA-FASHION-SHOOT-CROWN-CROP-001
+Pipeline: UNIVERSE.03–04 · Create Universe / Fashion Shoot delivery QA
+State: READY_FOR_BETA_DEPLOY
+Decision: user-authorized editorial framing policy. An intentional crop through
+the crown now passes in every Fashion Shoot slot; the crop is a property of the
+selected style, not a delivery failure. The standard-background contract is
+unchanged: it still requires a complete head and its existing headroom band.
+Code: `EDITORIAL_HEAD_GUARDS` now has `head: false` only for Fashion Shoot
+slots; their upper subject-height ceiling is 100 instead of a derived headroom
+ceiling. Compiled camera contracts and all three generated JSON receipt schemas
+were regenerated from that one lock owner. The QA receipt explicitly records
+`clear_space_above_hair_waived_by_full_head: false`: this is an allowed crop,
+not a hidden waiver.
+Still blocking: identity/visible-face evidence, selected-item fidelity,
+anatomy, reference provenance, style/lighting, footwear where the slot asks
+for it, and all standard-scene framing checks.
+Tests: focused framing + editorial service + adapters 99/99 PASS;
+`npm run verify:contracts` PASS (41 schemas / 9 fixtures / 3 jobs).
+Beta: NOT_DEPLOYED — pending commit/push/release by this owner.
+Journey: NOT_RUN — no paid provider generation was spent for this policy change.
+weakened_checks: `EDITORIAL_CROWN_CROP_POLICY` only; authorized by Edwin on
+2026-08-02; scope is Fashion Shoot/Create Universe, never standard backgrounds
+or the master-look.
+Help request: NONE.
+
+---
+
+Agent ID: codex-main
+Task ID: BETA-STARTUP-TRACE-20260802
+Pipeline: Release reliability · beta daemon boot
+State: TESTED — READY_FOR_DEPLOY
+Decision: add an opt-in, secret-free bootstrap phase trace so a failed beta
+restart identifies the exact durable-service boundary that did not complete.
+It never logs request content, user identities, source paths, or credentials.
+Code: pending this commit.
+Evidence: `node --check src/web/start.js`; focused release/scene/video tests
+111/111 PASS; `git diff --check` PASS.
+Beta: NOT_DEPLOYED — bundled with the next exact beta release.
+Journey: NOT_RUN.
+weakened_checks: none.
+Help request: NONE.
+
+---
+
+Agent ID: codex-main
+Task ID: BETA-GPT-IMAGE-2-LADDER-20260802
+Pipeline: LOOK.01–06 · BACKGROUND.02 · UNIVERSE.03–04
+State: READY_FOR_BETA_DEPLOY
+Decision: new image generation no longer starts on Nano Banana. Every new
+avatar, item-conditioning and scene job uses the versioned GPT Image 2 ladder:
+`low / 1K` initial, two materially different `low / 1K` QA repairs, then
+`medium / 2K`, then `high / 4K`. Nano aliases remain readable only for a
+previously persisted legacy job; they are not selected for a new job.
+Code: TESTED — focused route, provider, core, scene and repair suites 221/221
+PASS; scene-service 58/58 PASS; `verify:contracts` and `verify:canon` PASS.
+Beta: NOT_DEPLOYED — exact commit is created by this release atom; do not use
+older board entries that describe Nano as the fast route.
+Journey: NOT_RUN — no new paid provider request was spent for this policy
+change.
+weakened_checks: none.
+Next action: fast-forward this exact candidate into `beta`, activate it through
+`tools/deploy-beta-release.mjs --apply`, then verify public release SHA and
+run one controlled new-job journey.
+
+---
+
+Agent ID: codex-main
+Task ID: BETA-GPT-IMAGE-2-LADDER-20260802
+State: LIVE
+Code: `c673a5d40573bd1830b0643c723b9557a496a453`; activation-record source:
+this commit.
+Beta: LIVE — prior product activation `bb781c2c542c1c6c91f0fdb6298c2c0470578dbf`,
+`product-bb781c2c-d3e13b84b4e5`; local and external health both `ready`.
+Safety: before activation the release owner stopped two active local provider
+wait processes and durably cancelled the one remaining Fashion Shoot. No web
+daemon, profile, completed result or saved look was deleted.
+Journey: NOT_RUN on the new route after activation.
+weakened_checks: none.
+
+---
+
+Agent ID: codex-main
+Task ID: BETA-RELEASE-GATE-STALE-SCENE-20260801
+Pipeline: Release safety · shared beta runtime
+State: TESTED — READY_FOR_DEPLOY
+Decision: a scene in `QA_PENDING` already has an immutable downloaded candidate
+and no paid provider request in flight. The deploy gate now lets that local QA
+checkpoint resume after restart, while still fail-closing a missing scene
+attempt and blocking every `GENERATING` attempt.
+Code: pending this commit; builds on contract integration
+`7a2e6a20c2f5cbb856fca4b2f738eba5f4ddbff6`.
+Evidence: `node --test test/release/beta-deployment.test.js` 6/6 PASS;
+real beta dry-run reports `active_run_ids=[]`, `active_work_ids=[]`.
+Beta: NOT_DEPLOYED — next action is an exact verified release build and a
+controlled end-to-end paid journey.
+Journey: NOT_RUN.
+weakened_checks: none — provider generation remains a hard restart block.
+Help request: NONE.
+
+---
+
+Agent ID: codex-main
+Task ID: BETA-PIPELINE-CONTRACT-INTEGRATION-20260801
+Pipeline: LOOK.01–06 · BACKGROUND.01–02 · UNIVERSE.03–04 · VIDEO.01–04
+State: TESTED — NOT_DEPLOYED
+Decision: native 3:4 scene delivery, deterministic framing repair, immutable
+pre-spend provider manifests, Higgsfield Nano Banana alias normalization, and
+white-master Fashion Video binding are integrated as one contract set. A retry
+of an approved look reopens the SHA-verified first-appearance item lock rather
+than recreating it with a new timestamp.
+Evidence: focused cross-boundary suite 289/289 PASS; `npm run
+verify:contracts` PASS (41 schemas, 9 fixtures, 3 jobs, 1 external document);
+`git diff --check` PASS. No paid provider generation, public beta deploy, or
+QA threshold weakening was performed in this atom.
+Code: `ca6fa744e1b76b9d704274cb1d4e452d9f683043`.
+Beta: NOT_DEPLOYED — requires release-owner merge and an explicit live journey.
+Journey: NOT_RUN.
+weakened_checks: none.
+
+---
+
+Agent ID: codex-main
+Task ID: MODEL-REFERENCE-CONTRACTS-20260801
+State: TESTED_NOT_DEPLOYED
+Decision: keep persisted model IDs stable (`gpt_image_2`,
+`nano_banana_flash`, `nano_banana_2`) and translate provider aliases only at
+the transport boundary (`nano_banana_2` -> Higgsfield `nano_banana_pro`).
+Image generation now compiles a model-aware ordered reference manifest. GPT
+Image 2 may use a mechanical base canvas as Image 1 and the approved look as
+Image 2; Nano Banana routes remain approved-master first. The exact
+`Image N -> role -> SHA-256` manifest and digest are persisted in scene
+receipts. Fashion Video now uses Seedance's explicit `@Video 1` and dynamic
+`@Image 1..N` bindings; optional identity detail is admitted only from a
+hash-verified white-background derivative. Paid-job recovery rehashes every
+locked input during normal submission and persists the complete immutable
+request binding. Ambiguous unbound-job recovery is disabled because the current
+Higgsfield job envelope does not attest uploaded-media SHA-256 values; a caller
+echo of local hashes is not accepted as provider evidence.
+Code: LOCAL DIRTY WORKTREE — no isolated commit has been created because these
+files overlap the active framing repair atom.
+Evidence: Higgsfield provider 46/46 PASS; scene adapter 55/55 PASS; video
+188/188 PASS; identity derivative 2/2 PASS; `verify:contracts` PASS (41
+schemas, 9 fixtures, 3 jobs, 1 external document); `git diff --check` PASS.
+Beta: NOT_DEPLOYED.
+Journey: NOT_RUN — no paid provider generation was started.
+weakened_checks: none.
+Compatibility: historic receipts remain valid because new schema fields are
+optional; legacy video retries without white-background evidence fail closed.
+Help request: release owner must isolate/integrate this atom before deploy.
+
+---
+
+Agent ID: codex-main
+Task ID: HYPERCHECK-BACKGROUND-FOOTWEAR-FLOOR-003
+Pipeline: BACKGROUND.02 · standard scene repair
+State: VERIFIED_REAL_PROVIDER_PASS
+Decision: a scene that fails only the lower footwear margin receives an opaque
+mechanical guide made from its own immutable failed candidate. The guide moves
+the existing pixels upward without rescaling the person and reserves a neutral
+lower strip; the provider then regenerates the authored environment around that
+geometry. The delivery remains fully generated and must pass the complete QA.
+Real evidence: scene
+`scene_b8c78074aa0b4882488b1366733fab0dd7afcad14086c551`, preset
+`std.interior.gallery_morning_gloss`. The first three candidates failed with
+0.6836–1.123% below footwear. Attempt 4 passed all nine gates with 73.6328%
+subject height, 12.6465% above hair and 13.7207% below footwear. Output SHA-256
+`1dcb9457e755ec457205a7f446f1a216411217c7d6802629dbb81b89b0cf491d`,
+1536x2048 PNG.
+Tests: focused footwear-floor guide, first-generation guide and item-repair
+tests PASS; framing-lock owner 13/13 PASS.
+Beta: NOT_DEPLOYED — release-owner integration required.
+weakened_checks: none.
+
+---
+
+Agent ID: codex-main
+Task ID: HYPERCHECK-STRICT-RUNNER-004
+Pipeline: engineering canary only
+State: FIXED_PENDING_COMMIT
+Decision: `tools/run-personal-scene-e2e.mjs` now defaults Fashion Shoot QA to
+`strict`. The former implicit `review` default could convert a real style-scale
+failure into a completed canary. The affected manual skylight retry is excluded
+from strict campaign results and will not be represented as product PASS.
+weakened_checks: none; the canary is stricter.
+
+---
+
+Agent ID: codex-main
+Task ID: HYPERCHECK-SCENE-FRAME-GEOMETRY-LOCK-002
+Pipeline: BACKGROUND.02 · repair of an approved scene candidate
+State: VERIFIED_REAL_PROVIDER_PASS
+Decision: when framing already passed and another gate fails, bind the measured
+accepted bounding box and clear-space values into the repair prompt. The repair
+must not zoom, crop, move, enlarge or shrink the person while changing the named
+failed detail.
+Code: `src/web/scene-service.js` plus focused prompt regression in
+`test/web/scene-service.test.js`.
+Real evidence: existing scene
+`scene_be16284441c0c3857cccec787cdf7ddd571bde378243d951`, preset
+`std.city.rooftop_concrete_sunset`, attempt 4 completed with all nine QA gates
+PASS. Accepted framing: subject 78.125%, head clearance 9.8633%, footwear
+clearance 12.0117%. Output SHA-256
+`747c2b67139867b7d6091fc1a4471027afcb2866353df3406943dbde1419403f`,
+1536x2048 PNG.
+Beta: NOT_DEPLOYED — release-owner integration required after the focused tests
+and commit below are complete.
+weakened_checks: none; the previously accepted framing is made stricter, not
+relaxed.
+
+---
+
+Agent ID: codex-live-40 (release hypercheck owner)
+Task ID: HYPERCHECK-STANDARD-FRAMING-CROP-20260801
+Pipeline: BACKGROUND.02 · standard scene generation → strict QA → delivery
+State: TESTED · READY_FOR_INTEGRATION
+Decision: keep the 70–80% subject-height and head/foot margin locks unchanged,
+but search the finite native-3:4 crop grid when the exact 75% midpoint crop is
+geometrically impossible. The previous single-point planner returned `null`
+for a valid nearby crop and spent all three image-model attempts.
+Code: focused framing owner 12/12 PASS; evaluator-prompt regression PASS.
+Real journey: `std.city.golden_hour_gloss` initially exhausted three completed
+provider candidates at 68.21–68.51% subject height. The repaired planner reused
+the immutable Nano Banana Pro candidate, made a 1350x1800 crop from
+`[30,0,1350,1800]`, ran fresh full QA and completed without another provider
+generation. Final scene SHA:
+`320b317b47f7427c86f754b83734b8891726fdd3c93825890222a16306a27ac3`.
+The evaluator now also treats the exact delivery canvas as authoritative and
+cannot reject a correct 3:4 delivery merely because a source composition anchor
+records its original 4:5 ratio.
+Beta: NOT_DEPLOYED — integration and exact-SHA activation remain release-owner work.
+weakened_checks: none; all original framing, identity, item, scene and provenance
+gates ran again and passed.
 Help request: NONE.
 
 ---
@@ -610,6 +1271,25 @@ weakened_checks: none.
 ---
 
 Agent ID: codex-main
+Task ID: BETA-PRESENTATION-PREVIEW-001
+Pipeline: PROFILE.01–03 · LOOK.01–06 · BACKGROUND.01–02 · UNIVERSE.01–04
+State: LIVE
+Decision: stop serving original evidence PNG/JPEG files into every browser
+preview surface. All UI image URLs now add `preview=1`; the server derives a
+bounded 640px WebP in memory. Explicit download routes and immutable QA source
+bytes stay original.
+Code: `3784511e020645c7b8cd6441944f9f6dca2c6369` on `beta`.
+Evidence: presentation-preview + run API + scene API + editorial preview +
+profile UI focused suite 24/24 PASS; strict product release verifier PASS;
+local and public beta health both report `release_sha=3784511`.
+Beta: LIVE — `https://beta.madeforthisjob.com`.
+Journey: preview payload now has `Content-Type: image/webp` and
+`X-Zeely-Presentation: webp-640`; raw master output is still download-only.
+weakened_checks: none.
+
+---
+
+Agent ID: codex-main
 Task ID: SEVEN-BLOCK-BETA-001
 State: READY_FOR_INTEGRATION
 Decision: preserve the mixed 2026-07-29 Universe work on a non-release
@@ -627,6 +1307,26 @@ seven block branches from that exact beta SHA, then run the all-branch monitor.
 ---
 
 Agent ID: codex-main
+Task ID: BETA-FASHION-VIDEO-STYLE-RECOVERY-001
+Pipeline: VIDEO.01–04 · Fashion Video from approved master-look
+State: READY_FOR_BETA_DEPLOY
+Decision: deploy the already-built three style cards from beta together with
+the missing current Higgsfield create-response parser. The old public UI
+displayed `М’який рух / Поворот / Позування` but sent obsolete mode IDs that
+the current motion contract does not accept. The product UI now takes the
+three hash-bound style choices from the capability endpoint; no free-text
+motion label is used as a provider instruction.
+Code: beta base `207194d` + parser fix `fe80485`.
+Evidence: `node --test test/video/video-capability.test.js test/video/video-routes.test.js test/video/video-motion-plan.test.js test/video/higgsfield-video-provider.test.js`.
+Beta: PENDING_ACTIVATION — legacy unbound SUBMITTING clip must be reconciled
+before the restart-safe deploy tool can stop beta.
+Journey: PENDING — after activation, verify three cards appear and no legacy
+motion ID is sent.
+weakened_checks: none.
+
+---
+
+Agent ID: codex-main
 Task ID: BETA-CONSOLIDATED-RELEASE-20260730
 State: LIVE
 Decision: integrate only completed deployable product atoms into beta; preserve
@@ -638,3 +1338,371 @@ Evidence: video 111/111; Fashion Shoot/Create Universe 11/11; product release
 Catalog: 16 backgrounds, 19 previews, 17 generation modes, 15 complete units.
 Paid provider calls during release: 0.
 weakened_checks: none.
+
+---
+
+Agent ID: codex-main
+Task ID: BETA-HIGGSFIELD-IMAGE-ALIAS-001
+State: READY_FOR_INTEGRATION
+Decision: keep the pipeline's internal image route names stable while translating
+the Higgsfield CLI alias at the adapter boundary. `nano_banana_2` is sent to
+the CLI as `nano_banana_pro`; completed `job_set_type` and/or `job_type` values
+are canonicalized back to `nano_banana_2`. Unknown or contradictory model
+fields fail closed with `MODEL_RESPONSE_MISMATCH`; provider `params.model` is
+not used as the route check.
+Code: TESTED — code commit `b6223e3d96d28a17f69065ca7f185537bdb13a20`; focused provider + preflight + scene-runtime
+suite 45/45 PASS. Full `node --test`: 800/892 PASS, 92 pre-existing failures
+in scene/editorial/release fixtures unrelated to this adapter change.
+Beta: NOT_DEPLOYED — release-owner integration required.
+Journey: NOT_RUN — no paid generation or provider job replay was performed.
+weakened_checks: none.
+Next action: chat-00-master integrates the exact commit into beta and runs the
+release checks; do not cherry-pick an unrelated merge commit.
+Help request: NONE.
+
+---
+
+Agent ID: codex-main
+Task ID: BETA-FASHION-SHOOT-EMPTY-ANCHORS-001
+Pipeline: UNIVERSE.03–04 · Fashion Shoot / Create Universe shot execution
+State: READY_FOR_BETA_DEPLOY
+Decision: the 2026-07-31 18:18:53–18:19:29 run never reached Higgsfield. All five
+customer slots failed before `SceneService.createScene()` with the private error
+`shotAnchorReferences must contain 1–2 anchors`; each of the five retry counts
+was a local executor retry and had no provider `execution_id`. The cause was an
+explicit empty `[]` for a Create Universe shot that intentionally has no approved
+hero continuity frame. `SceneService` correctly accepts omitted optional anchors
+(`null`) and correctly rejects an explicit empty list.
+Code: TESTED — `src/web/editorial-scene-executor.js` now returns `null` when a
+Create Universe shot has no hero; it still binds exactly one verified
+`hero_continuity_anchor` after an approved hero, and standard editorial shots
+still bind their verified per-slot blocking diagram. No QA gate was weakened and
+no style sheet was replaced by a generic diagram.
+Resolver evidence: `editorialShotPresetReference()` and `resolveScenePreset()`
+were probed on `shoot.grey_studio_stride` / `environmental_hero`; the immutable
+reference pack resolved with the expected environment JSON plus four
+hash-verified Create Universe sheets (`camera_lens`, `blocking`,
+`expression_gaze`, `garment_behaviour`).
+Tests: `node --test test/web/editorial-shot-anchors.test.js` 6/6 PASS;
+Create Universe unit/runtime resolver checks PASS. The combined scene-service
+suite still has pre-existing framing/post-release fixture failures unrelated to
+this atom; they were not treated as evidence of this fix.
+Commit: `421b2a35d18cc4978b280e0ef5feaa2df83362bd`.
+Beta: LIVE — `release_sha=421b2a35d18cc4978b280e0ef5feaa2df83362bd`;
+public `/api/health` is ready and editorial generation is available.
+Journey: the failing run was not replayed because it had not reached a provider
+submission; no new paid provider generation was started by this repair.
+weakened_checks: none.
+Help request: NONE.
+
+---
+
+Agent ID: codex-main
+Task ID: BETA-FASHION-SHOOT-POSE-ANCHOR-20260802
+Pipeline: UNIVERSE.03–04 · Fashion Shoot frame execution
+State: CODE_CHANGED — tests/deploy pending
+Decision: every Create Universe `shoot.*` slot now carries the already
+hash-verified slot-specific `blocking_topdown` diagram. The style sheets remain
+style-only; the blocking diagram is geometry-only and supplies the missing pose,
+camera, scale and headroom reference. This replaces the erroneous omission that
+left the provider with pose prose only.
+weakened_checks: none.
+
+---
+
+Agent ID: codex-live-40
+Task ID: BETA-FASHION-SHOOT-CATALOG-AND-VIDEO-INPUTS-20260803
+State: LIVE
+Pipeline: UNIVERSE.01–04 / Fashion Shoot and VIDEO.01 / Fashion Video input binding
+Decision: catalogue cards are driven only by the server readiness contract
+(`READY` + `generation_available`), not by a `shoot.*` name convention. The
+progressive gallery exposes a visible immutable download link per ready frame.
+Fashion Video exposes the verified reference roles: private directing video,
+approved white master as sole visible hero, optional cleaned identity/garment
+detail.
+Code: `7378e2809bd1639b19565606e9c421107dcea89d`,
+`ae218578ec05a9fab535e4580bf57557b9441448`,
+`85bce99fc2e90b5f1689f5daffd56f931cd57ab0`.
+Beta: LIVE — functional release SHA `85bce99fc2e90b5f1689f5daffd56f931cd57ab0`;
+public beta and same-origin main API both report `ready`.
+Evidence: UI / Fashion Shoot / Fashion Video tests 78/78 PASS; contracts and
+canon PASS; no paid provider run.
+weakened_checks: none.
+
+---
+
+Agent ID: codex-main
+Task ID: BETA-FASHION-VIDEO-REFERENCE-QA-AUTORETRY-20260803
+Pipeline: VIDEO.03–06 · provider output → reference QA → delivery
+State: READY_FOR_BETA_DEPLOY
+Decision: a terminal `VIDEO_REFERENCE_QA_FAILED` or
+`VIDEO_REFERENCE_NOT_REPLACED` now starts at most two server-owned child
+attempts. These are not duplicate resends: attempt 1 uses a full-subject
+replacement repair plan and attempt 2 uses cut-boundary subject isolation.
+Both plans are recorded in the child prompt, request receipt and immutable
+request binding. The provider never receives a changed avatar/look/style under
+the same job, and an unknown submission outcome remains paused rather than
+spending another generation.
+UI/API: while a child is being submitted or generated, the failed parent reports
+`VIDEO_REFERENCE_QA_AUTORETRY_IN_PROGRESS`, `retry_available=false`, and the
+child clip id. The browser follows that child automatically. Manual retry only
+returns after the two automatic attempts are exhausted or the failure is outside
+the reference-performer policy.
+Code: `e5531523b84d0ad4b5a26eea77c66aa7ee142cea`. No paid generation was
+triggered by this code change.
+Tests: `node --test test/video/*.test.js test/web/profile-ui-flow.test.js` —
+210/210 PASS.
+Beta: LIVE — public and local health report release SHA
+`e5531523b84d0ad4b5a26eea77c66aa7ee142cea`, `status=ready`.
+weakened_checks: none. The reference-performer gate remains blocking.
+
+Follow-up copy correction: QA detects reference-performer leakage; it does not
+"cut" pixels. When independently approved spans exist, the server-side
+salvage step assembles only those spans and then runs QA again. When no such
+span exists, the bounded automatic reconstruction retry is the only safe path.
+
+---
+
+Agent ID: codex-main
+Task ID: BETA-FASHION-SHOOT-SAVED-PREVIEW-20260803
+Pipeline: UNIVERSE.04 · completed Fashion Shoot → saved library / presentation
+State: LIVE
+Decision: a direct `shoot.*` product has five customer frames and an internal
+`clean_identity_hero` check that intentionally is not a customer image. The
+saved-profile projection previously used only that internal slot as its preview,
+so a completed shoot could reload as a blank card even when customer frames had
+already passed. The projection now durably stores `preview_slot` and
+`preview_output_sha256` for the first approved customer frame; the UI uses that
+preview and its download URL. Legacy editorial retains its internal-hero preview.
+Code: `27c3efdac0e1cc8ddae948e9aee4dd674c649557`.
+Tests: targeted direct-five projection regression PASS; profile service and UI
+flow checks PASS. Public preview route returns WebP 640px from the stored source.
+Beta: LIVE — health release SHA `27c3efdac0e1cc8ddae948e9aee4dd674c649557`.
+Journey: existing completed `shoot.zayn_institutional` has five customer output
+files; restart backfilled `environmental_hero` as its saved preview. The source
+PNG remains the Download asset; only the on-screen preview is a light WebP.
+weakened_checks: none; no QA state or output bytes are altered.
+
+---
+
+Agent ID: codex-main
+Task ID: BETA-SHOOT-RETRY-AND-VIDEO-IP-CHECK-20260803
+Pipeline: UNIVERSE.04 · five Fashion Shoot frames → saved library; VIDEO.02 · Higgsfield submission
+State: LIVE
+Decision: in live `review` mode, a `shoot.*` camera-scale miss is retained as
+`NON_BLOCKING_FASHION_REVIEW` receipt evidence rather than consuming another
+paid Fashion Shoot retry. Identity, selected-item construction, leakage and
+anatomy remain blocking; `std.*` backgrounds are unchanged. Higgsfield's exact
+`IP check not finished for input media` create rejection now waits 3 seconds
+and retries the identical, already-bound request once. It never retries an
+unknown create outcome or an accepted job. A second identical rejection returns
+the explicit Ukrainian status `VIDEO_INPUT_MEDIA_IP_CHECK_PENDING`.
+Observed: the inspected completed Fashion Shoot already has five customer frames
+and a durable saved-profile projection; the apparent many images were two
+camera-scale retries (2 + 3) plus successful slots, not duplicate shoots.
+Code: `a828cd542360ed396d4f3247f0eaefc2e2397207`.
+Tests: new regressions failed before this change; after it, focused
+video/provider/routes + Fashion Shoot scene suite PASS (all selected tests).
+Beta: LIVE — public health release SHA `a828cd542360ed396d4f3247f0eaefc2e2397207`.
+Journey: no paid provider call was made by this repair.
+weakened_checks: only `shoot.*` camera-scale art direction in live `review`/`off`
+mode becomes advisory. The measured value remains in the receipt. This is an
+explicit operator decision; standard scenes and hard identity/item/leakage/anatomy
+checks are unchanged.
+
+---
+
+Agent ID: codex-main
+Task ID: BETA-SHOOT-RETRY-AND-VIDEO-IP-CHECK-20260803
+Pipeline: UNIVERSE.04 · Fashion Shoot delivery; VIDEO.02 · provider input readiness
+State: READY_FOR_BETA_DEPLOY
+Decision: cache-bust identifiers for `scene.css`, `app.js`, `scene-ui.js`, and
+`editorial-shoot-ui.js` now advance as one chain (`20260803-2`). A browser can
+therefore not retain a stale Fashion Shoot shell after the new `app.js` arrives.
+Code: `a828cd542360ed396d4f3247f0eaefc2e2397207`.
+Tests: focused UI/provider/video/scene suite 177/177 PASS; contracts and canon PASS.
+Beta: LIVE — public health release SHA `a828cd542360ed396d4f3247f0eaefc2e2397207`.
+Journey: no paid provider call was made by this repair.
+weakened_checks: only the explicit `shoot.*` review-policy change above; no
+identity, item, anatomy, leakage, standard-scene, or video-reference check changed.
+
+Operational correction: beta's local LaunchAgent plist had been replaced by a
+two-element JSON array, so the guarded release tool correctly refused to
+restart it. It was restored from its valid local template with the current
+`madeforthisjob-beta-launcher/run-beta-daemon.sh` argument, then validated by
+`plutil`, `launchctl print`, dry-run and successful guarded activation. No
+runtime data or secret was changed.
+Agent ID: codex-main
+Task: FASHION-VIDEO-STYLE-DURATION-RETRY-20260803
+Product line: beta engine → main bridge
+Pipeline: VIDEO.01 verified style reference → VIDEO.02 retry submission
+State: READY_FOR_BETA_DEPLOY
+Finding: a persisted legacy clip could retain the old generic motion-mode
+duration (for example `camera_drift=6`) while its verified style reference
+owns a different provider-safe duration (for example `13`). On retry the
+generic duration gate ran before provider submission and returned HTTP 400
+`MOTION_DURATION_OUT_OF_RANGE`. No Higgsfield job was created.
+Decision: for a reference-bound Fashion Video, only the verified style
+reference's provider duration (3–15 whole seconds) is duration authority.
+The motion mode remains a semantic direction. Non-reference clips retain the
+existing strict per-mode duration window.
+Evidence: `node --test test/video/*.test.js` 209/209 PASS;
+`npm run verify:contracts` PASS (41 schemas, 9 fixtures, 3 jobs).
+Beta: NOT_DEPLOYED. Journey: exact legacy retry regression covered locally;
+no paid provider request made. weakened_checks: none.
+
+---
+
+Agent ID: codex-main
+Task: VIDEO-TERMINAL-FAILED-AUTORETRY-20260803
+Pipeline: VIDEO.02 · accepted Higgsfield job → terminal result → delivery/retry
+State: CODE_VERIFIED — deployment pending
+Finding: the observed clip `aaf3d47e-70d5-4451-8e6d-99a0ac4e4903` reached an
+attested Higgsfield `failed` terminal state. The old release only logged and
+re-polled it; later provider cleanup changed the visible result to `not found`.
+Decision: `VIDEO_PROVIDER_JOB_FAILED` starts the existing server-owned,
+hash-bound recovery chain, maximum two total automatic children. A missing job
+is intentionally not retried automatically. The current UI receives an explicit
+WAIT/automatic-retry state rather than a dead manual retry.
+Code: candidate on `beta` after `7436300`.
+Tests: VideoService + Video routes 78/78 PASS; new regression covers terminal
+provider failure → automatic child → two-attempt exhaustion.
+Beta: NOT_DEPLOYED. Journey: no paid provider request made by this code repair.
+weakened_checks: none; reference performer leakage remains delivery-blocking.
+
+Activation: LIVE — product release
+`505729016624be756c264ca3c5f30edf92ed6da5`; verifier PASS (741 deploy files),
+guarded deploy found zero active persisted work, and local + public beta health
+both returned `ready`.
+
+---
+
+Agent ID: codex-main
+Task: VIDEO-TERMINAL-CHAIN-RECOVERY-20260803
+Pipeline: VIDEO.02 · automatic recovery → terminal state → explicit retry
+State: CODE_VERIFIED — deployment pending
+Finding: an automatic retry record belongs to its parent clip. After the two
+child jobs reached terminal `FAILED`, the parent still said `CREATED`, so
+manual retry returned 409 and main showed a generic failure.
+Decision: resolve the bounded child chain on status/finalize/retry. Only a
+resumable child is in progress. A terminal chain exposes the terminal leaf and
+allows a new explicit retry; a missing child remains fail-closed.
+Code: this commit.
+Tests: `node --test test/video/*.test.js` 213/213 PASS.
+Beta: NOT_DEPLOYED. Journey: no paid provider request made.
+weakened_checks: none.
+
+---
+
+Agent ID: codex-main
+Task: BETA-TEST-AUDIT-001
+Pipeline: private test journey → God View; cinematic main adapter → beta engine
+State: CODE_VERIFIED — release pending
+Decision: no invite codes and no hidden browser fingerprinting.  Every browser
+receives the existing anonymous profile session; the journal stores only coarse
+device class/OS/browser major, edge country, a one-way network correlation ID,
+entry, meaningful journey stage, error count, completion count and page exit.
+God View lets an authorized tester manually mark a browser as `Мій тест`,
+`Зовнішній` or unclassified. Raw IPs, complete user-agent strings, cookies,
+uploads, filenames, prompts, provider URLs and error text are rejected or never
+accepted by the endpoint.
+Code: `01cca5ee7eb3ebe9bf70bea412748c571e03dc95`; private SQLite store `test-audit.sqlite`, allowlisted
+same-origin route, beta telemetry bridge, God View dashboard/labels, and a
+small cinematic-main client that forwards only visible journey state.
+Tests: audit + God View + profile/monitor focused suite 20/20 PASS;
+## Structured public failure diagnostics — 2026-08-04
+
+Pipeline: `LOOK.01–06`, `BACKGROUND.01–02`, `UNIVERSE.01–04`, `VIDEO.*`.
+
+Code: API/browser failure fields now survive profile creation, uploads,
+backgrounds, Fashion Shoot and Fashion Video polling/retry. The public screen
+uses authored Ukrainian copy with the exact safe `Код` and an actionable next
+step. It never exposes raw provider/model error prose, internal URLs, stack
+traces, credentials or reasoning.
+
+Evidence: focused browser, API and video-route tests 38/38 PASS; JS syntax checks
+PASS. Beta: NOT_DEPLOYED. Journey: NOT_RUN. No provider/paid generation.
+weakened_checks: none.
+
+---
+
+`npm run verify:contracts` PASS (41 schemas, 9 fixtures, 3 jobs); cinematic
+client wiring/privacy tests 5/5 PASS.
+Beta: NOT_DEPLOYED. Journey: local Fastify route, lifecycle and God View
+integration covered; no provider or paid generation invoked.
+weakened_checks: none.
+
+---
+
+Agent ID: codex-main
+Task: LOOK-SELECTED-GARMENT-SCOPE-20260804
+Pipeline: LOOK.04–06 · selected garment → approved master look → outfit QA
+State: CODE_VERIFIED — deployment pending
+Code: `8ff02eb3d8bb890ca5679e894cb9069914cd33c1`.
+Finding: a single selected `GARMENT_TOP` (green hoodie) was conditioned into a
+canonical cutout correctly, but look QA later received its raw full-body source
+again. It falsely promoted incidental trousers and footwear from that source
+photo into required outfit locks and exhausted five valid-looking candidates.
+Decision: canonical selected-item bindings are the only image authority during
+outfit QA. The explicit selected-category scope is also passed to generation
+and QA. Raw source bytes remain immutable conditioning/provenance evidence but
+are not re-attached as a second full-look target.
+Evidence: focused garment/run/Codex-VLM suite 37/37 PASS; runner suite 12/12
+PASS; contracts and canon PASS. Full `npm test` exercised this atom but has 21
+pre-existing unrelated failures in deployment fixtures, stale UI expectations,
+and an expired governance lease.
+Beta: NOT_DEPLOYED. Journey: no new paid generation; the old failed run remains
+immutable and is not retroactively relabelled PASS. The next top-only run uses
+the corrected scope.
+weakened_checks: none — selected hoodie, identity, anatomy and white-background
+checks remain blocking; only unselected clothing is no longer treated as target.
+## README local startup contract — 2026-08-04
+
+Code: `e808ab941838b48d91f50b8c2b74961021012e53`. Added `npm run verify:readme`: a behavioral Fastify
+smoke test that resolves `index.html`, every local static/module dependency and
+`/api/health` through the actual HTTP application surface, then runs the real
+`src/web/start.js` in a clean temporary runtime. It is specifically intended to
+fail on a UI-module path/bridge 404 rather than merely prove that an import
+string exists in source.
+
+The same repair decouples local app boot from the deployment-only
+`ZEELY_PUBLIC_HTTPS_ORIGIN`: the video source bridge is created only when that
+origin exists. An absent origin now blocks only the OpenRouter video fallback
+with `VIDEO_SOURCE_ORIGIN_UNAVAILABLE`; it cannot prevent the app, API, image
+journey or reference-bound Higgsfield Video route from starting.
+
+Likewise, `OPENROUTER_API_KEY` is now an optional fallback configuration rather
+than a process-start prerequisite. The primary Higgsfield video provider stays
+available; a missing fallback key fails only on an actual fallback request.
+
+Beta: NOT_DEPLOYED — this is repository handoff coverage, not a runtime change.
+Journey: `npm run verify:readme` PASS: real Fastify static/module graph and a
+clean `src/web/start.js` returned HTTP 200 for `/`, `/app.js`, `/scene-ui.js`
+and `/api/health`.
+weakened_checks: none.
+
+## Saved materials: durable Fashion Shoot recovery — 2026-08-04
+
+Pipeline: `PROFILE.03 → BACKGROUND.02 / UNIVERSE.04 / VIDEO.04`.
+
+Finding: the server persists completed backgrounds in `scenes`, Fashion Shoot
+projections in `editorial_shoots`, and delivered clips in `video_clips`. The
+main cinematic adapter already had `listScenes`, but never called it, so saved
+backgrounds could not appear after reload. More seriously, Fashion Shoot route
+startup deleted a saved profile projection if its in-memory runtime could not
+be reopened at that instant; the list route then silently returned no shoot.
+
+Decision: only an explicit owner DELETE can remove a Fashion Shoot projection.
+When its runtime is temporarily unavailable, the private list route returns a
+truthful recovery card with no media URL; the client keeps already-visible
+materials instead of replacing them with an empty library. Main now restores
+backgrounds, shoots and verified videos through the same saved-look flow, with
+WebP preview routes for display and original files only for download.
+
+Code: this commit plus main-site commit `21cbc59`.
+Tests: `node --test test/web/editorial-activation-backend.test.js` 9/9 PASS;
+main cinematic bridge/client/result suite 50/50 PASS.
+Beta: NOT_DEPLOYED. Journey: no paid generation; regression covers save →
+runtime unavailable/list → refresh recovery without deletion.
+weakened_checks: none — no output URL is issued while the runner cannot prove
+current ownership of the media bytes.

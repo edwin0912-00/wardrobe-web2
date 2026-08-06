@@ -56,6 +56,27 @@ test('create submits one exact first frame with audio disabled', async () => {
   assert.ok(!calls[0].init.body.includes('/private/runtime'));
 });
 
+test('OpenRouter fails closed before spend when a video motion reference is required', async () => {
+  let fetchCalls = 0;
+  const provider = new OpenRouterVideoProvider({
+    apiKey: 'test-key',
+    assetUrlResolver: async () => 'https://assets.example/look.png',
+    fetchFn: async () => {
+      fetchCalls += 1;
+      return jsonResponse({ id: 'must-not-run' }, 202);
+    },
+  });
+  await assert.rejects(
+    () => provider.createJob({
+      ...request,
+      videoPaths: ['/runtime/references/walk.mp4'],
+    }),
+    (error) => error.code === 'VIDEO_REFERENCE_UNSUPPORTED'
+      && error.retryable === false,
+  );
+  assert.equal(fetchCalls, 0);
+});
+
 test('poll resumes the same job and returns its completed URL', async () => {
   const urls = [];
   const provider = new OpenRouterVideoProvider({

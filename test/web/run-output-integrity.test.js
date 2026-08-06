@@ -9,6 +9,18 @@ import { createWebApp } from '../../src/web/app.js';
 import { ProfileService } from '../../src/web/profile-service.js';
 import { RunService } from '../../src/web/run-service.js';
 
+const FULL_BODY_MOCK_PNG = await sharp(Buffer.from(`
+  <svg xmlns="http://www.w3.org/2000/svg" width="768" height="1024">
+    <rect width="768" height="1024" fill="white"/>
+    <circle cx="384" cy="128" r="64" fill="#222"/>
+    <rect x="280" y="192" width="208" height="420" rx="72" fill="#222"/>
+    <rect x="292" y="570" width="76" height="330" rx="32" fill="#222"/>
+    <rect x="400" y="570" width="76" height="330" rx="32" fill="#222"/>
+    <rect x="252" y="884" width="116" height="48" rx="20" fill="#222"/>
+    <rect x="400" y="884" width="116" height="48" rx="20" fill="#222"/>
+  </svg>
+`)).flatten({ background: '#ffffff' }).removeAlpha().png().toBuffer();
+
 async function upload() {
   return {
     filename: 'person.png',
@@ -26,8 +38,28 @@ async function upload() {
 
 function dependencies() {
   return {
-    provider: new MockProvider(),
-    vlm: {},
+    provider: new MockProvider({ image: FULL_BODY_MOCK_PNG }),
+    vlm: {
+      async inspectGarments() {
+        return {
+          status: 'READY',
+          items: [
+            {
+              category: 'bottom',
+              confidence: 1,
+              observed: { type: 'trousers', color: 'black' },
+              unknowns: [],
+            },
+            {
+              category: 'footwear',
+              confidence: 1,
+              observed: { type: 'shoes', color: 'black' },
+              unknowns: [],
+            },
+          ],
+        };
+      },
+    },
     assetGenerator: {},
   };
 }

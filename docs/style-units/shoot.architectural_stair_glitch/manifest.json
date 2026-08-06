@@ -1,0 +1,254 @@
+{
+  "unit_id": "shoot.architectural_stair_glitch",
+  "title": "Architectural Stair Glitch — hard daylight, low angles, reflective editorial inserts",
+  "palette_size": 9,
+  "palette": [
+    {
+      "name": "black void",
+      "hex": "#040809",
+      "role": "deepest shadow and end-card ground"
+    },
+    {
+      "name": "blue black",
+      "hex": "#182229",
+      "role": "rail and under-stair shadow"
+    },
+    {
+      "name": "concrete mid",
+      "hex": "#5D605F",
+      "role": "architectural midtone"
+    },
+    {
+      "name": "concrete highlight",
+      "hex": "#DEE4E7",
+      "role": "hard-daylight highlight"
+    },
+    {
+      "name": "sky blue",
+      "hex": "#50709D",
+      "role": "open-sky field"
+    },
+    {
+      "name": "reflective lavender",
+      "hex": "#E6D9F5",
+      "role": "bright reflective insert"
+    },
+    {
+      "name": "cool mauve",
+      "hex": "#908BAA",
+      "role": "glitch and reflection midtone"
+    },
+    {
+      "name": "dusty violet",
+      "hex": "#89788E",
+      "role": "digital transition accent"
+    },
+    {
+      "name": "muted structural green",
+      "hex": "#546B5E",
+      "role": "minor environmental neutral only, never source-product authority"
+    }
+  ],
+  "item_colours_exempt": true,
+  "palette_authority": {
+    "path": "palette-strip.svg",
+    "sha256": "0614de73791860a62a1ea606c4fd36a03456559ddbc6c26eae91b1be45057742",
+    "rendered_not_generated": true
+  },
+  "source_frames": [
+    "frame-001 — 00:00.00–00:01.47 lateral bridge walk",
+    "frame-002 — 00:01.48–00:02.11 closer profile bridge",
+    "frame-003 — 00:02.12–00:02.31 monochrome collage insert",
+    "frame-004 — 00:02.32–00:02.63 stair-top frontal",
+    "frame-005 — 00:02.64–00:02.91 reflective silhouette",
+    "frame-006 — 00:02.92–00:03.91 tread-level stair descent",
+    "frame-007 — 00:03.92–00:04.63 rail occlusion",
+    "frame-008 — 00:04.64–00:05.75 connected waist/item close-up",
+    "frame-009 — 00:05.76–00:06.23 full-body stair hold",
+    "frame-010 — 00:06.24–00:06.63 closer stair side",
+    "frame-011 — 00:06.64–00:07.07 blurred glitch",
+    "frame-012 — 00:07.08–00:09.51 product-only reflective insert",
+    "frame-013 — 00:09.52–00:10.27 glitch product montage",
+    "frame-014 — 00:10.28–00:12.95 stair low-angle push",
+    "frame-015 — 00:12.96–00:14.43 extreme low against sky",
+    "frame-016 — 00:14.44–00:16.03 connected accessory close",
+    "frame-017 — 00:16.04–00:16.79 logo/end-card timing only"
+  ],
+  "unknowns": [
+    "focal lengths, aperture, shutter angle and camera make",
+    "exact bridge and stair location and physical dimensions",
+    "lighting fixture count; only hard directional daylight consequences are visible",
+    "post-production software and exact glitch transition recipe",
+    "original colour-management pipeline"
+  ],
+  "unit_contract": {
+    "path": "unit.json",
+    "sha256": "51eb04adb6cdef29fac6007f233a1d0df34a406bbf59fa0d1727c5c5cd3267ab"
+  },
+  "observation_log": {
+    "path": "OBSERVATION.md",
+    "sha256": "b6ddd43e9d29d4ecb8539522b19391f097decc08a1180f93ff50cdd0cdbdffcc"
+  },
+  "self_verification": {
+    "path": "SELF-VERIFY.md",
+    "sha256": "0da15d1eaa46e8ea7eb2af1e58e8863cc76e4fe960a0f695e082821db8915b56",
+    "status": "APPROVED"
+  },
+  "runtime_style_sha256": "975001014a95dfd1cb6fa6d4340fab0f37b561df42b1e03e9c0667c5c95a51aa",
+  "sheets": [
+    {
+      "sheet_id": "camera_lens",
+      "path": "sheet-camera_lens.png",
+      "sha256": "dce03656e60806231dacb8e3fe6bbd011a4ea3c40acdacce7a43afde77ef044e",
+      "byte_size": 2062115,
+      "width": 1820,
+      "height": 1024,
+      "requested_aspect": "16:9",
+      "attempts": null,
+      "provider_receipt": {
+        "provider": "openai",
+        "transport": "codex_imagegen",
+        "job_id": "exec-19ed49c0-8aeb-4330-af93-b54e592abf30",
+        "model": "imagegen",
+        "model_name": "imagegen",
+        "output_sha256": "dce03656e60806231dacb8e3fe6bbd011a4ea3c40acdacce7a43afde77ef044e",
+        "provider_journal_sha256": null
+      },
+      "legacy_artifact_receipt": null,
+      "colour_authoritative": false
+    },
+    {
+      "sheet_id": "blocking",
+      "path": "sheet-blocking.png",
+      "sha256": "9a02683b4aae2e13642264a6a6dc5db3fdda35b626d310e6bc42e2ccbe7c4137",
+      "byte_size": 2594489,
+      "width": 1672,
+      "height": 941,
+      "requested_aspect": "16:9",
+      "attempts": null,
+      "provider_receipt": {
+        "provider": "openai",
+        "transport": "codex_imagegen",
+        "job_id": "exec-4a849341-b3c8-4888-a39c-f93884ebba10",
+        "model": "imagegen",
+        "model_name": "imagegen",
+        "output_sha256": "9a02683b4aae2e13642264a6a6dc5db3fdda35b626d310e6bc42e2ccbe7c4137",
+        "provider_journal_sha256": null
+      },
+      "legacy_artifact_receipt": null,
+      "colour_authoritative": false
+    },
+    {
+      "sheet_id": "expression_gaze",
+      "path": "sheet-expression_gaze.png",
+      "sha256": "7a1b9153774bf262efed55ae8e1118665cdf4f5d2fbe7c24f2a8f6f84c86b4a3",
+      "byte_size": 2098894,
+      "width": 1536,
+      "height": 1024,
+      "requested_aspect": "3:2",
+      "attempts": null,
+      "provider_receipt": {
+        "provider": "openai",
+        "transport": "codex_imagegen",
+        "job_id": "exec-f1b33a32-d130-48ca-98e4-5306e4717711",
+        "model": "imagegen",
+        "model_name": "imagegen",
+        "output_sha256": "7a1b9153774bf262efed55ae8e1118665cdf4f5d2fbe7c24f2a8f6f84c86b4a3",
+        "provider_journal_sha256": null
+      },
+      "legacy_artifact_receipt": null,
+      "colour_authoritative": false
+    },
+    {
+      "sheet_id": "garment_behaviour",
+      "path": "sheet-garment_behaviour.png",
+      "sha256": "76d6e59357395a89eacd1632d1511ae5b7493b09276d89dcb163759835badca4",
+      "byte_size": 2287757,
+      "width": 1536,
+      "height": 1024,
+      "requested_aspect": "3:2",
+      "attempts": null,
+      "provider_receipt": {
+        "provider": "openai",
+        "transport": "codex_imagegen",
+        "job_id": "exec-738c6744-f63c-427a-8db5-100962375f46",
+        "model": "imagegen",
+        "model_name": "imagegen",
+        "output_sha256": "76d6e59357395a89eacd1632d1511ae5b7493b09276d89dcb163759835badca4",
+        "provider_journal_sha256": null
+      },
+      "legacy_artifact_receipt": null,
+      "colour_authoritative": false
+    },
+    {
+      "sheet_id": "colour_grade",
+      "path": "sheet-colour_grade.png",
+      "sha256": "69b995d62c2243d826f336de0e76ba1f9c2373cae467e0a5ce678601c7886d3e",
+      "byte_size": 1852982,
+      "width": 1672,
+      "height": 941,
+      "requested_aspect": "16:9",
+      "attempts": null,
+      "provider_receipt": {
+        "provider": "openai",
+        "transport": "codex_imagegen",
+        "job_id": "exec-6315ac09-63e1-4b5a-af87-f372d16da9eb",
+        "model": "imagegen",
+        "model_name": "imagegen",
+        "output_sha256": "69b995d62c2243d826f336de0e76ba1f9c2373cae467e0a5ce678601c7886d3e",
+        "provider_journal_sha256": null
+      },
+      "legacy_artifact_receipt": null,
+      "colour_authoritative": false
+    },
+    {
+      "sheet_id": "environment",
+      "path": "sheet-environment.png",
+      "sha256": "06767f395e1effe42081c494b7e3230df61942134dca0067b4ad43e61b07156d",
+      "byte_size": 2155373,
+      "width": 1915,
+      "height": 821,
+      "requested_aspect": "21:9",
+      "attempts": null,
+      "provider_receipt": {
+        "provider": "openai",
+        "transport": "codex_imagegen",
+        "job_id": "exec-13f7c707-d81e-4b01-8203-921a0c59d9a9",
+        "model": "imagegen",
+        "model_name": "imagegen",
+        "output_sha256": "06767f395e1effe42081c494b7e3230df61942134dca0067b4ad43e61b07156d",
+        "provider_journal_sha256": null
+      },
+      "legacy_artifact_receipt": null,
+      "colour_authoritative": false
+    },
+    {
+      "sheet_id": "person",
+      "path": "sheet-person.png",
+      "sha256": "4ecad3ce90321e2fa8db697def965d26a88676ff4ba4e7235f1fb90bbda6229e",
+      "byte_size": 2221208,
+      "width": 1024,
+      "height": 1536,
+      "requested_aspect": "2:3",
+      "attempts": null,
+      "provider_receipt": {
+        "provider": "openai",
+        "transport": "codex_imagegen",
+        "job_id": "exec-cb438d17-591c-4250-9345-5b68094fe331",
+        "model": "imagegen",
+        "model_name": "imagegen",
+        "output_sha256": "4ecad3ce90321e2fa8db697def965d26a88676ff4ba4e7235f1fb90bbda6229e",
+        "provider_journal_sha256": null
+      },
+      "legacy_artifact_receipt": null,
+      "colour_authoritative": false
+    }
+  ],
+  "unit_sha256": "2fa7ccfd18b565047aa77829831de0e9b7541a9d114e9de527e3cc609133ccb7",
+  "generated_with": {
+    "provider": "openai",
+    "transport": "codex_imagegen",
+    "model": "imagegen",
+    "receipt_scope": "Codex image-generation invocation IDs and output hashes"
+  }
+}

@@ -24,8 +24,8 @@ test('locks real bottom and footwear crops from a full-body approved look withou
     outputDirectory: path.join(root, 'first-appearance'),
     runId: 'run_first_appearance',
     clock,
-    vlm: { async inspectGarments(paths) {
-      calls.push(paths);
+    vlm: { async inspectGarments(paths, context) {
+      calls.push({ paths, context });
       return { status: 'READY', items: [
         { category: 'bottom', confidence: 0.98, observed: { garment_type: 'black trousers', colors: ['black'], material: ['denim'], pattern: ['plain'], logo_text: [], construction: ['straight leg'] }, unknowns: [] },
         { category: 'footwear', confidence: 0.96, observed: { garment_type: 'black shoes', colors: ['black'], material: ['synthetic'], pattern: ['plain'], logo_text: [], construction: ['low top'] }, unknowns: [] },
@@ -33,18 +33,27 @@ test('locks real bottom and footwear crops from a full-body approved look withou
     } },
   });
   assert.equal(calls.length, 1);
+  assert.deepEqual(calls[0].context, {
+    purpose: 'FIRST_APPEARANCE_LOCK',
+    required_categories: ['bottom', 'footwear'],
+  });
   assert.deepEqual(result.items.map((item) => item.category), ['bottom', 'footwear']);
   assert.ok(result.items.every((item) => item.cutout.sha256.length === 64));
   assert.equal(result.record.provenance, 'OBSERVED_FROM_APPROVED_LOOK');
   assert.equal(result.record.immutable_after_creation, true);
   assert.deepEqual(await sharp(await readFile(result.items[0].reference_card.path)).metadata().then(({ format }) => format), 'png');
 
+  let repeatedInspectionCount = 0;
   const repeated = await lockFirstAppearance({
     approvedLookPath: lookPath,
     outputDirectory: path.join(root, 'first-appearance'),
     runId: 'run_first_appearance',
-    clock,
-    vlm: { async inspectGarments() { return { status: 'READY', items: result.items.map((item) => ({ category: item.category, confidence: item.confidence, observed: item.observed, unknowns: item.unknowns })) }; } },
+    clock: () => new Date('2026-07-29T09:05:00.000Z'),
+    vlm: { async inspectGarments() {
+      repeatedInspectionCount += 1;
+      throw new Error('An immutable first-appearance lock must be reopened, not reinspected');
+    } },
   });
   assert.deepEqual(repeated.record, result.record);
+  assert.equal(repeatedInspectionCount, 0);
 });

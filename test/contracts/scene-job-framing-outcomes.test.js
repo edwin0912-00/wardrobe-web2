@@ -30,15 +30,15 @@ function gates(ids, failedId = null) {
 
 function passingFraming() {
   return {
-    canvas_width: 1024,
-    canvas_height: 1280,
-    subject_bbox_xywh_px: [202, 104, 620, 973],
+    canvas_width: 1536,
+    canvas_height: 2048,
+    subject_bbox_xywh_px: [303, 166, 930, 1557],
     expected_subject_height_percent: [70, 80],
-    subject_height_percent: 76.0156,
+    subject_height_percent: 76.0254,
     minimum_clear_space_above_hair_percent: 8,
     minimum_clear_space_below_footwear_percent: 2,
-    clear_space_above_hair_percent: 8.125,
-    clear_space_below_footwear_percent: 15.8594,
+    clear_space_above_hair_percent: 8.1055,
+    clear_space_below_footwear_percent: 15.8691,
     full_head_visible: true,
     full_footwear_visible: true,
   };
@@ -46,15 +46,15 @@ function passingFraming() {
 
 function observedBadFraming() {
   return {
-    canvas_width: 1024,
-    canvas_height: 1280,
-    subject_bbox_xywh_px: [100, 64, 824, 1088],
+    canvas_width: 1536,
+    canvas_height: 2048,
+    subject_bbox_xywh_px: [150, 102, 1236, 1741],
     expected_subject_height_percent: [70, 80],
-    subject_height_percent: 85,
+    subject_height_percent: 85.0098,
     minimum_clear_space_above_hair_percent: 8,
     minimum_clear_space_below_footwear_percent: 2,
-    clear_space_above_hair_percent: 5,
-    clear_space_below_footwear_percent: 10,
+    clear_space_above_hair_percent: 4.9805,
+    clear_space_below_footwear_percent: 10.0098,
     full_head_visible: true,
     full_footwear_visible: true,
   };
@@ -186,14 +186,18 @@ test('QA_PASS attempt requires exactly eight ordered PASS gates and strict 70-80
   assert.equal(validateAttempt(duplicated), false, 'QA_PASS gates must not contain duplicate gate ids');
 });
 
-test('COMPLETED QA requires exactly nine ordered PASS gates and strict framing', async () => {
+test('COMPLETED QA requires exactly nine ordered PASS gates and declared framing tolerance', async () => {
   const { validateCompletedQa } = await validators();
   const completed = qa({ gateIds: COMPLETED_GATE_IDS });
   assert.equal(validateCompletedQa(completed), true, validationMessage(validateCompletedQa));
 
   const badFraming = structuredClone(completed);
-  badFraming.framing_evidence.subject_height_percent = 78.0001;
-  assert.equal(validateCompletedQa(badFraming), false, 'COMPLETED must reject framing above 78%');
+  badFraming.framing_evidence.subject_height_percent = 80.0001;
+  assert.equal(
+    validateCompletedQa(badFraming),
+    false,
+    'COMPLETED must reject framing above the preferred range when no delivery tolerance is declared',
+  );
 
   const failedGate = structuredClone(completed);
   failedGate.gates[8].decision = 'FAIL';

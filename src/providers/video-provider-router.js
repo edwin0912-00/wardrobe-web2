@@ -67,6 +67,16 @@ export class VideoProviderRouter {
       }
     }
 
+    if (Array.isArray(request?.videoPaths) && request.videoPaths.length > 0) {
+      throw new VideoProviderRouterError(
+        'Higgsfield could not create the reference-bound Fashion Video job; no fallback may drop Video 1',
+        {
+          code: 'VIDEO_REFERENCE_FALLBACK_UNAVAILABLE',
+          cause: failures.at(-1),
+        },
+      );
+    }
+
     try {
       const created = await this.providers.get(OPENROUTER_VIDEO_PROVIDER).createJob(request);
       return {

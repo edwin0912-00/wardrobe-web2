@@ -165,15 +165,20 @@ test('READY editorial and Create Universe modes compile six strict per-shot pack
         assert.ok(styleContract.expression_signature.length >= 8, `${modeId}/${shotSpec.slot}`);
         assert.ok(styleContract.garment_behaviour.length >= 8, `${modeId}/${shotSpec.slot}`);
         assert.ok(styleContract.optical_signature.length >= 1, `${modeId}/${shotSpec.slot}`);
+        assert.ok(styleContract.subject_lighting.length >= 8, `${modeId}/${shotSpec.slot}`);
+        assert.match(pack.prompt, /SUBJECT LIGHT INTERACTION:/, `${modeId}/${shotSpec.slot}`);
       }
-      // Assert the derivation, not a number: an editorial ceiling is whatever the
-      // slot's head guard does not reserve. Two frames were rejected at 84.7656% and
-      // 93.9063% by ceilings picked by hand, so no hand-picked ceiling may come back.
+      // Assert the derivation, not a number: a head-required slot derives its
+      // ceiling from the head guard; a Fashion Shoot slot intentionally allows
+      // the crown to cross the frame edge and therefore has a 100% ceiling.
       const [floor, ceiling] = pack.preset.camera.subject_height_percent;
+      const expectedCeiling = pack.preset.camera.required_visibility.full_head
+        ? 100 - pack.preset.camera.minimum_clear_space_percent.above_hair
+        : 100;
       assert.equal(
         ceiling,
-        100 - pack.preset.camera.minimum_clear_space_percent.above_hair,
-        `${shotSpec.slot} ceiling must be the complement of its head guard`,
+        expectedCeiling,
+        `${shotSpec.slot} ceiling must follow its editorial head policy`,
       );
       assert.ok(floor < ceiling, `${shotSpec.slot} floor must stay below its ceiling`);
       assert.deepEqual(
@@ -230,13 +235,12 @@ test('READY editorial and Create Universe modes compile six strict per-shot pack
     }
   }
 
-  await assert.rejects(
-    () => resolver.compileEditorialShootBible({
-      modeId: 'editorial.edwin_novak.institutional_modernism',
-      version: '1.0.0',
-    }),
-    /preview-only|not ready/i,
-  );
+  const institutionalAlias = await resolver.compileEditorialShootBible({
+    modeId: 'editorial.edwin_novak.institutional_modernism',
+    version: '1.0.0',
+  });
+  assert.equal(institutionalAlias.mode_id, 'shoot.zayn_institutional');
+  assert.match(institutionalAlias.bible_id, /shoot_zayn_institutional/);
 });
 
 test('editorial item QA scope follows the intentional crop without weakening full-body shots', () => {
@@ -247,20 +251,43 @@ test('editorial item QA scope follows the intentional crop without weakening ful
   ];
   assert.deepEqual(sceneQaItemScope(items, null), items);
   assert.deepEqual(
-    sceneQaItemScope(items, { editorial: { shot_slot: 'sculptural_three_quarter' } }),
+    sceneQaItemScope(items, {
+      editorial: { shot_slot: 'sculptural_three_quarter', item_scope: 'EXCLUDE_FOOTWEAR' },
+    }),
     items.slice(0, 2),
   );
   assert.deepEqual(
-    sceneQaItemScope(items, { editorial: { shot_slot: 'interference_frame' } }),
+    sceneQaItemScope(items, {
+      editorial: { shot_slot: 'interference_frame', item_scope: 'EXCLUDE_FOOTWEAR' },
+    }),
     items.slice(0, 2),
   );
   assert.deepEqual(
-    sceneQaItemScope(items, { editorial: { shot_slot: 'material_or_accessory_detail' } }),
+    sceneQaItemScope(items, {
+      editorial: { shot_slot: 'material_or_accessory_detail', item_scope: 'FIRST_ORDERED_ITEM' },
+    }),
     items.slice(0, 1),
   );
   assert.deepEqual(
-    sceneQaItemScope(items, { editorial: { shot_slot: 'wide_campaign_coda' } }),
+    sceneQaItemScope(items, {
+      editorial: { shot_slot: 'wide_campaign_coda', item_scope: 'ALL' },
+    }),
     items,
+  );
+  // Old clean-hero packs remain readable as ALL; newly compiled ones explicitly
+  // exclude footwear. The persisted contract, not a re-derived slot table,
+  // decides which evidence an immutable attempt was judged against.
+  assert.deepEqual(
+    sceneQaItemScope(items, {
+      editorial: { shot_slot: 'clean_identity_hero', item_scope: 'ALL' },
+    }),
+    items,
+  );
+  assert.deepEqual(
+    sceneQaItemScope(items, {
+      editorial: { shot_slot: 'clean_identity_hero', item_scope: 'EXCLUDE_FOOTWEAR' },
+    }),
+    items.slice(0, 2),
   );
 });
 
@@ -347,6 +374,80 @@ test('EditorialSceneExecutor delegates to one deterministic SceneService executi
   }
 });
 
+test('EditorialSceneExecutor reopens a completed child scene for a resumed parent attempt', async () => {
+  const idempotencyKey = 'editorial-executor-resumed-completed-child';
+  const sceneId = editorialSceneIdForIdempotencyKey(idempotencyKey);
+  let createCalls = 0;
+  let presetCalls = 0;
+  const sceneService = {
+    async createScene() {
+      createCalls += 1;
+      throw new Error('A completed child scene must not be submitted again');
+    },
+    async getScene() {
+      return { scene_id: sceneId, status: 'COMPLETED' };
+    },
+    async waitForIdle() {
+      return { scene_id: sceneId, status: 'COMPLETED' };
+    },
+    async verifiedExecutionResult() {
+      return {
+        decision: 'PASS',
+        candidate_sha256: '3'.repeat(64),
+        gates: gates('PASS'),
+        reviewer: { id: 'scene-judge', version: 'scene-judge-v1' },
+        completed_at: '2026-07-30T18:00:00.000Z',
+        output: {
+          resource_id: sceneId,
+          sha256: '3'.repeat(64),
+          receipt_sha256: '4'.repeat(64),
+          width: 1536,
+          height: 2048,
+          media_type: 'image/png',
+        },
+      };
+    },
+    async outputFile() {
+      return null;
+    },
+  };
+  const executor = new EditorialSceneExecutor({
+    sceneService,
+    presetResolver: {
+      async editorialShotPresetReference() {
+        presetCalls += 1;
+        throw new Error('Current preset must not replace persisted execution authority');
+      },
+    },
+  });
+  const result = await executor.executeShot({
+    idempotency_key: idempotencyKey,
+    reuse_existing_execution: true,
+    approved_look: {
+      look_id: 'look_fixture',
+      image_sha256: '8'.repeat(64),
+      receipt_sha256: '9'.repeat(64),
+    },
+    shoot_bible: {
+      mode_id: 'shoot.terracotta_hardlight',
+      mode_version: '1.0.0',
+      sha256: 'a'.repeat(64),
+    },
+    shot_spec: {
+      slot: 'clean_identity_hero',
+      camera: { lens_mm: 50, framing: 'three_quarter' },
+    },
+    shot_spec_sha256: 'b'.repeat(64),
+    signal: new AbortController().signal,
+  });
+  assert.equal(createCalls, 0);
+  assert.equal(presetCalls, 0);
+  assert.equal(result.execution_id, sceneId);
+  assert.equal(result.decision, 'PASS');
+  assert.equal(result.output.width, 1536);
+  assert.equal(result.output.height, 2048);
+});
+
 test('public editorial DTO exposes output URLs but never clones private orchestration fields', () => {
   const shoot = rawShoot({ status: 'HERO_PENDING_APPROVAL' });
   shoot.shots[0] = {
@@ -361,6 +462,11 @@ test('public editorial DTO exposes output URLs but never clones private orchestr
       media_type: 'image/png',
     },
   };
+  shoot.shots[1] = {
+    ...shoot.shots[1],
+    status: 'FAILED',
+    retry_count: 5,
+  };
   const view = editorialShootView(shoot);
   const serialized = JSON.stringify(view);
   assert.equal(view.hero_output_sha256, 'c'.repeat(64));
@@ -374,6 +480,8 @@ test('public editorial DTO exposes output URLs but never clones private orchestr
   assert.match(view.hero_download_url, /\/shots\/clean_identity_hero\/download$/);
   assert.match(view.shots[0].output.image_url, /\/shots\/clean_identity_hero\/image$/);
   assert.match(view.shots[0].output.download_url, /\/shots\/clean_identity_hero\/download$/);
+  assert.equal(view.shots[0].auto_repair_exhausted, false);
+  assert.equal(view.shots[1].auto_repair_exhausted, true);
   assert.doesNotMatch(
     serialized,
     /request_fingerprint|idempotency_hash|state_integrity_sha256|resource_id|private-/,
@@ -491,6 +599,137 @@ test('profile ownership hides foreign editorial mutations before the service can
   assert.equal(cancelled.statusCode, 202, cancelled.body);
   assert.equal(cancelled.json().status, 'CANCELLED');
   assert.equal(cancellations, 1, 'cancel must be idempotent without requiring an unused key');
+});
+
+test('direct five-frame Fashion Shoot persists its first approved customer frame as the saved-library preview', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'editorial-profile-preview-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const profiles = new ProfileService({
+    databasePath: path.join(root, 'profiles.sqlite'),
+  });
+  await profiles.initialize();
+  t.after(() => profiles.close());
+  const owner = profiles.createSession();
+  profiles.claimRun(owner.profileId, 'direct-preview-run');
+  const saved = profiles.saveClaimedRun(owner.profileId, 'direct-preview-run');
+  const shoot = rawShoot({
+    shootId: 'shoot_direct_preview',
+    lookId: saved.look.look_id,
+    status: 'SERIES_RUNNING',
+  });
+  shoot.bindings.shoot_bible = {
+    ...shoot.bindings.shoot_bible,
+    mode_id: 'shoot.window_gobo_warm',
+  };
+  shoot.shots[0] = { ...shoot.shots[0], status: 'CANCELLED' };
+  shoot.shots[1] = {
+    ...shoot.shots[1],
+    status: 'APPROVED',
+    output: {
+      resource_id: 'scene_customer_preview',
+      sha256: 'e'.repeat(64),
+      receipt_sha256: 'f'.repeat(64),
+      width: 1536,
+      height: 2048,
+      media_type: 'image/png',
+    },
+  };
+  profiles.projectEditorialShoot(owner.profileId, saved.look.look_id, shoot);
+
+  const reopened = profiles.getProfile(owner.profileId);
+  const projection = reopened.looks[0].editorial_shoots[0];
+  assert.equal(projection.hero_image_url, null, 'the internal check has no customer image');
+  assert.equal(projection.preview_slot, 'environmental_hero');
+  assert.equal(projection.preview_output_sha256, 'e'.repeat(64));
+  assert.match(
+    projection.preview_image_url,
+    /\/editorial-shoots\/shoot_direct_preview\/shots\/environmental_hero\/image$/,
+  );
+  assert.match(
+    projection.preview_download_url,
+    /\/editorial-shoots\/shoot_direct_preview\/shots\/environmental_hero\/download$/,
+  );
+});
+
+test('a temporarily unavailable shoot runtime cannot delete or hide a saved Fashion Shoot', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'editorial-profile-durable-library-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const profiles = new ProfileService({
+    databasePath: path.join(root, 'profiles.sqlite'),
+  });
+  await profiles.initialize();
+  t.after(() => profiles.close());
+  const owner = profiles.createSession();
+  profiles.claimRun(owner.profileId, 'durable-library-run');
+  const saved = profiles.saveClaimedRun(owner.profileId, 'durable-library-run');
+  const shoot = rawShoot({
+    shootId: 'shoot_durable_unavailable',
+    lookId: saved.look.look_id,
+    status: 'COMPLETED',
+  });
+  shoot.bindings.shoot_bible = {
+    ...shoot.bindings.shoot_bible,
+    mode_id: 'shoot.window_gobo_warm',
+  };
+  shoot.shots[0] = { ...shoot.shots[0], status: 'CANCELLED' };
+  shoot.shots[1] = {
+    ...shoot.shots[1],
+    status: 'APPROVED',
+    output: {
+      resource_id: 'scene_durable_preview',
+      sha256: 'a'.repeat(64),
+      receipt_sha256: 'b'.repeat(64),
+      width: 1536,
+      height: 2048,
+      media_type: 'image/png',
+    },
+  };
+  profiles.projectEditorialShoot(owner.profileId, saved.look.look_id, shoot);
+
+  const app = Fastify({ logger: false });
+  await registerEditorialShootRoutes(app, {
+    editorialShootService: {
+      async getShoot() { return null; },
+      subscribe() { return () => {}; },
+    },
+    profiles,
+    profileApi: {
+      async resolveRequestProfile(request) {
+        return { profileId: request.headers['x-profile-id'] };
+      },
+    },
+    runService: {},
+    presetResolver: {},
+    sceneService: {},
+  });
+  await app.ready();
+  t.after(() => app.close());
+
+  const retained = profiles.listEditorialShoots(owner.profileId, saved.look.look_id);
+  assert.equal(retained.length, 1, 'startup must not delete a durable projection');
+  assert.equal(retained[0].preview_slot, 'environmental_hero');
+
+  const response = await app.inject({
+    method: 'GET',
+    url: `/api/profile/looks/${saved.look.look_id}/editorial-shoots`,
+    headers: { 'x-profile-id': owner.profileId },
+  });
+  assert.equal(response.statusCode, 200, response.body);
+  const [listed] = response.json().editorial_shoots;
+  assert.equal(listed.shoot_id, shoot.shoot_id);
+  assert.deepEqual(listed.shots, []);
+  assert.deepEqual(listed.recovery, {
+    code: 'EDITORIAL_SHOOT_RUNTIME_UNAVAILABLE',
+    retryable: true,
+    approved_shot_count: 1,
+    preview_slot: 'environmental_hero',
+    preview_output_sha256: 'a'.repeat(64),
+  });
+  assert.equal(
+    profiles.listEditorialShoots(owner.profileId, saved.look.look_id).length,
+    1,
+    'listing a temporarily unavailable runner must not erase saved ownership',
+  );
 });
 
 async function ownedShootRoutes(t, shoot) {

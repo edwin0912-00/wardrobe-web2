@@ -1,0 +1,107 @@
+{
+  "unit_id": "shoot.architectural_stair_glitch",
+  "title": "Architectural Stair Glitch — hard daylight, low angles, reflective editorial inserts",
+  "style_unit_status": "READY",
+  "palette_size": 9,
+  "palette": [
+    { "name": "black void", "hex": "#040809", "role": "deepest shadow and end-card ground" },
+    { "name": "blue black", "hex": "#182229", "role": "rail and under-stair shadow" },
+    { "name": "concrete mid", "hex": "#5D605F", "role": "architectural midtone" },
+    { "name": "concrete highlight", "hex": "#DEE4E7", "role": "hard-daylight highlight" },
+    { "name": "sky blue", "hex": "#50709D", "role": "open-sky field" },
+    { "name": "reflective lavender", "hex": "#E6D9F5", "role": "bright reflective insert" },
+    { "name": "cool mauve", "hex": "#908BAA", "role": "glitch and reflection midtone" },
+    { "name": "dusty violet", "hex": "#89788E", "role": "digital transition accent" },
+    { "name": "muted structural green", "hex": "#546B5E", "role": "minor environmental neutral only, never source-product authority" }
+  ],
+  "source_frames": [
+    "frame-001 — 00:00.00–00:01.47 lateral bridge walk",
+    "frame-002 — 00:01.48–00:02.11 closer profile bridge",
+    "frame-003 — 00:02.12–00:02.31 monochrome collage insert",
+    "frame-004 — 00:02.32–00:02.63 stair-top frontal",
+    "frame-005 — 00:02.64–00:02.91 reflective silhouette",
+    "frame-006 — 00:02.92–00:03.91 tread-level stair descent",
+    "frame-007 — 00:03.92–00:04.63 rail occlusion",
+    "frame-008 — 00:04.64–00:05.75 connected waist/item close-up",
+    "frame-009 — 00:05.76–00:06.23 full-body stair hold",
+    "frame-010 — 00:06.24–00:06.63 closer stair side",
+    "frame-011 — 00:06.64–00:07.07 blurred glitch",
+    "frame-012 — 00:07.08–00:09.51 product-only reflective insert",
+    "frame-013 — 00:09.52–00:10.27 glitch product montage",
+    "frame-014 — 00:10.28–00:12.95 stair low-angle push",
+    "frame-015 — 00:12.96–00:14.43 extreme low against sky",
+    "frame-016 — 00:14.44–00:16.03 connected accessory close",
+    "frame-017 — 00:16.04–00:16.79 logo/end-card timing only"
+  ],
+  "unknowns": [
+    "focal lengths, aperture, shutter angle and camera make",
+    "exact bridge and stair location and physical dimensions",
+    "lighting fixture count; only hard directional daylight consequences are visible",
+    "post-production software and exact glitch transition recipe",
+    "original colour-management pipeline"
+  ],
+  "runtime_style": {
+    "visual_system": "A vertical fashion edit moves from a pale concrete pedestrian bridge into an exposed stair structure, repeatedly dropping the camera to tread and waist level and punctuating live action with reflective product inserts and short digital glitches.",
+    "mood_line": "Controlled urban confidence interrupted by cold, graphic editorial flashes.",
+    "environment": "One coherent exterior concrete bridge and stair complex with pale slabs, dark metal rails, open blue sky, hard-edged daylight and deep under-stair shadow; reflective inserts are editorial interludes, not replacement locations.",
+    "lighting": "Hard directional daylight with crisp edge separation, bright concrete, cool open-sky fill and retained blue-black shadow; reflective inserts shift toward lavender without warming the physical location.",
+    "materials": ["pale cast concrete", "dark painted metal rails", "open blue sky", "reflective translucent editorial surface", "approved garment and approved item only"],
+    "contrast": "Firm contrast with clean concrete highlights, dense but readable under-stair blacks, cool blue and lavender accents, and no warm cinematic wash.",
+    "expression_signature": "The approved face stays composed and self-possessed: gaze follows travel or passes just beyond lens, mouth relaxed and closed, no smile performance and no source-face transfer.",
+    "garment_behaviour": "Preserve only movement response: approved clothing reacts to stride, descent and low-angle body turns with crisp hard-light edges; never copy the source outfit, colour, silhouette, pattern or branding.",
+    "optical_signature": ["Alternation between compressed bridge coverage and extreme low architectural perspective", "Crisp hard-light edges with occasional deliberate motion smear", "Brief monochrome, reflective lavender and digital split/glitch punctuation", "Connected-body item details rather than passport framing or detached flat lays"],
+    "shot_directions": {
+      "clean_identity_hero": {
+        "camera_consequence": "Use the closer bridge profile at upper-torso to near-full-body scale with long rail lines behind and hard daylight preserving the approved face.",
+        "pose_joint_chain": "Advance through a natural lateral stride, head aligned with travel, shoulders quiet and arms counter-swinging without turning into a front-facing portrait.",
+        "focus": "Hold the approved face, hairline and upper approved garment sharp while rail depth remains clearly architectural.",
+        "foreground": "Keep the identity frame free of heavy occlusion; no white studio or avatar-reference background may appear.",
+        "provenance": ["frame-002 profile bridge coverage and frame-001 lateral travel"]
+      },
+      "environmental_hero": {
+        "camera_consequence": "Use a wide vertical bridge view with the full approved look small against pale concrete, dark rails and open sky.",
+        "pose_joint_chain": "Take a complete readable stride with both legs and footwear visible and weight clearly transferring forward.",
+        "focus": "Keep person and immediate bridge plane crisp while the repeating architecture carries depth.",
+        "foreground": "Rails may frame but do not cover the approved face, item identity or footwear.",
+        "provenance": ["frame-001 distant bridge walk and frame-004 stair-top spatial reset"]
+      },
+      "sculptural_three_quarter": {
+        "camera_consequence": "Place the camera close to the stair plane and point steeply upward so rails converge around the approved body against blue sky.",
+        "pose_joint_chain": "Hold a planted lower foot, bent advancing knee, rotated torso and long neck, maintaining balance rather than fashion-pose distortion.",
+        "focus": "Prioritise the approved face, torso and leading garment edges; retain hard concrete boundaries.",
+        "foreground": "A stair edge may occupy the lowest strip but cannot sever the body or hide the approved item.",
+        "provenance": ["frame-014 stair push and frame-015 extreme low sky angle"]
+      },
+      "interference_frame": {
+        "camera_consequence": "Shoot through the underside of a stair or diagonal rail so architecture becomes a deliberate near-plane mask while motion remains visible behind it.",
+        "pose_joint_chain": "Continue the descent with leading foot finding the next tread and torso following; do not freeze into a passport stance.",
+        "focus": "Let one rail edge become dominant while the approved face or full item remains readable in a secondary clear zone.",
+        "foreground": "Concrete and metal are the only occluders; no invented props, people or avatar-reference backgrounds.",
+        "provenance": ["frame-006 tread-level descent and frame-007 rail/underside occlusion"]
+      },
+      "material_or_accessory_detail": {
+        "camera_consequence": "Use an extreme low waist-to-hand connected-body crop, retaining torso, hand and approved garment context around the approved item.",
+        "pose_joint_chain": "Keep the item-bearing hand connected to forearm and shoulder while the hips continue through a step or turn.",
+        "focus": "Lock exact approved item construction, colour, material, hardware, logo and text; allow body edges to fall slightly subordinate.",
+        "foreground": "The approved item owns the near plane; the source green plush object and source branding are forbidden.",
+        "provenance": ["frame-008 waist/item close-up and frame-016 final connected accessory close"]
+      },
+      "wide_campaign_coda": {
+        "camera_consequence": "Resolve with a brief reflective product montage and then a near-black end-card beat, preserving the reference timing but replacing its content.",
+        "pose_joint_chain": "When a performer fragment is used, keep it connected to the prior action; product-only frames contain no invented performer.",
+        "focus": "Render the approved item sharply through reflective lavender layers before a clean black hold.",
+        "foreground": "Glitch fragments may split the frame but must not duplicate the person or create a second item design.",
+        "provenance": ["frame-012 product insert, frame-013 glitch montage and frame-017 end-card timing"]
+      }
+    }
+  },
+  "sheets": {
+    "camera_lens": { "aspect": "16:9", "prompt": "ARCHITECTURAL STAIR GLITCH — CAMERA & LENS technical board. Diagram the distant lateral bridge camera, closer profile, tread-level stair camera, rail occlusion, extreme low sky angle and connected waist detail; show the ordered focal consequences, clean hard-daylight focus and controlled smear/glitch strip. Carry palette hex #040809 #182229 #5D605F #DEE4E7 #50709D #E6D9F5 #908BAA #89788E #546B5E. No invented metadata. No real identity, product, logo, file name, date, version number, board code, credit or invented metadata." },
+    "blocking": { "aspect": "16:9", "prompt": "ARCHITECTURAL STAIR GLITCH — BLOCKING graphite board. Use only featureless mannequins and a top-down bridge/stair plan to map lateral stride, frontal stair arrival, tread descent, rail occlusion, planted low-angle pose and connected hand-item detail. Mark joint chains, travel arrows and camera axes. Carry palette hex #040809 #182229 #5D605F #DEE4E7 #50709D #E6D9F5 #908BAA #89788E #546B5E. No invented metadata. No source performer, clothing design, product, logo, date, version number, board code, credit or invented metadata." },
+    "expression_gaze": { "aspect": "3:2", "prompt": "ARCHITECTURAL STAIR GLITCH — EXPRESSION & GAZE board with one neutral unnamed generic face repeated consistently. Show travel gaze, low stair gaze, composed near-lens gaze and partially occluded gaze: relaxed brow, closed mouth, no smile, confidence without performance. Carry palette hex #040809 #182229 #5D605F #DEE4E7 #50709D #E6D9F5 #908BAA #89788E #546B5E. The face is mechanics only, never identity authority. No invented metadata. No source likeness, logo, date, version number, board code, credit or invented metadata." },
+    "garment_behaviour": { "aspect": "3:2", "prompt": "ARCHITECTURAL STAIR GLITCH — GARMENT BEHAVIOUR board studying motion response only: stride pull, stair compression, hard-light edge, connected accessory load and deliberate transition smear. Use plain neutral unbranded cloth; explicitly forbid transfer of source black wardrobe, green plush product, silhouette, pattern, logo or text. Carry palette hex #040809 #182229 #5D605F #DEE4E7 #50709D #E6D9F5 #908BAA #89788E #546B5E. No date, version number, board code, credit or invented metadata." },
+    "colour_grade": { "aspect": "16:9", "prompt": "ARCHITECTURAL STAIR GLITCH — COLOUR & GRADE look-development board. Show clean hard-daylight concrete, blue-black under-stair shadow, sky-blue field, cool lavender reflective insert, monochrome punctuation and digital split/glitch treatment. Declare palette size nine and carry exact hex #040809 #182229 #5D605F #DEE4E7 #50709D #E6D9F5 #908BAA #89788E #546B5E; approved item colours and skin/hair/eyes are exempt. Generated swatches are illustrative only. No invented metadata. No logo, date, version number, board code, credit or invented metadata." },
+    "environment": { "aspect": "21:9", "prompt": "ARCHITECTURAL STAIR GLITCH — ENVIRONMENT board showing one coherent exterior pedestrian bridge and stair complex: pale cast concrete, dark rails, open blue sky, tread-level view, underside occlusion, reverse angle and reflective editorial insert clearly labelled as an interlude rather than a location. Carry palette hex #040809 #182229 #5D605F #DEE4E7 #50709D #E6D9F5 #908BAA #89788E #546B5E. No invented metadata. No people, products, source architecture copy, readable branding, date, version number, board code, credit or invented metadata." },
+    "person": { "aspect": "2:3", "prompt": "ARCHITECTURAL STAIR GLITCH — PERSON SHEET TEMPLATE for recording the approved subject rather than copying the source performer. Diagram face geometry, ear geometry, hairline, marks, body proportion, full-length leg and footwear visibility, and how hard daylight and cool fill affect skin. Carry palette hex #040809 #182229 #5D605F #DEE4E7 #50709D #E6D9F5 #908BAA #89788E #546B5E. Use one neutral unnamed generic identity only. No invented metadata. No source likeness, clothing authority, logo, date, version number, board code, credit or invented metadata." }
+  }
+}

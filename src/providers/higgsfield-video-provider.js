@@ -26,7 +26,7 @@ export const SEEDANCE_SPEC = Object.freeze({
   modes: Object.freeze(['std', 'fast']),
   bitrateModes: Object.freeze(['standard', 'high']),
   genres: Object.freeze(['auto', 'action', 'horror', 'comedy', 'noir', 'drama', 'epic']),
-  durationSeconds: Object.freeze({ minimum: 3, maximum: 12 }),
+  durationSeconds: Object.freeze({ minimum: 3, maximum: 15 }),
 });
 
 export const DEFAULT_VIDEO_REQUEST = Object.freeze({
@@ -116,6 +116,7 @@ export function buildVideoCreateArgs({
   model = DEFAULT_VIDEO_REQUEST.model,
   prompt,
   mediaPaths = [],
+  videoPaths = [],
   aspectRatio = DEFAULT_VIDEO_REQUEST.aspectRatio,
   resolution = DEFAULT_VIDEO_REQUEST.resolution,
   durationSeconds = DEFAULT_VIDEO_REQUEST.durationSeconds,
@@ -136,6 +137,12 @@ export function buildVideoCreateArgs({
       code: 'MISSING_VIDEO_SOURCE',
     });
   }
+  if (!Array.isArray(videoPaths)
+    || videoPaths.some((videoPath) => typeof videoPath !== 'string' || videoPath.length === 0)) {
+    throw new VideoProviderError('Video references must be local file paths', {
+      code: 'INVALID_VIDEO_REFERENCE',
+    });
+  }
 
   const args = [
     'generate', 'create', model,
@@ -149,7 +156,16 @@ export function buildVideoCreateArgs({
     // Never negotiable: invented audio does not ship.
     '--generate_audio', 'false',
   ];
-  for (const mediaPath of mediaPaths) args.push('--image', mediaPath);
+  // Video must be the first ordered medium. Fashion V2V prompts refer to it as
+  // Video 1 (temporal/scene authority) and the following images as Image 1–3
+  // (appearance authority). Reversing this order made the white-background
+  // approved look the dominant start frame and reduced Fashion Video to a
+  // passport-photo animation.
+  // Use the canonical CLI flags documented by `higgsfield generate create`.
+  // The short aliases happen to work today, but are not part of this transport
+  // contract and made diagnosis of the prompt-token regression needlessly hard.
+  for (const videoPath of videoPaths) args.push('--video-references', videoPath);
+  for (const mediaPath of mediaPaths) args.push('--image-references', mediaPath);
   args.push('--json', '--no-color');
   return args;
 }
@@ -183,11 +199,56 @@ function parseJson(stdout, what) {
   }
 }
 
+function providerCommandFailure(cause, phase) {
+  const detail = [cause?.message, cause?.stderr, cause?.stdout]
+    .filter((value) => typeof value === 'string')
+    .join('\n');
+  // This response is emitted before Higgsfield accepts a job: its own input
+  // media replication/IP preflight is still running.  It is therefore safe to
+  // retry the *same immutable request* once; it is not an unknown paid create
+  // outcome and it must not be collapsed into a generic provider rejection.
+  if (phase === 'create' && /\bIP check not finished for input media\b/i.test(detail)) {
+    return new VideoProviderError('Higgsfield is still completing the IP check for input media', {
+      code: 'PROVIDER_INPUT_MEDIA_IP_CHECK_PENDING',
+      retryable: true,
+      cause,
+    });
+  }
+  if (/\bjob not found\b/i.test(detail)) {
+    return new VideoProviderError('The persisted Higgsfield job no longer exists', {
+      code: 'PROVIDER_JOB_NOT_FOUND',
+      retryable: false,
+      cause,
+    });
+  }
+  // The Higgsfield CLI exits non-zero for a completed terminal job whose
+  // provider status is `failed`. That job cannot become successful by
+  // polling it again, so distinguish it from a network/CLI transport blip.
+  // Keep the match tied to a job status; a generic command failure remains
+  // retryable against the same immutable job.
+  if (/\bjob\b[\s\S]{0,200}\b(?:ended with\s+)?status\s*(?:is\s*)?[:=]?\s*["']?(?:failed|cancelled|canceled)["']?\b/i.test(detail)) {
+    return new VideoProviderError('The persisted Higgsfield job finished unsuccessfully', {
+      code: 'PROVIDER_JOB_FAILED',
+      retryable: false,
+      cause,
+    });
+  }
+  return new VideoProviderError(`Higgsfield ${phase} command failed`, {
+    code: 'PROVIDER_COMMAND_FAILED',
+    retryable: true,
+    cause,
+  });
+}
+
 function findJobId(payload) {
   const queue = [payload];
   const seen = new Set();
   while (queue.length > 0) {
     const value = queue.shift();
+    // Higgsfield CLI 1.1.20 returns a successful create as a bare JSON array
+    // of UUID strings (`["job-id"]`), not an object envelope.  Treat a safe
+    // string as a job id before looking for object fields.
+    if (typeof value === 'string' && SAFE_JOB_ID.test(value)) return value;
     if (!value || typeof value !== 'object' || seen.has(value)) continue;
     seen.add(value);
     const candidates = [
@@ -202,15 +263,85 @@ function findJobId(payload) {
       (candidate) => typeof candidate === 'string' && SAFE_JOB_ID.test(candidate),
     );
     if (match) return match;
-    if (Array.isArray(value)) queue.push(...value);
+    // Higgsfield CLI envelopes have changed between releases (`data`,
+    // `job_set`, batched arrays). Traverse every nested value instead of
+    // treating an accepted create as failed and accidentally paying for a
+    // duplicate retry when the id is merely wrapped one level deeper.
+    queue.push(...Object.values(value));
   }
   return null;
 }
 
-function findVideoUrl(payload) {
-  const text = JSON.stringify(payload ?? {});
-  const match = text.match(/https:\/\/[^"\s]+\.(?:mp4|mov|webm)/);
-  return match ? match[0] : null;
+const OUTPUT_CONTAINER_FIELDS = new Set(['output', 'outputs', 'result', 'results', 'artifacts']);
+// Higgsfield has emitted both `result_url` (the image-style CLI envelope) and
+// the more explicit video keys over time. Keep the generic `url` key scoped to
+// an output container below so an input/reference URL can never be selected.
+const OUTPUT_URL_FIELDS = new Set([
+  'url', 'video_url', 'output_url', 'result_url', 'download_url', 'file_url',
+]);
+const ROOT_OUTPUT_URL_FIELDS = new Set([
+  'video_url', 'output_url', 'result_url', 'download_url', 'file_url',
+]);
+const NON_OUTPUT_FIELDS = new Set(['input', 'inputs', 'request', 'source', 'sources', 'reference', 'references']);
+
+function pointerPart(value) {
+  return String(value).replaceAll('~', '~0').replaceAll('/', '~1');
+}
+
+function isVideoUrl(value) {
+  if (typeof value !== 'string') return false;
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === 'https:' && /\.(?:mp4|mov|webm)$/i.test(parsed.pathname);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Select only an explicit completed-result media field from the envelope that
+ * answered for the persisted job. Provider payloads also contain input media
+ * URLs; scanning arbitrary JSON strings can therefore bind Video 1 itself as
+ * the generated output. Ambiguous explicit outputs fail closed.
+ */
+function findExplicitVideoOutput(payload) {
+  const candidates = [];
+  const seen = new Set();
+
+  function walk(value, parts, insideOutputContainer = false) {
+    if (!value || typeof value !== 'object' || seen.has(value)) return;
+    seen.add(value);
+    for (const [key, child] of Object.entries(value)) {
+      if (NON_OUTPUT_FIELDS.has(key)) continue;
+      const nextParts = [...parts, key];
+      const nextInside = insideOutputContainer || OUTPUT_CONTAINER_FIELDS.has(key);
+      const explicitRootOutput = parts.length === 0 && ROOT_OUTPUT_URL_FIELDS.has(key);
+      if ((nextInside || explicitRootOutput)
+        && (OUTPUT_URL_FIELDS.has(key) || OUTPUT_CONTAINER_FIELDS.has(key))
+        && isVideoUrl(child)) {
+        candidates.push({
+          url: child,
+          selectedFieldPath: `/${nextParts.map(pointerPart).join('/')}`,
+        });
+      }
+      if (nextInside && Array.isArray(child)) {
+        child.forEach((entry, index) => walk(entry, [...nextParts, index], true));
+      } else if (nextInside || OUTPUT_CONTAINER_FIELDS.has(key)) {
+        walk(child, nextParts, nextInside);
+      }
+    }
+  }
+
+  walk(payload, []);
+  const unique = new Map(candidates.map((candidate) => [candidate.url, candidate]));
+  if (unique.size === 1) return [...unique.values()][0];
+  if (unique.size > 1) {
+    throw new VideoProviderError('Provider returned multiple explicit video outputs', {
+      code: 'AMBIGUOUS_VIDEO_OUTPUT',
+      retryable: false,
+    });
+  }
+  return null;
 }
 
 /**
@@ -236,13 +367,21 @@ export class HiggsfieldVideoProvider {
 
   async createJob(request) {
     const args = buildVideoCreateArgs(request);
-    const { stdout } = await this.#run(this.#binary, args);
+    let stdout;
+    try {
+      ({ stdout } = await this.#run(this.#binary, args));
+    } catch (cause) {
+      throw providerCommandFailure(cause, 'create');
+    }
     const payload = parseJson(stdout, 'create');
     const jobId = findJobId(payload);
     if (!jobId) {
       throw new VideoProviderError('Provider did not return a job id', {
-        code: 'MISSING_PROVIDER_JOB_ID',
-        retryable: true,
+        // The provider may already have accepted and billed the create. An
+        // unparseable acknowledgement is an unknown outcome that must be
+        // reconciled against provider history, never paid again automatically.
+        code: 'CREATE_OUTCOME_UNKNOWN',
+        retryable: false,
       });
     }
     return { jobId, request: { ...DEFAULT_VIDEO_REQUEST, ...request }, argv: args, raw: payload };
@@ -250,22 +389,27 @@ export class HiggsfieldVideoProvider {
 
   async waitForJob({ jobId, waitTimeout, waitInterval }) {
     const args = buildVideoWaitArgs({ jobId, waitTimeout, waitInterval });
-    const { stdout } = await this.#run(this.#binary, args);
+    let stdout;
+    try {
+      ({ stdout } = await this.#run(this.#binary, args));
+    } catch (cause) {
+      throw providerCommandFailure(cause, 'wait');
+    }
     const payload = parseJson(stdout, 'wait');
     const returnedId = findJobId(payload);
-    if (returnedId && returnedId !== jobId) {
+    if (returnedId !== jobId) {
       throw new VideoProviderError('Provider wait answered about a different job', {
         code: 'PROVIDER_JOB_MISMATCH',
       });
     }
-    const url = findVideoUrl(payload);
-    if (!url) {
+    const selected = findExplicitVideoOutput(payload);
+    if (!selected) {
       throw new VideoProviderError('Provider finished without a video URL', {
         code: 'MISSING_VIDEO_OUTPUT',
         retryable: true,
       });
     }
-    return { jobId, url, raw: payload };
+    return { jobId, url: selected.url, selectedFieldPath: selected.selectedFieldPath, raw: payload };
   }
 
   /** Create, hand the job id to the caller for persistence, then wait. */

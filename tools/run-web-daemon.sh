@@ -17,9 +17,10 @@ fi
 
 export PATH="${HOME}/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
 export PORT="4173"
-# The live daemon uses OpenRouter for image, scene and video generation.
-# Provider calls are made only by the explicit OpenRouter adapters; there is no
-# local-provider fallback or account probe in this launcher.
+export ZEELY_PUBLIC_HTTPS_ORIGIN="https://site.madeforthisjob.com"
+# OpenRouter is the only image and scene transport. The web process also uses
+# the explicit OpenRouter video adapter; no local CLI provider or fallback is
+# constructed at startup.
 export ZEELY_GENERATION_PROVIDER="openrouter"
 export ZEELY_VLM_PROVIDER="openrouter"
 if [[ -s "$PRIVATE_DIR/openrouter-api-key" ]]; then

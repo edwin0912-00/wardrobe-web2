@@ -9,6 +9,7 @@ import { createHumanReferenceCrops } from '../../src/conditioning/human-crops.mj
 import { assessImageQuality, inspectImageMetadata } from '../../src/conditioning/metadata.mjs';
 import { normalizeReference, planConservativeResize } from '../../src/conditioning/normalize.mjs';
 import { extractQualityTarget, measureSampleBackground } from '../../src/conditioning/quality-target.mjs';
+import { removeBorderConnectedWhiteToAlpha } from '../../src/conditioning/transparent-cutout.mjs';
 
 async function solid(width, height, background, channels = 3) {
   return sharp({ create: { width, height, channels, background } }).png().toBuffer();
@@ -92,6 +93,321 @@ test('human crop refuses missing required bbox instead of guessing', async () =>
     createHumanReferenceCrops(input, { requiredCrops: ['face'] }),
     (error) => error instanceof ConditioningError && error.code === 'MISSING_REQUIRED_BBOX',
   );
+});
+
+test('cutout removes a detached low-contrast background ghost without deleting real detached details', async () => {
+  const input = await sharp({
+    create: {
+      width: 160,
+      height: 120,
+      channels: 3,
+      background: { r: 250, g: 251, b: 246 },
+    },
+  })
+    .composite([
+      {
+        input: await solid(42, 84, { r: 30, g: 42, b: 54 }),
+        left: 82,
+        top: 18,
+      },
+      {
+        input: await solid(12, 12, { r: 55, g: 65, b: 70 }),
+        left: 132,
+        top: 94,
+      },
+      {
+        input: await solid(20, 70, { r: 241, g: 242, b: 238 }),
+        left: 18,
+        top: 30,
+      },
+    ])
+    .png()
+    .toBuffer();
+  const result = await removeBorderConnectedWhiteToAlpha(input, {
+    removeDetachedLowContrastResidue: true,
+  });
+  const { data, info } = await sharp(result.image).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const alphaAt = (x, y) => data[(y * info.width + x) * info.channels + 3];
+  assert.equal(alphaAt(20, 40), 0, 'the detached near-white ghost must be transparent');
+  assert.equal(alphaAt(90, 40), 255, 'the primary subject must remain');
+  assert.equal(alphaAt(136, 98), 255, 'a detached detail with real contrast must remain');
+  assert.equal(result.stats.removed_residue_components, 1);
+  assert.equal(result.stats.removed_residue_pixels, 20 * 70);
+});
+
+test('cutout never deletes the largest component when the primary garment is light', async () => {
+  const input = await sharp({
+    create: {
+      width: 160,
+      height: 120,
+      channels: 3,
+      background: { r: 250, g: 251, b: 246 },
+    },
+  })
+    .composite([
+      {
+        input: await solid(42, 84, { r: 241, g: 242, b: 238 }),
+        left: 82,
+        top: 18,
+      },
+      {
+        input: await solid(12, 12, { r: 55, g: 65, b: 70 }),
+        left: 132,
+        top: 94,
+      },
+    ])
+    .png()
+    .toBuffer();
+  const result = await removeBorderConnectedWhiteToAlpha(input, {
+    removeBorderConnectedNeutralGradient: true,
+    removeDetachedLowContrastResidue: true,
+  });
+  const { data, info } = await sharp(result.image).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const alphaAt = (x, y) => data[(y * info.width + x) * info.channels + 3];
+  assert.equal(alphaAt(90, 40), 255, 'the largest light primary component must remain');
+  assert.equal(alphaAt(136, 98), 255, 'the smaller dark detail must remain');
+  assert.equal(result.stats.removed_residue_components, 0);
+  assert.equal(result.stats.removed_residue_pixels, 0);
+});
+
+test('cutout preserves a nearby light detached garment detail', async () => {
+  const input = await sharp({
+    create: {
+      width: 160,
+      height: 120,
+      channels: 3,
+      background: { r: 250, g: 251, b: 246 },
+    },
+  })
+    .composite([
+      {
+        input: await solid(42, 84, { r: 30, g: 42, b: 54 }),
+        left: 82,
+        top: 18,
+      },
+      {
+        input: await solid(8, 12, { r: 241, g: 242, b: 238 }),
+        left: 70,
+        top: 50,
+      },
+    ])
+    .png()
+    .toBuffer();
+  const result = await removeBorderConnectedWhiteToAlpha(input, {
+    removeDetachedLowContrastResidue: true,
+  });
+  const { data, info } = await sharp(result.image).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const alphaAt = (x, y) => data[(y * info.width + x) * info.channels + 3];
+  assert.equal(alphaAt(74, 56), 255, 'a nearby light garment detail must remain');
+  assert.equal(result.stats.removed_residue_components, 0);
+  assert.equal(result.stats.removed_residue_pixels, 0);
+});
+
+test('cutout follows a neutral floor gradient from the border without erasing footwear', async () => {
+  const width = 160;
+  const height = 120;
+  const background = Buffer.alloc(width * height * 3);
+  for (let y = 0; y < height; y += 1) {
+    const value = Math.round(248 - (34 * y) / (height - 1));
+    for (let x = 0; x < width; x += 1) {
+      const offset = (y * width + x) * 3;
+      background[offset] = value;
+      background[offset + 1] = value;
+      background[offset + 2] = value - 3;
+    }
+  }
+  const input = await sharp(background, { raw: { width, height, channels: 3 } })
+    .composite([
+      {
+        input: await solid(42, 70, { r: 65, g: 68, b: 70 }),
+        left: 59,
+        top: 12,
+      },
+      {
+        input: await solid(30, 18, { r: 216, g: 202, b: 184 }),
+        left: 65,
+        top: 82,
+      },
+    ])
+    .png()
+    .toBuffer();
+  const result = await removeBorderConnectedWhiteToAlpha(input, {
+    removeBorderConnectedNeutralGradient: true,
+    protectedSubjectBbox: [59, 12, 42, 88],
+  });
+  const { data, info } = await sharp(result.image).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const alphaAt = (x, y) => data[(y * info.width + x) * info.channels + 3];
+  assert.equal(alphaAt(10, 110), 0, 'the darker neutral floor gradient must become transparent');
+  assert.equal(alphaAt(70, 40), 255, 'the primary garment must remain');
+  assert.equal(alphaAt(75, 90), 255, 'light footwear must remain');
+  assert.ok(result.stats.removed_gradient_pixels > 0);
+  assert.equal(result.stats.border_gradient_cleanup, true);
+});
+
+test('gradient cleanup preserves a light primary connected to a similar neutral floor', async () => {
+  const width = 160;
+  const height = 120;
+  const background = Buffer.alloc(width * height * 3);
+  for (let y = 0; y < height; y += 1) {
+    const value = Math.round(248 - (34 * y) / (height - 1));
+    for (let x = 0; x < width; x += 1) {
+      const offset = (y * width + x) * 3;
+      background[offset] = value;
+      background[offset + 1] = value;
+      background[offset + 2] = value - 3;
+    }
+  }
+  const input = await sharp(background, { raw: { width, height, channels: 3 } })
+    .composite([{
+      input: await solid(42, 88, { r: 225, g: 225, b: 222 }),
+      left: 59,
+      top: 12,
+    }])
+    .png()
+    .toBuffer();
+  const result = await removeBorderConnectedWhiteToAlpha(input, {
+    removeBorderConnectedNeutralGradient: true,
+    protectedSubjectBbox: [59, 12, 42, 88],
+    removeDetachedLowContrastResidue: true,
+  });
+  const { data, info } = await sharp(result.image).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const alphaAt = (x, y) => data[(y * info.width + x) * info.channels + 3];
+  assert.equal(alphaAt(80, 20), 255, 'the light primary top must remain');
+  assert.equal(alphaAt(80, 95), 255, 'the light primary bottom must remain');
+  assert.deepEqual(result.stats.relative_subject_protection_bbox, {
+    left: 59,
+    top: 12,
+    width: 42,
+    height: 88,
+  });
+  assert.equal(result.stats.subject_protection_source, 'EXPLICIT_BBOX');
+  assert.equal(result.stats.border_gradient_cleanup_applied, true);
+  assert.equal(result.stats.gradient_cleanup_skipped_reason, null);
+});
+
+test('gradient cleanup fails closed for an off-center ambiguous light primary', async () => {
+  const width = 160;
+  const height = 120;
+  const background = Buffer.alloc(width * height * 3);
+  for (let y = 0; y < height; y += 1) {
+    const value = Math.round(248 - (34 * y) / (height - 1));
+    for (let x = 0; x < width; x += 1) {
+      const offset = (y * width + x) * 3;
+      background[offset] = value;
+      background[offset + 1] = value;
+      background[offset + 2] = value - 3;
+    }
+  }
+  const input = await sharp(background, { raw: { width, height, channels: 3 } })
+    .composite([{
+      input: await solid(42, 88, { r: 225, g: 225, b: 222 }),
+      left: 20,
+      top: 12,
+    }])
+    .png()
+    .toBuffer();
+  const result = await removeBorderConnectedWhiteToAlpha(input, {
+    removeBorderConnectedNeutralGradient: true,
+    removeDetachedLowContrastResidue: true,
+  });
+  const { data, info } = await sharp(result.image).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const alphaAt = (x, y) => data[(y * info.width + x) * info.channels + 3];
+  assert.equal(alphaAt(40, 20), 255, 'the off-center light primary top must remain');
+  assert.equal(alphaAt(40, 95), 255, 'the off-center light primary bottom must remain');
+  assert.equal(result.stats.relative_subject_protection_bbox, null);
+  assert.equal(result.stats.border_gradient_cleanup_applied, false);
+  assert.equal(result.stats.gradient_cleanup_skipped_reason, 'AMBIGUOUS_LOW_CONTRAST_SUBJECT');
+  assert.equal(result.stats.removed_gradient_pixels, 0);
+});
+
+test('gradient cleanup protects a light primary surrounding a small dark panel', async () => {
+  const width = 160;
+  const height = 120;
+  const background = Buffer.alloc(width * height * 3);
+  for (let y = 0; y < height; y += 1) {
+    const value = Math.round(248 - (34 * y) / (height - 1));
+    for (let x = 0; x < width; x += 1) {
+      const offset = (y * width + x) * 3;
+      background[offset] = value;
+      background[offset + 1] = value;
+      background[offset + 2] = value - 3;
+    }
+  }
+  const input = await sharp(background, { raw: { width, height, channels: 3 } })
+    .composite([
+      {
+        input: await solid(42, 88, { r: 225, g: 225, b: 222 }),
+        left: 59,
+        top: 12,
+      },
+      {
+        input: await solid(16, 16, { r: 55, g: 65, b: 70 }),
+        left: 72,
+        top: 50,
+      },
+    ])
+    .png()
+    .toBuffer();
+  const result = await removeBorderConnectedWhiteToAlpha(input, {
+    removeBorderConnectedNeutralGradient: true,
+    protectedSubjectBbox: [59, 12, 42, 88],
+    removeDetachedLowContrastResidue: true,
+  });
+  const { data, info } = await sharp(result.image).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const alphaAt = (x, y) => data[(y * info.width + x) * info.channels + 3];
+  assert.equal(alphaAt(80, 20), 255, 'the light primary top must remain');
+  assert.equal(alphaAt(80, 95), 255, 'the light primary bottom must remain');
+  assert.equal(alphaAt(80, 55), 255, 'the dark panel must remain');
+  assert.deepEqual(result.stats.relative_subject_protection_bbox, {
+    left: 59,
+    top: 12,
+    width: 42,
+    height: 88,
+  });
+  assert.equal(result.stats.border_gradient_cleanup_applied, true);
+});
+
+test('a threshold-sized central artifact cannot authorize deletion of an off-center light primary', async () => {
+  const width = 160;
+  const height = 120;
+  const background = Buffer.alloc(width * height * 3);
+  for (let y = 0; y < height; y += 1) {
+    const value = Math.round(248 - (34 * y) / (height - 1));
+    for (let x = 0; x < width; x += 1) {
+      const offset = (y * width + x) * 3;
+      background[offset] = value;
+      background[offset + 1] = value;
+      background[offset + 2] = value - 3;
+    }
+  }
+  const input = await sharp(background, { raw: { width, height, channels: 3 } })
+    .composite([
+      {
+        input: await solid(42, 88, { r: 225, g: 225, b: 222 }),
+        left: 20,
+        top: 12,
+      },
+      {
+        input: await solid(16, 24, { r: 55, g: 65, b: 70 }),
+        left: 72,
+        top: 48,
+      },
+    ])
+    .png()
+    .toBuffer();
+  const result = await removeBorderConnectedWhiteToAlpha(input, {
+    removeBorderConnectedNeutralGradient: true,
+    removeDetachedLowContrastResidue: true,
+  });
+  const { data, info } = await sharp(result.image).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const alphaAt = (x, y) => data[(y * info.width + x) * info.channels + 3];
+  assert.equal(alphaAt(40, 20), 255, 'the off-center light primary top must remain');
+  assert.equal(alphaAt(40, 95), 255, 'the off-center light primary bottom must remain');
+  assert.equal(alphaAt(80, 55), 255, 'the unrelated central artifact must remain');
+  assert.equal(result.stats.relative_subject_protection_bbox, null);
+  assert.equal(result.stats.border_gradient_cleanup_applied, false);
+  assert.equal(result.stats.gradient_cleanup_skipped_reason, 'AMBIGUOUS_LOW_CONTRAST_SUBJECT');
+  assert.equal(result.stats.removed_gradient_pixels, 0);
 });
 
 test('garment source alpha creates an isolated cutout and exact-white review card', async () => {

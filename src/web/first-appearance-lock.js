@@ -59,13 +59,66 @@ async function crop(bytes, region) {
     .png().toBuffer();
 }
 
+async function reopenImmutableLock({ recordPath, outputDirectory, runId, approvedLookSha256 }) {
+  let bytes;
+  try {
+    bytes = await readFile(recordPath);
+  } catch (error) {
+    if (error?.code === 'ENOENT') return null;
+    throw error;
+  }
+
+  let record;
+  try {
+    record = JSON.parse(bytes.toString('utf8'));
+  } catch {
+    throw new Error('Immutable first-appearance record is not valid JSON');
+  }
+  if (record?.kind !== 'FIRST_APPEARANCE_ITEM_LOCK'
+    || record.run_id !== runId
+    || record.approved_look_sha256 !== approvedLookSha256
+    || !Array.isArray(record.items)
+    || record.items.length !== 2
+    || record.items[0]?.category !== 'bottom'
+    || record.items[1]?.category !== 'footwear') {
+    throw new Error('Immutable first-appearance record conflicts with this approved look');
+  }
+
+  const lockRoot = `${path.resolve(outputDirectory)}${path.sep}`;
+  for (const item of record.items) {
+    for (const artifact of [item.source, item.reference_card, item.cutout]) {
+      if (!artifact || typeof artifact.path !== 'string' || typeof artifact.sha256 !== 'string'
+        || !path.resolve(artifact.path).startsWith(lockRoot)) {
+        throw new Error('Immutable first-appearance record contains an invalid artifact binding');
+      }
+      const artifactBytes = await readFile(artifact.path);
+      if (sha256(artifactBytes) !== artifact.sha256) {
+        throw new Error(`Immutable first-appearance artifact hash mismatch: ${path.basename(artifact.path)}`);
+      }
+    }
+  }
+  return { record, recordPath, items: record.items };
+}
+
 /**
  * Creates evidence only from pixels already visible in a white-background
  * full-body approved look. It never calls an image generator.
  */
 export async function lockFirstAppearance({ approvedLookPath, outputDirectory, runId, vlm, clock = () => new Date() }) {
   const look = await readFile(approvedLookPath);
-  const isolated = await removeBorderConnectedWhiteToAlpha(look);
+  const recordPath = path.join(outputDirectory, 'lock.json');
+  const approvedLookSha256 = sha256(look);
+  const existing = await reopenImmutableLock({
+    recordPath,
+    outputDirectory,
+    runId,
+    approvedLookSha256,
+  });
+  if (existing) return existing;
+  const isolated = await removeBorderConnectedWhiteToAlpha(look, {
+    removeBorderConnectedNeutralGradient: true,
+    removeDetachedLowContrastResidue: true,
+  });
   const { data, info } = await sharp(isolated.image).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   const bounds = visibleBounds(data, info);
   if (!bounds || bounds.height < info.height * 0.55) {
@@ -86,7 +139,14 @@ export async function lockFirstAppearance({ approvedLookPath, outputDirectory, r
     await writeImmutable(filename, bytes);
     sourcePaths.push(filename);
   }
-  const passport = await vlm.inspectGarments(sourcePaths);
+  // This is a separate VLM observation boundary from the user's garment
+  // upload. It only classifies two deterministic crops produced from the
+  // already approved white-background look; callers can therefore preserve
+  // their upload-passport behaviour without weakening this lock.
+  const passport = await vlm.inspectGarments(sourcePaths, {
+    purpose: 'FIRST_APPEARANCE_LOCK',
+    required_categories: ['bottom', 'footwear'],
+  });
   if (passport?.status !== 'READY' || !Array.isArray(passport.items) || passport.items.length !== 2) {
     throw new FirstAppearanceNeedsInputError('First-appearance crops could not be identified reliably', { passport });
   }
@@ -97,7 +157,10 @@ export async function lockFirstAppearance({ approvedLookPath, outputDirectory, r
       throw new FirstAppearanceNeedsInputError('First-appearance crop category is not reliably visible', { expected: expected.category, observed });
     }
     const source = await readFile(sourcePaths[index]);
-    const cutout = await removeBorderConnectedWhiteToAlpha(source);
+    const cutout = await removeBorderConnectedWhiteToAlpha(source, {
+      removeBorderConnectedNeutralGradient: true,
+      removeDetachedLowContrastResidue: true,
+    });
     const directory = path.join(outputDirectory, String(index + 1).padStart(2, '0'));
     const referenceCard = path.join(directory, 'reference-card.png');
     const cutoutPath = path.join(directory, 'cutout.png');
@@ -121,12 +184,11 @@ export async function lockFirstAppearance({ approvedLookPath, outputDirectory, r
   }
   const record = {
     schema_version: '1.0.0', kind: 'FIRST_APPEARANCE_ITEM_LOCK', run_id: runId,
-    approved_look_sha256: sha256(look), provenance: 'OBSERVED_FROM_APPROVED_LOOK',
+    approved_look_sha256: approvedLookSha256, provenance: 'OBSERVED_FROM_APPROVED_LOOK',
     policy: 'LOCK_ON_FIRST_APPEARANCE', immutable_after_creation: true,
     items: locked.map(({ source, reference_card, cutout, ...item }) => ({ ...item, source, reference_card, cutout })),
     created_at: clock().toISOString(),
   };
-  const recordPath = path.join(outputDirectory, 'lock.json');
   await writeImmutable(recordPath, Buffer.from(`${JSON.stringify(record, null, 2)}\n`));
   return { record, recordPath, items: locked };
 }

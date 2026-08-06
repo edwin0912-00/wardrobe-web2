@@ -33,7 +33,7 @@ function receipt({
   verdict = 'PASS',
   assetStatus = verdict,
   presetId = 'std.city.golden_hour_gloss',
-  expectedRange = [74, 78],
+  expectedRange = [70, 80],
   subjectHeight = 76,
   minAbove = 8,
   minBelow = 2,
@@ -63,8 +63,8 @@ function receipt({
         sha256: 'b'.repeat(64),
         status: assetStatus,
         framing_evidence: {
-          canvas_width: 1024,
-          canvas_height: 1280,
+          canvas_width: 1536,
+          canvas_height: 2048,
           subject_bbox_xywh_px: [100, 0, 824, 1088],
           expected_subject_height_percent: expectedRange,
           subject_height_percent: subjectHeight,
@@ -150,8 +150,8 @@ test('PASS receipt accepts exact preset framing contract and ordered PASS gates'
 test('PASS receipt rejects each measured framing violation', async () => {
   const validate = await validator();
   const violations = [
-    ['subject below preset range', { subjectHeight: 73.99 }],
-    ['subject above preset range', { subjectHeight: 78.01 }],
+    ['subject below preset range', { subjectHeight: 69.99 }],
+    ['subject above preset range', { subjectHeight: 80.01 }],
     ['insufficient space above hair', { clearAbove: 7.99 }],
     ['insufficient space below footwear', { clearBelow: 1.99 }],
     ['cropped head', { fullHead: false }],

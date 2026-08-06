@@ -90,7 +90,7 @@ function executorFixture({ heroFrame = null, heroOutput = null } = {}) {
   return { calls, executor: new EditorialSceneExecutor({ sceneService, presetResolver }) };
 }
 
-function shotContext(slot, { heroOutput = null } = {}) {
+function shotContext(slot, { heroOutput = null, modeId = 'editorial.edwin_novak.organic_contrast' } = {}) {
   return {
     idempotency_key: sha256(`editorial-anchor-${slot}`),
     approved_look: {
@@ -100,7 +100,7 @@ function shotContext(slot, { heroOutput = null } = {}) {
     },
     shoot_bible: {
       bible_id: 'bible_editorial_fixture_1_0_0',
-      mode_id: 'editorial.edwin_novak.organic_contrast',
+      mode_id: modeId,
       mode_version: '1.0.0',
       sha256: 'a'.repeat(64),
     },
@@ -120,6 +120,44 @@ test('the hero shot binds only its own blocking diagram and no continuity anchor
   assert.deepEqual(calls[0].shotAnchorReferences.map((anchor) => anchor.role), ['blocking_topdown']);
   assert.equal(calls[0].shotAnchorReferences[0].sha256, declared.sha256);
   assert.equal(calls[0].shotAnchorReferences[0].reference_id, 'blocking.v1.clean_identity_hero');
+});
+
+test('a Create Universe shot binds its exact slot geometry anchor before any hero exists', async () => {
+  const { calls, executor } = executorFixture();
+  await executor.executeShot(shotContext('sculptural_three_quarter', {
+    modeId: 'shoot.terracotta_hardlight',
+  }));
+  const declared = await editorialBlockingReference({
+    shotSpec: { slot: 'sculptural_three_quarter', camera: SHOT_CAMERA.sculptural_three_quarter },
+  });
+  assert.deepEqual(calls[0].shotAnchorReferences.map((anchor) => anchor.role), ['blocking_topdown']);
+  assert.equal(calls[0].shotAnchorReferences[0].sha256, declared.sha256);
+  assert.equal(calls[0].shotAnchorReferences[0].reference_id, 'blocking.v1.sculptural_three_quarter');
+});
+
+test('a Create Universe post-hero shot binds slot geometry plus its approved hero continuity frame', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'zeely-cu-hero-anchor-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const heroBytes = await readFile(path.join(EDITORIAL_BLOCKING_DIRECTORY, 'clean_identity_hero.png'));
+  const heroFrame = path.join(root, 'hero.png');
+  await writeFile(heroFrame, heroBytes);
+  const heroOutput = {
+    resource_id: 'scene_create_universe_hero_fixture',
+    sha256: sha256(heroBytes),
+    receipt_sha256: 'd'.repeat(64),
+    width: 1024,
+    height: 1280,
+    media_type: 'image/png',
+  };
+  const { calls, executor } = executorFixture({ heroFrame, heroOutput });
+  await executor.executeShot(shotContext('environmental_hero', {
+    modeId: 'shoot.terracotta_hardlight',
+    heroOutput,
+  }));
+  assert.deepEqual(calls[0].shotAnchorReferences.map((anchor) => anchor.role), [
+    'blocking_topdown',
+    'hero_continuity_anchor',
+  ]);
 });
 
 test('each of the five post-hero shots binds its own blocking diagram plus the approved hero frame', async (t) => {

@@ -12,6 +12,7 @@ export const EDITORIAL_SHOT_SLOTS = Object.freeze([
 ]);
 
 export const EDITORIAL_HERO_SLOT = EDITORIAL_SHOT_SLOTS[0];
+export const EDITORIAL_AUTO_REPAIR_MAX_RETRIES = 5;
 
 export const EDITORIAL_MODE_IDS = Object.freeze([
   'editorial.edwin_novak.organic_contrast',
@@ -34,6 +35,25 @@ export const EDITORIAL_MODE_IDS = Object.freeze([
   'shoot.rooftop_veil_monochrome',
   'shoot.autumn_park_mediated_sun',
 ]);
+
+// A customer Fashion Shoot is always the same five-frame product.  The two
+// older, still-published Edwin programmes are customer styles too; treating
+// their id prefix as a product rule accidentally hid them behind a technical
+// hero/"Continue" step.  Preview-only and blocked records deliberately stay
+// out of this list.
+export const DIRECT_FIVE_FASHION_SHOOT_MODE_IDS = Object.freeze([
+  'editorial.edwin_novak.organic_contrast',
+  'editorial.edwin_novak.urban_monochrome',
+  ...EDITORIAL_MODE_IDS.filter((modeId) => (
+    modeId.startsWith('shoot.') && modeId !== 'shoot.hardsun_street_monochrome'
+  )),
+]);
+
+const DIRECT_FIVE_FASHION_SHOOT_MODE_ID_SET = new Set(DIRECT_FIVE_FASHION_SHOOT_MODE_IDS);
+
+export function isDirectFiveFashionShootModeId(modeId) {
+  return typeof modeId === 'string' && DIRECT_FIVE_FASHION_SHOOT_MODE_ID_SET.has(modeId);
+}
 
 export const EDITORIAL_QA_GATES = Object.freeze([
   'MASTER_LOOK_LOCK',
@@ -88,6 +108,15 @@ const SOURCE_ROLES = new Set([
 ]);
 const FRAMINGS = new Set(['full_body', 'three_quarter', 'detail', 'wide_full_body']);
 const IDENTITY_VISIBILITY = new Set(['full_face', 'partial_face', 'not_intended']);
+
+function isEditorialOutputCanvas(output) {
+  // 1536×2048 is the current native 3:4 SceneService delivery. The 1024×1280
+  // branch is read-only compatibility for already delivered 4:5 editorial
+  // assets; new provider execution cannot produce it because SceneService
+  // independently enforces its native delivery before this boundary.
+  return (output.width === 1536 && output.height === 2048)
+    || (output.width === 1024 && output.height === 1280);
+}
 const GATE_IDS = new Set(EDITORIAL_QA_GATES);
 const SHOT_STATES = new Set(Object.values(EDITORIAL_SHOT_STATES));
 const SHOOT_STATES = new Set(Object.values(EDITORIAL_SHOOT_STATES));
@@ -252,7 +281,9 @@ function validateShotSpec(shot, index) {
       'objective',
       'camera',
       'pose',
+      'expression_signature',
       'lighting',
+      'subject_lighting',
       'environment',
       'palette',
       'identity_visibility',
@@ -296,7 +327,9 @@ function validateShotSpec(shot, index) {
     objective: nonEmptyText(shot.objective, `${label}.objective`, 1_000),
     camera,
     pose: nonEmptyText(shot.pose, `${label}.pose`, 1_000),
+    expression_signature: nonEmptyText(shot.expression_signature, `${label}.expression_signature`, 1_000),
     lighting: nonEmptyText(shot.lighting, `${label}.lighting`, 1_000),
+    subject_lighting: nonEmptyText(shot.subject_lighting, `${label}.subject_lighting`, 1_500),
     environment: nonEmptyText(shot.environment, `${label}.environment`, 1_000),
     palette: nonEmptyText(shot.palette, `${label}.palette`, 500),
     identity_visibility: shot.identity_visibility,
@@ -464,8 +497,8 @@ export function validateEditorialExecutionResult(result, {
     if (output.sha256 !== qa.candidate_sha256) {
       throw new Error('Editorial output and QA candidate hashes must match');
     }
-    if (output.width !== 1024 || output.height !== 1280 || output.media_type !== 'image/png') {
-      throw new Error('Editorial output must be exact 1024×1280 lossless PNG');
+    if (!isEditorialOutputCanvas(output) || output.media_type !== 'image/png') {
+      throw new Error('Editorial output must be current 1536×2048 PNG or a preserved legacy 1024×1280 PNG');
     }
   } else if (result.output !== null) {
     throw new Error('A failed editorial shot cannot publish an output');
@@ -621,8 +654,8 @@ export function validatePersistedEditorialShoot(state, expectedShootId = null) {
     assertEditorialId(output.resource_id, `${label}.resource_id`);
     assertEditorialSha256(output.sha256, `${label}.sha256`);
     assertEditorialSha256(output.receipt_sha256, `${label}.receipt_sha256`);
-    if (output.width !== 1024 || output.height !== 1280 || output.media_type !== 'image/png') {
-      throw new Error(`${label} must be exact 1024×1280 PNG`);
+    if (!isEditorialOutputCanvas(output) || output.media_type !== 'image/png') {
+      throw new Error(`${label} must be current 1536×2048 PNG or preserved legacy 1024×1280 PNG`);
     }
     return output;
   };
@@ -772,6 +805,13 @@ export function validatePersistedEditorialShoot(state, expectedShootId = null) {
   }
   const hero = state.shots[0];
   const heroApproved = hero.status === EDITORIAL_SHOT_STATES.APPROVED;
+  // Keep the persisted-state validator on exactly the same product decision as
+  // the scheduler. A namespace prefix is not a workflow contract: two
+  // published legacy Fashion Shoot styles use `editorial.*` and still start
+  // their five customer frames directly.
+  const parallelFashionShoot = isDirectFiveFashionShootModeId(
+    state.bindings.shoot_bible.mode_id,
+  );
   if (state.hero_approval) {
     if (!heroApproved
       || state.hero_approval.output_sha256 !== hero.output?.sha256
@@ -779,13 +819,26 @@ export function validatePersistedEditorialShoot(state, expectedShootId = null) {
       throw new Error('Persisted hero approval is not bound to the approved hero output');
     }
   }
-  if (!heroApproved && state.shots.slice(1).some((shot) => shot.status !== EDITORIAL_SHOT_STATES.BLOCKED
+  if (parallelFashionShoot && state.bible_approval) {
+    const directFiveFrameStart = hero.status === EDITORIAL_SHOT_STATES.CANCELLED
+      && state.hero_approval === null;
+    // Pre-change smoke shoots already have an immutable passed hero. They may
+    // enter the new five-frame scheduler through its existing exact-hash
+    // approval record; new shoots use the direct path above.
+    const legacyHeroMigration = hero.status === EDITORIAL_SHOT_STATES.APPROVED
+      && state.hero_approval !== null;
+    if (!directFiveFrameStart && !legacyHeroMigration) {
+      throw new Error('Parallel Fashion Shoot must not retain a hidden hero barrier');
+    }
+  } else if (!heroApproved && state.shots.slice(1).some((shot) => shot.status !== EDITORIAL_SHOT_STATES.BLOCKED
     && shot.status !== EDITORIAL_SHOT_STATES.CANCELLED)) {
     throw new Error('Editorial hero barrier was bypassed in persisted state');
   }
   if (state.status === EDITORIAL_SHOOT_STATES.COMPLETED
-    && state.shots.some((shot) => shot.status !== EDITORIAL_SHOT_STATES.APPROVED)) {
-    throw new Error('A completed editorial shoot must have six approved exact-hash shots');
+    && (parallelFashionShoot
+      ? state.shots.slice(1).some((shot) => shot.status !== EDITORIAL_SHOT_STATES.APPROVED)
+      : state.shots.some((shot) => shot.status !== EDITORIAL_SHOT_STATES.APPROVED))) {
+    throw new Error('A completed shoot must have every required exact-hash frame approved');
   }
   if (state.cancellation !== null) {
     assertExactKeys(

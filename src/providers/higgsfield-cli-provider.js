@@ -36,6 +36,30 @@ export const HIGGSFIELD_IMAGE_MODELS = Object.freeze({
   }),
 });
 
+// The provider CLI uses a different public alias for Nano Banana Pro than the
+// internal route name used by the pipeline. Keep this translation at the
+// adapter boundary: journals, idempotency keys and receipts remain bound to
+// the internal model (`nano_banana_2`), while argv and provider responses use
+// the CLI model (`nano_banana_pro`).
+const HIGGSFIELD_CLI_IMAGE_MODELS = Object.freeze({
+  gpt_image_2: 'gpt_image_2',
+  nano_banana_flash: 'nano_banana_flash',
+  nano_banana_2: 'nano_banana_pro',
+});
+
+const HIGGSFIELD_INTERNAL_BY_CLI_MODEL = Object.freeze({
+  gpt_image_2: 'gpt_image_2',
+  nano_banana_flash: 'nano_banana_flash',
+  nano_banana_pro: 'nano_banana_2',
+});
+
+function canonicalReportedModel(value) {
+  if (typeof value !== 'string' || value.trim() === '') return null;
+  const model = value.trim();
+  if (Object.hasOwn(HIGGSFIELD_IMAGE_MODELS, model)) return model;
+  return HIGGSFIELD_INTERNAL_BY_CLI_MODEL[model] ?? null;
+}
+
 export class HiggsfieldProviderError extends Error {
   constructor(message, { code = 'HIGGSFIELD_PROVIDER_ERROR', retryable = false, cause } = {}) {
     super(message, { cause });
@@ -74,6 +98,70 @@ function modelSpec(model) {
   return spec;
 }
 
+// The provider instance has conservative defaults for legacy callers. New
+// pipeline attempts carry their immutable request profile in context, which is
+// validated here rather than trusted as arbitrary UI input.
+function resolveRequestConfig(context, model, defaults) {
+  const spec = modelSpec(model);
+  const profile = context?.generation_profile;
+  if (profile !== undefined && (!profile || typeof profile !== 'object' || Array.isArray(profile))) {
+    throw new HiggsfieldProviderError('generation_profile must be an object', {
+      code: 'INVALID_GENERATION_PROFILE', retryable: false,
+    });
+  }
+  const profileId = profile?.id;
+  if (profileId !== undefined && (typeof profileId !== 'string' || profileId.trim() === '')) {
+    throw new HiggsfieldProviderError('generation_profile.id must be a non-empty string', {
+      code: 'INVALID_GENERATION_PROFILE', retryable: false,
+    });
+  }
+  const choose = (field, fallback) => {
+    const direct = context?.[field];
+    const declared = profile?.[field];
+    if (direct !== undefined && declared !== undefined && direct !== declared) {
+      throw new HiggsfieldProviderError(`generation_profile.${field} conflicts with generation context`, {
+        code: 'GENERATION_PROFILE_CONFLICT', retryable: false,
+      });
+    }
+    return declared ?? direct ?? fallback;
+  };
+  const aspectRatio = choose('aspect_ratio', defaults.aspectRatio);
+  const resolution = choose('resolution', defaults.resolution);
+  const quality = choose('quality', defaults.quality);
+  assertChoice(aspectRatio, spec.aspectRatios, 'aspect_ratio');
+  assertChoice(resolution, spec.resolutions, 'resolution');
+  if (spec.qualities) assertChoice(quality, spec.qualities, 'quality');
+  return Object.freeze({
+    aspectRatio,
+    resolution,
+    quality: spec.qualities ? quality : null,
+    generationProfile: profile ? Object.freeze({
+      ...(profileId ? { id: profileId } : {}),
+      ...(typeof profile.repair_kind === 'string' ? { repair_kind: profile.repair_kind } : {}),
+      resolution,
+      ...(spec.qualities ? { quality } : {}),
+    }) : null,
+  });
+}
+
+function assertReturnedRequestConfig(job, expected, spec) {
+  const params = job?.params;
+  if (!params || typeof params !== 'object') return;
+  const actual = {
+    aspectRatio: params.aspect_ratio,
+    resolution: params.resolution,
+    quality: params.quality,
+  };
+  for (const [field, value] of Object.entries(actual)) {
+    if (field === 'quality' && !spec.qualities) continue;
+    if (value !== undefined && value !== null && value !== expected[field]) {
+      throw new HiggsfieldProviderError(`Higgsfield completed job ${field} differs from the immutable request`, {
+        code: 'GENERATION_CONFIG_MISMATCH', retryable: false,
+      });
+    }
+  }
+}
+
 function artifactDescriptor(value, role) {
   const artifact = value?.artifact ?? value;
   if (!artifact || typeof artifact.path !== 'string' || artifact.path.trim() === '') return null;
@@ -84,7 +172,7 @@ function artifactDescriptor(value, role) {
   };
 }
 
-function orderedPackDescriptors(phase, references, maxOrdered) {
+function orderedPackDescriptors(phase, references, maxOrdered, requestedModel) {
   if (!Array.isArray(references?.ordered)) return null;
   if (references.ordered.length === 0 || references.ordered.length > maxOrdered) {
     throw new HiggsfieldProviderError(`references.ordered must contain 1–${maxOrdered} media bindings`, {
@@ -188,14 +276,42 @@ function orderedPackDescriptors(phase, references, maxOrdered) {
       retryable: false,
     });
   }
-  if (phase === 'scene' && result[0]?.scope !== 'avatar') {
-    throw new HiggsfieldProviderError('Scene generation must begin with the approved outfit still', {
+  const sceneGuideFirst = phase === 'scene'
+    && result[0]?.role === 'MECHANICAL_FRAMING_GUIDE';
+  if (sceneGuideFirst
+    && requestedModel !== undefined
+    && requestedModel !== 'gpt_image_2') {
+    throw new HiggsfieldProviderError('Only gpt_image_2 may use the mechanical guide as Image 1; this route requires the approved look master first and the guide second', {
+      code: 'INVALID_SCENE_REFERENCE_ORDER',
+      retryable: false,
+    });
+  }
+  const sceneApprovedIndex = sceneGuideFirst ? 1 : 0;
+  if (phase === 'scene' && (
+    result[sceneApprovedIndex]?.scope !== 'avatar'
+    || result[sceneApprovedIndex]?.role !== 'APPROVED_LOOK_MASTER'
+  )) {
+    throw new HiggsfieldProviderError('Scene generation requires the approved outfit master first, or second only when Image 1 is the mechanical base canvas', {
       code: 'MISSING_APPROVED_OUTFIT',
       retryable: false,
     });
   }
-  if (phase === 'scene' && result.slice(1).some((item) => item.scope === 'avatar')) {
-    throw new HiggsfieldProviderError('The approved outfit may appear only once and first in scene generation', {
+  if (phase === 'scene' && result.some((item, index) => (
+    item.scope === 'avatar' && index !== sceneApprovedIndex
+  ))) {
+    throw new HiggsfieldProviderError('The approved outfit may appear only once in the canonical scene base position', {
+      code: 'INVALID_SCENE_REFERENCE_ORDER',
+      retryable: false,
+    });
+  }
+  const guideBindings = phase === 'scene'
+    ? result.filter((item) => item.role === 'MECHANICAL_FRAMING_GUIDE')
+    : [];
+  if (phase === 'scene' && (
+    guideBindings.length > 1
+    || (guideBindings.length === 1 && ![0, 1].includes(result.indexOf(guideBindings[0])))
+  )) {
+    throw new HiggsfieldProviderError('The optional mechanical guide must be Image 1 base canvas or immediately follow the approved master', {
       code: 'INVALID_SCENE_REFERENCE_ORDER',
       retryable: false,
     });
@@ -207,14 +323,15 @@ function orderedPackDescriptors(phase, references, maxOrdered) {
       retryable: false,
     });
   }
+  const expectedRepairIndex = guideBindings.length === 1 ? 2 : 1;
   if (phase === 'scene' && (
     repairBindings.length > 1
     || (repairBindings.length === 1 && (
-      result[1] !== repairBindings[0]
+      result[expectedRepairIndex] !== repairBindings[0]
       || repairBindings[0].role !== 'FAILED_SCENE_CANDIDATE'
     ))
   )) {
-    throw new HiggsfieldProviderError('Scene repair accepts at most one FAILED_SCENE_CANDIDATE immediately after the approved look', {
+    throw new HiggsfieldProviderError('Scene repair accepts at most one FAILED_SCENE_CANDIDATE immediately after the base canvas and approved look', {
       code: 'INVALID_SCENE_REPAIR_BINDING',
       retryable: false,
     });
@@ -233,14 +350,17 @@ function orderedPackDescriptors(phase, references, maxOrdered) {
 // that does not know better. A transport that accepts more says how many: the
 // OpenRouter chat transport takes ten, and capping it at eight there silently threw
 // away conditioning the request had already paid to prepare.
-export function orderedReferenceDescriptors(phase, references, { maxOrdered = 8 } = {}) {
+export function orderedReferenceDescriptors(phase, references, {
+  maxOrdered = 8,
+  requestedModel,
+} = {}) {
   if (!references || typeof references !== 'object') {
     throw new HiggsfieldProviderError('Generation references are required', {
       code: 'MISSING_REFERENCES',
       retryable: false,
     });
   }
-  const packDescriptors = orderedPackDescriptors(phase, references, maxOrdered);
+  const packDescriptors = orderedPackDescriptors(phase, references, maxOrdered, requestedModel);
   if (packDescriptors) return packDescriptors;
   const ordered = phase === 'outfit'
     ? [
@@ -454,7 +574,7 @@ function buildHiggsfieldCreateBaseArgs({
   assertChoice(aspectRatio, spec.aspectRatios, 'aspect_ratio');
   assertChoice(resolution, spec.resolutions, 'resolution');
   const args = [
-    'generate', 'create', model,
+    'generate', 'create', HIGGSFIELD_CLI_IMAGE_MODELS[model] ?? model,
     '--prompt', prompt,
     '--aspect_ratio', aspectRatio,
     '--resolution', resolution,
@@ -570,7 +690,16 @@ function parseCompletedJob(stdout, requestedModel, { allowArray = true, expected
       retryable: true,
     });
   }
-  if (payload.job_set_type !== requestedModel) {
+  const reportedFields = ['job_set_type', 'job_type']
+    .filter((field) => Object.hasOwn(payload, field))
+    .map((field) => ({ field, model: canonicalReportedModel(payload[field]) }));
+  const reportedModels = reportedFields.map(({ model }) => model);
+  const canonicalRequestedModel = canonicalReportedModel(requestedModel);
+  if (!canonicalRequestedModel
+    || reportedFields.length === 0
+    || reportedModels.some((model) => model === null)
+    || new Set(reportedModels).size !== 1
+    || reportedModels[0] !== canonicalRequestedModel) {
     throw new HiggsfieldProviderError('Higgsfield response model does not match the requested model', {
       code: 'MODEL_RESPONSE_MISMATCH',
       retryable: false,
@@ -594,7 +723,7 @@ function parseCompletedJob(stdout, requestedModel, { allowArray = true, expected
       retryable: true,
     });
   }
-  return payload;
+  return { ...payload, job_set_type: canonicalRequestedModel };
 }
 
 function sha256Json(value) {
@@ -1017,16 +1146,17 @@ export class HiggsfieldCliProvider {
     return commandResult;
   }
 
-  #requestRecord(context, model, descriptors) {
+  #requestRecord(context, model, descriptors, requestConfig) {
     return {
       job_set_type: model,
       phase: context.phase,
       attempt: context.attempt,
       runner_job_id: context.jobId,
       prompt_sha256: createHash('sha256').update(context.prompt).digest('hex'),
-      aspect_ratio: this.aspectRatio,
-      resolution: this.resolution,
-      quality: HIGGSFIELD_IMAGE_MODELS[model].qualities ? this.quality : null,
+      aspect_ratio: requestConfig.aspectRatio,
+      resolution: requestConfig.resolution,
+      quality: requestConfig.quality,
+      generation_profile: requestConfig.generationProfile,
       input_media: descriptors.map((item, index) => ({
         order: index + 1,
         scope: item.scope ?? null,
@@ -1070,9 +1200,9 @@ export class HiggsfieldCliProvider {
     return journal;
   }
 
-  async #journaledJob(context, model, descriptors) {
+  async #journaledJob(context, model, descriptors, requestConfig) {
     const journalPath = this.#journalPath(context);
-    const request = this.#requestRecord(context, model, descriptors);
+    const request = this.#requestRecord(context, model, descriptors, requestConfig);
     const requestSha256 = sha256Json(request);
     const existing = await readProviderJournal(journalPath);
     let journal;
@@ -1087,9 +1217,9 @@ export class HiggsfieldCliProvider {
         model,
         prompt: context.prompt,
         mediaPaths: descriptors.map((item) => item.path),
-        aspectRatio: this.aspectRatio,
-        resolution: this.resolution,
-        quality: this.quality,
+        aspectRatio: requestConfig.aspectRatio,
+        resolution: requestConfig.resolution,
+        quality: requestConfig.quality ?? this.quality,
       });
       const created = await this.#runCommand(createArgs, { operation: 'create', retryable: false });
       const providerJobId = parseCreatedJobId(created.stdout);
@@ -1215,8 +1345,15 @@ export class HiggsfieldCliProvider {
         retryable: false,
       });
     }
-    const descriptors = orderedReferenceDescriptors(phase, context.references);
+    const descriptors = orderedReferenceDescriptors(phase, context.references, {
+      requestedModel: model,
+    });
     await validateMedia(descriptors);
+    const requestConfig = resolveRequestConfig(context, model, {
+      aspectRatio: this.aspectRatio,
+      resolution: this.resolution,
+      quality: this.quality,
+    });
     let job;
     let journalInfo;
     if (this.generationMode === 'oneshot') {
@@ -1224,18 +1361,19 @@ export class HiggsfieldCliProvider {
         model,
         prompt: context.prompt,
         mediaPaths: descriptors.map((item) => item.path),
-        aspectRatio: this.aspectRatio,
-        resolution: this.resolution,
-        quality: this.quality,
+        aspectRatio: requestConfig.aspectRatio,
+        resolution: requestConfig.resolution,
+        quality: requestConfig.quality ?? this.quality,
         waitTimeout: this.waitTimeout,
         waitInterval: this.waitInterval,
       });
       const commandResult = await this.#runCommand(args, { operation: 'oneshot', retryable: true });
       job = parseCompletedJob(commandResult.stdout, model);
     } else {
-      journalInfo = await this.#journaledJob(context, model, descriptors);
+      journalInfo = await this.#journaledJob(context, model, descriptors, requestConfig);
       job = journalInfo.job;
     }
+    assertReturnedRequestConfig(job, requestConfig, spec);
 
     let resultUrl;
     let image;
@@ -1315,9 +1453,10 @@ export class HiggsfieldCliProvider {
         job_set_type: model,
         model_name: job.display_name ?? spec.displayName,
         provider_internal_model: job.params?.model,
-        aspect_ratio: job.params?.aspect_ratio ?? this.aspectRatio,
-        resolution: job.params?.resolution ?? this.resolution,
-        quality: job.params?.quality ?? (spec.qualities ? this.quality : undefined),
+        aspect_ratio: job.params?.aspect_ratio ?? requestConfig.aspectRatio,
+        resolution: job.params?.resolution ?? requestConfig.resolution,
+        quality: job.params?.quality ?? (spec.qualities ? requestConfig.quality : undefined),
+        ...(requestConfig.generationProfile ? { generation_profile: requestConfig.generationProfile } : {}),
         result_url: stableUrlForProvenance(resultUrl),
         result_url_sha256: createHash('sha256').update(job.result_url).digest('hex'),
         output_sha256: imageSha256,

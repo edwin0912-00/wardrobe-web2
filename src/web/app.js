@@ -4,6 +4,7 @@ import path from 'node:path';
 import Fastify from 'fastify';
 import multipart from '@fastify/multipart';
 import fastifyStatic from '@fastify/static';
+import sharp from 'sharp';
 import { registerMonitorRoutes } from '../monitor/routes.js';
 import { publicManifestView } from '../runner/public-manifest.js';
 import { installDemoAuth } from './demo-auth.js';
@@ -23,6 +24,34 @@ import {
   registerVideoSourceBridgeRoutes,
 } from './video-source-bridge.js';
 import { registerHeicConversionRoute } from './heic-converter.js';
+import { registerGodViewRoutes } from './god-view-routes.js';
+import { registerTestAuditRoutes } from './test-audit-routes.js';
+
+const PUBLIC_ERROR_CODE = /^[A-Z][A-Z0-9_]{1,119}$/;
+const PUBLIC_ERROR_COPY = Object.freeze({
+  PROVIDER_INPUT_MEDIA_IP_CHECK_PENDING: 'Вхідне медіа ще проходить перевірку. Запуск не почався.',
+  PROVIDER_JOB_NOT_FOUND: 'Постачальник більше не бачить цю спробу.',
+  PROVIDER_JOB_FAILED: 'Постачальник завершив цю спробу без результату.',
+  PROVIDER_COMMAND_FAILED: 'Постачальник не зміг завершити запит.',
+  MODEL_RESPONSE_MISMATCH: 'Відповідь моделі не відповідає очікуваному маршруту.',
+  IMAGE_TOO_SMALL: 'Це зображення замале для надійної підготовки.',
+  UNSUPPORTED_MEDIA_TYPE: 'Цей формат зображення не підтримується.',
+});
+
+function publicErrorCode(value) {
+  return typeof value === 'string' && PUBLIC_ERROR_CODE.test(value)
+    ? value
+    : null;
+}
+
+function publicErrorMessage(error, code) {
+  if (code && PUBLIC_ERROR_COPY[code]) return PUBLIC_ERROR_COPY[code];
+  // Input errors are authored by the validation contract and describe the
+  // user’s supplied material. Provider/model diagnostics are intentionally
+  // not passed through as free-form browser copy.
+  if (error.status === 'NEEDS_INPUT') return sanitizeOutboundString(error.message);
+  return 'Дію зупинено. Перевірте код і наступну дію.';
+}
 
 export async function createWebApp({
   service,
@@ -38,20 +67,30 @@ export async function createWebApp({
   lucyTokenIssuer = null,
   videoService = null,
   videoSourceBridge = null,
+  releaseIdentity = null,
+  godViewAuth = null,
+  testAudit = null,
 }) {
-  // A degraded provider preflight means the configured transport is not ready.
-  // Do not let a user enter the pipeline only to fail later ambiguously.
-  const generationAvailable = health.status !== 'degraded';
+  // A degraded provider preflight means the configured OpenRouter transport is
+  // not ready. Do not let a user enter the pipeline only to fail later with an
+  // ambiguous provider-create message.
+  //
+  // `health` is the boot snapshot; `healthProvider` is the latest cached
+  // provider preflight. The latter matters when a short CLI/network failure
+  // occurs exactly while the daemon starts: a later healthy preflight must
+  // reopen the journey without waiting for a manual process restart.
   const currentHealth = async () => {
-    const runtime = typeof healthProvider === 'function' ? await healthProvider() : null;
-    return {
+    const latest = typeof healthProvider === 'function' ? await healthProvider() : null;
+    const resolved = {
       ...health,
-      ...(runtime ? {
-        runtime_status: runtime.status,
-        ...(runtime.status === 'ready' ? {} : { status: 'degraded' }),
-      } : {}),
+      ...(latest && typeof latest === 'object' ? latest : {}),
     };
+    if (resolved.runtime_status && resolved.runtime_status !== 'ready') {
+      return { ...resolved, status: 'degraded' };
+    }
+    return resolved;
   };
+  const generationAvailable = (resolvedHealth) => ['ready', 'ok'].includes(resolvedHealth?.status);
   const generationTrigger = (request) => {
     if (request.method !== 'POST') return false;
     const pathname = request.url.split('?')[0];
@@ -76,12 +115,12 @@ export async function createWebApp({
   });
   installDemoAuth(app, auth);
   app.addHook('onRequest', async (request, reply) => {
-    if (generationAvailable || !generationTrigger(request)) return;
+    if (!generationTrigger(request) || generationAvailable(await currentHealth())) return;
     return reply
       .header('Retry-After', '60')
       .code(503)
       .send({
-        error: 'Генерація тимчасово недоступна: перевірте налаштування провайдера.',
+        error: 'Генерація тимчасово недоступна: перевірте налаштування OpenRouter.',
         code: 'GENERATION_UNAVAILABLE',
         next_action: 'RETRY_AFTER_PROVIDER_READY',
       });
@@ -165,6 +204,7 @@ export async function createWebApp({
         secureCookie,
       })
     : null;
+  await registerTestAuditRoutes(app, { testAudit, profileApi });
   await registerPostShootRoutes(app, {
     projectRoot: path.resolve(import.meta.dirname, '..', '..'),
     lucyTokenIssuer,
@@ -202,6 +242,15 @@ export async function createWebApp({
   if (videoSourceBridge) {
     await registerVideoSourceBridgeRoutes(app, { videoSourceBridge });
   }
+  await registerGodViewRoutes(app, {
+    auth: godViewAuth,
+    profiles,
+    runService: service,
+    sceneService,
+    editorialShootService,
+    videoService,
+    testAudit,
+  });
   if (drafts) await registerDraftRoutes(app, {
     service: drafts,
     runService: service,
@@ -225,15 +274,21 @@ export async function createWebApp({
     await registerMonitorRoutes(app, {
       store: monitor,
       acceptClientTelemetry: true,
-      statusProvider: async () => ({
-        status: 'ok',
-        service: 'web',
-        generation: generationAvailable ? 'available' : 'unavailable',
-        editorial_generation: editorialShootService
-          ? (generationAvailable ? 'available' : 'unavailable')
-          : 'disabled',
-        preflight: health.status,
-      }),
+      testAudit,
+      profileApi,
+      statusProvider: async () => {
+        const resolved = await currentHealth();
+        const available = generationAvailable(resolved);
+        return {
+          status: 'ok',
+          service: 'web',
+          generation: available ? 'available' : 'unavailable',
+          editorial_generation: editorialShootService
+            ? (available ? 'available' : 'unavailable')
+            : 'disabled',
+          preflight: resolved.status,
+        };
+      },
     });
     app.addHook('onResponse', async (request, reply) => {
       const pathname = request.url.split('?')[0];
@@ -250,17 +305,23 @@ export async function createWebApp({
   app.get('/api/health', async () => {
     const resolved = await currentHealth();
     const status = resolved.status === 'ready' || resolved.status === 'ok' ? resolved.status : 'degraded';
+    const available = generationAvailable(resolved);
     const runtimeStatus = resolved.runtime_status
       ? (resolved.runtime_status === 'ready' ? 'ready' : 'degraded')
       : null;
     return {
       status,
       service: 'web',
-      generation: generationAvailable ? 'available' : 'unavailable',
+      generation: available ? 'available' : 'unavailable',
       semantic_qa: 'available',
+      fashion_shoot_qa_mode: ['strict', 'review', 'off']
+        .includes(resolved.fashion_shoot_qa_mode)
+        ? resolved.fashion_shoot_qa_mode
+        : 'strict',
+      ...(releaseIdentity ? releaseIdentity : {}),
       ...(runtimeStatus ? { runtime_status: runtimeStatus } : {}),
-      ...(health.test_only ? { editorial_generation: 'available' } : { editorial_generation: editorialShootService
-        ? (generationAvailable ? 'available' : 'unavailable')
+      ...(resolved.test_only ? { editorial_generation: 'available' } : { editorial_generation: editorialShootService
+        ? (available ? 'available' : 'unavailable')
         : 'disabled' }),
     };
   });
@@ -395,6 +456,23 @@ export async function createWebApp({
         .header('Content-Disposition', 'inline; filename="run-manifest.json"')
         .send(publicManifestView(internalManifest));
     }
+    if (request.query?.preview === '1') {
+      try {
+        const preview = await sharp(filename, { failOn: 'error', limitInputPixels: 100_000_000 })
+          .rotate()
+          .resize({ width: 640, height: 640, fit: 'inside', withoutEnlargement: true })
+          .webp({ quality: 70, effort: 4 })
+          .toBuffer();
+        return reply.type('image/webp')
+          .header('Cache-Control', 'private, max-age=900')
+          .header('Vary', 'Cookie')
+          .header('X-Content-Type-Options', 'nosniff')
+          .header('X-Zeely-Presentation', 'webp-640')
+          .send(preview);
+      } catch {
+        return reply.code(422).send({ error: 'Не вдалося підготувати легке preview-зображення' });
+      }
+    }
     const type = request.params.name.endsWith('.json') ? 'application/json' : 'image/png';
     return reply.type(type).header('Content-Disposition', `inline; filename="${request.params.name}"`).send(createReadStream(filename));
   });
@@ -403,6 +481,25 @@ export async function createWebApp({
     if (!await ownsRun(request, reply)) return reply;
     const filename = await service.garmentSourceFile(request.params.id, request.params.index);
     if (!filename) return reply.code(404).send({ error: 'Фото речі не знайдено' });
+    if (request.query?.preview === '1') {
+      // This response is only a UI thumbnail. The original input remains the
+      // immutable source file used by conditioning, QA and generation.
+      try {
+        const preview = await sharp(filename, { failOn: 'error', limitInputPixels: 100_000_000 })
+          .rotate()
+          .resize({ width: 480, height: 480, fit: 'inside', withoutEnlargement: true })
+          .webp({ quality: 72, effort: 4 })
+          .toBuffer();
+        return reply
+          .type('image/webp')
+          .header('Cache-Control', 'private, max-age=900')
+          .header('Vary', 'Cookie')
+          .header('X-Content-Type-Options', 'nosniff')
+          .send(preview);
+      } catch {
+        return reply.code(422).send({ error: 'Не вдалося підготувати preview фото речі' });
+      }
+    }
     const type = new Map([['.png', 'image/png'], ['.jpg', 'image/jpeg'], ['.jpeg', 'image/jpeg'], ['.webp', 'image/webp']]).get(path.extname(filename).toLowerCase()) ?? 'application/octet-stream';
     return reply.type(type).header('Cache-Control', 'private, max-age=900').send(createReadStream(filename));
   });
@@ -418,6 +515,21 @@ export async function createWebApp({
       ? await service.visualAsset(request.params.id, request.params.assetId)
       : null;
     if (!asset) return reply.code(404).send({ error: 'Visual asset not found' });
+    if (request.query?.preview === '1') {
+      try {
+        const preview = await sharp(asset.bytes, { failOn: 'error', limitInputPixels: 100_000_000 })
+          .rotate()
+          .resize({ width: 640, height: 640, fit: 'inside', withoutEnlargement: true })
+          .webp({ quality: 70, effort: 4 })
+          .toBuffer();
+        return reply.type('image/webp')
+          .header('Cache-Control', 'private, max-age=900')
+          .header('X-Zeely-Presentation', 'webp-640')
+          .send(preview);
+      } catch {
+        return reply.code(422).send({ error: 'Не вдалося підготувати легке preview-зображення' });
+      }
+    }
     return reply
       .type(asset.media_type)
       .send(asset.bytes);
@@ -426,7 +538,8 @@ export async function createWebApp({
   app.setErrorHandler((error, request, reply) => {
     request.log.error(error);
     const statusCode = error.statusCode && error.statusCode < 500 ? error.statusCode : 400;
-    const publicMessage = sanitizeOutboundString(error.message);
+    const code = publicErrorCode(error.code);
+    const publicMessage = publicErrorMessage(error, code);
     if (monitor) monitor.append({
       source: 'server', type: 'server.error', severity: 'error', run_id: request.params?.id,
       data: {
@@ -436,18 +549,26 @@ export async function createWebApp({
         message: publicMessage,
       },
     }).catch(() => {});
+    const failureCode = publicErrorCode(error.failureCode ?? error.failure_code);
+    const reasonCode = publicErrorCode(error.reasonCode ?? error.reason_code);
+    const nextAction = publicErrorCode(error.nextAction ?? error.next_action);
+    const nextActionReasonCode = publicErrorCode(error.nextActionReasonCode ?? error.next_action_reason_code);
     const payload = {
       error: publicMessage,
-      ...(error.code ? { code: sanitizeOutboundString(error.code) } : {}),
+      ...(code ? { code } : {}),
+      ...(failureCode ? { failure_code: failureCode } : {}),
+      ...(reasonCode ? { reason_code: reasonCode } : {}),
+      ...(nextAction ? { next_action: nextAction } : {}),
+      ...(nextActionReasonCode ? { next_action_reason_code: nextActionReasonCode } : {}),
     };
     if (error.status === 'NEEDS_INPUT') {
       payload.status = 'NEEDS_INPUT';
-      payload.code = sanitizeOutboundString(error.code ?? 'INPUT_REJECTED');
+      payload.code = code ?? 'INPUT_REJECTED';
       payload.field = error.field ? sanitizeOutboundString(error.field) : null;
       payload.requirements = Array.isArray(error.requirements)
         ? error.requirements.map((value) => sanitizeOutboundString(value)).slice(0, 12)
         : [];
-      payload.next_action = sanitizeOutboundString(error.nextAction ?? 'REPLACE_INPUT');
+      payload.next_action = nextAction ?? 'REPLACE_INPUT';
     }
     reply.code(statusCode).send(payload);
   });

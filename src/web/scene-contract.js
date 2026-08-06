@@ -1,6 +1,12 @@
 import { createHash } from 'node:crypto';
+import {
+  GPT_IMAGE_2_LADDER,
+  GPT_IMAGE_2_LADDER_VERSION,
+  LEGACY_IMAGE_MODEL_ROUTE,
+} from '../runner/model-policy.js';
 
 export const SCENE_SCHEMA_VERSION = '1.0.0';
+export const FRAMING_POLICY_RECHECK_VERSION = 'scene-framing-policy-recheck-v1';
 
 export const SCENE_STATES = Object.freeze({
   QUEUED: 'QUEUED',
@@ -75,11 +81,12 @@ export const SCENE_SOURCE_FORBIDDEN_AUTHORITIES = Object.freeze([
   'exact_architecture',
 ]);
 
-/**
- * These are immutable transport route identifiers, not marketing aliases.
- * Every job snapshots the complete route and its hash before generation.
- */
-export const DEFAULT_SCENE_MODEL_ROUTE = Object.freeze([
+export const LEGACY_SCENE_IMAGE_ROUTE_VERSION = 'zeely.scene.image-route.v1';
+export const SCENE_IMAGE_ROUTE_VERSION = 'zeely.scene.image-route.v2';
+
+// Kept only to verify and resume already-snapshotted scene attempts. New
+// scenes use the GPT ladder below; no new scene is routed to Nano Banana.
+export const LEGACY_SCENE_MODEL_ROUTE = Object.freeze([
   Object.freeze({
     order: 1,
     job_set_type: 'gpt_image_2',
@@ -102,6 +109,23 @@ export const DEFAULT_SCENE_MODEL_ROUTE = Object.freeze([
     quality: 'high',
   }),
 ]);
+
+/**
+ * Immutable transport route for every new standard background and Fashion
+ * Shoot frame. Each entry is a distinct request profile even though all five
+ * calls use GPT Image 2. The exact quality/resolution profile is snapshotted
+ * before provider spend.
+ */
+export const DEFAULT_SCENE_MODEL_ROUTE = Object.freeze(GPT_IMAGE_2_LADDER.map((profile) => Object.freeze({
+  order: profile.order,
+  id: profile.id,
+  job_set_type: profile.job_set_type,
+  model: profile.model,
+  model_version: profile.model_version,
+  resolution: profile.resolution,
+  quality: profile.quality,
+  repair_kind: profile.repair_kind,
+})));
 
 export const DEFAULT_SCENE_DELIVERY = Object.freeze({
   aspect_ratio: '3:4',
@@ -128,7 +152,7 @@ const CREATE_UNIVERSE_SOURCE_URI = /^create-universe:\/\/shoot\.[a-z0-9._-]+\/(?
 function isVerifiedSourceUri(value) {
   return typeof value === 'string' && (value.startsWith('https://') || CREATE_UNIVERSE_SOURCE_URI.test(value));
 }
-const FIXED_MODEL_ROUTE = Object.freeze([
+const LEGACY_FIXED_MODEL_ROUTE = Object.freeze([
   Object.freeze({ job_set_type: 'gpt_image_2', model: 'GPT Image 2' }),
   Object.freeze({ job_set_type: 'nano_banana_flash', model: 'Nano Banana 2' }),
   Object.freeze({ job_set_type: 'nano_banana_2', model: 'Nano Banana Pro' }),
@@ -218,16 +242,17 @@ const EDITORIAL_IDENTITY_VISIBILITY = new Set(['full_face', 'partial_face', 'not
 // FRAMING_AND_ANATOMY prose called it a coherent three-quarter fashion frame. The miss
 // was also unrepairable in kind: "subject too large" can only be answered by
 // outpainting invented surroundings, so three points of taste burned the whole retry
-// budget on inventing scene. So the ceiling is DERIVED as the complement of the head
-// guard — a subject may grow until it would start eating the room that guard already
-// reserves, and not one point further.
+// budget on inventing scene. A head-required slot gets a ceiling derived from its
+// head guard. Fashion Shoot slots deliberately do not: their crop is part of the
+// selected art direction, and an intentional crown crop cannot be rejected as a
+// framing defect.
 const EDITORIAL_HEAD_GUARDS = Object.freeze({
-  clean_identity_hero: { above: 6, below: 0, head: true, footwear: false },
-  environmental_hero: { above: 5, below: 0, head: true, footwear: false },
-  sculptural_three_quarter: { above: 5, below: 0, head: true, footwear: false },
-  interference_frame: { above: 4, below: 0, head: true, footwear: false },
+  clean_identity_hero: { above: 6, below: 0, head: false, footwear: false },
+  environmental_hero: { above: 5, below: 0, head: false, footwear: false },
+  sculptural_three_quarter: { above: 5, below: 0, head: false, footwear: false },
+  interference_frame: { above: 4, below: 0, head: false, footwear: false },
   material_or_accessory_detail: { above: 0, below: 0, head: false, footwear: false },
-  wide_campaign_coda: { above: 8, below: 2, head: true, footwear: true },
+  wide_campaign_coda: { above: 8, below: 2, head: false, footwear: true },
 });
 
 // The floor cannot be derived from the head guard, so it stays a chosen number — but a
@@ -254,26 +279,53 @@ const EDITORIAL_SUBJECT_HEIGHT_FLOORS = Object.freeze({
   wide_campaign_coda: 30,
 });
 
+// Generation targets are not delivery gates. They describe the intentional
+// first composition shown to the image provider, while the subject bands above
+// remain the only acceptance authority. Environmental and coda frames must
+// reserve enough canvas for the authored universe; using the standard-scene
+// 76% guide here contradicted locked style contracts that explicitly call for
+// a 40–55% environmental figure.
+const EDITORIAL_GENERATION_TARGETS = Object.freeze({
+  clean_identity_hero: 68,
+  environmental_hero: 50,
+  sculptural_three_quarter: 70,
+  interference_frame: 78,
+  material_or_accessory_detail: 82,
+  wide_campaign_coda: 35,
+});
+
+// The wide canonical delivery bands below protect visibility and intentional
+// editorial crops. They are not sufficient to prove that a frame still has the
+// camera consequence authored for its slot: an environmental hero at 80% is a
+// portrait with some background, not an environmental hero. This narrower band
+// is therefore enforced by SCENE_MATCH in strict Fashion Shoot QA while the
+// canonical framing lock continues to own head/foot visibility and hard safety.
+const EDITORIAL_GENERATION_BANDS = Object.freeze({
+  clean_identity_hero: Object.freeze([60, 80]),
+  environmental_hero: Object.freeze([40, 55]),
+  sculptural_three_quarter: Object.freeze([55, 80]),
+  interference_frame: Object.freeze([65, 95]),
+  material_or_accessory_detail: Object.freeze([70, 100]),
+  wide_campaign_coda: Object.freeze([30, 45]),
+});
+
 const EDITORIAL_FRAMING_LOCKS = Object.freeze(Object.fromEntries(
   Object.entries(EDITORIAL_HEAD_GUARDS).map(([slot, guard]) => [slot, Object.freeze({
     subject: Object.freeze([
       EDITORIAL_SUBJECT_HEIGHT_FLOORS[slot],
-      100 - guard.above,
+      guard.head ? 100 - guard.above : 100,
     ]),
     above: guard.above,
     below: guard.below,
     head: guard.head,
     footwear: guard.footwear,
-    // Headroom is a proxy for "the head is not cropped", and in editorial the
-    // direct observation of that is already in hand. An identity hero measured
-    // 5% of headroom against a 6% minimum and was rejected while its own gate
-    // text read "Full head is visible and the figure is anatomically coherent"
-    // and every other gate passed — thirteen pixels of a 1280-tall canvas, on a
-    // frame whose head was demonstrably whole. A proxy that overrules the
-    // measurement it stands in for is worse than no proxy, so here it advises
-    // and full_head_visible decides. Standard scenes keep it blocking: their
-    // promise is the same avatar composed the same way in every environment, so
-    // headroom there is the product and not art direction.
+    generationTarget: EDITORIAL_GENERATION_TARGETS[slot],
+    generationBand: EDITORIAL_GENERATION_BANDS[slot],
+    // Headroom remains a composition target in the prompt, not an editorial
+    // delivery lock. Fashion Shoot uses intentional crops, including a crown
+    // crossing the frame edge; identity is checked from the visible face, not
+    // from a mandatory margin above hair. Standard scenes keep headroom and
+    // full-head visibility as hard product locks.
     aboveIsAdvisoryWhenHeadVisible: true,
   })]),
 ));
@@ -290,10 +342,22 @@ export function editorialFramingLock(slot) {
 
 const STANDARD_FRAMING_LOCK = Object.freeze({
   subject: Object.freeze([70, 80]),
+  // 70–80 remains the preferred composition band. A standard full-body frame
+  // may still ship up to 88% when the direct visibility, clear-space and
+  // anatomy checks pass. This is a delivery tolerance, not a new generation
+  // target: providers are still instructed to compose at 70–80%.
+  deliverySubjectMaximum: 88,
   above: 8,
+  // Keep 8% as the provider target. Product policy permits three percentage
+  // points of normal visual variance plus one final warning point, so an
+  // otherwise valid standard delivery may ship from 4%. This never permits a
+  // cropped head: direct full-head visibility remains a separate hard lock.
+  deliveryAboveMinimum: 4,
   below: 2,
   head: true,
   footwear: true,
+  generationTarget: 76,
+  generationBand: Object.freeze([70, 80]),
   aboveIsAdvisoryWhenHeadVisible: false,
 });
 
@@ -311,12 +375,47 @@ export function sceneFramingLock(preset) {
   if (typeof presetId !== 'string' || presetId.length === 0) {
     throw new Error('Scene framing lock requires a preset carrying its preset_id');
   }
-  if (presetId.startsWith('editorial.')) {
+  // Editorial originally used only the legacy `editorial.*` namespace. Create
+  // Universe deliberately moved the product to `shoot.*`, but leaving that
+  // namespace out here made the live QA path silently apply the standard
+  // background [70,80]/8/2/full-footwear lock to every Fashion Shoot frame.
+  // Both namespaces are editorial families and resolve by the same immutable
+  // shot-slot suffix.
+  if (presetId.startsWith('editorial.') || presetId.startsWith('shoot.')) {
     const slot = [...EDITORIAL_SHOT_SLOTS].find((candidate) => presetId.endsWith(`.${candidate}`));
     const lock = slot ? EDITORIAL_FRAMING_LOCKS[slot] : null;
     if (lock) return lock;
   }
   return STANDARD_FRAMING_LOCK;
+}
+
+export function sceneGenerationFramingTarget(preset) {
+  const lock = sceneFramingLock(preset);
+  const target = lock.generationTarget;
+  if (!Number.isFinite(target) || target < lock.subject[0] || target > lock.subject[1]) {
+    throw new Error('Scene generation framing target must stay inside its canonical acceptance band');
+  }
+  return Object.freeze({
+    subject: target,
+    above: Math.min(100 - target, lock.above + 1),
+  });
+}
+
+export function sceneGenerationFramingBand(preset) {
+  const lock = sceneFramingLock(preset);
+  const band = lock.generationBand;
+  const target = lock.generationTarget;
+  if (!Array.isArray(band)
+    || band.length !== 2
+    || !band.every(Number.isFinite)
+    || band[0] < lock.subject[0]
+    || band[1] > lock.subject[1]
+    || band[0] >= band[1]
+    || target < band[0]
+    || target > band[1]) {
+    throw new Error('Scene generation framing band must stay inside its canonical acceptance band and contain its target');
+  }
+  return Object.freeze([...band]);
 }
 
 export function sha256(value) {
@@ -362,9 +461,46 @@ export function assertIdempotencyKey(value) {
   return value;
 }
 
-export function normalizeModelRoute(route = DEFAULT_SCENE_MODEL_ROUTE) {
-  if (!Array.isArray(route) || route.length !== FIXED_MODEL_ROUTE.length) {
-    throw new Error('Scene model route must contain exactly the three approved models');
+function isNewSceneRoute(route) {
+  return Array.isArray(route) && route.length === GPT_IMAGE_2_LADDER.length
+    && route.every((entry) => entry && typeof entry === 'object' && Object.hasOwn(entry, 'id'));
+}
+
+export function sceneModelRouteVersion(route = DEFAULT_SCENE_MODEL_ROUTE) {
+  if (isNewSceneRoute(route)) return SCENE_IMAGE_ROUTE_VERSION;
+  if (Array.isArray(route) && route.length === LEGACY_FIXED_MODEL_ROUTE.length) {
+    return LEGACY_SCENE_IMAGE_ROUTE_VERSION;
+  }
+  throw new Error('Scene model route has no supported immutable version');
+}
+
+export function normalizeModelRoute(route = DEFAULT_SCENE_MODEL_ROUTE, routeVersion = undefined) {
+  const version = routeVersion ?? sceneModelRouteVersion(route);
+  if (version === SCENE_IMAGE_ROUTE_VERSION) {
+    if (!Array.isArray(route) || route.length !== GPT_IMAGE_2_LADDER.length) {
+      throw new Error('Scene GPT Image 2 route must contain exactly five immutable profiles');
+    }
+    return Object.freeze(route.map((entry, index) => {
+      if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+        throw new Error(`Scene model route entry ${index + 1} must be an object`);
+      }
+      assertExactKeys(
+        entry,
+        ['order', 'id', 'job_set_type', 'model', 'model_version', 'resolution', 'quality', 'repair_kind'],
+        `Scene GPT Image 2 route entry ${index + 1}`,
+      );
+      const expected = GPT_IMAGE_2_LADDER[index];
+      for (const field of ['order', 'id', 'job_set_type', 'model', 'model_version', 'resolution', 'quality', 'repair_kind']) {
+        if (entry[field] !== expected[field]) {
+          throw new Error(`Scene GPT Image 2 route entry ${index + 1} does not match the immutable ${expected.id} profile`);
+        }
+      }
+      return Object.freeze({ ...expected });
+    }));
+  }
+  if (version !== LEGACY_SCENE_IMAGE_ROUTE_VERSION
+    || !Array.isArray(route) || route.length !== LEGACY_FIXED_MODEL_ROUTE.length) {
+    throw new Error('Scene model route must be a supported immutable version');
   }
   const seenTypes = new Set();
   const normalized = route.map((entry, index) => {
@@ -385,7 +521,7 @@ export function normalizeModelRoute(route = DEFAULT_SCENE_MODEL_ROUTE) {
         throw new Error(`Scene model route entry ${expectedOrder} is missing ${field}`);
       }
     }
-    const fixed = FIXED_MODEL_ROUTE[index];
+    const fixed = LEGACY_FIXED_MODEL_ROUTE[index];
     if (entry.job_set_type !== fixed.job_set_type || entry.model !== fixed.model || entry.quality !== 'high') {
       throw new Error('Scene model route must exactly match GPT Image 2 → Nano Banana 2 → Nano Banana Pro at high quality');
     }
@@ -438,10 +574,10 @@ export function normalizeDelivery(delivery = DEFAULT_SCENE_DELIVERY) {
 
 export function sceneQaItemScope(items, preset = null) {
   if (!Array.isArray(items)) throw new Error('Scene QA item scope requires an item array');
-  const slot = preset?.editorial?.shot_slot ?? null;
-  if (!slot) return items;
-  if (slot === 'material_or_accessory_detail') return items.slice(0, 1);
-  if (['sculptural_three_quarter', 'interference_frame'].includes(slot)) {
+  const scope = preset?.editorial?.item_scope ?? null;
+  if (!scope) return items;
+  if (scope === 'FIRST_ORDERED_ITEM') return items.slice(0, 1);
+  if (scope === 'EXCLUDE_FOOTWEAR') {
     return items.filter((item) => String(item.category).toLowerCase() !== 'footwear');
   }
   return items;
@@ -776,16 +912,9 @@ function validateEditorialPresetCamera(camera, editorial) {
     || camera.required_visibility.full_footwear !== framingLock.footwear) {
     throw new Error('Resolved editorial camera does not match its canonical framing lock');
   }
-  // Footwear is no longer required by any editorial slot: art direction crops
-  // are intentional, and demanding feet forced the generator to invent a lower
-  // half that no approved reference could verify. The head requirement stays —
-  // an editorial frame that loses the face loses its identity evidence, which is
-  // the one thing these gates exist to protect.
-  if (['clean_identity_hero', 'environmental_hero', 'wide_campaign_coda']
-    .includes(editorial.shot_slot)
-    && !camera.required_visibility.full_head) {
-    throw new Error('Resolved editorial hero and coda shots require the complete head');
-  }
+  // Editorial crop is art direction. The separate IDENTITY gate still rejects
+  // a missing or conflicting visible face where a slot requires full-face
+  // evidence; framing must not require an uncropped crown as a proxy for it.
 }
 
 function validateEditorialPresetSnapshot(preset, reference) {
@@ -847,11 +976,13 @@ function validateEditorialPresetSnapshot(preset, reference) {
   }
   const expectedItemScope = preset.editorial.shot_slot === 'material_or_accessory_detail'
     ? 'FIRST_ORDERED_ITEM'
-    : ['sculptural_three_quarter', 'interference_frame']
+    : ['clean_identity_hero', 'sculptural_three_quarter', 'interference_frame']
       .includes(preset.editorial.shot_slot)
     ? 'EXCLUDE_FOOTWEAR'
     : 'ALL';
-  if (preset.editorial.item_scope !== expectedItemScope) {
+  const legacyCleanHeroScope = preset.editorial.shot_slot === 'clean_identity_hero'
+    && preset.editorial.item_scope === 'ALL';
+  if (preset.editorial.item_scope !== expectedItemScope && !legacyCleanHeroScope) {
     throw new Error('Resolved editorial SceneSpec item scope does not match its shot slot');
   }
   const styleContract = preset.editorial.style_contract;
@@ -870,6 +1001,7 @@ function validateEditorialPresetSnapshot(preset, reference) {
         'focus',
         'foreground',
         'expression_signature',
+        'subject_lighting',
         'garment_behaviour',
         'optical_signature',
       ],
@@ -883,6 +1015,7 @@ function validateEditorialPresetSnapshot(preset, reference) {
       'focus',
       'foreground',
       'expression_signature',
+      'subject_lighting',
       'garment_behaviour',
     ]) {
       if (typeof styleContract[field] !== 'string'
@@ -1409,7 +1542,9 @@ export function assessFramingEvidence(evidence, {
   width,
   height,
   expectedSubjectHeightPercent,
+  deliverySubjectHeightMaximum = expectedSubjectHeightPercent?.[1],
   minimumAboveHairPercent = 8,
+  deliveryMinimumAboveHairPercent = minimumAboveHairPercent,
   minimumBelowFootwearPercent = 2,
   requireFullHead = true,
   requireFullFootwear = true,
@@ -1425,6 +1560,11 @@ export function assessFramingEvidence(evidence, {
     || minimumBelowFootwearPercent < 0
     || minimumBelowFootwearPercent > 100) {
     throw new Error('Scene framing clear-space locks must be finite percentages from 0 to 100');
+  }
+  if (!Number.isFinite(deliveryMinimumAboveHairPercent)
+    || deliveryMinimumAboveHairPercent < 0
+    || deliveryMinimumAboveHairPercent > minimumAboveHairPercent) {
+    throw new Error('Scene delivery headroom minimum must be finite and not exceed the preferred minimum');
   }
   if (typeof requireFullHead !== 'boolean' || typeof requireFullFootwear !== 'boolean') {
     throw new Error('Scene framing visibility locks must be booleans');
@@ -1451,14 +1591,25 @@ export function assessFramingEvidence(evidence, {
     || expectedSubjectHeightPercent[0] > expectedSubjectHeightPercent[1]) {
     throw new Error('Scene preset must declare an ordered subject_height_percent range from 0 to 100');
   }
+  if (!Number.isFinite(deliverySubjectHeightMaximum)
+    || deliverySubjectHeightMaximum < expectedSubjectHeightPercent[1]
+    || deliverySubjectHeightMaximum > 100) {
+    throw new Error('Scene delivery subject-height maximum must include the preferred range and not exceed 100');
+  }
   const subjectHeight = Number(((bboxHeight / height) * 100).toFixed(4));
   const aboveHair = Number(((y / height) * 100).toFixed(4));
   const belowFootwear = clearSpaceBelowSubjectPercent(bbox, height);
   const defects = [];
-  if (subjectHeight < expectedSubjectHeightPercent[0] || subjectHeight > expectedSubjectHeightPercent[1]) {
+  const deliveryToleranceApplied = subjectHeight > expectedSubjectHeightPercent[1]
+    && subjectHeight <= deliverySubjectHeightMaximum;
+  if (subjectHeight < expectedSubjectHeightPercent[0] || subjectHeight > deliverySubjectHeightMaximum) {
     defects.push('SUBJECT_HEIGHT_OUTSIDE_PRESET_RANGE');
   }
-  const headroomShort = requireFullHead && aboveHair < minimumAboveHairPercent;
+  const headroomDeliveryToleranceApplied = requireFullHead
+    && aboveHair < minimumAboveHairPercent
+    && aboveHair >= deliveryMinimumAboveHairPercent
+    && evidence.full_head_visible === true;
+  const headroomShort = requireFullHead && aboveHair < deliveryMinimumAboveHairPercent;
   const headroomWaived = headroomShort
     && aboveIsAdvisoryWhenHeadVisible
     && evidence.full_head_visible === true;
@@ -1479,9 +1630,11 @@ export function assessFramingEvidence(evidence, {
       subject_bbox_xywh_px: bbox,
       expected_subject_height_percent: [...expectedSubjectHeightPercent],
       subject_height_percent: subjectHeight,
+      subject_height_delivery_tolerance_applied: deliveryToleranceApplied,
       minimum_clear_space_above_hair_percent: minimumAboveHairPercent,
       minimum_clear_space_below_footwear_percent: minimumBelowFootwearPercent,
       clear_space_above_hair_percent: aboveHair,
+      clear_space_above_hair_delivery_tolerance_applied: headroomDeliveryToleranceApplied,
       // Without this the allowance was only inferable — headroom under its own minimum
       // and no INSUFFICIENT_CLEAR_SPACE_ABOVE_HAIR beside it — and a reader who did not
       // know the editorial lock existed read the receipt as a passing frame that simply
@@ -1495,6 +1648,11 @@ export function assessFramingEvidence(evidence, {
   };
 }
 
+// This symbol keeps the one historic-receipt audit inside the same lock owner without
+// exposing a caller-controlled way to override a live preset. It cannot arrive from a
+// JSON request or persisted state.
+const INTERNAL_FRAMING_LOCK_OVERRIDE = Symbol('internal-framing-lock-override');
+
 // The one entry point for a framing verdict: hand it the preset, never the bands. The
 // four assessments used to source their own options and the live one built them by hand
 // off preset.camera, so the editorial headroom waiver was threaded through the three
@@ -1503,13 +1661,16 @@ export function assessFramingEvidence(evidence, {
 // rounds and an hour went into rediscovering that. The lock option names are spelled
 // out here and nowhere else, which is what makes a new framing rule unable to reach
 // only some of the paths.
-export function assessSceneFraming(evidence, { preset, width, height }) {
-  const lock = sceneFramingLock(preset);
+export function assessSceneFraming(evidence, options) {
+  const { preset, width, height } = options;
+  const lock = options[INTERNAL_FRAMING_LOCK_OVERRIDE] ?? sceneFramingLock(preset);
   return assessFramingEvidence(evidence, {
     width,
     height,
     expectedSubjectHeightPercent: lock.subject,
+    deliverySubjectHeightMaximum: lock.deliverySubjectMaximum ?? lock.subject[1],
     minimumAboveHairPercent: lock.above,
+    deliveryMinimumAboveHairPercent: lock.deliveryAboveMinimum ?? lock.above,
     minimumBelowFootwearPercent: lock.below,
     requireFullHead: lock.head,
     requireFullFootwear: lock.footwear,
@@ -1567,46 +1728,71 @@ export function deterministicFramingCropPlan(framing, delivery) {
   const maximumCropHeight = Math.floor(boxHeight / (minimumPercent / 100) / cropHeightUnit)
     * cropHeightUnit;
   if (minimumCropHeight > maximumCropHeight) return null;
-  let cropHeight = Math.round(boxHeight / (targetPercent / 100) / cropHeightUnit)
-    * cropHeightUnit;
-  cropHeight = Math.max(minimumCropHeight, Math.min(maximumCropHeight, cropHeight, delivery.height));
-  const cropWidth = cropHeight * delivery.width / delivery.height;
-  if (!Number.isInteger(cropWidth)
-    || cropWidth > delivery.width
-    || cropHeight > delivery.height
-    || cropWidth < boxWidth
-    || cropHeight < boxHeight) {
-    return null;
-  }
+  const idealCropHeight = boxHeight / (targetPercent / 100);
+  const candidates = [];
+  const lastCropHeight = Math.min(maximumCropHeight, delivery.height);
+  for (let cropHeight = minimumCropHeight;
+    cropHeight <= lastCropHeight;
+    cropHeight += cropHeightUnit) {
+    const cropWidth = cropHeight * delivery.width / delivery.height;
+    if (!Number.isInteger(cropWidth)
+      || cropWidth > delivery.width
+      || cropWidth < boxWidth
+      || cropHeight < boxHeight) {
+      continue;
+    }
 
-  const minimumAbove = cropHeight * (framing.minimum_clear_space_above_hair_percent / 100);
-  const minimumBelow = cropHeight * (framing.minimum_clear_space_below_footwear_percent / 100);
-  const minimumTop = Math.max(
-    0,
-    Math.ceil(boxY + boxHeight + minimumBelow - cropHeight),
-  );
-  const maximumTop = Math.min(
-    delivery.height - cropHeight,
-    Math.floor(boxY - minimumAbove),
-  );
-  if (minimumTop > maximumTop) return null;
-  const centeredTop = Math.round(boxY + boxHeight / 2 - cropHeight / 2);
-  const top = Math.max(minimumTop, Math.min(maximumTop, centeredTop));
-  const centeredLeft = Math.round(boxX + boxWidth / 2 - cropWidth / 2);
-  const left = Math.max(0, Math.min(delivery.width - cropWidth, centeredLeft));
-  if (left > boxX
-    || top > boxY
-    || left + cropWidth < boxX + boxWidth
-    || top + cropHeight < boxY + boxHeight) {
-    return null;
+    const minimumAbove = cropHeight * (framing.minimum_clear_space_above_hair_percent / 100);
+    const minimumBelow = cropHeight * (framing.minimum_clear_space_below_footwear_percent / 100);
+    const minimumTop = Math.max(
+      0,
+      Math.ceil(boxY + boxHeight + minimumBelow - cropHeight),
+    );
+    const maximumTop = Math.min(
+      delivery.height - cropHeight,
+      Math.floor(boxY - minimumAbove),
+    );
+    if (minimumTop > maximumTop) continue;
+    const centeredTop = Math.round(boxY + boxHeight / 2 - cropHeight / 2);
+    const top = Math.max(minimumTop, Math.min(maximumTop, centeredTop));
+    const centeredLeft = Math.round(boxX + boxWidth / 2 - cropWidth / 2);
+    const left = Math.max(0, Math.min(delivery.width - cropWidth, centeredLeft));
+    if (left > boxX
+      || top > boxY
+      || left + cropWidth < boxX + boxWidth
+      || top + cropHeight < boxY + boxHeight) {
+      continue;
+    }
+    candidates.push({
+      left,
+      top,
+      width: cropWidth,
+      height: cropHeight,
+      distance_from_ideal: Math.abs(cropHeight - idealCropHeight),
+    });
   }
+  // The mid-band crop can be geometrically impossible even when a nearby crop inside
+  // the same declared band is valid.  The live 1536x2048 failure that exposed this had
+  // 1403px of subject and 145px above the hair: 1880px (75%) needed 150.4px of headroom,
+  // while 1800px (77.94%) preserved the full head, footwear and both margin locks.  Picking
+  // one height and returning null discarded that safe no-generation repair.  Search the
+  // finite native-aspect grid and choose the feasible crop closest to the preset midpoint;
+  // no pixels are added and every original lock remains enforced by the bounds above.
+  candidates.sort((left, right) => (
+    left.distance_from_ideal - right.distance_from_ideal
+    || right.height - left.height
+    || left.top - right.top
+    || left.left - right.left
+  ));
+  const selected = candidates[0];
+  if (!selected) return null;
   return {
-    left,
-    top,
-    width: cropWidth,
-    height: cropHeight,
+    left: selected.left,
+    top: selected.top,
+    width: selected.width,
+    height: selected.height,
     target_subject_height_percent: targetPercent,
-    output_scale: Number((delivery.height / cropHeight).toFixed(6)),
+    output_scale: Number((delivery.height / selected.height).toFixed(6)),
   };
 }
 
@@ -1681,11 +1867,33 @@ function validatePersistedFramingEvidence(evidence, {
   // its absence is the single difference tolerated here — everything else still has to
   // match byte for byte. Demanding it would instead have quarantined all nine persisted
   // scenes on the next read, three of them delivered editorial heroes.
-  const comparable = evidence?.clear_space_above_hair_waived_by_full_head === undefined
-    ? Object.fromEntries(Object.entries(assessment.evidence)
-      .filter(([key]) => key !== 'clear_space_above_hair_waived_by_full_head'))
-    : assessment.evidence;
-  if (sha256(canonicalJsonBytes(comparable)) !== sha256(canonicalJsonBytes(evidence))) {
+  // These two flags are conclusions of the active delivery policy, not raw
+  // observations. A policy release can legitimately turn a persisted false
+  // into true for the exact same immutable bbox (or the reverse). Compare the
+  // raw canvas, bbox, measured percentages and visibility byte-for-byte, then
+  // derive these flags from the current policy on read.
+  const policyDerivedKeys = new Set([
+    // These four values state which active framing policy judged the immutable
+    // raw geometry. Create Universe originally fell through to the standard
+    // background lock, so honest pre-fix `shoot.*` receipts carry [70,80]/8/2
+    // even though the same bbox must now resolve through its editorial slot.
+    // They are not observations and may drift across a policy repair.
+    'expected_subject_height_percent',
+    'minimum_clear_space_above_hair_percent',
+    'minimum_clear_space_below_footwear_percent',
+    'subject_height_delivery_tolerance_applied',
+    'clear_space_above_hair_delivery_tolerance_applied',
+  ]);
+  const derivedKeysAbsentFromLegacyEvidence = new Set([
+    ...(evidence?.clear_space_above_hair_waived_by_full_head === undefined
+      ? ['clear_space_above_hair_waived_by_full_head'] : []),
+  ]);
+  const ignoredKeys = new Set([...policyDerivedKeys, ...derivedKeysAbsentFromLegacyEvidence]);
+  const withoutIgnored = (value) => Object.fromEntries(
+    Object.entries(value).filter(([key]) => !ignoredKeys.has(key)),
+  );
+  if (sha256(canonicalJsonBytes(withoutIgnored(assessment.evidence)))
+    !== sha256(canonicalJsonBytes(withoutIgnored(evidence)))) {
     throw new Error(`${label} framing evidence does not match its measured bounding box`);
   }
   if (requirePass && assessment.defects.length > 0) {
@@ -1807,6 +2015,426 @@ function validatePersistedNormalization(normalization, { attempt, state }) {
   }
 }
 
+// These are controller receipts, deliberately separate from `normalization`.
+// Normalization proves a pixel transform; the two receipts below prove why the
+// state machine selected a repair route before it spent another provider call.
+// They are optional for backwards compatibility with already persisted scenes.
+//
+// A normalized defect is not an evaluator opinion. It is a deterministic view
+// over a specific failed QA measurement, the canonical framing lock and the
+// bound input hashes. Do not merely validate its shape: a changed observed
+// percentage, candidate hash, prompt hash or preset binding would otherwise
+// steer a later paid repair while still looking like a valid historic receipt.
+const NORMALIZED_DEFECT_VERSION = 'scene-normalized-defect-v1';
+const NORMALIZED_FRAMING_GATE = 'FRAMING_AND_ANATOMY';
+const NORMALIZED_SUBJECT_HEIGHT_DEFECT = 'SUBJECT_HEIGHT_OUTSIDE_PRESET_RANGE';
+const NORMALIZED_DEFECT_MEASUREMENT_EPSILON = 1;
+// `normalized_defect` is an immutable observation made under the framing
+// policy that existed when the candidate failed.  The standard delivery ceiling
+// moved from 80% to 88%; re-evaluating an old receipt as though it had been
+// authored under the new ceiling makes a truthful historic failure look
+// contradictory.  Keep this one explicit, closed legacy snapshot instead of
+// accepting caller-selected bands or weakening the current delivery policy.
+const LEGACY_STANDARD_NORMALIZED_DEFECT_POLICY = Object.freeze({
+  id: 'standard-subject-scale-v0-70-80',
+  preferred_band: Object.freeze([70, 80]),
+  delivery_band: Object.freeze([70, 80]),
+  above: 8,
+  delivery_above_minimum: 8,
+  below: 2,
+  head: true,
+  footwear: true,
+});
+
+function sameNumberPair(left, right) {
+  return Array.isArray(left)
+    && Array.isArray(right)
+    && left.length === 2
+    && right.length === 2
+    && left[0] === right[0]
+    && left[1] === right[1];
+}
+
+function currentNormalizedDefectPolicy(state) {
+  const lock = sceneFramingLock(state.bindings.preset);
+  return {
+    id: 'active-scene-framing-lock',
+    preferred_band: [lock.subject[0], lock.subject[1]],
+    delivery_band: [lock.subject[0], lock.deliverySubjectMaximum ?? lock.subject[1]],
+    above: lock.above,
+    delivery_above_minimum: lock.deliveryAboveMinimum ?? lock.above,
+    below: lock.below,
+    head: lock.head,
+    footwear: lock.footwear,
+  };
+}
+
+function framingLockForNormalizedDefectPolicy(policy) {
+  return Object.freeze({
+    subject: Object.freeze([...policy.preferred_band]),
+    deliverySubjectMaximum: policy.delivery_band[1],
+    above: policy.above,
+    deliveryAboveMinimum: policy.delivery_above_minimum,
+    below: policy.below,
+    head: policy.head,
+    footwear: policy.footwear,
+    aboveIsAdvisoryWhenHeadVisible: false,
+  });
+}
+
+// Exported only for contract-level regression tests and offline receipt audits.
+// It returns one of the two closed policy snapshots; it never accepts a caller
+// supplied delivery range as a valid historic policy.
+export function resolvePersistedNormalizedDefectPolicy(defect, state) {
+  const active = currentNormalizedDefectPolicy(state);
+  if (sameNumberPair(defect.preferred_band, active.preferred_band)
+    && sameNumberPair(defect.delivery_band, active.delivery_band)) {
+    return active;
+  }
+
+  // Only ordinary standard scenes had this historic ceiling. Editorial / Create
+  // Universe slots have their own locked geometry and must never inherit it.
+  const presetId = state.bindings.preset?.preset_id ?? '';
+  const standard = !presetId.startsWith('editorial.') && !presetId.startsWith('shoot.');
+  if (standard
+    && sameNumberPair(
+      defect.preferred_band,
+      LEGACY_STANDARD_NORMALIZED_DEFECT_POLICY.preferred_band,
+    )
+    && sameNumberPair(
+      defect.delivery_band,
+      LEGACY_STANDARD_NORMALIZED_DEFECT_POLICY.delivery_band,
+    )) {
+    return LEGACY_STANDARD_NORMALIZED_DEFECT_POLICY;
+  }
+
+  throw new Error(
+    `Persisted scene attempt ${defect.attempt} normalized defect declares an unknown framing policy`,
+  );
+}
+
+function normalizedDefectProtectedHashes(state) {
+  return {
+    approved_look_sha256: state.bindings.approved_look.image_sha256,
+    preset_sha256: state.bindings.preset.sha256,
+    reference_pack_sha256: state.bindings.reference_pack.sha256,
+    ...(state.bindings.approved_items ? {
+      approved_items_evidence_sha256: state.bindings.approved_items.evidence_sha256,
+    } : {}),
+  };
+}
+
+function persistedNormalizedDefectSource(attempt) {
+  const cropRecheck = attempt.repair_plan?.mechanism === 'MECHANICAL_CROP'
+    && attempt.repair_plan?.source_attempt === attempt.number;
+  if (cropRecheck) {
+    const normalization = attempt.normalization;
+    if (!normalization || normalization.strategy !== 'deterministic_bbox_crop'
+      || normalization.source_attempt !== attempt.number
+      || !normalization.trigger_framing_evidence
+      || !normalization.source_candidate_sha256) {
+      throw new Error(`Persisted scene attempt ${attempt.number} crop defect source is invalid`);
+    }
+    if (!attempt.compiled_prompt?.sha256) {
+      throw new Error(`Persisted scene attempt ${attempt.number} crop defect source prompt is missing`);
+    }
+    return {
+      kind: 'deterministic_crop_trigger',
+      framing_evidence: normalization.trigger_framing_evidence,
+      candidate_sha256: normalization.source_candidate_sha256,
+      prompt_sha256: attempt.compiled_prompt.sha256,
+      width: normalization.source_width,
+      height: normalization.source_height,
+    };
+  }
+
+  if (attempt.qa?.decision !== 'FAIL'
+    || !attempt.candidate?.sha256
+    || !attempt.compiled_prompt?.sha256
+    || !attempt.qa?.framing_evidence) {
+    throw new Error(`Persisted scene attempt ${attempt.number} normalized defect requires a QA failure`);
+  }
+  const framingGate = attempt.qa.gates?.find((gate) => gate?.id === NORMALIZED_FRAMING_GATE);
+  if (!framingGate
+    || framingGate.decision !== 'FAIL'
+    || !Array.isArray(framingGate.defects)
+    || !framingGate.defects.includes(NORMALIZED_SUBJECT_HEIGHT_DEFECT)) {
+    throw new Error(`Persisted scene attempt ${attempt.number} normalized defect source gate is invalid`);
+  }
+  return {
+    kind: 'failed_qa',
+    framing_evidence: attempt.qa.framing_evidence,
+    candidate_sha256: attempt.candidate.sha256,
+    prompt_sha256: attempt.compiled_prompt.sha256,
+    width: attempt.candidate.width,
+    height: attempt.candidate.height,
+  };
+}
+
+function recomputePersistedNormalizedDefect({ attempt, state, policy }) {
+  const source = persistedNormalizedDefectSource(attempt);
+  // First prove that the stored bbox/visibility measurements still describe the
+  // immutable source pixels under the *current* evaluator geometry owner. This
+  // comparison deliberately ignores policy-derived fields, never raw geometry.
+  validatePersistedFramingEvidence(source.framing_evidence, {
+    preset: state.bindings.preset,
+    width: source.width,
+    height: source.height,
+    requirePass: false,
+    label: `Persisted scene attempt ${attempt.number} normalized defect source`,
+  });
+  // Then reconstruct the historical defect using its closed policy snapshot.
+  // This is the sole place a prior standard 70–80 delivery ceiling is honoured;
+  // it proves history, it does not change today's QA acceptance policy.
+  const assessment = assessSceneFraming(source.framing_evidence, {
+    preset: state.bindings.preset,
+    width: source.width,
+    height: source.height,
+    [INTERNAL_FRAMING_LOCK_OVERRIDE]: framingLockForNormalizedDefectPolicy(policy),
+  });
+  if (!assessment.defects.includes(NORMALIZED_SUBJECT_HEIGHT_DEFECT)) {
+    throw new Error(`Persisted scene attempt ${attempt.number} normalized defect source is inside its recorded delivery band`);
+  }
+  const preferred_band = [...policy.preferred_band];
+  const delivery_band = [...policy.delivery_band];
+  const observed = assessment.evidence.subject_height_percent;
+  const direction = observed < delivery_band[0] ? 'INCREASE_SUBJECT_SCALE'
+    : observed > delivery_band[1] ? 'DECREASE_SUBJECT_SCALE' : 'WITHIN_DELIVERY_BAND';
+  if (direction === 'WITHIN_DELIVERY_BAND') {
+    throw new Error(`Persisted scene attempt ${attempt.number} normalized defect source direction is invalid`);
+  }
+  const target = direction === 'INCREASE_SUBJECT_SCALE'
+    ? preferred_band[0]
+    : preferred_band[1];
+  const distance_to_delivery_band_pp = Number((direction === 'INCREASE_SUBJECT_SCALE'
+    ? delivery_band[0] - observed
+    : observed - delivery_band[1]).toFixed(4));
+  const protected_hashes = normalizedDefectProtectedHashes(state);
+  const signature_sha256 = sha256(canonicalJsonBytes({
+    gate: NORMALIZED_FRAMING_GATE,
+    defect_code: NORMALIZED_SUBJECT_HEIGHT_DEFECT,
+    direction,
+    preset_id: state.bindings.preset.preset_id,
+    protected_hashes,
+  }));
+  return {
+    version: NORMALIZED_DEFECT_VERSION,
+    gate: NORMALIZED_FRAMING_GATE,
+    defect_code: NORMALIZED_SUBJECT_HEIGHT_DEFECT,
+    direction,
+    metric: 'subject_height_percent',
+    observed,
+    target,
+    preferred_band,
+    delivery_band,
+    measurement_epsilon: NORMALIZED_DEFECT_MEASUREMENT_EPSILON,
+    distance_to_delivery_band_pp,
+    signature_sha256,
+    candidate_sha256: source.candidate_sha256,
+    prompt_sha256: source.prompt_sha256,
+    attempt: attempt.number,
+    cycle: attempt.cycle,
+  };
+}
+
+function validatePersistedNormalizedDefect(defect, { attempt, state }) {
+  if (defect === undefined || defect === null) return;
+  if (!defect || typeof defect !== 'object' || Array.isArray(defect)) {
+    throw new Error(`Persisted scene attempt ${attempt.number} normalized defect is invalid`);
+  }
+  assertExactKeys(defect, [
+    'version',
+    'gate',
+    'defect_code',
+    'direction',
+    'metric',
+    'observed',
+    'target',
+    'preferred_band',
+    'delivery_band',
+    'measurement_epsilon',
+    'distance_to_delivery_band_pp',
+    'signature_sha256',
+    'candidate_sha256',
+    'prompt_sha256',
+    'attempt',
+    'cycle',
+  ], `Persisted scene attempt ${attempt.number} normalized defect`);
+  if (defect.version !== NORMALIZED_DEFECT_VERSION
+    || defect.gate !== NORMALIZED_FRAMING_GATE
+    || defect.defect_code !== NORMALIZED_SUBJECT_HEIGHT_DEFECT
+    || !['INCREASE_SUBJECT_SCALE', 'DECREASE_SUBJECT_SCALE'].includes(defect.direction)
+    || defect.metric !== 'subject_height_percent'
+    || !Number.isFinite(defect.observed)
+    || !Number.isFinite(defect.target)
+    || !Array.isArray(defect.preferred_band) || defect.preferred_band.length !== 2
+    || !defect.preferred_band.every(Number.isFinite)
+    || !Array.isArray(defect.delivery_band) || defect.delivery_band.length !== 2
+    || !defect.delivery_band.every(Number.isFinite)
+    || defect.preferred_band[0] > defect.preferred_band[1]
+    || defect.delivery_band[0] > defect.delivery_band[1]
+    || !Number.isFinite(defect.measurement_epsilon) || defect.measurement_epsilon < 0
+    || !Number.isFinite(defect.distance_to_delivery_band_pp)
+    || defect.distance_to_delivery_band_pp < 0
+    || defect.attempt !== attempt.number
+    || defect.cycle !== attempt.cycle) {
+    throw new Error(`Persisted scene attempt ${attempt.number} normalized defect fields are invalid`);
+  }
+  assertSha256(defect.signature_sha256, `scene attempt ${attempt.number} defect signature`);
+  assertSha256(defect.candidate_sha256, `scene attempt ${attempt.number} defect candidate sha256`);
+  assertSha256(defect.prompt_sha256, `scene attempt ${attempt.number} defect prompt sha256`);
+  const policy = resolvePersistedNormalizedDefectPolicy(defect, state);
+  const expected = recomputePersistedNormalizedDefect({ attempt, state, policy });
+  if (sha256(canonicalJsonBytes(defect)) !== sha256(canonicalJsonBytes(expected))) {
+    throw new Error(`Persisted scene attempt ${attempt.number} normalized defect does not match its immutable QA source`);
+  }
+}
+
+function validatePersistedRepairPlan(plan, { attempt, state }) {
+  if (plan === undefined || plan === null) return;
+  if (!plan || typeof plan !== 'object' || Array.isArray(plan)) {
+    throw new Error(`Persisted scene attempt ${attempt.number} repair plan is invalid`);
+  }
+  assertExactKeys(plan, [
+    'version',
+    'source_attempt',
+    'source_candidate_sha256',
+    'normalized_defect_sha256',
+    'defect_signature_sha256',
+    'classification',
+    'mechanism',
+    'model_action',
+    'decision_reason',
+    'previous_distance_to_delivery_band_pp',
+    'progress_pp',
+    'locked_passed_gate_ids',
+    'guide',
+    'request_manifest',
+  ], `Persisted scene attempt ${attempt.number} repair plan`);
+  if (plan.version !== 'scene-repair-plan-v1'
+    || !Number.isInteger(plan.source_attempt)
+    || plan.source_attempt < 1 || plan.source_attempt > attempt.number
+    || typeof plan.classification !== 'string' || plan.classification.length === 0
+    || typeof plan.mechanism !== 'string' || plan.mechanism.length === 0
+    || typeof plan.model_action !== 'string' || plan.model_action.length === 0
+    || typeof plan.decision_reason !== 'string' || plan.decision_reason.length === 0
+    || (plan.previous_distance_to_delivery_band_pp !== null
+      && (!Number.isFinite(plan.previous_distance_to_delivery_band_pp)
+        || plan.previous_distance_to_delivery_band_pp < 0))
+    || (plan.progress_pp !== null && !Number.isFinite(plan.progress_pp))) {
+    throw new Error(`Persisted scene attempt ${attempt.number} repair plan fields are invalid`);
+  }
+  if (!['MECHANICAL_CROP', 'MECHANICAL_GUIDE', 'VLM_GUIDED_REPAIR'].includes(plan.mechanism)
+    || !['NO_MODEL', 'NEXT_ROUTE_MODEL'].includes(plan.model_action)
+    || (plan.mechanism === 'MECHANICAL_CROP' && plan.model_action !== 'NO_MODEL')
+    || (plan.mechanism !== 'MECHANICAL_CROP' && plan.model_action !== 'NEXT_ROUTE_MODEL')
+    || (plan.mechanism === 'MECHANICAL_GUIDE' && plan.guide === null)
+    || (plan.mechanism === 'MECHANICAL_CROP' && plan.request_manifest !== null)
+    || (plan.mechanism !== 'MECHANICAL_CROP' && plan.request_manifest === null)) {
+    throw new Error(`Persisted scene attempt ${attempt.number} repair plan mechanism is invalid`);
+  }
+  for (const field of [
+    'source_candidate_sha256',
+    'normalized_defect_sha256',
+    'defect_signature_sha256',
+  ]) assertSha256(plan[field], `scene attempt ${attempt.number} repair plan ${field}`);
+  assertUniqueStringArray(plan.locked_passed_gate_ids, {
+    label: `Persisted scene attempt ${attempt.number} repair plan locked gates`,
+    minItems: 0,
+    maxItems: SCENE_QA_GATES.length,
+    allowed: new Set(SCENE_QA_GATES),
+  });
+  if (plan.guide !== null) {
+    const guide = plan.guide;
+    if (!guide || typeof guide !== 'object' || Array.isArray(guide)) {
+      throw new Error(`Persisted scene attempt ${attempt.number} repair guide is invalid`);
+    }
+    assertExactKeys(guide, [
+      'relative_path', 'sha256', 'size', 'media_type', 'transform',
+      'target_subject_height_percent', 'target_clear_space_above_hair_percent',
+      'target_clear_space_below_footwear_percent',
+    ], `Persisted scene attempt ${attempt.number} repair guide`);
+    assertRelativeArtifactPath(guide.relative_path, `scene attempt ${attempt.number} repair guide path`);
+    assertSha256(guide.sha256, `scene attempt ${attempt.number} repair guide sha256`);
+    if (!Number.isInteger(guide.size) || guide.size < 1
+      || guide.media_type !== 'image/png'
+      || !['style_camera_scale', 'translate_up_without_rescale', 'approved_master_geometry_layout'].includes(guide.transform)
+      || !Number.isFinite(guide.target_subject_height_percent)
+      || !Number.isFinite(guide.target_clear_space_above_hair_percent)
+      || (guide.target_clear_space_below_footwear_percent !== null
+        && !Number.isFinite(guide.target_clear_space_below_footwear_percent))) {
+      throw new Error(`Persisted scene attempt ${attempt.number} repair guide fields are invalid`);
+    }
+  }
+  if (plan.request_manifest !== null) {
+    const manifest = plan.request_manifest;
+    if (!manifest || typeof manifest !== 'object' || Array.isArray(manifest)) {
+      throw new Error(`Persisted scene attempt ${attempt.number} repair manifest is invalid`);
+    }
+    assertExactKeys(manifest, ['relative_path', 'sha256'], `Persisted scene attempt ${attempt.number} repair manifest`);
+    assertRelativeArtifactPath(manifest.relative_path, `scene attempt ${attempt.number} repair manifest path`);
+    assertSha256(manifest.sha256, `scene attempt ${attempt.number} repair manifest sha256`);
+  }
+  const source = state.attempts.find((candidate) => candidate.number === plan.source_attempt);
+  const sameAttemptCropRecheck = plan.source_attempt === attempt.number
+    && plan.mechanism === 'MECHANICAL_CROP'
+    && ['QA_PENDING', 'QA_PASS', 'QA_FAILED'].includes(source?.status);
+  if (!source || (source.status !== 'QA_FAILED' && !sameAttemptCropRecheck)
+    || (plan.source_attempt < attempt.number && source.candidate?.sha256 !== plan.source_candidate_sha256)
+    || !source.normalized_defect
+    || sha256(canonicalJsonBytes(source.normalized_defect)) !== plan.normalized_defect_sha256
+    || source.normalized_defect.signature_sha256 !== plan.defect_signature_sha256) {
+    throw new Error(`Persisted scene attempt ${attempt.number} repair plan source lineage is invalid`);
+  }
+}
+
+// The full policy-recheck decision lives in a content-addressed artifact.  The
+// state contains only this exact pointer so restart can reopen it before the
+// preserved candidate is sent back through QA.  It is deliberately not a
+// replacement normalized defect: that historic defect remains in the archive
+// made at the transition boundary.
+function validatePersistedPolicyRecheck(pointer, { attempt }) {
+  if (pointer === undefined || pointer === null) return;
+  if (!pointer || typeof pointer !== 'object' || Array.isArray(pointer)) {
+    throw new Error(`Persisted scene attempt ${attempt.number} policy recheck is invalid`);
+  }
+  assertExactKeys(pointer, [
+    'version',
+    'relative_path',
+    'sha256',
+    'retry_request_sha256',
+    'source_attempt',
+    'candidate_sha256',
+    'prompt_sha256',
+    'historic_qa_sha256',
+    'historic_normalized_defect_sha256',
+    'current_contract_sha256',
+  ], `Persisted scene attempt ${attempt.number} policy recheck`);
+  if (pointer.version !== FRAMING_POLICY_RECHECK_VERSION
+    || pointer.source_attempt !== attempt.number
+    || !attempt.candidate?.sha256
+    || !attempt.compiled_prompt?.sha256
+    || pointer.candidate_sha256 !== attempt.candidate.sha256
+    || pointer.prompt_sha256 !== attempt.compiled_prompt.sha256) {
+    throw new Error(`Persisted scene attempt ${attempt.number} policy recheck binding is invalid`);
+  }
+  assertRelativeArtifactPath(pointer.relative_path, `scene attempt ${attempt.number} policy recheck path`);
+  for (const field of [
+    'sha256',
+    'retry_request_sha256',
+    'candidate_sha256',
+    'prompt_sha256',
+    'historic_qa_sha256',
+    'historic_normalized_defect_sha256',
+    'current_contract_sha256',
+  ]) {
+    assertSha256(pointer[field], `scene attempt ${attempt.number} policy recheck ${field}`);
+  }
+  if (!['QA_PENDING', 'QA_FAILED', 'QA_PASS'].includes(attempt.status)) {
+    throw new Error(`Persisted scene attempt ${attempt.number} policy recheck state is invalid`);
+  }
+}
+
 function assertRelativeArtifactPath(value, label) {
   if (typeof value !== 'string'
     || value.length === 0
@@ -1867,10 +2495,11 @@ export function validatePersistedSceneState(state, expectedSceneId) {
   normalizeDelivery(state.delivery);
   if (!state.model_route || typeof state.model_route !== 'object') throw new Error('Persisted scene model route is invalid');
   assertExactKeys(state.model_route, ['route_version', 'sha256', 'entries'], 'Persisted scene model route');
-  const route = normalizeModelRoute(state.model_route.entries);
-  if (state.model_route.route_version !== 'zeely.scene.image-route.v1') {
+  const routeVersion = state.model_route.route_version;
+  if (![LEGACY_SCENE_IMAGE_ROUTE_VERSION, SCENE_IMAGE_ROUTE_VERSION].includes(routeVersion)) {
     throw new Error('Persisted scene route version is invalid');
   }
+  const route = normalizeModelRoute(state.model_route.entries, routeVersion);
   assertSha256(state.model_route.sha256, 'scene.model_route.sha256');
   if (sha256(canonicalJsonBytes(route)) !== state.model_route.sha256) {
     throw new Error('Persisted scene model route hash is invalid');
@@ -2030,7 +2659,7 @@ export function validatePersistedSceneState(state, expectedSceneId) {
       || attemptNumbers.has(attempt.number)) {
       throw new Error('Persisted scene attempt is invalid');
     }
-    assertExactKeys(
+    assertKeysWithOptional(
       attempt,
       [
         'number',
@@ -2050,6 +2679,7 @@ export function validatePersistedSceneState(state, expectedSceneId) {
         'qa',
         'error',
       ],
+      ['normalized_defect', 'repair_plan', 'provider_request_manifest', 'policy_recheck'],
       `Persisted scene attempt ${attempt.number}`,
     );
     if (Number.isNaN(Date.parse(attempt.started_at)) || Number.isNaN(Date.parse(attempt.updated_at))) {
@@ -2104,6 +2734,21 @@ export function validatePersistedSceneState(state, expectedSceneId) {
       assertSha256(attempt.compiled_prompt.sha256, 'scene attempt prompt sha256');
       assertRelativeArtifactPath(attempt.compiled_prompt.relative_path, 'scene attempt prompt path');
     }
+    if (attempt.provider_request_manifest !== undefined && attempt.provider_request_manifest !== null) {
+      assertExactKeys(
+        attempt.provider_request_manifest,
+        ['relative_path', 'sha256'],
+        'Persisted scene attempt provider request manifest',
+      );
+      assertRelativeArtifactPath(
+        attempt.provider_request_manifest.relative_path,
+        'scene attempt provider request manifest path',
+      );
+      assertSha256(
+        attempt.provider_request_manifest.sha256,
+        'scene attempt provider request manifest sha256',
+      );
+    }
     if (!attempt.provider_metadata
       || typeof attempt.provider_metadata !== 'object'
       || Array.isArray(attempt.provider_metadata)
@@ -2112,8 +2757,14 @@ export function validatePersistedSceneState(state, expectedSceneId) {
       throw new Error('Persisted scene attempt provider metadata is invalid');
     }
     validatePersistedNormalization(attempt.normalization, { attempt, state });
+    validatePersistedNormalizedDefect(attempt.normalized_defect, { attempt, state });
+    validatePersistedRepairPlan(attempt.repair_plan, { attempt, state });
+    validatePersistedPolicyRecheck(attempt.policy_recheck, { attempt });
     const hasFinalQa = attempt.status === 'QA_FAILED' || attempt.status === 'QA_PASS';
-    if (hasFinalQa) {
+    const preservedPolicyQa = attempt.status === 'QA_PENDING'
+      && attempt.policy_recheck !== undefined
+      && attempt.policy_recheck !== null;
+    if (hasFinalQa || preservedPolicyQa) {
       const qaLabel = `Persisted scene attempt ${attempt.number} QA`;
       if (!attempt.qa || typeof attempt.qa !== 'object' || Array.isArray(attempt.qa)) {
         throw new Error(`${qaLabel} receipt is missing`);

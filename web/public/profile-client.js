@@ -1,3 +1,5 @@
+import { errorFromApiResponse } from './error-presentation.js?v=20260804-1';
+
 const JSON_HEADERS = Object.freeze({ 'Content-Type': 'application/json' });
 
 async function profileRequest(url, options = {}) {
@@ -12,13 +14,7 @@ async function profileRequest(url, options = {}) {
     });
     if (response.status === 204) return null;
     const body = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      const error = new Error(body.error || `Profile request failed (${response.status})`);
-      error.status = response.status;
-      error.code = body.code;
-      error.body = body;
-      throw error;
-    }
+    if (!response.ok) throw errorFromApiResponse(response, body, `Profile request failed (${response.status})`);
     return body;
   } finally {
     clearTimeout(timeout);
@@ -87,6 +83,15 @@ export function createProfileEditorialShoot(lookId, {
 export function listProfileLookEditorialShoots(lookId) {
   return profileRequest(
     `/api/profile/looks/${encodeURIComponent(lookId)}/editorial-shoots`,
+    { cache: 'no-store' },
+  );
+}
+
+// Delivery URLs remain private to the browser profile.  The server returns
+// only Fashion Video clips whose immutable style/QA binding is complete.
+export function listProfileLookVideoClips(lookId) {
+  return profileRequest(
+    `/api/profile/looks/${encodeURIComponent(lookId)}/video-clips`,
     { cache: 'no-store' },
   );
 }

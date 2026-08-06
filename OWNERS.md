@@ -17,18 +17,26 @@ It supersedes the shared-`beta` write model below.
   no scene backend or QA.
 - Block 4 / `beta-block-4-universe` / `chat-4`: `shoot.*` source packs,
   observations, sheets, manifests, catalog and integrity.
-- Block 5 / `beta-block-5-fashion-shoot` / `chat-5`: Shoot Bible, hero, series,
+- Block 5 / `beta-block-5-fashion-shoot` / `chat-4`: Shoot Bible, hero, series,
   shoot QA/retry/persistence and shoot UI.
-- Block 6 / `beta-block-6-fashion-video` / `chat-6`: generated video/motion
+- Block 6 / `beta-block-6-fashion-video` / `chat-5`: generated video/motion
   transport, QA, persistence and dedicated UI.
 - Block 7 / `beta-block-7-realtime-look` / `chat-7`: camera, consent, realtime,
   explicit capture and teardown.
 - Block 0.8 / `beta-block-08-antigravity-qa` / `antigravity-qa`: read-only
   public-beta browser verification and QA reports only. It owns no product
   code and cannot approve its own product change.
+- Observer 0.9 / `beta-block-09-handoff-cloud-code-qa` /
+  `handoff-cloud-code-qa`: independent external browser QA and adversarial
+  verification only. It owns no product code, deploy, integration or
+  Antigravity report paths.
 
 Only `chat-00-master` owns integration-only files and may update `beta`, deploy
 or edit the central ledgers. Chat 01 remains the Block 1 product owner.
+Chat 06 (`chat-6`) owns only the separate MAIN_SITE product and may not join a
+beta block. User-visible chat labels are not block numbers; exact thread IDs,
+titles, agent IDs, block ownership and report paths are canonical in
+[`docs/coordination/BETA_THREAD_OWNER_MAP.json`](docs/coordination/BETA_THREAD_OWNER_MAP.json).
 `main` remains read-only.
 
 ## RETIRED FAST MODE — historical reference only

@@ -1,29 +1,86 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { access, mkdtemp, readFile, readdir, writeFile } from 'node:fs/promises';
+import { access, mkdir, mkdtemp, readFile, readdir, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import sharp from 'sharp';
 import { MockProvider } from '../../src/providers/mock-provider.js';
-import { InputNeedsInputError, RunService } from '../../src/web/run-service.js';
+import { InputNeedsInputError, providerWaitHeartbeatFromJournal, RunService } from '../../src/web/run-service.js';
 import { hasPrivateInfrastructure } from '../../src/security/outbound-redaction.js';
 
 async function upload(color = '#7b4d2e') {
   return { filename: 'input.png', mimetype: 'image/png', buffer: await sharp({ create: { width: 360, height: 480, channels: 3, background: color } }).png().toBuffer() };
 }
+async function createCanonical() {
+  const silhouette = Buffer.from(`
+    <svg xmlns="http://www.w3.org/2000/svg" width="256" height="560" viewBox="0 0 256 560">
+      <circle cx="128" cy="48" r="38" fill="#9b7156"/>
+      <rect x="71" y="91" width="114" height="190" rx="28" fill="#275b36"/>
+      <rect x="82" y="276" width="42" height="210" rx="18" fill="#26313d"/>
+      <rect x="132" y="276" width="42" height="210" rx="18" fill="#26313d"/>
+      <rect x="67" y="478" width="67" height="37" rx="16" fill="#101317"/>
+      <rect x="122" y="478" width="67" height="37" rx="16" fill="#101317"/>
+    </svg>
+  `);
+  return sharp({ create: { width: 512, height: 640, channels: 3, background: '#ffffff' } })
+    .composite([{ input: silhouette, left: 128, top: 30 }])
+    .flatten({ background: '#ffffff' })
+    .removeAlpha()
+    .png()
+    .toBuffer();
+}
+
+const CANONICAL = await createCanonical();
+
 async function canonical() {
-  return sharp({ create: { width: 512, height: 640, channels: 3, background: '#ffffff' } }).composite([{ input: Buffer.from('<svg width="220" height="360"><rect width="220" height="360" rx="30" fill="#275b36"/></svg>'), left: 146, top: 140 }]).png().toBuffer();
+  return Buffer.from(CANONICAL);
+}
+
+function firstAppearancePassport() {
+  return {
+    status: 'READY',
+    reason: 'visible lower body and footwear are locked from approved look',
+    items: [
+      {
+        source_index: 0,
+        category: 'bottom',
+        confidence: 0.96,
+        observed: { garment_type: 'charcoal trousers', colors: ['charcoal'], material: ['woven'], pattern: [], logo_text: [], construction: ['full-length leg'] },
+        unknowns: [],
+        blockers: [],
+      },
+      {
+        source_index: 1,
+        category: 'footwear',
+        confidence: 0.96,
+        observed: { garment_type: 'black shoes', colors: ['black'], material: ['leather'], pattern: [], logo_text: [], construction: ['closed toe'] },
+        unknowns: [],
+        blockers: [],
+      },
+    ],
+  };
+}
+
+function withFirstAppearanceInspector(inspector) {
+  return async (paths, context) => (
+    context?.purpose === 'FIRST_APPEARANCE_LOCK'
+      ? firstAppearancePassport()
+      : inspector(paths, context)
+  );
 }
 
 function dependencies() {
   const vlm = {
-    inspectGarments: async () => ({ status: 'READY', reason: 'clear garment', items: [{ source_index: 0, category: 'top', confidence: 0.95,
-      observed: { garment_type: 'forest green hoodie', colors: ['forest green'], material: ['fleece'], pattern: [], logo_text: [], construction: ['hood', 'long sleeves'] }, unknowns: [], blockers: [] }] }),
+    inspectGarments: async (_paths, context) => {
+      if (context?.purpose === 'FIRST_APPEARANCE_LOCK') return firstAppearancePassport();
+      return { status: 'READY', reason: 'clear garment', items: [{ source_index: 0, category: 'top', confidence: 0.95,
+        observed: { garment_type: 'forest green hoodie', colors: ['forest green'], material: ['fleece'], pattern: [], logo_text: [], construction: ['hood', 'long sleeves'] }, unknowns: [], blockers: [] }] };
+    },
     evaluateQa: async () => ({ decision: 'PASS', reason: 'all locks match', checks: [{ name: 'FIDELITY', pass: true, evidence: 'same visible garment' }], defects: [] }),
   };
   const assetGenerator = { generateGarment: async () => ({ image: await canonical(), metadata: { provider: 'mock' } }), generateScene: async () => ({ image: await canonical(), metadata: { provider: 'mock' } }) };
-  return { provider: new MockProvider(), vlm, assetGenerator };
+  return { provider: new MockProvider({ image: CANONICAL }), vlm, assetGenerator };
 }
 
 async function rewriteRunStatus(root, runId, status) {
@@ -81,6 +138,57 @@ test('public run state never exposes transport paths, private prompts, or projec
   );
   assert.equal(publicState.garments.length, 1);
   assert.match(publicState.garments[0].preview_url, /^\/api\/runs\//);
+});
+
+test('provider wait heartbeat is minute-throttled, preserves the remote job privately, and omits it from browser state', async () => {
+  const startedAt = '2026-07-31T14:42:36.113Z';
+  const journal = {
+    provider: 'higgsfield',
+    provider_job_id: '5f9167d0-6337-4006-bbc2-19cbde201c11',
+    state: 'WAITING',
+    events: [{
+      type: 'WAIT_STARTED',
+      at: startedAt,
+      provider_job_id: '5f9167d0-6337-4006-bbc2-19cbde201c11',
+      wait_attempt: 2,
+    }],
+  };
+  assert.equal(providerWaitHeartbeatFromJournal(journal, {
+    now: new Date('2026-07-31T14:43:35.999Z'),
+  }), null, 'no heartbeat before one full minute');
+  const heartbeat = providerWaitHeartbeatFromJournal(journal, {
+    now: new Date('2026-07-31T14:44:37.113Z'),
+  });
+  assert.deepEqual(heartbeat, {
+    state: 'WAITING',
+    provider: 'higgsfield',
+    provider_job_id: '5f9167d0-6337-4006-bbc2-19cbde201c11',
+    attempt: 2,
+    started_at: startedAt,
+    elapsed_seconds: 120,
+  });
+
+  const root = await mkdtemp(path.join(os.tmpdir(), 'zeely-public-provider-wait-'));
+  const runId = 'provider-wait-heartbeat';
+  await mkdir(path.join(root, runId), { recursive: true });
+  await writeFile(path.join(root, runId, 'run.json'), `${JSON.stringify({
+    run_id: runId,
+    status: 'RUNNING',
+    phase: 'CORE_PIPELINE',
+    inner_state: 'GENERATING_OUTFIT',
+    message: 'Модель обробляє запит у провайдера · спроба 2 · очікуємо 2 хв',
+    created_at: startedAt,
+    updated_at: '2026-07-31T14:44:37.113Z',
+    inputs: { garments: [] },
+    garments: [], conflicts: [], qa: {}, outputs: {}, error: null,
+    provider_wait: heartbeat,
+  }, null, 2)}\n`);
+  const service = new RunService({ rootDirectory: root, ...dependencies() });
+  const publicState = await service.getRun(runId);
+  assert.equal(publicState.provider_wait.elapsed_seconds, 120);
+  assert.equal(publicState.provider_wait.attempt, 2);
+  assert.equal('provider_job_id' in publicState.provider_wait, false);
+  assert.doesNotMatch(JSON.stringify(publicState), /5f9167d0-6337-4006-bbc2-19cbde201c11/);
 });
 
 test('initialize resumes persisted QUEUED and RUNNING runs from their existing checkpoints', async () => {
@@ -219,6 +327,45 @@ test('working core accepts a fresh user and garment upload and returns two downl
   assert.ok(await service.outputFile(created.run_id, 'avatar_outfit.png'));
 });
 
+test('single selected garment binds outfit QA to the canonical item scope, not incidental full-body source clothing', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'zeely-web-partial-item-scope-'));
+  const deps = dependencies();
+  let outfitQaEvidence = null;
+  deps.provider = new MockProvider({
+    image: CANONICAL,
+    script: {
+      qa: (context) => {
+        if (context.phase === 'outfit') outfitQaEvidence = structuredClone(context.evidence);
+        return {
+          decision: 'PASS', reason: 'selected garment matches',
+          checks: [{ name: 'FIDELITY', pass: true, score: 0.98, evidence: 'selected green hoodie matches' }],
+          defects: [],
+        };
+      },
+    },
+  });
+  const service = new RunService({ rootDirectory: root, ...deps });
+  await service.initialize();
+  const created = await service.createRun({
+    person: await upload('#956b58'),
+    garments: [await upload('#275b36')],
+    outfitText: '',
+    generateScene: false,
+  });
+  await service.running.get(created.run_id);
+
+  assert.ok(outfitQaEvidence);
+  assert.equal(outfitQaEvidence.outfit, undefined, 'raw full-body garment source is not QA authority after canonicalization');
+  assert.equal(outfitQaEvidence.source_outfit, undefined, 'raw source image is not appended to outfit QA');
+  assert.match(outfitQaEvidence.outfit_text, /\[top\]/);
+  assert.match(outfitQaEvidence.outfit_scope, /upper body \/ top/);
+  assert.equal(outfitQaEvidence.reference_packs.outfit.bindings[0].role, 'GARMENT_TOP');
+
+  const job = JSON.parse(await readFile(path.join(root, created.run_id, 'job.json'), 'utf8'));
+  assert.match(job.outfit.target_region, /upper body \/ top/);
+  assert.doesNotMatch(job.outfit.target_region, /complete outfit/i);
+});
+
 test('a new-look run imports a verified completed avatar without avatar provider generation', async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'zeely-web-approved-avatar-'));
   const deps = dependencies();
@@ -290,6 +437,7 @@ test('working core supports text-only outfit and rejects invalid uploads before 
   const service = new RunService({ rootDirectory: root, ...dependencies() });
   await service.initialize();
   const created = await service.createRun({ person: await upload(), outfitText: 'cobalt blazer and white top', generateScene: false });
+  assert.equal(created.requested_outfit_text, 'cobalt blazer and white top');
   assert.equal(created.execution_route.garment_images_supplied, false);
   assert.equal(created.execution_route.garment_source_image_count, 0);
   await service.running.get(created.run_id);
@@ -336,6 +484,97 @@ test('working core supports text-only outfit and rejects invalid uploads before 
   assert.equal(inputError.field, 'Фото людини');
 });
 
+test('approved identity reference returns only hash-verified bytes from the READY pack', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'zeely-web-video-identity-'));
+  const service = new RunService({ rootDirectory: root, ...dependencies() });
+  const runId = 'video-identity-run';
+  const identityDirectory = path.join(root, runId, 'conditioned', 'identity');
+  const primaryPath = path.join(identityDirectory, 'primary.png');
+  const primary = Buffer.from('verified-identity-reference');
+  const primarySha256 = createHash('sha256').update(primary).digest('hex');
+  await mkdir(identityDirectory, { recursive: true });
+  await writeFile(primaryPath, primary);
+  await writeFile(path.join(identityDirectory, 'reference-pack.json'), JSON.stringify({
+    schema_version: '1.0.0',
+    kind: 'HUMAN',
+    readiness: { decision: 'READY' },
+    generation_bindings: [{
+      order: 1,
+      role: 'IDENTITY_PRIMARY',
+      path: primaryPath,
+      sha256: primarySha256,
+    }],
+  }));
+
+  const identityReference = await service.approvedIdentityReferenceForRun(runId);
+  assert.deepEqual(identityReference, {
+    role: 'identity_face',
+    data: primary,
+    sha256: primarySha256,
+    media_type: 'image/png',
+  });
+
+  await writeFile(primaryPath, 'tampered');
+  await assert.rejects(
+    () => service.approvedIdentityReferenceForRun(runId),
+    (error) => error.code === 'APPROVED_IDENTITY_REFERENCE_HASH_MISMATCH',
+  );
+});
+
+test('Fashion Video identity face is admitted only from a hash-verified white derivative', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'zeely-web-video-face-detail-'));
+  const service = new RunService({ rootDirectory: root, ...dependencies() });
+  const runId = 'video-face-detail-run';
+  const identityDirectory = path.join(root, runId, 'conditioned', 'identity');
+  const detailPath = path.join(identityDirectory, 'detail.png');
+  const detail = await sharp({
+    create: { width: 512, height: 512, channels: 3, background: '#ffffff' },
+  }).composite([{
+    input: Buffer.alloc(128 * 160 * 3, 0x40),
+    raw: { width: 128, height: 160, channels: 3 },
+    left: 192,
+    top: 176,
+  }]).removeAlpha().toColourspace('srgb').png().toBuffer();
+  const detailSha256 = createHash('sha256').update(detail).digest('hex');
+  await mkdir(identityDirectory, { recursive: true });
+  await writeFile(detailPath, detail);
+  await writeFile(path.join(identityDirectory, 'reference-pack.json'), JSON.stringify({
+    schema_version: '1.0.0',
+    kind: 'HUMAN',
+    readiness: { decision: 'READY' },
+    generation_bindings: [{
+      order: 2,
+      role: 'FACE_DETAIL',
+      path: detailPath,
+      sha256: detailSha256,
+    }],
+  }));
+
+  const identityReference = await service.approvedIdentityFaceReferenceForRun(runId);
+  assert.equal(identityReference.role, 'identity_face');
+  assert.equal(identityReference.sha256, detailSha256);
+  assert.equal(identityReference.white_background_verified, true);
+  assert.deepEqual(identityReference.data, detail);
+
+  const nonWhite = await sharp({
+    create: { width: 512, height: 512, channels: 3, background: '#999999' },
+  }).png().toBuffer();
+  const nonWhiteSha256 = createHash('sha256').update(nonWhite).digest('hex');
+  await writeFile(detailPath, nonWhite);
+  await writeFile(path.join(identityDirectory, 'reference-pack.json'), JSON.stringify({
+    schema_version: '1.0.0',
+    kind: 'HUMAN',
+    readiness: { decision: 'READY' },
+    generation_bindings: [{
+      order: 2,
+      role: 'FACE_DETAIL',
+      path: detailPath,
+      sha256: nonWhiteSha256,
+    }],
+  }));
+  assert.equal(await service.approvedIdentityFaceReferenceForRun(runId), null);
+});
+
 test('slot conflicts become an explicit NEEDS_INPUT result', async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'zeely-web-conflict-'));
   const deps = dependencies();
@@ -365,7 +604,7 @@ test('explicit duplicate-slot selection continues the same run with the chosen g
     return originalGenerateGarment(...args);
   };
   let inspectionCount = 0;
-  deps.vlm.inspectGarments = async () => {
+  deps.vlm.inspectGarments = withFirstAppearanceInspector(async () => {
     inspectionCount += 1;
     return ({
     status: 'READY', reason: 'two footwear options',
@@ -373,7 +612,7 @@ test('explicit duplicate-slot selection continues the same run with the chosen g
       observed: { garment_type: source_index ? 'burgundy pumps' : 'brown boots', colors: [source_index ? 'burgundy' : 'brown'], material: [], pattern: [], logo_text: [], construction: [] }, unknowns: [], blockers: [] })),
     reference_sets: [0, 1].map((source_index) => ({ source_indexes: [source_index], primary_source_index: source_index, same_item_confidence: 1, evidence: ['single'] })),
     });
-  };
+  });
   const service = new RunService({ rootDirectory: root, ...deps });
   await service.initialize();
   const created = await service.createRun({ person: await upload(), garments: [await upload('#6b3e2e'), await upload('#751d35')], generateScene: false });
@@ -404,7 +643,7 @@ test('saved avatar with top, bag, boots, and pumps pauses for exactly two footwe
   const root = await mkdtemp(path.join(os.tmpdir(), 'zeely-saved-avatar-footwear-choice-'));
   const deps = dependencies();
   let inspectionCount = 0;
-  deps.vlm.inspectGarments = async () => {
+  deps.vlm.inspectGarments = withFirstAppearanceInspector(async () => {
     inspectionCount += 1;
     const definitions = [
       ['top', 'ivory blouse', ['ivory']],
@@ -437,7 +676,7 @@ test('saved avatar with top, bag, boots, and pumps pauses for exactly two footwe
         evidence: ['single approved product view'],
       })),
     };
-  };
+  });
   const service = new RunService({ rootDirectory: root, ...deps });
   await service.initialize();
 
@@ -525,11 +764,11 @@ test('multiple views of the same garment are conditioned once with complete prov
   const deps = dependencies();
   const generatorCalls = [];
   const qaCalls = [];
-  deps.vlm.inspectGarments = async () => ({ status: 'READY', reason: 'same exact shirt', items: [0, 1].map((source_index) => ({
+  deps.vlm.inspectGarments = withFirstAppearanceInspector(async () => ({ status: 'READY', reason: 'same exact shirt', items: [0, 1].map((source_index) => ({
     source_index, category: 'top', confidence: 0.95 + source_index * 0.01,
     observed: { garment_type: 'blue pinstriped shirt', colors: ['blue', 'white'], material: ['woven cotton'], pattern: ['pinstripe'], logo_text: [], construction: ['point collar', 'white buttons'] },
     unknowns: [], blockers: [],
-  })), reference_sets: [{ source_indexes: [0, 1], primary_source_index: 1, same_item_confidence: 0.98, evidence: ['same stripe spacing, collar and buttons'] }] });
+  })), reference_sets: [{ source_indexes: [0, 1], primary_source_index: 1, same_item_confidence: 0.98, evidence: ['same stripe spacing, collar and buttons'] }] }));
   deps.vlm.evaluateQa = async (context) => {
     qaCalls.push(context);
     return { decision: 'PASS', reason: 'all visible locks match', checks: [{ name: 'FIDELITY', pass: true, score: 0.96, evidence: 'same shirt' }], defects: [] };

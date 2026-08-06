@@ -19,11 +19,13 @@ import {
   IMAGE_MODEL_NAMES,
   IMAGE_MODEL_ROUTE,
   assertAllowedImageModel,
+  generationProfileForAttempt,
 } from '../runner/model-policy.js';
 import {
   SCENE_EVALUATOR_GATES,
   SCENE_REFERENCE_ROLES,
   SCENE_SHOT_ANCHOR_ROLES,
+  canonicalJsonBytes,
   contactPointInsideFrame,
   sceneQaItemScope,
   sha256,
@@ -40,9 +42,13 @@ const GENERATION_REFERENCE_ORDER = Object.freeze([
   'palette_anchor',
   'negative_reference',
 ]);
-const CREATE_UNIVERSE_IMAGE_REFERENCE_ORDER = Object.freeze([
+// The immutable Create Universe reference pack contains four image sheets
+// (the fourth is the generic unit blocking board).  That board is validated
+// for provenance but is intentionally not transported as a per-frame authority:
+// pose must come from a slot-specific blocking reference, never from a board
+// containing several unrelated poses.
+const CREATE_UNIVERSE_TRANSPORT_IMAGE_REFERENCE_ORDER = Object.freeze([
   'composition_anchor',
-  'negative_reference',
   'lighting_anchor',
   'palette_anchor',
 ]);
@@ -255,32 +261,107 @@ function prioritizedImageReferences(references, presetId) {
   const images = references.filter((item) => item.transport === 'image');
   if (!isCreateUniversePresetId(presetId)) return images;
   const byRole = new Map(images.map((item) => [item.role, item]));
-  if (byRole.size !== CREATE_UNIVERSE_IMAGE_REFERENCE_ORDER.length) {
+  if (byRole.size !== Object.keys(CREATE_UNIVERSE_STYLE_SHEET_BY_ROLE).length) {
     throw new Error('Create Universe generation requires exactly four canonical image sheets');
   }
-  return CREATE_UNIVERSE_IMAGE_REFERENCE_ORDER.map((role) => {
+  // Validate the complete immutable pack, including the non-transported generic
+  // blocking board.  It remains provenance evidence even though it is not sent as
+  // pose authority for this individual slot.
+  for (const reference of byRole.values()) createUniverseStyleSheetRole(reference, presetId);
+  return CREATE_UNIVERSE_TRANSPORT_IMAGE_REFERENCE_ORDER.map((role) => {
     const reference = byRole.get(role);
-    createUniverseStyleSheetRole(reference, presetId);
     return reference;
   });
 }
 
 function createUniverseStyleAttachmentInstructions(attachments, presetId) {
   if (!isCreateUniversePresetId(presetId)) return '';
-  const lines = attachments
-    .filter((item) => item.styleSheetRole)
-    .map((item) => (
-      `- ATTACHMENT_${item.order} [CREATE_UNIVERSE_${item.styleSheetRole.toUpperCase()}]`
-    ));
+  const lines = attachments.flatMap((item) => {
+    if (Array.isArray(item.styleSheetRoles)) {
+      return [
+        `- ATTACHMENT_${item.order} [CREATE_UNIVERSE_AUTHORITY_SHEET] is one mechanical three-panel transport sheet:`,
+        '  PANEL_1=CAMERA_LENS; PANEL_2=EXPRESSION_GAZE; PANEL_3=GARMENT_BEHAVIOUR.',
+      ];
+    }
+    return item.styleSheetRole
+      ? [`- ATTACHMENT_${item.order} [CREATE_UNIVERSE_${item.styleSheetRole.toUpperCase()}]`]
+      : [];
+  });
   if (lines.length === 0) return '';
   return [
     '',
     'CREATE UNIVERSE STYLE-SHEET AUTHORITY — FIXED PRIORITY',
     ...lines,
-    'Their canonical priority is CAMERA_LENS → BLOCKING → EXPRESSION_GAZE → GARMENT_BEHAVIOUR. Never reinterpret their generic scene-role transport labels as a different authority.',
-    'CAMERA_LENS controls camera consequence, perspective, focus falloff and unit-wide optics. BLOCKING controls only body-to-camera and joint-chain geometry. EXPRESSION_GAZE controls only muscular state and gaze, never facial identity or geometry. GARMENT_BEHAVIOUR controls only what the approved item cloth does under this shoot, never its design, colour, logo or construction.',
+    'Their canonical priority is CAMERA_LENS → EXPRESSION_GAZE → GARMENT_BEHAVIOUR. Never reinterpret their generic scene-role transport labels as a different authority.',
+    'CAMERA_LENS controls camera consequence, perspective, focus falloff and unit-wide optics. EXPRESSION_GAZE controls only muscular state and gaze, never facial identity or geometry. GARMENT_BEHAVIOUR controls only what the approved item cloth does under this shoot, never its design, colour, logo or construction.',
+    'POSE is the sole physical-pose authority for this frame. A generic unit blocking board is deliberately not attached: it is not evidence that it illustrates this slot\'s exact joint chain.',
     'Environment, palette, lighting, contrast and optical rules also remain mandatory as exact structured prompt facts. Source people, source garments and exact source places never transfer.',
   ].join('\n');
+}
+
+async function createUniverseAuthoritySheet(references, workDirectory) {
+  if (references.length !== CREATE_UNIVERSE_TRANSPORT_IMAGE_REFERENCE_ORDER.length) {
+    throw new Error('Create Universe authority sheet requires exactly three transport image sheets');
+  }
+  const sourceBytes = await Promise.all(references.map((item) => readFile(item.path)));
+  const metadata = await Promise.all(sourceBytes.map((bytes) => sharp(bytes).metadata()));
+  if (metadata.some((item) => !Number.isInteger(item.width) || !Number.isInteger(item.height))) {
+    throw new Error('Create Universe style sheets must expose exact source geometry');
+  }
+  // The source boards deliberately use different landscape canvases. Normalise
+  // transport, never content: every complete board is contained in one fixed
+  // transparent cell with no crop, stretch or generated pixels.
+  const width = 1536;
+  const height = 1024;
+  const cells = await Promise.all(sourceBytes.map((bytes) => sharp(bytes)
+    .resize({
+      width,
+      height,
+      fit: 'contain',
+      position: 'centre',
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    })
+    .png({ compressionLevel: 9, adaptiveFiltering: false })
+    .toBuffer()));
+  const sourceSha256 = references.map((item) => item.sha256);
+  const authorityBytes = await sharp({
+    create: {
+      width: width * cells.length,
+      height,
+      channels: 4,
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    },
+  }).composite(cells.map((input, index) => ({ input, left: width * index, top: 0 })))
+    .png({ compressionLevel: 9, adaptiveFiltering: false }).toBuffer();
+  const authoritySha256 = sha256(authorityBytes);
+  const filename = path.join(
+    path.resolve(workDirectory),
+    `create-universe-authority-${authoritySha256.slice(0, 16)}.png`,
+  );
+  try {
+    await writeFile(filename, authorityBytes, { flag: 'wx' });
+  } catch (error) {
+    if (error?.code !== 'EEXIST') throw error;
+    const existing = await readFile(filename);
+    if (!existing.equals(authorityBytes)) {
+      throw new Error('Create Universe authority sheet conflicts with its content-addressed SHA');
+    }
+  }
+  return {
+    scope: 'outfit',
+    role: 'CREATE_UNIVERSE_AUTHORITY_SHEET',
+    styleSheetRoles: [
+      'camera_lens',
+      'expression_gaze',
+      'garment_behaviour',
+    ],
+    styleSheetSourceSha256: sourceSha256,
+    styleSheetSourceGeometry: metadata.map((item) => `${item.width}x${item.height}`),
+    path: filename,
+    sha256: authoritySha256,
+    mediaType: 'image/png',
+    source: 'CONDITIONED',
+  };
 }
 
 export function referenceEvidence(references) {
@@ -410,19 +491,90 @@ export async function mapWithConcurrency(values, limit, mapper) {
 }
 
 function assertSceneRoute(context) {
-  const jobSetType = assertAllowedImageModel(context?.job_set_type);
-  const routeIndex = IMAGE_MODEL_ROUTE.indexOf(jobSetType);
   const routeAttempt = Number(context?.cycle_attempt ?? context?.attempt);
-  if (routeIndex !== routeAttempt - 1) {
-    throw new Error('Scene attempt does not match the fixed GPT Image 2 → Nano Banana 2 → Nano Banana Pro route');
+  const route = Array.isArray(context?.model_route)
+    ? context.model_route.map((entry) => entry.job_set_type)
+    : IMAGE_MODEL_ROUTE;
+  const expected = context?.generation_profile ?? generationProfileForAttempt(routeAttempt, route);
+  const jobSetType = assertAllowedImageModel(context?.job_set_type);
+  if (jobSetType !== expected.job_set_type) {
+    throw new Error('Scene attempt does not match its immutable generation profile');
   }
-  if (context.model !== IMAGE_MODEL_NAMES[jobSetType] || context.model_version !== jobSetType || context.quality !== 'high') {
+  if (context.model !== IMAGE_MODEL_NAMES[jobSetType]
+    || context.model_version !== jobSetType
+    || context.quality !== expected.quality
+    || (context.resolution !== undefined && context.resolution !== expected.resolution)) {
     throw new Error('Scene model metadata does not match the locked production route');
   }
   if (context.aspect_ratio !== '3:4' || context.width * 4 !== context.height * 3) {
     throw new Error('Scene delivery must be exact 3:4');
   }
-  return jobSetType;
+  return expected;
+}
+
+function assertRepairPlanGuidePreflight(context) {
+  const plan = context?.repair_plan;
+  if (!plan) return;
+  const compositionGuide = context.composition_guide;
+  const requiresMechanicalGuide = plan.mechanism === 'MECHANICAL_GUIDE';
+  if (requiresMechanicalGuide && !compositionGuide) {
+    throw new Error('repair_plan mechanism MECHANICAL_GUIDE requires composition_guide');
+  }
+  if (
+    (compositionGuide || plan.guide)
+    && plan.guide?.sha256 !== compositionGuide?.sha256
+  ) {
+    throw new Error('repair_plan.guide.sha256 must match composition_guide.sha256');
+  }
+}
+
+async function assertRepairPlanGuideBinding(context, compositionGuide) {
+  const plan = context?.repair_plan;
+  if (!plan) return;
+  const receipt = plan.guide;
+  if (plan.mechanism === 'MECHANICAL_GUIDE' && !receipt) {
+    throw new Error('repair_plan mechanism MECHANICAL_GUIDE requires a persisted guide receipt');
+  }
+  if (!receipt) {
+    if (compositionGuide) {
+      throw new Error('composition_guide is not allowed without a persisted repair guide receipt');
+    }
+    return;
+  }
+  if (!compositionGuide) {
+    throw new Error('repair_plan guide receipt requires composition_guide');
+  }
+  const bytes = await readFile(compositionGuide.path);
+  const expectedBelow = receipt.target_clear_space_below_footwear_percent;
+  const actualBelow = compositionGuide.target_clear_space_below_footwear_percent ?? null;
+  if (
+    receipt.sha256 !== compositionGuide.sha256
+    || sha256(bytes) !== receipt.sha256
+    || bytes.length !== receipt.size
+    || receipt.media_type !== compositionGuide.media_type
+    || compositionGuide.media_type !== 'image/png'
+    || receipt.transform !== compositionGuide.transform
+    || plan.source_attempt !== compositionGuide.source_attempt
+    || receipt.target_subject_height_percent !== compositionGuide.target_subject_height_percent
+    || receipt.target_clear_space_above_hair_percent
+      !== compositionGuide.target_clear_space_above_hair_percent
+    || expectedBelow !== actualBelow
+  ) {
+    throw new Error('repair_plan guide receipt does not match the bound mechanical guide');
+  }
+}
+
+function repairPlanMetadata(plan) {
+  if (!plan) return {};
+  return {
+    repair_route_version: plan.version,
+    repair_route_classification: plan.classification,
+    repair_route_mechanism: plan.mechanism,
+    repair_route_model_action: plan.model_action,
+    repair_defect_signature_sha256: plan.defect_signature_sha256,
+    repair_distance_to_delivery_band_pp: plan.previous_distance_to_delivery_band_pp,
+    repair_progress_pp: plan.progress_pp,
+  };
 }
 
 // A delivery never fakes its own size. The previous code padded any off-aspect
@@ -498,12 +650,37 @@ export class SceneGeneratorAdapter {
     this.providers = providers;
   }
 
+  // This is deliberately the same code path as generation, stopped at the
+  // last safe point before provider.generate.  SceneService calls it to store
+  // an immutable, path-free request manifest and derive the provider
+  // idempotency key *before* money is spent.  A resumed attempt asks this
+  // method again and fails closed if code or input ordering now compiles a
+  // different request.
+  async prepareSceneGeneration(context) {
+    const prepared = await this.generateScene({ ...context, prepare_only: true });
+    if (!prepared?.pre_spend_manifest || !prepared?.pre_spend_manifest_sha256) {
+      throw new Error('SceneGeneratorAdapter did not return a pre-spend request manifest');
+    }
+    return prepared;
+  }
+
   async generateScene(context) {
-    const jobSetType = assertSceneRoute(context);
+    const generationProfile = assertSceneRoute(context);
+    const jobSetType = generationProfile.job_set_type;
+    // Direct adapter callers can provide only a snapshotted route entry.
+    // Fill the provider-facing fields from that same immutable profile so the
+    // CLI cannot quietly fall back to its constructor's 2k/high defaults.
+    context = {
+      ...context,
+      generation_profile: context.generation_profile ?? generationProfile,
+      resolution: context.resolution ?? generationProfile.resolution,
+      quality: context.quality ?? generationProfile.quality,
+    };
     const provider = this.providers?.[jobSetType] ?? this.provider;
     if (typeof provider?.generate !== 'function') {
       throw new Error(`SceneGeneratorAdapter has no provider for ${jobSetType}`);
     }
+    assertRepairPlanGuidePreflight(context);
     // The product has a single native 3:4 scene delivery across the fixed route.
     const requiredTransportAspectRatio = typeof provider.transportAspectRatio === 'string'
       ? provider.transportAspectRatio
@@ -539,6 +716,7 @@ export class SceneGeneratorAdapter {
         'composition_guide',
       )
       : null;
+    await assertRepairPlanGuideBinding(context, compositionGuide);
     if (
       repairCandidate
       && (
@@ -568,36 +746,44 @@ export class SceneGeneratorAdapter {
     const maxAttachments = Number.isInteger(provider.maxOrderedReferences)
       ? provider.maxOrderedReferences
       : 8;
-    // Everything the request is contractually obliged to carry: the look master is
-    // the sole identity and product authority, the failed candidate is the only
-    // thing a repair attempt is repairing, and each cutout is the exact evidence
-    // ITEM_FIDELITY compares against forensically. None of these may be traded for
-    // conditioning, so they claim the budget before anything else is considered.
-    const required = [
-      {
+    // Everything the request is contractually obliged to carry. GPT Image 2 is
+    // an edit-first transport: when a mechanical canvas exists it must be Image 1,
+    // while the untouched approved master remains Image 2 and the sole appearance
+    // authority. Gemini publishes no ordinal weighting, so its stable legacy order
+    // remains master first and every role is addressed explicitly in the prompt.
+    // None of these bindings may be traded for optional conditioning.
+    const approvedMasterBinding = {
         scope: 'avatar',
         role: 'APPROVED_LOOK_MASTER',
         path: approved.path,
         sha256: approved.sha256,
         mediaType: approved.media_type,
         source: 'APPROVED_AVATAR',
-      },
-      ...(repairCandidate ? [{
-        scope: 'scene',
-        role: 'FAILED_SCENE_CANDIDATE',
-        path: repairCandidate.path,
-        sha256: repairCandidate.sha256,
-        mediaType: repairCandidate.media_type,
-        source: 'REPAIR_CANDIDATE',
-      }] : []),
-      ...(compositionGuide ? [{
+      };
+    const compositionGuideBinding = compositionGuide ? {
         scope: 'outfit',
         role: 'MECHANICAL_FRAMING_GUIDE',
         path: compositionGuide.path,
         sha256: compositionGuide.sha256,
         mediaType: compositionGuide.media_type,
         source: 'CONDITIONED',
-      }] : []),
+      } : null;
+    const repairCandidateBinding = repairCandidate ? {
+        scope: 'scene',
+        role: 'FAILED_SCENE_CANDIDATE',
+        path: repairCandidate.path,
+        sha256: repairCandidate.sha256,
+        mediaType: repairCandidate.media_type,
+        source: 'REPAIR_CANDIDATE',
+      } : null;
+    const providerReferenceStrategy = jobSetType === 'gpt_image_2' && compositionGuideBinding
+      ? 'GPT_IMAGE_2_BASE_CANVAS_FIRST'
+      : 'EXPLICIT_ROLE_MASTER_FIRST';
+    const required = [
+      ...(providerReferenceStrategy === 'GPT_IMAGE_2_BASE_CANVAS_FIRST'
+        ? [compositionGuideBinding, approvedMasterBinding]
+        : [approvedMasterBinding, compositionGuideBinding].filter(Boolean)),
+      ...(repairCandidateBinding ? [repairCandidateBinding] : []),
       ...items.map((item) => ({
         scope: 'outfit',
         role: `ITEM_${item.category.toUpperCase()}`,
@@ -609,12 +795,6 @@ export class SceneGeneratorAdapter {
     ];
     if (required.length > maxAttachments) {
       throw new Error('Approved item evidence exceeds the provider attachment limit');
-    }
-    if (
-      createUniverse
-      && required.length + CREATE_UNIVERSE_IMAGE_REFERENCE_ORDER.length > maxAttachments
-    ) {
-      throw new Error('Provider attachment limit cannot carry all four Create Universe style sheets');
     }
     // The discretionary tail, most valuable first. Standard scenes keep continuity
     // anchors ahead of optional scene images. Create Universe reverses that order:
@@ -632,7 +812,7 @@ export class SceneGeneratorAdapter {
         mediaType: anchor.media_type,
         source: 'CONDITIONED',
       }));
-    const sceneImageAttachments = prioritizedSceneImages.map((item) => {
+    let sceneImageAttachments = prioritizedSceneImages.map((item) => {
       const styleSheetRole = createUniverseStyleSheetRole(item, context.preset?.preset_id);
       return {
           scope: 'outfit',
@@ -646,6 +826,20 @@ export class SceneGeneratorAdapter {
           source: 'CONDITIONED',
         };
     });
+    let createUniverseAuthority = null;
+    if (
+      createUniverse
+      && required.length + sceneImageAttachments.length > maxAttachments
+    ) {
+      if (required.length >= maxAttachments) {
+        throw new Error('Provider attachment limit has no slot for the Create Universe authority sheet');
+      }
+      createUniverseAuthority = await createUniverseAuthoritySheet(
+        prioritizedSceneImages,
+        context.work_directory,
+      );
+      sceneImageAttachments = [createUniverseAuthority];
+    }
     const discretionary = createUniverse
       ? [...sceneImageAttachments, ...anchorAttachments]
       : [...anchorAttachments, ...sceneImageAttachments];
@@ -661,18 +855,29 @@ export class SceneGeneratorAdapter {
     // The image transport requires contiguous media positions. Structured JSON
     // roles remain in the five-role evidence receipt and prompt, never as media.
     ordered.forEach((item, index) => { item.order = index + 1; });
+    // This is the exact provider-facing image order, not the logical five-role
+    // scene pack. Persist both the readable canonical representation and its
+    // digest so a receipt can prove which bytes occupied Image 1..N without
+    // relying on a prompt label or reconstructing a later version of routing.
+    const providerImageReferenceManifest = ordered.map((item) => ({
+      image: `Image ${item.order}`,
+      role: item.role,
+      sha256: item.sha256,
+    }));
+    const providerImageReferenceManifestBytes = canonicalJsonBytes(
+      providerImageReferenceManifest,
+    );
     const attachedAnchors = attachedDiscretionary
       .filter((item) => item.anchor)
       .map((item) => ({ ...item.anchor, order: item.order }));
     const guideAttachment = compositionGuide
       ? ordered.find((item) => item.role === 'MECHANICAL_FRAMING_GUIDE')
       : null;
-    const firstItemAttachment = repairCandidate ? 3 : 2;
-    const itemAttachmentStart = guideAttachment ? firstItemAttachment + 1 : firstItemAttachment;
+    const itemAttachmentStart = ordered.find((item) => item.role.startsWith('ITEM_'))?.order ?? 0;
     const prompt = sanitizeExternalPrompt(
       `${basePrompt}${structuredInstructions(references)}`
       + `${itemGenerationInstructions(items, itemAttachmentStart)}`
-      + `${guideAttachment ? `\nMECHANICAL COMPOSITION GUIDE\n- ATTACHMENT_${guideAttachment.order} is an opaque neutral mechanical layout derivative of ${compositionGuide.source_kind === 'approved_look' ? 'the approved master' : 'the failed candidate'}, not a new scene or content authority. It places the same pixels at the measured target scale: ${compositionGuide.target_subject_height_percent}% visible person height and ${compositionGuide.target_clear_space_above_hair_percent}% clear space above hair. Use it only to match framing; preserve the exact person, look, item details, environment and lighting from their authoritative attachments.\n` : ''}`
+      + `${guideAttachment ? `\nMECHANICAL COMPOSITION GUIDE\n- ATTACHMENT_${guideAttachment.order} is an opaque neutral mechanical layout derivative of ${compositionGuide.source_kind === 'approved_look' ? 'the approved master' : 'the failed candidate'}, not a new scene or content authority. It places the same pixels at the measured target scale: ${compositionGuide.target_subject_height_percent}% visible person height and ${compositionGuide.target_clear_space_above_hair_percent}% clear space above hair${Number.isFinite(compositionGuide.target_clear_space_below_footwear_percent) ? ` and ${compositionGuide.target_clear_space_below_footwear_percent}% clear space below footwear` : ''}. Treat this exact canvas and subject placement as the hard geometry authority: do not crop away, zoom through or fill over its neutral border. Reconstruct only the authored environment into that border while preserving the exact person, look and item details from their authoritative attachments.\n` : ''}`
       + `${createUniverseStyleAttachmentInstructions(attachedDiscretionary, context.preset?.preset_id)}`
       + `${shotAnchorInstructions(attachedAnchors)}`,
     );
@@ -681,6 +886,56 @@ export class SceneGeneratorAdapter {
     // takes effect on the next frame instead of on the next restart.
     const frameFinish = resolveFrameFinish();
     const oversample = resolveOversampleRequest(frameFinish, provider);
+    const evidence = referenceEvidence(references);
+    const preSpendManifest = {
+      version: 'scene-provider-request-manifest-v1',
+      route: {
+        job_set_type: jobSetType,
+        model: context.model,
+        model_version: context.model_version,
+        resolution: context.resolution ?? null,
+        quality: context.quality,
+        generation_profile: context.generation_profile?.id ?? null,
+        route_hash: context.route_hash ?? null,
+      },
+      delivery: {
+        aspect_ratio: requiredTransportAspectRatio,
+        width: context.width,
+        height: context.height,
+      },
+      transport: {
+        oversample_requested: oversample.requested,
+        oversample_factor: oversample.factor,
+        oversample_honoured: oversample.honoured,
+      },
+      compiled_prompt_sha256: context.prompt_sha256,
+      outbound_prompt_sha256: sha256(Buffer.from(prompt)),
+      provider_reference_strategy: providerReferenceStrategy,
+      input_media: ordered.map((item) => ({
+        order: item.order,
+        scope: item.scope,
+        role: item.role,
+        sha256: item.sha256,
+        media_type: item.mediaType,
+        source: item.source,
+      })),
+      provider_image_reference_manifest: providerImageReferenceManifest,
+      structured_reference_evidence: evidence,
+      dropped_attachment_roles: droppedAttachmentRoles,
+      repair_plan_sha256: context.repair_plan_sha256 ?? null,
+    };
+    const preSpendManifestBytes = canonicalJsonBytes(preSpendManifest);
+    const preSpendManifestSha256 = sha256(preSpendManifestBytes);
+    if (context.expected_pre_spend_manifest_sha256 !== undefined
+      && context.expected_pre_spend_manifest_sha256 !== preSpendManifestSha256) {
+      throw new Error('Scene pre-spend request manifest no longer matches its immutable checkpoint');
+    }
+    if (context.prepare_only === true) {
+      return {
+        pre_spend_manifest: preSpendManifest,
+        pre_spend_manifest_sha256: preSpendManifestSha256,
+      };
+    }
     const providerResult = await provider.generate({
       operation: 'generate',
       phase: 'scene',
@@ -689,8 +944,11 @@ export class SceneGeneratorAdapter {
       model: jobSetType,
       model_name: IMAGE_MODEL_NAMES[jobSetType],
       job_set_type: jobSetType,
+      generation_profile: context.generation_profile,
+      resolution: context.resolution,
       prompt,
       aspectRatio: requiredTransportAspectRatio,
+      aspect_ratio: requiredTransportAspectRatio,
       // Only sent when a provider has declared it can obey it, so the request
       // that goes to a provider which cannot is byte-for-byte what it was
       // before — the journal replay hash does not move and no cached frame is
@@ -718,7 +976,6 @@ export class SceneGeneratorAdapter {
     const providerMetadata = providerResult.metadata ?? {};
     const providerJobId = providerMetadata.job_id ?? providerMetadata.provider_request_id;
     const requestId = context.idempotency_key;
-    const evidence = referenceEvidence(references);
     return {
       image: finished.image,
       media_type: 'image/png',
@@ -730,7 +987,9 @@ export class SceneGeneratorAdapter {
         model: context.model,
         model_version: context.model_version,
         job_set_type: jobSetType,
+        resolution: context.resolution,
         quality: context.quality,
+        ...(context.generation_profile ? { generation_profile_id: context.generation_profile.id } : {}),
         source_width: geometry.source_width,
         source_height: geometry.source_height,
         source_aspect_ratio: reducedAspectRatio(geometry.source_width, geometry.source_height),
@@ -757,6 +1016,11 @@ export class SceneGeneratorAdapter {
         ...(geometry.aspect_error_fraction === undefined ? {} : { aspect_error_fraction: geometry.aspect_error_fraction }),
         ...(geometry.transport_aspect_error_fraction === undefined ? {} : { transport_aspect_error_fraction: geometry.transport_aspect_error_fraction }),
         reference_role_order: evidence.map((item) => item.role).join(':'),
+        reference_manifest_version: 'scene-reference-manifest-v2-model-aware',
+        provider_reference_strategy: providerReferenceStrategy,
+        provider_image_reference_manifest_version: 'provider-image-reference-manifest-v1',
+        provider_image_reference_manifest_json: providerImageReferenceManifestBytes.toString('utf8'),
+        provider_image_reference_manifest_sha256: sha256(providerImageReferenceManifestBytes),
         reference_evidence_sha256: sha256(Buffer.from(JSON.stringify(evidence))),
         attached_reference_count: ordered.length,
         structured_reference_count: evidence.filter((item) => item.transport === 'structured_json').length,
@@ -766,6 +1030,15 @@ export class SceneGeneratorAdapter {
         ...(droppedAttachmentRoles.length > 0 ? {
           dropped_attachment_roles: droppedAttachmentRoles.join(':'),
           dropped_attachment_count: droppedAttachmentRoles.length,
+        } : {}),
+        ...(createUniverseAuthority ? {
+          create_universe_authority_sheet_sha256: createUniverseAuthority.sha256,
+          create_universe_authority_source_sha256:
+            createUniverseAuthority.styleSheetSourceSha256.join(':'),
+          create_universe_authority_source_geometry:
+            createUniverseAuthority.styleSheetSourceGeometry.join(':'),
+          create_universe_authority_layout:
+            'PANEL_1_CAMERA_LENS:PANEL_2_EXPRESSION_GAZE:PANEL_3_GARMENT_BEHAVIOUR',
         } : {}),
         outbound_prompt_sha256: sha256(Buffer.from(prompt)),
         ...(repairCandidate ? {
@@ -777,7 +1050,15 @@ export class SceneGeneratorAdapter {
           mechanical_framing_guide_source_attempt: compositionGuide.source_attempt,
           mechanical_framing_guide_target_subject_height_percent: compositionGuide.target_subject_height_percent,
           mechanical_framing_guide_target_clear_space_above_hair_percent: compositionGuide.target_clear_space_above_hair_percent,
+          ...(Number.isFinite(compositionGuide.target_clear_space_below_footwear_percent) ? {
+            mechanical_framing_guide_target_clear_space_below_footwear_percent:
+              compositionGuide.target_clear_space_below_footwear_percent,
+          } : {}),
+          ...(compositionGuide.transform ? {
+            mechanical_framing_guide_transform: compositionGuide.transform,
+          } : {}),
         } : {}),
+        ...repairPlanMetadata(context.repair_plan),
         reference_evidence: evidence,
       },
     };
@@ -1068,6 +1349,7 @@ export function evaluatorPrompt(
     ...attachments,
     '',
     'Authority: ATTACHMENT_2 alone controls identity, body, hair, outfit, product details, logos and garment text.',
+    `The candidate delivery canvas ${delivery.width}x${delivery.height} is authoritative. A source composition reference may record the aspect ratio of the source image it was derived from; translate its spatial intent into this delivery canvas and never fail SCENE_MATCH merely because that source ratio differs.`,
     'The five scene role inputs are authority only for their declared environment, lighting, composition, palette or avoidance role. They are never authority for a person, clothing, brands, readable text, landmarks or exact source architecture.',
     ...(heroAnchors.length > 0 ? [
       `ATTACHMENT_${imageReferences.length + 3} is the already approved hero from this exact shoot. It is authority only for series continuity in invented environment geometry, light direction and quality, colour grade and unit-wide optics.`,
@@ -1077,7 +1359,7 @@ export function evaluatorPrompt(
     'Return exactly six gates in this exact order: NEAR_COPY_AND_LEAKAGE, IDENTITY, ITEM_FIDELITY, SCENE_MATCH, LIGHT_AND_CONTACT_SHADOW, FRAMING_AND_ANATOMY.',
     ...(styleContract ? [
       'For this Create Universe frame, SCENE_MATCH is also the explicit style-fidelity gate. It must judge the whole photographic system, not merely whether a plausible location exists.',
-      'The four Create Universe style attachments have fixed authority and priority: CAMERA_LENS controls optics and camera consequence; BLOCKING controls pose geometry; EXPRESSION_GAZE controls muscular state and gaze but never face geometry; GARMENT_BEHAVIOUR controls cloth response but never approved item design.',
+      'The three attached Create Universe style sheets have fixed authority and priority: CAMERA_LENS controls optics and camera consequence; EXPRESSION_GAZE controls muscular state and gaze but never face geometry; GARMENT_BEHAVIOUR controls cloth response but never approved item design. This frame has no illustrated pose attachment unless its immutable pack explicitly binds one; evaluate its pose from its compiled shot direction, never from a generic unit diagram.',
       `SCENE_MATCH requires visible compliance with this visual system: ${styleContract.visual_system}`,
       `SCENE_MATCH requires this mood and tension: ${styleContract.mood_line}`,
       `SCENE_MATCH requires this environment material system: ${styleContract.materials.join(' | ')}`,
@@ -1086,12 +1368,13 @@ export function evaluatorPrompt(
       `SCENE_MATCH requires this focus plane and falloff: ${styleContract.focus}`,
       `SCENE_MATCH requires this foreground/occlusion treatment: ${styleContract.foreground}`,
       `SCENE_MATCH requires this expression and gaze signature without borrowing face geometry: ${styleContract.expression_signature}`,
+      `LIGHT_AND_CONTACT_SHADOW requires this exact subject-light interaction: ${styleContract.subject_lighting}`,
       `SCENE_MATCH requires this garment behaviour without changing approved item design: ${styleContract.garment_behaviour}`,
       `LIGHT_AND_CONTACT_SHADOW must also preserve this fixed unit-wide optical signature on the frame: ${styleContract.optical_signature.join(' | ')}`,
       `The declared environment is: ${preset.environment}`,
       `The declared lighting is: ${preset.lighting?.key ?? ''}`,
       `The declared colour palette is: ${(preset.palette ?? []).join(' | ')}`,
-      'Fail SCENE_MATCH when the mood, environment, materials, palette, contrast, composition, focus, foreground, expression or garment behaviour becomes generic or contradicts the declared shoot. Fail LIGHT_AND_CONTACT_SHADOW when the lighting or fixed optical signature is absent or replaced, even if exposure is otherwise attractive.',
+      'Fail SCENE_MATCH when the mood, environment, materials, palette, contrast, composition, focus, foreground, expression or garment behaviour becomes generic or contradicts the declared shoot. Fail LIGHT_AND_CONTACT_SHADOW when the declared environmental source fails to visibly strike, shadow or otherwise motivate the approved subject and cloth as required by the subject-light interaction, or when an unmotivated frontal beauty fill, neutral softbox or artificial rim replaces it — even if exposure is otherwise attractive.',
     ] : []),
     'ITEM_FIDELITY is a forensic comparison, not a general style judgment. Compare every visible approved item separately across the full images and paired upper/lower detail attachments.',
     ...(editorial?.item_scope === 'FIRST_ORDERED_ITEM' ? [
@@ -1105,6 +1388,7 @@ export function evaluatorPrompt(
     'Any substituted emblem, missing monogram, rewritten letter or number, altered stripe/print, changed bag hardware, changed shoe construction, missing item, or invented accessory is ITEM_FIDELITY FAIL.',
     ...(standardBackground ? [
       'This is a full-body standard-background photograph, not an ecommerce detail frame. Compare all visible approved item facts strictly, but do not fail for a detail that is naturally covered by another approved garment, outside the visible surface, or too small at the required full-body scale. The immutable approved master remains the authority for unobservable details.',
+      'Apply presentation-scene tolerance, not packshot tolerance: a minor omission or simplification of small hardware, stitching, fasteners or edge finishing is advisory when item count/type, color family, material family, silhouette, major construction topology, visible pattern and any legible logo/text still match. Record it in evidence but keep ITEM_FIDELITY PASS.',
       'A visible contradiction, visible substitution, missing approved item, or unauthorized added item is still ITEM_FIDELITY FAIL. Never call an unobservable detail a visible contradiction.',
     ] : [
       'Never infer that two marks match merely because they resemble the same luxury style. If a required small logo, pattern, text, or construction detail is not visibly verifiable in the candidate, return FAIL with ITEM_DETAIL_NOT_VERIFIABLE.',
@@ -1129,6 +1413,14 @@ export function evaluatorPrompt(
     ] : [
       'IDENTITY requires comparison of stable facial geometry, apparent age, hairline, eyes, nose, mouth, jaw and distinctive marks; expression and scene lighting may change, identity may not.',
     ]),
+    ...(standardBackground ? [
+      `The standard scene declares this key light: ${preset.lighting?.key ?? 'not declared'}.`,
+      `The standard scene declares this fill: ${preset.lighting?.fill ?? 'not declared'}.`,
+      'For LIGHT_AND_CONTACT_SHADOW, independently judge (1) observed key direction on the subject, (2) observed fill direction and strength on face and torso, and (3) environment colour/bounce/rim integration on skin, clothing and footwear.',
+      'A mild extra frontal fill is advisory when the declared environment key, bounce/rim and grounding remain visibly coherent; state it in evidence but do not reject an otherwise integrated fashion frame.',
+      'Fail only when a camera-axis or frontal studio key visibly replaces the declared environment key, creates physically contradictory illumination, or makes the subject read as pasted into the scene. A plausible contact shadow alone cannot compensate for that severe contradiction.',
+      'A PASS must state the observed key, the observed fill, and the visible environment integration separately in this gate evidence; attractiveness or exposure alone is not proof.',
+    ] : []),
     // Ground contact cannot be evidence in a frame that ends above the feet, and this
     // gate refused 4 of 6 attempts in one editorial retry round for exactly that —
     // "the frame cuts off the subject before the feet/contact points, so a
@@ -1253,6 +1545,7 @@ export function itemFidelityPrompt(item, { standardBackground = false } = {}) {
     ...(standardBackground ? [
       'This is a full-body standard-background photograph, not a product-detail frame. Judge only the facts that are actually visible at this shot scale.',
       'When an approved detail is naturally covered by another approved garment, outside the visible surface, or too small at full-body scale, do not call it missing and do not return ITEM_DETAIL_NOT_VERIFIABLE. The immutable approved master remains the authority for that unobservable detail. Record only the visible category, silhouette, color, material, and any legible distinguishing feature.',
+      'Presentation-scene tolerance: minor simplification or omission of small hardware, stitching, fasteners, closures or edge finishing is advisory, not REVISE, when item count/type, color family, material family, silhouette, major construction topology, visible pattern and any legible logo/text match. Mention the minor deviation in evidence and return PASS with defects=[].',
       'Return REVISE only for a visible contradiction or substitution: a changed visible logo/text/pattern, different visible silhouette/color/material/construction, a missing approved item, or an unauthorized added item. A merely unobservable detail is not a contradiction.',
     ] : [
       'If the generated product is too small or blurred to verify a required exact detail, return REVISE with ITEM_DETAIL_NOT_VERIFIABLE.',

@@ -4,6 +4,7 @@ import path from 'node:path';
 import { sha256Object } from '../conditioning/hash-lineage.mjs';
 import { assertProvider, assertQaDecision } from '../providers/provider.js';
 import { normalizeWhitePngBytes } from '../qa/white-normalizer.mjs';
+import { inspectImage } from '../qa/image-inspector.mjs';
 import { FilesystemArtifactStore, sha256 } from './artifact-store.js';
 import {
   createCoreQaReceipt,
@@ -12,7 +13,7 @@ import {
 } from './core-qa-receipt.js';
 import { AppendOnlyEventLog } from './event-log.js';
 import { loadJobFile, loadJobObject } from './job.js';
-import { assertAllowedImageModel, imageModelName, modelForAttempt } from './model-policy.js';
+import { assertAllowedImageModel, generationProfileForAttempt, imageModelName, modelForAttempt } from './model-policy.js';
 import { compileAvatarPrompt, compileOutfitPrompt } from './prompt-compiler.js';
 import { publicManifestView } from './public-manifest.js';
 import {
@@ -28,6 +29,15 @@ const SHA256 = /^[a-f0-9]{64}$/;
 
 function operationKey(jobHash, operation, attempt) {
   return createHash('sha256').update(`${jobHash}:${operation}:${attempt}`).digest('hex');
+}
+
+function materialRepairPrompt(basePrompt, profile, previousQa) {
+  if (!profile || profile.repair_kind === 'INITIAL') return basePrompt;
+  const defects = Array.isArray(previousQa?.defects)
+    ? previousQa.defects.filter((item) => typeof item === 'string' && item.trim() !== '')
+    : [];
+  const defectText = defects.join('; ') || previousQa?.reason || 'the evaluated visible fidelity defect';
+  return `${basePrompt}\n\nREPAIR PASS ${profile.repair_kind}: Rebuild the image from the bound source references. The prior candidate was not accepted because: ${defectText}. Correct that evidence-backed defect while preserving every already-correct identity and visible item lock. This is a new repair pass, not permission to reuse or blend the previous candidate pixels.`;
 }
 
 function errorInfo(error) {
@@ -185,6 +195,7 @@ function addQaBinding(bindings, {
 }
 
 function qaProviderEvidence(context, phase) {
+  const hasCanonicalOutfitPack = (context.referencePacks.outfit?.bindings?.length ?? 0) > 0;
   if (phase === 'conditioning') {
     return {
       identity: context.checkpoint.artifacts.conditioned_identity,
@@ -202,15 +213,24 @@ function qaProviderEvidence(context, phase) {
     candidate: context.checkpoint.artifacts[phase],
     identity: context.checkpoint.artifacts.conditioned_identity,
     outfit: phase === 'outfit'
-      ? context.checkpoint.artifacts.conditioned_outfit
+      // The conditioner has already made the selected-item cutouts authoritative.
+      // Re-attaching the original full-body source here makes incidental trousers
+      // or shoes look like part of a single selected top/accessory and lets QA
+      // reject a correct candidate for the wrong region.
+      ? (hasCanonicalOutfitPack ? undefined : context.checkpoint.artifacts.conditioned_outfit)
       : undefined,
     avatar: phase === 'outfit'
       ? context.checkpoint.artifacts.avatar
       : undefined,
     source_identity: context.job.identity_reference,
     source_outfit: phase === 'outfit'
-      ? (context.job.outfit.reference ?? context.job.outfit.text)
+      // Raw outfit images are conditioning evidence.  For look QA, use only the
+      // canonical pack bindings and their declared categories; the text remains
+      // available as a non-image authority below.
+      ? (hasCanonicalOutfitPack ? undefined : (context.job.outfit.reference ?? context.job.outfit.text))
       : undefined,
+    outfit_text: phase === 'outfit' ? context.job.outfit.text ?? '' : '',
+    outfit_scope: phase === 'outfit' ? context.job.outfit.target_region ?? '' : '',
     quality_references: context.job.quality_references,
     reference_packs: {
       identity: providerPackSummary(context.referencePacks.identity),
@@ -633,11 +653,13 @@ export class PipelineRunner {
         delete context.checkpoint.qa.avatar;
         await this.#save(context);
         {
-          const jobSetType = modelForAttempt(context.checkpoint.attempts.avatar, context.job.model_route);
+          const profile = generationProfileForAttempt(context.checkpoint.attempts.avatar, context.job.model_route);
+          const jobSetType = profile.job_set_type;
           return this.#transition(context, STATES.GENERATING_AVATAR, {
             attempt: context.checkpoint.attempts.avatar,
             model: imageModelName(jobSetType),
             job_set_type: jobSetType,
+            generation_profile: profile.id,
           });
         }
       case STATES.AVATAR_READY:
@@ -652,11 +674,13 @@ export class PipelineRunner {
         delete context.checkpoint.qa.outfit;
         await this.#save(context);
         {
-          const jobSetType = modelForAttempt(context.checkpoint.attempts.outfit, context.job.model_route);
+          const profile = generationProfileForAttempt(context.checkpoint.attempts.outfit, context.job.model_route);
+          const jobSetType = profile.job_set_type;
           return this.#transition(context, STATES.GENERATING_OUTFIT, {
             attempt: context.checkpoint.attempts.outfit,
             model: imageModelName(jobSetType),
             job_set_type: jobSetType,
+            generation_profile: profile.id,
           });
         }
       case STATES.OUTFIT_READY:
@@ -748,24 +772,27 @@ export class PipelineRunner {
 
   async #generateAvatar(context) {
     const attempt = context.checkpoint.attempts.avatar;
-    const jobSetType = assertAllowedImageModel(modelForAttempt(attempt, context.job.model_route));
+    const generationProfile = generationProfileForAttempt(attempt, context.job.model_route);
+    const jobSetType = assertAllowedImageModel(generationProfile.job_set_type);
     const model = imageModelName(jobSetType);
     try {
       const references = generationReferences(context, 'avatar');
-      const prompt = await compileAvatarPrompt(context.job, context.checkpoint.artifacts.conditioned_identity, references);
+      const basePrompt = await compileAvatarPrompt(context.job, context.checkpoint.artifacts.conditioned_identity, references);
+      const prompt = materialRepairPrompt(basePrompt, generationProfile, context.checkpoint.qa.avatar);
       context.checkpoint.prompts.avatar = await this.#persistPrompt(context, 'avatar', attempt, prompt);
       const generated = await this.#generateOnce(
         context,
         'avatar',
         attempt,
         jobSetType,
+        generationProfile,
         prompt,
         references,
       );
       const result = await this.#normalizeGeneratedImage(context, 'avatar', attempt, generated);
       context.checkpoint.artifacts.avatar = result;
       await this.#save(context);
-      return this.#transition(context, STATES.AVATAR_QA, { attempt, model, job_set_type: jobSetType });
+      return this.#transition(context, STATES.AVATAR_QA, { attempt, model, job_set_type: jobSetType, generation_profile: generationProfile.id });
     } catch (error) {
       return this.#generationError(context, 'avatar', error);
     }
@@ -852,29 +879,32 @@ export class PipelineRunner {
 
   async #generateOutfit(context) {
     const attempt = context.checkpoint.attempts.outfit;
-    const jobSetType = assertAllowedImageModel(modelForAttempt(attempt, context.job.model_route));
+    const generationProfile = generationProfileForAttempt(attempt, context.job.model_route);
+    const jobSetType = assertAllowedImageModel(generationProfile.job_set_type);
     const model = imageModelName(jobSetType);
     try {
       const references = generationReferences(context, 'outfit');
-      const prompt = await compileOutfitPrompt(context.job, {
+      const basePrompt = await compileOutfitPrompt(context.job, {
         conditionedIdentity: context.checkpoint.artifacts.conditioned_identity,
         conditionedOutfit: context.checkpoint.artifacts.conditioned_outfit,
         avatar: context.checkpoint.artifacts.avatar,
         references,
       });
+      const prompt = materialRepairPrompt(basePrompt, generationProfile, context.checkpoint.qa.outfit);
       context.checkpoint.prompts.outfit = await this.#persistPrompt(context, 'outfit', attempt, prompt);
       const generated = await this.#generateOnce(
         context,
         'outfit',
         attempt,
         jobSetType,
+        generationProfile,
         prompt,
         references,
       );
       const result = await this.#normalizeGeneratedImage(context, 'outfit', attempt, generated);
       context.checkpoint.artifacts.outfit = result;
       await this.#save(context);
-      return this.#transition(context, STATES.OUTFIT_QA, { attempt, model, job_set_type: jobSetType });
+      return this.#transition(context, STATES.OUTFIT_QA, { attempt, model, job_set_type: jobSetType, generation_profile: generationProfile.id });
     } catch (error) {
       return this.#generationError(context, 'outfit', error);
     }
@@ -966,7 +996,7 @@ export class PipelineRunner {
     return result;
   }
 
-  async #generateOnce(context, phase, attempt, jobSetType, prompt, references) {
+  async #generateOnce(context, phase, attempt, jobSetType, generationProfile, prompt, references) {
     const key = operationKey(context.executionHash, `generate:${phase}`, attempt);
     const model = imageModelName(jobSetType);
     const existing = await context.store.readReceipt(key);
@@ -975,7 +1005,7 @@ export class PipelineRunner {
       return existing.result;
     }
     await this.#record(context, 'PROVIDER_CALL_STARTED', {
-      operation: 'generate', phase, attempt, model, job_set_type: jobSetType, idempotency_key: key,
+      operation: 'generate', phase, attempt, model, job_set_type: jobSetType, generation_profile: generationProfile.id, idempotency_key: key,
     });
     const response = await this.provider.generate({
       operation: 'generate',
@@ -984,6 +1014,9 @@ export class PipelineRunner {
       model: jobSetType,
       model_name: model,
       job_set_type: jobSetType,
+      generation_profile: generationProfile,
+      resolution: generationProfile.resolution,
+      quality: generationProfile.quality,
       prompt,
       references,
       idempotencyKey: key,
@@ -1002,14 +1035,15 @@ export class PipelineRunner {
       artifact,
       model,
       job_set_type: jobSetType,
+      generation_profile: generationProfile,
       attempt,
       metadata: response.metadata ?? {},
     };
     await context.store.writeReceipt(key, {
-      operation: 'generate', phase, attempt, model, job_set_type: jobSetType, result,
+      operation: 'generate', phase, attempt, model, job_set_type: jobSetType, generation_profile: generationProfile, result,
     });
     await this.#record(context, 'PROVIDER_CALL_SUCCEEDED', {
-      operation: 'generate', phase, attempt, model, job_set_type: jobSetType,
+      operation: 'generate', phase, attempt, model, job_set_type: jobSetType, generation_profile: generationProfile.id,
       idempotency_key: key, output_sha256: artifact.digest,
     });
     return result;
@@ -1127,6 +1161,65 @@ export class PipelineRunner {
         receipt_id: verified.receipt_id,
         subject_sha256: verified.subject.sha256,
         evidence_manifest_sha256: verified.evidence.manifest_sha256,
+      });
+      return result;
+    }
+    const candidateArtifact = context.checkpoint.artifacts[phase]?.artifact;
+    const background = candidateArtifact
+      ? await inspectImage(candidateArtifact.path, { requireBottomCorners: true })
+      : null;
+    if (background && background.background_diagnostics?.status !== 'PASS') {
+      const diagnostics = background.background_diagnostics;
+      const response = {
+        decision: 'RETRY',
+        reason: 'master_background_not_exact_white',
+        checks: [{
+          name: 'EXACT_WHITE_KEY_SURFACE',
+          pass: false,
+          score: 0,
+          evidence: `Exact #FFFFFF key-surface failed: top=${diagnostics.coverage.minimum_top_corner}, bottom=${diagnostics.coverage.minimum_bottom_corner}, classified exact-white=${diagnostics.exact_white_ratio}.`,
+        }],
+        defects: ['MASTER_BACKGROUND_NOT_EXACT_WHITE'],
+        evaluator: {
+          type: 'ADAPTER',
+          provider: 'pipeline-runner',
+          model: 'exact-white-key-surface',
+          version: '1.0.0',
+          evaluation_id: sha256Object({
+            gate: 'EXACT_WHITE_KEY_SURFACE',
+            phase,
+            attempt,
+            subject_sha256: baseEvidence.subject.sha256,
+            diagnostics,
+          }),
+        },
+      };
+      const receipt = createCoreQaReceipt({
+        phase,
+        attempt,
+        jobId: context.job.job_id,
+        runId: context.runId,
+        evidence: baseEvidence,
+        response,
+      });
+      const receiptArtifact = await context.store.putJson(receipt);
+      const result = qaResultFromReceipt(receipt, receiptArtifact);
+      await context.store.writeReceipt(key, {
+        operation: 'qa',
+        phase,
+        attempt,
+        base_evidence_manifest_sha256: baseEvidence.manifest_sha256,
+        receipt_id: receipt.receipt_id,
+        receipt_artifact: receiptArtifact,
+      });
+      await this.#record(context, 'DETERMINISTIC_QA_FAILED', {
+        operation: 'qa',
+        phase,
+        attempt,
+        gate: 'EXACT_WHITE_KEY_SURFACE',
+        idempotency_key: key,
+        subject_sha256: baseEvidence.subject.sha256,
+        evidence_manifest_sha256: baseEvidence.manifest_sha256,
       });
       return result;
     }

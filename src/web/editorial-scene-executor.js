@@ -70,6 +70,12 @@ export class EditorialSceneExecutor {
    * place and continuity was only ever hash-checked, never conditioned.
    */
   async #shotAnchors(context) {
+    // This is a diagram for this exact slot, not a mood board: its hash-bound
+    // numbers are verified against the slot's camera/framing lock before it is
+    // attached. Create Universe's style sheets deliberately do not control a body
+    // pose, so omitting this only made the provider infer the pose from prose.
+    // The anchor controls geometry only; identity, hair, outfit and style remain
+    // governed by their separate immutable inputs.
     const anchors = [await editorialBlockingReference({ shotSpec: context.shot_spec })];
     const hero = context.hero_output;
     if (hero) {
@@ -98,19 +104,29 @@ export class EditorialSceneExecutor {
 
   async executeShot(context) {
     if (context.signal?.aborted) throw abortError();
-    const presetReference = await this.presetResolver.editorialShotPresetReference({
-      modeId: context.shoot_bible.mode_id,
-      version: context.shoot_bible.mode_version,
-      shotSpec: context.shot_spec,
-    });
-    const shotAnchorReferences = await this.#shotAnchors(context);
     const expectedSceneId = sceneIdForIdempotencyKey(context.idempotency_key);
-    let scene = await this.sceneService.createScene({
-      idempotencyKey: context.idempotency_key,
-      approvedLookReference: context.approved_look,
-      presetReference,
-      shotAnchorReferences,
-    });
+    // A resumed parent attempt may be recovering from a failure that happened
+    // after SceneService had already completed and persisted the paid child
+    // generation. Re-open that immutable execution before recompiling current
+    // preset inputs: release metadata may have evolved since the original job,
+    // while its deterministic address and verified receipt remain authoritative.
+    let scene = context.reuse_existing_execution
+      ? await this.sceneService.getScene(expectedSceneId)
+      : null;
+    if (!scene) {
+      const presetReference = await this.presetResolver.editorialShotPresetReference({
+        modeId: context.shoot_bible.mode_id,
+        version: context.shoot_bible.mode_version,
+        shotSpec: context.shot_spec,
+      });
+      const shotAnchorReferences = await this.#shotAnchors(context);
+      scene = await this.sceneService.createScene({
+        idempotencyKey: context.idempotency_key,
+        approvedLookReference: context.approved_look,
+        presetReference,
+        shotAnchorReferences,
+      });
+    }
     if (scene.scene_id !== expectedSceneId) {
       throw new Error('SceneService returned a non-deterministic editorial execution id');
     }

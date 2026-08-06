@@ -4,6 +4,7 @@ import { mkdtemp, mkdir, readFile, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+import sharp from 'sharp';
 import { MockProvider } from '../../src/providers/mock-provider.js';
 import { PipelineRunner } from '../../src/runner/pipeline-runner.js';
 import { IMAGE_MODEL_NAMES, IMAGE_MODEL_ROUTE } from '../../src/runner/model-policy.js';
@@ -30,6 +31,22 @@ async function fixture({ jobOverrides = {}, outfitOverrides = {} } = {}) {
   const jobPath = path.join(directory, 'job.json');
   await writeFile(jobPath, `${JSON.stringify(job, null, 2)}\n`);
   return { directory, jobPath, output: path.join(directory, 'output') };
+}
+
+async function greyFloorGradientPng() {
+  // Matches the failure mode seen in production: a nominally white studio
+  // render with a neutral floor sweep reaching the lower corners.
+  return sharp({ create: { width: 100, height: 125, channels: 3, background: '#ffffff' } })
+    .composite([{
+      input: {
+        create: { width: 100, height: 28, channels: 3, background: { r: 235, g: 235, b: 235 } },
+      },
+      left: 0,
+      top: 97,
+    }])
+    .removeAlpha()
+    .png()
+    .toBuffer();
 }
 
 test('runs the complete conditioning -> avatar -> outfit state machine and exports exact filenames', async () => {
@@ -85,6 +102,40 @@ test('runs the complete conditioning -> avatar -> outfit state machine and expor
   ]);
   for (const call of provider.calls.filter((item) => item.operation === 'generate')) {
     assert.equal(call.context.workDirectory, result.workDirectory, 'provider receives its per-run journal root');
+  }
+});
+
+test('rejects a neutral floor gradient before semantic QA and retries the avatar route', async () => {
+  const files = await fixture();
+  const provider = new MockProvider({ image: await greyFloorGradientPng() });
+  const result = await new PipelineRunner({ provider }).runJobFile(files.jobPath);
+
+  assert.equal(result.status, STATES.FAILED);
+  assert.equal(result.attempts.avatar, IMAGE_MODEL_ROUTE.length);
+  assert.deepEqual(
+    provider.calls
+      .filter((call) => call.operation === 'generate' && call.context.phase === 'avatar')
+      .map((call) => call.context.job_set_type),
+    IMAGE_MODEL_ROUTE,
+  );
+  assert.equal(
+    provider.calls.some((call) => call.operation === 'qa' && call.context.phase === 'avatar'),
+    false,
+    'a floor-gradient candidate must be rejected deterministically before semantic QA spends a call',
+  );
+  const events = (await readFile(result.eventsPath, 'utf8')).trim().split('\n').map(JSON.parse);
+  assert.equal(events.filter((event) => event.type === 'DETERMINISTIC_QA_FAILED'
+    && event.data.gate === 'EXACT_WHITE_KEY_SURFACE').length, IMAGE_MODEL_ROUTE.length);
+});
+
+test('master prompt templates explicitly forbid a floor and every kind of shadow', async () => {
+  const root = path.resolve(import.meta.dirname, '..', '..');
+  for (const filename of ['avatar.txt', 'outfit-reference.txt', 'outfit-text.txt']) {
+    const prompt = await readFile(path.join(root, 'prompts', filename), 'utf8');
+    assert.match(prompt, /Every pixel that is not the person must be exact RGB #FFFFFF/u);
+    assert.match(prompt, /studio floor, floor plane, horizon/u);
+    assert.match(prompt, /contact shadow, cast shadow or drop shadow/u);
+    assert.match(prompt, /visible #FFFFFF gap below and around both soles/u);
   }
 });
 
@@ -182,12 +233,12 @@ test('refuses to reuse receipts when an input file changes under the same immuta
   );
 });
 
-test('uses the fixed GPT Image 2 -> Nano Banana 2 -> Nano Banana Pro route after QA retries', async () => {
+test('uses the immutable GPT Image 2 low-to-high ladder after QA retries', async () => {
   const files = await fixture();
   const provider = new MockProvider({
     script: {
       qa(context) {
-        if (context.phase === 'avatar' && context.attempt < 3) {
+        if (context.phase === 'avatar' && context.attempt < IMAGE_MODEL_ROUTE.length) {
           return { decision: 'RETRY', defects: [`avatar-attempt-${context.attempt}`] };
         }
         return { decision: 'PASS', checks: [], defects: [] };
@@ -196,7 +247,7 @@ test('uses the fixed GPT Image 2 -> Nano Banana 2 -> Nano Banana Pro route after
   });
   const result = await new PipelineRunner({ provider }).runJobFile(files.jobPath);
   assert.equal(result.status, STATES.COMPLETED);
-  assert.equal(result.attempts.avatar, 3);
+  assert.equal(result.attempts.avatar, IMAGE_MODEL_ROUTE.length);
   const avatarJobSetTypes = provider.calls
     .filter((call) => call.operation === 'generate' && call.context.phase === 'avatar')
     .map((call) => call.context.job_set_type);
@@ -206,6 +257,24 @@ test('uses the fixed GPT Image 2 -> Nano Banana 2 -> Nano Banana Pro route after
       .filter((call) => call.operation === 'generate' && call.context.phase === 'avatar')
       .map((call) => call.context.model_name),
     IMAGE_MODEL_ROUTE.map((jobSetType) => IMAGE_MODEL_NAMES[jobSetType]),
+  );
+  const profiles = provider.calls
+    .filter((call) => call.operation === 'generate' && call.context.phase === 'avatar')
+    .map((call) => call.context.generation_profile);
+  assert.deepEqual(
+    profiles.map((profile) => [profile.id, profile.resolution, profile.quality]),
+    [
+      ['gpt_image_2.low_1k.initial', '1k', 'low'],
+      ['gpt_image_2.low_1k.qa_repair_1', '1k', 'low'],
+      ['gpt_image_2.low_1k.qa_repair_2', '1k', 'low'],
+      ['gpt_image_2.medium_2k.escalation', '2k', 'medium'],
+      ['gpt_image_2.high_4k.final', '4k', 'high'],
+    ],
+  );
+  assert.notEqual(
+    provider.calls.find((call) => call.operation === 'generate' && call.context.phase === 'avatar' && call.context.attempt === 1).context.prompt,
+    provider.calls.find((call) => call.operation === 'generate' && call.context.phase === 'avatar' && call.context.attempt === 2).context.prompt,
+    'a low/1k retry must materially carry the preceding QA defect rather than resubmit the same prompt',
   );
 });
 
@@ -221,7 +290,7 @@ test('stops after the bounded model route is exhausted', async () => {
   });
   const result = await new PipelineRunner({ provider }).runJobFile(files.jobPath);
   assert.equal(result.status, STATES.FAILED);
-  assert.equal(result.attempts.avatar, 3);
+  assert.equal(result.attempts.avatar, IMAGE_MODEL_ROUTE.length);
   const avatarJobSetTypes = provider.calls
     .filter((call) => call.operation === 'generate' && call.context.phase === 'avatar')
     .map((call) => call.context.job_set_type);

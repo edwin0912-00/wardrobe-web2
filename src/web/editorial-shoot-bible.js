@@ -99,6 +99,39 @@ function createUniverseRuntimeStyle(mode) {
   return runtime;
 }
 
+// The first shot is an internal validation frame, not one of the five delivered
+// campaign frames. A unit's most expressive pose can turn the body away or put
+// cloth across the product; applying that direction here made the gate
+// contradictory: "show every approved item unobstructed" and "turn the garment
+// away / move it across the shoulder" at the same time. Keep the unit's actual
+// environment, light, palette, mood, materials, contrast and optics, but give
+// this one gate frame a neutral readable pose. The five delivered slots retain
+// the unit's full pose and garment-behaviour signatures unchanged.
+function runtimeStyleForShot(mode, slot) {
+  const runtime = createUniverseRuntimeStyle(mode);
+  if (!runtime || slot !== 'clean_identity_hero') return runtime;
+  const direction = runtime.shot_directions[slot];
+  return {
+    ...runtime,
+    visual_system: [
+      `A clean identity-and-look validation frame inside the ${modeContent(mode).environment}.`,
+      'Keep the unit lighting, palette, material system, tonal contrast and optical signature exact.',
+      'Use a front or near-front three-quarter stance with the visible approved items unobstructed;',
+      'the expressive unit pose and decisive cloth movement begin with the five delivered campaign frames.',
+    ].join(' '),
+    garment_behaviour: 'Let every visible approved garment hang naturally at rest with its silhouette, closures, pattern and construction unobstructed; keep cloth still and gravity-led in this validation frame.',
+    shot_directions: {
+      ...runtime.shot_directions,
+      [slot]: {
+        ...direction,
+        camera_consequence: 'Eye-level 50 mm clean fashion portrait with disciplined verticals, moderate perspective and enough scale to verify the face and visible approved items.',
+        pose_joint_chain: 'Front or near-front three-quarter stance; shoulders relaxed, face returned directly to lens, hands separated from the torso, and every visible approved item unobstructed.',
+        foreground: 'No lens-crossing object or garment occlusion; preserve a clean view of the face and visible approved items.',
+      },
+    },
+  };
+}
+
 // The vertical lock of a slot — subject-height band, clear space, and head and footwear
 // visibility — is owned by scene-contract.js, which is also the file that refuses a
 // resolved camera disagreeing with it ('Resolved editorial camera does not match its
@@ -245,10 +278,14 @@ function bibleSourceReferences(basePack) {
 function shotSpec(modeDefinition, slot) {
   const mode = modeContent(modeDefinition);
   const shot = SLOT_CONTENT[slot];
-  const runtime = createUniverseRuntimeStyle(modeDefinition);
+  const runtime = runtimeStyleForShot(modeDefinition, slot);
   const direction = runtime?.shot_directions?.[slot] ?? null;
   const cameraAngle = direction ? direction.camera_consequence : shot.angle;
   const pose = direction ? direction.pose_joint_chain : shot.pose;
+  const expressionSignature = direction?.expression_signature ?? runtime?.expression_signature
+    ?? 'Natural neutral expression: relaxed brows and jaw, no performed smile, with gaze determined by this frame\'s pose.';
+  const subjectLighting = direction?.subject_lighting
+    ?? `The approved subject is lit only by the declared environmental source for this ${slot.replaceAll('_', ' ')} frame. Show its direction, pattern, contrast and shadow transition on visible skin and approved cloth; no unmotivated camera-axis beauty fill, neutral softbox or rim light.`;
   const opticalDevice = slot === 'interference_frame' && direction
     ? direction.foreground
     : shot.optical_device;
@@ -263,6 +300,8 @@ function shotSpec(modeDefinition, slot) {
       subject_height_percent: [...shot.subject_height_percent],
     },
     pose,
+    expression_signature: expressionSignature,
+    subject_lighting: subjectLighting,
     lighting: mode.lighting,
     environment: mode.environment,
     palette: mode.palette,
@@ -315,7 +354,7 @@ export function compileEditorialShootBible({ mode, basePack }) {
 }
 
 function referenceAsset(referenceId, role, document) {
-  const data = sceneCanonicalJsonBytes(document);
+  const data = sceneCanonicalJsonBytes(boundedReferenceDocument(document));
   return {
     reference_id: referenceId,
     role,
@@ -324,6 +363,50 @@ function referenceAsset(referenceId, role, document) {
     sha256: sha256(data),
     not_authority_for: ['identity', 'body', 'hair', 'outfit'],
   };
+}
+
+/* EVERY FACT IS BOUNDED HERE, NOT AT EACH CALL SITE.
+ *
+ * `scene-structured-reference.schema.json` caps every fact string at 240 characters, and
+ * `verifiedSceneReference` rejects the whole document when one exceeds it. Two fields were
+ * bounded by hand — `description` through the helper below, one `key` through an inline
+ * slice — and everything else was passed through raw: spatial cues, materials, palette,
+ * protected regions, the second `key`. Composed cues are the ones that grow, because they
+ * interpolate slot direction into a sentence.
+ *
+ * Observed on the live beta runtime: for `shoot.skylight_haze.sculptural_three_quarter` the
+ * fourth spatial cue compiled to 303 characters. Every attempt on every slot then failed
+ * with `GENERATION_FAILED: references[0] does not match the strict structured-reference
+ * schema`, before any provider call. With no attempt carrying a candidate, the child scene
+ * could return no hash-bound QA evidence, so the parent reported `EXECUTOR_FAILED` and the
+ * shoot ended `NEEDS_RETRY` with five FAILED slots after six attempts each. The visible
+ * symptom was "Fashion Shoot does not work anywhere"; the cause was one overlong sentence.
+ *
+ * Bounding at the single choke point means a future field cannot reintroduce this: any fact
+ * that reaches a structured reference is already within the contract. */
+function boundedReferenceDocument(document) {
+  if (!document || typeof document !== 'object' || !document.facts) return document;
+  const facts = {};
+  for (const [key, value] of Object.entries(document.facts)) {
+    if (typeof value === 'string') facts[key] = boundedReferenceFact(value);
+    else if (Array.isArray(value)) {
+      facts[key] = value.map((item) => (typeof item === 'string' ? boundedReferenceFact(item) : item));
+    } else facts[key] = value;
+  }
+  return { ...document, facts };
+}
+
+/* Truncation lands on a word boundary when one is close enough to the limit. A hard slice
+ * cut sentences mid-word, and these strings are read by an image model: "no unmotivated
+ * camera-axis beauty fill" becoming "no unmotivated camera-axis beauty fi" is a direction
+ * that no longer parses. Losing the tail of a sentence is unavoidable at the bound; losing
+ * the middle of a word is not. */
+function boundedReferenceFact(value, maximumLength = 240) {
+  const text = String(value ?? '');
+  if (text.length <= maximumLength) return text;
+  const cut = text.slice(0, maximumLength);
+  const lastSpace = cut.lastIndexOf(' ');
+  return lastSpace >= maximumLength - 40 ? cut.slice(0, lastSpace) : cut;
 }
 
 function compiledReferenceAssets({ presetId, modeId, shotSpec: shot, basePack }) {
@@ -336,6 +419,7 @@ function compiledReferenceAssets({ presetId, modeId, shotSpec: shot, basePack })
   );
   const createUniverseAssets = basePack.create_universe_assets;
   if (Array.isArray(createUniverseAssets)) {
+    const runtime = runtimeStyleForShot(basePack.create_universe_mode, shot.slot);
     const byRole = new Map(createUniverseAssets.map((asset) => [asset.role, asset]));
     const imageReferences = [
       ['composition_anchor', 'camera_lens'],
@@ -361,11 +445,12 @@ function compiledReferenceAssets({ presetId, modeId, shotSpec: shot, basePack })
         schema_version: '1.0.0',
         role: 'environment_anchor',
         facts: {
-          description: shot.environment,
+          description: boundedReferenceFact(shot.environment),
           spatial_cues: [
             shot.camera.angle,
-            `Focus: ${basePack.create_universe_mode.create_universe.runtime_style.shot_directions[shot.slot].focus}`,
-            `Foreground: ${basePack.create_universe_mode.create_universe.runtime_style.shot_directions[shot.slot].foreground}`,
+            `Focus: ${runtime.shot_directions[shot.slot].focus}`,
+            `Foreground: ${runtime.shot_directions[shot.slot].foreground}`,
+            `Subject light interaction: ${shot.subject_lighting}`,
           ],
           materials: [...mode.materials],
           originality_rules: [
@@ -382,7 +467,7 @@ function compiledReferenceAssets({ presetId, modeId, shotSpec: shot, basePack })
       schema_version: '1.0.0',
       role: 'environment_anchor',
       facts: {
-        description: shot.environment,
+        description: boundedReferenceFact(shot.environment),
         spatial_cues: [
           `Compose an original ${shot.camera.framing.replaceAll('_', ' ')} fashion frame.`,
           'Keep coherent depth, grounded perspective and controlled negative space around visible item evidence.',
@@ -451,11 +536,11 @@ function compiledReferenceAssets({ presetId, modeId, shotSpec: shot, basePack })
 
 function compiledPrompt({ mode, shotSpec: shot }) {
   const slot = SLOT_CONTENT[shot.slot];
-  const runtime = createUniverseRuntimeStyle(mode);
+  const runtime = runtimeStyleForShot(mode, shot.slot);
   const lines = [
     'Create exactly one premium fashion editorial photograph from the immutable approved look.',
     `MODE: ${mode.ui_name_uk}`,
-    `VISUAL SYSTEM: ${mode.visual_system}`,
+    `VISUAL SYSTEM: ${runtime?.visual_system ?? mode.visual_system}`,
     `SHOT SLOT: ${shot.slot}`,
     `SHOT OBJECTIVE: ${shot.objective}`,
     // The upper end of that band is not a target, it is the point where the subject
@@ -467,6 +552,7 @@ function compiledPrompt({ mode, shotSpec: shot }) {
     `CAMERA: ${shot.camera.lens_mm} mm; ${shot.camera.framing}; ${shot.camera.angle}; subject height ${slot.subject_height_percent.join('–')}% of frame height${slot.clear_space.above_hair > 0 ? `, and at least ${slot.clear_space.above_hair}% of frame height must stay clear above the hair` : ''}.`,
     `POSE: ${shot.pose}`,
     `LIGHT: ${shot.lighting}`,
+    `SUBJECT LIGHT INTERACTION: ${shot.subject_lighting}`,
     `ENVIRONMENT: ${shot.environment}`,
     `PALETTE: ${shot.palette}`,
     `IDENTITY VISIBILITY: ${shot.identity_visibility}`,
@@ -477,7 +563,7 @@ function compiledPrompt({ mode, shotSpec: shot }) {
         `ENVIRONMENT MATERIAL SYSTEM: ${runtime.materials.join(' | ')}`,
         `CONTRAST/TONAL RESPONSE: ${runtime.contrast}`,
         `FIXED OPTICAL SIGNATURE — MANDATORY ON EVERY FRAME: ${runtime.optical_signature.join(' | ')}`,
-        `EXPRESSION SIGNATURE: ${runtime.expression_signature}`,
+        `EXPRESSION SIGNATURE: ${shot.expression_signature}`,
         `GARMENT BEHAVIOUR: ${runtime.garment_behaviour}`,
         `FOCUS PLANE AND FALLOFF: ${runtime.shot_directions[shot.slot].focus}`,
         `FOREGROUND/OCCLUSION: ${runtime.shot_directions[shot.slot].foreground}`,
@@ -488,7 +574,7 @@ function compiledPrompt({ mode, shotSpec: shot }) {
     `BLOCKING NEGATIVES: ${shot.negative_constraints.join(' | ')}`,
     'The named editorial pages are style observations only. Do not copy their people, bodies, hair, clothing, brands, readable text or exact architecture.',
     'The attached approved look is the sole authority for identity, body, hair and every product detail.',
-    'Return one original 1024x1280 sRGB 4:5 PNG composition with no text overlay.',
+    'Return one original 1536x2048 sRGB 3:4 PNG composition with no text overlay.',
   ];
   return `${lines.join('\n')}\n`;
 }
@@ -509,7 +595,7 @@ export function compileEditorialShotPack({
   const presetId = `${modeId}.${shot.slot}`;
   const version = mode.version;
   const slot = SLOT_CONTENT[shot.slot];
-  const runtimeStyle = createUniverseRuntimeStyle(mode);
+  const runtimeStyle = runtimeStyleForShot(mode, shot.slot);
   const assets = compiledReferenceAssets({
     presetId,
     modeId,
@@ -570,7 +656,7 @@ export function compileEditorialShotPack({
       identity_visibility: shot.identity_visibility,
       item_scope: shot.slot === 'material_or_accessory_detail'
         ? 'FIRST_ORDERED_ITEM'
-        : ['sculptural_three_quarter', 'interference_frame'].includes(shot.slot)
+        : ['clean_identity_hero', 'sculptural_three_quarter', 'interference_frame'].includes(shot.slot)
         ? 'EXCLUDE_FOOTWEAR'
         : 'ALL',
       style_contract: runtimeStyle
@@ -582,7 +668,8 @@ export function compileEditorialShotPack({
             camera_consequence: runtimeStyle.shot_directions[shot.slot].camera_consequence,
             focus: runtimeStyle.shot_directions[shot.slot].focus,
             foreground: runtimeStyle.shot_directions[shot.slot].foreground,
-            expression_signature: runtimeStyle.expression_signature,
+            expression_signature: shot.expression_signature,
+            subject_lighting: shot.subject_lighting,
             garment_behaviour: runtimeStyle.garment_behaviour,
             optical_signature: [...runtimeStyle.optical_signature],
           }

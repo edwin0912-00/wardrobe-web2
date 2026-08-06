@@ -11,6 +11,7 @@ import { assertCanonicalExternalHealthUrl } from './lib/deployment-target.mjs';
 const execute = promisify(execFile);
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const BETA_LABEL = 'com.madeforthisjob.beta';
+const MAX_LIVE_PROVIDER_WAIT_MS = 15 * 60 * 1_000;
 
 function invariant(value, message) {
   if (!value) throw new Error(message);
@@ -39,6 +40,34 @@ export function replaceRunnerAppRoot(source, nextRoot) {
   const matches = source.match(/^app_root="[^"]+"$/m);
   invariant(matches?.length === 1, 'Beta runner must contain exactly one app_root declaration');
   return source.replace(/^app_root="[^"]+"$/m, `app_root="${nextRoot}"`);
+}
+
+// A status is a recovery hint, not proof that a provider call is currently in
+// flight. Only a fresh lease bound to the persisted remote job may block a
+// beta restart. This lets a daemon recover stale CREATED/GENERATING/NEEDS_QA
+// records without pretending they are active paid work.
+export function hasLiveProviderWaitLease(state, now = Date.now()) {
+  if (!state || !['SUBMITTING', 'GENERATING'].includes(state.status)
+    || typeof state.jobId !== 'string' || state.jobId.length === 0) return false;
+  const lease = state.providerWaitLease;
+  if (!lease || lease.jobId !== state.jobId) return false;
+  const heartbeat = Date.parse(lease.heartbeatAt ?? lease.startedAt ?? '');
+  return Number.isFinite(heartbeat) && heartbeat <= now && now - heartbeat <= MAX_LIVE_PROVIDER_WAIT_MS;
+}
+
+// A scene remains RUNNING while it advances through local normalization and
+// semantic QA. Those phases have no provider request in flight and are safe to
+// resume after a release restart: their candidate is already immutable on
+// disk. Only the pre-output GENERATING attempt can still be executing a paid
+// synchronous provider request, so it must continue to block deployment.
+//
+// Missing attempt data is intentionally fail-closed. It may represent an older
+// runtime that was between durable checkpoints and must not be silently
+// interrupted by a deploy.
+export function hasActiveSceneProviderWork(state) {
+  if (!state || !['QUEUED', 'RUNNING'].includes(state.status)) return false;
+  if (!Array.isArray(state.attempts) || state.attempts.length === 0) return true;
+  return state.attempts.some((attempt) => attempt?.status === 'GENERATING');
 }
 
 export async function activeBetaRunIds(runnerSource) {
@@ -71,6 +100,7 @@ async function activePersistedIds(root, {
   idField,
   prefix,
   isActive,
+  entryNameIsValid = (name) => name.startsWith(`${prefix}_`) || prefix === 'run',
 }) {
   let entries;
   try {
@@ -85,7 +115,7 @@ async function activePersistedIds(root, {
     // These are service-owned ledgers, not executable jobs. Any other unknown
     // directory remains fail-closed rather than being silently ignored.
     if (['incidents', 'quarantine'].includes(entry.name)) continue;
-    if (!entry.name.startsWith(`${prefix}_`) && prefix !== 'run') {
+    if (!entryNameIsValid(entry.name)) {
       active.push(`${prefix}:${entry.name}`);
       continue;
     }
@@ -100,29 +130,38 @@ async function activePersistedIds(root, {
   return active.sort();
 }
 
-// A beta release is a process restart. Runs, standard scenes and Fashion Shoot
-// each persist independently, so checking only /runs left a path that could kill
-// an active provider/QA phase midway. Block each submitted or queued job, not
-// completed history or a user decision waiting for approval.
+// A beta release is a process restart. Runs, standard scenes, Fashion Shoot and
+// Fashion Video each persist independently, so checking only /runs left a path
+// that could kill an active provider/QA phase midway. Block each submitted or
+// queued job, not completed history or a user decision waiting for approval.
 export async function activeBetaWorkIds(runnerSource) {
   const runtimeRoot = runnerSource.match(/^runtime_root="([^"]+)"$/m)?.[1];
   invariant(runtimeRoot, 'Beta runner runtime_root is missing');
-  const [runs, scenes, shoots] = await Promise.all([
+  const [runs, scenes, shoots, clips] = await Promise.all([
     activePersistedIds(path.join(runtimeRoot, 'runs'), {
       stateFile: 'run.json', idField: 'run_id', prefix: 'run',
       isActive: (status) => ['QUEUED', 'RUNNING'].includes(status),
     }),
     activePersistedIds(path.join(runtimeRoot, 'scenes'), {
       stateFile: 'scene.json', idField: 'scene_id', prefix: 'scene',
-      isActive: (status) => ['QUEUED', 'RUNNING'].includes(status),
+      isActive: (_status, state) => hasActiveSceneProviderWork(state),
     }),
     activePersistedIds(path.join(runtimeRoot, 'editorial-shoots'), {
       stateFile: 'shoot.json', idField: 'shoot_id', prefix: 'shoot',
       isActive: (status, state) => ['HERO_RUNNING', 'SERIES_RUNNING'].includes(status)
         || state?.shots?.some((shot) => ['QUEUED', 'RUNNING'].includes(shot?.status)),
     }),
+    activePersistedIds(path.join(runtimeRoot, 'video-clips', 'clips'), {
+      stateFile: 'clip.json',
+      idField: 'clipId',
+      prefix: 'clip',
+      entryNameIsValid: (name) => (
+        /^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(name)
+      ),
+      isActive: (_status, state) => hasLiveProviderWaitLease(state),
+    }),
   ]);
-  return [...runs, ...scenes, ...shoots].sort();
+  return [...runs, ...scenes, ...shoots, ...clips].sort();
 }
 
 async function exists(target) {

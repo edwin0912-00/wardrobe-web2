@@ -70,6 +70,13 @@ body.add-items-active main {
   max-width: 720px;
 }
 
+.field-help {
+  margin: 6px 0 10px;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.4;
+}
+
 .add-items-kicker {
   margin: -10px 0 16px;
   color: #55705a;
@@ -296,6 +303,7 @@ body.workflow-active footer {
       "divider divider"
       "field-label field-label"
       "outfit outfit"
+      "outfit-help outfit-help"
       "wardrobe wardrobe"
       "garment-preview garment-preview"
       "consent consent"
@@ -334,6 +342,7 @@ body.workflow-active footer {
       "divider divider"
       "field-label field-label"
       "outfit outfit"
+      "outfit-help outfit-help"
       "wardrobe wardrobe"
       "garment-preview garment-preview"
       "consent consent"
@@ -344,6 +353,13 @@ body.workflow-active footer {
 
   .form-panel[data-mode="add-items"] > #add-items-kicker { grid-area: kicker; }
   .form-panel[data-mode="add-items"] > #source-avatar-context { grid-area: source; }
+  .form-panel > .field-help {
+    grid-area: outfit-help;
+    margin: -1px 0 1px;
+    color: #5d6b61;
+    font-size: 8px;
+    line-height: 1.3;
+  }
 
   .form-panel[data-mode="add-items"] .add-items-kicker {
     margin: 0;
