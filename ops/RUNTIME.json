@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0.0",
   "purpose": "Shared operational truth for every agent and every chat. Read it before touching the host or the provider; update it the moment you change either. Prose belongs in STATE.md; this file holds only facts a machine can check.",
-  "updated_at": "2026-08-06T12:00:00.000Z",
+  "updated_at": "2026-08-06T10:24:09.000Z",
   "updated_by": "codex-main",
   "host": {
     "role": "beta and production deployment host",
@@ -16,9 +16,13 @@
   },
   "beta": {
     "url": "https://beta.madeforthisjob.com",
-    "release": "release-5b452ab-1785347404292",
+    "release": "release-edd5a88-1786010585934",
+    "release_sha": "edd5a88b81a2a53336bd3cdbe326bdcaa44d0fab",
+    "cache_token": "product-edd5a88b-91cef7304dda",
+    "content_digest_sha256": "fc0b0a77ebe3e6bcdf7fbc3d8d4e743f58156487a0c4926f756fb18864e060e5",
     "health": "ready",
-    "verified_at": "2026-07-29T17:50:00.000Z"
+    "verified_at": "2026-08-06T10:24:09.000Z",
+    "provider_transport": "openrouter-only"
   },
   "generation": {
     "active_provider": "openrouter",
@@ -52,12 +56,6 @@
     }
   },
   "blockers": [
-    {
-      "id": "release-size",
-      "what": "Product release is about 249 MiB against a 160 MiB budget, so no release verifies and no deploy is possible.",
-      "owner": "codex-main",
-      "contributors": "commit d1b6ab5 added 43.6 MiB of unregistered style units; eleven new preset plates added about 77 MiB."
-    },
     {
       "id": "presentation-split-missing",
       "what": "No man/woman value exists anywhere, so female-read style units are offered for male looks.",

@@ -29,6 +29,21 @@ health ready with 16 backgrounds and 18 fashion/editorial records; explicit
 beta fetch and public health both resolve exact SHA `7129c5c`.
 weakened_checks: none.
 
+2026-08-06 · BETA-ACTIVATION-OPENROUTER-ONLY · beta · codex-live-40
+Change: activated product release `release-edd5a88-1786010585934` from source
+`edd5a88b81a2a53336bd3cdbe326bdcaa44d0fab`; the persistent beta runner now
+uses OpenRouter for image, scene, video and VLM and contains no Higgsfield
+switch or fallback.
+Why: source-only removal is not enough while beta still serves the old release;
+the public runtime must be on the same verified provider graph.
+Evidence: strict product verifier PASS; focused runtime/provider/contracts/video
+suite `117/117 PASS`; local and public `/api/health` both returned `ready` with
+release SHA `edd5a88b81a2a53336bd3cdbe326bdcaa44d0fab`; no active work and no
+paid generation. `node_modules` was materialized in the generated release to
+avoid launchd's npm-symlink import hang; the original symlink is retained as a
+recoverable deployment backup.
+weakened_checks: none.
+
 2026-08-03 · FASHION-VIDEO-STYLE-DURATION-RETRY · beta pending deploy · codex-main
 Change: make an immutable Fashion Video style reference the sole duration
 authority for reference-bound create and retry. A generic motion mode remains
