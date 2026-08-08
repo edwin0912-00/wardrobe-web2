@@ -153,7 +153,10 @@ async function startEngine(runtimeRoot) {
       status: 'ready',
       generation: 'deterministic-self-check',
       semantic_qa: 'deterministic-self-check',
+    },
+    releaseIdentity: {
       release_sha: 'self-check-fixture',
+      cache_token: 'product-selfcheck-browsercore',
     },
     logger: false,
   });
@@ -217,6 +220,7 @@ try {
   const page = await context.newPage();
   const pageErrors = [];
   const failedCriticalRequests = [];
+  const failedCriticalResponses = [];
   page.on('pageerror', (error) => pageErrors.push(error.message));
   page.on('requestfailed', (request) => {
     // Chromium cancels media-capability HEAD probes after receiving enough
@@ -227,9 +231,30 @@ try {
       failedCriticalRequests.push(`${request.method()} ${request.url()} ${request.failure()?.errorText ?? ''}`);
     }
   });
+  page.on('response', (response) => {
+    const request = response.request();
+    if (response.status() < 400 || !['document', 'script', 'stylesheet'].includes(request.resourceType())) return;
+    failedCriticalResponses.push(`${response.status()} ${request.method()} ${response.url()}`);
+  });
 
   await page.goto(`${gateway.origin}/b/`, { waitUntil: 'domcontentloaded', timeout: timeoutMs });
   assert.equal(await page.locator('body').count(), 1, 'cinematic page did not render a body');
+  await page.waitForFunction(() => window.WardrobeCinematicBridge && window.ui, null, { timeout: timeoutMs });
+  const bootBridge = await page.evaluate(async () => {
+    const bridge = window.WardrobeCinematicBridge;
+    if (!bridge) return { loaded: false, availability: 'unavailable', release_sha: null };
+    const state = await bridge.probe();
+    return {
+      loaded: bridge === window.WardrobeCinematicBridge,
+      availability: state.availability,
+      release_sha: state.releaseSha,
+    };
+  });
+  assert.deepEqual(bootBridge, {
+    loaded: true,
+    availability: 'ready',
+    release_sha: 'self-check-fixture',
+  });
 
   const personBytes = await readFile(path.join(root, 'beta', 'inputs', 'zeely-test', 'users', 'input4.jpg'));
   const garmentBytes = await readFile(path.join(root, 'beta', 'inputs', 'zeely-test', 'outfits', '180827-1.webp'));
@@ -293,13 +318,42 @@ try {
     bad.append('consent', 'true');
     const structuredError = await request('/api/runs', { method: 'POST', body: bad });
 
-    const { createZeelyClient } = await import('/adapters/zeely-client.mjs');
-    const { createCinematicUiBridge } = await import('/adapters/cinematic-ui-bridge.mjs');
-    const client = createZeelyClient({ apiBase: '/api', EventSourceImpl: window.EventSource });
-    const bridge = createCinematicUiBridge({ client, autoProbe: false });
+    const bridge = window.WardrobeCinematicBridge;
+    if (!bridge || bridge !== window.WardrobeCinematicBridge) {
+      throw new Error('the page-owned cinematic bridge did not load');
+    }
     const state = await bridge.probe();
-    bridge.dispose();
     const profile = await request('/api/profile');
+
+    let bridgeInputError = null;
+    try {
+      await bridge.createLook({
+        person: new Blob([
+          new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13]),
+        ], { type: 'image/png' }),
+        outfitText: 'black top',
+      });
+    } catch (error) {
+      bridgeInputError = {
+        status: error?.status ?? null,
+        code: error?.code ?? null,
+        reason_code: error?.reasonCode ?? null,
+        next_action: error?.nextAction ?? null,
+      };
+    }
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    document.querySelector('[data-stage]')?.setAttribute('data-station', '1');
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    const errorDom = {
+      visible: Boolean(document.querySelector('[data-ui-show] [role="alert"]')),
+      retry: Boolean(document.querySelector('[data-ui-show] [data-retry-action]')),
+      back: Boolean(document.querySelector('[data-ui-show] [data-cancel-action]')),
+      action_error: window.ui?.state().actionError ?? null,
+    };
+    document.querySelector('[data-ui-show] [data-cancel-action]')?.click();
+    const afterBack = window.ui?.state() ?? null;
+    const openedHistory = window.ui?.openLookLibrary() ?? false;
+    const historyState = window.ui?.state() ?? null;
 
     return {
       initial_profile_status: initialProfile.status,
@@ -311,8 +365,20 @@ try {
         next_action: structuredError.body?.next_action,
       },
       bridge: {
+        page_owned: bridge === window.WardrobeCinematicBridge,
         availability: state.availability,
         saved_look_id: state.savedLook?.look_id ?? null,
+      },
+      bridge_input_error: bridgeInputError,
+      error_dom: errorDom,
+      after_back: {
+        action_error: afterBack?.actionError ?? null,
+        view: afterBack?.view ?? null,
+      },
+      history: {
+        opened: openedHistory,
+        look_count: historyState?.looks?.length ?? 0,
+        step_id: historyState?.stepId ?? null,
       },
       profile_look_count: profile.body?.looks?.length ?? 0,
     };
@@ -333,6 +399,21 @@ try {
   assert.equal(result.structured_error.status, 422);
   assert.equal(result.structured_error.code, 'IMAGE_DECODE_FAILED');
   assert.equal(result.structured_error.next_action, 'REPLACE_INPUT');
+  assert.deepEqual(result.bridge_input_error, {
+    status: 422,
+    code: 'IMAGE_DECODE_FAILED',
+    reason_code: null,
+    next_action: 'REPLACE_INPUT',
+  });
+  assert.equal(result.error_dom.visible, true);
+  assert.equal(result.error_dom.retry, true);
+  assert.equal(result.error_dom.back, true);
+  assert.equal(result.error_dom.action_error?.kind, 'look');
+  assert.equal(result.error_dom.action_error?.code, 'IMAGE_DECODE_FAILED');
+  assert.equal(result.after_back.action_error, null);
+  assert.equal(result.after_back.view, 'look');
+  assert.deepEqual(result.history, { opened: true, look_count: 2, step_id: 'looks' });
+  assert.equal(result.bridge.page_owned, true);
   assert.equal(result.bridge.availability, 'ready');
   assert.ok(result.bridge.saved_look_id);
   assert.equal(result.profile_look_count, 2);
@@ -346,6 +427,70 @@ try {
   assert.deepEqual(restored, { status: 200, looks: 2 });
   assert.deepEqual(pageErrors, [], `browser page errors: ${pageErrors.join(' | ')}`);
   assert.deepEqual(failedCriticalRequests, [], `critical request failures: ${failedCriticalRequests.join(' | ')}`);
+  assert.deepEqual(failedCriticalResponses, [], `critical HTTP responses: ${failedCriticalResponses.join(' | ')}`);
+
+  const brokenContext = await browser.newContext();
+  const brokenPage = await brokenContext.newPage();
+  const attemptedRunMutations = [];
+  brokenPage.on('request', (request) => {
+    if (request.method() === 'POST' && new URL(request.url()).pathname === '/api/runs') {
+      attemptedRunMutations.push(request.url());
+    }
+  });
+  await brokenPage.route('**/adapters/cinematic-ui-bridge.mjs*', (route) => route.fulfill({
+    status: 404,
+    contentType: 'text/javascript; charset=utf-8',
+    body: '/* forced missing bridge for acceptance */',
+  }));
+  const startupTelemetry = brokenPage.waitForRequest((request) => {
+    if (request.method() !== 'POST' || new URL(request.url()).pathname !== '/__site-observability') return false;
+    try {
+      const body = JSON.parse(request.postData() ?? '{}');
+      return body.event === 'bridge_failed' && body.code === 'module-load';
+    } catch {
+      return false;
+    }
+  }, { timeout: timeoutMs });
+  await brokenPage.goto(`${gateway.origin}/b/`, { waitUntil: 'domcontentloaded', timeout: timeoutMs });
+  await brokenPage.waitForFunction(() => (
+    document.documentElement.getAttribute('data-bridge') === 'unavailable'
+      && window.ui?.state().bridge?.availability === 'unavailable'
+  ), null, { timeout: timeoutMs });
+  const telemetryRequest = await startupTelemetry;
+  const bridge404 = await brokenPage.evaluate(() => {
+    const alert = document.querySelector('[data-bridge-status][role="alert"]');
+    const state = window.ui?.state() ?? null;
+    return {
+      alert_visible: Boolean(alert && !alert.hidden),
+      alert_text: alert?.textContent?.trim() ?? '',
+      bridge_marker: document.documentElement.getAttribute('data-bridge'),
+      bridge_code: document.documentElement.getAttribute('data-bridge-code'),
+      bridge_availability: state?.bridge?.availability ?? null,
+      simulated: state?.simulated ?? null,
+      pending: state?.pending ?? null,
+      look_count: state?.looks?.length ?? null,
+      rendered_result: Boolean(document.querySelector('[data-ui-show] .lookframe__img')),
+      global_bridge: Boolean(window.WardrobeCinematicBridge),
+    };
+  });
+  assert.deepEqual(bridge404, {
+    alert_visible: true,
+    alert_text: 'Не вдалося підключити генерацію. Оновіть сторінку.',
+    bridge_marker: 'unavailable',
+    bridge_code: 'module-load',
+    bridge_availability: 'unavailable',
+    simulated: false,
+    pending: false,
+    look_count: 0,
+    rendered_result: false,
+    global_bridge: false,
+  });
+  const telemetryBody = JSON.parse(telemetryRequest.postData() ?? '{}');
+  assert.equal(telemetryBody.event, 'bridge_failed');
+  assert.equal(telemetryBody.code, 'module-load');
+  assert.deepEqual(Object.keys(telemetryBody).sort(), ['code', 'event', 'gate', 'leg']);
+  assert.deepEqual(attemptedRunMutations, []);
+  await brokenContext.close();
 
   process.stdout.write(`${JSON.stringify({
     status: 'PASS',
@@ -356,6 +501,12 @@ try {
     saved_looks_after_reload: restored.looks,
     structured_error: result.structured_error,
     bridge: result.bridge,
+    visible_error_recovery: {
+      error: result.error_dom,
+      after_back: result.after_back,
+      history: result.history,
+    },
+    bridge_module_404: bridge404,
     weakened_checks: [],
   }, null, 2)}\n`);
 } finally {

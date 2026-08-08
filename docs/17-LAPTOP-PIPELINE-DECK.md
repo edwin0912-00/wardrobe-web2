@@ -8,10 +8,16 @@ atom. Every document edit updates its bytes, SHA-256 and lock test in the same
 commit; there is no runtime URL switch or untracked replacement:
 
 - title: `wardrobe — Pipeline`
-- 10 panels, desktop and portrait-browser interaction states
-- bytes: `803177`
-- SHA-256: `0aea43bd7f1cf6ac77b5db68521b3712dbae2de964ab57fd14f206818171389b`
+- 11 panels, desktop and portrait-browser interaction states
+- bytes: `811512`
+- SHA-256: `9c914b405fe2909d3ce43635da62f3b681e8dd7f103bb2a7ff0129d08cc94352`
 - source: owner-supplied `zeely-pipeline-clients.html`
+
+Panel 11 is the evaluator-facing acceptance proof. It links the supported
+one-line install to observable browser behavior: real same-origin bridge
+modules, backend release/profile state, core runs, structured input failure,
+history after reload and a forced bridge-module 404 that must render a visible
+fail-closed alert without creating a generation run.
 
 `test/pipeline-deck.test.mjs` is the byte and structure lock. If the deck changes,
 update its SHA and byte count in the same reviewed commit; do not add a runtime URL

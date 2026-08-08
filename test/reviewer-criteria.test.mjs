@@ -13,8 +13,9 @@ import { createCinematicUiBridge } from '../adapters/cinematic-ui-bridge.mjs';
 const REPO = path.resolve(import.meta.dirname, '..');
 
 test('alpha README and evaluator expose one reproducible behavioral acceptance path', async () => {
-  const [readme, packageJson, checks, lock] = await Promise.all([
+  const [readme, reviewerAcceptance, packageJson, checks, lock] = await Promise.all([
     readFile(path.join(REPO, 'README.md'), 'utf8'),
+    readFile(path.join(REPO, 'docs', 'REVIEWER-ACCEPTANCE.md'), 'utf8'),
     readFile(path.join(REPO, 'package.json'), 'utf8').then(JSON.parse),
     readFile(path.join(REPO, 'self-check', 'checks.json'), 'utf8').then(JSON.parse),
     readFile(path.join(REPO, 'release', 'RELEASE.lock.json'), 'utf8').then(JSON.parse),
@@ -22,6 +23,12 @@ test('alpha README and evaluator expose one reproducible behavioral acceptance p
 
   assert.match(readme, /--filter=blob:none --depth 8 --single-branch --branch alpha/);
   assert.match(readme, /\.\/scripts\/install-local\.sh --run/);
+  assert.match(readme, /main-сайт: `http:\/\/127\.0\.0\.1:4173\/`/);
+  assert.match(readme, /REVIEWER-ACCEPTANCE\.md/);
+  assert.match(reviewerAcceptance, /Bridge module повернув 404/);
+  assert.match(reviewerAcceptance, /Видимий `\[role="alert"\]`/);
+  assert.match(reviewerAcceptance, /нуль `POST \/api\/runs`/);
+  assert.match(reviewerAcceptance, /Deterministic fixture.*не видається за доказ фотореалізму/s);
   assert.equal(packageJson.scripts['self-check'], 'node scripts/self-check.mjs');
   assert.equal(packageJson.scripts['test:browser-core'], 'node scripts/browser-core-e2e.mjs');
   assert.equal(packageJson.scripts['media:install'], 'node scripts/fetch-media-bundle.mjs');
