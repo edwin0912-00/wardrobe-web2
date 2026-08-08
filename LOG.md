@@ -1929,3 +1929,13 @@ Evidence: `origin/beta` and `origin/canonical` were identical at
 Provider: Codex primary with guarded OpenRouter image/scene fallback; video and
 VLM remain OpenRouter; Higgsfield is prohibited and not constructed.
 weakened_checks: none; no paid generation.
+
+2026-08-09 · ALPHA-CODEX-DAEMON · alpha · codex-live-40
+Change: changed the installable `tools/run-web-daemon.sh` to launch
+`codex-primary`, matching the active beta launcher; OpenRouter remains the
+guarded image/scene fallback and video/VLM transport.
+Why: a clean install could otherwise start the legacy OpenRouter-only mode even
+though the live alpha release uses the Codex Worker.
+Evidence: shell syntax check, product release verification and focused
+generation/preflight tests pass; no paid generation.
+weakened_checks: none.
