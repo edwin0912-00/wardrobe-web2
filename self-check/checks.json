@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "name": "Wardrobe deterministic acceptance evaluator",
+  "rules": [
+    {
+      "id": "SOURCE_PROVENANCE",
+      "blocking": true,
+      "command": ["node", "scripts/verify-alpha.mjs", "--install"],
+      "proves": "release lock, source ancestry, beta subtree, contracts, canon and focused behavior suites"
+    },
+    {
+      "id": "BROWSER_CORE_E2E",
+      "blocking": true,
+      "command": ["node", "scripts/browser-core-e2e.mjs"],
+      "proves": "real browser, same-origin gateway, two core runs, outputs, structured error, save and refresh recovery"
+    },
+    {
+      "id": "PATCH_INTEGRITY",
+      "blocking": true,
+      "command": ["git", "diff", "--check"],
+      "proves": "no whitespace-corrupt patch content"
+    }
+  ],
+  "safe_repairs": [
+    ["npm", "ci", "--no-audit", "--no-fund"],
+    ["npm", "ci", "--no-audit", "--no-fund", "--prefix", "beta"],
+    ["npx", "playwright", "install", "chromium"]
+  ],
+  "forbidden_repairs": [
+    "change QA thresholds",
+    "rewrite receipts or hashes",
+    "invent output pixels",
+    "create paid provider jobs",
+    "copy credentials into the repository",
+    "mark a failed check as advisory"
+  ]
+}

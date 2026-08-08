@@ -1,0 +1,16 @@
+{
+  "name": "wardrobe-unified-alpha",
+  "private": true,
+  "version": "0.1.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "self-check": "node scripts/self-check.mjs",
+    "self-check:repair": "node scripts/self-check.mjs --repair",
+    "test:browser-core": "node scripts/browser-core-e2e.mjs"
+  },
+  "devDependencies": {
+    "playwright": "1.62.1"
+  }
+}

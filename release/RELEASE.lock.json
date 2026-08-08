@@ -1,27 +1,27 @@
 {
   "schema_version": 1,
-  "release": "main-0.01-unified-reviewer",
-  "created_at": "2026-08-04",
-  "purpose": "One evaluator-safe installable branch containing the cinematic site and the complete beta engine, verified through their real HTTP boundary.",
+  "release": "alpha-0.02-current-self-check",
+  "created_at": "2026-08-09",
+  "purpose": "Evaluator-safe alpha containing the cinematic site, current beta engine and a deterministic behavioral self-check through their real HTTP boundary.",
   "sources": {
     "main_site": {
       "repository": "https://github.com/edwin0912-00/wardrobe-web2.git",
-      "commit": "09115c64fae6fa6c01c47d963946e1ef8759183d",
+      "commit": "b4f24a364fa318a47e59338bd6198299e2c8db15",
       "location": "."
     },
     "beta_engine": {
       "repository": "https://github.com/edwin0912-00/zeely-ai-engineering-test.git",
-      "commit": "7129c5c9f0c8c45cab12bf747e833af1e8a37815",
-      "source_tree": "aa0e59b5afaa055e6feedcc3523952c3744fd166",
-      "tree": "b45984bc990593179300737be9ce77dffdceb183",
+      "commit": "9393da5dc1b0815169d6a2c93a4128e7ca714b47",
+      "source_tree": "f345ed77fbadb5916109ec02ca3ceea757c0132a",
+      "tree": "7feb16249c414c0d201bce8979b5182a376b7faf",
       "location": "beta"
     }
   },
   "provenance": {
-    "import_commit": "81a86f54346a7bcc5c41b6d76c9235f9eee57506",
+    "import_commit": "21491e4cfc649368b9314195ae0c5ef442b760af",
     "import_commit_parents": [
-      "09115c64fae6fa6c01c47d963946e1ef8759183d",
-      "7129c5c9f0c8c45cab12bf747e833af1e8a37815"
+      "d36e59ed81d4963ea33f8a350bbea540a2b2545e",
+      "9393da5dc1b0815169d6a2c93a4128e7ca714b47"
     ],
     "strategy": "two-parent merge; beta source commit retained, with the evaluator-facing tree sanitized only by removing the runtime credential backup",
     "excluded_private_paths": [
@@ -38,7 +38,9 @@
   "entrypoints": {
     "install": "scripts/install-local.sh",
     "run": "scripts/run-local.sh",
-    "verify": "scripts/verify-alpha.mjs"
+    "verify": "scripts/verify-alpha.mjs",
+    "self_check": "scripts/self-check.mjs",
+    "browser_core_e2e": "scripts/browser-core-e2e.mjs"
   },
   "external_private_state": [
     "Higgsfield CLI authorization",

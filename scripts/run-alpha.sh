@@ -192,8 +192,10 @@ for url, label in checks:
 
 _, _, bridge_health_bytes = fetch(f"http://127.0.0.1:{site_port}/api/health")
 bridge_health = json.loads(bridge_health_bytes)
-if bridge_health.get("status") != "ready":
-    raise SystemExit("alpha runtime failed: main bridge did not return the ready backend state")
+if bridge_health.get("status") not in {"ready", "degraded"}:
+    raise SystemExit("alpha runtime failed: main bridge returned neither ready nor degraded backend state")
+if bridge_health.get("status") == "degraded" and bridge_health.get("generation") == "available":
+    raise SystemExit("alpha runtime failed: degraded backend falsely advertises generation as available")
 
 status, headers, body = fetch(
     f"http://127.0.0.1:{site_port}/b/assets/seg1.mp4",

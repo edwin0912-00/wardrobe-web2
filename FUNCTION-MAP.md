@@ -106,6 +106,9 @@ settle й повертається назад тим самим gesture contract
 
 `./scripts/install-local.sh` запускає:
 
+- окремий deterministic self-check із машинним JSON-звітом;
+- Chromium browser E2E: text outfit + reference outfit, outputs, save, structured
+  error і refresh recovery;
 - main behavior suite;
 - real Python gateway із реальним upstream HTTP server;
 - реальний beta Fastify process;
@@ -115,3 +118,7 @@ settle й повертається назад тим самим gesture contract
 
 Критичний acceptance — це результат HTTP і state transition, а не наявність
 назви функції в JavaScript.
+
+Self-check не підміняє quality review платної генерації: fixture доводить
+маршрутизацію й продуктову поведінку, а model-quality оцінюється окремими
+receipts та прикладами генерацій.
