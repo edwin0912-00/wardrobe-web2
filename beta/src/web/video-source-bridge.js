@@ -106,8 +106,8 @@ export function redactVideoSourceRequestPath(value) {
 // A public HTTPS capability bridge is required only by the OpenRouter
 // image-first fallback.  A local developer must still be able to start and
 // inspect the application without a deployed origin; fail only if that
-// fallback is actually selected.  Fashion Video's reference-bound Higgsfield
-// route does not consume this resolver.
+// route is actually selected. Fashion Video uses the same explicit OpenRouter
+// transport and consumes this resolver for its private first-frame input.
 export function createUnavailableVideoAssetUrlResolver() {
   return async () => {
     throw new VideoSourceBridgeError(

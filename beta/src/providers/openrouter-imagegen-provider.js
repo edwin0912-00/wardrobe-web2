@@ -10,7 +10,7 @@ import {
   readProviderJournal,
   validateMedia,
   validateQaDecision,
-} from './higgsfield-cli-provider.js';
+} from './image-generation-contract.js';
 import { OpenRouterClient } from './openrouter-client.js';
 import { assertExternalPromptPrivacy } from './provider-prompt-privacy.js';
 
@@ -104,12 +104,10 @@ async function normaliseToPng(bytes) {
 }
 
 /**
- * Drop-in alternative to HiggsfieldCliProvider / CodexImagegenProvider that
- * generates avatar/outfit/garment/scene images through the OpenRouter API
- * instead of a local CLI or app-server worker. Reuses the same
- * reference-validation, journal and QA-decision helpers as the Higgsfield
- * transport (see higgsfield-cli-provider.js) so referential-integrity and
- * idempotency guarantees stay identical across every generation backend;
+ * OpenRouter image transport for avatar/outfit/garment/scene images. It uses
+ * the shared reference-validation, journal and QA-decision contract so
+ * referential-integrity and idempotency guarantees stay identical across
+ * generation phases;
  * only "how do we ask a model to render a PNG" differs, and that request is a
  * single synchronous OpenRouter call rather than a create/poll/download CLI
  * job.
@@ -134,12 +132,12 @@ export class OpenRouterImageGenProvider {
     this.journalDirectory = journalDirectory ? path.resolve(journalDirectory) : undefined;
     this.timeoutMs = timeoutMs;
     this.clock = clock;
-    // Both routed models honour an explicit 4:5 request (measured 2026-07-25:
-    // gpt-image → 896×1120, gemini → 928×1152), so this transport never needs
-    // the 3:4 detour the Higgsfield CLI was limited to.
-    this.transportAspectRatio = '4:5';
-    // Ten, not the inherited eight, because eight is a Higgsfield CLI limit and this
-    // transport does not share it: references travel as chat content parts. At eight,
+    // The product delivery contract is 3:4. Keep this explicit in the
+    // OpenRouter transport so SceneGeneratorAdapter and its receipt gate see
+    // the same aspect at every provider boundary.
+    this.transportAspectRatio = '3:4';
+    // Ten references are accepted because this chat transport has no legacy
+    // eight-reference ceiling: references travel as chat content parts. At eight,
     // an editorial shot carrying the approved look plus five item cutouts had two
     // slots left for its blocking diagram, its hero-continuity frame and any image
     // scene role — so the budget, not the art direction, decided what the model saw.
@@ -147,8 +145,7 @@ export class OpenRouterImageGenProvider {
   }
 
   /**
-   * Mirrors HiggsfieldCliProvider.condition()/CodexImagegenProvider.condition():
-   * an explicit validated pass-through. Crops, cutouts and readiness decisions
+   * An explicit validated pass-through. Crops, cutouts and readiness decisions
    * belong to the separate reference-conditioning stage, not this provider.
    */
   async condition(context) {

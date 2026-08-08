@@ -80,7 +80,7 @@ for (const [subjectId, job] of Object.entries(jobs)) {
       reference_pack: { path: identityPackPath, sha256: await sha256(identityPackPath) },
     },
     provider: {
-      transport: 'HIGGSFIELD_CLI',
+      transport: 'OPENROUTER_API',
       cli_version: '0.1.33',
       authenticated_live_generation: true,
     },

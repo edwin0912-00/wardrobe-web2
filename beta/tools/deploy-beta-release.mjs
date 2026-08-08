@@ -2,7 +2,7 @@
 
 import { execFile } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { cp, lstat, mkdir, readFile, readdir, rename, symlink, writeFile } from 'node:fs/promises';
+import { cp, lstat, mkdir, readFile, readdir, realpath, rename, symlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
@@ -40,6 +40,13 @@ export function replaceRunnerAppRoot(source, nextRoot) {
   const matches = source.match(/^app_root="[^"]+"$/m);
   invariant(matches?.length === 1, 'Beta runner must contain exactly one app_root declaration');
   return source.replace(/^app_root="[^"]+"$/m, `app_root="${nextRoot}"`);
+}
+
+// launchd can hang while Node resolves npm package scopes through a nested
+// symlink (repo/node_modules -> another workspace/node_modules). Resolve the
+// target once so every beta release carries one direct, stable dependency link.
+export async function resolveNodeModulesTarget(projectRootPath) {
+  return realpath(path.join(projectRootPath, 'node_modules'));
 }
 
 // A status is a recovery hint, not proof that a provider call is currently in
@@ -218,7 +225,7 @@ async function main() {
   invariant(!await exists(nextRoot), 'Target beta release already exists');
   const stage = `${nextRoot}.staging`;
   await cp(options.release, stage, { recursive: true, dereference: false, errorOnExist: true });
-  await symlink(path.join(projectRoot, 'node_modules'), path.join(stage, 'node_modules'));
+  await symlink(await resolveNodeModulesTarget(projectRoot), path.join(stage, 'node_modules'));
   await mkdir(path.join(stage, 'runtime'), { mode: 0o700 });
   await rename(stage, nextRoot);
   const runnerBackup = `${options.runner}.backup-${verified.base_commit.slice(0, 7)}-${Date.now()}`;

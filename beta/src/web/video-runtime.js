@@ -2,9 +2,7 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import path from 'node:path';
 
-import { HiggsfieldVideoProvider } from '../providers/higgsfield-video-provider.js';
 import { OpenRouterVideoProvider } from '../providers/openrouter-video-provider.js';
-import { VideoProviderRouter } from '../providers/video-provider-router.js';
 import { extractFrame, probeVideo } from './ffprobe-video-probe.js';
 import { ClipStore, VideoService } from './video-service.js';
 import { salvageVideoFromQa } from './video-qa-salvage.js';
@@ -21,17 +19,27 @@ export class VideoRuntimeError extends Error {
   }
 }
 
-function unavailableOpenRouterVideoProvider() {
-  const unavailable = async () => {
-    const error = new VideoRuntimeError(
-      'OpenRouter video fallback is unavailable until OPENROUTER_API_KEY is configured',
-      { code: 'OPENROUTER_VIDEO_FALLBACK_UNAVAILABLE' },
-    );
-    // A missing local configuration is terminal, not a reason to loop.
-    error.retryable = false;
-    throw error;
-  };
-  return Object.freeze({ createJob: unavailable, waitForJob: unavailable });
+function openRouterOnlyVideoProvider(openRouter) {
+  return Object.freeze({
+    async createJob(request) {
+      const created = await openRouter.createJob(request);
+      return {
+        ...created,
+        providerKey: 'openrouter',
+        createAttempt: 1,
+        fallbackUsed: false,
+      };
+    },
+    async waitForJob({ providerKey, ...request }) {
+      if (providerKey && providerKey !== 'openrouter') {
+        throw new VideoRuntimeError(
+          `Persisted video provider is disabled or unsupported: ${String(providerKey)}`,
+          { code: 'UNKNOWN_PERSISTED_VIDEO_PROVIDER' },
+        );
+      }
+      return openRouter.waitForJob(request);
+    },
+  });
 }
 
 export async function downloadVideoBytes(url, {
@@ -145,21 +153,17 @@ export function createVideoRuntime({
       code: 'VIDEO_RUNTIME_MISCONFIGURED',
     });
   }
-  const higgsfield = new HiggsfieldVideoProvider({ commandRunner });
-  // OpenRouter is a fallback, not a boot prerequisite. Requiring its key here
-  // made `npm run app` die before serving the local UI even though the
-  // reference-bound Higgsfield route is independent.
-  const openRouter = typeof openRouterApiKey === 'string' && openRouterApiKey.trim().length > 0
-    ? new OpenRouterVideoProvider({
-        apiKey: openRouterApiKey,
-        assetUrlResolver,
-        fetchFn,
-      })
-    : unavailableOpenRouterVideoProvider();
-  const provider = new VideoProviderRouter({
-    primary: higgsfield,
-    fallback: openRouter,
+  if (typeof openRouterApiKey !== 'string' || openRouterApiKey.trim().length === 0) {
+    throw new VideoRuntimeError('OPENROUTER_API_KEY is required for video runtime', {
+      code: 'OPENROUTER_VIDEO_MISCONFIGURED',
+    });
+  }
+  const openRouter = new OpenRouterVideoProvider({
+    apiKey: openRouterApiKey,
+    assetUrlResolver,
+    fetchFn,
   });
+  const provider = openRouterOnlyVideoProvider(openRouter);
   const semanticEvaluator = qaEvaluator ?? createVlmEvaluator();
   return new VideoService({
     provider,

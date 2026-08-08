@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import sharp from 'sharp';
-import { HiggsfieldCliProvider } from '../src/providers/higgsfield-cli-provider.js';
+import { OpenRouterImageGenProvider } from '../src/providers/openrouter-imagegen-provider.js';
 import { ProfileService } from '../src/web/profile-service.js';
 import {
   SceneEvaluatorAdapter,
@@ -72,10 +72,7 @@ function providerRoute(outputRoot) {
   // live runtime map prevents this helper drifting to 4:5 for Nano Banana.
   return Object.fromEntries(Object.entries(SCENE_PROVIDER_RUNTIME_CONFIG).map(([model, config]) => [
     model,
-    new HiggsfieldCliProvider({
-      resolution: config.resolution,
-      quality: config.quality,
-      aspectRatio: config.aspectRatio,
+    new OpenRouterImageGenProvider({
       journalDirectory: path.join(outputRoot, 'provider-journals', model),
     }),
   ]));

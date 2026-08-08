@@ -1,8 +1,8 @@
 // The motion (video) service: it owns the ledger, the gates and the receipt check, and
 // it never touches a provider.
 //
-// Why the boundary sits here. Higgsfield and Magnific are reached over MCP only, and an
-// MCP session belongs to an agent rather than to a long-running web process. So this
+// Why the boundary sits here. Provider execution is external and belongs to an
+// injected executor rather than to a long-running web process. So this
 // service emits a job that an injected executor fulfils, and then verifies what came
 // back against what was asked. `src/providers/*` is never imported by this file — if it
 // were, the boundary would exist in prose only.

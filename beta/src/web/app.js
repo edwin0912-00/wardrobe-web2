@@ -71,9 +71,9 @@ export async function createWebApp({
   godViewAuth = null,
   testAudit = null,
 }) {
-  // A degraded provider preflight means the local CLI cannot prove that it can
-  // create and observe a paid Higgsfield job. Do not let a user enter the
-  // pipeline only to fail later with an ambiguous provider-create message.
+  // A degraded provider preflight means the configured Codex/OpenRouter image
+  // policy is not ready. Do not let a user enter the pipeline only to fail later with an
+  // ambiguous provider-create message.
   //
   // `health` is the boot snapshot; `healthProvider` is the latest cached
   // provider preflight. The latter matters when a short CLI/network failure
@@ -120,7 +120,7 @@ export async function createWebApp({
       .header('Retry-After', '60')
       .code(503)
       .send({
-        error: 'Генерація тимчасово недоступна: потрібна авторизація або перевірка Higgsfield.',
+        error: 'Генерація тимчасово недоступна: перевірте активний транспорт і fallback.',
         code: 'GENERATION_UNAVAILABLE',
         next_action: 'RETRY_AFTER_PROVIDER_READY',
       });

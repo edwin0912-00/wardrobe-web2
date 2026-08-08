@@ -192,9 +192,8 @@ export function buildFashionVideoReferencePrompt({
   const garmentBinding = bindings.appearance.find((binding) => binding.role === 'garment_detail');
   const cuts = Array.isArray(cutSheet?.cuts) ? cutSheet.cuts : [];
   const lines = [
-    // Do not let the single argv value passed to Higgsfield start with `@`.
-    // It must remain prose plus provider-recognised labels, never a CLI
-    // response-file expression.
+    // Keep the single provider prompt as prose plus provider-recognised labels;
+    // never let a reference marker become a response-file expression.
     'Reference bindings.',
     `${videoLabel} is private reference-only directing material, never delivery media.`,
     'Use it only to reconstruct its complete shot sequence, cut timing, transitions, action timing, pose choreography, camera movement, framing, environment, lighting, colour grade, optical effects, props and environmental text.',
@@ -313,7 +312,7 @@ export function buildMotionPlan({
   // a value the provider accepts (whole seconds, 3–15).  It must take
   // precedence over an old persisted clip's mode-duration value on retry.
   // Otherwise a valid 13 s style with the `camera_drift` motion label is
-  // rejected before it reaches Higgsfield merely because the generic drift
+  // rejected before it reaches the provider merely because the generic drift
   // demo window is 5–7 s.
   const hasReferenceDuration = referenceDurationSeconds !== null;
   const seconds = hasReferenceDuration

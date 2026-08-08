@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://madeforthisjob.com/schemas/project-canon-v1.json",
+  "title": "Wardrobe project canon snapshot",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "verified_at",
+    "truth_precedence",
+    "repositories",
+    "deployments",
+    "literal_test",
+    "product",
+    "model_policy",
+    "pipelines",
+    "status_vocabulary",
+    "verification",
+    "open_gaps",
+    "security"
+  ],
+  "properties": {
+    "$schema": { "type": "string" },
+    "schema_version": { "const": "1.0.0" },
+    "verified_at": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}[+-][0-9]{2}:[0-9]{2}$"
+    },
+    "truth_precedence": {
+      "type": "array",
+      "minItems": 5,
+      "items": { "type": "string" }
+    },
+    "repositories": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "visibility", "role", "source_branch", "source_sha", "url"],
+        "properties": {
+          "name": { "type": "string" },
+          "visibility": { "enum": ["private", "public"] },
+          "role": { "type": "string" },
+          "source_branch": { "type": "string" },
+          "source_sha": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+          "url": { "type": "string", "pattern": "^https://" }
+        }
+      }
+    },
+    "deployments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["surface", "url", "observed_status", "engine_release_sha"],
+        "properties": {
+          "surface": { "type": "string" },
+          "url": { "type": "string", "pattern": "^https://" },
+          "observed_status": { "type": "string" },
+          "engine_release_sha": { "type": "string", "pattern": "^[a-f0-9]{40}$" }
+        }
+      }
+    },
+    "literal_test": { "type": "object" },
+    "product": { "type": "object" },
+    "model_policy": { "type": "object" },
+    "pipelines": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "user_name", "source", "output", "code", "deployed", "e2e"],
+        "properties": {
+          "id": { "type": "string" },
+          "user_name": { "type": "string" },
+          "source": { "type": "string" },
+          "output": { "type": "string" },
+          "code": { "type": "string" },
+          "deployed": { "type": "string" },
+          "e2e": { "type": "string" }
+        }
+      }
+    },
+    "status_vocabulary": { "type": "object" },
+    "verification": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["check", "status", "evidence"],
+        "properties": {
+          "check": { "type": "string" },
+          "status": { "type": "string" },
+          "evidence": { "type": "string" }
+        }
+      }
+    },
+    "open_gaps": { "type": "array", "items": { "type": "string" } },
+    "security": { "type": "object" }
+  }
+}

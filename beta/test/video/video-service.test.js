@@ -1988,7 +1988,7 @@ test('getClip returns persisted metadata', async () => {
     assert.equal(loaded.jobId, 'job_test_123');
     assert.equal(loaded.surface, 'mirror');
     assert.equal(loaded.aspectRatio, '9:16');
-    assert.equal(loaded.providerKey, 'higgsfield');
+    assert.equal(loaded.providerKey, 'openrouter');
     assert.equal(loaded.providerCreateAttempt, 1);
     assert.equal(loaded.fallbackUsed, false);
   });
