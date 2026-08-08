@@ -799,3 +799,21 @@ be weakened to hide it.
   the prior symlink is retained beside it as a recoverable backup because
   launchd hung while resolving npm packages through the nested symlink.
 - `weakened_checks: none`.
+
+## Canonical live ref — 2026-08-08
+
+- `canonical` and `canonical-live-20260808` both resolve to
+  `105cdd2a4855d6937c6f9ffa341acf8354fe3530`, exactly the SHA returned by
+  `beta.madeforthisjob.com`, `madeforthisjob.com`, and
+  `site.madeforthisjob.com` health endpoints.
+- The immutable `alpha-0.01` tag resolves to `320b1af085a59c10bc0cd087680294ea7cc486ea`,
+  which is an ancestor of the canonical live ref. `origin/main` remains at the
+  historical alpha commit by policy; it is not the live runtime authority.
+- Active runtime has no Higgsfield, Nebula, or Obrio provider/account config.
+  Higgsfield auth directories and the named Nebula credential backups were
+  moved out of active config into the host quarantine; old source/receipts and
+  unrelated historical media remain audit/archive material.
+- Codex Worker primary + OpenRouter/FAL fallback is not yet active: beta is
+  still OpenRouter-only. Codex login is present, FAL is currently wired only
+  for Lucy realtime token issuance, and neither is an image/VLM fallback.
+- `weakened_checks: none`.

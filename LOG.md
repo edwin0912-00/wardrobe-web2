@@ -1862,3 +1862,16 @@ direct 66 MiB dependency directory. This changes no source or user data.
 Evidence: strict release verify PASS; focused runtime/provider/contracts/video
 and deployment suite `33/33 PASS`; zero active run/work ids; no paid generation.
 weakened_checks: none.
+
+2026-08-08 · CANONICAL-LIVE-REF-001 · canonical · codex-main
+Change: created the official `canonical` branch and immutable
+`canonical-live-20260808` tag at `105cdd2a4855d6937c6f9ffa341acf8354fe3530`.
+Why: the old `alpha-0.01` tag and `origin/main` still point to the historical
+`320b1af` commit, while the working beta/apex/site runtime is `105cdd2`.
+Evidence: alpha commit is an ancestor of canonical; local and public health for
+beta, apex and site all return `ready` with exactly `105cdd2`; remote branch/tag
+refs verified with `git ls-remote`.
+Provider note: active runtime is OpenRouter-only. Codex Worker primary and
+OpenRouter/FAL fallback remain an explicit next provider change, not claimed
+live by this ref.
+weakened_checks: none.
