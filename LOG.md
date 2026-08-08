@@ -1939,3 +1939,17 @@ though the live alpha release uses the Codex Worker.
 Evidence: shell syntax check, product release verification and focused
 generation/preflight tests pass; no paid generation.
 weakened_checks: none.
+
+2026-08-09 · ALPHA-DEPLOY-1056EF0 · alpha · codex-live-40
+Change: deployed the final alpha artifact to the shared beta engine and its
+canonical site mirrors.
+Why: alpha is now the only release line; beta and canonical are synchronized
+snapshots, not separate development targets.
+Evidence: product verifier PASS; active work ids empty; all three public health
+endpoints returned `ready` with release
+`1056ef0957f08b98c9b207c0b16f90a55300f1cc` and cache
+`product-1056ef09-ddfef560140a`; focused provider tests `12/12 PASS`, contracts
+PASS, canon PASS. No paid generation.
+Provider: Codex primary; guarded OpenRouter image/scene fallback; OpenRouter
+video/VLM; Higgsfield prohibited and not constructed.
+weakened_checks: none.
