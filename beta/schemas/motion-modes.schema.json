@@ -17,7 +17,7 @@
       "properties": {
         "transport": {
           "const": "MCP",
-          "description": "Higgsfield and Magnific are reached over MCP only. A mode may not declare any other transport."
+          "description": "Video modes use the configured MCP-capable executor. A mode may not declare an undeclared provider transport."
         },
         "note": { "type": "string" },
         "audio_policy": {

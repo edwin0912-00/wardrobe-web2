@@ -1,5 +1,60 @@
 # Wardrobe verified state
 
+## Alpha release line — 2026-08-09
+
+- `origin/alpha` is the single current integration, version and deployment
+  source. It combines the beta engine and canonical site runtime.
+- `origin/beta` and `origin/canonical` are frozen mirrors at the last shared
+  source head; future changes must land on `alpha` first.
+- Live beta, `madeforthisjob.com` and `site.madeforthisjob.com` currently serve
+  the same runtime release `1056ef0957f08b98c9b207c0b16f90a55300f1cc` with
+  cache token `product-1056ef09-ddfef560140a`.
+- The `alpha-0.01` tag and `origin/main` remain immutable historical
+  checkpoints. They are not deployment sources.
+- Every future deployment report must include the `alpha` source SHA, runtime
+  release SHA, cache token, provider mode and public health result.
+
+## Provider policy — Codex primary, OpenRouter fallback — 2026-08-08
+
+- New image/scene work uses the isolated Codex image worker first. A guarded
+  OpenRouter adapter is the first fallback for retryable failures that happen
+  before a provider submission is confirmed.
+- The router refuses fallback after `GENERATION_OUTCOME_UNKNOWN`, journal
+  conflicts, malformed input or other deterministic contract failures, so a
+  paid/unknown request cannot be duplicated silently.
+- Video still uses the existing OpenRouter provider. FAL is wired only for
+  Lucy/Real-time token issuance; no FAL image/video adapter or model contract
+  exists in this repository, so it is not advertised as an executable fallback.
+- Higgsfield is prohibited by runtime policy. The live web graph does not
+  import or construct it; historical adapters/receipts remain only as audit
+  evidence and are not a selectable provider.
+- Focused evidence: router/generation/preflight/OpenRouter tests `30/30 PASS`;
+  contracts and canon PASS; Codex login and isolated worker capability probe
+  passed. No paid generation.
+- Live activation is complete on product release `ca7e2529f80da852523d5bb2601d26f9b5207fb3`.
+  Beta and the two public mirrors return `ready` with the same release SHA and
+  cache token `product-ca7e2529-35d557927e49`.
+
+
+## Test-task acceptance audit — 2026-08-04
+
+- Consolidated requirement-by-requirement evidence is recorded in
+  `docs/TEST_TASK_STATUS_2026-08-04_UA.md`.
+- Verdict: core is functionally implemented, but the submission is not yet a
+  formal 100% PASS. On clean `origin/beta` `7129c5c`, contracts and canon pass,
+  while `npm run verify:output` returns `NEEDS_REVIEW` for `001–003` because
+  their visual review is bound to the retired half-body gate rather than the
+  current full-length gate.
+- `output/submission-manifest.json` says PASS while the three QA reports and
+  `qa-summary.json` say NEEDS_REVIEW; the manifest is stale evidence until
+  rebuilt from current reports.
+- Public beta health is ready and its release SHA exactly matches audited
+  product commit `7129c5c…`. Subsequent audit commits add documentation only;
+  the earlier apparent drift was a stale ref, not a missing runtime commit.
+- No QA threshold or lock was weakened. Next closure atoms are full-length
+  three-user evidence, deterministic manifest rebuild and one fresh exact-SHA
+  public core journey.
+
 ## Release candidate — structured failure diagnostics
 
 - The beta browser carries safe machine-readable failure fields from API to
@@ -747,3 +802,54 @@ be weakened to hide it.
   missing child remains fail-closed to avoid an unprovable duplicate charge.
 - Focused Video suite: 213/213 PASS. No paid provider work was used to test
   this route change.
+
+## OpenRouter-only transport — 2026-08-06
+
+- Source runtime now has one provider path: OpenRouter for image, scene, video
+  and VLM. Higgsfield is not imported, constructed, selected by preflight, or
+  reachable as a fallback from the web runtime.
+- Active image/model policy and provider contracts are OpenRouter-only. A
+  persisted video clip with another provider key fails closed instead of being
+  resumed through a retired adapter.
+- The checked-out branch now includes the latest `origin/beta` before this
+  provider repair. A fresh strict release still needs activation; the old public
+  beta release must not be treated as evidence for this source state.
+- Focused source verification: `78/78 PASS`; `git diff --check` PASS. No paid
+  generation was started by this change. Historical Higgsfield adapters/receipts
+  remain audit evidence and are not part of the active provider graph.
+- `weakened_checks: none`.
+
+## Beta active on OpenRouter-only release — 2026-08-06
+
+- `beta.madeforthisjob.com` and local `127.0.0.1:4176` are `ready` on
+  `release-105cdd2-1786012191968` / source
+  `105cdd2a4855d6937c6f9ffa341acf8354fe3530`.
+- Image, scene, Fashion Video and VLM runtime paths are OpenRouter-only;
+  active source imports, constructors, preflight probes and fallback switches
+  contain no Higgsfield route. Historical adapters/tests/receipts remain only
+  as audit evidence.
+- Release verification passed; focused runtime/provider/contracts/video and
+  deployment suite is `33/33 PASS`. No paid generation was started and the
+  deploy guard saw zero active work.
+- The generated release uses a materialized 66 MiB `node_modules` directory;
+  the prior symlink is retained beside it as a recoverable backup because
+  launchd hung while resolving npm packages through the nested symlink.
+- `weakened_checks: none`.
+
+## Canonical live ref — 2026-08-08
+
+- `canonical` and `canonical-live-20260808` both resolve to
+  `105cdd2a4855d6937c6f9ffa341acf8354fe3530`, exactly the SHA returned by
+  `beta.madeforthisjob.com`, `madeforthisjob.com`, and
+  `site.madeforthisjob.com` health endpoints.
+- The immutable `alpha-0.01` tag resolves to `320b1af085a59c10bc0cd087680294ea7cc486ea`,
+  which is an ancestor of the canonical live ref. `origin/main` remains at the
+  historical alpha commit by policy; it is not the live runtime authority.
+- Active runtime has no Higgsfield, Nebula, or Obrio provider/account config.
+  Higgsfield auth directories and the named Nebula credential backups were
+  moved out of active config into the host quarantine; old source/receipts and
+  unrelated historical media remain audit/archive material.
+- Codex Worker primary + OpenRouter/FAL fallback is not yet active: beta is
+  still OpenRouter-only. Codex login is present, FAL is currently wired only
+  for Lucy realtime token issuance, and neither is an image/VLM fallback.
+- `weakened_checks: none`.

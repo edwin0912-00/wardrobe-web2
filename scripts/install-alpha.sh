@@ -29,11 +29,17 @@ if (!Number.isInteger(major) || major < 22) {
 process.stdout.write(`node: ${process.version}\n`);
 JS
 
-echo "Installing the locked beta dependencies..."
-(cd beta && npm ci --no-audit --no-fund)
+echo "Installing the locked evaluator dependencies..."
+npm ci --no-audit --no-fund
 
-echo "Verifying both source trees and their integration..."
-node scripts/verify-alpha.mjs --install
+echo "Installing the locked beta dependencies..."
+npm ci --no-audit --no-fund --prefix beta
+
+echo "Installing the browser used by the behavioral E2E..."
+npx playwright install chromium
+
+echo "Running the deterministic acceptance self-check..."
+node scripts/self-check.mjs
 
 echo "Running the real two-process HTTP integration check..."
 ./scripts/run-alpha.sh --check

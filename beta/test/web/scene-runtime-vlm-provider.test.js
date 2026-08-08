@@ -4,7 +4,7 @@ import { SceneEvaluatorAdapter } from '../../src/web/scene-adapters.js';
 import { OpenRouterSceneEvaluator } from '../../src/web/openrouter-scene-evaluator.js';
 import { createSceneRuntimeDependencies } from '../../src/web/scene-runtime.js';
 
-const baseArgs = { projectRoot: process.cwd(), qaEvaluator: async () => ({}) };
+const baseArgs = { projectRoot: process.cwd(), qaEvaluator: async () => ({}), generationProvider: { generate: async () => ({}) } };
 
 test('createSceneRuntimeDependencies defaults to SceneEvaluatorAdapter (Codex) when no vlmProvider is configured', () => {
   const deps = createSceneRuntimeDependencies({ ...baseArgs, vlmProvider: undefined });

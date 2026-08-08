@@ -13,3 +13,9 @@ beta/secrets/*.tar.gz
 beta/secrets/*.json
 beta/secrets/*.pem
 beta/secrets/*.key
+
+node_modules/
+beta/node_modules/
+artifacts/self-check/
+test-results/
+playwright-report/

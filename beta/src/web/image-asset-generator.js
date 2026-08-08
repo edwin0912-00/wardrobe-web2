@@ -8,7 +8,7 @@ function mediaType(filename) {
   return { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp' }[path.extname(filename).toLowerCase()];
 }
 
-export class HiggsfieldAssetGenerator {
+export class ImageAssetGenerator {
   constructor({ provider }) { this.provider = provider; }
 
   async #generate({ phase, model, generationProfile = null, prompt, references, workDirectory, operationId }) {

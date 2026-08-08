@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
-import { mkdtemp } from 'node:fs/promises';
+import { mkdtemp, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
@@ -11,6 +11,26 @@ import { createZeelyClient, ZeelyApiError } from '../adapters/zeely-client.mjs';
 import { createCinematicUiBridge } from '../adapters/cinematic-ui-bridge.mjs';
 
 const REPO = path.resolve(import.meta.dirname, '..');
+
+test('alpha README and evaluator expose one reproducible behavioral acceptance path', async () => {
+  const [readme, packageJson, checks, lock] = await Promise.all([
+    readFile(path.join(REPO, 'README.md'), 'utf8'),
+    readFile(path.join(REPO, 'package.json'), 'utf8').then(JSON.parse),
+    readFile(path.join(REPO, 'self-check', 'checks.json'), 'utf8').then(JSON.parse),
+    readFile(path.join(REPO, 'release', 'RELEASE.lock.json'), 'utf8').then(JSON.parse),
+  ]);
+
+  assert.match(readme, /--depth 3 --single-branch --branch alpha/);
+  assert.match(readme, /\.\/scripts\/install-local\.sh --run/);
+  assert.equal(packageJson.scripts['self-check'], 'node scripts/self-check.mjs');
+  assert.equal(packageJson.scripts['test:browser-core'], 'node scripts/browser-core-e2e.mjs');
+  assert.ok(checks.rules.some((rule) => rule.id === 'BROWSER_CORE_E2E' && rule.blocking));
+  assert.deepEqual(checks.forbidden_repairs.includes('change QA thresholds'), true);
+  assert.equal(lock.sources.beta_engine.commit, '9393da5dc1b0815169d6a2c93a4128e7ca714b47');
+  assert.deepEqual(lock.provenance.excluded_private_paths, [
+    'beta/secrets/zeely-runtime-private.tar.gz.enc',
+  ]);
+});
 
 function listen(server) {
   return new Promise((resolve, reject) => {

@@ -76,7 +76,7 @@ const AUTOMATIC_REFERENCE_QA_FAILURE_CODES = new Set([
   'VIDEO_PROVIDER_JOB_FAILED',
 ]);
 
-// Higgsfield can reject a create before it has accepted or billed a job while
+// The provider can reject a create before it has accepted or billed a job while
 // its own input-media IP check is still in progress.  This is deliberately a
 // separate, tiny retry budget from semantic Fashion Video repair: no provider
 // job exists yet, and the same bound request can be resubmitted once.
@@ -451,7 +451,7 @@ export class VideoService {
 
   /**
    * @param {object} options
-   * @param {object} options.provider — HiggsfieldVideoProvider instance
+   * @param {object} options.provider — configured video provider instance
    * @param {ClipStore} options.clipStore
    * @param {function} [options.clock] — () => Date.now(), for testing
    */
@@ -949,7 +949,7 @@ export class VideoService {
         });
         if (inputMediaPending) {
           throw new VideoServiceError(
-            'Higgsfield ще завершує IP-перевірку завантажених медіа. Генерація не стартувала; спробуйте ще раз через кілька секунд.',
+            'Провайдер ще перевіряє вхідне медіа. Генерація не стартувала; спробуйте ще раз через кілька секунд.',
             { code: 'VIDEO_INPUT_MEDIA_IP_CHECK_PENDING', status: 503 },
           );
         }
@@ -964,7 +964,7 @@ export class VideoService {
       schema_version: '1.0.0',
       clip_id: clipId,
       created_at: createdAt,
-      provider: created.providerKey ?? 'higgsfield',
+      provider: created.providerKey ?? 'openrouter',
       provider_create_attempt: created.createAttempt ?? 1,
       fallback_used: created.fallbackUsed === true,
       request: {
@@ -1006,7 +1006,7 @@ export class VideoService {
       ...submitting,
       retryOf,
       jobId: created.jobId,
-      providerKey: created.providerKey ?? 'higgsfield',
+      providerKey: created.providerKey ?? 'openrouter',
       providerCreateAttempt: created.createAttempt ?? 1,
       fallbackUsed: created.fallbackUsed === true,
       ...(providerInputMedia ? { providerInputMedia } : {}),
@@ -1178,7 +1178,7 @@ export class VideoService {
       };
     } catch (cause) {
       // Do not delete the durable SUBMITTING claim.  A missing acknowledgement
-      // could mean Higgsfield accepted the request; another automatic pass
+      // could mean the provider accepted the request; another automatic pass
       // would risk a duplicate paid generation.
       const latestParent = await this.#store.load(parentClipId);
       if (latestParent?.automaticRetry?.state === 'SUBMITTING') {
@@ -1259,7 +1259,7 @@ export class VideoService {
   }
 
   /**
-   * Ambiguous create recovery is deliberately disabled. Higgsfield's current
+   * Ambiguous create recovery is deliberately disabled. The provider's current
    * job envelope can prove prompt, geometry and model, but it does not attest
    * the SHA-256 values of the uploaded image/video inputs. A caller echoing our
    * local binding is not provider evidence and could attach another user's job

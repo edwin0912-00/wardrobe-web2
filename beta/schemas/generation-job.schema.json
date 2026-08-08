@@ -13,7 +13,7 @@
     "node_id": { "type": "string" },
     "attempt": { "type": "integer", "minimum": 1, "maximum": 3 },
     "idempotency_key": { "type": "string", "minLength": 16 },
-    "provider": { "enum": ["HIGGSFIELD_CLI", "HIGGSFIELD_MCP"] },
+    "provider": { "const": "OPENROUTER_API" },
     "model": {
       "enum": [
         "GPT Image 2",

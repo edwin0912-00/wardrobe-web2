@@ -1,5 +1,18 @@
 # Wardrobe ownership
 
+## ALPHA RELEASE LINE — current from 2026-08-09
+
+`alpha` is now the single integration, version and deployment line. It is the
+combined source for the current beta engine and the canonical site runtime.
+
+- Only `alpha` receives the next integrated release and deployment reports.
+- `beta` and `canonical` remain frozen mirrors of the last integrated source;
+  do not advance them independently.
+- `main` and the immutable `alpha-0.01` tag remain historical checkpoints and
+  are not rewritten.
+- A deployment report is valid only when it records the exact `alpha` source
+  SHA and the public `/api/health` release SHA.
+
 ## SEVEN-BLOCK MODE — current sprint
 
 The active ownership contract is
@@ -31,8 +44,9 @@ It supersedes the shared-`beta` write model below.
   verification only. It owns no product code, deploy, integration or
   Antigravity report paths.
 
-Only `chat-00-master` owns integration-only files and may update `beta`, deploy
-or edit the central ledgers. Chat 01 remains the Block 1 product owner.
+Only `chat-00-master` owns integration-only files and may update `alpha`, deploy
+or edit the central ledgers. `beta` and `canonical` are release mirrors, not
+independent integration targets. Chat 01 remains the Block 1 product owner.
 Chat 06 (`chat-6`) owns only the separate MAIN_SITE product and may not join a
 beta block. User-visible chat labels are not block numbers; exact thread IDs,
 titles, agent IDs, block ownership and report paths are canonical in
@@ -116,15 +130,15 @@ informal overlap.
 ## Branch topology
 
 ```text
-main
-└── integration/wardrobe-20260726
-    ├── control/codex-main           # queue ledgers only
-    ├── lane/<task-id>/<agent-id>
-    ├── lane/INT-<number>/codex-main # trusted integration task
-    └── wip/<source>-<date>        # preservation only, never auto-merge
+alpha                              # sole current integration/deploy line
+├── beta                            # frozen mirror of the last release
+├── canonical                       # frozen mirror of the last release
+├── main                            # historical/read-only checkpoint
+└── lane/<task-id>/<agent-id>       # isolated implementation work
 ```
 
-`main` is release-only. Integration is orchestrator-owned. A lane PR carries
+`main` is release-only and read-only. Integration is orchestrator-owned on
+`alpha`. A lane PR carries
 implementation and evidence; the orchestrator applies it to an integration
 candidate where code and the four ledgers become one commit. WIP branches
 preserve evidence but are not candidates until assigned and reviewed.

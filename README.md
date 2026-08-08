@@ -10,7 +10,9 @@ wardrobe-web2/
 └── beta/       engine, engineering UI, contracts, providers і QA
 ```
 
-Default branch `main` є самодостатньою інсталяційною версією. Backend не треба
+Гілка `alpha` є поточною evaluator-кандидаткою. Після приймання вона може бути
+fast-forward перенесена в `main`; до цього `main` не видається за новішу версію.
+Backend не треба
 клонувати з іншого репозиторію або вручну підставляти за іншою адресою.
 
 ## Встановити й запустити однією командою
@@ -18,7 +20,7 @@ Default branch `main` є самодостатньою інсталяційною
 Потрібні Git, Python 3.10+ і Node.js 22+:
 
 ```bash
-git clone --branch main https://github.com/edwin0912-00/wardrobe-web2.git \
+git clone --depth 3 --single-branch --branch alpha https://github.com/edwin0912-00/wardrobe-web2.git \
   && cd wardrobe-web2 \
   && ./scripts/install-local.sh --run
 ```
@@ -36,9 +38,10 @@ Runner обирає вільні loopback-порти, якщо стандарт�
 
 `install-local.sh` не обмежується пошуком рядків у файлах. Перед запуском він:
 
-1. встановлює locked backend dependencies через `npm ci`;
-2. запускає поведінкові тести main, API gateway, browser client, recovery та
-   збереженої бібліотеки;
+1. встановлює locked evaluator і backend dependencies через `npm ci`;
+2. встановлює pinned Chromium і запускає справжній browser E2E через
+   Playwright: два core runs (text outfit і reference outfit), завантаження
+   чотирьох outputs, structured input error, save та recovery після reload;
 3. перевіряє backend contracts і canon;
 4. запускає main і beta як два реальні процеси;
 5. робить HTTP-запити до main UI, beta UI, `/api/health`, каталогів і bridge
@@ -59,10 +62,15 @@ browser → main /api/* gateway → beta engine → profile/job state
 Код, UI, API, профіль, каталоги, contracts і тести запускаються без секретів.
 Реальна платна генерація потребує окремої локальної авторизації провайдера:
 
+Primary image transport — локально авторизований Codex. OpenRouter може бути
+доданий як optional image fallback і наразі потрібен для реального video route:
+
 ```bash
-higgsfield account status --json
-codex login status
+export OPENROUTER_API_KEY='set-locally-never-commit'
 ```
+
+Higgsfield не входить у дозволений production route цього deliverable. Magnific
+не є необхідною залежністю core pipeline.
 
 Якщо її немає, health чесно показує недоступний generation transport. UI не
 імітує прогрес і не вигадує результат.
@@ -125,6 +133,22 @@ terminal error/result до активного look. Reverse scroll із TV/lapto
 ./scripts/install-local.sh
 ```
 
+Окремий self-check без перевстановлення залежностей:
+
+```bash
+npm run self-check
+```
+
+Безпечне автоматичне відновлення лише інструментів (`npm ci` і Chromium), без
+зміни QA, receipts, outputs або credentials:
+
+```bash
+npm run self-check:repair
+```
+
+Self-check доводить orchestration та поведінку браузера на deterministic fixture.
+Він чесно **не** видає це за aesthetic/model-quality proof і не витрачає credits.
+
 Тільки main поведінкові тести:
 
 ```bash
@@ -154,6 +178,8 @@ curl -I -H 'Range: bytes=0-1023' http://127.0.0.1:4173/b/assets/seg1.mp4
 - `release/RELEASE.lock.json` — provenance обох частин;
 - `scripts/run-alpha.sh` — спільний runtime;
 - `scripts/verify-alpha.mjs` — source і behavior verifier.
+- `scripts/browser-core-e2e.mjs` — browser-level core acceptance;
+- `scripts/self-check.mjs` — окремий deterministic evaluator і safe repair gate.
 
 ## Безпека
 

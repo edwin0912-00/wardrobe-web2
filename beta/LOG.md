@@ -17,6 +17,59 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-08-08 · CODEX-PRIMARY-OPENROUTER-FALLBACK · beta/canonical `1f3d4e6` · codex-live-40
+Change: activate Codex Worker as the image/scene primary with one guarded
+OpenRouter fallback; explicitly prohibit Higgsfield. FAL remains the Lucy
+Real-time token transport because no server-side FAL image/video adapter exists.
+Why: the live policy must use only transports that have a reviewed executable
+contract; fallback is allowed only before a provider submission is confirmed.
+Evidence: commit `1f3d4e6535adf96e63ab38c718194dd54357bbb5` pushed to `beta` and
+`canonical`; strict product build/verify PASS (746 deploy files); deploy adapter
+PASS with no active work; beta, madeforthisjob.com and site.madeforthisjob.com
+health all returned `ready` and the exact release SHA/cache token. Focused suite
+30/30 PASS, verify:contracts PASS, verify:canon PASS, Codex login/capability PASS.
+weakened_checks: none; no paid generation.
+
+2026-08-08 · CODEX-FALLBACK-PREFLIGHT · beta/canonical `ca7e252` · codex-live-40
+Change: require the OpenRouter credential during Codex-primary preflight so a
+configured fallback cannot silently be absent at runtime.
+Why: Codex-primary is only a valid policy when its first fallback is executable;
+the service must fail at boot rather than discover the missing credential after
+a paid/long-running job fails over.
+Evidence: focused policy/preflight/router suite `13/13 PASS`; strict product
+build/verify PASS (746 deploy files); beta activation PASS with no active work;
+all three public health endpoints return `ready`, release SHA
+`ca7e2529f80da852523d5bb2601d26f9b5207fb3`, cache token
+`product-ca7e2529-35d557927e49`; process env is `codex-primary` + OpenRouter VLM.
+weakened_checks: none; no paid generation.
+
+2026-08-04 · TEST-TASK-ACCEPTANCE-AUDIT · beta `7129c5c`
+Change: add one consolidated audit mapping the original Notion task, current
+canon, checked-in three-user submission, public beta and optional product
+extensions without collapsing code, beta health and E2E evidence.
+Why: the repository contains a stale PASS submission manifest alongside
+NEEDS_REVIEW QA reports. This blocks a defensible 100% completion claim.
+Evidence: verify:contracts PASS (41 schemas / 9 fixtures / 3 jobs), verify:canon
+PASS (43 rules / 34 blocking), verify:output NEEDS_REVIEW for 001–003; public
+health ready with 16 backgrounds and 18 fashion/editorial records; explicit
+beta fetch and public health both resolve exact SHA `7129c5c`.
+weakened_checks: none.
+
+2026-08-06 · BETA-ACTIVATION-OPENROUTER-ONLY · beta · codex-live-40
+Change: activated product release `release-edd5a88-1786010585934` from source
+`edd5a88b81a2a53336bd3cdbe326bdcaa44d0fab`; the persistent beta runner now
+uses OpenRouter for image, scene, video and VLM and contains no Higgsfield
+switch or fallback.
+Why: source-only removal is not enough while beta still serves the old release;
+the public runtime must be on the same verified provider graph.
+Evidence: strict product verifier PASS; focused runtime/provider/contracts/video
+suite `117/117 PASS`; local and public `/api/health` both returned `ready` with
+release SHA `edd5a88b81a2a53336bd3cdbe326bdcaa44d0fab`; no active work and no
+paid generation. `node_modules` was materialized in the generated release to
+avoid launchd's npm-symlink import hang; the original symlink is retained as a
+recoverable deployment backup.
+weakened_checks: none.
+
 2026-08-03 · FASHION-VIDEO-STYLE-DURATION-RETRY · beta pending deploy · codex-main
 Change: make an immutable Fashion Video style reference the sole duration
 authority for reference-bound create and retry. A generic motion mode remains
@@ -1810,3 +1863,93 @@ Evidence: error-presentation/draft/scene/editorial/API/video route suite 38/38
 PASS; JavaScript syntax checks PASS; no paid provider request created.
 weakened_checks: none; raw provider/model reasoning, URLs and stack text remain
 private and are intentionally not rendered.
+
+2026-08-06 · Higgsfield removed from active runtime · source synced with origin/beta
+Change: OpenRouter is the only image, scene, video and VLM transport in the web
+runtime. The web process no longer imports or constructs Higgsfield providers,
+preflight no longer probes its CLI/account, and launch configuration has no
+Higgsfield switch or fallback. Shared image reference/journal/QA helpers are
+provider-neutral.
+Why: retiring only by flag left the old adapter in the deployed release and made
+restart/recovery able to select it again.
+Evidence: focused runtime/provider/contracts/video suite `78/78 PASS`; `git diff
+--check` PASS; active source has no Higgsfield provider import or constructor.
+Historical adapters, tests and receipts remain outside the active provider graph
+as audit evidence.
+weakened_checks: none.
+2026-08-06 · BETA-ACTIVATION-OPENROUTER-ONLY-105CDD2 · beta · codex-main
+Change: activated the exact `105cdd2a4855d6937c6f9ffa341acf8354fe3530`
+release on the beta runner after materializing its dependency tree. Both local
+`127.0.0.1:4176/api/health` and public `beta.madeforthisjob.com/api/health`
+returned `ready` with the same release SHA and cache token.
+Why: the launchd process hung while resolving a nested `node_modules` symlink;
+the symlink was retained as a recoverable backup and the release now contains a
+direct 66 MiB dependency directory. This changes no source or user data.
+Evidence: strict release verify PASS; focused runtime/provider/contracts/video
+and deployment suite `33/33 PASS`; zero active run/work ids; no paid generation.
+weakened_checks: none.
+
+2026-08-08 · CANONICAL-LIVE-REF-001 · canonical · codex-main
+Change: created the official `canonical` branch and immutable
+`canonical-live-20260808` tag at `105cdd2a4855d6937c6f9ffa341acf8354fe3530`.
+Why: the old `alpha-0.01` tag and `origin/main` still point to the historical
+`320b1af` commit, while the working beta/apex/site runtime is `105cdd2`.
+Evidence: alpha commit is an ancestor of canonical; local and public health for
+beta, apex and site all return `ready` with exactly `105cdd2`; remote branch/tag
+refs verified with `git ls-remote`.
+Provider note: active runtime was OpenRouter-only at this historical ref.
+The following `CODEX-PRIMARY-OPENROUTER-FALLBACK` entry records the reviewed
+provider transition.
+weakened_checks: none.
+
+2026-08-08 · CODEX-PRIMARY-OPENROUTER-FALLBACK · canonical/beta · codex-main
+Change: image and scene generation now have an explicit Codex Worker primary
+transport with a guarded OpenRouter fallback. Fallback is allowed only for a
+retryable pre-submit transport failure; unknown submitted outcomes, journal
+conflicts and malformed input never create a second paid request. Higgsfield is
+explicitly rejected by the generation mode and remains absent from the active
+web runtime. FAL remains Lucy/Real-time only because this repository has no
+reviewed FAL image/video adapter or model contract.
+Why: move the active image/scene path to Codex without pretending a FAL key is
+an executable media-generation route.
+Evidence: focused router/generation/preflight/OpenRouter tests 18/18 PASS;
+`codex --version`, `codex login status`, and isolated image worker capability
+probe report ChatGPT login and imageGeneration=true. No paid generation started.
+weakened_checks: none.
+2026-08-09 · ALPHA-RELEASE-LINE · alpha · codex-main
+Change: created the current `alpha` release line from the latest shared
+beta/canonical source and made it the sole integration, version and deployment
+target. Beta and canonical remain frozen mirrors; historical `alpha-0.01` and
+`main` are preserved unchanged.
+Why: prevent the beta engine, canonical site runtime and deployment reports
+from drifting across separate branches again.
+Evidence: `origin/beta` and `origin/canonical` were identical at
+`087ac63ee088d12de525443fe814825e235865a8`; all three public domains returned
+`ready` on runtime release `ca7e2529f80da852523d5bb2601d26f9b5207fb3`.
+Provider: Codex primary with guarded OpenRouter image/scene fallback; video and
+VLM remain OpenRouter; Higgsfield is prohibited and not constructed.
+weakened_checks: none; no paid generation.
+
+2026-08-09 · ALPHA-CODEX-DAEMON · alpha · codex-live-40
+Change: changed the installable `tools/run-web-daemon.sh` to launch
+`codex-primary`, matching the active beta launcher; OpenRouter remains the
+guarded image/scene fallback and video/VLM transport.
+Why: a clean install could otherwise start the legacy OpenRouter-only mode even
+though the live alpha release uses the Codex Worker.
+Evidence: shell syntax check, product release verification and focused
+generation/preflight tests pass; no paid generation.
+weakened_checks: none.
+
+2026-08-09 · ALPHA-DEPLOY-1056EF0 · alpha · codex-live-40
+Change: deployed the final alpha artifact to the shared beta engine and its
+canonical site mirrors.
+Why: alpha is now the only release line; beta and canonical are synchronized
+snapshots, not separate development targets.
+Evidence: product verifier PASS; active work ids empty; all three public health
+endpoints returned `ready` with release
+`1056ef0957f08b98c9b207c0b16f90a55300f1cc` and cache
+`product-1056ef09-ddfef560140a`; focused provider tests `12/12 PASS`, contracts
+PASS, canon PASS. No paid generation.
+Provider: Codex primary; guarded OpenRouter image/scene fallback; OpenRouter
+video/VLM; Higgsfield prohibited and not constructed.
+weakened_checks: none.

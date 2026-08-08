@@ -79,11 +79,16 @@ const allowedAlphaOverlay = [
   ':(exclude)FUNCTION-MAP.md',
   ':(exclude)AGENTS.md',
   ':(exclude).gitignore',
+  ':(exclude)package.json',
+  ':(exclude)package-lock.json',
+  ':(exclude)self-check/**',
   ':(exclude)scripts/install-local.sh',
   ':(exclude)scripts/install-alpha.sh',
   ':(exclude)scripts/run-local.sh',
   ':(exclude)scripts/run-alpha.sh',
   ':(exclude)scripts/verify-alpha.mjs',
+  ':(exclude)scripts/self-check.mjs',
+  ':(exclude)scripts/browser-core-e2e.mjs',
   ':(exclude)test/reviewer-criteria.test.mjs',
 ];
 const mainDrift = spawnSync('git', ['diff', '--quiet', mainCommit, '--', '.', ...allowedAlphaOverlay], {
@@ -105,6 +110,9 @@ for (const [relativePath, minimumBytes] of [
   ['beta/src/web/start.js', 1_000],
   ['beta/web/public/index.html', 1_000],
   ['beta/config/video-reference-packs/fashion-cool-style-v1.json', 100],
+  ['self-check/checks.json', 100],
+  ['scripts/self-check.mjs', 1_000],
+  ['scripts/browser-core-e2e.mjs', 5_000],
 ]) requireFile(relativePath, minimumBytes);
 
 run(process.execPath, ['--check', 'engine.js']);

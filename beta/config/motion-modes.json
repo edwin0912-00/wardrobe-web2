@@ -4,7 +4,7 @@
   "status": "DRAFT_FOR_APPROVAL",
   "route_policy": {
     "transport": "MCP",
-    "note": "Higgsfield and Magnific are reached over MCP only. The web process holds no MCP session, so a mode never names a transport of its own: the job is emitted and an MCP-capable agent fulfils it.",
+    "note": "Video execution is handed to the configured MCP-capable executor. The web process owns the immutable job and receipt contract and never names a retired provider.",
     "audio_policy": "MODEL_AUDIO_NEVER_SHIPS",
     "aspect_policy": "DELIVERY_ASPECT_IS_A_ROUTE_PARAMETER_NEVER_PROMPT_PROSE"
   },

@@ -65,7 +65,7 @@
         "model_slug": { "enum": ["bytedance-seedance-pro-2.0", "gemini-omni-preview"] },
         "transport": {
           "const": "mcp",
-          "description": "Higgsfield and Magnific are reached only over MCP here, never over an API or a CLI. A job with any other transport is refused rather than attempted."
+          "description": "Video jobs are handed to the configured MCP-capable executor. A job with any other transport is refused rather than attempted."
         },
         "camera_motion": { "type": ["string", "null"] },
         "prompt": {

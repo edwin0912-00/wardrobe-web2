@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, realpath, symlink, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { activeBetaRunIds, activeBetaWorkIds, hasActiveSceneProviderWork, hasLiveProviderWaitLease, parseBetaReleaseArguments, replaceRunnerAppRoot } from '../../tools/deploy-beta-release.mjs';
+import { activeBetaRunIds, activeBetaWorkIds, hasActiveSceneProviderWork, hasLiveProviderWaitLease, parseBetaReleaseArguments, replaceRunnerAppRoot, resolveNodeModulesTarget } from '../../tools/deploy-beta-release.mjs';
 
 test('beta deploy parser requires explicit safe paths and canonical beta health', () => {
   const options = parseBetaReleaseArguments([
@@ -18,6 +18,17 @@ test('beta deploy changes only the exact runner release pointer', () => {
   const source = '#!/bin/zsh\napp_root="/old"\nexport PORT=4176\n';
   assert.equal(replaceRunnerAppRoot(source, '/new'), '#!/bin/zsh\napp_root="/new"\nexport PORT=4176\n');
   assert.throws(() => replaceRunnerAppRoot('export PORT=4176\n', '/new'), /app_root/);
+});
+
+test('beta deploy resolves a nested node_modules symlink to its direct target', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'zeely-beta-node-modules-'));
+  t.after(() => import('node:fs/promises').then(({ rm }) => rm(root, { recursive: true, force: true })));
+  const target = path.join(root, 'dependency-root');
+  await mkdir(target, { recursive: true });
+  const repoNodeModules = path.join(root, 'repo', 'node_modules');
+  await mkdir(path.dirname(repoNodeModules), { recursive: true });
+  await symlink(target, repoNodeModules);
+  assert.equal(await resolveNodeModulesTarget(path.join(root, 'repo')), await realpath(target));
 });
 
 test('beta deploy discovers active runs before it can kickstart the service', async () => {

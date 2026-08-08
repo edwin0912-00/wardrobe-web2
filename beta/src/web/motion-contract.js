@@ -5,10 +5,9 @@
 // carries the failure it prevents, because every one of them was learned by
 // spending credits and getting a defect back.
 //
-// The server never calls a provider. It emits a job, an MCP-capable agent fulfils
-// it, and the receipt comes back here to be checked against what was asked. That
-// boundary exists because Higgsfield and Magnific are reached over MCP only, and an
-// MCP session belongs to an agent, not to a long-running web process.
+// The server never owns a provider session. It emits a job, an injected executor
+// fulfils it, and the receipt comes back here to be checked against what was asked.
+// This keeps transport credentials outside the web process.
 
 import Ajv2020 from 'ajv/dist/2020.js';
 import { readFileSync } from 'node:fs';

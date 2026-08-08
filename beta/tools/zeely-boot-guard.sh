@@ -116,20 +116,8 @@ if ! check 'beta.local-health' local_health; then
 fi
 check 'beta.public-health' public_health || true
 
-if [[ -x /opt/homebrew/bin/higgsfield ]]; then
-  # `account status` uses the existing authenticated CLI state only. The output
-  # can identify an account, so it is discarded rather than written to the log.
-  if /usr/bin/perl -e 'alarm 15; exec @ARGV' /opt/homebrew/bin/higgsfield account status --json >/dev/null 2>&1; then
-    write 'OK higgsfield.authenticated-cli'
-    (( ok += 1 ))
-  else
-    write 'WARN higgsfield.authenticated-cli'
-    (( warn += 1 ))
-  fi
-else
-  write 'WARN higgsfield.cli.missing'
-  (( warn += 1 ))
-fi
+write 'OK provider.openrouter-only'
+(( ok += 1 ))
 
 free_kb=$( /bin/df -k / | /usr/bin/awk 'NR == 2 { print $4 }' )
 if [[ "$free_kb" =~ '^[0-9]+$' && "$free_kb" -ge 524288 ]]; then

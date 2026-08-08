@@ -852,8 +852,8 @@ export class SceneGeneratorAdapter {
       .slice(attachedDiscretionary.length)
       .map((item) => item.role);
     const ordered = [...required, ...attachedDiscretionary];
-    // Higgsfield requires contiguous media positions. Structured JSON roles
-    // remain in the five-role evidence receipt and prompt, never as --image.
+    // The image transport requires contiguous media positions. Structured JSON
+    // roles remain in the five-role evidence receipt and prompt, never as media.
     ordered.forEach((item, index) => { item.order = index + 1; });
     // This is the exact provider-facing image order, not the logical five-role
     // scene pack. Persist both the readable canonical representation and its
@@ -980,7 +980,7 @@ export class SceneGeneratorAdapter {
       image: finished.image,
       media_type: 'image/png',
       metadata: {
-        provider: String(providerMetadata.provider ?? 'higgsfield'),
+        provider: String(providerMetadata.provider ?? 'openrouter-imagegen'),
         provider_request_id: String(providerJobId ?? requestId),
         request_id: requestId,
         job_id: String(providerJobId ?? requestId),
