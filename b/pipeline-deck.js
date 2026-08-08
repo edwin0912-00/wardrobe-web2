@@ -11,7 +11,7 @@
   'use strict';
 
   var SOURCE_URL = 'zeely-pipeline-clients.html';
-  var SOURCE_SHA256 = 'd24637d53d4c407f98f1db37690056e854b93579e498ba380918605a18e0a2cf';
+  var SOURCE_SHA256 = '9c914b405fe2909d3ce43635da62f3b681e8dd7f103bb2a7ff0129d08cc94352';
 
   function clamp01(value) {
     value = Number(value);

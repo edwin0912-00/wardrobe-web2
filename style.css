@@ -41,6 +41,17 @@ body {
   transition: transform 180ms ease-out;
 }
 .skip:focus { transform: translateY(0); }
+.bridge-status {
+  position: fixed; z-index: 320; top: 18px; left: 50%;
+  width: min(520px, calc(100vw - 32px)); padding: 12px 16px;
+  transform: translateX(-50%);
+  border: 1px solid rgba(245, 243, 237, 0.42);
+  background: rgba(29, 30, 28, 0.94); color: var(--milk);
+  box-shadow: 0 14px 44px rgba(0, 0, 0, 0.34);
+  font: 600 12px/1.45 ui-sans-serif, -apple-system, "Helvetica Neue", sans-serif;
+  letter-spacing: 0.035em; text-align: center;
+}
+.bridge-status[hidden] { display: none; }
 .sr-only {
   position: absolute !important; width: 1px !important; height: 1px !important;
   padding: 0 !important; margin: -1px !important; overflow: hidden !important;

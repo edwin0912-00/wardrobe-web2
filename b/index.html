@@ -16,6 +16,15 @@
 
 <a class="skip" href="/#journey">До взаємодії</a>
 
+<!-- The backend bridge is a blocking product dependency, not a decorative enhancement.
+     A missing module used to disappear inside a caught dynamic-import error, leaving the
+     page looking alive while no backend state could arrive. Keep this authored, visible
+     and deliberately free of provider internals: the browser acceptance test forces the
+     module to 404 and requires this exact fail-closed state. -->
+<div class="bridge-status" data-bridge-status role="alert" aria-live="assertive" hidden>
+  Не вдалося підключити генерацію. Оновіть сторінку.
+</div>
+
 <div class="progress" aria-hidden="true"></div>
 
 <div class="loader" data-loader>
@@ -211,8 +220,23 @@
   var productBridgePromise = import('../adapters/cinematic-ui-bridge.mjs?v=20260803-1').then(function (module) {
     var bridge = module.createCinematicUiBridge();
     window.WardrobeCinematicBridge = bridge;
+    document.documentElement.setAttribute('data-bridge', 'ready');
+    document.documentElement.removeAttribute('data-bridge-code');
+    var bridgeStatus = document.querySelector('[data-bridge-status]');
+    if (bridgeStatus) bridgeStatus.hidden = true;
     return bridge;
   }).catch(function () {
+    document.documentElement.setAttribute('data-bridge', 'unavailable');
+    document.documentElement.setAttribute('data-bridge-code', 'module-load');
+    var bridgeStatus = document.querySelector('[data-bridge-status]');
+    if (bridgeStatus) bridgeStatus.hidden = false;
+    var BridgeFailureEvent = window.CustomEvent ||
+      (typeof CustomEvent === 'function' ? CustomEvent : null);
+    if (BridgeFailureEvent) {
+      window.dispatchEvent(new BridgeFailureEvent('wardrobe:bridge-bootstrap-failed', {
+        detail: { code: 'module-load' }
+      }));
+    }
     return null;
   });
   var INTRO = 'assets/intro.mp4?v=media-20260804-1';
