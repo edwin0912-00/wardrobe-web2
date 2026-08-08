@@ -1,7 +1,8 @@
 # WARDROBE — актуальна FUNCTION MAP
 
-Цей файл описує не бажаний backlog, а фактичний контракт unified `main`.
-Код UI живе в cinematic main, а довготривалий стан і генерації — у beta engine.
+Цей файл описує не бажаний backlog, а фактичний контракт evaluator-гілки
+`alpha`. Код UI живе в cinematic site, а довготривалий стан і генерації — у
+beta engine. Перенесення `alpha` в `main` є окремим release-рішенням.
 
 ## 1. Центральний об’єкт
 
@@ -27,21 +28,21 @@ approved saved look
 Standard background не є Fashion Shoot preset. Fashion Video не потребує
 готового фону або фотосесії.
 
-## 2. Функції, поверхні й реальні гейти
+## 2. Функції, поверхні й рівень доказу
 
-| Функція | Поверхня main | Backend authority | Гейт | Поточний стан |
+| Функція | Поверхня main | Backend authority | Гейт | Перевірено зараз |
 |---|---|---|---|---|
-| Фото людини | ліве дзеркало | draft/profile | валідне фото | працює |
-| Речі: фото або готовий опис | ліве дзеркало | draft/run | людина + хоча б одна річ/назва | працює |
-| Генерація master-look | праве дзеркало | run + QA receipt | provider доступний | працює |
-| Structured error/retry | праве дзеркало | terminal backend state | named failure/next action | працює |
-| Бібліотека `Образи` | дзеркало | browser profile | profile cookie | працює |
-| Стандартні фони | дзеркало → TV | scene service | approved look | працює |
-| Fashion Shoot | дзеркало → TV | editorial service | approved look + style pack | progressive frames працюють |
-| Fashion Video | дзеркало → TV | video service | approved look + verified video style | transport/QA/retry працюють |
-| Real-time Look | right-mirror camera plane | server capability | approved look + explicit camera action | capability-bound |
-| Галерея готового | TV | saved deliveries | хоча б один delivered asset | працює |
-| Pipeline deck | calibrated laptop | SHA-bound HTML | terminal camera station | працює |
+| Фото людини | ліве дзеркало | draft/profile | валідне фото | UI contract + core browser HTTP |
+| Речі: фото або готовий опис | ліве дзеркало | draft/run | людина + хоча б одна річ/назва | text + reference browser runs |
+| Генерація master-look | праве дзеркало | run + QA receipt | provider доступний | deterministic browser PASS; paid quality окремо |
+| Structured error/retry | праве дзеркало | terminal backend state | named failure/next action | Chromium DOM PASS |
+| Бібліотека `Образи` | дзеркало | browser profile | profile cookie | Chromium DOM + reload PASS |
+| Стандартні фони | дзеркало → TV | scene service | approved look | backend behavior suite; не core browser gate |
+| Fashion Shoot | дзеркало → TV | editorial service | approved look + style pack | backend behavior suite; progressive frames |
+| Fashion Video | дзеркало → TV | video service | approved look + verified video style | transport/QA/retry suite |
+| Real-time Look | right-mirror camera plane | server capability | approved look + explicit camera action | capability contract; provider E2E окремо |
+| Галерея готового | TV | saved deliveries | хоча б один delivered asset | bridge restore behavior suite |
+| Pipeline deck | calibrated laptop | SHA-bound HTML | terminal camera station | source/SHA/scroll suite + browser mount |
 
 ## 3. Базові product-flow сценарії
 
@@ -119,6 +120,15 @@ settle й повертається назад тим самим gesture contract
 Критичний acceptance — це результат HTTP і state transition, а не наявність
 назви функції в JavaScript.
 
+Окремий negative browser run повертає `404` саме для
+`/adapters/cinematic-ui-bridge.mjs`. Acceptance вимагає видимий authored alert,
+`availability=unavailable`, `simulated=false`, нуль generation mutations і
+безпечний observability code `module-load`. Тому page більше не може виглядати
+робочою, коли ключовий bridge не завантажився.
+
 Self-check не підміняє quality review платної генерації: fixture доводить
 маршрутизацію й продуктову поведінку, а model-quality оцінюється окремими
 receipts та прикладами генерацій.
+
+Детальна матриця «критика → executable proof → observable result»:
+`docs/REVIEWER-ACCEPTANCE.md`.

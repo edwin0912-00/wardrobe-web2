@@ -28,10 +28,9 @@ git clone --filter=blob:none --depth 8 --single-branch --branch alpha https://gi
 Важкі demo-media не дублюються в Git tree. Інсталятор завантажує один pinned
 GitHub Release bundle, перевіряє його SHA-256, розмір, file count і дозволені
 шляхи, а вже потім запускає тести. Runner обирає вільні loopback-порти, якщо
-стандартні вже зайняті, і друкує
-фактичні адреси. Зазвичай це:
+стандартні вже зайняті, і друкує фактичні адреси. Канонічні локальні адреси:
 
-- main-сайт: `http://127.0.0.1:4173/b/`;
+- main-сайт: `http://127.0.0.1:4173/`;
 - engineering beta: `http://127.0.0.1:4176/`;
 - backend через main: `http://127.0.0.1:4173/api/health`.
 
@@ -43,8 +42,9 @@ GitHub Release bundle, перевіряє його SHA-256, розмір, file c
 
 1. встановлює locked evaluator і backend dependencies через `npm ci`;
 2. встановлює pinned Chromium і запускає справжній browser E2E через
-   Playwright: два core runs (text outfit і reference outfit), завантаження
-   чотирьох outputs, structured input error, save та recovery після reload;
+   Playwright: page-owned bridge, два core runs (text outfit і reference
+   outfit), чотири outputs, structured input error у реальному DOM, повернення
+   до образу, бібліотеку та recovery після reload;
 3. перевіряє backend contracts і canon;
 4. запускає main і beta як два реальні процеси;
 5. робить HTTP-запити до main UI, beta UI, `/api/health`, каталогів і bridge
@@ -52,6 +52,8 @@ GitHub Release bundle, перевіряє його SHA-256, розмір, file c
 6. перевіряє, що MP4 Range повертає `206`, а не повний файл;
 7. завершується помилкою, якщо main не бачить backend або module graph не
    завантажується.
+8. окремо примушує bridge module повернути `404` і вимагає видимий
+   `role="alert"`, нуль `POST /api/runs` та safe telemetry code `module-load`.
 
 Тому зелений install gate означає не «в коді є слово bridge», а фактичний
 same-origin маршрут:
@@ -59,6 +61,10 @@ same-origin маршрут:
 ```text
 browser → main /api/* gateway → beta engine → profile/job state
 ```
+
+Повна відповідність критеріям першої ревізії — у
+[`docs/REVIEWER-ACCEPTANCE.md`](docs/REVIEWER-ACCEPTANCE.md). Там кожна вимога
+прив’язана до команди й observable result, а не до наявності рядка в коді.
 
 ## Поведінка без provider-авторизації
 
@@ -151,6 +157,14 @@ npm run self-check:repair
 
 Self-check доводить orchestration та поведінку браузера на deterministic fixture.
 Він чесно **не** видає це за aesthetic/model-quality proof і не витрачає credits.
+
+### Три різні рівні доказу
+
+| Рівень | Що він доводить | Authority |
+| --- | --- | --- |
+| Local integration | bridge modules завантажились, main бачить engine | real HTTP startup + Chromium |
+| Product behavior | core runs, error/recovery, back, profile/history після reload | `scripts/browser-core-e2e.mjs` |
+| Model quality | identity, білий фон, outfit fidelity, anatomy | QA receipts + приклади `output/001..003`; не deterministic fixture |
 
 Тільки main поведінкові тести:
 
