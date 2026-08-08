@@ -19,3 +19,4 @@ beta/node_modules/
 artifacts/self-check/
 test-results/
 playwright-report/
+.wardrobe-media-bundle.json

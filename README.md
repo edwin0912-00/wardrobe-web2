@@ -20,12 +20,15 @@ Backend не треба
 Потрібні Git, Python 3.10+ і Node.js 22+:
 
 ```bash
-git clone --depth 3 --single-branch --branch alpha https://github.com/edwin0912-00/wardrobe-web2.git \
+git clone --filter=blob:none --depth 3 --single-branch --branch alpha https://github.com/edwin0912-00/wardrobe-web2.git \
   && cd wardrobe-web2 \
   && ./scripts/install-local.sh --run
 ```
 
-Runner обирає вільні loopback-порти, якщо стандартні вже зайняті, і друкує
+Важкі demo-media не дублюються в Git tree. Інсталятор завантажує один pinned
+GitHub Release bundle, перевіряє його SHA-256, розмір, file count і дозволені
+шляхи, а вже потім запускає тести. Runner обирає вільні loopback-порти, якщо
+стандартні вже зайняті, і друкує
 фактичні адреси. Зазвичай це:
 
 - main-сайт: `http://127.0.0.1:4173/b/`;

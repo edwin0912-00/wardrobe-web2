@@ -13,7 +13,7 @@
       "repository": "https://github.com/edwin0912-00/zeely-ai-engineering-test.git",
       "commit": "9393da5dc1b0815169d6a2c93a4128e7ca714b47",
       "source_tree": "f345ed77fbadb5916109ec02ca3ceea757c0132a",
-      "tree": "7feb16249c414c0d201bce8979b5182a376b7faf",
+      "tree": "233d5cd0630c7c81245c98b568f98052de4a0ea8",
       "location": "beta"
     }
   },
@@ -34,6 +34,11 @@
     "site_url": "http://127.0.0.1:4173/b/",
     "engine_url": "http://127.0.0.1:4176/",
     "bridge_health_url": "http://127.0.0.1:4173/api/health"
+  },
+  "media_bundle": {
+    "lock": "release/MEDIA.lock.json",
+    "sha256": "ae434d9c15e42a1ab014daa04b40ed66c94c649eddd34147cd889915d6be2137",
+    "materializes_removed_source_media": true
   },
   "entrypoints": {
     "install": "scripts/install-local.sh",

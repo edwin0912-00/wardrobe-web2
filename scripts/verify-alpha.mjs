@@ -89,6 +89,7 @@ const allowedAlphaOverlay = [
   ':(exclude)scripts/verify-alpha.mjs',
   ':(exclude)scripts/self-check.mjs',
   ':(exclude)scripts/browser-core-e2e.mjs',
+  ':(exclude)scripts/fetch-media-bundle.mjs',
   ':(exclude)test/reviewer-criteria.test.mjs',
 ];
 const mainDrift = spawnSync('git', ['diff', '--quiet', mainCommit, '--', '.', ...allowedAlphaOverlay], {

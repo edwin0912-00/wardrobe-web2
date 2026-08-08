@@ -9,7 +9,7 @@ fail() {
   exit 1
 }
 
-for command in git python3 node npm; do
+for command in git python3 node npm tar; do
   command -v "$command" >/dev/null 2>&1 || fail "$command is required"
 done
 
@@ -34,6 +34,9 @@ npm ci --no-audit --no-fund
 
 echo "Installing the locked beta dependencies..."
 npm ci --no-audit --no-fund --prefix beta
+
+echo "Fetching the immutable evaluator media bundle..."
+node scripts/fetch-media-bundle.mjs
 
 echo "Installing the browser used by the behavioral E2E..."
 npx playwright install chromium

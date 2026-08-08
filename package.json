@@ -8,6 +8,7 @@
   "scripts": {
     "self-check": "node scripts/self-check.mjs",
     "self-check:repair": "node scripts/self-check.mjs --repair",
+    "media:install": "node scripts/fetch-media-bundle.mjs",
     "test:browser-core": "node scripts/browser-core-e2e.mjs"
   },
   "devDependencies": {

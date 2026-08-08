@@ -20,10 +20,11 @@ test('alpha README and evaluator expose one reproducible behavioral acceptance p
     readFile(path.join(REPO, 'release', 'RELEASE.lock.json'), 'utf8').then(JSON.parse),
   ]);
 
-  assert.match(readme, /--depth 3 --single-branch --branch alpha/);
+  assert.match(readme, /--filter=blob:none --depth 3 --single-branch --branch alpha/);
   assert.match(readme, /\.\/scripts\/install-local\.sh --run/);
   assert.equal(packageJson.scripts['self-check'], 'node scripts/self-check.mjs');
   assert.equal(packageJson.scripts['test:browser-core'], 'node scripts/browser-core-e2e.mjs');
+  assert.equal(packageJson.scripts['media:install'], 'node scripts/fetch-media-bundle.mjs');
   assert.ok(checks.rules.some((rule) => rule.id === 'BROWSER_CORE_E2E' && rule.blocking));
   assert.deepEqual(checks.forbidden_repairs.includes('change QA thresholds'), true);
   assert.equal(lock.sources.beta_engine.commit, '9393da5dc1b0815169d6a2c93a4128e7ca714b47');
