@@ -17,6 +17,19 @@ weakened_checks: none | BLOCKED: …
 
 ## Entries
 
+2026-08-08 · CODEX-PRIMARY-OPENROUTER-FALLBACK · beta/canonical `1f3d4e6` · codex-live-40
+Change: activate Codex Worker as the image/scene primary with one guarded
+OpenRouter fallback; explicitly prohibit Higgsfield. FAL remains the Lucy
+Real-time token transport because no server-side FAL image/video adapter exists.
+Why: the live policy must use only transports that have a reviewed executable
+contract; fallback is allowed only before a provider submission is confirmed.
+Evidence: commit `1f3d4e6535adf96e63ab38c718194dd54357bbb5` pushed to `beta` and
+`canonical`; strict product build/verify PASS (746 deploy files); deploy adapter
+PASS with no active work; beta, madeforthisjob.com and site.madeforthisjob.com
+health all returned `ready` and the exact release SHA/cache token. Focused suite
+30/30 PASS, verify:contracts PASS, verify:canon PASS, Codex login/capability PASS.
+weakened_checks: none; no paid generation.
+
 2026-08-04 · TEST-TASK-ACCEPTANCE-AUDIT · beta `7129c5c`
 Change: add one consolidated audit mapping the original Notion task, current
 canon, checked-in three-user submission, public beta and optional product

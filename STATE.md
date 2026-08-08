@@ -14,10 +14,12 @@
 - Higgsfield is prohibited by runtime policy. The live web graph does not
   import or construct it; historical adapters/receipts remain only as audit
   evidence and are not a selectable provider.
-- Focused evidence: router/generation/preflight/OpenRouter tests `18/18 PASS`;
-  Codex login and isolated worker capability probe passed. No paid generation.
-- Live activation is pending the guarded beta release; verify `/api/health`
-  after restart for the exact `release_sha` and provider policy.
+- Focused evidence: router/generation/preflight/OpenRouter tests `30/30 PASS`;
+  contracts and canon PASS; Codex login and isolated worker capability probe
+  passed. No paid generation.
+- Live activation is complete on product release `1f3d4e6535adf96e63ab38c718194dd54357bbb5`.
+  Beta and the two public mirrors return `ready` with the same release SHA and
+  cache token `product-1f3d4e65-377d34947020`.
 
 
 ## Test-task acceptance audit — 2026-08-04

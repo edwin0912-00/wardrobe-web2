@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0.0",
   "purpose": "Shared operational truth for every agent and every chat. Read it before touching the host or the provider; update it the moment you change either. Prose belongs in STATE.md; this file holds only facts a machine can check.",
-  "updated_at": "2026-08-08T18:05:00.000Z",
+  "updated_at": "2026-08-08T17:59:43.489Z",
   "updated_by": "codex-main",
   "host": {
     "role": "beta and production deployment host",
@@ -16,10 +16,10 @@
   },
   "beta": {
     "url": "https://beta.madeforthisjob.com",
-    "release": "release-105cdd2-1786012191968",
-    "release_sha": "105cdd2a4855d6937c6f9ffa341acf8354fe3530",
-    "cache_token": "product-105cdd2a-1e09eeab0792",
-    "content_digest_sha256": "4b7519901649177368c419219f854ead0cde935bb26a49cbd27f888e61779288",
+    "release": "release-1f3d4e6-1786211975663",
+    "release_sha": "1f3d4e6535adf96e63ab38c718194dd54357bbb5",
+    "cache_token": "product-1f3d4e65-377d34947020",
+    "content_digest_sha256": "9f396c34f003ce3431729929a46e5a3a764ae4a5b6054578714eb533c060539b",
     "health": "ready",
     "verified_at": "2026-08-06T10:35:17.000Z",
     "provider_transport": "codex-primary-openrouter-fallback"
@@ -27,7 +27,7 @@
   "canonical": {
     "branch": "canonical",
     "tag": "canonical-live-20260808",
-    "source_sha": "105cdd2a4855d6937c6f9ffa341acf8354fe3530",
+    "source_sha": "1f3d4e6535adf96e63ab38c718194dd54357bbb5",
     "alpha_ancestor": "320b1af085a59c10bc0cd087680294ea7cc486ea",
     "matches_live_health": true,
     "note": "The immutable alpha-0.01 tag remains historical; canonical is the exact live code ref. origin/main is intentionally not moved by this record."
