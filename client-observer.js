@@ -74,9 +74,26 @@
      * avoids coupling diagnostics to the UI's internal transition code and lets a
      * parallel UI change remain independent. */
     global.setInterval(function () {
+      var startupCode = document.documentElement.getAttribute('data-bridge-code');
+      if (document.documentElement.getAttribute('data-bridge') === 'unavailable') {
+        var startupSignature = 'startup:' + token(startupCode, 'module-load');
+        if (startupSignature !== lastBridgeSignature) {
+          lastBridgeSignature = startupSignature;
+          report('bridge_failed', startupCode || 'module-load');
+        }
+        return;
+      }
       if (!global.ui || typeof global.ui.state !== 'function') return;
       var state = global.ui.state();
       var bridge = state && state.bridge;
+      if (bridge && bridge.availability === 'unavailable') {
+        var unavailableSignature = 'unavailable:' + token(bridge.activeKind, 'engine');
+        if (unavailableSignature !== lastBridgeSignature) {
+          lastBridgeSignature = unavailableSignature;
+          report('bridge_failed', 'engine-unavailable');
+        }
+        return;
+      }
       if (!bridge || (bridge.phase !== 'failed' && bridge.phase !== 'needs_input')) {
         lastBridgeSignature = '';
         return;
@@ -97,6 +114,10 @@
     var detail = event && event.detail || {};
     if (detail.phase === 'failed') report('bridge_failed', detail.activeKind || 'run');
     if (detail.phase === 'needs_input') report('bridge_needs_input', detail.activeKind || 'look');
+  });
+  global.addEventListener('wardrobe:bridge-bootstrap-failed', function (event) {
+    var detail = event && event.detail || {};
+    report('bridge_failed', detail.code || 'module-load');
   });
 
   function start() {

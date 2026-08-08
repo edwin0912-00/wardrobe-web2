@@ -27,5 +27,5 @@ test('the calibrated laptop plane stays hidden until the verified deck is mounte
   assert.match(adapter, /new Function\('document'/);
   assert.doesNotMatch(adapter, /<iframe|createElement\(['"]iframe/i);
   assert.match(deck, /<main class="deck" id="deck">/);
-  assert.equal((deck.match(/<section\b[^>]*\bclass="[^"]*\bpanel\b/g) || []).length, 10);
+  assert.equal((deck.match(/<section\b[^>]*\bclass="[^"]*\bpanel\b/g) || []).length, 11);
 });

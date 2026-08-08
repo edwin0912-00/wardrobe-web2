@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
-const SOURCE_SHA256 = 'd24637d53d4c407f98f1db37690056e854b93579e498ba380918605a18e0a2cf';
+const SOURCE_SHA256 = '9c914b405fe2909d3ce43635da62f3b681e8dd7f103bb2a7ff0129d08cc94352';
 
 const [sourceBytes, source, adapter, page, surfaces, css, mobileCss] = await Promise.all([
   readFile(new URL('../b/zeely-pipeline-clients.html', import.meta.url)),
@@ -16,10 +16,12 @@ const [sourceBytes, source, adapter, page, surfaces, css, mobileCss] = await Pro
 ]);
 
 test('the laptop source is vendored byte-for-byte from the approved handoff', () => {
-  assert.equal(sourceBytes.byteLength, 807062);
+  assert.equal(sourceBytes.byteLength, 811512);
   assert.equal(createHash('sha256').update(sourceBytes).digest('hex'), SOURCE_SHA256);
   assert.match(source, /<title>wardrobe — Pipeline<\/title>/);
-  assert.equal((source.match(/<section\b[^>]*\bclass="[^"]*\bpanel\b/g) || []).length, 10);
+  assert.equal((source.match(/<section\b[^>]*\bclass="[^"]*\bpanel\b/g) || []).length, 11);
+  assert.match(source, /data-name="Acceptance"/);
+  assert.match(source, /404 bridge → visible alert/);
   assert.match(source, /id="deck"/);
   assert.match(source, /type="application\/json" id="node-specs"/);
   assert.match(source, /id="drawer"/);

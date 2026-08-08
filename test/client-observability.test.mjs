@@ -17,7 +17,19 @@ test('browser observability is narrow, same-origin, and loaded before the UI bri
   assert.match(observer, /bridge_failed: true/);
   assert.match(observer, /bridge_needs_input: true/);
   assert.match(observer, /global\.ui\.state\(\)/);
+  assert.match(observer, /data-bridge-code/);
+  assert.match(observer, /bridge\.availability === 'unavailable'/);
+  assert.match(observer, /wardrobe:bridge-bootstrap-failed/);
   assert.doesNotMatch(observer, /error\.message|\.stack|FormData|files|mediaUrl|resultUrl|location\.href/);
+});
+
+test('a bridge module bootstrap failure is visible and emits only a safe code', () => {
+  assert.match(html, /data-bridge-status role="alert" aria-live="assertive" hidden/);
+  assert.match(html, /Не вдалося підключити генерацію\. Оновіть сторінку\./);
+  assert.match(html, /setAttribute\('data-bridge', 'unavailable'\)/);
+  assert.match(html, /setAttribute\('data-bridge-code', 'module-load'\)/);
+  assert.match(html, /wardrobe:bridge-bootstrap-failed/);
+  assert.doesNotMatch(html, /bridge-bootstrap-failed[\s\S]{0,200}(?:message|stack|url|href)/i);
 });
 
 test('server accepts only bounded same-origin allowlisted health events', () => {
