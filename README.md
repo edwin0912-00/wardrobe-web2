@@ -22,20 +22,27 @@ GitHub (`node ops/intent.mjs start "…"`), і лише потім робить�
 
 ## Запустити working web app
 
-Передумови: Node.js 22+, авторизовані `higgsfield` і `codex` CLI. Startup preflight перевіряє обидва CLI та Higgsfield balance до відкриття сервера.
+Передумова для локального UI/API: Node.js 22+. Сервер стартує без provider
+credentials у чесному `degraded` режимі: каталоги, профіль, історія та
+перегляд доступні, а paid generation повертає структурований
+`GENERATION_UNAVAILABLE`.
 
 ```bash
 npm install
 npm run app
 ```
 
-Відкрити `http://127.0.0.1:4173`. Окремі OpenAI/Gemini API keys не потрібні: generation виконує Higgsfield CLI, а тимчасовий independent semantic judge — авторизований `codex exec` у `--ephemeral`, read-only, strict-schema режимі.
+Відкрити `http://127.0.0.1:4173`. Для реальної image generation потрібен
+авторизований ChatGPT/Codex transport. `OPENROUTER_API_KEY` опціонально додає
+безпечний image fallback і є обов'язковим лише для поточного OpenRouter video
+transport. Higgsfield заборонений чинною runtime policy. Semantic QA виконує
+авторизований `codex exec` у `--ephemeral`, read-only, strict-schema режимі.
 
 Локальний старт не потребує `ZEELY_PUBLIC_HTTPS_ORIGIN` або
-`OPENROUTER_API_KEY`: вони потрібні лише для зовнішнього OpenRouter video
-fallback, який має забрати приватний кадр через HTTPS. Без них сайт, API,
-image-flow та reference-bound Higgsfield Fashion Video запускаються; лише цей
-fallback чесно поверне конфігураційну помилку, якщо колись буде обраний.
+`OPENROUTER_API_KEY`. Без ключа video route не реєструється, а UI має показати
+його як недоступний — без mock-ролика або фейкового прогресу. Для реального
+OpenRouter video виклику також потрібен HTTPS origin, з якого provider може
+прочитати короткоживучий приватний source.
 
 Перед передаванням проєкту або локальною перевіркою запусти:
 
