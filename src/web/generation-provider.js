@@ -1,10 +1,12 @@
 import { CodexAppServerClient } from '../providers/codex-app-server-client.js';
 import { CodexImagegenProvider } from '../providers/codex-imagegen-provider.js';
 import { OpenRouterImageGenProvider } from '../providers/openrouter-imagegen-provider.js';
+import { ImageGenerationRouter } from '../providers/image-generation-router.js';
 import { resolveLookImageRoute } from '../runner/model-policy.js';
 import { ImageAssetGenerator as ProviderAssetGenerator } from './image-asset-generator.js';
 
 export const CODEX_IMAGEGEN_TEST_MODE = 'codex-imagegen-test';
+export const CODEX_PRIMARY_IMAGEGEN_MODE = 'codex-primary';
 export const OPENROUTER_IMAGEGEN_MODE = 'openrouter';
 
 function timeoutFrom(value) {
@@ -17,7 +19,7 @@ function timeoutFrom(value) {
 }
 
 export async function createGenerationRuntime({
-  mode = process.env.ZEELY_GENERATION_PROVIDER ?? OPENROUTER_IMAGEGEN_MODE,
+  mode = process.env.ZEELY_GENERATION_PROVIDER ?? CODEX_PRIMARY_IMAGEGEN_MODE,
   enableCodexTest = process.env.ZEELY_ENABLE_CODEX_IMAGEGEN_TEST_ONLY === 'true',
   vlm,
   projectRoot,
@@ -29,6 +31,9 @@ export async function createGenerationRuntime({
   if (!vlm || typeof vlm.evaluateQa !== 'function') throw new TypeError('vlm evaluator is required');
   if (typeof onCloseReady !== 'function') throw new TypeError('onCloseReady must be a function');
   if (typeof onFatal !== 'function') throw new TypeError('onFatal must be a function');
+  const openRouter = mode === CODEX_PRIMARY_IMAGEGEN_MODE
+    ? new OpenRouterImageGenProvider({ qaEvaluator: vlm.evaluateQa.bind(vlm) })
+    : null;
   if (mode === OPENROUTER_IMAGEGEN_MODE) {
     const provider = new OpenRouterImageGenProvider({ qaEvaluator: vlm.evaluateQa.bind(vlm) });
     const runtime = {
@@ -44,15 +49,25 @@ export async function createGenerationRuntime({
     onCloseReady(runtime.close);
     return runtime;
   }
-  if (mode !== CODEX_IMAGEGEN_TEST_MODE) throw new Error(`Unknown ZEELY_GENERATION_PROVIDER: ${mode}`);
-  if (!enableCodexTest) {
+  if (![CODEX_IMAGEGEN_TEST_MODE, CODEX_PRIMARY_IMAGEGEN_MODE].includes(mode)) {
+    if (mode === 'higgsfield') throw new Error('HIGGSFIELD_DISABLED: Higgsfield is prohibited by the active provider policy');
+    throw new Error(`Unknown ZEELY_GENERATION_PROVIDER: ${mode}`);
+  }
+  if (mode === CODEX_IMAGEGEN_TEST_MODE && !enableCodexTest) {
     throw new Error('Codex imagegen transport requires ZEELY_ENABLE_CODEX_IMAGEGEN_TEST_ONLY=true');
   }
   const worker = codexWorker ?? new CodexAppServerClient({
     cwd: projectRoot,
     generationTimeoutMs: timeoutFrom(process.env.ZEELY_CODEX_IMAGEGEN_TIMEOUT_MS),
   });
-  const provider = new CodexImagegenProvider({ worker, qaEvaluator: vlm.evaluateQa.bind(vlm) });
+  const codex = new CodexImagegenProvider({
+    worker,
+    qaEvaluator: vlm.evaluateQa.bind(vlm),
+    testOnly: mode === CODEX_IMAGEGEN_TEST_MODE,
+  });
+  const provider = mode === CODEX_PRIMARY_IMAGEGEN_MODE
+    ? new ImageGenerationRouter({ primary: codex, fallbacks: [openRouter], generationRoute: lookImageRoute })
+    : codex;
   const fatalListener = (error) => onFatal(error);
   if (typeof worker.on === 'function') worker.on('fatal', fatalListener);
   const close = async () => {
@@ -72,7 +87,9 @@ export async function createGenerationRuntime({
     provider,
     assetGenerator: new ProviderAssetGenerator({ provider }),
     generationRoute: [...provider.generationRoute],
-    label: 'Codex Image Generation — test only',
+    label: mode === CODEX_PRIMARY_IMAGEGEN_MODE
+      ? 'Codex Image Generation → OpenRouter fallback'
+      : 'Codex Image Generation — test only',
     status,
     healthStatus: () => provider.healthStatus(),
     close,

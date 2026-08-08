@@ -13,8 +13,8 @@ async function run(binary, args, commandRunner) {
   }
 }
 
-export async function runLocalPreflight({ commandRunner = execFileAsync, generationMode = 'openrouter', codexStatus = null } = {}) {
-  if (generationMode === 'codex-imagegen-test') {
+export async function runLocalPreflight({ commandRunner = execFileAsync, generationMode = 'codex-primary', codexStatus = null } = {}) {
+  if (generationMode === 'codex-imagegen-test' || generationMode === 'codex-primary') {
     const [, loginStatus] = await Promise.all([
       run('codex', ['--version'], commandRunner),
       run('codex', ['login', 'status'], commandRunner),
@@ -26,7 +26,15 @@ export async function runLocalPreflight({ commandRunner = execFileAsync, generat
     }
     // Keep the public health surface generic: it must never disclose the local
     // worker implementation or the authenticated account type.
-    return { status: 'ready', generation: 'Codex Image Generation — test only', test_only: true };
+    return generationMode === 'codex-primary'
+      ? {
+          status: 'ready',
+          generation: 'Codex Image Generation → OpenRouter fallback',
+          primary: 'codex',
+          fallback: 'openrouter',
+          test_only: false,
+        }
+      : { status: 'ready', generation: 'Codex Image Generation — test only', test_only: true };
   }
   if (generationMode === 'openrouter') {
     // OpenRouter is a plain HTTPS API: there is no local CLI to version-check

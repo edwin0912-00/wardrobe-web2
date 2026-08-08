@@ -1871,7 +1871,22 @@ Why: the old `alpha-0.01` tag and `origin/main` still point to the historical
 Evidence: alpha commit is an ancestor of canonical; local and public health for
 beta, apex and site all return `ready` with exactly `105cdd2`; remote branch/tag
 refs verified with `git ls-remote`.
-Provider note: active runtime is OpenRouter-only. Codex Worker primary and
-OpenRouter/FAL fallback remain an explicit next provider change, not claimed
-live by this ref.
+Provider note: active runtime was OpenRouter-only at this historical ref.
+The following `CODEX-PRIMARY-OPENROUTER-FALLBACK` entry records the reviewed
+provider transition.
+weakened_checks: none.
+
+2026-08-08 · CODEX-PRIMARY-OPENROUTER-FALLBACK · canonical/beta · codex-main
+Change: image and scene generation now have an explicit Codex Worker primary
+transport with a guarded OpenRouter fallback. Fallback is allowed only for a
+retryable pre-submit transport failure; unknown submitted outcomes, journal
+conflicts and malformed input never create a second paid request. Higgsfield is
+explicitly rejected by the generation mode and remains absent from the active
+web runtime. FAL remains Lucy/Real-time only because this repository has no
+reviewed FAL image/video adapter or model contract.
+Why: move the active image/scene path to Codex without pretending a FAL key is
+an executable media-generation route.
+Evidence: focused router/generation/preflight/OpenRouter tests 18/18 PASS;
+`codex --version`, `codex login status`, and isolated image worker capability
+probe report ChatGPT login and imageGeneration=true. No paid generation started.
 weakened_checks: none.

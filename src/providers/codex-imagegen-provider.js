@@ -233,7 +233,7 @@ export class CodexImagegenProviderError extends Error {
 }
 
 export class CodexImagegenProvider {
-  constructor({ worker = new CodexAppServerClient(), qaEvaluator, clock = () => new Date() } = {}) {
+  constructor({ worker = new CodexAppServerClient(), qaEvaluator, clock = () => new Date(), testOnly = true } = {}) {
     if (!worker || typeof worker.generate !== 'function' || typeof worker.start !== 'function') {
       throw new TypeError('worker must implement start() and generate()');
     }
@@ -242,9 +242,11 @@ export class CodexImagegenProvider {
     this.worker = worker;
     this.qaEvaluator = qaEvaluator;
     this.clock = clock;
+    this.testOnly = testOnly === true;
+    this.providerId = this.testOnly ? 'codex-imagegen-test' : 'codex-imagegen';
+    this.providerName = this.testOnly ? 'codex-test' : 'codex';
     this.generationRoute = Object.freeze(['gpt_image_2']);
     this.maxOrderedReferences = 5;
-    this.testOnly = true;
     this.inflight = new Map();
   }
 
@@ -348,7 +350,7 @@ export class CodexImagegenProvider {
     const journalPath = path.join(journalDirectory, `codex-imagegen-${context.idempotencyKey}.json`);
     const outputPath = path.join(journalDirectory, `codex-imagegen-${context.idempotencyKey}.png`);
     const request = {
-      provider: 'codex-imagegen-test',
+      provider: this.providerId,
       transport: 'codex-app-server-stdio',
       model: 'gpt_image_2',
       phase: context.phase,
@@ -382,7 +384,7 @@ export class CodexImagegenProvider {
       }
     }
     if (existing) {
-      if (existing.schema_version !== '1.0.0' || existing.provider !== 'codex-imagegen-test'
+      if (existing.schema_version !== '1.0.0' || !['codex-imagegen-test', 'codex-imagegen'].includes(existing.provider)
         || existing.request_sha256 !== requestSha256 || existing.idempotency_key !== context.idempotencyKey) {
         throw new CodexImagegenProviderError('Codex provider journal conflicts with the immutable request', {
           code: 'PROVIDER_JOURNAL_CONFLICT', retryable: false,
@@ -423,7 +425,7 @@ export class CodexImagegenProvider {
 
     const now = timestamp(this.clock);
     let journal = {
-      schema_version: '1.0.0', provider: 'codex-imagegen-test', transport: 'codex-app-server-stdio',
+      schema_version: '1.0.0', provider: this.providerId, transport: 'codex-app-server-stdio',
       state: 'STARTED', idempotency_key: context.idempotencyKey, request_sha256: requestSha256,
       request, created_at: now, updated_at: now, events: [{ type: 'STARTED', at: now }],
     };
@@ -505,9 +507,9 @@ export class CodexImagegenProvider {
       extension: '.png',
       mediaType: 'image/png',
       metadata: {
-        provider: 'codex-imagegen-test',
+        provider: this.providerId,
         transport: 'codex-app-server-stdio',
-        test_only: true,
+        ...(this.testOnly ? { test_only: true } : {}),
         model_name: 'GPT Image 2',
         job_set_type: 'gpt_image_2',
         thread_id: journal.thread_id,

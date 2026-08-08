@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0.0",
   "purpose": "Shared operational truth for every agent and every chat. Read it before touching the host or the provider; update it the moment you change either. Prose belongs in STATE.md; this file holds only facts a machine can check.",
-  "updated_at": "2026-08-08T17:37:14.000Z",
+  "updated_at": "2026-08-08T18:05:00.000Z",
   "updated_by": "codex-main",
   "host": {
     "role": "beta and production deployment host",
@@ -22,7 +22,7 @@
     "content_digest_sha256": "4b7519901649177368c419219f854ead0cde935bb26a49cbd27f888e61779288",
     "health": "ready",
     "verified_at": "2026-08-06T10:35:17.000Z",
-    "provider_transport": "openrouter-only"
+    "provider_transport": "codex-primary-openrouter-fallback"
   },
   "canonical": {
     "branch": "canonical",
@@ -33,16 +33,17 @@
     "note": "The immutable alpha-0.01 tag remains historical; canonical is the exact live code ref. origin/main is intentionally not moved by this record."
   },
   "generation": {
-    "active_provider": "openrouter",
+    "active_provider": "codex-primary",
     "vlm": "openrouter",
     "changed_by": "codex-main",
-    "reason": "Higgsfield has been removed from the live runtime. Images, scenes and video use the explicit OpenRouter adapters with no provider fallback.",
-    "rollback": "No Higgsfield rollback is permitted. Restore only a reviewed OpenRouter release from Git."
+    "reason": "Codex Worker is the primary image/scene transport; OpenRouter is the first image/scene fallback. Video remains the explicit OpenRouter adapter. FAL is Lucy/Real-time only until a reviewed image/video adapter exists.",
+    "higgsfield_policy": "PROHIBITED_AND_NOT_CONSTRUCTED",
+    "rollback": "No Higgsfield rollback is permitted. Restore only a reviewed Codex/OpenRouter release from Git."
   },
   "providers": {
     "openrouter": {
       "kind": "api",
-      "role": "sole image, scene, video and VLM transport",
+      "role": "image/scene fallback, video transport and VLM",
       "status": "configured privately; no startup network probe",
       "note": "The API key is read only from the host private key file and is never committed or written to operational logs."
     },
@@ -53,14 +54,14 @@
     },
     "fal": {
       "kind": "api",
-      "role": "live camera (Lucy)",
+      "role": "live camera (Lucy) only; no image/video fallback adapter",
       "key_on_host": "fal-realtime-api-key",
       "status": "key present, unverified"
     },
     "codex": {
       "kind": "cli",
       "status": "logged_in_both_machines",
-      "role": "legacy VLM fallback only; not an image, scene or video transport"
+      "role": "primary image/scene transport via isolated image-generation worker"
     }
   },
   "blockers": [

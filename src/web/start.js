@@ -35,7 +35,7 @@ startupTrace('module_loaded');
 const projectRoot = path.resolve(import.meta.dirname, '..', '..');
 const releaseIdentity = await loadReleaseIdentity(projectRoot);
 startupTrace('release_identity_loaded');
-const generationMode = process.env.ZEELY_GENERATION_PROVIDER ?? 'openrouter';
+const generationMode = process.env.ZEELY_GENERATION_PROVIDER ?? 'codex-primary';
 const runtimeRoot = process.env.ZEELY_RUNTIME_ROOT
   ? path.resolve(process.env.ZEELY_RUNTIME_ROOT)
   : path.join(projectRoot, 'runtime');

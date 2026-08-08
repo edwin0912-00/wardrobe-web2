@@ -1,9 +1,16 @@
 {
   "schema_version": "1.0.0",
   "transport": {
-    "current_live": "OPENROUTER_API",
+    "current_live": "CODEX_WORKER",
     "supported": [
+      "CODEX_WORKER",
       "OPENROUTER_API"
+    ],
+    "fallback_order": [
+      "OPENROUTER_API"
+    ],
+    "prohibited": [
+      "HIGGSFIELD"
     ],
     "smoke_test_required": true,
     "required_capabilities": [

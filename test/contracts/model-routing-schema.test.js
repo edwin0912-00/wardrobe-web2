@@ -15,7 +15,7 @@ function validator(schema) {
   }).compile(schema);
 }
 
-test('model policy config pins the three OpenRouter image routes in order', async () => {
+test('model policy config pins the image model routes in order', async () => {
   const policy = await readJson('config/model-policy.json');
   assert.deepEqual(policy.image_models, {
     primary: { name: 'GPT Image 2', job_set_type: 'gpt_image_2' },

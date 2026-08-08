@@ -1,5 +1,25 @@
 # Wardrobe verified state
 
+## Provider policy — Codex primary, OpenRouter fallback — 2026-08-08
+
+- New image/scene work uses the isolated Codex image worker first. A guarded
+  OpenRouter adapter is the first fallback for retryable failures that happen
+  before a provider submission is confirmed.
+- The router refuses fallback after `GENERATION_OUTCOME_UNKNOWN`, journal
+  conflicts, malformed input or other deterministic contract failures, so a
+  paid/unknown request cannot be duplicated silently.
+- Video still uses the existing OpenRouter provider. FAL is wired only for
+  Lucy/Real-time token issuance; no FAL image/video adapter or model contract
+  exists in this repository, so it is not advertised as an executable fallback.
+- Higgsfield is prohibited by runtime policy. The live web graph does not
+  import or construct it; historical adapters/receipts remain only as audit
+  evidence and are not a selectable provider.
+- Focused evidence: router/generation/preflight/OpenRouter tests `18/18 PASS`;
+  Codex login and isolated worker capability probe passed. No paid generation.
+- Live activation is pending the guarded beta release; verify `/api/health`
+  after restart for the exact `release_sha` and provider policy.
+
+
 ## Test-task acceptance audit — 2026-08-04
 
 - Consolidated requirement-by-requirement evidence is recorded in
