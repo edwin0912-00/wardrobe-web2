@@ -7,8 +7,8 @@
 - `origin/beta` and `origin/canonical` are frozen mirrors at the last shared
   source head; future changes must land on `alpha` first.
 - Live beta, `madeforthisjob.com` and `site.madeforthisjob.com` currently serve
-  the same runtime release `1056ef0957f08b98c9b207c0b16f90a55300f1cc` with
-  cache token `product-1056ef09-ddfef560140a`.
+  the same runtime release `b189afe7ddb4e9bdf8d1e541a69f0cf0ed4de491` with
+  cache token `product-b189afe7-ddfef560140a`.
 - The `alpha-0.01` tag and `origin/main` remain immutable historical
   checkpoints. They are not deployment sources.
 - Every future deployment report must include the `alpha` source SHA, runtime

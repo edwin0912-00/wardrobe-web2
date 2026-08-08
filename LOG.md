@@ -1953,3 +1953,11 @@ PASS, canon PASS. No paid generation.
 Provider: Codex primary; guarded OpenRouter image/scene fallback; OpenRouter
 video/VLM; Higgsfield prohibited and not constructed.
 weakened_checks: none.
+
+2026-08-09 · ALPHA-DEPLOY-B189AFE · alpha · codex-live-40
+Change: aligned the deployment ledger with the final traceability release
+after the report-only source update.
+Evidence: public beta, madeforthisjob.com and site.madeforthisjob.com all
+returned `ready` with release `b189afe7ddb4e9bdf8d1e541a69f0cf0ed4de491` and
+cache `product-b189afe7-ddfef560140a`; no active work was interrupted.
+weakened_checks: none; no paid generation.
