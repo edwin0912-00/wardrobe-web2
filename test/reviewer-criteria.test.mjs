@@ -20,7 +20,7 @@ test('alpha README and evaluator expose one reproducible behavioral acceptance p
     readFile(path.join(REPO, 'release', 'RELEASE.lock.json'), 'utf8').then(JSON.parse),
   ]);
 
-  assert.match(readme, /--filter=blob:none --depth 3 --single-branch --branch alpha/);
+  assert.match(readme, /--filter=blob:none --depth 8 --single-branch --branch alpha/);
   assert.match(readme, /\.\/scripts\/install-local\.sh --run/);
   assert.equal(packageJson.scripts['self-check'], 'node scripts/self-check.mjs');
   assert.equal(packageJson.scripts['test:browser-core'], 'node scripts/browser-core-e2e.mjs');

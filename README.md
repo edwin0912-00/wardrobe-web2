@@ -20,7 +20,7 @@ Backend не треба
 Потрібні Git, Python 3.10+ і Node.js 22+:
 
 ```bash
-git clone --filter=blob:none --depth 3 --single-branch --branch alpha https://github.com/edwin0912-00/wardrobe-web2.git \
+git clone --filter=blob:none --depth 8 --single-branch --branch alpha https://github.com/edwin0912-00/wardrobe-web2.git \
   && cd wardrobe-web2 \
   && ./scripts/install-local.sh --run
 ```
