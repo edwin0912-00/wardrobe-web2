@@ -45,3 +45,17 @@ test('Codex primary preflight requires the same authenticated worker capability'
   assert.equal(result.fallback, 'openrouter');
   assert.equal(result.test_only, false);
 });
+
+test('Codex primary preflight refuses to boot without its OpenRouter fallback key', async () => {
+  const previous = process.env.OPENROUTER_API_KEY;
+  delete process.env.OPENROUTER_API_KEY;
+  try {
+    await assert.rejects(() => runLocalPreflight({
+      generationMode: 'codex-primary',
+      codexStatus: { account: { type: 'chatgpt' }, capabilities: { imageGeneration: true } },
+      commandRunner: async () => ({ stdout: 'Logged in using ChatGPT', stderr: '' }),
+    }), /OPENROUTER_API_KEY/);
+  } finally {
+    if (previous !== undefined) process.env.OPENROUTER_API_KEY = previous;
+  }
+});
