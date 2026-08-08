@@ -30,6 +30,19 @@ health all returned `ready` and the exact release SHA/cache token. Focused suite
 30/30 PASS, verify:contracts PASS, verify:canon PASS, Codex login/capability PASS.
 weakened_checks: none; no paid generation.
 
+2026-08-08 · CODEX-FALLBACK-PREFLIGHT · beta/canonical `ca7e252` · codex-live-40
+Change: require the OpenRouter credential during Codex-primary preflight so a
+configured fallback cannot silently be absent at runtime.
+Why: Codex-primary is only a valid policy when its first fallback is executable;
+the service must fail at boot rather than discover the missing credential after
+a paid/long-running job fails over.
+Evidence: focused policy/preflight/router suite `13/13 PASS`; strict product
+build/verify PASS (746 deploy files); beta activation PASS with no active work;
+all three public health endpoints return `ready`, release SHA
+`ca7e2529f80da852523d5bb2601d26f9b5207fb3`, cache token
+`product-ca7e2529-35d557927e49`; process env is `codex-primary` + OpenRouter VLM.
+weakened_checks: none; no paid generation.
+
 2026-08-04 · TEST-TASK-ACCEPTANCE-AUDIT · beta `7129c5c`
 Change: add one consolidated audit mapping the original Notion task, current
 canon, checked-in three-user submission, public beta and optional product

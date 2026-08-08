@@ -17,9 +17,9 @@
 - Focused evidence: router/generation/preflight/OpenRouter tests `30/30 PASS`;
   contracts and canon PASS; Codex login and isolated worker capability probe
   passed. No paid generation.
-- Live activation is complete on product release `1f3d4e6535adf96e63ab38c718194dd54357bbb5`.
+- Live activation is complete on product release `ca7e2529f80da852523d5bb2601d26f9b5207fb3`.
   Beta and the two public mirrors return `ready` with the same release SHA and
-  cache token `product-1f3d4e65-377d34947020`.
+  cache token `product-ca7e2529-35d557927e49`.
 
 
 ## Test-task acceptance audit — 2026-08-04
