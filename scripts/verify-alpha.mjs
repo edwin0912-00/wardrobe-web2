@@ -73,6 +73,8 @@ if (betaTree !== lock.sources.beta_engine.tree) {
 
 const allowedAlphaOverlay = [
   ':(exclude)beta/**',
+  ':(exclude)b/assets/**',
+  ':(exclude)b/audio/**',
   ':(exclude)release/**',
   ':(exclude)README-ALPHA.md',
   ':(exclude)README.md',

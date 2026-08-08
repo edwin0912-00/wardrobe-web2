@@ -20,3 +20,12 @@ artifacts/self-check/
 test-results/
 playwright-report/
 .wardrobe-media-bundle.json
+
+# Materialized from the SHA-locked GitHub Release bundle during installation.
+/b/assets/
+/b/audio/
+/beta/assets/
+/beta/docs/style-units/
+/beta/output/
+/beta/inputs/
+/beta/artifacts/
