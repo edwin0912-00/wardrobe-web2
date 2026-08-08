@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "bundle": "wardrobe-alpha-media-v1.tar",
+  "release_tag": "alpha-media-20260809-v1",
+  "url": "https://github.com/edwin0912-00/wardrobe-web2/releases/download/alpha-media-20260809-v1/wardrobe-alpha-media-v1.tar",
+  "sha256": "ae434d9c15e42a1ab014daa04b40ed66c94c649eddd34147cd889915d6be2137",
+  "size_bytes": 780008960,
+  "file_count": 624,
+  "allowed_prefixes": [
+    "b/assets/",
+    "b/audio/",
+    "beta/assets/",
+    "beta/docs/style-units/",
+    "beta/output/",
+    "beta/inputs/",
+    "beta/artifacts/"
+  ],
+  "required_files": [
+    "b/assets/intro.mp4",
+    "b/assets/seg1.mp4",
+    "b/audio/t1.mp3",
+    "beta/output/001/avatar.png",
+    "beta/output/001/avatar_outfit.png",
+    "beta/output/002/avatar.png",
+    "beta/output/002/avatar_outfit.png",
+    "beta/output/003/avatar.png",
+    "beta/output/003/avatar_outfit.png",
+    "beta/assets/scene-mood-cards/shoot.terracotta_hardlight.webp"
+  ]
+}
