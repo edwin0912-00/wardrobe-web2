@@ -1,5 +1,18 @@
 # Wardrobe verified state
 
+## Alpha release line — 2026-08-09
+
+- `origin/alpha` is the single current integration, version and deployment
+  source. It combines the beta engine and canonical site runtime.
+- `origin/beta` and `origin/canonical` are frozen mirrors at the last shared
+  source head; future changes must land on `alpha` first.
+- Live beta, `madeforthisjob.com` and `site.madeforthisjob.com` currently serve
+  the same runtime release `ca7e2529f80da852523d5bb2601d26f9b5207fb3`.
+- The `alpha-0.01` tag and `origin/main` remain immutable historical
+  checkpoints. They are not deployment sources.
+- Every future deployment report must include the `alpha` source SHA, runtime
+  release SHA, cache token, provider mode and public health result.
+
 ## Provider policy — Codex primary, OpenRouter fallback — 2026-08-08
 
 - New image/scene work uses the isolated Codex image worker first. A guarded

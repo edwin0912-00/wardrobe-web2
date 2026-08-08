@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0.0",
   "purpose": "Shared operational truth for every agent and every chat. Read it before touching the host or the provider; update it the moment you change either. Prose belongs in STATE.md; this file holds only facts a machine can check.",
-  "updated_at": "2026-08-08T18:05:33.471Z",
+  "updated_at": "2026-08-09T00:00:00.000Z",
   "updated_by": "codex-main",
   "host": {
     "role": "beta and production deployment host",
@@ -15,6 +15,7 @@
     "release_rotation": "prune-deploys.sh, cron hourly at :17, keeps the three newest per directory and never the running one"
   },
   "beta": {
+    "role": "frozen mirror; do not advance independently",
     "url": "https://beta.madeforthisjob.com",
     "release": "release-ca7e252-1786212325718",
     "release_sha": "ca7e2529f80da852523d5bb2601d26f9b5207fb3",
@@ -24,13 +25,22 @@
     "verified_at": "2026-08-06T10:35:17.000Z",
     "provider_transport": "codex-primary-openrouter-fallback"
   },
+  "alpha": {
+    "branch": "alpha",
+    "role": "sole current integration, version and deployment line",
+    "source_head_sha": "087ac63ee088d12de525443fe814825e235865a8",
+    "runtime_release_sha": "ca7e2529f80da852523d5bb2601d26f9b5207fb3",
+    "deployment_reports": "alpha source SHA + public /api/health release SHA"
+  },
   "canonical": {
     "branch": "canonical",
+    "role": "frozen mirror; do not advance independently",
     "tag": "canonical-live-20260808",
-    "source_sha": "ca7e2529f80da852523d5bb2601d26f9b5207fb3",
+    "source_sha": "087ac63ee088d12de525443fe814825e235865a8",
+    "runtime_release_sha": "ca7e2529f80da852523d5bb2601d26f9b5207fb3",
     "alpha_ancestor": "320b1af085a59c10bc0cd087680294ea7cc486ea",
     "matches_live_health": true,
-    "note": "The immutable alpha-0.01 tag remains historical; canonical is the exact live code ref. origin/main is intentionally not moved by this record."
+    "note": "Canonical mirrors alpha's last integrated source; the runtime release is the parent code commit because the source-head update is documentation-only. The immutable alpha-0.01 tag and origin/main remain historical."
   },
   "generation": {
     "active_provider": "codex-primary",

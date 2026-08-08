@@ -1916,3 +1916,16 @@ Evidence: focused router/generation/preflight/OpenRouter tests 18/18 PASS;
 `codex --version`, `codex login status`, and isolated image worker capability
 probe report ChatGPT login and imageGeneration=true. No paid generation started.
 weakened_checks: none.
+2026-08-09 · ALPHA-RELEASE-LINE · alpha · codex-main
+Change: created the current `alpha` release line from the latest shared
+beta/canonical source and made it the sole integration, version and deployment
+target. Beta and canonical remain frozen mirrors; historical `alpha-0.01` and
+`main` are preserved unchanged.
+Why: prevent the beta engine, canonical site runtime and deployment reports
+from drifting across separate branches again.
+Evidence: `origin/beta` and `origin/canonical` were identical at
+`087ac63ee088d12de525443fe814825e235865a8`; all three public domains returned
+`ready` on runtime release `ca7e2529f80da852523d5bb2601d26f9b5207fb3`.
+Provider: Codex primary with guarded OpenRouter image/scene fallback; video and
+VLM remain OpenRouter; Higgsfield is prohibited and not constructed.
+weakened_checks: none; no paid generation.
