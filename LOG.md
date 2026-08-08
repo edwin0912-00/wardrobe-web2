@@ -1,5 +1,9 @@
 # Wardrobe integration log
 
+> Поточний стислий логічний view: [`docs/canonical/12_LOGIC_CHANGELOG.md`](docs/canonical/12_LOGIC_CHANGELOG.md).
+> Цей файл залишається append-only forensic журналом із точними SHA та доказами;
+> для швидкого відновлення контексту не потрібно перечитувати всі записи нижче.
+
 Append one entry for every change that enters
 `integration/wardrobe-20260726`. The entry must be committed with the code it
 describes. Claims without a command, artifact, commit, or observable result are
