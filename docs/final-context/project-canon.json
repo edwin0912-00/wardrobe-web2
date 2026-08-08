@@ -1,0 +1,212 @@
+{
+  "$schema": "./project-canon.schema.json",
+  "schema_version": "1.0.0",
+  "verified_at": "2026-08-09T00:26:00+02:00",
+  "truth_precedence": [
+    "literal_task_snapshot",
+    "explicit_operator_decision",
+    "verified_code_contract",
+    "exact_deployed_release_evidence",
+    "historical_report",
+    "idea_or_backlog"
+  ],
+  "repositories": [
+    {
+      "name": "zeely-ai-engineering-test",
+      "visibility": "private",
+      "role": "engineering beta UI plus shared generation, QA, profile and media engine",
+      "source_branch": "beta",
+      "source_sha": "087ac63ee088d12de525443fe814825e235865a8",
+      "url": "https://github.com/edwin0912-00/zeely-ai-engineering-test"
+    },
+    {
+      "name": "wardrobe-web2",
+      "visibility": "public",
+      "role": "cinematic main frontend and evaluator-facing installation wrapper",
+      "source_branch": "main",
+      "source_sha": "b4f24a364fa318a47e59338bd6198299e2c8db15",
+      "url": "https://github.com/edwin0912-00/wardrobe-web2"
+    }
+  ],
+  "deployments": [
+    {
+      "surface": "engineering_beta",
+      "url": "https://beta.madeforthisjob.com",
+      "observed_status": "ready",
+      "engine_release_sha": "ca7e2529f80da852523d5bb2601d26f9b5207fb3"
+    },
+    {
+      "surface": "cinematic_main",
+      "url": "https://www.madeforthisjob.com",
+      "observed_status": "ready",
+      "engine_release_sha": "ca7e2529f80da852523d5bb2601d26f9b5207fb3"
+    }
+  ],
+  "literal_test": {
+    "feature": "AI Avatar Generator",
+    "avatar_input": "one user photo with arbitrary background and pose",
+    "avatar_output": "recognizable photoreal half-body avatar on exact #FFFFFF",
+    "outfit_input": "approved avatar plus text and/or garment-reference image",
+    "outfit_output": "same person in the requested outfit",
+    "minimum_users": 3,
+    "required_files_per_user": ["avatar.png", "avatar_outfit.png"],
+    "required_docs": ["README", "dependencies and startup", "pipeline diagram", "prompts or formation logic", "input/output folders"],
+    "art_director_mode": "optional"
+  },
+  "product": {
+    "brand": "Wardrobe",
+    "master_look_framing": "full-length from top of hair to soles",
+    "profile_ttl_days": 30,
+    "standard_backgrounds": 16,
+    "fashion_shoot_catalog_records": 18,
+    "fashion_shoot_generation_available_records": 17,
+    "fashion_shoot_output_frames": 5,
+    "create_universe_role": "backend style authoring and immutable reference-pack construction",
+    "deployable_modules": ["cinematic_main_frontend", "engineering_beta_frontend", "shared_engine"]
+  },
+  "model_policy": {
+    "image_intent_ladder": [
+      { "order": 1, "name": "GPT Image 2", "internal_id": "gpt_image_2", "provider_model": "openai/gpt-5.4-image-2", "role": "primary" },
+      { "order": 2, "name": "Nano Banana 2", "internal_id": "nano_banana_flash", "provider_model": "google/gemini-3.1-flash-image", "role": "bounded fallback" },
+      { "order": 3, "name": "Nano Banana Pro", "internal_id": "nano_banana_2", "provider_model": "google/gemini-3-pro-image", "role": "final quality fallback" }
+    ],
+    "current_image_transport_policy": "isolated Codex image worker primary; guarded OpenRouter fallback before confirmed submission only",
+    "higgsfield_runtime_policy": "prohibited; historical adapters and receipts retained for audit",
+    "runway_allowed": false,
+    "fashion_video_intent": "Seedance 2 with approved look plus verified motion/style reference",
+    "realtime_candidate": "decart/lucy-2-5/realtime over fal.ai WebRTC"
+  },
+  "pipelines": [
+    {
+      "id": "PROFILE",
+      "user_name": "Saved avatars and looks",
+      "source": "browser profile cookie and completed owned runs",
+      "output": "30-day avatar/look/media library",
+      "code": "implemented",
+      "deployed": "yes",
+      "e2e": "historical pass; exact-release proof should be retained per release"
+    },
+    {
+      "id": "LOOK",
+      "user_name": "Avatar and outfit",
+      "source": "person photo plus text and/or garment images",
+      "output": "approved exact-white master look",
+      "code": "implemented",
+      "deployed": "yes",
+      "e2e": "historical real conditioning, avatar QA and outfit QA pass"
+    },
+    {
+      "id": "BACKGROUND",
+      "user_name": "Add background",
+      "source": "saved master look plus one std.* preset",
+      "output": "one native 3:4 scene photograph",
+      "code": "implemented",
+      "deployed": "yes",
+      "e2e": "historical 9/9 pass exists; not all presets certified in this snapshot"
+    },
+    {
+      "id": "FASHION_SHOOT",
+      "user_name": "Fashion Shoot",
+      "source": "saved master look plus one locked shoot.* Create Universe pack",
+      "output": "five unique fashion photographs",
+      "code": "implemented with persistence, progress and per-frame QA",
+      "deployed": "yes",
+      "e2e": "all-style paid matrix not proven in this snapshot"
+    },
+    {
+      "id": "FASHION_VIDEO",
+      "user_name": "Fashion Video",
+      "source": "saved master look plus verified motion/style reference",
+      "output": "persisted reference-bound clip",
+      "code": "implemented with async resume, retry, salvage and QA",
+      "deployed": "yes",
+      "e2e": "historical persisted evidence; current exact-release two-reference smoke required"
+    },
+    {
+      "id": "BACKGROUND_VIDEO",
+      "user_name": "Video from background",
+      "source": "approved background frame plus product-focus or posing intent",
+      "output": "simple locked-background clip",
+      "code": "partial",
+      "deployed": "uncertain",
+      "e2e": "not proven"
+    },
+    {
+      "id": "REALTIME_LOOK",
+      "user_name": "Real-time Look",
+      "source": "saved master look plus explicit camera and cost consent",
+      "output": "local guided preview or bounded generative WebRTC session",
+      "code": "UI and contract implemented",
+      "deployed": "surface exists",
+      "e2e": "paid generative camera journey not proven in this snapshot"
+    },
+    {
+      "id": "PRESENTATION",
+      "user_name": "Cinematic delivery",
+      "source": "approved outputs and pipeline evidence",
+      "output": "mirror, TV and laptop scroll narrative",
+      "code": "implemented in separate public repository",
+      "deployed": "yes",
+      "e2e": "frontend evidence only; does not substitute for engine E2E"
+    }
+  ],
+  "status_vocabulary": {
+    "code": "implementation plus named local behavior test",
+    "deployed": "surface or capability present on an exact release SHA",
+    "e2e": "real public input through provider, blocking QA and persisted result",
+    "catalog_only": "cards or metadata respond; execution is not proven",
+    "contract_only": "schema or endpoint exists; paid/user journey is not proven"
+  },
+  "verification": [
+    {
+      "check": "project_canon_schema",
+      "status": "PASS",
+      "evidence": "project-canon.json validates against project-canon.schema.json"
+    },
+    {
+      "check": "npm_run_verify_canon",
+      "status": "PASS",
+      "evidence": "43 rules, 34 blocking, zero failures"
+    },
+    {
+      "check": "npm_run_verify_contracts",
+      "status": "PASS",
+      "evidence": "41 schemas, 9 fixtures and 3 jobs passed"
+    },
+    {
+      "check": "readme_browser_surface",
+      "status": "PASS",
+      "evidence": "browser module graph and backend health route test passed 1/1"
+    },
+    {
+      "check": "readme_real_startup",
+      "status": "FAIL",
+      "evidence": "src/web/start.js exited because OPENROUTER_API_KEY was absent while README said it was not required"
+    },
+    {
+      "check": "npm_run_verify_output",
+      "status": "NEEDS_REVIEW",
+      "evidence": "subjects 001, 002 and 003 need review; duplicate check passed"
+    }
+  ],
+  "open_gaps": [
+    "README real startup currently requires OPENROUTER_API_KEY despite contrary documentation",
+    "clean-room evaluator install must be re-proven from the exact delivery repository",
+    "literal half-body submission evidence and product full-length evidence must remain separate",
+    "submission manifest and per-user QA evidence must agree",
+    "cinematic frontend, beta frontend and engine need one root release lock or canonical monorepo",
+    "all-style Fashion Shoot paid matrix is not proven",
+    "current exact-release two-reference Fashion Video smoke is required",
+    "Background Video is not fully proven",
+    "paid generative Real-time Look device E2E is not proven",
+    "older active-provider text must be reconciled with current Codex/OpenRouter runtime policy"
+  ],
+  "security": {
+    "secrets_in_git": false,
+    "user_runtime_in_git": false,
+    "private_master_cache_policy": "private, no-store",
+    "preview_policy": "bounded derivative with separate cache policy",
+    "camera_permission": "explicit user action only",
+    "raw_provider_errors_in_ui": false
+  }
+}
