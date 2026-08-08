@@ -80,4 +80,3 @@ Higgsfield: prohibited and not constructed in active web graph
 
 Наявність historical Higgsfield files або receipts у Git не означає, що вони
 активні. Активний runtime не має права їх імпортувати/створювати.
-

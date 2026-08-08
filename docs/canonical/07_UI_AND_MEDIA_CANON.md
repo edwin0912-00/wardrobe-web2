@@ -3,7 +3,7 @@
 ## Дві подачі одного runtime
 
 **Beta engineering UI** показує provider status, ноди, structured errors,
-attempt/retry, receipts і QA.  
+attempt/retry, receipts і QA.
 **Main cinematic UI** показує той самий state через mirror/TV/laptop,
 presentation scroll, активний master look і готові media.
 
@@ -79,4 +79,3 @@ God View — прихований операторський маршрут дл
 та preview. Це не просто health/status page і не список одного активного look.
 Доступ обмежується серверним auth/policy; повні user media не потрапляють у
 публічний unauthenticated route.
-

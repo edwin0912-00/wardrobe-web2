@@ -111,4 +111,3 @@ Main-site cinematic layer показує один user journey, а не гене
 → progressive media → final presentation/document. Документ має залишатися
 в межах tracked screen до останнього presentation frame; це UI contract і не
 впливає на backend QA.
-

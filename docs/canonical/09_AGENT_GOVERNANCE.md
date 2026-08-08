@@ -86,4 +86,3 @@ product artifact.
 * вмикати Higgsfield або переносити credentials;
 * змінювати runtime root, release cleanup або deploy guard;
 * змішувати beta engineering UI з main presentation code.
-

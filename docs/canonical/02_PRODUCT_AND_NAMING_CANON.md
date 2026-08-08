@@ -57,4 +57,3 @@ approved avatar + approved master look
   термінів.
 * Їх не можна називати різними pipeline. Це дві подачі одного alpha source та
   одного runtime contract.
-

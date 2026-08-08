@@ -58,4 +58,3 @@ source commit + focused/contract test
 
 До цього в `STATE.md` пишеться `NOT_REVERIFIED` або конкретний blocker, а не
 «майже готово».
-

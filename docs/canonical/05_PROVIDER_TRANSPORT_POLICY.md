@@ -70,4 +70,3 @@ The daemon loads private provider credentials from the host's private store. Git
 contains only provider names, environment variable names and capability rules.
 Never paste an API key into `STATE.md`, `LOG.md`, `UPDATE.md`, a receipt,
 browser bundle or an agent handoff.
-

@@ -104,4 +104,3 @@ GET  /api/god-view/*           operator/test surface
 
 Точний список маршрутів читається з route modules і public contract tests; цей
 список не є дозволом додавати новий провайдер або нову платну дію.
-

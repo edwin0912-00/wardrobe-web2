@@ -90,4 +90,3 @@ capability/error route. Paid E2E запускати тільки з approved tes
 3. Застосувати офіційний recovery/deploy tool, не копіювати файли вручну.
 4. Повторити local/external health і записати rollback pair у `LOG.md`.
 5. Залишити невдалий artifact для audit; не переписувати історичний receipt.
-

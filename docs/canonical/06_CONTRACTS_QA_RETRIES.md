@@ -99,4 +99,3 @@ created_at, persisted_at, delivery_status
 
 `weakened_checks` завжди присутній: `[]` означає, що перевірку не послаблювали.
 Відсутність поля — дефект receipt, не «нічого важливого».
-
