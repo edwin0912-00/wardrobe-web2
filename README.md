@@ -1,5 +1,10 @@
 # ZEELY — deterministic reference-conditioned image pipeline
 
+> **Current project canon (2026-08-09):** read
+> [`docs/canonical/README.md`](docs/canonical/README.md) first. This README
+> retains the original test-task and runtime details; the active source/deploy
+> line is now `alpha`, while `beta` and `canonical` are frozen mirrors.
+
 Цей workspace реалізує обов’язкову частину тестового: для трьох користувачів послідовно створити впізнаваний photoreal avatar, а потім ту саму людину в новому outfit. Перед будь-яким model call сирі фото проходять окремий `Reference Conditioning` gate.
 
 Він також містить working local web app для fresh inputs: користувач завантажує власне фото, текст образу та/або до п’яти довільних фото речей. Система класифікує гардероб, створює canonical references, запускає той самий immutable runner і повертає downloadable `avatar.png` та `avatar_outfit.png`.
