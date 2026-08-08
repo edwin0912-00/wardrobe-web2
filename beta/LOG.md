@@ -1916,3 +1916,40 @@ Evidence: focused router/generation/preflight/OpenRouter tests 18/18 PASS;
 `codex --version`, `codex login status`, and isolated image worker capability
 probe report ChatGPT login and imageGeneration=true. No paid generation started.
 weakened_checks: none.
+2026-08-09 · ALPHA-RELEASE-LINE · alpha · codex-main
+Change: created the current `alpha` release line from the latest shared
+beta/canonical source and made it the sole integration, version and deployment
+target. Beta and canonical remain frozen mirrors; historical `alpha-0.01` and
+`main` are preserved unchanged.
+Why: prevent the beta engine, canonical site runtime and deployment reports
+from drifting across separate branches again.
+Evidence: `origin/beta` and `origin/canonical` were identical at
+`087ac63ee088d12de525443fe814825e235865a8`; all three public domains returned
+`ready` on runtime release `ca7e2529f80da852523d5bb2601d26f9b5207fb3`.
+Provider: Codex primary with guarded OpenRouter image/scene fallback; video and
+VLM remain OpenRouter; Higgsfield is prohibited and not constructed.
+weakened_checks: none; no paid generation.
+
+2026-08-09 · ALPHA-CODEX-DAEMON · alpha · codex-live-40
+Change: changed the installable `tools/run-web-daemon.sh` to launch
+`codex-primary`, matching the active beta launcher; OpenRouter remains the
+guarded image/scene fallback and video/VLM transport.
+Why: a clean install could otherwise start the legacy OpenRouter-only mode even
+though the live alpha release uses the Codex Worker.
+Evidence: shell syntax check, product release verification and focused
+generation/preflight tests pass; no paid generation.
+weakened_checks: none.
+
+2026-08-09 · ALPHA-DEPLOY-1056EF0 · alpha · codex-live-40
+Change: deployed the final alpha artifact to the shared beta engine and its
+canonical site mirrors.
+Why: alpha is now the only release line; beta and canonical are synchronized
+snapshots, not separate development targets.
+Evidence: product verifier PASS; active work ids empty; all three public health
+endpoints returned `ready` with release
+`1056ef0957f08b98c9b207c0b16f90a55300f1cc` and cache
+`product-1056ef09-ddfef560140a`; focused provider tests `12/12 PASS`, contracts
+PASS, canon PASS. No paid generation.
+Provider: Codex primary; guarded OpenRouter image/scene fallback; OpenRouter
+video/VLM; Higgsfield prohibited and not constructed.
+weakened_checks: none.

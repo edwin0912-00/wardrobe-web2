@@ -18,10 +18,10 @@ fi
 export PATH="${HOME}/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
 export PORT="4173"
 export ZEELY_PUBLIC_HTTPS_ORIGIN="https://site.madeforthisjob.com"
-# OpenRouter is the only image and scene transport. The web process also uses
-# the explicit OpenRouter video adapter; no local CLI provider or fallback is
-# constructed at startup.
-export ZEELY_GENERATION_PROVIDER="openrouter"
+# Codex Worker is the primary image/scene transport. The web process keeps the
+# guarded OpenRouter image/scene fallback and the explicit OpenRouter video
+# adapter; no Higgsfield or local CLI provider is constructed at startup.
+export ZEELY_GENERATION_PROVIDER="codex-primary"
 export ZEELY_VLM_PROVIDER="openrouter"
 if [[ -s "$PRIVATE_DIR/openrouter-api-key" ]]; then
   OPENROUTER_API_KEY="$(cat "$PRIVATE_DIR/openrouter-api-key")"
