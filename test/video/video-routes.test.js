@@ -408,7 +408,7 @@ test('status gives the real terminal provider reason instead of a connection or 
   });
   assert.equal(response.statusCode, 200, response.body);
   assert.equal(response.json().failure_code, 'VIDEO_PROVIDER_JOB_NOT_FOUND');
-  assert.match(response.json().error, /не має цей job/);
+  assert.match(response.json().error, /більше не бачить цю спробу/);
   assert.equal(response.json().next_action, 'RETRY_AVAILABLE');
   assert.equal(response.json().retry_available, true);
 });
@@ -429,7 +429,7 @@ test('status exposes a failed Higgsfield job as a retryable terminal result', as
   });
   assert.equal(response.statusCode, 200, response.body);
   assert.equal(response.json().failure_code, 'VIDEO_PROVIDER_JOB_FAILED');
-  assert.match(response.json().error, /завершив цей job помилкою/);
+  assert.match(response.json().error, /завершив цю спробу помилкою/);
   assert.equal(response.json().next_action, 'RETRY_AVAILABLE');
   assert.equal(response.json().retry_available, true);
 });
@@ -450,7 +450,7 @@ test('status explains bounded Higgsfield input-media IP retries without claiming
   });
   assert.equal(response.statusCode, 200, response.body);
   assert.equal(response.json().failure_code, 'VIDEO_INPUT_MEDIA_IP_CHECK_PENDING');
-  assert.match(response.json().error, /IP-перевірку/);
+  assert.match(response.json().error, /проходить перевірку/);
   assert.match(response.json().error, /job не створився/);
   assert.equal(response.json().next_action, 'RETRY_AVAILABLE');
 });
@@ -653,7 +653,7 @@ test('a terminal automatic retry chain returns its failed leaf and re-enables an
   assert.equal(body.next_action, 'RETRY_AVAILABLE');
   assert.equal(body.retry_available, true);
   assert.equal(body.automatic_retry, null);
-  assert.match(body.error, /завершив цей job помилкою/);
+  assert.match(body.error, /завершив цю спробу помилкою/);
 });
 
 test('an exhausted automatic child does not block a fresh explicit retry', async (t) => {
