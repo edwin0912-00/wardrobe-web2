@@ -16,6 +16,7 @@ import time
 from functools import partial
 from http.client import HTTPConnection
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+from socketserver import TCPServer
 from urllib.parse import parse_qs, urlsplit
 
 RANGE_RE = re.compile(r"bytes=(\d*)-(\d*)")
@@ -421,6 +422,23 @@ class RangeHandler(SimpleHTTPRequestHandler):
         pass  # quiet
 
 
+class LoopbackThreadingHTTPServer(ThreadingHTTPServer):
+    """Bind the explicit loopback address without a reverse-DNS lookup.
+
+    ``HTTPServer.server_bind()`` calls ``socket.getfqdn()`` after the socket is
+    already bound. On some macOS/Homebrew Python combinations that lookup can
+    wait on mDNS for tens of seconds even for ``127.0.0.1``. This server is
+    loopback-only by contract, so the numeric host is the correct server name
+    and no DNS lookup is useful.
+    """
+
+    def server_bind(self):
+        TCPServer.server_bind(self)
+        host, port = self.server_address[:2]
+        self.server_name = host
+        self.server_port = port
+
+
 def main():
     """Port comes from the PORT environment variable first.
 
@@ -442,7 +460,7 @@ def main():
         root = sys.argv[2] if len(sys.argv) > 2 else os.path.dirname(os.path.abspath(__file__))
 
     handler = partial(RangeHandler, directory=root)
-    srv = ThreadingHTTPServer(("127.0.0.1", port), handler)
+    srv = LoopbackThreadingHTTPServer(("127.0.0.1", port), handler)
     actual = srv.server_address[1]
     print("serving %s on http://127.0.0.1:%d (Range enabled)" % (root, actual), flush=True)
     srv.serve_forever()

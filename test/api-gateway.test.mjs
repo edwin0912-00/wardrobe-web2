@@ -4,7 +4,7 @@ import { createServer, request as httpRequest } from 'node:http';
 import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { once } from 'node:events';
 
 const REPO = path.resolve(import.meta.dirname, '..');
@@ -51,6 +51,38 @@ function requestGateway(port, { path: requestPath, method = 'GET', headers = {},
     request.end();
   });
 }
+
+test('loopback gateway startup never depends on reverse DNS', () => {
+  const probe = String.raw`
+import runpy
+import socket
+import sys
+from functools import partial
+
+namespace = runpy.run_path(sys.argv[1])
+
+def forbidden_reverse_dns(_host):
+    raise RuntimeError("reverse DNS must not run for an explicit loopback bind")
+
+socket.getfqdn = forbidden_reverse_dns
+handler = partial(namespace["RangeHandler"], directory=".")
+server = namespace["LoopbackThreadingHTTPServer"](("127.0.0.1", 0), handler)
+assert server.server_address[0] == "127.0.0.1"
+assert server.server_name == "127.0.0.1"
+server.server_close()
+`;
+  const result = spawnSync(process.env.PYTHON ?? 'python3', [
+    '-c',
+    probe,
+    path.join(REPO, 'serve.py'),
+  ], { encoding: 'utf8', timeout: 5_000 });
+
+  assert.equal(
+    result.status,
+    0,
+    result.error?.message || result.stderr || result.stdout,
+  );
+});
 
 test('static Range delivery and same-origin API streaming share one server', async (t) => {
   const requests = [];

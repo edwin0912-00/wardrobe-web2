@@ -34,6 +34,10 @@ strings:
    MP4 byte range.
 4. `PATCH_INTEGRITY` blocks a corrupt working patch.
 
+The runtime gate starts the site through the caller's actual `python3`, so it
+also covers the Python installation an evaluator will use. The loopback server
+does not perform reverse DNS; startup therefore cannot stall on macOS mDNS.
+
 `test:live` is read-only. It does not start provider jobs. It requires both
 public main mirrors to be byte-identical to the checked-out alpha page, checks
 the real bridge and API through Chromium, confirms the beta release SHA and
