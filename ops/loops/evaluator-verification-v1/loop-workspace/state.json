@@ -1,7 +1,7 @@
 {
-  "status": "VERIFYING",
+  "status": "PASS",
   "iteration": 3,
-  "last_gate": "quick_gate",
+  "last_gate": "delivery_gate",
   "last_gate_status": "PASS",
   "consent": "same-session only; no additional egress",
   "blockers": []

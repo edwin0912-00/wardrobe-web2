@@ -45,3 +45,8 @@
   624 paired sidecars, 624 logical assets. Exact-name extraction PASS: 624
   files extracted and zero AppleDouble sidecars. Unified quick gate remains
   179/179 PASS; Ubuntu Actions delivery is the remaining judge.
+- 2026-08-10: Ubuntu Actions delivery PASS on SHA 932a691: locked media install,
+  179/179 main tests, 337 engine tests with zero failures (334 pass, 3 explicit
+  environment skips), real Chromium, bridge-404 recovery and two-process
+  runtime. Run: https://github.com/edwin0912-00/wardrobe-web2/actions/runs/31431373492
+  Weakened checks: none. Paid generation: not started.
