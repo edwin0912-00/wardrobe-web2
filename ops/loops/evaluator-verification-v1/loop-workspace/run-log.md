@@ -28,10 +28,20 @@
   SSH key through the existing `admin:public_key` scope, pushed alpha, then
   deleted that key locally and from GitHub. No persistent credential changed.
 - 2026-08-10: First Ubuntu Actions run preserved its receipt and correctly
-  failed MEDIA_BUNDLE: GNU tar exposed 1248 physical/PAX records while BSD tar
-  exposed the 624 logical members locked by the bundle. Repair replaces
-  platform `tar -tf` counting with Python `tarfile` logical-member inspection
-  and additionally rejects links/devices before extraction.
+  failed MEDIA_BUNDLE: the release tar physically contains 624 intended assets
+  plus 624 macOS AppleDouble `._*` sidecars. BSD tar hid those sidecars while
+  Ubuntu exposed all 1248. The portable repair validates every physical member,
+  requires each sidecar to match a real sibling, counts the 624 logical assets,
+  and extracts only those assets.
 - 2026-08-10: Portable PAX regression PASS 2/2 and unified quick gate PASS
   179/179. The repair is awaiting a clean Ubuntu Actions delivery run; no
   product gate or media-integrity check was weakened.
+- 2026-08-10: The first portability attempt still failed on Ubuntu because
+  Python correctly exposed the real AppleDouble files. Downloaded the exact
+  SHA-locked archive and proved 1248 unique regular entries: 624 sidecars and
+  624 intended assets. Replaced the incomplete PAX-only hypothesis with an
+  exact AppleDouble pairing and extraction contract.
+- 2026-08-10: Exact production archive validation PASS: 1248 physical entries,
+  624 paired sidecars, 624 logical assets. Exact-name extraction PASS: 624
+  files extracted and zero AppleDouble sidecars. Unified quick gate remains
+  179/179 PASS; Ubuntu Actions delivery is the remaining judge.

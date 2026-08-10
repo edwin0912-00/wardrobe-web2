@@ -69,13 +69,18 @@ const digest = hash.digest('hex');
 if (digest !== lock.sha256) fail(`archive SHA-256 mismatch: expected ${lock.sha256}, got ${digest}`);
 
 try {
-  validateTarManifest(inspectTarArchive(archivePath), lock);
+  const manifest = validateTarManifest(inspectTarArchive(archivePath), lock);
+  const extraction = spawnSync(
+    'tar',
+    ['-xf', archivePath, '-C', root, ...manifest.map((entry) => entry.name)],
+    { encoding: 'utf8' },
+  );
+  if (extraction.status !== 0) {
+    fail(`tar extraction failed: ${extraction.stderr?.trim() || 'unknown error'}`);
+  }
 } catch (error) {
   fail(error.message);
 }
-
-const extraction = spawnSync('tar', ['-xf', archivePath, '-C', root], { encoding: 'utf8' });
-if (extraction.status !== 0) fail(`tar extraction failed: ${extraction.stderr?.trim() || 'unknown error'}`);
 const missing = [];
 for (const relativePath of lock.required_files) {
   if (!(await fileExists(relativePath))) missing.push(relativePath);

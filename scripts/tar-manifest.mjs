@@ -52,9 +52,7 @@ export function inspectTarArchive(archivePath, {
 }
 
 export function validateTarManifest(entries, lock) {
-  if (entries.length !== lock.file_count) {
-    throw new Error(`archive file count mismatch: expected ${lock.file_count}, got ${entries.length}`);
-  }
+  const names = new Set();
   for (const entry of entries) {
     if (!entry || typeof entry.name !== 'string' || typeof entry.kind !== 'string') {
       throw new Error('archive manifest contains a malformed entry');
@@ -75,6 +73,27 @@ export function validateTarManifest(entries, lock) {
     if (!lock.allowed_prefixes.some((prefix) => entry.name.startsWith(prefix))) {
       throw new Error(`archive path is outside the allowlist: ${entry.name}`);
     }
+    if (names.has(entry.name)) throw new Error(`archive contains a duplicate path: ${entry.name}`);
+    names.add(entry.name);
   }
-  return entries;
+
+  const logicalEntries = [];
+  const sidecars = [];
+  for (const entry of entries) {
+    if (path.posix.basename(entry.name).startsWith('._')) sidecars.push(entry);
+    else logicalEntries.push(entry);
+  }
+  for (const sidecar of sidecars) {
+    const basename = path.posix.basename(sidecar.name).slice(2);
+    const sibling = path.posix.join(path.posix.dirname(sidecar.name), basename);
+    if (!basename || !names.has(sibling)) {
+      throw new Error(`archive contains an unmatched AppleDouble sidecar: ${sidecar.name}`);
+    }
+  }
+  if (logicalEntries.length !== lock.file_count) {
+    throw new Error(
+      `archive file count mismatch: expected ${lock.file_count}, got ${logicalEntries.length} logical (${entries.length} physical)`,
+    );
+  }
+  return logicalEntries;
 }
