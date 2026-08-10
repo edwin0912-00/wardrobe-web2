@@ -1,10 +1,8 @@
 {
-  "status": "BLOCKED_PUBLISH",
-  "iteration": 1,
-  "last_gate": "delivery_gate",
+  "status": "VERIFYING",
+  "iteration": 2,
+  "last_gate": "quick_gate",
   "last_gate_status": "PASS",
   "consent": "same-session only; no additional egress",
-  "blockers": [
-    "GitHub OAuth token lacks workflow scope; local commit and every delivery gate pass, but GitHub rejects creation of .github/workflows/evaluator.yml"
-  ]
+  "blockers": []
 }

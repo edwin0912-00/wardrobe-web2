@@ -98,10 +98,12 @@ const allowedAlphaOverlay = [
   ':(exclude)scripts/test-report-summary.mjs',
   ':(exclude)scripts/live-product-e2e.mjs',
   ':(exclude)scripts/fetch-media-bundle.mjs',
+  ':(exclude)scripts/tar-manifest.mjs',
   ':(exclude)test/reviewer-criteria.test.mjs',
   ':(exclude)test/test-system.test.mjs',
   ':(exclude)test/test-report-summary.test.mjs',
   ':(exclude)test/evaluator-entrypoint.test.mjs',
+  ':(exclude)test/tar-manifest.test.mjs',
   ':(exclude)docs/TEST-SYSTEM.md',
   ':(exclude)ops/loops/evaluator-verification-v1/**',
   // Alpha-local portability repair: the locked cinematic source used

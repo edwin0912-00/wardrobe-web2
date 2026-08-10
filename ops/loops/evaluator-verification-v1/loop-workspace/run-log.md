@@ -24,3 +24,14 @@
   OAuth token has `repo` but not `workflow`, so GitHub rejected the workflow
   file. No credential scope was changed autonomously and the push was not
   repeated against the unchanged authorization state.
+- 2026-08-10: User authorized credential completion. Registered one temporary
+  SSH key through the existing `admin:public_key` scope, pushed alpha, then
+  deleted that key locally and from GitHub. No persistent credential changed.
+- 2026-08-10: First Ubuntu Actions run preserved its receipt and correctly
+  failed MEDIA_BUNDLE: GNU tar exposed 1248 physical/PAX records while BSD tar
+  exposed the 624 logical members locked by the bundle. Repair replaces
+  platform `tar -tf` counting with Python `tarfile` logical-member inspection
+  and additionally rejects links/devices before extraction.
+- 2026-08-10: Portable PAX regression PASS 2/2 and unified quick gate PASS
+  179/179. The repair is awaiting a clean Ubuntu Actions delivery run; no
+  product gate or media-integrity check was weakened.

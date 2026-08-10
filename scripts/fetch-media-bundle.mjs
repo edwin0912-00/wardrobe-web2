@@ -10,6 +10,8 @@ import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { fileURLToPath } from 'node:url';
 
+import { inspectTarArchive, validateTarManifest } from './tar-manifest.mjs';
+
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const lock = JSON.parse(await readFile(path.join(root, 'release', 'MEDIA.lock.json'), 'utf8'));
 const markerPath = path.join(root, '.wardrobe-media-bundle.json');
@@ -66,20 +68,10 @@ for await (const chunk of createReadStream(archivePath)) hash.update(chunk);
 const digest = hash.digest('hex');
 if (digest !== lock.sha256) fail(`archive SHA-256 mismatch: expected ${lock.sha256}, got ${digest}`);
 
-const listing = spawnSync('tar', ['-tf', archivePath], { encoding: 'utf8' });
-if (listing.status !== 0) fail(`tar listing failed: ${listing.stderr?.trim() || 'unknown error'}`);
-const entries = listing.stdout.split(/\r?\n/).filter(Boolean);
-if (entries.length !== lock.file_count) {
-  fail(`archive file count mismatch: expected ${lock.file_count}, got ${entries.length}`);
-}
-for (const entry of entries) {
-  const normalized = path.posix.normalize(entry);
-  if (entry.startsWith('/') || normalized !== entry || normalized.startsWith('../')) {
-    fail(`unsafe archive path: ${entry}`);
-  }
-  if (!lock.allowed_prefixes.some((prefix) => entry.startsWith(prefix))) {
-    fail(`archive path is outside the allowlist: ${entry}`);
-  }
+try {
+  validateTarManifest(inspectTarArchive(archivePath), lock);
+} catch (error) {
+  fail(error.message);
 }
 
 const extraction = spawnSync('tar', ['-xf', archivePath, '-C', root], { encoding: 'utf8' });
