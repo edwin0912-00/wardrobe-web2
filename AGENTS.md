@@ -6,9 +6,11 @@ The official evaluator and installation branch is `alpha`, which is also the
 public repository default. It intentionally contains both products: the cinematic
 site at the repository root and the complete beta engine under `beta/`. Read
 `README.md` and `release/RELEASE.lock.json` before changing either side.
-`scripts/install-local.sh` is the installation acceptance gate and
-`scripts/run-local.sh` is the supported combined local entrypoint. Changes to
-either product must remain explicit, behavior-tested and release-locked.
+The root `./verify` executable is the sole installation and acceptance
+contract; README, npm aliases and GitHub Actions must delegate to it instead of
+reconstructing its stages. `./verify --run` is the supported combined local
+entrypoint. Changes to either product must remain explicit, behavior-tested and
+release-locked.
 
 Before changing, merging, or deploying this repository, read
 `INTEGRATION-HANDOFF.md` in full. Claude Code must also read `CLAUDE.md` and
@@ -33,6 +35,6 @@ surface from its owned working line after its own gate. Never put credentials,
 runtime user data, or encrypted credential backups in an evaluator-facing
 branch.
 
-The canonical behavior gate is `npm test`. It must start and inspect the real
+The canonical behavior gate is `./verify` (`npm test` is only an alias). It must start and inspect the real
 browser bridge and the real two-process local runtime. A string-presence check
 cannot substitute for those stages.

@@ -21,9 +21,11 @@ test('alpha README and evaluator expose one reproducible behavioral acceptance p
     readFile(path.join(REPO, 'release', 'RELEASE.lock.json'), 'utf8').then(JSON.parse),
   ]);
 
-  assert.match(readme, /--filter=blob:none --depth 8 --single-branch --branch alpha/);
-  assert.match(readme, /\.\/scripts\/install-local\.sh --run/);
-  assert.match(readme, /main-сайт: `http:\/\/127\.0\.0\.1:4173\/`/);
+  assert.match(readme, /--filter=blob:none --single-branch --branch alpha/);
+  assert.doesNotMatch(readme, /--depth\s+\d+/, 'provenance verification needs the locked source commits');
+  assert.match(readme, /\.\/verify --run/);
+  assert.match(readme, /print their actual\s+loopback addresses/);
+  assert.match(readme, /TEST-SYSTEM\.md/);
   assert.match(readme, /REVIEWER-ACCEPTANCE\.md/);
   assert.match(reviewerAcceptance, /Bridge module повернув 404/);
   assert.match(reviewerAcceptance, /Видимий `\[role="alert"\]`/);

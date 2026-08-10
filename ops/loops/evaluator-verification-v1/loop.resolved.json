@@ -1,0 +1,231 @@
+{
+  "$schema": "https://github.com/ksimback/looper/schema/loop.resolved.v1.json",
+  "compiled_at": "2026-08-10T19:20:28+00:00",
+  "council": [],
+  "council_by_id": {},
+  "criteria_by_id": {
+    "clean-install-gate": {
+      "check": [
+        "./verify"
+      ],
+      "expect": "exit_zero",
+      "id": "clean-install-gate",
+      "timeout_sec": 1800,
+      "type": "programmatic"
+    },
+    "current-runner": {
+      "check": [
+        "node",
+        "--test",
+        "test/test-system.test.mjs"
+      ],
+      "expect": "exit_zero",
+      "id": "current-runner",
+      "timeout_sec": 60,
+      "type": "programmatic"
+    },
+    "live-gate": {
+      "check": [
+        "./verify",
+        "live"
+      ],
+      "expect": "exit_zero",
+      "id": "live-gate",
+      "timeout_sec": 180,
+      "type": "programmatic"
+    },
+    "quick-gate": {
+      "check": [
+        "./verify",
+        "quick"
+      ],
+      "expect": "exit_zero",
+      "id": "quick-gate",
+      "timeout_sec": 180,
+      "type": "programmatic"
+    },
+    "runner-contract": {
+      "check": [
+        "node",
+        "--test",
+        "test/test-system.test.mjs",
+        "test/test-report-summary.test.mjs",
+        "test/evaluator-entrypoint.test.mjs"
+      ],
+      "expect": "exit_zero",
+      "id": "runner-contract",
+      "timeout_sec": 120,
+      "type": "programmatic"
+    }
+  },
+  "execution": {
+    "isolation": "current_workspace",
+    "mode": "in_session",
+    "side_effects": {
+      "duplicate_action_check": true,
+      "notes": "The loop may edit only the claimed evaluator/test/docs paths. It never starts paid generation, deploys production, stores credentials, changes branch protection, or repeats a push for an already-published SHA.\n",
+      "requires_approval": true
+    }
+  },
+  "gates": {
+    "delivery_gate": {
+      "criteria": [
+        "runner-contract",
+        "quick-gate",
+        "live-gate",
+        "clean-install-gate"
+      ],
+      "max_revisions": 2,
+      "members": [],
+      "verdict_policy": "fixed_passes",
+      "when": "after_each_delivery"
+    },
+    "plan_gate": {
+      "criteria": [
+        "current-runner"
+      ],
+      "max_revisions": 1,
+      "members": [],
+      "verdict_policy": "fixed_passes",
+      "when": "after_plan"
+    }
+  },
+  "goal": {
+    "context_sources": [
+      {
+        "file": "./inputs/research.md"
+      },
+      {
+        "cmd": [
+          "git",
+          "log",
+          "--oneline",
+          "-8"
+        ],
+        "timeout_sec": 30
+      },
+      {
+        "cmd": [
+          "git",
+          "status",
+          "--short"
+        ],
+        "timeout_sec": 30
+      }
+    ],
+    "definition_of_done": "The root ./verify command, README command, package scripts and GitHub Actions all delegate to one executable test-system implementation; quick, clean local acceptance and read-only live modes pass; a real Chromium journey and two-process same-origin bridge are covered; failures produce JSON and logs; generated CI artifacts remain available even on failure; no secret or paid provider route is invoked; and no unresolved placeholder remains.\n",
+    "statement": "Deliver an evaluator-grade public repository in which a clean clone can run one root command to install and test both the cinematic site and beta engine. The same command must be the GitHub required check. A separate read-only mode must compare the checked-out product with the deployed main mirrors and beta bridge. Every failure must identify the first broken behavior and preserve machine-readable evidence. README text may point to the contract but must not reimplement it. Paid generation, credentials, production mutation, and cosmetic product work are outside this loop.\n",
+    "verification": [
+      {
+        "check": [
+          "node",
+          "--test",
+          "test/test-system.test.mjs"
+        ],
+        "expect": "exit_zero",
+        "id": "current-runner",
+        "timeout_sec": 60,
+        "type": "programmatic"
+      },
+      {
+        "check": [
+          "node",
+          "--test",
+          "test/test-system.test.mjs",
+          "test/test-report-summary.test.mjs",
+          "test/evaluator-entrypoint.test.mjs"
+        ],
+        "expect": "exit_zero",
+        "id": "runner-contract",
+        "timeout_sec": 120,
+        "type": "programmatic"
+      },
+      {
+        "check": [
+          "./verify",
+          "quick"
+        ],
+        "expect": "exit_zero",
+        "id": "quick-gate",
+        "timeout_sec": 180,
+        "type": "programmatic"
+      },
+      {
+        "check": [
+          "./verify",
+          "live"
+        ],
+        "expect": "exit_zero",
+        "id": "live-gate",
+        "timeout_sec": 180,
+        "type": "programmatic"
+      },
+      {
+        "check": [
+          "./verify"
+        ],
+        "expect": "exit_zero",
+        "id": "clean-install-gate",
+        "timeout_sec": 1800,
+        "type": "programmatic"
+      }
+    ]
+  },
+  "host": {
+    "cli": "codex",
+    "invoke": [
+      "codex",
+      "exec"
+    ],
+    "model": "current-session",
+    "timeout_sec": 1800
+  },
+  "loop_control": {
+    "budget": {
+      "wall_clock_min": 60
+    },
+    "human_checkpoints": [],
+    "max_iterations": 5,
+    "no_progress": {
+      "action": "stop",
+      "max_stalled_iterations": 2,
+      "signals": [
+        "the same check fails with the same first_failure twice",
+        "no source or test evidence changes between revisions",
+        "clean-install output repeats without reaching a later stage"
+      ]
+    },
+    "stop_conditions": [
+      "every delivery-gate programmatic criterion passes",
+      "max_iterations reached",
+      "the same blocker repeats for 2 iterations",
+      "wall-clock budget is exhausted"
+    ]
+  },
+  "meta": {
+    "author": "codex",
+    "created": "2026-08-10",
+    "description": "Keep Wardrobe installable and behavior-verifiable from one public command, with the identical contract used locally and in GitHub Actions.\n",
+    "name": "wardrobe-evaluator-verification-v1"
+  },
+  "observability": {
+    "checkpoint_granularity": "gate",
+    "run_log": "run-log.md",
+    "state_file": "state.json"
+  },
+  "privacy": {
+    "egress": []
+  },
+  "source": "/private/tmp/wardrobe-alpha-deploy-20260810/ops/loops/evaluator-verification-v1/loop.yaml",
+  "version": 1,
+  "workspace": {
+    "dir": "./loop-workspace",
+    "layout": [
+      "plan.md",
+      "delivery-{n}.md",
+      "review-{n}.md",
+      "state.json",
+      "run-log.md"
+    ]
+  }
+}

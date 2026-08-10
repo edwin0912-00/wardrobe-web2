@@ -6,11 +6,11 @@
     "node": ">=22"
   },
   "scripts": {
-    "test": "node scripts/test-system.mjs local",
-    "test:quick": "node scripts/test-system.mjs quick",
-    "test:full": "node scripts/test-system.mjs full",
-    "test:live": "node scripts/test-system.mjs live",
-    "test:all": "node scripts/test-system.mjs all --keep-going",
+    "test": "./verify",
+    "test:quick": "./verify quick",
+    "test:full": "./verify full",
+    "test:live": "./verify live",
+    "test:all": "./verify all",
     "self-check": "node scripts/self-check.mjs",
     "self-check:repair": "node scripts/self-check.mjs --repair",
     "media:install": "node scripts/fetch-media-bundle.mjs",

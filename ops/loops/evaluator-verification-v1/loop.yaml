@@ -1,0 +1,126 @@
+version: 1
+meta:
+  name: wardrobe-evaluator-verification-v1
+  description: >
+    Keep Wardrobe installable and behavior-verifiable from one public command,
+    with the identical contract used locally and in GitHub Actions.
+  author: codex
+  created: 2026-08-10
+
+goal:
+  statement: >
+    Deliver an evaluator-grade public repository in which a clean clone can run
+    one root command to install and test both the cinematic site and beta engine.
+    The same command must be the GitHub required check. A separate read-only
+    mode must compare the checked-out product with the deployed main mirrors and
+    beta bridge. Every failure must identify the first broken behavior and
+    preserve machine-readable evidence. README text may point to the contract
+    but must not reimplement it. Paid generation, credentials, production
+    mutation, and cosmetic product work are outside this loop.
+  context_sources:
+    - file: ./inputs/research.md
+    - cmd: ["git", "log", "--oneline", "-8"]
+      timeout_sec: 30
+    - cmd: ["git", "status", "--short"]
+      timeout_sec: 30
+  definition_of_done: >
+    The root ./verify command, README command, package scripts and GitHub Actions
+    all delegate to one executable test-system implementation; quick, clean
+    local acceptance and read-only live modes pass; a real Chromium journey and
+    two-process same-origin bridge are covered; failures produce JSON and logs;
+    generated CI artifacts remain available even on failure; no secret or paid
+    provider route is invoked; and no unresolved placeholder remains.
+  verification:
+    - id: current-runner
+      type: programmatic
+      check: ["node", "--test", "test/test-system.test.mjs"]
+      expect: exit_zero
+      timeout_sec: 60
+    - id: runner-contract
+      type: programmatic
+      check: ["node", "--test", "test/test-system.test.mjs", "test/test-report-summary.test.mjs", "test/evaluator-entrypoint.test.mjs"]
+      expect: exit_zero
+      timeout_sec: 120
+    - id: quick-gate
+      type: programmatic
+      check: ["./verify", "quick"]
+      expect: exit_zero
+      timeout_sec: 180
+    - id: live-gate
+      type: programmatic
+      check: ["./verify", "live"]
+      expect: exit_zero
+      timeout_sec: 180
+    - id: clean-install-gate
+      type: programmatic
+      check: ["./verify"]
+      expect: exit_zero
+      timeout_sec: 1800
+
+host:
+  cli: codex
+  model: current-session
+  invoke: ["codex", "exec"]
+  timeout_sec: 1800
+
+council: []
+
+gates:
+  plan_gate:
+    when: after_plan
+    members: []
+    verdict_policy: fixed_passes
+    criteria: [current-runner]
+    max_revisions: 1
+  delivery_gate:
+    when: after_each_delivery
+    members: []
+    verdict_policy: fixed_passes
+    criteria: [runner-contract, quick-gate, live-gate, clean-install-gate]
+    max_revisions: 2
+
+loop_control:
+  max_iterations: 5
+  budget:
+    wall_clock_min: 60
+  no_progress:
+    max_stalled_iterations: 2
+    signals:
+      - the same check fails with the same first_failure twice
+      - no source or test evidence changes between revisions
+      - clean-install output repeats without reaching a later stage
+    action: stop
+  human_checkpoints: []
+  stop_conditions:
+    - every delivery-gate programmatic criterion passes
+    - max_iterations reached
+    - the same blocker repeats for 2 iterations
+    - wall-clock budget is exhausted
+
+execution:
+  mode: in_session
+  isolation: current_workspace
+  side_effects:
+    requires_approval: true
+    duplicate_action_check: true
+    notes: >
+      The loop may edit only the claimed evaluator/test/docs paths. It never
+      starts paid generation, deploys production, stores credentials, changes
+      branch protection, or repeats a push for an already-published SHA.
+
+observability:
+  state_file: state.json
+  run_log: run-log.md
+  checkpoint_granularity: gate
+
+privacy:
+  egress: []
+
+workspace:
+  dir: ./loop-workspace
+  layout:
+    - plan.md
+    - "delivery-{n}.md"
+    - "review-{n}.md"
+    - state.json
+    - run-log.md

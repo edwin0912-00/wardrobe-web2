@@ -1,0 +1,81 @@
+name: Evaluator contract
+
+on:
+  pull_request:
+    branches: [alpha]
+  push:
+    branches: [alpha]
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Verification depth
+        required: true
+        default: local
+        type: choice
+        options: [quick, local, full, live, all]
+  schedule:
+    - cron: '17 */6 * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: evaluator-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: ${{ github.event_name == 'schedule' && 'deployed parity' || 'clean-clone acceptance' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    env:
+      CI: 'true'
+    steps:
+      - name: Check out complete release ancestry
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            beta/package-lock.json
+
+      - name: Select verification mode
+        id: mode
+        shell: bash
+        env:
+          REQUESTED_MODE: ${{ inputs.mode }}
+        run: |
+          if [[ "$GITHUB_EVENT_NAME" == "schedule" ]]; then
+            MODE=live
+          elif [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+            MODE="$REQUESTED_MODE"
+          else
+            MODE=local
+          fi
+          echo "mode=$MODE" >> "$GITHUB_OUTPUT"
+
+      - name: Run the same contract documented in README
+        shell: bash
+        env:
+          MODE: ${{ steps.mode.outputs.mode }}
+        run: ./verify "$MODE"
+
+      - name: Publish human-readable result
+        if: always()
+        shell: bash
+        run: node scripts/test-report-summary.mjs >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Preserve receipts, logs and browser evidence
+        if: always()
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        with:
+          name: wardrobe-verification-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/test-system/
+          if-no-files-found: warn
+          retention-days: 14

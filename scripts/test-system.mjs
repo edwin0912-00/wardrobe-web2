@@ -8,8 +8,35 @@ import { fileURLToPath } from 'node:url';
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const validModes = new Set(['quick', 'local', 'full', 'live', 'all']);
+const playwrightInstall = process.env.CI
+  ? ['./node_modules/.bin/playwright', 'install', '--with-deps', 'chromium']
+  : ['./node_modules/.bin/playwright', 'install', 'chromium'];
 
 const steps = Object.freeze({
+  ROOT_DEPENDENCIES: Object.freeze({
+    id: 'ROOT_DEPENDENCIES',
+    layer: 'bootstrap',
+    command: ['npm', 'ci', '--no-audit', '--no-fund'],
+    proves: 'the evaluator dependencies install from the committed lockfile',
+  }),
+  ENGINE_DEPENDENCIES: Object.freeze({
+    id: 'ENGINE_DEPENDENCIES',
+    layer: 'bootstrap',
+    command: ['npm', 'ci', '--no-audit', '--no-fund', '--prefix', 'beta'],
+    proves: 'the engine dependencies install from the committed lockfile',
+  }),
+  MEDIA_BUNDLE: Object.freeze({
+    id: 'MEDIA_BUNDLE',
+    layer: 'bootstrap',
+    command: [process.execPath, 'scripts/fetch-media-bundle.mjs'],
+    proves: 'the immutable evaluator media bundle is present and SHA-verified',
+  }),
+  BROWSER_RUNTIME: Object.freeze({
+    id: 'BROWSER_RUNTIME',
+    layer: 'bootstrap',
+    command: playwrightInstall,
+    proves: 'the pinned Playwright browser can be installed on the evaluator host',
+  }),
   SOURCE_LOCK: Object.freeze({
     id: 'SOURCE_LOCK',
     layer: 'source',
@@ -92,12 +119,27 @@ export function parseArguments(argv) {
 
 export function buildPlan(mode) {
   if (!validModes.has(mode)) throw new Error(`unknown mode: ${mode}`);
-  if (mode === 'quick') return [steps.SOURCE_LOCK, steps.MAIN_PREFLIGHT, steps.PATCH_INTEGRITY];
+  if (mode === 'quick') {
+    return [steps.MEDIA_BUNDLE, steps.SOURCE_LOCK, steps.MAIN_PREFLIGHT, steps.PATCH_INTEGRITY];
+  }
+  const localBootstrap = [
+    steps.ROOT_DEPENDENCIES,
+    steps.ENGINE_DEPENDENCIES,
+    steps.MEDIA_BUNDLE,
+    steps.BROWSER_RUNTIME,
+  ];
   if (mode === 'local') {
-    return [steps.PRODUCT_CONTRACTS, steps.BROWSER_CORE, steps.TWO_PROCESS_RUNTIME, steps.PATCH_INTEGRITY];
+    return [
+      ...localBootstrap,
+      steps.PRODUCT_CONTRACTS,
+      steps.BROWSER_CORE,
+      steps.TWO_PROCESS_RUNTIME,
+      steps.PATCH_INTEGRITY,
+    ];
   }
   if (mode === 'full') {
     return [
+      ...localBootstrap,
       steps.PRODUCT_CONTRACTS,
       steps.BROWSER_CORE,
       steps.TWO_PROCESS_RUNTIME,
@@ -105,8 +147,17 @@ export function buildPlan(mode) {
       steps.PATCH_INTEGRITY,
     ];
   }
-  if (mode === 'live') return [steps.SOURCE_LOCK, steps.LIVE_PRODUCT, steps.PATCH_INTEGRITY];
+  if (mode === 'live') {
+    return [
+      steps.ROOT_DEPENDENCIES,
+      steps.BROWSER_RUNTIME,
+      steps.SOURCE_LOCK,
+      steps.LIVE_PRODUCT,
+      steps.PATCH_INTEGRITY,
+    ];
+  }
   return [
+    ...localBootstrap,
     steps.PRODUCT_CONTRACTS,
     steps.BROWSER_CORE,
     steps.TWO_PROCESS_RUNTIME,
@@ -117,7 +168,7 @@ export function buildPlan(mode) {
 }
 
 export function statusFor(results) {
-  return results.every((result) => result.status === 'PASS') ? 'PASS' : 'FAIL';
+  return results.length > 0 && results.every((result) => result.status === 'PASS') ? 'PASS' : 'FAIL';
 }
 
 function git(args) {
@@ -215,6 +266,11 @@ export async function runCli(argv = process.argv.slice(2)) {
     source: {
       branch: git(['branch', '--show-current']),
       commit: git(['rev-parse', 'HEAD']),
+    },
+    environment: {
+      ci: Boolean(process.env.CI),
+      platform: process.platform,
+      node: process.version,
     },
     started_at: startedAt.toISOString(),
     status: 'RUNNING',

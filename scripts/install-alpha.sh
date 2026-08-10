@@ -9,6 +9,20 @@ fail() {
   exit 1
 }
 
+mode=local
+run_after=false
+case "${1:-}" in
+  ""|local) mode=local ;;
+  quick|full|live) mode=$1 ;;
+  all) mode=all ;;
+  --run|run) mode=local; run_after=true ;;
+  --help|-h)
+    echo 'usage: ./verify [quick|local|full|live|all|--run]'
+    exit 0
+    ;;
+  *) fail "unknown verification mode: $1" ;;
+esac
+
 for command in git python3 node npm tar; do
   command -v "$command" >/dev/null 2>&1 || fail "$command is required"
 done
@@ -29,26 +43,18 @@ if (!Number.isInteger(major) || major < 22) {
 process.stdout.write(`node: ${process.version}\n`);
 JS
 
-echo "Installing the locked evaluator dependencies..."
-npm ci --no-audit --no-fund
-
-echo "Installing the locked beta dependencies..."
-npm ci --no-audit --no-fund --prefix beta
-
-echo "Fetching the immutable evaluator media bundle..."
-node scripts/fetch-media-bundle.mjs
-
-echo "Installing the browser used by the behavioral E2E..."
-npx playwright install chromium
-
-echo "Running the unified behavioral acceptance system..."
-node scripts/test-system.mjs local
+echo "Running the unified behavioral verification system ($mode)..."
+if [ "$mode" = all ]; then
+  node scripts/test-system.mjs all --keep-going
+else
+  node scripts/test-system.mjs "$mode"
+fi
 
 echo ""
-echo "Wardrobe alpha installation passed."
+echo "Wardrobe alpha verification passed ($mode)."
 echo "Run: ./scripts/run-alpha.sh"
 echo "Open: http://127.0.0.1:4173/b/"
 
-if [ "${1:-}" = "--run" ]; then
+if [ "$run_after" = true ]; then
   exec ./scripts/run-alpha.sh
 fi
