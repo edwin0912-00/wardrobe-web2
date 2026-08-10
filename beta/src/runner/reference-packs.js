@@ -247,3 +247,12 @@ export function providerPackSummary(pack) {
     bindings: pack.bindings,
   };
 }
+
+export function semanticQaReferenceRole(phase, scope, binding, index) {
+  if (phase === 'garment' && scope === 'outfit') return `RAW_GARMENT_VIEW_${index + 1}`;
+  if (phase === 'outfit' && scope === 'outfit'
+    && typeof binding?.role === 'string' && binding.role.trim() !== '') {
+    return binding.role;
+  }
+  return `${scope.toUpperCase()}_REFERENCE_${index + 1}`;
+}

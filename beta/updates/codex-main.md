@@ -1706,3 +1706,23 @@ Beta: NOT_DEPLOYED. Journey: no paid generation; regression covers save →
 runtime unavailable/list → refresh recovery without deletion.
 weakened_checks: none — no output URL is issued while the runner cannot prove
 current ownership of the media bytes.
+
+---
+
+Agent ID: codex-main
+Task: ALPHA-CORE-QA-REFERENCE-ROLES-20260811
+Pipeline: `LOOK.01–06` · real inputs → avatar → outfit → QA → saved look
+State: PAID_JOURNEY_PASS
+Finding: canonical outfit bindings reached the evaluator under their declared
+roles, while the runner manifest independently renamed them. A valid
+model-attested QA receipt therefore failed evidence-manifest verification and
+triggered paid retries.
+Decision: runner and evaluator now use the same role resolver, and the manifest
+contains only the images actually sent to QA.
+Code: this commit.
+Tests: pre-change regression FAIL confirmed; focused suite 34/34 PASS; root
+`./verify` PASS.
+Journey: real OpenRouter generation completed; all three QA stages PASS; saved
+look, original PNG and WebP preview were fetched successfully through the
+main-site bridge.
+weakened_checks: none.

@@ -4,6 +4,7 @@ import { mkdtemp, mkdir, readFile, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+import { collectQaImages } from '../../src/providers/codex-vlm-evaluator.js';
 import { MockProvider } from '../../src/providers/mock-provider.js';
 import { PipelineRunner } from '../../src/runner/pipeline-runner.js';
 import { STATES } from '../../src/runner/state-machine.js';
@@ -188,6 +189,69 @@ test('passes every reference-pack derivative to generation in explicit determini
   );
   assert.equal(checkpoint.inputs.outfit_reference_pack.path, files.outfitPackPath);
   assert.equal(checkpoint.inputs.outfit_reference_pack_binding_002.role, 'GARMENT_REFERENCE_CARD');
+});
+
+test('model QA binds canonical outfit-pack roles to the same runner evidence manifest', async () => {
+  const files = await fixture();
+  const provider = new MockProvider({
+    script: {
+      qa: async (context) => {
+        if (context.phase !== 'outfit') {
+          return {
+            decision: 'PASS',
+            reason: 'fixture phase pass',
+            checks: [{ name: 'FIXTURE', pass: true, score: 1, evidence: 'fixture evidence' }],
+            defects: [],
+          };
+        }
+        const images = collectQaImages(context.evidence, context.phase);
+        const preparedEvidence = await Promise.all(images.map(async (image, index) => ({
+          order: index + 1,
+          role: image.role,
+          roles: [image.role],
+          source_bindings: [{
+            role: image.role,
+            source_sha256: digest(await readFile(image.path)),
+          }],
+          prepared_sha256: digest(Buffer.from(`prepared-${index + 1}`)),
+        })));
+        const evaluatorCore = {
+          type: 'MODEL',
+          provider: 'reference-pack-role-test',
+          model: 'exact-test-model',
+          version: '1.0.0',
+          phase: context.phase,
+          attempt: context.attempt,
+          idempotency_key: context.idempotencyKey,
+          evidence_manifest_sha256: context.evidence_manifest_sha256,
+        };
+        return {
+          decision: 'PASS',
+          reason: 'every canonical pack binding is attached under its declared role',
+          checks: [{ name: 'PACK_BINDINGS', pass: true, score: 1, evidence: 'all declared roles matched' }],
+          defects: [],
+          prepared_evidence: preparedEvidence,
+          evaluator: {
+            type: evaluatorCore.type,
+            provider: evaluatorCore.provider,
+            model: evaluatorCore.model,
+            version: evaluatorCore.version,
+            evaluation_id: digest(Buffer.from(JSON.stringify(evaluatorCore))),
+          },
+        };
+      },
+    },
+  });
+
+  const result = await new PipelineRunner({ provider }).runJobFile(files.jobPath);
+  assert.equal(result.status, STATES.COMPLETED);
+  const outfitQa = provider.calls.find((call) => (
+    call.operation === 'qa' && call.context.phase === 'outfit'
+  ));
+  assert.deepEqual(
+    outfitQa.context.evidence.reference_packs.outfit.bindings.map((binding) => binding.role),
+    ['GARMENT_PRIMARY', 'GARMENT_REFERENCE_CARD'],
+  );
 });
 
 test('detects an immutable reference-pack JSON change before checkpoint reuse', async () => {

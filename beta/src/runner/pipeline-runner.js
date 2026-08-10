@@ -21,6 +21,7 @@ import {
   providerReferencesFromPack,
   referencePackInputFiles,
   resolveReferencePacks,
+  semanticQaReferenceRole,
 } from './reference-packs.js';
 import { assertTransition, isTerminal, STATES } from './state-machine.js';
 
@@ -243,6 +244,7 @@ function qaProviderEvidence(context, phase) {
 
 function qaEvidenceManifest(context, phase, attempt) {
   const bindings = [];
+  const providerEvidence = qaProviderEvidence(context, phase);
   const identity = context.checkpoint.artifacts.conditioned_identity;
   const outfit = context.checkpoint.artifacts.conditioned_outfit;
   const candidate = context.checkpoint.artifacts[phase];
@@ -264,7 +266,7 @@ function qaEvidenceManifest(context, phase, attempt) {
       sha256: artifactDigest(context.checkpoint.artifacts.avatar, 'Approved avatar'),
     });
   }
-  if (phase === 'conditioning' || phase === 'outfit') {
+  if ((phase === 'conditioning' || phase === 'outfit') && providerEvidence.outfit) {
     addQaBinding(bindings, {
       bindingId: 'conditioned-outfit',
       role: outfit?.artifact ? 'OUTFIT_REFERENCE' : 'OUTFIT_TEXT_TARGET',
@@ -289,7 +291,9 @@ function qaEvidenceManifest(context, phase, attempt) {
     role: 'RAW_SOURCE_REFERENCE',
     sha256: context.inputs.identity_reference?.sha256,
   });
-  if (context.job.outfit.reference && (phase === 'conditioning' || phase === 'outfit')) {
+  if (typeof providerEvidence.source_outfit === 'string'
+    && /\.(?:png|jpe?g|webp)$/i.test(providerEvidence.source_outfit)
+    && (phase === 'conditioning' || phase === 'outfit')) {
     addQaBinding(bindings, {
       bindingId: 'raw-outfit',
       role: 'RAW_SOURCE_REFERENCE',
@@ -311,7 +315,7 @@ function qaEvidenceManifest(context, phase, attempt) {
     for (const [index, binding] of pack.bindings.entries()) {
       addQaBinding(bindings, {
         bindingId: `${scope}-pack-${binding.bindingId ?? binding.bindingOrder}`,
-        role: `${scope.toUpperCase()}_REFERENCE_${index + 1}`,
+        role: semanticQaReferenceRole(phase, scope, binding, index),
         sha256: binding.sha256,
         referencePackSha256: pack.sha256,
         factsSha256,

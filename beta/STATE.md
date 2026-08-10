@@ -853,3 +853,18 @@ be weakened to hide it.
   still OpenRouter-only. Codex login is present, FAL is currently wired only
   for Lucy realtime token issuance, and neither is an image/VLM fallback.
 - `weakened_checks: none`.
+
+## Alpha paid core journey — 2026-08-11
+
+- A clean `alpha` checkout passes the executable root verifier and its real
+  browser bridge/two-process checks.
+- A host-local authorized OpenRouter run completed the real path: identity and
+  garment input → avatar generation → avatar QA PASS → outfit generation →
+  outfit QA PASS → saved look → original PNG and WebP preview delivery.
+- The repaired contract has one shared owner for semantic reference roles;
+  runner evidence and VLM prepared evidence can no longer disagree merely by
+  renaming a canonical garment binding.
+- The pre-change regression fails, focused tests pass 34/34, and root
+  `./verify` passes after the repair.
+- `weakened_checks: none`; no threshold, lock, evidence hash or semantic QA
+  requirement was relaxed.

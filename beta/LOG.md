@@ -1953,3 +1953,21 @@ PASS, canon PASS. No paid generation.
 Provider: Codex primary; guarded OpenRouter image/scene fallback; OpenRouter
 video/VLM; Higgsfield prohibited and not constructed.
 weakened_checks: none.
+
+2026-08-11 · ALPHA-CORE-QA-REFERENCE-ROLES · alpha · codex-main
+Change: made the runner evidence manifest and the model evaluator consume one
+shared role function for canonical identity and outfit reference packs. The
+manifest now lists only evidence actually delivered to the evaluator.
+Why: a real OpenRouter image run generated valid avatar and outfit candidates,
+but the runner renamed declared garment roles to synthetic `OUTFIT_REFERENCE_*`
+roles. The evaluator attested the declared roles, so the runner rejected its
+otherwise valid QA receipt and spent unnecessary retries.
+Evidence: the new regression fails on pre-change source and passes after the
+repair; focused QA/reference tests 34/34 PASS; root `./verify` PASS. A paid
+avatar-to-outfit run completed with conditioning, avatar and outfit QA PASS;
+the saved look returned its original PNG and lightweight WebP preview through
+the main-site bridge.
+Provider: OpenRouter transport with `openai/gpt-5.4-image-2`; authorization was
+host-local and no credential or private media was committed.
+weakened_checks: none; evidence hashes, prepared inputs and semantic checks
+remain fail-closed.

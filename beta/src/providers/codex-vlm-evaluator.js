@@ -4,6 +4,7 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import sharp from 'sharp';
+import { semanticQaReferenceRole } from '../runner/reference-packs.js';
 import { assertExternalPromptPrivacy, sanitizeExternalPrompt } from './provider-prompt-privacy.js';
 
 const DECISIONS = new Set(['PASS', 'RETRY', 'NEEDS_INPUT', 'REJECT']);
@@ -88,11 +89,7 @@ export function collectQaImages(evidence = {}, phase = 'outfit') {
   }
   for (const scope of ['identity', 'outfit']) {
     for (const [index, binding] of (evidence.reference_packs?.[scope]?.bindings ?? []).entries()) {
-      const role = phase === 'garment' && scope === 'outfit'
-        ? `RAW_GARMENT_VIEW_${index + 1}`
-        : phase === 'outfit' && scope === 'outfit' && typeof binding?.role === 'string'
-          ? binding.role
-        : `${scope.toUpperCase()}_REFERENCE_${index + 1}`;
+      const role = semanticQaReferenceRole(phase, scope, binding, index);
       ordered.push(qaImage(binding, role));
     }
   }
