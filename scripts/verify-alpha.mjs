@@ -10,6 +10,7 @@ const lockPath = path.join(repositoryRoot, 'release', 'RELEASE.lock.json');
 const lock = JSON.parse(readFileSync(lockPath, 'utf8'));
 const full = process.argv.includes('--full');
 const install = process.argv.includes('--install') || full;
+const sourceOnly = process.argv.includes('--source-only');
 
 function fail(message) {
   process.stderr.write(`alpha verification failed: ${message}\n`);
@@ -91,8 +92,12 @@ const allowedAlphaOverlay = [
   ':(exclude)scripts/verify-alpha.mjs',
   ':(exclude)scripts/self-check.mjs',
   ':(exclude)scripts/browser-core-e2e.mjs',
+  ':(exclude)scripts/test-system.mjs',
+  ':(exclude)scripts/live-product-e2e.mjs',
   ':(exclude)scripts/fetch-media-bundle.mjs',
   ':(exclude)test/reviewer-criteria.test.mjs',
+  ':(exclude)test/test-system.test.mjs',
+  ':(exclude)docs/TEST-SYSTEM.md',
 ];
 const mainDrift = spawnSync('git', ['diff', '--quiet', mainCommit, '--', '.', ...allowedAlphaOverlay], {
   cwd: repositoryRoot,
@@ -101,11 +106,9 @@ if (mainDrift.status !== 0) {
   fail('the cinematic main-site source differs from its locked live commit');
 }
 
-for (const [relativePath, minimumBytes] of [
+const requiredFiles = [
   ['serve.py', 1_000],
   ['b/index.html', 10_000],
-  ['b/assets/intro.mp4', 100_000],
-  ['b/assets/seg1.mp4', 100_000],
   ['b/zeely-pipeline-clients.html', 10_000],
   ['adapters/cinematic-ui-bridge.mjs', 1_000],
   ['beta/package.json', 100],
@@ -116,7 +119,14 @@ for (const [relativePath, minimumBytes] of [
   ['self-check/checks.json', 100],
   ['scripts/self-check.mjs', 1_000],
   ['scripts/browser-core-e2e.mjs', 5_000],
-]) requireFile(relativePath, minimumBytes);
+];
+if (!sourceOnly) {
+  requiredFiles.push(
+    ['b/assets/intro.mp4', 100_000],
+    ['b/assets/seg1.mp4', 100_000],
+  );
+}
+for (const [relativePath, minimumBytes] of requiredFiles) requireFile(relativePath, minimumBytes);
 
 run(process.execPath, ['--check', 'engine.js']);
 run(process.execPath, ['--check', 'screen-surfaces.js']);

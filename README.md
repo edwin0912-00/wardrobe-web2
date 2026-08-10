@@ -62,6 +62,32 @@ same-origin маршрут:
 browser → main /api/* gateway → beta engine → profile/job state
 ```
 
+## Одна тестова команда
+
+Після встановлення канонічна перевірка запускається так:
+
+```bash
+npm test
+```
+
+Вона послідовно перевіряє locked source і контракти, відкриває справжній
+Chromium, проходить два look journey, запускає main і beta як два окремі
+процеси та перевіряє same-origin API і MP4 Range. На кожен запуск створюються
+JSON receipt і окремі логи в `artifacts/test-system/`; перший реальний FAIL
+зупиняє прогін і називає конкретний лог.
+
+Додаткові режими:
+
+```bash
+npm run test:quick   # швидкий source + main gate
+npm run test:full    # також повний backend suite
+npm run test:live    # read-only перевірка публічних доменів і bridge у Chromium
+npm run test:all     # повний local + live із повним списком незалежних помилок
+```
+
+Повний контракт системи описаний у
+[`docs/TEST-SYSTEM.md`](docs/TEST-SYSTEM.md).
+
 Повна відповідність критеріям першої ревізії — у
 [`docs/REVIEWER-ACCEPTANCE.md`](docs/REVIEWER-ACCEPTANCE.md). Там кожна вимога
 прив’язана до команди й observable result, а не до наявності рядка в коді.

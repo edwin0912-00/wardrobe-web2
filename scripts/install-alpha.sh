@@ -41,11 +41,8 @@ node scripts/fetch-media-bundle.mjs
 echo "Installing the browser used by the behavioral E2E..."
 npx playwright install chromium
 
-echo "Running the deterministic acceptance self-check..."
-node scripts/self-check.mjs
-
-echo "Running the real two-process HTTP integration check..."
-./scripts/run-alpha.sh --check
+echo "Running the unified behavioral acceptance system..."
+node scripts/test-system.mjs local
 
 echo ""
 echo "Wardrobe alpha installation passed."

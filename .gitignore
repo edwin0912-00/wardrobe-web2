@@ -17,6 +17,7 @@ beta/secrets/*.key
 node_modules/
 beta/node_modules/
 artifacts/self-check/
+artifacts/test-system/
 test-results/
 playwright-report/
 .wardrobe-media-bundle.json
