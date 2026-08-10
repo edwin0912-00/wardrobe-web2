@@ -4,6 +4,7 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { assertCommittedBetaTree } from './release-lock.mjs';
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const lockPath = path.join(repositoryRoot, 'release', 'RELEASE.lock.json');
@@ -67,6 +68,12 @@ if (JSON.stringify(importParents) !== JSON.stringify(lock.provenance.import_comm
   fail(`import parent mismatch: ${importParents.join(', ')}`);
 }
 
+try {
+  assertCommittedBetaTree(repositoryRoot);
+} catch (error) {
+  fail(error.message);
+}
+
 const betaTree = git(['rev-parse', 'HEAD:beta']);
 if (betaTree !== lock.sources.beta_engine.tree) {
   fail(`beta tree drift: expected ${lock.sources.beta_engine.tree}, got ${betaTree}`);
@@ -92,6 +99,7 @@ const allowedAlphaOverlay = [
   ':(exclude)scripts/run-local.sh',
   ':(exclude)scripts/run-alpha.sh',
   ':(exclude)scripts/verify-alpha.mjs',
+  ':(exclude)scripts/release-lock.mjs',
   ':(exclude)scripts/self-check.mjs',
   ':(exclude)scripts/browser-core-e2e.mjs',
   ':(exclude)scripts/test-system.mjs',
@@ -103,6 +111,7 @@ const allowedAlphaOverlay = [
   ':(exclude)test/test-system.test.mjs',
   ':(exclude)test/test-report-summary.test.mjs',
   ':(exclude)test/evaluator-entrypoint.test.mjs',
+  ':(exclude)test/release-lock.test.mjs',
   ':(exclude)test/tar-manifest.test.mjs',
   ':(exclude)docs/TEST-SYSTEM.md',
   ':(exclude)ops/loops/evaluator-verification-v1/**',

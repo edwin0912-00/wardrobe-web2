@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
-  "release": "alpha-0.03-reviewer-acceptance",
-  "created_at": "2026-08-09",
-  "purpose": "Evaluator-safe alpha containing the cinematic site, current beta engine, visible bridge startup failure, and deterministic browser acceptance through their real HTTP boundary.",
+  "release": "alpha-0.04-paid-core-qa",
+  "created_at": "2026-08-11",
+  "purpose": "Evaluator-safe alpha containing the cinematic site, current beta engine, visible bridge startup failure, deterministic browser acceptance, and the paid-proven semantic QA reference-role repair.",
   "sources": {
     "main_site": {
       "repository": "https://github.com/edwin0912-00/wardrobe-web2.git",
@@ -13,7 +13,7 @@
       "repository": "https://github.com/edwin0912-00/zeely-ai-engineering-test.git",
       "commit": "9393da5dc1b0815169d6a2c93a4128e7ca714b47",
       "source_tree": "f345ed77fbadb5916109ec02ca3ceea757c0132a",
-      "tree": "233d5cd0630c7c81245c98b568f98052de4a0ea8",
+      "tree": "e0c1a1efeb6127cbda26c169409a29e1ac06238b",
       "location": "beta"
     }
   },
@@ -48,9 +48,8 @@
     "browser_core_e2e": "scripts/browser-core-e2e.mjs"
   },
   "external_private_state": [
-    "Higgsfield CLI authorization",
     "Codex CLI authorization",
-    "optional provider API keys",
+    "optional host-local OpenRouter API key",
     "runtime user data"
   ]
 }
