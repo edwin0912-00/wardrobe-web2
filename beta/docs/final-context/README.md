@@ -1,5 +1,10 @@
 # Wardrobe / Zeely — final context pack
 
+> **Current entry point:** the modern, source/runtime-aware canonical pack is
+> [`../canonical/README.md`](../canonical/README.md). This directory remains a
+> detailed historical/audit pack and is intentionally not rewritten whenever
+> the active alpha release moves.
+
 Verified snapshot: **2026-08-09 00:26 Europe/Madrid**.
 Schema version: **1.0.0**.
 

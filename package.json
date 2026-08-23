@@ -11,6 +11,7 @@
     "test:full": "./verify full",
     "test:live": "./verify live",
     "test:all": "./verify all",
+    "share": "node tools/public-preview.mjs",
     "self-check": "node scripts/self-check.mjs",
     "self-check:repair": "node scripts/self-check.mjs --repair",
     "media:install": "node scripts/fetch-media-bundle.mjs",

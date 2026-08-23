@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0.0",
   "purpose": "Shared operational truth for every agent and every chat. Read it before touching the host or the provider; update it the moment you change either. Prose belongs in STATE.md; this file holds only facts a machine can check.",
-  "updated_at": "2026-08-08T22:41:27.511Z",
+  "updated_at": "2026-08-23T20:00:00.000Z",
   "updated_by": "codex-main",
   "host": {
     "role": "beta and production deployment host",
@@ -17,9 +17,9 @@
   "beta": {
     "role": "frozen mirror; do not advance independently",
     "url": "https://beta.madeforthisjob.com",
-    "release": "release-1056ef0-1786228879619",
-    "release_sha": "1056ef0957f08b98c9b207c0b16f90a55300f1cc",
-    "cache_token": "product-1056ef09-ddfef560140a",
+    "release": "release-b189afe-1786229063574",
+    "release_sha": "b189afe7ddb4e9bdf8d1e541a69f0cf0ed4de491",
+    "cache_token": "product-b189afe7-ddfef560140a",
     "content_digest_sha256": "42be5a6687b5fafcb7e797afdc533ba2f77bddee06e4342fa24378bd70dbffc8",
     "health": "ready",
     "verified_at": "2026-08-06T10:35:17.000Z",
@@ -28,16 +28,16 @@
   "alpha": {
     "branch": "alpha",
     "role": "sole current integration, version and deployment line",
-    "source_head_sha": "1056ef0957f08b98c9b207c0b16f90a55300f1cc",
-    "runtime_release_sha": "1056ef0957f08b98c9b207c0b16f90a55300f1cc",
-    "deployment_reports": "alpha source SHA + public /api/health release SHA"
+    "source_head_sha": "826ba677838ba11bdc5520e75225c8f593f67102",
+    "runtime_release_sha": "b189afe7ddb4e9bdf8d1e541a69f0cf0ed4de491",
+    "deployment_reports": "engine source import SHA + unified alpha release lock + public /api/health release SHA"
   },
   "canonical": {
     "branch": "canonical",
     "role": "frozen mirror; do not advance independently",
     "tag": "canonical-live-20260808",
-    "source_sha": "1056ef0957f08b98c9b207c0b16f90a55300f1cc",
-    "runtime_release_sha": "1056ef0957f08b98c9b207c0b16f90a55300f1cc",
+    "source_sha": "b189afe7ddb4e9bdf8d1e541a69f0cf0ed4de491",
+    "runtime_release_sha": "b189afe7ddb4e9bdf8d1e541a69f0cf0ed4de491",
     "alpha_ancestor": "320b1af085a59c10bc0cd087680294ea7cc486ea",
     "matches_live_health": true,
     "note": "Canonical mirrors alpha's last integrated source. The immutable alpha-0.01 tag and origin/main remain historical."

@@ -1,5 +1,10 @@
 # WARDROBE — Integration handoff for the incoming design source of truth
 
+> Current release note (2026-08-23): the design history below remains valid,
+> but branch and deployment instructions are superseded by `AGENTS.md`.
+> Unified `alpha` is the only active source and contains both the cinematic
+> site and `beta/` engine.
+
 This document is a surgical integration note, not a replacement design brief.
 When the incoming Claude Code commit arrives, **that commit is the visual and
 structural source of truth**. Preserve its design decisions. Apply only the

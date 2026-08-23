@@ -3,15 +3,13 @@ set -eu
 
 REPO_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 RUNTIME_DIR='/Users/jarvis1/Library/Application Support/WardrobeRuntime'
-BACKUP_BASE='/Users/jarvis1/.local/share/madeforthisjob/app/runtime/backups'
 PUBLIC_ORIGIN='https://site.madeforthisjob.com'
 cd "$REPO_DIR"
 
 branch=$(git branch --show-current)
 case "$branch" in
-  main) EXPECTED_UPSTREAM='origin/main' ;;
-  canonical-site-main) EXPECTED_UPSTREAM='origin/canonical-site-main' ;;
-  *) echo "refusing deploy: branch is $branch, expected main or canonical-site-main" >&2; exit 1 ;;
+  alpha) EXPECTED_UPSTREAM='origin/alpha' ;;
+  *) echo "refusing deploy: branch is $branch, expected alpha" >&2; exit 1 ;;
 esac
 
 upstream=$(git rev-parse --abbrev-ref --symbolic-full-name '@{upstream}' 2>/dev/null || true)
@@ -29,21 +27,17 @@ git fetch origin "${EXPECTED_UPSTREAM#origin/}"
 local_head=$(git rev-parse HEAD)
 remote_head=$(git rev-parse "$EXPECTED_UPSTREAM")
 if [ "$local_head" != "$remote_head" ]; then
-  echo "refusing deploy: local HEAD is not origin/canonical-site-main" >&2
+  echo "refusing deploy: local HEAD is not origin/alpha" >&2
   exit 1
 fi
 
+./verify quick
 ./scripts/site-preflight.sh
 
 if [ ! -d "$RUNTIME_DIR/b" ]; then
   echo "refusing deploy: runtime directory is missing" >&2
   exit 1
 fi
-
-stamp=$(date +%Y%m%d-%H%M%S)
-backup_dir="$BACKUP_BASE/WardrobeRuntime-pre-$local_head-$stamp"
-mkdir -p "$backup_dir"
-/bin/cp -Rp "$RUNTIME_DIR/." "$backup_dir/"
 
 /usr/bin/rsync -a \
   --exclude '.git' \
@@ -81,5 +75,4 @@ done
 /usr/bin/curl -fsS -o /dev/null "$PUBLIC_ORIGIN/api/health"
 
 echo "deployed $local_head"
-echo "backup: $backup_dir"
 echo "public: $PUBLIC_ORIGIN/"

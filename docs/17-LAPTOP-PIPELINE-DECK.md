@@ -81,5 +81,5 @@ Then smoke desktop Chromium and iPhone/WebKit at the live canonical domain:
   scripts;
 - source hash, console errors and network failures remain zero.
 
-Only `canonical-site-main` is deployable for this lane. Do not merge or deploy beta,
-runtime or router changes as part of the laptop handoff.
+Only unified `alpha` is deployable. Keep a laptop-only claim narrow: do not
+change engine runtime or provider routing as part of this handoff.

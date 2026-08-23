@@ -10,19 +10,19 @@ all active claims.
 
 ```text
 Codex local worktree  -- claim / commit / rebase --\
-                                                   > canonical-site-main
+                                                   > alpha
 Claude local worktree -- claim / commit / rebase --/          |
                                                                v
                                                    site.madeforthisjob.com
 
-owner-approved official release only:
-canonical-site-main -- explicit reviewed fast-forward --> main --> madeforthisjob.com
+same verified source:
+alpha --> cinematic site + beta engine deploy artifacts
 ```
 
-GitHub intentionally has one working branch: `canonical-site-main`. Both agents
-publish to it. `main` is the frozen official release source and does not move
-during normal development. There are no persistent agent, feature, or
-preflight branches.
+GitHub intentionally has one working/install/release branch: `alpha`. Both
+agents publish to it. Historical `main`, `canonical-site-main` and `beta` refs
+do not move during normal development. There are no persistent agent, feature,
+or preflight branches.
 
 Separate local branch names exist only because Git cannot safely check out one
 local branch in two worktrees. They are never pushed to GitHub. The live board
@@ -78,15 +78,15 @@ the new claim. Narrow the atom or coordinate a release first.
 ## Commit and push from Claude
 
 ```bash
-git fetch origin canonical-site-main
-git rebase origin/canonical-site-main
+git fetch origin alpha
+git rebase origin/alpha
 ./scripts/site-preflight.sh
 git status --short
 git add <only-the-files-owned-by-this-atom>
 git commit -m "feat: <one concrete main-site atom>"
-git fetch origin canonical-site-main
-git rebase origin/canonical-site-main
-git push origin HEAD:canonical-site-main
+git fetch origin alpha
+git rebase origin/alpha
+git push origin HEAD:alpha
 ./scripts/collab-board.sh release "$(git rev-parse HEAD)" "<short result>"
 ```
 
@@ -107,7 +107,7 @@ The Next/vinext app, `npm run build`, Cloudflare Workers deploys, and the beta
 runtime are not on this request path.
 
 To update the test domain from a clean checkout whose HEAD exactly matches
-`origin/canonical-site-main`, run:
+`origin/alpha`, run:
 
 ```bash
 ./scripts/deploy-site.sh

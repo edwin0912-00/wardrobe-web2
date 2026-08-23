@@ -7,8 +7,8 @@
 - `origin/beta` and `origin/canonical` are frozen mirrors at the last shared
   source head; future changes must land on `alpha` first.
 - Live beta, `madeforthisjob.com` and `site.madeforthisjob.com` currently serve
-  the same runtime release `1056ef0957f08b98c9b207c0b16f90a55300f1cc` with
-  cache token `product-1056ef09-ddfef560140a`.
+  the same runtime release `b189afe7ddb4e9bdf8d1e541a69f0cf0ed4de491` with
+  cache token `product-b189afe7-ddfef560140a`.
 - The `alpha-0.01` tag and `origin/main` remain immutable historical
   checkpoints. They are not deployment sources.
 - Every future deployment report must include the `alpha` source SHA, runtime
@@ -854,17 +854,20 @@ be weakened to hide it.
   for Lucy realtime token issuance, and neither is an image/VLM fallback.
 - `weakened_checks: none`.
 
-## Alpha paid core journey — 2026-08-11
+## Unified alpha source sync — 2026-08-23
 
-- A clean `alpha` checkout passes the executable root verifier and its real
-  browser bridge/two-process checks.
-- A host-local authorized OpenRouter run completed the real path: identity and
-  garment input → avatar generation → avatar QA PASS → outfit generation →
-  outfit QA PASS → saved look → original PNG and WebP preview delivery.
-- The repaired contract has one shared owner for semantic reference roles;
-  runner evidence and VLM prepared evidence can no longer disagree merely by
-  renaming a canonical garment binding.
-- The pre-change regression fails, focused tests pass 34/34, and root
-  `./verify` passes after the repair.
-- `weakened_checks: none`; no threshold, lock, evidence hash or semantic QA
-  requirement was relaxed.
+- `alpha` is the only active integration/install source and contains both the
+  cinematic site and engine. Historical beta/canonical/main refs are frozen
+  audit history, not independent development lines.
+- The latest committed engine canon through
+  `826ba677838ba11bdc5520e75225c8f593f67102` is present under this repository's
+  `beta/` subtree. That range changes documentation and runtime records, not
+  active product code.
+- Public `madeforthisjob.com`, `beta.madeforthisjob.com` and
+  `site.madeforthisjob.com` remain healthy on deployed release
+  `b189afe7ddb4e9bdf8d1e541a69f0cf0ed4de491`; a newer source commit is not a
+  deployment claim.
+- The supported clean-machine contract remains the root `./verify --run`.
+  `npm run share -- --port 4173 --background --json` is the verified mobile
+  preview path and never stores credentials in Git.
+- `weakened_checks: none`.

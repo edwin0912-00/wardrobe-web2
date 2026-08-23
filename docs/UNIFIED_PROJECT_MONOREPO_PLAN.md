@@ -1,10 +1,16 @@
-# Unified Wardrobe project — recorded migration plan
+# Unified Wardrobe project — executed migration record
 
-Status: **owner-approved architecture proposal; not yet executed.**
+Status: **executed; unified public `alpha` is the current source of truth.**
 
-This file records the intended future source of truth. It does not change the
-current live sites, branches, deploy routes, runtime data, credentials, or
-provider configuration.
+The target described below now exists in this repository: cinematic source at
+the root, engine and engineering UI under `beta/`, one root verifier and one
+release lock. The old source branches and SHA table are retained below only as
+migration provenance. They are not current operational instructions; use
+`README.md`, `AGENTS.md` and `release/RELEASE.lock.json` for current commands.
+
+This file records how the current source of truth was assembled. It does not
+authorize changing live sites, runtime data, credentials, or provider
+configuration.
 
 ## The problem it solves
 

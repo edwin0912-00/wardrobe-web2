@@ -9,15 +9,16 @@ on its live board before editing anything.
 ## Identity and boundaries
 
 - Repository: `https://github.com/edwin0912-00/wardrobe-web2.git`
-- Product: cinematic customer-facing main site, not engineering beta.
+- Product: unified Wardrobe source; claim a narrow site or engine lane before editing.
 - Canon: the D fabric-world journey in `b/`.
-- Official release branch: `main` — frozen until the owner approves release.
-- Shared working branch on GitHub: `canonical-site-main`.
+- Official integration/install/release branch: `alpha`.
+- Shared working branch on GitHub: `alpha`.
 - Your worktree uses a private local branch but pushes only to
-  `origin/canonical-site-main`; never publish another agent branch.
-- Public review target: `https://site.madeforthisjob.com/` only.
-- Never edit or deploy the beta repository, beta branch, beta UI, or
-  `beta.madeforthisjob.com` from this worktree.
+  `origin/alpha`; never publish another agent branch.
+- Public review targets are `https://madeforthisjob.com/` for the cinematic
+  site and `https://beta.madeforthisjob.com/` for the engineering UI.
+- Do not edit `beta/` during a site-only lane, or root cinematic files during
+  an engine-only lane. The live board, not an old branch name, owns boundaries.
 - The beta adapter is consumed through its documented presentation-neutral
   interface. Do not copy beta DOM/CSS into this site.
 
@@ -43,20 +44,20 @@ on its live board before editing anything.
 ## Side-by-side Git protocol
 
 1. Work only in your Claude worktree. Both agents share the one remote working
-   line `origin/canonical-site-main`, but never share a checkout.
+   line `origin/alpha`, but never share a checkout.
 2. Before starting an atom: read the live board, claim the direction, files,
    and expected intersection, then fetch and rebase onto
-   `origin/canonical-site-main` before editing.
+   `origin/alpha` before editing.
 3. Keep each commit to one reviewable visual or interaction atom.
 4. Run `./scripts/site-preflight.sh` before every commit and push.
 5. Immediately before push, fetch and rebase onto the current shared branch,
-   then push explicitly with `git push origin HEAD:canonical-site-main`.
+   then push explicitly with `git push origin HEAD:alpha`.
    Report the exact SHA and changed files.
    After push, release the board claim with that SHA and result.
-6. Never force-push. Never push `main`. `main` advances from the tested shared
-   branch only after explicit owner approval for the official release.
+6. Never force-push. Never advance historical `main`, `beta`, or
+   `canonical-site-main` refs.
 7. Test-deploy only when the local HEAD exactly equals
-   `origin/canonical-site-main`, using `./scripts/deploy-site.sh`.
+   `origin/alpha`, using `./scripts/deploy-site.sh`.
 8. Never run two agents in the same checkout. Git worktrees are the isolation
    boundary; Git commits are the handoff mechanism.
 

@@ -1,5 +1,9 @@
 # Wardrobe integration log
 
+> Поточний стислий логічний view: [`docs/canonical/12_LOGIC_CHANGELOG.md`](docs/canonical/12_LOGIC_CHANGELOG.md).
+> Цей файл залишається append-only forensic журналом із точними SHA та доказами;
+> для швидкого відновлення контексту не потрібно перечитувати всі записи нижче.
+
 Append one entry for every change that enters
 `integration/wardrobe-20260726`. The entry must be committed with the code it
 describes. Claims without a command, artifact, commit, or observable result are
@@ -1954,20 +1958,24 @@ Provider: Codex primary; guarded OpenRouter image/scene fallback; OpenRouter
 video/VLM; Higgsfield prohibited and not constructed.
 weakened_checks: none.
 
-2026-08-11 · ALPHA-CORE-QA-REFERENCE-ROLES · alpha · codex-main
-Change: made the runner evidence manifest and the model evaluator consume one
-shared role function for canonical identity and outfit reference packs. The
-manifest now lists only evidence actually delivered to the evaluator.
-Why: a real OpenRouter image run generated valid avatar and outfit candidates,
-but the runner renamed declared garment roles to synthetic `OUTFIT_REFERENCE_*`
-roles. The evaluator attested the declared roles, so the runner rejected its
-otherwise valid QA receipt and spent unnecessary retries.
-Evidence: the new regression fails on pre-change source and passes after the
-repair; focused QA/reference tests 34/34 PASS; root `./verify` PASS. A paid
-avatar-to-outfit run completed with conditioning, avatar and outfit QA PASS;
-the saved look returned its original PNG and lightweight WebP preview through
-the main-site bridge.
-Provider: OpenRouter transport with `openai/gpt-5.4-image-2`; authorization was
-host-local and no credential or private media was committed.
-weakened_checks: none; evidence hashes, prepared inputs and semantic checks
-remain fail-closed.
+2026-08-09 · ALPHA-DEPLOY-B189AFE · alpha · codex-live-40
+Change: aligned the deployment ledger with the final traceability release
+after the report-only source update.
+Evidence: public beta, madeforthisjob.com and site.madeforthisjob.com all
+returned `ready` with release `b189afe7ddb4e9bdf8d1e541a69f0cf0ed4de491` and
+cache `product-b189afe7-ddfef560140a`; no active work was interrupted.
+weakened_checks: none; no paid generation.
+
+2026-08-23 · UNIFIED-ALPHA-SOURCE-SYNC · alpha · codex-main
+Change: synchronized the committed engine documentation/state line through
+`826ba677838ba11bdc5520e75225c8f593f67102` into the unified public alpha
+repository and added a tested HTTPS mobile-preview helper to the unified root.
+Why: the installable repository must contain the latest committed engine canon,
+the cinematic site and its local-review tooling without relying on another
+working branch or a private machine path.
+Evidence: engine diff after the previous imported source is documentation/state
+only; preview helper tests `2/2 PASS`; all three public health endpoints still
+return `ready` on deployed release `b189afe7ddb4e9bdf8d1e541a69f0cf0ed4de491`.
+Deployment: NOT_DEPLOYED by this source-sync atom; clean-clone release proof is
+recorded by the unified root verifier and release lock.
+weakened_checks: none.

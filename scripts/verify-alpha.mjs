@@ -114,6 +114,9 @@ const allowedAlphaOverlay = [
   ':(exclude)test/release-lock.test.mjs',
   ':(exclude)test/tar-manifest.test.mjs',
   ':(exclude)docs/TEST-SYSTEM.md',
+  ':(exclude)docs/PUBLIC_PREVIEW_TUNNEL_UA.md',
+  ':(exclude)tools/public-preview.mjs',
+  ':(exclude)test/tools/public-preview.test.mjs',
   ':(exclude)ops/loops/evaluator-verification-v1/**',
   // Alpha-local portability repair: the locked cinematic source used
   // HTTPServer's reverse-DNS bind, which can stall with Homebrew Python 3.14.
@@ -152,6 +155,7 @@ for (const [relativePath, minimumBytes] of requiredFiles) requireFile(relativePa
 run(process.execPath, ['--check', 'engine.js']);
 run(process.execPath, ['--check', 'screen-surfaces.js']);
 run(process.execPath, ['--check', 'beta/src/web/start.js']);
+run(process.execPath, ['--test', 'test/tools/public-preview.test.mjs']);
 
 if (install) {
   run('./scripts/site-preflight.sh', []);

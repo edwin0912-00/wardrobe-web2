@@ -30,6 +30,20 @@ loopback addresses. Stop them with `Ctrl+C`.
 The same `./verify` command runs in GitHub Actions. CI does not reconstruct the
 steps in YAML, so local and hosted acceptance cannot silently diverge.
 
+## One active release line
+
+`alpha` is the only branch used for new integration, installation and release
+source. It owns both the cinematic site and the engine subtree shown above.
+Historical `beta`, `canonical-site-main` and `main` refs remain audit history;
+new fixes are not developed or assembled from them. Deploy tooling may build
+separate site and engine processes, but both artifacts must come from the same
+verified `alpha` commit.
+
+The storage policy is equally small: one active checkout and one verified,
+credential-free backup archive. Temporary clones, test installs, caches and old
+release directories are disposable after their commits and unique uncommitted
+files have been proven present in Git or in that single backup.
+
 ## What PASS proves
 
 - committed source ancestry, contracts, canon and focused provider/video code;
@@ -59,6 +73,20 @@ approved QA receipts; a deterministic fixture is not presented as model proof.
 entrypoints. The detailed executable contract and receipt schema live in
 [`docs/TEST-SYSTEM.md`](docs/TEST-SYSTEM.md); reviewer criteria and observable
 evidence live in [`docs/REVIEWER-ACCEPTANCE.md`](docs/REVIEWER-ACCEPTANCE.md).
+
+## Open a local build on a phone
+
+Never send a loopback URL to a phone or remote reviewer. With the local product
+already running, publish and verify a temporary HTTPS preview with:
+
+```bash
+npm run share -- --port 4173 --background --json
+```
+
+Use only the verified HTTPS URL from the JSON receipt. Stop that tunnel with
+`npm run share -- --stop`. Provider order, health checks and state-file behavior
+are documented in
+[`docs/PUBLIC_PREVIEW_TUNNEL_UA.md`](docs/PUBLIC_PREVIEW_TUNNEL_UA.md).
 
 ## Product journey
 
