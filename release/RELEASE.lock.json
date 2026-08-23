@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
-  "release": "alpha-0.04-paid-core-qa",
-  "created_at": "2026-08-11",
-  "purpose": "Evaluator-safe alpha containing the cinematic site, current beta engine, visible bridge startup failure, deterministic browser acceptance, and the paid-proven semantic QA reference-role repair.",
+  "release": "alpha-0.05-unified-canonical",
+  "created_at": "2026-08-23",
+  "purpose": "Single installable alpha containing the cinematic site, current committed engine canon, visible bridge startup failure, deterministic browser acceptance, paid-proven semantic QA reference-role repair, and verified mobile preview tooling.",
   "sources": {
     "main_site": {
       "repository": "https://github.com/edwin0912-00/wardrobe-web2.git",
@@ -11,19 +11,19 @@
     },
     "beta_engine": {
       "repository": "https://github.com/edwin0912-00/zeely-ai-engineering-test.git",
-      "commit": "9393da5dc1b0815169d6a2c93a4128e7ca714b47",
-      "source_tree": "f345ed77fbadb5916109ec02ca3ceea757c0132a",
-      "tree": "e0c1a1efeb6127cbda26c169409a29e1ac06238b",
+      "commit": "826ba677838ba11bdc5520e75225c8f593f67102",
+      "source_tree": "679d1a3dc4abdd95b3a92afc22eaaadc2da85a5c",
+      "tree": "8a12fdf9b66987f302f5b4fae1db395f69a1a5cb",
       "location": "beta"
     }
   },
   "provenance": {
-    "import_commit": "21491e4cfc649368b9314195ae0c5ef442b760af",
+    "import_commit": "d1361e67cc06d2b35bc086ecfc9cc6ea082f0891",
     "import_commit_parents": [
-      "d36e59ed81d4963ea33f8a350bbea540a2b2545e",
-      "9393da5dc1b0815169d6a2c93a4128e7ca714b47"
+      "e8b2a88d407db365278fbe38e2b353d1d33f61b4",
+      "826ba677838ba11bdc5520e75225c8f593f67102"
     ],
-    "strategy": "two-parent merge; beta source commit retained, with the evaluator-facing tree sanitized only by removing the runtime credential backup",
+    "strategy": "two-parent provenance merge; the committed engine alpha is retained as a parent while its current documentation/state changes are synchronized under beta, with the evaluator-facing tree excluding the runtime credential backup",
     "excluded_private_paths": [
       "beta/secrets/zeely-runtime-private.tar.gz.enc"
     ]
