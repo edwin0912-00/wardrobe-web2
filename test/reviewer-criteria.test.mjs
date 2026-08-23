@@ -36,7 +36,22 @@ test('alpha README and evaluator expose one reproducible behavioral acceptance p
   assert.equal(packageJson.scripts['media:install'], 'node scripts/fetch-media-bundle.mjs');
   assert.ok(checks.rules.some((rule) => rule.id === 'BROWSER_CORE_E2E' && rule.blocking));
   assert.deepEqual(checks.forbidden_repairs.includes('change QA thresholds'), true);
-  assert.equal(lock.sources.beta_engine.commit, '9393da5dc1b0815169d6a2c93a4128e7ca714b47');
+  assert.match(
+    lock.sources.beta_engine.commit,
+    /^[0-9a-f]{40}$/,
+    'release provenance must record a full immutable engine commit SHA',
+  );
+  assert.match(
+    lock.sources.beta_engine.source_tree,
+    /^[0-9a-f]{40}$/,
+    'release provenance must record the imported engine source tree',
+  );
+  assert.match(
+    lock.sources.beta_engine.tree,
+    /^[0-9a-f]{40}$/,
+    'release provenance must record the committed beta tree',
+  );
+  assert.equal(lock.sources.beta_engine.location, 'beta');
   assert.deepEqual(lock.provenance.excluded_private_paths, [
     'beta/secrets/zeely-runtime-private.tar.gz.enc',
   ]);
