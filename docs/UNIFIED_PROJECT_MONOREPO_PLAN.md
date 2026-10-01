@@ -1,4 +1,134 @@
-# Unified Wardrobe project — executed migration record
+# Wardrobe operational handoff
+
+## Current verified state — 2026-10-01
+
+`alpha` in `edwin0912-00/wardrobe-web2` is the only active source line and the
+repository default. One source tree contains the cinematic website, Studio,
+Node services and Codex worker adapter. Historical branches and the migration
+plan below are provenance, not alternative startup instructions.
+
+The verified deployed product SHA is
+`9832c265776d2ee1d160af3d08a054a06572413d`. A later documentation-only commit
+does not require replacing a healthy product artifact. Product-code changes
+require a new verified artifact built from the corresponding alpha commit.
+
+### Source and persistent state
+
+Paths below are relative to the deployment operator's home, not a clean
+reviewer's install. Connection details and private receipts are kept in the
+owner's local project audit, outside the public repository.
+
+| Component | Location or owner |
+|---|---|
+| Active source checkout | `~/Wardrobe/product`, branch `alpha` |
+| Engine source | `beta/src/`, Studio in `beta/web/public/` |
+| Cinematic source | root, `b/`, `adapters/`, `serve.py` |
+| Active engine artifact | read `app_root` in `~/.local/share/madeforthisjob-beta-launcher/run-beta-daemon.sh` |
+| Persistent main artifact | `~/Library/Application Support/WardrobeRuntime` |
+| Working databases, jobs, outputs | `~/.local/share/madeforthisjob/.zeely-beta-runtime` |
+| Dedicated Codex authorization | `~/Wardrobe/private/codex-home` |
+| Exact video reference originals and previews | `~/Wardrobe/private/video-references` |
+| Other provider credentials | host-private store referenced by the engine launcher; never copy into Git |
+
+Keep these concerns separate. A source checkout is not a database backup;
+an engine artifact is not the editable source. Do not move or delete the
+private runtime while updating code. Codex authorization was re-established
+with ordinary OAuth in its dedicated profile. Do not redirect it to a generic
+desktop account or to a disconnected volume.
+
+### Running services and public surfaces
+
+| LaunchAgent | Role | Loopback port |
+|---|---|---|
+| `com.madeforthisjob.web2` | cinematic site and same-origin API gateway | 4180 |
+| `com.madeforthisjob.beta` | Studio and Node engine | 4176 |
+| `com.madeforthisjob.monitor` | operations monitor | 4174 |
+| `com.madeforthisjob.cloudflared` | public ingress tunnel | — |
+
+Main: `https://site.madeforthisjob.com` (also apex and www).
+Studio: `https://beta.madeforthisjob.com` (dev/live are aliases).
+Monitor: `https://monitor.madeforthisjob.com`.
+Other project presentation/watch services exist; inspect their own labels
+before changing them. Do not equate an installed plist with a running process.
+
+### Verification and provider receipt
+
+The unified `./verify` local gate passed, including the real Chromium fixture
+journey, persistence after reload, both processes and MP4 byte ranges. The
+deployed surfaces returned ready and the same product SHA; main Range returned
+206. All 12 video-reference files matched their manifest size and SHA-256;
+the resolver accepted all four styles from internal storage.
+
+One explicitly authorized real Codex transport test on this deployed Alpha
+passed on 2026-10-01: controller `gpt-5.5`, built-in image generation, no
+fallback, no personal input, one PNG, 1254×1254, 1,251,811 bytes, 44.451 seconds.
+Output SHA-256:
+`6d94f58883144e4a851ed58dcc49317446c433ba1675449a7015b077be55008d`.
+This proves generation through the worker. It does not certify a full paid
+avatar/look/Fashion Shoot/Fashion Video journey or model-quality QA.
+
+### Safe change, stop and resume procedure
+
+1. Read `AGENTS.md`, this handoff and the live board. Claim the exact files.
+2. Inspect branch/status, launch-agent state, health/release SHA and actual
+   active jobs. Read the real launchers; do not infer paths from old logs.
+3. Use `./verify` for candidate acceptance. Paid generation needs explicit
+   owner authorization and an agreed non-personal or approved input.
+4. Build/verify the engine artifact with the tools in
+   `beta/docs/canonical/10_DEPLOYMENT_RUNBOOK.md`. Activate through
+   `beta/tools/deploy-beta-release.mjs`; its active-work guard must pass.
+   Deploy main through `scripts/deploy-site.sh`. Preserve private runtime.
+5. Recheck public health, source/artifact correspondence, main↔API bridge,
+   reference catalogs, media Range and browser behavior. Publish a redacted
+   result and exact source SHA to the shared board.
+
+On the deployment host, inspect only these services with:
+
+```sh
+for label in web2 beta monitor cloudflared; do
+  launchctl print "gui/$(id -u)/com.madeforthisjob.$label"
+done
+```
+
+Only when the owner explicitly requests a stop and active work is resolved:
+
+```sh
+for label in web2 beta monitor; do
+  launchctl bootout "gui/$(id -u)/com.madeforthisjob.$label"
+done
+```
+
+This leaves data and the shared tunnel intact. Resume the requested services:
+
+```sh
+for label in beta web2 monitor; do
+  launchctl bootstrap "gui/$(id -u)" \
+    "$HOME/Library/LaunchAgents/com.madeforthisjob.$label.plist"
+done
+```
+
+Check whether a label is already loaded before bootstrap. Restart a loaded
+label with `launchctl kickstart -k` only after the same active-work check.
+Never use `killall node`, broad cache removal or a clone's test launcher to
+control production. Never rerun dependency installation underneath an active
+artifact without considering its dependency link.
+
+### Storage and cleanup boundaries
+
+The owner requested deletion of the consolidation backup and redundant local
+Git bundles; working data and the original unique histories were retained.
+Do not assume that backup exists for rollback. Check actual paths before every
+destructive action and create a concrete recovery plan for a future deploy.
+
+Old source/release copies also exist under general names such as `github`,
+`slot-refs-group-*`, `Codex-offload/releases/beta-*` and `beta-live-40sec`.
+Identify them by Git remote, package name, code markers and hashes. Name/age,
+an archive label or apparent cache location is not proof of duplication.
+Provider caches, Codex state, SQLite indexes, client outputs and source assets
+must not be treated as disposable dependency caches. Storage counts require
+realpath/hardlink checks before claiming reclaimable bytes.
+
+## Historical migration record (not current operating instructions)
 
 Status: **executed; unified public `alpha` is the current source of truth.**
 

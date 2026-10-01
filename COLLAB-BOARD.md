@@ -4,6 +4,24 @@ The live board is GitHub issue
 [`#2 — Main Site live agent claims and intersections`](https://github.com/edwin0912-00/wardrobe-web2/issues/2).
 It is shared by every worktree and branch; this file defines the protocol only.
 
+## Current project handoff
+
+The complete product is in `alpha`; the current operating map is
+[`docs/UNIFIED_PROJECT_MONOREPO_PLAN.md`](docs/UNIFIED_PROJECT_MONOREPO_PLAN.md).
+Read it and `README.md` before claiming work. Main, Studio and the Node/Codex
+engine are one product; do not create a separate backend or restart an old
+clone based on historical documentation.
+
+For each completion, record source commit, deployed product SHA, verification
+scope and remaining gaps on this board. Distinguish a real provider result from
+fixture tests or health. A docs-only commit may advance alpha while the tested
+product artifact stays on its previous SHA; say so explicitly. Never publish
+credentials, client images, private absolute paths or full provider receipts.
+
+Stopping services or removing old copies requires an explicit owner request
+and the handoff's active-work/path checks; a board claim alone does not grant
+that authority.
+
 ## Every work atom
 
 ```bash

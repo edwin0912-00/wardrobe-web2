@@ -1,5 +1,25 @@
 # WARDROBE agent entrypoint
 
+## Current operational handoff — 2026-10-01
+
+Start with `README.md`, then `docs/UNIFIED_PROJECT_MONOREPO_PLAN.md` and
+`COLLAB-BOARD.md`. The handoff is the current operational map; older live SHA,
+host paths and branch guidance in beta documentation are dated history.
+`alpha` is the sole active integration line. Do not recreate the split project
+from `main`, `beta` or `canonical-site-main`.
+
+Source, deployed artifacts and private runtime are separate. Preserve the
+existing runtime and the dedicated Codex account when changing code. Verify
+the actual provider before claiming generation works; health or fixture PASS
+alone is insufficient. Do not silently substitute another account or model.
+The controller is pinned in `beta/src/providers/codex-app-server-client.js`;
+check its availability before modifying that contract.
+
+Restart, stop or cleanup only within the owner's requested scope. Check active
+work first, use project launch-agent labels rather than broad process kills,
+and keep credentials and generated/client data out of commits and board posts.
+The owner removed the consolidation backup; never assume a backup exists.
+
 ## Unified release branch
 
 The official evaluator and installation branch is `alpha`, which is also the

@@ -13,6 +13,21 @@ wardrobe-web2/
 
 No second repository or manually rewritten backend URL is required.
 
+## Current operations and agent entrypoint
+
+Read [the operational handoff](docs/UNIFIED_PROJECT_MONOREPO_PLAN.md) before
+changing, restarting, stopping or cleaning the deployed project. It is the
+current map of source, services, private runtime and recovery boundaries.
+`AGENTS.md` is the agent entrypoint; `COLLAB-BOARD.md` links the shared live
+coordination board. Older release snapshots in `beta/docs/` remain history.
+
+The active sites and engine were verified on 2026-10-01 at product commit
+`9832c265776d2ee1d160af3d08a054a06572413d`. A real call through that deployed
+Alpha's `CodexAppServerClient` generated a 1254×1254 PNG in 44.451 seconds,
+with no fallback and no personal input. This proves the Codex image transport;
+it does not claim a complete avatar → outfit → downstream QA journey. Private
+request IDs, receipts and generated media remain outside Git.
+
 ## One command from a clean machine
 
 Requirements: Git, Python 3.10+ and Node.js 22+.
@@ -39,10 +54,12 @@ new fixes are not developed or assembled from them. Deploy tooling may build
 separate site and engine processes, but both artifacts must come from the same
 verified `alpha` commit.
 
-The storage policy is equally small: one active checkout and one verified,
-credential-free backup archive. Temporary clones, test installs, caches and old
-release directories are disposable after their commits and unique uncommitted
-files have been proven present in Git or in that single backup.
+Keep one active source checkout. Backup retention is an explicit owner choice;
+the owner requested removal of the consolidation backup on 2026-10-01.
+Historical clones and archives are not automatically disposable: first prove
+that their unique history, uncommitted code, inputs and outputs are retained,
+and that no process, worktree, symlink or deployment uses them. Runtime data,
+provider state and old branches must not be discarded based on names or age.
 
 ## What PASS proves
 
