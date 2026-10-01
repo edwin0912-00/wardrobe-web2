@@ -5,7 +5,7 @@
  * The active site may be replaced wholesale while this bridge continues to use
  * the same relative `/api` contract.
  */
-import { createZeelyClient, phaseFor } from './zeely-client.mjs?v=20260803-1';
+import { createZeelyClient, phaseFor } from './zeely-client.mjs?v=20261001-1';
 
 const ACTIVE_PHASES = new Set([
   'uploading', 'running', 'needs_input', 'waiting_for_approval', 'recovering',
@@ -294,6 +294,7 @@ function normalizeVideos(capability) {
       playbackUrl: style.playback_url,
       referenceUrl: style.reference_url,
       inputContract: style.input_contract ?? null,
+      videoModels: Array.isArray(style.video_models) ? style.video_models : [],
     };
   }).filter((item) => item.id && item.motionMode);
 }
@@ -679,6 +680,7 @@ export function createCinematicUiBridge({
       result = {
         kind,
         clipId: entity.clip_id,
+        videoModel: entity.video_model ?? entity.videoModel ?? null,
         aspect: entity.surface === 'tv' ? '16:9' : '9:16',
         urls: [],
         mediaUrl: media,
@@ -805,6 +807,7 @@ export function createCinematicUiBridge({
       result: {
         kind: 'video',
         clipId,
+        videoModel: clip?.video_model ?? clip?.videoModel ?? null,
         aspect: clip.surface === 'tv' ? '16:9' : '9:16',
         urls: [],
         mediaUrl,
@@ -1021,7 +1024,7 @@ export function createCinematicUiBridge({
       }
       throw new CinematicUiBridgeError('SHOOT_APPROVAL_UNAVAILABLE');
     },
-    async createVideo({ styleId, motionMode, presentationSurface = 'mirror', durationSeconds = null, styleNote = '' }) {
+    async createVideo({ styleId, motionMode, videoModel = null, presentationSurface = 'mirror', durationSeconds = null, styleNote = '' }) {
       requireReady();
       if (!state.savedLook?.look_id) throw new CinematicUiBridgeError('NO_SAVED_LOOK');
       emit('video:submitting', { activeKind: 'video', phase: 'running', error: null, result: null });
@@ -1032,6 +1035,7 @@ export function createCinematicUiBridge({
         surface: presentationSurface,
         styleId,
         motionMode,
+        videoModel,
         durationSeconds,
         styleNote,
       });

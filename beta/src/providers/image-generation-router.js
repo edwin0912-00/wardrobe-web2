@@ -26,6 +26,9 @@ const NON_RETRYABLE_CODES = new Set([
   'REFERENCE_NOT_READABLE',
   'INVALID_REFERENCE_FILE',
   'REFERENCE_HASH_MISMATCH',
+  'REFERENCE_DIGEST_MISMATCH',
+  'UNSUPPORTED_REFERENCE_MEDIA',
+  'INVALID_REFERENCE_MEDIA',
   'INVALID_REFERENCE_IMAGE',
   'INVALID_CONDITIONING_INPUT',
 ]);
@@ -67,7 +70,8 @@ export class ImageGenerationRouter {
     this.primary = primary;
     this.fallbacks = [...fallbacks];
     this.providers = Object.freeze([primary, ...this.fallbacks]);
-    this.providerName = 'codex-primary-openrouter-fallback';
+    this.providerName = 'codex-primary-fal-fallback';
+    this.primaryProbeError = null;
     this.generationRoute = Object.freeze([...(generationRoute ?? primary.generationRoute ?? [])]);
     this.maxOrderedReferences = Math.max(
       ...this.providers.map((provider) => Number.isInteger(provider.maxOrderedReferences) ? provider.maxOrderedReferences : 0),
@@ -75,18 +79,28 @@ export class ImageGenerationRouter {
   }
 
   healthStatus() {
-    const primary = typeof this.primary.healthStatus === 'function' ? this.primary.healthStatus() : { status: 'unknown' };
+    const primary = this.primaryProbeError
+      ? { status: 'degraded', code: this.primaryProbeError.code ?? 'PRIMARY_UNAVAILABLE' }
+      : typeof this.primary.healthStatus === 'function' ? this.primary.healthStatus() : { status: 'unknown' };
     return {
       status: primary.status === 'ready' ? 'ready' : 'degraded',
       policy: this.providerName,
       primary: primary.status ?? 'unknown',
+      ...(primary.code ? { primary_code: primary.code } : {}),
       fallbacks: this.fallbacks.map((provider) => providerName(provider, 'fallback')),
     };
   }
 
   async probe() {
-    if (typeof this.primary.probe === 'function') return this.primary.probe();
-    return this.healthStatus();
+    try {
+      const status = typeof this.primary.probe === 'function' ? await this.primary.probe() : this.healthStatus();
+      this.primaryProbeError = null;
+      return status;
+    } catch (error) {
+      this.primaryProbeError = error;
+      if (this.fallbacks.length === 0) throw error;
+      return this.healthStatus();
+    }
   }
 
   async condition(context) {
@@ -96,8 +110,18 @@ export class ImageGenerationRouter {
 
   async generate(context) {
     const attempts = [];
+    const referenceCount = Array.isArray(context?.references?.ordered) ? context.references.ordered.length : null;
     for (const [index, provider] of this.providers.entries()) {
       const name = providerName(provider, index === 0 ? 'codex' : 'openrouter');
+      const maxReferences = Number.isInteger(provider.maxOrderedReferences) ? provider.maxOrderedReferences : null;
+      if (maxReferences !== null && referenceCount !== null && referenceCount > maxReferences) {
+        attempts.push({ provider: name, outcome: 'SKIPPED', reason: 'REFERENCE_LIMIT', reference_count: referenceCount, max_ordered_references: maxReferences });
+        continue;
+      }
+      if (index === 0 && this.primaryProbeError) {
+        attempts.push({ provider: name, outcome: 'SKIPPED', reason: 'PRIMARY_UNAVAILABLE', code: this.primaryProbeError.code ?? 'PRIMARY_UNAVAILABLE' });
+        continue;
+      }
       try {
         const response = await provider.generate(context);
         return {
@@ -122,6 +146,11 @@ export class ImageGenerationRouter {
           );
         }
       }
+    }
+    if (attempts.length > 0 && attempts.every((attempt) => attempt.outcome === 'SKIPPED')) {
+      throw new ImageGenerationRouterError('No configured image transport can accept this request', {
+        code: 'NO_CAPABLE_IMAGE_PROVIDER', retryable: false, attempts,
+      });
     }
     throw new ImageGenerationRouterError('No image transport is configured', { attempts });
   }

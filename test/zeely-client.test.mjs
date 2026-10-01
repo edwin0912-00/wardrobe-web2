@@ -230,12 +230,14 @@ test('matches the deployed Fashion Video style and explicit retry contract', asy
     lookId: 'look-1',
     styleId: 'fabric-air',
     motionMode: 'editorial-forward',
+    videoModel: 'seedance-2.5',
     durationSeconds: 8,
   });
   assert.deepEqual(JSON.parse(calls[0].options.body), {
     look_id: 'look-1',
     style_id: 'fabric-air',
     motion_mode: 'editorial-forward',
+    video_model: 'seedance-2.5',
     duration_seconds: 8,
   });
   assert.equal(client.videoStylePlaybackUrl('look-1', 'fabric-air'), '/api/profile/looks/look-1/video-styles/fabric-air/playback');
@@ -245,6 +247,7 @@ test('matches the deployed Fashion Video style and explicit retry contract', asy
   await client.retryVideo('clip-1', 'retry-key');
   assert.equal(calls[1].url, '/api/profile/video-clips/clip-1/retry');
   assert.equal(calls[1].options.headers['Idempotency-Key'], 'retry-key');
+  assert.equal(calls[1].options.body, undefined, 'retry preserves the persisted model from the parent clip');
   client.dispose();
 });
 

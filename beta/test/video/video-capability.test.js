@@ -18,6 +18,22 @@ const availableStyles = [1, 2, 3].map((index) => ({
   playback_path: `/runtime/references/playback-${index}.mp4`,
   playback_sha256: String(index + 3).repeat(64),
   preview_sha256: String(index).repeat(64),
+  video_models: [
+    {
+      id: 'seedance-2.0',
+      available: true,
+      reason_code: null,
+      reason_uk: 'Сервер підготує сумісну копію.',
+      normalization_required: true,
+    },
+    {
+      id: 'seedance-2.5',
+      available: true,
+      reason_code: null,
+      reason_uk: null,
+      normalization_required: false,
+    },
+  ],
 }));
 
 test('Fashion Video remains blocked without a hash-bound reference pack', () => {
@@ -53,6 +69,10 @@ test('Fashion Video becomes available only when look, style and motion are verif
   });
   assert.equal(capability.reason_code, 'FASHION_VIDEO_READY');
   assert.equal(capability.next_action, 'CREATE_FASHION_VIDEO');
+  assert.deepEqual(capability.video_models.map(({ id, default: isDefault }) => [id, isDefault]), [
+    ['seedance-2.0', true],
+    ['seedance-2.5', false],
+  ]);
   assert.match(capability.styles[0].playback_url, /\/playback\?v=4444444444444444$/);
   assert.match(capability.styles[0].reference_url, /\/reference$/);
   assert.equal(capability.styles[0].presentation_surface, 'mirror');
@@ -60,6 +80,7 @@ test('Fashion Video becomes available only when look, style and motion are verif
   assert.equal(capability.styles[0].input_contract.version, 'fashion-video-reference-contract-v1');
   assert.equal(capability.styles[0].input_contract.inputs[0].role, 'motion_reference');
   assert.equal(capability.styles[0].input_contract.inputs[1].role, 'approved_white_master');
+  assert.equal(capability.styles[0].video_models[0].normalization_required, true);
 });
 
 test('Fashion Video rejects incomplete or malformed reference hashes', () => {
@@ -99,6 +120,7 @@ test('Fashion Video remains ready when an approved fourth video style is added',
           playback_path: '/runtime/references/playback-4.mp4',
           playback_sha256: '7'.repeat(64),
           preview_sha256: '8'.repeat(64),
+          video_models: availableStyles[0].video_models,
         },
       ],
     },

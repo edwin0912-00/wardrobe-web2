@@ -210,6 +210,7 @@ export async function createWebApp({
     lucyTokenIssuer,
     profileApi,
     profiles,
+    runService: service,
   });
   if (sceneService) {
     await registerSceneRoutes(app, {

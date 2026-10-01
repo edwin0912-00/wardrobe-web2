@@ -1,6 +1,7 @@
 import { CodexAppServerClient } from '../providers/codex-app-server-client.js';
 import { CodexImagegenProvider } from '../providers/codex-imagegen-provider.js';
 import { OpenRouterImageGenProvider } from '../providers/openrouter-imagegen-provider.js';
+import { FalImagegenProvider } from '../providers/fal-imagegen-provider.js';
 import { ImageGenerationRouter } from '../providers/image-generation-router.js';
 import { resolveLookImageRoute } from '../runner/model-policy.js';
 import { ImageAssetGenerator as ProviderAssetGenerator } from './image-asset-generator.js';
@@ -9,8 +10,8 @@ export const CODEX_IMAGEGEN_TEST_MODE = 'codex-imagegen-test';
 export const CODEX_PRIMARY_IMAGEGEN_MODE = 'codex-primary';
 export const OPENROUTER_IMAGEGEN_MODE = 'openrouter';
 
-function hasOpenRouterKey() {
-  return String(process.env.OPENROUTER_API_KEY ?? '').trim().length > 0;
+function hasFalKey() {
+  return String(process.env.FAL_KEY ?? '').trim().length > 0;
 }
 
 class UnavailableGenerationProvider {
@@ -66,6 +67,7 @@ export async function createGenerationRuntime({
   vlm,
   projectRoot,
   codexWorker,
+  falClient,
   lookImageRoute = resolveLookImageRoute(process.env.ZEELY_LOOK_IMAGE_ROUTE ?? 'quality'),
   onCloseReady = () => {},
   onFatal = () => {},
@@ -73,8 +75,8 @@ export async function createGenerationRuntime({
   if (!vlm || typeof vlm.evaluateQa !== 'function') throw new TypeError('vlm evaluator is required');
   if (typeof onCloseReady !== 'function') throw new TypeError('onCloseReady must be a function');
   if (typeof onFatal !== 'function') throw new TypeError('onFatal must be a function');
-  const openRouter = mode === CODEX_PRIMARY_IMAGEGEN_MODE && hasOpenRouterKey()
-    ? new OpenRouterImageGenProvider({ qaEvaluator: vlm.evaluateQa.bind(vlm) })
+  const fal = mode === CODEX_PRIMARY_IMAGEGEN_MODE && hasFalKey()
+    ? new FalImagegenProvider({ qaEvaluator: vlm.evaluateQa.bind(vlm), ...(falClient ? { client: falClient } : {}) })
     : null;
   if (mode === OPENROUTER_IMAGEGEN_MODE) {
     const provider = new OpenRouterImageGenProvider({ qaEvaluator: vlm.evaluateQa.bind(vlm) });
@@ -110,7 +112,7 @@ export async function createGenerationRuntime({
   const provider = mode === CODEX_PRIMARY_IMAGEGEN_MODE
     ? new ImageGenerationRouter({
         primary: codex,
-        fallbacks: openRouter ? [openRouter] : [],
+        fallbacks: fal ? [fal] : [],
         generationRoute: lookImageRoute,
       })
     : codex;
@@ -143,8 +145,8 @@ export async function createGenerationRuntime({
     };
   }
   const label = mode === CODEX_PRIMARY_IMAGEGEN_MODE
-    ? openRouter
-      ? 'Codex Image Generation → OpenRouter fallback'
+    ? fal
+      ? 'Codex Image Generation → FAL GPT Image 2.5 Sunburst fallback'
       : 'Codex Image Generation'
     : 'Codex Image Generation — test only';
   return {

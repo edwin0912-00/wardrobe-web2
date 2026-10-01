@@ -25,6 +25,11 @@ import {
   surfaceForReferenceGeometry,
 } from './video-motion-plan.js';
 import { evaluateClipQa } from './video-clip-qa.js';
+import {
+  DEFAULT_FAL_VIDEO_MODEL,
+  FAL_VIDEO_PROVIDER,
+  resolveFalVideoModel,
+} from '../providers/fal-video-provider.js';
 
 // A Fashion Video reference is a directing authority, never footage licensed
 // for output. Every detected cut must therefore carry independently hashed
@@ -83,6 +88,32 @@ const AUTOMATIC_REFERENCE_QA_FAILURE_CODES = new Set([
 export const MAX_INPUT_MEDIA_IP_CHECK_CREATE_ATTEMPTS = 2;
 export const INPUT_MEDIA_IP_CHECK_RETRY_DELAY_MS = 3_000;
 const INPUT_MEDIA_IP_CHECK_PENDING_CODE = 'PROVIDER_INPUT_MEDIA_IP_CHECK_PENDING';
+const CREATE_PRECHECK_CODES = new Set([
+  'VIDEO_MODEL_REFERENCE_DURATION_UNSUPPORTED',
+  'VIDEO_MODEL_REFERENCE_GEOMETRY_UNSUPPORTED',
+  'VIDEO_MODEL_REFERENCE_FPS_UNSUPPORTED',
+  'VIDEO_MODEL_OUTPUT_DURATION_UNSUPPORTED',
+  'VIDEO_REFERENCE_NORMALIZATION_FAILED',
+  'VIDEO_REFERENCE_PROBE_FAILED',
+  'VIDEO_REFERENCE_PROBE_MISMATCH',
+  'VIDEO_REFERENCE_HASH_MISMATCH',
+  'VIDEO_REFERENCE_BINDING_INVALID',
+  'VIDEO_INPUT_UPLOAD_FAILED',
+  'VIDEO_MODEL_MEDIA_LIMITS_INVALID',
+  'VIDEO_IMAGE_SIZE_UNSUPPORTED',
+  'VIDEO_IMAGE_FORMAT_UNSUPPORTED',
+  'VIDEO_IMAGE_HASH_MISMATCH',
+  'VIDEO_IMAGE_UNREADABLE',
+  'VIDEO_MODEL_ASPECT_RATIO_UNSUPPORTED',
+  'UNSAFE_PROVIDER_PROMPT',
+  'FAL_VIDEO_MISCONFIGURED',
+]);
+
+function providerCreateErrorStatus(code) {
+  if (code === 'FAL_VIDEO_MISCONFIGURED') return 503;
+  if (CREATE_PRECHECK_CODES.has(code)) return 409;
+  return 502;
+}
 
 const SHA256 = /^[a-f0-9]{64}$/;
 const CUT_PEOPLE = new Set(['APPROVED_AVATAR_ONLY', 'NO_PERSON', 'REFERENCE_PERFORMER', 'MIXED_OR_UNKNOWN']);
@@ -529,12 +560,24 @@ export class VideoService {
     lookBinding = null,
     videoReference = null,
     appearanceReferences = [],
+    videoModel = DEFAULT_FAL_VIDEO_MODEL,
     retryOf = null,
     automaticRetry = null,
   }) {
     if (!sourceImagePath) {
       throw new VideoServiceError('A locked source image path is required', {
         code: 'MISSING_SOURCE', status: 400,
+      });
+    }
+
+    let selectedVideoModel;
+    try {
+      selectedVideoModel = resolveFalVideoModel(videoModel);
+    } catch (cause) {
+      throw new VideoServiceError('The requested Fashion Video model is not supported', {
+        code: cause?.code ?? 'VIDEO_MODEL_UNSUPPORTED',
+        status: 400,
+        cause,
       });
     }
 
@@ -564,6 +607,14 @@ export class VideoService {
     let verifiedVideoReference = null;
     let verifiedReferenceBytes = null;
     if (videoReference !== null) {
+      if (selectedVideoModel.id === 'seedance-2.5'
+        && Number.isFinite(videoReference?.duration_seconds)
+        && Math.ceil(videoReference.duration_seconds) > 30) {
+        throw new VideoServiceError(
+          'Seedance 2.5 cannot fit the full reference cut sheet within its 30-second output limit; the source will not be shortened.',
+          { code: 'VIDEO_MODEL_OUTPUT_DURATION_UNSUPPORTED', status: 409 },
+        );
+      }
       if (lookBinding?.whiteBackgroundVerified !== true) {
         throw new VideoServiceError(
           'Fashion Video requires a verified approved white master; raw person photos are forbidden',
@@ -576,8 +627,8 @@ export class VideoService {
         || !/^[a-f0-9]{64}$/.test(videoReference.reference_pack_sha256 ?? '')
         || !Number.isFinite(videoReference.duration_seconds)
         || !Number.isInteger(videoReference.provider_duration_seconds)
-        || videoReference.provider_duration_seconds < 3
-        || videoReference.provider_duration_seconds > 15
+        || videoReference.provider_duration_seconds < 4
+        || videoReference.provider_duration_seconds > 30
         || !Number.isInteger(videoReference.width)
         || !Number.isInteger(videoReference.height)
         || videoReference.width < 1
@@ -604,6 +655,12 @@ export class VideoService {
           code: 'VIDEO_REFERENCE_HASH_MISMATCH',
           status: 409,
         });
+      }
+      if (selectedVideoModel.id === 'seedance-2.0' && videoReference.duration_seconds > 15) {
+        throw new VideoServiceError(
+          `Seedance 2.0 accepts motion references up to 15 seconds; this reference is ${videoReference.duration_seconds}s. Select Seedance 2.5.`,
+          { code: 'VIDEO_MODEL_REFERENCE_DURATION_UNSUPPORTED', status: 409 },
+        );
       }
       verifiedVideoReference = {
         path: videoReference.reference_path,
@@ -642,6 +699,7 @@ export class VideoService {
       // This avoids treating a historical mode demo duration as authority when
       // retrying a completed style binding.
       referenceDurationSeconds: verifiedVideoReference?.providerDurationSeconds ?? null,
+      maxReferenceDurationSeconds: selectedVideoModel.id === 'seedance-2.5' ? 30 : 15,
       sourceCapabilities,
       styleNote,
     });
@@ -754,11 +812,16 @@ export class VideoService {
       : plan.durationSeconds;
     const request = {
       prompt,
+      videoModel: selectedVideoModel.id,
       mediaPaths: [
         lockedSourcePath,
         ...lockedAppearanceReferences.map((reference) => reference.path),
       ],
       videoPaths: verifiedVideoReference ? [verifiedVideoReference.path] : [],
+      appearanceReferences: lockedAppearanceReferences.map(({ role, sha256: referenceSha256 }) => ({
+        role,
+        sha256: referenceSha256,
+      })),
       aspectRatio,
       durationSeconds: duration,
       sourceBinding: {
@@ -781,6 +844,11 @@ export class VideoService {
             role: referenceBindings.motion_reference.role,
             provider_label: referenceBindings.motion_reference.provider_label,
             sha256: verifiedVideoReference.sha256,
+            duration_seconds: verifiedVideoReference.durationSeconds,
+            width: verifiedVideoReference.width,
+            height: verifiedVideoReference.height,
+            fps: verifiedVideoReference.fps,
+            cut_sheet_sha256: verifiedVideoReference.cutSheetSha256,
           },
           images: [
             {
@@ -796,6 +864,7 @@ export class VideoService {
           ],
         }
       : null;
+    request.referenceBindings = providerReferenceBindings;
     const immutableRequestBinding = {
       schema_version: 'fashion-video-request-binding-v1',
       source_binding: {
@@ -833,7 +902,10 @@ export class VideoService {
     const submitting = {
       clipId,
       jobId: null,
-      providerKey: null,
+      providerKey: FAL_VIDEO_PROVIDER,
+      videoModel: selectedVideoModel.id,
+      providerEndpoint: selectedVideoModel.endpoint,
+      providerRequestId: null,
       status: 'SUBMITTING',
       mode: plan.mode,
       title: plan.title,
@@ -930,7 +1002,56 @@ export class VideoService {
         // SUBMITTING makes it look paid/active forever and blocks a safe release.
         // The one exception is an acknowledgement we cannot parse: that outcome
         // may already be billed, so it stays recoverable until reconciled.
-        if (cause?.code === 'CREATE_OUTCOME_UNKNOWN') throw cause;
+        if (cause?.code === 'CREATE_OUTCOME_UNKNOWN' || cause?.providerInputMedia) {
+          const uploadedInputs = cause?.providerInputMedia ?? null;
+          const unknownOutcome = cause?.code === 'CREATE_OUTCOME_UNKNOWN';
+          const failureReceipt = {
+            schema_version: '1.0.0',
+            clip_id: clipId,
+            created_at: createdAt,
+            provider: FAL_VIDEO_PROVIDER,
+            video_model: selectedVideoModel.id,
+            endpoint: selectedVideoModel.endpoint,
+            outcome: unknownOutcome ? 'UNKNOWN' : 'REJECTED',
+            failure_code: cause?.code ?? 'VIDEO_INPUT_UPLOAD_FAILED',
+            request: {
+              source_sha256: sourceSha256,
+              motion_reference_sha256: verifiedVideoReference?.sha256 ?? null,
+              prompt,
+              aspect_ratio: aspectRatio,
+              duration_seconds: duration,
+              reference_bindings: providerReferenceBindings,
+              immutable_request_binding: immutableRequestBinding,
+            },
+            provider_input_media: uploadedInputs,
+          };
+          const receiptBytes = Buffer.from(`${JSON.stringify(failureReceipt, null, 2)}\n`);
+          await this.#store.saveCreateReceipt(clipId, receiptBytes);
+          const failureCode = unknownOutcome
+            ? null
+            : CREATE_PRECHECK_CODES.has(cause?.code) ? cause.code : 'VIDEO_CREATE_REJECTED';
+          await this.#store.save(clipId, {
+            ...submitting,
+            ...(uploadedInputs ? { providerInputMedia: uploadedInputs } : {}),
+            ...(unknownOutcome
+              ? { providerCreateOutcome: 'UNKNOWN' }
+              : { status: 'FAILED', failureCode }),
+            createReceiptSha256: sha256(receiptBytes),
+            createReceiptFile: 'create-receipt.json',
+            updatedAt: new Date(this.#clock()).toISOString(),
+          });
+          if (unknownOutcome) {
+            throw new VideoServiceError(
+              'The provider may have accepted this Fashion Video request, but its acknowledgement was lost. No second create was sent.',
+              { code: 'CREATE_OUTCOME_UNKNOWN', status: 503, cause },
+            );
+          }
+          throw new VideoServiceError(cause.message ?? 'FAL could not upload Fashion Video inputs', {
+            code: failureCode,
+            status: providerCreateErrorStatus(cause?.code),
+            cause,
+          });
+        }
         const terminalInputMedia = inputMediaPending
           ? {
               state: 'PENDING',
@@ -954,8 +1075,8 @@ export class VideoService {
           );
         }
         throw new VideoServiceError('Video provider rejected the create request', {
-          code: 'VIDEO_CREATE_REJECTED',
-          status: 502,
+          code: CREATE_PRECHECK_CODES.has(cause?.code) ? cause.code : 'VIDEO_CREATE_REJECTED',
+          status: providerCreateErrorStatus(cause?.code),
         });
       }
     }
@@ -965,6 +1086,15 @@ export class VideoService {
       clip_id: clipId,
       created_at: createdAt,
       provider: created.providerKey ?? 'openrouter',
+      video_model: created.providerKey === FAL_VIDEO_PROVIDER
+        ? created.videoModel ?? selectedVideoModel.id
+        : null,
+      endpoint: created.providerKey === FAL_VIDEO_PROVIDER
+        ? created.providerEndpoint ?? selectedVideoModel.endpoint
+        : null,
+      request_id: created.providerKey === FAL_VIDEO_PROVIDER
+        ? created.requestId ?? created.jobId
+        : null,
       provider_create_attempt: created.createAttempt ?? 1,
       fallback_used: created.fallbackUsed === true,
       request: {
@@ -991,12 +1121,13 @@ export class VideoService {
           : null,
         reference_bindings: providerReferenceBindings,
         immutable_request_binding: immutableRequestBinding,
+        provider_payload: created.request ?? null,
       },
       response: {
         job_id: created.jobId,
         payload: created.raw ?? null,
       },
-      provider_input_media: providerInputMedia,
+      provider_input_media: created.inputMedia ?? providerInputMedia,
     };
     const receiptBytes = Buffer.from(`${JSON.stringify(receipt, null, 2)}\n`);
     const createReceiptSha256 = sha256(receiptBytes);
@@ -1007,9 +1138,20 @@ export class VideoService {
       retryOf,
       jobId: created.jobId,
       providerKey: created.providerKey ?? 'openrouter',
+      videoModel: created.providerKey === FAL_VIDEO_PROVIDER
+        ? created.videoModel ?? selectedVideoModel.id
+        : null,
+      providerEndpoint: created.providerKey === FAL_VIDEO_PROVIDER
+        ? created.providerEndpoint ?? selectedVideoModel.endpoint
+        : null,
+      providerRequestId: created.providerKey === FAL_VIDEO_PROVIDER
+        ? created.requestId ?? created.jobId
+        : null,
       providerCreateAttempt: created.createAttempt ?? 1,
       fallbackUsed: created.fallbackUsed === true,
-      ...(providerInputMedia ? { providerInputMedia } : {}),
+      ...((created.inputMedia ?? providerInputMedia)
+        ? { providerInputMedia: created.inputMedia ?? providerInputMedia }
+        : {}),
       status: 'CREATED',
       createReceiptSha256,
       createReceiptFile: 'create-receipt.json',
@@ -1021,7 +1163,14 @@ export class VideoService {
     return {
       clipId,
       jobId: created.jobId,
+      requestId: created.requestId ?? created.jobId,
       status: 'CREATED',
+      videoModel: created.providerKey === FAL_VIDEO_PROVIDER
+        ? created.videoModel ?? selectedVideoModel.id
+        : null,
+      providerEndpoint: created.providerKey === FAL_VIDEO_PROVIDER
+        ? created.providerEndpoint ?? selectedVideoModel.endpoint
+        : null,
       plan: {
         ...plan,
         prompt,
@@ -1208,6 +1357,27 @@ export class VideoService {
         code: 'VIDEO_RETRY_STATUS_INVALID', status: 409,
       });
     }
+    let retryVideoModel = DEFAULT_FAL_VIDEO_MODEL;
+    if (parent.providerKey === FAL_VIDEO_PROVIDER) {
+      let persistedModel;
+      try {
+        persistedModel = resolveFalVideoModel(parent.videoModel);
+      } catch (cause) {
+        throw new VideoServiceError('The failed clip has no valid persisted FAL model binding', {
+          code: 'VIDEO_RETRY_PROVIDER_BINDING_INVALID', status: 409, cause,
+        });
+      }
+      if (parent.providerEndpoint !== persistedModel.endpoint) {
+        throw new VideoServiceError('The failed clip endpoint does not match its persisted model', {
+          code: 'VIDEO_RETRY_PROVIDER_BINDING_INVALID', status: 409,
+        });
+      }
+      retryVideoModel = persistedModel.id;
+    } else if (parent.providerKey && parent.providerKey !== 'openrouter') {
+      throw new VideoServiceError('This failed video provider cannot be retried by the FAL route', {
+        code: 'VIDEO_RETRY_PROVIDER_BINDING_INVALID', status: 409,
+      });
+    }
     if (parent.lookBinding?.whiteBackgroundVerified !== true
       || parent.appearanceReferences?.some((reference) => (
         reference.white_background_verified !== true
@@ -1253,6 +1423,7 @@ export class VideoService {
       lookBinding: parent.lookBinding,
       videoReference,
       appearanceReferences,
+      videoModel: retryVideoModel,
       retryOf: parentClipId,
       automaticRetry,
     });
@@ -1338,6 +1509,9 @@ export class VideoService {
         finished = await this.#provider.waitForJob({
           jobId: clip.jobId,
           providerKey: clip.providerKey,
+          videoModel: clip.videoModel,
+          providerEndpoint: clip.providerEndpoint,
+          providerRequestId: clip.providerRequestId,
         });
       } catch (cause) {
       // Provider-terminal outcomes cannot be recovered by polling the same

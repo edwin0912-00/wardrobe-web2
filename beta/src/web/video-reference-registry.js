@@ -3,6 +3,7 @@ import path from 'node:path';
 
 import { sha256 } from './scene-contract.js';
 import { surfaceForReferenceGeometry } from './video-motion-plan.js';
+import { falVideoModelCompatibility } from '../providers/fal-video-provider.js';
 
 const SHA256 = /^[a-f0-9]{64}$/;
 const SAFE_FILENAME = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
@@ -57,7 +58,7 @@ function validateManifest(manifest) {
       || reference.preview_bytes < 1
       || !Number.isFinite(reference?.duration_seconds)
       || reference.duration_seconds < 3
-      || reference.duration_seconds > 15.5
+      || reference.duration_seconds > 30.2
       || !Number.isInteger(reference?.width)
       || !Number.isInteger(reference?.height)
       || reference.width < 1
@@ -185,6 +186,13 @@ export function createFashionVideoReferenceResolver({
         playback_sha256: reference.playback_sha256,
         preview_path: previewPath,
         preview_sha256: reference.preview_sha256,
+        video_models: falVideoModelCompatibility({
+          durationSeconds: reference.duration_seconds,
+          width: reference.width,
+          height: reference.height,
+          fps: reference.fps,
+          bytes: reference.bytes,
+        }),
       }));
     }
 
@@ -196,7 +204,7 @@ export function createFashionVideoReferenceResolver({
       reference_sha256: selected.sha256,
       reference_pack_sha256: sha256(manifestBytes),
       duration_seconds: selected.duration_seconds,
-      provider_duration_seconds: Math.min(15, Math.round(selected.duration_seconds)),
+      provider_duration_seconds: Math.ceil(selected.duration_seconds),
       width: selected.width,
       height: selected.height,
       presentation_surface: surfaceForReferenceGeometry(selected.width, selected.height).id,

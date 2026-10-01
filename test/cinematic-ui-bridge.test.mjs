@@ -42,6 +42,7 @@ function clientStub({ profileError = null, profile = { looks: [] } } = {}) {
     createShoot: async (lookId, input) => { calls.push(['shoot', lookId, input]); return { shoot_id: 'shoot-1', status: 'QUEUED' }; },
     createVideo: async (input) => { calls.push(['video', input]); return { clip_id: 'clip-1', status: 'CREATED' }; },
     watchVideo: () => () => {},
+    retryVideo: async (clipId) => { calls.push(['retry-video', clipId]); return {}; },
     loadShoot: async (shootId) => { calls.push(['load-shoot', shootId]); return null; },
     watchShoot: (shootId) => { calls.push(['watch-shoot', shootId]); return () => {}; },
     retryScene: async () => ({}),
@@ -222,6 +223,7 @@ test('restores saved backgrounds, Fashion Shoot frames and verified Fashion Vide
   }] });
   client.listVideos = async () => ({ clips: [{
     clip_id: 'clip-library', status: 'PASS', surface: 'mirror',
+    video_model: 'seedance-2.5',
     video_url: '/api/profile/video-clips/clip-library/video',
     download_url: '/api/profile/video-clips/clip-library/download',
   }] });
@@ -238,6 +240,7 @@ test('restores saved backgrounds, Fashion Shoot frames and verified Fashion Vide
   assert.equal(deliveries.shoots[0].result.readyCount, 5);
   assert.equal(deliveries.videos.length, 1);
   assert.equal(deliveries.videos[0].result.mediaUrl, '/api/profile/video-clips/clip-library/video');
+  assert.equal(deliveries.videos[0].result.videoModel, 'seedance-2.5');
   assert.equal(deliveries.videos[0].result.downloadUrl, '/api/profile/video-clips/clip-library/download');
   assert.equal(bridge.state().result, null, 'restoring a library must not impersonate a new active job');
 });
@@ -630,21 +633,39 @@ test('a wide background request is intent only until beta delivers an image', as
   assert.equal(bridge.state().result.mediaUrl, '/api/profile/scenes/scene-1/image');
 });
 
-test('Fashion Video surface is derived from the verified style, not a viewer choice', async () => {
+test('Fashion Video uses capability model availability and sends the chosen model with the verified style', async () => {
   const client = clientStub({ profile: { looks: [{
     look_id: 'look-1', image_url: '/api/profile/looks/look-1/image',
   }] } });
-  client.videoCapability = async () => ({ available: true, styles: [{
+  client.videoCapability = async () => ({
+    available: true,
+    video_models: [
+      { id: 'seedance-2.0', label: 'Seedance 2.0', default: true },
+      { id: 'seedance-2.5', label: 'Seedance 2.5', default: false },
+    ],
+    styles: [{
     id: 'landscape-style', title: 'Широкий стиль', motion_mode: 'camera_drift',
     aspect_ratio: '16:9', presentation_surface: 'tv', preview_url: '/p', playback_url: '/v', reference_url: '/r',
+    video_models: [
+      { id: 'seedance-2.0', available: false, reason_code: 'VIDEO_MODEL_STYLE_UNSUPPORTED', reason_uk: 'Потрібна Seedance 2.5.', normalization_required: false },
+      { id: 'seedance-2.5', available: true, reason_code: null, reason_uk: null, normalization_required: true },
+    ],
   }] });
   const bridge = createCinematicUiBridge({ client, autoProbe: false });
   await bridge.probe();
   assert.equal(bridge.state().catalogs.videos[0].presentationSurface, 'tv');
   assert.equal(bridge.state().catalogs.videos[0].aspect, '16:9');
+  assert.equal(bridge.state().catalogs.videos[0].videoModels[0].available, false);
+  assert.equal(bridge.state().videoCapability.video_models[0].default, true);
   // The direct bridge call deliberately accepts no raw aspect field.
-  await bridge.createVideo({ styleId: 'landscape-style', motionMode: 'camera_drift', presentationSurface: 'tv' });
+  await bridge.createVideo({
+    styleId: 'landscape-style',
+    motionMode: 'camera_drift',
+    videoModel: 'seedance-2.5',
+    presentationSurface: 'tv',
+  });
   assert.equal(client.calls.find(([kind]) => kind === 'video')[1].surface, 'tv');
+  assert.equal(client.calls.find(([kind]) => kind === 'video')[1].videoModel, 'seedance-2.5');
 });
 
 test('duplicate garment choices and explicit shoot approvals remain actionable', async () => {

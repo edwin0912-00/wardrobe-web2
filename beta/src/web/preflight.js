@@ -24,17 +24,17 @@ export async function runLocalPreflight({ commandRunner = execFileAsync, generat
       || codexStatus?.capabilities?.imageGeneration !== true) {
       throw new Error('Codex imagegen preflight requires ChatGPT login and imageGeneration capability');
     }
-    const openRouterConfigured = String(process.env.OPENROUTER_API_KEY ?? '').trim().length > 0;
+    const falConfigured = String(process.env.FAL_KEY ?? '').trim().length > 0;
     // Keep the public health surface generic: it must never disclose the local
     // worker implementation or the authenticated account type.
     return generationMode === 'codex-primary'
       ? {
           status: 'ready',
-          generation: openRouterConfigured
-            ? 'Codex Image Generation → OpenRouter fallback'
+          generation: falConfigured
+            ? 'Codex Image Generation → FAL Sunburst fallback'
             : 'Codex Image Generation',
           primary: 'codex',
-          ...(openRouterConfigured ? { fallback: 'openrouter' } : {}),
+          ...(falConfigured ? { fallback: 'fal-sunburst' } : {}),
           test_only: false,
         }
       : { status: 'ready', generation: 'Codex Image Generation — test only', test_only: true };

@@ -2,14 +2,16 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import Fastify from 'fastify';
 import { registerPostShootRoutes } from '../../src/web/post-shoot-routes.js';
+import { ProfileError } from '../../src/web/profile-service.js';
 
 function ownershipFixture({ ownedLookId = 'look-123' } = {}) {
   const sessions = [];
   const profiles = {
+    async approvedLookLiveReference() { return { reference_sha256: 'a'.repeat(64) }; },
     ownsLook(profileId, lookId) {
       return profileId === 'profile-1' && lookId === ownedLookId;
     },
-  };
+};
   const profileApi = {
     async resolveRequestProfile(request, reply) {
       sessions.push({ request, reply });
@@ -18,6 +20,25 @@ function ownershipFixture({ ownedLookId = 'look-123' } = {}) {
   };
   return { profileApi, profiles, sessions };
 }
+
+test('incomplete approved look blocks AI capability and token issuance without contacting FAL', async (t) => {
+  const app = Fastify();
+  const owner = ownershipFixture();
+  owner.profiles.approvedLookLiveReference = async () => {
+    throw new ProfileError(422, 'LIVE_REFERENCE_INCOMPLETE_LOOK', 'missing: top or one_piece');
+  };
+  let tokenCalls = 0;
+  await registerPostShootRoutes(app, { ...owner, lucyTokenIssuer: async () => { tokenCalls += 1; return 'short-lived-token'; } });
+  t.after(() => app.close());
+  const capability = await app.inject('/api/post-shoot/realtime-look-capability?look_id=look-123');
+  assert.equal(capability.statusCode, 200);
+  assert.equal(capability.json().paid_live_ready, false);
+  assert.equal(capability.json().blocked_reason.code, 'LIVE_REFERENCE_INCOMPLETE_LOOK');
+  const token = await app.inject({ method: 'POST', url: '/api/fal/realtime-token',
+    payload: { app: 'decart/lucy-2-5/realtime', look_id: 'look-123' } });
+  assert.equal(token.statusCode, 422);
+  assert.equal(tokenCalls, 0);
+});
 
 test('public pipeline exposes Lucy contract without secrets', async (t) => {
   const app = Fastify();
@@ -49,6 +70,7 @@ test('saved-look action hub receives a full-viewport truthful Real-time Look lau
     capability: 'REALTIME_LOOK',
     camera_preview_ready: true,
     paid_live_ready: true,
+    reference_ready: true,
     launch: {
       href: '/post-shoot-mvp.html?look=look-123&surface=full',
       presentation: 'FULL_VIEWPORT',

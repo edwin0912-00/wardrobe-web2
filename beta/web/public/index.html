@@ -12,8 +12,8 @@
   <link rel="stylesheet" href="/progress.css?v=20260724-1">
   <link rel="stylesheet" href="/conflict.css?v=20260801-1">
   <link rel="stylesheet" href="/experience.css?v=20260730-7">
-  <link rel="stylesheet" href="/result.css?v=20260730-6">
-  <link rel="stylesheet" href="/scene.css?v=20260803-3">
+  <link rel="stylesheet" href="/result.css?v=20261001-1">
+  <link rel="stylesheet" href="/scene.css?v=20261001-1">
   <link rel="stylesheet" href="/scene-cta.css?v=20260727-1">
   <script type="module" src="/scene-cta.js?v=20260725-1"></script>
 </head>
@@ -256,6 +256,10 @@
             </header>
             <div class="video-overlay-body">
               <div class="video-control-group">
+                <label id="video-model-control" class="video-model-control" hidden>
+                  <span>Модель руху</span>
+                  <select id="video-model" aria-label="Модель Fashion Video"></select>
+                </label>
                 <label class="video-label">Обери стиль Fashion Video</label>
                 <section id="video-input-contract" class="video-input-contract" aria-label="Референси Fashion Video" hidden></section>
                 <div id="video-style-options" class="video-style-options" role="radiogroup" aria-label="Стиль Fashion Video"></div>
@@ -271,6 +275,7 @@
                 </div>
                 <div id="video-result" class="video-result" hidden>
                   <video id="video-result-player" controls playsinline loop></video>
+                  <p id="video-result-model" class="video-result-model" hidden></p>
                   <div class="video-result-actions">
                     <a id="video-result-download" download="fashion-video.mp4">Завантажити MP4 ↓</a>
                     <button id="video-result-copy" type="button" hidden>Копіювати посилання</button>
@@ -439,6 +444,6 @@
   </aside>
   <script src="/boot-guard.js?v=20260722-3"></script>
   <script src="/vendor/heic2any.min.js?v=0.0.4"></script>
-  <script type="module" src="/app.js?v=20260804-1"></script>
+  <script type="module" src="/app.js?v=20261001-1"></script>
 </body>
 </html>

@@ -21,6 +21,12 @@ current map of source, services, private runtime and recovery boundaries.
 `AGENTS.md` is the agent entrypoint; `COLLAB-BOARD.md` links the shared live
 coordination board. Older release snapshots in `beta/docs/` remain history.
 
+The provider contract is documented in [PROVIDER-ROUTING.md](docs/PROVIDER-ROUTING.md):
+Codex-first photos with FAL Sunburst fallback, selectable FAL Seedance 2.0/2.5
+for reference-bound videos, OpenRouter semantic QA, and Lucy 2.5 Live.
+Provider output and deployment status require separate receipts; configuration
+or fixture tests alone do not prove an external model works.
+
 The active sites and engine were verified on 2026-10-01 at product commit
 `9832c265776d2ee1d160af3d08a054a06572413d`. A real call through that deployed
 Alpha's `CodexAppServerClient` generated a 1254×1254 PNG in 44.451 seconds,
@@ -130,10 +136,11 @@ Real paid generation requires host-local provider authorization. Credentials,
 browser sessions, user runtime, uploads, receipts and generated media are never
 stored in the public repository.
 
-Primary image transport is the locally authorized Codex route. OpenRouter is an
-optional image/video fallback configured only through a local environment
-variable or credential store. Higgsfield is not an allowed production route in
-this deliverable.
+Primary image transport is the locally authorized Codex route, with FAL
+Sunburst fallback. `FAL_KEY` also enables reference-bound Seedance 2.0/2.5
+video and Lucy Live; keep it in the host-private credential store. OpenRouter
+supplies semantic QA and can resume its existing recorded video jobs.
+Higgsfield is not an allowed production route in this deliverable.
 
 ## Runtime ownership
 

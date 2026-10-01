@@ -294,6 +294,7 @@ export function buildMotionPlan({
   modeId,
   durationSeconds,
   referenceDurationSeconds = null,
+  maxReferenceDurationSeconds = 15,
   surface: surfaceId = DEFAULT_VIDEO_SURFACE,
   sourceCapabilities = {},
   styleNote = null,
@@ -308,9 +309,8 @@ export function buildMotionPlan({
     );
   }
 
-  // The reference registry already derives this from the immutable source as
-  // a value the provider accepts (whole seconds, 3–15).  It must take
-  // precedence over an old persisted clip's mode-duration value on retry.
+  // The registry rounds up so the whole-second output covers every cut. The
+  // selected model cap takes precedence over an old persisted mode duration.
   // Otherwise a valid 13 s style with the `camera_drift` motion label is
   // rejected before it reaches the provider merely because the generic drift
   // demo window is 5–7 s.
@@ -319,9 +319,11 @@ export function buildMotionPlan({
     ? referenceDurationSeconds
     : (durationSeconds ?? mode.seconds.default);
   if (hasReferenceDuration) {
-    if (!Number.isInteger(seconds) || seconds < 3 || seconds > 15) {
+    if (!Number.isInteger(maxReferenceDurationSeconds)
+      || ![15, 30].includes(maxReferenceDurationSeconds)
+      || !Number.isInteger(seconds) || seconds < 4 || seconds > maxReferenceDurationSeconds) {
       throw new MotionPlanError(
-        'Fashion Video style reference must resolve to a provider duration of 3–15 whole seconds',
+        `Fashion Video style must fit a 4–${maxReferenceDurationSeconds}-second whole-second provider duration`,
         { code: 'VIDEO_REFERENCE_PROVIDER_DURATION_INVALID' },
       );
     }

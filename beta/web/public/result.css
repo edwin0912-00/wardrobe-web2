@@ -872,6 +872,39 @@ body.profile-live-open {
   gap: 12px;
 }
 
+.video-model-control {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: fit-content;
+  margin: 0 0 12px;
+  color: rgba(255, 255, 255, .58);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+.video-model-control[hidden] { display: none; }
+
+.video-model-control select {
+  min-height: 38px;
+  min-width: 160px;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 255, 255, .2);
+  border-radius: 10px;
+  background: #171817;
+  color: #fff;
+  font: inherit;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.video-model-control select:focus-visible {
+  outline: 2px solid #b8ff3d;
+  outline-offset: 2px;
+}
+
 .video-input-contract {
   margin: 0 0 14px;
   padding: 12px;
@@ -956,6 +989,12 @@ body.profile-live-open {
 .video-style-card[aria-checked="true"] {
   border-color: #b8ff3d;
   box-shadow: 0 0 0 2px rgba(184, 255, 61, .22), 0 18px 45px rgba(0, 0, 0, .34);
+}
+
+.video-style-card:disabled {
+  cursor: not-allowed;
+  filter: saturate(.55);
+  opacity: .56;
 }
 
 .god-view-trigger {
@@ -1124,6 +1163,13 @@ body.profile-live-open {
   flex-wrap: wrap;
   justify-content: center;
   gap: 10px;
+}
+
+.video-result-model {
+  margin: 0;
+  color: rgba(255, 255, 255, .65);
+  font-size: 11px;
+  text-align: center;
 }
 
 .video-result a,
@@ -2375,6 +2421,14 @@ body.profile-live-open {
   color: var(--result-muted);
   font-size: 9px;
   line-height: 1.35;
+}
+
+.profile-look-video-model {
+  display: block;
+  margin-top: 8px;
+  color: var(--result-deep);
+  font-size: 10px;
+  font-weight: 800;
 }
 
 .profile-look-scene-item {

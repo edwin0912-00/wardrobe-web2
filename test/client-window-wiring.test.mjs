@@ -82,7 +82,11 @@ test('right mirror owns orb, result actions and the 40-second live expansion', (
   assert.match(css, /\.live-overlay/);
   assert.match(css, /\.orbfield/);
   assert.doesNotMatch(ui, /рендер не підключений/i);
-  assert.doesNotMatch(ui, /модел|провайдер|ціна|вартіст/i);
+  assert.doesNotMatch(ui, /провайдер|ціна|вартіст/i);
+  assert.match(ui, /function videoModelOptions\(\)/);
+  assert.match(ui, /videoModelControl\(\)/);
+  assert.doesNotMatch(ui, /seedance-2\.[05]|Seedance\s+2\.[05]/i,
+    'the cinematic selector reads model ids and labels from the capability response');
 });
 
 test('Real-time Look has one actionable incomplete-look explanation for API handoff', () => {

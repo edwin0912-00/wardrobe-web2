@@ -8,6 +8,11 @@ host paths and branch guidance in beta documentation are dated history.
 `alpha` is the sole active integration line. Do not recreate the split project
 from `main`, `beta` or `canonical-site-main`.
 
+Read `docs/PROVIDER-ROUTING.md` before changing generation. Preserve every
+mandatory reference, selected Seedance model and persisted remote request.
+Do not resubmit unknown outcomes or silently replace a model. FAL credentials
+remain server-only; OpenRouter retains semantic QA.
+
 Source, deployed artifacts and private runtime are separate. Preserve the
 existing runtime and the dedicated Codex account when changing code. Verify
 the actual provider before claiming generation works; health or fixture PASS

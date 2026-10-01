@@ -1,4 +1,11 @@
+import { FAL_VIDEO_MODELS } from '../providers/fal-video-provider.js';
+
 const SHA256 = /^[a-f0-9]{64}$/;
+const VIDEO_MODEL_CHOICES = Object.freeze(Object.values(FAL_VIDEO_MODELS).map((model) => Object.freeze({
+  id: model.id,
+  label: model.label,
+  default: model.default,
+})));
 
 const FASHION_VIDEO_INPUT_CONTRACT = Object.freeze([
   Object.freeze({
@@ -50,7 +57,14 @@ export function fashionVideoCapability({
       && typeof style?.playback_path === 'string'
       && style.playback_path.length > 0
       && hasSha256(style?.playback_sha256)
-      && hasSha256(style?.preview_sha256),
+      && hasSha256(style?.preview_sha256)
+      && Array.isArray(style?.video_models)
+      && VIDEO_MODEL_CHOICES.every((model) => style.video_models.some((entry) => (
+        entry?.id === model.id && typeof entry.available === 'boolean'
+          && typeof entry.normalization_required === 'boolean'
+          && (entry.reason_code === null || typeof entry.reason_code === 'string')
+          && (entry.reason_uk === null || typeof entry.reason_uk === 'string')
+      ))),
   );
   // Fashion Video has a minimum of three independently verified video styles.
   // It must not become unavailable merely because a fourth approved style is
@@ -77,6 +91,13 @@ export function fashionVideoCapability({
           cut_count: Number.isInteger(style.cut_count) ? style.cut_count : null,
           inputs: FASHION_VIDEO_INPUT_CONTRACT,
         }),
+        video_models: Object.freeze(style.video_models.map((model) => Object.freeze({
+          id: model.id,
+          available: model.available,
+          reason_code: model.reason_code,
+          reason_uk: model.reason_uk,
+          normalization_required: model.normalization_required,
+        }))),
       }))
     : [];
 
@@ -85,6 +106,7 @@ export function fashionVideoCapability({
     look_id: lookId,
     available,
     styles: Object.freeze(styles),
+    video_models: VIDEO_MODEL_CHOICES,
     create_route: '/api/profile/video-clips',
     requirements: Object.freeze({
       approved_master_look: approvedLookReady,

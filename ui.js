@@ -484,6 +484,7 @@
     var bridgePromise = opts.bridgePromise || null;
     var bridgeUnsubscribe = null;
     var bridgeState = bridge && typeof bridge.state === 'function' ? bridge.state() : null;
+    var selectedVideoModel = null;
     var adapterLoading = !bridge;
     var adapterUnavailable = false;
     var hydratedProfileKey = '';
@@ -510,6 +511,52 @@
            : bridgeState.phase === 'recovering' ? 'Повертаємося до результату'
            : bridgeState.phase === 'uploading' ? 'Приймаємо матеріали'
            : 'Створюємо результат';
+    }
+
+    function videoModelOptions() {
+      var capability = bridgeState && bridgeState.videoCapability;
+      var models = capability && capability.video_models;
+      return Array.isArray(models) ? models.filter(function (model) {
+        return model && typeof model.id === 'string' && typeof model.label === 'string';
+      }) : [];
+    }
+
+    function currentVideoModelId() {
+      var models = videoModelOptions();
+      if (selectedVideoModel && models.some(function (model) { return model.id === selectedVideoModel; })) {
+        return selectedVideoModel;
+      }
+      var standard = models.find(function (model) { return model.default === true; });
+      return standard ? standard.id : models.length ? models[0].id : null;
+    }
+
+    function videoModelLabel(modelId) {
+      if (!modelId) return '';
+      var model = videoModelOptions().find(function (entry) { return entry.id === modelId; });
+      return model && model.label || modelId;
+    }
+
+    function videoStyleModelState(option) {
+      var models = option && option.videoModels;
+      if (!Array.isArray(models) || !models.length) return { available: true, reason: '' };
+      var model = models.find(function (entry) { return entry && entry.id === currentVideoModelId(); });
+      if (!model) return { available: false, reason: 'Ця модель недоступна для вибраного стилю.' };
+      return {
+        available: model.available === true,
+        reason: model.available === true ? '' : model.reason_uk || 'Ця модель недоступна для вибраного стилю.'
+      };
+    }
+
+    function videoModelControl() {
+      var models = videoModelOptions();
+      if (!models.length) return '';
+      var selected = currentVideoModelId();
+      return '<label class="video-model-choice"><span>Модель руху</span><select data-video-model aria-label="Модель Fashion Video">' +
+        models.map(function (model) {
+          return '<option value="' + esc(model.id) + '"' + (model.id === selected ? ' selected' : '') + '>' +
+            esc(model.label) + '</option>';
+        }).join('') +
+      '</select></label>';
     }
 
     function notifyGateChange() { if (typeof opts.onGateChange === 'function') opts.onGateChange(); }
@@ -1140,12 +1187,13 @@
       var videoCards = videos.map(function (delivery, index) {
         var result = delivery && delivery.result || {};
         var download = result.downloadUrl || result.mediaUrl || '';
+        var modelLabel = videoModelLabel(result.videoModel);
         return '<article class="saved-material saved-material--video">' +
           '<button type="button" class="saved-material__open" data-open-saved-video="' + index + '">' +
             (result.posterUrl
               ? '<img src="' + esc(result.posterUrl) + '" alt="" loading="lazy" decoding="async">'
               : '<span class="saved-material__placeholder">▶</span>') +
-            '<span>Fashion-відео</span>' +
+            '<span>Fashion-відео' + (modelLabel ? ' · ' + esc(modelLabel) : '') + '</span>' +
           '</button>' +
           '<div class="saved-material__actions">' +
             '<a href="' + esc(download) + '" download>Завантажити</a>' +
@@ -1185,7 +1233,8 @@
             presentationSurface: option.presentationSurface || 'mirror',
             aspect: option.aspect || (option.presentationSurface === 'tv' ? '16:9' : '9:16'),
             referencePackSha256: option.referencePackSha256 || null,
-            inputContract: option.inputContract || null
+            inputContract: option.inputContract || null,
+            videoModels: option.videoModels || []
           };
         });
       }
@@ -1247,21 +1296,28 @@
             '"' + (option.previewUrl ? ' poster="' + esc(option.previewUrl) + '"' : '') +
             ' muted playsinline autoplay loop preload="metadata" aria-hidden="true"></video>';
         }
+        var modelState = kind === 'fash' ? videoStyleModelState(option) : { available: true, reason: '' };
+        var optionNote = kind === 'fash' && !modelState.available
+          ? modelState.reason
+          : option.note || (kind === 'fash'
+            ? (option.presentationSurface === 'tv' ? 'відтвориться на телевізорі' : 'відтвориться у дзеркалі')
+            : '');
         /* `inputContract` remains attached to the server-owned style record for the
          * generator and QA. Its reference roles are internal production instructions,
          * not client-facing copy on a style card. */
         return '<button class="visualpick" type="button" data-choice-kind="' + kind + '"' +
+          (kind === 'fash' && !modelState.available ? ' disabled aria-disabled="true"' : '') +
           ' data-choice-index="' + index + '" aria-pressed="' + (selectedIndex === index ? 'true' : 'false') + '">' +
           '<span class="visualpick__media" data-visual="' + esc(option.visual) + '" aria-hidden="true">' +
             preview + '</span>' +
-          '<span class="visualpick__copy"><b>' + esc(option.name) + '</b><small>' + esc(option.note || (kind === 'fash'
-            ? (option.presentationSurface === 'tv' ? 'відтвориться на телевізорі' : 'відтвориться у дзеркалі') : '')) + '</small></span>' +
+          '<span class="visualpick__copy"><b>' + esc(option.name) + '</b><small>' + esc(optionNote) + '</small></span>' +
         '</button>';
       }).join('');
       return scene('picker-' + kind,
         '<div class="glass__eyebrow">' + copy.eyebrow + '</div>' +
         '<div class="glass__h">' + copy.title + '</div>' +
         '<p class="glass__lede pickerlede">' + copy.note + '</p>' +
+        (kind === 'fash' ? videoModelControl() : '') +
         '<div class="visualpicks" data-picker="' + kind + '">' + choices + '</div>' +
         '<button class="secondary pickerback" type="button" data-picker-back>Назад до образу</button>');
     }
@@ -2294,6 +2350,7 @@
           command = bridge.createVideo({
             styleId: chosen && chosen.id,
             motionMode: chosen && chosen.motionMode,
+            videoModel: currentVideoModelId(),
             presentationSurface: chosen && chosen.presentationSurface
           });
         }
@@ -2399,6 +2456,7 @@
         var choiceIndex = Number(b.getAttribute('data-choice-index'));
         var choiceLook = current();
         if (!choiceLook || !optionsFor(choiceKind)[choiceIndex]) return;
+        if (choiceKind === 'fash' && !videoStyleModelState(optionsFor(choiceKind)[choiceIndex]).available) return;
         if (choiceKind === 'shoot') choiceLook.shootStyle = choiceIndex;
         else if (choiceKind === 'fash') choiceLook.videoStyle = choiceIndex;
         else if (choiceKind === 'bg') choiceLook.bg = choiceIndex;
@@ -2464,6 +2522,7 @@
           pickerKind = null; awaitingAspect = null; view = 'live'; render(); return;
         }
         if (view === 'live') { stopCamera(); camError = ''; }
+        if (k === 'fash') selectedVideoModel = null;
         pickerKind = k;
         awaitingAspect = null;
         render(); notifyGateChange(); return;
@@ -2566,6 +2625,14 @@
       if (ev.target.matches('#io-items')) prepareSelected('items', ev.target.files);
       else if (ev.target.matches('#io-main')) prepareSelected('main', ev.target.files);
       else if (ev.target.matches('#io-face')) prepareSelected('face', ev.target.files);
+      else if (ev.target.matches('[data-video-model]')) {
+        if (locked() || pickerKind !== 'fash') return;
+        selectedVideoModel = ev.target.value;
+        render();
+        var nextControl = stage.querySelector('[data-video-model]');
+        if (nextControl) nextControl.focus();
+        notifyGateChange();
+      }
     });
 
     document.addEventListener('keydown', function (ev) {

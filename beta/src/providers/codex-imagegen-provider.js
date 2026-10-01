@@ -112,10 +112,34 @@ function phaseReferences(context) {
       code: 'INVALID_GARMENT_REFERENCE_ORDER', retryable: false,
     });
   }
-  if (phase === 'scene' && descriptors[0]?.scope !== 'avatar') {
-    throw new CodexImagegenProviderError('Scene generation must begin with the approved outfit', {
-      code: 'MISSING_APPROVED_OUTFIT', retryable: false,
-    });
+  if (phase === 'scene') {
+    const guide = descriptors[0]?.role === 'MECHANICAL_FRAMING_GUIDE' ? descriptors[0] : null;
+    const approved = descriptors[guide ? 1 : 0];
+    const repairIndex = guide ? 2 : 1;
+    const approvedBindings = descriptors.filter((item) => item.role === 'APPROVED_LOOK_MASTER');
+    const guideBindings = descriptors.filter((item) => item.role === 'MECHANICAL_FRAMING_GUIDE');
+    const repairBindings = descriptors.filter((item) => item.scope === 'scene');
+    const repair = repairBindings[0];
+    const permitted = [approved, guide, repair].filter(Boolean);
+    const otherBindingsValid = descriptors.filter((item) => !permitted.includes(item)).every((item) => (
+      item.scope === 'outfit' && ['CONDITIONED', 'REFERENCE_PACK'].includes(item.source)
+    ));
+    if (approved?.scope !== 'avatar' || approved.role !== 'APPROVED_LOOK_MASTER' || approved.source !== 'APPROVED_AVATAR'
+      || approvedBindings.length !== 1
+      || guideBindings.length !== (guide ? 1 : 0)
+      || (guide && (guide.scope !== 'outfit' || guide.source !== 'CONDITIONED'))
+      || repairBindings.length > 1
+      || (repairBindings.length === 1
+        && (descriptors[repairIndex] !== repair || repair.role !== 'FAILED_SCENE_CANDIDATE'
+          || repair.source !== 'REPAIR_CANDIDATE'))
+      || descriptors.some((item) => !['avatar', 'outfit', 'scene'].includes(item.scope)
+        || !['CONDITIONED', 'REFERENCE_PACK', 'APPROVED_AVATAR', 'REPAIR_CANDIDATE'].includes(item.source)
+        || ((item.scope === 'scene') !== (item.source === 'REPAIR_CANDIDATE')))
+      || !otherBindingsValid) {
+      throw new CodexImagegenProviderError('Scene bindings must begin with the approved look, or the mechanical framing guide followed by the approved look', {
+        code: 'INVALID_SCENE_REFERENCE_ORDER', retryable: false,
+      });
+    }
   }
   return descriptors;
 }

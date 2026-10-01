@@ -6,8 +6,8 @@ import {
   loadProfileScene,
   loadScenePresets,
   retryProfileScene,
-} from './profile-client.js?v=20260804-1';
-import { createEditorialShootUi } from './editorial-shoot-ui.js?v=20260804-1';
+} from './profile-client.js?v=20261001-1';
+import { createEditorialShootUi } from './editorial-shoot-ui.js?v=20261001-1';
 import {
   clearSceneResume,
   presetCameraLabel,

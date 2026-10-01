@@ -96,6 +96,25 @@ export function listProfileLookVideoClips(lookId) {
   );
 }
 
+export function createProfileVideoClip({ lookId, styleId, motionMode, videoModel }) {
+  return profileRequest('/api/profile/video-clips', {
+    method: 'POST',
+    body: JSON.stringify({
+      look_id: lookId,
+      style_id: styleId,
+      motion_mode: motionMode,
+      ...(videoModel ? { video_model: videoModel } : {}),
+    }),
+  });
+}
+
+export function retryProfileVideoClip(clipId, idempotencyKey) {
+  return profileRequest(`/api/profile/video-clips/${encodeURIComponent(clipId)}/retry`, {
+    method: 'POST',
+    headers: { 'Idempotency-Key': idempotencyKey },
+  });
+}
+
 export function loadProfileEditorialShoot(shootId) {
   return profileRequest(`/api/profile/editorial-shoots/${encodeURIComponent(shootId)}`, {
     cache: 'no-store',

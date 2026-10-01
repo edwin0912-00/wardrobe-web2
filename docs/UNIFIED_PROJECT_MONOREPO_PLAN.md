@@ -7,10 +7,16 @@ repository default. One source tree contains the cinematic website, Studio,
 Node services and Codex worker adapter. Historical branches and the migration
 plan below are provenance, not alternative startup instructions.
 
-The verified deployed product SHA is
-`9832c265776d2ee1d160af3d08a054a06572413d`. A later documentation-only commit
-does not require replacing a healthy product artifact. Product-code changes
-require a new verified artifact built from the corresponding alpha commit.
+Read the current deployed product SHA from `/api/health` and the immutable
+artifact's activation receipt. The earlier migration verification used
+`9832c265776d2ee1d160af3d08a054a06572413d`; it is dated evidence, not the latest
+release pointer. Product-code changes require a new verified artifact built
+from the corresponding alpha commit. The shared board records activation.
+
+The current routing contract is [PROVIDER-ROUTING.md](PROVIDER-ROUTING.md):
+Codex → FAL Sunburst for images, selectable FAL Seedance 2.0/2.5 for video,
+OpenRouter semantic QA and Lucy 2.5 Live. Model, endpoint, reference bindings
+and known remote request IDs must survive retries and daemon restarts.
 
 ### Source and persistent state
 

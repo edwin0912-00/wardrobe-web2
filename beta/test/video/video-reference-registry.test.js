@@ -89,11 +89,17 @@ test('resolver selects and verifies the hash-bound motion reference and UI playb
     assert.equal(result.available_styles[0].presentation_surface, 'mirror');
     assert.equal(result.available_styles[0].aspect_ratio, '9:16');
     assert.equal(result.available_styles[0].cut_count, 1);
+    assert.deepEqual(result.available_styles[0].video_models.map(({ id, available, normalization_required }) => [
+      id, available, normalization_required,
+    ]), [
+      ['seedance-2.0', true, true],
+      ['seedance-2.5', true, false],
+    ]);
     assert.equal(result.playback_path, await realpath(playbackPath));
     assert.equal(result.available_styles[0].playback_sha256, sha256(playbackBytes));
     assert.match(result.reference_pack_sha256, /^[a-f0-9]{64}$/);
     assert.equal(result.duration_seconds, 13.24);
-    assert.equal(result.provider_duration_seconds, 13);
+    assert.equal(result.provider_duration_seconds, 14);
     assert.equal(result.presentation_surface, 'mirror');
     assert.equal(result.aspect_ratio, '9:16');
     assert.equal(result.cut_sheet.cuts.length, 1);

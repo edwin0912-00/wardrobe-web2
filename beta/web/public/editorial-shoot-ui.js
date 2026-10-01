@@ -7,7 +7,7 @@ import {
   loadProfileEditorialShoot,
   loadProfileEditorialShootBible,
   retryProfileEditorialShot,
-} from './profile-client.js?v=20260804-1';
+} from './profile-client.js?v=20261001-1';
 import {
   clearEditorialResume,
   EDITORIAL_SHOT_SLOTS,

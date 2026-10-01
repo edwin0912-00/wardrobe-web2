@@ -182,9 +182,10 @@ const fashionVideoReferenceResolver = createFashionVideoReferenceResolver({
     'fashion-cool-style-v1.json',
   ),
 });
-const videoService = String(process.env.OPENROUTER_API_KEY ?? '').trim()
+const videoService = String(process.env.FAL_KEY ?? '').trim()
   ? createVideoRuntime({
       runtimeRoot,
+      falApiKey: process.env.FAL_KEY,
       openRouterApiKey: process.env.OPENROUTER_API_KEY,
       assetUrlResolver: videoSourceBridge?.videoAssetUrlResolver
         ?? createUnavailableVideoAssetUrlResolver(),

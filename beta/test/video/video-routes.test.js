@@ -8,6 +8,7 @@ import Fastify from 'fastify';
 
 import { registerVideoRoutes } from '../../src/web/video-routes.js';
 import { ProfileError } from '../../src/web/profile-service.js';
+import { VideoServiceError } from '../../src/web/video-service.js';
 
 function fixture() {
   const projected = [];
@@ -100,6 +101,16 @@ const availableStyles = [1, 2, 3].map((index) => ({
   playback_path: `/runtime/references/playback-${index}.mp4`,
   playback_sha256: String(index + 3).repeat(64),
   preview_sha256: String(index).repeat(64),
+  video_models: [
+    {
+      id: 'seedance-2.0', available: true, reason_code: null,
+      reason_uk: 'Сервер підготує сумісну копію.', normalization_required: true,
+    },
+    {
+      id: 'seedance-2.5', available: true, reason_code: null,
+      reason_uk: null, normalization_required: false,
+    },
+  ],
 }));
 
 test('create fails closed before provider spend while Fashion Video has no reference pack', async (t) => {
@@ -162,6 +173,10 @@ test('saved-look capability fails closed when the runtime cannot prove both refe
     look_id: '33333333-3333-4333-8333-333333333333',
     available: false,
     styles: [],
+    video_models: [
+      { id: 'seedance-2.0', label: 'Seedance 2.0', default: true },
+      { id: 'seedance-2.5', label: 'Seedance 2.5', default: false },
+    ],
     create_route: '/api/profile/video-clips',
     requirements: {
       approved_master_look: true,
@@ -174,6 +189,60 @@ test('saved-look capability fails closed when the runtime cannot prove both refe
   });
   assert.equal(response.headers['cache-control'], 'private, no-store');
   assert.equal(current.createRequests.length, 0);
+});
+
+test('an unknown create acknowledgement is returned as non-retryable and never projects a child job', async (t) => {
+  const current = fixture();
+  let providerCreateCalls = 0;
+  current.videoService.fashionVideoCapability = async () => ({
+    state: 'READY',
+    reference_path: '/runtime/references/motion.mp4',
+    reference_sha256: 'd'.repeat(64),
+    reference_pack_sha256: 'e'.repeat(64),
+    available_styles: availableStyles,
+  });
+  current.videoService.createClip = async () => {
+    providerCreateCalls += 1;
+    throw new VideoServiceError('Provider acknowledgement was lost', {
+      code: 'CREATE_OUTCOME_UNKNOWN',
+      status: 503,
+    });
+  };
+  const app = Fastify();
+  t.after(() => app.close());
+  await registerVideoRoutes(app, {
+    profileApi: { resolveRequestProfile: async () => ({ profileId: 'profile-1' }) },
+    profiles: current.profiles,
+    videoService: current.videoService,
+    runService: {
+      outputFile: async () => '/runtime/runs/source/avatar_outfit.png',
+      approvedIdentityFaceReferenceForRun: async () => ({
+        role: 'identity_face', data: Buffer.from('identity-reference'),
+        sha256: 'a'.repeat(64), white_background_verified: true,
+      }),
+    },
+  });
+  const create = await app.inject({
+    method: 'POST',
+    url: '/api/profile/video-clips',
+    payload: {
+      look_id: '33333333-3333-4333-8333-333333333333',
+      style_id: 'style-1',
+      motion_mode: 'motion_1',
+    },
+  });
+  assert.equal(create.statusCode, 503, create.body);
+  assert.equal(create.json().code, 'CREATE_OUTCOME_UNKNOWN');
+  assert.equal(current.projected.length, 0);
+
+  const retry = await app.inject({
+    method: 'POST',
+    url: '/api/profile/video-clips/11111111-1111-4111-8111-111111111111/retry',
+    headers: { 'idempotency-key': 'unknown-outcome-retry-key-1234567890' },
+  });
+  assert.equal(retry.statusCode, 409, retry.body);
+  assert.equal(retry.json().code, 'VIDEO_RETRY_STATUS_INVALID');
+  assert.equal(providerCreateCalls, 1);
 });
 
 test('saved-look capability opens only from the server-verified two-reference contract', async (t) => {
@@ -205,12 +274,17 @@ test('saved-look capability opens only from the server-verified two-reference co
     capability: 'fashion_video',
     look_id: '33333333-3333-4333-8333-333333333333',
     available: true,
+    video_models: [
+      { id: 'seedance-2.0', label: 'Seedance 2.0', default: true },
+      { id: 'seedance-2.5', label: 'Seedance 2.5', default: false },
+    ],
     styles: availableStyles.map((style) => ({
       id: style.id,
       title: style.title,
       motion_mode: style.motion_mode,
       presentation_surface: style.presentation_surface,
       aspect_ratio: style.aspect_ratio,
+      video_models: style.video_models,
       input_contract: {
         version: 'fashion-video-reference-contract-v1',
         cut_count: null,
@@ -246,6 +320,53 @@ test('saved-look capability opens only from the server-verified two-reference co
     reason_code: 'FASHION_VIDEO_READY',
     next_action: 'CREATE_FASHION_VIDEO',
   });
+  assert.equal(current.createRequests.length, 0);
+});
+
+test('create rejects a model unavailable for the selected style before calling VideoService', async (t) => {
+  const current = fixture();
+  const styleList = availableStyles.map((style) => style.id === 'style-2'
+    ? {
+        ...style,
+        video_models: [
+          {
+            id: 'seedance-2.0', available: false,
+            reason_code: 'VIDEO_MODEL_REFERENCE_DURATION_UNSUPPORTED',
+            reason_uk: 'Референс 15.16s довший за ліміт 15s у Seedance 2.0; обери Seedance 2.5.',
+            normalization_required: false,
+          },
+          style.video_models[1],
+        ],
+      }
+    : style);
+  current.videoService.fashionVideoCapability = async () => ({
+    state: 'READY',
+    reference_path: '/runtime/references/motion.mp4',
+    reference_sha256: 'd'.repeat(64),
+    reference_pack_sha256: 'e'.repeat(64),
+    available_styles: styleList,
+  });
+  const app = Fastify();
+  t.after(() => app.close());
+  await registerVideoRoutes(app, {
+    profileApi: { resolveRequestProfile: async () => ({ profileId: 'profile-1' }) },
+    profiles: current.profiles,
+    videoService: current.videoService,
+    runService: { outputFile: async () => '/runtime/runs/source/avatar_outfit.png' },
+  });
+  const response = await app.inject({
+    method: 'POST',
+    url: '/api/profile/video-clips',
+    payload: {
+      look_id: '33333333-3333-4333-8333-333333333333',
+      style_id: 'style-2',
+      motion_mode: 'motion_2',
+      video_model: 'seedance-2.0',
+    },
+  });
+  assert.equal(response.statusCode, 409, response.body);
+  assert.equal(response.json().code, 'VIDEO_MODEL_REFERENCE_DURATION_UNSUPPORTED');
+  assert.deepEqual(response.json().supported_video_models, ['seedance-2.5']);
   assert.equal(current.createRequests.length, 0);
 });
 
@@ -900,9 +1021,11 @@ test('create reaches VideoService only after the same two-reference contract is 
   });
   assert.equal(response.statusCode, 202, response.body);
   assert.equal(response.json().status, 'CREATED');
+  assert.equal(response.json().video_model, 'seedance-2.0');
   assert.equal(response.json().surface, 'mirror');
   assert.equal(response.json().aspect_ratio, '9:16');
   assert.equal(current.createRequests.length, 1);
+  assert.equal(current.createRequests[0].videoModel, 'seedance-2.0');
   assert.equal(Object.hasOwn(current.createRequests[0], 'surfaceId'), false);
   assert.deepEqual(current.createRequests[0].sourceCapabilities, { full_length: true });
   assert.equal(current.createRequests[0].lookBinding.sourceSha256, 'b'.repeat(64));

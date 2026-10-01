@@ -2,12 +2,12 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { runLocalPreflight } from '../../src/web/preflight.js';
 
-function withKey(fn) {
-  const previous = process.env.OPENROUTER_API_KEY;
-  process.env.OPENROUTER_API_KEY = 'test-key';
+function withKey(fn, name = 'OPENROUTER_API_KEY') {
+  const previous = process.env[name];
+  process.env[name] = 'test-key';
   return Promise.resolve(fn()).finally(() => {
-    if (previous === undefined) delete process.env.OPENROUTER_API_KEY;
-    else process.env.OPENROUTER_API_KEY = previous;
+    if (previous === undefined) delete process.env[name];
+    else process.env[name] = previous;
   });
 }
 
@@ -39,16 +39,16 @@ test('Codex primary preflight requires the same authenticated worker capability'
       stdout: binary === 'codex' && args[0] === '--version' ? 'codex 1.0.0' : 'Logged in using ChatGPT',
       stderr: '',
     }),
-  }));
+  }), 'FAL_KEY');
   assert.equal(result.status, 'ready');
   assert.equal(result.primary, 'codex');
-  assert.equal(result.fallback, 'openrouter');
+  assert.equal(result.fallback, 'fal-sunburst');
   assert.equal(result.test_only, false);
 });
 
-test('Codex primary preflight remains ready without optional OpenRouter fallback', async () => {
-  const previous = process.env.OPENROUTER_API_KEY;
-  delete process.env.OPENROUTER_API_KEY;
+test('Codex primary preflight remains ready without optional FAL fallback', async () => {
+  const previous = process.env.FAL_KEY;
+  delete process.env.FAL_KEY;
   try {
     const result = await runLocalPreflight({
       generationMode: 'codex-primary',
@@ -60,6 +60,6 @@ test('Codex primary preflight remains ready without optional OpenRouter fallback
     assert.equal(result.fallback, undefined);
     assert.equal(result.generation, 'Codex Image Generation');
   } finally {
-    if (previous !== undefined) process.env.OPENROUTER_API_KEY = previous;
+    if (previous !== undefined) process.env.FAL_KEY = previous;
   }
 });

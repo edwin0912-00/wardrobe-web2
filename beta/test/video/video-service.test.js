@@ -11,6 +11,7 @@ import {
   VideoServiceError,
 } from '../../src/web/video-service.js';
 import { HiggsfieldVideoProvider } from '../../src/providers/higgsfield-video-provider.js';
+import { FalVideoProvider } from '../../src/providers/fal-video-provider.js';
 import { sha256 } from '../../src/web/scene-contract.js';
 
 // Stubbed provider that tracks calls and returns predictable results
@@ -192,6 +193,157 @@ test('reference-bound Fashion Video ignores a stale client surface and uses the 
     const saved = await store.load(result.clipId);
     assert.equal(saved.motionReferenceBinding.presentationSurface, 'mirror');
     assert.equal(saved.motionReferenceBinding.aspectRatio, '9:16');
+  });
+});
+
+test('a lost FAL create acknowledgement is persisted as unknown and cannot be retried automatically', async () => {
+  await withTempDir(async (dir, sourcePath) => {
+    const referencePath = path.join(dir, 'style.mp4');
+    const referenceBytes = Buffer.from('verified-motion-reference');
+    await writeFile(referencePath, referenceBytes);
+    let createCalls = 0;
+    let clipId;
+    const provider = {
+      async createJob(request) {
+        createCalls += 1;
+        clipId = request.sourceBinding.clipId;
+        throw Object.assign(new Error('submit response lost'), {
+          code: 'CREATE_OUTCOME_UNKNOWN',
+          providerInputMedia: {
+            schema_version: 'fal-video-input-media-v1',
+            files: [{
+              role: 'approved_white_master',
+              source_sha256: request.sourceBinding.sourceSha256,
+              uploaded_sha256: request.sourceBinding.sourceSha256,
+              url: 'https://fal.example/private-input.png',
+              provider_label: '@Image1',
+            }],
+          },
+        });
+      },
+    };
+    const store = new ClipStore(dir);
+    const service = new VideoService({ provider, clipStore: store });
+    const cutSheet = verifiedCutSheet(5);
+    await assert.rejects(
+      () => service.createClip({
+        modeId: 'editorial_micro_moment',
+        sourceImagePath: sourcePath,
+        lookBinding: { whiteBackgroundVerified: true },
+        videoReference: {
+          state: 'READY',
+          reference_id: 'style-1',
+          reference_path: referencePath,
+          reference_sha256: sha256(referenceBytes),
+          reference_pack_sha256: 'd'.repeat(64),
+          duration_seconds: 5,
+          provider_duration_seconds: 5,
+          width: 720,
+          height: 1280,
+          fps: 25,
+          ...cutSheet,
+        },
+      }),
+      (error) => error instanceof VideoServiceError
+        && error.code === 'CREATE_OUTCOME_UNKNOWN'
+        && error.status === 503,
+    );
+
+    const persisted = await store.load(clipId);
+    assert.equal(persisted.status, 'SUBMITTING');
+    assert.equal(persisted.providerCreateOutcome, 'UNKNOWN');
+    assert.equal(persisted.videoModel, 'seedance-2.0');
+    assert.equal(persisted.providerEndpoint, 'bytedance/seedance-2.0/reference-to-video');
+    const receipt = JSON.parse(await readFile(
+      path.join(store.clipDir(clipId), 'create-receipt.json'), 'utf8',
+    ));
+    assert.equal(receipt.outcome, 'UNKNOWN');
+    assert.equal(receipt.provider_input_media.files[0].provider_label, '@Image1');
+    assert.equal((await service.automaticRetryReferenceQaFailure(clipId, {
+      videoReference: {},
+    })).eligible, false);
+    await assert.rejects(
+      () => service.retryFailedClip(clipId, { videoReference: {} }),
+      (error) => error.code === 'VIDEO_RETRY_STATUS_INVALID',
+    );
+    assert.equal(createCalls, 1);
+  });
+});
+
+test('a generic lost FAL response stays quarantined through VideoService without a second submit', async () => {
+  await withTempDir(async (dir, sourcePath) => {
+    const sourceBytes = Buffer.concat([
+      Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
+      Buffer.from('approved-master'),
+    ]);
+    await writeFile(sourcePath, sourceBytes);
+    const referencePath = path.join(dir, 'style.mp4');
+    const referenceBytes = Buffer.from('approved-motion-video');
+    await writeFile(referencePath, referenceBytes);
+    let queuePosts = 0;
+    const falClient = {
+      storage: {
+        upload: async (file) => `https://fal.example/${file.name}`,
+      },
+      queue: {
+        status: async () => ({ status: 'IN_PROGRESS' }),
+        result: async () => ({}),
+      },
+    };
+    const fal = new FalVideoProvider({
+      apiKey: 'test-key',
+      client: falClient,
+      fetchFn: async () => {
+        queuePosts += 1;
+        throw new Error('response lost after dispatch');
+      },
+      probeVideoFn: async () => ({
+        durationSeconds: 5, width: 720, height: 1280, fps: 25, hasAudio: false,
+      }),
+    });
+    const store = new ClipStore(dir);
+    let clipId;
+    const save = store.save.bind(store);
+    store.save = async (id, metadata) => {
+      clipId = id;
+      return save(id, metadata);
+    };
+    const service = new VideoService({ provider: fal, clipStore: store });
+    const videoReference = {
+      state: 'READY',
+      reference_id: 'style-1',
+      reference_path: referencePath,
+      reference_sha256: sha256(referenceBytes),
+      reference_pack_sha256: 'd'.repeat(64),
+      duration_seconds: 5,
+      provider_duration_seconds: 5,
+      width: 720,
+      height: 1280,
+      fps: 25,
+      ...verifiedCutSheet(5),
+    };
+    await assert.rejects(
+      () => service.createClip({
+        modeId: 'editorial_micro_moment',
+        sourceImagePath: sourcePath,
+        lookBinding: { whiteBackgroundVerified: true },
+        videoReference,
+        videoModel: 'seedance-2.5',
+      }),
+      (error) => error.code === 'CREATE_OUTCOME_UNKNOWN' && error.status === 503,
+    );
+    const persisted = await store.load(clipId);
+    assert.equal(persisted.status, 'SUBMITTING');
+    assert.equal(persisted.providerKey, 'fal');
+    assert.equal(persisted.providerCreateOutcome, 'UNKNOWN');
+    assert.equal(persisted.videoModel, 'seedance-2.5');
+    assert.equal(persisted.providerEndpoint, 'bytedance/seedance-2.5/reference-to-video');
+    assert.equal(queuePosts, 1);
+    await assert.rejects(
+      () => service.retryFailedClip(clipId, { videoReference }),
+      (error) => error.code === 'VIDEO_RETRY_STATUS_INVALID',
+    );
+    assert.equal(queuePosts, 1);
   });
 });
 
@@ -627,10 +779,12 @@ test('recoverSubmittedClip refuses an ambiguous paid job even when the caller ec
     const unchanged = await store.load(clipId);
     assert.equal(unchanged.status, 'SUBMITTING');
     assert.equal(unchanged.jobId, null);
-    await assert.rejects(
-      () => readFile(path.join(store.clipDir(clipId), 'create-receipt.json')),
-      (error) => error.code === 'ENOENT',
-    );
+    const unknownReceipt = JSON.parse(await readFile(
+      path.join(store.clipDir(clipId), 'create-receipt.json'),
+      'utf8',
+    ));
+    assert.equal(unknownReceipt.outcome, 'UNKNOWN');
+    assert.equal(unknownReceipt.provider_input_media, null);
   });
 });
 
@@ -789,7 +943,7 @@ test('createClip rechecks and passes the exact video reference binding', async (
         reference_sha256: referenceSha256,
         reference_pack_sha256: 'f'.repeat(64),
         duration_seconds: 13.24,
-        provider_duration_seconds: 13,
+        provider_duration_seconds: 14,
         width: 1080,
         height: 1920,
         fps: 25,
@@ -811,7 +965,7 @@ test('createClip rechecks and passes the exact video reference binding', async (
       ],
     });
     assert.deepEqual(requests[0].videoPaths.map((file) => path.basename(file)), ['style-reference.mp4']);
-    assert.equal(requests[0].durationSeconds, 13);
+    assert.equal(requests[0].durationSeconds, 14);
     assert.match(requests[0].prompt, /^Reference bindings\. @Video 1 is private reference-only directing material, never delivery media/);
     assert.match(requests[0].prompt, /@Image 2 is an optional white-background face-detail reference/);
     assert.match(requests[0].prompt, /@Image 3 is a white-background garment-only evidence card/);
@@ -850,6 +1004,97 @@ test('createClip rechecks and passes the exact video reference binding', async (
   });
 });
 
+test('Seedance 2.5 keeps full cut duration, persists endpoint/request id and reuses its model on retry and resume', async () => {
+  await withTempDir(async (dir, sourcePath) => {
+    const referencePath = path.join(dir, 'motion.mp4');
+    const referenceBytes = Buffer.from('verified-15.16-second-reference');
+    await writeFile(referencePath, referenceBytes);
+    const createRequests = [];
+    const waitRequests = [];
+    const provider = {
+      async createJob(request) {
+        createRequests.push(request);
+        const requestId = `fal-request-${createRequests.length}`;
+        return {
+          jobId: requestId,
+          requestId,
+          providerKey: 'fal',
+          videoModel: request.videoModel,
+          providerEndpoint: request.videoModel === 'seedance-2.5'
+            ? 'bytedance/seedance-2.5/reference-to-video'
+            : 'bytedance/seedance-2.0/reference-to-video',
+          inputMedia: { files: [] },
+          raw: { request_id: requestId },
+        };
+      },
+      async waitForJob(request) {
+        waitRequests.push(request);
+        return {
+          jobId: request.jobId,
+          url: 'https://fal.example/result.mp4',
+          selectedFieldPath: '/video/url',
+          raw: { video: { url: 'https://fal.example/result.mp4' } },
+        };
+      },
+    };
+    const store = new ClipStore(dir);
+    const service = new VideoService({ provider, clipStore: store });
+    const videoReference = {
+      state: 'READY',
+      reference_id: 'walk-camera-energy',
+      reference_path: referencePath,
+      reference_sha256: sha256(referenceBytes),
+      reference_pack_sha256: 'd'.repeat(64),
+      duration_seconds: 15.16,
+      provider_duration_seconds: 16,
+      width: 1080,
+      height: 1920,
+      fps: 25,
+      ...verifiedCutSheet(15.16),
+    };
+    const parent = await service.createClip({
+      modeId: 'walk_stride',
+      sourceImagePath: sourcePath,
+      lookBinding: { whiteBackgroundVerified: true },
+      videoReference,
+      videoModel: 'seedance-2.5',
+      sourceCapabilities: { full_length: true },
+    });
+    const persistedParent = await store.load(parent.clipId);
+    assert.equal(createRequests[0].durationSeconds, 16, 'the final 160ms cut must remain covered');
+    assert.equal(parent.videoModel, 'seedance-2.5');
+    assert.equal(parent.providerEndpoint, 'bytedance/seedance-2.5/reference-to-video');
+    assert.equal(persistedParent.providerRequestId, 'fal-request-1');
+    assert.equal(persistedParent.motionReferenceBinding.durationSeconds, 15.16);
+
+    await store.save(parent.clipId, {
+      ...persistedParent,
+      status: 'FAILED',
+      failureCode: 'VIDEO_PROVIDER_JOB_FAILED',
+    });
+    const child = await service.retryFailedClip(parent.clipId, { videoReference });
+    const persistedChild = await store.load(child.clipId);
+    assert.equal(createRequests[1].videoModel, 'seedance-2.5');
+    assert.equal(createRequests[1].durationSeconds, 16);
+    assert.equal(persistedChild.providerEndpoint, 'bytedance/seedance-2.5/reference-to-video');
+    assert.equal(persistedChild.providerRequestId, 'fal-request-2');
+
+    await assert.rejects(
+      () => service.awaitAndFinalize(child.clipId, {
+        downloadFn: async () => { throw new Error('fixture transfer failure'); },
+      }),
+      (error) => error.code === 'VIDEO_OUTPUT_DOWNLOAD_FAILED',
+    );
+    assert.deepEqual(waitRequests[0], {
+      jobId: 'fal-request-2',
+      providerKey: 'fal',
+      videoModel: 'seedance-2.5',
+      providerEndpoint: 'bytedance/seedance-2.5/reference-to-video',
+      providerRequestId: 'fal-request-2',
+    });
+  });
+});
+
 test('retry uses the immutable style duration rather than an obsolete motion-mode duration', async () => {
   await withTempDir(async (dir, sourcePath) => {
     const referencePath = path.join(dir, 'style-reference.mp4');
@@ -871,7 +1116,7 @@ test('retry uses the immutable style duration rather than an obsolete motion-mod
       reference_sha256: sha256(referenceBytes),
       reference_pack_sha256: 'd'.repeat(64),
       duration_seconds: 13.24,
-      provider_duration_seconds: 13,
+      provider_duration_seconds: 14,
       width: 1080,
       height: 1920,
       fps: 25,
@@ -894,9 +1139,9 @@ test('retry uses the immutable style duration rather than an obsolete motion-mod
     });
     const child = await service.retryFailedClip(parent.clipId, { videoReference });
     const persistedChild = await store.load(child.clipId);
-    assert.equal(requests.at(-1).durationSeconds, 13);
-    assert.equal(persistedChild.durationSeconds, 13);
-    assert.equal(persistedChild.motionReferenceBinding.providerDurationSeconds, 13);
+    assert.equal(requests.at(-1).durationSeconds, 14);
+    assert.equal(persistedChild.durationSeconds, 14);
+    assert.equal(persistedChild.motionReferenceBinding.providerDurationSeconds, 14);
   });
 });
 
@@ -954,7 +1199,7 @@ test('createClip refuses a changed video reference before provider spend', async
           reference_sha256: 'a'.repeat(64),
           reference_pack_sha256: 'b'.repeat(64),
           duration_seconds: 13.24,
-          provider_duration_seconds: 13,
+          provider_duration_seconds: 14,
           width: 1080,
           height: 1920,
           fps: 25,
@@ -2046,6 +2291,9 @@ test('awaitAndFinalize polls only the provider persisted at create time', async 
     assert.deepEqual(calls, [{
       jobId: 'openrouter-job-1',
       providerKey: 'openrouter',
+      videoModel: null,
+      providerEndpoint: null,
+      providerRequestId: null,
     }]);
   });
 });

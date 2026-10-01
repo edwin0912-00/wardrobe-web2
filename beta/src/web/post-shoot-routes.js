@@ -34,6 +34,7 @@ export async function registerPostShootRoutes(app, {
   lucyTokenIssuer = null,
   profileApi = null,
   profiles = null,
+  runService = null,
 } = {}) {
   const pipeline = await loadPostShootPipeline({ projectRoot });
 
@@ -69,13 +70,30 @@ export async function registerPostShootRoutes(app, {
         error: 'Look not found',
       });
     }
+    let referenceFailure = null;
+    try {
+      if (typeof profiles.approvedLookLiveReference !== 'function') {
+        throw new ProfileError(503, 'LIVE_REFERENCE_UNAVAILABLE', 'Перевірка образу для Live недоступна.');
+      }
+      await profiles.approvedLookLiveReference(session.profileId, lookId, runService);
+    } catch (error) {
+      if (!(error instanceof ProfileError)) throw error;
+      referenceFailure = {
+        code: error.code,
+        error: error.code === 'LIVE_REFERENCE_INCOMPLETE_LOOK'
+          ? 'Для Live додай верх або сукню, низ і взуття до затвердженого образу.'
+          : error.message,
+      };
+    }
     return reply
       .header('Cache-Control', 'private, no-store')
       .header('Vary', 'Cookie')
       .send({
         capability: 'REALTIME_LOOK',
         camera_preview_ready: true,
-        paid_live_ready: typeof lucyTokenIssuer === 'function',
+        paid_live_ready: typeof lucyTokenIssuer === 'function' && !referenceFailure,
+        reference_ready: !referenceFailure,
+        ...(referenceFailure ? { blocked_reason: referenceFailure } : {}),
         launch: {
           href: `/post-shoot-mvp.html?look=${encodeURIComponent(lookId)}&surface=full`,
           presentation: 'FULL_VIEWPORT',
@@ -132,6 +150,15 @@ export async function registerPostShootRoutes(app, {
         code: 'LUCY_PROVIDER_NOT_CONFIGURED',
         error: 'Lucy provider не активовано. Безкоштовний camera preview доступний.',
       });
+    }
+    if (typeof profiles.approvedLookLiveReference !== 'function') {
+      return reply.code(503).send({ code: 'LIVE_REFERENCE_UNAVAILABLE', error: 'Перевірка образу для Live недоступна.' });
+    }
+    try {
+      await profiles.approvedLookLiveReference(session.profileId, lookId, runService);
+    } catch (error) {
+      if (!(error instanceof ProfileError)) throw error;
+      return reply.code(error.statusCode).send({ code: error.code, error: error.message });
     }
     const token = await lucyTokenIssuer({
       app: MODEL_ID,

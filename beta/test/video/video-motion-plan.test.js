@@ -149,6 +149,20 @@ test('a verified Fashion Video style owns duration over a legacy motion-mode win
     referenceDurationSeconds: 13,
   });
   assert.equal(plan.durationSeconds, 13);
+  const seedance25Plan = buildMotionPlan({
+    modeId: 'camera_drift',
+    referenceDurationSeconds: 16,
+    maxReferenceDurationSeconds: 30,
+  });
+  assert.equal(seedance25Plan.durationSeconds, 16);
+  assert.throws(
+    () => buildMotionPlan({
+      modeId: 'camera_drift',
+      referenceDurationSeconds: 31,
+      maxReferenceDurationSeconds: 30,
+    }),
+    (error) => error.code === 'VIDEO_REFERENCE_PROVIDER_DURATION_INVALID',
+  );
   assert.throws(
     () => buildMotionPlan({
       modeId: 'camera_drift',

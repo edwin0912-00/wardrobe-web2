@@ -17,6 +17,7 @@ import { ProfileError } from './profile-service.js';
 import { fashionVideoCapability } from './video-capability.js';
 import { resolveVideoQaAction } from './video-qa-action.js';
 import { VideoServiceError } from './video-service.js';
+import { DEFAULT_FAL_VIDEO_MODEL, resolveFalVideoModel } from '../providers/fal-video-provider.js';
 
 function sameOriginMutation(request) {
   if (request.headers['sec-fetch-site'] === 'cross-site') {
@@ -177,10 +178,8 @@ export async function registerVideoRoutes(app, {
     throw new Error('registerVideoRoutes requires profileApi, profiles, videoService, and runService');
   }
 
-  const projectClip = (profileId, lookId, liveClip) => profiles.projectVideoClip(
-    profileId,
-    lookId,
-    {
+  const projectClip = (profileId, lookId, liveClip) => {
+    const projection = profiles.projectVideoClip(profileId, lookId, {
       clip_id: liveClip.clipId,
       bindings: {
         approved_look: { look_id: lookId },
@@ -197,8 +196,12 @@ export async function registerVideoRoutes(app, {
         : null,
       created_at: liveClip.createdAt,
       updated_at: liveClip.updatedAt,
-    },
-  );
+    });
+    return {
+      ...projection,
+      ...(typeof liveClip.videoModel === 'string' ? { video_model: liveClip.videoModel } : {}),
+    };
+  };
 
   // `createClip` deliberately returns after persisting the paid provider job.
   // The second phase must nevertheless be owned by the server, not by a tab
@@ -495,6 +498,7 @@ export async function registerVideoRoutes(app, {
       motion_mode,
       duration_seconds,
       style_note,
+      video_model,
     } = request.body ?? {};
 
     if (typeof look_id !== 'string' || look_id.length === 0) {
@@ -505,6 +509,15 @@ export async function registerVideoRoutes(app, {
     }
     if (typeof motion_mode !== 'string') {
       throw new ProfileError(400, 'MISSING_MOTION_MODE', 'motion_mode is required');
+    }
+    let selectedVideoModel;
+    try {
+      selectedVideoModel = resolveFalVideoModel(video_model ?? DEFAULT_FAL_VIDEO_MODEL);
+    } catch (cause) {
+      return reply.code(400).send({
+        error: 'Оберіть одну з доступних моделей Fashion Video.',
+        code: cause?.code ?? 'VIDEO_MODEL_UNSUPPORTED',
+      });
     }
 
     // Verify look ownership
@@ -561,6 +574,23 @@ export async function registerVideoRoutes(app, {
         requirements: capability.requirements,
       });
     }
+    const selectedStyle = capability.styles.find((style) => style.id === style_id);
+    const selectedModelCompatibility = selectedStyle?.video_models?.find(
+      (model) => model.id === selectedVideoModel.id,
+    );
+    if (!selectedModelCompatibility?.available) {
+      const supportedVideoModels = (selectedStyle?.video_models ?? [])
+        .filter((model) => model.available)
+        .map((model) => model.id);
+      return reply.code(409).send({
+        error: selectedModelCompatibility?.reason_uk
+          ?? 'Цей відеостиль не сумісний з обраною моделлю.',
+        code: selectedModelCompatibility?.reason_code
+          ?? 'VIDEO_MODEL_REFERENCE_UNSUPPORTED',
+        video_model: selectedVideoModel.id,
+        supported_video_models: supportedVideoModels,
+      });
+    }
     // Video 1 is the selected style MP4 and Image 1 is only the approved white
     // master. An optional face detail is admitted only after RunService proves
     // that its persisted derivative has an exact white background. The garment
@@ -613,6 +643,7 @@ export async function registerVideoRoutes(app, {
             white_background_verified: true,
           }] : []),
         ],
+        videoModel: selectedVideoModel.id,
         lookBinding: {
           profileId: session.profileId,
           lookId: look_id,
@@ -643,6 +674,7 @@ export async function registerVideoRoutes(app, {
         aspect_ratio: result.plan.aspectRatio,
         style_id,
         motion_mode,
+        video_model: result.videoModel ?? selectedVideoModel.id,
         look_id,
       });
     } catch (err) {
@@ -964,7 +996,11 @@ export async function registerVideoRoutes(app, {
     for (const clip of clips) {
       const liveClip = await videoService.getClip(clip.clip_id);
       if (hasVerifiedFashionStyle(liveClip)) {
-        verified.push({ ...clip, ...verifiedVideoDeliveryUrls(liveClip) });
+        verified.push({
+          ...clip,
+          ...verifiedVideoDeliveryUrls(liveClip),
+          ...(typeof liveClip.videoModel === 'string' ? { video_model: liveClip.videoModel } : {}),
+        });
       }
     }
     return reply.header('Cache-Control', 'private, no-store').send({ clips: verified });

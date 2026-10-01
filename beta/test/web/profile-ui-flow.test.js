@@ -104,8 +104,15 @@ test('saved look exposes actionable branches and their honest pipeline explanati
   assert.match(appSource, /payload\?\.requirements\?\.verified_video_style_catalog === true/);
   assert.doesNotMatch(appSource, /Fashion Video: обери перевірену відеостилістику й запусти генерацію/);
   assert.match(indexSource, /id="video-style-options"/);
+  assert.match(indexSource, /id="video-model" aria-label="Модель Fashion Video"/);
+  assert.match(indexSource, /id="video-result-model"/);
   assert.match(indexSource, /id="video-input-contract"/);
   assert.match(appSource, /function renderFashionVideoInputContract/);
+  assert.match(appSource, /resolveVideoModelId\(fashionVideoCapability/);
+  assert.match(appSource, /videoStyleAvailability\(style, selectedFashionVideoModel\)/);
+  assert.match(appSource, /createProfileVideoClip\(/);
+  assert.match(appSource, /styleId,\s*motionMode,\s*videoModel,\s*\}\)/);
+  assert.match(appSource, /retryProfileVideoClip\(clipId, retryKey\)/);
   assert.match(appSource, /input_contract\?\.inputs/);
   assert.match(appSource, /Що використовується для цього відео/);
   assert.match(indexSource, /id="god-view-trigger"/);
@@ -119,7 +126,6 @@ test('saved look exposes actionable branches and their honest pipeline explanati
   assert.match(appSource, /video\.autoplay = true/);
   assert.match(appSource, /video\.preload = 'auto'/);
   assert.match(appSource, /#video-style-options video/);
-  assert.match(appSource, /style_id: styleId/);
   assert.doesNotMatch(
     appSource,
     /look_id: lookId,\s*surface:/,

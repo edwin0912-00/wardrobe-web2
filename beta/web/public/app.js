@@ -16,10 +16,11 @@ import {
 import { PIPELINE_NODE_COUNT, PIPELINE_NODES, checkpointDisplayCode, nodeState, resolveProgressState } from './progress-model.js?v=20260722-7';
 import { createLiveVisualizer, isProviderWaitStage } from './live-visualizer.js?v=20260724-1';
 import { fetchRunWithRetry, RunNotFoundError } from './run-resume.js?v=20260722-3';
-import { claimProfileRun, deleteAnonymousProfile, deleteProfileLook, listProfileLookEditorialShoots, listProfileLookVideoClips, loadProfile, saveProfileRun } from './profile-client.js?v=20260804-1';
+import { claimProfileRun, createProfileVideoClip, deleteAnonymousProfile, deleteProfileLook, listProfileLookEditorialShoots, listProfileLookVideoClips, loadProfile, retryProfileVideoClip, saveProfileRun } from './profile-client.js?v=20261001-1';
 import { needsInputPresentation, neutralizeItemTerms } from './visible-copy.js?v=20260731-2';
-import { createSceneUi } from './scene-ui.js?v=20260804-1';
+import { createSceneUi } from './scene-ui.js?v=20261001-1';
 import { errorFromApiResponse, withPublicDiagnostic } from './error-presentation.js?v=20260804-1';
+import { realtimeLookStatusLabel, resolveVideoModelId, videoModelLabel, videoModelOptions, videoStyleAvailability } from './video-model-ui.js?v=20261001-1';
 import {
   addItemsScreenState,
   clearAddItemsSelection,
@@ -111,6 +112,10 @@ let profileEditorialRequestVersion = 0;
 let profileVideoRequestVersion = 0;
 let fashionVideoCapabilityRequestVersion = 0;
 let fashionVideoCapability = null;
+let selectedFashionVideoModel = null;
+let profileVideoClips = [];
+let profileVideoClipsLookId = null;
+let failedFashionVideoModel = null;
 let realtimeLookCapabilityRequestVersion = 0;
 let realtimeLookCapability = null;
 let videoGenerationBusy = false;
@@ -1315,6 +1320,8 @@ async function copyPrivateDeliveryLink(value, control) {
 
 function renderProfileVideoLibrary(look, supplied = null) {
   const clips = videoClipsForLook(look, supplied);
+  profileVideoClips = clips;
+  profileVideoClipsLookId = look ? idOfLook(look) : null;
   const list = document.querySelector('#profile-look-video-list');
   const emptyState = document.querySelector('#profile-look-videos-empty');
   const count = document.querySelector('#profile-look-videos-count');
@@ -1357,7 +1364,15 @@ function renderProfileVideoLibrary(look, supplied = null) {
     const note = document.createElement('small');
     note.className = 'profile-look-video-note';
     note.textContent = 'Посилання приватне: відкривається лише в цьому профілі.';
-    item.append(player, actions, note);
+    const model = videoModelLabel(fashionVideoCapability, clip.video_model);
+    if (model) {
+      const modelNote = document.createElement('small');
+      modelNote.className = 'profile-look-video-model';
+      modelNote.textContent = `Модель: ${model}`;
+      item.append(player, actions, modelNote, note);
+    } else {
+      item.append(player, actions, note);
+    }
     list.append(item);
   });
 }
@@ -1876,6 +1891,7 @@ function syncFashionVideoAction({ state = 'checking', capability = null } = {}) 
 async function refreshFashionVideoCapability(look) {
   const requestVersion = ++fashionVideoCapabilityRequestVersion;
   const lookId = idOfLook(look);
+  selectedFashionVideoModel = null;
   syncFashionVideoAction({ state: lookId ? 'checking' : 'unavailable' });
   if (!lookId) return;
   try {
@@ -1896,11 +1912,24 @@ async function refreshFashionVideoCapability(look) {
       && payload?.requirements?.verified_video_style_catalog === true
       && Array.isArray(payload?.styles)
       && payload.styles.length >= 3;
-    syncFashionVideoAction(ready
-      ? { state: 'ready', capability: { lookId, styles: payload.styles ?? [] } }
-      : { state: 'unavailable' });
+    if (!ready) {
+      selectedFashionVideoModel = null;
+      syncFashionVideoAction({ state: 'unavailable' });
+      return;
+    }
+    const capability = {
+      lookId,
+      styles: payload.styles,
+      video_models: payload.video_models,
+    };
+    selectedFashionVideoModel = resolveVideoModelId(capability);
+    syncFashionVideoAction({ state: 'ready', capability });
+    if (profileVideoClipsLookId === lookId) {
+      renderProfileVideoLibrary(selectedProfileLook, profileVideoClips);
+    }
   } catch {
     if (requestVersion === fashionVideoCapabilityRequestVersion) {
+      selectedFashionVideoModel = null;
       syncFashionVideoAction({ state: 'unavailable' });
     }
   }
@@ -1924,9 +1953,7 @@ function syncRealtimeLookAction({ state = 'checking', capability = null } = {}) 
         : 'Перевіряємо доступність Live Look',
   );
   label.textContent = state === 'ready'
-    ? capability.paidLiveReady
-      ? 'Камера й AI доступні'
-      : 'Камера доступна · AI тимчасово ні'
+    ? realtimeLookStatusLabel(capability)
     : state === 'unavailable'
       ? 'Тимчасово недоступно'
       : 'Перевіряємо доступність';
@@ -1966,7 +1993,11 @@ async function refreshRealtimeLookCapability(look) {
           capability: {
             lookId,
             href: `${launchUrl.pathname}${launchUrl.search}${launchUrl.hash}`,
+            referenceReady: payload.reference_ready === true,
             paidLiveReady: payload.paid_live_ready === true,
+            blockedReason: typeof payload?.blocked_reason?.error === 'string'
+              ? payload.blocked_reason.error
+              : null,
           },
         }
       : { state: 'unavailable' });
@@ -1992,7 +2023,8 @@ document.querySelector('#profile-look-video').addEventListener('click', (event) 
   const lookId = idOfLook(selectedProfileLook);
   if (!lookId || fashionVideoCapability?.lookId !== lookId) return;
   const overlay = fashionVideoOverlay;
-  renderFashionVideoStyles(fashionVideoCapability.styles);
+  selectedFashionVideoModel = resolveVideoModelId(fashionVideoCapability);
+  renderFashionVideoStyles(fashionVideoCapability.styles, selectedFashionVideoModel);
   document.querySelector('#video-progress').hidden = true;
   document.querySelector('#video-result').hidden = true;
   document.querySelector('#video-error').hidden = true;
@@ -2002,17 +2034,39 @@ document.querySelector('#profile-look-video').addEventListener('click', (event) 
   overlay.classList.remove('hidden');
   document.querySelector('#video-overlay-close').focus({ preventScroll: true });
 });
-function renderFashionVideoStyles(styles = []) {
+function renderFashionVideoStyles(styles = [], requestedModelId = selectedFashionVideoModel) {
   const root = document.querySelector('#video-style-options');
-  renderFashionVideoInputContract(styles[0] ?? null);
+  selectedFashionVideoModel = resolveVideoModelId(fashionVideoCapability, requestedModelId);
+  const modelControl = document.querySelector('#video-model-control');
+  const modelSelect = document.querySelector('#video-model');
+  const models = videoModelOptions(fashionVideoCapability);
+  modelControl.hidden = models.length === 0;
+  modelSelect.replaceChildren(...models.map((model) => {
+    const option = document.createElement('option');
+    option.value = model.id;
+    option.textContent = model.label;
+    return option;
+  }));
+  modelSelect.value = selectedFashionVideoModel;
+  modelSelect.disabled = videoGenerationBusy;
+  const firstAvailableIndex = styles.findIndex((style) => (
+    videoStyleAvailability(style, selectedFashionVideoModel).available
+  ));
+  document.querySelector('#video-generate').disabled = videoGenerationBusy || firstAvailableIndex < 0;
+  renderFashionVideoInputContract(firstAvailableIndex >= 0 ? styles[firstAvailableIndex] : null);
   const cards = styles.map((style, index) => {
+    const availability = videoStyleAvailability(style, selectedFashionVideoModel);
     const card = document.createElement('button');
     card.type = 'button';
     card.className = 'video-style-card';
     card.dataset.motionMode = style.motion_mode;
     card.dataset.styleId = style.id;
+    card.disabled = videoGenerationBusy || !availability.available;
     card.setAttribute('role', 'radio');
-    card.setAttribute('aria-checked', String(index === 0));
+    card.setAttribute('aria-checked', String(index === firstAvailableIndex));
+    if (!availability.available) {
+      card.setAttribute('aria-label', `${style.title}. ${availability.reason}`);
+    }
     const video = document.createElement('video');
     video.src = style.playback_url;
     video.poster = style.preview_url;
@@ -2025,7 +2079,9 @@ function renderFashionVideoStyles(styles = []) {
     video.setAttribute('aria-label', `Відеореференс стилю: ${style.title}`);
     video.addEventListener('canplay', () => video.play().catch(() => {}), { once: true });
     const label = document.createElement('span');
-    label.textContent = style.title;
+    label.textContent = availability.available
+      ? style.title
+      : `${style.title} · ${availability.reason}`;
     card.append(video, label);
     card.addEventListener('click', () => {
       root.querySelectorAll('.video-style-card').forEach((candidate) => {
@@ -2037,6 +2093,12 @@ function renderFashionVideoStyles(styles = []) {
   });
   root.replaceChildren(...cards);
 }
+document.querySelector('#video-model').addEventListener('change', (event) => {
+  if (videoGenerationBusy || !fashionVideoCapability) return;
+  selectedFashionVideoModel = resolveVideoModelId(fashionVideoCapability, event.currentTarget.value);
+  renderFashionVideoStyles(fashionVideoCapability.styles, selectedFashionVideoModel);
+  document.querySelector('#video-model').focus({ preventScroll: true });
+});
 
 // Video 1 is private directing material; only the approved white master may
 // become the visible person. Keep those roles explicit instead of leaving the
@@ -2082,7 +2144,16 @@ function setVideoGenerateBusy(busy) {
   const action = document.querySelector('#video-generate');
   const thinking = document.querySelector('#video-ai-thinking');
   videoGenerationBusy = busy;
-  action.disabled = busy;
+  const modelSelect = document.querySelector('#video-model');
+  if (modelSelect) modelSelect.disabled = busy;
+  document.querySelectorAll('#video-style-options .video-style-card').forEach((card) => {
+    const style = fashionVideoCapability?.styles?.find((candidate) => candidate.id === card.dataset.styleId);
+    card.disabled = busy || !videoStyleAvailability(style, selectedFashionVideoModel).available;
+  });
+  const hasAvailableStyle = fashionVideoCapability?.styles?.some((style) => (
+    videoStyleAvailability(style, selectedFashionVideoModel).available
+  )) ?? false;
+  action.disabled = busy || !hasAvailableStyle;
   action.classList.toggle('is-loading', busy);
   action.setAttribute('aria-busy', String(busy));
   thinking.hidden = !busy;
@@ -2093,14 +2164,21 @@ function showVideoRetry(problem, clipId = null) {
   const message = typeof problem === 'string'
     ? problem
     : problem?.error ?? problem?.message ?? 'Відео не пройшло перевірку після доступних автоматичних спроб.';
-  error.textContent = publicFailureMessage(message, problem);
+  failedFashionVideoModel = clipId
+    ? problem?.video_model ?? problem?.body?.video_model ?? null
+    : null;
+  const modelLabel = videoModelLabel(fashionVideoCapability, failedFashionVideoModel);
+  error.textContent = [
+    publicFailureMessage(message, problem),
+    clipId && modelLabel ? `Ця спроба використовувала ${modelLabel}; повтор збереже цю модель.` : '',
+  ].filter(Boolean).join(' ');
   error.hidden = false;
   failedFashionVideoClipId = clipId;
   failedFashionVideoRetryKey = clipId ? crypto.randomUUID() : null;
   // This is an explicit user action. Reference-performer QA gets two
   // server-owned attempts first; this button appears only once those attempts
   // are exhausted or when the failure is outside that bounded policy.
-  document.querySelector('#video-retry').hidden = false;
+  document.querySelector('#video-retry').hidden = !clipId;
 }
 function setVideoThinkingState(state, title, detail) {
   videoThinkingOrb.setState(state);
@@ -2123,6 +2201,7 @@ async function pollFashionVideo(clipId) {
       const statusRes = await fetch(`/api/profile/video-clips/${clipId}`);
       if (!statusRes.ok) return;
       const status = await statusRes.json();
+      const actualModel = videoModelLabel(fashionVideoCapability, status.video_model);
       const automaticRetry = status.automatic_retry;
       const automaticRetryRunning = ['SUBMITTING', 'CREATED'].includes(automaticRetry?.state)
         && Number.isInteger(automaticRetry?.retry_number)
@@ -2145,7 +2224,7 @@ async function pollFashionVideo(clipId) {
         setVideoThinkingState('solving', 'AI виправляє заміну героя', 'Reference-людина не потрапить у фінальне відео');
         return;
       }
-      progressStatus.textContent = `Статус: ${status.status}`;
+      progressStatus.textContent = `Статус: ${status.status}${actualModel ? ` · ${actualModel}` : ''}`;
       const normalizedStatus = String(status.status ?? '').toUpperCase();
       if (/QA|CHECK|VERIFY|REVIEW/.test(normalizedStatus)) {
         setVideoThinkingState('solving', 'AI перевіряє відео', 'Звіряємо образ, речі та рух');
@@ -2162,17 +2241,27 @@ async function pollFashionVideo(clipId) {
           return;
         }
         progressFill.style.width = '100%';
-        progressStatus.textContent = 'Відео готове!';
+        progressStatus.textContent = `Відео готове!${actualModel ? ` · ${actualModel}` : ''}`;
         const player = document.querySelector('#video-result-player');
         const downloadLink = document.querySelector('#video-result-download');
         const copyLink = document.querySelector('#video-result-copy');
+        const modelNote = document.querySelector('#video-result-model');
         player.src = status.video_url;
         downloadLink.href = status.download_url ?? status.video_url;
         copyLink.dataset.deliveryUrl = status.video_url;
         copyLink.hidden = false;
         copyLink.textContent = 'Копіювати посилання';
+        modelNote.textContent = actualModel ? `Модель: ${actualModel}` : '';
+        modelNote.hidden = !actualModel;
         resultEl.hidden = false;
         setVideoGenerateBusy(false);
+        const lookId = idOfLook(selectedProfileLook);
+        const requestVersion = ++profileVideoRequestVersion;
+        listProfileLookVideoClips(lookId).then((response) => {
+          if (requestVersion !== profileVideoRequestVersion
+            || idOfLook(selectedProfileLook) !== lookId) return;
+          renderProfileVideoLibrary(selectedProfileLook, response?.clips ?? response);
+        }).catch(() => undefined);
       } else if (status.status === 'FAILED' || status.status === 'FAIL') {
         clearInterval(poll);
         showVideoRetry(status, clipId);
@@ -2206,16 +2295,13 @@ document.querySelector('#video-retry').addEventListener('click', async () => {
   setVideoGenerateBusy(true);
   progressEl.hidden = false;
   progressFill.style.width = '15%';
-  progressStatus.textContent = 'Створюємо одну нову спробу з тим самим locked look і video style…';
+  const persistedModel = videoModelLabel(fashionVideoCapability, failedFashionVideoModel);
+  progressStatus.textContent = `Створюємо одну нову спробу з тим самим locked look і video style${persistedModel ? ` та моделлю ${persistedModel}` : ''}…`;
   try {
-    const response = await fetch(`/api/profile/video-clips/${clipId}/retry`, {
-      method: 'POST',
-      headers: { 'Idempotency-Key': retryKey },
-    });
-    const body = await response.json().catch(() => ({}));
-    if (!response.ok) throw errorFromApiResponse(response, body, `HTTP ${response.status}`);
+    const body = await retryProfileVideoClip(clipId, retryKey);
     failedFashionVideoClipId = null;
     failedFashionVideoRetryKey = null;
+    failedFashionVideoModel = null;
     progressFill.style.width = '30%';
     progressStatus.textContent = body.reused
       ? `Відкрито вже створену спробу ${body.clip_id}…`
@@ -2237,6 +2323,13 @@ document.querySelector('#video-generate').addEventListener('click', async () => 
   const selectedStyle = document.querySelector('#video-style-options .video-style-card[aria-checked="true"]');
   const styleId = selectedStyle?.dataset.styleId;
   const motionMode = selectedStyle?.dataset.motionMode;
+  const videoModel = resolveVideoModelId(
+    fashionVideoCapability,
+    document.querySelector('#video-model').value || selectedFashionVideoModel,
+  );
+  const style = fashionVideoCapability?.styles?.find((candidate) => candidate.id === styleId);
+  const availability = videoStyleAvailability(style, videoModel);
+  selectedFashionVideoModel = videoModel;
   const progressEl = document.querySelector('#video-progress');
   const progressFill = document.querySelector('#video-progress-fill');
   const progressStatus = document.querySelector('#video-progress-status');
@@ -2246,35 +2339,36 @@ document.querySelector('#video-generate').addEventListener('click', async () => 
   progressEl.hidden = false;
   resultEl.hidden = true;
   errorEl.hidden = true;
+  document.querySelector('#video-result-model').hidden = true;
+  document.querySelector('#video-result-model').textContent = '';
   document.querySelector('#video-retry').hidden = true;
   progressFill.style.width = '10%';
-  progressStatus.textContent = 'Відправляємо вибраний стиль на Seedance 2…';
+  progressStatus.textContent = `Відправляємо вибраний стиль у ${videoModelLabel(fashionVideoCapability, videoModel)}…`;
   try {
     if (!styleId || !motionMode) throw new Error('Обери один із трьох відеостилів.');
-    const res = await fetch('/api/profile/video-clips', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        look_id: lookId,
-        style_id: styleId,
-        motion_mode: motionMode,
-      }),
+    if (!availability.available) throw new Error(availability.reason);
+    const clip = await createProfileVideoClip({
+      lookId,
+      styleId,
+      motionMode,
+      videoModel,
     });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      if (err.code === 'MOTION_MODE_SOURCE_MISMATCH') {
-        const error = errorFromApiResponse(res, err, 'Для цього руху потрібен збережений образ у повний зріст.');
-        error.message = 'Для цього руху потрібен збережений образ у повний зріст: мають бути видні ноги й взуття. Обери інший стиль або створи full-body образ.';
-        throw error;
-      }
-      throw errorFromApiResponse(res, err, `HTTP ${res.status}`);
-    }
-    const clip = await res.json();
+    const actualModel = videoModelLabel(fashionVideoCapability, clip.video_model ?? videoModel);
     setVideoThinkingState('composing', 'AI збирає рух', 'Створюємо fashion motion із перевірених референсів');
     progressFill.style.width = '30%';
-    progressStatus.textContent = `Clip ${clip.clip_id} створено — генерація…`;
+    progressStatus.textContent = `Clip ${clip.clip_id} · ${actualModel} створено — генерація…`;
+    failedFashionVideoModel = null;
     pollFashionVideo(clip.clip_id);
   } catch (err) {
+    if (err.code === 'MOTION_MODE_SOURCE_MISMATCH') {
+      err.message = 'Для цього руху потрібен збережений образ у повний зріст: мають бути видні ноги й взуття. Обери інший стиль або створи full-body образ.';
+    }
+    const supportedModels = Array.isArray(err?.body?.supported_video_models)
+      ? err.body.supported_video_models.map((id) => videoModelLabel(fashionVideoCapability, id))
+      : [];
+    if (supportedModels.length > 0) {
+      err.message = `${err.message} Для цього стилю доступні: ${supportedModels.join(', ')}.`;
+    }
     showVideoRetry(err);
     setVideoGenerateBusy(false);
   }

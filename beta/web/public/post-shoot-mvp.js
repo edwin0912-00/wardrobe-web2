@@ -32,7 +32,8 @@ function setAiThinking(active, orbState = 'working', title = 'AI працює', 
   $('#live-ai-detail').textContent = detail;
 }
 function ready() {
-  $('#camera-start').disabled = state.running || Boolean(state.stream);
+  $('#camera-start').disabled = state.running || Boolean(state.stream)
+    || (Boolean(query.get('look') || query.get('demo') === 'outfit') && !state.reference);
   $('#lucy-start').disabled = state.running
     || !state.stream
     || !state.reference;
@@ -101,7 +102,13 @@ async function loadReferenceUrl(url, fileName, readyLabel, { publicProviderUrl =
     credentials: 'same-origin',
     cache: 'no-store',
   });
-  if (!response.ok) throw new Error('Не вдалося відкрити тестовий образ.');
+  if (!response.ok) {
+    const failure = await response.json().catch(() => ({}));
+    if (failure.code === 'LIVE_REFERENCE_INCOMPLETE_LOOK') {
+      throw new Error('Для Live додай верх або сукню, низ і взуття до затвердженого образу.');
+    }
+    throw new Error(failure.error || 'Не вдалося відкрити образ.');
+  }
   const blob = await response.blob();
   const file = new File([blob], fileName, {
     type: blob.type || 'image/png',
@@ -114,6 +121,9 @@ async function loadReferenceUrl(url, fileName, readyLabel, { publicProviderUrl =
   $('#reference-status').textContent = readyLabel;
 }
 async function startCamera() {
+  if ((query.get('look') || query.get('demo') === 'outfit') && !state.reference) {
+    throw new Error('Спочатку потрібен повний перевірений образ для Live.');
+  }
   if (!window.isSecureContext) throw new Error('Камера потребує HTTPS.');
   if (!navigator.mediaDevices?.getUserMedia) {
     throw new Error('Цей вбудований браузер не дає доступу до камери. Відкрий сторінку в Safari або Chrome.');
@@ -204,7 +214,7 @@ async function signal(result) {
     state.peer.onconnectionstatechange = () => {
       const connectionState = state.peer?.connectionState;
       if (connectionState === 'failed') closeLive('Помилка WebRTC: connection failed.');
-      else if (connectionState === 'connected') {
+      else if (connectionState === 'connected' && $('#camera').srcObject === state.stream) {
         setAiThinking(true, 'composing', 'AI формує Live-потік', 'WebRTC підключено, очікуємо перший кадр');
         status('Lucy · WebRTC connected, очікуємо відео…');
       }
@@ -228,6 +238,8 @@ async function signal(result) {
 }
 async function startLive() {
   if (!selectedLookId) throw new Error('Live запускається лише зі збереженого образу.');
+  clearTimeout(state.guideTimer);
+  state.guideTimer = null;
   setAiThinking(true, 'working', 'AI підключає Live', 'Готуємо захищену realtime-сесію');
   const falModule = await import('./vendor/fal-client.js?v=20260727-7');
   const fal = falModule.fal ?? falModule.default?.fal;
