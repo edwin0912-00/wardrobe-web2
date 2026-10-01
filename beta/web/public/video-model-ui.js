@@ -37,3 +37,7 @@ export function realtimeLookStatusLabel({ paidLiveReady, blockedReason } = {}) {
   if (typeof blockedReason === 'string' && blockedReason.trim()) return blockedReason;
   return paidLiveReady ? 'Камера й AI доступні' : 'Камера доступна · AI тимчасово ні';
 }
+
+export function videoRetryAvailable(problem, clipId) {
+  return Boolean(clipId) && problem?.retryable !== false && problem?.body?.retryable !== false;
+}

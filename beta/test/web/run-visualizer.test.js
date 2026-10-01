@@ -58,32 +58,44 @@ async function canonical() {
     input: Buffer.from('<svg width="220" height="360"><rect width="220" height="360" rx="30" fill="#275b36"/></svg>'),
     left: 146,
     top: 140,
-  }]).png().toBuffer();
+  }]).flatten({ background: '#ffffff' }).removeAlpha().png().toBuffer();
+}
+
+async function approvedFullBody() {
+  const silhouette = Buffer.from('<svg width="450" height="1300"><rect width="450" height="1300" rx="70" fill="#275b36"/></svg>');
+  return sharp({
+    create: { width: 1050, height: 1400, channels: 3, background: '#ffffff' },
+  }).composite([{ input: silhouette, left: 300, top: 50 }]).flatten({ background: '#ffffff' }).removeAlpha().png().toBuffer();
 }
 
 function dependencies() {
   return {
     provider: new MockProvider(),
     vlm: {
-      inspectGarments: async () => ({
-        status: 'READY',
-        reason: 'clear item',
-        items: [{
-          source_index: 0,
-          category: 'top',
-          confidence: 0.95,
-          observed: {
-            garment_type: 'forest green hoodie',
-            colors: ['forest green'],
-            material: ['fleece'],
-            pattern: [],
-            logo_text: [],
-            construction: ['hood', 'long sleeves'],
-          },
-          unknowns: [],
-          blockers: [],
-        }],
-      }),
+      inspectGarments: async (_paths, options) => {
+        const categories = options?.purpose === 'FIRST_APPEARANCE_LOCK'
+          ? options.required_categories
+          : ['top'];
+        return {
+          status: 'READY',
+          reason: 'clear item',
+          items: categories.map((category, source_index) => ({
+            source_index,
+            category,
+            confidence: 0.95,
+            observed: {
+              garment_type: category === 'top' ? 'forest green hoodie' : category === 'bottom' ? 'black trousers' : 'black footwear',
+              colors: category === 'top' ? ['forest green'] : ['black'],
+              material: category === 'top' ? ['fleece'] : ['textile'],
+              pattern: [],
+              logo_text: [],
+              construction: category === 'top' ? ['hood', 'long sleeves'] : category === 'bottom' ? ['full length'] : ['closed footwear'],
+            },
+            unknowns: [],
+            blockers: [],
+          })),
+        };
+      },
       evaluateQa: async () => ({
         decision: 'PASS',
         reason: 'visible evidence matches',
@@ -285,10 +297,12 @@ test('persisted visual events reference readable assets and survive a RunService
   t.after(() => rm(root, { recursive: true, force: true }));
   const observedStages = [];
   const observedVisuals = [];
+  const deps = dependencies();
+  deps.provider.image = await approvedFullBody();
   let service;
   service = new RunService({
     rootDirectory: root,
-    ...dependencies(),
+    ...deps,
     observer: async (run) => {
       if (!run.visual_checkpoint) return;
       for (const layer of run.visual_checkpoint.layers) {
@@ -326,8 +340,8 @@ test('persisted visual events reference readable assets and survive a RunService
     garmentQa.sequence > observedVisuals[candidateIndex].sequence,
     'QA scan must be a new persisted visual sequence',
   );
-  assert.equal(observedStages.at(-1), 'OUTPUT_READY');
   const beforeRestart = await service.getRun(created.run_id);
+  assert.equal(observedStages.at(-1), 'OUTPUT_READY', JSON.stringify({ observedStages, status: beforeRestart.status, phase: beforeRestart.phase, inner_state: beforeRestart.inner_state, message: beforeRestart.message, error: beforeRestart.error }));
   assert.equal(beforeRestart.visual_checkpoint.presentation, 'OUTPUT');
   assert.equal(beforeRestart.visual_checkpoint.truth_state, 'APPROVED_OUTPUT');
 
@@ -352,6 +366,7 @@ test('provider waiting never invents candidate pixels', async (t) => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'zeely-visual-waiting-'));
   t.after(() => rm(root, { recursive: true, force: true }));
   const deps = dependencies();
+  deps.provider.image = await approvedFullBody();
   let release;
   let reportStarted;
   const gate = new Promise((resolve) => { release = resolve; });
@@ -386,7 +401,8 @@ test('provider waiting never invents candidate pixels', async (t) => {
   );
   release();
   await service.running.get(created.run_id);
-  assert.equal((await service.getRun(created.run_id)).visual_checkpoint.stage, 'OUTPUT_READY');
+  const finished = await service.getRun(created.run_id);
+  assert.equal(finished.visual_checkpoint.stage, 'OUTPUT_READY', JSON.stringify({ status: finished.status, phase: finished.phase, inner_state: finished.inner_state, message: finished.message, error: finished.error }));
 });
 
 test('visual callback failures never stop item conditioning', async (t) => {
@@ -417,6 +433,7 @@ test('an oversized preview cannot suppress persisted core state and message upda
   const root = await mkdtemp(path.join(os.tmpdir(), 'zeely-visual-progress-soft-'));
   t.after(() => rm(root, { recursive: true, force: true }));
   const deps = dependencies();
+  deps.provider.image = await approvedFullBody();
   let releaseConditioning;
   let reportConditioningStarted;
   const gate = new Promise((resolve) => { releaseConditioning = resolve; });
@@ -474,7 +491,8 @@ test('an oversized preview cannot suppress persisted core state and message upda
   assert.match(persisted.message, /матеріали образу/i);
   assert.equal(persisted.visual_checkpoint, undefined);
   await service.running.get(created.run_id);
-  assert.equal((await service.getRun(created.run_id)).status, 'COMPLETED');
+  const finished = await service.getRun(created.run_id);
+  assert.equal(finished.status, 'COMPLETED', JSON.stringify({ phase: finished.phase, inner_state: finished.inner_state, message: finished.message, error: finished.error }));
 });
 
 test('a text-only conditioned image never claims a nonexistent before image', async (t) => {
@@ -540,7 +558,10 @@ test('a text-only conditioned image never claims a nonexistent before image', as
 test('a failed-run retry clears old visual assets and advances the epoch before new generation', async (t) => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'zeely-visual-retry-'));
   t.after(() => rm(root, { recursive: true, force: true }));
-  const original = new RunService({ rootDirectory: root, ...dependencies() });
+  const fixtureLook = await approvedFullBody();
+  const originalDeps = dependencies();
+  originalDeps.provider.image = fixtureLook;
+  const original = new RunService({ rootDirectory: root, ...originalDeps });
   await original.initialize();
   const created = await original.createRun({
     runId: 'visual-retry-run',
@@ -563,7 +584,7 @@ test('a failed-run retry clears old visual assets and advances the epoch before 
   const gate = new Promise((resolve) => { release = resolve; });
   const started = new Promise((resolve) => { reportStarted = resolve; });
   const retryDeps = dependencies();
-  retryDeps.provider = new MockProvider();
+  retryDeps.provider = new MockProvider({ image: fixtureLook });
   const retryGenerate = retryDeps.provider.generate.bind(retryDeps.provider);
   retryDeps.provider.generate = async (context) => {
     reportStarted();
@@ -581,7 +602,7 @@ test('a failed-run retry clears old visual assets and advances the epoch before 
   release();
   await restarted.running.get(created.run_id);
   const finished = await restarted.getRun(created.run_id);
-  assert.equal(finished.status, 'COMPLETED');
+  assert.equal(finished.status, 'COMPLETED', JSON.stringify({ phase: finished.phase, inner_state: finished.inner_state, message: finished.message, error: finished.error }));
   assert.equal(finished.visual_checkpoint.epoch, 2);
   assert.equal(finished.visual_checkpoint.stage, 'OUTPUT_READY');
 });

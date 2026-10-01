@@ -28,6 +28,10 @@ import { evaluateClipQa } from './video-clip-qa.js';
 import {
   DEFAULT_FAL_VIDEO_MODEL,
   FAL_VIDEO_PROVIDER,
+  FAL_VIDEO_POLICY_REJECTION_CODE,
+  FAL_VIDEO_POLICY_REJECTION_MESSAGE,
+  FAL_VIDEO_RESULT_REJECTION_CODE,
+  FAL_VIDEO_RESULT_REJECTION_MESSAGE,
   resolveFalVideoModel,
 } from '../providers/fal-video-provider.js';
 
@@ -89,6 +93,7 @@ export const MAX_INPUT_MEDIA_IP_CHECK_CREATE_ATTEMPTS = 2;
 export const INPUT_MEDIA_IP_CHECK_RETRY_DELAY_MS = 3_000;
 const INPUT_MEDIA_IP_CHECK_PENDING_CODE = 'PROVIDER_INPUT_MEDIA_IP_CHECK_PENDING';
 const CREATE_PRECHECK_CODES = new Set([
+  FAL_VIDEO_POLICY_REJECTION_CODE,
   'VIDEO_MODEL_REFERENCE_DURATION_UNSUPPORTED',
   'VIDEO_MODEL_REFERENCE_GEOMETRY_UNSUPPORTED',
   'VIDEO_MODEL_REFERENCE_FPS_UNSUPPORTED',
@@ -108,6 +113,16 @@ const CREATE_PRECHECK_CODES = new Set([
   'UNSAFE_PROVIDER_PROMPT',
   'FAL_VIDEO_MISCONFIGURED',
 ]);
+const TERMINAL_FAL_REJECTION_CODES = new Set([
+  FAL_VIDEO_POLICY_REJECTION_CODE,
+  FAL_VIDEO_RESULT_REJECTION_CODE,
+]);
+
+function falRejectionMessage(code) {
+  return code === FAL_VIDEO_POLICY_REJECTION_CODE
+    ? FAL_VIDEO_POLICY_REJECTION_MESSAGE
+    : FAL_VIDEO_RESULT_REJECTION_MESSAGE;
+}
 
 function providerCreateErrorStatus(code) {
   if (code === 'FAL_VIDEO_MISCONFIGURED') return 503;
@@ -1035,7 +1050,20 @@ export class VideoService {
             ...(uploadedInputs ? { providerInputMedia: uploadedInputs } : {}),
             ...(unknownOutcome
               ? { providerCreateOutcome: 'UNKNOWN' }
-              : { status: 'FAILED', failureCode }),
+              : {
+                  status: 'FAILED',
+                  failureCode,
+                  ...(TERMINAL_FAL_REJECTION_CODES.has(failureCode)
+                    ? {
+                        providerTerminal: {
+                          code: failureCode,
+                          jobId: null,
+                          recordedAt: new Date(this.#clock()).toISOString(),
+                          retryable: false,
+                        },
+                      }
+                    : {}),
+                }),
             createReceiptSha256: sha256(receiptBytes),
             createReceiptFile: 'create-receipt.json',
             updatedAt: new Date(this.#clock()).toISOString(),
@@ -1049,7 +1077,7 @@ export class VideoService {
           throw new VideoServiceError(cause.message ?? 'FAL could not upload Fashion Video inputs', {
             code: failureCode,
             status: providerCreateErrorStatus(cause?.code),
-            cause,
+            ...(!TERMINAL_FAL_REJECTION_CODES.has(cause?.code) ? { cause } : {}),
           });
         }
         const terminalInputMedia = inputMediaPending
@@ -1217,6 +1245,14 @@ export class VideoService {
     if (!parent) {
       throw new VideoServiceError('Video clip not found', { code: 'CLIP_NOT_FOUND', status: 404 });
     }
+    if (TERMINAL_FAL_REJECTION_CODES.has(parent.failureCode)) {
+      return {
+        eligible: false,
+        created: false,
+        exhausted: false,
+        reasonCode: parent.failureCode,
+      };
+    }
     if (!['FAIL', 'FAILED'].includes(parent.status)
       || !AUTOMATIC_REFERENCE_QA_FAILURE_CODES.has(parent.failureCode)) {
       return {
@@ -1355,6 +1391,21 @@ export class VideoService {
     if (!['FAIL', 'FAILED'].includes(parent.status)) {
       throw new VideoServiceError('Only a terminal failed video can be retried', {
         code: 'VIDEO_RETRY_STATUS_INVALID', status: 409,
+      });
+    }
+    if (TERMINAL_FAL_REJECTION_CODES.has(parent.failureCode)) {
+      throw new VideoServiceError(falRejectionMessage(parent.failureCode), {
+        code: parent.failureCode,
+        status: 409,
+      });
+    }
+    const rejectedAutomaticChild = typeof parent.automaticRetry?.child_clip_id === 'string'
+      ? await this.#store.load(parent.automaticRetry.child_clip_id)
+      : null;
+    if (TERMINAL_FAL_REJECTION_CODES.has(rejectedAutomaticChild?.failureCode)) {
+      throw new VideoServiceError(falRejectionMessage(rejectedAutomaticChild.failureCode), {
+        code: rejectedAutomaticChild.failureCode,
+        status: 409,
       });
     }
     let retryVideoModel = DEFAULT_FAL_VIDEO_MODEL;
@@ -1518,31 +1569,38 @@ export class VideoService {
       // immutable job again. Persist them as retryable failure evidence; do
       // not invent a video, issue another paid create, or leave a stale
       // GENERATING state that blocks deployment forever.
-        if (['PROVIDER_JOB_NOT_FOUND', 'PROVIDER_JOB_FAILED', 'MISSING_VIDEO_OUTPUT'].includes(cause?.code)) {
+        if (['PROVIDER_JOB_NOT_FOUND', 'PROVIDER_JOB_FAILED', 'MISSING_VIDEO_OUTPUT']
+          .includes(cause?.code) || TERMINAL_FAL_REJECTION_CODES.has(cause?.code)) {
           clip.status = 'FAILED';
-          clip.failureCode = cause.code === 'MISSING_VIDEO_OUTPUT'
-            ? 'MISSING_VIDEO_OUTPUT'
-            : cause.code === 'PROVIDER_JOB_FAILED'
-              ? 'VIDEO_PROVIDER_JOB_FAILED'
-              : 'VIDEO_PROVIDER_JOB_NOT_FOUND';
+          clip.failureCode = TERMINAL_FAL_REJECTION_CODES.has(cause.code)
+            ? cause.code
+            : cause.code === 'MISSING_VIDEO_OUTPUT'
+              ? 'MISSING_VIDEO_OUTPUT'
+              : cause.code === 'PROVIDER_JOB_FAILED'
+                ? 'VIDEO_PROVIDER_JOB_FAILED'
+                : 'VIDEO_PROVIDER_JOB_NOT_FOUND';
           clip.providerTerminal = {
             code: clip.failureCode,
             jobId: clip.jobId,
             recordedAt: new Date(this.#clock()).toISOString(),
             // A retry creates a new explicit child attempt; the finished
             // provider job itself is immutable and will never be polled again.
-            retryable: cause.code !== 'PROVIDER_JOB_NOT_FOUND',
+            retryable: !TERMINAL_FAL_REJECTION_CODES.has(cause.code)
+              && cause.code !== 'PROVIDER_JOB_NOT_FOUND',
           };
           delete clip.providerWaitLease;
           clip.updatedAt = new Date(this.#clock()).toISOString();
           await this.#store.save(clipId, clip);
-          throw new VideoServiceError(cause.code === 'MISSING_VIDEO_OUTPUT'
-            ? 'Provider finished without a video URL; no video was generated.'
-            : cause.code === 'PROVIDER_JOB_FAILED'
-              ? 'The video provider marked this job failed; create a new attempt to retry.'
-              : 'The video provider no longer has this job; it was not generated.', {
+          const message = TERMINAL_FAL_REJECTION_CODES.has(cause.code)
+            ? cause.message
+            : cause.code === 'MISSING_VIDEO_OUTPUT'
+              ? 'Provider finished without a video URL; no video was generated.'
+              : cause.code === 'PROVIDER_JOB_FAILED'
+                ? 'The video provider marked this job failed; create a new attempt to retry.'
+                : 'The video provider no longer has this job; it was not generated.';
+          throw new VideoServiceError(message, {
             code: clip.failureCode,
-            status: 502,
+            status: TERMINAL_FAL_REJECTION_CODES.has(cause.code) ? 422 : 502,
           });
         }
         // A transport blip is retryable against the same job. The current wait

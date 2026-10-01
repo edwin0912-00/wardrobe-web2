@@ -11,7 +11,13 @@ import {
   VideoServiceError,
 } from '../../src/web/video-service.js';
 import { HiggsfieldVideoProvider } from '../../src/providers/higgsfield-video-provider.js';
-import { FalVideoProvider } from '../../src/providers/fal-video-provider.js';
+import {
+  FalVideoProvider,
+  FAL_VIDEO_POLICY_REJECTION_CODE,
+  FAL_VIDEO_POLICY_REJECTION_MESSAGE,
+  FAL_VIDEO_RESULT_REJECTION_CODE,
+  FAL_VIDEO_RESULT_REJECTION_MESSAGE,
+} from '../../src/providers/fal-video-provider.js';
 import { sha256 } from '../../src/web/scene-contract.js';
 
 // Stubbed provider that tracks calls and returns predictable results
@@ -265,6 +271,79 @@ test('a lost FAL create acknowledgement is persisted as unknown and cannot be re
     await assert.rejects(
       () => service.retryFailedClip(clipId, { videoReference: {} }),
       (error) => error.code === 'VIDEO_RETRY_STATUS_INVALID',
+    );
+    assert.equal(createCalls, 1);
+  });
+});
+
+test('a FAL content-policy create rejection is terminal and cannot create automatic or explicit children', async () => {
+  await withTempDir(async (dir, sourcePath) => {
+    const referencePath = path.join(dir, 'policy-style.mp4');
+    const referenceBytes = Buffer.from('verified-policy-reference');
+    await writeFile(referencePath, referenceBytes);
+    let createCalls = 0;
+    let clipId;
+    const provider = {
+      async createJob(request) {
+        createCalls += 1;
+        clipId = request.sourceBinding.clipId;
+        throw Object.assign(new Error(FAL_VIDEO_POLICY_REJECTION_MESSAGE), {
+          code: FAL_VIDEO_POLICY_REJECTION_CODE,
+          providerInputMedia: {
+            schema_version: 'fal-video-input-media-v1',
+            files: [{
+              role: 'approved_white_master',
+              source_sha256: request.sourceBinding.sourceSha256,
+              uploaded_sha256: request.sourceBinding.sourceSha256,
+              url: 'https://fal.example/input.png',
+              provider_label: '@Image1',
+            }],
+          },
+        });
+      },
+    };
+    const store = new ClipStore(dir);
+    const service = new VideoService({ provider, clipStore: store });
+    const videoReference = {
+      state: 'READY',
+      reference_id: 'policy-style',
+      reference_path: referencePath,
+      reference_sha256: sha256(referenceBytes),
+      reference_pack_sha256: 'd'.repeat(64),
+      duration_seconds: 5,
+      provider_duration_seconds: 5,
+      width: 720,
+      height: 1280,
+      fps: 25,
+      ...verifiedCutSheet(5),
+    };
+    await assert.rejects(
+      () => service.createClip({
+        modeId: 'editorial_micro_moment',
+        sourceImagePath: sourcePath,
+        lookBinding: { whiteBackgroundVerified: true },
+        videoReference,
+      }),
+      (error) => error instanceof VideoServiceError
+        && error.code === FAL_VIDEO_POLICY_REJECTION_CODE
+        && error.status === 409
+        && error.message === FAL_VIDEO_POLICY_REJECTION_MESSAGE,
+    );
+    const persisted = await store.load(clipId);
+    assert.equal(persisted.status, 'FAILED');
+    assert.equal(persisted.failureCode, FAL_VIDEO_POLICY_REJECTION_CODE);
+    assert.equal(persisted.providerTerminal.retryable, false);
+    assert.equal(persisted.providerWaitLease, undefined);
+    const receipt = JSON.parse(await readFile(
+      path.join(store.clipDir(clipId), 'create-receipt.json'), 'utf8',
+    ));
+    assert.equal(receipt.outcome, 'REJECTED');
+    assert.equal(receipt.failure_code, FAL_VIDEO_POLICY_REJECTION_CODE);
+    assert.equal((await service.automaticRetryReferenceQaFailure(clipId, { videoReference })).eligible, false);
+    await assert.rejects(
+      () => service.retryFailedClip(clipId, { videoReference }),
+      (error) => error.code === FAL_VIDEO_POLICY_REJECTION_CODE
+        && error.message === FAL_VIDEO_POLICY_REJECTION_MESSAGE,
     );
     assert.equal(createCalls, 1);
   });
@@ -1805,6 +1884,58 @@ test('awaitAndFinalize persists a failed provider job instead of polling it fore
     assert.equal(persisted.providerTerminal.retryable, true);
     assert.equal(persisted.providerWaitLease, undefined);
   });
+});
+
+test('policy and 400/422 result rejections clear the wait lease and permanently block same-clip retries', async () => {
+  for (const [failureCode, message] of [
+    [FAL_VIDEO_POLICY_REJECTION_CODE, FAL_VIDEO_POLICY_REJECTION_MESSAGE],
+    [FAL_VIDEO_RESULT_REJECTION_CODE, FAL_VIDEO_RESULT_REJECTION_MESSAGE],
+  ]) {
+    await withTempDir(async (dir, sourcePath) => {
+      let creates = 0;
+      let waits = 0;
+      const provider = {
+        async createJob(request) {
+          creates += 1;
+          return {
+            jobId: `fal-${failureCode}`,
+            requestId: `fal-${failureCode}`,
+            providerKey: 'fal',
+            videoModel: request.videoModel,
+            providerEndpoint: 'bytedance/seedance-2.0/reference-to-video',
+          };
+        },
+        async waitForJob() {
+          waits += 1;
+          throw Object.assign(new Error(message), { code: failureCode, retryable: false });
+        },
+      };
+      const store = new ClipStore(dir);
+      const service = new VideoService({ provider, clipStore: store });
+      const created = await service.createClip({
+        modeId: 'editorial_micro_moment',
+        surfaceId: 'mirror',
+        sourceImagePath: sourcePath,
+      });
+      await assert.rejects(
+        () => service.awaitAndFinalize(created.clipId, { downloadFn: makeStubDownload() }),
+        (error) => error.code === failureCode && error.message === message,
+      );
+      const persisted = await store.load(created.clipId);
+      assert.equal(persisted.status, 'FAILED');
+      assert.equal(persisted.failureCode, failureCode);
+      assert.equal(persisted.providerTerminal.retryable, false);
+      assert.equal(persisted.providerWaitLease, undefined);
+      assert.equal(persisted.providerRequestId, `fal-${failureCode}`);
+      assert.equal((await service.automaticRetryReferenceQaFailure(created.clipId)).eligible, false);
+      await assert.rejects(
+        () => service.retryFailedClip(created.clipId, {}),
+        (error) => error.code === failureCode && error.message === message,
+      );
+      assert.equal(creates, 1);
+      assert.equal(waits, 1);
+    });
+  }
 });
 
 test('awaitAndFinalize persists terminal missing video output instead of leaving GENERATING', async () => {

@@ -27,6 +27,12 @@ for reference-bound videos, OpenRouter semantic QA, and Lucy 2.5 Live.
 Provider output and deployment status require separate receipts; configuration
 or fixture tests alone do not prove an external model works.
 
+Candidate validation on 2026-10-01 produced real Codex and Sunburst photos and
+a real Lucy stream with a synthetic camera. Both Seedance versions rejected
+the test references with FAL's content-policy error; no video output was
+generated. See the provider contract for the terminal refusal and retry policy.
+The candidate is not a declaration of a successfully deployed video pipeline.
+
 The active sites and engine were verified on 2026-10-01 at product commit
 `9832c265776d2ee1d160af3d08a054a06572413d`. A real call through that deployed
 Alpha's `CodexAppServerClient` generated a 1254×1254 PNG in 44.451 seconds,

@@ -47,6 +47,10 @@ const MODEL_LIMITS = Object.freeze({
 
 export const FAL_VIDEO_PROVIDER = 'fal';
 export const DEFAULT_FAL_VIDEO_MODEL = 'seedance-2.0';
+export const FAL_VIDEO_POLICY_REJECTION_CODE = 'FAL_VIDEO_POLICY_REJECTED';
+export const FAL_VIDEO_POLICY_REJECTION_MESSAGE = 'Провайдер відхилив цей запуск за правилами контенту. Повтор для нього недоступний.';
+export const FAL_VIDEO_RESULT_REJECTION_CODE = 'FAL_VIDEO_RESULT_REJECTED';
+export const FAL_VIDEO_RESULT_REJECTION_MESSAGE = 'Провайдер відхилив обробку результату. Повтор цього запуску недоступний.';
 export const FAL_VIDEO_MODELS = Object.freeze(Object.fromEntries(
   Object.entries(MODEL_LIMITS).map(([id, limits]) => [id, Object.freeze({
     id,
@@ -252,8 +256,32 @@ function falQueueSubmissionFetch(fetchFn) {
   };
 }
 
+function responseDetail(error) {
+  const body = error?.body ?? error?.response?.body ?? error?.data?.body;
+  return Array.isArray(body?.detail) ? body.detail : [];
+}
+
+function isContentPolicyRejection(error) {
+  return responseDetail(error).some((detail) => (
+    detail?.type === 'content_policy_violation'
+    || detail?.ctx?.extra_info?.reason === 'partner_validation_failed'
+  ));
+}
+
 function providerFailure(cause, phase) {
   if (cause instanceof FalVideoProviderError) return cause;
+  if (isContentPolicyRejection(cause)) {
+    return new FalVideoProviderError(FAL_VIDEO_POLICY_REJECTION_MESSAGE, {
+      code: FAL_VIDEO_POLICY_REJECTION_CODE,
+      cause,
+    });
+  }
+  if (phase === 'wait' && [400, 422].includes(Number(cause?.status))) {
+    return new FalVideoProviderError(FAL_VIDEO_RESULT_REJECTION_MESSAGE, {
+      code: FAL_VIDEO_RESULT_REJECTION_CODE,
+      cause,
+    });
+  }
   if (phase === 'wait' && cause?.status === 404) {
     return new FalVideoProviderError('The persisted FAL video job no longer exists.', {
       code: 'PROVIDER_JOB_NOT_FOUND', cause,

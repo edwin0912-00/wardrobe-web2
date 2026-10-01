@@ -62,6 +62,7 @@ const EDITORIAL_TO_CREATE_UNIVERSE_ALIAS = Object.freeze({
 const USER_FACING_LEGACY_EDITORIAL_MODE_IDS = new Set(
   Object.keys(EDITORIAL_TO_CREATE_UNIVERSE_ALIAS),
 );
+export const LEGACY_EDITORIAL_ALIAS_MODE_IDS = Object.freeze([...USER_FACING_LEGACY_EDITORIAL_MODE_IDS]);
 const CREATE_UNIVERSE_REQUIRED_SHEETS = Object.freeze([
   'camera_lens',
   'blocking',

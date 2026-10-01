@@ -83,3 +83,27 @@ Official contracts:
 - [Seedance 2.0 reference video](https://fal.ai/models/bytedance/seedance-2.0/reference-to-video/api)
 - [Seedance 2.5 reference video](https://fal.ai/models/bytedance/seedance-2.5/reference-to-video/api)
 - [Lucy realtime](https://fal.ai/models/decart/lucy-2-5/realtime/api)
+
+## Actual validation — 2026-10-01
+
+Codex produced a five-reference scene without fallback. Sunburst produced a
+five-reference scene after a controlled pre-submit primary failure and a
+nine-reference editorial detail frame after skipping Codex's reference limit.
+Lucy delivered decoded 1280×720 WebRTC frames with a synthetic camera; this
+proves transport, not real-person try-on quality. Private artifacts and request
+receipts remain outside the repository.
+
+Both named Seedance endpoints accepted queued requests but rejected the
+approved photo/video test set with HTTP 422, `content_policy_violation` and
+`partner_validation_failed`, citing possible real-person likeness or private
+information. No video output was generated. This is an input-policy rejection,
+not proof of an expired key or a broken upload. Do not advertise these inputs
+as verified working or substitute another model/source. The product records
+the refusal as terminal, exposes a safe reason and disables retries for that
+parent. Generic 400/422 result validation is also terminal; transport failures
+with a known request ID can resume polling that same job.
+
+[FAL error semantics](https://fal.ai/docs/documentation/model-apis/errors)
+mark content-policy violations as non-retryable. No verified FAL workflow for
+authorizing these particular person references has been established. Further
+provider/access selection remains an owner decision.

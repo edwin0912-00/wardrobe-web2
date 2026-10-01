@@ -42,6 +42,7 @@ import {
   writeJournal,
 } from './lib/add-items-deployment.mjs';
 import { assertCanonicalExternalHealthUrl } from './lib/deployment-target.mjs';
+import { LEGACY_EDITORIAL_ALIAS_MODE_IDS } from '../src/web/scene-resolvers.js';
 
 const execute = promisify(execFile);
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -426,7 +427,7 @@ export async function postStartSmoke({ origin, release }) {
     if (publicName === 'app.js') {
       const source = bytes.toString('utf8');
       invariant(
-        source.includes('async function beginDraft({ avatar = null, look = null } = {})'),
+        source.includes("async function beginDraft({ avatar = null, look = null, outfitText = '' } = {})"),
         'Live app is missing the exact add-items draft entry point',
       );
       invariant(
@@ -531,7 +532,8 @@ export async function postStartSmoke({ origin, release }) {
     'Editorial mode API is not active',
   );
   invariant(Array.isArray(editorial.modes), 'Editorial mode API returned an invalid catalog');
-  const expectedEditorialIds = [...release.manifest.editorial_preview.mode_ids].sort();
+  const expectedEditorialIds = release.manifest.editorial_preview.mode_ids
+    .filter((id) => !LEGACY_EDITORIAL_ALIAS_MODE_IDS.includes(id)).sort();
   const expectedGenerationIds = [...release.manifest.editorial_preview.generation_mode_ids].sort();
   const actualEditorialIds = editorial.modes.map((entry) => entry?.mode_id).sort();
   const actualGenerationIds = editorial.modes

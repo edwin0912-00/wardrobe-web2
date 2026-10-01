@@ -17,7 +17,32 @@ import { ProfileError } from './profile-service.js';
 import { fashionVideoCapability } from './video-capability.js';
 import { resolveVideoQaAction } from './video-qa-action.js';
 import { VideoServiceError } from './video-service.js';
-import { DEFAULT_FAL_VIDEO_MODEL, resolveFalVideoModel } from '../providers/fal-video-provider.js';
+import {
+  DEFAULT_FAL_VIDEO_MODEL,
+  FAL_VIDEO_POLICY_REJECTION_CODE,
+  FAL_VIDEO_POLICY_REJECTION_MESSAGE,
+  FAL_VIDEO_RESULT_REJECTION_CODE,
+  FAL_VIDEO_RESULT_REJECTION_MESSAGE,
+  resolveFalVideoModel,
+} from '../providers/fal-video-provider.js';
+
+function publicTerminalProviderRejection(clip) {
+  if (clip?.failureCode === FAL_VIDEO_POLICY_REJECTION_CODE) {
+    return {
+      error: FAL_VIDEO_POLICY_REJECTION_MESSAGE,
+      code: FAL_VIDEO_POLICY_REJECTION_CODE,
+      retryable: false,
+    };
+  }
+  if (clip?.failureCode === FAL_VIDEO_RESULT_REJECTION_CODE) {
+    return {
+      error: FAL_VIDEO_RESULT_REJECTION_MESSAGE,
+      code: FAL_VIDEO_RESULT_REJECTION_CODE,
+      retryable: false,
+    };
+  }
+  return null;
+}
 
 function sameOriginMutation(request) {
   if (request.headers['sec-fetch-site'] === 'cross-site') {
@@ -95,6 +120,8 @@ function verifiedVideoDeliveryUrls(liveClip) {
 }
 
 function publicVideoFailure(liveClip) {
+  const providerRejection = publicTerminalProviderRejection(liveClip);
+  if (providerRejection) return providerRejection.error;
   if (liveClip?.salvage?.status === 'NEEDS_QA') {
     return 'Система залишила лише підтверджено чисті фрагменти без reference-людини. Коротша версія проходить повторну перевірку.';
   }
@@ -679,7 +706,8 @@ export async function registerVideoRoutes(app, {
       });
     } catch (err) {
       if (err instanceof VideoServiceError) {
-        return reply.code(err.status).send({ error: err.message, code: err.code });
+        const rejection = publicTerminalProviderRejection({ failureCode: err.code });
+        return reply.code(err.status).send(rejection ?? { error: err.message, code: err.code });
       }
       throw err;
     }
@@ -709,6 +737,8 @@ export async function registerVideoRoutes(app, {
         code: 'VIDEO_RETRY_STATUS_INVALID',
       });
     }
+    const parentProviderRejection = publicTerminalProviderRejection(parent);
+    if (parentProviderRejection) return reply.code(409).send(parentProviderRejection);
     if (parent.lookBinding?.whiteBackgroundVerified !== true
       || parent.appearanceReferences?.some((reference) => (
         reference.white_background_verified !== true
@@ -726,6 +756,8 @@ export async function registerVideoRoutes(app, {
         child_clip_id: automatic.leaf?.clipId ?? parent.automaticRetry?.child_clip_id ?? null,
       });
     }
+    const leafProviderRejection = publicTerminalProviderRejection(automatic.leaf);
+    if (leafProviderRejection) return reply.code(409).send(leafProviderRejection);
     const styleId = parent.motionReferenceBinding?.referenceId;
     if (typeof styleId !== 'string' || styleId.length === 0) {
       return reply.code(409).send({
@@ -805,7 +837,8 @@ export async function registerVideoRoutes(app, {
       });
     } catch (err) {
       if (err instanceof VideoServiceError) {
-        return reply.code(err.status).send({ error: err.message, code: err.code });
+        const rejection = publicTerminalProviderRejection({ failureCode: err.code });
+        return reply.code(err.status).send(rejection ?? { error: err.message, code: err.code });
       }
       throw err;
     }
@@ -820,6 +853,9 @@ export async function registerVideoRoutes(app, {
     if (!projection) {
       return reply.code(404).send({ error: 'Video clip not found', code: 'CLIP_NOT_FOUND' });
     }
+    const persistedClip = await videoService.getClip(request.params.clipId);
+    const persistedRejection = publicTerminalProviderRejection(persistedClip);
+    if (persistedRejection) return reply.code(409).send(persistedRejection);
     try {
       await finalizePersistedClip({
         profileId: session.profileId,
@@ -832,13 +868,17 @@ export async function registerVideoRoutes(app, {
       const updated = projectClip(session.profileId, projection.look_id, effectiveClip);
       const verifiedStyle = hasVerifiedFashionStyle(effectiveClip);
       const delivery = verifiedVideoDeliveryUrls(effectiveClip);
-      const next = resolveVideoQaAction(
-        presentationClip(effectiveClip, automatic.inFlight),
-        { deliverable: verifiedStyle },
-      );
+      const providerRejection = publicTerminalProviderRejection(effectiveClip);
+      const next = providerRejection
+        ? { action: 'BLOCK', reason_code: providerRejection.code, retry_available: false }
+        : resolveVideoQaAction(
+            presentationClip(effectiveClip, automatic.inFlight),
+            { deliverable: verifiedStyle },
+          );
       return reply.code(200).send({
         ...updated,
         qa: effectiveClip.qa,
+        error: providerRejection?.error ?? null,
         // A technically valid MP4 is not deliverable Fashion Video until the
         // hash-bound cut audit proves it contains no source performer.
         ...delivery,
@@ -848,6 +888,7 @@ export async function registerVideoRoutes(app, {
         next_action: next.action,
         next_action_reason_code: next.reason_code,
         retry_available: next.retry_available,
+        ...(providerRejection ? { retryable: false } : {}),
         // `effectiveClip` is the running child and therefore has no retry
         // record of its own.  The retry evidence belongs to the requested
         // parent clip, which is what the client is polling.
@@ -855,7 +896,8 @@ export async function registerVideoRoutes(app, {
       });
     } catch (err) {
       if (err instanceof VideoServiceError) {
-        return reply.code(err.status).send({ error: err.message, code: err.code });
+        const rejection = publicTerminalProviderRejection({ failureCode: err.code });
+        return reply.code(err.status).send(rejection ?? { error: err.message, code: err.code });
       }
       throw err;
     }
@@ -911,12 +953,15 @@ export async function registerVideoRoutes(app, {
     const verifiedStyle = hasVerifiedFashionStyle(effectiveClip);
     const delivery = verifiedVideoDeliveryUrls(effectiveClip);
     const displayClip = presentationClip(effectiveClip, automatic.inFlight);
-    const next = resolveVideoQaAction(displayClip, { deliverable: verifiedStyle });
+    const providerRejection = publicTerminalProviderRejection(effectiveClip);
+    const next = providerRejection
+      ? { action: 'BLOCK', reason_code: providerRejection.code, retry_available: false }
+      : resolveVideoQaAction(displayClip, { deliverable: verifiedStyle });
     return reply.header('Cache-Control', 'private, no-store').send({
       ...liveProjection,
       status: effectiveClip?.status ?? liveProjection.status,
       qa: effectiveClip?.qa ?? null,
-      error: publicVideoFailure(displayClip),
+      error: providerRejection?.error ?? publicVideoFailure(displayClip),
       failure_code: effectiveClip?.failureCode
         ?? effectiveClip?.qa?.defects?.[0]?.code
         ?? null,
@@ -925,6 +970,7 @@ export async function registerVideoRoutes(app, {
       next_action: next.action,
       next_action_reason_code: next.reason_code,
       retry_available: next.retry_available,
+      ...(providerRejection ? { retryable: false } : {}),
       // See finalization above: keep the parent-owned retry receipt visible
       // while a child is genuinely active, but clear it once the chain is
       // terminal so the user can make a fresh explicit attempt.

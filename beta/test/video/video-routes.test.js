@@ -9,6 +9,12 @@ import Fastify from 'fastify';
 import { registerVideoRoutes } from '../../src/web/video-routes.js';
 import { ProfileError } from '../../src/web/profile-service.js';
 import { VideoServiceError } from '../../src/web/video-service.js';
+import {
+  FAL_VIDEO_POLICY_REJECTION_CODE,
+  FAL_VIDEO_POLICY_REJECTION_MESSAGE,
+  FAL_VIDEO_RESULT_REJECTION_CODE,
+  FAL_VIDEO_RESULT_REJECTION_MESSAGE,
+} from '../../src/providers/fal-video-provider.js';
 
 function fixture() {
   const projected = [];
@@ -243,6 +249,105 @@ test('an unknown create acknowledgement is returned as non-retryable and never p
   assert.equal(retry.statusCode, 409, retry.body);
   assert.equal(retry.json().code, 'VIDEO_RETRY_STATUS_INVALID');
   assert.equal(providerCreateCalls, 1);
+});
+
+test('create exposes a terminal FAL content-policy rejection without changing model or source', async (t) => {
+  const current = fixture();
+  let submittedRequest;
+  current.videoService.fashionVideoCapability = async () => ({
+    state: 'READY',
+    reference_path: '/runtime/references/motion.mp4',
+    reference_sha256: 'd'.repeat(64),
+    reference_pack_sha256: 'e'.repeat(64),
+    available_styles: availableStyles,
+  });
+  current.videoService.createClip = async (request) => {
+    submittedRequest = request;
+    throw new VideoServiceError(FAL_VIDEO_POLICY_REJECTION_MESSAGE, {
+      code: FAL_VIDEO_POLICY_REJECTION_CODE,
+      status: 409,
+    });
+  };
+  const app = Fastify();
+  t.after(() => app.close());
+  await registerVideoRoutes(app, {
+    profileApi: { resolveRequestProfile: async () => ({ profileId: 'profile-1' }) },
+    profiles: current.profiles,
+    videoService: current.videoService,
+    runService: { outputFile: async () => '/runtime/runs/source/avatar_outfit.png' },
+  });
+  const response = await app.inject({
+    method: 'POST',
+    url: '/api/profile/video-clips',
+    payload: {
+      look_id: '33333333-3333-4333-8333-333333333333',
+      style_id: 'style-1',
+      motion_mode: 'motion_1',
+      video_model: 'seedance-2.5',
+    },
+  });
+  assert.equal(response.statusCode, 409, response.body);
+  assert.deepEqual(response.json(), {
+    error: FAL_VIDEO_POLICY_REJECTION_MESSAGE,
+    code: FAL_VIDEO_POLICY_REJECTION_CODE,
+    retryable: false,
+  });
+  assert.equal(submittedRequest.videoModel, 'seedance-2.5');
+  assert.equal(submittedRequest.sourceImagePath, '/runtime/runs/source/avatar_outfit.png');
+  assert.equal(current.projected.length, 0);
+});
+
+test('result content-policy rejection is public, terminal and cannot be retried explicitly', async (t) => {
+  const current = fixture();
+  let retryCalls = 0;
+  current.setLiveClip({
+    status: 'FAILED',
+    failureCode: FAL_VIDEO_POLICY_REJECTION_CODE,
+    providerTerminal: {
+      code: FAL_VIDEO_POLICY_REJECTION_CODE,
+      retryable: false,
+      jobId: 'fal-policy-job',
+    },
+  });
+  current.videoService.retryFailedClip = async () => { retryCalls += 1; return {}; };
+  const app = Fastify();
+  t.after(() => app.close());
+  await registerVideoRoutes(app, {
+    profileApi: { resolveRequestProfile: async () => ({ profileId: 'profile-1' }) },
+    profiles: current.profiles,
+    videoService: current.videoService,
+    runService: { outputFile: async () => null },
+  });
+  const status = await app.inject({
+    method: 'GET',
+    url: '/api/profile/video-clips/11111111-1111-4111-8111-111111111111',
+  });
+  assert.equal(status.statusCode, 200, status.body);
+  assert.equal(status.json().error, FAL_VIDEO_POLICY_REJECTION_MESSAGE);
+  assert.equal(status.json().failure_code, FAL_VIDEO_POLICY_REJECTION_CODE);
+  assert.equal(status.json().next_action, 'BLOCK');
+  assert.equal(status.json().retry_available, false);
+  assert.equal(status.json().retryable, false);
+
+  const retry = await app.inject({
+    method: 'POST',
+    url: '/api/profile/video-clips/11111111-1111-4111-8111-111111111111/retry',
+    headers: { 'idempotency-key': 'policy-refusal-retry-key-123456' },
+  });
+  assert.equal(retry.statusCode, 409, retry.body);
+  assert.equal(retry.json().code, FAL_VIDEO_POLICY_REJECTION_CODE);
+  assert.equal(retry.json().retryable, false);
+  assert.equal(retryCalls, 0);
+
+  current.setLiveClip({ failureCode: FAL_VIDEO_RESULT_REJECTION_CODE });
+  const genericResult = await app.inject({
+    method: 'GET',
+    url: '/api/profile/video-clips/11111111-1111-4111-8111-111111111111',
+  });
+  assert.equal(genericResult.json().error, FAL_VIDEO_RESULT_REJECTION_MESSAGE);
+  assert.equal(genericResult.json().next_action, 'BLOCK');
+  assert.equal(genericResult.json().retry_available, false);
+  assert.equal(genericResult.json().retryable, false);
 });
 
 test('saved-look capability opens only from the server-verified two-reference contract', async (t) => {

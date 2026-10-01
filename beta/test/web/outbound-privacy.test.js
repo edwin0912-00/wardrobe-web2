@@ -18,7 +18,7 @@ test('HTTP error responses redact local infrastructure metadata', async () => {
   const response = await app.inject({ method: 'GET', url: '/api/runs/run-1' });
   assert.equal(response.statusCode, 400);
   assert.doesNotMatch(response.body, /zeely|jarvis|\/Users\//i);
-  assert.match(response.json().error, /\[redacted-local-path\]/);
+  assert.equal(response.json().error, 'Дію зупинено. Перевірте код і наступну дію.');
   await app.close();
 });
 
@@ -55,7 +55,7 @@ test('degraded provider preflight refuses paid generation before uploads enter t
   const response = await app.inject({ method: 'POST', url: '/api/runs' });
   assert.equal(response.statusCode, 503);
   assert.deepEqual(response.json(), {
-    error: 'Генерація тимчасово недоступна: потрібна авторизація або перевірка Higgsfield.',
+    error: 'Генерація тимчасово недоступна: перевірте активний транспорт і fallback.',
     code: 'GENERATION_UNAVAILABLE',
     next_action: 'RETRY_AFTER_PROVIDER_READY',
   });

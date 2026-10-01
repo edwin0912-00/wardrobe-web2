@@ -289,7 +289,10 @@ test('a legacy active lease remains valid but cannot publish a status artifact',
       },
     }],
   };
-  assert.deepEqual(validateBoardDocument(board), []);
+  assert.deepEqual(
+    validateBoardDocument(board, { now: new Date('2026-07-27T00:01:00.000Z') }),
+    [],
+  );
   assert.equal(taskMayPublishStatus(board.tasks[0]), false);
 });
 

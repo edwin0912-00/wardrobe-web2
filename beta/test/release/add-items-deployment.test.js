@@ -1134,13 +1134,9 @@ test('product post-start smoke proves active scene and editorial APIs without pa
     expectedManifestSha256: built.manifestSha256,
     expectedBaseCommit: built.manifest.base_commit,
   });
-  const presetIds = [
-    'std.city.golden_hour_gloss',
-    'std.interior.gallery_morning_gloss',
-    'std.nature_architecture.concrete_grass_golden_hour',
-    'std.studio.taupe_rembrandt_gloss',
-    'std.studio.white_window_honeycomb',
-  ];
+  const presetIds = JSON.parse(await readFile(
+    path.join(built.releaseDirectory, 'assets/scene-presets/index.json'), 'utf8',
+  )).selected_preset_ids;
   let tamperSceneUi = false;
   let editorialGenerationAvailable = true;
   const server = createServer(async (request, response) => {
@@ -1162,7 +1158,7 @@ test('product post-start smoke proves active scene and editorial APIs without pa
         presets: presetIds.map((presetId) => ({
           preset_id: presetId,
           preset_version: '1.0.0',
-          preview_url: `/api/scene-presets/${encodeURIComponent(presetId)}/1.0.0/preview`,
+          preview_url: `/api/scene-presets/${encodeURIComponent(presetId)}/1.0.0/preview?v=${'a'.repeat(64)}`,
         })),
       }));
       return;
@@ -1174,12 +1170,13 @@ test('product post-start smoke proves active scene and editorial APIs without pa
         generation_available: editorialGenerationAvailable,
         generation_mode_ids: built.manifest.editorial_preview.generation_mode_ids,
         shot_sequence: ['clean_identity_hero'],
-        modes: built.manifest.editorial_preview.mode_ids.map((modeId) => ({
+        modes: built.manifest.editorial_preview.mode_ids
+          .filter((modeId) => modeId !== 'editorial.edwin_novak.institutional_modernism').map((modeId) => ({
           mode_id: modeId,
           version: '1.0.0',
           generation_available: editorialGenerationAvailable
             && built.manifest.editorial_preview.generation_mode_ids.includes(modeId),
-          preview_url: `/api/editorial-modes/${encodeURIComponent(modeId)}/1.0.0/preview`,
+          preview_url: `/api/editorial-modes/${encodeURIComponent(modeId)}/1.0.0/preview?v=${'a'.repeat(64)}`,
         })),
       }));
       return;
@@ -1233,9 +1230,9 @@ test('product post-start smoke proves active scene and editorial APIs without pa
   const origin = `http://127.0.0.1:${address.port}`;
 
   const smoke = await postStartSmoke({ origin, release });
-  assert.equal(smoke.scene_presets, 5);
-  assert.equal(smoke.editorial_modes, 4);
-  assert.equal(smoke.editorial_generation_modes, 2);
+  assert.equal(smoke.scene_presets, 16);
+  assert.equal(smoke.editorial_modes, 18);
+  assert.equal(smoke.editorial_generation_modes, 17);
   assert.equal(smoke.editorial_generation, 'ENABLED');
 
   tamperSceneUi = true;

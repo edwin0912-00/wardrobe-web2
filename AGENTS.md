@@ -12,6 +12,10 @@ Read `docs/PROVIDER-ROUTING.md` before changing generation. Preserve every
 mandatory reference, selected Seedance model and persisted remote request.
 Do not resubmit unknown outcomes or silently replace a model. FAL credentials
 remain server-only; OpenRouter retains semantic QA.
+The 2026-10-01 real Seedance tests were rejected by the partner's content
+policy for the supplied person references. Treat those receipts as blocked
+provider evidence, not a reason to crop faces, change identities or retry the
+same rejected input. Configuration-ready is not generation-proven.
 
 Source, deployed artifacts and private runtime are separate. Preserve the
 existing runtime and the dedicated Codex account when changing code. Verify

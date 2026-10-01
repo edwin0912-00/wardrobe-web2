@@ -5,6 +5,7 @@ import {
   resolveVideoModelId,
   videoModelLabel,
   videoModelOptions,
+  videoRetryAvailable,
   videoStyleAvailability,
 } from '../../web/public/video-model-ui.js';
 
@@ -43,6 +44,13 @@ test('Seedance selector defaults to the API default and keeps only API model cho
   assert.equal(resolveVideoModelId(capability), 'seedance-2.0');
   assert.equal(resolveVideoModelId(capability, 'seedance-2.5'), 'seedance-2.5');
   assert.equal(resolveVideoModelId(capability, 'stale-model'), 'seedance-2.0');
+});
+
+test('terminal provider refusals never offer another paid retry', () => {
+  assert.equal(videoRetryAvailable({ retryable: false }, 'clip-1'), false);
+  assert.equal(videoRetryAvailable({ body: { retryable: false } }, 'clip-1'), false);
+  assert.equal(videoRetryAvailable({}, null), false);
+  assert.equal(videoRetryAvailable({ retryable: true }, 'clip-1'), true);
 });
 
 test('changing Seedance selection reevaluates every style and clears old incompatibility', () => {

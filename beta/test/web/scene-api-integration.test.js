@@ -14,6 +14,7 @@ import sharp from 'sharp';
 import { createWebApp } from '../../src/web/app.js';
 import { ProfileService } from '../../src/web/profile-service.js';
 import {
+  DEFAULT_SCENE_MODEL_ROUTE,
   SCENE_EVALUATOR_GATES,
   canonicalJsonBytes,
   sha256,
@@ -751,7 +752,8 @@ test('failed scene retries independently and durable saved look ignores later so
   const sceneId = created.json().scene_id;
   const failed = await fixture.settle(current.app, sceneId);
   assert.equal(failed.status, 'FAILED', JSON.stringify(failed));
-  assert.equal(fixture.calls.generator, 3);
+  assert.equal(failed.execution.attempt, DEFAULT_SCENE_MODEL_ROUTE.length);
+  assert.equal(fixture.calls.generator, failed.execution.attempt);
 
   fixture.qa.pass = true;
   const retried = await current.app.inject({
@@ -763,7 +765,7 @@ test('failed scene retries independently and durable saved look ignores later so
   const completed = await fixture.settle(current.app, sceneId);
   assert.equal(completed.status, 'COMPLETED', JSON.stringify(completed));
   assert.equal(completed.execution.manual_retries, 1);
-  assert.equal(fixture.calls.generator, 4);
+  assert.equal(fixture.calls.generator, completed.execution.attempt);
 
   const generatorCallsBeforeTamper = fixture.calls.generator;
   await writeFile(path.join(source.directory, 'avatar_outfit.png'), await png('#ff0000'));

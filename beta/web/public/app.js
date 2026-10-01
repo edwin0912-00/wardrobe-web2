@@ -20,7 +20,7 @@ import { claimProfileRun, createProfileVideoClip, deleteAnonymousProfile, delete
 import { needsInputPresentation, neutralizeItemTerms } from './visible-copy.js?v=20260731-2';
 import { createSceneUi } from './scene-ui.js?v=20261001-1';
 import { errorFromApiResponse, withPublicDiagnostic } from './error-presentation.js?v=20260804-1';
-import { realtimeLookStatusLabel, resolveVideoModelId, videoModelLabel, videoModelOptions, videoStyleAvailability } from './video-model-ui.js?v=20261001-1';
+import { realtimeLookStatusLabel, resolveVideoModelId, videoModelLabel, videoModelOptions, videoRetryAvailable, videoStyleAvailability } from './video-model-ui.js?v=20261001-1';
 import {
   addItemsScreenState,
   clearAddItemsSelection,
@@ -2161,6 +2161,7 @@ function setVideoGenerateBusy(busy) {
 }
 function showVideoRetry(problem, clipId = null) {
   const error = document.querySelector('#video-error');
+  const canRetry = videoRetryAvailable(problem, clipId);
   const message = typeof problem === 'string'
     ? problem
     : problem?.error ?? problem?.message ?? 'Відео не пройшло перевірку після доступних автоматичних спроб.';
@@ -2170,15 +2171,15 @@ function showVideoRetry(problem, clipId = null) {
   const modelLabel = videoModelLabel(fashionVideoCapability, failedFashionVideoModel);
   error.textContent = [
     publicFailureMessage(message, problem),
-    clipId && modelLabel ? `Ця спроба використовувала ${modelLabel}; повтор збереже цю модель.` : '',
+    clipId && modelLabel ? `Ця спроба використовувала ${modelLabel}.${canRetry ? ' Повтор збереже цю модель.' : ''}` : '',
   ].filter(Boolean).join(' ');
   error.hidden = false;
-  failedFashionVideoClipId = clipId;
-  failedFashionVideoRetryKey = clipId ? crypto.randomUUID() : null;
+  failedFashionVideoClipId = canRetry ? clipId : null;
+  failedFashionVideoRetryKey = canRetry ? crypto.randomUUID() : null;
   // This is an explicit user action. Reference-performer QA gets two
   // server-owned attempts first; this button appears only once those attempts
   // are exhausted or when the failure is outside that bounded policy.
-  document.querySelector('#video-retry').hidden = !clipId;
+  document.querySelector('#video-retry').hidden = !canRetry;
 }
 function setVideoThinkingState(state, title, detail) {
   videoThinkingOrb.setState(state);

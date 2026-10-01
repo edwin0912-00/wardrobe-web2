@@ -9,6 +9,9 @@ import {
   FalVideoProvider,
   FalVideoProviderError,
   FAL_VIDEO_MODELS,
+  FAL_VIDEO_POLICY_REJECTION_CODE,
+  FAL_VIDEO_POLICY_REJECTION_MESSAGE,
+  FAL_VIDEO_RESULT_REJECTION_CODE,
   falVideoModelCompatibility,
 } from '../../src/providers/fal-video-provider.js';
 import { sha256 } from '../../src/web/scene-contract.js';
@@ -230,6 +233,90 @@ test('Seedance 2.5 uses its exact reference endpoint and resumes by persisted en
     );
     assert.equal(calls.statuses.length, 2);
     assert.ok(videoPath.endsWith('motion-reference.mp4'));
+  });
+});
+
+test('content policy violations at FAL create time are terminal and expose only safe copy', async () => {
+  await withRequestFixture(async ({ client, request }) => {
+    request.videoModel = 'seedance-2.5';
+    const actualResponseShape = Object.assign(new Error('Untrusted partner response text'), {
+      status: 422,
+      body: {
+        detail: [{
+          type: 'content_policy_violation',
+          msg: 'The images or videos provided may contain likenesses of real people or other private information that cannot be processed.',
+          ctx: { extra_info: { reason: 'partner_validation_failed' } },
+        }],
+      },
+    });
+    client.queue.submit = async () => { throw actualResponseShape; };
+    const provider = new FalVideoProvider({
+      apiKey: 'test-key',
+      client,
+      clientFactory: () => client,
+      probeVideoFn: async () => ({
+        durationSeconds: 13.24, width: 1080, height: 1920, fps: 25, hasAudio: false,
+      }),
+      commandRunner: async (_binary, args) => writeFile(args.at(-1), Buffer.from('compatible-video')),
+    });
+    await assert.rejects(
+      () => provider.createJob(request),
+      (error) => error.code === FAL_VIDEO_POLICY_REJECTION_CODE
+        && error.retryable === false
+        && error.message === FAL_VIDEO_POLICY_REJECTION_MESSAGE
+        && !error.message.includes('real people'),
+    );
+  });
+});
+
+test('content policy and generic 400/422 result errors are terminal, while request ids remain bound', async () => {
+  await withRequestFixture(async ({ client }) => {
+    const policyResponse = Object.assign(new Error('Untrusted partner response text'), {
+      status: 422,
+      body: {
+        detail: [{
+          type: 'content_policy_violation',
+          msg: 'The images or videos provided may contain likenesses of real people or other private information that cannot be processed.',
+          ctx: { extra_info: { reason: 'partner_validation_failed' } },
+        }],
+      },
+    });
+    client.queue.status = async (_endpoint, { requestId }) => ({
+      status: 'COMPLETED', request_id: requestId,
+    });
+    client.queue.result = async () => { throw policyResponse; };
+    const provider = new FalVideoProvider({ apiKey: 'test-key', client });
+    await assert.rejects(
+      () => provider.waitForJob({
+        jobId: 'policy-job',
+        providerRequestId: 'policy-job',
+        providerEndpoint: FAL_VIDEO_MODELS['seedance-2.0'].endpoint,
+        videoModel: 'seedance-2.0',
+      }),
+      (error) => error.code === FAL_VIDEO_POLICY_REJECTION_CODE
+        && error.retryable === false
+        && !error.message.includes('real people'),
+    );
+
+    for (const status of [400, 422]) {
+      client.queue.result = async () => {
+        throw Object.assign(new Error('Untrusted validation details'), {
+          status,
+          body: { detail: [{ type: 'value_error', msg: 'private validation details' }] },
+        });
+      };
+      await assert.rejects(
+        () => provider.waitForJob({
+          jobId: 'policy-job',
+          providerRequestId: 'policy-job',
+          providerEndpoint: FAL_VIDEO_MODELS['seedance-2.0'].endpoint,
+          videoModel: 'seedance-2.0',
+        }),
+        (error) => error.code === FAL_VIDEO_RESULT_REJECTION_CODE
+          && error.retryable === false
+          && !error.message.includes('private validation details'),
+      );
+    }
   });
 });
 
