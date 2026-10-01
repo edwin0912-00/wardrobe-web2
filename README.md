@@ -72,6 +72,11 @@ installs repository dependencies, locked media and Chromium. It does not install
 the operating system or create provider accounts. macOS local acceptance was
 verified; GitHub Actions runs the same local contract on Ubuntu 24.04.
 
+Paid production generation also requires the Codex CLI executable with its
+dedicated authorized profile, FFmpeg/FFprobe for video preparation and QA,
+provider keys and the private video-reference originals described below.
+`./verify` does not install those host tools or grant provider permissions.
+
 ```bash
 git clone --filter=blob:none --single-branch --branch alpha https://github.com/edwin0912-00/wardrobe-web2.git && cd wardrobe-web2 && ./verify --run
 ```
