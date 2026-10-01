@@ -12,6 +12,18 @@ Read it and `README.md` before claiming work. Main, Studio and the Node/Codex
 engine are one product; do not create a separate backend or restart an old
 clone based on historical documentation.
 
+Read `CHANGELOG.md` and `docs/PROVIDER-ROUTING.md` before touching installation
+or generation. The owner explicitly requested complete GitHub source parity
+after the FAL implementation. Publication is authorized even while the
+documented Seedance person-reference and host-resource blockers remain;
+activation of the live services is a separate operation.
+
+The current installation contract is `./verify --run`, covering both website
+surfaces and the complete engine. A future questionnaire must wrap that
+contract and preserve its receipts instead of rebuilding only a frontend or
+silently skipping provider/private-media requirements. Do not advertise a
+portable persistent-deployment command before that helper exists and is tested.
+
 For each completion, record source commit, deployed product SHA, verification
 scope and remaining gaps on this board. Distinguish a real provider result from
 fixture tests or health. A docs-only commit may advance alpha while the tested

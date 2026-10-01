@@ -13,6 +13,31 @@ wardrobe-web2/
 
 No second repository or manually rewritten backend URL is required.
 
+## Complete product, not a partial frontend
+
+| Component | Source | Installed by the unified command |
+|---|---|---|
+| Cinematic D journey, mirror flows, TV and laptop surfaces | root, `b/`, `ui.js`, `screen-surfaces.js` | yes |
+| Studio interface and saved-profile workflows | `beta/web/public/` | yes |
+| Node engine, conditioning, generation, scene/shoot/video services | `beta/src/` | yes |
+| Codex worker adapter, FAL transports and semantic QA adapters | `beta/src/providers/` | yes, authorization configured separately |
+| Same-origin browser/API bridge and media Range server | `adapters/`, `serve.py` | yes |
+| Catalogs, prompts, schemas and style-unit materials | `beta/config/`, `beta/prompts/`, `beta/schemas/`, locked media | yes |
+| Operations monitor code and release/recovery tooling | `beta/src/monitor/`, `beta/tools/`, `scripts/` | source included; persistent services require host configuration |
+
+The public repository is the complete code product. Required evaluator/media
+assets are installed from the immutable GitHub release in
+`release/MEDIA.lock.json`: 624 files, 780,008,960 bytes, SHA-256 checked before
+extraction. They are not replaced with an unrelated demo or manually downloaded
+folder. This includes the cinematic media and the locked engine acceptance
+assets.
+
+Provider secrets, Codex authorization, customer databases, uploaded photos,
+generated output and the private original Fashion Video references are separate
+operator-owned state. A Git clone does not contain them. A full source install
+must not be described as a restored customer deployment or a guarantee that
+every external provider has granted content permissions.
+
 ## Current operations and agent entrypoint
 
 Read [the operational handoff](docs/UNIFIED_PROJECT_MONOREPO_PLAN.md) before
@@ -42,7 +67,10 @@ request IDs, receipts and generated media remain outside Git.
 
 ## One command from a clean machine
 
-Requirements: Git, Python 3.10+ and Node.js 22+.
+Requirements: Git, Python 3.10+ and Node.js 22+ with npm. The command below
+installs repository dependencies, locked media and Chromium. It does not install
+the operating system or create provider accounts. macOS local acceptance was
+verified; GitHub Actions runs the same local contract on Ubuntu 24.04.
 
 ```bash
 git clone --filter=blob:none --single-branch --branch alpha https://github.com/edwin0912-00/wardrobe-web2.git && cd wardrobe-web2 && ./verify --run
@@ -53,6 +81,26 @@ retrieves and SHA-verifies the immutable demo-media bundle, installs the pinned
 Chromium, executes the behavioral acceptance gate and writes a JSON receipt.
 Only after PASS does `--run` start both product processes and print their actual
 loopback addresses. Stop them with `Ctrl+C`.
+
+Default local addresses are the main journey on `http://127.0.0.1:4173/b/`
+and Studio on `http://127.0.0.1:4176/`. If ports are occupied, the launcher
+selects free ports and prints them. The main site's `/api` requests are routed
+to that engine automatically. Both share the selected runtime root, which is
+outside the checkout. Read the actual printed addresses rather than assuming
+a stale port.
+
+For an existing checkout, preserve its runtime and local changes, then update
+with a fast-forward and re-run the same contract:
+
+```bash
+git switch alpha
+git pull --ff-only origin alpha
+./verify --run
+```
+
+Do not use a shallow `--depth` clone: acceptance checks the imported source
+ancestry and release lock. Do not run only `npm install` or only the `beta/`
+start command and call that installation of the whole product.
 
 The same `./verify` command runs in GitHub Actions. CI does not reconstruct the
 steps in YAML, so local and hosted acceptance cannot silently diverge.
@@ -147,6 +195,104 @@ Sunburst fallback. `FAL_KEY` also enables reference-bound Seedance 2.0/2.5
 video and Lucy Live; keep it in the host-private credential store. OpenRouter
 supplies semantic QA and can resume its existing recorded video jobs.
 Higgsfield is not an allowed production route in this deliverable.
+
+| Operator setting | Purpose | Required for |
+|---|---|---|
+| `CODEX_HOME` | dedicated Codex OAuth profile used by the actual worker | primary image generation |
+| `ZEELY_GENERATION_PROVIDER=codex-primary` | Codex first, capability-aware Sunburst fallback | approved default image route |
+| `FAL_KEY` | server-only FAL inference credential | Sunburst, Seedance and Lucy |
+| `ZEELY_VLM_PROVIDER=openrouter` + `OPENROUTER_API_KEY` | explicit OpenRouter QA selection | the current production QA route |
+| `ZEELY_VIDEO_REFERENCE_ROOT` | private folder matching the video-reference manifest | original motion clips and their previews |
+| `WARDROBE_ALPHA_RUNTIME_ROOT` | local launcher's durable state/log directory | predictable local state location |
+| `ZEELY_RUNTIME_ROOT` | engine state root for a persistent service | databases, jobs, scenes and outputs |
+| `ZEELY_PUBLIC_HTTPS_ORIGIN` | public engine origin for legacy asset delivery/resumption | deployments using that bridge |
+| `ZEELY_SESSION_SECRET` | host-private session secret | configured session/PIN protection |
+
+Use a private configuration file outside the repository with mode `0600` and
+load it into the service environment. Never paste keys into Markdown, Git,
+shell history, client JavaScript or public logs. Existing authorization must be
+probed from the exact worker binary/profile before starting another login.
+For Codex, a login alone does not prove this product's required namespace/image
+capabilities or pinned controller are available.
+
+`beta/config/video-reference-packs/fashion-cool-style-v1.json` pins the exact
+original clips, playback derivatives and previews by filename, size and hash.
+Supply the matching private package and verify it with the runtime resolver;
+the main media bundle does not restore those operator-owned originals. Missing
+or altered media must produce a clear unavailable state, not substituted clips.
+
+Standard background and Fashion Shoot materials resolve sixteen backgrounds
+and eighteen public shoot modes, seventeen generation-ready by materials. The
+older luminous-blue-white mode remains blocked for missing second-source
+evidence. Readiness by materials is separate from actual provider output QA.
+
+## Persistent deployment
+
+Foreground local startup and public persistent hosting are distinct operations.
+For hosting, configure the target server, two service origins, private state,
+authorization, video-reference package and HTTPS ingress. Main and Studio
+must come from the same verified `alpha` SHA. Keep Node/Python origins on
+loopback behind the configured ingress.
+
+The existing production runbook supports the current macOS launchd host:
+
+1. Read [the operational handoff](docs/UNIFIED_PROJECT_MONOREPO_PLAN.md),
+   [provider contracts](docs/PROVIDER-ROUTING.md) and the shared board.
+2. Inspect current source/artifact SHAs, actual launchers and active jobs.
+3. Run `./verify`; record full-gate limitations separately.
+4. Build and verify the engine with `beta/tools/build-product-release.mjs`
+   and `beta/tools/verify-product-release.mjs`.
+5. Activate through `beta/tools/deploy-beta-release.mjs` only after its
+   active-work checks pass; retain the previous immutable artifact for rollback.
+6. Deploy the matching cinematic source through `scripts/deploy-site.sh`.
+7. Verify both HTTPS surfaces, release SHA, catalogs, browser modules and MP4
+   `206` byte ranges. Health alone is not a paid-generation receipt.
+
+`scripts/deploy-site.sh` is currently specific to the existing production host,
+runtime path and domains. It is not a generic VPS installer. Do not run it on
+an arbitrary machine or silently reuse the current Cloudflare tunnel for a new
+deployment. A portable installation questionnaire is a separate addition under
+design; no nonexistent wizard command is advertised here.
+
+## Verification evidence and known limitations
+
+The source candidate's `./verify quick` and canonical `./verify` local
+acceptance passed. The latter starts real Chromium and both product processes,
+tests persistence/reload and validates the same-origin bridge and media ranges.
+
+The full backend suite ran 1,196 cases: 1,183 passed and thirteen legacy build
+cases were blocked by the unchanged host-resource guard (about 21.64 GiB swap
+against a 1.25 GiB build limit). Eight stale fixture failures were independently
+reproduced on the pre-change source and repaired without relaxing product
+checks. These resource-blocked cases are not reported as passing.
+
+Real-provider checks produced Codex and Sunburst photos, including a complete
+nine-reference editorial detail request, and decoded Lucy WebRTC frames using
+a synthetic camera. They do not certify every style or real-person try-on
+quality. Both actual Seedance versions rejected the supplied person references
+with terminal content-policy errors. FAL separately documents ACR approval for
+faces in its Seedance 2.0 US-hosting offer; applicability to standard endpoints,
+Seedance 2.5 and this account remains unconfirmed.
+
+## Source synchronization and change history
+
+GitHub `alpha` is the complete published source line. Verify source parity with:
+
+```bash
+git fetch origin alpha
+git status --short
+git rev-parse HEAD origin/alpha
+git diff --exit-code HEAD origin/alpha
+```
+
+A clean status, identical commit IDs and an empty diff prove the tracked source
+matches. Private runtime and installed media are checked independently by their
+own manifests; they are not supposed to be committed. A pushed source revision
+does not imply the live services were restarted or their provider access changed.
+
+Read [CHANGELOG.md](CHANGELOG.md) for the implementation history and remaining
+release blockers. The shared board records current source versus deployed SHA,
+verification receipts, ownership and explicit operational boundaries.
 
 ## Runtime ownership
 
