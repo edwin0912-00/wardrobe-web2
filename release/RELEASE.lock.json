@@ -1,19 +1,19 @@
 {
   "schema_version": 1,
-  "release": "alpha-0.05-unified-canonical",
-  "created_at": "2026-08-23",
-  "purpose": "Single installable alpha containing the cinematic site, current committed engine canon, visible bridge startup failure, deterministic browser acceptance, paid-proven semantic QA reference-role repair, and verified mobile preview tooling.",
+  "release": "alpha-0.06-fal-seedance",
+  "created_at": "2026-10-01",
+  "purpose": "Reference-preserving Codex to FAL Sunburst image routing, selectable FAL Seedance 2.0/2.5 video, and verified Live pre-camera guards in the unified alpha product.",
   "sources": {
     "main_site": {
       "repository": "https://github.com/edwin0912-00/wardrobe-web2.git",
-      "commit": "143e80a512b774f6df050244aa88f2b883c9166e",
+      "commit": "9f40523db573be1d7ee1276e7ab6cdda48d90452",
       "location": "."
     },
     "beta_engine": {
       "repository": "https://github.com/edwin0912-00/zeely-ai-engineering-test.git",
       "commit": "826ba677838ba11bdc5520e75225c8f593f67102",
       "source_tree": "679d1a3dc4abdd95b3a92afc22eaaadc2da85a5c",
-      "tree": "8a12fdf9b66987f302f5b4fae1db395f69a1a5cb",
+      "tree": "f1a664f9399804cc1e1861e70f3a0f89a19b1ec6",
       "location": "beta"
     }
   },
@@ -50,6 +50,7 @@
   "external_private_state": [
     "Codex CLI authorization",
     "optional host-local OpenRouter API key",
-    "runtime user data"
+    "runtime user data",
+    "host-local FAL API key"
   ]
 }
