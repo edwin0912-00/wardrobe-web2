@@ -13,7 +13,10 @@
 // All dependencies are injected so the entire module is testable at zero cost.
 
 import { randomUUID } from 'node:crypto';
-import { mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
+import {
+  link, mkdir, open, readdir, readFile, rename, rm, writeFile,
+} from 'node:fs/promises';
+import { isDeepStrictEqual } from 'node:util';
 import path from 'node:path';
 
 import { sha256 } from './scene-contract.js';
@@ -32,6 +35,7 @@ import {
   FAL_VIDEO_POLICY_REJECTION_MESSAGE,
   FAL_VIDEO_RESULT_REJECTION_CODE,
   FAL_VIDEO_RESULT_REJECTION_MESSAGE,
+  falVideoPrompt,
   resolveFalVideoModel,
 } from '../providers/fal-video-provider.js';
 
@@ -132,6 +136,70 @@ function providerCreateErrorStatus(code) {
 
 const SHA256 = /^[a-f0-9]{64}$/;
 const CUT_PEOPLE = new Set(['APPROVED_AVATAR_ONLY', 'NO_PERSON', 'REFERENCE_PERFORMER', 'MIXED_OR_UNKNOWN']);
+const SAFE_FAL_REQUEST_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
+
+async function writeTemporaryFile(filename, bytes) {
+  const temporary = `${filename}.${process.pid}.${randomUUID()}.tmp`;
+  let handle;
+  let ownsTemporary = false;
+  try {
+    handle = await open(temporary, 'wx', 0o600);
+    ownsTemporary = true;
+    await handle.writeFile(bytes);
+    await handle.sync();
+    await handle.close();
+    handle = null;
+    return temporary;
+  } catch (error) {
+    await handle?.close().catch(() => {});
+    if (ownsTemporary) await rm(temporary, { force: true }).catch(() => {});
+    throw error;
+  }
+}
+
+async function syncParentDirectory(filename) {
+  if (!['darwin', 'linux'].includes(process.platform)) return;
+  const handle = await open(path.dirname(filename), 'r');
+  try {
+    await handle.sync();
+  } finally {
+    await handle.close();
+  }
+}
+
+async function atomicWriteFile(filename, bytes) {
+  const temporary = await writeTemporaryFile(filename, bytes);
+  try {
+    await rename(temporary, filename);
+    await syncParentDirectory(filename);
+  } finally {
+    await rm(temporary, { force: true }).catch(() => {});
+  }
+}
+
+async function createFileIfAbsent(filename, bytes) {
+  const temporary = await writeTemporaryFile(filename, bytes);
+  let created = true;
+  try {
+    try {
+      await link(temporary, filename);
+    } catch (error) {
+      if (error?.code !== 'EEXIST') throw error;
+      created = false;
+    }
+  } finally {
+    await rm(temporary, { force: true }).catch(() => {});
+  }
+  await syncParentDirectory(filename);
+  return created;
+}
+
+async function writeImmutableFile(filename, bytes, conflictError) {
+  const contents = Buffer.isBuffer(bytes) ? bytes : Buffer.from(bytes);
+  if (await createFileIfAbsent(filename, contents)) return;
+  const existing = await readFile(filename);
+  if (!existing.equals(contents)) throw conflictError();
+}
 
 function sanitizeProviderWaitValue(value, key = '', depth = 0) {
   if (depth > 12) return '[TRUNCATED_DEPTH]';
@@ -285,7 +353,7 @@ export class ClipStore {
   async save(clipId, metadata) {
     const dir = this.clipDir(clipId);
     await mkdir(dir, { recursive: true });
-    await writeFile(path.join(dir, 'clip.json'), JSON.stringify(metadata, null, 2));
+    await atomicWriteFile(path.join(dir, 'clip.json'), JSON.stringify(metadata, null, 2));
     return metadata;
   }
 
@@ -302,7 +370,7 @@ export class ClipStore {
   // deliberately reads only direct child directories and treats malformed
   // files as absent, so startup recovery cannot traverse or repair arbitrary
   // runtime data.
-  async resumableClipIds() {
+  async resumableClipIds({ includeSubmitting = false } = {}) {
     let entries;
     try {
       entries = await readdir(path.join(this.#root, 'clips'), { withFileTypes: true });
@@ -312,19 +380,20 @@ export class ClipStore {
     }
     const clips = await Promise.all(entries
       .filter((entry) => entry.isDirectory() && /^[0-9a-f-]{36}$/i.test(entry.name))
-      .map(async (entry) => this.load(entry.name)));
+      .map(async (entry) => ({ clipId: entry.name, clip: await this.load(entry.name) })));
     return clips
-      .filter((clip) => clip && [
-        'CREATED', 'GENERATING', 'OUTPUT_DOWNLOAD_FAILED',
-      ].includes(clip.status))
-      .map((clip) => clip.clipId);
+      .filter(({ clipId, clip }) => clip && clip.clipId === clipId && (
+        ['CREATED', 'GENERATING', 'OUTPUT_DOWNLOAD_FAILED'].includes(clip.status)
+        || (includeSubmitting && clip.status === 'SUBMITTING')
+      ))
+      .map(({ clipId }) => clipId);
   }
 
   async saveVideo(clipId, videoBytes) {
     const dir = this.clipDir(clipId);
     await mkdir(dir, { recursive: true });
     const filePath = path.join(dir, 'clip.mp4');
-    await writeFile(filePath, videoBytes);
+    await atomicWriteFile(filePath, videoBytes);
     return filePath;
   }
 
@@ -336,18 +405,9 @@ export class ClipStore {
     const dir = this.clipDir(clipId);
     await mkdir(dir, { recursive: true });
     const filePath = path.join(dir, filename);
-    try {
-      await writeFile(filePath, receiptBytes, { flag: 'wx' });
-    } catch (error) {
-      if (error?.code !== 'EEXIST') throw error;
-      const existing = await readFile(filePath);
-      if (!existing.equals(receiptBytes)) {
-        throw new VideoServiceError('Video QA receipt is immutable', {
-          code: conflictCode,
-          status: 409,
-        });
-      }
-    }
+    await writeImmutableFile(filePath, receiptBytes, () => new VideoServiceError(
+      'Video QA receipt is immutable', { code: conflictCode, status: 409 },
+    ));
     return filePath;
   }
 
@@ -355,18 +415,9 @@ export class ClipStore {
     const dir = this.clipDir(clipId);
     await mkdir(dir, { recursive: true });
     const filePath = path.join(dir, filename);
-    try {
-      await writeFile(filePath, mediaBytes, { flag: 'wx' });
-    } catch (error) {
-      if (error?.code !== 'EEXIST') throw error;
-      const existing = await readFile(filePath);
-      if (!existing.equals(mediaBytes)) {
-        throw new VideoServiceError('Immutable video media conflicts with its original bytes', {
-          code: conflictCode,
-          status: 409,
-        });
-      }
-    }
+    await writeImmutableFile(filePath, mediaBytes, () => new VideoServiceError(
+      'Immutable video media conflicts with its original bytes', { code: conflictCode, status: 409 },
+    ));
     return filePath;
   }
 
@@ -381,7 +432,11 @@ export class ClipStore {
     const dir = this.clipDir(clipId);
     await mkdir(dir, { recursive: true });
     const filePath = path.join(dir, 'source.png');
-    await writeFile(filePath, sourceBytes);
+    await writeImmutableFile(filePath, sourceBytes, () => new VideoServiceError(
+      'Locked Fashion Video source conflicts with its original bytes', {
+        code: 'VIDEO_SOURCE_CONFLICT', status: 409,
+      },
+    ));
     return filePath;
   }
 
@@ -400,7 +455,11 @@ export class ClipStore {
     const dir = this.clipDir(clipId);
     await mkdir(dir, { recursive: true });
     const filePath = path.join(dir, filename);
-    await writeFile(filePath, imageBytes, { flag: 'wx' });
+    await writeImmutableFile(filePath, imageBytes, () => new VideoServiceError(
+      'Fashion Video appearance reference is immutable', {
+        code: 'VIDEO_APPEARANCE_REFERENCE_CONFLICT', status: 409,
+      },
+    ));
     return filePath;
   }
 
@@ -408,7 +467,9 @@ export class ClipStore {
     const dir = this.clipDir(clipId);
     await mkdir(dir, { recursive: true });
     const filePath = path.join(dir, 'create-receipt.json');
-    await writeFile(filePath, receiptBytes, { flag: 'wx' });
+    await writeImmutableFile(filePath, receiptBytes, () => new VideoServiceError(
+      'Create receipt is immutable', { code: 'CREATE_RECEIPT_CONFLICT', status: 409 },
+    ));
     return filePath;
   }
 
@@ -416,18 +477,9 @@ export class ClipStore {
     const dir = this.clipDir(clipId);
     await mkdir(dir, { recursive: true });
     const filePath = path.join(dir, 'identity-item-qa.json');
-    try {
-      await writeFile(filePath, receiptBytes, { flag: 'wx' });
-    } catch (error) {
-      if (error?.code !== 'EEXIST') throw error;
-      const existing = await readFile(filePath);
-      if (!existing.equals(receiptBytes)) {
-        throw new VideoServiceError('Identity/item QA receipt is immutable', {
-          code: 'QA_RECEIPT_CONFLICT',
-          status: 409,
-        });
-      }
-    }
+    await writeImmutableFile(filePath, receiptBytes, () => new VideoServiceError(
+      'Identity/item QA receipt is immutable', { code: 'QA_RECEIPT_CONFLICT', status: 409 },
+    ));
     return filePath;
   }
 
@@ -457,14 +509,12 @@ export class ClipStore {
       state: 'SUBMITTING',
       created_at: new Date().toISOString(),
     };
-    try {
-      await writeFile(claimPath, `${JSON.stringify(pending, null, 2)}\n`, { flag: 'wx' });
+    const bytes = `${JSON.stringify(pending, null, 2)}\n`;
+    if (await createFileIfAbsent(claimPath, bytes)) {
       return { created: true, claim: pending, claimPath };
-    } catch (error) {
-      if (error?.code !== 'EEXIST') throw error;
-      const raw = await readFile(claimPath, 'utf8');
-      return { created: false, claim: JSON.parse(raw), claimPath };
     }
+    const raw = await readFile(claimPath, 'utf8');
+    return { created: false, claim: JSON.parse(raw), claimPath };
   }
 
   async completeRetryClaim(claimPath, childClipId) {
@@ -476,7 +526,7 @@ export class ClipStore {
       child_clip_id: childClipId,
       completed_at: new Date().toISOString(),
     };
-    await writeFile(claimPath, `${JSON.stringify(completed, null, 2)}\n`);
+    await atomicWriteFile(claimPath, `${JSON.stringify(completed, null, 2)}\n`);
     return completed;
   }
 }
@@ -886,6 +936,8 @@ export class VideoService {
         source_sha256: sourceSha256,
         approved_look_receipt_sha256: lookBinding?.approvedLookReceiptSha256 ?? null,
         white_background_verified: lookBinding?.whiteBackgroundVerified === true,
+        profile_id: lookBinding?.profileId ?? null,
+        look_id: lookBinding?.lookId ?? null,
       },
       motion_reference: verifiedVideoReference
         ? {
@@ -1480,15 +1532,168 @@ export class VideoService {
     });
   }
 
-  /**
-   * Ambiguous create recovery is deliberately disabled. The provider's current
-   * job envelope can prove prompt, geometry and model, but it does not attest
-   * the SHA-256 values of the uploaded image/video inputs. A caller echoing our
-   * local binding is not provider evidence and could attach another user's job
-   * with the same prompt. Normal create persists the job id immediately; an
-   * unbound SUBMITTING clip remains quarantined until the provider exposes a
-   * verifiable media binding or the operator resolves it outside delivery.
-   */
+  async #matchesCreateAcknowledgement(clip, clipId, receipt, receiptBytes) {
+    try {
+      if (!Buffer.from(`${JSON.stringify(receipt, null, 2)}\n`).equals(receiptBytes)) return false;
+      const model = resolveFalVideoModel(clip.videoModel);
+      const request = receipt.request;
+      const payload = request?.provider_payload;
+      const inputMedia = receipt.provider_input_media;
+      const locked = clip.immutableRequestBinding;
+      const hasProfileLookBinding = Object.hasOwn(locked?.source_binding ?? {}, 'profile_id')
+        && Object.hasOwn(locked?.source_binding ?? {}, 'look_id');
+      const motion = clip.motionReferenceBinding;
+      if (receipt.schema_version !== '1.0.0'
+        || receipt.clip_id !== clipId || clip.clipId !== clipId
+        || receipt.created_at !== clip.createdAt
+        || receipt.provider !== FAL_VIDEO_PROVIDER
+        || clip.providerKey !== FAL_VIDEO_PROVIDER
+        || receipt.outcome !== undefined || clip.providerCreateOutcome !== undefined
+        || clip.failureCode !== undefined || clip.providerTerminal !== undefined
+        || !SAFE_FAL_REQUEST_ID.test(receipt.request_id ?? '')
+        || receipt.response?.job_id !== receipt.request_id
+        || receipt.response?.payload?.request_id !== receipt.request_id
+        || receipt.video_model !== model.id || clip.videoModel !== model.id
+        || receipt.endpoint !== model.endpoint || clip.providerEndpoint !== model.endpoint
+        || !Number.isInteger(receipt.provider_create_attempt) || receipt.provider_create_attempt < 1
+        || receipt.fallback_used !== false
+        || locked?.schema_version !== 'fashion-video-request-binding-v1'
+        || locked.source_binding?.source_sha256 !== clip.sourceSha256
+        || locked.source_binding?.approved_look_receipt_sha256
+          !== (clip.lookBinding?.approvedLookReceiptSha256 ?? null)
+        || locked.source_binding?.white_background_verified
+          !== (clip.lookBinding?.whiteBackgroundVerified === true)
+        || (Object.hasOwn(locked?.source_binding ?? {}, 'profile_id') !== hasProfileLookBinding)
+        || (Object.hasOwn(locked?.source_binding ?? {}, 'look_id') !== hasProfileLookBinding)
+        || (hasProfileLookBinding
+          && (locked.source_binding.profile_id !== (clip.lookBinding?.profileId ?? null)
+            || locked.source_binding.look_id !== (clip.lookBinding?.lookId ?? null)))
+        || (clip.lookBinding?.sourceSha256
+          && clip.lookBinding.sourceSha256 !== clip.sourceSha256)
+        || !motion || motion.audioSourceFile !== 'style-reference.mp4'
+        || motion.sha256 !== motion.audioSourceSha256
+        || !SHA256.test(motion.sha256 ?? '')
+        || !SHA256.test(motion.packSha256 ?? '')
+        || locked.motion_reference?.sha256 !== motion.sha256
+        || locked.motion_reference?.reference_pack_sha256 !== motion.packSha256
+        || locked.motion_reference?.provider_label !== motion.providerLabel
+        || locked.motion_reference?.reference_manifest_version !== motion.referenceManifestVersion
+        || locked.motion_reference?.presentation_surface !== motion.presentationSurface
+        || locked.motion_reference?.aspect_ratio !== motion.aspectRatio
+        || !SHA256.test(clip.sourceSha256 ?? '')
+        || clip.sourceFile !== 'source.png'
+        || !Array.isArray(clip.appearanceReferences)
+        || !isDeepStrictEqual(request?.immutable_request_binding, locked)
+        || !isDeepStrictEqual(request?.reference_bindings, locked.reference_bindings)
+        || request?.source_sha256 !== clip.sourceSha256
+        || request?.approved_look_receipt_sha256 !== (clip.lookBinding?.approvedLookReceiptSha256 ?? null)
+        || request?.motion_reference_sha256 !== motion.sha256
+        || request?.reference_pack_sha256 !== motion.packSha256
+        || request?.prompt !== clip.prompt
+        || request?.aspect_ratio !== clip.aspectRatio
+        || request?.duration_seconds !== clip.durationSeconds
+        || !isDeepStrictEqual(request?.automatic_reference_retry, locked.automatic_reference_retry)
+        || inputMedia?.schema_version !== 'fal-video-input-media-v1'
+        || inputMedia.provider !== FAL_VIDEO_PROVIDER
+        || inputMedia.video_model !== model.id || inputMedia.endpoint !== model.endpoint
+        || payload?.prompt !== falVideoPrompt(clip.prompt)
+        || inputMedia.prompt_sha256 !== sha256(Buffer.from(payload.prompt))
+        || payload.aspect_ratio !== clip.aspectRatio
+        || payload.duration !== String(clip.durationSeconds)
+        || payload.resolution !== '720p' || payload.codec !== 'H264'
+        || payload.generate_audio !== false
+        || (model.id === 'seedance-2.5'
+          ? payload.task !== 'reference'
+          : Object.hasOwn(payload, 'task'))
+        || !Array.isArray(inputMedia.files)
+        || !Array.isArray(payload.image_urls) || !Array.isArray(payload.video_urls)) return false;
+
+      const sourceBytes = await readFile(path.join(this.#store.clipDir(clipId), 'source.png'));
+      if (sha256(sourceBytes) !== clip.sourceSha256) return false;
+      const appearanceFiles = { identity_face: 'identity-face.png', garment_detail: 'garment-detail.png' };
+      const allowedRoles = ['identity_face', 'garment_detail'];
+      const appearanceBindings = [];
+      for (const reference of clip.appearanceReferences) {
+        if (!allowedRoles.includes(reference.role)
+          || reference.file !== appearanceFiles[reference.role]
+          || !SHA256.test(reference.sha256 ?? '')
+          || reference.white_background_verified !== true
+          || appearanceBindings.some((entry) => entry.role === reference.role)) return false;
+        const bytes = await readFile(path.join(this.#store.clipDir(clipId), reference.file));
+        if (sha256(bytes) !== reference.sha256) return false;
+        appearanceBindings.push({
+          role: reference.role,
+          sha256: reference.sha256,
+          provider_label: reference.provider_label,
+          white_background_verified: reference.white_background_verified,
+        });
+      }
+      const expectedAppearanceRoles = ['identity_face', 'garment_detail'].filter((role) => (
+        appearanceBindings.some((reference) => reference.role === role)
+      ));
+      if (!isDeepStrictEqual(appearanceBindings.map((reference) => reference.role), expectedAppearanceRoles)
+        || !isDeepStrictEqual(locked.appearance_references, appearanceBindings)) return false;
+
+      const referenceBytes = await readFile(path.join(this.#store.clipDir(clipId), 'style-reference.mp4'));
+      if (sha256(referenceBytes) !== motion.sha256) return false;
+
+      const expectedImages = [
+        { role: 'approved_white_master', provider_label: '@Image 1', sha256: clip.sourceSha256 },
+        ...appearanceBindings.map((reference, index) => ({
+          role: reference.role,
+          provider_label: `@Image ${index + 2}`,
+          sha256: reference.sha256,
+        })),
+      ];
+      const expectedMotion = {
+        role: 'motion_reference',
+        provider_label: '@Video 1',
+        sha256: motion.sha256,
+        duration_seconds: motion.durationSeconds,
+        width: motion.width,
+        height: motion.height,
+        fps: motion.fps,
+        cut_sheet_sha256: motion.cutSheetSha256,
+      };
+      const bindings = locked.reference_bindings;
+      if (bindings?.schema_version !== motion.referenceManifestVersion
+        || !isDeepStrictEqual(bindings.images, expectedImages)
+        || !isDeepStrictEqual(bindings.motion_reference, expectedMotion)
+        || !isDeepStrictEqual(request.appearance_references, appearanceBindings)
+        || inputMedia.files.length !== expectedImages.length + 1
+        || payload.image_urls.length !== expectedImages.length
+        || payload.video_urls.length !== 1) return false;
+
+      for (const [index, binding] of expectedImages.entries()) {
+        const uploaded = inputMedia.files[index];
+        if (uploaded?.role !== binding.role
+          || uploaded.provider_label !== `@Image${index + 1}`
+          || uploaded.source_sha256 !== binding.sha256
+          || uploaded.uploaded_sha256 !== binding.sha256
+          || uploaded.normalized !== false
+          || typeof uploaded.url !== 'string' || !uploaded.url.startsWith('https://')
+          || payload.image_urls[index] !== uploaded.url) return false;
+      }
+      const uploadedMotion = inputMedia.files.at(-1);
+      if (uploadedMotion?.role !== 'motion_reference'
+        || uploadedMotion.provider_label !== '@Video1'
+        || uploadedMotion.source_sha256 !== motion.sha256
+        || !SHA256.test(uploadedMotion.uploaded_sha256 ?? '')
+        || typeof uploadedMotion.normalized !== 'boolean'
+        || typeof uploadedMotion.url !== 'string' || !uploadedMotion.url.startsWith('https://')
+        || payload.video_urls[0] !== uploadedMotion.url
+        || (uploadedMotion.normalized
+          && (uploadedMotion.normalization?.source_sha256 !== motion.sha256
+            || uploadedMotion.normalization?.uploaded_sha256 !== uploadedMotion.uploaded_sha256
+            || uploadedMotion.normalization?.duration_preserved !== true))
+        || (!uploadedMotion.normalized && uploadedMotion.uploaded_sha256 !== motion.sha256)) return false;
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /** Restore only the successful local POST receipt; never trust a caller-supplied job id. */
   async recoverSubmittedClip(clipId) {
     const clip = await this.#store.load(clipId);
     if (!clip) {
@@ -1500,10 +1705,45 @@ export class VideoService {
         status: 409,
       });
     }
-    throw new VideoServiceError(
-      'Provider job media inputs are not cryptographically attested; automatic recovery is unsafe',
-      { code: 'RECOVERY_PROVIDER_BINDING_UNVERIFIABLE', status: 409 },
-    );
+    let receiptBytes;
+    let receipt;
+    try {
+      receiptBytes = await readFile(path.join(this.#store.clipDir(clipId), 'create-receipt.json'));
+      receipt = JSON.parse(receiptBytes.toString('utf8'));
+    } catch {
+      throw new VideoServiceError('The local create acknowledgement cannot be verified', {
+        code: 'RECOVERY_PROVIDER_BINDING_UNVERIFIABLE', status: 409,
+      });
+    }
+    if (!await this.#matchesCreateAcknowledgement(clip, clipId, receipt, receiptBytes)) {
+      throw new VideoServiceError('The local create acknowledgement cannot be verified', {
+        code: 'RECOVERY_PROVIDER_BINDING_UNVERIFIABLE', status: 409,
+      });
+    }
+    const recovered = {
+      ...clip,
+      jobId: receipt.request_id,
+      providerRequestId: receipt.request_id,
+      providerKey: FAL_VIDEO_PROVIDER,
+      videoModel: receipt.video_model,
+      providerEndpoint: receipt.endpoint,
+      providerCreateAttempt: receipt.provider_create_attempt,
+      fallbackUsed: receipt.fallback_used,
+      providerInputMedia: receipt.provider_input_media,
+      status: 'CREATED',
+      createReceiptSha256: sha256(receiptBytes),
+      createReceiptFile: 'create-receipt.json',
+      updatedAt: new Date(this.#clock()).toISOString(),
+    };
+    await this.#store.save(clipId, recovered);
+    return {
+      clipId,
+      jobId: recovered.jobId,
+      requestId: recovered.providerRequestId,
+      status: recovered.status,
+      videoModel: recovered.videoModel,
+      providerEndpoint: recovered.providerEndpoint,
+    };
   }
 
   /**
@@ -1917,6 +2157,14 @@ export class VideoService {
    * caller still owns scheduling/concurrency; this method never creates jobs.
    */
   async resumableClipIds() {
+    for (const clipId of await this.#store.resumableClipIds({ includeSubmitting: true })) {
+      if ((await this.#store.load(clipId))?.status !== 'SUBMITTING') continue;
+      try {
+        await this.recoverSubmittedClip(clipId);
+      } catch (error) {
+        if (error?.code !== 'RECOVERY_PROVIDER_BINDING_UNVERIFIABLE') throw error;
+      }
+    }
     return this.#store.resumableClipIds();
   }
 

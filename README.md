@@ -259,6 +259,14 @@ an arbitrary machine or silently reuse the current Cloudflare tunnel for a new
 deployment. A portable installation questionnaire is a separate addition under
 design; no nonexistent wizard command is advertised here.
 
+## Historical SSD data
+
+The owner-approved [SSD conservation](docs/SSD-CONSOLIDATION.md) preserved old code,
+media and Git metadata in one private hash-bound archive collection before retiring
+verified inactive copies. Canonical source, live runtime, provider state and original
+video references remain in place. Do not reactivate an old release or delete the
+archive merely because its bytes also occur in a current checkout.
+
 ## Verification evidence and known limitations
 
 The source candidate's `./verify quick` and canonical `./verify` local

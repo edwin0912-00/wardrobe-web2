@@ -152,7 +152,7 @@ function imageMimeType(bytes) {
   });
 }
 
-function falPrompt(prompt) {
+export function falVideoPrompt(prompt) {
   const direction = '@Video 1 is private reference-only directing material, never delivery media. '
     + 'Use it only to reconstruct its complete shot sequence, cut timing, transitions, action timing, '
     + 'pose choreography, camera movement, framing, environment, lighting, colour grade, optical effects, '
@@ -583,7 +583,7 @@ export class FalVideoProvider {
         normalization: prepared.normalization,
       });
       const input = {
-        prompt: falPrompt(request.prompt),
+        prompt: falVideoPrompt(request.prompt),
         image_urls: imageUrls,
         video_urls: [motionUrl],
         resolution: '720p',

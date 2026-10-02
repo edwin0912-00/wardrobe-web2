@@ -77,3 +77,7 @@ Install once in each worktree:
 
 Never share one checkout between agents. Never bypass the hook to race an
 overlapping atom; release or narrow the conflicting claim on the board first.
+
+## Conservation and video reliability handoff — 2026-10-02
+
+Historical SSD source/media has been consolidated after hash and restoration checks; see `docs/SSD-CONSOLIDATION.md`. The private archive is preservation data, not another active checkout. Keep provider state, current runtime and original references in place. Video acknowledgement recovery must reuse the recorded request and exact model; missing/invalid receipts remain quarantined. Current source repairs do not grant FAL person-reference access and do not imply live deployment.

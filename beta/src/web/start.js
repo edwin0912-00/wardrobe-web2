@@ -12,7 +12,7 @@ import { runLocalPreflight } from './preflight.js';
 import { createSceneRuntimeDependencies } from './scene-runtime.js';
 import { createVlmEvaluator } from './vlm-provider.js';
 import { createFalRealtimeTokenIssuer } from './fal-realtime-token.js';
-import { createVideoRuntime } from './video-runtime.js';
+import { createVideoRuntime, resumePersistedVideoJobs } from './video-runtime.js';
 import { createFashionVideoReferenceResolver } from './video-reference-registry.js';
 import {
   createUnavailableVideoAssetUrlResolver,
@@ -199,16 +199,7 @@ startupTrace('video_runtime_ready');
 // createJob and therefore cannot duplicate a paid video.  The route layer also
 // resumes on a later status request, covering a provider wait interrupted by a
 // further restart.
-for (const clipId of videoService ? await videoService.resumableClipIds() : []) {
-  void videoService.finalizeClip(clipId)
-    .then(() => monitor.append({ source: 'server', type: 'video.resume_completed', data: { clip_id: clipId } }))
-    .catch((error) => monitor.append({
-      source: 'server',
-      type: 'video.resume_paused',
-      severity: 'warn',
-      data: { clip_id: clipId, code: error?.code ?? 'VIDEO_FINALIZE_ERROR' },
-    }).catch(() => {}));
-}
+await resumePersistedVideoJobs({ videoService, profiles, monitor });
 const app = await createWebApp({
   service,
   health,

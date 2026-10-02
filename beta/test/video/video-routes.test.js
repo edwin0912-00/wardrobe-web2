@@ -1,13 +1,14 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 
 import Fastify from 'fastify';
 
-import { registerVideoRoutes } from '../../src/web/video-routes.js';
-import { ProfileError } from '../../src/web/profile-service.js';
+import { projectVideoClipToProfile, registerVideoRoutes } from '../../src/web/video-routes.js';
+import { ProfileError, ProfileService, registerProfileRoutes } from '../../src/web/profile-service.js';
 import { VideoServiceError } from '../../src/web/video-service.js';
 import {
   FAL_VIDEO_POLICY_REJECTION_CODE,
@@ -97,6 +98,72 @@ function fixture() {
     setProjectionStatus(next) { projectionStatus = next; },
   };
 }
+
+const sha256 = (bytes) => createHash('sha256').update(bytes).digest('hex');
+
+test('projectVideoClipToProfile uses ProfileService ownership checks', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'zeely-video-profile-projection-'));
+  const outputRoot = path.join(root, 'outputs');
+  const runId = '22222222-2222-4222-8222-222222222222';
+  await mkdir(path.join(outputRoot, runId), { recursive: true });
+  await writeFile(path.join(outputRoot, runId, 'avatar.png'), 'avatar');
+  await writeFile(path.join(outputRoot, runId, 'avatar_outfit.png'), 'look');
+  const runs = new Map([[runId, {
+    run_id: runId, status: 'COMPLETED', outputs: { avatar: true, avatar_outfit: true },
+  }]]);
+  const runService = {
+    async getRun(id) { return runs.get(id) ?? null; },
+    async outputFile(id, filename) {
+      return runs.has(id) && ['avatar.png', 'avatar_outfit.png'].includes(filename)
+        ? path.join(outputRoot, id, filename)
+        : null;
+    },
+    async deleteRun() {},
+  };
+  const profiles = new ProfileService({ databasePath: path.join(root, 'profiles.sqlite') });
+  const app = Fastify();
+  await registerProfileRoutes(app, { service: profiles, runService, secureCookie: false });
+  t.after(async () => {
+    await app.close();
+    profiles.close();
+    await rm(root, { recursive: true, force: true });
+  });
+
+  const owner = await app.inject({ method: 'GET', url: '/api/profile' });
+  const ownerId = owner.json().profile_id;
+  const ownerCookie = owner.headers['set-cookie'].split(';')[0];
+  const claim = await app.inject({
+    method: 'POST', url: `/api/profile/runs/${runId}/claim`, headers: { cookie: ownerCookie },
+    payload: { source_avatar_id: null },
+  });
+  assert.equal(claim.statusCode, 201, claim.body);
+  const saved = await app.inject({
+    method: 'POST', url: `/api/profile/runs/${runId}/save`, headers: { cookie: ownerCookie },
+  });
+  assert.equal(saved.statusCode, 201, saved.body);
+  const lookId = saved.json().look.look_id;
+
+  const liveClip = {
+    clipId: '11111111-1111-4111-8111-111111111111',
+    mode: 'editorial_micro_moment', surface: 'mirror', status: 'PASS', jobId: 'job-1',
+    videoSha256: 'a'.repeat(64), durationSeconds: 5, videoModel: 'seedance-2.5',
+  };
+  const projected = projectVideoClipToProfile(profiles, ownerId, lookId, liveClip);
+  assert.equal(projected.clip_id, liveClip.clipId);
+  assert.equal(projected.status, 'PASS');
+  assert.equal(projected.output_sha256, liveClip.videoSha256);
+  assert.equal(projected.video_model, liveClip.videoModel);
+
+  const other = await app.inject({ method: 'GET', url: '/api/profile' });
+  assert.throws(
+    () => projectVideoClipToProfile(profiles, other.json().profile_id, lookId, liveClip),
+    (error) => error instanceof ProfileError && error.code === 'LOOK_NOT_FOUND',
+  );
+  assert.throws(
+    () => projectVideoClipToProfile(profiles, ownerId, '../invalid-look', liveClip),
+    (error) => error instanceof ProfileError && error.code === 'INVALID_ASSET_ID',
+  );
+});
 
 const availableStyles = [1, 2, 3].map((index) => ({
   id: `style-${index}`,
@@ -567,11 +634,13 @@ test('a verified Fashion Video survives the saved-look library with private play
   const current = fixture();
   const root = await mkdtemp(path.join(os.tmpdir(), 'zeely-video-delivery-library-'));
   const videoPath = path.join(root, 'delivered.mp4');
-  await writeFile(videoPath, 'delivered-video');
+  const bytes = Buffer.from('delivered-video');
+  await writeFile(videoPath, bytes);
   t.after(async () => { await rm(root, { recursive: true, force: true }); });
   current.setLiveClip({
     status: 'PASS',
     videoPath,
+    videoSha256: sha256(bytes),
     qa: { pass: true, defects: [] },
     motionReferenceBinding: { sha256: 'c'.repeat(64), packSha256: 'd'.repeat(64) },
     identityItemQa: { pass: true },
@@ -602,8 +671,19 @@ test('a verified Fashion Video survives the saved-look library with private play
     method: 'GET', url: '/api/profile/video-clips/11111111-1111-4111-8111-111111111111/download',
   });
   assert.equal(download.statusCode, 200, download.body);
+  assert.equal(download.headers['content-type'], 'video/mp4');
+  assert.equal(download.headers['cache-control'], 'private, no-store');
+  assert.equal(download.headers['x-content-type-options'], 'nosniff');
+  assert.equal(download.headers['content-length'], String(bytes.length));
   assert.match(download.headers['content-disposition'], /^attachment; filename="fashion-video\.mp4"$/);
-  assert.equal(download.rawPayload.toString(), 'delivered-video');
+  assert.deepEqual(download.rawPayload, bytes);
+
+  const playback = await app.inject({
+    method: 'GET', url: '/api/profile/video-clips/11111111-1111-4111-8111-111111111111/video',
+  });
+  assert.equal(playback.statusCode, 200, playback.body);
+  assert.match(playback.headers['content-disposition'], /^inline; filename="fashion-video\.mp4"$/);
+  assert.deepEqual(playback.rawPayload, bytes);
 
   const listed = await app.inject({
     method: 'GET', url: '/api/profile/looks/33333333-3333-4333-8333-333333333333/video-clips',
@@ -616,6 +696,76 @@ test('a verified Fashion Video survives the saved-look library with private play
     video_url: '/api/profile/video-clips/11111111-1111-4111-8111-111111111111/video',
     download_url: '/api/profile/video-clips/11111111-1111-4111-8111-111111111111/download',
   }]);
+});
+
+test('playback and download reject bytes changed after QA', async (t) => {
+  const current = fixture();
+  const root = await mkdtemp(path.join(os.tmpdir(), 'zeely-video-delivery-corrupt-'));
+  const videoPath = path.join(root, 'delivered.mp4');
+  const approvedBytes = Buffer.from('approved-video');
+  await writeFile(videoPath, 'changed-after-qa');
+  t.after(async () => { await rm(root, { recursive: true, force: true }); });
+  current.setLiveClip({
+    status: 'PASS', videoPath, videoSha256: sha256(approvedBytes), qa: { pass: true },
+    motionReferenceBinding: { sha256: 'c'.repeat(64), packSha256: 'd'.repeat(64) },
+    identityItemQa: { pass: true },
+    referenceAdherenceQa: { pass: true, cutCoverage: { pass: true } },
+  });
+  const app = Fastify();
+  t.after(() => app.close());
+  await registerVideoRoutes(app, {
+    profileApi: { resolveRequestProfile: async () => ({ profileId: 'profile-1' }) },
+    profiles: current.profiles,
+    videoService: current.videoService,
+    runService: { outputFile: async () => null },
+  });
+
+  for (const route of ['video', 'download']) {
+    const response = await app.inject({
+      method: 'GET', url: `/api/profile/video-clips/11111111-1111-4111-8111-111111111111/${route}`,
+    });
+    assert.equal(response.statusCode, 409, response.body);
+    assert.deepEqual(response.json(), {
+      error: 'Video delivery integrity could not be verified.',
+      code: 'VIDEO_DELIVERY_INTEGRITY_FAILED',
+    });
+    assert.equal(response.headers['content-type']?.startsWith('video/'), false);
+  }
+});
+
+test('playback and download reject missing or malformed delivery digests', async (t) => {
+  const current = fixture();
+  const root = await mkdtemp(path.join(os.tmpdir(), 'zeely-video-delivery-digest-'));
+  const videoPath = path.join(root, 'delivered.mp4');
+  const bytes = Buffer.from('approved-video');
+  await writeFile(videoPath, bytes);
+  t.after(async () => { await rm(root, { recursive: true, force: true }); });
+  current.setLiveClip({
+    status: 'PASS', videoPath, qa: { pass: true },
+    motionReferenceBinding: { sha256: 'c'.repeat(64), packSha256: 'd'.repeat(64) },
+    identityItemQa: { pass: true },
+    referenceAdherenceQa: { pass: true, cutCoverage: { pass: true } },
+  });
+  const app = Fastify();
+  t.after(() => app.close());
+  await registerVideoRoutes(app, {
+    profileApi: { resolveRequestProfile: async () => ({ profileId: 'profile-1' }) },
+    profiles: current.profiles,
+    videoService: current.videoService,
+    runService: { outputFile: async () => null },
+  });
+
+  for (const videoSha256 of [undefined, 'not-a-sha256']) {
+    current.setLiveClip({ videoSha256 });
+    for (const route of ['video', 'download']) {
+      const response = await app.inject({
+        method: 'GET', url: `/api/profile/video-clips/11111111-1111-4111-8111-111111111111/${route}`,
+      });
+      assert.equal(response.statusCode, 409, response.body);
+      assert.equal(response.json().code, 'VIDEO_DELIVERY_INTEGRITY_FAILED');
+      assert.equal(response.headers['content-type']?.startsWith('video/'), false);
+    }
+  }
 });
 
 test('status gives the real terminal provider reason instead of a connection or timeout fiction', async (t) => {

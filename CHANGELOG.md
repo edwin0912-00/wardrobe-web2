@@ -4,6 +4,14 @@ This is the operational history of the unified `alpha` product. Git commits
 carry the exact diffs and Lore decision trailers; this file explains their
 effect on the complete product. Private inputs, receipts and keys stay off Git.
 
+## 2026-10-02 — video durability and SSD conservation
+
+- Video metadata now publishes atomically; immutable source/media/receipts publish without overwrite. File and parent-directory syncing protect completed writes; partial writes preserve the previous record and cannot poison an immutable target.
+- A successful local FAL acknowledgement can restore the same request ID only when model, endpoint, prompt, source, motion and uploaded-reference receipts match the locked request. Unknown or mismatched acknowledgements remain quarantined; startup never creates another paid job.
+- Recovered jobs restore their profile projection only with a bound owner/look or an existing authorized association. Playback and download serve exactly the bytes matching the persisted QA SHA-256, rejecting changed or unverified delivery files.
+- Preserved historical source/media before removing 38 release trees and 787 historical paths. Git history, external worktree dependencies, auth/cache/conversation state and live data remain protected. See [SSD conservation](docs/SSD-CONSOLIDATION.md) for measured outcomes and verification limits.
+- Seedance person-reference refusals remain terminal. No new provider generation or support message was sent, and no masking/cropping/depth transformation was used to circumvent them.
+
 ## 2026-10-01 — reference-preserving FAL routing candidate
 
 - `9f40523`: added Codex → FAL GPT Image 2.5 Sunburst image routing. More than
@@ -64,5 +72,5 @@ The approved cinematic D journey and its media/mobile guarantees were retained.
 - Add a reviewed portable installation/deployment questionnaire around the
   existing unified installer. Current production deploy tooling is macOS and
   host-specific; a generic VPS command has not been implemented yet.
-- Keep SSD cleanup separate: useful differing media/history remain, and the
-  audit did not prove a whole target safe to delete.
+- Keep the verified private legacy archive and its restore manifests. Protected
+  provider state and Git/worktree dependencies remain at their original paths.

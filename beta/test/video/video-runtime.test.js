@@ -9,9 +9,97 @@ import {
   VideoRuntimeError,
   createVideoRuntime,
   downloadVideoBytes,
+  resumePersistedVideoJobs,
 } from '../../src/web/video-runtime.js';
 import { ClipStore, VideoServiceError } from '../../src/web/video-service.js';
 import { sha256 } from '../../src/web/scene-contract.js';
+
+test('startup restores a bound clip into its owner profile and finalizes the same job', async () => {
+  const projections = [];
+  const finalized = [];
+  const events = [];
+  const clip = {
+    clipId: 'clip', jobId: 'accepted-request', status: 'CREATED',
+    videoModel: 'seedance-2.5', createdAt: '2026-10-02', updatedAt: '2026-10-02',
+    lookBinding: { profileId: 'owner', lookId: 'look' },
+    immutableRequestBinding: { source_binding: { profile_id: 'owner', look_id: 'look' } },
+  };
+  const videoService = {
+    resumableClipIds: async () => ['clip'],
+    getClip: async () => clip,
+    finalizeClip: async (id) => {
+      finalized.push({ id, jobId: clip.jobId, model: clip.videoModel });
+      clip.status = 'PASS'; clip.videoSha256 = 'a'.repeat(64);
+    },
+    createClip: () => { throw new Error('Startup must never create another job'); },
+  };
+  const profiles = {
+    videoClipProjection: () => null,
+    ownsLook: (owner, look) => owner === 'owner' && look === 'look',
+    projectVideoClip: (owner, look, value) => {
+      projections.push({ owner, look, status: value.status }); return value;
+    },
+  };
+  await Promise.all(await resumePersistedVideoJobs({
+    videoService, profiles, monitor: { append: async (event) => events.push(event) },
+  }));
+  assert.deepEqual(finalized, [{ id: 'clip', jobId: 'accepted-request', model: 'seedance-2.5' }]);
+  assert.deepEqual(projections, [
+    { owner: 'owner', look: 'look', status: 'CREATED' },
+    { owner: 'owner', look: 'look', status: 'PASS' },
+  ]);
+  assert.equal(events[0].type, 'video.resume_completed');
+});
+
+test('startup does not assign an orphan or mismatched binding to a profile', async () => {
+  for (const binding of [undefined, { profile_id: 'different-owner', look_id: 'look' }]) {
+    let projections = 0;
+    let finalized = 0;
+    const clip = {
+      clipId: 'clip', status: 'CREATED', lookBinding: { profileId: 'owner', lookId: 'look' },
+      immutableRequestBinding: { source_binding: binding },
+    };
+    await Promise.all(await resumePersistedVideoJobs({
+      videoService: {
+        resumableClipIds: async () => ['clip'], getClip: async () => clip,
+        finalizeClip: async () => { finalized += 1; },
+      },
+      profiles: {
+        videoClipProjection: () => null, ownsLook: () => true,
+        projectVideoClip: () => { projections += 1; },
+      },
+      monitor: { append: async () => {} },
+    }));
+    assert.equal(projections, 0);
+    assert.equal(finalized, 1, 'Known jobs retain the previous wait-only startup behavior');
+  }
+});
+
+test('startup projects a terminal provider refusal without creating another job', async () => {
+  const states = [];
+  const events = [];
+  const clip = {
+    clipId: 'clip', status: 'CREATED', lookBinding: { profileId: 'owner', lookId: 'look' },
+    immutableRequestBinding: { source_binding: { profile_id: 'owner', look_id: 'look' } },
+  };
+  await Promise.all(await resumePersistedVideoJobs({
+    videoService: {
+      resumableClipIds: async () => ['clip'], getClip: async () => clip,
+      finalizeClip: async () => {
+        clip.status = 'FAILED';
+        throw Object.assign(new Error('Provider refusal'), { code: 'FAL_VIDEO_POLICY_REJECTED' });
+      },
+      createClip: () => { throw new Error('No paid resubmission'); },
+    },
+    profiles: {
+      videoClipProjection: () => null, ownsLook: () => true,
+      projectVideoClip: (_owner, _look, value) => { states.push(value.status); return value; },
+    },
+    monitor: { append: async (event) => events.push(event) },
+  }));
+  assert.deepEqual(states, ['CREATED', 'FAILED']);
+  assert.equal(events[0].data.code, 'FAL_VIDEO_POLICY_REJECTED');
+});
 
 test('delivery assembly explicitly replaces provider audio with locked reference audio', async () => {
   const calls = [];

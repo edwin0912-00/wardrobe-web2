@@ -11,8 +11,9 @@
 //   DELETE /api/profile/video-clips/:clipId       — delete a clip
 //   GET    /api/profile/looks/:lookId/video-clips — list clips for a look
 
+import { createHash } from 'node:crypto';
 import { createReadStream } from 'node:fs';
-import { stat } from 'node:fs/promises';
+import { readFile, stat } from 'node:fs/promises';
 import { ProfileError } from './profile-service.js';
 import { fashionVideoCapability } from './video-capability.js';
 import { resolveVideoQaAction } from './video-qa-action.js';
@@ -187,6 +188,31 @@ function publicAutomaticRetry(liveClip) {
   };
 }
 
+export function projectVideoClipToProfile(profiles, profileId, lookId, liveClip) {
+  const projection = profiles.projectVideoClip(profileId, lookId, {
+    clip_id: liveClip.clipId,
+    bindings: {
+      approved_look: { look_id: lookId },
+      motion_mode: liveClip.mode,
+      surface: liveClip.surface,
+    },
+    status: liveClip.status,
+    job_id: liveClip.jobId ?? null,
+    output: liveClip.videoSha256
+      ? {
+          sha256: liveClip.videoSha256,
+          duration_seconds: liveClip.deliveryDurationSeconds ?? liveClip.durationSeconds,
+        }
+      : null,
+    created_at: liveClip.createdAt,
+    updated_at: liveClip.updatedAt,
+  });
+  return {
+    ...projection,
+    ...(typeof liveClip.videoModel === 'string' ? { video_model: liveClip.videoModel } : {}),
+  };
+}
+
 /**
  * @param {import('fastify').FastifyInstance} app
  * @param {object} options
@@ -205,30 +231,9 @@ export async function registerVideoRoutes(app, {
     throw new Error('registerVideoRoutes requires profileApi, profiles, videoService, and runService');
   }
 
-  const projectClip = (profileId, lookId, liveClip) => {
-    const projection = profiles.projectVideoClip(profileId, lookId, {
-      clip_id: liveClip.clipId,
-      bindings: {
-        approved_look: { look_id: lookId },
-        motion_mode: liveClip.mode,
-        surface: liveClip.surface,
-      },
-      status: liveClip.status,
-      job_id: liveClip.jobId ?? null,
-      output: liveClip.videoSha256
-        ? {
-            sha256: liveClip.videoSha256,
-            duration_seconds: liveClip.deliveryDurationSeconds ?? liveClip.durationSeconds,
-          }
-        : null,
-      created_at: liveClip.createdAt,
-      updated_at: liveClip.updatedAt,
-    });
-    return {
-      ...projection,
-      ...(typeof liveClip.videoModel === 'string' ? { video_model: liveClip.videoModel } : {}),
-    };
-  };
+  const projectClip = (profileId, lookId, liveClip) => (
+    projectVideoClipToProfile(profiles, profileId, lookId, liveClip)
+  );
 
   // `createClip` deliberately returns after persisting the paid provider job.
   // The second phase must nevertheless be owned by the server, not by a tab
@@ -994,15 +999,34 @@ export async function registerVideoRoutes(app, {
         code: 'VIDEO_STYLE_PROVENANCE_MISSING',
       });
     }
+    if (!/^[a-f0-9]{64}$/.test(liveClip.videoSha256 ?? '')) {
+      return reply.code(409).send({
+        error: 'Video delivery integrity could not be verified.',
+        code: 'VIDEO_DELIVERY_INTEGRITY_FAILED',
+      });
+    }
+    let bytes;
     try {
-      const fileStat = await stat(liveClip.videoPath);
+      // ponytail: buffer one delivery so served bytes match QA; use immutable file snapshots if large concurrent clips make this costly.
+      bytes = await readFile(liveClip.videoPath);
+    } catch {
+      return reply.code(404).send({ error: 'Video file not found on disk', code: 'VIDEO_FILE_MISSING' });
+    }
+    const actualSha256 = createHash('sha256').update(bytes).digest('hex');
+    if (actualSha256 !== liveClip.videoSha256) {
+      return reply.code(409).send({
+        error: 'Video delivery integrity could not be verified.',
+        code: 'VIDEO_DELIVERY_INTEGRITY_FAILED',
+      });
+    }
+    try {
       return reply
         .type('video/mp4')
         .header('Cache-Control', 'private, no-store')
         .header('X-Content-Type-Options', 'nosniff')
-        .header('Content-Length', fileStat.size)
+        .header('Content-Length', bytes.length)
         .header('Content-Disposition', `${attachment ? 'attachment' : 'inline'}; filename="fashion-video.mp4"`)
-        .send(createReadStream(liveClip.videoPath));
+        .send(bytes);
     } catch {
       return reply.code(404).send({ error: 'Video file not found on disk', code: 'VIDEO_FILE_MISSING' });
     }

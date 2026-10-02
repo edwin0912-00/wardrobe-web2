@@ -9,8 +9,40 @@ import { ClipStore, VideoService } from './video-service.js';
 import { salvageVideoFromQa } from './video-qa-salvage.js';
 import { createVideoSemanticQaEvaluator } from './video-semantic-qa.js';
 import { createVlmEvaluator } from './vlm-provider.js';
+import { projectVideoClipToProfile } from './video-routes.js';
 
 const execFileAsync = promisify(execFile);
+
+export async function resumePersistedVideoJobs({ videoService, profiles, monitor }) {
+  if (!videoService) return [];
+  const project = async (clipId) => {
+    const clip = await videoService.getClip(clipId);
+    const owner = clip?.lookBinding;
+    if (!owner?.profileId || !owner.lookId) return;
+    const binding = clip.immutableRequestBinding?.source_binding;
+    const boundOwner = binding?.profile_id === owner.profileId && binding?.look_id === owner.lookId;
+    const existing = profiles.videoClipProjection(owner.profileId, clipId);
+    // Legacy jobs may update an existing association; never invent an owner for an orphan.
+    if (!boundOwner && existing?.look_id !== owner.lookId) return;
+    if (!profiles.ownsLook(owner.profileId, owner.lookId)) return;
+    projectVideoClipToProfile(profiles, owner.profileId, owner.lookId, clip);
+  };
+  const ids = await videoService.resumableClipIds();
+  return ids.map(async (clipId) => {
+    try {
+      await project(clipId);
+      await videoService.finalizeClip(clipId);
+      await project(clipId);
+      await monitor.append({ source: 'server', type: 'video.resume_completed', data: { clip_id: clipId } });
+    } catch (error) {
+      await project(clipId).catch(() => {});
+      await monitor.append({
+        source: 'server', type: 'video.resume_paused', severity: 'warn',
+        data: { clip_id: clipId, code: error?.code ?? 'VIDEO_FINALIZE_ERROR' },
+      }).catch(() => {});
+    }
+  });
+}
 
 export class VideoRuntimeError extends Error {
   constructor(message, { code = 'VIDEO_RUNTIME_ERROR', cause } = {}) {

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -17,6 +18,8 @@ import {
   FAL_VIDEO_POLICY_REJECTION_MESSAGE,
   FAL_VIDEO_RESULT_REJECTION_CODE,
   FAL_VIDEO_RESULT_REJECTION_MESSAGE,
+  falVideoPrompt,
+  resolveFalVideoModel,
 } from '../../src/providers/fal-video-provider.js';
 import { sha256 } from '../../src/web/scene-contract.js';
 
@@ -131,6 +134,110 @@ async function withTempDir(fn) {
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
+}
+
+function makeAcknowledgedFalProvider(requestId = 'accepted-request-1') {
+  const createRequests = [];
+  const waitRequests = [];
+  return {
+    createRequests,
+    waitRequests,
+    provider: {
+      async createJob(request) {
+        createRequests.push(request);
+        const model = resolveFalVideoModel(request.videoModel);
+        const imageFiles = request.referenceBindings.images.map((binding, index) => {
+          const url = `https://fal.example/image-${index + 1}.png`;
+          return {
+            role: binding.role,
+            source_sha256: binding.sha256,
+            uploaded_sha256: binding.sha256,
+            url,
+            provider_label: `@Image${index + 1}`,
+            normalized: false,
+          };
+        });
+        const motionBinding = request.referenceBindings.motion_reference;
+        const motionUrl = 'https://fal.example/motion.mp4';
+        const payload = {
+          prompt: falVideoPrompt(request.prompt),
+          image_urls: imageFiles.map((file) => file.url),
+          video_urls: [motionUrl],
+          resolution: '720p',
+          duration: String(request.durationSeconds),
+          aspect_ratio: request.aspectRatio,
+          codec: 'H264',
+          generate_audio: false,
+          ...(model.id === 'seedance-2.5' ? { task: 'reference' } : {}),
+        };
+        return {
+          jobId: requestId,
+          requestId,
+          providerKey: 'fal',
+          videoModel: model.id,
+          providerEndpoint: model.endpoint,
+          createAttempt: 1,
+          fallbackUsed: false,
+          inputMedia: {
+            schema_version: 'fal-video-input-media-v1',
+            provider: 'fal',
+            video_model: model.id,
+            endpoint: model.endpoint,
+            prompt_sha256: sha256(Buffer.from(payload.prompt)),
+            files: [
+              ...imageFiles,
+              {
+                role: 'motion_reference',
+                source_sha256: motionBinding.sha256,
+                uploaded_sha256: motionBinding.sha256,
+                url: motionUrl,
+                provider_label: '@Video1',
+                normalized: false,
+              },
+            ],
+          },
+          request: payload,
+          raw: { request_id: requestId },
+        };
+      },
+      async waitForJob(request) {
+        waitRequests.push(request);
+        throw Object.assign(new Error('temporary wait interruption'), {
+          code: 'TEST_WAIT_INTERRUPTED',
+        });
+      },
+    },
+  };
+}
+
+async function createReceiptBoundClip(service, dir, sourcePath) {
+  const referenceBytes = Buffer.from('locked-recovery-style-reference');
+  const referencePath = path.join(dir, 'recovery-style.mp4');
+  await writeFile(referencePath, referenceBytes);
+  return service.createClip({
+    modeId: 'editorial_micro_moment',
+    sourceImagePath: sourcePath,
+    lookBinding: {
+      profileId: 'profile_recovery_test',
+      lookId: 'look_recovery_test',
+      sourceSha256: sha256(await readFile(sourcePath)),
+      approvedLookReceiptSha256: 'a'.repeat(64),
+      whiteBackgroundVerified: true,
+    },
+    videoReference: {
+      state: 'READY',
+      reference_id: 'recovery-style',
+      reference_path: referencePath,
+      reference_sha256: sha256(referenceBytes),
+      reference_pack_sha256: 'b'.repeat(64),
+      duration_seconds: 5,
+      provider_duration_seconds: 5,
+      width: 720,
+      height: 1280,
+      fps: 25,
+      ...verifiedCutSheet(5),
+    },
+  });
 }
 
 test('createClip builds a motion plan and persists the job id', async () => {
@@ -265,6 +372,7 @@ test('a lost FAL create acknowledgement is persisted as unknown and cannot be re
     ));
     assert.equal(receipt.outcome, 'UNKNOWN');
     assert.equal(receipt.provider_input_media.files[0].provider_label, '@Image1');
+    assert.deepEqual(await service.resumableClipIds(), []);
     assert.equal((await service.automaticRetryReferenceQaFailure(clipId, {
       videoReference: {},
     })).eligible, false);
@@ -778,6 +886,113 @@ test('createClip reports input-media IP verification after its bounded automatic
       attempt: 2,
       max_attempts: 2,
     });
+  });
+});
+
+test('startup restores one acknowledged request from its exact local receipt after the CREATED save fails', async () => {
+  await withTempDir(async (dir, sourcePath) => {
+    const { provider, createRequests, waitRequests } = makeAcknowledgedFalProvider();
+    const store = new ClipStore(dir);
+    const save = store.save.bind(store);
+    let failCreatedSave = true;
+    store.save = async (clipId, metadata) => {
+      if (failCreatedSave && metadata.status === 'CREATED') {
+        failCreatedSave = false;
+        throw Object.assign(new Error('injected post-ack metadata failure'), { code: 'EIO' });
+      }
+      return save(clipId, metadata);
+    };
+    const service = new VideoService({ provider, clipStore: store });
+    await assert.rejects(
+      () => createReceiptBoundClip(service, dir, sourcePath),
+      (error) => error.code === 'EIO',
+    );
+
+    const clipId = createRequests[0].sourceBinding.clipId;
+    assert.equal((await store.load(clipId)).status, 'SUBMITTING');
+    assert.deepEqual(await service.resumableClipIds(), [clipId]);
+    const restored = await store.load(clipId);
+    assert.equal(restored.status, 'CREATED');
+    assert.equal(restored.jobId, 'accepted-request-1');
+    assert.equal(restored.providerRequestId, 'accepted-request-1');
+    assert.equal(restored.videoModel, 'seedance-2.0');
+    assert.equal(restored.providerEndpoint, 'bytedance/seedance-2.0/reference-to-video');
+    assert.deepEqual(restored.immutableRequestBinding.source_binding, {
+      source_sha256: restored.sourceSha256,
+      approved_look_receipt_sha256: 'a'.repeat(64),
+      white_background_verified: true,
+      profile_id: 'profile_recovery_test',
+      look_id: 'look_recovery_test',
+    });
+
+    await assert.rejects(
+      () => service.awaitAndFinalize(clipId, {}),
+      (error) => error.code === 'TEST_WAIT_INTERRUPTED',
+    );
+    assert.equal(waitRequests.length, 1);
+    assert.equal(waitRequests[0].jobId, 'accepted-request-1');
+    assert.equal(waitRequests[0].providerRequestId, 'accepted-request-1');
+    assert.equal(createRequests.length, 1);
+    assert.equal((await store.load(clipId)).jobId, 'accepted-request-1');
+  });
+});
+
+test('recovery quarantines mismatched receipt bindings and changed locked source bytes', async () => {
+  await withTempDir(async (dir, sourcePath) => {
+    const { provider, createRequests } = makeAcknowledgedFalProvider();
+    const store = new ClipStore(dir);
+    const save = store.save.bind(store);
+    let failCreatedSave = true;
+    store.save = async (clipId, metadata) => {
+      if (failCreatedSave && metadata.status === 'CREATED') {
+        failCreatedSave = false;
+        throw Object.assign(new Error('injected post-ack metadata failure'), { code: 'EIO' });
+      }
+      return save(clipId, metadata);
+    };
+    const service = new VideoService({ provider, clipStore: store });
+    await assert.rejects(() => createReceiptBoundClip(service, dir, sourcePath), { code: 'EIO' });
+
+    const clipId = createRequests[0].sourceBinding.clipId;
+    const receiptPath = path.join(store.clipDir(clipId), 'create-receipt.json');
+    const originalReceipt = await readFile(receiptPath);
+    const tamperedReceipt = JSON.parse(originalReceipt.toString('utf8'));
+    tamperedReceipt.request.source_sha256 = 'f'.repeat(64);
+    await writeFile(receiptPath, `${JSON.stringify(tamperedReceipt, null, 2)}\n`);
+    await assert.rejects(
+      () => service.recoverSubmittedClip(clipId, { jobId: 'caller-supplied-id' }),
+      (error) => error.code === 'RECOVERY_PROVIDER_BINDING_UNVERIFIABLE',
+    );
+    assert.deepEqual(await service.resumableClipIds(), []);
+    assert.equal((await store.load(clipId)).status, 'SUBMITTING');
+
+    const mismatchedRequestId = JSON.parse(originalReceipt.toString('utf8'));
+    mismatchedRequestId.request_id = 'caller-supplied-id';
+    await writeFile(receiptPath, `${JSON.stringify(mismatchedRequestId, null, 2)}\n`);
+    await assert.rejects(
+      () => service.recoverSubmittedClip(clipId),
+      (error) => error.code === 'RECOVERY_PROVIDER_BINDING_UNVERIFIABLE',
+    );
+
+    const mismatchedPrompt = JSON.parse(originalReceipt.toString('utf8'));
+    const changedPrompt = `${mismatchedPrompt.request.provider_payload.prompt} changed`;
+    mismatchedPrompt.request.provider_payload.prompt = changedPrompt;
+    mismatchedPrompt.provider_input_media.prompt_sha256 = sha256(Buffer.from(changedPrompt));
+    await writeFile(receiptPath, `${JSON.stringify(mismatchedPrompt, null, 2)}\n`);
+    await assert.rejects(
+      () => service.recoverSubmittedClip(clipId),
+      (error) => error.code === 'RECOVERY_PROVIDER_BINDING_UNVERIFIABLE',
+    );
+
+    await writeFile(receiptPath, originalReceipt);
+    await writeFile(path.join(store.clipDir(clipId), 'source.png'), Buffer.from('changed-source'));
+    await assert.rejects(
+      () => service.recoverSubmittedClip(clipId),
+      (error) => error.code === 'RECOVERY_PROVIDER_BINDING_UNVERIFIABLE',
+    );
+    assert.deepEqual(await service.resumableClipIds(), []);
+    assert.equal((await store.load(clipId)).status, 'SUBMITTING');
+    assert.equal(createRequests.length, 1);
   });
 });
 
@@ -2495,6 +2710,80 @@ test('ClipStore refuses to construct without root directory', () => {
       return true;
     },
   );
+});
+
+test('ClipStore keeps prior metadata and publishes no partial immutable files after EFBIG', async () => {
+  await withTempDir(async (dir) => {
+    const store = new ClipStore(dir);
+    const clipId = '2f02db02-41c3-4e64-9a13-a40f24e2ef10';
+    const previous = { clipId, status: 'CREATED', preserved: true };
+    await store.save(clipId, previous);
+    const moduleUrl = new URL('../../src/web/video-service.js', import.meta.url).href;
+    const childProgram = `
+      const { ClipStore } = await import(${JSON.stringify(moduleUrl)});
+      const store = new ClipStore(${JSON.stringify(dir)});
+      const clipId = ${JSON.stringify(clipId)};
+      const bytes = Buffer.alloc(16_384, 0x61);
+      const attempts = [
+        () => store.save(clipId, { clipId, status: 'CREATED', payload: 'x'.repeat(16_384) }),
+        () => store.saveVideo(clipId, bytes),
+        () => store.saveProviderVideo(clipId, bytes),
+        () => store.saveFashionReference(clipId, bytes),
+        () => store.saveSource(clipId, bytes),
+        () => store.saveAppearanceReference(clipId, 'identity_face', bytes),
+        () => store.saveQaReceipt(clipId, 'reference-qa.json', bytes, 'TEST_QA_CONFLICT'),
+        () => store.saveCreateReceipt(clipId, bytes),
+        () => store.saveIdentityItemQa(clipId, bytes),
+      ];
+      const errors = [];
+      for (const attempt of attempts) {
+        try { await attempt(); errors.push(null); } catch (error) { errors.push(error.code); }
+      }
+      console.log(JSON.stringify(errors));
+    `;
+    const child = spawnSync('/bin/sh', [
+      '-c', 'ulimit -f 8 || exit 77; exec "$1" --input-type=module -e "$2"',
+      'clip-store-ebig-check', process.execPath, childProgram,
+    ], { encoding: 'utf8' });
+    assert.ifError(child.error);
+    assert.equal(child.status, 0, child.stderr);
+    assert.deepEqual(JSON.parse(child.stdout.trim()), Array(9).fill('EFBIG'));
+    assert.deepEqual(await store.load(clipId), previous);
+    assert.deepEqual(await readdir(store.clipDir(clipId)), ['clip.json']);
+
+    const complete = Buffer.alloc(16_384, 0x62);
+    const providerPath = await store.saveProviderVideo(clipId, complete);
+    assert.deepEqual(await readFile(providerPath), complete);
+    assert.equal(await store.saveProviderVideo(clipId, complete), providerPath);
+    await assert.rejects(
+      () => store.saveProviderVideo(clipId, Buffer.from('different')),
+      (error) => error.code === 'PROVIDER_VIDEO_CONFLICT',
+    );
+  });
+});
+
+test('ClipStore immutable source, reference and receipt writes are idempotent and reject changed bytes', async () => {
+  await withTempDir(async (dir) => {
+    const store = new ClipStore(dir);
+    const clipId = 'immutable-video-store';
+    const writes = [
+      [(bytes) => store.saveSource(clipId, bytes), 'VIDEO_SOURCE_CONFLICT', Buffer.from('source')],
+      [(bytes) => store.saveAppearanceReference(clipId, 'identity_face', bytes), 'VIDEO_APPEARANCE_REFERENCE_CONFLICT', Buffer.from('appearance')],
+      [(bytes) => store.saveProviderVideo(clipId, bytes), 'PROVIDER_VIDEO_CONFLICT', Buffer.from('provider')],
+      [(bytes) => store.saveFashionReference(clipId, bytes), 'VIDEO_REFERENCE_CONFLICT', Buffer.from('motion')],
+      [(bytes) => store.saveQaReceipt(clipId, 'qa.json', bytes, 'TEST_QA_CONFLICT'), 'TEST_QA_CONFLICT', Buffer.from('qa')],
+      [(bytes) => store.saveCreateReceipt(clipId, bytes), 'CREATE_RECEIPT_CONFLICT', Buffer.from('create')],
+      [(bytes) => store.saveIdentityItemQa(clipId, bytes), 'QA_RECEIPT_CONFLICT', Buffer.from('identity-qa')],
+    ];
+    for (const [save, conflictCode, bytes] of writes) {
+      const first = await save(bytes);
+      assert.equal(await save(bytes), first);
+      await assert.rejects(
+        () => save(Buffer.from(`${bytes.toString()}-changed`)),
+        (error) => error.code === conflictCode,
+      );
+    }
+  });
 });
 
 test('walk_stride mode is refused without full_length capability', async () => {
