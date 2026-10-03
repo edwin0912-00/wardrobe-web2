@@ -1,19 +1,19 @@
 {
   "schema_version": 1,
   "release": "alpha-0.07-image-speed",
-  "created_at": "2026-10-03",
+  "created_at": "2026-10-04",
   "purpose": "Persisted Slow/Fast image routing on both sites, reproducible video-reference preparation, full-product operator setup and matching versioned site/engine artifacts.",
   "sources": {
     "main_site": {
       "repository": "https://github.com/edwin0912-00/wardrobe-web2.git",
-      "commit": "6bde5f8b916bc2513b48ccf6ac1c4b3a48d7b053",
+      "commit": "925360df6f70e7aed5c5d49c250a2b9925f3b991",
       "location": "."
     },
     "beta_engine": {
       "repository": "https://github.com/edwin0912-00/zeely-ai-engineering-test.git",
       "commit": "826ba677838ba11bdc5520e75225c8f593f67102",
       "source_tree": "679d1a3dc4abdd95b3a92afc22eaaadc2da85a5c",
-      "tree": "b7d2c20c0500ff73ed7c20bb4521a534fdbc67bc",
+      "tree": "3e3cc9f0e97fe543f76067e0289113eaba1a20ee",
       "location": "beta"
     }
   },
