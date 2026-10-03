@@ -1,6 +1,29 @@
 # Wardrobe agent entrypoint
 
-## SEVEN-BLOCK MODE — current sprint
+## Current unified alpha contract — 2026-10-03
+
+The repository root `AGENTS.md`, `README.md`, `COLLAB-BOARD.md` and
+`docs/UNIFIED_PROJECT_MONOREPO_PLAN.md` are the current operating contract.
+`alpha` is the sole active integration/release line for the cinematic site,
+Studio and this engine. All branch, sprint, permission and deployment rules
+below are historical records and do not override this section or direct
+current owner instructions. Do not switch to or push historical `beta`,
+`main`, `beta-block-*` or old integration branches.
+
+Root coordinates one live-board claim and delegates disjoint paths to native
+agents. A delegated agent does not create a competing board claim, commit,
+push, deploy, run paid generation or delete data unless its packet explicitly
+assigns that action. Preserve other agents' changes and use the assigned
+isolated worktree. Root independently verifies and publishes the integrated
+result.
+
+Read the current provider contract before changing routing. Slow/Fast is
+image-only and must remain pinned per run, scene and shoot. Preserve required
+references, semantic QA, idempotency and unknown-outcome protection. The
+successful authorized video recipe is separate evidence from site activation;
+private media, credentials, provider URLs and runtime records stay out of Git.
+
+## Historical SEVEN-BLOCK MODE — superseded sprint
 
 This section overrides every older branch, lane, lease, direct-beta and PR rule
 below.

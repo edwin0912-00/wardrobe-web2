@@ -12,10 +12,17 @@ Read `docs/PROVIDER-ROUTING.md` before changing generation. Preserve every
 mandatory reference, selected Seedance model and persisted remote request.
 Do not resubmit unknown outcomes or silently replace a model. FAL credentials
 remain server-only; OpenRouter retains semantic QA.
-The 2026-10-01 real Seedance tests were rejected by the partner's content
-policy for the supplied person references. Treat those receipts as blocked
-provider evidence, not a reason to crop faces, change identities or retry the
-same rejected input. Configuration-ready is not generation-proven.
+The 2026-10-01 Seedance requests were rejected for their supplied inputs and
+remain terminal historical jobs. A separately authorized 2026-10-03 test
+with reviewed face-masked RGB, synchronized relative depth, approved-look
+images and explicit reference roles returned a real Seedance 2.5 video.
+Preserve that reproducible recipe and its exact source hashes; do not infer a
+blanket ban on benign local anonymization from an earlier provider refusal.
+Normal provider checks remain active. Never automatically resubmit a rejected
+job or an unknown paid outcome, silently replace a model/account, or present
+one successful transport test as proof of every input or production journey.
+Further paid video tests require a new explicit instruction; the owner has
+chosen to prioritize Slow/Fast photo routing because of video cost.
 
 Source, deployed artifacts and private runtime are separate. Preserve the
 existing runtime and the dedicated Codex account when changing code. Verify
