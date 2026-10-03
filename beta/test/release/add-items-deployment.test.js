@@ -1100,11 +1100,25 @@ test('product release pinning rejects ambiguous manifests, disabled or overbroad
     `${JSON.stringify(overbroadGeneration, null, 2)}\n`,
   );
   await writeFile(product.manifestPath, overbroadGenerationBytes);
+  // Catalog membership is pinned here; generation permission is checked by
+  // the trusted product verifier against the candidate's strict source packs.
+  await assert.rejects(
+    execute(process.execPath, [
+      path.join(projectRoot, 'tools', 'verify-product-release.mjs'),
+      product.releaseDirectory,
+    ]),
+    /generation authority does not contain every registered generation mode ID/,
+  );
+
+  const outsideCatalog = structuredClone(product.manifest);
+  outsideCatalog.editorial_preview.generation_mode_ids.push('editorial.not_registered');
+  const outsideCatalogBytes = Buffer.from(`${JSON.stringify(outsideCatalog, null, 2)}\n`);
+  await writeFile(product.manifestPath, outsideCatalogBytes);
   await assert.rejects(
     loadPinnedRelease({
       releaseDirectory: product.releaseDirectory,
       expectedContentDigest: product.manifest.content_digest_sha256,
-      expectedManifestSha256: createHash('sha256').update(overbroadGenerationBytes).digest('hex'),
+      expectedManifestSha256: createHash('sha256').update(outsideCatalogBytes).digest('hex'),
       expectedBaseCommit: product.manifest.base_commit,
     }),
     /editorial generation authority is not enabled/,
