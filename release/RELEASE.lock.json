@@ -1,19 +1,19 @@
 {
   "schema_version": 1,
-  "release": "alpha-0.06-fal-seedance",
-  "created_at": "2026-10-01",
-  "purpose": "Reference-preserving Codex to FAL Sunburst image routing, selectable FAL Seedance 2.0/2.5 video, and verified Live pre-camera guards in the unified alpha product.",
+  "release": "alpha-0.07-image-speed",
+  "created_at": "2026-10-03",
+  "purpose": "Persisted Slow/Fast image routing on both sites, reproducible video-reference preparation, full-product operator setup and matching versioned site/engine artifacts.",
   "sources": {
     "main_site": {
       "repository": "https://github.com/edwin0912-00/wardrobe-web2.git",
-      "commit": "42e3fc7e9e8f54844ed960e1592d79df3f956ed7",
+      "commit": "5e959c93ced77f624e8d4f1fd6002d3439385054",
       "location": "."
     },
     "beta_engine": {
       "repository": "https://github.com/edwin0912-00/zeely-ai-engineering-test.git",
       "commit": "826ba677838ba11bdc5520e75225c8f593f67102",
       "source_tree": "679d1a3dc4abdd95b3a92afc22eaaadc2da85a5c",
-      "tree": "430ea99ec95c720dcc524fe9dae9cab8287ca338",
+      "tree": "b7d2c20c0500ff73ed7c20bb4521a534fdbc67bc",
       "location": "beta"
     }
   },
