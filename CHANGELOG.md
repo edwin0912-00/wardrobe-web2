@@ -10,6 +10,8 @@ effect on the complete product. Private inputs, receipts and keys stay off Git.
   full-product installation contract. Media downloads use isolated temporary
   files and bounded timeouts while retaining byte-count, SHA and archive-path
   checks. The installer does not provision infrastructure or provider accounts.
+- The local launcher directly owns the engine process, so a completed smoke
+  check or terminal shutdown no longer leaves an npm child listening behind it.
 - Main deployments now package only the serving files and locked cinematic
   media, preserve a versioned rollback, and verify public static bytes and
   Range responses. Both deployment gates require the expected engine source

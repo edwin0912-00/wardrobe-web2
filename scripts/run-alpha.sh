@@ -139,7 +139,7 @@ PY
   PORT=$ENGINE_PORT \
   ZEELY_RUNTIME_ROOT=$RUNTIME_ROOT/engine \
   ZEELY_COOKIE_SECURE=false \
-  npm run app
+  exec node src/web/start.js
 ) >"$LOG_ROOT/engine.log" 2>&1 &
 ENGINE_PID=$!
 
